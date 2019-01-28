@@ -7,9 +7,9 @@ git submodule add $GIT_URL
 ```
 
 Then, update root CMakeLists.txt:
-```
+```diff
 include_directories(
   # add path to header only deps here
-+  deps/spdlog/include
++ deps/spdlog/include
 )
 ```
