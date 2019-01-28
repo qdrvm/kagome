@@ -24,6 +24,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
 include_directories(
   # add path to header only deps here
+  deps/spdlog/include
 )
 
 add_subdirectory(core)
