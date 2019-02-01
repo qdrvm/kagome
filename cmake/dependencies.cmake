@@ -7,3 +7,7 @@ find_package(GTest CONFIG REQUIRED)
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
 hunter_add_package(Boost)
 find_package(Boost CONFIG REQUIRED)
+
+# https://docs.hunter.sh/en/latest/packages/pkg/libjson-rpc-cpp.html
+hunter_add_package(libjson-rpc-cpp)
+find_package(libjson-rpc-cpp CONFIG REQUIRED)
