@@ -1,17 +1,35 @@
 language: cpp
 
-os:
-  - linux
-  - osx
+matrix:
+  include:
+    - os: linux
+      env: CMAKE_CXX_COMPILER=g++-7
+    - os: osx
+      osx_image: xcode10
 
-compiler:
-  - gcc
-  - clang
+cache:
+  directories:
+    - ${TRAVIS_BUILD_DIR}/cmake_3.13.3
+    - ${TRAVIS_BUILD_DIR}/build
+    - ${HOME}/.hunter
+
+install:
+  - CMAKE_SRC_BUILD_DIR="${TRAVIS_BUILD_DIR}/cmake_3.13.3"
+  - mkdir -p ${CMAKE_SRC_BUILD_DIR} && cd ${CMAKE_SRC_BUILD_DIR}
+  - if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then CMAKE_TAR_FILE='cmake-3.13.3-Linux-x86_64'; CMAKE_PATH="${CMAKE_TAR_FILE}/bin";
+    elif [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then CMAKE_TAR_FILE='cmake-3.13.3-Darwin-x86_64'; CMAKE_PATH="${CMAKE_TAR_FILE}/CMake.app/Contents/bin"; fi
+  - if [[ ! -f "${CMAKE_PATH}/cmake" ]]; then curl "https://cmake.org/files/v3.13/${CMAKE_TAR_FILE}.tar.gz" | tar xz; fi
+  - export PATH="$PWD/${CMAKE_PATH}:$PATH"
+  - cd ${TRAVIS_BUILD_DIR}
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - gcc-7
 
 before_script:
-  - mkdir build
-  - cd build
-  - cmake .. -GNinja
+  - cmake --version
+  - mkdir -p build && cd build && cmake ..
 
-script: ninja
-
+script: make
