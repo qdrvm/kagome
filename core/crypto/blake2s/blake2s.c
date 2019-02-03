@@ -3,6 +3,8 @@
 
 #include "blake2s.h"
 
+#include <stdint.h>
+
 #define _256_bits 32
 
 // Cyclic right rotation.
@@ -12,6 +14,15 @@
 #endif
 
 // Little-endian byte access.
+
+// state context
+typedef struct {
+  uint8_t b[64];                      // input buffer
+  uint32_t h[8];                      // chained state
+  uint32_t t[2];                      // total number of bytes
+  size_t c;                           // pointer for b[]
+  size_t outlen;                      // digest size
+} blake2s_ctx_full;
 
 #define B2S_GET32(p)                            \
     (((uint32_t) ((uint8_t *) (p))[0]) ^        \
@@ -41,7 +52,7 @@ static const uint32_t blake2s_iv[8] =
 
 // Compression function. "last" flag indicates last block.
 
-static void blake2s_compress(blake2s_ctx *ctx, int last) {
+static void blake2s_compress(blake2s_ctx_full *ctx, int last) {
   const uint8_t sigma[10][16] = {
       {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
       {14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3},
@@ -85,61 +96,10 @@ static void blake2s_compress(blake2s_ctx *ctx, int last) {
     ctx->h[i] ^= v[i] ^ v[i + 8];
 }
 
-// Initialize the hashing context "ctx" with optional key "key".
-//      1 <= outlen <= 32 gives the digest size in bytes.
-//      Secret key (also <= 32 bytes) is optional (keylen = 0).
-
-int blake2s_init(blake2s_ctx *ctx, size_t outlen,
-                 const void *key, size_t keylen)     // (keylen=0: no key)
-{
-  size_t i;
-
-  if (outlen == 0 || outlen > 32 || keylen > 32)
-    return -1;                      // illegal parameters
-
-  for (i = 0; i < 8; i++)             // state, "param block"
-    ctx->h[i] = blake2s_iv[i];
-  ctx->h[0] ^= 0x01010000 ^ (keylen << 8) ^ outlen;
-
-  ctx->t[0] = 0;                      // input count low word
-  ctx->t[1] = 0;                      // input count high word
-  ctx->c = 0;                         // pointer within buffer
-  ctx->outlen = outlen;
-
-  for (i = keylen; i < 64; i++)       // zero input block
-    ctx->b[i] = 0;
-  if (keylen > 0) {
-    blake2s_update(ctx, key, keylen);
-    ctx->c = 64;                    // at the end
-  }
-
-  return 0;
-}
-
-int blake2s_256_init(blake2s_ctx *ctx) {
-  size_t i;
-
-  for (i = 0; i < 8; i++)             // state, "param block"
-    ctx->h[i] = blake2s_iv[i];
-
-  ctx->h[0] ^= 0x01010000 ^ _256_bits;
-
-  ctx->t[0] = 0;                      // input count low word
-  ctx->t[1] = 0;                      // input count high word
-  ctx->c = 0;                         // pointer within buffer
-  ctx->outlen = _256_bits;
-
-  for (i = 0; i < 64; i++)       // zero input block
-    ctx->b[i] = 0;
-
-  return 0;
-}
-
 // Add "inlen" bytes from "in" into the hash.
+void blake2s_update(blake2s_ctx *ctx_opaque, const void *in, size_t inlen) {
+  blake2s_ctx_full *ctx = (blake2s_ctx_full *) ctx_opaque->opaque;
 
-void blake2s_update(blake2s_ctx *ctx,
-                    const void *in, size_t inlen)       // data bytes
-{
   size_t i;
 
   for (i = 0; i < inlen; i++) {
@@ -157,7 +117,9 @@ void blake2s_update(blake2s_ctx *ctx,
 // Generate the message digest (size given in init).
 //      Result placed in "out".
 
-void blake2s_final(blake2s_ctx *ctx, void *out) {
+void blake2s_final(blake2s_ctx *ctx_opaque, void *out) {
+  blake2s_ctx_full *ctx = (blake2s_ctx_full *) ctx_opaque->opaque;
+
   size_t i;
 
   ctx->t[0] += ctx->c;                // mark last block offset
@@ -170,33 +132,53 @@ void blake2s_final(blake2s_ctx *ctx, void *out) {
 
   // little endian convert and store
   for (i = 0; i < ctx->outlen; i++) {
-    ((uint8_t *) out)[i] = (ctx->h[i >> 2] >> (8 * (i & 3))) & 0xFF;
+    ((uint8_t *) out)[i] = (uint8_t) ((ctx->h[i >> 2] >> (8 * (i & 3))) & 0xFF);
   }
 }
 
-// Convenience function for all-in-one computation.
+int blake2s_init(blake2s_ctx *ctx_opaque, size_t outlen, const void *key, size_t keylen) {
+  blake2s_ctx_full *ctx = (blake2s_ctx_full *) ctx_opaque->opaque;
 
-int blake2s(void *out, size_t outlen,
-            const void *key, size_t keylen,
-            const void *in, size_t inlen) {
+  size_t i;
+
+  if (outlen == 0 || outlen > 32 || keylen > 32)
+    return -1;                      // illegal parameters
+
+  for (i = 0; i < 8; i++)             // state, "param block"
+    ctx->h[i] = blake2s_iv[i];
+  ctx->h[0] ^= 0x01010000 ^ (keylen << 8) ^ outlen;
+
+  ctx->t[0] = 0;                      // input count low word
+  ctx->t[1] = 0;                      // input count high word
+  ctx->c = 0;                         // pointer within buffer
+  ctx->outlen = outlen;
+
+  for (i = keylen; i < 64; i++)       // zero input block
+    ctx->b[i] = 0;
+  if (keylen > 0) {
+    blake2s_update(ctx_opaque, key, keylen);
+    ctx->c = 64;                    // at the end
+  }
+
+  return 0;
+}
+
+int blake2s(void *out, size_t outlen, const void *key, size_t keylen, const void *in, size_t inlen) {
   blake2s_ctx ctx;
 
   if (blake2s_init(&ctx, outlen, key, keylen))
     return -1;
+
   blake2s_update(&ctx, in, inlen);
   blake2s_final(&ctx, out);
 
   return 0;
 }
 
-int blake2s_256(void *out, const void *in, size_t inlen) {
-  blake2s_ctx ctx;
+void blake2s_256_init(blake2s_ctx *ctx_opaque) {
+  blake2s_init(ctx_opaque, _256_bits, NULL, 0);
+}
 
-  if (blake2s_256_init(&ctx))
-    return -1;
-  
-  blake2s_update(&ctx, in, inlen);
-  blake2s_final(&ctx, out);
-
-  return 0;
+void blake2s_256(void *out, const void *in, size_t inlen) {
+  blake2s(out, _256_bits, NULL, 0, in, inlen);
 }

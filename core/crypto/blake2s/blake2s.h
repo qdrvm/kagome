@@ -1,56 +1,71 @@
-#ifndef POLKADOT_BLAKE2S_H
-#define POLKADOT_BLAKE2S_H
+#ifndef CORE_BLAKE2S_HASH
+#define CORE_BLAKE2S_HASH
 
-// blake2s.h
-// BLAKE2s Hashing Context and API Prototypes
-
-#ifndef BLAKE2S_H
-#define BLAKE2S_H
+#include <stdlib.h>
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-#include <stdint.h>
-#include <stddef.h>
-
-// state context
 typedef struct {
-  uint8_t b[64];                      // input buffer
-  uint32_t h[8];                      // chained state
-  uint32_t t[2];                      // total number of bytes
-  size_t c;                           // pointer for b[]
-  size_t outlen;                      // digest size
+  unsigned char opaque[128];
 } blake2s_ctx;
 
-// Initialize the hashing context "ctx" with optional key "key".
-//      1 <= outlen <= 32 gives the digest size in bytes.
-//      Secret key (also <= 32 bytes) is optional (keylen = 0).
-int blake2s_init(blake2s_ctx *ctx, size_t outlen,
-                 const void *key, size_t keylen);    // secret key
+/**
+ * @brief Initialize hash context
+ * @param ctx context
+ */
+void blake2s_256_init(blake2s_ctx *ctx);
 
-int blake2s_256_init(blake2s_ctx *ctx);
+/**
+ * @brief Update context with incoming bytes
+ * @param ctx context
+ * @param in {@param inlen} byte array
+ * @param inlen size of {@param in}
+ */
+void blake2s_update(blake2s_ctx *ctx, const void *in, size_t inlen);
 
-// Add "inlen" bytes from "in" into the hash.
-void blake2s_update(blake2s_ctx *ctx,   // context
-                    const void *in, size_t inlen);      // data to be hashed
-
-// Generate the message digest (size given in init).
-//      Result placed in "out".
+/**
+ * @brief Finalize hash calculation
+ * @param ctx context
+ * @param out 32-byte output
+ * @return
+ */
 void blake2s_final(blake2s_ctx *ctx, void *out);
 
-// All-in-one convenience function.
-int blake2s(void *out, size_t outlen,   // return buffer for digest
-            const void *key, size_t keylen,     // optional secret key
-            const void *in, size_t inlen);      // data to be hashed
+/**
+ * @brief One-shot convenience function to calculate blake2s_256 hash
+ * @param out 32-byte buffer
+ * @param in {@param inlen} bytes input buffer
+ * @param inlen size of the input buffer
+ * @return
+ */
+void blake2s_256(void *out, const void *in, size_t inlen);
 
-// all-n-one convenience function, no key, 256 bit
-int blake2s_256(void *out, const void *in, size_t inlen);
+/**
+ * @brief Generic blake2s init function
+ * @param ctx context
+ * @param outlen 1..32 bytes of output buffer size
+ * @param key optional key
+ * @param keylen length of {@param key} in bytes. Pass 0 to indicate that key is not provided.
+ * @return -1 in case of wrong input arguments; 0 in case of success.
+ */
+int blake2s_init(blake2s_ctx *ctx, size_t outlen, const void *key, size_t keylen);
+
+/**
+ * @brief All in one blake2s hashing function.
+ * @param out output buffer
+ * @param outlen size of {@param out}
+ * @param key optional key
+ * @param keylen size of {@param key}. Pass 0 to indicate that key is not provided.
+ * @param in data to be hashed
+ * @param inlen size of {@param in}
+ * @return -1 in case of wrong input arguments; 0 in case of success
+ */
+int blake2s(void *out, size_t outlen, const void *key, size_t keylen, const void *in, size_t inlen);
 
 #if defined(__cplusplus)
 }
 #endif
 
-#endif
-
-#endif //POLKADOT_BLAKE2S_H
+#endif //CORE_BLAKE2S_HASH
