@@ -17,7 +17,7 @@ namespace libp2p {
   namespace transport {
     /**
      * Allows to establish connections with other peers and react to received
-     * attempts to do so
+     * attempts to do so; can be implemented, for example, as TCP, UPD etc
      */
     class Transport {
      public:

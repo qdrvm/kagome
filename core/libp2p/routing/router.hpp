@@ -27,6 +27,12 @@ namespace libp2p {
        */
       virtual std::priority_queue<common::Peer::PeerInfo> findPeers(
           const common::Multihash &key) const = 0;
+
+      /**
+       * Save a peer to the storage to be able to find it later
+       * @param peer to be saved
+       */
+      virtual void submitPeer(const common::Peer::PeerInfo &peer) = 0;
     };
   }  // namespace routing
 }  // namespace libp2p

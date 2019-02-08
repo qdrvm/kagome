@@ -9,6 +9,7 @@
 #include "libp2p/transport/transport_listener.hpp"
 #include "libp2p/store/record.hpp"
 #include "libp2p/store/record_store.hpp"
+#include "libp2p/discovery/peer_discovery.hpp"
 
 TEST(Part, One){
   printf("Part1!");
