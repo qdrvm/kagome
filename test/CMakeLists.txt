@@ -1,4 +1,4 @@
-include_directories(${PROJECT_SOURCE_DIR}/core)
+add_subdirectory(core)
 
 addtest(example1 part1.cpp)
 addtest_part(example1 part2.cpp)

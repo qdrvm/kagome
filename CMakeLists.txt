@@ -23,6 +23,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
 include_directories(
+  ${PROJECT_SOURCE_DIR}/core
   # add path to header only deps here
   deps/spdlog/include
 )
