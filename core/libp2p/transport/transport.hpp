@@ -9,6 +9,7 @@
 #include <functional>
 #include <memory>
 
+#include "common/result.hpp"
 #include "libp2p/common_objects/multiaddress.hpp"
 #include "libp2p/connection/connection.hpp"
 #include "libp2p/transport/transport_listener.hpp"
@@ -24,10 +25,12 @@ namespace libp2p {
       /**
        * Try to establish connection with a peer
        * @param address of the peer
-       * @return pointer to connection to that peer
+       * @return pointer to connection to that peer in case of success, error
+       * otherwise
        */
-      virtual std::unique_ptr<connection::Connection> dial(
-          const common::Multiaddress &address) = 0;
+      virtual uguisu::expected::Result<std::unique_ptr<connection::Connection>,
+                                       std::string>
+      dial(const common::Multiaddress &address) = 0;
 
       /**
        * Create a listener for incoming connections of this Transport
@@ -37,6 +40,11 @@ namespace libp2p {
        */
       virtual std::unique_ptr<TransportListener> createListener(
           std::function<void()> handler) = 0;
+
+      /**
+       * Close listeners of this transport
+       */
+      virtual void close() = 0;
     };
   }  // namespace transport
 }  // namespace libp2p

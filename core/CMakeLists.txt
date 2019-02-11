@@ -4,3 +4,4 @@
 #
 
 add_subdirectory(libp2p)
+add_subdirectory(common)
