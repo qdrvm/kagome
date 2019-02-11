@@ -67,16 +67,20 @@ TEST(BinaryenTest, Example1) {
                            " )\n"
                            ")") %
              env_name % fun_name % expected_argument;
-
   std::string add_wast = fmt.str();
 
+  // parse wast
   auto *wasm = new Module;
   SExpressionParser parser(const_cast<char *>(add_wast.c_str()));
   Element &root = *parser.root;
   SExpressionWasmBuilder builder(*wasm, *root[0]);
 
+  // prepare external interface with imported function's implementation
   IntParamExternalInterface interface(env_name, fun_name, fun_impl);
+
+  // interpret module
   ModuleInstance instance(*wasm, &interface);
 
+  // dispose module
   delete wasm;
 }
