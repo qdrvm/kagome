@@ -14,6 +14,8 @@ HunterGate(
 
 PROJECT(uguisu C CXX)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
+
 include(cmake/dependencies.cmake)
 include(cmake/functions.cmake)
 
