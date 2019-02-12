@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef UGUISU_PEER_HPP
-#define UGUISU_PEER_HPP
+#ifndef KAGOME_PEER_HPP
+#define KAGOME_PEER_HPP
 
 #include "libp2p/common_objects/multiaddress.hpp"
 #include "libp2p/common_objects/multihash.hpp"
@@ -21,4 +21,4 @@ namespace libp2p {
   }  // namespace common
 }  // namespace libp2p
 
-#endif  // UGUISU_PEER_HPP
+#endif  // KAGOME_PEER_HPP

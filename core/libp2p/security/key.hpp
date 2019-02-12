@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef UGUISU_KEY_HPP
-#define UGUISU_KEY_HPP
+#ifndef KAGOME_KEY_HPP
+#define KAGOME_KEY_HPP
 
 namespace libp2p {
   namespace security {
@@ -15,4 +15,4 @@ namespace libp2p {
   }  // namespace security
 }  // namespace libp2p
 
-#endif  // UGUISU_KEY_HPP
+#endif  // KAGOME_KEY_HPP

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef UGUISU_CONNECTION_STATUS_HPP
-#define UGUISU_CONNECTION_STATUS_HPP
+#ifndef KAGOME_CONNECTION_STATUS_HPP
+#define KAGOME_CONNECTION_STATUS_HPP
 
 #include <string>
 
@@ -31,4 +31,4 @@ namespace libp2p {
   }  // namespace swarm
 }  // namespace libp2p
 
-#endif  // UGUISU_CONNECTION_STATUS_HPP
+#endif  // KAGOME_CONNECTION_STATUS_HPP

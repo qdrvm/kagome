@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef UGUISU_MUXED_CONNECTION_HPP
-#define UGUISU_MUXED_CONNECTION_HPP
+#ifndef KAGOME_MUXED_CONNECTION_HPP
+#define KAGOME_MUXED_CONNECTION_HPP
 
 #include "common/result.hpp"
 #include "libp2p/connection/connection.hpp"
@@ -20,11 +20,12 @@ namespace libp2p {
        * Create a new stream over this muxed connection
        * @return a created stream in case of success, error otherwise
        */
-      virtual uguisu::expected::Result<std::unique_ptr<stream::Stream>,
-                                       std::string>
+      virtual rxcpp::observable<
+          kagome::expected::Result<std::unique_ptr<stream::Stream>,
+                                   std::string>>
       newStream() = 0;
     };
   }  // namespace connection
 }  // namespace libp2p
 
-#endif  // UGUISU_MUXED_CONNECTION_HPP
+#endif  // KAGOME_MUXED_CONNECTION_HPP

@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef UGUISU_LIBP2P_HPP
-#define UGUISU_LIBP2P_HPP
+#ifndef KAGOME_LIBP2P_HPP
+#define KAGOME_LIBP2P_HPP
 
 #include <memory>
 
+#include <rxcpp/rx.hpp>
 #include "common/result.hpp"
 #include "libp2p/common_objects/multiaddress.hpp"
 #include "libp2p/common_objects/multihash.hpp"
@@ -49,38 +50,36 @@ namespace libp2p {
     virtual void addRecordStore(std::shared_ptr<store::RecordStore> store) = 0;
 
     using DialResult =
-        uguisu::expected::Result<connection::Connection, std::string>;
+        kagome::expected::Result<connection::Connection, std::string>;
 
     /**
      * Dial to the peer via its info
      * @param peer_info of the peer
-     * @return connection or error message
+     * @return observable to connection or error message
      */
-    virtual DialResult dial(const common::Peer::PeerInfo &peer_info) = 0;
+    virtual rxcpp::observable<DialResult> dial(
+        const common::Peer::PeerInfo &peer_info) = 0;
 
     /**
      * Dial to the peer via its id
      * @param peer_id of the peer
-     * @return connection or error message
+     * @return observable to connection or error message
      */
-    virtual DialResult dial(const common::Multihash &peer_id) = 0;
+    virtual rxcpp::observable<DialResult> dial(
+        const common::Multihash &peer_id) = 0;
 
     /**
      * Dial to the peer via its address
      * @param peer_address of the peer
-     * @return connection or error message
+     * @return observable to connection or error message
      */
-    virtual DialResult dial(const common::Multiaddress &peer_address) = 0;
-
-    /**
-     * Handle income connections
-     * @param handler - function to handle them
-     */
-    virtual void handle(std::function<void()> handler) = 0;
+    virtual rxcpp::observable<DialResult> dial(
+        const common::Multiaddress &peer_address) = 0;
   };
 }  // namespace libp2p
 
-// TODO: remove after PR is approved
+// TODO: remove after PR is approved and clear the includes
+/*
 int foo() {
   // example of usage
 
@@ -96,10 +95,6 @@ int foo() {
   // all data, which is passed in the network, is records, which are saved in a
   // distributed record store; one can read about Kademlia DHT, for example
   node.addRecordStore(std::make_shared<RecordStore>());
-
-  // first of all, we can define a handler, which will work with incoming
-  // connections to our peer
-  node.handle(func);
 
   // now, we can start trying to establish connection with a peer of interest;
   // for instance, we know its address, but not id
@@ -127,5 +122,6 @@ int foo() {
   stream.write(msg);
   auto msg = stream.read();
 }
+*/
 
-#endif  // UGUISU_LIBP2P_HPP
+#endif  // KAGOME_LIBP2P_HPP

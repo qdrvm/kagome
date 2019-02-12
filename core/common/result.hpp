@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef UGUISU_RESULT_HPP
-#define UGUISU_RESULT_HPP
+#ifndef KAGOME_RESULT_HPP
+#define KAGOME_RESULT_HPP
 
 #include <ciso646>
 
@@ -20,7 +20,7 @@
  * accessor functions are provided.
  */
 
-namespace uguisu {
+namespace kagome {
   namespace expected {
 
     /*
@@ -224,6 +224,6 @@ namespace uguisu {
     using PolymorphicResult = Result<VContainer, EContainer>;
 
   }  // namespace expected
-}  // namespace uguisu
+}  // namespace kagome
 
-#endif  // UGUISU_RESULT_HPP
+#endif  // KAGOME_RESULT_HPP

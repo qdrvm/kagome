@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef UGUISU_NETWORK_MESSAGE_HPP
-#define UGUISU_NETWORK_MESSAGE_HPP
+#ifndef KAGOME_NETWORK_MESSAGE_HPP
+#define KAGOME_NETWORK_MESSAGE_HPP
 
 namespace libp2p {
   namespace common {
@@ -15,4 +15,4 @@ namespace libp2p {
   }  // namespace common
 }  // namespace libp2p
 
-#endif  // UGUISU_NETWORK_MESSAGE_HPP
+#endif  // KAGOME_NETWORK_MESSAGE_HPP

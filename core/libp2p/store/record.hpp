@@ -3,13 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef UGUISU_RECORD_HPP
-#define UGUISU_RECORD_HPP
+#ifndef KAGOME_RECORD_HPP
+#define KAGOME_RECORD_HPP
 
 namespace libp2p {
   namespace store {
+    /**
+     * IPFS record
+     */
     class Record {};
   }  // namespace store
 }  // namespace libp2p
 
-#endif  // UGUISU_RECORD_HPP
+#endif  // KAGOME_RECORD_HPP

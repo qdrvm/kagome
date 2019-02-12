@@ -3,11 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef UGUISU_CONNECTION_HPP
-#define UGUISU_CONNECTION_HPP
+#ifndef KAGOME_CONNECTION_HPP
+#define KAGOME_CONNECTION_HPP
 
 #include <vector>
 
+#include <boost/optional.hpp>
+#include <rxcpp/rx-observable.hpp>
 #include "common/result.hpp"
 #include "libp2p/common_objects/multiaddress.hpp"
 #include "libp2p/common_objects/network_message.hpp"
@@ -28,9 +30,9 @@ namespace libp2p {
 
       /**
        * Get information about the peer this connection connects to
-       * @return peer information
+       * @return peer information if set, none otherwise
        */
-      virtual common::Peer::PeerInfo getPeerInfo() const = 0;
+      virtual boost::optional<common::Peer::PeerInfo> getPeerInfo() const = 0;
 
       /**
        * Set information about the peer this connection connects to
@@ -43,18 +45,19 @@ namespace libp2p {
        * @param msg to be written
        * @return void in case of success, error otherwise
        */
-      virtual uguisu::expected::Result<void, std::string> write(
-          const common::NetworkMessage &msg) const = 0;
+      virtual rxcpp::observable<kagome::expected::Result<void, std::string>>
+      write(const common::NetworkMessage &msg) const = 0;
 
       /**
        * Read message from the connection
-       * @return message, received by that connection, in case of success, error
-       * otherwise
+       * @return observable to messages, received by that connection, in case of
+       * success, error otherwise
        */
-      virtual uguisu::expected::Result<common::NetworkMessage, std::string>
-      read() const = 0;
+      virtual kagome::expected::
+          Result<rxcpp::observable<common::NetworkMessage>, std::string>
+          read() const = 0;
     };
   }  // namespace connection
 }  // namespace libp2p
 
-#endif  // UGUISU_CONNECTION_HPP
+#endif  // KAGOME_CONNECTION_HPP

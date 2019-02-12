@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef UGUISU_VISITOR_HPP
-#define UGUISU_VISITOR_HPP
+#ifndef KAGOME_VISITOR_HPP
+#define KAGOME_VISITOR_HPP
 
 #include <type_traits>  // for std::decay
 #include <utility>      // for std::forward
 
 #include <boost/variant/apply_visitor.hpp>  // for boost::apply_visitor
 
-namespace uguisu {
+namespace kagome {
   namespace visitor {
 
     template <typename... Lambdas>
@@ -97,6 +97,6 @@ namespace uguisu {
       return match(std::forward<T>(t), make_visitor(std::forward<Fs>(fs)...));
     }
   }  // namespace visitor
-}  // namespace uguisu
+}  // namespace kagome
 
-#endif  // UGUISU_VISITOR_HPP
+#endif  // KAGOME_VISITOR_HPP

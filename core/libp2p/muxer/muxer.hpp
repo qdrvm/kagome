@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef UGUISU_MUXER_HPP
-#define UGUISU_MUXER_HPP
+#ifndef KAGOME_MUXER_HPP
+#define KAGOME_MUXER_HPP
 
 #include "libp2p/connection/connection.hpp"
 
@@ -25,4 +25,4 @@ namespace libp2p {
   }  // namespace muxer
 }  // namespace libp2p
 
-#endif  // UGUISU_MUXER_HPP
+#endif  // KAGOME_MUXER_HPP

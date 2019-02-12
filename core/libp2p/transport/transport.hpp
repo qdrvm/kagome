@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef UGUISU_TRANSPORT_HPP
-#define UGUISU_TRANSPORT_HPP
+#ifndef KAGOME_TRANSPORT_HPP
+#define KAGOME_TRANSPORT_HPP
 
-#include <functional>
 #include <memory>
 
+#include <rxcpp/rx-observable.hpp>
 #include "common/result.hpp"
 #include "libp2p/common_objects/multiaddress.hpp"
 #include "libp2p/connection/connection.hpp"
@@ -28,18 +28,17 @@ namespace libp2p {
        * @return pointer to connection to that peer in case of success, error
        * otherwise
        */
-      virtual uguisu::expected::Result<std::unique_ptr<connection::Connection>,
-                                       std::string>
+      virtual rxcpp::observable<
+          kagome::expected::Result<std::unique_ptr<connection::Connection>,
+                                   std::string>>
       dial(const common::Multiaddress &address) = 0;
 
       /**
-       * Create a listener for incoming connections of this Transport
-       * @param handler, which is going to be invoked every time a new
-       * connection received
+       * Create a listener for incoming connections of this Transport; in case
+       * it was already created, return it
        * @return pointer to the created listener
        */
-      virtual std::unique_ptr<TransportListener> createListener(
-          std::function<void()> handler) = 0;
+      virtual std::unique_ptr<TransportListener> createListener() = 0;
 
       /**
        * Close listeners of this transport
@@ -49,4 +48,4 @@ namespace libp2p {
   }  // namespace transport
 }  // namespace libp2p
 
-#endif  // UGUISU_TRANSPORT_HPP
+#endif  // KAGOME_TRANSPORT_HPP

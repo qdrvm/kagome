@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef UGUISU_ROUTER_HPP
-#define UGUISU_ROUTER_HPP
+#ifndef KAGOME_ROUTER_HPP
+#define KAGOME_ROUTER_HPP
 
 #include <queue>
 
@@ -37,4 +37,4 @@ namespace libp2p {
   }  // namespace routing
 }  // namespace libp2p
 
-#endif  // UGUISU_ROUTER_HPP
+#endif  // KAGOME_ROUTER_HPP
