@@ -12,7 +12,7 @@ HunterGate(
   SHA1 "a370290a8b32987755a36d64807bf8c7f5b61730"
 )
 
-PROJECT(uguisu C CXX)
+PROJECT(kagome C CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 
@@ -28,6 +28,7 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/core
   # add path to header only deps here
   deps/spdlog/include
+  deps/RxCpp/Rx/v2/src
 )
 
 add_subdirectory(core)
