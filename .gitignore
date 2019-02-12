@@ -28,7 +28,6 @@ core/infra/protobuf
 docker/tiny/iroha/
 include/generated/*
 .scannerwork/
-uguisu.conf
 peers.list
 cmake-build*
 
