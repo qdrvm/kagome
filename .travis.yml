@@ -3,7 +3,7 @@ language: cpp
 matrix:
   include:
     - os: linux
-      env: CMAKE_CXX_COMPILER=g++-7
+      env: CMAKE_CXX_COMPILER=g++-7 -std=c++17
     - os: osx
       osx_image: xcode10
 
