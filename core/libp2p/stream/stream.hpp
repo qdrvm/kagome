@@ -8,6 +8,7 @@
 
 #include <rxcpp/rx-observable.hpp>
 #include "common/result.hpp"
+#include "libp2p/basic_interfaces/writable.hpp"
 #include "libp2p/common_objects/network_message.hpp"
 
 namespace libp2p {
@@ -15,23 +16,12 @@ namespace libp2p {
     /**
      * Stream between two peers in the network
      */
-    class Stream {
-      /**
-       * Write message to the stream
-       * @param msg to be written
-       * @return void in case of success, error otherwise
-       */
-      virtual rxcpp::observable<kagome::expected::Result<void, std::string>>
-      write(const common::NetworkMessage &msg) const = 0;
-
+    class Stream : public basic_interfaces::Writable {
       /**
        * Read messages from the stream
-       * @return observable to messages, received by that stream, in case of
-       * success, error otherwise
+       * @return observable to messages, received by that stream
        */
-      virtual kagome::expected::
-          Result<rxcpp::observable<common::NetworkMessage>, std::string>
-          read() const = 0;
+      virtual rxcpp::observable<common::NetworkMessage> read() const = 0;
     };
   }  // namespace stream
 }  // namespace libp2p

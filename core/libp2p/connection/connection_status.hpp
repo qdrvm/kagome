@@ -11,11 +11,11 @@
 #include <boost/variant.hpp>
 
 namespace libp2p {
-  namespace swarm {
+  namespace connection {
     /**
      * Emitted, when something new happens with a connection
      */
-    struct DialStatus {
+    struct ConnectionStatus {
       enum class Status {
         kError,
         kMuxerUpgradeFailed,
@@ -28,7 +28,7 @@ namespace libp2p {
       Status status;
       EventObject event_object;
     };
-  }  // namespace swarm
+  }  // namespace connection
 }  // namespace libp2p
 
 #endif  // KAGOME_CONNECTION_STATUS_HPP

@@ -44,6 +44,9 @@ namespace kagome {
     template <>
     struct Value<void> {};
 
+    template <typename T>
+    Value(T)->Value<T>;
+
     template <typename E>
     struct Error {
       E error;
@@ -55,6 +58,9 @@ namespace kagome {
 
     template <>
     struct Error<void> {};
+
+    template <typename T>
+    Error(T)->Error<T>;
 
     /**
      * Result is a specialization of a variant type with value or error
@@ -157,17 +163,6 @@ namespace kagome {
                             [map](Error<Err2> err) -> Result<V, Err1> {
                               return Error<Err1>{map(err.error)};
                             });
-    }
-
-    // Factory methods for avoiding type specification
-    template <typename T>
-    Value<T> makeValue(T &&value) {
-      return Value<T>{std::forward<T>(value)};
-    }
-
-    template <typename E>
-    Error<E> makeError(E &&error) {
-      return Error<E>{std::forward<E>(error)};
     }
 
     /**

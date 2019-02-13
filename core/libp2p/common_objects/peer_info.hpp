@@ -3,19 +3,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PEER_HPP
-#define KAGOME_PEER_HPP
+#ifndef KAGOME_PEER_INFO_HPP
+#define KAGOME_PEER_INFO_HPP
 
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/multi/multihash.hpp"
 
 namespace libp2p {
   namespace common {
-    class Peer {
-     public:
-
+    /**
+     * Information about the peer in the network
+     */
+    struct PeerInfo {
+      multi::Multihash peer_id;
+      multi::Multiaddress peer_address;
     };
   }  // namespace common
 }  // namespace libp2p
 
-#endif  // KAGOME_PEER_HPP
+#endif  // KAGOME_PEER_INFO_HPP

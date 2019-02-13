@@ -10,17 +10,18 @@
 
 #include <rxcpp/rx.hpp>
 #include "common/result.hpp"
-#include "libp2p/common_objects/multiaddress.hpp"
-#include "libp2p/common_objects/multihash.hpp"
 #include "libp2p/common_objects/peer.hpp"
+#include "libp2p/common_objects/peer_info.hpp"
 #include "libp2p/connection/connection.hpp"
 #include "libp2p/connection/muxed_connection.hpp"
 #include "libp2p/discovery/peer_discovery.hpp"
+#include "libp2p/multi/multiaddress.hpp"
+#include "libp2p/multi/multihash.hpp"
 #include "libp2p/muxer/muxer.hpp"
 #include "libp2p/routing/router.hpp"
 #include "libp2p/store/record.hpp"
 #include "libp2p/store/record_store.hpp"
-#include "libp2p/swarm/dial_status.hpp"
+#include "libp2p/connection/connection_status.hpp"
 #include "libp2p/swarm/swarm.hpp"
 #include "libp2p/transport/transport.hpp"
 #include "libp2p/transport/transport_listener.hpp"
@@ -35,19 +36,19 @@ namespace libp2p {
      * Add a swarm component
      * @param swarm to be added
      */
-    virtual void addSwarm(std::shared_ptr<swarm::Swarm> swarm) = 0;
+    virtual void addSwarm(std::unique_ptr<swarm::Swarm> swarm) = 0;
 
     /**
      * Add a routing component
      * @param routing to be added
      */
-    virtual void addPeerRouting(std::shared_ptr<routing::Router> router) = 0;
+    virtual void addPeerRouting(std::unique_ptr<routing::Router> router) = 0;
 
     /**
      * Add a record store component
      * @param record store to be added
      */
-    virtual void addRecordStore(std::shared_ptr<store::RecordStore> store) = 0;
+    virtual void addRecordStore(std::unique_ptr<store::RecordStore> store) = 0;
 
     using DialResult =
         kagome::expected::Result<connection::Connection, std::string>;
@@ -58,7 +59,7 @@ namespace libp2p {
      * @return observable to connection or error message
      */
     virtual rxcpp::observable<DialResult> dial(
-        const common::Peer::PeerInfo &peer_info) = 0;
+        const common::PeerInfo &peer_info) = 0;
 
     /**
      * Dial to the peer via its id
@@ -66,7 +67,7 @@ namespace libp2p {
      * @return observable to connection or error message
      */
     virtual rxcpp::observable<DialResult> dial(
-        const common::Multihash &peer_id) = 0;
+        const multi::Multihash &peer_id) = 0;
 
     /**
      * Dial to the peer via its address
@@ -74,7 +75,7 @@ namespace libp2p {
      * @return observable to connection or error message
      */
     virtual rxcpp::observable<DialResult> dial(
-        const common::Multiaddress &peer_address) = 0;
+        const multi::Multiaddress &peer_address) = 0;
   };
 }  // namespace libp2p
 

@@ -9,9 +9,9 @@
 #include <vector>
 
 #include <boost/optional.hpp>
-#include <rxcpp/rx-observable.hpp>
-#include "libp2p/common_objects/multiaddress.hpp"
+#include <boost/signals2.hpp>
 #include "libp2p/connection/connection.hpp"
+#include "libp2p/multi/multiaddress.hpp"
 
 namespace libp2p {
   namespace transport {
@@ -26,29 +26,51 @@ namespace libp2p {
        * connection
        * @param address to listen to
        */
-      virtual void listen(const common::Multiaddress &address) = 0;
+      virtual void listen(const multi::Multiaddress &address) = 0;
 
       /**
        * Get addresses, which this listener listens to
        * @return collection of those addresses
        */
-      virtual std::vector<common::Multiaddress> getAddresses() const = 0;
+      virtual std::vector<multi::Multiaddress> getAddresses() const = 0;
 
       /**
        * Stop listening to the connections, so that no more of them are
        * accepted on this transport
+       */
+      virtual void close() = 0;
+
+      /**
+       * @see close()
        * @param timeout, after which all connections on this transport are
        * destroyed, if not able to finish properly
        */
-      virtual void close(boost::optional<uint8_t> timeout = boost::none) = 0;
+      virtual void close(uint8_t timeout) = 0;
 
       /**
-       * Get an observable to new connections from the addresses this listener
-       * listens to
-       * @return observable to connections
+       * Emit, when listener is initialized and ready to accept connections
+       * @return signal to this event
        */
-      virtual rxcpp::observable<connection::Connection> getConnections()
-          const = 0;
+      virtual boost::signals2::signal<void()> onStartListening() const = 0;
+
+      /**
+       * Emit, when listener accepts new connection
+       * @return signal to this event
+       */
+      virtual boost::signals2::signal<void(connection::Connection)>
+      onNewConnection() const = 0;
+
+      /**
+       * Emit, when listener encounters an error
+       * @return signal to this event
+       */
+      virtual boost::signals2::signal<void()> onError() const = 0;
+
+      /**
+       * Emit, when listener stops
+       * @return signal to this event
+       */
+      virtual boost::signals2::signal<void()> onClose() const = 0;
     };
   }  // namespace transport
 }  // namespace libp2p

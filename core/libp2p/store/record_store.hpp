@@ -8,7 +8,7 @@
 
 #include <vector>
 
-#include "libp2p/common_objects/multihash.hpp"
+#include "libp2p/multi/multihash.hpp"
 #include "libp2p/store/record.hpp"
 
 namespace libp2p {

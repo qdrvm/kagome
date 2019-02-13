@@ -7,9 +7,9 @@
 #define KAGOME_MULTIHASH_HPP
 
 namespace libp2p {
-  namespace common {
+  namespace multi {
     class Multihash {};
-  }  // namespace common
+  }  // namespace multi
 }  // namespace libp2p
 
 #endif  // KAGOME_MULTIHASH_HPP

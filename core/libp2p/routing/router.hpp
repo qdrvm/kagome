@@ -8,7 +8,7 @@
 
 #include <queue>
 
-#include "libp2p/common_objects/multihash.hpp"
+#include "libp2p/multi/multihash.hpp"
 #include "libp2p/common_objects/peer.hpp"
 
 namespace libp2p {
