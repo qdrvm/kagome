@@ -6,6 +6,8 @@
 #ifndef KAGOME_WRITABLE_HPP
 #define KAGOME_WRITABLE_HPP
 
+#include "libp2p/common_objects/network_message.hpp"
+
 namespace libp2p {
   namespace basic_interfaces {
     class Writable {

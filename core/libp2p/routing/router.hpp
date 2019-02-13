@@ -8,8 +8,8 @@
 
 #include <queue>
 
+#include "libp2p/common_objects/peer_info.hpp"
 #include "libp2p/multi/multihash.hpp"
-#include "libp2p/common_objects/peer.hpp"
 
 namespace libp2p {
   namespace routing {
@@ -25,14 +25,14 @@ namespace libp2p {
        * @param key to be searched for
        * @return collection of found peers, sorted by 'closeness' to the key
        */
-      virtual std::priority_queue<common::Peer::PeerInfo> findPeers(
-          const common::Multihash &key) const = 0;
+      virtual std::priority_queue<common::PeerInfo> findPeers(
+          const multi::Multihash &key) const = 0;
 
       /**
        * Save a peer to the storage to be able to find it later
        * @param peer to be saved
        */
-      virtual void submitPeer(const common::Peer::PeerInfo &peer) = 0;
+      virtual void submitPeer(const common::PeerInfo &peer) = 0;
     };
   }  // namespace routing
 }  // namespace libp2p

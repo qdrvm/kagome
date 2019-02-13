@@ -22,15 +22,15 @@ namespace libp2p {
        * @param key of the records
        * @return records
        */
-      virtual std::vector<Record> get(const common::Multihash &key) const = 0;
+      virtual std::vector<Record> get(const multi::Multihash &key) const = 0;
 
       /**
        * Put a record to the store
        * @param key, under which that record will be stored
        * @param value_hash - multihash of signature of MerkleDAG record
        */
-      virtual void put(const common::Multihash &key,
-                       const common::Multihash &value_hash) = 0;
+      virtual void put(const multi::Multihash &key,
+                       const multi::Multihash &value_hash) = 0;
     };
   }  // namespace store
 }  // namespace libp2p
