@@ -13,6 +13,7 @@
 #include "libp2p/common/peer_info.hpp"
 #include "libp2p/connection/connection.hpp"
 #include "libp2p/connection/connection_status.hpp"
+#include "libp2p/multi/multistream.hpp"
 
 namespace libp2p::swarm {
   /**
@@ -23,17 +24,20 @@ namespace libp2p::swarm {
     /**
      * Establish connection with the peer via the best possible transport
      * @param peer to connect to
+     * @param multistream - protocol to connect over
      * @return observable to connection's statuses and connection itself in
      * case of success
      */
     virtual rxcpp::observable<connection::ConnectionStatus> dial(
-        const common::PeerInfo &peer) = 0;
+        const common::PeerInfo &peer, const multi::Multistream &protocol) = 0;
 
     /**
      * Hang up a connection we have with that peer
      * @param peer to stop connection with
      */
     virtual void hangUp(const common::PeerInfo &peer) = 0;
+
+    // TODO: ADD HANDLE(PROTO) METHOD
 
     /**
      * Start listening on all added transports

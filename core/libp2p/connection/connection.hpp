@@ -10,7 +10,7 @@
 
 #include <boost/optional.hpp>
 #include "common/result.hpp"
-#include "libp2p/basic_interfaces/writable.hpp"
+#include "libp2p/basic/writable.hpp"
 #include "libp2p/common/network_message.hpp"
 #include "libp2p/common/peer_info.hpp"
 #include "libp2p/multi/multiaddress.hpp"

@@ -6,9 +6,8 @@
 #ifndef KAGOME_CONNECTION_STATUS_HPP
 #define KAGOME_CONNECTION_STATUS_HPP
 
-#include <string>
-
 #include <boost/variant.hpp>
+#include "libp2p/error/error.hpp"
 
 namespace libp2p::connection {
   /**
@@ -22,7 +21,7 @@ namespace libp2p::connection {
       kConnectionEstablished,
       kClosed
     };
-    using EventObject = boost::variant<std::string, connection::Connection>;
+    using EventObject = boost::variant<error::Error, connection::Connection>;
 
     Status status;
     EventObject event_object;
