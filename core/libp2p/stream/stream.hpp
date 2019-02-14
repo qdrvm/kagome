@@ -9,21 +9,19 @@
 #include <rxcpp/rx-observable.hpp>
 #include "common/result.hpp"
 #include "libp2p/basic_interfaces/writable.hpp"
-#include "libp2p/common_objects/network_message.hpp"
+#include "libp2p/common/network_message.hpp"
 
-namespace libp2p {
-  namespace stream {
+namespace libp2p::stream {
+  /**
+   * Stream between two peers in the network
+   */
+  class Stream : public basic::Writable {
     /**
-     * Stream between two peers in the network
+     * Read messages from the stream
+     * @return observable to messages, received by that stream
      */
-    class Stream : public basic_interfaces::Writable {
-      /**
-       * Read messages from the stream
-       * @return observable to messages, received by that stream
-       */
-      virtual rxcpp::observable<common::NetworkMessage> read() const = 0;
-    };
-  }  // namespace stream
-}  // namespace libp2p
+    virtual rxcpp::observable<common::NetworkMessage> read() const = 0;
+  };
+}  // namespace libp2p::stream
 
 #endif  // KAGOME_STREAM_HPP

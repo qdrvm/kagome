@@ -10,25 +10,23 @@
 
 #include <boost/variant.hpp>
 
-namespace libp2p {
-  namespace connection {
-    /**
-     * Emitted, when something new happens with a connection
-     */
-    struct ConnectionStatus {
-      enum class Status {
-        kError,
-        kMuxerUpgradeFailed,
-        kConnectionAttemptFailed,
-        kConnectionEstablished,
-        kClosed
-      };
-      using EventObject = boost::variant<std::string, connection::Connection>;
-
-      Status status;
-      EventObject event_object;
+namespace libp2p::connection {
+  /**
+   * Emitted, when something new happens with a connection
+   */
+  struct ConnectionStatus {
+    enum class Status {
+      kError,
+      kMuxerUpgradeFailed,
+      kConnectionAttemptFailed,
+      kConnectionEstablished,
+      kClosed
     };
-  }  // namespace connection
-}  // namespace libp2p
+    using EventObject = boost::variant<std::string, connection::Connection>;
+
+    Status status;
+    EventObject event_object;
+  };
+}  // namespace libp2p::connection
 
 #endif  // KAGOME_CONNECTION_STATUS_HPP

@@ -10,8 +10,8 @@
 
 #include <rxcpp/rx.hpp>
 #include "common/result.hpp"
-#include "libp2p/common_objects/peer.hpp"
-#include "libp2p/common_objects/peer_info.hpp"
+#include "libp2p/common/peer.hpp"
+#include "libp2p/common/peer_info.hpp"
 #include "libp2p/connection/connection.hpp"
 #include "libp2p/connection/muxed_connection.hpp"
 #include "libp2p/discovery/peer_discovery.hpp"

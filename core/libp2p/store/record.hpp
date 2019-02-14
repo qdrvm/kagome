@@ -6,13 +6,11 @@
 #ifndef KAGOME_RECORD_HPP
 #define KAGOME_RECORD_HPP
 
-namespace libp2p {
-  namespace store {
-    /**
-     * IPFS record
-     */
-    class Record {};
-  }  // namespace store
-}  // namespace libp2p
+namespace libp2p::store {
+  /**
+   * IPFS record
+   */
+  class Record {};
+}  // namespace libp2p::store
 
 #endif  // KAGOME_RECORD_HPP

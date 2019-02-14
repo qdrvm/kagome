@@ -9,16 +9,14 @@
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/multi/multihash.hpp"
 
-namespace libp2p {
-  namespace common {
-    /**
-     * Information about the peer in the network
-     */
-    struct PeerInfo {
-      multi::Multihash peer_id;
-      multi::Multiaddress peer_address;
-    };
-  }  // namespace common
-}  // namespace libp2p
+namespace libp2p::common {
+  /**
+   * Information about the peer in the network
+   */
+  struct PeerInfo {
+    multi::Multihash peer_id;
+    multi::Multiaddress peer_address;
+  };
+}  // namespace libp2p::common
 
 #endif  // KAGOME_PEER_INFO_HPP

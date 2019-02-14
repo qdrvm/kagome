@@ -6,13 +6,11 @@
 #ifndef KAGOME_MULTIADDRESS_HPP
 #define KAGOME_MULTIADDRESS_HPP
 
-namespace libp2p {
-  namespace multi {
-    /**
-     * Address format, used by Libp2p
-     */
-    class Multiaddress {};
-  }  // namespace multi
-}  // namespace libp2p
+namespace libp2p::multi {
+  /**
+   * Address format, used by Libp2p
+   */
+  class Multiaddress {};
+}  // namespace libp2p::multi
 
 #endif  // KAGOME_MULTIADDRESS_HPP

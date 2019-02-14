@@ -9,19 +9,17 @@
 #include "libp2p/connection/connection.hpp"
 #include "libp2p/stream/stream.hpp"
 
-namespace libp2p {
-  namespace connection {
+namespace libp2p::connection {
+  /**
+   * Connection complement, which appears, when it gets muxed
+   */
+  class MuxedConnection : public Connection {
     /**
-     * Connection complement, which appears, when it gets muxed
+     * Create a new stream over this muxed connection
+     * @return pointer to a created stream
      */
-    class MuxedConnection : public Connection {
-      /**
-       * Create a new stream over this muxed connection
-       * @return pointer to a created stream
-       */
-      virtual std::unique_ptr<stream::Stream> newStream() = 0;
-    };
-  }  // namespace connection
-}  // namespace libp2p
+    virtual std::unique_ptr<stream::Stream> newStream() = 0;
+  };
+}  // namespace libp2p::connection
 
 #endif  // KAGOME_MUXED_CONNECTION_HPP
