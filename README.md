@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/soramitsu/polkadot.svg?branch=master)](https://travis-ci.org/soramitsu/polkadot)
+
 # polkadot
 
 ## Dev Environment
