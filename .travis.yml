@@ -1,35 +1,79 @@
+sudo: true
+
 language: cpp
+
+env:
+  global:
+  - secure: F3T+bdNjTIE/oofb+PXz2+8I2lplJEa1UohE0tykGh8PwbOG4Ptsz68fpsMPQ5mqqk+RO000S7tafO6ZIsR3iy/J/j5dBb6PWShaDDjIlET/BJVsopG4KgdcIbQ+kT63jmuJmlBxmT9Bel8E1Qm3aQEQU1F+9Kx2VCqoe7TLKQyP1G4a74I50NpcYkOgRBOCW9SRu2fyS6Yv2NZ16j4WPkxLtQjhLMOqvcMpYGhR9NKUIHyHo04fdiu3/ii0pKcwvDkde0ux+DhSY2cX7ksZ3BwlSc0hUCZWvyd2pjeQEdyfKr5JOKBwfGI60VJ3o/FwMySOmYevOPKSRPZYeoncIGzj1iwVl+gFD5iOXT89MUStNl2vVkD2GPyZPi8b2peJHGGtKHkqgLOY0iR/dtOaIHBEXxNqcvoDwUDqz2hYUKVPsQ8MYgUQZHUXFgitJRWPdAvBQLIzoT5p1TRIgKBHU9OPpgrymILmSp7CFw0XYejUJIHxLzjk76pInr4A01EgLExPmYkGUqFzb35V1p3iT7bzn7MRM92pyIC+/whv8vjc9LbLrxm006NEZyM7QMWr4jv/HU0NpXgSyWoSr5PsBbb7TgpCLifMO15o8yptgTxL9xU4jVm5yQhre7cZzUH9toWBh0z5sqpexM3OoYd4UY9ocgdqShsvrtXwo8YzELk=
+  - secure: fKwrK+2crAEZ8UfeuKfsytSig3JT/07TaOYoAYkcVu91fHOfyFi3+luDvtUU3AQclYiP8BYhZyDCm1AXWVyx1/F20PpQniCpkBkoDPz3CN8Enk1Ne0Sc7g8xNP9S2vB5HhT4vdRFqJWssaqwzRFmCFtYbyWFgJZFscZ7XOmWQpfWeX78JoYgsnyxMhaIYV5Br5jbSMj9FbS60QBSXj18mX7maeJ729BeRnyTjDyIvtPZhynIMo0/FLjghsaLPLMxuVd70+za5nu+YhGCYK5MGlOMsHGedronJqAfOpz4mQwP0ab5uMVts1MQfgtkdnNl2n4LTMalh3r0PY9F1eTtO+pi2smNaqhADvFtALBfdMEkN81hucsWFY3QU6sUoctztu4E97ZgBVahL2JUWPgXvK7ijERfaZ4olpZdvbC4IDPJQ30bXkS+g/ZW1fn1cxV6hAmDLA3CYW63HBJaygDS/6v5c8/sO/1/vljVbbeP3SNtwKyf83z/yUDcVwkZKCPNjSbHnNrTCdUn8HefmV07fDf07YCRoiQeiT6jHG5iHLi0bHn38JLIl/XsZ2Dj/WVysnP4+QO/JTzZBZJNyCCLRQOQwZWvKchlm9nw8xK10zc67BTU2yqx2do6NZuL5AfK3M6wGDD6Lso7huys9NNbFTWTc5vpDcANpf50lZuMVrU=
+
+
+cache:
+  apt: true
+  directories:
+  - "$HOME/.hunter"
+  - "${TRAVIS_BUILD_DIR}/cmake_3.13.3"
+  - "${TRAVIS_BUILD_DIR}/build"
 
 matrix:
   include:
-    - os: linux
-      env: CMAKE_CXX_COMPILER=g++-7
-    - os: osx
-      osx_image: xcode10
+  - os: linux
+    dist: trusty
+    compiler: gcc
+    addons:
+      apt:
+        sources:
+        - ubuntu-toolchain-r-test
+        packages:
+        - gcc-5
+        - g++-5
+    env:
+    - _CC=gcc-5
+    - _CXX=g++-5
 
-cache:
-  directories:
-    - ${TRAVIS_BUILD_DIR}/cmake_3.13.3
-    - ${TRAVIS_BUILD_DIR}/build
-    - ${HOME}/.hunter
+  - os: linux
+    dist: trusty
+    compiler: clang
+    addons:
+      apt:
+        sources:
+        - llvm-toolchain-trusty-4.0
+        packages:
+        - clang-4.0
+    env:
+    - _CC=clang-4.0
+    - _CXX=clang++-4.0
+
+
+  - os: osx
+    compiler: gcc
+    env:
+    - _CC=gcc
+    - _CXX=g++
+
+  - os: osx
+    compiler: clang
+    env:
+    - _CC=clang
+    - _CXX=clang++
 
 install:
-  - CMAKE_SRC_BUILD_DIR="${TRAVIS_BUILD_DIR}/cmake_3.13.3"
-  - mkdir -p ${CMAKE_SRC_BUILD_DIR} && cd ${CMAKE_SRC_BUILD_DIR}
-  - if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then CMAKE_TAR_FILE='cmake-3.13.3-Linux-x86_64'; CMAKE_PATH="${CMAKE_TAR_FILE}/bin";
-    elif [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then CMAKE_TAR_FILE='cmake-3.13.3-Darwin-x86_64'; CMAKE_PATH="${CMAKE_TAR_FILE}/CMake.app/Contents/bin"; fi
-  - if [[ ! -f "${CMAKE_PATH}/cmake" ]]; then curl "https://cmake.org/files/v3.13/${CMAKE_TAR_FILE}.tar.gz" | tar xz; fi
-  - export PATH="$PWD/${CMAKE_PATH}:$PATH"
-  - cd ${TRAVIS_BUILD_DIR}
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - gcc-7
+- CMAKE_SRC_BUILD_DIR="${TRAVIS_BUILD_DIR}/cmake_3.13.3"
+- mkdir -p ${CMAKE_SRC_BUILD_DIR} && cd ${CMAKE_SRC_BUILD_DIR}
+- if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then CMAKE_TAR_FILE='cmake-3.13.3-Linux-x86_64';
+  CMAKE_PATH="${CMAKE_TAR_FILE}/bin"; elif [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then
+  CMAKE_TAR_FILE='cmake-3.13.3-Darwin-x86_64'; CMAKE_PATH="${CMAKE_TAR_FILE}/CMake.app/Contents/bin";
+  fi
+- if [[ ! -f "${CMAKE_PATH}/cmake" ]]; then curl "https://cmake.org/files/v3.13/${CMAKE_TAR_FILE}.tar.gz"
+  | tar xz; fi
+- export PATH="$PWD/${CMAKE_PATH}:$PATH"
+- cd ${TRAVIS_BUILD_DIR}
 
 before_script:
-  - cmake --version
-  - mkdir -p build && cd build && cmake ..
+- cmake --version
 
-script: make
+script:
+- export CC=$_CC
+- export CXX=$_CXX
+- cmake . -Bbuild
+- cmake --build build -- -j2
