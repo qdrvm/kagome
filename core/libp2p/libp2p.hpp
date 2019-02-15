@@ -8,23 +8,15 @@
 
 #include <memory>
 
-#include <rxcpp/rx.hpp>
 #include "common/result.hpp"
-#include "libp2p/common/peer.hpp"
 #include "libp2p/common/peer_info.hpp"
 #include "libp2p/connection/connection.hpp"
-#include "libp2p/connection/muxed_connection.hpp"
-#include "libp2p/discovery/peer_discovery.hpp"
 #include "libp2p/error/error.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/multi/multihash.hpp"
-#include "libp2p/muxer/muxer.hpp"
 #include "libp2p/routing/router.hpp"
-#include "libp2p/store/record.hpp"
 #include "libp2p/store/record_store.hpp"
 #include "libp2p/swarm/swarm.hpp"
-#include "libp2p/transport/transport.hpp"
-#include "libp2p/transport/transport_listener.hpp"
 
 namespace libp2p {
   /**

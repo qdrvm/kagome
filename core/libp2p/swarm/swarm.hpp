@@ -15,10 +15,11 @@
 #include "libp2p/connection/connection_fsm.hpp"
 #include "libp2p/error/error.hpp"
 #include "libp2p/multi/multistream.hpp"
+#include "libp2p/transport/transport.hpp"
 
 namespace libp2p::swarm {
   /**
-   * Establishes connections with other peers
+   * Manages connections with other peers
    */
   class Swarm {
    public:
@@ -42,7 +43,8 @@ namespace libp2p::swarm {
     virtual kagome::expected::Result<connection::Connection, error::Error> dial(
         const common::PeerInfo &peer,
         const multi::Multistream &protocol,
-        std::function<void(connection::ConnectionFSM)> fsm_callback) = 0;
+        std::function<void(const connection::ConnectionFSM &conn_fsm)>
+            fsm_callback) = 0;
 
     /**
      * Hang up a connection we have with that peer
@@ -59,6 +61,14 @@ namespace libp2p::swarm {
         const multi::Multistream &protocol,
         std::function<void(const multi::Multistream &protocol,
                            const connection::Connection &conn)> handler) = 0;
+
+    /**
+     * Add a transport to this swarm
+     * @param transport_id of that transport
+     * @param transport to be added
+     */
+    virtual void addTransport(const std::string &transport_id,
+                              transport::Transport transport) = 0;
 
     /**
      * Unhandle a protocol in this swarm
@@ -93,20 +103,23 @@ namespace libp2p::swarm {
      * @param callback to be called, when event happens
      */
     virtual void onNewConnection(
-        std::function<void(common::PeerInfo)> callback) const = 0;
+        std::function<void(const common::PeerInfo &peer_info)> callback)
+        const = 0;
 
     /**
      * A connection with a peer was closed
      * @param callback to be called, when event happens
      */
     virtual void onClosedConnection(
-        std::function<void(common::PeerInfo)> callback) const = 0;
+        std::function<void(const common::PeerInfo &peer_info)> callback)
+        const = 0;
 
     /**
      * Some error occurs in the swarm
      * @param callback to be called, when event happens
      */
-    virtual void onError(std::function<void(error::Error)> callback) const = 0;
+    virtual void onError(
+        std::function<void(const error::Error &error)> callback) const = 0;
   };
 }  // namespace libp2p::swarm
 
