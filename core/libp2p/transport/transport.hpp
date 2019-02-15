@@ -8,7 +8,6 @@
 
 #include <memory>
 
-#include <rxcpp/rx-observable.hpp>
 #include "common/result.hpp"
 #include "libp2p/connection/connection.hpp"
 #include "libp2p/error/error.hpp"
