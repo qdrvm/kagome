@@ -13,7 +13,9 @@ find_package(Boost CONFIG REQUIRED)
 hunter_add_package(libjson-rpc-cpp)
 find_package(libjson-rpc-cpp CONFIG REQUIRED)
 
-
+# https://docs.hunter.sh/en/latest/packages/pkg/leveldb.html
+hunter_add_package(leveldb)
+find_package(leveldb CONFIG REQUIRED)
 
 # other dependencies
 include(ExternalProject)
