@@ -9,10 +9,11 @@
 #include <functional>
 
 #include <boost/signals2.hpp>
-#include <rxcpp/rx-observable.hpp>
+#include "common/result.hpp"
 #include "libp2p/common/peer_info.hpp"
 #include "libp2p/connection/connection.hpp"
-#include "libp2p/connection/connection_status.hpp"
+#include "libp2p/connection/connection_fsm.hpp"
+#include "libp2p/error/error.hpp"
 #include "libp2p/multi/multistream.hpp"
 
 namespace libp2p::swarm {
@@ -25,11 +26,23 @@ namespace libp2p::swarm {
      * Establish connection with the peer via the best possible transport
      * @param peer to connect to
      * @param multistream - protocol to connect over
-     * @return observable to connection's statuses and connection itself in
-     * case of success
+     * @return connection in case of success, error otherwise
      */
-    virtual rxcpp::observable<connection::ConnectionStatus> dial(
+    virtual kagome::expected::Result<connection::Connection, error::Error> dial(
         const common::PeerInfo &peer, const multi::Multistream &protocol) = 0;
+
+    /**
+     * Establish connection with the peer via the best possible transport
+     * @param peer to connect to
+     * @param multistream - protocol to connect over
+     * @param fsm_callback - function, which is to subscribe client to
+     * connection's FSM events
+     * @return connection in case of success, error otherwise
+     */
+    virtual kagome::expected::Result<connection::Connection, error::Error> dial(
+        const common::PeerInfo &peer,
+        const multi::Multistream &protocol,
+        std::function<void(connection::ConnectionFSM)> fsm_callback) = 0;
 
     /**
      * Hang up a connection we have with that peer
@@ -37,7 +50,21 @@ namespace libp2p::swarm {
      */
     virtual void hangUp(const common::PeerInfo &peer) = 0;
 
-    // TODO: ADD HANDLE(PROTO) METHOD
+    /**
+     * Handle a new protocol in this swarm
+     * @param protocol to be handled
+     * @param handler to be called, when a new dial is received on that protocol
+     */
+    virtual void handle(
+        const multi::Multistream &protocol,
+        std::function<void(const multi::Multistream &protocol,
+                           const connection::Connection &conn)> handler) = 0;
+
+    /**
+     * Unhandle a protocol in this swarm
+     * @param protocol to be unhandled
+     */
+    virtual void unhandle(const multi::Multistream &protocol) = 0;
 
     /**
      * Start listening on all added transports
@@ -79,7 +106,7 @@ namespace libp2p::swarm {
      * Some error occurs in the swarm
      * @param callback to be called, when event happens
      */
-    virtual void onError(std::function<void(std::string)> callback) const = 0;
+    virtual void onError(std::function<void(error::Error)> callback) const = 0;
   };
 }  // namespace libp2p::swarm
 

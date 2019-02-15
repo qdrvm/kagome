@@ -9,7 +9,9 @@
 #include <memory>
 
 #include <rxcpp/rx-observable.hpp>
-#include "libp2p/connection/connection_status.hpp"
+#include "common/result.hpp"
+#include "libp2p/connection/connection.hpp"
+#include "libp2p/error/error.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/transport/transport_listener.hpp"
 
@@ -23,10 +25,9 @@ namespace libp2p::transport {
     /**
      * Try to establish connection with a peer
      * @param address of the peer
-     * @return observable to connection's statuses and connection itself in
-     * case of success
+     * @return connection in case of success, error otherwise
      */
-    virtual rxcpp::observable<connection::ConnectionStatus> dial(
+    virtual kagome::expected::Result<connection::Connection, error::Error> dial(
         const multi::Multiaddress &address) = 0;
 
     /**
