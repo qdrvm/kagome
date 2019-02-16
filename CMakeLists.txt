@@ -8,8 +8,8 @@ endif(CCACHE_FOUND)
 
 include("cmake/Hunter/init.cmake")
 HunterGate(
-  URL "https://github.com/ruslo/hunter/archive/v0.23.89.tar.gz"
-  SHA1 "a370290a8b32987755a36d64807bf8c7f5b61730"
+    URL "https://github.com/ruslo/hunter/archive/v0.23.105.tar.gz"
+    SHA1 "1c7aaffc90d4898f0b55d03b77deb890b2aa0a2b"
 )
 
 PROJECT(kagome C CXX)
@@ -19,7 +19,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 include(cmake/dependencies.cmake)
 include(cmake/functions.cmake)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
