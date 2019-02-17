@@ -17,6 +17,10 @@ find_package(libjson-rpc-cpp CONFIG REQUIRED)
 hunter_add_package(leveldb)
 find_package(leveldb CONFIG REQUIRED)
 
+# https://docs.hunter.sh/en/latest/packages/pkg/xxhash.html
+hunter_add_package(xxhash)
+find_package(xxhash CONFIG REQUIRED)
+
 # other dependencies
 include(ExternalProject)
 
