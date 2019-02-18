@@ -14,8 +14,9 @@ namespace libp2p::muxer {
     /**
      * Attach this muxer to a connection
      * @param conn, to which the muxer will be attached
-     * @param isListener - true, if we are server/listener, false, if
-     * client/dialer
+     * @param isListener - true, if this node is on the server side of this
+     * connection and is to listen to the messages; false if this node is to
+     * send the messages
      * @return muxed connection
      */
     virtual std::unique_ptr<connection::Connection> attach(

@@ -77,7 +77,8 @@ namespace libp2p::swarm {
     virtual void unhandle(const multi::Multistream &protocol) = 0;
 
     /**
-     * Start listening on all added transports
+     * Start listening on all added transports, reacting to received connection
+     * attempts
      */
     virtual void start() = 0;
 
