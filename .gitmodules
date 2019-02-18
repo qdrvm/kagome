@@ -4,3 +4,6 @@
 [submodule "rxcpp"]
 	path = deps/RxCpp
 	url = https://github.com/ReactiveX/RxCpp
+[submodule "deps/c-libp2p"]
+	path = deps/c-libp2p
+	url = https://github.com/Agorise/c-libp2p.git
