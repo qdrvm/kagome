@@ -11,14 +11,14 @@ class KeyValue {
    * @param key non-empty byte buffer
    * @param value byte buffer
    */
-  virtual void put(Buffer key, Buffer value) = 0;
+  virtual void put(const Buffer &key, const Buffer &value) = 0;
 
   /**
    * @brief Get value by key
-   * @param key
-   * @return
+   * @param key non-empty byte buffer
+   * @return buffer of size 0 if no data is stored given {@param key} or buffer with data
    */
-  virtual Buffer get(Buffer key) = 0;
+  virtual Buffer get(const Buffer &key) const = 0;
 };
 
 }
