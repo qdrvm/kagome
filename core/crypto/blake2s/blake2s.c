@@ -78,7 +78,7 @@ static void blake2s_compress(blake2s_ctx_full *ctx, int last) {
   if (last)                           // last block flag set ?
     v[14] = ~v[14];
 
-  for (i = 0; i < 16; i++)            // to_bytes little-endian words
+  for (i = 0; i < 16; i++)            // get little-endian words
     m[i] = B2S_GET32(&ctx->b[4 * i]);
 
   for (i = 0; i < 10; i++) {          // ten rounds
