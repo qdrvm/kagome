@@ -109,4 +109,6 @@ namespace kagome::common {
     return put_bytes(v.begin(), v.end());
   }
 
+  Buffer::Buffer(std::vector<uint8_t> &&v) noexcept : data_{std::move(v)} {}
+
 }  // namespace kagome::common

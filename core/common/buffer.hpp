@@ -25,9 +25,14 @@ namespace kagome::common {
     Buffer(size_t size, uint8_t byte);
 
     /**
-     * @brief construct buffer from a byte vector
+     * @brief lvalue construct buffer from a byte vector
      */
     explicit Buffer(const std::vector<uint8_t> &v);
+
+    /**
+     * @brief rvalue construct buffer from a byte vector
+     */
+    explicit Buffer(std::vector<uint8_t> &&v) noexcept;
 
     Buffer() = default;
     Buffer(const Buffer &b) = default;
