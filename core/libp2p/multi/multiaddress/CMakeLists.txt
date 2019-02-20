@@ -4,5 +4,10 @@
 #
 
 add_library(multiaddress
-        multiaddress.cpp
-        )
+    multiaddress.cpp
+    c-utils/base58.c
+    c-utils/protocols.c
+    c-utils/protoutils.c
+    c-utils/varhexutils.c
+    c-utils/varint.c
+    )

@@ -7,19 +7,35 @@
 #define KAGOME_MULTIADDRESS_HPP
 
 #include <string>
+#include <string_view>
 
 #include <boost/optional.hpp>
+#include "common/buffer.hpp"
+#include "common/result.hpp"
 
 namespace libp2p::multi {
   /**
    * Address format, used by Libp2p
    */
   class Multiaddress {
+   private:
+    using ByteBuffer = kagome::common::Buffer;
+    using FactoryResult = kagome::expected::Result<Multiaddress, std::string>;
+
+   public:
+    Multiaddress() = delete;
+
     /**
      * Construct a multiaddress instance from the string
      * @param address - string to be in that multiaddress
      */
-    explicit Multiaddress(const std::string &address);
+    static FactoryResult createMultiaddress(std::string_view address);
+
+    /**
+     * Construct a multiaddress instance from the bytes
+     * @param bytes to be in that multiaddress
+     */
+    static FactoryResult createMultiaddress(const ByteBuffer &bytes);
 
     /**
      * Put a new string to the right of this Multiaddress and recalculate the
@@ -29,7 +45,7 @@ namespace libp2p::multi {
      * @param part to be put
      * @return true, if address was successfully encapsulated, false otherwise
      */
-    bool encapsulate(const std::string &part);
+    bool encapsulate(std::string_view part);
 
     /**
      * Remove the string from the right part of this Multiaddress, such that:
@@ -38,8 +54,11 @@ namespace libp2p::multi {
      * @param part to be removed
      * @return true, if address was successfully decapsulated, false otherwise
      */
-    bool decapsulate(const std::string &part);
+    bool decapsulate(std::string_view part);
 
+    /**
+     * Families of protocols, supported by this multiaddress class
+     */
     enum class Family { kIp4, kIp6 };
     /**
      * Get family of this multiaddress
@@ -64,6 +83,18 @@ namespace libp2p::multi {
      * @return peer id if exists
      */
     boost::optional<std::string> getPeerId() const;
+
+   private:
+    /**
+     * Construct a multiaddress instance from both address and bytes
+     * @param address to be in the multiaddress
+     * @param bytes to be in the multiaddress
+     */
+    Multiaddress(std::string &&address, ByteBuffer &&bytes);
+
+    ByteBuffer bytes_;
+    Family family_;
+    std::string stringified_address_;
   };
 }  // namespace libp2p::multi
 
