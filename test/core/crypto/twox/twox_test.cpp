@@ -1,0 +1,45 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include "crypto/twox/twox.hpp"
+
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
+
+using namespace kagome::crypto;
+
+TEST(Twox128, Correctness) {
+  {
+    auto hash = make_twox128({});
+    // clang-format off
+    uint8_t reference[16] = {153, 233, 216, 81, 55, 219, 70, 239, 75, 190, 163, 54, 19, 186, 175, 213};
+    // clang-format on
+    ASSERT_THAT(hash.data, ::testing::ElementsAreArray(reference));
+  }
+  {
+    auto hash = make_twox128({0x41, 0x42, 0x43, 0x44, 0x45, 0x46});
+    // clang-format off
+    uint8_t reference[16] = {184, 65, 176, 250, 243, 129, 181, 3, 77, 82, 63, 150, 129, 221, 191, 251};
+    // clang-format on
+    ASSERT_THAT(hash.data, ::testing::ElementsAreArray(reference));
+  }
+}
+
+TEST(Twox256, Correctness) {
+  {
+    auto hash = make_twox256({});
+    // clang-format off
+    uint8_t reference[32] = {153, 233, 216, 81, 55, 219, 70, 239, 75, 190, 163, 54, 19, 186, 175, 213, 111, 150, 60, 100, 177, 243, 104, 90, 78, 180, 171, 214, 127, 246, 32, 58};
+    // clang-format on
+    ASSERT_THAT(hash.data, ::testing::ElementsAreArray(reference));
+  }
+  {
+    auto hash = make_twox256({0x41, 0x42, 0x43, 0x44, 0x45, 0x46});
+    // clang-format off
+    uint8_t reference[32] = {184, 65, 176, 250, 243, 129, 181, 3, 77, 82, 63, 150, 129, 221, 191, 251, 33, 226, 149, 136, 6, 232, 81, 118, 200, 28, 69, 219, 120, 179, 208, 237};
+    // clang-format on
+    ASSERT_THAT(hash.data, ::testing::ElementsAreArray(reference));
+  }
+}
