@@ -22,7 +22,7 @@ namespace kagome::common {
     /**
      * @brief allocates buffer of size={@param size}, filled with {@param byte}
      */
-    explicit Buffer(size_t size, uint8_t byte);
+    Buffer(size_t size, uint8_t byte);
 
     /**
      * @brief construct buffer from a byte vector
