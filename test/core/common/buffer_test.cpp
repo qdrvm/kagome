@@ -9,6 +9,11 @@
 using namespace kagome::common;
 using namespace std::string_literals;
 
+/**
+ * @given empty buffer
+ * @when put different stuff in this buffer
+ * @then result matches expectation
+ */
 TEST(Common, Buffer_Put) {
   Buffer b;
   ASSERT_EQ(b.size(), 0);
@@ -43,6 +48,10 @@ TEST(Common, Buffer_Put) {
   ASSERT_EQ(b.to_hex(), "68656C6C6F010000000100000000000000010102030405");
 }
 
+/**
+ * @when create buffer using different constructors
+ * @then expected buffer is created
+ */
 TEST(Common, Buffer_Init) {
   Buffer b{1, 2, 3, 4, 5};
   ASSERT_EQ(b.size(), 5);
