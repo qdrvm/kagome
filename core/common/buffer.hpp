@@ -102,16 +102,18 @@ namespace kagome::common {
     Buffer &put_uint64(uint64_t n);
 
     /**
-     * @brief Put any container which consists of bytes number in this buffer. Will be serialized
-     * as big-endian number.
+     * @brief Put a string into byte buffer
+     * @param s arbitrary string
      * @return this buffer, suitable for chaining.
      */
-     // TODO(@warchant): add compile check that iterator_type is uint8_t
-    template <typename T>
-    Buffer &put_bytes(const T &begin, const T &end) {
-      data_.insert(std::end(data_), begin, end);
-      return *this;
-    }
+    Buffer &put(const std::string& s);
+
+    /**
+     * @brief Put a vector of bytes into byte buffer
+     * @param s arbitrary vector of bytes
+     * @return this buffer, suitable for chaining.
+     */
+    Buffer &put(const std::vector<uint8_t>& v);
 
     /**
      * @brief getter for raw array of bytes
@@ -139,6 +141,15 @@ namespace kagome::common {
 
    private:
     std::vector<uint8_t> data_;
+
+    /**
+     * @note should accept only 1-byte iterators
+     */
+    template <typename T>
+    Buffer &put_bytes(const T &begin, const T &end) {
+      data_.insert(std::end(data_), begin, end);
+      return *this;
+    }
   };
 
 }  // namespace kagome::common
