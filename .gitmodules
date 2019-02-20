@@ -4,3 +4,6 @@
 [submodule "rxcpp"]
 	path = deps/RxCpp
 	url = https://github.com/ReactiveX/RxCpp
+[submodule "gsl"]
+	path = deps/GSL
+	url = https://github.com/Microsoft/GSL
