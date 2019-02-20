@@ -37,11 +37,12 @@ if(NOT GCOVR_BIN)
   message(WARNING "gcovr can not be found in PATH. Target gcovr is not available.")
 else()
   message(STATUS "Target gcovr enabled")
-  if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    set(GCOV_BACKEND "llvm-cov gcov")
-  else()
-    set(GCOV_BACKEND "gcov")
-  endif()
+#  if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+#    set(GCOV_BACKEND "llvm-cov gcov")
+#  else()
+#    set(GCOV_BACKEND "gcov")
+#  endif()
+  set(GCOV_BACKEND "gcov")
 
   add_custom_target(gcovr
     COMMAND ${GCOVR_BIN} -s -x -r '${CMAKE_SOURCE_DIR}'
