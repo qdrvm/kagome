@@ -146,10 +146,7 @@ namespace kagome::common {
      * @note should accept only 1-byte iterators
      */
     template <typename T>
-    Buffer &put_bytes(const T &begin, const T &end) {
-      data_.insert(std::end(data_), begin, end);
-      return *this;
-    }
+    Buffer &put_bytes(const T &begin, const T &end);
   };
 
 }  // namespace kagome::common

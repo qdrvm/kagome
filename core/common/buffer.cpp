@@ -95,4 +95,18 @@ namespace kagome::common {
     return data_ == b;
   }
 
+  template <typename T>
+  Buffer &Buffer::put_bytes(const T &begin, const T &end) {
+    data_.insert(std::end(data_), begin, end);
+    return *this;
+  }
+
+  Buffer &Buffer::put(const std::string &s) {
+    return put_bytes(s.begin(), s.end());
+  }
+
+  Buffer &Buffer::put(const std::vector<uint8_t> &v) {
+    return put_bytes(v.begin(), v.end());
+  }
+
 }  // namespace kagome::common
