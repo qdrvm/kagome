@@ -119,4 +119,4 @@ script:
 after_success:
 - cmake --build build --target coverage.init.info
 - cmake --build build --target coverage.info
-- bash <(curl -s https://codecov.io/bash)
+- bash <(curl -s https://codecov.io/bash) -s build
