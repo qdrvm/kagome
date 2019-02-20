@@ -15,8 +15,6 @@ namespace kagome::common {
   }
 
   Buffer &Buffer::put_uint32(uint32_t n) {
-    _data.reserve(sizeof(n));
-
     _data.push_back(static_cast<unsigned char &&>((n >> 24) & 0xFF));
     _data.push_back(static_cast<unsigned char &&>((n >> 16) & 0xFF));
     _data.push_back(static_cast<unsigned char &&>((n >> 8) & 0xFF));
@@ -26,8 +24,6 @@ namespace kagome::common {
   }
 
   Buffer &Buffer::put_uint64(uint64_t n) {
-    _data.reserve(sizeof(n));
-
     _data.push_back(static_cast<unsigned char &&>((n >> 56) & 0xFF));
     _data.push_back(static_cast<unsigned char &&>((n >> 48) & 0xFF));
     _data.push_back(static_cast<unsigned char &&>((n >> 40) & 0xFF));
@@ -40,11 +36,11 @@ namespace kagome::common {
     return *this;
   }
 
-  const uint8_t *Buffer::to_bytes() {
+  const uint8_t *Buffer::to_bytes() const {
     return _data.data();
   }
 
-  const std::string Buffer::to_hex() {
+  const std::string Buffer::to_hex() const {
     return hex(_data.data(), _data.size());
   }
 
@@ -85,7 +81,7 @@ namespace kagome::common {
 
   Buffer::Buffer(const std::vector<uint8_t> &v) : _data(v) {}
 
-  const std::vector<uint8_t> &Buffer::to_vector() {
+  const std::vector<uint8_t> &Buffer::to_vector() const {
     return _data;
   }
 

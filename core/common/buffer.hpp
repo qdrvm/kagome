@@ -49,11 +49,11 @@ namespace kagome::common {
     Buffer &put(const std::string &s);
     Buffer &put(const std::vector<uint8_t> &s);
 
-    const uint8_t *to_bytes();
+    const uint8_t *to_bytes() const;
 
-    const std::vector<uint8_t> &to_vector();
+    const std::vector<uint8_t> &to_vector() const;
 
-    const std::string to_hex();
+    const std::string to_hex() const;
     static Buffer from_hex(const std::string &hex);
 
    private:
