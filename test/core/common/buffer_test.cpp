@@ -22,7 +22,7 @@ TEST(Common, Buffer_Put) {
   ASSERT_EQ(hex, ""s);
 
   auto s = "hello"s;
-  b.put_bytes(s.begin(), s.end());
+  b.put(s);
   ASSERT_EQ(b.size(), 5);
 
   b.put_uint8(1);
@@ -35,7 +35,7 @@ TEST(Common, Buffer_Put) {
   ASSERT_EQ(b.size(), 18);
 
   std::vector<uint8_t> e{1, 2, 3, 4, 5};
-  b.put_bytes(e.begin(), e.end());
+  b.put(e);
   ASSERT_EQ(b.size(), 23);
 
   // test iterators
