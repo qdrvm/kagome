@@ -1,3 +1,8 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include "common/buffer.hpp"
 #include <gtest/gtest.h>
 
@@ -32,6 +37,8 @@ TEST(Common, Buffer_Put) {
     i++;
   }
   ASSERT_EQ(i, b.size());
+
+  ASSERT_EQ(b.to_hex(), "68656C6C6F010000000000000000000000000102030405");
 }
 
 TEST(Common, Buffer_Init) {
