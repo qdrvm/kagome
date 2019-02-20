@@ -16,19 +16,21 @@ TEST(Common, Buffer_Put) {
   auto hex = b.to_hex();
   ASSERT_EQ(hex, ""s);
 
-  b.put("hello");
+  auto s = "hello"s;
+  b.put_bytes(s.begin(), s.end());
   ASSERT_EQ(b.size(), 5);
 
   b.put_uint8(1);
   ASSERT_EQ(b.size(), 6);
 
-  b.put_uint32(0);
+  b.put_uint32(1);
   ASSERT_EQ(b.size(), 10);
 
-  b.put_uint64(0);
+  b.put_uint64(1);
   ASSERT_EQ(b.size(), 18);
 
-  b.put(std::vector<uint8_t>{1, 2, 3, 4, 5});
+  std::vector<uint8_t> e{1, 2, 3, 4, 5};
+  b.put_bytes(e.begin(), e.end());
   ASSERT_EQ(b.size(), 23);
 
   // test iterators
@@ -38,7 +40,7 @@ TEST(Common, Buffer_Put) {
   }
   ASSERT_EQ(i, b.size());
 
-  ASSERT_EQ(b.to_hex(), "68656C6C6F010000000000000000000000000102030405");
+  ASSERT_EQ(b.to_hex(), "68656C6C6F010000000100000000000000010102030405");
 }
 
 TEST(Common, Buffer_Init) {

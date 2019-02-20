@@ -11,18 +11,22 @@
 
 namespace kagome::common {
 
+  /**
+   * @brief Class represents arbitrary (including empty) byte buffer.
+   */
   class Buffer {
    private:
-    template <typename T>
-    Buffer &put_bytes(const T &begin, const T &end) {
-      _data.insert(std::end(_data), begin, end);
-      return *this;
-    }
+
 
    public:
     using iterator = std::vector<uint8_t>::iterator;
     using const_iterator = std::vector<uint8_t>::const_iterator;
 
+    /**
+     * @brief
+     * @param size
+     * @param byte
+     */
     explicit Buffer(size_t size, uint8_t byte);
     explicit Buffer(const std::vector<uint8_t> &v);
 
@@ -46,8 +50,12 @@ namespace kagome::common {
     Buffer &put_uint8(uint8_t n);
     Buffer &put_uint32(uint32_t n);
     Buffer &put_uint64(uint64_t n);
-    Buffer &put(const std::string &s);
-    Buffer &put(const std::vector<uint8_t> &s);
+
+    template <typename T>
+    Buffer &put_bytes(const T &begin, const T &end) {
+      data_.insert(std::end(data_), begin, end);
+      return *this;
+    }
 
     const uint8_t *to_bytes() const;
 
@@ -57,7 +65,7 @@ namespace kagome::common {
     static Buffer from_hex(const std::string &hex);
 
    private:
-    std::vector<uint8_t> _data;
+    std::vector<uint8_t> data_;
   };
 
 }  // namespace kagome::common
