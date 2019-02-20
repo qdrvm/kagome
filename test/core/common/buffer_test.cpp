@@ -1,5 +1,5 @@
-#include <gtest/gtest.h>
 #include "common/buffer.hpp"
+#include <gtest/gtest.h>
 
 using namespace kagome::common;
 using namespace std::string_literals;

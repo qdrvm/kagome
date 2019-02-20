@@ -1,5 +1,5 @@
-#include <gtest/gtest.h>
 #include "common/hexutil.hpp"
+#include <gtest/gtest.h>
 
 #include <boost/algorithm/hex.hpp>
 
