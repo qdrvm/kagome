@@ -29,6 +29,7 @@ include_directories(
   # add path to header only deps here
   deps/spdlog/include
   deps/RxCpp/Rx/v2/src
+  deps/GSL/include
 )
 
 add_subdirectory(core)
