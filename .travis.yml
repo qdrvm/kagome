@@ -38,6 +38,8 @@ matrix:
         - git
         - python3
         - python3-pip
+        - lcov
+        - gcovr
     env:
       - _CC=gcc-6
       - _CXX=g++-6
@@ -54,6 +56,8 @@ matrix:
         - git
         - python3
         - python3-pip
+        - lcov
+        - gcovr
     env:
       - _CC=clang-6.0
       - _CXX=clang++-6.0
@@ -94,7 +98,7 @@ install:
     pyenv global 3.6
     pip3 install requests gitpython
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
-    HOMEBREW_NO_AUTO_UPDATE=1 brew install -q python3 git
+    HOMEBREW_NO_AUTO_UPDATE=1 brew install -q python3 git gcovr lcov
     pip3 install -q requests gitpython
   fi
 
@@ -102,6 +106,8 @@ before_script:
 - cmake --version
 - python -V
 - pip -V
+- lcov -V
+- gcovr --version
 
 script:
 - export CC=$_CC
