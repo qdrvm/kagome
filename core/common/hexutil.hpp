@@ -1,9 +1,8 @@
-#ifndef POLKADOT_HEXUTIL_HPP
-#define POLKADOT_HEXUTIL_HPP
+#ifndef KAGOME_HEXUTIL_HPP
+#define KAGOME_HEXUTIL_HPP
 
 #include <string>
 #include <vector>
-#include <boost/algorithm/hex.hpp>
 
 namespace kagome::common {
 
@@ -36,4 +35,4 @@ std::vector<uint8_t> unhex(const std::string &hex);
 
 }
 
-#endif //POLKADOT_HEXUTIL_HPP
+#endif //KAGOME_HEXUTIL_HPP

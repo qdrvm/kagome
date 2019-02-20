@@ -1,5 +1,10 @@
-#ifndef POLKADOT_BUFFER_HPP
-#define POLKADOT_BUFFER_HPP
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#ifndef KAGOME_BUFFER_HPP
+#define KAGOME_BUFFER_HPP
 
 #include <vector>
 #include <string>
@@ -57,4 +62,4 @@ class Buffer {
 
 }
 
-#endif //POLKADOT_BUFFER_HPP
+#endif //KAGOME_BUFFER_HPP
