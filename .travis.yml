@@ -9,7 +9,8 @@ env:
   global:
   - secure: F3T+bdNjTIE/oofb+PXz2+8I2lplJEa1UohE0tykGh8PwbOG4Ptsz68fpsMPQ5mqqk+RO000S7tafO6ZIsR3iy/J/j5dBb6PWShaDDjIlET/BJVsopG4KgdcIbQ+kT63jmuJmlBxmT9Bel8E1Qm3aQEQU1F+9Kx2VCqoe7TLKQyP1G4a74I50NpcYkOgRBOCW9SRu2fyS6Yv2NZ16j4WPkxLtQjhLMOqvcMpYGhR9NKUIHyHo04fdiu3/ii0pKcwvDkde0ux+DhSY2cX7ksZ3BwlSc0hUCZWvyd2pjeQEdyfKr5JOKBwfGI60VJ3o/FwMySOmYevOPKSRPZYeoncIGzj1iwVl+gFD5iOXT89MUStNl2vVkD2GPyZPi8b2peJHGGtKHkqgLOY0iR/dtOaIHBEXxNqcvoDwUDqz2hYUKVPsQ8MYgUQZHUXFgitJRWPdAvBQLIzoT5p1TRIgKBHU9OPpgrymILmSp7CFw0XYejUJIHxLzjk76pInr4A01EgLExPmYkGUqFzb35V1p3iT7bzn7MRM92pyIC+/whv8vjc9LbLrxm006NEZyM7QMWr4jv/HU0NpXgSyWoSr5PsBbb7TgpCLifMO15o8yptgTxL9xU4jVm5yQhre7cZzUH9toWBh0z5sqpexM3OoYd4UY9ocgdqShsvrtXwo8YzELk=
   - secure: fKwrK+2crAEZ8UfeuKfsytSig3JT/07TaOYoAYkcVu91fHOfyFi3+luDvtUU3AQclYiP8BYhZyDCm1AXWVyx1/F20PpQniCpkBkoDPz3CN8Enk1Ne0Sc7g8xNP9S2vB5HhT4vdRFqJWssaqwzRFmCFtYbyWFgJZFscZ7XOmWQpfWeX78JoYgsnyxMhaIYV5Br5jbSMj9FbS60QBSXj18mX7maeJ729BeRnyTjDyIvtPZhynIMo0/FLjghsaLPLMxuVd70+za5nu+YhGCYK5MGlOMsHGedronJqAfOpz4mQwP0ab5uMVts1MQfgtkdnNl2n4LTMalh3r0PY9F1eTtO+pi2smNaqhADvFtALBfdMEkN81hucsWFY3QU6sUoctztu4E97ZgBVahL2JUWPgXvK7ijERfaZ4olpZdvbC4IDPJQ30bXkS+g/ZW1fn1cxV6hAmDLA3CYW63HBJaygDS/6v5c8/sO/1/vljVbbeP3SNtwKyf83z/yUDcVwkZKCPNjSbHnNrTCdUn8HefmV07fDf07YCRoiQeiT6jHG5iHLi0bHn38JLIl/XsZ2Dj/WVysnP4+QO/JTzZBZJNyCCLRQOQwZWvKchlm9nw8xK10zc67BTU2yqx2do6NZuL5AfK3M6wGDD6Lso7huys9NNbFTWTc5vpDcANpf50lZuMVrU=
-
+  # CODECOV_TOKEN
+  - secure: VK2/+gY79fRkYrd0InEmg1r2vRgfrj5uliAENbdqWY53KQVHD0f0IvKEHckaqu/chwwnP4Um21pjzDMoFLrAi8NW0EixFpZjkbFX97n7/+TJ2Z+kppQwf33aMULJCOhV41DxJti6JoJToLTs64cfInpdXaUvPbOjo81mdio9fnfRK0BxIMVw3T6040HQXLkIXZw049onqXNC8CUl3kysi2Rv9Ju6wB2vBQdftdkWpkqdHVYohbAO9G91LdeFw1h17OCe/dJVL/w/JBHwHgBimBb8Tf77MdSIK1F136oih/ebfXGHxrpRTr3KceN8qG3LQIs/YjF9RcAmD5bdMBIUQhxCfbOeo7yGV65NCFUPx0+KCM5zav3jUfd5/E9KbLiVifu62xyv4MJVSAVSxbNNxMsDMu/OPifnLMryJeIVGVhs1hf64ccm2cWstlhPNk8mvjgy4/CLlvhAsU2+hyBcx6Obk6nwWKmfYLbEtfG/o8+h6y+5b9FKq7KyfdlP8XpM2tQ0IiI7mF7MjBQsg1eLCGIOGayKu6RIleAlLohuTBnEtocgPs6rX2MyQ9/V3Vmq+x1aafli6X7uJUos51gZVq0jvMR196dUXuRbPFky8BJSQY5NRh3ix2ZEztHqRrOVN+OtYfXTg2mdlJ1xtIiYmMd8obAhEGztTbtxJmM94LY=
 
 cache:
   apt: true
@@ -19,8 +20,8 @@ cache:
   - "${TRAVIS_BUILD_DIR}/cmake_3.13.3"
   - "${TRAVIS_BUILD_DIR}/build"
   - "${TRAVIS_BUILD_DIR}/deps"
-  - $HOME/.cache
-  - $HOME/.ccache
+  - "$HOME/.cache"
+  - "$HOME/.ccache"
 
 matrix:
   include:
@@ -37,6 +38,8 @@ matrix:
         - git
         - python3
         - python3-pip
+        - lcov
+        - gcovr
     env:
       - _CC=gcc-6
       - _CXX=g++-6
@@ -53,6 +56,8 @@ matrix:
         - git
         - python3
         - python3-pip
+        - lcov
+        - gcovr
     env:
       - _CC=clang-6.0
       - _CXX=clang++-6.0
@@ -88,13 +93,12 @@ install:
   fi
   export PATH="$PWD/${CMAKE_PATH}:$PATH"
   cd ${TRAVIS_BUILD_DIR}
-
-- >
+- |
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     pyenv global 3.6
     pip3 install requests gitpython
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
-    HOMEBREW_NO_AUTO_UPDATE=1 brew install -q python3 git
+    HOMEBREW_NO_AUTO_UPDATE=1 brew install -q python3 git gcovr lcov
     pip3 install -q requests gitpython
   fi
 
@@ -102,10 +106,17 @@ before_script:
 - cmake --version
 - python -V
 - pip -V
+- lcov -V
+- gcovr --version
 
 script:
 - export CC=$_CC
 - export CXX=$_CXX
-- cmake . -Bbuild
+- cmake . -Bbuild -DCOVERAGE=ON
 - cmake --build build -- -j2
 - cmake --build build --target test
+
+after_success:
+- cmake --build build --target coverage.init.info
+- cmake --build build --target coverage.info
+- bash <(curl -s https://codecov.io/bash) -s build
