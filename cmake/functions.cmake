@@ -12,6 +12,8 @@ function(addtest test_name)
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/test_bin
     ARCHIVE_OUTPUT_PATH      ${CMAKE_BINARY_DIR}/test_lib
     LIBRARY_OUTPUT_PATH      ${CMAKE_BINARY_DIR}/test_lib
+    C_CLANG_TIDY             ""
+    CXX_CLANG_TIDY           ""
     )
 endfunction()
 
