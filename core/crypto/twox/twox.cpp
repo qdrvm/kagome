@@ -14,18 +14,16 @@ namespace kagome::crypto {
   }
 
   Twox128Hash make_twox128(const uint8_t *buf, size_t len) {
-    Twox128Hash hash;
-    uint64_t *ptr = (uint64_t *)hash.data;
-    ptr[0] = XXH64(buf, len, 0);
-    ptr[1] = XXH64(buf, len, 1);
+    Twox128Hash hash{};
+    auto ptr = reinterpret_cast<uint64_t *>(hash.data);  // NOLINT
+    ptr[0] = XXH64(buf, len, 0);                         // NOLINT
+    ptr[1] = XXH64(buf, len, 1);                         // NOLINT
     return hash;
   }
 
   void make_twox128(const common::Buffer &in, common::Buffer &out) {
     auto hash = make_twox128(in);
-    for (auto &&data : hash.data) {
-      out.put_uint8(data);
-    }
+    out.put_bytes(hash.data, hash.data + sizeof(hash.data));  // NOLINT
   }
 
   Twox256Hash make_twox256(const common::Buffer &buf) {
@@ -33,20 +31,18 @@ namespace kagome::crypto {
   }
 
   Twox256Hash make_twox256(const uint8_t *buf, size_t len) {
-    Twox256Hash hash;
-    uint64_t *ptr = (uint64_t *)hash.data;
-    ptr[0] = XXH64(buf, len, 0);
-    ptr[1] = XXH64(buf, len, 1);
-    ptr[2] = XXH64(buf, len, 2);
-    ptr[3] = XXH64(buf, len, 3);
+    Twox256Hash hash{};
+    auto ptr = reinterpret_cast<uint64_t *>(hash.data);  // NOLINT
+    ptr[0] = XXH64(buf, len, 0);                         // NOLINT
+    ptr[1] = XXH64(buf, len, 1);                         // NOLINT
+    ptr[2] = XXH64(buf, len, 2);                         // NOLINT
+    ptr[3] = XXH64(buf, len, 3);                         // NOLINT
     return hash;
   }
 
   void make_twox256(const common::Buffer &in, common::Buffer &out) {
     auto hash = make_twox256(in);
-    for (auto &&data : hash.data) {
-      out.put_uint8(data);
-    }
+    out.put_bytes(hash.data, hash.data + sizeof(hash.data));  // NOLINT
   }
 
 }  // namespace kagome::crypto

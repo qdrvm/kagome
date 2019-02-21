@@ -103,12 +103,11 @@ namespace kagome::common {
   }
 
   Buffer &Buffer::put(const std::string &s) {
-    return put_bytes((const uint8_t *)(&*s.begin()),
-                     (const uint8_t *)(&*s.end()));
+    return put_range(s.begin(), s.end());
   }
 
   Buffer &Buffer::put(const std::vector<uint8_t> &v) {
-    return put_bytes(&*v.begin(), &*v.end());
+    return put_range(v.begin(), v.end());
   }
 
   Buffer &Buffer::put_bytes(const uint8_t *begin, const uint8_t *end) {
