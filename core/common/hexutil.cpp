@@ -12,7 +12,7 @@ namespace kagome::common {
 
   std::string hex(const uint8_t *array, size_t len) noexcept {
     std::string res(len * 2, '\x00');
-    boost::algorithm::hex(array, array + len, res.begin());
+    boost::algorithm::hex(array, array + len, res.begin()); // NOLINT
     return res;
   }
 
@@ -22,7 +22,7 @@ namespace kagome::common {
 
   std::vector<uint8_t> unhex(const char *array, size_t len) {
     std::vector<uint8_t> blob((len + 1) / 2);
-    boost::algorithm::unhex(array, array + len, blob.begin());
+    boost::algorithm::unhex(array, array + len, blob.begin()); // NOLINT
     return blob;
   }
 
