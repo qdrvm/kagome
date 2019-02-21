@@ -1,3 +1,8 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include <utility>
 
 #include "buffer.hpp"
@@ -5,103 +10,105 @@
 
 namespace kagome::common {
 
-size_t Buffer::size() const {
-  return _data.size();
-}
+  size_t Buffer::size() const {
+    return data_.size();
+  }
 
-Buffer &Buffer::put_uint32(uint32_t n) {
-  _data.reserve(sizeof(n));
+  Buffer &Buffer::put_uint32(uint32_t n) {
+    data_.push_back(static_cast<unsigned char &&>((n >> 24) & 0xFF));
+    data_.push_back(static_cast<unsigned char &&>((n >> 16) & 0xFF));
+    data_.push_back(static_cast<unsigned char &&>((n >> 8) & 0xFF));
+    data_.push_back(static_cast<unsigned char &&>((n)&0xFF));
 
-  _data.push_back(static_cast<unsigned char &&>((n >> 24) & 0xFF));
-  _data.push_back(static_cast<unsigned char &&>((n >> 16) & 0xFF));
-  _data.push_back(static_cast<unsigned char &&>((n >> 8) & 0xFF));
-  _data.push_back(static_cast<unsigned char &&>((n) & 0xFF));
+    return *this;
+  }
 
-  return *this;
-}
+  Buffer &Buffer::put_uint64(uint64_t n) {
+    data_.push_back(static_cast<unsigned char &&>((n >> 56) & 0xFF));
+    data_.push_back(static_cast<unsigned char &&>((n >> 48) & 0xFF));
+    data_.push_back(static_cast<unsigned char &&>((n >> 40) & 0xFF));
+    data_.push_back(static_cast<unsigned char &&>((n >> 32) & 0xFF));
+    data_.push_back(static_cast<unsigned char &&>((n >> 24) & 0xFF));
+    data_.push_back(static_cast<unsigned char &&>((n >> 16) & 0xFF));
+    data_.push_back(static_cast<unsigned char &&>((n >> 8) & 0xFF));
+    data_.push_back(static_cast<unsigned char &&>((n)&0xFF));
 
-Buffer &Buffer::put_uint64(uint64_t n) {
-  _data.reserve(sizeof(n));
+    return *this;
+  }
 
-  _data.push_back(static_cast<unsigned char &&>((n >> 56) & 0xFF));
-  _data.push_back(static_cast<unsigned char &&>((n >> 48) & 0xFF));
-  _data.push_back(static_cast<unsigned char &&>((n >> 40) & 0xFF));
-  _data.push_back(static_cast<unsigned char &&>((n >> 32) & 0xFF));
-  _data.push_back(static_cast<unsigned char &&>((n >> 24) & 0xFF));
-  _data.push_back(static_cast<unsigned char &&>((n >> 16) & 0xFF));
-  _data.push_back(static_cast<unsigned char &&>((n >> 8) & 0xFF));
-  _data.push_back(static_cast<unsigned char &&>((n) & 0xFF));
+  const uint8_t *Buffer::to_bytes() const {
+    return data_.data();
+  }
 
-  return *this;
-}
+  const std::string Buffer::to_hex() const {
+    return hex(data_.data(), data_.size());
+  }
 
-const uint8_t *Buffer::to_bytes() {
-  return _data.data();
-}
+  Buffer::Buffer(std::initializer_list<uint8_t> b) : data_(b) {}
 
-const std::string Buffer::to_hex() {
-  return hex(_data.data(), _data.size());
-}
+  Buffer::iterator Buffer::begin() {
+    return data_.begin();
+  }
 
-Buffer &Buffer::put(const std::string &s) {
-  return put_bytes(s.begin(), s.end());
-}
+  Buffer::iterator Buffer::end() {
+    return data_.end();
+  }
 
-Buffer &Buffer::put(const std::vector<uint8_t> &s) {
-  return put_bytes(s.begin(), s.end());
-}
+  Buffer &Buffer::put_uint8(uint8_t n) {
+    data_.push_back(n);
+    return *this;
+  }
 
-Buffer::Buffer(std::initializer_list<uint8_t> b) : _data(b) {
+  const uint8_t Buffer::operator[](size_t index) const {
+    return data_[index];
+  }
 
-}
+  uint8_t &Buffer::operator[](size_t index) {
+    return data_[index];
+  }
 
-Buffer::iterator Buffer::begin() { return _data.begin(); }
+  Buffer Buffer::from_hex(const std::string &hex) {
+    return Buffer(unhex(hex));
+  }
 
-Buffer::iterator Buffer::end() { return _data.end(); }
+  Buffer::Buffer(const std::vector<uint8_t> &v) : data_(v) {}
 
-Buffer &Buffer::put_uint8(uint8_t n) {
-  _data.push_back(n);
-  return *this;
-}
+  const std::vector<uint8_t> &Buffer::to_vector() const {
+    return data_;
+  }
 
-const uint8_t Buffer::operator[](size_t index) const {
-  return _data[index];
-}
+  bool Buffer::operator==(const Buffer &b) const noexcept {
+    return data_ == b.data_;
+  }
 
-uint8_t &Buffer::operator[](size_t index) {
-  return _data[index];
-}
+  Buffer::const_iterator Buffer::begin() const {
+    return data_.begin();
+  }
 
-Buffer Buffer::from_hex(const std::string &hex) {
-  return Buffer(unhex(hex));
-}
+  Buffer::const_iterator Buffer::end() const {
+    return data_.end();
+  }
 
-Buffer::Buffer(const std::vector<uint8_t> &v) : _data(v) {
+  Buffer::Buffer(size_t size, uint8_t byte) : data_(size, byte) {}
 
-}
+  bool Buffer::operator==(const std::vector<uint8_t> &b) const noexcept {
+    return data_ == b;
+  }
 
-const std::vector<uint8_t> &Buffer::to_vector() {
-  return _data;
-}
+  template <typename T>
+  Buffer &Buffer::put_bytes(const T &begin, const T &end) {
+    data_.insert(std::end(data_), begin, end);
+    return *this;
+  }
 
-bool Buffer::operator==(const Buffer &b) const noexcept {
-  return _data == b._data;
-}
+  Buffer &Buffer::put(const std::string &s) {
+    return put_bytes(s.begin(), s.end());
+  }
 
-Buffer::const_iterator Buffer::begin() const {
-  return _data.begin();
-}
+  Buffer &Buffer::put(const std::vector<uint8_t> &v) {
+    return put_bytes(v.begin(), v.end());
+  }
 
-Buffer::const_iterator Buffer::end() const {
-  return _data.end();
-}
+  Buffer::Buffer(std::vector<uint8_t> &&v) noexcept : data_{std::move(v)} {}
 
-Buffer::Buffer(size_t size, uint8_t byte) : _data(size, byte) {
-
-}
-
-bool Buffer::operator==(const std::vector<uint8_t> &b) const noexcept {
-  return _data == b;
-}
-
-}
+}  // namespace kagome::common

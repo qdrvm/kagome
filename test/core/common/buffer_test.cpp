@@ -1,9 +1,19 @@
-#include <gtest/gtest.h>
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include "common/buffer.hpp"
+#include <gtest/gtest.h>
 
 using namespace kagome::common;
 using namespace std::string_literals;
 
+/**
+ * @given empty buffer
+ * @when put different stuff in this buffer
+ * @then result matches expectation
+ */
 TEST(Common, Buffer_Put) {
   Buffer b;
   ASSERT_EQ(b.size(), 0);
@@ -11,19 +21,21 @@ TEST(Common, Buffer_Put) {
   auto hex = b.to_hex();
   ASSERT_EQ(hex, ""s);
 
-  b.put("hello");
+  auto s = "hello"s;
+  b.put(s);
   ASSERT_EQ(b.size(), 5);
 
   b.put_uint8(1);
   ASSERT_EQ(b.size(), 6);
 
-  b.put_uint32(0);
+  b.put_uint32(1);
   ASSERT_EQ(b.size(), 10);
 
-  b.put_uint64(0);
+  b.put_uint64(1);
   ASSERT_EQ(b.size(), 18);
 
-  b.put(std::vector<uint8_t>{1, 2, 3, 4, 5});
+  std::vector<uint8_t> e{1, 2, 3, 4, 5};
+  b.put(e);
   ASSERT_EQ(b.size(), 23);
 
   // test iterators
@@ -32,8 +44,14 @@ TEST(Common, Buffer_Put) {
     i++;
   }
   ASSERT_EQ(i, b.size());
+
+  ASSERT_EQ(b.to_hex(), "68656C6C6F010000000100000000000000010102030405");
 }
 
+/**
+ * @when create buffer using different constructors
+ * @then expected buffer is created
+ */
 TEST(Common, Buffer_Init) {
   Buffer b{1, 2, 3, 4, 5};
   ASSERT_EQ(b.size(), 5);
