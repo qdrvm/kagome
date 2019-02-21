@@ -28,6 +28,7 @@ cache:
 matrix:
   include:
   - os: linux
+    name: "Linux gcc6 Coverage"
     dist: trusty
     compiler: gcc
     addons:
@@ -52,6 +53,7 @@ matrix:
       - bash <(curl -s https://codecov.io/bash) -s build
 
   - os: linux
+    name: "Linux clang-6.0"
     dist: xenial
     compiler: clang
     addons:
@@ -71,6 +73,7 @@ matrix:
 
 
   - os: osx
+    name: "OSX gcc"
     compiler: gcc
     env:
       - _CC=gcc
@@ -83,6 +86,7 @@ matrix:
           - lcov
 
   - os: osx
+    name: "OSX clang clang-tidy"
     compiler: clang
     env:
       - _CC=clang
@@ -94,12 +98,14 @@ matrix:
           - gcovr
           - lcov
           - llvm
-    after_success:
+    script:
       # run clang-tidy
-      - PARENT=/usr/local/Cellar/llvm/*/
-      - export PATH=$PATH:$PARENT/bin
-      - export PATH=$PATH:$PARENT/share/clang/
-      - run-clang-tidy.py -p build
+      - export CLANG_TIDY=$(find /usr/local/Cellar/llvm -type f -name clang-tidy | head -n 1)
+      - export CC=$_CC
+      - export CXX=$_CXX
+      - cmake . -Bbuild -DCLANG_TIDY=ON -DCLANG_TIDY_BIN=${CLANG_TIDY}
+      - cmake --build build -- -j2
+      - cmake --build build --target test
 
 
 install:
@@ -124,7 +130,7 @@ install:
     pyenv global 3.6
     pip3 install requests gitpython
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
-    pip3 install -q requests gitpython
+    pip3 install -q requests gitpython pyyaml
   fi
 
 before_script:
@@ -133,7 +139,6 @@ before_script:
 - pip -V
 - lcov -V
 - gcovr --version
-
 
 script:
 - export CC=$_CC

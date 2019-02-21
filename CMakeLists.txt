@@ -25,11 +25,16 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(CLANG_TIDY "Enable clang-tidy checks during compilation" OFF)
+option(COVERAGE   "Enable generation of coverage info"          OFF)
+
 if(COVERAGE)
   include(cmake/coverage.cmake)
 endif()
+if(CLANG_TIDY)
+  include(cmake/clang-tidy.cmake)
+endif()
 
-option(CLANG_TIDY "Enable clang-tidy checks during compilation" OFF)
 
 include_directories(
   ${PROJECT_SOURCE_DIR}/core
@@ -45,6 +50,4 @@ enable_testing()
 add_subdirectory(test)
 
 
-if(CLANG_TIDY)
-  include(cmake/clang-tidy.cmake)
-endif()
+
