@@ -29,6 +29,8 @@ if(COVERAGE)
   include(cmake/coverage.cmake)
 endif()
 
+option(CLANG_TIDY "Enable clang-tidy checks during compilation" OFF)
+
 include_directories(
   ${PROJECT_SOURCE_DIR}/core
   # add path to header only deps here
@@ -41,3 +43,8 @@ add_subdirectory(core)
 
 enable_testing()
 add_subdirectory(test)
+
+
+if(CLANG_TIDY)
+  include(cmake/clang-tidy.cmake)
+endif()
