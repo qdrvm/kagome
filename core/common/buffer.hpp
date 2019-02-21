@@ -27,12 +27,7 @@ namespace kagome::common {
     /**
      * @brief lvalue construct buffer from a byte vector
      */
-    explicit Buffer(const std::vector<uint8_t> &v);
-
-    /**
-     * @brief rvalue construct buffer from a byte vector
-     */
-    explicit Buffer(std::vector<uint8_t> &&v) noexcept;
+    explicit Buffer(std::vector<uint8_t> v);
 
     Buffer() = default;
     Buffer(const Buffer &b) = default;
@@ -87,10 +82,10 @@ namespace kagome::common {
     size_t size() const;
 
     /**
-     * @brief Put a 8-bit {@param byte} in this buffer.
+     * @brief Put a 8-bit {@param n} in this buffer.
      * @return this buffer, suitable for chaining.
      */
-    Buffer &put_uint8(uint8_t byte);
+    Buffer &put_uint8(uint8_t n);
 
     /**
      * @brief Put a 32-bit {@param n} number in this buffer. Will be serialized

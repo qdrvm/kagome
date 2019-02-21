@@ -24,13 +24,13 @@ namespace kagome::common {
   }
 
   Buffer &Buffer::put_uint64(uint64_t n) {
-    data_.push_back(static_cast<unsigned char &&>((n >> 56) & 0xFF));
-    data_.push_back(static_cast<unsigned char &&>((n >> 48) & 0xFF));
-    data_.push_back(static_cast<unsigned char &&>((n >> 40) & 0xFF));
-    data_.push_back(static_cast<unsigned char &&>((n >> 32) & 0xFF));
-    data_.push_back(static_cast<unsigned char &&>((n >> 24) & 0xFF));
-    data_.push_back(static_cast<unsigned char &&>((n >> 16) & 0xFF));
-    data_.push_back(static_cast<unsigned char &&>((n >> 8) & 0xFF));
+    data_.push_back(static_cast<unsigned char &&>((n >> 56u) & 0xFF));
+    data_.push_back(static_cast<unsigned char &&>((n >> 48u) & 0xFF));
+    data_.push_back(static_cast<unsigned char &&>((n >> 40u) & 0xFF));
+    data_.push_back(static_cast<unsigned char &&>((n >> 32u) & 0xFF));
+    data_.push_back(static_cast<unsigned char &&>((n >> 24u) & 0xFF));
+    data_.push_back(static_cast<unsigned char &&>((n >> 16u) & 0xFF));
+    data_.push_back(static_cast<unsigned char &&>((n >> 8u) & 0xFF));
     data_.push_back(static_cast<unsigned char &&>((n)&0xFF));
 
     return *this;
@@ -68,10 +68,10 @@ namespace kagome::common {
   }
 
   Buffer Buffer::from_hex(const std::string &hex) {
-    return Buffer(unhex(hex));
+    return Buffer(std::move(unhex(hex)));
   }
 
-  Buffer::Buffer(const std::vector<uint8_t> &v) : data_(v) {}
+  Buffer::Buffer(std::vector<uint8_t> v) : data_(std::move(v)) {}
 
   const std::vector<uint8_t> &Buffer::to_vector() const {
     return data_;
@@ -108,7 +108,5 @@ namespace kagome::common {
   Buffer &Buffer::put(const std::vector<uint8_t> &v) {
     return put_bytes(v.begin(), v.end());
   }
-
-  Buffer::Buffer(std::vector<uint8_t> &&v) noexcept : data_{std::move(v)} {}
 
 }  // namespace kagome::common

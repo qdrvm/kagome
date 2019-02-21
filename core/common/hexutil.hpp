@@ -36,7 +36,6 @@ namespace kagome::common {
    * @see
    * https://www.boost.org/doc/libs/1_51_0/libs/algorithm/doc/html/the_boost_algorithm_library/Misc/hex.html
    */
-  std::vector<uint8_t> unhex(const uint8_t *array, size_t len);
   std::vector<uint8_t> unhex(const std::string &hex);
 
 }  // namespace kagome::common
