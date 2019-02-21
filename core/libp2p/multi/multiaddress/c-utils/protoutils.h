@@ -37,7 +37,7 @@ char * int2ip(int inputintip);
  * @param bytes the bytes to unserialize
  * @param bytes_size the length of the bytes array
  */
-int bytes_to_string(char** results, const uint8_t* bytes, int bytes_size);
+char* bytes_to_string(char** results, const uint8_t* bytes, int bytes_size);
 
 /**
  * Convert an address string to a byte representation

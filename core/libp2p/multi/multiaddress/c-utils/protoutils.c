@@ -301,7 +301,7 @@ char * int2ip(int inputintip)
  * @param in_bytes_size the length of the bytes array
  * @returns 0 on error, otherwise 1
  */
-int bytes_to_string(char** buffer, const uint8_t* in_bytes, int in_bytes_size)
+char* bytes_to_string(char** buffer, const uint8_t* in_bytes, int in_bytes_size)
 {
 	uint8_t * bytes = NULL;
 	char *results = NULL;
@@ -401,9 +401,10 @@ int bytes_to_string(char** buffer, const uint8_t* in_bytes, int in_bytes_size)
 			free(addrbuf);
 			if(returnstatus == 0)
 			{
-				fprintf(stderr, "Unable to base58 encode MultiAddress %s\n", IPFS_ADDR);
-				unload_protocols(head);
-				return 0;
+                char *error = (char*) malloc(sizeof(char) * (38 + addrsize + 1));
+                strcpy(error, "unable to base58 encode MultiAddress: ");
+                strcat(error, IPFS_ADDR);
+                return error;
 			}
 			strcat(results, "/");
 			strcat(results, protocol->name);
@@ -413,7 +414,7 @@ int bytes_to_string(char** buffer, const uint8_t* in_bytes, int in_bytes_size)
 	}
 	strcat(results, "/");
 	unload_protocols(head);
-	return 1;
+	return NULL;
 }
 //
 

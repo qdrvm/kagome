@@ -6,9 +6,11 @@
 #ifndef KAGOME_MULTIADDRESS_HPP
 #define KAGOME_MULTIADDRESS_HPP
 
+#include <memory>
 #include <string>
 #include <string_view>
 
+#include <spdlog/spdlog.h>
 #include <boost/optional.hpp>
 #include "common/buffer.hpp"
 #include "common/result.hpp"
@@ -20,10 +22,17 @@ namespace libp2p::multi {
   class Multiaddress {
    private:
     using ByteBuffer = kagome::common::Buffer;
-    using FactoryResult = kagome::expected::Result<Multiaddress, std::string>;
+    using FactoryResult =
+        kagome::expected::Result<std::unique_ptr<Multiaddress>, std::string>;
 
    public:
     Multiaddress() = delete;
+
+    Multiaddress(const Multiaddress &address) = default;
+    Multiaddress &operator=(const Multiaddress &address) = default;
+
+    Multiaddress(Multiaddress &&address) = default;
+    Multiaddress &operator=(Multiaddress &&address) = default;
 
     /**
      * Construct a multiaddress instance from the string
@@ -35,7 +44,7 @@ namespace libp2p::multi {
      * Construct a multiaddress instance from the bytes
      * @param bytes to be in that multiaddress
      */
-    static FactoryResult createMultiaddress(const ByteBuffer &bytes);
+    static FactoryResult createMultiaddress(std::shared_ptr<ByteBuffer> bytes);
 
     /**
      * Put a new string to the right of this Multiaddress and recalculate the
@@ -57,9 +66,10 @@ namespace libp2p::multi {
     bool decapsulate(std::string_view part);
 
     /**
-     * Families of protocols, supported by this multiaddress class
+     * Families of protocols, supported by this multiaddress class; numbers
+     * correspond to their byte encodings
      */
-    enum class Family { kIp4, kIp6 };
+    enum class Family : uint8_t { kNone = 0, kIp4 = 4, kIp6 = 41 };
     /**
      * Get family of this multiaddress
      * @return enum of the family of this address
@@ -67,10 +77,26 @@ namespace libp2p::multi {
     Family getFamily() const;
 
     /**
-     * Get the textual representation of the address inside
-     * @return
+     * Check, if this address belongs to IP family
+     * @return true, if address is from IP family, false otherwise
      */
-    std::string getStringAddress() const;
+    bool isIpAddress() const;
+
+    /**
+     * Get the textual representation of the whole address inside
+     * @return stringified address
+     */
+    std::string_view getStringAddress() const;
+
+    /**
+     * Get the textual representation of particular family's address inside,
+     * such that address '/ip4/192.168.0.1/tcp/1234' with passed kIp4 will lead
+     * to '192.168.0.1/tcp/1234'
+     * @param address_family of address to get
+     * @return stringified part of address related to the family if supported,
+     * none otherwise
+     */
+    boost::optional<std::string> getStringAddress(Family address_family) const;
 
     /**
      * Get port of this Multiaddress
@@ -89,12 +115,26 @@ namespace libp2p::multi {
      * Construct a multiaddress instance from both address and bytes
      * @param address to be in the multiaddress
      * @param bytes to be in the multiaddress
+     * @throws invalid_argument, if could not retrieve address' family
      */
-    Multiaddress(std::string &&address, ByteBuffer &&bytes);
+    Multiaddress(std::string &&address, std::shared_ptr<ByteBuffer> bytes);
 
-    ByteBuffer bytes_;
+    /**
+     * Recalculate the port inside this address (if exists)
+     */
+    void calculatePort();
+
+    /**
+     * Recalculate peer_id inside this address (if exists)
+     */
+    void calculatePeerId();
+
+    std::shared_ptr<ByteBuffer> bytes_;
     Family family_;
     std::string stringified_address_;
+
+    boost::optional<uint16_t> port_;
+    boost::optional<std::string> peer_id_;
   };
 }  // namespace libp2p::multi
 
