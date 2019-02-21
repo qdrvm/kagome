@@ -106,14 +106,22 @@ namespace kagome::common {
      * @param s arbitrary string
      * @return this buffer, suitable for chaining.
      */
-    Buffer &put(const std::string& s);
+    Buffer &put(const std::string &s);
 
     /**
      * @brief Put a vector of bytes into byte buffer
      * @param s arbitrary vector of bytes
      * @return this buffer, suitable for chaining.
      */
-    Buffer &put(const std::vector<uint8_t>& v);
+    Buffer &put(const std::vector<uint8_t> &v);
+
+    /**
+     * @brief Put a array of bytes bounded by pointers into byte buffer
+     * @param begin pointer to the array start
+     *        end pointer to the address after the last element
+     * @return this buffer, suitable for chaining.
+     */
+    Buffer &put_bytes(const uint8_t *begin, const uint8_t *end);
 
     /**
      * @brief getter for raw array of bytes
@@ -142,11 +150,8 @@ namespace kagome::common {
    private:
     std::vector<uint8_t> data_;
 
-    /**
-     * @note should accept only 1-byte iterators
-     */
     template <typename T>
-    Buffer &put_bytes(const T &begin, const T &end);
+    Buffer &put_range(const T &begin, const T &end);
   };
 
 }  // namespace kagome::common
