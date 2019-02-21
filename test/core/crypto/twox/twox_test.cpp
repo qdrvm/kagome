@@ -10,6 +10,11 @@
 
 using namespace kagome::crypto;
 
+/**
+ * @given some strings
+ * @when calling make_twox128
+ * @then resulting hash matches to the magic
+ */
 TEST(Twox128, Correctness) {
   {
     auto hash = make_twox128({});
@@ -27,6 +32,11 @@ TEST(Twox128, Correctness) {
   }
 }
 
+/**
+ * @given some strings
+ * @when calling make_twox256
+ * @then resulting hash matches to the magic
+ */
 TEST(Twox256, Correctness) {
   {
     auto hash = make_twox256({});
