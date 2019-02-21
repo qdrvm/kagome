@@ -20,14 +20,10 @@ namespace kagome::common {
     return hex(bytes.data(), bytes.size());
   }
 
-  std::vector<uint8_t> unhex(const char *array, size_t len) {
-    std::vector<uint8_t> blob((len + 1) / 2);
-    boost::algorithm::unhex(array, array + len, blob.begin()); // NOLINT
-    return blob;
-  }
-
   std::vector<uint8_t> unhex(const std::string &hex) {
-    return unhex(hex.data(), hex.size());
+    std::vector<uint8_t> blob((hex.size() + 1) / 2);
+    boost::algorithm::unhex(hex.begin(), hex.end(), blob.begin());
+    return blob;
   }
 
 }  // namespace kagome::common
