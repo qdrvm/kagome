@@ -21,6 +21,13 @@ namespace kagome::crypto {
     return hash;
   }
 
+  void make_twox128(const common::Buffer &in, common::Buffer &out) {
+    auto hash = make_twox128(in);
+    for (auto &&data : hash.data) {
+      out.put_uint8(data);
+    }
+  }
+
   Twox256Hash make_twox256(const common::Buffer &buf) {
     return make_twox256(buf.to_bytes(), buf.size());
   }
@@ -33,6 +40,13 @@ namespace kagome::crypto {
     ptr[2] = XXH64(buf, len, 2);
     ptr[3] = XXH64(buf, len, 3);
     return hash;
+  }
+
+  void make_twox256(const common::Buffer &in, common::Buffer &out) {
+    auto hash = make_twox256(in);
+    for (auto &&data : hash.data) {
+      out.put_uint8(data);
+    }
   }
 
 }  // namespace kagome::crypto
