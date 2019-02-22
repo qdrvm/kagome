@@ -87,9 +87,9 @@ namespace kagome::expected {
      */
     template <typename ValueMatch, typename ErrorMatch>
     constexpr auto match(ValueMatch &&value_func, ErrorMatch &&error_func) {
-      return visit_in_place(*this,
-                            std::forward<ValueMatch>(value_func),
-                            std::forward<ErrorMatch>(error_func));
+      return visitor::visit_in_place(*this,
+                                     std::forward<ValueMatch>(value_func),
+                                     std::forward<ErrorMatch>(error_func));
     }
 
     /**
@@ -98,9 +98,9 @@ namespace kagome::expected {
     template <typename ValueMatch, typename ErrorMatch>
     constexpr auto match(ValueMatch &&value_func,
                          ErrorMatch &&error_func) const {
-      return visit_in_place(*this,
-                            std::forward<ValueMatch>(value_func),
-                            std::forward<ErrorMatch>(error_func));
+      return visitor::visit_in_place(*this,
+                                     std::forward<ValueMatch>(value_func),
+                                     std::forward<ErrorMatch>(error_func));
     }
 
     /**
@@ -117,7 +117,7 @@ namespace kagome::expected {
     template <typename Value>
     constexpr Result<Value, E> and_res(const Result<Value, E> &new_res) const
         noexcept {
-      return visit_in_place(
+      return visitor::visit_in_place(
           *this,
           [res = new_res](ValueType) { return res; },
           [](ErrorType err) -> Result<Value, E> { return err; });
@@ -137,7 +137,7 @@ namespace kagome::expected {
     template <typename Value>
     constexpr Result<Value, E> or_res(const Result<Value, E> &new_res) const
         noexcept {
-      return visit_in_place(
+      return visitor::visit_in_place(
           *this,
           [](ValueType val) -> Result<Value, E> { return val; },
           [res = new_res](ErrorType) { return res; });
@@ -157,11 +157,12 @@ namespace kagome::expected {
    */
   template <typename Err1, typename Err2, typename V, typename Fn>
   Result<V, Err1> map_error(const Result<V, Err2> &res, Fn &&map) noexcept {
-    return visit_in_place(res,
-                          [](Value<V> val) -> Result<V, Err1> { return val; },
-                          [map](Error<Err2> err) -> Result<V, Err1> {
-                            return Error<Err1>{map(err.error)};
-                          });
+    return visitor::visit_in_place(
+        res,
+        [](Value<V> val) -> Result<V, Err1> { return val; },
+        [map](Error<Err2> err) -> Result<V, Err1> {
+          return Error<Err1>{map(err.error)};
+        });
   }
 
   /**
