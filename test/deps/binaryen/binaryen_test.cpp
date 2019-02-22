@@ -8,6 +8,7 @@
 #include <boost/format.hpp>
 #include <shell-interface.h>
 #include <wasm-s-parser.h>
+#include <binaryen-c.h>
 
 using namespace wasm;
 
@@ -81,6 +82,45 @@ TEST(BinaryenTest, Example1) {
   // interpret module
   ModuleInstance instance(*wasm, &interface);
 
+
   // dispose module
   delete wasm;
+}
+
+/**
+ * @given WebAssembly S-expression code exporting a function
+ * (sumtwo) taking two arguments of type i32 returning their sum of type i32
+ * @when this code is interpreted using Binaryen
+ * @then sumtwo implementation on wasm is invoked from C++ with given arguments
+ */
+TEST(BinaryenTest, InvokeWebAssemblyFunctionFromCpp) {
+    // wast code with imported function's call
+    std::string sexpr = "(module "
+                        "  (type $t0 (func (param i32 i32) (result i32)))"
+                        "  (export \"sumtwo\" (func $sumtwo))"
+                        "  (func $sumtwo (; 1 ;) (type $t0) (param $p0 i32) (param $p1 i32) (result i32)"
+                        "    (i32.add"
+                        "      (local.get $p0)"
+                        "      (local.get $p1)))"
+                        ")";
+    // parse wast
+    Module wasm;
+    SExpressionParser parser(const_cast<char*>(sexpr.c_str()));
+    auto & root = *parser.root;
+
+    SExpressionWasmBuilder builder(wasm, *root[0]);
+    //    wasm
+    // prepare external interface with imported function's implementation
+    ShellExternalInterface shellInterface;
+
+    // interpret module
+    ModuleInstance moduleInstance(wasm, &shellInterface);
+
+    // add arguments, their constructors are explicit, so no list-initialization for them
+    LiteralList arguments = {Literal{1}, Literal{2}};
+
+    Literal result = moduleInstance.callExport("sumtwo", arguments);
+
+    ASSERT_EQ(result.type, Type::i32);
+    ASSERT_EQ(result.geti32(), 3);
 }
