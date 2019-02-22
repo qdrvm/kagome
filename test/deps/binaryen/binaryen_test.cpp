@@ -5,10 +5,9 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/format.hpp>
 #include <shell-interface.h>
 #include <wasm-s-parser.h>
-#include <binaryen-c.h>
+#include <boost/format.hpp>
 
 using namespace wasm;
 
@@ -17,21 +16,22 @@ using namespace wasm;
  * testing purposes
  */
 class IntParamExternalInterface : public ShellExternalInterface {
-private:
+ private:
   std::string env_name_;
   std::string fun_name_;
 
   using FunType = std::function<void(int)>;
   FunType f_;
 
-public:
-  explicit IntParamExternalInterface(std::string env_name, std::string fun_name,
+ public:
+  explicit IntParamExternalInterface(std::string env_name,
+                                     std::string fun_name,
                                      FunType &&f)
       : env_name_(env_name), fun_name_(fun_name), f_(std::move(f)) {}
 
   Literal callImport(Function *import, LiteralList &arguments) override {
-    if (import->module == env_name_.c_str() &&
-        import->base == fun_name_.c_str()) {
+    if (import->module == env_name_.c_str()
+        && import->base == fun_name_.c_str()) {
       if (arguments.size() != 1) {
         Fatal() << fun_name_ << "expected exactly 1 parameter";
       }
@@ -57,17 +57,18 @@ TEST(BinaryenTest, Example1) {
   auto fun_impl = [&](int a) { ASSERT_EQ(a, expected_argument); };
 
   // wast code with imported function's call
-  auto fmt = boost::format("(module\n"
-                           " (type $v (func))\n"
-                           " (import \"%1%\" \"%2%\" (func $%2% (param i32)))\n"
-                           " (start $starter)\n"
-                           " (func $starter (; 1 ;) (type $v)\n"
-                           "  (call $%2%\n"
-                           "   (i32.const %3%)\n"
-                           "  )\n"
-                           " )\n"
-                           ")") %
-             env_name % fun_name % expected_argument;
+  auto fmt = boost::format(
+                 "(module\n"
+                 " (type $v (func))\n"
+                 " (import \"%1%\" \"%2%\" (func $%2% (param i32)))\n"
+                 " (start $starter)\n"
+                 " (func $starter (; 1 ;) (type $v)\n"
+                 "  (call $%2%\n"
+                 "   (i32.const %3%)\n"
+                 "  )\n"
+                 " )\n"
+                 ")")
+      % env_name % fun_name % expected_argument;
   std::string add_wast = fmt.str();
 
   // parse wast
@@ -82,7 +83,6 @@ TEST(BinaryenTest, Example1) {
   // interpret module
   ModuleInstance instance(*wasm, &interface);
 
-
   // dispose module
   delete wasm;
 }
@@ -94,33 +94,40 @@ TEST(BinaryenTest, Example1) {
  * @then sumtwo implementation on wasm is invoked from C++ with given arguments
  */
 TEST(BinaryenTest, InvokeWebAssemblyFunctionFromCpp) {
-    // wast code with imported function's call
-    std::string sexpr = "(module "
-                        "  (type $t0 (func (param i32 i32) (result i32)))"
-                        "  (export \"sumtwo\" (func $sumtwo))"
-                        "  (func $sumtwo (; 1 ;) (type $t0) (param $p0 i32) (param $p1 i32) (result i32)"
-                        "    (i32.add"
-                        "      (local.get $p0)"
-                        "      (local.get $p1)))"
-                        ")";
-    // parse wast
-    Module wasm;
-    SExpressionParser parser(const_cast<char*>(sexpr.c_str()));
-    auto & root = *parser.root;
+  // wast code with imported function's call
+  std::string sexpr =
+      "(module "
+      "  (type $t0 (func (param i32 i32) (result i32)))"
+      "  (export \"sumtwo\" (func $sumtwo))"
+      "  (func $sumtwo (; 1 ;) (type $t0) (param $p0 i32) (param $p1 i32) "
+      "(result i32)"
+      "    (i32.add"
+      "      (local.get $p0)"
+      "      (local.get $p1)))"
+      ")";
+  // parse wast
+  SExpressionParser parser(const_cast<char *>(sexpr.c_str()));
+  auto &root = *parser.root;
 
-    SExpressionWasmBuilder builder(wasm, *root[0]);
-    //    wasm
-    // prepare external interface with imported function's implementation
-    ShellExternalInterface shellInterface;
+  // wasm
+  Module wasm;
 
-    // interpret module
-    ModuleInstance moduleInstance(wasm, &shellInterface);
+  // build wasm module
+  SExpressionWasmBuilder builder(wasm, *root[0]);
 
-    // add arguments, their constructors are explicit, so no list-initialization for them
-    LiteralList arguments = {Literal{1}, Literal{2}};
+  // interface
+  ShellExternalInterface shellInterface;
 
-    Literal result = moduleInstance.callExport("sumtwo", arguments);
+  // interpret module
+  ModuleInstance moduleInstance(wasm, &shellInterface);
 
-    ASSERT_EQ(result.type, Type::i32);
-    ASSERT_EQ(result.geti32(), 3);
+  // add arguments, their constructors are explicit, so no list-initialization
+  // for them
+  LiteralList arguments = {Literal{1}, Literal{2}};
+
+  // call exported function
+  Literal result = moduleInstance.callExport("sumtwo", arguments);
+
+  ASSERT_EQ(result.type, Type::i32);
+  ASSERT_EQ(result.geti32(), 3);
 }
