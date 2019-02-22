@@ -13,3 +13,11 @@ add_library(buffer
 target_link_libraries(buffer
   hexutil
   )
+
+add_library(hash
+  hash.hpp
+  hash.cpp
+  )
+target_link_libraries(hash
+  buffer
+  )
