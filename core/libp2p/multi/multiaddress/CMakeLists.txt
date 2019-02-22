@@ -11,3 +11,6 @@ add_library(multiaddress
     c-utils/varhexutils.c
     c-utils/varint.c
     )
+target_link_libraries(multiaddress
+    buffer
+    )

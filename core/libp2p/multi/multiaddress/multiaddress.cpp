@@ -8,7 +8,9 @@
 #include <stdexcept>
 
 #include "libp2p/multi/multiaddress.hpp"
+extern "C" {
 #include "libp2p/multi/multiaddress/c-utils/protoutils.h"
+}
 
 namespace {
   // string representations of protocols
