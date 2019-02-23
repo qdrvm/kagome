@@ -46,11 +46,11 @@ class IntParamExternalInterface : public ShellExternalInterface {
 
 /**
  * @given WebAssembly S-expression code with invocation of imported function
- * (foo) with given argument
+ * (foo) with given argument is implemented in C++
  * @when this code is interpreted using Binaryen
  * @then foo implementation on C++ is invoked with given argument
  */
-TEST(BinaryenTest, Example1) {
+TEST(BinaryenTest, InvokeCppFunctionFromWebAssembly) {
   int expected_argument = 1234;
   std::string env_name = "env";
   std::string fun_name = "foo";
@@ -59,7 +59,7 @@ TEST(BinaryenTest, Example1) {
   // wast code with imported function's call
   auto fmt = boost::format(
               R"#(
-              (module\n"
+              (module
                 (type $v (func))
                 (import "%1%" "%2%" (func $%2% (param i32)))
                 (start $starter)
@@ -71,13 +71,17 @@ TEST(BinaryenTest, Example1) {
               )
               )#")
           % env_name % fun_name % expected_argument;
-  std::string add_wast = fmt.str();
-  std::shared_array<char*>
 
+  std::string add_wast = fmt.str();
+  size_t length = add_wast.size();
+
+  // make a safe char* array copy
+  std::vector<char> expression(length + 1, '\0');
+  strncpy(expression.data(), add_wast.data(), length);
 
   // parse wast
   Module wasm{};
-  SExpressionParser parser(const_cast<char *>(add_wast.c_str()));
+  SExpressionParser parser(expression.data());
   Element &root = *parser.root;
   SExpressionWasmBuilder builder(wasm, *root[0]);
 
@@ -90,9 +94,10 @@ TEST(BinaryenTest, Example1) {
 
 /**
  * @given WebAssembly S-expression code exporting a function
- * (sumtwo) taking two arguments of type i32 returning their sum of type i32
+ * exported function (sumtwo) taking two arguments of type i32 returning their sum of type i32 is implemented in assembly
  * @when this code is interpreted using Binaryen
  * @then sumtwo implementation on wasm is invoked from C++ with given arguments
+ * and returns result (the sum of two i32) back to C++ code
  */
 TEST(BinaryenTest, InvokeWebAssemblyFunctionFromCpp) {
   // wast code with imported function's call
