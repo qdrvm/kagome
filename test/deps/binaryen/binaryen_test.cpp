@@ -58,33 +58,34 @@ TEST(BinaryenTest, Example1) {
 
   // wast code with imported function's call
   auto fmt = boost::format(
-                 "(module\n"
-                 " (type $v (func))\n"
-                 " (import \"%1%\" \"%2%\" (func $%2% (param i32)))\n"
-                 " (start $starter)\n"
-                 " (func $starter (; 1 ;) (type $v)\n"
-                 "  (call $%2%\n"
-                 "   (i32.const %3%)\n"
-                 "  )\n"
-                 " )\n"
-                 ")")
-      % env_name % fun_name % expected_argument;
+              R"#(
+              (module\n"
+                (type $v (func))
+                (import "%1%" "%2%" (func $%2% (param i32)))
+                (start $starter)
+                (func $starter (; 1 ;) (type $v)
+                  (call $%2%
+                    (i32.const %3%)
+                  )
+                )
+              )
+              )#")
+          % env_name % fun_name % expected_argument;
   std::string add_wast = fmt.str();
+  std::shared_array<char*>
+
 
   // parse wast
-  auto *wasm = new Module;
+  Module wasm{};
   SExpressionParser parser(const_cast<char *>(add_wast.c_str()));
   Element &root = *parser.root;
-  SExpressionWasmBuilder builder(*wasm, *root[0]);
+  SExpressionWasmBuilder builder(wasm, *root[0]);
 
   // prepare external interface with imported function's implementation
   IntParamExternalInterface interface(env_name, fun_name, fun_impl);
 
   // interpret module
-  ModuleInstance instance(*wasm, &interface);
-
-  // dispose module
-  delete wasm;
+  ModuleInstance instance(wasm, &interface);
 }
 
 /**
@@ -95,22 +96,25 @@ TEST(BinaryenTest, Example1) {
  */
 TEST(BinaryenTest, InvokeWebAssemblyFunctionFromCpp) {
   // wast code with imported function's call
-  std::string sexpr =
-      "(module "
-      "  (type $t0 (func (param i32 i32) (result i32)))"
-      "  (export \"sumtwo\" (func $sumtwo))"
-      "  (func $sumtwo (; 1 ;) (type $t0) (param $p0 i32) (param $p1 i32) "
-      "(result i32)"
-      "    (i32.add"
-      "      (local.get $p0)"
-      "      (local.get $p1)))"
-      ")";
+  char sexpr[] = R"#(
+          (module
+            (type $t0 (func (param i32 i32) (result i32)))
+            (export "sumtwo" (func $sumtwo))
+            (func $sumtwo (; 1 ;) (type $t0) (param $p0 i32) (param $p1 i32) (result i32)
+              (i32.add
+                (local.get $p0)
+                (local.get $p1)
+              )
+            )
+          )
+          )#";
+
   // parse wast
-  SExpressionParser parser(const_cast<char *>(sexpr.c_str()));
+  SExpressionParser parser(const_cast<char *>(sexpr));
   auto &root = *parser.root;
 
   // wasm
-  Module wasm;
+  Module wasm{};
 
   // build wasm module
   SExpressionWasmBuilder builder(wasm, *root[0]);
