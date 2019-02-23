@@ -72,12 +72,7 @@ TEST(BinaryenTest, InvokeCppFunctionFromWebAssembly) {
               )#")
           % env_name % fun_name % expected_argument;
 
-  std::string add_wast = fmt.str();
-  size_t length = add_wast.size();
-
-  // make a safe char* array copy
-  std::vector<char> expression(length + 1, '\0');
-  strncpy(expression.data(), add_wast.data(), length);
+  std::string expression = fmt.str();
 
   // parse wast
   Module wasm{};
@@ -115,8 +110,8 @@ TEST(BinaryenTest, InvokeWebAssemblyFunctionFromCpp) {
           )#";
 
   // parse wast
-  SExpressionParser parser(const_cast<char *>(sexpr));
-  auto &root = *parser.root;
+  SExpressionParser parser(sexpr);
+  auto & root = *parser.root;
 
   // wasm
   Module wasm{};
@@ -131,7 +126,6 @@ TEST(BinaryenTest, InvokeWebAssemblyFunctionFromCpp) {
   ModuleInstance moduleInstance(wasm, &shellInterface);
 
   // add arguments, their constructors are explicit, so no list-initialization
-  // for them
   LiteralList arguments = {Literal{1}, Literal{2}};
 
   // call exported function
