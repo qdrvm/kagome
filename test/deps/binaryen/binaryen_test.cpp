@@ -58,7 +58,7 @@ TEST(BinaryenTest, InvokeCppFunctionFromWebAssembly) {
 
   // wast code with imported function's call
   auto fmt = boost::format(
-              R"#(
+                 R"#(
               (module
                 (type $v (func))
                 (import "%1%" "%2%" (func $%2% (param i32)))
@@ -70,7 +70,7 @@ TEST(BinaryenTest, InvokeCppFunctionFromWebAssembly) {
                 )
               )
               )#")
-          % env_name % fun_name % expected_argument;
+      % env_name % fun_name % expected_argument;
 
   std::string expression = fmt.str();
 
@@ -89,7 +89,8 @@ TEST(BinaryenTest, InvokeCppFunctionFromWebAssembly) {
 
 /**
  * @given WebAssembly S-expression code exporting a function
- * exported function (sumtwo) taking two arguments of type i32 returning their sum of type i32 is implemented in assembly
+ * exported function (sumtwo) taking two arguments of type i32 returning their
+ * sum of type i32 is implemented in assembly
  * @when this code is interpreted using Binaryen
  * @then sumtwo implementation on wasm is invoked from C++ with given arguments
  * and returns result (the sum of two i32) back to C++ code
@@ -111,7 +112,7 @@ TEST(BinaryenTest, InvokeWebAssemblyFunctionFromCpp) {
 
   // parse wast
   SExpressionParser parser(sexpr);
-  auto & root = *parser.root;
+  auto &root = *parser.root;
 
   // wasm
   Module wasm{};
