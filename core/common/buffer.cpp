@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <boost/algorithm/hex.hpp>
 #include <utility>
 
-#include "buffer.hpp"
-#include "hexutil.hpp"
+#include "common/buffer.hpp"
+#include "common/hexutil.hpp"
 
 namespace kagome::common {
 
@@ -14,7 +15,7 @@ namespace kagome::common {
     return data_.size();
   }
 
-  Buffer &Buffer::put_uint32(uint32_t n) {
+  Buffer &Buffer::putUint32(uint32_t n) {
     data_.push_back(static_cast<unsigned char &&>((n >> 24) & 0xFF));
     data_.push_back(static_cast<unsigned char &&>((n >> 16) & 0xFF));
     data_.push_back(static_cast<unsigned char &&>((n >> 8) & 0xFF));
@@ -23,7 +24,7 @@ namespace kagome::common {
     return *this;
   }
 
-  Buffer &Buffer::put_uint64(uint64_t n) {
+  Buffer &Buffer::putUint64(uint64_t n) {
     data_.push_back(static_cast<unsigned char &&>((n >> 56u) & 0xFF));
     data_.push_back(static_cast<unsigned char &&>((n >> 48u) & 0xFF));
     data_.push_back(static_cast<unsigned char &&>((n >> 40u) & 0xFF));
@@ -36,11 +37,11 @@ namespace kagome::common {
     return *this;
   }
 
-  const uint8_t *Buffer::to_bytes() const {
+  const uint8_t *Buffer::toBytes() const {
     return data_.data();
   }
 
-  const std::string Buffer::to_hex() const {
+  const std::string Buffer::toHex() const {
     return hex(data_.data(), data_.size());
   }
 
@@ -54,7 +55,7 @@ namespace kagome::common {
     return data_.end();
   }
 
-  Buffer &Buffer::put_uint8(uint8_t n) {
+  Buffer &Buffer::putUint8(uint8_t n) {
     data_.push_back(n);
     return *this;
   }
@@ -67,13 +68,18 @@ namespace kagome::common {
     return data_[index];
   }
 
-  Buffer Buffer::from_hex(const std::string &hex) {
-    return Buffer(std::move(unhex(hex)));
+  expected::Result<Buffer, std::string> Buffer::fromHex(
+      const std::string &hex) {
+    try {
+      return expected::Value{Buffer(std::move(unhex(hex)))};
+    } catch (boost::algorithm::hex_decode_error &e) {
+      return expected::Error{std::string(e.what())};
+    }
   }
 
   Buffer::Buffer(std::vector<uint8_t> v) : data_(std::move(v)) {}
 
-  const std::vector<uint8_t> &Buffer::to_vector() const {
+  const std::vector<uint8_t> &Buffer::toVector() const {
     return data_;
   }
 
@@ -96,17 +102,17 @@ namespace kagome::common {
   }
 
   template <typename T>
-  Buffer &Buffer::put_bytes(const T &begin, const T &end) {
+  Buffer &Buffer::putBytes(const T &begin, const T &end) {
     data_.insert(std::end(data_), begin, end);
     return *this;
   }
 
   Buffer &Buffer::put(const std::string &s) {
-    return put_bytes(s.begin(), s.end());
+    return putBytes(s.begin(), s.end());
   }
 
   Buffer &Buffer::put(const std::vector<uint8_t> &v) {
-    return put_bytes(v.begin(), v.end());
+    return putBytes(v.begin(), v.end());
   }
 
 }  // namespace kagome::common
