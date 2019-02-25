@@ -4,7 +4,6 @@
  */
 
 #include <boost/algorithm/hex.hpp>
-#include <utility>
 
 #include "common/buffer.hpp"
 #include "common/hexutil.hpp"
@@ -70,11 +69,15 @@ namespace kagome::common {
 
   expected::Result<Buffer, std::string> Buffer::fromHex(
       const std::string &hex) {
-    try {
-      return expected::Value{Buffer(std::move(unhex(hex)))};
-    } catch (boost::algorithm::hex_decode_error &e) {
-      return expected::Error{std::string(e.what())};
-    }
+    return unhex(hex).match(
+        [](const expected::Value<std::vector<uint8_t>> &value)
+            -> expected::Result<Buffer, std::string> {
+          return expected::Value{Buffer(value.value)};
+        },
+        [](const expected::Error<std::string> &error)
+            -> expected::Result<Buffer, std::string> {
+          return expected::Error{error.error};
+        });
   }
 
   Buffer::Buffer(std::vector<uint8_t> v) : data_(std::move(v)) {}

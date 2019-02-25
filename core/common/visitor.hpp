@@ -11,7 +11,7 @@
 
 #include <boost/variant/apply_visitor.hpp>  // for boost::apply_visitor
 
-namespace kagome::visitor {
+namespace kagome {
 
   template <typename... Lambdas>
   struct lambda_visitor;

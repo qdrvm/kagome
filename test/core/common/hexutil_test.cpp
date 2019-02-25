@@ -6,7 +6,7 @@
 #include "common/hexutil.hpp"
 #include <gtest/gtest.h>
 
-#include <boost/algorithm/hex.hpp> // for exceptions
+#include <boost/algorithm/hex.hpp>  // for exceptions
 
 using namespace kagome::common;
 using namespace std::string_literals;
@@ -29,8 +29,16 @@ TEST(Common, Hexutil_Hex) {
  */
 TEST(Common, Hexutil_UnhexEven) {
   auto s = "00010204081020ff"s;
-  auto actual = unhex(s);
+
+  std::vector<uint8_t> actual;
+  ASSERT_NO_THROW(
+      actual =
+          boost::get<kagome::expected::Value<std::vector<uint8_t>>>(unhex(s))
+              .value)
+      << "unhex result does not contain expected std::vector<uint8_t>";
+
   std::vector<uint8_t> expected{0, 1, 2, 4, 8, 16, 32, 255};
+
   ASSERT_EQ(actual, expected);
 }
 
@@ -40,7 +48,8 @@ TEST(Common, Hexutil_UnhexEven) {
  * @then get exception boost::algorithm::not_enough_input
  */
 TEST(Common, Hexutil_UnhexOdd) {
-  ASSERT_THROW({ unhex("0"); }, boost::algorithm::not_enough_input);
+  ASSERT_ANY_THROW(boost::get<kagome::expected::Error<std::string>>(unhex("0")))
+      << "expected throw due to the odd size of the string";
 }
 
 /**

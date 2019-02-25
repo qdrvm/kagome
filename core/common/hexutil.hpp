@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 
+#include "common/result.hpp"
+
 namespace kagome::common {
 
   /**
@@ -26,17 +28,16 @@ namespace kagome::common {
    * @brief Converts hex representation to bytes
    * @param array individual chars
    * @param len length of chars
-   * @return array of bytes
-   * @throws boost::algorithm::not_enough_input if input has odd length.
-   * @throws boost::algorithm::non_hex_input if input contains non-hex symbol.
+   * @return Result containing array of bytes if input string is hex encoded and
+   * has even length. Otherwise Result containing error message is returned
    *
-   * @note catch boost::algorithm::hex_decode_error to catch all errors
    * @note reads both uppercase and lowercase hexstrings
    *
    * @see
    * https://www.boost.org/doc/libs/1_51_0/libs/algorithm/doc/html/the_boost_algorithm_library/Misc/hex.html
    */
-  std::vector<uint8_t> unhex(const std::string &hex);
+  expected::Result<std::vector<uint8_t>, std::string> unhex(
+      const std::string &hex);
 
 }  // namespace kagome::common
 
