@@ -76,7 +76,11 @@ TEST(BinaryenTest, InvokeCppFunctionFromWebAssembly) {
 
   // parse wast
   Module wasm{};
-  SExpressionParser parser(expression.data());
+
+  // clang-8 doesn't know char * std::string::data(),
+  // it returns only const char *
+  char *data = const_cast<char *>(expression.data());
+  SExpressionParser parser(data);
   Element &root = *parser.root;
   SExpressionWasmBuilder builder(wasm, *root[0]);
 
