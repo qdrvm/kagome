@@ -45,18 +45,18 @@ TEST(Common, Hexutil_UnhexEven) {
 /**
  * @given Hexencoded string of odd length
  * @when unhex
- * @then get exception boost::algorithm::not_enough_input
+ * @then unhex result contains error message
  */
 TEST(Common, Hexutil_UnhexOdd) {
-  ASSERT_ANY_THROW(boost::get<kagome::expected::Error<std::string>>(unhex("0")))
-      << "expected throw due to the odd size of the string";
+  ASSERT_NO_THROW(boost::get<kagome::expected::Error<std::string>>(unhex("0")));
 }
 
 /**
  * @given Hexencoded string with non-hex letter
  * @when unhex
- * @then get exception boost::algorithm::non_hex_input
+ * @then unhex result contains error message
  */
 TEST(Common, Hexutil_UnhexInvalid) {
-  ASSERT_THROW({ unhex("kek"); }, boost::algorithm::non_hex_input);
+  ASSERT_NO_THROW(
+      boost::get<kagome::expected::Error<std::string>>(unhex("kek")));
 }
