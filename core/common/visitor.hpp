@@ -95,6 +95,6 @@ namespace kagome::visitor {
   constexpr decltype(auto) match_in_place(T &&t, Fs &&... fs) {
     return match(std::forward<T>(t), make_visitor(std::forward<Fs>(fs)...));
   }
-}  // namespace kagome::visitor
+}  // namespace kagome
 
 #endif  // KAGOME_VISITOR_HPP

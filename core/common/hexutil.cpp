@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <boost/algorithm/hex.hpp>
 
-#include "hexutil.hpp"
+#include "common/hexutil.hpp"
 
 namespace kagome::common {
 
