@@ -95,9 +95,9 @@ TEST(BinaryenTest, InvokeCppFunctionFromWebAssembly) {
  * @given WebAssembly S-expression code exporting a function
  * exported function (sumtwo) taking two arguments of type i32 returning their
  * sum of type i32 is implemented in assembly
- * @when this code is interpreted using Binaryen
- * @then sumtwo implementation on wasm is invoked from C++ with given arguments
- * and returns result (the sum of two i32) back to C++ code
+ * @when this code is interpreted using Binaryen and invoked from C++ with given
+ * arguments
+ * @then result (the sum of two i32) is calculated and returned to C++ code
  */
 TEST(BinaryenTest, InvokeWebAssemblyFunctionFromCpp) {
   // wast code with imported function's call
