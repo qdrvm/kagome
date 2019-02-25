@@ -68,8 +68,7 @@ TEST_F(MultiaddressTest, CreateFromStringInvalid) {
  * @then creation succeeds
  */
 TEST_F(MultiaddressTest, CreateFromBytesValid) {
-  auto address = val(Multiaddress::createMultiaddress(
-      std::make_shared<Buffer>(valid_id_udp_buffer)));
+  auto address = val(Multiaddress::createMultiaddress(valid_id_udp_buffer));
   ASSERT_TRUE(address);
   ASSERT_EQ(address->value->getStringAddress(), valid_ip_udp_address);
   ASSERT_EQ(address->value->getBytesAddress(), valid_ip_udp_bytes);
@@ -81,8 +80,7 @@ TEST_F(MultiaddressTest, CreateFromBytesValid) {
  * @then creation fails
  */
 TEST_F(MultiaddressTest, CreateFromBytesInvalid) {
-  auto address = err(Multiaddress::createMultiaddress(
-      std::make_shared<Buffer>(invalid_buffer)));
+  auto address = err(Multiaddress::createMultiaddress(invalid_buffer));
   ASSERT_TRUE(address);
 }
 
@@ -99,7 +97,7 @@ TEST_F(MultiaddressTest, Incapsulate) {
 
   auto joined_string_address = std::string{valid_ip_udp_address}
       + std::string{valid_ipfs_address.substr(1)};
-  auto joined_byte_address = address1->getBytesAddress();
+  auto joined_byte_address = address1->getBytesAddress().to_vector();
   joined_byte_address.insert(joined_byte_address.end(),
                              address2->getBytesAddress().begin(),
                              address2->getBytesAddress().end());

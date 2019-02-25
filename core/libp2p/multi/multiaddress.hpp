@@ -43,7 +43,7 @@ namespace libp2p::multi {
      * Construct a multiaddress instance from the bytes
      * @param bytes to be in that multiaddress
      */
-    static FactoryResult createMultiaddress(std::shared_ptr<ByteBuffer> bytes);
+    static FactoryResult createMultiaddress(const ByteBuffer &bytes);
 
     /**
      * Encapsulate a multiaddress to this one, such that:
@@ -72,7 +72,7 @@ namespace libp2p::multi {
      * Get the byte representation of the address inside
      * @return bytes address
      */
-    const std::vector<uint8_t> &getBytesAddress() const;
+    const ByteBuffer &getBytesAddress() const;
 
     /**
      * Get peer id of this Multiaddress
@@ -117,7 +117,7 @@ namespace libp2p::multi {
      * @param bytes to be in the multiaddress
      * @throws invalid_argument, if could not retrieve address' family
      */
-    Multiaddress(std::string &&address, std::shared_ptr<ByteBuffer> bytes);
+    Multiaddress(std::string &&address, ByteBuffer &&bytes);
 
     /**
      * Recalculate peer_id inside this address (the first one, if exists)
@@ -131,7 +131,7 @@ namespace libp2p::multi {
      */
     std::string_view protocolToString(Protocol proto) const;
 
-    std::shared_ptr<ByteBuffer> bytes_;
+    ByteBuffer bytes_;
     std::string stringified_address_;
 
     boost::optional<std::string> peer_id_;

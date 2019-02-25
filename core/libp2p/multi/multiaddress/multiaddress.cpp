@@ -12,6 +12,8 @@ extern "C" {
 #include "libp2p/multi/multiaddress/c-utils/protoutils.h"
 }
 
+using namespace kagome::expected;
+
 namespace {
   // string representations of protocols
   constexpr std::string_view kIp4 = "/ip4";
@@ -28,26 +30,6 @@ namespace {
   constexpr std::string_view kWs = "/ws";
   constexpr std::string_view kOnion = "/onion";
   constexpr std::string_view kWebrtc = "/libp2p-webrtc-star";
-
-  /**
-   * Find beginning of at least one of the provided substrings in the string
-   * @param string to search in
-   * @param substrings to be searched for
-   * @return position of one of the substrings inside of the string or npos, if
-   * none of them is found
-   */
-  size_t findOneOfSubstrings(
-      std::string_view string,
-      std::initializer_list<std::string_view> substrings) {
-    auto pos = std::string_view::npos;
-    std::any_of(std::begin(substrings),
-                std::end(substrings),
-                [&pos, &string](auto substring) {
-                  pos = string.find(substring);
-                  return pos != std::string_view::npos;
-                });
-    return pos;
-  }
 
   /**
    * Find all occurrences of the string in other string
@@ -79,36 +61,33 @@ namespace libp2p::multi {
     auto conversion_error = string_to_bytes(
         &bytes_ptr, &bytes_size, address.data(), address.size());
     if (conversion_error != nullptr) {
-      return kagome::expected::Error{"Could not create a multiaddress object: "
-                                     + std::string{conversion_error}};
+      return Error{"Could not create a multiaddress object: "
+                   + std::string{conversion_error}};
     }
 
     Multiaddress res{std::string{address},
-                     std::make_shared<ByteBuffer>(std::vector<uint8_t>(
-                         &bytes_ptr[0], &bytes_ptr[bytes_size]))};
-    return kagome::expected::Value{
-        std::make_unique<Multiaddress>(std::move(res))};
+                     ByteBuffer{std::vector<uint8_t>(&bytes_ptr[0],
+                                                     &bytes_ptr[bytes_size])}};
+    return Value{std::make_unique<Multiaddress>(std::move(res))};
   }
 
   Multiaddress::FactoryResult Multiaddress::createMultiaddress(
-      std::shared_ptr<ByteBuffer> bytes) {
+      const ByteBuffer &bytes) {
     char *address_ptr = nullptr;
 
     // convert bytes address to string and make sure it represents valid address
     auto conversion_error =
-        bytes_to_string(&address_ptr, bytes->to_bytes(), bytes->size());
+        bytes_to_string(&address_ptr, bytes.to_bytes(), bytes.size());
     if (conversion_error != nullptr) {
-      return kagome::expected::Error{"Could not create a multiaddress object: "
-                                     + std::string{conversion_error}};
+      return Error{"Could not create a multiaddress object: "
+                   + std::string{conversion_error}};
     }
 
-    Multiaddress res{std::string{address_ptr}, std::move(bytes)};
-    return kagome::expected::Value{
-        std::make_unique<Multiaddress>(std::move(res))};
+    Multiaddress res{std::string{address_ptr}, ByteBuffer{bytes}};
+    return Value{std::make_unique<Multiaddress>(std::move(res))};
   }
 
-  Multiaddress::Multiaddress(std::string &&address,
-                             std::shared_ptr<ByteBuffer> bytes)
+  Multiaddress::Multiaddress(std::string &&address, ByteBuffer &&bytes)
       : stringified_address_{std::move(address)}, bytes_{std::move(bytes)} {
     calculatePeerId();
   }
@@ -118,8 +97,8 @@ namespace libp2p::multi {
     stringified_address_ += address.stringified_address_.substr(1);
 
     // but '/' is not encoded to bytes, we don't cut the vector
-    const auto &other_bytes = address.bytes_->to_vector();
-    bytes_->put(std::vector<uint8_t>{other_bytes.begin(), other_bytes.end()});
+    const auto &other_bytes = address.bytes_.to_vector();
+    bytes_.put(std::vector<uint8_t>{other_bytes.begin(), other_bytes.end()});
 
     calculatePeerId();
   }
@@ -129,17 +108,16 @@ namespace libp2p::multi {
     if (str_pos == std::string::npos) {
       return false;
     }
-    // don't erase '/'
+    // don't erase '/' in the end of the left address
     stringified_address_.erase(str_pos + 1);
 
-    const auto &this_bytes = bytes_->to_vector();
-    const auto &other_bytes = address.bytes_->to_vector();
+    const auto &this_bytes = bytes_.to_vector();
+    const auto &other_bytes = address.bytes_.to_vector();
     auto bytes_pos = std::search(this_bytes.begin(),
                                  this_bytes.end(),
                                  other_bytes.begin(),
                                  other_bytes.end());
-    bytes_ = std::make_shared<ByteBuffer>(
-        std::vector<uint8_t>{this_bytes.begin(), bytes_pos});
+    bytes_ = ByteBuffer{std::vector<uint8_t>{this_bytes.begin(), bytes_pos}};
 
     calculatePeerId();
     return true;
@@ -149,8 +127,8 @@ namespace libp2p::multi {
     return stringified_address_;
   }
 
-  const std::vector<uint8_t> &Multiaddress::getBytesAddress() const {
-    return bytes_->to_vector();
+  const Multiaddress::ByteBuffer &Multiaddress::getBytesAddress() const {
+    return bytes_;
   }
 
   boost::optional<std::string> Multiaddress::getPeerId() const {
@@ -180,7 +158,7 @@ namespace libp2p::multi {
   }
 
   void Multiaddress::calculatePeerId() {
-    auto ipfs_beginning = findOneOfSubstrings(stringified_address_, {kIpfs});
+    auto ipfs_beginning = stringified_address_.find(kIpfs);
     if (ipfs_beginning == std::string_view::npos) {
       return;
     }
@@ -227,7 +205,7 @@ namespace libp2p::multi {
 
   bool Multiaddress::operator==(const Multiaddress &other) const {
     return this->stringified_address_ == other.stringified_address_
-        && *this->bytes_ == *other.bytes_;
+        && this->bytes_ == other.bytes_;
   }
 
 }  // namespace libp2p::multi
