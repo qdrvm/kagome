@@ -71,9 +71,8 @@ namespace libp2p::multi {
 
   Multiaddress::FactoryResult Multiaddress::createMultiaddress(
       std::string_view address) {
-    std::vector<uint8_t> bytes(address.size());
-    auto *bytes_ptr = bytes.data();
-    auto bytes_size = bytes.size();
+    uint8_t *bytes_ptr = nullptr;
+    size_t bytes_size = 0;
 
     // convert string address to bytes and make sure they represent valid
     // address
@@ -85,15 +84,15 @@ namespace libp2p::multi {
     }
 
     Multiaddress res{std::string{address},
-                     std::make_shared<ByteBuffer>(std::move(bytes))};
+                     std::make_shared<ByteBuffer>(std::vector<uint8_t>(
+                         &bytes_ptr[0], &bytes_ptr[bytes_size]))};
     return kagome::expected::Value{
         std::make_unique<Multiaddress>(std::move(res))};
   }
 
   Multiaddress::FactoryResult Multiaddress::createMultiaddress(
       std::shared_ptr<ByteBuffer> bytes) {
-    std::string address(bytes->size(), '0');
-    auto *address_ptr = address.data();
+    char *address_ptr = nullptr;
 
     // convert bytes address to string and make sure it represents valid address
     auto conversion_error =
@@ -103,7 +102,7 @@ namespace libp2p::multi {
                                      + std::string{conversion_error}};
     }
 
-    Multiaddress res{std::string{address}, std::move(bytes)};
+    Multiaddress res{std::string{address_ptr}, std::move(bytes)};
     return kagome::expected::Value{
         std::make_unique<Multiaddress>(std::move(res))};
   }

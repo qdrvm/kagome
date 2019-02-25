@@ -15,14 +15,14 @@ using namespace kagome::common;
 
 class MultihashTest : public ::testing::Test {
  public:
-  static constexpr std::string_view valid_address = "/ip4/192.168.0.1/udp/228";
-  const Buffer valid_buffer = Buffer{}.put(valid_address.data());
-  const std::vector<uint8_t> &valid_bytes = valid_buffer.to_vector();
+  static constexpr std::string_view valid_address = "/ip4/192.168.0.1/udp/228/";
+  const std::vector<uint8_t> valid_bytes{
+      0x4, 0xC0, 0xA8, 0x0, 0x1, 0x11, 0x0, 0xE4};
+  const Buffer valid_buffer{valid_bytes};
 
-  static constexpr std::string_view invalid_address =
-      "/ip4/192.168.0.1/udp/tcp";
-  const Buffer invalid_buffer = Buffer{}.put(invalid_address.data());
-  const std::vector<uint8_t> &invalid_bytes = invalid_buffer.to_vector();
+  static constexpr std::string_view invalid_address = "/ip4/192.168.0.1/2/";
+  const std::vector<uint8_t> invalid_bytes{0x4, 0xC0, 0xA8, 0x0, 0x1, 0x02};
+  const Buffer invalid_buffer{invalid_bytes};
 };
 
 /**
@@ -71,20 +71,20 @@ TEST_F(MultihashTest, CreateFromBytesInvalid) {
   ASSERT_TRUE(address);
 }
 
-//TEST_F(MultihashTest, Incapsulate);
+// TEST_F(MultihashTest, Incapsulate);
 //
-//TEST_F(MultihashTest, DecapsulateValid);
+// TEST_F(MultihashTest, DecapsulateValid);
 //
-//TEST_F(MultihashTest, DecapsulateInvalid);
+// TEST_F(MultihashTest, DecapsulateInvalid);
 //
-//TEST_F(MultihashTest, GetString);
+// TEST_F(MultihashTest, GetString);
 //
-//TEST_F(MultihashTest, GetBytes);
+// TEST_F(MultihashTest, GetBytes);
 //
-//TEST_F(MultihashTest, GetPeerIdExists);
+// TEST_F(MultihashTest, GetPeerIdExists);
 //
-//TEST_F(MultihashTest, GetPeerIdNotExists);
+// TEST_F(MultihashTest, GetPeerIdNotExists);
 //
-//TEST_F(MultihashTest, GetValueForProtocolValid);
+// TEST_F(MultihashTest, GetValueForProtocolValid);
 //
-//TEST_F(MultihashTest, GetValueForProtocolInvalid);
+// TEST_F(MultihashTest, GetValueForProtocolInvalid);

@@ -355,6 +355,8 @@ char* bytes_to_string(char** buffer, const uint8_t* in_bytes, int in_bytes_size)
 			strcat(results, "/");
 			strcat(results, name);
 			strcat(results, "/");
+
+			// TODO Akvinikym 25.02.19 PRE-49: add more protocols
 			if(strcmp(name, "ip4")==0)
 			{
 				strcat(results,int2ip(Hex_To_Int(address)));
@@ -362,14 +364,19 @@ char* bytes_to_string(char** buffer, const uint8_t* in_bytes, int in_bytes_size)
 			else if(strcmp(name, "tcp")==0)
 			{
 				char a[5];
-					sprintf(a,"%lu",Hex_To_Int(address));
-					strcat(results,a);
+				sprintf(a,"%lu",Hex_To_Int(address));
+				strcat(results,a);
 			}
 			else if(strcmp(name, "udp")==0)
 			{
 				char a[5];
 				sprintf(a,"%lu",Hex_To_Int(address));
 				strcat(results,a);
+			} else {
+				char *error = (char*) malloc(sizeof(char) * (29 + sizeof(name)));
+				strcpy(error, "unable to decode a protocol: ");
+				strcat(error, name);
+				return error;
 			}
 			/////////////Done processing this, move to next if there is more.
 			if(lastpos<size*2)
@@ -411,6 +418,12 @@ char* bytes_to_string(char** buffer, const uint8_t* in_bytes, int in_bytes_size)
 			strcat(results, "/");
 			strcat(results, (char*)b58);
 		}
+	} else {
+		char *error = (char*) malloc(sizeof(char) * (42));
+		strcpy(error, "unable to decode a protocol with hex 0x");
+		strcat(error, &hex[0]);
+		strcat(error, &hex[1]);
+		return error;
 	}
 	strcat(results, "/");
 	unload_protocols(head);
@@ -437,6 +450,7 @@ char* address_string_to_bytes(struct Protocol * protocol, const char *incoming, 
 
 	switch(code)
 	{
+		// TODO Akvinikym 25.02.19 PRE-49: add more protocols
 		case 4://IPv4
 		{
 			char testip[16] = "\0";
