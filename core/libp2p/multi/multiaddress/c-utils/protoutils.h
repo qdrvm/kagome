@@ -4,16 +4,16 @@
 //////////////////////////////////////////////////////////
 char ASCII2bits(char ch);
 
-void hex2bin (char *dst, char *src, int len);
+void hex2bin(char *dst, char *src, int len);
 
 char bits2ASCII(char b);
 
-void bin2hex (char *dst, char *src, int len);
+void bin2hex(char *dst, char *src, int len);
 
 //////////////////////////////////////////////////////////
-//IPv4 VALIDATOR
+// IPv4 VALIDATOR
 #define DELIM "."
- 
+
 /* return 1 if string contain only digits, else return 0 */
 int valid_digit(char *ip_str);
 
@@ -21,15 +21,15 @@ int valid_digit(char *ip_str);
 int is_valid_ipv4(char *ip_str);
 
 //////////////IPv6 Validator
-#define MAX_HEX_NUMBER_COUNT 8 
+#define MAX_HEX_NUMBER_COUNT 8
 
 int ishexdigit(char ch);
 
 int is_valid_ipv6(char *str);
 
-uint64_t ip2int(const char * ipconvertint);
+uint64_t ip2int(const char *ipconvertint);
 
-char * int2ip(int inputintip);
+char *int2ip(int inputintip);
 
 /**
  * Unserialize the bytes into a string
@@ -37,7 +37,7 @@ char * int2ip(int inputintip);
  * @param bytes the bytes to unserialize
  * @param bytes_size the length of the bytes array
  */
-char* bytes_to_string(char** results, const uint8_t* bytes, int bytes_size);
+char *bytes_to_string(char **results, const uint8_t *bytes, int bytes_size);
 
 /**
  * Convert an address string to a byte representation
@@ -48,8 +48,15 @@ char* bytes_to_string(char** results, const uint8_t* bytes, int bytes_size);
  * @param results_size the size of the results
  * @returns the results array
  */
-char * address_string_to_bytes(struct Protocol *protocol, const char *incoming, size_t incoming_size, char** results, int *results_size);
+char *address_string_to_bytes(struct Protocol *protocol,
+                              const char *incoming,
+                              size_t incoming_size,
+                              char **results,
+                              int *results_size);
 
-char * string_to_bytes(uint8_t** finalbytes,size_t* realbbsize, const char * strx, size_t strsize);
+char *string_to_bytes(uint8_t **finalbytes,
+                      size_t *realbbsize,
+                      const char *strx,
+                      size_t strsize);
 
 #endif

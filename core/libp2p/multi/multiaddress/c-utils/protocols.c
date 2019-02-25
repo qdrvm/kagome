@@ -29,8 +29,21 @@ int load_protocols(struct ProtocolListItem** head)
 	int num_protocols = 14;
 	int dec_code[] = {4, 41, 6, 17, 33, 132, 301, 302, 42, 480, 443, 477, 444, 275};
 	int size[] = {32, 128, 16, 16, 16, 16, 0, 0, -1, 0, 0, 0, 10, 0 };
-	char* name[] = { "ip4", "ip6", "tcp", "udp", "dccp", "sctp", "udt", "utp", "ipfs", "http", "https", "ws", "onion", "libp2p-webrtc-star" };
-	struct ProtocolListItem* last = NULL;
+        char *name[] = {"ip4",
+                        "ip6",
+                        "tcp",
+                        "udp",
+                        "dccp",
+                        "sctp",
+                        "udt",
+                        "utp",
+                        "ipfs",
+                        "http",
+                        "https",
+                        "ws",
+                        "onion",
+                        "libp2p-webrtc-star"};
+        struct ProtocolListItem* last = NULL;
 	for(int i = 0; i < num_protocols; i++) {
 		struct ProtocolListItem* current_item = (struct ProtocolListItem*)malloc(sizeof(struct ProtocolListItem));
 		current_item->current = (struct Protocol*)malloc(sizeof(struct Protocol));
