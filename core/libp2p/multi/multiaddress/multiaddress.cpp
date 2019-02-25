@@ -58,7 +58,7 @@ namespace {
   std::vector<size_t> findSubstringOccurrences(std::string_view string,
                                                std::string_view substring) {
     std::vector<size_t> occurrences;
-    auto occurrence = string.find_first_of(substring);
+    auto occurrence = string.find(substring);
     while (occurrence != std::string_view::npos) {
       occurrences.push_back(occurrence);
       occurrence = string.find(substring, occurrence + substring.size());
@@ -114,19 +114,23 @@ namespace libp2p::multi {
   }
 
   void Multiaddress::encapsulate(const Multiaddress &address) {
-    stringified_address_ += address.stringified_address_;
-    bytes_->put(address.bytes_->to_vector());
+    // both string addresses begin and end with '/', which should be cut
+    stringified_address_ += address.stringified_address_.substr(1);
+
+    // but '/' is not encoded to bytes, we don't cut the vector
+    const auto &other_bytes = address.bytes_->to_vector();
+    bytes_->put(std::vector<uint8_t>{other_bytes.begin(), other_bytes.end()});
 
     calculatePeerId();
   }
 
   bool Multiaddress::decapsulate(const Multiaddress &address) {
-    auto str_pos =
-        stringified_address_.find_last_of(address.stringified_address_);
+    auto str_pos = stringified_address_.rfind(address.stringified_address_);
     if (str_pos == std::string::npos) {
       return false;
     }
-    stringified_address_.erase(str_pos);
+    // don't erase '/'
+    stringified_address_.erase(str_pos + 1);
 
     const auto &this_bytes = bytes_->to_vector();
     const auto &other_bytes = address.bytes_->to_vector();
@@ -135,7 +139,7 @@ namespace libp2p::multi {
                                  other_bytes.begin(),
                                  other_bytes.end());
     bytes_ = std::make_shared<ByteBuffer>(
-        std::vector<uint8_t>{this_bytes.begin(), bytes_pos - 1});
+        std::vector<uint8_t>{this_bytes.begin(), bytes_pos});
 
     calculatePeerId();
     return true;
@@ -165,9 +169,11 @@ namespace libp2p::multi {
     }
 
     for (auto proto_pos : proto_positions) {
-      auto value_pos = stringified_address_.find_first_of('/', proto_pos + 1);
-      auto value_end = stringified_address_.find_first_of('/', value_pos + 1);
-      values.push_back(stringified_address_.substr(value_pos, value_end));
+      auto value_pos =
+          stringified_address_.find_first_of('/', proto_pos + 1) + 1;
+      auto value_end = stringified_address_.find_first_of('/', value_pos);
+      values.push_back(
+          stringified_address_.substr(value_pos, value_end - value_pos));
     }
 
     return values;
@@ -180,9 +186,10 @@ namespace libp2p::multi {
     }
 
     auto id_beginning = ipfs_beginning + 6;
-    auto id_end = stringified_address_.find_first_of('/', id_beginning + 1);
+    auto id_size = stringified_address_.find_first_of('/', id_beginning + 1)
+        - id_beginning;
 
-    peer_id_ = stringified_address_.substr(id_beginning, id_end);
+    peer_id_ = stringified_address_.substr(id_beginning, id_size);
   }
 
   std::string_view Multiaddress::protocolToString(Protocol proto) const {
@@ -216,6 +223,11 @@ namespace libp2p::multi {
       case Protocol::kWebrtc:
         return kWebrtc;
     }
+  }
+
+  bool Multiaddress::operator==(const Multiaddress &other) const {
+    return this->stringified_address_ == other.stringified_address_
+        && *this->bytes_ == *other.bytes_;
   }
 
 }  // namespace libp2p::multi

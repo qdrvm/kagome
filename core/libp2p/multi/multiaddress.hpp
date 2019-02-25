@@ -108,6 +108,8 @@ namespace libp2p::multi {
     boost::optional<std::vector<std::string>> getValuesForProtocol(
         Protocol proto) const;
 
+    bool operator==(const Multiaddress &other) const;
+
    private:
     /**
      * Construct a multiaddress instance from both address and bytes
