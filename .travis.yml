@@ -7,7 +7,8 @@ git:
 
 env:
   global:
-  # HUNTER_GITHUB_USERNAME
+  - CTEST_OUTPUT_ON_FAILURE=1
+    # HUNTER_GITHUB_USERNAME
   - secure: F3T+bdNjTIE/oofb+PXz2+8I2lplJEa1UohE0tykGh8PwbOG4Ptsz68fpsMPQ5mqqk+RO000S7tafO6ZIsR3iy/J/j5dBb6PWShaDDjIlET/BJVsopG4KgdcIbQ+kT63jmuJmlBxmT9Bel8E1Qm3aQEQU1F+9Kx2VCqoe7TLKQyP1G4a74I50NpcYkOgRBOCW9SRu2fyS6Yv2NZ16j4WPkxLtQjhLMOqvcMpYGhR9NKUIHyHo04fdiu3/ii0pKcwvDkde0ux+DhSY2cX7ksZ3BwlSc0hUCZWvyd2pjeQEdyfKr5JOKBwfGI60VJ3o/FwMySOmYevOPKSRPZYeoncIGzj1iwVl+gFD5iOXT89MUStNl2vVkD2GPyZPi8b2peJHGGtKHkqgLOY0iR/dtOaIHBEXxNqcvoDwUDqz2hYUKVPsQ8MYgUQZHUXFgitJRWPdAvBQLIzoT5p1TRIgKBHU9OPpgrymILmSp7CFw0XYejUJIHxLzjk76pInr4A01EgLExPmYkGUqFzb35V1p3iT7bzn7MRM92pyIC+/whv8vjc9LbLrxm006NEZyM7QMWr4jv/HU0NpXgSyWoSr5PsBbb7TgpCLifMO15o8yptgTxL9xU4jVm5yQhre7cZzUH9toWBh0z5sqpexM3OoYd4UY9ocgdqShsvrtXwo8YzELk=
   # HUNTER_GITHUB_TOKEN
   - secure: fKwrK+2crAEZ8UfeuKfsytSig3JT/07TaOYoAYkcVu91fHOfyFi3+luDvtUU3AQclYiP8BYhZyDCm1AXWVyx1/F20PpQniCpkBkoDPz3CN8Enk1Ne0Sc7g8xNP9S2vB5HhT4vdRFqJWssaqwzRFmCFtYbyWFgJZFscZ7XOmWQpfWeX78JoYgsnyxMhaIYV5Br5jbSMj9FbS60QBSXj18mX7maeJ729BeRnyTjDyIvtPZhynIMo0/FLjghsaLPLMxuVd70+za5nu+YhGCYK5MGlOMsHGedronJqAfOpz4mQwP0ab5uMVts1MQfgtkdnNl2n4LTMalh3r0PY9F1eTtO+pi2smNaqhADvFtALBfdMEkN81hucsWFY3QU6sUoctztu4E97ZgBVahL2JUWPgXvK7ijERfaZ4olpZdvbC4IDPJQ30bXkS+g/ZW1fn1cxV6hAmDLA3CYW63HBJaygDS/6v5c8/sO/1/vljVbbeP3SNtwKyf83z/yUDcVwkZKCPNjSbHnNrTCdUn8HefmV07fDf07YCRoiQeiT6jHG5iHLi0bHn38JLIl/XsZ2Dj/WVysnP4+QO/JTzZBZJNyCCLRQOQwZWvKchlm9nw8xK10zc67BTU2yqx2do6NZuL5AfK3M6wGDD6Lso7huys9NNbFTWTc5vpDcANpf50lZuMVrU=
@@ -20,61 +21,67 @@ cache:
   directories:
   - "$HOME/.hunter"
   - "${TRAVIS_BUILD_DIR}/cmake_3.13.3"
-  - "${TRAVIS_BUILD_DIR}/build"
   - "${TRAVIS_BUILD_DIR}/deps"
   - "$HOME/.cache"
   - "$HOME/.ccache"
+  - "$HOME/Library/Caches/Homebrew"
 
 matrix:
   include:
   - os: linux
-    name: "Linux gcc6 Coverage"
-    dist: trusty
+    name: "Linux gcc8 Coverage"
+    dist: xenial
     compiler: gcc
     addons:
       apt:
         sources:
         - ubuntu-toolchain-r-test
         packages:
-        - gcc-6
-        - g++-6
+        - gcc-8
+        - g++-8
         - git
         - python3
         - python3-pip
         - lcov
         - gcovr
     env:
-      - _CC=gcc-6
-      - _CXX=g++-6
+      - _CC=gcc-8
+      - _CXX=g++-8
+      - COVERAGE=ON
     after_success:
       # collect coverage
       - cmake --build build --target coverage.init.info
       - cmake --build build --target coverage.info
       - bash <(curl -s https://codecov.io/bash) -s build
 
+
   - os: linux
-    name: "Linux clang-6.0"
+    name: "Linux clang-8"
     dist: xenial
     compiler: clang
+    before_cache:
+      - brew cleanup
     addons:
       apt:
         sources:
-        - llvm-toolchain-xenial-6.0
+        - llvm-toolchain-xenial-8
         packages:
-        - clang-6.0
+        - clang-8
         - git
         - python3
         - python3-pip
         - lcov
         - gcovr
     env:
-      - _CC=clang-6.0
-      - _CXX=clang++-6.0
+      - _CC=clang-8
+      - _CXX=clang++-8
 
 
   - os: osx
     name: "OSX gcc"
     compiler: gcc
+    before_cache:
+      - brew cleanup
     env:
       - _CC=gcc
       - _CXX=g++
@@ -82,8 +89,6 @@ matrix:
       homebrew:
         packages:
           - git
-          - gcovr
-          - lcov
 
   - os: osx
     name: "OSX clang clang-tidy"
@@ -95,8 +100,6 @@ matrix:
       homebrew:
         packages:
           - git
-          - gcovr
-          - lcov
           - llvm
     script:
       # run clang-tidy
@@ -109,8 +112,8 @@ matrix:
 
 
 install:
-  # install cmake
 - |
+  # install cmake
   CMAKE_SRC_BUILD_DIR="${TRAVIS_BUILD_DIR}/cmake_3.13.3"
   mkdir -p ${CMAKE_SRC_BUILD_DIR} && cd ${CMAKE_SRC_BUILD_DIR}
   if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
@@ -126,6 +129,7 @@ install:
   export PATH="$PWD/${CMAKE_PATH}:$PATH"
   cd ${TRAVIS_BUILD_DIR}
 - |
+  # install python pip3 deps
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     pyenv global 3.6
     pip3 install requests gitpython
@@ -137,12 +141,10 @@ before_script:
 - cmake --version
 - python -V
 - pip -V
-- lcov -V
-- gcovr --version
 
 script:
-- export CC=$_CC
-- export CXX=$_CXX
-- cmake . -Bbuild -DCOVERAGE=ON
+- export CC=${_CC}
+- export CXX=${_CXX}
+- cmake . -Bbuild -DCOVERAGE=${COVERAGE:OFF}
 - cmake --build build -- -j2
 - cmake --build build --target test
