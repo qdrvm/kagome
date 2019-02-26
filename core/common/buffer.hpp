@@ -6,10 +6,11 @@
 #ifndef KAGOME_BUFFER_HPP
 #define KAGOME_BUFFER_HPP
 
-#include <string>
+#include <string_view>
 #include <vector>
 
 #include "common/result.hpp"
+#include "common/unhex_errors.hpp"
 
 namespace kagome::common {
 
@@ -108,7 +109,7 @@ namespace kagome::common {
      * @param s arbitrary string
      * @return this buffer, suitable for chaining.
      */
-    Buffer &put(const std::string &s);
+    Buffer &put(std::string_view str);
 
     /**
      * @brief Put a vector of bytes into byte buffer
@@ -139,8 +140,7 @@ namespace kagome::common {
      * @return Result containing constructed buffer if input string is
      * hexencoded string. Otherwise Result containing error message is returned
      */
-    static expected::Result<Buffer, std::string> fromHex(
-        const std::string &hex);
+    static expected::Result<Buffer, UnhexErrors> fromHex(std::string_view hex);
 
    private:
     std::vector<uint8_t> data_;

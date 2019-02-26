@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "common/buffer.hpp"
+
 #include <boost/algorithm/hex.hpp>
 
-#include "common/buffer.hpp"
 #include "common/hexutil.hpp"
 
 namespace kagome::common {
@@ -67,15 +68,14 @@ namespace kagome::common {
     return data_[index];
   }
 
-  expected::Result<Buffer, std::string> Buffer::fromHex(
-      const std::string &hex) {
+  expected::Result<Buffer, UnhexErrors> Buffer::fromHex(std::string_view hex) {
     return unhex(hex).match(
         [](const expected::Value<std::vector<uint8_t>> &value)
-            -> expected::Result<Buffer, std::string> {
+            -> expected::Result<Buffer, UnhexErrors> {
           return expected::Value{Buffer(value.value)};
         },
-        [](const expected::Error<std::string> &error)
-            -> expected::Result<Buffer, std::string> {
+        [](const expected::Error<UnhexErrors> &error)
+            -> expected::Result<Buffer, UnhexErrors> {
           return expected::Error{error.error};
         });
   }
@@ -110,7 +110,7 @@ namespace kagome::common {
     return *this;
   }
 
-  Buffer &Buffer::put(const std::string &s) {
+  Buffer &Buffer::put(std::string_view s) {
     return putBytes(s.begin(), s.end());
   }
 

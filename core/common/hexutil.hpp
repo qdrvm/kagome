@@ -6,10 +6,10 @@
 #ifndef KAGOME_HEXUTIL_HPP
 #define KAGOME_HEXUTIL_HPP
 
-#include <string>
 #include <vector>
 
 #include "common/result.hpp"
+#include "common/unhex_errors.hpp"
 
 namespace kagome::common {
 
@@ -36,8 +36,8 @@ namespace kagome::common {
    * @see
    * https://www.boost.org/doc/libs/1_51_0/libs/algorithm/doc/html/the_boost_algorithm_library/Misc/hex.html
    */
-  expected::Result<std::vector<uint8_t>, std::string> unhex(
-      const std::string &hex);
+  expected::Result<std::vector<uint8_t>, UnhexErrors> unhex(
+      std::string_view hex);
 
 }  // namespace kagome::common
 
