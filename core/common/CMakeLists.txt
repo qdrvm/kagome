@@ -13,3 +13,11 @@ add_library(buffer
 target_link_libraries(buffer
   hexutil
   )
+
+add_library(blob
+  blob.hpp
+  blob.cpp
+  )
+target_link_libraries(blob
+  hexutil
+  )

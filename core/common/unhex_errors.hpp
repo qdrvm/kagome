@@ -12,8 +12,11 @@ namespace kagome::common {
    * Errors that can happen during unhex
    */
   enum class UnhexError {
-    kNotEnoughInput,  // given input contains odd number of symbols
-    kNonHexInput      // given input is not hexencoded string
+    kNotEnoughInput,   // given input contains odd number of symbols
+    kNonHexInput,      // given input is not hexencoded string
+    kWrongLengthInput  // given input string has unexpected size (i.e. when
+                       // blob<size_>::fromHex(str) is invoked on string which
+                       // does not represent byte array with size_ length)
   };
 
 }  // namespace kagome::common
