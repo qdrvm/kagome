@@ -103,17 +103,22 @@ namespace kagome::common {
   }
 
   template <typename T>
-  Buffer &Buffer::putBytes(const T &begin, const T &end) {
+  Buffer &Buffer::put_range(const T &begin, const T &end) {
+    static_assert(sizeof(*begin) == 1);
     data_.insert(std::end(data_), begin, end);
     return *this;
   }
 
   Buffer &Buffer::put(std::string_view s) {
-    return putBytes(s.begin(), s.end());
+    return putRange(s.begin(), s.end());
   }
 
   Buffer &Buffer::put(const std::vector<uint8_t> &v) {
-    return putBytes(v.begin(), v.end());
+    return putRange(v.begin(), v.end());
+  }
+
+  Buffer &Buffer::put_bytes(const uint8_t *begin, const uint8_t *end) {
+    return putRange(begin, end);
   }
 
 }  // namespace kagome::common
