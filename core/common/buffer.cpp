@@ -5,8 +5,6 @@
 
 #include "common/buffer.hpp"
 
-#include <boost/algorithm/hex.hpp>
-
 #include "common/hexutil.hpp"
 
 namespace kagome::common {

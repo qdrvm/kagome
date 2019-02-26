@@ -6,8 +6,6 @@
 #include "common/hexutil.hpp"
 #include <gtest/gtest.h>
 
-#include <boost/algorithm/hex.hpp>  // for exceptions
-
 using namespace kagome::common;
 using namespace std::string_literals;
 
