@@ -6,6 +6,7 @@
 #ifndef KAGOME_HEXUTIL_HPP
 #define KAGOME_HEXUTIL_HPP
 
+#include <string_view>
 #include <vector>
 
 #include "common/result.hpp"
