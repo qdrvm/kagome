@@ -3,4 +3,26 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(c-utils)
+
 add_subdirectory(multiaddress)
+
+add_library(uvarint
+    uvarint.cpp
+    uvarint.hpp
+    )
+
+target_link_libraries(uvarint
+    c_utils
+    )
+
+add_library(multihash
+        multihash.hpp
+        multihash.cpp
+        )
+
+target_link_libraries(multihash
+        buffer
+        hexutil
+        uvarint
+        )

@@ -5,8 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "endian.h"
-#include "varint.h"
+
+#include "libp2p/multi/c-utils/endian.h"
+#include "libp2p/multi/c-utils/varint.h"
 
 int8_t Var_Bytes_Count(uint8_t *countbytesofthis);
 
