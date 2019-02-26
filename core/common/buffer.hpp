@@ -124,7 +124,7 @@ namespace kagome::common {
      *        end pointer to the address after the last element
      * @return this buffer, suitable for chaining.
      */
-    Buffer &put_bytes(const uint8_t *begin, const uint8_t *end);
+    Buffer &putBytes(const uint8_t *begin, const uint8_t *end);
 
     /**
      * @brief getter for raw array of bytes

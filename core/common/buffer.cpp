@@ -103,7 +103,7 @@ namespace kagome::common {
   }
 
   template <typename T>
-  Buffer &Buffer::put_range(const T &begin, const T &end) {
+  Buffer &Buffer::putRange(const T &begin, const T &end) {
     static_assert(sizeof(*begin) == 1);
     data_.insert(std::end(data_), begin, end);
     return *this;
@@ -117,7 +117,7 @@ namespace kagome::common {
     return putRange(v.begin(), v.end());
   }
 
-  Buffer &Buffer::put_bytes(const uint8_t *begin, const uint8_t *end) {
+  Buffer &Buffer::putBytes(const uint8_t *begin, const uint8_t *end) {
     return putRange(begin, end);
   }
 
