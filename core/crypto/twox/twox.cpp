@@ -10,7 +10,7 @@
 namespace kagome::crypto {
 
   Twox128Hash make_twox128(const common::Buffer &buf) {
-    return make_twox128(buf.to_bytes(), buf.size());
+    return make_twox128(buf.toBytes(), buf.size());
   }
 
   Twox128Hash make_twox128(const uint8_t *buf, size_t len) {
@@ -23,11 +23,11 @@ namespace kagome::crypto {
 
   void make_twox128(const common::Buffer &in, common::Buffer &out) {
     auto hash = make_twox128(in);
-    out.put_bytes(hash.data, hash.data + sizeof(hash.data));  // NOLINT
+    out.putBytes(hash.data, hash.data + sizeof(hash.data));  // NOLINT
   }
 
   Twox256Hash make_twox256(const common::Buffer &buf) {
-    return make_twox256(buf.to_bytes(), buf.size());
+    return make_twox256(buf.toBytes(), buf.size());
   }
 
   Twox256Hash make_twox256(const uint8_t *buf, size_t len) {
@@ -42,7 +42,7 @@ namespace kagome::crypto {
 
   void make_twox256(const common::Buffer &in, common::Buffer &out) {
     auto hash = make_twox256(in);
-    out.put_bytes(hash.data, hash.data + sizeof(hash.data));  // NOLINT
+    out.putBytes(hash.data, hash.data + sizeof(hash.data));  // NOLINT
   }
 
 }  // namespace kagome::crypto

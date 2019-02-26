@@ -65,7 +65,10 @@ matrix:
       apt:
         sources:
         - llvm-toolchain-xenial-8
+        - ubuntu-toolchain-r-test
         packages:
+        - gcc-8
+        - g++-8
         - clang-8
         - git
         - python3
