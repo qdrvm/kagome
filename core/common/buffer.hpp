@@ -6,8 +6,11 @@
 #ifndef KAGOME_BUFFER_HPP
 #define KAGOME_BUFFER_HPP
 
-#include <string>
+#include <string_view>
 #include <vector>
+
+#include "common/result.hpp"
+#include "common/unhex_errors.hpp"
 
 namespace kagome::common {
 
@@ -27,12 +30,7 @@ namespace kagome::common {
     /**
      * @brief lvalue construct buffer from a byte vector
      */
-    explicit Buffer(const std::vector<uint8_t> &v);
-
-    /**
-     * @brief rvalue construct buffer from a byte vector
-     */
-    explicit Buffer(std::vector<uint8_t> &&v) noexcept;
+    explicit Buffer(std::vector<uint8_t> v);
 
     Buffer() = default;
     Buffer(const Buffer &b) = default;
@@ -89,71 +87,76 @@ namespace kagome::common {
     size_t size() const;
 
     /**
-     * @brief Put a 8-bit {@param byte} in this buffer.
+     * @brief Put a 8-bit {@param n} in this buffer.
      * @return this buffer, suitable for chaining.
      */
-    Buffer &put_uint8(uint8_t byte);
+    Buffer &putUint8(uint8_t n);
 
     /**
      * @brief Put a 32-bit {@param n} number in this buffer. Will be serialized
      * as big-endian number.
      * @return this buffer, suitable for chaining.
      */
-    Buffer &put_uint32(uint32_t n);
+    Buffer &putUint32(uint32_t n);
 
     /**
      * @brief Put a 64-bit {@param n} number in this buffer. Will be serialized
      * as big-endian number.
      * @return this buffer, suitable for chaining.
      */
-    Buffer &put_uint64(uint64_t n);
+    Buffer &putUint64(uint64_t n);
 
     /**
      * @brief Put a string into byte buffer
      * @param s arbitrary string
      * @return this buffer, suitable for chaining.
      */
-    Buffer &put(const std::string& s);
+    Buffer &put(std::string_view str);
 
     /**
      * @brief Put a vector of bytes into byte buffer
      * @param s arbitrary vector of bytes
      * @return this buffer, suitable for chaining.
      */
-    Buffer &put(const std::vector<uint8_t>& v);
+    Buffer &put(const std::vector<uint8_t> &v);
+
+    /**
+     * @brief Put a array of bytes bounded by pointers into byte buffer
+     * @param begin pointer to the array start
+     *        end pointer to the address after the last element
+     * @return this buffer, suitable for chaining.
+     */
+    Buffer &putBytes(const uint8_t *begin, const uint8_t *end);
 
     /**
      * @brief getter for raw array of bytes
      */
-    const uint8_t *to_bytes() const;
+    const uint8_t *toBytes() const;
 
     /**
      * @brief getter for vector of vytes
      */
-    const std::vector<uint8_t> &to_vector() const;
+    const std::vector<uint8_t> &toVector() const;
 
     /**
      * @brief encode bytearray as hex
      * @return hexencoded string
      */
-    const std::string to_hex() const;
+    const std::string toHex() const;
 
     /**
      * @brief Construct Buffer from hexstring
      * @param hex hexencoded string
-     * @return constructed buffer
-     * @throws boost::algorithm::hex_decode_error if input string is not hex
+     * @return Result containing constructed buffer if input string is
+     * hexencoded string. Otherwise Result containing error
      */
-    static Buffer from_hex(const std::string &hex);
+    static expected::Result<Buffer, UnhexError> fromHex(std::string_view hex);
 
    private:
     std::vector<uint8_t> data_;
 
-    /**
-     * @note should accept only 1-byte iterators
-     */
     template <typename T>
-    Buffer &put_bytes(const T &begin, const T &end);
+    Buffer &putRange(const T &begin, const T &end);
   };
 
 }  // namespace kagome::common

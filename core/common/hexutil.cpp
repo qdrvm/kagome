@@ -3,16 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <algorithm>
-#include <boost/algorithm/hex.hpp>
+#include "common/hexutil.hpp"
 
-#include "hexutil.hpp"
+#include <boost/algorithm/hex.hpp>
 
 namespace kagome::common {
 
   std::string hex(const uint8_t *array, size_t len) noexcept {
     std::string res(len * 2, '\x00');
-    boost::algorithm::hex(array, array + len, res.begin());
+    boost::algorithm::hex(array, array + len, res.begin());  // NOLINT
     return res;
   }
 
@@ -20,14 +19,16 @@ namespace kagome::common {
     return hex(bytes.data(), bytes.size());
   }
 
-  std::vector<uint8_t> unhex(const char *array, size_t len) {
-    std::vector<uint8_t> blob((len + 1) / 2);
-    boost::algorithm::unhex(array, array + len, blob.begin());
-    return blob;
+  expected::Result<std::vector<uint8_t>, UnhexError> unhex(
+      std::string_view hex) {
+    std::vector<uint8_t> blob((hex.size() + 1) / 2);
+    try {
+      boost::algorithm::unhex(hex.begin(), hex.end(), blob.begin());
+      return expected::Value{blob};
+    } catch (const boost::algorithm::not_enough_input &e) {
+      return expected::Error{UnhexError::kNotEnoughInput};
+    } catch (const boost::algorithm::non_hex_input &e) {
+      return expected::Error{UnhexError::kNonHexInput};
+    };
   }
-
-  std::vector<uint8_t> unhex(const std::string &hex) {
-    return unhex(hex.data(), hex.size());
-  }
-
 }  // namespace kagome::common

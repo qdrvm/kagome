@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.12)
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
@@ -8,8 +8,8 @@ endif(CCACHE_FOUND)
 
 include("cmake/Hunter/init.cmake")
 HunterGate(
-  URL "https://github.com/ruslo/hunter/archive/v0.23.108.tar.gz"
-  SHA1 "e3299f605aaddf408cffbe9b2e9df856eb495061"
+  URL "https://github.com/ruslo/hunter/archive/v0.23.113.tar.gz"
+  SHA1 "ad0f405f150bd66c2a2d828e58e977e567c20486"
 )
 
 PROJECT(kagome C CXX)
@@ -23,6 +23,18 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+option(CLANG_TIDY "Enable clang-tidy checks during compilation" OFF)
+option(COVERAGE   "Enable generation of coverage info"          OFF)
+
+if(COVERAGE)
+  include(cmake/coverage.cmake)
+endif()
+if(CLANG_TIDY)
+  include(cmake/clang-tidy.cmake)
+endif()
+
 
 include_directories(
   ${PROJECT_SOURCE_DIR}/core
@@ -36,3 +48,6 @@ add_subdirectory(core)
 
 enable_testing()
 add_subdirectory(test)
+
+
+

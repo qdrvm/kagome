@@ -14,24 +14,24 @@ using namespace std::string_literals;
  * @when put different stuff in this buffer
  * @then result matches expectation
  */
-TEST(Common, Buffer_Put) {
+TEST(Common, BufferPut) {
   Buffer b;
   ASSERT_EQ(b.size(), 0);
 
-  auto hex = b.to_hex();
+  auto hex = b.toHex();
   ASSERT_EQ(hex, ""s);
 
   auto s = "hello"s;
   b.put(s);
   ASSERT_EQ(b.size(), 5);
 
-  b.put_uint8(1);
+  b.putUint8(1);
   ASSERT_EQ(b.size(), 6);
 
-  b.put_uint32(1);
+  b.putUint32(1);
   ASSERT_EQ(b.size(), 10);
 
-  b.put_uint64(1);
+  b.putUint64(1);
   ASSERT_EQ(b.size(), 18);
 
   std::vector<uint8_t> e{1, 2, 3, 4, 5};
@@ -45,25 +45,29 @@ TEST(Common, Buffer_Put) {
   }
   ASSERT_EQ(i, b.size());
 
-  ASSERT_EQ(b.to_hex(), "68656C6C6F010000000100000000000000010102030405");
+  ASSERT_EQ(b.toHex(), "68656C6C6F010000000100000000000000010102030405");
 }
 
 /**
  * @when create buffer using different constructors
  * @then expected buffer is created
  */
-TEST(Common, Buffer_Init) {
+TEST(Common, BufferInit) {
   Buffer b{1, 2, 3, 4, 5};
   ASSERT_EQ(b.size(), 5);
-  ASSERT_EQ(b.to_hex(), "0102030405"s);
+  ASSERT_EQ(b.toHex(), "0102030405"s);
 
   Buffer a(b);
   ASSERT_EQ(a, b);
   ASSERT_EQ(a.size(), b.size());
 
-  Buffer c = Buffer::from_hex("0102030405");
-  ASSERT_EQ(c, a);
+  ASSERT_NO_THROW({
+    Buffer c = boost::get<kagome::expected::Value<Buffer>>(
+                   Buffer::fromHex("0102030405"))
+                   .value;
+    ASSERT_EQ(c, a);
 
-  Buffer d = c;
-  ASSERT_EQ(d, c);
+    Buffer d = c;
+    ASSERT_EQ(d, c);
+  });
 }

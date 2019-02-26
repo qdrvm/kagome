@@ -178,9 +178,8 @@ namespace kagome::expected {
           not std::is_same<decltype(f(std::declval<T>())), void>::value,
           decltype(f(std::declval<T>()))>::type {
     using return_type = decltype(f(std::declval<T>()));
-    return r.match(
-        [&f](const Value<T> &v) { return f(v.value); },
-        [](const Error<E> &e) { return return_type(makeError(e.error)); });
+    return r.match([&f](const Value<T> &v) { return f(v.value); },
+                   [](const Error<E> &e) { return return_type(e); });
   }
 
   /**
@@ -194,9 +193,8 @@ namespace kagome::expected {
       typename std::enable_if<not std::is_same<decltype(f()), void>::value,
                               decltype(f())>::type {
     using return_type = decltype(f());
-    return r.match(
-        [&f](const Value<T> &v) { return f(); },
-        [](const Error<E> &e) { return return_type(makeError(e.error)); });
+    return r.match([&f](const Value<T> &v) { return f(); },
+                   [](const Error<E> &e) { return return_type(e); });
   }
 
   /**
