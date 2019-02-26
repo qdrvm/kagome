@@ -164,6 +164,17 @@ namespace kagome::expected {
                           });
   }
 
+  // Factory methods for avoiding type specification
+  template <typename T>
+  Value<T> makeValue(T &&value) {
+    return Value<T>{std::forward<T>(value)};
+  }
+
+  template <typename E>
+  Error<E> makeError(E &&error) {
+    return Error<E>{std::forward<E>(error)};
+  }
+
   /**
    * Bind operator allows chaining several functions which return result. If
    * result contains error, it returns this error, if it contains value,

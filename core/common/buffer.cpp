@@ -67,15 +67,10 @@ namespace kagome::common {
   }
 
   expected::Result<Buffer, UnhexErrors> Buffer::fromHex(std::string_view hex) {
-    return unhex(hex).match(
-        [](const expected::Value<std::vector<uint8_t>> &value)
-            -> expected::Result<Buffer, UnhexErrors> {
-          return expected::Value{Buffer(value.value)};
-        },
-        [](const expected::Error<UnhexErrors> &error)
-            -> expected::Result<Buffer, UnhexErrors> {
-          return expected::Error{error.error};
-        });
+    return unhex(hex) | [](const std::vector<uint8_t> &value)
+               -> expected::Result<Buffer, UnhexErrors> {
+      return expected::Value{Buffer(value)};
+    };
   }
 
   Buffer::Buffer(std::vector<uint8_t> v) : data_(std::move(v)) {}
