@@ -1,6 +1,9 @@
 #ifndef PROTOUTILS
 #define PROTOUTILS
 
+#include <stdlib.h>
+#include "libp2p/multi/multiaddress/c-utils/protocols.h"
+
 //////////////////////////////////////////////////////////
 char ASCII2bits(char ch);
 

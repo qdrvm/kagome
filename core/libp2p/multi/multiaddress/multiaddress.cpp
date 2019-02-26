@@ -54,7 +54,7 @@ namespace libp2p::multi {
 
   Multiaddress::FactoryResult Multiaddress::createMultiaddress(
       std::string_view address) {
-    uint8_t *bytes_ptr = nullptr;
+    uint8_t *bytes_ptr;
     size_t bytes_size = 0;
 
     // convert string address to bytes and make sure they represent valid
@@ -66,9 +66,11 @@ namespace libp2p::multi {
                    + std::string{conversion_error}};
     }
 
-    Multiaddress res{std::string{address},
-                     ByteBuffer{std::vector<uint8_t>(&bytes_ptr[0],
-                                                     &bytes_ptr[bytes_size])}};
+    // avoiding pointer arithmetic
+    std::vector<uint8_t> bytes(bytes_size);
+    memcpy(bytes.data(), bytes_ptr, bytes_size);
+
+    Multiaddress res{std::string{address}, ByteBuffer{std::move(bytes)}};
     return Value{std::make_unique<Multiaddress>(std::move(res))};
   }
 
@@ -78,7 +80,7 @@ namespace libp2p::multi {
 
     // convert bytes address to string and make sure it represents valid address
     auto conversion_error =
-        bytes_to_string(&address_ptr, bytes.to_bytes(), bytes.size());
+        bytes_to_string(&address_ptr, bytes.toBytes(), bytes.size());
     if (conversion_error != nullptr) {
       return Error{"Could not create a multiaddress object: "
                    + std::string{conversion_error}};
@@ -98,7 +100,7 @@ namespace libp2p::multi {
     stringified_address_ += address.stringified_address_.substr(1);
 
     // but '/' is not encoded to bytes, we don't cut the vector
-    const auto &other_bytes = address.bytes_.to_vector();
+    const auto &other_bytes = address.bytes_.toVector();
     bytes_.put(std::vector<uint8_t>{other_bytes.begin(), other_bytes.end()});
 
     calculatePeerId();
@@ -112,8 +114,8 @@ namespace libp2p::multi {
     // don't erase '/' in the end of the left address
     stringified_address_.erase(str_pos + 1);
 
-    const auto &this_bytes = bytes_.to_vector();
-    const auto &other_bytes = address.bytes_.to_vector();
+    const auto &this_bytes = bytes_.toVector();
+    const auto &other_bytes = address.bytes_.toVector();
     auto bytes_pos = std::search(this_bytes.begin(),
                                  this_bytes.end(),
                                  other_bytes.begin(),

@@ -97,7 +97,7 @@ TEST_F(MultiaddressTest, Incapsulate) {
 
   auto joined_string_address = std::string{valid_ip_udp_address}
       + std::string{valid_ipfs_address.substr(1)};
-  auto joined_byte_address = address1->getBytesAddress().to_vector();
+  auto joined_byte_address = address1->getBytesAddress().toVector();
   joined_byte_address.insert(joined_byte_address.end(),
                              address2->getBytesAddress().begin(),
                              address2->getBytesAddress().end());

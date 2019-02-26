@@ -3,11 +3,9 @@
 #include <inttypes.h>
 #include <math.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include "libp2p/multi/multiaddress/c-utils/base58.h"
-#include "libp2p/multi/multiaddress/c-utils/protocols.h"
 #include "libp2p/multi/multiaddress/c-utils/varhexutils.h"
 
 extern char *strtok_r(char *, const char *, char **);
@@ -237,7 +235,7 @@ uint64_t ip2int(const char *ipconvertint) {
     }
     iproc = strtok(NULL, ".");
   }
-  final_result = ((ipat1 * pow(2, 24)) + (ipat2 * pow(2, 16))
+  final_result = (uint64_t) ((ipat1 * pow(2, 24)) + (ipat2 * pow(2, 16))
                   + (ipat3 * pow(2, 8)) + ipat4 * 1);
   return final_result;
 }
