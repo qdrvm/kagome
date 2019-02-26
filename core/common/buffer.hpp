@@ -109,7 +109,7 @@ namespace kagome::common {
      * @param s arbitrary string
      * @return this buffer, suitable for chaining.
      */
-    Buffer &put( std::string_view str);
+    Buffer &put(std::string_view str);
 
     /**
      * @brief Put a vector of bytes into byte buffer
@@ -146,7 +146,7 @@ namespace kagome::common {
      * @brief Construct Buffer from hexstring
      * @param hex hexencoded string
      * @return Result containing constructed buffer if input string is
-     * hexencoded string. Otherwise Result containing error message is returned
+     * hexencoded string. Otherwise Result containing error
      */
     static expected::Result<Buffer, UnhexErrors> fromHex(std::string_view hex);
 

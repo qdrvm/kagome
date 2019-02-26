@@ -19,7 +19,8 @@ namespace kagome::common {
     return hex(bytes.data(), bytes.size());
   }
 
-  expected::Result<std::vector<uint8_t>, UnhexErrors> unhex(std::string_view  hex) {
+  expected::Result<std::vector<uint8_t>, UnhexErrors> unhex(
+      std::string_view hex) {
     std::vector<uint8_t> blob((hex.size() + 1) / 2);
     try {
       boost::algorithm::unhex(hex.begin(), hex.end(), blob.begin());

@@ -29,7 +29,7 @@ namespace kagome::common {
    * @param array individual chars
    * @param len length of chars
    * @return Result containing array of bytes if input string is hex encoded and
-   * has even length. Otherwise Result containing error message is returned
+   * has even length. Otherwise Result containing error is returned
    *
    * @note reads both uppercase and lowercase hexstrings
    *
