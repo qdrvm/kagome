@@ -7,10 +7,10 @@
 #define KAGOME_MULTIADDRESS_HPP
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 
-#include <boost/optional.hpp>
 #include "common/buffer.hpp"
 #include "common/result.hpp"
 
@@ -78,7 +78,7 @@ namespace libp2p::multi {
      * Get peer id of this Multiaddress
      * @return peer id if exists
      */
-    boost::optional<std::string> getPeerId() const;
+    std::optional<std::string> getPeerId() const;
 
     /**
      * List of protocols, supported by this Multiaddress
@@ -105,7 +105,7 @@ namespace libp2p::multi {
      * @return vector of values, if there is at least one under this protocol,
      * none otherwise
      */
-    boost::optional<std::vector<std::string>> getValuesForProtocol(
+    std::optional<std::vector<std::string>> getValuesForProtocol(
         Protocol proto) const;
 
     bool operator==(const Multiaddress &other) const;
@@ -134,7 +134,7 @@ namespace libp2p::multi {
     ByteBuffer bytes_;
     std::string stringified_address_;
 
-    boost::optional<std::string> peer_id_;
+    std::optional<std::string> peer_id_;
   };
 }  // namespace libp2p::multi
 

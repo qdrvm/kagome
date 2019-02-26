@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "libp2p/multi/multiaddress.hpp"
+
 #include <algorithm>
 #include <numeric>
 #include <stdexcept>
 
-#include "libp2p/multi/multiaddress.hpp"
 extern "C" {
 #include "libp2p/multi/multiaddress/c-utils/protoutils.h"
 }
@@ -131,11 +132,11 @@ namespace libp2p::multi {
     return bytes_;
   }
 
-  boost::optional<std::string> Multiaddress::getPeerId() const {
+  std::optional<std::string> Multiaddress::getPeerId() const {
     return peer_id_;
   }
 
-  boost::optional<std::vector<std::string>> Multiaddress::getValuesForProtocol(
+  std::optional<std::vector<std::string>> Multiaddress::getValuesForProtocol(
       Protocol proto) const {
     std::vector<std::string> values;
 
@@ -143,7 +144,7 @@ namespace libp2p::multi {
     auto proto_positions =
         findSubstringOccurrences(stringified_address_, proto_str);
     if (proto_positions.empty()) {
-      return boost::none;
+      return {};
     }
 
     for (auto proto_pos : proto_positions) {
@@ -160,6 +161,7 @@ namespace libp2p::multi {
   void Multiaddress::calculatePeerId() {
     auto ipfs_beginning = stringified_address_.find(kIpfs);
     if (ipfs_beginning == std::string_view::npos) {
+      peer_id_ = std::nullopt;
       return;
     }
 
