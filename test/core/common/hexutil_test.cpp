@@ -47,9 +47,9 @@ TEST(Common, Hexutil_UnhexEven) {
  */
 TEST(Common, Hexutil_UnhexOdd) {
   ASSERT_NO_THROW({
-    UnhexErrors unhex_error =
-        boost::get<kagome::expected::Error<UnhexErrors>>(unhex("0")).error;
-    ASSERT_EQ(unhex_error, UnhexErrors::kNotEnoughInput);
+    UnhexError unhex_error =
+        boost::get<kagome::expected::Error<UnhexError>>(unhex("0")).error;
+    ASSERT_EQ(unhex_error, UnhexError::kNotEnoughInput);
   }) << "unhex did not return an error as expected";
 }
 
@@ -60,8 +60,8 @@ TEST(Common, Hexutil_UnhexOdd) {
  */
 TEST(Common, Hexutil_UnhexInvalid) {
   ASSERT_NO_THROW({
-    UnhexErrors unhex_error =
-        boost::get<kagome::expected::Error<UnhexErrors>>(unhex("keks")).error;
-    ASSERT_EQ(unhex_error, UnhexErrors::kNonHexInput);
+    UnhexError unhex_error =
+        boost::get<kagome::expected::Error<UnhexError>>(unhex("keks")).error;
+    ASSERT_EQ(unhex_error, UnhexError::kNonHexInput);
   }) << "unhex did not return an error as expected";
 }

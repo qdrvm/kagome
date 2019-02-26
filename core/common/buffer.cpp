@@ -66,9 +66,9 @@ namespace kagome::common {
     return data_[index];
   }
 
-  expected::Result<Buffer, UnhexErrors> Buffer::fromHex(std::string_view hex) {
+  expected::Result<Buffer, UnhexError> Buffer::fromHex(std::string_view hex) {
     return unhex(hex) | [](const std::vector<uint8_t> &value)
-               -> expected::Result<Buffer, UnhexErrors> {
+               -> expected::Result<Buffer, UnhexError> {
       return expected::Value{Buffer(value)};
     };
   }

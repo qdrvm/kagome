@@ -148,7 +148,7 @@ namespace kagome::common {
      * @return Result containing constructed buffer if input string is
      * hexencoded string. Otherwise Result containing error
      */
-    static expected::Result<Buffer, UnhexErrors> fromHex(std::string_view hex);
+    static expected::Result<Buffer, UnhexError> fromHex(std::string_view hex);
 
    private:
     std::vector<uint8_t> data_;

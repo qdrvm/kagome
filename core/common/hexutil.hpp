@@ -36,7 +36,7 @@ namespace kagome::common {
    * @see
    * https://www.boost.org/doc/libs/1_51_0/libs/algorithm/doc/html/the_boost_algorithm_library/Misc/hex.html
    */
-  expected::Result<std::vector<uint8_t>, UnhexErrors> unhex(
+  expected::Result<std::vector<uint8_t>, UnhexError> unhex(
       std::string_view hex);
 
 }  // namespace kagome::common

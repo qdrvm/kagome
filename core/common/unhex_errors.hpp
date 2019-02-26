@@ -11,7 +11,7 @@ namespace kagome::common {
   /**
    * Errors that can happen during unhex
    */
-  enum class UnhexErrors {
+  enum class UnhexError {
     kNotEnoughInput,  // given input contains odd number of symbols
     kNonHexInput      // given input is not hexencoded string
   };
