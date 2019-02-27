@@ -36,12 +36,16 @@ namespace libp2p::multi {
     /**
      * Construct a multiaddress instance from the string
      * @param address - string to be in that multiaddress
+     * @return pointer to Multiaddress, if creation is successful, error
+     * otherwise
      */
     static FactoryResult createMultiaddress(std::string_view address);
 
     /**
      * Construct a multiaddress instance from the bytes
      * @param bytes to be in that multiaddress
+     * @return pointer to Multiaddress, if creation is successful, error
+     * otherwise
      */
     static FactoryResult createMultiaddress(const ByteBuffer &bytes);
 
@@ -115,7 +119,6 @@ namespace libp2p::multi {
      * Construct a multiaddress instance from both address and bytes
      * @param address to be in the multiaddress
      * @param bytes to be in the multiaddress
-     * @throws invalid_argument, if could not retrieve address' family
      */
     Multiaddress(std::string &&address, ByteBuffer &&bytes);
 
