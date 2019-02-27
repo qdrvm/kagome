@@ -63,10 +63,11 @@ namespace kagome::common {
     static expected::Result<Blob<size_>, std::string> fromString(
         std::string_view data) {
       if (data.size() != size_) {
-        std::string value = "blob_t: input string has incorrect length. Found: "
-            + std::to_string(data.size())
-            + +", required: " + std::to_string(size_);
-        return expected::Error{value};
+        const static std::string error_message_template =
+            "Input string has incorrect length. Found: %1%, required: %2%";
+        auto formatted_error =
+            boost::format(error_message_template) % data.size() % size_;
+        return expected::Error{formatted_error.str()};
       }
 
       Blob<size_> b;
@@ -87,8 +88,8 @@ namespace kagome::common {
                  -> expected::Result<Blob<size_>, std::string> {
         if (bytes.size() != size_) {
           const static std::string error_message_template =
-              "Provided hex string %1 has decoded bytes size %2. Expected "
-              "bytes size: %3";
+              "Input hex string %1% has incorrect decoded bytes length. Found: "
+              "%2%, required: %3%";
           auto formatted_error = boost::format(error_message_template) % hex
               % bytes.size() % size_;
           return expected::Error{formatted_error.str()};

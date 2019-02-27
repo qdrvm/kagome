@@ -29,17 +29,8 @@ namespace kagome::common {
     try {
       boost::algorithm::unhex(hex.begin(), hex.end(), blob.begin());
       return expected::Value{blob};
-    } catch (const boost::algorithm::not_enough_input &e) {
-      // prepare error string
-      const static std::string error_message_template =
-          "Provided string %1 has odd length or unexpectedly ends";
-      error_format = boost::format(error_message_template) % hex;
-    } catch (const boost::algorithm::non_hex_input &e) {
-      // prepare error string
-      const static std::string error_message_template =
-          "Provided string %1 contains non-hex characters";
-      error_format = boost::format(error_message_template) % hex;
-    };
-    return expected::Error{error_format.str()};
+    } catch (const std::exception &e) {
+      return expected::Error{e.what()};
+    }
   }
 }  // namespace kagome::common
