@@ -42,14 +42,14 @@ namespace kagome::common {
     /**
      * Converts current blob to std::string
      */
-    std::string_view toString() const noexcept {
+    std::string toString() const noexcept {
       return std::string{this->begin(), this->end()};
     }
 
     /**
      * Converts current blob to hex string.
      */
-    std::string_view toHex() const noexcept {
+    std::string toHex() const noexcept {
       return hex(this->data(), size_);
     }
 
@@ -62,7 +62,8 @@ namespace kagome::common {
     static expected::Result<Blob<size_>, std::string> fromString(
         std::string_view data) {
       if (data.size() != size_) {
-        std::string value = "blob_t: input string has incorrect length. Found: "
+        std::string value =
+            "blob_t: input string has incorrect length. Found: "
             + std::to_string(data.size())
             + +", required: " + std::to_string(size_);
         return expected::Error{value};
@@ -78,7 +79,12 @@ namespace kagome::common {
      * Create Blob from hex string
      * @param hex hex string
      * @return result containing Blob object if hex string has proper size and
-     * is in hex format, otherwise result contains string with error message
+     * is in hex format, otherwise result contains UnhexError with one of the
+     * following errors:
+     * 1. kWrongLengthInput if length of bytes represented by hex string is not
+     * equal to the size_
+     * 2. kNotEnoughInput if length of bytes represented by hex string is odd
+     * 3. kNonHexInput if nonhex string received
      */
     static expected::Result<Blob<size_>, UnhexError> fromHex(
         std::string_view hex) {
