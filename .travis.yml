@@ -82,6 +82,7 @@ matrix:
 
   - os: osx
     name: "OSX gcc"
+    osx_image: xcode10.1
     compiler: gcc
     before_cache:
       - brew cleanup
@@ -95,6 +96,7 @@ matrix:
 
   - os: osx
     name: "OSX clang clang-tidy"
+    osx_image: xcode10.1
     compiler: clang
     env:
       - _CC=clang
