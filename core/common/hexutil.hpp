@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "common/result.hpp"
-#include "common/unhex_errors.hpp"
 
 namespace kagome::common {
 
@@ -30,14 +29,14 @@ namespace kagome::common {
    * @param array individual chars
    * @param len length of chars
    * @return Result containing array of bytes if input string is hex encoded and
-   * has even length. Otherwise Result containing error is returned
+   * has even length. Otherwise Result containing error message is returned
    *
    * @note reads both uppercase and lowercase hexstrings
    *
    * @see
    * https://www.boost.org/doc/libs/1_51_0/libs/algorithm/doc/html/the_boost_algorithm_library/Misc/hex.html
    */
-  expected::Result<std::vector<uint8_t>, UnhexError> unhex(
+  expected::Result<std::vector<uint8_t>, std::string> unhex(
       std::string_view hex);
 
 }  // namespace kagome::common
