@@ -67,10 +67,11 @@ namespace libp2p::multi {
     }
 
     // avoiding pointer arithmetic
-    std::vector<uint8_t> bytes(bytes_size);
-    memcpy(bytes.data(), bytes_ptr, bytes_size);
+    auto bytes_end = bytes_ptr;
+    std::advance(bytes_end, bytes_size);
 
-    Multiaddress res{std::string{address}, ByteBuffer{std::move(bytes)}};
+    Multiaddress res{std::string{address},
+                     ByteBuffer{std::vector<uint8_t>{bytes_ptr, bytes_end}}};
     return Value{std::make_unique<Multiaddress>(std::move(res))};
   }
 
