@@ -15,16 +15,15 @@ using namespace kagome::common;
 
 class MultiaddressTest : public ::testing::Test {
  public:
-  static constexpr std::string_view valid_ip_udp_address =
-      "/ip4/192.168.0.1/udp/228/";
+  const std::string_view valid_ip_udp_address = "/ip4/192.168.0.1/udp/228/";
   const std::vector<uint8_t> valid_ip_udp_bytes{
       0x4, 0xC0, 0xA8, 0x0, 0x1, 0x11, 0x0, 0xE4};
   const Buffer valid_id_udp_buffer{valid_ip_udp_bytes};
 
-  static constexpr std::string_view valid_ip_address = "/ip4/192.168.0.1/";
-  static constexpr std::string_view valid_ipfs_address = "/ipfs/mypeer/";
+  const std::string_view valid_ip_address = "/ip4/192.168.0.1/";
+  const std::string_view valid_ipfs_address = "/ipfs/mypeer/";
 
-  static constexpr std::string_view invalid_address = "/ip4/192.168.0.1/2/";
+  const std::string_view invalid_address = "/ip4/192.168.0.1/2/";
   const std::vector<uint8_t> invalid_bytes{0x4, 0xC0, 0xA8, 0x0, 0x1, 0x02};
   const Buffer invalid_buffer{invalid_bytes};
 
@@ -34,7 +33,7 @@ class MultiaddressTest : public ::testing::Test {
    * @return pointer to address
    */
   std::unique_ptr<Multiaddress> createValidMultiaddress(
-      std::string_view string_address = valid_ip_udp_address) {
+      std::string_view string_address = "/ip4/192.168.0.1/udp/228/") {
     return std::move(
         val(Multiaddress::createMultiaddress(string_address))->value);
   }
