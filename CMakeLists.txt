@@ -6,27 +6,30 @@ if(CCACHE_FOUND)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
 
+include(GNUInstallDirs)
 include("cmake/Hunter/init.cmake")
 HunterGate(
-  URL "https://github.com/ruslo/hunter/archive/v0.23.113.tar.gz"
-  SHA1 "ad0f405f150bd66c2a2d828e58e977e567c20486"
+  URL "https://github.com/ruslo/hunter/archive/v0.23.120.tar.gz"
+  SHA1 "7f43361ab4142e7d0eb03488b4b654aad38cf0cb"
 )
 
 PROJECT(kagome C CXX)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
-
 include(cmake/dependencies.cmake)
 include(cmake/functions.cmake)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
+if(NOT EXISTS "${CMAKE_TOOLCHAIN_FILE}")
+  # https://cgold.readthedocs.io/en/latest/tutorials/toolchain/globals/cxx-standard.html#summary
+  set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+  set(CMAKE_CXX_EXTENSIONS OFF)
+  set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
+endif()
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-option(CLANG_TIDY "Enable clang-tidy checks during compilation" OFF)
-option(COVERAGE   "Enable generation of coverage info"          OFF)
+option(CLANG_TIDY   "Enable clang-tidy checks during compilation" OFF)
+option(COVERAGE     "Enable generation of coverage info"          OFF)
 
 if(COVERAGE)
   include(cmake/coverage.cmake)

@@ -5,10 +5,10 @@
 
 #include <gtest/gtest.h>
 
-#include <shell-interface.h>
-#include <wasm-s-parser.h>
+#include <binaryen/shell-interface.h>
+#include <binaryen/wasm-s-parser.h>
 #include <boost/format.hpp>
-
+#include <utility>
 using namespace wasm;
 
 /**
@@ -27,7 +27,7 @@ class IntParamExternalInterface : public ShellExternalInterface {
   explicit IntParamExternalInterface(std::string env_name,
                                      std::string fun_name,
                                      FunType &&f)
-      : env_name_(env_name), fun_name_(fun_name), f_(std::move(f)) {}
+      : env_name_(std::move(env_name)), fun_name_(std::move(fun_name)), f_(std::move(f)) {}
 
   Literal callImport(Function *import, LiteralList &arguments) override {
     if (import->module == env_name_.c_str()
