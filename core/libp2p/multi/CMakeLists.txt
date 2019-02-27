@@ -4,3 +4,4 @@
 #
 
 add_subdirectory(multiaddress)
+add_subdirectory(multibase)
