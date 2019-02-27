@@ -7,6 +7,7 @@
 #define KAGOME_BLOB_HPP
 
 #include <boost/format.hpp>
+
 #include "common/hexutil.hpp"
 #include "common/result.hpp"
 
