@@ -29,4 +29,3 @@ find_package(ed25519 CONFIG REQUIRED)
 # https://docs.hunter.sh/en/latest/packages/pkg/binaryen.html
 hunter_add_package(binaryen)
 find_package(binaryen CONFIG REQUIRED)
-include_directories(${CMAKE_INSTALL_INCLUDEDIR}/binaryen) # FIXME: temporary fix, until real fix is uploaded to hunter

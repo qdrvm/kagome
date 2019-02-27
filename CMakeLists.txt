@@ -6,7 +6,6 @@ if(CCACHE_FOUND)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
 
-include(GNUInstallDirs)
 include("cmake/Hunter/init.cmake")
 HunterGate(
   URL "https://github.com/ruslo/hunter/archive/v0.23.120.tar.gz"
