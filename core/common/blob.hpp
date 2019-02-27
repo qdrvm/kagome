@@ -6,9 +6,9 @@
 #ifndef KAGOME_BLOB_HPP
 #define KAGOME_BLOB_HPP
 
+#include <boost/format.hpp>
 #include "common/hexutil.hpp"
 #include "common/result.hpp"
-#include "common/unhex_errors.hpp"
 
 namespace kagome::common {
 
@@ -62,8 +62,7 @@ namespace kagome::common {
     static expected::Result<Blob<size_>, std::string> fromString(
         std::string_view data) {
       if (data.size() != size_) {
-        std::string value =
-            "blob_t: input string has incorrect length. Found: "
+        std::string value = "blob_t: input string has incorrect length. Found: "
             + std::to_string(data.size())
             + +", required: " + std::to_string(size_);
         return expected::Error{value};
@@ -79,19 +78,19 @@ namespace kagome::common {
      * Create Blob from hex string
      * @param hex hex string
      * @return result containing Blob object if hex string has proper size and
-     * is in hex format, otherwise result contains UnhexError with one of the
-     * following errors:
-     * 1. kWrongLengthInput if length of bytes represented by hex string is not
-     * equal to the size_
-     * 2. kNotEnoughInput if length of bytes represented by hex string is odd
-     * 3. kNonHexInput if nonhex string received
+     * is in hex format, otherwise result contains error message
      */
-    static expected::Result<Blob<size_>, UnhexError> fromHex(
+    static expected::Result<Blob<size_>, std::string> fromHex(
         std::string_view hex) {
-      return unhex(hex) | [](const std::vector<uint8_t> &bytes)
-                 -> expected::Result<Blob<size_>, UnhexError> {
+      return unhex(hex) | [&hex](const std::vector<uint8_t> &bytes)
+                 -> expected::Result<Blob<size_>, std::string> {
         if (bytes.size() != size_) {
-          return expected::Error{UnhexError::kWrongLengthInput};
+          const static std::string error_message_template =
+              "Provided hex string %1 has decoded bytes size %2. Expected "
+              "bytes size: %3";
+          auto formatted_error = boost::format(error_message_template) % hex
+              % bytes.size() % size_;
+          return expected::Error{formatted_error.str()};
         }
         Blob<size_> blob;
         std::copy(bytes.begin(), bytes.end(), blob.begin());

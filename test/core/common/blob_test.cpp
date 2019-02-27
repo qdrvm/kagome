@@ -29,46 +29,40 @@ TEST(BlobTest, CreateFromValidHex) {
 /**
  * @given non hex string
  * @when try to create a Blob using fromHex on that string
- * @then kNonHexInput error is returned
+ * @then error is returned
  */
 TEST(BlobTest, CreateFromNonHex) {
   std::string not_hex = "nothex";
 
   auto result = Blob<2>::fromHex(not_hex);
-  ASSERT_NO_THROW({
-    auto error = boost::get<Error<UnhexError>>(result).error;
-    ASSERT_EQ(error, UnhexError::kNonHexInput);
-  }) << "fromHex returned a value instead of error";
+  ASSERT_NO_THROW({ boost::get<Error<std::string>>(result); })
+      << "fromHex returned a value instead of error";
 }
 
 /**
  * @given string with odd length
  * @when try to create a Blob using fromHex on that string
- * @then kNotEnoughInput error is returned
+ * @then error is returned
  */
 TEST(BlobTest, CreateFromOddLengthHex) {
   std::string odd_hex = "0a1";
 
   auto result = Blob<2>::fromHex(odd_hex);
-  ASSERT_NO_THROW({
-    auto error = boost::get<Error<UnhexError>>(result).error;
-    ASSERT_EQ(error, UnhexError::kNotEnoughInput);
-  }) << "fromHex returned a value instead of error";
+  ASSERT_NO_THROW({ boost::get<Error<std::string>>(result); })
+      << "fromHex returned a value instead of error";
 }
 
 /**
  * @given string with odd length
  * @when try to create a Blob using fromHex on that string
- * @then kWrongLengthInput error is returned
+ * @then error is returned
  */
 TEST(BlobTest, CreateFromWrongLendthHex) {
   std::string odd_hex = "00ff00";
 
   auto result = Blob<2>::fromHex(odd_hex);
-  ASSERT_NO_THROW({
-    auto error = boost::get<Error<UnhexError>>(result).error;
-    ASSERT_EQ(error, UnhexError::kWrongLengthInput);
-  }) << "fromHex returned a value instead of error";
+  ASSERT_NO_THROW({ boost::get<Error<std::string>>(result); })
+      << "fromHex returned a value instead of error";
 }
 
 /**
@@ -99,9 +93,8 @@ TEST(BlobTest, CreateFromInvalidString) {
   std::string valid_str{"0"};
 
   auto result = Blob<5>::fromString(valid_str);
-  ASSERT_NO_THROW({
-    auto error = boost::get<Error<std::string>>(result).error;
-  }) << "fromString returned an error instead of value";
+  ASSERT_NO_THROW({ boost::get<Error<std::string>>(result); })
+      << "fromString returned an error instead of value";
 }
 
 /**
