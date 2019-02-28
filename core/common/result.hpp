@@ -157,11 +157,12 @@ namespace kagome::expected {
    */
   template <typename Err1, typename Err2, typename V, typename Fn>
   Result<V, Err1> map_error(const Result<V, Err2> &res, Fn &&map) noexcept {
-    return visit_in_place(res,
-                          [](Value<V> val) -> Result<V, Err1> { return val; },
-                          [map](Error<Err2> err) -> Result<V, Err1> {
-                            return Error<Err1>{map(err.error)};
-                          });
+    return visit_in_place(
+        res,
+        [](Value<V> val) -> Result<V, Err1> { return val; },
+        [map](Error<Err2> err) -> Result<V, Err1> {
+          return Error<Err1>{map(err.error)};
+        });
   }
 
   /**

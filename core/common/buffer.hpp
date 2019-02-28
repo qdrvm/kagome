@@ -36,6 +36,8 @@ namespace kagome::common {
     Buffer(Buffer &&b) noexcept = default;
     Buffer(std::initializer_list<uint8_t> b);
 
+    Buffer &operator=(const Buffer &other) = default;
+
     /**
      * @brief Accessor of byte elements given {@param index} in bytearray
      */
