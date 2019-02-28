@@ -3,48 +3,36 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_MULTIBASE_CODEC_HPP
-#define KAGOME_MULTIBASE_CODEC_HPP
+#ifndef KAGOME_CODEC_HPP
+#define KAGOME_CODEC_HPP
 
-#include <memory>
+#include <string>
 #include <string_view>
 
-#include "libp2p/multi/multibase.hpp"
+#include "common/buffer.hpp"
+#include "common/result.hpp"
 
 namespace libp2p::multi {
   /**
-   * Encodes and decodes data, given a base
+   * Encode and decode bytes or encoded strings based on the implementation
    */
   class Codec {
    public:
-    explicit Codec(Multibase::Encoding base);
+    /**
+     * Encode the incoming bytes
+     * @param bytes to be encoded
+     * @return encoded string
+     */
+    virtual std::string encode(const kagome::common::Buffer &bytes) const = 0;
 
     /**
-     * Encode the data
-     * @param input to be encoded
-     * @param include_encoding
-     * @return data in encoded format
+     * Decode the incoming string
+     * @param string to be decoded
+     * @return bytes, if decoding was successful, error otherwise
      */
-    std::string encode(std::string_view input, bool include_encoding = true);
-
-    /**
-     * Decode the data
-     * @param input to be decoded
-     * @return decoded data
-     */
-    std::string decode(std::string_view input);
-
-    /**
-     * Get base of thise codes
-     * @return the base
-     */
-    Multibase::Encoding base() const;
-
-   private:
-    class Impl;
-    std::unique_ptr<Impl> impl_;
+    virtual kagome::expected::Result<kagome::common::Buffer, std::string>
+    decode(std::string_view string) const = 0;
   };
-
 }  // namespace libp2p::multi
 
-#endif  // KAGOME_MULTIBASE_CODEC_HPP
+#endif  // KAGOME_CODEC_HPP

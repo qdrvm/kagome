@@ -5,7 +5,7 @@
 
 add_library(multibase
     multibase.cpp
-    basic_codec.cpp
-    codec.cpp
-    detail/codec_impl.cpp
+    codecs/base16.cpp
+    codecs/base58.cpp
+    codecs/base64.cpp
     )
