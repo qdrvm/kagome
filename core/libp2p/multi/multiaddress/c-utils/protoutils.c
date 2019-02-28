@@ -367,10 +367,8 @@ NAX:
       strcat(results, (char *)b58);
     }
   } else {
-    char *error = (char *)malloc(sizeof(char) * (42));
-    strcpy(error, "unable to decode a protocol with hex 0x");
-    strcat(error, &hex[0]);
-    strcat(error, &hex[1]);
+    char *error = (char *)malloc(sizeof(char) * (27));
+    strcpy(error, "unable to decode a protocol");
     return error;
   }
   strcat(results, "/");
