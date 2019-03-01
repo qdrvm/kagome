@@ -9,14 +9,20 @@
 
 namespace kagome::common {
 
+  template <bool IsUpper>
   std::string hex(const uint8_t *array, size_t len) noexcept {
     std::string res(len * 2, '\x00');
-    boost::algorithm::hex(array, array + len, res.begin());  // NOLINT
+    if (IsUpper) {
+      boost::algorithm::hex(array, array + len, res.begin());  // NOLINT
+    } else {
+      boost::algorithm::hex_lower(array, array + len, res.begin());
+    }
     return res;
   }
 
+  template <bool IsUpper>
   std::string hex(const std::vector<uint8_t> &bytes) noexcept {
-    return hex(bytes.data(), bytes.size());
+    return hex<IsUpper>(bytes.data(), bytes.size());
   }
 
   expected::Result<std::vector<uint8_t>, UnhexError> unhex(

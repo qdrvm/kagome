@@ -29,7 +29,7 @@ namespace libp2p::multi {
     /**
      * Encodings, supported by this Multibase
      */
-    enum class Encoding { kBase16, kBase16Upper, kBase58, kBase64 };
+    enum class Encoding { kBase16, kBase16Upper, kBase58, kBase64, COUNT };
 
     /**
      * Create a Multibase instance from the encoded string

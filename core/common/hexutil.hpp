@@ -16,13 +16,15 @@ namespace kagome::common {
 
   /**
    * @brief Converts bytes to hex representation
+   * @tparam ToUpper - true, if conversion is to result in uppercase string,
+   * false, if in lowercase
    * @param array bytes
    * @param len length of bytes
    * @return hexstring
-   *
-   * @note produces uppercase hexstrings
    */
+  template <bool ToUpper = true>
   std::string hex(const uint8_t *array, size_t len) noexcept;
+  template <bool ToUpper = true>
   std::string hex(const std::vector<uint8_t> &bytes) noexcept;
 
   /**

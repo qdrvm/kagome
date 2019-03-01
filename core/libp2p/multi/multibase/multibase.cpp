@@ -8,7 +8,9 @@
 
 #include "libp2p/multi/multibase.hpp"
 #include "libp2p/multi/multibase/codec.hpp"
+#include "libp2p/multi/multibase/codecs/base16.hpp"
 #include "libp2p/multi/multibase/codecs/base58.hpp"
+#include "libp2p/multi/multibase/codecs/base64.hpp"
 
 namespace {
   using namespace libp2p::multi;
@@ -36,8 +38,11 @@ namespace {
 
   // all available codecs
   const std::map<Multibase::Encoding, std::shared_ptr<Codec>> codecs{
-      std::make_pair(Multibase::Encoding::kBase58,
-                     std::make_shared<Base58Codec>())};
+      {Multibase::Encoding::kBase16, std::make_shared<Base16Codec<false>>()},
+      {Multibase::Encoding::kBase16Upper,
+       std::make_shared<Base16Codec<true>>()},
+      {Multibase::Encoding::kBase58, std::make_shared<Base58Codec>()},
+      {Multibase::Encoding::kBase64, std::make_shared<Base64Codec>()}};
 }  // namespace
 
 namespace libp2p::multi {
