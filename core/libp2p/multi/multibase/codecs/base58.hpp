@@ -24,9 +24,20 @@ namespace libp2p::multi {
         std::string_view string) const override;
 
    private:
+    /**
+     * Actual implementation of the encoding
+     * @param pbegin - pointer to the beginning of bytes collection
+     * @param pend - pointer to the end of bytes collection
+     * @return encoded string
+     */
     std::string encodeImpl(const unsigned char *pbegin,
                            const unsigned char *pend) const;
 
+    /**
+     * Actual implementation of the decoding
+     * @param psz - pointer to the string to be decoded
+     * @return decoded bytes, if the process went successfully, none otherwise
+     */
     std::optional<std::vector<unsigned char>> decodeImpl(const char *psz) const;
   };
 };  // namespace libp2p::multi

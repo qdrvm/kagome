@@ -25,13 +25,22 @@ namespace libp2p::multi {
         std::string_view string) const override;
 
    private:
-    std::string encodeMediator(uint8_t const *data, size_t len) const;
-    size_t encodeImpl(void *dest, void const *src, size_t len) const;
+    /**
+     * Actual implementation of the encoding
+     * @param dest, where to put encoded chars
+     * @param bytes to be encoded
+     * @return how much chars are in the resulting string
+     */
+    size_t encodeImpl(std::string &dest,
+                      const kagome::common::Buffer &bytes) const;
 
-    std::optional<std::string> decodeMediator(std::string_view data) const;
-    std::pair<std::size_t, std::size_t> decodeImpl(void *dest,
-                                                   char const *src,
-                                                   size_t len) const;
+    /**
+     * Actual implementation of the decoding
+     * @param dest, where to put decoded bytes
+     * @param src to be decoded
+     * @return how much bytes were decoded
+     */
+    size_t decodeImpl(std::vector<uint8_t> &dest, std::string_view src) const;
   };
 }  // namespace libp2p::multi
 
