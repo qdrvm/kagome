@@ -24,7 +24,7 @@ namespace {
   std::optional<Multibase::Encoding> encodingByChar(char ch) {
     switch (ch) {
       case 'f':
-        return Multibase::Encoding::kBase16;
+        return Multibase::Encoding::kBase16Lower;
       case 'F':
         return Multibase::Encoding::kBase16Upper;
       case 'Z':
@@ -36,9 +36,23 @@ namespace {
     }
   }
 
+  char charByEncoding(Multibase::Encoding encoding) {
+    switch (encoding) {
+      case Multibase::Encoding::kBase16Lower:
+        return 'f';
+      case Multibase::Encoding::kBase16Upper:
+        return 'F';
+      case Multibase::Encoding::kBase58:
+        return 'Z';
+      case Multibase::Encoding::kBase64:
+        return 'm';
+    }
+  }
+
   // all available codecs
   const std::map<Multibase::Encoding, std::shared_ptr<Codec>> codecs{
-      {Multibase::Encoding::kBase16, std::make_shared<Base16Codec<false>>()},
+      {Multibase::Encoding::kBase16Lower,
+       std::make_shared<Base16Codec<false>>()},
       {Multibase::Encoding::kBase16Upper,
        std::make_shared<Base16Codec<true>>()},
       {Multibase::Encoding::kBase58, std::make_shared<Base58Codec>()},
@@ -64,7 +78,7 @@ namespace libp2p::multi {
     std::optional<ByteBuffer> decoded_data;
     std::string error;
     codecs.at(*encoding_base)
-        ->decode(encoded_data)
+        ->decode(encoded_data.substr(1))  // cut the prefix
         .match(
             [&decoded_data](const Value<ByteBuffer> bytes) mutable {
               decoded_data = bytes.value;
@@ -87,7 +101,8 @@ namespace libp2p::multi {
       return Error{"no data provided"};
     }
 
-    auto encoded_data = codecs.at(encoding_base)->encode(decoded_data);
+    auto encoded_data = charByEncoding(encoding_base)
+        + codecs.at(encoding_base)->encode(decoded_data);
     Multibase res{
         std::move(encoded_data), ByteBuffer{decoded_data}, encoding_base};
     return Value{std::make_unique<Multibase>(std::move(res))};

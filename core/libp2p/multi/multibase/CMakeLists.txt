@@ -9,3 +9,7 @@ add_library(multibase
     codecs/base58.cpp
     codecs/base64.cpp
     )
+target_link_libraries(multibase
+    buffer
+    hexutil
+    )

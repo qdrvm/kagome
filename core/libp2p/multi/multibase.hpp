@@ -29,7 +29,7 @@ namespace libp2p::multi {
     /**
      * Encodings, supported by this Multibase
      */
-    enum class Encoding { kBase16, kBase16Upper, kBase58, kBase64, COUNT };
+    enum class Encoding { kBase16Lower, kBase16Upper, kBase58, kBase64 };
 
     /**
      * Create a Multibase instance from the encoded string
@@ -61,7 +61,7 @@ namespace libp2p::multi {
     Encoding base() const;
 
     /**
-     * Get the encoded data
+     * Get the encoded data including the encoding prefix
      * @return the data
      */
     std::string_view encodedData() const;
@@ -78,7 +78,7 @@ namespace libp2p::multi {
    private:
     Multibase(std::string &&encoded_data, ByteBuffer &&raw_data, Encoding base);
 
-    // encoded data in string format without the base character
+    // encoded data in string format with the encoding prefix
     std::string encoded_data_;
 
     // decoded data in bytes
