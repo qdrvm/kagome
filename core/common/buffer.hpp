@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "common/result.hpp"
-#include "common/unhex_errors.hpp"
 
 namespace kagome::common {
 
@@ -148,9 +147,9 @@ namespace kagome::common {
      * @brief Construct Buffer from hexstring
      * @param hex hexencoded string
      * @return Result containing constructed buffer if input string is
-     * hexencoded string. Otherwise Result containing error
+     * hexencoded string. Otherwise Result contains error message
      */
-    static expected::Result<Buffer, UnhexError> fromHex(std::string_view hex);
+    static expected::Result<Buffer, std::string> fromHex(std::string_view hex);
 
    private:
     std::vector<uint8_t> data_;

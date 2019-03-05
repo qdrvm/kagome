@@ -16,3 +16,10 @@ addtest(hexutil_test
 target_link_libraries(hexutil_test
   hexutil
   )
+
+addtest(blob_test
+  blob_test.cpp
+  )
+target_link_libraries(blob_test
+  blob
+  )

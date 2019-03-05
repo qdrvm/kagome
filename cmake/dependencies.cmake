@@ -9,9 +9,10 @@ find_package(GTest CONFIG REQUIRED)
 hunter_add_package(Boost)
 find_package(Boost CONFIG REQUIRED)
 
-# https://docs.hunter.sh/en/latest/packages/pkg/libjson-rpc-cpp.html
-hunter_add_package(libjson-rpc-cpp)
-find_package(libjson-rpc-cpp CONFIG REQUIRED)
+## TODO: uncomment when it is really needed
+## https://docs.hunter.sh/en/latest/packages/pkg/libjson-rpc-cpp.html
+#hunter_add_package(libjson-rpc-cpp)
+#find_package(libjson-rpc-cpp CONFIG REQUIRED)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/leveldb.html
 hunter_add_package(leveldb)
@@ -25,7 +26,6 @@ find_package(xxhash CONFIG REQUIRED)
 hunter_add_package(iroha-ed25519)
 find_package(ed25519 CONFIG REQUIRED)
 
-# other dependencies
-include(ExternalProject)
-
-find_package(binaryen)
+# https://docs.hunter.sh/en/latest/packages/pkg/binaryen.html
+hunter_add_package(binaryen)
+find_package(binaryen CONFIG REQUIRED)

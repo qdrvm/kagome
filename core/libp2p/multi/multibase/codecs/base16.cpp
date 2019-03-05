@@ -56,19 +56,9 @@ namespace libp2p::multi {
       return Error{"could not unhex string '" + std::string{string}
                    + "': input is not in the provided hex case"};
     }
-    return unhex(string).match(
-        [](const Value<std::vector<uint8_t>> &v)
-            -> Result<Buffer, std::string> { return Value{Buffer{v.value}}; },
-        [string](Error<UnhexError> err) -> Result<Buffer, std::string> {
-          switch (err.error) {
-            case UnhexError::kNotEnoughInput:
-              return Error{"could not unhex string '" + std::string{string}
-                           + "': input is either empty or contains odd number "
-                             "of symbols"};
-            case UnhexError::kNonHexInput:
-              return Error{"could not unhex string '" + std::string{string}
-                           + "': input is not hex-encoded"};
-          }
-        });
+    return unhex(string) |
+               [](std::vector<uint8_t> v) -> Result<Buffer, std::string> {
+      return Value{Buffer{v}};
+    };
   }
 }  // namespace libp2p::multi

@@ -43,25 +43,21 @@ TEST(Common, Hexutil_UnhexEven) {
 /**
  * @given Hexencoded string of odd length
  * @when unhex
- * @then unhex result contains kNotEnoughInput error
+ * @then unhex result contains error
  */
 TEST(Common, Hexutil_UnhexOdd) {
   ASSERT_NO_THROW({
-    UnhexError unhex_error =
-        boost::get<kagome::expected::Error<UnhexError>>(unhex("0")).error;
-    ASSERT_EQ(unhex_error, UnhexError::kNotEnoughInput);
+    boost::get<kagome::expected::Error<std::string>>(unhex("0"));
   }) << "unhex did not return an error as expected";
 }
 
 /**
  * @given Hexencoded string with non-hex letter
  * @when unhex
- * @then unhex result contains kNonHexInput error
+ * @then unhex result contains error
  */
 TEST(Common, Hexutil_UnhexInvalid) {
   ASSERT_NO_THROW({
-    UnhexError unhex_error =
-        boost::get<kagome::expected::Error<UnhexError>>(unhex("keks")).error;
-    ASSERT_EQ(unhex_error, UnhexError::kNonHexInput);
+    boost::get<kagome::expected::Error<std::string>>(unhex("keks"));
   }) << "unhex did not return an error as expected";
 }
