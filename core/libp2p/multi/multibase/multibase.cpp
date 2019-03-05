@@ -36,6 +36,11 @@ namespace {
     }
   }
 
+  /**
+   * Get the character, standing for the specified encoding
+   * @param encoding to be converted to a char
+   * @return char
+   */
   char charByEncoding(Multibase::Encoding encoding) {
     switch (encoding) {
       case Multibase::Encoding::kBase16Lower:
@@ -73,8 +78,6 @@ namespace libp2p::multi {
       return Error{"base of encoding is either unsupported or does not exist"};
     }
 
-    // can't immediately match and return Value(Multibase), as this is going to
-    // call a private ctor inside a lambda, which is forbidden
     std::optional<ByteBuffer> decoded_data;
     std::string error;
     codecs.at(*encoding_base)
