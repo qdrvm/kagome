@@ -11,7 +11,7 @@ namespace {
       "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
   // clang-format off
-  const std::vector<int8_t> mapBase58 = {
+  constexpr std::array<int8_t, 256> mapBase58 = {
       -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
       -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
       -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
@@ -38,7 +38,7 @@ namespace {
    * @param c - char to be tested
    * @return true, if char is space, false otherwise
    */
-  constexpr bool IsSpace(char c) noexcept {
+  constexpr bool isSpace(char c) noexcept {
     return c == ' ' || c == '\f' || c == '\n' || c == '\r' || c == '\t'
         || c == '\v';
   }
@@ -111,7 +111,7 @@ namespace libp2p::multi {
   std::optional<std::vector<unsigned char>> Base58Codec::decodeImpl(
       const char *psz) const {
     // Skip leading spaces.
-    while ((*psz != '0') && IsSpace(*psz)) {
+    while ((*psz != '0') && isSpace(*psz)) {
       std::advance(psz, 1);
     }
     // Skip and count leading '1's.
@@ -125,9 +125,9 @@ namespace libp2p::multi {
     int size = strlen(psz) * 733 / 1000 + 1;  // log(58) / log(256), rounded up.
     std::vector<unsigned char> b256(size);
     // Process the characters.
-    while ((*psz != '0') && !IsSpace(*psz)) {
+    while (*psz && !isSpace(*psz)) {
       // Decode base58 character
-      int carry = mapBase58[static_cast<uint8_t>(*psz)];
+      int carry = mapBase58.at(static_cast<uint8_t>(*psz));
       if (carry == -1) {  // Invalid b58 character
         return {};
       }
@@ -146,7 +146,7 @@ namespace libp2p::multi {
       std::advance(psz, 1);
     }
     // Skip trailing spaces.
-    while (IsSpace(*psz)) {
+    while (isSpace(*psz)) {
       std::advance(psz, 1);
     }
     if (*psz != 0) {

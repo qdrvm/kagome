@@ -40,7 +40,7 @@ namespace {
   const std::string_view alphabet{
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"};
 
-  const std::vector<signed char> inverse_table{
+  constexpr std::array<signed char, 256> inverse_table{
       // clang-format off
       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, //   0-15
       -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, //  16-31
@@ -162,7 +162,7 @@ namespace libp2p::multi {
     size_t in_pos = 0, decoded_size = 0, len = src.size();
 
     while (len-- && src[in_pos] != '=') {
-      auto const v = inverse_table[src[in_pos]];
+      auto const v = inverse_table.at(src[in_pos]);
       if (v == -1)
         break;
       ++in_pos;
