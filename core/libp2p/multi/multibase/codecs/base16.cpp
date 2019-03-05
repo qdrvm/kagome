@@ -50,6 +50,8 @@ namespace libp2p::multi {
   template <bool IsUpper>
   Result<Buffer, std::string> Base16Codec<IsUpper>::decode(
       std::string_view string) const {
+    // we need this check, because Boost can unhex any kind of base16 with one
+    // func, but the base must be specified correctly
     if (!encodingCaseCorrect(string, IsUpper)) {
       return Error{"could not unhex string '" + std::string{string}
                    + "': input is not in the provided hex case"};

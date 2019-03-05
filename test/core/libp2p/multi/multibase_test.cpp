@@ -74,8 +74,52 @@ TEST_F(Base16EncodingUpper, CreateFromEncodedFewCharacters) {
   ASSERT_TRUE(multibase_err);
 }
 
-class Base16EncodingLower : public MultibaseTest {};
+class Base16EncodingLower : public MultibaseTest {
+ public:
+  Multibase::Encoding encoding = Multibase::Encoding::kBase16Lower;
 
-TEST_F(Base16EncodingLower, CreateFromEncodedSuccess) {}
+  std::string_view encoded_correct{"f00010204081020ff"};
+  Buffer decoded_correct{0, 1, 2, 4, 8, 16, 32, 255};
 
-TEST_F(Base16EncodingLower, CreateFromDecodedSuccess) {}
+  std::string_view encoded_incorrect_no_prefix{"100"};
+  std::string_view encoded_incorrect_prefix{"Faa"};
+  std::string_view encoded_incorrect_body{"F10a"};
+};
+
+TEST_F(Base16EncodingLower, CreateFromEncodedSuccess) {
+  auto multibase = createCorrectFromEncoded(encoded_correct);
+  ASSERT_EQ(multibase.base(), encoding);
+  ASSERT_EQ(multibase.decodedData(), decoded_correct);
+  ASSERT_EQ(multibase.encodedData(), encoded_correct);
+}
+
+TEST_F(Base16EncodingLower, CreateFromDecodedSuccess) {
+  auto multibase = createCorrectFromDecoded(decoded_correct, encoding);
+  ASSERT_EQ(multibase.base(), encoding);
+  ASSERT_EQ(multibase.decodedData(), decoded_correct);
+  ASSERT_EQ(multibase.encodedData(), encoded_correct);
+}
+
+TEST_F(Base16EncodingLower, CreateFromEncodedNoPrefix) {
+  auto multibase_err =
+      err(Multibase::createMultibaseFromEncoded(encoded_incorrect_no_prefix));
+  ASSERT_TRUE(multibase_err);
+}
+
+TEST_F(Base16EncodingLower, CreateFromEncodedIncorrectPrefix) {
+  auto multibase_err =
+      err(Multibase::createMultibaseFromEncoded(encoded_incorrect_prefix));
+  ASSERT_TRUE(multibase_err);
+}
+
+TEST_F(Base16EncodingLower, CreateFromEncodedIncorrectBody) {
+  auto multibase_err =
+      err(Multibase::createMultibaseFromEncoded(encoded_incorrect_body));
+  ASSERT_TRUE(multibase_err);
+}
+
+TEST_F(Base16EncodingLower, CreateFromEncodedFewCharacters) {
+  auto multibase_err =
+      err(Multibase::createMultibaseFromEncoded("A"));
+  ASSERT_TRUE(multibase_err);
+}
