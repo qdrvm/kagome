@@ -36,11 +36,10 @@ namespace libp2p::multi {
 
     /**
      * Actual implementation of the decoding
-     * @param dest, where to put decoded bytes
      * @param src to be decoded
-     * @return how much bytes were decoded
+     * @return bytes, if decoding went successful, none otherwise
      */
-    size_t decodeImpl(std::vector<uint8_t> &dest, std::string_view src) const;
+    std::optional<std::vector<uint8_t>> decodeImpl(std::string_view src) const;
   };
 }  // namespace libp2p::multi
 

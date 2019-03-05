@@ -61,11 +61,6 @@ namespace {
       // clang-format on
   };
 
-  /// Returns max chars needed to encode a base64 string
-  inline std::size_t constexpr encodedSize(std::size_t n) {
-    return 4 * ((n + 2) / 3);
-  }
-
   /// Returns max bytes needed to decode a base64 string
   inline std::size_t constexpr decodedSize(std::size_t n) {
     return n / 4 * 3;  // requires n&3==0, smaller
@@ -88,7 +83,6 @@ namespace libp2p::multi {
 
   std::string Base64Codec::encode(const kagome::common::Buffer &bytes) const {
     std::string dest;
-    dest.resize(encodedSize(bytes.size()));
     dest.resize(encodeImpl(dest, bytes));
     return dest;
   }
@@ -103,14 +97,12 @@ namespace libp2p::multi {
       return error_msg();
     }
 
-    auto decoded_size = decodedSize(string.size());
-    std::vector<uint8_t> dest(decoded_size);
-    auto decoded_bytes = decodeImpl(dest, string);
+    auto decoded_bytes = decodeImpl(string);
 
-    if (decoded_bytes != decoded_size) {
+    if (!decoded_bytes) {
       return error_msg();
     }
-    return Value{kagome::common::Buffer{std::move(dest)}};
+    return Value{kagome::common::Buffer{std::move(*decoded_bytes)}};
   }
 
   size_t Base64Codec::encodeImpl(std::string &out,
@@ -120,31 +112,31 @@ namespace libp2p::multi {
     size_t bytes_pos = 0, decoded_size = 0;
 
     for (auto n = len / 3; n--;) {
-      out.append(&tab[(bytes[bytes_pos + 0] & 0xfc) >> 2]);
-      out.append(&tab[((bytes[bytes_pos + 0] & 0x03) << 4)
-                      + ((bytes[bytes_pos + 1] & 0xf0) >> 4)]);
-      out.append(&tab[((bytes[bytes_pos + 2] & 0xc0) >> 6)
-                      + ((bytes[bytes_pos + 1] & 0x0f) << 2)]);
-      out.append(&tab[bytes[bytes_pos + 2] & 0x3f]);
+      out += tab[(bytes[bytes_pos + 0] & 0xfc) >> 2];
+      out += tab[((bytes[bytes_pos + 0] & 0x03) << 4)
+                 + ((bytes[bytes_pos + 1] & 0xf0) >> 4)];
+      out += tab[((bytes[bytes_pos + 2] & 0xc0) >> 6)
+                 + ((bytes[bytes_pos + 1] & 0x0f) << 2)];
+      out += tab[bytes[bytes_pos + 2] & 0x3f];
       bytes_pos += 3;
       decoded_size += 4;
     }
 
     switch (len % 3) {
       case 2:
-        out.append(&tab[(bytes[bytes_pos + 0] & 0xfc) >> 2]);
-        out.append(&tab[((bytes[bytes_pos + 0] & 0x03) << 4)
-                        + ((bytes[bytes_pos + 1] & 0xf0) >> 4)]);
-        out.append(&tab[(bytes[bytes_pos + 1] & 0x0f) << 2]);
-        out.append("=");
+        out += tab[(bytes[bytes_pos + 0] & 0xfc) >> 2];
+        out += tab[((bytes[bytes_pos + 0] & 0x03) << 4)
+                   + ((bytes[bytes_pos + 1] & 0xf0) >> 4)];
+        out += tab[(bytes[bytes_pos + 1] & 0x0f) << 2];
+        out += '=';
         decoded_size += 4;
         break;
 
       case 1:
-        out.append(&tab[(bytes[bytes_pos + 0] & 0xfc) >> 2]);
-        out.append(&tab[((bytes[bytes_pos + 0] & 0x03) << 4)]);
-        out.append("=");
-        out.append("=");
+        out += tab[(bytes[bytes_pos + 0] & 0xfc) >> 2];
+        out += tab[((bytes[bytes_pos + 0] & 0x03) << 4)];
+        out += '=';
+        out += '=';
         decoded_size += 4;
         break;
 
@@ -155,16 +147,18 @@ namespace libp2p::multi {
     return decoded_size;
   }
 
-  size_t Base64Codec::decodeImpl(std::vector<uint8_t> &dest,
-                                 std::string_view src) const {
+  std::optional<std::vector<uint8_t>> Base64Codec::decodeImpl(
+      std::string_view src) const {
+    std::vector<uint8_t> out(decodedSize(src.size()));
+
     std::vector<unsigned char> c3(3), c4(4);
     int i = 0, j = 0;
-    size_t in_pos = 0, decoded_size = 0, len = src.size();
+    size_t in_pos = 0, len = src.size(), bytes_pos = 0;
 
     while (len-- && src[in_pos] != '=') {
       auto const v = inverse_table.at(src[in_pos]);
       if (v == -1)
-        break;
+        return {};
       ++in_pos;
       c4[i] = v;
       if (++i == 4) {
@@ -173,8 +167,8 @@ namespace libp2p::multi {
         c3[2] = ((c4[2] & 0x3) << 6) + c4[3];
 
         for (i = 0; i < 3; i++) {
-          dest.push_back(c3[i]);
-          ++decoded_size;
+          out[bytes_pos] = c3[i];
+          ++bytes_pos;
         }
         i = 0;
       }
@@ -186,10 +180,11 @@ namespace libp2p::multi {
       c3[2] = ((c4[2] & 0x3) << 6) + c4[3];
 
       for (j = 0; j < i - 1; j++) {
-        dest.push_back(c3[j]);
-        ++decoded_size;
+        out[bytes_pos] = c3[j];
+        ++bytes_pos;
       }
     }
-    return decoded_size;
+    out.resize(bytes_pos);
+    return out;
   }
 }  // namespace libp2p::multi
