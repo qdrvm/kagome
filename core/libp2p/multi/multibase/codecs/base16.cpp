@@ -11,23 +11,14 @@
 
 namespace {
   /**
-   * Check, if hex string is actually in upper or lowercase
+   * Check, if hex string is in uppercase
    * @param string to be checked
-   * @param encoding_is_upper - true, if string is to be in uppercase, false
-   * otherwise
-   * @return result of the check
+   * @return true, if provided string is uppercase hex-encoded, false otherwise
    */
-  bool encodingCaseCorrect(std::string_view string, bool encoding_is_upper) {
-    return std::all_of(
-        string.begin(), string.end(), [encoding_is_upper](const char &c) {
-          if (not std::isalpha(c)) {
-            return true;
-          }
-          if (encoding_is_upper) {
-            return static_cast<bool>(std::isupper(c));
-          }
-          return static_cast<bool>(std::islower(c));
-        });
+  bool encodingCaseIsUpper(std::string_view string) {
+    return std::all_of(string.begin(), string.end(), [](const char &c) {
+      return !std::isalpha(c) || static_cast<bool>(std::isupper(c));
+    });
   }
 }  // namespace
 
@@ -52,7 +43,8 @@ namespace libp2p::multi {
       std::string_view string) const {
     // we need this check, because Boost can unhex any kind of base16 with one
     // func, but the base must be specified correctly
-    if (!encodingCaseCorrect(string, IsUpper)) {
+    if ((IsUpper && !encodingCaseIsUpper(string))
+        || (!IsUpper && encodingCaseIsUpper(string))) {
       return Error{"could not unhex string '" + std::string{string}
                    + "': input is not in the provided hex case"};
     }
