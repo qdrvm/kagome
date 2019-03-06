@@ -14,6 +14,8 @@ namespace libp2p::multi {
    */
   class MultibaseImpl : public Multibase {
    public:
+    ~MultibaseImpl() override;
+
     std::string encode(const kagome::common::Buffer &bytes,
                        Encoding encoding) const override;
 

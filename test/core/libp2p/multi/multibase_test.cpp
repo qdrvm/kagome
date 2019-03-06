@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/multi/multibase.hpp"
 #include <gtest/gtest.h>
+#include "libp2p/multi/multibase/multibase_impl.hpp"
 #include "utils/result_fixture.hpp"
 
 using namespace libp2p::multi;
@@ -13,41 +13,36 @@ using namespace kagome::common;
 
 class MultibaseTest : public ::testing::Test {
  public:
-  /**
-   * Decode the string
-   * @param encoded - string with encoding prefix to be decoded into bytes
-   * @return resulting Multibase
-   */
-  Multibase createCorrectFromEncoded(std::string_view encoded) {
-    auto multibase_opt = val(Multibase::createMultibaseFromEncoded(encoded));
-    EXPECT_TRUE(multibase_opt)
-        << "failed to decode string: " + std::string{encoded};
-    return *multibase_opt->value;
-  }
+  std::unique_ptr<Multibase> multibase = std::make_unique<MultibaseImpl>();
 
   /**
-   * Encode the bytes
-   * @param decoded - bytes to be encoded
-   * @param encoding - base of the encoding
+   * Decode the string
+   * @param encoded - string with encoding prefix to be decoded into bytes; MUST
+   * be valid encoded string
    * @return resulting Multibase
    */
-  Multibase createCorrectFromDecoded(const Buffer &decoded,
-                                     Multibase::Encoding encoding) {
-    auto multibase_opt =
-        val(Multibase::createMultibaseFromDecoded(decoded, encoding));
-    EXPECT_TRUE(multibase_opt) << "failed to encode bytes: " + decoded.toHex();
-    return *multibase_opt->value;
+  Buffer decodeCorrect(std::string_view encoded) {
+    auto multibase_opt = val(multibase->decode(encoded));
+    EXPECT_TRUE(multibase_opt)
+        << "failed to decode string: " + std::string{encoded};
+    return multibase_opt->value;
   }
 };
+
+TEST_F(MultibaseTest, EncodeEmptyBytes) {
+  auto encoded_str =
+      multibase->encode(Buffer{}, Multibase::Encoding::kBase16Lower);
+  ASSERT_TRUE(encoded_str.empty());
+}
 
 /**
  * @given string with encoding prefix, which does not stand for any of the
  * implemented encodings
  * @when trying to decode that string
- * @then Multibase object creation fails
+ * @then decoding fails
  */
-TEST_F(MultibaseTest, IncorrectPrefix) {
-  auto multibase_err = err(Multibase::createMultibaseFromEncoded("J00AA"));
+TEST_F(MultibaseTest, DecodeIncorrectPrefix) {
+  auto multibase_err = err(multibase->decode("J00AA"));
   ASSERT_TRUE(multibase_err);
 }
 
@@ -56,8 +51,8 @@ TEST_F(MultibaseTest, IncorrectPrefix) {
  * @when trying to decode that string
  * @then Multibase object creation fails
  */
-TEST_F(MultibaseTest, FewCharacters) {
-  auto multibase_err = err(Multibase::createMultibaseFromEncoded("A"));
+TEST_F(MultibaseTest, DecodeFewCharacters) {
+  auto multibase_err = err(multibase->decode("A"));
   ASSERT_TRUE(multibase_err);
 }
 
@@ -75,47 +70,41 @@ class Base16EncodingUpper : public MultibaseTest {
 /**
  * @given uppercase hex-encoded string
  * @when trying to decode that string
- * @then Multibase object creation succeeds
+ * @then decoding succeeds
  */
 TEST_F(Base16EncodingUpper, SuccessDecoding) {
-  auto multibase = createCorrectFromEncoded(encoded_correct);
-  ASSERT_EQ(multibase.base(), encoding);
-  ASSERT_EQ(multibase.decodedData(), decoded_correct);
-  ASSERT_EQ(multibase.encodedData(), encoded_correct);
+  auto decoded_bytes = decodeCorrect(encoded_correct);
+  ASSERT_EQ(decoded_bytes, decoded_correct);
 }
 
 /**
  * @given bytes
  * @when trying to encode those bytes
- * @then Multibase object creation succeeds
+ * @then encoding succeeds
  */
 TEST_F(Base16EncodingUpper, SuccessEncoding) {
-  auto multibase = createCorrectFromDecoded(decoded_correct, encoding);
-  ASSERT_EQ(multibase.base(), encoding);
-  ASSERT_EQ(multibase.decodedData(), decoded_correct);
-  ASSERT_EQ(multibase.encodedData(), encoded_correct);
+  auto encoded_str = multibase->encode(decoded_correct, encoding);
+  ASSERT_EQ(encoded_str, encoded_correct);
 }
 
 /**
  * @given uppercase hex-encoded string with lowercase hex prefix
  * @when trying to decode that string
- * @then Multibase object creation fails
+ * @then decoding fails
  */
 TEST_F(Base16EncodingUpper, IncorrectPrefix) {
-  auto multibase_err =
-      err(Multibase::createMultibaseFromEncoded(encoded_incorrect_prefix));
-  ASSERT_TRUE(multibase_err);
+  auto error = err(multibase->decode(encoded_incorrect_prefix));
+  ASSERT_TRUE(error);
 }
 
 /**
  * @given non-hex-encoded string with uppercase prefix
  * @when trying to decode that string
- * @then Multibase object creation fails
+ * @then decoding fails
  */
 TEST_F(Base16EncodingUpper, IncorrectBody) {
-  auto multibase_err =
-      err(Multibase::createMultibaseFromEncoded(encoded_incorrect_body));
-  ASSERT_TRUE(multibase_err);
+  auto error = err(multibase->decode(encoded_incorrect_body));
+  ASSERT_TRUE(error);
 }
 
 class Base16EncodingLower : public MultibaseTest {
@@ -132,47 +121,41 @@ class Base16EncodingLower : public MultibaseTest {
 /**
  * @given lowercase hex-encoded string
  * @when trying to decode that string
- * @then Multibase object creation succeeds
+ * @then decoding succeeds
  */
 TEST_F(Base16EncodingLower, SuccessDecoding) {
-  auto multibase = createCorrectFromEncoded(encoded_correct);
-  ASSERT_EQ(multibase.base(), encoding);
-  ASSERT_EQ(multibase.decodedData(), decoded_correct);
-  ASSERT_EQ(multibase.encodedData(), encoded_correct);
+  auto decoded_bytes = decodeCorrect(encoded_correct);
+  ASSERT_EQ(decoded_bytes, decoded_correct);
 }
 
 /**
  * @given bytes
  * @when trying to encode those bytes
- * @then Multibase object creation succeeds
+ * @then encoding succeeds
  */
 TEST_F(Base16EncodingLower, SuccessEncoding) {
-  auto multibase = createCorrectFromDecoded(decoded_correct, encoding);
-  ASSERT_EQ(multibase.base(), encoding);
-  ASSERT_EQ(multibase.decodedData(), decoded_correct);
-  ASSERT_EQ(multibase.encodedData(), encoded_correct);
+  auto encoded_str = multibase->encode(decoded_correct, encoding);
+  ASSERT_EQ(encoded_str, encoded_correct);
 }
 
 /**
  * @given lowercase hex-encoded string with uppercase hex prefix
  * @when trying to decode that string
- * @then Multibase object creation fails
+ * @then decoding fails
  */
 TEST_F(Base16EncodingLower, IncorrectPrefix) {
-  auto multibase_err =
-      err(Multibase::createMultibaseFromEncoded(encoded_incorrect_prefix));
-  ASSERT_TRUE(multibase_err);
+  auto error = err(multibase->decode(encoded_incorrect_prefix));
+  ASSERT_TRUE(error);
 }
 
 /**
  * @given non-hex-encoded string with lowercase prefix
  * @when trying to decode that string
- * @then Multibase object creation fails
+ * @then decoding fails
  */
 TEST_F(Base16EncodingLower, IncorrectBody) {
-  auto multibase_err =
-      err(Multibase::createMultibaseFromEncoded(encoded_incorrect_body));
-  ASSERT_TRUE(multibase_err);
+  auto error = err(multibase->decode(encoded_incorrect_body));
+  ASSERT_TRUE(error);
 }
 
 class Base58Encoding : public MultibaseTest {
@@ -241,32 +224,27 @@ class Base58Encoding : public MultibaseTest {
 /**
  * @given table with base58-encoded strings with their bytes representations
  * @when encoding bytes @and decoding strings
- * @then Multibase objects creation succeeds @and relevant bytes and strings are
+ * @then encoding/decoding succeed @and relevant bytes and strings are
  * equivalent
  */
 TEST_F(Base58Encoding, SuccessEncodingDecoding) {
   for (const auto &[decoded, encoded] : decode_encode_table) {
-    auto from_decoded = createCorrectFromDecoded(decoded, encoding);
-    ASSERT_EQ(from_decoded.base(), encoding);
-    ASSERT_EQ(from_decoded.encodedData(), encoded);
-    ASSERT_EQ(from_decoded.decodedData(), decoded);
+    auto encoded_str = multibase->encode(decoded, encoding);
+    ASSERT_EQ(encoded_str, encoded);
 
-    auto from_encoded = createCorrectFromEncoded(encoded);
-    ASSERT_EQ(from_encoded.base(), encoding);
-    ASSERT_EQ(from_encoded.encodedData(), encoded);
-    ASSERT_EQ(from_encoded.decodedData(), decoded);
+    auto decoded_bytes = decodeCorrect(encoded);
+    ASSERT_EQ(decoded_bytes, decoded);
   }
 }
 
 /**
  * @given string containing symbols, forbidden in base58
  * @when trying to decode that string
- * @then Multibase object creation fails
+ * @then decoding fails
  */
 TEST_F(Base58Encoding, IncorrectBody) {
-  auto multibase_err =
-      err(Multibase::createMultibaseFromEncoded(incorrect_encoded));
-  ASSERT_TRUE(multibase_err);
+  auto error = err(multibase->decode(incorrect_encoded));
+  ASSERT_TRUE(error);
 }
 
 /**
@@ -274,13 +252,13 @@ TEST_F(Base58Encoding, IncorrectBody) {
  * @given base58-encoded string with several whitespaces @and valid base58
  * symbols in the middle @and more whitespaces
  * @when trying to decode that string
- * @then Multibase object creation succeeds
+ * @then decoding succeeds
  */
 TEST_F(Base58Encoding, SkipsWhitespacesSuccess) {
-  constexpr auto base64_with_whitespaces = "Z \t\n\v\f\r skip \r\f\v\n\t ";
-  auto multibase = createCorrectFromEncoded(base64_with_whitespaces);
+  constexpr auto base64_with_whitespaces = "Z \t\n\v\f\r 2g \r\f\v\n\t ";
+  auto decoded_bytes = decodeCorrect(base64_with_whitespaces);
 
-  ASSERT_EQ(multibase.base(), encoding);
+  ASSERT_EQ(decoded_bytes, Buffer{0x61});
 }
 
 /**
@@ -288,14 +266,13 @@ TEST_F(Base58Encoding, SkipsWhitespacesSuccess) {
  * @given base58-encoded string with several whitespaces @and valid base58
  * symbols in the middle @and more whitespaces @and base58 character
  * @when trying to decode that string
- * @then Multibase object creation fails
+ * @then decoding fails
  */
 TEST_F(Base58Encoding, SkipsWhitespacesFailure) {
   constexpr auto base64_with_whitespaces = "Z \t\n\v\f\r skip \r\f\v\n\t a";
-  auto multibase_err =
-      err(Multibase::createMultibaseFromEncoded(base64_with_whitespaces));
+  auto error = err(multibase->decode(base64_with_whitespaces));
 
-  ASSERT_TRUE(multibase_err);
+  ASSERT_TRUE(error);
 }
 
 class Base64Encoding : public MultibaseTest {
@@ -348,30 +325,25 @@ class Base64Encoding : public MultibaseTest {
 /**
  * @given table with base64-encoded strings with their bytes representations
  * @when encoding bytes @and decoding strings
- * @then Multibase objects creation succeeds @and relevant bytes and strings are
+ * @then encoding/decoding succeed @and relevant bytes and strings are
  * equivalent
  */
 TEST_F(Base64Encoding, SuccessEncodingDecoding) {
   for (const auto &[decoded, encoded] : decode_encode_table) {
-    auto from_decoded = createCorrectFromDecoded(decoded, encoding);
-    ASSERT_EQ(from_decoded.base(), encoding);
-    ASSERT_EQ(from_decoded.encodedData(), encoded);
-    ASSERT_EQ(from_decoded.decodedData(), decoded);
+    auto encoded_str = multibase->encode(decoded, encoding);
+    ASSERT_EQ(encoded_str, encoded);
 
-    auto from_encoded = createCorrectFromEncoded(encoded);
-    ASSERT_EQ(from_encoded.base(), encoding);
-    ASSERT_EQ(from_encoded.encodedData(), encoded);
-    ASSERT_EQ(from_encoded.decodedData(), decoded);
+    auto decoded_bytes = decodeCorrect(encoded);
+    ASSERT_EQ(decoded_bytes, decoded);
   }
 }
 
 /**
  * @given string containing symbols, forbidden in base64
  * @when trying to decode that string
- * @then Multibase object creation fails
+ * @then decoding fails
  */
 TEST_F(Base64Encoding, IncorrectBody) {
-  auto multibase_err =
-      err(Multibase::createMultibaseFromEncoded(incorrect_encoded));
-  ASSERT_TRUE(multibase_err);
+  auto error = err(multibase->decode(incorrect_encoded));
+  ASSERT_TRUE(error);
 }

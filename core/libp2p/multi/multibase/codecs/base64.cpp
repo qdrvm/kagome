@@ -81,30 +81,6 @@ namespace {
 namespace libp2p::multi::detail {
   using namespace kagome::expected;
 
-  std::string encodeBase64(const kagome::common::Buffer &bytes) {
-    std::string dest;
-    dest.resize(encodeImpl(dest, bytes));
-    return dest;
-  }
-
-  Result<kagome::common::Buffer, std::string> decodeBase64(
-      std::string_view string) {
-    auto error_msg = [string] {
-      return Error{"string '" + std::string{string}
-                   + "' is not a valid base64 encoded string"};
-    };
-    if (!isValidBase64(string)) {
-      return error_msg();
-    }
-
-    auto decoded_bytes = decodeImpl(string);
-
-    if (!decoded_bytes) {
-      return error_msg();
-    }
-    return Value{kagome::common::Buffer{std::move(*decoded_bytes)}};
-  }
-
   /**
    * Actual implementation of the encoding
    * @param dest, where to put encoded chars
@@ -195,5 +171,29 @@ namespace libp2p::multi::detail {
     }
     out.resize(bytes_pos);
     return out;
+  }
+
+  std::string encodeBase64(const kagome::common::Buffer &bytes) {
+    std::string dest;
+    dest.resize(encodeImpl(dest, bytes));
+    return dest;
+  }
+
+  Result<kagome::common::Buffer, std::string> decodeBase64(
+      std::string_view string) {
+    auto error_msg = [string] {
+      return Error{"string '" + std::string{string}
+                   + "' is not a valid base64 encoded string"};
+    };
+    if (!isValidBase64(string)) {
+      return error_msg();
+    }
+
+    auto decoded_bytes = decodeImpl(string);
+
+    if (!decoded_bytes) {
+      return error_msg();
+    }
+    return Value{kagome::common::Buffer{std::move(*decoded_bytes)}};
   }
 }  // namespace libp2p::multi::detail

@@ -55,10 +55,12 @@ namespace libp2p::multi {
   using namespace kagome::expected;
   using namespace kagome::common;
 
+  MultibaseImpl::~MultibaseImpl() = default;
+
   std::string MultibaseImpl::encode(const Buffer &bytes,
                                     Encoding encoding) const {
     if (bytes.size() == 0) {
-      return "no data provided";
+      return "";
     }
 
     return static_cast<char>(encoding) + codecs.at(encoding).first(bytes);

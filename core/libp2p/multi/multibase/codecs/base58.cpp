@@ -47,19 +47,6 @@ namespace {
 namespace libp2p::multi::detail {
   using namespace kagome::expected;
 
-  std::string encodeBase58(const kagome::common::Buffer &bytes) {
-    return encodeImpl(bytes.begin().base(), bytes.end().base());
-  }
-
-  Result<kagome::common::Buffer, std::string> decodeBase58(
-      std::string_view string) {
-    auto decoded_bytes = decodeImpl(string.data());
-    if (decoded_bytes) {
-      return Value{kagome::common::Buffer{*decoded_bytes}};
-    }
-    return Error{"could not decode base58 format"};
-  }
-
   /**
    * Actual implementation of the encoding
    * @param pbegin - pointer to the beginning of bytes collection
@@ -172,4 +159,18 @@ namespace libp2p::multi::detail {
     }
     return vch;
   }
+
+  std::string encodeBase58(const kagome::common::Buffer &bytes) {
+    return encodeImpl(bytes.begin().base(), bytes.end().base());
+  }
+
+  Result<kagome::common::Buffer, std::string> decodeBase58(
+      std::string_view string) {
+    auto decoded_bytes = decodeImpl(string.data());
+    if (decoded_bytes) {
+      return Value{kagome::common::Buffer{*decoded_bytes}};
+    }
+    return Error{"could not decode base58 format"};
+  }
+
 }  // namespace libp2p::multi::detail
