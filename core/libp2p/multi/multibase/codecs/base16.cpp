@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "libp2p/multi/multibase/codecs/base16.hpp"
+
 #include <algorithm>
 #include <cctype>
 
 #include "common/hexutil.hpp"
-#include "libp2p/multi/multibase/codecs/base16.hpp"
 
 namespace {
   /**
@@ -22,35 +23,40 @@ namespace {
   }
 }  // namespace
 
-namespace libp2p::multi {
+namespace libp2p::multi::detail {
   using namespace kagome::common;
   using namespace kagome::expected;
 
-  template std::string Base16Codec<true>::encode(const Buffer &bytes) const;
-  template std::string Base16Codec<false>::encode(const Buffer &bytes) const;
-  template Result<Buffer, std::string> Base16Codec<true>::decode(
-      std::string_view string) const;
-  template Result<Buffer, std::string> Base16Codec<false>::decode(
-      std::string_view string) const;
-
-  template <bool IsUpper>
-  std::string Base16Codec<IsUpper>::encode(const Buffer &bytes) const {
-    return hex<IsUpper>(bytes.toVector());
+  std::string encodeBase16Upper(const Buffer &bytes) {
+    return hex_upper(bytes.toVector());
   }
 
-  template <bool IsUpper>
-  Result<Buffer, std::string> Base16Codec<IsUpper>::decode(
-      std::string_view string) const {
+  std::string encodeBase16Lower(const Buffer &bytes) {
+    return hex_lower(bytes.toVector());
+  }
+
+  Result<Buffer, std::string> decodeBase16Upper(std::string_view string) {
     // we need this check, because Boost can unhex any kind of base16 with one
     // func, but the base must be specified correctly
-    if ((IsUpper && !encodingCaseIsUpper(string))
-        || (!IsUpper && encodingCaseIsUpper(string))) {
+    if (!encodingCaseIsUpper(string)) {
       return Error{"could not unhex string '" + std::string{string}
-                   + "': input is not in the provided hex case"};
+                   + "': input is not in the uppercase hex"};
     }
-    return unhex(string) |
-               [](std::vector<uint8_t> v) -> Result<Buffer, std::string> {
+    return unhex(string) | [](auto &&v) -> Result<Buffer, std::string> {
       return Value{Buffer{v}};
     };
   }
-}  // namespace libp2p::multi
+
+  Result<Buffer, std::string> decodeBase16Lower(std::string_view string) {
+    // we need this check, because Boost can unhex any kind of base16 with one
+    // func, but the base must be specified correctly
+    if (encodingCaseIsUpper(string)) {
+      return Error{"could not unhex string '" + std::string{string}
+                   + "': input is not in the lowercase hex"};
+    }
+    return unhex(string) | [](auto &&v) -> Result<Buffer, std::string> {
+      return Value{Buffer{v}};
+    };
+  }
+
+}  // namespace libp2p::multi::detail

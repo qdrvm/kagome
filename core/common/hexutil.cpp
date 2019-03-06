@@ -9,26 +9,24 @@
 #include <boost/format.hpp>
 
 namespace kagome::common {
-
-  template std::string hex<true>(const uint8_t *array, size_t len) noexcept;
-  template std::string hex<false>(const uint8_t *array, size_t len) noexcept;
-  template std::string hex<true>(const std::vector<uint8_t> &bytes) noexcept;
-  template std::string hex<false>(const std::vector<uint8_t> &bytes) noexcept;
-
-  template <bool IsUpper>
-  std::string hex(const uint8_t *array, size_t len) noexcept {
+  std::string hex_upper(const uint8_t *array, size_t len) noexcept {
     std::string res(len * 2, '\x00');
-    if (IsUpper) {
-      boost::algorithm::hex(array, array + len, res.begin());  // NOLINT
-    } else {
-      boost::algorithm::hex_lower(array, array + len, res.begin());  // NOLINT
-    }
+    boost::algorithm::hex(array, array + len, res.begin());  // NOLINT
     return res;
   }
 
-  template <bool IsUpper>
-  std::string hex(const std::vector<uint8_t> &bytes) noexcept {
-    return hex<IsUpper>(bytes.data(), bytes.size());
+  std::string hex_upper(const std::vector<uint8_t> &bytes) noexcept {
+    return hex_upper(bytes.data(), bytes.size());
+  }
+
+  std::string hex_lower(const uint8_t *array, size_t len) noexcept {
+    std::string res(len * 2, '\x00');
+    boost::algorithm::hex_lower(array, array + len, res.begin());  // NOLINT
+    return res;
+  }
+
+  std::string hex_lower(const std::vector<uint8_t> &bytes) noexcept {
+    return hex_lower(bytes.data(), bytes.size());
   }
 
   expected::Result<std::vector<uint8_t>, std::string> unhex(

@@ -44,18 +44,15 @@ namespace {
   }
 }  // namespace
 
-namespace libp2p::multi {
+namespace libp2p::multi::detail {
   using namespace kagome::expected;
 
-  std::string Base58Codec::encode(const kagome::common::Buffer &bytes) const {
-    const auto *bytes_beginning = bytes.toBytes();
-    auto *bytes_end = bytes_beginning;
-    std::advance(bytes_end, bytes.size());
-    return encodeImpl(bytes_beginning, bytes_end);
+  std::string encodeBase58(const kagome::common::Buffer &bytes) {
+    return encodeImpl(bytes.begin().base(), bytes.end().base());
   }
 
-  Result<kagome::common::Buffer, std::string> Base58Codec::decode(
-      std::string_view string) const {
+  Result<kagome::common::Buffer, std::string> decodeBase58(
+      std::string_view string) {
     auto decoded_bytes = decodeImpl(string.data());
     if (decoded_bytes) {
       return Value{kagome::common::Buffer{*decoded_bytes}};
@@ -63,8 +60,14 @@ namespace libp2p::multi {
     return Error{"could not decode base58 format"};
   }
 
-  std::string Base58Codec::encodeImpl(const unsigned char *pbegin,
-                                      const unsigned char *pend) const {
+  /**
+   * Actual implementation of the encoding
+   * @param pbegin - pointer to the beginning of bytes collection
+   * @param pend - pointer to the end of bytes collection
+   * @return encoded string
+   */
+  std::string encodeImpl(const unsigned char *pbegin,
+                         const unsigned char *pend) {
     // Skip & count leading zeroes.
     int zeroes = 0;
     int length = 0;
@@ -108,8 +111,12 @@ namespace libp2p::multi {
     return str;
   }
 
-  std::optional<std::vector<unsigned char>> Base58Codec::decodeImpl(
-      const char *psz) const {
+  /**
+   * Actual implementation of the decoding
+   * @param psz - pointer to the string to be decoded
+   * @return decoded bytes, if the process went successfully, none otherwise
+   */
+  std::optional<std::vector<unsigned char>> decodeImpl(const char *psz) {
     // Skip leading spaces.
     while ((*psz != '0') && isSpace(*psz)) {
       std::advance(psz, 1);
@@ -165,4 +172,4 @@ namespace libp2p::multi {
     }
     return vch;
   }
-}  // namespace libp2p::multi
+}  // namespace libp2p::multi::detail

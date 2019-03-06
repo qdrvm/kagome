@@ -31,9 +31,9 @@
    Rene Nyffenegger rene.nyffenegger@adp-gmbh.ch
 */
 
-#include <regex>
-
 #include "libp2p/multi/multibase/codecs/base64.hpp"
+
+#include <regex>
 
 namespace {
 
@@ -78,17 +78,17 @@ namespace {
   }
 }  // namespace
 
-namespace libp2p::multi {
+namespace libp2p::multi::detail {
   using namespace kagome::expected;
 
-  std::string Base64Codec::encode(const kagome::common::Buffer &bytes) const {
+  std::string encodeBase64(const kagome::common::Buffer &bytes) {
     std::string dest;
     dest.resize(encodeImpl(dest, bytes));
     return dest;
   }
 
-  Result<kagome::common::Buffer, std::string> Base64Codec::decode(
-      std::string_view string) const {
+  Result<kagome::common::Buffer, std::string> decodeBase64(
+      std::string_view string) {
     auto error_msg = [string] {
       return Error{"string '" + std::string{string}
                    + "' is not a valid base64 encoded string"};
@@ -105,8 +105,13 @@ namespace libp2p::multi {
     return Value{kagome::common::Buffer{std::move(*decoded_bytes)}};
   }
 
-  size_t Base64Codec::encodeImpl(std::string &out,
-                                 const kagome::common::Buffer &bytes) const {
+  /**
+   * Actual implementation of the encoding
+   * @param dest, where to put encoded chars
+   * @param bytes to be encoded
+   * @return how much chars are in the resulting string
+   */
+  size_t encodeImpl(std::string &out, const kagome::common::Buffer &bytes) {
     auto len = bytes.size();
     const auto tab = alphabet;
     size_t bytes_pos = 0, decoded_size = 0;
@@ -147,8 +152,12 @@ namespace libp2p::multi {
     return decoded_size;
   }
 
-  std::optional<std::vector<uint8_t>> Base64Codec::decodeImpl(
-      std::string_view src) const {
+  /**
+   * Actual implementation of the decoding
+   * @param src to be decoded
+   * @return bytes, if decoding went successful, none otherwise
+   */
+  std::optional<std::vector<uint8_t>> decodeImpl(std::string_view src) {
     std::vector<uint8_t> out(decodedSize(src.size()));
 
     std::vector<unsigned char> c3(3), c4(4);
@@ -187,4 +196,4 @@ namespace libp2p::multi {
     out.resize(bytes_pos);
     return out;
   }
-}  // namespace libp2p::multi
+}  // namespace libp2p::multi::detail
