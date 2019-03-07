@@ -8,16 +8,17 @@
 
 #include <ciso646>
 
-#include <boost/optional.hpp>
+#include <optional>
 #include <boost/variant.hpp>
 
 #include "common/visitor.hpp"
 
 /*
  * Result is a type which represents value or an error, and values and errors
- * are template parametrized. Working with value wrapped in result is done using
- * match() function, which accepts 2 functions: for value and error cases. No
- * accessor functions are provided.
+ * are template parametrized. Working with value wrapped in result is mostly done using
+ * match() function, which accepts 2 functions: for value and error cases. There are
+ * accessor methods which return an std::optional with either Value or Error, but
+ * their usage is recommended to be avoided in favour of match() function.
  */
 
 namespace kagome::expected {
@@ -101,6 +102,30 @@ namespace kagome::expected {
       return visit_in_place(*this,
                             std::forward<ValueMatch>(value_func),
                             std::forward<ErrorMatch>(error_func));
+    }
+
+    /**
+     * This method returns an optional object, containing a Value, if it was stored
+     * inside the Result, or a std::nullopt otherwise.
+     */
+    constexpr std::optional<V> tryGetValue() const {
+      return match([](const Value<V>& v) -> std::optional<V> {
+          return {v.value};
+        }, [](auto& _) -> std::optional<V> {
+            return std::nullopt;
+        });
+    }
+
+    /**
+     * This method returns an optional object, containing an Error, if it was stored
+     * inside the Result, or a std::nullopt otherwise.
+     */
+    constexpr std::optional<E> tryGetError() const {
+      return match([](const Error<E>& e) -> std::optional<E> {
+        return {e.error};
+      }, [](auto& _) -> std::optional<E> {
+        return std::nullopt;
+      });
     }
 
     /**
