@@ -22,7 +22,7 @@ namespace {
    * @return related encoding, if character stands for one of them, none
    * otherwise
    */
-  std::optional<Multibase::Encoding> encodingByChar(char ch) {
+  constexpr std::optional<Multibase::Encoding> encodingByChar(char ch) {
     switch (ch) {
       case 'f':
         return Multibase::Encoding::kBase16Lower;
@@ -37,18 +37,21 @@ namespace {
     }
   }
 
-  using EncodeFuncType = decltype(encodeBase64);
-  using DecodeFuncType = decltype(decodeBase64);
+  struct CodecFunctions {
+    using EncodeFuncType = decltype(encodeBase64);
+    using DecodeFuncType = decltype(decodeBase64);
 
+    EncodeFuncType *encode;
+    DecodeFuncType *decode;
+  };
   /// all available codec functions
-  const std::unordered_map<Multibase::Encoding,
-                           std::pair<EncodeFuncType *, DecodeFuncType *>>
-      codecs{{Multibase::Encoding::kBase16Upper,
-              {&encodeBase16Upper, &decodeBase16Upper}},
-             {Multibase::Encoding::kBase16Lower,
-              {&encodeBase16Lower, &decodeBase16Lower}},
-             {Multibase::Encoding::kBase58, {&encodeBase58, &decodeBase58}},
-             {Multibase::Encoding::kBase64, {&encodeBase64, &decodeBase64}}};
+  static const std::unordered_map<Multibase::Encoding, CodecFunctions> codecs{
+      {Multibase::Encoding::kBase16Upper,
+       {&encodeBase16Upper, &decodeBase16Upper}},
+      {Multibase::Encoding::kBase16Lower,
+       {&encodeBase16Lower, &decodeBase16Lower}},
+      {Multibase::Encoding::kBase58, {&encodeBase58, &decodeBase58}},
+      {Multibase::Encoding::kBase64, {&encodeBase64, &decodeBase64}}};
 }  // namespace
 
 namespace libp2p::multi {
@@ -63,7 +66,7 @@ namespace libp2p::multi {
       return "";
     }
 
-    return static_cast<char>(encoding) + codecs.at(encoding).first(bytes);
+    return static_cast<char>(encoding) + codecs.at(encoding).encode(bytes);
   }
 
   Result<Buffer, std::string> MultibaseImpl::decode(
@@ -77,21 +80,6 @@ namespace libp2p::multi {
       return Error{"base of encoding is either unsupported or does not exist"};
     }
 
-    std::optional<Buffer> decoded_data;
-    std::string error;
-    codecs.at(*encoding_base)
-        .second(string.substr(1))  // cut the prefix
-        .match(
-            [&decoded_data](const Value<Buffer> &bytes) mutable {
-              decoded_data = bytes.value;
-            },
-            [&error](const Error<std::string> &err) mutable {
-              error = err.error;
-            });
-
-    if (!decoded_data) {
-      return Error{std::move(error)};
-    }
-    return Value{std::move(*decoded_data)};
+    return codecs.at(*encoding_base).decode(string.substr(1));
   }
 }  // namespace libp2p::multi

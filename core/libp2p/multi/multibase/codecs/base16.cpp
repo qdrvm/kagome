@@ -39,11 +39,11 @@ namespace libp2p::multi::detail {
     // we need this check, because Boost can unhex any kind of base16 with one
     // func, but the base must be specified correctly
     if (!encodingCaseIsUpper(string)) {
-      return Error{"could not unhex string '" + std::string{string}
+      return Error{"cannot unhex string '" + std::string{string}
                    + "': input is not in the uppercase hex"};
     }
     return unhex(string) | [](auto &&v) -> Result<Buffer, std::string> {
-      return Value{Buffer{v}};
+      return Value{Buffer{std::forward<decltype(v)>(v)}};
     };
   }
 
@@ -51,11 +51,11 @@ namespace libp2p::multi::detail {
     // we need this check, because Boost can unhex any kind of base16 with one
     // func, but the base must be specified correctly
     if (encodingCaseIsUpper(string)) {
-      return Error{"could not unhex string '" + std::string{string}
+      return Error{"cannot unhex string '" + std::string{string}
                    + "': input is not in the lowercase hex"};
     }
     return unhex(string) | [](auto &&v) -> Result<Buffer, std::string> {
-      return Value{Buffer{v}};
+      return Value{Buffer{std::forward<decltype(v)>(v)}};
     };
   }
 
