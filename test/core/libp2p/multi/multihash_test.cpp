@@ -10,16 +10,15 @@
 #include "libp2p/multi/multihash.hpp"
 #include "libp2p/multi/uvarint.hpp"
 
-using kagome::common::hex;
 using kagome::common::Buffer;
+using kagome::common::hex_upper;
 using kagome::expected::Error;
 using kagome::expected::Result;
 using kagome::expected::Value;
 
-using libp2p::multi::Multihash;
 using libp2p::multi::HashType;
+using libp2p::multi::Multihash;
 using libp2p::multi::UVarint;
-
 
 /**
  *   @given a buffer with a hash
@@ -50,18 +49,20 @@ TEST(Multihash, Create) {
  *   @given a buffer with a hash or a hex string with a hash
  *   @when creating a multihash from them
  *   @then a correct multihash object is created if the given hash object was
- *         valid, and the hex representation of the created multihash matches the given
- *         hash string
+ *         valid, and the hex representation of the created multihash matches
+ *the given hash string
  **/
 TEST(Multihash, FromToHex) {
-  Buffer hash {2, 3, 4};
+  Buffer hash{2, 3, 4};
 
   Multihash::create(HashType::kBlake2s128, hash)
       .match(
           [&hash](Value<Multihash> m) {
             UVarint var(HashType::kBlake2s128);
-            auto hex_s = hex(var.toBytes().data(), var.toBytes().size())+"03"+hex(hash.toVector());
-            ASSERT_EQ(m.value.toHex(), hex_s); },
+            auto hex_s = hex_upper(var.toBytes().data(), var.toBytes().size())
+                + "03" + hex_upper(hash.toVector());
+            ASSERT_EQ(m.value.toHex(), hex_s);
+          },
           [](auto e) { FAIL() << e.error; });
   Multihash::createFromHex("1203020304")
       .match(
@@ -78,26 +79,23 @@ TEST(Multihash, FromToHex) {
           },
           [](auto e) { SUCCEED(); });
   Multihash::createFromHex("3204abcdefgh")
-      .match(
-          [](Value<Multihash> m) { FAIL() << "The hex string is invalid"; },
-          [](auto e) { SUCCEED(); });
+      .match([](Value<Multihash> m) { FAIL() << "The hex string is invalid"; },
+             [](auto e) { SUCCEED(); });
 }
 
 /**
  *   @given a multihash or a buffer
  *   @when converting a multihash to a buffer or creating one from a buffer
  *   @then a correct multihash object is created if the hash size is not greater
- *         than maximum length or correct buffer object representing the multihash is returned
+ *         than maximum length or correct buffer object representing the
+ *multihash is returned
  **/
 TEST(Multihash, FromToBuffer) {
-  Buffer hash {0x82, 3, 2, 3, 4};
+  Buffer hash{0x82, 3, 2, 3, 4};
 
-  Multihash::createFromBuffer(hash)
-      .match(
-          [&hash](Value<Multihash> m) {
-            ASSERT_EQ(m.value.toBuffer(), hash);
-            },
-          [](auto e) { FAIL() << e.error; });
+  Multihash::createFromBuffer(hash).match(
+      [&hash](Value<Multihash> m) { ASSERT_EQ(m.value.toBuffer(), hash); },
+      [](auto e) { FAIL() << e.error; });
 
   Multihash::createFromBuffer({2, 3, 1, 3})
       .match(
@@ -105,5 +103,4 @@ TEST(Multihash, FromToBuffer) {
             FAIL() << "Length in the header does not equal actual length";
           },
           [](auto e) { SUCCEED(); });
-
 }

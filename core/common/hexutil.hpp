@@ -14,15 +14,22 @@
 namespace kagome::common {
 
   /**
-   * @brief Converts bytes to hex representation
+   * @brief Converts bytes to uppercase hex representation
    * @param array bytes
    * @param len length of bytes
    * @return hexstring
-   *
-   * @note produces uppercase hexstrings
    */
-  std::string hex(const uint8_t *array, size_t len) noexcept;
-  std::string hex(const std::vector<uint8_t> &bytes) noexcept;
+  std::string hex_upper(const uint8_t *array, size_t len) noexcept;
+  std::string hex_upper(const std::vector<uint8_t> &bytes) noexcept;
+
+  /**
+ * @brief Converts bytes to hex representation
+ * @param array bytes
+ * @param len length of bytes
+ * @return hexstring
+ */
+  std::string hex_lower(const uint8_t *array, size_t len) noexcept;
+  std::string hex_lower(const std::vector<uint8_t> &bytes) noexcept;
 
   /**
    * @brief Converts hex representation to bytes

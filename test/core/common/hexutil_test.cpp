@@ -16,7 +16,7 @@ using namespace std::string_literals;
  */
 TEST(Common, Hexutil_Hex) {
   std::vector<uint8_t> bin{0, 1, 2, 4, 8, 16, 32, 255};
-  auto hexed = hex(bin.data(), bin.size());
+  auto hexed = hex_upper(bin.data(), bin.size());
   ASSERT_EQ(hexed, "00010204081020FF"s);
 }
 

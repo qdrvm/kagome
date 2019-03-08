@@ -6,16 +6,17 @@
 #include <gtest/gtest.h>
 #include <gsl/span>
 
-#include "libp2p/multi/uvarint.hpp"
 #include "common/hexutil.hpp"
+#include "libp2p/multi/uvarint.hpp"
 
+using kagome::common::hex_upper;
 using libp2p::multi::UVarint;
-using kagome::common::hex;
 
 /**
  * @given an unsigned integer
  * @when creating a varint from the integer
- * @then a valid varint is created, which yields the original integer when decoded
+ * @then a valid varint is created, which yields the original integer when
+ * decoded
  */
 TEST(UVarint, CreateFromInt) {
   UVarint v(2);
@@ -29,21 +30,22 @@ TEST(UVarint, CreateFromInt) {
 /**
  * @given an unsigned integer
  * @when creating a varint from the integer
- * @then a valid varint is created, which binary representation corresponds to the varint standard
+ * @then a valid varint is created, which binary representation corresponds to
+ * the varint standard
  */
 TEST(UVarint, CorrectEncoding) {
   UVarint var(1);
-  ASSERT_EQ(hex(var.toBytes().data(), var.toBytes().size()), "01");
+  ASSERT_EQ(hex_upper(var.toBytes().data(), var.toBytes().size()), "01");
   var = 127;
-  ASSERT_EQ(hex(var.toBytes().data(), var.toBytes().size()), "7F");
+  ASSERT_EQ(hex_upper(var.toBytes().data(), var.toBytes().size()), "7F");
   var = 128;
-  ASSERT_EQ(hex(var.toBytes().data(), var.toBytes().size()), "8001");
+  ASSERT_EQ(hex_upper(var.toBytes().data(), var.toBytes().size()), "8001");
   var = 255;
-  ASSERT_EQ(hex(var.toBytes().data(), var.toBytes().size()), "FF01");
+  ASSERT_EQ(hex_upper(var.toBytes().data(), var.toBytes().size()), "FF01");
   var = 300;
-  ASSERT_EQ(hex(var.toBytes().data(), var.toBytes().size()), "AC02");
+  ASSERT_EQ(hex_upper(var.toBytes().data(), var.toBytes().size()), "AC02");
   var = 16384;
-  ASSERT_EQ(hex(var.toBytes().data(), var.toBytes().size()), "808001");
+  ASSERT_EQ(hex_upper(var.toBytes().data(), var.toBytes().size()), "808001");
 }
 
 /**

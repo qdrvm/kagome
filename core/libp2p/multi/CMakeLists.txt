@@ -7,6 +7,8 @@ add_subdirectory(c-utils)
 
 add_subdirectory(multiaddress)
 
+add_subdirectory(multibase_codec)
+
 add_library(uvarint
     uvarint.cpp
     uvarint.hpp

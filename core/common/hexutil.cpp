@@ -9,15 +9,24 @@
 #include <boost/format.hpp>
 
 namespace kagome::common {
-
-  std::string hex(const uint8_t *array, size_t len) noexcept {
+  std::string hex_upper(const uint8_t *array, size_t len) noexcept {
     std::string res(len * 2, '\x00');
     boost::algorithm::hex(array, array + len, res.begin());  // NOLINT
     return res;
   }
 
-  std::string hex(const std::vector<uint8_t> &bytes) noexcept {
-    return hex(bytes.data(), bytes.size());
+  std::string hex_upper(const std::vector<uint8_t> &bytes) noexcept {
+    return hex_upper(bytes.data(), bytes.size());
+  }
+
+  std::string hex_lower(const uint8_t *array, size_t len) noexcept {
+    std::string res(len * 2, '\x00');
+    boost::algorithm::hex_lower(array, array + len, res.begin());  // NOLINT
+    return res;
+  }
+
+  std::string hex_lower(const std::vector<uint8_t> &bytes) noexcept {
+    return hex_lower(bytes.data(), bytes.size());
   }
 
   expected::Result<std::vector<uint8_t>, std::string> unhex(
