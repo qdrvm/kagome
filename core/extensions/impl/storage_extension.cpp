@@ -7,7 +7,7 @@
 
 #include "extensions/impl/storage_extension.hpp"
 
-namespace extensions {
+namespace kagome::extensions {
   uint8_t *StorageExtension::ext_child_storage_root(
       const uint8_t *storage_key_data, uint32_t storage_key_length,
       uint32_t *written) {

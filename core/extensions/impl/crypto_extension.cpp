@@ -7,7 +7,7 @@
 
 #include "extensions/impl/crypto_extension.hpp"
 
-namespace extensions {
+namespace kagome::extensions {
   void CryptoExtension::ext_blake2_256(const uint8_t *data, uint32_t len,
                                        uint8_t *out) {
     std::terminate();

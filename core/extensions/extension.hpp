@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <functional>
 
-namespace extensions {
+namespace kagome::extensions {
   /**
    * Extensions for WASM; API, which is called by the runtime to control RE
    */
@@ -121,7 +121,7 @@ namespace extensions {
     virtual void ext_sandbox_instance_teardown(uint32_t instance_idx) = 0;
 
     virtual uint32_t ext_sandbox_instantiate(
-        SandoxDispatchFuncType dispatch_func, const uint8_t *wasm_ptr,
+        const SandoxDispatchFuncType &dispatch_func, const uint8_t *wasm_ptr,
         size_t wasm_length, const uint8_t *imports_ptr, size_t imports_length,
         size_t state) = 0;
 

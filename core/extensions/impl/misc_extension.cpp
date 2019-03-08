@@ -7,7 +7,7 @@
 
 #include "extensions/impl/misc_extension.hpp"
 
-namespace extensions {
+namespace kagome::extensions {
   uint64_t MiscExtension::ext_chain_id() {
     std::terminate();
   }

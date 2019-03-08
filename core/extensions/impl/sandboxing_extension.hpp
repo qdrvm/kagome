@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <functional>
 
-namespace extensions {
+namespace kagome::extensions {
   /**
    * Implements extension functions related to sandboxing
    */
@@ -22,11 +22,10 @@ namespace extensions {
    public:
     void ext_sandbox_instance_teardown(uint32_t instance_idx);
 
-    uint32_t ext_sandbox_instantiate(SandoxDispatchFuncType dispatch_func,
-                                     const uint8_t *wasm_ptr,
-                                     size_t wasm_length,
-                                     const uint8_t *imports_ptr,
-                                     size_t imports_length, size_t state);
+    uint32_t ext_sandbox_instantiate(
+        const SandoxDispatchFuncType &dispatch_func, const uint8_t *wasm_ptr,
+        size_t wasm_length, const uint8_t *imports_ptr, size_t imports_length,
+        size_t state);
 
     uint32_t ext_sandbox_invoke(uint32_t instance_idx,
                                 const uint8_t *export_ptr, size_t export_len,

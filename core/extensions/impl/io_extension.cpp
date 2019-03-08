@@ -7,7 +7,7 @@
 
 #include "extensions/impl/io_extension.hpp"
 
-namespace extensions {
+namespace kagome::extensions {
   void IOExtension::ext_print_hex(const uint8_t *data, uint32_t length) {
     std::terminate();
   }

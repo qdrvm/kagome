@@ -14,7 +14,7 @@
 #include "extensions/impl/sandboxing_extension.hpp"
 #include "extensions/impl/storage_extension.hpp"
 
-namespace extensions {
+namespace kagome::extensions {
   /**
    * Fair implementation of the extensions interface
    */
@@ -116,12 +116,10 @@ namespace extensions {
     /// sandboxing extensions
     void ext_sandbox_instance_teardown(uint32_t instance_idx) override;
 
-    uint32_t ext_sandbox_instantiate(SandoxDispatchFuncType dispatch_func,
-                                     const uint8_t *wasm_ptr,
-                                     size_t wasm_length,
-                                     const uint8_t *imports_ptr,
-                                     size_t imports_length,
-                                     size_t state) override;
+    uint32_t ext_sandbox_instantiate(
+        const SandoxDispatchFuncType &dispatch_func, const uint8_t *wasm_ptr,
+        size_t wasm_length, const uint8_t *imports_ptr, size_t imports_length,
+        size_t state) override;
 
     uint32_t ext_sandbox_invoke(uint32_t instance_idx,
                                 const uint8_t *export_ptr, size_t export_len,

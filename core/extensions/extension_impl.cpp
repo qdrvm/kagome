@@ -5,7 +5,7 @@
 
 #include "extensions/extension_impl.hpp"
 
-namespace extensions {
+namespace kagome::extensions {
   /// storage extensions
   uint8_t *ExtensionImpl::ext_child_storage_root(
       const uint8_t *storage_key_data, uint32_t storage_key_length,
@@ -171,7 +171,7 @@ namespace extensions {
   }
 
   uint32_t ExtensionImpl::ext_sandbox_instantiate(
-      SandoxDispatchFuncType dispatch_func, const uint8_t *wasm_ptr,
+      const SandoxDispatchFuncType &dispatch_func, const uint8_t *wasm_ptr,
       size_t wasm_length, const uint8_t *imports_ptr, size_t imports_length,
       size_t state) {
     return sandboxing_ext_.ext_sandbox_instantiate(dispatch_func, wasm_ptr,

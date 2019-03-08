@@ -8,7 +8,7 @@
 
 #include <cstdint>
 
-namespace extensions {
+namespace kagome::extensions {
   /**
    * Implements extension functions related to memory
    */

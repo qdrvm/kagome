@@ -7,14 +7,14 @@
 
 #include "extensions/impl/sandboxing_extension.hpp"
 
-namespace extensions {
+namespace kagome::extensions {
   void SandboxingExtension::ext_sandbox_instance_teardown(
       uint32_t instance_idx) {
     std::terminate();
   }
 
   uint32_t SandboxingExtension::ext_sandbox_instantiate(
-      SandoxDispatchFuncType dispatch_func, const uint8_t *wasm_ptr,
+      const SandoxDispatchFuncType &dispatch_func, const uint8_t *wasm_ptr,
       size_t wasm_length, const uint8_t *imports_ptr, size_t imports_length,
       size_t state) {
     std::terminate();
