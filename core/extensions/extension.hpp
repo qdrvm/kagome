@@ -6,6 +6,7 @@
 #ifndef KAGOME_EXTENSION_HPP
 #define KAGOME_EXTENSION_HPP
 
+#include <cstdint>
 #include <functional>
 
 namespace extensions {
@@ -57,11 +58,11 @@ namespace extensions {
                                        uint32_t storage_key_length,
                                        const uint8_t *key_data,
                                        uint32_t key_length,
-                                       uint8_t *value_data,
+                                       const uint8_t *value_data,
                                        uint32_t value_length) = 0;
     virtual void ext_set_storage(const uint8_t *key_data,
                                  uint32_t key_length,
-                                 uint8_t *value_data,
+                                 const uint8_t *value_data,
                                  uint32_t value_length) = 0;
     virtual uint32_t ext_storage_changes_root(const uint8_t *parent_hash_data,
                                               uint32_t parent_hash_len,
@@ -104,32 +105,32 @@ namespace extensions {
     virtual void ext_sandbox_instance_teardown(uint32_t instance_idx) = 0;
     virtual uint32_t ext_sandbox_instantiate(
         std::function<uint64_t(const uint8_t *serialized_args,
-                               uint32_t serialized_args_length,
-                               uint32_t state,
-                               uint32_t func_index)> dispatch_func,
+                               size_t serialized_args_length,
+                               size_t state,
+                               size_t func_index)> dispatch_func,
         const uint8_t *wasm_ptr,
-        uint32_t wasm_length,
+        size_t wasm_length,
         const uint8_t *imports_ptr,
-        uint32_t imports_length,
-        uint32_t state) = 0;
+        size_t imports_length,
+        size_t state) = 0;
     virtual uint32_t ext_sandbox_invoke(uint32_t instance_idx,
                                         const uint8_t *export_ptr,
-                                        uint32_t export_len,
+                                        size_t export_len,
                                         const uint8_t *args_ptr,
-                                        uint32_t args_len,
+                                        size_t args_len,
                                         uint8_t *return_val_ptr,
-                                        uint32_t return_val_len,
-                                        uint32_t state) = 0;
+                                        size_t return_val_len,
+                                        size_t state) = 0;
     virtual uint32_t ext_sandbox_memory_get(uint32_t memory_idx,
                                             uint32_t offset,
                                             uint8_t *buf_ptr,
-                                            uint32_t buf_length) = 0;
+                                            size_t buf_length) = 0;
     virtual uint32_t ext_sandbox_memory_new(uint32_t initial,
                                             uint32_t maximum) = 0;
     virtual uint32_t ext_sandbox_memory_set(uint32_t memory_idx,
                                             uint32_t offset,
                                             const uint8_t *val_ptr,
-                                            uint32_t val_len) = 0;
+                                            size_t val_len) = 0;
     virtual void ext_sandbox_memory_teardown(uint32_t memory_idx) = 0;
 
     /// misc extensions

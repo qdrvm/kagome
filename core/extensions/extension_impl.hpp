@@ -62,11 +62,11 @@ namespace extensions {
                                uint32_t storage_key_length,
                                const uint8_t *key_data,
                                uint32_t key_length,
-                               uint8_t *value_data,
+                               const uint8_t *value_data,
                                uint32_t value_length) override;
     void ext_set_storage(const uint8_t *key_data,
                          uint32_t key_length,
-                         uint8_t *value_data,
+                         const uint8_t *value_data,
                          uint32_t value_length) override;
     uint32_t ext_storage_changes_root(const uint8_t *parent_hash_data,
                                       uint32_t parent_hash_len,

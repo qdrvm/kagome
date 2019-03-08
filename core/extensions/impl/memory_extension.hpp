@@ -12,12 +12,8 @@ namespace extensions {
    */
   class MemoryExtension {
    public:
-    uint8_t *ext_malloc(uint32_t size) {
-      std::terminate();
-    }
-    void ext_free(uint8_t *ptr) {
-      std::terminate();
-    }
+    uint8_t *ext_malloc(uint32_t size);
+    void ext_free(uint8_t *ptr);
   };
 }  // namespace extensions
 

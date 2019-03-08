@@ -14,9 +14,7 @@ namespace extensions {
    */
   class SandboxingExtension {
    public:
-    void ext_sandbox_instance_teardown(uint32_t instance_idx) {
-      std::terminate();
-    }
+    void ext_sandbox_instance_teardown(uint32_t instance_idx);
     uint32_t ext_sandbox_instantiate(
         std::function<uint64_t(const uint8_t *serialized_args,
                                uint32_t serialized_args_length,
@@ -26,9 +24,7 @@ namespace extensions {
         uint32_t wasm_length,
         const uint8_t *imports_ptr,
         uint32_t imports_length,
-        uint32_t state) {
-      std::terminate();
-    }
+        uint32_t state);
     uint32_t ext_sandbox_invoke(uint32_t instance_idx,
                                 const uint8_t *export_ptr,
                                 uint32_t export_len,
@@ -36,27 +32,17 @@ namespace extensions {
                                 uint32_t args_len,
                                 uint8_t *return_val_ptr,
                                 uint32_t return_val_len,
-                                uint32_t state) {
-      std::terminate();
-    }
+                                uint32_t state);
     uint32_t ext_sandbox_memory_get(uint32_t memory_idx,
                                     uint32_t offset,
                                     uint8_t *buf_ptr,
-                                    uint32_t buf_length) {
-      std::terminate();
-    }
-    uint32_t ext_sandbox_memory_new(uint32_t initial, uint32_t maximum) {
-      std::terminate();
-    }
+                                    uint32_t buf_length);
+    uint32_t ext_sandbox_memory_new(uint32_t initial, uint32_t maximum);
     uint32_t ext_sandbox_memory_set(uint32_t memory_idx,
                                     uint32_t offset,
                                     const uint8_t *val_ptr,
-                                    uint32_t val_len) {
-      std::terminate();
-    }
-    void ext_sandbox_memory_teardown(uint32_t memory_idx) {
-      std::terminate();
-    }
+                                    uint32_t val_len);
+    void ext_sandbox_memory_teardown(uint32_t memory_idx);
   };
 }  // namespace extensions
 

@@ -12,9 +12,7 @@ namespace extensions {
    */
   class MiscExtension {
    public:
-    uint64_t ext_chain_id() {
-      std::terminate();
-    }
+    uint64_t ext_chain_id();
   };
 }  // namespace extensions
 

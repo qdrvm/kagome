@@ -84,7 +84,7 @@ namespace extensions {
                                             uint32_t storage_key_length,
                                             const uint8_t *key_data,
                                             uint32_t key_length,
-                                            uint8_t *value_data,
+                                            const uint8_t *value_data,
                                             uint32_t value_length) {
     storage_ext_.ext_set_child_storage(storage_key_data,
                                        storage_key_length,
@@ -95,7 +95,7 @@ namespace extensions {
   }
   void ExtensionImpl::ext_set_storage(const uint8_t *key_data,
                                       uint32_t key_length,
-                                      uint8_t *value_data,
+                                      const uint8_t *value_data,
                                       uint32_t value_length) {
     storage_ext_.ext_set_storage(
         key_data, key_length, value_data, value_length);
