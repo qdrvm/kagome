@@ -10,10 +10,12 @@
 #include <stdexcept>
 
 extern "C" {
-#include "libp2p/multi/multiaddress/c-utils/protoutils.h"
+#include "libp2p/multi/c-utils/protoutils.h"
 }
 
-using namespace kagome::expected;
+using kagome::expected::Result;
+using kagome::expected::Value;
+using kagome::expected::Error;
 
 namespace {
   // string representations of protocols

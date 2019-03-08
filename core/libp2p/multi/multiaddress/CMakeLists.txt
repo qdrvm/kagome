@@ -5,12 +5,8 @@
 
 add_library(multiaddress
     multiaddress.cpp
-    c-utils/base58.c
-    c-utils/protocols.c
-    c-utils/protoutils.c
-    c-utils/varhexutils.c
-    c-utils/varint.c
     )
 target_link_libraries(multiaddress
-    buffer
+    Boost::boost
+    c_utils
     )

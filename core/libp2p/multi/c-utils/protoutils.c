@@ -1,12 +1,14 @@
-#include "libp2p/multi/multiaddress/c-utils/protoutils.h"
+#include "libp2p/multi/c-utils/protoutils.h"
+
 #include <ctype.h>
 #include <inttypes.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
-#include "libp2p/multi/multiaddress/c-utils/base58.h"
-#include "libp2p/multi/multiaddress/c-utils/varhexutils.h"
+
+#include "libp2p/multi/c-utils/base58.h"
+#include "libp2p/multi/c-utils/varhexutils.h"
 
 extern char *strtok_r(char *, const char *, char **);
 
