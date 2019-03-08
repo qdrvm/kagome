@@ -1,4 +1,4 @@
-#include "libp2p/multi/multiaddress/c-utils/varint.h"
+#include "libp2p/multi/c-utils/varint.h"
 
 DEFN_ENCODER(32)
 DEFN_DECODER(32)

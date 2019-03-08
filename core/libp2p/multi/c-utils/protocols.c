@@ -5,8 +5,8 @@
 #include <string.h>
 #include <strings.h>
 
-#include "libp2p/multi/multiaddress/c-utils/protocols.h"
-#include "libp2p/multi/multiaddress/c-utils/varhexutils.h"
+#include "libp2p/multi/c-utils/protocols.h"
+#include "libp2p/multi/c-utils/varhexutils.h"
 
 void unload_protocols(struct ProtocolListItem *head) {
   struct ProtocolListItem *current = head;

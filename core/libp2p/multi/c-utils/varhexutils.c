@@ -1,15 +1,17 @@
 #ifndef VARHEXUTILS
 #define VARHEXUTILS
 
-#include "libp2p/multi/multiaddress/c-utils/varhexutils.h"
+#include "libp2p/multi/c-utils/varhexutils.h"
+
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include "libp2p/multi/multiaddress/c-utils/varint.h"
 
-int8_t Var_Bytes_Count(uint8_t *countbytesofthis) {
+#include "libp2p/multi/c-utils/varint.h"
+
+int8_t Var_Bytes_Count(const uint8_t *countbytesofthis) {
   static int8_t xrzk_bytescnt = 0;
   for (int8_t i = 0; i < 10; i++) {
     if (countbytesofthis[i] != 0) {

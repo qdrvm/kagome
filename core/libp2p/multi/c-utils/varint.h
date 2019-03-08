@@ -1,5 +1,6 @@
 #ifndef VARINT
 #define VARINT
+
 #include <stddef.h> /* size_t */
 #include <stdint.h> /* uint8_t, uint64_t */
 
@@ -10,15 +11,17 @@
     for (; i < (SIZE / 8) && i < bufsize; i++) {           \
       buf[i] = (uint8_t)((val & 0xFF) | 0x80);             \
       val >>= 7;                                           \
-      if (!val)                                            \
+      if (!val) {                                          \
+        buf[i] &= 0x7F;                                    \
         return i + 1;                                      \
+      }                                                    \
     }                                                      \
     return -1;                                             \
   }
 
 #define DEFN_DECODER(SIZE)                                  \
   size_t uvarint_decode##SIZE(                              \
-      uint8_t buf[], size_t bufsize, uint##SIZE##_t *val) { \
+      const uint8_t buf[], size_t bufsize, uint##SIZE##_t *val) { \
     *val = 0;                                               \
     size_t i = 0;                                           \
     for (; i < (SIZE / 8) && i < bufsize; i++) {            \
@@ -35,7 +38,7 @@
 
 #define DECL_DECODER(SIZE)     \
   size_t uvarint_decode##SIZE( \
-      uint8_t buf[], size_t bufsize, uint##SIZE##_t *val);
+      const uint8_t buf[], size_t bufsize, uint##SIZE##_t *val);
 
 DECL_ENCODER(32)
 DECL_DECODER(32)

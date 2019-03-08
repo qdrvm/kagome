@@ -6,7 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "libp2p/multi/multiaddress/c-utils/varhexutils.h"
+
+#include "libp2p/multi/c-utils/varhexutils.h"
 
 struct Protocol {
   // char hexcode[21];

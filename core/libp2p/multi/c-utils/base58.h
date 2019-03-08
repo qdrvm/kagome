@@ -1,6 +1,8 @@
 #ifndef base58_h
 #define base58_h
-#include "libp2p/multi/multiaddress/c-utils/varint.h"
+
+#include "libp2p/multi/c-utils/varint.h"
+
 /**
  * convert a base58 encoded string into a binary array
  * @param base58 the base58 encoded string

@@ -4,8 +4,8 @@ BreakBeforeBinaryOperators: NonAssignment
 AlignOperands: false
 DerivePointerAlignment: false
 PointerAlignment: Right
-BinPackArguments: false
-BinPackParameters: false
+BinPackArguments: true
+BinPackParameters: true
 DerivePointerAlignment: false
 PointerAlignment: Right
 AllowShortFunctionsOnASingleLine: Empty
