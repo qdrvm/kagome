@@ -4,16 +4,17 @@
  */
 
 #include <gtest/gtest.h>
-#include "libp2p/multi/multibase/multibase_impl.hpp"
+#include "libp2p/multi/multibase/multibase_codec_impl.hpp"
 #include "utils/result_fixture.hpp"
 
 using namespace libp2p::multi;
 using namespace kagome::expected::testing;
 using namespace kagome::common;
 
-class MultibaseTest : public ::testing::Test {
+class MultibaseCodecTest : public ::testing::Test {
  public:
-  std::unique_ptr<Multibase> multibase = std::make_unique<MultibaseImpl>();
+  std::unique_ptr<MultibaseCodec> multibase =
+      std::make_unique<MultibaseCodecImpl>();
 
   /**
    * Decode the string
@@ -29,9 +30,9 @@ class MultibaseTest : public ::testing::Test {
   }
 };
 
-TEST_F(MultibaseTest, EncodeEmptyBytes) {
+TEST_F(MultibaseCodecTest, EncodeEmptyBytes) {
   auto encoded_str =
-      multibase->encode(Buffer{}, Multibase::Encoding::kBase16Lower);
+      multibase->encode(Buffer{}, MultibaseCodec::Encoding::kBase16Lower);
   ASSERT_TRUE(encoded_str.empty());
 }
 
@@ -41,7 +42,7 @@ TEST_F(MultibaseTest, EncodeEmptyBytes) {
  * @when trying to decode that string
  * @then decoding fails
  */
-TEST_F(MultibaseTest, DecodeIncorrectPrefix) {
+TEST_F(MultibaseCodecTest, DecodeIncorrectPrefix) {
   auto multibase_err = err(multibase->decode("J00AA"));
   ASSERT_TRUE(multibase_err);
 }
@@ -51,14 +52,14 @@ TEST_F(MultibaseTest, DecodeIncorrectPrefix) {
  * @when trying to decode that string
  * @then Multibase object creation fails
  */
-TEST_F(MultibaseTest, DecodeFewCharacters) {
+TEST_F(MultibaseCodecTest, DecodeFewCharacters) {
   auto multibase_err = err(multibase->decode("A"));
   ASSERT_TRUE(multibase_err);
 }
 
-class Base16EncodingUpper : public MultibaseTest {
+class Base16EncodingUpper : public MultibaseCodecTest {
  public:
-  Multibase::Encoding encoding = Multibase::Encoding::kBase16Upper;
+  MultibaseCodec::Encoding encoding = MultibaseCodec::Encoding::kBase16Upper;
 
   std::string_view encoded_correct{"F00010204081020FF"};
   Buffer decoded_correct{0, 1, 2, 4, 8, 16, 32, 255};
@@ -107,9 +108,9 @@ TEST_F(Base16EncodingUpper, IncorrectBody) {
   ASSERT_TRUE(error);
 }
 
-class Base16EncodingLower : public MultibaseTest {
+class Base16EncodingLower : public MultibaseCodecTest {
  public:
-  Multibase::Encoding encoding = Multibase::Encoding::kBase16Lower;
+  MultibaseCodec::Encoding encoding = MultibaseCodec::Encoding::kBase16Lower;
 
   std::string_view encoded_correct{"f00010204081020ff"};
   Buffer decoded_correct{0, 1, 2, 4, 8, 16, 32, 255};
@@ -158,9 +159,9 @@ TEST_F(Base16EncodingLower, IncorrectBody) {
   ASSERT_TRUE(error);
 }
 
-class Base58Encoding : public MultibaseTest {
+class Base58Encoding : public MultibaseCodecTest {
  public:
-  Multibase::Encoding encoding = Multibase::Encoding::kBase58;
+  MultibaseCodec::Encoding encoding = MultibaseCodec::Encoding::kBase58;
 
   const std::vector<std::pair<Buffer, std::string_view>> decode_encode_table{
       {Buffer{0x61}, "Z2g"},
@@ -275,9 +276,9 @@ TEST_F(Base58Encoding, SkipsWhitespacesFailure) {
   ASSERT_TRUE(error);
 }
 
-class Base64Encoding : public MultibaseTest {
+class Base64Encoding : public MultibaseCodecTest {
  public:
-  Multibase::Encoding encoding = Multibase::Encoding::kBase64;
+  MultibaseCodec::Encoding encoding = MultibaseCodec::Encoding::kBase64;
 
   const std::vector<std::pair<Buffer, std::string_view>> decode_encode_table{
       {Buffer{0x66}, "mZg=="},

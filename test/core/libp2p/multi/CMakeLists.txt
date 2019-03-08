@@ -11,9 +11,9 @@ target_link_libraries(multiaddress_test
     buffer
     )
 
-addtest(multibase_test
-    multibase_test.cpp
+addtest(multibase_codec_test
+    multibase_codec_test.cpp
     )
-target_link_libraries(multibase_test
+target_link_libraries(multibase_codec_test
     multibase
     )

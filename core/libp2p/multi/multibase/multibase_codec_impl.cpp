@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/multi/multibase/multibase_impl.hpp"
+#include "libp2p/multi/multibase/multibase_codec_impl.hpp"
 
 #include <optional>
 #include <unordered_map>
@@ -22,16 +22,16 @@ namespace {
    * @return related encoding, if character stands for one of them, none
    * otherwise
    */
-  constexpr std::optional<Multibase::Encoding> encodingByChar(char ch) {
+  constexpr std::optional<MultibaseCodec::Encoding> encodingByChar(char ch) {
     switch (ch) {
       case 'f':
-        return Multibase::Encoding::kBase16Lower;
+        return MultibaseCodec::Encoding::kBase16Lower;
       case 'F':
-        return Multibase::Encoding::kBase16Upper;
+        return MultibaseCodec::Encoding::kBase16Upper;
       case 'Z':
-        return Multibase::Encoding::kBase58;
+        return MultibaseCodec::Encoding::kBase58;
       case 'm':
-        return Multibase::Encoding::kBase64;
+        return MultibaseCodec::Encoding::kBase64;
       default:
         return {};
     }
@@ -45,23 +45,24 @@ namespace {
     DecodeFuncType *decode;
   };
   /// all available codec functions
-  static const std::unordered_map<Multibase::Encoding, CodecFunctions> codecs{
-      {Multibase::Encoding::kBase16Upper,
-       {&encodeBase16Upper, &decodeBase16Upper}},
-      {Multibase::Encoding::kBase16Lower,
-       {&encodeBase16Lower, &decodeBase16Lower}},
-      {Multibase::Encoding::kBase58, {&encodeBase58, &decodeBase58}},
-      {Multibase::Encoding::kBase64, {&encodeBase64, &decodeBase64}}};
+  static const std::unordered_map<MultibaseCodec::Encoding, CodecFunctions>
+      codecs{
+          {MultibaseCodec::Encoding::kBase16Upper,
+           {&encodeBase16Upper, &decodeBase16Upper}},
+          {MultibaseCodec::Encoding::kBase16Lower,
+           {&encodeBase16Lower, &decodeBase16Lower}},
+          {MultibaseCodec::Encoding::kBase58, {&encodeBase58, &decodeBase58}},
+          {MultibaseCodec::Encoding::kBase64, {&encodeBase64, &decodeBase64}}};
 }  // namespace
 
 namespace libp2p::multi {
   using namespace kagome::expected;
   using namespace kagome::common;
 
-  MultibaseImpl::~MultibaseImpl() = default;
+  MultibaseCodecImpl::~MultibaseCodecImpl() = default;
 
-  std::string MultibaseImpl::encode(const Buffer &bytes,
-                                    Encoding encoding) const {
+  std::string MultibaseCodecImpl::encode(const Buffer &bytes,
+                                         Encoding encoding) const {
     if (bytes.size() == 0) {
       return "";
     }
@@ -69,7 +70,7 @@ namespace libp2p::multi {
     return static_cast<char>(encoding) + codecs.at(encoding).encode(bytes);
   }
 
-  Result<Buffer, std::string> MultibaseImpl::decode(
+  Result<Buffer, std::string> MultibaseCodecImpl::decode(
       std::string_view string) const {
     if (string.length() < 2) {
       return Error{"encoded data must be at least 2 characters long"};

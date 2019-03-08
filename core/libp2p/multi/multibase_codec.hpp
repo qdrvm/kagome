@@ -18,7 +18,7 @@ namespace libp2p::multi {
    * Allows to distinguish between different base-encoded binaries
    * See more: https://github.com/multiformats/multibase
    */
-  class Multibase {
+  class MultibaseCodec {
     using ByteBuffer = kagome::common::Buffer;
     using FactoryResult = kagome::expected::Result<ByteBuffer, std::string>;
 
@@ -49,10 +49,10 @@ namespace libp2p::multi {
      */
     virtual FactoryResult decode(std::string_view string) const = 0;
 
-    virtual ~Multibase() = 0;
+    virtual ~MultibaseCodec() = 0;
   };
 
-  inline Multibase::~Multibase() = default;
+  inline MultibaseCodec::~MultibaseCodec() = default;
 }  // namespace libp2p::multi
 
 #endif  // KAGOME_MULTIBASE_HPP

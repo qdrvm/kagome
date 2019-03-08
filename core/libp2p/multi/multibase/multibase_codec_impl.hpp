@@ -6,15 +6,15 @@
 #ifndef KAGOME_MULTIBASE_IMPL_HPP
 #define KAGOME_MULTIBASE_IMPL_HPP
 
-#include "libp2p/multi/multibase.hpp"
+#include "libp2p/multi/multibase_codec.hpp"
 
 namespace libp2p::multi {
   /**
-   * Implementation of the Multibase with fair codecs
+   * Implementation of the MultibaseCodec with fair codecs
    */
-  class MultibaseImpl : public Multibase {
+  class MultibaseCodecImpl : public MultibaseCodec {
    public:
-    ~MultibaseImpl() override;
+    ~MultibaseCodecImpl() override;
 
     std::string encode(const kagome::common::Buffer &bytes,
                        Encoding encoding) const override;
