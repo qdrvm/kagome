@@ -3,13 +3,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(multibase
+add_library(multibase_codec
     multibase_codec_impl.cpp
     codecs/base16.cpp
     codecs/base58.cpp
     codecs/base64.cpp
     )
-target_link_libraries(multibase
+target_link_libraries(multibase_codec
     buffer
     hexutil
     )

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/multi/multibase/codecs/base58.hpp"
+#include "libp2p/multi/multibase_codec/codecs/base58.hpp"
 
 namespace {
   // All alphanumeric characters except for "0", "I", "O", and "l"

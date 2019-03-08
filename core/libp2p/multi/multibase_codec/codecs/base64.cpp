@@ -31,7 +31,7 @@
    Rene Nyffenegger rene.nyffenegger@adp-gmbh.ch
 */
 
-#include "libp2p/multi/multibase/codecs/base64.hpp"
+#include "libp2p/multi/multibase_codec/codecs/base64.hpp"
 
 #include <regex>
 

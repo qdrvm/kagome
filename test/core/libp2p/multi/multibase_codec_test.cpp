@@ -4,7 +4,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "libp2p/multi/multibase/multibase_codec_impl.hpp"
+#include "libp2p/multi/multibase_codec/multibase_codec_impl.hpp"
 #include "utils/result_fixture.hpp"
 
 using namespace libp2p::multi;

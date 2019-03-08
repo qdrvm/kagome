@@ -4,4 +4,4 @@
 #
 
 add_subdirectory(multiaddress)
-add_subdirectory(multibase)
+add_subdirectory(multibase_codec)

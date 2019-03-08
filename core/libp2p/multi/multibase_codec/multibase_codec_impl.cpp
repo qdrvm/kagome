@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/multi/multibase/multibase_codec_impl.hpp"
+#include "libp2p/multi/multibase_codec/multibase_codec_impl.hpp"
 
 #include <optional>
 #include <unordered_map>
 
-#include "libp2p/multi/multibase/codecs/base16.hpp"
-#include "libp2p/multi/multibase/codecs/base58.hpp"
-#include "libp2p/multi/multibase/codecs/base64.hpp"
+#include "libp2p/multi/multibase_codec/codecs/base16.hpp"
+#include "libp2p/multi/multibase_codec/codecs/base58.hpp"
+#include "libp2p/multi/multibase_codec/codecs/base64.hpp"
 
 namespace {
   using namespace libp2p::multi;

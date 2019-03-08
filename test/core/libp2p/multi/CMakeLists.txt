@@ -15,5 +15,5 @@ addtest(multibase_codec_test
     multibase_codec_test.cpp
     )
 target_link_libraries(multibase_codec_test
-    multibase
+    multibase_codec
     )

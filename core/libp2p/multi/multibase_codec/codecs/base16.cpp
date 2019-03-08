@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/multi/multibase/codecs/base16.hpp"
+#include "libp2p/multi/multibase_codec/codecs/base16.hpp"
 
 #include <algorithm>
 #include <cctype>
