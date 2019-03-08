@@ -15,7 +15,9 @@ namespace extensions {
   class IOExtension {
    public:
     void ext_print_hex(const uint8_t *data, uint32_t length);
+
     void ext_print_num(uint64_t value);
+
     void ext_print_utf8(const uint8_t *utf8_data, uint32_t utf8_length);
   };
 }  // namespace extensions

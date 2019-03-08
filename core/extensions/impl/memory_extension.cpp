@@ -11,6 +11,7 @@ namespace extensions {
   uint8_t *MemoryExtension::ext_malloc(uint32_t size) {
     std::terminate();
   }
+
   void MemoryExtension::ext_free(uint8_t *ptr) {
     std::terminate();
   }
