@@ -6,6 +6,7 @@
 #ifndef KAGOME_SANDBOXING_EXTENSION_HPP
 #define KAGOME_SANDBOXING_EXTENSION_HPP
 
+#include <cstdint>
 #include <functional>
 
 namespace extensions {

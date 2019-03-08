@@ -6,6 +6,8 @@
 #ifndef KAGOME_STORAGE_EXTENSION_HPP
 #define KAGOME_STORAGE_EXTENSION_HPP
 
+#include <cstdint>
+
 namespace extensions {
   /**
    * Implements extension functions related to storage

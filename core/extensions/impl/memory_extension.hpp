@@ -6,6 +6,8 @@
 #ifndef KAGOME_MEMORY_EXTENSIONS_HPP
 #define KAGOME_MEMORY_EXTENSIONS_HPP
 
+#include <cstdint>
+
 namespace extensions {
   /**
    * Implements extension functions related to memory

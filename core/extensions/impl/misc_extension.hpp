@@ -6,6 +6,8 @@
 #ifndef KAGOME_MISC_EXTENSION_HPP
 #define KAGOME_MISC_EXTENSION_HPP
 
+#include <cstdint>
+
 namespace extensions {
   /**
    * Implements miscellaneous extension functions
