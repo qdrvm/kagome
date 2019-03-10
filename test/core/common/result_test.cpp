@@ -11,6 +11,8 @@
 using kagome::expected::Result;
 using kagome::expected::Value;
 using kagome::expected::Error;
+using kagome::expected::NoValueException;
+using kagome::expected::UnwrapException;
 
 /**
  * Created to detect unnecessary copying of values in Result
@@ -29,32 +31,30 @@ public:
  */
 TEST(Result, ToBool) {
   Result<int, std::string> r = Value {4};
-  ASSERT_TRUE(r);
+  ASSERT_TRUE((bool)r);
 
   r = Error {"Flibbity-jibbit"};
-  ASSERT_FALSE(r);
+  ASSERT_FALSE((bool)r);
 }
 
 /**
  * @given a Result object
  * @when trying to unwrap it to a value or an error object, which was contaned in the Result
- * @then an optional is retrieved, which contains a corresponding object or nullopt
+ * @then the desired object is retrieved, or an UnwrapException is thrown
  */
 TEST(Result, Unwrap) {
   Result<int, std::string> r = Value {4};
-  ASSERT_TRUE(r.tryGetValue());
-  ASSERT_EQ(r.tryGetValue().value(), 4);
-  ASSERT_THROW(r.tryGetError().value(), std::bad_optional_access);
-  if(auto v = r.tryGetValue()) {
-    ASSERT_NO_THROW(v.value());
-    ASSERT_EQ(v.value(), 4);
+  ASSERT_EQ(r.tryGetValue(), 4);
+  ASSERT_EQ(r.tryGetValue(), 4); // check if it's still there after the first unwrap
+  ASSERT_THROW(r.tryGetError(), UnwrapException);
+  if(r) {
+    ASSERT_NO_THROW(r.tryGetValue());
+    ASSERT_EQ(r.tryGetValue(), 4);
   }
 
   r = Error {"Flibbity-jibbit"};
-  ASSERT_TRUE(r.tryGetError());
-  ASSERT_THROW(r.tryGetValue().value(), std::bad_optional_access);
-  if(auto v = r.tryGetValue()) {
+  ASSERT_THROW(r.tryGetValue(), NoValueException);
+  if(r) {
     FAIL() << "Must be false, as an error is stored";
   }
-
 }

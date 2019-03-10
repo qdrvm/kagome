@@ -63,6 +63,27 @@ namespace kagome::expected {
   Error(T)->Error<T>;
 
   /**
+   * In case of an attempt to extract a Value or an Error from the Result,
+   * when the one is not present, an exception of one of two following types
+   * is thrown. UnwrapException is a common ancestor for them.
+   */
+  class UnwrapException : public std::exception {
+    const char *what() const noexcept override = 0;
+  };
+
+  class NoValueException : public UnwrapException {
+    const char *what() const noexcept override {
+      return "No Value stored in the Result; Check Error";
+    }
+  };
+
+  class NoErrorException : public UnwrapException {
+    const char *what() const noexcept override {
+      return "No Error stored in the Result; Check Value";
+    }
+  };
+
+  /**
    * Result is a specialization of a variant type with value or error
    * semantics.
    * @tparam V type of value
@@ -105,27 +126,31 @@ namespace kagome::expected {
     }
 
     /**
-     * This method returns an optional object, containing a Value, if it was stored
-     * inside the Result, or a std::nullopt otherwise.
+     * This method returns the value contained in the Result, if it was stored,
+     * or throws a NoValueException exception otherwise.
      */
-    constexpr std::optional<V> tryGetValue() const {
-      return match([](const Value<V>& v) -> std::optional<V> {
-          return {v.value};
-        }, [](auto& _) -> std::optional<V> {
-            return std::nullopt;
-        });
+    constexpr V tryGetValue() const {
+      return match(
+          [](const Value<V>& v) { return std::move(v.value); },
+          [](auto &_) -> V { throw NoValueException(); });
     }
 
     /**
-     * This method returns an optional object, containing an Error, if it was stored
-     * inside the Result, or a std::nullopt otherwise.
+     * This method returns the error contained in the Result, if
+     * it was stored, or throws a NoErrorException exception otherwise.
      */
-    constexpr std::optional<E> tryGetError() const {
-      return match([](const Error<E>& e) -> std::optional<E> {
-        return {e.error};
-      }, [](auto& _) -> std::optional<E> {
-        return std::nullopt;
-      });
+    constexpr E tryGetError() const {
+      return match(
+          [](const Error<E>& e) { return std::move(e.error); },
+          [](auto &_) -> E { throw NoErrorException(); });
+    }
+
+    /**
+     * Returns true if the result contains a value, else returns false
+     */
+    constexpr operator bool() const noexcept {
+      return match([](const Value<V> &v) { return true; },
+                   [](auto &_) { return false; });
     }
 
     /**
