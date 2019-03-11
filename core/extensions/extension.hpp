@@ -98,6 +98,13 @@ namespace kagome::extensions {
                                 uint32_t utf8_length) = 0;
 
     /// cryptographic extensions
+
+    /**
+     * Hash the data using blake2b hash
+     * @param data
+     * @param len
+     * @param out
+     */
     virtual void ext_blake2_256(const uint8_t *data, uint32_t len,
                                 uint8_t *out) = 0;
 
