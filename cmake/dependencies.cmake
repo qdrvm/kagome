@@ -29,3 +29,6 @@ find_package(ed25519 CONFIG REQUIRED)
 # https://docs.hunter.sh/en/latest/packages/pkg/binaryen.html
 hunter_add_package(binaryen)
 find_package(binaryen CONFIG REQUIRED)
+
+hunter_add_package(iroha-ed25519)
+find_package(ed25519 CONFIG REQUIRED)
