@@ -126,23 +126,23 @@ namespace kagome::expected {
     }
 
     /**
-     * This method returns the value contained in the Result, if it was stored,
+     * This method moves the value contained in the Result, if it was stored,
      * or throws a NoValueException exception otherwise.
      */
-    constexpr V tryGetValue() const {
+    constexpr V tryExtractValue() {
       return match(
-          [](const Value<V>& v) { return std::move(v.value); },
-          [](auto &_) -> V { throw NoValueException(); });
+          [](Value<V> &v) -> V { return std::move(v.value); },
+          [](const Error<E>& _) -> V { throw NoValueException(); });
     }
 
     /**
-     * This method returns the error contained in the Result, if
+     * This method moves the error contained in the Result, if
      * it was stored, or throws a NoErrorException exception otherwise.
      */
-    constexpr E tryGetError() const {
+    constexpr E tryExtractError() {
       return match(
-          [](const Error<E>& e) { return std::move(e.error); },
-          [](auto &_) -> E { throw NoErrorException(); });
+          [](Error<E> &e) -> E { return std::move(e.error); },
+          [](const Value<V>& _) -> E { throw NoErrorException(); });
     }
 
     /**

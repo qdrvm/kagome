@@ -44,16 +44,16 @@ TEST(Result, ToBool) {
  */
 TEST(Result, Unwrap) {
   Result<int, std::string> r = Value {4};
-  ASSERT_EQ(r.tryGetValue(), 4);
-  ASSERT_EQ(r.tryGetValue(), 4); // check if it's still there after the first unwrap
-  ASSERT_THROW(r.tryGetError(), UnwrapException);
+  ASSERT_EQ(r.tryExtractValue(), 4);
+  ASSERT_EQ(r.tryExtractValue(), 4); // check if it's still there after the first unwrap
+  ASSERT_THROW(r.tryExtractError(), UnwrapException);
   if(r) {
-    ASSERT_NO_THROW(r.tryGetValue());
-    ASSERT_EQ(r.tryGetValue(), 4);
+    ASSERT_NO_THROW(r.tryExtractValue());
+    ASSERT_EQ(r.tryExtractValue(), 4);
   }
 
   r = Error {"Flibbity-jibbit"};
-  ASSERT_THROW(r.tryGetValue(), NoValueException);
+  ASSERT_THROW(r.tryExtractValue(), NoValueException);
   if(r) {
     FAIL() << "Must be false, as an error is stored";
   }
