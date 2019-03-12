@@ -25,7 +25,7 @@ namespace {
     EdObject out{};
     auto data_end = data;
     std::advance(data_end, InnerArrSize);
-    std::copy(data, data_end, out.data);
+    std::copy(data, data_end, static_cast<uint8_t *>(out.data));
     return out;
   }
 }  // namespace
@@ -39,7 +39,7 @@ namespace kagome::extensions {
   void CryptoExtension::ext_blake2_256_enumerated_trie_root(
       const uint8_t *values_data, const uint32_t *lens_data,
       uint32_t lens_length, uint8_t *result) {
-    // TODO [PRE-54] Akvinikym 11.03.19: implement, when Merkle Trie is ready
+    // TODO(PRE-54) Akvinikym 11.03.19: implement, when Merkle Trie is ready
     std::terminate();
   }
 
@@ -59,11 +59,13 @@ namespace kagome::extensions {
 
   void CryptoExtension::ext_twox_128(const uint8_t *data, uint32_t len,
                                      uint8_t *out) {
-    out = kagome::crypto::make_twox128(data, len).data;
+    auto twox = kagome::crypto::make_twox128(data, len);
+    std::copy(std::begin(twox.data), std::end(twox.data), out);
   }
 
   void CryptoExtension::ext_twox_256(const uint8_t *data, uint32_t len,
                                      uint8_t *out) {
-    out = kagome::crypto::make_twox256(data, len).data;
+    auto twox = kagome::crypto::make_twox256(data, len);
+    std::copy(std::begin(twox.data), std::end(twox.data), out);
   }
 }  // namespace kagome::extensions
