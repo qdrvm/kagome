@@ -127,12 +127,22 @@ namespace kagome::expected {
                             std::forward<ErrorMatch>(error_func));
     }
 
+    /**
+     * This method returns a reference to the value,
+     * contained in the Result, if it was,
+     * or throws a NoValueException exception otherwise.
+     */
     constexpr V& tryGetValue() {
       return match(
           [](Value<V> &v) -> std::reference_wrapper<V> { return v.value; },
           [](const Error<E>& _) -> std::reference_wrapper<V> { throw NoValueException(); });
     }
 
+    /**
+     * This method returns a reference to the error,
+     * contained in the Result, if it was,
+     * or throws a NoErrorException exception otherwise.
+     */
     constexpr E& tryGetError() {
       return match(
           [](Error<E>& e) -> std::reference_wrapper<E> { return e.error; },
