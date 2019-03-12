@@ -98,6 +98,8 @@ namespace kagome::expected {
     using ValueType = Value<V>;
     using ErrorType = Error<E>;
 
+    Result() = delete;
+
     /**
      * match is a function which allows working with result's underlying
      * types, you must provide 2 functions to cover success and failure cases.
@@ -125,6 +127,18 @@ namespace kagome::expected {
                             std::forward<ErrorMatch>(error_func));
     }
 
+    constexpr V& tryGetValue() {
+      return match(
+          [](Value<V> &v) -> std::reference_wrapper<V> { return v.value; },
+          [](const Error<E>& _) -> std::reference_wrapper<V> { throw NoValueException(); });
+    }
+
+    constexpr E& tryGetError() {
+      return match(
+          [](Error<E>& e) -> std::reference_wrapper<E> { return e.error; },
+          [](const Value<V> &_) -> std::reference_wrapper<E> { throw NoErrorException(); });
+    }
+
     /**
      * This method moves the value contained in the Result, if it was stored,
      * or throws a NoValueException exception otherwise.
@@ -148,9 +162,17 @@ namespace kagome::expected {
     /**
      * Returns true if the result contains a value, else returns false
      */
-    constexpr operator bool() const noexcept {
+    constexpr bool hasValue() const noexcept {
       return match([](const Value<V> &v) { return true; },
-                   [](auto &_) { return false; });
+                   [](const Error<E> &_) { return false; });
+    }
+
+    /**
+     * Returns true if the result contains an error, else returns false
+     */
+    constexpr bool hasError() const noexcept {
+      return match([](const Value<V> &v) { return false; },
+                   [](const Error<E> &_) { return true; });
     }
 
     /**

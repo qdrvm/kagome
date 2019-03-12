@@ -43,8 +43,8 @@ class MultiaddressTest : public ::testing::Test {
  */
 TEST_F(MultiaddressTest, CreateFromStringValid) {
   auto address_res = Multiaddress::createMultiaddress(valid_ip_udp_address);
-  ASSERT_TRUE(address_res);
-  auto address = address_res.tryExtractValue();
+  ASSERT_TRUE(address_res.hasValue());
+  auto& address = address_res.tryGetValue();
   ASSERT_EQ(address->getStringAddress(), valid_ip_udp_address);
   ASSERT_EQ(address->getBytesAddress(), valid_ip_udp_bytes);
 }
@@ -56,7 +56,7 @@ TEST_F(MultiaddressTest, CreateFromStringValid) {
  */
 TEST_F(MultiaddressTest, CreateFromStringInvalid) {
   auto address = Multiaddress::createMultiaddress(invalid_address);
-  ASSERT_FALSE(address);
+  ASSERT_FALSE(address.hasValue());
 }
 
 /**
@@ -66,7 +66,7 @@ TEST_F(MultiaddressTest, CreateFromStringInvalid) {
  */
 TEST_F(MultiaddressTest, CreateFromBytesValid) {
   auto address = Multiaddress::createMultiaddress(valid_id_udp_buffer);
-  ASSERT_TRUE(address);
+  ASSERT_TRUE(address.hasValue());
   auto v = address.tryExtractValue();
   ASSERT_EQ(v->getStringAddress(), valid_ip_udp_address);
   ASSERT_EQ(v->getBytesAddress(), valid_ip_udp_bytes);
@@ -79,7 +79,7 @@ TEST_F(MultiaddressTest, CreateFromBytesValid) {
  */
 TEST_F(MultiaddressTest, CreateFromBytesInvalid) {
   auto address = Multiaddress::createMultiaddress(invalid_buffer);
-  ASSERT_FALSE(address);
+  ASSERT_FALSE(address.hasValue());
 }
 
 /**
@@ -105,7 +105,7 @@ TEST_F(MultiaddressTest, Incapsulate) {
   ASSERT_EQ(address1->getBytesAddress(), joined_byte_address);
 
   auto joined_address = Multiaddress::createMultiaddress(joined_string_address);
-  ASSERT_TRUE(joined_address);
+  ASSERT_TRUE(joined_address.hasValue());
   ASSERT_EQ(*joined_address.tryExtractValue(), *address1);
 }
 
