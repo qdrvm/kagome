@@ -3,21 +3,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <exception>
-
+#include "common/hexutil.hpp"
 #include "extensions/impl/io_extension.hpp"
 
 namespace kagome::extensions {
+  IOExtension::IOExtension()
+      : logger_{common::logger::createLogger("WASM Runtime")} {}
+
   void IOExtension::ext_print_hex(const uint8_t *data, uint32_t length) {
-    std::terminate();
+    logger_->info("hex value: {}", common::hex_lower(data, length));
   }
 
   void IOExtension::ext_print_num(uint64_t value) {
-    std::terminate();
+    logger_->info("number value: {}", value);
   }
 
   void IOExtension::ext_print_utf8(const uint8_t *utf8_data,
                                    uint32_t utf8_length) {
-    std::terminate();
+    auto *str_begin = utf8_data;
+    std::advance(utf8_data, utf8_length);
+    logger_->info("string value: {}", std::string{str_begin, utf8_data});
   }
-}  // namespace extensions
+}  // namespace kagome::extensions
