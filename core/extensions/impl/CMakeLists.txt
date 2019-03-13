@@ -6,6 +6,11 @@
 add_library(crypto_extension
     crypto_extension.cpp
     )
+target_link_libraries(crypto_extension
+    iroha::ed25519
+    blake2
+    twox
+    )
 
 add_library(io_extension
     io_extension.cpp

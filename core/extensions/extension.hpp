@@ -113,22 +113,53 @@ namespace kagome::extensions {
                                 uint32_t utf8_length) = 0;
 
     /// cryptographic extensions
+
+    /**
+     * Hash the data using blake2b hash
+     * @param data to be hashed
+     * @param len of the data
+     * @param out buffer to store the hash
+     */
     virtual void ext_blake2_256(const uint8_t *data, uint32_t len,
                                 uint8_t *out) = 0;
 
+    /**
+     * Create a trie root from enumerated values
+     * @note NOT IMPLEMENTED
+     */
     virtual void ext_blake2_256_enumerated_trie_root(const uint8_t *values_data,
                                                      const uint32_t *lens_data,
                                                      uint32_t lens_length,
                                                      uint8_t *result) = 0;
 
+    /**
+     * Verify the signature over the ed25519 message
+     * @param msg_data - msg to be verified
+     * @param msg_len - length of the msg
+     * @param sig_data - signature of the message
+     * @param pubkey_data - key of possible message's author
+     * @return 0, if key is successfully verified, 5 otherwise
+     */
     virtual uint32_t ext_ed25519_verify(const uint8_t *msg_data,
                                         uint32_t msg_len,
                                         const uint8_t *sig_data,
                                         const uint8_t *pubkey_data) = 0;
 
+    /**
+     * Hash the data using XX128 hash
+     * @param data to be hashed
+     * @param len of the data
+     * @param out buffer to store the hash
+     */
     virtual void ext_twox_128(const uint8_t *data, uint32_t len,
                               uint8_t *out) = 0;
 
+    /**
+     * Hash the data using XX256 hash
+     * @param data to be hashed
+     * @param len of the data
+     * @param out buffer to store the hash
+     */
     virtual void ext_twox_256(const uint8_t *data, uint32_t len,
                               uint8_t *out) = 0;
 

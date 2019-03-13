@@ -1,3 +1,8 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #ifndef CORE_BLAKE2S_HASH
 #define CORE_BLAKE2S_HASH
 
@@ -47,25 +52,29 @@ void blake2s_256(void *out, const void *in, size_t inlen);
  * @param ctx context
  * @param outlen 1..32 bytes of output buffer size
  * @param key optional key
- * @param keylen length of {@param key} in bytes. Pass 0 to indicate that key is not provided.
+ * @param keylen length of {@param key} in bytes. Pass 0 to indicate that key is
+ * not provided.
  * @return -1 in case of wrong input arguments; 0 in case of success.
  */
-int blake2s_init(blake2s_ctx *ctx, size_t outlen, const void *key, size_t keylen);
+int blake2s_init(blake2s_ctx *ctx, size_t outlen, const void *key,
+                 size_t keylen);
 
 /**
  * @brief All in one blake2s hashing function.
  * @param out output buffer
  * @param outlen size of {@param out}
  * @param key optional key
- * @param keylen size of {@param key}. Pass 0 to indicate that key is not provided.
+ * @param keylen size of {@param key}. Pass 0 to indicate that key is not
+ * provided.
  * @param in data to be hashed
  * @param inlen size of {@param in}
  * @return -1 in case of wrong input arguments; 0 in case of success
  */
-int blake2s(void *out, size_t outlen, const void *key, size_t keylen, const void *in, size_t inlen);
+int blake2s(void *out, size_t outlen, const void *key, size_t keylen,
+            const void *in, size_t inlen);
 
 #if defined(__cplusplus)
 }
 #endif
 
-#endif //CORE_BLAKE2S_HASH
+#endif  // CORE_BLAKE2S_HASH
