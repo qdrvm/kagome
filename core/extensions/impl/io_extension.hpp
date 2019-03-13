@@ -34,7 +34,7 @@ namespace kagome::extensions {
     void ext_print_utf8(const uint8_t *utf8_data, uint32_t utf8_length);
 
    private:
-    common::logger::Logger logger_;
+    common::Logger logger_;
   };
 }  // namespace kagome::extensions
 

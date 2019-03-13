@@ -17,7 +17,7 @@ auto operator<<(StreamType &os, const T &object)
   return os << object.toString();
 }
 
-namespace kagome::common::logger {
+namespace kagome::common {
   using Logger = std::shared_ptr<spdlog::logger>;
 
   /**
@@ -26,6 +26,6 @@ namespace kagome::common::logger {
    * @return logger object
    */
   Logger createLogger(const std::string &tag);
-}  // namespace kagome::common::logger
+}  // namespace kagome::common
 
 #endif  // KAGOME_LOGGER_HPP

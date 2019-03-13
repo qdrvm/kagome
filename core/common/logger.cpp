@@ -28,7 +28,7 @@ namespace {
   }
 }  // namespace
 
-namespace kagome::common::logger {
+namespace kagome::common {
   Logger createLogger(const std::string &tag) {
     static std::mutex mutex;
     std::lock_guard<std::mutex> lock(mutex);
@@ -38,4 +38,4 @@ namespace kagome::common::logger {
     }
     return logger;
   }
-}  // namespace kagome::common::logger
+}  // namespace kagome::common
