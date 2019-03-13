@@ -30,5 +30,6 @@ find_package(ed25519 CONFIG REQUIRED)
 hunter_add_package(binaryen)
 find_package(binaryen CONFIG REQUIRED)
 
+# https://github.com/hyperledger/iroha-ed25519
 hunter_add_package(iroha-ed25519)
 find_package(ed25519 CONFIG REQUIRED)

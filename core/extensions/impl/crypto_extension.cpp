@@ -47,25 +47,29 @@ namespace kagome::extensions {
                                                uint32_t msg_len,
                                                const uint8_t *sig_data,
                                                const uint8_t *pubkey_data) {
+    // for some reason, 0 and 5 are used in the reference implementation, so
+    // it's better to stick to them in ours, at least for now
+    static constexpr uint32_t kVerifySuccess = 0;
+    static constexpr uint32_t kVerifyFail = 5;
+
     auto signature =
         createEdObject<signature_t, ed25519_signature_SIZE>(sig_data);
     auto pubkey =
         createEdObject<public_key_t, ed25519_pubkey_SIZE>(pubkey_data);
 
-    // for some reason, 0 and 5 are used in the reference implementation, so
-    // it's better to stick to them in ours, at least for now
-    return ed25519_verify(&signature, msg_data, msg_len, &pubkey) == 1 ? 0 : 5;
+    return ed25519_verify(&signature, msg_data, msg_len, &pubkey)
+            == ED25519_SUCCESS
+        ? kVerifySuccess
+        : kVerifyFail;
   }
 
   void CryptoExtension::ext_twox_128(const uint8_t *data, uint32_t len,
                                      uint8_t *out) {
-    auto twox = kagome::crypto::make_twox128(data, len);
-    std::copy(std::begin(twox.data), std::end(twox.data), out);
+    kagome::crypto::make_twox128(data, len, out);
   }
 
   void CryptoExtension::ext_twox_256(const uint8_t *data, uint32_t len,
                                      uint8_t *out) {
-    auto twox = kagome::crypto::make_twox256(data, len);
-    std::copy(std::begin(twox.data), std::end(twox.data), out);
+    kagome::crypto::make_twox256(data, len, out);
   }
 }  // namespace kagome::extensions
