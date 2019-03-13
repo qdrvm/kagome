@@ -20,10 +20,12 @@ namespace kagome::crypto {
   Twox128Hash make_twox128(const common::Buffer &buf);
   Twox128Hash make_twox128(const uint8_t *buf, size_t len);
   void make_twox128(const common::Buffer &in, common::Buffer &out);
+  void make_twox128(const uint8_t *in, uint32_t len, uint8_t *out);
 
   Twox256Hash make_twox256(const common::Buffer &buf);
   Twox256Hash make_twox256(const uint8_t *buf, size_t len);
   void make_twox256(const common::Buffer &in, common::Buffer &out);
+  void make_twox256(const uint8_t *in, uint32_t len, uint8_t *out);
 
 }  // namespace kagome::crypto
 

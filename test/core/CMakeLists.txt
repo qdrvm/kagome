@@ -6,3 +6,4 @@
 add_subdirectory(common)
 add_subdirectory(crypto)
 add_subdirectory(libp2p)
+add_subdirectory(extensions)
