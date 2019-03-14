@@ -14,8 +14,8 @@ namespace libp2p::common {
    * Information about the peer in the network
    */
   struct PeerInfo {
-    multi::Multihash peer_id;
-    multi::Multiaddress peer_address;
+//    multi::Multihash peer_id;
+//    multi::Multiaddress peer_address;
   };
 }  // namespace libp2p::common
 

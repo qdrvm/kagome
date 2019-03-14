@@ -3,5 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(multi)
-add_subdirectory(common)
+add_library(libp2p-peer
+    peer.cpp
+    )
