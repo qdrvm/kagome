@@ -17,11 +17,12 @@ using kagome::expected::UnwrapException;
 /**
  * Created to detect unnecessary copying of values in Result
  */
-class T {
+class NoCopy {
 public:
-  T() { spdlog::info("T()"); }
-  T(const T&) { spdlog::info("T(const T&)"); }
-  T(T&&) { spdlog::info("T(T&&)"); }
+  NoCopy() = default;
+  NoCopy(const NoCopy&) = delete;
+  NoCopy(NoCopy&&) = default;
+  NoCopy& operator=(NoCopy&&) = default;
 };
 
 /**
@@ -46,6 +47,18 @@ TEST(Result, HasMethods) {
       );
   i = 4;
   ASSERT_EQ(r.tryGetValue(), 4);
+}
+
+/**
+ * @given a need to create a Result object
+ * @when creating the object, assigning another value to it, getting the value
+ * @then no unnecessary copying occured
+ */
+TEST(Result, NoCopy) {
+  Result<NoCopy, NoCopy> r (Value<NoCopy>{});
+  r = Error<NoCopy>();
+  auto& r1 = r.tryGetError();
+  auto r2 = r.tryExtractError();
 }
 
 /**
