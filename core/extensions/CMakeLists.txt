@@ -11,4 +11,12 @@ add_library(extensions
     impl/misc_extension.cpp
     impl/sandboxing_extension.cpp
     impl/storage_extension.cpp
+    impl/memory.hpp
+    impl/memory.cpp
+    impl/shell_external_interface.hpp
+    impl/shell_external_interface.cpp
     )
+
+target_link_libraries(extensions
+    binaryen::binaryen
+)

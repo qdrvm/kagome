@@ -6,6 +6,7 @@
 #ifndef KAGOME_MEMORY_EXTENSIONS_HPP
 #define KAGOME_MEMORY_EXTENSIONS_HPP
 
+#include <binaryen/shell-interface.h>
 #include <cstdint>
 
 namespace kagome::extensions {
@@ -14,10 +15,15 @@ namespace kagome::extensions {
    */
   class MemoryExtension {
    public:
+    MemoryExtension(wasm::ModuleInstance *instance);
+
     uint8_t *ext_malloc(uint32_t size);
 
     void ext_free(uint8_t *ptr);
+
+   private:
+    wasm::ModuleInstance *instance_;
   };
-}  // namespace extensions
+}  // namespace kagome::extensions
 
 #endif  // KAGOME_MEMORY_EXTENSIONS_HPP

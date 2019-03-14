@@ -8,11 +8,14 @@
 #include "extensions/impl/memory_extension.hpp"
 
 namespace kagome::extensions {
+  MemoryExtension::MemoryExtension(wasm::ModuleInstance *instance)
+      : instance_(instance) {}
+
   uint8_t *MemoryExtension::ext_malloc(uint32_t size) {
-    std::terminate();
+    instance_->self();
   }
 
   void MemoryExtension::ext_free(uint8_t *ptr) {
     std::terminate();
   }
-}  // namespace extensions
+}  // namespace kagome::extensions
