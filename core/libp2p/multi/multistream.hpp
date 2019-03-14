@@ -6,11 +6,6 @@
 #ifndef KAGOME_MULTISTREAM_HPP
 #define KAGOME_MULTISTREAM_HPP
 
-#include <filesystem>
-
-#include "common/buffer.hpp"
-#include "common/result.hpp"
-
 namespace libp2p::multi {
   /**
    * Format of stream identifier used in Libp2p
