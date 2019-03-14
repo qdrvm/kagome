@@ -6,10 +6,7 @@
 #ifndef KAGOME_RESULT_HPP
 #define KAGOME_RESULT_HPP
 
-#include <ciso646>
-
 #include <boost/variant.hpp>
-#include <optional>
 
 #include "common/visitor.hpp"
 
