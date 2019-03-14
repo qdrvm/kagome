@@ -24,7 +24,7 @@ class MultibaseCodecTest : public ::testing::Test {
     auto multibase_opt = multibase->decode(encoded);
     EXPECT_TRUE(multibase_opt.hasValue())
         << "failed to decode string: " + std::string{encoded};
-    return multibase_opt.tryExtractValue();
+    return multibase_opt.getValue();
   }
 };
 

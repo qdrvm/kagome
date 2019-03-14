@@ -32,7 +32,7 @@ class MultiaddressTest : public ::testing::Test {
    */
   std::unique_ptr<Multiaddress> createValidMultiaddress(
       std::string_view string_address = "/ip4/192.168.0.1/udp/228/") {
-    return std::move(Multiaddress::createMultiaddress(string_address).tryExtractValue());
+    return std::move(Multiaddress::createMultiaddress(string_address).getValue());
   }
 };
 
@@ -44,7 +44,7 @@ class MultiaddressTest : public ::testing::Test {
 TEST_F(MultiaddressTest, CreateFromStringValid) {
   auto address_res = Multiaddress::createMultiaddress(valid_ip_udp_address);
   ASSERT_TRUE(address_res.hasValue());
-  auto& address = address_res.tryGetValue();
+  auto& address = address_res.getValueRef();
   ASSERT_EQ(address->getStringAddress(), valid_ip_udp_address);
   ASSERT_EQ(address->getBytesAddress(), valid_ip_udp_bytes);
 }
@@ -67,7 +67,7 @@ TEST_F(MultiaddressTest, CreateFromStringInvalid) {
 TEST_F(MultiaddressTest, CreateFromBytesValid) {
   auto address = Multiaddress::createMultiaddress(valid_id_udp_buffer);
   ASSERT_TRUE(address.hasValue());
-  auto v = address.tryExtractValue();
+  auto v = address.getValue();
   ASSERT_EQ(v->getStringAddress(), valid_ip_udp_address);
   ASSERT_EQ(v->getBytesAddress(), valid_ip_udp_bytes);
 }
@@ -106,7 +106,7 @@ TEST_F(MultiaddressTest, Incapsulate) {
 
   auto joined_address = Multiaddress::createMultiaddress(joined_string_address);
   ASSERT_TRUE(joined_address.hasValue());
-  ASSERT_EQ(*joined_address.tryExtractValue(), *address1);
+  ASSERT_EQ(*joined_address.getValue(), *address1);
 }
 
 /**

@@ -40,13 +40,13 @@ TEST(Result, HasMethods) {
   ASSERT_TRUE(r.hasError());
 
   r = Value {2};
-  ASSERT_EQ(r.tryGetValue(), 2);
+  ASSERT_EQ(r.getValueRef(), 2);
   int& i = r.match(
       [](Value<int>& v) -> std::reference_wrapper<int> { return v.value;},
       [](Error<std::string>& e) -> std::reference_wrapper<int> { throw e.error; }
       );
   i = 4;
-  ASSERT_EQ(r.tryGetValue(), 4);
+  ASSERT_EQ(r.getValueRef(), 4);
 }
 
 /**
@@ -57,8 +57,8 @@ TEST(Result, HasMethods) {
 TEST(Result, NoCopy) {
   Result<NoCopy, NoCopy> r (Value<NoCopy>{});
   r = Error<NoCopy>();
-  auto& r1 = r.tryGetError();
-  auto r2 = r.tryExtractError();
+  auto& r1 = r.getErrorRef();
+  auto r2 = r.getError();
 }
 
 /**
@@ -68,15 +68,15 @@ TEST(Result, NoCopy) {
  */
 TEST(Result, Unwrap) {
   Result<int, std::string> r = Value {4};
-  ASSERT_EQ(r.tryExtractValue(), 4); // check if it's still there after the first unwrap
-  ASSERT_THROW(r.tryExtractError(), UnwrapException);
+  ASSERT_EQ(r.getValue(), 4); // check if it's still there after the first unwrap
+  ASSERT_THROW(r.getError(), UnwrapException);
   if(r.hasValue()) {
-    ASSERT_NO_THROW(r.tryExtractValue());
-    ASSERT_EQ(r.tryExtractValue(), 4);
+    ASSERT_NO_THROW(r.getValue());
+    ASSERT_EQ(r.getValue(), 4);
   }
 
   r = Error {"Flibbity-jibbit"};
-  ASSERT_THROW(r.tryExtractValue(), NoValueException);
+  ASSERT_THROW(r.getValue(), NoValueException);
   if(r.hasValue()) {
     FAIL() << "Must be false, as an error is stored";
   }

@@ -8,17 +8,18 @@
 
 #include <ciso646>
 
-#include <optional>
 #include <boost/variant.hpp>
+#include <optional>
 
 #include "common/visitor.hpp"
 
 /*
  * Result is a type which represents value or an error, and values and errors
- * are template parametrized. Working with value wrapped in result is mostly done using
- * match() function, which accepts 2 functions: for value and error cases. There are
- * accessor methods which return an std::optional with either Value or Error, but
- * their usage is recommended to be avoided in favour of match() function.
+ * are template parametrized. Working with value wrapped in result is mostly
+ * done using match() function, which accepts 2 functions: for value and error
+ * cases. There are accessor methods which return an std::optional with either
+ * Value or Error, but their usage is recommended to be avoided in favour of
+ * match() function.
  */
 
 namespace kagome::expected {
@@ -111,8 +112,7 @@ namespace kagome::expected {
      */
     template <typename ValueMatch, typename ErrorMatch>
     constexpr auto match(ValueMatch &&value_func, ErrorMatch &&error_func) {
-      return visit_in_place(*this,
-                            std::forward<ValueMatch>(value_func),
+      return visit_in_place(*this, std::forward<ValueMatch>(value_func),
                             std::forward<ErrorMatch>(error_func));
     }
 
@@ -122,51 +122,78 @@ namespace kagome::expected {
     template <typename ValueMatch, typename ErrorMatch>
     constexpr auto match(ValueMatch &&value_func,
                          ErrorMatch &&error_func) const {
-      return visit_in_place(*this,
-                            std::forward<ValueMatch>(value_func),
+      return visit_in_place(*this, std::forward<ValueMatch>(value_func),
                             std::forward<ErrorMatch>(error_func));
     }
 
     /**
      * This method returns a reference to the value,
-     * contained in the Result, if it was,
+     * contained in the Result, if it contains value,
      * or throws a NoValueException exception otherwise.
      */
-    constexpr V& tryGetValue() {
+    V &getValueRef() {
       return match(
           [](Value<V> &v) -> std::reference_wrapper<V> { return v.value; },
-          [](const Error<E>& _) -> std::reference_wrapper<V> { throw NoValueException(); });
+          [](const Error<E> &_) -> std::reference_wrapper<V> {
+            throw NoValueException();
+          });
     }
 
     /**
      * This method returns a reference to the error,
-     * contained in the Result, if it was,
+     * contained in the Result, if it contains error,
      * or throws a NoErrorException exception otherwise.
      */
-    constexpr E& tryGetError() {
+    E &getErrorRef() {
       return match(
-          [](Error<E>& e) -> std::reference_wrapper<E> { return e.error; },
-          [](const Value<V> &_) -> std::reference_wrapper<E> { throw NoErrorException(); });
+          [](Error<E> &e) -> std::reference_wrapper<E> { return e.error; },
+          [](const Value<V> &_) -> std::reference_wrapper<E> {
+            throw NoErrorException();
+          });
+    }
+
+    /**
+     * This method returns a reference to the value,
+     * contained in the Result, if it contains value,
+     * or throws a NoValueException exception otherwise.
+     */
+    constexpr const V &getValueRef() const {
+      return match(
+          [](Value<V> &v) -> std::reference_wrapper<V> { return v.value; },
+          [](const Error<E> &_) -> std::reference_wrapper<V> {
+            throw NoValueException();
+          });
+    }
+
+    /**
+     * This method returns a reference to the error,
+     * contained in the Result, if it contains error,
+     * or throws a NoErrorException exception otherwise.
+     */
+    constexpr const E &getErrorRef() const {
+      return match(
+          [](Error<E> &e) -> std::reference_wrapper<E> { return e.error; },
+          [](const Value<V> &_) -> std::reference_wrapper<E> {
+            throw NoErrorException();
+          });
     }
 
     /**
      * This method moves the value contained in the Result, if it was stored,
      * or throws a NoValueException exception otherwise.
      */
-    constexpr V tryExtractValue() {
-      return match(
-          [](Value<V> &v) -> V { return std::move(v.value); },
-          [](const Error<E>& _) -> V { throw NoValueException(); });
+    constexpr V getValue() {
+      return match([](Value<V> &v) -> V { return std::forward<V>(v.value); },
+                   [](const Error<E> &_) -> V { throw NoValueException(); });
     }
 
     /**
      * This method moves the error contained in the Result, if
      * it was stored, or throws a NoErrorException exception otherwise.
      */
-    constexpr E tryExtractError() {
-      return match(
-          [](Error<E> &e) -> E { return std::move(e.error); },
-          [](const Value<V>& _) -> E { throw NoErrorException(); });
+    constexpr E getError() {
+      return match([](Error<E> &e) -> E { return std::forward<E>(e.error); },
+                   [](const Value<V> &_) -> E { throw NoErrorException(); });
     }
 
     /**
@@ -200,8 +227,7 @@ namespace kagome::expected {
     constexpr Result<Value, E> and_res(const Result<Value, E> &new_res) const
         noexcept {
       return visit_in_place(
-          *this,
-          [res = new_res](ValueType) { return res; },
+          *this, [res = new_res](ValueType) { return res; },
           [](ErrorType err) -> Result<Value, E> { return err; });
     }
 
@@ -220,8 +246,7 @@ namespace kagome::expected {
     constexpr Result<Value, E> or_res(const Result<Value, E> &new_res) const
         noexcept {
       return visit_in_place(
-          *this,
-          [](ValueType val) -> Result<Value, E> { return val; },
+          *this, [](ValueType val) -> Result<Value, E> { return val; },
           [res = new_res](ErrorType) { return res; });
     }
   };
@@ -240,8 +265,7 @@ namespace kagome::expected {
   template <typename Err1, typename Err2, typename V, typename Fn>
   Result<V, Err1> map_error(const Result<V, Err2> &res, Fn &&map) noexcept {
     return visit_in_place(
-        res,
-        [](Value<V> val) -> Result<V, Err1> { return val; },
+        res, [](Value<V> val) -> Result<V, Err1> { return val; },
         [map](Error<Err2> err) -> Result<V, Err1> {
           return Error<Err1>{map(err.error)};
         });
@@ -292,9 +316,7 @@ namespace kagome::expected {
    * slower, and should be used ONLY when polymorphic behaviour is required,
    * hence the name. For all other use cases, stick to basic Result
    */
-  template <typename V,
-            typename E,
-            typename VContainer = std::shared_ptr<V>,
+  template <typename V, typename E, typename VContainer = std::shared_ptr<V>,
             typename EContainer = std::shared_ptr<E>>
   using PolymorphicResult = Result<VContainer, EContainer>;
 
