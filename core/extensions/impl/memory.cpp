@@ -52,7 +52,7 @@ namespace kagome::extensions {
   std::optional<size_t> Memory::deallocate(Memory::Address ptr) {
     const auto &it = allocated.find(ptr);
     if (it == allocated.end()) {
-      return {};
+      return std::nullopt;
     }
     const auto size = it->second;
 
