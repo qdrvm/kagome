@@ -21,3 +21,7 @@ add_library(blob
 target_link_libraries(blob
   hexutil
   )
+
+add_library(logger
+    logger.cpp
+    )

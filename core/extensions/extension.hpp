@@ -90,10 +90,25 @@ namespace kagome::extensions {
     virtual void ext_free(uint8_t *ptr) = 0;
 
     /// I/O extensions
+
+    /**
+     * Print a hex value
+     * @param data - pointer to an array of bytes with hex
+     * @param length of the array
+     */
     virtual void ext_print_hex(const uint8_t *data, uint32_t length) = 0;
 
+    /**
+     * Print a number
+     * @param value - number to be printed
+     */
     virtual void ext_print_num(uint64_t value) = 0;
 
+    /**
+     * Print a UTF-8-encoded string
+     * @param utf8_data - pointer to an array of bytes with UTF-8
+     * @param utf8_length - length of the array
+     */
     virtual void ext_print_utf8(const uint8_t *utf8_data,
                                 uint32_t utf8_length) = 0;
 

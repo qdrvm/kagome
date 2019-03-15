@@ -15,6 +15,10 @@ target_link_libraries(crypto_extension
 add_library(io_extension
     io_extension.cpp
     )
+target_link_libraries(io_extension
+    hexutil
+    logger
+    )
 
 add_library(memory_extension
     memory_extension.cpp
