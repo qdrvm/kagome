@@ -5,10 +5,8 @@
 
 #include <gtest/gtest.h>
 #include "libp2p/multi/multibase_codec/multibase_codec_impl.hpp"
-#include "utils/result_fixture.hpp"
 
 using namespace libp2p::multi;
-using namespace kagome::expected::testing;
 using namespace kagome::common;
 
 class MultibaseCodecTest : public ::testing::Test {
@@ -23,10 +21,10 @@ class MultibaseCodecTest : public ::testing::Test {
    * @return resulting Multibase
    */
   Buffer decodeCorrect(std::string_view encoded) {
-    auto multibase_opt = val(multibase->decode(encoded));
-    EXPECT_TRUE(multibase_opt)
+    auto multibase_opt = multibase->decode(encoded);
+    EXPECT_TRUE(multibase_opt.hasValue())
         << "failed to decode string: " + std::string{encoded};
-    return multibase_opt->value;
+    return multibase_opt.getValue();
   }
 };
 
@@ -43,8 +41,8 @@ TEST_F(MultibaseCodecTest, EncodeEmptyBytes) {
  * @then decoding fails
  */
 TEST_F(MultibaseCodecTest, DecodeIncorrectPrefix) {
-  auto multibase_err = err(multibase->decode("J00AA"));
-  ASSERT_TRUE(multibase_err);
+  auto multibase_err = multibase->decode("J00AA");
+  ASSERT_FALSE(multibase_err.hasValue());
 }
 
 /**
@@ -53,8 +51,8 @@ TEST_F(MultibaseCodecTest, DecodeIncorrectPrefix) {
  * @then Multibase object creation fails
  */
 TEST_F(MultibaseCodecTest, DecodeFewCharacters) {
-  auto multibase_err = err(multibase->decode("A"));
-  ASSERT_TRUE(multibase_err);
+  auto multibase_err = multibase->decode("A");
+  ASSERT_FALSE(multibase_err.hasValue());
 }
 
 class Base16EncodingUpper : public MultibaseCodecTest {
@@ -94,8 +92,8 @@ TEST_F(Base16EncodingUpper, SuccessEncoding) {
  * @then decoding fails
  */
 TEST_F(Base16EncodingUpper, IncorrectPrefix) {
-  auto error = err(multibase->decode(encoded_incorrect_prefix));
-  ASSERT_TRUE(error);
+  auto error = multibase->decode(encoded_incorrect_prefix);
+  ASSERT_FALSE(error.hasValue());
 }
 
 /**
@@ -104,8 +102,8 @@ TEST_F(Base16EncodingUpper, IncorrectPrefix) {
  * @then decoding fails
  */
 TEST_F(Base16EncodingUpper, IncorrectBody) {
-  auto error = err(multibase->decode(encoded_incorrect_body));
-  ASSERT_TRUE(error);
+  auto error = multibase->decode(encoded_incorrect_body);
+  ASSERT_FALSE(error.hasValue());
 }
 
 class Base16EncodingLower : public MultibaseCodecTest {
@@ -145,8 +143,8 @@ TEST_F(Base16EncodingLower, SuccessEncoding) {
  * @then decoding fails
  */
 TEST_F(Base16EncodingLower, IncorrectPrefix) {
-  auto error = err(multibase->decode(encoded_incorrect_prefix));
-  ASSERT_TRUE(error);
+  auto error = multibase->decode(encoded_incorrect_prefix);
+  ASSERT_FALSE(error.hasValue());
 }
 
 /**
@@ -155,8 +153,8 @@ TEST_F(Base16EncodingLower, IncorrectPrefix) {
  * @then decoding fails
  */
 TEST_F(Base16EncodingLower, IncorrectBody) {
-  auto error = err(multibase->decode(encoded_incorrect_body));
-  ASSERT_TRUE(error);
+  auto error = multibase->decode(encoded_incorrect_body);
+  ASSERT_FALSE(error.hasValue());
 }
 
 class Base58Encoding : public MultibaseCodecTest {
@@ -244,8 +242,8 @@ TEST_F(Base58Encoding, SuccessEncodingDecoding) {
  * @then decoding fails
  */
 TEST_F(Base58Encoding, IncorrectBody) {
-  auto error = err(multibase->decode(incorrect_encoded));
-  ASSERT_TRUE(error);
+  auto error = multibase->decode(incorrect_encoded);
+  ASSERT_FALSE(error.hasValue());
 }
 
 /**
@@ -271,9 +269,9 @@ TEST_F(Base58Encoding, SkipsWhitespacesSuccess) {
  */
 TEST_F(Base58Encoding, SkipsWhitespacesFailure) {
   constexpr auto base64_with_whitespaces = "Z \t\n\v\f\r skip \r\f\v\n\t a";
-  auto error = err(multibase->decode(base64_with_whitespaces));
+  auto error = multibase->decode(base64_with_whitespaces);
 
-  ASSERT_TRUE(error);
+  ASSERT_FALSE(error.hasValue());
 }
 
 class Base64Encoding : public MultibaseCodecTest {
@@ -345,6 +343,6 @@ TEST_F(Base64Encoding, SuccessEncodingDecoding) {
  * @then decoding fails
  */
 TEST_F(Base64Encoding, IncorrectBody) {
-  auto error = err(multibase->decode(incorrect_encoded));
-  ASSERT_TRUE(error);
+  auto error = multibase->decode(incorrect_encoded);
+  ASSERT_FALSE(error.hasValue());
 }
