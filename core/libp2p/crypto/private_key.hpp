@@ -10,15 +10,16 @@
 #include "libp2p/crypto/public_key.hpp"
 
 namespace libp2p::crypto {
+  /**
+   * Represents private key
+   */
   class PrivateKey : public Key {
    public:
     /**
      * Get a public key, derived from this private one
      * @return a public key
      */
-    const PublicKey &publicKey() const;
-
-    kagome::common::Buffer marshal() const override;
+    virtual const PublicKey &publicKey() const = 0;
   };
 }  // namespace libp2p::crypto
 

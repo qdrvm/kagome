@@ -9,9 +9,10 @@
 #include "libp2p/crypto/key.hpp"
 
 namespace libp2p::crypto {
-  class PublicKey : public Key {
-    kagome::common::Buffer marshal() const override;
-  };
-}
+  /**
+   * Represents public key
+   */
+  class PublicKey : public Key {};
+}  // namespace libp2p::crypto
 
-#endif //KAGOME_PUBLIC_KEY_HPP
+#endif  // KAGOME_PUBLIC_KEY_HPP
