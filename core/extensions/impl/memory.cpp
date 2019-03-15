@@ -4,9 +4,16 @@
  */
 
 #include "extensions/impl/memory.hpp"
-#include "memory.hpp"
 
 namespace kagome::extensions {
+
+  Memory::Memory() {
+    offset_ = 0;
+  }
+
+  Memory::Memory(size_t size) : Memory() {
+    memory_.resize(size);
+  }
 
   void Memory::resize(size_t newSize) {
     // Ensure the smallest allocation is large enough that most allocators
@@ -16,21 +23,24 @@ namespace kagome::extensions {
     //
     // The code is optimistic this will work until WG21's p0035r0 happens.
     const size_t minSize = 1 << 12;
-    size_t oldSize = memory.size();
-    memory.resize(std::max(minSize, newSize));
+    size_t oldSize = memory_.size();
+    memory_.resize(std::max(minSize, newSize));
     if (newSize < oldSize && newSize < minSize) {
-      std::memset(&memory[newSize], 0, minSize - newSize);
+      std::memset(&memory_[newSize], 0, minSize - newSize);
     }
   }
 
   std::optional<Memory::Address> Memory::allocate(size_t size) {
-    if (size > memory.size()) {
+    if (size == 0) {
+      return 0;
+    }
+    if (size > memory_.size()) {
       return {};
     }
     const auto ptr = offset_;
     const auto new_offset = ptr + size;
 
-    if (new_offset < memory.size()) {
+    if (new_offset <= memory_.size()) {
       offset_ = new_offset;
       allocated[ptr] = size;
       return ptr;
@@ -57,13 +67,13 @@ namespace kagome::extensions {
       deallocated.erase(ptr);
       allocated[ptr] = size;
 
-      return ptr;
+      return std::make_optional(ptr);
     };
   }
 
   std::optional<Memory::Address> Memory::findContaining(size_t size) {
     size_t min_value = std::numeric_limits<size_t>::max();
-    std::optional<Address> min_key{};
+    std::optional<Address> min_key = std::nullopt;
     for (const auto &[key, value] : deallocated) {
       if (value < min_value and value >= size) {
         min_value = value;

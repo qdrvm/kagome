@@ -25,7 +25,7 @@ namespace kagome::extensions {
   class Memory {
    private:
     // Use char because it doesn't run afoul of aliasing rules.
-    std::vector<char> memory;
+    std::vector<char> memory_;
 
     using Address = size_t;
 
@@ -47,26 +47,30 @@ namespace kagome::extensions {
     Memory &operator=(const Memory &) = delete;
 
    public:
-    Memory() {
-      offset_ = 0;
-    }
+    Memory();
+    /**
+     * Constructs memory with given size
+     * @param size max size of the memory
+     */
+    explicit Memory(size_t size);
+
     void resize(size_t newSize);
 
     template <typename T>
     void set(Address address, T value) {
-      if (aligned<T>(&memory[address])) {
-        *reinterpret_cast<T *>(&memory[address]) = value;
+      if (aligned<T>(&memory_[address])) {
+        *reinterpret_cast<T *>(&memory_[address]) = value;
       } else {
-        std::memcpy(&memory[address], &value, sizeof(T));
+        std::memcpy(&memory_[address], &value, sizeof(T));
       }
     }
     template <typename T>
     T get(Address address) {
-      if (aligned<T>(&memory[address])) {
-        return *reinterpret_cast<T *>(&memory[address]);
+      if (aligned<T>(&memory_[address])) {
+        return *reinterpret_cast<T *>(&memory_[address]);
       } else {
         T loaded;
-        std::memcpy(&loaded, &memory[address], sizeof(T));
+        std::memcpy(&loaded, &memory_[address], sizeof(T));
         return loaded;
       }
     }
@@ -89,7 +93,7 @@ namespace kagome::extensions {
 
    private:
     /**
-     * Finds memory segment of given size within deallocated pieces of memory
+     * Finds memory segment of given size among deallocated pieces of memory
      * and allocates a memory there
      * @param size of target memory
      * @return address of memory of given size, none if it is impossible to
@@ -98,7 +102,7 @@ namespace kagome::extensions {
     std::optional<Address> freealloc(size_t size);
 
     /**
-     * Finds memory segment of given size within deallocated pieces of memory
+     * Finds memory segment of given size among deallocated pieces of memory
      * @param size of target memory
      * @return address of memory of given size, none if it is impossible to
      * allocate this amount of memory
