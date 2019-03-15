@@ -3,6 +3,20 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+addtest(crypto_extension_test
+    crypto_extension_test.cpp
+    )
+target_link_libraries(crypto_extension_test
+    crypto_extension
+    )
+
+addtest(io_extension_test
+    io_extension_test.cpp
+    )
+target_link_libraries(io_extension_test
+    extensions
+    )
+
 addtest(memory_heap_test memory_heap_test.cpp)
 target_link_libraries(memory_heap_test
     extensions

@@ -10,7 +10,10 @@ namespace libp2p::multi {
   /**
    * Format of stream identifier used in Libp2p
    */
-  class Multistream {};
+  class Multistream {
+
+  };
+
 }  // namespace libp2p::multi
 
 #endif  // KAGOME_MULTISTREAM_HPP

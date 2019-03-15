@@ -6,18 +6,17 @@
 #ifndef KAGOME_RESULT_HPP
 #define KAGOME_RESULT_HPP
 
-#include <ciso646>
-
-#include <boost/optional.hpp>
 #include <boost/variant.hpp>
 
 #include "common/visitor.hpp"
 
 /*
  * Result is a type which represents value or an error, and values and errors
- * are template parametrized. Working with value wrapped in result is done using
- * match() function, which accepts 2 functions: for value and error cases. No
- * accessor functions are provided.
+ * are template parametrized. Working with value wrapped in result is mostly
+ * done using match() function, which accepts 2 functions: for value and error
+ * cases. There are accessor methods which return an std::optional with either
+ * Value or Error, but their usage is recommended to be avoided in favour of
+ * match() function.
  */
 
 namespace kagome::expected {
@@ -62,6 +61,27 @@ namespace kagome::expected {
   Error(T)->Error<T>;
 
   /**
+   * In case of an attempt to extract a Value or an Error from the Result,
+   * when the one is not present, an exception of one of two following types
+   * is thrown. UnwrapException is a common ancestor for them.
+   */
+  class UnwrapException : public std::exception {
+    const char *what() const noexcept override = 0;
+  };
+
+  class NoValueException : public UnwrapException {
+    const char *what() const noexcept override {
+      return "No Value stored in the Result; Check Error";
+    }
+  };
+
+  class NoErrorException : public UnwrapException {
+    const char *what() const noexcept override {
+      return "No Error stored in the Result; Check Value";
+    }
+  };
+
+  /**
    * Result is a specialization of a variant type with value or error
    * semantics.
    * @tparam V type of value
@@ -76,6 +96,8 @@ namespace kagome::expected {
     using ValueType = Value<V>;
     using ErrorType = Error<E>;
 
+    Result() = delete;
+
     /**
      * match is a function which allows working with result's underlying
      * types, you must provide 2 functions to cover success and failure cases.
@@ -87,8 +109,7 @@ namespace kagome::expected {
      */
     template <typename ValueMatch, typename ErrorMatch>
     constexpr auto match(ValueMatch &&value_func, ErrorMatch &&error_func) {
-      return visit_in_place(*this,
-                            std::forward<ValueMatch>(value_func),
+      return visit_in_place(*this, std::forward<ValueMatch>(value_func),
                             std::forward<ErrorMatch>(error_func));
     }
 
@@ -98,9 +119,94 @@ namespace kagome::expected {
     template <typename ValueMatch, typename ErrorMatch>
     constexpr auto match(ValueMatch &&value_func,
                          ErrorMatch &&error_func) const {
-      return visit_in_place(*this,
-                            std::forward<ValueMatch>(value_func),
+      return visit_in_place(*this, std::forward<ValueMatch>(value_func),
                             std::forward<ErrorMatch>(error_func));
+    }
+
+    /**
+     * This method returns a reference to the value,
+     * contained in the Result, if it contains value,
+     * or throws a NoValueException exception otherwise.
+     */
+    V &getValueRef() {
+      return match(
+          [](Value<V> &v) -> std::reference_wrapper<V> { return v.value; },
+          [](const Error<E> &_) -> std::reference_wrapper<V> {
+            throw NoValueException();
+          });
+    }
+
+    /**
+     * This method returns a reference to the error,
+     * contained in the Result, if it contains error,
+     * or throws a NoErrorException exception otherwise.
+     */
+    E &getErrorRef() {
+      return match(
+          [](Error<E> &e) -> std::reference_wrapper<E> { return e.error; },
+          [](const Value<V> &_) -> std::reference_wrapper<E> {
+            throw NoErrorException();
+          });
+    }
+
+    /**
+     * This method returns a reference to the value,
+     * contained in the Result, if it contains value,
+     * or throws a NoValueException exception otherwise.
+     */
+    constexpr const V &getValueRef() const {
+      return match(
+          [](Value<V> &v) -> std::reference_wrapper<V> { return v.value; },
+          [](const Error<E> &_) -> std::reference_wrapper<V> {
+            throw NoValueException();
+          });
+    }
+
+    /**
+     * This method returns a reference to the error,
+     * contained in the Result, if it contains error,
+     * or throws a NoErrorException exception otherwise.
+     */
+    constexpr const E &getErrorRef() const {
+      return match(
+          [](Error<E> &e) -> std::reference_wrapper<E> { return e.error; },
+          [](const Value<V> &_) -> std::reference_wrapper<E> {
+            throw NoErrorException();
+          });
+    }
+
+    /**
+     * This method moves the value contained in the Result, if it was stored,
+     * or throws a NoValueException exception otherwise.
+     */
+    constexpr V getValue() {
+      return match([](Value<V> &v) -> V { return std::forward<V>(v.value); },
+                   [](const Error<E> &_) -> V { throw NoValueException(); });
+    }
+
+    /**
+     * This method moves the error contained in the Result, if
+     * it was stored, or throws a NoErrorException exception otherwise.
+     */
+    constexpr E getError() {
+      return match([](Error<E> &e) -> E { return std::forward<E>(e.error); },
+                   [](const Value<V> &_) -> E { throw NoErrorException(); });
+    }
+
+    /**
+     * Returns true if the result contains a value, else returns false
+     */
+    constexpr bool hasValue() const noexcept {
+      return match([](const Value<V> &v) { return true; },
+                   [](const Error<E> &_) { return false; });
+    }
+
+    /**
+     * Returns true if the result contains an error, else returns false
+     */
+    constexpr bool hasError() const noexcept {
+      return match([](const Value<V> &v) { return false; },
+                   [](const Error<E> &_) { return true; });
     }
 
     /**
@@ -118,8 +224,7 @@ namespace kagome::expected {
     constexpr Result<Value, E> and_res(const Result<Value, E> &new_res) const
         noexcept {
       return visit_in_place(
-          *this,
-          [res = new_res](ValueType) { return res; },
+          *this, [res = new_res](ValueType) { return res; },
           [](ErrorType err) -> Result<Value, E> { return err; });
     }
 
@@ -138,8 +243,7 @@ namespace kagome::expected {
     constexpr Result<Value, E> or_res(const Result<Value, E> &new_res) const
         noexcept {
       return visit_in_place(
-          *this,
-          [](ValueType val) -> Result<Value, E> { return val; },
+          *this, [](ValueType val) -> Result<Value, E> { return val; },
           [res = new_res](ErrorType) { return res; });
     }
   };
@@ -158,8 +262,7 @@ namespace kagome::expected {
   template <typename Err1, typename Err2, typename V, typename Fn>
   Result<V, Err1> map_error(const Result<V, Err2> &res, Fn &&map) noexcept {
     return visit_in_place(
-        res,
-        [](Value<V> val) -> Result<V, Err1> { return val; },
+        res, [](Value<V> val) -> Result<V, Err1> { return val; },
         [map](Error<Err2> err) -> Result<V, Err1> {
           return Error<Err1>{map(err.error)};
         });
@@ -210,9 +313,7 @@ namespace kagome::expected {
    * slower, and should be used ONLY when polymorphic behaviour is required,
    * hence the name. For all other use cases, stick to basic Result
    */
-  template <typename V,
-            typename E,
-            typename VContainer = std::shared_ptr<V>,
+  template <typename V, typename E, typename VContainer = std::shared_ptr<V>,
             typename EContainer = std::shared_ptr<E>>
   using PolymorphicResult = Result<VContainer, EContainer>;
 
