@@ -20,7 +20,7 @@ namespace kagome::extensions {
     if (opt_ptr.has_value()) {
       return *opt_ptr;
     }
-    // not clear from specification what to return when memopry cannot be
+    // FIXME: not clear from specification what to return when memopry cannot be
     // allocated. For now return -1
     logger_->info(
         "There is no space in wasm memory to allocate memory of size {}", size);
