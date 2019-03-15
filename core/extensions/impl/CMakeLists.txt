@@ -23,6 +23,10 @@ target_link_libraries(io_extension
 add_library(memory_extension
     memory_extension.cpp
     )
+target_link_libraries(memory_extension
+    memory
+    logger
+)
 
 add_library(misc_extension
     misc_extension.cpp

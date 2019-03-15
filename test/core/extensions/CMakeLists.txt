@@ -14,10 +14,10 @@ addtest(io_extension_test
     io_extension_test.cpp
     )
 target_link_libraries(io_extension_test
-    extensions
+    io_extension
     )
 
-addtest(memory_heap_test memory_heap_test.cpp)
-target_link_libraries(memory_heap_test
-    extensions
+addtest(memory_extension_test memory_extension_test)
+target_link_libraries(memory_extension_test
+    memory_extension
     )

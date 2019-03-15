@@ -85,9 +85,9 @@ namespace kagome::extensions {
                                         uint32_t key_length) = 0;
 
     /// memory extensions
-    virtual uint8_t *ext_malloc(uint32_t size) = 0;
+    virtual int32_t ext_malloc(uint32_t size) = 0;
 
-    virtual void ext_free(uint8_t *ptr) = 0;
+    virtual void ext_free(int32_t ptr) = 0;
 
     /// I/O extensions
 
