@@ -83,20 +83,19 @@ namespace libp2p::crypto {
      * Generate a key pair
      * @param key_type - desired type of the keys
      * @param bits - bitsize of the keys; minimum 1024
-     * @return pair of <PubKey, PrivKey>
+     * @return key pair
      */
-    virtual std::pair<PublicKey, PrivateKey> generateKeyPair(
-        common::KeyType key_type, uint32_t bits) const = 0;
+    virtual common::KeyPair generateKeyPair(common::KeyType key_type,
+                                            uint32_t bits) const = 0;
 
     /**
      * Generate an ephemeral public key and return a function that will compute
      * the shared secret key
      * @param curve to be used in this ECDH
-     * @return pair of EphemeralPublicKey and a function, which computes the
-     * shared secret key
+     * @return ephemeral key pair
      */
-    virtual std::pair<kagome::common::Buffer, std::function<PrivateKey()>>
-    generateEphemeralKeyPair(common::CurveType curve) const = 0;
+    virtual common::EphemeralKeyPair generateEphemeralKeyPair(
+        common::CurveType curve) const = 0;
 
     /**
      * Generate a set of keys for each party by stretching the shared key

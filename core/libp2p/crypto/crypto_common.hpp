@@ -6,6 +6,12 @@
 #ifndef KAGOME_CRYPTO_COMMON_HPP
 #define KAGOME_CRYPTO_COMMON_HPP
 
+#include <cstdint>
+
+#include "common/buffer.hpp"
+#include "libp2p/crypto/private_key.hpp"
+#include "libp2p/crypto/public_key.hpp"
+
 namespace libp2p::crypto::common {
   /**
    * Values for AES-128
@@ -21,6 +27,22 @@ namespace libp2p::crypto::common {
   struct Aes256Secret {
     uint8_t key[16];
     uint8_t iv[8];
+  };
+
+  /**
+   * Public and private keys
+   */
+  struct KeyPair {
+    PublicKey public_key;
+    PrivateKey private_key;
+  };
+
+  /**
+   * Result of ephemeral key generation
+   */
+  struct EphemeralKeyPair {
+    kagome::common::Buffer ephemeral_public_key;
+    std::function<PrivateKey()> private_key_generator;
   };
 
   /**
