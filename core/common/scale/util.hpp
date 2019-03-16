@@ -36,6 +36,12 @@ namespace kagome::common::scale::impl {
     return ByteArray(result);
   }
 
+  /**
+   * @brief decodeInteger function decodes integer from stream
+   * @tparam T integer type
+   * @param stream source stream
+   * @return decoded value or error
+   */
   template <class T>
   std::optional<T> decodeInteger(Stream &stream) {
     constexpr size_t size = sizeof(T);

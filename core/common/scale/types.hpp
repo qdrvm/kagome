@@ -57,6 +57,7 @@ namespace kagome::common::scale {
     kValueIsTooBig,    ///< cannot handle value, because it is too big,
                        ///< for example number of bytes in collection
     kTooManyItems      ///< too many items
+
   };
 
   /**

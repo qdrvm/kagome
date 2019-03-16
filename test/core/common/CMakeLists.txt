@@ -24,10 +24,45 @@ target_link_libraries(blob_test
   blob
   )
 
-addtest(scale_test
-  scale_test.cpp
+addtest(scale_unspecified_test
+  scale_unspecified_test.cpp
   )
-target_link_libraries(scale_test
+target_link_libraries(scale_unspecified_test
+  scale
+  )
+
+addtest(scale_compact_test
+  scale_compact_test.cpp
+  )
+target_link_libraries(scale_compact_test
+  scale
+  )
+
+addtest(scale_fixed_test
+  scale_fixed_test.cpp
+  )
+target_link_libraries(scale_fixed_test
+  scale
+  )
+
+addtest(scale_boolean_test
+  scale_boolean_test.cpp
+  )
+target_link_libraries(scale_boolean_test
+  scale
+  )
+
+addtest(scale_optional_test
+  scale_optional_test.cpp
+  )
+target_link_libraries(scale_optional_test
+  scale
+  )
+
+addtest(scale_collection_test
+  scale_collection_test.cpp
+  )
+target_link_libraries(scale_collection_test
   scale
   )
 

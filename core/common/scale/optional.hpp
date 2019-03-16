@@ -23,14 +23,14 @@ namespace kagome::common::scale::optional {
       return expected::Value{ByteArray{0}};
     }
 
-    ByteArray result;
-    TypeEncoder<T> encoder;
-    encoder.encode(*optional).match(
-        [&result](const expected::Value<ByteArray> &v) {
-          result.push_back(1);  // flag of value presence
-          result.insert(result.end(), v.value.begin(), v.value.end());
-        },
-        [](const expected::Error<EncodeError> &e) {});
+    auto typeEncodeResult = TypeEncoder<T>{}.encode(*optional);
+    if (typeEncodeResult.hasError()) {
+      return typeEncodeResult;
+    }
+
+    ByteArray result = {1};
+    auto &value_ref = typeEncodeResult.getValueRef();
+    result.insert(result.end(), value_ref.begin(), value_ref.end());
 
     return expected::Value{result};
   }
@@ -60,17 +60,12 @@ namespace kagome::common::scale::optional {
       return expected::Value{std::nullopt};
     }
 
-    TypeDecoder<T> type_decoder;
-    auto r = type_decoder.decode(stream);
-    if (!isSucceeded(r)) {
-      return expected::Error{DecodeError::kInvalidData};
+    auto result = TypeDecoder<T>{}.decode(stream);
+    if (result.hasError()) {
+      return expected::Error{result.getError()};
     }
 
-    T value{};
-    r.match([&value](const expected::Value<T> &v) { value = v.value; },
-            [](const expected::Error<DecodeError> &) {});
-
-    return expected::Value{std::optional<T>{value}};
+    return expected::Value{std::optional<T>{std::move(result.getValueRef())}};
   }
 
   /**

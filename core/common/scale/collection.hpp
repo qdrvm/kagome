@@ -22,42 +22,35 @@ namespace kagome::common::scale::collection {
   template <class T>
   EncodeResult encodeCollection(const std::vector<T> &collection) {
     auto headerResult = compact::encodeInteger(BigInteger{collection.size()});
-    if (!isSucceeded(headerResult)) {
-      return EncodeResult::ErrorType{EncodeError::kEncodeHeaderError};
+    if (headerResult.hasError()) {
+      return headerResult;
     }
 
-    ByteArray result;
-    headerResult.match(
-        [&collection, &result](const expected::Value<ByteArray> &v) {
-          if (std::is_integral<T>()) {
-            size_t bytes_required = v.value.size();
-            bytes_required += collection.size() * sizeof(T);
-            result.reserve(bytes_required);
-          }
+    auto &encoded_header = headerResult.getValueRef();
+    ByteArray encoded_collection;
+    if (std::is_integral<T>()) {
+      size_t bytes_required = encoded_header.size();
+      bytes_required += collection.size() * sizeof(T);
+      encoded_collection.reserve(bytes_required);
+    }
 
-          result.insert(result.end(), v.value.begin(), v.value.end());
-        },
-        [](const expected::Error<EncodeError> &e) {});
+    encoded_collection.insert(encoded_collection.end(), encoded_header.begin(),
+                              encoded_header.end());
 
     TypeEncoder<T> encoder{};
     for (size_t i = 0; i < collection.size(); ++i) {
-      bool is_succeeded = true;
-      encoder.encode(collection[i])
-          .match(
-              [&result](const expected::Value<ByteArray> &v) {
-                result.insert(result.end(), v.value.begin(), v.value.end());
-              },
-              [&is_succeeded](const expected::Error<EncodeError> &) {
-                is_succeeded = false;
-              });
-
-      if (!is_succeeded) {
-        return expected::Error{EncodeError::kFailed};
+      auto res = encoder.encode(collection[i]);
+      if (res.hasError()) {
+        return res;
       }
+      auto &encoded_item = res.getValueRef();
+
+      encoded_collection.insert(encoded_collection.end(), encoded_item.begin(),
+                                encoded_item.end());
     }
 
-    return expected::Value{result};
-  }
+    return expected::Value{encoded_collection};
+  }  // namespace kagome::common::scale::collection
 
   /**
    * @brief DecodeCollectionResult is result of decodeCollection operation
@@ -66,7 +59,8 @@ namespace kagome::common::scale::collection {
   using DecodeCollectionResult = expected::Result<std::vector<T>, DecodeError>;
 
   /**
-   * @brief decodeCollection function decodes collection containing items of same specified type
+   * @brief decodeCollection function decodes collection containing items of
+   * same specified type
    * @tparam T collection item type
    * @param stream source stream
    * @return decoded collection or error
@@ -74,50 +68,43 @@ namespace kagome::common::scale::collection {
   template <class T>
   DecodeCollectionResult<T> decodeCollection(Stream &stream) {
     // determine number of items
-    auto headerResult = compact::decodeInteger(stream);
-    if (!isSucceeded(headerResult)) {
-      return expected::Error{DecodeError::kInvalidData};
+    auto header_result = compact::decodeInteger(stream);
+    if (header_result.hasError()) {
+      return expected::Error{header_result.getError()};
     }
 
-    BigInteger number;
-    headerResult.match(
-        [&number](const expected::Value<BigInteger> &v) { number = v.value; },
-        [](const auto &) {});
-
-    if (number > std::numeric_limits<std::vector<uint8_t>::size_type>::max()) {
+    BigInteger item_count_big = header_result.getValue();
+    if (item_count_big
+        > std::numeric_limits<std::vector<uint8_t>::size_type>::max()) {
       return expected::Error{DecodeError::kTooManyItems};
     }
 
-    auto number_64 = number.convert_to<uint64_t>();
+    auto item_count = item_count_big.convert_to<uint64_t>();
 
-    BigInteger required_bytes = number * sizeof(T);
+    BigInteger required_bytes = item_count_big * sizeof(T);
     if (required_bytes > std::numeric_limits<uint64_t>::max()) {
-      return expected::Error{DecodeError::kInvalidData};
+      return expected::Error{DecodeError::kTooManyItems};
     }
 
     if (!stream.hasMore(required_bytes.convert_to<uint64_t>())) {
       return expected::Error<DecodeError>{DecodeError::kNotEnoughData};
     }
 
-    std::vector<T> resultVector;
-    resultVector.reserve(number.convert_to<size_t>());
+    std::vector<T> decoded_collection;
+    decoded_collection.reserve(item_count);
 
-    TypeDecoder<T> type_decoder{};
     // parse items one by one
-    for (uint64_t i = 0; i < number_64; ++i) {
+    TypeDecoder<T> type_decoder{};
+    for (uint64_t i = 0; i < item_count; ++i) {
       auto r = type_decoder.decode(stream);
-      if (!isSucceeded(r)) {
-        return expected::Error{DecodeError::kInvalidData};
+      if (r.hasError()) {
+        return expected::Error{r.getError()};
       }
 
-      r.match(
-          [&resultVector](const expected::Value<T> &v) {
-            resultVector.push_back(v.value);
-          },
-          [](const expected::Error<DecodeError> &) {});
+      decoded_collection.push_back(std::move(r.getValue()));
     }
 
-    return expected::Value{resultVector};
+    return expected::Value{decoded_collection};
   }
 }  // namespace kagome::common::scale::collection
 
