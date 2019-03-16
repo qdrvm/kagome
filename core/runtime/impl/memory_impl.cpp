@@ -4,7 +4,6 @@
  */
 
 #include "runtime/impl/memory_impl.hpp"
-#include "memory_impl.hpp"
 
 namespace kagome::runtime {
 

@@ -7,6 +7,7 @@
 #define KAGOME_MEMORY_IMPL_HPP
 
 #include <array>
+#include <cstring> // for std::memset
 
 #include "runtime/memory.hpp"
 
