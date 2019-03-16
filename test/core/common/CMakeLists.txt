@@ -24,6 +24,13 @@ target_link_libraries(blob_test
   blob
   )
 
+addtest(scale_test
+  scale_test.cpp
+  )
+target_link_libraries(scale_test
+  scale
+  )
+
 addtest(result_test
     result_test.cpp
     )
