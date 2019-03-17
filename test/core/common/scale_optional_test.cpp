@@ -13,6 +13,11 @@ using namespace kagome;
 using namespace kagome::common;
 using namespace common::scale;
 
+/**
+ * @given variety of optional values
+ * @when encodeOptional function is applied
+ * @then expected result obtained
+ */
 TEST(Scale, encodeOptional) {
   // most simple case
   optional::encodeOptional(std::optional<uint8_t>{std::nullopt})
@@ -62,6 +67,11 @@ TEST(Scale, encodeOptional) {
           [](const expected::Error<EncodeError> &) { FAIL(); });
 }
 
+/**
+ * @given byte stream containing series of encoded optional values
+ * @when decodeOptional function sequencially applied
+ * @then expected values obtained
+ */
 TEST(Scale, decodeOptional) {
   // clang-format off
     auto bytes = ByteArray{
@@ -121,4 +131,87 @@ TEST(Scale, decodeOptional) {
         ASSERT_EQ((*v.value), 67305985);
       },
       [](const expected::Error<DecodeError> &) { FAIL(); });
+}
+
+/**
+ * Optional bool is a special case of optinal values in SCALE
+ * Optional bools are encoded using only 1 byte
+ * 0 means no value, 1 means false, 2 means true
+ */
+
+/**
+ * @given stream containing series of encoded optionalBool values
+ * @when decodeOptional<bool> function is applied
+ * @then expected values obtained
+ */
+TEST(Scale, decodeoptionalBool) {
+  auto bytes = ByteArray{0, 1, 2, 3};
+  auto stream = BasicStream{bytes};
+
+  // decode none
+  optional::decodeOptional<bool>(stream).match(
+      [](const expected::Value<std::optional<bool>> &v) {
+        ASSERT_EQ(v.value.has_value(), false);
+      },
+      [](const expected::Error<DecodeError> &) { FAIL(); });
+
+  // decode false
+  optional::decodeOptional<bool>(stream).match(
+      [](const expected::Value<std::optional<bool>> &v) {
+        ASSERT_EQ(v.value.has_value(), true);
+        ASSERT_EQ(*v.value, false);
+      },
+      [](const expected::Error<DecodeError> &) { FAIL(); });
+
+  // decode true
+  optional::decodeOptional<bool>(stream).match(
+      [](const expected::Value<std::optional<bool>> &v) {
+        ASSERT_EQ(v.value.has_value(), true);
+        ASSERT_EQ(*v.value, true);
+      },
+      [](const expected::Error<DecodeError> &) { FAIL(); });
+
+  // dedode error unexpected value
+  optional::decodeOptional<bool>(stream).match(
+      [](const expected::Value<std::optional<bool>> &v) { FAIL(); },
+      [](const expected::Error<DecodeError> &e) {
+        ASSERT_EQ(e.error, DecodeError::kUnexpectedValue);
+      });
+
+  // not enough data
+  optional::decodeOptional<bool>(stream).match(
+      [](const expected::Value<std::optional<bool>> &v) { FAIL(); },
+      [](const expected::Error<DecodeError> &e) {
+        ASSERT_EQ(e.error, DecodeError::kNotEnoughData);
+      });
+}
+
+/**
+ * @given series of all possible values of optional bool value
+ * @when encodeOptional<bool> is applied
+ * @then expected values obtained
+ */
+TEST(Scale, encodeOptionalBool) {
+  // encode none
+  optional::encodeOptional(std::optional<bool>{std::nullopt})
+      .match(
+          [](const expected::Value<ByteArray> &v) {
+            ASSERT_EQ(v.value, (ByteArray{0}));
+          },
+          [](const expected::Error<EncodeError> &) { FAIL(); });
+
+  // encode false
+  optional::encodeOptional(std::optional<bool>{false})
+      .match(
+          [](const expected::Value<ByteArray> &v) {
+            ASSERT_EQ(v.value, (ByteArray{1}));
+          },
+          [](const expected::Error<EncodeError> &) { FAIL(); });
+
+  optional::encodeOptional(std::optional<bool>{true})
+      .match(
+          [](const expected::Value<ByteArray> &v) {
+            ASSERT_EQ(v.value, (ByteArray{2}));
+          },
+          [](const expected::Error<EncodeError> &) { FAIL(); });
 }
