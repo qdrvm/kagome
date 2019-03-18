@@ -165,9 +165,10 @@ namespace libp2p::crypto {
      * @param hash - hashing algorithm
      * @return a new password
      */
-    virtual std::string pbkdf2(std::string_view password, std::string_view salt,
-                               uint64_t iterations, size_t key_size,
-                               common::HashType hash) const = 0;
+    virtual kagome::common::Buffer pbkdf2(std::string_view password,
+                                          const kagome::common::Buffer &salt,
+                                          uint64_t iterations, size_t key_size,
+                                          common::HashType hash) const = 0;
   };
 }  // namespace libp2p::crypto
 
