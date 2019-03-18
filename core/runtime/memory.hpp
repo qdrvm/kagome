@@ -6,12 +6,7 @@
 #ifndef KAGOME_MEMORY_HPP
 #define KAGOME_MEMORY_HPP
 
-#include <memory>
 #include <optional>
-#include <unordered_map>
-#include <vector>
-
-#include "common/bind.hpp"
 
 namespace kagome::runtime {
 
@@ -24,10 +19,12 @@ namespace kagome::runtime {
   // simulated.
   class Memory {
    public:
-    // Address type of wasm memory is 32 bit integer
-    using AddressType = uint32_t;
-    // Size type is defined by AddressType
-    using SizeType = AddressType;
+    // Pointer type of wasm memory is 32 bit integer
+    using WasmPointer = int32_t;
+    // Size type is uint32_t because we are working in 32 bit address space
+    using SizeType = uint32_t;
+
+    const static auto kMaxMemorySize = std::numeric_limits<SizeType>::max();
 
     /**
      * Resizes memory to the given size
@@ -39,9 +36,9 @@ namespace kagome::runtime {
      * Allocates memory of given size and returns address in the memory
      * @param size allocated memory size
      * @return address to allocated memory. If there is no available slot for
-     * such allocation, then none is returned
+     * such allocation, then -1 is returned
      */
-    virtual std::optional<AddressType> allocate(SizeType size) = 0;
+    virtual WasmPointer allocate(SizeType size) = 0;
 
     /**
      * Deallocates memory in provided region
@@ -49,29 +46,29 @@ namespace kagome::runtime {
      * @return size of deallocated memory or none if given address does not
      * point to any allocated pieces of memory
      */
-    virtual std::optional<SizeType> deallocate(AddressType ptr) = 0;
+    virtual std::optional<SizeType> deallocate(WasmPointer ptr) = 0;
 
     /**
      * Load integers from provided address
      */
-    virtual int8_t load8s(AddressType addr) = 0;
-    virtual uint8_t load8u(AddressType addr) = 0;
-    virtual int16_t load16s(AddressType addr) = 0;
-    virtual uint16_t load16u(AddressType addr) = 0;
-    virtual int32_t load32s(AddressType addr) = 0;
-    virtual uint32_t load32u(AddressType addr) = 0;
-    virtual int64_t load64s(AddressType addr) = 0;
-    virtual uint64_t load64u(AddressType addr) = 0;
-    virtual std::array<uint8_t, 16> load128(AddressType addr) = 0;
+    virtual int8_t load8s(WasmPointer addr) const = 0;
+    virtual uint8_t load8u(WasmPointer addr) const = 0;
+    virtual int16_t load16s(WasmPointer addr) const = 0;
+    virtual uint16_t load16u(WasmPointer addr) const = 0;
+    virtual int32_t load32s(WasmPointer addr) const = 0;
+    virtual uint32_t load32u(WasmPointer addr) const = 0;
+    virtual int64_t load64s(WasmPointer addr) const = 0;
+    virtual uint64_t load64u(WasmPointer addr) const = 0;
+    virtual std::array<uint8_t, 16> load128(WasmPointer addr) const = 0;
 
     /**
      * Store integers at given address of the wasm memory
      */
-    virtual void store8(AddressType addr, int8_t value) = 0;
-    virtual void store16(AddressType addr, int16_t value) = 0;
-    virtual void store32(AddressType addr, int32_t value) = 0;
-    virtual void store64(AddressType addr, int64_t value) = 0;
-    virtual void store128(AddressType addr,
+    virtual void store8(WasmPointer addr, int8_t value) = 0;
+    virtual void store16(WasmPointer addr, int16_t value) = 0;
+    virtual void store32(WasmPointer addr, int32_t value) = 0;
+    virtual void store64(WasmPointer addr, int64_t value) = 0;
+    virtual void store128(WasmPointer addr,
                           const std::array<uint8_t, 16> &value) = 0;
   };
 }  // namespace kagome::runtime

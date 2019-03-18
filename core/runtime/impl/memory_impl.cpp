@@ -12,13 +12,13 @@ namespace kagome::runtime {
   }
 
   MemoryImpl::MemoryImpl(SizeType size) : MemoryImpl() {
-    memory_.resize(size);
+    resize(size);
   }
 
   void MemoryImpl::resize(uint32_t newSize) {
     // Ensure the smallest allocation is large enough that most allocators
     // will provide page-aligned storage. This hopefully allows the
-    // interpreter's MemoryImpl to be as aligned as the MemoryImpl being
+    // interpreter's memory to be as aligned as the MemoryImpl being
     // simulated, ensuring that the performance doesn't needlessly degrade.
     //
     // The code is optimistic this will work until WG21's p0035r0 happens.
@@ -30,16 +30,16 @@ namespace kagome::runtime {
     }
   }
 
-  std::optional<Memory::AddressType> MemoryImpl::allocate(SizeType size) {
+  Memory::WasmPointer MemoryImpl::allocate(SizeType size) {
     if (size == 0) {
       return 0;
-    }
-    if (size > memory_.size()) {
-      return {};
     }
     const auto ptr = offset_;
     const auto new_offset = ptr + size;
 
+    if (new_offset < ptr) {  // overflow
+      return -1;
+    }
     if (new_offset <= memory_.size()) {
       offset_ = new_offset;
       allocated[ptr] = size;
@@ -49,7 +49,7 @@ namespace kagome::runtime {
     return freealloc(size);
   }
 
-  std::optional<Memory::SizeType> MemoryImpl::deallocate(AddressType ptr) {
+  std::optional<Memory::SizeType> MemoryImpl::deallocate(WasmPointer ptr) {
     const auto &it = allocated.find(ptr);
     if (it == allocated.end()) {
       return std::nullopt;
@@ -62,18 +62,21 @@ namespace kagome::runtime {
     return size;
   }
 
-  std::optional<Memory::AddressType> MemoryImpl::freealloc(SizeType size) {
-    return findContaining(size) | [&](const auto ptr) {
-      deallocated.erase(ptr);
-      allocated[ptr] = size;
-
-      return std::make_optional(ptr);
-    };
+  Memory::WasmPointer MemoryImpl::freealloc(SizeType size) {
+    auto ptr = findContaining(size);
+    if (ptr == -1) {
+      // if did not find available space among deallocated memory chunks, then
+      // grow memory and allocate in new space
+      return growAlloc(size);
+    }
+    deallocated.erase(ptr);
+    allocated[ptr] = size;
+    return ptr;
   }
 
-  std::optional<Memory::AddressType> MemoryImpl::findContaining(SizeType size) {
-    auto min_value = std::numeric_limits<AddressType>::max();
-    std::optional<AddressType> min_key = std::nullopt;
+  Memory::WasmPointer MemoryImpl::findContaining(SizeType size) {
+    auto min_value = std::numeric_limits<WasmPointer>::max();
+    WasmPointer min_key = -1;
     for (const auto &[key, value] : deallocated) {
       if (value < min_value and value >= size) {
         min_value = value;
@@ -83,47 +86,65 @@ namespace kagome::runtime {
     return min_key;
   }
 
-  int8_t MemoryImpl::load8s(Memory::AddressType addr) {
+  Memory::WasmPointer MemoryImpl::growAlloc(SizeType size) {
+    // check that we do not exceed max memory size
+    if (offset_ > kMaxMemorySize - size) {
+      return -1;
+    }
+    // try to increase memory size up to offset + size * 4 (we multiply by 4 to
+    // have more memory than currently needed to avoid resizing every time when
+    // we exceed current memory)
+    if (offset_ < kMaxMemorySize - size * 4) {
+      memory_.resize(offset_ + size * 4);
+    } else {
+      // if we can't increase by size * 4 then increase memory size by provided
+      // size
+      memory_.resize(offset_ + size);
+    }
+    return allocate(size);
+  }
+
+  int8_t MemoryImpl::load8s(Memory::WasmPointer addr) const {
     return get<int8_t>(addr);
   }
-  uint8_t MemoryImpl::load8u(Memory::AddressType addr) {
+  uint8_t MemoryImpl::load8u(Memory::WasmPointer addr) const {
     return get<uint8_t>(addr);
   }
-  int16_t MemoryImpl::load16s(Memory::AddressType addr) {
+  int16_t MemoryImpl::load16s(Memory::WasmPointer addr) const {
     return get<int16_t>(addr);
   }
-  uint16_t MemoryImpl::load16u(Memory::AddressType addr) {
+  uint16_t MemoryImpl::load16u(Memory::WasmPointer addr) const {
     return get<uint16_t>(addr);
   }
-  int32_t MemoryImpl::load32s(Memory::AddressType addr) {
+  int32_t MemoryImpl::load32s(Memory::WasmPointer addr) const {
     return get<int32_t>(addr);
   }
-  uint32_t MemoryImpl::load32u(Memory::AddressType addr) {
+  uint32_t MemoryImpl::load32u(Memory::WasmPointer addr) const {
     return get<uint32_t>(addr);
   }
-  int64_t MemoryImpl::load64s(Memory::AddressType addr) {
+  int64_t MemoryImpl::load64s(Memory::WasmPointer addr) const {
     return get<int64_t>(addr);
   }
-  uint64_t MemoryImpl::load64u(Memory::AddressType addr) {
+  uint64_t MemoryImpl::load64u(Memory::WasmPointer addr) const {
     return get<uint64_t>(addr);
   }
-  std::array<uint8_t, 16> MemoryImpl::load128(Memory::AddressType addr) {
+  std::array<uint8_t, 16> MemoryImpl::load128(Memory::WasmPointer addr) const {
     return get<std::array<uint8_t, 16>>(addr);
   }
 
-  void MemoryImpl::store8(Memory::AddressType addr, int8_t value) {
+  void MemoryImpl::store8(Memory::WasmPointer addr, int8_t value) {
     set<int8_t>(addr, value);
   }
-  void MemoryImpl::store16(Memory::AddressType addr, int16_t value) {
+  void MemoryImpl::store16(Memory::WasmPointer addr, int16_t value) {
     set<int16_t>(addr, value);
   }
-  void MemoryImpl::store32(Memory::AddressType addr, int32_t value) {
+  void MemoryImpl::store32(Memory::WasmPointer addr, int32_t value) {
     set<int32_t>(addr, value);
   }
-  void MemoryImpl::store64(Memory::AddressType addr, int64_t value) {
+  void MemoryImpl::store64(Memory::WasmPointer addr, int64_t value) {
     set<int64_t>(addr, value);
   }
-  void MemoryImpl::store128(Memory::AddressType addr,
+  void MemoryImpl::store128(Memory::WasmPointer addr,
                             const std::array<uint8_t, 16> &value) {
     set<std::array<uint8_t, 16>>(addr, value);
   }

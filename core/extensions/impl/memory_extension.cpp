@@ -1,3 +1,7 @@
+#include <utility>
+
+#include <utility>
+
 /**
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
@@ -6,25 +10,17 @@
 #include <exception>
 
 #include "extensions/impl/memory_extension.hpp"
-#include "memory_extension.hpp"
 
 namespace kagome::extensions {
-  MemoryExtension::MemoryExtension()
-      : logger_{common::createLogger("WASM Runtime [MemoryExtension]")} {}
+  MemoryExtension::MemoryExtension(common::Logger logger)
+      : logger_(std::move(logger)) {}
 
-  MemoryExtension::MemoryExtension(std::shared_ptr<runtime::Memory> memory)
-      : memory_(std::move(memory)) {}
+  MemoryExtension::MemoryExtension(std::shared_ptr<runtime::Memory> memory,
+                                   common::Logger logger)
+      : memory_(std::move(memory)), logger_(std::move(logger)) {}
 
   int32_t MemoryExtension::ext_malloc(uint32_t size) {
-    auto opt_ptr = memory_->allocate(size);
-    if (opt_ptr.has_value()) {
-      return *opt_ptr;
-    }
-    // FIXME: not clear from specification what to return when memopry cannot be
-    // allocated. For now return -1
-    logger_->info(
-        "There is no space in wasm memory to allocate memory of size {}", size);
-    return -1;
+    return memory_->allocate(size);
   }
 
   void MemoryExtension::ext_free(int32_t ptr) {

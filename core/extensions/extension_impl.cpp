@@ -219,4 +219,3 @@ namespace kagome::extensions {
   }
 
 }  // namespace kagome::extensions
-   // namespace extensions

@@ -85,8 +85,19 @@ namespace kagome::extensions {
                                         uint32_t key_length) = 0;
 
     /// memory extensions
+    /**
+     * allocate wasm memory of given size returning a pointer to the beginning
+     * of allocated memory chunk
+     * @param size number of bytes to allocate
+     * @return pointer to the beginning of allocated memory chunk. If memory
+     * cannot be allocated then return -1
+     */
     virtual int32_t ext_malloc(uint32_t size) = 0;
 
+    /**
+     * Deallocate the space previously allocated by ext_malloc
+     * @param ptr pointer to the memory to deallocate
+     */
     virtual void ext_free(int32_t ptr) = 0;
 
     /// I/O extensions
