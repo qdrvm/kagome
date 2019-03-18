@@ -6,10 +6,13 @@
 #ifndef KAGOME_SCALE_ADVANCED_HPP
 #define KAGOME_SCALE_ADVANCED_HPP
 
+#include <gsl/span>
+
 #include "common/scale/compact.hpp"
 #include "common/scale/fixedwidth.hpp"
 #include "common/scale/type_decoder.hpp"
 #include "common/scale/type_encoder.hpp"
+#include "common/buffer.hpp"
 
 namespace kagome::common::scale::collection {
   /**
@@ -20,36 +23,24 @@ namespace kagome::common::scale::collection {
    *  @return byte array containing encoded collection
    */
   template <class T>
-  EncodeResult encodeCollection(const std::vector<T> &collection) {
-    auto headerResult = compact::encodeInteger(BigInteger{collection.size()});
-    if (headerResult.hasError()) {
-      return headerResult;
+  EncodeResult encodeCollection(const std::vector<T> &collection, Buffer & out) {
+    Buffer encoded_collection;
+    auto header_result = compact::encodeInteger(collection.size(), encoded_collection);
+    if (header_result != EncodeResult::kSuccess) {
+      return header_result;
     }
-
-    auto &encoded_header = headerResult.getValueRef();
-    ByteArray encoded_collection;
-    if (std::is_integral<T>()) {
-      size_t bytes_required = encoded_header.size();
-      bytes_required += collection.size() * sizeof(T);
-      encoded_collection.reserve(bytes_required);
-    }
-
-    encoded_collection.insert(encoded_collection.end(), encoded_header.begin(),
-                              encoded_header.end());
 
     TypeEncoder<T> encoder{};
     for (size_t i = 0; i < collection.size(); ++i) {
-      auto res = encoder.encode(collection[i]);
-      if (res.hasError()) {
-        return res;
+      auto encode_result = encoder.encode(collection[i], encoded_collection);
+      if (encode_result != EncodeResult::kSuccess) {
+        return encode_result;
       }
-      auto &encoded_item = res.getValueRef();
-
-      encoded_collection.insert(encoded_collection.end(), encoded_item.begin(),
-                                encoded_item.end());
     }
 
-    return expected::Value{encoded_collection};
+    out.put(encoded_collection.toVector());
+
+    return EncodeError::kSuccess;
   }  // namespace kagome::common::scale::collection
 
   /**

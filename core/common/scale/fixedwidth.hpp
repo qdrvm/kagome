@@ -8,6 +8,7 @@
 
 #include "common/result.hpp"
 #include "common/scale/types.hpp"
+#include "common/buffer.hpp"
 
 namespace kagome::common::scale::fixedwidth {
   // 8 bit
@@ -16,14 +17,14 @@ namespace kagome::common::scale::fixedwidth {
    * @param value source value
    * @return encoded value
    */
-  ByteArray encodeInt8(int8_t value);
+  void encodeInt8(int8_t value, Buffer & out);
 
   /**
    * @brief encodeUInt8 encodes uint8_t from host- to little- endian
    * @param value source value
    * @return byte array representing encoded value
    */
-  ByteArray encodeUInt8(uint8_t value);
+  void encodeUInt8(uint8_t value, Buffer & out);
 
   // 16 bit
   /**
@@ -31,14 +32,14 @@ namespace kagome::common::scale::fixedwidth {
    * @param value source value
    * @return byte array representing encoded value
    */
-  ByteArray encodeInt16(int16_t value);
+  void encodeInt16(int16_t value, Buffer & out);
 
   /**
    * @brief encodeUint16 encodes uint16_t from host- to little- endian
    * @param value source value
    * @return byte array representing encoded value
    */
-  ByteArray encodeUint16(uint16_t value);
+  void encodeUint16(uint16_t value, Buffer & out);
 
   // 32 bit
   /**
@@ -46,14 +47,14 @@ namespace kagome::common::scale::fixedwidth {
    * @param value source value
    * @return byte array representing encoded value
    */
-  ByteArray encodeInt32(int32_t value);
+  void encodeInt32(int32_t value, Buffer & out);
 
   /**
    * @brief encodeUint32 encodes uint32_t from host- to little- endian
    * @param value source value
    * @return byte array representing encoded value
    */
-  ByteArray encodeUint32(uint32_t value);
+  void encodeUint32(uint32_t value, Buffer & out);
 
   // 64 bit
   /**
@@ -61,14 +62,14 @@ namespace kagome::common::scale::fixedwidth {
    * @param value source value
    * @return byte array representing encoded value
    */
-  ByteArray encodeInt64(int64_t value);
+  void encodeInt64(int64_t value, Buffer & out);
 
   /**
    * @brief encodeInt64 encodes int64_t from host- to little- endian
    * @param value source value
    * @return byte array representing encoded value
    */
-  ByteArray encodeUint64(uint64_t value);
+  void encodeUint64(uint64_t value, Buffer & out);
 
   // 8 bit
   /**

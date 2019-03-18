@@ -17,25 +17,28 @@ namespace kagome::common::scale {
   struct TypeEncoder {
     // if required to calculate size, we can add
     // canCalculateSize() and calculateSize(const T& item) methods
-    EncodeResult encode(const T &item) const {
+    EncodeResult encode(const T &item, Buffer &out) {
       static_assert(std::is_integral<T>(),
                     "Only integral types are supported. You need to define "
                     "your own TypeDecoder specialization for custom type.");
-      return expected::Value{impl::encodeInteger<T>(item)};
+      impl::encodeInteger<T>(item, out);
+      return EncodeError::kSuccess;
     };
   };
 
   template <>
   struct TypeEncoder<bool> {
-    EncodeResult encode(bool item) const {
-      return expected::Value{ByteArray{boolean::encodeBool(item)}};
+    EncodeResult encode(bool item, Buffer &out) const {
+      boolean::encodeBool(item, out);
+        return EncodeError::kSuccess;
     }
   };
 
   template <>
   struct TypeEncoder<tribool> {
-    EncodeResult encode(tribool item) const {
-      return expected::Value{ByteArray{boolean::encodeTribool(item)}};
+    EncodeResult encode(tribool item, Buffer & out) const {
+      boolean::encodeTribool(item, out);
+      return EncodeError::kSuccess;
     }
   };
 }  // namespace kagome::common::scale

@@ -20,27 +20,16 @@ using namespace common::scale;
  */
 TEST(Scale, encodeCollectionOf80) {
   // 80 items of value 1
-  std::vector<uint8_t> collection = {
-      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-      1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-  };
-  auto res = collection::encodeCollection(collection);
-  res.match(
-      [&collection](const EncodeResult::ValueType &v) {
-        // clang-format off
-                ASSERT_EQ(v.value,
-                          (ByteArray{65, 1, // header: 80 > 63 so 2 bytes required
-                                  // (80 << 2) + 1 = 321 = 65 + 256 * 1
-                                     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                                     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                                     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                                     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                          }));
-        // clang-format on
-      },
-      [](const EncodeResult::ErrorType &e) { FAIL(); });
+  const Buffer collection(80, 1);
+  auto out_bytes = Buffer{65, 1};
+  out_bytes.put(collection.toVector());
+  Buffer out;
+  auto res = collection::encodeCollection(collection.toVector(), out);
+  ASSERT_EQ(res, EncodeError::kSuccess);
+  ASSERT_EQ(out.toVector().size(), 82);
+  // clang-format off
+  ASSERT_EQ(out.toVector(), out_bytes.toVector());
+  // clang-format on
 }
 
 /**
@@ -50,23 +39,22 @@ TEST(Scale, encodeCollectionOf80) {
  */
 TEST(Scale, encodeCollectionUint16) {
   std::vector<uint16_t> collection = {1, 2, 3, 4};
-  auto res = collection::encodeCollection(collection);
-  res.match(
-      [&collection](const EncodeResult::ValueType &v) {
-        // clang-format off
-                ASSERT_EQ(v.value,
-                          (ByteArray{
-                                  16,  // header
-                                  1, 0,  // first item
-                                  2, 0,  // second item
-                                  3, 0,  // third item
-                                  4, 0  // fourth item
-                          }));
-        // clang-format on
-      },
-      [](const EncodeResult::ErrorType &e) { FAIL(); });
+  Buffer out;
+  auto res = collection::encodeCollection(collection, out);
+  ASSERT_EQ(res, EncodeError::kSuccess);
+  // clang-format off
+  ASSERT_EQ(out.toVector(),
+          (ByteArray{
+              16,  // header
+            1, 0,  // first item
+            2, 0,  // second item
+            3, 0,  // third item
+            4, 0  // fourth item
+              }));
+  // clang-format on
 }
-// check the same for 4 and 8 bytes
+
+// TODO: check the same for 4 and 8 bytes
 
 /**
  * @given collection of items of type uint16_t containing 2^14 items
@@ -83,36 +71,37 @@ TEST(Scale, encodeLongCollectionUint16) {
     collection.push_back(i % 256);
   }
 
-  auto res = collection::encodeCollection(collection);
-  res.match(
-      [&collection, length](const EncodeResult::ValueType &v) {
-        ASSERT_EQ(v.value.size(), (length * 2 + 4));
-        // header takes 4 byte,
-        // first 4 bytes represent le-encoded value 2^16 + 2
-        // which is compact-encoded value 2^14 = 16384
-        auto stream = BasicStream(v.value);
+  Buffer out;
 
-        compact::decodeInteger(stream).match(
-            [](const compact::DecodeIntegerResult::ValueType &bi) {
-              ASSERT_EQ(bi.value, 16384);
-            },
-            [](const compact::DecodeIntegerResult::ErrorType &) { FAIL(); });
-        // now only 32768 bytes left in stream
-        ASSERT_EQ(stream.hasMore(32768), true);
-        ASSERT_EQ(stream.hasMore(32769), false);
+  auto res = collection::encodeCollection(collection, out);
+  ASSERT_EQ(res, EncodeError::kSuccess);
+  ASSERT_EQ(out.size(), (length * 2 + 4));
 
-        for (auto i = 0; i < length; ++i) {
-          auto byte = stream.nextByte();
-          ASSERT_EQ(byte.has_value(), true);
-          ASSERT_EQ((*byte), i % 256);
-          byte = stream.nextByte();
-          ASSERT_EQ(byte.has_value(), true);
-          ASSERT_EQ((*byte), 0);
-        }
+  // header takes 4 byte,
+  // first 4 bytes represent le-encoded value 2^16 + 2
+  // which is compact-encoded value 2^14 = 16384
+  auto stream = BasicStream(out.toVector());
 
-        ASSERT_EQ(stream.hasMore(1), false);
+  compact::decodeInteger(stream).match(
+      [](const compact::DecodeIntegerResult::ValueType &bi) {
+        ASSERT_EQ(bi.value, 16384);
       },
-      [](const EncodeResult::ErrorType &e) { FAIL(); });
+      [](const compact::DecodeIntegerResult::ErrorType &) { FAIL(); });
+
+  // now only 32768 bytes left in stream
+  ASSERT_EQ(stream.hasMore(32768), true);
+  ASSERT_EQ(stream.hasMore(32769), false);
+
+  for (auto i = 0; i < length; ++i) {
+    auto byte = stream.nextByte();
+    ASSERT_EQ(byte.has_value(), true);
+    ASSERT_EQ((*byte), i % 256);
+    byte = stream.nextByte();
+    ASSERT_EQ(byte.has_value(), true);
+    ASSERT_EQ((*byte), 0);
+  }
+
+  ASSERT_EQ(stream.hasMore(1), false);
 }
 
 /**
@@ -133,35 +122,33 @@ TEST(Scale, encodeVeryLongCollectionUint8) {
     collection.push_back(i % 256);
   }
 
-  auto res = collection::encodeCollection(collection);
-  res.match(
-      [&collection, length](const EncodeResult::ValueType &v) {
-        ASSERT_EQ(v.value.size(), (length + 4));
-        // header takes 4 bytes,
-        // first byte == (4-4) + 3 = 3, which means that number of items
-        // requires 4 bytes
-        // 3 next bytes are 0, and the last 4-th == 2^6 == 64
-        // which is compact-encoded value 2^14 = 16384
-        auto stream = BasicStream(v.value);
+  Buffer out;
+  auto res = collection::encodeCollection(collection, out);
+  ASSERT_EQ(res, EncodeError::kSuccess);
+  ASSERT_EQ(out.size(), (length + 4));
+  // header takes 4 bytes,
+  // first byte == (4-4) + 3 = 3, which means that number of items
+  // requires 4 bytes
+  // 3 next bytes are 0, and the last 4-th == 2^6 == 64
+  // which is compact-encoded value 2^14 = 16384
+  auto stream = BasicStream(out.toVector());
 
-        compact::decodeInteger(stream).match(
-            [](const compact::DecodeIntegerResult::ValueType &bi) {
-              ASSERT_EQ(bi.value, 1048576);
-            },
-            [](const compact::DecodeIntegerResult::ErrorType &) { FAIL(); });
-        // now only 1048576 bytes left in stream
-        ASSERT_EQ(stream.hasMore(1048576), true);
-        ASSERT_EQ(stream.hasMore(1048576 + 1), false);
-
-        for (auto i = 0; i < length; ++i) {
-          auto byte = stream.nextByte();
-          ASSERT_EQ(byte.has_value(), true);
-          ASSERT_EQ((*byte), i % 256);
-        }
-
-        ASSERT_EQ(stream.hasMore(1), false);
+  compact::decodeInteger(stream).match(
+      [](const compact::DecodeIntegerResult::ValueType &bi) {
+        ASSERT_EQ(bi.value, 1048576);
       },
-      [](const EncodeResult::ErrorType &e) { FAIL(); });
+      [](const compact::DecodeIntegerResult::ErrorType &) { FAIL(); });
+  // now only 1048576 bytes left in stream
+  ASSERT_EQ(stream.hasMore(1048576), true);
+  ASSERT_EQ(stream.hasMore(1048576 + 1), false);
+
+  for (auto i = 0; i < length; ++i) {
+    auto byte = stream.nextByte();
+    ASSERT_EQ(byte.has_value(), true);
+    ASSERT_EQ((*byte), i % 256);
+  }
+
+  ASSERT_EQ(stream.hasMore(1), false);
 }
 
 // following test takes too much time, don't run it
@@ -182,35 +169,33 @@ TEST(Scale, DISABLED_encodeVeryLongCollectionUint8) {
     collection.push_back(i % 256);
   }
 
-  auto res = collection::encodeCollection(collection);
-  res.match(
-      [&collection, length](const EncodeResult::ValueType &v) {
-        ASSERT_EQ(v.value.size(), (length + 4));
-        // header takes 4 bytes,
-        // first byte == (4-4) + 3 = 3, which means that number of items
-        // requires 4 bytes
-        // 3 next bytes are 0, and the last 4-th == 2^6 == 64
-        // which is compact-encoded value 2^14 = 16384
-        auto stream = BasicStream(v.value);
+  Buffer out;
+  auto res = collection::encodeCollection(collection, out);
+  ASSERT_EQ(res, EncodeError::kSuccess);
+  ASSERT_EQ(out.size(), (length + 4));
+  // header takes 4 bytes,
+  // first byte == (4-4) + 3 = 3, which means that number of items
+  // requires 4 bytes
+  // 3 next bytes are 0, and the last 4-th == 2^6 == 64
+  // which is compact-encoded value 2^14 = 16384
+  auto stream = BasicStream(out.toVector());
 
-        compact::decodeInteger(stream).match(
-            [length](const compact::DecodeIntegerResult::ValueType &bi) {
-              ASSERT_EQ(bi.value, length);
-            },
-            [](const compact::DecodeIntegerResult::ErrorType &) { FAIL(); });
-        // now only 1048576 bytes left in stream
-        ASSERT_EQ(stream.hasMore(length), true);
-        ASSERT_EQ(stream.hasMore(length + 1), false);
-
-        for (auto i = 0; i < length; ++i) {
-          auto byte = stream.nextByte();
-          ASSERT_EQ(byte.has_value(), true);
-          ASSERT_EQ((*byte), i % 256);
-        }
-
-        ASSERT_EQ(stream.hasMore(1), false);
+  compact::decodeInteger(stream).match(
+      [length](const compact::DecodeIntegerResult::ValueType &bi) {
+        ASSERT_EQ(bi.value, length);
       },
-      [](const EncodeResult::ErrorType &e) { FAIL(); });
+      [](const compact::DecodeIntegerResult::ErrorType &) { FAIL(); });
+  // now only 1048576 bytes left in stream
+  ASSERT_EQ(stream.hasMore(length), true);
+  ASSERT_EQ(stream.hasMore(length + 1), false);
+
+  for (auto i = 0; i < length; ++i) {
+    auto byte = stream.nextByte();
+    ASSERT_EQ(byte.has_value(), true);
+    ASSERT_EQ((*byte), i % 256);
+  }
+
+  ASSERT_EQ(stream.hasMore(1), false);
 }
 
 /**
@@ -253,17 +238,16 @@ TEST(Scale, decodeLongCollectionOfUint8) {
     collection.push_back(i % 256);
   }
 
-  auto res = collection::encodeCollection(collection);
-  res.match(
-      [&collection, length](const EncodeResult::ValueType &v) {
-        auto stream = BasicStream(v.value);
-        auto decodeResult = collection::decodeCollection<uint8_t>(stream);
-        decodeResult.match(
-            [&collection](
-                collection::DecodeCollectionResult<uint8_t>::ValueType &val) {
-              ASSERT_EQ(val.value, collection);
-            },
-            [](expected::Error<DecodeError> &) { FAIL(); });
+  Buffer out;
+  auto res = collection::encodeCollection(collection, out);
+  ASSERT_EQ(res, EncodeError::kSuccess);
+
+  auto stream = BasicStream(out.toVector());
+  auto decodeResult = collection::decodeCollection<uint8_t>(stream);
+  decodeResult.match(
+      [&collection](
+          collection::DecodeCollectionResult<uint8_t>::ValueType &val) {
+        ASSERT_EQ(val.value, collection);
       },
-      [](const EncodeResult::ErrorType &e) { FAIL(); });
+      [](expected::Error<DecodeError> &) { FAIL(); });
 }

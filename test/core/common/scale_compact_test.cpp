@@ -187,11 +187,10 @@ TEST(Scale, compactDecodeBigIntegerError) {
  */
 TEST(Scale, compactEncodeFirstCategory) {
   // encode MAX_UI8 := 63
-  compact::encodeInteger(63).match(
-      [&](const expected::Value<ByteArray> &res) {
-        ASSERT_EQ(res.value, std::vector<uint8_t>({252}));
-      },
-      [&](const expected::Error<EncodeError> &) { FAIL(); });
+  Buffer out;
+  auto res = compact::encodeInteger(63, out);
+  ASSERT_EQ(res, EncodeError::kSuccess);
+  ASSERT_EQ(out.toVector(), std::vector<uint8_t>({252}));
 }
 
 /**
@@ -200,33 +199,37 @@ TEST(Scale, compactEncodeFirstCategory) {
  * @then obtain expected result: 2 bytes representation
  */
 TEST(Scale, compactEncodeSecondCategory) {
-  // encode MIN_UI16 := MAX_UI8 + 1
-  compact::encodeInteger(64).match(
-      [&](const expected::Value<ByteArray> &res) {
-        ASSERT_EQ(res.value, std::vector<uint8_t>({1, 1}));
-      },
-      [&](const expected::Error<EncodeError> &) { FAIL(); });
+  {
+    // encode MIN_UI16 := MAX_UI8 + 1
+    Buffer out;
+    auto res = compact::encodeInteger(64, out);
+    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(out.toVector(), (ByteArray{1, 1}));
+  }
 
-  // encode some UI16
-  compact::encodeInteger(255).match(
-      [&](const expected::Value<ByteArray> &res) {
-        ASSERT_EQ(res.value, std::vector<uint8_t>({253, 3}));
-      },
-      [&](const expected::Error<EncodeError> &) { FAIL(); });
+  {
+    // encode some UI16
+    Buffer out;
+    auto res = compact::encodeInteger(255, out);
+    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(out.toVector(), (ByteArray{253, 3}));
+  }
 
-  // encode some other UI16
-  compact::encodeInteger(511).match(
-      [&](const expected::Value<ByteArray> &res) {
-        ASSERT_EQ(res.value, std::vector<uint8_t>({253, 7}));
-      },
-      [&](const expected::Error<EncodeError> &) { FAIL(); });
+  {
+    // encode some other UI16
+    Buffer out;
+    auto res = compact::encodeInteger(511, out);
+    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(out.toVector(), (ByteArray{253, 7}));
+  }
 
-  // encode MAX_UI16 := 2^14 - 1 = 16383
-  compact::encodeInteger(16383).match(
-      [&](const expected::Value<ByteArray> &res) {
-        ASSERT_EQ(res.value, std::vector<uint8_t>({253, 255}));
-      },
-      [&](const expected::Error<EncodeError> &) { FAIL(); });
+  {
+    // encode MAX_UI16 := 2^14 - 1 = 16383
+    Buffer out;
+    auto res = compact::encodeInteger(16383, out);
+    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(out.toVector(), (ByteArray{253, 255}));
+  }
 }
 
 /**
@@ -237,27 +240,26 @@ TEST(Scale, compactEncodeSecondCategory) {
  */
 TEST(Scale, compactEncodeThirdCategory) {
   // encode MIN_UI32 := MAX_UI16 + 1 == 16384
-  compact::encodeInteger(16384).match(
-      [&](const expected::Value<ByteArray> &res) {
-        ASSERT_EQ(res.value, std::vector<uint8_t>({2, 0, 1, 0}));
-      },
-      [&](const expected::Error<EncodeError> &) { FAIL(); });
+  {
+    Buffer out;
+    ASSERT_EQ(compact::encodeInteger(16384, out), EncodeError::kSuccess);
+    ASSERT_EQ(out.toVector(), (ByteArray{2, 0, 1, 0}));
+  }
 
   // encode some uint16_t value which requires 4 bytes
-  compact::encodeInteger(65535).match(
-      [&](const expected::Value<ByteArray> &res) {
-        ASSERT_EQ(res.value, std::vector<uint8_t>({254, 255, 3, 0}));
-      },
-      [&](const expected::Error<EncodeError> &) { FAIL(); });
+  {
+    Buffer out;
+    ASSERT_EQ(compact::encodeInteger(65535, out), EncodeError::kSuccess);
+    ASSERT_EQ(out.toVector(), (ByteArray{254, 255, 3, 0}));
+  }
 
   // 2^30 - 1 is max 4 byte value
   // encode MAX_UI32 := 2^30 == 1073741823
-  compact::encodeInteger(1073741823)
-      .match(
-          [](const expected::Value<ByteArray> &res) {
-            ASSERT_EQ(res.value, std::vector<uint8_t>({254, 255, 255, 255}));
-          },
-          [](const expected::Error<EncodeError> &) { FAIL(); });
+  {
+    Buffer out;
+    ASSERT_EQ(compact::encodeInteger(1073741823ul, out), EncodeError::kSuccess);
+    ASSERT_EQ(out.toVector(), (ByteArray{254, 255, 255, 255}));
+  }
 }
 
 /**
@@ -266,13 +268,10 @@ TEST(Scale, compactEncodeThirdCategory) {
  * @then obtain expected result: 1 byte representation
  */
 TEST(Scale, compactEncodeFirstCategoryBigInteger) {
-  BigInteger v("63");  // 2^6 - 1
-
-  compact::encodeInteger(v).match(
-      [](const expected::Value<ByteArray> &res) {
-        ASSERT_EQ(res.value, ByteArray({252}));
-      },
-      [](const expected::Error<EncodeError> &) { FAIL(); });
+  auto v = BigInteger("63");
+  Buffer out;
+  ASSERT_EQ(compact::encodeInteger(v, out), EncodeError::kSuccess);
+  ASSERT_EQ(out.toVector(), (ByteArray{252}));
 }
 
 /**
@@ -282,12 +281,9 @@ TEST(Scale, compactEncodeFirstCategoryBigInteger) {
  */
 TEST(Scale, compactEncodeSecondCategoryBigInteger) {
   BigInteger v("16383");  // 2^14 - 1
-
-  compact::encodeInteger(v).match(
-      [](const expected::Value<ByteArray> &res) {
-        ASSERT_EQ(res.value, ByteArray({253, 255}));
-      },
-      [](const expected::Error<EncodeError> &) { FAIL(); });
+  Buffer out;
+  ASSERT_EQ(compact::encodeInteger(v, out), EncodeError::kSuccess);
+  ASSERT_EQ(out.toVector(), (ByteArray{253, 255}));
 }
 
 /**
@@ -297,12 +293,9 @@ TEST(Scale, compactEncodeSecondCategoryBigInteger) {
  */
 TEST(Scale, compactEncodeThirdCategoryBigInteger) {
   BigInteger v("1073741823");  // 2^30 - 1
-
-  compact::encodeInteger(v).match(
-      [](const expected::Value<ByteArray> &res) {
-        ASSERT_EQ(res.value, ByteArray({254, 255, 255, 255}));
-      },
-      [](const expected::Error<EncodeError> &) { FAIL(); });
+  Buffer out;
+  ASSERT_EQ(compact::encodeInteger(v, out), EncodeError::kSuccess);
+  ASSERT_EQ(out.toVector(), (ByteArray{254, 255, 255, 255}));
 }
 
 /**
@@ -313,18 +306,11 @@ TEST(Scale, compactEncodeThirdCategoryBigInteger) {
 TEST(Scale, compactEncodeFourthCategoryBigInteger) {
   BigInteger v(
       "1234567890123456789012345678901234567890");  // (1234567890) x 4 times
-
-  compact::encodeInteger(v).match(
-      [](const expected::Value<ByteArray> &res) {
-        ASSERT_EQ(res.value,
-                  ByteArray(
-                      // clang-format off
-                      // header comes first, length is 17 => header = 55 == (17 - 4) * 4 + 0b11 :
-                      {0b110111,
-                       210, 10, 63, 206, 150, 95, 188, 172, 184, 243, 219, 192, 117, 32, 201, 160, 3}));
-        // clang-format on
-      },
-      [](const expected::Error<EncodeError> &) { FAIL(); });
+  Buffer out;
+  ASSERT_EQ(compact::encodeInteger(v, out), EncodeError::kSuccess);
+  ASSERT_EQ(out.toVector(),
+            (ByteArray{0b110111, 210, 10, 63, 206, 150, 95, 188, 172, 184, 243,
+                       219, 192, 117, 32, 201, 160, 3}));
 }
 
 /**
@@ -334,18 +320,9 @@ TEST(Scale, compactEncodeFourthCategoryBigInteger) {
  */
 TEST(Scale, compactEncodeMinBigInteger) {
   BigInteger v(1073741824);
-  compact::encodeInteger(v).match(
-      [](const expected::Value<ByteArray> &res) {
-        ASSERT_EQ(res.value,
-                  std::vector<uint8_t>(
-                      // clang-format off
-                          // header
-                          {0b00000011,
-                           // value
-                           0, 0, 0, 64}));
-        // clang-format on
-      },
-      [](const expected::Error<EncodeError> &) { FAIL(); });
+  Buffer out;
+  ASSERT_EQ(compact::encodeInteger(v, out), EncodeError::kSuccess);
+  ASSERT_EQ(out.toVector(), (ByteArray{0b00000011, 0, 0, 0, 64}));
 }
 
 /**
@@ -360,23 +337,19 @@ TEST(Scale, compactEncodeMaxBigInteger) {
       "655037778630591879033574393515952034305194542857496045"
       "531676044756160413302774714984450425759043258192756735");  // 2^536 - 1
 
-  compact::encodeInteger(v).match(
-      [](const expected::Value<ByteArray> &res) {
-        ASSERT_EQ(
-            res.value,
-            std::vector<uint8_t>(
-                // clang-format off
-                // header comes first, length is 67 => header = 255 == (67 - 4) * 4 + 0b11 :
-                {0b11111111,
-                 // now 67 bytes of 255 = 0xFF
-                 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-                 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-                 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-                 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-                 255, 255, 255, 255, 255, 255, 255}));
-        // clang-format on
-      },
-      [](const expected::Error<EncodeError> &) { FAIL(); });
+  Buffer out;
+  ASSERT_EQ(compact::encodeInteger(v, out), EncodeError::kSuccess);
+  ASSERT_EQ(
+      out.toVector(),
+      // clang-format off
+        (ByteArray{0b11111111,
+        // now 67 bytes of 255 = 0xFF
+        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+        255, 255, 255, 255, 255, 255, 255}));
+  // clang-format on
 }
 
 /**
@@ -393,9 +366,6 @@ TEST(Scale, compactEncodeOutOfRangeBigInteger) {
       "655037778630591879033574393515952034305194542857496045"
       "531676044756160413302774714984450425759043258192756736");  // 2^536
 
-  compact::encodeInteger(v).match(
-      [](const expected::Value<ByteArray> &) { FAIL(); },
-      [](const expected::Error<EncodeError> &e) {
-        ASSERT_EQ(e.error, EncodeError::kValueIsTooBig);
-      });
+  Buffer out;
+  ASSERT_EQ(compact::encodeInteger(v, out), EncodeError::kValueIsTooBig);
 }

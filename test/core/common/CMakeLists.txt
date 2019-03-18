@@ -29,6 +29,7 @@ addtest(scale_unspecified_test
   )
 target_link_libraries(scale_unspecified_test
   scale
+  buffer
   )
 
 addtest(scale_compact_test
@@ -36,6 +37,7 @@ addtest(scale_compact_test
   )
 target_link_libraries(scale_compact_test
   scale
+  buffer
   )
 
 addtest(scale_fixed_test
@@ -43,6 +45,7 @@ addtest(scale_fixed_test
   )
 target_link_libraries(scale_fixed_test
   scale
+  buffer
   )
 
 addtest(scale_boolean_test
@@ -50,6 +53,7 @@ addtest(scale_boolean_test
   )
 target_link_libraries(scale_boolean_test
   scale
+  buffer
   )
 
 addtest(scale_optional_test
@@ -57,6 +61,7 @@ addtest(scale_optional_test
   )
 target_link_libraries(scale_optional_test
   scale
+  buffer
   )
 
 addtest(scale_collection_test
@@ -64,6 +69,7 @@ addtest(scale_collection_test
   )
 target_link_libraries(scale_collection_test
   scale
+  buffer
   )
 
 addtest(result_test

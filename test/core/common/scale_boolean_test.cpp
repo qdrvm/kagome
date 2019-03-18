@@ -19,8 +19,17 @@ using namespace common::scale;
  * @then obtain expected result each time
  */
 TEST(Scale, fixedwidthEncodeBool) {
-  ASSERT_EQ(boolean::encodeBool(true), (ByteArray{0x1}));
-  ASSERT_EQ(boolean::encodeBool(false), (ByteArray{0x0}));
+  {
+    Buffer out;
+    boolean::encodeBool(true, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{0x1}));
+  }
+
+  {
+    Buffer out;
+    boolean::encodeBool(false, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{0x0}));
+  }
 }
 
 /**
@@ -60,14 +69,24 @@ TEST(Scale, fixedwidthDecodeBool) {
  * @then it returns 0, 1 and 2 correspondingly
  */
 TEST(Scale, fixedwidthEncodeTribool) {
-  // encode none
-  ASSERT_EQ(0x0, boolean::encodeTribool(false));
-
-  // encode false
-  ASSERT_EQ(0x1, boolean::encodeTribool(true));
-
-  // encode true
-  ASSERT_EQ(0x2, boolean::encodeTribool(indeterminate));
+  {
+    // encode false
+    Buffer out;
+    boolean::encodeTribool(false, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{0x0}));
+  }
+  {
+    // encode true
+    Buffer out;
+    boolean::encodeTribool(true, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{0x1}));
+  }
+  {
+    // encode intederminate
+    Buffer out;
+    boolean::encodeTribool(indeterminate, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{0x2}));
+  }
 }
 
 /**

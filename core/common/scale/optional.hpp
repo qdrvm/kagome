@@ -6,6 +6,7 @@
 #ifndef KAGOME_OPTIONAL_HPP
 #define KAGOME_OPTIONAL_HPP
 
+#include "common/buffer.hpp"
 #include "common/scale/type_decoder.hpp"
 #include "common/scale/type_encoder.hpp"
 #include "common/scale/types.hpp"
@@ -18,21 +19,22 @@ namespace kagome::common::scale::optional {
    * @return encoded optional value or error
    */
   template <class T>
-  EncodeResult encodeOptional(const std::optional<T> &optional) {
+  EncodeResult encodeOptional(const std::optional<T> &optional, Buffer &out) {
     if (!optional.has_value()) {
-      return expected::Value{ByteArray{0}};
+      out.putUint8(0);
+      return EncodeError::kSuccess;
     }
 
-    auto typeEncodeResult = TypeEncoder<T>{}.encode(*optional);
-    if (typeEncodeResult.hasError()) {
-      return typeEncodeResult;
+    Buffer tmp;
+    auto type_encode_result = TypeEncoder<T>{}.encode(*optional, tmp);
+    if (type_encode_result != EncodeError::kSuccess) {
+      return type_encode_result;
     }
 
-    ByteArray result = {1};
-    auto &value_ref = typeEncodeResult.getValueRef();
-    result.insert(result.end(), value_ref.begin(), value_ref.end());
+    out.putUint8(1);
+    out.put(tmp.toVector());
 
-    return expected::Value{result};
+    return EncodeError::kSuccess;
   }
 
   /**
@@ -74,16 +76,18 @@ namespace kagome::common::scale::optional {
    * @return encoded value
    */
   template <>
-  EncodeResult encodeOptional(const std::optional<bool> &optional) {
-    if (!optional.has_value()) {
-      return expected::Value{ByteArray{0}};
+  EncodeResult encodeOptional<bool>(const std::optional<bool> &optional,
+                                    Buffer &out) {
+    uint8_t result = 2;  // true
+
+    if (!optional.has_value()) {  // none
+      result = 0;
+    } else if (!*optional) {  // false
+      result = 1;
     }
 
-    if (!*optional) {
-      return expected::Value{ByteArray{1}};
-    }
-
-    return expected::Value{ByteArray{2}};
+    out.putUint8(result);
+    return EncodeError::kSuccess;
   }
 
   /**

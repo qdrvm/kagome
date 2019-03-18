@@ -20,51 +20,54 @@ using namespace common::scale;
  */
 TEST(Scale, encodeOptional) {
   // most simple case
-  optional::encodeOptional(std::optional<uint8_t>{std::nullopt})
-      .match(
-          [](const expected::Value<ByteArray> &v) {
-            ASSERT_EQ(v.value, (ByteArray{0}));
-          },
-          [](const expected::Error<EncodeError> &) { FAIL(); });
+  {
+    Buffer out;
+    auto res =
+        optional::encodeOptional(std::optional<uint8_t>{std::nullopt}, out);
+    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(out.toVector(), (ByteArray{0}));
+  }
 
   // encode existing uint8_t
-  optional::encodeOptional(std::optional<uint8_t>{1})
-      .match(
-          [](const expected::Value<ByteArray> &v) {
-            ASSERT_EQ(v.value, (ByteArray{1, 1}));
-          },
-          [](const expected::Error<EncodeError> &) { FAIL(); });
+  {
+    Buffer out;
+    auto res = optional::encodeOptional(std::optional<uint8_t>{1}, out);
+    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(out.toVector(), (ByteArray{1, 1}));
+  }
+
   // encode negative int8_t
-  optional::encodeOptional(std::optional<int8_t>{-1})
-      .match(
-          [](const expected::Value<ByteArray> &v) {
-            ASSERT_EQ(v.value, (ByteArray{1, 255}));
-          },
-          [](const expected::Error<EncodeError> &) { FAIL(); });
+  {
+    Buffer out;
+    auto res = optional::encodeOptional(std::optional<int8_t>{-1}, out);
+    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(out.toVector(), (ByteArray{1, 255}));
+  }
 
   // encode non-existing uint16_t
-  optional::encodeOptional<uint16_t>(std::nullopt)
-      .match(
-          [](const expected::Value<ByteArray> &v) {
-            ASSERT_EQ(v.value, (ByteArray{0}));
-          },
-          [](const expected::Error<EncodeError> &) { FAIL(); });
+  {
+    Buffer out;
+    auto res =
+        optional::encodeOptional(std::optional<uint16_t>{std::nullopt}, out);
+    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(out.toVector(), (ByteArray{0}));
+  }
 
   // encode existing uint16_t
-  optional::encodeOptional(std::optional<uint16_t>{511})
-      .match(
-          [](const expected::Value<ByteArray> &v) {
-            ASSERT_EQ(v.value, (ByteArray{1, 255, 1}));
-          },
-          [](const expected::Error<EncodeError> &) { FAIL(); });
+  {
+    Buffer out;
+    auto res = optional::encodeOptional(std::optional<uint16_t>{511}, out);
+    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(out.toVector(), (ByteArray{1, 255, 1}));
+  }
 
   // encode existing uint32_t
-  optional::encodeOptional(std::optional<uint32_t>{67305985})
-      .match(
-          [](const expected::Value<ByteArray> &v) {
-            ASSERT_EQ(v.value, (ByteArray{1, 1, 2, 3, 4}));
-          },
-          [](const expected::Error<EncodeError> &) { FAIL(); });
+  {
+    Buffer out;
+    auto res = optional::encodeOptional(std::optional<uint32_t>{67305985}, out);
+    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(out.toVector(), (ByteArray{1, 1, 2, 3, 4}));
+  }
 }
 
 /**
@@ -193,25 +196,24 @@ TEST(Scale, decodeoptionalBool) {
  */
 TEST(Scale, encodeOptionalBool) {
   // encode none
-  optional::encodeOptional(std::optional<bool>{std::nullopt})
-      .match(
-          [](const expected::Value<ByteArray> &v) {
-            ASSERT_EQ(v.value, (ByteArray{0}));
-          },
-          [](const expected::Error<EncodeError> &) { FAIL(); });
-
+  {
+    Buffer out;
+    auto res = optional::encodeOptional(std::optional<bool>{std::nullopt}, out);
+    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(out.toVector(), (ByteArray{0}));
+  }
   // encode false
-  optional::encodeOptional(std::optional<bool>{false})
-      .match(
-          [](const expected::Value<ByteArray> &v) {
-            ASSERT_EQ(v.value, (ByteArray{1}));
-          },
-          [](const expected::Error<EncodeError> &) { FAIL(); });
-
-  optional::encodeOptional(std::optional<bool>{true})
-      .match(
-          [](const expected::Value<ByteArray> &v) {
-            ASSERT_EQ(v.value, (ByteArray{2}));
-          },
-          [](const expected::Error<EncodeError> &) { FAIL(); });
+  {
+    Buffer out;
+    auto res = optional::encodeOptional(std::optional<bool>{false}, out);
+    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(out.toVector(), (ByteArray{1}));
+  }
+  // encode true
+  {
+    Buffer out;
+    auto res = optional::encodeOptional(std::optional<bool>{true}, out);
+    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(out.toVector(), (ByteArray{2}));
+  }
 }

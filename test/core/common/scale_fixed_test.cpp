@@ -20,45 +20,119 @@ using namespace common::scale;
  */
 TEST(Scale, fixedwidthEncodeIntegers) {
   // encode int8_t
-  ASSERT_EQ(fixedwidth::encodeInt8(0), (ByteArray{0}));
-  ASSERT_EQ(fixedwidth::encodeInt8(-1), (ByteArray{255}));
-  ASSERT_EQ(fixedwidth::encodeInt8(-128), (ByteArray{128}));
-  ASSERT_EQ(fixedwidth::encodeInt8(-127), (ByteArray{129}));
-  ASSERT_EQ(fixedwidth::encodeInt8(123), (ByteArray{123}));
-  ASSERT_EQ(fixedwidth::encodeInt8(-15), (ByteArray{241}));
-
+  {
+    Buffer out;
+    fixedwidth::encodeInt8(0, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{0}));
+  }
+  {
+    Buffer out;
+    fixedwidth::encodeInt8(-1, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{255}));
+  }
+  {
+    Buffer out;
+    fixedwidth::encodeInt8(-128, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{128}));
+  }
+  {
+    Buffer out;
+    fixedwidth::encodeInt8(-127, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{129}));
+  }
+  {
+    Buffer out;
+    fixedwidth::encodeInt8(123, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{123}));
+  }
+  {
+    Buffer out;
+    fixedwidth::encodeInt8(-15, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{241}));
+  }
   // encode uint8_t
-  ASSERT_EQ(fixedwidth::encodeUInt8(0), (ByteArray{0}));
-  ASSERT_EQ(fixedwidth::encodeUInt8(234), (ByteArray{234}));
-  ASSERT_EQ(fixedwidth::encodeUInt8(255), (ByteArray{255}));
-
+  {
+    Buffer out;
+    fixedwidth::encodeUInt8(0, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{0}));
+  }
+  {
+    Buffer out;
+    fixedwidth::encodeUInt8(234, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{234}));
+  }
+  {
+    Buffer out;
+    fixedwidth::encodeUInt8(255, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{255}));
+  }
   // encode int16_t
-  ASSERT_EQ(fixedwidth::encodeInt16(-32767), (ByteArray{1, 128}));
-  ASSERT_EQ(fixedwidth::encodeInt16(-32768), (ByteArray{0, 128}));
-  ASSERT_EQ(fixedwidth::encodeInt16(-1), (ByteArray{255, 255}));
-  ASSERT_EQ(fixedwidth::encodeInt16(32767), (ByteArray{255, 127}));
-
+  {
+    Buffer out;
+    fixedwidth::encodeInt16(-32767, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{1, 128}));
+  }
+  {
+    Buffer out;
+    fixedwidth::encodeInt16(-32768, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{0, 128}));
+  }
+  {
+    Buffer out;
+    fixedwidth::encodeInt16(-1, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{255, 255}));
+  }
+  {
+    Buffer out;
+    fixedwidth::encodeInt16(32767, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{255, 127}));
+  }
   // encode uint16_t
-  ASSERT_EQ(fixedwidth::encodeUint16(32770), (ByteArray{2, 128}));
-
+  {
+    Buffer out;
+    fixedwidth::encodeUint16(32770, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{2, 128}));
+  }
   // encode int32_t
-  ASSERT_EQ(fixedwidth::encodeInt32(2147483647),
-            (ByteArray{255, 255, 255, 127}));  // max positive int32_t
-  ASSERT_EQ(fixedwidth::encodeInt32(-1), (ByteArray{255, 255, 255, 255}));
-
+  {
+    Buffer out;
+    fixedwidth::encodeInt32(2147483647, out);  // max positive int32_t
+    ASSERT_EQ(out.toVector(), (ByteArray{255, 255, 255, 127}));
+  }
+  {
+    Buffer out;
+    fixedwidth::encodeInt32(-1, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{255, 255, 255, 255}));
+  }
   // encode uint32_t
-  ASSERT_EQ(fixedwidth::encodeUint32(16909060), (ByteArray{4, 3, 2, 1}));
-  ASSERT_EQ(fixedwidth::encodeUint32(67305985), (ByteArray{1, 2, 3, 4}));
-
+  {
+    Buffer out;
+    fixedwidth::encodeUint32(16909060, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{4, 3, 2, 1}));
+  }
+  {
+    Buffer out;
+    fixedwidth::encodeUint32(67305985, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{1, 2, 3, 4}));
+  }
   // encode int64_t
-  ASSERT_EQ(fixedwidth::encodeInt64(578437695752307201),
-            (ByteArray{1, 2, 3, 4, 5, 6, 7, 8}));
-  ASSERT_EQ(fixedwidth::encodeInt64(-1),
-            (ByteArray{255, 255, 255, 255, 255, 255, 255, 255}));
-
+  {
+    Buffer out;
+    fixedwidth::encodeInt64(578437695752307201ll, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{1, 2, 3, 4, 5, 6, 7, 8}));
+  }
+  {
+    Buffer out;
+    fixedwidth::encodeInt64(-1, out);
+    ASSERT_EQ(out.toVector(),
+              (ByteArray{255, 255, 255, 255, 255, 255, 255, 255}));
+  }
   // encode uint64_t
-  ASSERT_EQ(fixedwidth::encodeUint64(578437695752307201),
-            (ByteArray{1, 2, 3, 4, 5, 6, 7, 8}));
+  {
+    Buffer out;
+    fixedwidth::encodeUint64(578437695752307201ull, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{1, 2, 3, 4, 5, 6, 7, 8}));
+  }
 }
 
 /**

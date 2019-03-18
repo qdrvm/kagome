@@ -12,36 +12,36 @@ using namespace kagome::common::scale;
 using namespace boost::endian;
 
 namespace kagome::common::scale::fixedwidth {
-  ByteArray encodeInt8(int8_t value) {
-    return impl::encodeInteger(value);
+  void encodeInt8(int8_t value, Buffer & out) {
+    impl::encodeInteger(value, out);
   }
 
-  ByteArray encodeUInt8(uint8_t value) {
-    return {value};
+  void encodeUInt8(uint8_t value, Buffer & out) {
+      impl::encodeInteger(value, out);
   }
 
-  ByteArray encodeInt16(int16_t value) {
-    return impl::encodeInteger(value);
+  void encodeInt16(int16_t value, Buffer & out) {
+      impl::encodeInteger(value, out);
   }
 
-  ByteArray encodeUint16(uint16_t value) {
-    return impl::encodeInteger(value);
+  void encodeUint16(uint16_t value, Buffer & out) {
+      impl::encodeInteger(value, out);
   }
 
-  ByteArray encodeInt32(int32_t value) {
-    return impl::encodeInteger(value);
+  void encodeInt32(int32_t value, Buffer & out) {
+      impl::encodeInteger(value, out);
   }
 
-  ByteArray encodeUint32(uint32_t value) {
-    return impl::encodeInteger(value);
+  void encodeUint32(uint32_t value, Buffer & out) {
+      impl::encodeInteger(value, out);
   }
 
-  ByteArray encodeInt64(int64_t value) {
-    return impl::encodeInteger(value);
+  void encodeInt64(int64_t value, Buffer & out) {
+      impl::encodeInteger(value, out);
   }
 
-  ByteArray encodeUint64(uint64_t value) {
-    return impl::encodeInteger(value);
+  void encodeUint64(uint64_t value, Buffer & out) {
+      impl::encodeInteger(value, out);
   }
 
   std::optional<int8_t> decodeInt8(Stream &stream) {

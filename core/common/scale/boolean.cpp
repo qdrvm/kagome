@@ -4,60 +4,63 @@
  */
 
 #include "common/scale/boolean.hpp"
+#include "boolean.hpp"
 
 namespace kagome::common::scale::boolean {
-    ByteArray encodeBool(bool value) {
-        uint8_t byte = (value ? 0x01 : 0x00);
-        return {byte};
+
+  void encodeBool(bool value, Buffer &out) {
+    uint8_t byte = (value ? 0x01 : 0x00);
+    out.putUint8(byte);
+  }
+
+  DecodeBoolResult decodeBool(Stream &stream) {
+    auto byte = stream.nextByte();
+    if (!byte.has_value()) {
+      return expected::Error{DecodeError::kNotEnoughData};
     }
 
-    DecodeBoolResult decodeBool(Stream &stream) {
-        auto byte = stream.nextByte();
-        if (!byte.has_value()) {
-            return expected::Error{DecodeError::kNotEnoughData};
-        }
-
-        switch (*byte) {
-            case 0:
-                return expected::Value{false};
-            case 1:
-                return expected::Value{true};
-            default:
-                break;
-        }
-
-        return expected::Error{DecodeError::kUnexpectedValue};
+    switch (*byte) {
+      case 0:
+        return expected::Value{false};
+      case 1:
+        return expected::Value{true};
+      default:
+        break;
     }
 
-    uint8_t encodeTribool(tribool value) {
-        if (value) {
-            return static_cast<uint8_t>(1);
-        }
+    return expected::Error{DecodeError::kUnexpectedValue};
+  }
 
-        if (!value) {
-            return static_cast<uint8_t>(0);
-        }
-
-        return static_cast<uint8_t>(2);
+  void encodeTribool(tribool value, Buffer &out) {
+    uint8_t byte = static_cast<uint8_t>(2);
+    ;
+    if (value) {
+      byte = static_cast<uint8_t>(1);
     }
 
-    DecodeTriboolResult decodeTribool(Stream &stream) {
-        auto byte = stream.nextByte();
-        if (!byte.has_value()) {
-            return expected::Error{DecodeError::kNotEnoughData};
-        }
-
-        switch (*byte) {
-            case 0:
-                return expected::Value{false};
-            case 1:
-                return expected::Value{true};
-            case 2:
-                return expected::Value{indeterminate};
-            default:
-                break;
-        }
-
-        return expected::Error{DecodeError::kUnexpectedValue};
+    if (!value) {
+      byte = static_cast<uint8_t>(0);
     }
-}
+    out.putUint8(byte);
+  }
+
+  DecodeTriboolResult decodeTribool(Stream &stream) {
+    auto byte = stream.nextByte();
+    if (!byte.has_value()) {
+      return expected::Error{DecodeError::kNotEnoughData};
+    }
+
+    switch (*byte) {
+      case 0:
+        return expected::Value{false};
+      case 1:
+        return expected::Value{true};
+      case 2:
+        return expected::Value{indeterminate};
+      default:
+        break;
+    }
+
+    return expected::Error{DecodeError::kUnexpectedValue};
+  }
+}  // namespace kagome::common::scale::boolean

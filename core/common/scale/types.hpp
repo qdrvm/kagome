@@ -64,6 +64,7 @@ namespace kagome::common::scale {
    * @brief EncodeError enum provides codes of errors for Encoder methods
    */
   enum class EncodeError : size_t {
+    kSuccess,                ///< no error, operation succeeded
     kInvalidItem,            ///< item is invalid
     kNegativeCompactNumber,  ///< negative BigInteger cannot be encoded
     kWrongCategory,          ///< wrong encoding category
@@ -76,21 +77,13 @@ namespace kagome::common::scale {
   /**
    * @brief TypeEncodeResult is result of encode operation
    */
-  using EncodeResult = expected::Result<ByteArray, EncodeError>;
+  using EncodeResult = EncodeError;
 
   /**
    * @brief TypeDecodeResult is result of decode operation
    */
   template <class T>
   using TypeDecodeResult = expected::Result<T, DecodeError>;
-
-  // this code will be removed after rebasement
-  // I keep it to track places which need to be patched
-  template <class V, class E>
-  bool isSucceeded(const expected::Result<V, E> &result) {
-    return result.which() == 0;
-  }
-
 }  // namespace kagome::common::scale
 
 #endif  // KAGOME_SCALE_TYPES_HPP
