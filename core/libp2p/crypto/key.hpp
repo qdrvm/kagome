@@ -7,10 +7,11 @@
 #define KAGOME_KEY_HPP
 
 #include "common/buffer.hpp"
-#include "libp2p/crypto/crypto_common.hpp"
-#include "crypto_common.hpp"
 
 namespace libp2p::crypto {
+  namespace common {
+    enum class KeyType;
+  }
   /**
    * Interface for public/private key
    */

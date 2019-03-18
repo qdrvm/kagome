@@ -7,9 +7,9 @@
 #define KAGOME_PRIVATE_KEY_HPP
 
 #include "libp2p/crypto/key.hpp"
-#include "libp2p/crypto/public_key.hpp"
 
 namespace libp2p::crypto {
+  class PublicKey;
   /**
    * Represents private key
    */

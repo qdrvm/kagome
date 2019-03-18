@@ -81,13 +81,18 @@ namespace libp2p::crypto {
     /// keys features
 
     /**
-     * Generate a key pair
-     * @param key_type - desired type of the keys
-     * @param bits - bitsize of the keys; minimum 1024
+     * Generate a ED25519 key pair
      * @return key pair
      */
-    virtual common::KeyPair generateKeyPair(common::KeyType key_type,
-                                            uint32_t bits) const = 0;
+    virtual common::KeyPair generateEd25519Keypair() const = 0;
+
+    /**
+     * Generate a RSA key pair
+     * @param key_type - desired type of the key
+     * @return key pair
+     */
+    virtual common::KeyPair generateRSAKeypair(
+        common::RSAKeyType key_type) const = 0;
 
     /**
      * Generate an ephemeral public key and return a function that will compute

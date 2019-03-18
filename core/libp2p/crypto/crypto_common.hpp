@@ -52,9 +52,14 @@ namespace libp2p::crypto::common {
   enum class HashType { kSHA1, kSHA256, kSHA512 };
 
   /**
-   * Supported types of keys
+   * Supported types of RSA keys
    */
-  enum class KeyType { kRSA, kED25519 };
+  enum class RSAKeyType { kRSA1024, kRSA2048, kRSA4096 };
+
+  /**
+   * Supported types of all keys
+   */
+  enum class KeyType { kRSA1024, kRSA2048, kRSA4096, kED25519 };
 
   /**
    * Supported ECDH curves
