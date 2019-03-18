@@ -35,7 +35,6 @@ namespace kagome::common::scale {
     std::optional<uint8_t> nextByte() override;
 
    private:
-    const ByteArray &source_;  ///< reference to source vector of bytes
     ByteArray::const_iterator current_iterator_;  ///< current byte iterator
     int64_t bytes_left_;                          ///< remaining bytes counter
   };

@@ -17,9 +17,8 @@ namespace kagome::common::scale {
   }
 
   BasicStream::BasicStream(const ByteArray &source)
-      : source_{source},
-        current_iterator_{source_.begin()},
-        bytes_left_{static_cast<int64_t>(source_.size())} {}
+      : current_iterator_{source.begin()},
+        bytes_left_{static_cast<int64_t>(source.size())} {}
 
   bool BasicStream::hasMore(uint64_t n) const {
     return bytes_left_ >= n;
