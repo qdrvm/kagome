@@ -16,3 +16,10 @@ addtest(io_extension_test
 target_link_libraries(io_extension_test
     extensions
     )
+
+addtest(misc_extension_test
+    misc_extension_test.cpp
+    )
+target_link_libraries(misc_extension_test
+    misc_extension
+    )

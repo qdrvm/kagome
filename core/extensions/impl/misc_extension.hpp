@@ -14,7 +14,13 @@ namespace kagome::extensions {
    */
   class MiscExtension {
    public:
+    MiscExtension() = default;
+    explicit MiscExtension(uint64_t chain_id);
+
     uint64_t ext_chain_id();
+
+   private:
+    uint64_t chain_id_ = 42;
   };
 }  // namespace extensions
 
