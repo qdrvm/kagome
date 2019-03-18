@@ -15,7 +15,7 @@ namespace kagome::common::scale::boolean {
    * @param out buffer which receives encoded value
    * @param value source bool value
    */
-  void encodeBool(bool value, Buffer & out);
+  void encodeBool(bool value, Buffer &out);
 
   /**
    * @brief DecodeBoolResult type is decodeBool function result type
@@ -35,7 +35,7 @@ namespace kagome::common::scale::boolean {
    * @param out buffer which receives encoded value
    * @param value source tribool value
    */
-  void encodeTribool(tribool value, Buffer & out);
+  void encodeTribool(tribool value, Buffer &out);
 
   using DecodeTriboolResult = TypeDecodeResult<tribool>;
 

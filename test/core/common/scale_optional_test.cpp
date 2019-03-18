@@ -24,7 +24,7 @@ TEST(Scale, encodeOptional) {
     Buffer out;
     auto res =
         optional::encodeOptional(std::optional<uint8_t>{std::nullopt}, out);
-    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(res, true);
     ASSERT_EQ(out.toVector(), (ByteArray{0}));
   }
 
@@ -32,7 +32,7 @@ TEST(Scale, encodeOptional) {
   {
     Buffer out;
     auto res = optional::encodeOptional(std::optional<uint8_t>{1}, out);
-    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(res, true);
     ASSERT_EQ(out.toVector(), (ByteArray{1, 1}));
   }
 
@@ -40,7 +40,7 @@ TEST(Scale, encodeOptional) {
   {
     Buffer out;
     auto res = optional::encodeOptional(std::optional<int8_t>{-1}, out);
-    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(res, true);
     ASSERT_EQ(out.toVector(), (ByteArray{1, 255}));
   }
 
@@ -49,7 +49,7 @@ TEST(Scale, encodeOptional) {
     Buffer out;
     auto res =
         optional::encodeOptional(std::optional<uint16_t>{std::nullopt}, out);
-    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(res, true);
     ASSERT_EQ(out.toVector(), (ByteArray{0}));
   }
 
@@ -57,7 +57,7 @@ TEST(Scale, encodeOptional) {
   {
     Buffer out;
     auto res = optional::encodeOptional(std::optional<uint16_t>{511}, out);
-    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(res, true);
     ASSERT_EQ(out.toVector(), (ByteArray{1, 255, 1}));
   }
 
@@ -65,7 +65,7 @@ TEST(Scale, encodeOptional) {
   {
     Buffer out;
     auto res = optional::encodeOptional(std::optional<uint32_t>{67305985}, out);
-    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(res, true);
     ASSERT_EQ(out.toVector(), (ByteArray{1, 1, 2, 3, 4}));
   }
 }
@@ -199,21 +199,21 @@ TEST(Scale, encodeOptionalBool) {
   {
     Buffer out;
     auto res = optional::encodeOptional(std::optional<bool>{std::nullopt}, out);
-    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(res, true);
     ASSERT_EQ(out.toVector(), (ByteArray{0}));
   }
   // encode false
   {
     Buffer out;
     auto res = optional::encodeOptional(std::optional<bool>{false}, out);
-    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(res, true);
     ASSERT_EQ(out.toVector(), (ByteArray{1}));
   }
   // encode true
   {
     Buffer out;
     auto res = optional::encodeOptional(std::optional<bool>{true}, out);
-    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(res, true);
     ASSERT_EQ(out.toVector(), (ByteArray{2}));
   }
 }

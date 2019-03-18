@@ -53,31 +53,9 @@ namespace kagome::common::scale {
   enum class DecodeError : size_t {
     kNotEnoughData,    ///< not enough data to decode value
     kUnexpectedValue,  ///< unexpected value
-    kInvalidData,      ///< invalid data
-    kValueIsTooBig,    ///< cannot handle value, because it is too big,
-                       ///< for example number of bytes in collection
     kTooManyItems      ///< too many items
 
   };
-
-  /**
-   * @brief EncodeError enum provides codes of errors for Encoder methods
-   */
-  enum class EncodeError : size_t {
-    kSuccess,                ///< no error, operation succeeded
-    kInvalidItem,            ///< item is invalid
-    kNegativeCompactNumber,  ///< negative BigInteger cannot be encoded
-    kWrongCategory,          ///< wrong encoding category
-    kValueIsTooBig,          ///< big integer is out of range
-    kTooManyItems,           ///< too many item in collection, cannot encode
-    kEncodeHeaderError,      ///< failed to encode header
-    kFailed                  ///< failed for unspecified reason
-  };
-
-  /**
-   * @brief TypeEncodeResult is result of encode operation
-   */
-  using EncodeResult = EncodeError;
 
   /**
    * @brief TypeDecodeResult is result of decode operation

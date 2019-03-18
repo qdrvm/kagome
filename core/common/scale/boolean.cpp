@@ -4,7 +4,6 @@
  */
 
 #include "common/scale/boolean.hpp"
-#include "boolean.hpp"
 
 namespace kagome::common::scale::boolean {
 

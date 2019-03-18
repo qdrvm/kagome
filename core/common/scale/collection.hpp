@@ -8,11 +8,11 @@
 
 #include <gsl/span>
 
+#include "common/buffer.hpp"
 #include "common/scale/compact.hpp"
 #include "common/scale/fixedwidth.hpp"
 #include "common/scale/type_decoder.hpp"
 #include "common/scale/type_encoder.hpp"
-#include "common/buffer.hpp"
 
 namespace kagome::common::scale::collection {
   /**
@@ -23,24 +23,25 @@ namespace kagome::common::scale::collection {
    *  @return byte array containing encoded collection
    */
   template <class T>
-  EncodeResult encodeCollection(const std::vector<T> &collection, Buffer & out) {
+  bool encodeCollection(const std::vector<T> &collection, Buffer &out) {
     Buffer encoded_collection;
-    auto header_result = compact::encodeInteger(collection.size(), encoded_collection);
-    if (header_result != EncodeResult::kSuccess) {
-      return header_result;
+    auto header_result =
+        compact::encodeInteger(collection.size(), encoded_collection);
+    if (!header_result) {
+      return false;
     }
 
     TypeEncoder<T> encoder{};
     for (size_t i = 0; i < collection.size(); ++i) {
       auto encode_result = encoder.encode(collection[i], encoded_collection);
-      if (encode_result != EncodeResult::kSuccess) {
-        return encode_result;
+      if (!encode_result) {
+        return false;
       }
     }
 
     out.put(encoded_collection.toVector());
 
-    return EncodeError::kSuccess;
+    return true;
   }  // namespace kagome::common::scale::collection
 
   /**

@@ -12,8 +12,8 @@
 
 #include <boost/endian/arithmetic.hpp>
 
-#include "common/scale/types.hpp"
 #include "common/buffer.hpp"
+#include "common/scale/types.hpp"
 
 namespace kagome::common::scale::impl {
   /**
@@ -23,7 +23,7 @@ namespace kagome::common::scale::impl {
    * @return byte array representation of value
    */
   template <class T>
-  void encodeInteger(T value, Buffer & out) {
+  void encodeInteger(T value, Buffer &out) {
     constexpr size_t size = sizeof(T);
     static_assert(std::is_integral<T>(), "only integral types are supported");
     static_assert(size >= 1, "types of size 0 are not supported");
@@ -32,7 +32,7 @@ namespace kagome::common::scale::impl {
     buf = value;
     std::vector<uint8_t> tmp;
     for (auto i = 0; i < size; ++i) {
-        tmp.push_back(buf.data()[i]);
+      tmp.push_back(buf.data()[i]);
     }
     out.put(tmp);
   }

@@ -189,7 +189,7 @@ TEST(Scale, compactEncodeFirstCategory) {
   // encode MAX_UI8 := 63
   Buffer out;
   auto res = compact::encodeInteger(63, out);
-  ASSERT_EQ(res, EncodeError::kSuccess);
+  ASSERT_EQ(res, true);
   ASSERT_EQ(out.toVector(), std::vector<uint8_t>({252}));
 }
 
@@ -203,7 +203,7 @@ TEST(Scale, compactEncodeSecondCategory) {
     // encode MIN_UI16 := MAX_UI8 + 1
     Buffer out;
     auto res = compact::encodeInteger(64, out);
-    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(res, true);
     ASSERT_EQ(out.toVector(), (ByteArray{1, 1}));
   }
 
@@ -211,7 +211,7 @@ TEST(Scale, compactEncodeSecondCategory) {
     // encode some UI16
     Buffer out;
     auto res = compact::encodeInteger(255, out);
-    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(res, true);
     ASSERT_EQ(out.toVector(), (ByteArray{253, 3}));
   }
 
@@ -219,7 +219,7 @@ TEST(Scale, compactEncodeSecondCategory) {
     // encode some other UI16
     Buffer out;
     auto res = compact::encodeInteger(511, out);
-    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(res, true);
     ASSERT_EQ(out.toVector(), (ByteArray{253, 7}));
   }
 
@@ -227,7 +227,7 @@ TEST(Scale, compactEncodeSecondCategory) {
     // encode MAX_UI16 := 2^14 - 1 = 16383
     Buffer out;
     auto res = compact::encodeInteger(16383, out);
-    ASSERT_EQ(res, EncodeError::kSuccess);
+    ASSERT_EQ(res, true);
     ASSERT_EQ(out.toVector(), (ByteArray{253, 255}));
   }
 }
@@ -242,14 +242,14 @@ TEST(Scale, compactEncodeThirdCategory) {
   // encode MIN_UI32 := MAX_UI16 + 1 == 16384
   {
     Buffer out;
-    ASSERT_EQ(compact::encodeInteger(16384, out), EncodeError::kSuccess);
+    ASSERT_EQ(compact::encodeInteger(16384, out), true);
     ASSERT_EQ(out.toVector(), (ByteArray{2, 0, 1, 0}));
   }
 
   // encode some uint16_t value which requires 4 bytes
   {
     Buffer out;
-    ASSERT_EQ(compact::encodeInteger(65535, out), EncodeError::kSuccess);
+    ASSERT_EQ(compact::encodeInteger(65535, out), true);
     ASSERT_EQ(out.toVector(), (ByteArray{254, 255, 3, 0}));
   }
 
@@ -257,7 +257,7 @@ TEST(Scale, compactEncodeThirdCategory) {
   // encode MAX_UI32 := 2^30 == 1073741823
   {
     Buffer out;
-    ASSERT_EQ(compact::encodeInteger(1073741823ul, out), EncodeError::kSuccess);
+    ASSERT_EQ(compact::encodeInteger(1073741823ul, out), true);
     ASSERT_EQ(out.toVector(), (ByteArray{254, 255, 255, 255}));
   }
 }
@@ -270,7 +270,7 @@ TEST(Scale, compactEncodeThirdCategory) {
 TEST(Scale, compactEncodeFirstCategoryBigInteger) {
   auto v = BigInteger("63");
   Buffer out;
-  ASSERT_EQ(compact::encodeInteger(v, out), EncodeError::kSuccess);
+  ASSERT_EQ(compact::encodeInteger(v, out), true);
   ASSERT_EQ(out.toVector(), (ByteArray{252}));
 }
 
@@ -282,7 +282,7 @@ TEST(Scale, compactEncodeFirstCategoryBigInteger) {
 TEST(Scale, compactEncodeSecondCategoryBigInteger) {
   BigInteger v("16383");  // 2^14 - 1
   Buffer out;
-  ASSERT_EQ(compact::encodeInteger(v, out), EncodeError::kSuccess);
+  ASSERT_EQ(compact::encodeInteger(v, out), true);
   ASSERT_EQ(out.toVector(), (ByteArray{253, 255}));
 }
 
@@ -294,7 +294,7 @@ TEST(Scale, compactEncodeSecondCategoryBigInteger) {
 TEST(Scale, compactEncodeThirdCategoryBigInteger) {
   BigInteger v("1073741823");  // 2^30 - 1
   Buffer out;
-  ASSERT_EQ(compact::encodeInteger(v, out), EncodeError::kSuccess);
+  ASSERT_EQ(compact::encodeInteger(v, out), true);
   ASSERT_EQ(out.toVector(), (ByteArray{254, 255, 255, 255}));
 }
 
@@ -307,7 +307,7 @@ TEST(Scale, compactEncodeFourthCategoryBigInteger) {
   BigInteger v(
       "1234567890123456789012345678901234567890");  // (1234567890) x 4 times
   Buffer out;
-  ASSERT_EQ(compact::encodeInteger(v, out), EncodeError::kSuccess);
+  ASSERT_EQ(compact::encodeInteger(v, out), true);
   ASSERT_EQ(out.toVector(),
             (ByteArray{0b110111, 210, 10, 63, 206, 150, 95, 188, 172, 184, 243,
                        219, 192, 117, 32, 201, 160, 3}));
@@ -321,7 +321,7 @@ TEST(Scale, compactEncodeFourthCategoryBigInteger) {
 TEST(Scale, compactEncodeMinBigInteger) {
   BigInteger v(1073741824);
   Buffer out;
-  ASSERT_EQ(compact::encodeInteger(v, out), EncodeError::kSuccess);
+  ASSERT_EQ(compact::encodeInteger(v, out), true);
   ASSERT_EQ(out.toVector(), (ByteArray{0b00000011, 0, 0, 0, 64}));
 }
 
@@ -338,7 +338,7 @@ TEST(Scale, compactEncodeMaxBigInteger) {
       "531676044756160413302774714984450425759043258192756735");  // 2^536 - 1
 
   Buffer out;
-  ASSERT_EQ(compact::encodeInteger(v, out), EncodeError::kSuccess);
+  ASSERT_EQ(compact::encodeInteger(v, out), true);
   ASSERT_EQ(
       out.toVector(),
       // clang-format off
@@ -367,5 +367,7 @@ TEST(Scale, compactEncodeOutOfRangeBigInteger) {
       "531676044756160413302774714984450425759043258192756736");  // 2^536
 
   Buffer out;
-  ASSERT_EQ(compact::encodeInteger(v, out), EncodeError::kValueIsTooBig);
+  // value is too big, it is not encoded
+  ASSERT_EQ(compact::encodeInteger(v, out), false);
+  ASSERT_EQ(out.size(), 0); // nothing was written to buffer
 }

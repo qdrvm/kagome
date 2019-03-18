@@ -6,9 +6,9 @@
 #ifndef KAGOME_SCALE_FIXEDWIDTH_HPP
 #define KAGOME_SCALE_FIXEDWIDTH_HPP
 
+#include "common/buffer.hpp"
 #include "common/result.hpp"
 #include "common/scale/types.hpp"
-#include "common/buffer.hpp"
 
 namespace kagome::common::scale::fixedwidth {
   // 8 bit
@@ -17,14 +17,14 @@ namespace kagome::common::scale::fixedwidth {
    * @param value source value
    * @return encoded value
    */
-  void encodeInt8(int8_t value, Buffer & out);
+  void encodeInt8(int8_t value, Buffer &out);
 
   /**
    * @brief encodeUInt8 encodes uint8_t from host- to little- endian
    * @param value source value
    * @return byte array representing encoded value
    */
-  void encodeUInt8(uint8_t value, Buffer & out);
+  void encodeUInt8(uint8_t value, Buffer &out);
 
   // 16 bit
   /**
@@ -32,14 +32,14 @@ namespace kagome::common::scale::fixedwidth {
    * @param value source value
    * @return byte array representing encoded value
    */
-  void encodeInt16(int16_t value, Buffer & out);
+  void encodeInt16(int16_t value, Buffer &out);
 
   /**
    * @brief encodeUint16 encodes uint16_t from host- to little- endian
    * @param value source value
    * @return byte array representing encoded value
    */
-  void encodeUint16(uint16_t value, Buffer & out);
+  void encodeUint16(uint16_t value, Buffer &out);
 
   // 32 bit
   /**
@@ -47,14 +47,14 @@ namespace kagome::common::scale::fixedwidth {
    * @param value source value
    * @return byte array representing encoded value
    */
-  void encodeInt32(int32_t value, Buffer & out);
+  void encodeInt32(int32_t value, Buffer &out);
 
   /**
    * @brief encodeUint32 encodes uint32_t from host- to little- endian
    * @param value source value
    * @return byte array representing encoded value
    */
-  void encodeUint32(uint32_t value, Buffer & out);
+  void encodeUint32(uint32_t value, Buffer &out);
 
   // 64 bit
   /**
@@ -62,14 +62,14 @@ namespace kagome::common::scale::fixedwidth {
    * @param value source value
    * @return byte array representing encoded value
    */
-  void encodeInt64(int64_t value, Buffer & out);
+  void encodeInt64(int64_t value, Buffer &out);
 
   /**
    * @brief encodeInt64 encodes int64_t from host- to little- endian
    * @param value source value
    * @return byte array representing encoded value
    */
-  void encodeUint64(uint64_t value, Buffer & out);
+  void encodeUint64(uint64_t value, Buffer &out);
 
   // 8 bit
   /**

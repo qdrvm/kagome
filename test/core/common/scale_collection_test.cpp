@@ -25,7 +25,7 @@ TEST(Scale, encodeCollectionOf80) {
   out_bytes.put(collection.toVector());
   Buffer out;
   auto res = collection::encodeCollection(collection.toVector(), out);
-  ASSERT_EQ(res, EncodeError::kSuccess);
+  ASSERT_EQ(res, true);
   ASSERT_EQ(out.toVector().size(), 82);
   // clang-format off
   ASSERT_EQ(out.toVector(), out_bytes.toVector());
@@ -41,7 +41,7 @@ TEST(Scale, encodeCollectionUint16) {
   std::vector<uint16_t> collection = {1, 2, 3, 4};
   Buffer out;
   auto res = collection::encodeCollection(collection, out);
-  ASSERT_EQ(res, EncodeError::kSuccess);
+  ASSERT_EQ(res, true);
   // clang-format off
   ASSERT_EQ(out.toVector(),
           (ByteArray{
@@ -54,7 +54,51 @@ TEST(Scale, encodeCollectionUint16) {
   // clang-format on
 }
 
-// TODO: check the same for 4 and 8 bytes
+/**
+ * @given collection of items of type uint32_t
+ * @when encodeCollection is applied
+ * @then expected result is obtained
+ */
+TEST(Scale, encodeCollectionUint32) {
+  std::vector<uint32_t> collection = {50462976, 117835012, 185207048,
+                                      252579084};
+  Buffer out;
+  auto res = collection::encodeCollection(collection, out);
+  ASSERT_EQ(res, true);
+  // clang-format off
+  ASSERT_EQ(out.toVector(),
+            (ByteArray{
+                    16,                // header
+                    0, 1, 2, 3,        // first item
+                    4, 5, 6, 7,        // second item
+                    8, 9, 0xA, 0xB,    // third item
+                    0xC, 0xD, 0xE, 0xF // fourth item
+            }));
+  // clang-format on
+}
+
+/**
+ * @given collection of items of type uint64_t
+ * @when encodeCollection is applied
+ * @then expected result is obtained
+ */
+TEST(Scale, encodeCollectionUint64) {
+  std::vector<uint64_t> collection = {506097522914230528ull,
+                                      1084818905618843912ull};
+  Buffer out;
+  auto res = collection::encodeCollection(collection, out);
+  ASSERT_EQ(res, true);
+  // clang-format off
+  ASSERT_EQ(out.toVector(),
+            (ByteArray{
+                    8,                // header
+                    0, 1, 2, 3,        // first item
+                    4, 5, 6, 7,        // second item
+                    8, 9, 0xA, 0xB,    // third item
+                    0xC, 0xD, 0xE, 0xF // fourth item
+            }));
+  // clang-format on
+}
 
 /**
  * @given collection of items of type uint16_t containing 2^14 items
@@ -74,7 +118,7 @@ TEST(Scale, encodeLongCollectionUint16) {
   Buffer out;
 
   auto res = collection::encodeCollection(collection, out);
-  ASSERT_EQ(res, EncodeError::kSuccess);
+  ASSERT_EQ(res, true);
   ASSERT_EQ(out.size(), (length * 2 + 4));
 
   // header takes 4 byte,
@@ -124,7 +168,7 @@ TEST(Scale, encodeVeryLongCollectionUint8) {
 
   Buffer out;
   auto res = collection::encodeCollection(collection, out);
-  ASSERT_EQ(res, EncodeError::kSuccess);
+  ASSERT_EQ(res, true);
   ASSERT_EQ(out.size(), (length + 4));
   // header takes 4 bytes,
   // first byte == (4-4) + 3 = 3, which means that number of items
@@ -171,7 +215,7 @@ TEST(Scale, DISABLED_encodeVeryLongCollectionUint8) {
 
   Buffer out;
   auto res = collection::encodeCollection(collection, out);
-  ASSERT_EQ(res, EncodeError::kSuccess);
+  ASSERT_EQ(res, true);
   ASSERT_EQ(out.size(), (length + 4));
   // header takes 4 bytes,
   // first byte == (4-4) + 3 = 3, which means that number of items
@@ -240,7 +284,7 @@ TEST(Scale, decodeLongCollectionOfUint8) {
 
   Buffer out;
   auto res = collection::encodeCollection(collection, out);
-  ASSERT_EQ(res, EncodeError::kSuccess);
+  ASSERT_EQ(res, true);
 
   auto stream = BasicStream(out.toVector());
   auto decodeResult = collection::decodeCollection<uint8_t>(stream);
@@ -250,4 +294,67 @@ TEST(Scale, decodeLongCollectionOfUint8) {
         ASSERT_EQ(val.value, collection);
       },
       [](expected::Error<DecodeError> &) { FAIL(); });
+}
+
+/**
+ * @given byte array representing encoded collection of
+ * 4 uint16_t numbers {50462976, 117835012, 185207048, 252579084}
+ * @when decodeCollection is applied
+ * @then decoded collection is obtained
+ */
+TEST(Scale, decodeSimpleCollectionOfUint32) {
+  // clang-format off
+  std::vector<uint32_t>  collection = {
+          50462976, 117835012, 185207048, 252579084};
+
+  auto bytes = ByteArray{
+          16,                // header
+          0, 1, 2, 3,        // first item
+          4, 5, 6, 7,        // second item
+          8, 9, 0xA, 0xB,    // third item
+          0xC, 0xD, 0xE, 0xF // fourth item
+  };
+  // clang-format on
+
+  Buffer out;
+  auto stream = BasicStream{bytes};
+  auto res = collection::decodeCollection<uint32_t>(stream);
+  res.match(
+      [&collection](const expected::Value<std::vector<uint32_t>> &v) {
+        ASSERT_EQ(v.value.size(), 4);
+        ASSERT_EQ(v.value, collection);
+      },
+      [](const expected::Error<DecodeError> &e) { FAIL(); });
+}
+
+/**
+ * @given byte array representing encoded collection of
+ * two uint16_t numbers {506097522914230528ull, 1084818905618843912ull}
+ * @when decodeCollection is applied
+ * @then decoded collection is obtained
+ */
+TEST(Scale, decodeSimpleCollectionOfUint64) {
+  // clang-format off
+  std::vector<uint64_t>  collection = {
+          506097522914230528ull,
+          1084818905618843912ull};
+
+  auto bytes = ByteArray{
+          8,                // header
+          0, 1, 2, 3,        // first item
+          4, 5, 6, 7,        // second item
+          8, 9, 0xA, 0xB,    // third item
+          0xC, 0xD, 0xE, 0xF // fourth item
+  };
+  // clang-format on
+
+  Buffer out;
+  auto stream = BasicStream{bytes};
+  auto res = collection::decodeCollection<uint64_t>(stream);
+  res.match(
+      [&collection](const expected::Value<std::vector<uint64_t>> &v) {
+        ASSERT_EQ(v.value.size(), 2);
+        ASSERT_EQ(v.value, collection);
+      },
+      [](const expected::Error<DecodeError> &e) { FAIL(); });
 }

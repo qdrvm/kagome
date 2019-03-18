@@ -19,22 +19,22 @@ namespace kagome::common::scale::optional {
    * @return encoded optional value or error
    */
   template <class T>
-  EncodeResult encodeOptional(const std::optional<T> &optional, Buffer &out) {
+  bool encodeOptional(const std::optional<T> &optional, Buffer &out) {
     if (!optional.has_value()) {
       out.putUint8(0);
-      return EncodeError::kSuccess;
+      return true;
     }
 
     Buffer tmp;
     auto type_encode_result = TypeEncoder<T>{}.encode(*optional, tmp);
-    if (type_encode_result != EncodeError::kSuccess) {
+    if (type_encode_result != true) {
       return type_encode_result;
     }
 
     out.putUint8(1);
     out.put(tmp.toVector());
 
-    return EncodeError::kSuccess;
+    return true;
   }
 
   /**
@@ -76,8 +76,7 @@ namespace kagome::common::scale::optional {
    * @return encoded value
    */
   template <>
-  EncodeResult encodeOptional<bool>(const std::optional<bool> &optional,
-                                    Buffer &out) {
+  bool encodeOptional<bool>(const std::optional<bool> &optional, Buffer &out) {
     uint8_t result = 2;  // true
 
     if (!optional.has_value()) {  // none
@@ -87,7 +86,7 @@ namespace kagome::common::scale::optional {
     }
 
     out.putUint8(result);
-    return EncodeError::kSuccess;
+    return true;
   }
 
   /**

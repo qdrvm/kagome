@@ -87,6 +87,16 @@ TEST(Scale, fixedwidthEncodeIntegers) {
     fixedwidth::encodeInt16(32767, out);
     ASSERT_EQ(out.toVector(), (ByteArray{255, 127}));
   }
+  {
+    Buffer out;
+    fixedwidth::encodeInt16(12345, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{57, 48}));
+  }
+  {
+    Buffer out;
+    fixedwidth::encodeInt16(-12345, out);
+    ASSERT_EQ(out.toVector(), (ByteArray{199, 207}));
+  }
   // encode uint16_t
   {
     Buffer out;
@@ -215,7 +225,9 @@ TEST(Scale, fixedwidthDecodeInt16) {
     auto bytes = ByteArray{1, 128,
                            0, 128,
                            255, 255,
-                           255, 127};
+                           255, 127,
+                           57, 48,
+                           199, 207};
   // clang-format on
 
   auto stream = BasicStream{bytes};
@@ -240,6 +252,18 @@ TEST(Scale, fixedwidthDecodeInt16) {
     ASSERT_EQ(val.has_value(), true);
     ASSERT_EQ((*val), 32767);
   }
+  {
+    auto val = fixedwidth::decodeInt16(stream);
+    ASSERT_EQ(val.has_value(), true);
+    ASSERT_EQ((*val), 12345);
+  }
+  {
+    auto val = fixedwidth::decodeInt16(stream);
+    ASSERT_EQ(val.has_value(), true);
+    ASSERT_EQ((*val), -12345);
+  }
+
+  //-0b11000000111001
 }
 
 /**

@@ -23,19 +23,19 @@ namespace kagome::common::scale::compact {
   };
 
   namespace impl {
-    EncodeResult encodeFirstCategory(uint8_t value, Buffer &out) {
+    bool encodeFirstCategory(uint8_t value, Buffer &out) {
       if (value >= EncodingCategoryLimits::kMinUint16) {
-        return EncodeError::kWrongCategory;
+        return false;
       }
       // only values from [0, kMinUint16) can be put here
       out.putUint8(static_cast<uint8_t>(value << 2));
 
-      return EncodeError::kSuccess;
+      return true;
     };
 
-    EncodeResult encodeSecondCategory(uint16_t value, Buffer &out) {
+    bool encodeSecondCategory(uint16_t value, Buffer &out) {
       if (value >= EncodingCategoryLimits::kMinUint32) {
-        return EncodeError::kWrongCategory;
+        return false;
       };
       // only values from [kMinUint16, kMinUint32) can be put here
       auto v = value;
@@ -47,55 +47,22 @@ namespace kagome::common::scale::compact {
       out.putUint8(minor_byte);
       out.putUint8(major_byte);
 
-      return EncodeError::kSuccess;
+      return true;
     };
 
-    EncodeResult encodeThirdCategory(uint32_t value, Buffer &out) {
+    bool encodeThirdCategory(uint32_t value, Buffer &out) {
       if (value >= EncodingCategoryLimits::kMinBigInteger) {
-        return EncodeError::kWrongCategory;
+        return false;
       };
 
       uint32_t v = (value << 2) + 2;
 
       scale::impl::encodeInteger<uint32_t>(v, out);
 
-      return EncodeError::kSuccess;
+      return true;
     }
   };  // namespace impl
 
-  //  EncodeResult encodeInteger(uint8_t value, Buffer & out) {
-  //
-  //    return encodeInteger(BigInteger{value});
-  //  }
-  //
-  //  EncodeResult encodeInteger(int8_t value, Buffer & out) {
-  //    return encodeInteger(BigInteger{value});
-  //  }
-  //
-  //  EncodeResult encodeInteger(uint16_t value, Buffer & out) {
-  //    return encodeInteger(BigInteger{value});
-  //  }
-  //
-  //  EncodeResult encodeInteger(int16_t value, Buffer & out) {
-  //    return encodeInteger(BigInteger{value});
-  //  }
-  //
-  //  EncodeResult encodeInteger(uint32_t value, Buffer & out) {
-  //    return encodeInteger(BigInteger{value});
-  //  }
-  //
-  //  EncodeResult encodeInteger(int32_t value, Buffer & out) {
-  //    return encodeInteger(BigInteger{value});
-  //  }
-  //
-  //  EncodeResult encodeInteger(uint64_t value, Buffer & out) {
-  //    return encodeInteger(BigInteger{value});
-  //  }
-  //
-  //  EncodeResult encodeInteger(int64_t value, Buffer & out) {
-  //    return encodeInteger(BigInteger{value});
-  //  }
-  //
   namespace {
     // calculate number of bytes required
     size_t countBytes(BigInteger v) {
@@ -113,11 +80,11 @@ namespace kagome::common::scale::compact {
     };
   }  // namespace
 
-  EncodeResult encodeInteger(const BigInteger &value, Buffer & out) {
+  bool encodeInteger(const BigInteger &value, Buffer &out) {
     // cannot encode negative numbers
     // there is no description how to encode compact negative numbers
     if (value < 0) {
-      return EncodeError::kNegativeCompactNumber;
+      return false;
     }
 
     if (value < EncodingCategoryLimits::kMinUint16) {
@@ -140,7 +107,7 @@ namespace kagome::common::scale::compact {
     size_t requiredLength = 1 + bigIntLength;
 
     if (bigIntLength > 67) {
-      return EncodeError::kValueIsTooBig;
+      return false;
     }
 
     ByteArray result;
@@ -171,7 +138,7 @@ namespace kagome::common::scale::compact {
 
     out.put(result);
 
-    return EncodeError::kSuccess;
+    return true;
   }
 
   DecodeIntegerResult decodeInteger(Stream &stream) {
