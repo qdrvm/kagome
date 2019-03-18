@@ -6,6 +6,11 @@
 #include <gtest/gtest.h>
 #include "extensions/impl/misc_extension.hpp"
 
+/**
+ * @given a chain id
+ * @when initializing misc extention
+ * @then ext_chain_id return the chain id
+ */
 TEST(MiscExt, Init) {
   kagome::extensions::MiscExtension m;
   ASSERT_EQ(m.ext_chain_id(), 42);
