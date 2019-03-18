@@ -93,7 +93,7 @@ namespace kagome::common::scale::collection {
         return expected::Error{r.getError()};
       }
 
-      decoded_collection.push_back(std::move(r.getValue()));
+      decoded_collection.push_back(r.getValue());
     }
 
     return expected::Value{decoded_collection};
