@@ -13,7 +13,7 @@
 
 #include <boost/filesystem.hpp>
 #include "common/buffer.hpp"
-#include "libp2p/crypto/crypto_common.hpp"
+#include "libp2p/crypto/common.hpp"
 #include "libp2p/crypto/private_key.hpp"
 #include "libp2p/crypto/public_key.hpp"
 

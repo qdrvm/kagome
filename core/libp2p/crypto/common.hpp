@@ -64,7 +64,7 @@ namespace libp2p::crypto::common {
   /**
    * Supported ECDH curves
    */
-  enum class CurveType { kP256, kP284, kP521 };
+  enum class CurveType { kP256, kP384, kP521 };
 
   /**
    * Type of the stretched key
@@ -78,7 +78,7 @@ namespace libp2p::crypto::common {
   /**
    * Supported cipher types
    */
-  enum class CipherType { kAES128, kAES256, kBlowfish };
+  enum class CipherType { kAES128, kAES256 };
 }  // namespace libp2p::crypto::common
 
 #endif  // KAGOME_CRYPTO_COMMON_HPP

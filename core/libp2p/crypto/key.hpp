@@ -27,7 +27,7 @@ namespace libp2p::crypto {
      * Get a byte representation of the key
      * @return the bytes
      */
-    virtual const kagome::common::Buffer &bytes() const = 0;
+    virtual const kagome::common::Buffer &getBytes() const = 0;
 
     virtual bool operator==(const Key &other) const = 0;
   };
