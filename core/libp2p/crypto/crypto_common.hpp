@@ -7,6 +7,7 @@
 #define KAGOME_CRYPTO_COMMON_HPP
 
 #include <cstdint>
+#include <memory>
 
 #include "common/buffer.hpp"
 #include "libp2p/crypto/private_key.hpp"
@@ -33,8 +34,8 @@ namespace libp2p::crypto::common {
    * Public and private keys
    */
   struct KeyPair {
-    PublicKey public_key;
-    PrivateKey private_key;
+    std::shared_ptr<PublicKey> public_key;
+    std::shared_ptr<PrivateKey> private_key;
   };
 
   /**

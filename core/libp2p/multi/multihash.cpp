@@ -6,6 +6,8 @@
 #include "libp2p/multi/multihash.hpp"
 #include <boost/algorithm/hex.hpp>
 #include <boost/format.hpp>
+#include "libp2p/crypto/crypto_provider.hpp"
+#include "libp2p/crypto/key.hpp"
 
 #include "common/hexutil.hpp"
 #include "libp2p/multi/uvarint.hpp"

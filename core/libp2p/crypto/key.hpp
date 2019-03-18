@@ -8,6 +8,7 @@
 
 #include "common/buffer.hpp"
 #include "libp2p/crypto/crypto_common.hpp"
+#include "crypto_common.hpp"
 
 namespace libp2p::crypto {
   /**
