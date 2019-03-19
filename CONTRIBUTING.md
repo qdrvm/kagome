@@ -3,6 +3,7 @@
 1. Kagome uses C++17 as target language, so use appropriate compilers (gcc-8 is preferred)
 2. Use `clang-format`
 3. Test your code with gtest/gmock.
+4. Open PR with base branch = master, fix CI and follow guide in PR template.
 
 
 ## Specifications
