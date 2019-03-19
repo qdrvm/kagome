@@ -85,15 +85,41 @@ namespace kagome::extensions {
                                         uint32_t key_length) = 0;
 
     /// memory extensions
-    virtual uint8_t *ext_malloc(uint32_t size) = 0;
+    /**
+     * allocate wasm memory of given size returning a pointer to the beginning
+     * of allocated memory chunk
+     * @param size number of bytes to allocate
+     * @return pointer to the beginning of allocated memory chunk. If memory
+     * cannot be allocated then return -1
+     */
+    virtual int32_t ext_malloc(uint32_t size) = 0;
 
-    virtual void ext_free(uint8_t *ptr) = 0;
+    /**
+     * Deallocate the space previously allocated by ext_malloc
+     * @param ptr pointer to the memory to deallocate
+     */
+    virtual void ext_free(int32_t ptr) = 0;
 
     /// I/O extensions
+
+    /**
+     * Print a hex value
+     * @param data - pointer to an array of bytes with hex
+     * @param length of the array
+     */
     virtual void ext_print_hex(const uint8_t *data, uint32_t length) = 0;
 
+    /**
+     * Print a number
+     * @param value - number to be printed
+     */
     virtual void ext_print_num(uint64_t value) = 0;
 
+    /**
+     * Print a UTF-8-encoded string
+     * @param utf8_data - pointer to an array of bytes with UTF-8
+     * @param utf8_length - length of the array
+     */
     virtual void ext_print_utf8(const uint8_t *utf8_data,
                                 uint32_t utf8_length) = 0;
 

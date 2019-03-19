@@ -6,18 +6,37 @@
 #ifndef KAGOME_MEMORY_EXTENSIONS_HPP
 #define KAGOME_MEMORY_EXTENSIONS_HPP
 
-#include <cstdint>
+#include "common/logger.hpp"
+#include "runtime/wasm_memory.hpp"
 
 namespace kagome::extensions {
   /**
    * Implements extension functions related to memory
+   * Works with memory of wasm runtime
    */
   class MemoryExtension {
    public:
-    uint8_t *ext_malloc(uint32_t size);
+    explicit MemoryExtension(
+        common::Logger logger = common::createLogger(kDefaultLoggerTag));
+    explicit MemoryExtension(
+        std::shared_ptr<runtime::WasmMemory> memory,
+        common::Logger logger = common::createLogger(kDefaultLoggerTag));
 
-    void ext_free(uint8_t *ptr);
+    /**
+     * @see Extension::ext_malloc
+     */
+    int32_t ext_malloc(uint32_t size);
+
+    /**
+     * @see Extension::ext_free
+     */
+    void ext_free(int32_t ptr);
+
+   private:
+    constexpr static auto kDefaultLoggerTag = "WASM Runtime [MemoryExtension]";
+    std::shared_ptr<runtime::WasmMemory> memory_;
+    common::Logger logger_;
   };
-}  // namespace extensions
+}  // namespace kagome::extensions
 
 #endif  // KAGOME_MEMORY_EXTENSIONS_HPP

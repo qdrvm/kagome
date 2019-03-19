@@ -3,6 +3,7 @@ function(addtest test_name)
   addtest_part(${test_name} ${ARGN})
   target_link_libraries(${test_name}
     GTest::main
+    GMock::main
     )
   add_test(
     NAME    ${test_name}
