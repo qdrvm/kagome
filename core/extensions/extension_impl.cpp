@@ -112,11 +112,11 @@ namespace kagome::extensions {
   }
 
   /// memory extensions
-  uint8_t *ExtensionImpl::ext_malloc(uint32_t size) {
+  int32_t ExtensionImpl::ext_malloc(uint32_t size) {
     return memory_ext_.ext_malloc(size);
   }
 
-  void ExtensionImpl::ext_free(uint8_t *ptr) {
+  void ExtensionImpl::ext_free(int32_t ptr) {
     memory_ext_.ext_free(ptr);
   }
 
@@ -218,5 +218,4 @@ namespace kagome::extensions {
     return misc_ext_.ext_chain_id();
   }
 
-}  // namespace extensions
-   // namespace extensions
+}  // namespace kagome::extensions

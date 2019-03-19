@@ -84,9 +84,9 @@ namespace kagome::extensions {
                                 uint32_t key_length) override;
 
     /// memory extensions
-    uint8_t *ext_malloc(uint32_t size) override;
+    int32_t ext_malloc(uint32_t size) override;
 
-    void ext_free(uint8_t *ptr) override;
+    void ext_free(int32_t ptr) override;
 
     /// I/O extensions
     void ext_print_hex(const uint8_t *data, uint32_t length) override;
@@ -151,6 +151,6 @@ namespace kagome::extensions {
     SandboxingExtension sandboxing_ext_;
     StorageExtension storage_ext_;
   };
-}  // namespace extensions
+}  // namespace kagome::extensions
 
 #endif  // KAGOME_EXTENSION_IMPL_HPP
