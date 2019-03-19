@@ -31,8 +31,8 @@ namespace kagome::common::scale::boolean {
   }
 
   void encodeTribool(tribool value, Buffer &out) {
-    uint8_t byte = static_cast<uint8_t>(2);
-    ;
+    auto byte = static_cast<uint8_t>(2);
+
     if (value) {
       byte = static_cast<uint8_t>(1);
     }

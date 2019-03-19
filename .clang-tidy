@@ -1,6 +1,6 @@
 ---
-Checks:          '-*,clang-analyzer-*,clang-diagnostic-*,readability-*,modernize-*,boost-*,bugprone-*,cppcoreguidelines-*,clang-analyzer-*,google-*,hicpp-*,performance-*,readability-*,-google-readability-namespace-comments,-readability-inconsistent-declaration-parameter-name,-readability-braces-around-statements,-hicpp-signed-bitwise'
-WarningsAsErrors: 'modernize-*,cppcoreguidelines-*'
+Checks:          '-*,clang-analyzer-*,clang-diagnostic-*,readability-*,modernize-*,boost-*,bugprone-*,cppcoreguidelines-*,google-*,hicpp-*,performance-*,readability-*,-google-readability-namespace-comments,-readability-inconsistent-declaration-parameter-name,-readability-braces-around-statements,-hicpp-signed-bitwise,-google-runtime-references'
+WarningsAsErrors: 'modernize-*,cppcoreguidelines-*,boost-*,performance-*,google-build-using-namespace,readability-else-after-return,google-readability-todo'
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false
 FormatStyle:     .clang-format
@@ -173,15 +173,15 @@ CheckOptions:
   - key:             modernize-make-unique.MakeSmartPtrFunctionHeader
     value:           memory
   - key:             modernize-pass-by-value.IncludeStyle
-    value:           llvm
+    value:           google
   - key:             modernize-pass-by-value.ValuesOnly
     value:           '0'
   - key:             modernize-raw-string-literal.ReplaceShorterLiterals
     value:           '0'
   - key:             modernize-replace-auto-ptr.IncludeStyle
-    value:           llvm
+    value:           google
   - key:             modernize-replace-random-shuffle.IncludeStyle
-    value:           llvm
+    value:           google
   - key:             modernize-use-auto.MinTypeNameLength
     value:           '5'
   - key:             modernize-use-auto.RemoveStars

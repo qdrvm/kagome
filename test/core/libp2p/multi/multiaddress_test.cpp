@@ -32,7 +32,7 @@ class MultiaddressTest : public ::testing::Test {
    */
   std::unique_ptr<Multiaddress> createValidMultiaddress(
       std::string_view string_address = "/ip4/192.168.0.1/udp/228/") {
-    return std::move(Multiaddress::createMultiaddress(string_address).getValue());
+    return Multiaddress::createMultiaddress(string_address).getValue();
   }
 };
 

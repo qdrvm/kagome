@@ -21,7 +21,7 @@ class IOExtensionTest : public ::testing::Test {
                                                     0x89, 0xAB, 0xCD, 0xEF};
 
   // 2^64 - 1
-  static constexpr uint64_t number{18446744073709551615};
+  static constexpr uint64_t number = std::numeric_limits<uint64_t>::max();
 
   // 1 @m $t|>i|\Ng
   static constexpr std::array<uint8_t, 14> utf8_bytes{

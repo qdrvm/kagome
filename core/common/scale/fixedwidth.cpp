@@ -8,8 +8,8 @@
 #include <boost/endian/buffers.hpp>
 #include "common/scale/util.hpp"
 
-using namespace kagome::common::scale;
-using namespace boost::endian;
+using namespace kagome::common::scale;  // NOLINT
+using namespace boost::endian;          // NOLINT
 
 namespace kagome::common::scale::fixedwidth {
   void encodeInt8(int8_t value, Buffer &out) {

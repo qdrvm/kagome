@@ -151,8 +151,8 @@ int multiaddr_encoding_base58_encode(const unsigned char *data,
     }
   }
 
-  for (j = 0; j < (ssize_t)size && !buf[j]; ++j)
-    ;
+  for (j = 0; j < (ssize_t)size && !buf[j]; ++j){
+  };
 
   if (*b58sz <= zcount + size - j) {
     *b58sz = zcount + size - j + 1;

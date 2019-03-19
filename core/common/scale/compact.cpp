@@ -10,6 +10,7 @@
 #include <tuple>
 #include <type_traits>
 
+#include "common/unreachable.hpp"
 #include "common/scale/util.hpp"
 
 namespace kagome::common::scale::compact {
@@ -207,7 +208,7 @@ namespace kagome::common::scale::compact {
       }
 
       default:
-        break;  // unreachable code
+        UNREACHABLE;
     }
 
     return expected::Value{BigInteger{number}};

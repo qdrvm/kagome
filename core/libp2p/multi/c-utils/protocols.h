@@ -41,8 +41,4 @@ struct Protocol *proto_with_deccode(
     const struct ProtocolListItem *head,
     int proto_w_deccode);  // Search for protocol with inputted deccode
 
-void protocols_with_string(const struct ProtocolListItem *head,
-                           char *meee,
-                           int sizi);  // NOT FINISHED, DO NOT USE!
-
 #endif
