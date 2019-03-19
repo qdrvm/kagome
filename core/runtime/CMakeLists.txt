@@ -4,7 +4,8 @@
 #
 
 add_library(memory
-    memory.hpp
-    impl/memory_impl.hpp
-    impl/memory_impl.cpp
+    common.hpp
+    wasm_memory.hpp
+    impl/wasm_memory_impl.hpp
+    impl/wasm_memory_impl.cpp
     )

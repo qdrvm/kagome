@@ -7,7 +7,7 @@
 #define KAGOME_MEMORY_EXTENSIONS_HPP
 
 #include "common/logger.hpp"
-#include "runtime/memory.hpp"
+#include "runtime/wasm_memory.hpp"
 
 namespace kagome::extensions {
   /**
@@ -18,8 +18,8 @@ namespace kagome::extensions {
    public:
     explicit MemoryExtension(
         common::Logger logger = common::createLogger(kDefaultLoggerTag));
-    MemoryExtension(
-        std::shared_ptr<runtime::Memory> memory,
+    explicit MemoryExtension(
+        std::shared_ptr<runtime::WasmMemory> memory,
         common::Logger logger = common::createLogger(kDefaultLoggerTag));
 
     /**
@@ -34,7 +34,7 @@ namespace kagome::extensions {
 
    private:
     constexpr static auto kDefaultLoggerTag = "WASM Runtime [MemoryExtension]";
-    std::shared_ptr<runtime::Memory> memory_;
+    std::shared_ptr<runtime::WasmMemory> memory_;
     common::Logger logger_;
   };
 }  // namespace kagome::extensions

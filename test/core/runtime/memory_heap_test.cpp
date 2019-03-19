@@ -5,14 +5,14 @@
 
 #include <gtest/gtest.h>
 
-#include "runtime/impl/memory_impl.hpp"
+#include "runtime/impl/wasm_memory_impl.hpp"
 
-using kagome::runtime::MemoryImpl;
+using kagome::runtime::WasmMemoryImpl;
 
 class MemoryHeapTest : public ::testing::Test {
  public:
   const static uint32_t memory_size_ = 4096;  // one page size
-  MemoryImpl memory_{memory_size_};
+  WasmMemoryImpl memory_{memory_size_};
 };
 
 /**
@@ -51,7 +51,7 @@ TEST_F(MemoryHeapTest, AllocatedTooBigMemoryFailed) {
 
   // The memory size that can be allocated is within interval (0, kMaxMemorySize
   // - memory_size_]. Trying to allocate more
-  auto big_memory_size = MemoryImpl::kMaxMemorySize - memory_size_ + 1;
+  auto big_memory_size = WasmMemoryImpl::kMaxMemorySize - memory_size_ + 1;
   ASSERT_EQ(memory_.allocate(big_memory_size), -1);
 }
 

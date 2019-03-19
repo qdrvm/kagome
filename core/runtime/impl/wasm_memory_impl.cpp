@@ -3,19 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/memory_impl.hpp"
+#include "runtime/impl/wasm_memory_impl.hpp"
 
 namespace kagome::runtime {
 
-  MemoryImpl::MemoryImpl() {
+  WasmMemoryImpl::WasmMemoryImpl() {
     offset_ = 0;
   }
 
-  MemoryImpl::MemoryImpl(SizeType size) : MemoryImpl() {
+  WasmMemoryImpl::WasmMemoryImpl(SizeType size) : WasmMemoryImpl() {
     resize(size);
   }
 
-  void MemoryImpl::resize(uint32_t newSize) {
+  void WasmMemoryImpl::resize(uint32_t newSize) {
     // Ensure the smallest allocation is large enough that most allocators
     // will provide page-aligned storage. This hopefully allows the
     // interpreter's memory to be as aligned as the MemoryImpl being
@@ -30,7 +30,7 @@ namespace kagome::runtime {
     }
   }
 
-  Memory::WasmPointer MemoryImpl::allocate(SizeType size) {
+  WasmPointer WasmMemoryImpl::allocate(SizeType size) {
     if (size == 0) {
       return 0;
     }
@@ -49,7 +49,7 @@ namespace kagome::runtime {
     return freealloc(size);
   }
 
-  std::optional<Memory::SizeType> MemoryImpl::deallocate(WasmPointer ptr) {
+  std::optional<SizeType> WasmMemoryImpl::deallocate(WasmPointer ptr) {
     const auto &it = allocated.find(ptr);
     if (it == allocated.end()) {
       return std::nullopt;
@@ -62,7 +62,7 @@ namespace kagome::runtime {
     return size;
   }
 
-  Memory::WasmPointer MemoryImpl::freealloc(SizeType size) {
+  WasmPointer WasmMemoryImpl::freealloc(SizeType size) {
     auto ptr = findContaining(size);
     if (ptr == -1) {
       // if did not find available space among deallocated memory chunks, then
@@ -74,7 +74,7 @@ namespace kagome::runtime {
     return ptr;
   }
 
-  Memory::WasmPointer MemoryImpl::findContaining(SizeType size) {
+  WasmPointer WasmMemoryImpl::findContaining(SizeType size) {
     auto min_value = std::numeric_limits<WasmPointer>::max();
     WasmPointer min_key = -1;
     for (const auto &[key, value] : deallocated) {
@@ -86,7 +86,7 @@ namespace kagome::runtime {
     return min_key;
   }
 
-  Memory::WasmPointer MemoryImpl::growAlloc(SizeType size) {
+  WasmPointer WasmMemoryImpl::growAlloc(SizeType size) {
     // check that we do not exceed max memory size
     if (offset_ > kMaxMemorySize - size) {
       return -1;
@@ -104,48 +104,48 @@ namespace kagome::runtime {
     return allocate(size);
   }
 
-  int8_t MemoryImpl::load8s(Memory::WasmPointer addr) const {
+  int8_t WasmMemoryImpl::load8s(WasmPointer addr) const {
     return get<int8_t>(addr);
   }
-  uint8_t MemoryImpl::load8u(Memory::WasmPointer addr) const {
+  uint8_t WasmMemoryImpl::load8u(WasmPointer addr) const {
     return get<uint8_t>(addr);
   }
-  int16_t MemoryImpl::load16s(Memory::WasmPointer addr) const {
+  int16_t WasmMemoryImpl::load16s(WasmPointer addr) const {
     return get<int16_t>(addr);
   }
-  uint16_t MemoryImpl::load16u(Memory::WasmPointer addr) const {
+  uint16_t WasmMemoryImpl::load16u(WasmPointer addr) const {
     return get<uint16_t>(addr);
   }
-  int32_t MemoryImpl::load32s(Memory::WasmPointer addr) const {
+  int32_t WasmMemoryImpl::load32s(WasmPointer addr) const {
     return get<int32_t>(addr);
   }
-  uint32_t MemoryImpl::load32u(Memory::WasmPointer addr) const {
+  uint32_t WasmMemoryImpl::load32u(WasmPointer addr) const {
     return get<uint32_t>(addr);
   }
-  int64_t MemoryImpl::load64s(Memory::WasmPointer addr) const {
+  int64_t WasmMemoryImpl::load64s(WasmPointer addr) const {
     return get<int64_t>(addr);
   }
-  uint64_t MemoryImpl::load64u(Memory::WasmPointer addr) const {
+  uint64_t WasmMemoryImpl::load64u(WasmPointer addr) const {
     return get<uint64_t>(addr);
   }
-  std::array<uint8_t, 16> MemoryImpl::load128(Memory::WasmPointer addr) const {
+  std::array<uint8_t, 16> WasmMemoryImpl::load128(WasmPointer addr) const {
     return get<std::array<uint8_t, 16>>(addr);
   }
 
-  void MemoryImpl::store8(Memory::WasmPointer addr, int8_t value) {
+  void WasmMemoryImpl::store8(WasmPointer addr, int8_t value) {
     set<int8_t>(addr, value);
   }
-  void MemoryImpl::store16(Memory::WasmPointer addr, int16_t value) {
+  void WasmMemoryImpl::store16(WasmPointer addr, int16_t value) {
     set<int16_t>(addr, value);
   }
-  void MemoryImpl::store32(Memory::WasmPointer addr, int32_t value) {
+  void WasmMemoryImpl::store32(WasmPointer addr, int32_t value) {
     set<int32_t>(addr, value);
   }
-  void MemoryImpl::store64(Memory::WasmPointer addr, int64_t value) {
+  void WasmMemoryImpl::store64(WasmPointer addr, int64_t value) {
     set<int64_t>(addr, value);
   }
-  void MemoryImpl::store128(Memory::WasmPointer addr,
-                            const std::array<uint8_t, 16> &value) {
+  void WasmMemoryImpl::store128(WasmPointer addr,
+                                const std::array<uint8_t, 16> &value) {
     set<std::array<uint8_t, 16>>(addr, value);
   }
 

@@ -15,7 +15,7 @@ namespace kagome::extensions {
   MemoryExtension::MemoryExtension(common::Logger logger)
       : logger_(std::move(logger)) {}
 
-  MemoryExtension::MemoryExtension(std::shared_ptr<runtime::Memory> memory,
+  MemoryExtension::MemoryExtension(std::shared_ptr<runtime::WasmMemory> memory,
                                    common::Logger logger)
       : memory_(std::move(memory)), logger_(std::move(logger)) {}
 
@@ -27,7 +27,7 @@ namespace kagome::extensions {
     auto opt_size = memory_->deallocate(ptr);
     if (not opt_size) {
       logger_->info(
-          "Ptr {} does not point to any memory chunk in wasm memory. Nothig "
+          "Ptr {} does not point to any memory chunk in wasm memory. Nothing "
           "deallocated",
           ptr);
     }

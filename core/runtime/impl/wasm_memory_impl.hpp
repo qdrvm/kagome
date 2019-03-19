@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_MEMORY_IMPL_HPP
-#define KAGOME_MEMORY_IMPL_HPP
+#ifndef KAGOME_WASM_MEMORY_IMPL_HPP
+#define KAGOME_WASM_MEMORY_IMPL_HPP
 
 #include <array>
 #include <cstring>  // for std::memset in gcc
@@ -12,7 +12,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "runtime/memory.hpp"
+#include "runtime/wasm_memory.hpp"
 
 namespace kagome::runtime {
 
@@ -23,12 +23,12 @@ namespace kagome::runtime {
    * @note Memory size of this implementation is at least of the size of one
    * wasm page (4096 bytes)
    */
-  class MemoryImpl : public Memory {
+  class WasmMemoryImpl : public WasmMemory {
    public:
-    MemoryImpl();
-    explicit MemoryImpl(SizeType size);
-    MemoryImpl(MemoryImpl &) = delete;
-    MemoryImpl &operator=(const MemoryImpl &) = delete;
+    WasmMemoryImpl();
+    explicit WasmMemoryImpl(SizeType size);
+    WasmMemoryImpl(WasmMemoryImpl &) = delete;
+    WasmMemoryImpl &operator=(const WasmMemoryImpl &) = delete;
 
     void resize(SizeType newSize) override;
 
@@ -118,4 +118,4 @@ namespace kagome::runtime {
 
 }  // namespace kagome::runtime
 
-#endif  // KAGOME_MEMORY_IMPL_HPP
+#endif  // KAGOME_WASM_MEMORY_IMPL_HPP

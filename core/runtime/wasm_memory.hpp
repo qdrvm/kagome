@@ -8,6 +8,8 @@
 
 #include <optional>
 
+#include "runtime/common.hpp"
+
 namespace kagome::runtime {
 
   // The underlying memory can be accessed through unaligned pointers which
@@ -17,13 +19,8 @@ namespace kagome::runtime {
   //
   // The allocated memory tries to have the same alignment as the memory being
   // simulated.
-  class Memory {
+  class WasmMemory {
    public:
-    // Pointer type of wasm memory is 32 bit integer
-    using WasmPointer = int32_t;
-    // Size type is uint32_t because we are working in 32 bit address space
-    using SizeType = uint32_t;
-
     const static auto kMaxMemorySize = std::numeric_limits<SizeType>::max();
 
     /**

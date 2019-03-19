@@ -8,18 +8,18 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "extensions/impl/memory_extension.hpp"
-
 using namespace kagome::extensions;
 
-using kagome::runtime::Memory;
+using kagome::runtime::SizeType;
+using kagome::runtime::WasmMemory;
+using kagome::runtime::WasmPointer;
 
 using ::testing::Return;
 
-class MockMemory : public Memory {
+class MockMemory : public WasmMemory {
  public:
   MOCK_METHOD1(resize, void(uint32_t));
-  MOCK_METHOD1(allocate, WasmPointer(uint32_t));
+  MOCK_METHOD1(allocate, WasmPointer(SizeType));
   MOCK_METHOD1(deallocate, std::optional<SizeType>(WasmPointer));
 
   MOCK_CONST_METHOD1(load8s, int8_t(WasmPointer));
@@ -59,7 +59,7 @@ class MemoryExtensionsTest : public ::testing::Test {
 TEST_F(MemoryExtensionsTest, MallocIsCalled) {
   const uint32_t allocated_size = 10;
   // expected address is 0 because it is the first memory chunk
-  const Memory::WasmPointer expected_address = 0;
+  const WasmPointer expected_address = 0;
   EXPECT_CALL(*memory_, allocate(allocated_size))
       .WillOnce(Return(expected_address));
 
