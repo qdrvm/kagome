@@ -10,7 +10,6 @@
 #include <tuple>
 #include <type_traits>
 
-
 #include "common/unreachable.hpp"
 #include "common/scale/util.hpp"
 
