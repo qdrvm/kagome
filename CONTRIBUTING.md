@@ -3,7 +3,7 @@
 1. Kagome uses C++17 as target language, so use appropriate compilers (gcc-8 is preferred)
 2. Use `clang-format`
 3. Test your code with gtest/gmock.
-4. Open PR with base branch = master, fix CI and follow guide in PR template.
+4. Open PR with base branch = `master`, fix CI and follow guide in PR template.
 
 
 ## Specifications
@@ -61,19 +61,8 @@ class Connection{
 class TCP: public Connection;
 
 class Transport {
-    // PREFERABLE: polymorphism via const ref
-    // 1. if this class exists only when its dependencies exist, pass deps by const ref
-    // 2. constref implies, that no nullcheck is required
-    // 3. this class does not have any ownership over Connection dependency
-    public:
-    Transport(const Connection& connection):
-        connection_(connection) {}
-    private:
-        const Connection& connection_;
-
     // polymorphism via pointers
     public:
-    // prefer this option ONLY if this class HAS OWNERSHIP over dependency
     // prefer std::unique_ptr for unique ownership
     // or std::shared_ptr for shared ownership
     Transport(std::shared_ptr<Connection> connection):
