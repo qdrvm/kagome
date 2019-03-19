@@ -4,4 +4,4 @@
 #
 
 add_subdirectory(multi)
-add_subdirectory(common)
+add_subdirectory(peer)

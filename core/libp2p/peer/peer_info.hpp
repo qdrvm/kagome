@@ -9,7 +9,7 @@
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/multi/multihash.hpp"
 
-namespace libp2p::common {
+namespace libp2p::peer {
   /**
    * Information about the peer in the network
    */

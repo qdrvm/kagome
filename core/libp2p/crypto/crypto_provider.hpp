@@ -7,7 +7,6 @@
 #define KAGOME_CRYPTO_PROVIDER_HPP
 
 #include <memory>
-#include <optional>
 #include <string_view>
 #include <utility>
 
@@ -133,7 +132,7 @@ namespace libp2p::crypto {
      * @param key_bytes - bytes of the public key
      * @return public key in case of success, none otherwise
      */
-    virtual std::optional<PublicKey> unmarshalPublicKey(
+    virtual std::unique_ptr<PublicKey> unmarshalPublicKey(
         const kagome::common::Buffer &key_bytes) const = 0;
 
     /**
@@ -141,7 +140,7 @@ namespace libp2p::crypto {
      * @param key_bytes - bytes of the private key
      * @return private key in case of success, none otherwise
      */
-    virtual std::optional<PrivateKey> unmarshalPrivateKey(
+    virtual std::unique_ptr<PrivateKey> unmarshalPrivateKey(
         const kagome::common::Buffer &key_bytes) const = 0;
 
     /**

@@ -12,7 +12,7 @@
 #include "common/result.hpp"
 #include "libp2p/basic/writable.hpp"
 #include "libp2p/common/network_message.hpp"
-#include "libp2p/common/peer_info.hpp"
+#include "libp2p/peer/peer_info.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 
 namespace libp2p::connection {

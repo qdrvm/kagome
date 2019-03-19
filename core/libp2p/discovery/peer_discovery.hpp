@@ -9,7 +9,7 @@
 #include <vector>
 
 #include <rxcpp/rx-observable.hpp>
-#include "libp2p/common/peer_info.hpp"
+#include "libp2p/peer/peer_info.hpp"
 
 namespace libp2p::discovery {
   /**

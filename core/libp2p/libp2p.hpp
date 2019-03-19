@@ -9,7 +9,7 @@
 #include <memory>
 
 #include "common/result.hpp"
-#include "libp2p/common/peer_info.hpp"
+#include "libp2p/peer/peer_info.hpp"
 #include "libp2p/connection/connection.hpp"
 #include "libp2p/error/error.hpp"
 #include "libp2p/multi/multiaddress.hpp"

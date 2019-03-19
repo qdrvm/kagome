@@ -10,7 +10,7 @@
 
 #include <boost/signals2.hpp>
 #include "common/result.hpp"
-#include "libp2p/common/peer_info.hpp"
+#include "libp2p/peer/peer_info.hpp"
 #include "libp2p/connection/connection.hpp"
 #include "libp2p/connection/connection_fsm.hpp"
 #include "libp2p/error/error.hpp"

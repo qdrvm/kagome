@@ -8,7 +8,7 @@
 
 #include <queue>
 
-#include "libp2p/common/peer_info.hpp"
+#include "libp2p/peer/peer_info.hpp"
 #include "libp2p/multi/multihash.hpp"
 
 namespace libp2p::routing {

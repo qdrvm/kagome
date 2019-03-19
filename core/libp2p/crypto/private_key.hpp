@@ -6,6 +6,8 @@
 #ifndef KAGOME_PRIVATE_KEY_HPP
 #define KAGOME_PRIVATE_KEY_HPP
 
+#include <memory>
+
 #include "libp2p/crypto/key.hpp"
 
 namespace libp2p::crypto {
@@ -19,7 +21,7 @@ namespace libp2p::crypto {
      * Get a public key, derived from this private one
      * @return a public key
      */
-    virtual PublicKey &publicKey() const = 0;
+    virtual std::unique_ptr<PublicKey> publicKey() const = 0;
   };
 }  // namespace libp2p::crypto
 

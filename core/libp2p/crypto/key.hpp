@@ -17,6 +17,8 @@ namespace libp2p::crypto {
    */
   class Key {
    public:
+    virtual ~Key() = 0;
+
     /**
      * Get type of this key
      * @return the type
@@ -30,6 +32,9 @@ namespace libp2p::crypto {
     virtual const kagome::common::Buffer &getBytes() const = 0;
 
     virtual bool operator==(const Key &other) const = 0;
+    virtual bool operator!=(const Key &other) const = 0;
+
+    virtual std::string toString() const = 0;
   };
 }  // namespace libp2p::crypto
 
