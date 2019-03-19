@@ -19,7 +19,7 @@ namespace libp2p::crypto {
      * Get a public key, derived from this private one
      * @return a public key
      */
-    virtual PublicKey &publicKey() const = 0;
+    virtual PublicKey publicKey() const = 0;
   };
 }  // namespace libp2p::crypto
 

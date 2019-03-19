@@ -18,14 +18,19 @@ namespace {
    */
   bool encodingCaseIsUpper(std::string_view string) {
     return std::all_of(string.begin(), string.end(), [](const char &c) {
-      return !std::isalpha(c) || static_cast<bool>(std::isupper(c));
+      return !std::isalpha(c) || static_cast<bool>(std::isupper(c)); // NOLINT
     });
   }
 }  // namespace
 
 namespace libp2p::multi::detail {
-  using namespace kagome::common;
-  using namespace kagome::expected;
+  using kagome::common::Buffer;
+  using kagome::common::hex_lower;
+  using kagome::common::hex_upper;
+  using kagome::common::unhex;
+  using kagome::expected::Error;
+  using kagome::expected::Result;
+  using kagome::expected::Value;
 
   std::string encodeBase16Upper(const Buffer &bytes) {
     return hex_upper(bytes.toVector());

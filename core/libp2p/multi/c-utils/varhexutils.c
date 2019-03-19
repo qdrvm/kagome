@@ -73,12 +73,13 @@ uint64_t Hex_To_Int(char *hax) {
     uint8_t byte = *hex++;
     // transform hex character to the 4bit equivalent number, using the ascii
     // table indexes
-    if (byte >= '0' && byte <= '9')
+    if (byte >= '0' && byte <= '9') {
       byte = byte - '0';
-    else if (byte >= 'a' && byte <= 'f')
+    } else if (byte >= 'a' && byte <= 'f') {
       byte = byte - 'a' + 10;
-    else if (byte >= 'A' && byte <= 'F')
+    } else if (byte >= 'A' && byte <= 'F') {
       byte = byte - 'A' + 10;
+    }
     // shift 4 to make space for new digit, and add the 4 bits of the new digit
     val = (val << 4) | (byte & 0xF);
   }
@@ -156,7 +157,7 @@ void convert(char *convert_result,
   for (i = 0; i < 10; i++) {
     sprintf(conv_proc, "%02X", buf[i]);
     // printf("%d:%d\n",i, buf[i]);
-    strcat(convert_result, conv_proc);
+    strcat(convert_result, conv_proc); // NOLINT
   }
 }
 char *Num_To_HexVar_64(uint64_t TOHVINPUT)  // UINT64 TO HEXIFIED VAR
@@ -164,8 +165,7 @@ char *Num_To_HexVar_64(uint64_t TOHVINPUT)  // UINT64 TO HEXIFIED VAR
   static char convert_result[800] =
       "\0";  // Note that the hex resulted from this will differ from py
   bzero(convert_result, 800);
-  memset(convert_result,
-         0,
+  memset(convert_result, 0,
          sizeof(convert_result));  // But if you make sure the string is always
                                    // 20 chars in size
   uint8_t buf[400] = {0};
@@ -182,9 +182,9 @@ void convert2(char *convert_result2, uint8_t *bufhx) {
   bzero(conv_proc, 3);
   int i;
   for (i = 0; i == 0; i++) {
-    sprintf(conv_proc, "%02X", buf[i]);
+    sprintf(conv_proc, "%02X", buf[i]); // NOLINT
     // printf("aaaaaaaaaaah%d:%d\n",i, buf[i]);
-    strcat(convert_result2, conv_proc);
+    strcat(convert_result2, conv_proc); // NOLINT
   }
   buf = NULL;
 }
@@ -206,7 +206,7 @@ uint64_t HexVar_To_Num_64(char *theHEXstring)  // HEXIFIED VAR TO UINT64_T
   uint8_t buffy[400] = {0};
   char codo[800] = "\0";
   bzero(codo, 800);
-  strcpy(codo, theHEXstring);
+  strncpy(codo, theHEXstring, strlen(theHEXstring));
   char code[3] = "\0";
   int x = 0;
   for (int i = 0; i < 399; i++) {
@@ -229,7 +229,7 @@ uint32_t HexVar_To_Num_32(char theHEXstring[])  // HEXIFIED VAR TO UINT32_T
   bzero(buffy, 400);
   char codo[800] = "\0";
   bzero(codo, 800);
-  strcpy(codo, theHEXstring);
+  strncpy(codo, theHEXstring, strlen(theHEXstring));
   char code[4] = "\0";
   bzero(code, 3);
   code[3] = '\0';

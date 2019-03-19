@@ -9,6 +9,8 @@
 #include <numeric>
 #include <stdexcept>
 
+#include "common/unreachable.hpp"
+
 extern "C" {
 #include "libp2p/multi/c-utils/protoutils.h"
 }
@@ -207,6 +209,9 @@ namespace libp2p::multi {
         return kOnion;
       case Protocol::kWebrtc:
         return kWebrtc;
+      default:
+        // to prevent compiler warning
+        UNREACHABLE;
     }
   }
 
