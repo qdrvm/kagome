@@ -1,6 +1,7 @@
 # CONTRIBUTING
 
-1. Kagome uses C++17 as target language, so use appropriate compilers (gcc-8 is preferred)
+1. Kagome uses C++17 as target language
+2. Project is regularly built with gcc-8, clang-8, xcode10 (apple llvm 10), use other compilers at your own risk.
 2. Use `clang-format`
 3. Test your code with gtest/gmock.
 4. Open PR with base branch = `master`, fix CI and follow guide in PR template.
@@ -14,6 +15,7 @@ Module can be defined as a "library", which defines strict interface, and provid
 
 1. Module can accept other modules in its constructor.
 2. Module can be mocked with GMock.
+3. Module has well-defined interface - a class with all virtual pure methods.
 
 
 #### Intent:
@@ -21,7 +23,6 @@ Module can be defined as a "library", which defines strict interface, and provid
 - decoupling of the interface and implementation, e.g. [inversion of control](https://en.wikipedia.org/wiki/Inversion_of_control)
 - open possibility to provide alternative implementation (e.g. "strategy" pattern)
 - pass interface as a "dependency" to other modules to facilitate testing - dependency can be mocked
-
 
 
 #### Checklist:
