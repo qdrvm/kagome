@@ -21,3 +21,10 @@ addtest(memory_extension_test memory_extension_test)
 target_link_libraries(memory_extension_test
     memory_extension
     )
+
+addtest(misc_extension_test
+    misc_extension_test.cpp
+    )
+target_link_libraries(misc_extension_test
+    misc_extension
+    )

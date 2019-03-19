@@ -39,3 +39,4 @@ cmake-build*
 
 build
 dist
+ninja_build_release
