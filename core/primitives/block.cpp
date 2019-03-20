@@ -14,7 +14,7 @@ namespace kagome::primitives {
     return header_;
   }
 
-  const std::vector<Extrinsic> Block::extrinsics() const {
+  const std::vector<Extrinsic> &Block::extrinsics() const {
     return extrinsics_;
   }
 

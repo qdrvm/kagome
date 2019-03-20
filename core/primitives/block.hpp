@@ -31,7 +31,7 @@ namespace kagome::primitives {
     /**
      * @return const reference to extrinsics collection
      */
-    const std::vector<Extrinsic> extrinsics() const;
+    const std::vector<Extrinsic> &extrinsics() const;
 
    private:
     BlockHeader header_;                 ///< block header
