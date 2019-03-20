@@ -75,7 +75,7 @@ namespace libp2p::crypto {
      */
     virtual kagome::common::Buffer hmacDigest(
         common::HashType hash, const kagome::common::Buffer &secret,
-        const kagome::common::Buffer &data) = 0;
+        const kagome::common::Buffer &data) const = 0;
 
     /// keys features
 

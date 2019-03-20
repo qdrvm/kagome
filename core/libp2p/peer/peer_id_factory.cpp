@@ -7,6 +7,21 @@
 
 #include "libp2p/multi/multihash.hpp"
 
+namespace {
+  /**
+   * Check, if provided buffer is a SHA-256 multihash
+   * @param id to be checked
+   * @return true, if it is a SHA-256 multihash, false otherwise
+   */
+  bool idIsSha256Multihash(const kagome::common::Buffer &id) {
+    return libp2p::multi::Multihash::createFromBuffer(id).match(
+        [](const kagome::expected::Value<libp2p::multi::Multihash> &multihash) {
+          return multihash.value.getType() == libp2p::multi::HashType::kSha256;
+        },
+        [](auto &&) { return false; });
+  }
+}  // namespace
+
 namespace libp2p::peer {
   using kagome::expected::Error;
   using kagome::expected::Value;
@@ -15,12 +30,20 @@ namespace libp2p::peer {
                                const crypto::CryptoProvider &crypto_provider)
       : multibase_codec_{multibase_codec}, crypto_provider_{crypto_provider} {}
 
-  PeerId PeerIdFactory::createPeerId(const kagome::common::Buffer &id) {
-    return PeerId{id, multibase_codec_, crypto_provider_};
+  PeerIdFactory::FactoryResult PeerIdFactory::createPeerId(
+      const kagome::common::Buffer &id) {
+    if (!idIsSha256Multihash(id)) {
+      return Error{"provided id is not a SHA-256 multihash"};
+    }
+    return Value{PeerId{id, multibase_codec_, crypto_provider_}};
   }
 
-  PeerId PeerIdFactory::createPeerId(kagome::common::Buffer &&id) {
-    return PeerId{std::move(id), multibase_codec_, crypto_provider_};
+  PeerIdFactory::FactoryResult PeerIdFactory::createPeerId(
+      kagome::common::Buffer &&id) {
+    if (!idIsSha256Multihash(id)) {
+      return Error{"provided id is not a SHA-256 multihash"};
+    }
+    return Value{PeerId{std::move(id), multibase_codec_, crypto_provider_}};
   }
 
   PeerIdFactory::FactoryResult PeerIdFactory::createPeerId(
@@ -33,39 +56,28 @@ namespace libp2p::peer {
     if (*private_key->publicKey() != *public_key) {
       return Error{"public key is not derived from the private one"};
     }
+    auto derived_id = idFromPublicKey(*public_key);
+    if (!derived_id || *derived_id != id) {
+      return Error{"id is not a multihash of the public key"};
+    }
 
-    auto peer = PeerId{id, std::move(public_key), std::move(private_key),
-                       multibase_codec_, crypto_provider_};
-    return Value{std::move(peer)};
+    return Value{PeerId{id, std::move(public_key), std::move(private_key),
+                        multibase_codec_, crypto_provider_}};
   }
 
   PeerIdFactory::FactoryResult PeerIdFactory::createFromPublicKey(
       std::shared_ptr<crypto::PublicKey> public_key) const {
-    return multi::Multihash::createFromBuffer(public_key->getBytes()) |
-               [this, public_key = std::move(public_key)](
-                   auto &&id_multihash) mutable -> FactoryResult {
-      PeerId peer{id_multihash.toBuffer(), multibase_codec_, crypto_provider_};
-      peer.setPublicKey(std::move(public_key));
-      return Value{std::move(peer)};
-    };
+    auto derived_id = idFromPublicKey(*public_key);
+    if (!derived_id) {
+      return Error{"could not create id from the public key"};
+    }
+    PeerId peer{std::move(*derived_id), multibase_codec_, crypto_provider_};
+    peer.setPublicKey(std::move(public_key));
+    return Value{std::move(peer)};
   }
 
   PeerIdFactory::FactoryResult PeerIdFactory::createFromPrivateKey(
       std::shared_ptr<crypto::PrivateKey> private_key) const {
-    // cannot reuse 'createFromPublicKey', as a returned PeerId object will be
-    // unmodifiable, which does not allows us to set private key as well
-    //    auto pubkey_ptr =
-    //        std::make_shared<crypto::PublicKey>(private_key->publicKey());
-    //    return multi::Multihash::createFromBuffer(pubkey_ptr->getBytes()) |
-    //               [this, pubkey_ptr = std::move(pubkey_ptr),
-    //                private_key = std::move(private_key)](
-    //                   auto &&id_multihash) mutable -> FactoryResult {
-    //      PeerId peer{id_multihash.toBuffer(), std::move(pubkey_ptr),
-    //                  std::move(private_key), multibase_codec_,
-    //                  crypto_provider_};
-    //      return Value{std::move(peer)};
-    //    };
-
     return createFromPublicKey(private_key->publicKey()) |
                [private_key = std::move(private_key)](
                    PeerId peer) mutable -> FactoryResult {
@@ -114,5 +126,23 @@ namespace libp2p::peer {
       return Value{PeerId{std::forward<const kagome::common::Buffer>(bytes_id),
                           multibase_codec_, crypto_provider_}};
     };
+  }
+
+  std::optional<kagome::common::Buffer> PeerIdFactory::idFromPublicKey(
+      const crypto::PublicKey &key) const {
+    auto encoded_pubkey = multibase_codec_.encode(
+        key.getBytes(), multi::MultibaseCodec::Encoding::kBase64);
+    return multi::Multihash::create(
+               multi::HashType::kSha256,
+               kagome::common::Buffer{}.put(encoded_pubkey))
+        .match(
+            [](const Value<multi::Multihash> &multihash)
+                -> std::optional<kagome::common::Buffer> {
+              return multihash.value.toBuffer();
+            },
+            [](const Error<std::string> &)
+                -> std::optional<kagome::common::Buffer> {
+              return std::nullopt;
+            });
   }
 }  // namespace libp2p::peer

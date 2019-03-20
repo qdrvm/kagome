@@ -8,6 +8,9 @@
 
 namespace libp2p::multi {
   enum HashType : uint64_t {
+    kSha1 = 0x11,
+    kSha256 = 0x12,
+    kSha512 = 0x13,
     kBlake2s128 = 0xb250,
     kBlake2s256 = 0xb260
   };

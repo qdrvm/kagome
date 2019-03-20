@@ -83,6 +83,10 @@ namespace kagome::common {
     return data_ == b.data_;
   }
 
+  bool Buffer::operator!=(const Buffer &b) const noexcept {
+    return !(*this == b);
+  }
+
   Buffer::const_iterator Buffer::begin() const {
     return data_.begin();
   }
@@ -95,6 +99,10 @@ namespace kagome::common {
 
   bool Buffer::operator==(const std::vector<uint8_t> &b) const noexcept {
     return data_ == b;
+  }
+
+  bool Buffer::operator!=(const std::vector<uint8_t> &b) const noexcept {
+    return !(*this == b);
   }
 
   template <typename T>

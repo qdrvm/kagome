@@ -7,6 +7,7 @@
 #define KAGOME_PEER_ID_FACTORY_HPP
 
 #include <memory>
+#include <optional>
 #include <string_view>
 
 #include "common/buffer.hpp"
@@ -36,23 +37,20 @@ namespace libp2p::peer {
 
     /**
      * Create a Peer instance
-     * @param id of that peer - normally (but not necessary) a multihash of its
-     * public key as a byte buffer
+     * @param id of that peer - SHA-256 multihash of base-64-encoded public key
      */
-    PeerId createPeerId(const kagome::common::Buffer &id);
+    FactoryResult createPeerId(const kagome::common::Buffer &id);
 
     /**
      * Create a Peer instance
-     * @param id of that peer - normally (but not necessary) a multihash of its
-     * public key as a byte buffer
+     * @param id of that peer - SHA-256 multihash of base-64-encoded public key
      */
-    PeerId createPeerId(kagome::common::Buffer &&id);
+    FactoryResult createPeerId(kagome::common::Buffer &&id);
 
     /**
      * Create a Peer instance
-     * @param id of that peer - normally (but not necessary) a multihash of its
-     * public key as a byte buffer
-     * @param public_key of that peer const MUST be derived from the private key
+     * @param id of that peer - SHA-256 multihash of base-64-encoded public key
+     * @param public_key of that peer; MUST be derived from the private key
      * @param private_key of that peer
      * @return Peer, if creation is successful, error otherwise
      */
@@ -119,6 +117,16 @@ namespace libp2p::peer {
    private:
     const multi::MultibaseCodec &multibase_codec_;
     const crypto::CryptoProvider &crypto_provider_;
+
+    /**
+     * Convert public key to an ID by encoding to base64 and SHA-256 hashing the
+     * result
+     * @param key to be converted
+     * @return resulting buffer, if key was successfully converted, none
+     * otherwise
+     */
+    std::optional<kagome::common::Buffer> idFromPublicKey(
+        const libp2p::crypto::PublicKey &key) const;
   };
 }  // namespace libp2p::peer
 
