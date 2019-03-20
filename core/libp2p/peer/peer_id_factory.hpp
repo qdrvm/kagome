@@ -39,13 +39,13 @@ namespace libp2p::peer {
      * Create a Peer instance
      * @param id of that peer - SHA-256 multihash of base-64-encoded public key
      */
-    FactoryResult createPeerId(const kagome::common::Buffer &id);
+    FactoryResult createPeerId(const kagome::common::Buffer &id) const;
 
     /**
      * Create a Peer instance
      * @param id of that peer - SHA-256 multihash of base-64-encoded public key
      */
-    FactoryResult createPeerId(kagome::common::Buffer &&id);
+    FactoryResult createPeerId(kagome::common::Buffer &&id) const;
 
     /**
      * Create a Peer instance

@@ -14,11 +14,12 @@ namespace {
    * @return true, if it is a SHA-256 multihash, false otherwise
    */
   bool idIsSha256Multihash(const kagome::common::Buffer &id) {
-    return libp2p::multi::Multihash::createFromBuffer(id).match(
-        [](const kagome::expected::Value<libp2p::multi::Multihash> &multihash) {
-          return multihash.value.getType() == libp2p::multi::HashType::kSha256;
-        },
-        [](auto &&) { return false; });
+    auto multihash_res = libp2p::multi::Multihash::createFromBuffer(id);
+    if (multihash_res.hasError()) {
+      return false;
+    }
+    return multihash_res.getValueRef().getType()
+        == libp2p::multi::HashType::kSha256;
   }
 }  // namespace
 
@@ -31,7 +32,7 @@ namespace libp2p::peer {
       : multibase_codec_{multibase_codec}, crypto_provider_{crypto_provider} {}
 
   PeerIdFactory::FactoryResult PeerIdFactory::createPeerId(
-      const kagome::common::Buffer &id) {
+      const kagome::common::Buffer &id) const {
     if (!idIsSha256Multihash(id)) {
       return Error{"provided id is not a SHA-256 multihash"};
     }
@@ -39,7 +40,7 @@ namespace libp2p::peer {
   }
 
   PeerIdFactory::FactoryResult PeerIdFactory::createPeerId(
-      kagome::common::Buffer &&id) {
+      kagome::common::Buffer &&id) const {
     if (!idIsSha256Multihash(id)) {
       return Error{"provided id is not a SHA-256 multihash"};
     }
@@ -132,17 +133,12 @@ namespace libp2p::peer {
       const crypto::PublicKey &key) const {
     auto encoded_pubkey = multibase_codec_.encode(
         key.getBytes(), multi::MultibaseCodec::Encoding::kBase64);
-    return multi::Multihash::create(
-               multi::HashType::kSha256,
-               kagome::common::Buffer{}.put(encoded_pubkey))
-        .match(
-            [](const Value<multi::Multihash> &multihash)
-                -> std::optional<kagome::common::Buffer> {
-              return multihash.value.toBuffer();
-            },
-            [](const Error<std::string> &)
-                -> std::optional<kagome::common::Buffer> {
-              return std::nullopt;
-            });
+    auto multihash_res = multi::Multihash::create(
+        multi::HashType::kSha256, kagome::common::Buffer{}.put(encoded_pubkey));
+
+    if (multihash_res.hasError()) {
+      return {};
+    }
+    return multihash_res.getValueRef().toBuffer();
   }
 }  // namespace libp2p::peer

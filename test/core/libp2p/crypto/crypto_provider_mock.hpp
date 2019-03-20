@@ -57,7 +57,8 @@ namespace libp2p::crypto {
         std::unique_ptr<PrivateKey>(const kagome::common::Buffer &));
 
     MOCK_CONST_METHOD2(import,
-                       PrivateKey(boost::filesystem::path, std::string_view));
+                       std::unique_ptr<PrivateKey>(boost::filesystem::path,
+                                                   std::string_view));
 
     MOCK_CONST_METHOD1(randomBytes, kagome::common::Buffer(size_t));
 

@@ -19,11 +19,20 @@ class PeerIdFactoryTest : public ::testing::Test {
   const MultibaseCodecMock multibase{};
   const PeerIdFactory factory{multibase, crypto};
 
-  /// any non-empty sequence of bytes is a valid id
-  const Buffer valid_id{0x54, 0x55, 0x56};
+  /// must be a SHA-256 multihash
+  const Buffer valid_id{0x12, 0x02, 0x56, 0x57};
+  const Buffer invalid_id{0x66, 0x43};
 };
 
-TEST_F(PeerIdFactoryTest, FromBufferSuccess) {}
+TEST_F(PeerIdFactoryTest, FromBufferSuccess) {
+  auto result = factory.createPeerId(valid_id);
+
+  ASSERT_TRUE(result.hasValue());
+  const auto &peer_id = result.getValueRef();
+  ASSERT_EQ(peer_id.toBytes(), valid_id);
+  ASSERT_FALSE(peer_id.publicKey());
+  ASSERT_FALSE(peer_id.privateKey());
+}
 
 TEST_F(PeerIdFactoryTest, FromBufferWrongBuffer) {}
 
