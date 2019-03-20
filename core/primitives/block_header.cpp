@@ -19,6 +19,10 @@ namespace kagome::primitives {
     return parent_hash_;
   }
 
+  size_t BlockHeader::number() const {
+    return number_;
+  }
+
   const Buffer &BlockHeader::stateRoot() const {
     return stateRoot_;
   }

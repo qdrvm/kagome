@@ -34,9 +34,7 @@ namespace kagome::primitives {
     /**
      * @return number
      */
-    size_t number() const {
-      return number_;
-    }
+    size_t number() const;
 
     /**
      * @return state root const reference
