@@ -7,10 +7,10 @@
 
 namespace kagome::primitives {
 
-  Extrinsic::Extrinsic(Buffer bytes) : byteArray_(std::move(bytes)) {}
+  Extrinsic::Extrinsic(Buffer data) : data_(std::move(data)) {}
 
-  const Buffer &Extrinsic::byteArray() const {
-    return byteArray_;
+  const Buffer &Extrinsic::data() const {
+    return data_;
   }
 
 }  // namespace kagome::primitives

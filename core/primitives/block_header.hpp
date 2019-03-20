@@ -18,18 +18,25 @@ namespace kagome::primitives {
    public:
     /**
      * @brief BlockHeader class constructor
-     * @param parentHash parent hash
-     * @param stateRoot state root
-     * @param extrinsicsRoot extrinsics root
+     * @param parent_hash parent hash
+     * @param state_root state root
+     * @param extrinsics_root extrinsics root
      * @param digest digest collection
      */
-    BlockHeader(Buffer parentHash, Buffer stateRoot, Buffer extrinsicsRoot,
-                std::vector<Buffer> digest);
+    BlockHeader(Buffer parent_hash, size_t number, Buffer state_root,
+                Buffer extrinsics_root, Buffer digest);
 
     /**
      * @return parent hash const reference
      */
     const Buffer &parentHash() const;
+
+    /**
+     * @return number
+     */
+    size_t number() const {
+      return number_;
+    }
 
     /**
      * @return state root const reference
@@ -44,13 +51,14 @@ namespace kagome::primitives {
     /**
      * @return digest const reference
      */
-    const std::vector<Buffer> &digest() const;
+    const Buffer &digest() const;
 
    private:
-    Buffer parentHash_;           ///< parent hash
-    Buffer stateRoot_;            ///< state root
-    Buffer extrinsicsRoot_;       ///< extrinsics root
-    std::vector<Buffer> digest_;  ///< digest collection
+    Buffer parent_hash_;  ///< 32-byte Blake2s hash of the header of the parent
+    size_t number_;       ///< index of current block in the chain
+    Buffer stateRoot_;    ///< root of the Merkle trie
+    Buffer extrinsics_root_;  ///< field for validation integrity
+    Buffer digest_;           ///< chain-specific auxiliary data
   };
 
 }  // namespace kagome::primitives

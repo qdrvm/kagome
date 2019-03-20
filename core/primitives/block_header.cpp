@@ -7,15 +7,16 @@
 
 namespace kagome::primitives {
 
-  BlockHeader::BlockHeader(Buffer parentHash, Buffer stateRoot,
-                           Buffer extrinsicsRoot, std::vector<Buffer> digest)
-      : parentHash_(std::move(parentHash)),
-        stateRoot_(std::move(stateRoot)),
-        extrinsicsRoot_(std::move(extrinsicsRoot)),
+  BlockHeader::BlockHeader(Buffer parent_hash, size_t number, Buffer state_root,
+                           Buffer extrinsics_root, Buffer digest)
+      : parent_hash_(std::move(parent_hash)),
+        number_(number),
+        stateRoot_(std::move(state_root)),
+        extrinsics_root_(std::move(extrinsics_root)),
         digest_(std::move(digest)) {}
 
   const Buffer &BlockHeader::parentHash() const {
-    return parentHash_;
+    return parent_hash_;
   }
 
   const Buffer &BlockHeader::stateRoot() const {
@@ -23,9 +24,9 @@ namespace kagome::primitives {
   }
 
   const Buffer &BlockHeader::extrinsicsRoot() const {
-    return extrinsicsRoot_;
+    return extrinsics_root_;
   }
-  const std::vector<Buffer> &BlockHeader::digest() const {
+  const Buffer &BlockHeader::digest() const {
     return digest_;
   }
 

@@ -18,17 +18,17 @@ namespace kagome::primitives {
    public:
     /**
      * @brief Extrinsic constructor
-     * @param bytes extrinsic content
+     * @param data extrinsic content
      */
-    explicit Extrinsic(Buffer bytes);
+    explicit Extrinsic(Buffer data);
 
     /**
      * @return extrinsic content as byte array
      */
-    const Buffer &byteArray() const;
+    const Buffer &data() const;
 
    private:
-    Buffer byteArray_;  ///< extrinsic content as byte array
+    Buffer data_;  ///< extrinsic content as byte array
   };
 
 }  // namespace kagome::primitives
