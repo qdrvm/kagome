@@ -8,7 +8,8 @@
 #include "libp2p/multi/multihash.hpp"
 
 namespace libp2p::peer {
-  using namespace kagome::expected;
+  using kagome::expected::Error;
+  using kagome::expected::Value;
 
   PeerIdFactory::PeerIdFactory(const multi::MultibaseCodec &multibase_codec,
                                const crypto::CryptoProvider &crypto_provider)

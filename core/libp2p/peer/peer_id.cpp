@@ -9,7 +9,8 @@
 #include "libp2p/multi/multihash.hpp"
 
 namespace libp2p::peer {
-  using namespace kagome::expected;
+  using kagome::expected::Error;
+  using kagome::expected::Value;
   using Encodings = multi::MultibaseCodec::Encoding;
 
   PeerId::PeerId(kagome::common::Buffer id,
@@ -51,7 +52,7 @@ namespace libp2p::peer {
         || (private_key_ && *private_key_->publicKey() != *public_key)) {
       return false;
     }
-    public_key_ = public_key;
+    public_key_ = std::move(public_key);
     return true;
   }
 
@@ -69,11 +70,10 @@ namespace libp2p::peer {
       if (*derived_pub_key != *public_key_) {
         return false;
       }
-      private_key_ = private_key;
-      return true;
+    } else {
+      public_key_ = std::move(derived_pub_key);
     }
-    public_key_ = std::move(derived_pub_key);
-    private_key_ = private_key;
+    private_key_ = std::move(private_key);
     return true;
   }
 
@@ -102,5 +102,4 @@ namespace libp2p::peer {
     return this->id_ == other.id_ && this->private_key_ == other.private_key_
         && this->public_key_ == other.public_key_;
   }
-
 }  // namespace libp2p::peer
