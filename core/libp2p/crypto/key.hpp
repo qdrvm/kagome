@@ -36,6 +36,8 @@ namespace libp2p::crypto {
 
     virtual std::string toString() const = 0;
   };
+
+  inline Key::~Key() = default;
 }  // namespace libp2p::crypto
 
 #endif  // KAGOME_KEY_HPP

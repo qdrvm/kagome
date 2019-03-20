@@ -11,6 +11,7 @@
 
 namespace libp2p::multi {
   class MultibaseCodecMock : public MultibaseCodec {
+   public:
     MOCK_CONST_METHOD2(encode,
                        std::string(const kagome::common::Buffer &, Encoding));
     MOCK_CONST_METHOD1(decode,

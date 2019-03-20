@@ -11,6 +11,7 @@
 
 namespace libp2p::crypto {
   class CryptoProviderMock : public CryptoProvider {
+   public:
     MOCK_CONST_METHOD2(aesEncrypt,
                        kagome::common::Buffer(const common::Aes128Secret &,
                                               const kagome::common::Buffer &));
