@@ -6,6 +6,7 @@
 #include <memory>
 
 #include <gtest/gtest.h>
+#include "common/result.hpp"
 #include "core/libp2p/crypto/crypto_provider_mock.hpp"
 #include "core/libp2p/crypto/private_key_mock.hpp"
 #include "core/libp2p/crypto/public_key_mock.hpp"
@@ -16,6 +17,7 @@ using namespace libp2p::crypto;
 using namespace libp2p::peer;
 using namespace libp2p::multi;
 using namespace kagome::common;
+using namespace kagome::expected;
 
 using testing::ByMove;
 using testing::Return;
@@ -34,14 +36,19 @@ class PeerIdFactoryTest : public ::testing::Test {
                         0x6B, 0x0F, 0x65, 0x5F, 0xC3, 0x22, 0x73, 0x0F, 0x26,
                         0xEC, 0xD6, 0x5C, 0xC7, 0xDD, 0x5C, 0x90};
   const Buffer invalid_id{0x66, 0x43};
+
   const Buffer just_buffer1{0x12, 0x34};
   const Buffer just_buffer2{0x56, 0x78};
+
+  const std::string just_string{"mystring"};
 
   std::shared_ptr<PublicKeyMock> public_key = std::make_shared<PublicKeyMock>();
   std::shared_ptr<PrivateKeyMock> private_key =
       std::make_shared<PrivateKeyMock>();
   std::unique_ptr<PublicKeyMock> public_key_ptr =
       std::make_unique<PublicKeyMock>();
+  std::unique_ptr<PrivateKeyMock> private_key_ptr =
+      std::make_unique<PrivateKeyMock>();
 
   /**
    * Sets up mock keys and buffers, such that a valid configuration is created
@@ -65,15 +72,17 @@ class PeerIdFactoryTest : public ::testing::Test {
     EXPECT_CALL(*public_key_ptr, getType())
         .WillRepeatedly(Return(public_key->getType()));
 
-    // make public key a derivative of the private one
-    EXPECT_CALL(*private_key, publicKey())
-        .WillRepeatedly(Return(ByMove(std::move(public_key_ptr))));
+    // make private_key_ptr equal to private_key
+    EXPECT_CALL(*private_key_ptr, getBytes())
+        .WillRepeatedly(ReturnRef(private_key->getBytes()));
+    EXPECT_CALL(*private_key_ptr, getType())
+        .WillRepeatedly(Return(private_key->getType()));
 
     // make encode return such string, that after hashing it becomes valid_id
     EXPECT_CALL(
         multibase,
         encode(public_key->getBytes(), MultibaseCodec::Encoding::kBase64))
-        .WillRepeatedly(Return("mystring"));
+        .WillRepeatedly(Return(just_string));
   }
 };
 
@@ -111,6 +120,9 @@ TEST_F(PeerIdFactoryTest, FromBufferWrongBuffer) {
  */
 TEST_F(PeerIdFactoryTest, FromBufferKeysSuccess) {
   setUpValid();
+  // make public key a derivative of the private one
+  EXPECT_CALL(*private_key, publicKey())
+      .WillRepeatedly(Return(ByMove(std::move(public_key_ptr))));
 
   auto result = factory.createPeerId(valid_id, public_key, private_key);
 
@@ -157,6 +169,9 @@ TEST_F(PeerIdFactoryTest, FromBufferKeysWrongKeys) {
  */
 TEST_F(PeerIdFactoryTest, FromPubkeyObjectSuccess) {
   setUpValid();
+  // make public key a derivative of the private one
+  EXPECT_CALL(*private_key, publicKey())
+      .WillRepeatedly(Return(ByMove(std::move(public_key_ptr))));
 
   auto result = factory.createFromPublicKey(public_key);
 
@@ -174,6 +189,9 @@ TEST_F(PeerIdFactoryTest, FromPubkeyObjectSuccess) {
  */
 TEST_F(PeerIdFactoryTest, FromPrivkeyObjectSuccess) {
   setUpValid();
+  // make public key a derivative of the private one
+  EXPECT_CALL(*private_key, publicKey())
+      .WillRepeatedly(Return(ByMove(std::move(public_key_ptr))));
 
   auto result = factory.createFromPrivateKey(private_key);
 
@@ -184,22 +202,146 @@ TEST_F(PeerIdFactoryTest, FromPrivkeyObjectSuccess) {
   ASSERT_EQ(*peer_id.privateKey(), *private_key);
 }
 
-TEST_F(PeerIdFactoryTest, FromPubkeyBufferSuccess) {}
+/**
+ * @given initialized factory @and public key bytes
+ * @when creating PeerId from those bytes
+ * @then creation succeeds
+ */
+TEST_F(PeerIdFactoryTest, FromPubkeyBufferSuccess) {
+  setUpValid();
+  EXPECT_CALL(crypto, unmarshalPublicKey(just_buffer1))
+      .WillOnce(Return(ByMove(std::move(public_key_ptr))));
 
-TEST_F(PeerIdFactoryTest, FromPubkeyBufferWrongKey) {}
+  auto result = factory.createFromPublicKey(public_key->getBytes());
 
-TEST_F(PeerIdFactoryTest, FromPrivkeyBufferSuccess) {}
+  ASSERT_TRUE(result.hasValue());
+  const auto &peer_id = result.getValueRef();
+  ASSERT_EQ(peer_id.toBytes(), valid_id);
+  ASSERT_EQ(*peer_id.publicKey(), *public_key);
+  ASSERT_FALSE(peer_id.privateKey());
+}
 
-TEST_F(PeerIdFactoryTest, FromPrivkeyBufferWrongKey) {}
+/**
+ * @given initialized factory @and invalid public key bytes
+ * @when creating PeerId from that key
+ * @then creation succeeds
+ */
+TEST_F(PeerIdFactoryTest, FromPubkeyBufferWrongKey) {
+  setUpValid();
+  EXPECT_CALL(crypto, unmarshalPublicKey(just_buffer1))
+      .WillOnce(Return(ByMove(nullptr)));
 
-TEST_F(PeerIdFactoryTest, FromPubkeyStringSuccess) {}
+  auto result = factory.createFromPublicKey(public_key->getBytes());
 
-TEST_F(PeerIdFactoryTest, FromPubkeyStringWrongKey) {}
+  ASSERT_FALSE(result.hasValue());
+}
 
-TEST_F(PeerIdFactoryTest, FromPrivkeyStringSuccess) {}
+/**
+ * @given initialized factory @and private key bytes
+ * @when creating PeerId from those bytes
+ * @then creation succeeds
+ */
+TEST_F(PeerIdFactoryTest, FromPrivkeyBufferSuccess) {
+  setUpValid();
+  EXPECT_CALL(*private_key_ptr, publicKey())
+      .WillRepeatedly(Return(ByMove(std::move(public_key_ptr))));
+  EXPECT_CALL(crypto, unmarshalPrivateKey(just_buffer2))
+      .WillOnce(Return(ByMove(std::move(private_key_ptr))));
 
-TEST_F(PeerIdFactoryTest, FromPrivkeyStringWrongKey) {}
+  auto result = factory.createFromPrivateKey(private_key->getBytes());
 
-TEST_F(PeerIdFactoryTest, FromEncodedStringSuccess) {}
+  ASSERT_TRUE(result.hasValue());
+  const auto &peer_id = result.getValueRef();
+  ASSERT_EQ(peer_id.toBytes(), valid_id);
+  ASSERT_EQ(*peer_id.publicKey(), *public_key);
+  ASSERT_EQ(*peer_id.privateKey(), *private_key);
+}
 
-TEST_F(PeerIdFactoryTest, FromEncodedBadEncoding) {}
+/**
+ * @given initialized factory @and invalid private key bytes
+ * @when creating PeerId from that key
+ * @then creation succeeds
+ */
+TEST_F(PeerIdFactoryTest, FromPrivkeyBufferWrongKey) {
+  setUpValid();
+  EXPECT_CALL(crypto, unmarshalPrivateKey(just_buffer2))
+      .WillOnce(Return(ByMove(nullptr)));
+
+  auto result = factory.createFromPrivateKey(private_key->getBytes());
+
+  ASSERT_FALSE(result.hasValue());
+}
+
+TEST_F(PeerIdFactoryTest, FromPubkeyStringSuccess) {
+  setUpValid();
+  EXPECT_CALL(multibase, decode(std::string_view{just_string}))
+      .WillOnce(Return(Value{just_buffer1}));
+  EXPECT_CALL(crypto, unmarshalPublicKey(just_buffer1))
+      .WillOnce(Return(ByMove(std::move(public_key_ptr))));
+
+  auto result = factory.createFromPublicKey(just_string);
+
+  ASSERT_TRUE(result.hasValue());
+  const auto &peer_id = result.getValueRef();
+  ASSERT_EQ(peer_id.toBytes(), valid_id);
+  ASSERT_EQ(*peer_id.publicKey(), *public_key);
+  ASSERT_FALSE(peer_id.privateKey());
+}
+
+TEST_F(PeerIdFactoryTest, FromPubkeyStringWrongKey) {
+  EXPECT_CALL(multibase, decode(std::string_view{just_string}))
+      .WillOnce(Return(Error{"foo"}));
+
+  auto result = factory.createFromPublicKey(just_string);
+
+  ASSERT_FALSE(result.hasValue());
+}
+
+TEST_F(PeerIdFactoryTest, FromPrivkeyStringSuccess) {
+  setUpValid();
+  EXPECT_CALL(multibase, decode(std::string_view{just_string}))
+      .WillOnce(Return(Value{just_buffer2}));
+  EXPECT_CALL(*private_key_ptr, publicKey())
+      .WillRepeatedly(Return(ByMove(std::move(public_key_ptr))));
+  EXPECT_CALL(crypto, unmarshalPrivateKey(just_buffer2))
+      .WillOnce(Return(ByMove(std::move(private_key_ptr))));
+
+  auto result = factory.createFromPrivateKey(just_string);
+
+  ASSERT_TRUE(result.hasValue());
+  const auto &peer_id = result.getValueRef();
+  ASSERT_EQ(peer_id.toBytes(), valid_id);
+  ASSERT_EQ(*peer_id.publicKey(), *public_key);
+  ASSERT_EQ(*peer_id.privateKey(), *private_key);
+}
+
+TEST_F(PeerIdFactoryTest, FromPrivkeyStringWrongKey) {
+  EXPECT_CALL(multibase, decode(std::string_view{just_string}))
+      .WillOnce(Return(Error{"foo"}));
+
+  auto result = factory.createFromPrivateKey(just_string);
+
+  ASSERT_FALSE(result.hasValue());
+}
+
+TEST_F(PeerIdFactoryTest, FromEncodedStringSuccess) {
+  EXPECT_CALL(multibase, decode(std::string_view{just_string}))
+  .WillOnce(Return(Value{just_buffer1}));
+
+  auto result = factory.createFromEncodedString(just_string);
+
+  ASSERT_TRUE(result.hasValue());
+  const auto &peer_id = result.getValueRef();
+  ASSERT_EQ(peer_id.toBytes(), just_buffer1);
+  ASSERT_FALSE(peer_id.publicKey());
+  ASSERT_FALSE(peer_id.privateKey());
+}
+
+TEST_F(PeerIdFactoryTest, FromEncodedBadEncoding) {
+  EXPECT_CALL(multibase, decode(std::string_view{just_string}))
+      .WillOnce(Return(Error{"foo"}));
+
+  auto result = factory.createFromEncodedString(just_string);
+
+  ASSERT_FALSE(result.hasValue());
+}
