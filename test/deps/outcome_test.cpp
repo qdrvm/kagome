@@ -3,12 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <outcome/outcome.hpp>
 #include <gtest/gtest.h>
+#include <outcome/outcome.hpp>
 #include <string>
 
 using std::string_literals::operator""s;
-
 
 #define ILLEGAL_CHAR_MSG "illegal char"s
 
@@ -56,7 +55,8 @@ outcome::result<int> divide(int a, int b) {
   return a / b;
 }
 
-outcome::result<int> convert_and_divide(const std::string &a, const std::string &b) {
+outcome::result<int> convert_and_divide(const std::string &a,
+                                        const std::string &b) {
   OUTCOME_TRY(valA, convert(a));
   OUTCOME_TRY(valB, convert(b));
   OUTCOME_TRY(valDiv, divide(valA, valB));
@@ -78,16 +78,16 @@ TEST(Outcome, CorrectCase) {
 }
 
 /**
- * @given valid arguments for convert_and_divide
+ * @given conversion error for convert_and_divide
  * @when execute method which returns result
- * @then returns value
+ * @then returns error
  */
 TEST(Outcome, ConversionError) {
   if (auto r = convert_and_divide("500", "a")) {
     FAIL();
   } else {
     auto &&err = r.error();
-//    ASSERT_EQ(err.message(), ILLEGAL_CHAR_MSG);
+    ASSERT_EQ(err.message(), ILLEGAL_CHAR_MSG);
   }
 }
 
@@ -101,6 +101,6 @@ TEST(Outcome, DivisionError) {
     FAIL();
   } else {
     auto &&err = r.error();
-//    ASSERT_EQ(err.category(), "ConversionErrc"s);  // name of the enum
+    ASSERT_EQ(std::string{err.category().name()}, "DivisionErrc"s);  // name of the enum
   }
 }
