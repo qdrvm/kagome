@@ -48,7 +48,7 @@ namespace libp2p::multi {
     /**
      * @return an array view to raw bytes of the stored varint
      */
-    const std::vector<uint8_t> toBytes() const;
+    gsl::span<const uint8_t> toBytes() const;
 
     /**
      * Assigns the varint to an unsigned integer, encoding the latter

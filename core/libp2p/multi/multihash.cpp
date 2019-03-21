@@ -21,8 +21,8 @@ namespace libp2p::multi {
 
   Multihash::Multihash(HashType type, Hash hash)
       : hash_{std::move(hash)}, type_{type} {
-      UVarint uvaring{type};
-      data_.put(uvaring.toBytes());
+      UVarint uvarint{type};
+      data_.put(uvarint.toBytes());
       data_.putUint8(static_cast<uint8_t>(hash_.size()));
       data_.put(hash_.toVector());
   }
