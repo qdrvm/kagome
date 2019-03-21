@@ -102,4 +102,14 @@ namespace libp2p::peer {
     return this->id_ == other.id_ && this->private_key_ == other.private_key_
         && this->public_key_ == other.public_key_;
   }
+
+  void PeerId::unsafeSetPublicKey(
+      std::shared_ptr<crypto::PublicKey> public_key) {
+    public_key_ = std::move(public_key);
+  }
+
+  void PeerId::unsafeSetPrivateKey(
+      std::shared_ptr<crypto::PrivateKey> private_key) {
+    private_key_ = std::move(private_key);
+  }
 }  // namespace libp2p::peer

@@ -74,18 +74,18 @@ namespace libp2p::peer {
       return Error{"could not create id from the public key"};
     }
     PeerId peer{std::move(*derived_id), multibase_codec_, crypto_provider_};
-    peer.setPublicKey(std::move(public_key));
+    peer.unsafeSetPublicKey(std::move(public_key));
     return Value{std::move(peer)};
   }
 
   PeerIdFactory::FactoryResult PeerIdFactory::createFromPrivateKey(
       std::shared_ptr<crypto::PrivateKey> private_key) const {
-    return createFromPublicKey(private_key->publicKey()) |
-               [private_key = std::move(private_key)](
-                   PeerId peer) mutable -> FactoryResult {
-      peer.setPrivateKey(std::move(private_key));
-      return Value{std::forward<PeerId>(peer)};
-    };
+    // can't use chaining, because it would require copying the PeerId
+    auto peer_res = createFromPublicKey(private_key->publicKey());
+    if (peer_res.hasValue()) {
+      peer_res.getValueRef().unsafeSetPrivateKey(std::move(private_key));
+    }
+    return peer_res;
   }
 
   PeerIdFactory::FactoryResult PeerIdFactory::createFromPublicKey(

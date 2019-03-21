@@ -104,6 +104,18 @@ namespace libp2p::peer {
            const multi::MultibaseCodec &multibase_codec,
            const crypto::CryptoProvider &crypto_provider);
 
+    /**
+     * Set a public key without performing any checks
+     * @param public_key to be set
+     */
+    void unsafeSetPublicKey(std::shared_ptr<crypto::PublicKey> public_key);
+
+    /**
+     * Set a private key without peforming any checks
+     * @param private_key to be set
+     */
+    void unsafeSetPrivateKey(std::shared_ptr<crypto::PrivateKey> private_key);
+
     kagome::common::Buffer id_;
     std::shared_ptr<crypto::PublicKey> public_key_;
     std::shared_ptr<crypto::PrivateKey> private_key_;

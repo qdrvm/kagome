@@ -43,12 +43,17 @@ class PeerIdFactoryTest : public ::testing::Test {
   std::unique_ptr<PublicKeyMock> public_key_ptr =
       std::make_unique<PublicKeyMock>();
 
+  /**
+   * Sets up mock keys and buffers, such that a valid configuration is created
+   */
   void setUpValid() {
+    // make public key return what we want
     EXPECT_CALL(*public_key, getBytes())
         .WillRepeatedly(ReturnRef(just_buffer1));
     EXPECT_CALL(*public_key, getType())
         .WillRepeatedly(Return(common::KeyType::kRSA1024));
 
+    // make private key return what we want
     EXPECT_CALL(*private_key, getBytes())
         .WillRepeatedly(ReturnRef(just_buffer2));
     EXPECT_CALL(*private_key, getType())
@@ -60,8 +65,11 @@ class PeerIdFactoryTest : public ::testing::Test {
     EXPECT_CALL(*public_key_ptr, getType())
         .WillRepeatedly(Return(public_key->getType()));
 
+    // make public key a derivative of the private one
     EXPECT_CALL(*private_key, publicKey())
         .WillRepeatedly(Return(ByMove(std::move(public_key_ptr))));
+
+    // make encode return such string, that after hashing it becomes valid_id
     EXPECT_CALL(
         multibase,
         encode(public_key->getBytes(), MultibaseCodec::Encoding::kBase64))
@@ -95,6 +103,12 @@ TEST_F(PeerIdFactoryTest, FromBufferWrongBuffer) {
   ASSERT_FALSE(result.hasValue());
 }
 
+/**
+ * @given initialized factory @and valid peer id @and public key @and private
+ * key
+ * @when creating PeerId from that triple
+ * @then creation succeeds
+ */
 TEST_F(PeerIdFactoryTest, FromBufferKeysSuccess) {
   setUpValid();
 
@@ -107,13 +121,68 @@ TEST_F(PeerIdFactoryTest, FromBufferKeysSuccess) {
   ASSERT_EQ(*peer_id.privateKey(), *private_key);
 }
 
-TEST_F(PeerIdFactoryTest, FromBufferKeysEmptyBuffer) {}
+/**
+ * @given initialized factory @and empty peer id
+ * @when creating PeerId from that id
+ * @then creation fails
+ */
+TEST_F(PeerIdFactoryTest, FromBufferKeysEmptyBuffer) {
+  auto result = factory.createPeerId(Buffer{}, public_key, private_key);
 
-TEST_F(PeerIdFactoryTest, FromBufferKeysWrongKeys) {}
+  ASSERT_FALSE(result.hasValue());
+}
 
-TEST_F(PeerIdFactoryTest, FromPubkeyObjectSuccess) {}
+/**
+ * @given initialized factory @and valid peer id @and private key @and public
+ * key, which is not derived from the private one
+ * @when creating PeerId from that triple
+ * @then creation fails
+ */
+TEST_F(PeerIdFactoryTest, FromBufferKeysWrongKeys) {
+  EXPECT_CALL(*public_key, getBytes()).WillRepeatedly(ReturnRef(just_buffer1));
+  EXPECT_CALL(*public_key_ptr, getBytes())
+      .WillRepeatedly(ReturnRef(just_buffer2));
+  EXPECT_CALL(*private_key, publicKey())
+      .WillRepeatedly(Return(ByMove(std::move(public_key_ptr))));
 
-TEST_F(PeerIdFactoryTest, FromPrivkeyObjectSuccess) {}
+  auto result = factory.createPeerId(valid_id, public_key, private_key);
+
+  ASSERT_FALSE(result.hasValue());
+}
+
+/**
+ * @given initialized factory @and public key object
+ * @when creating PeerId from that key
+ * @then creation succeeds
+ */
+TEST_F(PeerIdFactoryTest, FromPubkeyObjectSuccess) {
+  setUpValid();
+
+  auto result = factory.createFromPublicKey(public_key);
+
+  ASSERT_TRUE(result.hasValue());
+  const auto &peer_id = result.getValueRef();
+  ASSERT_EQ(peer_id.toBytes(), valid_id);
+  ASSERT_EQ(*peer_id.publicKey(), *public_key);
+  ASSERT_FALSE(peer_id.privateKey());
+}
+
+/**
+ * @given initialized factory @and private key object
+ * @when creating PeerId from that key
+ * @then creation succeeds
+ */
+TEST_F(PeerIdFactoryTest, FromPrivkeyObjectSuccess) {
+  setUpValid();
+
+  auto result = factory.createFromPrivateKey(private_key);
+
+  ASSERT_TRUE(result.hasValue());
+  const auto &peer_id = result.getValueRef();
+  ASSERT_EQ(peer_id.toBytes(), valid_id);
+  ASSERT_EQ(*peer_id.publicKey(), *public_key);
+  ASSERT_EQ(*peer_id.privateKey(), *private_key);
+}
 
 TEST_F(PeerIdFactoryTest, FromPubkeyBufferSuccess) {}
 
