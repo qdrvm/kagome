@@ -3,6 +3,11 @@
 
 # polkadot
 
+## Guides
+
+1. [Terms](./docs/terms.md)
+2. [Rules](./docs/rules.md)
+
 ## Dev Environment
 
 1. `git clone https://github.com/soramitsu/polkadot`
