@@ -28,3 +28,13 @@ target_link_libraries(multihash
         hexutil
         uvarint
         )
+
+add_library(multistream
+    multistream.hpp
+    multistream.cpp
+    )
+
+target_link_libraries(multistream
+    buffer
+    uvarint
+    )

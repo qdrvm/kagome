@@ -97,6 +97,10 @@ namespace kagome::common {
     return data_ == b;
   }
 
+  bool Buffer::operator==(gsl::span<const uint8_t> s) const noexcept {
+    return std::equal(data_.begin(), data_.end(), s.begin(), s.end());
+  }
+
   template <typename T>
   Buffer &Buffer::putRange(const T &begin, const T &end) {
     static_assert(sizeof(*begin) == 1);
@@ -110,6 +114,10 @@ namespace kagome::common {
 
   Buffer &Buffer::put(const std::vector<uint8_t> &v) {
     return putRange(v.begin(), v.end());
+  }
+
+  Buffer &Buffer::put(gsl::span<const uint8_t> s) {
+    return putRange(s.begin(), s.end());
   }
 
   Buffer &Buffer::putBytes(const uint8_t *begin, const uint8_t *end) {
