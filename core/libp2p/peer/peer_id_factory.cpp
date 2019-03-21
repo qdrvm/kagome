@@ -5,7 +5,7 @@
 
 #include "libp2p/peer/peer_id_factory.hpp"
 
-#include "crypto/sha256/sha256.hpp"
+#include "crypto/sha/sha256.hpp"
 #include "libp2p/multi/multihash.hpp"
 
 namespace {
@@ -135,10 +135,10 @@ namespace libp2p::peer {
     auto encoded_pubkey = multibase_codec_.encode(
         key.getBytes(), multi::MultibaseCodec::Encoding::kBase64);
 
-    // TODO(Akvinikym) PRE-79 21.03.19: substitute with Multihash::create, when
-    // hashing will be implemented
+    // TODO(Akvinikym) PRE-79 21.03.19: substitute crypto::sha256 with only
+    // Multihash::create, when hashing will be implemented
     auto multihash_res = multi::Multihash::create(
-        multi::HashType::kSha256, kagome::common::Buffer{}.put(encoded_pubkey));
+        multi::HashType::kSha256, kagome::crypto::sha256(encoded_pubkey));
 
     if (multihash_res.hasError()) {
       return {};

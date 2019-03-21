@@ -34,7 +34,8 @@ class PeerIdFactoryTest : public ::testing::Test {
                         0x6B, 0x0F, 0x65, 0x5F, 0xC3, 0x22, 0x73, 0x0F, 0x26,
                         0xEC, 0xD6, 0x5C, 0xC7, 0xDD, 0x5C, 0x90};
   const Buffer invalid_id{0x66, 0x43};
-  const Buffer just_buffer{0x12, 0x34};
+  const Buffer just_buffer1{0x12, 0x34};
+  const Buffer just_buffer2{0x56, 0x78};
 
   std::shared_ptr<PublicKeyMock> public_key = std::make_shared<PublicKeyMock>();
   std::shared_ptr<PrivateKeyMock> private_key =
@@ -43,21 +44,28 @@ class PeerIdFactoryTest : public ::testing::Test {
       std::make_unique<PublicKeyMock>();
 
   void setUpValid() {
-    ON_CALL(*public_key, getBytes()).WillByDefault(ReturnRef(just_buffer));
-    ON_CALL(*public_key, getType())
-        .WillByDefault(Return(common::KeyType::kRSA1024));
+    EXPECT_CALL(*public_key, getBytes())
+        .WillRepeatedly(ReturnRef(just_buffer1));
+    EXPECT_CALL(*public_key, getType())
+        .WillRepeatedly(Return(common::KeyType::kRSA1024));
+
+    EXPECT_CALL(*private_key, getBytes())
+        .WillRepeatedly(ReturnRef(just_buffer2));
+    EXPECT_CALL(*private_key, getType())
+        .WillRepeatedly(Return(common::KeyType::kRSA1024));
 
     // make public_key_ptr equal to public_key
-    ON_CALL(*public_key_ptr, getBytes())
-        .WillByDefault(ReturnRef(public_key->getBytes()));
-    ON_CALL(*public_key_ptr, getType())
-        .WillByDefault(Return(public_key->getType()));
+    EXPECT_CALL(*public_key_ptr, getBytes())
+        .WillRepeatedly(ReturnRef(public_key->getBytes()));
+    EXPECT_CALL(*public_key_ptr, getType())
+        .WillRepeatedly(Return(public_key->getType()));
 
-    ON_CALL(*private_key, publicKey())
-        .WillByDefault(Return(ByMove(std::move(public_key_ptr))));
-    ON_CALL(multibase,
-            encode(public_key->getBytes(), MultibaseCodec::Encoding::kBase64))
-        .WillByDefault(Return("mystring"));
+    EXPECT_CALL(*private_key, publicKey())
+        .WillRepeatedly(Return(ByMove(std::move(public_key_ptr))));
+    EXPECT_CALL(
+        multibase,
+        encode(public_key->getBytes(), MultibaseCodec::Encoding::kBase64))
+        .WillRepeatedly(Return("mystring"));
   }
 };
 
