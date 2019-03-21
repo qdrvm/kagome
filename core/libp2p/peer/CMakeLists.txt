@@ -10,4 +10,5 @@ add_library(libp2p-peer
 target_link_libraries(libp2p-peer
     buffer
     multihash
+    sha
     )

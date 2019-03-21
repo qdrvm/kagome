@@ -43,22 +43,20 @@ class PeerIdFactoryTest : public ::testing::Test {
       std::make_unique<PublicKeyMock>();
 
   void setUpValid() {
+    ON_CALL(*public_key, getBytes()).WillByDefault(ReturnRef(just_buffer));
+    ON_CALL(*public_key, getType())
+        .WillByDefault(Return(common::KeyType::kRSA1024));
+
     // make public_key_ptr equal to public_key
     ON_CALL(*public_key_ptr, getBytes())
         .WillByDefault(ReturnRef(public_key->getBytes()));
     ON_CALL(*public_key_ptr, getType())
         .WillByDefault(Return(public_key->getType()));
 
-    ON_CALL(*public_key, getBytes())
-        .WillByDefault(ReturnRef(just_buffer));
-    ON_CALL(*public_key, getType())
-        .WillByDefault(Return(common::KeyType::kRSA1024));
-
     ON_CALL(*private_key, publicKey())
         .WillByDefault(Return(ByMove(std::move(public_key_ptr))));
-    ON_CALL(
-        multibase,
-        encode(public_key->getBytes(), MultibaseCodec::Encoding::kBase64))
+    ON_CALL(multibase,
+            encode(public_key->getBytes(), MultibaseCodec::Encoding::kBase64))
         .WillByDefault(Return("mystring"));
   }
 };
