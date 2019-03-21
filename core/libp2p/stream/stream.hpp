@@ -6,7 +6,6 @@
 #ifndef KAGOME_STREAM_HPP
 #define KAGOME_STREAM_HPP
 
-#include <rxcpp/rx-observable.hpp>
 #include "common/result.hpp"
 #include "libp2p/basic_interfaces/writable.hpp"
 #include "libp2p/common/network_message.hpp"
@@ -20,7 +19,8 @@ namespace libp2p::stream {
      * Read messages from the stream
      * @return observable to messages, received by that stream
      */
-    virtual rxcpp::observable<common::NetworkMessage> read() const = 0;
+    // TODO(@warchant): review types, rewrite docs
+    virtual std::vector<common::NetworkMessage> read() const = 0;
   };
 }  // namespace libp2p::stream
 
