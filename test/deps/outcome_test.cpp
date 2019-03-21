@@ -78,7 +78,7 @@ TEST(Outcome, CorrectCase) {
 }
 
 /**
- * @given conversion error for convert_and_divide
+ * @given arguments to cause conversion error for convert_and_divide
  * @when execute method which returns result
  * @then returns error
  */
@@ -92,9 +92,9 @@ TEST(Outcome, ConversionError) {
 }
 
 /**
- * @given valid arguments for convert_and_divide
+ * @given arguments to cause division error for convert_and_divide
  * @when execute method which returns result
- * @then returns value
+ * @then returns error
  */
 TEST(Outcome, DivisionError) {
   if (auto r = convert_and_divide("500", "0")) {
