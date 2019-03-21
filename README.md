@@ -7,6 +7,7 @@
 
 1. [Terms](./docs/terms.md)
 2. [Rules](./docs/rules.md)
+3. [Development guide](./docs/dev-guide.md)
 
 ## Dev Environment
 
