@@ -41,11 +41,12 @@ if(CLANG_FORMAT)
   include(cmake/clang-format.cmake)
 endif()
 
+add_subdirectory(${PROJECT_SOURCE_DIR}/deps/outcome)
+
 include_directories(
   ${PROJECT_SOURCE_DIR}/core
   # add path to header only deps here
   deps/spdlog/include
-  deps/RxCpp/Rx/v2/src
   deps/GSL/include
 )
 

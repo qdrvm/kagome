@@ -8,7 +8,6 @@
 
 #include <vector>
 
-#include <rxcpp/rx-observable.hpp>
 #include "libp2p/common/peer_info.hpp"
 
 namespace libp2p::discovery {
@@ -20,7 +19,8 @@ namespace libp2p::discovery {
      * Return observable to peers, discovered by this module
      * @return observable to new peers
      */
-    virtual rxcpp::observable<common::PeerInfo> getNewPeers() const = 0;
+    // TODO(@warchant): PRE-90 review types, rewrite docs
+    virtual std::vector<common::PeerInfo> getNewPeers() const = 0;
 
     /**
      * Return all peers, which were found by this node
