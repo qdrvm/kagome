@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "common/scale/compact.hpp"
+#include "scale/compact.hpp"
 
 #include <algorithm>
 #include <limits>
@@ -11,7 +11,7 @@
 #include <type_traits>
 
 #include "common/unreachable.hpp"
-#include "common/scale/util.hpp"
+#include "scale/util.hpp"
 
 namespace kagome::common::scale::compact {
   struct EncodingCategoryLimits {

@@ -9,10 +9,10 @@
 #include <gsl/span>
 
 #include "common/buffer.hpp"
-#include "common/scale/compact.hpp"
-#include "common/scale/fixedwidth.hpp"
-#include "common/scale/type_decoder.hpp"
-#include "common/scale/type_encoder.hpp"
+#include "scale/compact.hpp"
+#include "scale/fixedwidth.hpp"
+#include "scale/type_decoder.hpp"
+#include "scale/type_encoder.hpp"
 
 namespace kagome::common::scale::collection {
   /**

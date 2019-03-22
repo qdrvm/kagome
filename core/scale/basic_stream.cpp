@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "common/scale/basic_stream.hpp"
+#include "scale/basic_stream.hpp"
 
 namespace kagome::common::scale {
 

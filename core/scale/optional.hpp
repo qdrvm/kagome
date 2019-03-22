@@ -7,9 +7,9 @@
 #define KAGOME_OPTIONAL_HPP
 
 #include "common/buffer.hpp"
-#include "common/scale/type_decoder.hpp"
-#include "common/scale/type_encoder.hpp"
-#include "common/scale/types.hpp"
+#include "scale/type_decoder.hpp"
+#include "scale/type_encoder.hpp"
+#include "scale/types.hpp"
 
 namespace kagome::common::scale::optional {
   /**

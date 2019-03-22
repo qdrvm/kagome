@@ -24,8 +24,6 @@ target_link_libraries(blob
   hexutil
   )
 
-add_subdirectory(scale)
-
 add_library(logger
     logger.cpp
     )

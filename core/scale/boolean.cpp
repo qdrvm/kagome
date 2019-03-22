@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "common/scale/boolean.hpp"
+#include "scale/boolean.hpp"
 
 namespace kagome::common::scale::boolean {
 

@@ -6,7 +6,7 @@
 #ifndef KAGOME_SCALE_BASIC_STREAM_HPP
 #define KAGOME_SCALE_BASIC_STREAM_HPP
 
-#include "common/scale/types.hpp"
+#include "scale/types.hpp"
 
 namespace kagome::common::scale {
 

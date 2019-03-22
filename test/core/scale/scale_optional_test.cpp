@@ -6,8 +6,8 @@
 #include <gtest/gtest.h>
 
 #include "common/result.hpp"
-#include "common/scale/basic_stream.hpp"
-#include "common/scale/optional.hpp"
+#include "scale/basic_stream.hpp"
+#include "scale/optional.hpp"
 
 using namespace kagome;
 using namespace kagome::common;

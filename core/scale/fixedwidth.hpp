@@ -8,7 +8,7 @@
 
 #include "common/buffer.hpp"
 #include "common/result.hpp"
-#include "common/scale/types.hpp"
+#include "scale/types.hpp"
 
 namespace kagome::common::scale::fixedwidth {
   // 8 bit
