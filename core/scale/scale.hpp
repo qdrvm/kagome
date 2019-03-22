@@ -79,10 +79,10 @@
  *
  */
 
-#include "common/scale/boolean.hpp"
-#include "common/scale/collection.hpp"
-#include "common/scale/compact.hpp"
-#include "common/scale/fixedwidth.hpp"
-#include "common/scale/optional.hpp"
+#include "scale/boolean.hpp"
+#include "scale/collection.hpp"
+#include "scale/compact.hpp"
+#include "scale/fixedwidth.hpp"
+#include "scale/optional.hpp"
 
 #endif  // KAGOME_SCALE_HPP

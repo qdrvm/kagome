@@ -13,7 +13,7 @@
 #include <boost/endian/arithmetic.hpp>
 
 #include "common/buffer.hpp"
-#include "common/scale/types.hpp"
+#include "scale/types.hpp"
 
 namespace kagome::common::scale::impl {
   /**

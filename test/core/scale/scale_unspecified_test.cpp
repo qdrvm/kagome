@@ -6,8 +6,7 @@
 #include <gtest/gtest.h>
 
 #include "common/result.hpp"
-#include "common/scale.hpp"
-#include "common/scale/basic_stream.hpp"
+#include "scale/basic_stream.hpp"
 
 using namespace kagome;
 using namespace kagome::common;
@@ -49,9 +48,9 @@ TEST(Scale, basicStream) {
  * Decode compact integers tests
  */
 
-// TODO: implement encode and decode tuples and variants
+// TODO: PRE-70 implement encode and decode tuples and variants
 
-// TODO: write example of encoding and decoding custom structures
+// TODO: PRE-70 write example of encoding and decoding custom structures
 
 TEST(Scale, DISABLED_encodeTuple) {
   FAIL();

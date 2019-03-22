@@ -7,7 +7,7 @@
 #define KAGOME_SCALE_BOOLEAN_HPP
 
 #include "common/buffer.hpp"
-#include "common/scale/types.hpp"
+#include "scale/types.hpp"
 
 namespace kagome::common::scale::boolean {
   /**

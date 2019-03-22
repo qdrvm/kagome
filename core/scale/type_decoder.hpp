@@ -6,11 +6,11 @@
 #ifndef KAGOME_SCALE_TYPE_DECODER_HPP
 #define KAGOME_SCALE_TYPE_DECODER_HPP
 
-#include "common/scale/boolean.hpp"
-#include "common/scale/compact.hpp"
-#include "common/scale/fixedwidth.hpp"
-#include "common/scale/types.hpp"
-#include "common/scale/util.hpp"
+#include "scale/boolean.hpp"
+#include "scale/compact.hpp"
+#include "scale/fixedwidth.hpp"
+#include "scale/types.hpp"
+#include "scale/util.hpp"
 
 namespace kagome::common::scale {
   /**

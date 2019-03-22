@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "common/scale/fixedwidth.hpp"
+#include "fixedwidth.hpp"
 
 #include <boost/endian/buffers.hpp>
-#include "common/scale/util.hpp"
+#include "scale/util.hpp"
 
 using namespace kagome::common::scale;  // NOLINT
 using namespace boost::endian;          // NOLINT
