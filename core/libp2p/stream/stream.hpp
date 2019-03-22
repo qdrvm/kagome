@@ -19,7 +19,7 @@ namespace libp2p::stream {
      * Read messages from the stream
      * @return observable to messages, received by that stream
      */
-    // TODO(@warchant): review types, rewrite docs
+    // TODO(@warchant): PRE-90 review types, rewrite docs
     virtual std::vector<common::NetworkMessage> read() const = 0;
   };
 }  // namespace libp2p::stream

@@ -69,12 +69,10 @@ outcome::result<int> convert_and_divide(const std::string &a,
  * @then returns value
  */
 TEST(Outcome, CorrectCase) {
-  if (auto r = convert_and_divide("500", "2")) {
-    auto &&val = r.value();
-    ASSERT_EQ(val, 250);
-  } else {
-    FAIL();
-  }
+  auto r = convert_and_divide("500", "2");
+  ASSERT_TRUE(r);
+  auto &&val = r.value();
+  ASSERT_EQ(val, 250);
 }
 
 /**
@@ -83,12 +81,10 @@ TEST(Outcome, CorrectCase) {
  * @then returns error
  */
 TEST(Outcome, ConversionError) {
-  if (auto r = convert_and_divide("500", "a")) {
-    FAIL();
-  } else {
-    auto &&err = r.error();
-    ASSERT_EQ(err.message(), ILLEGAL_CHAR_MSG);
-  }
+  auto r = convert_and_divide("500", "a");
+  ASSERT_FALSE(r);
+  auto &&err = r.error();
+  ASSERT_EQ(err.message(), ILLEGAL_CHAR_MSG);
 }
 
 /**
@@ -97,10 +93,9 @@ TEST(Outcome, ConversionError) {
  * @then returns error
  */
 TEST(Outcome, DivisionError) {
-  if (auto r = convert_and_divide("500", "0")) {
-    FAIL();
-  } else {
-    auto &&err = r.error();
-    ASSERT_EQ(std::string{err.category().name()}, "DivisionErrc"s);  // name of the enum
-  }
+  auto r = convert_and_divide("500", "0");
+  ASSERT_FALSE(r);
+  auto &&err = r.error();
+  ASSERT_EQ(std::string{err.category().name()},
+            "DivisionErrc"s);  // name of the enum
 }

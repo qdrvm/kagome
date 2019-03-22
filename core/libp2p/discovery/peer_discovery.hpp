@@ -19,7 +19,7 @@ namespace libp2p::discovery {
      * Return observable to peers, discovered by this module
      * @return observable to new peers
      */
-    // TODO(@warchant): review types, rewrite docs
+    // TODO(@warchant): PRE-90 review types, rewrite docs
     virtual std::vector<common::PeerInfo> getNewPeers() const = 0;
 
     /**
