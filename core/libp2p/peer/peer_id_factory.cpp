@@ -5,7 +5,6 @@
 
 #include "libp2p/peer/peer_id_factory.hpp"
 
-#include "crypto/sha/sha256.hpp"
 #include "libp2p/multi/multihash.hpp"
 
 namespace {
@@ -58,7 +57,7 @@ namespace libp2p::peer {
     if (*private_key->publicKey() != *public_key) {
       return Error{"public key is not derived from the private one"};
     }
-    auto derived_id = idFromPublicKey(*public_key);
+    auto derived_id = PeerId::idFromPublicKey(*public_key, multibase_codec_);
     if (!derived_id || *derived_id != id) {
       return Error{"id is not a multihash of the public key"};
     }
@@ -69,7 +68,7 @@ namespace libp2p::peer {
 
   PeerIdFactory::FactoryResult PeerIdFactory::createFromPublicKey(
       std::shared_ptr<crypto::PublicKey> public_key) const {
-    auto derived_id = idFromPublicKey(*public_key);
+    auto derived_id = PeerId::idFromPublicKey(*public_key, multibase_codec_);
     if (!derived_id) {
       return Error{"could not create id from the public key"};
     }
@@ -128,21 +127,5 @@ namespace libp2p::peer {
       return Value{PeerId{std::forward<const kagome::common::Buffer>(bytes_id),
                           multibase_codec_, crypto_provider_}};
     };
-  }
-
-  std::optional<kagome::common::Buffer> PeerIdFactory::idFromPublicKey(
-      const crypto::PublicKey &key) const {
-    auto encoded_pubkey = multibase_codec_.encode(
-        key.getBytes(), multi::MultibaseCodec::Encoding::kBase64);
-
-    // TODO(Akvinikym) PRE-79 21.03.19: substitute crypto::sha256 with only
-    // Multihash::create, when hashing will be implemented
-    auto multihash_res = multi::Multihash::create(
-        multi::HashType::kSha256, kagome::crypto::sha256(encoded_pubkey));
-
-    if (multihash_res.hasError()) {
-      return {};
-    }
-    return multihash_res.getValueRef().toBuffer();
   }
 }  // namespace libp2p::peer

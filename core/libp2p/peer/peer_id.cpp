@@ -6,6 +6,7 @@
 #include "libp2p/peer/peer_id.hpp"
 
 #include <boost/format.hpp>
+#include "crypto/sha/sha256.hpp"
 #include "libp2p/multi/multihash.hpp"
 
 namespace libp2p::peer {
@@ -52,6 +53,11 @@ namespace libp2p::peer {
         || (private_key_ && *private_key_->publicKey() != *public_key)) {
       return false;
     }
+
+    if (!idDerivedFromPublicKey(*public_key)) {
+      return false;
+    }
+
     public_key_ = std::move(public_key);
     return true;
   }
@@ -67,10 +73,17 @@ namespace libp2p::peer {
 
     auto derived_pub_key = private_key->publicKey();
     if (public_key_) {
+      // if public key is set, we need to check, if it's derived from the given
+      // private
       if (*derived_pub_key != *public_key_) {
         return false;
       }
     } else {
+      // if public key isn't set, we need to check, that id of this instance is
+      // derived from the public key, which is derived from the given private
+      if (!idDerivedFromPublicKey(*derived_pub_key)) {
+        return false;
+      }
       public_key_ = std::move(derived_pub_key);
     }
     private_key_ = std::move(private_key);
@@ -111,5 +124,28 @@ namespace libp2p::peer {
   void PeerId::unsafeSetPrivateKey(
       std::shared_ptr<crypto::PrivateKey> private_key) {
     private_key_ = std::move(private_key);
+  }
+
+  bool PeerId::idDerivedFromPublicKey(
+      const libp2p::crypto::PublicKey &key) const {
+    auto derived_id = idFromPublicKey(key, multibase_codec_);
+    return derived_id && (*derived_id == id_);
+  }
+
+  std::optional<kagome::common::Buffer> PeerId::idFromPublicKey(
+      const libp2p::crypto::PublicKey &key,
+      const multi::MultibaseCodec &codec) {
+    auto encoded_pubkey =
+        codec.encode(key.getBytes(), multi::MultibaseCodec::Encoding::kBase64);
+
+    // TODO(Akvinikym) PRE-79 21.03.19: substitute crypto::sha256 with only
+    // Multihash::create, when hashing will be implemented
+    auto multihash_res = multi::Multihash::create(
+        multi::HashType::kSha256, kagome::crypto::sha256(encoded_pubkey));
+
+    if (multihash_res.hasError()) {
+      return {};
+    }
+    return multihash_res.getValueRef().toBuffer();
   }
 }  // namespace libp2p::peer

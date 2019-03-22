@@ -117,16 +117,6 @@ namespace libp2p::peer {
    private:
     const multi::MultibaseCodec &multibase_codec_;
     const crypto::CryptoProvider &crypto_provider_;
-
-    /**
-     * Convert public key to an ID by encoding to base64 and SHA-256 hashing the
-     * result
-     * @param key to be converted
-     * @return resulting buffer, if key was successfully converted, none
-     * otherwise
-     */
-    std::optional<kagome::common::Buffer> idFromPublicKey(
-        const libp2p::crypto::PublicKey &key) const;
   };
 }  // namespace libp2p::peer
 

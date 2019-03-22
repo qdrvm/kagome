@@ -54,9 +54,10 @@ namespace libp2p::peer {
 
     /**
      * Set public key of the Peer
-     * @param public_key to be set
+     * @param public_key to be set; must be compliant with the id
      * @return true, if it was set, false otherwise
      * @note if private key is set, this public key must be derived from it
+     * @note SHA256(base64(bytes(pubkey))) must be equal to the ID
      */
     bool setPublicKey(std::shared_ptr<crypto::PublicKey> public_key);
 
@@ -68,9 +69,11 @@ namespace libp2p::peer {
 
     /**
      * Set private key of the Peer
-     * @param private_key to be set
+     * @param private_key to be set; derived public key must be compliant with
+     * the id
      * @return true, if it was set, false otherwise
      * @note if public key is set, this private key must derive the public key
+     * @note SHA256(base64(bytes(privkey->pubkey))) must be equal to the ID
      */
     bool setPrivateKey(std::shared_ptr<crypto::PrivateKey> private_key);
 
@@ -111,10 +114,29 @@ namespace libp2p::peer {
     void unsafeSetPublicKey(std::shared_ptr<crypto::PublicKey> public_key);
 
     /**
-     * Set a private key without peforming any checks
+     * Set a private key without performing any checks
      * @param private_key to be set
      */
     void unsafeSetPrivateKey(std::shared_ptr<crypto::PrivateKey> private_key);
+
+    /**
+     * Check, if ID of that peer is derived from the given public key
+     * @param key to be checked
+     * @return true, if SHA256(base64(bytes(pubkey))) == key, false otherwise
+     */
+    bool idDerivedFromPublicKey(const libp2p::crypto::PublicKey &key) const;
+
+    /**
+     * Convert public key to an ID by encoding to base64 and SHA-256 hashing the
+     * result
+     * @param key to be converted
+     * @param codec to be used in encoding process
+     * @return resulting buffer, if key was successfully converted, none
+     * otherwise
+     */
+    static std::optional<kagome::common::Buffer> idFromPublicKey(
+        const libp2p::crypto::PublicKey &key,
+        const multi::MultibaseCodec &codec);
 
     kagome::common::Buffer id_;
     std::shared_ptr<crypto::PublicKey> public_key_;
