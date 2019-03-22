@@ -19,7 +19,6 @@ cache:
   apt: true
   ccache: true
   directories:
-  - "$HOME/.hunter"
   - "$HOME/.ccache"
   - "$HOME/Library/Caches/Homebrew"
 
