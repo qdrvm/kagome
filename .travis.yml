@@ -118,14 +118,18 @@ install:
 - |
   # install python pip3 deps
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-    pyenv global 3.6
-  fi
-  pip3 install --user requests gitpython cmake pyyaml
+      pyenv global 3.6
+    elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
+      pip3 install --user pyyaml
+    fi
+  pip3 install --user requests gitpython cmake
 
 before_script:
 - cmake --version
 - python -V
+- python3 -V
 - pip -V
+- pip3 -V
 
 script:
 - export CC=${_CC}
