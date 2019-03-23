@@ -20,6 +20,7 @@
 #endif
 
 #define STRINGIFY(x) #x
+#define UNIQUE_NAME(prefix) BOOST_PP_CAT(prefix, __LINE__)
 
 #define __FILLER_0(X, Y) ((X, Y)) __FILLER_1
 #define __FILLER_1(X, Y) ((X, Y)) __FILLER_0
@@ -37,44 +38,51 @@
 #define __WRITE_CASES(_seq) \
   BOOST_PP_SEQ_FOR_EACH(__CASE, _, BOOST_PP_CAT(__FILLER_0 _seq, _END))
 
-#define __REGISTER_STRUCT(NAME)                          \
-  namespace std {                                        \
-    template <>                                          \
-    struct is_error_code_enum<NAME> : std::true_type {}; \
-  }
-
-#define __WRITE_MESSAGE_FUNCTION(NAME, _seq)        \
+#define __WRITE_MESSAGE_FUNCTION(ENUMTYPE, _seq)    \
   std::string message(int c) const override final { \
-    switch (static_cast<NAME>(c)) {                 \
+    switch (static_cast<ENUMTYPE>(c)) {             \
       __WRITE_CASES(_seq)                           \
       default:                                      \
         return "unknown";                           \
     }                                               \
   }
 
-#define __REGISTER_CATEGORY(NAME, _seq)                            \
-  namespace detail {                                               \
-    class NAME##_category : public std::error_category {           \
-     public:                                                       \
-      const char *name() const noexcept final {                    \
-        return STRINGIFY(NAME);                                    \
-      }                                                            \
-      __WRITE_MESSAGE_FUNCTION(NAME, _seq)                         \
-    }; /* end of class */                                          \
-  }    /* end of namespace */                                      \
-                                                                   \
-  KAGOME_EXPORT const detail::NAME##_category &NAME##_category() { \
-    static detail::NAME##_category c;                              \
-    return c;                                                      \
-  }                                                                \
-                                                                   \
-  inline std::error_code make_error_code(NAME e) {                 \
-    return {static_cast<int>(e), NAME##_category()};               \
+#define __REGISTER_CATEGORY(ENUMTYPE, NAME, _seq)            \
+  class NAME : public std::error_category {                  \
+   public:                                                   \
+    NAME() = default;                                        \
+    const char *name() const noexcept final {                \
+      return STRINGIFY(ENUMTYPE);                            \
+    }                                                        \
+    __WRITE_MESSAGE_FUNCTION(ENUMTYPE, _seq)                 \
+                                                             \
+    KAGOME_EXPORT static const NAME &get() {                 \
+      static const NAME c;                                   \
+      return c;                                              \
+    }                                                        \
+                                                             \
+  }; /* end of class */                                      \
+                                                             \
+  inline std::error_code make_error_code(const ENUMTYPE e) { \
+    return {static_cast<int>(e), NAME::get()};               \
   }
 
-#define OUTCOME_REGISTER_ERROR(Name, _seq) \
-  __REGISTER_STRUCT(Name)                  \
-  __REGISTER_CATEGORY(Name, _seq)
+/**
+ * @brief Execute this macro in CPP-file OUTSIDE of any namespace to register
+ * any enum as error code
+ */
+#define OUTCOME_REGISTER_ENUM(ENUMTYPE)                      \
+  namespace std {                                            \
+    template <>                                              \
+    struct is_error_code_enum<ENUMTYPE> : std::true_type {}; \
+  }
+
+/**
+ * @brief Execute this macro in CPP-file, in your namespace to register error
+ * text
+ */
+#define OUTCOME_REGISTER_ERRORS(Enum, _seq) \
+  __REGISTER_CATEGORY(Enum, UNIQUE_NAME(EnumErr), _seq)
 
 // BOOST_PP_TUPLE_ELEM
 

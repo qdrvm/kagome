@@ -48,6 +48,7 @@ include_directories(
   # add path to header only deps here
   deps/spdlog/include
   deps/GSL/include
+  deps/outcome
 )
 
 add_subdirectory(core)

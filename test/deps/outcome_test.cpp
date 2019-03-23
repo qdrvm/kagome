@@ -33,6 +33,7 @@ OUTCOME_REGISTER_ERROR(ConversionErrc,
 OUTCOME_REGISTER_ERROR(DivisionErrc,
   (DivisionErrc::DivisionByZero, "we can't divide by 0")
 );
+
 // clang-format on
 
 outcome::result<int> convert(const std::string &str) {

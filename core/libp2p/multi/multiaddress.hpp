@@ -8,21 +8,26 @@
 
 #include <memory>
 #include <optional>
+#include <outcome/outcome.hpp>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 #include "common/buffer.hpp"
-#include "common/result.hpp"
 
 namespace libp2p::multi {
+
+  enum class MultiaddressError {
+    InvalidInput = 1,  ///< input conains invalid multiaddress
+  };
+
   /**
    * Address format, used by Libp2p
    */
   class Multiaddress {
    private:
     using ByteBuffer = kagome::common::Buffer;
-    using FactoryResult =
-        kagome::expected::Result<Multiaddress, std::string>;
+    using FactoryResult = outcome::result<Multiaddress>;
 
    public:
     Multiaddress() = delete;
@@ -109,8 +114,7 @@ namespace libp2p::multi {
      * @return vector of values, if there is at least one under this protocol,
      * none otherwise
      */
-    std::optional<std::vector<std::string>> getValuesForProtocol(
-        Protocol proto) const;
+    std::vector<std::string> getValuesForProtocol(Protocol proto) const;
 
     bool operator==(const Multiaddress &other) const;
 
