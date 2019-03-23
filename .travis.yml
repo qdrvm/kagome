@@ -7,149 +7,132 @@ git:
 
 env:
   global:
-  - CTEST_OUTPUT_ON_FAILURE=1
-    # HUNTER_GITHUB_USERNAME
-  - secure: F3T+bdNjTIE/oofb+PXz2+8I2lplJEa1UohE0tykGh8PwbOG4Ptsz68fpsMPQ5mqqk+RO000S7tafO6ZIsR3iy/J/j5dBb6PWShaDDjIlET/BJVsopG4KgdcIbQ+kT63jmuJmlBxmT9Bel8E1Qm3aQEQU1F+9Kx2VCqoe7TLKQyP1G4a74I50NpcYkOgRBOCW9SRu2fyS6Yv2NZ16j4WPkxLtQjhLMOqvcMpYGhR9NKUIHyHo04fdiu3/ii0pKcwvDkde0ux+DhSY2cX7ksZ3BwlSc0hUCZWvyd2pjeQEdyfKr5JOKBwfGI60VJ3o/FwMySOmYevOPKSRPZYeoncIGzj1iwVl+gFD5iOXT89MUStNl2vVkD2GPyZPi8b2peJHGGtKHkqgLOY0iR/dtOaIHBEXxNqcvoDwUDqz2hYUKVPsQ8MYgUQZHUXFgitJRWPdAvBQLIzoT5p1TRIgKBHU9OPpgrymILmSp7CFw0XYejUJIHxLzjk76pInr4A01EgLExPmYkGUqFzb35V1p3iT7bzn7MRM92pyIC+/whv8vjc9LbLrxm006NEZyM7QMWr4jv/HU0NpXgSyWoSr5PsBbb7TgpCLifMO15o8yptgTxL9xU4jVm5yQhre7cZzUH9toWBh0z5sqpexM3OoYd4UY9ocgdqShsvrtXwo8YzELk=
-  # HUNTER_GITHUB_TOKEN
-  - secure: fKwrK+2crAEZ8UfeuKfsytSig3JT/07TaOYoAYkcVu91fHOfyFi3+luDvtUU3AQclYiP8BYhZyDCm1AXWVyx1/F20PpQniCpkBkoDPz3CN8Enk1Ne0Sc7g8xNP9S2vB5HhT4vdRFqJWssaqwzRFmCFtYbyWFgJZFscZ7XOmWQpfWeX78JoYgsnyxMhaIYV5Br5jbSMj9FbS60QBSXj18mX7maeJ729BeRnyTjDyIvtPZhynIMo0/FLjghsaLPLMxuVd70+za5nu+YhGCYK5MGlOMsHGedronJqAfOpz4mQwP0ab5uMVts1MQfgtkdnNl2n4LTMalh3r0PY9F1eTtO+pi2smNaqhADvFtALBfdMEkN81hucsWFY3QU6sUoctztu4E97ZgBVahL2JUWPgXvK7ijERfaZ4olpZdvbC4IDPJQ30bXkS+g/ZW1fn1cxV6hAmDLA3CYW63HBJaygDS/6v5c8/sO/1/vljVbbeP3SNtwKyf83z/yUDcVwkZKCPNjSbHnNrTCdUn8HefmV07fDf07YCRoiQeiT6jHG5iHLi0bHn38JLIl/XsZ2Dj/WVysnP4+QO/JTzZBZJNyCCLRQOQwZWvKchlm9nw8xK10zc67BTU2yqx2do6NZuL5AfK3M6wGDD6Lso7huys9NNbFTWTc5vpDcANpf50lZuMVrU=
-  # CODECOV_TOKEN
-  - secure: VK2/+gY79fRkYrd0InEmg1r2vRgfrj5uliAENbdqWY53KQVHD0f0IvKEHckaqu/chwwnP4Um21pjzDMoFLrAi8NW0EixFpZjkbFX97n7/+TJ2Z+kppQwf33aMULJCOhV41DxJti6JoJToLTs64cfInpdXaUvPbOjo81mdio9fnfRK0BxIMVw3T6040HQXLkIXZw049onqXNC8CUl3kysi2Rv9Ju6wB2vBQdftdkWpkqdHVYohbAO9G91LdeFw1h17OCe/dJVL/w/JBHwHgBimBb8Tf77MdSIK1F136oih/ebfXGHxrpRTr3KceN8qG3LQIs/YjF9RcAmD5bdMBIUQhxCfbOeo7yGV65NCFUPx0+KCM5zav3jUfd5/E9KbLiVifu62xyv4MJVSAVSxbNNxMsDMu/OPifnLMryJeIVGVhs1hf64ccm2cWstlhPNk8mvjgy4/CLlvhAsU2+hyBcx6Obk6nwWKmfYLbEtfG/o8+h6y+5b9FKq7KyfdlP8XpM2tQ0IiI7mF7MjBQsg1eLCGIOGayKu6RIleAlLohuTBnEtocgPs6rX2MyQ9/V3Vmq+x1aafli6X7uJUos51gZVq0jvMR196dUXuRbPFky8BJSQY5NRh3ix2ZEztHqRrOVN+OtYfXTg2mdlJ1xtIiYmMd8obAhEGztTbtxJmM94LY=
+    - CTEST_OUTPUT_ON_FAILURE=1
+    # CODECOV_TOKEN
+    - secure: d1396QBTHnw+4+C+6GgxNGj3zLKNIwSxbnbjRHrfsjZ46yjb0j1S8Xc2PiL88cWVS1a1sAU4K4RfmWyvl6JJrsdcRGY7hlRMbyLqQPRVHyCv8OGiA6AnFz40c+cmAEeUz0oWr4EuN8Q7YFvoXS/c2oq9njS4ib+epFFQbmpbHE+R0U1/PVLsPpFYMkAy8gp+lGX/eiEUMMJebAV3URAkJjhtLZvcYCWfhTA0zH8CiiMhQIGKs4ejWIzZVIRlC2SKxG6hnTks9bi0Al3RltGDW7VqDRH83SQ+bp/ZL77C+VooT7mS5fkWKtN7pkqtDW5FSeKj2x9QYAj0bEGkwT0CAetXyVHi3/vft1khAgNYKrzDsaOYVNiZBaX3GH3Q8RTGd08cWA1Rj5hTClhSV6IDIP1iPxCPZmzTmpGceBm9k5EmS0BynlpWy5OwBF053t73BKCY057tr3wXbZfFC58N7mC09Y3RTXAHPv2wY+ZjlfurzwjCMbJq8qD2LP6awskxx0N2WULLVUgQEN/mrRn7+U3KcFKvgMoNbHpfNFL6RffCVTVa/4ufObnXg0BhPGBmdGReOsMLKAIbAzBKbKfUQA/KD6usI6b+HHvekYG7ZyE1SBRqkR6BSQxfaMsHMCYTwHC60m8A4RRM4IL8ahdcZU354Iq+J5RLhXEDRs2GfRI=
+    # GITHUB_HUNTER_TOKEN
+    - secure: BExdoJVUddjS1oIPsCxnnnOmrkZ6i05ucvimNSydP1seva4gOciJJmZb9j7vUIka8NODJsuzchvupyOT86neSOP/FGnDdaK2AsvH/xr3nWRKbTBmQ+mVB3Ezw1MHe82WchfNg3lQzhAeMtuu686hnNPUyyh0jBScqZSDfCkGlhfMD2ZqqiAHSd/83xtR/AL5Zk+GoPFIOUQU8zqIPCPGQFf93rPXh89EK2jDCobQjy3/SqN0Jl4zw0hVCAlpJVx0N3Ycmhzkpwnh3POqK4GoS+/YWaDcaFcTv02dd02YL5sT9Reko2EstG5Wp2eODW4tMYEGNbSC69XU6KdbSnuXWXSZNpX3Ee9UbA5JPLhEjdZ8Reoxlr+5QYbVJMGfoffOOtqK9xp+gQ6zUbELMlcM8tqAa65KZFfzEW9slmS7tWqPlUFC1jUNZRAAcPbnvALMGWr1Y3uKmgUB1MNs/YKcA6RmUerexm5kpbIMKbCA0+c3c/DIG/+HHd22JX38ogNv0Z0ezFk3kjhT603wy8NGdwVOUzrdCVPXIg/VyvbFGudxL5NR9Vx5Dq2Ff+tCgI62QunKJmAs5VaqZg7f+DhOL4gGrw7g1YeMLF2R2HfOO1SXdMp30zRT4L2FGZOWdJs2jiYebccMFOGm4Bi7Z4Mvdq42F4+RwxPSWQJf8Eo+Mz0=
+    # GITHUB_HUNTER_USERNAME
+    - secure: JgAYm6GojZFLeURRtYzA/K3WCWsd2w4UIJPhafKAvhiDKsMVDS78VqIsGbPTmsLB5K1zNotmoalcE/N1JRwmii3HLgL/WtMdWh2haVmZ2r5mZVrQP1clHJb7FFSVQksx0c7gHYTuM4GPu2uEvEtbRtWF3ol/52ZPc0cRuPtHqZ4BcLGFmMVyFY5xij7MjfVW1VTT7u14tlwTBhlmWYSGIsaf/6xUNO5HamAYZOYt+vz9ihYStP11rbA2sAXcNlTR3hILho92rTe7BprkVfHYiOeOqsTHoXXQYHelWkmH+WExBvsqivdJkMldda2+oXXcUoOnKPJSZ4QWEfp/OBVW/Jpg4+jytTV6Lhg8U1RC3yj/pwgzc8G5mINN9T5LQWAmrege3X8FpPCRqQhm8WQm7vQnw5uNX8ddvUE3CIJjxqy11lDtB7ojXrUP9wPz3R1vryhmUcGEju8jTEE+MRsHMN5ziEBXWvABP9j8sW+P0f82CMuOGCDHoGKwZEfUfwg7qRjBcgwfqOGRXVClazWLfyg20F+gn8yLg5bAYCm6evJilsl5elcTvJY8Vp+Et2dbabO2Ln5XgNNyEMMB9NPx4HGPU+quuMdAu2gpAdrwmjd6cF+mDiAwYt8II2S4kSYUngKPEvCPv1pW86uuL3/6At6scW7pNOMPa5SijEgyGCc=
 
 cache:
   apt: true
   ccache: true
   directories:
-  - "$HOME/.hunter"
-  - "${TRAVIS_BUILD_DIR}/cmake_3.13.3"
-  - "${TRAVIS_BUILD_DIR}/deps"
-  - "$HOME/.cache"
-  - "$HOME/.ccache"
-  - "$HOME/Library/Caches/Homebrew"
+    - "$HOME/.ccache"
+    - "$HOME/Library/Caches/Homebrew"
 
 matrix:
   include:
-  - os: linux
-    name: "Linux gcc8 Coverage"
-    dist: xenial
-    compiler: gcc
-    addons:
-      apt:
-        sources:
-        - ubuntu-toolchain-r-test
-        packages:
-        - gcc-8
-        - g++-8
-        - git
-        - python3
-        - python3-pip
-        - lcov
-        - gcovr
-    env:
-      - _CC=gcc-8
-      - _CXX=g++-8
-      - COVERAGE=ON
-    after_success:
-      # collect coverage
-      - cmake --build build --target coverage.init.info
-      - cmake --build build --target coverage.info
-      - bash <(curl -s https://codecov.io/bash) -s build
+    - os: osx
+      name: "OSX gcc"
+      osx_image: xcode10.1
+      compiler: gcc
+      before_cache:
+        - brew cleanup
+      env:
+        - _CC=gcc
+        - _CXX=g++
+      addons:
+        homebrew:
+          packages:
+            - git
+
+    - os: osx
+      name: "OSX clang clang-tidy"
+      osx_image: xcode10.1
+      compiler: clang
+      before_cache:
+        - brew cleanup
+      env:
+        - _CC=clang
+        - _CXX=clang++
+      addons:
+        homebrew:
+          packages:
+            - git
+            - llvm
+      script:
+        # run clang-tidy
+        - export CLANG_TIDY=$(find /usr/local/Cellar/llvm -type f -name clang-tidy | head -n 1)
+        - export CC=$_CC
+        - export CXX=$_CXX
+        - cmake . -Bbuild -DCLANG_TIDY=ON -DCLANG_TIDY_BIN=${CLANG_TIDY}
+        - cmake --build build -- -j2
+        - cmake --build build --target test
+
+    - os: linux
+      name: "Linux gcc8 Coverage"
+      dist: xenial
+      compiler: gcc
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-8
+            - g++-8
+            - git
+            - python3
+            - python3-pip
+            - python3-setuptools
+            - lcov
+            - gcovr
+      env:
+        - _CC=gcc-8
+        - _CXX=g++-8
+        - COVERAGE=ON
+      after_success:
+        # collect coverage
+        - sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-8 90
+        - cmake --build build --target coverage.init.info
+        - cmake --build build --target coverage.info
+        - bash <(curl -s https://codecov.io/bash) -s build
 
 
-  - os: linux
-    name: "Linux clang-8"
-    dist: xenial
-    compiler: clang
-    before_cache:
-      - brew cleanup
-    addons:
-      apt:
-        sources:
-        - llvm-toolchain-xenial-8
-        - ubuntu-toolchain-r-test
-        packages:
-        - gcc-8
-        - g++-8
-        - clang-8
-        - git
-        - python3
-        - python3-pip
-        - lcov
-        - gcovr
-    env:
-      - _CC=clang-8
-      - _CXX=clang++-8
-
-
-  - os: osx
-    name: "OSX gcc"
-    osx_image: xcode10.1
-    compiler: gcc
-    before_cache:
-      - brew cleanup
-    env:
-      - _CC=gcc
-      - _CXX=g++
-    addons:
-      homebrew:
-        packages:
-          - git
-
-  - os: osx
-    name: "OSX clang clang-tidy"
-    osx_image: xcode10.1
-    compiler: clang
-    env:
-      - _CC=clang
-      - _CXX=clang++
-    addons:
-      homebrew:
-        packages:
-          - git
-          - llvm
-    script:
-      # run clang-tidy
-      - export CLANG_TIDY=$(find /usr/local/Cellar/llvm -type f -name clang-tidy | head -n 1)
-      - export CC=$_CC
-      - export CXX=$_CXX
-      - cmake . -Bbuild -DCLANG_TIDY=ON -DCLANG_TIDY_BIN=${CLANG_TIDY}
-      - cmake --build build -- -j2
-      - cmake --build build --target test
+    - os: linux
+      name: "Linux clang-8"
+      dist: xenial
+      compiler: clang
+      before_cache:
+        - brew cleanup
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-xenial-8
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-8
+            - clang-8
+            - git
+            - python3
+            - python3-pip
+            - python3-setuptools
+      env:
+        - _CC=clang-8
+        - _CXX=clang++-8
 
 
 install:
-- |
-  # install cmake
-  CMAKE_SRC_BUILD_DIR="${TRAVIS_BUILD_DIR}/cmake_3.13.3"
-  mkdir -p ${CMAKE_SRC_BUILD_DIR} && cd ${CMAKE_SRC_BUILD_DIR}
-  if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-    CMAKE_TAR_FILE='cmake-3.13.3-Linux-x86_64'
-    CMAKE_PATH="${CMAKE_TAR_FILE}/bin"
-  elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-    CMAKE_TAR_FILE='cmake-3.13.3-Darwin-x86_64'
-    CMAKE_PATH="${CMAKE_TAR_FILE}/CMake.app/Contents/bin"
-  fi
-  if [[ ! -f "${CMAKE_PATH}/cmake" ]]; then
-    curl "https://cmake.org/files/v3.13/${CMAKE_TAR_FILE}.tar.gz" | tar xz;
-  fi
-  export PATH="$PWD/${CMAKE_PATH}:$PATH"
-  cd ${TRAVIS_BUILD_DIR}
-- |
-  # install python pip3 deps
-  if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-    pyenv global 3.6
-    pip3 install requests gitpython
-  elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
-    pip3 install -q requests gitpython pyyaml
-  fi
+  - |
+    # install python pip3 deps
+    if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+        pyenv global 3.6
+      elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
+        pip3 install --user pyyaml
+      fi
+    pip3 install --user requests gitpython cmake
 
 before_script:
-- cmake --version
-- python -V
-- pip -V
+  - cmake --version
+  - python -V
+  - python3 -V
+  - pip -V
+  - pip3 -V
 
 script:
-- export CC=${_CC}
-- export CXX=${_CXX}
-- cmake . -Bbuild -DCOVERAGE=${COVERAGE:OFF}
-- cmake --build build -- -j2
-- cmake --build build --target test
+  - export CC=${_CC}
+  - export CXX=${_CXX}
+  - cmake . -Bbuild -DCOVERAGE=${COVERAGE:OFF}
+  - cmake --build build -- -j2
+  - cmake --build build --target test
