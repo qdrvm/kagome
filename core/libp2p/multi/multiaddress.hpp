@@ -22,7 +22,7 @@ namespace libp2p::multi {
    private:
     using ByteBuffer = kagome::common::Buffer;
     using FactoryResult =
-        kagome::expected::Result<std::unique_ptr<Multiaddress>, std::string>;
+        kagome::expected::Result<Multiaddress, std::string>;
 
    public:
     Multiaddress() = delete;
@@ -39,7 +39,7 @@ namespace libp2p::multi {
      * @return pointer to Multiaddress, if creation is successful, error
      * otherwise
      */
-    static FactoryResult createMultiaddress(std::string_view address);
+    static FactoryResult create(std::string_view address);
 
     /**
      * Construct a multiaddress instance from the bytes
@@ -47,7 +47,7 @@ namespace libp2p::multi {
      * @return pointer to Multiaddress, if creation is successful, error
      * otherwise
      */
-    static FactoryResult createMultiaddress(const ByteBuffer &bytes);
+    static FactoryResult create(const ByteBuffer &bytes);
 
     /**
      * Encapsulate a multiaddress to this one, such that:

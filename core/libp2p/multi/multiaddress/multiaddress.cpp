@@ -56,7 +56,7 @@ namespace {
 
 namespace libp2p::multi {
 
-  Multiaddress::FactoryResult Multiaddress::createMultiaddress(
+  Multiaddress::FactoryResult Multiaddress::create(
       std::string_view address) {
     uint8_t *bytes_ptr;
     size_t bytes_size = 0;
@@ -76,10 +76,10 @@ namespace libp2p::multi {
 
     Multiaddress res{std::string{address},
                      ByteBuffer{std::vector<uint8_t>{bytes_ptr, bytes_end}}};
-    return Value{std::make_unique<Multiaddress>(std::move(res))};
+    return Value{std::move(res)};
   }
 
-  Multiaddress::FactoryResult Multiaddress::createMultiaddress(
+  Multiaddress::FactoryResult Multiaddress::create(
       const ByteBuffer &bytes) {
     char *address_ptr = nullptr;
 
@@ -92,7 +92,7 @@ namespace libp2p::multi {
     }
 
     Multiaddress res{std::string{address_ptr}, ByteBuffer{bytes}};
-    return Value{std::make_unique<Multiaddress>(std::move(res))};
+    return Value{std::move(res)};
   }
 
   Multiaddress::Multiaddress(std::string &&address, ByteBuffer &&bytes)
