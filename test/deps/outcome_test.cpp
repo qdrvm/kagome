@@ -22,19 +22,32 @@ enum class DivisionErrc {
   DivisionByZero = 1,
 };
 
-// clang-format off
-OUTCOME_REGISTER_ERROR(ConversionErrc,
-  (ConversionErrc::Success, "success")
-  (ConversionErrc::EmptyString, "empty string")
-  (ConversionErrc::IllegalChar, ILLEGAL_CHAR_MSG)
-  (ConversionErrc::TooLong, "too long")
-);
+OUTCOME_MAKE_ERROR_CODE(ConversionErrc);
+OUTCOME_MAKE_ERROR_CODE(DivisionErrc);
 
-OUTCOME_REGISTER_ERROR(DivisionErrc,
-  (DivisionErrc::DivisionByZero, "we can't divide by 0")
-);
+OUTCOME_REGISTER_CATEGORY(ConversionErrc, e) {
+  switch (e) {
+    case ConversionErrc ::Success:
+      return "success";
+    case ConversionErrc ::EmptyString:
+      return "empty string";
+    case ConversionErrc ::IllegalChar:
+      return ILLEGAL_CHAR_MSG;
+    case ConversionErrc ::TooLong:
+      return "too long";
+    default:
+      return "unknown";
+  }
+}
 
-// clang-format on
+OUTCOME_REGISTER_CATEGORY(DivisionErrc, e) {
+  switch (e) {
+    case DivisionErrc ::DivisionByZero:
+      return "division by 0";
+    default:
+      return "unknown";
+  }
+}
 
 outcome::result<int> convert(const std::string &str) {
   if (str.empty())
