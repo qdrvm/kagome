@@ -5,8 +5,14 @@ add_library(primitives
         block_header.cpp
         extrinsic.hpp
         extrinsic.cpp
+        scale_codec.hpp
+        impl/scale_codec_impl.hpp
+        impl/scale_codec_impl.cpp
+        scale_error.hpp  # don't worry, these 2 files will be moved
+        scale_error.cpp  # to scale library
         )
 
 target_link_libraries(primitives
         buffer
+        outcome
         )
