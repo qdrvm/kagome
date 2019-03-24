@@ -72,12 +72,12 @@ namespace my::super:lib {
   class MyLib {
    public:
     // MyError now is a member of class
-    enum class MyError {
-      Case1 = 1,  // NOTE: MUST NOT start with 0 (it represents success)
-      Case2 = 2,
-      Case3 = 4,  // any codes may be used
-      Case4       // or no codes at all
-    };
++   enum class MyError {
++     Case1 = 1,  // NOTE: MUST NOT start with 0 (it represents success)
++     Case2 = 2,
++     Case3 = 4,  // any codes may be used
++     Case4       // or no codes at all
++   };
 
     outcome::result<int> calc(int a, int b);
   }
@@ -89,8 +89,8 @@ namespace my::super:lib {
 // mylib.cpp:
 #include "mylib.hpp"
 
-// NOTE: fully qualified name has changed, because now MyError is
-// inside MyLib
++// NOTE: fully qualified name has changed, because now MyError is
++// inside MyLib
 -OUTCOME_REGISTER_CATEGORY(my::super::lib::MyError, e){
 +OUTCOME_REGISTER_CATEGORY(my::super::lib::MyLib::MyError, e){
 - using my::super::lib::MyError; // not necessary, just for convenience
@@ -108,7 +108,7 @@ namespace my::super::lib {
 + // NOTE: Class is defined at namespace my::super::lib, so make_error_code should also be
 + // defined in this namespace!
 + // no changes here
-  OUTCOME_MAKE_ERROR_CODE(MyError); // NOTE: MUST be called in the same namespace as error
+  OUTCOME_MAKE_ERROR_CODE(MyError); // NOTE: MUST be called in the same namespace as MyError
 
 -  outcome::result<int> calc(int a, int b)
 +  outcome::result<int> MyLib::calc(int a, int b){
@@ -116,9 +116,9 @@ namespace my::super::lib {
     if(a < 0)   return MyError::Case1;
     if(a > 100) return MyError::Case2;
     if(b < 0)   return MyError::Case3;
-    if(b < 100) return MyError::Case4;
+    if(b > 100) return MyError::Case4;
 
-    return a + b; // simply return value in case of value:
+    return a + b; // simply return value in case of value
   }
 }
 ```
