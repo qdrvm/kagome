@@ -5,7 +5,7 @@
 
 #include "common/buffer.hpp"
 
-#include "buffer.hpp"
+#include "common/buffer.hpp"
 #include "common/hexutil.hpp"
 
 namespace kagome::common {
