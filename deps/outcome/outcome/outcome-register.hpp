@@ -19,71 +19,50 @@
 #endif
 #endif
 
-#define STRINGIFY(x) #x
-#define UNIQUE_NAME(prefix) BOOST_PP_CAT(prefix, __LINE__)
+#define OUTCOME_USE_STD_IN_PLACE_TYPE 1
 
-#define __FILLER_0(X, Y) ((X, Y)) __FILLER_1
-#define __FILLER_1(X, Y) ((X, Y)) __FILLER_0
-#define __FILLER_0_END
-#define __FILLER_1_END
+namespace __kagome {
 
-#define __CASE_P(_cond, _ret) \
-  case _cond:                 \
-    return _ret;
+  template <typename T>
+  class Category : public std::error_category {
+   public:
+    const char *name() const noexcept final {
+      return typeid(T).name();
+    }
 
-#define __CASE(R, _, _tuple)                    \
-  __CASE_P((BOOST_PP_TUPLE_ELEM(2, 0, _tuple)), \
-           (BOOST_PP_TUPLE_ELEM(2, 1, _tuple)))
+    std::string message(int c) const final {
+      return toString(static_cast<T>(c));
+    }
 
-#define __WRITE_CASES(_seq) \
-  BOOST_PP_SEQ_FOR_EACH(__CASE, _, BOOST_PP_CAT(__FILLER_0 _seq, _END))
+    static std::string toString(T t) {
+      enum dummy {
+        d = (sizeof(struct must_execute_OUTCOME_REGISTER_CATEGORY) == sizeof(T))
+      };
+      return "";
+    }
 
-#define __WRITE_MESSAGE_FUNCTION(ENUMTYPE, _seq)    \
-  std::string message(int c) const override final { \
-    switch (static_cast<ENUMTYPE>(c)) {             \
-      __WRITE_CASES(_seq)                           \
-      default:                                      \
-        return "unknown";                           \
-    }                                               \
+    KAGOME_EXPORT static const Category<T> &get() {
+      static const Category<T> c;
+      return c;
+    }
+  }; /* end of class */
+
+}  // namespace __kagome
+
+/// MUST BE EXECUTED IN THE SAME NAMESPACE AS ENUM in cpp or hpp
+#define OUTCOME_MAKE_ERROR_CODE(Enum)                              \
+  inline std::error_code make_error_code(Enum e) {                 \
+    return {static_cast<int>(e), __kagome::Category<Enum>::get()}; \
   }
 
-#define __REGISTER_CATEGORY(ENUMTYPE, NAME, _seq)            \
-  class NAME : public std::error_category {                  \
-   public:                                                   \
-    NAME() = default;                                        \
-    const char *name() const noexcept final {                \
-      return STRINGIFY(ENUMTYPE);                            \
-    }                                                        \
-    __WRITE_MESSAGE_FUNCTION(ENUMTYPE, _seq)                 \
-                                                             \
-    KAGOME_EXPORT static const NAME &get() {                 \
-      static const NAME c;                                   \
-      return c;                                              \
-    }                                                        \
-                                                             \
-  }; /* end of class */                                      \
-                                                             \
-  inline std::error_code make_error_code(const ENUMTYPE e) { \
-    return {static_cast<int>(e), NAME::get()};               \
-  }
-
-/**
- * @brief Execute this macro in CPP-file OUTSIDE of any namespace to register
- * any enum as error code
- */
-#define OUTCOME_REGISTER_ENUM(ENUMTYPE)                      \
-  namespace std {                                            \
-    template <>                                              \
-    struct is_error_code_enum<ENUMTYPE> : std::true_type {}; \
-  }
-
-/**
- * @brief Execute this macro in CPP-file, in your namespace to register error
- * text
- */
-#define OUTCOME_REGISTER_ERRORS(Enum, _seq) \
-  __REGISTER_CATEGORY(Enum, UNIQUE_NAME(EnumErr), _seq)
-
-// BOOST_PP_TUPLE_ELEM
+/// MUST BE EXECUTED AT FILE LEVEL (no namespace) IN CPP
+#define OUTCOME_REGISTER_CATEGORY(Enum, Name)            \
+  namespace std {                                        \
+    template <>                                          \
+    struct is_error_code_enum<Enum> : std::true_type {}; \
+  }                                                      \
+                                                         \
+  template <>                                            \
+  std::string __kagome::Category<Enum>::toString(Enum Name)
 
 #endif  // KAGOME_OUTCOME_REGISTER_HPP

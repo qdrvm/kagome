@@ -15,10 +15,6 @@ extern "C" {
 #include "libp2p/multi/c-utils/protoutils.h"
 }
 
-using kagome::expected::Error;
-using kagome::expected::Result;
-using kagome::expected::Value;
-
 namespace {
   // string representations of protocols
   constexpr std::string_view kIp4 = "/ip4";
@@ -54,16 +50,18 @@ namespace {
   }
 }  // namespace
 
-// clang-format off
-OUTCOME_REGISTER_ENUM(libp2p::multi::MultiaddressError)
-// clang-format on
+OUTCOME_REGISTER_CATEGORY(libp2p::multi::Multiaddress::Error, e) {
+  switch (e) {
+    case libp2p::multi::Multiaddress::Error::InvalidInput:
+      return "invalid multiaddress input";
+    default:
+      return "unknown";
+  }
+}
 
 namespace libp2p::multi {
-  // clang-format off
-  OUTCOME_REGISTER_ERRORS(MultiaddressError,
-      (MultiaddressError::InvalidInput, "input contains invalid multiaddress")
-  );
-  // clang-format on
+
+  OUTCOME_MAKE_ERROR_CODE(Multiaddress::Error);
 
   Multiaddress::FactoryResult Multiaddress::create(std::string_view address) {
     uint8_t *bytes_ptr;
@@ -74,7 +72,7 @@ namespace libp2p::multi {
     auto conversion_error = string_to_bytes(&bytes_ptr, &bytes_size,
                                             address.data(), address.size());
     if (conversion_error != nullptr) {
-      return MultiaddressError::InvalidInput;
+      return Error::InvalidInput;
     }
 
     // avoiding pointer arithmetic
@@ -89,10 +87,10 @@ namespace libp2p::multi {
     char *address_ptr = nullptr;
 
     // convert bytes address to string and make sure it represents valid address
-    auto conversion_error =
-        bytes_to_string(&address_ptr, bytes.toBytes(), bytes.size());
+    auto conversion_error = bytes_to_string(&address_ptr, bytes.toBytes(),
+                                            static_cast<int>(bytes.size()));
     if (conversion_error != nullptr) {
-      return MultiaddressError::InvalidInput;
+      return Error::InvalidInput;
     }
 
     return Multiaddress{std::string{address_ptr}, ByteBuffer{bytes}};

@@ -17,9 +17,6 @@
 
 namespace libp2p::multi {
 
-  enum class MultiaddressError {
-    InvalidInput = 1,  ///< input conains invalid multiaddress
-  };
 
   /**
    * Address format, used by Libp2p
@@ -37,6 +34,10 @@ namespace libp2p::multi {
 
     Multiaddress(Multiaddress &&address) = default;
     Multiaddress &operator=(Multiaddress &&address) = default;
+
+    enum class Error {
+      InvalidInput = 1,  ///< input conains invalid multiaddress
+    };
 
     /**
      * Construct a multiaddress instance from the string

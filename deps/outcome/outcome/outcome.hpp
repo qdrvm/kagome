@@ -27,15 +27,8 @@ namespace outcome = OUTCOME_V2_NAMESPACE; // required to be here
  *
  * /// MUST BE EXECUTED INSIDE CPP
  * /// MUST BE EXECUTED AT FILE LEVEL (outside of any namespace)
- * // clang-format off
- * OUTCOME_REGISTER_ENUM(ConversionErrc);            // register your enum as error code
- * // clang-format on
- *
- *
- * /// MUST BE EXECUTED INSIDE CPP
- * /// CAN BE EXECUTED AT FILE LEVEL or INSIDE NAMESPACE
  * // clang-format off                               // disable clang-format, as it makes macro ugly
- * OUTCOME_REGISTER_ERRORS(                          // call registration macro
+ * OUTCOME_REGISTER_ERROR(                          // call registration macro
  *   ConversionErrc                                  // provide name of the enum
  *   ,                                               // PUT EXACTLY ONE COMMA
  *   (ConversionErrc::Success, "success")            // then, provide list of tuples (case, "message")
