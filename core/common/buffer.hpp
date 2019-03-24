@@ -134,13 +134,6 @@ namespace kagome::common {
     Buffer &put(gsl::span<const uint8_t> s);
 
     /**
-     * @brief Put buffer
-     * @param b any valid Buffer
-     * @return this
-     */
-    Buffer &put(const Buffer &b);
-
-    /**
      * @brief Put a array of bytes bounded by pointers into byte buffer
      * @param begin pointer to the array start
      *        end pointer to the address after the last element

@@ -124,8 +124,5 @@ namespace kagome::common {
   Buffer &Buffer::putBytes(const uint8_t *begin, const uint8_t *end) {
     return putRange(begin, end);
   }
-  Buffer &Buffer::put(const Buffer &b) {
-    return putRange(b.begin(), b.end());
-  }
 
 }  // namespace kagome::common

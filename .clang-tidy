@@ -1,6 +1,6 @@
 ---
 Checks:          '-*,clang-analyzer-*,clang-diagnostic-*,readability-*,modernize-*,boost-*,bugprone-*,cppcoreguidelines-*,google-*,hicpp-*,performance-*,readability-*,-google-readability-namespace-comments,-readability-inconsistent-declaration-parameter-name,-readability-braces-around-statements,-hicpp-signed-bitwise,-google-runtime-references'
-WarningsAsErrors: 'modernize-*,cppcoreguidelines-*,boost-*,performance-*,google-build-using-namespace,readability-else-after-return,google-readability-todo'
+WarningsAsErrors: 'modernize-*,cppcoreguidelines-*,boost-*,performance-*,google-build-using-namespace,readability-else-after-return,google-readability-todo,-cppcoreguidelines-avoid-magic-numbers'
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false
 FormatStyle:     .clang-format

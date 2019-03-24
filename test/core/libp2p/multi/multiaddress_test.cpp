@@ -97,7 +97,7 @@ TEST_F(MultiaddressTest, Encapsulate) {
       + std::string{valid_ipfs_address.substr(1)};
 
   auto joined_byte_address = address1.getBytesAddress();
-  joined_byte_address.put(address2.getBytesAddress());
+  joined_byte_address.put(address2.getBytesAddress().toVector());
 
   address1.encapsulate(address2);
   ASSERT_EQ(address1.getStringAddress(), joined_string_address);
