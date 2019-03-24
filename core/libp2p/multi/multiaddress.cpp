@@ -15,10 +15,6 @@ extern "C" {
 #include "libp2p/multi/c-utils/protoutils.h"
 }
 
-using kagome::expected::Result;
-using kagome::expected::Value;
-using kagome::expected::Error;
-
 namespace {
   // string representations of protocols
   constexpr std::string_view kIp4 = "/ip4";
@@ -54,45 +50,51 @@ namespace {
   }
 }  // namespace
 
+OUTCOME_REGISTER_CATEGORY(libp2p::multi::Multiaddress::Error, e) {
+  using libp2p::multi::Multiaddress;
+  switch (e) {
+    case Multiaddress::Error::InvalidInput:
+      return "invalid multiaddress input";
+    default:
+      return "unknown";
+  }
+}
+
 namespace libp2p::multi {
 
-  Multiaddress::FactoryResult Multiaddress::createMultiaddress(
-      std::string_view address) {
+  OUTCOME_MAKE_ERROR_CODE(Multiaddress::Error);
+
+  Multiaddress::FactoryResult Multiaddress::create(std::string_view address) {
     uint8_t *bytes_ptr;
     size_t bytes_size = 0;
 
     // convert string address to bytes and make sure they represent valid
     // address
-    auto conversion_error = string_to_bytes(
-        &bytes_ptr, &bytes_size, address.data(), address.size());
+    auto conversion_error = string_to_bytes(&bytes_ptr, &bytes_size,
+                                            address.data(), address.size());
     if (conversion_error != nullptr) {
-      return Error{"Could not create a multiaddress object: "
-                   + std::string{conversion_error}};
+      return Error::InvalidInput;
     }
 
     // avoiding pointer arithmetic
     auto bytes_end = bytes_ptr;
     std::advance(bytes_end, bytes_size);
 
-    Multiaddress res{std::string{address},
-                     ByteBuffer{std::vector<uint8_t>{bytes_ptr, bytes_end}}};
-    return Value{std::make_unique<Multiaddress>(std::move(res))};
+    return Multiaddress{std::string{address},
+                        ByteBuffer{std::vector<uint8_t>{bytes_ptr, bytes_end}}};
   }
 
-  Multiaddress::FactoryResult Multiaddress::createMultiaddress(
-      const ByteBuffer &bytes) {
+  Multiaddress::FactoryResult Multiaddress::create(const ByteBuffer &bytes) {
     char *address_ptr = nullptr;
 
     // convert bytes address to string and make sure it represents valid address
-    auto conversion_error =
-        bytes_to_string(&address_ptr, bytes.toBytes(), bytes.size());
+    auto conversion_error = bytes_to_string(&address_ptr, bytes.toBytes(),
+                                            static_cast<int>(bytes.size()));
     if (conversion_error != nullptr) {
-      return Error{"Could not create a multiaddress object: "
-                   + std::string{conversion_error}};
+      return Error::InvalidInput;
     }
 
-    Multiaddress res{std::string{address_ptr}, ByteBuffer{bytes}};
-    return Value{std::make_unique<Multiaddress>(std::move(res))};
+    return Multiaddress{std::string{address_ptr}, ByteBuffer{bytes}};
   }
 
   Multiaddress::Multiaddress(std::string &&address, ByteBuffer &&bytes)
@@ -121,10 +123,8 @@ namespace libp2p::multi {
 
     const auto &this_bytes = bytes_.toVector();
     const auto &other_bytes = address.bytes_.toVector();
-    auto bytes_pos = std::search(this_bytes.begin(),
-                                 this_bytes.end(),
-                                 other_bytes.begin(),
-                                 other_bytes.end());
+    auto bytes_pos = std::search(this_bytes.begin(), this_bytes.end(),
+                                 other_bytes.begin(), other_bytes.end());
     bytes_ = ByteBuffer{std::vector<uint8_t>{this_bytes.begin(), bytes_pos}};
 
     calculatePeerId();
@@ -143,20 +143,16 @@ namespace libp2p::multi {
     return peer_id_;
   }
 
-  std::optional<std::vector<std::string>> Multiaddress::getValuesForProtocol(
+  std::vector<std::string> Multiaddress::getValuesForProtocol(
       Protocol proto) const {
     std::vector<std::string> values;
 
     auto proto_str = protocolToString(proto);
     auto proto_positions =
         findSubstringOccurrences(stringified_address_, proto_str);
-    if (proto_positions.empty()) {
-      return {};
-    }
 
-    for (auto proto_pos : proto_positions) {
-      auto value_pos =
-          stringified_address_.find_first_of('/', proto_pos + 1) + 1;
+    for (const auto &pos : proto_positions) {
+      auto value_pos = stringified_address_.find_first_of('/', pos + 1) + 1;
       auto value_end = stringified_address_.find_first_of('/', value_pos);
       values.push_back(
           stringified_address_.substr(value_pos, value_end - value_pos));
