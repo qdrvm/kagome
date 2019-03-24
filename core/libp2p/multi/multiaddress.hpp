@@ -36,7 +36,7 @@ namespace libp2p::multi {
     Multiaddress &operator=(Multiaddress &&address) = default;
 
     enum class Error {
-      InvalidInput = 1,  ///< input conains invalid multiaddress
+      InvalidInput = 1,  ///< input contains invalid multiaddress
     };
 
     /**
