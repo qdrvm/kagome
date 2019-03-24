@@ -35,9 +35,8 @@ namespace __kagome {
     }
 
     static std::string toString(T t) {
-      enum dummy {
-        d = (sizeof(struct must_execute_OUTCOME_REGISTER_CATEGORY) == sizeof(T))
-      };
+      static_assert(!std::is_same<T, T>::value,
+                    "toString<T>() was not specialised for the type T supplied");
       return "";
     }
 
