@@ -51,8 +51,9 @@ namespace {
 }  // namespace
 
 OUTCOME_REGISTER_CATEGORY(libp2p::multi::Multiaddress::Error, e) {
+  using libp2p::multi::Multiaddress;
   switch (e) {
-    case libp2p::multi::Multiaddress::Error::InvalidInput:
+    case Multiaddress::Error::InvalidInput:
       return "invalid multiaddress input";
     default:
       return "unknown";
