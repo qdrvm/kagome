@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "multiaddress.hpp"
+#include "libp2p/multi/multiaddress.hpp"
 
 #include <algorithm>
 #include <numeric>
