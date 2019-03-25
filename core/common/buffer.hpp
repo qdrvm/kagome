@@ -9,6 +9,7 @@
 #include <string_view>
 #include <vector>
 
+#include <gsl/span>
 #include "common/result.hpp"
 
 namespace kagome::common {
@@ -20,6 +21,7 @@ namespace kagome::common {
    public:
     using iterator = std::vector<uint8_t>::iterator;
     using const_iterator = std::vector<uint8_t>::const_iterator;
+    using value_type = uint8_t;
 
     /**
      * @brief allocates buffer of size={@param size}, filled with {@param byte}
@@ -59,6 +61,11 @@ namespace kagome::common {
      */
     bool operator==(const std::vector<uint8_t> &b) const noexcept;
     bool operator!=(const std::vector<uint8_t> &b) const noexcept;
+
+    /**
+     * @brief Lexicographical comparison of buffer and vector of bytes
+     */
+    bool operator==(gsl::span<const uint8_t> s) const noexcept;
 
     /**
      * @brief Iterator, which points to begin of this buffer.
@@ -120,6 +127,13 @@ namespace kagome::common {
      * @return this buffer, suitable for chaining.
      */
     Buffer &put(const std::vector<uint8_t> &v);
+
+    /**
+     * @brief Put a sequence of bytes into byte buffer
+     * @param s arbitrary span of bytes
+     * @return this buffer, suitable for chaining.
+     */
+    Buffer &put(gsl::span<const uint8_t> s);
 
     /**
      * @brief Put a array of bytes bounded by pointers into byte buffer

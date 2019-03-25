@@ -19,7 +19,9 @@ function(addtest test_name)
 endfunction()
 
 function(addtest_part test_name)
-  cmake_policy(SET CMP0076 NEW)
+  if(POLICY CMP0076)
+    cmake_policy(SET CMP0076 NEW)
+  endif()
   target_sources(${test_name} PUBLIC
     ${ARGN}
     )

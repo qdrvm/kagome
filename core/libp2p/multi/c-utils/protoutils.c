@@ -10,17 +10,20 @@
 #include "libp2p/multi/c-utils/base58.h"
 #include "libp2p/multi/c-utils/varhexutils.h"
 
-extern char *strtok_r(char *, const char *, char **);
-
 //////////////////////////////////////////////////////////
 char ASCII2bits(char ch) {
   if (ch >= '0' && ch <= '9') {
     return (ch - '0');
-  } else if (ch >= 'a' && ch <= 'z') {
+  }
+
+  if (ch >= 'a' && ch <= 'z') {
     return (ch - 'a') + 10;
-  } else if (ch >= 'A' && ch <= 'Z') {
+  }
+
+  if (ch >= 'A' && ch <= 'Z') {
     return (ch - 'A') + 10;
   }
+
   return 0;  // fail
 }
 
@@ -34,9 +37,12 @@ void hex2bin(char *dst, char *src, int len) {
 char bits2ASCII(char b) {
   if (b >= 0 && b < 10) {
     return (b + '0');
-  } else if (b >= 10 && b <= 15) {
+  }
+
+  if (b >= 10 && b <= 15) {
     return (b - 10 + 'a');
   }
+
   return 0;  // fail
 }
 
@@ -55,10 +61,11 @@ void bin2hex(char *dst, char *src, int len) {
 int valid_digit(char *ip_str) {
   int err = 0;
   while (*ip_str) {
-    if (*ip_str >= '0' && *ip_str <= '9')
+    if (*ip_str >= '0' && *ip_str <= '9') {
       ++ip_str;
-    else
+    } else {
       return 0;
+    }
   }
   return 1;
 }
@@ -68,20 +75,23 @@ int is_valid_ipv4(char *ip_str) {
   int i, num, dots = 0;
   char *ptr;
   int err = 0;
-  if (ip_str == NULL)
+  if (ip_str == NULL) {
     err = 1;
+  }
 
   // See following link for strtok()
   // http://pubs.opengroup.org/onlinepubs/009695399/functions/strtok_r.html
   ptr = strtok(ip_str, DELIM);
 
-  if (ptr == NULL)
+  if (ptr == NULL) {
     err = 1;
+  }
 
   while (ptr) {
     /* after parsing string, it must contain only digits */
-    if (!valid_digit(ptr))
+    if (!valid_digit(ptr)) {
       err = 1;
+    }
 
     num = atoi(ptr);
 
@@ -89,21 +99,24 @@ int is_valid_ipv4(char *ip_str) {
     if (num >= 0 && num <= 255) {
       /* parse remaining string */
       ptr = strtok(NULL, DELIM);
-      if (ptr != NULL)
+      if (ptr != NULL) {
         ++dots;
-    } else
+      }
+    } else {
       err = 1;
+    }
   }
 
   /* valid IP string must contain 3 dots */
   if (dots != 3) {
     err = 1;
   }
+
   if (err == 0) {
     return 1;
-  } else {
-    return 0;
   }
+
+  return 0;
 }
 
 //////////////IPv6 Validator
@@ -111,7 +124,7 @@ int is_valid_ipv4(char *ip_str) {
 
 int ishexdigit(char ch) {
   if ((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f')
-      || (ch >= 'A' && ch <= 'F'))
+      || (ch >= 'A' && ch <= 'F'))  // NOLINT
     return (1);
   return (0);
 }
@@ -124,15 +137,16 @@ int is_valid_ipv6(char *str) {
 
   if (*str == ':') {
     str++;
-    if (*str != ':')
-      return (0);
-    else {
-      packed = 1;
-      hncount = 1;
-      str++;
+    if (*str != ':') {
+      return 0;
+    }
 
-      if (*str == 0)
-        return (1);
+    packed = 1;
+    hncount = 1;  // NOLINT
+    str++;
+
+    if (*str == 0) {
+      return (1);
     }
   }
 
@@ -148,7 +162,7 @@ int is_valid_ipv6(char *str) {
     if (*str == ':') {
       str++;
       if (*str == ':') {
-        if (packed == 1)
+        if (packed == 1)  // NOLINT
           err = 1;
         else {
           str++;
@@ -186,7 +200,7 @@ int is_valid_ipv6(char *str) {
       }
     } else {
       if (ishexdigit(*str)) {
-        if (hdcount == 4)
+        if (hdcount == 4)  // NOLINT
           err = 1;
         else {
           hdcount++;
@@ -197,7 +211,7 @@ int is_valid_ipv6(char *str) {
     }
   }
 
-  if (hncount < MAX_HEX_NUMBER_COUNT && packed == 0)
+  if (hncount < MAX_HEX_NUMBER_COUNT && packed == 0)  // NOLINT
     err = 1;
 
   return (err == 0);
@@ -210,7 +224,7 @@ uint64_t ip2int(const char *ipconvertint) {
   int ipat3 = 0;
   int ipat4 = 0;
   char ip[16];
-  strcpy(ip, ipconvertint);
+  strcpy(ip, ipconvertint);  // NOLINT
   iproc = strtok(ip, ".");
   for (int i = 0; i < 4; i++) {
     switch (i) {
@@ -237,8 +251,8 @@ uint64_t ip2int(const char *ipconvertint) {
     }
     iproc = strtok(NULL, ".");
   }
-  final_result = (uint64_t) ((ipat1 * pow(2, 24)) + (ipat2 * pow(2, 16))
-                  + (ipat3 * pow(2, 8)) + ipat4 * 1);
+  final_result = (uint64_t)((ipat1 * pow(2, 24)) + (ipat2 * pow(2, 16))
+                            + (ipat3 * pow(2, 8)) + ipat4 * 1);
   return final_result;
 }
 char *int2ip(int inputintip) {
@@ -260,8 +274,7 @@ char *int2ip(int inputintip) {
  * @param in_bytes_size the length of the bytes array
  * @returns 0 on error, otherwise 1
  */
-char *bytes_to_string(char **buffer,
-                      const uint8_t *in_bytes,
+char *bytes_to_string(char **buffer, const uint8_t *in_bytes,
                       int in_bytes_size) {
   uint8_t *bytes = NULL;
   char *results = NULL;
@@ -307,27 +320,27 @@ NAX:
       // Keeping Valgrind happy
       char name[30];
       bzero(name, 30);
-      strcpy(name, protocol->name);
+      strcpy(name, protocol->name);  // NOLINT
       //
-      strcat(results, "/");
-      strcat(results, name);
-      strcat(results, "/");
+      strcat(results, "/");   // NOLINT
+      strcat(results, name);  // NOLINT
+      strcat(results, "/");   // NOLINT
 
-      // TODO Akvinikym 25.02.19 PRE-49: add more protocols
+      // TODO(Akvinikym): 25.02.19 PRE-49: add more protocols
       if (strcmp(name, "ip4") == 0) {
-        strcat(results, int2ip(Hex_To_Int(address)));
+        strcat(results, int2ip(Hex_To_Int(address)));  // NOLINT
       } else if (strcmp(name, "tcp") == 0) {
         char a[5];
-        sprintf(a, "%lu", Hex_To_Int(address));
-        strcat(results, a);
+        sprintf(a, "%llu", Hex_To_Int(address));  // NOLINT
+        strcat(results, a);                       // NOLINT
       } else if (strcmp(name, "udp") == 0) {
         char a[5];
-        sprintf(a, "%lu", Hex_To_Int(address));
-        strcat(results, a);
+        sprintf(a, "%llu", Hex_To_Int(address));  // NOLINT
+        strcat(results, a);                       // NOLINT
       } else {
         char *error = (char *)malloc(sizeof(char) * (29 + sizeof(name)));
-        strcpy(error, "unable to decode a protocol: ");
-        strcat(error, name);
+        strcpy(error, "unable to decode a protocol: ");  // NOLINT
+        strcat(error, name);                             // NOLINT
         return error;
       }
       /////////////Done processing this, move to next if there is more.
@@ -354,26 +367,26 @@ NAX:
       unsigned char b58[b58_size];
       memset(b58, 0, b58_size);
       unsigned char *ptr_b58 = b58;
-      int returnstatus = multiaddr_encoding_base58_encode(
-          addrbuf, num_bytes, &ptr_b58, &b58_size);
+      int returnstatus = multiaddr_encoding_base58_encode(addrbuf, num_bytes,
+                                                          &ptr_b58, &b58_size);
       free(addrbuf);
       if (returnstatus == 0) {
         char *error = (char *)malloc(sizeof(char) * (38 + addrsize + 1));
-        strcpy(error, "unable to base58 encode MultiAddress: ");
-        strcat(error, IPFS_ADDR);
+        strcpy(error, "unable to base58 encode MultiAddress: ");  // NOLINT
+        strcat(error, IPFS_ADDR);                                 // NOLINT
         return error;
       }
-      strcat(results, "/");
-      strcat(results, protocol->name);
-      strcat(results, "/");
-      strcat(results, (char *)b58);
+      strcat(results, "/");             // NOLINT
+      strcat(results, protocol->name);  // NOLINT
+      strcat(results, "/");             // NOLINT
+      strcat(results, (char *)b58);     // NOLINT
     }
   } else {
-    char *error = (char *)malloc(sizeof(char) * (27));
-    strcpy(error, "unable to decode a protocol");
+    char *error = (char *)malloc(sizeof(char) * (27));  // NOLINT
+    strcpy(error, "unable to decode a protocol");       // NOLINT
     return error;
   }
-  strcat(results, "/");
+  strcat(results, "/");  // NOLINT
   unload_protocols(head);
   return NULL;
 }
@@ -388,10 +401,8 @@ NAX:
  * @param results_size the size of the results
  * @returns the results array
  */
-char *address_string_to_bytes(struct Protocol *protocol,
-                              const char *incoming,
-                              size_t incoming_size,
-                              char **results,
+char *address_string_to_bytes(struct Protocol *protocol, const char *incoming,
+                              size_t incoming_size, char **results,
                               int *results_size) {
   static char astb__stringy[800] = "\0";
   memset(astb__stringy, 0, 800);
@@ -400,37 +411,34 @@ char *address_string_to_bytes(struct Protocol *protocol,
   code = protocol->deccode;
 
   switch (code) {
-    // TODO Akvinikym 25.02.19 PRE-49: add more protocols
+    // TODO(Akvinikym) 25.02.19 PRE-49: add more protocols
     case 4:  // IPv4
     {
       char testip[16] = "\0";
       bzero(testip, 16);
-      strcpy(testip, incoming);
+      strcpy(testip, incoming);  // NOLINT
       if (is_valid_ipv4(testip) == 1) {
         uint64_t iip = ip2int(incoming);
-        strcpy(astb__stringy, Int_To_Hex(iip));
+        strcpy(astb__stringy, Int_To_Hex(iip));  // NOLINT
         protocol = NULL;
         *results = malloc(strlen(astb__stringy));
-        memcpy(*results, astb__stringy, strlen(astb__stringy));
+        memcpy(*results, astb__stringy, strlen(astb__stringy));  // NOLINT
         *results_size = strlen(astb__stringy);
         return *results;
-      } else {
-        return "ERR";
       }
-      break;
+      return "ERR";
     }
     case 41:  // IPv6 Must be done
     {
       return "ERR";
-      break;
     }
     case 6:  // Tcp
     {
       if (atoi(incoming) < 65536 && atoi(incoming) > 0) {
         static char himm_woot[5] = "\0";
         bzero(himm_woot, 5);
-        strcpy(himm_woot, Int_To_Hex(atoi(incoming)));
-        if (himm_woot[2] == '\0') {  // manual switch
+        strcpy(himm_woot, Int_To_Hex(atoi(incoming)));  // NOLINT
+        if (himm_woot[2] == '\0') {                     // manual switch
           char swap0 = '0';
           char swap1 = '0';
           char swap2 = himm_woot[0];
@@ -454,18 +462,16 @@ char *address_string_to_bytes(struct Protocol *protocol,
         *results_size = 5;
         memcpy(*results, himm_woot, 5);
         return *results;
-      } else {
-        return "ERR";
       }
-      break;
+      return "ERR";
     }
     case 17:  // Udp
     {
       if (atoi(incoming) < 65536 && atoi(incoming) > 0) {
         static char himm_woot2[5] = "\0";
         bzero(himm_woot2, 5);
-        strcpy(himm_woot2, Int_To_Hex(atoi(incoming)));
-        if (himm_woot2[2] == '\0') {  // Manual Switch2be
+        strcpy(himm_woot2, Int_To_Hex(atoi(incoming)));  // NOLINT
+        if (himm_woot2[2] == '\0') {                     // Manual Switch2be
           char swap0 = '0';
           char swap1 = '0';
           char swap2 = himm_woot2[0];
@@ -489,10 +495,8 @@ char *address_string_to_bytes(struct Protocol *protocol,
         *results_size = 5;
         memcpy(*results, himm_woot2, 5);
         return *results;
-      } else {
-        return "ERR";
       }
-      break;
+      return "ERR";
     }
     case 33:  // dccp
     {
@@ -522,11 +526,9 @@ char *address_string_to_bytes(struct Protocol *protocol,
       unsigned char *ptr_to_result = result_buffer;
       memset(result_buffer, 0, result_buffer_length);
       // now get the decoded address
-      int return_value =
-          multiaddr_encoding_base58_decode(incoming_copy,
-                                           incoming_copy_size,
-                                           &ptr_to_result,
-                                           &result_buffer_length);
+      int return_value = multiaddr_encoding_base58_decode(
+          incoming_copy, incoming_copy_size, &ptr_to_result,
+          &result_buffer_length);
       if (return_value == 0) {
         return "ERR";
       }
@@ -538,18 +540,18 @@ char *address_string_to_bytes(struct Protocol *protocol,
       for (int i = 0; i < result_buffer_length; i++) {
         // get the char so we can see it in the debugger
         char miu[3];
-        sprintf(miu, "%02x", ptr_to_result[i]);
-        strcat(addr_encoded, miu);
+        sprintf(miu, "%02x", ptr_to_result[i]);  // NOLINT
+        strcat(addr_encoded, miu);               // NOLINT
       }
       ilen = strlen(addr_encoded);
       char prefixed[3];
       memset(prefixed, 0, 3);
-      strcpy(prefixed, Num_To_HexVar_32(ilen));
+      strcpy(prefixed, Num_To_HexVar_32(ilen));  // NOLINT
       *results_size = ilen + 3;
       *results = malloc(*results_size);
       memset(*results, 0, *results_size);
-      strcat(*results, prefixed);      // 2 bytes
-      strcat(*results, addr_encoded);  // ilen bytes + null terminator
+      strcat(*results, prefixed);      // NOLINT
+      strcat(*results, addr_encoded);  // NOLINT
       return *results;
     }
     case 480:  // http
@@ -587,14 +589,12 @@ char *address_string_to_bytes(struct Protocol *protocol,
  * @param strsize the string length
  * @return empty string in case of success, error otherwise
  */
-char *string_to_bytes(uint8_t **finalbytes,
-                      size_t *realbbsize,
-                      const char *strx,
-                      size_t strsize) {
+char *string_to_bytes(uint8_t **finalbytes, size_t *realbbsize,
+                      const char *strx, size_t strsize) {
   if (strx[0] != '/') {
     char *error = (char *)malloc(sizeof(char) * (45 + strsize));
-    strcpy(error, "address must start with '/', passed address: ");
-    strcat(error, strx);
+    strcpy(error, "address must start with '/', passed address: ");  // NOLINT
+    strcat(error, strx);                                             // NOLINT
     return error;
   }
 
@@ -608,7 +608,7 @@ char *string_to_bytes(uint8_t **finalbytes,
 
   // copy input so as to not harm it
   char pstring[strsize + 1];
-  strcpy(pstring, strx);
+  strcpy(pstring, strx);  // NOLINT
 
   // load up the list of protocols
   struct ProtocolListItem *head = NULL;
@@ -624,32 +624,33 @@ char *string_to_bytes(uint8_t **finalbytes,
     {
       protx = proto_with_name(head, wp);
       if (protx != NULL) {
-        strcat(processed, Int_To_Hex(protx->deccode));
+        strcat(processed, Int_To_Hex(protx->deccode));  // NOLINT
         firstorsecond = 2;  // Since the next word will be an address
       } else {
         char *error = (char *)malloc(sizeof(char) * (34 + strsize));
-        strcpy(error, "no such protocol, passed address: ");
-        strcat(error, strx);
-        return error;
+        strcpy(error, "no such protocol, passed address: ");  // NOLINT
+        strcat(error, strx);                                  // NOLINT
+        return error;  // FIXME: memory leak
       }
     } else  // This is the address
     {
       char *s_to_b = NULL;
       int s_to_b_size = 0;
-      if (strcmp(address_string_to_bytes(
-                     protx, wp, strlen(wp), &s_to_b, &s_to_b_size),
+      if (strcmp(address_string_to_bytes(protx, wp, strlen(wp), &s_to_b,
+                                         &s_to_b_size),
                  "ERR")
           == 0) {
-        char *error = (char *)malloc(sizeof(char) * (36 + strsize));
-        strcpy(error, "address is invalid, passed address: ");
+        char *error = (char *)malloc(sizeof(char) * (36 + strsize));  // NOLINT
+        strcpy(error, "address is invalid, passed address: ");        // NOLINT
         strcat(error, strx);
-        return error;
-      } else {
-        int temp_size = strlen(processed);
-        strncat(processed, s_to_b, s_to_b_size);
-        processed[temp_size + s_to_b_size] = 0;
-        free(s_to_b);
+        return error;  // FIXME: memory leak
       }
+
+      int temp_size = strlen(processed);
+      strncat(processed, s_to_b, s_to_b_size);  // NOLINT
+      processed[temp_size + s_to_b_size] = 0;
+      free(s_to_b);
+
       protx = NULL;  // Since right now it doesn't need that assignment anymore.
       firstorsecond = 1;  // Since the next word will be an protocol
     }

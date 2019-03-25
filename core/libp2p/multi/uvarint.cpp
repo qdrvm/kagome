@@ -29,8 +29,8 @@ namespace libp2p::multi {
     return i;
   }
 
-  const std::vector<uint8_t> UVarint::toBytes() const {
-    return bytes_;
+  gsl::span<const uint8_t> UVarint::toBytes() const {
+    return gsl::span(bytes_.data(), bytes_.size());
   }
 
   size_t UVarint::size() const {

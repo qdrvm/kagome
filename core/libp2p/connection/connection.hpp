@@ -10,6 +10,7 @@
 
 #include <boost/optional.hpp>
 #include "common/result.hpp"
+#include "libp2p/basic/readable.hpp"
 #include "libp2p/basic/writable.hpp"
 #include "libp2p/common/network_message.hpp"
 #include "libp2p/peer/peer_info.hpp"
@@ -19,7 +20,7 @@ namespace libp2p::connection {
   /**
    * Point-to-point link to the other peer
    */
-  class Connection : public basic::Writable {
+  class Connection : protected basic::Writable, protected basic::Readable {
     /**
      * Get addresses, which are observed with an underlying transport
      * @return collection of such addresses
@@ -37,12 +38,6 @@ namespace libp2p::connection {
      * @param info to be set
      */
     virtual void setPeerInfo(const common::PeerInfo &info) = 0;
-
-    /**
-     * Read message from the connection
-     * @return optional to message, received by that connection
-     */
-    virtual boost::optional<common::NetworkMessage> read() const = 0;
   };
 }  // namespace libp2p::connection
 

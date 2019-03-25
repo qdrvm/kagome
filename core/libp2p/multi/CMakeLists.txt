@@ -4,27 +4,43 @@
 #
 
 add_subdirectory(c-utils)
-
-add_subdirectory(multiaddress)
-
 add_subdirectory(multibase_codec)
 
 add_library(uvarint
-    uvarint.cpp
-    uvarint.hpp
-    )
+  uvarint.cpp
+  uvarint.hpp
+  )
 
 target_link_libraries(uvarint
-    c_utils
-    )
+  c_utils
+  )
 
 add_library(multihash
-        multihash.hpp
-        multihash.cpp
-        )
+  multihash.hpp
+  multihash.cpp
+  )
 
 target_link_libraries(multihash
-        buffer
-        hexutil
-        uvarint
-        )
+  buffer
+  hexutil
+  uvarint
+  )
+
+add_library(multistream
+  multistream.hpp
+  multistream.cpp
+  )
+
+target_link_libraries(multistream
+  buffer
+  uvarint
+  )
+
+
+add_library(multiaddress
+  multiaddress.cpp
+  )
+target_link_libraries(multiaddress
+  c_utils
+  outcome
+  )

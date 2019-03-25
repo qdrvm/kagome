@@ -13,8 +13,8 @@
 #include "libp2p/multi/multibase_codec/codecs/base64.hpp"
 
 namespace {
-  using namespace libp2p::multi;
-  using namespace libp2p::multi::detail;
+  using namespace libp2p::multi;          // NOLINT
+  using namespace libp2p::multi::detail;  // NOLINT
 
   /**
    * Get the encoding by a character
@@ -44,20 +44,22 @@ namespace {
     EncodeFuncType *encode;
     DecodeFuncType *decode;
   };
+
   /// all available codec functions
-  static const std::unordered_map<MultibaseCodec::Encoding, CodecFunctions>
-      codecs{
-          {MultibaseCodec::Encoding::kBase16Upper,
-           {&encodeBase16Upper, &decodeBase16Upper}},
-          {MultibaseCodec::Encoding::kBase16Lower,
-           {&encodeBase16Lower, &decodeBase16Lower}},
-          {MultibaseCodec::Encoding::kBase58, {&encodeBase58, &decodeBase58}},
-          {MultibaseCodec::Encoding::kBase64, {&encodeBase64, &decodeBase64}}};
+  const std::unordered_map<MultibaseCodec::Encoding, CodecFunctions> codecs{
+      {MultibaseCodec::Encoding::kBase16Upper,
+       {&encodeBase16Upper, &decodeBase16Upper}},
+      {MultibaseCodec::Encoding::kBase16Lower,
+       {&encodeBase16Lower, &decodeBase16Lower}},
+      {MultibaseCodec::Encoding::kBase58, {&encodeBase58, &decodeBase58}},
+      {MultibaseCodec::Encoding::kBase64, {&encodeBase64, &decodeBase64}}};
 }  // namespace
 
 namespace libp2p::multi {
-  using namespace kagome::expected;
-  using namespace kagome::common;
+  using kagome::common::Buffer;
+  using kagome::expected::Error;
+  using kagome::expected::Result;
+  using kagome::expected::Value;
 
   MultibaseCodecImpl::~MultibaseCodecImpl() = default;
 

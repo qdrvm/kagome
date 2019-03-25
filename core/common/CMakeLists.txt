@@ -9,7 +9,9 @@ target_link_libraries(hexutil
 add_library(buffer
   buffer.hpp
   buffer.cpp
+  buffer_back_insert_iterator.cpp
   )
+
 target_link_libraries(buffer
   hexutil
   )
@@ -22,8 +24,8 @@ target_link_libraries(blob
   hexutil
   )
 
-add_subdirectory(scale)
-
 add_library(logger
     logger.cpp
     )
+
+

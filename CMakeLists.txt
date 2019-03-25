@@ -8,8 +8,8 @@ endif(CCACHE_FOUND)
 
 include("cmake/Hunter/init.cmake")
 HunterGate(
-    URL "https://github.com/ruslo/hunter/archive/v0.23.120.tar.gz"
-    SHA1 "7f43361ab4142e7d0eb03488b4b654aad38cf0cb"
+  URL "https://github.com/ruslo/hunter/archive/v0.23.135.tar.gz"
+  SHA1 "72eecdf1dea9fb6299d7fb61bbd00bd4ca170fa4"
 )
 
 PROJECT(kagome C CXX)
@@ -27,6 +27,7 @@ endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(CLANG_FORMAT "Enable clang-format target"                  ON )
 option(CLANG_TIDY   "Enable clang-tidy checks during compilation" OFF)
 option(COVERAGE     "Enable generation of coverage info"          OFF)
 
@@ -36,14 +37,18 @@ endif()
 if(CLANG_TIDY)
   include(cmake/clang-tidy.cmake)
 endif()
+if(CLANG_FORMAT)
+  include(cmake/clang-format.cmake)
+endif()
 
+add_subdirectory(${PROJECT_SOURCE_DIR}/deps/outcome)
 
 include_directories(
   ${PROJECT_SOURCE_DIR}/core
   # add path to header only deps here
   deps/spdlog/include
-  deps/RxCpp/Rx/v2/src
   deps/GSL/include
+  deps/outcome
 )
 
 add_subdirectory(core)
