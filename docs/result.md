@@ -25,14 +25,17 @@ namespace my::super:lib {
 
   outcome::result<int> calc(int a, int b);
 }
+// declare required functions in hpp
+// outside of any namespace
+OUTCOME_HPP_DECLARE_ERROR(my::super::lib, MyError);
+
 
 /////////////
 // mylib.cpp:
 #include "mylib.hpp"
 
-// it is not necessary to provide fully qualified name,
-// using my::super::lib::MyError; then MyError can be used
-OUTCOME_REGISTER_CATEGORY(my::super::lib::MyError, e){
+// outside of any namespace
+OUTCOME_CPP_DEFINE_CATEGORY(my::super::lib, MyError, e){
   using my::super::lib::MyError; // not necessary, just for convenience
   switch(e) {
     case MyError::Case1: return "Case1 message";
@@ -44,8 +47,6 @@ OUTCOME_REGISTER_CATEGORY(my::super::lib::MyError, e){
 }
 
 namespace my::super::lib {
-  OUTCOME_MAKE_ERROR_CODE(MyError); // NOTE: MUST be called in the same namespace as error
-
   outcome::result<int> calc(int a, int b){
     // then simply return enum in case of error:
     if(a < 0)   return MyError::Case1;
@@ -81,18 +82,19 @@ namespace my::super:lib {
 
     outcome::result<int> calc(int a, int b);
   }
-
-
 }
+// declare required functions in hpp
+// outside of any namespace
++// NOTE: 1 args is only namespace, class prefix should be added to enum
+-OUTCOME_HPP_DECLARE_ERROR(my::super::lib, MyError);
++OUTCOME_HPP_DECLARE_ERROR(my::super::lib, MyLib::MyError);
 
 /////////////
 // mylib.cpp:
 #include "mylib.hpp"
 
-+// NOTE: fully qualified name has changed, because now MyError is
-+// inside MyLib
--OUTCOME_REGISTER_CATEGORY(my::super::lib::MyError, e){
-+OUTCOME_REGISTER_CATEGORY(my::super::lib::MyLib::MyError, e){
+-OUTCOME_CPP_DEFINE_CATEGORY(my::super::lib, MyError, e){
++OUTCOME_CPP_DEFINE_CATEGORY(my::super::lib, MyLib::MyError, e){
 - using my::super::lib::MyError; // not necessary, just for convenience
 + using my::super::lib::MyLib::MyError; // not necessary, just for convenience
   switch(e) {
@@ -105,11 +107,6 @@ namespace my::super:lib {
 }
 
 namespace my::super::lib {
-+ // NOTE: Class is defined at namespace my::super::lib, so make_error_code should also be
-+ // defined in this namespace!
-+ // no changes here
-  OUTCOME_MAKE_ERROR_CODE(MyError); // NOTE: MUST be called in the same namespace as MyError
-
 -  outcome::result<int> calc(int a, int b)
 +  outcome::result<int> MyLib::calc(int a, int b){
     // then simply return enum in case of error:
