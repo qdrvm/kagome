@@ -21,6 +21,7 @@ namespace kagome::storage::merkle {
 
   class Node {
    public:
+    // returns type of a node
     virtual NodeType getType() const = 0;
   };
 

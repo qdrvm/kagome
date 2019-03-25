@@ -24,7 +24,7 @@ namespace kagome::storage {
     /**
      * @brief Get value by key
      * @param key non-empty byte buffer
-     * @return buffer
+     * @return value byte buffer
      */
     virtual outcome::result<common::Buffer> get(
         const common::Buffer &key) const = 0;
