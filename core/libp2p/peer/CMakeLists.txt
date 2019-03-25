@@ -11,4 +11,5 @@ target_link_libraries(libp2p-peer
     buffer
     multihash
     sha
+    outcome
     )

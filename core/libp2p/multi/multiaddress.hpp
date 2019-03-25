@@ -8,11 +8,11 @@
 
 #include <memory>
 #include <optional>
-#include <outcome/outcome.hpp>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 
+#include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
 
 namespace libp2p::multi {

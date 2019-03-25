@@ -41,8 +41,7 @@ namespace libp2p::peer {
   }
 
   std::string PeerId::toBase58() const {
-    auto foo = multibase_codec_.encode(id_, Encodings::kBase58);
-    return foo;
+    return multibase_codec_.encode(id_, Encodings::kBase58);
   }
 
   std::shared_ptr<crypto::PublicKey> PeerId::publicKey() const {

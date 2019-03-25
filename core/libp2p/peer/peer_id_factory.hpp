@@ -10,8 +10,8 @@
 #include <optional>
 #include <string_view>
 
+#include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
-#include "common/result.hpp"
 #include "libp2p/crypto/crypto_provider.hpp"
 #include "libp2p/crypto/private_key.hpp"
 #include "libp2p/crypto/public_key.hpp"
@@ -24,7 +24,7 @@ namespace libp2p::peer {
    */
   class PeerIdFactory {
    private:
-    using FactoryResult = kagome::expected::Result<PeerId, std::string>;
+    using FactoryResult = outcome::result<PeerId>;
 
    public:
     /**
@@ -34,6 +34,22 @@ namespace libp2p::peer {
      */
     PeerIdFactory(const multi::MultibaseCodec &multibase_codec,
                   const crypto::CryptoProvider &crypto_provider);
+
+    /**
+     * Possible factory errors
+     */
+    enum class FactoryError {
+      kIdNotSHA256Hash,
+      kEmptyIdPassed,
+      kPubkeyIsNotDerivedFromPrivate,
+      kIdIsNotHashOfPubkey,
+      kCannotCreateIdFromPubkey,
+      kCannotUnmarshalPubkey,
+      kCannotUnmarshalPrivkey,
+      kCannotDecodePubkey,
+      kCannotDecodePrivkey,
+      kCannotDecodeId
+    };
 
     /**
      * Create a Peer instance
