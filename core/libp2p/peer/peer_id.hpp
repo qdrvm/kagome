@@ -32,7 +32,7 @@ namespace libp2p::peer {
      * Get hex representation of the Peer's id
      * @return hex string with the id
      */
-    std::string_view toHex() const;
+    std::string toHex() const;
 
     /**
      * Get bytes representation of the Peer's id
@@ -44,7 +44,7 @@ namespace libp2p::peer {
      * Get base58 representation of the Peer's id
      * @return base58-encoded string with the id
      */
-    std::string_view toBase58() const;
+    std::string toBase58() const;
 
     /**
      * Get public key of the Peer

@@ -32,7 +32,7 @@ namespace libp2p::peer {
         multibase_codec_{multibase_codec},
         crypto_provider_{crypto_provider} {}
 
-  std::string_view PeerId::toHex() const {
+  std::string PeerId::toHex() const {
     return multibase_codec_.encode(id_, Encodings::kBase16Lower);
   }
 
@@ -40,8 +40,9 @@ namespace libp2p::peer {
     return id_;
   }
 
-  std::string_view PeerId::toBase58() const {
-    return multibase_codec_.encode(id_, Encodings::kBase58);
+  std::string PeerId::toBase58() const {
+    auto foo = multibase_codec_.encode(id_, Encodings::kBase58);
+    return foo;
   }
 
   std::shared_ptr<crypto::PublicKey> PeerId::publicKey() const {

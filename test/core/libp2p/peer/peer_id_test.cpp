@@ -9,9 +9,13 @@
 
 using namespace libp2p::peer;
 using namespace libp2p::crypto;
+using namespace kagome::common;
 
 using ::testing::ByMove;
+using ::testing::Matcher;
+using ::testing::Ref;
 using ::testing::Return;
+using ::testing::ReturnRef;
 
 class PeerIdTest : public PeerIdTestFixture {
  public:
@@ -53,7 +57,7 @@ TEST_F(PeerIdTest, GetBase58) {
   EXPECT_CALL(
       multibase,
       encode(valid_id, libp2p::multi::MultibaseCodec::Encoding::kBase58))
-      .WillOnce(Return(std::string{just_string}));
+      .WillOnce(Return(just_string));
 
   auto peer_id = createValidPeerId();
 
@@ -77,7 +81,7 @@ TEST_F(PeerIdTest, SetPublicKeySuccess) {
   // another 'copy' of existing pubkey
   auto pubkey_uptr = std::make_unique<PublicKeyMock>();
   EXPECT_CALL(*pubkey_uptr, getBytes())
-      .WillRepeatedly(testing::ReturnRef(public_key_shp->getBytes()));
+      .WillRepeatedly(ReturnRef(public_key_shp->getBytes()));
   EXPECT_CALL(*pubkey_uptr, getType())
       .WillRepeatedly(testing::Return(public_key_shp->getType()));
 
@@ -92,10 +96,9 @@ TEST_F(PeerIdTest, SetPublicKeySuccess) {
 }
 
 TEST_F(PeerIdTest, SetPublicKeyNotDerivableFromPrivate) {
-  // another 'copy' of existing pubkey
+  // make key, which is not equal to the existing public key
   auto pubkey_uptr = std::make_unique<PublicKeyMock>();
-  EXPECT_CALL(*pubkey_uptr, getBytes())
-      .WillRepeatedly(testing::ReturnRef(public_key_shp->getBytes()));
+  EXPECT_CALL(*pubkey_uptr, getBytes()).WillRepeatedly(ReturnRef(just_buffer2));
   EXPECT_CALL(*pubkey_uptr, getType())
       .WillRepeatedly(testing::Return(public_key_shp->getType()));
 
@@ -105,26 +108,81 @@ TEST_F(PeerIdTest, SetPublicKeyNotDerivableFromPrivate) {
   auto peer_id = factory.createPeerId(valid_id).getValue();
   ASSERT_TRUE(peer_id.setPrivateKey(private_key_shp));
 
-  ASSERT_TRUE(peer_id.setPublicKey(public_key_shp));
-  ASSERT_EQ(*peer_id.publicKey(), *public_key_shp);
+  ASSERT_FALSE(peer_id.setPublicKey(public_key_shp));
 }
 
-TEST_F(PeerIdTest, GetPrivateKeyWhichIsSet) {}
+TEST_F(PeerIdTest, GetPrivateKeyWhichIsSet) {
+  auto peer_id = createValidPeerId();
 
-TEST_F(PeerIdTest, GetPrivateKeyWhichIsUnset) {}
+  ASSERT_TRUE(peer_id.privateKey());
+  ASSERT_EQ(*peer_id.privateKey(), *private_key_shp);
+}
 
-TEST_F(PeerIdTest, SetPrivateKeySuccess) {}
+TEST_F(PeerIdTest, GetPrivateKeyWhichIsUnset) {
+  auto peer_id = factory.createPeerId(valid_id).getValue();
 
-TEST_F(PeerIdTest, SetPrivateKeyNotSourceOfPublic) {}
+  ASSERT_FALSE(peer_id.privateKey());
+}
 
-TEST_F(PeerIdTest, MarshalPublicKeySuccess) {}
+TEST_F(PeerIdTest, SetPrivateKeySuccess) {
+  EXPECT_CALL(*private_key_shp, publicKey())
+      .WillOnce(Return(ByMove(std::move(public_key_uptr))));
+  auto peer_id = factory.createPeerId(valid_id).getValue();
+  ASSERT_TRUE(peer_id.setPublicKey(public_key_shp));
 
-TEST_F(PeerIdTest, MarshalPublicKeyFailure) {}
+  ASSERT_TRUE(peer_id.setPrivateKey(private_key_shp));
+  ASSERT_EQ(*peer_id.privateKey(), *private_key_shp);
+}
 
-TEST_F(PeerIdTest, MarshalPrivateKeySuccess) {}
+TEST_F(PeerIdTest, SetPrivateKeyNotSourceOfPublic) {
+  // make key, which is not equal to the existing public key
+  auto pubkey_uptr = std::make_unique<PublicKeyMock>();
+  EXPECT_CALL(*pubkey_uptr, getBytes()).WillRepeatedly(ReturnRef(just_buffer2));
+  EXPECT_CALL(*pubkey_uptr, getType())
+      .WillRepeatedly(testing::Return(public_key_shp->getType()));
 
-TEST_F(PeerIdTest, MarshalPrivateKeyFailure) {}
+  EXPECT_CALL(*private_key_shp, publicKey())
+      .WillOnce(Return(ByMove(std::move(pubkey_uptr))));
+  auto peer_id = factory.createPeerId(valid_id).getValue();
+  ASSERT_TRUE(peer_id.setPublicKey(public_key_shp));
 
-TEST_F(PeerIdTest, ToString) {}
+  ASSERT_FALSE(peer_id.setPrivateKey(private_key_shp));
+}
 
-TEST_F(PeerIdTest, Equals) {}
+TEST_F(PeerIdTest, MarshalPublicKeySuccess) {
+  EXPECT_CALL(
+      crypto,
+      marshal(testing::Matcher<const PublicKey &>(Ref(*public_key_shp))))
+      .WillOnce(Return((just_buffer2)));
+
+  auto peer_id = createValidPeerId();
+
+  auto marshalled_pubkey = peer_id.marshalPublicKey();
+  ASSERT_TRUE(marshalled_pubkey);
+  ASSERT_EQ(*marshalled_pubkey, just_buffer2);
+}
+
+TEST_F(PeerIdTest, MarshalPublicKeyNoKey) {
+  auto peer_id = factory.createPeerId(valid_id).getValue();
+
+  ASSERT_FALSE(peer_id.marshalPublicKey());
+}
+
+TEST_F(PeerIdTest, MarshalPrivateKeySuccess) {
+  EXPECT_CALL(
+      crypto,
+      marshal(testing::Matcher<const PrivateKey &>(Ref(*private_key_shp))))
+      .WillOnce(Return(just_buffer2));
+
+  auto peer_id = createValidPeerId();
+
+  auto marshalled_privkey = peer_id.marshalPrivateKey();
+  ASSERT_TRUE(marshalled_privkey);
+  ASSERT_EQ(*marshalled_privkey, just_buffer2);
+}
+
+TEST_F(PeerIdTest, MarshalPrivateKeyNoKey) {
+  auto peer_id = factory.createPeerId(valid_id).getValue();
+
+  ASSERT_FALSE(peer_id.marshalPrivateKey());
+}
