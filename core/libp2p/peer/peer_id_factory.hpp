@@ -136,4 +136,6 @@ namespace libp2p::peer {
   };
 }  // namespace libp2p::peer
 
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::peer, PeerIdFactory::FactoryError)
+
 #endif  // KAGOME_PEER_ID_FACTORY_HPP

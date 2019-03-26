@@ -132,4 +132,8 @@ namespace kagome::common {
     return putRange(begin, end);
   }
 
+  Buffer &Buffer::putBuffer(const Buffer &buf) {
+    return put(buf.toVector());
+  }
+
 }  // namespace kagome::common

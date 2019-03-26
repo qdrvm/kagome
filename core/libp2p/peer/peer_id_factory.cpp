@@ -22,7 +22,7 @@ namespace {
   }
 }  // namespace
 
-OUTCOME_REGISTER_CATEGORY(libp2p::peer::PeerIdFactory::FactoryError, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::peer, PeerIdFactory::FactoryError, e) {
   using FactoryError = libp2p::peer::PeerIdFactory::FactoryError;
   switch (e) {
     case FactoryError::kIdNotSHA256Hash:
@@ -53,8 +53,6 @@ OUTCOME_REGISTER_CATEGORY(libp2p::peer::PeerIdFactory::FactoryError, e) {
 namespace libp2p::peer {
   using kagome::expected::Error;
   using kagome::expected::Value;
-
-  OUTCOME_MAKE_ERROR_CODE(PeerIdFactory::FactoryError)
 
   PeerIdFactory::PeerIdFactory(const multi::MultibaseCodec &multibase_codec,
                                const crypto::CryptoProvider &crypto_provider)
@@ -163,6 +161,7 @@ namespace libp2p::peer {
       return FactoryError::kIdNotSHA256Hash;
     }
 
-    return PeerId{std::move(id_res.getValue()), multibase_codec_, crypto_provider_};
+    return PeerId{std::move(id_res.getValue()), multibase_codec_,
+                  crypto_provider_};
   }
 }  // namespace libp2p::peer

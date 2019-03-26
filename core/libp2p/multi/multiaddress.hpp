@@ -146,4 +146,6 @@ namespace libp2p::multi {
   };
 }  // namespace libp2p::multi
 
+OUTCOME_HPP_DECLARE_ERROR(libp2p::multi, Multiaddress::Error);
+
 #endif  // KAGOME_MULTIADDRESS_HPP

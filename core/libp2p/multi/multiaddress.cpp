@@ -50,7 +50,7 @@ namespace {
   }
 }  // namespace
 
-OUTCOME_REGISTER_CATEGORY(libp2p::multi::Multiaddress::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, Multiaddress::Error, e) {
   using libp2p::multi::Multiaddress;
   switch (e) {
     case Multiaddress::Error::InvalidInput:
@@ -62,7 +62,6 @@ OUTCOME_REGISTER_CATEGORY(libp2p::multi::Multiaddress::Error, e) {
 
 namespace libp2p::multi {
 
-  OUTCOME_MAKE_ERROR_CODE(Multiaddress::Error);
 
   Multiaddress::FactoryResult Multiaddress::create(std::string_view address) {
     uint8_t *bytes_ptr;

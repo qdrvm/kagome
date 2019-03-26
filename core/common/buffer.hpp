@@ -144,6 +144,13 @@ namespace kagome::common {
     Buffer &putBytes(const uint8_t *begin, const uint8_t *end);
 
     /**
+     * @brief Put another buffer content at the end of current one
+     * @param buf another buffer
+     * @return this buffer suitable for chaining.
+     */
+    Buffer &putBuffer(const Buffer &buf);
+
+    /**
      * @brief getter for raw array of bytes
      */
     const uint8_t *toBytes() const;
