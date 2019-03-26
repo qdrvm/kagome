@@ -8,7 +8,7 @@ add_library(primitives
         scale_codec.hpp
         impl/scale_codec_impl.hpp
         impl/scale_codec_impl.cpp
-        scale_error.hpp  # don't worry, these 2 files will be moved
+        scale_error.hpp  # these 2 files will be moved
         scale_error.cpp  # to scale library
         )
 

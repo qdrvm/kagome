@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(primitives_test
+addtest(primitives_test
         primitives_codec_test.cpp
         )
 

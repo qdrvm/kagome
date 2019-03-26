@@ -20,6 +20,14 @@ namespace kagome::primitives {
     OUTCOME_TRY(encoded_header, encodeBlockHeader(block.header()));
     out.putBuffer(encoded_header);
 
+    // put number of extrinsics
+    bool res = compact::encodeInteger(block.extrinsics().size(), out);
+    if (!res) {
+      std::terminate();
+      // it can't be, res is certainly true
+      // this check will disappear after refactoring scale library
+    }
+
     for (auto &&extrinsic : block.extrinsics()) {
       OUTCOME_TRY(encoded_extrinsic, encodeExtrinsic(extrinsic));
       out.putBuffer(encoded_extrinsic);
