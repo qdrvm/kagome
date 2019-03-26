@@ -4,6 +4,7 @@
  */
 
 #include "common/buffer.hpp"
+#include "buffer.hpp"
 #include "common/hexutil.hpp"
 
 namespace kagome::common {
@@ -121,6 +122,10 @@ namespace kagome::common {
 
   Buffer &Buffer::putBytes(const uint8_t *begin, const uint8_t *end) {
     return putRange(begin, end);
+  }
+
+  Buffer &Buffer::putBuffer(const Buffer &buf) {
+    return put(buf.toVector());
   }
 
 }  // namespace kagome::common
