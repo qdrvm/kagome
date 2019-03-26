@@ -10,7 +10,8 @@
 #include "scale/fixedwidth.hpp"
 
 #include "primitives/block.hpp"
-#include "primitives/scale_error.hpp"  // TODO: change path after moving scale_error to scale
+// TODO(yuraz): change path after moving scale_error to scale
+#include "primitives/scale_error.hpp"
 
 namespace kagome::primitives {
 
@@ -22,11 +23,9 @@ namespace kagome::primitives {
 
     // put number of extrinsics
     bool res = compact::encodeInteger(block.extrinsics().size(), out);
-    if (!res) {
-      std::terminate();
-      // it can't be, res is certainly true
-      // this check will disappear after refactoring scale library
-    }
+    // it can't be, res is certainly true
+    // this check will disappear after refactoring scale library
+    BOOST_ASSERT_MSG(res, "failed to compact-encode collection size");
 
     for (auto &&extrinsic : block.extrinsics()) {
       OUTCOME_TRY(encoded_extrinsic, encodeExtrinsic(extrinsic));

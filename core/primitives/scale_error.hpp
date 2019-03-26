@@ -9,8 +9,8 @@
 #include <outcome/outcome.hpp>
 #include "scale/types.hpp"
 
-// TODO: move scale error to scale library
-// TODO: under the same task id after actual task is done
+// TODO(yuraz): move scale error to scale library
+// TODO(yuraz): under the same task id after actual task is done
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::common::scale, EncodeError)
 OUTCOME_HPP_DECLARE_ERROR(kagome::common::scale, DecodeError)
