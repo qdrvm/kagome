@@ -36,6 +36,11 @@ class PeerIdTest : public PeerIdTestFixture {
   }
 };
 
+/**
+ * @given valid PeerId
+ * @when getting its hex representation
+ * @then it's successfully returned
+ */
 TEST_F(PeerIdTest, GetHex) {
   EXPECT_CALL(
       multibase,
@@ -47,12 +52,22 @@ TEST_F(PeerIdTest, GetHex) {
   ASSERT_EQ(peer_id.toHex(), valid_id.toHex());
 }
 
+/**
+ * @given valid PeerId
+ * @when getting its bytes representation
+ * @then it's successfully returned
+ */
 TEST_F(PeerIdTest, GetBytes) {
   auto peer_id = createValidPeerId();
 
   ASSERT_EQ(peer_id.toBytes(), valid_id);
 }
 
+/**
+ * @given valid PeerId
+ * @when getting its base58 representation
+ * @then it's successfully returned
+ */
 TEST_F(PeerIdTest, GetBase58) {
   EXPECT_CALL(
       multibase,
@@ -64,6 +79,11 @@ TEST_F(PeerIdTest, GetBase58) {
   ASSERT_EQ(peer_id.toBase58(), just_string);
 }
 
+/**
+ * @given valid PeerId with a set public key
+ * @when getting the key
+ * @then it is returned
+ */
 TEST_F(PeerIdTest, GetPublicKeyWhichIsSet) {
   auto peer_id = createValidPeerId();
 
@@ -71,6 +91,11 @@ TEST_F(PeerIdTest, GetPublicKeyWhichIsSet) {
   ASSERT_EQ(*peer_id.publicKey(), *public_key_shp);
 }
 
+/**
+ * @given valid PeerId with an unset public key
+ * @when getting the key
+ * @then none is returned
+ */
 TEST_F(PeerIdTest, GetPublicKeyWhichIsUnset) {
   auto peer_id_res = factory.createPeerId(valid_id);
 
@@ -78,6 +103,11 @@ TEST_F(PeerIdTest, GetPublicKeyWhichIsUnset) {
   ASSERT_FALSE(peer_id_res.value().publicKey());
 }
 
+/**
+ * @given valid PeerId with private key set
+ * @when setting public key, which can be derived from the private one
+ * @then set succeeds
+ */
 TEST_F(PeerIdTest, SetPublicKeySuccess) {
   // another 'copy' of existing pubkey
   auto pubkey_uptr = std::make_unique<PublicKeyMock>();
@@ -98,6 +128,11 @@ TEST_F(PeerIdTest, SetPublicKeySuccess) {
   ASSERT_EQ(*peer_id.publicKey(), *public_key_shp);
 }
 
+/**
+ * @given valid PeerId with private key set
+ * @when setting public key, which cannot be derived from the private one
+ * @then set fails
+ */
 TEST_F(PeerIdTest, SetPublicKeyNotDerivableFromPrivate) {
   // make key, which is not equal to the existing public key
   auto pubkey_uptr = std::make_unique<PublicKeyMock>();
@@ -116,6 +151,11 @@ TEST_F(PeerIdTest, SetPublicKeyNotDerivableFromPrivate) {
   ASSERT_FALSE(peer_id.setPublicKey(public_key_shp));
 }
 
+/**
+ * @given valid PeerId with a set private key
+ * @when getting the key
+ * @then it is returned
+ */
 TEST_F(PeerIdTest, GetPrivateKeyWhichIsSet) {
   auto peer_id = createValidPeerId();
 
@@ -123,6 +163,11 @@ TEST_F(PeerIdTest, GetPrivateKeyWhichIsSet) {
   ASSERT_EQ(*peer_id.privateKey(), *private_key_shp);
 }
 
+/**
+ * @given valid PeerId with an unset private key
+ * @when getting the key
+ * @then none is returned
+ */
 TEST_F(PeerIdTest, GetPrivateKeyWhichIsUnset) {
   auto peer_id_res = factory.createPeerId(valid_id);
   ASSERT_TRUE(peer_id_res);
@@ -131,6 +176,11 @@ TEST_F(PeerIdTest, GetPrivateKeyWhichIsUnset) {
   ASSERT_FALSE(peer_id.privateKey());
 }
 
+/**
+ * @given valid PeerId with public key set
+ * @when setting private key, which can derive the private one
+ * @then set succeeds
+ */
 TEST_F(PeerIdTest, SetPrivateKeySuccess) {
   EXPECT_CALL(*private_key_shp, publicKey())
       .WillOnce(Return(ByMove(std::move(public_key_uptr))));
@@ -143,6 +193,11 @@ TEST_F(PeerIdTest, SetPrivateKeySuccess) {
   ASSERT_EQ(*peer_id.privateKey(), *private_key_shp);
 }
 
+/**
+ * @given valid PeerId with public key set
+ * @when setting private key, which cannot derive the public one
+ * @then set fails
+ */
 TEST_F(PeerIdTest, SetPrivateKeyNotSourceOfPublic) {
   // make key, which is not equal to the existing public key
   auto pubkey_uptr = std::make_unique<PublicKeyMock>();
@@ -160,6 +215,11 @@ TEST_F(PeerIdTest, SetPrivateKeyNotSourceOfPublic) {
   ASSERT_FALSE(peer_id.setPrivateKey(private_key_shp));
 }
 
+/**
+ * @given valid PeerId with public key set
+ * @when marshalling the key
+ * @then marshalling succeeds
+ */
 TEST_F(PeerIdTest, MarshalPublicKeySuccess) {
   EXPECT_CALL(
       crypto,
@@ -173,6 +233,11 @@ TEST_F(PeerIdTest, MarshalPublicKeySuccess) {
   ASSERT_EQ(*marshalled_pubkey, just_buffer2);
 }
 
+/**
+ * @given valid PeerId without public key
+ * @when marshalling the key
+ * @then marshalling fails
+ */
 TEST_F(PeerIdTest, MarshalPublicKeyNoKey) {
   auto peer_id_res = factory.createPeerId(valid_id);
   ASSERT_TRUE(peer_id_res);
@@ -181,6 +246,11 @@ TEST_F(PeerIdTest, MarshalPublicKeyNoKey) {
   ASSERT_FALSE(peer_id.marshalPublicKey());
 }
 
+/**
+ * @given valid PeerId with private key set
+ * @when marshalling the key
+ * @then marshalling succeeds
+ */
 TEST_F(PeerIdTest, MarshalPrivateKeySuccess) {
   EXPECT_CALL(
       crypto,
@@ -194,6 +264,11 @@ TEST_F(PeerIdTest, MarshalPrivateKeySuccess) {
   ASSERT_EQ(*marshalled_privkey, just_buffer2);
 }
 
+/**
+ * @given valid PeerId without private key
+ * @when marshalling the key
+ * @then marshalling fails
+ */
 TEST_F(PeerIdTest, MarshalPrivateKeyNoKey) {
   auto peer_id_res = factory.createPeerId(valid_id);
   ASSERT_TRUE(peer_id_res);

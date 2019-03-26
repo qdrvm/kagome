@@ -4,7 +4,9 @@
 #
 
 add_library(libp2p-peer
+    peer_id.hpp
     peer_id.cpp
+    peer_id_factory.hpp
     peer_id_factory.cpp
     )
 target_link_libraries(libp2p-peer

@@ -10,8 +10,6 @@
 #include "libp2p/multi/multihash.hpp"
 
 namespace libp2p::peer {
-  using kagome::expected::Error;
-  using kagome::expected::Value;
   using Encodings = multi::MultibaseCodec::Encoding;
 
   PeerId::PeerId(kagome::common::Buffer id,
@@ -104,7 +102,7 @@ namespace libp2p::peer {
     return crypto_provider_.marshal(*private_key_);
   }
 
-  std::string_view PeerId::toString() const {
+  std::string PeerId::toString() const {
     return (boost::format("Peer: {id = %s, pubkey = %s, privkey = %s}")
             % toBase58() % (public_key_ ? public_key_->toString() : "")
             % (private_key_ ? private_key_->toString() : ""))

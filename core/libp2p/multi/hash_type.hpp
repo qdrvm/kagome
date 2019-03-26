@@ -7,6 +7,7 @@
 #define KAGOME_HASH_TYPE_HPP
 
 namespace libp2p::multi {
+  /// https://github.com/multiformats/js-multihash/blob/master/src/constants.js
   enum HashType : uint64_t {
     kSha1 = 0x11,
     kSha256 = 0x12,
@@ -14,6 +15,6 @@ namespace libp2p::multi {
     kBlake2s128 = 0xb250,
     kBlake2s256 = 0xb260
   };
-}
+}  // namespace libp2p::multi
 
 #endif  // KAGOME_HASH_TYPE_HPP

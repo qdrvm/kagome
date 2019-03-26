@@ -8,10 +8,9 @@
 
 #include <memory>
 #include <optional>
-#include <string_view>
+#include <string>
 
 #include "common/buffer.hpp"
-#include "common/result.hpp"
 #include "libp2p/crypto/crypto_provider.hpp"
 #include "libp2p/crypto/private_key.hpp"
 #include "libp2p/crypto/public_key.hpp"
@@ -22,7 +21,7 @@ namespace libp2p::peer {
    * Peer of the network
    */
   class PeerId {
-    /// so that private ctor could be called from the factory
+    /// so that private methods could be called from the factory
     friend class PeerIdFactory;
 
    public:
@@ -93,7 +92,7 @@ namespace libp2p::peer {
      * Get a string representation of that Peer
      * @return stringified Peer
      */
-    std::string_view toString() const;
+    std::string toString() const;
 
     bool operator==(const PeerId &other) const;
 
@@ -133,6 +132,7 @@ namespace libp2p::peer {
      * @param codec to be used in encoding process
      * @return resulting buffer, if key was successfully converted, none
      * otherwise
+     * @note static class member to be used by the factory as well
      */
     static std::optional<kagome::common::Buffer> idFromPublicKey(
         const libp2p::crypto::PublicKey &key,
