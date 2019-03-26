@@ -25,7 +25,7 @@ namespace kagome::primitives {
     bool res = compact::encodeInteger(block.extrinsics().size(), out);
     // it can't be, res is certainly true
     // this check will disappear after refactoring scale library
-    BOOST_ASSERT_MSG(res, "failed to compact-encode collection size");
+    BOOST_ASSERT_MSG(res, "failed to compact-encode collection size"); // NOLINT
 
     for (auto &&extrinsic : block.extrinsics()) {
       OUTCOME_TRY(encoded_extrinsic, encodeExtrinsic(extrinsic));

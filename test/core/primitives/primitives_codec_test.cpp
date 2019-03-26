@@ -160,11 +160,11 @@ TEST_F(Primitives, encodeBlock) {
  * @then decoded instance of Block matches predefined Block instance
  */
 TEST_F(Primitives, decodeBlock) {
-  scale::BasicStream stream {blockMatch()};
-  auto && res = codec()->decodeBlock(stream);
+  scale::BasicStream stream{blockMatch()};
+  auto &&res = codec()->decodeBlock(stream);
   ASSERT_TRUE(res);
 
-  auto && h = res.value().header();
+  auto &&h = res.value().header();
 
   ASSERT_EQ(h.parentHash(), header().parentHash());
   ASSERT_EQ(h.number(), header().number());
@@ -172,7 +172,7 @@ TEST_F(Primitives, decodeBlock) {
   ASSERT_EQ(h.extrinsicsRoot(), header().extrinsicsRoot());
   ASSERT_EQ(h.digest(), header().digest());
 
-  auto && extrinsics = res.value().extrinsics();
+  auto &&extrinsics = res.value().extrinsics();
 
   ASSERT_EQ(extrinsics.size(), 1);
   ASSERT_EQ(extrinsics[0].data(), extrinsic().data());
