@@ -34,9 +34,11 @@ class PeerIdTestFixture : public ::testing::Test {
       0x73, 0x0F, 0x26, 0xEC, 0xD6, 0x5C, 0xC7, 0xDD, 0x5C, 0x90};
   const kagome::common::Buffer invalid_id{0x66, 0x43};
 
+  /// premade buffers, used for several things
   const kagome::common::Buffer just_buffer1{0x12, 0x34};
   const kagome::common::Buffer just_buffer2{0x56, 0x78};
 
+  /// string, which is used to be mockly-hashed
   const std::string just_string{"mystring"};
 
   std::shared_ptr<libp2p::crypto::PublicKeyMock> public_key_shp =

@@ -29,8 +29,8 @@ class PeerIdFactoryTest : public PeerIdTestFixture {};
 TEST_F(PeerIdFactoryTest, FromBufferSuccess) {
   auto result = factory.createPeerId(valid_id);
 
-  ASSERT_TRUE(result.hasValue());
-  const auto &peer_id = result.getValueRef();
+  ASSERT_TRUE(result);
+  const auto &peer_id = result.value();
   ASSERT_EQ(peer_id.toBytes(), valid_id);
   ASSERT_FALSE(peer_id.publicKey());
   ASSERT_FALSE(peer_id.privateKey());
@@ -44,7 +44,7 @@ TEST_F(PeerIdFactoryTest, FromBufferSuccess) {
 TEST_F(PeerIdFactoryTest, FromBufferWrongBuffer) {
   auto result = factory.createPeerId(invalid_id);
 
-  ASSERT_FALSE(result.hasValue());
+  ASSERT_FALSE(result);
 }
 
 /**
@@ -61,8 +61,8 @@ TEST_F(PeerIdFactoryTest, FromBufferKeysSuccess) {
 
   auto result = factory.createPeerId(valid_id, public_key_shp, private_key_shp);
 
-  ASSERT_TRUE(result.hasValue());
-  const auto &peer_id = result.getValueRef();
+  ASSERT_TRUE(result);
+  const auto &peer_id = result.value();
   ASSERT_EQ(peer_id.toBytes(), valid_id);
   ASSERT_EQ(*peer_id.publicKey(), *public_key_shp);
   ASSERT_EQ(*peer_id.privateKey(), *private_key_shp);
@@ -76,7 +76,7 @@ TEST_F(PeerIdFactoryTest, FromBufferKeysSuccess) {
 TEST_F(PeerIdFactoryTest, FromBufferKeysEmptyBuffer) {
   auto result = factory.createPeerId(Buffer{}, public_key_shp, private_key_shp);
 
-  ASSERT_FALSE(result.hasValue());
+  ASSERT_FALSE(result);
 }
 
 /**
@@ -86,7 +86,8 @@ TEST_F(PeerIdFactoryTest, FromBufferKeysEmptyBuffer) {
  * @then creation fails
  */
 TEST_F(PeerIdFactoryTest, FromBufferKeysWrongKeys) {
-  EXPECT_CALL(*public_key_shp, getBytes()).WillRepeatedly(ReturnRef(just_buffer1));
+  EXPECT_CALL(*public_key_shp, getBytes())
+      .WillRepeatedly(ReturnRef(just_buffer1));
   EXPECT_CALL(*public_key_uptr, getBytes())
       .WillRepeatedly(ReturnRef(just_buffer2));
   EXPECT_CALL(*private_key_shp, publicKey())
@@ -94,7 +95,7 @@ TEST_F(PeerIdFactoryTest, FromBufferKeysWrongKeys) {
 
   auto result = factory.createPeerId(valid_id, public_key_shp, private_key_shp);
 
-  ASSERT_FALSE(result.hasValue());
+  ASSERT_FALSE(result);
 }
 
 /**
@@ -110,8 +111,8 @@ TEST_F(PeerIdFactoryTest, FromPubkeyObjectSuccess) {
 
   auto result = factory.createFromPublicKey(public_key_shp);
 
-  ASSERT_TRUE(result.hasValue());
-  const auto &peer_id = result.getValueRef();
+  ASSERT_TRUE(result);
+  const auto &peer_id = result.value();
   ASSERT_EQ(peer_id.toBytes(), valid_id);
   ASSERT_EQ(*peer_id.publicKey(), *public_key_shp);
   ASSERT_FALSE(peer_id.privateKey());
@@ -130,8 +131,8 @@ TEST_F(PeerIdFactoryTest, FromPrivkeyObjectSuccess) {
 
   auto result = factory.createFromPrivateKey(private_key_shp);
 
-  ASSERT_TRUE(result.hasValue());
-  const auto &peer_id = result.getValueRef();
+  ASSERT_TRUE(result);
+  const auto &peer_id = result.value();
   ASSERT_EQ(peer_id.toBytes(), valid_id);
   ASSERT_EQ(*peer_id.publicKey(), *public_key_shp);
   ASSERT_EQ(*peer_id.privateKey(), *private_key_shp);
@@ -149,8 +150,8 @@ TEST_F(PeerIdFactoryTest, FromPubkeyBufferSuccess) {
 
   auto result = factory.createFromPublicKey(public_key_shp->getBytes());
 
-  ASSERT_TRUE(result.hasValue());
-  const auto &peer_id = result.getValueRef();
+  ASSERT_TRUE(result);
+  const auto &peer_id = result.value();
   ASSERT_EQ(peer_id.toBytes(), valid_id);
   ASSERT_EQ(*peer_id.publicKey(), *public_key_shp);
   ASSERT_FALSE(peer_id.privateKey());
@@ -168,7 +169,7 @@ TEST_F(PeerIdFactoryTest, FromPubkeyBufferWrongKey) {
 
   auto result = factory.createFromPublicKey(public_key_shp->getBytes());
 
-  ASSERT_FALSE(result.hasValue());
+  ASSERT_FALSE(result);
 }
 
 /**
@@ -185,8 +186,8 @@ TEST_F(PeerIdFactoryTest, FromPrivkeyBufferSuccess) {
 
   auto result = factory.createFromPrivateKey(private_key_shp->getBytes());
 
-  ASSERT_TRUE(result.hasValue());
-  const auto &peer_id = result.getValueRef();
+  ASSERT_TRUE(result);
+  const auto &peer_id = result.value();
   ASSERT_EQ(peer_id.toBytes(), valid_id);
   ASSERT_EQ(*peer_id.publicKey(), *public_key_shp);
   ASSERT_EQ(*peer_id.privateKey(), *private_key_shp);
@@ -204,7 +205,7 @@ TEST_F(PeerIdFactoryTest, FromPrivkeyBufferWrongKey) {
 
   auto result = factory.createFromPrivateKey(private_key_shp->getBytes());
 
-  ASSERT_FALSE(result.hasValue());
+  ASSERT_FALSE(result);
 }
 
 TEST_F(PeerIdFactoryTest, FromPubkeyStringSuccess) {
@@ -216,8 +217,8 @@ TEST_F(PeerIdFactoryTest, FromPubkeyStringSuccess) {
 
   auto result = factory.createFromPublicKey(just_string);
 
-  ASSERT_TRUE(result.hasValue());
-  const auto &peer_id = result.getValueRef();
+  ASSERT_TRUE(result);
+  const auto &peer_id = result.value();
   ASSERT_EQ(peer_id.toBytes(), valid_id);
   ASSERT_EQ(*peer_id.publicKey(), *public_key_shp);
   ASSERT_FALSE(peer_id.privateKey());
@@ -229,7 +230,7 @@ TEST_F(PeerIdFactoryTest, FromPubkeyStringWrongKey) {
 
   auto result = factory.createFromPublicKey(just_string);
 
-  ASSERT_FALSE(result.hasValue());
+  ASSERT_FALSE(result);
 }
 
 TEST_F(PeerIdFactoryTest, FromPrivkeyStringSuccess) {
@@ -243,8 +244,8 @@ TEST_F(PeerIdFactoryTest, FromPrivkeyStringSuccess) {
 
   auto result = factory.createFromPrivateKey(just_string);
 
-  ASSERT_TRUE(result.hasValue());
-  const auto &peer_id = result.getValueRef();
+  ASSERT_TRUE(result);
+  const auto &peer_id = result.value();
   ASSERT_EQ(peer_id.toBytes(), valid_id);
   ASSERT_EQ(*peer_id.publicKey(), *public_key_shp);
   ASSERT_EQ(*peer_id.privateKey(), *private_key_shp);
@@ -256,18 +257,18 @@ TEST_F(PeerIdFactoryTest, FromPrivkeyStringWrongKey) {
 
   auto result = factory.createFromPrivateKey(just_string);
 
-  ASSERT_FALSE(result.hasValue());
+  ASSERT_FALSE(result);
 }
 
 TEST_F(PeerIdFactoryTest, FromEncodedStringSuccess) {
   EXPECT_CALL(multibase, decode(std::string_view{just_string}))
-      .WillOnce(Return(Value{just_buffer1}));
+      .WillOnce(Return(Value{valid_id}));
 
   auto result = factory.createFromEncodedString(just_string);
 
-  ASSERT_TRUE(result.hasValue());
-  const auto &peer_id = result.getValueRef();
-  ASSERT_EQ(peer_id.toBytes(), just_buffer1);
+  ASSERT_TRUE(result);
+  const auto &peer_id = result.value();
+  ASSERT_EQ(peer_id.toBytes(), valid_id);
   ASSERT_FALSE(peer_id.publicKey());
   ASSERT_FALSE(peer_id.privateKey());
 }
@@ -278,5 +279,5 @@ TEST_F(PeerIdFactoryTest, FromEncodedBadEncoding) {
 
   auto result = factory.createFromEncodedString(just_string);
 
-  ASSERT_FALSE(result.hasValue());
+  ASSERT_FALSE(result);
 }

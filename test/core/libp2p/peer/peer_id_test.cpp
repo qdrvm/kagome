@@ -32,7 +32,7 @@ class PeerIdTest : public PeerIdTestFixture {
     EXPECT_CALL(*private_key_shp, publicKey())
         .WillRepeatedly(Return(ByMove(std::move(public_key_uptr))));
     return factory.createPeerId(valid_id, public_key_shp, private_key_shp)
-        .getValue();
+        .value();
   }
 };
 
@@ -72,9 +72,10 @@ TEST_F(PeerIdTest, GetPublicKeyWhichIsSet) {
 }
 
 TEST_F(PeerIdTest, GetPublicKeyWhichIsUnset) {
-  auto peer_id = factory.createPeerId(valid_id).getValue();
+  auto peer_id_res = factory.createPeerId(valid_id);
 
-  ASSERT_FALSE(peer_id.publicKey());
+  ASSERT_TRUE(peer_id_res);
+  ASSERT_FALSE(peer_id_res.value().publicKey());
 }
 
 TEST_F(PeerIdTest, SetPublicKeySuccess) {
@@ -88,7 +89,9 @@ TEST_F(PeerIdTest, SetPublicKeySuccess) {
   EXPECT_CALL(*private_key_shp, publicKey())
       .WillOnce(Return(ByMove(std::move(public_key_uptr))))
       .WillOnce(Return(ByMove(std::move(pubkey_uptr))));
-  auto peer_id = factory.createPeerId(valid_id).getValue();
+  auto peer_id_res = factory.createPeerId(valid_id);
+  ASSERT_TRUE(peer_id_res);
+  auto &&peer_id = std::move(peer_id_res.value());
   ASSERT_TRUE(peer_id.setPrivateKey(private_key_shp));
 
   ASSERT_TRUE(peer_id.setPublicKey(public_key_shp));
@@ -105,7 +108,9 @@ TEST_F(PeerIdTest, SetPublicKeyNotDerivableFromPrivate) {
   EXPECT_CALL(*private_key_shp, publicKey())
       .WillOnce(Return(ByMove(std::move(public_key_uptr))))
       .WillOnce(Return(ByMove(std::move(pubkey_uptr))));
-  auto peer_id = factory.createPeerId(valid_id).getValue();
+  auto peer_id_res = factory.createPeerId(valid_id);
+  ASSERT_TRUE(peer_id_res);
+  auto &&peer_id = std::move(peer_id_res.value());
   ASSERT_TRUE(peer_id.setPrivateKey(private_key_shp));
 
   ASSERT_FALSE(peer_id.setPublicKey(public_key_shp));
@@ -119,7 +124,9 @@ TEST_F(PeerIdTest, GetPrivateKeyWhichIsSet) {
 }
 
 TEST_F(PeerIdTest, GetPrivateKeyWhichIsUnset) {
-  auto peer_id = factory.createPeerId(valid_id).getValue();
+  auto peer_id_res = factory.createPeerId(valid_id);
+  ASSERT_TRUE(peer_id_res);
+  auto &&peer_id = std::move(peer_id_res.value());
 
   ASSERT_FALSE(peer_id.privateKey());
 }
@@ -127,7 +134,9 @@ TEST_F(PeerIdTest, GetPrivateKeyWhichIsUnset) {
 TEST_F(PeerIdTest, SetPrivateKeySuccess) {
   EXPECT_CALL(*private_key_shp, publicKey())
       .WillOnce(Return(ByMove(std::move(public_key_uptr))));
-  auto peer_id = factory.createPeerId(valid_id).getValue();
+  auto peer_id_res = factory.createPeerId(valid_id);
+  ASSERT_TRUE(peer_id_res);
+  auto &&peer_id = std::move(peer_id_res.value());
   ASSERT_TRUE(peer_id.setPublicKey(public_key_shp));
 
   ASSERT_TRUE(peer_id.setPrivateKey(private_key_shp));
@@ -143,7 +152,9 @@ TEST_F(PeerIdTest, SetPrivateKeyNotSourceOfPublic) {
 
   EXPECT_CALL(*private_key_shp, publicKey())
       .WillOnce(Return(ByMove(std::move(pubkey_uptr))));
-  auto peer_id = factory.createPeerId(valid_id).getValue();
+  auto peer_id_res = factory.createPeerId(valid_id);
+  ASSERT_TRUE(peer_id_res);
+  auto &&peer_id = std::move(peer_id_res.value());
   ASSERT_TRUE(peer_id.setPublicKey(public_key_shp));
 
   ASSERT_FALSE(peer_id.setPrivateKey(private_key_shp));
@@ -163,7 +174,9 @@ TEST_F(PeerIdTest, MarshalPublicKeySuccess) {
 }
 
 TEST_F(PeerIdTest, MarshalPublicKeyNoKey) {
-  auto peer_id = factory.createPeerId(valid_id).getValue();
+  auto peer_id_res = factory.createPeerId(valid_id);
+  ASSERT_TRUE(peer_id_res);
+  auto &&peer_id = std::move(peer_id_res.value());
 
   ASSERT_FALSE(peer_id.marshalPublicKey());
 }
@@ -182,7 +195,9 @@ TEST_F(PeerIdTest, MarshalPrivateKeySuccess) {
 }
 
 TEST_F(PeerIdTest, MarshalPrivateKeyNoKey) {
-  auto peer_id = factory.createPeerId(valid_id).getValue();
+  auto peer_id_res = factory.createPeerId(valid_id);
+  ASSERT_TRUE(peer_id_res);
+  auto &&peer_id = std::move(peer_id_res.value());
 
   ASSERT_FALSE(peer_id.marshalPrivateKey());
 }

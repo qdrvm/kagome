@@ -158,11 +158,11 @@ namespace libp2p::peer {
     if (id_res.hasError()) {
       return FactoryError::kCannotDecodeId;
     }
-    auto &&id_value = std::move(id_res.getValue());
+    const auto &id_value = id_res.getValueRef();
     if (!idIsSha256Multihash(id_value)) {
       return FactoryError::kIdNotSHA256Hash;
     }
 
-    return PeerId{std::move(id_value), multibase_codec_, crypto_provider_};
+    return PeerId{std::move(id_res.getValue()), multibase_codec_, crypto_provider_};
   }
 }  // namespace libp2p::peer
