@@ -13,7 +13,7 @@ add_library(scale
         type_decoder.hpp
         type_encoder.hpp
         util.hpp
-        )
+        collection.cpp)
 
 target_link_libraries(scale
         Boost::boost

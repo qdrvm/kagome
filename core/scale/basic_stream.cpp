@@ -4,6 +4,7 @@
  */
 
 #include "scale/basic_stream.hpp"
+#include "basic_stream.hpp"
 
 namespace kagome::common::scale {
 
@@ -17,6 +18,10 @@ namespace kagome::common::scale {
   }
 
   BasicStream::BasicStream(const ByteArray &source)
+      : current_iterator_{source.begin()},
+        bytes_left_{static_cast<int64_t>(source.size())} {}
+
+  BasicStream::BasicStream(const Buffer &source)
       : current_iterator_{source.begin()},
         bytes_left_{static_cast<int64_t>(source.size())} {}
 
