@@ -11,8 +11,6 @@
 
 #include <outcome/outcome.hpp>
 
-using namespace kagome::common;
-
 namespace kagome::primitives {
   class Block;  ///< forward declarations of class Block
 
@@ -20,13 +18,15 @@ namespace kagome::primitives {
 
   class Extrinsic;  ///< forward declarations of class Extrinsic
 
-  using kagome::common::scale::Stream;
-
   /**
    * class ScaleCodec is an interface declaring methods
    * for encoding and decoding primitives
    */
   class ScaleCodec {
+   protected:
+    using Stream = common::Stream;
+    using Buffer = common::Buffer;
+
    public:
     /**
      * @brief virtual destuctor
@@ -79,7 +79,6 @@ namespace kagome::primitives {
     virtual outcome::result<Extrinsic> decodeExtrinsic(
         Stream &stream) const = 0;
   };
-
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_SCALE_CODEC_HPP

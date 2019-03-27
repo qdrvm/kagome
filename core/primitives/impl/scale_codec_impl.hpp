@@ -9,11 +9,8 @@
 #include "primitives/scale_codec.hpp"
 #include "scale/types.hpp"
 
-using namespace kagome::common::scale;
-
 namespace kagome::primitives {
 
-  // clang-format off
   class ScaleCodecImpl : public ScaleCodec {
    public:
     /**
@@ -40,21 +37,24 @@ namespace kagome::primitives {
      * @param block_header value which should be encoded
      * @return scale-encoded value
      */
-    outcome::result<Buffer> encodeBlockHeader(const BlockHeader &block_header) const override;
+    outcome::result<Buffer> encodeBlockHeader(
+        const BlockHeader &block_header) const override;
 
     /**
      * @brief decodes scale-encoded block header from stream
      * @param stream source stream containing encoded bytes
      * @return decoded block header or error
      */
-    outcome::result<BlockHeader> decodeBlockHeader(Stream &stream) const override;
+    outcome::result<BlockHeader> decodeBlockHeader(
+        Stream &stream) const override;
 
     /**
      * @brief scale-encodes Extrinsic instance
      * @param extrinsic extrinsic value which should be encoded
      * @return scale-encoded value
      */
-    outcome::result<Buffer> encodeExtrinsic(const Extrinsic &extrinsic) const override;
+    outcome::result<Buffer> encodeExtrinsic(
+        const Extrinsic &extrinsic) const override;
 
     /**
      * @brief decodes scale-encoded extrinsic from stream
@@ -62,7 +62,6 @@ namespace kagome::primitives {
      * @return decoded extrinsic or error
      */
     outcome::result<Extrinsic> decodeExtrinsic(Stream &stream) const override;
-    // clang-format on
   };
 }  // namespace kagome::primitives
 

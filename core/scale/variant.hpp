@@ -13,16 +13,12 @@
 #include "scale/type_encoder.hpp"
 
 #include <outcome/outcome.hpp>
+#include "primitives/scale_error.hpp"
 
 #include <variant>
 
 namespace kagome::common::scale::variant {
   namespace detail {
-    template <uint8_t i>
-    struct Counter {
-      static const uint8_t value = i;
-    };
-
     template <uint8_t i, class F, class H, class... T>
     void for_each_apply_impl(F &f);
 
@@ -43,18 +39,50 @@ namespace kagome::common::scale::variant {
     }
 
     template <class... T>
-    struct EncodeFunctor {
-      using V = std::variant<T...>;
-      const V &v;
+    struct VariantEncoder {
+      using Variant = std::variant<T...>;
+      const Variant &v;
       Buffer &out;
 
-      EncodeFunctor(const V &v, Buffer &buf) : v{v}, out{buf} {}
+      VariantEncoder(const Variant &v, Buffer &buf) : v{v}, out{buf} {}
 
       template <class H>
       void apply(uint8_t index) {
+        // if type matches alternative in variant then encode
         if (std::holds_alternative<H>(v)) {
+          // first byte means type index
           out.putUint8(index);
+          // encode the value using custom type encoder
           TypeEncoder<H>{}.encode(std::get<H>(v), out);
+        }
+      }
+    };
+
+    template <class... T>
+    struct VariantDecoder {
+      using Variant = std::variant<T...>;
+      using Result = outcome::result<Variant>;
+      Result &r;
+      Stream &s;
+      uint8_t target_type_index;
+      static constexpr uint8_t types_count = sizeof...(T);
+
+      VariantDecoder(uint8_t target_type_index, Result &r, Stream &s)
+          : target_type_index{target_type_index}, r{r}, s{s} {};
+
+      template <class H>
+      void apply(uint8_t index) {
+        if (target_type_index >= types_count) {
+          r = DecodeError::kWrongTypeIndex;
+        } else if (index == target_type_index) {
+          // decode custom type
+          auto &&res = TypeDecoder<H>{}.decode(s);
+          if (res.hasError()) {
+            r = res.getError();
+            return;
+          }
+
+          r = Variant{res.getValue()};
         }
       }
     };
@@ -65,16 +93,38 @@ namespace kagome::common::scale::variant {
     }
   }  // namespace detail
 
+  /**
+   * @brief encodes std::variant value
+   * @tparam T... sequence of types
+   * @param v variant value
+   * @param out output buffer
+   */
   template <class... T>
   void encodeVariant(const std::variant<T...> &v, Buffer &out) {
-    auto functor = detail::EncodeFunctor<T...>(v, out);
-    detail::for_each_apply<decltype(functor), T...>(functor);
+    auto encoder = detail::VariantEncoder<T...>(v, out);
+    detail::for_each_apply<decltype(encoder), T...>(encoder);
   }
 
+  /**
+   * @brief decodes variant value
+   * @tparam T... sequence of types
+   * @param stream source stream
+   * @return decoded value or error
+   */
   template <class... T>
   outcome::result<std::variant<T...>> decodeVariant(Stream &stream) {
-    std::terminate();  // not implemented yet
-    return outcome::failure(1);
+    // first byte means type index
+    auto type_index = fixedwidth::decodeUint8(stream);
+    if (!type_index.has_value()) {
+      return DecodeError::kNotEnoughData;
+    }
+
+    outcome::result<std::variant<T...>> result = outcome::success();
+    auto decoder = detail::VariantDecoder<T...>(*type_index, result, stream);
+
+    detail::for_each_apply<decltype(decoder), T...>(decoder);
+
+    return result;
   }
 
 }  // namespace kagome::common::scale::variant
