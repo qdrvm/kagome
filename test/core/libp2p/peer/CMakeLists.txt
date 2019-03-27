@@ -10,9 +10,9 @@ target_link_libraries(peer_id_test
     libp2p-peer
     )
 
-addtest(peer_id_factory_test
-    peer_id_factory_test.cpp
+addtest(peer_id_manager_test
+    peer_id_manager_test.cpp
     )
-target_link_libraries(peer_id_factory_test
+target_link_libraries(peer_id_manager_test
     libp2p-peer
     )

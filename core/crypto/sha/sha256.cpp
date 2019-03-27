@@ -5,28 +5,21 @@
 
 #include "crypto/sha/sha256.hpp"
 
-#include <iomanip>
-#include <sstream>
-
 #include <openssl/sha.h>
 
 namespace kagome::crypto {
-  common::Buffer sha256(std::string_view str) {
-    return sha256(common::Buffer{}.put(str));
+  common::Hash256 sha256(std::string_view input) {
+    const auto *bytes_ptr =
+        reinterpret_cast<const uint8_t *>(input.data());  // NOLINT
+    return sha256(gsl::make_span(bytes_ptr, input.size()));
   }
 
-  common::Buffer sha256(const common::Buffer &bytes) {
-    unsigned char hash[SHA256_DIGEST_LENGTH];
-    SHA256_CTX sha256;
-    SHA256_Init(&sha256);
-    SHA256_Update(&sha256, bytes.toBytes(), bytes.size());
-    SHA256_Final(static_cast<unsigned char *>(hash), &sha256);
-
-    std::stringstream ss;
-    for (auto i : hash) {
-      ss << std::hex << std::setw(2) << std::setfill('0')
-         << static_cast<int>(i);
-    }
-    return common::Buffer{}.putBytes(std::begin(hash), std::end(hash));
+  common::Hash256 sha256(gsl::span<const uint8_t> input) {
+    common::Hash256 out;
+    SHA256_CTX ctx;
+    SHA256_Init(&ctx);
+    SHA256_Update(&ctx, input.data(), input.size());
+    SHA256_Final(out.data(), &ctx);
+    return out;
   }
 }  // namespace kagome::crypto

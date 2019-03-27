@@ -13,7 +13,7 @@
 #include "core/libp2p/crypto/private_key_mock.hpp"
 #include "core/libp2p/crypto/public_key_mock.hpp"
 #include "core/libp2p/multi/multibase_codec_mock.hpp"
-#include "libp2p/peer/peer_id_factory.hpp"
+#include "libp2p/peer/peer_id_manager.hpp"
 
 /**
  * Joins variables and methods, useful for testing PeerId and its Factory
@@ -24,7 +24,7 @@ class PeerIdTestFixture : public ::testing::Test {
 
   const libp2p::crypto::CryptoProviderMock crypto{};
   const libp2p::multi::MultibaseCodecMock multibase{};
-  const libp2p::peer::PeerIdFactory factory{multibase, crypto};
+  const libp2p::peer::PeerIdManager manager{multibase, crypto};
 
   /// must be a SHA-256 multihash; in this case, it's a hash of 'mystring'
   /// string

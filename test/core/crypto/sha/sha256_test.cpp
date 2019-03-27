@@ -42,6 +42,6 @@ class Sha256Test : public ::testing::Test {
 
 TEST_F(Sha256Test, Valid) {
   for (const auto &[initial, digest] : test_vectors) {
-    ASSERT_EQ(sha256(initial), digest);
+    ASSERT_EQ(sha256(initial).data(), digest.toBytes());
   }
 }

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PEER_ID_FACTORY_HPP
-#define KAGOME_PEER_ID_FACTORY_HPP
+#ifndef KAGOME_PEER_ID_MANAGER_HPP
+#define KAGOME_PEER_ID_MANAGER_HPP
 
 #include <memory>
 #include <optional>
@@ -22,17 +22,17 @@ namespace libp2p::peer {
   /**
    * Create objects of type PeerId
    */
-  class PeerIdFactory {
+  class PeerIdManager {
    private:
     using FactoryResult = outcome::result<PeerId>;
 
    public:
     /**
-     * Create a PeerId factory
+     * Create a PeerId manager
      * @param multibase_codec to be in this instance
      * @param crypto_provider to be in this instance
      */
-    PeerIdFactory(const multi::MultibaseCodec &multibase_codec,
+    PeerIdManager(const multi::MultibaseCodec &multibase_codec,
                   const crypto::CryptoProvider &crypto_provider);
 
     /**
@@ -40,7 +40,7 @@ namespace libp2p::peer {
      */
     enum class FactoryError {
       kIdNotSHA256Hash,
-      kEmptyIdPassed,
+      kEmptyId,
       kPubkeyIsNotDerivedFromPrivate,
       kIdIsNotHashOfPubkey,
       kCannotCreateIdFromPubkey,
@@ -130,12 +130,91 @@ namespace libp2p::peer {
      */
     FactoryResult createFromEncodedString(std::string_view id) const;
 
+    /**
+     * Get hex representation of the Peer's id
+     * @param peer, which is to be encoded
+     * @return hex string with the id
+     */
+    std::string toHex(const PeerId &peer) const;
+
+    /**
+     * Get base58 representation of the Peer's id
+     * @param peer, which is to be encoded
+     * @return base58-encoded string with the id
+     */
+    std::string toBase58(const PeerId &peer) const;
+
+    /**
+     * Set public key of the Peer
+     * @param peer, to which the key is to be set
+     * @param public_key to be set; must be compliant with the id
+     * @return true, if it was set, false otherwise
+     * @note if private key is set, this public key must be derived from it
+     * @note SHA256(base64(bytes(pubkey))) must be equal to the ID
+     */
+    bool setPublicKey(PeerId &peer,
+                      std::shared_ptr<crypto::PublicKey> public_key) const;
+
+    /**
+     * Set private key of the Peer
+     * @param peer, to which the key is to be set
+     * @param private_key to be set; derived public key must be compliant with
+     * the id
+     * @return true, if it was set, false otherwise
+     * @note if public key is set, this private key must derive the public key
+     * @note SHA256(base64(bytes(privkey->pubkey))) must be equal to the ID
+     */
+    bool setPrivateKey(PeerId &peer,
+                       std::shared_ptr<crypto::PrivateKey> private_key) const;
+
+    /**
+     * Get a Protobuf representation of the Peer's public key
+     * @param peer, from which the key should be taken
+     * @return optional with bytes of the key
+     */
+    std::optional<kagome::common::Buffer> marshalPublicKey(
+        const PeerId &peer) const;
+
+    /**
+     * Get a Protobuf representation of the Peer's private key
+     * @param peer, from which the key should be taken
+     * @return optional with bytes of the key
+     */
+    std::optional<kagome::common::Buffer> marshalPrivateKey(
+        const PeerId &peer) const;
+
+    /**
+     * Get a string representation of that Peer
+     * @return stringified Peer
+     */
+    std::string toString(const PeerId &peer) const;
+
    private:
+    /**
+     * Check, if ID of that peer is derived from the given public key
+     * @param peer, whose id is to be checked
+     * @param key to be checked
+     * @return true, if SHA256(base64(bytes(pubkey))) == key, false otherwise
+     */
+    bool idDerivedFromPublicKey(const PeerId &peer,
+                                const libp2p::crypto::PublicKey &key) const;
+
+    /**
+     * Convert public key to an ID by encoding to base64 and SHA-256 hashing the
+     * result
+     * @param key to be converted
+     * @return resulting buffer, if key was successfully converted, none
+     * otherwise
+     * @note static class member to be used by the factory as well
+     */
+    std::optional<kagome::common::Buffer> idFromPublicKey(
+        const libp2p::crypto::PublicKey &key) const;
+
     const multi::MultibaseCodec &multibase_codec_;
     const crypto::CryptoProvider &crypto_provider_;
   };
 }  // namespace libp2p::peer
 
-OUTCOME_HPP_DECLARE_ERROR_2(libp2p::peer, PeerIdFactory::FactoryError)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::peer, PeerIdManager::FactoryError)
 
-#endif  // KAGOME_PEER_ID_FACTORY_HPP
+#endif  // KAGOME_PEER_ID_MANAGER_HPP

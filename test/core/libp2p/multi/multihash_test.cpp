@@ -28,15 +28,15 @@ using libp2p::multi::UVarint;
  **/
 TEST(Multihash, Create) {
   Buffer hash{2, 3, 4};
-  Multihash::create(HashType::kBlake2s128, hash)
+  Multihash::create(HashType::blake2s128, hash)
       .match(
           [&hash](Value<Multihash> m) {
-            ASSERT_EQ(m.value.getType(), HashType::kBlake2s128);
+            ASSERT_EQ(m.value.getType(), HashType::blake2s128);
             ASSERT_EQ(m.value.getHash(), hash);
           },
           [](auto e) { FAIL() << e.error; });
 
-  Multihash::create(HashType::kBlake2s128, Buffer(200, 42))
+  Multihash::create(HashType::blake2s128, Buffer(200, 42))
       .match(
           [](Value<Multihash> m) {
             FAIL() << "The multihash mustn't accept hashes of the size greater "
@@ -55,10 +55,10 @@ TEST(Multihash, Create) {
 TEST(Multihash, FromToHex) {
   Buffer hash{2, 3, 4};
 
-  Multihash::create(HashType::kBlake2s128, hash)
+  Multihash::create(HashType::blake2s128, hash)
       .match(
           [&hash](Value<Multihash> m) {
-            UVarint var(HashType::kBlake2s128);
+            UVarint var(HashType::blake2s128);
             auto hex_s = hex_upper(var.toBytes().data(), var.toBytes().size())
                 + "03" + hex_upper(hash.toVector());
             ASSERT_EQ(m.value.toHex(), hex_s);

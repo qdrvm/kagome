@@ -8,22 +8,23 @@
 
 #include <string_view>
 
-#include "common/buffer.hpp"
+#include <gsl/span>
+#include "common/blob.hpp"
 
 namespace kagome::crypto {
   /**
-   * SHA-256 hash a string
-   * @param str to be hashed
-   * @return hashed string in bytes format
-   */
-  common::Buffer sha256(std::string_view str);
-
-  /**
-   * SHA-256 hash the bytes
-   * @param bytes to be hashed
+   * Take a SHA-256 hash from string
+   * @param input to be hashed
    * @return hashed bytes
    */
-  common::Buffer sha256(const common::Buffer &bytes);
+  common::Hash256 sha256(std::string_view input);
+
+  /**
+   * Take a SHA-256 hash from bytes
+   * @param input to be hashed
+   * @return hashed bytes
+   */
+  common::Hash256 sha256(gsl::span<const uint8_t> input);
 }  // namespace kagome::crypto
 
 #endif  // KAGOME_SHA256_HPP

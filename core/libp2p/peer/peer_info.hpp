@@ -13,10 +13,7 @@ namespace libp2p::peer {
   /**
    * Information about the peer in the network
    */
-  struct PeerInfo {
-//    multi::Multihash peer_id;
-//    multi::Multiaddress peer_address;
-  };
-}  // namespace libp2p::common
+  struct PeerInfo {};
+}  // namespace libp2p::peer
 
 #endif  // KAGOME_PEER_INFO_HPP
