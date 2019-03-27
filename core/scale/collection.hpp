@@ -44,22 +44,19 @@ namespace kagome::common::scale::collection {
     return true;
   }  // namespace kagome::common::scale::collection
 
-
   /**
    * @brief encodes buffer as collection of bytes
    * @param buf bytes to encode
    * @param out output stream
    * @return true if operation succeeded and false otherwise
    */
-  bool encodeBuffer(const Buffer & buf, Buffer &out);
+  bool encodeBuffer(const Buffer &buf, Buffer &out);
 
   /**
    * @brief DecodeCollectionResult is result of decodeCollection operation
    */
   template <class T>
   using DecodeCollectionResult = expected::Result<std::vector<T>, DecodeError>;
-
-//  DecodeCollectionResult<uint8_t> decodeBytes()
 
   /**
    * @brief decodeCollection function decodes collection containing items of

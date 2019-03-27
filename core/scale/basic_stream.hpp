@@ -20,7 +20,7 @@ namespace kagome::common::scale {
    public:
     explicit BasicStream(const ByteArray &source);
 
-    explicit BasicStream(const Buffer & source);
+    explicit BasicStream(const Buffer &source);
 
     ~BasicStream() override = default;
 

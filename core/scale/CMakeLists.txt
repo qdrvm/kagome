@@ -1,9 +1,10 @@
 add_library(scale
-        collection.hpp
         basic_stream.hpp
         basic_stream.cpp
         boolean.hpp
         boolean.cpp
+        collection.hpp
+        collection.cpp
         compact.hpp
         compact.cpp
         fixedwidth.hpp
@@ -13,7 +14,8 @@ add_library(scale
         type_decoder.hpp
         type_encoder.hpp
         util.hpp
-        collection.cpp)
+        variant.hpp
+        )
 
 target_link_libraries(scale
         Boost::boost

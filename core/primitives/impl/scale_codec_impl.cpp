@@ -8,7 +8,6 @@
 #include "scale/collection.hpp"
 #include "scale/compact.hpp"
 #include "scale/fixedwidth.hpp"
-
 #include "primitives/block.hpp"
 // TODO(yuraz): change path after moving scale_error to scale
 #include "primitives/scale_error.hpp"
