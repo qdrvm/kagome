@@ -6,7 +6,7 @@
 #ifndef KAGOME_PEER_HPP
 #define KAGOME_PEER_HPP
 
-namespace libp2p::common {
+namespace libp2p::peer {
   /**
    * Peer of the network
    */
