@@ -17,6 +17,7 @@ namespace kagome::common::scale {
     kCompactIntegerIsTooBig = 1,  ///< compact integer can't be more than 2**536
     kCompactIntegerIsNegative,    ///< cannot compact-encode negative integers
     kWrongCategory,               ///< wrong compact category
+    kNoAlternative,               ///< wrong cast to alternative
   };
 
   /**

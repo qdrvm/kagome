@@ -17,6 +17,8 @@
 
 #include <variant>
 
+using kagome::common::Buffer;
+
 namespace kagome::common::scale::variant {
   namespace detail {
     template <uint8_t i, class F, class H, class... T>
@@ -55,10 +57,16 @@ namespace kagome::common::scale::variant {
         if (std::holds_alternative<H>(v)) {
           // first byte means type index
           out.putUint8(index);
+          // get alternative ptr
+          auto *alternative = std::get_if<H>(&v);
+          if (nullptr == alternative) {
+            res = EncodeError::kNoAlternative;
+            return;
+          }
           // encode the value using custom type encoder
-          auto &&r = TypeEncoder<H>{}.encode(std::get<H>(v), out);
-          if (!r) {
-            res = r.error();
+          auto &&encode_result = TypeEncoder<H>{}.encode(*alternative, out);
+          if (!encode_result) {
+            res = encode_result.error();
           }
         }
       }
@@ -94,9 +102,9 @@ namespace kagome::common::scale::variant {
 
     template <class F, class... T>
     void for_each_apply(F &f) {
-      for_each_apply_impl<0, F, T...>(f);
+      detail::for_each_apply_impl<0, F, T...>(f);
     }
-  }  // namespace detail
+  };  // namespace detail
 
   /**
    * @brief encodes std::variant value
@@ -105,7 +113,8 @@ namespace kagome::common::scale::variant {
    * @param out output buffer
    */
   template <class... T>
-  outcome::result<void> encodeVariant(const std::variant<T...> &v, Buffer &out) {
+  outcome::result<void> encodeVariant(const std::variant<T...> &v,
+                                      Buffer &out) {
     outcome::result<void> res = outcome::success();
     auto encoder = detail::VariantEncoder<T...>(v, out, res);
     detail::for_each_apply<decltype(encoder), T...>(encoder);
