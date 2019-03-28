@@ -10,6 +10,8 @@ add_library(scale
         fixedwidth.hpp
         fixedwidth.cpp
         optional.hpp
+        scale_error.hpp
+        scale_error.cpp
         types.hpp
         type_decoder.hpp
         type_encoder.hpp

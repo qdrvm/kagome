@@ -57,5 +57,4 @@ addtest(scale_variant_test
 target_link_libraries(scale_variant_test
         scale
         buffer
-        primitives
         )

@@ -13,7 +13,7 @@
 #include "scale/type_encoder.hpp"
 
 #include <outcome/outcome.hpp>
-#include "primitives/scale_error.hpp"
+#include "scale_error.hpp"
 
 #include <variant>
 
