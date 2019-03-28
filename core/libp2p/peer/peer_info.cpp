@@ -13,11 +13,21 @@ namespace libp2p::peer {
   PeerInfo::PeerInfo(PeerInfo &&peer_info) noexcept = default;
   PeerInfo &PeerInfo::operator=(PeerInfo &&peer_info) noexcept = default;
 
-  PeerInfo::PeerInfo(const Peer &peer) : peer_{peer} {}
+  PeerInfo::FactoryResult PeerInfo::createPeerInfo(const PeerId &peer_id) {
+    if (peer_id.getType() != multi::HashType::sha256) {
+      return FactoryError::kIdIsNotSha256Hash;
+    }
+    return PeerInfo{peer_id};
+  }
+  PeerInfo::FactoryResult PeerInfo::createPeerInfo(PeerId &&peer_id) {
+    if (peer_id.getType() != multi::HashType::sha256) {
+      return FactoryError::kIdIsNotSha256Hash;
+    }
+    return PeerInfo{std::move(peer_id)};
+  }
 
-  PeerInfo::PeerInfo(Peer &&peer)
-      :  // peer_{std::move(peer)} {} UNCOMMENT AFTER PEER_ID GETS MERGED
-        peer_{peer} {}
+  PeerInfo::PeerInfo(const PeerId &peer) : peer_id_{peer} {}
+  PeerInfo::PeerInfo(PeerId &&peer) : peer_id_{std::move(peer)} {}
 
   PeerInfo &PeerInfo::addProtocols(
       gsl::span<multi::Multiaddress::Protocol> protocols) {

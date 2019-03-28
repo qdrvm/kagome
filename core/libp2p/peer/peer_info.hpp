@@ -11,14 +11,19 @@
 #include <vector>
 
 #include <gsl/span>
+#include <outcome/outcome.hpp>
 #include "libp2p/multi/multiaddress.hpp"
-#include "libp2p/peer/peer.hpp"
+#include "libp2p/multi/multihash.hpp"
 
 namespace libp2p::peer {
   /**
    * Information about the peer in the network
    */
   class PeerInfo {
+   private:
+    using PeerId = multi::Multihash;
+    using FactoryResult = outcome::result<PeerInfo>;
+
    public:
     PeerInfo() = delete;
     PeerInfo(const PeerInfo &peer_info);
@@ -26,12 +31,14 @@ namespace libp2p::peer {
     PeerInfo(PeerInfo &&peer_info) noexcept;
     PeerInfo &operator=(PeerInfo &&peer_info) noexcept;
 
+    enum class FactoryError { kIdIsNotSha256Hash };
     /**
-     * Create from the PeerId
-     * @param peer to be put in this instance
+     * Create a PeerInfo instance
+     * @param peer_id - ID of the peer; must be a SHA-256 multihash
+     * @return
      */
-    explicit PeerInfo(const Peer &peer);
-    explicit PeerInfo(Peer &&peer);
+    static FactoryResult createPeerInfo(const PeerId &peer_id);
+    static FactoryResult createPeerInfo(PeerId &&peer_id);
 
     /**
      * Add protocols, through which this peer can communicate
@@ -89,7 +96,14 @@ namespace libp2p::peer {
                                  gsl::span<multi::Multiaddress> to_insert);
 
    private:
-    Peer peer_;
+    /**
+     * Create from the PeerId
+     * @param peer to be put in this instance
+     */
+    explicit PeerInfo(const PeerId &peer);
+    explicit PeerInfo(PeerId &&peer);
+
+    PeerId peer_id_;
     std::unordered_set<multi::Multiaddress::Protocol> protocols_;
     /// ordered, because we need fast searches and removes
     std::set<multi::Multiaddress> multiaddresses_;
