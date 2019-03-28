@@ -9,9 +9,9 @@
 #include "scale/basic_stream.hpp"
 #include "scale/collection.hpp"
 
-using namespace kagome;
-using namespace kagome::common;
-using namespace common::scale;
+using namespace kagome;          // NOLINT
+using namespace kagome::common;  // NOLINT
+using namespace common::scale;   // NOLINT
 
 /**
  * @given collection of 80 items of type uint8_t
@@ -24,8 +24,8 @@ TEST(Scale, encodeCollectionOf80) {
   auto out_bytes = Buffer{65, 1};
   out_bytes.put(collection.toVector());
   Buffer out;
-  auto res = collection::encodeCollection(collection.toVector(), out);
-  ASSERT_EQ(res, true);
+  auto &&res = collection::encodeCollection(collection.toVector(), out);
+  ASSERT_TRUE(res);
   ASSERT_EQ(out.toVector().size(), 82);
   // clang-format off
   ASSERT_EQ(out.toVector(), out_bytes.toVector());
@@ -41,7 +41,7 @@ TEST(Scale, encodeCollectionUint16) {
   std::vector<uint16_t> collection = {1, 2, 3, 4};
   Buffer out;
   auto res = collection::encodeCollection(collection, out);
-  ASSERT_EQ(res, true);
+  ASSERT_TRUE(res);
   // clang-format off
   ASSERT_EQ(out.toVector(),
           (ByteArray{
@@ -63,8 +63,8 @@ TEST(Scale, encodeCollectionUint32) {
   std::vector<uint32_t> collection = {50462976, 117835012, 185207048,
                                       252579084};
   Buffer out;
-  auto res = collection::encodeCollection(collection, out);
-  ASSERT_EQ(res, true);
+  auto &&res = collection::encodeCollection(collection, out);
+  ASSERT_TRUE(res);
   // clang-format off
   ASSERT_EQ(out.toVector(),
             (ByteArray{
@@ -86,8 +86,8 @@ TEST(Scale, encodeCollectionUint64) {
   std::vector<uint64_t> collection = {506097522914230528ull,
                                       1084818905618843912ull};
   Buffer out;
-  auto res = collection::encodeCollection(collection, out);
-  ASSERT_EQ(res, true);
+  auto &&res = collection::encodeCollection(collection, out);
+  ASSERT_TRUE(res);
   // clang-format off
   ASSERT_EQ(out.toVector(),
             (ByteArray{
@@ -117,8 +117,8 @@ TEST(Scale, encodeLongCollectionUint16) {
 
   Buffer out;
 
-  auto res = collection::encodeCollection(collection, out);
-  ASSERT_EQ(res, true);
+  auto &&res = collection::encodeCollection(collection, out);
+  ASSERT_TRUE(res);
   ASSERT_EQ(out.size(), (length * 2 + 4));
 
   // header takes 4 byte,
@@ -126,11 +126,9 @@ TEST(Scale, encodeLongCollectionUint16) {
   // which is compact-encoded value 2^14 = 16384
   auto stream = BasicStream(out.toVector());
 
-  compact::decodeInteger(stream).match(
-      [](const compact::DecodeIntegerResult::ValueType &bi) {
-        ASSERT_EQ(bi.value, 16384);
-      },
-      [](const compact::DecodeIntegerResult::ErrorType &) { FAIL(); });
+  auto &&res1 = compact::decodeInteger(stream);
+  ASSERT_TRUE(res1);
+  ASSERT_EQ(res1.value(), 16384);
 
   // now only 32768 bytes left in stream
   ASSERT_EQ(stream.hasMore(32768), true);
@@ -159,29 +157,29 @@ TEST(Scale, encodeLongCollectionUint16) {
  */
 
 TEST(Scale, encodeVeryLongCollectionUint8) {
-  std::vector<uint8_t> collection;
   auto length = 1048576;  // 2^20
+  std::vector<uint8_t> collection;
   collection.reserve(length);
+
   for (auto i = 0; i < length; ++i) {
     collection.push_back(i % 256);
   }
 
   Buffer out;
-  auto res = collection::encodeCollection(collection, out);
-  ASSERT_EQ(res, true);
+  auto &&res = collection::encodeCollection(collection, out);
+  ASSERT_TRUE(res);
   ASSERT_EQ(out.size(), (length + 4));
   // header takes 4 bytes,
-  // first byte == (4-4) + 3 = 3, which means that number of items
-  // requires 4 bytes
+  // first byte == (4-4) + 3 = 3,
+  // which means that number of items requires 4 bytes
   // 3 next bytes are 0, and the last 4-th == 2^6 == 64
   // which is compact-encoded value 2^14 = 16384
   auto stream = BasicStream(out.toVector());
 
-  compact::decodeInteger(stream).match(
-      [](const compact::DecodeIntegerResult::ValueType &bi) {
-        ASSERT_EQ(bi.value, 1048576);
-      },
-      [](const compact::DecodeIntegerResult::ErrorType &) { FAIL(); });
+  auto &&bi = compact::decodeInteger(stream);
+  ASSERT_TRUE(bi);
+  ASSERT_EQ(bi.value(), 1048576);
+
   // now only 1048576 bytes left in stream
   ASSERT_EQ(stream.hasMore(1048576), true);
   ASSERT_EQ(stream.hasMore(1048576 + 1), false);
@@ -206,16 +204,17 @@ TEST(Scale, encodeVeryLongCollectionUint8) {
  * where each byte after header == i%256
  */
 TEST(Scale, DISABLED_encodeVeryLongCollectionUint8) {
-  std::vector<uint8_t> collection;
   auto length = 1073741824;  // 2^20
+  std::vector<uint8_t> collection;
+
   collection.reserve(length);
   for (auto i = 0; i < length; ++i) {
     collection.push_back(i % 256);
   }
 
   Buffer out;
-  auto res = collection::encodeCollection(collection, out);
-  ASSERT_EQ(res, true);
+  auto &&res = collection::encodeCollection(collection, out);
+  ASSERT_TRUE(res);
   ASSERT_EQ(out.size(), (length + 4));
   // header takes 4 bytes,
   // first byte == (4-4) + 3 = 3, which means that number of items
@@ -224,11 +223,10 @@ TEST(Scale, DISABLED_encodeVeryLongCollectionUint8) {
   // which is compact-encoded value 2^14 = 16384
   auto stream = BasicStream(out.toVector());
 
-  compact::decodeInteger(stream).match(
-      [length](const compact::DecodeIntegerResult::ValueType &bi) {
-        ASSERT_EQ(bi.value, length);
-      },
-      [](const compact::DecodeIntegerResult::ErrorType &) { FAIL(); });
+  auto &&bi = compact::decodeInteger(stream);
+  ASSERT_TRUE(bi);
+  ASSERT_EQ(bi.value(), length);
+
   // now only 1048576 bytes left in stream
   ASSERT_EQ(stream.hasMore(length), true);
   ASSERT_EQ(stream.hasMore(length + 1), false);
@@ -260,13 +258,11 @@ TEST(Scale, decodeSimpleCollectionOfUint16) {
     };
   // clang-format on
   auto stream = BasicStream{bytes};
-  auto res = collection::decodeCollection<uint16_t>(stream);
-  res.match(
-      [&collection](const expected::Value<std::vector<uint16_t>> &v) {
-        ASSERT_EQ(v.value.size(), 4);
-        ASSERT_EQ(v.value, collection);
-      },
-      [](const expected::Error<DecodeError> &e) { FAIL(); });
+  auto &&res = collection::decodeCollection<uint16_t>(stream);
+  ASSERT_TRUE(res);
+  auto &&value = res.value();
+  ASSERT_EQ(value.size(), 4);
+  ASSERT_EQ(value, collection);
 }
 
 /**
@@ -283,17 +279,13 @@ TEST(Scale, decodeLongCollectionOfUint8) {
   }
 
   Buffer out;
-  auto res = collection::encodeCollection(collection, out);
-  ASSERT_EQ(res, true);
+  auto &&res = collection::encodeCollection(collection, out);
+  ASSERT_TRUE(res);
 
   auto stream = BasicStream(out.toVector());
-  auto decodeResult = collection::decodeCollection<uint8_t>(stream);
-  decodeResult.match(
-      [&collection](
-          collection::DecodeCollectionResult<uint8_t>::ValueType &val) {
-        ASSERT_EQ(val.value, collection);
-      },
-      [](expected::Error<DecodeError> &) { FAIL(); });
+  auto &&decode_result = collection::decodeCollection<uint8_t>(stream);
+  ASSERT_TRUE(decode_result);
+  ASSERT_EQ(decode_result.value(), collection);
 }
 
 /**
@@ -318,13 +310,11 @@ TEST(Scale, decodeSimpleCollectionOfUint32) {
 
   Buffer out;
   auto stream = BasicStream{bytes};
-  auto res = collection::decodeCollection<uint32_t>(stream);
-  res.match(
-      [&collection](const expected::Value<std::vector<uint32_t>> &v) {
-        ASSERT_EQ(v.value.size(), 4);
-        ASSERT_EQ(v.value, collection);
-      },
-      [](const expected::Error<DecodeError> &e) { FAIL(); });
+  auto &&res = collection::decodeCollection<uint32_t>(stream);
+  ASSERT_TRUE(res);
+  auto &&val = res.value();
+  ASSERT_EQ(val.size(), 4);
+  ASSERT_EQ(val, collection);
 }
 
 /**
@@ -350,11 +340,9 @@ TEST(Scale, decodeSimpleCollectionOfUint64) {
 
   Buffer out;
   auto stream = BasicStream{bytes};
-  auto res = collection::decodeCollection<uint64_t>(stream);
-  res.match(
-      [&collection](const expected::Value<std::vector<uint64_t>> &v) {
-        ASSERT_EQ(v.value.size(), 2);
-        ASSERT_EQ(v.value, collection);
-      },
-      [](const expected::Error<DecodeError> &e) { FAIL(); });
+  auto &&res = collection::decodeCollection<uint64_t>(stream);
+  ASSERT_TRUE(res);
+  auto &&val = res.value();
+  ASSERT_EQ(val.size(), 2);
+  ASSERT_EQ(val, collection);
 }

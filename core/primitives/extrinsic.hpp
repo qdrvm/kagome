@@ -8,13 +8,13 @@
 
 #include "common/buffer.hpp"
 
-using namespace kagome::common;
-
 namespace kagome::primitives {
   /**
    * @brief Extrinsic class represents extrinsic
    */
   class Extrinsic {
+    using Buffer = kagome::common::Buffer;
+
    public:
     /**
      * @brief Extrinsic constructor

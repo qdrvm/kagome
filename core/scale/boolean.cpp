@@ -4,6 +4,7 @@
  */
 
 #include "scale/boolean.hpp"
+#include "scale/scale_error.hpp"
 
 namespace kagome::common::scale::boolean {
 
@@ -12,22 +13,22 @@ namespace kagome::common::scale::boolean {
     out.putUint8(byte);
   }
 
-  DecodeBoolResult decodeBool(Stream &stream) {
+  outcome::result<bool> decodeBool(Stream &stream) {
     auto byte = stream.nextByte();
     if (!byte.has_value()) {
-      return expected::Error{DecodeError::kNotEnoughData};
+      return outcome::failure(DecodeError::kNotEnoughData);
     }
 
     switch (*byte) {
       case 0:
-        return expected::Value{false};
+        return outcome::success(false);
       case 1:
-        return expected::Value{true};
+        return outcome::success(true);
       default:
         break;
     }
 
-    return expected::Error{DecodeError::kUnexpectedValue};
+    return outcome::failure(DecodeError::kUnexpectedValue);
   }
 
   void encodeTribool(tribool value, Buffer &out) {
@@ -43,23 +44,23 @@ namespace kagome::common::scale::boolean {
     out.putUint8(byte);
   }
 
-  DecodeTriboolResult decodeTribool(Stream &stream) {
+  outcome::result<tribool> decodeTribool(Stream &stream) {
     auto byte = stream.nextByte();
     if (!byte.has_value()) {
-      return expected::Error{DecodeError::kNotEnoughData};
+      return outcome::failure(DecodeError::kNotEnoughData);
     }
 
     switch (*byte) {
       case 0:
-        return expected::Value{false};
+        return false;
       case 1:
-        return expected::Value{true};
+        return true;
       case 2:
-        return expected::Value{indeterminate};
+        return indeterminate;
       default:
         break;
     }
 
-    return expected::Error{DecodeError::kUnexpectedValue};
+    return outcome::failure(DecodeError::kUnexpectedValue);
   }
 }  // namespace kagome::common::scale::boolean

@@ -8,9 +8,9 @@
 #include "common/result.hpp"
 #include "scale/basic_stream.hpp"
 
-using namespace kagome;
-using namespace kagome::common;
-using namespace common::scale;
+using namespace kagome;          // NOLINT
+using namespace kagome::common;  // NOLINT
+using namespace common::scale;   // NOLINT
 
 /**
  * Utility tests
@@ -44,34 +44,12 @@ TEST(Scale, basicStream) {
   ASSERT_EQ(stream.hasMore(1), false);
 }
 
-/**
- * Decode compact integers tests
- */
-
-// TODO(yuraz): PRE-70 implement encode and decode tuples and variants
-
 // TODO(yuraz): PRE-70 write example of encoding and decoding custom structures
-
-TEST(Scale, DISABLED_encodeTuple) {
-  FAIL();
-}
-
-TEST(Scale, DISABLED_decodeTuple) {
-  FAIL();
-}
 
 TEST(Scale, DISABLED_encodeStructureExample) {
   FAIL();
 }
 
 TEST(Scale, DISABLED_decodeStructureExample) {
-  FAIL();
-}
-
-TEST(Scale, DISABLED_encodeVariant) {
-  FAIL();
-}
-
-TEST(Scale, DISABLED_decodeVariant) {
   FAIL();
 }

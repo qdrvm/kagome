@@ -8,13 +8,13 @@
 
 #include "common/buffer.hpp"
 
-using namespace kagome::common;
-
 namespace kagome::primitives {
   /**
    * @class BlockHeader represents header of a block
    */
   class BlockHeader {
+    using Buffer = kagome::common::Buffer;
+
    public:
     /**
      * @brief BlockHeader class constructor

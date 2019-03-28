@@ -14,20 +14,9 @@
 
 #include "common/result.hpp"
 
-namespace kagome::common::scale {
-  using ByteArray = std::vector<uint8_t>;
-  using BigInteger = boost::multiprecision::cpp_int;
-
-  using tribool = boost::logic::tribool;
-
-  constexpr auto indeterminate = boost::logic::indeterminate;
-  constexpr auto isIndeterminate = [](tribool value) {
-    return boost::logic::indeterminate(value);
-  };
-
+namespace kagome::common {
   /**
    * @brief interface for Decoders
-   * it is required for nesting decoders
    */
   class Stream {
    public:
@@ -47,28 +36,17 @@ namespace kagome::common::scale {
     virtual std::optional<uint8_t> nextByte() = 0;
   };
 
-  enum EncodeError {
-    //    kSuccess = 0,               ///< success == 0 should be reserved
-    kCompactIntegerIsTooBig = 1,  ///< compact integer can't be more than 2**536
-    kCompactIntegerIsNegative,    ///< cannot compact-encode negative integers
-  };
+  namespace scale {
+    using ByteArray = std::vector<uint8_t>;
+    using BigInteger = boost::multiprecision::cpp_int;
 
-  /**
-   * @brief DecoderError enum provides codes of errors for Decoder methods
-   */
-  enum DecodeError {
-    //    kSuccess = 0,      ///< success == 0 should be reserved
-    kNotEnoughData = 1,  ///< not enough data to decode value
-    kUnexpectedValue,    ///< unexpected value
-    kTooManyItems        ///< too many items
+    using tribool = boost::logic::tribool;
 
-  };
-
-  /**
-   * @brief TypeDecodeResult is result of decode operation
-   */
-  template <class T>
-  using TypeDecodeResult = expected::Result<T, DecodeError>;
-}  // namespace kagome::common::scale
+    constexpr auto indeterminate = boost::logic::indeterminate;
+    constexpr auto isIndeterminate = [](tribool value) {
+      return boost::logic::indeterminate(value);
+    };
+  }  // namespace scale
+}  // namespace kagome::common
 
 #endif  // KAGOME_SCALE_TYPES_HPP

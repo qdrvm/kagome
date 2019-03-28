@@ -5,6 +5,8 @@
 
 #include "primitives/block_header.hpp"
 
+using kagome::common::Buffer;
+
 namespace kagome::primitives {
 
   BlockHeader::BlockHeader(Buffer parent_hash, size_t number, Buffer state_root,
