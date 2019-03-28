@@ -9,6 +9,8 @@
 #include "scale/basic_stream.hpp"
 #include "scale/variant.hpp"
 
+#include <boost/variant/get.hpp>
+
 using namespace kagome::common;         // NOLINT
 using namespace kagome::common::scale;  // NOLINT
 
@@ -41,10 +43,10 @@ TEST(Scale, decodeVariant) {
   ASSERT_TRUE(res);
   auto &&val = res.value();
   ASSERT_TRUE(std::holds_alternative<uint8_t>(val));
-  ASSERT_EQ(std::get<uint8_t>(val), 1);
+  ASSERT_EQ(*std::get_if<uint8_t>(&val), 1);
 
   auto &&res1 = variant::decodeVariant<uint8_t, uint32_t>(stream);
   auto && val1 = res1.value();
   ASSERT_TRUE(std::holds_alternative<uint32_t>(val1));
-  ASSERT_EQ(std::get<uint32_t>(val1), 1);
+  ASSERT_EQ(*std::get_if<uint32_t>(&val1), 1);
 }
