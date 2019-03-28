@@ -88,7 +88,7 @@ namespace kagome::common::scale::compact {
     // cannot encode negative numbers
     // there is no description how to encode compact negative numbers
     if (value < 0) {
-      return outcome::failure(EncodeError::kCompactIntegerIsNegative);
+      return EncodeError::kCompactIntegerIsNegative;
     }
 
     if (value < EncodingCategoryLimits::kMinUint16) {
@@ -111,7 +111,7 @@ namespace kagome::common::scale::compact {
     size_t requiredLength = 1 + bigIntLength;
 
     if (bigIntLength > 67) {
-      return outcome::failure(EncodeError::kCompactIntegerIsTooBig);
+      return EncodeError::kCompactIntegerIsTooBig;
     }
 
     ByteArray result;
@@ -211,7 +211,7 @@ namespace kagome::common::scale::compact {
       }
 
       default:
-        UNREACHABLE;
+        UNREACHABLE
     }
 
     return BigInteger{number};
