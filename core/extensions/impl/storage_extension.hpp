@@ -8,67 +8,165 @@
 
 #include <cstdint>
 
+#include "runtime/wasm_memory.hpp"
+#include "storage/merkle/codec.hpp"
+#include "storage/merkle/trie_db.hpp"
+
 namespace kagome::extensions {
   /**
    * Implements extension functions related to storage
    */
   class StorageExtension {
    public:
-    uint8_t *ext_child_storage_root(const uint8_t *storage_key_data,
-                                    uint32_t storage_key_length,
-                                    uint32_t *written);
+    explicit StorageExtension(std::shared_ptr<storage::merkle::TrieDb> db,
+                              std::shared_ptr<runtime::WasmMemory> memory,
+                              std::shared_ptr<storage::merkle::Codec> codec);
 
-    void ext_clear_child_storage(const uint8_t *storage_key_data,
-                                 uint32_t storage_key_length,
-                                 const uint8_t *key_data, uint32_t key_length);
+    // -------------------------Data storage--------------------------
 
-    void ext_clear_prefix(const uint8_t *prefix_data, uint32_t prefix_length);
+    /**
+     * @see Extension::ext_clear_prefix
+     */
+    void ext_clear_prefix(runtime::WasmPointer prefix_data,
+                          runtime::SizeType prefix_length);
 
-    void ext_clear_storage(const uint8_t *key_data, uint32_t key_length);
+    /**
+     * @see Extension::ext_clear_storage
+     */
+    void ext_clear_storage(runtime::WasmPointer key_data,
+                           runtime::SizeType key_length);
 
-    uint32_t ext_exists_child_storage(const uint8_t *storage_key_data,
-                                      uint32_t storage_key_length,
-                                      const uint8_t *key_data,
-                                      uint32_t key_length);
+    /**
+     * @see Extension::ext_exists_storage
+     */
+    runtime::SizeType ext_exists_storage(runtime::WasmPointer key_data,
+                                         runtime::SizeType key_length);
 
-    uint8_t *ext_get_allocated_child_storage(const uint8_t *storage_key_data,
-                                             uint32_t storage_key_length,
-                                             const uint8_t *key_data,
-                                             uint32_t key_length,
-                                             uint32_t *written);
+    /**
+     * @see Extension::ext_get_allocated_storage
+     */
+    runtime::WasmPointer ext_get_allocated_storage(
+        runtime::WasmPointer key_data, runtime::SizeType key_length,
+        runtime::WasmPointer written);
 
-    uint8_t *ext_get_allocated_storage(const uint8_t *key_data,
-                                       uint32_t key_length, uint32_t *written);
+    /**
+     * @see Extension::ext_get_storage_into
+     */
+    runtime::SizeType ext_get_storage_into(runtime::WasmPointer key_data,
+                                           runtime::SizeType key_length,
+                                           runtime::WasmPointer value_data,
+                                           runtime::SizeType value_length,
+                                           runtime::SizeType value_offset);
 
-    uint32_t ext_get_child_storage_into(
-        const uint8_t *storage_key_data, uint32_t storage_key_length,
-        const uint8_t *key_data, uint32_t key_length, uint8_t *value_data,
-        uint32_t value_length, uint32_t value_offset);
+    /**
+     * @see Extension::ext_set_storage
+     */
+    void ext_set_storage(runtime::WasmPointer key_data,
+                         runtime::SizeType key_length,
+                         runtime::WasmPointer value_data,
+                         runtime::SizeType value_length);
 
-    uint32_t ext_get_storage_into(const uint8_t *key_data, uint32_t key_length,
-                                  uint8_t *value_data, uint32_t value_length,
-                                  uint32_t value_offset);
+    // -------------------------Trie operations--------------------------
 
-    void ext_kill_child_storage(const uint8_t *storage_key_data,
-                                uint32_t storage_key_length);
+    /**
+     * @see Extension::ext_blake2_256_enumerated_trie_root
+     */
+    void ext_blake2_256_enumerated_trie_root(runtime::WasmPointer values_data,
+                                             runtime::WasmPointer lens_data,
+                                             runtime::SizeType lens_length,
+                                             runtime::WasmPointer result);
 
-    void ext_set_child_storage(const uint8_t *storage_key_data,
-                               uint32_t storage_key_length,
-                               const uint8_t *key_data, uint32_t key_length,
-                               const uint8_t *value_data,
-                               uint32_t value_length);
+    /**
+     * @see Extension::ext_storage_changes_root
+     */
+    runtime::SizeType ext_storage_changes_root(
+        runtime::WasmPointer parent_hash_data,
+        runtime::SizeType parent_hash_len, runtime::SizeType parent_num,
+        runtime::WasmPointer result);
 
-    void ext_set_storage(const uint8_t *key_data, uint32_t key_length,
-                         const uint8_t *value_data, uint32_t value_length);
+    /**
+     * @see Extension::ext_storage_root
+     */
+    void ext_storage_root(runtime::WasmPointer result) const;
 
-    uint32_t ext_storage_changes_root(const uint8_t *parent_hash_data,
-                                      uint32_t parent_hash_len,
-                                      uint64_t parent_num, uint8_t *result);
+    // -------------------------Child storage--------------------------
 
-    void ext_storage_root(uint8_t *result);
+    /**
+     * @see Extension::ext_child_storage_root
+     */
+    runtime::WasmPointer ext_child_storage_root(
+        runtime::WasmPointer storage_key_data,
+        runtime::WasmPointer storage_key_length, runtime::WasmPointer written);
 
-    uint32_t ext_exists_storage(const uint8_t *key_data, uint32_t key_length);
+    /**
+     * @see Extension::ext_clear_child_storage
+     */
+    void ext_clear_child_storage(runtime::WasmPointer storage_key_data,
+                                 runtime::WasmPointer storage_key_length,
+                                 runtime::WasmPointer key_data,
+                                 runtime::WasmPointer key_length);
+
+    /**
+     * @see Extension::ext_exists_child_storage
+     */
+    runtime::SizeType ext_exists_child_storage(
+        runtime::WasmPointer storage_key_data,
+        runtime::WasmPointer storage_key_length, runtime::WasmPointer key_data,
+        runtime::WasmPointer key_length);
+
+    /**
+     * @see Extension::ext_get_allocated_child_storage
+     */
+    runtime::WasmPointer ext_get_allocated_child_storage(
+        runtime::WasmPointer storage_key_data,
+        runtime::WasmPointer storage_key_length, runtime::WasmPointer key_data,
+        runtime::WasmPointer key_length, runtime::WasmPointer written);
+
+    /**
+     * @see Extension::ext_get_child_storage_into
+     */
+    runtime::SizeType ext_get_child_storage_into(
+        runtime::WasmPointer storage_key_data,
+        runtime::WasmPointer storage_key_length, runtime::WasmPointer key_data,
+        runtime::WasmPointer key_length, runtime::WasmPointer value_data,
+        runtime::SizeType value_length, runtime::SizeType value_offset);
+
+    /**
+     * @see Extension::ext_kill_child_storage
+     */
+    void ext_kill_child_storage(runtime::WasmPointer storage_key_data,
+                                runtime::SizeType storage_key_length);
+
+    /**
+     * @see Extension::ext_set_child_storage
+     */
+    void ext_set_child_storage(runtime::WasmPointer storage_key_data,
+                               runtime::SizeType storage_key_length,
+                               runtime::WasmPointer key_data,
+                               runtime::SizeType key_length,
+                               runtime::WasmPointer value_data,
+                               runtime::SizeType value_length);
+
+   private:
+    /**
+     * Find the value by given key and the return the part of it starting from
+     * given offset
+     *
+     * @param key Buffer representation of the key
+     * @param offset SizeType pointing to the beginning of the value
+     * @param max_length SizeType defining the maximum possible length of the
+     * returned result
+     * @return optional containing Buffer with the part of the value, or none in
+     * case value by give key dopes not exist
+     */
+    std::optional<common::Buffer> get(const common::Buffer &key,
+                                      runtime::SizeType offset,
+                                      runtime::SizeType max_length) const;
+
+    std::shared_ptr<storage::merkle::TrieDb> db_;
+    std::shared_ptr<runtime::WasmMemory> memory_;
+    std::shared_ptr<storage::merkle::Codec> codec_;
   };
-}  // namespace extensions
+}  // namespace kagome::extensions
 
 #endif  // KAGOME_STORAGE_EXTENSION_HPP

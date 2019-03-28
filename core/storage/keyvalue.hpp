@@ -17,9 +17,10 @@ namespace kagome::storage {
      * @brief Store value by key
      * @param key non-empty byte buffer
      * @param value byte buffer
+     * @return result containing void if put successful, error otherwise
      */
-    virtual outcome::result<common::Buffer> put(
-        const common::Buffer &key, const common::Buffer &value) = 0;
+    virtual outcome::result<void> put(const common::Buffer &key,
+                                      const common::Buffer &value) = 0;
 
     /**
      * @brief Get value by key
@@ -28,6 +29,12 @@ namespace kagome::storage {
      */
     virtual outcome::result<common::Buffer> get(
         const common::Buffer &key) const = 0;
+
+    /**
+     * @brief Delete value by key
+     * @param key byte buffer
+     */
+    virtual void del(const common::Buffer &key) = 0;
 
     /**
      * @brief Returns true if given key exists in the storage.

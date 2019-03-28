@@ -40,7 +40,9 @@ namespace kagome::storage::merkle {
      * @param buf node's byte representation
      * @return hash of the node.
      */
-    virtual Hash256 hash256(const Buffer &buf) const = 0;
+    virtual common::Hash256 hash256(const Buffer &buf) const = 0;
+
+    virtual common::Hash256 orderedTrieRoot(const std::vector<Buffer> &data);
   };
 
 }  // namespace kagome::storage::merkle

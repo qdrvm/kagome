@@ -10,6 +10,7 @@
 
 using namespace kagome::extensions;
 
+using kagome::common::Buffer;
 using kagome::runtime::SizeType;
 using kagome::runtime::WasmMemory;
 using kagome::runtime::WasmPointer;
@@ -31,12 +32,14 @@ class MockMemory : public WasmMemory {
   MOCK_CONST_METHOD1(load64s, int64_t(WasmPointer));
   MOCK_CONST_METHOD1(load64u, uint64_t(WasmPointer));
   MOCK_CONST_METHOD1(load128, std::array<uint8_t, 16>(WasmPointer));
+  MOCK_CONST_METHOD2(loadN, Buffer(WasmPointer, SizeType));
 
   MOCK_METHOD2(store8, void(WasmPointer, int8_t));
   MOCK_METHOD2(store16, void(WasmPointer, int16_t));
   MOCK_METHOD2(store32, void(WasmPointer, int32_t));
   MOCK_METHOD2(store64, void(WasmPointer, int64_t));
   MOCK_METHOD2(store128, void(WasmPointer, const std::array<uint8_t, 16> &));
+  MOCK_METHOD2(storeBuffer, void(WasmPointer, const Buffer &));
 };
 
 class MemoryExtensionsTest : public ::testing::Test {
