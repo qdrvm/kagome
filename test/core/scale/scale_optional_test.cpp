@@ -22,50 +22,51 @@ TEST(Scale, encodeOptional) {
   // most simple case
   {
     Buffer out;
-    auto res =
+    auto &&res =
         optional::encodeOptional(std::optional<uint8_t>{std::nullopt}, out);
-    ASSERT_EQ(res, true);
-    ASSERT_EQ(out.toVector(), (ByteArray{0}));
+    ASSERT_TRUE(res);
+    ASSERT_EQ(out, (Buffer{0}));
   }
 
   // encode existing uint8_t
   {
     Buffer out;
-    auto res = optional::encodeOptional(std::optional<uint8_t>{1}, out);
-    ASSERT_EQ(res, true);
-    ASSERT_EQ(out.toVector(), (ByteArray{1, 1}));
+    auto &&res = optional::encodeOptional(std::optional<uint8_t>{1}, out);
+    ASSERT_TRUE(res);
+    ASSERT_EQ(out, (Buffer{1, 1}));
   }
 
   // encode negative int8_t
   {
     Buffer out;
-    auto res = optional::encodeOptional(std::optional<int8_t>{-1}, out);
-    ASSERT_EQ(res, true);
+    auto &&res = optional::encodeOptional(std::optional<int8_t>{-1}, out);
+    ASSERT_TRUE(res);
     ASSERT_EQ(out.toVector(), (ByteArray{1, 255}));
   }
 
   // encode non-existing uint16_t
   {
     Buffer out;
-    auto res =
+    auto &&res =
         optional::encodeOptional(std::optional<uint16_t>{std::nullopt}, out);
-    ASSERT_EQ(res, true);
+    ASSERT_TRUE(res);
     ASSERT_EQ(out.toVector(), (ByteArray{0}));
   }
 
   // encode existing uint16_t
   {
     Buffer out;
-    auto res = optional::encodeOptional(std::optional<uint16_t>{511}, out);
-    ASSERT_EQ(res, true);
+    auto &&res = optional::encodeOptional(std::optional<uint16_t>{511}, out);
+    ASSERT_TRUE(res);
     ASSERT_EQ(out.toVector(), (ByteArray{1, 255, 1}));
   }
 
   // encode existing uint32_t
   {
     Buffer out;
-    auto res = optional::encodeOptional(std::optional<uint32_t>{67305985}, out);
-    ASSERT_EQ(res, true);
+    auto &&res =
+        optional::encodeOptional(std::optional<uint32_t>{67305985}, out);
+    ASSERT_TRUE(res);
     ASSERT_EQ(out.toVector(), (ByteArray{1, 1, 2, 3, 4}));
   }
 }
@@ -89,51 +90,51 @@ TEST(Scale, decodeOptional) {
   auto stream = BasicStream{bytes};
 
   // decode nullopt uint8_t
-  optional::decodeOptional<uint8_t>(stream).match(
-      [](const expected::Value<std::optional<uint8_t>> &v) {
-        ASSERT_EQ(v.value, std::nullopt);
-      },
-      [](const expected::Error<DecodeError> &) { FAIL(); });
+  {
+    auto &&res = optional::decodeOptional<uint8_t>(stream);
+    ASSERT_TRUE(res);
+    ASSERT_FALSE(res.value().has_value());
+  }
 
   // decode optional uint8_t
-  optional::decodeOptional<uint8_t>(stream).match(
-      [](const expected::Value<std::optional<uint8_t>> &v) {
-        ASSERT_EQ(v.value.has_value(), true);
-        ASSERT_EQ((*v.value), 1);
-      },
-      [](const expected::Error<DecodeError> &) { FAIL(); });
+  {
+    auto &&res = optional::decodeOptional<uint8_t>(stream);
+    ASSERT_TRUE(res);
+    ASSERT_TRUE(res.value().has_value());
+    ASSERT_EQ(*res.value(), 1);
+  }
 
   // decode optional negative int8_t
-  optional::decodeOptional<int8_t>(stream).match(
-      [](const expected::Value<std::optional<int8_t>> &v) {
-        ASSERT_EQ(v.value.has_value(), true);
-        ASSERT_EQ((*v.value), -1);
-      },
-      [](const expected::Error<DecodeError> &) { FAIL(); });
+  {
+    auto &&res = optional::decodeOptional<int8_t>(stream);
+    ASSERT_TRUE(res);
+    ASSERT_TRUE(res.value().has_value());
+    ASSERT_EQ(*res.value(), -1);
+  }
 
   // decode nullopt uint16_t
   // it requires 1 zero byte just like any other nullopt
-  optional::decodeOptional<uint16_t>(stream).match(
-      [](const expected::Value<std::optional<uint16_t>> &v) {
-        ASSERT_EQ(v.value.has_value(), false);
-      },
-      [](const expected::Error<DecodeError> &) { FAIL(); });
+  {
+    auto &&res = optional::decodeOptional<uint16_t>(stream);
+    ASSERT_TRUE(res);
+    ASSERT_FALSE(res.value().has_value());
+  }
 
   // decode optional uint16_t
-  optional::decodeOptional<uint16_t>(stream).match(
-      [](const expected::Value<std::optional<uint16_t>> &v) {
-        ASSERT_EQ(v.value.has_value(), true);
-        ASSERT_EQ((*v.value), 511);
-      },
-      [](const expected::Error<DecodeError> &) { FAIL(); });
+  {
+    auto &&res = optional::decodeOptional<uint16_t>(stream);
+    ASSERT_TRUE(res);
+    ASSERT_TRUE(res.value().has_value());
+    ASSERT_EQ(*res.value(), 511);
+  }
 
   // decode optional uint32_t
-  optional::decodeOptional<uint32_t>(stream).match(
-      [](const expected::Value<std::optional<uint32_t>> &v) {
-        ASSERT_EQ(v.value.has_value(), true);
-        ASSERT_EQ((*v.value), 67305985);
-      },
-      [](const expected::Error<DecodeError> &) { FAIL(); });
+  {
+    auto &&res = optional::decodeOptional<uint32_t>(stream);
+    ASSERT_TRUE(res);
+    ASSERT_TRUE(res.value().has_value());
+    ASSERT_EQ(*res.value(), 67305985);
+  }
 }
 
 /**
@@ -147,46 +148,48 @@ TEST(Scale, decodeOptional) {
  * @when decodeOptional<bool> function is applied
  * @then expected values obtained
  */
-TEST(Scale, decodeoptionalBool) {
+TEST(Scale, decodeOptionalBool) {
   auto bytes = ByteArray{0, 1, 2, 3};
   auto stream = BasicStream{bytes};
 
   // decode none
-  optional::decodeOptional<bool>(stream).match(
-      [](const expected::Value<std::optional<bool>> &v) {
-        ASSERT_EQ(v.value.has_value(), false);
-      },
-      [](const expected::Error<DecodeError> &) { FAIL(); });
+  {
+    auto &&res = optional::decodeOptional<bool>(stream);
+    ASSERT_TRUE(res);
+    ASSERT_FALSE(res.value().has_value());
+  }
 
   // decode false
-  optional::decodeOptional<bool>(stream).match(
-      [](const expected::Value<std::optional<bool>> &v) {
-        ASSERT_EQ(v.value.has_value(), true);
-        ASSERT_EQ(*v.value, false);
-      },
-      [](const expected::Error<DecodeError> &) { FAIL(); });
+  {
+    auto &&res = optional::decodeOptional<bool>(stream);
+    ASSERT_TRUE(res);
+    ASSERT_TRUE(res.value().has_value());
+    ASSERT_FALSE(*res.value());
+  }
 
   // decode true
-  optional::decodeOptional<bool>(stream).match(
-      [](const expected::Value<std::optional<bool>> &v) {
-        ASSERT_EQ(v.value.has_value(), true);
-        ASSERT_EQ(*v.value, true);
-      },
-      [](const expected::Error<DecodeError> &) { FAIL(); });
+  {
+    auto &&res = optional::decodeOptional<bool>(stream);
+    ASSERT_TRUE(res);
+    ASSERT_TRUE(res.value().has_value());
+    ASSERT_TRUE(*res.value());
+  }
 
-  // dedode error unexpected value
-  optional::decodeOptional<bool>(stream).match(
-      [](const expected::Value<std::optional<bool>> &v) { FAIL(); },
-      [](const expected::Error<DecodeError> &e) {
-        ASSERT_EQ(e.error, DecodeError::kUnexpectedValue);
-      });
+  // decode error unexpected value
+  {
+    auto &&res = optional::decodeOptional<bool>(stream);
+    ASSERT_FALSE(res);
+    ASSERT_EQ(res.error().value(),
+              static_cast<int>(DecodeError::kUnexpectedValue));
+  }
 
   // not enough data
-  optional::decodeOptional<bool>(stream).match(
-      [](const expected::Value<std::optional<bool>> &v) { FAIL(); },
-      [](const expected::Error<DecodeError> &e) {
-        ASSERT_EQ(e.error, DecodeError::kNotEnoughData);
-      });
+  {
+    auto &&res = optional::decodeOptional<bool>(stream);
+    ASSERT_FALSE(res);
+    ASSERT_EQ(res.error().value(),
+              static_cast<int>(DecodeError::kNotEnoughData));
+  }
 }
 
 /**
@@ -198,22 +201,23 @@ TEST(Scale, encodeOptionalBool) {
   // encode none
   {
     Buffer out;
-    auto res = optional::encodeOptional(std::optional<bool>{std::nullopt}, out);
-    ASSERT_EQ(res, true);
-    ASSERT_EQ(out.toVector(), (ByteArray{0}));
+    auto &&res =
+        optional::encodeOptional(std::optional<bool>{std::nullopt}, out);
+    ASSERT_TRUE(res);
+    ASSERT_EQ(out, (Buffer{0}));
   }
   // encode false
   {
     Buffer out;
-    auto res = optional::encodeOptional(std::optional<bool>{false}, out);
-    ASSERT_EQ(res, true);
-    ASSERT_EQ(out.toVector(), (ByteArray{1}));
+    auto &&res = optional::encodeOptional(std::optional<bool>{false}, out);
+    ASSERT_TRUE(res);
+    ASSERT_EQ(out, (Buffer{1}));
   }
   // encode true
   {
     Buffer out;
-    auto res = optional::encodeOptional(std::optional<bool>{true}, out);
-    ASSERT_EQ(res, true);
-    ASSERT_EQ(out.toVector(), (ByteArray{2}));
+    auto &&res = optional::encodeOptional(std::optional<bool>{true}, out);
+    ASSERT_TRUE(res);
+    ASSERT_EQ(out, (Buffer{2}));
   }
 }

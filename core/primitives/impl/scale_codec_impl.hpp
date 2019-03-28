@@ -10,7 +10,6 @@
 #include "scale/types.hpp"
 
 namespace kagome::primitives {
-
   class ScaleCodecImpl : public ScaleCodec {
    public:
     /**

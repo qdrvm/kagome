@@ -8,6 +8,7 @@
 #include "common/result.hpp"
 #include "scale/basic_stream.hpp"
 #include "scale/boolean.hpp"
+#include "scale/scale_error.hpp"
 
 using namespace kagome;
 using namespace kagome::common;
@@ -42,25 +43,18 @@ TEST(Scale, fixedwidthDecodeBool) {
   // decode false
   auto bytes = ByteArray{0x0, 0x1, 0x2};
   auto stream = BasicStream{bytes};
-  boolean::decodeBool(stream).match(
-      [](const boolean::DecodeBoolResult::ValueType &v) {
-        ASSERT_EQ(v.value, false);
-      },
-      [](const boolean::DecodeBoolResult::ErrorType &) { FAIL(); });
+  auto &&res = boolean::decodeBool(stream);
+  ASSERT_TRUE(res);           // success, not failure
+  ASSERT_FALSE(res.value());  // actual value;
 
-  // decode true
-  boolean::decodeBool(stream).match(
-      [](const boolean::DecodeBoolResult::ValueType &v) {
-        ASSERT_EQ(v.value, true);
-      },
-      [](const boolean::DecodeBoolResult::ErrorType &) { FAIL(); });
+  auto &&res1 = boolean::decodeBool(stream);
+  ASSERT_TRUE(res1);
+  ASSERT_TRUE(res1.value());
 
-  // decode unexpected value, we are going to have kUnexpectedValue error
-  boolean::decodeBool(stream).match(
-      [](const boolean::DecodeBoolResult::ValueType &v) { FAIL(); },
-      [](const boolean::DecodeBoolResult::ErrorType &e) {
-        ASSERT_EQ(e.error, DecodeError::kUnexpectedValue);
-      });
+  auto &&res2 = boolean::decodeBool(stream);
+  ASSERT_FALSE(res2);
+  ASSERT_EQ(res2.error().value(),
+            static_cast<int>(DecodeError::kUnexpectedValue));
 }
 
 /**
@@ -99,30 +93,19 @@ TEST(Scale, fixedwidthDecodeTribool) {
   // decode none
   auto bytes = ByteArray{0x0, 0x1, 0x2, 0x3};
   auto stream = BasicStream{bytes};
-  boolean::decodeTribool(stream).match(
-      [](const boolean::DecodeTriboolResult::ValueType &v) {
-        ASSERT_EQ(false, v.value);
-      },
-      [](const boolean::DecodeTriboolResult::ErrorType &e) { FAIL(); });
+  auto &&res = boolean::decodeTribool(stream);
+  ASSERT_TRUE(res);
+  ASSERT_FALSE(res.value());
+  auto &&res1 = boolean::decodeTribool(stream);
+  ASSERT_TRUE(res1);
+  ASSERT_TRUE(res1.value());
 
-  // decode false
-  boolean::decodeTribool(stream).match(
-      [](const boolean::DecodeTriboolResult::ValueType &v) {
-        ASSERT_EQ(true, v.value);
-      },
-      [](const boolean::DecodeTriboolResult::ErrorType &e) { FAIL(); });
+  auto &&res2 = boolean::decodeTribool(stream);
+  ASSERT_TRUE(res2);
+  ASSERT_TRUE(isIndeterminate(res2.value()));
 
-  // decode true
-  boolean::decodeTribool(stream).match(
-      [](const boolean::DecodeTriboolResult::ValueType &v) {
-        ASSERT_EQ(isIndeterminate(v.value), true);
-      },
-      [](const boolean::DecodeTriboolResult::ErrorType &e) { FAIL(); });
-
-  // decode unexpected value
-  boolean::decodeTribool(stream).match(
-      [](const boolean::DecodeTriboolResult::ValueType &v) { FAIL(); },
-      [](const boolean::DecodeTriboolResult::ErrorType &e) {
-        ASSERT_EQ(DecodeError::kUnexpectedValue, e.error);
-      });
+  auto &&res3 = boolean::decodeTribool(stream);
+  ASSERT_FALSE(res3);
+  ASSERT_EQ(res3.error().value(),
+            static_cast<int>(DecodeError::kUnexpectedValue));
 }

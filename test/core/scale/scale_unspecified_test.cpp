@@ -44,21 +44,8 @@ TEST(Scale, basicStream) {
   ASSERT_EQ(stream.hasMore(1), false);
 }
 
-/**
- * Decode compact integers tests
- */
-
-// TODO(yuraz): PRE-70 implement encode and decode tuples and variants
-
 // TODO(yuraz): PRE-70 write example of encoding and decoding custom structures
 
-TEST(Scale, DISABLED_encodeTuple) {
-  FAIL();
-}
-
-TEST(Scale, DISABLED_decodeTuple) {
-  FAIL();
-}
 
 TEST(Scale, DISABLED_encodeStructureExample) {
   FAIL();
@@ -68,10 +55,3 @@ TEST(Scale, DISABLED_decodeStructureExample) {
   FAIL();
 }
 
-TEST(Scale, DISABLED_encodeVariant) {
-  FAIL();
-}
-
-TEST(Scale, DISABLED_decodeVariant) {
-  FAIL();
-}

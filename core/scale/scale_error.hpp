@@ -9,8 +9,26 @@
 #include <outcome/outcome.hpp>
 #include "scale/types.hpp"
 
-// TODO(yuraz): move scale error to scale library
-// TODO(yuraz): under the same task id after actual task is done
+namespace kagome::common::scale {
+  /**
+   * @brief EncodeError enum provides error codes for Encode methods
+   */
+  enum class EncodeError {        // 0 is reserved for success
+    kCompactIntegerIsTooBig = 1,  ///< compact integer can't be more than 2**536
+    kCompactIntegerIsNegative,    ///< cannot compact-encode negative integers
+    kWrongCategory,               ///< wrong compact category
+  };
+
+  /**
+   * @brief DecoderError enum provides codes of errors for Decoder methods
+   */
+  enum class DecodeError {  // 0 is reserved for success
+    kNotEnoughData = 1,     ///< not enough data to decode value
+    kUnexpectedValue,       ///< unexpected value
+    kTooManyItems,          ///< too many items, cannot address them in memory
+    kWrongTypeIndex,        ///< wrong type index, cannot decode variant
+  };
+}  // namespace kagome::common::scale
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::common::scale, EncodeError)
 OUTCOME_HPP_DECLARE_ERROR(kagome::common::scale, DecodeError)

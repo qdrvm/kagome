@@ -5,6 +5,8 @@
 
 #include "primitives/extrinsic.hpp"
 
+using namespace kagome::common;
+
 namespace kagome::primitives {
 
   Extrinsic::Extrinsic(Buffer data) : data_(std::move(data)) {}

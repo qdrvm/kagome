@@ -46,31 +46,6 @@ namespace kagome::common {
     constexpr auto isIndeterminate = [](tribool value) {
       return boost::logic::indeterminate(value);
     };
-
-    /**
-     * @brief EncodeError enum provides error codes for Encode methods
-     */
-    enum EncodeError {  // 0 is reserved for success
-      kCompactIntegerIsTooBig =
-          1,                      ///< compact integer can't be more than 2**536
-      kCompactIntegerIsNegative,  ///< cannot compact-encode negative integers
-    };
-
-    /**
-     * @brief DecoderError enum provides codes of errors for Decoder methods
-     */
-    enum DecodeError {     // 0 is reserved for success
-      kNotEnoughData = 1,  ///< not enough data to decode value
-      kUnexpectedValue,    ///< unexpected value
-      kTooManyItems,       ///< too many items
-      kWrongTypeIndex,     ///< wrong type index, cannot decode variant
-    };
-
-    /**
-     * @brief TypeDecodeResult is result of decode operation
-     */
-    template <class T>
-    using TypeDecodeResult = expected::Result<T, DecodeError>;
   }  // namespace scale
 }  // namespace kagome::common
 

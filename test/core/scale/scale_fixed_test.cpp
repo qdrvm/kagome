@@ -23,125 +23,124 @@ TEST(Scale, fixedwidthEncodeIntegers) {
   {
     Buffer out;
     fixedwidth::encodeInt8(0, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{0}));
+    ASSERT_EQ(out, (Buffer{0}));
   }
   {
     Buffer out;
     fixedwidth::encodeInt8(-1, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{255}));
+    ASSERT_EQ(out, (Buffer{255}));
   }
   {
     Buffer out;
     fixedwidth::encodeInt8(-128, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{128}));
+    ASSERT_EQ(out, (Buffer{128}));
   }
   {
     Buffer out;
     fixedwidth::encodeInt8(-127, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{129}));
+    ASSERT_EQ(out, (Buffer{129}));
   }
   {
     Buffer out;
     fixedwidth::encodeInt8(123, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{123}));
+    ASSERT_EQ(out, (Buffer{123}));
   }
   {
     Buffer out;
     fixedwidth::encodeInt8(-15, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{241}));
+    ASSERT_EQ(out, (Buffer{241}));
   }
   // encode uint8_t
   {
     Buffer out;
     fixedwidth::encodeUInt8(0, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{0}));
+    ASSERT_EQ(out, (Buffer{0}));
   }
   {
     Buffer out;
     fixedwidth::encodeUInt8(234, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{234}));
+    ASSERT_EQ(out, (Buffer{234}));
   }
   {
     Buffer out;
     fixedwidth::encodeUInt8(255, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{255}));
+    ASSERT_EQ(out, (Buffer{255}));
   }
   // encode int16_t
   {
     Buffer out;
     fixedwidth::encodeInt16(-32767, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{1, 128}));
+    ASSERT_EQ(out, (Buffer{1, 128}));
   }
   {
     Buffer out;
     fixedwidth::encodeInt16(-32768, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{0, 128}));
+    ASSERT_EQ(out, (Buffer{0, 128}));
   }
   {
     Buffer out;
     fixedwidth::encodeInt16(-1, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{255, 255}));
+    ASSERT_EQ(out, (Buffer{255, 255}));
   }
   {
     Buffer out;
     fixedwidth::encodeInt16(32767, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{255, 127}));
+    ASSERT_EQ(out, (Buffer{255, 127}));
   }
   {
     Buffer out;
     fixedwidth::encodeInt16(12345, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{57, 48}));
+    ASSERT_EQ(out, (Buffer{57, 48}));
   }
   {
     Buffer out;
     fixedwidth::encodeInt16(-12345, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{199, 207}));
+    ASSERT_EQ(out, (Buffer{199, 207}));
   }
   // encode uint16_t
   {
     Buffer out;
     fixedwidth::encodeUint16(32770, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{2, 128}));
+    ASSERT_EQ(out, (Buffer{2, 128}));
   }
   // encode int32_t
   {
     Buffer out;
     fixedwidth::encodeInt32(2147483647, out);  // max positive int32_t
-    ASSERT_EQ(out.toVector(), (ByteArray{255, 255, 255, 127}));
+    ASSERT_EQ(out, (Buffer{255, 255, 255, 127}));
   }
   {
     Buffer out;
     fixedwidth::encodeInt32(-1, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{255, 255, 255, 255}));
+    ASSERT_EQ(out, (Buffer{255, 255, 255, 255}));
   }
   // encode uint32_t
   {
     Buffer out;
     fixedwidth::encodeUint32(16909060, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{4, 3, 2, 1}));
+    ASSERT_EQ(out, (Buffer{4, 3, 2, 1}));
   }
   {
     Buffer out;
     fixedwidth::encodeUint32(67305985, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{1, 2, 3, 4}));
+    ASSERT_EQ(out, (Buffer{1, 2, 3, 4}));
   }
   // encode int64_t
   {
     Buffer out;
     fixedwidth::encodeInt64(578437695752307201ll, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{1, 2, 3, 4, 5, 6, 7, 8}));
+    ASSERT_EQ(out, (Buffer{1, 2, 3, 4, 5, 6, 7, 8}));
   }
   {
     Buffer out;
     fixedwidth::encodeInt64(-1, out);
-    ASSERT_EQ(out.toVector(),
-              (ByteArray{255, 255, 255, 255, 255, 255, 255, 255}));
+    ASSERT_EQ(out, (Buffer{255, 255, 255, 255, 255, 255, 255, 255}));
   }
   // encode uint64_t
   {
     Buffer out;
     fixedwidth::encodeUint64(578437695752307201ull, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{1, 2, 3, 4, 5, 6, 7, 8}));
+    ASSERT_EQ(out, (Buffer{1, 2, 3, 4, 5, 6, 7, 8}));
   }
 }
 
@@ -152,38 +151,38 @@ TEST(Scale, fixedwidthEncodeIntegers) {
  */
 TEST(Scale, fixedwidthDecodeInt8) {
   // decode int8_t
-  auto bytes = ByteArray{0, 255, 128, 129, 123, 241};
+  auto bytes = Buffer{0, 255, 128, 129, 123, 241};
   auto stream = BasicStream{bytes};
 
   {
-    auto val = fixedwidth::decodeInt8(stream);
-    ASSERT_EQ(val.has_value(), true);
-    ASSERT_EQ((*val), 0);
+    auto &&res = fixedwidth::decodeInt8(stream);
+    ASSERT_TRUE(res);
+    ASSERT_EQ(res.value(), 0);
   }
   {
-    auto val = fixedwidth::decodeInt8(stream);
-    ASSERT_EQ(val.has_value(), true);
-    ASSERT_EQ((*val), -1);
+    auto &&res = fixedwidth::decodeInt8(stream);
+    ASSERT_TRUE(res);
+    ASSERT_EQ(res.value(), -1);
   }
   {
-    auto val = fixedwidth::decodeInt8(stream);
-    ASSERT_EQ(val.has_value(), true);
-    ASSERT_EQ((*val), -128);
+    auto &&res = fixedwidth::decodeInt8(stream);
+    ASSERT_TRUE(res);
+    ASSERT_EQ(res.value(), -128);
   }
   {
-    auto val = fixedwidth::decodeInt8(stream);
-    ASSERT_EQ(val.has_value(), true);
-    ASSERT_EQ((*val), -127);
+    auto &&res = fixedwidth::decodeInt8(stream);
+    ASSERT_TRUE(res);
+    ASSERT_EQ(res.value(), -127);
   }
   {
-    auto val = fixedwidth::decodeInt8(stream);
-    ASSERT_EQ(val.has_value(), true);
-    ASSERT_EQ((*val), 123);
+    auto &&res = fixedwidth::decodeInt8(stream);
+    ASSERT_TRUE(res);
+    ASSERT_EQ(res.value(), 123);
   }
   {
-    auto val = fixedwidth::decodeInt8(stream);
-    ASSERT_EQ(val.has_value(), true);
-    ASSERT_EQ((*val), -15);
+    auto &&res = fixedwidth::decodeInt8(stream);
+    ASSERT_TRUE(res);
+    ASSERT_EQ(res.value(), -15);
   }
 }
 
@@ -194,23 +193,23 @@ TEST(Scale, fixedwidthDecodeInt8) {
  */
 TEST(Scale, fixedwidthDecodeUint8) {
   // decode uint8_t
-  auto bytes = ByteArray{0, 234, 255};
+  auto bytes = Buffer{0, 234, 255};
   auto stream = BasicStream{bytes};
 
   {
-    auto val = fixedwidth::decodeUint8(stream);
-    ASSERT_EQ(val.has_value(), true);
-    ASSERT_EQ((*val), 0);
+    auto &&res = fixedwidth::decodeUint8(stream);
+    ASSERT_TRUE(res);
+    ASSERT_EQ(res.value(), 0);
   }
   {
-    auto val = fixedwidth::decodeUint8(stream);
-    ASSERT_EQ(val.has_value(), true);
-    ASSERT_EQ((*val), 234);
+    auto &&res = fixedwidth::decodeUint8(stream);
+    ASSERT_TRUE(res);
+    ASSERT_EQ(res.value(), 234);
   }
   {
-    auto val = fixedwidth::decodeUint8(stream);
-    ASSERT_EQ(val.has_value(), true);
-    ASSERT_EQ((*val), 255);
+    auto &&res = fixedwidth::decodeUint8(stream);
+    ASSERT_TRUE(res);
+    ASSERT_EQ(res.value(), 255);
   }
 }
 
@@ -222,7 +221,7 @@ TEST(Scale, fixedwidthDecodeUint8) {
 TEST(Scale, fixedwidthDecodeInt16) {
   // decode int16_t
   // clang-format off
-    auto bytes = ByteArray{1, 128,
+    auto bytes = Buffer{1, 128,
                            0, 128,
                            255, 255,
                            255, 127,
@@ -233,34 +232,34 @@ TEST(Scale, fixedwidthDecodeInt16) {
   auto stream = BasicStream{bytes};
 
   {
-    auto val = fixedwidth::decodeInt16(stream);
-    ASSERT_EQ(val.has_value(), true);
-    ASSERT_EQ((*val), -32767);
+    auto &&res = fixedwidth::decodeInt16(stream);
+    ASSERT_TRUE(res);
+    ASSERT_EQ(res.value(), -32767);
   }
   {
-    auto val = fixedwidth::decodeInt16(stream);
-    ASSERT_EQ(val.has_value(), true);
-    ASSERT_EQ((*val), -32768);
+    auto &&res = fixedwidth::decodeInt16(stream);
+    ASSERT_TRUE(res);
+    ASSERT_EQ(res.value(), -32768);
   }
   {
-    auto val = fixedwidth::decodeInt16(stream);
-    ASSERT_EQ(val.has_value(), true);
-    ASSERT_EQ((*val), -1);
+    auto &&res = fixedwidth::decodeInt16(stream);
+    ASSERT_TRUE(res);
+    ASSERT_EQ(res.value(), -1);
   }
   {
-    auto val = fixedwidth::decodeInt16(stream);
-    ASSERT_EQ(val.has_value(), true);
-    ASSERT_EQ((*val), 32767);
+    auto &&res = fixedwidth::decodeInt16(stream);
+    ASSERT_TRUE(res);
+    ASSERT_EQ(res.value(), 32767);
   }
   {
-    auto val = fixedwidth::decodeInt16(stream);
-    ASSERT_EQ(val.has_value(), true);
-    ASSERT_EQ((*val), 12345);
+    auto &&res = fixedwidth::decodeInt16(stream);
+    ASSERT_TRUE(res);
+    ASSERT_EQ(res.value(), 12345);
   }
   {
-    auto val = fixedwidth::decodeInt16(stream);
-    ASSERT_EQ(val.has_value(), true);
-    ASSERT_EQ((*val), -12345);
+    auto &&res = fixedwidth::decodeInt16(stream);
+    ASSERT_TRUE(res);
+    ASSERT_EQ(res.value(), -12345);
   }
 
   //-0b11000000111001
@@ -273,14 +272,13 @@ TEST(Scale, fixedwidthDecodeInt16) {
  */
 TEST(Scale, fixedwidthDecodeUint16) {
   // decode uint16_t
-  auto bytes = ByteArray{2, 128};
-
+  auto bytes = Buffer{2, 128};
   auto stream = BasicStream{bytes};
 
   {
-    auto val = fixedwidth::decodeUint16(stream);
-    ASSERT_EQ(val.has_value(), true);
-    ASSERT_EQ((*val), 32770);
+    auto &&res = fixedwidth::decodeUint16(stream);
+    ASSERT_TRUE(res);
+    ASSERT_EQ(res.value(), 32770);
   }
 }
 
@@ -292,21 +290,21 @@ TEST(Scale, fixedwidthDecodeUint16) {
 TEST(Scale, fixedwidthDecodeInt32) {
   // decode int32_t
   // clang-format off
-    auto bytes = ByteArray{255, 255, 255, 127,
+    auto bytes = Buffer{255, 255, 255, 127,
                            255, 255, 255, 255};
     //clang-format on
 
     auto stream = BasicStream{bytes};
 
     {
-        auto val = fixedwidth::decodeInt32(stream);
-        ASSERT_EQ(val.has_value(), true);
-        ASSERT_EQ((*val), 2147483647);
+        auto &&res = fixedwidth::decodeInt32(stream);
+        ASSERT_TRUE(res);
+        ASSERT_EQ(res.value(), 2147483647);
     }
     {
-        auto val = fixedwidth::decodeInt32(stream);
-        ASSERT_EQ(val.has_value(), true);
-        ASSERT_EQ((*val), -1);
+        auto &&res = fixedwidth::decodeInt32(stream);
+        ASSERT_TRUE(res);
+        ASSERT_EQ(res.value(), -1);
     }
 }
 
@@ -318,21 +316,21 @@ TEST(Scale, fixedwidthDecodeInt32) {
 TEST(Scale, fixedwidthDecodeUint32) {
     // decode uint32_t
     // clang-format off
-    auto bytes = ByteArray{4, 3, 2, 1,
+    auto bytes = Buffer{4, 3, 2, 1,
                            1, 2, 3, 4};
     //clang-format on
 
     auto stream = BasicStream{bytes};
 
     {
-        auto val = fixedwidth::decodeUint32(stream);
-        ASSERT_EQ(val.has_value(), true);
-        ASSERT_EQ((*val), 16909060);
+        auto &&res = fixedwidth::decodeUint32(stream);
+        ASSERT_TRUE(res);
+        ASSERT_EQ(res.value(), 16909060);
     }
     {
-        auto val = fixedwidth::decodeUint32(stream);
-        ASSERT_EQ(val.has_value(), true);
-        ASSERT_EQ((*val), 67305985);
+        auto &&res = fixedwidth::decodeUint32(stream);
+        ASSERT_TRUE(res);
+        ASSERT_EQ(res.value(), 67305985);
     }
 }
 
@@ -344,21 +342,21 @@ TEST(Scale, fixedwidthDecodeUint32) {
 TEST(Scale, fixedwidthDecodeInt64) {
     // decode int64_t
     // clang-format off
-    auto bytes = ByteArray{1, 2, 3, 4, 5, 6, 7, 8,
+    auto bytes = Buffer{1, 2, 3, 4, 5, 6, 7, 8,
                            255, 255, 255, 255, 255, 255, 255, 255};
     //clang-format on
 
     auto stream = BasicStream{bytes};
 
     {
-        auto val = fixedwidth::decodeInt64(stream);
-        ASSERT_EQ(val.has_value(), true);
-        ASSERT_EQ((*val), 578437695752307201);
+        auto &&res = fixedwidth::decodeInt64(stream);
+        ASSERT_TRUE(res);
+        ASSERT_EQ(res.value(), 578437695752307201);
     }
     {
-        auto val = fixedwidth::decodeInt64(stream);
-        ASSERT_EQ(val.has_value(), true);
-        ASSERT_EQ((*val), -1);
+        auto &&res = fixedwidth::decodeInt64(stream);
+        ASSERT_TRUE(res);
+        ASSERT_EQ(res.value(), -1);
     }
 }
 
@@ -370,20 +368,20 @@ TEST(Scale, fixedwidthDecodeInt64) {
 TEST(Scale, fixedwidthDecodeUint64) {
     // decode uint64_t
     // clang-format off
-    auto bytes = ByteArray{1, 2, 3, 4, 5, 6, 7, 8,
+    auto bytes = Buffer{1, 2, 3, 4, 5, 6, 7, 8,
                            255, 255, 255, 255, 255, 255, 255, 255};
     //clang-format on
 
     auto stream = BasicStream{bytes};
 
     {
-        auto val = fixedwidth::decodeUint64(stream);
-        ASSERT_EQ(val.has_value(), true);
-        ASSERT_EQ((*val), 578437695752307201);
+        auto &&res = fixedwidth::decodeUint64(stream);
+        ASSERT_TRUE(res);
+        ASSERT_EQ(res.value(), 578437695752307201);
     }
     {
-        auto val = fixedwidth::decodeUint64(stream);
-        ASSERT_EQ(val.has_value(), true);
-        ASSERT_EQ((*val), 18446744073709551615ull);
+        auto &&res = fixedwidth::decodeUint64(stream);
+        ASSERT_TRUE(res);
+        ASSERT_EQ(res.value(), 18446744073709551615ull);
     }
 }

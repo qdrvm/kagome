@@ -7,6 +7,7 @@
 #define KAGOME_OPTIONAL_HPP
 
 #include "common/buffer.hpp"
+#include "scale/scale_error.hpp"
 #include "scale/type_decoder.hpp"
 #include "scale/type_encoder.hpp"
 #include "scale/types.hpp"
@@ -19,31 +20,21 @@ namespace kagome::common::scale::optional {
    * @return encoded optional value or error
    */
   template <class T>
-  bool encodeOptional(const std::optional<T> &optional, Buffer &out) {
+  outcome::result<void> encodeOptional(const std::optional<T> &optional,
+                                       Buffer &out) {
     if (!optional.has_value()) {
       out.putUint8(0);
-      return true;
+      return outcome::success();
     }
 
     Buffer tmp;
-    auto type_encode_result = TypeEncoder<T>{}.encode(*optional, tmp);
-    if (type_encode_result != true) {
-      return type_encode_result;
-    }
+    OUTCOME_TRY(TypeEncoder<T>{}.encode(*optional, tmp));
 
     out.putUint8(1);
-    out.put(tmp.toVector());
+    out.putBuffer(tmp);
 
-    return true;
+    return outcome::success();
   }
-
-  /**
-   * @brief DecodeOptionalResult type is type of result of decodeOptional
-   * function
-   * @tparam T optional value content type
-   */
-  template <class T>
-  using DecodeOptionalResult = expected::Result<std::optional<T>, DecodeError>;
 
   /**
    * @brief decodeOptional function decodes optional value from stream
@@ -52,22 +43,22 @@ namespace kagome::common::scale::optional {
    * @return decoded optional value or error
    */
   template <class T>
-  DecodeOptionalResult<T> decodeOptional(Stream &stream) {
+  outcome::result<std::optional<T>> decodeOptional(Stream &stream) {
     auto flag = stream.nextByte();
     if (!flag.has_value()) {
-      return expected::Error{DecodeError::kNotEnoughData};
+      return outcome::failure(DecodeError::kNotEnoughData);
     }
 
     if (*flag != 1) {
-      return expected::Value{std::nullopt};
+      return std::nullopt;
     }
 
-    auto result = TypeDecoder<T>{}.decode(stream);
-    if (result.hasError()) {
-      return expected::Error{result.getError()};
+    auto &&result = TypeDecoder<T>{}.decode(stream);
+    if (!result) {
+      return result.error();
     }
 
-    return expected::Value{std::optional<T>{std::move(result.getValueRef())}};
+    return std::optional<T>{result.value()};
   }
 
   /**
@@ -76,7 +67,8 @@ namespace kagome::common::scale::optional {
    * @return encoded value
    */
   template <>
-  bool encodeOptional<bool>(const std::optional<bool> &optional, Buffer &out) {
+  outcome::result<void> encodeOptional<bool>(
+      const std::optional<bool> &optional, Buffer &out) {
     uint8_t result = 2;  // true
 
     if (!optional.has_value()) {  // none
@@ -86,7 +78,7 @@ namespace kagome::common::scale::optional {
     }
 
     out.putUint8(result);
-    return true;
+    return outcome::success();
   }
 
   /**
@@ -95,24 +87,24 @@ namespace kagome::common::scale::optional {
    * @return decoded value or error
    */
   template <>
-  DecodeOptionalResult<bool> decodeOptional(Stream &stream) {
+  outcome::result<std::optional<bool>> decodeOptional(Stream &stream) {
     auto byte = stream.nextByte();
     if (!byte.has_value()) {
-      return expected::Error{DecodeError::kNotEnoughData};
+      return outcome::failure(DecodeError::kNotEnoughData);
     }
 
     switch (*byte) {
       case 0:
-        return expected::Value{std::nullopt};
+        return outcome::success(std::nullopt);
       case 1:
-        return expected::Value{std::optional<bool>{false}};
+        return std::optional<bool>{false};
       case 2:
-        return expected::Value{std::optional<bool>{true}};
+        return std::optional<bool>{true};
       default:
         break;
     }
 
-    return expected::Error{DecodeError::kUnexpectedValue};
+    return outcome::failure(DecodeError::kUnexpectedValue);
   }
 
 }  // namespace kagome::common::scale::optional

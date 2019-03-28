@@ -11,6 +11,7 @@
 #include "scale/fixedwidth.hpp"
 #include "scale/scale_error.hpp"
 
+using namespace kagome::common;
 using namespace kagome::common::scale;
 
 namespace kagome::primitives {
@@ -22,11 +23,7 @@ namespace kagome::primitives {
     out.putBuffer(encoded_header);
 
     // put number of extrinsics
-    bool res = compact::encodeInteger(block.extrinsics().size(), out);
-    // it can't be, res is certainly true
-    // this check will disappear after refactoring scale library
-    BOOST_ASSERT_MSG(res,
-                     "failed to compact-encode collection size");  // NOLINT
+    OUTCOME_TRY(compact::encodeInteger(block.extrinsics().size(), out));
 
     for (auto &&extrinsic : block.extrinsics()) {
       OUTCOME_TRY(encoded_extrinsic, encodeExtrinsic(extrinsic));
@@ -38,18 +35,14 @@ namespace kagome::primitives {
 
   outcome::result<Block> ScaleCodecImpl::decodeBlock(Stream &stream) const {
     OUTCOME_TRY(header, decodeBlockHeader(stream));
-    // decode collection of extrinsics
     // first decode number of items
-    auto integer = compact::decodeInteger(stream);
-    if (integer.hasError()) {
-      return integer.getError();
-    }
-
-    auto items_count = integer.getValue().convert_to<uint64_t>();
+    OUTCOME_TRY(integer, compact::decodeInteger(stream));
+    auto items_count = integer.convert_to<uint64_t>();
 
     std::vector<Extrinsic> collection;
     collection.reserve(items_count);
 
+    // now decode collection of extrinsics
     for (auto i = 0; i < items_count; ++i) {
       OUTCOME_TRY(extrinsic, decodeExtrinsic(stream));
       collection.push_back(extrinsic);
@@ -62,45 +55,25 @@ namespace kagome::primitives {
       const BlockHeader &block_header) const {
     Buffer out;
 
-    collection::encodeBuffer(block_header.parentHash(), out);
+    OUTCOME_TRY(collection::encodeBuffer(block_header.parentHash(), out));
     fixedwidth::encodeUint64(block_header.number(), out);
-    collection::encodeBuffer(block_header.stateRoot(), out);
-    collection::encodeBuffer(block_header.extrinsicsRoot(), out);
-    collection::encodeBuffer(block_header.digest(), out);
+    OUTCOME_TRY(collection::encodeBuffer(block_header.stateRoot(), out));
+    OUTCOME_TRY(collection::encodeBuffer(block_header.extrinsicsRoot(), out));
+    OUTCOME_TRY(collection::encodeBuffer(block_header.digest(), out));
 
     return out;
   }
 
   outcome::result<BlockHeader> ScaleCodecImpl::decodeBlockHeader(
       Stream &stream) const {
-    auto parent_hash = collection::decodeCollection<uint8_t>(stream);
-    if (parent_hash.hasError()) {
-      return parent_hash.getError();
-    }
+    OUTCOME_TRY(parent_hash, collection::decodeCollection<uint8_t>(stream));
+    OUTCOME_TRY(number, fixedwidth::decodeUint64(stream));
+    OUTCOME_TRY(state_root, collection::decodeCollection<uint8_t>(stream));
+    OUTCOME_TRY(extrinsics_root, collection::decodeCollection<uint8_t>(stream));
+    OUTCOME_TRY(digest, collection::decodeCollection<uint8_t>(stream));
 
-    auto number = fixedwidth::decodeUint64(stream);
-    if (!number.has_value()) {
-      return DecodeError::kNotEnoughData;
-    }
-
-    auto state_root = collection::decodeCollection<uint8_t>(stream);
-    if (state_root.hasError()) {
-      return state_root.getError();
-    }
-
-    auto extrinsics_root = collection::decodeCollection<uint8_t>(stream);
-    if (extrinsics_root.hasError()) {
-      return extrinsics_root.getError();
-    }
-
-    auto digest = collection::decodeCollection<uint8_t>(stream);
-    if (digest.hasError()) {
-      return digest.getError();
-    }
-
-    return BlockHeader(
-        Buffer{parent_hash.getValue()}, *number, Buffer{state_root.getValue()},
-        Buffer{extrinsics_root.getValue()}, Buffer{digest.getValue()});
+    return BlockHeader(Buffer{parent_hash}, number, Buffer{state_root},
+                       Buffer{extrinsics_root}, Buffer{digest});
   }
 
   outcome::result<Buffer> ScaleCodecImpl::encodeExtrinsic(
@@ -110,19 +83,16 @@ namespace kagome::primitives {
 
   outcome::result<Extrinsic> ScaleCodecImpl::decodeExtrinsic(
       Stream &stream) const {
-    auto extrinsic = collection::decodeCollection<uint8_t>(stream);
-
     Buffer out;
 
-    // extrinsic is an encoded byte array
-    auto &&value = extrinsic.getValue();
-    // so when we decode it from stream
-    // we obtain just byte array
-    // and in order to keep its form
-    // we need do write its length first
-    compact::encodeInteger(value.size(), out);
+    OUTCOME_TRY(extrinsic, collection::decodeCollection<uint8_t>(stream));
+    // extrinsic is an encoded byte array, so when we decode it from stream
+    // we obtain just byte array, and in order to keep its form
+    // we need do write its size first
+    OUTCOME_TRY(compact::encodeInteger(extrinsic.size(), out));
     // and then bytes as well
-    out.put(value);
+    out.put(extrinsic);
+
     return Extrinsic(out);
   }
 }  // namespace kagome::primitives

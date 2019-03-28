@@ -77,12 +77,11 @@ namespace kagome::common::scale::variant {
         } else if (index == target_type_index) {
           // decode custom type
           auto &&res = TypeDecoder<H>{}.decode(s);
-          if (res.hasError()) {
-            r = res.getError();
-            return;
+          if (!res) {
+            r = res.error();
+          } else {
+            r = Variant{res.value()};
           }
-
-          r = Variant{res.getValue()};
         }
       }
     };
@@ -114,13 +113,10 @@ namespace kagome::common::scale::variant {
   template <class... T>
   outcome::result<std::variant<T...>> decodeVariant(Stream &stream) {
     // first byte means type index
-    auto type_index = fixedwidth::decodeUint8(stream);
-    if (!type_index.has_value()) {
-      return DecodeError::kNotEnoughData;
-    }
+    OUTCOME_TRY(type_index, fixedwidth::decodeUint8(stream));
 
     outcome::result<std::variant<T...>> result = outcome::success();
-    auto decoder = detail::VariantDecoder<T...>(*type_index, result, stream);
+    auto decoder = detail::VariantDecoder<T...>(type_index, result, stream);
 
     detail::for_each_apply<decltype(decoder), T...>(decoder);
 

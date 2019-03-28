@@ -6,13 +6,10 @@
 #include "scale/collection.hpp"
 
 namespace kagome::common::scale::collection {
-  bool encodeBuffer(const Buffer &buf, Buffer &out) {
-    auto result = compact::encodeInteger(buf.size(), out);
-    if (!result) {
-      return false;
-    }
+  outcome::result<void> encodeBuffer(const Buffer &buf, Buffer &out) {
+    OUTCOME_TRY(compact::encodeInteger(buf.size(), out));
 
     out.putBuffer(buf);
-    return true;
+    return outcome::success();
   }
 }  // namespace kagome::common::scale::collection

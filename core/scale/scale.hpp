@@ -47,7 +47,7 @@
  * ** Tuples and structures (NOT IMPLEMENTED YET)
  *    Are simply concatenation of ordered encoded values
  *
- * ** Variant values (NOT IMPLEMENTED YET)
+ * ** Variant values
  *    Variants are encoded as follows:
  *    first byte represents index of type in varian
  *    following bytes are encoded value itself.
@@ -70,9 +70,6 @@
  * Optionals values operations:
  * common/scale/optional.hpp
  *
- * Tuples are simply concatenation of values
- * NOT IMPLEMENTED YET
- *
  * Structures are user-defined type and need
  * to implement specialized TypeDecoder<>
  * Examples NOT IMPLEMENTED YET
@@ -84,5 +81,6 @@
 #include "scale/compact.hpp"
 #include "scale/fixedwidth.hpp"
 #include "scale/optional.hpp"
+#include "scale/variant.hpp"
 
 #endif  // KAGOME_SCALE_HPP

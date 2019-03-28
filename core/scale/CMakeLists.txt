@@ -1,3 +1,8 @@
+#
+# Copyright Soramitsu Co., Ltd. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+
 add_library(scale
         basic_stream.hpp
         basic_stream.cpp
@@ -10,6 +15,7 @@ add_library(scale
         fixedwidth.hpp
         fixedwidth.cpp
         optional.hpp
+        scale.hpp
         scale_error.hpp
         scale_error.cpp
         types.hpp

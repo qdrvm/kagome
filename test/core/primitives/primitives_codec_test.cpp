@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 #include <outcome/outcome.hpp>
 
-#include <primitives/block.hpp>s
+#include <primitives/block.hpp>
 #include <primitives/impl/scale_codec_impl.hpp>
 #include <scale/basic_stream.hpp>
 
