@@ -63,7 +63,6 @@ namespace kagome::common::scale::compact {
       scale::impl::encodeInteger<uint32_t>(v, out);
 
       return outcome::success();
-      ;
     }
   };  // namespace impl
 

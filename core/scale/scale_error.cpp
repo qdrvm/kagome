@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "scale_error.hpp"
+#include "scale/scale_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::common::scale, EncodeError, e) {
   using kagome::common::scale::EncodeError;

@@ -29,7 +29,7 @@ namespace kagome::common::scale {
 
   template <>
   struct TypeEncoder<bool> {
-    outcome::result<void> encode(bool &&item, Buffer &out) const {
+    outcome::result<void> encode(bool item, Buffer &out) const {
       boolean::encodeBool(item, out);
       return outcome::success();
     }
@@ -37,7 +37,7 @@ namespace kagome::common::scale {
 
   template <>
   struct TypeEncoder<tribool> {
-    outcome::result<void> encode(tribool &&item, Buffer &out) const {
+    outcome::result<void> encode(tribool item, Buffer &out) const {
       boolean::encodeTribool(item, out);
       return outcome::success();
     }

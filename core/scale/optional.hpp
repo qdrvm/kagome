@@ -53,12 +53,9 @@ namespace kagome::common::scale::optional {
       return std::nullopt;
     }
 
-    auto &&result = TypeDecoder<T>{}.decode(stream);
-    if (!result) {
-      return result.error();
-    }
+    OUTCOME_TRY(result, TypeDecoder<T>{}.decode(stream));
 
-    return std::optional<T>{result.value()};
+    return std::optional<T>{result};
   }
 
   /**
