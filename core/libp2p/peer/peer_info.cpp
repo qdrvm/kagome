@@ -7,6 +7,16 @@
 
 #include "libp2p/peer/peer_info.hpp"
 
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::peer, PeerInfo::FactoryError, e) {
+  using Error = libp2p::peer::PeerInfo::FactoryError;
+  switch (e) {
+    case Error::kIdIsNotSha256Hash:
+      return "provided id is not a SHA-256 multihash";
+    default:
+      return "unknown error";
+  }
+}
+
 namespace libp2p::peer {
   PeerInfo::PeerInfo(const PeerInfo &peer_info) = default;
   PeerInfo &PeerInfo::operator=(const PeerInfo &peer_info) = default;
@@ -19,6 +29,7 @@ namespace libp2p::peer {
     }
     return PeerInfo{peer_id};
   }
+
   PeerInfo::FactoryResult PeerInfo::createPeerInfo(PeerId &&peer_id) {
     if (peer_id.getType() != multi::HashType::sha256) {
       return FactoryError::kIdIsNotSha256Hash;
@@ -26,8 +37,20 @@ namespace libp2p::peer {
     return PeerInfo{std::move(peer_id)};
   }
 
-  PeerInfo::PeerInfo(const PeerId &peer) : peer_id_{peer} {}
-  PeerInfo::PeerInfo(PeerId &&peer) : peer_id_{std::move(peer)} {}
+  PeerInfo::PeerInfo(PeerId peer) : peer_id_{std::move(peer)} {}
+
+  const PeerInfo::PeerId &PeerInfo::peerId() const {
+    return peer_id_;
+  }
+
+  const std::unordered_set<multi::Multiaddress::Protocol>
+      &PeerInfo::supportedProtocols() const {
+    return protocols_;
+  }
+
+  const std::set<multi::Multiaddress> &PeerInfo::multiaddresses() const {
+    return multiaddresses_;
+  }
 
   PeerInfo &PeerInfo::addProtocols(
       gsl::span<multi::Multiaddress::Protocol> protocols) {

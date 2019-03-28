@@ -41,6 +41,25 @@ namespace libp2p::peer {
     static FactoryResult createPeerInfo(PeerId &&peer_id);
 
     /**
+     * Get PeerId of this PeerInfo
+     * @return reference to PeerId - multihash
+     */
+    const PeerId &peerId() const;
+
+    /**
+     * Get protocols, which are supported by this PeerInfo
+     * @return protocols
+     */
+    const std::unordered_set<multi::Multiaddress::Protocol>
+        &supportedProtocols() const;
+
+    /**
+     * Get multiaddresses, through which this Peer can communicate
+     * @return multiaddresses
+     */
+    const std::set<multi::Multiaddress> &multiaddresses() const;
+
+    /**
      * Add protocols, through which this peer can communicate
      * @param protocols to be added
      * @return reference to updated PeerInfo
@@ -100,8 +119,7 @@ namespace libp2p::peer {
      * Create from the PeerId
      * @param peer to be put in this instance
      */
-    explicit PeerInfo(const PeerId &peer);
-    explicit PeerInfo(PeerId &&peer);
+    explicit PeerInfo(PeerId peer);
 
     PeerId peer_id_;
     std::unordered_set<multi::Multiaddress::Protocol> protocols_;
@@ -110,5 +128,7 @@ namespace libp2p::peer {
     std::vector<multi::Multiaddress> observed_multiaddresses_;
   };
 }  // namespace libp2p::peer
+
+OUTCOME_HPP_DECLARE_ERROR(libp2p::peer, PeerInfo::FactoryError)
 
 #endif  // KAGOME_PEER_INFO_HPP
