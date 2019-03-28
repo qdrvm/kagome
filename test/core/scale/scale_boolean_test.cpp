@@ -10,9 +10,9 @@
 #include "scale/boolean.hpp"
 #include "scale/scale_error.hpp"
 
-using namespace kagome;
-using namespace kagome::common;
-using namespace common::scale;
+using namespace kagome;          // NOLINT
+using namespace kagome::common;  // NOLINT
+using namespace common::scale;   // NOLINT
 
 /**
  * @given bool values: true and false

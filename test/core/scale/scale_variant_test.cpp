@@ -9,21 +9,23 @@
 #include "scale/basic_stream.hpp"
 #include "scale/variant.hpp"
 
-using namespace kagome::common;
-using namespace kagome::common::scale;
+using namespace kagome::common;         // NOLINT
+using namespace kagome::common::scale;  // NOLINT
 
 TEST(Scale, encodeVariant) {
   {
     std::variant<uint8_t, uint32_t> v = static_cast<uint8_t>(1);
     Buffer out;
-    variant::encodeVariant(v, out);
+    auto && res = variant::encodeVariant(v, out);
+    ASSERT_TRUE(res);
     Buffer match = {0, 1};
     ASSERT_EQ(out, match);
   }
   {
     std::variant<uint8_t, uint32_t> v = static_cast<uint32_t>(1);
     Buffer out;
-    variant::encodeVariant(v, out);
+    auto && res = variant::encodeVariant(v, out);
+    ASSERT_TRUE(res);
     Buffer match = {1, 1, 0, 0, 0};
     ASSERT_EQ(out, match);
   }

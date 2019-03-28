@@ -10,7 +10,6 @@
 #include "scale/types.hpp"
 
 namespace kagome::common::scale {
-
   /**
    * @class BasicStream implements Stream interface
    * It wraps ByteArray and allows getting bytes

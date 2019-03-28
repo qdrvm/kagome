@@ -9,9 +9,9 @@
 #include "scale/basic_stream.hpp"
 #include "scale/optional.hpp"
 
-using namespace kagome;
-using namespace kagome::common;
-using namespace common::scale;
+using namespace kagome;          // NOLINT
+using namespace kagome::common;  // NOLINT
+using namespace common::scale;   // NOLINT
 
 /**
  * @given variety of optional values

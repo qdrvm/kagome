@@ -44,35 +44,37 @@
  *    Optional bool is a special case,
  *    they need only one byte: 0 - No value, 1 - false, 2 - true
  *
- * ** Tuples and structures (NOT IMPLEMENTED YET)
+ * ** Tuples and structures
  *    Are simply concatenation of ordered encoded values
  *
  * ** Variant values
  *    Variants are encoded as follows:
- *    first byte represents index of type in varian
+ *    first byte represents index of type in variant
  *    following bytes are encoded value itself.
  *
  * The library consists of following header each representing own part
  * of functionality, and they can be used independently:
 
  * Fixed width integers operations
- * common/scale/fixedwidth.hpp
+ * scale/fixedwidth.hpp
  *
  * Base compact operations:
- * common/scale/compact.hpp
+ * scale/compact.hpp
  *
  * Boolean values operations:
  * common/scale/boolean.hpp
  *
  * Collection
- * common/scale/collection.hpp
+ * scale/collection.hpp
  *
  * Optionals values operations:
- * common/scale/optional.hpp
+ * scale/optional.hpp
+ *
+ * Variants
+ * scale/variant.hpp
  *
  * Structures are user-defined type and need
  * to implement specialized TypeDecoder<>
- * Examples NOT IMPLEMENTED YET
  *
  */
 

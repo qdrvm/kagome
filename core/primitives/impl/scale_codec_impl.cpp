@@ -11,8 +11,8 @@
 #include "scale/fixedwidth.hpp"
 #include "scale/scale_error.hpp"
 
-using namespace kagome::common;
-using namespace kagome::common::scale;
+using kagome::common::Buffer;
+using namespace kagome::common::scale;  // NOLINT
 
 namespace kagome::primitives {
 

@@ -6,8 +6,6 @@
 #ifndef KAGOME_SCALE_ADVANCED_HPP
 #define KAGOME_SCALE_ADVANCED_HPP
 
-#include <gsl/span>
-
 #include "common/buffer.hpp"
 #include "scale/compact.hpp"
 #include "scale/fixedwidth.hpp"

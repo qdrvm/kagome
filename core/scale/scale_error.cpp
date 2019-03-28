@@ -29,7 +29,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::common::scale, DecodeError, e) {
       return "unexpected value occured";
     case DecodeError::kTooManyItems:
       return "collection has too many items, unable to unpack";
-    case DecodeError::kWrongTypeIndex: return "wrong type index, cannot decode variant";
+    case DecodeError::kWrongTypeIndex:
+      return "wrong type index, cannot decode variant";
     default:
       break;
   }

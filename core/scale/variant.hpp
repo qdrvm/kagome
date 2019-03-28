@@ -41,10 +41,13 @@ namespace kagome::common::scale::variant {
     template <class... T>
     struct VariantEncoder {
       using Variant = std::variant<T...>;
+      using Result = outcome::result<void>;
       const Variant &v;
+      Result &res;
       Buffer &out;
 
-      VariantEncoder(const Variant &v, Buffer &buf) : v{v}, out{buf} {}
+      VariantEncoder(const Variant &v, Buffer &buf, Result &res)
+          : v{v}, out{buf}, res{res} {}
 
       template <class H>
       void apply(uint8_t index) {
@@ -53,7 +56,10 @@ namespace kagome::common::scale::variant {
           // first byte means type index
           out.putUint8(index);
           // encode the value using custom type encoder
-          TypeEncoder<H>{}.encode(std::get<H>(v), out);
+          auto &&r = TypeEncoder<H>{}.encode(std::get<H>(v), out);
+          if (!r) {
+            res = r.error();
+          }
         }
       }
     };
@@ -99,9 +105,11 @@ namespace kagome::common::scale::variant {
    * @param out output buffer
    */
   template <class... T>
-  void encodeVariant(const std::variant<T...> &v, Buffer &out) {
-    auto encoder = detail::VariantEncoder<T...>(v, out);
+  outcome::result<void> encodeVariant(const std::variant<T...> &v, Buffer &out) {
+    outcome::result<void> res = outcome::success();
+    auto encoder = detail::VariantEncoder<T...>(v, out, res);
     detail::for_each_apply<decltype(encoder), T...>(encoder);
+    return res;
   }
 
   /**

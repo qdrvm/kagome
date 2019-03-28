@@ -9,9 +9,9 @@
 #include "scale/basic_stream.hpp"
 #include "scale/collection.hpp"
 
-using namespace kagome;
-using namespace kagome::common;
-using namespace common::scale;
+using namespace kagome;          // NOLINT
+using namespace kagome::common;  // NOLINT
+using namespace common::scale;   // NOLINT
 
 /**
  * @given collection of 80 items of type uint8_t

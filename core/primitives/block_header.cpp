@@ -5,7 +5,7 @@
 
 #include "primitives/block_header.hpp"
 
-using namespace kagome::common;
+using kagome::common::Buffer;
 
 namespace kagome::primitives {
 

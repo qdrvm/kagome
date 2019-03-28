@@ -5,7 +5,7 @@
 
 #include "primitives/extrinsic.hpp"
 
-using namespace kagome::common;
+using kagome::common::Buffer;
 
 namespace kagome::primitives {
 
