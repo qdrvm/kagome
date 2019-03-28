@@ -19,14 +19,14 @@ enum class ConversionErrc {
   TooLong = 3,
 };
 
-enum class DivisionErrc {
-  DivisionByZero = 1,
-};
+namespace sooper::loong::ns {
+  enum class DivisionErrc {
+    DivisionByZero = 1,
+  };
+}
 
-OUTCOME_MAKE_ERROR_CODE(ConversionErrc);
-OUTCOME_MAKE_ERROR_CODE(DivisionErrc);
-
-OUTCOME_REGISTER_CATEGORY(ConversionErrc, e) {
+OUTCOME_HPP_DECLARE_ERROR(ConversionErrc);
+OUTCOME_CPP_DEFINE_CATEGORY(ConversionErrc, e) {
   switch (e) {
     case ConversionErrc ::Success:
       return "success";
@@ -41,7 +41,9 @@ OUTCOME_REGISTER_CATEGORY(ConversionErrc, e) {
   }
 }
 
-OUTCOME_REGISTER_CATEGORY(DivisionErrc, e) {
+OUTCOME_HPP_DECLARE_ERROR(sooper::loong::ns, DivisionErrc);
+OUTCOME_CPP_DEFINE_CATEGORY(sooper::loong::ns, DivisionErrc, e) {
+  using sooper::loong::ns::DivisionErrc;
   switch (e) {
     case DivisionErrc ::DivisionByZero:
       return "division by 0";
@@ -64,6 +66,7 @@ outcome::result<int> convert(const std::string &str) {
 }
 
 outcome::result<int> divide(int a, int b) {
+  using sooper::loong::ns::DivisionErrc;
   if (b == 0)
     return DivisionErrc::DivisionByZero;
 
@@ -112,4 +115,6 @@ TEST(Outcome, DivisionError) {
   ASSERT_FALSE(r);
   auto &&err = r.error();
   ASSERT_EQ(err.message(), DIV_0_MSG);  // name of the enum
+  using sooper::loong::ns::DivisionErrc;
+  ASSERT_EQ(err.category().name(), typeid(DivisionErrc).name());
 }

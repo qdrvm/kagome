@@ -47,18 +47,20 @@ namespace kagome::common::scale {
     virtual std::optional<uint8_t> nextByte() = 0;
   };
 
-  enum class EncodeError: size_t {
-      kCompactIntegerIsTooBog,  ///< compact integer can't be more than 2**536
-      kCompactIntegerIsNegative,///< cannot compact-encode negative integers
+  enum EncodeError {
+    //    kSuccess = 0,               ///< success == 0 should be reserved
+    kCompactIntegerIsTooBig = 1,  ///< compact integer can't be more than 2**536
+    kCompactIntegerIsNegative,    ///< cannot compact-encode negative integers
   };
 
   /**
    * @brief DecoderError enum provides codes of errors for Decoder methods
    */
-  enum class DecodeError : size_t {
-    kNotEnoughData,    ///< not enough data to decode value
-    kUnexpectedValue,  ///< unexpected value
-    kTooManyItems      ///< too many items
+  enum DecodeError {
+    //    kSuccess = 0,      ///< success == 0 should be reserved
+    kNotEnoughData = 1,  ///< not enough data to decode value
+    kUnexpectedValue,    ///< unexpected value
+    kTooManyItems        ///< too many items
 
   };
 

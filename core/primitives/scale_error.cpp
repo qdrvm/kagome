@@ -1,0 +1,34 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include "primitives/scale_error.hpp"
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::common::scale, EncodeError, e) {
+  using kagome::common::scale::EncodeError;
+  switch (e) {
+    case EncodeError::kCompactIntegerIsNegative:
+      return "compact integers cannot be negative";
+    case EncodeError::kCompactIntegerIsTooBig:
+      return "compact integers cannot be negative";
+    default:
+      break;
+  }
+  return "unknown EncodeError";
+}
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::common::scale, DecodeError, e) {
+  using kagome::common::scale::DecodeError;
+  switch (e) {
+    case DecodeError::kNotEnoughData:
+      return "not enough data to decode";
+    case DecodeError::kUnexpectedValue:
+      return "unexpected value occured";
+    case DecodeError::kTooManyItems:
+      return "collection has too many items, unable to unpack";
+    default:
+      break;
+  }
+  return "unknown DecodeError";
+}

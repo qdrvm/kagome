@@ -6,6 +6,7 @@
 #ifndef KAGOME_SCALE_BASIC_STREAM_HPP
 #define KAGOME_SCALE_BASIC_STREAM_HPP
 
+#include <common/buffer.hpp>
 #include "scale/types.hpp"
 
 namespace kagome::common::scale {
@@ -18,6 +19,8 @@ namespace kagome::common::scale {
   class BasicStream : public Stream {
    public:
     explicit BasicStream(const ByteArray &source);
+
+    explicit BasicStream(const Buffer & source);
 
     ~BasicStream() override = default;
 
