@@ -74,16 +74,15 @@ namespace libp2p::peer {
   size_t PeerInfo::replaceMultiaddresses(
       gsl::span<multi::Multiaddress> to_remove,
       gsl::span<multi::Multiaddress> to_insert) {
-    size_t not_removed_addresses = 0;
-    std::for_each(
-        to_remove.begin(), to_remove.end(),
-        [this, &not_removed_addresses](const auto &to_remove_address) {
-          // as erase uses binary search, complexity must be M*logN
-          if (removeMultiaddress(to_remove_address)) {
-            not_removed_addresses++;
-          }
-        });
+    size_t removed_addresses = 0;
+    std::for_each(to_remove.begin(), to_remove.end(),
+                  [this, &removed_addresses](const auto &to_remove_address) {
+                    // as erase uses binary search, complexity must be M*logN
+                    if (removeMultiaddress(to_remove_address)) {
+                      removed_addresses++;
+                    }
+                  });
     multiaddresses_.insert(to_insert.cbegin(), to_insert.cend());
-    return not_removed_addresses;
+    return removed_addresses;
   }
 }  // namespace libp2p::peer
