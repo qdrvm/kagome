@@ -1,3 +1,5 @@
+#include <utility>
+
 /**
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
@@ -7,39 +9,15 @@
 
 #include "libp2p/peer/peer_info.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::peer, PeerInfo::FactoryError, e) {
-  using Error = libp2p::peer::PeerInfo::FactoryError;
-  switch (e) {
-    case Error::kIdIsNotSha256Hash:
-      return "provided id is not a SHA-256 multihash";
-    default:
-      return "unknown error";
-  }
-}
-
 namespace libp2p::peer {
   PeerInfo::PeerInfo(const PeerInfo &peer_info) = default;
   PeerInfo &PeerInfo::operator=(const PeerInfo &peer_info) = default;
   PeerInfo::PeerInfo(PeerInfo &&peer_info) noexcept = default;
   PeerInfo &PeerInfo::operator=(PeerInfo &&peer_info) noexcept = default;
 
-  PeerInfo::FactoryResult PeerInfo::createPeerInfo(const PeerId &peer_id) {
-    if (peer_id.getType() != multi::HashType::sha256) {
-      return FactoryError::kIdIsNotSha256Hash;
-    }
-    return PeerInfo{peer_id};
-  }
-
-  PeerInfo::FactoryResult PeerInfo::createPeerInfo(PeerId &&peer_id) {
-    if (peer_id.getType() != multi::HashType::sha256) {
-      return FactoryError::kIdIsNotSha256Hash;
-    }
-    return PeerInfo{std::move(peer_id)};
-  }
-
   PeerInfo::PeerInfo(PeerId peer) : peer_id_{std::move(peer)} {}
 
-  const PeerInfo::PeerId &PeerInfo::peerId() const {
+  const PeerId &PeerInfo::peerId() const {
     return peer_id_;
   }
 

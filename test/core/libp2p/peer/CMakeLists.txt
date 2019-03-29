@@ -9,3 +9,10 @@ addtest(peer_info_test
 target_link_libraries(peer_info_test
     peer
     )
+
+addtest(peer_id_test
+    peer_id_test.cpp
+    )
+target_link_libraries(peer_id_test
+    peer
+    )

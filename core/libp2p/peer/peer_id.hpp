@@ -1,0 +1,55 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#ifndef KAGOME_PEER_ID_HPP
+#define KAGOME_PEER_ID_HPP
+
+#include <outcome/outcome.hpp>
+#include "libp2p/multi/multihash.hpp"
+
+namespace libp2p::peer {
+  /**
+   * Stores ID of the Peer
+   */
+  class PeerId {
+   private:
+    using FactoryResult = outcome::result<PeerId>;
+
+   public:
+    PeerId() = delete;
+    PeerId(const PeerId &peer_id);
+    PeerId &operator=(const PeerId &peer_id);
+    PeerId(PeerId &&peer_id) noexcept;
+    PeerId &operator=(PeerId &&peer_id) noexcept;
+
+    enum class FactoryError { kIdIsNotSha256Hash };
+    /**
+     * Create a PeerId instance
+     * @param peer_id - ID of the peer; must be a SHA-256 multihash
+     * @return new instance of PeerId in case of success, error otherwise
+     */
+    static FactoryResult createPeerId(const multi::Multihash &peer_id);
+    static FactoryResult createPeerId(multi::Multihash &&peer_id);
+
+    /**
+     * Get PeerId of this instance
+     * @return multihash peer id
+     */
+    const multi::Multihash &peerId() const;
+
+   private:
+    /**
+     * Create from the peer id multihash
+     * @param peer to be put in this instance
+     */
+    explicit PeerId(multi::Multihash peer);
+
+    multi::Multihash id_;
+  };
+}  // namespace libp2p::peer
+
+OUTCOME_HPP_DECLARE_ERROR(libp2p::peer, PeerId::FactoryError)
+
+#endif  // KAGOME_PEER_ID_HPP

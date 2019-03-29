@@ -17,8 +17,6 @@ class PeerInfoTest : public ::testing::Test {
   /// must be a SHA-256 hash
   Multihash valid_peer_id =
       Multihash::create(HashType::sha256, Buffer{0xAA, 0xBB}).getValue();
-  Multihash invalid_peer_id =
-      Multihash::create(HashType::blake2s128, Buffer{0xAA, 0xBB}).getValue();
 
   std::vector<Multiaddress::Protocol> protocols{Multiaddress::Protocol::kDccp,
                                                 Multiaddress::Protocol::kIp4};
@@ -32,32 +30,9 @@ class PeerInfoTest : public ::testing::Test {
    * @return PeerInfo
    */
   PeerInfo createValid() {
-    return PeerInfo::createPeerInfo(valid_peer_id).value();
+    return PeerInfo{std::move(PeerId::createPeerId(valid_peer_id).value())};
   }
 };
-
-/**
- * @given valid PeerId multihash
- * @when initializing PeerInfo from that multihash
- * @then initialization succeds
- */
-TEST_F(PeerInfoTest, CreateSuccess) {
-  auto peer_info = PeerInfo::createPeerInfo(valid_peer_id);
-
-  ASSERT_TRUE(peer_info);
-  ASSERT_EQ(peer_info.value().peerId(), valid_peer_id);
-}
-
-/**
- * @given invalid PeerId multihash
- * @when initializing PeerInfo from that multihash
- * @then initialization fails
- */
-TEST_F(PeerInfoTest, CreateInvalidId) {
-  auto peer_info = PeerInfo::createPeerInfo(invalid_peer_id);
-
-  ASSERT_FALSE(peer_info);
-}
 
 /**
  * @given initialized PeerInfo
