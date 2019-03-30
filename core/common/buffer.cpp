@@ -128,4 +128,21 @@ namespace kagome::common {
     return put(buf.toVector());
   }
 
+  Buffer::Buffer(const uint8_t *begin, const uint8_t *end)
+      : data_{begin, end} {}
+
+  std::vector<uint8_t> &Buffer::toVector() {
+    return data_;
+  }
+
+  Buffer &Buffer::reserve(size_t size) {
+    data_.reserve(size);
+    return *this;
+  }
+
+  Buffer &Buffer::resize(size_t size) {
+    data_.resize(size);
+    return *this;
+  }
+
 }  // namespace kagome::common

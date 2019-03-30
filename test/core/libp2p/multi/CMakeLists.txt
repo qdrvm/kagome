@@ -41,3 +41,8 @@ addtest(multibase_codec_test
 target_link_libraries(multibase_codec_test
     multibase_codec
     )
+
+
+addtest(multiaddress_protocols_test
+  multiaddress_protocols_test.cpp
+  )
