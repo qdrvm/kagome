@@ -56,7 +56,8 @@ TEST(TCP, Integration) {
   });
 
   listener->onNewConnection([&](std::shared_ptr<Connection> c) -> void {
-    std::cout << "onNewConnection\n";
+    EXPECT_OUTCOME_TRUE(addr, c->getObservedAddresses());
+    std::cout << "onNewConnection: " << addr[0].getStringAddress() << '\n';
     onNewConnection = true;
   });
 

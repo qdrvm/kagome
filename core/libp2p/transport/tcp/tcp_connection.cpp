@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "tcp_connection.hpp"
+#include "libp2p/transport/tcp/tcp_connection.hpp"
 
-#include <boost/format.hpp>
+#include <sstream>
 
 namespace libp2p::transport {
 
@@ -21,8 +21,9 @@ namespace libp2p::transport {
       auto &&remote = socket_.remote_endpoint();
       auto &&addr = remote.address().to_string();
       auto &&port = remote.port();
-      auto &&formatted = boost::format("/ip4/%1%/tcp/%2%") % addr % port;
-      OUTCOME_TRY(ma, multi::Multiaddress::create(formatted.str()));
+      std::ostringstream s{};
+      s << "/ip4/" << addr << "/tcp/" << port;
+      OUTCOME_TRY(ma, multi::Multiaddress::create(s.str()));
       return std::vector<multi::Multiaddress>{ma};
     } catch (const boost::system::system_error &e) {
       return e.code();

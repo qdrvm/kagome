@@ -8,10 +8,10 @@
 
 #define BOOST_ASIO_NO_DEPRECATED
 
-#include "libp2p/transport/connection.hpp"
-
 #include <array>
 #include <boost/asio.hpp>
+
+#include "libp2p/transport/connection.hpp"
 
 namespace libp2p::transport {
 
@@ -32,7 +32,7 @@ namespace libp2p::transport {
     using Buffer = kagome::common::Buffer;
 
    public:
-    explicit TcpConnection(boost::asio::io_context& context);
+    explicit TcpConnection(boost::asio::io_context &context);
     explicit TcpConnection(Socket socket);
 
     outcome::result<std::vector<multi::Multiaddress>> getObservedAddresses()

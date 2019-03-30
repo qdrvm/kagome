@@ -4,11 +4,12 @@
  */
 
 #include "libp2p/transport/tcp/tcp_transport.hpp"
-#include "libp2p/transport/tcp/tcp_connection.hpp"
-#include "libp2p/transport/tcp/tcp_listener.hpp"
 
 #include <boost/lexical_cast.hpp>
 #include <functional>
+
+#include "libp2p/transport/tcp/tcp_connection.hpp"
+#include "libp2p/transport/tcp/tcp_listener.hpp"
 
 using boost::asio::ip::address;
 using boost::asio::ip::make_address;
