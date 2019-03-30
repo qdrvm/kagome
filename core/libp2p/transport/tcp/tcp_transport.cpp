@@ -26,23 +26,15 @@ namespace libp2p::transport {
     OUTCOME_TRY(port,
                 address.getFirstValueForProtocol(Multiaddress::Protocol::kTcp));
 
-    tcp::resolver resolver(context_);
-
-    boost::system::error_code ec;
-    auto iterator = resolver.resolve(addr, port, ec);
-    if (ec) {
-      // error
-      return ec;
+    try {
+      tcp::resolver resolver(context_);
+      auto iterator = resolver.resolve(addr, port);
+      tcp::socket socket(context_);
+      boost::asio::connect(socket, iterator);
+      return std::make_shared<TcpConnection>(std::move(socket));
+    } catch (const boost::system::system_error &e) {
+      return e.code();
     }
-
-    tcp::socket socket(context_);
-    boost::asio::connect(socket, iterator, ec);
-    if (ec) {
-      // error
-      return ec;
-    }
-
-    return std::make_shared<TcpConnection>(std::move(socket));
   }
 
   std::shared_ptr<TransportListener> TcpTransport::createListener(

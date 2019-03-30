@@ -31,11 +31,15 @@ namespace libp2p::transport {
                       return boost::lexical_cast<int>(val);
                     }));
 
-    tcp::endpoint endpoint(addr, port);
-    acceptor_.open(endpoint.protocol());
-    acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
-    acceptor_.bind(endpoint);
-    acceptor_.listen();
+    try {
+      tcp::endpoint endpoint(addr, port);
+      acceptor_.open(endpoint.protocol());
+      acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
+      acceptor_.bind(endpoint);
+      acceptor_.listen();
+    } catch (const boost::system::system_error &e) {
+      return e.code();
+    }
 
     // TODO(@warchant): maybe we need to store not the whole multiaddress, but
     // only ip4/tcp part?

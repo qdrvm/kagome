@@ -16,7 +16,7 @@ namespace libp2p::transport {
       : socket_(std::move(socket)) {}
 
   outcome::result<std::vector<multi::Multiaddress>>
-  TcpConnection::getObservedAdrresses() const {
+  TcpConnection::getObservedAddresses() const {
     try {
       auto &&remote = socket_.remote_endpoint();
       auto &&addr = remote.address().to_string();

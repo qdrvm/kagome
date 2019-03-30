@@ -29,9 +29,6 @@ TEST(TCP, MultipleListenersCanNotWorkOnSameMultiaddr) {
 
   EXPECT_OUTCOME_TRUE(ma, Multiaddress::create("/ip4/127.0.0.1/tcp/40003"))
   ASSERT_TRUE(listener1->listen(ma));
-  ASSERT_TRUE(listener2->listen(ma));
-
-  EXPECT_OUTCOME_TRUE(conn, transport->dial(ma));
-
-  context.run_one();
+  auto r = listener2->listen(ma);
+  ASSERT_EQ(r.error().value(), (int)std::errc::address_in_use);
 }
