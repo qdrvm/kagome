@@ -6,6 +6,7 @@
 #ifndef KAGOME_MULTIADDRESS_HPP
 #define KAGOME_MULTIADDRESS_HPP
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <outcome/outcome.hpp>

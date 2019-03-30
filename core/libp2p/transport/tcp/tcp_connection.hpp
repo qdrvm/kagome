@@ -15,6 +15,8 @@
 
 namespace libp2p::transport {
 
+  class TcpListener;
+
   // TODO(warchant): consider using of boost::asio::streambuf for better
   // performance/usability instead of kagome::common::Buffer
 
@@ -30,24 +32,25 @@ namespace libp2p::transport {
     using Buffer = kagome::common::Buffer;
 
    public:
+    explicit TcpConnection(boost::asio::io_context& context);
     explicit TcpConnection(Socket socket);
 
     outcome::result<std::vector<multi::Multiaddress>> getObservedAdrresses()
-        const noexcept override;
+        const override;
 
     std::optional<common::PeerInfo> getPeerInfo() const override;
 
     void setPeerInfo(const common::PeerInfo &info) override;
 
-    outcome::result<Buffer> read(uint32_t to_read) noexcept override;
+    outcome::result<Buffer> read(uint32_t to_read) override;
 
-    outcome::result<Buffer> readSome(uint32_t to_read) noexcept override;
+    outcome::result<Buffer> readSome(uint32_t to_read) override;
 
     void readAsync(std::function<BufferResultCallback>) noexcept override;
 
-    std::error_code writeSome(const Buffer &msg) noexcept override;
+    std::error_code writeSome(const Buffer &msg) override;
 
-    std::error_code write(const Buffer &msg) noexcept override;
+    std::error_code write(const Buffer &msg) override;
 
     void writeAsync(const Buffer &msg,
                     std::function<ErrorCodeCallback> handler) noexcept override;
@@ -56,11 +59,10 @@ namespace libp2p::transport {
 
     bool isClosed() const override;
 
-    Socket &socket();
-
-    ~TcpConnection() override;
+    ~TcpConnection() override = default;
 
    private:
+    friend class TcpListener;
     std::optional<common::PeerInfo> info_;
 
     Socket socket_;

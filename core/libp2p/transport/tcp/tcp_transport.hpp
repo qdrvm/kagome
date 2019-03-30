@@ -33,7 +33,7 @@ namespace libp2p::transport {
 
     std::error_code close() final;
 
-    ~TcpTransport() override;
+    ~TcpTransport() final = default;
 
    private:
     boost::asio::io_context &context_;

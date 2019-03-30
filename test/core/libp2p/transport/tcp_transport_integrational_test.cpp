@@ -14,7 +14,7 @@ using namespace boost;
 using kagome::common::Buffer;
 
 /**
- * @given boost asio context, initialized transport and single listtener
+ * @given boost asio context, initialized transport and single listener
  * @when create listener, assign callbacks
  * @then no errors
  * @when sync write methods executed
@@ -30,9 +30,12 @@ TEST(TCP, Integration) {
 
   asio::io_context context;
   auto transport = std::make_unique<TcpTransport>(context);
-  ASSERT_TRUE(transport);
+  ASSERT_TRUE(transport) << "transport is nullptr";
+  ASSERT_TRUE(transport->isClosed()) << "new transport is not closed";
 
   auto listener = transport->createListener([&](std::shared_ptr<Connection> c) {
+    ASSERT_TRUE(c) << "createListener: " << "connection is nullptr";
+
     std::cout << "Got new connection\n";
     createListener = true;
 
@@ -64,7 +67,8 @@ TEST(TCP, Integration) {
 
   listener->onError([&](std::error_code e) { FAIL() << e.message(); });
 
-  EXPECT_OUTCOME_TRUE(ma, Multiaddress::create("/ip4/127.0.0.1/tcp/40002"));
+  ASSERT_TRUE(listener->isClosed()) << "listener is not closed o_O";
+  EXPECT_OUTCOME_TRUE(ma, Multiaddress::create("/ip4/127.0.0.1/tcp/40001"));
   EXPECT_TRUE(listener->listen(ma));
   EXPECT_OUTCOME_TRUE(conn, transport->dial(ma));
 
@@ -73,7 +77,7 @@ TEST(TCP, Integration) {
   ASSERT_TRUE(!ec1) << ec1.message();
 
   // readSome
-  auto ec2 = conn->writeSome(Buffer{1});
+  auto ec2 = conn->write(Buffer{1});
   ASSERT_TRUE(!ec2) << ec2.message();
 
   auto ec3 = conn->close();
@@ -91,3 +95,4 @@ TEST(TCP, Integration) {
   ASSERT_TRUE(onClose);
   ASSERT_FALSE(onError);
 }
+

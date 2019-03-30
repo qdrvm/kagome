@@ -6,7 +6,10 @@
 #ifndef KAGOME_READABLE_HPP
 #define KAGOME_READABLE_HPP
 
+#include <functional>
 #include <outcome/outcome.hpp>
+#include <system_error>
+
 #include "common/buffer.hpp"
 
 namespace libp2p::basic {
@@ -23,7 +26,7 @@ namespace libp2p::basic {
      * @param to_read number of bytes to read.
      * @return result of the operation.
      */
-    virtual BufferResult read(uint32_t to_read) noexcept = 0;
+    virtual BufferResult read(uint32_t to_read) = 0;
 
     /**
      * @brief This function is used to read data. The function call will block
@@ -32,7 +35,7 @@ namespace libp2p::basic {
      * @param to_read number of bytes to read.
      * @return result of the operation.
      */
-    virtual BufferResult readSome(uint32_t to_read) noexcept = 0;
+    virtual BufferResult readSome(uint32_t to_read) = 0;
 
     /**
      * @brief Asynchronously read everything that was sent to our socket.

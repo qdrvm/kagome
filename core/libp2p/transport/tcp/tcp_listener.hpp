@@ -30,9 +30,9 @@ namespace libp2p::transport {
 
     bool isClosed() const noexcept override;
 
-    std::error_code close() noexcept override;
+    std::error_code close() override;
 
-    ~TcpListener() override;
+    ~TcpListener() override = default;
 
    private:
     boost::asio::io_context &context_;

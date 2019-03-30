@@ -69,10 +69,4 @@ namespace libp2p::transport {
 
   TcpTransport::TcpTransport(boost::asio::io_context &context)
       : context_(context) {}
-
-  TcpTransport::~TcpTransport() {
-    if (!isClosed()) {
-      close();
-    }
-  }
 }  // namespace libp2p::transport

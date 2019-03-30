@@ -34,7 +34,7 @@ namespace libp2p::transport {
      * @return collection of such addresses
      */
     virtual outcome::result<std::vector<multi::Multiaddress>>
-    getObservedAdrresses() const noexcept = 0;
+    getObservedAdrresses() const = 0;
 
     /**
      * Get information about the peer this connection connects to

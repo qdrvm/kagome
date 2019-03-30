@@ -39,7 +39,7 @@ namespace kagome::common {
     return data_.data();
   }
 
-  const std::string Buffer::toHex() const {
+  std::string Buffer::toHex() const {
     return hex_upper(data_.data(), data_.size());
   }
 
@@ -58,7 +58,7 @@ namespace kagome::common {
     return *this;
   }
 
-  const uint8_t Buffer::operator[](size_t index) const {
+  uint8_t Buffer::operator[](size_t index) const {
     return data_[index];
   }
 

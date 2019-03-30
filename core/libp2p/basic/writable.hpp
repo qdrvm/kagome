@@ -6,7 +6,9 @@
 #ifndef KAGOME_WRITABLE_HPP
 #define KAGOME_WRITABLE_HPP
 
+#include <functional>
 #include <system_error>
+
 #include "common/buffer.hpp"
 
 namespace libp2p::basic {
@@ -35,8 +37,7 @@ namespace libp2p::basic {
      * peer. Consider using the @ref write function if you need to ensure that
      * all data is written before the blocking operation completes.
      */
-    virtual std::error_code writeSome(
-        const kagome::common::Buffer &msg) noexcept = 0;
+    virtual std::error_code writeSome(const kagome::common::Buffer &msg) = 0;
 
     /**
      * @brief This function is used to write data. The function
@@ -45,8 +46,7 @@ namespace libp2p::basic {
      * @param msg to be written
      * @return error code if any error occurred.
      */
-    virtual std::error_code write(
-        const kagome::common::Buffer &msg) noexcept = 0;
+    virtual std::error_code write(const kagome::common::Buffer &msg) = 0;
   };
 }  // namespace libp2p::basic
 

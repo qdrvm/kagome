@@ -9,11 +9,14 @@
 
 namespace libp2p::transport {
 
+  TcpConnection::TcpConnection(boost::asio::io_context &context)
+      : socket_(context) {}
+
   TcpConnection::TcpConnection(boost::asio::ip::tcp::socket socket)
       : socket_(std::move(socket)) {}
 
   outcome::result<std::vector<multi::Multiaddress>>
-  TcpConnection::getObservedAdrresses() const noexcept {
+  TcpConnection::getObservedAdrresses() const {
     try {
       auto &&remote = socket_.remote_endpoint();
       auto &&addr = remote.address().to_string();
@@ -34,12 +37,8 @@ namespace libp2p::transport {
     info_ = std::make_optional(info);
   }
 
-  boost::asio::ip::tcp::socket &TcpConnection::socket() {
-    return socket_;
-  }
-
   outcome::result<kagome::common::Buffer> TcpConnection::readSome(
-      uint32_t to_read) noexcept {
+      uint32_t to_read) {
     boost::system::error_code ec;
     kagome::common::Buffer buf(to_read, 0);
 
@@ -53,7 +52,7 @@ namespace libp2p::transport {
   }
 
   outcome::result<kagome::common::Buffer> TcpConnection::read(
-      uint32_t to_read) noexcept {
+      uint32_t to_read) {
     boost::system::error_code ec;
     kagome::common::Buffer buf(to_read, 0);
 
@@ -66,15 +65,13 @@ namespace libp2p::transport {
     return ec;
   }
 
-  std::error_code TcpConnection::writeSome(
-      const kagome::common::Buffer &msg) noexcept {
+  std::error_code TcpConnection::writeSome(const kagome::common::Buffer &msg) {
     boost::system::error_code ec;
     socket_.write_some(boost::asio::buffer(msg.toVector()), ec);
     return ec;
   }
 
-  std::error_code TcpConnection::write(
-      const kagome::common::Buffer &msg) noexcept {
+  std::error_code TcpConnection::write(const kagome::common::Buffer &msg) {
     boost::system::error_code ec;
     boost::asio::write(socket_, boost::asio::buffer(msg.toVector()), ec);
     return ec;
@@ -115,12 +112,6 @@ namespace libp2p::transport {
 
   bool TcpConnection::isClosed() const {
     return !socket_.is_open();
-  }
-
-  TcpConnection::~TcpConnection() {
-    if (!isClosed()) {
-      close();
-    }
   }
 
 }  // namespace libp2p::transport

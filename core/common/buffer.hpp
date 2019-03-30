@@ -48,7 +48,7 @@ namespace kagome::common {
     /**
      * @brief Accessor of byte elements given {@param index} in bytearray
      */
-    const uint8_t operator[](size_t index) const;
+    uint8_t operator[](size_t index) const;
 
     /**
      * @brief Accessor of byte elements given {@param index} in bytearray
@@ -169,7 +169,7 @@ namespace kagome::common {
      * @brief encode bytearray as hex
      * @return hexencoded string
      */
-    const std::string toHex() const;
+    std::string toHex() const;
 
     /**
      * @brief Construct Buffer from hexstring

@@ -15,15 +15,13 @@
 
 #define UNIQUE_NAME(base) PP_CAT(base, __LINE__)
 
-#define __EXPECT_OUTCOME_TRUE_2(var, expr)                  \
-  auto &&var = expr;                                        \
-  EXPECT_TRUE(var) << var.error().category().name() << ": " \
-                   << var.error().message();
+#define __EXPECT_OUTCOME_TRUE_2(var, expr) \
+  auto &&var = expr;                       \
+  EXPECT_TRUE(var);
 
 #define __EXPECT_OUTCOME_TRUE_3(var, val, expr) \
   __EXPECT_OUTCOME_TRUE_2(var, expr)            \
   auto &&val = var.value();
-
 
 /**
  * Use this macro in GTEST with 2 arguments to assert that getResult()
@@ -32,6 +30,5 @@
  */
 #define EXPECT_OUTCOME_TRUE(val, expr) \
   __EXPECT_OUTCOME_TRUE_3(UNIQUE_NAME(_r), val, expr)
-
 
 #endif  // KAGOME_GTEST_OUTCOME_UTIL_HPP

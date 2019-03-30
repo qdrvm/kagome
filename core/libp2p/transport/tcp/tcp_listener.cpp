@@ -11,9 +11,9 @@
 #include <boost/lexical_cast.hpp>
 #include <iostream>
 
-using boost::asio::ip::tcp;
 using boost::asio::ip::address;
 using boost::asio::ip::make_address;
+using boost::asio::ip::tcp;
 using libp2p::multi::Multiaddress;
 
 namespace libp2p::transport {
@@ -22,9 +22,8 @@ namespace libp2p::transport {
     // TODO(warchant): there must be a better way to extract correct values
     OUTCOME_TRY(addr,
                 address.getFirstValueForProtocol<boost::asio::ip::address>(
-                    Multiaddress::Protocol::kIp4, [](const std::string &val) {
-                      return make_address(val);
-                    }));
+                    Multiaddress::Protocol::kIp4,
+                    [](const std::string &val) { return make_address(val); }));
 
     OUTCOME_TRY(port,
                 address.getFirstValueForProtocol<int>(
@@ -49,23 +48,15 @@ namespace libp2p::transport {
     return outcome::success();
   }
 
-  std::error_code TcpListener::close() noexcept {
+  std::error_code TcpListener::close() {
     boost::system::error_code ec;
-    try {
-      // TODO(warchant): should we execute signal_error_ in case of error?
-      acceptor_.close(ec);
-      if (ec) {
-        signal_error_(ec);
-        return ec;
-      }
-
-      listening_on_.clear();
-
-      signal_close_();
-    } catch (const boost::system::system_error &e) {
-      signal_error_(e.code());
-      return e.code();
+    acceptor_.close(ec);
+    if (ec) {
+      return ec;
     }
+
+    listening_on_.clear();
+    signal_close_();
 
     return ec;
   }
@@ -83,11 +74,10 @@ namespace libp2p::transport {
   void TcpListener::doAccept() {
     // async accept loop
     if (acceptor_.is_open()) {
-      boost::asio::ip::tcp::socket socket(context_);
-      auto session = std::make_shared<TcpConnection>(std::move(socket));
+      auto session = std::make_shared<TcpConnection>(context_);
+      auto &socket = session->socket_;
       acceptor_.async_accept(
-          session->socket(),
-          [s = std::move(session), this](boost::system::error_code ec) {
+          socket, [s = std::move(session), this](boost::system::error_code ec) {
             if (!ec) {
               try {
                 handler_(s);
@@ -103,12 +93,6 @@ namespace libp2p::transport {
 
             doAccept();
           });
-    }
-  }
-
-  TcpListener::~TcpListener() {
-    if (!isClosed()) {
-      close();
     }
   }
 
