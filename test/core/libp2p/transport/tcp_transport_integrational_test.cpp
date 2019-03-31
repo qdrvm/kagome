@@ -22,6 +22,7 @@ using kagome::common::Buffer;
  *
  */
 TEST(TCP, Integration) {
+  auto buf = Buffer{1, 3, 3, 7};
   bool onStartListening = false;
   bool createListener = false;
   bool onNewConnection = false;
@@ -34,18 +35,32 @@ TEST(TCP, Integration) {
   ASSERT_TRUE(transport->isClosed()) << "new transport is not closed";
 
   auto listener = transport->createListener([&](std::shared_ptr<Connection> c) {
-    ASSERT_TRUE(c) << "createListener: " << "connection is nullptr";
+    ASSERT_TRUE(c) << "createListener: "
+                   << "connection is nullptr";
 
-    std::cout << "Got new connection\n";
+    EXPECT_OUTCOME_TRUE(addr, c->getObservedAddresses());
+    ASSERT_FALSE(addr.empty());
+
+    auto client_ma = addr[0];
+
+    std::cout << "Got new connection: " << client_ma.getStringAddress() << '\n';
     createListener = true;
 
-    // read exactly 4 bytes
-    EXPECT_OUTCOME_TRUE(v1, c->read(4));
-    ASSERT_EQ(v1.toHex(), "01020304");
+    // blocks until 1 byte is available
+    EXPECT_OUTCOME_TRUE(v1, c->read(1));
+    ASSERT_EQ(v1.toHex(), "01");
 
-    // read 1..4 bytes
-    EXPECT_OUTCOME_TRUE(v2, c->readSome(4));
-    ASSERT_EQ(v2.toHex(), "01");
+    // blocks until 1..7 bytes available. in our case 7 bytes available, so read
+    // everything.
+    EXPECT_OUTCOME_TRUE(v2, c->readSome(7));
+    ASSERT_EQ(v2.toHex(), "02030405060708");
+
+    // does not block. reads everything that was sent to our socket.
+    c->readAsync([&buf](outcome::result<Buffer> r) {
+      ASSERT_TRUE(r);
+      auto &&val = r.value();
+      ASSERT_EQ(val, buf);
+    });
   });
 
   ASSERT_TRUE(listener);
@@ -68,23 +83,36 @@ TEST(TCP, Integration) {
 
   listener->onError([&](std::error_code e) { FAIL() << e.message(); });
 
-  ASSERT_TRUE(listener->isClosed()) << "listener is not closed o_O";
+  ASSERT_TRUE(listener->isClosed()) << "listener is not closed";
+
   EXPECT_OUTCOME_TRUE(ma, Multiaddress::create("/ip4/127.0.0.1/tcp/40001"));
   EXPECT_TRUE(listener->listen(ma));
-  EXPECT_OUTCOME_TRUE(conn, transport->dial(ma));
+  auto listening_on = listener->getAddresses();
+  ASSERT_FALSE(listening_on.empty());
+  ASSERT_EQ(listening_on.size(), 1);
+  auto listener_ma = listening_on[0];
+
+  EXPECT_OUTCOME_TRUE(conn, transport->dial(listener_ma));
+  ASSERT_EQ(listener_ma, ma);
 
   // read
   auto ec1 = conn->writeSome(Buffer{1, 2, 3, 4});
   ASSERT_TRUE(!ec1) << ec1.message();
 
   // readSome
-  auto ec2 = conn->write(Buffer{1});
+  auto ec2 = conn->write(Buffer{5, 6, 7, 8});
   ASSERT_TRUE(!ec2) << ec2.message();
+
+  conn->writeAsync(buf, [&buf](std::error_code ec, size_t written) {
+    ASSERT_EQ(written, buf.size());
+    ASSERT_TRUE(!ec);
+  });
 
   auto ec3 = conn->close();
   ASSERT_TRUE(!ec3) << ec3.message();
 
   context.run_one();  // run all handlers once
+  context.run_one();  // run asyncWrite asyncRead
 
   ASSERT_EQ(listener->getAddresses(), std::vector<Multiaddress>{ma});
 
@@ -96,4 +124,3 @@ TEST(TCP, Integration) {
   ASSERT_TRUE(onClose);
   ASSERT_FALSE(onError);
 }
-
