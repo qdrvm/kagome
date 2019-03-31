@@ -11,9 +11,9 @@
 #include "libp2p/transport/tcp.hpp"
 #include "testutil/outcome.hpp"
 
-#define RETRIES 100
+#define RETRIES 10
 #define SIZE 1500
-#define CLIENTS 4
+#define CLIENTS 2
 
 using namespace libp2p::transport;
 using namespace libp2p::multi;
