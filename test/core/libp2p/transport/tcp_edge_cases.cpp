@@ -23,7 +23,7 @@ using kagome::common::Buffer;
 
 /**
  * @given two listeners
- * @when bould on the same multiaddress
+ * @when bound on the same multiaddress
  * @then get error
  */
 TEST(TCP, TwoListenersCantBindOnSamePort) {
@@ -49,9 +49,9 @@ TEST(TCP, TwoListenersCantBindOnSamePort) {
 }
 
 /**
- * @given Echo server with single listener, "echo server"
- * @when 4 clients connect and send message
- * @then each client is expected to get same message as it sent
+ * @given Echo server with single listener
+ * @when parallel clients connect and send random message
+ * @then each client is expected to receive sent message
  */
 TEST(TCP, SingleListenerCanAcceptManyClients) {
   size_t counter = 0;  // number of answers
@@ -89,10 +89,7 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
 
         // we don't want to block before context.run
         conn->writeAsync(buf, [&](std::error_code ec, size_t written) {
-          if (ec) {
-            FAIL() << "writeAsync error";
-          }
-
+          ASSERT_FALSE(ec);  // no error
           ASSERT_EQ(written, buf.size());
         });
 
@@ -108,4 +105,21 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
 
   ASSERT_EQ(counter, RETRIES * CLIENTS)
       << "not all clients' requests were handled";
+}
+
+/**
+ * @given tcp transport
+ * @when dial to non-existent server (listener)
+ * @then get connection_refused error
+ */
+TEST(TCP, DialToNoServer) {
+  boost::asio::io_context context;
+  auto transport = std::make_unique<TcpTransport>(context);
+  EXPECT_OUTCOME_TRUE(ma, Multiaddress::create("/ip4/127.0.0.1/tcp/40003"));
+
+  auto &&res = transport->dial(ma);
+  ASSERT_FALSE(res);
+  auto &&e = res.error();
+
+  ASSERT_EQ(e.value(), (int)std::errc::connection_refused);
 }
