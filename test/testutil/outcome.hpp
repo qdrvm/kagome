@@ -15,12 +15,9 @@
 
 #define UNIQUE_NAME(base) PP_CAT(base, __LINE__)
 
-#define __EXPECT_OUTCOME_TRUE_2(var, expr) \
-  auto &&var = expr;                       \
-  EXPECT_TRUE(var);
-
 #define __EXPECT_OUTCOME_TRUE_3(var, val, expr) \
-  __EXPECT_OUTCOME_TRUE_2(var, expr)            \
+  auto &&var = expr;                            \
+  EXPECT_TRUE(var) << var.error().message();    \
   auto &&val = var.value();
 
 /**

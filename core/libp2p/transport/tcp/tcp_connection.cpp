@@ -43,7 +43,7 @@ namespace libp2p::transport {
     boost::system::error_code ec;
     kagome::common::Buffer buf(to_read, 0);
 
-    std::size_t len =
+    size_t len =
         socket_.read_some(boost::asio::buffer(buf.toVector(), to_read), ec);
     if (len > 0 && !ec) {
       return buf.resize(len);  // we could receive less than to_read
