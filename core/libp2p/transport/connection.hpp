@@ -32,20 +32,7 @@ namespace libp2p::transport {
      * transport, if any.
      * @return collection of such addresses
      */
-    virtual outcome::result<std::vector<multi::Multiaddress>>
-    getObservedAddresses() const = 0;
-
-    /**
-     * Get information about the peer this connection connects to
-     * @return peer information if set, none otherwise
-     */
-    virtual std::optional<common::PeerInfo> getPeerInfo() const = 0;
-
-    /**
-     * Set information about the peer this connection connects to
-     * @param info to be set
-     */
-    virtual void setPeerInfo(const common::PeerInfo &info) = 0;
+    virtual outcome::result<multi::Multiaddress> getRemoteMultiaddr() const = 0;
   };
 }  // namespace libp2p::transport
 

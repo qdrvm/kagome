@@ -15,8 +15,8 @@ namespace libp2p::transport {
   TcpConnection::TcpConnection(boost::asio::ip::tcp::socket socket)
       : socket_(std::move(socket)) {}
 
-  outcome::result<std::vector<multi::Multiaddress>>
-  TcpConnection::getObservedAddresses() const {
+  outcome::result<multi::Multiaddress> TcpConnection::getRemoteMultiaddr()
+      const {
     try {
       auto &&remote = socket_.remote_endpoint();
       auto &&addr = remote.address().to_string();
@@ -24,18 +24,10 @@ namespace libp2p::transport {
       std::ostringstream s{};
       s << "/ip4/" << addr << "/tcp/" << port;
       OUTCOME_TRY(ma, multi::Multiaddress::create(s.str()));
-      return std::vector<multi::Multiaddress>{ma};
+      return ma;
     } catch (const boost::system::system_error &e) {
       return e.code();
     }
-  }
-
-  std::optional<common::PeerInfo> TcpConnection::getPeerInfo() const {
-    return info_;
-  }
-
-  void TcpConnection::setPeerInfo(const common::PeerInfo &info) {
-    info_ = info;
   }
 
   outcome::result<kagome::common::Buffer> TcpConnection::readSome(

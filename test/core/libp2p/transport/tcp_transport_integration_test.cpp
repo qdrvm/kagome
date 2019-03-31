@@ -39,12 +39,9 @@ TEST(TCP, Integration) {
     ASSERT_TRUE(c) << "createListener: "
                    << "connection is nullptr";
 
-    EXPECT_OUTCOME_TRUE(addr, c->getObservedAddresses());
-    ASSERT_FALSE(addr.empty());
+    EXPECT_OUTCOME_TRUE(addr, c->getRemoteMultiaddr());
 
-    auto client_ma = addr[0];
-
-    std::cout << "Got new connection: " << client_ma.getStringAddress() << '\n';
+    std::cout << "Got new connection: " << addr.getStringAddress() << '\n';
     createListener = true;
 
     // blocks until 1 byte is available
@@ -72,8 +69,8 @@ TEST(TCP, Integration) {
   });
 
   listener->onNewConnection([&](std::shared_ptr<Connection> c) -> void {
-    EXPECT_OUTCOME_TRUE(addr, c->getObservedAddresses());
-    std::cout << "onNewConnection: " << addr[0].getStringAddress() << '\n';
+    EXPECT_OUTCOME_TRUE(addr, c->getRemoteMultiaddr());
+    std::cout << "onNewConnection: " << addr.getStringAddress() << '\n';
     onNewConnection = true;
   });
 

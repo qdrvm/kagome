@@ -36,12 +36,7 @@ namespace libp2p::transport {
     explicit TcpConnection(boost::asio::io_context &context);
     explicit TcpConnection(Socket socket);
 
-    outcome::result<std::vector<multi::Multiaddress>> getObservedAddresses()
-        const override;
-
-    std::optional<common::PeerInfo> getPeerInfo() const override;
-
-    void setPeerInfo(const common::PeerInfo &info) override;
+    outcome::result<multi::Multiaddress> getRemoteMultiaddr() const override;
 
     outcome::result<Buffer> read(uint32_t to_read) override;
 
@@ -69,7 +64,6 @@ namespace libp2p::transport {
 
    private:
     friend class TcpListener;
-    std::optional<common::PeerInfo> info_;
 
     Socket socket_;
   };
