@@ -14,7 +14,6 @@
 
 #include <boost/asio.hpp>
 
-
 namespace libp2p::transport {
 
   class TcpListener;
@@ -48,7 +47,8 @@ namespace libp2p::transport {
 
     outcome::result<Buffer> readSome(uint32_t to_read) override;
 
-    void readAsync(std::function<BufferResultCallback>) noexcept override;
+    void readAsync(
+        std::function<BufferResultCallback> callback) noexcept override;
 
     std::error_code writeSome(const Buffer &msg) override;
 
@@ -62,6 +62,10 @@ namespace libp2p::transport {
     bool isClosed() const override;
 
     ~TcpConnection() override = default;
+    TcpConnection(const TcpConnection &copy) = delete;
+    TcpConnection(TcpConnection &&move) = default;
+    TcpConnection &operator=(const TcpConnection &other) = delete;
+    TcpConnection &operator=(TcpConnection &&other) = default;
 
    private:
     friend class TcpListener;

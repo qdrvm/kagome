@@ -35,8 +35,12 @@ namespace libp2p::transport {
 
     ~TcpListener() override = default;
 
+    TcpListener(const TcpListener &copy) = delete;
+    TcpListener(TcpListener &&move) = default;
+    TcpListener &operator=(const TcpListener &other) = delete;
+    TcpListener &operator=(TcpListener &&other) = delete;
+
    private:
-    boost::asio::io_context &context_;
     boost::asio::ip::tcp::acceptor acceptor_;
     const HandlerFunc handler_;
 

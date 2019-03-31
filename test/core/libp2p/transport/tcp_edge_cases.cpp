@@ -18,6 +18,7 @@
 using namespace libp2p::transport;
 using namespace libp2p::multi;
 using std::chrono_literals::operator""s;
+using std::chrono_literals::operator""ms;
 using kagome::common::Buffer;
 
 /**
@@ -66,8 +67,8 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
           [s = data.size(), c, &counter](std::error_code ec, size_t written) {
             counter++;
             ASSERT_FALSE(ec);
-//            ASSERT_FALSE(c->close());
             ASSERT_EQ(written, s);
+            ASSERT_FALSE(c->close());
           });
     });
   });
@@ -96,7 +97,6 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
         });
 
         EXPECT_OUTCOME_TRUE(val, conn->read(buf.size()));
-
         ASSERT_EQ(buf, val);
       }
     });

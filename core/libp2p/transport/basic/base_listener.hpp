@@ -37,7 +37,13 @@ namespace libp2p::transport {
     boost::signals2::connection onClose(
         std::function<NoArgsCallback> callback) override;
 
+    BaseListener() = default;
     ~BaseListener() override = default;
+
+    BaseListener(const BaseListener &copy) = delete;
+    BaseListener(BaseListener &&move) = default;
+    BaseListener &operator=(const BaseListener &other) = delete;
+    BaseListener &operator=(BaseListener &&other) = default;
 
    protected:
     MultiaddrSignal signal_start_listening_{};

@@ -37,6 +37,11 @@ namespace libp2p::transport {
 
     ~TcpTransport() final = default;
 
+    TcpTransport(const TcpTransport &copy) = default;
+    TcpTransport(TcpTransport &&move) = default;
+    TcpTransport &operator=(const TcpTransport &other) = delete;
+    TcpTransport &operator=(TcpTransport &&other) = delete;
+
    private:
     boost::asio::io_context &context_;
 

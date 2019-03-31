@@ -5,7 +5,7 @@
 
 #include "libp2p/transport/tcp/tcp_listener.hpp"
 
-#include <iostream> // for std::cerr (temporarily). TODO(Warchant): use logger
+#include <iostream>  // for std::cerr (temporarily). TODO(Warchant): use logger
 
 #include <boost/asio.hpp>
 #include <boost/lexical_cast.hpp>
@@ -72,14 +72,13 @@ namespace libp2p::transport {
 
   TcpListener::TcpListener(boost::asio::io_context &io_context,
                            HandlerFunc handler)
-      : context_(io_context),
-        acceptor_(io_context),
-        handler_(std::move(handler)) {}
+      : acceptor_(io_context), handler_(std::move(handler)) {}
 
   void TcpListener::doAccept() {
     // async accept loop
     if (acceptor_.is_open()) {
-      auto session = std::make_shared<TcpConnection>(context_);
+      auto session =
+          std::make_shared<TcpConnection>(acceptor_.get_executor().context());
       auto &socket = session->socket_;
       acceptor_.async_accept(
           socket, [s = std::move(session), this](boost::system::error_code ec) {
