@@ -5,14 +5,12 @@
 
 #include "libp2p/transport/tcp/tcp_transport.hpp"
 
-#include <boost/lexical_cast.hpp>
 #include <functional>
 
+#include <boost/lexical_cast.hpp>
 #include "libp2p/transport/tcp/tcp_connection.hpp"
 #include "libp2p/transport/tcp/tcp_listener.hpp"
 
-using boost::asio::ip::address;
-using boost::asio::ip::make_address;
 using libp2p::multi::Multiaddress;
 using namespace boost;            // NOLINT
 using namespace boost::asio::ip;  // NOLINT
@@ -29,8 +27,8 @@ namespace libp2p::transport {
 
     try {
       tcp::resolver resolver(context_);
-      auto iterator = resolver.resolve(addr, port);
       tcp::socket socket(context_);
+      auto iterator = resolver.resolve(addr, port);
       boost::asio::connect(socket, iterator);
       return std::make_shared<TcpConnection>(std::move(socket));
     } catch (const boost::system::system_error &e) {
@@ -46,12 +44,16 @@ namespace libp2p::transport {
   }
 
   std::error_code TcpTransport::close() {
+    std::error_code ec;
     for (auto &&l : listeners_) {
-      OUTCOME_TRY_EC(l->close());
+      if (auto e = l->close()) {
+        // error during closing
+        ec = e;
+      }
     }
 
     listeners_.clear();
-    return {};  // success
+    return ec;
   }
 
   bool TcpTransport::isClosed() const {

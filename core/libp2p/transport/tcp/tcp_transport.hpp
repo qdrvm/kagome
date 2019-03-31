@@ -8,11 +8,12 @@
 
 #define BOOST_ASIO_NO_DEPRECATED
 
-#include <boost/asio.hpp>
+#include "libp2p/transport/transport.hpp"
+
 #include <unordered_set>
 
+#include <boost/asio.hpp>
 #include "libp2p/transport/connection.hpp"
-#include "libp2p/transport/transport.hpp"
 
 namespace libp2p::transport {
 

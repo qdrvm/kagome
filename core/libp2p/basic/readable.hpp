@@ -7,9 +7,9 @@
 #define KAGOME_READABLE_HPP
 
 #include <functional>
-#include <outcome/outcome.hpp>
 #include <system_error>
 
+#include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
 
 namespace libp2p::basic {

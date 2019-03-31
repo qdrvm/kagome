@@ -8,12 +8,13 @@
 
 #define BOOST_ASIO_NO_DEPRECATED
 
+#include "libp2p/transport/basic/base_listener.hpp"
+
+#include <string>
+
 #include <boost/asio.hpp>
 #include <boost/signals2.hpp>
 #include <outcome/outcome.hpp>
-#include <string>
-
-#include "libp2p/transport/basic/base_listener.hpp"
 
 namespace libp2p::transport {
 

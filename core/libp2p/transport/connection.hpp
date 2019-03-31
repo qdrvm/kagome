@@ -6,9 +6,8 @@
 #ifndef KAGOME_CONNECTION_HPP
 #define KAGOME_CONNECTION_HPP
 
-#include <vector>
-
 #include <optional>
+#include <vector>
 
 #include "common/result.hpp"
 #include "libp2p/basic/closeable.hpp"

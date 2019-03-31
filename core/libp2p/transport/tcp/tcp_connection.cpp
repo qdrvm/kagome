@@ -35,7 +35,7 @@ namespace libp2p::transport {
   }
 
   void TcpConnection::setPeerInfo(const common::PeerInfo &info) {
-    info_ = std::make_optional(info);
+    info_ = info;
   }
 
   outcome::result<kagome::common::Buffer> TcpConnection::readSome(

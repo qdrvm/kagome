@@ -35,6 +35,7 @@ TEST(TCP, Integration) {
   ASSERT_TRUE(transport->isClosed()) << "new transport is not closed";
 
   auto listener = transport->createListener([&](std::shared_ptr<Connection> c) {
+    ASSERT_FALSE(c->isClosed());
     ASSERT_TRUE(c) << "createListener: "
                    << "connection is nullptr";
 
