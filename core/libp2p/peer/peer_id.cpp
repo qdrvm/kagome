@@ -23,18 +23,15 @@ namespace libp2p::peer {
 
   PeerId::PeerId(multi::Multihash peer) : id_{std::move(peer)} {}
 
-  PeerId::FactoryResult PeerId::createPeerId(const multi::Multihash &peer_id) {
-    if (peer_id.getType() != multi::HashType::sha256) {
-      return FactoryError::kIdIsNotSha256Hash;
-    }
-    return PeerId{peer_id};
-  }
+  template PeerId::FactoryResult PeerId::createPeerId<>(multi::Multihash &);
+  template PeerId::FactoryResult PeerId::createPeerId<>(multi::Multihash &&);
 
-  PeerId::FactoryResult PeerId::createPeerId(multi::Multihash &&peer_id) {
+  template <typename IdHash>
+  PeerId::FactoryResult PeerId::createPeerId(IdHash &&peer_id) {
     if (peer_id.getType() != multi::HashType::sha256) {
       return FactoryError::kIdIsNotSha256Hash;
     }
-    return PeerId{std::move(peer_id)};
+    return PeerId{std::forward<IdHash>(peer_id)};
   }
 
   const multi::Multihash &PeerId::peerId() const {

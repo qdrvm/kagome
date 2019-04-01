@@ -27,11 +27,12 @@ namespace libp2p::peer {
     enum class FactoryError { kIdIsNotSha256Hash };
     /**
      * Create a PeerId instance
+     * @tparam IdHash - Multihash type
      * @param peer_id - ID of the peer; must be a SHA-256 multihash
      * @return new instance of PeerId in case of success, error otherwise
      */
-    static FactoryResult createPeerId(const multi::Multihash &peer_id);
-    static FactoryResult createPeerId(multi::Multihash &&peer_id);
+    template <typename IdHash>
+    static FactoryResult createPeerId(IdHash &&peer_id);
 
     /**
      * Get PeerId of this instance

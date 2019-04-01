@@ -30,7 +30,8 @@ class PeerInfoTest : public ::testing::Test {
    * @return PeerInfo
    */
   PeerInfo createValid() {
-    return PeerInfo{std::move(PeerId::createPeerId(valid_peer_id).value())};
+    PeerId peer_id = PeerId::createPeerId(valid_peer_id).value();
+    return PeerInfo{std::forward<PeerId>(peer_id)};
   }
 };
 
