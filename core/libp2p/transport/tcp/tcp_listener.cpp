@@ -8,6 +8,7 @@
 #include <iostream>  // for std::cerr (temporarily). TODO(Warchant): use logger
 
 #include <boost/asio.hpp>
+#include <boost/asio/post.hpp>
 #include <boost/lexical_cast.hpp>
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/transport/tcp/tcp_connection.hpp"
@@ -77,25 +78,23 @@ namespace libp2p::transport {
   void TcpListener::doAccept() {
     // async accept loop
     if (acceptor_.is_open()) {
-      auto session =
-          std::make_shared<TcpConnection>(acceptor_.get_executor().context());
+      boost::asio::io_context &context = acceptor_.get_executor().context();
+      auto session = std::make_shared<TcpConnection>(context);
       auto &socket = session->socket_;
       acceptor_.async_accept(
-          socket, [s = std::move(session), this](boost::system::error_code ec) {
+          socket,
+          [&context, s = std::move(session),
+           t = shared_from_this()](boost::system::error_code ec) {
             if (!ec) {
-              try {
-                handler_(s);
-                signal_new_connection_(s);
-              } catch (const std::exception &e) {
-                // TODO(warchant): how to cast exception to std::error_code?
-                // define policy for exception handling
-                std::cerr << e.what() << '\n';
-              }
+              boost::asio::post(context, [t, s]() {
+                t->handler_(s);
+                t->signal_new_connection_(s);
+              });
             } else {
-              signal_error_(ec);
+              t->signal_error_(ec);
             }
 
-            doAccept();
+            t->doAccept();
           });
     }
   }

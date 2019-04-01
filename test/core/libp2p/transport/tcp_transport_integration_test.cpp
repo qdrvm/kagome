@@ -103,10 +103,9 @@ TEST(TCP, Integration) {
     ASSERT_TRUE(!ec);
   });
 
-  ASSERT_TRUE(conn->close());
-
   context.run_one();  // run all handlers once
   context.run_one();  // run asyncWrite asyncRead
+  context.run_one();  // drain completion queue with server handler
 
   ASSERT_EQ(listener->getAddresses(), std::vector<Multiaddress>{ma});
 

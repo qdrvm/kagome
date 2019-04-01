@@ -3,11 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <gtest/gtest.h>
 #include <chrono>
 #include <iostream>
 #include <string>
 #include <system_error>
+
+#include <gtest/gtest.h>
+
 #include "libp2p/transport/tcp.hpp"
 #include "testutil/outcome.hpp"
 

@@ -21,7 +21,7 @@ namespace libp2p::transport {
   /**
    * @brief Single threaded asynchronous TCP/IPv4 server implementation.
    */
-  class TcpListener : public BaseListener {
+ class TcpListener : public BaseListener, public std::enable_shared_from_this<TcpListener> {
    public:
     TcpListener(boost::asio::io_context &io_context, HandlerFunc handler);
 
