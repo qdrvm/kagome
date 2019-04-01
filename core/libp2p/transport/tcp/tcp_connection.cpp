@@ -107,8 +107,14 @@ namespace libp2p::transport {
         });
   }
 
-  void TcpConnection::close() {
-    socket_.close();
+  outcome::result<void> TcpConnection::close() {
+    boost::system::error_code ec;
+    socket_.close(ec);
+    if (ec) {
+      return ec;
+    }
+
+    return outcome::success();
   }
 
   bool TcpConnection::isClosed() const {

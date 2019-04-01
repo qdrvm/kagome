@@ -68,7 +68,7 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
                       counter++;
                       ASSERT_FALSE(error);
                       ASSERT_EQ(written, s);
-                      c->close();
+                      ASSERT_TRUE(c->close());
                     });
     });
   });

@@ -103,14 +103,14 @@ TEST(TCP, Integration) {
     ASSERT_TRUE(!ec);
   });
 
-  conn->close();
+  ASSERT_TRUE(conn->close());
 
   context.run_one();  // run all handlers once
   context.run_one();  // run asyncWrite asyncRead
 
   ASSERT_EQ(listener->getAddresses(), std::vector<Multiaddress>{ma});
 
-  listener->close();
+  ASSERT_TRUE(listener->close());
 
   ASSERT_TRUE(onStartListening);
   ASSERT_TRUE(onNewConnection);

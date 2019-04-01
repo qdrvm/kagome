@@ -6,6 +6,8 @@
 #ifndef KAGOME_CLOSEABLE_HPP
 #define KAGOME_CLOSEABLE_HPP
 
+#include <outcome/outcome.hpp>
+
 namespace libp2p::basic {
 
   class Closeable {
@@ -20,7 +22,7 @@ namespace libp2p::basic {
     /**
      * @brief Closes current object.
      */
-    virtual void close() = 0;
+    virtual outcome::result<void> close() = 0;
   };
 
 }  // namespace libp2p::basic

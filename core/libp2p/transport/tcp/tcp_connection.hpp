@@ -52,10 +52,7 @@ namespace libp2p::transport {
     void writeAsync(const Buffer &msg,
                     std::function<ErrorCodeCallback> handler) noexcept override;
 
-    /**
-     * @throws boost::system::system_error
-     */
-    void close() override;
+    outcome::result<void> close() override;
 
     bool isClosed() const override;
 

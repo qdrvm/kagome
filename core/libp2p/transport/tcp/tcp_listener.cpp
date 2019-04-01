@@ -53,15 +53,17 @@ namespace libp2p::transport {
     return outcome::success();
   }
 
-  void TcpListener::close() {
+  outcome::result<void> TcpListener::close() {
     boost::system::error_code ec;
     acceptor_.close(ec);
     if (ec) {
-      signal_error_(ec);
+      return ec;
     }
 
     listening_on_.clear();
     signal_close_();
+
+    return outcome::success();
   }
 
   const std::vector<multi::Multiaddress> &TcpListener::getAddresses() const {
