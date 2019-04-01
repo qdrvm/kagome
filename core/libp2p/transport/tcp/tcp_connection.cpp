@@ -58,16 +58,26 @@ namespace libp2p::transport {
     return ec;
   }
 
-  std::error_code TcpConnection::writeSome(const kagome::common::Buffer &msg) {
+  outcome::result<void> TcpConnection::writeSome(
+      const kagome::common::Buffer &msg) {
     boost::system::error_code ec;
     socket_.write_some(boost::asio::buffer(msg.toVector()), ec);
-    return ec;
+    if (ec) {
+      return ec;
+    }
+
+    return outcome::success();
   }
 
-  std::error_code TcpConnection::write(const kagome::common::Buffer &msg) {
+  outcome::result<void> TcpConnection::write(
+      const kagome::common::Buffer &msg) {
     boost::system::error_code ec;
     boost::asio::write(socket_, boost::asio::buffer(msg.toVector()), ec);
-    return ec;
+    if (ec) {
+      return ec;
+    }
+
+    return outcome::success();
   }
 
   void TcpConnection::writeAsync(
@@ -97,10 +107,8 @@ namespace libp2p::transport {
         });
   }
 
-  std::error_code TcpConnection::close() {
-    boost::system::error_code ec;
-    socket_.close(ec);
-    return ec;
+  void TcpConnection::close() {
+    socket_.close();
   }
 
   bool TcpConnection::isClosed() const {

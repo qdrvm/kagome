@@ -43,25 +43,6 @@ namespace libp2p::transport {
     return m;
   }
 
-  std::error_code TcpTransport::close() {
-    std::error_code ec;
-    for (auto &&l : listeners_) {
-      if (auto e = l->close()) {
-        // error during closing
-        ec = e;
-      }
-    }
-
-    listeners_.clear();
-    return ec;
-  }
-
-  bool TcpTransport::isClosed() const {
-    return listeners_.empty()
-        || std::all_of(listeners_.begin(), listeners_.end(),
-                       [](auto &&l) { return l->isClosed(); });
-  }
-
   TcpTransport::TcpTransport(boost::asio::io_context &context)
       : context_(context) {}
 }  // namespace libp2p::transport

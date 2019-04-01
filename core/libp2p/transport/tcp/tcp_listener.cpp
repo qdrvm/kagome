@@ -35,7 +35,7 @@ namespace libp2p::transport {
     try {
       tcp::endpoint endpoint(addr, port);
       acceptor_.open(endpoint.protocol());
-      acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
+      acceptor_.set_option(tcp::acceptor::reuse_address(true));
       acceptor_.bind(endpoint);
       acceptor_.listen();
     } catch (const boost::system::system_error &e) {
@@ -53,17 +53,15 @@ namespace libp2p::transport {
     return outcome::success();
   }
 
-  std::error_code TcpListener::close() {
+  void TcpListener::close() {
     boost::system::error_code ec;
     acceptor_.close(ec);
     if (ec) {
-      return ec;
+      signal_error_(ec);
     }
 
     listening_on_.clear();
     signal_close_();
-
-    return ec;
   }
 
   const std::vector<multi::Multiaddress> &TcpListener::getAddresses() const {

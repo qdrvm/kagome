@@ -32,7 +32,6 @@ TEST(TCP, Integration) {
   asio::io_context context;
   auto transport = std::make_unique<TcpTransport>(context);
   ASSERT_TRUE(transport) << "transport is nullptr";
-  ASSERT_TRUE(transport->isClosed()) << "new transport is not closed";
 
   auto listener = transport->createListener([&](std::shared_ptr<Connection> c) {
     ASSERT_FALSE(c->isClosed());
@@ -94,27 +93,24 @@ TEST(TCP, Integration) {
   ASSERT_EQ(listener_ma, ma);
 
   // read
-  auto ec1 = conn->writeSome(Buffer{1, 2, 3, 4});
-  ASSERT_TRUE(!ec1) << ec1.message();
+  ASSERT_TRUE(conn->writeSome(Buffer{1, 2, 3, 4}));
 
   // readSome
-  auto ec2 = conn->write(Buffer{5, 6, 7, 8});
-  ASSERT_TRUE(!ec2) << ec2.message();
+  ASSERT_TRUE(conn->write(Buffer{5, 6, 7, 8}));
 
   conn->writeAsync(buf, [&buf](std::error_code ec, size_t written) {
     ASSERT_EQ(written, buf.size());
     ASSERT_TRUE(!ec);
   });
 
-  auto ec3 = conn->close();
-  ASSERT_TRUE(!ec3) << ec3.message();
+  conn->close();
 
   context.run_one();  // run all handlers once
   context.run_one();  // run asyncWrite asyncRead
 
   ASSERT_EQ(listener->getAddresses(), std::vector<Multiaddress>{ma});
 
-  ASSERT_TRUE(!transport->close()) << "failed during closing";
+  listener->close();
 
   ASSERT_TRUE(onStartListening);
   ASSERT_TRUE(onNewConnection);

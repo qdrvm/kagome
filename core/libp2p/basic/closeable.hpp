@@ -6,8 +6,6 @@
 #ifndef KAGOME_CLOSEABLE_HPP
 #define KAGOME_CLOSEABLE_HPP
 
-#include <system_error>
-
 namespace libp2p::basic {
 
   class Closeable {
@@ -21,9 +19,8 @@ namespace libp2p::basic {
 
     /**
      * @brief Closes current object.
-     * @return error code if anything went wrong
      */
-    virtual std::error_code close() = 0;
+    virtual void close() = 0;
   };
 
 }  // namespace libp2p::basic

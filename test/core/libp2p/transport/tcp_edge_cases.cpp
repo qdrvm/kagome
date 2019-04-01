@@ -62,14 +62,14 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
       EXPECT_OUTCOME_TRUE(data, result);
 
       // echo once, then close connection
-      c->writeAsync(
-          data,
-          [s = data.size(), c, &counter](std::error_code ec, size_t written) {
-            counter++;
-            ASSERT_FALSE(ec);
-            ASSERT_EQ(written, s);
-            ASSERT_FALSE(c->close());
-          });
+      c->writeAsync(data,
+                    [s = data.size(), c, &counter](std::error_code error,
+                                                   size_t written) {
+                      counter++;
+                      ASSERT_FALSE(error);
+                      ASSERT_EQ(written, s);
+                      c->close();
+                    });
     });
   });
   ASSERT_TRUE(listener);

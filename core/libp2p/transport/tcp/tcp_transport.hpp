@@ -31,10 +31,6 @@ namespace libp2p::transport {
     std::shared_ptr<TransportListener> createListener(
         TransportListener::HandlerFunc handler) final;
 
-    bool isClosed() const final;
-
-    std::error_code close() final;
-
     ~TcpTransport() final = default;
 
     TcpTransport(const TcpTransport &copy) = default;

@@ -31,7 +31,7 @@ namespace libp2p::transport {
 
     bool isClosed() const noexcept override;
 
-    std::error_code close() override;
+    void close() override;
 
     ~TcpListener() override = default;
 
