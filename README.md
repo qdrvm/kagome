@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/soramitsu/polkadot.svg?branch=master)](https://travis-ci.org/soramitsu/polkadot)
+[![Build Status](https://travis-ci.org/soramitsu/kagome.svg?branch=master)](https://travis-ci.org/soramitsu/kagome)
 [![codecov](https://codecov.io/gh/soramitsu/kagome/branch/master/graph/badge.svg)](https://codecov.io/gh/soramitsu/kagome)
 
 # polkadot
