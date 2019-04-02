@@ -17,4 +17,5 @@ target_link_libraries(crypto
         blake2
         twox
         buffer
+        sha
         )
