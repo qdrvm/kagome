@@ -34,7 +34,7 @@ namespace libp2p::peer {
     return PeerId{std::forward<IdHash>(peer_id)};
   }
 
-  const multi::Multihash &PeerId::peerId() const {
+  const multi::Multihash &PeerId::getPeerId() const {
     return id_;
   }
 }  // namespace libp2p::peer

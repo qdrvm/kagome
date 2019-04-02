@@ -24,7 +24,7 @@ namespace libp2p::peer {
     PeerId(PeerId &&peer_id) noexcept;
     PeerId &operator=(PeerId &&peer_id) noexcept;
 
-    enum class FactoryError { kIdIsNotSha256Hash };
+    enum class FactoryError { kIdIsNotSha256Hash = 1 };
     /**
      * Create a PeerId instance
      * @tparam IdHash - Multihash type
@@ -38,7 +38,7 @@ namespace libp2p::peer {
      * Get PeerId of this instance
      * @return multihash peer id
      */
-    const multi::Multihash &peerId() const;
+    const multi::Multihash &getPeerId() const;
 
    private:
     /**

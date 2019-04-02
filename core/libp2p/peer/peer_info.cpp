@@ -17,7 +17,7 @@ namespace libp2p::peer {
 
   PeerInfo::PeerInfo(PeerId peer) : peer_id_{std::move(peer)} {}
 
-  const PeerId &PeerInfo::peerId() const {
+  const PeerId &PeerInfo::getPeerId() const {
     return peer_id_;
   }
 

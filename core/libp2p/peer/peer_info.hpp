@@ -36,7 +36,7 @@ namespace libp2p::peer {
      * Get PeerId of this PeerInfo
      * @return reference to PeerId - multihash
      */
-    const PeerId &peerId() const;
+    const PeerId &getPeerId() const;
 
     /**
      * Get protocols, which are supported by this PeerInfo

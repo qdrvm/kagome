@@ -28,7 +28,7 @@ TEST_F(PeerIdTest, CreateSuccess) {
   auto peer_id = PeerId::createPeerId(valid_peer_id);
 
   ASSERT_TRUE(peer_id);
-  ASSERT_EQ(peer_id.value().peerId(), valid_peer_id);
+  ASSERT_EQ(peer_id.value().getPeerId(), valid_peer_id);
 }
 
 /**
