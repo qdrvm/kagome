@@ -6,7 +6,7 @@
 #ifndef KAGOME_TRANSPORT_LISTENER_HPP
 #define KAGOME_TRANSPORT_LISTENER_HPP
 
-#include <boost/signals2/connection.hpp>  // for boost::signals2::connection
+#include <boost/signals2/connection.hpp>
 #include <functional>
 #include <memory>
 #include <vector>
