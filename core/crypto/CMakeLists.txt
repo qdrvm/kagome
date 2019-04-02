@@ -9,13 +9,15 @@ add_library(hasher
         hasher/hasher_impl.cpp
         )
 
-add_subdirectory(blake2)
-add_subdirectory(twox)
-add_subdirectory(sha)
-
 target_link_libraries(hasher
         blake2
         twox
         buffer
         sha
         )
+
+add_subdirectory(blake2)
+add_subdirectory(twox)
+add_subdirectory(sha)
+
+

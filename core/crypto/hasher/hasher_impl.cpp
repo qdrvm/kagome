@@ -15,21 +15,21 @@ namespace kagome::hash {
 
   HasherImpl::Hash128 HasherImpl::twox_128(
       const HasherImpl::Buffer &buffer) const {
-    kagome::common::Blob<16> out;
+    Hash128 out;
     crypto::make_twox128(buffer.toBytes(), buffer.size(), out.data());
     return out;
   }
 
   HasherImpl::Hash256 HasherImpl::twox_256(
       const HasherImpl::Buffer &buffer) const {
-    kagome::common::Blob<32> out;
+    Hash256 out;
     crypto::make_twox256(buffer.toBytes(), buffer.size(), out.data());
     return out;
   }
 
   HasherImpl::Hash256 HasherImpl::blake2_256(
       const HasherImpl::Buffer &buffer) const {
-    kagome::common::Blob<32> out;
+    Hash256 out;
     blake2b(out.data(), 32, nullptr, 0, buffer.toBytes(), buffer.size());
     return out;
   }

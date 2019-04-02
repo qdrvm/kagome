@@ -8,13 +8,13 @@
 #include "common/blob.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 
+using kagome::common::Buffer;
+
 /**
  * Hasher fixture
  */
 class HasherFixture : public testing::Test {
  public:
-  using Buffer = kagome::common::Buffer;
-
   ~HasherFixture() override = default;
 
   HasherFixture() {
@@ -37,6 +37,7 @@ class HasherFixture : public testing::Test {
     return out;
   }
 
+ protected:
   std::shared_ptr<kagome::hash::Hasher> hasher;
 };
 
