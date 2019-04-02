@@ -46,6 +46,11 @@ class Hasher : public testing::Test {
   std::shared_ptr<kagome::hash::Hasher> hasher_;
 };
 
+/**
+ * @given empty and some common source value
+ * @when Hasher::hashTwox_128 method is applied
+ * @then expected result obtained
+ */
 TEST_F(Hasher, twox_128) {
   Buffer buffer;
   {
@@ -65,6 +70,11 @@ TEST_F(Hasher, twox_128) {
   }
 }
 
+/**
+ * @given empty and some common source value
+ * @when Hasher::hashTwox_256 method is applied
+ * @then expected result obtained
+ */
 TEST_F(Hasher, twox_256) {
   {
     // empty value
@@ -86,6 +96,11 @@ TEST_F(Hasher, twox_256) {
   }
 }
 
+/**
+ * @given empty, simple and some common source value
+ * @when Hasher::hashSha2_256 method is applied
+ * @then expected result obtained
+ */
 TEST_F(Hasher, sha2_256) {
   {
     // empty value
@@ -111,6 +126,11 @@ TEST_F(Hasher, sha2_256) {
   }
 }
 
+/**
+ * @given some common source value
+ * @when Hasher::hashBlake2_256 method is applied
+ * @then expected result obtained
+ */
 TEST_F(Hasher, blake2_256) {
   Buffer buffer = {0x69, 0x20, 0x61, 0x6d, 0x20, 0x64, 0x61, 0x74, 0x61};
   std::vector<uint8_t> match = {
