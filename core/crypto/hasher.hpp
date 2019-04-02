@@ -19,30 +19,30 @@ namespace kagome::hash {
     virtual ~Hasher() = default;
 
     /**
-     * @brief hashTwox128 makes hash of source buffer
+     * @brief hashTwox128 calculates 16-byte twox hash
      * @param buffer source buffer
      * @return 128-bit hash value
      */
     virtual Hash128 hashTwox_128(const Buffer &buffer) = 0;
 
     /**
-     * @brief hashTwox256 makes hash of source buffer
+     * @brief hashTwox256 calculates 32-byte twox hash
      * @param buffer source buffer
      * @return 256-bit hash value
      */
     virtual Hash256 hashTwox_256(const Buffer &buffer) = 0;
 
     /**
-     * @brief
-     * @param buffer
-     * @return
+     * @brief hashBlake2_256 function calculates 32-byte blake2 hash
+     * @param buffer source value
+     * @return 256-bit hash value
      */
     virtual Hash256 hashBlake2_256(const Buffer &buffer) = 0;
 
     /**
-     * @brief
-     * @param buffer
-     * @return
+     * @brief hashSha2_256 function calculates 32-byte sha-2-256 hash
+     * @param buffer source value
+     * @return 256-bit hash value
      */
     virtual Hash256 hashSha2_256(const Buffer &buffer) = 0;
   };
