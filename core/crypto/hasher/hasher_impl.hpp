@@ -18,32 +18,12 @@ namespace kagome::hash {
    public:
     ~HasherImpl() override = default;
 
-    /**
-     * @brief hashTwox128 makes hash of source buffer
-     * @param buffer source buffer
-     * @return 128-bit hash value
-     */
     Hash128 hashTwox_128(const Buffer &buffer) override;
 
-    /**
-     * @brief hashTwox256 makes hash of source buffer
-     * @param buffer source buffer
-     * @return 256-bit hash value
-     */
     Hash256 hashTwox_256(const Buffer &buffer) override;
 
-    /**
-     * @brief
-     * @param buffer
-     * @return
-     */
     Hash256 hashBlake2_256(const Buffer &buffer) override;
 
-    /**
-     * @brief
-     * @param buffer
-     * @return
-     */
     Hash256 hashSha2_256(const Buffer &buffer) override;
   };
 
