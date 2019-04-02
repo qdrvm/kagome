@@ -19,7 +19,7 @@ namespace libp2p::transport {
       const {
     try {
       auto &&remote = socket_.remote_endpoint();
-      auto &&addr = remote.address().to_string();
+      auto &&addr = remote.address().to_v4().to_string();
       auto &&port = remote.port();
       std::ostringstream s{};
       s << "/ip4/" << addr << "/tcp/" << port;
@@ -89,7 +89,7 @@ namespace libp2p::transport {
   void TcpConnection::readAsync(
       std::function<BufferResultCallback> callback) noexcept {
     socket_.async_wait(
-        boost::asio::ip::tcp::socket::wait_read,
+        Socket::wait_read,
         [cb = std::move(callback),
          s = shared_from_this()](boost::system::error_code ec) {
           if (!ec) {

@@ -13,10 +13,6 @@
 #include "libp2p/transport/tcp.hpp"
 #include "testutil/outcome.hpp"
 
-#define RETRIES 10
-#define SIZE 1500
-#define CLIENTS 2
-
 using namespace libp2p::transport;
 using namespace libp2p::multi;
 using std::chrono_literals::operator""s;
@@ -56,10 +52,14 @@ TEST(TCP, TwoListenersCantBindOnSamePort) {
  * @then each client is expected to receive sent message
  */
 TEST(TCP, SingleListenerCanAcceptManyClients) {
+  const int kClients = 2;
+  const int kSize = 1500;
+  const int kRetries = 10;
+
   size_t counter = 0;  // number of answers
   boost::asio::io_context context;
   auto transport = std::make_unique<TcpTransport>(context);
-  auto listener = transport->createListener([&counter](auto &&c) {
+  auto listener = transport->createListener([&counter](std::shared_ptr<Connection> c) {
     c->readAsync([c, &counter](outcome::result<Buffer> result) {
       EXPECT_OUTCOME_TRUE(data, result);
 
@@ -78,15 +78,15 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
   EXPECT_OUTCOME_TRUE(ma, Multiaddress::create("/ip4/127.0.0.1/tcp/40003"))
   ASSERT_TRUE(listener->listen(ma));
 
-  std::vector<std::thread> clients(CLIENTS);
+  std::vector<std::thread> clients(kClients);
   std::generate(clients.begin(), clients.end(), [&]() {
     return std::thread([&]() {
-      for (int i = 0; i < RETRIES; i++) {
+      for (int i = 0; i < kRetries; i++) {
         srand(i);
 
         EXPECT_OUTCOME_TRUE(conn, transport->dial(ma));
 
-        Buffer buf(SIZE, 0);
+        Buffer buf(kSize, 0);
         std::generate(buf.begin(), buf.end(), []() { return rand(); });
 
         // we don't want to block before context.run

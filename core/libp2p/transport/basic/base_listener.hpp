@@ -19,12 +19,13 @@ namespace libp2p::transport {
    * signals
    */
   class BaseListener : public TransportListener {
-   public:
+   protected:
     using NoArgsSignal = boost::signals2::signal<NoArgsCallback>;
     using MultiaddrSignal = boost::signals2::signal<MultiaddrCallback>;
     using ErrorSignal = boost::signals2::signal<ErrorCallback>;
     using ConnectionSignal = boost::signals2::signal<ConnectionCallback>;
 
+   public:
     boost::signals2::connection onStartListening(
         std::function<MultiaddrCallback> callback) override;
 

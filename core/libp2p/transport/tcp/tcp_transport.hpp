@@ -21,7 +21,7 @@ namespace libp2p::transport {
    * @brief Class that utilizes boost::asio to create tcp servers (listeners)
    * and connect to other servers (dial).
    */
-  class TcpTransport : public Transport {
+  class TcpTransport final: public Transport {
    public:
     explicit TcpTransport(boost::asio::io_context &context);
 

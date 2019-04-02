@@ -5,8 +5,6 @@
 
 #include "libp2p/transport/tcp/tcp_listener.hpp"
 
-#include <iostream>  // for std::cerr (temporarily). TODO(Warchant): use logger
-
 #include <boost/asio.hpp>
 #include <boost/asio/post.hpp>
 #include <boost/lexical_cast.hpp>
