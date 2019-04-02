@@ -105,7 +105,7 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
   std::for_each(clients.begin(), clients.end(),
                 [](std::thread &t) { t.join(); });
 
-  ASSERT_EQ(counter, RETRIES * CLIENTS)
+  ASSERT_EQ(counter, kRetries * kClients)
       << "not all clients' requests were handled";
 }
 
