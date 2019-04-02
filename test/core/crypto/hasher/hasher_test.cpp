@@ -42,24 +42,11 @@ class HasherFixture : public testing::Test {
 };
 
 /**
- * @given empty source value
- * @when Hasher::hashTwox_128 method is applied
- * @then expected result obtained
- */
-TEST_F(HasherFixture, twox_128_empty) {
-  auto hash = hasher->twox_128({});
-  std::vector<uint8_t> match = {153, 233, 216, 81, 55, 219, 70,  239,
-                                75,  190, 163, 54, 19, 186, 175, 213};
-
-  ASSERT_EQ(blob2buffer<16>(hash).toVector(), match);
-}
-
-/**
  * @given some common source value
- * @when Hasher::hashTwox_128 method is applied
+ * @when Hasher::twox_128 method is applied
  * @then expected result obtained
  */
-TEST_F(HasherFixture, twox_128_some) {
+TEST_F(HasherFixture, twox_128) {
   auto hash = hasher->twox_128({0x41, 0x42, 0x43, 0x44, 0x45, 0x46});
   std::vector<uint8_t> match = {184, 65, 176, 250, 243, 129, 181, 3,
                                 77,  82, 63,  150, 129, 221, 191, 251};
@@ -67,25 +54,11 @@ TEST_F(HasherFixture, twox_128_some) {
 }
 
 /**
- * @given empty source value
- * @when Hasher::hashTwox_256 method is applied
- * @then expected result obtained
- */
-TEST_F(HasherFixture, twox_256_empty) {
-  auto hash = hasher->twox_256({});
-  std::vector<uint8_t> match = {153, 233, 216, 81,  55,  219, 70,  239,
-                                75,  190, 163, 54,  19,  186, 175, 213,
-                                111, 150, 60,  100, 177, 243, 104, 90,
-                                78,  180, 171, 214, 127, 246, 32,  58};
-  ASSERT_EQ(blob2buffer<32>(hash).toVector(), match);
-}
-
-/**
  * @given some common source value
- * @when Hasher::hashTwox_256 method is applied
+ * @when Hasher::twox_256 method is applied
  * @then expected result obtained
  */
-TEST_F(HasherFixture, twox_256_some) {
+TEST_F(HasherFixture, twox_256) {
   // some value
   auto hash = hasher->twox_256({0x41, 0x42, 0x43, 0x44, 0x45, 0x46});
   std::vector<uint8_t> match = {184, 65,  176, 250, 243, 129, 181, 3,
@@ -96,36 +69,11 @@ TEST_F(HasherFixture, twox_256_some) {
 }
 
 /**
- * @given empty source value
- * @when Hasher::hashSha2_256 method is applied
- * @then expected result obtained
- */
-TEST_F(HasherFixture, sha2_256_empty) {
-  auto hash = hasher->sha2_256({});
-  std::string_view match =
-      "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855";
-  ASSERT_EQ(hasher->sha2_256({}).toHex(), match);
-}
-
-/**
- * @given simple source value
- * @when Hasher::hashSha2_256 method is applied
- * @then expected result obtained
- */
-TEST_F(HasherFixture, sha2_256_simple) {
-  // simple value
-  auto hash = hasher->sha2_256(string2buffer("abc"));
-  std::string_view match =
-      "BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD";
-  ASSERT_EQ(hash.toHex(), match);
-}
-
-/**
  * @given some common source value
- * @when Hasher::hashSha2_256 method is applied
+ * @when Hasher::sha2_256 method is applied
  * @then expected result obtained
  */
-TEST_F(HasherFixture, sha2_256_common) {
+TEST_F(HasherFixture, sha2_256) {
   auto hash = hasher->sha2_256(string2buffer(
       "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"));
   std::string_view match =
@@ -135,7 +83,7 @@ TEST_F(HasherFixture, sha2_256_common) {
 
 /**
  * @given some common source value
- * @when Hasher::hashBlake2_256 method is applied
+ * @when Hasher::blake2_256 method is applied
  * @then expected result obtained
  */
 TEST_F(HasherFixture, blake2_256) {

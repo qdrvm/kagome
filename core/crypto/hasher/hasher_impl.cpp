@@ -5,7 +5,7 @@
 
 #include "crypto/hasher/hasher_impl.hpp"
 
-#include "gsl/span"
+#include <gsl/span>
 
 #include "crypto/blake2/blake2b.h"
 #include "crypto/sha/sha256.hpp"
@@ -36,7 +36,6 @@ namespace kagome::hash {
 
   HasherImpl::Hash256 HasherImpl::sha2_256(
       const HasherImpl::Buffer &buffer) const {
-    return crypto::sha256(
-        {buffer.toBytes(), static_cast<long>(buffer.size())});
+    return crypto::sha256({buffer.toBytes(), static_cast<long>(buffer.size())});
   }
 }  // namespace kagome::hash
