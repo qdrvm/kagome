@@ -10,14 +10,14 @@
 
 namespace libp2p::basic {
 
-class Readable {
-  /**
+  class Readable {
+    /**
      * Read message from the connection
      * @return optional to message, received by that connection
      */
-  virtual boost::optional<common::NetworkMessage> read() const = 0;
-};
+    virtual boost::optional<common::NetworkMessage> read() const = 0;
+  };
 
-}
+}  // namespace libp2p::basic
 
-#endif //KAGOME_READABLE_HPP
+#endif  // KAGOME_READABLE_HPP
