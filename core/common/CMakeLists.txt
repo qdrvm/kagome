@@ -19,7 +19,8 @@ target_link_libraries(buffer
 add_library(blob
   blob.hpp
   blob.cpp
-        ../../test/core/crypto/hasher/hasher_test.cpp)
+  )
+
 target_link_libraries(blob
   hexutil
   )
@@ -27,5 +28,3 @@ target_link_libraries(blob
 add_library(logger
     logger.cpp
     )
-
-

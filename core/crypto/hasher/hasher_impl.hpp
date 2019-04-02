@@ -18,13 +18,13 @@ namespace kagome::hash {
    public:
     ~HasherImpl() override = default;
 
-    Hash128 hashTwox_128(const Buffer &buffer) override;
+    Hash128 twox_128(const Buffer &buffer) const override;
 
-    Hash256 hashTwox_256(const Buffer &buffer) override;
+    Hash256 twox_256(const Buffer &buffer) const override;
 
-    Hash256 hashBlake2_256(const Buffer &buffer) override;
+    Hash256 blake2_256(const Buffer &buffer) const override;
 
-    Hash256 hashSha2_256(const Buffer &buffer) override;
+    Hash256 sha2_256(const Buffer &buffer) const override;
   };
 
 }  // namespace kagome::hash

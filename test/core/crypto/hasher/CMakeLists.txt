@@ -8,7 +8,7 @@ addtest(hasher_test
         )
 
 target_link_libraries(hasher_test
-        crypto
+        hasher
         buffer
         blob
         )
