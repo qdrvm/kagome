@@ -6,4 +6,5 @@
 add_library(yamux
     yamux.cpp
     yamux.hpp
+    yamux_config.hpp
     )

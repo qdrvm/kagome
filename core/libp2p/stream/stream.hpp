@@ -6,22 +6,14 @@
 #ifndef KAGOME_STREAM_HPP
 #define KAGOME_STREAM_HPP
 
-#include "common/result.hpp"
-#include "libp2p/basic_interfaces/writable.hpp"
-#include "libp2p/common/network_message.hpp"
+#include "libp2p/basic/readable.hpp"
+#include "libp2p/basic/writable.hpp"
 
 namespace libp2p::stream {
   /**
    * Stream between two peers in the network
    */
-  class Stream : public basic::Writable {
-    /**
-     * Read messages from the stream
-     * @return observable to messages, received by that stream
-     */
-    // TODO(@warchant): PRE-90 review types, rewrite docs
-    virtual std::vector<common::NetworkMessage> read() const = 0;
-  };
+  class Stream : public basic::Writable, public basic::Readable {};
 }  // namespace libp2p::stream
 
 #endif  // KAGOME_STREAM_HPP

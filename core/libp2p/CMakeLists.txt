@@ -5,3 +5,4 @@
 
 add_subdirectory(multi)
 add_subdirectory(muxer)
+add_subdirectory(stream)

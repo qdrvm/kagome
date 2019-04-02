@@ -21,6 +21,7 @@ namespace libp2p::connection {
    * Point-to-point link to the other peer
    */
   class Connection : protected basic::Writable, protected basic::Readable {
+   public:
     /**
      * Get addresses, which are observed with an underlying transport
      * @return collection of such addresses
