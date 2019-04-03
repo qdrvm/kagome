@@ -7,6 +7,3 @@ target_link_libraries(outcome_test
 
 
 addtest(sml_test sml_test.cpp)
-target_link_libraries(sml_test
-  sml
-  )
