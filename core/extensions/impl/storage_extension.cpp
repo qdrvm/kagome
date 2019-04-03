@@ -103,7 +103,7 @@ namespace kagome::extensions {
   runtime::SizeType StorageExtension::ext_storage_changes_root(
       runtime::WasmPointer parent_hash_data, runtime::SizeType parent_hash_len,
       runtime::SizeType parent_num, runtime::WasmPointer result) {
-    // unimplemented, for now assuming no changes
+    // TODO Implement PRE-95, kamilsa, 03.04.2019
     logger_->error("Unimplemented");
     return 0;
   }
