@@ -50,12 +50,12 @@ namespace kagome::extensions {
         runtime::WasmPointer key_data, runtime::SizeType key_length) = 0;
 
     /**
-     * Gets the value of the given key from storage.
-     * The wasm memory is allocated for storing the value.
+     * Gets the value of the given key from storage, allocates memory for that
+     * value, stores value in that memory and returns pointer to it
      *
      * @param key_data pointer to the key
      * @param key_length length of the key
-     * @param written pointer to where data was stored
+     * @param len_ptr pointer to where length of the value is stored
      * @return - 0 if no value exists to the given key. written_out is set
      * to u32::max_value().
      * - Otherwise, pointer to the value in memory. written_out contains the
@@ -63,7 +63,7 @@ namespace kagome::extensions {
      */
     virtual runtime::WasmPointer ext_get_allocated_storage(
         runtime::WasmPointer key_data, runtime::SizeType key_length,
-        runtime::WasmPointer written) = 0;
+        runtime::WasmPointer len_ptr) = 0;
 
     /**
      * Gets the value of the given key from storage. The value is written into
@@ -72,11 +72,12 @@ namespace kagome::extensions {
      *
      * @param key_data pointer to the key
      * @param key_length length of the key
-     * @param value_data
-     * @param value_length
-     * @param value_offset
-     * @return std::numeric_limits<SizeType>::max() if the value does not
-     * exists. Otherwise, the number of bytes written for value.
+     * @param value_data pointer where to store result
+     * @param value_length max length of the data stored at value_data ptr
+     * @param value_offset offset starting from which value associated with key
+     * is obtained
+     * @return u32::max_value() if the value does not
+     * exist. Otherwise, the number of bytes written for value.
      */
     virtual runtime::SizeType ext_get_storage_into(
         runtime::WasmPointer key_data, runtime::SizeType key_length,
@@ -96,7 +97,11 @@ namespace kagome::extensions {
                                  runtime::SizeType value_length) = 0;
 
     /**
-     * @see Extension::ext_blake2_256_enumerated_trie_root
+     * Calculate ordered trie root from provided values
+     * @param values_data pointer to array of values to calculate hash
+     * @param lens_data pointer to the array of lengths for values
+     * @param lens_length size of lengths array
+     * @param result pointer to store trie root
      */
     virtual void ext_blake2_256_enumerated_trie_root(
         runtime::WasmPointer values_data, runtime::WasmPointer lens_data,

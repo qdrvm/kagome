@@ -1,23 +1,19 @@
-#include <utility>
-
 /**
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <exception>
-
 #include "extensions/impl/storage_extension.hpp"
-#include "storage_extension.hpp"
 
 namespace kagome::extensions {
   StorageExtension::StorageExtension(
       std::shared_ptr<storage::merkle::TrieDb> db,
       std::shared_ptr<runtime::WasmMemory> memory,
-      std::shared_ptr<storage::merkle::Codec> codec)
+      std::shared_ptr<storage::merkle::Codec> codec, common::Logger logger)
       : db_(std::move(db)),
         memory_(std::move(memory)),
-        codec_(std::move(codec)) {}
+        codec_(std::move(codec)),
+        logger_(std::move(logger)) {}
 
   // -------------------------Data storage--------------------------
 
@@ -41,12 +37,12 @@ namespace kagome::extensions {
 
   runtime::WasmPointer StorageExtension::ext_get_allocated_storage(
       runtime::WasmPointer key_data, runtime::SizeType key_length,
-      runtime::WasmPointer written) {
+      runtime::WasmPointer len_ptr) {
     auto key = memory_->loadN(key_data, key_length);
     auto data = db_->get(key);
     const auto length = data.has_value() ? data.value().size()
                                          : runtime::WasmMemory::kMaxMemorySize;
-    memory_->store32(written, length);
+    memory_->store32(len_ptr, length);
 
     if (not data) {
       return 0;
@@ -79,8 +75,11 @@ namespace kagome::extensions {
                                          runtime::SizeType value_length) {
     auto key = memory_->loadN(key_data, key_length);
     auto value = memory_->loadN(value_data, value_length);
-    if (not db_->put(key, value)) {
-      // process bad case
+    auto put_result = db_->put(key, value);
+    if (not put_result) {
+      logger_->warn(
+          "ext_set_storage failed, due to fail in trie db with reason: {}",
+          put_result.error().message());
     }
   }
 
@@ -89,7 +88,6 @@ namespace kagome::extensions {
   void StorageExtension::ext_blake2_256_enumerated_trie_root(
       runtime::WasmPointer values_data, runtime::WasmPointer lens_data,
       runtime::SizeType lens_length, runtime::WasmPointer result) {
-    // TODO(Akvinikym) PRE-54 11.03.19: implement, when Merkle Trie is ready
     std::vector<common::Buffer> data;
     for (runtime::SizeType i = 0; i < lens_length; i++) {
       auto length = memory_->load32s(lens_data + i * 4);
@@ -106,6 +104,7 @@ namespace kagome::extensions {
       runtime::WasmPointer parent_hash_data, runtime::SizeType parent_hash_len,
       runtime::SizeType parent_num, runtime::WasmPointer result) {
     // unimplemented, for now assuming no changes
+    logger_->error("Unimplemented");
     return 0;
   }
 
@@ -135,6 +134,7 @@ namespace kagome::extensions {
   runtime::WasmPointer StorageExtension::ext_child_storage_root(
       runtime::WasmPointer storage_key_data,
       runtime::WasmPointer storage_key_length, runtime::WasmPointer written) {
+    logger_->error("call to unimplemented ext_child_storage_root");
     std::terminate();
   }
 
@@ -142,6 +142,7 @@ namespace kagome::extensions {
       runtime::WasmPointer storage_key_data,
       runtime::WasmPointer storage_key_length, runtime::WasmPointer key_data,
       runtime::WasmPointer key_length) {
+    logger_->error("call to unimplemented ext_clear_child_storage");
     std::terminate();
   }
 
@@ -149,6 +150,7 @@ namespace kagome::extensions {
       runtime::WasmPointer storage_key_data,
       runtime::WasmPointer storage_key_length, runtime::WasmPointer key_data,
       runtime::WasmPointer key_length) {
+    logger_->error("call to unimplemented ext_exists_child_storage");
     std::terminate();
   }
 
@@ -156,6 +158,7 @@ namespace kagome::extensions {
       runtime::WasmPointer storage_key_data,
       runtime::WasmPointer storage_key_length, runtime::WasmPointer key_data,
       runtime::WasmPointer key_length, runtime::WasmPointer written) {
+    logger_->error("call to unimplemented ext_get_allocated_child_storage");
     std::terminate();
   }
 
@@ -164,12 +167,14 @@ namespace kagome::extensions {
       runtime::WasmPointer storage_key_length, runtime::WasmPointer key_data,
       runtime::WasmPointer key_length, runtime::WasmPointer value_data,
       runtime::SizeType value_length, runtime::SizeType value_offset) {
+    logger_->error("call to unimplemented ext_get_child_storage_into");
     std::terminate();
   }
 
   void StorageExtension::ext_kill_child_storage(
       runtime::WasmPointer storage_key_data,
       runtime::SizeType storage_key_length) {
+    logger_->error("call to unimplemented ext_kill_child_storage");
     std::terminate();
   }
 
@@ -178,6 +183,7 @@ namespace kagome::extensions {
       runtime::SizeType storage_key_length, runtime::WasmPointer key_data,
       runtime::SizeType key_length, runtime::WasmPointer value_data,
       runtime::SizeType value_length) {
+    logger_->error("call to unimplemented ext_set_child_storage");
     std::terminate();
   }
 

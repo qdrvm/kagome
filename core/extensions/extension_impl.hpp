@@ -33,7 +33,7 @@ namespace kagome::extensions {
 
     runtime::WasmPointer ext_get_allocated_storage(
         runtime::WasmPointer key_data, runtime::SizeType key_length,
-        runtime::WasmPointer written) override;
+        runtime::WasmPointer len_ptr) override;
 
     runtime::SizeType ext_get_storage_into(
         runtime::WasmPointer key_data, runtime::SizeType key_length,
