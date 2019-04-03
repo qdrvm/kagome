@@ -66,7 +66,7 @@ namespace libp2p::peer {
     bool removeProtocol(multi::Multiaddress::Protocol protocol);
 
     /**
-     * Add multiaddresses, through which this peer can communication
+     * Add multiaddresses, through which this peer can communicate
      * @param multiaddresses to be added
      * @return reference to updated PeerInfo
      * @note use this, if you want to copy the addresses

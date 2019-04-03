@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/peer/peer_id.hpp"
 #include <gtest/gtest.h>
+#include "libp2p/peer/peer_id.hpp"
 #include "common/buffer.hpp"
 
 using namespace libp2p::multi;
