@@ -6,7 +6,5 @@ DerivePointerAlignment: false
 PointerAlignment: Right
 BinPackArguments: true
 BinPackParameters: true
-DerivePointerAlignment: false
-PointerAlignment: Right
 AllowShortFunctionsOnASingleLine: Empty
 AllowShortIfStatementsOnASingleLine: false
