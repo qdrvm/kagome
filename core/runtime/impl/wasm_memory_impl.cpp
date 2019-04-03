@@ -4,7 +4,6 @@
  */
 
 #include "runtime/impl/wasm_memory_impl.hpp"
-#include "wasm_memory_impl.hpp"
 
 namespace kagome::runtime {
 
