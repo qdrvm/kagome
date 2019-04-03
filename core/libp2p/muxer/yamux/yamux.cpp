@@ -7,8 +7,8 @@
 #include <optional>
 
 #include <gsl/span>
-#include "libp2p/muxer/yamux.hpp"
 #include "libp2p/stream/yamux_stream.hpp"
+#include "yamux.hpp"
 
 namespace {
   using Buffer = kagome::common::Buffer;
@@ -166,6 +166,17 @@ namespace libp2p::muxer {
     writable_streams_.erase(stream_id);
   }
 
+  outcome::result<common::NetworkMessage> Yamux::readFrame() {
+    // read 12 bytes
+    // parse frame
+    // if data => read length and return
+    // if service => processService(msg)
+  }
+
+  outcome::result<void> Yamux::writeFrame(const common::NetworkMessage &msg) {
+    // just write the msg
+  }
+
   outcome::result<kagome::common::Buffer> Yamux::read(StreamId stream_id,
                                                       uint32_t to_read) {
     if (!streamCanRead(stream_id)) {
@@ -201,9 +212,6 @@ namespace libp2p::muxer {
     if (!streamCanWrite(stream_id)) {
       return ReadWriteError::kStreamError;
     }
-    if (msg.size() > 4294967295) {
-      /// TODO: partition the message, as it cannot be longer than 2^32
-    }
     return connection_.writeSome(dataMsg(stream_id, msg));
   }
 
@@ -211,9 +219,6 @@ namespace libp2p::muxer {
                                      const kagome::common::Buffer &msg) {
     if (!streamCanWrite(stream_id)) {
       return ReadWriteError::kStreamError;
-    }
-    if (msg.size() > 4294967295) {
-      /// TODO: partition the message, as it cannot be longer than 2^32
     }
     return connection_.write(dataMsg(stream_id, msg));
   }
@@ -223,9 +228,6 @@ namespace libp2p::muxer {
       std::function<basic::Writable::ErrorCodeCallback> handler) noexcept {
     if (!streamCanWrite(stream_id)) {
       return ReadWriteError::kStreamError;
-    }
-    if (msg.size() > 4294967295) {
-      /// TODO: partition the message, as it cannot be longer than 2^32
     }
     connection_.writeAsync(dataMsg(stream_id, msg), std::move(handler));
   }

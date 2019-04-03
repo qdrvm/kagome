@@ -11,10 +11,6 @@ namespace libp2p::stream {
                            muxer::Yamux::StreamId stream_id)
       : yamux_{yamux}, stream_id_{stream_id} {}
 
-  outcome::result<multi::Multiaddress> YamuxStream::getRemoteMultiaddr() const {
-    return yamux_.getRemoteMultiaddr();
-  }
-
   outcome::result<kagome::common::Buffer> YamuxStream::read(uint32_t to_read) {
     return yamux_.read(stream_id_, to_read);
   }
@@ -44,12 +40,18 @@ namespace libp2p::stream {
     yamux_.writeAsync(stream_id_, msg, std::move(handler));
   }
 
-  outcome::result<void> YamuxStream::close() {
+  outcome::result<common::NetworkMessage> YamuxStream::readFrame() {}
+
+  outcome::result<void> YamuxStream::writeFrame(
+      const common::NetworkMessage &msg) {}
+
+  void YamuxStream::close() {
     yamux_.closeStream(stream_id_);
-    return outcome::success();
   }
 
-  bool YamuxStream::isClosed() const {
+  void YamuxStream::reset() {}
+
+  bool YamuxStream::isClosedForWrite() const {
     return yamux_.streamCanWrite(stream_id_);
   }
 
