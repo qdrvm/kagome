@@ -19,6 +19,6 @@ namespace libp2p::muxer {
      */
     virtual std::unique_ptr<stream::Stream> newStream() = 0;
   };
-}  // namespace libp2p::transport
+}  // namespace libp2p::muxer
 
 #endif  // KAGOME_MUXER_HPP

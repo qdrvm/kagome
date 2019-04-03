@@ -8,6 +8,7 @@
 
 #include <gsl/span>
 #include "libp2p/muxer/yamux.hpp"
+#include "libp2p/stream/yamux_stream.hpp"
 
 namespace {
   using Buffer = kagome::common::Buffer;
@@ -148,33 +149,85 @@ namespace libp2p::muxer {
 
   std::unique_ptr<stream::Stream> Yamux::newStream() {
     auto stream_id = getNewStreamId();
-    auto new_stream_msg = newStreamMsg(stream_id);
-    connection_.write(new_stream_msg);
 
-    // according to docs, we are not required to wait until ACK is received, so
-    // the stream can be created and passed to the client immediately, even
-    // though we will need to handle RST flag, if received later
-    stream_buffers_.insert({stream_id, std::vector<common::NetworkMessage>{}});
+    connection_.write(newStreamMsg(stream_id));
+
+    // according to docs, we are not required to wait until ACK is received,
+    // relying on the reliable underneath connection, so the stream can be
+    // created and passed to the client immediately, even though we will need to
+    // handle RST flag, if received later
+    readable_streams_.insert(stream_id);
+    writable_streams_.insert(stream_id);
     return std::make_unique<YamuxStream>(*this, stream_id);
   }
 
   void Yamux::closeStream(StreamId stream_id) {
     connection_.write(closeStreamMsg(stream_id));
-    stream_buffers_.erase(stream_id);
+    writable_streams_.erase(stream_id);
   }
 
-  outcome::result<void> Yamux::write(StreamId stream_id,
-                                     const common::NetworkMessage &msg) const {
-    if (std::find(writable_streams_.begin(), writable_streams_.end(), stream_id)
-        == writable_streams_.end()) {
+  outcome::result<kagome::common::Buffer> Yamux::read(StreamId stream_id,
+                                                      uint32_t to_read) {
+    if (!streamCanRead(stream_id)) {
+      return ReadWriteError::kStreamError;
+    }
+
+    OUTCOME_TRY(frame, connection_.read(to_read));
+    if (auto msg = parseFrame(frame)) {
+      return msg->data_;
+    }
+    return ReadWriteError::kConnectionError;
+  }
+
+  outcome::result<kagome::common::Buffer> Yamux::readSome(StreamId stream_id,
+                                                          uint32_t to_read) {
+    if (!streamCanRead(stream_id)) {
+      return ReadWriteError::kStreamError;
+    }
+    return connection_.readSome(to_read);
+  }
+
+  void Yamux::readAsync(
+      StreamId stream_id,
+      std::function<basic::Readable::BufferResultCallback> callback) noexcept {
+    if (!streamCanRead(stream_id)) {
+      return ReadWriteError::kStreamError;
+    }
+    connection_.readAsync(std::move(callback));
+  }
+
+  outcome::result<void> Yamux::writeSome(StreamId stream_id,
+                                         const kagome::common::Buffer &msg) {
+    if (!streamCanWrite(stream_id)) {
       return ReadWriteError::kStreamError;
     }
     if (msg.size() > 4294967295) {
       /// TODO: partition the message, as it cannot be longer than 2^32
     }
+    return connection_.writeSome(dataMsg(stream_id, msg));
+  }
 
-    auto data_msg = dataMsg(stream_id, msg);
-    connection_.write(data_msg);
+  outcome::result<void> Yamux::write(StreamId stream_id,
+                                     const kagome::common::Buffer &msg) {
+    if (!streamCanWrite(stream_id)) {
+      return ReadWriteError::kStreamError;
+    }
+    if (msg.size() > 4294967295) {
+      /// TODO: partition the message, as it cannot be longer than 2^32
+    }
+    return connection_.write(dataMsg(stream_id, msg));
+  }
+
+  void Yamux::writeAsync(
+      StreamId stream_id, const kagome::common::Buffer &msg,
+      std::function<basic::Writable::ErrorCodeCallback> handler) noexcept {
+    if (!streamCanWrite(stream_id)) {
+      return ReadWriteError::kStreamError;
+    }
+    if (msg.size() > 4294967295) {
+      /// TODO: partition the message, as it cannot be longer than 2^32
+    }
+    connection_.writeAsync(dataMsg(stream_id, msg), std::move(handler));
   }
 
   outcome::result<common::NetworkMessage> Yamux::read(
@@ -190,6 +243,18 @@ namespace libp2p::muxer {
   Yamux::StreamId Yamux::getNewStreamId() {
     last_created_stream_id += 2;  // use either odd or even numbers
     return last_created_stream_id;
+  }
+
+  bool Yamux::streamCanRead(StreamId stream_id) const {
+    return readable_streams_.find(stream_id) != readable_streams_.end();
+  }
+
+  bool Yamux::streamCanWrite(StreamId stream_id) const {
+    return writable_streams_.find(stream_id) != writable_streams_.end();
+  }
+
+  outcome::result<multi::Multiaddress> Yamux::getRemoteMultiaddr() const {
+    return connection_.getRemoteMultiaddr();
   }
 
 }  // namespace libp2p::muxer
