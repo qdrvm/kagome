@@ -43,4 +43,5 @@ add_library(multiaddress
 target_link_libraries(multiaddress
   c_utils
   outcome
+  buffer
   )

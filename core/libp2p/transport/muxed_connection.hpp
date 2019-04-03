@@ -6,10 +6,10 @@
 #ifndef KAGOME_MUXED_CONNECTION_HPP
 #define KAGOME_MUXED_CONNECTION_HPP
 
-#include "libp2p/connection/connection.hpp"
+#include "libp2p/transport/connection.hpp"
 #include "libp2p/stream/stream.hpp"
 
-namespace libp2p::connection {
+namespace libp2p::transport {
   /**
    * Connection complement, which appears, when it gets muxed
    */

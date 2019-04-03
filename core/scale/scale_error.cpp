@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/scale_error.hpp"
+#include "scale/scale_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::common::scale, EncodeError, e) {
   using kagome::common::scale::EncodeError;
@@ -12,6 +12,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::common::scale, EncodeError, e) {
       return "compact integers cannot be negative";
     case EncodeError::kCompactIntegerIsTooBig:
       return "compact integers cannot be negative";
+    case EncodeError::kWrongCategory:
+      return "wrong compact encoding category";
     default:
       break;
   }
@@ -27,6 +29,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::common::scale, DecodeError, e) {
       return "unexpected value occured";
     case DecodeError::kTooManyItems:
       return "collection has too many items, unable to unpack";
+    case DecodeError::kWrongTypeIndex:
+      return "wrong type index, cannot decode variant";
     default:
       break;
   }

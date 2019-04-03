@@ -10,6 +10,8 @@
 #include "common/result.hpp"
 #include "scale/types.hpp"
 
+#include <outcome/outcome.hpp>
+
 namespace kagome::common::scale::fixedwidth {
   // 8 bit
   /**
@@ -77,14 +79,14 @@ namespace kagome::common::scale::fixedwidth {
    * @param stream source byte stream reference
    * @return optional decoded value
    */
-  std::optional<int8_t> decodeInt8(Stream &stream);
+  outcome::result<int8_t> decodeInt8(Stream &stream);
 
   /**
    * @brief decodeUint8 decodes uint8_t from host- to little- endian
    * @param stream source byte stream reference
    * @return optional decoded value
    */
-  std::optional<uint8_t> decodeUint8(Stream &stream);
+  outcome::result<uint8_t> decodeUint8(Stream &stream);
 
   // 16 bit
   /**
@@ -92,14 +94,14 @@ namespace kagome::common::scale::fixedwidth {
    * @param stream source byte stream reference
    * @return optional decoded value
    */
-  std::optional<int16_t> decodeInt16(Stream &stream);
+  outcome::result<int16_t> decodeInt16(Stream &stream);
 
   /**
    * @brief decodeUint16 decodes uint16_t from host- to little- endian
    * @param stream source byte stream reference
    * @return optional decoded value
    */
-  std::optional<uint16_t> decodeUint16(Stream &stream);
+  outcome::result<uint16_t> decodeUint16(Stream &stream);
 
   // 32 bit
   /**
@@ -107,14 +109,14 @@ namespace kagome::common::scale::fixedwidth {
    * @param stream source byte stream reference
    * @return optional decoded value
    */
-  std::optional<int32_t> decodeInt32(Stream &stream);
+  outcome::result<int32_t> decodeInt32(Stream &stream);
 
   /**
    * @brief decodeUint32 decodes uint32_t from host- to little- endian
    * @param stream source byte stream reference
    * @return optional decoded value
    */
-  std::optional<uint32_t> decodeUint32(Stream &stream);
+  outcome::result<uint32_t> decodeUint32(Stream &stream);
 
   // 64 bit
   /**
@@ -122,14 +124,14 @@ namespace kagome::common::scale::fixedwidth {
    * @param stream source byte stream reference
    * @return optional decoded value
    */
-  std::optional<int64_t> decodeInt64(Stream &stream);
+  outcome::result<int64_t> decodeInt64(Stream &stream);
 
   /**
    * @brief decodeUint64 decodes uint64_t from host- to little- endian
    * @param stream source byte stream reference
    * @return optional decoded value
    */
-  std::optional<uint64_t> decodeUint64(Stream &stream);
+  outcome::result<uint64_t> decodeUint64(Stream &stream);
 }  // namespace kagome::common::scale::fixedwidth
 
 #endif  // KAGOME_SCALE_FIXEDWIDTH_HPP

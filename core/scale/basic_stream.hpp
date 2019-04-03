@@ -10,7 +10,6 @@
 #include "scale/types.hpp"
 
 namespace kagome::common::scale {
-
   /**
    * @class BasicStream implements Stream interface
    * It wraps ByteArray and allows getting bytes
@@ -20,7 +19,7 @@ namespace kagome::common::scale {
    public:
     explicit BasicStream(const ByteArray &source);
 
-    explicit BasicStream(const Buffer & source);
+    explicit BasicStream(const Buffer &source);
 
     ~BasicStream() override = default;
 

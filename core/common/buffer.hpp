@@ -33,10 +33,15 @@ namespace kagome::common {
      */
     explicit Buffer(std::vector<uint8_t> v);
 
+    Buffer(const uint8_t *begin, const uint8_t *end);
+
     Buffer() = default;
     Buffer(const Buffer &b) = default;
     Buffer(Buffer &&b) noexcept = default;
     Buffer(std::initializer_list<uint8_t> b);
+
+    Buffer &reserve(size_t size);
+    Buffer &resize(size_t size);
 
     Buffer &operator=(const Buffer &other) = default;
     Buffer &operator=(Buffer &&other) noexcept = default;
@@ -44,7 +49,7 @@ namespace kagome::common {
     /**
      * @brief Accessor of byte elements given {@param index} in bytearray
      */
-    const uint8_t operator[](size_t index) const;
+    uint8_t operator[](size_t index) const;
 
     /**
      * @brief Accessor of byte elements given {@param index} in bytearray
@@ -159,11 +164,13 @@ namespace kagome::common {
      */
     const std::vector<uint8_t> &toVector() const;
 
+    std::vector<uint8_t> &toVector();
+
     /**
      * @brief encode bytearray as hex
      * @return hexencoded string
      */
-    const std::string toHex() const;
+    std::string toHex() const;
 
     /**
      * @brief Construct Buffer from hexstring

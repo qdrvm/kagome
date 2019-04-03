@@ -6,71 +6,71 @@
 #ifndef KAGOME_TRANSPORT_LISTENER_HPP
 #define KAGOME_TRANSPORT_LISTENER_HPP
 
+#include <boost/signals2/connection.hpp>
 #include <functional>
+#include <memory>
 #include <vector>
 
-#include <boost/optional.hpp>
-#include <boost/signals2.hpp>
-#include "libp2p/connection/connection.hpp"
 #include "libp2p/multi/multiaddress.hpp"
+#include "libp2p/transport/connection.hpp"
+#include "libp2p/basic/closeable.hpp"
 
 namespace libp2p::transport {
+
   /**
    * Listens to the connections from the specified addresses and reacts when
    * receiving ones
    */
-  class TransportListener {
+ class TransportListener: public basic::Closeable {
    public:
+    using NoArgsCallback = void();
+    using ErrorCallback = void(const std::error_code &);
+    using MultiaddrCallback = void(const multi::Multiaddress &);
+    using ConnectionCallback = void(std::shared_ptr<Connection>);
+    using HandlerFunc = std::function<ConnectionCallback>;
+
+    virtual ~TransportListener() = default;
+
     /**
      * Switch the listener into 'listen' mode; it will react to every new
      * connection
      * @param address to listen to
      */
-    virtual void listen(const multi::Multiaddress &address) = 0;
+    virtual outcome::result<void> listen(const multi::Multiaddress &address) = 0;
 
     /**
      * Get addresses, which this listener listens to
      * @return collection of those addresses
      */
-    virtual std::vector<multi::Multiaddress> getAddresses() const = 0;
-
-    /**
-     * Stop listening to the connections, so that no more of them are
-     * accepted on this transport
-     */
-    virtual void close() = 0;
-
-    /**
-     * @see close()
-     * @param timeout, after which all connections on this transport are
-     * destroyed, if not able to finish properly
-     */
-    virtual void close(uint8_t timeout) = 0;
+    virtual const std::vector<multi::Multiaddress> &getAddresses() const = 0;
 
     /**
      * Listener is initialized and ready to accept connections
      * @param callback to be called, when event happens
      */
-    virtual void onStartListening(std::function<void()> callback) const = 0;
+    virtual boost::signals2::connection onStartListening(
+        std::function<MultiaddrCallback> callback) = 0;
 
     /**
      * Listener accepts new connection
      * @param callback to be called, when event happens
      */
-    virtual void onNewConnection(
-        std::function<void(connection::Connection)> callback) const = 0;
+    virtual boost::signals2::connection onNewConnection(
+        std::function<ConnectionCallback> callback) = 0;
 
     /**
      * Listener encounters an error
      * @param callback to be called, when event happens
      */
-    virtual void onError(std::function<void()> callback) const = 0;
+    virtual boost::signals2::connection onError(
+        std::function<ErrorCallback> callback) = 0;
 
     /**
      * Listener stops
      * @param callback to be called, when event happens
      */
-    virtual void onClose(std::function<void()> callback) const = 0;
+    virtual boost::signals2::connection onClose(
+        std::function<NoArgsCallback> callback) = 0;
   };
 }  // namespace libp2p::transport
 
