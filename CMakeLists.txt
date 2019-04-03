@@ -49,6 +49,7 @@ include_directories(
   deps/spdlog/include
   deps/GSL/include
   deps/outcome
+  deps/sml
 )
 
 add_subdirectory(core)
