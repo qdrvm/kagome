@@ -44,6 +44,7 @@ namespace kagome::common {
     Buffer &resize(size_t size);
 
     Buffer &operator=(const Buffer &other) = default;
+    Buffer &operator=(Buffer &&other) noexcept = default;
 
     /**
      * @brief Accessor of byte elements given {@param index} in bytearray

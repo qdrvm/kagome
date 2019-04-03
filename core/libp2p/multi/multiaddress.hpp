@@ -32,7 +32,7 @@ namespace libp2p::multi {
     Multiaddress(const Multiaddress &address) = default;
     Multiaddress &operator=(const Multiaddress &address) = default;
 
-    Multiaddress(Multiaddress &&address) = default;
+    Multiaddress(Multiaddress &&address) noexcept = default;
     Multiaddress &operator=(Multiaddress &&address) = default;
 
     enum class Error {
@@ -127,6 +127,12 @@ namespace libp2p::multi {
     outcome::result<std::string> getFirstValueForProtocol(Protocol proto) const;
 
     bool operator==(const Multiaddress &other) const;
+
+    /**
+     * Lexicographical comparison of string representations of the
+     * Multiaddresses
+     */
+    bool operator<(const Multiaddress &other) const;
 
     template <typename T>
     outcome::result<T> getFirstValueForProtocol(

@@ -230,4 +230,8 @@ namespace libp2p::multi {
     return vec[0];
   }
 
+  bool Multiaddress::operator<(const Multiaddress &other) const {
+    return this->stringified_address_ < other.stringified_address_;
+  }
+
 }  // namespace libp2p::multi
