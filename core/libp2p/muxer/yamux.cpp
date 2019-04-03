@@ -29,47 +29,50 @@ namespace {
       kFin = 4,  // half-close of the stream
       kRst = 8   // reset a stream
     };
+    static constexpr uint8_t default_version = 0;
+    static constexpr uint32_t default_window_size = 256;
 
-    uint8_t version;
-    FrameType type;
-    Flag flag;
-    StreamId stream_id;
-    uint32_t length;
-    gsl::span<uint8_t> data{};
+    uint8_t version_;
+    FrameType type_;
+    Flag flag_;
+    StreamId stream_id_;
+    uint32_t length_;
+    Buffer data_;
 
-    Buffer getBytes() {
-      auto bytes = Buffer{}
-                       .putUint8(version)
-                       .putUint8(static_cast<uint8_t>(type))
-                       .putUint16(static_cast<uint16_t>(flag))
-                       .putUint32(stream_id)
-                       .putUint32(length);
-      if (!data.empty()) {
-        bytes.put(data);
-      }
-      return bytes;
+    /**
+     * Get bytes representation of the Yamux frame
+     * @return bytes of the frame
+     */
+    static Buffer frameBytes(uint8_t version, FrameType type, Flag flag,
+                             uint32_t stream_id, uint32_t length,
+                             const Buffer &data = Buffer{}) {
+      return Buffer{}
+          .putUint8(version)
+          .putUint8(static_cast<uint8_t>(type))
+          .putUint16(static_cast<uint16_t>(flag))
+          .putUint32(stream_id)
+          .putUint32(length)
+          .putBuffer(data);
     }
   };
 
-  constexpr uint32_t default_window_size = 256;
-
   Buffer newStreamMsg(StreamId stream_id) {
-    return YamuxFrame{0, YamuxFrame::FrameType::kWindowUpdate,
-                      YamuxFrame::Flag::kSyn, stream_id, default_window_size}
-        .getBytes();
+    return YamuxFrame::frameBytes(
+        YamuxFrame::default_version, YamuxFrame::FrameType::kWindowUpdate,
+        YamuxFrame::Flag::kSyn, stream_id, YamuxFrame::default_window_size);
   }
 
   Buffer closeStreamMsg(StreamId stream_id) {
-    return YamuxFrame{0, YamuxFrame::FrameType::kWindowUpdate,
-                      YamuxFrame::Flag::kFin, stream_id, default_window_size}
-        .getBytes();
+    return YamuxFrame::frameBytes(
+        YamuxFrame::default_version, YamuxFrame::FrameType::kWindowUpdate,
+        YamuxFrame::Flag::kFin, stream_id, YamuxFrame::default_window_size);
   }
 
   Buffer dataMsg(StreamId stream_id, const Buffer &data) {
-    return YamuxFrame{
-        0,         YamuxFrame::FrameType::kData,       YamuxFrame::Flag::kSyn,
-        stream_id, static_cast<uint32_t>(data.size()), data.toVector()}
-        .getBytes();
+    return YamuxFrame::frameBytes(YamuxFrame::default_version,
+                                  YamuxFrame::FrameType::kData,
+                                  YamuxFrame::Flag::kSyn, stream_id,
+                                  static_cast<uint32_t>(data.size()), data);
   }
 
   std::optional<YamuxFrame> parseFrame(const Buffer &frame_bytes) {
@@ -79,20 +82,20 @@ namespace {
 
     YamuxFrame frame{};
 
-    frame.version = frame_bytes[0];
+    frame.version_ = frame_bytes[0];
 
     switch (frame_bytes[1]) {
       case 0:
-        frame.type = YamuxFrame::FrameType::kData;
+        frame.type_ = YamuxFrame::FrameType::kData;
         break;
       case 1:
-        frame.type = YamuxFrame::FrameType::kWindowUpdate;
+        frame.type_ = YamuxFrame::FrameType::kWindowUpdate;
         break;
       case 2:
-        frame.type = YamuxFrame::FrameType::kPing;
+        frame.type_ = YamuxFrame::FrameType::kPing;
         break;
       case 3:
-        frame.type = YamuxFrame::FrameType::kGoAway;
+        frame.type_ = YamuxFrame::FrameType::kGoAway;
         break;
       default:
         return {};
@@ -100,33 +103,37 @@ namespace {
 
     switch ((static_cast<uint16_t>(frame_bytes[3]) << 8) | frame_bytes[2]) {
       case 0:
-        frame.flag = YamuxFrame::Flag::kSyn;
+        frame.flag_ = YamuxFrame::Flag::kSyn;
         break;
       case 2:
-        frame.flag = YamuxFrame::Flag::kAck;
+        frame.flag_ = YamuxFrame::Flag::kAck;
         break;
       case 4:
-        frame.flag = YamuxFrame::Flag::kFin;
+        frame.flag_ = YamuxFrame::Flag::kFin;
         break;
       case 8:
-        frame.flag = YamuxFrame::Flag::kRst;
+        frame.flag_ = YamuxFrame::Flag::kRst;
         break;
       default:
         return {};
     }
 
-    frame.stream_id = (static_cast<uint16_t>(frame_bytes[7]) << 24)
+    frame.stream_id_ = (static_cast<uint16_t>(frame_bytes[7]) << 24)
         | (static_cast<uint16_t>(frame_bytes[6]) << 16)
         | (static_cast<uint16_t>(frame_bytes[5]) << 8)
         | (static_cast<uint16_t>(frame_bytes[4]));
 
-    frame.length = (static_cast<uint16_t>(frame_bytes[11]) << 24)
+    frame.length_ = (static_cast<uint16_t>(frame_bytes[11]) << 24)
         | (static_cast<uint16_t>(frame_bytes[10]) << 16)
         | (static_cast<uint16_t>(frame_bytes[9]) << 8)
         | (static_cast<uint16_t>(frame_bytes[8]));
 
-    const auto &data_vector = frame_bytes.toVector();
-    frame.data = gsl::make_span(data_vector.begin() + 11, data_vector.end());
+    const auto &data_begin = frame_bytes.begin() + 11;
+    if (data_begin != frame_bytes.end()) {
+      frame.data_ = Buffer{std::vector<uint8_t>(data_begin, frame_bytes.end())};
+    }
+
+    return frame;
   }
 
 }  // namespace
