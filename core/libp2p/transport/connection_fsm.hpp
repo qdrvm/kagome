@@ -8,10 +8,10 @@
 
 #include <vector>
 
-#include "libp2p/connection/connection.hpp"
+#include "libp2p/transport/connection.hpp"
 #include "libp2p/error/error.hpp"
 
-namespace libp2p::connection {
+namespace libp2p::transport {
   /**
    * Finite-state machine of the connection; represents connection's status
    */

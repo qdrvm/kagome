@@ -6,6 +6,7 @@
 #ifndef KAGOME_MULTIADDRESS_HPP
 #define KAGOME_MULTIADDRESS_HPP
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <outcome/outcome.hpp>
@@ -16,7 +17,6 @@
 #include "common/buffer.hpp"
 
 namespace libp2p::multi {
-
 
   /**
    * Address format, used by Libp2p
@@ -36,7 +36,9 @@ namespace libp2p::multi {
     Multiaddress &operator=(Multiaddress &&address) = default;
 
     enum class Error {
-      InvalidInput = 1,  ///< input contains invalid multiaddress
+      InvalidInput = 1,     ///< input contains invalid multiaddress
+      ProtocolNotFound,     ///< given protocol can not be found
+      InvalidProtocolValue  ///< protocol value can not be casted to T
     };
 
     /**
@@ -112,12 +114,31 @@ namespace libp2p::multi {
     /**
      * Get all values, which are under that protocol in this multiaddress
      * @param proto to be searched for
-     * @return vector of values, if there is at least one under this protocol,
-     * none otherwise
+     * @return empty vector if no protocols found, or vector with values
+     * otherwise
      */
     std::vector<std::string> getValuesForProtocol(Protocol proto) const;
 
+    /**
+     * Get first value for protocol
+     * @param proto to be searched for
+     * @return value (string) if protocol is found, none otherwise
+     */
+    outcome::result<std::string> getFirstValueForProtocol(Protocol proto) const;
+
     bool operator==(const Multiaddress &other) const;
+
+    template <typename T>
+    outcome::result<T> getFirstValueForProtocol(
+        Protocol protocol, std::function<T(const std::string &)> caster) const {
+      OUTCOME_TRY(val, getFirstValueForProtocol(protocol));
+
+      try {
+        return caster(val);
+      } catch (...) {
+        return Error::InvalidProtocolValue;
+      }
+    }
 
    private:
     /**

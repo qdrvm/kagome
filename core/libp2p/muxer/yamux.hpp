@@ -10,9 +10,10 @@
 #include <vector>
 
 #include <outcome/outcome.hpp>
-#include "libp2p/connection/muxed_connection.hpp"
+#include "libp2p/muxer/muxer.hpp"
 #include "libp2p/muxer/yamux_config.hpp"
 #include "libp2p/stream/yamux_stream.hpp"
+#include "libp2p/transport/connection.hpp"
 
 namespace libp2p::muxer {
   /**
@@ -21,7 +22,7 @@ namespace libp2p::muxer {
    * several applications
    * Read more: https://github.com/hashicorp/yamux/blob/master/spec.md
    */
-  class Yamux : public connection::MuxedConnection {
+  class Yamux : public Muxer {
     friend stream::YamuxStream;
 
     /// according to spec, there is a 32-bit number for stream id
@@ -33,21 +34,11 @@ namespace libp2p::muxer {
      * @param connection over which it should be created
      * @param config - parameters of this instance
      */
-    Yamux(connection::Connection &connection, YamuxConfig config);
+    Yamux(transport::Connection &connection, YamuxConfig config);
 
     std::unique_ptr<stream::Stream> newStream() override;
 
-    std::vector<multi::Multiaddress> getObservedAdrresses() const override;
-
-    boost::optional<common::PeerInfo> getPeerInfo() const override;
-
-    void setPeerInfo(const common::PeerInfo &info) override;
-
    private:
-    /// these write & read came from MuxedConnection and must never be used
-    void write(const common::NetworkMessage &msg) const override;
-    boost::optional<common::NetworkMessage> read() const override;
-
     enum class ReadWriteError { kConnectionError = 1, kStreamError };
 
     outcome::result<void> write(StreamId stream_id,
@@ -55,7 +46,7 @@ namespace libp2p::muxer {
     outcome::result<common::NetworkMessage> read(StreamId stream_id) const;
 
     bool is_server_;
-    connection::Connection &connection_;
+    transport::Connection &connection_;
     StreamId last_created_stream_id;
 
     /// as streams are full-duplex, there's a possibility we close the stream

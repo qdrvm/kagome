@@ -40,3 +40,5 @@ cmake-build*
 build
 dist
 ninja_build_release
+_builds
+_logs

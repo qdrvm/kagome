@@ -141,7 +141,7 @@ namespace {
 namespace libp2p::muxer {
   using stream::YamuxStream;
 
-  Yamux::Yamux(connection::Connection &connection, YamuxConfig config)
+  Yamux::Yamux(transport::Connection &connection, YamuxConfig config)
       : connection_{connection}, is_server_{config.is_server} {
     last_created_stream_id = is_server_ ? 0 : 1;
   }
@@ -185,26 +185,6 @@ namespace libp2p::muxer {
     }
 
     return stream_buffer->second[0];
-  }
-
-  std::vector<multi::Multiaddress> Yamux::getObservedAdrresses() const {
-    return connection_.getObservedAdrresses();
-  }
-
-  boost::optional<common::PeerInfo> Yamux::getPeerInfo() const {
-    return connection_.getPeerInfo();
-  }
-
-  void Yamux::setPeerInfo(const common::PeerInfo &info) {
-    connection_.setPeerInfo(info);
-  }
-
-  void Yamux::write(const common::NetworkMessage &msg) const {
-    std::terminate();
-  }
-
-  boost::optional<common::NetworkMessage> Yamux::read() const {
-    std::terminate();
   }
 
   Yamux::StreamId Yamux::getNewStreamId() {

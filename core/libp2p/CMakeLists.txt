@@ -4,5 +4,6 @@
 #
 
 add_subdirectory(multi)
+add_subdirectory(transport)
 add_subdirectory(muxer)
 add_subdirectory(stream)
