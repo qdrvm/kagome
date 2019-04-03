@@ -275,7 +275,7 @@ namespace kagome::extensions {
     virtual void ext_twox_256(const uint8_t *data, uint32_t len,
                               uint8_t *out) = 0;
 
-    // -------------------------Sanboxing extensions--------------------------
+    // -------------------------Sandboxing extensions--------------------------
 
     virtual void ext_sandbox_instance_teardown(uint32_t instance_idx) = 0;
 

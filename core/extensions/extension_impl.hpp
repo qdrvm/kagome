@@ -118,7 +118,7 @@ namespace kagome::extensions {
 
     void ext_twox_256(const uint8_t *data, uint32_t len, uint8_t *out) override;
 
-    // -------------------------Sanboxing extensions----------------------
+    // -------------------------Sandboxing extensions----------------------
     void ext_sandbox_instance_teardown(uint32_t instance_idx) override;
 
     uint32_t ext_sandbox_instantiate(
