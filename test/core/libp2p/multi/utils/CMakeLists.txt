@@ -15,6 +15,3 @@ target_link_libraries(uvarint_test
 addtest(protocol_list_test
     protocol_list_test.cpp
     )
-target_link_libraries(protocol_list_test
-    protocol_list
-    )

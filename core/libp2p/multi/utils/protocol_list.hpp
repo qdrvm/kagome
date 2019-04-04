@@ -6,17 +6,22 @@
 #ifndef KAGOME_PROTOCOLLIST_HPP
 #define KAGOME_PROTOCOLLIST_HPP
 
-#include <map>
 #include <functional>
+#include <map>
 
 namespace libp2p::multi {
 
+  /**
+   * Contains some data about a network protocol, e. g. its name and code
+   */
   struct Protocol {
-  public:
-
+   public:
+    /**
+     * Denotes that the size of the protocol is variable
+     */
     static const int kVarLen = -1;
 
-    enum class Code: std::size_t {
+    enum class Code : std::size_t {
       ip4 = 4,
       tcp = 6,
       udp = 273,
@@ -48,19 +53,27 @@ namespace libp2p::multi {
       p2p_circuit = 290,
     };
 
-    const Code dec_code;
+    const Code code;
     const ssize_t size;
     const std::string_view name;
   };
 
+  /**
+   * Contains a list of protocols and some accessor methods for it
+   */
   class ProtocolList {
-  public:
-
+   public:
+    /**
+     * The total number of known protocols
+     */
     static const std::size_t kProtocolsNum = 29;
 
-    static constexpr auto get(std::string_view name)
-        -> Protocol const* {
-      for(auto& protocol: protocols_) {
+    /**
+     * Returns a protocol with the corresponding name if it exists, or nullptr
+     * otherwise
+     */
+    static constexpr auto get(std::string_view name) -> Protocol const * {
+      for (auto &protocol : protocols_) {
         if (protocol.name == name) {
           return &protocol;
         }
@@ -68,22 +81,36 @@ namespace libp2p::multi {
       return nullptr;
     }
 
-    static constexpr auto get(Protocol::Code code)
-        -> Protocol const* {
-      for(auto& protocol: protocols_) {
-        if (protocol.dec_code == code) {
+    /**
+     * Returns a protocol with the corresponding code if it exists, or nullptr
+     * otherwise
+     */
+    static constexpr auto get(Protocol::Code code) -> Protocol const * {
+      for (auto &protocol : protocols_) {
+        if (protocol.code == code) {
           return &protocol;
         }
       }
       return nullptr;
     }
 
+    /**
+     * Return the list of all known protocols
+     * @return
+     */
+    static constexpr auto getProtocols()
+        -> const std::array<Protocol, kProtocolsNum> & {
+      return protocols_;
+    }
 
-  private:
-    static constexpr const std::array<Protocol, kProtocolsNum> protocols_= {
-        Protocol {Protocol::Code::ip4, 32, "ip4"},
-        Protocol {Protocol::Code::tcp, 16, "tcp"},
-        Protocol {Protocol::Code::udp, 16, "udp"},
+   private:
+    /**
+     * The list of known protocols
+     */
+    static constexpr const std::array<Protocol, kProtocolsNum> protocols_ = {
+        Protocol{Protocol::Code::ip4, 32, "ip4"},
+        Protocol{Protocol::Code::tcp, 16, "tcp"},
+        Protocol{Protocol::Code::udp, 16, "udp"},
         {Protocol::Code::dccp, 16, "dccp"},
         {Protocol::Code::ip6, 128, "ip6"},
         {Protocol::Code::ip6zone, Protocol::kVarLen, "ip6zone"},
@@ -111,8 +138,7 @@ namespace libp2p::multi {
         {Protocol::Code::p2p_webrtc_direct, 0, "p2p-webrtc-direct"},
         {Protocol::Code::p2p_circuit, 0, "p2p-circuit"},
     };
-
   };
 
-}
-#endif //KAGOME_PROTOCOLLIST_HPP
+}  // namespace libp2p::multi
+#endif  // KAGOME_PROTOCOLLIST_HPP

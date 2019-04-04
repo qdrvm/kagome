@@ -13,7 +13,3 @@ target_link_libraries(uvarint
     outcome
     )
 
-add_library(protocol_list
-    protocol_list.cpp
-    protocol_list.hpp
-    )
