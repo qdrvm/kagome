@@ -52,28 +52,29 @@ TEST(TCP, TwoListenersCantBindOnSamePort) {
  * @then each client is expected to receive sent message
  */
 TEST(TCP, SingleListenerCanAcceptManyClients) {
-  const int kClients = 2;
+  const int kClients = 1;
   const int kSize = 1500;
   const int kRetries = 10;
 
   size_t counter = 0;  // number of answers
   boost::asio::io_context context;
   auto transport = std::make_unique<TcpTransport>(context);
-  auto listener = transport->createListener([&counter](std::shared_ptr<Connection> c) {
-    c->readAsync([c, &counter](outcome::result<Buffer> result) {
-      EXPECT_OUTCOME_TRUE(data, result);
+  auto listener =
+      transport->createListener([&counter](std::shared_ptr<Connection> c) {
+        c->readAsync([c, &counter](outcome::result<Buffer> result) {
+          EXPECT_OUTCOME_TRUE(data, result);
 
-      // echo once, then close connection
-      c->writeAsync(data,
-                    [s = data.size(), c, &counter](std::error_code error,
-                                                   size_t written) {
-                      counter++;
-                      ASSERT_FALSE(error);
-                      ASSERT_EQ(written, s);
-                      ASSERT_TRUE(c->close());
-                    });
-    });
-  });
+          // echo once, then close connection
+          c->writeAsync(data,
+                        [s = data.size(), c, &counter](std::error_code error,
+                                                       size_t written) {
+                          counter++;
+                          ASSERT_FALSE(error);
+                          ASSERT_EQ(written, s);
+                          ASSERT_TRUE(c->close());
+                        });
+        });
+      });
   ASSERT_TRUE(listener);
   EXPECT_OUTCOME_TRUE(ma, Multiaddress::create("/ip4/127.0.0.1/tcp/40003"))
   ASSERT_TRUE(listener->listen(ma));

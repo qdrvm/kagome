@@ -8,7 +8,6 @@
 #include <gtest/gtest.h>
 
 #include "core/runtime/mock_memory.hpp"
-#include "core/storage/merkle/mock_codec.hpp"
 
 using kagome::common::Buffer;
 using kagome::extensions::StorageExtension;
@@ -16,7 +15,6 @@ using kagome::runtime::MockMemory;
 using kagome::runtime::SizeType;
 using kagome::runtime::WasmPointer;
 using kagome::storage::KeyValue;
-using kagome::storage::merkle::MockCodec;
 using kagome::storage::merkle::TrieDb;
 
 using ::testing::_;
@@ -39,15 +37,12 @@ class StorageExtensionTest : public ::testing::Test {
   void SetUp() override {
     db_ = std::make_shared<MockTrieDb>();
     memory_ = std::make_shared<MockMemory>();
-    codec_ = std::make_shared<MockCodec>();
-    storage_extension_ =
-        std::make_shared<StorageExtension>(db_, memory_, codec_);
+    storage_extension_ = std::make_shared<StorageExtension>(db_, memory_);
   }
 
  protected:
   std::shared_ptr<MockTrieDb> db_;
   std::shared_ptr<MockMemory> memory_;
-  std::shared_ptr<MockCodec> codec_;
   std::shared_ptr<StorageExtension> storage_extension_;
 
   constexpr static uint32_t kU32Max = std::numeric_limits<uint32_t>::max();
@@ -270,54 +265,11 @@ TEST_P(OutcomeParameterizedTest, SetStorageTest) {
                                       value_size);
 }
 
-/**
- * @given data represented by array of buffers
- * @when calculate Blake2_256EnumeratedTrieRoot from that data
- * @then ordered trie root of that data is stored in the memory
- */
-TEST_F(StorageExtensionTest, Blake2_256EnumeratedTrieRootTest) {
-  // initialize array of data and corresponding array of lengths
-  std::vector<Buffer> data;
-
-  std::vector<SizeType> lengths{1, 2, 3};
-  data.reserve(lengths.size());
-  for (auto length : lengths) {
-    data.emplace_back(length, 'v');
-  }
-
-  WasmPointer values_ptr = 42;
-  WasmPointer lens_ptr = 5;
-
-  // set expected trie root
-  auto trie_root =
-      kagome::common::Hash256::fromHex(std::string(64, 'c')).getValue();
-
-  WasmPointer result = 123;
-
-  // each length should be loaded, so in total there should be 3 load32s (same
-  // as the size of lengths)
-  EXPECT_CALL(*memory_, load32s(_)).Times(lengths.size());
-
-  // loadN is used to load data. In total it should be called 3 times and each
-  // call returns some piece of data
-  EXPECT_CALL(*memory_, loadN(_, _))
-      .WillOnce(Return(data[0]))
-      .WillOnce(Return(data[1]))
-      .WillOnce(Return(data[2]));
-
-  // check that trie root is calculated from the data and it is loaded to the
-  // memory
-  EXPECT_CALL(*codec_, orderedTrieRoot(data)).WillOnce(Return(trie_root));
-  Buffer trie_root_buf(
-      std::vector<uint8_t>(trie_root.begin(), trie_root.end()));
-  EXPECT_CALL(*memory_, storeBuffer(result, trie_root_buf));
-  storage_extension_->ext_blake2_256_enumerated_trie_root(
-      values_ptr, lens_ptr, lengths.size(), result);
-}
-
 INSTANTIATE_TEST_CASE_P(Instance, OutcomeParameterizedTest,
                         ::testing::Values<outcome::result<void>>(
+                            /// success case
                             outcome::success(),
+                            /// failure with arbitrary error code
                             outcome::failure(std::error_code())),
                         // empty argument for the macro
 );

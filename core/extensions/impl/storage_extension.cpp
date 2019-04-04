@@ -8,11 +8,9 @@
 namespace kagome::extensions {
   StorageExtension::StorageExtension(
       std::shared_ptr<storage::merkle::TrieDb> db,
-      std::shared_ptr<runtime::WasmMemory> memory,
-      std::shared_ptr<storage::merkle::Codec> codec, common::Logger logger)
+      std::shared_ptr<runtime::WasmMemory> memory, common::Logger logger)
       : db_(std::move(db)),
         memory_(std::move(memory)),
-        codec_(std::move(codec)),
         logger_(std::move(logger)) {}
 
   // -------------------------Data storage--------------------------
@@ -94,16 +92,9 @@ namespace kagome::extensions {
   void StorageExtension::ext_blake2_256_enumerated_trie_root(
       runtime::WasmPointer values_data, runtime::WasmPointer lens_data,
       runtime::SizeType lens_length, runtime::WasmPointer result) {
-    std::vector<common::Buffer> data;
-    for (runtime::SizeType i = 0; i < lens_length; i++) {
-      auto length = memory_->load32s(lens_data + i * 4);
-      data.emplace_back(memory_->loadN(values_data, length));
-      values_data += length;
-    }
-
-    auto root = codec_->orderedTrieRoot(data);
-    memory_->storeBuffer(
-        result, common::Buffer(std::vector<uint8_t>(root.begin(), root.end())));
+    // TODO(Akvinikym) PRE-54 11.03.19: implement, when Merkle Trie is ready
+    logger_->error("Unimplemented");
+    std::terminate();
   }
 
   runtime::SizeType StorageExtension::ext_storage_changes_root(

@@ -10,7 +10,6 @@
 
 #include "common/logger.hpp"
 #include "runtime/wasm_memory.hpp"
-#include "storage/merkle/codec.hpp"
 #include "storage/merkle/trie_db.hpp"
 
 namespace kagome::extensions {
@@ -22,7 +21,6 @@ namespace kagome::extensions {
     explicit StorageExtension(
         std::shared_ptr<storage::merkle::TrieDb> db,
         std::shared_ptr<runtime::WasmMemory> memory,
-        std::shared_ptr<storage::merkle::Codec> codec,
         common::Logger logger = common::createLogger(kDefaultLoggerTag));
 
     // -------------------------Data storage--------------------------
@@ -163,12 +161,11 @@ namespace kagome::extensions {
      * case value by give key does not exist
      */
     outcome::result<common::Buffer> get(const common::Buffer &key,
-                                      runtime::SizeType offset,
-                                      runtime::SizeType max_length) const;
+                                        runtime::SizeType offset,
+                                        runtime::SizeType max_length) const;
 
     std::shared_ptr<storage::merkle::TrieDb> db_;
     std::shared_ptr<runtime::WasmMemory> memory_;
-    std::shared_ptr<storage::merkle::Codec> codec_;
     common::Logger logger_;
 
     constexpr static auto kDefaultLoggerTag = "WASM Runtime [StorageExtension]";
