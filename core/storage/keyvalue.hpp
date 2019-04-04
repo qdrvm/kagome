@@ -33,8 +33,9 @@ namespace kagome::storage {
     /**
      * @brief Delete value by key
      * @param key byte buffer
+     * @return result containing void if del successful, error otherwise
      */
-    virtual void del(const common::Buffer &key) = 0;
+    virtual outcome::result<void> del(const common::Buffer &key) = 0;
 
     /**
      * @brief Returns true if given key exists in the storage.

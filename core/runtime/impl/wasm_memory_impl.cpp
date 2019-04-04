@@ -50,7 +50,7 @@ namespace kagome::runtime {
   }
 
   std::optional<SizeType> WasmMemoryImpl::deallocate(WasmPointer ptr) {
-    const auto &it = allocated_.find(ptr);
+    const auto it = allocated_.find(ptr);
     if (it == allocated_.end()) {
       return std::nullopt;
     }

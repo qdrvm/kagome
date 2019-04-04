@@ -159,10 +159,10 @@ namespace kagome::extensions {
      * @param offset SizeType pointing to the beginning of the value
      * @param max_length SizeType defining the maximum possible length of the
      * returned result
-     * @return optional containing Buffer with the part of the value, or none in
-     * case value by give key dopes not exist
+     * @return result containing Buffer with the part of the value, or error in
+     * case value by give key does not exist
      */
-    std::optional<common::Buffer> get(const common::Buffer &key,
+    outcome::result<common::Buffer> get(const common::Buffer &key,
                                       runtime::SizeType offset,
                                       runtime::SizeType max_length) const;
 

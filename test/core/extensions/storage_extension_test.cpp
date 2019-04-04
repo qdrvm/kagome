@@ -29,7 +29,7 @@ class MockTrieDb : public TrieDb {
 
   MOCK_METHOD2(put, outcome::result<void>(const Buffer &, const Buffer &));
   MOCK_CONST_METHOD1(get, outcome::result<Buffer>(const Buffer &));
-  MOCK_METHOD1(del, void(const Buffer &));
+  MOCK_METHOD1(del, outcome::result<void>(const Buffer &));
   MOCK_CONST_METHOD1(contains, bool(const Buffer &));
   MOCK_CONST_METHOD0(size, size_t());
 };
@@ -53,6 +53,12 @@ class StorageExtensionTest : public ::testing::Test {
   constexpr static uint32_t kU32Max = std::numeric_limits<uint32_t>::max();
 };
 
+/// For the tests where it is needed to check a valid behaviour no matter if
+/// success or failure was returned by outcome::result
+class OutcomeParameterizedTest
+    : public StorageExtensionTest,
+      public ::testing::WithParamInterface<outcome::result<void>> {};
+
 /**
  * @given prefix_pointer with prefix_length
  * @when ext_clear_prefix is invoked on StorageExtension with given prefix
@@ -75,13 +81,13 @@ TEST_F(StorageExtensionTest, ClearPrefixTest) {
  * @when ext_clear_storage is invoked on StorageExtension with given key
  * @then key is loaded from the memory @and del is invoked on storage
  */
-TEST_F(StorageExtensionTest, ClearStorageTest) {
+TEST_P(OutcomeParameterizedTest, ClearStorageTest) {
   WasmPointer key_pointer = 43;
   SizeType key_size = 43;
   Buffer key(8, 'k');
 
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*db_, del(key)).Times(1);
+  EXPECT_CALL(*db_, del(key)).WillOnce(Return(GetParam()));
 
   storage_extension_->ext_clear_storage(key_pointer, key_size);
 }
@@ -243,7 +249,7 @@ TEST_F(StorageExtensionTest, GetStorageIntoKeyNotExistsTest) {
  * @when ext_set_storage is invoked on given key and value
  * @then provided key and value are put to db
  */
-TEST_F(StorageExtensionTest, SetStorageTest) {
+TEST_P(OutcomeParameterizedTest, SetStorageTest) {
   WasmPointer key_pointer = 43;
   SizeType key_size = 43;
   Buffer key(8, 'k');
@@ -258,7 +264,7 @@ TEST_F(StorageExtensionTest, SetStorageTest) {
       .WillOnce(Return(value));
 
   // expect key-value pair was put to db
-  EXPECT_CALL(*db_, put(key, value)).WillOnce(Return(outcome::success()));
+  EXPECT_CALL(*db_, put(key, value)).WillOnce(Return(GetParam()));
 
   storage_extension_->ext_set_storage(key_pointer, key_size, value_pointer,
                                       value_size);
@@ -308,3 +314,10 @@ TEST_F(StorageExtensionTest, Blake2_256EnumeratedTrieRootTest) {
   storage_extension_->ext_blake2_256_enumerated_trie_root(
       values_ptr, lens_ptr, lengths.size(), result);
 }
+
+INSTANTIATE_TEST_CASE_P(Instance, OutcomeParameterizedTest,
+                        ::testing::Values<outcome::result<void>>(
+                            outcome::success(),
+                            outcome::failure(std::error_code())),
+                        // empty argument for the macro
+);

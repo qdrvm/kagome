@@ -66,9 +66,9 @@ namespace kagome::extensions {
         runtime::WasmPointer len_ptr) = 0;
 
     /**
-     * Gets the value of the given key from storage. The value is written into
-     * value starting at value_offset. If the value length is greater than
-     * value_len - value_offset, the value is written partially.
+     * Gets the value of the given key from storage. Part of the value starting
+     * at the value_offset is written into value_data ptr. If the value length
+     * is greater than value_len - value_offset, the value is written partially.
      *
      * @param key_data pointer to the key
      * @param key_length length of the key

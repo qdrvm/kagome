@@ -26,7 +26,13 @@ namespace kagome::extensions {
   void StorageExtension::ext_clear_storage(runtime::WasmPointer key_data,
                                            runtime::SizeType key_length) {
     auto key = memory_->loadN(key_data, key_length);
-    db_->del(key);
+    auto del_result = db_->del(key);
+    if (not del_result) {
+      logger_->warn(
+          "ext_clear_storage did not delete key {} from trie db with reason: "
+          "{}",
+          key_data, del_result.error().message());
+    }
   }
 
   runtime::SizeType StorageExtension::ext_exists_storage(
@@ -65,8 +71,8 @@ namespace kagome::extensions {
     if (not data) {
       return runtime::WasmMemory::kMaxMemorySize;
     }
-    memory_->storeBuffer(value_data, *data);
-    return data->size();
+    memory_->storeBuffer(value_data, data.value());
+    return data.value().size();
   }
 
   void StorageExtension::ext_set_storage(const runtime::WasmPointer key_data,
@@ -77,7 +83,7 @@ namespace kagome::extensions {
     auto value = memory_->loadN(value_data, value_length);
     auto put_result = db_->put(key, value);
     if (not put_result) {
-      logger_->warn(
+      logger_->error(
           "ext_set_storage failed, due to fail in trie db with reason: {}",
           put_result.error().message());
     }
@@ -103,7 +109,7 @@ namespace kagome::extensions {
   runtime::SizeType StorageExtension::ext_storage_changes_root(
       runtime::WasmPointer parent_hash_data, runtime::SizeType parent_hash_len,
       runtime::SizeType parent_num, runtime::WasmPointer result) {
-    // TODO Implement PRE-95, kamilsa, 03.04.2019
+    // TODO (kamilsa): PRE-95 Implement ext_storage_changes_root, 03.04.2019
     logger_->error("Unimplemented");
     return 0;
   }
@@ -113,20 +119,16 @@ namespace kagome::extensions {
     memory_->storeBuffer(result, root);
   }
 
-  std::optional<common::Buffer> StorageExtension::get(
+  outcome::result<common::Buffer> StorageExtension::get(
       const common::Buffer &key, runtime::SizeType offset,
       runtime::SizeType max_length) const {
-    const auto data = db_->get(key);
-    if (not data) {
-      return std::nullopt;
-    }
+    OUTCOME_TRY(data, db_->get(key));
 
     const auto data_length =
-        std::min<runtime::SizeType>(max_length, data.value().size() - offset);
+        std::min<runtime::SizeType>(max_length, data.size() - offset);
 
-    return common::Buffer(
-        std::vector<uint8_t>(data.value().begin() + offset,
-                             data.value().begin() + offset + data_length));
+    return common::Buffer(std::vector<uint8_t>(
+        data.begin() + offset, data.begin() + offset + data_length));
   }
 
   // -------------------------Child storage--------------------------
