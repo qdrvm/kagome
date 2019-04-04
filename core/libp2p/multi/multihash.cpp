@@ -21,10 +21,10 @@ namespace libp2p::multi {
 
   Multihash::Multihash(HashType type, Hash hash)
       : hash_{std::move(hash)}, type_{type} {
-      UVarint uvarint{type};
-      data_.put(uvarint.toBytes());
-      data_.putUint8(static_cast<uint8_t>(hash_.size()));
-      data_.put(hash_.toVector());
+    UVarint uvarint{type};
+    data_.put(uvarint.toBytes());
+    data_.putUint8(static_cast<uint8_t>(hash_.size()));
+    data_.put(hash_.toVector());
   }
 
   auto Multihash::create(HashType type, Hash hash)
@@ -41,9 +41,12 @@ namespace libp2p::multi {
   auto Multihash::createFromHex(std::string_view hex)
       -> Result<Multihash, std::string> {
     return Buffer::fromHex(hex).match(
-        [](const Value<Buffer> &v) { return Multihash::createFromBuffer(v.value); },
-        [&hex](const Error<std::string>& e) -> Result<Multihash, std::string> {
-          return Error{std::string(hex) + " is not a valid hex string; Error: " + e.error};
+        [](const Value<Buffer> &v) {
+          return Multihash::createFromBuffer(v.value);
+        },
+        [&hex](const Error<std::string> &e) -> Result<Multihash, std::string> {
+          return Error{std::string(hex)
+                       + " is not a valid hex string; Error: " + e.error};
         });
   }
 
@@ -89,6 +92,10 @@ namespace libp2p::multi {
 
   const Buffer &Multihash::toBuffer() const {
     return data_;
+  }
+
+  bool Multihash::operator==(const Multihash &other) const {
+    return this->data_ == other.data_ && this->type_ == other.type_;
   }
 
 }  // namespace libp2p::multi

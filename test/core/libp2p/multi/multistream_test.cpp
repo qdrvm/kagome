@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <gtest/gtest.h>
-#include "libp2p/multi/uvarint.hpp"
-#include "common/hexutil.hpp"
 #include "libp2p/multi/multistream.hpp"
+#include <gtest/gtest.h>
+#include <functional>
+#include "common/hexutil.hpp"
+#include "libp2p/multi/uvarint.hpp"
 
 using kagome::common::Buffer;
 using kagome::expected::Error;
@@ -83,7 +84,7 @@ TEST(Multistream, FailCreate) {
  * returns Error if the condition was not satisfied
  */
 TEST(Multistream, AddPrefix) {
-  Multistream m = Multistream::create("/json", Buffer {1, 2, 3}).getValue();
+  Multistream m = Multistream::create("/json", Buffer{1, 2, 3}).getValue();
   ASSERT_FALSE(m.addPrefix("/http/").hasValue());
   ASSERT_FALSE(m.addPrefix("ht\ntp").hasValue());
   ASSERT_TRUE(m.addPrefix("http").hasValue());
@@ -94,11 +95,11 @@ TEST(Multistream, AddPrefix) {
 /**
  * @given a multistream
  * @when removing a prefix from its path
- * @then path does not contain the prefix, if it did and it is not empty after removing the prefix
- * returns Error if the condition was not satisfied
+ * @then path does not contain the prefix, if it did and it is not empty after
+ * removing the prefix returns Error if the condition was not satisfied
  */
 TEST(Multistream, RmPrefix) {
-  Multistream m = Multistream::create("/json", Buffer {1, 2, 3}).getValue();
+  Multistream m = Multistream::create("/json", Buffer{1, 2, 3}).getValue();
   ASSERT_FALSE(m.removePrefix("/http").hasValue());
   ASSERT_FALSE(m.removePrefix("/json").hasValue());
   ASSERT_FALSE(m.removePrefix("json\n").hasValue());

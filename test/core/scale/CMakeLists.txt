@@ -50,3 +50,11 @@ target_link_libraries(scale_collection_test
         scale
         buffer
         )
+
+addtest(scale_variant_test
+        scale_variant_test.cpp
+        )
+target_link_libraries(scale_variant_test
+        scale
+        buffer
+        )

@@ -14,6 +14,7 @@
 
 #include "common/buffer.hpp"
 #include "scale/types.hpp"
+#include "scale/scale_error.hpp"
 
 namespace kagome::common::scale::impl {
   /**
@@ -44,7 +45,7 @@ namespace kagome::common::scale::impl {
    * @return decoded value or error
    */
   template <class T>
-  std::optional<T> decodeInteger(Stream &stream) {
+  outcome::result<T> decodeInteger(Stream &stream) {
     constexpr size_t size = sizeof(T);
     constexpr size_t bits = size * 8;
     static_assert(size == 1 || size == 2 || size == 4 || size == 8);
@@ -75,7 +76,7 @@ namespace kagome::common::scale::impl {
     // clang-format on
 
     if (!stream.hasMore(size)) {
-      return std::nullopt;
+      return outcome::failure(DecodeError::kNotEnoughData);
     }
 
     // get integer as 4 bytes from little-endian stream
@@ -97,7 +98,7 @@ namespace kagome::common::scale::impl {
     // a value 2^(bits_number-1)
     bool is_positive_signed = v < sign_bit[size - 1];
     if (std::is_unsigned<T>() || is_positive_signed) {
-      return std::optional<T>(static_cast<T>(v));
+      return static_cast<T>(v);
     }
 
     // T is signed integer type and the value v is negative
@@ -110,7 +111,7 @@ namespace kagome::common::scale::impl {
     // static_cast to smaller size cuts them off
     T sv = -static_cast<T>((~v) + 1);
 
-    return std::optional<T>{sv};
+    return sv;
   }
 }  // namespace kagome::common::scale::impl
 

@@ -1,3 +1,8 @@
+#
+# Copyright Soramitsu Co., Ltd. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+
 add_library(primitives
         block.hpp
         block.cpp
@@ -5,8 +10,13 @@ add_library(primitives
         block_header.cpp
         extrinsic.hpp
         extrinsic.cpp
+        scale_codec.hpp
+        impl/scale_codec_impl.hpp
+        impl/scale_codec_impl.cpp
         )
 
 target_link_libraries(primitives
         buffer
+        outcome
+        scale
         )

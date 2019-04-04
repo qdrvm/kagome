@@ -6,8 +6,6 @@
 #ifndef KAGOME_SCALE_ADVANCED_HPP
 #define KAGOME_SCALE_ADVANCED_HPP
 
-#include <gsl/span>
-
 #include "common/buffer.hpp"
 #include "scale/compact.hpp"
 #include "scale/fixedwidth.hpp"
@@ -20,35 +18,31 @@ namespace kagome::common::scale::collection {
    *         collection of same type values
    *  @tparam T Item type stored in collection
    *  @param collection source vector items
-   *  @return byte array containing encoded collection
+   *  @return true if operation succeeded and false otherwise
    */
   template <class T>
-  bool encodeCollection(const std::vector<T> &collection, Buffer &out) {
+  outcome::result<void> encodeCollection(const std::vector<T> &collection,
+                                         Buffer &out) {
     Buffer encoded_collection;
-    auto header_result =
-        compact::encodeInteger(collection.size(), encoded_collection);
-    if (!header_result) {
-      return false;
-    }
+    OUTCOME_TRY(compact::encodeInteger(collection.size(), encoded_collection));
 
     TypeEncoder<T> encoder{};
     for (size_t i = 0; i < collection.size(); ++i) {
-      auto encode_result = encoder.encode(collection[i], encoded_collection);
-      if (!encode_result) {
-        return false;
-      }
+      OUTCOME_TRY(encoder.encode(collection[i], encoded_collection));
     }
 
-    out.put(encoded_collection.toVector());
+    out.putBuffer(encoded_collection);
 
-    return true;
+    return outcome::success();
   }  // namespace kagome::common::scale::collection
 
   /**
-   * @brief DecodeCollectionResult is result of decodeCollection operation
+   * @brief encodes buffer as collection of bytes
+   * @param buf bytes to encode
+   * @param out output stream
+   * @return true if operation succeeded and false otherwise
    */
-  template <class T>
-  using DecodeCollectionResult = expected::Result<std::vector<T>, DecodeError>;
+  outcome::result<void> encodeBuffer(const Buffer &buf, Buffer &out);
 
   /**
    * @brief decodeCollection function decodes collection containing items of
@@ -58,28 +52,19 @@ namespace kagome::common::scale::collection {
    * @return decoded collection or error
    */
   template <class T>
-  DecodeCollectionResult<T> decodeCollection(Stream &stream) {
+  outcome::result<std::vector<T>> decodeCollection(Stream &stream) {
     // determine number of items
-    auto header_result = compact::decodeInteger(stream);
-    if (header_result.hasError()) {
-      return expected::Error{header_result.getError()};
-    }
+    OUTCOME_TRY(collection_size, compact::decodeInteger(stream));
 
-    BigInteger item_count_big = header_result.getValue();
-    if (item_count_big
-        > std::numeric_limits<std::vector<uint8_t>::size_type>::max()) {
-      return expected::Error{DecodeError::kTooManyItems};
-    }
+    auto item_count = collection_size.convert_to<uint64_t>();
 
-    auto item_count = item_count_big.convert_to<uint64_t>();
-
-    BigInteger required_bytes = item_count_big * sizeof(T);
+    BigInteger required_bytes = collection_size * sizeof(T);
     if (required_bytes > std::numeric_limits<uint64_t>::max()) {
-      return expected::Error{DecodeError::kTooManyItems};
+      return DecodeError::kTooManyItems;
     }
 
     if (!stream.hasMore(required_bytes.convert_to<uint64_t>())) {
-      return expected::Error<DecodeError>{DecodeError::kNotEnoughData};
+      return DecodeError::kNotEnoughData;
     }
 
     std::vector<T> decoded_collection;
@@ -88,15 +73,11 @@ namespace kagome::common::scale::collection {
     // parse items one by one
     TypeDecoder<T> type_decoder{};
     for (uint64_t i = 0; i < item_count; ++i) {
-      auto r = type_decoder.decode(stream);
-      if (r.hasError()) {
-        return expected::Error{r.getError()};
-      }
-
-      decoded_collection.push_back(r.getValue());
+      OUTCOME_TRY(r, type_decoder.decode(stream));
+      decoded_collection.push_back(r);
     }
 
-    return expected::Value{decoded_collection};
+    return decoded_collection;
   }
 }  // namespace kagome::common::scale::collection
 

@@ -11,6 +11,7 @@
 #include <type_traits>
 
 #include "common/unreachable.hpp"
+#include "scale/scale_error.hpp"
 #include "scale/util.hpp"
 
 namespace kagome::common::scale::compact {
@@ -24,19 +25,19 @@ namespace kagome::common::scale::compact {
   };
 
   namespace impl {
-    bool encodeFirstCategory(uint8_t value, Buffer &out) {
+    outcome::result<void> encodeFirstCategory(uint8_t value, Buffer &out) {
       if (value >= EncodingCategoryLimits::kMinUint16) {
-        return false;
+        return EncodeError::kWrongCategory;
       }
       // only values from [0, kMinUint16) can be put here
       out.putUint8(static_cast<uint8_t>(value << 2));
 
-      return true;
+      return outcome::success();
     };
 
-    bool encodeSecondCategory(uint16_t value, Buffer &out) {
+    outcome::result<void> encodeSecondCategory(uint16_t value, Buffer &out) {
       if (value >= EncodingCategoryLimits::kMinUint32) {
-        return false;
+        return EncodeError::kWrongCategory;
       };
       // only values from [kMinUint16, kMinUint32) can be put here
       auto v = value;
@@ -48,19 +49,20 @@ namespace kagome::common::scale::compact {
       out.putUint8(minor_byte);
       out.putUint8(major_byte);
 
-      return true;
+      return outcome::success();
+      ;
     };
 
-    bool encodeThirdCategory(uint32_t value, Buffer &out) {
+    outcome::result<void> encodeThirdCategory(uint32_t value, Buffer &out) {
       if (value >= EncodingCategoryLimits::kMinBigInteger) {
-        return false;
+        return EncodeError::kWrongCategory;
       };
 
       uint32_t v = (value << 2) + 2;
 
       scale::impl::encodeInteger<uint32_t>(v, out);
 
-      return true;
+      return outcome::success();
     }
   };  // namespace impl
 
@@ -81,11 +83,11 @@ namespace kagome::common::scale::compact {
     };
   }  // namespace
 
-  bool encodeInteger(const BigInteger &value, Buffer &out) {
+  outcome::result<void> encodeInteger(const BigInteger &value, Buffer &out) {
     // cannot encode negative numbers
     // there is no description how to encode compact negative numbers
     if (value < 0) {
-      return false;
+      return EncodeError::kCompactIntegerIsNegative;
     }
 
     if (value < EncodingCategoryLimits::kMinUint16) {
@@ -108,7 +110,7 @@ namespace kagome::common::scale::compact {
     size_t requiredLength = 1 + bigIntLength;
 
     if (bigIntLength > 67) {
-      return false;
+      return EncodeError::kCompactIntegerIsTooBig;
     }
 
     ByteArray result;
@@ -139,13 +141,13 @@ namespace kagome::common::scale::compact {
 
     out.put(result);
 
-    return true;
+    return outcome::success();
   }
 
-  DecodeIntegerResult decodeInteger(Stream &stream) {
+  outcome::result<BigInteger> decodeInteger(Stream &stream) {
     auto first_byte = stream.nextByte();
     if (!first_byte.has_value()) {
-      return expected::Error{DecodeError::kNotEnoughData};
+      return outcome::failure(DecodeError::kNotEnoughData);
     }
 
     const uint8_t flag = (*first_byte) & 0b00000011;
@@ -161,7 +163,7 @@ namespace kagome::common::scale::compact {
       case 0b01: {
         auto second_byte = stream.nextByte();
         if (!second_byte.has_value()) {
-          return expected::Error{DecodeError::kNotEnoughData};
+          return outcome::failure(DecodeError::kNotEnoughData);
         }
 
         number = (static_cast<size_t>((*first_byte) & 0b11111100)
@@ -175,7 +177,7 @@ namespace kagome::common::scale::compact {
         size_t multiplier = 256;
         if (!stream.hasMore(3)) {
           // not enough data to decode integer
-          return expected::Error{DecodeError::kNotEnoughData};
+          return outcome::failure(DecodeError::kNotEnoughData);
         }
 
         for (int i = 0; i < 3; ++i) {
@@ -192,7 +194,7 @@ namespace kagome::common::scale::compact {
         auto bytes_count = ((*first_byte) >> 2) + 4;
         if (!stream.hasMore(bytes_count)) {
           // not enough data to decode integer
-          return expected::Error{DecodeError::kNotEnoughData};
+          return outcome::failure(DecodeError::kNotEnoughData);
         }
 
         BigInteger multiplier{1};
@@ -204,13 +206,13 @@ namespace kagome::common::scale::compact {
           multiplier *= 256;
         }
 
-        return expected::Value{value};  // special case
+        return value;  // special case
       }
 
       default:
-        UNREACHABLE;
+        UNREACHABLE
     }
 
-    return expected::Value{BigInteger{number}};
+    return BigInteger{number};
   }
 }  // namespace kagome::common::scale::compact

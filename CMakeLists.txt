@@ -41,7 +41,7 @@ if(CLANG_FORMAT)
   include(cmake/clang-format.cmake)
 endif()
 
-add_subdirectory(${PROJECT_SOURCE_DIR}/deps/outcome)
+add_subdirectory(deps)
 
 include_directories(
   ${PROJECT_SOURCE_DIR}/core
@@ -49,6 +49,7 @@ include_directories(
   deps/spdlog/include
   deps/GSL/include
   deps/outcome
+  deps/sml/include
 )
 
 add_subdirectory(core)

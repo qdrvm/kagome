@@ -55,13 +55,16 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, Multiaddress::Error, e) {
   switch (e) {
     case Multiaddress::Error::InvalidInput:
       return "invalid multiaddress input";
+    case Multiaddress::Error::InvalidProtocolValue:
+      return "protocol value can not be casted to T";
+    case Multiaddress::Error::ProtocolNotFound:
+      return "multiaddress does not contain given protocol";
     default:
       return "unknown";
   }
 }
 
 namespace libp2p::multi {
-
 
   Multiaddress::FactoryResult Multiaddress::create(std::string_view address) {
     uint8_t *bytes_ptr;
@@ -213,6 +216,22 @@ namespace libp2p::multi {
   bool Multiaddress::operator==(const Multiaddress &other) const {
     return this->stringified_address_ == other.stringified_address_
         && this->bytes_ == other.bytes_;
+  }
+
+  outcome::result<std::string> Multiaddress::getFirstValueForProtocol(
+      Multiaddress::Protocol proto) const {
+    // TODO(@warchant): refactor it to be more performant. this isn't best
+    // solution
+    auto vec = getValuesForProtocol(proto);
+    if (vec.empty()) {
+      return Error::ProtocolNotFound;
+    }
+
+    return vec[0];
+  }
+
+  bool Multiaddress::operator<(const Multiaddress &other) const {
+    return this->stringified_address_ < other.stringified_address_;
   }
 
 }  // namespace libp2p::multi

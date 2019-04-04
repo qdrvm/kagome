@@ -8,13 +8,13 @@
 
 #include "common/buffer.hpp"
 
-using namespace kagome::common;
-
 namespace kagome::primitives {
   /**
    * @class BlockHeader represents header of a block
    */
   class BlockHeader {
+    using Buffer = kagome::common::Buffer;
+
    public:
     /**
      * @brief BlockHeader class constructor
@@ -34,7 +34,7 @@ namespace kagome::primitives {
     /**
      * @return number
      */
-    size_t number() const;
+    uint64_t number() const;
 
     /**
      * @return state root const reference
@@ -53,7 +53,7 @@ namespace kagome::primitives {
 
    private:
     Buffer parent_hash_;  ///< 32-byte Blake2s hash of the header of the parent
-    size_t number_;       ///< index of current block in the chain
+    uint64_t number_;     ///< index of current block in the chain
     Buffer stateRoot_;    ///< root of the Merkle trie
     Buffer extrinsics_root_;  ///< field for validation integrity
     Buffer digest_;           ///< chain-specific auxiliary data

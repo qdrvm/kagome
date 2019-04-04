@@ -35,16 +35,11 @@ namespace kagome::common::scale {
    */
   template <class T>
   struct TypeDecoder {
-    TypeDecodeResult<T> decode(Stream &stream) {
+    outcome::result<T> decode(Stream &stream) {
       static_assert(std::is_integral<T>(),
                     "Only integral types are supported. You need to define "
                     "your own TypeDecoder specialization for custom type.");
-      auto optional = impl::decodeInteger<T>(stream);
-      if (!optional.has_value()) {
-        return expected::Error{DecodeError::kNotEnoughData};
-      }
-
-      return expected::Value{*optional};
+      return impl::decodeInteger<T>(stream);
     }
   };
 
