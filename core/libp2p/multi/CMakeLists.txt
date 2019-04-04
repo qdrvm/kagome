@@ -4,16 +4,10 @@
 #
 
 add_subdirectory(c-utils)
+
+add_subdirectory(utils)
+
 add_subdirectory(multibase_codec)
-
-add_library(uvarint
-  uvarint.cpp
-  uvarint.hpp
-  )
-
-target_link_libraries(uvarint
-  c_utils
-  )
 
 add_library(multihash
   multihash.hpp
@@ -24,6 +18,7 @@ target_link_libraries(multihash
   buffer
   hexutil
   uvarint
+  outcome
   )
 
 add_library(multistream
@@ -34,6 +29,7 @@ add_library(multistream
 target_link_libraries(multistream
   buffer
   uvarint
+  outcome
   )
 
 

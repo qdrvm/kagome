@@ -3,13 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(uvarint_test
-    uvarint_test.cpp
-    )
-target_link_libraries(uvarint_test
-    uvarint
-    hexutil
-    )
+add_subdirectory(utils)
+
 
 addtest(multihash_test
         multihash_test.cpp
