@@ -30,7 +30,7 @@ namespace libp2p::stream {
 
     bool isClosedForRead() const override;
 
-    ~YamuxStream() override = default;
+    ~YamuxStream() override;
 
    private:
     muxer::Yamux &yamux_;

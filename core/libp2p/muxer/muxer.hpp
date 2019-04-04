@@ -18,6 +18,8 @@ namespace libp2p::muxer {
      * @return pointer to a created stream
      */
     virtual std::unique_ptr<stream::Stream> newStream() = 0;
+
+    virtual ~Muxer() = 0;
   };
 }  // namespace libp2p::muxer
 
