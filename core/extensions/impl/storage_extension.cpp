@@ -56,6 +56,10 @@ namespace kagome::extensions {
 
     if (data_ptr != -1) {
       memory_->storeBuffer(data_ptr, data.value());
+    } else {
+      logger_->error(
+          "ext_get_allocated_storage failed: memory could not allocate enough "
+          "memory");
     }
     return data_ptr;
   }
@@ -106,7 +110,7 @@ namespace kagome::extensions {
   }
 
   void StorageExtension::ext_storage_root(runtime::WasmPointer result) const {
-    const auto root = db_->getRoot();
+    const auto &root = db_->getRoot();
     memory_->storeBuffer(result, root);
   }
 

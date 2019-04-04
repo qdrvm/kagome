@@ -165,14 +165,14 @@ TEST_F(MemoryHeapTest, AllocateTooBigMemoryAfterDeallocate) {
  * @then the same buffer is returned
  */
 TEST_F(MemoryHeapTest, LoadNTest) {
-  const size_t N = 3;
+  const size_t N = 10;
 
   kagome::common::Buffer b(N, 'c');
 
   auto ptr = memory_.allocate(N);
 
-  memory_.storeBuffer(ptr, b);
+  memory_.storeBuffer(WasmMemoryImpl::kMaxMemorySize-5, b);
 
-  auto res_b = memory_.loadN(ptr, N);
+  auto res_b = memory_.loadN(WasmMemoryImpl::kMaxMemorySize-5, N);
   ASSERT_EQ(b, res_b);
 }

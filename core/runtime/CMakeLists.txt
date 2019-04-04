@@ -11,4 +11,4 @@ add_library(memory
     )
 target_link_libraries(memory
     buffer
-)
+    )

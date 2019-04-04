@@ -7,6 +7,7 @@
 #define KAGOME_MEMORY_HPP
 
 #include <optional>
+#include <outcome/outcome.hpp>
 
 #include "common/buffer.hpp"
 #include "runtime/common.hpp"

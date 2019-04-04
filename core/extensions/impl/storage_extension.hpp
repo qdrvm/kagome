@@ -18,7 +18,7 @@ namespace kagome::extensions {
    */
   class StorageExtension {
    public:
-    explicit StorageExtension(
+    StorageExtension(
         std::shared_ptr<storage::merkle::TrieDb> db,
         std::shared_ptr<runtime::WasmMemory> memory,
         common::Logger logger = common::createLogger(kDefaultLoggerTag));

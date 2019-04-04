@@ -6,8 +6,8 @@
 #include "extensions/impl/storage_extension.hpp"
 
 #include <gtest/gtest.h>
-
 #include "core/runtime/mock_memory.hpp"
+#include "core/storage/merkle/mock_trie_db.hpp"
 
 using kagome::common::Buffer;
 using kagome::extensions::StorageExtension;
@@ -15,22 +15,10 @@ using kagome::runtime::MockMemory;
 using kagome::runtime::SizeType;
 using kagome::runtime::WasmPointer;
 using kagome::storage::KeyValue;
-using kagome::storage::merkle::TrieDb;
+using kagome::storage::merkle::MockTrieDb;
 
 using ::testing::_;
 using ::testing::Return;
-
-class MockTrieDb : public TrieDb {
- public:
-  MOCK_CONST_METHOD0(getRoot, Buffer());
-  MOCK_METHOD1(clearPrefix, void(const Buffer &));
-
-  MOCK_METHOD2(put, outcome::result<void>(const Buffer &, const Buffer &));
-  MOCK_CONST_METHOD1(get, outcome::result<Buffer>(const Buffer &));
-  MOCK_METHOD1(del, outcome::result<void>(const Buffer &));
-  MOCK_CONST_METHOD1(contains, bool(const Buffer &));
-  MOCK_CONST_METHOD0(size, size_t());
-};
 
 class StorageExtensionTest : public ::testing::Test {
  public:

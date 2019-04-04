@@ -134,6 +134,8 @@ namespace kagome::runtime {
 
   common::Buffer WasmMemoryImpl::loadN(kagome::runtime::WasmPointer addr,
                                        kagome::runtime::SizeType n) const {
+    // TODO (kamilsa) PRE-98: check if we do not go outside of memory
+    // boundaries, 04.04.2019
     auto first = memory_.begin() + addr;
     auto last = first + n;
     return common::Buffer(std::vector<uint8_t>(first, last));
@@ -157,6 +159,8 @@ namespace kagome::runtime {
   }
   void WasmMemoryImpl::storeBuffer(kagome::runtime::WasmPointer addr,
                                    const kagome::common::Buffer &value) {
+    // TODO (kamilsa) PRE-98: check if we do not go outside of memory
+    // boundaries, 04.04.2019
     const auto &value_vector = value.toVector();
     memory_.insert(memory_.begin() + addr, value_vector.begin(),
                    value_vector.end());

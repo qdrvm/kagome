@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <functional>
 
-#include "runtime/wasm_memory.hpp"
+#include "runtime/common.hpp"
 
 namespace kagome::extensions {
   /**
@@ -34,8 +34,8 @@ namespace kagome::extensions {
 
     /**
      * @brief Deletes value by given key
-     * @param key_data
-     * @param key_length
+     * @param key_data pointer to the key
+     * @param key_length length of the key
      */
     virtual void ext_clear_storage(runtime::WasmPointer key_data,
                                    runtime::SizeType key_length) = 0;
@@ -55,11 +55,12 @@ namespace kagome::extensions {
      *
      * @param key_data pointer to the key
      * @param key_length length of the key
-     * @param len_ptr pointer to where length of the value is stored
-     * @return - 0 if no value exists to the given key. written_out is set
-     * to u32::max_value().
-     * - Otherwise, pointer to the value in memory. written_out contains the
-     * length of the value.
+     * @param len_ptr pointer to where length of the value is stored. Set to
+     * u32::max_value() if no value is found for a key
+     * @return
+     * <li>value found => pointer to the value
+     * <li>no value for a given key => 0
+     * <li>there is no enough memory to allocate a value => -1
      */
     virtual runtime::WasmPointer ext_get_allocated_storage(
         runtime::WasmPointer key_data, runtime::SizeType key_length,
@@ -73,11 +74,13 @@ namespace kagome::extensions {
      * @param key_data pointer to the key
      * @param key_length length of the key
      * @param value_data pointer where to store result
-     * @param value_length max length of the data stored at value_data ptr
+     * @param value_length max length of the data that can be stored at
+     * value_data ptr
      * @param value_offset offset starting from which value associated with key
      * is obtained
-     * @return u32::max_value() if the value does not
-     * exist. Otherwise, the number of bytes written for value.
+     * @return
+     * <li>value is found => the number of bytes written for value.
+     * <li>value is not found => u32::max_value()
      */
     virtual runtime::SizeType ext_get_storage_into(
         runtime::WasmPointer key_data, runtime::SizeType key_length,
@@ -106,6 +109,7 @@ namespace kagome::extensions {
     virtual void ext_blake2_256_enumerated_trie_root(
         runtime::WasmPointer values_data, runtime::WasmPointer lens_data,
         runtime::SizeType lens_length, runtime::WasmPointer result) = 0;
+
     /**
      * @brief Get the change trie root of the current storage overlay at a block
      * with given parent.
