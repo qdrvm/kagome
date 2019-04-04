@@ -7,6 +7,8 @@ add_subdirectory(c-utils)
 
 add_subdirectory(utils)
 
+add_subdirectory(converters)
+
 add_subdirectory(multibase_codec)
 
 add_library(multihash
