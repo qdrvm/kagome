@@ -143,8 +143,6 @@ namespace libp2p::crypto {
      */
     virtual std::shared_ptr<PrivateKey> unmarshalPrivateKey(
         const Buffer &key_bytes) const = 0;
-    // ----------------------------- End of Protobuf section
-    // ---------------------------
 
     /**
      * Import a private key from a password-protected PEM file
@@ -152,8 +150,8 @@ namespace libp2p::crypto {
      * @param password of that file
      * @return private key from the file
      */
-    virtual std::shared_ptr<PrivateKey> import(boost::filesystem::path pem_path,
-                              std::string_view password) const = 0;
+    virtual std::shared_ptr<PrivateKey> import(
+        boost::filesystem::path pem_path, std::string_view password) const = 0;
 
     /// misc utilities
 
@@ -176,6 +174,15 @@ namespace libp2p::crypto {
     virtual Buffer pbkdf2(std::string_view password, const Buffer &salt,
                           uint64_t iterations, size_t key_size,
                           common::HashType hash) const = 0;
+
+    /**
+     * @brief derives public key from private key
+     * @param private_key private key
+     * @return derived public key or error if private key is invalid or another
+     * error occured
+     */
+    virtual std::shared_ptr<PublicKey> derivePublicKey(
+        const PrivateKey &private_key) const;
   };
 }  // namespace libp2p::crypto
 

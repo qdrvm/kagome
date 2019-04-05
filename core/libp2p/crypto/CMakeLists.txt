@@ -11,9 +11,8 @@ add_library(crypto
         public_key.hpp
         impl/crypto_provider_impl.hpp
         impl/crypto_provider_impl.cpp
-        impl/public_key_impl.hpp
-        impl/public_key_impl.cpp
-        impl/private_key_impl.hpp impl/private_key_impl.cpp)
+        public_key.cpp
+        private_key.cpp key.cpp)
 
 target_link_libraries(crypto
         buffer

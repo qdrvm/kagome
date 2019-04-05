@@ -15,12 +15,27 @@ namespace libp2p::crypto {
    */
   class PrivateKey : public Key {
    public:
-    virtual ~PrivateKey() = default;
+    using Buffer = kagome::common::Buffer;
+
+   public:
     /**
-     * Get a public key, derived from this private one
-     * @return a public key
+     * @brief constructor
+     * @param key_type key type
+     * @param bytes key content
      */
-    virtual std::shared_ptr<PublicKey> publicKey() const = 0;
+    PrivateKey(common::KeyType key_type, Buffer &&bytes);
+
+    /**
+     * @brief constructor
+     * @param key_type key type
+     * @param bytes key content
+     */
+    PrivateKey(common::KeyType key_type, Buffer bytes);
+
+    /**
+     * @brief destructor
+     */
+    ~PrivateKey() override = default;
   };
 }  // namespace libp2p::crypto
 

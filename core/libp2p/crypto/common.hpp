@@ -60,6 +60,7 @@ namespace libp2p::crypto::common {
    * Supported types of all keys
    */
   enum class KeyType : uint32_t { kUnspecified, kRSA1024, kRSA2048, kRSA4096, kED25519 };
+  // TODO:(yuraz) maybe add support for Secp256k1 like in js version
 
   /**
    * Supported ECDH curves

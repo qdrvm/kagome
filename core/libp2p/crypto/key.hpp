@@ -16,21 +16,43 @@ namespace libp2p::crypto {
    * Interface for public/private key
    */
   class Key {
+   protected:
+    using Buffer = kagome::common::Buffer;
+
    public:
     virtual ~Key() = default;
+
+    /**
+     * @brief constructor
+     * @param key_type key type
+     * @param bytes key content
+     */
+    Key(common::KeyType key_type, Buffer &&bytes);
+
+    /**
+     * @brief constructor
+     * @param key_type key type
+     * @param bytes key content
+     */
+    Key(common::KeyType key_type, Buffer bytes);
+
     /**
      * Get type of this key
      * @return the type
      */
-    virtual common::KeyType getType() const = 0;
+    virtual common::KeyType getType() const;
 
     /**
      * Get a byte representation of the key
      * @return the bytes
      */
-    virtual const kagome::common::Buffer &getBytes() const = 0;
+    virtual const kagome::common::Buffer &getBytes() const;
 
-    virtual bool operator==(const Key &other) const = 0;
+    virtual bool operator==(const Key &other) const;
+
+   private:
+    common::KeyType key_type_;  ///< key type
+    Buffer bytes_;              ///< key content
   };
 }  // namespace libp2p::crypto
 

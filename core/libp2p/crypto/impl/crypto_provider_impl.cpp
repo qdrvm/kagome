@@ -5,11 +5,9 @@
 
 #include "libp2p/crypto/impl/crypto_provider_impl.hpp"
 
-#include <libp2p/crypto/proto/public_key.pb.h>
-#include "libp2p/crypto/proto/private_key.pb.h"
+#include "libp2p/crypto/private_key.hpp"
 
-#include "libp2p/crypto/impl/private_key_impl.hpp"
-#include "libp2p/crypto/impl/public_key_impl.hpp"
+#include "libp2p/crypto/proto/keys.pb.h"
 
 namespace libp2p::crypto {
   using kagome::common::Buffer;
@@ -150,7 +148,7 @@ namespace libp2p::crypto {
     auto key_type = unmarshalKeyType(proto_key.key_type());
     Buffer key_value;
     key_value.put(proto_key.key_value());
-    return std::make_shared<PublicKeyImpl>(key_type, key_value);
+    return std::make_shared<PublicKey>(key_type, key_value);
   }
 
   std::shared_ptr<PrivateKey> CryptoProviderImpl::unmarshalPrivateKey(
@@ -164,7 +162,7 @@ namespace libp2p::crypto {
     Buffer key_value;
     key_value.put(proto_key.key_value());
 
-    return std::make_shared<PrivateKeyImpl>(key_type, key_value);
+    return std::make_shared<PrivateKey>(key_type, key_value);
   }
 
   std::shared_ptr<PrivateKey> CryptoProviderImpl::import(
@@ -182,6 +180,12 @@ namespace libp2p::crypto {
                                     const Buffer &salt, uint64_t iterations,
                                     size_t key_size,
                                     common::HashType hash) const {
+    // TODO: (yuraz) implement
+    std::terminate();
+  }
+
+  std::shared_ptr<PublicKey> CryptoProviderImpl::derivePublicKey(
+      const PrivateKey &private_key) const {
     // TODO: (yuraz) implement
     std::terminate();
   }

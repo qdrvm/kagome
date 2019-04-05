@@ -59,6 +59,9 @@ namespace libp2p::crypto {
     Buffer pbkdf2(std::string_view password, const Buffer &salt,
                   uint64_t iterations, size_t key_size,
                   common::HashType hash) const override;
+
+    std::shared_ptr<PublicKey> derivePublicKey(
+        const PrivateKey &private_key) const override;
   };
 }  // namespace libp2p::crypto
 
