@@ -10,7 +10,7 @@
 
 #include <gtest/gtest.h>
 
-#include "libp2p/transport/tcp.hpp"
+#include "libp2p/transport/impl/transport_impl.hpp"
 #include "testutil/outcome.hpp"
 
 using namespace libp2p::transport;
@@ -26,7 +26,7 @@ using kagome::common::Buffer;
  */
 TEST(TCP, TwoListenersCantBindOnSamePort) {
   boost::asio::io_context context;
-  auto transport = std::make_unique<TcpTransport>(context);
+  auto transport = std::make_unique<TransportImpl>(context);
 
   auto listener1 = transport->createListener([](auto &&c) {
     ASSERT_TRUE(c) << "listener 1 is nullptr";
@@ -52,13 +52,13 @@ TEST(TCP, TwoListenersCantBindOnSamePort) {
  * @then each client is expected to receive sent message
  */
 TEST(TCP, SingleListenerCanAcceptManyClients) {
-  const int kClients = 2;
+  const int kClients = 1;
   const int kSize = 1500;
   const int kRetries = 10;
 
   size_t counter = 0;  // number of answers
   boost::asio::io_context context;
-  auto transport = std::make_unique<TcpTransport>(context);
+  auto transport = std::make_unique<TransportImpl>(context);
   auto listener = transport->createListener([&counter](std::shared_ptr<Connection> c) {
     c->readAsync([c, &counter](outcome::result<Buffer> result) {
       EXPECT_OUTCOME_TRUE(data, result);
@@ -116,7 +116,7 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
  */
 TEST(TCP, DialToNoServer) {
   boost::asio::io_context context;
-  auto transport = std::make_unique<TcpTransport>(context);
+  auto transport = std::make_unique<TransportImpl>(context);
   EXPECT_OUTCOME_TRUE(ma, Multiaddress::create("/ip4/127.0.0.1/tcp/40003"));
 
   auto &&res = transport->dial(ma);

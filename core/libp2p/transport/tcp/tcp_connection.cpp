@@ -10,10 +10,11 @@
 namespace libp2p::transport {
 
   TcpConnection::TcpConnection(boost::asio::io_context &context)
-      : socket_(context) {}
+      : socket_(context), resolver_(context) {}
 
-  TcpConnection::TcpConnection(boost::asio::ip::tcp::socket socket)
-      : socket_(std::move(socket)) {}
+  TcpConnection::TcpConnection(boost::asio::io_context &context, boost::asio::ip::tcp::socket socket)
+      : socket_(std::move(socket)),
+        resolver_(context) {}
 
   outcome::result<multi::Multiaddress> TcpConnection::getRemoteMultiaddr()
       const {
@@ -28,6 +29,18 @@ namespace libp2p::transport {
     } catch (const boost::system::system_error &e) {
       return e.code();
     }
+  }
+
+  outcome::result<void> TcpConnection::connect(const Tcp::endpoint &endpoint) {
+    OUTCOME_TRY(resolved, resolve(endpoint));
+
+    boost::system::error_code ec;
+    boost::asio::connect(socket_, resolved, ec);
+    if (ec) {
+      return ec;
+    }
+
+    return outcome::success();
   }
 
   outcome::result<kagome::common::Buffer> TcpConnection::readSome(
@@ -89,7 +102,7 @@ namespace libp2p::transport {
   void TcpConnection::readAsync(
       std::function<BufferResultCallback> callback) noexcept {
     socket_.async_wait(
-        Socket::wait_read,
+        Tcp::socket::wait_read,
         [cb = std::move(callback),
          s = shared_from_this()](boost::system::error_code ec) {
           if (!ec) {
@@ -105,6 +118,17 @@ namespace libp2p::transport {
             cb(ec);
           }
         });
+  }
+
+  outcome::result<TcpConnection::ResolverResultsType> TcpConnection::resolve(
+      const Tcp::endpoint &endpoint) {
+    boost::system::error_code ec;
+    auto iterator = resolver_.resolve(endpoint, ec);
+    if (ec) {
+      return ec;
+    }
+
+    return iterator;
   }
 
   outcome::result<void> TcpConnection::close() {

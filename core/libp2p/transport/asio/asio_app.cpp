@@ -1,0 +1,60 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include "asio_app.hpp"
+
+#include <iostream>
+
+#include <boost/assert.hpp>
+
+/// http://think-async.com/Asio/Recipes
+
+namespace libp2p::transport::asio {
+
+  AsioApp::AsioApp(uint16_t threads) : threads_(threads) {
+    if (threads <= 0) {
+      threads = boost::thread::hardware_concurrency();
+    }
+
+    // NOLINTNEXTLINE
+    BOOST_ASSERT_MSG(
+        threads > 0,
+        "Something weird happened - AsioApp is created with 0 threads");
+  }
+
+  AsioApp::~AsioApp() {
+    work_.reset();
+
+    /**
+     * This will stop the context processing loop. Any tasks
+     * you add behind this point will not execute.
+     */
+    context_.stop();
+
+    /**
+     * Will wait till all the threads in the thread pool are finished with
+     * their assigned tasks and 'join' them. Just assume the threads inside
+     * the threadpool will be destroyed by this method.
+     */
+    pool_.join_all();
+  }
+
+  boost::asio::io_context &AsioApp::context() {
+    return context_;
+  }
+
+  void AsioApp::run() {
+    // put work to context, so that run does not finish
+    work_ = std::make_unique<WorkType>(context_.get_executor());
+
+    for (int i = 0; i < threads_; i++) {
+      pool_.create_thread(
+          boost::bind(&boost::asio::io_context::run, &context_));
+    }
+
+    context_.run();
+  }
+
+}  // namespace libp2p::transport::asio
