@@ -5,4 +5,5 @@
 
 add_subdirectory(multi)
 add_subdirectory(transport)
+add_subdirectory(crypto)
 add_subdirectory(peer)

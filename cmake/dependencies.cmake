@@ -34,3 +34,7 @@ find_package(binaryen CONFIG REQUIRED)
 # https://www.openssl.org/
 hunter_add_package(OpenSSL)
 find_package(OpenSSL REQUIRED)
+
+# https://developers.google.com/protocol-buffers/
+hunter_add_package(Protobuf)
+find_package(Protobuf CONFIG REQUIRED)

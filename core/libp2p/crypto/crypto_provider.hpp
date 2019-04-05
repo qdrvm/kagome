@@ -12,6 +12,7 @@
 #include <utility>
 
 #include <boost/filesystem.hpp>
+
 #include "common/buffer.hpp"
 #include "libp2p/crypto/common.hpp"
 #include "libp2p/crypto/private_key.hpp"
@@ -22,7 +23,11 @@ namespace libp2p::crypto {
    * Contains cryptographic features, needed for Libp2p functioning
    */
   class CryptoProvider {
+   protected:
+    using Buffer = kagome::common::Buffer;
+
    public:
+    virtual ~CryptoProvider() = default;
     /// AES features
 
     /**
@@ -31,9 +36,8 @@ namespace libp2p::crypto {
      * @param data to be encrypted
      * @return encrypted bytes
      */
-    virtual kagome::common::Buffer aesEncrypt(
-        const common::Aes128Secret &secret,
-        const kagome::common::Buffer &data) const = 0;
+    virtual Buffer aesEncrypt(const common::Aes128Secret &secret,
+                              const Buffer &data) const = 0;
 
     /**
      * Encrypt the data using AES-256
@@ -41,9 +45,8 @@ namespace libp2p::crypto {
      * @param data to be encrypted
      * @return encrypted bytes
      */
-    virtual kagome::common::Buffer aesEncrypt(
-        const common::Aes256Secret &secret,
-        const kagome::common::Buffer &data) const = 0;
+    virtual Buffer aesEncrypt(const common::Aes256Secret &secret,
+                              const Buffer &data) const = 0;
 
     /**
      * Decrypt the data using AES-128
@@ -51,9 +54,8 @@ namespace libp2p::crypto {
      * @param data to be decrypted
      * @return decrypted bytes
      */
-    virtual kagome::common::Buffer aesDecrypt(
-        const common::Aes128Secret &secret,
-        const kagome::common::Buffer &data) const = 0;
+    virtual Buffer aesDecrypt(const common::Aes128Secret &secret,
+                              const Buffer &data) const = 0;
 
     /**
      * Decrypt the data using AES-256
@@ -61,9 +63,8 @@ namespace libp2p::crypto {
      * @param data to be decrypted
      * @return decrypted bytes
      */
-    virtual kagome::common::Buffer aesDecrypt(
-        const common::Aes256Secret &secret,
-        const kagome::common::Buffer &data) const = 0;
+    virtual Buffer aesDecrypt(const common::Aes256Secret &secret,
+                              const Buffer &data) const = 0;
 
     /// HMAC features
 
@@ -74,9 +75,8 @@ namespace libp2p::crypto {
      * @param data to be hashed
      * @return hashed bytes
      */
-    virtual kagome::common::Buffer hmacDigest(
-        common::HashType hash, const kagome::common::Buffer &secret,
-        const kagome::common::Buffer &data) = 0;
+    virtual Buffer hmacDigest(common::HashType hash, const Buffer &secret,
+                              const Buffer &data) = 0;
 
     /// keys features
 
@@ -112,37 +112,39 @@ namespace libp2p::crypto {
      */
     virtual std::vector<common::StretchedKey> keyStretcher(
         common::CipherType cipher_type, common::HashType hash_type,
-        const kagome::common::Buffer &secret) const = 0;
+        const Buffer &secret) const = 0;
 
     /**
      * Convert the public key into Protobuf representation
      * @param key - public key to be mashalled
      * @return bytes of Protobuf object
      */
-    virtual kagome::common::Buffer marshal(const PublicKey &key) const = 0;
+    virtual Buffer marshal(const PublicKey &key) const = 0;
 
     /**
      * Convert the private key into Protobuf representation
      * @param key - public key to be mashalled
      * @return bytes of Protobuf object
      */
-    virtual kagome::common::Buffer marshal(const PrivateKey &key) const = 0;
+    virtual Buffer marshal(const PrivateKey &key) const = 0;
 
     /**
      * Convert Protobuf representation of public key into the object
      * @param key_bytes - bytes of the public key
      * @return public key in case of success, none otherwise
      */
-    virtual std::optional<PublicKey> unmarshalPublicKey(
-        const kagome::common::Buffer &key_bytes) const = 0;
+    virtual std::shared_ptr<PublicKey> unmarshalPublicKey(
+        const Buffer &key_bytes) const = 0;
 
     /**
      * Convert Protobuf representation of private key into the object
      * @param key_bytes - bytes of the private key
      * @return private key in case of success, none otherwise
      */
-    virtual std::optional<PrivateKey> unmarshalPrivateKey(
-        const kagome::common::Buffer &key_bytes) const = 0;
+    virtual std::shared_ptr<PrivateKey> unmarshalPrivateKey(
+        const Buffer &key_bytes) const = 0;
+    // ----------------------------- End of Protobuf section
+    // ---------------------------
 
     /**
      * Import a private key from a password-protected PEM file
@@ -150,7 +152,7 @@ namespace libp2p::crypto {
      * @param password of that file
      * @return private key from the file
      */
-    virtual PrivateKey import(boost::filesystem::path pem_path,
+    virtual std::shared_ptr<PrivateKey> import(boost::filesystem::path pem_path,
                               std::string_view password) const = 0;
 
     /// misc utilities
@@ -160,7 +162,7 @@ namespace libp2p::crypto {
      * @param number - size of the random buffer
      * @return random bytes
      */
-    virtual kagome::common::Buffer randomBytes(size_t number) const = 0;
+    virtual Buffer randomBytes(size_t number) const = 0;
 
     /**
      * Get a secure hash of the password
@@ -171,10 +173,9 @@ namespace libp2p::crypto {
      * @param hash - hashing algorithm
      * @return a new password
      */
-    virtual kagome::common::Buffer pbkdf2(std::string_view password,
-                                          const kagome::common::Buffer &salt,
-                                          uint64_t iterations, size_t key_size,
-                                          common::HashType hash) const = 0;
+    virtual Buffer pbkdf2(std::string_view password, const Buffer &salt,
+                          uint64_t iterations, size_t key_size,
+                          common::HashType hash) const = 0;
   };
 }  // namespace libp2p::crypto
 

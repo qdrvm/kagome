@@ -12,7 +12,10 @@ namespace libp2p::crypto {
   /**
    * Represents public key
    */
-  class PublicKey : public Key {};
+  class PublicKey : public Key {
+   public:
+    ~PublicKey() override = default;
+  };
 }  // namespace libp2p::crypto
 
 #endif  // KAGOME_PUBLIC_KEY_HPP

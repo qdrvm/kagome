@@ -1,0 +1,15 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+syntax = "proto3";
+package libp2p.crypto.proto;
+
+enum KeyType {
+    kUnspecified = 0;
+    kRSA1024 = 1;
+    kRSA2048 = 2;
+    kRSA4096 = 3;
+    kED25519 = 4;
+}

@@ -1,0 +1,13 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+syntax = "proto3";
+package libp2p.crypto.proto;
+import "key_type.proto";
+
+message PublicKey {
+    KeyType key_type = 1;
+    bytes key_value = 2;
+}

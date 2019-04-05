@@ -10,13 +10,14 @@
 
 namespace libp2p::crypto {
   namespace common {
-    enum class KeyType;
+    enum class KeyType : uint32_t;
   }
   /**
    * Interface for public/private key
    */
   class Key {
    public:
+    virtual ~Key() = default;
     /**
      * Get type of this key
      * @return the type
