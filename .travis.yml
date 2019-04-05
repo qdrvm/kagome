@@ -4,7 +4,6 @@ language: cpp
 
 git:
   depth: 1
-  submodules: false
 
 env:
   global:
@@ -22,7 +21,6 @@ cache:
   directories:
     - "$HOME/.ccache"
     - "$HOME/Library/Caches/Homebrew"
-    - "deps"
 
 matrix:
   include:
@@ -113,10 +111,6 @@ matrix:
       env:
         - _CC=clang-8
         - _CXX=clang++-8
-
-
-before_install:
-  - git submodule update --init
 
 install:
   - |
