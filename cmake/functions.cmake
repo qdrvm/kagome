@@ -82,5 +82,8 @@ function(add_proto_library NAME)
   target_include_directories(${NAME} PUBLIC
           ${CMAKE_BINARY_DIR}/generated/core
           )
+  set_target_properties(${NAME}
+          PROPERTIES CXX_CLANG_TIDY ""
+          )
 endfunction()
 
