@@ -3,3 +3,5 @@ cmake-build-debug/.*
 cmake/.*
 test/.*
 deps/.*
+*.pb.h
+*.pb.cc
