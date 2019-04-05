@@ -16,56 +16,56 @@ namespace libp2p::crypto {
 
   Buffer CryptoProviderImpl::aesEncrypt(const common::Aes128Secret &secret,
                                         const Buffer &data) const {
-    // TODO: (yuraz) implement
+    // TODO(yuraz):  implement
     std::terminate();
   }
 
   Buffer CryptoProviderImpl::aesEncrypt(const common::Aes256Secret &secret,
                                         const Buffer &data) const {
-    // TODO: (yuraz) implement
+    // TODO(yuraz):  implement
     std::terminate();
   }
 
   Buffer CryptoProviderImpl::aesDecrypt(const common::Aes128Secret &secret,
                                         const Buffer &data) const {
-    // TODO: (yuraz) implement
+    // TODO(yuraz):  implement
     std::terminate();
   }
 
   Buffer CryptoProviderImpl::aesDecrypt(const common::Aes256Secret &secret,
                                         const Buffer &data) const {
-    // TODO: (yuraz) implement
+    // TODO(yuraz):  implement
     std::terminate();
   }
 
   Buffer CryptoProviderImpl::hmacDigest(common::HashType hash,
                                         const Buffer &secret,
                                         const Buffer &data) {
-    // TODO: (yuraz) implement
+    // TODO(yuraz):  implement
     std::terminate();
   }
 
   common::KeyPair CryptoProviderImpl::generateEd25519Keypair() const {
-    // TODO: (yuraz) implement
+    // TODO(yuraz):  implement
     std::terminate();
   }
 
   common::KeyPair CryptoProviderImpl::generateRSAKeypair(
       common::RSAKeyType key_type) const {
-    // TODO: (yuraz) implement
+    // TODO(yuraz):  implement
     std::terminate();
   }
 
   common::EphemeralKeyPair CryptoProviderImpl::generateEphemeralKeyPair(
       common::CurveType curve) const {
-    // TODO: (yuraz) implement
+    // TODO(yuraz):  implement
     std::terminate();
   }
 
   std::vector<common::StretchedKey> CryptoProviderImpl::keyStretcher(
       common::CipherType cipher_type, common::HashType hash_type,
       const Buffer &secret) const {
-    // TODO: (yuraz) implement
+    // TODO(yuraz):  implement
     std::terminate();
   }
 
@@ -169,12 +169,12 @@ namespace libp2p::crypto {
 
   std::optional<PrivateKey> CryptoProviderImpl::import(
       boost::filesystem::path pem_path, std::string_view password) const {
-    // TODO: (yuraz) implement
+    // TODO(yuraz):  implement
     std::terminate();
   }
 
   Buffer CryptoProviderImpl::randomBytes(size_t number) const {
-    // TODO: (yuraz) implement
+    // TODO(yuraz):  implement
     std::terminate();
   }
 
@@ -182,13 +182,13 @@ namespace libp2p::crypto {
                                     const Buffer &salt, uint64_t iterations,
                                     size_t key_size,
                                     common::HashType hash) const {
-    // TODO: (yuraz) implement
+    // TODO(yuraz):  implement
     std::terminate();
   }
 
   std::optional<PublicKey> CryptoProviderImpl::derivePublicKey(
       const PrivateKey &private_key) const {
-    // TODO: (yuraz) implement
+    // TODO(yuraz):  implement
     std::terminate();
   }
 }  // namespace libp2p::crypto

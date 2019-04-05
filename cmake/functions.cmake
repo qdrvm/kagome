@@ -86,4 +86,3 @@ function(add_proto_library NAME)
           PROPERTIES CXX_CLANG_TIDY ""
           )
 endfunction()
-
