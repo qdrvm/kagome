@@ -9,6 +9,8 @@
 
 #include "libp2p/crypto/proto/keys.pb.h"
 
+#include <optional>
+
 namespace libp2p::crypto {
   using kagome::common::Buffer;
 
@@ -138,34 +140,34 @@ namespace libp2p::crypto {
     return out;
   }
 
-  std::shared_ptr<PublicKey> CryptoProviderImpl::unmarshalPublicKey(
+  std::optional<PublicKey> CryptoProviderImpl::unmarshalPublicKey(
       const Buffer &key_bytes) const {
     proto::PublicKey proto_key;
     if (!proto_key.ParseFromArray(key_bytes.toBytes(), key_bytes.size())) {
-      return nullptr;
+      return std::nullopt;
     }
 
     auto key_type = unmarshalKeyType(proto_key.key_type());
     Buffer key_value;
     key_value.put(proto_key.key_value());
-    return std::make_shared<PublicKey>(key_type, key_value);
+    return PublicKey(key_type, key_value);
   }
 
-  std::shared_ptr<PrivateKey> CryptoProviderImpl::unmarshalPrivateKey(
+  std::optional<PrivateKey> CryptoProviderImpl::unmarshalPrivateKey(
       const Buffer &key_bytes) const {
     proto::PublicKey proto_key;
     if (!proto_key.ParseFromArray(key_bytes.toBytes(), key_bytes.size())) {
-      return nullptr;
+      return std::nullopt;
     }
 
     auto key_type = unmarshalKeyType(proto_key.key_type());
     Buffer key_value;
     key_value.put(proto_key.key_value());
 
-    return std::make_shared<PrivateKey>(key_type, key_value);
+    return PrivateKey(key_type, key_value);
   }
 
-  std::shared_ptr<PrivateKey> CryptoProviderImpl::import(
+  std::optional<PrivateKey> CryptoProviderImpl::import(
       boost::filesystem::path pem_path, std::string_view password) const {
     // TODO: (yuraz) implement
     std::terminate();
@@ -184,7 +186,7 @@ namespace libp2p::crypto {
     std::terminate();
   }
 
-  std::shared_ptr<PublicKey> CryptoProviderImpl::derivePublicKey(
+  std::optional<PublicKey> CryptoProviderImpl::derivePublicKey(
       const PrivateKey &private_key) const {
     // TODO: (yuraz) implement
     std::terminate();

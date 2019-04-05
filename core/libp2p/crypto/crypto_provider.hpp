@@ -133,7 +133,7 @@ namespace libp2p::crypto {
      * @param key_bytes - bytes of the public key
      * @return public key in case of success, none otherwise
      */
-    virtual std::shared_ptr<PublicKey> unmarshalPublicKey(
+    virtual std::optional<PublicKey> unmarshalPublicKey(
         const Buffer &key_bytes) const = 0;
 
     /**
@@ -141,7 +141,7 @@ namespace libp2p::crypto {
      * @param key_bytes - bytes of the private key
      * @return private key in case of success, none otherwise
      */
-    virtual std::shared_ptr<PrivateKey> unmarshalPrivateKey(
+    virtual std::optional<PrivateKey> unmarshalPrivateKey(
         const Buffer &key_bytes) const = 0;
 
     /**
@@ -150,7 +150,7 @@ namespace libp2p::crypto {
      * @param password of that file
      * @return private key from the file
      */
-    virtual std::shared_ptr<PrivateKey> import(
+    virtual std::optional<PrivateKey> import(
         boost::filesystem::path pem_path, std::string_view password) const = 0;
 
     /// misc utilities
@@ -181,7 +181,7 @@ namespace libp2p::crypto {
      * @return derived public key or error if private key is invalid or another
      * error occured
      */
-    virtual std::shared_ptr<PublicKey> derivePublicKey(
+    virtual std::optional<PublicKey> derivePublicKey(
         const PrivateKey &private_key) const;
   };
 }  // namespace libp2p::crypto
