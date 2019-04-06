@@ -19,13 +19,20 @@ namespace libp2p::transport {
   outcome::result<multi::Multiaddress> TcpConnection::getRemoteMultiaddr()
       const {
     try {
-      auto &&remote = socket_.remote_endpoint();
-      auto &&addr = remote.address().to_v4().to_string();
-      auto &&port = remote.port();
-      std::ostringstream s{};
-      s << "/ip4/" << addr << "/tcp/" << port;
-      OUTCOME_TRY(ma, multi::Multiaddress::create(s.str()));
-      return ma;
+      auto re = socket_.remote_endpoint();
+      auto address = re.address();
+      auto port = re.port();
+
+      std::ostringstream s;
+      if (address.is_v4()) {
+        s << "/ip4/" << address.to_v4().to_string();
+      } else {
+        s << "/ip6/" << address.to_v6().to_string();
+      }
+
+      s << "/tcp/" << port;
+
+      return multi::Multiaddress::create(s.str());
     } catch (const boost::system::system_error &e) {
       return e.code();
     }

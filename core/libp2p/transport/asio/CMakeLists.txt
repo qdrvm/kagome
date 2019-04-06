@@ -6,5 +6,4 @@ add_library(asio_app
   )
 target_link_libraries(asio_app
   Boost::boost
-  Boost::thread
   )

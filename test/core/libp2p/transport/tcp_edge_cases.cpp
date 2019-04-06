@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 
+#include "libp2p/transport/asio/asio_app.hpp"
 #include "libp2p/transport/impl/transport_impl.hpp"
 #include "testutil/outcome.hpp"
 
@@ -52,14 +53,20 @@ TEST(TCP, TwoListenersCantBindOnSamePort) {
  * @then each client is expected to receive sent message
  */
 TEST(TCP, SingleListenerCanAcceptManyClients) {
-  const int kClients = 1;
+  const int kClients = 4;
   const int kSize = 1500;
   const int kRetries = 10;
 
   size_t counter = 0;  // number of answers
-  boost::asio::io_context context;
-  auto transport = std::make_unique<TransportImpl>(context);
+  asio::AsioApp app(4);
+  auto transport = std::make_unique<TransportImpl>(app.context());
   auto listener = transport->createListener([&counter](std::shared_ptr<Connection> c) {
+    auto ma = c->getRemoteMultiaddr();
+    if(!ma){
+      std::cerr << "error ma: " << ma.error().message() << std::endl;
+    } else {
+      std::cout << "recv from " << ma.value().getStringAddress() << " thread id " << std::this_thread::get_id() << "\n";
+    }
     c->readAsync([c, &counter](outcome::result<Buffer> result) {
       EXPECT_OUTCOME_TRUE(data, result);
 
@@ -81,6 +88,8 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
   std::vector<std::thread> clients(kClients);
   std::generate(clients.begin(), clients.end(), [&]() {
     return std::thread([&]() {
+      boost::asio::io_context context;
+      auto transport = std::make_unique<TransportImpl>(context);
       for (int i = 0; i < kRetries; i++) {
         srand(i);
 
@@ -101,7 +110,7 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
     });
   });
 
-  context.run_for(1s);
+  app.run_for(500ms);
   std::for_each(clients.begin(), clients.end(),
                 [](std::thread &t) { t.join(); });
 

@@ -7,8 +7,8 @@ find_package(GTest CONFIG REQUIRED)
 find_package(GMock CONFIG REQUIRED)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
-hunter_add_package(Boost COMPONENTS thread)
-find_package(Boost CONFIG REQUIRED  thread)
+hunter_add_package(Boost)
+find_package(Boost CONFIG REQUIRED)
 
 ## TODO: uncomment when it is really needed
 ## https://docs.hunter.sh/en/latest/packages/pkg/libjson-rpc-cpp.html

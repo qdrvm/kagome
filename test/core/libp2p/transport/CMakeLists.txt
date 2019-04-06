@@ -10,4 +10,5 @@ target_link_libraries(libp2p_tcp_transport_integration_test
 addtest(libp2p_tcp_edge_cases tcp_edge_cases.cpp)
 target_link_libraries(libp2p_tcp_edge_cases
   libp2p_transport
+  asio_app
   )

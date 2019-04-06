@@ -17,9 +17,9 @@ namespace libp2p::transport::asio {
    * @brief Class, which owns boost::asio::io_context, thread pool. Should be 1
    * per application.
    */
-  class AsioApp {
+  class AsioApp : private boost::asio::noncopyable {
    public:
-    explicit AsioApp(uint16_t threads = 0);
+    explicit AsioApp(int threads = 0);
 
     boost::asio::io_context &context();
 
@@ -28,6 +28,8 @@ namespace libp2p::transport::asio {
      */
     void run();
 
+    void run_for(std::chrono::milliseconds ms);
+
     ~AsioApp();
     AsioApp(const AsioApp &copy) = delete;
     AsioApp(AsioApp &&move) = delete;
@@ -35,9 +37,11 @@ namespace libp2p::transport::asio {
     AsioApp &operator=(AsioApp &&move) = delete;
 
    private:
-    uint32_t threads_;
+    int threads_;
     boost::asio::io_context context_;
-    boost::thread_group pool_;
+    std::vector<std::thread> pool_;
+
+    void run_threads(int threads, std::function<void()> cb);
 
     // this empty work prevents context from unblocking after run()
     using WorkType = boost::asio::executor_work_guard<

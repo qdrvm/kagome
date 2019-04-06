@@ -13,9 +13,9 @@
 
 namespace libp2p::transport::asio {
 
-  AsioApp::AsioApp(uint16_t threads) : threads_(threads) {
+  AsioApp::AsioApp(int threads) : threads_(threads - 1) {
     if (threads <= 0) {
-      threads = boost::thread::hardware_concurrency();
+      threads = std::thread::hardware_concurrency();
     }
 
     // NOLINTNEXTLINE
@@ -38,7 +38,12 @@ namespace libp2p::transport::asio {
      * their assigned tasks and 'join' them. Just assume the threads inside
      * the threadpool will be destroyed by this method.
      */
-    pool_.join_all();
+    for (auto &&thread : pool_) {
+      if (thread.joinable()) {
+        thread.join();
+      }
+    }
+    pool_.clear();
   }
 
   boost::asio::io_context &AsioApp::context() {
@@ -49,12 +54,21 @@ namespace libp2p::transport::asio {
     // put work to context, so that run does not finish
     work_ = std::make_unique<WorkType>(context_.get_executor());
 
-    for (int i = 0; i < threads_; i++) {
-      pool_.create_thread(
-          boost::bind(&boost::asio::io_context::run, &context_));
-    }
+    run_threads(threads_, [&] { context_.run(); });
 
     context_.run();
+  }
+
+  void AsioApp::run_for(std::chrono::milliseconds ms) {
+    run_threads(threads_, [&]() { context_.run_for(ms); });
+
+    context_.run_for(ms);
+  }
+
+  void AsioApp::run_threads(int threads, std::function<void()> cb) {
+    for (int i = 0; i < threads; i++) {
+      pool_.emplace_back([cb = std::move(cb)]() { cb(); });
+    }
   }
 
 }  // namespace libp2p::transport::asio
