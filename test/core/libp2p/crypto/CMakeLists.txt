@@ -9,6 +9,7 @@ addtest(keys_test
 
 target_link_libraries(keys_test
         buffer
+        protobuf::libprotobuf-lite
         crypto_provider
         Boost::boost
         )
