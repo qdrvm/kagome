@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <functional>
 
 #include "common/buffer.hpp"
 #include "libp2p/crypto/private_key.hpp"
