@@ -30,9 +30,7 @@ namespace libp2p::transport {
                       return boost::lexical_cast<uint16_t>(val);
                     }));
 
-    OUTCOME_TRY(client, ipTcp(addr, port));
-
-    return client;
+    return ipTcp(addr, port);
   }
 
   std::shared_ptr<TransportListener> TransportImpl::createListener(

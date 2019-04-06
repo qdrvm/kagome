@@ -61,13 +61,16 @@ namespace libp2p::transport {
           if (r) {
             auto c =
                 std::make_shared<TcpConnection>(context_, std::move(r.value()));
-            handler_(c);
-            this->signal_new_connection_(c);
+            boost::asio::post(context_, [this, c]() { handler_(c); });
+            boost::asio::post(context_,
+                              [this, c]() { this->signal_new_connection_(c); });
           } else {
-            this->signal_error_(r.error());
+            boost::asio::post(
+                context_, [this, e = r.error()]() { this->signal_error_(e); });
           }
         });
   }
+
   bool TransportListenerImpl::isClosed() const {
     return servers_.empty()
         || std::all_of(servers_.begin(), servers_.end(),

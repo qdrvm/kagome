@@ -17,7 +17,7 @@
 namespace libp2p::transport::asio {
 
   /**
-   * @brief Abstract factory to create specific servers.
+   * @brief Abstract factory to create specific clients.
    */
   class ClientFactory {
    public:

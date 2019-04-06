@@ -28,6 +28,12 @@ namespace libp2p::transport::asio {
     using server_ptr = std::unique_ptr<asio::Server>;
     using server_ptr_result = outcome::result<server_ptr>;
 
+    /**
+     * @brief creates ip4/ip6 tcp client
+     * @param ip ip4 or ip6
+     * @param port tcp port
+     * @return result on the pointer to specific server.
+     */
     virtual server_ptr_result ipTcp(const Address &ip, uint16_t port) const = 0;
   };
 

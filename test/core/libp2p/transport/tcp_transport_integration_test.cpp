@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <chrono>
+
 #include <gtest/gtest.h>
 #include <boost/asio/io_context.hpp>
 
@@ -14,6 +16,7 @@
 using namespace libp2p::transport;
 using namespace libp2p::multi;
 using kagome::common::Buffer;
+using std::chrono_literals::operator""ms;
 
 /**
  * @given boost asio context, initialized transport and single listener
@@ -105,8 +108,7 @@ TEST(TCP, Integration) {
     ASSERT_TRUE(!ec);
   });
 
-  context.run_one();  // run all handlers once
-  context.run_one();  // run asyncWrite asyncRead
+  context.run_for(100ms);
 
   ASSERT_EQ(listener->getAddresses(), std::vector<Multiaddress>{ma});
 

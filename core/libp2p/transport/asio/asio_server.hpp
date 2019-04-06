@@ -17,10 +17,16 @@
 
 namespace libp2p::transport::asio {
 
+  /**
+   * @brief Generic server.
+   */
   class Server : public basic::Closeable {
    public:
     ~Server() override = default;
 
+    /**
+     * @brief Start accept clients.
+     */
     virtual void startAccept() = 0;
 
     /**

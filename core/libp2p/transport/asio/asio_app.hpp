@@ -13,12 +13,19 @@
 
 namespace libp2p::transport::asio {
 
+  /**
+   * @brief Class, which owns boost::asio::io_context, thread pool. Should be 1
+   * per application.
+   */
   class AsioApp {
    public:
     explicit AsioApp(uint16_t threads = 0);
 
     boost::asio::io_context &context();
 
+    /**
+     * @brief Run event loop.
+     */
     void run();
 
     ~AsioApp();
@@ -33,7 +40,8 @@ namespace libp2p::transport::asio {
     boost::thread_group pool_;
 
     // this empty work prevents context from unblocking after run()
-    using WorkType = boost::asio::executor_work_guard<boost::asio::io_context::executor_type>;
+    using WorkType = boost::asio::executor_work_guard<
+        boost::asio::io_context::executor_type>;
     std::unique_ptr<WorkType> work_;
   };
 
