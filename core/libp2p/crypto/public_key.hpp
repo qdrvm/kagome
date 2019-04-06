@@ -14,22 +14,10 @@ namespace libp2p::crypto {
    */
   class PublicKey : public Key {
    public:
-    using Buffer = kagome::common::Buffer;
-
-   public:
     /**
-     * @brief constructor
-     * @param key_type key type
-     * @param bytes key content
+     * @brief inherited constructor
      */
-    PublicKey(common::KeyType key_type, Buffer &&bytes);
-
-    /**
-     * @brief constructor
-     * @param key_type key type
-     * @param bytes key content
-     */
-    PublicKey(common::KeyType key_type, Buffer bytes);
+    using Key::Key;
 
     /**
      * @brief destructor

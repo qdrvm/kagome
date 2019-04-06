@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(crypto
+add_library(crypto_provider
         common.hpp
         crypto_provider.hpp
         key.hpp
@@ -11,13 +11,12 @@ add_library(crypto
         public_key.hpp
         impl/crypto_provider_impl.hpp
         impl/crypto_provider_impl.cpp
-        public_key.cpp
-        private_key.cpp key.cpp)
+        key.cpp)
 
-target_link_libraries(crypto
+target_link_libraries(crypto_provider
         buffer
         keys_proto
-        openssl
+        OpenSSL::Crypto
         )
 
 add_subdirectory(proto)

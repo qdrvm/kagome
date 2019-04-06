@@ -8,10 +8,10 @@
 namespace libp2p::crypto {
 
   Key::Key(common::KeyType key_type, Key::Buffer &&bytes)
-      : key_type_{key_type}, bytes_(bytes) {}
-
-  Key::Key(common::KeyType key_type, Key::Buffer bytes)
       : key_type_{key_type}, bytes_(std::move(bytes)) {}
+
+  Key::Key(common::KeyType key_type, const Key::Buffer &bytes)
+      : key_type_{key_type}, bytes_(bytes) {}
 
   common::KeyType Key::getType() const {
     return key_type_;
