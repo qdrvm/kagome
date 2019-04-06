@@ -26,14 +26,7 @@ namespace libp2p::crypto {
      * @param key_type key type
      * @param bytes key content
      */
-    Key(common::KeyType key_type, Buffer &&bytes);
-
-    /**
-     * @brief constructor
-     * @param key_type key type
-     * @param bytes key content
-     */
-    Key(common::KeyType key_type, const Buffer &bytes);
+    Key(common::KeyType key_type, Buffer bytes);
 
     /**
      * @brief constructor
