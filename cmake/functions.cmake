@@ -77,7 +77,7 @@ function(add_proto_library NAME)
           ${SOURCES}
           )
   target_link_libraries(${NAME}
-          protobuf::libprotobuf-lite
+          protobuf::libprotobuf
           )
   target_include_directories(${NAME} PUBLIC
           ${CMAKE_BINARY_DIR}/generated/core
