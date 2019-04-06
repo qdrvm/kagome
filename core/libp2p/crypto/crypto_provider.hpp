@@ -182,7 +182,7 @@ namespace libp2p::crypto {
      * error occured
      */
     virtual std::optional<PublicKey> derivePublicKey(
-        const PrivateKey &private_key) const;
+        const PrivateKey &private_key) const = 0;
   };
 }  // namespace libp2p::crypto
 
