@@ -16,10 +16,14 @@ namespace libp2p::crypto {
   class PrivateKey : public Key {
    public:
     /**
-     * Get a public key, derived from this private one
-     * @return a public key
+     * @brief inherited constructor
      */
-    virtual PublicKey publicKey() const = 0;
+    using Key::Key;
+
+    /**
+     * @brief destructor
+     */
+    ~PrivateKey() override = default;
   };
 }  // namespace libp2p::crypto
 

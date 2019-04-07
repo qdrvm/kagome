@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <functional>
 
 #include "common/buffer.hpp"
 #include "libp2p/crypto/private_key.hpp"
@@ -54,12 +55,13 @@ namespace libp2p::crypto::common {
   /**
    * Supported types of RSA keys
    */
-  enum class RSAKeyType { kRSA1024, kRSA2048, kRSA4096 };
+  enum class RSAKeyType { kRSA1024 = 0, kRSA2048 = 1, kRSA4096 = 2 };
 
   /**
    * Supported types of all keys
    */
-  enum class KeyType { kRSA1024, kRSA2048, kRSA4096, kED25519 };
+  enum class KeyType : uint32_t { kUnspecified, kRSA1024, kRSA2048, kRSA4096, kED25519 };
+  // TODO:(yuraz) maybe add support for Secp256k1 like in js version
 
   /**
    * Supported ECDH curves
