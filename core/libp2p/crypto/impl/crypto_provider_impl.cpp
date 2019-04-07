@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
+#include "libp2p/crypto/proto/keys.pb.h" // don't change order, this header must go first
+
 #include "libp2p/crypto/impl/crypto_provider_impl.hpp"
 
 #include "libp2p/crypto/private_key.hpp"
-
-#include "libp2p/crypto/proto/keys.pb.h"
 
 #include "libp2p/crypto/error.hpp"
 
