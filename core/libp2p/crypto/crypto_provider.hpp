@@ -7,11 +7,11 @@
 #define KAGOME_CRYPTO_PROVIDER_HPP
 
 #include <memory>
-#include <optional>
 #include <string_view>
 #include <utility>
 
 #include <boost/filesystem.hpp>
+#include <outcome/outcome.hpp>
 
 #include "common/buffer.hpp"
 #include "libp2p/crypto/common.hpp"
@@ -119,21 +119,21 @@ namespace libp2p::crypto {
      * @param key - public key to be mashalled
      * @return bytes of Protobuf object
      */
-    virtual Buffer marshal(const PublicKey &key) const = 0;
+    virtual outcome::result<Buffer> marshal(const PublicKey &key) const = 0;
 
     /**
      * Convert the private key into Protobuf representation
      * @param key - public key to be mashalled
      * @return bytes of Protobuf object
      */
-    virtual Buffer marshal(const PrivateKey &key) const = 0;
+    virtual outcome::result<Buffer> marshal(const PrivateKey &key) const = 0;
 
     /**
      * Convert Protobuf representation of public key into the object
      * @param key_bytes - bytes of the public key
      * @return public key in case of success, none otherwise
      */
-    virtual std::optional<PublicKey> unmarshalPublicKey(
+    virtual outcome::result<PublicKey> unmarshalPublicKey(
         const Buffer &key_bytes) const = 0;
 
     /**
@@ -141,7 +141,7 @@ namespace libp2p::crypto {
      * @param key_bytes - bytes of the private key
      * @return private key in case of success, none otherwise
      */
-    virtual std::optional<PrivateKey> unmarshalPrivateKey(
+    virtual outcome::result<PrivateKey> unmarshalPrivateKey(
         const Buffer &key_bytes) const = 0;
 
     /**
@@ -150,7 +150,7 @@ namespace libp2p::crypto {
      * @param password of that file
      * @return private key from the file
      */
-    virtual std::optional<PrivateKey> import(
+    virtual outcome::result<PrivateKey> import(
         boost::filesystem::path pem_path, std::string_view password) const = 0;
 
     /// misc utilities
@@ -181,7 +181,7 @@ namespace libp2p::crypto {
      * @return derived public key or error if private key is invalid or another
      * error occured
      */
-    virtual std::optional<PublicKey> derivePublicKey(
+    virtual outcome::result<PublicKey> derivePublicKey(
         const PrivateKey &private_key) const = 0;
   };
 }  // namespace libp2p::crypto

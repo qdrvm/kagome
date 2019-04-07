@@ -18,16 +18,12 @@ namespace libp2p::crypto {
     return bytes_;
   }
 
-  bool Key::operator==(const Key &other) const {
-    if (typeid(other) != typeid(*this)) {
+  bool operator==(const Key &lhs, const Key &rhs) {
+    if (lhs.getType() != rhs.getType()) {
       return false;
     }
 
-    if (getType() != other.getType()) {
-      return false;
-    }
-
-    return getBytes() == other.getBytes();
+    return lhs.getBytes() == rhs.getBytes();
   }
 
 }  // namespace libp2p::crypto

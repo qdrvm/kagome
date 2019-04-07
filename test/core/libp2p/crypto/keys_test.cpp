@@ -13,7 +13,7 @@
 #include "libp2p/crypto/common.hpp"
 
 using kagome::common::Buffer;
-using namespace libp2p::crypto; // NOLINT
+using namespace libp2p::crypto;
 
 TEST(CryptoKeys, simple) {
   auto private_key = PrivateKey(common::KeyType::kUnspecified, Buffer{1,2,3});

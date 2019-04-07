@@ -40,17 +40,17 @@ namespace libp2p::crypto {
         common::CipherType cipher_type, common::HashType hash_type,
         const Buffer &secret) const override;
 
-    Buffer marshal(const PublicKey &key) const override;
+    outcome::result<Buffer> marshal(const PublicKey &key) const override;
 
-    Buffer marshal(const PrivateKey &key) const override;
+    outcome::result<Buffer> marshal(const PrivateKey &key) const override;
 
-    std::optional<PublicKey> unmarshalPublicKey(
+    outcome::result<PublicKey> unmarshalPublicKey(
         const Buffer &key_bytes) const override;
 
-    std::optional<PrivateKey> unmarshalPrivateKey(
+    outcome::result<PrivateKey> unmarshalPrivateKey(
         const Buffer &key_bytes) const override;
 
-    std::optional<PrivateKey> import(
+    outcome::result<PrivateKey> import(
         boost::filesystem::path pem_path,
         std::string_view password) const override;
 
@@ -60,7 +60,7 @@ namespace libp2p::crypto {
                   uint64_t iterations, size_t key_size,
                   common::HashType hash) const override;
 
-    std::optional<PublicKey> derivePublicKey(
+    outcome::result<PublicKey> derivePublicKey(
         const PrivateKey &private_key) const override;
   };
 }  // namespace libp2p::crypto

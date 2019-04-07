@@ -9,7 +9,7 @@
 
 #include "libp2p/crypto/proto/keys.pb.h"
 
-#include <optional>
+#include "libp2p/crypto/error.hpp"
 
 namespace libp2p::crypto {
   using kagome::common::Buffer;
@@ -75,7 +75,7 @@ namespace libp2p::crypto {
      * @param key_type common key type value
      * @return proto key type value
      */
-    proto::KeyType marshalKeyType(common::KeyType key_type) {
+    outcome::result<proto::KeyType> marshalKeyType(common::KeyType key_type) {
       switch (key_type) {
         case common::KeyType::kUnspecified:
           return proto::KeyType::kUnspecified;
@@ -90,7 +90,8 @@ namespace libp2p::crypto {
         default:
           break;
       }
-      BOOST_UNREACHABLE_RETURN(proto::KeyType)
+
+      return CryptoProviderError::kUnknownKeyType;
     }
 
     /**
@@ -98,7 +99,7 @@ namespace libp2p::crypto {
      * @param key_type proto key type value
      * @return common key type value
      */
-    common::KeyType unmarshalKeyType(proto::KeyType key_type) {
+    outcome::result<common::KeyType> unmarshalKeyType(proto::KeyType key_type) {
       switch (key_type) {
         case proto::KeyType::kUnspecified:
           return common::KeyType::kUnspecified;
@@ -111,14 +112,18 @@ namespace libp2p::crypto {
         default:
           break;
       }
-      BOOST_UNREACHABLE_RETURN(common::KeyType);
+
+      return CryptoProviderError::kUnknownKeyType;
     }
 
   }  // namespace
 
-  Buffer CryptoProviderImpl::marshal(const PublicKey &key) const {
+  outcome::result<Buffer> CryptoProviderImpl::marshal(
+      const PublicKey &key) const {
     proto::PublicKey proto_key;
-    proto_key.set_key_type(marshalKeyType(key.getType()));
+    OUTCOME_TRY(key_type, marshalKeyType(key.getType()));
+    proto_key.set_key_type(key_type);
+
     proto_key.set_key_value(key.getBytes().toBytes(), key.getBytes().size());
 
     auto string = proto_key.SerializeAsString();
@@ -128,9 +133,11 @@ namespace libp2p::crypto {
     return out;
   }
 
-  Buffer CryptoProviderImpl::marshal(const PrivateKey &key) const {
+  outcome::result<Buffer> CryptoProviderImpl::marshal(
+      const PrivateKey &key) const {
     proto::PublicKey proto_key;
-    proto_key.set_key_type(marshalKeyType(key.getType()));
+    OUTCOME_TRY(key_type, marshalKeyType(key.getType()));
+    proto_key.set_key_type(key_type);
     proto_key.set_key_value(key.getBytes().toBytes(), key.getBytes().size());
 
     auto string = proto_key.SerializeAsString();
@@ -140,34 +147,35 @@ namespace libp2p::crypto {
     return out;
   }
 
-  std::optional<PublicKey> CryptoProviderImpl::unmarshalPublicKey(
+  outcome::result<PublicKey> CryptoProviderImpl::unmarshalPublicKey(
       const Buffer &key_bytes) const {
     proto::PublicKey proto_key;
     if (!proto_key.ParseFromArray(key_bytes.toBytes(), key_bytes.size())) {
-      return std::nullopt;
+      return CryptoProviderError::kFailedToUnmarshalData;
     }
 
-    auto key_type = unmarshalKeyType(proto_key.key_type());
+    OUTCOME_TRY(key_type, unmarshalKeyType(proto_key.key_type()));
+
     Buffer key_value;
     key_value.put(proto_key.key_value());
     return PublicKey(key_type, key_value);
   }
 
-  std::optional<PrivateKey> CryptoProviderImpl::unmarshalPrivateKey(
+  outcome::result<PrivateKey> CryptoProviderImpl::unmarshalPrivateKey(
       const Buffer &key_bytes) const {
     proto::PublicKey proto_key;
     if (!proto_key.ParseFromArray(key_bytes.toBytes(), key_bytes.size())) {
-      return std::nullopt;
+      return CryptoProviderError::kFailedToUnmarshalData;
     }
 
-    auto key_type = unmarshalKeyType(proto_key.key_type());
+    OUTCOME_TRY(key_type, unmarshalKeyType(proto_key.key_type()));
     Buffer key_value;
     key_value.put(proto_key.key_value());
 
     return PrivateKey(key_type, key_value);
   }
 
-  std::optional<PrivateKey> CryptoProviderImpl::import(
+  outcome::result<PrivateKey> CryptoProviderImpl::import(
       boost::filesystem::path pem_path, std::string_view password) const {
     // TODO(yuraz):  implement
     std::terminate();
@@ -186,7 +194,7 @@ namespace libp2p::crypto {
     std::terminate();
   }
 
-  std::optional<PublicKey> CryptoProviderImpl::derivePublicKey(
+  outcome::result<PublicKey> CryptoProviderImpl::derivePublicKey(
       const PrivateKey &private_key) const {
     // TODO(yuraz):  implement
     std::terminate();

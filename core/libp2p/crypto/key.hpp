@@ -28,13 +28,6 @@ namespace libp2p::crypto {
      */
     Key(common::KeyType key_type, Buffer bytes);
 
-    /**
-     * @brief constructor
-     * @param key_type key type
-     * @param bytes key content
-     */
-//    Key(common::KeyType key_type, Buffer bytes);
-
     virtual ~Key() = default;
 
     /**
@@ -49,12 +42,18 @@ namespace libp2p::crypto {
      */
     virtual const kagome::common::Buffer &getBytes() const;
 
-    virtual bool operator==(const Key &other) const;
-
    private:
     common::KeyType key_type_;  ///< key type
     Buffer bytes_;              ///< key content
   };
+
+  /**
+   * @brief compares keys
+   * @param lhs first key
+   * @param rhs second key
+   * @return true if keys are equal false otherwise
+   */
+  bool operator==(const Key &lhs, const Key &rhs);
 
 }  // namespace libp2p::crypto
 
