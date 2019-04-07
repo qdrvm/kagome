@@ -60,6 +60,8 @@ namespace libp2p::multi {
      */
     UVarint &operator=(uint64_t n);
 
+    UVarint &operator=(const UVarint&) = default;
+
     /**
      * @return the number of bytes currently stored in a varint
      */

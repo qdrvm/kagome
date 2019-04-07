@@ -8,23 +8,21 @@
 
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
-#include "libp2p/multi/utils/protocol_list.hpp"
 #include "libp2p/multi/utils/ip_v4_validator.hpp"
+#include "libp2p/multi/utils/protocol_list.hpp"
 
 namespace libp2p::multi::converters {
 
+  /**
+   * Converts an ip4 part of a multiaddress (an IP address)
+   * to bytes representation as a hex string
+   */
   class IPv4Converter {
-  public:
-    static auto addressToBytes(const Protocol &protocol, const std::string &addr)
-       -> outcome::result <std::string> {
-      if (IPv4Validator::isValidIp(addr)) {
-        uint64_t iip = ipToInt(addr);
-        return intToHex(iip);
-      }
-      return ConversionError::kInvalidAddress;
-    }
+   public:
+    static auto addressToBytes(std::string_view addr)
+        -> outcome::result<std::string>;
   };
 
-}
+}  // namespace libp2p::multi::converters
 
-#endif //KAGOME_IPV4CONVERTER_HPP
+#endif  // KAGOME_IPV4CONVERTER_HPP

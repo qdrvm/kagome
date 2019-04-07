@@ -22,7 +22,6 @@ addtest(base58_codec_test
 
 target_link_libraries(base58_codec_test
     base58_codec
-    c_utils
     )
 
 addtest(address_converter_test
@@ -30,8 +29,9 @@ addtest(address_converter_test
     )
 
 target_link_libraries(address_converter_test
+    uvarint
     converter_utils
-    c_utils
+    multi_hex_utils
     )
 
 
@@ -40,8 +40,15 @@ addtest(converter_utils_test
     )
 
 target_link_libraries(converter_utils_test
+    multi_hex_utils
+    )
+
+addtest(string_to_bytes_test
+    string_from_to_bytes_test.cpp
+    )
+
+target_link_libraries(string_to_bytes_test
     converter_utils
-    c_utils
     )
 
 addtest(ip_v4_validator_test

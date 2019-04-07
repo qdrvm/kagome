@@ -3,21 +3,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <sstream>
-
 #include "libp2p/multi/utils/uvarint.hpp"
 #include "common/hexutil.hpp"
-extern "C" {
-#include "libp2p/multi/c-utils/varint.h"
-}
 
 using kagome::common::hex_upper;
 
 namespace libp2p::multi {
 
-  UVarint::UVarint(uint64_t number):
-    bytes_ {8, 0} {
-    auto size = uvarint_encode64(number, bytes_.data(), 8);
+  UVarint::UVarint(uint64_t number) {
+    bytes_.resize(8);
+    size_t i = 0;
+    size_t size = 0;
+    for (; i < 8; i++) {
+      bytes_[i] = (uint8_t)((number & 0xFFul) | 0x80ul);
+      number >>= 7ul;
+      if (!number) {
+        bytes_[i] &= 0x7Ful;
+        size = i + 1;
+        break;
+      }
+    }
     bytes_.resize(size);
   }
 
@@ -26,13 +31,21 @@ namespace libp2p::multi {
                varint_bytes.begin() + calculateSize(varint_bytes)) {}
 
   uint64_t UVarint::toUInt64() const {
-    uint64_t i;
-    uvarint_decode64(bytes_.data(), bytes_.size(), &i);
-    return i;
+    uint64_t res = 0;
+    for (size_t i = 0; i < 8 && i < bytes_.size(); i++) {
+      res |= ((bytes_[i] & 0x7ful) << (7 * i));
+      if (!(bytes_[i] & 0x80ul))
+        return res;
+    }
+    return -1;
   }
 
   gsl::span<const uint8_t> UVarint::toBytes() const {
     return gsl::span(bytes_.data(), bytes_.size());
+  }
+
+  std::string UVarint::toHex() const {
+    return hex_upper(bytes_);
   }
 
   size_t UVarint::size() const {
@@ -40,9 +53,7 @@ namespace libp2p::multi {
   }
 
   UVarint &UVarint::operator=(uint64_t n) {
-    bytes_.resize(8);
-    auto size = uvarint_encode64(n, bytes_.data(), 8);
-    bytes_.resize(size);
+    *this = UVarint(n);
     return *this;
   }
 
@@ -53,10 +64,6 @@ namespace libp2p::multi {
       s++;
     }
     return s + 1;
-  }
-
-  std::string UVarint::toHex() const {
-    return hex_upper(toBytes().data(), static_cast<size_t>(toBytes().size()));
   }
 
 }  // namespace libp2p::multi

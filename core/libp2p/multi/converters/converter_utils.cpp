@@ -3,68 +3,36 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "converter_utils.hpp"
-
-#include <ios>
-#include <iosfwd>
-#include <string>
+#include "libp2p/multi/converters/converter_utils.hpp"
 
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
-#include "ip_v4_converter.hpp"
-#include "ipfs_converter.hpp"
-#include "tcp_converter.hpp"
-#include "udp_converter.hpp"
+#include "common/hexutil.hpp"
+#include "libp2p/multi/converters/conversion_error.hpp"
+#include "libp2p/multi/converters/ip_v4_converter.hpp"
+#include "libp2p/multi/converters/ipfs_converter.hpp"
+#include "libp2p/multi/converters/tcp_converter.hpp"
+#include "libp2p/multi/converters/udp_converter.hpp"
+#include "libp2p/multi/utils/multi_hex_utils.hpp"
 #include "libp2p/multi/utils/protocol_list.hpp"
+#include "libp2p/multi/utils/uvarint.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi::converters, ConversionError, e) {
-  using libp2p::multi::converters::ConversionError;
-
-  switch (e) {
-    case ConversionError::kInvalidAddress:
-      return "Invalid address";
-    case ConversionError::kNoSuchProtocol:
-      return "Protocol with given code does not exist";
-    case ConversionError::kAddressDoesNotBeginWithSlash:
-      return "An address should begin with a slash";
-    case ConversionError::kNotImplemented:
-      return "Conversion for this protocol is not implemented";
-    default:
-      return "Unknown error";
-  }
-}
+using std::operator""s;
+using kagome::common::unhex;
 
 namespace libp2p::multi::converters {
 
   using kagome::common::Buffer;
 
-  std::string intToHex(uint64_t n) {
-    std::stringstream result;
-    result.width(2);
-    result.fill('0');
-    result << std::hex << std::uppercase << n;
-    auto str = result.str();
-    if (str.length() % 2 != 0) {
-      str.push_back('\0');
-      for (int i = str.length() - 2; i >= 0; --i) {
-        str[i + 1] = str[i];
-      }
-      str[0] = '0';
-    }
-    return str;
-  }
-
   outcome::result<Buffer> stringToBytes(std::string_view str) {
     if (str[0] != '/') {
       return ConversionError::kAddressDoesNotBeginWithSlash;
     }
+    str.remove_prefix(1);
 
-    // Initializing variables to store our processed HEX in:
-    std::string processed;  // HEX CONTAINER
+    std::string processed;
 
     enum class WordType { Protocol, Address };
-    // Now Setting up variables for calculating which is the first
-    // and second word:
     WordType type = WordType::Protocol;
 
     // Starting to extract words and process them:
@@ -78,20 +46,18 @@ namespace libp2p::multi::converters {
       if (type == WordType::Protocol) {
         protx = ProtocolList::get(word);
         if (protx != nullptr) {
-          processed += intToHex(static_cast<int>(protx->code));
+          processed += UVarint(static_cast<uint64_t>(protx->code)).toHex();
           type = WordType::Address;  // Since the next word will be an address
         } else {
           return ConversionError::kNoSuchProtocol;
         }
       } else {
-        std::string s_to_b;
-        if (addressToBytes(*protx, str)) {
-          return Error::kInvalidAddress;
+        auto res = addressToBytes(*protx, word);
+        if (!res) {
+          return res.error();
         }
 
-        int temp_size = processed.size();
-        processed += s_to_b;
-        processed[temp_size + s_to_b.size()] = 0;
+        processed += res.value();
 
         protx = nullptr;  // Since right now it doesn't need that
         // assignment anymore.
@@ -99,27 +65,31 @@ namespace libp2p::multi::converters {
       }
       delim_pos = str.find("/");
       word = str.substr(0, delim_pos);
-      str.remove_prefix(delim_pos + 1);
+      if (delim_pos == std::string_view::npos) {
+        str.remove_prefix(str.size());
+      } else {
+        str.remove_prefix(delim_pos + 1);
+      }
     }
-    protx = nullptr;
-
-    return Buffer{hexToBytes(processed)};
+    // TODO(Harrm) migrate hexutils to boost::outcome
+    auto bytes = kagome::common::unhex(processed);
+    return Buffer{bytes.getValue()};
   }
 
-  auto addressToBytes(const Protocol &protocol, const std::string &addr)
+  auto addressToBytes(const Protocol &protocol, std::string_view addr)
       -> outcome::result<std::string> {
     std::string astb__stringy;
 
     // TODO(Akvinikym) 25.02.19 PRE-49: add more protocols
     switch (protocol.code) {
       case Protocol::Code::ip4:
-        return IPv4Converter::addressToBytes(protocol, addr);
+        return IPv4Converter::addressToBytes(addr);
       case Protocol::Code::tcp:
-        return TcpConverter::addressToBytes(protocol, addr);
+        return TcpConverter::addressToBytes(addr);
       case Protocol::Code::udp:
-        return UdpConverter::addressToBytes(protocol, addr);
+        return UdpConverter::addressToBytes(addr);
       case Protocol::Code::ipfs:
-        return IpfsConverter::addressToBytes(protocol, addr);
+        return IpfsConverter::addressToBytes(addr);
 
       case Protocol::Code::ip6zone:
       case Protocol::Code::dns:
@@ -141,22 +111,82 @@ namespace libp2p::multi::converters {
     }
   }
 
-  std::vector<uint8_t> hexToBytes(std::string_view hex_str) {
-    std::vector<uint8_t> res;
-    size_t incoming_size = hex_str.size();
-    res.resize(incoming_size / 2);
+  auto bytesToString(const Buffer &bytes) -> outcome::result<std::string> {
+    std::string results;
+    // Positioning for memory jump:
+    int lastpos = 0;
 
-    std::string code(2, ' ');
-    code[2] = '\0';
-    int pos = 0;
-    for (int i = 0; i < incoming_size; i += 2) {
-      code[0] = hex_str[i];
-      code[1] = hex_str[i + 1];
-      int64_t lu = std::stol(code);
-      res[pos] = static_cast<unsigned char>(lu);
-      pos++;
+    // set up variables
+    const std::string hex = bytes.toHex();
+
+    // Process Hex String
+  NAX:
+    gsl::span<const uint8_t, -1> pid_bytes{bytes.toVector()};
+    int protocol_int = UVarint(pid_bytes.subspan(lastpos / 2)).toUInt64();
+    Protocol const *protocol =
+        ProtocolList::get(static_cast<Protocol::Code>(protocol_int));
+    if (protocol != nullptr) {
+      //////////Stage 2: Address
+      if (protocol->name != "ipfs") {
+        lastpos = lastpos
+            + UVarint::calculateSize(pid_bytes.subspan(lastpos / 2)) * 2;
+        std::string address;
+        address = hex.substr(lastpos, protocol->size / 4);
+        //////////Stage 3 Process it back to string
+        lastpos = lastpos + (protocol->size / 4);
+
+        //////////Address:
+        results += "/";
+        results += protocol->name;
+        results += "/";
+
+        // TODO(Akvinikym): 25.02.19 PRE-49: add more protocols
+        if (protocol->name == "ip4") {
+          results += intToIp(hexToInt(address));
+
+        } else if (protocol->name == "tcp") {
+          results += std::to_string(hexToInt(address));
+
+        } else if (protocol->name == "udp") {
+          results += std::to_string(hexToInt(address));
+
+        } else {
+          return ConversionError::kNotImplemented;
+        }
+
+      } else {
+        lastpos = lastpos + 4;
+        // fetch the size of the address based on the varint prefix
+        auto prefixedvarint = hex.substr(lastpos, 2);
+        auto prefixBytes = unhex(prefixedvarint);
+        if (prefixBytes.hasError()) {
+          return ConversionError::kInvalidAddress;
+        }
+        auto addrsize = UVarint(prefixBytes.getValueRef()).toUInt64();
+
+        // get the ipfs address as hex values
+        auto ipfsAddr = hex.substr(lastpos + 2, addrsize * 2);
+        // convert the address from hex values to a binary array
+        auto addrbufRes = unhex(ipfsAddr);
+        if (addrbufRes.hasError()) {
+          return ConversionError::kInvalidAddress;
+        }
+        auto &addrbuf = addrbufRes.getValueRef();
+        auto encode_res = Base58Codec::encode(addrbuf);
+        results += "/";
+        results += protocol->name;
+        results += "/" + encode_res;
+        lastpos += addrsize * 2 + 2;
+      }
+      if (lastpos < bytes.size() * 2) {
+        goto NAX;
+      }
+    } else {
+      return ConversionError::kNoSuchProtocol;
     }
-    return res;
+    results += "/";
+
+    return results;
   }
 
 }  // namespace libp2p::multi::converters

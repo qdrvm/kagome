@@ -3,8 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(c-utils)
-
 add_subdirectory(utils)
 
 add_subdirectory(converters)
@@ -39,7 +37,7 @@ add_library(multiaddress
   multiaddress.cpp
   )
 target_link_libraries(multiaddress
-  c_utils
+  converter_utils
   outcome
   buffer
   )

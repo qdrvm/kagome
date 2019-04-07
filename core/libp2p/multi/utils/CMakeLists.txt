@@ -9,7 +9,6 @@ add_library(uvarint
     )
 
 target_link_libraries(uvarint
-    c_utils
     outcome
     )
 
@@ -28,3 +27,7 @@ add_library(ip_v4_validator
     ip_v4_validator.cpp
     )
 
+add_library(multi_hex_utils
+        multi_hex_utils.hpp
+        multi_hex_utils.cpp
+        )

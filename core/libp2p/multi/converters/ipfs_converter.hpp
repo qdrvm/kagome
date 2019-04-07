@@ -10,35 +10,19 @@
 
 #include "common/buffer.hpp"
 #include "common/hexutil.hpp"
-#include "libp2p/multi/utils/uvarint.hpp"
 #include "libp2p/multi/utils/base58_codec.hpp"
+#include "libp2p/multi/utils/uvarint.hpp"
 
 namespace libp2p::multi::converters {
 
+  /**
+   * Converts an ipfs part of a multiaddress (encoded in base58)
+   * to bytes representation as a hex string
+   */
   class IpfsConverter {
    public:
-    static auto addressToBytes(const Protocol &protocol,
-                               const std::string &addr)
-        -> outcome::result<std::string> {
-      auto res = Base58Codec::decode(addr);
-      if (!res) {
-        return res.error();
-      }
-      auto buf = res.value();
-      // throw everything in a hex string so we can debug the results
-      std::string addr_encoded;
-
-      size_t ilen = 0;
-      for (int i = 0; i < buf.size(); i++) {
-        // get the char so we can see it in the debugger
-        auto miu = intToHex(buf[i]);
-        addr_encoded += miu;
-      }
-      ilen = addr_encoded.length();
-      auto result = UVarint{ilen}.toHex() + addr_encoded;
-      boost::algorithm::to_lower(result);
-      return result;
-    }
+    static auto addressToBytes(std::string_view addr)
+        -> outcome::result<std::string>;
   };
 
 }  // namespace libp2p::multi::converters
