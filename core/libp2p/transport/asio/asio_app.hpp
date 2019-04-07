@@ -10,6 +10,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
+#include <boost/core/noncopyable.hpp>
 
 namespace libp2p::transport::asio {
 
@@ -17,7 +18,7 @@ namespace libp2p::transport::asio {
    * @brief Class, which owns boost::asio::io_context, thread pool. Should be 1
    * per application.
    */
-  class AsioApp : private boost::asio::noncopyable {
+  class AsioApp : private boost::noncopyable {
    public:
     explicit AsioApp(int threads = 0);
 
