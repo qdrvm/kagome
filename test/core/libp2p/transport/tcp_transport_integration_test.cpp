@@ -87,7 +87,7 @@ TEST(TCP, Integration) {
 
   ASSERT_TRUE(listener->isClosed()) << "listener is not closed";
 
-  EXPECT_OUTCOME_TRUE(ma, Multiaddress::create("/ip4/127.0.0.1/tcp/40001"));
+  EXPECT_OUTCOME_TRUE(ma, Multiaddress::create("/ip4/127.0.0.1/tcp/40009"));
   EXPECT_TRUE(listener->listen(ma));
   auto listening_on = listener->getAddresses();
   ASSERT_FALSE(listening_on.empty());

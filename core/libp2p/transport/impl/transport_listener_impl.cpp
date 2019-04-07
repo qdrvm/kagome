@@ -62,8 +62,7 @@ namespace libp2p::transport {
             auto c =
                 std::make_shared<TcpConnection>(context_, std::move(r.value()));
             boost::asio::post(context_, [this, c]() { handler_(c); });
-            boost::asio::post(context_,
-                              [this, c]() { this->signal_new_connection_(c); });
+            signal_new_connection_(c);
           } else {
             boost::asio::post(
                 context_, [this, e = r.error()]() { this->signal_error_(e); });

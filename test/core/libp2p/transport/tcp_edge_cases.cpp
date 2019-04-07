@@ -58,29 +58,32 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
   const int kRetries = 10;
 
   size_t counter = 0;  // number of answers
-  asio::AsioApp app(4);
-  auto transport = std::make_unique<TransportImpl>(app.context());
-  auto listener = transport->createListener([&counter](std::shared_ptr<Connection> c) {
-    auto ma = c->getRemoteMultiaddr();
-    if(!ma){
-      std::cerr << "error ma: " << ma.error().message() << std::endl;
-    } else {
-      std::cout << "recv from " << ma.value().getStringAddress() << " thread id " << std::this_thread::get_id() << "\n";
-    }
-    c->readAsync([c, &counter](outcome::result<Buffer> result) {
-      EXPECT_OUTCOME_TRUE(data, result);
+  boost::asio::io_context context;
+  auto transport = std::make_unique<TransportImpl>(context);
+  auto listener =
+      transport->createListener([&counter](std::shared_ptr<Connection> c) {
+        auto ma = c->getRemoteMultiaddr();
+        if (!ma) {
+          std::cerr << "error ma: " << ma.error().message() << std::endl;
+          return;
+        } else {
+          std::cout << "recv from " << ma.value().getStringAddress()
+                    << " thread id " << std::this_thread::get_id() << "\n";
+        }
+        c->readAsync([c, &counter](outcome::result<Buffer> result) {
+          EXPECT_OUTCOME_TRUE(data, result);
 
-      // echo once, then close connection
-      c->writeAsync(data,
-                    [s = data.size(), c, &counter](std::error_code error,
-                                                   size_t written) {
-                      counter++;
-                      ASSERT_FALSE(error);
-                      ASSERT_EQ(written, s);
-                      ASSERT_TRUE(c->close());
-                    });
-    });
-  });
+          // echo once, then close connection
+          c->writeAsync(data,
+                        [s = data.size(), c, &counter](std::error_code error,
+                                                       size_t written) {
+                          counter++;
+                          ASSERT_FALSE(error);
+                          ASSERT_EQ(written, s);
+                          ASSERT_TRUE(c->close());
+                        });
+        });
+      });
   ASSERT_TRUE(listener);
   EXPECT_OUTCOME_TRUE(ma, Multiaddress::create("/ip4/127.0.0.1/tcp/40003"))
   ASSERT_TRUE(listener->listen(ma));
@@ -96,7 +99,9 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
         EXPECT_OUTCOME_TRUE(conn, transport->dial(ma));
 
         Buffer buf(kSize, 0);
-        std::generate(buf.begin(), buf.end(), []() { return rand(); });
+        std::generate(buf.begin(), buf.end(), []() {
+          return rand();  // NOLINT
+        });
 
         // we don't want to block before context.run
         conn->writeAsync(buf, [&](std::error_code ec, size_t written) {
@@ -110,7 +115,7 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
     });
   });
 
-  app.run_for(500ms);
+  context.run_for(500ms);
   std::for_each(clients.begin(), clients.end(),
                 [](std::thread &t) { t.join(); });
 

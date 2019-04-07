@@ -54,21 +54,19 @@ namespace libp2p::transport::asio {
     // put work to context, so that run does not finish
     work_ = std::make_unique<WorkType>(context_.get_executor());
 
-    run_threads(threads_, [&] { context_.run(); });
+    for (int i = 0; i < threads_; i++) {
+      pool_.emplace_back([&]() { context_.run(); });
+    }
 
     context_.run();
   }
 
   void AsioApp::run_for(std::chrono::milliseconds ms) {
-    run_threads(threads_, [&]() { context_.run_for(ms); });
+    for (int i = 0; i < threads_; i++) {
+      pool_.emplace_back([&]() { context_.run_for(ms); });
+    }
 
     context_.run_for(ms);
-  }
-
-  void AsioApp::run_threads(int threads, std::function<void()> cb) {
-    for (int i = 0; i < threads; i++) {
-      pool_.emplace_back([cb = std::move(cb)]() { cb(); });
-    }
   }
 
 }  // namespace libp2p::transport::asio
