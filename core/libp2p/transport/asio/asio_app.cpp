@@ -13,7 +13,8 @@
 
 namespace libp2p::transport::asio {
 
-  AsioApp::AsioApp(int threads) : threads_(threads - 1) {
+  AsioApp::AsioApp(int threads)
+      : threads_(threads - 1), signals_(context_, SIGINT, SIGTERM) {
     if (threads <= 0) {
       threads = std::thread::hardware_concurrency();
     }
@@ -22,6 +23,14 @@ namespace libp2p::transport::asio {
     BOOST_ASSERT_MSG(
         threads > 0,
         "Something weird happened - AsioApp is created with 0 threads");
+
+    // Register signal handlers so that the daemon may be shut down. You may
+    // also want to register for other signals, such as SIGHUP to trigger a
+    // re-read of a configuration file.
+    signals_.async_wait([&](boost::system::error_code ec, int signo) {
+      // TODO(@warchant): log ec, signo
+      context_.stop();
+    });
   }
 
   AsioApp::~AsioApp() {

@@ -41,6 +41,7 @@ namespace libp2p::transport::asio {
     int threads_;
     boost::asio::io_context context_;
     std::vector<std::thread> pool_;
+    boost::asio::signal_set signals_;
 
     // this empty work prevents context from unblocking after run()
     using WorkType = boost::asio::executor_work_guard<
