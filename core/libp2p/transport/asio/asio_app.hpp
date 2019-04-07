@@ -32,11 +32,6 @@ namespace libp2p::transport::asio {
     void run_for(std::chrono::milliseconds ms);
 
     ~AsioApp();
-    AsioApp(const AsioApp &copy) = delete;
-    AsioApp(AsioApp &&move) = delete;
-    AsioApp &operator=(const AsioApp &copy) = delete;
-    AsioApp &operator=(AsioApp &&move) = delete;
-
    private:
     int threads_;
     boost::asio::io_context context_;
