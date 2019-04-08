@@ -65,14 +65,14 @@ namespace libp2p::multi {
     /**
      * The total number of known protocols
      */
-    static const std::size_t kProtocolsNum = 29;
+    static const std::size_t kProtocolsNum = 28;
 
     /**
      * Returns a protocol with the corresponding name if it exists, or nullptr
      * otherwise
      */
     static constexpr auto get(std::string_view name) -> Protocol const * {
-      for (auto &protocol : protocols_) {
+      for (Protocol const& protocol : protocols_) {
         if (protocol.name == name) {
           return &protocol;
         }
@@ -85,7 +85,7 @@ namespace libp2p::multi {
      * otherwise
      */
     static constexpr auto get(Protocol::Code code) -> Protocol const * {
-      for (auto &protocol : protocols_) {
+      for (Protocol const& protocol: protocols_) {
         if (protocol.code == code) {
           return &protocol;
         }
