@@ -17,7 +17,7 @@ namespace libp2p::transport {
 
   outcome::result<std::shared_ptr<Connection>> TransportImpl::dial(
       const multi::Multiaddress &address) const {
-    // TODO(warchant): use parser here
+    // TODO(warchant): PRE-100 use parser here
     OUTCOME_TRY(addr,
                 address.getFirstValueForProtocol<boost::asio::ip::address>(
                     Multiaddress::Protocol::kIp4,
