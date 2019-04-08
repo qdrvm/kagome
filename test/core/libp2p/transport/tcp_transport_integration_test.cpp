@@ -15,7 +15,59 @@
 using namespace libp2p::transport;
 using namespace libp2p::multi;
 using kagome::common::Buffer;
+using namespace boost::asio;
 using std::chrono_literals::operator""ms;
+
+struct Reverse : public std::enable_shared_from_this<Reverse> {
+  void do_read() {
+    ASSERT_FALSE(conn->isClosed());
+    conn->asyncRead(buf, size,
+                    [t = shared_from_this()](auto &&ec, size_t read) {
+                      t->do_read_completed(ec, read);
+                    });
+  }
+
+  void do_read_completed(const boost::system::error_code &ec, size_t read) {
+    ASSERT_FALSE(conn->isClosed());
+    EXPECT_FALSE(ec);
+    EXPECT_EQ(read, size);
+
+    do_reverse();
+    do_write();
+  }
+
+  void do_reverse() {
+    ASSERT_FALSE(conn->isClosed());
+    std::string in{buffers_begin(buf.data()), buffers_end(buf.data())};
+    buf.consume(in.size());
+    std::cout << "server> reversing : " << in << "\n";
+    std::reverse(in.begin(), in.end());
+    std::ostream os(&buf);
+    os << in;
+    std::cout << "server> reversed  : " << in << "\n";
+  }
+
+  void do_write() {
+    ASSERT_FALSE(conn->isClosed());
+    conn->asyncWrite(buf, [t = shared_from_this()](auto &&ec, size_t write) {
+      t->do_write_completed(ec, write);
+    });
+  }
+
+  void do_write_completed(const boost::system::error_code &ec, size_t write) {
+    ASSERT_FALSE(conn->isClosed());
+    EXPECT_FALSE(ec);
+    EXPECT_TRUE(conn->close());
+  }
+
+  Reverse(size_t s, std::shared_ptr<Connection> co)
+      : size(s), conn(std::move(co)) {}
+
+ private:
+  size_t size;
+  std::shared_ptr<Connection> conn;
+  boost::asio::streambuf buf;
+};
 
 /**
  * @given boost asio context, initialized transport and single listener
@@ -26,7 +78,8 @@ using std::chrono_literals::operator""ms;
  *
  */
 TEST(TCP, Integration) {
-  auto buf = Buffer{1, 3, 3, 7};
+  const std::string msg = "hello world";
+
   bool onStartListening = false;
   bool createListener = false;
   bool onNewConnection = false;
@@ -47,21 +100,8 @@ TEST(TCP, Integration) {
     std::cout << "Got new connection: " << addr.getStringAddress() << '\n';
     createListener = true;
 
-    // blocks until 1 byte is available
-    EXPECT_OUTCOME_TRUE(v1, c->read(1));
-    ASSERT_EQ(v1.toHex(), "01");
-
-    // blocks until 1..7 bytes available. in our case 7 bytes available, so read
-    // everything.
-    EXPECT_OUTCOME_TRUE(v2, c->readSome(7));
-    ASSERT_EQ(v2.toHex(), "02030405060708");
-
-    // does not block. reads everything that was sent to our socket.
-    c->readAsync([&buf](outcome::result<Buffer> r) {
-      ASSERT_TRUE(r);
-      auto &&val = r.value();
-      ASSERT_EQ(val, buf);
-    });
+    auto r = std::make_shared<Reverse>(msg.size(), c);
+    r->do_read();
   });
 
   ASSERT_TRUE(listener);
@@ -87,7 +127,7 @@ TEST(TCP, Integration) {
   ASSERT_TRUE(listener->isClosed()) << "listener is not closed";
 
   EXPECT_OUTCOME_TRUE(ma, Multiaddress::create("/ip4/127.0.0.1/tcp/40009"));
-  EXPECT_TRUE(listener->listen(ma));
+  EXPECT_TRUE(listener->listen(ma)) << "is port 40009 busy?";
   auto listening_on = listener->getAddresses();
   ASSERT_FALSE(listening_on.empty());
   ASSERT_EQ(listening_on.size(), 1);
@@ -96,18 +136,36 @@ TEST(TCP, Integration) {
   EXPECT_OUTCOME_TRUE(conn, transport->dial(listener_ma));
   ASSERT_EQ(listener_ma, ma);
 
-  // read
-  ASSERT_TRUE(conn->writeSome(Buffer{1, 2, 3, 4}));
+  bool asyncWriteExecuted = false;
+  bool asyncReadExecuted = false;
 
-  // readSome
-  ASSERT_TRUE(conn->write(Buffer{5, 6, 7, 8}));
+  auto rcvbuf = std::make_shared<Buffer>(msg.size(), 0);
+  conn->asyncWrite(
+      boost::asio::buffer(msg, msg.size()),
+      [&asyncReadExecuted, &asyncWriteExecuted, rcvbuf, &msg, conn](
+          auto &&ec, size_t write) {
+        asyncWriteExecuted = true;
+        EXPECT_FALSE(ec);
+        EXPECT_EQ(msg.size(), write);
 
-  conn->writeAsync(buf, [&buf](std::error_code ec, size_t written) {
-    ASSERT_EQ(written, buf.size());
-    ASSERT_TRUE(!ec);
-  });
+        conn->asyncRead(
+            boost::asio::buffer(rcvbuf->toVector()), msg.size(),
+            [&asyncReadExecuted, msg, rcvbuf, write](auto &&ec, size_t read) {
+              asyncReadExecuted = true;
+              EXPECT_FALSE(ec);
+              EXPECT_EQ(read, write);
+              std::string reversed{rcvbuf->begin(), rcvbuf->end()};
+              std::cout << "client> received  : " << reversed << "\n";
+              std::string expected{msg.begin(), msg.end()};
+              std::reverse(expected.begin(), expected.end());
+              EXPECT_EQ(reversed, expected);
+            });
+      });
 
   context.run_for(100ms);
+
+  EXPECT_TRUE(asyncReadExecuted);
+  EXPECT_TRUE(asyncWriteExecuted);
 
   ASSERT_EQ(listener->getAddresses(), std::vector<Multiaddress>{ma});
 
