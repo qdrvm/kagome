@@ -8,7 +8,7 @@
 
 #include "common/hexutil.hpp"
 #include "libp2p/multi/multihash.hpp"
-#include "libp2p/multi/uvarint.hpp"
+#include "libp2p/multi/utils/uvarint.hpp"
 
 using kagome::common::Buffer;
 using kagome::common::hex_upper;

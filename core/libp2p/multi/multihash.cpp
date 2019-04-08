@@ -7,8 +7,9 @@
 
 #include <boost/algorithm/hex.hpp>
 #include <boost/format.hpp>
+
 #include "common/hexutil.hpp"
-#include "libp2p/multi/uvarint.hpp"
+#include "libp2p/multi/utils/uvarint.hpp"
 
 using kagome::expected::Error;
 using kagome::expected::Result;

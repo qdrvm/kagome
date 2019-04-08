@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 #include <functional>
 #include "common/hexutil.hpp"
-#include "libp2p/multi/uvarint.hpp"
+#include "libp2p/multi/utils/uvarint.hpp"
 
 using kagome::common::Buffer;
 using kagome::expected::Error;
