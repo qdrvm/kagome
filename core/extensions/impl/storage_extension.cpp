@@ -104,8 +104,8 @@ namespace kagome::extensions {
   runtime::SizeType StorageExtension::ext_storage_changes_root(
       runtime::WasmPointer parent_hash_data, runtime::SizeType parent_hash_len,
       runtime::SizeType parent_num, runtime::WasmPointer result) {
-    // TODO (kamilsa): PRE-95 Implement ext_storage_changes_root, 03.04.2019
-    logger_->error("Unimplemented");
+    // TODO (kamilsa): PRE-95 Implement ext_storage_changes_root, 03.04.2019.
+    logger_->error("Unimplemented, assume no changes");
     return 0;
   }
 
