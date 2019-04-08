@@ -28,8 +28,9 @@ namespace kagome::extensions {
     void ext_clear_storage(runtime::WasmPointer key_data,
                            runtime::SizeType key_length) override;
 
-    runtime::SizeType ext_exists_storage(runtime::WasmPointer key_data,
-                                         runtime::SizeType key_length) override;
+    runtime::SizeType ext_exists_storage(
+        runtime::WasmPointer key_data,
+        runtime::SizeType key_length) const override;
 
     runtime::WasmPointer ext_get_allocated_storage(
         runtime::WasmPointer key_data, runtime::SizeType key_length,
@@ -147,7 +148,7 @@ namespace kagome::extensions {
 
     // -------------------------Misc extensions--------------------------
 
-    uint64_t ext_chain_id() override;
+    uint64_t ext_chain_id() const override;
 
    private:
     CryptoExtension crypto_ext_;

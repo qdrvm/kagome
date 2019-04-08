@@ -41,7 +41,7 @@ namespace kagome::extensions {
      * @see Extension::ext_exists_storage
      */
     runtime::SizeType ext_exists_storage(runtime::WasmPointer key_data,
-                                         runtime::SizeType key_length);
+                                         runtime::SizeType key_length) const;
 
     /**
      * @see Extension::ext_get_allocated_storage

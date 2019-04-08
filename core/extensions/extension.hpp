@@ -47,7 +47,7 @@ namespace kagome::extensions {
      * @return 1 if value exists, 0 otherwise
      */
     virtual runtime::SizeType ext_exists_storage(
-        runtime::WasmPointer key_data, runtime::SizeType key_length) = 0;
+        runtime::WasmPointer key_data, runtime::SizeType key_length) const = 0;
 
     /**
      * Gets the value of the given key from storage, allocates memory for that
@@ -308,7 +308,7 @@ namespace kagome::extensions {
     virtual void ext_sandbox_memory_teardown(uint32_t memory_idx) = 0;
 
     // -------------------------Misc extensions--------------------------
-    virtual uint64_t ext_chain_id() = 0;
+    virtual uint64_t ext_chain_id() const = 0;
   };
 }  // namespace kagome::extensions
 

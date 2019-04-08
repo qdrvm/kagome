@@ -34,7 +34,7 @@ namespace kagome::extensions {
   }
 
   runtime::SizeType StorageExtension::ext_exists_storage(
-      runtime::WasmPointer key_data, runtime::SizeType key_length) {
+      runtime::WasmPointer key_data, runtime::SizeType key_length) const {
     auto key = memory_->loadN(key_data, key_length);
     return db_->contains(key) ? 1 : 0;
   }

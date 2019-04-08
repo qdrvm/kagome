@@ -19,7 +19,7 @@ namespace kagome::extensions {
   }
 
   runtime::SizeType ExtensionImpl::ext_exists_storage(
-      runtime::WasmPointer key_data, runtime::SizeType key_length) {
+      runtime::WasmPointer key_data, runtime::SizeType key_length) const {
     return storage_ext_.ext_exists_storage(key_data, key_length);
   }
 
@@ -219,7 +219,7 @@ namespace kagome::extensions {
   }
 
   /// misc extensions
-  uint64_t ExtensionImpl::ext_chain_id() {
+  uint64_t ExtensionImpl::ext_chain_id() const {
     return misc_ext_.ext_chain_id();
   }
 
