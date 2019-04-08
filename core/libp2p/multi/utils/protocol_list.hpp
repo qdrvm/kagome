@@ -8,6 +8,7 @@
 
 #include <functional>
 #include <map>
+#include <array>
 
 namespace libp2p::multi {
 
