@@ -12,6 +12,7 @@ namespace libp2p::basic {
 
   class Closeable {
    public:
+    virtual ~Closeable() = default;
 
     /**
      * @brief Function that is used to check if current object is closed.
