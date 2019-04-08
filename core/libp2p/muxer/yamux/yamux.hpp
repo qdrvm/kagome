@@ -3,24 +3,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_LIBP2P_YAMUX_HPP
-#define KAGOME_LIBP2P_YAMUX_HPP
+#ifndef KAGOME_YAMUX_HPP
+#define KAGOME_YAMUX_HPP
 
-#include <queue>
-#include <set>
+#include <map>
 
-#include <outcome/outcome.hpp>
-#include "libp2p/muxer/muxer.hpp"
+#include <boost/asio/streambuf.hpp>
+#include <boost/system/error_code.hpp>
+#include "common/logger.hpp"
+#include "libp2p/common/network_message.hpp"
+#include "libp2p/muxer/yamux/yamux_config.hpp"
 #include "libp2p/transport/connection.hpp"
-#include "yamux_config.hpp"
+#include "libp2p/transport/muxed_connection.hpp"
 
 namespace libp2p::stream {
-  class Stream;
   class YamuxStream;
-}  // namespace libp2p::stream
+}
 
 namespace libp2p::muxer {
-  struct YamuxFrame;
+  class YamuxFrame;
 
   /**
    * Implementation of stream multiplexer - connection, which has only one
@@ -28,154 +29,160 @@ namespace libp2p::muxer {
    * several applications
    * Read more: https://github.com/hashicorp/yamux/blob/master/spec.md
    */
-  class Yamux : public Muxer {
-    friend class libp2p::stream::YamuxStream;  // to use private stream API
-    friend struct YamuxFrame;                  // to provide StreamId to it
-
-    /// according to spec, there is a 32-bit number for stream id
-    using StreamId = uint32_t;
-
+  class Yamux : public transport::MuxedConnection,
+                public std::enable_shared_from_this<Yamux> {
    public:
+    using StreamId = uint32_t;
+    using NewStreamHandler =
+        std::function<void(std::unique_ptr<stream::Stream>)>;
+
     /**
-     * Create a Yamux multiplexer
-     * @param connection over which it should be created
-     * @param config - parameters of this instance
+     * Create a new Yamux instance
+     * @param connection, multiplexed by this instance
+     * @param stream_handler - function, which is going to be called, when a new
+     * stream arrives
+     * @param yamux_config to configure this instance
      */
-    Yamux(transport::Connection &connection, YamuxConfig config);
+    Yamux(
+        std::shared_ptr<transport::Connection> connection,
+        NewStreamHandler stream_handler, YamuxConfig yamux_config,
+        kagome::common::Logger logger = kagome::common::createLogger("Yamux"));
 
     ~Yamux() override;
 
-    /**
-     * Spawn a new stream over the underlying connection
-     * @return pointer to new stream
-     */
-    std::unique_ptr<stream::Stream> newStream() override;
+    void startReading() override;
 
-    /**
-     * Get a multiaddress, over which this instance is created
-     * @return result with the multiaddress or error
-     */
-    outcome::result<multi::Multiaddress> getRemoteMultiaddr() const;
+    void stop() override;
+
+    outcome::result<std::unique_ptr<stream::Stream>> newStream() override;
+
+    void close() override;
+
+    bool isClosed() override;
 
    private:
+    void startReadingComplete(const boost::system::error_code &ec, size_t n);
+
     /**
-     * Get a stream id for a new stream
-     * @return stream id
+     * Get a stream id, with which a new stream is to be created
+     * @return new id
      */
     StreamId getNewStreamId();
 
     /**
-     * Process a frame, received from the stream
-     * @param frame to be processed
-     * @param stream_id - stream, for which this frame was supposed to be
-     * @return true, if the message was just processed, false if the underlying
-     * connection was closed
+     * Register a new stream in this instance, making it active
+     * @param stream_id to be registered
      */
-    bool processFrame(const YamuxFrame &frame);
+    void registerNewStream(StreamId stream_id);
+
+    struct StreamParameters;
 
     /**
-     * Get the message for a given stream if it was buffered
-     * @param stream_id to be looked for
-     * @return optional with the message
+     * If there is data in this length, buffer it to the according stream
+     * @param stream for the data to be inserted in
+     * @param frame, which can have some data inside
      */
-    std::optional<common::NetworkMessage> findMsgInBuffer(StreamId stream_id);
+    void processData(StreamParameters &stream, const YamuxFrame &frame);
 
     /**
-     * Close the underlying connection
+     * Process ack message for such stream_id
+     * @param stream_id of the stream to be processed
+     * @return stream, if it is opened on this side, none otherwise
      */
-    void closeConnection();
+    std::optional<StreamParameters> processAck(StreamId stream_id);
 
     /**
-     * Close the stream and remove all mentions about it
-     * @param stream_id to be closed
+     * Find stream with such id in local streams
+     * @param stream_id to be found
+     * @return stream, if it is opened on this side, none otherwise
      */
-    void removeStream(StreamId stream_id);
+    std::optional<StreamParameters> findStream(StreamId stream_id) const;
 
     /**
-     * Close a stream for reads
+     * Close stream for reads on this side
      * @param stream_id to be closed
      */
     void closeStreamForRead(StreamId stream_id);
 
     /**
-     * Close a stream for writes
+     * Close stream for writes from this side
      * @param stream_id to be closed
      */
     void closeStreamForWrite(StreamId stream_id);
 
     /**
-     * Reset all streams, which can be written to
+     * Close stream entirely
+     * @param stream_id to be closed
      */
-    void resetAllStreams();
-
-    /// YamuxStream API begins
-
-    enum class YamuxError { kConnectionError = 1, kNoWrites, kNoReads };
+    void removeStream(StreamId stream_id);
 
     /**
-     * Read a frame from a given stream
-     * @param stream_id of the stream to be read from
-     * @return result with a network message or error
-     * @note stream must be opened for reads
+     * Process bytes, which must be a YamuxFrame header
+     * @note will close a Yamux and an underlying connection in case of failure
      */
-    outcome::result<common::NetworkMessage> readFrame(StreamId stream_id);
+    void processHeader();
 
     /**
-     * Write a message to a given stream
-     * @param stream_id of the stream to be written to
-     * @param msg to be written
-     * @return result with void in case of success or with error otherwise
-     * @note stream must be opened for writes
+     * Process frame of data type
+     * @param frame to be processed
      */
-    outcome::result<void> writeFrame(StreamId stream_id,
-                                     const common::NetworkMessage &msg);
+    void processDataFrame(const YamuxFrame &frame);
 
     /**
-     * Half-close stream with a given id - means we will not send messages to
-     * it, but they still can be received
-     * @param stream_id of the stream to be closed
+     * Process frame of window size update type
+     * @param frame to be processed
      */
-    void closeStream(StreamId stream_id);
+    void processWindowUpdateFrame(const YamuxFrame &frame);
 
     /**
-     * Close the stream entirely: neither writes nor reads are possible from
-     * that point
-     * @param stream_id of the stream to be reset
+     * Process frame of ping type
+     * @param frame to be processed
      */
-    void resetStream(StreamId stream_id);
+    void processPingFrame(const YamuxFrame &frame);
 
     /**
-     * Check, if the stream can read
-     * @param stream_id to be checked
-     * @return true, if stream can read, false otherwise
+     * Process frame of go away type
+     * @param frame to be processed
      */
-    bool streamCanRead(StreamId stream_id) const;
+    void processGoAwayFrame(const YamuxFrame &frame);
 
-    /**
-     * Check, if the stream can write
-     * @param stream_id to be checked
-     * @return true, if stream can write, false otherwise
-     */
-    bool streamCanWrite(StreamId stream_id) const;
+    std::shared_ptr<transport::Connection> connection_;
+    NewStreamHandler new_stream_handler_;
+    bool is_server_;
+    bool is_active_;
+    uint32_t last_created_stream_id_;
+    boost::asio::streambuf read_buffer_;
 
-    /// YamuxStream API ends
+    struct StreamParameters {
+      bool is_readable_;
+      bool is_writable_;
+      uint32_t window_size_;
+      std::vector<common::NetworkMessage> buffered_messages_{};
+    };
+    /// streams, which are multiplexed by this Yamux instance
+    std::map<StreamId, StreamParameters> streams_;
 
-    const bool is_server_;
-    transport::Connection &connection_;  // shared_ptr should be
-    StreamId last_created_stream_id;
+    kagome::common::Logger logger_;
 
-    /// as streams are full-duplex, there's a possibility we close the stream
-    /// from out side and thus cannot write to it, but still can receive data
-    std::set<StreamId> writable_streams_;
-    std::set<StreamId> readable_streams_;
+    /// YAMUX STREAM API
 
-    /// buffers for received messages for streams
-    std::map<StreamId, std::queue<common::NetworkMessage>> streams_buffers_;
+    friend class stream::YamuxStream;
 
-    // FIXME: no window size management is done for now
-    /// window sizes per buffer
-    std::map<StreamId, uint32_t> streams_windows_;
+    outcome::result<common::NetworkMessage> streamReadFrame(StreamId stream_id);
+
+    outcome::result<void> streamWriteFrame(StreamId stream_id,
+                                           const common::NetworkMessage &msg);
+
+    void streamClose(StreamId stream_id);
+
+    void streamReset(StreamId stream_id);
+
+    bool streamIsClosedForWrite(StreamId stream_id) const;
+
+    bool streamIsClosedForRead(StreamId stream_id) const;
+
+    bool streamIsClosedEntirely(StreamId stream_id) const;
   };
 }  // namespace libp2p::muxer
 
-#endif  // KAGOME_LIBP2P_YAMUX_HPP
+#endif  // KAGOME_YAMUX_HPP

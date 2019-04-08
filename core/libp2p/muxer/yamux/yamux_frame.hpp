@@ -6,6 +6,7 @@
 #ifndef KAGOME_YAMUX_FRAME_HPP
 #define KAGOME_YAMUX_FRAME_HPP
 
+#include <gsl/span>
 #include "common/buffer.hpp"
 #include "libp2p/muxer/yamux/yamux.hpp"
 
@@ -24,7 +25,7 @@ namespace libp2p::muxer {
       kGoAway = 3         // close the session
     };
     enum class Flag : uint16_t {
-      kSyn = 0,  // start of a new stream
+      kSyn = 1,  // start of a new stream
       kAck = 2,  // acknowledge start of a new stream
       kFin = 4,  // half-close of the stream
       kRst = 8   // reset a stream
@@ -63,21 +64,27 @@ namespace libp2p::muxer {
   };
 
   kagome::common::Buffer newStreamMsg(YamuxFrame::StreamId stream_id) {
-    return YamuxFrame::frameBytes(
-        YamuxFrame::kDefaultVersion, YamuxFrame::FrameType::kWindowUpdate,
-        YamuxFrame::Flag::kSyn, stream_id, YamuxFrame::kDefaultWindowSize);
+    return YamuxFrame::frameBytes(YamuxFrame::kDefaultVersion,
+                                  YamuxFrame::FrameType::kData,
+                                  YamuxFrame::Flag::kSyn, stream_id, 0);
+  }
+
+  kagome::common::Buffer ackStreamMsg(YamuxFrame::StreamId stream_id) {
+    return YamuxFrame::frameBytes(YamuxFrame::kDefaultVersion,
+                                  YamuxFrame::FrameType::kData,
+                                  YamuxFrame::Flag::kAck, stream_id, 0);
   }
 
   kagome::common::Buffer closeStreamMsg(YamuxFrame::StreamId stream_id) {
-    return YamuxFrame::frameBytes(
-        YamuxFrame::kDefaultVersion, YamuxFrame::FrameType::kWindowUpdate,
-        YamuxFrame::Flag::kFin, stream_id, YamuxFrame::kDefaultWindowSize);
+    return YamuxFrame::frameBytes(YamuxFrame::kDefaultVersion,
+                                  YamuxFrame::FrameType::kData,
+                                  YamuxFrame::Flag::kFin, stream_id, 0);
   }
 
   kagome::common::Buffer resetStreamMsg(YamuxFrame::StreamId stream_id) {
-    return YamuxFrame::frameBytes(
-        YamuxFrame::kDefaultVersion, YamuxFrame::FrameType::kWindowUpdate,
-        YamuxFrame::Flag::kRst, stream_id, YamuxFrame::kDefaultWindowSize);
+    return YamuxFrame::frameBytes(YamuxFrame::kDefaultVersion,
+                                  YamuxFrame::FrameType::kData,
+                                  YamuxFrame::Flag::kRst, stream_id, 0);
   }
 
   kagome::common::Buffer pingOutMsg(uint32_t value) {
@@ -106,8 +113,7 @@ namespace libp2p::muxer {
         YamuxFrame::Flag::kSyn, 0, static_cast<uint32_t>(error));
   }
 
-  std::optional<YamuxFrame> parseFrame(
-      const kagome::common::Buffer &frame_bytes) {
+  std::optional<YamuxFrame> parseFrame(gsl::span<uint8_t> frame_bytes) {
     if (frame_bytes.size() < 12) {
       return {};
     }

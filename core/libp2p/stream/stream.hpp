@@ -6,6 +6,8 @@
 #ifndef KAGOME_STREAM_HPP
 #define KAGOME_STREAM_HPP
 
+#include <functional>
+
 #include <outcome/outcome.hpp>
 #include "libp2p/common/network_message.hpp"
 
@@ -15,11 +17,14 @@ namespace libp2p::stream {
    */
   class Stream {
    public:
+    using NetworkMessageOutcome = outcome::result<common::NetworkMessage>;
+    using ReadFrameHandler = std::function<void(NetworkMessageOutcome)>;
+
     /**
      * Read one frame - unit of data exchange in streams - from this stream
      * @return result with frame
      */
-    virtual outcome::result<common::NetworkMessage> readFrame() = 0;
+    virtual outcome::result<common::NetworkMessage> read(callback<Message>) = 0;
 
     /**
      * Write data to the stream
@@ -39,9 +44,15 @@ namespace libp2p::stream {
     /**
      * Check, if this stream is closed from this side of the connection and thus
      * cannot be written to
-     * @return true, of stream cannot be written to, falst otherwise
+     * @return true, of stream cannot be written to, false otherwise
      */
     virtual bool isClosedForWrite() const = 0;
+
+    /**
+     * Check, if this stream is closed entirely
+     * @return true, if the stream is closed, false otherwise
+     */
+    virtual bool isClosedEntirely() const = 0;
 
     /**
      * Close this stream from this side, so that no writes can be done
