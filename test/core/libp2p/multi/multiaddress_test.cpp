@@ -15,7 +15,7 @@ class MultiaddressTest : public ::testing::Test {
  public:
   const std::string_view valid_ip_udp_address = "/ip4/192.168.0.1/udp/228/";
   const std::vector<uint8_t> valid_ip_udp_bytes{0x4, 0xC0, 0xA8, 0x0,
-                                                0x1, 0x11, 0x0,  0xE4};
+                                                0x1, 0x91, 0x2, 0x0, 0xE4};
   const Buffer valid_id_udp_buffer{valid_ip_udp_bytes};
 
   const std::string_view valid_ip_address = "/ip4/192.168.0.1/";
