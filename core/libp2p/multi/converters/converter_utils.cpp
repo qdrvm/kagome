@@ -5,6 +5,7 @@
 
 #include "libp2p/multi/converters/converter_utils.hpp"
 
+#include <boost/asio/ip/address_v4.hpp>
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
 #include "common/hexutil.hpp"
@@ -13,11 +14,9 @@
 #include "libp2p/multi/converters/ipfs_converter.hpp"
 #include "libp2p/multi/converters/tcp_converter.hpp"
 #include "libp2p/multi/converters/udp_converter.hpp"
-#include "libp2p/multi/utils/multi_hex_utils.hpp"
 #include "libp2p/multi/utils/protocol_list.hpp"
 #include "libp2p/multi/utils/uvarint.hpp"
 
-using std::operator""s;
 using kagome::common::unhex;
 
 namespace libp2p::multi::converters {
@@ -142,13 +141,13 @@ namespace libp2p::multi::converters {
 
         // TODO(Akvinikym): 25.02.19 PRE-49: add more protocols
         if (protocol->name == "ip4") {
-          results += intToIp(hexToInt(address));
+          results += boost::asio::ip::make_address_v4(std::stoul(address, nullptr, 16)).to_string();
 
         } else if (protocol->name == "tcp") {
-          results += std::to_string(hexToInt(address));
+          results += std::to_string(std::stoul(address, nullptr, 16));
 
         } else if (protocol->name == "udp") {
-          results += std::to_string(hexToInt(address));
+          results += std::to_string(std::stoul(address, nullptr, 16));
 
         } else {
           return ConversionError::kNotImplemented;

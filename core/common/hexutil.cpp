@@ -9,6 +9,23 @@
 #include <boost/format.hpp>
 
 namespace kagome::common {
+
+  std::string int_to_hex(uint64_t n) noexcept {
+    std::stringstream result;
+    result.width(2);
+    result.fill('0');
+    result << std::hex << std::uppercase << n;
+    auto str = result.str();
+    if (str.length() % 2 != 0) {
+      str.push_back('\0');
+      for (int i = str.length() - 2; i >= 0; --i) {
+        str[i + 1] = str[i];
+      }
+      str[0] = '0';
+    }
+    return str;
+  }
+
   std::string hex_upper(const uint8_t *array, size_t len) noexcept {
     std::string res(len * 2, '\x00');
     boost::algorithm::hex(array, array + len, res.begin());  // NOLINT

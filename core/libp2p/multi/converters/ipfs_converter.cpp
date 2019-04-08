@@ -9,7 +9,7 @@
 
 #include <outcome/outcome.hpp>
 #include "libp2p/multi/converters/conversion_error.hpp"
-#include "libp2p/multi/utils/multi_hex_utils.hpp"
+#include "common/hexutil.hpp"
 
 namespace libp2p::multi::converters {
 
@@ -24,9 +24,9 @@ namespace libp2p::multi::converters {
     std::string addr_encoded;
 
     size_t ilen = 0;
-    for (auto const &elem : buf) {
+    for (uint8_t const &elem : buf) {
       // get the char so we can see it in the debugger
-      auto miu = intToHex(elem);
+      auto miu = kagome::common::int_to_hex(elem);
       addr_encoded += miu;
     }
     ilen = addr_encoded.length() / 2;

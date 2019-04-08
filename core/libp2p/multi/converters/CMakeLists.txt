@@ -10,13 +10,10 @@ add_library(converter_utils
 
 target_link_libraries(converter_utils
     conversion_error
-    multi_hex_utils
     uvarint
     buffer
-    ip_v4_converter
-    ipfs_converter
-    udp_converter
-    tcp_converter
+    hexutil
+    converters
     )
 
 add_library(conversion_error
@@ -27,42 +24,21 @@ target_link_libraries(conversion_error
     outcome
     )
 
-add_library(ip_v4_converter
+add_library(converters
     ip_v4_converter.hpp
     ip_v4_converter.cpp
-    )
-
-target_link_libraries(ip_v4_converter
-    ip_v4_validator
-    outcome
-    )
-
-add_library(tcp_converter
     tcp_converter.hpp
     tcp_converter.cpp
-    )
-
-target_link_libraries(tcp_converter
-    outcome
-    )
-
-add_library(udp_converter
     udp_converter.hpp
     udp_converter.cpp
-    )
-
-target_link_libraries(udp_converter
-    outcome
-    buffer
-    )
-
-add_library(ipfs_converter
     ipfs_converter.hpp
     ipfs_converter.cpp
     )
 
-target_link_libraries(ipfs_converter
+target_link_libraries(converters
+    outcome
+    hexutil
+    buffer
     uvarint
     base58_codec
-    outcome
     )

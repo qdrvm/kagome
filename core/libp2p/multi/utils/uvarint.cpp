@@ -34,8 +34,9 @@ namespace libp2p::multi {
     uint64_t res = 0;
     for (size_t i = 0; i < 8 && i < bytes_.size(); i++) {
       res |= ((bytes_[i] & 0x7ful) << (7 * i));
-      if (!(bytes_[i] & 0x80ul))
+      if (!(bytes_[i] & 0x80ul)) {
         return res;
+      }
     }
     return -1;
   }

@@ -9,18 +9,18 @@
 
 #include <outcome/outcome.hpp>
 #include "libp2p/multi/converters/conversion_error.hpp"
-#include "libp2p/multi/utils/multi_hex_utils.hpp"
+#include "common/hexutil.hpp"
 
 namespace libp2p::multi::converters {
 
   auto TcpConverter::addressToBytes(std::string_view addr)
       -> outcome::result<std::string> {
-    auto n = std::stoi(std::string(addr));
+    int64_t n = std::stoi(std::string(addr));
     if (n == 0) {
       return "0000";
     }
     if (n < 65536 && n > 0) {
-      std::string himm_woot = intToHex((uint64_t)n);
+      std::string himm_woot = kagome::common::int_to_hex(n);
       himm_woot.resize(4, '\0');
       if (himm_woot[2] == '\0') {
         char swap0 = '0';

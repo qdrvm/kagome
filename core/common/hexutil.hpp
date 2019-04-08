@@ -8,10 +8,16 @@
 
 #include <string_view>
 #include <vector>
+#include <iomanip>
 
 #include "common/result.hpp"
 
 namespace kagome::common {
+
+  /**
+   * @brief Converts an integer to an uppercase hex representation
+   */
+  std::string int_to_hex(uint64_t n) noexcept;
 
   /**
    * @brief Converts bytes to uppercase hex representation

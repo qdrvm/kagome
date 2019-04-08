@@ -5,23 +5,27 @@
 
 #include "libp2p/multi/converters/ip_v4_converter.hpp"
 
+#include <boost/asio/ip/address_v4.hpp>
 #include <outcome/outcome.hpp>
 #include <string>
+#include "common/hexutil.hpp"
 #include "libp2p/multi/converters/conversion_error.hpp"
-#include "libp2p/multi/utils/multi_hex_utils.hpp"
 #include "libp2p/multi/utils/protocol_list.hpp"
 
 namespace libp2p::multi::converters {
 
   auto IPv4Converter::addressToBytes(std::string_view addr)
       -> outcome::result<std::string> {
-    if (IPv4Validator::isValidIp(addr)) {
-      uint64_t iip = ipToInt(addr);
-      auto hex = intToHex(iip);
-      hex = std::string(8 - hex.length(), '0') + hex;
-      return hex;
+
+    boost::system::error_code ec;
+    auto address = boost::asio::ip::make_address_v4(addr, ec);
+    if(ec) {
+      return ec; // error
     }
-    return ConversionError::kInvalidAddress;
+    uint64_t iip = address.to_ulong();
+    auto hex = kagome::common::int_to_hex(iip);
+    hex = std::string(8 - hex.length(), '0') + hex;
+    return hex;
   }
 
 }  // namespace libp2p::multi::converters

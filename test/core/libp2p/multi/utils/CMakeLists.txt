@@ -31,16 +31,6 @@ addtest(address_converter_test
 target_link_libraries(address_converter_test
     uvarint
     converter_utils
-    multi_hex_utils
-    )
-
-
-addtest(converter_utils_test
-    converter_utils_test.cpp
-    )
-
-target_link_libraries(converter_utils_test
-    multi_hex_utils
     )
 
 addtest(string_to_bytes_test
@@ -49,12 +39,4 @@ addtest(string_to_bytes_test
 
 target_link_libraries(string_to_bytes_test
     converter_utils
-    )
-
-addtest(ip_v4_validator_test
-    ip_v4_validator_test.cpp
-    )
-
-target_link_libraries(ip_v4_validator_test
-    ip_v4_validator
     )

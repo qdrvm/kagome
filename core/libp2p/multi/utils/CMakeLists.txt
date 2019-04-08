@@ -21,13 +21,3 @@ target_link_libraries(base58_codec
     outcome
     buffer
     )
-
-add_library(ip_v4_validator
-    ip_v4_validator.hpp
-    ip_v4_validator.cpp
-    )
-
-add_library(multi_hex_utils
-        multi_hex_utils.hpp
-        multi_hex_utils.cpp
-        )

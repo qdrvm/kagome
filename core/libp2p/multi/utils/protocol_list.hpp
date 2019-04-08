@@ -107,9 +107,9 @@ namespace libp2p::multi {
      * The list of known protocols
      */
     static constexpr const std::array<Protocol, kProtocolsNum> protocols_ = {
-        Protocol{Protocol::Code::ip4, 32, "ip4"},
-        Protocol{Protocol::Code::tcp, 16, "tcp"},
-        Protocol{Protocol::Code::udp, 16, "udp"},
+        Protocol {Protocol::Code::ip4, 32, "ip4"},
+        {Protocol::Code::tcp, 16, "tcp"},
+        {Protocol::Code::udp, 16, "udp"},
         {Protocol::Code::dccp, 16, "dccp"},
         {Protocol::Code::ip6, 128, "ip6"},
         {Protocol::Code::ip6zone, Protocol::kVarLen, "ip6zone"},
