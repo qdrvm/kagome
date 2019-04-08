@@ -10,7 +10,6 @@
 
 #include <gtest/gtest.h>
 
-#include "libp2p/transport/asio/asio_app.hpp"
 #include "libp2p/transport/impl/transport_impl.hpp"
 #include "testutil/outcome.hpp"
 

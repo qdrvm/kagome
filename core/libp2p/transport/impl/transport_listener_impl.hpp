@@ -12,11 +12,10 @@
 
 #include <boost/asio.hpp>
 #include <boost/signals2.hpp>
-
 #include "libp2p/multi/multiaddress.hpp"
-#include "libp2p/transport/transport_listener.hpp"
 #include "libp2p/transport/asio/asio_server.hpp"
 #include "libp2p/transport/asio/asio_server_factory.hpp"
+#include "libp2p/transport/transport_listener.hpp"
 
 namespace libp2p::transport {
 
@@ -26,10 +25,11 @@ namespace libp2p::transport {
     using MultiaddrSignal = boost::signals2::signal<MultiaddrCallback>;
     using ErrorSignal = boost::signals2::signal<ErrorCallback>;
     using ConnectionSignal = boost::signals2::signal<ConnectionCallback>;
+
    public:
     ~TransportListenerImpl() override = default;
 
-    explicit TransportListenerImpl(boost::asio::io_context &context,
+    TransportListenerImpl(boost::asio::io_context &context,
                                    HandlerFunc handler);
 
     outcome::result<void> listen(const multi::Multiaddress &address) override;
@@ -46,7 +46,7 @@ namespace libp2p::transport {
 
     outcome::result<void> close() override;
 
-    outcome::result<void> close(const multi::Multiaddress& ma) override;
+    outcome::result<void> close(const multi::Multiaddress &ma) override;
 
     boost::signals2::connection onStartListening(
         std::function<MultiaddrCallback> callback) override;

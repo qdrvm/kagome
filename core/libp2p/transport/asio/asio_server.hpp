@@ -12,7 +12,6 @@
 
 #include <boost/asio.hpp>
 #include <outcome/outcome.hpp>
-
 #include "libp2p/multi/multiaddress.hpp"
 
 namespace libp2p::transport::asio {

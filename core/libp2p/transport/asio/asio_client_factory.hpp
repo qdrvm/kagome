@@ -11,7 +11,6 @@
 #include <memory>
 
 #include <boost/asio.hpp>
-
 #include "libp2p/transport/connection.hpp"
 
 namespace libp2p::transport::asio {

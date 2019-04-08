@@ -11,11 +11,10 @@
 #include "libp2p/transport/transport.hpp"
 
 #include <boost/asio/io_context.hpp>
-
 #include "libp2p/transport/asio/asio_client_factory.hpp"
 
 namespace libp2p::transport {
- class TransportImpl : public Transport, public asio::ClientFactory {
+  class TransportImpl : public Transport, public asio::ClientFactory {
    public:
     ~TransportImpl() override = default;
 
@@ -27,7 +26,7 @@ namespace libp2p::transport {
     std::shared_ptr<TransportListener> createListener(
         TransportListener::HandlerFunc handler) const override;
 
-   client_ptr_result ipTcp(const Address &ip, uint16_t port) const override;
+    client_ptr_result ipTcp(const Address &ip, uint16_t port) const override;
 
    private:
     boost::asio::io_context &context_;

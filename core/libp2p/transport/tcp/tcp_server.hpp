@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ASIO_TCP_SERVER_HPP
-#define KAGOME_ASIO_TCP_SERVER_HPP
+#ifndef KAGOME_TCP_SERVER_HPP
+#define KAGOME_TCP_SERVER_HPP
 
 #define BOOST_ASIO_NO_DEPRECATED
 
@@ -12,7 +12,6 @@
 
 #include <boost/asio.hpp>
 #include <outcome/outcome.hpp>
-
 #include "libp2p/transport/asio/asio_server_factory.hpp"
 
 namespace libp2p::transport {
@@ -43,7 +42,7 @@ namespace libp2p::transport {
     multi::Multiaddress getMultiaddress() const override;
 
    private:
-    explicit TcpServer(boost::asio::io_context &context, HandlerFunc handler);
+    TcpServer(boost::asio::io_context &context, HandlerFunc handler);
 
     const HandlerFunc handler_;
 
@@ -53,4 +52,4 @@ namespace libp2p::transport {
 
 }  // namespace libp2p::transport
 
-#endif  // KAGOME_ASIO_TCP_SERVER_HPP
+#endif  //KAGOME_TCP_SERVER_HPP

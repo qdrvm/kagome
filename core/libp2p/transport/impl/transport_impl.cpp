@@ -7,7 +7,6 @@
 
 #include <boost/asio/ip/address.hpp>
 #include <boost/lexical_cast.hpp>
-
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/transport/impl/transport_listener_impl.hpp"
 #include "libp2p/transport/tcp/tcp_connection.hpp"

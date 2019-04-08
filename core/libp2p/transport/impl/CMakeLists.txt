@@ -7,7 +7,7 @@ add_library(libp2p_transport_listener
   )
 target_link_libraries(libp2p_transport_listener
   Boost::boost
-  asio_tcp_server
+  libp2p_transport_tcp_server
   libp2p_transport_tcp_connection
   )
 
@@ -17,6 +17,6 @@ add_library(libp2p_transport
   )
 target_link_libraries(libp2p_transport
   Boost::boost
-  libp2p_transport_tcp_connection
   libp2p_transport_listener
+  libp2p_transport_tcp_connection
   )

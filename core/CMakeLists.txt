@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(appbase)
 add_subdirectory(common)
 add_subdirectory(crypto)
 add_subdirectory(extensions)

@@ -1,5 +1,3 @@
-#include <utility>
-
 /**
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
@@ -7,9 +5,10 @@
 
 #include "transport_listener_impl.hpp"
 
-#include <boost/lexical_cast.hpp>
+#include <utility>
 
-#include "libp2p/transport/tcp/asio_tcp_server.hpp"
+#include <boost/lexical_cast.hpp>
+#include "libp2p/transport/tcp/tcp_server.hpp"
 #include "libp2p/transport/tcp/tcp_connection.hpp"
 
 namespace libp2p::transport {

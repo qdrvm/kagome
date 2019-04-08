@@ -10,10 +10,10 @@ target_link_libraries(libp2p_transport_tcp_connection
   multiaddress
   )
 
-add_library(asio_tcp_server
-  asio_tcp_server.cpp
+add_library(libp2p_transport_tcp_server
+  tcp_server.cpp
   )
-target_link_libraries(asio_tcp_server
+target_link_libraries(libp2p_transport_tcp_server
   Boost::boost
   )
 

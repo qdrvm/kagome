@@ -11,7 +11,6 @@
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/transport/impl/transport_impl.hpp"
 #include "testutil/outcome.hpp"
-#include "libp2p/transport/asio/asio_app.hpp"
 
 using namespace libp2p::transport;
 using namespace libp2p::multi;
