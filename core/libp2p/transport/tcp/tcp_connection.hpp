@@ -11,7 +11,6 @@
 #include "libp2p/transport/connection.hpp"
 
 #include <array>
-
 #include <boost/asio.hpp>
 
 namespace libp2p::transport {
