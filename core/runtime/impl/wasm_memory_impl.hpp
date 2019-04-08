@@ -30,6 +30,7 @@ namespace kagome::runtime {
     WasmMemoryImpl(WasmMemoryImpl &) = delete;
     WasmMemoryImpl &operator=(const WasmMemoryImpl &) = delete;
 
+    SizeType size() const override;
     void resize(SizeType newSize) override;
 
     WasmPointer allocate(SizeType size) override;

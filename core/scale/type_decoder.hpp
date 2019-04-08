@@ -12,7 +12,7 @@
 #include "scale/types.hpp"
 #include "scale/util.hpp"
 
-namespace kagome::common::scale {
+namespace kagome::scale {
   /**
    * Type decoders are nested decoders used to decode types in optionals,
    * variants, collections and tuples.
@@ -35,7 +35,7 @@ namespace kagome::common::scale {
    */
   template <class T>
   struct TypeDecoder {
-    outcome::result<T> decode(Stream &stream) {
+    outcome::result<T> decode(common::ByteStream &stream) {
       static_assert(std::is_integral<T>(),
                     "Only integral types are supported. You need to define "
                     "your own TypeDecoder specialization for custom type.");
@@ -49,7 +49,7 @@ namespace kagome::common::scale {
    */
   template <>
   struct TypeDecoder<bool> {
-    auto decode(Stream &stream) {
+    auto decode(common::ByteStream &stream) {
       return boolean::decodeBool(stream);
     }
   };
@@ -60,10 +60,10 @@ namespace kagome::common::scale {
    */
   template <>
   struct TypeDecoder<tribool> {
-    auto decode(Stream &stream) {
+    auto decode(common::ByteStream &stream) {
       return boolean::decodeTribool(stream);
     }
   };
-}  // namespace kagome::common::scale
+}  // namespace kagome::scale
 
 #endif  // KAGOME_SCALE_TYPE_DECODER_HPP

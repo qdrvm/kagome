@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 
 #include "common/result.hpp"
-#include "scale/basic_stream.hpp"
+#include "scale/byte_array_stream.hpp"
 #include "scale/optional.hpp"
 
 using namespace kagome;          // NOLINT
@@ -87,7 +87,7 @@ TEST(Scale, decodeOptional) {
             1, 1, 2, 3, 4}; // sixth value
   // clang-format on
 
-  auto stream = BasicStream{bytes};
+  auto stream = ByteArrayStream{bytes};
 
   // decode nullopt uint8_t
   {
@@ -150,7 +150,7 @@ TEST(Scale, decodeOptional) {
  */
 TEST(Scale, decodeOptionalBool) {
   auto bytes = ByteArray{0, 1, 2, 3};
-  auto stream = BasicStream{bytes};
+  auto stream = ByteArrayStream{bytes};
 
   // decode none
   {

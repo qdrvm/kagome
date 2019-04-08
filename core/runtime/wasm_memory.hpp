@@ -24,6 +24,11 @@ namespace kagome::runtime {
     const static auto kMaxMemorySize = std::numeric_limits<SizeType>::max();
 
     /**
+     * @brief Return the size of the memory
+     */
+    virtual SizeType size() const = 0;
+
+    /**
      * Resizes memory to the given size
      * @param newSize
      */

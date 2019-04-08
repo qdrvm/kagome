@@ -18,13 +18,15 @@ namespace kagome::primitives {
 
   class Extrinsic;  ///< forward declarations of class Extrinsic
 
+  class Version;  ///< forward declarations of class Version
+
   /**
    * class ScaleCodec is an interface declaring methods
    * for encoding and decoding primitives
    */
   class ScaleCodec {
    protected:
-    using Stream = common::Stream;
+    using Stream = common::ByteStream;
     using Buffer = common::Buffer;
 
    public:
@@ -78,6 +80,8 @@ namespace kagome::primitives {
      */
     virtual outcome::result<Extrinsic> decodeExtrinsic(
         Stream &stream) const = 0;
+
+    virtual outcome::result<Version> decodeVersion(Stream &stream) const = 0;
   };
 }  // namespace kagome::primitives
 

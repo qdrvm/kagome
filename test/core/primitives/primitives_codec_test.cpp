@@ -8,11 +8,11 @@
 
 #include <primitives/block.hpp>
 #include <primitives/impl/scale_codec_impl.hpp>
-#include <scale/basic_stream.hpp>
+#include <scale/byte_array_stream.hpp>
 
 using kagome::common::Buffer;
-using kagome::common::Stream;
-using kagome::common::scale::BasicStream;
+using kagome::common::ByteStream;
+using kagome::common::scale::ByteArrayStream;
 
 using namespace kagome::primitives; // NOLINT
 
@@ -107,7 +107,7 @@ TEST_F(Primitives, encodeBlockHeader) {
  * @then decoded instance of BlockHeader matches predefined block header
  */
 TEST_F(Primitives, decodeBlockHeader) {
-  BasicStream stream{headerMatch()};
+  ByteArrayStream stream{headerMatch()};
 
   auto &&res = codec()->decodeBlockHeader(stream);
   ASSERT_TRUE(res);
@@ -140,7 +140,7 @@ TEST_F(Primitives, encodeExtrinsic) {
  * @then decoded instance of Extrinsic matches predefined block header
  */
 TEST_F(Primitives, decodeExtrinsic) {
-  BasicStream stream{extrinsicMatch()};
+  ByteArrayStream stream{extrinsicMatch()};
   auto &&res = codec()->decodeExtrinsic(stream);
   ASSERT_TRUE(res);
   ASSERT_EQ(res.value().data(), extrinsic().data());
@@ -163,7 +163,7 @@ TEST_F(Primitives, encodeBlock) {
  * @then decoded instance of Block matches predefined Block instance
  */
 TEST_F(Primitives, decodeBlock) {
-  BasicStream stream{blockMatch()};
+  ByteArrayStream stream{blockMatch()};
   auto &&res = codec()->decodeBlock(stream);
   ASSERT_TRUE(res);
 

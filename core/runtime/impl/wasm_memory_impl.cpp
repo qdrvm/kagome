@@ -15,6 +15,10 @@ namespace kagome::runtime {
     resize(size);
   }
 
+  SizeType WasmMemoryImpl::size() const {
+    return memory_.size();
+  }
+
   void WasmMemoryImpl::resize(uint32_t newSize) {
     // Ensure the smallest allocation is large enough that most allocators
     // will provide page-aligned storage. This hopefully allows the

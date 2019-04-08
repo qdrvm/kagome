@@ -7,24 +7,25 @@
 #define KAGOME_SCALE_BOOLEAN_HPP
 
 #include "common/buffer.hpp"
+#include "common/byte_stream.hpp"
 #include "scale/types.hpp"
 
 #include <outcome/outcome.hpp>
 
-namespace kagome::common::scale::boolean {
+namespace kagome::scale::boolean {
   /**
    * @brief encodeBool function encodes bool value and puts it to output buffer
    * @param out buffer which receives encoded value
    * @param value source bool value
    */
-  void encodeBool(bool value, Buffer &out);
+  void encodeBool(bool value, common::Buffer &out);
 
   /**
    * @brief decodeBool decodes bool value
    * @param byte source byte stream
    * @return decoded bool value
    */
-  outcome::result<bool> decodeBool(Stream &stream);
+  outcome::result<bool> decodeBool(common::ByteStream &stream);
 
   /**
    * @brief encodeTribool function encodes tribool value
@@ -32,14 +33,15 @@ namespace kagome::common::scale::boolean {
    * @param out buffer which receives encoded value
    * @param value source tribool value
    */
-  void encodeTribool(tribool value, Buffer &out);
+  void encodeTribool(tribool value, common::Buffer &out);
 
   /**
    * @brief decodeTristate decodes tribool value representation
    * @param stream source stream containing tribool value
    * @return  decoded tribool value
    */
-  outcome::result<tribool> decodeTribool(Stream &stream);
-}  // namespace kagome::common::scale::boolean
+  outcome::result<tribool> decodeTribool(common::ByteStream &stream);
+
+}  // namespace kagome::scale::boolean
 
 #endif  // KAGOME_SCALE_BOOLEAN_HPP

@@ -9,3 +9,13 @@ add_library(memory
     impl/wasm_memory_impl.hpp
     impl/wasm_memory_impl.cpp
     )
+
+add_library(wasm_memory_stream
+    impl/wasm_memory_stream.hpp
+    impl/wasm_memory_stream.cpp
+    )
+target_link_libraries(wasm_memory_stream
+    memory
+    byte_stream
+    outcome
+    )
