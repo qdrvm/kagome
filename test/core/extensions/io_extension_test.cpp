@@ -5,6 +5,7 @@
 
 #include "extensions/impl/io_extension.hpp"
 #include <gtest/gtest.h>
+#include <optional>
 
 using namespace kagome::extensions;
 

@@ -158,3 +158,21 @@ TEST_F(MemoryHeapTest, AllocateTooBigMemoryAfterDeallocate) {
   // memory is allocated on mem offset
   ASSERT_EQ(ptr3, mem_offset);
 }
+
+/**
+ * @given arbitrary buffer of size N
+ * @when this buffer is stored in memory heap @and then load of N bytes is done
+ * @then the same buffer is returned
+ */
+TEST_F(MemoryHeapTest, LoadNTest) {
+  const size_t N = 3;
+
+  kagome::common::Buffer b(N, 'c');
+
+  auto ptr = memory_.allocate(N);
+
+  memory_.storeBuffer(ptr, b);
+
+  auto res_b = memory_.loadN(ptr, N);
+  ASSERT_EQ(b, res_b);
+}

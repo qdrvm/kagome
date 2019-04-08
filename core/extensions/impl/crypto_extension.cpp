@@ -36,13 +36,6 @@ namespace kagome::extensions {
     blake2b(out, 32, nullptr, 0, data, len);
   }
 
-  void CryptoExtension::ext_blake2_256_enumerated_trie_root(
-      const uint8_t *values_data, const uint32_t *lens_data,
-      uint32_t lens_length, uint8_t *result) {
-    // TODO(Akvinikym) PRE-54 11.03.19: implement, when Merkle Trie is ready
-    std::terminate();
-  }
-
   uint32_t CryptoExtension::ext_ed25519_verify(const uint8_t *msg_data,
                                                uint32_t msg_len,
                                                const uint8_t *sig_data,
