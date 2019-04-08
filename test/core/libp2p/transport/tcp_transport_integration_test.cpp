@@ -3,15 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <chrono>
+
 #include <gtest/gtest.h>
+#include <boost/asio/io_context.hpp>
+
 #include "libp2p/multi/multiaddress.hpp"
-#include "libp2p/transport/tcp.hpp"
+#include "libp2p/transport/impl/transport_impl.hpp"
 #include "testutil/outcome.hpp"
 
 using namespace libp2p::transport;
 using namespace libp2p::multi;
-using namespace boost;
 using kagome::common::Buffer;
+using std::chrono_literals::operator""ms;
 
 /**
  * @given boost asio context, initialized transport and single listener
@@ -29,8 +33,8 @@ TEST(TCP, Integration) {
   bool onClose = false;
   bool onError = false;
 
-  asio::io_context context;
-  auto transport = std::make_unique<TcpTransport>(context);
+  boost::asio::io_context context;
+  auto transport = std::make_unique<TransportImpl>(context);
   ASSERT_TRUE(transport) << "transport is nullptr";
 
   auto listener = transport->createListener([&](std::shared_ptr<Connection> c) {
@@ -73,8 +77,8 @@ TEST(TCP, Integration) {
     onNewConnection = true;
   });
 
-  listener->onClose([&]() {
-    std::cout << "onClose\n";
+  listener->onClose([&](Multiaddress ma) {
+    std::cout << "onClose " << ma.getStringAddress() << "\n";
     onClose = true;
   });
 
@@ -82,7 +86,7 @@ TEST(TCP, Integration) {
 
   ASSERT_TRUE(listener->isClosed()) << "listener is not closed";
 
-  EXPECT_OUTCOME_TRUE(ma, Multiaddress::create("/ip4/127.0.0.1/tcp/40001"));
+  EXPECT_OUTCOME_TRUE(ma, Multiaddress::create("/ip4/127.0.0.1/tcp/40009"));
   EXPECT_TRUE(listener->listen(ma));
   auto listening_on = listener->getAddresses();
   ASSERT_FALSE(listening_on.empty());
@@ -103,9 +107,7 @@ TEST(TCP, Integration) {
     ASSERT_TRUE(!ec);
   });
 
-  context.run_one();  // run all handlers once
-  context.run_one();  // run asyncWrite asyncRead
-  context.run_one();  // drain completion queue with server handler
+  context.run_for(100ms);
 
   ASSERT_EQ(listener->getAddresses(), std::vector<Multiaddress>{ma});
 

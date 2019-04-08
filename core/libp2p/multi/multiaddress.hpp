@@ -173,6 +173,15 @@ namespace libp2p::multi {
   };
 }  // namespace libp2p::multi
 
+namespace std {
+  template <>
+  struct hash<libp2p::multi::Multiaddress> {
+    size_t operator()(const libp2p::multi::Multiaddress &x) const {
+      return std::hash<std::string_view>()(x.getStringAddress());
+    }
+  };
+}  // namespace std
+
 OUTCOME_HPP_DECLARE_ERROR(libp2p::multi, Multiaddress::Error);
 
 #endif  // KAGOME_MULTIADDRESS_HPP
