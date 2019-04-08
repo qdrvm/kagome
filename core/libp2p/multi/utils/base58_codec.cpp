@@ -77,7 +77,7 @@ namespace libp2p::multi {
     uint32_t c;
     size_t i, j;
     uint8_t bytesleft = res_size % 4;
-    uint32_t zeromask = bytesleft ? (0xffffffff << (bytesleft * 8)) : 0;
+    uint32_t zeromask = bytesleft ? (0xfffffffful << (bytesleft * 8)) : 0;
     unsigned zerocount = 0;
 
     // Leading zeros, just count
@@ -86,7 +86,7 @@ namespace libp2p::multi {
     }
 
     for (; i < base58string.size(); ++i) {
-      if (b58u[i] & 0x80 == 0) {
+      if ((b58u[i] & 0x80) != 0) {
         // High-bit set on invalid digit
         return DecodeError::kInvalidHighBit;
       }
@@ -114,9 +114,9 @@ namespace libp2p::multi {
     j = 0;
     switch (bytesleft) {
       case 3:
-        *(it++) = (outi[0] & 0xff0000) >> 16;
+        *(it++) = (outi[0] & 0xff0000ul) >> 16;
       case 2:
-        *(it++) = (outi[0] & 0xff00) >> 8;
+        *(it++) = (outi[0] & 0xff00ul) >> 8;
       case 1:
         *(it++) = (outi[0] & 0xff);
         ++j;
@@ -125,16 +125,16 @@ namespace libp2p::multi {
     }
 
     for (; j < outisz; ++j) {
-      *(it++) = (outi[j] >> 0x18) & 0xff;
-      *(it++) = (outi[j] >> 0x10) & 0xff;
-      *(it++) = (outi[j] >> 8) & 0xff;
-      *(it++) = (outi[j] >> 0) & 0xff;
+      *(it++) = (outi[j] >> 0x18u) & 0xff;
+      *(it++) = (outi[j] >> 0x10u) & 0xff;
+      *(it++) = (outi[j] >> 8u) & 0xff;
+      *(it++) = (outi[j] >> 0u) & 0xff;
     }
 
     // Count canonical base58 byte count
     size_t s = res_size;
     for (i = 0; i < s; ++i) {
-      if (bin[i]) {
+      if (bin[i] !=  0) {
         break;
       }
       --res_size;

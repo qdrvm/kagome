@@ -119,29 +119,32 @@ namespace libp2p::multi::converters {
     const std::string hex = bytes.toHex();
 
     // Process Hex String
-  NAX:
-    gsl::span<const uint8_t, -1> pid_bytes{bytes.toVector()};
-    int protocol_int = UVarint(pid_bytes.subspan(lastpos / 2)).toUInt64();
-    Protocol const *protocol =
-        ProtocolList::get(static_cast<Protocol::Code>(protocol_int));
-    if (protocol != nullptr) {
-      //////////Stage 2: Address
+    while (lastpos < bytes.size() * 2) {
+      gsl::span<const uint8_t, -1> pid_bytes{bytes.toVector()};
+      int protocol_int = UVarint(pid_bytes.subspan(lastpos / 2)).toUInt64();
+      Protocol const *protocol =
+          ProtocolList::get(static_cast<Protocol::Code>(protocol_int));
+      if (protocol == nullptr) {
+        return ConversionError::kNoSuchProtocol;
+      }
+
       if (protocol->name != "ipfs") {
         lastpos = lastpos
             + UVarint::calculateSize(pid_bytes.subspan(lastpos / 2)) * 2;
         std::string address;
         address = hex.substr(lastpos, protocol->size / 4);
-        //////////Stage 3 Process it back to string
+
         lastpos = lastpos + (protocol->size / 4);
 
-        //////////Address:
         results += "/";
         results += protocol->name;
         results += "/";
 
         // TODO(Akvinikym): 25.02.19 PRE-49: add more protocols
         if (protocol->name == "ip4") {
-          results += boost::asio::ip::make_address_v4(std::stoul(address, nullptr, 16)).to_string();
+          results +=
+              boost::asio::ip::make_address_v4(std::stoul(address, nullptr, 16))
+                  .to_string();
 
         } else if (protocol->name == "tcp") {
           results += std::to_string(std::stoul(address, nullptr, 16));
@@ -177,11 +180,6 @@ namespace libp2p::multi::converters {
         results += "/" + encode_res;
         lastpos += addrsize * 2 + 2;
       }
-      if (lastpos < bytes.size() * 2) {
-        goto NAX;
-      }
-    } else {
-      return ConversionError::kNoSuchProtocol;
     }
     results += "/";
 
