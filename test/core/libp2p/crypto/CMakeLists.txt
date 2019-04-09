@@ -24,3 +24,14 @@ target_link_libraries(aes_test
         OpenSSL::Crypto
         Boost::boost
         )
+
+addtest(hmac_test
+        hmac_test.cpp
+        )
+
+target_link_libraries(hmac_test
+        buffer
+        crypto_provider
+        OpenSSL::Crypto
+        Boost::boost
+        )

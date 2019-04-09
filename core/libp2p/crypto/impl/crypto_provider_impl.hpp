@@ -71,7 +71,7 @@ namespace libp2p::crypto {
         const PrivateKey &private_key) const override;
 
    private:
-    aes::AesCrypt aesCrypt_;  ///< provides methods for aes 128 and 256
+    aes::AesProvider aesCrypt_;  ///< provides methods for aes ctr 128 and 256
   };
 }  // namespace libp2p::crypto
 

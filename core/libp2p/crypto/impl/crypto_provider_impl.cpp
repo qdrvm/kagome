@@ -84,22 +84,22 @@ namespace libp2p::crypto {
 
   outcome::result<Buffer> CryptoProviderImpl::aesEncrypt(
       const common::Aes128Secret &secret, const Buffer &data) const {
-    return aesCrypt_.encrypt128(secret, data);
+    return aesCrypt_.encrypt_128_ctr(secret, data);
   }
 
   outcome::result<Buffer> CryptoProviderImpl::aesEncrypt(
       const common::Aes256Secret &secret, const Buffer &data) const {
-    return aesCrypt_.encrypt256(secret, data);
+    return aesCrypt_.encrypt_256_ctr(secret, data);
   }
 
   outcome::result<Buffer> CryptoProviderImpl::aesDecrypt(
       const common::Aes128Secret &secret, const Buffer &data) const {
-    return aesCrypt_.decrypt128(secret, data);
+    return aesCrypt_.decrypt_128_ctr(secret, data);
   }
 
   outcome::result<Buffer> CryptoProviderImpl::aesDecrypt(
       const common::Aes256Secret &secret, const Buffer &data) const {
-    return aesCrypt_.decrypt256(secret, data);
+    return aesCrypt_.decrypt_256_ctr(secret, data);
   }
 
   Buffer CryptoProviderImpl::hmacDigest(common::HashType hash,
@@ -119,6 +119,8 @@ namespace libp2p::crypto {
       default:
         break;
     }
+
+    
 
     uint8_t *result = HMAC(evp_md, secret.toBytes(), secret.size(),
                            data.toBytes(), data.size(), nullptr, nullptr);

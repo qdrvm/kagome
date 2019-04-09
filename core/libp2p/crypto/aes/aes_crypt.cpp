@@ -10,6 +10,11 @@
 #include <openssl/evp.h>
 #include <gsl/gsl>
 
+#include <openssl/aes.h>
+#include <openssl/buffer.h>
+#include <openssl/hmac.h>
+#include <openssl/rand.h>
+
 #include "libp2p/crypto/error.hpp"
 
 namespace libp2p::crypto::aes {
@@ -18,10 +23,10 @@ namespace libp2p::crypto::aes {
   using libp2p::crypto::common::Aes128Secret;
   using libp2p::crypto::common::Aes256Secret;
 
-  outcome::result<Buffer> aesEncrypt(const Buffer &data,
-                                     gsl::span<const uint8_t> key,
-                                     gsl::span<const uint8_t> iv,
-                                     const EVP_CIPHER *cipher) {
+  outcome::result<Buffer> encrypt(const Buffer &data,
+                                  gsl::span<const uint8_t> key,
+                                  gsl::span<const uint8_t> iv,
+                                  const EVP_CIPHER *cipher) {
     assert(nullptr != cipher && "cipher must not be null");
     if (nullptr == cipher) {
       return MiscError::kWrongArgumentValue;
@@ -33,18 +38,12 @@ namespace libp2p::crypto::aes {
     const auto *plain_text = data.toBytes();
     const auto plain_len = data.size();
 
-    auto block_size = EVP_CIPHER_block_size(cipher);
+    constexpr auto block_size = AES_BLOCK_SIZE;  // AES_BLOCK_SIZE = 16
     auto required_length = plain_len + block_size - 1;
-
-    // TODO(yuraz): add check for key and iv sizes
-    // TODO(yuraz): they must correlate with block_size
-
-    std::cout << __FUNCTION__ << std::endl;
-    std::cout << "block_size = " << block_size << std::endl;
-    std::cout << "span size = " << key.size() << std::endl;
 
     std::vector<uint8_t> cipher_text;
     cipher_text.resize(required_length);
+    std::fill(cipher_text.begin(), cipher_text.end(), 0);
 
     // Create and initialise the context
     if (!(ctx = EVP_CIPHER_CTX_new())) {
@@ -68,8 +67,7 @@ namespace libp2p::crypto::aes {
 
     cipher_len = len;
 
-    // Finalise the encryption. Further cipher text bytes
-    // may be written at this stage.
+    // Finalise the encryption.
     if (1 != EVP_EncryptFinal_ex(ctx, cipher_text.data() + len, &len)) {
       return OpenSslError::kFailedEncryptFinalize;
     }
@@ -80,17 +78,14 @@ namespace libp2p::crypto::aes {
     return Buffer(std::move(cipher_text));
   }
 
-  outcome::result<Buffer> aesDecrypt(const Buffer &data,
-                                     gsl::span<const uint8_t> key,
-                                     gsl::span<const uint8_t> iv,
-                                     const EVP_CIPHER *cipher) {
+  outcome::result<Buffer> decrypt(const Buffer &data,
+                                  gsl::span<const uint8_t> key,
+                                  gsl::span<const uint8_t> iv,
+                                  const EVP_CIPHER *cipher) {
     assert(nullptr != cipher && "cipher must not be null");
     if (nullptr == cipher) {
       return MiscError::kWrongArgumentValue;
     }
-
-    // TODO(yuraz): add check for key and iv sizes
-    // TODO(yuraz): they must correlate with block_size
 
     EVP_CIPHER_CTX *ctx = nullptr;
 
@@ -124,49 +119,47 @@ namespace libp2p::crypto::aes {
 
     plain_len = len;
 
-    // Finalise the decryption. Further plaintext bytes
-    // may be written at this stage.
+    // Finalise the decryption.
     if (1 != EVP_DecryptFinal_ex(ctx, plain_text.data() + len, &len)) {
       return OpenSslError::kFailedDecryptFinalize;
     }
 
     plain_len += len;
-
     plain_text.resize(plain_len);
 
     return Buffer(std::move(plain_text));
   }
 
-  outcome::result<Buffer> AesCrypt::encrypt128(const Aes128Secret &secret,
-                                               const Buffer &data) const {
-    auto key_span = gsl::make_span(secret.key, 8);
-    auto iv_span = gsl::make_span(secret.iv, 8);
-
-    return aesEncrypt(data, key_span, iv_span, EVP_aes_128_cbc());
-  }
-
-  outcome::result<Buffer> AesCrypt::encrypt256(const Aes256Secret &secret,
-                                               const Buffer &data) const {
+  outcome::result<Buffer> AesProvider::encrypt_128_ctr(const Aes128Secret &secret,
+                                                       const Buffer &data) const {
     auto key_span = gsl::make_span(secret.key, 16);
     auto iv_span = gsl::make_span(secret.iv, 16);
 
-    return aesEncrypt(data, key_span, iv_span, EVP_aes_256_cbc());
+    return encrypt(data, key_span, iv_span, EVP_aes_128_ctr());
   }
 
-  outcome::result<Buffer> AesCrypt::decrypt128(const Aes128Secret &secret,
-                                               const Buffer &data) const {
-    auto key_span = gsl::make_span(secret.key, 8);
-    auto iv_span = gsl::make_span(secret.iv, 8);
+  outcome::result<Buffer> AesProvider::encrypt_256_ctr(const Aes256Secret &secret,
+                                                       const Buffer &data) const {
+    auto key_span = gsl::make_span(secret.key, 32);
+    auto iv_span = gsl::make_span(secret.iv, 16);
 
-    return aesDecrypt(data, key_span, iv_span, EVP_aes_128_cbc());
+    return encrypt(data, key_span, iv_span, EVP_aes_256_ctr());
   }
 
-  outcome::result<Buffer> AesCrypt::decrypt256(const Aes256Secret &secret,
-                                               const Buffer &data) const {
+  outcome::result<Buffer> AesProvider::decrypt_128_ctr(const Aes128Secret &secret,
+                                                       const Buffer &data) const {
     auto key_span = gsl::make_span(secret.key, 16);
     auto iv_span = gsl::make_span(secret.iv, 16);
 
-    return aesDecrypt(data, key_span, iv_span, EVP_aes_256_cbc());
+    return decrypt(data, key_span, iv_span, EVP_aes_128_ctr());
   }
 
-}  // namespace libp2p::crypto::detail
+  outcome::result<Buffer> AesProvider::decrypt_256_ctr(const Aes256Secret &secret,
+                                                       const Buffer &data) const {
+    auto key_span = gsl::make_span(secret.key, 32);
+    auto iv_span = gsl::make_span(secret.iv, 16);
+
+    return decrypt(data, key_span, iv_span, EVP_aes_256_ctr());
+  }
+
+}  // namespace libp2p::crypto::aes

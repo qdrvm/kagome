@@ -7,8 +7,8 @@
 #define KAGOME_CRYPTO_COMMON_HPP
 
 #include <cstdint>
-#include <memory>
 #include <functional>
+#include <memory>
 
 #include "common/buffer.hpp"
 #include "libp2p/crypto/private_key.hpp"
@@ -19,16 +19,16 @@ namespace libp2p::crypto::common {
    * Values for AES-128
    */
   struct Aes128Secret {
-    uint8_t key[8];
-    uint8_t iv[8];
+    uint8_t key[16];
+    uint8_t iv[16];
   };
 
   /**
    * Values for AES-256
    */
   struct Aes256Secret {
-    uint8_t key[16];
-    uint8_t iv[8];
+    uint8_t key[32];
+    uint8_t iv[16];
   };
 
   /**
@@ -60,8 +60,14 @@ namespace libp2p::crypto::common {
   /**
    * Supported types of all keys
    */
-  enum class KeyType : uint32_t { kUnspecified, kRSA1024, kRSA2048, kRSA4096, kED25519 };
-  // TODO:(yuraz) maybe add support for Secp256k1 like in js version
+  enum class KeyType {
+    kUnspecified,
+    kRSA1024,
+    kRSA2048,
+    kRSA4096,
+    kED25519
+  };
+  // TODO(yuraz): maybe add support for Secp256k1 like in js version
 
   /**
    * Supported ECDH curves

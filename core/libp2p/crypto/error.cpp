@@ -35,6 +35,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, OpenSslError, e) {
       return "failed to finalize encryption";
     case OpenSslError::kFailedDecryptFinalize:
       return "failed to finalize decryption";
+    case OpenSslError::kWrongIvSize:
+      return "wrong iv size";
     default:
       break;
   }

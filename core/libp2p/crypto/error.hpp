@@ -22,6 +22,7 @@ namespace libp2p::crypto {
     kFailedDecryptUpdate,          ///< failed to update decryption
     kFailedEncryptFinalize,        ///< failed to finalize encryption
     kFailedDecryptFinalize,        ///< failed to finalize decryption
+    kWrongIvSize,                  ///< wrong iv size
   };
 
   enum class MiscError {

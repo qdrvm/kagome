@@ -11,7 +11,7 @@
 namespace libp2p::crypto {
 
   namespace common {
-    enum class KeyType : uint32_t;
+    enum class KeyType;
   }
   /**
    * Interface for public/private key
