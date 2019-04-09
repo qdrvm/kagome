@@ -7,7 +7,6 @@
 #define KAGOME_YAMUX_HPP
 
 #include <map>
-#include <mutex>
 #include <queue>
 
 #include <boost/asio/streambuf.hpp>
@@ -169,16 +168,12 @@ namespace libp2p::muxer {
       bool is_writable_;
       uint32_t window_size_;
 
-      /// stream and Yamux's event loop can run in different threads, so we need
-      /// synchronization over these queues to avoid races
-      std::mutex queues_mutex_{};
       std::queue<common::NetworkMessage> buffered_messages_{};
       std::queue<stream::Stream::ReadCompletionHandler> completion_handlers_{};
     };
     /// streams, which are multiplexed by this Yamux instance
     std::map<StreamId, std::shared_ptr<StreamParameters>> streams_;
 
-    std::mutex outcoming_msgs_mutex_;
     /// messages, which are going to be written during the event loop execution
     std::queue<
         std::pair<common::NetworkMessage, stream::Stream::ErrorCodeCallback>>

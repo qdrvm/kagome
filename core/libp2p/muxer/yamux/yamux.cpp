@@ -32,20 +32,18 @@ namespace libp2p::muxer {
     }
 
     // see, if there's any messages to be written to the connection
-    {
-      std::lock_guard<std::mutex> lg{outcoming_msgs_mutex_};
-      if (!outcoming_messages_.empty()) {
-        auto msg_and_callback = outcoming_messages_.front();
-        outcoming_messages_.pop();
-        connection_->writeAsync(
-            msg_and_callback.first,
-            [t = shared_from_this(), cb = std::move(msg_and_callback.second)](
-                const boost::system::error_code &ec, size_t n) {
-              t->writingComplete(ec, n, std::move(cb));
-            });
-      }
+    while (!outcoming_messages_.empty()) {
+      auto msg_and_callback = outcoming_messages_.front();
+      outcoming_messages_.pop();
+      connection_->writeAsync(
+          msg_and_callback.first,
+          [t = shared_from_this(), cb = std::move(msg_and_callback.second)](
+              const boost::system::error_code &ec, size_t n) {
+            t->writingComplete(ec, n, std::move(cb));
+          });
     }
-    // if there are no outcoming messages, read something from the connection
+
+    // if there are no outcoming messages left, read something from the connection
     connection_->readAsync(  // read_buffer, YamuxFrame::kHeaderLength,
         [t = shared_from_this()](const boost::system::error_code &ec,
                                  size_t n) {
@@ -81,7 +79,6 @@ namespace libp2p::muxer {
     auto msg =
         kagome::common::Buffer{boost::asio::buffers_begin(read_buffer_),
                                boost::asio::buffers_begin(read_buffer_) + n};
-    std::lock_guard<std::mutex> lg{stream->queues_mutex_};
     if (!stream->completion_handlers_.empty()) {
       stream->completion_handlers_.front()(std::move(msg));
       stream->completion_handlers_.pop();
@@ -102,10 +99,11 @@ namespace libp2p::muxer {
 
   outcome::result<std::unique_ptr<stream::Stream>> Yamux::newStream() {
     auto stream_id = getNewStreamId();
-    // TODO: change to writing loop
-    OUTCOME_TRY(connection_->write(newStreamMsg(stream_id)));
-
-    registerNewStream(stream_id);
+    outcoming_messages_.push(
+        {newStreamMsg(stream_id), [](auto &&, auto &&) {}});
+    streams_.insert(
+        {stream_id,
+         StreamParameters{true, true, YamuxFrame::kDefaultWindowSize}});
     return std::make_unique<stream::YamuxStream>(this, stream_id);
   }
 
@@ -128,8 +126,8 @@ namespace libp2p::muxer {
         {stream_id,
          StreamParameters{true, true, YamuxFrame::kDefaultWindowSize}});
     new_stream_handler_(std::make_unique<stream::YamuxStream>(this, stream_id));
-    // TODO: change to writing loop
-    connection_->writeAsync(ackStreamMsg(stream_id), [](auto &&, auto &&) {});
+    outcoming_messages_.push(
+        {ackStreamMsg(stream_id), [](auto &&, auto &&) {}});
   }
 
   void Yamux::processData(Yamux::StreamParameters &stream,
@@ -150,9 +148,8 @@ namespace libp2p::muxer {
     // problem
     auto stream = findStream(stream_id);
     if (!stream) {
-      // TODO: change to writing loop
-      connection_->writeAsync(resetStreamMsg(stream_id),
-                              [](std::error_code, size_t) {});
+      outcoming_messages_.push(
+          {resetStreamMsg(stream_id), [](auto &&, auto &&) {}});
     }
     return stream;
   }
@@ -189,9 +186,8 @@ namespace libp2p::muxer {
   }
 
   void Yamux::removeStream(StreamId stream_id) {
-    // TODO: change to writing loop
-    connection_->writeAsync(resetStreamMsg(stream_id),
-                            [](std::error_code, size_t) {});
+    outcoming_messages_.push(
+        {resetStreamMsg(stream_id), [](auto &&, auto &&) {}});
     streams_.erase(stream_id);
   }
 
@@ -204,11 +200,9 @@ namespace libp2p::muxer {
     if (!frame_opt) {
       // could not parse the frame => client sent some nonsense, break the
       // connection
-      // TODO: change to writing loop
-      connection_->writeAsync(
-          goAwayMsg(YamuxFrame::GoAwayError::kProtocolError),
-          [](auto &&, auto &&) {});
-      close();
+      outcoming_messages_.push(
+          {goAwayMsg(YamuxFrame::GoAwayError::kProtocolError),
+           [](auto &&, auto &&) {}});
     }
 
     auto frame = std::move(*frame_opt);
@@ -297,16 +291,15 @@ namespace libp2p::muxer {
   }
 
   void Yamux::processPingFrame(const YamuxFrame &frame) {
-    // TODO: change to writing loop
-    connection_->writeAsync(
-        pingResponseMsg(frame.length_),
-        [t = shared_from_this(), stream_id = frame.stream_id_](
-            std::error_code error_code, size_t written) {
-          if (error_code.value() != 0) {
-            t->logger_->error("cannot send ping message to stream with id "
-                              + std::to_string(stream_id));
-          }
-        });
+    outcoming_messages_.push(
+        {pingResponseMsg(frame.length_),
+         [t = shared_from_this(), stream_id = frame.stream_id_](
+             std::error_code error_code, size_t written) {
+           if (error_code.value() != 0) {
+             t->logger_->error("cannot send ping message to stream with id "
+                               + std::to_string(stream_id));
+           }
+         }});
   }
 
   void Yamux::processGoAwayFrame(const YamuxFrame &frame) {
@@ -324,7 +317,6 @@ namespace libp2p::muxer {
     }
 
     auto stream = *stream_opt;
-    std::lock_guard<std::mutex> lg{stream->queues_mutex_};
     if (!stream->buffered_messages_.empty()) {
       auto msg = stream->buffered_messages_.front();
       stream->buffered_messages_.pop();
@@ -339,10 +331,8 @@ namespace libp2p::muxer {
   void Yamux::streamWriteFrameAsync(
       StreamId stream_id, const common::NetworkMessage &msg,
       stream::Stream::ErrorCodeCallback error_callback) {
-    auto msg_and_callback =
-        std::make_pair(dataMsg(stream_id, msg), std::move(error_callback));
-    std::lock_guard<std::mutex> lg{outcoming_msgs_mutex_};
-    outcoming_messages_.push(std::move(msg_and_callback));
+    outcoming_messages_.push(
+        {dataMsg(stream_id, msg), std::move(error_callback)});
   }
 
   void Yamux::streamClose(StreamId stream_id) {
