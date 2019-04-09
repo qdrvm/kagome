@@ -8,46 +8,29 @@
 
 #include <functional>
 
-#include <outcome/outcome.hpp>
-
-#include "common/buffer.hpp"
+#include <boost/asio/buffer.hpp>
+#include <boost/asio/streambuf.hpp>
 
 namespace libp2p::basic {
   class Writable {
    public:
-    using ErrorCodeCallback = void(std::error_code, size_t);
+    using CompletionHandler = void(const std::error_code & /* ec*/,
+                                   size_t /* written */);
 
     /**
-     * @brief Asynchronously write {@param msg} and execute {@param handler}
-     * when its done. Does not block.
-     * @param msg message to be sent
-     * @param handler callback that is executed when write finished
-     */
-    virtual void writeAsync(
-        const kagome::common::Buffer &msg,
-        std::function<ErrorCodeCallback> handler) noexcept = 0;
-
-    /**
-     * This function is used to write data. The function
-     * call will block until one or more bytes of the data has been written
-     * successfully, or until an error occurs.
-     * @param msg to be written
-     * @return error code if any error occurred.
+     * @brief Asynchronously write buffer. Once operation completed, completion
+     * handler {@param cb} is executed.
      *
-     * @note The write_some operation may not transmit all of the data to the
-     * peer. Consider using the @ref write function if you need to ensure that
-     * all data is written before the blocking operation completes.
+     * @see boost::asio::buffer to pass any buffer as first argument
+     *
+     * @param buf buffer to write.
+     * @param cb completion hander that is executed after operation succeeds.
      */
-    virtual outcome::result<void> writeSome(const kagome::common::Buffer &msg) = 0;
+    virtual void asyncWrite(const boost::asio::const_buffer &buf,
+                            std::function<CompletionHandler> cb) noexcept = 0;
 
-    /**
-     * @brief This function is used to write data. The function
-     * call will block until all bytes has been written successfully, or until
-     * an error occurs.
-     * @param msg to be written
-     * @return error code if any error occurred.
-     */
-    virtual outcome::result<void> write(const kagome::common::Buffer &msg) = 0;
+    virtual void asyncWrite(boost::asio::streambuf &buf,
+                            std::function<CompletionHandler> cb) noexcept = 0;
   };
 }  // namespace libp2p::basic
 
