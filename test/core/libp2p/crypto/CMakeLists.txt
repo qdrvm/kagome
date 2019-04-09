@@ -13,3 +13,14 @@ target_link_libraries(keys_test
         crypto_provider
         Boost::boost
         )
+
+addtest(aes_test
+        aes_test.cpp
+        )
+
+target_link_libraries(aes_test
+        buffer
+        crypto_provider
+        OpenSSL::Crypto
+        Boost::boost
+        )

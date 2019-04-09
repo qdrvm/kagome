@@ -36,8 +36,8 @@ namespace libp2p::crypto {
      * @param data to be encrypted
      * @return encrypted bytes
      */
-    virtual Buffer aesEncrypt(const common::Aes128Secret &secret,
-                              const Buffer &data) const = 0;
+    virtual outcome::result<Buffer> aesEncrypt(
+        const common::Aes128Secret &secret, const Buffer &data) const = 0;
 
     /**
      * Encrypt the data using AES-256
@@ -45,8 +45,8 @@ namespace libp2p::crypto {
      * @param data to be encrypted
      * @return encrypted bytes
      */
-    virtual Buffer aesEncrypt(const common::Aes256Secret &secret,
-                              const Buffer &data) const = 0;
+    virtual outcome::result<Buffer> aesEncrypt(
+        const common::Aes256Secret &secret, const Buffer &data) const = 0;
 
     /**
      * Decrypt the data using AES-128
@@ -54,8 +54,8 @@ namespace libp2p::crypto {
      * @param data to be decrypted
      * @return decrypted bytes
      */
-    virtual Buffer aesDecrypt(const common::Aes128Secret &secret,
-                              const Buffer &data) const = 0;
+    virtual outcome::result<Buffer> aesDecrypt(
+        const common::Aes128Secret &secret, const Buffer &data) const = 0;
 
     /**
      * Decrypt the data using AES-256
@@ -63,8 +63,8 @@ namespace libp2p::crypto {
      * @param data to be decrypted
      * @return decrypted bytes
      */
-    virtual Buffer aesDecrypt(const common::Aes256Secret &secret,
-                              const Buffer &data) const = 0;
+    virtual outcome::result<Buffer> aesDecrypt(
+        const common::Aes256Secret &secret, const Buffer &data) const = 0;
 
     /// HMAC features
 

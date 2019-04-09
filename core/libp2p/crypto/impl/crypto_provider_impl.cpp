@@ -5,11 +5,16 @@
 
 #include "libp2p/crypto/impl/crypto_provider_impl.hpp"
 
+#include <openssl/conf.h>
+#include <openssl/err.h>
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
+
 #include "libp2p/crypto/private_key.hpp"
 
-#include "libp2p/crypto/error.hpp"
-
 #include "libp2p/crypto/proto/keys.pb.h"
+
+#include "libp2p/crypto/error.hpp"
 
 namespace libp2p::crypto {
   using kagome::common::Buffer;
@@ -62,33 +67,64 @@ namespace libp2p::crypto {
     }
   }  // namespace
 
-  Buffer CryptoProviderImpl::aesEncrypt(const common::Aes128Secret &secret,
-                                        const Buffer &data) const {
-    // TODO(yuraz):  implement
-    std::terminate();
+  void CryptoProviderImpl::initializeOpenSSL() {
+    // Load the human readable error strings for libcrypto
+    ERR_load_crypto_strings();
+
+    // Load all digest and cipher algorithms
+    OpenSSL_add_all_algorithms();  // NOLINT
+
+    // Load config file, and other important initialisation
+    // OPENSSL_config(nullptr); // deprecated
   }
 
-  Buffer CryptoProviderImpl::aesEncrypt(const common::Aes256Secret &secret,
-                                        const Buffer &data) const {
-    // TODO(yuraz):  implement
-    std::terminate();
+  CryptoProviderImpl::CryptoProviderImpl() {
+    initializeOpenSSL();
   }
 
-  Buffer CryptoProviderImpl::aesDecrypt(const common::Aes128Secret &secret,
-                                        const Buffer &data) const {
-    // TODO(yuraz):  implement
-    std::terminate();
+  outcome::result<Buffer> CryptoProviderImpl::aesEncrypt(
+      const common::Aes128Secret &secret, const Buffer &data) const {
+    return aesCrypt_.encrypt128(secret, data);
   }
 
-  Buffer CryptoProviderImpl::aesDecrypt(const common::Aes256Secret &secret,
-                                        const Buffer &data) const {
-    // TODO(yuraz):  implement
-    std::terminate();
+  outcome::result<Buffer> CryptoProviderImpl::aesEncrypt(
+      const common::Aes256Secret &secret, const Buffer &data) const {
+    return aesCrypt_.encrypt256(secret, data);
+  }
+
+  outcome::result<Buffer> CryptoProviderImpl::aesDecrypt(
+      const common::Aes128Secret &secret, const Buffer &data) const {
+    return aesCrypt_.decrypt128(secret, data);
+  }
+
+  outcome::result<Buffer> CryptoProviderImpl::aesDecrypt(
+      const common::Aes256Secret &secret, const Buffer &data) const {
+    return aesCrypt_.decrypt256(secret, data);
   }
 
   Buffer CryptoProviderImpl::hmacDigest(common::HashType hash,
                                         const Buffer &secret,
                                         const Buffer &data) {
+    const evp_md_st *evp_md = nullptr;
+    switch (hash) {
+      case common::HashType::kSHA1:
+        evp_md = EVP_sha1();
+        break;
+      case common::HashType::kSHA256:
+        evp_md = EVP_sha256();
+        break;
+      case common::HashType::kSHA512:
+        evp_md = EVP_sha512();
+        break;
+      default:
+        break;
+    }
+
+    uint8_t *result = HMAC(evp_md, secret.toBytes(), secret.size(),
+                           data.toBytes(), data.size(), nullptr, nullptr);
+
+    delete[] result;
+
     // TODO(yuraz):  implement
     std::terminate();
   }

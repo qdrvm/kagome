@@ -9,6 +9,8 @@ add_library(crypto_provider
         error.hpp
         error.cpp
         key.hpp
+        aes/aes_crypt.hpp
+        aes/aes_crypt.cpp
         impl/crypto_provider_impl.hpp
         impl/crypto_provider_impl.cpp
         key.cpp
