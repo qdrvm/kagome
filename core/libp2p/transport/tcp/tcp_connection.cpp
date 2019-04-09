@@ -78,34 +78,51 @@ namespace libp2p::transport {
   void TcpConnection::asyncRead(
       boost::asio::mutable_buffer &mut, uint32_t to_read,
       std::function<Readable::CompletionHandler> cb) noexcept {
-    boost::asio::async_read(socket_, mut,
-                            boost::asio::transfer_exactly(to_read), cb);
+    boost::asio::async_read(
+        socket_, mut, boost::asio::transfer_exactly(to_read),
+        [cb = std::move(cb)](const boost::system::error_code &ec, size_t size) {
+          cb(ec, size);
+        });
   }
 
   void TcpConnection::asyncWrite(
       const boost::asio::const_buffer &buf,
       std::function<Writable::CompletionHandler> cb) noexcept {
-    boost::asio::async_write(socket_, buf, cb);
+    boost::asio::async_write(
+        socket_, buf,
+        [cb = std::move(cb)](const boost::system::error_code &ec, size_t size) {
+          cb(ec, size);
+        });
   }
 
   void TcpConnection::asyncRead(
       boost::asio::mutable_buffer &&mut, uint32_t to_read,
       std::function<Readable::CompletionHandler> cb) noexcept {
-    boost::asio::async_read(socket_, std::move(mut),
-                            boost::asio::transfer_exactly(to_read), cb);
+    boost::asio::async_read(
+        socket_, mut, boost::asio::transfer_exactly(to_read),
+        [cb = std::move(cb)](const boost::system::error_code &ec, size_t size) {
+          cb(ec, size);
+        });
   }
 
   void TcpConnection::asyncRead(
       boost::asio::streambuf &streambuf, uint32_t to_read,
       std::function<Readable::CompletionHandler> cb) noexcept {
-    boost::asio::async_read(socket_, streambuf,
-                            boost::asio::transfer_exactly(to_read), cb);
+    boost::asio::async_read(
+        socket_, streambuf, boost::asio::transfer_exactly(to_read),
+        [cb = std::move(cb)](const boost::system::error_code &ec, size_t size) {
+          cb(ec, size);
+        });
   }
 
   void TcpConnection::asyncWrite(
       boost::asio::streambuf &buf,
       std::function<Writable::CompletionHandler> cb) noexcept {
-    boost::asio::async_write(socket_, buf, cb);
+    boost::asio::async_write(
+        socket_, buf,
+        [cb = std::move(cb)](const boost::system::error_code &ec, size_t size) {
+          cb(ec, size);
+        });
   }
 
 }  // namespace libp2p::transport

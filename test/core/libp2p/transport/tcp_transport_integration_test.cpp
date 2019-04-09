@@ -27,7 +27,7 @@ struct Reverse : public std::enable_shared_from_this<Reverse> {
                     });
   }
 
-  void do_read_completed(const boost::system::error_code &ec, size_t read) {
+  void do_read_completed(const std::error_code &ec, size_t read) {
     ASSERT_FALSE(conn->isClosed());
     EXPECT_FALSE(ec);
     EXPECT_EQ(read, size);
@@ -54,7 +54,7 @@ struct Reverse : public std::enable_shared_from_this<Reverse> {
     });
   }
 
-  void do_write_completed(const boost::system::error_code &ec, size_t write) {
+  void do_write_completed(const std::error_code &ec, size_t write) {
     ASSERT_FALSE(conn->isClosed());
     EXPECT_FALSE(ec);
     EXPECT_TRUE(conn->close());

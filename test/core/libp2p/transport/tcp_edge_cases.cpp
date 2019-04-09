@@ -1,5 +1,3 @@
-#include <utility>
-
 /**
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
@@ -55,11 +53,15 @@ TEST(TCP, TwoListenersCantBindOnSamePort) {
  * @then each client is expected to receive sent message
  */
 TEST(TCP, SingleListenerCanAcceptManyClients) {
-  const int kClients = 4;
+  const int kClients = 2;
   const int kSize = 1500;
   const int kRetries = 10;
   size_t counter = 0;  // number of answers
 
+  /**
+   * @brief Per-connection helper. Used to store buffer, connection and
+   * implement async loop.
+   */
   struct Echo : public std::enable_shared_from_this<Echo> {
     void do_read() {
       if (conn->isClosed()) {
@@ -72,7 +74,7 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
                       });
     }
 
-    void do_read_completed(const boost::system::error_code &ec, size_t read) {
+    void do_read_completed(const std::error_code &ec, size_t read) {
       if (conn->isClosed()) {
         return;
       }
@@ -93,7 +95,7 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
       });
     }
 
-    void do_write_completed(const boost::system::error_code &ec, size_t write) {
+    void do_write_completed(const std::error_code &ec, size_t write) {
       if (conn->isClosed()) {
         return;
       }

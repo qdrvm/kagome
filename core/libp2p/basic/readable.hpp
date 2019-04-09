@@ -7,18 +7,18 @@
 #define KAGOME_READABLE_HPP
 
 #include <functional>
+#include <system_error>
 
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/streambuf.hpp>
-#include <boost/system/error_code.hpp>
 
 namespace libp2p::basic {
 
   class Readable {
    public:
     //
-    using CompletionHandler = void(
-        const boost::system::error_code & /* error */, size_t /* read_bytes */);
+    using CompletionHandler = void(const std::error_code & /* error */,
+                                   size_t /* read_bytes */);
 
     /**
      * @brief Asynchronously read exactly {@param to_read} bytes into {@param
@@ -27,6 +27,8 @@ namespace libp2p::basic {
      *
      * This function reads at most {@code} min(to_read, mut.size()); {@endcode}
      * bytes.
+     *
+     * @see boost::asio::buffer to pass any buffer as first argument
      *
      * @param mut output buffer. Caller MUST ensure buffer remains valid after
      * the call. Buffer must be of size {@param to_read} or bigger to read
@@ -39,11 +41,12 @@ namespace libp2p::basic {
     virtual void asyncRead(boost::asio::mutable_buffer &mut, uint32_t to_read,
                            std::function<CompletionHandler> cb) noexcept = 0;
 
-    /// with this you can write asyncRead(boost::asio::buffer(rdbuf->toVector(), kSize), ...)
+    /// with this you can write asyncRead(boost::asio::buffer(rdbuf->toVector(),
+    /// kSize), ...)
     virtual void asyncRead(boost::asio::mutable_buffer &&mut, uint32_t to_read,
                            std::function<CompletionHandler> cb) noexcept = 0;
 
-    virtual void asyncRead(boost::asio::streambuf& streambuf, uint32_t to_read,
+    virtual void asyncRead(boost::asio::streambuf &streambuf, uint32_t to_read,
                            std::function<CompletionHandler> cb) noexcept = 0;
   };
 

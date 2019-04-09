@@ -10,17 +10,19 @@
 
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/streambuf.hpp>
-#include <boost/system/error_code.hpp>
 
 namespace libp2p::basic {
   class Writable {
    public:
-    using CompletionHandler = void(const boost::system::error_code & /* ec*/,
+    using CompletionHandler = void(const std::error_code & /* ec*/,
                                    size_t /* written */);
 
     /**
      * @brief Asynchronously write buffer. Once operation completed, completion
      * handler {@param cb} is executed.
+     *
+     * @see boost::asio::buffer to pass any buffer as first argument
+     *
      * @param buf buffer to write.
      * @param cb completion hander that is executed after operation succeeds.
      */
