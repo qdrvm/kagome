@@ -20,23 +20,15 @@ using kagome::scale::ByteArrayStream;
 TEST(ByteArrayStreamTest, NextByteTest) {
   auto bytes = ByteArray{0, 1, 2};
   auto stream = ByteArrayStream{bytes};
-  ASSERT_EQ(stream.hasMore(3), true);
 
-  auto byte = stream.nextByte();
-  ASSERT_EQ(byte.has_value(), true);
-  ASSERT_EQ((*byte), 0);
+  auto bytes_left = bytes.size();
 
-  ASSERT_EQ(stream.hasMore(2), true);
-  byte = stream.nextByte();
-  ASSERT_EQ(byte.has_value(), true);
-  ASSERT_EQ((*byte), 1);
+  for (size_t i = 0; i < bytes.size(); i++) {
 
-  ASSERT_EQ(stream.hasMore(1), true);
-  byte = stream.nextByte();
-  ASSERT_EQ(byte.has_value(), true);
-  ASSERT_EQ((*byte), 2);
-
-  ASSERT_EQ(stream.hasMore(1), false);
+    auto byte = stream.nextByte();
+    ASSERT_TRUE(byte) << "Fail in " << i;
+    ASSERT_EQ(*byte, bytes.at(i)) << "Fail in " << i;
+  }
 }
 
 /**

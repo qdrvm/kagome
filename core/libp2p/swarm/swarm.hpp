@@ -46,6 +46,8 @@ namespace libp2p::swarm {
         std::function<void(const connection::ConnectionFSM &conn_fsm)>
             fsm_callback) = 0;
 
+
+
     /**
      * Hang up a connection we have with that peer
      * @param peer to stop connection with
