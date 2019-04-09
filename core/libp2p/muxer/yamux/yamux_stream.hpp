@@ -17,10 +17,12 @@ namespace libp2p::stream {
    public:
     YamuxStream(muxer::Yamux &yamux, muxer::Yamux::StreamId stream_id);
 
-    outcome::result<common::NetworkMessage> readFrame() override;
+    void readAsync(ReadCompletionHandler completion_handler) override;
 
-    outcome::result<void> writeFrame(
-        const common::NetworkMessage &msg) override;
+    void writeAsync(const common::NetworkMessage &msg) override;
+
+    void writeAsync(const common::NetworkMessage &msg,
+                    ErrorCodeCallback error_callback) override;
 
     void close() override;
 

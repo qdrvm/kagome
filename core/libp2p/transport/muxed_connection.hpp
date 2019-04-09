@@ -24,7 +24,7 @@ namespace libp2p::transport {
      * Start a MuxedConnection instance; it is going to read a connection and
      * accept new messages and streams
      */
-    virtual void startReading() = 0;
+    virtual void start() = 0;
 
     /**
      * Stop a MuxedConnection instance

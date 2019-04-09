@@ -26,17 +26,35 @@ namespace libp2p::muxer {
     this->close();
   }
 
-  void Yamux::startReading() {
+  void Yamux::start() {
     if (!is_active_) {
       return;
     }
+
+    // see, if there's any messages to be written to the connection
+    {
+      std::lock_guard<std::mutex> lg{outcoming_msgs_mutex_};
+      if (!outcoming_messages_.empty()) {
+        auto msg_and_callback = outcoming_messages_.front();
+        outcoming_messages_.pop();
+        connection_->writeAsync(
+            msg_and_callback.first,
+            [t = shared_from_this(), cb = std::move(msg_and_callback.second)](
+                const boost::system::error_code &ec, size_t n) {
+              t->writingComplete(ec, n, std::move(cb));
+            });
+      }
+    }
+    // if there are no outcoming messages, read something from the connection
     connection_->readAsync(  // read_buffer, YamuxFrame::kHeaderLength,
         [t = shared_from_this()](const boost::system::error_code &ec,
-                                 size_t n) { t->startReadingComplete(ec, n); });
+                                 size_t n) {
+          t->readingHeaderComplete(ec, n);
+        });
   }
 
-  void Yamux::startReadingComplete(const boost::system::error_code &ec,
-                                   size_t n) {
+  void Yamux::readingHeaderComplete(const boost::system::error_code &ec,
+                                    size_t n) {
     if (ec) {
       logger_->error("cannot read from from the connection: {}", ec.value());
       // terminate the Yamux? It's a critical error
@@ -48,7 +66,34 @@ namespace libp2p::muxer {
     }
 
     processHeader();
-    startReading();
+    start();
+  }
+
+  void Yamux::readingDataComplete(const boost::system::error_code &ec, size_t n,
+                                  std::shared_ptr<StreamParameters> stream) {
+    if (ec) {
+      logger_->error("cannot read from the connection: {}", ec.value());
+      // terminate Yamux?
+    }
+
+    // if there's a callback, which awaits for the message from this stream,
+    // call it; buffer the message otherwise
+    auto msg =
+        kagome::common::Buffer{boost::asio::buffers_begin(read_buffer_),
+                               boost::asio::buffers_begin(read_buffer_) + n};
+    std::lock_guard<std::mutex> lg{stream->queues_mutex_};
+    if (!stream->completion_handlers_.empty()) {
+      stream->completion_handlers_.front()(std::move(msg));
+      stream->completion_handlers_.pop();
+      return;
+    }
+    stream->buffered_messages_.push(std::move(msg));
+  }
+
+  void Yamux::writingComplete(
+      const boost::system::error_code &ec, size_t n,
+      stream::Stream::ErrorCodeCallback error_callback) {
+    error_callback(ec, n);
   }
 
   void Yamux::stop() {
@@ -93,20 +138,13 @@ namespace libp2p::muxer {
     if (data_length == 0) {
       return;
     }
-    // FIXME: could it be race condition because of two simulteneous
-    // readAsync-s?
-    connection_->readAsync(  // data_length,
-        [t = shared_from_this(),
-         &stream](basic::Readable::BufferResult buffer_result) {
-          if (!buffer_result) {
-            t->logger_->error("cannot read from from the connection");
-            // terminate Yamux?
-          }
-          stream.buffered_messages_.push_back(std::move(buffer_result.value()));
-        });
+    connection_->readAsync(  // read_buffer, data_length,
+        [t = shared_from_this()](const boost::system::error_code &ec,
+                                 size_t n) { t->readingDataComplete(ec, n); });
   }
 
-  std::optional<Yamux::StreamParameters> Yamux::processAck(StreamId stream_id) {
+  std::optional<std::shared_ptr<Yamux::StreamParameters>> Yamux::processAck(
+      StreamId stream_id) {
     // acknowledge of start of a new stream; if we don't have such a stream,
     // a reset should be sent in order to notify the other side about a
     // problem
@@ -119,7 +157,7 @@ namespace libp2p::muxer {
     return stream;
   }
 
-  std::optional<Yamux::StreamParameters> Yamux::findStream(
+  std::optional<std::shared_ptr<Yamux::StreamParameters>> Yamux::findStream(
       StreamId stream_id) const {
     auto stream = streams_.find(stream_id);
     if (stream == streams_.end()) {
@@ -131,9 +169,9 @@ namespace libp2p::muxer {
   void Yamux::closeStreamForRead(StreamId stream_id) {
     auto stream = findStream(stream_id);
     if (stream) {
-      stream->is_readable_ = false;
+      (*stream)->is_readable_ = false;
     }
-    if (!stream || (!stream->is_writable_ && !stream->is_readable_)) {
+    if (!stream || (!(*stream)->is_writable_ && !(*stream)->is_readable_)) {
       // stream is closed on our side; reset it on the other as well
       removeStream(stream_id);
     }
@@ -142,9 +180,9 @@ namespace libp2p::muxer {
   void Yamux::closeStreamForWrite(StreamId stream_id) {
     auto stream = findStream(stream_id);
     if (stream) {
-      stream->is_writable_ = false;
+      (*stream)->is_writable_ = false;
     }
-    if (!stream || (!stream->is_writable_ && !stream->is_readable_)) {
+    if (!stream || (!(*stream)->is_writable_ && !(*stream)->is_readable_)) {
       // stream is closed on our side; reset it on the other as well
       removeStream(stream_id);
     }
@@ -202,16 +240,16 @@ namespace libp2p::muxer {
           // it is at least a new stream request; register it and send ack
           // message
           registerNewStream(stream_id);
-          stream = findStream(stream_id);
+          stream = *findStream(stream_id);
         }
         // process data in this frame, if there is one
-        processData(*stream, frame);
+        processData(**stream, frame);
         break;
       }
       case Flag::kAck: {
         // can be ack of a new stream, just data or both
         if (auto stream = processAck(stream_id)) {
-          processData(*stream, frame);
+          processData(**stream, frame);
         }
         break;
       }
@@ -234,7 +272,7 @@ namespace libp2p::muxer {
         auto stream = findStream(stream_id);
         if (stream) {
           // this stream is already opened => window update
-          stream->window_size_ = frame.length_;
+          (*stream)->window_size_ = frame.length_;
         } else {
           // no such stream found => it's a creation of a new stream
           registerNewStream(stream_id);
@@ -277,11 +315,35 @@ namespace libp2p::muxer {
 
   /// YAMUX STREAM API
 
-  outcome::result<common::NetworkMessage> Yamux::streamReadFrame(
-      StreamId stream_id) {}
+  void Yamux::streamReadFrameAsync(
+      StreamId stream_id,
+      stream::Stream::ReadCompletionHandler completion_handler) {
+    auto stream_opt = findStream(stream_id);
+    if (!stream_opt) {
+      completion_handler(YamuxIOError::kNoSuchStream);
+    }
 
-  outcome::result<void> Yamux::streamWriteFrame(
-      StreamId stream_id, const common::NetworkMessage &msg) {}
+    auto stream = *stream_opt;
+    std::lock_guard<std::mutex> lg{stream->queues_mutex_};
+    if (!stream->buffered_messages_.empty()) {
+      auto msg = stream->buffered_messages_.front();
+      stream->buffered_messages_.pop();
+      completion_handler(std::move(msg));
+      return;
+    }
+    // if there is no message available, push the callback to the queue of
+    // callback; it will be called, when the message appears
+    stream->completion_handlers_.push(std::move(completion_handler));
+  }
+
+  void Yamux::streamWriteFrameAsync(
+      StreamId stream_id, const common::NetworkMessage &msg,
+      stream::Stream::ErrorCodeCallback error_callback) {
+    auto msg_and_callback =
+        std::make_pair(dataMsg(stream_id, msg), std::move(error_callback));
+    std::lock_guard<std::mutex> lg{outcoming_msgs_mutex_};
+    outcoming_messages_.push(std::move(msg_and_callback));
+  }
 
   void Yamux::streamClose(StreamId stream_id) {
     closeStreamForWrite(stream_id);
@@ -294,7 +356,7 @@ namespace libp2p::muxer {
   bool Yamux::streamIsClosedForWrite(StreamId stream_id) const {
     auto stream = findStream(stream_id);
     if (stream) {
-      return !stream->is_writable_;
+      return !(*stream)->is_writable_;
     }
     return false;
   }
@@ -302,7 +364,7 @@ namespace libp2p::muxer {
   bool Yamux::streamIsClosedForRead(StreamId stream_id) const {
     auto stream = findStream(stream_id);
     if (stream) {
-      return !stream->is_readable_;
+      return !(*stream)->is_readable_;
     }
     return false;
   }

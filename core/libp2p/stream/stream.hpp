@@ -18,21 +18,31 @@ namespace libp2p::stream {
   class Stream {
    public:
     using NetworkMessageOutcome = outcome::result<common::NetworkMessage>;
-    using ReadFrameHandler = std::function<void(NetworkMessageOutcome)>;
+    using ReadCompletionHandler = std::function<void(NetworkMessageOutcome)>;
+
+    using ErrorCodeCallback = std::function<void(std::error_code, size_t)>;
 
     /**
      * Read one frame - unit of data exchange in streams - from this stream
-     * @return result with frame
+     * @param completion_handler - function, which is going to be called, when
+     * message is read from the stream
      */
-    virtual outcome::result<common::NetworkMessage> read(callback<Message>) = 0;
+    virtual void readAsync(ReadCompletionHandler completion_handler) = 0;
 
     /**
      * Write data to the stream
      * @param msg to be written
-     * @return void in case of success, error otherwise
      */
-    virtual outcome::result<void> writeFrame(
-        const common::NetworkMessage &msg) = 0;
+    virtual void writeAsync(const common::NetworkMessage &msg) = 0;
+
+    /**
+     * Write data to the stream
+     * @param msg to be written
+     * @param error_callback - callback, which is going to be called, when the
+     * write finishes
+     */
+    virtual void writeAsync(const common::NetworkMessage &msg,
+                            ErrorCodeCallback error_callback) = 0;
 
     /**
      * Check, if this stream is closed from the other side of the connection and
