@@ -65,10 +65,10 @@ namespace libp2p::muxer {
    private:
     struct StreamParameters;
 
-    void readingHeaderComplete(const boost::system::error_code &ec, size_t n);
+    void readingHeaderCompleted(const boost::system::error_code &ec, size_t n);
 
-    void readingDataComplete(const boost::system::error_code &ec, size_t n,
-                             std::shared_ptr<StreamParameters> stream);
+    void readingDataCompleted(const boost::system::error_code &ec, size_t n,
+                              std::shared_ptr<StreamParameters> stream);
 
     void writingComplete(const boost::system::error_code &ec, size_t n,
                          stream::Stream::ErrorCodeCallback error_callback);

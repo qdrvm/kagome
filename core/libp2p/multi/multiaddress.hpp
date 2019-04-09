@@ -32,7 +32,7 @@ namespace libp2p::multi {
     Multiaddress(const Multiaddress &address) = default;
     Multiaddress &operator=(const Multiaddress &address) = default;
 
-    Multiaddress(Multiaddress &&address) = default;
+    Multiaddress(Multiaddress &&address) noexcept = default;
     Multiaddress &operator=(Multiaddress &&address) = default;
 
     enum class Error {
@@ -128,6 +128,12 @@ namespace libp2p::multi {
 
     bool operator==(const Multiaddress &other) const;
 
+    /**
+     * Lexicographical comparison of string representations of the
+     * Multiaddresses
+     */
+    bool operator<(const Multiaddress &other) const;
+
     template <typename T>
     outcome::result<T> getFirstValueForProtocol(
         Protocol protocol, std::function<T(const std::string &)> caster) const {
@@ -166,6 +172,15 @@ namespace libp2p::multi {
     std::optional<std::string> peer_id_;
   };
 }  // namespace libp2p::multi
+
+namespace std {
+  template <>
+  struct hash<libp2p::multi::Multiaddress> {
+    size_t operator()(const libp2p::multi::Multiaddress &x) const {
+      return std::hash<std::string_view>()(x.getStringAddress());
+    }
+  };
+}  // namespace std
 
 OUTCOME_HPP_DECLARE_ERROR(libp2p::multi, Multiaddress::Error);
 

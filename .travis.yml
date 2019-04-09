@@ -112,7 +112,6 @@ matrix:
         - _CC=clang-8
         - _CXX=clang++-8
 
-
 install:
   - |
     # install python pip3 deps

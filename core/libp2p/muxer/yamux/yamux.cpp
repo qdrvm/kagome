@@ -47,12 +47,12 @@ namespace libp2p::muxer {
     connection_->readAsync(  // read_buffer, YamuxFrame::kHeaderLength,
         [t = shared_from_this()](const boost::system::error_code &ec,
                                  size_t n) {
-          t->readingHeaderComplete(ec, n);
+          t->readingHeaderCompleted(ec, n);
         });
   }
 
-  void Yamux::readingHeaderComplete(const boost::system::error_code &ec,
-                                    size_t n) {
+  void Yamux::readingHeaderCompleted(const boost::system::error_code &ec,
+                                     size_t n) {
     if (ec) {
       logger_->error("cannot read from from the connection: {}", ec.value());
       // terminate the Yamux? It's a critical error
@@ -67,8 +67,8 @@ namespace libp2p::muxer {
     start();
   }
 
-  void Yamux::readingDataComplete(const boost::system::error_code &ec, size_t n,
-                                  std::shared_ptr<StreamParameters> stream) {
+  void Yamux::readingDataCompleted(const boost::system::error_code &ec, size_t n,
+                                   std::shared_ptr<StreamParameters> stream) {
     if (ec) {
       logger_->error("cannot read from the connection: {}", ec.value());
       // terminate Yamux?
@@ -138,7 +138,7 @@ namespace libp2p::muxer {
     }
     connection_->readAsync(  // read_buffer, data_length,
         [t = shared_from_this()](const boost::system::error_code &ec,
-                                 size_t n) { t->readingDataComplete(ec, n); });
+                                 size_t n) { t->readingDataCompleted(ec, n); });
   }
 
   std::optional<std::shared_ptr<Yamux::StreamParameters>> Yamux::processAck(

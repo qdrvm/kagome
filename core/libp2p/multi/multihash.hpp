@@ -80,6 +80,8 @@ namespace libp2p::multi {
      */
     const kagome::common::Buffer &toBuffer() const;
 
+    bool operator==(const Multihash &other) const;
+
    private:
     /**
      * Header consists of hash type and hash size, both 1 byte or 2 hex digits

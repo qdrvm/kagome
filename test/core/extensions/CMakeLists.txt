@@ -28,3 +28,10 @@ addtest(misc_extension_test
 target_link_libraries(misc_extension_test
     misc_extension
     )
+
+addtest(storage_extension_test
+    storage_extension_test.cpp
+    )
+target_link_libraries(storage_extension_test
+    storage_extension
+    )
