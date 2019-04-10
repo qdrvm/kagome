@@ -18,7 +18,7 @@ namespace libp2p::multi::converters {
    */
   class TcpConverter {
    public:
-    static auto addressToBytes(std::string_view addr)
+    static auto addressToHex(std::string_view addr)
         -> outcome::result<std::string>;
   };
 

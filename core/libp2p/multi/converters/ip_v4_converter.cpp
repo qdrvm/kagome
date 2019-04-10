@@ -14,7 +14,7 @@
 
 namespace libp2p::multi::converters {
 
-  auto IPv4Converter::addressToBytes(std::string_view addr)
+  auto IPv4Converter::addressToHex(std::string_view addr)
       -> outcome::result<std::string> {
 
     boost::system::error_code ec;

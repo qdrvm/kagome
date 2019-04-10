@@ -12,7 +12,7 @@
 
 namespace libp2p::multi::converters {
 
-  auto UdpConverter::addressToBytes(std::string_view addr)
+  auto UdpConverter::addressToHex(std::string_view addr)
       -> outcome::result<std::string> {
     auto n = std::stoi(std::string(addr));
     if (n == 0) {

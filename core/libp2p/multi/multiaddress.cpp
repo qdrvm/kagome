@@ -66,7 +66,7 @@ namespace libp2p::multi {
   Multiaddress::FactoryResult Multiaddress::create(std::string_view address) {
     // convert string address to bytes and make sure they represent valid
     // address
-    auto result = converters::stringToBytes(address);
+    auto result = converters::multiaddrToBytes(address);
     if (!result) {
       return Error::InvalidInput;
     }
@@ -79,7 +79,7 @@ namespace libp2p::multi {
   Multiaddress::FactoryResult Multiaddress::create(const ByteBuffer &bytes) {
 
     // convert bytes address to string and make sure it represents valid address
-    auto conversion_res = converters::bytesToString(bytes);
+    auto conversion_res = converters::bytesToMultiaddrString(bytes);
     if (!conversion_res) {
       return Error::InvalidInput;
     }

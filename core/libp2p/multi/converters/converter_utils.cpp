@@ -7,6 +7,7 @@
 
 #include <boost/asio/ip/address_v4.hpp>
 #include <outcome/outcome.hpp>
+#include <libp2p/multi/multibase_codec/multibase_codec_impl.hpp>
 #include "common/buffer.hpp"
 #include "common/hexutil.hpp"
 #include "libp2p/multi/converters/conversion_error.hpp"
@@ -23,7 +24,7 @@ namespace libp2p::multi::converters {
 
   using kagome::common::Buffer;
 
-  outcome::result<Buffer> stringToBytes(std::string_view str) {
+  outcome::result<Buffer> multiaddrToBytes(std::string_view str) {
     if (str[0] != '/') {
       return ConversionError::kAddressDoesNotBeginWithSlash;
     }
@@ -51,7 +52,7 @@ namespace libp2p::multi::converters {
           return ConversionError::kNoSuchProtocol;
         }
       } else {
-        auto res = addressToBytes(*protx, word);
+        auto res = addressToHex(*protx, word);
         if (!res) {
           return res.error();
         }
@@ -75,20 +76,20 @@ namespace libp2p::multi::converters {
     return Buffer{bytes.getValue()};
   }
 
-  auto addressToBytes(const Protocol &protocol, std::string_view addr)
+  auto addressToHex(const Protocol &protocol, std::string_view addr)
       -> outcome::result<std::string> {
     std::string astb__stringy;
 
     // TODO(Akvinikym) 25.02.19 PRE-49: add more protocols
     switch (protocol.code) {
       case Protocol::Code::ip4:
-        return IPv4Converter::addressToBytes(addr);
+        return IPv4Converter::addressToHex(addr);
       case Protocol::Code::tcp:
-        return TcpConverter::addressToBytes(addr);
+        return TcpConverter::addressToHex(addr);
       case Protocol::Code::udp:
-        return UdpConverter::addressToBytes(addr);
+        return UdpConverter::addressToHex(addr);
       case Protocol::Code::ipfs:
-        return IpfsConverter::addressToBytes(addr);
+        return IpfsConverter::addressToHex(addr);
 
       case Protocol::Code::ip6zone:
       case Protocol::Code::dns:
@@ -110,7 +111,7 @@ namespace libp2p::multi::converters {
     }
   }
 
-  auto bytesToString(const Buffer &bytes) -> outcome::result<std::string> {
+  auto bytesToMultiaddrString(const Buffer &bytes) -> outcome::result<std::string> {
     std::string results;
     // Positioning for memory jump:
     int lastpos = 0;
@@ -169,12 +170,13 @@ namespace libp2p::multi::converters {
         // get the ipfs address as hex values
         auto ipfsAddr = hex.substr(lastpos + 2, addrsize * 2);
         // convert the address from hex values to a binary array
-        auto addrbufRes = unhex(ipfsAddr);
+        auto addrbufRes = Buffer::fromHex(ipfsAddr);
         if (addrbufRes.hasError()) {
           return ConversionError::kInvalidAddress;
         }
         auto &addrbuf = addrbufRes.getValueRef();
-        auto encode_res = Base58Codec::encode(addrbuf);
+        auto encode_res = MultibaseCodecImpl{}.encode(addrbuf, MultibaseCodecImpl::Encoding::kBase58);
+        encode_res.erase(0, 1); // because multibase contains a char that denotes which base is used
         results += "/";
         results += protocol->name;
         results += "/" + encode_res;

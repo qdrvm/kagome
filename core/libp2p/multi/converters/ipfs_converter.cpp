@@ -9,17 +9,22 @@
 
 #include <outcome/outcome.hpp>
 #include "libp2p/multi/converters/conversion_error.hpp"
+#include "libp2p/multi/multibase_codec/multibase_codec_impl.hpp"
 #include "common/hexutil.hpp"
+
+using std::string_literals::operator""s;
 
 namespace libp2p::multi::converters {
 
-  auto IpfsConverter::addressToBytes(std::string_view addr)
+  auto IpfsConverter::addressToHex(std::string_view addr)
       -> outcome::result<std::string> {
-    auto res = Base58Codec::decode(addr);
-    if (!res) {
-      return res.error();
+    MultibaseCodecImpl codec;
+    std::string encodingStr = ""s + static_cast<char>(MultibaseCodecImpl::Encoding::kBase58) + std::string(addr);
+    auto res = codec.decode(encodingStr);
+    if (res.hasError()) {
+      return ConversionError::kInvalidAddress;
     }
-    auto buf = res.value();
+    auto buf = res.getValue();
     // throw everything in a hex string so we can debug the results
     std::string addr_encoded;
 

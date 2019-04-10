@@ -16,14 +16,6 @@ addtest(protocol_list_test
     protocol_list_test.cpp
     )
 
-addtest(base58_codec_test
-    base58_codec_test.cpp
-    )
-
-target_link_libraries(base58_codec_test
-    base58_codec
-    )
-
 addtest(address_converter_test
     address_converter_test.cpp
     )

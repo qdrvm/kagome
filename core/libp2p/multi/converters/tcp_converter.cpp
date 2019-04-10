@@ -13,7 +13,7 @@
 
 namespace libp2p::multi::converters {
 
-  auto TcpConverter::addressToBytes(std::string_view addr)
+  auto TcpConverter::addressToHex(std::string_view addr)
       -> outcome::result<std::string> {
     int64_t n = std::stoi(std::string(addr));
     if (n == 0) {

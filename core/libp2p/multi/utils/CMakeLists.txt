@@ -11,13 +11,3 @@ add_library(uvarint
 target_link_libraries(uvarint
     outcome
     )
-
-add_library(base58_codec
-    base58_codec.hpp
-    base58_codec.cpp
-    )
-
-target_link_libraries(base58_codec
-    outcome
-    buffer
-    )

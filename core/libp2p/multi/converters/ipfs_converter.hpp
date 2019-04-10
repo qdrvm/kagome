@@ -6,11 +6,9 @@
 #ifndef KAGOME_IPFS_CONVERTER_HPP
 #define KAGOME_IPFS_CONVERTER_HPP
 
-#include <boost/algorithm/string.hpp>
-
+#include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
 #include "common/hexutil.hpp"
-#include "libp2p/multi/utils/base58_codec.hpp"
 #include "libp2p/multi/utils/uvarint.hpp"
 
 namespace libp2p::multi::converters {
@@ -21,7 +19,7 @@ namespace libp2p::multi::converters {
    */
   class IpfsConverter {
    public:
-    static auto addressToBytes(std::string_view addr)
+    static auto addressToHex(std::string_view addr)
         -> outcome::result<std::string>;
   };
 

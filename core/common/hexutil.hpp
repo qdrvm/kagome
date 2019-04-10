@@ -8,7 +8,6 @@
 
 #include <string_view>
 #include <vector>
-#include <iomanip>
 
 #include "common/result.hpp"
 

@@ -40,5 +40,5 @@ target_link_libraries(converters
     hexutil
     buffer
     uvarint
-    base58_codec
+    multibase_codec
     )
