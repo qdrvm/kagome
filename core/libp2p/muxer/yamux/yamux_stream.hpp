@@ -15,7 +15,8 @@ namespace libp2p::stream {
    */
   class YamuxStream : public Stream {
    public:
-    YamuxStream(muxer::Yamux &yamux, muxer::Yamux::StreamId stream_id);
+    YamuxStream(std::shared_ptr<muxer::Yamux> yamux,
+                muxer::Yamux::StreamId stream_id);
 
     void readAsync(ReadCompletionHandler completion_handler) override;
 
@@ -37,8 +38,14 @@ namespace libp2p::stream {
     ~YamuxStream() override;
 
    private:
-    muxer::Yamux &yamux_;
+    std::shared_ptr<muxer::Yamux> yamux_;
     muxer::Yamux::StreamId stream_id_;
+
+    /**
+     * Helper function, which resets the stream; needed in order to void
+     * "calling virtual functions from destructor"
+     */
+    void resetStream();
   };
 }  // namespace libp2p::stream
 

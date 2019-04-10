@@ -38,6 +38,8 @@ namespace libp2p::muxer {
     using NewStreamHandler =
         std::function<void(std::unique_ptr<stream::Stream>)>;
 
+    enum class YamuxErrorStream { kNoSuchStream = 1, kYamuxIsClosed };
+
     /**
      * Create a new Yamux instance
      * @param connection, multiplexed by this instance
@@ -63,15 +65,22 @@ namespace libp2p::muxer {
     bool isClosed() override;
 
    private:
+    /**
+     * Helper function, which closes the Yamux; needed in order to void
+     * "calling virtual functions from destructor"
+     */
+    void closeYamux();
+
     struct StreamParameters;
 
-    void readingHeaderCompleted(const boost::system::error_code &ec, size_t n);
+    void readingHeaderCompleted(const std::error_code &ec, size_t n);
 
-    void readingDataCompleted(const boost::system::error_code &ec, size_t n,
-                              std::shared_ptr<StreamParameters> stream);
+    void readingDataCompleted(const std::error_code &ec, size_t n,
+                              StreamParameters &stream);
 
-    void writingComplete(const boost::system::error_code &ec, size_t n,
-                         stream::Stream::ErrorCodeCallback error_callback);
+    void writingCompleted(
+        const std::error_code &ec, size_t n,
+        const stream::Stream::ErrorCodeCallback &error_callback);
 
     /**
      * Get a stream id, with which a new stream is to be created
@@ -89,8 +98,11 @@ namespace libp2p::muxer {
      * If there is data in this length, buffer it to the according stream
      * @param stream for the data to be inserted in
      * @param frame, which can have some data inside
+     * @return true, if it is going to initiate new iteration of Yamux event
+     * loop itself, false if caller should do it
      */
-    void processData(StreamParameters &stream, const YamuxFrame &frame);
+    bool processData(std::shared_ptr<Yamux::StreamParameters> stream,
+                     const YamuxFrame &frame);
 
     /**
      * Process ack message for such stream_id
@@ -127,16 +139,24 @@ namespace libp2p::muxer {
     void removeStream(StreamId stream_id);
 
     /**
-     * Process bytes, which must be a YamuxFrame header
-     * @note will close a Yamux and an underlying connection in case of failure
+     * Reset all streams, which this instance is multiplexing
      */
-    void processHeader();
+    void resetAllStreams() noexcept;
+
+    /**
+     * Process bytes, which must be a YamuxFrame header
+     * @return true, if it is going to initiate new iteration of Yamux event
+     * loop itself, false if caller should do it
+     */
+    bool processHeader();
 
     /**
      * Process frame of data type
      * @param frame to be processed
+     * @return true, if it is going to initiate new iteration of Yamux event
+     * loop itself, false if caller should do it
      */
-    void processDataFrame(const YamuxFrame &frame);
+    bool processDataFrame(const YamuxFrame &frame);
 
     /**
      * Process frame of window size update type
@@ -158,10 +178,12 @@ namespace libp2p::muxer {
 
     std::shared_ptr<transport::Connection> connection_;
     NewStreamHandler new_stream_handler_;
-    bool is_server_;
     bool is_active_;
     uint32_t last_created_stream_id_;
+    YamuxConfig config_;
+
     boost::asio::streambuf read_buffer_;
+    boost::asio::const_buffer write_buffer_;
 
     struct StreamParameters {
       bool is_readable_;
@@ -185,8 +207,6 @@ namespace libp2p::muxer {
 
     friend class stream::YamuxStream;
 
-    enum class YamuxIOError { kNoSuchStream = 1 };
-
     void streamReadFrameAsync(
         StreamId stream_id,
         stream::Stream::ReadCompletionHandler completion_handler);
@@ -206,5 +226,7 @@ namespace libp2p::muxer {
     bool streamIsClosedEntirely(StreamId stream_id) const;
   };
 }  // namespace libp2p::muxer
+
+OUTCOME_HPP_DECLARE_ERROR(libp2p::muxer, Yamux::YamuxErrorStream)
 
 #endif  // KAGOME_YAMUX_HPP

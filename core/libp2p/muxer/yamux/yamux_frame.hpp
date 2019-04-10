@@ -113,7 +113,7 @@ namespace libp2p::muxer {
         YamuxFrame::Flag::kSyn, 0, static_cast<uint32_t>(error));
   }
 
-  std::optional<YamuxFrame> parseFrame(gsl::span<uint8_t> frame_bytes) {
+  std::optional<YamuxFrame> parseFrame(gsl::span<const uint8_t> frame_bytes) {
     if (frame_bytes.size() < 12) {
       return {};
     }
