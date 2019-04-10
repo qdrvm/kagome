@@ -6,6 +6,7 @@
 #ifndef KAGOME_YAMUX_FRAME_HPP
 #define KAGOME_YAMUX_FRAME_HPP
 
+#include <arpa/inet.h>
 #include <gsl/span>
 #include "common/buffer.hpp"
 #include "libp2p/muxer/yamux/yamux.hpp"
@@ -56,49 +57,85 @@ namespace libp2p::muxer {
       return kagome::common::Buffer{}
           .putUint8(version)
           .putUint8(static_cast<uint8_t>(type))
-          .putUint16(static_cast<uint16_t>(flag))
-          .putUint32(stream_id)
-          .putUint32(length)
+          .putUint16(htons(static_cast<uint16_t>(flag)))
+          .putUint32(htonl(stream_id))
+          .putUint32(htonl(length))
           .putBuffer(data);
     }
   };
 
+  /**
+   * Create a message, which notifies about a new stream creation
+   * @param stream_id to be put into the message
+   * @return bytes of the message
+   */
   kagome::common::Buffer newStreamMsg(YamuxFrame::StreamId stream_id) {
     return YamuxFrame::frameBytes(YamuxFrame::kDefaultVersion,
                                   YamuxFrame::FrameType::kData,
                                   YamuxFrame::Flag::kSyn, stream_id, 0);
   }
 
+  /**
+   * Create a message, which acknowledges a new stream creation
+   * @param stream_id to be put into the message
+   * @return bytes of the message
+   */
   kagome::common::Buffer ackStreamMsg(YamuxFrame::StreamId stream_id) {
     return YamuxFrame::frameBytes(YamuxFrame::kDefaultVersion,
                                   YamuxFrame::FrameType::kData,
                                   YamuxFrame::Flag::kAck, stream_id, 0);
   }
 
+  /**
+   * Create a message, which closes a stream for writes
+   * @param stream_id to be put into the message
+   * @return bytes of the message
+   */
   kagome::common::Buffer closeStreamMsg(YamuxFrame::StreamId stream_id) {
     return YamuxFrame::frameBytes(YamuxFrame::kDefaultVersion,
                                   YamuxFrame::FrameType::kData,
                                   YamuxFrame::Flag::kFin, stream_id, 0);
   }
 
+  /**
+   * Create a message, which resets a stream
+   * @param stream_id to be put into the message
+   * @return bytes of the message
+   */
   kagome::common::Buffer resetStreamMsg(YamuxFrame::StreamId stream_id) {
     return YamuxFrame::frameBytes(YamuxFrame::kDefaultVersion,
                                   YamuxFrame::FrameType::kData,
                                   YamuxFrame::Flag::kRst, stream_id, 0);
   }
 
+  /**
+   * Create a message with an outcoming ping
+   * @param value - ping value to be put into the message
+   * @return bytes of the message
+   */
   kagome::common::Buffer pingOutMsg(uint32_t value) {
     return YamuxFrame::frameBytes(YamuxFrame::kDefaultVersion,
                                   YamuxFrame::FrameType::kPing,
                                   YamuxFrame::Flag::kSyn, 0, value);
   }
 
+  /**
+   * Create a message, which responses to a ping
+   * @param value - ping value to be put into the message
+   * @return bytes of the message
+   */
   kagome::common::Buffer pingResponseMsg(uint32_t value) {
     return YamuxFrame::frameBytes(YamuxFrame::kDefaultVersion,
                                   YamuxFrame::FrameType::kPing,
                                   YamuxFrame::Flag::kAck, 0, value);
   }
 
+  /**
+   * Create a message with some data inside
+   * @param stream_id to be put into the message
+   * @param data to be put into the message
+   * @return bytes of the message
+   */
   kagome::common::Buffer dataMsg(YamuxFrame::StreamId stream_id,
                                  const kagome::common::Buffer &data) {
     return YamuxFrame::frameBytes(YamuxFrame::kDefaultVersion,
@@ -107,14 +144,24 @@ namespace libp2p::muxer {
                                   static_cast<uint32_t>(data.size()), data);
   }
 
+  /**
+   * Create a message, which breaks a connection with a peer
+   * @param error to be put into the message
+   * @return bytes of the message
+   */
   kagome::common::Buffer goAwayMsg(YamuxFrame::GoAwayError error) {
     return YamuxFrame::frameBytes(
         YamuxFrame::kDefaultVersion, YamuxFrame::FrameType::kGoAway,
         YamuxFrame::Flag::kSyn, 0, static_cast<uint32_t>(error));
   }
 
+  /**
+   * Convert bytes into a frame object, if it is correct
+   * @param frame_bytes to be converted
+   * @return frame object, if convertation is successful, none otherwise
+   */
   std::optional<YamuxFrame> parseFrame(gsl::span<const uint8_t> frame_bytes) {
-    if (frame_bytes.size() < 12) {
+    if (frame_bytes.size() < YamuxFrame::kHeaderLength) {
       return {};
     }
 
@@ -140,7 +187,7 @@ namespace libp2p::muxer {
     }
 
     switch ((static_cast<uint16_t>(frame_bytes[3]) << 8) | frame_bytes[2]) {
-      case 0:
+      case 1:
         frame.flag_ = YamuxFrame::Flag::kSyn;
         break;
       case 2:
@@ -156,17 +203,17 @@ namespace libp2p::muxer {
         return {};
     }
 
-    frame.stream_id_ = (static_cast<uint16_t>(frame_bytes[7]) << 24)
+    frame.stream_id_ = (static_cast<uint32_t>(frame_bytes[7]) << 24)
         | (static_cast<uint16_t>(frame_bytes[6]) << 16)
         | (static_cast<uint16_t>(frame_bytes[5]) << 8)
         | (static_cast<uint16_t>(frame_bytes[4]));
 
-    frame.length_ = (static_cast<uint16_t>(frame_bytes[11]) << 24)
+    frame.length_ = (static_cast<uint32_t>(frame_bytes[11]) << 24)
         | (static_cast<uint16_t>(frame_bytes[10]) << 16)
         | (static_cast<uint16_t>(frame_bytes[9]) << 8)
         | (static_cast<uint16_t>(frame_bytes[8]));
 
-    const auto &data_begin = frame_bytes.begin() + 11;
+    const auto &data_begin = frame_bytes.begin() + YamuxFrame::kHeaderLength;
     if (data_begin != frame_bytes.end()) {
       frame.data_ = kagome::common::Buffer{
           std::vector<uint8_t>(data_begin, frame_bytes.end())};

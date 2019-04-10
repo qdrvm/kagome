@@ -11,6 +11,7 @@ add_library(yamux
     yamux_stream.cpp
     yamux_stream.hpp
     )
-target_link_libraries(
+target_link_libraries(yamux
     buffer
+    outcome
     )
