@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/crypto/aes/aes_crypt.hpp"
+#include "libp2p/crypto/aes/aes_provider.hpp"
 
 #include <openssl/conf.h>
 #include <openssl/err.h>

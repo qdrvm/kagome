@@ -26,7 +26,12 @@ namespace libp2p::crypto {
   };
 
   enum class HmacProviderError {
-    kUnsupportedHashMethod = 1, ///< hash method id provided is not supported
+    kUnsupportedHashMethod = 1,  ///< hash method id provided is not supported
+    kFailedCreateContext,        ///< failed to create context
+    kFailedInitializeContext,    ///< failed to initialize context
+    kFailedUpdateDigest,         ///< failed to update digest
+    kFailedFinalizeDigest,       ///< failed to finalize digest
+    kWrongDigestSize,            ///< wrong digest size
   };
 
   enum class MiscError {

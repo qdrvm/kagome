@@ -10,11 +10,9 @@
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 
-#include "libp2p/crypto/private_key.hpp"
-
-#include "libp2p/crypto/proto/keys.pb.h"
-
 #include "libp2p/crypto/error.hpp"
+#include "libp2p/crypto/private_key.hpp"
+#include "libp2p/crypto/proto/keys.pb.h"
 
 namespace libp2p::crypto {
   using kagome::common::Buffer;
@@ -67,21 +65,6 @@ namespace libp2p::crypto {
     }
   }  // namespace
 
-  void CryptoProviderImpl::initializeOpenSSL() {
-    // Load the human readable error strings for libcrypto
-    ERR_load_crypto_strings();
-
-    // Load all digest and cipher algorithms
-    OpenSSL_add_all_algorithms();  // NOLINT
-
-    // Load config file, and other important initialisation
-    // OPENSSL_config(nullptr); // deprecated
-  }
-
-  CryptoProviderImpl::CryptoProviderImpl() {
-    initializeOpenSSL();
-  }
-
   outcome::result<Buffer> CryptoProviderImpl::aesEncrypt(
       const common::Aes128Secret &secret, const Buffer &data) const {
     return aes_provider_.encrypt_128_ctr(secret, data);
@@ -105,7 +88,7 @@ namespace libp2p::crypto {
   outcome::result<Buffer> CryptoProviderImpl::hmacDigest(common::HashType hash,
                                                          const Buffer &secret,
                                                          const Buffer &data) {
-    return hmac_provider_.makeDigest(hash, secret, data);
+    return hmac_provider_.calculateDigest(hash, secret, data);
   }
 
   common::KeyPair CryptoProviderImpl::generateEd25519Keypair() const {

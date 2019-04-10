@@ -59,6 +59,16 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, HmacProviderError, e) {
   switch (e) {  // NOLINT
     case HmacProviderError::kUnsupportedHashMethod:
       return "hash method id provided is not supported";
+    case HmacProviderError::kFailedCreateContext:
+      return "failed to create context";
+    case HmacProviderError::kFailedInitializeContext:
+      return "failed to initialize context";
+    case HmacProviderError::kFailedUpdateDigest:
+      return "failed to update digest";
+    case HmacProviderError::kFailedFinalizeDigest:
+      return "failed to finalize digest";
+    case HmacProviderError::kWrongDigestSize:
+      return "wrong digest size";
     default:
       break;
   }

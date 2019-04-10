@@ -21,8 +21,8 @@ namespace libp2p::crypto::hmac {
 
     static int digestSize(common::HashType type);
 
-    outcome::result<Buffer> makeDigest(HashType hash_type, const Buffer &key,
-                                       const Buffer &message) const;
+    outcome::result<Buffer> calculateDigest(HashType hash_type, const Buffer &key,
+                                            const Buffer &message) const;
   };
 }  // namespace libp2p::crypto::hmac
 

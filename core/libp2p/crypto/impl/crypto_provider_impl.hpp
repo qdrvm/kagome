@@ -6,18 +6,13 @@
 #ifndef KAGOME_CORE_LIBP2P_CRYPTO_IMPL_CRYPTO_PROVIDER_IMPL_HPP
 #define KAGOME_CORE_LIBP2P_CRYPTO_IMPL_CRYPTO_PROVIDER_IMPL_HPP
 
-#include "libp2p/crypto/aes/aes_crypt.hpp"
+#include "libp2p/crypto/aes/aes_provider.hpp"
 #include "libp2p/crypto/crypto_provider.hpp"
 #include "libp2p/crypto/hmac/hmac_provider.hpp"
 
 namespace libp2p::crypto {
   class CryptoProviderImpl : public CryptoProvider {
    public:
-    /**
-     * @brief initializes OpenSSL
-     */
-    static void initializeOpenSSL();
-
     CryptoProviderImpl();
     ~CryptoProviderImpl() override = default;
 

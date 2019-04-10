@@ -4,8 +4,8 @@
 #
 
 add_library(crypto_provider
-        aes/aes_crypt.hpp
-        aes/aes_crypt.cpp
+        aes/aes_provider.hpp
+        aes/aes_provider.cpp
         common.hpp
         crypto_provider.hpp
         error.hpp

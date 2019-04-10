@@ -8,7 +8,7 @@
 
 #include "common/buffer.hpp"
 #include "libp2p/crypto/common.hpp"
-#include "libp2p/crypto/impl/crypto_provider_impl.hpp"
+#include "libp2p/crypto/aes/aes_provider.hpp"
 
 using kagome::common::Buffer;
 using namespace libp2p::crypto;
@@ -19,8 +19,6 @@ class AesFixture : public testing::Test {
   using Aes256Secret = libp2p::crypto::common::Aes256Secret;
 
   AesFixture() {
-//    CryptoProviderImpl::initializeOpenSSL();
-
     iv = {0x3d, 0xaf, 0xba, 0x42, 0x9d, 0x9e, 0xb4, 0x30,
           0xb4, 0x22, 0xda, 0x80, 0x2c, 0x9f, 0xac, 0x41};
 

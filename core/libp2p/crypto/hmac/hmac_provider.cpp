@@ -43,22 +43,10 @@ namespace libp2p::crypto::hmac {
     return nullptr;
   }
 
-  outcome::result<Buffer> HmacProvider::makeDigest(HashType hash,
-                                                   const Buffer &secret,
-                                                   const Buffer &data) const {
-    //    uint8_t *digest = HMAC(evp_md, secret.toBytes(), secret.size(),
-    //                           data.toBytes(), data.size(), nullptr, nullptr);
-    //
-    //    Buffer result;
-    //    result.put(gsl::span(digest, digest_size));
-    //
-    //    // it seems that returned value is placed on stack
-    //    // or managed by openssl library
-    //
-    //    return result;
-
-    const auto *evp_md = makeHashTraits(hash);
-    int digest_size = digestSize(hash);
+  outcome::result<Buffer> HmacProvider::calculateDigest(
+      HashType hash_type, const Buffer &key, const Buffer &message) const {
+    const evp_md_st *evp_md = makeHashTraits(hash_type);
+    int digest_size = digestSize(hash_type);
     if (evp_md == nullptr || digest_size == 0) {
       return HmacProviderError::kUnsupportedHashMethod;
     }
@@ -66,29 +54,31 @@ namespace libp2p::crypto::hmac {
     std::vector<uint8_t> result;
     result.resize(digest_size);
     std::fill(result.begin(), result.end(), 0);
-
-    auto *ctx = EVP_MD_CTX_create();
-
-    auto clean_ctx_at_exit = gsl::finally([ctx]() {
-      if (ctx != nullptr) {
-        EVP_MD_CTX_destroy(ctx);
-      }
-    });
-
-    if (1 != EVP_DigestInit_ex(ctx, evp_md, nullptr)) {
-      return OpenSslError::kFailedInitializeContext;
-    }
-
-    if (1 != EVP_DigestUpdate(ctx, data.toBytes(), data.size())) {
-      return OpenSslError::kFailedEncryptUpdate;
-    }
-
     unsigned int len = 0;
-    if (1 != EVP_DigestFinal_ex(ctx, result.data(), &len)) {
-      return OpenSslError::kFailedEncryptFinalize;
+
+    hmac_ctx_st *ctx = HMAC_CTX_new();
+    if (nullptr == ctx) {
+      return HmacProviderError::kFailedCreateContext;
     }
 
-    assert(len == digest_size && "digest size is incorrect");
+    auto clean_ctx_at_exit = gsl::finally([ctx]() { HMAC_CTX_free(ctx); });
+
+    if (1 != HMAC_Init_ex(ctx, key.toBytes(), key.size(), evp_md, nullptr)) {
+      return HmacProviderError::kFailedInitializeContext;
+    }
+
+    if (1 != HMAC_Update(ctx, message.toBytes(), message.size())) {
+      return HmacProviderError::kFailedUpdateDigest;
+    }
+
+    if (1 != HMAC_Final(ctx, result.data(), &len)) {
+      return HmacProviderError::kFailedFinalizeDigest;
+    }
+
+    assert(digest_size == len && "digest size is wrong");
+    if (digest_size != len) {
+      return HmacProviderError::kWrongDigestSize;
+    }
 
     return Buffer(std::move(result));
   }
