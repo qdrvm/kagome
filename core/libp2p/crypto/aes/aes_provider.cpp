@@ -67,7 +67,7 @@ namespace libp2p::crypto::aes {
     cipher_len = len;
 
     // Finalise the encryption.
-    if (1 != EVP_EncryptFinal_ex(ctx, cipher_text.data() + len, &len)) {
+    if (1 != EVP_EncryptFinal_ex(ctx, cipher_text.data() + len, &len)) { // NOLINT
       return OpenSslError::kFailedEncryptFinalize;
     }
 
@@ -85,8 +85,6 @@ namespace libp2p::crypto::aes {
       return MiscError::kWrongArgumentValue;
     }
 
-    EVP_CIPHER_CTX *ctx = nullptr;
-
     int len = 0;
     int plain_len = 0;
     const auto *cipher_text = data.toBytes();
@@ -96,7 +94,8 @@ namespace libp2p::crypto::aes {
     plain_text.resize(cipher_len);
 
     // Create and initialise the context
-    if (!(ctx = EVP_CIPHER_CTX_new())) {
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    if (nullptr == ctx) {
       return OpenSslError::kFailedInitializeContext;
     }
 
@@ -118,7 +117,7 @@ namespace libp2p::crypto::aes {
     plain_len = len;
 
     // Finalise the decryption.
-    if (1 != EVP_DecryptFinal_ex(ctx, plain_text.data() + len, &len)) {
+    if (1 != EVP_DecryptFinal_ex(ctx, plain_text.data() + len, &len)) { // NOLINT
       return OpenSslError::kFailedDecryptFinalize;
     }
 
