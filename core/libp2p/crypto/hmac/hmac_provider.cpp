@@ -74,8 +74,7 @@ namespace libp2p::crypto::hmac {
     if (1 != HMAC_Final(ctx, result.data(), &len)) {
       return HmacProviderError::kFailedFinalizeDigest;
     }
-
-    assert(digest_size == len && "digest size is wrong");
+    
     if (digest_size != len) {
       return HmacProviderError::kWrongDigestSize;
     }
