@@ -27,7 +27,6 @@ namespace libp2p::crypto::aes {
                                   gsl::span<const uint8_t> key,
                                   gsl::span<const uint8_t> iv,
                                   const EVP_CIPHER *cipher) {
-    assert(nullptr != cipher && "cipher must not be null");
     if (nullptr == cipher) {
       return MiscError::kWrongArgumentValue;
     }
@@ -82,7 +81,6 @@ namespace libp2p::crypto::aes {
                                   gsl::span<const uint8_t> key,
                                   gsl::span<const uint8_t> iv,
                                   const EVP_CIPHER *cipher) {
-    assert(nullptr != cipher && "cipher must not be null");
     if (nullptr == cipher) {
       return MiscError::kWrongArgumentValue;
     }
@@ -132,32 +130,32 @@ namespace libp2p::crypto::aes {
 
   outcome::result<Buffer> AesProvider::encrypt_128_ctr(const Aes128Secret &secret,
                                                        const Buffer &data) const {
-    auto key_span = gsl::make_span(secret.key, 16);
-    auto iv_span = gsl::make_span(secret.iv, 16);
+    auto key_span = gsl::make_span(secret.key);
+    auto iv_span = gsl::make_span(secret.iv);
 
     return encrypt(data, key_span, iv_span, EVP_aes_128_ctr());
   }
 
   outcome::result<Buffer> AesProvider::encrypt_256_ctr(const Aes256Secret &secret,
                                                        const Buffer &data) const {
-    auto key_span = gsl::make_span(secret.key, 32);
-    auto iv_span = gsl::make_span(secret.iv, 16);
+    auto key_span = gsl::make_span(secret.key);
+    auto iv_span = gsl::make_span(secret.iv);
 
     return encrypt(data, key_span, iv_span, EVP_aes_256_ctr());
   }
 
   outcome::result<Buffer> AesProvider::decrypt_128_ctr(const Aes128Secret &secret,
                                                        const Buffer &data) const {
-    auto key_span = gsl::make_span(secret.key, 16);
-    auto iv_span = gsl::make_span(secret.iv, 16);
+    auto key_span = gsl::make_span(secret.key);
+    auto iv_span = gsl::make_span(secret.iv);
 
     return decrypt(data, key_span, iv_span, EVP_aes_128_ctr());
   }
 
   outcome::result<Buffer> AesProvider::decrypt_256_ctr(const Aes256Secret &secret,
                                                        const Buffer &data) const {
-    auto key_span = gsl::make_span(secret.key, 32);
-    auto iv_span = gsl::make_span(secret.iv, 16);
+    auto key_span = gsl::make_span(secret.key);
+    auto iv_span = gsl::make_span(secret.iv);
 
     return decrypt(data, key_span, iv_span, EVP_aes_256_ctr());
   }
