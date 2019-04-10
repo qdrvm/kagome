@@ -53,3 +53,14 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, MiscError, e) {
   }
   return "unknown MiscError";
 }
+
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, HmacProviderError, e) {
+  using libp2p::crypto::HmacProviderError;
+  switch (e) {  // NOLINT
+    case HmacProviderError::kUnsupportedHashMethod:
+      return "hash method id provided is not supported";
+    default:
+      break;
+  }
+  return "unknown HmacProviderError";
+}

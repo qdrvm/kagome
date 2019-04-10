@@ -4,15 +4,17 @@
 #
 
 add_library(crypto_provider
+        aes/aes_crypt.hpp
+        aes/aes_crypt.cpp
         common.hpp
         crypto_provider.hpp
         error.hpp
         error.cpp
-        key.hpp
-        aes/aes_crypt.hpp
-        aes/aes_crypt.cpp
+        hmac/hmac_provider.hpp
+        hmac/hmac_provider.cpp
         impl/crypto_provider_impl.hpp
         impl/crypto_provider_impl.cpp
+        key.hpp
         key.cpp
         private_key.hpp
         public_key.hpp

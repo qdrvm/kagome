@@ -84,51 +84,28 @@ namespace libp2p::crypto {
 
   outcome::result<Buffer> CryptoProviderImpl::aesEncrypt(
       const common::Aes128Secret &secret, const Buffer &data) const {
-    return aesCrypt_.encrypt_128_ctr(secret, data);
+    return aes_provider_.encrypt_128_ctr(secret, data);
   }
 
   outcome::result<Buffer> CryptoProviderImpl::aesEncrypt(
       const common::Aes256Secret &secret, const Buffer &data) const {
-    return aesCrypt_.encrypt_256_ctr(secret, data);
+    return aes_provider_.encrypt_256_ctr(secret, data);
   }
 
   outcome::result<Buffer> CryptoProviderImpl::aesDecrypt(
       const common::Aes128Secret &secret, const Buffer &data) const {
-    return aesCrypt_.decrypt_128_ctr(secret, data);
+    return aes_provider_.decrypt_128_ctr(secret, data);
   }
 
   outcome::result<Buffer> CryptoProviderImpl::aesDecrypt(
       const common::Aes256Secret &secret, const Buffer &data) const {
-    return aesCrypt_.decrypt_256_ctr(secret, data);
+    return aes_provider_.decrypt_256_ctr(secret, data);
   }
 
-  Buffer CryptoProviderImpl::hmacDigest(common::HashType hash,
-                                        const Buffer &secret,
-                                        const Buffer &data) {
-    const evp_md_st *evp_md = nullptr;
-    switch (hash) {
-      case common::HashType::kSHA1:
-        evp_md = EVP_sha1();
-        break;
-      case common::HashType::kSHA256:
-        evp_md = EVP_sha256();
-        break;
-      case common::HashType::kSHA512:
-        evp_md = EVP_sha512();
-        break;
-      default:
-        break;
-    }
-
-    
-
-    uint8_t *result = HMAC(evp_md, secret.toBytes(), secret.size(),
-                           data.toBytes(), data.size(), nullptr, nullptr);
-
-    delete[] result;
-
-    // TODO(yuraz):  implement
-    std::terminate();
+  outcome::result<Buffer> CryptoProviderImpl::hmacDigest(common::HashType hash,
+                                                         const Buffer &secret,
+                                                         const Buffer &data) {
+    return hmac_provider_.makeDigest(hash, secret, data);
   }
 
   common::KeyPair CryptoProviderImpl::generateEd25519Keypair() const {

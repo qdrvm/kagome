@@ -25,6 +25,10 @@ namespace libp2p::crypto {
     kWrongIvSize,                  ///< wrong iv size
   };
 
+  enum class HmacProviderError {
+    kUnsupportedHashMethod = 1, ///< hash method id provided is not supported
+  };
+
   enum class MiscError {
     kWrongArgumentValue = 1,  ///< wrong argument value
   };
@@ -32,6 +36,7 @@ namespace libp2p::crypto {
 
 OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, CryptoProviderError)
 OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, OpenSslError)
+OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, HmacProviderError)
 OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, MiscError)
 
 #endif  // KAGOME_CORE_LIBP2P_CRYPTO_ERROR_HPP

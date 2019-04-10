@@ -75,8 +75,9 @@ namespace libp2p::crypto {
      * @param data to be hashed
      * @return hashed bytes
      */
-    virtual Buffer hmacDigest(common::HashType hash, const Buffer &secret,
-                              const Buffer &data) = 0;
+    virtual outcome::result<Buffer> hmacDigest(common::HashType hash,
+                                               const Buffer &secret,
+                                               const Buffer &data) = 0;
 
     /// keys features
 
