@@ -143,10 +143,12 @@ namespace libp2p::muxer {
     auto stream_id = getNewStreamId();
     write(newStreamMsg(stream_id),
           [t = shared_from_this(), stream_id](auto &&ec, auto &&) {
-            t->logger_->error(
-                "could not write new stream message for stream_id {} with "
-                "error {}",
-                stream_id, ec.value());
+            if (ec) {
+              t->logger_->error(
+                  "could not write new stream message for stream_id {} with "
+                  "error {}",
+                  stream_id, ec.value());
+            }
           });
     streams_.insert(
         std::make_pair(stream_id,
@@ -182,10 +184,12 @@ namespace libp2p::muxer {
         std::make_unique<stream::YamuxStream>(shared_from_this(), stream_id));
     write(ackStreamMsg(stream_id),
           [t = shared_from_this(), stream_id](auto &&ec, auto &&) {
-            t->logger_->error(
-                "could not write ack stream message for stream_id {} with "
-                "error {}",
-                stream_id, ec.value());
+            if (ec) {
+              t->logger_->error(
+                  "could not write ack stream message for stream_id {} with "
+                  "error {}",
+                  stream_id, ec.value());
+            }
           });
   }
 
@@ -211,13 +215,16 @@ namespace libp2p::muxer {
     // problem
     auto stream = findStream(stream_id);
     if (!stream) {
-      write(resetStreamMsg(stream_id),
-            [t = shared_from_this(), stream_id](auto &&ec, auto &&) {
+      write(
+          resetStreamMsg(stream_id),
+          [t = shared_from_this(), stream_id](auto &&ec, auto &&) {
+            if (ec) {
               t->logger_->error(
                   "could not write reset stream message for stream_id {} with "
                   "error {}",
                   stream_id, ec.value());
-            });
+            }
+          });
     }
     return stream;
   }
@@ -256,10 +263,12 @@ namespace libp2p::muxer {
   void Yamux::removeStream(StreamId stream_id) {
     write(resetStreamMsg(stream_id),
           [t = shared_from_this(), stream_id](auto &&ec, auto &&) {
-            t->logger_->error(
-                "could not write reset stream message for stream_id {} with "
-                "error {}",
-                stream_id, ec.value());
+            if (ec) {
+              t->logger_->error(
+                  "could not write reset stream message for stream_id {} with "
+                  "error {}",
+                  stream_id, ec.value());
+            }
           });
     streams_.erase(stream_id);
   }
@@ -269,15 +278,17 @@ namespace libp2p::muxer {
       // as this function is called from the destructor, we just don't want any
       // exceptions to happen here
       try {
-        write(
-            resetStreamMsg(stream.first),
-            [t = shared_from_this(), stream_id = stream.first](auto &&ec,
-                                                               auto &&) {
-              t->logger_->error(
-                  "could not write reset stream message for stream_id {} with "
-                  "error {}",
-                  stream_id, ec.value());
-            });
+        write(resetStreamMsg(stream.first),
+              [t = shared_from_this(), stream_id = stream.first](auto &&ec,
+                                                                 auto &&) {
+                if (ec) {
+                  t->logger_->error(
+                      "could not write reset stream message for stream_id {} "
+                      "with "
+                      "error {}",
+                      stream_id, ec.value());
+                }
+              });
       } catch (const std::exception &e) {
       }
     }
@@ -295,8 +306,11 @@ namespace libp2p::muxer {
       // connection
       write(goAwayMsg(YamuxFrame::GoAwayError::kProtocolError),
             [t = shared_from_this()](auto &&ec, auto &&) {
-              t->logger_->error("could not write go away message with error {}",
-                                ec.value());
+              if (ec) {
+                t->logger_->error(
+                    "could not write go away message with error {}",
+                    ec.value());
+              }
             });
       return false;
     }

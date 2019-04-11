@@ -71,8 +71,19 @@ class YamuxIntegrationTest : public ::testing::Test {
     ASSERT_TRUE(yamux_);
   }
 
+  /**
+   * Run the context for some time to execute async operations
+   */
   void launchContext() {
     context_.run_for(1000ms);
+  }
+
+  /**
+   * Get a pointer to a new stream
+   * @return pointer to the stream
+   */
+  std::unique_ptr<Stream> getNewStream() {
+    return yamux_->newStream().value();
   }
 
   std::shared_ptr<Yamux> yamux_;
@@ -89,7 +100,7 @@ class YamuxIntegrationTest : public ::testing::Test {
 };
 
 /**
- * @given initialized Yamux and connection
+ * @given initialized Yamux
  * @when creating a new stream from the client's side
  * @then stream is created @and corresponding ack message is sent to the client
  */
@@ -155,7 +166,7 @@ TEST_F(YamuxIntegrationTest, StreamFromClient) {
 }
 
 /**
- * @given initialized Yamux and connection
+ * @given initialized Yamux
  * @when creating a new stream from the server's side
  * @then stream is created @and corresponding new stream message is received by
  * the client
@@ -182,6 +193,68 @@ TEST_F(YamuxIntegrationTest, StreamFromServer) {
         ASSERT_EQ(n, YamuxFrame::kHeaderLength);
 
         ASSERT_EQ(*new_stream_msg_buf, expected_new_stream_msg);
+      });
+
+  launchContext();
+}
+
+/**
+ * @given initialized Yamux @and stream, multiplexed by that Yamux
+ * @When writing to that stream
+ * @then the operation is succesfully executed
+ */
+TEST_F(YamuxIntegrationTest, StreamWrite) {
+  constexpr Yamux::StreamId expected_stream_id = 2;
+  auto stream = getNewStream();
+
+  Buffer data{{0x12, 0x34, 0xAA}};
+  auto expected_data_msg = dataMsg(expected_stream_id, data);
+  auto received_data_msg =
+      std::make_shared<Buffer>(expected_data_msg.size(), 0);
+
+  stream->writeAsync(
+      data, [this, &expected_data_msg, received_data_msg](auto &&ec, auto &&n) {
+        ASSERT_FALSE(ec);
+        ASSERT_EQ(n, expected_data_msg.size());
+
+        // check that our written data has achieved the
+        // destination
+        connection_->asyncRead(
+            boost::asio::buffer(received_data_msg->toVector()),
+            expected_data_msg.size(),
+            [&expected_data_msg, received_data_msg](auto &&ec, auto &&n) {
+              ASSERT_FALSE(ec);
+              ASSERT_EQ(n, expected_data_msg.size());
+
+              ASSERT_EQ(*received_data_msg, expected_data_msg);
+            });
+      });
+
+  launchContext();
+}
+
+/**
+ * @given initialized Yamux @and stream, multiplexed by that Yamux
+ * @When reading from that stream
+ * @then the operation is succesfully executed
+ */
+TEST_F(YamuxIntegrationTest, StreamRead) {
+  constexpr Yamux::StreamId expected_stream_id = 2;
+  auto stream = getNewStream();
+
+  Buffer data{{0x12, 0x34, 0xAA}};
+  auto written_data_msg = dataMsg(expected_stream_id, data);
+
+  connection_->asyncWrite(
+      boost::asio::buffer(written_data_msg.toVector()),
+      [this, &written_data_msg, &stream, &data](auto &&ec, auto &&n) mutable {
+        ASSERT_FALSE(ec);
+        ASSERT_EQ(n, written_data_msg.size());
+
+        stream->readAsync([&data](Stream::NetworkMessageOutcome msg_res) {
+          ASSERT_TRUE(msg_res);
+          ASSERT_EQ(msg_res.value(), data);
+        });
       });
 
   launchContext();
