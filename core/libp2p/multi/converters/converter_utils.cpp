@@ -6,6 +6,7 @@
 #include "libp2p/multi/converters/converter_utils.hpp"
 
 #include <boost/asio/ip/address_v4.hpp>
+#include <boost/algorithm/string.hpp>
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
 #include "common/hexutil.hpp"
@@ -29,20 +30,21 @@ namespace libp2p::multi::converters {
       return ConversionError::kAddressDoesNotBeginWithSlash;
     }
     str.remove_prefix(1);
+    if(str.back() == '/') {
+      str.remove_suffix(1); // for split not to recognoze an empty token in the end
+    }
 
     std::string processed;
 
     enum class WordType { Protocol, Address };
     WordType type = WordType::Protocol;
 
-    // Starting to extract words and process them:
-    auto delim_pos = str.find("/");
-    auto word = str.substr(0, delim_pos);
-    str.remove_prefix(delim_pos + 1);
-
     Protocol const *protx = nullptr;
 
-    while (!word.empty()) {
+    std::list<std::string> tokens;
+    boost::algorithm::split(tokens, str, boost::algorithm::is_any_of("/"));
+
+    for (auto& word: tokens) {
       if (type == WordType::Protocol) {
         protx = ProtocolList::get(word);
         if (protx != nullptr) {
@@ -62,13 +64,6 @@ namespace libp2p::multi::converters {
         protx = nullptr;  // Since right now it doesn't need that
         // assignment anymore.
         type = WordType::Protocol;  // Since the next word will be an protocol
-      }
-      delim_pos = str.find("/");
-      word = str.substr(0, delim_pos);
-      if (delim_pos == std::string_view::npos) {
-        str.remove_prefix(str.size());
-      } else {
-        str.remove_prefix(delim_pos + 1);
       }
     }
     // TODO(Harrm) migrate hexutils to boost::outcome
