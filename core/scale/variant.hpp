@@ -9,7 +9,6 @@
 #include <variant>
 
 #include <outcome/outcome.hpp>
-
 #include "common/buffer.hpp"
 #include "scale/compact.hpp"
 #include "scale/fixedwidth.hpp"
