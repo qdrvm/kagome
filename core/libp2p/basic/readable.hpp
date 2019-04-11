@@ -9,39 +9,45 @@
 #include <functional>
 #include <system_error>
 
-#include <outcome/outcome.hpp>
-#include "common/buffer.hpp"
+#include <boost/asio/buffer.hpp>
+#include <boost/asio/streambuf.hpp>
 
 namespace libp2p::basic {
 
   class Readable {
    public:
-    using BufferResult = outcome::result<kagome::common::Buffer>;
-    using BufferResultCallback = void(BufferResult);
+    //
+    using CompletionHandler = void(const std::error_code & /* error */,
+                                   size_t /* read_bytes */);
 
     /**
-     * @brief This function is used to read data. The function call will block
-     * until exactly {@param to_read} bytes of data has been read successfully,
-     * or until an error occurs.
+     * @brief Asynchronously read exactly {@param to_read} bytes into {@param
+     * mut} buffer. Once operation succeeds, completion handler {@param cb} is
+     * executed.
+     *
+     * This function reads at most {@code} min(to_read, mut.size()); {@endcode}
+     * bytes.
+     *
+     * @see boost::asio::buffer to pass any buffer as first argument
+     *
+     * @param mut output buffer. Caller MUST ensure buffer remains valid after
+     * the call. Buffer must be of size {@param to_read} or bigger to read
+     * {@param to_read} bytes.
      * @param to_read number of bytes to read.
-     * @return result of the operation.
+     * @param cb completion handler that is executed when operation completes.
+     * First argument is error code, second is number of bytes read from the
+     * socket.
      */
-    virtual BufferResult read(uint32_t to_read) = 0;
+    virtual void asyncRead(boost::asio::mutable_buffer &mut, uint32_t to_read,
+                           std::function<CompletionHandler> cb) noexcept = 0;
 
-    /**
-     * @brief This function is used to read data. The function call will block
-     * until one or more bytes of data has been read successfully, or until an
-     * error occurs.
-     * @param to_read number of bytes to read.
-     * @return result of the operation.
-     */
-    virtual BufferResult readSome(uint32_t to_read) = 0;
+    /// with this you can write asyncRead(boost::asio::buffer(rdbuf->toVector(),
+    /// kSize), ...)
+    virtual void asyncRead(boost::asio::mutable_buffer &&mut, uint32_t to_read,
+                           std::function<CompletionHandler> cb) noexcept = 0;
 
-    /**
-     * @brief Asynchronously read everything that was sent to our socket.
-     * @param cb Callback that accepts read result.
-     */
-    virtual void readAsync(std::function<BufferResultCallback> cb) noexcept = 0;
+    virtual void asyncRead(boost::asio::streambuf &streambuf, uint32_t to_read,
+                           std::function<CompletionHandler> cb) noexcept = 0;
   };
 
 }  // namespace libp2p::basic

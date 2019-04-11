@@ -20,11 +20,11 @@ namespace kagome::extensions {
     /**
      * @return id (a 64-bit unsigned integer) of the current chain
      */
-    uint64_t ext_chain_id();
+    uint64_t ext_chain_id() const;
 
    private:
     const uint64_t chain_id_ = 42;
   };
-}  // namespace extensions
+}  // namespace kagome::extensions
 
 #endif  // KAGOME_MISC_EXTENSION_HPP

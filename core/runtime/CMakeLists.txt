@@ -9,6 +9,9 @@ add_library(memory
     impl/wasm_memory_impl.hpp
     impl/wasm_memory_impl.cpp
     )
+target_link_libraries(memory
+    buffer
+    )
 
 add_library(wasm_memory_stream
     impl/wasm_memory_stream.hpp

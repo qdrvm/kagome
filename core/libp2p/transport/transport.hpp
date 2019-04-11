@@ -30,7 +30,7 @@ namespace libp2p::transport {
      * @return connection in case of success, error otherwise
      */
     virtual outcome::result<std::shared_ptr<Connection>> dial(
-        const multi::Multiaddress &address) = 0;
+        const multi::Multiaddress &address) const = 0;
 
     /**
      * Create a listener for incoming connections of this Transport; in case
@@ -38,7 +38,7 @@ namespace libp2p::transport {
      * @return pointer to the created listener
      */
     virtual std::shared_ptr<TransportListener> createListener(
-        TransportListener::HandlerFunc handler) = 0;
+        TransportListener::HandlerFunc handler) const = 0;
   };
 }  // namespace libp2p::transport
 
