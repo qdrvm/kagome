@@ -16,20 +16,27 @@
 
 namespace libp2p::crypto::common {
   /**
+   * @struct AesSecret provides key and iv for AES cipher
+   * @tparam KeySize key size
+   * @tparam IvSize iv size
+   */
+  template <size_t key_size, size_t iv_size>
+  struct AesSecret {
+    static constexpr size_t kKeySize = key_size;
+    static constexpr size_t kIvSize = iv_size;
+    uint8_t key[key_size];
+    uint8_t iv[iv_size];
+  };
+
+  /**
    * Values for AES-128
    */
-  struct Aes128Secret {
-    uint8_t key[16];
-    uint8_t iv[16];
-  };
+  using Aes128Secret = AesSecret<16, 16>;
 
   /**
    * Values for AES-256
    */
-  struct Aes256Secret {
-    uint8_t key[32];
-    uint8_t iv[16];
-  };
+  using Aes256Secret = AesSecret<32, 16>;
 
   /**
    * Public and private keys
@@ -60,14 +67,9 @@ namespace libp2p::crypto::common {
   /**
    * Supported types of all keys
    */
-  enum class KeyType {
-    kUnspecified,
-    kRSA1024,
-    kRSA2048,
-    kRSA4096,
-    kED25519
-  };
-  // TODO(yuraz): add support for Secp256k1 like in js version (added to PRE-103)
+  enum class KeyType { kUnspecified, kRSA1024, kRSA2048, kRSA4096, kED25519 };
+  // TODO(yuraz): add support for Secp256k1 like in js version (added to
+  // PRE-103)
 
   /**
    * Supported ECDH curves

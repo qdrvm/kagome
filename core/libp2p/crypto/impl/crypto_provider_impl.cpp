@@ -5,11 +5,6 @@
 
 #include "libp2p/crypto/impl/crypto_provider_impl.hpp"
 
-#include <openssl/conf.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/hmac.h>
-
 #include "libp2p/crypto/error.hpp"
 #include "libp2p/crypto/private_key.hpp"
 #include "libp2p/crypto/proto/keys.pb.h"

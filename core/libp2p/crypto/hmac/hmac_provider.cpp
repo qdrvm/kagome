@@ -5,11 +5,7 @@
 
 #include "libp2p/crypto/hmac/hmac_provider.hpp"
 
-#include <openssl/conf.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
 #include <openssl/hmac.h>
-
 #include "libp2p/crypto/error.hpp"
 
 namespace libp2p::crypto::hmac {
@@ -51,9 +47,7 @@ namespace libp2p::crypto::hmac {
       return HmacProviderError::kUnsupportedHashMethod;
     }
 
-    std::vector<uint8_t> result;
-    result.resize(digest_size);
-    std::fill(result.begin(), result.end(), 0);
+    std::vector<uint8_t> result(digest_size, 0);
     unsigned int len = 0;
 
     hmac_ctx_st *ctx = HMAC_CTX_new();
