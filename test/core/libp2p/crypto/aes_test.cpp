@@ -2,13 +2,12 @@
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
+#include "libp2p/crypto/aes/aes_provider.hpp"
 
 #include <gtest/gtest.h>
 #include <outcome/outcome.hpp>
-
 #include "common/buffer.hpp"
 #include "libp2p/crypto/common.hpp"
-#include "libp2p/crypto/aes/aes_provider.hpp"
 
 using kagome::common::Buffer;
 using namespace libp2p::crypto;

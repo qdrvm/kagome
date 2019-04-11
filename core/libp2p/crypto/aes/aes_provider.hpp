@@ -7,7 +7,6 @@
 #define KAGOME_CORE_LIBP2P_CRYPTO_IMPL_DETAIL_AES_CRYPT_HPP
 
 #include <outcome/outcome.hpp>
-
 #include "common/buffer.hpp"
 #include "libp2p/crypto/common.hpp"
 

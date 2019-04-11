@@ -5,15 +5,9 @@
 
 #include "libp2p/crypto/aes/aes_provider.hpp"
 
-#include <openssl/conf.h>
-#include <openssl/err.h>
+#include <openssl/aes.h>  // for AES_BLOCK_SIZE
 #include <openssl/evp.h>
-#include <gsl/gsl>
-
-#include <openssl/aes.h>
-#include <openssl/buffer.h>
-#include <openssl/hmac.h>
-#include <openssl/rand.h>
+#include <gsl/span>
 
 #include "libp2p/crypto/error.hpp"
 
@@ -67,7 +61,9 @@ namespace libp2p::crypto::aes {
     cipher_len = len;
 
     // Finalise the encryption.
-    if (1 != EVP_EncryptFinal_ex(ctx, cipher_text.data() + len, &len)) { // NOLINT
+    if (1
+        != EVP_EncryptFinal_ex(ctx, cipher_text.data() + len,
+                               &len)) {  // NOLINT
       return OpenSslError::kFailedEncryptFinalize;
     }
 
@@ -117,7 +113,8 @@ namespace libp2p::crypto::aes {
     plain_len = len;
 
     // Finalise the decryption.
-    if (1 != EVP_DecryptFinal_ex(ctx, plain_text.data() + len, &len)) { // NOLINT
+    if (1
+        != EVP_DecryptFinal_ex(ctx, plain_text.data() + len, &len)) {  // NOLINT
       return OpenSslError::kFailedDecryptFinalize;
     }
 
@@ -127,32 +124,32 @@ namespace libp2p::crypto::aes {
     return Buffer(std::move(plain_text));
   }
 
-  outcome::result<Buffer> AesProvider::encrypt_128_ctr(const Aes128Secret &secret,
-                                                       const Buffer &data) const {
+  outcome::result<Buffer> AesProvider::encrypt_128_ctr(
+      const Aes128Secret &secret, const Buffer &data) const {
     auto key_span = gsl::make_span(secret.key);
     auto iv_span = gsl::make_span(secret.iv);
 
     return encrypt(data, key_span, iv_span, EVP_aes_128_ctr());
   }
 
-  outcome::result<Buffer> AesProvider::encrypt_256_ctr(const Aes256Secret &secret,
-                                                       const Buffer &data) const {
+  outcome::result<Buffer> AesProvider::encrypt_256_ctr(
+      const Aes256Secret &secret, const Buffer &data) const {
     auto key_span = gsl::make_span(secret.key);
     auto iv_span = gsl::make_span(secret.iv);
 
     return encrypt(data, key_span, iv_span, EVP_aes_256_ctr());
   }
 
-  outcome::result<Buffer> AesProvider::decrypt_128_ctr(const Aes128Secret &secret,
-                                                       const Buffer &data) const {
+  outcome::result<Buffer> AesProvider::decrypt_128_ctr(
+      const Aes128Secret &secret, const Buffer &data) const {
     auto key_span = gsl::make_span(secret.key);
     auto iv_span = gsl::make_span(secret.iv);
 
     return decrypt(data, key_span, iv_span, EVP_aes_128_ctr());
   }
 
-  outcome::result<Buffer> AesProvider::decrypt_256_ctr(const Aes256Secret &secret,
-                                                       const Buffer &data) const {
+  outcome::result<Buffer> AesProvider::decrypt_256_ctr(
+      const Aes256Secret &secret, const Buffer &data) const {
     auto key_span = gsl::make_span(secret.key);
     auto iv_span = gsl::make_span(secret.iv);
 

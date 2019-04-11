@@ -67,7 +67,7 @@ namespace libp2p::crypto::common {
     kRSA4096,
     kED25519
   };
-  // TODO(yuraz): maybe add support for Secp256k1 like in js version
+  // TODO(yuraz): add support for Secp256k1 like in js version (added to PRE-103)
 
   /**
    * Supported ECDH curves
