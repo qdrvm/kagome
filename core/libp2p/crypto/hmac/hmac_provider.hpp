@@ -17,11 +17,15 @@ namespace libp2p::crypto::hmac {
     using Buffer = kagome::common::Buffer;
 
    public:
-    HmacProvider() = default;
-
-    static int digestSize(common::HashType type);
-
-    outcome::result<Buffer> calculateDigest(HashType hash_type, const Buffer &key,
+    /**
+     * @brief calculates digests
+     * @param hash_type hash type
+     * @param key secret key
+     * @param message source message
+     * @return message digest
+     */
+    outcome::result<Buffer> calculateDigest(HashType hash_type,
+                                            const Buffer &key,
                                             const Buffer &message) const;
   };
 }  // namespace libp2p::crypto::hmac

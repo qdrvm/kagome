@@ -15,7 +15,7 @@
 namespace libp2p::crypto::hmac {
   using Buffer = kagome::common::Buffer;
 
-  int HmacProvider::digestSize(common::HashType type) {
+  int digestSize(common::HashType type) {
     switch (type) {
       case common::HashType::kSHA1:
         return 20;
@@ -74,7 +74,7 @@ namespace libp2p::crypto::hmac {
     if (1 != HMAC_Final(ctx, result.data(), &len)) {
       return HmacProviderError::kFailedFinalizeDigest;
     }
-    
+
     if (digest_size != len) {
       return HmacProviderError::kWrongDigestSize;
     }

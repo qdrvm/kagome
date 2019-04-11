@@ -13,7 +13,6 @@
 namespace libp2p::crypto {
   class CryptoProviderImpl : public CryptoProvider {
    public:
-    CryptoProviderImpl();
     ~CryptoProviderImpl() override = default;
 
     outcome::result<Buffer> aesEncrypt(const common::Aes128Secret &secret,
