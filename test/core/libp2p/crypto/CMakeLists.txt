@@ -8,8 +8,21 @@ addtest(keys_test
         )
 
 target_link_libraries(keys_test
-        buffer
-        protobuf::libprotobuf-lite
         crypto_provider
-        Boost::boost
+        )
+
+addtest(aes_test
+        aes_test.cpp
+        )
+
+target_link_libraries(aes_test
+        crypto_provider
+        )
+
+addtest(hmac_test
+        hmac_test.cpp
+        )
+
+target_link_libraries(hmac_test
+        crypto_provider
         )

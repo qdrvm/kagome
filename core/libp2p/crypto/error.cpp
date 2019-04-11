@@ -19,3 +19,58 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, CryptoProviderError, e) {
   }
   return "unknown CryptoProviderError";
 }
+
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, OpenSslError, e) {
+  using libp2p::crypto::OpenSslError;
+  switch (e) {  // NOLINT
+    case OpenSslError::kFailedInitializeContext:
+      return "failed to initialize context";
+    case OpenSslError::kFailedInitializeOperation:
+      return "failed to initialize operation";
+    case OpenSslError::kFailedEncryptUpdate:
+      return "failed to update encryption";
+    case OpenSslError::kFailedDecryptUpdate:
+      return "failed to update decryption";
+    case OpenSslError::kFailedEncryptFinalize:
+      return "failed to finalize encryption";
+    case OpenSslError::kFailedDecryptFinalize:
+      return "failed to finalize decryption";
+    case OpenSslError::kWrongIvSize:
+      return "wrong iv size";
+    default:
+      break;
+  }
+  return "unknown CryptoProviderError";
+}
+
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, MiscError, e) {
+  using libp2p::crypto::MiscError;
+  switch (e) {  // NOLINT
+    case MiscError::kWrongArgumentValue:
+      return "wrong argument value";
+    default:
+      break;
+  }
+  return "unknown MiscError";
+}
+
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, HmacProviderError, e) {
+  using libp2p::crypto::HmacProviderError;
+  switch (e) {  // NOLINT
+    case HmacProviderError::kUnsupportedHashMethod:
+      return "hash method id provided is not supported";
+    case HmacProviderError::kFailedCreateContext:
+      return "failed to create context";
+    case HmacProviderError::kFailedInitializeContext:
+      return "failed to initialize context";
+    case HmacProviderError::kFailedUpdateDigest:
+      return "failed to update digest";
+    case HmacProviderError::kFailedFinalizeDigest:
+      return "failed to finalize digest";
+    case HmacProviderError::kWrongDigestSize:
+      return "wrong digest size";
+    default:
+      break;
+  }
+  return "unknown HmacProviderError";
+}

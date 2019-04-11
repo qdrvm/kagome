@@ -6,27 +6,30 @@
 #ifndef KAGOME_CORE_LIBP2P_CRYPTO_IMPL_CRYPTO_PROVIDER_IMPL_HPP
 #define KAGOME_CORE_LIBP2P_CRYPTO_IMPL_CRYPTO_PROVIDER_IMPL_HPP
 
+#include "libp2p/crypto/aes/aes_provider.hpp"
 #include "libp2p/crypto/crypto_provider.hpp"
+#include "libp2p/crypto/hmac/hmac_provider.hpp"
 
 namespace libp2p::crypto {
   class CryptoProviderImpl : public CryptoProvider {
    public:
     ~CryptoProviderImpl() override = default;
 
-    Buffer aesEncrypt(const common::Aes128Secret &secret,
-                      const Buffer &data) const override;
+    outcome::result<Buffer> aesEncrypt(const common::Aes128Secret &secret,
+                                       const Buffer &data) const override;
 
-    Buffer aesEncrypt(const common::Aes256Secret &secret,
-                      const Buffer &data) const override;
+    outcome::result<Buffer> aesEncrypt(const common::Aes256Secret &secret,
+                                       const Buffer &data) const override;
 
-    Buffer aesDecrypt(const common::Aes128Secret &secret,
-                      const Buffer &data) const override;
+    outcome::result<Buffer> aesDecrypt(const common::Aes128Secret &secret,
+                                       const Buffer &data) const override;
 
-    Buffer aesDecrypt(const common::Aes256Secret &secret,
-                      const Buffer &data) const override;
+    outcome::result<Buffer> aesDecrypt(const common::Aes256Secret &secret,
+                                       const Buffer &data) const override;
 
-    Buffer hmacDigest(common::HashType hash, const Buffer &secret,
-                      const Buffer &data) override;
+    outcome::result<Buffer> hmacDigest(common::HashType hash,
+                                       const Buffer &secret,
+                                       const Buffer &data) override;
 
     common::KeyPair generateEd25519Keypair() const override;
 
@@ -62,6 +65,11 @@ namespace libp2p::crypto {
 
     outcome::result<PublicKey> derivePublicKey(
         const PrivateKey &private_key) const override;
+
+   private:
+    aes::AesProvider
+        aes_provider_;  ///< provides methods for aes ctr 128 and 256
+    hmac::HmacProvider hmac_provider_;  ///< provides method for making digest
   };
 }  // namespace libp2p::crypto
 

@@ -5,10 +5,8 @@
 
 #include "libp2p/crypto/impl/crypto_provider_impl.hpp"
 
-#include "libp2p/crypto/private_key.hpp"
-
 #include "libp2p/crypto/error.hpp"
-
+#include "libp2p/crypto/private_key.hpp"
 #include "libp2p/crypto/proto/keys.pb.h"
 
 namespace libp2p::crypto {
@@ -62,35 +60,30 @@ namespace libp2p::crypto {
     }
   }  // namespace
 
-  Buffer CryptoProviderImpl::aesEncrypt(const common::Aes128Secret &secret,
-                                        const Buffer &data) const {
-    // TODO(yuraz):  implement
-    std::terminate();
+  outcome::result<Buffer> CryptoProviderImpl::aesEncrypt(
+      const common::Aes128Secret &secret, const Buffer &data) const {
+    return aes_provider_.encrypt_128_ctr(secret, data);
   }
 
-  Buffer CryptoProviderImpl::aesEncrypt(const common::Aes256Secret &secret,
-                                        const Buffer &data) const {
-    // TODO(yuraz):  implement
-    std::terminate();
+  outcome::result<Buffer> CryptoProviderImpl::aesEncrypt(
+      const common::Aes256Secret &secret, const Buffer &data) const {
+    return aes_provider_.encrypt_256_ctr(secret, data);
   }
 
-  Buffer CryptoProviderImpl::aesDecrypt(const common::Aes128Secret &secret,
-                                        const Buffer &data) const {
-    // TODO(yuraz):  implement
-    std::terminate();
+  outcome::result<Buffer> CryptoProviderImpl::aesDecrypt(
+      const common::Aes128Secret &secret, const Buffer &data) const {
+    return aes_provider_.decrypt_128_ctr(secret, data);
   }
 
-  Buffer CryptoProviderImpl::aesDecrypt(const common::Aes256Secret &secret,
-                                        const Buffer &data) const {
-    // TODO(yuraz):  implement
-    std::terminate();
+  outcome::result<Buffer> CryptoProviderImpl::aesDecrypt(
+      const common::Aes256Secret &secret, const Buffer &data) const {
+    return aes_provider_.decrypt_256_ctr(secret, data);
   }
 
-  Buffer CryptoProviderImpl::hmacDigest(common::HashType hash,
-                                        const Buffer &secret,
-                                        const Buffer &data) {
-    // TODO(yuraz):  implement
-    std::terminate();
+  outcome::result<Buffer> CryptoProviderImpl::hmacDigest(common::HashType hash,
+                                                         const Buffer &secret,
+                                                         const Buffer &data) {
+    return hmac_provider_.calculateDigest(hash, secret, data);
   }
 
   common::KeyPair CryptoProviderImpl::generateEd25519Keypair() const {
