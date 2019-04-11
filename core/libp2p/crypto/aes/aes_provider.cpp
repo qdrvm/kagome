@@ -112,8 +112,8 @@ namespace libp2p::crypto::aes {
     plain_len = len;
 
     // Finalise the decryption.
-    if (1
-        != EVP_DecryptFinal_ex(ctx, plain_text.data() + len, &len)) {  // NOLINT
+    auto *write_position = plain_text.data() + len;  // NOLINT
+    if (1 != EVP_DecryptFinal_ex(ctx, write_position, &len)) {
       return OpenSslError::kFailedDecryptFinalize;
     }
 
