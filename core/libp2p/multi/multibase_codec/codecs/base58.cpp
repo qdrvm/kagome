@@ -5,6 +5,8 @@
 
 #include "libp2p/multi/multibase_codec/codecs/base58.hpp"
 
+#include <cstring>
+
 namespace {
   // All alphanumeric characters except for "0", "I", "O", and "l"
   constexpr std::string_view pszBase58 =
