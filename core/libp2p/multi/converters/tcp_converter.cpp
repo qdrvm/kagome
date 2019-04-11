@@ -20,7 +20,7 @@ namespace libp2p::multi::converters {
       return "0000";
     }
     if (n < 65536 && n > 0) {
-      return kagome::common::int_to_hex(n);
+      return kagome::common::int_to_hex(n, 4);
     }
     return ConversionError::kInvalidAddress;
   }

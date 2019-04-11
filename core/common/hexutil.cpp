@@ -10,9 +10,9 @@
 
 namespace kagome::common {
 
-  std::string int_to_hex(uint64_t n) noexcept {
+  std::string int_to_hex(uint64_t n,size_t fixed_width) noexcept {
     std::stringstream result;
-    result.width(2);
+    result.width(fixed_width);
     result.fill('0');
     result << std::hex << std::uppercase << n;
     auto str = result.str();
