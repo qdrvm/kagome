@@ -32,8 +32,8 @@ namespace libp2p::multi::converters {
 
   /**
    * Converts the given byte sequence representing
-   * a multiaddr to a string containing the multiaddr in a human-readable format,
-   * if the provided byte sequence was a valid multiaddr
+   * a multiaddr to a string containing the multiaddr in a human-readable
+   * format, if the provided byte sequence was a valid multiaddr
    */
   auto bytesToMultiaddrString(const kagome::common::Buffer &bytes)
       -> outcome::result<std::string>;

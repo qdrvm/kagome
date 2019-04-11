@@ -6,9 +6,10 @@
 #ifndef KAGOME_PROTOCOLLIST_HPP
 #define KAGOME_PROTOCOLLIST_HPP
 
+#include <array>
 #include <functional>
 #include <map>
-#include <array>
+#include <string_view>
 
 namespace libp2p::multi {
 
@@ -73,7 +74,7 @@ namespace libp2p::multi {
      * otherwise
      */
     static constexpr auto get(std::string_view name) -> Protocol const * {
-      for (Protocol const& protocol : protocols_) {
+      for (Protocol const &protocol : protocols_) {
         if (protocol.name == name) {
           return &protocol;
         }
@@ -86,7 +87,7 @@ namespace libp2p::multi {
      * otherwise
      */
     static constexpr auto get(Protocol::Code code) -> Protocol const * {
-      for (Protocol const& protocol: protocols_) {
+      for (Protocol const &protocol : protocols_) {
         if (protocol.code == code) {
           return &protocol;
         }
@@ -108,7 +109,7 @@ namespace libp2p::multi {
      * The list of known protocols
      */
     static constexpr const std::array<Protocol, kProtocolsNum> protocols_ = {
-        Protocol {Protocol::Code::ip4, 32, "ip4"},
+        Protocol{Protocol::Code::ip4, 32, "ip4"},
         {Protocol::Code::tcp, 16, "tcp"},
         {Protocol::Code::udp, 16, "udp"},
         {Protocol::Code::dccp, 16, "dccp"},

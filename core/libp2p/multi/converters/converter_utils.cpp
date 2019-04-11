@@ -7,7 +7,6 @@
 
 #include <boost/asio/ip/address_v4.hpp>
 #include <outcome/outcome.hpp>
-#include <libp2p/multi/multibase_codec/multibase_codec_impl.hpp>
 #include "common/buffer.hpp"
 #include "common/hexutil.hpp"
 #include "libp2p/multi/converters/conversion_error.hpp"
@@ -15,6 +14,7 @@
 #include "libp2p/multi/converters/ipfs_converter.hpp"
 #include "libp2p/multi/converters/tcp_converter.hpp"
 #include "libp2p/multi/converters/udp_converter.hpp"
+#include "libp2p/multi/multibase_codec/multibase_codec_impl.hpp"
 #include "libp2p/multi/utils/protocol_list.hpp"
 #include "libp2p/multi/utils/uvarint.hpp"
 
@@ -111,7 +111,8 @@ namespace libp2p::multi::converters {
     }
   }
 
-  auto bytesToMultiaddrString(const Buffer &bytes) -> outcome::result<std::string> {
+  auto bytesToMultiaddrString(const Buffer &bytes)
+      -> outcome::result<std::string> {
     std::string results;
     // Positioning for memory jump:
     int lastpos = 0;
@@ -175,8 +176,10 @@ namespace libp2p::multi::converters {
           return ConversionError::kInvalidAddress;
         }
         auto &addrbuf = addrbufRes.getValueRef();
-        auto encode_res = MultibaseCodecImpl{}.encode(addrbuf, MultibaseCodecImpl::Encoding::kBase58);
-        encode_res.erase(0, 1); // because multibase contains a char that denotes which base is used
+        auto encode_res = MultibaseCodecImpl{}.encode(
+            addrbuf, MultibaseCodecImpl::Encoding::kBase58);
+        encode_res.erase(0, 1);  // because multibase contains a char that
+                                 // denotes which base is used
         results += "/";
         results += protocol->name;
         results += "/" + encode_res;

@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "libp2p/multi/utils/uvarint.hpp"
+
 #include <gtest/gtest.h>
 #include <gsl/span>
 
 #include "common/hexutil.hpp"
-#include "libp2p/multi/utils/uvarint.hpp"
 
 using kagome::common::hex_upper;
 using libp2p::multi::UVarint;

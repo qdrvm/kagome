@@ -4,6 +4,7 @@
  */
 
 #include "libp2p/multi/utils/uvarint.hpp"
+
 #include "common/hexutil.hpp"
 
 using kagome::common::hex_upper;
@@ -61,7 +62,7 @@ namespace libp2p::multi {
   size_t UVarint::calculateSize(gsl::span<const uint8_t> varint_bytes) {
     size_t s = 0;
 
-    while ((varint_bytes[s] & 0x80) != 0) {
+    while ((varint_bytes[s] & 0x80u) != 0) {
       s++;
     }
     return s + 1;
