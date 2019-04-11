@@ -61,9 +61,8 @@ namespace libp2p::crypto::aes {
     cipher_len = len;
 
     // Finalise the encryption.
-    if (1
-        != EVP_EncryptFinal_ex(ctx, cipher_text.data() + len,
-                               &len)) {  // NOLINT
+    auto *write_position = cipher_text.data() + len;  // NOLINT
+    if (1 != EVP_EncryptFinal_ex(ctx, write_position, &len)) {
       return OpenSslError::kFailedEncryptFinalize;
     }
 
