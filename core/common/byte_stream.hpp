@@ -27,7 +27,8 @@ namespace kagome::common {
     virtual bool hasMore(uint64_t n) const = 0;
 
     /**
-     * @brief nextByte Takes current byte and moves pointer to the next one
+     * @brief takes next byte and returns it. If it does not exist, return
+     * nullopt
      * @return Current byte
      */
     virtual std::optional<uint8_t> nextByte() = 0;
