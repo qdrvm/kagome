@@ -4,17 +4,16 @@
  */
 
 #include <gtest/gtest.h>
-#include <outcome/outcome.hpp>
 
-#include <primitives/block.hpp>
-#include <primitives/impl/scale_codec_impl.hpp>
-#include <scale/byte_array_stream.hpp>
+#include <outcome/outcome.hpp>
+#include "primitives/block.hpp"
+#include "primitives/impl/scale_codec_impl.hpp"
+#include "scale/byte_array_stream.hpp"
 
 using kagome::common::Buffer;
-using kagome::common::ByteStream;
-using kagome::common::scale::ByteArrayStream;
+using kagome::scale::ByteArrayStream;
 
-using namespace kagome::primitives; // NOLINT
+using namespace kagome::primitives;  // NOLINT
 
 /**
  * @class Primitives is a test fixture which contains useful data

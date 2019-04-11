@@ -34,7 +34,7 @@ TEST(ByteArrayStreamTest, NextByteTest) {
 /**
  * @given ByteArrayStream with source ByteArray of size N
  * @when advance N is called on given ByteArrayStream
- * @then advance succeeded
+ * @then advance succeeded @and there is no next bytes
  */
 TEST(ByteArrayStreamTest, AdvanceSuccessTest) {
   const size_t n = 42;
@@ -42,6 +42,7 @@ TEST(ByteArrayStreamTest, AdvanceSuccessTest) {
   auto stream = ByteArrayStream{bytes};
 
   ASSERT_TRUE(stream.advance(bytes.size()));
+  ASSERT_FALSE(stream.hasMore(1));
 }
 
 /**

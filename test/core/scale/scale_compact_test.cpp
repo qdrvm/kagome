@@ -10,9 +10,9 @@
 #include "scale/compact.hpp"
 #include "scale/scale_error.hpp"
 
-using namespace kagome;         // NOLINT
-using namespace kagome::common; // NOLINT
-using namespace common::scale;  // NOLINT
+using namespace kagome;          // NOLINT
+using namespace kagome::common;  // NOLINT
+using namespace kagome::scale;   // NOLINT
 
 /**
  * @given byte array of correctly encoded number 0

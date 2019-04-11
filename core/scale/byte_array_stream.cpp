@@ -23,7 +23,7 @@ namespace kagome::scale {
     --bytes_left_;
     return *current_iterator_++;
   }
-{}
+
   bool ByteArrayStream::hasMore(uint64_t n) const {
     return bytes_left_ >= n;
   }
@@ -33,6 +33,7 @@ namespace kagome::scale {
       return AdvanceErrc::OUT_OF_BOUNDARIES;
     }
     std::advance(current_iterator_, dist);
+    bytes_left_ -= dist;
     return outcome::success();
   }
 }  // namespace kagome::scale

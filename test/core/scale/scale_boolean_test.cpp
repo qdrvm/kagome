@@ -12,7 +12,7 @@
 
 using namespace kagome;          // NOLINT
 using namespace kagome::common;  // NOLINT
-using namespace common::scale;   // NOLINT
+using namespace kagome::scale;   // NOLINT
 
 /**
  * @given bool values: true and false

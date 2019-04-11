@@ -33,7 +33,7 @@ namespace kagome::common {
     virtual std::optional<uint8_t> nextByte() = 0;
 
     /**
-     * @brief Shifts pointer by the giuven distance
+     * @brief Shifts pointer by the given distance
      * @return void if advance successful, error if advance is not possible
      */
     virtual outcome::result<void> advance(uint64_t dist) = 0;

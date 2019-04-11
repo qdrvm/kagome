@@ -6,10 +6,10 @@
 #ifndef KAGOME_SCALE_CODEC_HPP
 #define KAGOME_SCALE_CODEC_HPP
 
-#include "common/buffer.hpp"
-#include "scale/types.hpp"
-
 #include <outcome/outcome.hpp>
+#include "common/buffer.hpp"
+#include "common/byte_stream.hpp"
+#include "scale/types.hpp"
 
 namespace kagome::primitives {
   class Block;  ///< forward declarations of class Block
@@ -80,8 +80,6 @@ namespace kagome::primitives {
      */
     virtual outcome::result<Extrinsic> decodeExtrinsic(
         Stream &stream) const = 0;
-
-    virtual outcome::result<Version> decodeVersion(Stream &stream) const = 0;
   };
 }  // namespace kagome::primitives
 
