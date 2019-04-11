@@ -24,16 +24,16 @@ namespace libp2p::multi::converters {
       -> outcome::result<std::string>;
 
   /**
-   * Converts the given multiaddr string to a hex string representing
-   * the multiaddr in bytes format, if provided multiaddr was valid
+   * Converts the given multiaddr string to a byte sequence representing
+   * the multiaddr, if provided multiaddr was valid
    */
   auto multiaddrToBytes(std::string_view multiaddr_str)
       -> outcome::result<kagome::common::Buffer>;
 
   /**
-   * Converts the given hex string representing
-   * a multiaddr to a string with the multiaddr in human-readable format,
-   * if provided hex string was valid a valid multiaddr
+   * Converts the given byte sequence representing
+   * a multiaddr to a string containing the multiaddr in a human-readable format,
+   * if the provided byte sequence was a valid multiaddr
    */
   auto bytesToMultiaddrString(const kagome::common::Buffer &bytes)
       -> outcome::result<std::string>;

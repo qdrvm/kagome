@@ -10,6 +10,7 @@
 #include <outcome/outcome.hpp>
 #include "libp2p/multi/converters/conversion_error.hpp"
 #include "libp2p/multi/multibase_codec/multibase_codec_impl.hpp"
+#include "libp2p/multi/utils/uvarint.hpp"
 #include "common/hexutil.hpp"
 
 using std::string_literals::operator""s;

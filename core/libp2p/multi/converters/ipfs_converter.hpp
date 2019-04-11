@@ -7,9 +7,6 @@
 #define KAGOME_IPFS_CONVERTER_HPP
 
 #include <outcome/outcome.hpp>
-#include "common/buffer.hpp"
-#include "common/hexutil.hpp"
-#include "libp2p/multi/utils/uvarint.hpp"
 
 namespace libp2p::multi::converters {
 

@@ -7,7 +7,6 @@
 
 #include <outcome/outcome.hpp>
 #include "libp2p/multi/converters/conversion_error.hpp"
-#include "libp2p/multi/utils/protocol_list.hpp"
 #include "common/hexutil.hpp"
 
 namespace libp2p::multi::converters {
@@ -19,12 +18,7 @@ namespace libp2p::multi::converters {
       return "0000";
     }
     if (n < 65536 && n > 0) {
-      std::stringstream ss;
-      ss.width(4);
-      ss.fill('0');
-      ss << std::hex << std::uppercase << n;
-
-      return ss.str();
+      return kagome::common::int_to_hex(n);;
     }
     return ConversionError::kInvalidAddress;
   }
