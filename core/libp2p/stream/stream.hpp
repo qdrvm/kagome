@@ -74,7 +74,7 @@ namespace libp2p::stream {
      */
     virtual void reset() = 0;
 
-    virtual ~Stream() = 0;
+    virtual ~Stream() = default;
   };
 }  // namespace libp2p::stream
 

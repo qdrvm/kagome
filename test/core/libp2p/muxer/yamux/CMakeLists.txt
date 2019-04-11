@@ -4,10 +4,12 @@
 #
 
 addtest(yamux_test
-    yamux_test.cpp
+    yamux_integration_test.cpp
     )
 target_link_libraries(yamux_test
     yamux
+    multiaddress
+    libp2p_transport
     )
 
 addtest(yamux_frame_test

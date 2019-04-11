@@ -39,28 +39,14 @@ namespace libp2p::muxer {
   }
 
   void Yamux::start() {
+    startReadingHeader();
+  }
+
+  void Yamux::startReadingHeader() {
     if (!is_active_) {
       return;
     }
 
-    // see, if there's any messages to be written to the connection
-    if (!outcoming_messages_.empty()) {
-      auto msg_and_callback = outcoming_messages_.front();
-      outcoming_messages_.pop();
-
-      const auto &msg = msg_and_callback.first;
-      write_buffer_ = boost::asio::const_buffer(msg.toBytes(), msg.size());
-      connection_->asyncWrite(
-          write_buffer_,
-          [t = shared_from_this(), cb = std::move(msg_and_callback.second)](
-              const std::error_code &ec, size_t n) mutable {
-            t->writingCompleted(ec, n, cb);
-          });
-      return;
-    }
-
-    // if there are no outcoming messages left, read something from the
-    // connection
     connection_->asyncRead(
         read_buffer_, YamuxFrame::kHeaderLength,
         [t = shared_from_this()](const std::error_code &ec, size_t n) {
@@ -80,7 +66,7 @@ namespace libp2p::muxer {
     }
 
     if (!processHeader()) {
-      start();
+      startReadingHeader();
     }
   }
 
@@ -104,14 +90,45 @@ namespace libp2p::muxer {
       stream.buffered_messages_.push(std::move(msg));
     }
 
-    start();
+    startReadingHeader();
+  }
+
+  void Yamux::write(const common::NetworkMessage &msg,
+                    stream::Stream::ErrorCodeCallback cb) {
+    outcoming_messages_.push({msg, std::move(cb)});
+    if (!is_writing_) {
+      startWriting();
+    }
+  }
+
+  void Yamux::startWriting() {
+    if (!is_active_) {
+      return;
+    }
+    is_writing_ = true;
+
+    if (!outcoming_messages_.empty()) {
+      auto msg_and_callback = outcoming_messages_.front();
+      outcoming_messages_.pop();
+
+      write_buffer_ = std::move(msg_and_callback.first);
+      connection_->asyncWrite(
+          boost::asio::const_buffer{write_buffer_.toBytes(),
+                                    write_buffer_.size()},
+          [t = shared_from_this(), cb = std::move(msg_and_callback.second)](
+              const std::error_code &ec, size_t n) mutable {
+            t->writingCompleted(ec, n, cb);
+          });
+    } else {
+      is_writing_ = false;
+    }
   }
 
   void Yamux::writingCompleted(
       const std::error_code &ec, size_t n,
       const stream::Stream::ErrorCodeCallback &error_callback) {
     error_callback(ec, n);
-    start();
+    startWriting();
   }
 
   void Yamux::stop() {
@@ -124,8 +141,13 @@ namespace libp2p::muxer {
     }
 
     auto stream_id = getNewStreamId();
-    outcoming_messages_.push(
-        {newStreamMsg(stream_id), [](auto &&, auto &&) {}});
+    write(newStreamMsg(stream_id),
+          [t = shared_from_this(), stream_id](auto &&ec, auto &&) {
+            t->logger_->error(
+                "could not write new stream message for stream_id {} with "
+                "error {}",
+                stream_id, ec.value());
+          });
     streams_.insert(
         std::make_pair(stream_id,
                        std::make_shared<StreamParameters>(StreamParameters{
@@ -142,6 +164,7 @@ namespace libp2p::muxer {
   }
 
   void Yamux::closeYamux() {
+    streams_.clear();
     (void)connection_->close();
     is_active_ = false;
   }
@@ -157,8 +180,13 @@ namespace libp2p::muxer {
                          true, true, YamuxFrame::kDefaultWindowSize})});
     new_stream_handler_(
         std::make_unique<stream::YamuxStream>(shared_from_this(), stream_id));
-    outcoming_messages_.push(
-        {ackStreamMsg(stream_id), [](auto &&, auto &&) {}});
+    write(ackStreamMsg(stream_id),
+          [t = shared_from_this(), stream_id](auto &&ec, auto &&) {
+            t->logger_->error(
+                "could not write ack stream message for stream_id {} with "
+                "error {}",
+                stream_id, ec.value());
+          });
   }
 
   bool Yamux::processData(std::shared_ptr<Yamux::StreamParameters> stream,
@@ -183,8 +211,13 @@ namespace libp2p::muxer {
     // problem
     auto stream = findStream(stream_id);
     if (!stream) {
-      outcoming_messages_.push(
-          {resetStreamMsg(stream_id), [](auto &&, auto &&) {}});
+      write(resetStreamMsg(stream_id),
+            [t = shared_from_this(), stream_id](auto &&ec, auto &&) {
+              t->logger_->error(
+                  "could not write reset stream message for stream_id {} with "
+                  "error {}",
+                  stream_id, ec.value());
+            });
     }
     return stream;
   }
@@ -221,8 +254,13 @@ namespace libp2p::muxer {
   }
 
   void Yamux::removeStream(StreamId stream_id) {
-    outcoming_messages_.push(
-        {resetStreamMsg(stream_id), [](auto &&, auto &&) {}});
+    write(resetStreamMsg(stream_id),
+          [t = shared_from_this(), stream_id](auto &&ec, auto &&) {
+            t->logger_->error(
+                "could not write reset stream message for stream_id {} with "
+                "error {}",
+                stream_id, ec.value());
+          });
     streams_.erase(stream_id);
   }
 
@@ -231,8 +269,15 @@ namespace libp2p::muxer {
       // as this function is called from the destructor, we just don't want any
       // exceptions to happen here
       try {
-        outcoming_messages_.push(
-            {resetStreamMsg(stream.first), [](auto &&, auto &&) {}});
+        write(
+            resetStreamMsg(stream.first),
+            [t = shared_from_this(), stream_id = stream.first](auto &&ec,
+                                                               auto &&) {
+              t->logger_->error(
+                  "could not write reset stream message for stream_id {} with "
+                  "error {}",
+                  stream_id, ec.value());
+            });
       } catch (const std::exception &e) {
       }
     }
@@ -248,9 +293,11 @@ namespace libp2p::muxer {
     if (!frame_opt) {
       // could not parse the frame => client sent some nonsense, break the
       // connection
-      outcoming_messages_.push(
-          {goAwayMsg(YamuxFrame::GoAwayError::kProtocolError),
-           [](auto &&, auto &&) {}});
+      write(goAwayMsg(YamuxFrame::GoAwayError::kProtocolError),
+            [t = shared_from_this()](auto &&ec, auto &&) {
+              t->logger_->error("could not write go away message with error {}",
+                                ec.value());
+            });
       return false;
     }
 
@@ -340,15 +387,14 @@ namespace libp2p::muxer {
   }
 
   void Yamux::processPingFrame(const YamuxFrame &frame) {
-    outcoming_messages_.push(
-        {pingResponseMsg(frame.length_),
-         [t = shared_from_this(), stream_id = frame.stream_id_](
-             std::error_code error_code, size_t written) {
-           if (error_code.value() != 0) {
-             t->logger_->error("cannot send ping message to stream with id "
-                               + std::to_string(stream_id));
-           }
-         }});
+    write(pingResponseMsg(frame.length_),
+          [t = shared_from_this(), stream_id = frame.stream_id_](
+              std::error_code error_code, size_t written) {
+            if (error_code.value() != 0) {
+              t->logger_->error("cannot send ping message to stream with id "
+                                + std::to_string(stream_id));
+            }
+          });
   }
 
   void Yamux::processGoAwayFrame(const YamuxFrame &frame) {
@@ -391,8 +437,7 @@ namespace libp2p::muxer {
       return;
     }
 
-    outcoming_messages_.push(
-        {dataMsg(stream_id, msg), std::move(error_callback)});
+    write(dataMsg(stream_id, msg), std::move(error_callback));
   }
 
   void Yamux::streamClose(StreamId stream_id) {

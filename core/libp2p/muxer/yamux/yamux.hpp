@@ -73,10 +73,17 @@ namespace libp2p::muxer {
 
     struct StreamParameters;
 
+    void startReadingHeader();
+
     void readingHeaderCompleted(const std::error_code &ec, size_t n);
 
     void readingDataCompleted(const std::error_code &ec, size_t n,
                               StreamParameters &stream);
+
+    void write(const common::NetworkMessage &msg,
+               stream::Stream::ErrorCodeCallback cb);
+
+    void startWriting();
 
     void writingCompleted(
         const std::error_code &ec, size_t n,
@@ -183,7 +190,8 @@ namespace libp2p::muxer {
     YamuxConfig config_;
 
     boost::asio::streambuf read_buffer_;
-    boost::asio::const_buffer write_buffer_;
+    kagome::common::Buffer write_buffer_;
+    bool is_writing_ = false;
 
     struct StreamParameters {
       bool is_readable_;
