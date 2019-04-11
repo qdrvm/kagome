@@ -25,7 +25,6 @@ namespace libp2p::crypto::aes {
       return MiscError::kWrongArgumentValue;
     }
 
-    EVP_CIPHER_CTX *ctx = nullptr;
     int len = 0;
     int cipher_len = 0;
     const auto *plain_text = data.toBytes();
@@ -39,7 +38,8 @@ namespace libp2p::crypto::aes {
     std::fill(cipher_text.begin(), cipher_text.end(), 0);
 
     // Create and initialise the context
-    if (!(ctx = EVP_CIPHER_CTX_new())) {
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    if (nullptr == ctx) {
       return OpenSslError::kFailedInitializeContext;
     }
 
