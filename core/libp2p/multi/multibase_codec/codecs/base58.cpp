@@ -7,6 +7,8 @@
 
 #include <cstring>
 
+#include "libp2p/multi/multibase_codec/codecs/base_error.hpp"
+
 namespace {
   // All alphanumeric characters except for "0", "I", "O", and "l"
   constexpr std::string_view pszBase58 =
@@ -45,13 +47,6 @@ namespace {
         || c == '\v';
   }
 }  // namespace
-
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi::detail, Base58DecodeError, e) {
-  switch(e) {
-    case libp2p::multi::detail::Base58DecodeError::kInvalidInput:
-      return "Input is not a valid base58 string";
-  }
-}
 
 namespace libp2p::multi::detail {
 
@@ -176,7 +171,7 @@ namespace libp2p::multi::detail {
     if (decoded_bytes) {
       return kagome::common::Buffer{*decoded_bytes};
     }
-    return Base58DecodeError::kInvalidInput;
+    return BaseError::INVALID_BASE58_INPUT;
   }
 
 }  // namespace libp2p::multi::detail

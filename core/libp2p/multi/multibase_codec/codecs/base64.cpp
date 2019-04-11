@@ -35,6 +35,8 @@
 
 #include <regex>
 
+#include "libp2p/multi/multibase_codec/codecs/base_error.hpp"
+
 namespace {
 
   const std::string_view alphabet{
@@ -77,13 +79,6 @@ namespace {
         && std::regex_match(string.data(), base64_regex);
   }
 }  // namespace
-
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi::detail, Base64DecodeError, e) {
-  switch(e) {
-    case libp2p::multi::detail::Base64DecodeError::kInvalidInput:
-      return "Input is not a valid base64 string";
-  }
-}
 
 namespace libp2p::multi::detail {
   using kagome::expected::Result;
@@ -192,13 +187,13 @@ namespace libp2p::multi::detail {
   outcome::result<kagome::common::Buffer> decodeBase64(
       std::string_view string) {
     if (!isValidBase64(string)) {
-      return Base64DecodeError::kInvalidInput;
+      return BaseError::INVALID_BASE64_INPUT;
     }
 
     auto decoded_bytes = decodeImpl(string);
 
     if (!decoded_bytes) {
-      return Base64DecodeError::kInvalidInput;
+      return BaseError::INVALID_BASE64_INPUT;
     }
     return kagome::common::Buffer{std::move(*decoded_bytes)};
   }

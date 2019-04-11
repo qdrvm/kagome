@@ -17,11 +17,6 @@
 namespace libp2p::multi::detail {
 
   /**
-   * Error codes for exceptions that may occur during decoding
-   */
-  enum class Base16DecodeError { kNonUppercaseInput = 1, kNonLowercaseInput };
-
-  /**
    * Encode bytes to base16 uppercase string
    * @param bytes to be encoded
    * @return encoded string
@@ -49,7 +44,5 @@ namespace libp2p::multi::detail {
   outcome::result<kagome::common::Buffer> decodeBase16Lower(
       std::string_view string);
 }  // namespace libp2p::multi::detail
-
-OUTCOME_HPP_DECLARE_ERROR(libp2p::multi::detail, Base16DecodeError);
 
 #endif  // KAGOME_BASE16_HPP

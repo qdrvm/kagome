@@ -19,10 +19,6 @@
  */
 namespace libp2p::multi::detail {
 
-  enum class Base64DecodeError {
-    kInvalidInput = 1
-  };
-
   /**
    * Encode bytes to base64 string
    * @param bytes to be encoded
@@ -38,7 +34,5 @@ namespace libp2p::multi::detail {
   outcome::result<kagome::common::Buffer> decodeBase64(
       std::string_view string);
 }  // namespace libp2p::multi::detail
-
-OUTCOME_HPP_DECLARE_ERROR(libp2p::multi::detail, Base64DecodeError);
 
 #endif  // KAGOME_BASE64_HPP

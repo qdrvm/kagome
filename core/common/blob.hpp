@@ -9,7 +9,6 @@
 #include <array>
 
 #include <boost/format.hpp>
-#include <outcome/outcome.hpp>
 
 #include "common/hexutil.hpp"
 
@@ -89,17 +88,14 @@ namespace kagome::common {
      */
     static outcome::result<Blob<size_>> fromHex(
         std::string_view hex) {
-      auto&& res = unhex(hex);
 
-      if(!res) {
-        return res.error();
-      }
-      if(res.value().size() != size_) {
+      OUTCOME_TRY(res, unhex(hex));
+      if(res.size() != size_) {
         return BlobError::kIncorrectLength;
       }
 
       Blob<size_> blob;
-      std::copy(res.value().begin(), res.value().end(), blob.begin());
+      std::copy(res.begin(), res.end(), blob.begin());
       return blob;
     }
   };

@@ -9,7 +9,6 @@
 #include <string_view>
 #include <vector>
 #include <gsl/span>
-
 #include <outcome/outcome.hpp>
 
 namespace kagome::common {

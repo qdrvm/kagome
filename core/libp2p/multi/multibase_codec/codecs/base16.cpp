@@ -9,6 +9,7 @@
 #include <cctype>
 
 #include "common/hexutil.hpp"
+#include "libp2p/multi/multibase_codec/codecs/base_error.hpp"
 
 namespace {
   /**
@@ -22,17 +23,6 @@ namespace {
     });
   }
 }  // namespace
-
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi::detail, Base16DecodeError, e) {
-  switch (e) {
-    case libp2p::multi::detail::Base16DecodeError::kNonUppercaseInput:
-      return "Input is not in the uppercase hex";
-    case libp2p::multi::detail::Base16DecodeError::kNonLowercaseInput:
-      return "Input is not in the lowercase hex";
-    default:
-      return "Unknown error";
-  }
-}
 
 namespace libp2p::multi::detail {
 
@@ -53,7 +43,7 @@ namespace libp2p::multi::detail {
     // we need this check, because Boost can unhex any kind of base16 with one
     // func, but the base must be specified correctly
     if (!encodingCaseIsUpper(string)) {
-      return Base16DecodeError::kNonUppercaseInput;
+      return BaseError::NON_UPPERCASE_INPUT;
     }
     OUTCOME_TRY(bytes, unhex(string));
     return Buffer{std::move(bytes)};
@@ -63,7 +53,7 @@ namespace libp2p::multi::detail {
     // we need this check, because Boost can unhex any kind of base16 with one
     // func, but the base must be specified correctly
     if (encodingCaseIsUpper(string)) {
-      return Base16DecodeError::kNonLowercaseInput;
+      return BaseError::NON_LOWERCASE_INPUT;
     }
     OUTCOME_TRY(bytes, unhex(string));
     return Buffer{std::move(bytes)};
