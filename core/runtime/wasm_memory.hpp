@@ -6,6 +6,7 @@
 #ifndef KAGOME_MEMORY_HPP
 #define KAGOME_MEMORY_HPP
 
+#include <array>
 #include <optional>
 
 #include "runtime/common.hpp"
