@@ -8,8 +8,9 @@
 
 #include <cstdint>
 
+#include <outcome/outcome.hpp>
+
 #include "common/buffer.hpp"
-#include "common/result.hpp"
 #include "libp2p/multi/hash_type.hpp"
 
 namespace libp2p::multi {
@@ -25,16 +26,22 @@ namespace libp2p::multi {
 
     static constexpr uint8_t kMaxHashLength = 127;
 
+    enum class Error {
+      kZeroInputLength = 1,
+      kInputTooLong,
+      kInputToShort,
+      kInconsistentLength
+    };
+
     /**
      * @brief Creates a multihash from hash type and the hash itself. Note that
      * the max hash length is 127
      * @param type - numerical code of the hash type.
      * @param hash - binary buffer with the hash
-     * @return Value with the multihash in case of success, error string
-     * otherwise
+     * @return result with the multihash in case of success
      */
     static auto create(HashType type, Hash hash)
-        -> kagome::expected::Result<Multihash, std::string>;
+        -> outcome::result<Multihash>;
 
     /**
      * @brief Creates a multihash from a string, which represents a binary
@@ -42,11 +49,10 @@ namespace libp2p::multi {
      * second one contains the hash length, and the following are the hash
      * itself
      * @param hex - the string with hexadecimal representation of the multihash
-     * @return Value with the multihash in case of success, error string
-     * otherwise
+     * @return result with the multihash in case of success
      */
     static auto createFromHex(std::string_view hex)
-        -> kagome::expected::Result<Multihash, std::string>;
+        -> outcome::result<Multihash>;
 
     /**
      * @brief Creates a multihash from a binary
@@ -54,11 +60,10 @@ namespace libp2p::multi {
      * second one contains the hash length, and the following are the hash
      * itself
      * @param b - the buffer with the multihash
-     * @return Value with the multihash in case of success, error string
-     * otherwise
+     * @return result with the multihash in case of success
      */
     static auto createFromBuffer(const kagome::common::Buffer &b)
-        -> kagome::expected::Result<Multihash, std::string>;
+        -> outcome::result<Multihash>;
 
     /**
      * @return the info about hash type
@@ -108,5 +113,7 @@ namespace libp2p::multi {
   };
 
 }  // namespace libp2p::multi
+
+OUTCOME_HPP_DECLARE_ERROR(libp2p::multi, Multihash::Error);
 
 #endif  // KAGOME_MULTIHASH_HPP

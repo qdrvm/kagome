@@ -5,6 +5,17 @@
 
 #include "common/blob.hpp"
 
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::common, BlobError, e) {
+  using kagome::common::BlobError;
+
+  switch(e) {
+    case BlobError::kIncorrectLength:
+      return "Input string has incorrect length, not matching the blob size";
+    default:
+      return "Unknown error";
+  }
+}
+
 namespace kagome::common {
 
   // explicit instantiations for the most frequently used blobs

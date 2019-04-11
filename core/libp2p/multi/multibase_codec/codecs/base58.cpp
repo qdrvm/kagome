@@ -44,10 +44,14 @@ namespace {
   }
 }  // namespace
 
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi::detail, Base58DecodeError, e) {
+  switch(e) {
+    case libp2p::multi::detail::Base58DecodeError::kInvalidInput:
+      return "Input is not a valid base58 string";
+  }
+}
+
 namespace libp2p::multi::detail {
-  using kagome::expected::Error;
-  using kagome::expected::Result;
-  using kagome::expected::Value;
 
   /**
    * Actual implementation of the encoding
@@ -164,13 +168,13 @@ namespace libp2p::multi::detail {
     return encodeImpl(bytes.begin().base(), bytes.end().base());
   }
 
-  Result<kagome::common::Buffer, std::string> decodeBase58(
+  outcome::result<kagome::common::Buffer> decodeBase58(
       std::string_view string) {
     auto decoded_bytes = decodeImpl(string.data());
     if (decoded_bytes) {
-      return Value{kagome::common::Buffer{*decoded_bytes}};
+      return kagome::common::Buffer{*decoded_bytes};
     }
-    return Error{"could not decode base58 format"};
+    return Base58DecodeError::kInvalidInput;
   }
 
 }  // namespace libp2p::multi::detail

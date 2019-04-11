@@ -8,8 +8,8 @@
 
 #include <optional>
 
+#include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
-#include "common/result.hpp"
 
 /**
  * Encode/decode to/from base58 format
@@ -17,6 +17,11 @@
  * https://github.com/bitcoin/bitcoin/blob/master/src/base58.h
  */
 namespace libp2p::multi::detail {
+
+  enum class Base58DecodeError {
+    kInvalidInput = 1
+  };
+
   /**
    * Encode bytes to base58 string
    * @param bytes to be encoded
@@ -27,10 +32,12 @@ namespace libp2p::multi::detail {
   /**
    * Decode base58 string to bytes
    * @param string to be decoded
-   * @return decoded bytes in case of success, string error otherwise
+   * @return decoded bytes in case of success
    */
-  kagome::expected::Result<kagome::common::Buffer, std::string> decodeBase58(
+  outcome::result<kagome::common::Buffer> decodeBase58(
       std::string_view string);
 }  // namespace libp2p::multi::detail
+
+OUTCOME_HPP_DECLARE_ERROR(libp2p::multi::detail, Base58DecodeError);
 
 #endif  // KAGOME_BASE58_HPP

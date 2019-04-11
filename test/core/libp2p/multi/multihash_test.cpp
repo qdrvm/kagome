@@ -4,7 +4,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <spdlog/spdlog.h>
 
 #include "common/hexutil.hpp"
 #include "libp2p/multi/multihash.hpp"
@@ -12,9 +11,6 @@
 
 using kagome::common::Buffer;
 using kagome::common::hex_upper;
-using kagome::expected::Error;
-using kagome::expected::Result;
-using kagome::expected::Value;
 
 using libp2p::multi::HashType;
 using libp2p::multi::Multihash;
@@ -28,21 +24,14 @@ using libp2p::multi::UVarint;
  **/
 TEST(Multihash, Create) {
   Buffer hash{2, 3, 4};
-  Multihash::create(HashType::blake2s128, hash)
-      .match(
-          [&hash](Value<Multihash> m) {
-            ASSERT_EQ(m.value.getType(), HashType::blake2s128);
-            ASSERT_EQ(m.value.getHash(), hash);
-          },
-          [](auto e) { FAIL() << e.error; });
+  ASSERT_NO_THROW({
+    auto m = Multihash::create(HashType::blake2s128, hash).value();
+    ASSERT_EQ(m.getType(), HashType::blake2s128);
+    ASSERT_EQ(m.getHash(), hash);
+  });
 
-  Multihash::create(HashType::blake2s128, Buffer(200, 42))
-      .match(
-          [](Value<Multihash> m) {
-            FAIL() << "The multihash mustn't accept hashes of the size greater "
-                      "than 127";
-          },
-          [](auto e) { SUCCEED(); });
+  ASSERT_FALSE(Multihash::create(HashType::blake2s128, Buffer(200, 42)))
+      << "The multihash mustn't accept hashes of the size greater than 127";
 }
 
 /**
@@ -55,32 +44,25 @@ TEST(Multihash, Create) {
 TEST(Multihash, FromToHex) {
   Buffer hash{2, 3, 4};
 
-  Multihash::create(HashType::blake2s128, hash)
-      .match(
-          [&hash](Value<Multihash> m) {
-            UVarint var(HashType::blake2s128);
-            auto hex_s = hex_upper(var.toBytes().data(), var.toBytes().size())
-                + "03" + hex_upper(hash.toVector());
-            ASSERT_EQ(m.value.toHex(), hex_s);
-          },
-          [](auto e) { FAIL() << e.error; });
-  Multihash::createFromHex("1203020304")
-      .match(
-          [](Value<Multihash> m) { ASSERT_EQ(m.value.toHex(), "1203020304"); },
-          [](auto e) { FAIL() << e.error; });
+  ASSERT_NO_THROW({
+    auto m = Multihash::create(HashType::blake2s128, hash).value();
+    UVarint var(HashType::blake2s128);
+    auto hex_s = hex_upper(var.toBytes().data(), var.toBytes().size()) + "03"
+        + hex_upper(hash.toVector());
+    ASSERT_EQ(m.toHex(), hex_s);
+  });
 
-  Multihash::createFromHex("32004324234234")
-      .match([](Value<Multihash> m) { FAIL() << "The length mustn't be zero"; },
-             [](auto e) { SUCCEED(); });
-  Multihash::createFromHex("32034324234234")
-      .match(
-          [](Value<Multihash> m) {
-            FAIL() << "The length must be equal to the hash size";
-          },
-          [](auto e) { SUCCEED(); });
-  Multihash::createFromHex("3204abcdefgh")
-      .match([](Value<Multihash> m) { FAIL() << "The hex string is invalid"; },
-             [](auto e) { SUCCEED(); });
+  ASSERT_NO_THROW({
+    auto m = Multihash::createFromHex("1203020304").value();
+    ASSERT_EQ(m.toHex(), "1203020304");
+  });
+
+  ASSERT_FALSE(Multihash::createFromHex("32004324234234"))
+      << "The length mustn't be zero";
+  ASSERT_FALSE(Multihash::createFromHex("32034324234234"))
+      << "The length must be equal to the hash size";
+  ASSERT_FALSE(Multihash::createFromHex("3204abcdefgh"))
+      << "The hex string is invalid";
 }
 
 /**
@@ -93,14 +75,11 @@ TEST(Multihash, FromToHex) {
 TEST(Multihash, FromToBuffer) {
   Buffer hash{0x82, 3, 2, 3, 4};
 
-  Multihash::createFromBuffer(hash).match(
-      [&hash](Value<Multihash> m) { ASSERT_EQ(m.value.toBuffer(), hash); },
-      [](auto e) { FAIL() << e.error; });
+  ASSERT_NO_THROW({
+    auto m = Multihash::createFromBuffer(hash).value();
+    ASSERT_EQ(m.toBuffer(), hash);
+  });
 
-  Multihash::createFromBuffer({2, 3, 1, 3})
-      .match(
-          [](Value<Multihash> m) {
-            FAIL() << "Length in the header does not equal actual length";
-          },
-          [](auto e) { SUCCEED(); });
+  ASSERT_FALSE(Multihash::createFromBuffer({2, 3, 1, 3}))
+      << "Length in the header does not equal actual length";
 }

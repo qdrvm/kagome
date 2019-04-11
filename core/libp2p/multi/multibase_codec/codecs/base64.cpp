@@ -78,6 +78,13 @@ namespace {
   }
 }  // namespace
 
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi::detail, Base64DecodeError, e) {
+  switch(e) {
+    case libp2p::multi::detail::Base64DecodeError::kInvalidInput:
+      return "Input is not a valid base64 string";
+  }
+}
+
 namespace libp2p::multi::detail {
   using kagome::expected::Result;
   using kagome::expected::Value;
@@ -182,21 +189,17 @@ namespace libp2p::multi::detail {
     return dest;
   }
 
-  Result<kagome::common::Buffer, std::string> decodeBase64(
+  outcome::result<kagome::common::Buffer> decodeBase64(
       std::string_view string) {
-    auto error_msg = [string] {
-      return Error{"string '" + std::string{string}
-                   + "' is not a valid base64 encoded string"};
-    };
     if (!isValidBase64(string)) {
-      return error_msg();
+      return Base64DecodeError::kInvalidInput;
     }
 
     auto decoded_bytes = decodeImpl(string);
 
     if (!decoded_bytes) {
-      return error_msg();
+      return Base64DecodeError::kInvalidInput;
     }
-    return Value{kagome::common::Buffer{std::move(*decoded_bytes)}};
+    return kagome::common::Buffer{std::move(*decoded_bytes)};
   }
 }  // namespace libp2p::multi::detail

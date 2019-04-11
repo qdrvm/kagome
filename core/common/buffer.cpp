@@ -66,11 +66,12 @@ namespace kagome::common {
     return data_[index];
   }
 
-  expected::Result<Buffer, std::string> Buffer::fromHex(std::string_view hex) {
-    return unhex(hex) | [](const std::vector<uint8_t> &value)
-               -> expected::Result<Buffer, std::string> {
-      return expected::Value{Buffer(value)};
-    };
+  outcome::result<Buffer> Buffer::fromHex(std::string_view hex) {
+    auto&& r = unhex(hex);
+    if(r) {
+      return Buffer {r.value()};
+    }
+    return r.error();
   }
 
   Buffer::Buffer(std::vector<uint8_t> v) : data_(std::move(v)) {}

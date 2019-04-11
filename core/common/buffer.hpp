@@ -8,9 +8,9 @@
 
 #include <string_view>
 #include <vector>
-
 #include <gsl/span>
-#include "common/result.hpp"
+
+#include <outcome/outcome.hpp>
 
 namespace kagome::common {
 
@@ -175,10 +175,10 @@ namespace kagome::common {
     /**
      * @brief Construct Buffer from hexstring
      * @param hex hexencoded string
-     * @return Result containing constructed buffer if input string is
-     * hexencoded string. Otherwise Result contains error message
+     * @return result containing constructed buffer if input string is
+     * hexencoded string.
      */
-    static expected::Result<Buffer, std::string> fromHex(std::string_view hex);
+    static outcome::result<Buffer> fromHex(std::string_view hex);
 
    private:
     std::vector<uint8_t> data_;

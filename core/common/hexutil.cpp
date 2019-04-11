@@ -8,7 +8,20 @@
 #include <boost/algorithm/hex.hpp>
 #include <boost/format.hpp>
 
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::common, UnhexError, e) {
+  using kagome::common::UnhexError;
+  switch (e) {
+    case UnhexError::kNonHexInput:
+      return "Input contains non-hex characters";
+    case UnhexError::kNotEnoughInput:
+      return "Input contains odd number of characters";
+    default:
+      return "Unknown error";
+  }
+}
+
 namespace kagome::common {
+
   std::string hex_upper(const uint8_t *array, size_t len) noexcept {
     std::string res(len * 2, '\x00');
     boost::algorithm::hex(array, array + len, res.begin());  // NOLINT
@@ -29,17 +42,21 @@ namespace kagome::common {
     return hex_lower(bytes.data(), bytes.size());
   }
 
-  expected::Result<std::vector<uint8_t>, std::string> unhex(
-      std::string_view hex) {
+  outcome::result<std::vector<uint8_t>> unhex(std::string_view hex) {
     std::vector<uint8_t> blob((hex.size() + 1) / 2);
 
-    boost::format
-        error_format;  // for storing formatted error message if any occurs
     try {
       boost::algorithm::unhex(hex.begin(), hex.end(), blob.begin());
-      return expected::Value{blob};
+      return blob;
+
+    } catch (const boost::algorithm::not_enough_input &e) {
+      return UnhexError::kNotEnoughInput;
+
+    } catch (const boost::algorithm::non_hex_input &e) {
+      return UnhexError::kNonHexInput;
+
     } catch (const std::exception &e) {
-      return expected::Error{e.what()};
+      return UnhexError::kUnknown;
     }
   }
 }  // namespace kagome::common
