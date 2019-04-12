@@ -20,7 +20,7 @@ namespace libp2p::multi::converters {
     boost::system::error_code ec;
     auto address = boost::asio::ip::make_address_v4(addr, ec);
     if (ec) {
-      return ec;  // error
+      return ec;
     }
     uint64_t iip = address.to_ulong();
     auto hex = kagome::common::int_to_hex(iip);
