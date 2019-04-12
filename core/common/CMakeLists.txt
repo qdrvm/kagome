@@ -16,9 +16,12 @@ target_link_libraries(buffer
   )
 
 add_library(byte_stream
-    byte_stream.hpp
-    byte_stream.cpp
-    )
+  byte_stream.hpp
+  byte_stream.cpp
+  )
+target_link_libraries(byte_stream
+  outcome
+  )
 
 add_library(blob
   blob.hpp
@@ -29,5 +32,5 @@ target_link_libraries(blob
   )
 
 add_library(logger
-    logger.cpp
-    )
+  logger.cpp
+  )
