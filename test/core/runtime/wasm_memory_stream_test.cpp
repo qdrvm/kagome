@@ -35,7 +35,7 @@ TEST(WasmMemoryStreamTest, NextByteTest) {
     ASSERT_TRUE(byte) << "Fail in " << i;
     ASSERT_EQ(*byte, 'c') << "Fail in " << i;
   }
-  ASSERT_TRUE(stream.nextByte());
+  ASSERT_FALSE(stream.nextByte());
 }
 
 /**
