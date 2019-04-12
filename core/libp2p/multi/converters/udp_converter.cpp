@@ -14,8 +14,9 @@ namespace libp2p::multi::converters {
   auto UdpConverter::addressToHex(std::string_view addr)
       -> outcome::result<std::string> {
     int64_t n = 0;
-    if(!std::all_of(addr.begin(), addr.end(), [](char c) { return std::isdigit(c) == 1; })) {
-      return ConversionError::INVALID_ADDRESS;
+    for(auto& c : addr) {
+      if(!std::isdigit(c))
+        return ConversionError::INVALID_ADDRESS;
     }
     try {
       n = std::stoi(std::string(addr));
