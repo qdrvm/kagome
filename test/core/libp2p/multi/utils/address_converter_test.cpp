@@ -77,5 +77,4 @@ TEST(AddressConverter, IpfsAddressToBytes) {
       addressToHex(*p, "QmcgpsyWgH8Y8ajJz1Cu72KnS5uo2Aa2LpzU7kinSupNKC")
           .value());
   ASSERT_FALSE(addressToHex(*p, "QmcgpsyWgH81Il8ajJz1Cu72KnS5uo2Aa2LpzU7kinSupNKC"));
-  ASSERT_FALSE(addressToHex(*p, "QmCgp"));
 }

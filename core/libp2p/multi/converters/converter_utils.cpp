@@ -30,6 +30,9 @@ namespace libp2p::multi::converters {
       return ConversionError::ADDRESS_DOES_NOT_BEGIN_WITH_SLASH;
     }
     str.remove_prefix(1);
+    if(str.empty()) {
+      return ConversionError ::INVALID_ADDRESS;
+    }
     if(str.back() == '/') {
       str.remove_suffix(1); // for split not to recognoze an empty token in the end
     }
@@ -66,7 +69,10 @@ namespace libp2p::multi::converters {
         type = WordType::Protocol;  // Since the next word will be an protocol
       }
     }
-    // TODO(Harrm) migrate hexutils to boost::outcome
+    if(type == WordType::Address) { // address is expected but was not present in input
+      return ConversionError::INVALID_ADDRESS;
+    }
+
     auto bytes = kagome::common::unhex(processed);
     return Buffer{bytes.getValue()};
   }

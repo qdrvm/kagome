@@ -90,4 +90,10 @@ TEST(AddressConverter, BytesToString) {
       "1234/",
       "047F000001A503221220D52EBB89D85B02A284948203A62FF28389C57C9F42BEEC4EC20D"
       "B76A68911C0B0604D2")
+      
+  ASSERT_FALSE(multiaddrToBytes("/"));
+  ASSERT_FALSE(multiaddrToBytes("/ip4/"));
+  ASSERT_FALSE(multiaddrToBytes("/ip4/8.8.8.8//"));
+  ASSERT_FALSE(multiaddrToBytes("/tcp/udp/435/535"));
+  ASSERT_FALSE(multiaddrToBytes("/43434/tcp"));
 }
