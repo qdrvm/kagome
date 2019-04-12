@@ -197,8 +197,6 @@ TEST_F(YamuxIntegrationTest, StreamFromServer) {
 TEST_F(YamuxIntegrationTest, StreamWrite) {
   auto stream = getNewStream();
 
-  // TODO: more streams!
-
   Buffer data{{0x12, 0x34, 0xAA}};
   auto expected_data_msg = dataMsg(kDefaulExpectedStreamId, data);
   auto received_data_msg =
@@ -230,8 +228,6 @@ TEST_F(YamuxIntegrationTest, StreamWrite) {
  */
 TEST_F(YamuxIntegrationTest, StreamRead) {
   auto stream = getNewStream();
-
-  // TODO: more streams!
 
   Buffer data{{0x12, 0x34, 0xAA}};
   auto written_data_msg = dataMsg(kDefaulExpectedStreamId, data);
