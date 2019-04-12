@@ -19,21 +19,21 @@ namespace libp2p::muxer {
     static constexpr uint32_t kHeaderLength = 12;
 
     enum class FrameType : uint8_t {
-      kData = 0,          // transmit data
-      kWindowUpdate = 1,  // update the sender's receive window size
-      kPing = 2,          // ping for various purposes
-      kGoAway = 3         // close the session
+      DATA = 0,           // transmit data
+      WINDOW_UPDATE = 1,  // update the sender's receive window size
+      PING = 2,           // ping for various purposes
+      GO_AWAY = 3         // close the session
     };
     enum class Flag : uint16_t {
-      kSyn = 1,  // start of a new stream
-      kAck = 2,  // acknowledge start of a new stream
-      kFin = 4,  // half-close of the stream
-      kRst = 8   // reset a stream
+      SYN = 1,  // start of a new stream
+      ACK = 2,  // acknowledge start of a new stream
+      FIN = 4,  // half-close of the stream
+      RST = 8   // reset a stream
     };
     enum class GoAwayError : uint32_t {
-      kNormal = 0,
-      kProtocolError = 1,
-      kInternalError = 2
+      NORMAL = 0,
+      PROTOCOL_ERROR = 1,
+      INTERNAL_ERROR = 2
     };
     static constexpr uint8_t kDefaultVersion = 0;
     static constexpr uint32_t kDefaultWindowSize = 256;

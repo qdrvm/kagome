@@ -78,12 +78,31 @@ class YamuxIntegrationTest : public ::testing::Test {
     context_.run_for(1000ms);
   }
 
+  static void checkIOSuccess(const std::error_code ec, size_t received_size,
+                             size_t expected_size) {
+    ASSERT_FALSE(ec);
+    ASSERT_EQ(received_size, expected_size);
+  }
+
   /**
    * Get a pointer to a new stream
    * @return pointer to the stream
    */
-  std::unique_ptr<Stream> getNewStream() {
-    return yamux_->newStream().value();
+  std::unique_ptr<Stream> getNewStream(
+      Yamux::StreamId expected_stream_id = kDefaulExpectedStreamId) {
+    auto stream = yamux_->newStream().value();
+
+    auto new_stream_msg = newStreamMsg(expected_stream_id);
+    auto rcvd_msg = std::make_shared<Buffer>(new_stream_msg.size(), 0);
+    connection_->asyncRead(boost::asio::buffer(rcvd_msg->toVector()),
+                           new_stream_msg.size(),
+                           [&new_stream_msg, rcvd_msg](auto &&ec, auto &&n) {
+                             checkIOSuccess(ec, n, new_stream_msg.size());
+                             EXPECT_EQ(*rcvd_msg, new_stream_msg);
+                           });
+    context_.run_for(10ms);
+
+    return stream;
   }
 
   std::shared_ptr<Yamux> yamux_;
@@ -95,8 +114,7 @@ class YamuxIntegrationTest : public ::testing::Test {
   std::shared_ptr<Multiaddress> multiaddress_;
   std::shared_ptr<Connection> connection_;
 
-  std::function<libp2p::basic::Readable::CompletionHandler>
-      empty_completion_handler = [](auto &&, auto &&) {};
+  static constexpr Yamux::StreamId kDefaulExpectedStreamId = 2;
 };
 
 /**
@@ -113,8 +131,10 @@ TEST_F(YamuxIntegrationTest, StreamFromClient) {
 
   connection_->asyncWrite(
       boost::asio::buffer(new_stream_msg.toVector()),
-      [this, new_stream_ack_msg_rcv, created_stream_id](auto &&ec, auto &&n) {
-        ASSERT_FALSE(ec);
+      [this, &new_stream_msg, new_stream_ack_msg_rcv, created_stream_id](
+          auto &&ec, auto &&n) {
+        checkIOSuccess(ec, n, new_stream_msg.size());
+
         connection_->asyncRead(
             boost::asio::buffer(new_stream_ack_msg_rcv->toVector()),
             YamuxFrame::kHeaderLength,
@@ -123,8 +143,7 @@ TEST_F(YamuxIntegrationTest, StreamFromClient) {
               // check a new stream is in our 'accepted_streams'
               ASSERT_EQ(accepted_streams_.size(), 1);
 
-              ASSERT_FALSE(ec);
-              ASSERT_EQ(n, YamuxFrame::kHeaderLength);
+              checkIOSuccess(ec, n, YamuxFrame::kHeaderLength);
 
               // check our yamux has sent an ack message for that
               // stream
@@ -136,33 +155,6 @@ TEST_F(YamuxIntegrationTest, StreamFromClient) {
       });
 
   launchContext();
-
-  // read from that stream
-  // check the read message
-  // write to that stream
-  // check that our message has come
-
-  // read from that stream - must be a ping
-  // response with out ping
-  // check that our response worked
-
-  // read from that stream - must be data
-  // check that data
-  // write some data back
-  // check that the data is received
-
-  // close stream for writes from this side
-  // check it's closed for write on this side
-  // check it's closed for read on the other side
-
-  // read from that stream - must be a close-for-reads message from the other
-  // side check stream is closed on both sides
-
-  // create a stream from this side
-  // check it's created on both sides
-
-  // send go away message
-  // check connection is broken on both sides
 }
 
 /**
@@ -188,9 +180,8 @@ TEST_F(YamuxIntegrationTest, StreamFromServer) {
   connection_->asyncRead(
       boost::asio::buffer(new_stream_msg_buf->toVector()),
       YamuxFrame::kHeaderLength,
-      [&new_stream_msg_buf, &expected_new_stream_msg](auto &&ec, auto &&n) {
-        ASSERT_FALSE(ec);
-        ASSERT_EQ(n, YamuxFrame::kHeaderLength);
+      [new_stream_msg_buf, &expected_new_stream_msg](auto &&ec, auto &&n) {
+        checkIOSuccess(ec, n, YamuxFrame::kHeaderLength);
 
         ASSERT_EQ(*new_stream_msg_buf, expected_new_stream_msg);
       });
@@ -199,23 +190,23 @@ TEST_F(YamuxIntegrationTest, StreamFromServer) {
 }
 
 /**
- * @given initialized Yamux @and stream, multiplexed by that Yamux
+ * @given initialized Yamux @and streams, multiplexed by that Yamux
  * @When writing to that stream
  * @then the operation is succesfully executed
  */
 TEST_F(YamuxIntegrationTest, StreamWrite) {
-  constexpr Yamux::StreamId expected_stream_id = 2;
   auto stream = getNewStream();
 
+  // TODO: more streams!
+
   Buffer data{{0x12, 0x34, 0xAA}};
-  auto expected_data_msg = dataMsg(expected_stream_id, data);
+  auto expected_data_msg = dataMsg(kDefaulExpectedStreamId, data);
   auto received_data_msg =
       std::make_shared<Buffer>(expected_data_msg.size(), 0);
 
   stream->writeAsync(
       data, [this, &expected_data_msg, received_data_msg](auto &&ec, auto &&n) {
-        ASSERT_FALSE(ec);
-        ASSERT_EQ(n, expected_data_msg.size());
+        checkIOSuccess(ec, n, expected_data_msg.size());
 
         // check that our written data has achieved the
         // destination
@@ -223,8 +214,7 @@ TEST_F(YamuxIntegrationTest, StreamWrite) {
             boost::asio::buffer(received_data_msg->toVector()),
             expected_data_msg.size(),
             [&expected_data_msg, received_data_msg](auto &&ec, auto &&n) {
-              ASSERT_FALSE(ec);
-              ASSERT_EQ(n, expected_data_msg.size());
+              checkIOSuccess(ec, n, expected_data_msg.size());
 
               ASSERT_EQ(*received_data_msg, expected_data_msg);
             });
@@ -234,22 +224,22 @@ TEST_F(YamuxIntegrationTest, StreamWrite) {
 }
 
 /**
- * @given initialized Yamux @and stream, multiplexed by that Yamux
- * @When reading from that stream
+ * @given initialized Yamux @and streams, multiplexed by that Yamux
+ * @when reading from that stream
  * @then the operation is succesfully executed
  */
 TEST_F(YamuxIntegrationTest, StreamRead) {
-  constexpr Yamux::StreamId expected_stream_id = 2;
   auto stream = getNewStream();
 
+  // TODO: more streams!
+
   Buffer data{{0x12, 0x34, 0xAA}};
-  auto written_data_msg = dataMsg(expected_stream_id, data);
+  auto written_data_msg = dataMsg(kDefaulExpectedStreamId, data);
 
   connection_->asyncWrite(
       boost::asio::buffer(written_data_msg.toVector()),
       [this, &written_data_msg, &stream, &data](auto &&ec, auto &&n) mutable {
-        ASSERT_FALSE(ec);
-        ASSERT_EQ(n, written_data_msg.size());
+        checkIOSuccess(ec, n, written_data_msg.size());
 
         stream->readAsync([&data](Stream::NetworkMessageOutcome msg_res) {
           ASSERT_TRUE(msg_res);
@@ -258,4 +248,157 @@ TEST_F(YamuxIntegrationTest, StreamRead) {
       });
 
   launchContext();
+}
+
+/**
+ * @given initialized Yamux
+ * @when a ping message arrives to Yamux
+ * @then Yamux sends a ping response back
+ */
+TEST_F(YamuxIntegrationTest, Ping) {
+  constexpr uint32_t ping_value = 42;
+
+  auto ping_in_msg = pingOutMsg(ping_value);
+  auto ping_out_msg = pingResponseMsg(ping_value);
+  auto received_ping = std::make_shared<Buffer>(ping_out_msg.size(), 0);
+
+  connection_->asyncWrite(
+      boost::asio::buffer(ping_in_msg.toVector()),
+      [this, &ping_in_msg, &ping_out_msg, received_ping](auto &&ec, auto &&n) {
+        checkIOSuccess(ec, n, ping_in_msg.size());
+
+        connection_->asyncRead(
+            boost::asio::buffer(received_ping->toVector()), ping_out_msg.size(),
+            [&ping_out_msg, received_ping](auto &&ec, auto &&n) {
+              checkIOSuccess(ec, n, ping_out_msg.size());
+
+              ASSERT_EQ(*received_ping, ping_out_msg);
+            });
+      });
+
+  launchContext();
+}
+
+/**
+ * @given initialized Yamux @and stream over it
+ * @when closing that stream for writes
+ * @then the stream is closed for writes @and corresponding message is received
+ * on the other side
+ */
+TEST_F(YamuxIntegrationTest, CloseForWrites) {
+  auto stream = getNewStream();
+
+  ASSERT_FALSE(stream->isClosedForWrite());
+  stream->close();
+  ASSERT_TRUE(stream->isClosedForWrite());
+
+  auto expected_close_stream_msg = closeStreamMsg(kDefaulExpectedStreamId);
+  auto close_stream_msg_rcv =
+      std::make_shared<Buffer>(YamuxFrame::kHeaderLength, 0);
+
+  connection_->asyncRead(
+      boost::asio::buffer(close_stream_msg_rcv->toVector()),
+      YamuxFrame::kHeaderLength,
+      [&expected_close_stream_msg, close_stream_msg_rcv](auto &&ec, auto &&n) {
+        checkIOSuccess(ec, n, YamuxFrame::kHeaderLength);
+
+        ASSERT_EQ(*close_stream_msg_rcv, expected_close_stream_msg);
+      });
+
+  launchContext();
+}
+
+/**
+ * @given initialized Yamux @and stream over it
+ * @when the other side sends a close message for that stream
+ * @then the stream is closed for reads
+ */
+TEST_F(YamuxIntegrationTest, CloseForReads) {
+  auto stream = getNewStream();
+
+  ASSERT_FALSE(stream->isClosedForRead());
+
+  auto sent_close_stream_msg = closeStreamMsg(kDefaulExpectedStreamId);
+
+  connection_->asyncWrite(
+      boost::asio::buffer(sent_close_stream_msg.toVector()),
+      [&sent_close_stream_msg, &stream](auto &&ec, auto &&n) {
+        checkIOSuccess(ec, n, sent_close_stream_msg.size());
+      });
+
+  launchContext();
+  ASSERT_TRUE(stream->isClosedForRead());
+}
+
+/**
+ * @given initialized Yamux @and stream over it
+ * @when close message is sent over the stream @and the other side responses
+ * with a close message as well
+ * @then the stream is closed entirely - removed from Yamux
+ */
+TEST_F(YamuxIntegrationTest, CloseEntirely) {
+  auto stream = getNewStream();
+
+  ASSERT_FALSE(stream->isClosedForWrite());
+  stream->close();
+  ASSERT_TRUE(stream->isClosedForWrite());
+
+  auto expected_close_stream_msg = closeStreamMsg(kDefaulExpectedStreamId);
+  auto close_stream_msg_rcv =
+      std::make_shared<Buffer>(YamuxFrame::kHeaderLength, 0);
+
+  connection_->asyncRead(
+      boost::asio::buffer(close_stream_msg_rcv->toVector()),
+      YamuxFrame::kHeaderLength,
+      [this, &stream, &expected_close_stream_msg, close_stream_msg_rcv](
+          auto &&ec, auto &&n) {
+        checkIOSuccess(ec, n, YamuxFrame::kHeaderLength);
+        ASSERT_EQ(*close_stream_msg_rcv, expected_close_stream_msg);
+
+        connection_->asyncWrite(
+            boost::asio::buffer(expected_close_stream_msg.toVector()),
+            [&expected_close_stream_msg, &stream](auto &&ec, auto &&n) {
+              checkIOSuccess(ec, n, expected_close_stream_msg.size());
+            });
+      });
+
+  launchContext();
+  ASSERT_TRUE(stream->isClosedEntirely());
+}
+
+/**
+ * @given initialized Yamux @and stream over it
+ * @when a reset message is sent over that stream
+ * @then the stream is closed entirely - removed from Yamux @and the other side
+ * receives a corresponding message
+ */
+TEST_F(YamuxIntegrationTest, Reset) {
+  auto stream = getNewStream();
+
+  ASSERT_FALSE(stream->isClosedEntirely());
+  stream->reset();
+  ASSERT_TRUE(stream->isClosedEntirely());
+
+  auto expected_reset_msg = resetStreamMsg(kDefaulExpectedStreamId);
+  auto rcvd_msg = std::make_shared<Buffer>(expected_reset_msg.size(), 0);
+
+  connection_->asyncRead(boost::asio::buffer(rcvd_msg->toVector()),
+                         expected_reset_msg.size(),
+                         [&expected_reset_msg, rcvd_msg](auto &&ec, auto &&n) {
+                           checkIOSuccess(ec, n, rcvd_msg->size());
+                           ASSERT_EQ(*rcvd_msg, expected_reset_msg);
+                         });
+
+  launchContext();
+}
+
+/**
+ * @given initialized Yamux
+ * @when Yamux is closed
+ * @then an underlying connection is closed @and the other side receives a
+ * corresponding message
+ */
+TEST_F(YamuxIntegrationTest, GoAway) {
+  yamux_->close();
+  ASSERT_TRUE(yamux_->isClosed());
 }

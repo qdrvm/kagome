@@ -20,8 +20,8 @@ class YamuxFrameTest : public ::testing::Test {
   Buffer data_frame_bytes =
       Buffer{}
           .putUint8(YamuxFrame::kDefaultVersion)
-          .putUint8(static_cast<uint8_t>(YamuxFrame::FrameType::kData))
-          .putUint16(htons(static_cast<uint16_t>(YamuxFrame::Flag::kSyn)))
+          .putUint8(static_cast<uint8_t>(YamuxFrame::FrameType::DATA))
+          .putUint16(htons(static_cast<uint16_t>(YamuxFrame::Flag::SYN)))
           .putUint32(htonl(default_stream_id))
           .putUint32(htonl(data_length))
           .putBuffer(data);
@@ -47,7 +47,7 @@ class YamuxFrameTest : public ::testing::Test {
 TEST_F(YamuxFrameTest, ParseFrameSuccess) {
   auto frame_opt = parseFrame(data_frame_bytes.toVector());
   checkFrame(frame_opt, YamuxFrame::kDefaultVersion,
-             YamuxFrame::FrameType::kData, YamuxFrame::Flag::kSyn,
+             YamuxFrame::FrameType::DATA, YamuxFrame::Flag::SYN,
              default_stream_id, data_length, data);
 }
 
@@ -61,7 +61,7 @@ TEST_F(YamuxFrameTest, NewStreamMsg) {
   auto frame_bytes = newStreamMsg(default_stream_id);
   auto frame_opt = parseFrame(frame_bytes.toVector());
   checkFrame(frame_opt, YamuxFrame::kDefaultVersion,
-             YamuxFrame::FrameType::kData, YamuxFrame::Flag::kSyn,
+             YamuxFrame::FrameType::DATA, YamuxFrame::Flag::SYN,
              default_stream_id, 0, Buffer{});
 }
 
@@ -69,7 +69,7 @@ TEST_F(YamuxFrameTest, AckStreamMsg) {
   auto frame_bytes = ackStreamMsg(default_stream_id);
   auto frame_opt = parseFrame(frame_bytes.toVector());
   checkFrame(frame_opt, YamuxFrame::kDefaultVersion,
-             YamuxFrame::FrameType::kData, YamuxFrame::Flag::kAck,
+             YamuxFrame::FrameType::DATA, YamuxFrame::Flag::ACK,
              default_stream_id, 0, Buffer{});
 }
 
@@ -77,7 +77,7 @@ TEST_F(YamuxFrameTest, CloseStreamMsg) {
   auto frame_bytes = closeStreamMsg(default_stream_id);
   auto frame_opt = parseFrame(frame_bytes.toVector());
   checkFrame(frame_opt, YamuxFrame::kDefaultVersion,
-             YamuxFrame::FrameType::kData, YamuxFrame::Flag::kFin,
+             YamuxFrame::FrameType::DATA, YamuxFrame::Flag::FIN,
              default_stream_id, 0, Buffer{});
 }
 
@@ -85,7 +85,7 @@ TEST_F(YamuxFrameTest, ResetStreamMsg) {
   auto frame_bytes = resetStreamMsg(default_stream_id);
   auto frame_opt = parseFrame(frame_bytes.toVector());
   checkFrame(frame_opt, YamuxFrame::kDefaultVersion,
-             YamuxFrame::FrameType::kData, YamuxFrame::Flag::kRst,
+             YamuxFrame::FrameType::DATA, YamuxFrame::Flag::RST,
              default_stream_id, 0, Buffer{});
 }
 
@@ -93,7 +93,7 @@ TEST_F(YamuxFrameTest, PingOutMsg) {
   auto frame_bytes = pingOutMsg(default_ping_value);
   auto frame_opt = parseFrame(frame_bytes.toVector());
   checkFrame(frame_opt, YamuxFrame::kDefaultVersion,
-             YamuxFrame::FrameType::kPing, YamuxFrame::Flag::kSyn, 0,
+             YamuxFrame::FrameType::PING, YamuxFrame::Flag::SYN, 0,
              default_ping_value, Buffer{});
 }
 
@@ -101,7 +101,7 @@ TEST_F(YamuxFrameTest, PingResponseMsg) {
   auto frame_bytes = pingResponseMsg(default_ping_value);
   auto frame_opt = parseFrame(frame_bytes.toVector());
   checkFrame(frame_opt, YamuxFrame::kDefaultVersion,
-             YamuxFrame::FrameType::kPing, YamuxFrame::Flag::kAck, 0,
+             YamuxFrame::FrameType::PING, YamuxFrame::Flag::ACK, 0,
              default_ping_value, Buffer{});
 }
 
@@ -109,15 +109,15 @@ TEST_F(YamuxFrameTest, DataMsg) {
   auto frame_bytes = dataMsg(default_stream_id, data);
   auto frame_opt = parseFrame(frame_bytes.toVector());
   checkFrame(frame_opt, YamuxFrame::kDefaultVersion,
-             YamuxFrame::FrameType::kData, YamuxFrame::Flag::kSyn,
+             YamuxFrame::FrameType::DATA, YamuxFrame::Flag::SYN,
              default_stream_id, data_length, data);
 }
 
 TEST_F(YamuxFrameTest, GoAwayMsg) {
-  auto frame_bytes = goAwayMsg(YamuxFrame::GoAwayError::kProtocolError);
+  auto frame_bytes = goAwayMsg(YamuxFrame::GoAwayError::PROTOCOL_ERROR);
   auto frame_opt = parseFrame(frame_bytes.toVector());
   checkFrame(frame_opt, YamuxFrame::kDefaultVersion,
-             YamuxFrame::FrameType::kGoAway, YamuxFrame::Flag::kSyn, 0,
-             static_cast<uint32_t>(YamuxFrame::GoAwayError::kProtocolError),
+             YamuxFrame::FrameType::GO_AWAY, YamuxFrame::Flag::SYN, 0,
+             static_cast<uint32_t>(YamuxFrame::GoAwayError::PROTOCOL_ERROR),
              Buffer{});
 }

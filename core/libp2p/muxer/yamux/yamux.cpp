@@ -13,9 +13,13 @@
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::muxer, Yamux::YamuxErrorStream, e) {
   using ErrorType = libp2p::muxer::Yamux::YamuxErrorStream;
   switch (e) {
-    case ErrorType::kNoSuchStream:
-      return "no such stream was found; maybe, it was already closed";
-    case ErrorType::kYamuxIsClosed:
+    case ErrorType::NO_SUCH_STREAM:
+      return "no such stream was found; maybe, it is closed";
+    case ErrorType::NOT_WRITABLE:
+      return "the stream is closed for writes";
+    case ErrorType::NOT_READABLE:
+      return "the stream is closed for reads";
+    case ErrorType::YAMUX_IS_CLOSED:
       return "this Yamux instance is closed";
   }
 }
@@ -44,6 +48,10 @@ namespace libp2p::muxer {
 
   void Yamux::startReadingHeader() {
     if (!is_active_) {
+      return;
+    }
+    if (connection_->isClosed()) {
+      closeYamux();
       return;
     }
 
@@ -105,6 +113,10 @@ namespace libp2p::muxer {
     if (!is_active_) {
       return;
     }
+    if (connection_->isClosed()) {
+      closeYamux();
+      return;
+    }
     is_writing_ = true;
 
     if (!outcoming_messages_.empty()) {
@@ -137,7 +149,7 @@ namespace libp2p::muxer {
 
   outcome::result<std::unique_ptr<stream::Stream>> Yamux::newStream() {
     if (!is_active_) {
-      return YamuxErrorStream::kYamuxIsClosed;
+      return YamuxErrorStream::YAMUX_IS_CLOSED;
     }
 
     auto stream_id = getNewStreamId();
@@ -255,8 +267,19 @@ namespace libp2p::muxer {
       (*stream)->is_writable_ = false;
     }
     if (!stream || (!(*stream)->is_writable_ && !(*stream)->is_readable_)) {
-      // stream is closed on our side; reset it on the other as well
+      // stream is closed entirely on our side; reset it on the other as well
       removeStream(stream_id);
+    } else {
+      // tell other side not to wait for messages from us anymore
+      write(closeStreamMsg(stream_id),
+            [t = shared_from_this(), stream_id](auto &&ec, auto &&n) {
+              if (ec) {
+                t->logger_->error(
+                    "could not write close stream message for stream_id {} "
+                    "with error {}",
+                    stream_id, ec.value());
+              }
+            });
     }
   }
 
@@ -304,7 +327,7 @@ namespace libp2p::muxer {
     if (!frame_opt) {
       // could not parse the frame => client sent some nonsense, break the
       // connection
-      write(goAwayMsg(YamuxFrame::GoAwayError::kProtocolError),
+      write(goAwayMsg(YamuxFrame::GoAwayError::PROTOCOL_ERROR),
             [t = shared_from_this()](auto &&ec, auto &&) {
               if (ec) {
                 t->logger_->error(
@@ -317,15 +340,15 @@ namespace libp2p::muxer {
 
     auto frame = std::move(*frame_opt);
     switch (frame.type_) {
-      case FrameType::kData:
+      case FrameType::DATA:
         return processDataFrame(frame);
-      case FrameType::kWindowUpdate:
+      case FrameType::WINDOW_UPDATE:
         processWindowUpdateFrame(frame);
         break;
-      case FrameType::kPing:
+      case FrameType::PING:
         processPingFrame(frame);
         break;
-      case FrameType::kGoAway:
+      case FrameType::GO_AWAY:
         processGoAwayFrame(frame);
         break;
     }
@@ -337,7 +360,7 @@ namespace libp2p::muxer {
 
     auto stream_id = frame.stream_id_;
     switch (frame.flag_) {
-      case Flag::kSyn: {
+      case Flag::SYN: {
         // can be start of a new stream, just data or both
         auto stream = findStream(stream_id);
         if (!stream) {
@@ -349,17 +372,17 @@ namespace libp2p::muxer {
         // process data in this frame, if there is one
         return processData(*stream, frame);
       }
-      case Flag::kAck: {
+      case Flag::ACK: {
         // can be ack of a new stream, just data or both
         if (auto stream = processAck(stream_id)) {
           return processData(*stream, frame);
         }
         break;
       }
-      case Flag::kFin:
+      case Flag::FIN:
         closeStreamForRead(stream_id);
         break;
-      case Flag::kRst:
+      case Flag::RST:
         removeStream(stream_id);
         break;
     }
@@ -371,7 +394,7 @@ namespace libp2p::muxer {
 
     auto stream_id = frame.stream_id_;
     switch (frame.flag_) {
-      case Flag::kSyn: {
+      case Flag::SYN: {
         // can be start of a new stream or update of a window size
         auto stream = findStream(stream_id);
         if (stream) {
@@ -383,17 +406,17 @@ namespace libp2p::muxer {
         }
         break;
       }
-      case Flag::kAck: {
+      case Flag::ACK: {
         processAck(stream_id);
         break;
       }
-      case Flag::kFin: {
+      case Flag::FIN: {
         // stream was closed from the other side; still, we can write to it,
         // but new messages will not come
         closeStreamForRead(stream_id);
         break;
       }
-      case Flag::kRst:
+      case Flag::RST:
         // close the stream (but not connection) entirely
         removeStream(stream_id);
         break;
@@ -421,17 +444,22 @@ namespace libp2p::muxer {
       StreamId stream_id,
       stream::Stream::ReadCompletionHandler completion_handler) {
     if (!is_active_) {
-      completion_handler(YamuxErrorStream::kYamuxIsClosed);
+      completion_handler(YamuxErrorStream::YAMUX_IS_CLOSED);
       return;
     }
 
     auto stream_opt = findStream(stream_id);
     if (!stream_opt) {
-      completion_handler(YamuxErrorStream::kNoSuchStream);
+      completion_handler(YamuxErrorStream::NO_SUCH_STREAM);
       return;
     }
 
     auto stream = *stream_opt;
+    if (!stream->is_readable_) {
+      completion_handler(YamuxErrorStream::NOT_READABLE);
+      return;
+    }
+
     if (!stream->buffered_messages_.empty()) {
       auto msg = stream->buffered_messages_.front();
       stream->buffered_messages_.pop();
@@ -447,7 +475,18 @@ namespace libp2p::muxer {
       StreamId stream_id, const common::NetworkMessage &msg,
       stream::Stream::ErrorCodeCallback error_callback) {
     if (!is_active_) {
-      error_callback(YamuxErrorStream::kYamuxIsClosed, 0);
+      error_callback(YamuxErrorStream::YAMUX_IS_CLOSED, 0);
+      return;
+    }
+
+    auto stream_opt = findStream(stream_id);
+    if (!stream_opt) {
+      error_callback(YamuxErrorStream::NO_SUCH_STREAM, 0);
+      return;
+    }
+
+    if (!(*stream_opt)->is_writable_) {
+      error_callback(YamuxErrorStream::NOT_WRITABLE, 0);
       return;
     }
 

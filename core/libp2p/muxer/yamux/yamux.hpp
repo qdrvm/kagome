@@ -38,7 +38,12 @@ namespace libp2p::muxer {
     using NewStreamHandler =
         std::function<void(std::unique_ptr<stream::Stream>)>;
 
-    enum class YamuxErrorStream { kNoSuchStream = 1, kYamuxIsClosed };
+    enum class YamuxErrorStream {
+      NO_SUCH_STREAM = 1,
+      NOT_WRITABLE,
+      NOT_READABLE,
+      YAMUX_IS_CLOSED
+    };
 
     /**
      * Create a new Yamux instance
@@ -205,9 +210,9 @@ namespace libp2p::muxer {
     std::map<StreamId, std::shared_ptr<StreamParameters>> streams_;
 
     /// messages, which are going to be written during the event loop execution
-    std::queue<
-        std::pair<common::NetworkMessage, stream::Stream::ErrorCodeCallback>>
-        outcoming_messages_{};
+    using MsgAndCallback =
+        std::pair<common::NetworkMessage, stream::Stream::ErrorCodeCallback>;
+    std::queue<MsgAndCallback> outcoming_messages_{};
 
     kagome::common::Logger logger_;
 
