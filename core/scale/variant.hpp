@@ -6,20 +6,19 @@
 #ifndef KAGOME_SCALE_VARIANT_HPP
 #define KAGOME_SCALE_VARIANT_HPP
 
+#include <variant>
+
+#include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
 #include "scale/compact.hpp"
 #include "scale/fixedwidth.hpp"
+#include "scale/scale_error.hpp"
 #include "scale/type_decoder.hpp"
 #include "scale/type_encoder.hpp"
 
-#include <outcome/outcome.hpp>
-#include "scale_error.hpp"
-
-#include <variant>
-
 using kagome::common::Buffer;
 
-namespace kagome::common::scale::variant {
+namespace kagome::scale::variant {
   namespace detail {
     template <uint8_t i, class F, class H, class... T>
     void for_each_apply_impl(F &f);
@@ -77,11 +76,12 @@ namespace kagome::common::scale::variant {
       using Variant = std::variant<T...>;
       using Result = outcome::result<Variant>;
       Result &r;
-      Stream &s;
+      common::ByteStream &s;
       uint8_t target_type_index;
       static constexpr uint8_t types_count = sizeof...(T);
 
-      VariantDecoder(uint8_t target_type_index, Result &r, Stream &s)
+      VariantDecoder(uint8_t target_type_index, Result &r,
+                     common::ByteStream &s)
           : target_type_index{target_type_index}, r{r}, s{s} {};
 
       template <class H>
@@ -128,7 +128,8 @@ namespace kagome::common::scale::variant {
    * @return decoded value or error
    */
   template <class... T>
-  outcome::result<std::variant<T...>> decodeVariant(Stream &stream) {
+  outcome::result<std::variant<T...>> decodeVariant(
+      common::ByteStream &stream) {
     // first byte means type index
     OUTCOME_TRY(type_index, fixedwidth::decodeUint8(stream));
 
@@ -140,6 +141,6 @@ namespace kagome::common::scale::variant {
     return result;
   }
 
-}  // namespace kagome::common::scale::variant
+}  // namespace kagome::scale::variant
 
 #endif  // KAGOME_SCALE_VARIANT_HPP

@@ -13,6 +13,7 @@ namespace kagome::runtime {
 
   class MockMemory : public kagome::runtime::WasmMemory {
    public:
+    MOCK_CONST_METHOD0(size, SizeType());
     MOCK_METHOD1(resize, void(uint32_t));
     MOCK_METHOD1(allocate, WasmPointer(SizeType));
     MOCK_METHOD1(deallocate, std::optional<SizeType>(WasmPointer));

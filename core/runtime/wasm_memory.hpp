@@ -6,6 +6,7 @@
 #ifndef KAGOME_MEMORY_HPP
 #define KAGOME_MEMORY_HPP
 
+#include <array>
 #include <optional>
 
 #include "common/buffer.hpp"
@@ -23,6 +24,11 @@ namespace kagome::runtime {
   class WasmMemory {
    public:
     const static auto kMaxMemorySize = std::numeric_limits<SizeType>::max();
+
+    /**
+     * @brief Return the size of the memory
+     */
+    virtual SizeType size() const = 0;
 
     /**
      * Resizes memory to the given size

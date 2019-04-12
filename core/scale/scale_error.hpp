@@ -9,7 +9,7 @@
 #include <outcome/outcome.hpp>
 #include "scale/types.hpp"
 
-namespace kagome::common::scale {
+namespace kagome::scale {
   /**
    * @brief EncodeError enum provides error codes for Encode methods
    */
@@ -31,7 +31,7 @@ namespace kagome::common::scale {
   };
 }  // namespace kagome::common::scale
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::common::scale, EncodeError)
-OUTCOME_HPP_DECLARE_ERROR(kagome::common::scale, DecodeError)
+OUTCOME_HPP_DECLARE_ERROR(kagome::scale, EncodeError)
+OUTCOME_HPP_DECLARE_ERROR(kagome::scale, DecodeError)
 
 #endif  // KAGOME_SCALE_ERROR_HPP
