@@ -75,6 +75,7 @@ TEST(AddressConverter, BytesToString) {
   VALID_BYTES_TO_STR("/tcp/1234/", "0604D2")
   VALID_BYTES_TO_STR(
       "/ipfs/QmcgpsyWgH8Y8ajJz1Cu72KnS5uo2Aa2LpzU7kinSupNKC/tcp/1234/",
+
       "A503221220D52EBB89D85B02A284948203A62FF28389C57C9F42BEEC4EC20DB76A68911C"
       "0B0604D2")
   VALID_BYTES_TO_STR("/ip4/127.0.0.1/udp/1234/", "047F000001910204D2")
@@ -90,9 +91,8 @@ TEST(AddressConverter, BytesToString) {
       "1234/",
       "047F000001A503221220D52EBB89D85B02A284948203A62FF28389C57C9F42BEEC4EC20D"
       "B76A68911C0B0604D2")
-      
+
   ASSERT_FALSE(multiaddrToBytes("/"));
-  ASSERT_FALSE(multiaddrToBytes("/ip4/"));
   ASSERT_FALSE(multiaddrToBytes("/ip4/8.8.8.8//"));
   ASSERT_FALSE(multiaddrToBytes("/tcp/udp/435/535"));
   ASSERT_FALSE(multiaddrToBytes("/43434/tcp"));

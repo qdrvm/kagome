@@ -69,9 +69,6 @@ namespace libp2p::multi::converters {
         type = WordType::Protocol;  // Since the next word will be an protocol
       }
     }
-    if(type == WordType::Address) { // address is expected but was not present in input
-      return ConversionError::INVALID_ADDRESS;
-    }
 
     auto bytes = kagome::common::unhex(processed);
     return Buffer{bytes.getValue()};
