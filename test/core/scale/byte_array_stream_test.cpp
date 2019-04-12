@@ -15,20 +15,19 @@ using kagome::scale::ByteArrayStream;
  * @given byte array of 3 items: 0, 1, 2
  * @when create BasicStream wrapping this array and start to get bytes one by
  * one
- * @then bytes 0, 1, 2 are obtained sequentially
+ * @then bytes 0, 1, 2 are obtained sequentially @and next nextByte call returns
+ * error
  */
-TEST(ByteArrayStreamTest, NextByteTest) {
+TEST(ByteArrayStreamTest, NextByteSuccessTest) {
   auto bytes = ByteArray{0, 1, 2};
   auto stream = ByteArrayStream{bytes};
 
-  auto bytes_left = bytes.size();
-
   for (size_t i = 0; i < bytes.size(); i++) {
-
     auto byte = stream.nextByte();
     ASSERT_TRUE(byte) << "Fail in " << i;
     ASSERT_EQ(*byte, bytes.at(i)) << "Fail in " << i;
   }
+  ASSERT_FALSE(stream.nextByte());
 }
 
 /**

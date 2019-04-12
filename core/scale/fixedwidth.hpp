@@ -7,7 +7,6 @@
 #define KAGOME_SCALE_FIXEDWIDTH_HPP
 
 #include <outcome/outcome.hpp>
-
 #include "common/buffer.hpp"
 #include "common/byte_stream.hpp"
 #include "common/result.hpp"
