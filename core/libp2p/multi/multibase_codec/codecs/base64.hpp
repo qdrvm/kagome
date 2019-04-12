@@ -8,8 +8,8 @@
 
 #include <optional>
 
+#include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
-#include "common/result.hpp"
 
 /**
  * Encode/decode to/from base64 format

@@ -18,7 +18,7 @@ namespace kagome::common {
    * Error codes for exceptions that may occur during blob initialization
    */
   enum class BlobError {
-    kIncorrectLength = 1
+    INCORRECT_LENGTH = 1
   };
 
   using byte_t = uint8_t;
@@ -65,13 +65,12 @@ namespace kagome::common {
     /**
      * Create Blob from arbitrary string, putting its bytes into the blob
      * @param data arbitrary string containing
-     * @return result containing Blob object if string has proper size,
-     * otherwise result contains string with error message
+     * @return result containing Blob object if string has proper size
      */
     static outcome::result<Blob<size_>> fromString(
         std::string_view data) {
       if (data.size() != size_) {
-        return BlobError::kIncorrectLength;
+        return BlobError::INCORRECT_LENGTH;
       }
 
       Blob<size_> b;
@@ -91,7 +90,7 @@ namespace kagome::common {
 
       OUTCOME_TRY(res, unhex(hex));
       if(res.size() != size_) {
-        return BlobError::kIncorrectLength;
+        return BlobError::INCORRECT_LENGTH;
       }
 
       Blob<size_> blob;

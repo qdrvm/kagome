@@ -27,10 +27,10 @@ namespace libp2p::multi {
     static constexpr uint8_t kMaxHashLength = 127;
 
     enum class Error {
-      kZeroInputLength = 1,
-      kInputTooLong,
-      kInputToShort,
-      kInconsistentLength
+      ZERO_INPUT_LENGTH = 1,
+      INPUT_TOO_LONG,
+      INPUT_TOO_SHORT,
+      INCONSISTENT_LENGTH
     };
 
     /**

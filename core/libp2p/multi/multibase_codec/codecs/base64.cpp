@@ -81,9 +81,6 @@ namespace {
 }  // namespace
 
 namespace libp2p::multi::detail {
-  using kagome::expected::Result;
-  using kagome::expected::Value;
-  using kagome::expected::Error;
 
   /**
    * Actual implementation of the encoding

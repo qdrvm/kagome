@@ -25,13 +25,13 @@ namespace {
   constexpr std::optional<MultibaseCodec::Encoding> encodingByChar(char ch) {
     switch (ch) {
       case 'f':
-        return MultibaseCodec::Encoding::kBase16Lower;
+        return MultibaseCodec::Encoding::BASE16_LOWER;
       case 'F':
-        return MultibaseCodec::Encoding::kBase16Upper;
+        return MultibaseCodec::Encoding::BASE16_UPPER;
       case 'Z':
-        return MultibaseCodec::Encoding::kBase58;
+        return MultibaseCodec::Encoding::BASE58;
       case 'm':
-        return MultibaseCodec::Encoding::kBase64;
+        return MultibaseCodec::Encoding::BASE64;
       default:
         return {};
     }
@@ -47,12 +47,12 @@ namespace {
 
   /// all available codec functions
   const std::unordered_map<MultibaseCodec::Encoding, CodecFunctions> codecs{
-      {MultibaseCodec::Encoding::kBase16Upper,
+      {MultibaseCodec::Encoding::BASE16_UPPER,
        {&encodeBase16Upper, &decodeBase16Upper}},
-      {MultibaseCodec::Encoding::kBase16Lower,
+      {MultibaseCodec::Encoding::BASE16_LOWER,
        {&encodeBase16Lower, &decodeBase16Lower}},
-      {MultibaseCodec::Encoding::kBase58, {&encodeBase58, &decodeBase58}},
-      {MultibaseCodec::Encoding::kBase64, {&encodeBase64, &decodeBase64}}};
+      {MultibaseCodec::Encoding::BASE58, {&encodeBase58, &decodeBase58}},
+      {MultibaseCodec::Encoding::BASE64, {&encodeBase64, &decodeBase64}}};
 }  // namespace
 
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, MultibaseCodecImpl::Error, e) {

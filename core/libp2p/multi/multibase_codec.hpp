@@ -27,10 +27,10 @@ namespace libp2p::multi {
      * Encodings, supported by this Multibase
      */
     enum class Encoding : char {
-      kBase16Lower = 'f',
-      kBase16Upper = 'F',
-      kBase58 = 'Z',
-      kBase64 = 'm'
+      BASE16_LOWER = 'f',
+      BASE16_UPPER = 'F',
+      BASE58 = 'Z',
+      BASE64 = 'm'
     };
 
     /**

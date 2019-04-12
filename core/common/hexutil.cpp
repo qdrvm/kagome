@@ -11,9 +11,9 @@
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::common, UnhexError, e) {
   using kagome::common::UnhexError;
   switch (e) {
-    case UnhexError::kNonHexInput:
+    case UnhexError::NON_HEX_INPUT:
       return "Input contains non-hex characters";
-    case UnhexError::kNotEnoughInput:
+    case UnhexError::NOT_ENOUGH_INPUT:
       return "Input contains odd number of characters";
     default:
       return "Unknown error";
@@ -50,13 +50,13 @@ namespace kagome::common {
       return blob;
 
     } catch (const boost::algorithm::not_enough_input &e) {
-      return UnhexError::kNotEnoughInput;
+      return UnhexError::NOT_ENOUGH_INPUT;
 
     } catch (const boost::algorithm::non_hex_input &e) {
-      return UnhexError::kNonHexInput;
+      return UnhexError::NON_HEX_INPUT;
 
     } catch (const std::exception &e) {
-      return UnhexError::kUnknown;
+      return UnhexError::UNKNOWN;
     }
   }
 }  // namespace kagome::common

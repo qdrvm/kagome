@@ -9,7 +9,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::common, BlobError, e) {
   using kagome::common::BlobError;
 
   switch(e) {
-    case BlobError::kIncorrectLength:
+    case BlobError::INCORRECT_LENGTH:
       return "Input string has incorrect length, not matching the blob size";
     default:
       return "Unknown error";

@@ -17,13 +17,13 @@ using kagome::common::unhex;
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, Multihash::Error, e) {
   using E = libp2p::multi::Multihash::Error;
   switch (e) {
-    case E::kZeroInputLength:
+    case E::ZERO_INPUT_LENGTH:
       return "The length encoded in the header is zero";
-    case E::kInconsistentLength:
+    case E::INCONSISTENT_LENGTH:
       return "The length encoded in the input data header doesn't match the actual length of the input data";
-    case E::kInputTooLong:
+    case E::INPUT_TOO_LONG:
       return "The length of the input exceeds the maximum length of " + std::to_string(libp2p::multi::Multihash::kMaxHashLength);
-    case E::kInputToShort:
+    case E::INPUT_TOO_SHORT:
       return "The length of the input is less than the required minimum of two bytes for the multihash header";
     default:
       return "Unknown error";
@@ -43,7 +43,7 @@ namespace libp2p::multi {
   auto Multihash::create(HashType type, Hash hash)
       -> outcome::result<Multihash> {
     if (hash.size() > kMaxHashLength) {
-      return Error::kInputTooLong;
+      return Error::INPUT_TOO_LONG;
     }
 
     return Multihash{type, std::move(hash)};
@@ -58,7 +58,7 @@ namespace libp2p::multi {
   auto Multihash::createFromBuffer(const Buffer &b)
       -> outcome::result<Multihash> {
     if (b.size() < kHeaderSize) {
-      return Error::kInputToShort;
+      return Error::INPUT_TOO_SHORT;
     }
 
     UVarint varint(gsl::span(b.toBytes(), b.size()));
@@ -68,14 +68,14 @@ namespace libp2p::multi {
     Hash hash(std::vector<uint8_t>(b.begin() + varint.size() + 1, b.end()));
 
     if (length == 0) {
-      return Error::kZeroInputLength;
+      return Error::ZERO_INPUT_LENGTH;
     }
 
     if (hash.size() != length) {
       auto s =
           "The hash length %1%, provided in the header, "
           "does not equal the actual hash length %2%";
-      return Error::kInconsistentLength;
+      return Error::INCONSISTENT_LENGTH;
     }
 
     return Multihash::create(type, std::move(hash));

@@ -30,7 +30,7 @@ class MultibaseCodecTest : public ::testing::Test {
 
 TEST_F(MultibaseCodecTest, EncodeEmptyBytes) {
   auto encoded_str =
-      multibase->encode(Buffer{}, MultibaseCodec::Encoding::kBase16Lower);
+      multibase->encode(Buffer{}, MultibaseCodec::Encoding::BASE16_LOWER);
   ASSERT_TRUE(encoded_str.empty());
 }
 
@@ -57,7 +57,7 @@ TEST_F(MultibaseCodecTest, DecodeFewCharacters) {
 
 class Base16EncodingUpper : public MultibaseCodecTest {
  public:
-  MultibaseCodec::Encoding encoding = MultibaseCodec::Encoding::kBase16Upper;
+  MultibaseCodec::Encoding encoding = MultibaseCodec::Encoding::BASE16_UPPER;
 
   std::string_view encoded_correct{"F00010204081020FF"};
   Buffer decoded_correct{0, 1, 2, 4, 8, 16, 32, 255};
@@ -108,7 +108,7 @@ TEST_F(Base16EncodingUpper, IncorrectBody) {
 
 class Base16EncodingLower : public MultibaseCodecTest {
  public:
-  MultibaseCodec::Encoding encoding = MultibaseCodec::Encoding::kBase16Lower;
+  MultibaseCodec::Encoding encoding = MultibaseCodec::Encoding::BASE16_LOWER;
 
   std::string_view encoded_correct{"f00010204081020ff"};
   Buffer decoded_correct{0, 1, 2, 4, 8, 16, 32, 255};
@@ -159,7 +159,7 @@ TEST_F(Base16EncodingLower, IncorrectBody) {
 
 class Base58Encoding : public MultibaseCodecTest {
  public:
-  MultibaseCodec::Encoding encoding = MultibaseCodec::Encoding::kBase58;
+  MultibaseCodec::Encoding encoding = MultibaseCodec::Encoding::BASE58;
 
   const std::vector<std::pair<Buffer, std::string_view>> decode_encode_table{
       {Buffer{0x61}, "Z2g"},
@@ -276,7 +276,7 @@ TEST_F(Base58Encoding, SkipsWhitespacesFailure) {
 
 class Base64Encoding : public MultibaseCodecTest {
  public:
-  MultibaseCodec::Encoding encoding = MultibaseCodec::Encoding::kBase64;
+  MultibaseCodec::Encoding encoding = MultibaseCodec::Encoding::BASE64;
 
   const std::vector<std::pair<Buffer, std::string_view>> decode_encode_table{
       {Buffer{0x66}, "mZg=="},
