@@ -15,13 +15,21 @@ namespace libp2p::multi::converters {
 
   auto TcpConverter::addressToHex(std::string_view addr)
       -> outcome::result<std::string> {
-    int64_t n = std::stoi(std::string(addr));
+    int64_t n = 0;
+    if(!std::all_of(addr.begin(), addr.end(), [](char c) { return std::isdigit(c) == 1; })) {
+      return ConversionError::INVALID_ADDRESS;
+    }
+    try {
+      n = std::stoi(std::string(addr));
+    } catch(std::exception& e) {
+      return ConversionError::INVALID_ADDRESS;
+    }
     if (n == 0) {
       return "0000";
     }
     if (n < 65536 && n > 0) {
       return kagome::common::int_to_hex(n, 4);
     }
-    return ConversionError::kInvalidAddress;
+    return ConversionError::INVALID_ADDRESS;
   }
 }  // namespace libp2p::multi::converters

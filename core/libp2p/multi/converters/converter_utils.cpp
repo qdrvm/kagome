@@ -27,7 +27,7 @@ namespace libp2p::multi::converters {
 
   outcome::result<Buffer> multiaddrToBytes(std::string_view str) {
     if (str[0] != '/') {
-      return ConversionError::kAddressDoesNotBeginWithSlash;
+      return ConversionError::ADDRESS_DOES_NOT_BEGIN_WITH_SLASH;
     }
     str.remove_prefix(1);
     if(str.back() == '/') {
@@ -51,7 +51,7 @@ namespace libp2p::multi::converters {
           processed += UVarint(static_cast<uint64_t>(protx->code)).toHex();
           type = WordType::Address;  // Since the next word will be an address
         } else {
-          return ConversionError::kNoSuchProtocol;
+          return ConversionError::NO_SUCH_PROTOCOL;
         }
       } else {
         auto res = addressToHex(*protx, word);
@@ -100,9 +100,9 @@ namespace libp2p::multi::converters {
       case Protocol::Code::p2p_stardust:
       case Protocol::Code::p2p_webrtc_direct:
       case Protocol::Code::p2p_circuit:
-        return ConversionError::kNotImplemented;
+        return ConversionError::NOT_IMPLEMENTED;
       default:
-        return ConversionError::kNoSuchProtocol;
+        return ConversionError::NO_SUCH_PROTOCOL;
     }
   }
 
@@ -122,7 +122,7 @@ namespace libp2p::multi::converters {
       Protocol const *protocol =
           ProtocolList::get(static_cast<Protocol::Code>(protocol_int));
       if (protocol == nullptr) {
-        return ConversionError::kNoSuchProtocol;
+        return ConversionError::NO_SUCH_PROTOCOL;
       }
 
       if (protocol->name != "ipfs") {
@@ -150,7 +150,7 @@ namespace libp2p::multi::converters {
           results += std::to_string(std::stoul(address, nullptr, 16));
 
         } else {
-          return ConversionError::kNotImplemented;
+          return ConversionError::NOT_IMPLEMENTED;
         }
 
       } else {
@@ -159,7 +159,7 @@ namespace libp2p::multi::converters {
         auto prefixedvarint = hex.substr(lastpos, 2);
         auto prefixBytes = unhex(prefixedvarint);
         if (prefixBytes.hasError()) {
-          return ConversionError::kInvalidAddress;
+          return ConversionError::INVALID_ADDRESS;
         }
         auto addrsize = UVarint(prefixBytes.getValueRef()).toUInt64();
 
@@ -168,7 +168,7 @@ namespace libp2p::multi::converters {
         // convert the address from hex values to a binary array
         auto addrbufRes = Buffer::fromHex(ipfsAddr);
         if (addrbufRes.hasError()) {
-          return ConversionError::kInvalidAddress;
+          return ConversionError::INVALID_ADDRESS;
         }
         auto &addrbuf = addrbufRes.getValueRef();
         auto encode_res = MultibaseCodecImpl{}.encode(

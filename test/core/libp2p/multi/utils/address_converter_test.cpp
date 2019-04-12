@@ -24,6 +24,15 @@ TEST(AddressConverter, Ip4AddressToBytes) {
 
   bytes = addressToHex(*ProtocolList::get("ip4"), "0.0.0.1").value();
   ASSERT_EQ(bytes, "00000001");
+
+  bytes = addressToHex(*ProtocolList::get("ip4"), "0.0.0.0").value();
+  ASSERT_EQ(bytes, "00000000");
+
+  auto res = addressToHex(*ProtocolList::get("ip4"), "0.0.1");
+  ASSERT_FALSE(res);
+
+  res = addressToHex(*ProtocolList::get("ip4"), "0.0.0.1.");
+  ASSERT_FALSE(res);
 }
 
 /**
@@ -36,6 +45,8 @@ TEST(AddressConverter, TcpAddressToBytes) {
   auto p = ProtocolList::get(libp2p::multi::Protocol::Code::tcp);
   ASSERT_EQ("04D2", addressToHex(*p, "1234").value());
   ASSERT_EQ("0000", addressToHex(*p, "0").value());
+  ASSERT_FALSE(addressToHex(*p, "34343430"));
+  ASSERT_FALSE(addressToHex(*p, "3434fd"));
 }
 
 /**
@@ -48,6 +59,9 @@ TEST(AddressConverter, UdpAddressToBytes) {
   auto p = ProtocolList::get(libp2p::multi::Protocol::Code::udp);
   ASSERT_EQ("04D2", addressToHex(*p, "1234").value());
   ASSERT_EQ("0000", addressToHex(*p, "0").value());
+  ASSERT_FALSE(addressToHex(*p, "34343430"));
+  ASSERT_FALSE(addressToHex(*p, "f3434"));
+  ASSERT_FALSE(addressToHex(*p, " 34343 "));
 }
 
 /**
@@ -62,4 +76,6 @@ TEST(AddressConverter, IpfsAddressToBytes) {
       "221220D52EBB89D85B02A284948203A62FF28389C57C9F42BEEC4EC20DB76A68911C0B",
       addressToHex(*p, "QmcgpsyWgH8Y8ajJz1Cu72KnS5uo2Aa2LpzU7kinSupNKC")
           .value());
+  ASSERT_FALSE(addressToHex(*p, "QmcgpsyWgH81Il8ajJz1Cu72KnS5uo2Aa2LpzU7kinSupNKC"));
+  ASSERT_FALSE(addressToHex(*p, "QmCgp"));
 }

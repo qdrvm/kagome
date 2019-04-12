@@ -25,7 +25,7 @@ namespace libp2p::multi::converters {
         + std::string(addr);
     auto res = codec.decode(encodingStr);
     if (res.hasError()) {
-      return ConversionError::kInvalidAddress;
+      return ConversionError::INVALID_ADDRESS;
     }
     auto buf = res.getValue();
     // throw everything in a hex string so we can debug the results

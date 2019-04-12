@@ -15,10 +15,10 @@ namespace libp2p::multi::converters {
    * a multiaddr between byte format and string format
    */
   enum class ConversionError {
-    kAddressDoesNotBeginWithSlash = 1,
-    kNoSuchProtocol,
-    kInvalidAddress,
-    kNotImplemented
+    ADDRESS_DOES_NOT_BEGIN_WITH_SLASH = 1,
+    NO_SUCH_PROTOCOL,
+    INVALID_ADDRESS,
+    NOT_IMPLEMENTED
   };
 }
 
