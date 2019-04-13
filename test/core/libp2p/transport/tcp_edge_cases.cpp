@@ -53,9 +53,8 @@ TEST(TCP, TwoListenersCantBindOnSamePort) {
  * @then each client is expected to receive sent message
  */
 TEST(TCP, SingleListenerCanAcceptManyClients) {
-  const int kClients = 2;
+  const int kClients = 4;
   const int kSize = 1500;
-  const int kRetries = 10;
   size_t counter = 0;  // number of answers
 
   /**
@@ -79,7 +78,7 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
         return;
       }
 
-      EXPECT_FALSE(ec);
+      EXPECT_ERRCODE_SUCCESS(ec);
       EXPECT_EQ(read, size);
 
       do_write();
@@ -100,7 +99,7 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
         return;
       }
 
-      EXPECT_FALSE(ec);
+      EXPECT_ERRCODE_SUCCESS(ec);
 
       counter++;
 
@@ -139,33 +138,29 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
       boost::asio::io_context context;
 
       auto transport = std::make_unique<TransportImpl>(context);
-      for (int i = 0; i < kRetries; i++) {
-        srand(i);
+      EXPECT_OUTCOME_TRUE(conn, transport->dial(ma));
 
-        EXPECT_OUTCOME_TRUE(conn, transport->dial(ma));
+      auto buf = std::make_shared<Buffer>(kSize, 0);
+      std::generate(buf->begin(), buf->end(), []() {
+        return rand();  // NOLINT
+      });
 
-        auto buf = std::make_shared<Buffer>(kSize, 0);
-        std::generate(buf->begin(), buf->end(), []() {
-          return rand();  // NOLINT
-        });
+      auto rdbuf = std::make_shared<Buffer>(kSize, 1);
+      conn->asyncWrite(
+          boost::asio::buffer(buf->toVector(), kSize),
+          [buf, kSize, conn, rdbuf](auto &&ec, size_t write) {
+            EXPECT_ERRCODE_SUCCESS(ec);
+            ASSERT_EQ(kSize, write);
 
-        auto rdbuf = std::make_shared<Buffer>(kSize, 1);
-        conn->asyncWrite(
-            boost::asio::buffer(buf->toVector(), kSize),
-            [buf, kSize, conn, rdbuf](auto &&ec, size_t write) {
-              ASSERT_FALSE(ec);
-              ASSERT_EQ(kSize, write);
-
-              conn->asyncRead(
-                  boost::asio::buffer(rdbuf->toVector(), kSize), kSize,
-                  [buf, kSize, write, rdbuf](auto &&ec, size_t read) {
-                    ASSERT_FALSE(ec);
-                    ASSERT_EQ(read, write);
-                    ASSERT_EQ(read, kSize);
-                    ASSERT_EQ(*rdbuf, *buf);
-                  });
-            });
-      }
+            conn->asyncRead(boost::asio::buffer(rdbuf->toVector(), kSize),
+                            kSize,
+                            [buf, kSize, write, rdbuf](auto &&ec, size_t read) {
+                              EXPECT_ERRCODE_SUCCESS(ec);
+                              ASSERT_EQ(read, write);
+                              ASSERT_EQ(read, kSize);
+                              ASSERT_EQ(*rdbuf, *buf);
+                            });
+          });
       context.run_for(500ms);
     });
   });
@@ -174,7 +169,7 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
   std::for_each(clients.begin(), clients.end(),
                 [](std::thread &t) { t.join(); });
 
-  ASSERT_EQ(counter, kRetries * kClients)
+  ASSERT_EQ(counter, kClients)
       << "not all clients' requests were handled";
 }
 

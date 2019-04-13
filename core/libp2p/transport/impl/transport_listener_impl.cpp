@@ -63,8 +63,7 @@ namespace libp2p::transport {
             boost::asio::post(context_, [this, c]() { handler_(c); });
             signal_new_connection_(c);
           } else {
-            boost::asio::post(
-                context_, [this, e = r.error()]() { this->signal_error_(e); });
+            signal_error_(r.error());
           }
         });
   }
