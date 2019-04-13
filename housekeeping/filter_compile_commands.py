@@ -67,6 +67,10 @@ def read_whitelist():
             if len(l) > 0:
                 whitelist.append(l)
 
+    if len(whitelist) == 0:
+        print("no input provided, exiting...")
+        sys.exit(0) # it is ok
+
     return whitelist
 
 

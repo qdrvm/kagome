@@ -8,7 +8,7 @@ BN=$(dirname $0)
 cd ${BN}
 
 # list of cpp files changed in this branch (in comparison to master); tests are ignored
-FILES=$(git diff --name-only HEAD..origin/master | grep "cpp" | grep -v "test")
+FILES=$(git diff --name-only HEAD..origin/master | grep "cpp" | grep -v "test") || exit 0
 CLANG_TIDY=$(find /usr/local/Cellar/llvm -type f -name clang-tidy | head -n 1)
 RUN_CLANG_TIDY=$(find /usr/local/Cellar/llvm -type f -name run-clang-tidy.py | head -n 1)
 
