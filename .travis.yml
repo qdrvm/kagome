@@ -52,14 +52,8 @@ matrix:
           packages:
             - git
             - llvm
-      script:
-        # run clang-tidy
-        - export CLANG_TIDY=$(find /usr/local/Cellar/llvm -type f -name clang-tidy | head -n 1)
-        - export CC=$_CC
-        - export CXX=$_CXX
-        - cmake . -Bbuild -DCLANG_TIDY=ON -DCLANG_TIDY_BIN=${CLANG_TIDY}
-        - cmake --build build -- -j2
-        - cmake --build build --target test
+      after_script:
+        - housekeeping/clang-tidy.sh build
 
     - os: linux
       name: "Linux gcc8 Coverage"
