@@ -7,8 +7,16 @@ BUILD_DIR=$(echo "$(cd "$(dirname "$1")"; pwd -P)/$(basename "$1")")
 BN=$(dirname $0)
 cd ${BN}
 
+
+BRANCH=
+if [[ -z "$TRAVIS_BRANCH" ]]; then
+    BRANCH=${TRAVIS_BRANCH}
+else
+    BRANCH=$(git branch | grep \* | cut -d ' ' -f2)
+fi
+
 # list of cpp files changed in this branch (in comparison to master); tests are ignored
-FILES=$(git show --name-only --format=oneline master | tail -n+2 | grep "cpp" | grep -v "test")
+FILES=$(git diff --name-only $BRANCH..origin/master | grep "cpp" | grep -v "test")
 CLANG_TIDY=$(find /usr/local/Cellar/llvm -type f -name clang-tidy | head -n 1)
 RUN_CLANG_TIDY=$(find /usr/local/Cellar/llvm -type f -name run-clang-tidy.py | head -n 1)
 
