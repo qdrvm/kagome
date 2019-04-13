@@ -7,8 +7,6 @@ BUILD_DIR=$(echo "$(cd "$(dirname "$1")"; pwd -P)/$(basename "$1")")
 BN=$(dirname $0)
 cd ${BN}
 
-
-
 # list of cpp files changed in this branch (in comparison to master); tests are ignored
 FILES=$(git diff --name-only HEAD..origin/master | grep "cpp" | grep -v "test")
 CLANG_TIDY=$(find /usr/local/Cellar/llvm -type f -name clang-tidy | head -n 1)
