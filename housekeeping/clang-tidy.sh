@@ -13,6 +13,6 @@ CLANG_TIDY=$(find /usr/local/Cellar/llvm -type f -name clang-tidy | head -n 1)
 RUN_CLANG_TIDY=$(find /usr/local/Cellar/llvm -type f -name run-clang-tidy.py | head -n 1)
 
 # filter compile_commands.json
-echo ${FILES} | ./filter_compile_commands.py -p ${BUILD_DIR}
+echo ${FILES} | python3 ./filter_compile_commands.py -p ${BUILD_DIR}
 
-${RUN_CLANG_TIDY} -clang-tidy-binary=${CLANG_TIDY} -p ${BUILD_DIR}
+python3 ${RUN_CLANG_TIDY} -clang-tidy-binary=${CLANG_TIDY} -p ${BUILD_DIR}

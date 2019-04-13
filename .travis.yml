@@ -119,8 +119,6 @@ install:
       elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
         pip3 install --user pyyaml
       fi
-    # make py3 as default python
-    sudo ln -s /usr/local/bin/python3 /usr/local/bin/python
     pip3 install --user requests gitpython cmake
 
 before_script:
