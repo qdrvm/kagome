@@ -29,7 +29,7 @@ struct Reverse : public std::enable_shared_from_this<Reverse> {
 
   void do_read_completed(const std::error_code &ec, size_t read) {
     ASSERT_FALSE(conn->isClosed());
-    EXPECT_FALSE(ec);
+    EXPECT_ERRCODE_SUCCESS(ec);
     EXPECT_EQ(read, size);
 
     do_reverse();
@@ -56,7 +56,7 @@ struct Reverse : public std::enable_shared_from_this<Reverse> {
 
   void do_write_completed(const std::error_code &ec, size_t write) {
     ASSERT_FALSE(conn->isClosed());
-    EXPECT_FALSE(ec);
+    EXPECT_ERRCODE_SUCCESS(ec);
     EXPECT_TRUE(conn->close());
   }
 
@@ -145,14 +145,14 @@ TEST(TCP, Integration) {
       [&asyncReadExecuted, &asyncWriteExecuted, rcvbuf, &msg, conn](
           auto &&ec, size_t write) {
         asyncWriteExecuted = true;
-        EXPECT_FALSE(ec);
+        EXPECT_ERRCODE_SUCCESS(ec);
         EXPECT_EQ(msg.size(), write);
 
         conn->asyncRead(
             boost::asio::buffer(rcvbuf->toVector()), msg.size(),
             [&asyncReadExecuted, msg, rcvbuf, write](auto &&ec, size_t read) {
               asyncReadExecuted = true;
-              EXPECT_FALSE(ec);
+              EXPECT_ERRCODE_SUCCESS(ec);
               EXPECT_EQ(read, write);
               std::string reversed{rcvbuf->begin(), rcvbuf->end()};
               std::cout << "client> received  : " << reversed << "\n";

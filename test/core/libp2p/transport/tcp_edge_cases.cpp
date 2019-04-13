@@ -79,7 +79,7 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
         return;
       }
 
-      EXPECT_FALSE(ec);
+      EXPECT_ERRCODE_SUCCESS(ec);
       EXPECT_EQ(read, size);
 
       do_write();
@@ -100,7 +100,7 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
         return;
       }
 
-      EXPECT_FALSE(ec);
+      EXPECT_ERRCODE_SUCCESS(ec);
 
       counter++;
 
@@ -153,13 +153,13 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
         conn->asyncWrite(
             boost::asio::buffer(buf->toVector(), kSize),
             [buf, kSize, conn, rdbuf](auto &&ec, size_t write) {
-              ASSERT_FALSE(ec);
+              EXPECT_ERRCODE_SUCCESS(ec);
               ASSERT_EQ(kSize, write);
 
               conn->asyncRead(
                   boost::asio::buffer(rdbuf->toVector(), kSize), kSize,
                   [buf, kSize, write, rdbuf](auto &&ec, size_t read) {
-                    ASSERT_FALSE(ec);
+                    EXPECT_ERRCODE_SUCCESS(ec);
                     ASSERT_EQ(read, write);
                     ASSERT_EQ(read, kSize);
                     ASSERT_EQ(*rdbuf, *buf);
