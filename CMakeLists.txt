@@ -8,8 +8,8 @@ endif(CCACHE_FOUND)
 
 include("cmake/Hunter/init.cmake")
 HunterGate(
-  URL "https://github.com/ruslo/hunter/archive/v0.23.135.tar.gz"
-  SHA1 "72eecdf1dea9fb6299d7fb61bbd00bd4ca170fa4"
+  URL "https://github.com/ruslo/hunter/archive/v0.23.154.tar.gz"
+  SHA1 "d720f3775d4b896dab91f8249de04956e31804dd"
 )
 
 PROJECT(kagome C CXX)
