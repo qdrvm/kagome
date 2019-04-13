@@ -8,7 +8,12 @@ BN=$(dirname $0)
 cd ${BN}
 
 
-BRANCH=$(git branch | grep \* | cut -d ' ' -f2)
+BRANCH=HEAD
+if [[ -z "$TRAVIS_BRANCH" ]]; then
+    BRANCH=${TRAVIS_BRANCH}
+fi
+BRANCH=$( git rev-parse --abbrev-ref ${BRANCH})
+
 
 # list of cpp files changed in this branch (in comparison to master); tests are ignored
 FILES=$(git diff --name-only $BRANCH..origin/master | grep "cpp" | grep -v "test")
