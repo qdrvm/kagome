@@ -164,7 +164,7 @@ namespace libp2p::crypto {
      * @param number - size of the random buffer
      * @return random bytes
      */
-    virtual Buffer randomBytes(size_t number) const = 0;
+    virtual outcome::result<Buffer> randomBytes(size_t number) const = 0;
 
     /**
      * Get a secure hash of the password

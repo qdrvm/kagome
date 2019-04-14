@@ -18,6 +18,13 @@ add_library(crypto_provider
         key.cpp
         private_key.hpp
         public_key.hpp
+        random/random_provider.hpp
+        random/random_fabric.hpp
+        random/random_fabric.cpp
+        random/impl/random_provider_std.hpp
+        random/impl/random_provider_std.cpp
+        random/impl/random_provider_std.hpp
+        random/impl/random_provider_std.cpp
         )
 
 target_link_libraries(crypto_provider

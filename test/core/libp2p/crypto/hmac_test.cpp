@@ -115,5 +115,5 @@ TEST_F(HmacFixture, hashInvalid) {
                                            sha1_key, message);
   ASSERT_FALSE(digest);
   ASSERT_EQ(digest.error().value(),
-            static_cast<int>(HmacProviderError::kUnsupportedHashMethod));
+            static_cast<int>(HmacProviderError::UNSUPPORTED_HASH_METHOD));
 }

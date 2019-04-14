@@ -34,7 +34,7 @@ namespace libp2p::crypto {
           break;
       }
 
-      return CryptoProviderError::kUnknownKeyType;
+      return CryptoProviderError::UNKNOWN_KEY_TYPE;
     }
 
     /**
@@ -56,7 +56,7 @@ namespace libp2p::crypto {
           break;
       }
 
-      return CryptoProviderError::kUnknownKeyType;
+      return CryptoProviderError::UNKNOWN_KEY_TYPE;
     }
   }  // namespace
 
@@ -143,7 +143,7 @@ namespace libp2p::crypto {
       const Buffer &key_bytes) const {
     proto::PublicKey proto_key;
     if (!proto_key.ParseFromArray(key_bytes.toBytes(), key_bytes.size())) {
-      return CryptoProviderError::kFailedToUnmarshalData;
+      return CryptoProviderError::FAILED_UNMARSHAL_DATA;
     }
 
     OUTCOME_TRY(key_type, unmarshalKeyType(proto_key.key_type()));
@@ -157,7 +157,7 @@ namespace libp2p::crypto {
       const Buffer &key_bytes) const {
     proto::PublicKey proto_key;
     if (!proto_key.ParseFromArray(key_bytes.toBytes(), key_bytes.size())) {
-      return CryptoProviderError::kFailedToUnmarshalData;
+      return CryptoProviderError::FAILED_UNMARSHAL_DATA;
     }
 
     OUTCOME_TRY(key_type, unmarshalKeyType(proto_key.key_type()));
@@ -173,7 +173,7 @@ namespace libp2p::crypto {
     std::terminate();
   }
 
-  Buffer CryptoProviderImpl::randomBytes(size_t number) const {
+  outcome::result<Buffer> CryptoProviderImpl::randomBytes(size_t number) const {
     // TODO(yuraz):  implement
     std::terminate();
   }
