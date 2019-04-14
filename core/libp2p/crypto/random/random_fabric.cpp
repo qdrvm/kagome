@@ -23,4 +23,9 @@ namespace libp2p::crypto::random {
     }
     return RandomProviderError::INVALID_PROVIDER_TYPE;
   }
+
+  outcome::result<RandomFabric::RandomProviderPtr>
+  RandomFabric::makeDefaultRandomProvider() {
+    std::terminate();
+  }
 }  // namespace libp2p::crypto::random

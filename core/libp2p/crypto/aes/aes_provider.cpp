@@ -21,7 +21,7 @@ namespace libp2p::crypto::aes {
                                   gsl::span<const uint8_t> iv,
                                   const EVP_CIPHER *cipher) {
     if (nullptr == cipher) {
-      return MiscError::kWrongArgumentValue;
+      return MiscError::WRONG_ARGUMENT_VALUE;
     }
 
     int len = 0;
@@ -76,7 +76,7 @@ namespace libp2p::crypto::aes {
                                   gsl::span<const uint8_t> iv,
                                   const EVP_CIPHER *cipher) {
     if (nullptr == cipher) {
-      return MiscError::kWrongArgumentValue;
+      return MiscError::WRONG_ARGUMENT_VALUE;
     }
 
     int len = 0;

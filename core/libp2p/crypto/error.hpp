@@ -42,7 +42,7 @@ namespace libp2p::crypto {
   };
 
   enum class MiscError {
-    kWrongArgumentValue = 1,  ///< wrong argument value
+    WRONG_ARGUMENT_VALUE = 1,  ///< wrong argument value
   };
 }  // namespace libp2p::crypto
 

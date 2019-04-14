@@ -21,7 +21,22 @@ namespace libp2p::crypto::random {
   class RandomFabric {
    public:
     using RandomProviderPtr = std::shared_ptr<RandomProvider>;
+
+    /**
+     * @brief creates instance of specified random provider
+     * some of them can fallback to pseudorandom sequence
+     * if platform doesn't provide suitable source of random numbers
+     * @param option random provider type
+     * @return random provider instance
+     */
     outcome::result<RandomProviderPtr> makeRandomProvider(RandomProviderType option);
+
+    /**
+     * @brief creates instance of default random provider
+     * which generates cryptographic-safe random numbers
+     * @return random provider instance
+     */
+    outcome::result<RandomProviderPtr> makeDefaultRandomProvider();
   };
 }  // namespace libp2p::crypto::random
 

@@ -14,7 +14,11 @@ namespace libp2p::crypto::random {
     std::random_device generator;
     std::uniform_int_distribution<uint8_t> distribution;
     Buffer bytes(number, 0);
-    std::generate(bytes.begin(), bytes.end(), distribution(generator));
+    auto count = number;
+    for (auto i = 0; i < number; ++i) {
+      bytes[i] = distribution(generator);
+    }
+
     return bytes;
   }
 }  // namespace libp2p::crypto::random
