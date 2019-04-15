@@ -6,12 +6,12 @@
 #include <gtest/gtest.h>
 
 #include "common/result.hpp"
-#include "scale/basic_stream.hpp"
+#include "scale/byte_array_stream.hpp"
 #include "scale/fixedwidth.hpp"
 
 using namespace kagome;          // NOLINT
 using namespace kagome::common;  // NOLINT
-using namespace common::scale;   // NOLINT
+using namespace kagome::scale;   // NOLINT
 
 /**
  * @given variety of integer numbers of different types
@@ -152,7 +152,7 @@ TEST(Scale, fixedwidthEncodeIntegers) {
 TEST(Scale, fixedwidthDecodeInt8) {
   // decode int8_t
   auto bytes = Buffer{0, 255, 128, 129, 123, 241};
-  auto stream = BasicStream{bytes};
+  auto stream = ByteArrayStream{bytes};
 
   {
     auto &&res = fixedwidth::decodeInt8(stream);
@@ -194,7 +194,7 @@ TEST(Scale, fixedwidthDecodeInt8) {
 TEST(Scale, fixedwidthDecodeUint8) {
   // decode uint8_t
   auto bytes = Buffer{0, 234, 255};
-  auto stream = BasicStream{bytes};
+  auto stream = ByteArrayStream{bytes};
 
   {
     auto &&res = fixedwidth::decodeUint8(stream);
@@ -229,7 +229,7 @@ TEST(Scale, fixedwidthDecodeInt16) {
                            199, 207};
   // clang-format on
 
-  auto stream = BasicStream{bytes};
+  auto stream = ByteArrayStream{bytes};
 
   {
     auto &&res = fixedwidth::decodeInt16(stream);
@@ -273,7 +273,7 @@ TEST(Scale, fixedwidthDecodeInt16) {
 TEST(Scale, fixedwidthDecodeUint16) {
   // decode uint16_t
   auto bytes = Buffer{2, 128};
-  auto stream = BasicStream{bytes};
+  auto stream = ByteArrayStream{bytes};
 
   {
     auto &&res = fixedwidth::decodeUint16(stream);
@@ -294,7 +294,7 @@ TEST(Scale, fixedwidthDecodeInt32) {
                            255, 255, 255, 255};
     //clang-format on
 
-    auto stream = BasicStream{bytes};
+    auto stream = ByteArrayStream{bytes};
 
     {
         auto &&res = fixedwidth::decodeInt32(stream);
@@ -320,7 +320,7 @@ TEST(Scale, fixedwidthDecodeUint32) {
                            1, 2, 3, 4};
     //clang-format on
 
-    auto stream = BasicStream{bytes};
+    auto stream = ByteArrayStream{bytes};
 
     {
         auto &&res = fixedwidth::decodeUint32(stream);
@@ -346,7 +346,7 @@ TEST(Scale, fixedwidthDecodeInt64) {
                            255, 255, 255, 255, 255, 255, 255, 255};
     //clang-format on
 
-    auto stream = BasicStream{bytes};
+    auto stream = ByteArrayStream{bytes};
 
     {
         auto &&res = fixedwidth::decodeInt64(stream);
@@ -372,7 +372,7 @@ TEST(Scale, fixedwidthDecodeUint64) {
                            255, 255, 255, 255, 255, 255, 255, 255};
     //clang-format on
 
-    auto stream = BasicStream{bytes};
+    auto stream = ByteArrayStream{bytes};
 
     {
         auto &&res = fixedwidth::decodeUint64(stream);

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "scale_codec_impl.hpp"
+#include "primitives/impl/scale_codec_impl.hpp"
 
 #include "primitives/block.hpp"
 #include "scale/collection.hpp"
@@ -12,7 +12,7 @@
 #include "scale/scale_error.hpp"
 
 using kagome::common::Buffer;
-using namespace kagome::common::scale;  // NOLINT
+using namespace kagome::scale;  // NOLINT
 
 namespace kagome::primitives {
 

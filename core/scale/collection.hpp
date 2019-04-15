@@ -12,7 +12,7 @@
 #include "scale/type_decoder.hpp"
 #include "scale/type_encoder.hpp"
 
-namespace kagome::common::scale::collection {
+namespace kagome::scale::collection {
   /**
    *  @brief encodeCollection function scale-encodes
    *         collection of same type values
@@ -22,8 +22,8 @@ namespace kagome::common::scale::collection {
    */
   template <class T>
   outcome::result<void> encodeCollection(const std::vector<T> &collection,
-                                         Buffer &out) {
-    Buffer encoded_collection;
+                                         common::Buffer &out) {
+    common::Buffer encoded_collection;
     OUTCOME_TRY(compact::encodeInteger(collection.size(), encoded_collection));
 
     TypeEncoder<T> encoder{};
@@ -42,7 +42,8 @@ namespace kagome::common::scale::collection {
    * @param out output stream
    * @return true if operation succeeded and false otherwise
    */
-  outcome::result<void> encodeBuffer(const Buffer &buf, Buffer &out);
+  outcome::result<void> encodeBuffer(const common::Buffer &buf,
+                                             common::Buffer &out);
 
   /**
    * @brief decodeCollection function decodes collection containing items of
@@ -52,7 +53,7 @@ namespace kagome::common::scale::collection {
    * @return decoded collection or error
    */
   template <class T>
-  outcome::result<std::vector<T>> decodeCollection(Stream &stream) {
+  outcome::result<std::vector<T>> decodeCollection(common::ByteStream &stream) {
     // determine number of items
     OUTCOME_TRY(collection_size, compact::decodeInteger(stream));
 
@@ -79,6 +80,6 @@ namespace kagome::common::scale::collection {
 
     return decoded_collection;
   }
-}  // namespace kagome::common::scale::collection
+}  // namespace kagome::scale::collection
 
 #endif  // KAGOME_SCALE_ADVANCED_HPP

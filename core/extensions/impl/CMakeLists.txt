@@ -39,3 +39,8 @@ add_library(sandboxing_extension
 add_library(storage_extension
     storage_extension.cpp
     )
+target_link_libraries(storage_extension
+    buffer
+    blob
+    logger
+    )

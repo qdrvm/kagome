@@ -6,8 +6,10 @@
 #ifndef KAGOME_MEMORY_HPP
 #define KAGOME_MEMORY_HPP
 
+#include <array>
 #include <optional>
 
+#include "common/buffer.hpp"
 #include "runtime/common.hpp"
 
 namespace kagome::runtime {
@@ -22,6 +24,11 @@ namespace kagome::runtime {
   class WasmMemory {
    public:
     const static auto kMaxMemorySize = std::numeric_limits<SizeType>::max();
+
+    /**
+     * @brief Return the size of the memory
+     */
+    virtual SizeType size() const = 0;
 
     /**
      * Resizes memory to the given size
@@ -59,6 +66,14 @@ namespace kagome::runtime {
     virtual std::array<uint8_t, 16> load128(WasmPointer addr) const = 0;
 
     /**
+     * Load bytes from provided address into the buffer of size n
+     * @param addr address in memory to load bytes
+     * @param n number of bytes to be loaded
+     * @return Buffer of length N
+     */
+    virtual common::Buffer loadN(WasmPointer addr, SizeType n) const = 0;
+
+    /**
      * Store integers at given address of the wasm memory
      */
     virtual void store8(WasmPointer addr, int8_t value) = 0;
@@ -67,6 +82,7 @@ namespace kagome::runtime {
     virtual void store64(WasmPointer addr, int64_t value) = 0;
     virtual void store128(WasmPointer addr,
                           const std::array<uint8_t, 16> &value) = 0;
+    virtual void storeBuffer(WasmPointer addr, const common::Buffer &value) = 0;
   };
 }  // namespace kagome::runtime
 

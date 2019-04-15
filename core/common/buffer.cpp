@@ -145,4 +145,8 @@ namespace kagome::common {
     return *this;
   }
 
+  std::ostream &operator<<(std::ostream &os, const Buffer &buffer) {
+    return os << buffer.toHex();
+  }
+
 }  // namespace kagome::common

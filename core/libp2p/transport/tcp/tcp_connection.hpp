@@ -11,50 +11,53 @@
 #include "libp2p/transport/connection.hpp"
 
 #include <array>
-
 #include <boost/asio.hpp>
 
 namespace libp2p::transport {
-
-  class TcpListener;
-
-  // TODO(warchant): consider using of boost::asio::streambuf for better
-  // performance/usability instead of kagome::common::Buffer
-
-  // TODO(warchant): consider using pre-allocated buffer for better performance.
-  // This buffer should have size = upper size of single message.
 
   /**
    * @brief boost::asio implementation of TCP connection (socket).
    */
   class TcpConnection : public Connection,
                         public std::enable_shared_from_this<TcpConnection> {
-    using Socket = boost::asio::ip::tcp::socket;
-    using Buffer = kagome::common::Buffer;
-
    public:
+    using Buffer = kagome::common::Buffer;
+    using Tcp = boost::asio::ip::tcp;
+    using ResolverResultsType = Tcp::resolver::results_type;
+
     explicit TcpConnection(boost::asio::io_context &context);
-    explicit TcpConnection(Socket socket);
+    explicit TcpConnection(boost::asio::io_context &context,
+                           Tcp::socket socket);
+
+    outcome::result<TcpConnection::ResolverResultsType> resolve(
+        const Tcp::endpoint &e);
+
+    outcome::result<void> connect(const Tcp::endpoint &endpoint);
 
     outcome::result<multi::Multiaddress> getRemoteMultiaddr() const override;
-
-    outcome::result<Buffer> read(uint32_t to_read) override;
-
-    outcome::result<Buffer> readSome(uint32_t to_read) override;
-
-    void readAsync(
-        std::function<BufferResultCallback> callback) noexcept override;
-
-    outcome::result<void> writeSome(const Buffer &msg) override;
-
-    outcome::result<void> write(const Buffer &msg) override;
-
-    void writeAsync(const Buffer &msg,
-                    std::function<ErrorCodeCallback> handler) noexcept override;
 
     outcome::result<void> close() override;
 
     bool isClosed() const override;
+
+    void asyncRead(
+        boost::asio::mutable_buffer &mut, uint32_t to_read,
+        std::function<Readable::CompletionHandler> cb) noexcept override;
+
+    void asyncRead(boost::asio::mutable_buffer &&mut, uint32_t to_read,
+                   std::function<Readable::CompletionHandler> cb) noexcept override;
+
+    void asyncRead(
+        boost::asio::streambuf &streambuf, uint32_t to_read,
+        std::function<Readable::CompletionHandler> cb) noexcept override;
+
+    void asyncWrite(
+        const boost::asio::const_buffer &buf,
+        std::function<Writable::CompletionHandler> cb) noexcept override;
+
+    void asyncWrite(
+        boost::asio::streambuf &buf,
+        std::function<Writable::CompletionHandler> cb) noexcept override;
 
     ~TcpConnection() override = default;
     TcpConnection(const TcpConnection &copy) = delete;
@@ -63,9 +66,8 @@ namespace libp2p::transport {
     TcpConnection &operator=(TcpConnection &&other) = default;
 
    private:
-    friend class TcpListener;
-
-    Socket socket_;
+    Tcp::resolver resolver_;
+    Tcp::socket socket_;
   };
 
 }  // namespace libp2p::transport

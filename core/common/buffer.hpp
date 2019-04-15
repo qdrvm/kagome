@@ -187,6 +187,8 @@ namespace kagome::common {
     Buffer &putRange(const T &begin, const T &end);
   };
 
+  std::ostream &operator<<(std::ostream &os, const Buffer &buffer);
+
 }  // namespace kagome::common
 
 #endif  // KAGOME_BUFFER_HPP

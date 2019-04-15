@@ -15,6 +15,10 @@ namespace kagome::runtime {
     resize(size);
   }
 
+  SizeType WasmMemoryImpl::size() const {
+    return memory_.size();
+  }
+
   void WasmMemoryImpl::resize(uint32_t newSize) {
     // Ensure the smallest allocation is large enough that most allocators
     // will provide page-aligned storage. This hopefully allows the
@@ -42,7 +46,7 @@ namespace kagome::runtime {
     }
     if (new_offset <= memory_.size()) {
       offset_ = new_offset;
-      allocated[ptr] = size;
+      allocated_[ptr] = size;
       return ptr;
     }
 
@@ -50,14 +54,14 @@ namespace kagome::runtime {
   }
 
   std::optional<SizeType> WasmMemoryImpl::deallocate(WasmPointer ptr) {
-    const auto &it = allocated.find(ptr);
-    if (it == allocated.end()) {
+    const auto it = allocated_.find(ptr);
+    if (it == allocated_.end()) {
       return std::nullopt;
     }
     const auto size = it->second;
 
-    allocated.erase(ptr);
-    deallocated[ptr] = size;
+    allocated_.erase(ptr);
+    deallocated_[ptr] = size;
 
     return size;
   }
@@ -69,15 +73,15 @@ namespace kagome::runtime {
       // grow memory and allocate in new space
       return growAlloc(size);
     }
-    deallocated.erase(ptr);
-    allocated[ptr] = size;
+    deallocated_.erase(ptr);
+    allocated_[ptr] = size;
     return ptr;
   }
 
   WasmPointer WasmMemoryImpl::findContaining(SizeType size) {
     auto min_value = std::numeric_limits<WasmPointer>::max();
     WasmPointer min_key = -1;
-    for (const auto &[key, value] : deallocated) {
+    for (const auto &[key, value] : deallocated_) {
       if (value < min_value and value >= size) {
         min_value = value;
         min_key = key;
@@ -132,6 +136,15 @@ namespace kagome::runtime {
     return get<std::array<uint8_t, 16>>(addr);
   }
 
+  common::Buffer WasmMemoryImpl::loadN(kagome::runtime::WasmPointer addr,
+                                       kagome::runtime::SizeType n) const {
+    // TODO (kamilsa) PRE-98: check if we do not go outside of memory
+    // boundaries, 04.04.2019
+    auto first = memory_.begin() + addr;
+    auto last = first + n;
+    return common::Buffer(std::vector<uint8_t>(first, last));
+  }
+
   void WasmMemoryImpl::store8(WasmPointer addr, int8_t value) {
     set<int8_t>(addr, value);
   }
@@ -147,6 +160,14 @@ namespace kagome::runtime {
   void WasmMemoryImpl::store128(WasmPointer addr,
                                 const std::array<uint8_t, 16> &value) {
     set<std::array<uint8_t, 16>>(addr, value);
+  }
+  void WasmMemoryImpl::storeBuffer(kagome::runtime::WasmPointer addr,
+                                   const kagome::common::Buffer &value) {
+    // TODO (kamilsa) PRE-98: check if we do not go outside of memory
+    // boundaries, 04.04.2019
+    const auto &value_vector = value.toVector();
+    memory_.insert(memory_.begin() + addr, value_vector.begin(),
+                   value_vector.end());
   }
 
 }  // namespace kagome::runtime
