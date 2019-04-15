@@ -6,10 +6,10 @@
 #ifndef KAGOME_SCALE_CODEC_HPP
 #define KAGOME_SCALE_CODEC_HPP
 
-#include "common/buffer.hpp"
-#include "scale/types.hpp"
-
 #include <outcome/outcome.hpp>
+#include "common/buffer.hpp"
+#include "common/byte_stream.hpp"
+#include "scale/types.hpp"
 
 namespace kagome::primitives {
   class Block;  ///< forward declarations of class Block
@@ -18,13 +18,15 @@ namespace kagome::primitives {
 
   class Extrinsic;  ///< forward declarations of class Extrinsic
 
+  class Version;  ///< forward declarations of class Version
+
   /**
    * class ScaleCodec is an interface declaring methods
    * for encoding and decoding primitives
    */
   class ScaleCodec {
    protected:
-    using Stream = common::Stream;
+    using Stream = common::ByteStream;
     using Buffer = common::Buffer;
 
    public:

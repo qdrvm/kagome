@@ -13,12 +13,12 @@
 #include "scale/types.hpp"
 #include "scale/util.hpp"
 
-namespace kagome::common::scale {
+namespace kagome::scale {
   template <class T>
   struct TypeEncoder {
     // if required to calculate size, we can add
     // canCalculateSize() and calculateSize(const T& item) methods
-    outcome::result<void> encode(const T &item, Buffer &out) {
+    outcome::result<void> encode(const T &item, common::Buffer &out) {
       static_assert(std::is_integral<T>(),
                     "Only integral types are supported. You need to define "
                     "your own TypeDecoder specialization for custom type.");
@@ -29,7 +29,7 @@ namespace kagome::common::scale {
 
   template <>
   struct TypeEncoder<bool> {
-    outcome::result<void> encode(bool item, Buffer &out) const {
+    outcome::result<void> encode(bool item, common::Buffer &out) const {
       boolean::encodeBool(item, out);
       return outcome::success();
     }
@@ -37,11 +37,11 @@ namespace kagome::common::scale {
 
   template <>
   struct TypeEncoder<tribool> {
-    outcome::result<void> encode(tribool item, Buffer &out) const {
+    outcome::result<void> encode(tribool item, common::Buffer &out) const {
       boolean::encodeTribool(item, out);
       return outcome::success();
     }
   };
-}  // namespace kagome::common::scale
+}  // namespace kagome::scale
 
 #endif  // KAGOME_SCALE_TYPE_ENCODER_HPP
