@@ -55,7 +55,9 @@ namespace libp2p::multi::detail {
     if (encodingCaseIsUpper(string)) {
       return BaseError::NON_LOWERCASE_INPUT;
     }
-    return unhex(string);
+    auto r = unhex(string);
+    if(r) return r.value();
+    return r.error();
   }
 
 }  // namespace libp2p::multi::detail
