@@ -32,6 +32,7 @@ namespace kagome::primitives {
    */
   using TransactionTag = std::vector<uint8_t>;
 
+  /// Transaction is valid
   struct Valid {
     /**
      * @brief Priority of the transaction.

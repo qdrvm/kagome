@@ -35,7 +35,7 @@ namespace kagome::primitives {
    */
   class Version {
    public:
-    Version(const std::string spec_name, std::string impl_name,
+    Version(std::string spec_name, std::string impl_name,
             uint32_t authoring_version, uint32_t impl_version, ApisVec apis);
 
     Version() = delete;
