@@ -17,14 +17,6 @@ class YamuxFrameTest : public ::testing::Test {
   static constexpr uint32_t default_ping_value = 337;
 
   Buffer data{0x12, 0x34, 0x45, 0x67, 0x89, 0xAB};
-  Buffer data_frame_bytes =
-      Buffer{}
-          .putUint8(YamuxFrame::kDefaultVersion)
-          .putUint8(static_cast<uint8_t>(YamuxFrame::FrameType::DATA))
-          .putUint16(htons(static_cast<uint16_t>(YamuxFrame::Flag::SYN)))
-          .putUint32(htonl(default_stream_id))
-          .putUint32(htonl(data_length))
-          .putBuffer(data);
 
   /**
    * Check that all frame's fields are as expected
@@ -45,6 +37,7 @@ class YamuxFrameTest : public ::testing::Test {
 };
 
 TEST_F(YamuxFrameTest, ParseFrameSuccess) {
+  Buffer data_frame_bytes = dataMsg(default_stream_id, data);
   auto frame_opt = parseFrame(data_frame_bytes.toVector());
   checkFrame(frame_opt, YamuxFrame::kDefaultVersion,
              YamuxFrame::FrameType::DATA, YamuxFrame::Flag::SYN,
