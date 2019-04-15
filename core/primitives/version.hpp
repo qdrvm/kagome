@@ -35,9 +35,8 @@ namespace kagome::primitives {
    */
   class Version {
    public:
-    Version(std::string spec_name, std::string impl_name,
-            uint32_t authoring_version, uint32_t impl_version,
-            const ApisVec &apis);
+    Version(const std::string &spec_name, const std::string &impl_name,
+            uint32_t authoring_version, uint32_t impl_version, ApisVec apis);
 
     Version() = delete;
 
@@ -72,7 +71,7 @@ namespace kagome::primitives {
     uint32_t implVersion();
 
     /// List of supported API "features" along with their versions.
-    const std::vector<std::string> &apis();
+    const ApisVec &apis();
 
    private:
     std::string spec_name_;
