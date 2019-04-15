@@ -12,6 +12,7 @@ add_library(primitives
     extrinsic.cpp
     scale_codec.hpp
     version.hpp
+    version.cpp
     transaction_validity.hpp
     block_id.hpp
     common.hpp

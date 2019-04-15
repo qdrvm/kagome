@@ -24,18 +24,24 @@ namespace kagome::primitives {
 
   class Version {
    public:
+    Version(std::string spec_name, std::string impl_name,
+            uint32_t authoring_version, uint32_t impl_version,
+            const std::vector &apis);
+
+    Version() = delete;
+
     /// Identifies the different Substrate runtimes. There'll be at least
     /// polkadot and node. A different on-chain spec_name to that of the native
     /// runtime would normally result in node not attempting to sync or author
     /// blocks.
-    std::string spec_name();
+    const std::string &spec_name();
 
     /// Name of the implementation of the spec. This is of little consequence
     /// for the node and serves only to differentiate code of different
     /// implementation teams. For this codebase, it will be kagome. If there
     /// were a non-Rust implementation of the Polkadot runtime (e.g. C++), then
     /// it would identify itself with an accordingly different impl_name.
-    std::string impl_name();
+    const std::string &impl_name();
 
     /// authoring_version is the version of the authorship interface. An
     /// authoring node will not attempt to author blocks unless this is equal to
@@ -51,7 +57,14 @@ namespace kagome::primitives {
     uint32_t impl_version();
 
     /// List of supported API "features" along with their versions.
-    std::vector<std::string> apis();
+    const std::vector<std::string> &apis();
+
+   private:
+    std::string spec_name_;
+    std::string impl_name_;
+    uint32_t authoring_version_;
+    uint32_t impl_version_;
+    std::vector<std::string> apis_;
   };
 }  // namespace kagome::primitives
 

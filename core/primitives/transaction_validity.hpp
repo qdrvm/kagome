@@ -60,6 +60,8 @@ namespace kagome::primitives {
     using Unknown = uint8_t;
   }  // namespace
 
+  /// Information on a transaction's validity and, if valid, on how it relates
+  /// to other transactions.
   using TransactionValidity = std::variant<Invalid, Valid, Unknown>;
 
 }  // namespace kagome::primitives
