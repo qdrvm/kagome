@@ -7,7 +7,7 @@
 #define KAGOME_CORE_PRIMITIVES_VERSION_HPP
 
 #include <array>
-#include <cstdint>
+#include <string>
 #include <vector>
 
 namespace kagome::primitives {
@@ -35,7 +35,7 @@ namespace kagome::primitives {
    */
   class Version {
    public:
-    Version(const std::string &spec_name, const std::string &impl_name,
+    Version(const std::string spec_name, std::string impl_name,
             uint32_t authoring_version, uint32_t impl_version, ApisVec apis);
 
     Version() = delete;

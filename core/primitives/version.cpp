@@ -7,11 +7,11 @@
 
 namespace kagome::primitives {
 
-  Version::Version(const std::string &spec_name, const std::string &impl_name,
+  Version::Version(std::string spec_name, std::string impl_name,
                    uint32_t authoring_version, uint32_t impl_version,
                    ApisVec apis)
-      : spec_name_(spec_name),
-        impl_name_(impl_name),
+      : spec_name_(std::move(spec_name)),
+        impl_name_(std::move(impl_name)),
         authoring_version_(authoring_version),
         impl_version_(impl_version),
         apis_(std::move(apis)) {}
