@@ -36,6 +36,7 @@ namespace kagome::hash {
 
   HasherImpl::Hash256 HasherImpl::sha2_256(
       const HasherImpl::Buffer &buffer) const {
-    return crypto::sha256({buffer.toBytes(), static_cast<long>(buffer.size())});
+    return crypto::sha256(
+        {buffer.toBytes(), static_cast<int64_t>(buffer.size())});
   }
 }  // namespace kagome::hash

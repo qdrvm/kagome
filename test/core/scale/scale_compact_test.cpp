@@ -6,13 +6,13 @@
 #include <gtest/gtest.h>
 
 #include "common/result.hpp"
-#include "scale/basic_stream.hpp"
+#include "scale/byte_array_stream.hpp"
 #include "scale/compact.hpp"
 #include "scale/scale_error.hpp"
 
-using namespace kagome;         // NOLINT
-using namespace kagome::common; // NOLINT
-using namespace common::scale;  // NOLINT
+using namespace kagome;          // NOLINT
+using namespace kagome::common;  // NOLINT
+using namespace kagome::scale;   // NOLINT
 
 /**
  * @given byte array of correctly encoded number 0
@@ -24,7 +24,7 @@ TEST(Scale, compactDecodeZero) {
   auto bytes = ByteArray{
       0b00000000,  // 0
   };
-  auto stream = BasicStream{bytes};
+  auto stream = ByteArrayStream{bytes};
   auto &&result = compact::decodeInteger(stream);
   ASSERT_TRUE(result);
   ASSERT_EQ(result.value(), 0);
@@ -40,7 +40,7 @@ TEST(Scale, compactDecodeOne) {
   auto bytes = ByteArray{
       0b00000100,  // 4
   };
-  auto stream = BasicStream{bytes};
+  auto stream = ByteArrayStream{bytes};
   auto &&result = compact::decodeInteger(stream);
   ASSERT_TRUE(result);
   ASSERT_EQ(result.value(), 1);
@@ -57,7 +57,7 @@ TEST(Scale, compactDecodeMaxUi8) {
   auto bytes = ByteArray{
       0b11111100,  // 252
   };
-  auto stream = BasicStream{bytes};
+  auto stream = ByteArrayStream{bytes};
   auto &&result = compact::decodeInteger(stream);
   ASSERT_TRUE(result);
   ASSERT_EQ(result.value(), 63);
@@ -75,7 +75,7 @@ TEST(Scale, compactDecodeMinUi16) {
       0b00000001,  // 1
       0b00000001   // 1
   };
-  auto stream = BasicStream{bytes};
+  auto stream = ByteArrayStream{bytes};
   auto &&result = compact::decodeInteger(stream);
   ASSERT_TRUE(result);
   ASSERT_EQ(result.value(), 64);
@@ -93,7 +93,7 @@ TEST(Scale, compactDecodeMaxUi16) {
       0b11111101,  // 253
       0b11111111   // 255
   };
-  auto stream = BasicStream{bytes};
+  auto stream = ByteArrayStream{bytes};
   auto &&result = compact::decodeInteger(stream);
   ASSERT_TRUE(result);
   ASSERT_EQ(result.value(), 16383);
@@ -113,7 +113,7 @@ TEST(Scale, compactDecodeMinUi32) {
       0b00000001,  // 1
       0b00000000   // 0
   };
-  auto stream = BasicStream{bytes};
+  auto stream = ByteArrayStream{bytes};
   auto &&result = compact::decodeInteger(stream);
   ASSERT_TRUE(result);
   ASSERT_EQ(result.value(), 16384);
@@ -133,7 +133,7 @@ TEST(Scale, compactDecodeMaxUi32) {
       0b11111111,  // 255
       0b11111111   // 255
   };
-  auto stream = BasicStream{bytes};
+  auto stream = ByteArrayStream{bytes};
   auto &&result = compact::decodeInteger(stream);
   ASSERT_TRUE(result);
   ASSERT_EQ(result.value(), 1073741823);
@@ -148,7 +148,7 @@ TEST(Scale, compactDecodeMaxUi32) {
 TEST(Scale, compactDecodeMinBigInteger) {
   // decode MIN_BIG_INTEGER := 2^30
   auto bytes = ByteArray{3, 0, 0, 0, 64};
-  auto stream = BasicStream{bytes};
+  auto stream = ByteArrayStream{bytes};
   auto &&result = compact::decodeInteger(stream);
   ASSERT_TRUE(result);
   ASSERT_EQ(result.value(), 1073741824);
@@ -161,7 +161,7 @@ TEST(Scale, compactDecodeMinBigInteger) {
  */
 TEST(Scale, compactDecodeBigIntegerError) {
   auto bytes = ByteArray{255, 255, 255, 255};
-  auto stream = BasicStream{bytes};
+  auto stream = ByteArrayStream{bytes};
   auto &&result = compact::decodeInteger(stream);
   ASSERT_FALSE(result);
   ASSERT_EQ(result.error().value(),

@@ -3,7 +3,16 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(memory_heap_test memory_heap_test.cpp)
-target_link_libraries(memory_heap_test
+addtest(wasm_memory_test
+    wasm_memory_test.cpp
+    )
+target_link_libraries(wasm_memory_test
     memory
+    )
+
+addtest(wasm_memory_stream_test
+    wasm_memory_stream_test.cpp
+    )
+target_link_libraries(wasm_memory_stream_test
+    wasm_memory_stream
     )

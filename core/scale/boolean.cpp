@@ -6,14 +6,14 @@
 #include "scale/boolean.hpp"
 #include "scale/scale_error.hpp"
 
-namespace kagome::common::scale::boolean {
+namespace kagome::scale::boolean {
 
-  void encodeBool(bool value, Buffer &out) {
+  void encodeBool(bool value, common::Buffer &out) {
     uint8_t byte = (value ? 0x01 : 0x00);
     out.putUint8(byte);
   }
 
-  outcome::result<bool> decodeBool(Stream &stream) {
+  outcome::result<bool> decodeBool(common::ByteStream &stream) {
     auto byte = stream.nextByte();
     if (!byte.has_value()) {
       return outcome::failure(DecodeError::kNotEnoughData);
@@ -31,7 +31,7 @@ namespace kagome::common::scale::boolean {
     return outcome::failure(DecodeError::kUnexpectedValue);
   }
 
-  void encodeTribool(tribool value, Buffer &out) {
+  void encodeTribool(tribool value, common::Buffer &out) {
     auto byte = static_cast<uint8_t>(2);
 
     if (value) {
@@ -44,7 +44,7 @@ namespace kagome::common::scale::boolean {
     out.putUint8(byte);
   }
 
-  outcome::result<tribool> decodeTribool(Stream &stream) {
+  outcome::result<tribool> decodeTribool(common::ByteStream &stream) {
     auto byte = stream.nextByte();
     if (!byte.has_value()) {
       return outcome::failure(DecodeError::kNotEnoughData);
@@ -63,4 +63,4 @@ namespace kagome::common::scale::boolean {
 
     return outcome::failure(DecodeError::kUnexpectedValue);
   }
-}  // namespace kagome::common::scale::boolean
+}  // namespace kagome::scale::boolean

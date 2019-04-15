@@ -14,7 +14,7 @@
 #include "scale/scale_error.hpp"
 #include "scale/util.hpp"
 
-namespace kagome::common::scale::compact {
+namespace kagome::scale::compact {
   struct EncodingCategoryLimits {
     // min integer encoded by 2 bytes
     constexpr static size_t kMinUint16 = (1ul << 6);
@@ -25,7 +25,8 @@ namespace kagome::common::scale::compact {
   };
 
   namespace impl {
-    outcome::result<void> encodeFirstCategory(uint8_t value, Buffer &out) {
+    outcome::result<void> encodeFirstCategory(uint8_t value,
+                                              common::Buffer &out) {
       if (value >= EncodingCategoryLimits::kMinUint16) {
         return EncodeError::kWrongCategory;
       }
@@ -35,7 +36,8 @@ namespace kagome::common::scale::compact {
       return outcome::success();
     };
 
-    outcome::result<void> encodeSecondCategory(uint16_t value, Buffer &out) {
+    outcome::result<void> encodeSecondCategory(uint16_t value,
+                                               common::Buffer &out) {
       if (value >= EncodingCategoryLimits::kMinUint32) {
         return EncodeError::kWrongCategory;
       };
@@ -53,7 +55,8 @@ namespace kagome::common::scale::compact {
       ;
     };
 
-    outcome::result<void> encodeThirdCategory(uint32_t value, Buffer &out) {
+    outcome::result<void> encodeThirdCategory(uint32_t value,
+                                              common::Buffer &out) {
       if (value >= EncodingCategoryLimits::kMinBigInteger) {
         return EncodeError::kWrongCategory;
       };
@@ -83,7 +86,8 @@ namespace kagome::common::scale::compact {
     };
   }  // namespace
 
-  outcome::result<void> encodeInteger(const BigInteger &value, Buffer &out) {
+  outcome::result<void> encodeInteger(const BigInteger &value,
+                                      common::Buffer &out) {
     // cannot encode negative numbers
     // there is no description how to encode compact negative numbers
     if (value < 0) {
@@ -144,7 +148,7 @@ namespace kagome::common::scale::compact {
     return outcome::success();
   }
 
-  outcome::result<BigInteger> decodeInteger(Stream &stream) {
+  outcome::result<BigInteger> decodeInteger(common::ByteStream &stream) {
     auto first_byte = stream.nextByte();
     if (!first_byte.has_value()) {
       return outcome::failure(DecodeError::kNotEnoughData);
@@ -215,4 +219,4 @@ namespace kagome::common::scale::compact {
 
     return BigInteger{number};
   }
-}  // namespace kagome::common::scale::compact
+}  // namespace kagome::scale::compact

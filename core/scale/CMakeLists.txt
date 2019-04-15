@@ -3,28 +3,39 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_library(byte_array_stream
+    byte_array_stream.hpp
+    byte_array_stream.cpp
+    )
+target_link_libraries(byte_array_stream
+    byte_stream
+    )
+
 add_library(scale
-        basic_stream.hpp
-        basic_stream.cpp
-        boolean.hpp
-        boolean.cpp
-        collection.hpp
-        collection.cpp
-        compact.hpp
-        compact.cpp
-        fixedwidth.hpp
-        fixedwidth.cpp
-        optional.hpp
-        scale.hpp
-        scale_error.hpp
-        scale_error.cpp
-        types.hpp
-        type_decoder.hpp
-        type_encoder.hpp
-        util.hpp
-        variant.hpp
-        )
+    byte_array_stream.hpp
+    byte_array_stream.cpp
+    boolean.hpp
+    boolean.cpp
+    collection.hpp
+    collection.cpp
+    compact.hpp
+    compact.cpp
+    fixedwidth.hpp
+    fixedwidth.cpp
+    optional.hpp
+    scale.hpp
+    scale_error.hpp
+    scale_error.cpp
+    types.hpp
+    type_decoder.hpp
+    type_encoder.hpp
+    util.hpp
+    variant.hpp
+    )
 
 target_link_libraries(scale
-        Boost::boost
-        )
+    Boost::boost
+    buffer
+    outcome
+    byte_array_stream
+    )

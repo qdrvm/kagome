@@ -6,12 +6,12 @@
 #include <gtest/gtest.h>
 
 #include "common/result.hpp"
-#include "scale/basic_stream.hpp"
+#include "scale/byte_array_stream.hpp"
 #include "scale/collection.hpp"
 
 using namespace kagome;          // NOLINT
 using namespace kagome::common;  // NOLINT
-using namespace common::scale;   // NOLINT
+using namespace kagome::scale;   // NOLINT
 
 /**
  * @given collection of 80 items of type uint8_t
@@ -124,7 +124,7 @@ TEST(Scale, encodeLongCollectionUint16) {
   // header takes 4 byte,
   // first 4 bytes represent le-encoded value 2^16 + 2
   // which is compact-encoded value 2^14 = 16384
-  auto stream = BasicStream(out.toVector());
+  auto stream = ByteArrayStream(out.toVector());
 
   auto &&res1 = compact::decodeInteger(stream);
   ASSERT_TRUE(res1);
@@ -174,7 +174,7 @@ TEST(Scale, encodeVeryLongCollectionUint8) {
   // which means that number of items requires 4 bytes
   // 3 next bytes are 0, and the last 4-th == 2^6 == 64
   // which is compact-encoded value 2^14 = 16384
-  auto stream = BasicStream(out.toVector());
+  auto stream = ByteArrayStream(out.toVector());
 
   auto &&bi = compact::decodeInteger(stream);
   ASSERT_TRUE(bi);
@@ -221,7 +221,7 @@ TEST(Scale, DISABLED_encodeVeryLongCollectionUint8) {
   // requires 4 bytes
   // 3 next bytes are 0, and the last 4-th == 2^6 == 64
   // which is compact-encoded value 2^14 = 16384
-  auto stream = BasicStream(out.toVector());
+  auto stream = ByteArrayStream(out.toVector());
 
   auto &&bi = compact::decodeInteger(stream);
   ASSERT_TRUE(bi);
@@ -257,7 +257,7 @@ TEST(Scale, decodeSimpleCollectionOfUint16) {
             4, 0  // fourth item
     };
   // clang-format on
-  auto stream = BasicStream{bytes};
+  auto stream = ByteArrayStream{bytes};
   auto &&res = collection::decodeCollection<uint16_t>(stream);
   ASSERT_TRUE(res);
   auto &&value = res.value();
@@ -282,7 +282,7 @@ TEST(Scale, decodeLongCollectionOfUint8) {
   auto &&res = collection::encodeCollection(collection, out);
   ASSERT_TRUE(res);
 
-  auto stream = BasicStream(out.toVector());
+  auto stream = ByteArrayStream(out.toVector());
   auto &&decode_result = collection::decodeCollection<uint8_t>(stream);
   ASSERT_TRUE(decode_result);
   ASSERT_EQ(decode_result.value(), collection);
@@ -309,7 +309,7 @@ TEST(Scale, decodeSimpleCollectionOfUint32) {
   // clang-format on
 
   Buffer out;
-  auto stream = BasicStream{bytes};
+  auto stream = ByteArrayStream{bytes};
   auto &&res = collection::decodeCollection<uint32_t>(stream);
   ASSERT_TRUE(res);
   auto &&val = res.value();
@@ -339,7 +339,7 @@ TEST(Scale, decodeSimpleCollectionOfUint64) {
   // clang-format on
 
   Buffer out;
-  auto stream = BasicStream{bytes};
+  auto stream = ByteArrayStream{bytes};
   auto &&res = collection::decodeCollection<uint64_t>(stream);
   ASSERT_TRUE(res);
   auto &&val = res.value();
