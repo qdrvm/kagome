@@ -13,7 +13,6 @@ add_library(primitives
     scale_codec.hpp
     version.hpp
     transaction_validity.hpp
-    transaction_validity.cpp
     block_id.hpp
     common.hpp
     impl/scale_codec_impl.hpp
