@@ -25,7 +25,7 @@ add_library(crypto_provider
         random/impl/random_provider_std.cpp
         random/impl/random_provider_std.hpp
         random/impl/random_provider_std.cpp
-        )
+        random/impl/random_provider_boost.hpp random/impl/random_provider_boost.cpp)
 
 target_link_libraries(crypto_provider
         buffer

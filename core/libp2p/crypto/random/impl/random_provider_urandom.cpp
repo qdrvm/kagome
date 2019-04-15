@@ -5,8 +5,8 @@
 
 #include "libp2p/crypto/random/impl/random_provider_urandom.hpp"
 
-#include <fstream>
 #include <boost/filesystem.hpp>
+#include <fstream>
 
 #include "libp2p/crypto/error.hpp"
 
@@ -40,4 +40,4 @@ namespace libp2p::crypto::random {
 
     return out;
   }
-}  // namespace libp2p::crypto::
+}  // namespace libp2p::crypto::random
