@@ -34,7 +34,7 @@ namespace libp2p::multi::converters {
       return ConversionError ::INVALID_ADDRESS;
     }
     if(str.back() == '/') {
-      str.remove_suffix(1); // for split not to recognoze an empty token in the end
+      str.remove_suffix(1); // for split not to recognize an empty token in the end
     }
 
     std::string processed;
@@ -112,7 +112,7 @@ namespace libp2p::multi::converters {
   auto bytesToMultiaddrString(const Buffer &bytes)
       -> outcome::result<std::string> {
     std::string results;
-    // Positioning for memory jump:
+
     int lastpos = 0;
 
     // set up variables
