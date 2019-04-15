@@ -24,7 +24,7 @@ namespace libp2p::transport {
                      public basic::Writable,
                      public basic::Closeable {
    public:
-    virtual ~Connection() = default;
+    ~Connection() override = default;
 
     /**
      * This method retrieves the observed addresses we get from the underlying

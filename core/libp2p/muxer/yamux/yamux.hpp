@@ -57,6 +57,11 @@ namespace libp2p::muxer {
         NewStreamHandler stream_handler, YamuxConfig yamux_config,
         kagome::common::Logger logger = kagome::common::createLogger("Yamux"));
 
+    Yamux(const Yamux &other) = delete;
+    Yamux &operator=(const Yamux &other) = delete;
+    Yamux(Yamux &&other) noexcept = delete;
+    Yamux &operator=(Yamux &&other) noexcept = delete;
+
     ~Yamux() override;
 
     void start() override;

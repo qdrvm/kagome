@@ -18,6 +18,12 @@ namespace libp2p::stream {
     YamuxStream(std::shared_ptr<muxer::Yamux> yamux,
                 muxer::Yamux::StreamId stream_id);
 
+    YamuxStream(const YamuxStream &other) = delete;
+    YamuxStream &operator=(const YamuxStream &other) = delete;
+
+    YamuxStream(YamuxStream &&other) noexcept = default;
+    YamuxStream &operator=(YamuxStream &&other) noexcept = default;
+
     void readAsync(ReadCompletionHandler completion_handler) override;
 
     void writeAsync(const common::NetworkMessage &msg) override;

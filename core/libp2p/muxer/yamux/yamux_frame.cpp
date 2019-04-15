@@ -17,13 +17,13 @@ namespace {
 
   Buffer &putUint16NetworkOrder(Buffer &buffer, uint16_t number) {
     buffer.putUint8(static_cast<unsigned char &&>((number)&0xFF));
-    buffer.putUint8(static_cast<unsigned char &&>((number << 8) & 0xFF));
+    buffer.putUint8(static_cast<unsigned char &&>((number >> 8) & 0xFF));
     return buffer;
   }
 
   Buffer &putUint32NetworkOrder(Buffer &buffer, uint32_t number) {
     buffer.putUint8(static_cast<unsigned char &&>((number)&0xFF));
-    buffer.putUint8(static_cast<unsigned char &&>((number << 8) & 0xFF));
+    buffer.putUint8(static_cast<unsigned char &&>((number >> 8) & 0xFF));
     buffer.putUint8(static_cast<unsigned char &&>((number >> 16) & 0xFF));
     buffer.putUint8(static_cast<unsigned char &&>((number >> 24) & 0xFF));
     return buffer;

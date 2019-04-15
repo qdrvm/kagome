@@ -40,6 +40,8 @@ namespace kagome::common {
     Buffer(Buffer &&b) noexcept = default;
     Buffer(std::initializer_list<uint8_t> b);
 
+    ~Buffer() = default;
+
     Buffer &reserve(size_t size);
     Buffer &resize(size_t size);
 
