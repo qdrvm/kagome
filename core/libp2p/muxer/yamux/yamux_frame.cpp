@@ -7,16 +7,43 @@
 
 #include <arpa/inet.h>
 
+namespace {
+  using kagome::common::Buffer;
+
+  Buffer &putUint8(Buffer &buffer, uint8_t number) {
+    buffer.putUint8(number);
+    return buffer;
+  }
+
+  Buffer &putUint16NetworkOrder(Buffer &buffer, uint16_t number) {
+    buffer.putUint8(static_cast<unsigned char &&>((number)&0xFF));
+    buffer.putUint8(static_cast<unsigned char &&>((number << 8) & 0xFF));
+    return buffer;
+  }
+
+  Buffer &putUint32NetworkOrder(Buffer &buffer, uint32_t number) {
+    buffer.putUint8(static_cast<unsigned char &&>((number)&0xFF));
+    buffer.putUint8(static_cast<unsigned char &&>((number << 8) & 0xFF));
+    buffer.putUint8(static_cast<unsigned char &&>((number >> 16) & 0xFF));
+    buffer.putUint8(static_cast<unsigned char &&>((number >> 24) & 0xFF));
+    return buffer;
+  }
+}  // namespace
+
 namespace libp2p::muxer {
   kagome::common::Buffer YamuxFrame::frameBytes(
       uint8_t version, FrameType type, Flag flag, uint32_t stream_id,
       uint32_t length, const kagome::common::Buffer &data) {
-    return kagome::common::Buffer{}
-        .putUint8(version)
-        .putUint8(static_cast<uint8_t>(type))
-        .putUint16(htons(static_cast<uint16_t>(flag)))  // NOLINT
-        .putUint32(htonl(stream_id))                    // NOLINT
-        .putUint32(htonl(length))                       // NOLINT
+    // TODO(akvinikym) PRE-118 15.04.19: refactor with NetworkOrderEncoder, when
+    // implemented
+    kagome::common::Buffer buffer{};
+    return putUint32NetworkOrder(
+               putUint32NetworkOrder(
+                   putUint16NetworkOrder(putUint8(putUint8(buffer, version),
+                                                  static_cast<uint8_t>(type)),
+                                         static_cast<uint16_t>(flag)),
+                   stream_id),
+               length)
         .putBuffer(data);
   }
 
@@ -95,6 +122,9 @@ namespace libp2p::muxer {
       default:
         return {};
     }
+
+    // TODO(akvinikym) PRE-118 15.04.19: refactor with NetworkOrderEncoder, when
+    // implemented
 
     switch ((static_cast<uint16_t>(frame_bytes[3]) << 8) | frame_bytes[2]) {
       case 1:

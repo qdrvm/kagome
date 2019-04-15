@@ -37,10 +37,7 @@ namespace libp2p::muxer {
     last_created_stream_id_ = config_.is_server ? 0 : 1;
   }
 
-  Yamux::~Yamux() {
-    resetAllStreams();
-    closeYamux();
-  }
+  Yamux::~Yamux() = default;
 
   void Yamux::start() {
     startReadingHeader();
@@ -170,7 +167,28 @@ namespace libp2p::muxer {
   }
 
   void Yamux::close() {
-    closeYamux();
+    // send a reset message too all streams to notify the other side
+    if (!streams_.empty()) {
+      auto last_stream_id = streams_.rbegin()->first;
+      for (const auto &stream : streams_) {
+        write(resetStreamMsg(stream.first),
+              [t = shared_from_this(), stream_id = stream.first,
+               last_stream_id](auto &&ec, auto &&) {
+                if (ec) {
+                  t->logger_->error(
+                      "could not write reset stream message for stream_id {} "
+                      "with "
+                      "error {}",
+                      stream_id, ec.value());
+                }
+                if (stream_id == last_stream_id) {
+                  t->closeYamux();
+                }
+              });
+      }
+    } else {
+      closeYamux();
+    }
   }
 
   bool Yamux::isClosed() {
@@ -294,27 +312,6 @@ namespace libp2p::muxer {
             }
           });
     streams_.erase(stream_id);
-  }
-
-  void Yamux::resetAllStreams() noexcept {
-    for (const auto &stream : streams_) {
-      // as this function is called from the destructor, we just don't want any
-      // exceptions to happen here
-      try {
-        write(resetStreamMsg(stream.first),
-              [t = shared_from_this(), stream_id = stream.first](auto &&ec,
-                                                                 auto &&) {
-                if (ec) {
-                  t->logger_->error(
-                      "could not write reset stream message for stream_id {} "
-                      "with "
-                      "error {}",
-                      stream_id, ec.value());
-                }
-              });
-      } catch (const std::exception &e) {
-      }
-    }
   }
 
   bool Yamux::processHeader() {

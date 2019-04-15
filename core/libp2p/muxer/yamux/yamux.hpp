@@ -151,11 +151,6 @@ namespace libp2p::muxer {
     void removeStream(StreamId stream_id);
 
     /**
-     * Reset all streams, which this instance is multiplexing
-     */
-    void resetAllStreams() noexcept;
-
-    /**
      * Process bytes, which must be a YamuxFrame header
      * @return true, if it is going to initiate new iteration of Yamux event
      * loop itself, false if caller should do it
