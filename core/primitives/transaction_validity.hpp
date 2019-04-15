@@ -3,67 +3,85 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_TRANSACTION_VALIDITY_HPP_
-#define KAGOME_CORE_PRIMITIVES_TRANSACTION_VALIDITY_HPP_
+#ifndef KAGOME_CORE_PRIMITIVES_TRANSACTION_VALIDITY_HPP
+#define KAGOME_CORE_PRIMITIVES_TRANSACTION_VALIDITY_HPP
 
+#include <cstdint>
 #include <variant>
 #include <vector>
 
 namespace kagome::primitives {
 
-  namespace {
-    /// Priority for a transaction. Additive. Higher is better.
-    using TransactionPriority = uint64_t;
+  /**
+   * This is the same structure as in
+   * https://github.com/paritytech/substrate/blob/master/core/sr-primitives/src/transaction_validity.rs
+   */
 
-    /// Minimum number of blocks a transaction will remain valid for.
-    /// `TransactionLongevity::max_value()` means "forever".
-    using TransactionLongevity = uint64_t;
+  /// Priority for a transaction. Additive. Higher is better.
+  using TransactionPriority = uint64_t;
 
-    /// Tag for a transaction. No two transactions with the same tag should be
-    /// placed on-chain.
-    using TransactionTag = std::vector<uint8_t>;
+  /**
+   * Minimum number of blocks a transaction will remain valid for.
+   * `TransactionLongevity::max_value()` means "forever".
+   */
+  using TransactionLongevity = uint64_t;
 
-    struct Valid {
-      /// Priority of the transaction.
-      ///
-      /// Priority determines the ordering of two transactions that have all
-      /// their dependencies (required tags) satisfied.
-      TransactionPriority priority_;
+  /**
+   * Tag for a transaction. No two transactions with the same tag should
+   * be placed on-chain.
+   */
+  using TransactionTag = std::vector<uint8_t>;
 
-      /// Transaction dependencies
-      ///
-      /// A non-empty list signifies that some other transactions which provide
-      /// given tags are required to be included before that one.
-      std::vector<TransactionTag> requires_;
+  struct Valid {
+    /**
+     * @brief Priority of the transaction.
+     * Priority determines the ordering of two transactions that have all
+     * their dependencies (required tags) satisfied.
+     */
+    TransactionPriority priority_;
 
-      /// Provided tags
-      ///
-      /// A list of tags this transaction provides. Successfuly importing the
-      /// transaction will enable other transactions that depend on (require)
-      /// those tags to be included as well. Provided and requried tags allow
-      /// Substrate to build a dependency graph of transactions and import them
-      /// in the right (linear) order.
-      std::vector<TransactionTag> provides_;
+    /**
+     * @brief Transaction dependencies
+     * A non-empty list signifies that some other transactions which provide
+     * given tags are required to be included before that one.
+     */
+    std::vector<TransactionTag> requires_;
 
-      /// Transaction longevity
-      ///
-      /// Longevity describes minimum number of blocks the validity is correct.
-      /// After this period transaction should be removed from the pool or
-      /// revalidated.
-      TransactionLongevity longevity_;
-    };
+    /**
+     * @brief Provided tags
+     * A list of tags this transaction provides. Successfuly importing the
+     * transaction will enable other transactions that depend on (require)
+     * those tags to be included as well. Provided and requried tags allow
+     * Substrate to build a dependency graph of transactions and import them
+     * in the right (linear) order.
+     */
+    std::vector<TransactionTag> provides_;
 
-    /// Transaction is invalid. Details are described by the error code.
-    using Invalid = uint8_t;
+    /**
+     * @brief Transaction longevity
+     * Longevity describes minimum number of blocks the validity is correct.
+     * After this period transaction should be removed from the pool or
+     * revalidated.
+     */
+    TransactionLongevity longevity_;
+  };
 
-    /// Transaction validity can't be determined.
-    using Unknown = uint8_t;
-  }  // namespace
+  /// Transaction is invalid. Details are described by the error code.
+  struct Invalid {
+    uint8_t error_;
+  };
 
-  /// Information on a transaction's validity and, if valid, on how it relates
-  /// to other transactions.
+  /// Transaction validity can't be determined.
+  struct Unknown {
+    uint8_t error_;
+  };
+
+  /**
+   * Information on a transaction's validity and, if valid, on how it relate to
+   * other transactions.
+   */
   using TransactionValidity = std::variant<Invalid, Valid, Unknown>;
 
 }  // namespace kagome::primitives
 
-#endif  // KAGOME_CORE_PRIMITIVES_TRANSACTION_VALIDITY_HPP_
+#endif  // KAGOME_CORE_PRIMITIVES_TRANSACTION_VALIDITY_HPP

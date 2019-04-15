@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_BLOCK_ID_HPP_
-#define KAGOME_CORE_PRIMITIVES_BLOCK_ID_HPP_
+#ifndef KAGOME_CORE_PRIMITIVES_BLOCK_ID_HPP
+#define KAGOME_CORE_PRIMITIVES_BLOCK_ID_HPP
 
 #include <variant>
 
@@ -16,4 +16,4 @@ namespace kagome::primitives {
   using BlockId = std::variant<common::Hash256, BlockNumber>;
 }  // namespace kagome::primitives
 
-#endif  // KAGOME_CORE_PRIMITIVES_BLOCK_ID_HPP_
+#endif  // KAGOME_CORE_PRIMITIVES_BLOCK_ID_HPP
