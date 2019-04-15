@@ -5,8 +5,6 @@
 
 #include "libp2p/muxer/yamux/yamux_frame.hpp"
 
-#include <arpa/inet.h>
-
 namespace {
   using kagome::common::Buffer;
 
