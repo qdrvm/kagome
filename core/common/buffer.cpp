@@ -67,11 +67,7 @@ namespace kagome::common {
   }
 
   outcome::result<Buffer> Buffer::fromHex(std::string_view hex) {
-    auto&& r = unhex(hex);
-    if(r) {
-      return Buffer {r.value()};
-    }
-    return r.error();
+    return unhex(hex);
   }
 
   Buffer::Buffer(std::vector<uint8_t> v) : data_(std::move(v)) {}
