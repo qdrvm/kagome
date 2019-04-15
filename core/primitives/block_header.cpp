@@ -21,7 +21,7 @@ namespace kagome::primitives {
     return parent_hash_;
   }
 
-  uint64_t BlockHeader::number() const {
+  BlockNumber BlockHeader::number() const {
     return number_;
   }
 

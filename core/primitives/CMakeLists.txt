@@ -4,19 +4,25 @@
 #
 
 add_library(primitives
-        block.hpp
-        block.cpp
-        block_header.hpp
-        block_header.cpp
-        extrinsic.hpp
-        extrinsic.cpp
-        scale_codec.hpp
-        impl/scale_codec_impl.hpp
-        impl/scale_codec_impl.cpp
-        )
+    block.hpp
+    block.cpp
+    block_header.hpp
+    block_header.cpp
+    extrinsic.hpp
+    extrinsic.cpp
+    scale_codec.hpp
+    version.hpp
+    transaction_validity.hpp
+    transaction_validity.cpp
+    block_id.hpp
+    common.hpp
+    impl/scale_codec_impl.hpp
+    impl/scale_codec_impl.cpp
+    )
 
 target_link_libraries(primitives
-        buffer
-        outcome
-        scale
-        )
+    buffer
+    outcome
+    scale
+    blob
+    )
