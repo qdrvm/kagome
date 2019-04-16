@@ -76,10 +76,9 @@ namespace kagome::extensions {
                                      runtime::WasmPointer out_ptr) {
     const auto &buf = memory_->loadN(data, len);
 
-    uint8_t *hash = nullptr;
-    kagome::crypto::make_twox128(buf.toBytes(), len, hash);
-    gsl::span<uint8_t> out(hash, crypto::Twox128Hash::kLength);
-    memory_->storeBuffer(out_ptr, common::Buffer(out));
+    std::array<uint8_t, crypto::Twox128Hash::kLength> hash{};
+    kagome::crypto::make_twox128(buf.toBytes(), len, hash.data());
+    memory_->storeBuffer(out_ptr, common::Buffer(hash));
   }
 
   void CryptoExtension::ext_twox_256(runtime::WasmPointer data,
@@ -87,9 +86,8 @@ namespace kagome::extensions {
                                      runtime::WasmPointer out_ptr) {
     const auto &buf = memory_->loadN(data, len);
 
-    uint8_t *hash = nullptr;
-    kagome::crypto::make_twox256(buf.toBytes(), len, hash);
-    gsl::span<uint8_t> out(hash, crypto::Twox256Hash::kLength);
-    memory_->storeBuffer(out_ptr, common::Buffer(out));
+    std::array<uint8_t, crypto::Twox256Hash::kLength> hash{};
+    kagome::crypto::make_twox256(buf.toBytes(), len, hash.data());
+    memory_->storeBuffer(out_ptr, common::Buffer(hash));
   }
 }  // namespace kagome::extensions

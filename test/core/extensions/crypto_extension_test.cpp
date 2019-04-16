@@ -144,7 +144,7 @@ TEST_F(CryptoExtensionTest, Twox128) {
 
   EXPECT_CALL(*memory_, loadN(twox_input_data, twox_input_size))
       .WillOnce(Return(twox_input));
-  EXPECT_CALL(*memory_, storeBuffer(out_ptr, twox128_result));
+  EXPECT_CALL(*memory_, storeBuffer(out_ptr, twox128_result)).Times(1);
 
   crypto_ext_->ext_twox_128(twox_input_data, twox_input_size, out_ptr);
 }
@@ -161,7 +161,7 @@ TEST_F(CryptoExtensionTest, Twox256) {
 
   EXPECT_CALL(*memory_, loadN(twox_input_data, twox_input_size))
       .WillOnce(Return(twox_input));
-  EXPECT_CALL(*memory_, storeBuffer(out_ptr, twox256_result));
+  EXPECT_CALL(*memory_, storeBuffer(out_ptr, twox256_result)).Times(1);
 
   crypto_ext_->ext_twox_256(twox_input_data, twox_input_size, out_ptr);
 }
