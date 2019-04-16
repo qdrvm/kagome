@@ -27,26 +27,29 @@ namespace kagome::runtime {
    public:
     WasmMemoryImpl();
     explicit WasmMemoryImpl(SizeType size);
-    WasmMemoryImpl(WasmMemoryImpl &) = delete;
-    WasmMemoryImpl &operator=(const WasmMemoryImpl &) = delete;
+    WasmMemoryImpl(const WasmMemoryImpl &copy) = delete;
+    WasmMemoryImpl &operator=(const WasmMemoryImpl &copy) = delete;
+    WasmMemoryImpl(WasmMemoryImpl &&move) = delete;
+    WasmMemoryImpl &operator=(WasmMemoryImpl &&move) = delete;
+    ~WasmMemoryImpl() override = default;
 
-    SizeType size() const override;
+    NODISCARD SizeType size() const override;
     void resize(SizeType newSize) override;
 
     WasmPointer allocate(SizeType size) override;
     std::optional<SizeType> deallocate(WasmPointer ptr) override;
 
-    int8_t load8s(WasmPointer addr) const override;
-    uint8_t load8u(WasmPointer addr) const override;
-    int16_t load16s(WasmPointer addr) const override;
-    uint16_t load16u(WasmPointer addr) const override;
-    int32_t load32s(WasmPointer addr) const override;
-    uint32_t load32u(WasmPointer addr) const override;
-    int64_t load64s(WasmPointer addr) const override;
-    uint64_t load64u(WasmPointer addr) const override;
-    std::array<uint8_t, 16> load128(WasmPointer addr) const override;
-    common::Buffer loadN(kagome::runtime::WasmPointer addr,
-                         kagome::runtime::SizeType n) const override;
+    NODISCARD int8_t load8s(WasmPointer addr) const override;
+    NODISCARD uint8_t load8u(WasmPointer addr) const override;
+    NODISCARD int16_t load16s(WasmPointer addr) const override;
+    NODISCARD uint16_t load16u(WasmPointer addr) const override;
+    NODISCARD int32_t load32s(WasmPointer addr) const override;
+    NODISCARD uint32_t load32u(WasmPointer addr) const override;
+    NODISCARD int64_t load64s(WasmPointer addr) const override;
+    NODISCARD uint64_t load64u(WasmPointer addr) const override;
+    NODISCARD std::array<uint8_t, 16> load128(WasmPointer addr) const override;
+    NODISCARD common::Buffer loadN(kagome::runtime::WasmPointer addr,
+                                   kagome::runtime::SizeType n) const override;
 
     void store8(WasmPointer addr, int8_t value) override;
     void store16(WasmPointer addr, int16_t value) override;
@@ -73,12 +76,14 @@ namespace kagome::runtime {
     template <typename T>
     static bool aligned(const char *address) {
       static_assert(!(sizeof(T) & (sizeof(T) - 1)), "must be a power of 2");
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       return 0 == (reinterpret_cast<uintptr_t>(address) & (sizeof(T) - 1));
     }
 
     template <typename T>
     void set(WasmPointer address, T value) {
       if (aligned<T>(&memory_[address])) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         *reinterpret_cast<T *>(&memory_[address]) = value;
       } else {
         std::memcpy(&memory_[address], &value, sizeof(T));
@@ -86,14 +91,15 @@ namespace kagome::runtime {
     }
 
     template <typename T>
-    T get(WasmPointer address) const {
+    NODISCARD T get(WasmPointer address) const {
       if (aligned<T>(&memory_[address])) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         return *reinterpret_cast<const T *>(&memory_[address]);
-      } else {
-        T loaded;
-        std::memcpy(&loaded, &memory_[address], sizeof(T));
-        return loaded;
       }
+
+      T loaded{};
+      std::memcpy(&loaded, &memory_[address], sizeof(T));
+      return loaded;
     }
 
     /**
