@@ -133,7 +133,8 @@ namespace kagome::extensions {
   }
 
   /// I/O extensions
-  void ExtensionImpl::ext_print_hex(const uint8_t *data, uint32_t length) {
+  void ExtensionImpl::ext_print_hex(runtime::WasmPointer data,
+                                    runtime::SizeType length) {
     io_ext_.ext_print_hex(data, length);
   }
 
@@ -141,8 +142,8 @@ namespace kagome::extensions {
     io_ext_.ext_print_num(value);
   }
 
-  void ExtensionImpl::ext_print_utf8(const uint8_t *utf8_data,
-                                     uint32_t utf8_length) {
+  void ExtensionImpl::ext_print_utf8(runtime::WasmPointer utf8_data,
+                                     runtime::SizeType utf8_length) {
     io_ext_.ext_print_utf8(utf8_data, utf8_length);
   }
 

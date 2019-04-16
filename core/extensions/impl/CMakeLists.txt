@@ -18,6 +18,7 @@ add_library(io_extension
 target_link_libraries(io_extension
     hexutil
     logger
+    buffer
     )
 
 add_library(memory_extension

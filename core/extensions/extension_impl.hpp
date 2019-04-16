@@ -100,12 +100,13 @@ namespace kagome::extensions {
     void ext_free(runtime::WasmPointer ptr) override;
 
     // -------------------------I/O extensions--------------------------
-    void ext_print_hex(const uint8_t *data, uint32_t length) override;
+    void ext_print_hex(runtime::WasmPointer data,
+                       runtime::SizeType length) override;
 
     void ext_print_num(uint64_t value) override;
 
-    void ext_print_utf8(const uint8_t *utf8_data,
-                        uint32_t utf8_length) override;
+    void ext_print_utf8(runtime::WasmPointer utf8_data,
+                        runtime::SizeType utf8_length) override;
 
     // -------------------------Cryptographic extensions----------------------
     void ext_blake2_256(const uint8_t *data, uint32_t len,
@@ -118,34 +119,6 @@ namespace kagome::extensions {
     void ext_twox_128(const uint8_t *data, uint32_t len, uint8_t *out) override;
 
     void ext_twox_256(const uint8_t *data, uint32_t len, uint8_t *out) override;
-
-    // -------------------------Sandboxing extensions----------------------
-    void ext_sandbox_instance_teardown(uint32_t instance_idx) override;
-
-    uint32_t ext_sandbox_instantiate(
-        const SandoxDispatchFuncType &dispatch_func, const uint8_t *wasm_ptr,
-        size_t wasm_length, const uint8_t *imports_ptr, size_t imports_length,
-        size_t state) override;
-
-    uint32_t ext_sandbox_invoke(uint32_t instance_idx,
-                                const uint8_t *export_ptr, size_t export_len,
-                                const uint8_t *args_ptr, size_t args_len,
-                                uint8_t *return_val_ptr, size_t return_val_len,
-                                size_t state) override;
-
-    uint32_t ext_sandbox_memory_get(uint32_t memory_idx, uint32_t offset,
-                                    uint8_t *buf_ptr,
-                                    size_t buf_length) override;
-
-    uint32_t ext_sandbox_memory_new(uint32_t initial,
-                                    uint32_t maximum) override;
-
-    uint32_t ext_sandbox_memory_set(uint32_t memory_idx, uint32_t offset,
-                                    const uint8_t *val_ptr,
-                                    size_t val_len) override;
-
-    void ext_sandbox_memory_teardown(uint32_t memory_idx) override;
-
     // -------------------------Misc extensions--------------------------
 
     uint64_t ext_chain_id() const override;

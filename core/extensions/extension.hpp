@@ -221,7 +221,8 @@ namespace kagome::extensions {
      * @param data - pointer to an array of bytes with hex
      * @param length of the array
      */
-    virtual void ext_print_hex(const uint8_t *data, uint32_t length) = 0;
+    virtual void ext_print_hex(runtime::WasmPointer data,
+                               runtime::SizeType length) = 0;
 
     /**
      * Print a number
@@ -234,8 +235,8 @@ namespace kagome::extensions {
      * @param utf8_data - pointer to an array of bytes with UTF-8
      * @param utf8_length - length of the array
      */
-    virtual void ext_print_utf8(const uint8_t *utf8_data,
-                                uint32_t utf8_length) = 0;
+    virtual void ext_print_utf8(runtime::WasmPointer utf8_data,
+                                runtime::SizeType utf8_length) = 0;
 
     // -------------------------Cryptographic extensions------------------------
 
