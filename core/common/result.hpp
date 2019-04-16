@@ -9,6 +9,7 @@
 #include <boost/variant.hpp>
 
 #include "common/visitor.hpp"
+#include "macro/nodiscard.hpp"
 
 /*
  * Result is a type which represents value or an error, and values and errors
@@ -34,7 +35,7 @@ namespace kagome::expected {
   struct Value {
     T value;
     template <typename V>
-    operator Value<V>() {
+    operator Value<V>() {  // NOLINT
       return {value};
     }
   };
@@ -49,7 +50,7 @@ namespace kagome::expected {
   struct Error {
     E error;
     template <typename V>
-    operator Error<V>() {
+    operator Error<V>() { // NOLINT
       return {error};
     }
   };
@@ -66,17 +67,17 @@ namespace kagome::expected {
    * is thrown. UnwrapException is a common ancestor for them.
    */
   class UnwrapException : public std::exception {
-    const char *what() const noexcept override = 0;
+    NODISCARD const char *what() const noexcept override = 0;
   };
 
   class NoValueException : public UnwrapException {
-    const char *what() const noexcept override {
+    NODISCARD const char *what() const noexcept override {
       return "No Value stored in the Result; Check Error";
     }
   };
 
   class NoErrorException : public UnwrapException {
-    const char *what() const noexcept override {
+    NODISCARD const char *what() const noexcept override {
       return "No Error stored in the Result; Check Value";
     }
   };
@@ -154,7 +155,7 @@ namespace kagome::expected {
      * contained in the Result, if it contains value,
      * or throws a NoValueException exception otherwise.
      */
-    constexpr const V &getValueRef() const {
+    NODISCARD constexpr const V &getValueRef() const {
       return match(
           [](Value<V> &v) -> std::reference_wrapper<V> { return v.value; },
           [](const Error<E> &_) -> std::reference_wrapper<V> {
@@ -167,7 +168,7 @@ namespace kagome::expected {
      * contained in the Result, if it contains error,
      * or throws a NoErrorException exception otherwise.
      */
-    constexpr const E &getErrorRef() const {
+    NODISCARD constexpr const E &getErrorRef() const {
       return match(
           [](Error<E> &e) -> std::reference_wrapper<E> { return e.error; },
           [](const Value<V> &_) -> std::reference_wrapper<E> {
@@ -179,7 +180,7 @@ namespace kagome::expected {
      * This method moves the value contained in the Result, if it was stored,
      * or throws a NoValueException exception otherwise.
      */
-    constexpr V getValue() {
+    NODISCARD constexpr V getValue() {
       return match([](Value<V> &v) -> V { return std::forward<V>(v.value); },
                    [](const Error<E> &_) -> V { throw NoValueException(); });
     }
@@ -188,7 +189,7 @@ namespace kagome::expected {
      * This method moves the error contained in the Result, if
      * it was stored, or throws a NoErrorException exception otherwise.
      */
-    constexpr E getError() {
+    NODISCARD constexpr E getError() {
       return match([](Error<E> &e) -> E { return std::forward<E>(e.error); },
                    [](const Value<V> &_) -> E { throw NoErrorException(); });
     }
@@ -196,7 +197,7 @@ namespace kagome::expected {
     /**
      * Returns true if the result contains a value, else returns false
      */
-    constexpr bool hasValue() const noexcept {
+    NODISCARD constexpr bool hasValue() const noexcept {
       return match([](const Value<V> &v) { return true; },
                    [](const Error<E> &_) { return false; });
     }
@@ -204,7 +205,7 @@ namespace kagome::expected {
     /**
      * Returns true if the result contains an error, else returns false
      */
-    constexpr bool hasError() const noexcept {
+    NODISCARD constexpr bool hasError() const noexcept {
       return match([](const Value<V> &v) { return false; },
                    [](const Error<E> &_) { return true; });
     }
@@ -221,10 +222,10 @@ namespace kagome::expected {
      *         otherwise return this
      */
     template <typename Value>
-    constexpr Result<Value, E> and_res(const Result<Value, E> &new_res) const
+    NODISCARD constexpr Result<Value, E> and_res(const Result<Value, E> &new_res) const
         noexcept {
       return visit_in_place(
-          *this, [res = new_res](ValueType) { return res; },
+          *this, [res = new_res](ValueType v) { return res; },
           [](ErrorType err) -> Result<Value, E> { return err; });
     }
 
@@ -240,11 +241,11 @@ namespace kagome::expected {
      *         otherwise return this
      */
     template <typename Value>
-    constexpr Result<Value, E> or_res(const Result<Value, E> &new_res) const
+    NODISCARD constexpr Result<Value, E> or_res(const Result<Value, E> &new_res) const
         noexcept {
       return visit_in_place(
           *this, [](ValueType val) -> Result<Value, E> { return val; },
-          [res = new_res](ErrorType) { return res; });
+          [res = new_res](ErrorType e) { return res; });
     }
   };
 

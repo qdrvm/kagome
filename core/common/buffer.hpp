@@ -74,29 +74,29 @@ namespace kagome::common {
     /**
      * @brief Iterator, which points to begin of this buffer.
      */
-    iterator begin();
+    NODISCARD iterator begin();
 
     /**
      * @brief Iterator, which points to the element next to the last in this
      * buffer.
      */
-    iterator end();
+    NODISCARD iterator end();
 
     /**
      * @brief Iterator, which points to begin of this buffer.
      */
-    const_iterator begin() const;
+    NODISCARD const_iterator begin() const;
 
     /**
      * @brief Iterator, which points to the element next to the last in this
      * buffer.
      */
-    const_iterator end() const;
+    NODISCARD const_iterator end() const;
 
     /**
      * @brief Getter for size of this buffer.
      */
-    size_t size() const;
+    NODISCARD size_t size() const;
 
     /**
      * @brief Put a 8-bit {@param n} in this buffer.
@@ -157,12 +157,12 @@ namespace kagome::common {
     /**
      * @brief getter for raw array of bytes
      */
-    const uint8_t *toBytes() const;
+    NODISCARD const uint8_t *toBytes() const;
 
     /**
      * @brief getter for vector of vytes
      */
-    const std::vector<uint8_t> &toVector() const;
+    NODISCARD const std::vector<uint8_t> &toVector() const;
 
     std::vector<uint8_t> &toVector();
 
@@ -170,7 +170,7 @@ namespace kagome::common {
      * @brief encode bytearray as hex
      * @return hexencoded string
      */
-    std::string toHex() const;
+    NODISCARD std::string toHex() const;
 
     /**
      * @brief Construct Buffer from hexstring

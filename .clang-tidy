@@ -1,5 +1,5 @@
 ---
-Checks:          '-*,clang-analyzer-*,clang-diagnostic-*,readability-*,modernize-*,boost-*,bugprone-*,cppcoreguidelines-*,google-*,hicpp-*,performance-*,readability-*,-google-readability-namespace-comments,-readability-inconsistent-declaration-parameter-name,-readability-braces-around-statements,-hicpp-signed-bitwise,-google-runtime-references,-cppcoreguidelines-avoid-magic-numbers,-readability-magic-numbers'
+Checks:          '-*,clang-analyzer-*,clang-diagnostic-*,readability-*,modernize-*,boost-*,bugprone-*,cppcoreguidelines-*,google-*,hicpp-*,performance-*,readability-*,-google-readability-namespace-comments,-readability-inconsistent-declaration-parameter-name,-readability-braces-around-statements,-hicpp-signed-bitwise,-google-runtime-references,-cppcoreguidelines-avoid-magic-numbers,-readability-magic-numbers,-hicpp-explicit-conversions,-hicpp-uppercase-literal-suffix,-readability-uppercase-literal-suffix'
 WarningsAsErrors: 'modernize-*,cppcoreguidelines-*,boost-*,performance-*,google-build-using-namespace,readability-else-after-return,google-readability-todo'
 HeaderFilterRegex: '.*\.hpp$'
 AnalyzeTemporaryDtors: false
@@ -258,5 +258,7 @@ CheckOptions:
     value:           '::std::basic_string;::std::basic_string_view;::std::vector;::std::array'
   - key:             readability-static-accessed-through-instance.NameSpecifierNestingThreshold
     value:           '3'
+  - key:             cppcoreguidelines-macro-usage.CheckCapsOnly
+    value:           '1'
 ...
 
