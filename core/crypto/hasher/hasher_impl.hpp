@@ -7,6 +7,7 @@
 #define KAGOME_CORE_CRYPTO_HASHER_HASHER_IMPL_HPP_
 
 #include "crypto/hasher.hpp"
+#include "macro/nodiscard.hpp"
 
 namespace kagome::hash {
 
@@ -18,13 +19,13 @@ namespace kagome::hash {
    public:
     ~HasherImpl() override = default;
 
-    Hash128 twox_128(const Buffer &buffer) const override;
+    NODISCARD Hash128 twox_128(const Buffer &buffer) const override;
 
-    Hash256 twox_256(const Buffer &buffer) const override;
+    NODISCARD Hash256 twox_256(const Buffer &buffer) const override;
 
-    Hash256 blake2_256(const Buffer &buffer) const override;
+    NODISCARD Hash256 blake2_256(const Buffer &buffer) const override;
 
-    Hash256 sha2_256(const Buffer &buffer) const override;
+    NODISCARD Hash256 sha2_256(const Buffer &buffer) const override;
   };
 
 }  // namespace kagome::hash
