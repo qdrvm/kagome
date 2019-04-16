@@ -12,25 +12,6 @@
 #include "crypto/blake2/blake2b.h"
 #include "crypto/twox/twox.hpp"
 
-namespace {
-  /**
-   * Create an object, needed for Ed25519 methods calls, such as signature or
-   * key
-   * @tparam EdObject - type of object to be created
-   * @tparam InnerArrSize - size of an array inside that object
-   * @param data to be copied to that object
-   * @return the object
-   */
-  template <typename EdObject, int InnerArrSize>
-  EdObject createEdObject(const uint8_t *data) {
-    EdObject out{};
-    auto data_end = data;
-    std::advance(data_end, InnerArrSize);
-    std::copy(data, data_end, static_cast<uint8_t *>(out.data));
-    return out;
-  }
-}  // namespace
-
 namespace kagome::extensions {
   CryptoExtension::CryptoExtension(std::shared_ptr<runtime::WasmMemory> memory)
       : memory_(std::move(memory)) {}
@@ -55,15 +36,15 @@ namespace kagome::extensions {
     static constexpr uint32_t kVerifyFail = 5;
 
     const auto &msg = memory_->loadN(msg_data, msg_len);
-    auto *sig_bytes =
-        memory_->loadN(sig_data, ed25519_signature_SIZE).toBytes();
-    auto signature =
-        createEdObject<signature_t, ed25519_signature_SIZE>(sig_bytes);
+    auto sig_bytes =
+        memory_->loadN(sig_data, ed25519_signature_SIZE).toVector();
+    signature_t signature{};
+    std::copy(sig_bytes.begin(), sig_bytes.end(), signature.data);
 
-    auto *pubkey_bytes =
-        memory_->loadN(pubkey_data, ed25519_pubkey_SIZE).toBytes();
-    auto pubkey =
-        createEdObject<public_key_t, ed25519_pubkey_SIZE>(pubkey_bytes);
+    auto pubkey_bytes =
+        memory_->loadN(pubkey_data, ed25519_pubkey_SIZE).toVector();
+    public_key_t pubkey{};
+    std::copy(pubkey_bytes.begin(), pubkey_bytes.end(), pubkey.data);
 
     return ed25519_verify(&signature, msg.toBytes(), msg_len, &pubkey)
             == ED25519_SUCCESS
