@@ -28,6 +28,8 @@ namespace kagome::common {
      */
     Buffer(size_t size, uint8_t byte);
 
+    ~Buffer() = default;
+
     /**
      * @brief lvalue construct buffer from a byte vector
      */

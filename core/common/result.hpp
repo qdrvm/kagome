@@ -35,7 +35,7 @@ namespace kagome::expected {
   struct Value {
     T value;
     template <typename V>
-    operator Value<V>() {  // NOLINT
+    operator Value<V>() {  // NOLINT(google-explicit-constructor)
       return {value};
     }
   };
@@ -50,7 +50,7 @@ namespace kagome::expected {
   struct Error {
     E error;
     template <typename V>
-    operator Error<V>() { // NOLINT
+    operator Error<V>() { // NOLINT(google-explicit-constructor)
       return {error};
     }
   };
