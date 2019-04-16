@@ -42,6 +42,7 @@ TEST(Common, BufferPut) {
   int i = 0;
   for (const auto &byte : b) {
     i++;
+    (void)byte;
   }
   ASSERT_EQ(i, b.size());
 

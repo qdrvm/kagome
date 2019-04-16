@@ -10,9 +10,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::peer, PeerId::FactoryError, e) {
   switch (e) {
     case Error::kIdIsNotSha256Hash:
       return "provided id is not a SHA-256 multihash";
-    default:
-      return "unknown error";
   }
+
+  return "unknown error";
 }
 
 namespace libp2p::peer {

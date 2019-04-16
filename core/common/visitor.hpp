@@ -22,6 +22,7 @@ namespace kagome {
     using Lambda::operator();
     using lambda_visitor<Lambdas...>::operator();
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     lambda_visitor(Lambda lambda, Lambdas... lambdas)
         : Lambda(lambda), lambda_visitor<Lambdas...>(lambdas...) {}
   };
@@ -30,6 +31,7 @@ namespace kagome {
   struct lambda_visitor<Lambda> : public Lambda {
     using Lambda::operator();
 
+    // NOLINTNEXTLINE(google-explicit-constructor)
     lambda_visitor(Lambda lambda) : Lambda(lambda) {}
   };
 

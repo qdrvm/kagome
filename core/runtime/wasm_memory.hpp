@@ -23,6 +23,8 @@ namespace kagome::runtime {
   // simulated.
   class WasmMemory {
    public:
+    virtual ~WasmMemory() = default;
+
     const static auto kMaxMemorySize = std::numeric_limits<SizeType>::max();
 
     /**
