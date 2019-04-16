@@ -33,22 +33,22 @@ namespace kagome::runtime {
     WasmMemoryImpl &operator=(WasmMemoryImpl &&move) = delete;
     ~WasmMemoryImpl() override = default;
 
-    NODISCARD SizeType size() const override;
+    SizeType size() const override;
     void resize(SizeType newSize) override;
 
     WasmPointer allocate(SizeType size) override;
     std::optional<SizeType> deallocate(WasmPointer ptr) override;
 
-    NODISCARD int8_t load8s(WasmPointer addr) const override;
-    NODISCARD uint8_t load8u(WasmPointer addr) const override;
-    NODISCARD int16_t load16s(WasmPointer addr) const override;
-    NODISCARD uint16_t load16u(WasmPointer addr) const override;
-    NODISCARD int32_t load32s(WasmPointer addr) const override;
-    NODISCARD uint32_t load32u(WasmPointer addr) const override;
-    NODISCARD int64_t load64s(WasmPointer addr) const override;
-    NODISCARD uint64_t load64u(WasmPointer addr) const override;
-    NODISCARD std::array<uint8_t, 16> load128(WasmPointer addr) const override;
-    NODISCARD common::Buffer loadN(kagome::runtime::WasmPointer addr,
+    int8_t load8s(WasmPointer addr) const override;
+    uint8_t load8u(WasmPointer addr) const override;
+    int16_t load16s(WasmPointer addr) const override;
+    uint16_t load16u(WasmPointer addr) const override;
+    int32_t load32s(WasmPointer addr) const override;
+    uint32_t load32u(WasmPointer addr) const override;
+    int64_t load64s(WasmPointer addr) const override;
+    uint64_t load64u(WasmPointer addr) const override;
+    std::array<uint8_t, 16> load128(WasmPointer addr) const override;
+    common::Buffer loadN(kagome::runtime::WasmPointer addr,
                                    kagome::runtime::SizeType n) const override;
 
     void store8(WasmPointer addr, int8_t value) override;
@@ -91,7 +91,7 @@ namespace kagome::runtime {
     }
 
     template <typename T>
-    NODISCARD T get(WasmPointer address) const {
+    T get(WasmPointer address) const {
       if (aligned<T>(&memory_[address])) {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         return *reinterpret_cast<const T *>(&memory_[address]);

@@ -36,21 +36,21 @@ namespace kagome::common {
     /**
      * In compile-time returns size of current blob.
      */
-    NODISCARD constexpr static size_t size() {
+    constexpr static size_t size() {
       return size_;
     }
 
     /**
      * Converts current blob to std::string
      */
-    NODISCARD std::string toString() const noexcept {
+    std::string toString() const noexcept {
       return std::string{this->begin(), this->end()};
     }
 
     /**
      * Converts current blob to hex string.
      */
-    NODISCARD std::string toHex() const noexcept {
+    std::string toHex() const noexcept {
       return hex_upper({this->begin(), this->end()});
     }
 
@@ -60,7 +60,7 @@ namespace kagome::common {
      * @return result containing Blob object if string has proper size,
      * otherwise result contains string with error message
      */
-    NODISCARD static expected::Result<Blob<size_>, std::string> fromString(
+    static expected::Result<Blob<size_>, std::string> fromString(
         std::string_view data) {
       if (data.size() != size_) {
         const static std::string error_message_template =
@@ -82,7 +82,7 @@ namespace kagome::common {
      * @return result containing Blob object if hex string has proper size and
      * is in hex format, otherwise result contains error message
      */
-    NODISCARD static expected::Result<Blob<size_>, std::string> fromHex(
+    static expected::Result<Blob<size_>, std::string> fromHex(
         std::string_view hex) {
       return unhex(hex) | [&hex](const std::vector<uint8_t> &bytes)
                  -> expected::Result<Blob<size_>, std::string> {

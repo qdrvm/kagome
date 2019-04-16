@@ -10,7 +10,6 @@
 #include <optional>
 
 #include "common/buffer.hpp"
-#include "macro/nodiscard.hpp"
 #include "runtime/common.hpp"
 
 namespace kagome::runtime {
@@ -31,7 +30,7 @@ namespace kagome::runtime {
     /**
      * @brief Return the size of the memory
      */
-    NODISCARD virtual SizeType size() const = 0;
+    virtual SizeType size() const = 0;
 
     /**
      * Resizes memory to the given size
@@ -45,7 +44,7 @@ namespace kagome::runtime {
      * @return address to allocated memory. If there is no available slot for
      * such allocation, then -1 is returned
      */
-    NODISCARD virtual WasmPointer allocate(SizeType size) = 0;
+    virtual WasmPointer allocate(SizeType size) = 0;
 
     /**
      * Deallocates memory in provided region
@@ -53,20 +52,20 @@ namespace kagome::runtime {
      * @return size of deallocated memory or none if given address does not
      * point to any allocated pieces of memory
      */
-    NODISCARD virtual std::optional<SizeType> deallocate(WasmPointer ptr) = 0;
+    virtual std::optional<SizeType> deallocate(WasmPointer ptr) = 0;
 
     /**
      * Load integers from provided address
      */
-    NODISCARD virtual int8_t load8s(WasmPointer addr) const = 0;
-    NODISCARD virtual uint8_t load8u(WasmPointer addr) const = 0;
-    NODISCARD virtual int16_t load16s(WasmPointer addr) const = 0;
-    NODISCARD virtual uint16_t load16u(WasmPointer addr) const = 0;
-    NODISCARD virtual int32_t load32s(WasmPointer addr) const = 0;
-    NODISCARD virtual uint32_t load32u(WasmPointer addr) const = 0;
-    NODISCARD virtual int64_t load64s(WasmPointer addr) const = 0;
-    NODISCARD virtual uint64_t load64u(WasmPointer addr) const = 0;
-    NODISCARD virtual std::array<uint8_t, 16> load128(WasmPointer addr) const = 0;
+    virtual int8_t load8s(WasmPointer addr) const = 0;
+    virtual uint8_t load8u(WasmPointer addr) const = 0;
+    virtual int16_t load16s(WasmPointer addr) const = 0;
+    virtual uint16_t load16u(WasmPointer addr) const = 0;
+    virtual int32_t load32s(WasmPointer addr) const = 0;
+    virtual uint32_t load32u(WasmPointer addr) const = 0;
+    virtual int64_t load64s(WasmPointer addr) const = 0;
+    virtual uint64_t load64u(WasmPointer addr) const = 0;
+    virtual std::array<uint8_t, 16> load128(WasmPointer addr) const = 0;
 
     /**
      * Load bytes from provided address into the buffer of size n
@@ -74,7 +73,7 @@ namespace kagome::runtime {
      * @param n number of bytes to be loaded
      * @return Buffer of length N
      */
-    NODISCARD virtual common::Buffer loadN(WasmPointer addr, SizeType n) const = 0;
+    virtual common::Buffer loadN(WasmPointer addr, SizeType n) const = 0;
 
     /**
      * Store integers at given address of the wasm memory
