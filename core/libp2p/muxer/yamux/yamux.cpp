@@ -421,11 +421,12 @@ namespace libp2p::muxer {
 
   void Yamux::processPingFrame(const YamuxFrame &frame) {
     write(pingResponseMsg(frame.length_),
-          [t = shared_from_this(), stream_id = frame.stream_id_](
-              std::error_code error_code, size_t written) {
-            if (error_code) {
-              t->logger_->error("cannot send ping message to stream with id "
-                                + std::to_string(stream_id));
+          [t = shared_from_this(), stream_id = frame.stream_id_](auto &&ec,
+                                                                 auto &&n) {
+            if (ec) {
+              t->logger_->error(
+                  "cannot send ping message to stream with id {} and error {}",
+                  std::to_string(stream_id), ec.message());
             }
           });
   }
