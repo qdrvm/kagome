@@ -160,6 +160,7 @@ namespace kagome::common {
      * @brief getter for raw array of bytes
      */
     NODISCARD const uint8_t *toBytes() const;
+    NODISCARD uint8_t *toBytes();
 
     /**
      * @brief getter for vector of vytes

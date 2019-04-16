@@ -9,6 +9,8 @@
 #include <optional>
 #include <outcome/outcome.hpp>
 
+#include "macro/nodiscard.hpp"
+
 namespace kagome::common {
   /**
    * @brief interface for Decoders
@@ -24,14 +26,14 @@ namespace kagome::common {
      * @param n Number of bytes to check
      * @return True if n more bytes are available and false otherwise
      */
-    virtual bool hasMore(uint64_t n) const = 0;
+    NODISCARD virtual bool hasMore(uint64_t n) const = 0;
 
     /**
      * @brief takes next byte and returns it. If it does not exist, return
      * nullopt
      * @return Current byte
      */
-    virtual std::optional<uint8_t> nextByte() = 0;
+    NODISCARD virtual std::optional<uint8_t> nextByte() = 0;
 
     /**
      * @brief Shifts pointer by the given distance

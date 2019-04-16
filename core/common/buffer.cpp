@@ -145,6 +145,10 @@ namespace kagome::common {
     return *this;
   }
 
+  uint8_t *Buffer::toBytes() {
+    return data_.data();
+  }
+
   std::ostream &operator<<(std::ostream &os, const Buffer &buffer) {
     return os << buffer.toHex();
   }
