@@ -40,24 +40,20 @@ namespace libp2p::transport {
 
     bool isClosed() const override;
 
-    void asyncRead(
-        boost::asio::mutable_buffer &mut, uint32_t to_read,
-        std::function<Readable::CompletionHandler> cb) noexcept override;
+    void asyncRead(boost::asio::mutable_buffer &mut, uint32_t to_read,
+                   std::function<Readable::CompletionHandler> cb) override;
 
     void asyncRead(boost::asio::mutable_buffer &&mut, uint32_t to_read,
-                   std::function<Readable::CompletionHandler> cb) noexcept override;
+                   std::function<Readable::CompletionHandler> cb) override;
 
-    void asyncRead(
-        boost::asio::streambuf &streambuf, uint32_t to_read,
-        std::function<Readable::CompletionHandler> cb) noexcept override;
+    void asyncRead(boost::asio::streambuf &streambuf, uint32_t to_read,
+                   std::function<Readable::CompletionHandler> cb) override;
 
-    void asyncWrite(
-        const boost::asio::const_buffer &buf,
-        std::function<Writable::CompletionHandler> cb) noexcept override;
+    void asyncWrite(const boost::asio::const_buffer &buf,
+                    std::function<Writable::CompletionHandler> cb) override;
 
-    void asyncWrite(
-        boost::asio::streambuf &buf,
-        std::function<Writable::CompletionHandler> cb) noexcept override;
+    void asyncWrite(boost::asio::streambuf &buf,
+                    std::function<Writable::CompletionHandler> cb) override;
 
     ~TcpConnection() override = default;
     TcpConnection(const TcpConnection &copy) = delete;

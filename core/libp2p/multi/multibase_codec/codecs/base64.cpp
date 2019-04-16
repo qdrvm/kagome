@@ -79,9 +79,9 @@ namespace {
 }  // namespace
 
 namespace libp2p::multi::detail {
+  using kagome::expected::Error;
   using kagome::expected::Result;
   using kagome::expected::Value;
-  using kagome::expected::Error;
 
   /**
    * Actual implementation of the encoding
@@ -92,7 +92,8 @@ namespace libp2p::multi::detail {
   size_t encodeImpl(std::string &out, const kagome::common::Buffer &bytes) {
     auto len = bytes.size();
     const auto tab = alphabet;
-    size_t bytes_pos = 0u, decoded_size = 0u;
+    size_t bytes_pos = 0u;
+    size_t decoded_size = 0u;
 
     for (auto n = len / 3; n--;) { // NOLINT
       out += tab[(bytes[bytes_pos + 0] & 0xfc) >> 2];
@@ -138,9 +139,13 @@ namespace libp2p::multi::detail {
   std::optional<std::vector<uint8_t>> decodeImpl(std::string_view src) {
     std::vector<uint8_t> out(decodedSize(src.size()));
 
-    std::vector<unsigned char> c3(3), c4(4);
-    int i = 0, j = 0;
-    size_t in_pos = 0, len = src.size(), bytes_pos = 0;
+    std::vector<unsigned char> c3(3);
+    std::vector<unsigned char> c4(4);
+    int i = 0;
+    int j = 0;
+    size_t in_pos = 0;
+    size_t len = src.size();
+    size_t bytes_pos = 0;
 
     while (len-- && src[in_pos] != '=') { // NOLINT
       auto const v = inverse_table.at(src[in_pos]);

@@ -39,15 +39,15 @@ namespace libp2p::basic {
      * socket.
      */
     virtual void asyncRead(boost::asio::mutable_buffer &mut, uint32_t to_read,
-                           std::function<CompletionHandler> cb) noexcept = 0;
+                           std::function<CompletionHandler> cb)  = 0;
 
     /// with this you can write asyncRead(boost::asio::buffer(rdbuf->toVector(),
     /// kSize), ...)
     virtual void asyncRead(boost::asio::mutable_buffer &&mut, uint32_t to_read,
-                           std::function<CompletionHandler> cb) noexcept = 0;
+                           std::function<CompletionHandler> cb)  = 0;
 
     virtual void asyncRead(boost::asio::streambuf &streambuf, uint32_t to_read,
-                           std::function<CompletionHandler> cb) noexcept = 0;
+                           std::function<CompletionHandler> cb)  = 0;
   };
 
 }  // namespace libp2p::basic

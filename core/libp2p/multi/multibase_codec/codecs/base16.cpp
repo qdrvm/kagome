@@ -18,7 +18,8 @@ namespace {
    */
   bool encodingCaseIsUpper(std::string_view string) {
     return std::all_of(string.begin(), string.end(), [](const char &c) {
-      return !std::isalpha(c) || static_cast<bool>(std::isupper(c)); // NOLINT
+      // NOLINTNEXTLINE(readability-implicit-bool-conversion)
+      return !std::isalpha(c) || static_cast<bool>(std::isupper(c));
     });
   }
 }  // namespace

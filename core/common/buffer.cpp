@@ -40,7 +40,7 @@ namespace kagome::common {
   }
 
   std::string Buffer::toHex() const {
-    return hex_upper(data_.data(), data_.size());
+    return hex_upper(data_);
   }
 
   Buffer::Buffer(std::initializer_list<uint8_t> b) : data_(b) {}

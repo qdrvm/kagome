@@ -69,14 +69,14 @@ TEST(Result, NoCopy) {
 TEST(Result, Unwrap) {
   Result<int, std::string> r = Value {4};
   ASSERT_EQ(r.getValue(), 4); // check if it's still there after the first unwrap
-  ASSERT_THROW(r.getError(), UnwrapException);
+  ASSERT_THROW((void)r.getError(), UnwrapException);
   if(r.hasValue()) {
-    ASSERT_NO_THROW(r.getValue());
+    ASSERT_NO_THROW((void)r.getValue());
     ASSERT_EQ(r.getValue(), 4);
   }
 
   r = Error {"Flibbity-jibbit"};
-  ASSERT_THROW(r.getValue(), NoValueException);
+  ASSERT_THROW((void)r.getValue(), NoValueException);
   if(r.hasValue()) {
     FAIL() << "Must be false, as an error is stored";
   }

@@ -13,7 +13,7 @@
 #define UNIQUE_NAME(base) PP_CAT(base, __LINE__)
 
 #define __OUTCOME_TRY_EC(var, expr) \
-  auto &&var = expr;                \
+  auto &&var = (expr);                \
   if (var) {                        \
     return var;                     \
   }

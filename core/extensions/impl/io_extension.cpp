@@ -10,7 +10,7 @@ namespace kagome::extensions {
   IOExtension::IOExtension() : logger_{common::createLogger("WASM Runtime")} {}
 
   void IOExtension::ext_print_hex(const uint8_t *data, uint32_t length) {
-    logger_->info("hex value: {}", common::hex_lower(data, length));
+    logger_->info("hex value: {}", common::hex_lower({data, length}));
   }
 
   void IOExtension::ext_print_num(uint64_t value) {

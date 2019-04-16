@@ -9,24 +9,16 @@
 #include <boost/format.hpp>
 
 namespace kagome::common {
-  std::string hex_upper(const uint8_t *array, size_t len) noexcept {
-    std::string res(len * 2, '\x00');
-    boost::algorithm::hex(array, array + len, res.begin());  // NOLINT
+  std::string hex_upper(const gsl::span<const uint8_t> bytes) noexcept {
+    std::string res(bytes.size() * 2, '\x00');
+    boost::algorithm::hex(bytes.begin(), bytes.end(), res.begin());
     return res;
   }
 
-  std::string hex_upper(const std::vector<uint8_t> &bytes) noexcept {
-    return hex_upper(bytes.data(), bytes.size());
-  }
-
-  std::string hex_lower(const uint8_t *array, size_t len) noexcept {
-    std::string res(len * 2, '\x00');
-    boost::algorithm::hex_lower(array, array + len, res.begin());  // NOLINT
+  std::string hex_lower(const gsl::span<const uint8_t> bytes) noexcept {
+    std::string res(bytes.size() * 2, '\x00');
+    boost::algorithm::hex_lower(bytes.begin(), bytes.end(), res.begin());
     return res;
-  }
-
-  std::string hex_lower(const std::vector<uint8_t> &bytes) noexcept {
-    return hex_lower(bytes.data(), bytes.size());
   }
 
   expected::Result<std::vector<uint8_t>, std::string> unhex(
