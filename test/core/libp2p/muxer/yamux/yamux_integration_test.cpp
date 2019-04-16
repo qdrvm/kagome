@@ -66,7 +66,7 @@ class YamuxIntegrationTest : public ::testing::Test {
     EXPECT_OUTCOME_TRUE(conn, transport_->dial(*multiaddress_))
     connection_ = std::move(conn);
 
-    // wait until yamux gets created from that connection
+    // let Yamux be created
     context_.run_for(10ms);
     ASSERT_TRUE(yamux_);
   }

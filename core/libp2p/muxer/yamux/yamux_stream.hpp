@@ -26,9 +26,9 @@ namespace libp2p::stream {
 
     void readAsync(ReadCompletionHandler completion_handler) override;
 
-    void writeAsync(const common::NetworkMessage &msg) override;
+    void writeAsync(const kagome::common::Buffer &msg) override;
 
-    void writeAsync(const common::NetworkMessage &msg,
+    void writeAsync(const kagome::common::Buffer &msg,
                     ErrorCodeCallback error_callback) override;
 
     void close() override;

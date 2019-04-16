@@ -13,7 +13,6 @@
 #include "libp2p/basic/closeable.hpp"
 #include "libp2p/basic/readable.hpp"
 #include "libp2p/basic/writable.hpp"
-#include "libp2p/common/network_message.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 
 namespace libp2p::transport {

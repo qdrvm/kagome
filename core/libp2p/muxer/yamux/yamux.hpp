@@ -6,14 +6,16 @@
 #ifndef KAGOME_YAMUX_HPP
 #define KAGOME_YAMUX_HPP
 
+#include <functional>
 #include <map>
 #include <queue>
 
 #include <boost/asio/streambuf.hpp>
 #include <boost/system/error_code.hpp>
+#include "common/buffer.hpp"
 #include "common/logger.hpp"
-#include "libp2p/common/network_message.hpp"
 #include "libp2p/muxer/yamux/yamux_config.hpp"
+#include "libp2p/muxer/yamux/yamux_stream_parameters.hpp"
 #include "libp2p/stream/stream.hpp"
 #include "libp2p/transport/connection.hpp"
 #include "libp2p/transport/muxed_connection.hpp"
@@ -81,16 +83,14 @@ namespace libp2p::muxer {
      */
     void closeYamux();
 
-    struct StreamParameters;
-
     void startReadingHeader();
 
     void readingHeaderCompleted(const std::error_code &ec, size_t n);
 
     void readingDataCompleted(const std::error_code &ec, size_t n,
-                              StreamParameters &stream);
+                              YamuxStreamParameters &stream);
 
-    void write(const common::NetworkMessage &msg,
+    void write(const kagome::common::Buffer &msg,
                stream::Stream::ErrorCodeCallback cb);
 
     void startWriting();
@@ -118,15 +118,14 @@ namespace libp2p::muxer {
      * @return true, if it is going to initiate new iteration of Yamux event
      * loop itself, false if caller should do it
      */
-    bool processData(std::shared_ptr<Yamux::StreamParameters> stream,
-                     const YamuxFrame &frame);
+    bool processData(YamuxStreamParameters &stream, const YamuxFrame &frame);
 
     /**
      * Process ack message for such stream_id
      * @param stream_id of the stream to be processed
      * @return stream, if it is opened on this side, none otherwise
      */
-    std::optional<std::shared_ptr<StreamParameters>> processAck(
+    std::optional<std::reference_wrapper<YamuxStreamParameters>> processAck(
         StreamId stream_id);
 
     /**
@@ -134,8 +133,8 @@ namespace libp2p::muxer {
      * @param stream_id to be found
      * @return stream, if it is opened on this side, none otherwise
      */
-    std::optional<std::shared_ptr<StreamParameters>> findStream(
-        StreamId stream_id) const;
+    std::optional<std::reference_wrapper<YamuxStreamParameters>> findStream(
+        StreamId stream_id);
 
     /**
      * Close stream for reads on this side
@@ -198,20 +197,12 @@ namespace libp2p::muxer {
     kagome::common::Buffer write_buffer_;
     bool is_writing_ = false;
 
-    struct StreamParameters {
-      bool is_readable_;
-      bool is_writable_;
-      uint32_t window_size_;
-
-      std::queue<common::NetworkMessage> buffered_messages_{};
-      std::queue<stream::Stream::ReadCompletionHandler> completion_handlers_{};
-    };
     /// streams, which are multiplexed by this Yamux instance
-    std::map<StreamId, std::shared_ptr<StreamParameters>> streams_;
+    std::map<StreamId, YamuxStreamParameters> streams_;
 
     /// messages, which are going to be written during the event loop execution
     using MsgAndCallback =
-        std::pair<common::NetworkMessage, stream::Stream::ErrorCodeCallback>;
+        std::pair<kagome::common::Buffer, stream::Stream::ErrorCodeCallback>;
     std::queue<MsgAndCallback> outcoming_messages_{};
 
     kagome::common::Logger logger_;
@@ -225,18 +216,18 @@ namespace libp2p::muxer {
         stream::Stream::ReadCompletionHandler completion_handler);
 
     void streamWriteFrameAsync(
-        StreamId stream_id, const common::NetworkMessage &msg,
+        StreamId stream_id, const kagome::common::Buffer &msg,
         stream::Stream::ErrorCodeCallback error_callback);
 
     void streamClose(StreamId stream_id);
 
     void streamReset(StreamId stream_id);
 
-    bool streamIsClosedForWrite(StreamId stream_id) const;
+    bool streamIsClosedForWrite(StreamId stream_id);
 
-    bool streamIsClosedForRead(StreamId stream_id) const;
+    bool streamIsClosedForRead(StreamId stream_id);
 
-    bool streamIsClosedEntirely(StreamId stream_id) const;
+    bool streamIsClosedEntirely(StreamId stream_id);
   };
 }  // namespace libp2p::muxer
 

@@ -9,7 +9,7 @@
 #include <functional>
 
 #include <outcome/outcome.hpp>
-#include "libp2p/common/network_message.hpp"
+#include "common/buffer.hpp"
 
 namespace libp2p::stream {
   /**
@@ -17,7 +17,7 @@ namespace libp2p::stream {
    */
   class Stream {
    public:
-    using NetworkMessageOutcome = outcome::result<common::NetworkMessage>;
+    using NetworkMessageOutcome = outcome::result<kagome::common::Buffer>;
     using ReadCompletionHandler = std::function<void(NetworkMessageOutcome)>;
 
     using ErrorCodeCallback = std::function<void(std::error_code, size_t)>;
@@ -33,7 +33,7 @@ namespace libp2p::stream {
      * Write data to the stream
      * @param msg to be written
      */
-    virtual void writeAsync(const common::NetworkMessage &msg) = 0;
+    virtual void writeAsync(const kagome::common::Buffer &msg) = 0;
 
     /**
      * Write data to the stream
@@ -41,7 +41,7 @@ namespace libp2p::stream {
      * @param error_callback - callback, which is going to be called, when the
      * write finishes
      */
-    virtual void writeAsync(const common::NetworkMessage &msg,
+    virtual void writeAsync(const kagome::common::Buffer &msg,
                             ErrorCodeCallback error_callback) = 0;
 
     /**
