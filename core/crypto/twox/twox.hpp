@@ -11,10 +11,12 @@
 namespace kagome::crypto {
 
   struct Twox128Hash {
-    uint8_t data[16];
+    const static auto kLength = 128 / 8;
+    uint8_t data[kLength];
   };
   struct Twox256Hash {
-    uint8_t data[32];
+    const static auto kLength = 256 / 8;
+    uint8_t data[kLength];
   };
 
   Twox128Hash make_twox128(const common::Buffer &buf);

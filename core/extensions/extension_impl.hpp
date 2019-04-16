@@ -57,43 +57,6 @@ namespace kagome::extensions {
 
     void ext_storage_root(runtime::WasmPointer result) const override;
 
-    runtime::WasmPointer ext_child_storage_root(
-        runtime::WasmPointer storage_key_data,
-        runtime::WasmPointer storage_key_length,
-        runtime::WasmPointer written) override;
-
-    void ext_clear_child_storage(runtime::WasmPointer storage_key_data,
-                                 runtime::WasmPointer storage_key_length,
-                                 runtime::WasmPointer key_data,
-                                 runtime::WasmPointer key_length) override;
-
-    runtime::SizeType ext_exists_child_storage(
-        runtime::WasmPointer storage_key_data,
-        runtime::WasmPointer storage_key_length, runtime::WasmPointer key_data,
-        runtime::WasmPointer key_length) override;
-
-    runtime::WasmPointer ext_get_allocated_child_storage(
-        runtime::WasmPointer storage_key_data,
-        runtime::WasmPointer storage_key_length, runtime::WasmPointer key_data,
-        runtime::WasmPointer key_length, runtime::WasmPointer written) override;
-
-    runtime::SizeType ext_get_child_storage_into(
-        runtime::WasmPointer storage_key_data,
-        runtime::WasmPointer storage_key_length, runtime::WasmPointer key_data,
-        runtime::WasmPointer key_length, runtime::WasmPointer value_data,
-        runtime::SizeType value_length,
-        runtime::SizeType value_offset) override;
-
-    void ext_kill_child_storage(runtime::WasmPointer storage_key_data,
-                                runtime::SizeType storage_key_length) override;
-
-    void ext_set_child_storage(runtime::WasmPointer storage_key_data,
-                               runtime::SizeType storage_key_length,
-                               runtime::WasmPointer key_data,
-                               runtime::SizeType key_length,
-                               runtime::WasmPointer value_data,
-                               runtime::SizeType value_length) override;
-
     // -------------------------Memory extensions--------------------------
     runtime::WasmPointer ext_malloc(runtime::SizeType size) override;
 
@@ -109,16 +72,19 @@ namespace kagome::extensions {
                         runtime::SizeType utf8_length) override;
 
     // -------------------------Cryptographic extensions----------------------
-    void ext_blake2_256(const uint8_t *data, uint32_t len,
-                        uint8_t *out) override;
+    void ext_blake2_256(runtime::WasmPointer data, runtime::SizeType len,
+                        runtime::WasmPointer out) override;
 
-    uint32_t ext_ed25519_verify(const uint8_t *msg_data, uint32_t msg_len,
-                                const uint8_t *sig_data,
-                                const uint8_t *pubkey_data) override;
+    runtime::SizeType ext_ed25519_verify(
+        runtime::WasmPointer msg_data, runtime::SizeType msg_len,
+        runtime::WasmPointer sig_data,
+        runtime::WasmPointer pubkey_data) override;
 
-    void ext_twox_128(const uint8_t *data, uint32_t len, uint8_t *out) override;
+    void ext_twox_128(runtime::WasmPointer data, runtime::SizeType len,
+                      runtime::WasmPointer out) override;
 
-    void ext_twox_256(const uint8_t *data, uint32_t len, uint8_t *out) override;
+    void ext_twox_256(runtime::WasmPointer data, runtime::SizeType len,
+                      runtime::WasmPointer out) override;
     // -------------------------Misc extensions--------------------------
 
     uint64_t ext_chain_id() const override;

@@ -32,6 +32,7 @@ namespace kagome::common {
      * @brief lvalue construct buffer from a byte vector
      */
     explicit Buffer(std::vector<uint8_t> v);
+    explicit Buffer(gsl::span<uint8_t> s);
 
     Buffer(const uint8_t *begin, const uint8_t *end);
 
