@@ -11,7 +11,6 @@
 #include <vector>
 
 #include <boost/endian/arithmetic.hpp>
-
 #include "common/buffer.hpp"
 #include "scale/scale_error.hpp"
 #include "scale/types.hpp"
@@ -75,7 +74,7 @@ namespace kagome::scale::impl {
     // clang-format on
 
     if (!stream.hasMore(size)) {
-      return outcome::failure(DecodeError::kNotEnoughData);
+      return outcome::failure(DecodeError::NOT_ENOUGH_DATA);
     }
 
     // get integer as 4 bytes from little-endian stream

@@ -28,7 +28,7 @@ namespace kagome::scale::compact {
     outcome::result<void> encodeFirstCategory(uint8_t value,
                                               common::Buffer &out) {
       if (value >= EncodingCategoryLimits::kMinUint16) {
-        return EncodeError::kWrongCategory;
+        return EncodeError::WRONG_CATEGORY;
       }
       // only values from [0, kMinUint16) can be put here
       out.putUint8(static_cast<uint8_t>(value << 2));
@@ -39,7 +39,7 @@ namespace kagome::scale::compact {
     outcome::result<void> encodeSecondCategory(uint16_t value,
                                                common::Buffer &out) {
       if (value >= EncodingCategoryLimits::kMinUint32) {
-        return EncodeError::kWrongCategory;
+        return EncodeError::WRONG_CATEGORY;
       };
       // only values from [kMinUint16, kMinUint32) can be put here
       auto v = value;
@@ -58,7 +58,7 @@ namespace kagome::scale::compact {
     outcome::result<void> encodeThirdCategory(uint32_t value,
                                               common::Buffer &out) {
       if (value >= EncodingCategoryLimits::kMinBigInteger) {
-        return EncodeError::kWrongCategory;
+        return EncodeError::WRONG_CATEGORY;
       };
 
       uint32_t v = (value << 2) + 2;
@@ -91,7 +91,7 @@ namespace kagome::scale::compact {
     // cannot encode negative numbers
     // there is no description how to encode compact negative numbers
     if (value < 0) {
-      return EncodeError::kCompactIntegerIsNegative;
+      return EncodeError::NEGATIVE_COMPACT_INTEGER;
     }
 
     if (value < EncodingCategoryLimits::kMinUint16) {
@@ -114,7 +114,7 @@ namespace kagome::scale::compact {
     size_t requiredLength = 1 + bigIntLength;
 
     if (bigIntLength > 67) {
-      return EncodeError::kCompactIntegerIsTooBig;
+      return EncodeError::COMPACT_INTEGER_TOO_BIG;
     }
 
     ByteArray result;
@@ -151,7 +151,7 @@ namespace kagome::scale::compact {
   outcome::result<BigInteger> decodeInteger(common::ByteStream &stream) {
     auto first_byte = stream.nextByte();
     if (!first_byte.has_value()) {
-      return outcome::failure(DecodeError::kNotEnoughData);
+      return outcome::failure(DecodeError::NOT_ENOUGH_DATA);
     }
 
     const uint8_t flag = (*first_byte) & 0b00000011;
@@ -167,7 +167,7 @@ namespace kagome::scale::compact {
       case 0b01: {
         auto second_byte = stream.nextByte();
         if (!second_byte.has_value()) {
-          return outcome::failure(DecodeError::kNotEnoughData);
+          return outcome::failure(DecodeError::NOT_ENOUGH_DATA);
         }
 
         number = (static_cast<size_t>((*first_byte) & 0b11111100)
@@ -181,7 +181,7 @@ namespace kagome::scale::compact {
         size_t multiplier = 256;
         if (!stream.hasMore(3)) {
           // not enough data to decode integer
-          return outcome::failure(DecodeError::kNotEnoughData);
+          return outcome::failure(DecodeError::NOT_ENOUGH_DATA);
         }
 
         for (int i = 0; i < 3; ++i) {
@@ -198,7 +198,7 @@ namespace kagome::scale::compact {
         auto bytes_count = ((*first_byte) >> 2) + 4;
         if (!stream.hasMore(bytes_count)) {
           // not enough data to decode integer
-          return outcome::failure(DecodeError::kNotEnoughData);
+          return outcome::failure(DecodeError::NOT_ENOUGH_DATA);
         }
 
         BigInteger multiplier{1};

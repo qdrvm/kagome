@@ -8,11 +8,11 @@
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::scale, EncodeError, e) {
   using kagome::scale::EncodeError;
   switch (e) {
-    case EncodeError::kCompactIntegerIsNegative:
+    case EncodeError::NEGATIVE_COMPACT_INTEGER:
       return "compact integers cannot be negative";
-    case EncodeError::kCompactIntegerIsTooBig:
+    case EncodeError::COMPACT_INTEGER_TOO_BIG:
       return "compact integers cannot be negative";
-    case EncodeError::kWrongCategory:
+    case EncodeError::WRONG_CATEGORY:
       return "wrong compact encoding category";
     default:
       break;
@@ -23,13 +23,13 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::scale, EncodeError, e) {
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::scale, DecodeError, e) {
   using kagome::scale::DecodeError;
   switch (e) {
-    case DecodeError::kNotEnoughData:
+    case DecodeError::NOT_ENOUGH_DATA:
       return "not enough data to decode";
-    case DecodeError::kUnexpectedValue:
+    case DecodeError::UNEXPECTED_VALUE:
       return "unexpected value occured";
-    case DecodeError::kTooManyItems:
+    case DecodeError::TOO_MANY_ITEMS:
       return "collection has too many items, unable to unpack";
-    case DecodeError::kWrongTypeIndex:
+    case DecodeError::WRONG_TYPE_INDEX:
       return "wrong type index, cannot decode variant";
     default:
       break;

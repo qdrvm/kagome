@@ -12,6 +12,9 @@
 #include "scale/types.hpp"
 #include "scale/util.hpp"
 
+// TODO(yuraz): PRE-119 conception of TypeEncoder/TypeDecoder needs to be
+// refactored
+
 namespace kagome::scale {
   /**
    * Type decoders are nested decoders used to decode types in optionals,
@@ -62,6 +65,22 @@ namespace kagome::scale {
   struct TypeDecoder<tribool> {
     auto decode(common::ByteStream &stream) {
       return boolean::decodeTribool(stream);
+    }
+  };
+
+  /**
+   * @class TypeDecoder<std::pair<F,S>> is specialization of TypeDecoder class
+   * it implements decoding std::pair from stream
+   * @tparam F first type
+   * @tparam S second type
+   */
+  template <class F, class S>
+  struct TypeDecoder<std::pair<F, S>> {
+    using value_type = std::pair<F, S>;
+    outcome::result<value_type> decode(common::ByteStream &stream) {
+      OUTCOME_TRY(first_value, TypeDecoder<F>{}.decode(stream));
+      OUTCOME_TRY(second_value, TypeDecoder<S>{}.decode(stream));
+      return std::pair<F, S>(first_value, second_value);
     }
   };
 }  // namespace kagome::scale

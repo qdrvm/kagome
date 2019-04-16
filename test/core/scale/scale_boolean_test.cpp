@@ -54,7 +54,7 @@ TEST(Scale, fixedwidthDecodeBool) {
   auto &&res2 = boolean::decodeBool(stream);
   ASSERT_FALSE(res2);
   ASSERT_EQ(res2.error().value(),
-            static_cast<int>(DecodeError::kUnexpectedValue));
+            static_cast<int>(DecodeError::UNEXPECTED_VALUE));
 }
 
 /**
@@ -107,5 +107,5 @@ TEST(Scale, fixedwidthDecodeTribool) {
   auto &&res3 = boolean::decodeTribool(stream);
   ASSERT_FALSE(res3);
   ASSERT_EQ(res3.error().value(),
-            static_cast<int>(DecodeError::kUnexpectedValue));
+            static_cast<int>(DecodeError::UNEXPECTED_VALUE));
 }

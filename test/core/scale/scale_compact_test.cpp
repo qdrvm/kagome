@@ -165,7 +165,7 @@ TEST(Scale, compactDecodeBigIntegerError) {
   auto &&result = compact::decodeInteger(stream);
   ASSERT_FALSE(result);
   ASSERT_EQ(result.error().value(),
-            static_cast<int>(DecodeError::kNotEnoughData));
+            static_cast<int>(DecodeError::NOT_ENOUGH_DATA));
 }
 
 /**

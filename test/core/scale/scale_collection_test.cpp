@@ -20,11 +20,11 @@ using namespace kagome::scale;   // NOLINT
  */
 TEST(Scale, encodeCollectionOf80) {
   // 80 items of value 1
-  const Buffer collection(80, 1);
+  std::vector<uint8_t> collection(80, 1);
   auto out_bytes = Buffer{65, 1};
-  out_bytes.put(collection.toVector());
+  out_bytes.put(collection);
   Buffer out;
-  auto &&res = collection::encodeCollection(collection.toVector(), out);
+  auto &&res = collection::encodeCollection(collection, out);
   ASSERT_TRUE(res);
   ASSERT_EQ(out.toVector().size(), 82);
   // clang-format off

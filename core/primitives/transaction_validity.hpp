@@ -7,8 +7,9 @@
 #define KAGOME_CORE_PRIMITIVES_TRANSACTION_VALIDITY_HPP
 
 #include <cstdint>
-#include <variant>
 #include <vector>
+
+#include <boost/variant.hpp>
 
 namespace kagome::primitives {
 
@@ -81,7 +82,7 @@ namespace kagome::primitives {
    * Information on a transaction's validity and, if valid, on how it relate to
    * other transactions.
    */
-  using TransactionValidity = std::variant<Invalid, Valid, Unknown>;
+  using TransactionValidity = boost::variant<Invalid, Valid, Unknown>;
 
 }  // namespace kagome::primitives
 
