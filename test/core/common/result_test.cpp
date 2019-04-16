@@ -59,6 +59,9 @@ TEST(Result, NoCopy) {
   r = Error<NoCopy>();
   auto& r1 = r.getErrorRef();
   auto r2 = r.getError();
+
+  (void)r1;
+  (void)r2;
 }
 
 /**

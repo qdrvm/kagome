@@ -34,7 +34,7 @@ namespace kagome::scale {
 
    private:
     ByteArray::const_iterator current_iterator_;  ///< current byte iterator
-    int64_t bytes_left_;                          ///< remaining bytes counter
+    uint64_t bytes_left_;                          ///< remaining bytes counter
   };
 }  // namespace kagome::scale
 

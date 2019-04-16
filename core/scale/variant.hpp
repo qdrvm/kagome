@@ -44,8 +44,8 @@ namespace kagome::scale::variant {
       using Variant = std::variant<T...>;
       using Result = outcome::result<void>;
       const Variant &v;
-      Result &res;
       Buffer &out;
+      Result &res;
 
       VariantEncoder(const Variant &v, Buffer &buf, Result &res)
           : v{v}, out{buf}, res{res} {}
@@ -75,9 +75,9 @@ namespace kagome::scale::variant {
     struct VariantDecoder {
       using Variant = std::variant<T...>;
       using Result = outcome::result<Variant>;
+      uint8_t target_type_index;
       Result &r;
       common::ByteStream &s;
-      uint8_t target_type_index;
       static constexpr uint8_t types_count = sizeof...(T);
 
       VariantDecoder(uint8_t target_type_index, Result &r,

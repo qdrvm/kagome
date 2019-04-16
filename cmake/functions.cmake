@@ -35,3 +35,11 @@ function(addtest_part test_name)
     GTest::gtest
     )
 endfunction()
+
+
+function(add_flag flag)
+  check_cxx_compiler_flag(${flag} FLAG_${flag})
+  if(FLAG_${flag} EQUAL 1)
+    add_compile_options(${flag})
+  endif()
+endfunction()

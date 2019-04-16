@@ -10,11 +10,11 @@
 namespace libp2p::transport {
 
   TcpConnection::TcpConnection(boost::asio::io_context &context)
-      : socket_(context), resolver_(context) {}
+      : resolver_(context), socket_(context) {}
 
   TcpConnection::TcpConnection(boost::asio::io_context &context,
                                boost::asio::ip::tcp::socket socket)
-      : socket_(std::move(socket)), resolver_(context) {}
+      : resolver_(context), socket_(std::move(socket)) {}
 
   outcome::result<multi::Multiaddress> TcpConnection::getRemoteMultiaddr()
       const {
@@ -75,9 +75,9 @@ namespace libp2p::transport {
     return !socket_.is_open();
   }
 
-  void TcpConnection::asyncRead(
-      boost::asio::mutable_buffer &mut, uint32_t to_read,
-      std::function<Readable::CompletionHandler> cb) {
+  void TcpConnection::asyncRead(boost::asio::mutable_buffer &mut,
+                                uint32_t to_read,
+                                std::function<Readable::CompletionHandler> cb) {
     boost::asio::async_read(
         socket_, mut, boost::asio::transfer_exactly(to_read),
         [cb = std::move(cb)](const boost::system::error_code &ec, size_t size) {

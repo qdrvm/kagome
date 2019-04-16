@@ -38,7 +38,6 @@ TEST(Scale, decodeVariant) {
                   1, 1, 0, 0, 0};  // uint32_t{1}
 
   auto stream = ByteArrayStream{match};
-  using Variant = std::variant<uint8_t, uint32_t>;
   auto &&res = variant::decodeVariant<uint8_t, uint32_t>(stream);
   ASSERT_TRUE(res);
   auto &&val = res.value();

@@ -44,9 +44,8 @@ namespace libp2p::transport {
    private:
     TcpServer(boost::asio::io_context &context, HandlerFunc handler);
 
-    const HandlerFunc handler_;
-
     boost::asio::io_context &context_;
+    const HandlerFunc handler_;
     Tcp::acceptor acceptor_;
   };
 

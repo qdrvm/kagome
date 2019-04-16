@@ -79,8 +79,8 @@ class Primitives : public testing::Test {
 
  private:
   BlockHeader header_;
-  Buffer header_match_;
   Extrinsic extrinsic_;
+  Buffer header_match_;
   Buffer extrinsic_match_;
   Block block_;
   Buffer block_match_;

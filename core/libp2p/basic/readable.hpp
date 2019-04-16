@@ -20,6 +20,8 @@ namespace libp2p::basic {
     using CompletionHandler = void(const std::error_code & /* error */,
                                    size_t /* read_bytes */);
 
+    virtual ~Readable() = default;
+
     /**
      * @brief Asynchronously read exactly {@param to_read} bytes into {@param
      * mut} buffer. Once operation succeeds, completion handler {@param cb} is
