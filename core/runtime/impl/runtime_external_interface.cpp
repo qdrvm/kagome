@@ -33,6 +33,17 @@ namespace kagome::runtime {
   const static wasm::Name ext_kill_child_storage = "ext_kill_child_storage";
   const static wasm::Name ext_set_child_storage = "ext_set_child_storage";
 
+  const static wasm::Name ext_print_hex = "ext_print_hex";
+  const static wasm::Name ext_print_num = "ext_print_num";
+  const static wasm::Name ext_print_utf8 = "ext_print_utf8";
+
+  const static wasm::Name ext_blake2_256 = "ext_blake2_256";
+  const static wasm::Name ext_ed25519_verify = "ext_ed25519_verify";
+  const static wasm::Name ext_twox_128 = "ext_twox_128";
+  const static wasm::Name ext_twox_256 = "ext_twox_256";
+
+  const static wasm::Name ext_chain_id = "ext_chain_id";
+
   RuntimeExternalInterface::RuntimeExternalInterface(
       std::shared_ptr<extensions::Extension> extension,
       std::shared_ptr<WasmMemory> memory)
@@ -151,57 +162,61 @@ namespace kagome::runtime {
         extension_->ext_storage_root(arguments.at(0).geti32());
         return wasm::Literal();
       }
-      /// ext_child_storage_root
-      if (import->base == ext_child_storage_root) {
-        auto res = extension_->ext_child_storage_root(arguments.at(0).geti32(),
-                                                      arguments.at(1).geti32(),
-                                                      arguments.at(2).geti32());
-        return wasm::Literal(res);
+
+      /// IO extensions
+
+      /// ext_print_hex
+      if (import->base == ext_print_hex) {
+        extension_->ext_print_hex(arguments.at(0).geti32(),
+                                  arguments.at(1).geti32());
+        return wasm::Literal();
       }
-      /// ext_clear_child_storage
-      if (import->base == ext_clear_child_storage) {
-        extension_->ext_clear_child_storage(
+      /// ext_print_num
+      if (import->base == ext_print_num) {
+        extension_->ext_print_num(arguments.at(0).geti64());
+        return wasm::Literal();
+      }
+      /// ext_print_utf8
+      if (import->base == ext_print_utf8) {
+        extension_->ext_print_utf8(arguments.at(0).geti32(),
+                                   arguments.at(1).geti32());
+        return wasm::Literal();
+      }
+
+      /// Cryptographuc extensions
+
+      /// ext_blake2_256
+      if (import->base == ext_blake2_256) {
+        extension_->ext_blake2_256(arguments.at(0).geti32(),
+                                   arguments.at(1).geti32(),
+                                   arguments.at(2).geti32());
+        return wasm::Literal();
+      }
+      /// ext_ed25519_verify
+      if (import->base == ext_ed25519_verify) {
+        auto res = extension_->ext_ed25519_verify(
             arguments.at(0).geti32(), arguments.at(1).geti32(),
             arguments.at(2).geti32(), arguments.at(3).geti32());
-        return wasm::Literal();
-      }
-      /// ext_exists_child_storage
-      if (import->base == ext_exists_child_storage) {
-        auto res = extension_->ext_exists_child_storage(
-            arguments.at(0).geti32(), arguments.at(1).geti32(),
-            arguments.at(2).geti32(), arguments.at(3).geti32());
         return wasm::Literal(res);
       }
-      /// ext_get_allocated_child_storage
-      if (import->base == ext_get_allocated_child_storage) {
-        auto res = extension_->ext_get_allocated_child_storage(
-            arguments.at(0).geti32(), arguments.at(1).geti32(),
-            arguments.at(2).geti32(), arguments.at(3).geti32(),
-            arguments.at(4).geti32());
-        return wasm::Literal(res);
-      }
-      /// ext_get_child_storage_into
-      if (import->base == ext_get_child_storage_into) {
-        auto res = extension_->ext_get_child_storage_into(
-            arguments.at(0).geti32(), arguments.at(1).geti32(),
-            arguments.at(2).geti32(), arguments.at(3).geti32(),
-            arguments.at(4).geti32(), arguments.at(5).geti32(),
-            arguments.at(6).geti32());
-        return wasm::Literal(res);
-      }
-      /// ext_kill_child_storage
-      if (import->base == ext_kill_child_storage) {
-        extension_->ext_kill_child_storage(arguments.at(0).geti32(),
-                                           arguments.at(1).geti32());
+      /// ext_twox_128
+      if (import->base == ext_twox_128) {
+        extension_->ext_twox_128(arguments.at(0).geti32(),
+                                 arguments.at(1).geti32(),
+                                 arguments.at(2).geti32());
         return wasm::Literal();
       }
-      /// ext_set_child_storage
-      if (import->base == ext_set_child_storage) {
-        extension_->ext_set_child_storage(
-            arguments.at(0).geti32(), arguments.at(1).geti32(),
-            arguments.at(2).geti32(), arguments.at(3).geti32(),
-            arguments.at(4).geti32(), arguments.at(5).geti32());
+      /// ext_twox_256
+      if (import->base == ext_twox_256) {
+        extension_->ext_twox_256(arguments.at(0).geti32(),
+                                 arguments.at(1).geti32(),
+                                 arguments.at(2).geti32());
         return wasm::Literal();
+      }
+      /// ext_chain_id
+      if (import->base == ext_chain_id) {
+        auto res = extension_->ext_chain_id();
+        return wasm::Literal(res);
       }
     }
     wasm::Fatal() << "callImport: unknown import: " << import->module.str << "."
