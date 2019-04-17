@@ -44,6 +44,11 @@ namespace kagome::runtime {
 
   const static wasm::Name ext_chain_id = "ext_chain_id";
 
+  /**
+   * @note: some implementation details were taken from
+   * https://github.com/WebAssembly/binaryen/blob/master/src/shell-interface.h
+   */
+
   RuntimeExternalInterface::RuntimeExternalInterface(
       std::shared_ptr<extensions::Extension> extension,
       std::shared_ptr<WasmMemory> memory)
