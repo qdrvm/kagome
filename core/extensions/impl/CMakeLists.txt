@@ -33,10 +33,6 @@ add_library(misc_extension
     misc_extension.cpp
     )
 
-add_library(sandboxing_extension
-    sandboxing_extension.cpp
-    )
-
 add_library(storage_extension
     storage_extension.cpp
     )

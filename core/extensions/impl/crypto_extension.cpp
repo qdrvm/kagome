@@ -39,12 +39,14 @@ namespace kagome::extensions {
     auto sig_bytes =
         memory_->loadN(sig_data, ed25519_signature_SIZE).toVector();
     signature_t signature{};
-    std::copy(sig_bytes.begin(), sig_bytes.end(), signature.data);
+    gsl::span<uint8_t> sig_span(signature.data);
+    std::copy(sig_bytes.begin(), sig_bytes.end(), sig_span.begin());
 
     auto pubkey_bytes =
         memory_->loadN(pubkey_data, ed25519_pubkey_SIZE).toVector();
     public_key_t pubkey{};
-    std::copy(pubkey_bytes.begin(), pubkey_bytes.end(), pubkey.data);
+    gsl::span<uint8_t> pubkey_span(pubkey.data);
+    std::copy(pubkey_bytes.begin(), pubkey_bytes.end(), pubkey_span.begin());
 
     return ed25519_verify(&signature, msg.toBytes(), msg_len, &pubkey)
             == ED25519_SUCCESS

@@ -11,7 +11,6 @@
 #include "extensions/impl/io_extension.hpp"
 #include "extensions/impl/memory_extension.hpp"
 #include "extensions/impl/misc_extension.hpp"
-#include "extensions/impl/sandboxing_extension.hpp"
 #include "extensions/impl/storage_extension.hpp"
 
 namespace kagome::extensions {
@@ -96,7 +95,6 @@ namespace kagome::extensions {
     IOExtension io_ext_;
     MemoryExtension memory_ext_;
     MiscExtension misc_ext_;
-    SandboxingExtension sandboxing_ext_;
     StorageExtension storage_ext_;
   };
 }  // namespace kagome::extensions
