@@ -108,7 +108,7 @@ class REITest : public ::testing::Test {
       "  (type (;24;) (func (param i32 i64 i64 i64 i64)))\n"
       "  (type (;25;) (func (param i32 i64 i64 i32)))\n"
       "  (type (;26;) (func (param i32 i64 i64 i64 i64 i32)))\n"
-      "  (type (;27;) (func) (result i64))\n"
+      "  (type (;27;) (func (result i64)))\n"
       "  (import \"env\" \"ext_get_storage_into\" (func $ext_get_storage_into (type 4)))\n"
       "  (import \"env\" \"ext_get_allocated_storage\" (func $ext_get_allocated_storage (type 2)))\n"
       "  (import \"env\" \"ext_blake2_256\" (func $ext_blake2_256 (type 5)))\n"
@@ -489,7 +489,7 @@ TEST_F(REITest, ext_chain_id_Test) {
 
   EXPECT_CALL(*extension_, ext_chain_id()).WillOnce(Return(res));
 
-  auto execute_code = (boost::format("    (call $assert_eq_i32\n"
+  auto execute_code = (boost::format("    (call $assert_eq_i64\n"
                                      "      (call $ext_chain_id)\n"
                                      "      (i64.const %d)\n"
                                      "    )\n")
