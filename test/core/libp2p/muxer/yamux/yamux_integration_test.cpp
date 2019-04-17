@@ -258,21 +258,28 @@ TEST_F(YamuxIntegrationTest, Ping) {
   auto ping_out_msg = pingResponseMsg(ping_value);
   auto received_ping = std::make_shared<Buffer>(ping_out_msg.size(), 0);
 
+  std::cout << "We have reached 1" << std::endl;
   connection_->asyncWrite(
       boost::asio::buffer(ping_in_msg.toVector()),
       [this, &ping_in_msg, &ping_out_msg, received_ping](auto &&ec, auto &&n) {
+        std::cout << "We have reached 2" << std::endl;
         checkIOSuccess(ec, n, ping_in_msg.size());
+        std::cout << "We have reached 3" << std::endl;
 
         connection_->asyncRead(
             boost::asio::buffer(received_ping->toVector()), ping_out_msg.size(),
             [&ping_out_msg, received_ping](auto &&ec, auto &&n) {
+              std::cout << "We have reached 4" << std::endl;
               checkIOSuccess(ec, n, ping_out_msg.size());
+              std::cout << "We have reached 5" << std::endl;
 
               ASSERT_EQ(*received_ping, ping_out_msg);
+              std::cout << "We have reached 6" << std::endl;
             });
       });
 
   launchContext();
+  std::cout << "We have reached 7" << std::endl;
 }
 
 /**
