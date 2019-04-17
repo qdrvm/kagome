@@ -25,7 +25,7 @@ namespace libp2p::stream {
 }
 
 namespace libp2p::muxer {
-  class YamuxFrame;
+  struct YamuxFrame;
 
   /**
    * Implementation of stream multiplexer - connection, which has only one
