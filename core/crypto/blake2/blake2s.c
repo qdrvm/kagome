@@ -74,7 +74,8 @@ static void blake2s_compress(blake2s_ctx_full *ctx, int last) {
       {6, 15, 14, 9, 11, 3, 0, 8, 12, 2, 13, 7, 1, 4, 10, 5},
       {10, 2, 8, 4, 7, 6, 1, 5, 15, 11, 9, 14, 3, 12, 13, 0}};
   int i;
-  uint32_t v[16], m[16];
+  uint32_t v[16];
+  uint32_t m[16];
 
   for (i = 0; i < 8; i++) {  // init work variables
     v[i] = ctx->h[i];

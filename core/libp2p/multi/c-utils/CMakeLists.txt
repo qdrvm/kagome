@@ -11,3 +11,4 @@ add_library(c_utils
     varint.c
     varint.h
     )
+disable_clang_tidy(c_utils)

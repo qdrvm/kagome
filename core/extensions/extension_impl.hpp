@@ -20,6 +20,8 @@ namespace kagome::extensions {
    */
   class ExtensionImpl : public Extension {
    public:
+    ~ExtensionImpl() override  = default;
+
     // -------------------------Storage extensions--------------------------
 
     void ext_clear_prefix(runtime::WasmPointer prefix_data,

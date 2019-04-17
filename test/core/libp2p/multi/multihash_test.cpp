@@ -59,7 +59,7 @@ TEST(Multihash, FromToHex) {
       .match(
           [&hash](Value<Multihash> m) {
             UVarint var(HashType::blake2s128);
-            auto hex_s = hex_upper(var.toBytes().data(), var.toBytes().size())
+            auto hex_s = hex_upper(var.toBytes())
                 + "03" + hex_upper(hash.toVector());
             ASSERT_EQ(m.value.toHex(), hex_s);
           },

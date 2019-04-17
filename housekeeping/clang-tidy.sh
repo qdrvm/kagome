@@ -1,18 +1,35 @@
 #!/usr/bin/env bash -xe
 
-# this script filters build/compile_commands.json and runs clang-tidy on files changed in the last commit
+## on master branch: analyzes all cpp files
+## on other branches: analyzes cpp files changed in this branch, in comparison to master
 
-BUILD_DIR=$(echo "$(cd "$(dirname "$1")"; pwd -P)/$(basename "$1")")
+function get_abs_path(){
+    echo $(echo "$(cd "$(dirname "$1")"; pwd -P)/$(basename "$1")")
+}
 
-BN=$(dirname $0)
-cd ${BN}
+function get_files(){
+    local head=$(git rev-parse --abbrev-ref HEAD)
+    if [[ "${head}" = "master" ]]; then
+        echo $(find core -type f | grep "cpp")
+    else
+        echo $(git diff --name-only HEAD..origin/master | grep "cpp" | grep -v "test")
+    fi
+}
+
+function get_llvm_bin(){
+    echo $(find /usr/local/Cellar/llvm -type f -name $1 | head -n 1)
+}
+
+BUILD_DIR=$(get_abs_path $1)
+cd $(dirname $0)/..
 
 # list of cpp files changed in this branch (in comparison to master); tests are ignored
-FILES=$(git diff --name-only HEAD..origin/master | grep "cpp" | grep -v "test")
-CLANG_TIDY=$(find /usr/local/Cellar/llvm -type f -name clang-tidy | head -n 1)
-RUN_CLANG_TIDY=$(find /usr/local/Cellar/llvm -type f -name run-clang-tidy.py | head -n 1)
+FILES=$(get_files)
+CLANG_TIDY=$(get_llvm_bin clang-tidy)
+RUN_CLANG_TIDY=$(get_llvm_bin run-clang-tidy.py)
 
 # filter compile_commands.json
-echo ${FILES} | python3 ./filter_compile_commands.py -p ${BUILD_DIR}
+echo ${FILES} | python3 ./housekeeping/filter_compile_commands.py -p ${BUILD_DIR}
 
+# exec run-clang-tidy.py
 python3 ${RUN_CLANG_TIDY} -clang-tidy-binary=${CLANG_TIDY} -p ${BUILD_DIR}

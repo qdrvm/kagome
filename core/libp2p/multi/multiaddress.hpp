@@ -168,8 +168,8 @@ namespace libp2p::multi {
      */
     std::string_view protocolToString(Protocol proto) const;
 
-    ByteBuffer bytes_;
     std::string stringified_address_;
+    ByteBuffer bytes_;
 
     std::optional<std::string> peer_id_;
   };

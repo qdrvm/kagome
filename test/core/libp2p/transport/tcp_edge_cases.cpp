@@ -118,8 +118,8 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
 
   boost::asio::io_context context;
   auto transport = std::make_unique<TransportImpl>(context);
-  auto listener = transport->createListener(
-      [&counter, kSize](std::shared_ptr<Connection> c) {
+  auto listener =
+      transport->createListener([&counter](std::shared_ptr<Connection> c) {
         EXPECT_OUTCOME_TRUE(ma, c->getRemoteMultiaddr());
         std::cout << "recv from " << ma.getStringAddress() << " thread id "
                   << std::this_thread::get_id() << "\n";
@@ -169,8 +169,7 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
   std::for_each(clients.begin(), clients.end(),
                 [](std::thread &t) { t.join(); });
 
-  ASSERT_EQ(counter, kClients)
-      << "not all clients' requests were handled";
+  ASSERT_EQ(counter, kClients) << "not all clients' requests were handled";
 }
 
 /**
