@@ -9,6 +9,7 @@
 #include <cstdint>
 
 #include "common/logger.hpp"
+#include "runtime/wasm_memory.hpp"
 
 namespace kagome::extensions {
   /**
@@ -16,12 +17,12 @@ namespace kagome::extensions {
    */
   class IOExtension {
    public:
-    IOExtension();
+    explicit IOExtension(std::shared_ptr<runtime::WasmMemory> memory);
 
     /**
      * @see Extension::ext_print_hex
      */
-    void ext_print_hex(const uint8_t *data, uint32_t length);
+    void ext_print_hex(runtime::WasmPointer data, runtime::SizeType length);
 
     /**
      * @see Extension::ext_print_num
@@ -31,9 +32,12 @@ namespace kagome::extensions {
     /**
      * @see Extension::ext_print_utf8
      */
-    void ext_print_utf8(const uint8_t *utf8_data, uint32_t utf8_length);
+    void ext_print_utf8(runtime::WasmPointer utf8_data,
+                        runtime::SizeType utf8_length);
 
    private:
+    constexpr static auto kDefaultLoggerTag = "WASM Runtime [IOExtension]";
+    std::shared_ptr<runtime::WasmMemory> memory_;
     common::Logger logger_;
   };
 }  // namespace kagome::extensions

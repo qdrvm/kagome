@@ -18,6 +18,7 @@ add_library(io_extension
 target_link_libraries(io_extension
     hexutil
     logger
+    buffer
     )
 
 add_library(memory_extension
@@ -30,10 +31,6 @@ target_link_libraries(memory_extension
 
 add_library(misc_extension
     misc_extension.cpp
-    )
-
-add_library(sandboxing_extension
-    sandboxing_extension.cpp
     )
 
 add_library(storage_extension
