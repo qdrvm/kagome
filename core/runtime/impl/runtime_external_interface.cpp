@@ -58,10 +58,10 @@ namespace kagome::runtime {
     memory_->resize(wasm.memory.initial * wasm::Memory::kPageSize);
     // apply memory segments
     for (auto &segment : wasm.memory.segments) {
-      Address offset = (uint32_t)ConstantExpressionRunner<TrivialGlobalManager>(
-                           instance.globals)
-                           .visit(segment.offset)
-                           .value.geti32();
+      Address offset = static_cast<uint32_t>(
+          ConstantExpressionRunner<TrivialGlobalManager>(instance.globals)
+              .visit(segment.offset)
+              .value.geti32());
       if (offset + segment.data.size()
           > wasm.memory.initial * wasm::Memory::kPageSize) {
         trap("invalid offset when initializing memory");
@@ -73,10 +73,10 @@ namespace kagome::runtime {
 
     table.resize(wasm.table.initial);
     for (auto &segment : wasm.table.segments) {
-      Address offset = (uint32_t)ConstantExpressionRunner<TrivialGlobalManager>(
-                           instance.globals)
-                           .visit(segment.offset)
-                           .value.geti32();
+      Address offset = static_cast<uint32_t>(
+          ConstantExpressionRunner<TrivialGlobalManager>(instance.globals)
+              .visit(segment.offset)
+              .value.geti32());
       if (offset + segment.data.size() > wasm.table.initial) {
         trap("invalid offset when initializing table");
       }
@@ -275,7 +275,7 @@ namespace kagome::runtime {
     memory_->store128(addr, value);
   }
 
-  void RuntimeExternalInterface::growMemory(wasm::Address,
+  void RuntimeExternalInterface::growMemory(wasm::Address address,
                                             wasm::Address newSize) {
     memory_->resize(newSize);
   }
