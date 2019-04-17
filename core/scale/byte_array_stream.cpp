@@ -9,11 +9,11 @@ namespace kagome::scale {
 
   ByteArrayStream::ByteArrayStream(const ByteArray &source)
       : current_iterator_{source.begin()},
-        bytes_left_{static_cast<int64_t>(source.size())} {}
+        bytes_left_{source.size()} {}
 
   ByteArrayStream::ByteArrayStream(const common::Buffer &source)
       : current_iterator_{source.begin()},
-        bytes_left_{static_cast<int64_t>(source.size())} {}
+        bytes_left_{source.size()} {}
 
   std::optional<uint8_t> ByteArrayStream::nextByte() {
     if (!hasMore(1)) {

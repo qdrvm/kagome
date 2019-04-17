@@ -4,7 +4,6 @@
  */
 
 #include "extensions/impl/io_extension.hpp"
-#include "common/hexutil.hpp"
 
 namespace kagome::extensions {
   IOExtension::IOExtension(std::shared_ptr<runtime::WasmMemory> memory)

@@ -41,6 +41,7 @@ namespace kagome::runtime {
     const auto ptr = offset_;
     const auto new_offset = ptr + size;
 
+    // TODO(warchant): FIX WARNING: comparison of signed and unsigned
     if (new_offset < ptr) {  // overflow
       return -1;
     }
@@ -82,6 +83,8 @@ namespace kagome::runtime {
     auto min_value = std::numeric_limits<WasmPointer>::max();
     WasmPointer min_key = -1;
     for (const auto &[key, value] : deallocated_) {
+      // TODO(warchant): FIX WARNING: comparison of signed and unsigned
+      // NOLINTNEXTLINE
       if (value < min_value and value >= size) {
         min_value = value;
         min_key = key;
@@ -91,6 +94,7 @@ namespace kagome::runtime {
   }
 
   WasmPointer WasmMemoryImpl::growAlloc(SizeType size) {
+    // TODO(warchant): FIX WARNING: comparison of signed and unsigned
     // check that we do not exceed max memory size
     if (offset_ > kMaxMemorySize - size) {
       return -1;

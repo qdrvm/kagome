@@ -30,7 +30,7 @@ namespace libp2p::transport {
   }
 
   TcpServer::TcpServer(boost::asio::io_context &context, HandlerFunc handler)
-      : context_(context), acceptor_(context), handler_(std::move(handler)) {}
+      : context_(context), handler_(std::move(handler)), acceptor_(context)  {}
 
   bool TcpServer::isClosed() const {
     return !acceptor_.is_open();

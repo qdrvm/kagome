@@ -22,6 +22,7 @@ namespace kagome::extensions {
         size_t state, size_t func_index)>;
 
    public:
+    virtual ~Extension() = default;
     // -------------------------Storage extensions--------------------------
 
     /**

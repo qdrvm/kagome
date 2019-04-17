@@ -15,6 +15,7 @@ namespace kagome::extensions {
   class MiscExtension {
    public:
     MiscExtension() = default;
+    ~MiscExtension() = default;
     explicit MiscExtension(uint64_t chain_id);
 
     /**

@@ -43,7 +43,7 @@ namespace kagome::primitives {
     collection.reserve(items_count);
 
     // now decode collection of extrinsics
-    for (auto i = 0; i < items_count; ++i) {
+    for (uint64_t i = 0u; i < items_count; ++i) {
       OUTCOME_TRY(extrinsic, decodeExtrinsic(stream));
       collection.push_back(extrinsic);
     }
