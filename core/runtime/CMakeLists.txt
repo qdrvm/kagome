@@ -29,4 +29,5 @@ add_library(runtime_api
     )
 target_link_libraries(runtime_api
     binaryen::binaryen
+    buffer
     )

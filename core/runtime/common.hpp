@@ -6,6 +6,8 @@
 #ifndef KAGOME_RUNTIME_COMMON_HPP
 #define KAGOME_RUNTIME_COMMON_HPP
 
+#include <cstdint>
+
 namespace kagome::runtime {
 
   // Pointer type of wasm memory is 32 bit integer
