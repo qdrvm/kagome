@@ -59,9 +59,8 @@ namespace kagome::extensions {
                                      runtime::WasmPointer out_ptr) {
     const auto &buf = memory_->loadN(data, len);
 
-    decltype(crypto::Twox128Hash::data) hash{};
-    kagome::crypto::make_twox128(buf.toBytes(), len, hash.data());
-    memory_->storeBuffer(out_ptr, common::Buffer(hash));
+    auto twox128 = kagome::crypto::make_twox128(buf);
+    memory_->storeBuffer(out_ptr, common::Buffer(twox128.data));
   }
 
   void CryptoExtension::ext_twox_256(runtime::WasmPointer data,
@@ -69,8 +68,7 @@ namespace kagome::extensions {
                                      runtime::WasmPointer out_ptr) {
     const auto &buf = memory_->loadN(data, len);
 
-    decltype(crypto::Twox256Hash::data) hash{};
-    kagome::crypto::make_twox256(buf.toBytes(), len, hash.data());
-    memory_->storeBuffer(out_ptr, common::Buffer(hash));
+    auto twox256 = kagome::crypto::make_twox256(buf);
+    memory_->storeBuffer(out_ptr, common::Buffer(twox256.data));
   }
 }  // namespace kagome::extensions
