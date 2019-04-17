@@ -23,6 +23,7 @@ using wasm::ModuleInstance;
 using wasm::SExpressionParser;
 using wasm::SExpressionWasmBuilder;
 
+/// extend Runtime external interface by adding wasm assertion functions
 class TestableExternalInterface : public RuntimeExternalInterface {
  public:
   using RuntimeExternalInterface::RuntimeExternalInterface;
