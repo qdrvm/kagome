@@ -17,6 +17,8 @@ namespace libp2p::basic {
     using CompletionHandler = void(const std::error_code & /* ec*/,
                                    size_t /* written */);
 
+    virtual ~Writable() = default;
+
     /**
      * @brief Asynchronously write buffer. Once operation completed, completion
      * handler {@param cb} is executed.
@@ -27,10 +29,10 @@ namespace libp2p::basic {
      * @param cb completion hander that is executed after operation succeeds.
      */
     virtual void asyncWrite(const boost::asio::const_buffer &buf,
-                            std::function<CompletionHandler> cb) noexcept = 0;
+                            std::function<CompletionHandler> cb)  = 0;
 
     virtual void asyncWrite(boost::asio::streambuf &buf,
-                            std::function<CompletionHandler> cb) noexcept = 0;
+                            std::function<CompletionHandler> cb)  = 0;
   };
 }  // namespace libp2p::basic
 

@@ -1,0 +1,3 @@
+[build]
+  command = "mkdir -p build/docs/html && doxygen"
+  publish = "build/docs/html"

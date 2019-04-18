@@ -6,15 +6,17 @@
 #ifndef KAGOME_CRYPTO_TWOX_HPP
 #define KAGOME_CRYPTO_TWOX_HPP
 
+#include <array>
+
 #include "common/buffer.hpp"
 
 namespace kagome::crypto {
 
   struct Twox128Hash {
-    uint8_t data[16];
+    std::array<uint8_t, 16> data;
   };
   struct Twox256Hash {
-    uint8_t data[32];
+    std::array<uint8_t, 32> data;
   };
 
   Twox128Hash make_twox128(const common::Buffer &buf);

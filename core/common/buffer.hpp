@@ -27,10 +27,13 @@ namespace kagome::common {
      */
     Buffer(size_t size, uint8_t byte);
 
+    ~Buffer() = default;
+
     /**
      * @brief lvalue construct buffer from a byte vector
      */
     Buffer(std::vector<uint8_t> v);
+    explicit Buffer(gsl::span<uint8_t> s);
 
     Buffer(const uint8_t *begin, const uint8_t *end);
 
@@ -157,6 +160,7 @@ namespace kagome::common {
      * @brief getter for raw array of bytes
      */
     const uint8_t *toBytes() const;
+    uint8_t *toBytes();
 
     /**
      * @brief getter for vector of vytes

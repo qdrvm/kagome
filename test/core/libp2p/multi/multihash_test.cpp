@@ -47,7 +47,7 @@ TEST(Multihash, FromToHex) {
   ASSERT_NO_THROW({
     auto m = Multihash::create(HashType::blake2s128, hash).value();
     UVarint var(HashType::blake2s128);
-    auto hex_s = hex_upper(var.toBytes().data(), var.toBytes().size()) + "03"
+    auto hex_s = hex_upper(var.toBytes()) + "03"
         + hex_upper(hash.toVector());
     ASSERT_EQ(m.toHex(), hex_s);
   });

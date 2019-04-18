@@ -40,7 +40,7 @@ namespace kagome::common {
   }
 
   std::string Buffer::toHex() const {
-    return hex_upper(data_.data(), data_.size());
+    return hex_upper(data_);
   }
 
   Buffer::Buffer(std::initializer_list<uint8_t> b) : data_(b) {}
@@ -75,6 +75,7 @@ namespace kagome::common {
   }
 
   Buffer::Buffer(std::vector<uint8_t> v) : data_(std::move(v)) {}
+  Buffer::Buffer(gsl::span<uint8_t> s) : data_(s.begin(), s.end()) {}
 
   const std::vector<uint8_t> &Buffer::toVector() const {
     return data_;
@@ -144,6 +145,10 @@ namespace kagome::common {
   Buffer &Buffer::resize(size_t size) {
     data_.resize(size);
     return *this;
+  }
+
+  uint8_t *Buffer::toBytes() {
+    return data_.data();
   }
 
   std::ostream &operator<<(std::ostream &os, const Buffer &buffer) {

@@ -9,7 +9,7 @@
 #include <numeric>
 #include <stdexcept>
 
-#include "common/unreachable.hpp"
+#include "macro/unreachable.hpp"
 
 extern "C" {
 #include "libp2p/multi/c-utils/protoutils.h"

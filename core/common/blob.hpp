@@ -59,7 +59,7 @@ namespace kagome::common {
      * Converts current blob to hex string.
      */
     std::string toHex() const noexcept {
-      return hex_upper(this->data(), size_);
+      return hex_upper({this->begin(), this->end()});
     }
 
     /**

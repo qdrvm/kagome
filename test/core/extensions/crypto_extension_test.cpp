@@ -3,37 +3,49 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "extensions/impl/crypto_extension.hpp"
+
 #include <algorithm>
 #include <array>
 
 #include <ed25519/ed25519.h>
 #include <gtest/gtest.h>
-#include "extensions/impl/crypto_extension.hpp"
+#include "core/runtime/mock_memory.hpp"
 
 using namespace kagome::extensions;
+using kagome::common::Buffer;
+using kagome::runtime::MockMemory;
+using kagome::runtime::SizeType;
+using kagome::runtime::WasmPointer;
+
+using ::testing::Return;
 
 class CryptoExtensionTest : public ::testing::Test {
  public:
-  CryptoExtension crypto_ext{};
+  void SetUp() override {
+    memory_ = std::make_shared<MockMemory>();
+    crypto_ext_ = std::make_shared<CryptoExtension>(memory_);
+  }
 
-  static constexpr size_t input_size = 9;
-  static constexpr std::array<uint8_t, input_size> input = {
-      0x69, 0x20, 0x61, 0x6d, 0x20, 0x64, 0x61, 0x74, 0x61};
+ protected:
+  std::shared_ptr<MockMemory> memory_;
+  std::shared_ptr<CryptoExtension> crypto_ext_;
 
-  static constexpr std::array<uint8_t, 32> blake2b_result = {
-      0xba, 0x67, 0x33, 0x6e, 0xfd, 0x6a, 0x3d, 0xf3, 0xa7, 0x0e, 0xeb,
-      0x75, 0x78, 0x60, 0x76, 0x30, 0x36, 0x78, 0x5c, 0x18, 0x2f, 0xf4,
-      0xcf, 0x58, 0x75, 0x41, 0xa0, 0x06, 0x8d, 0x09, 0xf5, 0xb2};
+  Buffer input{0x69, 0x20, 0x61, 0x6d, 0x20, 0x64, 0x61, 0x74, 0x61};
 
-  static constexpr size_t twox_input_size = 6;
-  static constexpr std::array<uint8_t, twox_input_size> twox_input = {
-      0x41, 0x42, 0x43, 0x44, 0x45, 0x46};
-  static constexpr std::array<uint8_t, 16> twox128_result = {
-      184, 65, 176, 250, 243, 129, 181, 3, 77, 82, 63, 150, 129, 221, 191, 251};
-  static constexpr std::array<uint8_t, 32> twox256_result = {
-      184, 65,  176, 250, 243, 129, 181, 3,   77,  82, 63,
-      150, 129, 221, 191, 251, 33,  226, 149, 136, 6,  232,
-      81,  118, 200, 28,  69,  219, 120, 179, 208, 237};
+  Buffer blake2b_result{0xba, 0x67, 0x33, 0x6e, 0xfd, 0x6a, 0x3d, 0xf3,
+                        0xa7, 0x0e, 0xeb, 0x75, 0x78, 0x60, 0x76, 0x30,
+                        0x36, 0x78, 0x5c, 0x18, 0x2f, 0xf4, 0xcf, 0x58,
+                        0x75, 0x41, 0xa0, 0x06, 0x8d, 0x09, 0xf5, 0xb2};
+
+  Buffer twox_input{0x41, 0x42, 0x43, 0x44, 0x45, 0x46};
+
+  Buffer twox128_result{184, 65, 176, 250, 243, 129, 181, 3,
+                        77,  82, 63,  150, 129, 221, 191, 251};
+
+  Buffer twox256_result{184, 65,  176, 250, 243, 129, 181, 3,   77,  82, 63,
+                        150, 129, 221, 191, 251, 33,  226, 149, 136, 6,  232,
+                        81,  118, 200, 28,  69,  219, 120, 179, 208, 237};
 };
 
 /**
@@ -42,10 +54,14 @@ class CryptoExtensionTest : public ::testing::Test {
  * @then resulting hash is correct
  */
 TEST_F(CryptoExtensionTest, Blake2Valid) {
-  std::array<uint8_t, 32> hash{};
-  crypto_ext.ext_blake2_256(input.data(), input_size, hash.data());
+  WasmPointer data = 0;
+  SizeType size = input.size();
+  WasmPointer out_ptr = 42;
 
-  ASSERT_EQ(hash, blake2b_result);
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, storeBuffer(out_ptr, blake2b_result)).Times(1);
+
+  crypto_ext_->ext_blake2_256(data, size, out_ptr);
 }
 
 /**
@@ -59,15 +75,31 @@ TEST_F(CryptoExtensionTest, Ed25519VerifySuccess) {
   ASSERT_NE(ed25519_create_keypair(&private_key, &public_key), 0);
 
   signature_t signature{};
-  ed25519_sign(&signature, input.data(), input_size, &public_key, &private_key);
+  ed25519_sign(&signature, input.toBytes(), input.size(), &public_key,
+               &private_key);
 
-  ASSERT_EQ(crypto_ext.ext_ed25519_verify(input.data(), input_size,
-                                          signature.data, public_key.data),
+  Buffer pubkey_buf(public_key.data);
+  Buffer sig_buf(signature.data);
+
+  WasmPointer input_data = 0;
+  SizeType input_size = input.size();
+  WasmPointer sig_data = 42;
+  WasmPointer pub_key_data = 123;
+
+  EXPECT_CALL(*memory_, loadN(input_data, input_size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, loadN(pub_key_data, ed25519_pubkey_SIZE))
+      .WillOnce(Return(pubkey_buf));
+  EXPECT_CALL(*memory_, loadN(sig_data, ed25519_signature_SIZE))
+      .WillOnce(Return(sig_buf));
+
+  ASSERT_EQ(crypto_ext_->ext_ed25519_verify(input_data, input_size, sig_data,
+                                            pub_key_data),
             0);
 }
 
 /**
- * @given initialized crypto extension @and incorrect ed25519 signature for some
+ * @given initialized crypto extension @and incorrect ed25519 signature for
+ some
  * message
  * @when verifying signature of this message
  * @then verification fails
@@ -81,10 +113,23 @@ TEST_F(CryptoExtensionTest, Ed25519VerifyFailure) {
   std::fill(invalid_signature.data,
             invalid_signature.data + ed25519_signature_SIZE, 0x11);
 
-  ASSERT_EQ(
-      crypto_ext.ext_ed25519_verify(input.data(), input_size,
-                                    invalid_signature.data, public_key.data),
-      5);
+  Buffer pubkey_buf(public_key.data);
+  Buffer invalid_sig_buf(invalid_signature.data);
+
+  WasmPointer input_data = 0;
+  SizeType input_size = input.size();
+  WasmPointer sig_data = 42;
+  WasmPointer pub_key_data = 123;
+
+  EXPECT_CALL(*memory_, loadN(input_data, input_size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, loadN(pub_key_data, ed25519_pubkey_SIZE))
+      .WillOnce(Return(pubkey_buf));
+  EXPECT_CALL(*memory_, loadN(sig_data, ed25519_signature_SIZE))
+      .WillOnce(Return(invalid_sig_buf));
+
+  ASSERT_EQ(crypto_ext_->ext_ed25519_verify(input_data, input_size, sig_data,
+                                            pub_key_data),
+            5);
 }
 
 /**
@@ -93,10 +138,15 @@ TEST_F(CryptoExtensionTest, Ed25519VerifyFailure) {
  * @then resulting hash is correct
  */
 TEST_F(CryptoExtensionTest, Twox128) {
-  std::array<uint8_t, 16> hash{};
-  crypto_ext.ext_twox_128(twox_input.data(), twox_input_size, hash.data());
+  WasmPointer twox_input_data = 0;
+  SizeType twox_input_size = twox_input.size();
+  WasmPointer out_ptr = 42;
 
-  ASSERT_EQ(hash, twox128_result);
+  EXPECT_CALL(*memory_, loadN(twox_input_data, twox_input_size))
+      .WillOnce(Return(twox_input));
+  EXPECT_CALL(*memory_, storeBuffer(out_ptr, twox128_result)).Times(1);
+
+  crypto_ext_->ext_twox_128(twox_input_data, twox_input_size, out_ptr);
 }
 
 /**
@@ -105,8 +155,13 @@ TEST_F(CryptoExtensionTest, Twox128) {
  * @then resulting hash is correct
  */
 TEST_F(CryptoExtensionTest, Twox256) {
-  std::array<uint8_t, 32> hash{};
-  crypto_ext.ext_twox_256(twox_input.data(), twox_input_size, hash.data());
+  WasmPointer twox_input_data = 0;
+  SizeType twox_input_size = twox_input.size();
+  WasmPointer out_ptr = 42;
 
-  ASSERT_EQ(hash, twox256_result);
+  EXPECT_CALL(*memory_, loadN(twox_input_data, twox_input_size))
+      .WillOnce(Return(twox_input));
+  EXPECT_CALL(*memory_, storeBuffer(out_ptr, twox256_result)).Times(1);
+
+  crypto_ext_->ext_twox_256(twox_input_data, twox_input_size, out_ptr);
 }

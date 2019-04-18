@@ -1,3 +1,10 @@
+function(disable_clang_tidy target)
+  set_target_properties(${target} PROPERTIES
+    C_CLANG_TIDY             ""
+    CXX_CLANG_TIDY           ""
+    )
+endfunction()
+
 function(addtest test_name)
   add_executable(${test_name} ${ARGN})
   addtest_part(${test_name} ${ARGN})
@@ -13,9 +20,8 @@ function(addtest test_name)
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/test_bin
     ARCHIVE_OUTPUT_PATH      ${CMAKE_BINARY_DIR}/test_lib
     LIBRARY_OUTPUT_PATH      ${CMAKE_BINARY_DIR}/test_lib
-    C_CLANG_TIDY             ""
-    CXX_CLANG_TIDY           ""
     )
+  disable_clang_tidy(${test_name})
 endfunction()
 
 function(addtest_part test_name)
@@ -28,4 +34,12 @@ function(addtest_part test_name)
   target_link_libraries(${test_name}
     GTest::gtest
     )
+endfunction()
+
+# conditionally applies flag. If flag is supported by current compiler, it will be added to compile options.
+function(add_flag flag)
+  check_cxx_compiler_flag(${flag} FLAG_${flag})
+  if(FLAG_${flag} EQUAL 1)
+    add_compile_options(${flag})
+  endif()
 endfunction()

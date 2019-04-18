@@ -59,7 +59,6 @@ void bin2hex(char *dst, char *src, int len) {
 
 /* return 1 if string contain only digits, else return 0 */
 int valid_digit(char *ip_str) {
-  int err = 0;
   while (*ip_str) {
     if (*ip_str >= '0' && *ip_str <= '9') {
       ++ip_str;
@@ -72,7 +71,7 @@ int valid_digit(char *ip_str) {
 
 /* return 1 if IP string is valid, else return 0 */
 int is_valid_ipv4(char *ip_str) {
-  int i, num, dots = 0;
+  int num, dots = 0;
   char *ptr;
   int err = 0;
   if (ip_str == NULL) {
@@ -276,7 +275,6 @@ char *int2ip(int inputintip) {
  */
 char *bytes_to_string(char **buffer, const uint8_t *in_bytes,
                       int in_bytes_size) {
-  uint8_t *bytes = NULL;
   char *results = NULL;
   int size = in_bytes_size;
   struct ProtocolListItem *head = NULL;
@@ -537,7 +535,7 @@ char *address_string_to_bytes(struct Protocol *protocol, const char *incoming,
       char addr_encoded[300];
       memset(addr_encoded, 0, 300);
       int ilen = 0;
-      for (int i = 0; i < result_buffer_length; i++) {
+      for (size_t i = 0; i < result_buffer_length; i++) {
         // get the char so we can see it in the debugger
         char miu[3];
         sprintf(miu, "%02x", ptr_to_result[i]);  // NOLINT

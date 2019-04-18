@@ -66,8 +66,9 @@ namespace libp2p::multi::detail {
       zeroes++;
     }
     // Allocate enough space in big-endian base58 representation.
-    int size =
-        (pend - pbegin) * 138 / 100 + 1;  // log(256) / log(58), rounded up.
+    // log(256) / log(58), rounded up.
+    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
+    int size = (pend - pbegin) * 138 / 100 + 1;
     std::vector<unsigned char> b58(size);
     // Process the bytes.
     while (pbegin != pend) {
@@ -118,7 +119,9 @@ namespace libp2p::multi::detail {
       std::advance(psz, 1);
     }
     // Allocate enough space in big-endian base256 representation.
-    int size = strlen(psz) * 733 / 1000 + 1;  // log(58) / log(256), rounded up.
+    // log(58) / log(256), rounded up.
+    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
+    int size = strlen(psz) * 733 / 1000 + 1;
     std::vector<unsigned char> b256(size);
     // Process the characters.
     while (*psz && !isSpace(*psz)) {  // NOLINT

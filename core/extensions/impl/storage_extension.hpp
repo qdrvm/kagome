@@ -90,64 +90,6 @@ namespace kagome::extensions {
      */
     void ext_storage_root(runtime::WasmPointer result) const;
 
-    // -------------------------Child storage--------------------------
-
-    /**
-     * @see Extension::ext_child_storage_root
-     */
-    runtime::WasmPointer ext_child_storage_root(
-        runtime::WasmPointer storage_key_data,
-        runtime::WasmPointer storage_key_length, runtime::WasmPointer written);
-
-    /**
-     * @see Extension::ext_clear_child_storage
-     */
-    void ext_clear_child_storage(runtime::WasmPointer storage_key_data,
-                                 runtime::WasmPointer storage_key_length,
-                                 runtime::WasmPointer key_data,
-                                 runtime::WasmPointer key_length);
-
-    /**
-     * @see Extension::ext_exists_child_storage
-     */
-    runtime::SizeType ext_exists_child_storage(
-        runtime::WasmPointer storage_key_data,
-        runtime::WasmPointer storage_key_length, runtime::WasmPointer key_data,
-        runtime::WasmPointer key_length);
-
-    /**
-     * @see Extension::ext_get_allocated_child_storage
-     */
-    runtime::WasmPointer ext_get_allocated_child_storage(
-        runtime::WasmPointer storage_key_data,
-        runtime::WasmPointer storage_key_length, runtime::WasmPointer key_data,
-        runtime::WasmPointer key_length, runtime::WasmPointer written);
-
-    /**
-     * @see Extension::ext_get_child_storage_into
-     */
-    runtime::SizeType ext_get_child_storage_into(
-        runtime::WasmPointer storage_key_data,
-        runtime::WasmPointer storage_key_length, runtime::WasmPointer key_data,
-        runtime::WasmPointer key_length, runtime::WasmPointer value_data,
-        runtime::SizeType value_length, runtime::SizeType value_offset);
-
-    /**
-     * @see Extension::ext_kill_child_storage
-     */
-    void ext_kill_child_storage(runtime::WasmPointer storage_key_data,
-                                runtime::SizeType storage_key_length);
-
-    /**
-     * @see Extension::ext_set_child_storage
-     */
-    void ext_set_child_storage(runtime::WasmPointer storage_key_data,
-                               runtime::SizeType storage_key_length,
-                               runtime::WasmPointer key_data,
-                               runtime::SizeType key_length,
-                               runtime::WasmPointer value_data,
-                               runtime::SizeType value_length);
-
    private:
     /**
      * Find the value by given key and the return the part of it starting from

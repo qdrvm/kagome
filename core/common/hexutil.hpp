@@ -9,6 +9,8 @@
 #include <string_view>
 #include <vector>
 
+#include <gsl/span>
+
 #include <outcome/outcome.hpp>
 
 namespace kagome::common {
@@ -28,8 +30,7 @@ namespace kagome::common {
    * @param len length of bytes
    * @return hexstring
    */
-  std::string hex_upper(const uint8_t *array, size_t len) noexcept;
-  std::string hex_upper(const std::vector<uint8_t> &bytes) noexcept;
+  std::string hex_upper(gsl::span<const uint8_t> bytes) noexcept;
 
   /**
    * @brief Converts bytes to hex representation
@@ -37,8 +38,7 @@ namespace kagome::common {
    * @param len length of bytes
    * @return hexstring
    */
-  std::string hex_lower(const uint8_t *array, size_t len) noexcept;
-  std::string hex_lower(const std::vector<uint8_t> &bytes) noexcept;
+  std::string hex_lower(gsl::span<const uint8_t> bytes) noexcept;
 
   /**
    * @brief Converts hex representation to bytes
