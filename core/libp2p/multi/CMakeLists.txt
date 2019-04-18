@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(c-utils)
+add_subdirectory(converters)
 add_subdirectory(multibase_codec)
 
 add_library(uvarint
@@ -12,8 +12,9 @@ add_library(uvarint
   )
 
 target_link_libraries(uvarint
-  c_utils
+  outcome
   )
+
 
 add_library(multihash
   multihash.hpp
@@ -24,6 +25,7 @@ target_link_libraries(multihash
   buffer
   hexutil
   uvarint
+  outcome
   )
 
 add_library(multistream
@@ -34,6 +36,7 @@ add_library(multistream
 target_link_libraries(multistream
   buffer
   uvarint
+  outcome
   )
 
 
@@ -41,7 +44,7 @@ add_library(multiaddress
   multiaddress.cpp
   )
 target_link_libraries(multiaddress
-  c_utils
+  converter_utils
   outcome
   buffer
   )

@@ -8,16 +8,17 @@
 
 #include <cstdint>
 #include <gsl/span>
+#include <string>
 #include <vector>
 
 namespace libp2p::multi {
 
   /**
    * A C++ wrapper for varint encoding implementation, which can be found in
-   * c-utils library. Encodes unsigned integers into variable-length byte arrays,
-   * efficient, having both an ability to store large numbers and not wasting
-   * space on small ones. Mind that the maximum length of a varint is 8 bytes
-   * and it can store only unsigned integers
+   * c-utils library. Encodes unsigned integers into variable-length byte
+   * arrays, efficient, having both an ability to store large numbers and not
+   * wasting space on small ones. Mind that the maximum length of a varint is 8
+   * bytes and it can store only unsigned integers
    * @see https://github.com/multiformats/unsigned-varint
    */
   class UVarint {
@@ -50,12 +51,16 @@ namespace libp2p::multi {
      */
     gsl::span<const uint8_t> toBytes() const;
 
+    std::string toHex() const;
+
     /**
      * Assigns the varint to an unsigned integer, encoding the latter
      * @param n the integer to encode and store
      * @return this varint
      */
     UVarint &operator=(uint64_t n);
+
+    UVarint &operator=(const UVarint &) = default;
 
     /**
      * @return the number of bytes currently stored in a varint
@@ -70,7 +75,7 @@ namespace libp2p::multi {
     static size_t calculateSize(gsl::span<const uint8_t> varint_bytes);
 
    private:
-    std::vector<uint8_t> bytes_;
+    std::vector<uint8_t> bytes_{};
   };
 
 }  // namespace libp2p::multi

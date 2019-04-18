@@ -23,6 +23,22 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::common, UnhexError, e) {
 
 namespace kagome::common {
 
+  std::string int_to_hex(uint64_t n,size_t fixed_width) noexcept {
+    std::stringstream result;
+    result.width(fixed_width);
+    result.fill('0');
+    result << std::hex << std::uppercase << n;
+    auto str = result.str();
+    if (str.length() % 2 != 0) {
+      str.push_back('\0');
+      for (int64_t i = str.length() - 2; i >= 0; --i) {
+        str[i + 1] = str[i];
+      }
+      str[0] = '0';
+    }
+    return str;
+  }
+
   std::string hex_upper(const gsl::span<const uint8_t> bytes) noexcept {
     std::string res(bytes.size() * 2, '\x00');
     boost::algorithm::hex(bytes.begin(), bytes.end(), res.begin());

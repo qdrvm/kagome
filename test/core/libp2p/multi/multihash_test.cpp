@@ -47,8 +47,7 @@ TEST(Multihash, FromToHex) {
   ASSERT_NO_THROW({
     auto m = Multihash::create(HashType::blake2s128, hash).value();
     UVarint var(HashType::blake2s128);
-    auto hex_s = hex_upper(var.toBytes()) + "03"
-        + hex_upper(hash.toVector());
+    auto hex_s = hex_upper(var.toBytes()) + "03" + hex_upper(hash.toVector());
     ASSERT_EQ(m.toHex(), hex_s);
   });
 
@@ -73,13 +72,14 @@ TEST(Multihash, FromToHex) {
  *multihash is returned
  **/
 TEST(Multihash, FromToBuffer) {
-  Buffer hash{0x82, 3, 2, 3, 4};
+  std::vector<uint8_t> hash{0x82, 3, 2, 3, 4};
 
   ASSERT_NO_THROW({
     auto m = Multihash::createFromBuffer(hash).value();
     ASSERT_EQ(m.toBuffer(), hash);
   });
 
-  ASSERT_FALSE(Multihash::createFromBuffer({2, 3, 1, 3}))
+  std::vector<uint8_t> v{2, 3, 1, 3};
+  ASSERT_FALSE(Multihash::createFromBuffer(v))
       << "Length in the header does not equal actual length";
 }

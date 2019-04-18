@@ -9,11 +9,8 @@
 #include <numeric>
 #include <stdexcept>
 
+#include "libp2p/multi/converters/converter_utils.hpp"
 #include "macro/unreachable.hpp"
-
-extern "C" {
-#include "libp2p/multi/c-utils/protoutils.h"
-}
 
 namespace {
   // string representations of protocols
@@ -67,36 +64,28 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, Multiaddress::Error, e) {
 namespace libp2p::multi {
 
   Multiaddress::FactoryResult Multiaddress::create(std::string_view address) {
-    uint8_t *bytes_ptr;
-    size_t bytes_size = 0;
-
     // convert string address to bytes and make sure they represent valid
     // address
-    auto conversion_error = string_to_bytes(&bytes_ptr, &bytes_size,
-                                            address.data(), address.size());
-    if (conversion_error != nullptr) {
+    auto result = converters::multiaddrToBytes(address);
+    if (!result) {
       return Error::INVALID_INPUT;
     }
-
-    // avoiding pointer arithmetic
-    auto bytes_end = bytes_ptr;
-    std::advance(bytes_end, bytes_size);
+    auto&& bytes = result.value();
 
     return Multiaddress{std::string{address},
-                        ByteBuffer{std::vector<uint8_t>{bytes_ptr, bytes_end}}};
+                        ByteBuffer{std::vector<uint8_t>{bytes.begin(), bytes.end()}}};
   }
 
   Multiaddress::FactoryResult Multiaddress::create(const ByteBuffer &bytes) {
-    char *address_ptr = nullptr;
 
     // convert bytes address to string and make sure it represents valid address
-    auto conversion_error = bytes_to_string(&address_ptr, bytes.toBytes(),
-                                            static_cast<int>(bytes.size()));
-    if (conversion_error != nullptr) {
+    auto conversion_res = converters::bytesToMultiaddrString(bytes);
+    if (!conversion_res) {
       return Error::INVALID_INPUT;
     }
 
-    return Multiaddress{std::string{address_ptr}, ByteBuffer{bytes}};
+    std::string s = conversion_res.value();
+    return Multiaddress {std::move(s), ByteBuffer{bytes}};
   }
 
   Multiaddress::Multiaddress(std::string &&address, ByteBuffer &&bytes)

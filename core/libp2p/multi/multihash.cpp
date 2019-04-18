@@ -7,6 +7,7 @@
 
 #include <boost/algorithm/hex.hpp>
 #include <boost/format.hpp>
+
 #include "common/hexutil.hpp"
 #include "libp2p/multi/uvarint.hpp"
 
@@ -51,17 +52,17 @@ namespace libp2p::multi {
 
   auto Multihash::createFromHex(std::string_view hex)
       -> outcome::result<Multihash> {
-    OUTCOME_TRY(res, Buffer::fromHex(hex));
-    return Multihash::createFromBuffer(res);
+    OUTCOME_TRY(buf, Buffer::fromHex(hex));
+    return Multihash::createFromBuffer(buf.toVector());
   }
 
-  auto Multihash::createFromBuffer(const Buffer &b)
+  auto Multihash::createFromBuffer(gsl::span<const uint8_t> b)
       -> outcome::result<Multihash> {
     if (b.size() < kHeaderSize) {
       return Error::INPUT_TOO_SHORT;
     }
 
-    UVarint varint(gsl::span(b.toBytes(), b.size()));
+    UVarint varint(b);
 
     const auto type = static_cast<HashType>(varint.toUInt64());
     uint8_t length = b[varint.size()];
@@ -72,9 +73,6 @@ namespace libp2p::multi {
     }
 
     if (hash.size() != length) {
-      auto s =
-          "The hash length %1%, provided in the header, "
-          "does not equal the actual hash length %2%";
       return Error::INCONSISTENT_LENGTH;
     }
 
