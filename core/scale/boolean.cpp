@@ -16,7 +16,7 @@ namespace kagome::scale::boolean {
   outcome::result<bool> decodeBool(common::ByteStream &stream) {
     auto byte = stream.nextByte();
     if (!byte.has_value()) {
-      return outcome::failure(DecodeError::NOT_ENOUGH_DATA);
+      return DecodeError::NOT_ENOUGH_DATA;
     }
 
     switch (*byte) {
@@ -28,7 +28,7 @@ namespace kagome::scale::boolean {
         break;
     }
 
-    return outcome::failure(DecodeError::UNEXPECTED_VALUE);
+    return DecodeError::UNEXPECTED_VALUE;
   }
 
   void encodeTribool(tribool value, common::Buffer &out) {
@@ -47,7 +47,7 @@ namespace kagome::scale::boolean {
   outcome::result<tribool> decodeTribool(common::ByteStream &stream) {
     auto byte = stream.nextByte();
     if (!byte.has_value()) {
-      return outcome::failure(DecodeError::NOT_ENOUGH_DATA);
+      return DecodeError::NOT_ENOUGH_DATA;
     }
 
     switch (*byte) {
@@ -61,6 +61,6 @@ namespace kagome::scale::boolean {
         break;
     }
 
-    return outcome::failure(DecodeError::UNEXPECTED_VALUE);
+    return DecodeError::UNEXPECTED_VALUE;
   }
 }  // namespace kagome::scale::boolean
