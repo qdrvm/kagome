@@ -180,7 +180,7 @@ TEST(Scale, decodeOptionalBool) {
     auto &&res = optional::decodeOptional<bool>(stream);
     ASSERT_FALSE(res);
     ASSERT_EQ(res.error().value(),
-              static_cast<int>(DecodeError::kUnexpectedValue));
+              static_cast<int>(DecodeError::UNEXPECTED_VALUE));
   }
 
   // not enough data
@@ -188,7 +188,7 @@ TEST(Scale, decodeOptionalBool) {
     auto &&res = optional::decodeOptional<bool>(stream);
     ASSERT_FALSE(res);
     ASSERT_EQ(res.error().value(),
-              static_cast<int>(DecodeError::kNotEnoughData));
+              static_cast<int>(DecodeError::NOT_ENOUGH_DATA));
   }
 }
 

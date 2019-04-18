@@ -6,11 +6,10 @@
 #ifndef KAGOME_SCALE_BOOLEAN_HPP
 #define KAGOME_SCALE_BOOLEAN_HPP
 
+#include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
 #include "common/byte_stream.hpp"
 #include "scale/types.hpp"
-
-#include <outcome/outcome.hpp>
 
 namespace kagome::scale::boolean {
   /**

@@ -6,8 +6,7 @@
 #ifndef KAGOME_SCALE_VARIANT_HPP
 #define KAGOME_SCALE_VARIANT_HPP
 
-#include <variant>
-
+#include <boost/variant.hpp>
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
 #include "scale/compact.hpp"
@@ -39,62 +38,57 @@ namespace kagome::scale::variant {
       for_each_apply_impl<i + 1, F, T...>(f);
     }
 
+    // TODO(yuraz): refactor PRE-119
     template <class... T>
     struct VariantEncoder {
-      using Variant = std::variant<T...>;
+      using Variant = boost::variant<T...>;
       using Result = outcome::result<void>;
-      const Variant &v;
-      Buffer &out;
-      Result &res;
+      const Variant &v_;
+      Buffer &out_;
+      Result &res_;
 
       VariantEncoder(const Variant &v, Buffer &buf, Result &res)
-          : v{v}, out{buf}, res{res} {}
+          : v_{v}, out_{buf}, res_{res} {}
 
       template <class H>
       void apply(uint8_t index) {
         // if type matches alternative in variant then encode
-        if (std::holds_alternative<H>(v)) {
+        kagome::visit_in_place(v_, [this, index](const H &h) {
           // first byte means type index
-          out.putUint8(index);
-          // get alternative ptr
-          auto *alternative = std::get_if<H>(&v);
-          if (nullptr == alternative) {
-            res = EncodeError::kNoAlternative;
-            return;
-          }
-          // encode the value using custom type encoder
-          auto &&encode_result = TypeEncoder<H>{}.encode(*alternative, out);
+          out_.putUint8(index);
+          auto &&encode_result = TypeEncoder<H>{}.encode(h, out_);
           if (!encode_result) {
-            res = encode_result.error();
+            res_ = encode_result.error();
           }
-        }
+        }, [](const auto &) {});
       }
     };
 
+  // TODO(yuraz): refactor PRE-119
     template <class... T>
     struct VariantDecoder {
-      using Variant = std::variant<T...>;
+      using Variant = boost::variant<T...>;
       using Result = outcome::result<Variant>;
-      uint8_t target_type_index;
-      Result &r;
-      common::ByteStream &s;
+      uint8_t target_type_index_;
+      Result &r_;
+      common::ByteStream &s_;
       static constexpr uint8_t types_count = sizeof...(T);
 
       VariantDecoder(uint8_t target_type_index, Result &r,
                      common::ByteStream &s)
-          : target_type_index{target_type_index}, r{r}, s{s} {};
+          : target_type_index_{target_type_index}, r_{r}, s_{s} {};
 
       template <class H>
       void apply(uint8_t index) {
-        if (target_type_index >= types_count) {
-          r = DecodeError::kWrongTypeIndex;
-        } else if (index == target_type_index) {
+        if (target_type_index_ >= types_count) {
+          r_ = DecodeError::WRONG_TYPE_INDEX;
+        } else if (index == target_type_index_) {
           // decode custom type
-          auto &&res = TypeDecoder<H>{}.decode(s);
+          auto &&res = TypeDecoder<H>{}.decode(s_);
           if (!res) {
-            r = res.error();
+            r_ = res.error();
           } else {
-            r = Variant{res.value()};
+            r_ = Variant{static_cast<H>(res.value())};
           }
         }
       }
@@ -104,16 +98,16 @@ namespace kagome::scale::variant {
     void for_each_apply(F &f) {
       detail::for_each_apply_impl<0, F, T...>(f);
     }
-  };  // namespace detail
+  }  // namespace detail
 
   /**
-   * @brief encodes std::variant value
+   * @brief encodes boost::variant value
    * @tparam T... sequence of types
    * @param v variant value
    * @param out output buffer
    */
   template <class... T>
-  outcome::result<void> encodeVariant(const std::variant<T...> &v,
+  outcome::result<void> encodeVariant(const boost::variant<T...> &v,
                                       Buffer &out) {
     outcome::result<void> res = outcome::success();
     auto encoder = detail::VariantEncoder<T...>(v, out, res);
@@ -128,12 +122,12 @@ namespace kagome::scale::variant {
    * @return decoded value or error
    */
   template <class... T>
-  outcome::result<std::variant<T...>> decodeVariant(
+  outcome::result<boost::variant<T...>> decodeVariant(
       common::ByteStream &stream) {
     // first byte means type index
     OUTCOME_TRY(type_index, fixedwidth::decodeUint8(stream));
 
-    outcome::result<std::variant<T...>> result = outcome::success();
+    outcome::result<boost::variant<T...>> result = outcome::success();
     auto decoder = detail::VariantDecoder<T...>(type_index, result, stream);
 
     detail::for_each_apply<decltype(decoder), T...>(decoder);

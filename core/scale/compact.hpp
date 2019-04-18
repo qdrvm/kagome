@@ -7,8 +7,8 @@
 #define KAGOME_SCALE_COMPACT_HPP
 
 #include <optional>
-#include <outcome/outcome.hpp>
 
+#include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
 #include "common/byte_stream.hpp"
 #include "common/result.hpp"

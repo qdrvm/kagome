@@ -6,10 +6,7 @@
 #include "fixedwidth.hpp"
 
 #include <boost/endian/buffers.hpp>
-
 #include "scale/util.hpp"
-
-using namespace boost::endian;          // NOLINT
 
 namespace kagome::scale::fixedwidth {
   void encodeInt8(int8_t value, common::Buffer &out) {

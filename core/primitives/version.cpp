@@ -16,23 +16,23 @@ namespace kagome::primitives {
         impl_version_(impl_version),
         apis_(std::move(apis)) {}
 
-  const std::string &Version::specName() {
+  const std::string &Version::specName() const {
     return spec_name_;
   }
 
-  const std::string &Version::implName() {
+  const std::string &Version::implName() const {
     return impl_name_;
   }
 
-  uint32_t Version::authoringVersion() {
+  uint32_t Version::authoringVersion() const {
     return authoring_version_;
   }
 
-  uint32_t Version::implVersion() {
+  uint32_t Version::implVersion() const {
     return impl_version_;
   }
 
-  const ApisVec &Version::apis() {
+  const ApisVec &Version::apis() const {
     return apis_;
   }
 

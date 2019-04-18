@@ -21,29 +21,54 @@ namespace kagome::scale::collection {
    *  @return true if operation succeeded and false otherwise
    */
   template <class T>
-  outcome::result<void> encodeCollection(const std::vector<T> &collection,
+  outcome::result<void> encodeCollection(const gsl::span<T> collection,
                                          common::Buffer &out) {
     common::Buffer encoded_collection;
     OUTCOME_TRY(compact::encodeInteger(collection.size(), encoded_collection));
 
     TypeEncoder<T> encoder{};
-    for (size_t i = 0; i < collection.size(); ++i) {
+    for (auto i = 0; i < collection.size(); ++i) {
       OUTCOME_TRY(encoder.encode(collection[i], encoded_collection));
     }
 
     out.putBuffer(encoded_collection);
 
     return outcome::success();
-  }  // namespace kagome::common::scale::collection
+  }
+
+  template <class T>
+  outcome::result<void> encodeCollection(const std::vector<T> collection,
+                                         common::Buffer &out) {
+    common::Buffer encoded_collection;
+    OUTCOME_TRY(compact::encodeInteger(collection.size(), encoded_collection));
+
+    TypeEncoder<T> encoder{};
+    for (auto &item : collection) {
+      OUTCOME_TRY(encoder.encode(item, encoded_collection));
+    }
+
+    out.putBuffer(encoded_collection);
+
+    return outcome::success();
+  }
 
   /**
    * @brief encodes buffer as collection of bytes
    * @param buf bytes to encode
-   * @param out output stream
-   * @return true if operation succeeded and false otherwise
+   * @param out output buffer
+   * @return true if operation succeeded false otherwise
    */
   outcome::result<void> encodeBuffer(const common::Buffer &buf,
-                                             common::Buffer &out);
+                                     common::Buffer &out);
+
+  /**
+   * @brief encodes std::string as collection of bytes
+   * @param string source value
+   * @param out output buffer
+   * @return true if operation succeedes false otherwise
+   */
+  outcome::result<void> encodeString(std::string_view string,
+                                     common::Buffer &out);
 
   /**
    * @brief decodeCollection function decodes collection containing items of
@@ -61,11 +86,7 @@ namespace kagome::scale::collection {
 
     BigInteger required_bytes = collection_size * sizeof(T);
     if (required_bytes > std::numeric_limits<uint64_t>::max()) {
-      return DecodeError::kTooManyItems;
-    }
-
-    if (!stream.hasMore(required_bytes.convert_to<uint64_t>())) {
-      return DecodeError::kNotEnoughData;
+      return DecodeError::TOO_MANY_ITEMS;
     }
 
     std::vector<T> decoded_collection;
@@ -80,6 +101,12 @@ namespace kagome::scale::collection {
 
     return decoded_collection;
   }
-}  // namespace kagome::scale::collection
 
+  /**
+   * @brief decodes string from stream
+   * @param stream source of encoded bytes
+   * @return decoded string or error
+   */
+  outcome::result<std::string> decodeString(common::ByteStream &stream);
+}  // namespace kagome::scale::collection
 #endif  // KAGOME_SCALE_ADVANCED_HPP

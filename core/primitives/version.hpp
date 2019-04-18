@@ -44,7 +44,7 @@ namespace kagome::primitives {
      * Identifies the different Substrate runtimes. There'll be at least
      * polkadot and node.
      */
-    const std::string &specName();
+    const std::string &specName() const;
 
     /**
      * Name of the implementation of the spec. This is of little consequence
@@ -53,12 +53,12 @@ namespace kagome::primitives {
      * were a non-Rust implementation of the Polkadot runtime (e.g. C++), then
      * it would identify itself with an accordingly different impl_name.
      */
-    const std::string &implName();
+    const std::string &implName() const;
 
     /**
      * authoring_version is the version of the authorship interface
      */
-    uint32_t authoringVersion();
+    uint32_t authoringVersion() const;
 
     /**
      * Version of the implementation of the specification. Nodes are free to
@@ -68,10 +68,10 @@ namespace kagome::primitives {
      * Non-consensus-breaking optimizations are about the only changes that
      * could be made which would result in only the impl_version changing.
      */
-    uint32_t implVersion();
+    uint32_t implVersion() const;
 
     /// List of supported API "features" along with their versions.
-    const ApisVec &apis();
+    const ApisVec &apis() const;
 
    private:
     std::string spec_name_;

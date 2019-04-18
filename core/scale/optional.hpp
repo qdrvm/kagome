@@ -46,7 +46,7 @@ namespace kagome::scale::optional {
   outcome::result<std::optional<T>> decodeOptional(common::ByteStream &stream) {
     auto flag = stream.nextByte();
     if (!flag.has_value()) {
-      return outcome::failure(DecodeError::kNotEnoughData);
+      return outcome::failure(DecodeError::NOT_ENOUGH_DATA);
     }
 
     if (*flag != 1) {
@@ -88,7 +88,7 @@ namespace kagome::scale::optional {
       common::ByteStream &stream) {
     auto byte = stream.nextByte();
     if (!byte.has_value()) {
-      return outcome::failure(DecodeError::kNotEnoughData);
+      return outcome::failure(DecodeError::NOT_ENOUGH_DATA);
     }
 
     switch (*byte) {
@@ -102,7 +102,7 @@ namespace kagome::scale::optional {
         break;
     }
 
-    return outcome::failure(DecodeError::kUnexpectedValue);
+    return outcome::failure(DecodeError::UNEXPECTED_VALUE);
   }
 
 }  // namespace kagome::scale::optional

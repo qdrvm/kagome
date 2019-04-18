@@ -9,16 +9,19 @@
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
 #include "common/byte_stream.hpp"
+#include "primitives/block_id.hpp"
+#include "primitives/transaction_validity.hpp"
 #include "scale/types.hpp"
 
+
 namespace kagome::primitives {
-  class Block;  ///< forward declarations of class Block
+  class Block;  ///< forward declaration of class Block
 
-  class BlockHeader;  ///< forward declarations of class BlockHeader
+  class BlockHeader;  ///< forward declaration of class BlockHeader
 
-  class Extrinsic;  ///< forward declarations of class Extrinsic
+  class Extrinsic;  ///< forward declaration of class Extrinsic
 
-  class Version;  ///< forward declarations of class Version
+  class Version;  ///< forward declaration of class Version
 
   /**
    * class ScaleCodec is an interface declaring methods
@@ -38,7 +41,7 @@ namespace kagome::primitives {
     /**
      * @brief scale-encodes Block instance
      * @param block value which should be encoded
-     * @return scale-encoded value
+     * @return scale-encoded value or error
      */
     virtual outcome::result<Buffer> encodeBlock(const Block &block) const = 0;
 
@@ -52,13 +55,13 @@ namespace kagome::primitives {
     /**
      * @brief scale-encodes BlockHeader instance
      * @param block_header value which should be encoded
-     * @return scale-encoded value
+     * @return scale-encoded value or error
      */
     virtual outcome::result<Buffer> encodeBlockHeader(
         const BlockHeader &block_header) const = 0;
 
     /**
-     * @brief decodes scale-encoded block header from stream
+     * @brief decodes scale-encoded block header
      * @param stream source stream containing encoded bytes
      * @return decoded block header or error
      */
@@ -67,18 +70,64 @@ namespace kagome::primitives {
 
     /**
      * @brief scale-encodes Extrinsic instance
-     * @param extrinsic extrinsic value which should be encoded
-     * @return scale-encoded value
+     * @param extrinsic value which should be encoded
+     * @return scale-encoded value or error
      */
     virtual outcome::result<Buffer> encodeExtrinsic(
         const Extrinsic &extrinsic) const = 0;
 
     /**
-     * @brief decodes scale-encoded extrinsic from stream
+     * @brief decodes scale-encoded extrinsic
      * @param stream source stream containing encoded bytes
      * @return decoded extrinsic or error
      */
     virtual outcome::result<Extrinsic> decodeExtrinsic(
+        Stream &stream) const = 0;
+
+    /**
+     * @brief scale-encodes Version instance
+     * @param version value which should be encoded
+     * @return scale-encoded value or error
+     */
+    virtual outcome::result<Buffer> encodeVersion(
+        const Version &version) const = 0;
+
+    /**
+     * @brief decodes scale-encoded Version instance
+     * @param stream source stream containing encoded bytes
+     * @return decoded Version instance or error
+     */
+    virtual outcome::result<Version> decodeVersion(Stream &stream) const = 0;
+
+    /**
+     * @brief scale-encodes block id
+     * @param blockId value which should be encoded
+     * @return scale-encoded value or error
+     */
+    virtual outcome::result<Buffer> encodeBlockId(
+        const BlockId &blockId) const = 0;
+
+    /**
+     * @brief decodes scale-encoded BlockId instance
+     * @param stream source stream containing encoded bytes
+     * @return decoded BlockId instance or error
+     */
+    virtual outcome::result<BlockId> decodeBlockId(Stream &stream) const = 0;
+
+    /**
+     * @brief scale-encodes TransactionValidity instance
+     * @param transactionValidity value which should be encoded
+     * @return encoded value or error
+     */
+    virtual outcome::result<Buffer> encodeTransactionValidity(
+        const TransactionValidity &transactionValidity) const = 0;
+
+    /**
+     * @brief decodes scale-encoded TransactionActivity instance
+     * @param stream source stream containing encoded bytes
+     * @return decoded TransactionValidity instance or error
+     */
+    virtual outcome::result<TransactionValidity> decodeTransactionValidity(
         Stream &stream) const = 0;
   };
 }  // namespace kagome::primitives

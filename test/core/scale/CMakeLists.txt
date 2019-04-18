@@ -57,3 +57,11 @@ target_link_libraries(scale_variant_test
     scale
     buffer
     )
+
+addtest(scale_pair_test
+    scale_pair_test.cpp
+    )
+target_link_libraries(scale_pair_test
+    scale
+    buffer
+    )

@@ -6,14 +6,13 @@
 #ifndef KAGOME_CORE_PRIMITIVES_BLOCK_ID_HPP
 #define KAGOME_CORE_PRIMITIVES_BLOCK_ID_HPP
 
-#include <variant>
-
+#include <boost/variant.hpp>
 #include "common/blob.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::primitives {
   /// Block id is the variant over BlockHash and BlockNumber
-  using BlockId = std::variant<common::Hash256, BlockNumber>;
+  using BlockId = boost::variant<common::Hash256, BlockNumber>;
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_CORE_PRIMITIVES_BLOCK_ID_HPP

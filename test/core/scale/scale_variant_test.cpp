@@ -4,29 +4,28 @@
  */
 
 #include <gtest/gtest.h>
-
 #include "common/result.hpp"
 #include "scale/byte_array_stream.hpp"
 #include "scale/variant.hpp"
 
-#include <boost/variant/get.hpp>
-
-using namespace kagome::common;  // NOLINT
-using namespace kagome::scale;   // NOLINT
+using kagome::common::Buffer;
+using kagome::scale::ByteArrayStream;
+using kagome::scale::variant::decodeVariant;
+using kagome::scale::variant::encodeVariant;
 
 TEST(Scale, encodeVariant) {
   {
-    std::variant<uint8_t, uint32_t> v = static_cast<uint8_t>(1);
+    boost::variant<uint8_t, uint32_t> v = static_cast<uint8_t>(1);
     Buffer out;
-    auto &&res = variant::encodeVariant(v, out);
+    auto &&res = encodeVariant(v, out);
     ASSERT_TRUE(res);
     Buffer match = {0, 1};
     ASSERT_EQ(out, match);
   }
   {
-    std::variant<uint8_t, uint32_t> v = static_cast<uint32_t>(1);
+    boost::variant<uint8_t, uint32_t> v = static_cast<uint32_t>(1);
     Buffer out;
-    auto &&res = variant::encodeVariant(v, out);
+    auto &&res = encodeVariant(v, out);
     ASSERT_TRUE(res);
     Buffer match = {1, 1, 0, 0, 0};
     ASSERT_EQ(out, match);
@@ -38,14 +37,16 @@ TEST(Scale, decodeVariant) {
                   1, 1, 0, 0, 0};  // uint32_t{1}
 
   auto stream = ByteArrayStream{match};
-  auto &&res = variant::decodeVariant<uint8_t, uint32_t>(stream);
+  auto &&res = decodeVariant<uint8_t, uint32_t>(stream);
   ASSERT_TRUE(res);
   auto &&val = res.value();
-  ASSERT_TRUE(std::holds_alternative<uint8_t>(val));
-  ASSERT_EQ(*std::get_if<uint8_t>(&val), 1);
 
-  auto &&res1 = variant::decodeVariant<uint8_t, uint32_t>(stream);
+  kagome::visit_in_place(
+      val, [](uint8_t v) { ASSERT_EQ(v, 1); }, [](uint32_t v) { FAIL(); });
+
+  auto &&res1 = decodeVariant<uint8_t, uint32_t>(stream);
   auto &&val1 = res1.value();
-  ASSERT_TRUE(std::holds_alternative<uint32_t>(val1));
-  ASSERT_EQ(*std::get_if<uint32_t>(&val1), 1);
+
+  kagome::visit_in_place(
+      val1, [](uint32_t v) { ASSERT_EQ(v, 1); }, [](uint8_t v) { FAIL(); });
 }
