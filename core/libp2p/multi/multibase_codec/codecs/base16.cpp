@@ -47,7 +47,7 @@ namespace libp2p::multi::detail {
       return BaseError::NON_UPPERCASE_INPUT;
     }
     OUTCOME_TRY(bytes, unhex(string));
-    return bytes;
+    return Buffer{std::move(bytes)};
   }
 
   outcome::result<Buffer> decodeBase16Lower(std::string_view string) {
@@ -57,7 +57,7 @@ namespace libp2p::multi::detail {
       return BaseError::NON_LOWERCASE_INPUT;
     }
     OUTCOME_TRY(bytes, unhex(string));
-    return bytes;
+    return Buffer{std::move(bytes)};
   }
 
 }  // namespace libp2p::multi::detail
