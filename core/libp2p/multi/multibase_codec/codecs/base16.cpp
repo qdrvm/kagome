@@ -9,6 +9,7 @@
 #include <cctype>
 
 #include "common/hexutil.hpp"
+#include "libp2p/multi/multibase_codec/codecs/base_error.hpp"
 
 namespace {
   /**
@@ -25,13 +26,11 @@ namespace {
 }  // namespace
 
 namespace libp2p::multi::detail {
+
   using kagome::common::Buffer;
   using kagome::common::hex_lower;
   using kagome::common::hex_upper;
   using kagome::common::unhex;
-  using kagome::expected::Error;
-  using kagome::expected::Result;
-  using kagome::expected::Value;
 
   std::string encodeBase16Upper(const Buffer &bytes) {
     return hex_upper(bytes.toVector());
@@ -41,28 +40,24 @@ namespace libp2p::multi::detail {
     return hex_lower(bytes.toVector());
   }
 
-  Result<Buffer, std::string> decodeBase16Upper(std::string_view string) {
+  outcome::result<Buffer> decodeBase16Upper(std::string_view string) {
     // we need this check, because Boost can unhex any kind of base16 with one
     // func, but the base must be specified correctly
     if (!encodingCaseIsUpper(string)) {
-      return Error{"cannot unhex string '" + std::string{string}
-                   + "': input is not in the uppercase hex"};
+      return BaseError::NON_UPPERCASE_INPUT;
     }
-    return unhex(string) | [](auto &&v) -> Result<Buffer, std::string> {
-      return Value{Buffer{std::forward<decltype(v)>(v)}};
-    };
+    OUTCOME_TRY(bytes, unhex(string));
+    return Buffer{std::move(bytes)};
   }
 
-  Result<Buffer, std::string> decodeBase16Lower(std::string_view string) {
+  outcome::result<Buffer> decodeBase16Lower(std::string_view string) {
     // we need this check, because Boost can unhex any kind of base16 with one
     // func, but the base must be specified correctly
     if (encodingCaseIsUpper(string)) {
-      return Error{"cannot unhex string '" + std::string{string}
-                   + "': input is not in the lowercase hex"};
+      return BaseError::NON_LOWERCASE_INPUT;
     }
-    return unhex(string) | [](auto &&v) -> Result<Buffer, std::string> {
-      return Value{Buffer{std::forward<decltype(v)>(v)}};
-    };
+    OUTCOME_TRY(bytes, unhex(string));
+    return Buffer{std::move(bytes)};
   }
 
 }  // namespace libp2p::multi::detail

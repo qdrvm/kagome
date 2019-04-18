@@ -8,8 +8,8 @@
 
 #include <optional>
 
+#include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
-#include "common/result.hpp"
 
 /**
  * Encode/decode to/from base64 format
@@ -18,6 +18,7 @@
  * which should not be touched externally
  */
 namespace libp2p::multi::detail {
+
   /**
    * Encode bytes to base64 string
    * @param bytes to be encoded
@@ -28,9 +29,9 @@ namespace libp2p::multi::detail {
   /**
    * Decode base64 string to bytes
    * @param string to be decoded
-   * @return decoded bytes in case of success, string error otherwise
+   * @return decoded bytes in case of success
    */
-  kagome::expected::Result<kagome::common::Buffer, std::string> decodeBase64(
+  outcome::result<kagome::common::Buffer> decodeBase64(
       std::string_view string);
 }  // namespace libp2p::multi::detail
 

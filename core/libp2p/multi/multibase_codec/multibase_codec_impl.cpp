@@ -25,13 +25,13 @@ namespace {
   constexpr std::optional<MultibaseCodec::Encoding> encodingByChar(char ch) {
     switch (ch) {
       case 'f':
-        return MultibaseCodec::Encoding::kBase16Lower;
+        return MultibaseCodec::Encoding::BASE16_LOWER;
       case 'F':
-        return MultibaseCodec::Encoding::kBase16Upper;
+        return MultibaseCodec::Encoding::BASE16_UPPER;
       case 'Z':
-        return MultibaseCodec::Encoding::kBase58;
+        return MultibaseCodec::Encoding::BASE58;
       case 'm':
-        return MultibaseCodec::Encoding::kBase64;
+        return MultibaseCodec::Encoding::BASE64;
       default:
         return {};
     }
@@ -47,19 +47,28 @@ namespace {
 
   /// all available codec functions
   const std::unordered_map<MultibaseCodec::Encoding, CodecFunctions> codecs{
-      {MultibaseCodec::Encoding::kBase16Upper,
+      {MultibaseCodec::Encoding::BASE16_UPPER,
        {&encodeBase16Upper, &decodeBase16Upper}},
-      {MultibaseCodec::Encoding::kBase16Lower,
+      {MultibaseCodec::Encoding::BASE16_LOWER,
        {&encodeBase16Lower, &decodeBase16Lower}},
-      {MultibaseCodec::Encoding::kBase58, {&encodeBase58, &decodeBase58}},
-      {MultibaseCodec::Encoding::kBase64, {&encodeBase64, &decodeBase64}}};
+      {MultibaseCodec::Encoding::BASE58, {&encodeBase58, &decodeBase58}},
+      {MultibaseCodec::Encoding::BASE64, {&encodeBase64, &decodeBase64}}};
 }  // namespace
+
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, MultibaseCodecImpl::Error, e) {
+  using E = libp2p::multi::MultibaseCodecImpl::Error;
+  switch(e) {
+    case E::kInputTooShort:
+      return "Input must be at least two bytes long";
+    case E::kUnsupportedBase:
+      return "The base is either not supported or does not exist";
+    default:
+      return "Unknown error";
+  }
+}
 
 namespace libp2p::multi {
   using kagome::common::Buffer;
-  using kagome::expected::Error;
-  using kagome::expected::Result;
-  using kagome::expected::Value;
 
   MultibaseCodecImpl::~MultibaseCodecImpl() = default;
 
@@ -72,15 +81,15 @@ namespace libp2p::multi {
     return static_cast<char>(encoding) + codecs.at(encoding).encode(bytes);
   }
 
-  Result<Buffer, std::string> MultibaseCodecImpl::decode(
+  outcome::result<Buffer> MultibaseCodecImpl::decode(
       std::string_view string) const {
     if (string.length() < 2) {
-      return Error{"encoded data must be at least 2 characters long"};
+      return Error::kInputTooShort;
     }
 
     auto encoding_base = encodingByChar(string.front());
     if (!encoding_base) {
-      return Error{"base of encoding is either unsupported or does not exist"};
+      return Error::kUnsupportedBase;
     }
 
     return codecs.at(*encoding_base).decode(string.substr(1));

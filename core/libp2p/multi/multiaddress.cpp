@@ -53,11 +53,11 @@ namespace {
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, Multiaddress::Error, e) {
   using libp2p::multi::Multiaddress;
   switch (e) {
-    case Multiaddress::Error::InvalidInput:
+    case Multiaddress::Error::INVALID_INPUT:
       return "invalid multiaddress input";
-    case Multiaddress::Error::InvalidProtocolValue:
+    case Multiaddress::Error::INVALID_PROTOCOL_VALUE:
       return "protocol value can not be casted to T";
-    case Multiaddress::Error::ProtocolNotFound:
+    case Multiaddress::Error::PROTOCOL_NOT_FOUND:
       return "multiaddress does not contain given protocol";
     default:
       return "unknown";
@@ -75,7 +75,7 @@ namespace libp2p::multi {
     auto conversion_error = string_to_bytes(&bytes_ptr, &bytes_size,
                                             address.data(), address.size());
     if (conversion_error != nullptr) {
-      return Error::InvalidInput;
+      return Error::INVALID_INPUT;
     }
 
     // avoiding pointer arithmetic
@@ -93,7 +93,7 @@ namespace libp2p::multi {
     auto conversion_error = bytes_to_string(&address_ptr, bytes.toBytes(),
                                             static_cast<int>(bytes.size()));
     if (conversion_error != nullptr) {
-      return Error::InvalidInput;
+      return Error::INVALID_INPUT;
     }
 
     return Multiaddress{std::string{address_ptr}, ByteBuffer{bytes}};
@@ -224,7 +224,7 @@ namespace libp2p::multi {
     // solution
     auto vec = getValuesForProtocol(proto);
     if (vec.empty()) {
-      return Error::ProtocolNotFound;
+      return Error::PROTOCOL_NOT_FOUND;
     }
 
     return vec[0];

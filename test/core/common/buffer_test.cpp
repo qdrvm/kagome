@@ -4,6 +4,7 @@
  */
 
 #include "common/buffer.hpp"
+
 #include <gtest/gtest.h>
 
 using namespace kagome::common;
@@ -77,9 +78,7 @@ TEST(Common, BufferInit) {
   ASSERT_EQ(a.size(), b.size());
 
   ASSERT_NO_THROW({
-    Buffer c = boost::get<kagome::expected::Value<Buffer>>(
-                   Buffer::fromHex("0102030405"))
-                   .value;
+    Buffer c = Buffer::fromHex("0102030405").value();
     ASSERT_EQ(c, a);
 
     Buffer d = c;

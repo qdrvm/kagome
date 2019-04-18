@@ -35,6 +35,8 @@
 
 #include <regex>
 
+#include "libp2p/multi/multibase_codec/codecs/base_error.hpp"
+
 namespace {
 
   const std::string_view alphabet{
@@ -79,9 +81,6 @@ namespace {
 }  // namespace
 
 namespace libp2p::multi::detail {
-  using kagome::expected::Error;
-  using kagome::expected::Result;
-  using kagome::expected::Value;
 
   /**
    * Actual implementation of the encoding
@@ -187,21 +186,17 @@ namespace libp2p::multi::detail {
     return dest;
   }
 
-  Result<kagome::common::Buffer, std::string> decodeBase64(
+  outcome::result<kagome::common::Buffer> decodeBase64(
       std::string_view string) {
-    auto error_msg = [string] {
-      return Error{"string '" + std::string{string}
-                   + "' is not a valid base64 encoded string"};
-    };
     if (!isValidBase64(string)) {
-      return error_msg();
+      return BaseError::INVALID_BASE64_INPUT;
     }
 
     auto decoded_bytes = decodeImpl(string);
 
     if (!decoded_bytes) {
-      return error_msg();
+      return BaseError::INVALID_BASE64_INPUT;
     }
-    return Value{kagome::common::Buffer{std::move(*decoded_bytes)}};
+    return kagome::common::Buffer{std::move(*decoded_bytes)};
   }
 }  // namespace libp2p::multi::detail
