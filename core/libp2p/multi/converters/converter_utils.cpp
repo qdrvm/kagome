@@ -139,19 +139,20 @@ namespace libp2p::multi::converters {
         results += "/";
 
         // TODO(Akvinikym): 25.02.19 PRE-49: add more protocols
-        if (protocol->name == "ip4") {
-          results +=
-              boost::asio::ip::make_address_v4(std::stoul(address, nullptr, 16))
-                  .to_string();
-
-        } else if (protocol->name == "tcp") {
-          results += std::to_string(std::stoul(address, nullptr, 16));
-
-        } else if (protocol->name == "udp") {
-          results += std::to_string(std::stoul(address, nullptr, 16));
-
-        } else {
-          return ConversionError::NOT_IMPLEMENTED;
+        try {
+          if (protocol->name == "ip4") {
+            results += boost::asio::ip::make_address_v4(
+                           std::stoul(address, nullptr, 16))
+                           .to_string();
+          } else if (protocol->name == "tcp") {
+            results += std::to_string(std::stoul(address, nullptr, 16));
+          } else if (protocol->name == "udp") {
+            results += std::to_string(std::stoul(address, nullptr, 16));
+          } else {
+            return ConversionError::NOT_IMPLEMENTED;
+          }
+        } catch (const std::exception &e) {
+          return ConversionError ::INVALID_ADDRESS;
         }
 
       } else {
