@@ -20,7 +20,9 @@ using namespace libp2p::multi;
 
 using std::chrono_literals::operator""ms;
 
-class YamuxIntegrationTest : public ::testing::Test {
+class YamuxIntegrationTest
+    : public ::testing::Test,
+      public std::enable_shared_from_this<YamuxIntegrationTest> {
  public:
   void SetUp() override {
     init();
@@ -261,16 +263,17 @@ TEST_F(YamuxIntegrationTest, Ping) {
   std::cout << "We have reached 1" << std::endl;
   connection_->asyncWrite(
       boost::asio::buffer(ping_in_msg.toVector()),
-      [this, &ping_in_msg, &ping_out_msg, received_ping](auto &&ec, auto &&n) {
+      [t = shared_from_this(), &ping_in_msg, &ping_out_msg, received_ping](
+          auto &&ec, auto &&n) {
         std::cout << "We have reached 2" << std::endl;
-        checkIOSuccess(ec, n, ping_in_msg.size());
+        t->checkIOSuccess(ec, n, ping_in_msg.size());
         std::cout << "We have reached 3" << std::endl;
 
-        connection_->asyncRead(
+        t->connection_->asyncRead(
             boost::asio::buffer(received_ping->toVector()), ping_out_msg.size(),
-            [&ping_out_msg, received_ping](auto &&ec, auto &&n) {
+            [t, &ping_out_msg, received_ping](auto &&ec, auto &&n) {
               std::cout << "We have reached 4" << std::endl;
-              checkIOSuccess(ec, n, ping_out_msg.size());
+              t->checkIOSuccess(ec, n, ping_out_msg.size());
               std::cout << "We have reached 5" << std::endl;
 
               ASSERT_EQ(*received_ping, ping_out_msg);
