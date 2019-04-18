@@ -11,7 +11,7 @@
 
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
-#include "libp2p/multi/utils/protocol_list.hpp"
+#include "libp2p/multi/multiaddress_protocol_list.hpp"
 
 namespace libp2p::multi::converters {
 

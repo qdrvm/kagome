@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/multi/utils/protocol_list.hpp"
+#include "libp2p/multi/multiaddress_protocol_list.hpp"
 
 #include <gtest/gtest.h>
 

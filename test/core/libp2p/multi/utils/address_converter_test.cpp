@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 
 #include "libp2p/multi/converters/converter_utils.hpp"
-#include "libp2p/multi/utils/protocol_list.hpp"
+#include "libp2p/multi/multiaddress_protocol_list.hpp"
 
 using kagome::common::Buffer;
 using libp2p::multi::ProtocolList;

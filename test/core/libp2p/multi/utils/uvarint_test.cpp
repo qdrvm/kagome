@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/multi/utils/uvarint.hpp"
+#include "libp2p/multi/uvarint.hpp"
 
 #include <gtest/gtest.h>
 #include <gsl/span>
@@ -36,17 +36,17 @@ TEST(UVarint, CreateFromInt) {
  */
 TEST(UVarint, CorrectEncoding) {
   UVarint var(1);
-  ASSERT_EQ(hex_upper(var.toBytes().data(), var.toBytes().size()), "01");
+  ASSERT_EQ(hex_upper(var.toBytes()), "01");
   var = 127;
-  ASSERT_EQ(hex_upper(var.toBytes().data(), var.toBytes().size()), "7F");
+  ASSERT_EQ(hex_upper(var.toBytes()), "7F");
   var = 128;
-  ASSERT_EQ(hex_upper(var.toBytes().data(), var.toBytes().size()), "8001");
+  ASSERT_EQ(hex_upper(var.toBytes()), "8001");
   var = 255;
-  ASSERT_EQ(hex_upper(var.toBytes().data(), var.toBytes().size()), "FF01");
+  ASSERT_EQ(hex_upper(var.toBytes()), "FF01");
   var = 300;
-  ASSERT_EQ(hex_upper(var.toBytes().data(), var.toBytes().size()), "AC02");
+  ASSERT_EQ(hex_upper(var.toBytes()), "AC02");
   var = 16384;
-  ASSERT_EQ(hex_upper(var.toBytes().data(), var.toBytes().size()), "808001");
+  ASSERT_EQ(hex_upper(var.toBytes()), "808001");
 }
 
 /**

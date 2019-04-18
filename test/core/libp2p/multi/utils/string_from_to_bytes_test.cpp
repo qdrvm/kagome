@@ -6,28 +6,27 @@
 #include "libp2p/multi/converters/converter_utils.hpp"
 
 #include <gtest/gtest.h>
-
 #include "common/hexutil.hpp"
-#include "libp2p/multi/utils/protocol_list.hpp"
+#include "libp2p/multi/multiaddress_protocol_list.hpp"
+#include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
 using kagome::common::unhex;
 using libp2p::multi::converters::bytesToMultiaddrString;
 using libp2p::multi::converters::multiaddrToBytes;
 
-#define VALID_STR_TO_BYTES(addr, bytes)                \
-  {                                                    \
-    auto res = multiaddrToBytes(addr);                 \
-    ASSERT_TRUE(res) << res.error().message();         \
-    Buffer sample = Buffer::fromHex(bytes).getValue(); \
-    ASSERT_EQ(res.value(), sample);                    \
+#define VALID_STR_TO_BYTES(addr, bytes)                       \
+  {                                                           \
+    EXPECT_OUTCOME_TRUE_name(r1, v1, multiaddrToBytes(addr)); \
+    EXPECT_OUTCOME_TRUE_name(r2, v2, Buffer::fromHex(bytes)); \
+    ASSERT_EQ(v1, v2);                                        \
   }
 
-#define VALID_BYTES_TO_STR(addr, bytes)                                    \
-  {                                                                        \
-    auto res = bytesToMultiaddrString(Buffer{unhex(bytes).getValueRef()}); \
-    ASSERT_TRUE(res) << res.error().message();                             \
-    ASSERT_EQ(res.value(), addr);                                          \
+#define VALID_BYTES_TO_STR(addr, bytes)                                   \
+  {                                                                       \
+    EXPECT_OUTCOME_TRUE_name(r3, v1, unhex(bytes));                       \
+    EXPECT_OUTCOME_TRUE_name(r4, v2, bytesToMultiaddrString(Buffer{v1})); \
+    ASSERT_EQ(v2, addr);                                                  \
   }
 
 /**

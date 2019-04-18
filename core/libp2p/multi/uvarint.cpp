@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/multi/utils/uvarint.hpp"
+#include "libp2p/multi/uvarint.hpp"
 
 #include "common/hexutil.hpp"
 
@@ -16,9 +16,9 @@ namespace libp2p::multi {
     size_t i = 0;
     size_t size = 0;
     for (; i < 8; i++) {
-      bytes_[i] = (uint8_t)((number & 0xFFul) | 0x80ul);
+      bytes_[i] = static_cast<uint8_t>((number & 0xFFul) | 0x80ul);
       number >>= 7ul;
-      if (!number) {
+      if (number == 0) {
         bytes_[i] &= 0x7Ful;
         size = i + 1;
         break;
@@ -35,7 +35,7 @@ namespace libp2p::multi {
     uint64_t res = 0;
     for (size_t i = 0; i < 8 && i < bytes_.size(); i++) {
       res |= ((bytes_[i] & 0x7ful) << (7 * i));
-      if (!(bytes_[i] & 0x80ul)) {
+      if ((bytes_[i] & 0x80ul) == 0) {
         return res;
       }
     }

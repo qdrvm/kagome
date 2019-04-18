@@ -5,8 +5,8 @@
 
 #include "libp2p/multi/converters/converter_utils.hpp"
 
-#include <boost/asio/ip/address_v4.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/asio/ip/address_v4.hpp>
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
 #include "common/hexutil.hpp"
@@ -15,9 +15,9 @@
 #include "libp2p/multi/converters/ipfs_converter.hpp"
 #include "libp2p/multi/converters/tcp_converter.hpp"
 #include "libp2p/multi/converters/udp_converter.hpp"
+#include "libp2p/multi/multiaddress_protocol_list.hpp"
 #include "libp2p/multi/multibase_codec/multibase_codec_impl.hpp"
-#include "libp2p/multi/utils/protocol_list.hpp"
-#include "libp2p/multi/utils/uvarint.hpp"
+#include "libp2p/multi/uvarint.hpp"
 
 using kagome::common::unhex;
 
@@ -29,12 +29,15 @@ namespace libp2p::multi::converters {
     if (str[0] != '/') {
       return ConversionError::ADDRESS_DOES_NOT_BEGIN_WITH_SLASH;
     }
+
     str.remove_prefix(1);
-    if(str.empty()) {
+    if (str.empty()) {
       return ConversionError ::INVALID_ADDRESS;
     }
-    if(str.back() == '/') {
-      str.remove_suffix(1); // for split not to recognize an empty token in the end
+
+    if (str.back() == '/') {
+      // for split not to recognize an empty token in the end
+      str.remove_suffix(1);
     }
 
     std::string processed;
@@ -47,7 +50,7 @@ namespace libp2p::multi::converters {
     std::list<std::string> tokens;
     boost::algorithm::split(tokens, str, boost::algorithm::is_any_of("/"));
 
-    for (auto& word: tokens) {
+    for (auto &word : tokens) {
       if (type == WordType::Protocol) {
         protx = ProtocolList::get(word);
         if (protx != nullptr) {
@@ -57,21 +60,16 @@ namespace libp2p::multi::converters {
           return ConversionError::NO_SUCH_PROTOCOL;
         }
       } else {
-        auto res = addressToHex(*protx, word);
-        if (!res) {
-          return res.error();
-        }
-
-        processed += res.value();
-
+        OUTCOME_TRY(val, addressToHex(*protx, word));
+        processed += val;
         protx = nullptr;  // Since right now it doesn't need that
         // assignment anymore.
         type = WordType::Protocol;  // Since the next word will be an protocol
       }
     }
 
-    auto bytes = kagome::common::unhex(processed);
-    return Buffer{bytes.getValue()};
+    OUTCOME_TRY(bytes, unhex(processed));
+    return Buffer{std::move(bytes)};
   }
 
   auto addressToHex(const Protocol &protocol, std::string_view addr)
@@ -113,7 +111,7 @@ namespace libp2p::multi::converters {
       -> outcome::result<std::string> {
     std::string results;
 
-    int lastpos = 0;
+    size_t lastpos = 0;
 
     // set up variables
     const std::string hex = bytes.toHex();
@@ -160,22 +158,17 @@ namespace libp2p::multi::converters {
         lastpos = lastpos + 4;
         // fetch the size of the address based on the varint prefix
         auto prefixedvarint = hex.substr(lastpos, 2);
-        auto prefixBytes = unhex(prefixedvarint);
-        if (prefixBytes.hasError()) {
-          return ConversionError::INVALID_ADDRESS;
-        }
-        auto addrsize = UVarint(prefixBytes.getValueRef()).toUInt64();
+        OUTCOME_TRY(prefixBytes, unhex(prefixedvarint));
+
+        auto addrsize = UVarint(prefixBytes).toUInt64();
 
         // get the ipfs address as hex values
         auto ipfsAddr = hex.substr(lastpos + 2, addrsize * 2);
+
         // convert the address from hex values to a binary array
-        auto addrbufRes = Buffer::fromHex(ipfsAddr);
-        if (addrbufRes.hasError()) {
-          return ConversionError::INVALID_ADDRESS;
-        }
-        auto &addrbuf = addrbufRes.getValueRef();
+        OUTCOME_TRY(addrbuf, Buffer::fromHex(ipfsAddr));
         auto encode_res = MultibaseCodecImpl{}.encode(
-            addrbuf, MultibaseCodecImpl::Encoding::kBase58);
+            addrbuf, MultibaseCodecImpl::Encoding::BASE58);
         encode_res.erase(0, 1);  // because multibase contains a char that
                                  // denotes which base is used
         results += "/";

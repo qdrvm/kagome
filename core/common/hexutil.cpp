@@ -31,7 +31,7 @@ namespace kagome::common {
     auto str = result.str();
     if (str.length() % 2 != 0) {
       str.push_back('\0');
-      for (int i = str.length() - 2; i >= 0; --i) {
+      for (int64_t i = str.length() - 2; i >= 0; --i) {
         str[i + 1] = str[i];
       }
       str[0] = '0';

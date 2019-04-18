@@ -10,7 +10,7 @@
 #include <sstream>
 #include <string_view>
 
-#include "libp2p/multi/utils/uvarint.hpp"
+#include "libp2p/multi/uvarint.hpp"
 
 using kagome::common::Buffer;
 using kagome::expected::Error;
