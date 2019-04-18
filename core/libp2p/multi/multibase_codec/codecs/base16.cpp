@@ -46,7 +46,7 @@ namespace libp2p::multi::detail {
       return BaseError::NON_UPPERCASE_INPUT;
     }
     OUTCOME_TRY(bytes, unhex(string));
-    return Buffer{std::move(bytes)};
+    return bytes;
   }
 
   outcome::result<Buffer> decodeBase16Lower(std::string_view string) {
@@ -55,9 +55,8 @@ namespace libp2p::multi::detail {
     if (encodingCaseIsUpper(string)) {
       return BaseError::NON_LOWERCASE_INPUT;
     }
-    auto r = unhex(string);
-    if(r) return r.value();
-    return r.error();
+    OUTCOME_TRY(bytes, unhex(string));
+    return bytes;
   }
 
 }  // namespace libp2p::multi::detail
