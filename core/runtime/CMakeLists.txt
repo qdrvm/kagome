@@ -22,3 +22,13 @@ target_link_libraries(wasm_memory_stream
     byte_stream
     outcome
     )
+
+add_library(runtime_api
+    impl/runtime_external_interface.hpp
+    impl/runtime_external_interface.cpp
+    )
+target_link_libraries(runtime_api
+    binaryen::binaryen
+    buffer
+    logger
+    )
