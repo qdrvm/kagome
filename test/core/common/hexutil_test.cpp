@@ -16,7 +16,7 @@ using namespace std::string_literals;
  */
 TEST(Common, Hexutil_Hex) {
   std::vector<uint8_t> bin{0, 1, 2, 4, 8, 16, 32, 255};
-  auto hexed = hex_upper(bin.data(), bin.size());
+  auto hexed = hex_upper(bin);
   ASSERT_EQ(hexed, "00010204081020FF"s);
 }
 
@@ -30,9 +30,7 @@ TEST(Common, Hexutil_UnhexEven) {
 
   std::vector<uint8_t> actual;
   ASSERT_NO_THROW(
-      actual =
-          boost::get<kagome::expected::Value<std::vector<uint8_t>>>(unhex(s))
-              .value)
+      actual = unhex(s).value())
       << "unhex result does not contain expected std::vector<uint8_t>";
 
   std::vector<uint8_t> expected{0, 1, 2, 4, 8, 16, 32, 255};
@@ -47,7 +45,7 @@ TEST(Common, Hexutil_UnhexEven) {
  */
 TEST(Common, Hexutil_UnhexOdd) {
   ASSERT_NO_THROW({
-    boost::get<kagome::expected::Error<std::string>>(unhex("0"));
+    unhex("0").error();
   }) << "unhex did not return an error as expected";
 }
 
@@ -58,6 +56,6 @@ TEST(Common, Hexutil_UnhexOdd) {
  */
 TEST(Common, Hexutil_UnhexInvalid) {
   ASSERT_NO_THROW({
-    boost::get<kagome::expected::Error<std::string>>(unhex("keks"));
+    unhex("keks").error();
   }) << "unhex did not return an error as expected";
 }

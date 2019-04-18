@@ -14,14 +14,18 @@ namespace libp2p::multi {
    */
   class MultibaseCodecImpl : public MultibaseCodec {
    public:
+    enum class Error { kUnsupportedBase = 1, kInputTooShort};
+
     ~MultibaseCodecImpl() override;
 
     std::string encode(const kagome::common::Buffer &bytes,
                        Encoding encoding) const override;
 
-    kagome::expected::Result<kagome::common::Buffer, std::string> decode(
+    outcome::result<kagome::common::Buffer> decode(
         std::string_view string) const override;
   };
 }  // namespace libp2p::multi
+
+OUTCOME_HPP_DECLARE_ERROR(libp2p::multi, MultibaseCodecImpl::Error);
 
 #endif  // KAGOME_MULTIBASE_IMPL_HPP

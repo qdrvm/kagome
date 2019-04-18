@@ -8,7 +8,6 @@
 
 using libp2p::multi::Multiaddress;
 
-using namespace kagome::expected;
 using namespace kagome::common;
 
 class MultiaddressTest : public ::testing::Test {

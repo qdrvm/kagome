@@ -6,12 +6,20 @@
 #ifndef KAGOME_BLOB_HPP
 #define KAGOME_BLOB_HPP
 
+#include <array>
+
 #include <boost/format.hpp>
 
 #include "common/hexutil.hpp"
-#include "common/result.hpp"
 
 namespace kagome::common {
+
+  /**
+   * Error codes for exceptions that may occur during blob initialization
+   */
+  enum class BlobError {
+    INCORRECT_LENGTH = 1
+  };
 
   using byte_t = uint8_t;
 
@@ -51,53 +59,43 @@ namespace kagome::common {
      * Converts current blob to hex string.
      */
     std::string toHex() const noexcept {
-      return hex_upper(this->data(), size_);
+      return hex_upper({this->begin(), this->end()});
     }
 
     /**
      * Create Blob from arbitrary string, putting its bytes into the blob
      * @param data arbitrary string containing
-     * @return result containing Blob object if string has proper size,
-     * otherwise result contains string with error message
+     * @return result containing Blob object if string has proper size
      */
-    static expected::Result<Blob<size_>, std::string> fromString(
+    static outcome::result<Blob<size_>> fromString(
         std::string_view data) {
       if (data.size() != size_) {
-        const static std::string error_message_template =
-            "Input string has incorrect length. Found: %1%, required: %2%";
-        auto formatted_error =
-            boost::format(error_message_template) % data.size() % size_;
-        return expected::Error{formatted_error.str()};
+        return BlobError::INCORRECT_LENGTH;
       }
 
       Blob<size_> b;
       std::copy(data.begin(), data.end(), b.begin());
 
-      return expected::Value{b};
+      return b;
     }
 
     /**
      * Create Blob from hex string
      * @param hex hex string
      * @return result containing Blob object if hex string has proper size and
-     * is in hex format, otherwise result contains error message
+     * is in hex format
      */
-    static expected::Result<Blob<size_>, std::string> fromHex(
+    static outcome::result<Blob<size_>> fromHex(
         std::string_view hex) {
-      return unhex(hex) | [&hex](const std::vector<uint8_t> &bytes)
-                 -> expected::Result<Blob<size_>, std::string> {
-        if (bytes.size() != size_) {
-          const static std::string error_message_template =
-              "Input hex string %1% has incorrect decoded bytes length. Found: "
-              "%2%, required: %3%";
-          auto formatted_error = boost::format(error_message_template) % hex
-              % bytes.size() % size_;
-          return expected::Error{formatted_error.str()};
-        }
-        Blob<size_> blob;
-        std::copy(bytes.begin(), bytes.end(), blob.begin());
-        return expected::Value{blob};
-      };
+
+      OUTCOME_TRY(res, unhex(hex));
+      if(res.size() != size_) {
+        return BlobError::INCORRECT_LENGTH;
+      }
+
+      Blob<size_> blob;
+      std::copy(res.begin(), res.end(), blob.begin());
+      return blob;
     }
   };
 
@@ -115,5 +113,7 @@ namespace kagome::common {
   using Hash512 = Blob<64>;
 
 }  // namespace kagome::common
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::common, BlobError);
 
 #endif  // KAGOME_BLOB_HPP

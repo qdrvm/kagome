@@ -8,9 +8,8 @@
 
 #include <string_view>
 #include <vector>
-
 #include <gsl/span>
-#include "common/result.hpp"
+#include <outcome/outcome.hpp>
 
 namespace kagome::common {
 
@@ -28,10 +27,13 @@ namespace kagome::common {
      */
     Buffer(size_t size, uint8_t byte);
 
+    ~Buffer() = default;
+
     /**
      * @brief lvalue construct buffer from a byte vector
      */
     explicit Buffer(std::vector<uint8_t> v);
+    explicit Buffer(gsl::span<uint8_t> s);
 
     Buffer(const uint8_t *begin, const uint8_t *end);
 
@@ -158,6 +160,7 @@ namespace kagome::common {
      * @brief getter for raw array of bytes
      */
     const uint8_t *toBytes() const;
+    uint8_t *toBytes();
 
     /**
      * @brief getter for vector of vytes
@@ -175,10 +178,10 @@ namespace kagome::common {
     /**
      * @brief Construct Buffer from hexstring
      * @param hex hexencoded string
-     * @return Result containing constructed buffer if input string is
-     * hexencoded string. Otherwise Result contains error message
+     * @return result containing constructed buffer if input string is
+     * hexencoded string.
      */
-    static expected::Result<Buffer, std::string> fromHex(std::string_view hex);
+    static outcome::result<Buffer> fromHex(std::string_view hex);
 
    private:
     std::vector<uint8_t> data_;

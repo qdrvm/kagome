@@ -7,10 +7,10 @@
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::common, ByteStream::AdvanceErrc, e) {
   using kagome::common::ByteStream;
-  switch (e) {  // NOLINT
+  switch (e) {
     case ByteStream::AdvanceErrc::OUT_OF_BOUNDARIES:
       return "Advance cannot move pointer outside of boundaries";
-    default:
-      return "Unknown error";
   }
+
+  return "Unknown error";
 }

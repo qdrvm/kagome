@@ -7,7 +7,6 @@
 #include <gtest/gtest.h>
 
 using namespace kagome::common;
-using namespace kagome::expected;
 
 /**
  * @given hex string
@@ -21,7 +20,7 @@ TEST(BlobTest, CreateFromValidHex) {
 
   auto result = Blob<2>::fromHex(hex32);
   ASSERT_NO_THROW({
-    auto blob = boost::get<Value<Blob<2>>>(result).value;
+    auto blob = result.value();
     EXPECT_EQ(blob, expected);
   }) << "fromHex returned an error instead of value";
 }
@@ -35,7 +34,7 @@ TEST(BlobTest, CreateFromNonHex) {
   std::string not_hex = "nothex";
 
   auto result = Blob<2>::fromHex(not_hex);
-  ASSERT_NO_THROW({ boost::get<Error<std::string>>(result); })
+  ASSERT_NO_THROW({ result.error(); })
       << "fromHex returned a value instead of error";
 }
 
@@ -48,7 +47,7 @@ TEST(BlobTest, CreateFromOddLengthHex) {
   std::string odd_hex = "0a1";
 
   auto result = Blob<2>::fromHex(odd_hex);
-  ASSERT_NO_THROW({ boost::get<Error<std::string>>(result); })
+  ASSERT_NO_THROW({ result.error(); })
       << "fromHex returned a value instead of error";
 }
 
@@ -61,7 +60,7 @@ TEST(BlobTest, CreateFromWrongLendthHex) {
   std::string odd_hex = "00ff00";
 
   auto result = Blob<2>::fromHex(odd_hex);
-  ASSERT_NO_THROW({ boost::get<Error<std::string>>(result); })
+  ASSERT_NO_THROW({ result.error(); })
       << "fromHex returned a value instead of error";
 }
 
@@ -77,7 +76,7 @@ TEST(BlobTest, CreateFromValidString) {
 
   auto result = Blob<5>::fromString(valid_str);
   ASSERT_NO_THROW({
-    auto blob = boost::get<Value<Blob<5>>>(result).value;
+    auto blob = result.value();
     EXPECT_EQ(blob, expected);
   }) << "fromString returned an error instead of value";
 }
@@ -93,8 +92,8 @@ TEST(BlobTest, CreateFromInvalidString) {
   std::string valid_str{"0"};
 
   auto result = Blob<5>::fromString(valid_str);
-  ASSERT_NO_THROW({ boost::get<Error<std::string>>(result); })
-      << "fromString returned an error instead of value";
+  ASSERT_NO_THROW({ result.error(); })
+      << "fromString returned a value instead of error";
 }
 
 /**
@@ -108,7 +107,7 @@ TEST(BlobTest, ToHexTest) {
 
   auto blob_res = Blob<5>::fromString(str);
   ASSERT_NO_THROW({
-    Blob<5> value = boost::get<Value<Blob<5>>>(blob_res).value;
+    Blob<5> value = blob_res.value();
     ASSERT_EQ(value.toHex(), expected_hex);
   });
 }
