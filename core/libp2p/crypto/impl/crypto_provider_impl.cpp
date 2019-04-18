@@ -20,15 +20,15 @@ namespace libp2p::crypto {
      */
     outcome::result<proto::KeyType> marshalKeyType(common::KeyType key_type) {
       switch (key_type) {
-        case common::KeyType::kUnspecified:
+        case common::KeyType::UNSPECIFIED:
           return proto::KeyType::kUnspecified;
-        case common::KeyType::kRSA1024:
+        case common::KeyType::RSA1024:
           return proto::KeyType::kRSA1024;
-        case common::KeyType::kRSA2048:
+        case common::KeyType::RSA2048:
           return proto::KeyType::kRSA2048;
-        case common::KeyType::kRSA4096:
+        case common::KeyType::RSA4096:
           return proto::KeyType::kRSA4096;
-        case common::KeyType::kED25519:
+        case common::KeyType::ED25519:
           return proto::KeyType::kED25519;
         default:
           break;
@@ -45,13 +45,13 @@ namespace libp2p::crypto {
     outcome::result<common::KeyType> unmarshalKeyType(proto::KeyType key_type) {
       switch (key_type) {
         case proto::KeyType::kUnspecified:
-          return common::KeyType::kUnspecified;
+          return common::KeyType::UNSPECIFIED;
         case proto::KeyType::kRSA1024:
-          return common::KeyType::kRSA1024;
+          return common::KeyType::RSA1024;
         case proto::KeyType::kRSA2048:
-          return common::KeyType::kRSA2048;
+          return common::KeyType::RSA2048;
         case proto::KeyType::kRSA4096:
-          return common::KeyType::kRSA4096;
+          return common::KeyType::RSA4096;
         default:
           break;
       }
@@ -169,11 +169,6 @@ namespace libp2p::crypto {
 
   outcome::result<PrivateKey> CryptoProviderImpl::import(
       boost::filesystem::path pem_path, std::string_view password) const {
-    // TODO(yuraz):  implement
-    std::terminate();
-  }
-
-  outcome::result<Buffer> CryptoProviderImpl::randomBytes(size_t number) const {
     // TODO(yuraz):  implement
     std::terminate();
   }

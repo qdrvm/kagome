@@ -57,8 +57,6 @@ namespace libp2p::crypto {
         boost::filesystem::path pem_path,
         std::string_view password) const override;
 
-    outcome::result<Buffer> randomBytes(size_t number) const override;
-
     Buffer pbkdf2(std::string_view password, const Buffer &salt,
                   uint64_t iterations, size_t key_size,
                   common::HashType hash) const override;

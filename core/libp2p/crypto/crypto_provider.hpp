@@ -160,13 +160,6 @@ namespace libp2p::crypto {
     /// misc utilities
 
     /**
-     * Generate a Buffer with specified length populated by random bytes
-     * @param number - size of the random buffer
-     * @return random bytes
-     */
-    virtual outcome::result<Buffer> randomBytes(size_t number) const = 0;
-
-    /**
      * Get a secure hash of the password
      * @param password to be hashed
      * @param salt to be used in hashing process

@@ -18,19 +18,21 @@ add_library(crypto_provider
         key.cpp
         private_key.hpp
         public_key.hpp
-        random/random_provider.hpp
-        random/random_fabric.hpp
-        random/random_fabric.cpp
-        random/impl/random_provider_std.hpp
-        random/impl/random_provider_std.cpp
-        random/impl/random_provider_std.hpp
-        random/impl/random_provider_std.cpp
-        random/impl/random_provider_boost.hpp random/impl/random_provider_boost.cpp)
+        random/random_generator.hpp
+        random/cryptographic_safe_generator.hpp
+        random/impl/boost_generator.hpp
+        random/impl/boost_generator.cpp
+        random/impl/std_generator.hpp
+        random/impl/std_generator.cpp
+        )
+
 
 target_link_libraries(crypto_provider
         buffer
         keys_proto
         OpenSSL::Crypto
+        Boost::boost
+        Boost::random
         )
 
 add_subdirectory(proto)

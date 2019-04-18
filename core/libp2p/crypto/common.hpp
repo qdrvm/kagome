@@ -62,12 +62,12 @@ namespace libp2p::crypto::common {
   /**
    * Supported types of RSA keys
    */
-  enum class RSAKeyType { kRSA1024 = 0, kRSA2048 = 1, kRSA4096 = 2 };
+  enum class RSAKeyType { RSA1024 = 0, RSA2048 = 1, RSA4096 = 2 };
 
   /**
    * Supported types of all keys
    */
-  enum class KeyType { kUnspecified, kRSA1024, kRSA2048, kRSA4096, kED25519 };
+  enum class KeyType { UNSPECIFIED, RSA1024, RSA2048, RSA4096, ED25519 };
   // TODO(yuraz): add support for Secp256k1 like in js version (added to
   // PRE-103)
 

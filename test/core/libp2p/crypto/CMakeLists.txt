@@ -26,3 +26,11 @@ addtest(hmac_test
 target_link_libraries(hmac_test
         crypto_provider
         )
+
+addtest(random_test
+        random_test.cpp
+        )
+target_link_libraries(random_test
+        crypto_provider
+        Boost::boost
+        )

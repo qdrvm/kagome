@@ -8,14 +8,26 @@
 
 #include "common/buffer.hpp"
 
-#include "libp2p/crypto/public_key.hpp"
-#include "libp2p/crypto/public_key.hpp"
 #include "libp2p/crypto/common.hpp"
+#include "libp2p/crypto/public_key.hpp"
 
 using kagome::common::Buffer;
 using namespace libp2p::crypto;
 
-TEST(CryptoKeys, simple) {
-  auto private_key = PrivateKey(common::KeyType::kUnspecified, Buffer{1,2,3});
-  ASSERT_EQ(private_key.getBytes().toVector(), (std::vector<uint8_t>{1,2,3}));
+/**
+ * @given sequence of bytes
+ * @when private key of unspecified type containing provided bytes is created
+ * @then created key contatins provided sequence of bytes and it's type is
+ * unspecified
+ */
+TEST(CryptoKeys, privateKey) {
+  auto key = PrivateKey(common::KeyType::UNSPECIFIED, Buffer{1, 2, 3});
+  ASSERT_EQ(key.getBytes().toVector(), (std::vector<uint8_t>{1, 2, 3}));
+  ASSERT_EQ(key.getType(), common::KeyType::UNSPECIFIED);
+}
+
+TEST(CryptoKeys, publicKey) {
+  auto key = PublicKey(common::KeyType::UNSPECIFIED, Buffer{1, 2, 3});
+  ASSERT_EQ(key.getBytes().toVector(), (std::vector<uint8_t>{1, 2, 3}));
+  ASSERT_EQ(key.getType(), common::KeyType::UNSPECIFIED);
 }
