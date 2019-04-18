@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_IMPL_RUNTIME_EXTERNAL_INTERFACE_HPP_
-#define KAGOME_CORE_RUNTIME_IMPL_RUNTIME_EXTERNAL_INTERFACE_HPP_
+#ifndef KAGOME_CORE_RUNTIME_IMPL_RUNTIME_EXTERNAL_INTERFACE_HPP
+#define KAGOME_CORE_RUNTIME_IMPL_RUNTIME_EXTERNAL_INTERFACE_HPP
 
 #include <binaryen/shell-interface.h>
-
+#include "common/logger.hpp"
 #include "extensions/extension.hpp"
 #include "runtime/wasm_memory.hpp"
 
@@ -15,10 +15,15 @@ namespace kagome::runtime {
 
   class RuntimeExternalInterface : public wasm::ShellExternalInterface {
    public:
-    explicit RuntimeExternalInterface(
+    RuntimeExternalInterface(
         std::shared_ptr<extensions::Extension> extension,
-        std::shared_ptr<WasmMemory> memory);
+        std::shared_ptr<WasmMemory> memory,
+        common::Logger logger = common::createLogger(kDefaultLoggerTag));
 
+    /**
+     * Initializes the the external interface with memory from module and
+     * globals from instance
+     */
     void init(wasm::Module &wasm, wasm::ModuleInstance &instance) override;
 
     wasm::Literal callImport(wasm::Function *import,
@@ -47,13 +52,27 @@ namespace kagome::runtime {
     void store128(wasm::Address addr,
                   const std::array<uint8_t, 16> &value) override;
 
+    /**
+     * Resize memory to the new size
+     * @note first argument should be ignored, it is only to conform interface
+     */
     void growMemory(wasm::Address /*oldSize*/, wasm::Address newSize) override;
 
    private:
+    /**
+     * Checks that the number of arguments is as expected and terminates the
+     * program if it is not
+     */
+    void checkArguments(std::string_view extern_name, size_t expected,
+                        size_t actual);
+
     std::shared_ptr<extensions::Extension> extension_;
     std::shared_ptr<WasmMemory> memory_;
+    common::Logger logger_;
+
+    constexpr static auto kDefaultLoggerTag = "Runtime external interface";
   };
 
 }  // namespace kagome::runtime
 
-#endif  // KAGOME_CORE_RUNTIME_IMPL_RUNTIME_EXTERNAL_INTERFACE_HPP_
+#endif  // KAGOME_CORE_RUNTIME_IMPL_RUNTIME_EXTERNAL_INTERFACE_HPP

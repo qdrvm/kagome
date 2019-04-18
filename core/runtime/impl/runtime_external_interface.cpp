@@ -51,8 +51,10 @@ namespace kagome::runtime {
 
   RuntimeExternalInterface::RuntimeExternalInterface(
       std::shared_ptr<extensions::Extension> extension,
-      std::shared_ptr<WasmMemory> memory)
-      : extension_(std::move(extension)), memory_(std::move(memory)) {}
+      std::shared_ptr<WasmMemory> memory, common::Logger logger)
+      : extension_(std::move(extension)),
+        memory_(std::move(memory)),
+        logger_(std::move(logger)) {}
 
   void RuntimeExternalInterface::init(wasm::Module &wasm,
                                       wasm::ModuleInstance &instance) {
@@ -62,7 +64,7 @@ namespace kagome::runtime {
 
     memory_->resize(wasm.memory.initial * wasm::Memory::kPageSize);
     // apply memory segments
-    for (auto &segment : wasm.memory.segments) {
+    for (const auto &segment : wasm.memory.segments) {
       Address offset = static_cast<uint32_t>(
           ConstantExpressionRunner<TrivialGlobalManager>(instance.globals)
               .visit(segment.offset)
@@ -77,7 +79,7 @@ namespace kagome::runtime {
     }
 
     table.resize(wasm.table.initial);
-    for (auto &segment : wasm.table.segments) {
+    for (const auto &segment : wasm.table.segments) {
       Address offset = static_cast<uint32_t>(
           ConstantExpressionRunner<TrivialGlobalManager>(instance.globals)
               .visit(segment.offset)
@@ -98,11 +100,13 @@ namespace kagome::runtime {
 
       /// ext_malloc
       if (import->base == ext_malloc) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
         auto ptr = extension_->ext_malloc(arguments.at(0).geti32());
         return wasm::Literal(ptr);
       }
       /// ext_free
       if (import->base == ext_free) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
         extension_->ext_free(arguments.at(0).geti32());
         return wasm::Literal();
       }
@@ -110,24 +114,28 @@ namespace kagome::runtime {
 
       /// ext_clear_prefix
       if (import->base == ext_clear_prefix) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
         extension_->ext_clear_prefix(arguments.at(0).geti32(),
                                      arguments.at(1).geti32());
         return wasm::Literal();
       }
       /// ext_clear_storage
       if (import->base == ext_clear_storage) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
         extension_->ext_clear_storage(arguments.at(0).geti32(),
                                       arguments.at(1).geti32());
         return wasm::Literal();
       }
       /// ext_exists_storage
       if (import->base == ext_exists_storage) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
         auto storage_exists = extension_->ext_exists_storage(
             arguments.at(0).geti32(), arguments.at(1).geti32());
         return wasm::Literal(storage_exists);
       }
       /// ext_get_allocated_storage
       if (import->base == ext_get_allocated_storage) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
         auto ptr = extension_->ext_get_allocated_storage(
             arguments.at(0).geti32(), arguments.at(1).geti32(),
             arguments.at(2).geti32());
@@ -135,6 +143,7 @@ namespace kagome::runtime {
       }
       /// ext_get_storage_into
       if (import->base == ext_get_storage_into) {
+        checkArguments(import->base.c_str(), 5, arguments.size());
         auto res = extension_->ext_get_storage_into(
             arguments.at(0).geti32(), arguments.at(1).geti32(),
             arguments.at(2).geti32(), arguments.at(3).geti32(),
@@ -143,6 +152,7 @@ namespace kagome::runtime {
       }
       /// ext_set_storage
       if (import->base == ext_set_storage) {
+        checkArguments(import->base.c_str(), 4, arguments.size());
         extension_->ext_set_storage(
             arguments.at(0).geti32(), arguments.at(1).geti32(),
             arguments.at(2).geti32(), arguments.at(3).geti32());
@@ -150,6 +160,7 @@ namespace kagome::runtime {
       }
       /// ext_blake2_256_enumerated_trie_root
       if (import->base == ext_blake2_256_enumerated_trie_root) {
+        checkArguments(import->base.c_str(), 4, arguments.size());
         extension_->ext_blake2_256_enumerated_trie_root(
             arguments.at(0).geti32(), arguments.at(1).geti32(),
             arguments.at(2).geti32(), arguments.at(3).geti32());
@@ -157,6 +168,7 @@ namespace kagome::runtime {
       }
       /// ext_storage_changes_root
       if (import->base == ext_storage_changes_root) {
+        checkArguments(import->base.c_str(), 4, arguments.size());
         auto res = extension_->ext_storage_changes_root(
             arguments.at(0).geti32(), arguments.at(1).geti32(),
             arguments.at(2).geti32(), arguments.at(3).geti32());
@@ -164,6 +176,7 @@ namespace kagome::runtime {
       }
       /// ext_storage_root
       if (import->base == ext_storage_root) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
         extension_->ext_storage_root(arguments.at(0).geti32());
         return wasm::Literal();
       }
@@ -172,17 +185,20 @@ namespace kagome::runtime {
 
       /// ext_print_hex
       if (import->base == ext_print_hex) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
         extension_->ext_print_hex(arguments.at(0).geti32(),
                                   arguments.at(1).geti32());
         return wasm::Literal();
       }
       /// ext_print_num
       if (import->base == ext_print_num) {
+        checkArguments(import->base.c_str(), 1, arguments.size());
         extension_->ext_print_num(arguments.at(0).geti64());
         return wasm::Literal();
       }
       /// ext_print_utf8
       if (import->base == ext_print_utf8) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
         extension_->ext_print_utf8(arguments.at(0).geti32(),
                                    arguments.at(1).geti32());
         return wasm::Literal();
@@ -192,6 +208,7 @@ namespace kagome::runtime {
 
       /// ext_blake2_256
       if (import->base == ext_blake2_256) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
         extension_->ext_blake2_256(arguments.at(0).geti32(),
                                    arguments.at(1).geti32(),
                                    arguments.at(2).geti32());
@@ -199,6 +216,7 @@ namespace kagome::runtime {
       }
       /// ext_ed25519_verify
       if (import->base == ext_ed25519_verify) {
+        checkArguments(import->base.c_str(), 4, arguments.size());
         auto res = extension_->ext_ed25519_verify(
             arguments.at(0).geti32(), arguments.at(1).geti32(),
             arguments.at(2).geti32(), arguments.at(3).geti32());
@@ -206,6 +224,7 @@ namespace kagome::runtime {
       }
       /// ext_twox_128
       if (import->base == ext_twox_128) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
         extension_->ext_twox_128(arguments.at(0).geti32(),
                                  arguments.at(1).geti32(),
                                  arguments.at(2).geti32());
@@ -213,6 +232,7 @@ namespace kagome::runtime {
       }
       /// ext_twox_256
       if (import->base == ext_twox_256) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
         extension_->ext_twox_256(arguments.at(0).geti32(),
                                  arguments.at(1).geti32(),
                                  arguments.at(2).geti32());
@@ -220,6 +240,7 @@ namespace kagome::runtime {
       }
       /// ext_chain_id
       if (import->base == ext_chain_id) {
+        checkArguments(import->base.c_str(), 0, arguments.size());
         auto res = extension_->ext_chain_id();
         return wasm::Literal(res);
       }
@@ -283,6 +304,17 @@ namespace kagome::runtime {
   void RuntimeExternalInterface::growMemory(wasm::Address address,
                                             wasm::Address newSize) {
     memory_->resize(newSize);
+  }
+
+  void RuntimeExternalInterface::checkArguments(std::string_view extern_name,
+                                                size_t expected,
+                                                size_t actual) {
+    if (expected != actual) {
+      logger_->error(
+          "Wrong number of arguments in {}. Expected: {}. Actual: {}",
+          extern_name, expected, actual);
+      std::terminate();
+    }
   }
 
 }  // namespace kagome::runtime

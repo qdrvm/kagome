@@ -7,7 +7,6 @@
 #define KAGOME_TEST_CORE_RUNTIME_MOCK_EXTENSION_HPP_
 
 #include <gmock/gmock.h>
-
 #include "extensions/extension.hpp"
 
 namespace kagome::extensions {
