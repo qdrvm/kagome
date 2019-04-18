@@ -3,16 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "scale/variant.hpp"
 #include <gtest/gtest.h>
 #include "common/result.hpp"
 #include "scale/byte_array_stream.hpp"
-
+#include "scale/variant.hpp"
 
 using kagome::common::Buffer;
 using kagome::scale::ByteArrayStream;
-using kagome::scale::variant::encodeVariant;
 using kagome::scale::variant::decodeVariant;
+using kagome::scale::variant::encodeVariant;
 
 TEST(Scale, encodeVariant) {
   {
@@ -42,10 +41,12 @@ TEST(Scale, decodeVariant) {
   ASSERT_TRUE(res);
   auto &&val = res.value();
 
-  kagome::visit_in_place(val, [](uint8_t v) {ASSERT_EQ(v, 1);}, [](uint32_t v) {FAIL();});
+  kagome::visit_in_place(
+      val, [](uint8_t v) { ASSERT_EQ(v, 1); }, [](uint32_t v) { FAIL(); });
 
   auto &&res1 = decodeVariant<uint8_t, uint32_t>(stream);
   auto &&val1 = res1.value();
 
-  kagome::visit_in_place(val1, [](uint32_t v) {ASSERT_EQ(v, 1);}, [](uint8_t v) {FAIL();});
+  kagome::visit_in_place(
+      val1, [](uint32_t v) { ASSERT_EQ(v, 1); }, [](uint8_t v) { FAIL(); });
 }
