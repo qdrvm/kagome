@@ -105,6 +105,8 @@ class YamuxIntegrationTest : public ::testing::Test {
     return stream;
   }
 
+  boost::asio::io_context context_;
+
   std::shared_ptr<Yamux> yamux_;
   std::vector<std::unique_ptr<Stream>> accepted_streams_;
 
@@ -114,8 +116,6 @@ class YamuxIntegrationTest : public ::testing::Test {
   std::shared_ptr<Connection> connection_;
 
   static constexpr Yamux::StreamId kDefaulExpectedStreamId = 2;
-
-  boost::asio::io_context context_;
 };
 
 /**
