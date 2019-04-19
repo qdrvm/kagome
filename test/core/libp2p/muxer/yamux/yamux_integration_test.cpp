@@ -249,41 +249,6 @@ TEST_F(YamuxIntegrationTest, StreamRead) {
 }
 
 /**
- * @given initialized Yamux
- * @when a ping message arrives to Yamux
- * @then Yamux sends a ping response back
- */
-TEST_F(YamuxIntegrationTest, Ping) {
-  constexpr uint32_t ping_value = 42;
-
-  auto ping_in_msg = pingOutMsg(ping_value);
-  auto ping_out_msg = pingResponseMsg(ping_value);
-  auto received_ping = std::make_shared<Buffer>(ping_out_msg.size(), 0);
-
-  std::cout << "We have reached 1" << std::endl;
-  connection_->asyncWrite(
-      boost::asio::buffer(ping_in_msg.toVector()),
-      [&ping_in_msg](auto &&ec, auto &&n) {
-        std::cout << "We have reached 2" << std::endl;
-        checkIOSuccess(ec, n, ping_in_msg.size());
-        std::cout << "We have reached 3" << std::endl;
-      });
-  connection_->asyncRead(
-      boost::asio::buffer(received_ping->toVector()), ping_out_msg.size(),
-      [&ping_out_msg, received_ping](auto &&ec, auto &&n) {
-        std::cout << "We have reached 4" << std::endl;
-        checkIOSuccess(ec, n, ping_out_msg.size());
-        std::cout << "We have reached 5" << std::endl;
-
-        ASSERT_EQ(*received_ping, ping_out_msg);
-        std::cout << "We have reached 6" << std::endl;
-      });
-
-  launchContext();
-  std::cout << "We have reached 7" << std::endl;
-}
-
-/**
  * @given initialized Yamux @and stream over it
  * @when closing that stream for writes
  * @then the stream is closed for writes @and corresponding message is received
@@ -368,6 +333,41 @@ TEST_F(YamuxIntegrationTest, CloseEntirely) {
 
   launchContext();
   ASSERT_TRUE(stream->isClosedEntirely());
+}
+
+/**
+ * @given initialized Yamux
+ * @when a ping message arrives to Yamux
+ * @then Yamux sends a ping response back
+ */
+TEST_F(YamuxIntegrationTest, Ping) {
+  constexpr uint32_t ping_value = 42;
+
+  auto ping_in_msg = pingOutMsg(ping_value);
+  auto ping_out_msg = pingResponseMsg(ping_value);
+  auto received_ping = std::make_shared<Buffer>(ping_out_msg.size(), 0);
+
+  std::cout << "We have reached 1" << std::endl;
+  connection_->asyncWrite(
+      boost::asio::buffer(ping_in_msg.toVector()),
+      [&ping_in_msg](auto &&ec, auto &&n) {
+        std::cout << "We have reached 2" << std::endl;
+        checkIOSuccess(ec, n, ping_in_msg.size());
+        std::cout << "We have reached 3" << std::endl;
+      });
+  connection_->asyncRead(
+      boost::asio::buffer(received_ping->toVector()), ping_out_msg.size(),
+      [&ping_out_msg, received_ping](auto &&ec, auto &&n) {
+        std::cout << "We have reached 4" << std::endl;
+        checkIOSuccess(ec, n, ping_out_msg.size());
+        std::cout << "We have reached 5" << std::endl;
+
+        ASSERT_EQ(*received_ping, ping_out_msg);
+        std::cout << "We have reached 6" << std::endl;
+      });
+
+  launchContext();
+  std::cout << "We have reached 7" << std::endl;
 }
 
 /**
