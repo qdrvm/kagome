@@ -236,7 +236,7 @@ TEST_F(YamuxIntegrationTest, StreamRead) {
 
   connection_->asyncWrite(
       boost::asio::buffer(written_data_msg.toVector()),
-      [this, &written_data_msg, &stream, &data](auto &&ec, auto &&n) mutable {
+      [&written_data_msg, &stream, &data](auto &&ec, auto &&n) mutable {
         checkIOSuccess(ec, n, written_data_msg.size());
 
         stream->readAsync([&data](Stream::NetworkMessageOutcome msg_res) {
@@ -263,17 +263,16 @@ TEST_F(YamuxIntegrationTest, Ping) {
   std::cout << "We have reached 1" << std::endl;
   connection_->asyncWrite(
       boost::asio::buffer(ping_in_msg.toVector()),
-      [t = shared_from_this(), &ping_in_msg, &ping_out_msg, received_ping](
-          auto &&ec, auto &&n) {
+      [this, &ping_in_msg, &ping_out_msg, received_ping](auto &&ec, auto &&n) {
         std::cout << "We have reached 2" << std::endl;
-        t->checkIOSuccess(ec, n, ping_in_msg.size());
+        checkIOSuccess(ec, n, ping_in_msg.size());
         std::cout << "We have reached 3" << std::endl;
 
-        t->connection_->asyncRead(
+        connection_->asyncRead(
             boost::asio::buffer(received_ping->toVector()), ping_out_msg.size(),
-            [t, &ping_out_msg, received_ping](auto &&ec, auto &&n) {
+            [this, &ping_out_msg, received_ping](auto &&ec, auto &&n) {
               std::cout << "We have reached 4" << std::endl;
-              t->checkIOSuccess(ec, n, ping_out_msg.size());
+              checkIOSuccess(ec, n, ping_out_msg.size());
               std::cout << "We have reached 5" << std::endl;
 
               ASSERT_EQ(*received_ping, ping_out_msg);
