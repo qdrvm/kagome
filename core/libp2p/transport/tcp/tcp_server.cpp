@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "libp2p/transport/tcp/tcp_server.hpp"
 
 #include <utility>
 
-#include "libp2p/transport/tcp/tcp_server.hpp"
+#include <outcome/outcome.hpp>
 
 namespace libp2p::transport {
 

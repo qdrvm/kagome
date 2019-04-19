@@ -42,8 +42,7 @@ namespace libp2p::peer {
      * Get protocols, which are supported by this PeerInfo
      * @return protocols
      */
-    const std::unordered_set<multi::Multiaddress::Protocol>
-        &supportedProtocols() const;
+    const std::unordered_set<multi::Protocol::Code> &supportedProtocols() const;
 
     /**
      * Get multiaddresses, through which this Peer can communicate
@@ -56,14 +55,14 @@ namespace libp2p::peer {
      * @param protocols to be added
      * @return reference to updated PeerInfo
      */
-    PeerInfo &addProtocols(gsl::span<multi::Multiaddress::Protocol> protocols);
+    PeerInfo &addProtocols(gsl::span<multi::Protocol::Code> protocols);
 
     /**
      * Remove protocol, which this peer does not support anymore
      * @param protocol to be removed
      * @return true, if protocol was removed, false, if it was not found
      */
-    bool removeProtocol(multi::Multiaddress::Protocol protocol);
+    bool removeProtocol(multi::Protocol::Code protocol);
 
     /**
      * Add multiaddresses, through which this peer can communicate
@@ -108,7 +107,7 @@ namespace libp2p::peer {
 
    private:
     PeerId peer_id_;
-    std::unordered_set<multi::Multiaddress::Protocol> protocols_;
+    std::unordered_set<multi::Protocol::Code> protocols_;
     /// ordered, because we need fast searches and removes
     std::set<multi::Multiaddress> multiaddresses_;
     std::vector<multi::Multiaddress> observed_multiaddresses_;

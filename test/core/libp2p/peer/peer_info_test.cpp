@@ -18,8 +18,8 @@ class PeerInfoTest : public ::testing::Test {
   Multihash valid_peer_id =
       Multihash::create(HashType::sha256, Buffer{0xAA, 0xBB}).value();
 
-  std::vector<Multiaddress::Protocol> protocols{Multiaddress::Protocol::kDccp,
-                                                Multiaddress::Protocol::kIp4};
+  std::vector<Protocol::Code> protocols{Protocol::Code::dccp,
+                                        Protocol::Code::ip4};
 
   std::vector<Multiaddress> addresses{
       Multiaddress::create("/ip4/192.168.0.1/udp/228/").value(),
@@ -79,7 +79,7 @@ TEST_F(PeerInfoTest, RemoveProtocolFail) {
   auto peer_info = createValid();
   peer_info.addProtocols(protocols);
 
-  ASSERT_FALSE(peer_info.removeProtocol(Multiaddress::Protocol::kIp6));
+  ASSERT_FALSE(peer_info.removeProtocol(Protocol::Code::ip6));
 }
 
 /**

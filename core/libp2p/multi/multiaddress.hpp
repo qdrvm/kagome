@@ -7,6 +7,7 @@
 #define KAGOME_MULTIADDRESS_HPP
 
 #include <functional>
+#include <list>
 #include <memory>
 #include <optional>
 #include <outcome/outcome.hpp>
@@ -15,6 +16,7 @@
 #include <unordered_map>
 
 #include "common/buffer.hpp"
+#include "libp2p/multi/multiaddress_protocol_list.hpp"
 
 namespace libp2p::multi {
 
@@ -36,7 +38,7 @@ namespace libp2p::multi {
     Multiaddress &operator=(Multiaddress &&address) = default;
 
     enum class Error {
-      INVALID_INPUT = 1,     ///< input contains invalid multiaddress
+      INVALID_INPUT = 1,      ///< input contains invalid multiaddress
       PROTOCOL_NOT_FOUND,     ///< given protocol can not be found
       INVALID_PROTOCOL_VALUE  ///< protocol value can not be casted to T
     };
@@ -93,38 +95,34 @@ namespace libp2p::multi {
     std::optional<std::string> getPeerId() const;
 
     /**
-     * List of protocols, supported by this Multiaddress
-     */
-    enum class Protocol {
-      kIp4,
-      kIp6,
-      kIpfs,
-      kTcp,
-      kUdp,
-      kDccp,
-      kSctp,
-      kUdt,
-      kUtp,
-      kHttp,
-      kHttps,
-      kWs,
-      kOnion,
-      kWebrtc
-    };
-    /**
      * Get all values, which are under that protocol in this multiaddress
      * @param proto to be searched for
      * @return empty vector if no protocols found, or vector with values
      * otherwise
      */
-    std::vector<std::string> getValuesForProtocol(Protocol proto) const;
+    std::vector<std::string> getValuesForProtocol(Protocol::Code proto) const;
 
     /**
      * Get first value for protocol
      * @param proto to be searched for
      * @return value (string) if protocol is found, none otherwise
      */
-    outcome::result<std::string> getFirstValueForProtocol(Protocol proto) const;
+    outcome::result<std::string> getFirstValueForProtocol(
+        Protocol::Code proto) const;
+
+    /**
+     * Get protocols contained in the multiaddress. Repetitions are possible
+     * @return list of contained protocols
+     */
+    std::list<Protocol> getProtocols() const;
+
+    /**
+     * Get protocols contained in the multiaddress and values assosiated with
+     * them (usually addresses). Repetitions are possible.
+     * @return list of pairs with a protocol as the first element and the value
+     * as the second one
+     */
+    std::list<std::pair<Protocol, std::string>> getProtocolsWithValues() const;
 
     bool operator==(const Multiaddress &other) const;
 
@@ -136,7 +134,8 @@ namespace libp2p::multi {
 
     template <typename T>
     outcome::result<T> getFirstValueForProtocol(
-        Protocol protocol, std::function<T(const std::string &)> caster) const {
+        Protocol::Code protocol,
+        std::function<T(const std::string &)> caster) const {
       OUTCOME_TRY(val, getFirstValueForProtocol(protocol));
 
       try {
@@ -159,13 +158,6 @@ namespace libp2p::multi {
      */
     void calculatePeerId();
 
-    /**
-     * Convert Protocol enum into a string
-     * @param proto to be converted
-     * @return related string
-     */
-    std::string_view protocolToString(Protocol proto) const;
-
     std::string stringified_address_;
     ByteBuffer bytes_;
 
@@ -182,6 +174,6 @@ namespace std {
   };
 }  // namespace std
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::multi, Multiaddress::Error);
+OUTCOME_HPP_DECLARE_ERROR(libp2p::multi, Multiaddress::Error)
 
 #endif  // KAGOME_MULTIADDRESS_HPP

@@ -20,7 +20,7 @@ namespace libp2p::peer {
     return peer_id_;
   }
 
-  const std::unordered_set<multi::Multiaddress::Protocol>
+  const std::unordered_set<multi::Protocol::Code>
       &PeerInfo::supportedProtocols() const {
     return protocols_;
   }
@@ -29,13 +29,12 @@ namespace libp2p::peer {
     return multiaddresses_;
   }
 
-  PeerInfo &PeerInfo::addProtocols(
-      gsl::span<multi::Multiaddress::Protocol> protocols) {
+  PeerInfo &PeerInfo::addProtocols(gsl::span<multi::Protocol::Code> protocols) {
     protocols_.insert(protocols.cbegin(), protocols.cend());
     return *this;
   }
 
-  bool PeerInfo::removeProtocol(multi::Multiaddress::Protocol protocol) {
+  bool PeerInfo::removeProtocol(multi::Protocol::Code protocol) {
     // erase returns number of elements removed
     return protocols_.erase(protocol) == 1;
   }
