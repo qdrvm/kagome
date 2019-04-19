@@ -55,7 +55,6 @@ namespace libp2p::muxer {
     connection_->asyncRead(
         read_buffer_, YamuxFrame::kHeaderLength,
         [t = shared_from_this()](const std::error_code &ec, size_t n) {
-          std::cout << "We have reached 8" << std::endl;
           t->readingHeaderCompleted(ec, n);
         });
   }
@@ -70,7 +69,6 @@ namespace libp2p::muxer {
           "connection error: read less bytes, than expected in header");
       close();
     }
-    std::cout << "We have reached 9" << std::endl;
 
     if (!processHeader()) {
       startReadingHeader();
@@ -102,38 +100,29 @@ namespace libp2p::muxer {
 
   void Yamux::write(const kagome::common::Buffer &msg,
                     stream::Stream::ErrorCodeCallback cb) {
-    std::cout << "We have reached 14" << std::endl;
     outcoming_messages_.push({msg, std::move(cb)});
-    std::cout << "We have reached 15" << std::endl;
     if (!is_writing_) {
-      std::cout << "We have reached 16" << std::endl;
       startWriting();
     }
   }
 
   void Yamux::startWriting() {
-    std::cout << "We have reached 17" << std::endl;
     if (!is_active_) {
       return;
     }
-    std::cout << "We have reached 18" << std::endl;
     if (connection_->isClosed()) {
       closeYamux();
       return;
     }
     is_writing_ = true;
-    std::cout << "We have reached 19" << std::endl;
 
     if (!outcoming_messages_.empty()) {
-      std::cout << "We have reached 20" << std::endl;
       const auto &msg_and_callback = outcoming_messages_.front();
-      std::cout << "We have reached 21" << std::endl;
       connection_->asyncWrite(
           boost::asio::const_buffer{msg_and_callback.first.toBytes(),
                                     msg_and_callback.first.size()},
           [t = shared_from_this(), &cb = msg_and_callback.second](
               const std::error_code &ec, size_t n) mutable {
-            std::cout << "We have reached 22" << std::endl;
             t->writingCompleted(ec, n, cb);
           });
     } else {
@@ -144,13 +133,9 @@ namespace libp2p::muxer {
   void Yamux::writingCompleted(
       const std::error_code &ec, size_t n,
       const stream::Stream::ErrorCodeCallback &error_callback) {
-    std::cout << "We have reached 23" << std::endl;
     error_callback(ec, n);
-    std::cout << "We have reached 24" << std::endl;
     outcoming_messages_.pop();
-    std::cout << "We have reached 25" << std::endl;
     startWriting();
-    std::cout << "We have reached 26" << std::endl;
   }
 
   void Yamux::stop() {
@@ -349,8 +334,6 @@ namespace libp2p::muxer {
       return false;
     }
 
-    std::cout << "We have reached 10" << std::endl;
-
     auto frame = std::move(*frame_opt);
     switch (frame.type_) {
       case FrameType::DATA:
@@ -359,7 +342,6 @@ namespace libp2p::muxer {
         processWindowUpdateFrame(frame);
         break;
       case FrameType::PING:
-        std::cout << "We have reached 11" << std::endl;
         processPingFrame(frame);
         break;
       case FrameType::GO_AWAY:
@@ -438,11 +420,9 @@ namespace libp2p::muxer {
   }
 
   void Yamux::processPingFrame(const YamuxFrame &frame) {
-    std::cout << "We have reached 12" << std::endl;
     write(pingResponseMsg(frame.length_),
           [t = shared_from_this(), stream_id = frame.stream_id_](auto &&ec,
                                                                  auto &&n) {
-            std::cout << "We have reached 13" << std::endl;
             if (ec) {
               t->logger_->error(
                   "cannot send ping message to stream with id {} and error {}",
