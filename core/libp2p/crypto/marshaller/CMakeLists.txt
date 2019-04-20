@@ -3,11 +3,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(marshaler
-        key_marshaler.hpp
-        key_marshaler.cpp
+add_library(marshaller
+        key_marshaller.hpp
+        key_marshaller.cpp
         )
-target_link_libraries(marshaler
+target_link_libraries(marshaller
         buffer
         crypto_error
         crypto_key

@@ -9,7 +9,7 @@
 #include "libp2p/crypto/aes/aes_provider.hpp"
 #include "libp2p/crypto/crypto_provider.hpp"
 #include "libp2p/crypto/hmac/hmac_provider.hpp"
-#include "libp2p/crypto/marshaler/key_marshaler.hpp"
+#include "libp2p/crypto/marshaller/key_marshaller.hpp"
 
 namespace libp2p::crypto {
   class CryptoProviderImpl : public CryptoProvider {
@@ -71,7 +71,7 @@ namespace libp2p::crypto {
     /// provides method for making digest
     hmac::HmacProvider hmac_provider_;
     /// provides keys marshaling
-    marshaler::KeyMarshaler key_marshaler_;
+    marshaller::KeyMarshaller key_marshaller_;
   };
 }  // namespace libp2p::crypto
 

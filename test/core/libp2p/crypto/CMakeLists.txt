@@ -33,9 +33,9 @@ target_link_libraries(random_test
         random_provider
         )
 
-addtest(marshaler_test
-        marshaler_test.cpp
+addtest(marshaller_test
+        marshaller_test.cpp
         )
-target_link_libraries(marshaler_test
+target_link_libraries(marshaller_test
         crypto_provider
         )

@@ -11,8 +11,8 @@
 #include "libp2p/crypto/private_key.hpp"
 #include "libp2p/crypto/public_key.hpp"
 
-namespace libp2p::crypto::marshaler {
-  class KeyMarshaler {
+namespace libp2p::crypto::marshaller {
+  class KeyMarshaller {
     using Buffer = kagome::common::Buffer;
 
    public:

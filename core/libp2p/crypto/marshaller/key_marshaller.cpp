@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/crypto/marshaler/key_marshaler.hpp"
+#include "libp2p/crypto/marshaller/key_marshaller.hpp"
 
 #include "libp2p/crypto/common.hpp"
 #include "libp2p/crypto/proto/keys.pb.h"
 
-namespace libp2p::crypto::marshaler {
+namespace libp2p::crypto::marshaller {
   using kagome::common::Buffer;
   namespace {
     /**
@@ -28,8 +28,6 @@ namespace libp2p::crypto::marshaler {
           return proto::KeyType::RSA4096;
         case common::KeyType::ED25519:
           return proto::KeyType::ED25519;
-        default:
-          break;
       }
 
       return CryptoProviderError::UNKNOWN_KEY_TYPE;
@@ -52,15 +50,13 @@ namespace libp2p::crypto::marshaler {
           return common::KeyType::RSA4096;
         case proto::KeyType::ED25519:
           return common::KeyType::ED25519;
-        default:
-          break;
       }
 
       return CryptoProviderError::UNKNOWN_KEY_TYPE;
     }
   }  // namespace
 
-  outcome::result<Buffer> KeyMarshaler::marshal(const PublicKey &key) const {
+  outcome::result<Buffer> KeyMarshaller::marshal(const PublicKey &key) const {
     proto::PublicKey proto_key;
     OUTCOME_TRY(key_type, marshalKeyType(key.getType()));
     proto_key.set_key_type(key_type);
@@ -74,7 +70,7 @@ namespace libp2p::crypto::marshaler {
     return out;
   }
 
-  outcome::result<Buffer> KeyMarshaler::marshal(const PrivateKey &key) const {
+  outcome::result<Buffer> KeyMarshaller::marshal(const PrivateKey &key) const {
     proto::PublicKey proto_key;
     OUTCOME_TRY(key_type, marshalKeyType(key.getType()));
     proto_key.set_key_type(key_type);
@@ -87,7 +83,7 @@ namespace libp2p::crypto::marshaler {
     return out;
   }
 
-  outcome::result<PublicKey> KeyMarshaler::unmarshalPublicKey(
+  outcome::result<PublicKey> KeyMarshaller::unmarshalPublicKey(
       const Buffer &key_bytes) const {
     proto::PublicKey proto_key;
     if (!proto_key.ParseFromArray(key_bytes.toBytes(), key_bytes.size())) {
@@ -101,7 +97,7 @@ namespace libp2p::crypto::marshaler {
     return PublicKey(key_type, key_value);
   }
 
-  outcome::result<PrivateKey> KeyMarshaler::unmarshalPrivateKey(
+  outcome::result<PrivateKey> KeyMarshaller::unmarshalPrivateKey(
       const Buffer &key_bytes) const {
     proto::PublicKey proto_key;
     if (!proto_key.ParseFromArray(key_bytes.toBytes(), key_bytes.size())) {
@@ -115,4 +111,4 @@ namespace libp2p::crypto::marshaler {
     return PrivateKey(key_type, key_value);
   }
 
-}  // namespace libp2p::crypto::marshaler
+}  // namespace libp2p::crypto::marshaller

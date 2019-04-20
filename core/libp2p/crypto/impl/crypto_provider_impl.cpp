@@ -64,22 +64,22 @@ namespace libp2p::crypto {
 
   outcome::result<Buffer> CryptoProviderImpl::marshal(
       const PublicKey &key) const {
-    return key_marshaler_.marshal(key);
+    return key_marshaller_.marshal(key);
   }
 
   outcome::result<Buffer> CryptoProviderImpl::marshal(
       const PrivateKey &key) const {
-    return key_marshaler_.marshal(key);
+    return key_marshaller_.marshal(key);
   }
 
   outcome::result<PublicKey> CryptoProviderImpl::unmarshalPublicKey(
       const Buffer &key_bytes) const {
-    return key_marshaler_.unmarshalPublicKey(key_bytes);
+    return key_marshaller_.unmarshalPublicKey(key_bytes);
   }
 
   outcome::result<PrivateKey> CryptoProviderImpl::unmarshalPrivateKey(
       const Buffer &key_bytes) const {
-    return key_marshaler_.unmarshalPrivateKey(key_bytes);
+    return key_marshaller_.unmarshalPrivateKey(key_bytes);
   }
 
   outcome::result<PrivateKey> CryptoProviderImpl::import(
