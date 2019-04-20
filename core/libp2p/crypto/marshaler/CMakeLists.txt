@@ -10,5 +10,6 @@ add_library(marshaler
 target_link_libraries(marshaler
         buffer
         crypto_error
+        crypto_key
         keys_proto
         )

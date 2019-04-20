@@ -4,8 +4,8 @@
 #
 
 add_library(random_provider
-        random_generator.hpp
-        cryptographic_safe_generator.hpp
+        pseudo_random_generator.hpp
+        cryptographically_secure_generator.hpp
         impl/boost_generator.hpp
         impl/boost_generator.cpp
         impl/std_generator.hpp

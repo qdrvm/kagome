@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_LIBP2P_CRYPTO_RANDOM_CRYPTOGRAPHIC_SAFE_GENERATOR_HPP
 #define KAGOME_CORE_LIBP2P_CRYPTO_RANDOM_CRYPTOGRAPHIC_SAFE_GENERATOR_HPP
 
-#include "libp2p/crypto/random/random_generator.hpp"
+#include "libp2p/crypto/random/pseudo_random_generator.hpp"
 
 namespace libp2p::crypto::random {
   /**
