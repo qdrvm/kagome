@@ -6,7 +6,9 @@
 #ifndef KAGOME_CORE_LIBP2P_CRYPTO_RANDOM_CRYPTOGRAPHIC_SAFE_GENERATOR_HPP
 #define KAGOME_CORE_LIBP2P_CRYPTO_RANDOM_CRYPTOGRAPHIC_SAFE_GENERATOR_HPP
 
-#include "libp2p/crypto/random/pseudo_random_generator.hpp"
+#include <random>
+
+#include "libp2p/crypto/random/prng.hpp"
 
 namespace libp2p::crypto::random {
   /**
@@ -15,9 +17,7 @@ namespace libp2p::crypto::random {
    * qualitative source of entropy on platforms which don't, it falls back to
    * pseudo-random algorithm
    */
-  class StdRandomGenerator : public PseudoRandomGenerator {
-    using Buffer = kagome::common::Buffer;
-
+  class StdRandomGenerator : public PRNG {
    public:
     /**
      * @brief generators random bytes

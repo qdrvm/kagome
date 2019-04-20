@@ -9,9 +9,11 @@
 #include <iostream>
 
 #include <gtest/gtest.h>
+#include "common/buffer.hpp"
 
 using kagome::common::Buffer;
 using libp2p::crypto::random::BoostRandomGenerator;
+using libp2p::crypto::random::RandomGenerator;
 using libp2p::crypto::random::StdRandomGenerator;
 
 /**
@@ -94,12 +96,11 @@ namespace {
 }  // namespace
 
 /**
- * @given BoostRandomGenerator instance, max entropy value for given source
- * @when get random bytes and calculate entropy
- * @then calculated entropy is not less than (max entropy - 2)
+ * @brief checks quality of random bytes generator
+ * @param generator implementation of generator
+ * @return true if quality is good enough false otherwise
  */
-TEST(Random, enoughEntropyBoost) {
-  BoostRandomGenerator generator;
+bool checkRandomGenerator(RandomGenerator &generator) {
   std::vector<uint8_t> buf(256, 0);
   generator.randomBytes(buf.data(), buf.size());
 
@@ -109,7 +110,18 @@ TEST(Random, enoughEntropyBoost) {
   std::cout << "max entropy: " << max << std::endl;
   std::cout << "calculated:  " << ent << std::endl;
 
-  ASSERT_GE(ent, max - 2) << "bad randomness source";
+  return ent >= (max - 2);
+}
+
+/**
+ * @given BoostRandomGenerator instance, max entropy value for given source
+ * @when get random bytes and calculate entropy
+ * @then calculated entropy is not less than (max entropy - 2)
+ */
+TEST(Random, enoughEntropyBoostGenerator) {
+  BoostRandomGenerator generator;
+  bool res = checkRandomGenerator(static_cast<RandomGenerator &>(generator));
+  ASSERT_TRUE(res) << "bad randomness source in BoostRandomGenerator";
 }
 
 /**
@@ -117,16 +129,8 @@ TEST(Random, enoughEntropyBoost) {
  * @when get random bytes and calculate entropy
  * @then calculated entropy is not less than (max entropy - 2)
  */
-TEST(Random, enoughEntropyStd) {
+TEST(Random, enoughEntropyStdGenerator) {
   StdRandomGenerator generator;
-  std::vector<uint8_t> buf(256, 0);
-  generator.randomBytes(buf.data(), buf.size());
-
-  auto max = max_entropy(256);  // 8
-  auto ent = entropy(buf);
-
-  std::cout << "max entropy: " << max << std::endl;
-  std::cout << "calculated:  " << ent << std::endl;
-
-  ASSERT_GE(ent, max - 2) << "bad randomness source";
+  bool res = checkRandomGenerator(static_cast<RandomGenerator &>(generator));
+  ASSERT_TRUE(res) << "bad randomness source in BoostRandomGenerator";
 }

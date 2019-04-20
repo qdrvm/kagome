@@ -8,7 +8,7 @@
 
 #include <boost/nondet_random.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
-#include "libp2p/crypto/random/cryptographically_secure_generator.hpp"
+#include "libp2p/crypto/random/csprng.hpp"
 
 namespace libp2p::crypto::random {
   /**
@@ -18,9 +18,7 @@ namespace libp2p::crypto::random {
    * it may not compile, so you will need to implement
    * your own random bytes generator
    */
-  class BoostRandomGenerator : public CryptographicallySecureRandomGenerator {
-    using Buffer = kagome::common::Buffer;
-
+  class BoostRandomGenerator : public CSPRNG {
    public:
     /**
      * @brief generators random bytes

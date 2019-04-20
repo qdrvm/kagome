@@ -6,16 +6,14 @@
 #ifndef KAGOME_CORE_LIBP2P_CRYPTO_RANDOM_CRYPTOGRAPHIC_SAFE_RANDOM_PROVIDER_HPP
 #define KAGOME_CORE_LIBP2P_CRYPTO_RANDOM_CRYPTOGRAPHIC_SAFE_RANDOM_PROVIDER_HPP
 
-#include "libp2p/crypto/random/pseudo_random_generator.hpp"
+#include "libp2p/crypto/random/random_generator.hpp"
 
 namespace libp2p::crypto::random {
   /**
-   * @class CryptographicSafeRandomProvider provides interface
-   * to cryptographic-secure random bytes generator
+   * @class CSPRNG provides interface to cryptographic-secure random bytes
+   * generator
    */
-  class CryptographicallySecureRandomGenerator : public PseudoRandomGenerator {
-    using Buffer = kagome::common::Buffer;
-
+  class CSPRNG : public RandomGenerator {
    public:
     /**
      * @brief generators random bytes
