@@ -8,7 +8,6 @@
 
 #include <random>
 
-#include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
 
 namespace libp2p::crypto::random {

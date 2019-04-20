@@ -9,7 +9,7 @@
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
 #include "libp2p/crypto/common.hpp"
-#include "libp2p/crypto/error.hpp"
+#include "libp2p/crypto/error/error.hpp"
 
 using kagome::common::Buffer;
 using namespace libp2p::crypto;

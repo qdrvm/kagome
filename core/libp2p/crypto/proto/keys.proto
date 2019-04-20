@@ -7,11 +7,11 @@ syntax = "proto3";
 package libp2p.crypto.proto;
 
 enum KeyType {
-    kUnspecified = 0;
-    kRSA1024 = 1;
-    kRSA2048 = 2;
-    kRSA4096 = 3;
-    kED25519 = 4;
+    UNSPECIFIED = 0;
+    RSA1024 = 1;
+    RSA2048 = 2;
+    RSA4096 = 3;
+    ED25519 = 4;
 }
 
 message PrivateKey {

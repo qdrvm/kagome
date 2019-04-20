@@ -6,7 +6,7 @@
 #include "libp2p/crypto/hmac/hmac_provider.hpp"
 
 #include <openssl/hmac.h>
-#include "libp2p/crypto/error.hpp"
+#include "libp2p/crypto/error/error.hpp"
 
 namespace libp2p::crypto::hmac {
   using Buffer = kagome::common::Buffer;

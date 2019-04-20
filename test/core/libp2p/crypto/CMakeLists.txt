@@ -6,7 +6,6 @@
 addtest(keys_test
         keys_test.cpp
         )
-
 target_link_libraries(keys_test
         crypto_provider
         )
@@ -14,15 +13,14 @@ target_link_libraries(keys_test
 addtest(aes_test
         aes_test.cpp
         )
-
 target_link_libraries(aes_test
-        crypto_provider
+        aes_provider
+        crypto_error
         )
 
 addtest(hmac_test
         hmac_test.cpp
         )
-
 target_link_libraries(hmac_test
         crypto_provider
         )
@@ -31,6 +29,13 @@ addtest(random_test
         random_test.cpp
         )
 target_link_libraries(random_test
+        buffer
+        random_provider
+        )
+
+addtest(marshaler_test
+        marshaler_test.cpp
+        )
+target_link_libraries(marshaler_test
         crypto_provider
-        Boost::boost
         )
