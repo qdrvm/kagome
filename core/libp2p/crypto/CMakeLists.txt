@@ -4,7 +4,6 @@
 #
 
 add_subdirectory(aes)
-add_subdirectory(error)
 add_subdirectory(hmac)
 add_subdirectory(marshaler)
 add_subdirectory(proto)
@@ -36,4 +35,13 @@ target_link_libraries(crypto_provider
         hmac_provider
         marshaler
         Boost::boost
+        )
+
+add_library(crypto_error
+        error.hpp
+        error.cpp
+        )
+
+target_link_libraries(crypto_error
+        outcome
         )

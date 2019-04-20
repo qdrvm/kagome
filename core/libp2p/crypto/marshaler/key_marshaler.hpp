@@ -7,7 +7,7 @@
 #define KAGOME_CORE_LIBP2P_CRYPTO_MARSHALER_KEY_MARSHALER_HPP
 
 #include "common/buffer.hpp"
-#include "libp2p/crypto/error/error.hpp"
+#include "libp2p/crypto/error.hpp"
 #include "libp2p/crypto/private_key.hpp"
 #include "libp2p/crypto/public_key.hpp"
 
