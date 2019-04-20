@@ -20,6 +20,11 @@ class MarshalerFixture : public testing::Test {
 };
 
 /**
+ * script used for generating test cases:
+ * https://gist.github.com/8f0bae63e8e20b40ec481b9ae8903879
+ */
+
+/**
  *  @given public key of type UNSPECIFIED
  *  @when marshal is applied
  *  @then obtained result matches predefined sequence of bytes
