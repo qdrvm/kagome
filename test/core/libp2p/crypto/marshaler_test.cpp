@@ -303,3 +303,73 @@ TEST_F(MarshalerFixture, unmarshalPrivateKey_RSA4096) {
   ASSERT_EQ(val.getType(), key_match.getType());
   ASSERT_EQ(val.getBytes(), key_match.getBytes());
 }
+
+/**
+ *  @given public key of type ED25519
+ *  @when marshal is applied
+ *  @then obtained result matches predefined sequence of bytes
+ */
+TEST_F(MarshalerFixture, marshalPublicKey_ED25519) {
+  PublicKey key = {KeyType::ED25519,
+                   {166, 90, 244, 10, 68, 237, 35, 185, 74, 22, 117, 193, 129,
+                    102, 100, 201}};
+  Buffer match = {8,  4,   18, 16, 166, 90,  244, 10,  68,  237,
+                  35, 185, 74, 22, 117, 193, 129, 102, 100, 201};
+  auto &&res = marshaler_.marshal(key);
+  ASSERT_TRUE(res);
+  auto &&val = res.value();
+  ASSERT_EQ(val, match);
+}
+
+/**
+ *  @given sequence of bytes and predefined public key of type ED25519
+ *  @when unmarshalPublicKey is applied
+ *  @then obtained result matches predefined public key
+ */
+TEST_F(MarshalerFixture, unmarshalPublicKey_ED25519) {
+  Buffer bytes = {8,  4,   18, 16, 166, 90,  244, 10,  68,  237,
+                  35, 185, 74, 22, 117, 193, 129, 102, 100, 201};
+  PublicKey key_match = {KeyType::ED25519,
+                         {166, 90, 244, 10, 68, 237, 35, 185, 74, 22, 117, 193,
+                          129, 102, 100, 201}};
+  auto &&res = marshaler_.unmarshalPublicKey(bytes);
+  ASSERT_TRUE(res);
+  auto &&val = res.value();
+  ASSERT_EQ(val.getType(), key_match.getType());
+  ASSERT_EQ(val.getBytes(), key_match.getBytes());
+}
+
+/**
+ *  @given private key of type ED25519
+ *  @when marshal is applied
+ *  @then obtained result matches predefined sequence of bytes
+ */
+TEST_F(MarshalerFixture, marshalPrivateKey_ED25519) {
+  PrivateKey key = {KeyType::ED25519,
+                    {166, 90, 244, 10, 68, 237, 35, 185, 74, 22, 117, 193, 129,
+                     102, 100, 201}};
+  Buffer match = {8,  4,   18, 16, 166, 90,  244, 10,  68,  237,
+                  35, 185, 74, 22, 117, 193, 129, 102, 100, 201};
+  auto &&res = marshaler_.marshal(key);
+  ASSERT_TRUE(res);
+  auto &&val = res.value();
+  ASSERT_EQ(val, match);
+}
+
+/**
+ *  @given sequence of bytes and predefined public key of type ED25519
+ *  @when unmarshalPrivateKey is applied
+ *  @then obtained result matches predefined public key
+ */
+TEST_F(MarshalerFixture, unmarshalPrivateKey_ED25519) {
+  Buffer bytes = {8,  4,   18, 16, 166, 90,  244, 10,  68,  237,
+                  35, 185, 74, 22, 117, 193, 129, 102, 100, 201};
+  PublicKey key_match = {KeyType::ED25519,
+                         {166, 90, 244, 10, 68, 237, 35, 185, 74, 22, 117, 193,
+                          129, 102, 100, 201}};
+  auto &&res = marshaler_.unmarshalPrivateKey(bytes);
+  ASSERT_TRUE(res);
+  auto &&val = res.value();
+  ASSERT_EQ(val.getType(), key_match.getType());
+  ASSERT_EQ(val.getBytes(), key_match.getBytes());
+}
