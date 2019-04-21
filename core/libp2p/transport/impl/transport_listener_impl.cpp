@@ -15,6 +15,7 @@ namespace libp2p::transport {
 
   using boost::asio::ip::make_address;
   using multi::Multiaddress;
+  using multi::Protocol;
 
   TransportListenerImpl::TransportListenerImpl(
       boost::asio::io_context &context, TransportListener::HandlerFunc handler)
