@@ -39,7 +39,7 @@ namespace libp2p::crypto::marshaller {
      * @return common key type value
      */
     outcome::result<common::KeyType> unmarshalKeyType(proto::KeyType key_type) {
-      switch (key_type) {
+      switch (key_type) { // NOLINT
         case proto::KeyType::UNSPECIFIED:
           return common::KeyType::UNSPECIFIED;
         case proto::KeyType::RSA1024:

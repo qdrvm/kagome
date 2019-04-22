@@ -99,4 +99,5 @@ function(add_proto_library NAME)
   set_target_properties(${NAME}
       PROPERTIES CXX_CLANG_TIDY ""
       )
+  disable_clang_tidy(${NAME})
 endfunction()
