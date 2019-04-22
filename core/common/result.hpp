@@ -34,7 +34,7 @@ namespace kagome::expected {
   struct Value {
     T value;
     template <typename V>
-    operator Value<V>() {
+    operator Value<V>() {  // NOLINT(google-explicit-constructor)
       return {value};
     }
   };
@@ -49,7 +49,7 @@ namespace kagome::expected {
   struct Error {
     E error;
     template <typename V>
-    operator Error<V>() {
+    operator Error<V>() { // NOLINT(google-explicit-constructor)
       return {error};
     }
   };
@@ -66,7 +66,7 @@ namespace kagome::expected {
    * is thrown. UnwrapException is a common ancestor for them.
    */
   class UnwrapException : public std::exception {
-    const char *what() const noexcept override = 0;
+     const char *what() const noexcept override = 0;
   };
 
   class NoValueException : public UnwrapException {
@@ -224,7 +224,7 @@ namespace kagome::expected {
     constexpr Result<Value, E> and_res(const Result<Value, E> &new_res) const
         noexcept {
       return visit_in_place(
-          *this, [res = new_res](ValueType) { return res; },
+          *this, [res = new_res](ValueType v) { return res; },
           [](ErrorType err) -> Result<Value, E> { return err; });
     }
 
@@ -244,7 +244,7 @@ namespace kagome::expected {
         noexcept {
       return visit_in_place(
           *this, [](ValueType val) -> Result<Value, E> { return val; },
-          [res = new_res](ErrorType) { return res; });
+          [res = new_res](ErrorType e) { return res; });
     }
   };
 

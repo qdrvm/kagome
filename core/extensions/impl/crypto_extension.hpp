@@ -8,41 +8,44 @@
 
 #include <cstdint>
 
+#include "runtime/wasm_memory.hpp"
+
 namespace kagome::extensions {
   /**
    * Implements extension functions related to cryptography
    */
   class CryptoExtension {
    public:
+    explicit CryptoExtension(std::shared_ptr<runtime::WasmMemory> memory);
+
     /**
      * @see Extension::ext_blake2_256
      */
-    void ext_blake2_256(const uint8_t *data, uint32_t len, uint8_t *out);
-
-    /**
-     * @see Extension::ext_blake2_256_enumerated_trie_root
-     */
-    void ext_blake2_256_enumerated_trie_root(const uint8_t *values_data,
-                                             const uint32_t *lens_data,
-                                             uint32_t lens_length,
-                                             uint8_t *result);
+    void ext_blake2_256(runtime::WasmPointer data, runtime::SizeType len,
+                        runtime::WasmPointer out_ptr);
 
     /**
      * @see Extension::ext_ed25519_verify
      */
-    uint32_t ext_ed25519_verify(const uint8_t *msg_data, uint32_t msg_len,
-                                const uint8_t *sig_data,
-                                const uint8_t *pubkey_data);
+    runtime::SizeType ext_ed25519_verify(runtime::WasmPointer msg_data,
+                                         runtime::SizeType msg_len,
+                                         runtime::WasmPointer sig_data,
+                                         runtime::WasmPointer pubkey_data);
 
     /**
      * @see Extension::ext_twox_128
      */
-    void ext_twox_128(const uint8_t *data, uint32_t len, uint8_t *out);
+    void ext_twox_128(runtime::WasmPointer data, runtime::SizeType len,
+                      runtime::WasmPointer out);
 
     /**
      * @see Extension::ext_twox_256
      */
-    void ext_twox_256(const uint8_t *data, uint32_t len, uint8_t *out);
+    void ext_twox_256(runtime::WasmPointer data, runtime::SizeType len,
+                      runtime::WasmPointer out);
+
+   private:
+    std::shared_ptr<runtime::WasmMemory> memory_;
   };
 }  // namespace kagome::extensions
 

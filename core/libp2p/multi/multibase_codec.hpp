@@ -10,8 +10,8 @@
 #include <string_view>
 #include <utility>
 
+#include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
-#include "common/result.hpp"
 
 namespace libp2p::multi {
   /**
@@ -20,17 +20,17 @@ namespace libp2p::multi {
    */
   class MultibaseCodec {
     using ByteBuffer = kagome::common::Buffer;
-    using FactoryResult = kagome::expected::Result<ByteBuffer, std::string>;
+    using FactoryResult = outcome::result <ByteBuffer>;
 
    public:
     /**
      * Encodings, supported by this Multibase
      */
     enum class Encoding : char {
-      kBase16Lower = 'f',
-      kBase16Upper = 'F',
-      kBase58 = 'Z',
-      kBase64 = 'm'
+      BASE16_LOWER = 'f',
+      BASE16_UPPER = 'F',
+      BASE58 = 'Z',
+      BASE64 = 'm'
     };
 
     /**

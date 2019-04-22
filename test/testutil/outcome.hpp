@@ -15,7 +15,7 @@
 
 #define UNIQUE_NAME(base) PP_CAT(base, __LINE__)
 
-#define __EXPECT_OUTCOME_TRUE_3(var, val, expr) \
+#define EXPECT_OUTCOME_TRUE_name(var, val, expr) \
   auto &&var = expr;                            \
   EXPECT_TRUE(var) << var.error().message();    \
   auto &&val = var.value();
@@ -26,6 +26,8 @@
  * EXPECT_OUTCOME_TRUE(val, getResult());
  */
 #define EXPECT_OUTCOME_TRUE(val, expr) \
-  __EXPECT_OUTCOME_TRUE_3(UNIQUE_NAME(_r), val, expr)
+  EXPECT_OUTCOME_TRUE_name(UNIQUE_NAME(_r), val, expr)
+
+#define EXPECT_ERRCODE_SUCCESS(ec) EXPECT_FALSE(ec) << ec.message();
 
 #endif  // KAGOME_GTEST_OUTCOME_UTIL_HPP

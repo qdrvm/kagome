@@ -11,9 +11,9 @@
 #include <memory>
 #include <vector>
 
+#include "libp2p/basic/closeable.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/transport/connection.hpp"
-#include "libp2p/basic/closeable.hpp"
 
 namespace libp2p::transport {
 
@@ -21,7 +21,7 @@ namespace libp2p::transport {
    * Listens to the connections from the specified addresses and reacts when
    * receiving ones
    */
- class TransportListener: public basic::Closeable {
+  class TransportListener : public basic::Closeable {
    public:
     using NoArgsCallback = void();
     using ErrorCallback = void(const std::error_code &);
@@ -32,17 +32,26 @@ namespace libp2p::transport {
     virtual ~TransportListener() = default;
 
     /**
+     * @brief Close specific server, which listens on {@param ma}
+     * @param ma multiaddress
+     * @return error code if any error happened
+     */
+    virtual outcome::result<void> close(const multi::Multiaddress& ma) = 0;
+    virtual outcome::result<void> close() override = 0;
+
+    /**
      * Switch the listener into 'listen' mode; it will react to every new
      * connection
      * @param address to listen to
      */
-    virtual outcome::result<void> listen(const multi::Multiaddress &address) = 0;
+    virtual outcome::result<void> listen(
+        const multi::Multiaddress &address) = 0;
 
     /**
      * Get addresses, which this listener listens to
      * @return collection of those addresses
      */
-    virtual const std::vector<multi::Multiaddress> &getAddresses() const = 0;
+    virtual std::vector<multi::Multiaddress> getAddresses() const = 0;
 
     /**
      * Listener is initialized and ready to accept connections
@@ -70,7 +79,7 @@ namespace libp2p::transport {
      * @param callback to be called, when event happens
      */
     virtual boost::signals2::connection onClose(
-        std::function<NoArgsCallback> callback) = 0;
+        std::function<MultiaddrCallback> callback) = 0;
   };
 }  // namespace libp2p::transport
 

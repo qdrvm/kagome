@@ -14,9 +14,9 @@ using namespace kagome::common;
 class PeerIdTest : public ::testing::Test {
  public:
   Multihash valid_peer_id =
-      Multihash::create(HashType::sha256, Buffer{0xAA, 0xBB}).getValue();
+      Multihash::create(HashType::sha256, Buffer{0xAA, 0xBB}).value();
   Multihash invalid_peer_id =
-      Multihash::create(HashType::blake2s128, Buffer{0xAA, 0xBB}).getValue();
+      Multihash::create(HashType::blake2s128, Buffer{0xAA, 0xBB}).value();
 };
 
 /**

@@ -16,7 +16,7 @@ class PeerInfoTest : public ::testing::Test {
  public:
   /// must be a SHA-256 hash
   Multihash valid_peer_id =
-      Multihash::create(HashType::sha256, Buffer{0xAA, 0xBB}).getValue();
+      Multihash::create(HashType::sha256, Buffer{0xAA, 0xBB}).value();
 
   std::vector<Multiaddress::Protocol> protocols{Multiaddress::Protocol::kDccp,
                                                 Multiaddress::Protocol::kIp4};

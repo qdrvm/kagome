@@ -36,9 +36,9 @@ namespace libp2p::multi {
     Multiaddress &operator=(Multiaddress &&address) = default;
 
     enum class Error {
-      InvalidInput = 1,     ///< input contains invalid multiaddress
-      ProtocolNotFound,     ///< given protocol can not be found
-      InvalidProtocolValue  ///< protocol value can not be casted to T
+      INVALID_INPUT = 1,     ///< input contains invalid multiaddress
+      PROTOCOL_NOT_FOUND,     ///< given protocol can not be found
+      INVALID_PROTOCOL_VALUE  ///< protocol value can not be casted to T
     };
 
     /**
@@ -142,7 +142,7 @@ namespace libp2p::multi {
       try {
         return caster(val);
       } catch (...) {
-        return Error::InvalidProtocolValue;
+        return Error::INVALID_PROTOCOL_VALUE;
       }
     }
 
@@ -166,12 +166,21 @@ namespace libp2p::multi {
      */
     std::string_view protocolToString(Protocol proto) const;
 
-    ByteBuffer bytes_;
     std::string stringified_address_;
+    ByteBuffer bytes_;
 
     std::optional<std::string> peer_id_;
   };
 }  // namespace libp2p::multi
+
+namespace std {
+  template <>
+  struct hash<libp2p::multi::Multiaddress> {
+    size_t operator()(const libp2p::multi::Multiaddress &x) const {
+      return std::hash<std::string_view>()(x.getStringAddress());
+    }
+  };
+}  // namespace std
 
 OUTCOME_HPP_DECLARE_ERROR(libp2p::multi, Multiaddress::Error);
 

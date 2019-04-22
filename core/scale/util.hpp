@@ -11,12 +11,11 @@
 #include <vector>
 
 #include <boost/endian/arithmetic.hpp>
-
 #include "common/buffer.hpp"
-#include "scale/types.hpp"
 #include "scale/scale_error.hpp"
+#include "scale/types.hpp"
 
-namespace kagome::common::scale::impl {
+namespace kagome::scale::impl {
   /**
    * encodeInteger encodes any integer type to little-endian representation
    * @tparam T integer type
@@ -24,7 +23,7 @@ namespace kagome::common::scale::impl {
    * @return byte array representation of value
    */
   template <class T>
-  void encodeInteger(T value, Buffer &out) {
+  void encodeInteger(T value, common::Buffer &out) {
     constexpr size_t size = sizeof(T);
     static_assert(std::is_integral<T>(), "only integral types are supported");
     static_assert(size >= 1, "types of size 0 are not supported");
@@ -32,7 +31,7 @@ namespace kagome::common::scale::impl {
     boost::endian::endian_buffer<boost::endian::order::little, T, bits> buf{};
     buf = value;
     std::vector<uint8_t> tmp;
-    for (auto i = 0; i < size; ++i) {
+    for (size_t i = 0; i < size; ++i) {
       tmp.push_back(buf.data()[i]);
     }
     out.put(tmp);
@@ -45,9 +44,8 @@ namespace kagome::common::scale::impl {
    * @return decoded value or error
    */
   template <class T>
-  outcome::result<T> decodeInteger(Stream &stream) {
+  outcome::result<T> decodeInteger(common::ByteStream &stream) {
     constexpr size_t size = sizeof(T);
-    constexpr size_t bits = size * 8;
     static_assert(size == 1 || size == 2 || size == 4 || size == 8);
 
     // clang-format off
@@ -76,13 +74,13 @@ namespace kagome::common::scale::impl {
     // clang-format on
 
     if (!stream.hasMore(size)) {
-      return outcome::failure(DecodeError::kNotEnoughData);
+      return outcome::failure(DecodeError::NOT_ENOUGH_DATA);
     }
 
     // get integer as 4 bytes from little-endian stream
     // and represent it as native-endian unsigned integer
     uint64_t v{0};
-    for (auto i = 0; i < size; ++i) {
+    for (size_t i = 0; i < size; ++i) {
       v += multiplier[i] * static_cast<uint64_t>(*stream.nextByte());
     }
     // now we have uint64 native-endian value
@@ -113,6 +111,6 @@ namespace kagome::common::scale::impl {
 
     return sv;
   }
-}  // namespace kagome::common::scale::impl
+}  // namespace kagome::scale::impl
 
 #endif  // KAGOME_SCALE_UTIL_HPP

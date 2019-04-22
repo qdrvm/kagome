@@ -22,15 +22,15 @@ class MultibaseCodecTest : public ::testing::Test {
    */
   Buffer decodeCorrect(std::string_view encoded) {
     auto multibase_opt = multibase->decode(encoded);
-    EXPECT_TRUE(multibase_opt.hasValue())
+    EXPECT_TRUE(multibase_opt.has_value())
         << "failed to decode string: " + std::string{encoded};
-    return multibase_opt.getValue();
+    return multibase_opt.value();
   }
 };
 
 TEST_F(MultibaseCodecTest, EncodeEmptyBytes) {
   auto encoded_str =
-      multibase->encode(Buffer{}, MultibaseCodec::Encoding::kBase16Lower);
+      multibase->encode(Buffer{}, MultibaseCodec::Encoding::BASE16_LOWER);
   ASSERT_TRUE(encoded_str.empty());
 }
 
@@ -42,7 +42,7 @@ TEST_F(MultibaseCodecTest, EncodeEmptyBytes) {
  */
 TEST_F(MultibaseCodecTest, DecodeIncorrectPrefix) {
   auto multibase_err = multibase->decode("J00AA");
-  ASSERT_FALSE(multibase_err.hasValue());
+  ASSERT_FALSE(multibase_err.has_value());
 }
 
 /**
@@ -52,12 +52,12 @@ TEST_F(MultibaseCodecTest, DecodeIncorrectPrefix) {
  */
 TEST_F(MultibaseCodecTest, DecodeFewCharacters) {
   auto multibase_err = multibase->decode("A");
-  ASSERT_FALSE(multibase_err.hasValue());
+  ASSERT_FALSE(multibase_err.has_value());
 }
 
 class Base16EncodingUpper : public MultibaseCodecTest {
  public:
-  MultibaseCodec::Encoding encoding = MultibaseCodec::Encoding::kBase16Upper;
+  MultibaseCodec::Encoding encoding = MultibaseCodec::Encoding::BASE16_UPPER;
 
   std::string_view encoded_correct{"F00010204081020FF"};
   Buffer decoded_correct{0, 1, 2, 4, 8, 16, 32, 255};
@@ -93,7 +93,7 @@ TEST_F(Base16EncodingUpper, SuccessEncoding) {
  */
 TEST_F(Base16EncodingUpper, IncorrectPrefix) {
   auto error = multibase->decode(encoded_incorrect_prefix);
-  ASSERT_FALSE(error.hasValue());
+  ASSERT_FALSE(error.has_value());
 }
 
 /**
@@ -103,12 +103,12 @@ TEST_F(Base16EncodingUpper, IncorrectPrefix) {
  */
 TEST_F(Base16EncodingUpper, IncorrectBody) {
   auto error = multibase->decode(encoded_incorrect_body);
-  ASSERT_FALSE(error.hasValue());
+  ASSERT_FALSE(error.has_value());
 }
 
 class Base16EncodingLower : public MultibaseCodecTest {
  public:
-  MultibaseCodec::Encoding encoding = MultibaseCodec::Encoding::kBase16Lower;
+  MultibaseCodec::Encoding encoding = MultibaseCodec::Encoding::BASE16_LOWER;
 
   std::string_view encoded_correct{"f00010204081020ff"};
   Buffer decoded_correct{0, 1, 2, 4, 8, 16, 32, 255};
@@ -144,7 +144,7 @@ TEST_F(Base16EncodingLower, SuccessEncoding) {
  */
 TEST_F(Base16EncodingLower, IncorrectPrefix) {
   auto error = multibase->decode(encoded_incorrect_prefix);
-  ASSERT_FALSE(error.hasValue());
+  ASSERT_FALSE(error.has_value());
 }
 
 /**
@@ -154,12 +154,12 @@ TEST_F(Base16EncodingLower, IncorrectPrefix) {
  */
 TEST_F(Base16EncodingLower, IncorrectBody) {
   auto error = multibase->decode(encoded_incorrect_body);
-  ASSERT_FALSE(error.hasValue());
+  ASSERT_FALSE(error.has_value());
 }
 
 class Base58Encoding : public MultibaseCodecTest {
  public:
-  MultibaseCodec::Encoding encoding = MultibaseCodec::Encoding::kBase58;
+  MultibaseCodec::Encoding encoding = MultibaseCodec::Encoding::BASE58;
 
   const std::vector<std::pair<Buffer, std::string_view>> decode_encode_table{
       {Buffer{0x61}, "Z2g"},
@@ -243,7 +243,7 @@ TEST_F(Base58Encoding, SuccessEncodingDecoding) {
  */
 TEST_F(Base58Encoding, IncorrectBody) {
   auto error = multibase->decode(incorrect_encoded);
-  ASSERT_FALSE(error.hasValue());
+  ASSERT_FALSE(error.has_value());
 }
 
 /**
@@ -271,12 +271,12 @@ TEST_F(Base58Encoding, SkipsWhitespacesFailure) {
   constexpr auto base64_with_whitespaces = "Z \t\n\v\f\r skip \r\f\v\n\t a";
   auto error = multibase->decode(base64_with_whitespaces);
 
-  ASSERT_FALSE(error.hasValue());
+  ASSERT_FALSE(error.has_value());
 }
 
 class Base64Encoding : public MultibaseCodecTest {
  public:
-  MultibaseCodec::Encoding encoding = MultibaseCodec::Encoding::kBase64;
+  MultibaseCodec::Encoding encoding = MultibaseCodec::Encoding::BASE64;
 
   const std::vector<std::pair<Buffer, std::string_view>> decode_encode_table{
       {Buffer{0x66}, "mZg=="},
@@ -344,5 +344,5 @@ TEST_F(Base64Encoding, SuccessEncodingDecoding) {
  */
 TEST_F(Base64Encoding, IncorrectBody) {
   auto error = multibase->decode(incorrect_encoded);
-  ASSERT_FALSE(error.hasValue());
+  ASSERT_FALSE(error.has_value());
 }

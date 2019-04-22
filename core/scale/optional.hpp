@@ -12,7 +12,7 @@
 #include "scale/type_encoder.hpp"
 #include "scale/types.hpp"
 
-namespace kagome::common::scale::optional {
+namespace kagome::scale::optional {
   /**
    * @brief encodeOptional function encodes optional value
    * @tparam T optional value content type
@@ -21,13 +21,13 @@ namespace kagome::common::scale::optional {
    */
   template <class T>
   outcome::result<void> encodeOptional(const std::optional<T> &optional,
-                                       Buffer &out) {
+                                       common::Buffer &out) {
     if (!optional.has_value()) {
       out.putUint8(0);
       return outcome::success();
     }
 
-    Buffer tmp;
+    common::Buffer tmp;
     OUTCOME_TRY(TypeEncoder<T>{}.encode(*optional, tmp));
 
     out.putUint8(1);
@@ -43,10 +43,10 @@ namespace kagome::common::scale::optional {
    * @return decoded optional value or error
    */
   template <class T>
-  outcome::result<std::optional<T>> decodeOptional(Stream &stream) {
+  outcome::result<std::optional<T>> decodeOptional(common::ByteStream &stream) {
     auto flag = stream.nextByte();
     if (!flag.has_value()) {
-      return outcome::failure(DecodeError::kNotEnoughData);
+      return outcome::failure(DecodeError::NOT_ENOUGH_DATA);
     }
 
     if (*flag != 1) {
@@ -65,7 +65,7 @@ namespace kagome::common::scale::optional {
    */
   template <>
   outcome::result<void> encodeOptional<bool>(
-      const std::optional<bool> &optional, Buffer &out) {
+      const std::optional<bool> &optional, common::Buffer &out) {
     uint8_t result = 2;  // true
 
     if (!optional.has_value()) {  // none
@@ -84,10 +84,11 @@ namespace kagome::common::scale::optional {
    * @return decoded value or error
    */
   template <>
-  outcome::result<std::optional<bool>> decodeOptional(Stream &stream) {
+  outcome::result<std::optional<bool>> decodeOptional(
+      common::ByteStream &stream) {
     auto byte = stream.nextByte();
     if (!byte.has_value()) {
-      return outcome::failure(DecodeError::kNotEnoughData);
+      return outcome::failure(DecodeError::NOT_ENOUGH_DATA);
     }
 
     switch (*byte) {
@@ -101,9 +102,9 @@ namespace kagome::common::scale::optional {
         break;
     }
 
-    return outcome::failure(DecodeError::kUnexpectedValue);
+    return outcome::failure(DecodeError::UNEXPECTED_VALUE);
   }
 
-}  // namespace kagome::common::scale::optional
+}  // namespace kagome::scale::optional
 
 #endif  // KAGOME_OPTIONAL_HPP

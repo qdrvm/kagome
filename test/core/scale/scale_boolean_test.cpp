@@ -6,13 +6,13 @@
 #include <gtest/gtest.h>
 
 #include "common/result.hpp"
-#include "scale/basic_stream.hpp"
 #include "scale/boolean.hpp"
+#include "scale/byte_array_stream.hpp"
 #include "scale/scale_error.hpp"
 
 using namespace kagome;          // NOLINT
 using namespace kagome::common;  // NOLINT
-using namespace common::scale;   // NOLINT
+using namespace kagome::scale;   // NOLINT
 
 /**
  * @given bool values: true and false
@@ -42,7 +42,7 @@ TEST(Scale, fixedwidthDecodeBool) {
   //  fixedwidth::DecodeBoolRes
   // decode false
   auto bytes = ByteArray{0x0, 0x1, 0x2};
-  auto stream = BasicStream{bytes};
+  auto stream = ByteArrayStream{bytes};
   auto &&res = boolean::decodeBool(stream);
   ASSERT_TRUE(res);           // success, not failure
   ASSERT_FALSE(res.value());  // actual value;
@@ -54,7 +54,7 @@ TEST(Scale, fixedwidthDecodeBool) {
   auto &&res2 = boolean::decodeBool(stream);
   ASSERT_FALSE(res2);
   ASSERT_EQ(res2.error().value(),
-            static_cast<int>(DecodeError::kUnexpectedValue));
+            static_cast<int>(DecodeError::UNEXPECTED_VALUE));
 }
 
 /**
@@ -92,7 +92,7 @@ TEST(Scale, fixedwidthEncodeTribool) {
 TEST(Scale, fixedwidthDecodeTribool) {
   // decode none
   auto bytes = ByteArray{0x0, 0x1, 0x2, 0x3};
-  auto stream = BasicStream{bytes};
+  auto stream = ByteArrayStream{bytes};
   auto &&res = boolean::decodeTribool(stream);
   ASSERT_TRUE(res);
   ASSERT_FALSE(res.value());
@@ -107,5 +107,5 @@ TEST(Scale, fixedwidthDecodeTribool) {
   auto &&res3 = boolean::decodeTribool(stream);
   ASSERT_FALSE(res3);
   ASSERT_EQ(res3.error().value(),
-            static_cast<int>(DecodeError::kUnexpectedValue));
+            static_cast<int>(DecodeError::UNEXPECTED_VALUE));
 }

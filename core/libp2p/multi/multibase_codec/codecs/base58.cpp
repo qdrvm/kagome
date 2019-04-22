@@ -5,6 +5,10 @@
 
 #include "libp2p/multi/multibase_codec/codecs/base58.hpp"
 
+#include <cstring>
+
+#include "libp2p/multi/multibase_codec/codecs/base_error.hpp"
+
 namespace {
   // All alphanumeric characters except for "0", "I", "O", and "l"
   constexpr std::string_view pszBase58 =
@@ -45,9 +49,6 @@ namespace {
 }  // namespace
 
 namespace libp2p::multi::detail {
-  using kagome::expected::Error;
-  using kagome::expected::Result;
-  using kagome::expected::Value;
 
   /**
    * Actual implementation of the encoding
@@ -65,8 +66,9 @@ namespace libp2p::multi::detail {
       zeroes++;
     }
     // Allocate enough space in big-endian base58 representation.
-    int size =
-        (pend - pbegin) * 138 / 100 + 1;  // log(256) / log(58), rounded up.
+    // log(256) / log(58), rounded up.
+    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
+    int size = (pend - pbegin) * 138 / 100 + 1;
     std::vector<unsigned char> b58(size);
     // Process the bytes.
     while (pbegin != pend) {
@@ -117,7 +119,9 @@ namespace libp2p::multi::detail {
       std::advance(psz, 1);
     }
     // Allocate enough space in big-endian base256 representation.
-    int size = strlen(psz) * 733 / 1000 + 1;  // log(58) / log(256), rounded up.
+    // log(58) / log(256), rounded up.
+    // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
+    int size = strlen(psz) * 733 / 1000 + 1;
     std::vector<unsigned char> b256(size);
     // Process the characters.
     while (*psz && !isSpace(*psz)) {  // NOLINT
@@ -164,13 +168,13 @@ namespace libp2p::multi::detail {
     return encodeImpl(bytes.begin().base(), bytes.end().base());
   }
 
-  Result<kagome::common::Buffer, std::string> decodeBase58(
+  outcome::result<kagome::common::Buffer> decodeBase58(
       std::string_view string) {
     auto decoded_bytes = decodeImpl(string.data());
     if (decoded_bytes) {
-      return Value{kagome::common::Buffer{*decoded_bytes}};
+      return kagome::common::Buffer{*decoded_bytes};
     }
-    return Error{"could not decode base58 format"};
+    return BaseError::INVALID_BASE58_INPUT;
   }
 
 }  // namespace libp2p::multi::detail

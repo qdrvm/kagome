@@ -12,7 +12,10 @@
 #include "scale/types.hpp"
 #include "scale/util.hpp"
 
-namespace kagome::common::scale {
+// TODO(yuraz): PRE-119 conception of TypeEncoder/TypeDecoder needs to be
+// refactored
+
+namespace kagome::scale {
   /**
    * Type decoders are nested decoders used to decode types in optionals,
    * variants, collections and tuples.
@@ -35,7 +38,7 @@ namespace kagome::common::scale {
    */
   template <class T>
   struct TypeDecoder {
-    outcome::result<T> decode(Stream &stream) {
+    outcome::result<T> decode(common::ByteStream &stream) {
       static_assert(std::is_integral<T>(),
                     "Only integral types are supported. You need to define "
                     "your own TypeDecoder specialization for custom type.");
@@ -49,7 +52,7 @@ namespace kagome::common::scale {
    */
   template <>
   struct TypeDecoder<bool> {
-    auto decode(Stream &stream) {
+    auto decode(common::ByteStream &stream) {
       return boolean::decodeBool(stream);
     }
   };
@@ -60,10 +63,26 @@ namespace kagome::common::scale {
    */
   template <>
   struct TypeDecoder<tribool> {
-    auto decode(Stream &stream) {
+    auto decode(common::ByteStream &stream) {
       return boolean::decodeTribool(stream);
     }
   };
-}  // namespace kagome::common::scale
+
+  /**
+   * @class TypeDecoder<std::pair<F,S>> is specialization of TypeDecoder class
+   * it implements decoding std::pair from stream
+   * @tparam F first type
+   * @tparam S second type
+   */
+  template <class F, class S>
+  struct TypeDecoder<std::pair<F, S>> {
+    using value_type = std::pair<F, S>;
+    outcome::result<value_type> decode(common::ByteStream &stream) {
+      OUTCOME_TRY(first_value, TypeDecoder<F>{}.decode(stream));
+      OUTCOME_TRY(second_value, TypeDecoder<S>{}.decode(stream));
+      return std::pair<F, S>(first_value, second_value);
+    }
+  };
+}  // namespace kagome::scale
 
 #endif  // KAGOME_SCALE_TYPE_DECODER_HPP

@@ -22,6 +22,12 @@ namespace kagome::storage::merkle {
      * @return byte buffer of any size (different hashing algos may be used)
      */
     virtual common::Buffer getRoot() const = 0;
+
+    /**
+     * remove storage entries which keys start with given prefix
+     * @param buf
+     */
+    virtual void clearPrefix(const common::Buffer &buf) = 0;
   };
 
 }  // namespace kagome::storage::merkle

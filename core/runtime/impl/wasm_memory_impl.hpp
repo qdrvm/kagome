@@ -27,9 +27,13 @@ namespace kagome::runtime {
    public:
     WasmMemoryImpl();
     explicit WasmMemoryImpl(SizeType size);
-    WasmMemoryImpl(WasmMemoryImpl &) = delete;
-    WasmMemoryImpl &operator=(const WasmMemoryImpl &) = delete;
+    WasmMemoryImpl(const WasmMemoryImpl &copy) = delete;
+    WasmMemoryImpl &operator=(const WasmMemoryImpl &copy) = delete;
+    WasmMemoryImpl(WasmMemoryImpl &&move) = delete;
+    WasmMemoryImpl &operator=(WasmMemoryImpl &&move) = delete;
+    ~WasmMemoryImpl() override = default;
 
+    SizeType size() const override;
     void resize(SizeType newSize) override;
 
     WasmPointer allocate(SizeType size) override;
@@ -44,6 +48,8 @@ namespace kagome::runtime {
     int64_t load64s(WasmPointer addr) const override;
     uint64_t load64u(WasmPointer addr) const override;
     std::array<uint8_t, 16> load128(WasmPointer addr) const override;
+    common::Buffer loadN(kagome::runtime::WasmPointer addr,
+                                   kagome::runtime::SizeType n) const override;
 
     void store8(WasmPointer addr, int8_t value) override;
     void store16(WasmPointer addr, int16_t value) override;
@@ -51,6 +57,8 @@ namespace kagome::runtime {
     void store64(WasmPointer addr, int64_t value) override;
     void store128(WasmPointer addr,
                   const std::array<uint8_t, 16> &value) override;
+    void storeBuffer(kagome::runtime::WasmPointer addr,
+                     const kagome::common::Buffer &value) override;
 
    private:
     // Use char because it doesn't run afoul of aliasing rules.
@@ -60,20 +68,22 @@ namespace kagome::runtime {
     WasmPointer offset_;
 
     // map containing addresses of allocated MemoryImpl chunks
-    std::unordered_map<WasmPointer, SizeType> allocated;
+    std::unordered_map<WasmPointer, SizeType> allocated_;
 
     // map containing addresses to the deallocated MemoryImpl chunks
-    std::unordered_map<WasmPointer, SizeType> deallocated;
+    std::unordered_map<WasmPointer, SizeType> deallocated_;
 
     template <typename T>
     static bool aligned(const char *address) {
       static_assert(!(sizeof(T) & (sizeof(T) - 1)), "must be a power of 2");
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       return 0 == (reinterpret_cast<uintptr_t>(address) & (sizeof(T) - 1));
     }
 
     template <typename T>
     void set(WasmPointer address, T value) {
       if (aligned<T>(&memory_[address])) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         *reinterpret_cast<T *>(&memory_[address]) = value;
       } else {
         std::memcpy(&memory_[address], &value, sizeof(T));
@@ -83,12 +93,13 @@ namespace kagome::runtime {
     template <typename T>
     T get(WasmPointer address) const {
       if (aligned<T>(&memory_[address])) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         return *reinterpret_cast<const T *>(&memory_[address]);
-      } else {
-        T loaded;
-        std::memcpy(&loaded, &memory_[address], sizeof(T));
-        return loaded;
       }
+
+      T loaded{};
+      std::memcpy(&loaded, &memory_[address], sizeof(T));
+      return loaded;
     }
 
     /**
