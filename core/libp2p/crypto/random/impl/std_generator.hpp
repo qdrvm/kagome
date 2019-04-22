@@ -19,6 +19,7 @@ namespace libp2p::crypto::random {
    */
   class StdRandomGenerator : public PRNG {
    public:
+    ~StdRandomGenerator() override = default;
     /**
      * @brief generators random bytes
      * @param len number of bytes

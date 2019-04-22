@@ -15,6 +15,7 @@ namespace libp2p::crypto::random {
    */
   class CSPRNG : public RandomGenerator {
    public:
+    ~CSPRNG() override = default;
     /**
      * @brief generators random bytes
      * @param len number of bytes

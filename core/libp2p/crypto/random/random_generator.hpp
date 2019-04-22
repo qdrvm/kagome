@@ -15,6 +15,7 @@ namespace libp2p::crypto::random {
    protected:
     using Buffer = kagome::common::Buffer;
    public:
+    virtual ~RandomGenerator() = default;
     /**
      * @brief generators random bytes
      * @param len number of bytes

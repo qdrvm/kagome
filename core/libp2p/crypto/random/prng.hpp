@@ -13,6 +13,7 @@ namespace libp2p::crypto::random {
   /// class PseudoRandomGenerator provides interface for pseudo-random generator
   class PRNG : public RandomGenerator {
    public:
+    ~PRNG() override = default;
     /**
      * @brief generators random bytes
      * @param len number of bytes
