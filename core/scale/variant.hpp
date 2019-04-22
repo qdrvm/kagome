@@ -9,6 +9,7 @@
 #include <boost/variant.hpp>
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
+#include "common/visitor.hpp"
 #include "scale/compact.hpp"
 #include "scale/fixedwidth.hpp"
 #include "scale/scale_error.hpp"
@@ -53,18 +54,21 @@ namespace kagome::scale::variant {
       template <class H>
       void apply(uint8_t index) {
         // if type matches alternative in variant then encode
-        kagome::visit_in_place(v_, [this, index](const H &h) {
-          // first byte means type index
-          out_.putUint8(index);
-          auto &&encode_result = TypeEncoder<H>{}.encode(h, out_);
-          if (!encode_result) {
-            res_ = encode_result.error();
-          }
-        }, [](const auto &) {});
+        kagome::visit_in_place(v_,
+                               [this, index](const H &h) {
+                                 // first byte means type index
+                                 out_.putUint8(index);
+                                 auto &&encode_result =
+                                     TypeEncoder<H>{}.encode(h, out_);
+                                 if (!encode_result) {
+                                   res_ = encode_result.error();
+                                 }
+                               },
+                               [](const auto &) {});
       }
     };
 
-  // TODO(yuraz): refactor PRE-119
+    // TODO(yuraz): refactor PRE-119
     template <class... T>
     struct VariantDecoder {
       using Variant = boost::variant<T...>;
