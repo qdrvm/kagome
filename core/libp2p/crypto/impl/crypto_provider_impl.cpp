@@ -7,7 +7,6 @@
 
 #include "libp2p/crypto/error.hpp"
 #include "libp2p/crypto/private_key.hpp"
-#include "libp2p/crypto/proto/keys.pb.h"
 
 namespace libp2p::crypto {
   using kagome::common::Buffer;
