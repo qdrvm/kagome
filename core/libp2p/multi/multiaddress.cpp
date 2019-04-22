@@ -125,8 +125,11 @@ namespace libp2p::multi {
   std::vector<std::string> Multiaddress::getValuesForProtocol(
       Protocol::Code proto) const {
     std::vector<std::string> values;
-
-    auto proto_str = "/"s + std::string(ProtocolList::get(proto)->name);
+    auto protocol = ProtocolList::get(proto);
+    if(!protocol) {
+        return {};
+    }
+    auto proto_str = "/"s + std::string(protocol->name);
     auto proto_positions =
         findSubstringOccurrences(stringified_address_, proto_str);
 
