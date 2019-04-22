@@ -4,12 +4,12 @@
 #
 
 add_library(hmac_provider
-        hmac_provider.hpp
-        hmac_provider.cpp
-        )
+    hmac_provider.hpp
+    hmac_provider.cpp
+    )
 
 target_link_libraries(hmac_provider
-        buffer
-        crypto_error
-        OpenSSL::Crypto
-        )
+    buffer
+    crypto_error
+    OpenSSL::Crypto
+    )

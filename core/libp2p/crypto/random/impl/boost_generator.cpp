@@ -7,10 +7,12 @@
 
 namespace libp2p::crypto::random {
 
-  void BoostRandomGenerator::randomBytes(unsigned char *out, size_t len) {
+  RandomGenerator::Buffer BoostRandomGenerator::randomBytes(size_t len) {
+    Buffer buffer(len, 0);
     for (size_t i = 0; i < len; ++i) {
       unsigned char byte = distribution_(generator_);
-      out[i] = byte;  // NOLINT
+      buffer[i] = byte;  // NOLINT
     }
+    return buffer;
   }
 }  // namespace libp2p::crypto::random

@@ -6,8 +6,6 @@
 #include "libp2p/crypto/random/impl/boost_generator.hpp"
 #include "libp2p/crypto/random/impl/std_generator.hpp"
 
-#include <iostream>
-
 #include <gtest/gtest.h>
 #include "common/buffer.hpp"
 
@@ -17,41 +15,39 @@ using libp2p::crypto::random::RandomGenerator;
 using libp2p::crypto::random::StdRandomGenerator;
 
 /**
- * @given 2 boost random numbers generators
- * @when randomBytes is called to generate to buffers of random nubmers
+ * @given 2 instances of boost random numbers generators
+ * @when each generator's randomBytes method is called to generate to buffers of
+ * random nubmers
  * @then obtained byte sequences are not equal
+ * This test checks that random bytes generator dosn't start with the same
+ * sequence each time it has been created
  */
-TEST(Random, boostGenerator) {
+TEST(BoostGeneratorTest, StartSequencesAreNotSame) {
   BoostRandomGenerator generator1, generator2;
   constexpr size_t BUFFER_SIZE = 32;
-  std::vector<unsigned char> bytes1(BUFFER_SIZE, 0);
-  std::vector<unsigned char> bytes2(BUFFER_SIZE, 0);
 
-  generator1.randomBytes(bytes1.data(), BUFFER_SIZE);
-  generator2.randomBytes(bytes2.data(), BUFFER_SIZE);
+  auto bytes1 = generator1.randomBytes(BUFFER_SIZE);
+  auto bytes2 = generator2.randomBytes(BUFFER_SIZE);
 
-  std::cout << Buffer(bytes1).toHex() << std::endl;
-  std::cout << Buffer(bytes2).toHex() << std::endl;
-  ASSERT_NE(bytes1, bytes2);
+  ASSERT_NE(bytes1.toVector(), bytes2.toVector());
 }
 
 /**
- * @given 2 std random numbers generators
- * @when randomBytes is called to generate to buffers of random nubmers
+ * @given 2 instances of std random numbers generators
+ * @when each generator's randomBytes method is called to generate to buffers of
+ * random nubmers
  * @then obtained byte sequences are not equal
+ * This test checks that random bytes generator dosn't start with the same
+ * sequence each time it has been created
  */
-TEST(Random, stdGenerator) {
+TEST(StdGeneratorTest, StartSequencesAreNotSame) {
   StdRandomGenerator generator1, generator2;
   constexpr size_t BUFFER_SIZE = 32;
-  std::vector<unsigned char> bytes1(BUFFER_SIZE, 0);
-  std::vector<unsigned char> bytes2(BUFFER_SIZE, 0);
 
-  generator1.randomBytes(bytes1.data(), BUFFER_SIZE);
-  generator2.randomBytes(bytes2.data(), BUFFER_SIZE);
+  auto bytes1 = generator1.randomBytes(BUFFER_SIZE);
+  auto bytes2 = generator2.randomBytes(BUFFER_SIZE);
 
-  std::cout << Buffer(bytes1).toHex() << std::endl;
-  std::cout << Buffer(bytes2).toHex() << std::endl;
-  ASSERT_NE(bytes1, bytes2);
+  ASSERT_NE(bytes1.toVector(), bytes2.toVector());
 }
 
 namespace {
@@ -61,7 +57,6 @@ namespace {
    * @brief calculates entropy of byte sequence
    * @param sequence  source byte sequence
    * @return entropy value
-   * @
    */
   double entropy(gsl::span<uint8_t> sequence) {
     std::vector<uint8_t> freqs(256, 0);
@@ -101,14 +96,12 @@ namespace {
  * @return true if quality is good enough false otherwise
  */
 bool checkRandomGenerator(RandomGenerator &generator) {
-  std::vector<uint8_t> buf(256, 0);
-  generator.randomBytes(buf.data(), buf.size());
+  constexpr size_t BUFFER_SIZE = 256;
+
+  auto buffer = generator.randomBytes(BUFFER_SIZE);
 
   auto max = max_entropy(256);  // 8
-  auto ent = entropy(buf);
-
-  std::cout << "max entropy: " << max << std::endl;
-  std::cout << "calculated:  " << ent << std::endl;
+  auto ent = entropy(buffer.toVector());
 
   return ent >= (max - 2);
 }
@@ -118,7 +111,7 @@ bool checkRandomGenerator(RandomGenerator &generator) {
  * @when get random bytes and calculate entropy
  * @then calculated entropy is not less than (max entropy - 2)
  */
-TEST(Random, enoughEntropyBoostGenerator) {
+TEST(BoostGeneratorTest, EnoughEntropy) {
   BoostRandomGenerator generator;
   bool res = checkRandomGenerator(static_cast<RandomGenerator &>(generator));
   ASSERT_TRUE(res) << "bad randomness source in BoostRandomGenerator";
@@ -129,7 +122,7 @@ TEST(Random, enoughEntropyBoostGenerator) {
  * @when get random bytes and calculate entropy
  * @then calculated entropy is not less than (max entropy - 2)
  */
-TEST(Random, enoughEntropyStdGenerator) {
+TEST(StdGeneratorTest, EnoughEntropy) {
   StdRandomGenerator generator;
   bool res = checkRandomGenerator(static_cast<RandomGenerator &>(generator));
   ASSERT_TRUE(res) << "bad randomness source in BoostRandomGenerator";

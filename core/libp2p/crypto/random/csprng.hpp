@@ -17,10 +17,10 @@ namespace libp2p::crypto::random {
    public:
     /**
      * @brief generators random bytes
-     * @param out pointer to buffer
      * @param len number of bytes
+     * @return buffer containing random bytes
      */
-    void randomBytes(unsigned char *out, size_t len) override = 0;
+    Buffer randomBytes(size_t len) override = 0;
   };
 }  // namespace libp2p::crypto::random
 

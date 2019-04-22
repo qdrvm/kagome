@@ -4,12 +4,12 @@
 #
 
 add_library(aes_provider
-        aes_provider.hpp
-        aes_provider.cpp
-        )
+    aes_provider.hpp
+    aes_provider.cpp
+    )
 
 target_link_libraries(aes_provider
-        buffer
-        crypto_error
-        OpenSSL::Crypto
-        )
+    buffer
+    crypto_error
+    OpenSSL::Crypto
+    )

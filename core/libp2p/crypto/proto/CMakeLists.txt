@@ -4,5 +4,5 @@
 #
 
 add_proto_library(keys_proto
-        keys.proto
-        )
+    keys.proto
+    )

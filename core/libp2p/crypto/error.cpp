@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "error.hpp"
+#include "libp2p/crypto/error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, CryptoProviderError, e) {
   using libp2p::crypto::CryptoProviderError;
@@ -14,8 +14,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, CryptoProviderError, e) {
       return "failed to unmarshal key";
     case CryptoProviderError::FAILED_UNMARSHAL_DATA:
       return "google protobuf error, failed to unmarshal data";
-    default:
-      break;
   }
   return "unknown CryptoProviderError code";
 }
@@ -37,8 +35,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, OpenSslError, e) {
       return "failed to finalize decryption";
     case OpenSslError::WRONG_IV_SIZE:
       return "wrong iv size";
-    default:
-      break;
   }
   return "unknown CryptoProviderError code";
 }
@@ -48,8 +44,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, MiscError, e) {
   switch (e) {  // NOLINT
     case MiscError::WRONG_ARGUMENT_VALUE:
       return "wrong argument value";
-    default:
-      break;
   }
   return "unknown MiscError code";
 }
@@ -69,8 +63,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, HmacProviderError, e) {
       return "failed to finalize digest";
     case HmacProviderError::WRONG_DIGEST_SIZE:
       return "wrong digest size";
-    default:
-      break;
   }
   return "unknown HmacProviderError code";
 }
@@ -86,8 +78,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, RandomProviderError, e) {
       return "failed to fetch bytes from source";
     case RandomProviderError::INVALID_PROVIDER_TYPE:
       return "invalid or unsupported random provider type";
-    default:
-      break;
   }
   return "unknown RandomProviderError code";
 }

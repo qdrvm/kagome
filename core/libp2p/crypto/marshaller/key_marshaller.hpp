@@ -12,6 +12,10 @@
 #include "libp2p/crypto/public_key.hpp"
 
 namespace libp2p::crypto::marshaller {
+  /**
+   * @class KeyMarshaller provides methods for serializing and deserializing
+   * private and public keys from/to google-protobuf format
+   */
   class KeyMarshaller {
     using Buffer = kagome::common::Buffer;
 
@@ -48,6 +52,6 @@ namespace libp2p::crypto::marshaller {
     outcome::result<PrivateKey> unmarshalPrivateKey(
         const Buffer &key_bytes) const;
   };
-}  // namespace libp2p::crypto::proto
+}  // namespace libp2p::crypto::marshaller
 
 #endif  // KAGOME_CORE_LIBP2P_CRYPTO_MARSHALER_KEY_MARSHALER_HPP
