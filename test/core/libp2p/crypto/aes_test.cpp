@@ -12,12 +12,12 @@
 using kagome::common::Buffer;
 using namespace libp2p::crypto;
 
-class AesFixture : public testing::Test {
+class AesTest : public testing::Test {
  public:
   using Aes128Secret = libp2p::crypto::common::Aes128Secret;
   using Aes256Secret = libp2p::crypto::common::Aes256Secret;
 
-  AesFixture() {
+  AesTest() {
     iv = {0x3d, 0xaf, 0xba, 0x42, 0x9d, 0x9e, 0xb4, 0x30,
           0xb4, 0x22, 0xda, 0x80, 0x2c, 0x9f, 0xac, 0x41};
 
@@ -57,7 +57,7 @@ class AesFixture : public testing::Test {
  * @when encrypt aes-128-ctr is applied
  * @then result matches encrypted text
  */
-TEST_F(AesFixture, encode_aes_ctr_128) {
+TEST_F(AesTest, EncodeAesCtr128Success) {
   Aes128Secret secret;
 
   std::copy(key_128.begin(), key_128.end(), secret.key);
@@ -73,7 +73,7 @@ TEST_F(AesFixture, encode_aes_ctr_128) {
  * @when encrypt aes-256-ctr is applied
  * @then result matches encrypted text
  */
-TEST_F(AesFixture, encode_aes_ctr_256) {
+TEST_F(AesTest, EncodeAesCtr256Success) {
   Aes256Secret secret;
 
   std::copy(key_256.begin(), key_256.end(), secret.key);
@@ -89,7 +89,7 @@ TEST_F(AesFixture, encode_aes_ctr_256) {
  * @when decrypt aes-128-ctr is applied
  * @then result matches plain text
  */
-TEST_F(AesFixture, decode_aes_ctr_128) {
+TEST_F(AesTest, DecodeAesCtr128Success) {
   Aes128Secret secret;
 
   std::copy(key_128.begin(), key_128.end(), secret.key);
@@ -105,7 +105,7 @@ TEST_F(AesFixture, decode_aes_ctr_128) {
  * @when decrypt aes-256-ctr is applied
  * @then result matches plain text
  */
-TEST_F(AesFixture, decode_aes_ctr_256) {
+TEST_F(AesTest, DecodeAesCtr256Success) {
   Aes256Secret secret;
 
   std::copy(key_256.begin(), key_256.end(), secret.key);

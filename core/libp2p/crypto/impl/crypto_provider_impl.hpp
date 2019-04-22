@@ -9,6 +9,7 @@
 #include "libp2p/crypto/aes/aes_provider.hpp"
 #include "libp2p/crypto/crypto_provider.hpp"
 #include "libp2p/crypto/hmac/hmac_provider.hpp"
+#include "libp2p/crypto/marshaller/key_marshaller.hpp"
 
 namespace libp2p::crypto {
   class CryptoProviderImpl : public CryptoProvider {
@@ -57,8 +58,6 @@ namespace libp2p::crypto {
         boost::filesystem::path pem_path,
         std::string_view password) const override;
 
-    Buffer randomBytes(size_t number) const override;
-
     Buffer pbkdf2(std::string_view password, const Buffer &salt,
                   uint64_t iterations, size_t key_size,
                   common::HashType hash) const override;
@@ -67,9 +66,12 @@ namespace libp2p::crypto {
         const PrivateKey &private_key) const override;
 
    private:
-    aes::AesProvider
-        aes_provider_;  ///< provides methods for aes ctr 128 and 256
-    hmac::HmacProvider hmac_provider_;  ///< provides method for making digest
+    /// provides methods for aes ctr 128 and 256
+    aes::AesProvider aes_provider_;
+    /// provides method for making digest
+    hmac::HmacProvider hmac_provider_;
+    /// provides keys marshaling
+    marshaller::KeyMarshaller key_marshaller_;
   };
 }  // namespace libp2p::crypto
 

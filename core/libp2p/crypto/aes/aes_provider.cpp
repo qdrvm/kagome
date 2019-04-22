@@ -8,7 +8,6 @@
 #include <openssl/aes.h>  // for AES_BLOCK_SIZE
 #include <openssl/evp.h>
 #include <gsl/span>
-
 #include "libp2p/crypto/error.hpp"
 
 namespace libp2p::crypto::aes {
@@ -22,7 +21,7 @@ namespace libp2p::crypto::aes {
                                   gsl::span<const uint8_t> iv,
                                   const EVP_CIPHER *cipher) {
     if (nullptr == cipher) {
-      return MiscError::kWrongArgumentValue;
+      return MiscError::WRONG_ARGUMENT_VALUE;
     }
 
     int len = 0;
@@ -40,7 +39,7 @@ namespace libp2p::crypto::aes {
     // Create and initialise the context
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
     if (nullptr == ctx) {
-      return OpenSslError::kFailedInitializeContext;
+      return OpenSslError::FAILED_INITIALIZE_CONTEXT;
     }
 
     // clean-up context at exit from function
@@ -48,14 +47,14 @@ namespace libp2p::crypto::aes {
 
     // Initialise the encryption operation.
     if (1 != EVP_EncryptInit_ex(ctx, cipher, nullptr, key.data(), iv.data())) {
-      return OpenSslError::kFailedInitializeOperation;
+      return OpenSslError::FAILED_INITIALIZE_OPERATION;
     }
 
     // Provide the message to be encrypted, and obtain the encrypted output.
     if (1
         != EVP_EncryptUpdate(ctx, cipher_text.data(), &len, plain_text,
                              plain_len)) {
-      return OpenSslError::kFailedEncryptUpdate;
+      return OpenSslError::FAILED_ENCRYPT_UPDATE;
     }
 
     cipher_len = len;
@@ -63,7 +62,7 @@ namespace libp2p::crypto::aes {
     // Finalise the encryption.
     auto *write_position = cipher_text.data() + len;  // NOLINT
     if (1 != EVP_EncryptFinal_ex(ctx, write_position, &len)) {
-      return OpenSslError::kFailedEncryptFinalize;
+      return OpenSslError::FAILED_ENCRYPT_FINALIZE;
     }
 
     cipher_len += len;
@@ -77,7 +76,7 @@ namespace libp2p::crypto::aes {
                                   gsl::span<const uint8_t> iv,
                                   const EVP_CIPHER *cipher) {
     if (nullptr == cipher) {
-      return MiscError::kWrongArgumentValue;
+      return MiscError::WRONG_ARGUMENT_VALUE;
     }
 
     int len = 0;
@@ -91,7 +90,7 @@ namespace libp2p::crypto::aes {
     // Create and initialise the context
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
     if (nullptr == ctx) {
-      return OpenSslError::kFailedInitializeContext;
+      return OpenSslError::FAILED_INITIALIZE_CONTEXT;
     }
 
     // clean-up context at exit from function
@@ -99,14 +98,14 @@ namespace libp2p::crypto::aes {
 
     // Initialise the decryption operation.
     if (1 != EVP_DecryptInit_ex(ctx, cipher, nullptr, key.data(), iv.data())) {
-      return OpenSslError::kFailedInitializeOperation;
+      return OpenSslError::FAILED_INITIALIZE_OPERATION;
     }
 
     // Provide the message to be decrypted, and obtain the plaintext output.
     if (1
         != EVP_DecryptUpdate(ctx, plain_text.data(), &len, cipher_text,
                              cipher_len)) {
-      return OpenSslError::kFailedDecryptUpdate;
+      return OpenSslError::FAILED_DECRYPT_UPDATE;
     }
 
     plain_len = len;
@@ -114,7 +113,7 @@ namespace libp2p::crypto::aes {
     // Finalise the decryption.
     auto *write_position = plain_text.data() + len;  // NOLINT
     if (1 != EVP_DecryptFinal_ex(ctx, write_position, &len)) {
-      return OpenSslError::kFailedDecryptFinalize;
+      return OpenSslError::FAILED_DECRYPT_FINALIZE;
     }
 
     plain_len += len;

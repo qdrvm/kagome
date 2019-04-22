@@ -4,25 +4,38 @@
 #
 
 addtest(keys_test
-        keys_test.cpp
-        )
-
+    keys_test.cpp
+    )
 target_link_libraries(keys_test
-        crypto_provider
-        )
+    crypto_provider
+    )
 
 addtest(aes_test
-        aes_test.cpp
-        )
-
+    aes_test.cpp
+    )
 target_link_libraries(aes_test
-        crypto_provider
-        )
+    aes_provider
+    crypto_error
+    )
 
 addtest(hmac_test
-        hmac_test.cpp
-        )
-
+    hmac_test.cpp
+    )
 target_link_libraries(hmac_test
-        crypto_provider
-        )
+    crypto_provider
+    )
+
+addtest(random_test
+    random_test.cpp
+    )
+target_link_libraries(random_test
+    buffer
+    random_provider
+    )
+
+addtest(marshaller_test
+    marshaller_test.cpp
+    )
+target_link_libraries(marshaller_test
+    crypto_provider
+    )

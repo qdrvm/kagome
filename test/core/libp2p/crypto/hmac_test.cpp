@@ -14,9 +14,9 @@
 using kagome::common::Buffer;
 using namespace libp2p::crypto;
 
-class HmacFixture : public testing::Test {
+class HmacTest : public testing::Test {
  public:
-  HmacFixture() {
+  HmacTest() {
     sha1_key = {0x55, 0xcd, 0x43, 0x3b, 0xe9, 0x56, 0x8e,
                 0xe7, 0x95, 0x25, 0xa0, 0x91, 0x9c, 0xf4,
                 0xb3, 0x1c, 0x28, 0x10, 0x8c, 0xee};  // 20 bytes
@@ -71,7 +71,7 @@ class HmacFixture : public testing::Test {
  * @when hmacDigest is applied with hash = kSha1
  * @then obtained digest matches predefined one
  */
-TEST_F(HmacFixture, hashSha1) {
+TEST_F(HmacTest, HashSha1Success) {
   auto &&digest =
       provider.calculateDigest(common::HashType::kSHA1, sha1_key, message);
   ASSERT_TRUE(digest);
@@ -84,7 +84,7 @@ TEST_F(HmacFixture, hashSha1) {
  * @when hmacDigest is applied with hash = kSha256
  * @then obtained digest matches predefined one
  */
-TEST_F(HmacFixture, hashSha256) {
+TEST_F(HmacTest, HashSha256Success) {
   auto &&digest =
       provider.calculateDigest(common::HashType::kSHA256, sha256_key, message);
   ASSERT_TRUE(digest);
@@ -97,7 +97,7 @@ TEST_F(HmacFixture, hashSha256) {
  * @when hmacDigest is applied with hash = kSha512
  * @then obtained digest matches predefined one
  */
-TEST_F(HmacFixture, hashSha512) {
+TEST_F(HmacTest, HashSha512Success) {
   auto &&digest =
       provider.calculateDigest(common::HashType::kSHA512, sha512_key, message);
   ASSERT_TRUE(digest);
@@ -110,10 +110,10 @@ TEST_F(HmacFixture, hashSha512) {
  * @when hmacDigest is applied with given value
  * @then error is returned
  */
-TEST_F(HmacFixture, hashInvalid) {
+TEST_F(HmacTest, HashInvalidFails) {
   auto &&digest = provider.calculateDigest(static_cast<common::HashType>(15),
                                            sha1_key, message);
   ASSERT_FALSE(digest);
   ASSERT_EQ(digest.error().value(),
-            static_cast<int>(HmacProviderError::kUnsupportedHashMethod));
+            static_cast<int>(HmacProviderError::UNSUPPORTED_HASH_METHOD));
 }

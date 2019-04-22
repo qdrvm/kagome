@@ -3,27 +3,45 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(aes)
+add_subdirectory(hmac)
+add_subdirectory(marshaller)
+add_subdirectory(proto)
+add_subdirectory(random)
+
+add_library(crypto_key
+    key.hpp
+    key.cpp
+    )
+target_link_libraries(crypto_key
+    buffer
+    )
+
 add_library(crypto_provider
-        aes/aes_provider.hpp
-        aes/aes_provider.cpp
-        common.hpp
-        crypto_provider.hpp
-        error.hpp
-        error.cpp
-        hmac/hmac_provider.hpp
-        hmac/hmac_provider.cpp
-        impl/crypto_provider_impl.hpp
-        impl/crypto_provider_impl.cpp
-        key.hpp
-        key.cpp
-        private_key.hpp
-        public_key.hpp
-        )
+    common.hpp
+    crypto_provider.hpp
+    impl/crypto_provider_impl.hpp
+    impl/crypto_provider_impl.cpp
+    key.hpp
+    private_key.hpp
+    public_key.hpp
+    )
 
 target_link_libraries(crypto_provider
-        buffer
-        keys_proto
-        OpenSSL::Crypto
-        )
+    aes_provider
+    buffer
+    crypto_error
+    crypto_key
+    hmac_provider
+    marshaller
+    Boost::boost
+    )
 
-add_subdirectory(proto)
+add_library(crypto_error
+    error.hpp
+    error.cpp
+    )
+
+target_link_libraries(crypto_error
+    outcome
+    )
