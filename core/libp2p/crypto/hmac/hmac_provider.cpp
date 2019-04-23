@@ -11,7 +11,7 @@
 namespace libp2p::crypto::hmac {
   using Buffer = kagome::common::Buffer;
 
-  int digestSize(common::HashType type) {
+  size_t digestSize(common::HashType type) {
     switch (type) {
       case common::HashType::kSHA1:
         return 20;
@@ -19,8 +19,6 @@ namespace libp2p::crypto::hmac {
         return 32;
       case common::HashType::kSHA512:
         return 64;
-      default:
-        break;
     }
     return 0;
   }
@@ -33,8 +31,6 @@ namespace libp2p::crypto::hmac {
         return EVP_sha256();
       case common::HashType::kSHA512:
         return EVP_sha512();
-      default:
-        break;
     }
     return nullptr;
   }
@@ -42,7 +38,7 @@ namespace libp2p::crypto::hmac {
   outcome::result<Buffer> HmacProvider::calculateDigest(
       HashType hash_type, const Buffer &key, const Buffer &message) const {
     const evp_md_st *evp_md = makeHashTraits(hash_type);
-    int digest_size = digestSize(hash_type);
+    auto digest_size = digestSize(hash_type);
     if (evp_md == nullptr || digest_size == 0) {
       return HmacProviderError::UNSUPPORTED_HASH_METHOD;
     }

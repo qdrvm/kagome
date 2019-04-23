@@ -3,13 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "libp2p/crypto/public_key.hpp"
+
 #include <gtest/gtest.h>
 #include <outcome/outcome.hpp>
-
 #include "common/buffer.hpp"
-
 #include "libp2p/crypto/common.hpp"
-#include "libp2p/crypto/public_key.hpp"
 
 using kagome::common::Buffer;
 using namespace libp2p::crypto;

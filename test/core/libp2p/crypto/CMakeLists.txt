@@ -8,7 +8,6 @@ addtest(keys_test
     )
 target_link_libraries(keys_test
     crypto_key
-    crypto_error
     )
 
 addtest(aes_test
@@ -16,7 +15,6 @@ addtest(aes_test
     )
 target_link_libraries(aes_test
     aes_provider
-    crypto_error
     )
 
 addtest(hmac_test
@@ -24,14 +22,12 @@ addtest(hmac_test
     )
 target_link_libraries(hmac_test
     hmac_provider
-    crypto_error
     )
 
 addtest(random_test
     random_test.cpp
     )
 target_link_libraries(random_test
-    buffer
     random_provider
     )
 
@@ -39,6 +35,5 @@ addtest(marshaller_test
     marshaller_test.cpp
     )
 target_link_libraries(marshaller_test
-    keys_proto
     marshaller
     )
