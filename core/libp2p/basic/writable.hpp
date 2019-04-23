@@ -26,7 +26,7 @@ namespace libp2p::basic {
      * @see boost::asio::buffer to pass any buffer as first argument
      *
      * @param buf buffer to write.
-     * @param cb completion hander that is executed after operation succeeds.
+     * @param cb completion handler that is executed after operation succeeds.
      */
     virtual void asyncWrite(const boost::asio::const_buffer &buf,
                             std::function<CompletionHandler> cb)  = 0;
