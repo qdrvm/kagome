@@ -35,6 +35,8 @@ namespace libp2p::multi {
     Multiaddress(Multiaddress &&address) noexcept = default;
     Multiaddress &operator=(Multiaddress &&address) = default;
 
+    ~Multiaddress() = default;
+
     enum class Error {
       INVALID_INPUT = 1,     ///< input contains invalid multiaddress
       PROTOCOL_NOT_FOUND,     ///< given protocol can not be found
