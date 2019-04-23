@@ -22,6 +22,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::muxer, Yamux::YamuxErrorStream, e) {
     case ErrorType::YAMUX_IS_CLOSED:
       return "this Yamux instance is closed";
   }
+
+  return "unknown";
 }
 
 namespace libp2p::muxer {
