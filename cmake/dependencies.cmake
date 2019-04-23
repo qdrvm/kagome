@@ -7,8 +7,8 @@ find_package(GTest CONFIG REQUIRED)
 find_package(GMock CONFIG REQUIRED)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
-hunter_add_package(Boost)
-find_package(Boost CONFIG REQUIRED)
+hunter_add_package(Boost COMPONENTS random)
+find_package(Boost CONFIG REQUIRED random)
 
 ## TODO: uncomment when it is really needed
 ## https://docs.hunter.sh/en/latest/packages/pkg/libjson-rpc-cpp.html
@@ -34,3 +34,7 @@ find_package(binaryen CONFIG REQUIRED)
 # https://www.openssl.org/
 hunter_add_package(OpenSSL)
 find_package(OpenSSL REQUIRED)
+
+# https://developers.google.com/protocol-buffers/
+hunter_add_package(Protobuf)
+find_package(Protobuf CONFIG REQUIRED)
