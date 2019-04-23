@@ -6,7 +6,7 @@
 #include "libp2p/crypto/marshaller/key_marshaller.hpp"
 
 #include "libp2p/crypto/common.hpp"
-#include "libp2p/crypto/proto/keys.pb.h" // NOLINT
+#include "libp2p/crypto/proto/keys.pb.h"
 
 namespace libp2p::crypto::marshaller {
   using kagome::common::Buffer;

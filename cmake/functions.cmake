@@ -97,6 +97,4 @@ function(add_proto_library NAME)
       ${CMAKE_BINARY_DIR}/generated/core
       )
   disable_clang_tidy(${NAME})
-  file(COPY ${PROJECT_SOURCE_DIR}/.clang-tidy DESTINATION ${CMAKE_BINARY_DIR}/generated/core/)
-  file(COPY ${PROJECT_SOURCE_DIR}/.clang-tidy-ignore DESTINATION ${CMAKE_BINARY_DIR}/generated/core/)
 endfunction()
