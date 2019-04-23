@@ -325,7 +325,7 @@ TEST_F(YamuxIntegrationTest, CloseEntirely) {
 
         connection_->asyncWrite(
             boost::asio::buffer(expected_close_stream_msg.toVector()),
-            [&expected_close_stream_msg, &stream](auto &&ec, auto &&n) {
+            [&expected_close_stream_msg](auto &&ec, auto &&n) {
               checkIOSuccess(ec, n, expected_close_stream_msg.size());
             });
       });
