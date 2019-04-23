@@ -17,25 +17,22 @@ target_link_libraries(crypto_key
     buffer
     )
 
-add_library(crypto_provider
-    common.hpp
-    crypto_provider.hpp
-    impl/crypto_provider_impl.hpp
-    impl/crypto_provider_impl.cpp
-    key.hpp
-    private_key.hpp
-    public_key.hpp
-    )
-
-target_link_libraries(crypto_provider
-    aes_provider
-    buffer
-    crypto_error
-    crypto_key
-    hmac_provider
-    marshaller
-    Boost::boost
-    )
+#add_library(crypto_provider
+#    common.hpp
+#    key.hpp
+#    private_key.hpp
+#    public_key.hpp
+#    )
+#
+#target_link_libraries(crypto_provider
+#    aes_provider
+#    buffer
+#    crypto_error
+#    crypto_key
+#    hmac_provider
+#    marshaller
+#    Boost::boost
+#    )
 
 add_library(crypto_error
     error.hpp
