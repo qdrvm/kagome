@@ -84,14 +84,14 @@ namespace libp2p::crypto {
      * Generate a ED25519 key pair
      * @return key pair
      */
-    virtual common::KeyPair generateEd25519Keypair() const = 0;
+    virtual common::KeyPair generateEd25519Keypair() const = 0; --
 
     /**
      * Generate a RSA key pair
      * @param key_type - desired type of the key
      * @return key pair
      */
-    virtual common::KeyPair generateRSAKeypair(
+    virtual common::KeyPair generateRSAKeypair( --
         common::RSAKeyType key_type) const = 0;
 
     /**
@@ -100,7 +100,7 @@ namespace libp2p::crypto {
      * @param curve to be used in this ECDH
      * @return ephemeral key pair
      */
-    virtual common::EphemeralKeyPair generateEphemeralKeyPair(
+    virtual common::EphemeralKeyPair generateEphemeralKeyPair( --
         common::CurveType curve) const = 0;
 
     /**
@@ -110,7 +110,7 @@ namespace libp2p::crypto {
      * @param secret to be used
      * @return objects of type StretchedKey
      */
-    virtual std::vector<common::StretchedKey> keyStretcher(
+    virtual std::vector<common::StretchedKey> keyStretcher( --
         common::CipherType cipher_type, common::HashType hash_type,
         const kagome::common::Buffer &secret) const = 0;
 
@@ -151,7 +151,7 @@ namespace libp2p::crypto {
      * @return private key from the file
      */
     virtual PrivateKey import(boost::filesystem::path pem_path,
-                              std::string_view password) const = 0;
+                              std::string_view password) const = 0; --
 
     /// misc utilities
 

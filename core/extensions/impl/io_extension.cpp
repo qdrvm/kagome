@@ -8,7 +8,7 @@
 namespace kagome::extensions {
   IOExtension::IOExtension(std::shared_ptr<runtime::WasmMemory> memory)
       : memory_(std::move(memory)),
-        logger_{common::createLogger("WASM Runtime")} {}
+        logger_{common::createLogger(kDefaultLoggerTag)} {}
 
   void IOExtension::ext_print_hex(runtime::WasmPointer data,
                                   runtime::SizeType length) {

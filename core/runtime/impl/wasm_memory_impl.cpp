@@ -9,6 +9,7 @@ namespace kagome::runtime {
 
   WasmMemoryImpl::WasmMemoryImpl() {
     offset_ = 0;
+    allocate(4096);
   }
 
   WasmMemoryImpl::WasmMemoryImpl(SizeType size) : WasmMemoryImpl() {
@@ -19,7 +20,7 @@ namespace kagome::runtime {
     return memory_.size();
   }
 
-  void WasmMemoryImpl::resize(uint32_t newSize) {
+  void WasmMemoryImpl::resize(runtime::SizeType newSize) {
     // Ensure the smallest allocation is large enough that most allocators
     // will provide page-aligned storage. This hopefully allows the
     // interpreter's memory to be as aligned as the MemoryImpl being

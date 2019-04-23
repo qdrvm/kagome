@@ -23,3 +23,10 @@ addtest(runtime_external_interface_test
 target_link_libraries(runtime_external_interface_test
     runtime_api
     )
+
+addtest(core_integration_test
+    core_integration_test.cpp
+    )
+target_link_libraries(core_integration_test
+    core
+    )

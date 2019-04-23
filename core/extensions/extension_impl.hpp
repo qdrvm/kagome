@@ -12,6 +12,7 @@
 #include "extensions/impl/memory_extension.hpp"
 #include "extensions/impl/misc_extension.hpp"
 #include "extensions/impl/storage_extension.hpp"
+#include "storage/merkle/trie_db.hpp"
 
 namespace kagome::extensions {
   /**
@@ -19,7 +20,13 @@ namespace kagome::extensions {
    */
   class ExtensionImpl : public Extension {
    public:
-    ~ExtensionImpl() override  = default;
+    ExtensionImpl() = delete;
+    ExtensionImpl(const std::shared_ptr<runtime::WasmMemory>& memory,
+                  std::shared_ptr<storage::merkle::TrieDb> db);
+
+    ~ExtensionImpl() override = default;
+
+    std::shared_ptr<runtime::WasmMemory> memory() const override;
 
     // -------------------------Storage extensions--------------------------
 
@@ -91,6 +98,9 @@ namespace kagome::extensions {
     uint64_t ext_chain_id() const override;
 
    private:
+    std::shared_ptr<runtime::WasmMemory> memory_;
+    std::shared_ptr<storage::merkle::TrieDb> db_;
+
     CryptoExtension crypto_ext_;
     IOExtension io_ext_;
     MemoryExtension memory_ext_;

@@ -1,3 +1,5 @@
+#include <utility>
+
 /**
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
@@ -6,6 +8,21 @@
 #include "extensions/extension_impl.hpp"
 
 namespace kagome::extensions {
+
+  ExtensionImpl::ExtensionImpl(
+      const std::shared_ptr<runtime::WasmMemory> &memory,
+      std::shared_ptr<storage::merkle::TrieDb> db)
+      : memory_(memory),
+        db_(std::move(db)),
+        crypto_ext_(memory),
+        io_ext_(memory),
+        memory_ext_(memory),
+        storage_ext_(db_, memory_) {}
+
+  std::shared_ptr<runtime::WasmMemory> ExtensionImpl::memory() const {
+    return memory_;
+  }
+
   // -------------------------Storage extensions--------------------------
 
   void ExtensionImpl::ext_clear_prefix(runtime::WasmPointer prefix_data,
@@ -66,11 +83,11 @@ namespace kagome::extensions {
 
   // -------------------------Memory extensions--------------------------
 
-  int32_t ExtensionImpl::ext_malloc(uint32_t size) {
+  runtime::WasmPointer ExtensionImpl::ext_malloc(runtime::SizeType size) {
     return memory_ext_.ext_malloc(size);
   }
 
-  void ExtensionImpl::ext_free(int32_t ptr) {
+  void ExtensionImpl::ext_free(runtime::WasmPointer ptr) {
     memory_ext_.ext_free(ptr);
   }
 

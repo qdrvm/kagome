@@ -13,6 +13,5 @@ target_link_libraries(extensions
     io_extension
     memory_extension
     misc_extension
-    sandboxing_extension
     storage_extension
     )
