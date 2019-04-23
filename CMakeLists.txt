@@ -48,6 +48,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
   add_flag(-Wsign-compare)
 
   # disable those flags
+  add_flag(-Wno-unused-command-line-argument)    # clang: warning: argument unused during compilation: '--coverage' [-Wunused-command-line-argument]
   add_flag(-Wno-unused-parameter)    # prints too many useless warnings
   add_flag(-Wno-format-nonliteral)   # prints way too many warnings from spdlog
   add_flag(-Wno-gnu-zero-variadic-macro-arguments)   # https://stackoverflow.com/questions/21266380/is-the-gnu-zero-variadic-macro-arguments-safe-to-ignore
