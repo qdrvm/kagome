@@ -38,8 +38,6 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
   # enable those flags
   add_flag(-Wall)
   add_flag(-Wextra)
-  add_flag(-Wshadow)                 # warn the user if a variable declaration shadows one from a parent context
-  add_flag(-pedantic)                # (all versions of GCC, Clang >= 3.2) warn if non-standard C++ is used
   add_flag(-Woverloaded-virtual)     # warn if you overload (not override) a virtual function
   add_flag(-Wformat=2)               # warn on security issues around functions that format output (ie printf)
   add_flag(-Wmisleading-indentation) # (only in GCC >= 6.0) warn if indentation implies blocks where blocks do not exist
@@ -50,11 +48,14 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
   add_flag(-Wsign-compare)
 
   # disable those flags
+  add_flag(-Wno-unused-command-line-argument)    # clang: warning: argument unused during compilation: '--coverage' [-Wunused-command-line-argument]
   add_flag(-Wno-unused-parameter)    # prints too many useless warnings
   add_flag(-Wno-format-nonliteral)   # prints way too many warnings from spdlog
   add_flag(-Wno-gnu-zero-variadic-macro-arguments)   # https://stackoverflow.com/questions/21266380/is-the-gnu-zero-variadic-macro-arguments-safe-to-ignore
 
   # promote to errors
+  add_flag(-Werror-unused-lambda-capture)  # error if lambda capture is unused
+  add_flag(-Werror-return-type)      # warning: control reaches end of non-void function [-Wreturn-type]
   add_flag(-Werror-non-virtual-dtor) # warn the user if a class with virtual functions has a non-virtual destructor. This helps catch hard to track down memory errors
 
   # TODO(warchant): FIX WARNING: comparison of signed and unsigned; then uncomment
@@ -78,8 +79,13 @@ endif()
 add_subdirectory(deps)
 
 include_directories(
+  # project includes
   ${PROJECT_SOURCE_DIR}/core
-  # add path to header only deps here
+)
+
+include_directories(
+  SYSTEM
+  # system includes
   deps/spdlog/include
   deps/GSL/include
   deps/outcome

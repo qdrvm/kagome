@@ -5,7 +5,6 @@
 
 #include <gtest/gtest.h>
 
-#include "common/result.hpp"
 #include "scale/byte_array_stream.hpp"
 #include "scale/compact.hpp"
 #include "scale/scale_error.hpp"
