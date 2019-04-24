@@ -35,6 +35,7 @@ namespace test {
 
   void BaseFS_Test::SetUp() {
     clear();
+    mkdir();
   }
 
   void BaseFS_Test::TearDown() {
