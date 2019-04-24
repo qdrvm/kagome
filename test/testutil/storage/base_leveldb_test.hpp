@@ -15,7 +15,7 @@ namespace test {
   using kagome::storage::LevelDB;
 
   struct BaseLevelDB_Test : public BaseFS_Test {
-    BaseLevelDB_Test(const fs::path &path);
+    BaseLevelDB_Test(fs::path path);
 
     void open();
 

@@ -20,7 +20,7 @@ namespace test {
     ASSERT_TRUE(db) << "BaseLevelDB_Test: db is nullptr";
   }
 
-  BaseLevelDB_Test::BaseLevelDB_Test(const fs::path &path)
+  BaseLevelDB_Test::BaseLevelDB_Test(fs::path path)
       : BaseFS_Test(std::move(path)) {
     open();
   }
