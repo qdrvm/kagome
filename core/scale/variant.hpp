@@ -16,8 +16,6 @@
 #include "scale/type_decoder.hpp"
 #include "scale/type_encoder.hpp"
 
-using kagome::common::Buffer;
-
 namespace kagome::scale::variant {
   namespace detail {
     template <uint8_t i, class F, class H, class... T>
@@ -45,26 +43,26 @@ namespace kagome::scale::variant {
       using Variant = boost::variant<T...>;
       using Result = outcome::result<void>;
       const Variant &v_;
-      Buffer &out_;
+      kagome::common::Buffer &out_;
       Result &res_;
 
-      VariantEncoder(const Variant &v, Buffer &buf, Result &res)
+      VariantEncoder(const Variant &v, kagome::common::Buffer &buf, Result &res)
           : v_{v}, out_{buf}, res_{res} {}
 
       template <class H>
       void apply(uint8_t index) {
         // if type matches alternative in variant then encode
-        kagome::visit_in_place(v_,
-                               [this, index](const H &h) {
-                                 // first byte means type index
-                                 out_.putUint8(index);
-                                 auto &&encode_result =
-                                     TypeEncoder<H>{}.encode(h, out_);
-                                 if (!encode_result) {
-                                   res_ = encode_result.error();
-                                 }
-                               },
-                               [](const auto &) {});
+        kagome::visit_in_place(
+            v_,
+            [this, index](const H &h) {
+              // first byte means type index
+              out_.putUint8(index);
+              auto &&encode_result = TypeEncoder<H>{}.encode(h, out_);
+              if (!encode_result) {
+                res_ = encode_result.error();
+              }
+            },
+            [](const auto & /*unused*/) {});
       }
     };
 
@@ -112,7 +110,7 @@ namespace kagome::scale::variant {
    */
   template <class... T>
   outcome::result<void> encodeVariant(const boost::variant<T...> &v,
-                                      Buffer &out) {
+                                      kagome::common::Buffer &out) {
     outcome::result<void> res = outcome::success();
     auto encoder = detail::VariantEncoder<T...>(v, out, res);
     detail::for_each_apply<decltype(encoder), T...>(encoder);

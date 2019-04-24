@@ -19,7 +19,11 @@ namespace test {
 
     void open();
 
-    std::unique_ptr<LevelDB> db;
+    void SetUp() override;
+
+    void TearDown() override;
+
+    std::unique_ptr<LevelDB> db_;
   };
 
 }  // namespace test

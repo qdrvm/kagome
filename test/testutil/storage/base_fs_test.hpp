@@ -32,6 +32,10 @@ namespace test {
 
     ~BaseFS_Test() override;
 
+    void TearDown() override;
+
+    void SetUp() override;
+
    protected:
     fs::path base_path;
     kagome::common::Logger logger;

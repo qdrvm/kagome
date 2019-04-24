@@ -8,7 +8,6 @@
 
 #include <boost/filesystem/path.hpp>
 #include <outcome/outcome.hpp>
-
 #include "storage/concept/generic_map.hpp"
 #include "storage/concept/write_batch.hpp"
 

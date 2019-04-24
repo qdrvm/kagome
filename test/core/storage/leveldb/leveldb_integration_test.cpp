@@ -21,8 +21,8 @@ struct LevelDB_Integration_Test : public test::BaseLevelDB_Test {
   LevelDB_Integration_Test()
       : test::BaseLevelDB_Test("/tmp/kagome_leveldb_integration_test") {}
 
-  Buffer key{1, 3, 3, 7};
-  Buffer value{1, 2, 3};
+  Buffer key_{1, 3, 3, 7};
+  Buffer value_{1, 2, 3};
 };
 
 /**
@@ -31,10 +31,10 @@ struct LevelDB_Integration_Test : public test::BaseLevelDB_Test {
  * @then {value} is correct
  */
 TEST_F(LevelDB_Integration_Test, Put_Get) {
-  EXPECT_OUTCOME_TRUE_1(db->put(key, value));
-  EXPECT_TRUE(db->contains(key));
-  EXPECT_OUTCOME_TRUE_2(val, db->get(key));
-  EXPECT_EQ(val, value);
+  EXPECT_OUTCOME_TRUE_1(db_->put(key_, value_));
+  EXPECT_TRUE(db_->contains(key_));
+  EXPECT_OUTCOME_TRUE_2(val, db_->get(key_));
+  EXPECT_EQ(val, value_);
 }
 
 /**
@@ -43,9 +43,9 @@ TEST_F(LevelDB_Integration_Test, Put_Get) {
  * @then get "not found"
  */
 TEST_F(LevelDB_Integration_Test, Get_NonExistent) {
-  EXPECT_FALSE(db->contains(key));
-  EXPECT_OUTCOME_TRUE_1(db->remove(key));
-  auto r = db->get(key);
+  EXPECT_FALSE(db_->contains(key_));
+  EXPECT_OUTCOME_TRUE_1(db_->remove(key_));
+  auto r = db_->get(key_);
   EXPECT_FALSE(r);
   EXPECT_EQ(r.error().value(), (int)LevelDBError::kNotFound);
 }
@@ -60,23 +60,23 @@ TEST_F(LevelDB_Integration_Test, WriteBatch) {
   Buffer toBeRemoved = {3};
   std::list<Buffer> expected{{0}, {1}, {2}, {4}, {5}};
 
-  auto batch = db->batch();
+  auto batch = db_->batch();
   ASSERT_TRUE(batch);
 
   for (const auto &item : keys) {
     EXPECT_OUTCOME_TRUE_1(batch->put(item, item));
-    EXPECT_FALSE(db->contains(item));
+    EXPECT_FALSE(db_->contains(item));
   }
   EXPECT_OUTCOME_TRUE_1(batch->remove(toBeRemoved));
   EXPECT_OUTCOME_TRUE_1(batch->commit());
 
   for (const auto &item : expected) {
-    EXPECT_TRUE(db->contains(item));
-    EXPECT_OUTCOME_TRUE_2(val, db->get(item));
+    EXPECT_TRUE(db_->contains(item));
+    EXPECT_OUTCOME_TRUE_2(val, db_->get(item));
     EXPECT_EQ(val, item);
   }
 
-  EXPECT_FALSE(db->contains(toBeRemoved));
+  EXPECT_FALSE(db_->contains(toBeRemoved));
 }
 
 /**
@@ -93,13 +93,13 @@ TEST_F(LevelDB_Integration_Test, Iterator) {
   }
 
   for (const auto &item : keys) {
-    EXPECT_OUTCOME_TRUE_1(db->put(item, item));
+    EXPECT_OUTCOME_TRUE_1(db_->put(item, item));
   }
 
   std::array<size_t, size> counter{};
 
   logger->warn("forward iteration");
-  auto it = db->iterator();
+  auto it = db_->iterator();
   for (it->seekToFirst(); it->isValid(); it->next()) {
     auto k = it->key();
     auto v = it->value();

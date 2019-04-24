@@ -32,4 +32,12 @@ namespace test {
     logger = kagome::common::createLogger(getPathString());
     logger->set_level(spdlog::level::debug);
   }
+
+  void BaseFS_Test::SetUp() {
+    clear();
+  }
+
+  void BaseFS_Test::TearDown() {
+    clear();
+  }
 }  // namespace test

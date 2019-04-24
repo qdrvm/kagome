@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "base_leveldb_test.hpp"
+#include "testutil/storage/base_leveldb_test.hpp"
 
 namespace test {
 
@@ -16,12 +16,18 @@ namespace test {
       throw std::invalid_argument(r.error().message());
     }
 
-    db = std::move(r.value());
-    ASSERT_TRUE(db) << "BaseLevelDB_Test: db is nullptr";
+    db_ = std::move(r.value());
+    ASSERT_TRUE(db_) << "BaseLevelDB_Test: db is nullptr";
   }
 
   BaseLevelDB_Test::BaseLevelDB_Test(fs::path path)
-      : BaseFS_Test(std::move(path)) {
+      : BaseFS_Test(std::move(path)) {}
+
+  void BaseLevelDB_Test::SetUp() {
     open();
+  }
+
+  void BaseLevelDB_Test::TearDown() {
+    clear();
   }
 }  // namespace test

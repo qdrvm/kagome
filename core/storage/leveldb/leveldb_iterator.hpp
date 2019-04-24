@@ -36,7 +36,7 @@ namespace kagome::storage {
      * @brief Is iterator valid?
      * @return true if iterator points to the element of map, false otherwise
      */
-    bool isValid() override;
+    bool isValid() const override;
 
     /**
      * @brief Make step forward.

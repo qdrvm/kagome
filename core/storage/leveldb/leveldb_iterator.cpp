@@ -25,7 +25,7 @@ namespace kagome::storage {
     i_->SeekToLast();
   }
 
-  bool LevelDB::Iterator::isValid() {
+  bool LevelDB::Iterator::isValid() const {
     return i_->Valid();
   }
 

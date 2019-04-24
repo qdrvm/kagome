@@ -18,6 +18,11 @@ struct LevelDB_Open : public test::BaseFS_Test {
   LevelDB_Open() : test::BaseFS_Test("/tmp/kagome_leveldb_open") {}
 };
 
+/**
+ * @given options with disabled option `create_if_missing`
+ * @when open database
+ * @then database can not be opened (since there is no db already)
+ */
 TEST_F(LevelDB_Open, OpenNonExistingDB) {
   leveldb::Options options;
   options.create_if_missing = false;  // intentionally
@@ -27,6 +32,11 @@ TEST_F(LevelDB_Open, OpenNonExistingDB) {
   EXPECT_EQ(r.error(), LevelDBError::kInvalidArgument);
 }
 
+/**
+ * @given options with enavble option `create_if_missing`
+ * @when open daabase
+ * @then database is opened
+ */
 TEST_F(LevelDB_Open, OpenExistingDB) {
   leveldb::Options options;
   options.create_if_missing = true;  // intentionally

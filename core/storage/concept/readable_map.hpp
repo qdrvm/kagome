@@ -7,7 +7,6 @@
 #define KAGOME_READABLE_MAP_HPP
 
 #include <outcome/outcome.hpp>
-
 #include "storage/concept/map_iterator.hpp"
 
 namespace kagome::storage::concept {

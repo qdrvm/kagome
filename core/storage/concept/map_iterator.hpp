@@ -36,7 +36,7 @@ namespace kagome::storage::concept {
      * @brief Is iterator valid?
      * @return true if iterator points to the element of map, false otherwise
      */
-    virtual bool isValid() = 0;
+    virtual bool isValid() const = 0;
 
     /**
      * @brief Make step forward.
