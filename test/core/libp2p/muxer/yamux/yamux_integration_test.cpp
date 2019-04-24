@@ -75,7 +75,7 @@ class YamuxIntegrationTest : public ::testing::Test {
    * Run the context for some time to execute async operations
    */
   void launchContext() {
-    context_.run_for(1000ms);
+    context_.run_for(100ms);
   }
 
   static void checkIOSuccess(const std::error_code ec, size_t received_size,

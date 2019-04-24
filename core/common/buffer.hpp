@@ -8,6 +8,8 @@
 
 #include <string_view>
 #include <vector>
+
+#include <boost/container_hash/hash.hpp>
 #include <gsl/span>
 #include <outcome/outcome.hpp>
 
@@ -193,5 +195,14 @@ namespace kagome::common {
   std::ostream &operator<<(std::ostream &os, const Buffer &buffer);
 
 }  // namespace kagome::common
+
+namespace std {
+  template <>
+  struct hash<kagome::common::Buffer> {
+    size_t operator()(const kagome::common::Buffer &x) const {
+      return boost::hash_range(x.begin(), x.end());
+    }
+  };
+}  // namespace std
 
 #endif  // KAGOME_BUFFER_HPP

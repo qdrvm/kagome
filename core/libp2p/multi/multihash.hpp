@@ -7,7 +7,9 @@
 #define KAGOME_MULTIHASH_HPP
 
 #include <cstdint>
+#include <utility>
 
+#include <boost/container_hash/hash.hpp>
 #include <outcome/outcome.hpp>
 
 #include "common/buffer.hpp"
@@ -111,6 +113,15 @@ namespace libp2p::multi {
   };
 
 }  // namespace libp2p::multi
+
+namespace std {
+  template <>
+  struct hash<libp2p::multi::Multihash> {
+    size_t operator()(const libp2p::multi::Multihash &x) const {
+      return std::hash<kagome::common::Buffer>()(x.toBuffer());
+    }
+  };
+}  // namespace std
 
 OUTCOME_HPP_DECLARE_ERROR(libp2p::multi, Multihash::Error);
 

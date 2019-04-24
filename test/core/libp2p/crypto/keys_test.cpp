@@ -20,9 +20,9 @@ using namespace libp2p::crypto;
  * unspecified
  */
 TEST(PrivateKeyTest, KeyCreateSuccess) {
-  auto key = PrivateKey(common::KeyType::UNSPECIFIED, Buffer{1, 2, 3});
-  ASSERT_EQ(key.getBytes().toVector(), (std::vector<uint8_t>{1, 2, 3}));
-  ASSERT_EQ(key.getType(), common::KeyType::UNSPECIFIED);
+  auto key = PrivateKey{{Key::Type::UNSPECIFIED, Buffer{1, 2, 3}}};
+  ASSERT_EQ(key.data.toVector(), (std::vector<uint8_t>{1, 2, 3}));
+  ASSERT_EQ(key.type, Key::Type::UNSPECIFIED);
 }
 
 /**
@@ -32,7 +32,7 @@ TEST(PrivateKeyTest, KeyCreateSuccess) {
  * unspecified
  */
 TEST(PublicKeyTest, KeyCreateSuccess) {
-  auto key = PublicKey(common::KeyType::UNSPECIFIED, Buffer{1, 2, 3});
-  ASSERT_EQ(key.getBytes().toVector(), (std::vector<uint8_t>{1, 2, 3}));
-  ASSERT_EQ(key.getType(), common::KeyType::UNSPECIFIED);
+  auto key = PublicKey{{Key::Type::UNSPECIFIED, Buffer{1, 2, 3}}};
+  ASSERT_EQ(key.data.toVector(), (std::vector<uint8_t>{1, 2, 3}));
+  ASSERT_EQ(key.type, Key::Type::UNSPECIFIED);
 }

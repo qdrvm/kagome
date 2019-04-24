@@ -12,18 +12,16 @@ namespace libp2p::crypto {
   /**
    * Represents public key
    */
-  class PublicKey : public Key {
-   public:
-    /**
-     * @brief inherited constructor
-     */
-    using Key::Key;
-
-    /**
-     * @brief destructor
-     */
-    ~PublicKey() override = default;
-  };
+  struct PublicKey : public Key {};
 }  // namespace libp2p::crypto
+
+namespace std {
+  template <>
+  struct hash<libp2p::crypto::PublicKey> {
+    size_t operator()(const libp2p::crypto::PublicKey &x) const {
+      return std::hash<libp2p::crypto::Key>()(x);
+    }
+  };
+}  // namespace std
 
 #endif  // KAGOME_PUBLIC_KEY_HPP

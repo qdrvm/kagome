@@ -8,8 +8,7 @@
 
 #include "common/buffer.hpp"
 #include "libp2p/crypto/error.hpp"
-#include "libp2p/crypto/private_key.hpp"
-#include "libp2p/crypto/public_key.hpp"
+#include "libp2p/crypto/key_pair.hpp"
 
 namespace libp2p::crypto::marshaller {
   /**

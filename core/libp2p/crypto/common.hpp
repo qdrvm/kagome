@@ -39,14 +39,6 @@ namespace libp2p::crypto::common {
   using Aes256Secret = AesSecret<32, 16>;
 
   /**
-   * Public and private keys
-   */
-  struct KeyPair {
-    std::shared_ptr<PublicKey> public_key;
-    std::shared_ptr<PrivateKey> private_key;
-  };
-
-  /**
    * Result of ephemeral key generation
    */
   struct EphemeralKeyPair {
@@ -63,13 +55,6 @@ namespace libp2p::crypto::common {
    * Supported types of RSA keys
    */
   enum class RSAKeyType { RSA1024 = 0, RSA2048 = 1, RSA4096 = 2 };
-
-  /**
-   * Supported types of all keys
-   */
-  enum class KeyType { UNSPECIFIED, RSA1024, RSA2048, RSA4096, ED25519 };
-  // TODO(yuraz): add support for Secp256k1 like in js version (added to
-  // PRE-103)
 
   /**
    * Supported ECDH curves

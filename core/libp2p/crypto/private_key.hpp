@@ -9,22 +9,20 @@
 #include "libp2p/crypto/key.hpp"
 
 namespace libp2p::crypto {
-  class PublicKey;
+  struct PublicKey;
   /**
    * Represents private key
    */
-  class PrivateKey : public Key {
-   public:
-    /**
-     * @brief inherited constructor
-     */
-    using Key::Key;
-
-    /**
-     * @brief destructor
-     */
-    ~PrivateKey() override = default;
-  };
+  struct PrivateKey : public Key {};
 }  // namespace libp2p::crypto
+
+namespace std {
+  template <>
+  struct hash<libp2p::crypto::PrivateKey> {
+    size_t operator()(const libp2p::crypto::PrivateKey &x) const {
+      return std::hash<libp2p::crypto::Key>()(x);
+    }
+  };
+}  // namespace std
 
 #endif  // KAGOME_PRIVATE_KEY_HPP

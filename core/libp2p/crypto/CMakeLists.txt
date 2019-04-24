@@ -9,14 +9,6 @@ add_subdirectory(marshaller)
 add_subdirectory(proto)
 add_subdirectory(random)
 
-add_library(crypto_key
-    key.hpp
-    key.cpp
-    )
-target_link_libraries(crypto_key
-    buffer
-    )
-
 add_library(crypto_error
     error.hpp
     error.cpp
