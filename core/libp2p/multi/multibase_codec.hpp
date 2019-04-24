@@ -24,7 +24,6 @@ namespace libp2p::multi {
 
    public:
     virtual ~MultibaseCodec() = default;
-
     /**
      * Encodings, supported by this Multibase
      */

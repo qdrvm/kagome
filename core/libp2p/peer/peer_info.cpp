@@ -9,6 +9,7 @@
 #include "libp2p/peer/peer_info.hpp"
 
 namespace libp2p::peer {
+
   PeerInfo::PeerInfo(PeerId peer) : peer_id_{std::move(peer)} {}
 
   const PeerId &PeerInfo::getPeerId() const {
