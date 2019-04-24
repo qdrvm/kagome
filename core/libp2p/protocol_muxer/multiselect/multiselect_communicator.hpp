@@ -69,7 +69,7 @@ namespace libp2p::protocol_muxer {
      * @return created message
      */
     kagome::common::Buffer protocolsMsg(
-        gsl::span<multi::Multistream> protocols) const;
+        gsl::span<const multi::Multistream> protocols) const;
 
    private:
     static constexpr std::string_view kProtocolHeaderString =

@@ -35,7 +35,10 @@ namespace libp2p::protocol_muxer {
     void negotiateClient(const stream::Stream &stream,
                          ChosenProtocolCallback protocol_callback) override;
 
-    enum class MultiselectErrors { NO_PROTOCOLS_SUPPORTED = 1, NEGOTIATION_FAILED };
+    enum class MultiselectErrors {
+      NO_PROTOCOLS_SUPPORTED = 1,
+      NEGOTIATION_FAILED
+    };
 
    private:
     /**
@@ -107,7 +110,7 @@ namespace libp2p::protocol_muxer {
      * @param protocols to be sent
      * @param stream_state - state of the stream
      */
-    void sendProtocolsMsg(gsl::span<multi::Multistream> protocols,
+    void sendProtocolsMsg(gsl::span<const multi::Multistream> protocols,
                           StreamState stream_state) const;
 
     /**

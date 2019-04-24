@@ -12,7 +12,9 @@ namespace libp2p::protocol_muxer {
 
   std::optional<MultiselectCommunicator::MultiselectMessage>
   MultiselectCommunicator::parseMessage(
-      const kagome::common::Buffer &bytes) const {}
+      const kagome::common::Buffer &bytes) const {
+    return {};
+  }
 
   Buffer MultiselectCommunicator::openingMsg() const {
     return multiselect_header_;
@@ -32,7 +34,7 @@ namespace libp2p::protocol_muxer {
   }
 
   Buffer MultiselectCommunicator::protocolsMsg(
-      gsl::span<multi::Multistream> protocols) const {
+      gsl::span<const multi::Multistream> protocols) const {
     Buffer msg{};
     for (const auto &proto : protocols) {
       msg.putBuffer(proto.getBuffer());

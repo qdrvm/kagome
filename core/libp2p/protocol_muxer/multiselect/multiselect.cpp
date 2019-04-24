@@ -181,7 +181,7 @@ namespace libp2p::protocol_muxer {
 
   void Multiselect::handleLsMsg(StreamState stream_state) const {
     // respond with a list of protocols, supported by us
-    sendProtocolsMsg(gsl::span<multi::Multistream>(supported_protocols_),
+    sendProtocolsMsg(gsl::span<const multi::Multistream>(supported_protocols_),
                      std::move(stream_state));
   }
 
@@ -228,7 +228,7 @@ namespace libp2p::protocol_muxer {
         });
   }
 
-  void Multiselect::sendProtocolsMsg(gsl::span<multi::Multistream> protocols,
+  void Multiselect::sendProtocolsMsg(gsl::span<const multi::Multistream> protocols,
                                      StreamState stream_state) const {
     stream_state.stream_.get().writeAsync(
         communicator_.protocolsMsg(protocols),
