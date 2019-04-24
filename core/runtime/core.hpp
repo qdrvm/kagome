@@ -11,7 +11,7 @@
 
 #include "primitives/block.hpp"
 #include "primitives/block_id.hpp"
-#include "primitives/common.hpp";
+#include "primitives/common.hpp"
 #include "primitives/transaction_validity.hpp"
 #include "primitives/version.hpp"
 

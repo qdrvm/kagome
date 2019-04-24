@@ -123,9 +123,11 @@ namespace kagome::runtime {
     // >> 32;
 
     WasmMemoryStream stream(memory_);
-    stream.advance(authority_address);
+    auto advance_result = stream.advance(authority_address);
+    if (not advance_result) {
+      return advance_result.error();
+    }
 
-    auto authority_id =
   }
 
 }  // namespace kagome::runtime
