@@ -23,6 +23,7 @@ namespace libp2p::multi {
     using FactoryResult = outcome::result <ByteBuffer>;
 
    public:
+    virtual ~MultibaseCodec() = default;
     /**
      * Encodings, supported by this Multibase
      */
@@ -48,11 +49,8 @@ namespace libp2p::multi {
      * @return bytes, if decoding was successful, error otherwise
      */
     virtual FactoryResult decode(std::string_view string) const = 0;
-
-    virtual ~MultibaseCodec() = 0;
   };
 
-  inline MultibaseCodec::~MultibaseCodec() = default;
 }  // namespace libp2p::multi
 
 #endif  // KAGOME_MULTIBASE_HPP

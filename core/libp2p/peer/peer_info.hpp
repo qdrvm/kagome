@@ -11,11 +11,11 @@
 
 namespace libp2p::peer {
 
-struct PeerInfo {
-  PeerId id;
-  std::set<multi::Multiaddress> addresses;
-};
+  struct PeerInfo {
+    PeerId id;
+    std::set<multi::Multiaddress> addresses;
+  };
 
-}
+}  // namespace libp2p::peer
 
-#endif //KAGOME_PEER_INFO_HPP
+#endif  // KAGOME_PEER_INFO_HPP

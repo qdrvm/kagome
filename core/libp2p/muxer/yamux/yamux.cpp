@@ -151,7 +151,7 @@ namespace libp2p::muxer {
 
     auto stream_id = getNewStreamId();
     write(newStreamMsg(stream_id),
-          [t = shared_from_this(), stream_id](auto &&ec, auto &&) {
+          [t = shared_from_this(), stream_id](auto &&ec, auto && /*unused*/) {
             if (ec) {
               t->logger_->error(
                   "could not write new stream message for stream_id {} with "
@@ -172,7 +172,7 @@ namespace libp2p::muxer {
       for (const auto &stream : streams_) {
         write(resetStreamMsg(stream.first),
               [t = shared_from_this(), stream_id = stream.first,
-               last_stream_id](auto &&ec, auto &&) {
+               last_stream_id](auto &&ec, auto && /*unused*/) {
                 if (ec) {
                   t->logger_->error(
                       "could not write reset stream message for stream_id {} "
@@ -212,7 +212,7 @@ namespace libp2p::muxer {
     new_stream_handler_(
         std::make_unique<stream::YamuxStream>(shared_from_this(), stream_id));
     write(ackStreamMsg(stream_id),
-          [t = shared_from_this(), stream_id](auto &&ec, auto &&) {
+          [t = shared_from_this(), stream_id](auto &&ec, auto && /* unused */) {
             if (ec) {
               t->logger_->error(
                   "could not write ack stream message for stream_id {} with "
@@ -246,7 +246,7 @@ namespace libp2p::muxer {
     if (!stream) {
       write(
           resetStreamMsg(stream_id),
-          [t = shared_from_this(), stream_id](auto &&ec, auto &&) {
+          [t = shared_from_this(), stream_id](auto &&ec, auto && /* unused */) {
             if (ec) {
               t->logger_->error(
                   "could not write reset stream message for stream_id {} with "
@@ -304,7 +304,7 @@ namespace libp2p::muxer {
 
   void Yamux::removeStream(StreamId stream_id) {
     write(resetStreamMsg(stream_id),
-          [t = shared_from_this(), stream_id](auto &&ec, auto &&) {
+          [t = shared_from_this(), stream_id](auto &&ec, auto && /* unused */) {
             if (ec) {
               t->logger_->error(
                   "could not write reset stream message for stream_id {} with "
@@ -326,7 +326,7 @@ namespace libp2p::muxer {
       // could not parse the frame => client sent some nonsense, break the
       // connection
       write(goAwayMsg(YamuxFrame::GoAwayError::PROTOCOL_ERROR),
-            [t = shared_from_this()](auto &&ec, auto &&) {
+            [t = shared_from_this()](auto &&ec, auto && /* unused */) {
               if (ec) {
                 t->logger_->error(
                     "could not write go away message with error {}",
