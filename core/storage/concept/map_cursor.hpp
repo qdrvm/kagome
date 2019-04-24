@@ -3,19 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_MAP_ITERATOR_HPP
-#define KAGOME_MAP_ITERATOR_HPP
+#ifndef KAGOME_MAP_CURSOR_HPP
+#define KAGOME_MAP_CURSOR_HPP
 
 namespace kagome::storage::concept {
 
   /**
-   * @brief An abstraction over generic map iterator.
+   * @brief An abstraction over generic map cursor.
    * @tparam K key type
    * @tparam V value type
    */
   template <typename K, typename V>
-  struct MapIterator {
-    virtual ~MapIterator() = default;
+  struct MapCursor {
+    virtual ~MapCursor() = default;
 
     /**
      * @brief Same as std::begin(...);
@@ -63,4 +63,4 @@ namespace kagome::storage::concept {
 
 }  // namespace kagome::storage::concept
 
-#endif  // KAGOME_MAP_ITERATOR_HPP
+#endif  //KAGOME_MAP_CURSOR_HPP

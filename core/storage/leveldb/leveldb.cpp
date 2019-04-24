@@ -7,29 +7,28 @@
 
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/leveldb/leveldb_batch.hpp"
-#include "storage/leveldb/leveldb_iterator.hpp"
+#include "storage/leveldb/leveldb_cursor.hpp"
 #include "storage/leveldb/leveldb_util.hpp"
 
 namespace kagome::storage {
 
-  LevelDB::LevelDB(std::unique_ptr<leveldb::DB> db, common::Logger logger)
-      : db_(std::move(db)), logger_(std::move(logger)) {}
-
   outcome::result<std::unique_ptr<LevelDB>> LevelDB::create(
       std::string_view path, leveldb::Options options, common::Logger logger) {
-    leveldb::DB *db;
+    leveldb::DB *db = nullptr;
     auto status = leveldb::DB::Open(options, path.data(), &db);
     if (status.ok()) {
-      return std::unique_ptr<LevelDB>(
-          new LevelDB(std::unique_ptr<leveldb::DB>(db), std::move(logger)));
+      auto l = std::make_unique<LevelDB>();
+      l->db_ = std::unique_ptr<leveldb::DB>(db);
+      l->logger_ = std::move(logger);
+      return l;
     }
 
     return error_as_result<std::unique_ptr<LevelDB>>(status, logger);
   }
 
-  std::unique_ptr<BufferMapIterator> LevelDB::iterator() {
+  std::unique_ptr<BufferMapCursor> LevelDB::iterator() {
     auto it = std::unique_ptr<leveldb::Iterator>(db_->NewIterator(ro_));
-    return std::make_unique<Iterator>(std::move(it));
+    return std::make_unique<Cursor>(std::move(it));
   }
 
   std::unique_ptr<BufferBatch> LevelDB::batch() {

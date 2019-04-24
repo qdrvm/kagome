@@ -22,7 +22,7 @@
 
 namespace kagome::storage {
 
-  using Buffer = kagome::common::Buffer;
+  using Buffer = common::Buffer;
 
   using BufferMap = concept ::GenericMap<Buffer, Buffer>;
 
@@ -30,7 +30,7 @@ namespace kagome::storage {
 
   using PersistedBufferMap = concept ::PersistedMap<Buffer, Buffer>;
 
-  using BufferMapIterator = concept ::MapIterator<Buffer, Buffer>;
+  using BufferMapCursor = concept ::MapCursor<Buffer, Buffer>;
 
 }  // namespace kagome::storage
 

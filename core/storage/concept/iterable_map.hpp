@@ -8,7 +8,7 @@
 
 #include <memory>
 
-#include "storage/concept/map_iterator.hpp"
+#include "storage/concept/map_cursor.hpp"
 
 namespace kagome::storage::concept {
 
@@ -25,7 +25,7 @@ namespace kagome::storage::concept {
      * @brief Returns new key-value iterator.
      * @return kv iterator
      */
-    virtual std::unique_ptr<MapIterator<K, V>> iterator() = 0;
+    virtual std::unique_ptr<MapCursor<K, V>> cursor() = 0;
   };
 
 }  // namespace kagome::storage::concept

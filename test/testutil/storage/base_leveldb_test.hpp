@@ -6,15 +6,15 @@
 #ifndef KAGOME_BASE_LEVELDB_TEST_HPP
 #define KAGOME_BASE_LEVELDB_TEST_HPP
 
-#include "storage/leveldb/leveldb.hpp"
-
 #include "testutil/storage/base_fs_test.hpp"
+
+#include "storage/leveldb/leveldb.hpp"
 
 namespace test {
 
-  using kagome::storage::LevelDB;
-
   struct BaseLevelDB_Test : public BaseFS_Test {
+    using LevelDB = kagome::storage::LevelDB;
+
     BaseLevelDB_Test(fs::path path);
 
     void open();

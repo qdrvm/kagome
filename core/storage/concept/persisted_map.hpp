@@ -13,6 +13,12 @@
 
 namespace kagome::storage::concept {
 
+  /**
+   * @brief An abstraction over a map accessible via filesystem or remove
+   * connection. It supports batching for efficiency of modifications.
+   * @tparam K key type
+   * @tparam V value type
+   */
   template <typename K, typename V>
   struct PersistedMap : public GenericMap<K, V> {
     ~PersistedMap() override = default;

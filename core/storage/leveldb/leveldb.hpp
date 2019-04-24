@@ -16,7 +16,7 @@ namespace kagome::storage {
   class LevelDB : public PersistedBufferMap {
    public:
     class Batch;
-    class Iterator;
+    class Cursor;
 
     ~LevelDB() override = default;
 
@@ -36,7 +36,7 @@ namespace kagome::storage {
      */
     void setWriteOptions(leveldb::WriteOptions wo);
 
-    std::unique_ptr<BufferMapIterator> iterator() override;
+    std::unique_ptr<BufferMapCursor> iterator() override;
 
     std::unique_ptr<BufferBatch> batch() override;
 
@@ -49,8 +49,6 @@ namespace kagome::storage {
     outcome::result<void> remove(const Buffer &key) override;
 
    private:
-    LevelDB(std::unique_ptr<leveldb::DB> db, common::Logger logger);
-
     std::unique_ptr<leveldb::DB> db_;
     leveldb::ReadOptions ro_;
     leveldb::WriteOptions wo_;

@@ -10,6 +10,11 @@
 
 namespace kagome::storage::concept {
 
+  /**
+   * @brief An abstraction over modifiable map.
+   * @tparam K key type
+   * @tparam V value type
+   */
   template <typename K, typename V>
   struct WriteableMap {
     virtual ~WriteableMap() = default;

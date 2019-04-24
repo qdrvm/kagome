@@ -25,7 +25,7 @@ namespace kagome::storage::merkle {
         const common::Buffer &));
     MOCK_CONST_METHOD1(contains, bool(const common::Buffer &));
 
-    MOCK_METHOD0(iterator, std::unique_ptr<BufferMapIterator>());
+    MOCK_METHOD0(iterator, std::unique_ptr<BufferMapCursor>());
     MOCK_METHOD0(batch, std::unique_ptr<BufferBatch>());
   };
 
