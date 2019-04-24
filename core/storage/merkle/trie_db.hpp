@@ -15,7 +15,7 @@ namespace kagome::storage::merkle {
    * @brief This class represents a cryptographically authenticated key-value
    * storage - Merkle Trie DB backed by Key-Value database.
    */
-  class TrieDb : public KeyValue {
+  class TrieDb : public BufferMap {
    public:
     /**
      * @brief Calculate and return trie root.
