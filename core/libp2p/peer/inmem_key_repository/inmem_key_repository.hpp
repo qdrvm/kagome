@@ -7,7 +7,6 @@
 #define KAGOME_INMEM_KEY_REPOSITORY_HPP
 
 #include <unordered_map>
-#include <unordered_set>
 
 #include "libp2p/crypto/key_pair.hpp"
 #include "libp2p/peer/key_repository.hpp"

@@ -7,6 +7,7 @@
 #define KAGOME_KEY_REPOSITORY_HPP
 
 #include <vector>
+#include <unordered_set>
 
 #include <outcome/outcome.hpp>
 #include "libp2p/crypto/private_key.hpp"
