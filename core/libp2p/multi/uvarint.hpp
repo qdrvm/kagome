@@ -36,10 +36,6 @@ namespace libp2p::multi {
      */
     explicit UVarint(gsl::span<const uint8_t> varint_bytes);
 
-    UVarint() = default;
-    UVarint(const UVarint &var) = default;
-    UVarint(UVarint &&var) = default;
-
     /**
      * Converts a varint back to a usual unsigned integer.
      * @return an integer previously encoded to the varint
@@ -59,8 +55,6 @@ namespace libp2p::multi {
      * @return this varint
      */
     UVarint &operator=(uint64_t n);
-
-    UVarint &operator=(const UVarint &) = default;
 
     /**
      * @return the number of bytes currently stored in a varint

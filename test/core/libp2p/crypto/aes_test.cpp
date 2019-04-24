@@ -54,10 +54,10 @@ class AesTest : public testing::Test {
  * @then result matches encrypted text
  */
 TEST_F(AesTest, EncodeAesCtr128Success) {
-  Aes128Secret secret;
+  Aes128Secret secret{};
 
-  std::copy(key_128.begin(), key_128.end(), secret.key);
-  std::copy(iv.begin(), iv.end(), secret.iv);
+  std::copy(key_128.begin(), key_128.end(), secret.key.begin());
+  std::copy(iv.begin(), iv.end(), secret.iv.begin());
 
   auto &&result = provider.encrypt_128_ctr(secret, plain_text_128);
   ASSERT_TRUE(result);
@@ -70,10 +70,10 @@ TEST_F(AesTest, EncodeAesCtr128Success) {
  * @then result matches encrypted text
  */
 TEST_F(AesTest, EncodeAesCtr256Success) {
-  Aes256Secret secret;
+  Aes256Secret secret{};
 
-  std::copy(key_256.begin(), key_256.end(), secret.key);
-  std::copy(iv.begin(), iv.end(), secret.iv);
+  std::copy(key_256.begin(), key_256.end(), secret.key.begin());
+  std::copy(iv.begin(), iv.end(), secret.iv.begin());
 
   auto &&result = provider.encrypt_256_ctr(secret, plain_text_256);  // NOLINT
   ASSERT_TRUE(result);
@@ -86,10 +86,10 @@ TEST_F(AesTest, EncodeAesCtr256Success) {
  * @then result matches plain text
  */
 TEST_F(AesTest, DecodeAesCtr128Success) {
-  Aes128Secret secret;
+  Aes128Secret secret{};
 
-  std::copy(key_128.begin(), key_128.end(), secret.key);
-  std::copy(iv.begin(), iv.end(), secret.iv);
+  std::copy(key_128.begin(), key_128.end(), secret.key.begin());
+  std::copy(iv.begin(), iv.end(), secret.iv.begin());
 
   auto &&result = provider.decrypt_128_ctr(secret, cipher_text_128);
   ASSERT_TRUE(result);
@@ -102,10 +102,10 @@ TEST_F(AesTest, DecodeAesCtr128Success) {
  * @then result matches plain text
  */
 TEST_F(AesTest, DecodeAesCtr256Success) {
-  Aes256Secret secret;
+  Aes256Secret secret{};
 
-  std::copy(key_256.begin(), key_256.end(), secret.key);
-  std::copy(iv.begin(), iv.end(), secret.iv);
+  std::copy(key_256.begin(), key_256.end(), secret.key.begin());
+  std::copy(iv.begin(), iv.end(), secret.iv.begin());
 
   auto &&result = provider.decrypt_256_ctr(secret, cipher_text_256);
   ASSERT_TRUE(result);

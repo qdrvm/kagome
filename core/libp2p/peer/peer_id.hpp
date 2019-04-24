@@ -19,10 +19,6 @@ namespace libp2p::peer {
 
    public:
     PeerId() = delete;
-    PeerId(const PeerId &peer_id);
-    PeerId &operator=(const PeerId &peer_id);
-    PeerId(PeerId &&peer_id) noexcept;
-    PeerId &operator=(PeerId &&peer_id) noexcept;
 
     enum class FactoryError { kIdIsNotSha256Hash = 1 };
     /**

@@ -29,7 +29,7 @@ namespace libp2p::transport {
     using ConnectionCallback = void(std::shared_ptr<Connection>);
     using HandlerFunc = std::function<ConnectionCallback>;
 
-    virtual ~TransportListener() = default;
+    ~TransportListener() override = default;
 
     /**
      * @brief Close specific server, which listens on {@param ma}
@@ -37,7 +37,7 @@ namespace libp2p::transport {
      * @return error code if any error happened
      */
     virtual outcome::result<void> close(const multi::Multiaddress& ma) = 0;
-    virtual outcome::result<void> close() override = 0;
+    outcome::result<void> close() override = 0;
 
     /**
      * Switch the listener into 'listen' mode; it will react to every new
