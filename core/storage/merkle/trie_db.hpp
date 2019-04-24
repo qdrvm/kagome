@@ -7,7 +7,7 @@
 #define KAGOME_MERKLE_TRIE_HPP
 
 #include "common/buffer.hpp"
-#include "storage/keyvalue.hpp"
+#include "storage/buffer_map.hpp"
 
 namespace kagome::storage::merkle {
 
