@@ -5,6 +5,10 @@ language: cpp
 git:
   depth: 1
 
+branches:
+  except:
+    - /^feature.*/
+
 env:
   global:
     - CTEST_OUTPUT_ON_FAILURE=1
