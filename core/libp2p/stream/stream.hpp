@@ -27,13 +27,13 @@ namespace libp2p::stream {
      * @param completion_handler - function, which is going to be called, when
      * message is read from the stream
      */
-    virtual void readAsync(ReadCompletionHandler completion_handler) = 0;
+    virtual void readAsync(ReadCompletionHandler completion_handler) const = 0;
 
     /**
      * Write data to the stream
      * @param msg to be written
      */
-    virtual void writeAsync(const kagome::common::Buffer &msg) = 0;
+    virtual void writeAsync(const kagome::common::Buffer &msg) const = 0;
 
     /**
      * Write data to the stream
@@ -42,7 +42,7 @@ namespace libp2p::stream {
      * write finishes
      */
     virtual void writeAsync(const kagome::common::Buffer &msg,
-                            ErrorCodeCallback error_callback) = 0;
+                            ErrorCodeCallback error_callback) const = 0;
 
     /**
      * Check, if this stream is closed from the other side of the connection and
