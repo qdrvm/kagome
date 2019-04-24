@@ -49,18 +49,22 @@ namespace kagome::storage {
   }
 
   inline leveldb::Slice make_slice(const common::Buffer &buf) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const auto *ptr = reinterpret_cast<const char *>(buf.toBytes());
     size_t n = buf.size();
     return leveldb::Slice{ptr, n};
   }
 
   inline gsl::span<const uint8_t> make_span(const leveldb::Slice &s) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const auto *ptr = reinterpret_cast<const uint8_t *>(s.data());
     return gsl::make_span(ptr, s.size());
   }
 
   inline common::Buffer make_buffer(const leveldb::Slice &s) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const auto *ptr = reinterpret_cast<const uint8_t *>(s.data());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     return common::Buffer(ptr, ptr + s.size());
   }
 

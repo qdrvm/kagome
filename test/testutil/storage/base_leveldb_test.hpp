@@ -9,21 +9,17 @@
 #include "storage/leveldb/leveldb.hpp"
 
 #include "testutil/storage/base_fs_test.hpp"
-#include "storage/leveldb/leveldb_logger.hpp"
 
 namespace test {
 
   using kagome::storage::LevelDB;
 
   struct BaseLevelDB_Test : public BaseFS_Test {
-    BaseLevelDB_Test(fs::path path);
+    BaseLevelDB_Test(const fs::path &path);
 
     void open();
 
     std::unique_ptr<LevelDB> db;
-
-   private:
-    std::unique_ptr<LevelDB::Logger> info_log_;
   };
 
 }  // namespace test

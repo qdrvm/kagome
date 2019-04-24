@@ -5,14 +5,11 @@
 
 #include "base_leveldb_test.hpp"
 
-
 namespace test {
 
   void BaseLevelDB_Test::open() {
-
     leveldb::Options options;
     options.create_if_missing = true;
-    options.info_log = info_log_.get();
 
     auto r = LevelDB::create(getPathString(), options, logger);
     if (!r) {
@@ -23,8 +20,8 @@ namespace test {
     ASSERT_TRUE(db) << "BaseLevelDB_Test: db is nullptr";
   }
 
-  BaseLevelDB_Test::BaseLevelDB_Test(fs::path path)
-      : BaseFS_Test(std::move(path)), info_log_(new LevelDB::Logger(logger)) {
+  BaseLevelDB_Test::BaseLevelDB_Test(const fs::path &path)
+      : BaseFS_Test(std::move(path)) {
     open();
   }
 }  // namespace test

@@ -3,15 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <gtest/gtest.h>
+#include "testutil/storage/base_leveldb_test.hpp"
+
 #include <array>
-#include <boost/filesystem.hpp>
 #include <exception>
+
+#include <gtest/gtest.h>
+#include <boost/filesystem.hpp>
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/leveldb/leveldb_error.hpp"
 #include "testutil/outcome.hpp"
-
-#include "testutil/storage/base_leveldb_test.hpp"
 
 using namespace kagome::storage;
 namespace fs = boost::filesystem;

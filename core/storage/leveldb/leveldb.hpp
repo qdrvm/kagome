@@ -17,7 +17,6 @@ namespace kagome::storage {
    public:
     class Batch;
     class Iterator;
-    class Logger;
 
     ~LevelDB() override = default;
 
