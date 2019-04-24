@@ -25,3 +25,14 @@ add_library(crypto_error
 target_link_libraries(crypto_error
     outcome
     )
+
+add_library(key_generator
+    key_generator.hpp
+    key_generator/key_generator_impl.cpp
+    key_generator/key_generator_impl.hpp)
+target_link_libraries(key_generator
+    outcome
+    buffer
+    OpenSSL::Crypto
+    crypto_error
+    )

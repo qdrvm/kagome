@@ -28,8 +28,9 @@ namespace libp2p::crypto::marshaller {
           return proto::KeyType::RSA4096;
         case common::KeyType::ED25519:
           return proto::KeyType::ED25519;
+        case common::KeyType::SECP256K1:
+          return proto::KeyType::SECP256K1;
       }
-
       return CryptoProviderError::UNKNOWN_KEY_TYPE;
     }
 
@@ -39,7 +40,7 @@ namespace libp2p::crypto::marshaller {
      * @return common key type value
      */
     outcome::result<common::KeyType> unmarshalKeyType(proto::KeyType key_type) {
-      switch (key_type) { // NOLINT
+      switch (key_type) {  // NOLINT
         case proto::KeyType::UNSPECIFIED:
           return common::KeyType::UNSPECIFIED;
         case proto::KeyType::RSA1024:
@@ -50,8 +51,9 @@ namespace libp2p::crypto::marshaller {
           return common::KeyType::RSA4096;
         case proto::KeyType::ED25519:
           return common::KeyType::ED25519;
+        case proto::KeyType::SECP256K1:
+          return common::KeyType::SECP256K1;
       }
-
       return CryptoProviderError::UNKNOWN_KEY_TYPE;
     }
   }  // namespace

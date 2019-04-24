@@ -22,8 +22,8 @@ namespace libp2p::crypto::common {
    */
   template <size_t key_size, size_t iv_size>
   struct AesSecret {
-    static constexpr size_t kKeySize = key_size;
-    static constexpr size_t kIvSize = iv_size;
+    static constexpr size_t KEY_SIZE = key_size;
+    static constexpr size_t IV_SIZE = iv_size;
     uint8_t key[key_size];
     uint8_t iv[iv_size];
   };
@@ -67,7 +67,7 @@ namespace libp2p::crypto::common {
   /**
    * Supported types of all keys
    */
-  enum class KeyType { UNSPECIFIED, RSA1024, RSA2048, RSA4096, ED25519 };
+  enum class KeyType { UNSPECIFIED, RSA1024, RSA2048, RSA4096, ED25519, SECP256K1 };
   // TODO(yuraz): add support for Secp256k1 like in js version (added to
   // PRE-103)
 

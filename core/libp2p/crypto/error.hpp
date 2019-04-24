@@ -44,6 +44,11 @@ namespace libp2p::crypto {
   enum class MiscError {
     WRONG_ARGUMENT_VALUE = 1,  ///< wrong argument value
   };
+
+  enum class KeyGeneratorError {
+    CANNOT_GENERATE_UNSPECIFIED = 1,  ///< you need to specify valid key type
+    UNKNOWN_KEY_TYPE,                 ///< unknown key type
+  };
 }  // namespace libp2p::crypto
 
 OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, CryptoProviderError)

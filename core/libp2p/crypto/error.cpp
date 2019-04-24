@@ -81,3 +81,13 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, RandomProviderError, e) {
   }
   return "unknown RandomProviderError code";
 }
+
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, KeyGeneratorError, e) {
+  using libp2p::crypto::KeyGeneratorError;
+  switch (e) {  // NOLINT
+    case KeyGeneratorError::CANNOT_GENERATE_UNSPECIFIED:
+      return "you need to specify valid key type";
+    case KeyGeneratorError::UNKNOWN_KEY_TYPE:
+      return "unknown key type";
+  }
+}
