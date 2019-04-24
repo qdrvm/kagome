@@ -6,11 +6,11 @@
 #include "libp2p/multi/multiaddress.hpp"
 
 #include <algorithm>
-#include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/split.hpp>
 #include <numeric>
 #include <stdexcept>
 
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
 #include "libp2p/multi/converters/converter_utils.hpp"
 
 using std::string_literals::operator""s;
