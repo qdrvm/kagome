@@ -8,7 +8,7 @@
 
 #include <unordered_map>
 
-#include "libp2p/crypto/key_pair.hpp"
+#include "libp2p/crypto/key.hpp"
 #include "libp2p/peer/key_repository.hpp"
 
 namespace libp2p::peer {

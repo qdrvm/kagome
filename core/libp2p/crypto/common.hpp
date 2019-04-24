@@ -11,8 +11,6 @@
 #include <memory>
 
 #include "common/buffer.hpp"
-#include "libp2p/crypto/private_key.hpp"
-#include "libp2p/crypto/public_key.hpp"
 
 namespace libp2p::crypto::common {
   /**
@@ -37,14 +35,6 @@ namespace libp2p::crypto::common {
   using Aes256Secret = AesSecret<32, 16>;
 
   /**
-   * Result of ephemeral key generation
-   */
-  struct EphemeralKeyPair {
-    kagome::common::Buffer ephemeral_public_key;
-    std::function<PrivateKey()> private_key_generator;
-  };
-
-  /**
    * Supported hash types
    */
   enum class HashType { kSHA1, kSHA256, kSHA512 };
@@ -59,14 +49,7 @@ namespace libp2p::crypto::common {
    */
   enum class CurveType { kP256, kP384, kP521 };
 
-  /**
-   * Type of the stretched key
-   */
-  struct StretchedKey {
-    kagome::common::Buffer iv;
-    kagome::common::Buffer cipher_key;
-    kagome::common::Buffer mac_key;
-  };
+
 
   /**
    * Supported cipher types

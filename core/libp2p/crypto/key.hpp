@@ -28,6 +28,36 @@ namespace libp2p::crypto {
     return a.type == b.type && a.data == b.data;
   }
 
+  struct PublicKey : public Key {};
+
+  struct PrivateKey : public Key {};
+
+  struct KeyPair {
+    PublicKey publicKey;
+    PrivateKey privateKey;
+  };
+
+  inline bool operator==(const KeyPair &a, const KeyPair &b) {
+    return a.publicKey == b.publicKey && a.privateKey == b.privateKey;
+  }
+
+  /**
+   * Result of ephemeral key generation
+   */
+  struct EphemeralKeyPair {
+    kagome::common::Buffer ephemeral_public_key;
+    std::function<PrivateKey()> private_key_generator;
+  };
+
+  /**
+   * Type of the stretched key
+   */
+  struct StretchedKey {
+    kagome::common::Buffer iv;
+    kagome::common::Buffer cipher_key;
+    kagome::common::Buffer mac_key;
+  };
+
 }  // namespace libp2p::crypto
 
 namespace std {
@@ -37,6 +67,32 @@ namespace std {
       size_t seed = 0;
       boost::hash_combine(seed, x.type);
       boost::hash_combine(seed, std::hash<kagome::common::Buffer>()(x.data));
+      return seed;
+    }
+  };
+
+  template <>
+  struct hash<libp2p::crypto::PrivateKey> {
+    size_t operator()(const libp2p::crypto::PrivateKey &x) const {
+      return std::hash<libp2p::crypto::Key>()(x);
+    }
+  };
+
+  template <>
+  struct hash<libp2p::crypto::PublicKey> {
+    size_t operator()(const libp2p::crypto::PublicKey &x) const {
+      return std::hash<libp2p::crypto::Key>()(x);
+    }
+  };
+
+  template <>
+  struct hash<libp2p::crypto::KeyPair> {
+    size_t operator()(const libp2p::crypto::KeyPair &x) const {
+      using libp2p::crypto::PrivateKey;
+      using libp2p::crypto::PublicKey;
+      size_t seed = 0;
+      boost::hash_combine(seed, std::hash<PublicKey>()(x.publicKey));
+      boost::hash_combine(seed, std::hash<PrivateKey>()(x.privateKey));
       return seed;
     }
   };

@@ -6,12 +6,11 @@
 #ifndef KAGOME_KEY_REPOSITORY_HPP
 #define KAGOME_KEY_REPOSITORY_HPP
 
-#include <vector>
 #include <unordered_set>
+#include <vector>
 
 #include <outcome/outcome.hpp>
-#include "libp2p/crypto/private_key.hpp"
-#include "libp2p/crypto/public_key.hpp"
+#include "libp2p/crypto/key.hpp"
 #include "libp2p/peer/peer_id.hpp"
 
 namespace libp2p::peer {

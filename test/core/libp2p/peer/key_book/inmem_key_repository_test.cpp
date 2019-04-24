@@ -6,7 +6,7 @@
 #include <exception>
 
 #include <gtest/gtest.h>
-#include "libp2p/crypto/key_pair.hpp"
+#include "libp2p/crypto/key.hpp"
 #include "libp2p/peer/inmem_key_repository/inmem_key_repository.hpp"
 #include "libp2p/peer/key_repository.hpp"
 #include "testutil/outcome.hpp"
