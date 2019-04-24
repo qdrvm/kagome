@@ -70,8 +70,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, MultibaseCodecImpl::Error, e) {
 namespace libp2p::multi {
   using kagome::common::Buffer;
 
-  MultibaseCodecImpl::~MultibaseCodecImpl() = default;
-
   std::string MultibaseCodecImpl::encode(const Buffer &bytes,
                                          Encoding encoding) const {
     if (bytes.size() == 0) {
