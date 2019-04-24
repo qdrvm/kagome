@@ -21,5 +21,6 @@ target_link_libraries(base_leveldb_test
   Boost::filesystem
   Boost::boost
   logger
+  leveldb
   )
 
