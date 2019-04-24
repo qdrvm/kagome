@@ -26,7 +26,7 @@ namespace kagome::storage {
     return error_as_result<std::unique_ptr<LevelDB>>(status, logger);
   }
 
-  std::unique_ptr<BufferMapCursor> LevelDB::iterator() {
+  std::unique_ptr<BufferMapCursor> LevelDB::cursor() {
     auto it = std::unique_ptr<leveldb::Iterator>(db_->NewIterator(ro_));
     return std::make_unique<Cursor>(std::move(it));
   }

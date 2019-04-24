@@ -36,7 +36,7 @@ namespace kagome::storage {
      */
     void setWriteOptions(leveldb::WriteOptions wo);
 
-    std::unique_ptr<BufferMapCursor> iterator() override;
+    std::unique_ptr<BufferMapCursor> cursor() override;
 
     std::unique_ptr<BufferBatch> batch() override;
 

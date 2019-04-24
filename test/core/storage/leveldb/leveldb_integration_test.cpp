@@ -99,7 +99,7 @@ TEST_F(LevelDB_Integration_Test, Iterator) {
   std::array<size_t, size> counter{};
 
   logger->warn("forward iteration");
-  auto it = db_->iterator();
+  auto it = db_->cursor();
   for (it->seekToFirst(); it->isValid(); it->next()) {
     auto k = it->key();
     auto v = it->value();
