@@ -6,6 +6,6 @@
 add_library(multiselect
     multiselect.cpp
     multiselect.hpp
-    multiselect_communicator.cpp
-    multiselect_communicator.hpp
+    message_manager.cpp
+    message_manager.hpp
     )

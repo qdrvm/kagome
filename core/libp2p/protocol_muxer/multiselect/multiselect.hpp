@@ -6,11 +6,14 @@
 #ifndef KAGOME_MULTISELECT_HPP
 #define KAGOME_MULTISELECT_HPP
 
+#include <memory>
+#include <string>
 #include <vector>
 
 #include <gsl/span>
 #include "common/logger.hpp"
-#include "libp2p/protocol_muxer/multiselect/multiselect_communicator.hpp"
+#include "libp2p/peer/peer_id.hpp"
+#include "libp2p/protocol_muxer/multiselect/message_manager.hpp"
 #include "libp2p/protocol_muxer/multiselect/stream_state.hpp"
 #include "libp2p/protocol_muxer/protocol_muxer.hpp"
 
@@ -22,7 +25,15 @@ namespace libp2p::protocol_muxer {
   class Multiselect : public ProtocolMuxer,
                       public std::enable_shared_from_this<Multiselect> {
    public:
-    explicit Multiselect(kagome::common::Logger logger =
+    // TODO(akvinikym) [PRE-127] 25.04.19: think about passing not a PeerId, but
+    // an Identity service, when it's implemented
+    /**
+     * Create a Multiselect instance
+     * @param peer_id - id of the current peer
+     * @param logger to write debug messages to
+     */
+    explicit Multiselect(std::shared_ptr<peer::PeerId> peer_id,
+                         kagome::common::Logger logger =
                              kagome::common::createLogger("Multiselect"));
 
     ~Multiselect() override;
@@ -125,8 +136,9 @@ namespace libp2p::protocol_muxer {
      */
     void sendNaMsg(StreamState stream_state) const;
 
-    MultiselectCommunicator communicator_;
+    MessageManager message_manager_;
     std::vector<multi::Multistream> supported_protocols_;
+    std::shared_ptr<peer::PeerId> peer_id_;
 
     kagome::common::Logger log_;
   };

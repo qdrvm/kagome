@@ -19,8 +19,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol_muxer,
 }
 
 namespace libp2p::protocol_muxer {
-  Multiselect::Multiselect(kagome::common::Logger logger)
-      : log_{std::move(logger)} {}
+  Multiselect::Multiselect(std::shared_ptr<peer::PeerId> peer_id,
+                           kagome::common::Logger logger)
+      : peer_id_{std::move(peer_id)}, log_{std::move(logger)} {}
 
   Multiselect::~Multiselect() = default;
 
@@ -59,10 +60,9 @@ namespace libp2p::protocol_muxer {
 
   void Multiselect::processResponse(const kagome::common::Buffer &response,
                                     StreamState stream_state) const {
-    using MessageType =
-        MultiselectCommunicator::MultiselectMessage::MessageType;
+    using MessageType = MessageManager::MultiselectMessage::MessageType;
 
-    auto message_opt = communicator_.parseMessage(response);
+    auto message_opt = message_manager_.parseMessage(response);
     if (!message_opt) {
       log_->error("cannot parse message, received from the stream");
       // response by sending ls; this can still allow us to continue negotiation
@@ -193,7 +193,7 @@ namespace libp2p::protocol_muxer {
 
   void Multiselect::sendOpeningMsg(StreamState stream_state) const {
     stream_state.stream_.get().writeAsync(
-        communicator_.openingMsg(),
+        message_manager_.openingMsg(),
         [t = shared_from_this(), stream_state = std::move(stream_state)](
             const std::error_code &ec, size_t n) mutable {
           if (ec) {
@@ -211,11 +211,11 @@ namespace libp2p::protocol_muxer {
                                     StreamState stream_state) const {
     if (!wait_for_response) {
       stream_state.stream_.get().writeAsync(
-          communicator_.protocolMsg(protocol));
+          message_manager_.protocolMsg(protocol));
       return;
     }
     stream_state.stream_.get().writeAsync(
-        communicator_.protocolMsg(protocol),
+        message_manager_.protocolMsg(protocol),
         [t = shared_from_this(), stream_state = std::move(stream_state)](
             const std::error_code &ec, size_t n) mutable {
           if (ec) {
@@ -228,10 +228,11 @@ namespace libp2p::protocol_muxer {
         });
   }
 
-  void Multiselect::sendProtocolsMsg(gsl::span<const multi::Multistream> protocols,
-                                     StreamState stream_state) const {
+  void Multiselect::sendProtocolsMsg(
+      gsl::span<const multi::Multistream> protocols,
+      StreamState stream_state) const {
     stream_state.stream_.get().writeAsync(
-        communicator_.protocolsMsg(protocols),
+        message_manager_.protocolsMsg(protocols),
         [t = shared_from_this(), stream_state = std::move(stream_state)](
             const std::error_code &ec, size_t n) mutable {
           if (ec) {
@@ -246,7 +247,7 @@ namespace libp2p::protocol_muxer {
 
   void Multiselect::sendLsMsg(StreamState stream_state) const {
     stream_state.stream_.get().writeAsync(
-        communicator_.lsMsg(),
+        message_manager_.lsMsg(),
         [t = shared_from_this(), stream_state = std::move(stream_state)](
             const std::error_code &ec, size_t n) mutable {
           if (ec) {
@@ -261,7 +262,7 @@ namespace libp2p::protocol_muxer {
 
   void Multiselect::sendNaMsg(StreamState stream_state) const {
     stream_state.stream_.get().writeAsync(
-        communicator_.naMsg(),
+        message_manager_.naMsg(),
         [t = shared_from_this(), stream_state = std::move(stream_state)](
             const std::error_code &ec, size_t n) mutable {
           if (ec) {
