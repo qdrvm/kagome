@@ -21,9 +21,15 @@ namespace kagome::runtime {
    public:
     explicit WasmExecutor(std::shared_ptr<extensions::Extension> extension);
 
+    /**
+     * Executes export method from provided wasm code and returns result
+     */
     wasm::Literal call(const std::vector<uint8_t> &code, wasm::Name method_name,
                        const wasm::LiteralList &args);
 
+    /**
+     * Executes export method from provided module and returns result
+     */
     wasm::Literal callInModule(wasm::Module &module, wasm::Name method_name,
                                const wasm::LiteralList &args);
 
