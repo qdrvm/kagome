@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(inmem_key_repository)
+add_subdirectory(key_repository)
 
 add_library(libp2p_peer_errors
   errors.cpp

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/peer/inmem_key_repository/inmem_key_repository.hpp"
+#include "libp2p/peer/key_repository/inmem_key_repository.hpp"
 
 #include "libp2p/peer/errors.hpp"
 
