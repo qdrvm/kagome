@@ -25,8 +25,11 @@ namespace libp2p::protocol_muxer {
   class Multiselect : public ProtocolMuxer,
                       public std::enable_shared_from_this<Multiselect> {
    public:
+    using PeerId = multi::Multihash;
+
     // TODO(akvinikym) [PRE-127] 25.04.19: think about passing not a PeerId, but
     // an Identity service, when it's implemented
+    // Also accept PeerIdConverter in order to base58 it
     /**
      * Create a Multiselect instance
      * @param peer_id - id of the current peer

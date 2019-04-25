@@ -28,9 +28,9 @@ namespace libp2p::protocol_muxer {
       /// type of the message
       MessageType type_;
       /// zero or more protocols in that message
-      std::vector<multi::Multistream> protocols_;
+      std::vector<multi::Multistream> protocols_{};
       /// peer, with which we are negotiating
-      peer::PeerId peer_id_;
+//      Multiselect::PeerId peer_id_;
     };
 
     /**
@@ -80,9 +80,6 @@ namespace libp2p::protocol_muxer {
         gsl::span<const multi::Multistream> protocols) const;
 
    private:
-    static constexpr std::string_view kMultiselectHeaderString =
-        "/multistream-select/0.3.0";
-
     static constexpr std::string_view kLsString = "ls\n";
     static constexpr std::string_view kNaString = "na\n";
 
