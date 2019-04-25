@@ -89,5 +89,14 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, KeyGeneratorError, e) {
       return "you need to specify valid key type";
     case KeyGeneratorError::UNKNOWN_KEY_TYPE:
       return "unknown key type";
+    case KeyGeneratorError::GENERATOR_NOT_INITIALIZED:
+      return "generator not initialized";
+    case KeyGeneratorError::KEY_GENERATION_FAILED:
+      return "key generation failed";
+    case KeyGeneratorError::FILE_NOT_FOUND:
+      return "file not found";
+    case KeyGeneratorError::UNKNOWN_BITS_COUNT:
+      return "unknown bits count";
   }
+  return "unknown KeyGenerator error";
 }

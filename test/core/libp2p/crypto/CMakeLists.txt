@@ -37,3 +37,10 @@ addtest(marshaller_test
 target_link_libraries(marshaller_test
     marshaller
     )
+
+addtest(rsa_test
+    rsa_test.cpp
+    )
+target_link_libraries(rsa_test
+    key_generator
+    )

@@ -48,6 +48,10 @@ namespace libp2p::crypto {
   enum class KeyGeneratorError {
     CANNOT_GENERATE_UNSPECIFIED = 1,  ///< you need to specify valid key type
     UNKNOWN_KEY_TYPE,                 ///< unknown key type
+    GENERATOR_NOT_INITIALIZED,        ///< generator not initialized
+    KEY_GENERATION_FAILED,            ///< key generation failed
+    FILE_NOT_FOUND,                   ///< file not found
+    UNKNOWN_BITS_COUNT,               ///< unknown bits option
   };
 }  // namespace libp2p::crypto
 
@@ -56,5 +60,6 @@ OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, OpenSslError)
 OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, HmacProviderError)
 OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, MiscError)
 OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, RandomProviderError)
+OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, KeyGeneratorError)
 
 #endif  // KAGOME_CORE_LIBP2P_CRYPTO_ERROR_HPP

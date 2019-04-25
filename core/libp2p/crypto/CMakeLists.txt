@@ -31,8 +31,10 @@ add_library(key_generator
     key_generator/key_generator_impl.cpp
     key_generator/key_generator_impl.hpp)
 target_link_libraries(key_generator
+    crypto_error
     outcome
     buffer
+    random_provider
     OpenSSL::Crypto
-    crypto_error
+    Boost::filesystem
     )
