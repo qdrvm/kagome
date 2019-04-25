@@ -14,6 +14,7 @@
 #include "scale/byte_array_stream.hpp"
 
 using kagome::common::Buffer;
+using kagome::common::Hash256;
 using kagome::primitives::Block;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
@@ -27,12 +28,19 @@ using kagome::primitives::Valid;
 using kagome::primitives::Version;
 using kagome::scale::ByteArrayStream;
 
+Hash256 createHash(std::initializer_list<uint8_t> bytes) {
+  Hash256 h;
+  h.fill(0);
+  std::copy(bytes.begin(), bytes.end(), h.begin());
+  return h;
+}
+
 /**
  * @class Primitives is a test fixture which contains useful data
  */
 class Primitives : public testing::Test {
   void SetUp() override {
-    block_id_hash_ = kagome::common::Hash256::fromHex(
+    block_id_hash_ = Hash256::fromHex(
                          "000102030405060708090A0B0C0D0E0F"
                          "101112131415161718191A1B1C1D1E1F")
                          .value();
@@ -42,17 +50,17 @@ class Primitives : public testing::Test {
 
  protected:
   /// block header and corresponding scale representation
-  BlockHeader block_header_{{1},   // buffer: parent_hash
+  BlockHeader block_header_{createHash({0}),   // parent_hash
                             2,     // number: number
-                            {3},   // buffer: state_root
-                            {4},   // buffer: extrinsic root
+                            createHash({1}),   // state_root
+                            createHash({2}),   // extrinsic root
                             {5}};  // buffer: digest;
   Buffer encoded_header_{
-      4, 1,                    // {1}
-      2, 0, 0, 0, 0, 0, 0, 0,  // 2 as uint64
-      4, 3,                    // {3}
-      4, 4,                    // {4}
-      4, 5                     // {5}
+      128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      2, 0, 0, 0, 0, 0, 0, 0,
+      128, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      128, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      4, 5
   };
   /// Extrinsic instance and corresponding scale representation
   Extrinsic extrinsic_{{12,  /// sequence of 3 bytes: 1, 2, 3; 12 == (3 << 2)
@@ -60,13 +68,9 @@ class Primitives : public testing::Test {
   Buffer encoded_extrinsic_{12, 1, 2, 3};
   /// block instance and corresponding scale representation
   Block block_{block_header_, {extrinsic_}};
-  Buffer encoded_block_{4,  1,                    // {1}
-                        2,  0, 0, 0, 0, 0, 0, 0,  // 2 as uint64
-                        4,  3,                    // {3}
-                        4,  4,                    // {4}
-                        4,  5,                    // {5}
+  Buffer encoded_block_ = Buffer(encoded_header_).putBuffer({
                         4,             // (1 << 2) number of extrinsics
-                        12, 1, 2, 3};  // extrinsic itself {1, 2, 3}
+                        12, 1, 2, 3});  // extrinsic itself {1, 2, 3}
   /// Version instance and corresponding scale representation
   Version version_{
       "qwe",                                           // spec name

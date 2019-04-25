@@ -15,150 +15,6 @@
 #include "scale/scale_error.hpp"
 #include "scale/variant.hpp"
 
-namespace kagome::primitives {
-  using kagome::common::Buffer;
-  using ArrayChar8Encoder = scale::TypeEncoder<std::array<uint8_t, 8>>;
-  using ApiEncoder = scale::TypeEncoder<std::pair<ArrayChar8Encoder, uint32_t>>;
-  using kagome::scale::collection::decodeCollection;
-  using kagome::scale::collection::decodeString;
-  using kagome::scale::collection::encodeBuffer;
-  using kagome::scale::collection::encodeCollection;
-  using kagome::scale::collection::encodeString;
-  using kagome::scale::compact::decodeInteger;
-  using kagome::scale::compact::encodeInteger;
-  using kagome::scale::fixedwidth::decodeUint32;
-  using kagome::scale::fixedwidth::decodeUint64;
-  using kagome::scale::fixedwidth::encodeUint32;
-  using kagome::scale::fixedwidth::encodeUint64;
-  using kagome::scale::variant::decodeVariant;
-  using kagome::scale::variant::encodeVariant;
-
-  outcome::result<Buffer> ScaleCodecImpl::encodeBlock(
-      const Block &block) const {
-    Buffer out;
-    OUTCOME_TRY(encoded_header, encodeBlockHeader(block.header()));
-    out.putBuffer(encoded_header);
-
-    // put number of extrinsics
-    OUTCOME_TRY(encodeInteger(block.extrinsics().size(), out));
-
-    for (auto &&extrinsic : block.extrinsics()) {
-      OUTCOME_TRY(encoded_extrinsic, encodeExtrinsic(extrinsic));
-      out.putBuffer(encoded_extrinsic);
-    }
-
-    return out;
-  }
-
-  outcome::result<Block> ScaleCodecImpl::decodeBlock(Stream &stream) const {
-    OUTCOME_TRY(header, decodeBlockHeader(stream));
-    // first decode number of items
-    OUTCOME_TRY(integer, decodeInteger(stream));
-    auto items_count = integer.convert_to<uint64_t>();
-
-    std::vector<Extrinsic> collection;
-    collection.reserve(items_count);
-
-    // now decode collection of extrinsics
-    for (uint64_t i = 0u; i < items_count; ++i) {
-      OUTCOME_TRY(extrinsic, decodeExtrinsic(stream));
-      collection.push_back(extrinsic);
-    }
-
-    return Block(header, collection);
-  }
-
-  outcome::result<Buffer> ScaleCodecImpl::encodeBlockHeader(
-      const BlockHeader &block_header) const {
-    Buffer out;
-
-    OUTCOME_TRY(encodeBuffer(block_header.parentHash(), out));
-    encodeUint64(block_header.number(), out);
-    OUTCOME_TRY(encodeBuffer(block_header.stateRoot(), out));
-    OUTCOME_TRY(encodeBuffer(block_header.extrinsicsRoot(), out));
-    OUTCOME_TRY(encodeBuffer(block_header.digest(), out));
-
-    return out;
-  }
-
-  outcome::result<BlockHeader> ScaleCodecImpl::decodeBlockHeader(
-      Stream &stream) const {
-    OUTCOME_TRY(parent_hash, decodeCollection<uint8_t>(stream));
-    OUTCOME_TRY(number, decodeUint64(stream));
-    OUTCOME_TRY(state_root, decodeCollection<uint8_t>(stream));
-    OUTCOME_TRY(extrinsics_root, decodeCollection<uint8_t>(stream));
-    OUTCOME_TRY(digest, decodeCollection<uint8_t>(stream));
-
-    return BlockHeader(Buffer{parent_hash}, number, Buffer{state_root},
-                       Buffer{extrinsics_root}, Buffer{digest});
-  }
-
-  outcome::result<Buffer> ScaleCodecImpl::encodeExtrinsic(
-      const Extrinsic &extrinsic) const {
-    return extrinsic.data();
-  }
-  outcome::result<Extrinsic> ScaleCodecImpl::decodeExtrinsic(
-      Stream &stream) const {
-    Buffer out;
-
-    OUTCOME_TRY(extrinsic, decodeCollection<uint8_t>(stream));
-    // extrinsic is an encoded byte array, so when we decode it from stream
-    // we obtain just byte array, and in order to keep its form
-    // we need do write its size first
-    OUTCOME_TRY(encodeInteger(extrinsic.size(), out));
-    // and then bytes as well
-    out.put(extrinsic);
-
-    return Extrinsic(out);
-  }
-
-  outcome::result<Buffer> ScaleCodecImpl::encodeVersion(
-      const Version &version) const {
-    Buffer out;
-    OUTCOME_TRY(encodeString(version.specName(), out));
-    OUTCOME_TRY(encodeString(version.implName(), out));
-    encodeUint32(version.authoringVersion(), out);
-    encodeUint32(version.implVersion(), out);
-    OUTCOME_TRY(encodeCollection<Api>(version.apis(), out));
-    return out;
-  }
-
-  outcome::result<Version> ScaleCodecImpl::decodeVersion(
-      ScaleCodec::Stream &stream) const {
-    OUTCOME_TRY(spec_name, decodeString(stream));
-    OUTCOME_TRY(impl_name, decodeString(stream));
-    OUTCOME_TRY(authoring_version, decodeUint32(stream));
-    OUTCOME_TRY(impl_version, decodeUint32(stream));
-    OUTCOME_TRY(apis, decodeCollection<Api>(stream));
-
-    return Version(spec_name, impl_name, authoring_version, impl_version, apis);
-  }
-
-  outcome::result<Buffer> ScaleCodecImpl::encodeBlockId(
-      const BlockId &blockId) const {
-    Buffer out;
-    OUTCOME_TRY(encodeVariant(blockId, out));
-    return out;
-  }
-
-  outcome::result<BlockId> ScaleCodecImpl::decodeBlockId(
-      ScaleCodec::Stream &stream) const {
-    return decodeVariant<common::Hash256, BlockNumber>(stream);
-  }
-
-  outcome::result<Buffer> ScaleCodecImpl::encodeTransactionValidity(
-      const TransactionValidity &transactionValidity) const {
-    Buffer out;
-    OUTCOME_TRY(encodeVariant(transactionValidity, out));
-    return out;
-  }
-
-  outcome::result<TransactionValidity>
-  ScaleCodecImpl::decodeTransactionValidity(ScaleCodec::Stream &stream) const {
-    return decodeVariant<Invalid, Valid, Unknown>(stream);
-  }
-}  // namespace kagome::primitives
-
 /// custom types encoders and decoders
 namespace kagome::scale {
   /// encodes std::array
@@ -296,3 +152,153 @@ namespace kagome::scale {
     }
   };
 }  // namespace kagome::scale
+
+namespace kagome::primitives {
+  using kagome::common::Buffer;
+  using kagome::common::Hash256;
+  using ArrayChar8Encoder = scale::TypeEncoder<std::array<uint8_t, 8>>;
+  using ApiEncoder = scale::TypeEncoder<std::pair<ArrayChar8Encoder, uint32_t>>;
+  using kagome::scale::collection::decodeCollection;
+  using kagome::scale::collection::decodeString;
+  using kagome::scale::collection::encodeBuffer;
+  using kagome::scale::collection::encodeCollection;
+  using kagome::scale::collection::encodeString;
+  using kagome::scale::compact::decodeInteger;
+  using kagome::scale::compact::encodeInteger;
+  using kagome::scale::fixedwidth::decodeUint32;
+  using kagome::scale::fixedwidth::decodeUint64;
+  using kagome::scale::fixedwidth::encodeUint32;
+  using kagome::scale::fixedwidth::encodeUint64;
+  using kagome::scale::variant::decodeVariant;
+  using kagome::scale::variant::encodeVariant;
+
+  outcome::result<Buffer> ScaleCodecImpl::encodeBlock(
+      const Block &block) const {
+    Buffer out;
+    OUTCOME_TRY(encoded_header, encodeBlockHeader(block.header()));
+    out.putBuffer(encoded_header);
+
+    // put number of extrinsics
+    OUTCOME_TRY(encodeInteger(block.extrinsics().size(), out));
+
+    for (auto &&extrinsic : block.extrinsics()) {
+      OUTCOME_TRY(encoded_extrinsic, encodeExtrinsic(extrinsic));
+      out.putBuffer(encoded_extrinsic);
+    }
+
+    return out;
+  }
+
+  outcome::result<Block> ScaleCodecImpl::decodeBlock(Stream &stream) const {
+    OUTCOME_TRY(header, decodeBlockHeader(stream));
+    // first decode number of items
+    OUTCOME_TRY(integer, decodeInteger(stream));
+    auto items_count = integer.convert_to<uint64_t>();
+
+    std::vector<Extrinsic> collection;
+    collection.reserve(items_count);
+
+    // now decode collection of extrinsics
+    for (uint64_t i = 0u; i < items_count; ++i) {
+      OUTCOME_TRY(extrinsic, decodeExtrinsic(stream));
+      collection.push_back(extrinsic);
+    }
+
+    return Block(header, collection);
+  }
+
+  outcome::result<Buffer> ScaleCodecImpl::encodeBlockHeader(
+      const BlockHeader &block_header) const {
+    Buffer out;
+
+    scale::TypeEncoder<Hash256> encoder;
+
+    OUTCOME_TRY(encoder.encode(block_header.parentHash(), out));
+    encodeUint64(block_header.number(), out);
+    OUTCOME_TRY(encoder.encode(block_header.stateRoot(), out));
+    OUTCOME_TRY(encoder.encode(block_header.extrinsicsRoot(), out));
+    OUTCOME_TRY(encodeBuffer(block_header.digest(), out));
+
+    return out;
+  }
+
+  outcome::result<BlockHeader> ScaleCodecImpl::decodeBlockHeader(
+      Stream &stream) const {
+    scale::TypeDecoder<Hash256> decoder;
+
+    OUTCOME_TRY(parent_hash, decoder.decode(stream));
+    OUTCOME_TRY(number, decodeUint64(stream));
+    OUTCOME_TRY(state_root, decoder.decode(stream));
+    OUTCOME_TRY(extrinsics_root, decoder.decode(stream));
+    OUTCOME_TRY(digest, decodeCollection<uint8_t>(stream));
+
+    return BlockHeader(parent_hash, number, state_root,
+                       extrinsics_root, Buffer{digest});
+  }
+
+  outcome::result<Buffer> ScaleCodecImpl::encodeExtrinsic(
+      const Extrinsic &extrinsic) const {
+    return extrinsic.data();
+  }
+  outcome::result<Extrinsic> ScaleCodecImpl::decodeExtrinsic(
+      Stream &stream) const {
+    Buffer out;
+
+    OUTCOME_TRY(extrinsic, decodeCollection<uint8_t>(stream));
+    // extrinsic is an encoded byte array, so when we decode it from stream
+    // we obtain just byte array, and in order to keep its form
+    // we need do write its size first
+    OUTCOME_TRY(encodeInteger(extrinsic.size(), out));
+    // and then bytes as well
+    out.put(extrinsic);
+
+    return Extrinsic(out);
+  }
+
+  outcome::result<Buffer> ScaleCodecImpl::encodeVersion(
+      const Version &version) const {
+    Buffer out;
+    OUTCOME_TRY(encodeString(version.specName(), out));
+    OUTCOME_TRY(encodeString(version.implName(), out));
+    encodeUint32(version.authoringVersion(), out);
+    encodeUint32(version.implVersion(), out);
+    OUTCOME_TRY(encodeCollection<Api>(version.apis(), out));
+    return out;
+  }
+
+  outcome::result<Version> ScaleCodecImpl::decodeVersion(
+      ScaleCodec::Stream &stream) const {
+    OUTCOME_TRY(spec_name, decodeString(stream));
+    OUTCOME_TRY(impl_name, decodeString(stream));
+    OUTCOME_TRY(authoring_version, decodeUint32(stream));
+    OUTCOME_TRY(impl_version, decodeUint32(stream));
+    OUTCOME_TRY(apis, decodeCollection<Api>(stream));
+
+    return Version(spec_name, impl_name, authoring_version, impl_version, apis);
+  }
+
+  outcome::result<Buffer> ScaleCodecImpl::encodeBlockId(
+      const BlockId &blockId) const {
+    Buffer out;
+    OUTCOME_TRY(encodeVariant(blockId, out));
+    return out;
+  }
+
+  outcome::result<BlockId> ScaleCodecImpl::decodeBlockId(
+      ScaleCodec::Stream &stream) const {
+    return decodeVariant<common::Hash256, BlockNumber>(stream);
+  }
+
+  outcome::result<Buffer> ScaleCodecImpl::encodeTransactionValidity(
+      const TransactionValidity &transactionValidity) const {
+    Buffer out;
+    OUTCOME_TRY(encodeVariant(transactionValidity, out));
+    return out;
+  }
+
+  outcome::result<TransactionValidity>
+  ScaleCodecImpl::decodeTransactionValidity(ScaleCodec::Stream &stream) const {
+    return decodeVariant<Invalid, Valid, Unknown>(stream);
+  }
+}  // namespace kagome::primitives
+
