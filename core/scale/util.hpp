@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <vector>
+#include <array>
 
 #include <boost/endian/arithmetic.hpp>
 #include "common/buffer.hpp"
@@ -32,6 +33,7 @@ namespace kagome::scale::impl {
     buf = value;
     std::vector<uint8_t> tmp;
     for (size_t i = 0; i < size; ++i) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       tmp.push_back(buf.data()[i]);
     }
     out.put(tmp);
@@ -50,7 +52,7 @@ namespace kagome::scale::impl {
 
     // clang-format off
     // sign bit = 2^(num_bits - 1)
-    static constexpr uint64_t sign_bit[] = {
+    static constexpr std::array<uint64_t, 8> sign_bit = {
             0x80,               // 1 byte
             0x8000,             // 2 bytes
             0x800000,           // 3 bytes
@@ -61,7 +63,7 @@ namespace kagome::scale::impl {
             0x8000000000000000  // 8 bytes
     };
 
-    static constexpr uint64_t multiplier[] = {
+    static constexpr std::array<uint64_t, 8> multiplier = {
             0x1,                // 2^0
             0x100,              // 2^8
             0x10000,            // 2^16
@@ -81,6 +83,7 @@ namespace kagome::scale::impl {
     // and represent it as native-endian unsigned integer
     uint64_t v{0};
     for (size_t i = 0; i < size; ++i) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       v += multiplier[i] * static_cast<uint64_t>(*stream.nextByte());
     }
     // now we have uint64 native-endian value

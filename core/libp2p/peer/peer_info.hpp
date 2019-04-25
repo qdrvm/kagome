@@ -21,10 +21,6 @@ namespace libp2p::peer {
   class PeerInfo {
    public:
     PeerInfo() = delete;
-    PeerInfo(const PeerInfo &peer_info);
-    PeerInfo &operator=(const PeerInfo &peer_info);
-    PeerInfo(PeerInfo &&peer_info) noexcept;
-    PeerInfo &operator=(PeerInfo &&peer_info) noexcept;
 
     /**
      * Create a PeerInfo instance

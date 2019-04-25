@@ -9,10 +9,6 @@
 #include "libp2p/peer/peer_info.hpp"
 
 namespace libp2p::peer {
-  PeerInfo::PeerInfo(const PeerInfo &peer_info) = default;
-  PeerInfo &PeerInfo::operator=(const PeerInfo &peer_info) = default;
-  PeerInfo::PeerInfo(PeerInfo &&peer_info) noexcept = default;
-  PeerInfo &PeerInfo::operator=(PeerInfo &&peer_info) noexcept = default;
 
   PeerInfo::PeerInfo(PeerId peer) : peer_id_{std::move(peer)} {}
 

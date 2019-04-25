@@ -57,7 +57,7 @@ namespace {
 
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, MultibaseCodecImpl::Error, e) {
   using E = libp2p::multi::MultibaseCodecImpl::Error;
-  switch(e) {
+  switch (e) {
     case E::kInputTooShort:
       return "Input must be at least two bytes long";
     case E::kUnsupportedBase:
@@ -69,8 +69,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, MultibaseCodecImpl::Error, e) {
 
 namespace libp2p::multi {
   using kagome::common::Buffer;
-
-  MultibaseCodecImpl::~MultibaseCodecImpl() = default;
 
   std::string MultibaseCodecImpl::encode(const Buffer &bytes,
                                          Encoding encoding) const {
