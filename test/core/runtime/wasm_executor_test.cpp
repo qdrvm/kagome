@@ -9,6 +9,7 @@
 
 #include <binaryen/wasm-binary.h>
 #include <gtest/gtest.h>
+#include <boost/filesystem.hpp>
 #include "core/extensions/mock_extension.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 
@@ -17,6 +18,8 @@ using kagome::runtime::WasmExecutor;
 using kagome::runtime::WasmMemoryImpl;
 
 using ::testing::Return;
+
+namespace fs = boost::filesystem;
 
 class WasmExecutorTest : public ::testing::Test {
  public:
@@ -29,8 +32,11 @@ class WasmExecutorTest : public ::testing::Test {
   }
 
   std::vector<uint8_t> getSumTwoCode() {
-    std::string path = "../../test/core/runtime/wasm/sumtwo.wasm";
-    std::ifstream ifd(path, std::ios::binary | std::ios::ate);
+    // get file from wasm/ folder
+    auto path1 =
+        fs::path(__FILE__).parent_path().string() + "/wasm/sumtwo.wasm";
+
+    std::ifstream ifd(path1, std::ios::binary | std::ios::ate);
     int size = ifd.tellg();
     ifd.seekg(0, std::ios::beg);
     std::vector<char> buffer;

@@ -8,6 +8,7 @@
 #include <fstream>
 
 #include <gtest/gtest.h>
+#include <boost/filesystem.hpp>
 #include "core/storage/merkle/mock_trie_db.hpp"
 #include "extensions/extension_impl.hpp"
 #include "primitives/impl/scale_codec_impl.hpp"
@@ -30,6 +31,8 @@ using kagome::storage::merkle::MockTrieDb;
 using ::testing::_;
 using ::testing::Return;
 
+namespace fs = boost::filesystem;
+
 class CoreTest : public ::testing::Test {
  public:
   void SetUp() override {
@@ -43,8 +46,9 @@ class CoreTest : public ::testing::Test {
   }
 
   Buffer getRuntimeCode() {
-    std::string path =
-        "../../test/core/runtime/wasm/polkadot_runtime.compact.wasm";
+    // get file from wasm/ folder
+    auto path = fs::path(__FILE__).parent_path().string()
+        + "/wasm/polkadot_runtime.compact.wasm";
     std::ifstream ifd(path, std::ios::binary | std::ios::ate);
     int size = ifd.tellg();
     ifd.seekg(0, std::ios::beg);

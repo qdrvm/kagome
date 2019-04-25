@@ -9,7 +9,9 @@ namespace kagome::runtime {
 
   WasmMemoryImpl::WasmMemoryImpl() {
     offset_ = 0;
-    allocate(4096);
+    allocate(1);  // We should allocate very first byte to prohibit allocating
+                  // memory at 0 in future, as returning 0 from allocate method
+                  // means that wasm memory was exhausted
   }
 
   WasmMemoryImpl::WasmMemoryImpl(SizeType size) : WasmMemoryImpl() {

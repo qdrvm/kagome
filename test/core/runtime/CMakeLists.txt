@@ -29,6 +29,7 @@ addtest(core_integration_test
     )
 target_link_libraries(core_integration_test
     core
+    Boost::filesystem
     )
 
 addtest(wasm_executor_test
@@ -36,5 +37,6 @@ addtest(wasm_executor_test
     )
 target_link_libraries(wasm_executor_test
     wasm_executor
+    Boost::filesystem
 )
 
