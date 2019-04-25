@@ -10,9 +10,9 @@
 #include "common/buffer.hpp"
 #include "common/byte_stream.hpp"
 #include "primitives/block_id.hpp"
+#include "primitives/common.hpp"
 #include "primitives/transaction_validity.hpp"
 #include "scale/types.hpp"
-
 
 namespace kagome::primitives {
   class Block;  ///< forward declaration of class Block
@@ -123,11 +123,22 @@ namespace kagome::primitives {
         const TransactionValidity &transactionValidity) const = 0;
 
     /**
-     * @brief decodes scale-encoded TransactionActivity instance
+     * @brief decodes scale-encoded TransactionValidity instance
      * @param stream source stream containing encoded bytes
      * @return decoded TransactionValidity instance or error
      */
     virtual outcome::result<TransactionValidity> decodeTransactionValidity(
+        Stream &stream) const = 0;
+
+    virtual outcome::result<Buffer> encodeAuthorityIds(
+        const std::vector<AuthorityId> ids) const = 0;
+
+    /**
+     * @brief decodes scale-encoded
+     * @param stream source stream containing encoded bytes
+     * @return decoded Vector of AuthorityIds or error
+     */
+    virtual outcome::result<std::vector<AuthorityId>> decodeAuthorityIds(
         Stream &stream) const = 0;
   };
 }  // namespace kagome::primitives

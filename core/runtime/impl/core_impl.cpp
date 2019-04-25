@@ -29,12 +29,8 @@ namespace kagome::runtime {
                   wasm::LiteralList({wasm::Literal(0), wasm::Literal(0)}))
             .geti64();
 
-    // first 32 bits are address and second are length
+    // first 32 bits are address and second are length (length not neededS)
     runtime::WasmPointer version_address = (version_long & 0xFFFFFFFFLL);
-
-    // length is not needed
-    // runtime::SizeTypeS version_length = (version_long & 0xFFFFFFFF00000000LL)
-    // >> 32;
 
     WasmMemoryStream stream(memory_);
 
@@ -86,17 +82,16 @@ namespace kagome::runtime {
     runtime::WasmPointer ptr = memory_->allocate(header_size);
     memory_->storeBuffer(ptr, encoded_header_result.value());
 
-    uint64_t result_long =
-        executor_
-            .call(state_code_.toVector(), "Core_initialise_block",
-                  wasm::LiteralList(
-                      {wasm::Literal(ptr), wasm::Literal(header_size)}))
-            .geti64();
+    executor_
+        .call(
+            state_code_.toVector(), "Core_initialise_block",
+            wasm::LiteralList({wasm::Literal(ptr), wasm::Literal(header_size)}))
+        .geti64();
 
     return outcome::success();
   }
 
-  outcome::result<primitives::AuthorityId> CoreImpl::authorities(
+  outcome::result<std::vector<primitives::AuthorityId>> CoreImpl::authorities(
       primitives::BlockId block_id) {
     auto encoded_id_result = codec_->encodeBlockId(block_id);
 
@@ -115,12 +110,8 @@ namespace kagome::runtime {
                 wasm::LiteralList({wasm::Literal(ptr), wasm::Literal(id_size)}))
             .geti64();
 
-    // first 32 bits are address and second are length
+    // first 32 bits are address and second are the length (length not needed)
     runtime::WasmPointer authority_address = (result_long & 0xFFFFFFFFLL);
-
-    // length is not needed
-    // runtime::SizeTypeS version_length = (version_long & 0xFFFFFFFF00000000LL)
-    // >> 32;
 
     WasmMemoryStream stream(memory_);
     auto advance_result = stream.advance(authority_address);
@@ -128,6 +119,7 @@ namespace kagome::runtime {
       return advance_result.error();
     }
 
+    return codec_->decodeAuthorityIds(stream);
   }
 
 }  // namespace kagome::runtime

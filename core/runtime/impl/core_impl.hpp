@@ -29,7 +29,7 @@ namespace kagome::runtime {
     outcome::result<void> initialise_block(
         const kagome::primitives::BlockHeader &header) override;
 
-    outcome::result<primitives::AuthorityId> authorities(
+    outcome::result<std::vector<primitives::AuthorityId>> authorities(
         primitives::BlockId block_id) override;
 
    private:

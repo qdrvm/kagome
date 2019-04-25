@@ -46,7 +46,7 @@ namespace kagome::runtime {
      * @param block_id id of the block to get authorities
      * @return authorities of given block
      */
-    virtual outcome::result<primitives::AuthorityId> authorities(
+    virtual outcome::result<std::vector<primitives::AuthorityId>> authorities(
         primitives::BlockId block_id) = 0;
   };
 

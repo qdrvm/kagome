@@ -12,8 +12,10 @@
 #include "primitives/block.hpp"
 #include "primitives/version.hpp"
 #include "scale/byte_array_stream.hpp"
+#include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
+using kagome::primitives::AuthorityId;
 using kagome::primitives::Block;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
@@ -121,6 +123,13 @@ class Primitives : public testing::Test {
       6, 7, 8,                 // collection items
       2, 0, 0, 0, 0, 0, 0, 0,  // longevity
   };
+
+  Buffer encoded_authority_ids_ = {
+      {12,  /// sequence of 3 authority ids: 1, 2, 3; 12 == (3 << 2)
+       1, 2, 3}};
+
+  std::vector<AuthorityId> decoded_authority_ids_ = {1, 2, 3};
+
   /// ScaleCodec impl instance
   std::shared_ptr<ScaleCodec> codec_;
 };
@@ -347,18 +356,17 @@ TEST_F(Primitives, decodeTransactionValidityInvalid) {
   auto &&res = codec_->decodeTransactionValidity(stream);
   ASSERT_TRUE(res);
   TransactionValidity value = res.value();
-  kagome::visit_in_place(
-      value,                                       // value
-      [](Invalid &v) { ASSERT_EQ(v.error_, 1); },  // ok
-      [](Unknown &v) { FAIL(); },                  // fail
-      [](Valid &v) { FAIL(); });                   // fail
+  kagome::visit_in_place(value,                                       // value
+                         [](Invalid &v) { ASSERT_EQ(v.error_, 1); },  // ok
+                         [](Unknown &v) { FAIL(); },                  // fail
+                         [](Valid &v) { FAIL(); });                   // fail
 }
 
 /**
  * @given byte array containing encoded
  * and TransactionValidity instance as Valid
  * @when codec_->decodeBlockId() is applied
- * @thenobtained result matches predefined block id instance
+ * @then obtained result matches predefined block id instance
  */
 TEST_F(Primitives, decodeTransactionValidityUnknown) {
   Buffer bytes = {2, 2};
@@ -366,11 +374,10 @@ TEST_F(Primitives, decodeTransactionValidityUnknown) {
   auto &&res = codec_->decodeTransactionValidity(stream);
   ASSERT_TRUE(res);
   TransactionValidity value = res.value();
-  kagome::visit_in_place(
-      value,                                       // value
-      [](Invalid &v) { FAIL(); },                  // fail
-      [](Unknown &v) { ASSERT_EQ(v.error_, 2); },  // ok
-      [](Valid &v) { FAIL(); }                     // fail
+  kagome::visit_in_place(value,                                       // value
+                         [](Invalid &v) { FAIL(); },                  // fail
+                         [](Unknown &v) { ASSERT_EQ(v.error_, 2); },  // ok
+                         [](Valid &v) { FAIL(); }                     // fail
   );
 }
 
@@ -378,22 +385,37 @@ TEST_F(Primitives, decodeTransactionValidityUnknown) {
  * @given byte array containing encoded
  * and TransactionValidity instance as Valid
  * @when codec_->decodeBlockId() is applied
- * @thenobtained result matches predefined block id instance
+ * @then obtained result matches predefined block id instance
  */
 TEST_F(Primitives, decodeTransactionValidityValid) {
   auto stream = ByteArrayStream(encoded_valid_transaction_);
   auto &&res = codec_->decodeTransactionValidity(stream);
   ASSERT_TRUE(res);
   TransactionValidity value = res.value();
-  kagome::visit_in_place(
-      value,                       // value
-      [](Invalid &v) { FAIL(); },  // fail
-      [](Unknown &v) { FAIL(); },  // fail
-      [this](Valid &v) {           // ok
-        auto &valid = valid_transaction_;
-        ASSERT_EQ(v.priority_, valid.priority_);
-        ASSERT_EQ(v.requires_, valid.requires_);
-        ASSERT_EQ(v.provides_, valid.provides_);
-        ASSERT_EQ(v.longevity_, valid.longevity_);
-      });
+  kagome::visit_in_place(value,                       // value
+                         [](Invalid &v) { FAIL(); },  // fail
+                         [](Unknown &v) { FAIL(); },  // fail
+                         [this](Valid &v) {           // ok
+                           auto &valid = valid_transaction_;
+                           ASSERT_EQ(v.priority_, valid.priority_);
+                           ASSERT_EQ(v.requires_, valid.requires_);
+                           ASSERT_EQ(v.provides_, valid.provides_);
+                           ASSERT_EQ(v.longevity_, valid.longevity_);
+                         });
+}
+
+/**
+ * @given vector of authority ids
+ * @when encode and decode this vector using scale codec
+ * @then decoded vector of authority ids matches the original one
+ */
+TEST_F(Primitives, EncodeDecodeAuthorityIds) {
+  std::vector<AuthorityId> original{1234, 4321};
+
+  EXPECT_OUTCOME_TRUE(res, codec_->encodeAuthorityIds(original));
+
+  ByteArrayStream stream(res);
+
+  EXPECT_OUTCOME_TRUE(decoded, codec_->decodeAuthorityIds(stream));
+  ASSERT_EQ(original, decoded);
 }
