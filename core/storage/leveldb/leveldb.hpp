@@ -24,6 +24,13 @@ namespace kagome::storage {
 
     ~LevelDB() override = default;
 
+    /**
+     * @brief Factory method to create an instance of LevelDB class.
+     * @param path filesystem path where database is going to be
+     * @param options leveldb options, such as caching, logging, etc.
+     * @param logger default database logger
+     * @return instance of LevelDB
+     */
     static outcome::result<std::unique_ptr<LevelDB>> create(
         std::string_view path, leveldb::Options options = leveldb::Options(),
         common::Logger logger = common::createLogger("leveldb"));
