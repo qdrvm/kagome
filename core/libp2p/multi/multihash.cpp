@@ -6,11 +6,11 @@
 #include "libp2p/multi/multihash.hpp"
 
 #include <boost/algorithm/hex.hpp>
+#include <boost/container_hash/hash.hpp>
 #include <boost/format.hpp>
 
 #include "common/hexutil.hpp"
 #include "libp2p/multi/uvarint.hpp"
-
 
 using kagome::common::Buffer;
 using kagome::common::unhex;
@@ -21,11 +21,14 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, Multihash::Error, e) {
     case E::ZERO_INPUT_LENGTH:
       return "The length encoded in the header is zero";
     case E::INCONSISTENT_LENGTH:
-      return "The length encoded in the input data header doesn't match the actual length of the input data";
+      return "The length encoded in the input data header doesn't match the "
+             "actual length of the input data";
     case E::INPUT_TOO_LONG:
-      return "The length of the input exceeds the maximum length of " + std::to_string(libp2p::multi::Multihash::kMaxHashLength);
+      return "The length of the input exceeds the maximum length of "
+          + std::to_string(libp2p::multi::Multihash::kMaxHashLength);
     case E::INPUT_TOO_SHORT:
-      return "The length of the input is less than the required minimum of two bytes for the multihash header";
+      return "The length of the input is less than the required minimum of two "
+             "bytes for the multihash header";
     default:
       return "Unknown error";
   }
@@ -41,8 +44,7 @@ namespace libp2p::multi {
     data_.put(hash_.toVector());
   }
 
-  auto Multihash::create(HashType type, Hash hash)
-      -> outcome::result<Multihash> {
+  outcome::result<Multihash> Multihash::create(HashType type, Hash hash) {
     if (hash.size() > kMaxHashLength) {
       return Error::INPUT_TOO_LONG;
     }
@@ -50,14 +52,13 @@ namespace libp2p::multi {
     return Multihash{type, std::move(hash)};
   }
 
-  auto Multihash::createFromHex(std::string_view hex)
-      -> outcome::result<Multihash> {
+  outcome::result<Multihash> Multihash::createFromHex(std::string_view hex) {
     OUTCOME_TRY(buf, Buffer::fromHex(hex));
     return Multihash::createFromBuffer(buf.toVector());
   }
 
-  auto Multihash::createFromBuffer(gsl::span<const uint8_t> b)
-      -> outcome::result<Multihash> {
+  outcome::result<Multihash> Multihash::createFromBuffer(
+      gsl::span<const uint8_t> b) {
     if (b.size() < kHeaderSize) {
       return Error::INPUT_TOO_SHORT;
     }
@@ -100,3 +101,8 @@ namespace libp2p::multi {
   }
 
 }  // namespace libp2p::multi
+
+size_t std::hash<libp2p::multi::Multihash>::operator()(
+    const libp2p::multi::Multihash &x) const {
+  return std::hash<kagome::common::Buffer>()(x.toBuffer());
+}

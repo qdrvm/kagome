@@ -5,25 +5,32 @@
 
 #include "libp2p/crypto/key.hpp"
 
-namespace libp2p::crypto {
+#include <boost/container_hash/hash.hpp>
 
-  Key::Key(common::KeyType key_type, Key::Buffer bytes)
-      : key_type_{key_type}, bytes_(std::move(bytes)) {}
+size_t std::hash<libp2p::crypto::Key>::operator()(
+    const libp2p::crypto::Key &x) const {
+  size_t seed = 0;
+  boost::hash_combine(seed, x.type);
+  boost::hash_combine(seed, std::hash<kagome::common::Buffer>()(x.data));
+  return seed;
+}
 
-  common::KeyType Key::getType() const {
-    return key_type_;
-  }
+size_t std::hash<libp2p::crypto::PrivateKey>::operator()(
+    const libp2p::crypto::PrivateKey &x) const {
+  return std::hash<libp2p::crypto::Key>()(x);
+}
 
-  const kagome::common::Buffer &Key::getBytes() const {
-    return bytes_;
-  }
+size_t std::hash<libp2p::crypto::PublicKey>::operator()(
+    const libp2p::crypto::PublicKey &x) const {
+  return std::hash<libp2p::crypto::Key>()(x);
+}
 
-  bool operator==(const Key &lhs, const Key &rhs) {
-    if (lhs.getType() != rhs.getType()) {
-      return false;
-    }
-
-    return lhs.getBytes() == rhs.getBytes();
-  }
-
-}  // namespace libp2p::crypto
+size_t std::hash<libp2p::crypto::KeyPair>::operator()(
+    const libp2p::crypto::KeyPair &x) const {
+  using libp2p::crypto::PrivateKey;
+  using libp2p::crypto::PublicKey;
+  size_t seed = 0;
+  boost::hash_combine(seed, std::hash<PublicKey>()(x.publicKey));
+  boost::hash_combine(seed, std::hash<PrivateKey>()(x.privateKey));
+  return seed;
+}
