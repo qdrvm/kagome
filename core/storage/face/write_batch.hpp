@@ -6,9 +6,9 @@
 #ifndef KAGOME_WRITE_BATCH_HPP
 #define KAGOME_WRITE_BATCH_HPP
 
-#include "storage/concept/writeable_map.hpp"
+#include "storage/face/writeable_map.hpp"
 
-namespace kagome::storage::concept {
+namespace kagome::storage::face {
 
   /**
    * @brief An abstraction over a storage, which can be used for batch writes
@@ -17,8 +17,6 @@ namespace kagome::storage::concept {
    */
   template <typename K, typename V>
   struct WriteBatch : public WriteableMap<K, V> {
-    ~WriteBatch() override = default;
-
     /**
      * @brief Writes batch.
      * @return error code in case of error.
@@ -31,6 +29,6 @@ namespace kagome::storage::concept {
     virtual void clear() = 0;
   };
 
-}  // namespace kagome::storage::concept
+}  // namespace kagome::storage::face
 
 #endif  // KAGOME_WRITE_BATCH_HPP

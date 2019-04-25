@@ -8,9 +8,9 @@
 
 #include <memory>
 
-#include "storage/concept/map_cursor.hpp"
+#include "storage/face/map_cursor.hpp"
 
-namespace kagome::storage::concept {
+namespace kagome::storage::face {
 
   /**
    * @brief An abstraction of a key-value map, that is iterable.
@@ -28,6 +28,6 @@ namespace kagome::storage::concept {
     virtual std::unique_ptr<MapCursor<K, V>> cursor() = 0;
   };
 
-}  // namespace kagome::storage::concept
+}  // namespace kagome::storage::face
 
 #endif  // KAGOME_ITERABLE_MAP_HPP

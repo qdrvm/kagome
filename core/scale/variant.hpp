@@ -43,10 +43,10 @@ namespace kagome::scale::variant {
       using Variant = boost::variant<T...>;
       using Result = outcome::result<void>;
       const Variant &v_;
-      kagome::common::Buffer &out_;
+      common::Buffer &out_;
       Result &res_;
 
-      VariantEncoder(const Variant &v, kagome::common::Buffer &buf, Result &res)
+      VariantEncoder(const Variant &v, common::Buffer &buf, Result &res)
           : v_{v}, out_{buf}, res_{res} {}
 
       template <class H>
@@ -110,7 +110,7 @@ namespace kagome::scale::variant {
    */
   template <class... T>
   outcome::result<void> encodeVariant(const boost::variant<T...> &v,
-                                      kagome::common::Buffer &out) {
+                                      common::Buffer &out) {
     outcome::result<void> res = outcome::success();
     auto encoder = detail::VariantEncoder<T...>(v, out, res);
     detail::for_each_apply<decltype(encoder), T...>(encoder);

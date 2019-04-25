@@ -5,7 +5,6 @@
 
 #include "storage/leveldb/leveldb_cursor.hpp"
 
-#include <leveldb/iterator.h>
 #include "storage/leveldb/leveldb_util.hpp"
 
 namespace kagome::storage {

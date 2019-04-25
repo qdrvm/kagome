@@ -2,13 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 
 add_library(leveldb
-  leveldb.cpp
-  leveldb_batch.cpp
-  leveldb_error.cpp
+    leveldb.cpp
+    leveldb_batch.cpp
+    leveldb_error.cpp
     leveldb_cursor.cpp
-  )
+    )
 target_link_libraries(leveldb
-  leveldb::leveldb
-  buffer
-  logger
-  )
+    leveldb::leveldb
+    buffer
+    logger
+    )

@@ -13,6 +13,10 @@
 
 namespace kagome::storage {
 
+  /**
+   * @brief An implementation of PersistedBufferMap interface, which uses
+   * LevelDB as underlying storage.
+   */
   class LevelDB : public PersistedBufferMap {
    public:
     class Batch;

@@ -8,7 +8,7 @@
 
 #include <outcome/outcome.hpp>
 
-namespace kagome::storage::concept {
+namespace kagome::storage::face {
 
   /**
    * @brief An abstraction over modifiable map.
@@ -35,6 +35,6 @@ namespace kagome::storage::concept {
     virtual outcome::result<void> remove(const K &key) = 0;
   };
 
-}  // namespace kagome::storage::concept
+}  // namespace kagome::storage::face
 
 #endif  // KAGOME_WRITEABLE_MAP_HPP

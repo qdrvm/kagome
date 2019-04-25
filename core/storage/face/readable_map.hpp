@@ -7,9 +7,9 @@
 #define KAGOME_READABLE_MAP_HPP
 
 #include <outcome/outcome.hpp>
-#include "storage/concept/map_cursor.hpp"
+#include "storage/face/map_cursor.hpp"
 
-namespace kagome::storage::concept {
+namespace kagome::storage::face {
 
   /**
    * @brief An abstraction over read-only MAP.
@@ -35,6 +35,6 @@ namespace kagome::storage::concept {
     virtual bool contains(const K &key) const = 0;
   };
 
-}  // namespace kagome::storage::concept
+}  // namespace kagome::storage::face
 
 #endif  // KAGOME_WRITEABLE_KEY_VALUE_HPP

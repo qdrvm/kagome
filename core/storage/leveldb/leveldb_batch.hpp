@@ -7,11 +7,14 @@
 #define KAGOME_LEVELDB_BATCH_HPP
 
 #include <leveldb/write_batch.h>
-
 #include "storage/leveldb/leveldb.hpp"
 
 namespace kagome::storage {
 
+  /**
+   * @brief Class that is used to implement efficient bulk (batch) modifications
+   * of the Map.
+   */
   class LevelDB::Batch : public BufferBatch {
    public:
     explicit Batch(LevelDB &db);
@@ -25,7 +28,6 @@ namespace kagome::storage {
     void clear() override;
 
    private:
-
     LevelDB &db_;
     leveldb::WriteBatch batch_;
   };

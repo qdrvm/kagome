@@ -14,23 +14,22 @@
  */
 
 #include <gsl/span>
-
 #include "common/buffer.hpp"
-#include "storage/concept/generic_map.hpp"
-#include "storage/concept/persisted_map.hpp"
-#include "storage/concept/write_batch.hpp"
+#include "storage/face/generic_map.hpp"
+#include "storage/face/persisted_map.hpp"
+#include "storage/face/write_batch.hpp"
 
 namespace kagome::storage {
 
   using Buffer = common::Buffer;
 
-  using BufferMap = concept ::GenericMap<Buffer, Buffer>;
+  using BufferMap = face ::GenericMap<Buffer, Buffer>;
 
-  using BufferBatch = concept ::WriteBatch<Buffer, Buffer>;
+  using BufferBatch = face ::WriteBatch<Buffer, Buffer>;
 
-  using PersistedBufferMap = concept ::PersistedMap<Buffer, Buffer>;
+  using PersistedBufferMap = face ::PersistedMap<Buffer, Buffer>;
 
-  using BufferMapCursor = concept ::MapCursor<Buffer, Buffer>;
+  using BufferMapCursor = face ::MapCursor<Buffer, Buffer>;
 
 }  // namespace kagome::storage
 

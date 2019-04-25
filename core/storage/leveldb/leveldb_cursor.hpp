@@ -11,6 +11,10 @@
 
 namespace kagome::storage {
 
+  /**
+   * @brief Instance of cursor can be used as bidirectional iterator over
+   * key-value bindings of the Map.
+   */
   class LevelDB::Cursor : public BufferMapCursor {
    public:
     ~Cursor() override = default;
@@ -39,4 +43,4 @@ namespace kagome::storage {
 
 }  // namespace kagome::storage
 
-#endif  //KAGOME_LEVELDB_CURSOR_HPP
+#endif  // KAGOME_LEVELDB_CURSOR_HPP

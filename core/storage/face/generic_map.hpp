@@ -6,23 +6,21 @@
 #ifndef KAGOME_GENERIC_MAP_HPP
 #define KAGOME_GENERIC_MAP_HPP
 
-#include "storage/concept/iterable_map.hpp"
-#include "storage/concept/readable_map.hpp"
-#include "storage/concept/writeable_map.hpp"
+#include "storage/face/iterable_map.hpp"
+#include "storage/face/readable_map.hpp"
+#include "storage/face/writeable_map.hpp"
 
-namespace kagome::storage::concept {
+namespace kagome::storage::face {
 
   /**
-   * @brief An abstraction over readable, writeable key-value map.
+   * @brief An abstraction over readable, writeable, iterable key-value map.
    * @tparam K key type
    * @tparam V value type
    */
   template <typename K, typename V>
   struct GenericMap : public IterableMap<K, V>,
                       public ReadableMap<K, V>,
-                      public WriteableMap<K, V> {
-    ~GenericMap() override = default;
-  };
-}  // namespace kagome::storage::concept
+                      public WriteableMap<K, V> {};
+}  // namespace kagome::storage::face
 
 #endif  // KAGOME_GENERIC_MAP_HPP

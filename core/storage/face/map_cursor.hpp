@@ -6,7 +6,7 @@
 #ifndef KAGOME_MAP_CURSOR_HPP
 #define KAGOME_MAP_CURSOR_HPP
 
-namespace kagome::storage::concept {
+namespace kagome::storage::face {
 
   /**
    * @brief An abstraction over generic map cursor.
@@ -61,6 +61,6 @@ namespace kagome::storage::concept {
     virtual V value() const = 0;
   };
 
-}  // namespace kagome::storage::concept
+}  // namespace kagome::storage::face
 
 #endif  //KAGOME_MAP_CURSOR_HPP
