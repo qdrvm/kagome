@@ -7,7 +7,7 @@
 #define KAGOME_MERKLE_TRIE_HPP
 
 #include "common/buffer.hpp"
-#include "storage/keyvalue.hpp"
+#include "storage/buffer_map.hpp"
 
 namespace kagome::storage::merkle {
 
@@ -15,7 +15,7 @@ namespace kagome::storage::merkle {
    * @brief This class represents a cryptographically authenticated key-value
    * storage - Merkle Trie DB backed by Key-Value database.
    */
-  class TrieDb : public KeyValue {
+  class TrieDb : public PersistedBufferMap {
    public:
     /**
      * @brief Calculate and return trie root.

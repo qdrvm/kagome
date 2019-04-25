@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <vector>
+#include <array>
 
 #include <boost/endian/arithmetic.hpp>
 #include "common/buffer.hpp"
