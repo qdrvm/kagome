@@ -14,13 +14,11 @@ namespace kagome::runtime {
 
   CoreImpl::CoreImpl(common::Buffer state_code,
                      std::shared_ptr<extensions::Extension> extension,
-                     std::shared_ptr<primitives::ScaleCodec> codec,
-                     common::Logger logger)
+                     std::shared_ptr<primitives::ScaleCodec> codec)
       : state_code_(std::move(state_code)),
         memory_(extension->memory()),
         executor_(std::move(extension)),
-        codec_(std::move(codec)),
-        logger_(std::move(logger)) {}
+        codec_(std::move(codec)) {}
 
   outcome::result<primitives::Version> CoreImpl::version() {
     uint64_t version_long =
@@ -29,58 +27,42 @@ namespace kagome::runtime {
                   wasm::LiteralList({wasm::Literal(0), wasm::Literal(0)}))
             .geti64();
 
-    // first 32 bits are address and second are length (length not neededS)
-    runtime::WasmPointer version_address = (version_long & 0xFFFFFFFFLL);
+    // first 32 bits are address and second are length (length not needed)
+    runtime::WasmPointer version_address = version_long & 0xFFFFFFFFLLU;
 
     WasmMemoryStream stream(memory_);
 
-    auto advance_result = stream.advance(version_address);
-    if (not advance_result) {
-      return advance_result.error();
-    }
+    OUTCOME_TRY(stream.advance(version_address));
 
-    auto version = codec_->decodeVersion(stream);
+    OUTCOME_TRY(version, codec_->decodeVersion(stream));
 
-    if (not version) {
-      return version.error();
-    }
-
-    return version.value();
+    return std::move(version);
   }
 
   outcome::result<void> CoreImpl::execute_block(
       const kagome::primitives::Block &block) {
-    auto encoded_block_result = codec_->encodeBlock(block);
+    OUTCOME_TRY(encoded_block, codec_->encodeBlock(block));
 
-    if (not encoded_block_result) {
-      return encoded_block_result.error();
-    }
-
-    runtime::SizeType block_size = encoded_block_result.value().size();
+    runtime::SizeType block_size = encoded_block.size();
     runtime::WasmPointer ptr = memory_->allocate(block_size);
-    memory_->storeBuffer(ptr, encoded_block_result.value());
+    memory_->storeBuffer(ptr, encoded_block);
 
-    uint64_t result_long =
-        executor_
-            .call(state_code_.toVector(), "Core_execute_block",
-                  wasm::LiteralList(
-                      {wasm::Literal(ptr), wasm::Literal(block_size)}))
-            .geti64();
+    executor_
+        .call(
+            state_code_.toVector(), "Core_execute_block",
+            wasm::LiteralList({wasm::Literal(ptr), wasm::Literal(block_size)}))
+        .geti64();
 
     return outcome::success();
   }
 
   outcome::result<void> CoreImpl::initialise_block(
       const kagome::primitives::BlockHeader &header) {
-    auto encoded_header_result = codec_->encodeBlockHeader(header);
+    OUTCOME_TRY(encoded_header, codec_->encodeBlockHeader(header));
 
-    if (not encoded_header_result) {
-      return encoded_header_result.error();
-    }
-
-    runtime::SizeType header_size = encoded_header_result.value().size();
+    runtime::SizeType header_size = encoded_header.size();
     runtime::WasmPointer ptr = memory_->allocate(header_size);
-    memory_->storeBuffer(ptr, encoded_header_result.value());
+    memory_->storeBuffer(ptr, encoded_header);
 
     executor_
         .call(
@@ -93,15 +75,11 @@ namespace kagome::runtime {
 
   outcome::result<std::vector<primitives::AuthorityId>> CoreImpl::authorities(
       primitives::BlockId block_id) {
-    auto encoded_id_result = codec_->encodeBlockId(block_id);
+    OUTCOME_TRY(encoded_id, codec_->encodeBlockId(block_id));
 
-    if (not encoded_id_result) {
-      return encoded_id_result.error();
-    }
-
-    runtime::SizeType id_size = encoded_id_result.value().size();
+    runtime::SizeType id_size = encoded_id.size();
     runtime::WasmPointer ptr = memory_->allocate(id_size);
-    memory_->storeBuffer(ptr, encoded_id_result.value());
+    memory_->storeBuffer(ptr, encoded_id);
 
     uint64_t result_long =
         executor_
@@ -111,13 +89,10 @@ namespace kagome::runtime {
             .geti64();
 
     // first 32 bits are address and second are the length (length not needed)
-    runtime::WasmPointer authority_address = (result_long & 0xFFFFFFFFLL);
+    runtime::WasmPointer authority_address = result_long & 0xFFFFFFFFLLU;
 
     WasmMemoryStream stream(memory_);
-    auto advance_result = stream.advance(authority_address);
-    if (not advance_result) {
-      return advance_result.error();
-    }
+    OUTCOME_TRY(stream.advance(authority_address));
 
     return codec_->decodeAuthorityIds(stream);
   }

@@ -15,9 +15,8 @@ namespace kagome::runtime {
 
   class RuntimeExternalInterface : public wasm::ShellExternalInterface {
    public:
-    RuntimeExternalInterface(
+    explicit RuntimeExternalInterface(
         std::shared_ptr<extensions::Extension> extension,
-        std::shared_ptr<WasmMemory> memory,
         common::Logger logger = common::createLogger(kDefaultLoggerTag));
 
     /**

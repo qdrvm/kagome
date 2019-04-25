@@ -29,7 +29,7 @@ namespace kagome::runtime {
                                            wasm::Name method_name,
                                            const wasm::LiteralList &args) {
     // prepare external interface with extern methods
-    RuntimeExternalInterface rei(extension_, extension_->memory());
+    RuntimeExternalInterface rei(extension_);
 
     // interpret module
     wasm::ModuleInstance module_instance(module, &rei);

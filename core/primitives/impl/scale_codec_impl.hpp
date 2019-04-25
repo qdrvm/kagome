@@ -46,7 +46,7 @@ namespace kagome::primitives {
         Stream &stream) const override;
 
     outcome::result<Buffer> encodeAuthorityIds(
-        const std::vector<kagome::primitives::AuthorityId> ids) const override;
+        const std::vector<kagome::primitives::AuthorityId> &ids) const override;
 
     outcome::result<std::vector<AuthorityId>> decodeAuthorityIds(
         kagome::primitives::ScaleCodec::Stream &stream) const override;

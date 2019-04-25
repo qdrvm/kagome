@@ -130,8 +130,13 @@ namespace kagome::primitives {
     virtual outcome::result<TransactionValidity> decodeTransactionValidity(
         Stream &stream) const = 0;
 
+    /**
+     * @brief scale-encodes AuthorityIds instance
+     * @param ids value which should be encoded
+     * @return encoded value or error
+     */
     virtual outcome::result<Buffer> encodeAuthorityIds(
-        const std::vector<AuthorityId> ids) const = 0;
+        const std::vector<AuthorityId> &ids) const = 0;
 
     /**
      * @brief decodes scale-encoded

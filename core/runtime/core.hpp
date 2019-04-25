@@ -17,6 +17,9 @@
 
 namespace kagome::runtime {
 
+  /**
+   * Core represents mandatory part of runtime api
+   */
   class Core {
    public:
     virtual ~Core() = default;

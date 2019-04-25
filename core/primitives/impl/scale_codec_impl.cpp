@@ -159,7 +159,7 @@ namespace kagome::primitives {
   }
 
   outcome::result<Buffer> ScaleCodecImpl::encodeAuthorityIds(
-      const std::vector<kagome::primitives::AuthorityId> ids) const {
+      const std::vector<kagome::primitives::AuthorityId> &ids) const {
     Buffer out;
     OUTCOME_TRY(encodeCollection<AuthorityId>(ids, out));
     return out;

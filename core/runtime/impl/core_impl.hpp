@@ -18,8 +18,7 @@ namespace kagome::runtime {
    public:
     CoreImpl(common::Buffer state_code,
              std::shared_ptr<extensions::Extension> extension,
-             std::shared_ptr<primitives::ScaleCodec> codec,
-             common::Logger logger = common::createLogger(kDefaultLoggerTag));
+             std::shared_ptr<primitives::ScaleCodec> codec);
 
     outcome::result<primitives::Version> version() override;
 
@@ -37,9 +36,6 @@ namespace kagome::runtime {
     std::shared_ptr<WasmMemory> memory_;
     WasmExecutor executor_;
     std::shared_ptr<primitives::ScaleCodec> codec_;
-    common::Logger logger_;
-
-    constexpr static auto kDefaultLoggerTag = "Core";
   };
 
 }  // namespace kagome::runtime
