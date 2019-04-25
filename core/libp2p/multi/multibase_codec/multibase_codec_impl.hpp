@@ -16,7 +16,7 @@ namespace libp2p::multi {
    public:
     enum class Error { kUnsupportedBase = 1, kInputTooShort};
 
-    ~MultibaseCodecImpl() override;
+    ~MultibaseCodecImpl() override = default;
 
     std::string encode(const kagome::common::Buffer &bytes,
                        Encoding encoding) const override;

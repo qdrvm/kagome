@@ -7,6 +7,7 @@
 #define KAGOME_CRYPTO_COMMON_HPP
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 
 #include "common/buffer.hpp"
@@ -15,20 +16,25 @@
 
 namespace libp2p::crypto::common {
   /**
+   * @struct AesSecret provides key and iv for AES cipher
+   * @tparam KeySize key size
+   * @tparam IvSize iv size
+   */
+  template <size_t key_size, size_t iv_size>
+  struct AesSecret {
+    std::array<uint8_t, key_size> key;
+    std::array<uint8_t, iv_size> iv;
+  };
+
+  /**
    * Values for AES-128
    */
-  struct Aes128Secret {
-    uint8_t key[8];
-    uint8_t iv[8];
-  };
+  using Aes128Secret = AesSecret<16, 16>;
 
   /**
    * Values for AES-256
    */
-  struct Aes256Secret {
-    uint8_t key[16];
-    uint8_t iv[8];
-  };
+  using Aes256Secret = AesSecret<32, 16>;
 
   /**
    * Public and private keys
@@ -54,12 +60,14 @@ namespace libp2p::crypto::common {
   /**
    * Supported types of RSA keys
    */
-  enum class RSAKeyType { kRSA1024, kRSA2048, kRSA4096 };
+  enum class RSAKeyType { RSA1024 = 0, RSA2048 = 1, RSA4096 = 2 };
 
   /**
    * Supported types of all keys
    */
-  enum class KeyType { kRSA1024, kRSA2048, kRSA4096, kED25519 };
+  enum class KeyType { UNSPECIFIED, RSA1024, RSA2048, RSA4096, ED25519 };
+  // TODO(yuraz): add support for Secp256k1 like in js version (added to
+  // PRE-103)
 
   /**
    * Supported ECDH curves

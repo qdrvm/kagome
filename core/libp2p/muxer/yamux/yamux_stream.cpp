@@ -20,8 +20,9 @@ namespace libp2p::stream {
   }
 
   void YamuxStream::writeAsync(const kagome::common::Buffer &msg) const {
-    yamux_->streamWriteFrameAsync(stream_id_, msg,
-                                  [](std::error_code, size_t) {});
+    yamux_->streamWriteFrameAsync(
+        stream_id_, msg,
+        [](std::error_code /* unused */, size_t /* unused */) {});
   }
 
   void YamuxStream::writeAsync(const kagome::common::Buffer &msg,
