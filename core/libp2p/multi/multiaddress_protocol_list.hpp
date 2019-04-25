@@ -54,6 +54,10 @@ namespace libp2p::multi {
       p2p_circuit = 290,
     };
 
+    constexpr bool operator==(const Protocol &p) const {
+      return code == p.code;
+    }
+
     const Code code;
     const ssize_t size;
     const std::string_view name;
