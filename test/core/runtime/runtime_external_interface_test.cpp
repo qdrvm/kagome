@@ -7,7 +7,7 @@
 
 #include <binaryen/wasm-s-parser.h>
 #include <boost/format.hpp>
-#include "core/runtime/mock_extension.hpp"
+#include "core/extensions/mock_extension.hpp"
 #include "core/runtime/mock_memory.hpp"
 
 using ::testing::Return;

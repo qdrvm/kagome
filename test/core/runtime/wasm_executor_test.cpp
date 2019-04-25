@@ -7,8 +7,8 @@
 
 #include <fstream>
 
+#include <binaryen/wasm-binary.h>
 #include <gtest/gtest.h>
-#include "binaryen/wasm-binary.h"
 #include "core/extensions/mock_extension.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 
