@@ -2,9 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 add_library(libp2p_inmem_key_repository
-  inmem_key_repository.cpp
-  )
+    inmem_key_repository.cpp
+    )
 target_link_libraries(libp2p_inmem_key_repository
-  libp2p_peer_errors
-  multihash
-  )
+    libp2p_peer_errors
+    multihash
+    crypto_key
+    )

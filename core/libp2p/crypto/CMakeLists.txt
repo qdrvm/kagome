@@ -17,3 +17,12 @@ add_library(crypto_error
 target_link_libraries(crypto_error
     outcome
     )
+
+
+add_library(crypto_key
+    key.cpp
+    key.hpp
+    )
+target_link_libraries(crypto_key
+    Boost::boost
+    )

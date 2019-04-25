@@ -63,38 +63,22 @@ namespace libp2p::crypto {
 namespace std {
   template <>
   struct hash<libp2p::crypto::Key> {
-    size_t operator()(const libp2p::crypto::Key &x) const {
-      size_t seed = 0;
-      boost::hash_combine(seed, x.type);
-      boost::hash_combine(seed, std::hash<kagome::common::Buffer>()(x.data));
-      return seed;
-    }
+    size_t operator()(const libp2p::crypto::Key &x) const;
   };
 
   template <>
   struct hash<libp2p::crypto::PrivateKey> {
-    size_t operator()(const libp2p::crypto::PrivateKey &x) const {
-      return std::hash<libp2p::crypto::Key>()(x);
-    }
+    size_t operator()(const libp2p::crypto::PrivateKey &x) const;
   };
 
   template <>
   struct hash<libp2p::crypto::PublicKey> {
-    size_t operator()(const libp2p::crypto::PublicKey &x) const {
-      return std::hash<libp2p::crypto::Key>()(x);
-    }
+    size_t operator()(const libp2p::crypto::PublicKey &x) const;
   };
 
   template <>
   struct hash<libp2p::crypto::KeyPair> {
-    size_t operator()(const libp2p::crypto::KeyPair &x) const {
-      using libp2p::crypto::PrivateKey;
-      using libp2p::crypto::PublicKey;
-      size_t seed = 0;
-      boost::hash_combine(seed, std::hash<PublicKey>()(x.publicKey));
-      boost::hash_combine(seed, std::hash<PrivateKey>()(x.privateKey));
-      return seed;
-    }
+    size_t operator()(const libp2p::crypto::KeyPair &x) const;
   };
 }  // namespace std
 

@@ -6,6 +6,7 @@
 #include "libp2p/multi/multihash.hpp"
 
 #include <boost/algorithm/hex.hpp>
+#include <boost/container_hash/hash.hpp>
 #include <boost/format.hpp>
 
 #include "common/hexutil.hpp"
@@ -100,3 +101,8 @@ namespace libp2p::multi {
   }
 
 }  // namespace libp2p::multi
+
+size_t std::hash<libp2p::multi::Multihash>::operator()(
+    const libp2p::multi::Multihash &x) const {
+  return std::hash<kagome::common::Buffer>()(x.toBuffer());
+}
