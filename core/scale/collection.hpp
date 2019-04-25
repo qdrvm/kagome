@@ -21,13 +21,13 @@ namespace kagome::scale::collection {
    *  @return true if operation succeeded and false otherwise
    */
   template <class T>
-  outcome::result<void> encodeCollection(const gsl::span<T> collection,
+  outcome::result<void> encodeCollection(gsl::span<T> collection,
                                          common::Buffer &out) {
     common::Buffer encoded_collection;
     OUTCOME_TRY(compact::encodeInteger(collection.size(), encoded_collection));
 
     TypeEncoder<T> encoder{};
-    for (auto i = 0; i < collection.size(); ++i) {
+    for (int64_t i = 0; i < collection.size(); ++i) {
       OUTCOME_TRY(encoder.encode(collection[i], encoded_collection));
     }
 

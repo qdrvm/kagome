@@ -15,10 +15,23 @@
 
 #define UNIQUE_NAME(base) PP_CAT(base, __LINE__)
 
+#define EXPECT_OUTCOME_TRUE_void(var, expr) \
+  auto &&var = expr;                        \
+  EXPECT_TRUE(var) << var.error().message();
+
 #define EXPECT_OUTCOME_TRUE_name(var, val, expr) \
-  auto &&var = expr;                            \
-  EXPECT_TRUE(var) << var.error().message();    \
+  auto &&var = expr;                             \
+  EXPECT_TRUE(var) << var.error().message();     \
   auto &&val = var.value();
+
+#define EXPECT_OUTCOME_TRUE_3(var, val, expr) \
+  EXPECT_OUTCOME_TRUE_name(var, val, expr)
+
+#define EXPECT_OUTCOME_TRUE_2(val, expr) \
+  EXPECT_OUTCOME_TRUE_3(UNIQUE_NAME(_r), val, expr)
+
+#define EXPECT_OUTCOME_TRUE_1(expr) \
+  EXPECT_OUTCOME_TRUE_void(UNIQUE_NAME(_v), expr)
 
 /**
  * Use this macro in GTEST with 2 arguments to assert that getResult()

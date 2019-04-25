@@ -75,7 +75,7 @@ class YamuxIntegrationTest : public ::testing::Test {
    * Run the context for some time to execute async operations
    */
   void launchContext() {
-    context_.run_for(1000ms);
+    context_.run_for(50ms);
   }
 
   static void checkIOSuccess(const std::error_code ec, size_t received_size,
@@ -290,7 +290,7 @@ TEST_F(YamuxIntegrationTest, CloseForReads) {
 
   connection_->asyncWrite(
       boost::asio::buffer(sent_close_stream_msg.toVector()),
-      [&sent_close_stream_msg, &stream](auto &&ec, auto &&n) {
+      [&sent_close_stream_msg](auto &&ec, auto &&n) {
         checkIOSuccess(ec, n, sent_close_stream_msg.size());
       });
 
@@ -318,14 +318,14 @@ TEST_F(YamuxIntegrationTest, CloseEntirely) {
   connection_->asyncRead(
       boost::asio::buffer(close_stream_msg_rcv->toVector()),
       YamuxFrame::kHeaderLength,
-      [this, &stream, &expected_close_stream_msg, close_stream_msg_rcv](
+      [this, &expected_close_stream_msg, close_stream_msg_rcv](
           auto &&ec, auto &&n) {
         checkIOSuccess(ec, n, YamuxFrame::kHeaderLength);
         ASSERT_EQ(*close_stream_msg_rcv, expected_close_stream_msg);
 
         connection_->asyncWrite(
             boost::asio::buffer(expected_close_stream_msg.toVector()),
-            [&expected_close_stream_msg, &stream](auto &&ec, auto &&n) {
+            [&expected_close_stream_msg](auto &&ec, auto &&n) {
               checkIOSuccess(ec, n, expected_close_stream_msg.size());
             });
       });

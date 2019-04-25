@@ -9,10 +9,6 @@
 #include "libp2p/peer/peer_info.hpp"
 
 namespace libp2p::peer {
-  PeerInfo::PeerInfo(const PeerInfo &peer_info) = default;
-  PeerInfo &PeerInfo::operator=(const PeerInfo &peer_info) = default;
-  PeerInfo::PeerInfo(PeerInfo &&peer_info) noexcept = default;
-  PeerInfo &PeerInfo::operator=(PeerInfo &&peer_info) noexcept = default;
 
   PeerInfo::PeerInfo(PeerId peer) : peer_id_{std::move(peer)} {}
 
@@ -20,7 +16,7 @@ namespace libp2p::peer {
     return peer_id_;
   }
 
-  const std::unordered_set<multi::Multiaddress::Protocol>
+  const std::unordered_set<multi::Protocol::Code>
       &PeerInfo::supportedProtocols() const {
     return protocols_;
   }
@@ -29,13 +25,12 @@ namespace libp2p::peer {
     return multiaddresses_;
   }
 
-  PeerInfo &PeerInfo::addProtocols(
-      gsl::span<multi::Multiaddress::Protocol> protocols) {
+  PeerInfo &PeerInfo::addProtocols(gsl::span<multi::Protocol::Code> protocols) {
     protocols_.insert(protocols.cbegin(), protocols.cend());
     return *this;
   }
 
-  bool PeerInfo::removeProtocol(multi::Multiaddress::Protocol protocol) {
+  bool PeerInfo::removeProtocol(multi::Protocol::Code protocol) {
     // erase returns number of elements removed
     return protocols_.erase(protocol) == 1;
   }

@@ -22,10 +22,8 @@ namespace libp2p::crypto::common {
    */
   template <size_t key_size, size_t iv_size>
   struct AesSecret {
-    static constexpr size_t KEY_SIZE = key_size;
-    static constexpr size_t IV_SIZE = iv_size;
-    uint8_t key[key_size];
-    uint8_t iv[iv_size];
+    std::array<uint8_t, key_size> key;
+    std::array<uint8_t, iv_size> iv;
   };
 
   /**

@@ -137,10 +137,12 @@ namespace libp2p::crypto {
     //    EVP_PKEY_CTX_free(pctx);
     //    PEM_write_PrivateKey(stdout, pkey, nullptr, nullptr, 0, nullptr,
     //    nullptr);
+    return KeyGeneratorError::KEY_GENERATION_FAILED;
   }
 
   outcome::result<common::KeyPair> KeyGeneratorImpl::generateSecp256k1() const {
     OUTCOME_TRY(ensureInitialized());
+    return KeyGeneratorError::KEY_GENERATION_FAILED;
   }
 
   bool generateKeys(common::RSAKeyType option) {
@@ -253,14 +255,20 @@ namespace libp2p::crypto {
   }
 
   outcome::result<PublicKey> KeyGeneratorImpl::derivePublicKey(
-      const PrivateKey &private_key) const {}
+      const PrivateKey &private_key) const {
+    return KeyGeneratorError::KEY_GENERATION_FAILED;
+  }
 
   outcome::result<common::EphemeralKeyPair>
-  KeyGeneratorImpl::generateEphemeralKeyPair(common::CurveType curve) const {}
+  KeyGeneratorImpl::generateEphemeralKeyPair(common::CurveType curve) const {
+    return KeyGeneratorError::KEY_GENERATION_FAILED;
+  }
 
   std::vector<common::StretchedKey> KeyGeneratorImpl::stretchKey(
       common::CipherType cipher_type, common::HashType hash_type,
-      const kagome::common::Buffer &secret) const {}
+      const kagome::common::Buffer &secret) const {
+    return {};
+  }
 
   outcome::result<void> KeyGeneratorImpl::ensureInitialized() const {
     if (is_initialized_) {
@@ -280,5 +288,6 @@ namespace libp2p::crypto {
 
     //    RSA *PEM_read_RSAPublicKey(FILE *fp, RSA **x,
     //                               pem_password_cb *cb, void *u);
+    return KeyGeneratorError::KEY_GENERATION_FAILED;
   }
 }  // namespace libp2p::crypto
