@@ -14,7 +14,6 @@ using kagome::extensions::StorageExtension;
 using kagome::runtime::MockMemory;
 using kagome::runtime::SizeType;
 using kagome::runtime::WasmPointer;
-using kagome::storage::KeyValue;
 using kagome::storage::merkle::MockTrieDb;
 
 using ::testing::_;
@@ -70,7 +69,7 @@ TEST_P(OutcomeParameterizedTest, ClearStorageTest) {
   Buffer key(8, 'k');
 
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*db_, del(key)).WillOnce(Return(GetParam()));
+  EXPECT_CALL(*db_, remove(key)).WillOnce(Return(GetParam()));
 
   storage_extension_->ext_clear_storage(key_pointer, key_size);
 }

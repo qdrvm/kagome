@@ -24,7 +24,7 @@ namespace kagome::extensions {
   void StorageExtension::ext_clear_storage(runtime::WasmPointer key_data,
                                            runtime::SizeType key_length) {
     auto key = memory_->loadN(key_data, key_length);
-    auto del_result = db_->del(key);
+    auto del_result = db_->remove(key);
     if (not del_result) {
       logger_->warn(
           "ext_clear_storage did not delete key {} from trie db with reason: "

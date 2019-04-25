@@ -9,7 +9,6 @@
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
 #include "common/byte_stream.hpp"
-#include "common/result.hpp"
 #include "scale/types.hpp"
 
 
