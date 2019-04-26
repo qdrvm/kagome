@@ -23,20 +23,20 @@ namespace libp2p::crypto {
      */
     void initialize(random::CSPRNG &random_provider);
 
-    outcome::result<common::KeyPair> generateRsa(
+    outcome::result<KeyPair> generateRsa(
         common::RSAKeyType key_type) const override;
 
-    outcome::result<common::KeyPair> generateEd25519() const override;
+    outcome::result<KeyPair> generateEd25519() const override;
 
-    outcome::result<common::KeyPair> generateSecp256k1() const override;
+    outcome::result<KeyPair> generateSecp256k1() const override;
 
     outcome::result<PublicKey> derivePublicKey(
         const PrivateKey &private_key) const override;
 
-    outcome::result<common::EphemeralKeyPair> generateEphemeralKeyPair(
+    outcome::result<EphemeralKeyPair> generateEphemeralKeyPair(
         common::CurveType curve) const override;
 
-    std::vector<common::StretchedKey> stretchKey(
+    std::vector<StretchedKey> stretchKey(
         common::CipherType cipher_type, common::HashType hash_type,
         const kagome::common::Buffer &secret) const override;
 

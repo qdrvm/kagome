@@ -18,7 +18,6 @@
 #include "libp2p/crypto/random/csprng.hpp"
 
 namespace libp2p::crypto {
-  using crypto::common::KeyType;
   using kagome::common::Buffer;
 
   void KeyGeneratorImpl::initialize(random::CSPRNG &random_provider) {
@@ -92,24 +91,24 @@ namespace libp2p::crypto {
     }
   }  // namespace detail
 
-  outcome::result<common::KeyPair> KeyGeneratorImpl::generateRsa(
+  outcome::result<KeyPair> KeyGeneratorImpl::generateRsa(
       common::RSAKeyType bits_option) const {
     OUTCOME_TRY(ensureInitialized());
 
     int bits = 0;
-    KeyType key_type;
+    Key::Type key_type;
     switch (bits_option) {
       case common::RSAKeyType::RSA1024:
         bits = 1024;
-        key_type = KeyType::RSA1024;
+        key_type = Key::Type::RSA1024;
         break;
       case common::RSAKeyType::RSA2048:
         bits = 2048;
-        key_type = KeyType::RSA2048;
+        key_type = Key::Type::RSA2048;
         break;
       case common::RSAKeyType::RSA4096:
         bits = 4096;
-        key_type = KeyType::RSA4096;
+        key_type = Key::Type::RSA4096;
         break;
     }
 
@@ -120,13 +119,13 @@ namespace libp2p::crypto {
 
     OUTCOME_TRY(bytes, detail::generate_keys(bits));
 
-    auto public_key = std::make_shared<PublicKey>(key_type, bytes.first);
-    auto private_key = std::make_shared<PrivateKey>(key_type, bytes.second);
+    auto public_key = PublicKey{{key_type, bytes.first}};
+    auto private_key = PrivateKey{{key_type, bytes.second}};
 
-    return common::KeyPair{std::move(public_key), std::move(private_key)};
+    return KeyPair{std::move(public_key), std::move(private_key)};
   }
 
-  outcome::result<common::KeyPair> KeyGeneratorImpl::generateEd25519() const {
+  outcome::result<KeyPair> KeyGeneratorImpl::generateEd25519() const {
     OUTCOME_TRY(ensureInitialized());
 
     //    EVP_PKEY *pkey = nullptr;
@@ -140,7 +139,7 @@ namespace libp2p::crypto {
     return KeyGeneratorError::KEY_GENERATION_FAILED;
   }
 
-  outcome::result<common::KeyPair> KeyGeneratorImpl::generateSecp256k1() const {
+  outcome::result<KeyPair> KeyGeneratorImpl::generateSecp256k1() const {
     OUTCOME_TRY(ensureInitialized());
     return KeyGeneratorError::KEY_GENERATION_FAILED;
   }
@@ -259,12 +258,12 @@ namespace libp2p::crypto {
     return KeyGeneratorError::KEY_GENERATION_FAILED;
   }
 
-  outcome::result<common::EphemeralKeyPair>
+  outcome::result<EphemeralKeyPair>
   KeyGeneratorImpl::generateEphemeralKeyPair(common::CurveType curve) const {
     return KeyGeneratorError::KEY_GENERATION_FAILED;
   }
 
-  std::vector<common::StretchedKey> KeyGeneratorImpl::stretchKey(
+  std::vector<StretchedKey> KeyGeneratorImpl::stretchKey(
       common::CipherType cipher_type, common::HashType hash_type,
       const kagome::common::Buffer &secret) const {
     return {};

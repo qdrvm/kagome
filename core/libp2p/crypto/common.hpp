@@ -11,8 +11,6 @@
 #include <memory>
 
 #include "common/buffer.hpp"
-#include "libp2p/crypto/private_key.hpp"
-#include "libp2p/crypto/public_key.hpp"
 
 namespace libp2p::crypto::common {
   /**
@@ -37,22 +35,6 @@ namespace libp2p::crypto::common {
   using Aes256Secret = AesSecret<32, 16>;
 
   /**
-   * Public and private keys
-   */
-  struct KeyPair {
-    std::shared_ptr<PublicKey> public_key;
-    std::shared_ptr<PrivateKey> private_key;
-  };
-
-  /**
-   * Result of ephemeral key generation
-   */
-  struct EphemeralKeyPair {
-    kagome::common::Buffer ephemeral_public_key;
-    std::function<PrivateKey()> private_key_generator;
-  };
-
-  /**
    * Supported hash types
    */
   enum class HashType { kSHA1, kSHA256, kSHA512 };
@@ -63,25 +45,11 @@ namespace libp2p::crypto::common {
   enum class RSAKeyType { RSA1024 = 0, RSA2048 = 1, RSA4096 = 2 };
 
   /**
-   * Supported types of all keys
-   */
-  enum class KeyType { UNSPECIFIED, RSA1024, RSA2048, RSA4096, ED25519, SECP256K1 };
-  // TODO(yuraz): add support for Secp256k1 like in js version (added to
-  // PRE-103)
-
-  /**
    * Supported ECDH curves
    */
   enum class CurveType { kP256, kP384, kP521 };
 
-  /**
-   * Type of the stretched key
-   */
-  struct StretchedKey {
-    kagome::common::Buffer iv;
-    kagome::common::Buffer cipher_key;
-    kagome::common::Buffer mac_key;
-  };
+
 
   /**
    * Supported cipher types

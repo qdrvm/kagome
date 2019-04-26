@@ -9,9 +9,9 @@
 #include "libp2p/crypto/common.hpp"
 
 using kagome::common::Buffer;
+using libp2p::crypto::Key;
 using libp2p::crypto::PrivateKey;
 using libp2p::crypto::PublicKey;
-using libp2p::crypto::common::KeyType;
 using libp2p::crypto::marshaller::KeyMarshaller;
 
 class MarshallerTest : public testing::Test {
@@ -30,9 +30,9 @@ class MarshallerTest : public testing::Test {
  *  @then obtained result matches predefined sequence of bytes
  */
 TEST_F(MarshallerTest, PublicKeyUnspecifiedMarshalSuccess) {
-  PublicKey key = {KeyType::UNSPECIFIED,
-                   {110, 206, 16, 137, 211, 132, 92, 156, 203, 247, 121, 180,
-                    104, 102, 253, 244}};
+  PublicKey key = {{Key::Type::UNSPECIFIED,
+                    {110, 206, 16, 137, 211, 132, 92, 156, 203, 247, 121, 180,
+                     104, 102, 253, 244}}};
   Buffer match = {18,  16,  110, 206, 16,  137, 211, 132, 92,
                   156, 203, 247, 121, 180, 104, 102, 253, 244};
   auto &&res = marshaller_.marshal(key);
@@ -49,14 +49,14 @@ TEST_F(MarshallerTest, PublicKeyUnspecifiedMarshalSuccess) {
 TEST_F(MarshallerTest, PublicKeyUnspecifiedUnmarshalSuccess) {
   Buffer bytes = {18,  16,  110, 206, 16,  137, 211, 132, 92,
                   156, 203, 247, 121, 180, 104, 102, 253, 244};
-  PublicKey key_match = {KeyType::UNSPECIFIED,
-                         {110, 206, 16, 137, 211, 132, 92, 156, 203, 247, 121,
-                          180, 104, 102, 253, 244}};
+  PublicKey key_match = {{Key::Type::UNSPECIFIED,
+                          {110, 206, 16, 137, 211, 132, 92, 156, 203, 247, 121,
+                           180, 104, 102, 253, 244}}};
   auto &&res = marshaller_.unmarshalPublicKey(bytes);
   ASSERT_TRUE(res);
   auto &&val = res.value();
-  ASSERT_EQ(val.getType(), key_match.getType());
-  ASSERT_EQ(val.getBytes(), key_match.getBytes());
+  ASSERT_EQ(val.type, key_match.type);
+  ASSERT_EQ(val.data, key_match.data);
 }
 
 /**
@@ -65,9 +65,9 @@ TEST_F(MarshallerTest, PublicKeyUnspecifiedUnmarshalSuccess) {
  *  @then obtained result matches predefined sequence of bytes
  */
 TEST_F(MarshallerTest, PrivateKeyUnspecifiedMarshalSuccess) {
-  PrivateKey key = {KeyType::UNSPECIFIED,
-                    {110, 206, 16, 137, 211, 132, 92, 156, 203, 247, 121, 180,
-                     104, 102, 253, 244}};
+  PrivateKey key = {{Key::Type::UNSPECIFIED,
+                     {110, 206, 16, 137, 211, 132, 92, 156, 203, 247, 121, 180,
+                      104, 102, 253, 244}}};
   Buffer match = {18,  16,  110, 206, 16,  137, 211, 132, 92,
                   156, 203, 247, 121, 180, 104, 102, 253, 244};
   auto &&res = marshaller_.marshal(key);
@@ -84,14 +84,14 @@ TEST_F(MarshallerTest, PrivateKeyUnspecifiedMarshalSuccess) {
 TEST_F(MarshallerTest, PrivateKeyUnspecifiedUnmarshalSuccess) {
   Buffer bytes = {18,  16,  110, 206, 16,  137, 211, 132, 92,
                   156, 203, 247, 121, 180, 104, 102, 253, 244};
-  PublicKey key_match = {KeyType::UNSPECIFIED,
-                         {110, 206, 16, 137, 211, 132, 92, 156, 203, 247, 121,
-                          180, 104, 102, 253, 244}};
+  PublicKey key_match = {{Key::Type::UNSPECIFIED,
+                          {110, 206, 16, 137, 211, 132, 92, 156, 203, 247, 121,
+                           180, 104, 102, 253, 244}}};
   auto &&res = marshaller_.unmarshalPrivateKey(bytes);
   ASSERT_TRUE(res);
   auto &&val = res.value();
-  ASSERT_EQ(val.getType(), key_match.getType());
-  ASSERT_EQ(val.getBytes(), key_match.getBytes());
+  ASSERT_EQ(val.type, key_match.type);
+  ASSERT_EQ(val.data, key_match.data);
 }
 
 /**
@@ -100,9 +100,9 @@ TEST_F(MarshallerTest, PrivateKeyUnspecifiedUnmarshalSuccess) {
  *  @then obtained result matches predefined sequence of bytes
  */
 TEST_F(MarshallerTest, PublicKeyRsa1024MarshalSuccess) {
-  PublicKey key = {KeyType::RSA1024,
-                   {169, 94, 64, 111, 149, 96, 150, 216, 18, 24, 27, 124, 202,
-                    219, 152, 158}};
+  PublicKey key = {{Key::Type::RSA1024,
+                    {169, 94, 64, 111, 149, 96, 150, 216, 18, 24, 27, 124, 202,
+                     219, 152, 158}}};
   Buffer match = {8,   1,   18, 16, 169, 94,  64,  111, 149, 96,
                   150, 216, 18, 24, 27,  124, 202, 219, 152, 158};
   auto &&res = marshaller_.marshal(key);
@@ -119,14 +119,14 @@ TEST_F(MarshallerTest, PublicKeyRsa1024MarshalSuccess) {
 TEST_F(MarshallerTest, PublicKeyRsa1024UnmarshalSuccess) {
   Buffer bytes = {8,   1,   18, 16, 169, 94,  64,  111, 149, 96,
                   150, 216, 18, 24, 27,  124, 202, 219, 152, 158};
-  PublicKey key_match = {KeyType::RSA1024,
-                         {169, 94, 64, 111, 149, 96, 150, 216, 18, 24, 27, 124,
-                          202, 219, 152, 158}};
+  PublicKey key_match = {{Key::Type::RSA1024,
+                          {169, 94, 64, 111, 149, 96, 150, 216, 18, 24, 27, 124,
+                           202, 219, 152, 158}}};
   auto &&res = marshaller_.unmarshalPublicKey(bytes);
   ASSERT_TRUE(res);
   auto &&val = res.value();
-  ASSERT_EQ(val.getType(), key_match.getType());
-  ASSERT_EQ(val.getBytes(), key_match.getBytes());
+  ASSERT_EQ(val.type, key_match.type);
+  ASSERT_EQ(val.data, key_match.data);
 }
 
 /**
@@ -135,9 +135,9 @@ TEST_F(MarshallerTest, PublicKeyRsa1024UnmarshalSuccess) {
  *  @then obtained result matches predefined sequence of bytes
  */
 TEST_F(MarshallerTest, PrivateKeyRsa1024MarshalSuccess) {
-  PrivateKey key = {KeyType::RSA1024,
-                    {169, 94, 64, 111, 149, 96, 150, 216, 18, 24, 27, 124, 202,
-                     219, 152, 158}};
+  PrivateKey key = {{Key::Type::RSA1024,
+                     {169, 94, 64, 111, 149, 96, 150, 216, 18, 24, 27, 124, 202,
+                      219, 152, 158}}};
   Buffer match = {8,   1,   18, 16, 169, 94,  64,  111, 149, 96,
                   150, 216, 18, 24, 27,  124, 202, 219, 152, 158};
   auto &&res = marshaller_.marshal(key);
@@ -154,14 +154,14 @@ TEST_F(MarshallerTest, PrivateKeyRsa1024MarshalSuccess) {
 TEST_F(MarshallerTest, PrivateKeyRsa1024UnmarshalSuccess) {
   Buffer bytes = {8,   1,   18, 16, 169, 94,  64,  111, 149, 96,
                   150, 216, 18, 24, 27,  124, 202, 219, 152, 158};
-  PublicKey key_match = {KeyType::RSA1024,
-                         {169, 94, 64, 111, 149, 96, 150, 216, 18, 24, 27, 124,
-                          202, 219, 152, 158}};
+  PublicKey key_match = {{Key::Type::RSA1024,
+                          {169, 94, 64, 111, 149, 96, 150, 216, 18, 24, 27, 124,
+                           202, 219, 152, 158}}};
   auto &&res = marshaller_.unmarshalPrivateKey(bytes);
   ASSERT_TRUE(res);
   auto &&val = res.value();
-  ASSERT_EQ(val.getType(), key_match.getType());
-  ASSERT_EQ(val.getBytes(), key_match.getBytes());
+  ASSERT_EQ(val.type, key_match.type);
+  ASSERT_EQ(val.data, key_match.data);
 }
 
 /**
@@ -170,9 +170,9 @@ TEST_F(MarshallerTest, PrivateKeyRsa1024UnmarshalSuccess) {
  *  @then obtained result matches predefined sequence of bytes
  */
 TEST_F(MarshallerTest, PublicKeyRsa2048MarshalSuccess) {
-  PublicKey key = {KeyType::RSA2048,
-                   {250, 113, 250, 232, 107, 191, 193, 38, 235, 136, 62, 238,
-                    198, 238, 253, 137}};
+  PublicKey key = {{Key::Type::RSA2048,
+                    {250, 113, 250, 232, 107, 191, 193, 38, 235, 136, 62, 238,
+                     198, 238, 253, 137}}};
   Buffer match = {8,   2,  18,  16,  250, 113, 250, 232, 107, 191,
                   193, 38, 235, 136, 62,  238, 198, 238, 253, 137};
   auto &&res = marshaller_.marshal(key);
@@ -189,14 +189,14 @@ TEST_F(MarshallerTest, PublicKeyRsa2048MarshalSuccess) {
 TEST_F(MarshallerTest, PublicKeyRsa2048UnmarshalSuccess) {
   Buffer bytes = {8,   2,  18,  16,  250, 113, 250, 232, 107, 191,
                   193, 38, 235, 136, 62,  238, 198, 238, 253, 137};
-  PublicKey key_match = {KeyType::RSA2048,
-                         {250, 113, 250, 232, 107, 191, 193, 38, 235, 136, 62,
-                          238, 198, 238, 253, 137}};
+  PublicKey key_match = {{Key::Type::RSA2048,
+                          {250, 113, 250, 232, 107, 191, 193, 38, 235, 136, 62,
+                           238, 198, 238, 253, 137}}};
   auto &&res = marshaller_.unmarshalPublicKey(bytes);
   ASSERT_TRUE(res);
   auto &&val = res.value();
-  ASSERT_EQ(val.getType(), key_match.getType());
-  ASSERT_EQ(val.getBytes(), key_match.getBytes());
+  ASSERT_EQ(val.type, key_match.type);
+  ASSERT_EQ(val.data, key_match.data);
 }
 
 /**
@@ -205,9 +205,9 @@ TEST_F(MarshallerTest, PublicKeyRsa2048UnmarshalSuccess) {
  *  @then obtained result matches predefined sequence of bytes
  */
 TEST_F(MarshallerTest, PrivateKeyRsa2048MarshalSuccess) {
-  PrivateKey key = {KeyType::RSA2048,
-                    {250, 113, 250, 232, 107, 191, 193, 38, 235, 136, 62, 238,
-                     198, 238, 253, 137}};
+  PrivateKey key = {{Key::Type::RSA2048,
+                     {250, 113, 250, 232, 107, 191, 193, 38, 235, 136, 62, 238,
+                      198, 238, 253, 137}}};
   Buffer match = {8,   2,  18,  16,  250, 113, 250, 232, 107, 191,
                   193, 38, 235, 136, 62,  238, 198, 238, 253, 137};
   auto &&res = marshaller_.marshal(key);
@@ -224,14 +224,14 @@ TEST_F(MarshallerTest, PrivateKeyRsa2048MarshalSuccess) {
 TEST_F(MarshallerTest, PrivateKeyRsa2048UnmarshalSuccess) {
   Buffer bytes = {8,   2,  18,  16,  250, 113, 250, 232, 107, 191,
                   193, 38, 235, 136, 62,  238, 198, 238, 253, 137};
-  PublicKey key_match = {KeyType::RSA2048,
-                         {250, 113, 250, 232, 107, 191, 193, 38, 235, 136, 62,
-                          238, 198, 238, 253, 137}};
+  PublicKey key_match = {{Key::Type::RSA2048,
+                          {250, 113, 250, 232, 107, 191, 193, 38, 235, 136, 62,
+                           238, 198, 238, 253, 137}}};
   auto &&res = marshaller_.unmarshalPrivateKey(bytes);
   ASSERT_TRUE(res);
   auto &&val = res.value();
-  ASSERT_EQ(val.getType(), key_match.getType());
-  ASSERT_EQ(val.getBytes(), key_match.getBytes());
+  ASSERT_EQ(val.type, key_match.type);
+  ASSERT_EQ(val.data, key_match.data);
 }
 
 /**
@@ -240,9 +240,9 @@ TEST_F(MarshallerTest, PrivateKeyRsa2048UnmarshalSuccess) {
  *  @then obtained result matches predefined sequence of bytes
  */
 TEST_F(MarshallerTest, PublicKeyRsa4096MarshalSuccess) {
-  PublicKey key = {
-      KeyType::RSA4096,
-      {201, 183, 191, 144, 26, 148, 57, 168, 114, 71, 3, 58, 121, 163, 1, 228}};
+  PublicKey key = {{Key::Type::RSA4096,
+                    {201, 183, 191, 144, 26, 148, 57, 168, 114, 71, 3, 58, 121,
+                     163, 1, 228}}};
   Buffer match = {8,  3,   18,  16, 201, 183, 191, 144, 26, 148,
                   57, 168, 114, 71, 3,   58,  121, 163, 1,  228};
   auto &&res = marshaller_.marshal(key);
@@ -259,14 +259,14 @@ TEST_F(MarshallerTest, PublicKeyRsa4096MarshalSuccess) {
 TEST_F(MarshallerTest, PublicKeyRsa4096UnmarshalSuccess) {
   Buffer bytes = {8,  3,   18,  16, 201, 183, 191, 144, 26, 148,
                   57, 168, 114, 71, 3,   58,  121, 163, 1,  228};
-  PublicKey key_match = {
-      KeyType::RSA4096,
-      {201, 183, 191, 144, 26, 148, 57, 168, 114, 71, 3, 58, 121, 163, 1, 228}};
+  PublicKey key_match = {{Key::Type::RSA4096,
+                          {201, 183, 191, 144, 26, 148, 57, 168, 114, 71, 3, 58,
+                           121, 163, 1, 228}}};
   auto &&res = marshaller_.unmarshalPublicKey(bytes);
   ASSERT_TRUE(res);
   auto &&val = res.value();
-  ASSERT_EQ(val.getType(), key_match.getType());
-  ASSERT_EQ(val.getBytes(), key_match.getBytes());
+  ASSERT_EQ(val.type, key_match.type);
+  ASSERT_EQ(val.data, key_match.data);
 }
 
 /**
@@ -275,9 +275,9 @@ TEST_F(MarshallerTest, PublicKeyRsa4096UnmarshalSuccess) {
  *  @then obtained result matches predefined sequence of bytes
  */
 TEST_F(MarshallerTest, PrivateKeyRsa4096MarshalSuccess) {
-  PrivateKey key = {
-      KeyType::RSA4096,
-      {201, 183, 191, 144, 26, 148, 57, 168, 114, 71, 3, 58, 121, 163, 1, 228}};
+  PrivateKey key = {{Key::Type::RSA4096,
+                     {201, 183, 191, 144, 26, 148, 57, 168, 114, 71, 3, 58, 121,
+                      163, 1, 228}}};
   Buffer match = {8,  3,   18,  16, 201, 183, 191, 144, 26, 148,
                   57, 168, 114, 71, 3,   58,  121, 163, 1,  228};
   auto &&res = marshaller_.marshal(key);
@@ -294,14 +294,14 @@ TEST_F(MarshallerTest, PrivateKeyRsa4096MarshalSuccess) {
 TEST_F(MarshallerTest, PrivateKeyRsa4096UnmarshalSuccess) {
   Buffer bytes = {8,  3,   18,  16, 201, 183, 191, 144, 26, 148,
                   57, 168, 114, 71, 3,   58,  121, 163, 1,  228};
-  PublicKey key_match = {
-      KeyType::RSA4096,
-      {201, 183, 191, 144, 26, 148, 57, 168, 114, 71, 3, 58, 121, 163, 1, 228}};
+  PublicKey key_match = {{Key::Type::RSA4096,
+                          {201, 183, 191, 144, 26, 148, 57, 168, 114, 71, 3, 58,
+                           121, 163, 1, 228}}};
   auto &&res = marshaller_.unmarshalPrivateKey(bytes);
   ASSERT_TRUE(res);
   auto &&val = res.value();
-  ASSERT_EQ(val.getType(), key_match.getType());
-  ASSERT_EQ(val.getBytes(), key_match.getBytes());
+  ASSERT_EQ(val.type, key_match.type);
+  ASSERT_EQ(val.data, key_match.data);
 }
 
 /**
@@ -310,9 +310,9 @@ TEST_F(MarshallerTest, PrivateKeyRsa4096UnmarshalSuccess) {
  *  @then obtained result matches predefined sequence of bytes
  */
 TEST_F(MarshallerTest, PublicKeyEd25519MarshalSuccess) {
-  PublicKey key = {KeyType::ED25519,
-                   {166, 90, 244, 10, 68, 237, 35, 185, 74, 22, 117, 193, 129,
-                    102, 100, 201}};
+  PublicKey key = {{Key::Type::ED25519,
+                    {166, 90, 244, 10, 68, 237, 35, 185, 74, 22, 117, 193, 129,
+                     102, 100, 201}}};
   Buffer match = {8,  4,   18, 16, 166, 90,  244, 10,  68,  237,
                   35, 185, 74, 22, 117, 193, 129, 102, 100, 201};
   auto &&res = marshaller_.marshal(key);
@@ -329,14 +329,14 @@ TEST_F(MarshallerTest, PublicKeyEd25519MarshalSuccess) {
 TEST_F(MarshallerTest, PublicKeyEd25519UnmarshalSuccess) {
   Buffer bytes = {8,  4,   18, 16, 166, 90,  244, 10,  68,  237,
                   35, 185, 74, 22, 117, 193, 129, 102, 100, 201};
-  PublicKey key_match = {KeyType::ED25519,
-                         {166, 90, 244, 10, 68, 237, 35, 185, 74, 22, 117, 193,
-                          129, 102, 100, 201}};
+  PublicKey key_match = {{Key::Type::ED25519,
+                          {166, 90, 244, 10, 68, 237, 35, 185, 74, 22, 117, 193,
+                           129, 102, 100, 201}}};
   auto &&res = marshaller_.unmarshalPublicKey(bytes);
   ASSERT_TRUE(res);
   auto &&val = res.value();
-  ASSERT_EQ(val.getType(), key_match.getType());
-  ASSERT_EQ(val.getBytes(), key_match.getBytes());
+  ASSERT_EQ(val.type, key_match.type);
+  ASSERT_EQ(val.data, key_match.data);
 }
 
 /**
@@ -345,9 +345,9 @@ TEST_F(MarshallerTest, PublicKeyEd25519UnmarshalSuccess) {
  *  @then obtained result matches predefined sequence of bytes
  */
 TEST_F(MarshallerTest, PrivateKeyEd25519MarshalSuccess) {
-  PrivateKey key = {KeyType::ED25519,
-                    {166, 90, 244, 10, 68, 237, 35, 185, 74, 22, 117, 193, 129,
-                     102, 100, 201}};
+  PrivateKey key = {{Key::Type::ED25519,
+                     {166, 90, 244, 10, 68, 237, 35, 185, 74, 22, 117, 193, 129,
+                      102, 100, 201}}};
   Buffer match = {8,  4,   18, 16, 166, 90,  244, 10,  68,  237,
                   35, 185, 74, 22, 117, 193, 129, 102, 100, 201};
   auto &&res = marshaller_.marshal(key);
@@ -364,12 +364,12 @@ TEST_F(MarshallerTest, PrivateKeyEd25519MarshalSuccess) {
 TEST_F(MarshallerTest, PrivateKeyEd25519UnmarshalSuccess) {
   Buffer bytes = {8,  4,   18, 16, 166, 90,  244, 10,  68,  237,
                   35, 185, 74, 22, 117, 193, 129, 102, 100, 201};
-  PublicKey key_match = {KeyType::ED25519,
-                         {166, 90, 244, 10, 68, 237, 35, 185, 74, 22, 117, 193,
-                          129, 102, 100, 201}};
+  PublicKey key_match = {{Key::Type::ED25519,
+                          {166, 90, 244, 10, 68, 237, 35, 185, 74, 22, 117, 193,
+                           129, 102, 100, 201}}};
   auto &&res = marshaller_.unmarshalPrivateKey(bytes);
   ASSERT_TRUE(res);
   auto &&val = res.value();
-  ASSERT_EQ(val.getType(), key_match.getType());
-  ASSERT_EQ(val.getBytes(), key_match.getBytes());
+  ASSERT_EQ(val.type, key_match.type);
+  ASSERT_EQ(val.data, key_match.data);
 }

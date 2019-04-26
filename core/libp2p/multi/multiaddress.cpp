@@ -58,14 +58,14 @@ namespace libp2p::multi {
     if (!result) {
       return Error::INVALID_INPUT;
     }
-    auto&& bytes = result.value();
+    auto &&bytes = result.value();
 
-    return Multiaddress{std::string{address},
-                        ByteBuffer{std::vector<uint8_t>{bytes.begin(), bytes.end()}}};
+    return Multiaddress{
+        std::string{address},
+        ByteBuffer{std::vector<uint8_t>{bytes.begin(), bytes.end()}}};
   }
 
   Multiaddress::FactoryResult Multiaddress::create(const ByteBuffer &bytes) {
-
     // convert bytes address to string and make sure it represents valid address
     auto conversion_res = converters::bytesToMultiaddrString(bytes);
     if (!conversion_res) {
@@ -73,7 +73,7 @@ namespace libp2p::multi {
     }
 
     std::string s = conversion_res.value();
-    return Multiaddress {std::move(s), ByteBuffer{bytes}};
+    return Multiaddress{std::move(s), ByteBuffer{bytes}};
   }
 
   Multiaddress::Multiaddress(std::string &&address, ByteBuffer &&bytes)
@@ -126,8 +126,8 @@ namespace libp2p::multi {
       Protocol::Code proto) const {
     std::vector<std::string> values;
     auto protocol = ProtocolList::get(proto);
-    if(!protocol) {
-        return {};
+    if (!protocol) {
+      return {};
     }
     auto proto_str = "/"s + std::string(protocol->name);
     auto proto_positions =
@@ -226,3 +226,8 @@ namespace libp2p::multi {
   }
 
 }  // namespace libp2p::multi
+
+size_t std::hash<libp2p::multi::Multiaddress>::operator()(
+    const libp2p::multi::Multiaddress &x) const {
+  return std::hash<std::string_view>()(x.getStringAddress());
+}

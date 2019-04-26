@@ -9,6 +9,7 @@
 #include <boost/filesystem.hpp>
 #include "common/buffer.hpp"
 #include "libp2p/crypto/common.hpp"
+#include "libp2p/crypto/key.hpp"
 
 namespace libp2p::crypto {
   /**
@@ -22,20 +23,20 @@ namespace libp2p::crypto {
      * @param key_type RSA key type means number of bits option
      * @return new generated key pair of public and private key or error
      */
-    virtual outcome::result<common::KeyPair> generateRsa(
+    virtual outcome::result<KeyPair> generateRsa(
         common::RSAKeyType key_type) const = 0;
 
     /**
      * @brief generates ED25519 key pair
      * @return new generated key pair of public and private key or error
      */
-    virtual outcome::result<common::KeyPair> generateEd25519() const = 0;
+    virtual outcome::result<KeyPair> generateEd25519() const = 0;
 
     /**
      * @brief generates SECP256k1 key pair
      * @return new generated key pair of public and private key or error
      */
-    virtual outcome::result<common::KeyPair> generateSecp256k1() const = 0;
+    virtual outcome::result<KeyPair> generateSecp256k1() const = 0;
 
     /**
      * @brief derives public key from private key
@@ -50,7 +51,7 @@ namespace libp2p::crypto {
      * @param curve to be used in this ECDH
      * @return ephemeral key pair
      */
-    virtual outcome::result<common::EphemeralKeyPair> generateEphemeralKeyPair(
+    virtual outcome::result<EphemeralKeyPair> generateEphemeralKeyPair(
         common::CurveType curve) const = 0;
 
     /**
@@ -60,7 +61,7 @@ namespace libp2p::crypto {
      * @param secret to be used
      * @return objects of type StretchedKey
      */
-    virtual std::vector<common::StretchedKey> stretchKey(
+    virtual std::vector<StretchedKey> stretchKey(
         common::CipherType cipher_type, common::HashType hash_type,
         const kagome::common::Buffer &secret) const = 0;
 

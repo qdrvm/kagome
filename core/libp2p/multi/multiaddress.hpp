@@ -30,13 +30,6 @@ namespace libp2p::multi {
 
    public:
     Multiaddress() = delete;
-
-    Multiaddress(const Multiaddress &address) = default;
-    Multiaddress &operator=(const Multiaddress &address) = default;
-
-    Multiaddress(Multiaddress &&address) noexcept = default;
-    Multiaddress &operator=(Multiaddress &&address) = default;
-
     ~Multiaddress() = default;
 
     enum class Error {
@@ -170,9 +163,7 @@ namespace libp2p::multi {
 namespace std {
   template <>
   struct hash<libp2p::multi::Multiaddress> {
-    size_t operator()(const libp2p::multi::Multiaddress &x) const {
-      return std::hash<std::string_view>()(x.getStringAddress());
-    }
+    size_t operator()(const libp2p::multi::Multiaddress &x) const;
   };
 }  // namespace std
 
