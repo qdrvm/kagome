@@ -80,7 +80,6 @@ matrix:
             - python3-pip
             - python3-setuptools
             - lcov
-            - gcovr
       env:
         - _CC=gcc-8
         - _CXX=g++-8
@@ -89,7 +88,7 @@ matrix:
         # collect coverage
         - sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-8 90
         - cmake --build build --target ctest_coverage
-        - bash <(curl -s https://codecov.io/bash) -s build > /dev/null
+        - bash <(curl -s https://codecov.io/bash) -s build | head -n 100
 
 
     - os: linux
@@ -122,7 +121,7 @@ install:
       elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
         pip3 install --user pyyaml
       fi
-    pip3 install --user requests gitpython cmake
+    pip3 install --user --upgrade requests gitpython cmake gcovr
 
 before_script:
   - cmake --version
@@ -130,6 +129,7 @@ before_script:
   - python3 -V
   - pip -V
   - pip3 -V
+  - gcovr --version || true
 
 script:
   - export CC=${_CC}
