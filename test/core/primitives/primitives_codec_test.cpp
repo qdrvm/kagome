@@ -58,10 +58,10 @@ class Primitives : public testing::Test {
   Buffer encoded_header_ = [](){
     Buffer h;
     // SCALE-encoded
-    h.putUint8(128).put(std::vector<uint8_t>(32, 0)); // parent_hash: hash256 with value 0
+    h.put(std::vector<uint8_t>(32, 0)); // parent_hash: hash256 with value 0
     h.putUint8(2).put(std::vector<uint8_t>(7, 0)); // number: 2
-    h.putUint8(128).putUint8(1).put(std::vector<uint8_t>(31, 0)); // state_root: hash256 with value 1
-    h.putUint8(128).putUint8(2).put(std::vector<uint8_t>(31, 0)); // extrinsic_root: hash256 with value 2
+    h.putUint8(1).put(std::vector<uint8_t>(31, 0)); // state_root: hash256 with value 1
+    h.putUint8(2).put(std::vector<uint8_t>(31, 0)); // extrinsic_root: hash256 with value 2
     h.putUint8(4).putUint8(5); // digest: buffer with element 5
     return h;
   }();
@@ -90,9 +90,9 @@ class Primitives : public testing::Test {
       1,  0,   0,   0,                             // auth version
       2,  0,   0,   0,                             // impl version
       8,                                           // collection of 2 items
-      32, '1', '2', '3', '4', '5', '6', '7', '8',  // id1
+      '1', '2', '3', '4', '5', '6', '7', '8',  // id1
       1,  0,   0,   0,                             // id1 version
-      32, '8', '7', '6', '5', '4', '3', '2', '1',  // id2
+      '8', '7', '6', '5', '4', '3', '2', '1',  // id2
       2,  0,   0,   0,                             // id2 version
   };
   /// block id variant number alternative and corresponding scale representation
@@ -102,7 +102,6 @@ class Primitives : public testing::Test {
   BlockId block_id_hash_;
   Buffer encoded_block_id_hash_{
       0,    // variant type order
-      128,  // collection size compact-encoded = 32 << 2 + 0x00
       0x0,  0x1,  0x2,  0x3,  0x4,  0x5,  0x6,  0x7,  0x8,  0x9,  0xA,
       0xB,  0xC,  0xD,  0xE,  0xF,  0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
       0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F};

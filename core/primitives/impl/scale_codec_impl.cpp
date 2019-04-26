@@ -22,7 +22,10 @@ namespace kagome::scale {
   struct TypeEncoder<std::array<T, sz>> {
     outcome::result<void> encode(const std::array<T, sz> &array,
                                  common::Buffer &out) {
-      return collection::encodeCollection(gsl::make_span(array), out);
+      for (int i = 0; i < sz; i++) {
+        fixedwidth::encodeUInt8(array[i], out);
+      }
+      return outcome::success();
     }
   };
 
@@ -31,7 +34,10 @@ namespace kagome::scale {
   struct TypeEncoder<common::Hash256> {
     outcome::result<void> encode(const common::Hash256 &value,
                                  common::Buffer &out) {
-      return collection::encodeCollection(gsl::make_span(value), out);
+      for (size_t i = 0; i < value.size(); i++) {
+        fixedwidth::encodeUInt8(value[i], out);
+      }
+      return outcome::success();
     }
   };
 
@@ -83,12 +89,12 @@ namespace kagome::scale {
   struct TypeDecoder<std::array<T, sz>> {
     using array_type = std::array<T, sz>;
     outcome::result<array_type> decode(common::ByteStream &stream) {
-      OUTCOME_TRY(collection, collection::decodeCollection<T>(stream));
-      if (collection.size() != sz) {
-        return DecodeError::INVALID_DATA;
-      }
       array_type array;
-      std::copy(collection.begin(), collection.end(), array.begin());
+
+      for (int i = 0; i < sz; i++) {
+        OUTCOME_TRY(byte, fixedwidth::decodeUint8(stream));
+        array[i] = byte;
+      }
       return array;
     }
   };
@@ -97,13 +103,11 @@ namespace kagome::scale {
   template <>
   struct TypeDecoder<common::Hash256> {
     outcome::result<common::Hash256> decode(common::ByteStream &stream) {
-      OUTCOME_TRY(collection,
-                  collection::decodeCollection<common::byte_t>(stream));
       common::Hash256 hash;
-      if (collection.size() != common::Hash256::size()) {
-        return DecodeError::INVALID_DATA;
+      for (int i = 0; i < common::Hash256::size(); i++) {
+        OUTCOME_TRY(byte, fixedwidth::decodeUint8(stream));
+        hash[i] = byte;
       }
-      std::copy(collection.begin(), collection.end(), hash.begin());
       return hash;
     }
   };
