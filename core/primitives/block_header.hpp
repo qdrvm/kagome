@@ -6,7 +6,7 @@
 #ifndef KAGOME_PRIMITIVES_BLOCK_HEADER_HPP
 #define KAGOME_PRIMITIVES_BLOCK_HEADER_HPP
 
-#include <common/blob.hpp>
+#include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "primitives/common.hpp"
 

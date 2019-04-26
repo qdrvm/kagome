@@ -50,27 +50,31 @@ class Primitives : public testing::Test {
 
  protected:
   /// block header and corresponding scale representation
-  BlockHeader block_header_{createHash({0}),   // parent_hash
-                            2,     // number: number
-                            createHash({1}),   // state_root
-                            createHash({2}),   // extrinsic root
-                            {5}};  // buffer: digest;
-  Buffer encoded_header_{
-      128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      2, 0, 0, 0, 0, 0, 0, 0,
-      128, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      128, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      4, 5
-  };
+  BlockHeader block_header_{createHash({0}),  // parent_hash
+                            2,                // number: number
+                            createHash({1}),  // state_root
+                            createHash({2}),  // extrinsic root
+                            {5}};             // buffer: digest;
+  Buffer encoded_header_ = [](){
+    Buffer h;
+    // SCALE-encoded
+    h.putUint8(128).put(std::vector<uint8_t>(32, 0)); // parent_hash: hash256 with value 0
+    h.putUint8(2).put(std::vector<uint8_t>(7, 0)); // number: 2
+    h.putUint8(128).putUint8(1).put(std::vector<uint8_t>(31, 0)); // state_root: hash256 with value 1
+    h.putUint8(128).putUint8(2).put(std::vector<uint8_t>(31, 0)); // extrinsic_root: hash256 with value 2
+    h.putUint8(4).putUint8(5); // digest: buffer with element 5
+    return h;
+  }();
   /// Extrinsic instance and corresponding scale representation
   Extrinsic extrinsic_{{12,  /// sequence of 3 bytes: 1, 2, 3; 12 == (3 << 2)
                         1, 2, 3}};
   Buffer encoded_extrinsic_{12, 1, 2, 3};
   /// block instance and corresponding scale representation
   Block block_{block_header_, {extrinsic_}};
-  Buffer encoded_block_ = Buffer(encoded_header_).putBuffer({
-                        4,             // (1 << 2) number of extrinsics
-                        12, 1, 2, 3});  // extrinsic itself {1, 2, 3}
+  Buffer encoded_block_ =
+      Buffer(encoded_header_)
+          .putBuffer({4,              // (1 << 2) number of extrinsics
+                      12, 1, 2, 3});  // extrinsic itself {1, 2, 3}
   /// Version instance and corresponding scale representation
   Version version_{
       "qwe",                                           // spec name
@@ -351,11 +355,10 @@ TEST_F(Primitives, decodeTransactionValidityInvalid) {
   auto &&res = codec_->decodeTransactionValidity(stream);
   ASSERT_TRUE(res);
   TransactionValidity value = res.value();
-  kagome::visit_in_place(
-      value,                                       // value
-      [](Invalid &v) { ASSERT_EQ(v.error_, 1); },  // ok
-      [](Unknown &v) { FAIL(); },                  // fail
-      [](Valid &v) { FAIL(); });                   // fail
+  kagome::visit_in_place(value,                                       // value
+                         [](Invalid &v) { ASSERT_EQ(v.error_, 1); },  // ok
+                         [](Unknown &v) { FAIL(); },                  // fail
+                         [](Valid &v) { FAIL(); });                   // fail
 }
 
 /**
@@ -370,11 +373,10 @@ TEST_F(Primitives, decodeTransactionValidityUnknown) {
   auto &&res = codec_->decodeTransactionValidity(stream);
   ASSERT_TRUE(res);
   TransactionValidity value = res.value();
-  kagome::visit_in_place(
-      value,                                       // value
-      [](Invalid &v) { FAIL(); },                  // fail
-      [](Unknown &v) { ASSERT_EQ(v.error_, 2); },  // ok
-      [](Valid &v) { FAIL(); }                     // fail
+  kagome::visit_in_place(value,                                       // value
+                         [](Invalid &v) { FAIL(); },                  // fail
+                         [](Unknown &v) { ASSERT_EQ(v.error_, 2); },  // ok
+                         [](Valid &v) { FAIL(); }                     // fail
   );
 }
 
@@ -389,15 +391,14 @@ TEST_F(Primitives, decodeTransactionValidityValid) {
   auto &&res = codec_->decodeTransactionValidity(stream);
   ASSERT_TRUE(res);
   TransactionValidity value = res.value();
-  kagome::visit_in_place(
-      value,                       // value
-      [](Invalid &v) { FAIL(); },  // fail
-      [](Unknown &v) { FAIL(); },  // fail
-      [this](Valid &v) {           // ok
-        auto &valid = valid_transaction_;
-        ASSERT_EQ(v.priority_, valid.priority_);
-        ASSERT_EQ(v.requires_, valid.requires_);
-        ASSERT_EQ(v.provides_, valid.provides_);
-        ASSERT_EQ(v.longevity_, valid.longevity_);
-      });
+  kagome::visit_in_place(value,                       // value
+                         [](Invalid &v) { FAIL(); },  // fail
+                         [](Unknown &v) { FAIL(); },  // fail
+                         [this](Valid &v) {           // ok
+                           auto &valid = valid_transaction_;
+                           ASSERT_EQ(v.priority_, valid.priority_);
+                           ASSERT_EQ(v.requires_, valid.requires_);
+                           ASSERT_EQ(v.provides_, valid.provides_);
+                           ASSERT_EQ(v.longevity_, valid.longevity_);
+                         });
 }
