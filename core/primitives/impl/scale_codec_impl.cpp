@@ -23,7 +23,7 @@ namespace kagome::scale {
     outcome::result<void> encode(const std::array<T, sz> &array,
                                  common::Buffer &out) {
       for (int i = 0; i < sz; i++) {
-        fixedwidth::encodeUInt8(array[i], out);
+        fixedwidth::encodeUInt8(gsl::at(array, i), out);
       }
       return outcome::success();
     }
