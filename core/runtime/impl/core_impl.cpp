@@ -23,7 +23,7 @@ namespace kagome::runtime {
   outcome::result<primitives::Version> CoreImpl::version() {
     uint64_t version_long =
         executor_
-            .call(state_code_.toVector(), "Core_version",
+            .call(state_code_, "Core_version",
                   wasm::LiteralList({wasm::Literal(0), wasm::Literal(0)}))
             .geti64();
 
@@ -49,7 +49,7 @@ namespace kagome::runtime {
 
     executor_
         .call(
-            state_code_.toVector(), "Core_execute_block",
+            state_code_, "Core_execute_block",
             wasm::LiteralList({wasm::Literal(ptr), wasm::Literal(block_size)}))
         .geti64();
 
@@ -66,7 +66,7 @@ namespace kagome::runtime {
 
     executor_
         .call(
-            state_code_.toVector(), "Core_initialise_block",
+            state_code_, "Core_initialise_block",
             wasm::LiteralList({wasm::Literal(ptr), wasm::Literal(header_size)}))
         .geti64();
 
@@ -84,7 +84,7 @@ namespace kagome::runtime {
     uint64_t result_long =
         executor_
             .call(
-                state_code_.toVector(), "Core_authorities",
+                state_code_, "Core_authorities",
                 wasm::LiteralList({wasm::Literal(ptr), wasm::Literal(id_size)}))
             .geti64();
 

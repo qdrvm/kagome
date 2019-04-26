@@ -7,6 +7,7 @@
 #define KAGOME_CORE_RUNTIME_WASM_EXECUTOR_IMPL_HPP
 
 #include <binaryen/wasm-interpreter.h>
+#include "common/buffer.hpp"
 #include "extensions/extension.hpp"
 
 namespace kagome::runtime {
@@ -24,7 +25,7 @@ namespace kagome::runtime {
     /**
      * Executes export method from provided wasm code and returns result
      */
-    wasm::Literal call(const std::vector<uint8_t> &code, wasm::Name method_name,
+    wasm::Literal call(const common::Buffer &state_code, wasm::Name method_name,
                        const wasm::LiteralList &args);
 
     /**

@@ -13,12 +13,14 @@ namespace kagome::runtime {
   WasmExecutor::WasmExecutor(std::shared_ptr<extensions::Extension> extension)
       : extension_(std::move(extension)) {}
 
-  wasm::Literal WasmExecutor::call(const std::vector<uint8_t> &code,
+  wasm::Literal WasmExecutor::call(const common::Buffer &state_code,
                                    wasm::Name method_name,
                                    const wasm::LiteralList &args) {
     wasm::Module module{};
     wasm::WasmBinaryBuilder parser(
-        module, reinterpret_cast<std::vector<char> const &>(code),  // NOLINT
+        module,
+        reinterpret_cast<std::vector<char> const &>(  // NOLINT
+            state_code.toVector()),
         false);
     parser.read();
 

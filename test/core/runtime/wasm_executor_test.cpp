@@ -13,6 +13,7 @@
 #include "core/extensions/mock_extension.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 
+using kagome::common::Buffer;
 using kagome::extensions::MockExtension;
 using kagome::runtime::WasmExecutor;
 using kagome::runtime::WasmMemoryImpl;
@@ -31,18 +32,15 @@ class WasmExecutorTest : public ::testing::Test {
     executor_ = std::make_shared<WasmExecutor>(extension_);
   }
 
-  std::vector<uint8_t> getSumTwoCode() {
+  Buffer getSumTwoCode() {
     // get file from wasm/ folder
-    auto path1 =
-        fs::path(__FILE__).parent_path().string() + "/wasm/sumtwo.wasm";
-
-    std::ifstream ifd(path1, std::ios::binary | std::ios::ate);
+    auto path = fs::path(__FILE__).parent_path().string() + "/wasm/sumtwo.wasm";
+    std::ifstream ifd(path, std::ios::binary | std::ios::ate);
     int size = ifd.tellg();
     ifd.seekg(0, std::ios::beg);
-    std::vector<char> buffer;
-    buffer.resize(size);  // << resize not reserve
-    ifd.read(buffer.data(), size);
-    return std::vector<uint8_t>(buffer.begin(), buffer.end());
+    Buffer b(size, 0);
+    ifd.read((char *)b.toBytes(), size);
+    return b;
   }
 
  protected:

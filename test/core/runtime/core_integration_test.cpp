@@ -52,11 +52,9 @@ class CoreTest : public ::testing::Test {
     std::ifstream ifd(path, std::ios::binary | std::ios::ate);
     int size = ifd.tellg();
     ifd.seekg(0, std::ios::beg);
-    std::vector<char> buffer;
-    buffer.resize(size);  // << resize not reserve
-    ifd.read(buffer.data(), size);
-    gsl::span<uint8_t> span((uint8_t *)buffer.data(), buffer.size());
-    return Buffer(span);
+    Buffer b(size, 0);
+    ifd.read((char *)b.toBytes(), size);
+    return b;
   }
 
   BlockHeader createBlockHeader() {
