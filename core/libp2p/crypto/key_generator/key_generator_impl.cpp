@@ -34,19 +34,20 @@ namespace libp2p::crypto {
       int ret = 0;
       RSA *rsa = nullptr;
       BIGNUM *bne = nullptr;
-      BIO *bp_public = nullptr;
-      BIO *bp_private = nullptr;
+      BIO *bio_public = nullptr;
+      BIO *bio_private = nullptr;
 
+      // clean up automatically
       auto cleanup = gsl::finally([&]() {
-        BIO_free_all(bp_public);
-        BIO_free_all(bp_private);
+        BIO_free_all(bio_public);
+        BIO_free_all(bio_private);
         RSA_free(rsa);
         BN_free(bne);
       });
 
       unsigned long exp = RSA_F4;
 
-      // 1. generate rsa key
+      // 1. generate rsa state
       bne = BN_new();
       ret = BN_set_word(bne, exp);
       if (ret != 1) {
@@ -59,35 +60,32 @@ namespace libp2p::crypto {
         return KeyGeneratorError::KEY_GENERATION_FAILED;
       }
 
-      // 2. save keys
-      bp_private = BIO_new(BIO_s_mem());  // in-memory storage for key
-      bp_public = BIO_new(BIO_s_mem());   // in-memory storage for key
+      // 2. save keys to memory
+      bio_private = BIO_new(BIO_s_mem());
+      bio_public = BIO_new(BIO_s_mem());
 
-      ret = PEM_write_bio_RSAPublicKey(bp_public, rsa);
+      ret = PEM_write_bio_RSAPublicKey(bio_public, rsa);
       if (ret != 1) {
         return KeyGeneratorError::KEY_GENERATION_FAILED;
       }
 
-      ret = PEM_write_bio_RSAPrivateKey(bp_private, rsa, nullptr, nullptr, 0,
+      ret = PEM_write_bio_RSAPrivateKey(bio_private, rsa, nullptr, nullptr, 0,
                                         nullptr, nullptr);
       if (ret != 1) {
         return KeyGeneratorError::KEY_GENERATION_FAILED;
       }
 
-      // 4. Get the keys are PEM formatted strings
-      int pri_len = BIO_pending(bp_private);
-      int pub_len = BIO_pending(bp_public);
+      // 3. Get keys
+      int private_length = BIO_pending(bio_private);
+      int public_length = BIO_pending(bio_public);
 
-      std::vector<uint8_t> pri_key(pri_len, 0);
-      std::vector<uint8_t> pub_key(pri_len, 0);
+      std::vector<uint8_t> private_bytes(private_length, 0);
+      std::vector<uint8_t> public_bytes(private_length, 0);
 
-      BIO_read(bp_private, pri_key.data(), pri_len);
-      BIO_read(bp_public, pub_key.data(), pub_len);
+      BIO_read(bio_private, private_bytes.data(), private_length);
+      BIO_read(bio_public, public_bytes.data(), public_length);
 
-      Buffer private_bytes(std::move(pri_key));
-      Buffer public_bytes(std::move(pub_key));
-
-      return {std::move(public_bytes), std::move(private_bytes)};
+      return {std::move(private_bytes), std::move(public_bytes)};
     }
   }  // namespace detail
 
@@ -114,7 +112,7 @@ namespace libp2p::crypto {
 
     // normally unreachable
     if (0 == bits) {
-      return KeyGeneratorError::UNKNOWN_BITS_COUNT;
+      return KeyGeneratorError::INCORRECT_BITS_COUNT;
     }
 
     OUTCOME_TRY(bytes, detail::generate_keys(bits));
@@ -144,122 +142,13 @@ namespace libp2p::crypto {
     return KeyGeneratorError::KEY_GENERATION_FAILED;
   }
 
-  bool generateKeys(common::RSAKeyType option) {
-    size_t pri_len;  // Length of private key
-    size_t pub_len;  // Length of public key
-    char *pri_key;   // Private key in PEM
-    char *pub_key;   // Public key in PEM
-
-    int ret = 0;
-    RSA *r = nullptr;
-    BIGNUM *bne = nullptr;
-    BIO *bp_public = nullptr, *bp_private = nullptr;
-    int bits = 0;
-    switch (option) {
-      case common::RSAKeyType::RSA1024:
-        bits = 1024;
-        break;
-      case common::RSAKeyType::RSA2048:
-        bits = 2048;
-        break;
-      case common::RSAKeyType::RSA4096:
-        bits = 4096;
-        break;
-    }
-    unsigned long e = RSA_F4;
-
-    EVP_PKEY *evp_pbkey = nullptr;
-    EVP_PKEY *evp_pkey = nullptr;
-
-    BIO *pbkeybio = nullptr;
-    BIO *pkeybio = nullptr;
-
-    // 1. generate rsa key
-    bne = BN_new();
-    ret = BN_set_word(bne, e);
-    if (ret != 1) {
-      goto free_all;
-    }
-
-    r = RSA_new();
-    ret = RSA_generate_key_ex(r, bits, bne, nullptr);
-    if (ret != 1) {
-      goto free_all;
-    }
-
-    // 2. save public key
-    // bp_public = BIO_new_file("public.pem", "w+");
-    bp_public = BIO_new(BIO_s_mem());
-    ret = PEM_write_bio_RSAPublicKey(bp_public, r);
-    if (ret != 1) {
-      goto free_all;
-    }
-
-    // 3. save private key
-    // bp_private = BIO_new_file("private.pem", "w+");
-    bp_private = BIO_new(BIO_s_mem());  // in-memory storage for key
-    ret = PEM_write_bio_RSAPrivateKey(bp_private, r, nullptr, nullptr, 0,
-                                      nullptr, nullptr);
-
-    // 4. Get the keys are PEM formatted strings
-    pri_len = BIO_pending(bp_private);
-    pub_len = BIO_pending(bp_public);
-
-    pri_key = (char *)malloc(pri_len + 1);
-    pub_key = (char *)malloc(pub_len + 1);
-
-    BIO_read(bp_private, pri_key, pri_len);
-    BIO_read(bp_public, pub_key, pub_len);
-
-    pri_key[pri_len] = '\0';
-    pub_key[pub_len] = '\0';
-
-    printf("\n%s\n%s\n", pri_key, pub_key);  // keys
-
-    // verify if you are able to re-construct the keys
-    pbkeybio = BIO_new_mem_buf((void *)pub_key, -1);
-    if (pbkeybio == nullptr) {
-      return -1;
-    }
-    evp_pbkey = PEM_read_bio_PUBKEY(pbkeybio, &evp_pbkey, nullptr, nullptr);
-    if (evp_pbkey == nullptr) {
-      char buffer[120];
-      ERR_error_string(ERR_get_error(), buffer);
-      printf("Error reading public key:%s\n", buffer);
-    }
-
-    pkeybio = BIO_new_mem_buf((void *)pri_key, -1);
-    if (pkeybio == nullptr) {
-      return -1;
-    }
-    evp_pkey = PEM_read_bio_PrivateKey(pkeybio, &evp_pkey, nullptr, nullptr);
-    if (evp_pbkey == nullptr) {
-      char buffer[120];
-      ERR_error_string(ERR_get_error(), buffer);
-      printf("Error reading private key:%s\n", buffer);
-    }
-
-    BIO_free(pbkeybio);
-    BIO_free(pkeybio);
-
-  // 4. free
-  free_all:
-
-    BIO_free_all(bp_public);
-    BIO_free_all(bp_private);
-    RSA_free(r);
-    BN_free(bne);
-
-    return (ret == 1);
-  }
-
   outcome::result<PublicKey> KeyGeneratorImpl::derivePublicKey(
       const PrivateKey &private_key) const {
     return KeyGeneratorError::KEY_GENERATION_FAILED;
   }
 
-  outcome::result<EphemeralKeyPair>
-  KeyGeneratorImpl::generateEphemeralKeyPair(common::CurveType curve) const {
+  outcome::result<EphemeralKeyPair> KeyGeneratorImpl::generateEphemeralKeyPair(
+      common::CurveType curve) const {
     return KeyGeneratorError::KEY_GENERATION_FAILED;
   }
 

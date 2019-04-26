@@ -51,7 +51,7 @@ namespace libp2p::crypto {
     GENERATOR_NOT_INITIALIZED,        ///< generator not initialized
     KEY_GENERATION_FAILED,            ///< key generation failed
     FILE_NOT_FOUND,                   ///< file not found
-    UNKNOWN_BITS_COUNT,               ///< unknown bits option
+    INCORRECT_BITS_COUNT,             ///< incorrect bits option
   };
 }  // namespace libp2p::crypto
 

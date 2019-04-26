@@ -95,8 +95,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, KeyGeneratorError, e) {
       return "key generation failed";
     case KeyGeneratorError::FILE_NOT_FOUND:
       return "file not found";
-    case KeyGeneratorError::UNKNOWN_BITS_COUNT:
-      return "unknown bits count";
+    case KeyGeneratorError::INCORRECT_BITS_COUNT:
+      return "incorrect bits count";
   }
   return "unknown KeyGenerator error";
 }
