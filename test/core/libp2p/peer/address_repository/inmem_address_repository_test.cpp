@@ -54,11 +54,11 @@ struct InmemAddressRepository_Test : public ::testing::Test {
 TEST_F(InmemAddressRepository_Test, GarbageCollection) {
   // @given address repository that has 2 peers, and some addresses
   EXPECT_OUTCOME_TRUE_1(
-      db->addAddresses(p1, std::vector<Multiaddress>{ma1, ma2}, 100ms));
+      db->addAddresses(p1, std::vector<Multiaddress>{ma1, ma2}, 10ms));
   EXPECT_OUTCOME_TRUE_1(
-      db->addAddresses(p1, std::vector<Multiaddress>{ma3, ma4}, 400ms));
+      db->addAddresses(p1, std::vector<Multiaddress>{ma3, ma4}, 100ms));
   EXPECT_OUTCOME_TRUE_1(
-      db->upsertAddresses(p2, std::vector<Multiaddress>{ma4}, 100ms));
+      db->upsertAddresses(p2, std::vector<Multiaddress>{ma4}, 10ms));
 
   // @when no collectGarbage is called
   {
@@ -82,8 +82,8 @@ TEST_F(InmemAddressRepository_Test, GarbageCollection) {
     EXPECT_EQ(v2.size(), 1);
   }
 
-  // @when second collect garbage is called in 200ms
-  std::this_thread::sleep_for(200ms);
+  // @when second collect garbage is called in 50
+  std::this_thread::sleep_for(50ms);
   collectGarbage();
   // ma1 and ma2 for p1 should be evicted by now
 
@@ -136,16 +136,16 @@ TEST_F(InmemAddressRepository_Test, GarbageCollection) {
  */
 TEST_F(InmemAddressRepository_Test, UpdateAddress) {
   EXPECT_OUTCOME_TRUE_1(
-      db->addAddresses(p1, std::vector<Multiaddress>{ma1}, 100ms));
+      db->addAddresses(p1, std::vector<Multiaddress>{ma1}, 10ms));
   EXPECT_OUTCOME_TRUE_1(
-      db->upsertAddresses(p1, std::vector<Multiaddress>{ma1}, 1000ms));
+      db->upsertAddresses(p1, std::vector<Multiaddress>{ma1}, 100ms));
 
   {
     EXPECT_OUTCOME_TRUE_2(v, db->getAddresses(p1));
     EXPECT_EQ(v.size(), 1);
   }
 
-  std::this_thread::sleep_for(200ms);
+  std::this_thread::sleep_for(50ms);
   collectGarbage();
 
   // ma1 is updated
@@ -160,16 +160,16 @@ TEST_F(InmemAddressRepository_Test, UpdateAddress) {
  */
 TEST_F(InmemAddressRepository_Test, InsertAddress) {
   EXPECT_OUTCOME_TRUE_1(
-      db->addAddresses(p1, std::vector<Multiaddress>{ma1}, 100ms));
+      db->addAddresses(p1, std::vector<Multiaddress>{ma1}, 10ms));
   EXPECT_OUTCOME_TRUE_1(
-      db->upsertAddresses(p1, std::vector<Multiaddress>{ma2}, 1000ms));
+      db->upsertAddresses(p1, std::vector<Multiaddress>{ma2}, 100ms));
 
   {
     EXPECT_OUTCOME_TRUE_2(v, db->getAddresses(p1));
     EXPECT_EQ(v.size(), 2);
   }
 
-  std::this_thread::sleep_for(200ms);
+  std::this_thread::sleep_for(50ms);
   collectGarbage();
 
   // ma1 is evicted, ma2 is not

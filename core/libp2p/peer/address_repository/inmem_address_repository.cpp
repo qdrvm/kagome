@@ -71,16 +71,16 @@ namespace libp2p::peer {
   void InmemAddressRepository::collectGarbage() {
     auto now = Clock::now();
     auto peer = db_.begin();
-    auto peerend = db_.end();
+    auto peer_end = db_.end();
 
     // for each peer
-    while (peer != peerend) {
+    while (peer != peer_end) {
       auto &&maptr = peer->second;
 
       // remove all expired addresses
       auto ma = maptr->begin();
-      auto maend = maptr->end();
-      while (ma != maend) {
+      auto ma_end = maptr->end();
+      while (ma != ma_end) {
         if (now >= ma->second) {
           signal_removed_(peer->first, ma->first);
           // erase returns element next to deleted
