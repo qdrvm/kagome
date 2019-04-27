@@ -55,9 +55,8 @@ namespace libp2p::peer {
      * rotocols.
      * @param p peer
      * @param protocols check if given protocols are supported by a peer
-
-     * eturn list of supported protocols (may be empty) or peer error, if no p
-     * er {@param p} found
+     * @return list of supported protocols (may be empty) or peer error, if no
+     * peer {@param p} found
      */
     virtual outcome::result<std::list<Protocol>> supportsProtocols(
         const PeerId &p, gsl::span<const Protocol> protocols) const = 0;
