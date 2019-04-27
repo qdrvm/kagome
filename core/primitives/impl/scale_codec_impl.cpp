@@ -15,8 +15,151 @@
 #include "scale/scale_error.hpp"
 #include "scale/variant.hpp"
 
+/// custom types encoders and decoders
+namespace kagome::scale {
+  /// encodes std::array
+  template <class T, size_t sz>
+  struct TypeEncoder<std::array<T, sz>> {
+    outcome::result<void> encode(const std::array<T, sz> &array,
+                                 common::Buffer &out) {
+      for (int i = 0; i < sz; i++) {
+        fixedwidth::encodeUInt8(gsl::at(array, i), out);
+      }
+      return outcome::success();
+    }
+  };
+
+  /// encodes common::Hash256
+  template <>
+  struct TypeEncoder<common::Hash256> {
+    outcome::result<void> encode(const common::Hash256 &value,
+                                 common::Buffer &out) {
+      for (size_t i = 0; i < value.size(); i++) {
+        fixedwidth::encodeUInt8(value[i], out);
+      }
+      return outcome::success();
+    }
+  };
+
+  /// encodes primitives::Invalid
+  template <>
+  struct TypeEncoder<primitives::Invalid> {
+    outcome::result<void> encode(const primitives::Invalid &value,
+                                 common::Buffer &out) {
+      fixedwidth::encodeUInt8(value.error_, out);
+      return outcome::success();
+    }
+  };
+
+  /// encodes primitives::Unknown
+  template <>
+  struct TypeEncoder<primitives::Unknown> {
+    outcome::result<void> encode(const primitives::Unknown &value,
+                                 common::Buffer &out) {
+      fixedwidth::encodeUInt8(value.error_, out);
+      return outcome::success();
+    }
+  };
+
+  /// encodes primitives::Valid
+  template <>
+  struct TypeEncoder<primitives::Valid> {
+    outcome::result<void> encode(const primitives::Valid &value,
+                                 common::Buffer &out) {
+      fixedwidth::encodeUint64(value.priority_, out);
+      OUTCOME_TRY(collection::encodeCollection(value.requires_, out));
+      OUTCOME_TRY(collection::encodeCollection(value.provides_, out));
+      fixedwidth::encodeUint64(value.longevity_, out);
+
+      return outcome::success();
+    }
+  };
+
+  /// encodes std::vector
+  template <class T>
+  struct TypeEncoder<std::vector<T>> {
+    outcome::result<void> encode(const std::vector<T> &value,
+                                 common::Buffer &out) {
+      return collection::encodeCollection(value, out);
+    }
+  };
+
+  /// decodes std::array
+  template <class T, size_t sz>
+  struct TypeDecoder<std::array<T, sz>> {
+    using array_type = std::array<T, sz>;
+    outcome::result<array_type> decode(common::ByteStream &stream) {
+      array_type array;
+
+      for (int i = 0; i < sz; i++) {
+        OUTCOME_TRY(byte, fixedwidth::decodeUint8(stream));
+        array[i] = byte;
+      }
+      return array;
+    }
+  };
+
+  /// decodes common::Hash256
+  template <>
+  struct TypeDecoder<common::Hash256> {
+    outcome::result<common::Hash256> decode(common::ByteStream &stream) {
+      common::Hash256 hash;
+      for (int i = 0; i < common::Hash256::size(); i++) {
+        OUTCOME_TRY(byte, fixedwidth::decodeUint8(stream));
+        hash[i] = byte;
+      }
+      return hash;
+    }
+  };
+
+  /// decodes primitives::Invalid
+  template <>
+  struct TypeDecoder<primitives::Invalid> {
+    outcome::result<primitives::Invalid> decode(common::ByteStream &stream) {
+      OUTCOME_TRY(value, fixedwidth::decodeUint8(stream));
+      return primitives::Invalid{value};
+    }
+  };
+
+  /// decodes primitives::Unknown
+  template <>
+  struct TypeDecoder<primitives::Unknown> {
+    outcome::result<primitives::Unknown> decode(common::ByteStream &stream) {
+      OUTCOME_TRY(value, fixedwidth::decodeUint8(stream));
+      return primitives::Unknown{value};
+    }
+  };
+
+  /// decodes primitives::Valid
+  template <>
+  struct TypeDecoder<primitives::Valid> {
+    outcome::result<primitives::Valid> decode(common::ByteStream &stream) {
+      OUTCOME_TRY(priority, fixedwidth::decodeUint64(stream));
+      OUTCOME_TRY(
+          requires,
+          collection::decodeCollection<primitives::TransactionTag>(stream));
+      OUTCOME_TRY(
+          provides,
+          collection::decodeCollection<primitives::TransactionTag>(stream));
+      OUTCOME_TRY(longevity, fixedwidth::decodeUint64(stream));
+
+      return primitives::Valid{priority, requires, provides, longevity};
+    }
+  };
+
+  /// decodes primitives::TransactionTag
+  template <>
+  struct TypeDecoder<primitives::TransactionTag> {
+    outcome::result<primitives::TransactionTag> decode(
+        common::ByteStream &stream) {
+      return collection::decodeCollection<uint8_t>(stream);
+    }
+  };
+}  // namespace kagome::scale
+
 namespace kagome::primitives {
   using kagome::common::Buffer;
+  using kagome::common::Hash256;
   using ArrayChar8Encoder = scale::TypeEncoder<std::array<uint8_t, 8>>;
   using ApiEncoder = scale::TypeEncoder<std::pair<ArrayChar8Encoder, uint32_t>>;
   using kagome::scale::collection::decodeCollection;
@@ -72,10 +215,12 @@ namespace kagome::primitives {
       const BlockHeader &block_header) const {
     Buffer out;
 
-    OUTCOME_TRY(encodeBuffer(block_header.parentHash(), out));
+    scale::TypeEncoder<Hash256> encoder;
+
+    OUTCOME_TRY(encoder.encode(block_header.parentHash(), out));
     encodeUint64(block_header.number(), out);
-    OUTCOME_TRY(encodeBuffer(block_header.stateRoot(), out));
-    OUTCOME_TRY(encodeBuffer(block_header.extrinsicsRoot(), out));
+    OUTCOME_TRY(encoder.encode(block_header.stateRoot(), out));
+    OUTCOME_TRY(encoder.encode(block_header.extrinsicsRoot(), out));
     OUTCOME_TRY(encodeBuffer(block_header.digest(), out));
 
     return out;
@@ -83,14 +228,16 @@ namespace kagome::primitives {
 
   outcome::result<BlockHeader> ScaleCodecImpl::decodeBlockHeader(
       Stream &stream) const {
-    OUTCOME_TRY(parent_hash, decodeCollection<uint8_t>(stream));
+    scale::TypeDecoder<Hash256> decoder;
+
+    OUTCOME_TRY(parent_hash, decoder.decode(stream));
     OUTCOME_TRY(number, decodeUint64(stream));
-    OUTCOME_TRY(state_root, decodeCollection<uint8_t>(stream));
-    OUTCOME_TRY(extrinsics_root, decodeCollection<uint8_t>(stream));
+    OUTCOME_TRY(state_root, decoder.decode(stream));
+    OUTCOME_TRY(extrinsics_root, decoder.decode(stream));
     OUTCOME_TRY(digest, decodeCollection<uint8_t>(stream));
 
-    return BlockHeader(Buffer{parent_hash}, number, Buffer{state_root},
-                       Buffer{extrinsics_root}, Buffer{digest});
+    return BlockHeader(parent_hash, number, state_root,
+                       extrinsics_root, Buffer{digest});
   }
 
   outcome::result<Buffer> ScaleCodecImpl::encodeExtrinsic(
@@ -171,140 +318,3 @@ namespace kagome::primitives {
   }
 }  // namespace kagome::primitives
 
-/// custom types encoders and decoders
-namespace kagome::scale {
-  /// encodes std::array
-  template <class T, size_t sz>
-  struct TypeEncoder<std::array<T, sz>> {
-    outcome::result<void> encode(const std::array<T, sz> &array,
-                                 common::Buffer &out) {
-      return collection::encodeCollection(gsl::make_span(array), out);
-    }
-  };
-
-  /// encodes common::Hash256
-  template <>
-  struct TypeEncoder<common::Hash256> {
-    outcome::result<void> encode(const common::Hash256 &value,
-                                 common::Buffer &out) {
-      return collection::encodeCollection(gsl::make_span(value), out);
-    }
-  };
-
-  /// encodes primitives::Invalid
-  template <>
-  struct TypeEncoder<primitives::Invalid> {
-    outcome::result<void> encode(const primitives::Invalid &value,
-                                 common::Buffer &out) {
-      fixedwidth::encodeUInt8(value.error_, out);
-      return outcome::success();
-    }
-  };
-
-  /// encodes primitives::Unknown
-  template <>
-  struct TypeEncoder<primitives::Unknown> {
-    outcome::result<void> encode(const primitives::Unknown &value,
-                                 common::Buffer &out) {
-      fixedwidth::encodeUInt8(value.error_, out);
-      return outcome::success();
-    }
-  };
-
-  /// encodes primitives::Valid
-  template <>
-  struct TypeEncoder<primitives::Valid> {
-    outcome::result<void> encode(const primitives::Valid &value,
-                                 common::Buffer &out) {
-      fixedwidth::encodeUint64(value.priority_, out);
-      OUTCOME_TRY(collection::encodeCollection(value.requires_, out));
-      OUTCOME_TRY(collection::encodeCollection(value.provides_, out));
-      fixedwidth::encodeUint64(value.longevity_, out);
-
-      return outcome::success();
-    }
-  };
-
-  /// encodes std::vector
-  template <class T>
-  struct TypeEncoder<std::vector<T>> {
-    outcome::result<void> encode(const std::vector<T> &value,
-                                 common::Buffer &out) {
-      return collection::encodeCollection(value, out);
-    }
-  };
-
-  /// decodes std::array
-  template <class T, size_t sz>
-  struct TypeDecoder<std::array<T, sz>> {
-    using array_type = std::array<T, sz>;
-    outcome::result<array_type> decode(common::ByteStream &stream) {
-      OUTCOME_TRY(collection, collection::decodeCollection<T>(stream));
-      if (collection.size() != sz) {
-        return DecodeError::INVALID_DATA;
-      }
-      array_type array;
-      std::copy(collection.begin(), collection.end(), array.begin());
-      return array;
-    }
-  };
-
-  /// decodes common::Hash256
-  template <>
-  struct TypeDecoder<common::Hash256> {
-    outcome::result<common::Hash256> decode(common::ByteStream &stream) {
-      OUTCOME_TRY(collection,
-                  collection::decodeCollection<common::byte_t>(stream));
-      common::Hash256 hash;
-      if (collection.size() != common::Hash256::size()) {
-        return DecodeError::INVALID_DATA;
-      }
-      std::copy(collection.begin(), collection.end(), hash.begin());
-      return hash;
-    }
-  };
-
-  /// decodes primitives::Invalid
-  template <>
-  struct TypeDecoder<primitives::Invalid> {
-    outcome::result<primitives::Invalid> decode(common::ByteStream &stream) {
-      OUTCOME_TRY(value, fixedwidth::decodeUint8(stream));
-      return primitives::Invalid{value};
-    }
-  };
-
-  /// decodes primitives::Unknown
-  template <>
-  struct TypeDecoder<primitives::Unknown> {
-    outcome::result<primitives::Unknown> decode(common::ByteStream &stream) {
-      OUTCOME_TRY(value, fixedwidth::decodeUint8(stream));
-      return primitives::Unknown{value};
-    }
-  };
-
-  /// decodes primitives::Valid
-  template <>
-  struct TypeDecoder<primitives::Valid> {
-    outcome::result<primitives::Valid> decode(common::ByteStream &stream) {
-      OUTCOME_TRY(priority, fixedwidth::decodeUint64(stream));
-      OUTCOME_TRY(
-          requires,
-          collection::decodeCollection<primitives::TransactionTag>(stream));
-      OUTCOME_TRY(
-          provides,
-          collection::decodeCollection<primitives::TransactionTag>(stream));
-      OUTCOME_TRY(longevity, fixedwidth::decodeUint64(stream));
-
-      return primitives::Valid{priority, requires, provides, longevity};
-    }
-  };
-
-  /// decodes primitives::TransactionTag
-  template <>
-  struct TypeDecoder<primitives::TransactionTag> {
-    outcome::result<primitives::TransactionTag> decode(
-        common::ByteStream &stream) {
-      return collection::decodeCollection<uint8_t>(stream);
-    }
-  };
-}  // namespace kagome::scale

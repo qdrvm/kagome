@@ -7,6 +7,7 @@
 #define KAGOME_MULTIHASH_HPP
 
 #include <cstdint>
+#include <utility>
 
 #include <outcome/outcome.hpp>
 
@@ -111,6 +112,13 @@ namespace libp2p::multi {
   };
 
 }  // namespace libp2p::multi
+
+namespace std {
+  template <>
+  struct hash<libp2p::multi::Multihash> {
+    size_t operator()(const libp2p::multi::Multihash &x) const;
+  };
+}  // namespace std
 
 OUTCOME_HPP_DECLARE_ERROR(libp2p::multi, Multihash::Error);
 
