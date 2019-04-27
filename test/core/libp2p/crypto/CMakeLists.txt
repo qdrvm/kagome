@@ -7,7 +7,7 @@ addtest(keys_test
     keys_test.cpp
     )
 target_link_libraries(keys_test
-    crypto_key
+    buffer
     )
 
 addtest(aes_test

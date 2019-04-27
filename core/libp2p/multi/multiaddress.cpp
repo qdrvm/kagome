@@ -9,25 +9,13 @@
 #include <numeric>
 #include <stdexcept>
 
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
 #include "libp2p/multi/converters/converter_utils.hpp"
-#include "macro/unreachable.hpp"
+
+using std::string_literals::operator""s;
 
 namespace {
-  // string representations of protocols
-  constexpr std::string_view kIp4 = "/ip4";
-  constexpr std::string_view kIp6 = "/ip6";
-  constexpr std::string_view kIpfs = "/ipfs";
-  constexpr std::string_view kTcp = "/tcp";
-  constexpr std::string_view kUdp = "/udp";
-  constexpr std::string_view kDccp = "/dccp";
-  constexpr std::string_view kSctp = "/sctp";
-  constexpr std::string_view kUdt = "/udt";
-  constexpr std::string_view kUtp = "/utp";
-  constexpr std::string_view kHttp = "/http";
-  constexpr std::string_view kHttps = "/https";
-  constexpr std::string_view kWs = "/ws";
-  constexpr std::string_view kOnion = "/onion";
-  constexpr std::string_view kWebrtc = "/libp2p-webrtc-star";
 
   /**
    * Find all occurrences of the string in other string
@@ -70,14 +58,14 @@ namespace libp2p::multi {
     if (!result) {
       return Error::INVALID_INPUT;
     }
-    auto&& bytes = result.value();
+    auto &&bytes = result.value();
 
-    return Multiaddress{std::string{address},
-                        ByteBuffer{std::vector<uint8_t>{bytes.begin(), bytes.end()}}};
+    return Multiaddress{
+        std::string{address},
+        ByteBuffer{std::vector<uint8_t>{bytes.begin(), bytes.end()}}};
   }
 
   Multiaddress::FactoryResult Multiaddress::create(const ByteBuffer &bytes) {
-
     // convert bytes address to string and make sure it represents valid address
     auto conversion_res = converters::bytesToMultiaddrString(bytes);
     if (!conversion_res) {
@@ -85,7 +73,7 @@ namespace libp2p::multi {
     }
 
     std::string s = conversion_res.value();
-    return Multiaddress {std::move(s), ByteBuffer{bytes}};
+    return Multiaddress{std::move(s), ByteBuffer{bytes}};
   }
 
   Multiaddress::Multiaddress(std::string &&address, ByteBuffer &&bytes)
@@ -135,10 +123,13 @@ namespace libp2p::multi {
   }
 
   std::vector<std::string> Multiaddress::getValuesForProtocol(
-      Protocol proto) const {
+      Protocol::Code proto) const {
     std::vector<std::string> values;
-
-    auto proto_str = protocolToString(proto);
+    auto protocol = ProtocolList::get(proto);
+    if (protocol == nullptr) {
+      return {};
+    }
+    auto proto_str = "/"s + std::string(protocol->name);
     auto proto_positions =
         findSubstringOccurrences(stringified_address_, proto_str);
 
@@ -152,8 +143,56 @@ namespace libp2p::multi {
     return values;
   }
 
+  std::list<Protocol> Multiaddress::getProtocols() const {
+    std::string_view addr{stringified_address_};
+    addr.remove_prefix(1);
+
+    std::list<std::string> tokens;
+
+    boost::algorithm::split(tokens, addr, boost::algorithm::is_any_of("/"));
+
+    std::list<Protocol> protocols;
+    for (auto &token : tokens) {
+      auto p = ProtocolList::get(token);
+      if (p != nullptr) {
+        protocols.emplace_back(*p);
+      }
+    }
+    return protocols;
+  }
+
+  std::list<std::pair<Protocol, std::string>>
+  Multiaddress::getProtocolsWithValues() const {
+    std::string_view addr{stringified_address_};
+    addr.remove_prefix(1);
+    if (addr.back() == '/') {
+      addr.remove_suffix(1);
+    }
+
+    std::list<std::string> tokens;
+
+    boost::algorithm::split(tokens, addr, boost::algorithm::is_any_of("/"));
+
+    std::list<std::pair<Protocol, std::string>> pvs;
+    for (auto &token : tokens) {
+      auto p = ProtocolList::get(token);
+      if (p != nullptr) {
+        pvs.emplace_back(*p, "");
+      } else {
+        auto &s = pvs.back().second;
+        if (!s.empty()) {
+          s += "/";
+        }
+        s += token;
+      }
+    }
+    return pvs;
+  }
+
   void Multiaddress::calculatePeerId() {
-    auto ipfs_beginning = stringified_address_.find(kIpfs);
+    auto ipfsName =
+        "/"s + std::string(ProtocolList::get(Protocol::Code::ipfs)->name);
+    auto ipfs_beginning = stringified_address_.find(ipfsName);
     if (ipfs_beginning == std::string_view::npos) {
       peer_id_ = std::nullopt;
       return;
@@ -166,49 +205,13 @@ namespace libp2p::multi {
     peer_id_ = stringified_address_.substr(id_beginning, id_size);
   }
 
-  std::string_view Multiaddress::protocolToString(Protocol proto) const {
-    switch (proto) {
-      case Protocol::kIp4:
-        return kIp4;
-      case Protocol::kIp6:
-        return kIp6;
-      case Protocol::kIpfs:
-        return kIpfs;
-      case Protocol::kTcp:
-        return kTcp;
-      case Protocol::kUdp:
-        return kUdp;
-      case Protocol::kDccp:
-        return kDccp;
-      case Protocol::kSctp:
-        return kSctp;
-      case Protocol::kUdt:
-        return kUdt;
-      case Protocol::kUtp:
-        return kUtp;
-      case Protocol::kHttp:
-        return kHttp;
-      case Protocol::kHttps:
-        return kHttps;
-      case Protocol::kWs:
-        return kWs;
-      case Protocol::kOnion:
-        return kOnion;
-      case Protocol::kWebrtc:
-        return kWebrtc;
-      default:
-        // to prevent compiler warning
-        UNREACHABLE;
-    }
-  }
-
   bool Multiaddress::operator==(const Multiaddress &other) const {
     return this->stringified_address_ == other.stringified_address_
         && this->bytes_ == other.bytes_;
   }
 
   outcome::result<std::string> Multiaddress::getFirstValueForProtocol(
-      Multiaddress::Protocol proto) const {
+      Protocol::Code proto) const {
     // TODO(@warchant): refactor it to be more performant. this isn't best
     // solution
     auto vec = getValuesForProtocol(proto);
@@ -224,3 +227,8 @@ namespace libp2p::multi {
   }
 
 }  // namespace libp2p::multi
+
+size_t std::hash<libp2p::multi::Multiaddress>::operator()(
+    const libp2p::multi::Multiaddress &x) const {
+  return std::hash<std::string_view>()(x.getStringAddress());
+}

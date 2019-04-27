@@ -17,8 +17,9 @@ namespace libp2p::multi::converters {
   -> outcome::result<std::string> {
     int64_t n = 0;
     for(auto& c : addr) {
-      if(!std::isdigit(c))
+      if(!std::isdigit(c)) {
         return ConversionError::INVALID_ADDRESS;
+      }
     }
     try {
       n = std::stoi(std::string(addr));

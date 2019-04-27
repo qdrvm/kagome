@@ -20,7 +20,7 @@ namespace libp2p::multi {
    */
   class MultibaseCodec {
     using ByteBuffer = kagome::common::Buffer;
-    using FactoryResult = outcome::result <ByteBuffer>;
+    using FactoryResult = outcome::result<ByteBuffer>;
 
    public:
     virtual ~MultibaseCodec() = default;
