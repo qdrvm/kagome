@@ -304,5 +304,17 @@ namespace kagome::primitives {
   ScaleCodecImpl::decodeTransactionValidity(ScaleCodec::Stream &stream) const {
     return decodeVariant<Invalid, Valid, Unknown>(stream);
   }
+
+  outcome::result<Buffer> ScaleCodecImpl::encodeAuthorityIds(
+      const std::vector<kagome::primitives::AuthorityId> &ids) const {
+    Buffer out;
+    OUTCOME_TRY(encodeCollection<AuthorityId>(ids, out));
+    return out;
+  }
+
+  outcome::result<std::vector<AuthorityId>> ScaleCodecImpl::decodeAuthorityIds(
+      kagome::primitives::ScaleCodec::Stream &stream) const {
+    return decodeCollection<AuthorityId>(stream);
+  }
 }  // namespace kagome::primitives
 

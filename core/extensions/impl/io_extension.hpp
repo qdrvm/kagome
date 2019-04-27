@@ -17,7 +17,9 @@ namespace kagome::extensions {
    */
   class IOExtension {
    public:
-    explicit IOExtension(std::shared_ptr<runtime::WasmMemory> memory);
+    explicit IOExtension(
+        std::shared_ptr<runtime::WasmMemory> memory,
+        common::Logger logger = common::createLogger(kDefaultLoggerTag));
 
     /**
      * @see Extension::ext_print_hex
