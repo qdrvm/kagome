@@ -2,13 +2,4 @@
 # SPDX-License-Identifier: Apache-2.0
 
 add_subdirectory(storage)
-
-add_library(test_common
-    common.hpp
-    common.cpp
-    )
-target_link_libraries(
-    test_common
-    Boost::filesystem
-    buffer
-)
+add_subdirectory(runtime)

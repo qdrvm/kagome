@@ -8,15 +8,21 @@
 
 #include <fstream>
 
-#include <boost/filesystem.hpp>
+#include <gtest/gtest.h>
 #include "common/buffer.hpp"
 
 namespace test {
 
   /**
-   * Read file into the buffer
+   * Fixture for the tests with wasm to read file and work with it
    */
-  kagome::common::Buffer readFile(const std::string &path);
+  class WasmTest : public ::testing::Test {
+   public:
+    explicit WasmTest(const std::string &path);
+
+   protected:
+    kagome::common::Buffer state_code_;
+  };
 }  // namespace test
 
 #endif  // KAGOME_TEST_TESTUTIL_COMMON_HPP

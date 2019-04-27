@@ -29,7 +29,7 @@ addtest(core_integration_test
     )
 target_link_libraries(core_integration_test
     core
-    test_common
+    wasm_test
     )
 
 addtest(wasm_executor_test
@@ -37,6 +37,6 @@ addtest(wasm_executor_test
     )
 target_link_libraries(wasm_executor_test
     wasm_executor
-    test_common
-)
+    wasm_test
+    )
 

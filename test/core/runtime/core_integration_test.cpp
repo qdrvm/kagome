@@ -13,8 +13,8 @@
 #include "extensions/extension_impl.hpp"
 #include "primitives/impl/scale_codec_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
-#include "testutil/common.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/runtime/wasm_test.hpp"
 
 using kagome::common::Buffer;
 using kagome::extensions::ExtensionImpl;
@@ -34,18 +34,19 @@ using ::testing::Return;
 
 namespace fs = boost::filesystem;
 
-class CoreTest : public ::testing::Test {
+class CoreTest : public test::WasmTest {
  public:
+  CoreTest()
+      : test::WasmTest(fs::path(__FILE__).parent_path().string()
+                       + "/wasm/polkadot_runtime.compact.wasm") {}
+
   void SetUp() override {
     trie_db_ = std::make_shared<MockTrieDb>();
     memory_ = std::make_shared<WasmMemoryImpl>();
     extension_ = std::make_shared<ExtensionImpl>(memory_, trie_db_);
     codec_ = std::make_shared<ScaleCodecImpl>();
 
-    auto path = fs::path(__FILE__).parent_path().string()
-        + "/wasm/polkadot_runtime.compact.wasm";
-    auto state_code = test::readFile(path);
-    core_ = std::make_shared<CoreImpl>(state_code, extension_, codec_);
+    core_ = std::make_shared<CoreImpl>(state_code_, extension_, codec_);
   }
 
   BlockHeader createBlockHeader() {

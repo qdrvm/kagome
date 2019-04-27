@@ -12,7 +12,7 @@
 #include <boost/filesystem.hpp>
 #include "core/extensions/mock_extension.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
-#include "testutil/common.hpp"
+#include "testutil/runtime/wasm_test.hpp"
 
 using kagome::common::Buffer;
 using kagome::extensions::MockExtension;
@@ -23,24 +23,24 @@ using ::testing::Return;
 
 namespace fs = boost::filesystem;
 
-class WasmExecutorTest : public ::testing::Test {
+class WasmExecutorTest : public test::WasmTest {
  public:
+  WasmExecutorTest()
+      : test::WasmTest(fs::path(__FILE__).parent_path().string()
+                       + "/wasm/sumtwo.wasm") {}
+
   void SetUp() override {
     extension_ = std::make_shared<MockExtension>();
     memory_ = std::make_shared<WasmMemoryImpl>();
 
     EXPECT_CALL(*extension_, memory()).WillRepeatedly(Return(memory_));
     executor_ = std::make_shared<WasmExecutor>(extension_);
-
-    auto path = fs::path(__FILE__).parent_path().string() + "/wasm/sumtwo.wasm";
-    sum_two_code_ = test::readFile(path);
   }
 
  protected:
   std::shared_ptr<WasmExecutor> executor_;
   std::shared_ptr<MockExtension> extension_;
   std::shared_ptr<WasmMemoryImpl> memory_;
-  Buffer sum_two_code_;
 };
 
 /**
@@ -50,7 +50,7 @@ class WasmExecutorTest : public ::testing::Test {
  */
 TEST_F(WasmExecutorTest, ExecuteCode) {
   auto res =
-      executor_->call(sum_two_code_, "addTwo",
+      executor_->call(state_code_, "addTwo",
                       wasm::LiteralList{wasm::Literal(1), wasm::Literal(2)});
   ASSERT_EQ(res.geti32(), 3);
 }
@@ -65,7 +65,7 @@ TEST_F(WasmExecutorTest, ExecuteModule) {
   wasm::Module module{};
   wasm::WasmBinaryBuilder parser(
       module,
-      reinterpret_cast<std::vector<char> const &>(sum_two_code_),  // NOLINT
+      reinterpret_cast<std::vector<char> const &>(state_code_),  // NOLINT
       false);
   parser.read();
 
