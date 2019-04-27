@@ -13,8 +13,15 @@
 
 namespace libp2p::peer {
 
+  /**
+   * @brief Default clock that is used for TTLs. Steady clock guarantees that
+   * for each invocation, time "continues to go forward".
+   */
   using Clock = std::chrono::steady_clock;
 
+  /**
+   * @brief IN-memory implementation of Address repository.
+   */
   class InmemAddressRepository : public AddressRepository {
    public:
     outcome::result<void> addAddresses(const PeerId &p,

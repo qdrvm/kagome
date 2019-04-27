@@ -26,7 +26,8 @@ namespace libp2p::peer {
   }  // namespace ttl
 
   /**
-   * @brief Address Repository is a storage of multiaddresses of observed peers.
+   * @brief Address Repository is a storage of multiaddresses for observed
+   * peers.
    */
   class AddressRepository : public basic::GarbageCollectable {
    protected:
@@ -37,6 +38,15 @@ namespace libp2p::peer {
 
     ~AddressRepository() override = default;
 
+    /**
+     * @brief Add addresses to a given peer {@param p}
+     * @param p peer
+     * @param ma set of multiaddresses
+     * @param ttl time to live for inserted multiaddresses
+     * @return error when no peer {@param p} has been found
+     *
+     * @note triggers #onAddressAdded for each address
+     */
     virtual outcome::result<void> addAddresses(
         const PeerId &p, gsl::span<const multi::Multiaddress> ma,
         Milliseconds ttl) = 0;
@@ -47,7 +57,10 @@ namespace libp2p::peer {
      * @param p peer
      * @param ma set of addresses
      * @param ttl ttl
-     * @return error code if no peer found
+     * @return error when no peer {@param p} has been found
+     *
+
+     * @note triggers #onAddressAdded when any new addresses are inserted
      */
     virtual outcome::result<void> upsertAddresses(
         const PeerId &p, gsl::span<const multi::Multiaddress> ma,
@@ -57,7 +70,8 @@ namespace libp2p::peer {
      * @brief Get all addresses associated with this Peer {@param p}. May
      * contain duplicates.
      * @param p peer
-     * @return array of addresses
+     * @return array of addresses, or error when no peer {@param p} has been
+     * found
      */
     virtual outcome::result<std::list<multi::Multiaddress>> getAddresses(
         const PeerId &p) const = 0;
@@ -71,9 +85,22 @@ namespace libp2p::peer {
      */
     virtual void clear(const PeerId &p) = 0;
 
+    /**
+     * @brief Attach slot to a signal 'onAddressAdded'. Is triggered whenever
+     * any peer adds new address.
+     * @param cb slot
+     * @return connection for that slot (can be used for unsubscribing)
+     */
     boost::signals2::connection onAddressAdded(
         const std::function<AddressCallback> &cb);
 
+    /**
+     * @brief Attach slot to a signal 'onAddressRemoved'. Is triggered whenever
+     * any peer removes address - happens when address is removed manually or
+     * automatically via garbage collection mechanism.
+     * @param cb slot
+     * @return connection for that slot (can be used for unsubscribing)
+     */
     boost::signals2::connection onAddressRemoved(
         const std::function<AddressCallback> &cb);
 
@@ -82,7 +109,7 @@ namespace libp2p::peer {
     boost::signals2::signal<AddressCallback> signal_added_;
     // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
     boost::signals2::signal<AddressCallback> signal_removed_;
-  };  // namespace libp2p::peer
+  };
 
 }  // namespace libp2p::peer
 
