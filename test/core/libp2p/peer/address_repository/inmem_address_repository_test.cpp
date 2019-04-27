@@ -56,7 +56,7 @@ TEST_F(InmemAddressRepository_Test, GarbageCollection) {
   EXPECT_OUTCOME_TRUE_1(
       db->addAddresses(p1, std::vector<Multiaddress>{ma1, ma2}, 10ms));
   EXPECT_OUTCOME_TRUE_1(
-      db->addAddresses(p1, std::vector<Multiaddress>{ma3, ma4}, 100ms));
+      db->addAddresses(p1, std::vector<Multiaddress>{ma3, ma4}, 1000ms));
   EXPECT_OUTCOME_TRUE_1(
       db->upsertAddresses(p2, std::vector<Multiaddress>{ma4}, 10ms));
 
@@ -138,7 +138,7 @@ TEST_F(InmemAddressRepository_Test, UpdateAddress) {
   EXPECT_OUTCOME_TRUE_1(
       db->addAddresses(p1, std::vector<Multiaddress>{ma1}, 10ms));
   EXPECT_OUTCOME_TRUE_1(
-      db->upsertAddresses(p1, std::vector<Multiaddress>{ma1}, 100ms));
+      db->upsertAddresses(p1, std::vector<Multiaddress>{ma1}, 1000ms));
 
   {
     EXPECT_OUTCOME_TRUE_2(v, db->getAddresses(p1));
@@ -162,7 +162,7 @@ TEST_F(InmemAddressRepository_Test, InsertAddress) {
   EXPECT_OUTCOME_TRUE_1(
       db->addAddresses(p1, std::vector<Multiaddress>{ma1}, 10ms));
   EXPECT_OUTCOME_TRUE_1(
-      db->upsertAddresses(p1, std::vector<Multiaddress>{ma2}, 100ms));
+      db->upsertAddresses(p1, std::vector<Multiaddress>{ma2}, 1000ms));
 
   {
     EXPECT_OUTCOME_TRUE_2(v, db->getAddresses(p1));
