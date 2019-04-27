@@ -126,7 +126,7 @@ namespace libp2p::multi {
       Protocol::Code proto) const {
     std::vector<std::string> values;
     auto protocol = ProtocolList::get(proto);
-    if (!protocol) {
+    if (protocol == nullptr) {
       return {};
     }
     auto proto_str = "/"s + std::string(protocol->name);
@@ -154,7 +154,7 @@ namespace libp2p::multi {
     std::list<Protocol> protocols;
     for (auto &token : tokens) {
       auto p = ProtocolList::get(token);
-      if (p) {
+      if (p != nullptr) {
         protocols.emplace_back(*p);
       }
     }
@@ -165,8 +165,9 @@ namespace libp2p::multi {
   Multiaddress::getProtocolsWithValues() const {
     std::string_view addr{stringified_address_};
     addr.remove_prefix(1);
-    if (addr.back() == '/')
+    if (addr.back() == '/') {
       addr.remove_suffix(1);
+    }
 
     std::list<std::string> tokens;
 
@@ -175,7 +176,7 @@ namespace libp2p::multi {
     std::list<std::pair<Protocol, std::string>> pvs;
     for (auto &token : tokens) {
       auto p = ProtocolList::get(token);
-      if (p) {
+      if (p != nullptr) {
         pvs.emplace_back(*p, "");
       } else {
         auto &s = pvs.back().second;

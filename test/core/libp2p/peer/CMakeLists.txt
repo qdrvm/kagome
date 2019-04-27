@@ -4,3 +4,4 @@
 #
 
 add_subdirectory(key_book)
+add_subdirectory(address_repository)
