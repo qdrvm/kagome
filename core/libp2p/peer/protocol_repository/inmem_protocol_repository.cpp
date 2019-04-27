@@ -1,0 +1,93 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include "libp2p/peer/protocol_repository/inmem_protocol_repository.hpp"
+
+#include "libp2p/peer/errors.hpp"
+
+namespace libp2p::peer {
+
+  outcome::result<void> InmemProtocolRepository::addProtocols(
+      const PeerId &p, gsl::span<const Protocol> ms) {
+    auto s = must_get_set(p);
+    for (const auto &m : ms) {
+      s->insert(m);
+    }
+
+    return outcome::success();
+  }
+
+  outcome::result<void> InmemProtocolRepository::removeProtocols(
+      const PeerId &p, gsl::span<const Protocol> ms) {
+    OUTCOME_TRY(s, get_set(p));
+
+    for (const auto &m : ms) {
+      s->erase(m);
+    }
+
+    return outcome::success();
+  }
+
+  outcome::result<std::list<Protocol>> InmemProtocolRepository::getProtocols(
+      const PeerId &p) const {
+    OUTCOME_TRY(s, get_set(p));
+    return std::list<Protocol>{s->begin(), s->end()};
+  }
+
+  outcome::result<std::list<Protocol>>
+  InmemProtocolRepository::supportsProtocols(
+      const PeerId &p, gsl::span<const Protocol> protocols) const {
+    OUTCOME_TRY(s, get_set(p));
+
+    std::list<Protocol> ret;
+    std::set<Protocol> ps(protocols.begin(), protocols.end());
+    std::set_intersection(ps.begin(), ps.end(), s->begin(), s->end(),
+                          std::back_inserter(ret));
+    return ret;
+  }
+
+  void InmemProtocolRepository::clear(const PeerId &p) {
+    auto r = get_set(p);
+    if (r) {
+      r.value()->clear();
+    }
+  }
+
+  outcome::result<InmemProtocolRepository::set_ptr>
+  InmemProtocolRepository::get_set(const PeerId &p) const {
+    auto it = db_.find(p);
+    if (it == db_.end()) {
+      return PeerError ::NotFound;
+    }
+
+    return it->second;
+  }
+
+  InmemProtocolRepository::set_ptr InmemProtocolRepository::must_get_set(
+      const PeerId &p) {
+    auto it = db_.find(p);
+    if (it == db_.end()) {
+      set_ptr m = std::make_shared<set>();
+      db_[p] = m;
+      return m;
+    }
+
+    return it->second;
+  }
+
+  void InmemProtocolRepository::collectGarbage() {
+    auto peer = db_.begin();
+    auto peerend = db_.end();
+    while (peer != peerend) {
+      if (peer->second->empty()) {
+        // erase returns element next to deleted
+        peer = db_.erase(peer);
+      } else {
+        ++peer;
+      }
+    }
+  }
+
+}  // namespace libp2p::peer
