@@ -13,6 +13,7 @@
 #include "extensions/extension_impl.hpp"
 #include "primitives/impl/scale_codec_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
+#include "testutil/common.hpp"
 #include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
@@ -41,20 +42,10 @@ class CoreTest : public ::testing::Test {
     extension_ = std::make_shared<ExtensionImpl>(memory_, trie_db_);
     codec_ = std::make_shared<ScaleCodecImpl>();
 
-    auto state_code = getRuntimeCode();
-    core_ = std::make_shared<CoreImpl>(state_code, extension_, codec_);
-  }
-
-  Buffer getRuntimeCode() {
-    // get file from wasm/ folder
     auto path = fs::path(__FILE__).parent_path().string()
         + "/wasm/polkadot_runtime.compact.wasm";
-    std::ifstream ifd(path, std::ios::binary | std::ios::ate);
-    int size = ifd.tellg();
-    ifd.seekg(0, std::ios::beg);
-    Buffer b(size, 0);
-    ifd.read((char *)b.toBytes(), size);
-    return b;
+    auto state_code = test::readFile(path);
+    core_ = std::make_shared<CoreImpl>(state_code, extension_, codec_);
   }
 
   BlockHeader createBlockHeader() {
@@ -71,8 +62,8 @@ class CoreTest : public ::testing::Test {
 
     Buffer digest{};
 
-    BlockHeader header(Buffer{parent_hash}, number, Buffer{state_root},
-                       Buffer{extrinsics_root}, digest);
+    BlockHeader header(parent_hash, number, state_root, extrinsics_root,
+                       digest);
     return header;
   }
 
