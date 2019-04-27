@@ -9,7 +9,6 @@
 #include <functional>
 
 #include <outcome/outcome.hpp>
-#include "libp2p/multi/multistream.hpp"
 #include "libp2p/stream/stream.hpp"
 
 namespace libp2p::protocol_muxer {
@@ -19,14 +18,17 @@ namespace libp2p::protocol_muxer {
    */
   class ProtocolMuxer {
    public:
+    // to be removed, when corresponding PR is merged
+    using Protocol = std::string;
+
     using ChosenProtocolCallback =
-        std::function<void(outcome::result<multi::Multistream>)>;
+        std::function<void(outcome::result<Protocol>)>;
 
     /**
      * Add a new protocol, which can be handled by this node
      * @param protocol to be added
      */
-    virtual void addProtocol(const multi::Multistream &protocol) = 0;
+    virtual void addProtocol(const Protocol &protocol) = 0;
 
     /**
      * Negotiate about the protocol from the server side of the connection - we

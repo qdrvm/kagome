@@ -23,22 +23,24 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol_muxer, MessageManager::ParseError,
       return "cannot find a peer id, where it was supposed to be";
     case Error::NO_P2P_PREFIX:
       return "cannot find /p2p prefix, where it was supposed to be";
+    case Error::WRONG_PEER_ID:
+      return "peer id is either ill-formed or cannot be found";
   }
   return "uknown error";
 }
 
 namespace {
   using kagome::common::Buffer;
-  using libp2p::multi::Multistream;
+  using libp2p::multi::Multihash;
   using libp2p::multi::UVarint;
   using MultiselectMessage =
       libp2p::protocol_muxer::MessageManager::MultiselectMessage;
 
   /// produces protocol string to be sent: '/p2p/PEER_ID/PROTOCOL\n'
-  static boost::format kProtocolTemplate = boost::format("/p2p/%1%2\n");
+  boost::format kProtocolTemplate = boost::format("/p2p/%1%2\n");
 
   /// header of Multiselect protocol
-  static constexpr std::string_view kMultiselectHeaderString =
+  constexpr std::string_view kMultiselectHeaderString =
       "/multistream-select/0.3.0";
 
   /**
@@ -116,7 +118,7 @@ namespace {
    * @param msg to be parsed
    * @return pair {PeerId, Protocol} in case of success, error otherwise
    */
-  outcome::result<std::pair<std::string, std::string>> parsePeerIdAndProtocol(
+  outcome::result<std::pair<Multihash, std::string>> parsePeerIdAndProtocol(
       const std::string &msg) {
     using ParseError = libp2p::protocol_muxer::MessageManager::ParseError;
     static const std::string kP2pPrefix{"/p2p"};
@@ -134,8 +136,14 @@ namespace {
       return ParseError::PEER_ID_WAS_EXPECTED;
     }
 
-    return std::make_pair(msg.substr(string_pos, slash_pos - 1),  // peer_id
-                          msg.substr(slash_pos));                 // protocol
+    // FIXME: inefficient conversions
+    auto peer_id = Multihash::createFromBuffer(
+        Buffer{}.put(msg.substr(string_pos, slash_pos - 1)).toVector());
+    if (!peer_id) {
+      return ParseError::WRONG_PEER_ID;
+    }
+
+    return std::make_pair(std::move(peer_id.value()), msg.substr(slash_pos));
   }
 
   /**
@@ -159,10 +167,12 @@ namespace {
 
     // if a parsed protocol is a Multiselect header, it's an opening message
     if (peer_id_proto.value().second == kMultiselectHeaderString) {
-      return MultiselectMessage{MultiselectMessage::MessageType::OPENING};
+      return MultiselectMessage{MultiselectMessage::MessageType::OPENING,
+                                std::move(peer_id_proto.value().first)};
     }
 
-    auto msg = MultiselectMessage{MultiselectMessage::MessageType::PROTOCOL};
+    auto msg = MultiselectMessage{MultiselectMessage::MessageType::PROTOCOL,
+                                  std::move(peer_id_proto.value().first)};
     msg.protocols_.push_back(std::move(peer_id_proto.value().second));
     return msg;
   }
@@ -220,6 +230,15 @@ namespace {
       if (!peer_id_proto) {
         return peer_id_proto.error();
       }
+
+      if (i == 0) {
+        parsed_msg.peer_id_ = std::move(peer_id_proto.value().first);
+      } else {
+        if (*parsed_msg.peer_id_ != peer_id_proto.value().first) {
+          // all peer_ids must be the same across those protocols
+          return ParseError::WRONG_PEER_ID;
+        }
+      }
       parsed_msg.protocols_.push_back(std::move(peer_id_proto.value().second));
     }
 
@@ -274,9 +293,11 @@ namespace libp2p::protocol_muxer {
   }
 
   Buffer MessageManager::openingMsg(const peer::PeerId &peer_id) const {
-    auto opening_string = (kProtocolTemplate % peer_id.getPeerId().toHex()
-                           % kMultiselectHeaderString)
-                              .str();
+    // FIXME: peer_id.toHex() must be not a hex, but a base64 convertation here
+    // and in below functions
+
+    auto opening_string =
+        (kProtocolTemplate % peer_id.toHex() % kMultiselectHeaderString).str();
     return kagome::common::Buffer{}
         .put(multi::UVarint{opening_string.size()}.toBytes())
         .put(opening_string);
@@ -290,13 +311,13 @@ namespace libp2p::protocol_muxer {
     return na_msg_;
   }
 
-  Buffer MessageManager::protocolMsg(const peer::PeerId &peer_id,
-                                     const multi::Multistream &protocol) const {
+  Buffer MessageManager::protocolMsg(
+      const peer::PeerId &peer_id,
+      const ProtocolMuxer::Protocol &protocol) const {
     // FIXME: string copy; can be fixed by calculating the size in advance, but
     // will look very ugly
-    auto protocol_string = (kProtocolTemplate % peer_id.getPeerId().toHex()
-                            % protocol.getProtocolPath())
-                               .str();
+    auto protocol_string =
+        (kProtocolTemplate % peer_id.toHex() % protocol).str();
     return kagome::common::Buffer{}
         .put(multi::UVarint{protocol_string.size()}.toBytes())
         .put(protocol_string);
@@ -304,14 +325,13 @@ namespace libp2p::protocol_muxer {
 
   Buffer MessageManager::protocolsMsg(
       const peer::PeerId &peer_id,
-      gsl::span<const multi::Multistream> protocols) const {
+      gsl::span<const ProtocolMuxer::Protocol> protocols) const {
     // FIXME: naive approach, involving a tremendous amount of copies
 
     Buffer protocols_buffer{};
     for (const auto &protocol : protocols) {
-      auto protocol_string = (kProtocolTemplate % peer_id.getPeerId().toHex()
-                              % protocol.getProtocolPath())
-                                 .str();
+      auto protocol_string =
+          (kProtocolTemplate % peer_id.toHex() % protocol).str();
       protocols_buffer.put(multi::UVarint{protocol_string.size()}.toBytes())
           .put(protocol_string);
     }

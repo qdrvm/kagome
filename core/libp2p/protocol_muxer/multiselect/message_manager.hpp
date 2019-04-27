@@ -13,9 +13,9 @@
 #include <gsl/span>
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
-#include "libp2p/multi/multistream.hpp"
 #include "libp2p/multi/uvarint.hpp"
 #include "libp2p/peer/peer_id.hpp"
+#include "libp2p/protocol_muxer/protocol_muxer.hpp"
 
 namespace libp2p::protocol_muxer {
   /**
@@ -28,10 +28,11 @@ namespace libp2p::protocol_muxer {
 
       /// type of the message
       MessageType type_;
+      /// peer, with which we are negotiating; optional, as not all of the
+      /// messages contain it
+      std::optional<peer::PeerId> peer_id_{};
       /// zero or more protocols in that message
       std::vector<std::string> protocols_{};
-      /// peer, with which we are negotiating
-      //      Multiselect::PeerId peer_id_;
     };
 
     enum class ParseError {
@@ -39,7 +40,8 @@ namespace libp2p::protocol_muxer {
       VARINT_WAS_EXPECTED,
       MSG_LENGTH_IS_INCORRECT,
       PEER_ID_WAS_EXPECTED,
-      NO_P2P_PREFIX
+      NO_P2P_PREFIX,
+      WRONG_PEER_ID
     };
 
     /**
@@ -76,7 +78,8 @@ namespace libp2p::protocol_muxer {
      * @return created message
      */
     kagome::common::Buffer protocolMsg(
-        const peer::PeerId &peer_id, const multi::Multistream &protocol) const;
+        const peer::PeerId &peer_id,
+        const ProtocolMuxer::Protocol &protocol) const;
 
     /**
      * Create a response message with a list of protocols
@@ -86,7 +89,7 @@ namespace libp2p::protocol_muxer {
      */
     kagome::common::Buffer protocolsMsg(
         const peer::PeerId &peer_id,
-        gsl::span<const multi::Multistream> protocols) const;
+        gsl::span<const ProtocolMuxer::Protocol> protocols) const;
 
    private:
     static constexpr std::string_view kLsString = "ls\n";

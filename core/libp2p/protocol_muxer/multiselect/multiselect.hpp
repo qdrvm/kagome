@@ -25,10 +25,6 @@ namespace libp2p::protocol_muxer {
   class Multiselect : public ProtocolMuxer,
                       public std::enable_shared_from_this<Multiselect> {
    public:
-    // both are going to be removed, when corresponding PRs are merged
-    using PeerId = multi::Multihash;
-    using Protocol = std::string;
-
     // TODO(akvinikym) [PRE-127] 25.04.19: think about passing not a PeerId, but
     // an Identity service, when it's implemented
     // Also accept PeerIdConverter in order to base58 it
@@ -43,7 +39,7 @@ namespace libp2p::protocol_muxer {
 
     ~Multiselect() override;
 
-    void addProtocol(const multi::Multistream &protocol) override;
+    void addProtocol(const Protocol &protocol) override;
 
     void negotiateServer(const stream::Stream &stream,
                          ChosenProtocolCallback protocol_callback) override;
@@ -82,7 +78,7 @@ namespace libp2p::protocol_muxer {
      * @param protocol - received protocol
      * @param stream_state - state of the stream
      */
-    void handleProtocolMsg(const multi::Multistream &protocol,
+    void handleProtocolMsg(const Protocol &protocol,
                            StreamState stream_state) const;
 
     /**
@@ -90,7 +86,7 @@ namespace libp2p::protocol_muxer {
      * @param protocols - received protocols
      * @param stream_state - state of the stream
      */
-    void handleProtocolsMsg(const std::vector<multi::Multistream> &protocols,
+    void handleProtocolsMsg(const std::vector<Protocol> &protocols,
                             StreamState stream_state) const;
 
     /**
@@ -114,10 +110,11 @@ namespace libp2p::protocol_muxer {
     /**
      * Send a message, containing a protocol
      * @param protocol to be sent
+     * @param our_peer_id - should we use our peer_id or the other side's one?
      * @param wait_for_response - should the response be awaited?
      * @param stream_state - state of the stream
      */
-    void sendProtocolMsg(const multi::Multistream &protocol,
+    void sendProtocolMsg(const Protocol &protocol, bool our_peer_id,
                          bool wait_for_response,
                          StreamState stream_state) const;
 
@@ -126,7 +123,7 @@ namespace libp2p::protocol_muxer {
      * @param protocols to be sent
      * @param stream_state - state of the stream
      */
-    void sendProtocolsMsg(gsl::span<const multi::Multistream> protocols,
+    void sendProtocolsMsg(gsl::span<const Protocol> protocols,
                           StreamState stream_state) const;
 
     /**
@@ -142,7 +139,7 @@ namespace libp2p::protocol_muxer {
     void sendNaMsg(StreamState stream_state) const;
 
     MessageManager message_manager_;
-    std::vector<multi::Multistream> supported_protocols_;
+    std::vector<Protocol> supported_protocols_;
     std::shared_ptr<peer::PeerId> peer_id_;
 
     kagome::common::Logger log_;
