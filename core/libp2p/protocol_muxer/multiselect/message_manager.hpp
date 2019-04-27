@@ -11,6 +11,7 @@
 #include <vector>
 
 #include <gsl/span>
+#include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
 #include "libp2p/multi/multistream.hpp"
 #include "libp2p/multi/uvarint.hpp"
@@ -28,17 +29,25 @@ namespace libp2p::protocol_muxer {
       /// type of the message
       MessageType type_;
       /// zero or more protocols in that message
-      std::vector<multi::Multistream> protocols_{};
+      std::vector<std::string> protocols_{};
       /// peer, with which we are negotiating
-//      Multiselect::PeerId peer_id_;
+      //      Multiselect::PeerId peer_id_;
+    };
+
+    enum class ParseError {
+      MSG_IS_TOO_SHORT = 1,
+      VARINT_WAS_EXPECTED,
+      MSG_LENGTH_IS_INCORRECT,
+      PEER_ID_WAS_EXPECTED,
+      NO_P2P_PREFIX
     };
 
     /**
      * Parse bytes into the message
      * @param bytes to be parsed
-     * @return message, if parsing is successful, none otherwise
+     * @return message, if parsing is successful, error otherwise
      */
-    std::optional<MultiselectMessage> parseMessage(
+    outcome::result<MultiselectMessage> parseMessage(
         const kagome::common::Buffer &bytes) const;
 
     /**
@@ -93,5 +102,7 @@ namespace libp2p::protocol_muxer {
             .put(kNaString);
   };
 }  // namespace libp2p::protocol_muxer
+
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::protocol_muxer, MessageManager::ParseError)
 
 #endif  // KAGOME_MESSAGE_MANAGER_HPP

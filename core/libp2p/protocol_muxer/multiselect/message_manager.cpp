@@ -9,6 +9,24 @@
 
 #include <boost/format.hpp>
 
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol_muxer, MessageManager::ParseError,
+                            e) {
+  using Error = libp2p::protocol_muxer::MessageManager::ParseError;
+  switch (e) {
+    case Error::MSG_IS_TOO_SHORT:
+      return "message size is less, than a minimum one";
+    case Error::VARINT_WAS_EXPECTED:
+      return "cannot find a varint, where it was supposed to be";
+    case Error::MSG_LENGTH_IS_INCORRECT:
+      return "length of the message is not as specified in varints inside";
+    case Error::PEER_ID_WAS_EXPECTED:
+      return "cannot find a peer id, where it was supposed to be";
+    case Error::NO_P2P_PREFIX:
+      return "cannot find /p2p prefix, where it was supposed to be";
+  }
+  return "uknown error";
+}
+
 namespace {
   using kagome::common::Buffer;
   using libp2p::multi::Multistream;
@@ -63,37 +81,148 @@ namespace {
     return true;
   }
 
-  std::optional<MultiselectMessage> parseProtocolsMessage(
-      const Buffer &buffer, size_t current_position,
-      uint64_t current_line_length) {
-    return {};
+  /**
+   * Retrieve a line from a buffer, starting from the specified position
+   * @param buffer, from which the line is to be retrieved
+   * @param current_position, from which to get the line; after the execution is
+   * set to a position after the line
+   * @return line in case of success, error otherwise
+   */
+  outcome::result<std::string> lineToString(const Buffer &buffer,
+                                            size_t &current_position) {
+    using ParseError = libp2p::protocol_muxer::MessageManager::ParseError;
+
+    // firstly, a varint, showing length of this line (and thus a whole message)
+    // without itself
+    auto msg_length_opt = getVarint(buffer, current_position);
+    if (!msg_length_opt) {
+      return ParseError::VARINT_WAS_EXPECTED;
+    }
+    auto msg_length = msg_length_opt->toUInt64();
+    if ((buffer.size() - msg_length_opt->size()) != msg_length) {
+      return ParseError::MSG_LENGTH_IS_INCORRECT;
+    }
+
+    // retrieve a line, which is supposed to contain peer id and protocol, and
+    // parse it
+    const auto *bytes = buffer.toBytes();
+    current_position += msg_length;
+    return std::string(bytes + current_position - msg_length,
+                       bytes + current_position);
   }
 
-  std::optional<MultiselectMessage> parseProtocolOrOpeningMessage(
+  /**
+   * Parse part of message, which contains a protocol inside
+   * @param msg to be parsed
+   * @return pair {PeerId, Protocol} in case of success, error otherwise
+   */
+  outcome::result<std::pair<std::string, std::string>> parsePeerIdAndProtocol(
       const std::string &msg) {
+    using ParseError = libp2p::protocol_muxer::MessageManager::ParseError;
+    static const std::string kP2pPrefix{"/p2p"};
+
+    // the message must begin with a prefix
+    if (!stringBeginsWith(msg, kP2pPrefix)) {
+      return ParseError::NO_P2P_PREFIX;
+    }
+
     // retrieve a peer id, which must lie after the '/p2p/' token, which is the
     // beginning of the string; peer id also ends with '/'
     auto string_pos = 5;  // length of /p2p/ prefix
     auto slash_pos = msg.find('/', string_pos);
     if (slash_pos == std::string::npos) {
-      return {};
+      return ParseError::PEER_ID_WAS_EXPECTED;
     }
-    auto peer_id = msg.substr(string_pos, slash_pos - 1);
 
-    // part of the string, which is left, is a Multistream protocol; check if it
-    // is an opening protocol or a user one
-    auto protocol_str = msg.substr(slash_pos);
-    if (protocol_str == kMultiselectHeaderString) {
+    return std::make_pair(msg.substr(string_pos, slash_pos - 1),  // peer_id
+                          msg.substr(slash_pos));                 // protocol
+  }
+
+  /**
+   * Parse a buffer, starting from the specified position, to get a message with
+   * a single protocol (or an opening one)
+   * @param buffer to be parsed
+   * @param current_position, from which to start parsing; after the execution
+   * is set after the parsed part
+   * @return message in case of success, error otherwise
+   */
+  outcome::result<MultiselectMessage> parseProtocolMessage(
+      const Buffer &buffer, size_t &current_position) {
+    auto current_line = lineToString(buffer, current_position);
+    if (!current_line) {
+      return current_line.error();
+    }
+    auto peer_id_proto = parsePeerIdAndProtocol(current_line.value());
+    if (!peer_id_proto) {
+      return peer_id_proto.error();
+    }
+
+    // if a parsed protocol is a Multiselect header, it's an opening message
+    if (peer_id_proto.value().second == kMultiselectHeaderString) {
       return MultiselectMessage{MultiselectMessage::MessageType::OPENING};
     }
 
-    auto protocol_res = Multistream::create(std::move(protocol_str), Buffer{});
-    if (protocol_res.hasError()) {
-      return {};
+    auto msg = MultiselectMessage{MultiselectMessage::MessageType::PROTOCOL};
+    msg.protocols_.push_back(std::move(peer_id_proto.value().second));
+    return msg;
+  }
+
+  /**
+   * Parse message, which contains several protocols
+   * @param buffer with the message
+   * @return multiselect message, if parse is successful, error otherwise
+   */
+  outcome::result<MultiselectMessage> parseProtocolsMessage(
+      const Buffer &buffer) {
+    using ParseError = libp2p::protocol_muxer::MessageManager::ParseError;
+
+    size_t current_position = 0;
+    // firstly, a varint, showing length of this line without itself
+    auto line_length_opt = getVarint(buffer, current_position);
+    if (!line_length_opt) {
+      return ParseError::VARINT_WAS_EXPECTED;
+    }
+    auto line_length = line_length_opt->toUInt64();
+
+    // next varint shows, how much bytes list of protocols take
+    auto protocols_bytes_size = getVarint(buffer, current_position);
+    if (!protocols_bytes_size) {
+      return ParseError::VARINT_WAS_EXPECTED;
+    }
+    if ((buffer.size() - line_length - line_length_opt->size())
+        != protocols_bytes_size->toUInt64()) {
+      return ParseError::MSG_LENGTH_IS_INCORRECT;
     }
 
-    MultiselectMessage parsed_msg{MultiselectMessage::MessageType::PROTOCOL};
-    parsed_msg.protocols_.push_back(protocol_res.getValue());
+    // next varint shows, how much protocols are expected in the message
+    auto protocols_number = getVarint(buffer, current_position);
+    if (!protocols_number) {
+      return ParseError::VARINT_WAS_EXPECTED;
+    }
+    // increment the position to skip '\n' byte
+    ++current_position;
+
+    // finally, check that length of the first line was as expected (+1 for \n
+    // byte)
+    if ((protocols_bytes_size->size() + protocols_number->size() + 1)
+        != line_length) {
+      return ParseError::MSG_LENGTH_IS_INCORRECT;
+    }
+
+    // parse protocols, which are after the header
+    MultiselectMessage parsed_msg{MultiselectMessage::MessageType::PROTOCOLS};
+    for (uint64_t i = 0; i < protocols_number->toUInt64(); ++i) {
+      auto current_line = lineToString(buffer, current_position);
+      if (!current_line) {
+        return current_line.error();
+      }
+      auto peer_id_proto = parsePeerIdAndProtocol(current_line.value());
+      if (!peer_id_proto) {
+        return peer_id_proto.error();
+      }
+      parsed_msg.protocols_.push_back(std::move(peer_id_proto.value().second));
+    }
+
     return parsed_msg;
   }
 }  // namespace
@@ -102,19 +231,18 @@ namespace libp2p::protocol_muxer {
   using kagome::common::Buffer;
   using MultiselectMessage = MessageManager::MultiselectMessage;
 
-  std::optional<MultiselectMessage> MessageManager::parseMessage(
+  outcome::result<MultiselectMessage> MessageManager::parseMessage(
       const kagome::common::Buffer &buffer) const {
     static constexpr size_t kShortestMessageLength{4};
 
     static const std::string kLsMsg{"036C730A"};
     static const std::string kNaMsg{"036E610A"};
-    static const std::string kP2pPrefix{"/p2p"};
 
     auto buffer_size = buffer.size();
 
     // shortest messages are LS, NA and (sometimes) a header for LS response
     if (buffer_size < kShortestMessageLength) {
-      return {};
+      return ParseError::MSG_IS_TOO_SHORT;
     }
 
     // check the message against the constant ones
@@ -129,38 +257,20 @@ namespace libp2p::protocol_muxer {
     }
 
     // now, we can forget about LS and NA messages and focus on parsing a header
-    // for LS response (or protocols message), protocol or opening messages; all
-    // of them have a varint in the beginning, so start by retrieving it
+    // for LS response (or protocols message), protocol or opening messages; try
+    // to parse bytes as a single-protocol message
     size_t current_position = 0;
-    auto varint_opt = getVarint(buffer, current_position);
-    if (!varint_opt) {
-      return {};
+    auto protocol_msg_res = parseProtocolMessage(buffer, current_position);
+    if (protocol_msg_res
+        || (!protocol_msg_res
+            && protocol_msg_res.error()
+                != ParseError::MSG_LENGTH_IS_INCORRECT)) {
+      // this result either contains a value or a principal error
+      return protocol_msg_res;
     }
 
-    // check that the buffer is not shorted than expected
-    auto current_line_length = varint_opt->toUInt64();
-    if (buffer_size < (varint_opt->size() + current_line_length)) {
-      return {};
-    }
-
-    // make a choice between LS response or other two via checking a '/p2p'
-    // token
-    const auto *bytes = buffer.toBytes();
-    std::string current_line(bytes + current_position,
-                             bytes + current_position + current_line_length);
-
-    if (!stringBeginsWith(current_line, kP2pPrefix)) {
-      // it is LS response
-      return parseProtocolsMessage(buffer, current_position,
-                                   current_line_length);
-    }
-
-    // it is a protocol or opening message; both are one-liners, so check the
-    // size of the buffer is as expected
-    if (buffer_size != (varint_opt->size() + current_line_length)) {
-      return {};
-    }
-    return parseProtocolOrOpeningMessage(current_line);
+    // parsing a protocol message was unsuccesful, try the other variant
+    return parseProtocolsMessage(buffer);
   }
 
   Buffer MessageManager::openingMsg(const peer::PeerId &peer_id) const {
