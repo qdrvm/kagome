@@ -47,11 +47,9 @@ namespace kagome::runtime {
     runtime::WasmPointer ptr = memory_->allocate(block_size);
     memory_->storeBuffer(ptr, encoded_block);
 
-    executor_
-        .call(
-            state_code_, "Core_execute_block",
-            wasm::LiteralList({wasm::Literal(ptr), wasm::Literal(block_size)}))
-        .geti64();
+    executor_.call(
+        state_code_, "Core_execute_block",
+        wasm::LiteralList({wasm::Literal(ptr), wasm::Literal(block_size)}));
 
     return outcome::success();
   }
@@ -64,11 +62,9 @@ namespace kagome::runtime {
     runtime::WasmPointer ptr = memory_->allocate(header_size);
     memory_->storeBuffer(ptr, encoded_header);
 
-    executor_
-        .call(
-            state_code_, "Core_initialise_block",
-            wasm::LiteralList({wasm::Literal(ptr), wasm::Literal(header_size)}))
-        .geti64();
+    executor_.call(
+        state_code_, "Core_initialise_block",
+        wasm::LiteralList({wasm::Literal(ptr), wasm::Literal(header_size)}));
 
     return outcome::success();
   }
