@@ -10,18 +10,16 @@ namespace libp2p::crypto {
     class CSPRNG;
   }
 
-  /**
-   * @class KeyGeneratorImpl implements KeyGenerator interface
-   */
+  /// \class KeyGeneratorImpl implements KeyGenerator interface
   class KeyGeneratorImpl : public KeyGenerator {
    public:
     ~KeyGeneratorImpl() override = default;
 
     /**
-     * @brief seeds random generator
+     * @brief constructor, performs initialization
      * @param random_provider cryptographically secure random generator
      */
-    void initialize(random::CSPRNG &random_provider);
+    explicit KeyGeneratorImpl(random::CSPRNG &random_provider);
 
     outcome::result<KeyPair> generateRsa(
         common::RSAKeyType key_type) const override;
@@ -45,11 +43,9 @@ namespace libp2p::crypto {
         std::string_view password) const override;
 
    private:
-    /**
-     * @return error if not initialized success otherwise
-     */
-    outcome::result<void> ensureInitialized() const;
-
-    bool is_initialized_ = false;  ///< intitialization flag
+    /// \brief seeds openssl random generator
+    void initialize();
+    /// \return error if not initialized success otherwise
+    random::CSPRNG &random_provider_;  ///< random bytes generator
   };
 }  // namespace libp2p::crypto

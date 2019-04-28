@@ -93,6 +93,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, KeyGeneratorError, e) {
       return "generator not initialized";
     case KeyGeneratorError::KEY_GENERATION_FAILED:
       return "key generation failed";
+    case KeyGeneratorError::KEY_DERIVATION_FAILED:
+      return "failed to derive key";
     case KeyGeneratorError::FILE_NOT_FOUND:
       return "file not found";
     case KeyGeneratorError::INCORRECT_BITS_COUNT:

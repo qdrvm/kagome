@@ -20,17 +20,38 @@
 namespace libp2p::crypto {
   using kagome::common::Buffer;
 
-  void KeyGeneratorImpl::initialize(random::CSPRNG &random_provider) {
+  KeyGeneratorImpl::KeyGeneratorImpl(random::CSPRNG &random_provider)
+      : random_provider_(random_provider) {
+    initialize();
+  }
+
+  void KeyGeneratorImpl::initialize() {
     constexpr size_t SEED_BYTES_COUNT = 128 * 4;  // ripple uses such number
-    auto bytes = random_provider.randomBytes(SEED_BYTES_COUNT);
+    auto bytes = random_provider_.randomBytes(SEED_BYTES_COUNT);
     // seeding random generator is required prior to calling RSA_generate_key
     // NOLINTNEXTLINE
     RAND_seed(static_cast<const void *>(bytes.toBytes()), bytes.size());
-    is_initialized_ = true;
   }
 
   namespace detail {
-    outcome::result<std::pair<Buffer, Buffer>> generate_keys(int bits) {
+    /**
+     * @brief makes Buffer from BIO
+     * @param bio data
+     * @return Buffer instance containg data
+     */
+    Buffer bio2buffer(BIO *bio) {
+      auto length = BIO_pending(bio);
+      std::vector<uint8_t> bytes(length, 0);
+      BIO_read(bio, bytes.data(), length);
+      return Buffer(std::move(bytes));
+    }
+
+    /**
+     * @brief generates private and public rsa key contents
+     * @param bits rsa key bits count
+     * @return pair of private and public key content
+     */
+    outcome::result<std::pair<Buffer, Buffer>> generateRsaKeys(int bits) {
       int ret = 0;
       RSA *rsa = nullptr;
       BIGNUM *bne = nullptr;
@@ -76,23 +97,15 @@ namespace libp2p::crypto {
       }
 
       // 3. Get keys
-      int private_length = BIO_pending(bio_private);
-      int public_length = BIO_pending(bio_public);
+      auto private_buffer = bio2buffer(bio_private);
+      auto public_buffer = bio2buffer(bio_public);
 
-      std::vector<uint8_t> private_bytes(private_length, 0);
-      std::vector<uint8_t> public_bytes(private_length, 0);
-
-      BIO_read(bio_private, private_bytes.data(), private_length);
-      BIO_read(bio_public, public_bytes.data(), public_length);
-
-      return {std::move(private_bytes), std::move(public_bytes)};
+      return {std::move(private_buffer), std::move(public_buffer)};
     }
   }  // namespace detail
 
   outcome::result<KeyPair> KeyGeneratorImpl::generateRsa(
       common::RSAKeyType bits_option) const {
-    OUTCOME_TRY(ensureInitialized());
-
     int bits = 0;
     Key::Type key_type;
     switch (bits_option) {
@@ -115,36 +128,107 @@ namespace libp2p::crypto {
       return KeyGeneratorError::INCORRECT_BITS_COUNT;
     }
 
-    OUTCOME_TRY(bytes, detail::generate_keys(bits));
+    OUTCOME_TRY(keys, detail::generateRsaKeys(bits));
 
-    auto public_key = PublicKey{{key_type, bytes.first}};
-    auto private_key = PrivateKey{{key_type, bytes.second}};
+    auto public_key = PublicKey{{key_type, std::move(keys.first)}};
+    auto private_key = PrivateKey{{key_type, std::move(keys.second)}};
 
     return KeyPair{std::move(public_key), std::move(private_key)};
   }
 
   outcome::result<KeyPair> KeyGeneratorImpl::generateEd25519() const {
-    OUTCOME_TRY(ensureInitialized());
+    EVP_PKEY *pkey = nullptr;
+    EVP_PKEY_CTX *pctx = nullptr;
+    BIO *bio_public = nullptr;
+    BIO *bio_private = nullptr;
 
-    //    EVP_PKEY *pkey = nullptr;
-    //    EVP_PKEY_CTX *pctx = nullptr;
-    //    pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, nullptr);
-    //    EVP_PKEY_keygen_init(pctx);
-    //    EVP_PKEY_keygen(pctx, &pkey);
-    //    EVP_PKEY_CTX_free(pctx);
-    //    PEM_write_PrivateKey(stdout, pkey, nullptr, nullptr, 0, nullptr,
-    //    nullptr);
-    return KeyGeneratorError::KEY_GENERATION_FAILED;
+    pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, nullptr);
+
+    auto cleanup = gsl::finally([&]() {
+      EVP_PKEY_free(pkey);
+      EVP_PKEY_CTX_free(pctx);
+      BIO_free_all(bio_public);
+      BIO_free_all(bio_private);
+    });
+
+    auto ret = EVP_PKEY_keygen_init(pctx);
+    if (ret != 1) {
+      return KeyGeneratorError::KEY_GENERATION_FAILED;
+    }
+
+    ret = EVP_PKEY_keygen(pctx, &pkey);
+    if (ret != 1) {
+      return KeyGeneratorError::KEY_GENERATION_FAILED;
+    }
+
+    // 2. save keys to memory
+    bio_private = BIO_new(BIO_s_mem());
+    bio_public = BIO_new(BIO_s_mem());
+
+    PEM_write_bio_PUBKEY(bio_public, pkey);
+    PEM_write_bio_PrivateKey(bio_private, pkey, nullptr, nullptr, 0, nullptr,
+                             nullptr);
+
+    // 3. Get keys
+    auto private_buffer = detail::bio2buffer(bio_private);
+    auto public_buffer = detail::bio2buffer(bio_public);
+
+    auto public_key = PublicKey{{Key::Type::ED25519, std::move(public_buffer)}};
+    auto private_key =
+        PrivateKey{{Key::Type::ED25519, std::move(private_buffer)}};
+
+    return KeyPair{std::move(public_key), std::move(private_key)};
   }
 
   outcome::result<KeyPair> KeyGeneratorImpl::generateSecp256k1() const {
-    OUTCOME_TRY(ensureInitialized());
-    return KeyGeneratorError::KEY_GENERATION_FAILED;
+    constexpr size_t bytes_length = 32;  // need to get 32 random bytes
+    auto random_bytes = random_provider_.randomBytes(bytes_length);
+
+    EC_KEY *key = EC_KEY_new();
+    if (nullptr == key) {
+      return KeyGeneratorError::KEY_GENERATION_FAILED;
+    }
+
+    EC_GROUP *group = EC_GROUP_new_by_curve_name(NID_secp256k1);
+    if (nullptr == group) {
+      return KeyGeneratorError::KEY_GENERATION_FAILED;
+    }
+
+    if (1 != EC_KEY_set_group(key, group)) {
+      return KeyGeneratorError::KEY_GENERATION_FAILED;
+    }
+    if (1 != EC_KEY_generate_key(key)) {
+      return KeyGeneratorError::KEY_GENERATION_FAILED;
+    }
+
+    // 2. save keys to memory
+    BIO *bio_public = BIO_new(BIO_s_mem());
+    if (1 != PEM_write_bio_EC_PUBKEY(bio_public, key)) {
+      return KeyGeneratorError::KEY_GENERATION_FAILED;
+    }
+
+    BIO *bio_private = BIO_new(BIO_s_mem());
+    if (1
+        != PEM_write_bio_ECPrivateKey(bio_private, key, nullptr, nullptr, 0,
+                                      nullptr, nullptr)) {
+      return KeyGeneratorError::KEY_GENERATION_FAILED;
+    }
+
+    // 3. Get keys
+    auto public_bytes = detail::bio2buffer(bio_public);
+    auto private_bytes = detail::bio2buffer(bio_private);
+
+    auto public_key =
+        PublicKey{{Key::Type::SECP256K1, std::move(public_bytes)}};
+    auto private_key =
+        PrivateKey{{Key::Type::SECP256K1, std::move(private_bytes)}};
+
+    return KeyPair{std::move(public_key), std::move(private_key)};
   }
 
   outcome::result<PublicKey> KeyGeneratorImpl::derivePublicKey(
       const PrivateKey &private_key) const {
-    return KeyGeneratorError::KEY_GENERATION_FAILED;
+    return KeyGeneratorError::KEY_DERIVATION_FAILED;
   }
 
   outcome::result<EphemeralKeyPair> KeyGeneratorImpl::generateEphemeralKeyPair(
@@ -158,24 +242,15 @@ namespace libp2p::crypto {
     return {};
   }
 
-  outcome::result<void> KeyGeneratorImpl::ensureInitialized() const {
-    if (is_initialized_) {
-      return outcome::success();
-    }
-    return KeyGeneratorError::GENERATOR_NOT_INITIALIZED;
-  }
-
   outcome::result<PrivateKey> KeyGeneratorImpl::import(
       boost::filesystem::path pem_path, std::string_view password) const {
     if (!boost::filesystem::exists(pem_path)) {
       return KeyGeneratorError::FILE_NOT_FOUND;
     }
 
-    FILE *file = fopen(pem_path.c_str(), "r");
-    auto close_file = gsl::finally([&]() { fclose(file); });
+//    FILE *file = fopen(pem_path.c_str(), "r");
+//    auto close_file = gsl::finally([&]() { fclose(file); });
 
-    //    RSA *PEM_read_RSAPublicKey(FILE *fp, RSA **x,
-    //                               pem_password_cb *cb, void *u);
     return KeyGeneratorError::KEY_GENERATION_FAILED;
   }
 }  // namespace libp2p::crypto

@@ -38,9 +38,9 @@ target_link_libraries(marshaller_test
     marshaller
     )
 
-addtest(rsa_test
-    rsa_test.cpp
+addtest(keygen_test
+    keygen_test.cpp
     )
-target_link_libraries(rsa_test
+target_link_libraries(keygen_test
     key_generator
     )

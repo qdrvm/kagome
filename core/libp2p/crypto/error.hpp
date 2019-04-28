@@ -50,6 +50,7 @@ namespace libp2p::crypto {
     UNKNOWN_KEY_TYPE,                 ///< unknown key type
     GENERATOR_NOT_INITIALIZED,        ///< generator not initialized
     KEY_GENERATION_FAILED,            ///< key generation failed
+    KEY_DERIVATION_FAILED,            ///< failed to derive key
     FILE_NOT_FOUND,                   ///< file not found
     INCORRECT_BITS_COUNT,             ///< incorrect bits option
   };
