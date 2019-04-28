@@ -23,11 +23,11 @@ namespace libp2p::peer {
     outcome::result<void> removeProtocols(
         const PeerId &p, gsl::span<const Protocol> ms) override;
 
-    outcome::result<std::list<Protocol>> getProtocols(
+    outcome::result<std::vector<Protocol>> getProtocols(
         const PeerId &p) const override;
 
-    outcome::result<std::list<Protocol>> supportsProtocols(
-        const PeerId &p, gsl::span<const Protocol> protocols) const override;
+    outcome::result<std::vector<Protocol>> supportsProtocols(
+        const PeerId &p, const std::set<Protocol> &protocols) const override;
 
     void clear(const PeerId &p) override;
 

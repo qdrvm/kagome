@@ -34,8 +34,8 @@ struct InmemProtocolRepository_Test : public ::testing::Test {
   }
 
   template <typename... T>
-  std::list<Protocol> lst(T &&... arg) {
-    return std::list<Protocol>{arg...};
+  std::set<Protocol> set(T &&... arg) {
+    return std::set<Protocol>{arg...};
   }
 };
 
@@ -102,27 +102,27 @@ TEST_F(InmemProtocolRepository_Test, Supports) {
 
   // one of
   {
-    EXPECT_OUTCOME_TRUE_2(v, db->supportsProtocols(p1, vec(s1)));
-    EXPECT_EQ(v, lst(s1));
+    EXPECT_OUTCOME_TRUE_2(v, db->supportsProtocols(p1, set(s1)));
+    EXPECT_EQ(v, vec(s1));
   }
 
   // forward order
   {
-    EXPECT_OUTCOME_TRUE_2(v, db->supportsProtocols(p1, vec(s1, s2)));
-    EXPECT_EQ(v, lst(s1, s2));
+    EXPECT_OUTCOME_TRUE_2(v, db->supportsProtocols(p1, set(s1, s2)));
+    EXPECT_EQ(v, vec(s1, s2));
   }
 
   // reverse order
   {
-    EXPECT_OUTCOME_TRUE_2(v, db->supportsProtocols(p1, vec(s2, s1)));
-    EXPECT_EQ(v, lst(s1, s2));
+    EXPECT_OUTCOME_TRUE_2(v, db->supportsProtocols(p1, set(s2, s1)));
+    EXPECT_EQ(v, vec(s1, s2));
   }
 
   // non existing
   {
     EXPECT_OUTCOME_TRUE_1(db->removeProtocols(p1, vec(s1)));
-    EXPECT_OUTCOME_TRUE_2(v, db->supportsProtocols(p1, vec(s1, s2)));
-    EXPECT_EQ(v, lst(s2));
+    EXPECT_OUTCOME_TRUE_2(v, db->supportsProtocols(p1, set(s1, s2)));
+    EXPECT_EQ(v, vec(s2));
   }
 }
 
@@ -135,7 +135,7 @@ TEST_F(InmemProtocolRepository_Test, Remove) {
   EXPECT_OUTCOME_TRUE_1(db->addProtocols(p1, vec(s1, s2)));
   EXPECT_OUTCOME_TRUE_1(db->removeProtocols(p1, vec(s1)));
   EXPECT_OUTCOME_TRUE_2(v, db->getProtocols(p1));
-  EXPECT_EQ(v, lst(s2));
+  EXPECT_EQ(v, vec(s2));
 }
 
 /**

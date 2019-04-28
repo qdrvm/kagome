@@ -6,7 +6,7 @@
 #ifndef KAGOME_PROTOCOL_REPOSITORY_HPP
 #define KAGOME_PROTOCOL_REPOSITORY_HPP
 
-#include <list>
+#include <vector>
 
 #include <gsl/span>
 #include <outcome/outcome.hpp>
@@ -47,19 +47,19 @@ namespace libp2p::peer {
      * @return list of protocols (may be empty) or peer error, if no peer
      * @param p} found
      */
-    virtual outcome::result<std::list<Protocol>> getProtocols(
+    virtual outcome::result<std::vector<Protocol>> getProtocols(
         const PeerId &p) const = 0;
 
     /**
      * @brief Calculates set intersection between {@param protocols} and stored
-     * rotocols.
+     * protocols.
      * @param p peer
      * @param protocols check if given protocols are supported by a peer
      * @return list of supported protocols (may be empty) or peer error, if no
      * peer {@param p} found
      */
-    virtual outcome::result<std::list<Protocol>> supportsProtocols(
-        const PeerId &p, gsl::span<const Protocol> protocols) const = 0;
+    virtual outcome::result<std::vector<Protocol>> supportsProtocols(
+        const PeerId &p, const std::set<Protocol> &protocols) const = 0;
 
     /**
      * @brief Remove all associated protocols for given peer
