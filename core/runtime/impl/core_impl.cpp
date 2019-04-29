@@ -21,14 +21,14 @@ namespace kagome::runtime {
         codec_(std::move(codec)) {}
 
   outcome::result<primitives::Version> CoreImpl::version() {
-    uint64_t version_long =
-        executor_
-            .call(state_code_, "Core_version",
-                  wasm::LiteralList({wasm::Literal(0), wasm::Literal(0)}))
-            .geti64();
+    OUTCOME_TRY(version_long,
+                executor_.call(
+                    state_code_, "Core_version",
+                    wasm::LiteralList({wasm::Literal(0), wasm::Literal(0)})));
 
     // first 32 bits are address and second are length (length not needed)
-    runtime::WasmPointer version_address = version_long & 0xFFFFFFFFLLU;
+    runtime::WasmPointer version_address =
+        version_long.geti64() & 0xFFFFFFFFLLU;
 
     WasmMemoryStream stream(memory_);
 
@@ -47,11 +47,10 @@ namespace kagome::runtime {
     runtime::WasmPointer ptr = memory_->allocate(block_size);
     memory_->storeBuffer(ptr, encoded_block);
 
-    executor_
-        .call(
-            state_code_, "Core_execute_block",
-            wasm::LiteralList({wasm::Literal(ptr), wasm::Literal(block_size)}))
-        .geti64();
+    OUTCOME_TRY(res,
+                executor_.call(state_code_, "Core_execute_block",
+                               wasm::LiteralList({wasm::Literal(ptr),
+                                                  wasm::Literal(block_size)})));
 
     return outcome::success();
   }
@@ -64,11 +63,11 @@ namespace kagome::runtime {
     runtime::WasmPointer ptr = memory_->allocate(header_size);
     memory_->storeBuffer(ptr, encoded_header);
 
-    executor_
-        .call(
-            state_code_, "Core_initialise_block",
-            wasm::LiteralList({wasm::Literal(ptr), wasm::Literal(header_size)}))
-        .geti64();
+    OUTCOME_TRY(
+        res,
+        executor_.call(state_code_, "Core_initialise_block",
+                       wasm::LiteralList(
+                           {wasm::Literal(ptr), wasm::Literal(header_size)})));
 
     return outcome::success();
   }
@@ -81,15 +80,14 @@ namespace kagome::runtime {
     runtime::WasmPointer ptr = memory_->allocate(id_size);
     memory_->storeBuffer(ptr, encoded_id);
 
-    uint64_t result_long =
-        executor_
-            .call(
-                state_code_, "Core_authorities",
-                wasm::LiteralList({wasm::Literal(ptr), wasm::Literal(id_size)}))
-            .geti64();
+    OUTCOME_TRY(result_long,
+                executor_.call(state_code_, "Core_authorities",
+                               wasm::LiteralList({wasm::Literal(ptr),
+                                                  wasm::Literal(id_size)})));
 
     // first 32 bits are address and second are the length (length not needed)
-    runtime::WasmPointer authority_address = result_long & 0xFFFFFFFFLLU;
+    runtime::WasmPointer authority_address =
+        result_long.geti64() & 0xFFFFFFFFLLU;
 
     WasmMemoryStream stream(memory_);
     OUTCOME_TRY(stream.advance(authority_address));

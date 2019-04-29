@@ -20,13 +20,20 @@ namespace kagome::runtime {
    */
   class WasmExecutor {
    public:
+    enum class Error {
+      EMPTY_STATE_CODE = 1,
+      INVALID_STATE_CODE,
+      EXECUTION_ERROR
+    };
+
     explicit WasmExecutor(std::shared_ptr<extensions::Extension> extension);
 
     /**
      * Executes export method from provided wasm code and returns result
      */
-    wasm::Literal call(const common::Buffer &state_code, wasm::Name method_name,
-                       const wasm::LiteralList &args);
+    outcome::result<wasm::Literal> call(const common::Buffer &state_code,
+                                        wasm::Name method_name,
+                                        const wasm::LiteralList &args);
 
     /**
      * Executes export method from provided module and returns result
@@ -39,5 +46,7 @@ namespace kagome::runtime {
   };
 
 }  // namespace kagome::runtime
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, WasmExecutor::Error);
 
 #endif  // KAGOME_CORE_RUNTIME_WASM_EXECUTOR_IMPL_HPP

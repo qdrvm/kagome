@@ -15,6 +15,7 @@ namespace libp2p::transport {
 
   using boost::asio::ip::make_address;
   using multi::Multiaddress;
+  using multi::Protocol;
 
   TransportListenerImpl::TransportListenerImpl(
       boost::asio::io_context &context, TransportListener::HandlerFunc handler)
@@ -25,12 +26,12 @@ namespace libp2p::transport {
     // TODO(warchant): PRE-100 use parser here
     OUTCOME_TRY(addr,
                 address.getFirstValueForProtocol<boost::asio::ip::address>(
-                    Multiaddress::Protocol::kIp4,
+                    Protocol::Code::ip4,
                     [](const std::string &val) { return make_address(val); }));
 
     OUTCOME_TRY(port,
                 address.getFirstValueForProtocol<uint16_t>(
-                    Multiaddress::Protocol::kTcp, [](const std::string &val) {
+                    Protocol::Code::tcp, [](const std::string &val) {
                       return boost::lexical_cast<uint16_t>(val);
                     }));
 

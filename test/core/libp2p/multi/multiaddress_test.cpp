@@ -4,9 +4,14 @@
  */
 
 #include "libp2p/multi/multiaddress.hpp"
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "libp2p/multi/multiaddress_protocol_list.hpp"
+
 using libp2p::multi::Multiaddress;
+using libp2p::multi::Protocol;
+using libp2p::multi::ProtocolList;
 
 using namespace kagome::common;
 
@@ -184,7 +189,7 @@ TEST_F(MultiaddressTest, GetValueForProtocolValid) {
   auto address =
       createValidMultiaddress(std::string{valid_ip_udp_address} + "udp/432/");
 
-  auto protocols = address.getValuesForProtocol(Multiaddress::Protocol::kUdp);
+  auto protocols = address.getValuesForProtocol(Protocol::Code::udp);
   ASSERT_TRUE(!protocols.empty());
   ASSERT_EQ(protocols[0], "228");
   ASSERT_EQ(protocols[1], "432");
@@ -198,6 +203,54 @@ TEST_F(MultiaddressTest, GetValueForProtocolValid) {
 TEST_F(MultiaddressTest, GetValueForProtocolInvalid) {
   auto address = createValidMultiaddress();
 
-  auto protocols = address.getValuesForProtocol(Multiaddress::Protocol::kOnion);
+  auto protocols = address.getValuesForProtocol(Protocol::Code::sctp);
   ASSERT_TRUE(protocols.empty());
+}
+
+/**
+ * @given valid multiaddress
+ * @when getting protocols contained in the multiaddress
+ * @then the list with all protocols which the multiaddress includes is obtained
+ */
+TEST_F(MultiaddressTest, GetProtocols) {
+  auto address = createValidMultiaddress();
+  ASSERT_THAT(address.getProtocols(),
+              ::testing::ElementsAre(*ProtocolList::get("ip4"),
+                                     *ProtocolList::get("udp")));
+
+  address = createValidMultiaddress(valid_ipfs_address);
+  ASSERT_THAT(address.getProtocols(),
+              ::testing::ElementsAre(*ProtocolList::get("ipfs")));
+
+  address = createValidMultiaddress("/udp/322/ip4/127.0.0.1/udp/3232");
+  ASSERT_THAT(address.getProtocols(),
+              ::testing::ElementsAre(*ProtocolList::get("udp"),
+                                     *ProtocolList::get("ip4"),
+                                     *ProtocolList::get("udp")));
+}
+
+/**
+ * @given valid multiaddress
+ * @when getting protocols contained in the multiaddress with their values
+ * @then the list with all protocols and values which the multiaddress includes
+ * is obtained
+ */
+TEST_F(MultiaddressTest, GetProtocolsWithValues) {
+  auto address = createValidMultiaddress();
+  ASSERT_THAT(address.getProtocolsWithValues(),
+              ::testing::ElementsAre(
+                  std::make_pair(*ProtocolList::get("ip4"), "192.168.0.1"),
+                  std::make_pair(*ProtocolList::get("udp"), "228")));
+
+  address = createValidMultiaddress(valid_ipfs_address);
+  ASSERT_THAT(address.getProtocolsWithValues(),
+              ::testing::ElementsAre(
+                  std::make_pair(*ProtocolList::get("ipfs"), "mypeer")));
+
+  address = createValidMultiaddress("/udp/322/ip4/127.0.0.1/udp/3232");
+  ASSERT_THAT(address.getProtocolsWithValues(),
+              ::testing::ElementsAre(
+                  std::make_pair(*ProtocolList::get("udp"), "322"),
+                  std::make_pair(*ProtocolList::get("ip4"), "127.0.0.1"),
+                  std::make_pair(*ProtocolList::get("udp"), "3232")));
 }

@@ -6,6 +6,7 @@
 #ifndef KAGOME_PRIMITIVES_BLOCK_HEADER_HPP
 #define KAGOME_PRIMITIVES_BLOCK_HEADER_HPP
 
+#include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "primitives/common.hpp"
 
@@ -24,13 +25,13 @@ namespace kagome::primitives {
      * @param extrinsics_root extrinsics root
      * @param digest digest collection
      */
-    BlockHeader(Buffer parent_hash, size_t number, Buffer state_root,
-                Buffer extrinsics_root, Buffer digest);
+    BlockHeader(common::Hash256 parent_hash, size_t number, common::Hash256 state_root,
+                common::Hash256 extrinsics_root, Buffer digest);
 
     /**
      * @return parent hash const reference
      */
-    const Buffer &parentHash() const;
+    const common::Hash256 &parentHash() const;
 
     /**
      * @return number
@@ -40,12 +41,12 @@ namespace kagome::primitives {
     /**
      * @return state root const reference
      */
-    const Buffer &stateRoot() const;
+    const common::Hash256 &stateRoot() const;
 
     /**
      * @return extrinsics root const reference
      */
-    const Buffer &extrinsicsRoot() const;
+    const common::Hash256 &extrinsicsRoot() const;
 
     /**
      * @return digest const reference
@@ -53,10 +54,10 @@ namespace kagome::primitives {
     const Buffer &digest() const;
 
    private:
-    Buffer parent_hash_;  ///< 32-byte Blake2s hash of the header of the parent
+    common::Hash256 parent_hash_;  ///< 32-byte Blake2s hash of the header of the parent
     BlockNumber number_;  ///< index of current block in the chain
-    Buffer state_root_;    ///< root of the Merkle trie
-    Buffer extrinsics_root_;  ///< field for validation integrity
+    common::Hash256 state_root_;    ///< root of the Merkle trie
+    common::Hash256 extrinsics_root_;  ///< field for validation integrity
     Buffer digest_;           ///< chain-specific auxiliary data
   };
 
