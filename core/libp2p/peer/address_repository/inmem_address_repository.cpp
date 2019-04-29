@@ -100,4 +100,13 @@ namespace libp2p::peer {
     }
   }
 
+  std::unordered_set<PeerId> InmemAddressRepository::getPeers() const {
+    std::unordered_set<PeerId> peers;
+    for (const auto &it : db_) {
+      peers.insert(it.first);
+    }
+
+    return peers;
+  }
+
 }  // namespace libp2p::peer

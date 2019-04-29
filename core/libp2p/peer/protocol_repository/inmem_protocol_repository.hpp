@@ -37,6 +37,8 @@ namespace libp2p::peer {
 
     void collectGarbage() override;
 
+    std::unordered_set<PeerId> getPeers() const override;
+
    private:
     using set = std::set<Protocol>;
     using set_ptr = std::shared_ptr<set>;

@@ -67,8 +67,8 @@ namespace libp2p::peer {
     return it->second;
   }
 
-  InmemProtocolRepository::set_ptr InmemProtocolRepository::getOrAllocateProtocolSet(
-      const PeerId &p) {
+  InmemProtocolRepository::set_ptr
+  InmemProtocolRepository::getOrAllocateProtocolSet(const PeerId &p) {
     auto it = db_.find(p);
     if (it == db_.end()) {
       set_ptr m = std::make_shared<set>();
@@ -90,6 +90,15 @@ namespace libp2p::peer {
         ++peer;
       }
     }
+  }
+
+  std::unordered_set<PeerId> InmemProtocolRepository::getPeers() const {
+    std::unordered_set<PeerId> peers;
+    for (const auto &it : db_) {
+      peers.insert(it.first);
+    }
+
+    return peers;
   }
 
 }  // namespace libp2p::peer

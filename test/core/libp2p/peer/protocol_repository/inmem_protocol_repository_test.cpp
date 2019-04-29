@@ -149,3 +149,18 @@ TEST_F(InmemProtocolRepository_Test, RemoveNonExisting) {
   EXPECT_OUTCOME_TRUE_2(v, db->getProtocols(p1));
   EXPECT_EQ(v.size(), 1);
 }
+
+/**
+ * @given 2 peers in storage
+ * @when get peers
+ * @then 2 peers returned
+ */
+TEST_F(InmemProtocolRepository_Test, GetPeers) {
+  EXPECT_OUTCOME_TRUE_1(db->addProtocols(p1, {}));
+  auto s1 = db->getPeers();
+  EXPECT_EQ(s1.size(), 1);
+
+  EXPECT_OUTCOME_TRUE_1(db->addProtocols(p2, {}));
+  auto s = db->getPeers();
+  EXPECT_EQ(s.size(), 2);
+}

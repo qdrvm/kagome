@@ -6,6 +6,7 @@
 #ifndef KAGOME_PROTOCOL_REPOSITORY_HPP
 #define KAGOME_PROTOCOL_REPOSITORY_HPP
 
+#include <unordered_set>
 #include <vector>
 
 #include <gsl/span>
@@ -69,6 +70,12 @@ namespace libp2p::peer {
      * contain "0 protocols".
      */
     virtual void clear(const PeerId &p) = 0;
+
+    /**
+     * @brief Returns set of peer ids known by this repository.
+     * @return unordered set of peers
+     */
+    virtual std::unordered_set<PeerId> getPeers() const = 0;
   };
 
 }  // namespace libp2p::peer

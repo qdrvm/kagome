@@ -39,6 +39,8 @@ namespace libp2p::peer {
 
     void clear(const PeerId &p) override;
 
+    std::unordered_set<PeerId> getPeers() const override;
+
    private:
     using ttlmap = std::unordered_map<multi::Multiaddress, Clock::time_point>;
     using ttlmap_ptr = std::shared_ptr<ttlmap>;

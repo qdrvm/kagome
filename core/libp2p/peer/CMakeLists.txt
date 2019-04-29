@@ -22,3 +22,11 @@ add_library(libp2p_peer_errors
 target_link_libraries(libp2p_peer_errors
     outcome
     )
+
+
+add_library(libp2p_peer_repository
+    peer_repository.cpp
+    )
+target_link_libraries(libp2p_peer_repository
+    address_repository
+    )

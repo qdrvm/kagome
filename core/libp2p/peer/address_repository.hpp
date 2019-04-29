@@ -8,6 +8,7 @@
 
 #include <chrono>
 #include <list>
+#include <unordered_set>
 
 #include <boost/signals2.hpp>
 #include <gsl/span>
@@ -84,6 +85,12 @@ namespace libp2p::peer {
      * @note triggers #onAddressRemoved for every removed address
      */
     virtual void clear(const PeerId &p) = 0;
+
+    /**
+     * @brief Returns set of peer ids known by this repository.
+     * @return unordered set of peers
+     */
+    virtual std::unordered_set<PeerId> getPeers() const = 0;
 
     /**
      * @brief Attach slot to a signal 'onAddressAdded'. Is triggered whenever
