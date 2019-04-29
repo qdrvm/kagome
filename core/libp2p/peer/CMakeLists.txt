@@ -3,8 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(key_repository)
 add_subdirectory(address_repository)
+add_subdirectory(key_repository)
+add_subdirectory(protocol_repository)
 
 
 add_library(address_repository
