@@ -11,7 +11,7 @@ namespace libp2p::peer {
 
   outcome::result<void> InmemProtocolRepository::addProtocols(
       const PeerId &p, gsl::span<const Protocol> ms) {
-    auto s = must_get_set(p);
+    auto s = getOrAllocateProtocolSet(p);
     for (const auto &m : ms) {
       s->insert(m);
     }
@@ -21,7 +21,7 @@ namespace libp2p::peer {
 
   outcome::result<void> InmemProtocolRepository::removeProtocols(
       const PeerId &p, gsl::span<const Protocol> ms) {
-    OUTCOME_TRY(s, get_set(p));
+    OUTCOME_TRY(s, getProtocolSet(p));
 
     for (const auto &m : ms) {
       s->erase(m);
@@ -32,14 +32,14 @@ namespace libp2p::peer {
 
   outcome::result<std::vector<Protocol>> InmemProtocolRepository::getProtocols(
       const PeerId &p) const {
-    OUTCOME_TRY(s, get_set(p));
+    OUTCOME_TRY(s, getProtocolSet(p));
     return std::vector<Protocol>(s->begin(), s->end());
   }
 
   outcome::result<std::vector<Protocol>>
   InmemProtocolRepository::supportsProtocols(
       const PeerId &p, const std::set<Protocol> &protocols) const {
-    OUTCOME_TRY(s, get_set(p));
+    OUTCOME_TRY(s, getProtocolSet(p));
 
     size_t size = std::min(protocols.size(), s->size());
     std::vector<Protocol> ret;
@@ -51,14 +51,14 @@ namespace libp2p::peer {
   }
 
   void InmemProtocolRepository::clear(const PeerId &p) {
-    auto r = get_set(p);
+    auto r = getProtocolSet(p);
     if (r) {
       r.value()->clear();
     }
   }
 
   outcome::result<InmemProtocolRepository::set_ptr>
-  InmemProtocolRepository::get_set(const PeerId &p) const {
+  InmemProtocolRepository::getProtocolSet(const PeerId &p) const {
     auto it = db_.find(p);
     if (it == db_.end()) {
       return PeerError ::NotFound;
@@ -67,7 +67,7 @@ namespace libp2p::peer {
     return it->second;
   }
 
-  InmemProtocolRepository::set_ptr InmemProtocolRepository::must_get_set(
+  InmemProtocolRepository::set_ptr InmemProtocolRepository::getOrAllocateProtocolSet(
       const PeerId &p) {
     auto it = db_.find(p);
     if (it == db_.end()) {

@@ -13,6 +13,10 @@
 
 namespace libp2p::peer {
 
+  /**
+   * @brief In-memory implementation of Protocol repository. For each peer
+   * stores ordered set of protocols.
+   */
   class InmemProtocolRepository : public ProtocolRepository {
    public:
     ~InmemProtocolRepository() override = default;
@@ -37,8 +41,8 @@ namespace libp2p::peer {
     using set = std::set<Protocol>;
     using set_ptr = std::shared_ptr<set>;
 
-    outcome::result<set_ptr> get_set(const PeerId &p) const;
-    set_ptr must_get_set(const PeerId &p);
+    outcome::result<set_ptr> getProtocolSet(const PeerId &p) const;
+    set_ptr getOrAllocateProtocolSet(const PeerId &p);
 
     std::unordered_map<PeerId, set_ptr> db_;
   };
