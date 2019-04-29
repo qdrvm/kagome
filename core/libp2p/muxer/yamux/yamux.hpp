@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_YAMUX_HPP
-#define KAGOME_YAMUX_HPP
+#ifndef KAGOME_YAMUX_IMPL_HPP
+#define KAGOME_YAMUX_IMPL_HPP
 
 #include <functional>
 #include <map>
@@ -233,4 +233,4 @@ namespace libp2p::muxer {
 
 OUTCOME_HPP_DECLARE_ERROR(libp2p::muxer, Yamux::YamuxErrorStream)
 
-#endif  // KAGOME_YAMUX_HPP
+#endif  // KAGOME_YAMUX_IMPL_HPP

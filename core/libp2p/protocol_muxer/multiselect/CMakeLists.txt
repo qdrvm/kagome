@@ -9,3 +9,8 @@ add_library(multiselect
     message_manager.cpp
     message_manager.hpp
     )
+target_link_libraries(multiselect
+    buffer
+    uvarint
+    multihash
+    )

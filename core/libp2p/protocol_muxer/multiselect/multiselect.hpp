@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_MULTISELECT_HPP
-#define KAGOME_MULTISELECT_HPP
+#ifndef KAGOME_MULTISELECT_IMPL_HPP
+#define KAGOME_MULTISELECT_IMPL_HPP
 
 #include <memory>
 #include <string>
@@ -26,7 +26,6 @@ namespace libp2p::protocol_muxer {
    public:
     // TODO(akvinikym) [PRE-127] 25.04.19: think about passing not a PeerId, but
     // an Identity service, when it's implemented
-    // Also accept PeerIdConverter in order to base58 it
     /**
      * Create a Multiselect instance
      * @param peer_id - id of the current peer
@@ -152,4 +151,4 @@ namespace libp2p::protocol_muxer {
 OUTCOME_HPP_DECLARE_ERROR(libp2p::protocol_muxer,
                           Multiselect::MultiselectErrors)
 
-#endif  // KAGOME_MULTISELECT_HPP
+#endif  // KAGOME_MULTISELECT_IMPL_HPP
