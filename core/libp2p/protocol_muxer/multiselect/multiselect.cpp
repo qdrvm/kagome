@@ -5,6 +5,8 @@
 
 #include "libp2p/protocol_muxer/multiselect/multiselect.hpp"
 
+#include "libp2p/protocol_muxer/multiselect/message_manager.hpp"
+
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol_muxer,
                             Multiselect::MultiselectErrors, e) {
   using Errors = libp2p::protocol_muxer::Multiselect::MultiselectErrors;
@@ -62,7 +64,7 @@ namespace libp2p::protocol_muxer {
                                     StreamState stream_state) const {
     using MessageType = MessageManager::MultiselectMessage::MessageType;
 
-    auto message_res = message_manager_.parseMessage(response);
+    auto message_res = MessageManager::parseMessage(response);
     if (!message_res) {
       log_->error("cannot parse message, received from the stream: {}",
                   message_res.error().value());
@@ -197,7 +199,7 @@ namespace libp2p::protocol_muxer {
 
   void Multiselect::sendOpeningMsg(StreamState stream_state) const {
     stream_state.stream_.get().writeAsync(
-        message_manager_.openingMsg(*peer_id_),
+        MessageManager::openingMsg(*peer_id_),
         [t = shared_from_this(), stream_state = std::move(stream_state)](
             const std::error_code &ec, size_t n) mutable {
           if (ec) {
@@ -214,12 +216,12 @@ namespace libp2p::protocol_muxer {
                                     bool wait_for_response,
                                     StreamState stream_state) const {
     if (!wait_for_response) {
-      stream_state.stream_.get().writeAsync(message_manager_.protocolMsg(
+      stream_state.stream_.get().writeAsync(MessageManager::protocolMsg(
           our_peer_id ? *peer_id_ : *stream_state.peer_id_, protocol));
       return;
     }
     stream_state.stream_.get().writeAsync(
-        message_manager_.protocolMsg(
+        MessageManager::protocolMsg(
             our_peer_id ? *peer_id_ : *stream_state.peer_id_, protocol),
         [t = shared_from_this(), stream_state = std::move(stream_state)](
             const std::error_code &ec, size_t n) mutable {
@@ -236,7 +238,7 @@ namespace libp2p::protocol_muxer {
   void Multiselect::sendProtocolsMsg(gsl::span<const Protocol> protocols,
                                      StreamState stream_state) const {
     stream_state.stream_.get().writeAsync(
-        message_manager_.protocolsMsg(*peer_id_, protocols),
+        MessageManager::protocolsMsg(*peer_id_, protocols),
         [t = shared_from_this(), stream_state = std::move(stream_state)](
             const std::error_code &ec, size_t n) mutable {
           if (ec) {
@@ -251,7 +253,7 @@ namespace libp2p::protocol_muxer {
 
   void Multiselect::sendLsMsg(StreamState stream_state) const {
     stream_state.stream_.get().writeAsync(
-        message_manager_.lsMsg(),
+        MessageManager::lsMsg(),
         [t = shared_from_this(), stream_state = std::move(stream_state)](
             const std::error_code &ec, size_t n) mutable {
           if (ec) {
@@ -266,7 +268,7 @@ namespace libp2p::protocol_muxer {
 
   void Multiselect::sendNaMsg(StreamState stream_state) const {
     stream_state.stream_.get().writeAsync(
-        message_manager_.naMsg(),
+        MessageManager::naMsg(),
         [t = shared_from_this(), stream_state = std::move(stream_state)](
             const std::error_code &ec, size_t n) mutable {
           if (ec) {

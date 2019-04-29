@@ -43,7 +43,7 @@ namespace libp2p::protocol_muxer {
      * @param peer_id to be set
      */
     void setPeerId(std::optional<peer::PeerId> peer_id) {
-      if (peer_id && !peer_id_ || (peer_id_ && *peer_id_ != *peer_id)) {
+      if (!peer_id_ || (peer_id_ && *peer_id_ != *peer_id)) {
         peer_id_ = std::move(*peer_id);
       }
     }

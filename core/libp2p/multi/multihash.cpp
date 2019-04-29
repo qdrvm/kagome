@@ -100,6 +100,10 @@ namespace libp2p::multi {
     return this->data_ == other.data_ && this->type_ == other.type_;
   }
 
+  bool Multihash::operator!=(const Multihash &other) const {
+    return !(*this == other);
+  }
+
 }  // namespace libp2p::multi
 
 size_t std::hash<libp2p::multi::Multihash>::operator()(

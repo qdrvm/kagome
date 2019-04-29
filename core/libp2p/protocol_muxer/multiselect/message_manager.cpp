@@ -7,6 +7,7 @@
 
 #include <string_view>
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/format.hpp>
 
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol_muxer, MessageManager::ParseError,
@@ -14,15 +15,15 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol_muxer, MessageManager::ParseError,
   using Error = libp2p::protocol_muxer::MessageManager::ParseError;
   switch (e) {
     case Error::MSG_IS_TOO_SHORT:
-      return "message size is less, than a minimum one";
+      return "message size is less than a minimum one";
     case Error::VARINT_WAS_EXPECTED:
-      return "cannot find a varint, where it was supposed to be";
+      return "expected varint, but not found";
     case Error::MSG_LENGTH_IS_INCORRECT:
-      return "length of the message is not as specified in varints inside";
+      return "incorrect message length";
     case Error::PEER_ID_WAS_EXPECTED:
-      return "cannot find a peer id, where it was supposed to be";
+      return "expected peer id, but not found";
     case Error::NO_P2P_PREFIX:
-      return "cannot find /p2p prefix, where it was supposed to be";
+      return "expected prefix /p2p but not found";
     case Error::WRONG_PEER_ID:
       return "peer id is either ill-formed or cannot be found";
   }
@@ -42,6 +43,24 @@ namespace {
   /// header of Multiselect protocol
   constexpr std::string_view kMultiselectHeaderString =
       "/multistream-select/0.3.0";
+
+  /// string of ls message
+  constexpr std::string_view kLsString = "ls\n";
+
+  /// string of na message
+  constexpr std::string_view kNaString = "na\n";
+
+  /// ls message, ready to be sent
+  const kagome::common::Buffer ls_msg_ =
+      kagome::common::Buffer{}
+          .put(UVarint{kLsString.size()}.toBytes())
+          .put(kLsString);
+
+  /// na message, ready to be sent
+  const kagome::common::Buffer na_msg_ =
+      kagome::common::Buffer{}
+          .put(UVarint{kNaString.size()}.toBytes())
+          .put(kNaString);
 
   /**
    * Retrieve a varint from a bytes buffer
@@ -66,24 +85,6 @@ namespace {
   }
 
   /**
-   * Check that a string begins with a specified substring
-   * @param string to be checked
-   * @param substring to be found
-   * @return true, if the string begins with a substring, false otherwise
-   */
-  bool stringBeginsWith(std::string_view string, std::string_view substring) {
-    if (string.size() < substring.size()) {
-      return false;
-    }
-    for (size_t i = 0; i < substring.size(); ++i) {
-      if (string[i] != substring[i]) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  /**
    * Retrieve a line from a buffer, starting from the specified position
    * @param buffer, from which the line is to be retrieved
    * @param current_position, from which to get the line; after the execution is
@@ -104,13 +105,15 @@ namespace {
     if ((buffer.size() - msg_length_opt->size()) != msg_length) {
       return ParseError::MSG_LENGTH_IS_INCORRECT;
     }
+    current_position += msg_length;
 
     // retrieve a line, which is supposed to contain peer id and protocol, and
     // parse it
-    const auto *bytes = buffer.toBytes();
-    current_position += msg_length;
-    return std::string(bytes + current_position - msg_length,
-                       bytes + current_position);
+    const auto *msg_begin = buffer.toBytes();
+    std::advance(msg_begin, msg_length_opt->size());
+    const auto *msg_end = buffer.toBytes();
+    std::advance(msg_end, current_position);
+    return std::string(msg_begin, msg_end);
   }
 
   /**
@@ -124,7 +127,7 @@ namespace {
     static const std::string kP2pPrefix{"/p2p"};
 
     // the message must begin with a prefix
-    if (!stringBeginsWith(msg, kP2pPrefix)) {
+    if (!boost::starts_with(msg, kP2pPrefix)) {
       return ParseError::NO_P2P_PREFIX;
     }
 
@@ -251,7 +254,7 @@ namespace libp2p::protocol_muxer {
   using MultiselectMessage = MessageManager::MultiselectMessage;
 
   outcome::result<MultiselectMessage> MessageManager::parseMessage(
-      const kagome::common::Buffer &buffer) const {
+      const kagome::common::Buffer &buffer) {
     static constexpr size_t kShortestMessageLength{4};
 
     static const std::string kLsMsg{"036C730A"};
@@ -292,7 +295,7 @@ namespace libp2p::protocol_muxer {
     return parseProtocolsMessage(buffer);
   }
 
-  Buffer MessageManager::openingMsg(const peer::PeerId &peer_id) const {
+  Buffer MessageManager::openingMsg(const peer::PeerId &peer_id) {
     // FIXME: peer_id.toHex() must be not a hex, but a base64 convertation here
     // and in below functions
 
@@ -303,17 +306,16 @@ namespace libp2p::protocol_muxer {
         .put(opening_string);
   }
 
-  Buffer MessageManager::lsMsg() const {
+  Buffer MessageManager::lsMsg() {
     return ls_msg_;
   }
 
-  Buffer MessageManager::naMsg() const {
+  Buffer MessageManager::naMsg() {
     return na_msg_;
   }
 
-  Buffer MessageManager::protocolMsg(
-      const peer::PeerId &peer_id,
-      const ProtocolMuxer::Protocol &protocol) const {
+  Buffer MessageManager::protocolMsg(const peer::PeerId &peer_id,
+                                     const ProtocolMuxer::Protocol &protocol) {
     // FIXME: string copy; can be fixed by calculating the size in advance, but
     // will look very ugly
     auto protocol_string =
@@ -325,7 +327,7 @@ namespace libp2p::protocol_muxer {
 
   Buffer MessageManager::protocolsMsg(
       const peer::PeerId &peer_id,
-      gsl::span<const ProtocolMuxer::Protocol> protocols) const {
+      gsl::span<const ProtocolMuxer::Protocol> protocols) {
     // FIXME: naive approach, involving a tremendous amount of copies
 
     Buffer protocols_buffer{};

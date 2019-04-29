@@ -13,7 +13,6 @@
 #include <gsl/span>
 #include "common/logger.hpp"
 #include "libp2p/peer/peer_id.hpp"
-#include "libp2p/protocol_muxer/multiselect/message_manager.hpp"
 #include "libp2p/protocol_muxer/multiselect/stream_state.hpp"
 #include "libp2p/protocol_muxer/protocol_muxer.hpp"
 
@@ -36,6 +35,11 @@ namespace libp2p::protocol_muxer {
     explicit Multiselect(std::shared_ptr<peer::PeerId> peer_id,
                          kagome::common::Logger logger =
                              kagome::common::createLogger("Multiselect"));
+
+    Multiselect(const Multiselect &other) = delete;
+    Multiselect &operator=(const Multiselect &other) = delete;
+    Multiselect(Multiselect &&other) noexcept = default;
+    Multiselect &operator=(Multiselect &&other) noexcept = default;
 
     ~Multiselect() override;
 
@@ -138,7 +142,6 @@ namespace libp2p::protocol_muxer {
      */
     void sendNaMsg(StreamState stream_state) const;
 
-    MessageManager message_manager_;
     std::vector<Protocol> supported_protocols_;
     std::shared_ptr<peer::PeerId> peer_id_;
 

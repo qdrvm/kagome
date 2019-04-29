@@ -49,27 +49,27 @@ namespace libp2p::protocol_muxer {
      * @param bytes to be parsed
      * @return message, if parsing is successful, error otherwise
      */
-    outcome::result<MultiselectMessage> parseMessage(
-        const kagome::common::Buffer &bytes) const;
+    static outcome::result<MultiselectMessage> parseMessage(
+        const kagome::common::Buffer &bytes);
 
     /**
      * Create an opening message
      * @param peer_id to be put into the message
      * @return created message
      */
-    kagome::common::Buffer openingMsg(const peer::PeerId &peer_id) const;
+    static kagome::common::Buffer openingMsg(const peer::PeerId &peer_id);
 
     /**
      * Create a message with an ls command
      * @return created message
      */
-    kagome::common::Buffer lsMsg() const;
+    static kagome::common::Buffer lsMsg();
 
     /**
      * Create a message telling the protocol is not supported
      * @return created message
      */
-    kagome::common::Buffer naMsg() const;
+    static kagome::common::Buffer naMsg();
 
     /**
      * Create a response message with a single protocol
@@ -77,9 +77,8 @@ namespace libp2p::protocol_muxer {
      * @param protocol to be sent
      * @return created message
      */
-    kagome::common::Buffer protocolMsg(
-        const peer::PeerId &peer_id,
-        const ProtocolMuxer::Protocol &protocol) const;
+    static kagome::common::Buffer protocolMsg(
+        const peer::PeerId &peer_id, const ProtocolMuxer::Protocol &protocol);
 
     /**
      * Create a response message with a list of protocols
@@ -87,22 +86,9 @@ namespace libp2p::protocol_muxer {
      * @param protocols to be sent
      * @return created message
      */
-    kagome::common::Buffer protocolsMsg(
+    static kagome::common::Buffer protocolsMsg(
         const peer::PeerId &peer_id,
-        gsl::span<const ProtocolMuxer::Protocol> protocols) const;
-
-   private:
-    static constexpr std::string_view kLsString = "ls\n";
-    static constexpr std::string_view kNaString = "na\n";
-
-    const kagome::common::Buffer ls_msg_ =
-        kagome::common::Buffer{}
-            .put(multi::UVarint{kLsString.size()}.toBytes())
-            .put(kLsString);
-    const kagome::common::Buffer na_msg_ =
-        kagome::common::Buffer{}
-            .put(multi::UVarint{kNaString.size()}.toBytes())
-            .put(kNaString);
+        gsl::span<const ProtocolMuxer::Protocol> protocols);
   };
 }  // namespace libp2p::protocol_muxer
 
