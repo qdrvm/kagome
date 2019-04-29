@@ -52,7 +52,11 @@ namespace libp2p::crypto {
     KEY_GENERATION_FAILED,            ///< key generation failed
     KEY_DERIVATION_FAILED,            ///< failed to derive key
     FILE_NOT_FOUND,                   ///< file not found
+    FAILED_TO_READ_FILE,              ///< failed to read file
     INCORRECT_BITS_COUNT,             ///< incorrect bits option
+    WRONG_KEY_TYPE,                   ///< incorrect key type
+    CANNOT_LOAD_UNSPECIFIED,          ///< cannot load unspecified key
+    GET_KEY_BYTES_FAILED,             ///< failed to get key bytes from PKEY
   };
 }  // namespace libp2p::crypto
 

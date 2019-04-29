@@ -97,8 +97,16 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, KeyGeneratorError, e) {
       return "failed to derive key";
     case KeyGeneratorError::FILE_NOT_FOUND:
       return "file not found";
+    case KeyGeneratorError::FAILED_TO_READ_FILE:
+      return "failed to read file";
     case KeyGeneratorError::INCORRECT_BITS_COUNT:
       return "incorrect bits count";
+    case KeyGeneratorError::WRONG_KEY_TYPE:
+      return "incorrect key type";
+    case KeyGeneratorError::CANNOT_LOAD_UNSPECIFIED:
+      return "cannot load unspecified key";
+    case KeyGeneratorError::GET_KEY_BYTES_FAILED:
+      return "failed to get key bytes from PKEY";
   }
   return "unknown KeyGenerator error";
 }

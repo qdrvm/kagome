@@ -71,8 +71,8 @@ namespace libp2p::crypto {
      * @param password of that file
      * @return private key from the file
      */
-    virtual outcome::result<PrivateKey> import(
-        boost::filesystem::path pem_path, std::string_view password) const = 0;
+    virtual outcome::result<PrivateKey> importKey(const boost::filesystem::path &pem_path,
+                                                  std::string_view password) const = 0;
   };
 }  // namespace libp2p::crypto
 

@@ -26,8 +26,8 @@ namespace libp2p::crypto {
   }
 
   void KeyGeneratorImpl::initialize() {
-    constexpr size_t SEED_BYTES_COUNT = 128 * 4;  // ripple uses such number
-    auto bytes = random_provider_.randomBytes(SEED_BYTES_COUNT);
+    constexpr size_t kSeedBytesCount = 128 * 4;  // ripple uses such number
+    auto bytes = random_provider_.randomBytes(kSeedBytesCount);
     // seeding random generator is required prior to calling RSA_generate_key
     // NOLINTNEXTLINE
     RAND_seed(static_cast<const void *>(bytes.toBytes()), bytes.size());
@@ -44,6 +44,30 @@ namespace libp2p::crypto {
       std::vector<uint8_t> bytes(length, 0);
       BIO_read(bio, bytes.data(), length);
       return Buffer(std::move(bytes));
+    }
+
+    outcome::result<Buffer> getPrivateBytes(EVP_PKEY *pkey) {
+      BIO *bio = BIO_new(BIO_s_mem());
+
+      if (1
+          != PEM_write_bio_PrivateKey(bio, pkey, nullptr, nullptr, 0, nullptr,
+                                      nullptr)) {
+        return KeyGeneratorError::GET_KEY_BYTES_FAILED;
+      }
+
+      // 3. Get keys
+      return bio2buffer(bio);
+    }
+
+    outcome::result<Buffer> getPublicBytes(EVP_PKEY *pkey) {
+      BIO *bio = BIO_new(BIO_s_mem());
+
+      if (1 != PEM_write_bio_PUBKEY(bio, pkey)) {
+        return KeyGeneratorError::GET_KEY_BYTES_FAILED;
+      }
+
+      // 3. Get keys
+      return bio2buffer(bio);
     }
 
     /**
@@ -165,9 +189,14 @@ namespace libp2p::crypto {
     bio_private = BIO_new(BIO_s_mem());
     bio_public = BIO_new(BIO_s_mem());
 
-    PEM_write_bio_PUBKEY(bio_public, pkey);
-    PEM_write_bio_PrivateKey(bio_private, pkey, nullptr, nullptr, 0, nullptr,
-                             nullptr);
+    if (1 != PEM_write_bio_PUBKEY(bio_public, pkey)) {
+      return KeyGeneratorError::KEY_GENERATION_FAILED;
+    }
+    if (1
+        != PEM_write_bio_PrivateKey(bio_private, pkey, nullptr, nullptr, 0,
+                                    nullptr, nullptr)) {
+      return KeyGeneratorError::KEY_GENERATION_FAILED;
+    }
 
     // 3. Get keys
     auto private_buffer = detail::bio2buffer(bio_private);
@@ -226,9 +255,52 @@ namespace libp2p::crypto {
     return KeyPair{std::move(public_key), std::move(private_key)};
   }
 
+  namespace {
+    outcome::result<PublicKey> deriveRsaPublicKey(
+        const PrivateKey &private_key) {
+      auto &buffer = private_key.data;
+      BIO *bio = BIO_new_mem_buf((void *)(buffer.toBytes()), buffer.size());
+      if (nullptr == bio) {
+        return KeyGeneratorError::KEY_DERIVATION_FAILED;
+      }
+      auto free_bio = gsl::finally([bio]() { BIO_free_all(bio); });
+
+      RSA *rsa = PEM_read_bio_RSAPublicKey(bio, nullptr, nullptr, nullptr);
+      if (nullptr == rsa) {
+        return KeyGeneratorError::KEY_DERIVATION_FAILED;
+      }
+      auto free_rsa = gsl::finally([rsa]() { RSA_free(rsa); });
+
+      EVP_PKEY *pkey = PEM_read_bio_PUBKEY(bio, nullptr, nullptr, nullptr);
+      OUTCOME_TRY(bytes, detail::getPublicBytes(pkey));
+
+      BIO *bio_public = BIO_new(BIO_s_mem());
+      auto free_bio_public =
+          gsl::finally([bio_public]() { BIO_free(bio_public); });
+
+      if (1 != PEM_write_bio_RSAPublicKey(bio_public, rsa)) {
+        return KeyGeneratorError::KEY_DERIVATION_FAILED;
+      }
+
+      auto public_bytes = detail::bio2buffer(bio_public);
+      return PublicKey{{private_key.type, std::move(public_bytes)}};
+    }
+  }  // namespace
+
   outcome::result<PublicKey> KeyGeneratorImpl::derivePublicKey(
       const PrivateKey &private_key) const {
-    return KeyGeneratorError::KEY_DERIVATION_FAILED;
+    switch (private_key.type) {
+      case Key::Type::RSA1024:
+      case Key::Type::RSA2048:
+      case Key::Type::RSA4096:
+        return deriveRsaPublicKey(private_key);
+      case Key::Type::ED25519:
+        return KeyGeneratorError::KEY_DERIVATION_FAILED;
+      case Key::Type::SECP256K1:
+        return KeyGeneratorError::KEY_DERIVATION_FAILED;
+    }
+
+    return KeyGeneratorError::WRONG_KEY_TYPE;
   }
 
   outcome::result<EphemeralKeyPair> KeyGeneratorImpl::generateEphemeralKeyPair(
@@ -242,15 +314,71 @@ namespace libp2p::crypto {
     return {};
   }
 
-  outcome::result<PrivateKey> KeyGeneratorImpl::import(
-      boost::filesystem::path pem_path, std::string_view password) const {
+  outcome::result<EVP_PKEY *> loadKey(const boost::filesystem::path &pem_path,
+                                      std::string_view password) {
     if (!boost::filesystem::exists(pem_path)) {
       return KeyGeneratorError::FILE_NOT_FOUND;
     }
 
-//    FILE *file = fopen(pem_path.c_str(), "r");
-//    auto close_file = gsl::finally([&]() { fclose(file); });
+    BIO *key = nullptr;
+    EVP_PKEY *pkey = nullptr;
 
-    return KeyGeneratorError::KEY_GENERATION_FAILED;
+    key = BIO_new(BIO_s_file());
+    if (1 != BIO_read_filename(key, pem_path.c_str())) {
+      return KeyGeneratorError::FAILED_TO_READ_FILE;
+    }
+
+    std::vector<char> password_str(password.length() + 1, 0);
+    std::copy(password.begin(), password.end(), password_str.begin());
+
+    pkey = PEM_read_bio_PrivateKey(key, nullptr, nullptr,
+                                   static_cast<void *>(password_str.data()));
+    if (nullptr == pkey) {
+      return KeyGeneratorError::FAILED_TO_READ_FILE;
+    }
+
+    return pkey;
+  }
+
+  outcome::result<PrivateKey> KeyGeneratorImpl::importKey(
+      const boost::filesystem::path &pem_path,
+      std::string_view password) const {
+    OUTCOME_TRY(pkey, loadKey(pem_path, password));
+
+    auto free_key =
+        gsl::finally([pkey]() { EVP_PKEY_free(pkey); });  // free key
+
+    switch (EVP_PKEY_base_id(pkey)) {
+      case EVP_PKEY_RSA: {
+        RSA *rsa = EVP_PKEY_get1_RSA(pkey);
+        if (nullptr == rsa) {
+          return KeyGeneratorError::WRONG_KEY_TYPE;
+        }
+
+        OUTCOME_TRY(buffer, detail::getPrivateBytes(pkey));
+        auto bits = RSA_security_bits(rsa);
+        switch (bits) {
+          case 1024:
+            return PrivateKey{{Key::Type::RSA1024, std::move(buffer)}};
+          case 2048:
+            return PrivateKey{{Key::Type::RSA2048, std::move(buffer)}};
+          case 4096:
+            return PrivateKey{{Key::Type::RSA4096, std::move(buffer)}};
+          default:
+            return KeyGeneratorError::INCORRECT_BITS_COUNT;
+        }
+      }
+      case EVP_PKEY_ED25519: {
+        OUTCOME_TRY(buffer, detail::getPrivateBytes(pkey));
+        return PrivateKey{{Key::Type::ED25519, std::move(buffer)}};
+      }
+      case NID_secp256k1: {
+        // not sure about it
+        OUTCOME_TRY(buffer, detail::getPrivateBytes(pkey));
+        return PrivateKey{{Key::Type::SECP256K1, std::move(buffer)}};
+      }
+      default:
+        return KeyGeneratorError::WRONG_KEY_TYPE;
+    }
   }
 }  // namespace libp2p::crypto

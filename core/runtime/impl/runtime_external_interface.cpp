@@ -245,7 +245,7 @@ namespace kagome::runtime {
         return wasm::Literal(res);
       }
     }
-    wasm::Fatal() << "callImport: unknown import: " << import->module.str << "."
+    wasm::Fatal() << "callImport: unknown importKey: " << import->module.str << "."
                   << import->name.str;
   }
 
