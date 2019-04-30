@@ -12,7 +12,6 @@
 
 #include <gsl/span>
 #include "common/logger.hpp"
-#include "libp2p/peer/peer_id.hpp"
 #include "libp2p/protocol_muxer/multiselect/stream_state.hpp"
 #include "libp2p/protocol_muxer/protocol_muxer.hpp"
 
@@ -24,15 +23,11 @@ namespace libp2p::protocol_muxer {
   class Multiselect : public ProtocolMuxer,
                       public std::enable_shared_from_this<Multiselect> {
    public:
-    // TODO(akvinikym) [PRE-127] 25.04.19: think about passing not a PeerId, but
-    // an Identity service, when it's implemented
     /**
      * Create a Multiselect instance
-     * @param peer_id - id of the current peer
      * @param logger to write debug messages to
      */
-    explicit Multiselect(std::shared_ptr<peer::PeerId> peer_id,
-                         kagome::common::Logger logger =
+    explicit Multiselect(kagome::common::Logger logger =
                              kagome::common::createLogger("Multiselect"));
 
     Multiselect(const Multiselect &other) = delete;
@@ -40,7 +35,7 @@ namespace libp2p::protocol_muxer {
     Multiselect(Multiselect &&other) noexcept = default;
     Multiselect &operator=(Multiselect &&other) noexcept = default;
 
-    ~Multiselect() override;
+    ~Multiselect() override = default;
 
     void addProtocol(const Protocol &protocol) override;
 
@@ -105,6 +100,15 @@ namespace libp2p::protocol_muxer {
     void handleNaMsg(StreamState stream_state) const;
 
     /**
+     * Triggered, when a new message with protocol(s) arrived, and the last
+     * message we sent was an ls one
+     * @param stream_state - state of the stream
+     * @param received_protocols - protocols, received from the other side
+     */
+    void onLsMsgSent(StreamState stream_state,
+                     gsl::span<const Protocol> received_protocols) const;
+
+    /**
      * Send a message, signalizing about start of the negotiation
      * @param stream_state - state of the stream
      */
@@ -113,12 +117,10 @@ namespace libp2p::protocol_muxer {
     /**
      * Send a message, containing a protocol
      * @param protocol to be sent
-     * @param our_peer_id - should we use our peer_id or the other side's one?
      * @param wait_for_response - should the response be awaited?
      * @param stream_state - state of the stream
      */
-    void sendProtocolMsg(const Protocol &protocol, bool our_peer_id,
-                         bool wait_for_response,
+    void sendProtocolMsg(const Protocol &protocol, bool wait_for_response,
                          StreamState stream_state) const;
 
     /**
@@ -141,9 +143,20 @@ namespace libp2p::protocol_muxer {
      */
     void sendNaMsg(StreamState stream_state) const;
 
-    std::vector<Protocol> supported_protocols_;
-    std::shared_ptr<peer::PeerId> peer_id_;
+    /**
+     * Get a callback to be used in stream write functions
+     * @param t - shared_ptr to this
+     * @param stream_state - state of the stream
+     * @param success_status - status to be set after a successful write
+     * @param error to be shown in case of write failure
+     * @return lambda-callback for the write operation
+     */
+    auto getWriteCallback(
+        std::shared_ptr<const Multiselect> t, StreamState stream_state,
+        StreamState::NegotiationStatus success_status,
+        std::function<std::string(const std::error_code &ec)> error) const;
 
+    std::vector<Protocol> supported_protocols_;
     kagome::common::Logger log_;
   };
 }  // namespace libp2p::protocol_muxer

@@ -21,11 +21,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol_muxer,
 }
 
 namespace libp2p::protocol_muxer {
-  Multiselect::Multiselect(std::shared_ptr<peer::PeerId> peer_id,
-                           kagome::common::Logger logger)
-      : peer_id_{std::move(peer_id)}, log_{std::move(logger)} {}
-
-  Multiselect::~Multiselect() = default;
+  Multiselect::Multiselect(kagome::common::Logger logger)
+      : log_{std::move(logger)} {}
 
   void Multiselect::addProtocol(const Protocol &protocol) {
     supported_protocols_.push_back(protocol);
@@ -74,10 +71,6 @@ namespace libp2p::protocol_muxer {
     }
 
     auto message = std::move(message_res.value());
-
-    // memorize peer_id of the other side, if we don't know it yet
-    stream_state.setPeerId(std::move(message.peer_id_));
-
     switch (message.type_) {
       case MessageType::OPENING:
         handleOpeningMsg(std::move(stream_state));
@@ -93,6 +86,10 @@ namespace libp2p::protocol_muxer {
         return;
       case MessageType::NA:
         handleNaMsg(std::move(stream_state));
+        return;
+      default:
+        log_->error("type of the message, returned by the parser, is unknown");
+        sendLsMsg(std::move(stream_state));
         return;
     }
   }
@@ -115,7 +112,7 @@ namespace libp2p::protocol_muxer {
                       protocol)
             != supported_protocols_.end()) {
           stream_state.proto_callback_(protocol);
-          sendProtocolMsg(protocol, false, false, std::move(stream_state));
+          sendProtocolMsg(protocol, false, std::move(stream_state));
           return;
         }
         // if the protocol is not available, send ls
@@ -130,24 +127,18 @@ namespace libp2p::protocol_muxer {
         // the other side has chosen a protocol to communicate over; send an
         // ack, and negotiation is finished
         stream_state.proto_callback_(protocol);
-        sendProtocolMsg(protocol, true, false, std::move(stream_state));
+        sendProtocolMsg(protocol, false, std::move(stream_state));
         return;
       case Status::LS_SENT:
-        // we asked for a list of supported protocols, and the other side
-        // responded with only one; if it's not available on our side, send na?;
-        // otherwise, negotiation is finished
-        if (std::find(supported_protocols_.begin(), supported_protocols_.end(),
-                      protocol)
-            != supported_protocols_.end()) {
-          stream_state.proto_callback_(protocol);
-          sendProtocolMsg(protocol, false, false, std::move(stream_state));
-          return;
-        }
-        stream_state.proto_callback_(MultiselectErrors::NEGOTIATION_FAILED);
-        sendNaMsg(std::move(stream_state));
+        onLsMsgSent(std::move(stream_state), gsl::make_span(&protocol, 1));
         return;
       case Status::NA_SENT:
-        // unexpected request-response combination; send ls
+        log_->info(
+            "got a unexpected request-response combination - sending 'ls'");
+        sendLsMsg(std::move(stream_state));
+        return;
+      default:
+        log_->error("type of the message, returned by the parser, is unknown");
         sendLsMsg(std::move(stream_state));
         return;
     }
@@ -162,33 +153,24 @@ namespace libp2p::protocol_muxer {
       case Status::PROTOCOL_SENT:
       case Status::PROTOCOLS_SENT:
       case Status::NA_SENT:
-        // unexpected request-response combinations; send ls
+        log_->info(
+            "got a unexpected request-response combination - sending 'ls'");
         sendLsMsg(std::move(stream_state));
         return;
       case Status::LS_SENT:
-        // if any of the received protocols is supported by our side, choose it;
-        // send NA otherwise?
-        for (const auto &proto : protocols) {
-          // as size of vectors should be around 10 or less, we can use O(n*n)
-          // approach
-          if (std::find(supported_protocols_.begin(),
-                        supported_protocols_.end(), proto)
-              != supported_protocols_.end()) {
-            // the protocol is found; send it as our choice
-            sendProtocolMsg(proto, false, true, std::move(stream_state));
-            return;
-          }
-        }
-        stream_state.proto_callback_(MultiselectErrors::NEGOTIATION_FAILED);
-        sendNaMsg(std::move(stream_state));
+        onLsMsgSent(std::move(stream_state), protocols);
+        return;
+      default:
+        // in all unrecognized situations send ls
+        log_->error("there is some garbage in stream state status");
+        sendLsMsg(std::move(stream_state));
         return;
     }
   }
 
   void Multiselect::handleLsMsg(StreamState stream_state) const {
     // respond with a list of protocols, supported by us
-    sendProtocolsMsg(gsl::span<const Protocol>(supported_protocols_),
-                     std::move(stream_state));
+    sendProtocolsMsg(supported_protocols_, std::move(stream_state));
   }
 
   void Multiselect::handleNaMsg(StreamState stream_state) const {
@@ -197,87 +179,113 @@ namespace libp2p::protocol_muxer {
     sendLsMsg(std::move(stream_state));
   }
 
-  void Multiselect::sendOpeningMsg(StreamState stream_state) const {
-    stream_state.stream_.get().writeAsync(
-        MessageManager::openingMsg(*peer_id_),
-        [t = shared_from_this(), stream_state = std::move(stream_state)](
-            const std::error_code &ec, size_t n) mutable {
-          if (ec) {
-            t->log_->error("cannot send an opening message: {}", ec.value());
-            stream_state.proto_callback_(ec);
-            return;
-          }
-          stream_state.status_ = StreamState::NegotiationStatus::OPENING_SENT;
-          t->readResponse(std::move(stream_state));
-        });
+  void Multiselect::onLsMsgSent(
+      StreamState stream_state,
+      gsl::span<const Protocol> received_protocols) const {
+    // TODO(akvinikym) [PRE-143] 30.04.19: store the protocols to the
+    // protocol repository
+
+    // if any of the received protocols is supported by our side, choose it;
+    // send NA otherwise and close the connection?
+    for (const auto &proto : received_protocols) {
+      // as size of vectors should be around 10 or less, we can use O(n*n)
+      // approach
+      if (std::find(supported_protocols_.begin(), supported_protocols_.end(),
+                    proto)
+          != supported_protocols_.end()) {
+        // the protocol is found; send it as our choice
+        sendProtocolMsg(proto, true, std::move(stream_state));
+        return;
+      }
+    }
+    stream_state.proto_callback_(MultiselectErrors::NEGOTIATION_FAILED);
+    sendNaMsg(std::move(stream_state));
   }
 
-  void Multiselect::sendProtocolMsg(const Protocol &protocol, bool our_peer_id,
+  auto Multiselect::getWriteCallback(
+      std::shared_ptr<const Multiselect> t, StreamState stream_state,
+      StreamState::NegotiationStatus success_status,
+      std::function<std::string(const std::error_code &ec)> error) const {
+    return [t = std::move(t), stream_state = std::move(stream_state),
+            success_status, error = std::move(error)](const std::error_code &ec,
+                                                      size_t n) mutable {
+      if (ec) {
+        t->log_->error(error(ec));
+        stream_state.proto_callback_(ec);
+        return;
+      }
+      stream_state.status_ = success_status;
+      t->readResponse(std::move(stream_state));
+    };
+  }
+
+  void Multiselect::sendOpeningMsg(StreamState stream_state) const {
+    // this is done to avoid use-after-move with stream_state
+    auto stream = stream_state.stream_;
+    stream.get().writeAsync(
+        MessageManager::openingMsg(),
+        getWriteCallback(shared_from_this(), std::move(stream_state),
+                         StreamState::NegotiationStatus::OPENING_SENT,
+                         [](const std::error_code &ec) {
+                           return "cannot send an opening message: "
+                               + std::to_string(ec.value());
+                         }));
+  }
+
+  void Multiselect::sendProtocolMsg(const Protocol &protocol,
                                     bool wait_for_response,
                                     StreamState stream_state) const {
     if (!wait_for_response) {
-      stream_state.stream_.get().writeAsync(MessageManager::protocolMsg(
-          our_peer_id ? *peer_id_ : *stream_state.peer_id_, protocol));
+      stream_state.stream_.get().writeAsync(
+          MessageManager::protocolMsg(protocol));
       return;
     }
-    stream_state.stream_.get().writeAsync(
-        MessageManager::protocolMsg(
-            our_peer_id ? *peer_id_ : *stream_state.peer_id_, protocol),
-        [t = shared_from_this(), stream_state = std::move(stream_state)](
-            const std::error_code &ec, size_t n) mutable {
-          if (ec) {
-            t->log_->error("cannot send a protocol message: {}", ec.value());
-            stream_state.proto_callback_(ec);
-            return;
-          }
-          stream_state.status_ = StreamState::NegotiationStatus::PROTOCOL_SENT;
-          t->readResponse(std::move(stream_state));
-        });
+
+    auto stream = stream_state.stream_;
+    stream.get().writeAsync(
+        MessageManager::protocolMsg(protocol),
+        getWriteCallback(shared_from_this(), std::move(stream_state),
+                         StreamState::NegotiationStatus::PROTOCOL_SENT,
+                         [](const std::error_code &ec) {
+                           return "cannot send a protocol message: "
+                               + std::to_string(ec.value());
+                         }));
   }
 
   void Multiselect::sendProtocolsMsg(gsl::span<const Protocol> protocols,
                                      StreamState stream_state) const {
-    stream_state.stream_.get().writeAsync(
-        MessageManager::protocolsMsg(*peer_id_, protocols),
-        [t = shared_from_this(), stream_state = std::move(stream_state)](
-            const std::error_code &ec, size_t n) mutable {
-          if (ec) {
-            t->log_->error("cannot send a protocols message: {}", ec.value());
-            stream_state.proto_callback_(ec);
-            return;
-          }
-          stream_state.status_ = StreamState::NegotiationStatus::PROTOCOLS_SENT;
-          t->readResponse(std::move(stream_state));
-        });
+    auto stream = stream_state.stream_;
+    stream.get().writeAsync(
+        MessageManager::protocolsMsg(protocols),
+        getWriteCallback(shared_from_this(), std::move(stream_state),
+                         StreamState::NegotiationStatus::PROTOCOLS_SENT,
+                         [](const std::error_code &ec) {
+                           return "cannot send protocols message: "
+                               + std::to_string(ec.value());
+                         }));
   }
 
   void Multiselect::sendLsMsg(StreamState stream_state) const {
-    stream_state.stream_.get().writeAsync(
+    auto stream = stream_state.stream_;
+    stream.get().writeAsync(
         MessageManager::lsMsg(),
-        [t = shared_from_this(), stream_state = std::move(stream_state)](
-            const std::error_code &ec, size_t n) mutable {
-          if (ec) {
-            t->log_->error("cannot send an ls message: {}", ec.value());
-            stream_state.proto_callback_(ec);
-            return;
-          }
-          stream_state.status_ = StreamState::NegotiationStatus::LS_SENT;
-          t->readResponse(std::move(stream_state));
-        });
+        getWriteCallback(shared_from_this(), std::move(stream_state),
+                         StreamState::NegotiationStatus::LS_SENT,
+                         [](const std::error_code &ec) {
+                           return "cannot send an ls message: "
+                               + std::to_string(ec.value());
+                         }));
   }
 
   void Multiselect::sendNaMsg(StreamState stream_state) const {
-    stream_state.stream_.get().writeAsync(
+    auto stream = stream_state.stream_;
+    stream.get().writeAsync(
         MessageManager::naMsg(),
-        [t = shared_from_this(), stream_state = std::move(stream_state)](
-            const std::error_code &ec, size_t n) mutable {
-          if (ec) {
-            t->log_->error("cannot send an na message: {}", ec.value());
-            stream_state.proto_callback_(ec);
-            return;
-          }
-          stream_state.status_ = StreamState::NegotiationStatus::NA_SENT;
-          t->readResponse(std::move(stream_state));
-        });
+        getWriteCallback(shared_from_this(), std::move(stream_state),
+                         StreamState::NegotiationStatus::NA_SENT,
+                         [](const std::error_code &ec) {
+                           return "cannot send an na message: "
+                               + std::to_string(ec.value());
+                         }));
   }
 }  // namespace libp2p::protocol_muxer

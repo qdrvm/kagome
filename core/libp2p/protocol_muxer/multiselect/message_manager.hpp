@@ -14,7 +14,6 @@
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
 #include "libp2p/multi/uvarint.hpp"
-#include "libp2p/peer/peer_id.hpp"
 #include "libp2p/protocol_muxer/protocol_muxer.hpp"
 
 namespace libp2p::protocol_muxer {
@@ -28,20 +27,15 @@ namespace libp2p::protocol_muxer {
 
       /// type of the message
       MessageType type_;
-      /// peer, with which we are negotiating; optional, as not all of the
-      /// messages contain it
-      std::optional<peer::PeerId> peer_id_{};
       /// zero or more protocols in that message
       std::vector<std::string> protocols_{};
     };
 
     enum class ParseError {
       MSG_IS_TOO_SHORT = 1,
-      VARINT_WAS_EXPECTED,
+      VARINT_IS_EXPECTED,
       MSG_LENGTH_IS_INCORRECT,
-      PEER_ID_WAS_EXPECTED,
-      NO_P2P_PREFIX,
-      WRONG_PEER_ID
+      MSG_IS_ILL_FORMED
     };
 
     /**
@@ -54,10 +48,9 @@ namespace libp2p::protocol_muxer {
 
     /**
      * Create an opening message
-     * @param peer_id to be put into the message
      * @return created message
      */
-    static kagome::common::Buffer openingMsg(const peer::PeerId &peer_id);
+    static kagome::common::Buffer openingMsg();
 
     /**
      * Create a message with an ls command
@@ -73,21 +66,18 @@ namespace libp2p::protocol_muxer {
 
     /**
      * Create a response message with a single protocol
-     * @param peer_id to be put into the message
      * @param protocol to be sent
      * @return created message
      */
     static kagome::common::Buffer protocolMsg(
-        const peer::PeerId &peer_id, const ProtocolMuxer::Protocol &protocol);
+        const ProtocolMuxer::Protocol &protocol);
 
     /**
      * Create a response message with a list of protocols
-     * @param peer_id to be put into the message
      * @param protocols to be sent
      * @return created message
      */
     static kagome::common::Buffer protocolsMsg(
-        const peer::PeerId &peer_id,
         gsl::span<const ProtocolMuxer::Protocol> protocols);
   };
 }  // namespace libp2p::protocol_muxer
