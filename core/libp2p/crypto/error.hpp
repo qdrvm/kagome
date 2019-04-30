@@ -54,6 +54,7 @@ namespace libp2p::crypto {
     WRONG_KEY_TYPE,                   ///< incorrect key type
     CANNOT_LOAD_UNSPECIFIED,          ///< cannot load unspecified key
     GET_KEY_BYTES_FAILED,             ///< failed to get key bytes from PKEY
+    KEY_IMPORT_FAILED,                ///< failed to import key
   };
 }  // namespace libp2p::crypto
 

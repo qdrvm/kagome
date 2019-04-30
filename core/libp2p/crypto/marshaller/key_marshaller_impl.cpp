@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/crypto/marshaller/key_marshaller.hpp"
+#include "libp2p/crypto/marshaller/key_marshaller_impl.hpp"
 
 #include "libp2p/crypto/common.hpp"
 #include "libp2p/crypto/proto/keys.pb.h"
@@ -60,7 +60,7 @@ namespace libp2p::crypto::marshaller {
     }
   }  // namespace
 
-  outcome::result<Buffer> KeyMarshaller::marshal(const PublicKey &key) const {
+  outcome::result<Buffer> KeyMarshallerImpl::marshal(const PublicKey &key) const {
     proto::PublicKey proto_key;
     OUTCOME_TRY(key_type, marshalKeyType(key.type));
     proto_key.set_key_type(key_type);
@@ -74,7 +74,7 @@ namespace libp2p::crypto::marshaller {
     return out;
   }
 
-  outcome::result<Buffer> KeyMarshaller::marshal(const PrivateKey &key) const {
+  outcome::result<Buffer> KeyMarshallerImpl::marshal(const PrivateKey &key) const {
     proto::PublicKey proto_key;
     OUTCOME_TRY(key_type, marshalKeyType(key.type));
     proto_key.set_key_type(key_type);
@@ -87,7 +87,7 @@ namespace libp2p::crypto::marshaller {
     return out;
   }
 
-  outcome::result<PublicKey> KeyMarshaller::unmarshalPublicKey(
+  outcome::result<PublicKey> KeyMarshallerImpl::unmarshalPublicKey(
       const Buffer &key_bytes) const {
     proto::PublicKey proto_key;
     if (!proto_key.ParseFromArray(key_bytes.toBytes(), key_bytes.size())) {
@@ -101,7 +101,7 @@ namespace libp2p::crypto::marshaller {
     return PublicKey{{key_type, key_value}};
   }
 
-  outcome::result<PrivateKey> KeyMarshaller::unmarshalPrivateKey(
+  outcome::result<PrivateKey> KeyMarshallerImpl::unmarshalPrivateKey(
       const Buffer &key_bytes) const {
     proto::PublicKey proto_key;
     if (!proto_key.ParseFromArray(key_bytes.toBytes(), key_bytes.size())) {

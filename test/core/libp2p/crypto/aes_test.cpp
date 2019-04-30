@@ -2,7 +2,7 @@
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
-#include "libp2p/crypto/aes_provider/aes_provider.hpp"
+#include "libp2p/crypto/aes_provider/aes_provider_impl.hpp"
 
 #include <gtest/gtest.h>
 #include <outcome/outcome.hpp>
@@ -45,7 +45,7 @@ class AesTest : public testing::Test {
   Buffer plain_text_128;
   Buffer plain_text_256;
 
-  aes::AesProvider provider;
+  aes::AesProviderImpl provider;
 };
 
 /**

@@ -4,8 +4,8 @@
 #
 
 add_library(marshaller
-    key_marshaller.hpp
-    key_marshaller.cpp
+    key_marshaller_impl.hpp
+    key_marshaller_impl.cpp
     )
 target_link_libraries(marshaller
     buffer

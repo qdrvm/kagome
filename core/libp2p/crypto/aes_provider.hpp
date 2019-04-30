@@ -21,14 +21,15 @@ namespace libp2p::crypto::aes {
     using Aes256Secret = libp2p::crypto::common::Aes256Secret;
 
    public:
+    virtual ~AesProvider() = default;
     /**
      * @brief encrypts data using AES128 cipher
      * @param secret cipher secret
      * @param data plain data
      * @return encrypted data or error
      */
-    outcome::result<Buffer> encrypt_128_ctr(const Aes128Secret &secret,
-                                            const Buffer &data) const;
+    virtual outcome::result<Buffer> encrypt_128_ctr(
+        const Aes128Secret &secret, const Buffer &data) const = 0;
 
     /**
      * @brief decrypts data using AES128 cipher
@@ -36,8 +37,8 @@ namespace libp2p::crypto::aes {
      * @param data encrypted data
      * @return decrypted data or error
      */
-    outcome::result<Buffer> decrypt_128_ctr(const Aes128Secret &secret,
-                                            const Buffer &data) const;
+    virtual outcome::result<Buffer> decrypt_128_ctr(
+        const Aes128Secret &secret, const Buffer &data) const = 0;
 
     /**
      * @brief encrypts data using AES256 cipher
@@ -45,8 +46,8 @@ namespace libp2p::crypto::aes {
      * @param data plain data
      * @return encrypted data or error
      */
-    outcome::result<Buffer> encrypt_256_ctr(const Aes256Secret &secret,
-                                            const Buffer &data) const;
+    virtual outcome::result<Buffer> encrypt_256_ctr(
+        const Aes256Secret &secret, const Buffer &data) const = 0;
 
     /**
      * @brief decrypts data using AES256 cipher
@@ -54,8 +55,8 @@ namespace libp2p::crypto::aes {
      * @param data encrypted data
      * @return decrypted data or error
      */
-    outcome::result<Buffer> decrypt_256_ctr(const Aes256Secret &secret,
-                                            const Buffer &data) const;
+    virtual outcome::result<Buffer> decrypt_256_ctr(
+        const Aes256Secret &secret, const Buffer &data) const = 0;
   };
 }  // namespace libp2p::crypto::aes
 

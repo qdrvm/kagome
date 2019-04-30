@@ -4,8 +4,8 @@
 #
 
 add_library(aes_provider
-    aes_provider.hpp
-    aes_provider.cpp
+    aes_provider_impl.hpp
+    aes_provider_impl.cpp
     )
 
 target_link_libraries(aes_provider

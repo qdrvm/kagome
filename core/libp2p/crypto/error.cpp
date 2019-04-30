@@ -100,6 +100,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, KeyGeneratorError, e) {
       return "cannot load unspecified key";
     case KeyGeneratorError::GET_KEY_BYTES_FAILED:
       return "failed to get key bytes from PKEY";
+    case KeyGeneratorError::KEY_IMPORT_FAILED:
+      return "failed to import key";
   }
   return "unknown KeyGenerator error";
 }

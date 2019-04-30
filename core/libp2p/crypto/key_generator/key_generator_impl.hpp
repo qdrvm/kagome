@@ -14,17 +14,8 @@ namespace libp2p::crypto {
    public:
     ~KeyGeneratorImpl() override = default;
 
-    /**
-     * @brief constructor, performs initialization
-     * @param random_provider cryptographically secure random generator
-     */
     explicit KeyGeneratorImpl(random::CSPRNG &random_provider);
 
-    /**
-     * @brief generates key pair of specified type
-     * @param key_type key type
-     * @return newly generated key pair
-     */
     outcome::result<KeyPair> generateKeys(Key::Type key_type) const override;
 
     outcome::result<PublicKey> derivePublicKey(
@@ -42,7 +33,6 @@ namespace libp2p::crypto {
         std::string_view password) const override;
 
    private:
-    /// \brief seeds openssl random generator
     void initialize();
 
     outcome::result<KeyPair> generateRsa(common::RSAKeyType key_type) const;
