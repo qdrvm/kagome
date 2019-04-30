@@ -10,7 +10,6 @@ namespace libp2p::crypto {
     class CSPRNG;
   }
 
-  /// \class KeyGeneratorImpl implements KeyGenerator interface
   class KeyGeneratorImpl : public KeyGenerator {
    public:
     ~KeyGeneratorImpl() override = default;

@@ -77,3 +77,4 @@ namespace libp2p::crypto {
 }  // namespace libp2p::crypto
 
 #endif  // KAGOME_CORE_LIBP2P_CRYPTO_KEY_GENERATOR_HPP
+
