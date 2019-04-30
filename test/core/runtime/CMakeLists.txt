@@ -21,5 +21,22 @@ addtest(runtime_external_interface_test
     runtime_external_interface_test.cpp
     )
 target_link_libraries(runtime_external_interface_test
-    runtime_api
+    runtime_external_interface
     )
+
+addtest(core_integration_test
+    core_integration_test.cpp
+    )
+target_link_libraries(core_integration_test
+    core
+    wasm_test
+    )
+
+addtest(wasm_executor_test
+    wasm_executor_test.cpp
+    )
+target_link_libraries(wasm_executor_test
+    wasm_executor
+    wasm_test
+    )
+

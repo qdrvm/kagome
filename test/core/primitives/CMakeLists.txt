@@ -9,7 +9,7 @@ addtest(primitives_test
 
 target_link_libraries(primitives_test
         outcome
-        primitives
+        scale_codec
         buffer
         scale
         Boost::boost

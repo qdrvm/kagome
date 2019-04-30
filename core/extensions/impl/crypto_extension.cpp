@@ -27,7 +27,7 @@ namespace kagome::extensions {
     memory_->storeBuffer(out_ptr, common::Buffer(hash));
   }
 
-  uint32_t CryptoExtension::ext_ed25519_verify(
+  runtime::SizeType CryptoExtension::ext_ed25519_verify(
       runtime::WasmPointer msg_data, runtime::SizeType msg_len,
       runtime::WasmPointer sig_data, runtime::WasmPointer pubkey_data) {
     // for some reason, 0 and 5 are used in the reference implementation, so

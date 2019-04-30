@@ -25,12 +25,12 @@ namespace kagome::extensions {
     /**
      * @see Extension::ext_malloc
      */
-    int32_t ext_malloc(uint32_t size);
+    runtime::WasmPointer ext_malloc(runtime::SizeType size);
 
     /**
      * @see Extension::ext_free
      */
-    void ext_free(int32_t ptr);
+    void ext_free(runtime::WasmPointer ptr);
 
    private:
     constexpr static auto kDefaultLoggerTag = "WASM Runtime [MemoryExtension]";

@@ -61,3 +61,19 @@ TEST_F(InmemKeyRepositoryTest, KeyPairStore) {
 
   EXPECT_EQ(*v, std::unordered_set<KeyPair>{kp});
 }
+
+/**
+ * @given 2 peers in storage
+ * @when get peers
+ * @then 2 peers returned
+ */
+TEST_F(InmemKeyRepositoryTest, GetPeers) {
+  PublicKey z{};
+  KeyPair kp{};
+
+  db_->addPublicKey(p1_, z);
+  db_->addKeyPair(p2_, kp);
+  
+  auto s = db_->getPeers();
+  EXPECT_EQ(s.size(), 2);
+}

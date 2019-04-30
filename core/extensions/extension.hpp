@@ -10,6 +10,7 @@
 #include <functional>
 
 #include "runtime/common.hpp"
+#include "runtime/wasm_memory.hpp"
 
 namespace kagome::extensions {
   /**
@@ -23,6 +24,8 @@ namespace kagome::extensions {
 
    public:
     virtual ~Extension() = default;
+
+    virtual std::shared_ptr<runtime::WasmMemory> memory() const = 0;
     // -------------------------Storage extensions--------------------------
 
     /**
