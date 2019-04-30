@@ -27,6 +27,9 @@ namespace libp2p::peer {
 
     void addKeyPair(const PeerId &p, const KeyPair &kp) override;
 
+    std::unordered_set<PeerId> getPeers() const override;
+
+
    private:
     std::unordered_map<PeerId, PubVecPtr> pub_;
     std::unordered_map<PeerId, KeyPairVecPtr> kp_;

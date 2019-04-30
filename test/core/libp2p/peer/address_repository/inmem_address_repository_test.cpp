@@ -49,6 +49,11 @@ struct InmemAddressRepository_Test : public ::testing::Test {
       Multiaddress::create("/ip4/127.0.0.1/tcp/8082").value();
   const Multiaddress ma4 =
       Multiaddress::create("/ip4/127.0.0.1/tcp/8083").value();
+
+  template <typename... T>
+  std::vector<T...> vec(T &&... arg) {
+    return std::vector<T...>{arg...};
+  }
 };
 
 TEST_F(InmemAddressRepository_Test, GarbageCollection) {
@@ -176,4 +181,17 @@ TEST_F(InmemAddressRepository_Test, InsertAddress) {
   EXPECT_OUTCOME_TRUE_2(v, db->getAddresses(p1));
   EXPECT_EQ(v.size(), 1);
   EXPECT_EQ(v.front(), ma2);
+}
+
+/**
+ * @given 2 peers in storage
+ * @when get peers
+ * @then 2 peers returned
+ */
+TEST_F(InmemAddressRepository_Test, GetPeers) {
+  EXPECT_OUTCOME_TRUE_1(db->upsertAddresses(p1, {}, 1000ms));
+  EXPECT_OUTCOME_TRUE_1(db->upsertAddresses(p2, {}, 1000ms));
+
+  auto s = db->getPeers();
+  EXPECT_EQ(s.size(), 2);
 }
