@@ -103,6 +103,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, KeyGeneratorError, e) {
       return "incorrect bits count";
     case KeyGeneratorError::WRONG_KEY_TYPE:
       return "incorrect key type";
+    case KeyGeneratorError::UNSUPPORTED_KEY_TYPE:
+      return "key type is not supported";
     case KeyGeneratorError::CANNOT_LOAD_UNSPECIFIED:
       return "cannot load unspecified key";
     case KeyGeneratorError::GET_KEY_BYTES_FAILED:

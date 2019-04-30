@@ -39,7 +39,7 @@ target_link_libraries(marshaller_test
     )
 
 addtest(keygen_test
-    keygen_test.cpp
+    key_generator_test.cpp
     )
 target_link_libraries(keygen_test
     key_generator
