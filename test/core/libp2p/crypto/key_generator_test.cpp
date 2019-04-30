@@ -187,7 +187,7 @@ class DeriveKeyTest : public KeyTest, public KeyData {};
  * @when generateRsa of type RSA1024 is called
  * @then obtained key pair has type RSA1024
  */
-TEST_F(GenerateKeyTest, generateRSA1024Success) {
+TEST_F(GenerateKeyTest, GenerateRSA1024Success) {
   auto &&res = keygen_.generateRsa(RSAKeyType::RSA1024);
   ASSERT_TRUE(res);
   auto &&val = res.value();
@@ -200,7 +200,7 @@ TEST_F(GenerateKeyTest, generateRSA1024Success) {
  * @when generateRsa of type RSA2048 is called
  * @then obtained key pair has type RSA2048
  */
-TEST_F(GenerateKeyTest, generateRSA2048Success) {
+TEST_F(GenerateKeyTest, GenerateRSA2048Success) {
   auto &&res = keygen_.generateRsa(RSAKeyType::RSA2048);
   ASSERT_TRUE(res);
   auto &&val = res.value();
@@ -213,7 +213,7 @@ TEST_F(GenerateKeyTest, generateRSA2048Success) {
  * @when generateRsa of type RSA4096 is called
  * @then obtained key pair has type RSA4096
  */
-TEST_F(GenerateKeyTest, generateRSA4096Success) {
+TEST_F(GenerateKeyTest, GenerateRSA4096Success) {
   auto &&res = keygen_.generateRsa(RSAKeyType::RSA4096);
   ASSERT_TRUE(res);
   auto &&val = res.value();
@@ -241,7 +241,7 @@ TEST_F(GenerateKeyTest, Rsa1024KeysNotSame) {
  * @when generateEd25519 is called
  * @then obtained key pair have type ED25519
  */
-TEST_F(GenerateKeyTest, generateED25519Success) {
+TEST_F(GenerateKeyTest, GenerateED25519Success) {
   auto &&res = keygen_.generateEd25519();
   ASSERT_TRUE(res);
   auto &&val = res.value();
@@ -269,7 +269,7 @@ TEST_F(GenerateKeyTest, Ed25519KeysNotSame) {
  * @when generateSecp256k1 is called
  * @then obtained key pair have type SECP256K1
  */
-TEST_F(GenerateKeyTest, generateSecp256k1Success) {
+TEST_F(GenerateKeyTest, GenerateSecp256k1Success) {
   auto &&res = keygen_.generateSecp256k1();
   ASSERT_TRUE(res);
   auto &&val = res.value();
@@ -297,7 +297,7 @@ TEST_F(GenerateKeyTest, Secp256k1KeysNotSame) {
  * @when importKey is called with correct password
  * @then operation succeeds
  */
-TEST_F(ImportKeyTest, importRsa1024Successful) {
+TEST_F(ImportKeyTest, ImportRsa1024Successful) {
   TempFile key_file{};
   auto &&path = key_file.create(rsa_1024_private_key_);
 
@@ -312,7 +312,7 @@ TEST_F(ImportKeyTest, importRsa1024Successful) {
  * @when importKey is called with wrong password
  * @then operation fails
  */
-TEST_F(ImportKeyTest, importRsa1024Fail) {
+TEST_F(ImportKeyTest, ImportRsa1024Fail) {
   TempFile key_file{};
   auto &&path = key_file.create(rsa_1024_private_key_);
   auto &&key = keygen_.importKey(path, "asdasdasd");
@@ -324,7 +324,7 @@ TEST_F(ImportKeyTest, importRsa1024Fail) {
  * @when importKey is called with correct password
  * @then operation succeeds
  */
-TEST_F(ImportKeyTest, importRsa2048Successful) {
+TEST_F(ImportKeyTest, ImportRsa2048Successful) {
   TempFile key_file{};
   auto &&path = key_file.create(rsa_2048_private_key_);
   auto &&key = keygen_.importKey(path, "qweqweqwe");
@@ -337,7 +337,7 @@ TEST_F(ImportKeyTest, importRsa2048Successful) {
  * @when importKey is called with correct password
  * @then operation succeeds
  */
-TEST_F(ImportKeyTest, importRsa4096Successful) {
+TEST_F(ImportKeyTest, ImportRsa4096Successful) {
   TempFile key_file{};
   auto &&path = key_file.create(rsa_4096_private_key_);
   auto &&key = keygen_.importKey(path, "qweqweqwe");
@@ -350,7 +350,7 @@ TEST_F(ImportKeyTest, importRsa4096Successful) {
  * @when importKey is called with empty password
  * @then operation succeeds
  */
-TEST_F(ImportKeyTest, importEd25519Successful) {
+TEST_F(ImportKeyTest, ImportEd25519Successful) {
   TempFile key_file{};
   auto &&path = key_file.create(ed25519_private_key_);
   auto &&key = keygen_.importKey(path, "");
@@ -363,7 +363,7 @@ TEST_F(ImportKeyTest, importEd25519Successful) {
  * @when importKey is called with empty password
  * @then operation succeeds
  */
-TEST_F(ImportKeyTest, imporSecp256k1Successful) {
+TEST_F(ImportKeyTest, ImporSecp256k1Successful) {
   TempFile key_file{};
   auto &&path = key_file.create(secp256k1_private_key_);
   auto &&key = keygen_.importKey(path, "");
@@ -377,7 +377,7 @@ TEST_F(ImportKeyTest, imporSecp256k1Successful) {
  * @when derivePublicKey is called
  * @then operation succeeds
  */
-TEST_F(DeriveKeyTest, deriveRsa1024Successful) {
+TEST_F(DeriveKeyTest, DeriveRsa1024Successful) {
   TempFile key_file{};
   auto &&path = key_file.create(rsa_1024_private_key_);
   auto &&key = keygen_.importKey(path, "qweqweqwe");
@@ -392,7 +392,7 @@ TEST_F(DeriveKeyTest, deriveRsa1024Successful) {
  * @when derivePublicKey is called
  * @then operation succeeds
  */
-TEST_F(DeriveKeyTest, deriveRsa2048Successful) {
+TEST_F(DeriveKeyTest, DeriveRsa2048Successful) {
   TempFile key_file{};
   auto &&path = key_file.create(rsa_2048_private_key_);
   auto &&key = keygen_.importKey(path, "qweqweqwe");
@@ -407,7 +407,7 @@ TEST_F(DeriveKeyTest, deriveRsa2048Successful) {
  * @when derivePublicKey is called
  * @then operation succeeds
  */
-TEST_F(DeriveKeyTest, deriveRsa4096Successful) {
+TEST_F(DeriveKeyTest, DeriveRsa4096Successful) {
   TempFile key_file{};
   auto &&path = key_file.create(rsa_4096_private_key_);
   auto &&key = keygen_.importKey(path, "qweqweqwe");
@@ -422,7 +422,7 @@ TEST_F(DeriveKeyTest, deriveRsa4096Successful) {
  * @when derivePublicKey is called
  * @then operation succeeds
  */
-TEST_F(DeriveKeyTest, deriveEd25519uccessful) {
+TEST_F(DeriveKeyTest, DeriveEd25519uccessful) {
   TempFile key_file{};
   auto &&path = key_file.create(ed25519_private_key_);
   auto &&key = keygen_.importKey(path, "");
@@ -437,7 +437,7 @@ TEST_F(DeriveKeyTest, deriveEd25519uccessful) {
  * @when derivePublicKey is called
  * @then operation succeeds
  */
-TEST_F(DeriveKeyTest, deriveSecp2561kSuccessful) {
+TEST_F(DeriveKeyTest, DeriveSecp2561kSuccessful) {
   TempFile key_file{};
   auto &&path = key_file.create(secp256k1_private_key_);
   auto &&key = keygen_.importKey(path, "");
