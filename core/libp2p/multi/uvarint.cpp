@@ -31,6 +31,25 @@ namespace libp2p::multi {
       : bytes_(varint_bytes.begin(),
                varint_bytes.begin() + calculateSize(varint_bytes)) {}
 
+  UVarint::UVarint(gsl::span<const uint8_t> varint_bytes, int64_t varint_size)
+      : bytes_(varint_bytes.begin(), varint_bytes.begin() + varint_size) {}
+
+  std::optional<UVarint> UVarint::createVarint(
+      gsl::span<const uint8_t> varint_bytes) {
+    if (varint_bytes.empty()) {
+      return {};
+    }
+    // no use of calculateSize(..), as it is unsafe in this case
+    int64_t s = 0;
+    while ((varint_bytes[s] & 0x80u) != 0) {
+      ++s;
+      if (s >= varint_bytes.size()) {
+        return {};
+      }
+    }
+    return UVarint{varint_bytes, s + 1};
+  }
+
   uint64_t UVarint::toUInt64() const {
     uint64_t res = 0;
     for (size_t i = 0; i < 8 && i < bytes_.size(); i++) {

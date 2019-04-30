@@ -7,9 +7,11 @@
 #define KAGOME_VARINT_HPP
 
 #include <cstdint>
-#include <gsl/span>
+#include <optional>
 #include <string>
 #include <vector>
+
+#include <gsl/span>
 
 namespace libp2p::multi {
 
@@ -35,6 +37,15 @@ namespace libp2p::multi {
      * @param varint_bytes an array of bytes representing an unsigned varint
      */
     explicit UVarint(gsl::span<const uint8_t> varint_bytes);
+
+    /**
+     * Constructs a varint from an array of raw bytes, which beginning may or
+     * may not be an encoded varint
+     * @param varint_bytes an array of bytes, possibly representing an unsigned
+     * varint
+     */
+    static std::optional<UVarint> createVarint(
+        gsl::span<const uint8_t> varint_bytes);
 
     /**
      * Converts a varint back to a usual unsigned integer.
@@ -69,6 +80,9 @@ namespace libp2p::multi {
     static size_t calculateSize(gsl::span<const uint8_t> varint_bytes);
 
    private:
+    /// private ctor for unsafe creation
+    UVarint(gsl::span<const uint8_t> varint_bytes, int64_t varint_size);
+
     std::vector<uint8_t> bytes_{};
   };
 

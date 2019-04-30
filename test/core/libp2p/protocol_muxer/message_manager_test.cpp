@@ -17,7 +17,7 @@
 using kagome::common::Buffer;
 using libp2p::multi::Multihash;
 using libp2p::multi::UVarint;
-using libp2p::peer::PeerId;
+using libp2p::peer::Protocol;
 using libp2p::protocol_muxer::MessageManager;
 using libp2p::protocol_muxer::Multiselect;
 
@@ -26,22 +26,17 @@ using MessageType = MessageManager::MultiselectMessage::MessageType;
 class MessageManagerTest : public ::testing::Test {
   static constexpr std::string_view kMultiselectHeaderProtocol =
       "/multistream-select/0.3.0";
-  static constexpr std::string_view kDefaultPeerIdString =
-      "QmdRKVhvzyATs3L6dosSb6w8hKuqfZK2SyPVqcYJ5VLYa2";
 
  public:
-  const PeerId kDefaultPeerId{
-      Multihash::createFromBuffer(Buffer{}.put(kDefaultPeerIdString).toVector())
-          .value()};
-  const std::vector<Multiselect::Protocol> kDefaultProtocols{
+  const std::vector<Protocol> kDefaultProtocols{
       "/plaintext/1.0.0", "ipfs-dht/0.2.3", "/http/w3id.org/http/1.1"};
-  static constexpr uint64_t kProtocolsListBytesSize = 56;
+  static constexpr uint64_t kProtocolsListBytesSize = 59;
 
-  const Buffer kOpeningMsg = Buffer{}
-                                 .put("/p2p/")
-                                 .put(kDefaultPeerIdString)
-                                 .put(kMultiselectHeaderProtocol)
-                                 .put("\n");
+  const Buffer kOpeningMsg =
+      Buffer{}
+          .put(UVarint{kMultiselectHeaderProtocol.size() + 1}.toBytes())
+          .put(kMultiselectHeaderProtocol)
+          .put("\n");
   const Buffer kLsMsg = Buffer{}.put(UVarint{3}.toBytes()).put("ls\n");
   const Buffer kNaMsg = Buffer{}.put(UVarint{3}.toBytes()).put("na\n");
   const Buffer kProtocolMsg =
@@ -51,7 +46,7 @@ class MessageManagerTest : public ::testing::Test {
           .put("\n");
   const Buffer kProtocolsMsg =
       Buffer{}
-          .put(UVarint{2}.toBytes())
+          .put(UVarint{3}.toBytes())
           .put(UVarint{kProtocolsListBytesSize}.toBytes())
           .put(UVarint{3}.toBytes())
           .put("\n")
@@ -72,7 +67,7 @@ class MessageManagerTest : public ::testing::Test {
  * @then well-formed opening message is returned
  */
 TEST_F(MessageManagerTest, ComposeOpeningMessage) {
-  auto opening_msg = MessageManager::openingMsg(kDefaultPeerId);
+  auto opening_msg = MessageManager::openingMsg();
   ASSERT_EQ(opening_msg, kOpeningMsg);
 }
 
@@ -102,8 +97,7 @@ TEST_F(MessageManagerTest, ComposeNaMessage) {
  * @then well-formed protocol message is returned
  */
 TEST_F(MessageManagerTest, ComposeProtocolMessage) {
-  auto protocol_msg =
-      MessageManager::protocolMsg(kDefaultPeerId, kDefaultProtocols[0]);
+  auto protocol_msg = MessageManager::protocolMsg(kDefaultProtocols[0]);
   ASSERT_EQ(protocol_msg, kProtocolMsg);
 }
 
@@ -113,8 +107,7 @@ TEST_F(MessageManagerTest, ComposeProtocolMessage) {
  * @then well-formed protocols message is returned
  */
 TEST_F(MessageManagerTest, ComposeProtocolsMessage) {
-  auto protocols_msg =
-      MessageManager::protocolsMsg(kDefaultPeerId, kDefaultProtocols);
+  auto protocols_msg = MessageManager::protocolsMsg(kDefaultProtocols);
   ASSERT_EQ(protocols_msg, kProtocolsMsg);
 }
 

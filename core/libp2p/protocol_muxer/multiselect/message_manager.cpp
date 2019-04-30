@@ -62,18 +62,13 @@ namespace {
    * @return varint, if it was retrieved; none otherwise
    */
   std::optional<UVarint> getVarint(const Buffer &buffer, size_t &pos) {
-    std::vector<uint8_t> varint_candidate;
-    uint8_t current_byte;
-    while (pos < buffer.size()) {
-      current_byte = buffer[pos];
-      varint_candidate.push_back(current_byte);
-      ++pos;
-      // last varint in the array has a 0 most significant bit
-      if ((current_byte << 7) == 0) {
-        return UVarint{varint_candidate};
-      }
+    auto varint_opt = UVarint::createVarint(
+        gsl::make_span(buffer.toBytes() + pos, buffer.size() - pos));  // NOLINT
+    if (!varint_opt) {
+      return {};
     }
-    return {};
+    pos += varint_opt->size();
+    return varint_opt;
   }
 
   /**
@@ -107,9 +102,9 @@ namespace {
   /**
    * Get a protocol from a string and check it meets specification requirements
    * @param msg, which must contain a protocol, ending with \n
-   * @return pure protocol string or error
+   * @return pure protocol string with cutted \n or error
    */
-  outcome::result<std::string_view> parseProtocol(std::string_view msg) {
+  outcome::result<std::string> parseProtocol(std::string_view msg) {
     using ParseError = libp2p::protocol_muxer::MessageManager::ParseError;
 
     auto new_line_byte = msg.find('\n');
@@ -117,7 +112,7 @@ namespace {
       return ParseError::MSG_IS_ILL_FORMED;
     }
 
-    return msg.substr(0, msg.size() - 1);
+    return std::string{msg.substr(0, new_line_byte)};
   }
 
   /**
@@ -136,12 +131,14 @@ namespace {
     OUTCOME_TRY(protocol, parseProtocol(current_line));
 
     // if a parsed protocol is a Multiselect header, it's an opening message
-    if (protocol == kMultiselectHeaderString) {
+    if (protocol
+        == kMultiselectHeaderString.substr(
+            0, kMultiselectHeaderString.size() - 1)) {
       return MultiselectMessage{MultiselectMessage::MessageType::OPENING};
     }
 
     auto msg = MultiselectMessage{MultiselectMessage::MessageType::PROTOCOL};
-    msg.protocols_.emplace_back(std::string{protocol});
+    msg.protocols_.push_back(std::move(protocol));
     return msg;
   }
 
@@ -192,7 +189,7 @@ namespace {
     for (uint64_t i = 0; i < protocols_number->toUInt64(); ++i) {
       OUTCOME_TRY(current_line, lineToString(buffer, current_position));
       OUTCOME_TRY(protocol, parseProtocol(current_line));
-      parsed_msg.protocols_.emplace_back(std::string{protocol});
+      parsed_msg.protocols_.push_back(std::move(protocol));
     }
 
     return parsed_msg;
