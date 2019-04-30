@@ -2,7 +2,7 @@
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
-#include "libp2p/crypto/aes/aes_provider.hpp"
+#include "libp2p/crypto/aes_provider/aes_provider.hpp"
 
 #include <gtest/gtest.h>
 #include <outcome/outcome.hpp>

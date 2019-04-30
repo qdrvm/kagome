@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/crypto/random/impl/boost_generator.hpp"
-#include "libp2p/crypto/random/impl/std_generator.hpp"
+#include "libp2p/crypto/random_generator/boost_generator.hpp"
+#include "libp2p/crypto/random_generator/std_generator.hpp"
 
 #include <gtest/gtest.h>
 #include "common/buffer.hpp"

@@ -44,7 +44,6 @@ namespace libp2p::crypto {
    private:
     /// \brief seeds openssl random generator
     void initialize();
-    /// \return error if not initialized success otherwise
     random::CSPRNG &random_provider_;  ///< random bytes generator
   };
 }  // namespace libp2p::crypto

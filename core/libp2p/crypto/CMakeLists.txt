@@ -3,11 +3,12 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(aes)
-add_subdirectory(hmac)
+add_subdirectory(aes_provider)
+add_subdirectory(hmac_provider)
 add_subdirectory(marshaller)
 add_subdirectory(proto)
-add_subdirectory(random)
+add_subdirectory(random_generator)
+add_subdirectory(key_generator)
 
 add_library(crypto_error
     error.hpp
@@ -25,17 +26,4 @@ add_library(crypto_key
     )
 target_link_libraries(crypto_key
     Boost::boost
-    )
-
-add_library(key_generator
-    key_generator.hpp
-    key_generator/key_generator_impl.cpp
-    key_generator/key_generator_impl.hpp)
-target_link_libraries(key_generator
-    crypto_error
-    outcome
-    buffer
-    random_provider
-    OpenSSL::Crypto
-    Boost::filesystem
     )

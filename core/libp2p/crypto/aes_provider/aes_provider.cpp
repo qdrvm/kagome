@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/crypto/aes/aes_provider.hpp"
+#include "libp2p/crypto/aes_provider/aes_provider.hpp"
 
 #include <openssl/aes.h>  // for AES_BLOCK_SIZE
 #include <openssl/evp.h>
@@ -21,7 +21,7 @@ namespace libp2p::crypto::aes {
                                   gsl::span<const uint8_t> iv,
                                   const EVP_CIPHER *cipher) {
     if (nullptr == cipher) {
-      return MiscError::WRONG_ARGUMENT_VALUE;
+      return std::errc::invalid_argument;
     }
 
     int len = 0;
@@ -76,7 +76,7 @@ namespace libp2p::crypto::aes {
                                   gsl::span<const uint8_t> iv,
                                   const EVP_CIPHER *cipher) {
     if (nullptr == cipher) {
-      return MiscError::WRONG_ARGUMENT_VALUE;
+      return std::errc::invalid_argument;
     }
 
     int len = 0;

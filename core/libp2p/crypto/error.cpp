@@ -39,15 +39,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, OpenSslError, e) {
   return "unknown CryptoProviderError code";
 }
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, MiscError, e) {
-  using libp2p::crypto::MiscError;
-  switch (e) {  // NOLINT
-    case MiscError::WRONG_ARGUMENT_VALUE:
-      return "wrong argument value";
-  }
-  return "unknown MiscError code";
-}
-
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, HmacProviderError, e) {
   using libp2p::crypto::HmacProviderError;
   switch (e) {  // NOLINT

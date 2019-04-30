@@ -14,7 +14,7 @@
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
 #include "libp2p/crypto/error.hpp"
-#include "libp2p/crypto/random/csprng.hpp"
+#include "libp2p/crypto/random_generator.hpp"
 
 namespace libp2p::crypto {
   using kagome::common::Buffer;
@@ -48,7 +48,9 @@ namespace libp2p::crypto {
 
       BIO *bio = nullptr;
       bio = BIO_new(BIO_s_file());
-      if (1 != BIO_read_filename(bio, pem_path.c_str())) {
+      std::vector<char> path(pem_path.size() + 1, 0);
+      std::copy(pem_path.string().begin(), pem_path.string().end(), path.begin());
+      if (1 != BIO_read_filename(bio, path.data())) {
         return KeyGeneratorError::FAILED_TO_READ_FILE;
       }
       auto free_key = gsl::finally([bio]() { BIO_free_all(bio); });
@@ -72,7 +74,7 @@ namespace libp2p::crypto {
     outcome::result<PublicKey> derivePublicKey(const PrivateKey &key) {
       auto &buffer = key.data;
       BIO *bio_private =
-          BIO_new_mem_buf((void *)(buffer.toBytes()), buffer.size());
+          BIO_new_mem_buf(static_cast<const void *>(buffer.toBytes()), buffer.size());
       if (nullptr == bio_private) {
         return KeyGeneratorError::KEY_DERIVATION_FAILED;
       }

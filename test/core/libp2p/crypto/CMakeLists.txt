@@ -28,7 +28,7 @@ addtest(random_test
     random_test.cpp
     )
 target_link_libraries(random_test
-    random_provider
+    random_generator
     )
 
 addtest(marshaller_test

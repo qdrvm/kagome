@@ -41,10 +41,6 @@ namespace libp2p::crypto {
     INVALID_PROVIDER_TYPE,  ///< invalid or unsupported random provider type
   };
 
-  enum class MiscError {
-    WRONG_ARGUMENT_VALUE = 1,  ///< wrong argument value
-  };
-
   enum class KeyGeneratorError {
     CANNOT_GENERATE_UNSPECIFIED = 1,  ///< you need to specify valid key type
     UNKNOWN_KEY_TYPE,                 ///< unknown key type
@@ -64,7 +60,6 @@ namespace libp2p::crypto {
 OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, CryptoProviderError)
 OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, OpenSslError)
 OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, HmacProviderError)
-OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, MiscError)
 OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, RandomProviderError)
 OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, KeyGeneratorError)
 

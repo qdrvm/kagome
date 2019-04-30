@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/crypto/random/impl/std_generator.hpp"
+#include "std_generator.hpp"
 
 #include <random>
 

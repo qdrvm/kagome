@@ -12,7 +12,7 @@
 #include <openssl/rsa.h>
 #include <boost/filesystem.hpp>
 #include <gsl/gsl_util>
-#include "libp2p/crypto/random/impl/boost_generator.hpp"
+#include "libp2p/crypto/random_generator/boost_generator.hpp"
 
 using kagome::common::Buffer;
 using libp2p::crypto::Key;
