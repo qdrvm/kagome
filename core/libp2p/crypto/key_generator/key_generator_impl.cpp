@@ -33,29 +33,11 @@ namespace libp2p::crypto {
   }
 
   namespace detail {
-    /**
-     * @brief makes Buffer from BIO
-     * @param bio data
-     * @return Buffer instance containg data
-     */
     Buffer bio2buffer(BIO *bio) {
       auto length = BIO_pending(bio);
       std::vector<uint8_t> bytes(length, 0);
       BIO_read(bio, bytes.data(), length);
       return Buffer(std::move(bytes));
-    }
-
-    outcome::result<Buffer> getPrivateBytes(EVP_PKEY *pkey) {
-      BIO *bio = BIO_new(BIO_s_mem());
-
-      if (1
-          != PEM_write_bio_PrivateKey(bio, pkey, nullptr, nullptr, 0, nullptr,
-                                      nullptr)) {
-        return KeyGeneratorError::GET_KEY_BYTES_FAILED;
-      }
-
-      // 3. Get keys
-      return bio2buffer(bio);
     }
 
     outcome::result<EVP_PKEY *> loadKey(const boost::filesystem::path &pem_path,
@@ -323,13 +305,14 @@ namespace libp2p::crypto {
 
   outcome::result<EphemeralKeyPair> KeyGeneratorImpl::generateEphemeralKeyPair(
       common::CurveType curve) const {
-    // TODO(yuraz): pre-??? implement
+    // TODO(yuraz): pre-140 implement
     return KeyGeneratorError::KEY_GENERATION_FAILED;
   }
 
   std::vector<StretchedKey> KeyGeneratorImpl::stretchKey(
       common::CipherType cipher_type, common::HashType hash_type,
       const kagome::common::Buffer &secret) const {
+    // TODO(yuraz): pre-140 implement
     return {};
   }
 
