@@ -49,7 +49,8 @@ namespace libp2p::crypto {
       BIO *bio = nullptr;
       bio = BIO_new(BIO_s_file());
       std::vector<char> path(pem_path.size() + 1, 0);
-      std::copy(pem_path.string().begin(), pem_path.string().end(), path.begin());
+      std::copy(pem_path.string().begin(), pem_path.string().end(),
+                path.begin());
       if (1 != BIO_read_filename(bio, path.data())) {
         return KeyGeneratorError::FAILED_TO_READ_FILE;
       }
@@ -73,8 +74,8 @@ namespace libp2p::crypto {
 
     outcome::result<PublicKey> derivePublicKey(const PrivateKey &key) {
       auto &buffer = key.data;
-      BIO *bio_private =
-          BIO_new_mem_buf(static_cast<const void *>(buffer.toBytes()), buffer.size());
+      BIO *bio_private = BIO_new_mem_buf(
+          static_cast<const void *>(buffer.toBytes()), buffer.size());
       if (nullptr == bio_private) {
         return KeyGeneratorError::KEY_DERIVATION_FAILED;
       }
@@ -156,6 +157,23 @@ namespace libp2p::crypto {
       return {std::move(private_buffer), std::move(public_buffer)};
     }
   }  // namespace detail
+
+  outcome::result<KeyPair> KeyGeneratorImpl::generateKeys(
+      Key::Type key_type) const {
+    switch (key_type) {
+      case Key::Type::RSA1024:
+        return generateRsa(common::RSAKeyType::RSA1024);
+      case Key::Type::RSA2048:
+        return generateRsa(common::RSAKeyType::RSA2048);
+      case Key::Type::RSA4096:
+        return generateRsa(common::RSAKeyType::RSA4096);
+      case Key::Type::ED25519:
+        return generateEd25519();
+      case Key::Type::SECP256K1:return generateSecp256k1();
+      default:
+        return KeyGeneratorError::UNSUPPORTED_KEY_TYPE;
+    }
+  }
 
   outcome::result<KeyPair> KeyGeneratorImpl::generateRsa(
       common::RSAKeyType bits_option) const {

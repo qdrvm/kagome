@@ -20,12 +20,12 @@ namespace libp2p::crypto {
      */
     explicit KeyGeneratorImpl(random::CSPRNG &random_provider);
 
-    outcome::result<KeyPair> generateRsa(
-        common::RSAKeyType key_type) const override;
-
-    outcome::result<KeyPair> generateEd25519() const override;
-
-    outcome::result<KeyPair> generateSecp256k1() const override;
+    /**
+     * @brief generates key pair of specified type
+     * @param key_type key type
+     * @return newly generated key pair
+     */
+    outcome::result<KeyPair> generateKeys(Key::Type key_type) const override;
 
     outcome::result<PublicKey> derivePublicKey(
         const PrivateKey &private_key) const override;
@@ -37,12 +37,18 @@ namespace libp2p::crypto {
         common::CipherType cipher_type, common::HashType hash_type,
         const kagome::common::Buffer &secret) const override;
 
-    outcome::result<PrivateKey> importKey(const boost::filesystem::path &pem_path,
-                                          std::string_view password) const override;
+    outcome::result<PrivateKey> importKey(
+        const boost::filesystem::path &pem_path,
+        std::string_view password) const override;
 
    private:
     /// \brief seeds openssl random generator
     void initialize();
+
+    outcome::result<KeyPair> generateRsa(common::RSAKeyType key_type) const;
+    outcome::result<KeyPair> generateEd25519() const;
+    outcome::result<KeyPair> generateSecp256k1() const;
+
     random::CSPRNG &random_provider_;  ///< random bytes generator
   };
 }  // namespace libp2p::crypto

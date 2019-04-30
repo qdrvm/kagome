@@ -19,24 +19,11 @@ namespace libp2p::crypto {
    public:
     virtual ~KeyGenerator() = default;
     /**
-     * @brief generates RSA key pair
-     * @param key_type RSA key type means number of bits option
+     * @brief generates new key pair of specified type
+     * @param key_type key type
      * @return new generated key pair of public and private key or error
      */
-    virtual outcome::result<KeyPair> generateRsa(
-        common::RSAKeyType key_type) const = 0;
-
-    /**
-     * @brief generates ED25519 key pair
-     * @return new generated key pair of public and private key or error
-     */
-    virtual outcome::result<KeyPair> generateEd25519() const = 0;
-
-    /**
-     * @brief generates SECP256k1 key pair
-     * @return new generated key pair of public and private key or error
-     */
-    virtual outcome::result<KeyPair> generateSecp256k1() const = 0;
+    virtual outcome::result<KeyPair> generateKeys(Key::Type key_type) const = 0;
 
     /**
      * @brief derives public key from private key
@@ -71,10 +58,10 @@ namespace libp2p::crypto {
      * @param password of that file
      * @return private key from the file
      */
-    virtual outcome::result<PrivateKey> importKey(const boost::filesystem::path &pem_path,
-                                                  std::string_view password) const = 0;
+    virtual outcome::result<PrivateKey> importKey(
+        const boost::filesystem::path &pem_path,
+        std::string_view password) const = 0;
   };
 }  // namespace libp2p::crypto
 
 #endif  // KAGOME_CORE_LIBP2P_CRYPTO_KEY_GENERATOR_HPP
-

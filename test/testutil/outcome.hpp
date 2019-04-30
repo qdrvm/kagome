@@ -24,6 +24,15 @@
   EXPECT_TRUE(var) << var.error().message();     \
   auto &&val = var.value();
 
+#define EXPECT_OUTCOME_FALSE_void(var, expr) \
+  auto &&var = expr;                        \
+  EXPECT_FALSE(var) << var.error().message();
+
+#define EXPECT_OUTCOME_FALSE_name(var, val, expr) \
+  auto &&var = expr;                             \
+  EXPECT_FALSE(var) << var.error().message();     \
+  auto &&val = var.error();
+
 #define EXPECT_OUTCOME_TRUE_3(var, val, expr) \
   EXPECT_OUTCOME_TRUE_name(var, val, expr)
 
@@ -32,6 +41,15 @@
 
 #define EXPECT_OUTCOME_TRUE_1(expr) \
   EXPECT_OUTCOME_TRUE_void(UNIQUE_NAME(_v), expr)
+
+#define EXPECT_OUTCOME_FALSE_3(var, val, expr) \
+  EXPECT_OUTCOME_FALSE_name(var, val, expr)
+
+  #define EXPECT_OUTCOME_FALSE_2(val, expr) \
+  EXPECT_OUTCOME_FALSE_3(UNIQUE_NAME(_r), val, expr)
+
+#define EXPECT_OUTCOME_FALSE_1(expr) \
+  EXPECT_OUTCOME_FALSE_void(UNIQUE_NAME(_v), expr)
 
 /**
  * Use this macro in GTEST with 2 arguments to assert that getResult()

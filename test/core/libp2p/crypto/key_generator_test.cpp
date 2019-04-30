@@ -12,10 +12,13 @@
 #include <openssl/rsa.h>
 #include <boost/filesystem.hpp>
 #include <gsl/gsl_util>
+#include "libp2p/crypto/error.hpp"
 #include "libp2p/crypto/random_generator/boost_generator.hpp"
+#include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
 using libp2p::crypto::Key;
+using libp2p::crypto::KeyGeneratorError;
 using libp2p::crypto::KeyGeneratorImpl;
 using libp2p::crypto::common::RSAKeyType;
 using libp2p::crypto::random::BoostRandomGenerator;
@@ -176,11 +179,44 @@ class KeyTest : public virtual testing::Test {
   KeyGeneratorImpl keygen_{random_};
 };
 
-class GenerateKeyTest : public KeyTest {};
+class GenerateKeyTest : public KeyTest {
+ public:
+  /**
+   * @brief tests generating key pair against specified key type
+   * @param key_type specified key type
+   */
+  void testGenerateKey(Key::Type key_type) {
+    EXPECT_OUTCOME_TRUE_2(val, keygen_.generateKeys(key_type));
+    ASSERT_EQ(val.privateKey.type, key_type);
+    ASSERT_EQ(val.publicKey.type, key_type);
+  }
+
+  /**
+   * @brief ensures that 2 generated key pairs of the same type
+   * are different
+   * @param key_type specified key type
+   */
+  void testKeysAreDifferent(Key::Type key_type) {
+    EXPECT_OUTCOME_TRUE_2(val1, keygen_.generateKeys(key_type));
+    EXPECT_OUTCOME_TRUE_2(val2, keygen_.generateKeys(key_type));
+    ASSERT_NE(val1.privateKey.data.toVector(), val2.privateKey.data.toVector());
+    ASSERT_NE(val1.publicKey.data.toVector(), val2.privateKey.data.toVector());
+  }
+};
+
+class DeriveKeyTest : public KeyTest, public KeyData {
+ public:
+  void testDerivePublicKey(boost::filesystem::path pem_path,
+                           std::string_view password) {
+    //    TempFile key_file{};
+    //    auto &&path = key_file.create(rsa_1024_private_key_);
+    EXPECT_OUTCOME_TRUE_2(val, keygen_.importKey(pem_path, password));
+    EXPECT_OUTCOME_TRUE_2(derived, keygen_.derivePublicKey(val));
+    ASSERT_EQ(derived.type, val.type);
+  }
+};
 
 class ImportKeyTest : public KeyTest, public KeyData {};
-
-class DeriveKeyTest : public KeyTest, public KeyData {};
 
 /**
  * @given key generator
@@ -188,11 +224,7 @@ class DeriveKeyTest : public KeyTest, public KeyData {};
  * @then obtained key pair has type RSA1024
  */
 TEST_F(GenerateKeyTest, GenerateRSA1024Success) {
-  auto &&res = keygen_.generateRsa(RSAKeyType::RSA1024);
-  ASSERT_TRUE(res);
-  auto &&val = res.value();
-  ASSERT_EQ(val.privateKey.type, Key::Type::RSA1024);
-  ASSERT_EQ(val.publicKey.type, Key::Type::RSA1024);
+  testGenerateKey(Key::Type::RSA1024);
 }
 
 /**
@@ -201,11 +233,7 @@ TEST_F(GenerateKeyTest, GenerateRSA1024Success) {
  * @then obtained key pair has type RSA2048
  */
 TEST_F(GenerateKeyTest, GenerateRSA2048Success) {
-  auto &&res = keygen_.generateRsa(RSAKeyType::RSA2048);
-  ASSERT_TRUE(res);
-  auto &&val = res.value();
-  ASSERT_EQ(val.privateKey.type, Key::Type::RSA2048);
-  ASSERT_EQ(val.publicKey.type, Key::Type::RSA2048);
+  testGenerateKey(Key::Type::RSA2048);
 }
 
 /**
@@ -214,11 +242,7 @@ TEST_F(GenerateKeyTest, GenerateRSA2048Success) {
  * @then obtained key pair has type RSA4096
  */
 TEST_F(GenerateKeyTest, GenerateRSA4096Success) {
-  auto &&res = keygen_.generateRsa(RSAKeyType::RSA4096);
-  ASSERT_TRUE(res);
-  auto &&val = res.value();
-  ASSERT_EQ(val.privateKey.type, Key::Type::RSA4096);
-  ASSERT_EQ(val.publicKey.type, Key::Type::RSA4096);
+  testGenerateKey(Key::Type::RSA4096);
 }
 
 /**
@@ -227,13 +251,7 @@ TEST_F(GenerateKeyTest, GenerateRSA4096Success) {
  * @then these keys are different
  */
 TEST_F(GenerateKeyTest, Rsa1024KeysNotSame) {
-  auto &&res1 = keygen_.generateRsa(RSAKeyType::RSA1024);
-  ASSERT_TRUE(res1);
-  auto &&val1 = res1.value();
-  auto &&res2 = keygen_.generateRsa(RSAKeyType::RSA1024);
-  ASSERT_TRUE(res2);
-  auto &&val2 = res2.value();
-  ASSERT_NE(val1.privateKey.data.toVector(), val2.privateKey.data.toVector());
+  testKeysAreDifferent(Key::Type::RSA1024);
 }
 
 /**
@@ -242,11 +260,7 @@ TEST_F(GenerateKeyTest, Rsa1024KeysNotSame) {
  * @then obtained key pair have type ED25519
  */
 TEST_F(GenerateKeyTest, GenerateED25519Success) {
-  auto &&res = keygen_.generateEd25519();
-  ASSERT_TRUE(res);
-  auto &&val = res.value();
-  ASSERT_EQ(val.privateKey.type, Key::Type::ED25519);
-  ASSERT_EQ(val.publicKey.type, Key::Type::ED25519);
+  testGenerateKey(Key::Type::ED25519);
 }
 
 /**
@@ -255,13 +269,7 @@ TEST_F(GenerateKeyTest, GenerateED25519Success) {
  * @then these keys are different
  */
 TEST_F(GenerateKeyTest, Ed25519KeysNotSame) {
-  auto &&res1 = keygen_.generateEd25519();
-  ASSERT_TRUE(res1);
-  auto &&val1 = res1.value();
-  auto &&res2 = keygen_.generateEd25519();
-  ASSERT_TRUE(res2);
-  auto &&val2 = res2.value();
-  ASSERT_NE(val1.privateKey.data.toVector(), val2.privateKey.data.toVector());
+  testKeysAreDifferent(Key::Type::ED25519);
 }
 
 /**
@@ -270,11 +278,7 @@ TEST_F(GenerateKeyTest, Ed25519KeysNotSame) {
  * @then obtained key pair have type SECP256K1
  */
 TEST_F(GenerateKeyTest, GenerateSecp256k1Success) {
-  auto &&res = keygen_.generateSecp256k1();
-  ASSERT_TRUE(res);
-  auto &&val = res.value();
-  ASSERT_EQ(val.privateKey.type, Key::Type::SECP256K1);
-  ASSERT_EQ(val.publicKey.type, Key::Type::SECP256K1);
+  testGenerateKey(Key::Type::SECP256K1);
 }
 
 /**
@@ -283,13 +287,62 @@ TEST_F(GenerateKeyTest, GenerateSecp256k1Success) {
  * @then these keys are different
  */
 TEST_F(GenerateKeyTest, Secp256k1KeysNotSame) {
-  auto &&res1 = keygen_.generateSecp256k1();
-  ASSERT_TRUE(res1);
-  auto &&val1 = res1.value();
-  auto &&res2 = keygen_.generateSecp256k1();
-  ASSERT_TRUE(res2);
-  auto &&val2 = res2.value();
-  ASSERT_NE(val1.privateKey.data.toVector(), val2.privateKey.data.toVector());
+  testKeysAreDifferent(Key::Type::SECP256K1);
+}
+
+/**
+ * @given RSA 1024 bits private key
+ * @when derivePublicKey is called
+ * @then operation succeeds
+ */
+TEST_F(DeriveKeyTest, DeriveRsa1024Successful) {
+  TempFile key_file{};
+  auto &&path = key_file.create(rsa_1024_private_key_);
+  testDerivePublicKey(path, "qweqweqwe");
+}
+
+/**
+ * @given RSA 2048 bits private key
+ * @when derivePublicKey is called
+ * @then operation succeeds
+ */
+TEST_F(DeriveKeyTest, DeriveRsa2048Successful) {
+  TempFile key_file{};
+  auto &&path = key_file.create(rsa_2048_private_key_);
+  testDerivePublicKey(path, "qweqweqwe");
+}
+
+/**
+ * @given RSA 4096 bits private key
+ * @when derivePublicKey is called
+ * @then operation succeeds
+ */
+TEST_F(DeriveKeyTest, DeriveRsa4096Successful) {
+  TempFile key_file{};
+  auto &&path = key_file.create(rsa_4096_private_key_);
+  testDerivePublicKey(path, "qweqweqwe");
+}
+
+/**
+ * @given ED25519 private key
+ * @when derivePublicKey is called
+ * @then operation succeeds
+ */
+TEST_F(DeriveKeyTest, DeriveEd25519uccessful) {
+  TempFile key_file{};
+  auto &&path = key_file.create(ed25519_private_key_);
+  testDerivePublicKey(path, "qweqweqwe");
+}
+
+/**
+ * @given SECP256k1 private key
+ * @when derivePublicKey is called
+ * @then operation succeeds
+ */
+TEST_F(DeriveKeyTest, DeriveSecp2561kSuccessful) {
+  TempFile key_file{};
+  auto &&path = key_file.create(secp256k1_private_key_);
+  testDerivePublicKey(path, "qweqweqwe");
 }
 
 /**
@@ -315,8 +368,9 @@ TEST_F(ImportKeyTest, ImportRsa1024Successful) {
 TEST_F(ImportKeyTest, ImportRsa1024Fail) {
   TempFile key_file{};
   auto &&path = key_file.create(rsa_1024_private_key_);
-  auto &&key = keygen_.importKey(path, "asdasdasd");
-  ASSERT_FALSE(key);
+  EXPECT_OUTCOME_FALSE_2(res, keygen_.importKey(path, "asdasdasd"));
+  ASSERT_EQ(res.value(),
+            static_cast<int>(KeyGeneratorError::FAILED_TO_READ_FILE));
 }
 
 /**
@@ -327,8 +381,7 @@ TEST_F(ImportKeyTest, ImportRsa1024Fail) {
 TEST_F(ImportKeyTest, ImportRsa2048Successful) {
   TempFile key_file{};
   auto &&path = key_file.create(rsa_2048_private_key_);
-  auto &&key = keygen_.importKey(path, "qweqweqwe");
-  auto &&val = key.value();
+  EXPECT_OUTCOME_TRUE_2(val, keygen_.importKey(path, "qweqweqwe"));
   ASSERT_EQ(val.type, Key::Type::RSA2048);
 }
 
@@ -340,8 +393,7 @@ TEST_F(ImportKeyTest, ImportRsa2048Successful) {
 TEST_F(ImportKeyTest, ImportRsa4096Successful) {
   TempFile key_file{};
   auto &&path = key_file.create(rsa_4096_private_key_);
-  auto &&key = keygen_.importKey(path, "qweqweqwe");
-  auto &&val = key.value();
+  EXPECT_OUTCOME_TRUE_2(val, keygen_.importKey(path, "qweqweqwe"));
   ASSERT_EQ(val.type, Key::Type::RSA4096);
 }
 
@@ -353,8 +405,7 @@ TEST_F(ImportKeyTest, ImportRsa4096Successful) {
 TEST_F(ImportKeyTest, ImportEd25519Successful) {
   TempFile key_file{};
   auto &&path = key_file.create(ed25519_private_key_);
-  auto &&key = keygen_.importKey(path, "");
-  auto &&val = key.value();
+  EXPECT_OUTCOME_TRUE_2(val, keygen_.importKey(path, "qweqweqwe"));
   ASSERT_EQ(val.type, Key::Type::ED25519);
 }
 
@@ -363,86 +414,9 @@ TEST_F(ImportKeyTest, ImportEd25519Successful) {
  * @when importKey is called with empty password
  * @then operation succeeds
  */
-TEST_F(ImportKeyTest, ImporSecp256k1Successful) {
+TEST_F(ImportKeyTest, ImportSecp256k1Successful) {
   TempFile key_file{};
   auto &&path = key_file.create(secp256k1_private_key_);
-  auto &&key = keygen_.importKey(path, "");
-  ASSERT_TRUE(key);
-  auto &&val = key.value();
+  EXPECT_OUTCOME_TRUE_2(val, keygen_.importKey(path, "qweqweqwe"));
   ASSERT_EQ(val.type, Key::Type::SECP256K1);
-}
-
-/**
- * @given RSA 1024 bits private key
- * @when derivePublicKey is called
- * @then operation succeeds
- */
-TEST_F(DeriveKeyTest, DeriveRsa1024Successful) {
-  TempFile key_file{};
-  auto &&path = key_file.create(rsa_1024_private_key_);
-  auto &&key = keygen_.importKey(path, "qweqweqwe");
-  ASSERT_TRUE(key);
-  auto &&val = key.value();
-  auto &&derived = keygen_.derivePublicKey(val);
-  ASSERT_TRUE(derived);
-}
-
-/**
- * @given RSA 2048 bits private key
- * @when derivePublicKey is called
- * @then operation succeeds
- */
-TEST_F(DeriveKeyTest, DeriveRsa2048Successful) {
-  TempFile key_file{};
-  auto &&path = key_file.create(rsa_2048_private_key_);
-  auto &&key = keygen_.importKey(path, "qweqweqwe");
-  ASSERT_TRUE(key);
-  auto &&val = key.value();
-  auto &&derived = keygen_.derivePublicKey(val);
-  ASSERT_TRUE(derived);
-}
-
-/**
- * @given RSA 4096 bits private key
- * @when derivePublicKey is called
- * @then operation succeeds
- */
-TEST_F(DeriveKeyTest, DeriveRsa4096Successful) {
-  TempFile key_file{};
-  auto &&path = key_file.create(rsa_4096_private_key_);
-  auto &&key = keygen_.importKey(path, "qweqweqwe");
-  ASSERT_TRUE(key);
-  auto &&val = key.value();
-  auto &&derived = keygen_.derivePublicKey(val);
-  ASSERT_TRUE(derived);
-}
-
-/**
- * @given ED25519 private key
- * @when derivePublicKey is called
- * @then operation succeeds
- */
-TEST_F(DeriveKeyTest, DeriveEd25519uccessful) {
-  TempFile key_file{};
-  auto &&path = key_file.create(ed25519_private_key_);
-  auto &&key = keygen_.importKey(path, "");
-  ASSERT_TRUE(key);
-  auto &&val = key.value();
-  auto &&derived = keygen_.derivePublicKey(val);
-  ASSERT_TRUE(derived);
-}
-
-/**
- * @given SECP256k1 private key
- * @when derivePublicKey is called
- * @then operation succeeds
- */
-TEST_F(DeriveKeyTest, DeriveSecp2561kSuccessful) {
-  TempFile key_file{};
-  auto &&path = key_file.create(secp256k1_private_key_);
-  auto &&key = keygen_.importKey(path, "");
-  ASSERT_TRUE(key);
-  auto &&val = key.value();
-  auto &&derived = keygen_.derivePublicKey(val);
-  ASSERT_TRUE(derived);
 }
