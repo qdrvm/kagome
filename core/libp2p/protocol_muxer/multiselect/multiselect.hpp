@@ -37,7 +37,7 @@ namespace libp2p::protocol_muxer {
 
     ~Multiselect() override = default;
 
-    void addProtocol(const Protocol &protocol) override;
+    void addProtocol(const peer::Protocol &protocol) override;
 
     void negotiateServer(const stream::Stream &stream,
                          ChosenProtocolCallback protocol_callback) override;
@@ -76,7 +76,7 @@ namespace libp2p::protocol_muxer {
      * @param protocol - received protocol
      * @param stream_state - state of the stream
      */
-    void handleProtocolMsg(const Protocol &protocol,
+    void handleProtocolMsg(const peer::Protocol &protocol,
                            StreamState stream_state) const;
 
     /**
@@ -84,7 +84,7 @@ namespace libp2p::protocol_muxer {
      * @param protocols - received protocols
      * @param stream_state - state of the stream
      */
-    void handleProtocolsMsg(const std::vector<Protocol> &protocols,
+    void handleProtocolsMsg(const std::vector<peer::Protocol> &protocols,
                             StreamState stream_state) const;
 
     /**
@@ -106,7 +106,7 @@ namespace libp2p::protocol_muxer {
      * @param received_protocols - protocols, received from the other side
      */
     void onLsMsgSent(StreamState stream_state,
-                     gsl::span<const Protocol> received_protocols) const;
+                     gsl::span<const peer::Protocol> received_protocols) const;
 
     /**
      * Send a message, signalizing about start of the negotiation
@@ -120,7 +120,7 @@ namespace libp2p::protocol_muxer {
      * @param wait_for_response - should the response be awaited?
      * @param stream_state - state of the stream
      */
-    void sendProtocolMsg(const Protocol &protocol, bool wait_for_response,
+    void sendProtocolMsg(const peer::Protocol &protocol, bool wait_for_response,
                          StreamState stream_state) const;
 
     /**
@@ -128,7 +128,7 @@ namespace libp2p::protocol_muxer {
      * @param protocols to be sent
      * @param stream_state - state of the stream
      */
-    void sendProtocolsMsg(gsl::span<const Protocol> protocols,
+    void sendProtocolsMsg(gsl::span<const peer::Protocol> protocols,
                           StreamState stream_state) const;
 
     /**
@@ -156,7 +156,7 @@ namespace libp2p::protocol_muxer {
         StreamState::NegotiationStatus success_status,
         std::function<std::string(const std::error_code &ec)> error) const;
 
-    std::vector<Protocol> supported_protocols_;
+    std::vector<peer::Protocol> supported_protocols_;
     kagome::common::Logger log_;
   };
 }  // namespace libp2p::protocol_muxer

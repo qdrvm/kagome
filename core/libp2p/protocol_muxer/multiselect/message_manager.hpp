@@ -69,8 +69,7 @@ namespace libp2p::protocol_muxer {
      * @param protocol to be sent
      * @return created message
      */
-    static kagome::common::Buffer protocolMsg(
-        const ProtocolMuxer::Protocol &protocol);
+    static kagome::common::Buffer protocolMsg(const peer::Protocol &protocol);
 
     /**
      * Create a response message with a list of protocols
@@ -78,7 +77,7 @@ namespace libp2p::protocol_muxer {
      * @return created message
      */
     static kagome::common::Buffer protocolsMsg(
-        gsl::span<const ProtocolMuxer::Protocol> protocols);
+        gsl::span<const peer::Protocol> protocols);
   };
 }  // namespace libp2p::protocol_muxer
 

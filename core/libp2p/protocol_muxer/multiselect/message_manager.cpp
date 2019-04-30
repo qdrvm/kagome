@@ -259,7 +259,7 @@ namespace libp2p::protocol_muxer {
     return kNaMsg;
   }
 
-  Buffer MessageManager::protocolMsg(const ProtocolMuxer::Protocol &protocol) {
+  Buffer MessageManager::protocolMsg(const peer::Protocol &protocol) {
     return kagome::common::Buffer{}
         .put(multi::UVarint{protocol.size() + 1}.toBytes())
         .put(protocol)
@@ -267,7 +267,7 @@ namespace libp2p::protocol_muxer {
   }
 
   Buffer MessageManager::protocolsMsg(
-      gsl::span<const ProtocolMuxer::Protocol> protocols) {
+      gsl::span<const peer::Protocol> protocols) {
     // FIXME: naive approach, involving a tremendous amount of copies
 
     Buffer protocols_buffer{};

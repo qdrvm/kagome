@@ -21,6 +21,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol_muxer,
 }
 
 namespace libp2p::protocol_muxer {
+  using peer::Protocol;
+
   Multiselect::Multiselect(kagome::common::Logger logger)
       : log_{std::move(logger)} {}
 
