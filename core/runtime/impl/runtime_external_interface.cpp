@@ -50,10 +50,9 @@ namespace kagome::runtime {
    */
 
   RuntimeExternalInterface::RuntimeExternalInterface(
-      std::shared_ptr<extensions::Extension> extension,
-      std::shared_ptr<WasmMemory> memory, common::Logger logger)
+      std::shared_ptr<extensions::Extension> extension, common::Logger logger)
       : extension_(std::move(extension)),
-        memory_(std::move(memory)),
+        memory_(extension_->memory()),
         logger_(std::move(logger)) {}
 
   void RuntimeExternalInterface::init(wasm::Module &wasm,

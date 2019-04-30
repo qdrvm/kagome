@@ -7,7 +7,7 @@
 
 #include <binaryen/wasm-s-parser.h>
 #include <boost/format.hpp>
-#include "core/runtime/mock_extension.hpp"
+#include "core/extensions/mock_extension.hpp"
 #include "core/runtime/mock_memory.hpp"
 
 using ::testing::Return;
@@ -68,7 +68,8 @@ class REITest : public ::testing::Test {
     // prepare external interface with imported function's implementation
     EXPECT_CALL(*memory_, resize(0))
         .Times(1);  // !< resize happens during initialization of rei
-    TestableExternalInterface rei(extension_, memory_);
+    EXPECT_CALL(*extension_, memory()).WillRepeatedly(Return(memory_));
+    TestableExternalInterface rei(extension_);
 
     // interpret module
     ModuleInstance instance(wasm, &rei);

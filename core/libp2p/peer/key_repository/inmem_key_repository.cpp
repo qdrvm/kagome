@@ -71,6 +71,20 @@ namespace libp2p::peer {
     auto ptr = std::make_shared<KeyPairVec>();
     ptr->insert(kp);
     kp_.insert({p, std::move(ptr)});
+  }
+
+  std::unordered_set<PeerId> InmemKeyRepository::getPeers() const {
+    std::unordered_set<PeerId> peers;
+
+    for (const auto &it : kp_) {
+      peers.insert(it.first);
+    }
+
+    for (const auto &it : pub_) {
+      peers.insert(it.first);
+    }
+
+    return peers;
   };
 
 }  // namespace libp2p::peer

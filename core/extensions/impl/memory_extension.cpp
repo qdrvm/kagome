@@ -19,11 +19,11 @@ namespace kagome::extensions {
                                    common::Logger logger)
       : memory_(std::move(memory)), logger_(std::move(logger)) {}
 
-  int32_t MemoryExtension::ext_malloc(uint32_t size) {
+  runtime::WasmPointer MemoryExtension::ext_malloc(runtime::SizeType size) {
     return memory_->allocate(size);
   }
 
-  void MemoryExtension::ext_free(int32_t ptr) {
+  void MemoryExtension::ext_free(runtime::WasmPointer ptr) {
     auto opt_size = memory_->deallocate(ptr);
     if (not opt_size) {
       logger_->info(

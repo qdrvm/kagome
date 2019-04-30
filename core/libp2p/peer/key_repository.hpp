@@ -46,7 +46,7 @@ namespace libp2p::peer {
     virtual outcome::result<PubVecPtr> getPublicKeys(const PeerId &p) = 0;
 
     /**
-     * @brief Add public key to a se of public keys associaed with {@param p}
+     * @brief Add public key to a set of public keys associated with {@param p}
      * PeerId.
      * @param p PeerId
      * @param pub public key
@@ -70,6 +70,12 @@ namespace libp2p::peer {
      * @return error code in case of error.
      */
     virtual void addKeyPair(const PeerId &p, const KeyPair &kp) = 0;
+
+    /**
+     * @brief Returns set of peer ids known by this repository.
+     * @return unordered set of peers
+     */
+    virtual std::unordered_set<PeerId> getPeers() const = 0;
   };
 
 }  // namespace libp2p::peer
