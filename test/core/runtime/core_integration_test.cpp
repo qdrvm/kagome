@@ -15,6 +15,7 @@
 #include "primitives/impl/scale_codec_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/runtime/wasm_test.hpp"
 
 using kagome::common::Buffer;
 using kagome::extensions::ExtensionImpl;

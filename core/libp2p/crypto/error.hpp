@@ -41,15 +41,26 @@ namespace libp2p::crypto {
     INVALID_PROVIDER_TYPE,  ///< invalid or unsupported random provider type
   };
 
-  enum class MiscError {
-    WRONG_ARGUMENT_VALUE = 1,  ///< wrong argument value
+  enum class KeyGeneratorError {
+    CANNOT_GENERATE_UNSPECIFIED = 1,  ///< you need to specify valid key type
+    UNKNOWN_KEY_TYPE,                 ///< unknown key type
+    GENERATOR_NOT_INITIALIZED,        ///< generator not initialized
+    KEY_GENERATION_FAILED,            ///< key generation failed
+    KEY_DERIVATION_FAILED,            ///< failed to derive key
+    FILE_NOT_FOUND,                   ///< file not found
+    FAILED_TO_READ_FILE,              ///< failed to read file
+    INCORRECT_BITS_COUNT,             ///< incorrect bits option
+    UNSUPPORTED_KEY_TYPE,             ///< key type is not supported
+    WRONG_KEY_TYPE,                   ///< incorrect key type
+    CANNOT_LOAD_UNSPECIFIED,          ///< cannot load unspecified key
+    GET_KEY_BYTES_FAILED,             ///< failed to get key bytes from PKEY
   };
 }  // namespace libp2p::crypto
 
 OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, CryptoProviderError)
 OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, OpenSslError)
 OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, HmacProviderError)
-OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, MiscError)
 OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, RandomProviderError)
+OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, KeyGeneratorError)
 
 #endif  // KAGOME_CORE_LIBP2P_CRYPTO_ERROR_HPP

@@ -5,11 +5,16 @@ include(cmake/3rdparty/CodeCoverage.cmake)
 append_coverage_compiler_flags()
 
 set(COVERAGE_LCOV_EXCLUDES
-  'deps/*'
-  'build/*'
-  )
+    'deps/*'
+    'build/*'
+    )
 
 setup_target_for_coverage_gcovr_xml(
-     NAME ctest_coverage                    # New target name
-     EXECUTABLE ctest -j ${PROCESSOR_COUNT} # Executable in PROJECT_BINARY_DIR
- )
+    NAME ctest_coverage                    # New target name
+    EXECUTABLE ctest
+)
+
+setup_target_for_coverage_gcovr_html(
+    NAME ctest_coverage_html               # New target name
+    EXECUTABLE ctest
+)

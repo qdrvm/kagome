@@ -130,6 +130,11 @@ namespace libp2p::multi {
       return {};
     }
     auto proto_str = "/"s + std::string(protocol->name);
+    auto protocol = ProtocolList::get(proto);
+    if (protocol == nullptr) {
+      return {};
+    }
+    auto proto_str = "/"s + std::string(protocol->name);
     auto proto_positions =
         findSubstringOccurrences(stringified_address_, proto_str);
 

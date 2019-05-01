@@ -84,6 +84,8 @@ namespace libp2p::multi {
      */
     auto getBuffer() const -> const kagome::common::Buffer &;
 
+    bool operator == (const Multistream& other) const;
+
    private:
     Multistream(Path codecPath, const kagome::common::Buffer &data);
 

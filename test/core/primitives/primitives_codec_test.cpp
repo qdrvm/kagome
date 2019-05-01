@@ -12,6 +12,7 @@
 #include "primitives/block.hpp"
 #include "primitives/version.hpp"
 #include "scale/byte_array_stream.hpp"
+#include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
 using kagome::primitives::AuthorityId;

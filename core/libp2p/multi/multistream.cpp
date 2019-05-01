@@ -145,4 +145,8 @@ namespace libp2p::multi {
                                      multistream_buffer_.size() - data_begin);
   }
 
+  bool Multistream::operator==(const Multistream &other) const {
+    return this->multistream_buffer_ == other.multistream_buffer_;
+  }
+
 }  // namespace libp2p::multi

@@ -12,6 +12,7 @@
 #include <boost/filesystem.hpp>
 #include "core/extensions/mock_extension.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
+#include "testutil/runtime/wasm_test.hpp"
 
 using kagome::common::Buffer;
 using kagome::extensions::MockExtension;
@@ -22,25 +23,18 @@ using ::testing::Return;
 
 namespace fs = boost::filesystem;
 
-class WasmExecutorTest : public ::testing::Test {
+class WasmExecutorTest : public test::WasmTest {
  public:
+  WasmExecutorTest()
+      : test::WasmTest(fs::path(__FILE__).parent_path().string()
+                       + "/wasm/sumtwo.wasm") {}
+
   void SetUp() override {
     extension_ = std::make_shared<MockExtension>();
     memory_ = std::make_shared<WasmMemoryImpl>();
 
     EXPECT_CALL(*extension_, memory()).WillRepeatedly(Return(memory_));
     executor_ = std::make_shared<WasmExecutor>(extension_);
-  }
-
-  Buffer getSumTwoCode() {
-    // get file from wasm/ folder
-    auto path = fs::path(__FILE__).parent_path().string() + "/wasm/sumtwo.wasm";
-    std::ifstream ifd(path, std::ios::binary | std::ios::ate);
-    int size = ifd.tellg();
-    ifd.seekg(0, std::ios::beg);
-    Buffer b(size, 0);
-    ifd.read((char *)b.toBytes(), size);
-    return b;
   }
 
  protected:
@@ -55,9 +49,8 @@ class WasmExecutorTest : public ::testing::Test {
  * @then proper result is returned
  */
 TEST_F(WasmExecutorTest, ExecuteCode) {
-  auto wasm_sum_two_code = getSumTwoCode();
   auto res =
-      executor_->call(wasm_sum_two_code, "addTwo",
+      executor_->call(state_code_, "addTwo",
                       wasm::LiteralList{wasm::Literal(1), wasm::Literal(2)});
   ASSERT_TRUE(res);
   ASSERT_EQ(res.value().geti32(), 3);
@@ -65,17 +58,15 @@ TEST_F(WasmExecutorTest, ExecuteCode) {
 
 /**
  * @given wasm executor
- * @when call is invoked with wasm module containing
- * addTwo function code
+ * @when call is invoked with wasm module with initiaalized with code with
+ * addTwo function
  * @then proper result is returned
  */
 TEST_F(WasmExecutorTest, ExecuteModule) {
-  auto state_code = getSumTwoCode();
-
   wasm::Module module{};
   wasm::WasmBinaryBuilder parser(
       module,
-      reinterpret_cast<std::vector<char> const &>(state_code),  // NOLINT
+      reinterpret_cast<std::vector<char> const &>(state_code_),  // NOLINT
       false);
   parser.read();
 
