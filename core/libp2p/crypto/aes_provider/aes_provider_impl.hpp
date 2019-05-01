@@ -19,17 +19,17 @@ namespace libp2p::crypto::aes {
     using Aes256Secret = libp2p::crypto::common::Aes256Secret;
 
    public:
-    outcome::result<Buffer> encrypt_128_ctr(const Aes128Secret &secret,
-                                            const Buffer &data) const override;
+    outcome::result<Buffer> encryptAesCtr128(const Aes128Secret &secret,
+                                             const Buffer &data) const override;
 
-    outcome::result<Buffer> decrypt_128_ctr(const Aes128Secret &secret,
-                                            const Buffer &data) const override;
+    outcome::result<Buffer> decryptAesCtr128(const Aes128Secret &secret,
+                                             const Buffer &data) const override;
 
-    outcome::result<Buffer> encrypt_256_ctr(const Aes256Secret &secret,
-                                            const Buffer &data) const override;
+    outcome::result<Buffer> encryptAesCtr256(const Aes256Secret &secret,
+                                             const Buffer &data) const override;
 
-    outcome::result<Buffer> decrypt_256_ctr(const Aes256Secret &secret,
-                                            const Buffer &data) const override;
+    outcome::result<Buffer> decryptAesCtr256(const Aes256Secret &secret,
+                                             const Buffer &data) const override;
   };
 }  // namespace libp2p::crypto::aes
 

@@ -28,7 +28,7 @@ namespace libp2p::crypto::aes {
      * @param data plain data
      * @return encrypted data or error
      */
-    virtual outcome::result<Buffer> encrypt_128_ctr(
+    virtual outcome::result<Buffer> encryptAesCtr128(
         const Aes128Secret &secret, const Buffer &data) const = 0;
 
     /**
@@ -37,7 +37,7 @@ namespace libp2p::crypto::aes {
      * @param data encrypted data
      * @return decrypted data or error
      */
-    virtual outcome::result<Buffer> decrypt_128_ctr(
+    virtual outcome::result<Buffer> decryptAesCtr128(
         const Aes128Secret &secret, const Buffer &data) const = 0;
 
     /**
@@ -46,7 +46,7 @@ namespace libp2p::crypto::aes {
      * @param data plain data
      * @return encrypted data or error
      */
-    virtual outcome::result<Buffer> encrypt_256_ctr(
+    virtual outcome::result<Buffer> encryptAesCtr256(
         const Aes256Secret &secret, const Buffer &data) const = 0;
 
     /**
@@ -55,7 +55,7 @@ namespace libp2p::crypto::aes {
      * @param data encrypted data
      * @return decrypted data or error
      */
-    virtual outcome::result<Buffer> decrypt_256_ctr(
+    virtual outcome::result<Buffer> decryptAesCtr256(
         const Aes256Secret &secret, const Buffer &data) const = 0;
   };
 }  // namespace libp2p::crypto::aes

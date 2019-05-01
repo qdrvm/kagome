@@ -59,7 +59,7 @@ TEST_F(AesTest, EncodeAesCtr128Success) {
   std::copy(key_128.begin(), key_128.end(), secret.key.begin());
   std::copy(iv.begin(), iv.end(), secret.iv.begin());
 
-  auto &&result = provider.encrypt_128_ctr(secret, plain_text_128);
+  auto &&result = provider.encryptAesCtr128(secret, plain_text_128);
   ASSERT_TRUE(result);
   ASSERT_EQ(result.value(), cipher_text_128);
 }
@@ -75,7 +75,7 @@ TEST_F(AesTest, EncodeAesCtr256Success) {
   std::copy(key_256.begin(), key_256.end(), secret.key.begin());
   std::copy(iv.begin(), iv.end(), secret.iv.begin());
 
-  auto &&result = provider.encrypt_256_ctr(secret, plain_text_256);  // NOLINT
+  auto &&result = provider.encryptAesCtr256(secret, plain_text_256);  // NOLINT
   ASSERT_TRUE(result);
   ASSERT_EQ(result.value(), cipher_text_256);
 }
@@ -91,7 +91,7 @@ TEST_F(AesTest, DecodeAesCtr128Success) {
   std::copy(key_128.begin(), key_128.end(), secret.key.begin());
   std::copy(iv.begin(), iv.end(), secret.iv.begin());
 
-  auto &&result = provider.decrypt_128_ctr(secret, cipher_text_128);
+  auto &&result = provider.decryptAesCtr128(secret, cipher_text_128);
   ASSERT_TRUE(result);
   ASSERT_EQ(result.value(), plain_text_128);
 }
@@ -107,7 +107,7 @@ TEST_F(AesTest, DecodeAesCtr256Success) {
   std::copy(key_256.begin(), key_256.end(), secret.key.begin());
   std::copy(iv.begin(), iv.end(), secret.iv.begin());
 
-  auto &&result = provider.decrypt_256_ctr(secret, cipher_text_256);
+  auto &&result = provider.decryptAesCtr256(secret, cipher_text_256);
   ASSERT_TRUE(result);
   ASSERT_EQ(result.value(), plain_text_256);
 }
