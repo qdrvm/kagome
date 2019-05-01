@@ -12,10 +12,13 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol_muxer,
   using Errors = libp2p::protocol_muxer::Multiselect::MultiselectErrors;
   switch (e) {
     case Errors::NO_PROTOCOLS_SUPPORTED:
-      return "no protocols supported by this multiselect instance";
+      return "no protocols of at least one kind supported by this multiselect "
+             "instance";
     case Errors::NEGOTIATION_FAILED:
       return "there are no protocols, supported by both sides of the "
              "connection";
+    case Errors::INTERNAL_ERROR:
+      return "internal error happened in this multiselect instance";
   }
   return "unknown";
 }
@@ -26,18 +29,23 @@ namespace libp2p::protocol_muxer {
   Multiselect::Multiselect(kagome::common::Logger logger)
       : log_{std::move(logger)} {}
 
-  void Multiselect::addProtocol(const Protocol &protocol) {
-    supported_protocols_.push_back(protocol);
+  void Multiselect::addEncryptionProtocol(const peer::Protocol &protocol) {
+    encryption_protocols_.push_back(protocol);
+  }
+
+  void Multiselect::addMultiplexerProtocol(const peer::Protocol &protocol) {
+    multiplexer_protocols_.push_back(protocol);
   }
 
   void Multiselect::negotiateServer(const stream::Stream &stream,
-                                    ChosenProtocolCallback protocol_callback) {}
+                                    ChosenProtocolsCallback protocol_callback) {
+  }
 
   void Multiselect::negotiateClient(const stream::Stream &stream,
-                                    ChosenProtocolCallback protocol_callback) {
+                                    ChosenProtocolsCallback protocol_callback) {
     // if no protocols are supported by this instance, there's no sense in
     // starting a negotiation process
-    if (supported_protocols_.empty()) {
+    if (encryption_protocols_.empty() || multiplexer_protocols_.empty()) {
       protocol_callback(MultiselectErrors::NO_PROTOCOLS_SUPPORTED);
       return;
     }
@@ -97,9 +105,29 @@ namespace libp2p::protocol_muxer {
   }
 
   void Multiselect::handleOpeningMsg(StreamState stream_state) const {
-    // if we receive an opening message, don't look, which message was sent by
-    // us previously, just respond with ls; it will always work
-    sendLsMsg(std::move(stream_state));
+    using Status = StreamState::NegotiationStatus;
+
+    switch (stream_state.status_) {
+      case Status::NOTHING_SENT:
+        // we received an opening as a first message in this round; respond with
+        // an opening as well
+        sendOpeningMsg(std::move(stream_state));
+        return;
+      case Status::OPENING_SENT:
+        // if opening is received as a response to ours, we can send ls to see
+        // available protocols
+        sendLsMsg(std::move(stream_state));
+        return;
+      case Status::PROTOCOL_SENT:
+      case Status::PROTOCOLS_SENT:
+      case Status::LS_SENT:
+      case Status::NA_SENT:
+        onUnexpectedRequestResponse(std::move(stream_state));
+        return;
+      default:
+        onGarbagedStreamStatus(std::move(stream_state));
+        return;
+    }
   }
 
   void Multiselect::handleProtocolMsg(const Protocol &protocol,
@@ -108,40 +136,28 @@ namespace libp2p::protocol_muxer {
 
     switch (stream_state.status_) {
       case Status::OPENING_SENT:
-        // the other side wants to communicate over that protocol; if it's
-        // available on our side, negotiation is finished
-        if (std::find(supported_protocols_.begin(), supported_protocols_.end(),
-                      protocol)
-            != supported_protocols_.end()) {
-          stream_state.proto_callback_(protocol);
-          sendProtocolMsg(protocol, false, std::move(stream_state));
-          return;
-        }
-        // if the protocol is not available, send ls
-        sendLsMsg(std::move(stream_state));
+        onProtocolAfterOpeningOrLs(std::move(stream_state), protocol);
         return;
       case Status::PROTOCOL_SENT:
         // this is ack that the protocol we want to communicate over is
-        // supported by the other side; negotiation is finished
-        stream_state.proto_callback_(protocol);
+        // supported by the other side; round is finished
+        negotiationRoundFinished(std::move(stream_state), protocol);
         return;
       case Status::PROTOCOLS_SENT:
         // the other side has chosen a protocol to communicate over; send an
-        // ack, and negotiation is finished
-        stream_state.proto_callback_(protocol);
-        sendProtocolMsg(protocol, false, std::move(stream_state));
+        // ack, and round is finished
+        sendProtocolAck(stream_state.stream_.get(), protocol);
+        negotiationRoundFinished(std::move(stream_state), protocol);
         return;
       case Status::LS_SENT:
-        onLsMsgSent(std::move(stream_state), gsl::make_span(&protocol, 1));
+        onProtocolAfterOpeningOrLs(std::move(stream_state), protocol);
         return;
+      case Status::NOTHING_SENT:
       case Status::NA_SENT:
-        log_->info(
-            "got a unexpected request-response combination - sending 'ls'");
-        sendLsMsg(std::move(stream_state));
+        onUnexpectedRequestResponse(std::move(stream_state));
         return;
       default:
-        log_->error("type of the message, returned by the parser, is unknown");
-        sendLsMsg(std::move(stream_state));
+        onGarbagedStreamStatus(std::move(stream_state));
         return;
     }
   }
@@ -155,24 +171,31 @@ namespace libp2p::protocol_muxer {
       case Status::PROTOCOL_SENT:
       case Status::PROTOCOLS_SENT:
       case Status::NA_SENT:
-        log_->info(
-            "got a unexpected request-response combination - sending 'ls'");
-        sendLsMsg(std::move(stream_state));
+        onUnexpectedRequestResponse(std::move(stream_state));
         return;
       case Status::LS_SENT:
-        onLsMsgSent(std::move(stream_state), protocols);
+        onProtocolsAfterLs(std::move(stream_state), protocols);
         return;
       default:
-        // in all unrecognized situations send ls
-        log_->error("there is some garbage in stream state status");
-        sendLsMsg(std::move(stream_state));
+        onGarbagedStreamStatus(std::move(stream_state));
         return;
     }
   }
 
   void Multiselect::handleLsMsg(StreamState stream_state) const {
     // respond with a list of protocols, supported by us
-    sendProtocolsMsg(supported_protocols_, std::move(stream_state));
+    switch (stream_state.round_) {
+      case StreamState::NegotiationRound::ENCRYPTION:
+        sendProtocolsMsg(encryption_protocols_, std::move(stream_state));
+        return;
+      case StreamState::NegotiationRound::MULTIPLEXER:
+        sendProtocolsMsg(multiplexer_protocols_, std::move(stream_state));
+        return;
+      default:
+        log_->error("stream state's round is set to garbage value");
+        stream_state.proto_callback_(MultiselectErrors::INTERNAL_ERROR);
+        return;
+    }
   }
 
   void Multiselect::handleNaMsg(StreamState stream_state) const {
@@ -181,27 +204,81 @@ namespace libp2p::protocol_muxer {
     sendLsMsg(std::move(stream_state));
   }
 
-  void Multiselect::onLsMsgSent(
+  void Multiselect::onProtocolAfterOpeningOrLs(
+      StreamState stream_state, const peer::Protocol &protocol) const {
+    // the other side wants to communicate over that protocol; if it's available
+    // on our side, round is finished
+    peer::Protocol common_protocol;
+    switch (stream_state.round_) {
+      case StreamState::NegotiationRound::ENCRYPTION:
+        if (std::find(encryption_protocols_.begin(),
+                      encryption_protocols_.end(), protocol)
+            != encryption_protocols_.end()) {
+          common_protocol = protocol;
+        }
+        break;
+      case StreamState::NegotiationRound::MULTIPLEXER:
+        if (std::find(multiplexer_protocols_.begin(),
+                      multiplexer_protocols_.end(), protocol)
+            != multiplexer_protocols_.end()) {
+          common_protocol = protocol;
+        }
+        break;
+      default:
+        log_->error("stream state's round is set to garbage value");
+        stream_state.proto_callback_(MultiselectErrors::INTERNAL_ERROR);
+        return;
+    }
+    if (!common_protocol.empty()) {
+      sendProtocolAck(stream_state.stream_.get(), protocol);
+      negotiationRoundFinished(std::move(stream_state), protocol);
+      return;
+    }
+
+    // if the protocol is not available, send na
+    sendNaMsg(std::move(stream_state));
+  }
+
+  void Multiselect::onProtocolsAfterLs(
       StreamState stream_state,
       gsl::span<const Protocol> received_protocols) const {
     // TODO(akvinikym) [PRE-143] 30.04.19: store the protocols to the
     // protocol repository
 
     // if any of the received protocols is supported by our side, choose it;
-    // send NA otherwise and close the connection?
-    for (const auto &proto : received_protocols) {
+    // fail otherwise
+    peer::Protocol common_protocol;
+    const auto &protocols_to_search =
+        stream_state.round_ == StreamState::NegotiationRound::ENCRYPTION
+        ? encryption_protocols_
+        : multiplexer_protocols_;
+    for (const auto &proto : protocols_to_search) {
       // as size of vectors should be around 10 or less, we can use O(n*n)
       // approach
-      if (std::find(supported_protocols_.begin(), supported_protocols_.end(),
-                    proto)
-          != supported_protocols_.end()) {
-        // the protocol is found; send it as our choice
-        sendProtocolMsg(proto, true, std::move(stream_state));
-        return;
+      if (std::find(received_protocols.begin(), received_protocols.end(), proto)
+          != received_protocols.end()) {
+        // the protocol is found
+        common_protocol = proto;
+        break;
       }
     }
+
+    if (!common_protocol.empty()) {
+      sendProtocolMsg(common_protocol, std::move(stream_state));
+      return;
+    }
     stream_state.proto_callback_(MultiselectErrors::NEGOTIATION_FAILED);
-    sendNaMsg(std::move(stream_state));
+  }
+
+  void Multiselect::onUnexpectedRequestResponse(
+      StreamState stream_state) const {
+    log_->info("got a unexpected request-response combination - sending 'ls'");
+    sendLsMsg(std::move(stream_state));
+  }
+
+  void Multiselect::onGarbagedStreamStatus(StreamState stream_state) const {
+    log_->error("there is some garbage in stream state status");
+    sendLsMsg(std::move(stream_state));
   }
 
   auto Multiselect::getWriteCallback(
@@ -235,14 +312,7 @@ namespace libp2p::protocol_muxer {
   }
 
   void Multiselect::sendProtocolMsg(const Protocol &protocol,
-                                    bool wait_for_response,
                                     StreamState stream_state) const {
-    if (!wait_for_response) {
-      stream_state.stream_.get().writeAsync(
-          MessageManager::protocolMsg(protocol));
-      return;
-    }
-
     auto stream = stream_state.stream_;
     stream.get().writeAsync(
         MessageManager::protocolMsg(protocol),
@@ -289,5 +359,33 @@ namespace libp2p::protocol_muxer {
                            return "cannot send an na message: "
                                + std::to_string(ec.value());
                          }));
+  }
+
+  void Multiselect::sendProtocolAck(const stream::Stream &stream,
+                                    const peer::Protocol &protocol) const {
+    stream.writeAsync(MessageManager::protocolMsg(protocol));
+  }
+
+  void Multiselect::negotiationRoundFinished(
+      StreamState stream_state, const Protocol &chosen_protocol) const {
+    switch (stream_state.round_) {
+      case StreamState::NegotiationRound::ENCRYPTION:
+        // non-final round: continue negotiation, moving to the next round
+        stream_state.round_ = StreamState::NegotiationRound::MULTIPLEXER;
+        stream_state.chosen_encryption_proto_ = chosen_protocol;
+        sendOpeningMsg(std::move(stream_state));
+        return;
+      case StreamState::NegotiationRound::MULTIPLEXER:
+        // final round; negotiation is finished
+        stream_state.chosen_multiplexer_proto_ = chosen_protocol;
+        stream_state.proto_callback_(NegotiatedProtocols{
+            std::move(stream_state.chosen_encryption_proto_),
+            std::move(stream_state.chosen_multiplexer_proto_)});
+        return;
+      default:
+        log_->error("stream state's round is set to garbage value");
+        stream_state.proto_callback_(MultiselectErrors::INTERNAL_ERROR);
+        return;
+    }
   }
 }  // namespace libp2p::protocol_muxer

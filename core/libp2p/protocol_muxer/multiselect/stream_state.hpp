@@ -18,6 +18,7 @@ namespace libp2p::protocol_muxer {
    */
   struct StreamState {
     enum class NegotiationStatus {
+      NOTHING_SENT,
       OPENING_SENT,
       PROTOCOL_SENT,
       PROTOCOLS_SENT,
@@ -25,14 +26,26 @@ namespace libp2p::protocol_muxer {
       NA_SENT
     };
 
+    enum class NegotiationRound { ENCRYPTION, MULTIPLEXER };
+
     /// stream, over which we are negotiating
     std::reference_wrapper<const stream::Stream> stream_;
 
     /// callback, which is to be called, when a protocol is established
-    ProtocolMuxer::ChosenProtocolCallback proto_callback_;
+    ProtocolMuxer::ChosenProtocolsCallback proto_callback_;
 
     /// current status of the negotiation
-    NegotiationStatus status_;
+    NegotiationStatus status_ = NegotiationStatus::NOTHING_SENT;
+
+    /// round, on which the negotiation currently is; for now, there are two
+    /// rounds to be passed
+    NegotiationRound round_ = NegotiationRound::ENCRYPTION;
+
+    /// encryption protocol, chosen as a result of negotiation round
+    peer::Protocol chosen_encryption_proto_{};
+
+    /// mupltiplexer protocol, chosen as a result of negotiation round
+    peer::Protocol chosen_multiplexer_proto_{};
   };
 }  // namespace libp2p::protocol_muxer
 
