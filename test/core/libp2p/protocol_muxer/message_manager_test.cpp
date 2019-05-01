@@ -29,8 +29,8 @@ class MessageManagerTest : public ::testing::Test {
 
  public:
   const std::vector<Protocol> kDefaultProtocols{
-      "/plaintext/1.0.0", "ipfs-dht/0.2.3", "/http/w3id.org/http/1.1"};
-  static constexpr uint64_t kProtocolsListBytesSize = 59;
+      "/plaintext/1.0.0", "/ipfs-dht/0.2.3", "/http/w3id.org/http/1.1"};
+  static constexpr uint64_t kProtocolsListBytesSize = 60;
 
   const Buffer kOpeningMsg =
       Buffer{}

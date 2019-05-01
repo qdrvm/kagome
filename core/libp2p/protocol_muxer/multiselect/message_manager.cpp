@@ -88,15 +88,16 @@ namespace {
     if (!msg_length_opt) {
       return ParseError::VARINT_IS_EXPECTED;
     }
-    auto msg_length = msg_length_opt->toUInt64();
-    if ((buffer.size() - msg_length_opt->size()) != msg_length) {
+    auto prev_position = current_position;
+    current_position += msg_length_opt->toUInt64();
+
+    if (current_position > buffer.size()) {
       return ParseError::MSG_LENGTH_IS_INCORRECT;
     }
-    current_position += msg_length;
 
-    assert(msg_length_opt->size() < current_position);             // NOLINT
-    return std::string{buffer.toBytes() + msg_length_opt->size(),  // NOLINT
-                       buffer.toBytes() + current_position};       // NOLINT
+    assert(msg_length_opt->size() < current_position);        // NOLINT
+    return std::string{buffer.toBytes() + prev_position,      // NOLINT
+                       buffer.toBytes() + current_position};  // NOLINT
   }
 
   /**
@@ -119,14 +120,13 @@ namespace {
    * Parse a buffer, starting from the specified position, to get a message with
    * a single protocol (or an opening one)
    * @param buffer to be parsed
-   * @param current_position, from which to start parsing; after the execution
-   * is set after the parsed part
    * @return message in case of success, error otherwise
    */
   outcome::result<MultiselectMessage> parseProtocolMessage(
-      const Buffer &buffer, size_t &current_position) {
+      const Buffer &buffer) {
     // line in this case is going to be a protocol - check it meets the
     // requirements
+    size_t current_position = 0;
     OUTCOME_TRY(current_line, lineToString(buffer, current_position));
     OUTCOME_TRY(protocol, parseProtocol(current_line));
 
@@ -225,21 +225,13 @@ namespace libp2p::protocol_muxer {
       }
     }
 
-    // now, we can forget about LS and NA messages and focus on parsing a header
-    // for LS response (or protocols message), protocol or opening messages; try
-    // to parse bytes as a single-protocol message
-    size_t current_position = 0;
-    auto protocol_msg_res = parseProtocolMessage(buffer, current_position);
-    if (protocol_msg_res
-        || (!protocol_msg_res
-            && protocol_msg_res.error()
-                != ParseError::MSG_LENGTH_IS_INCORRECT)) {
-      // this result either contains a value or a principal error
+    // try parse the msg as a protocols one
+    if (auto protocol_msg_res = parseProtocolsMessage(buffer)) {
       return protocol_msg_res;
     }
 
-    // parsing a protocol message was unsuccessful, try the other variant
-    return parseProtocolsMessage(buffer);
+    // if parse failed, try parse msg as a protocol type
+    return parseProtocolMessage(buffer);
   }
 
   Buffer MessageManager::openingMsg() {

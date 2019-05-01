@@ -13,4 +13,5 @@ target_link_libraries(multiselect
     buffer
     uvarint
     multihash
+    logger
     )
