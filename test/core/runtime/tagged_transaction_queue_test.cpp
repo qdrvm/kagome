@@ -47,5 +47,5 @@ class TTQFixture : public RuntimeTestFixture {
 TEST_F(TTQFixture, validate_transaction) {
   Extrinsic ext(Buffer::fromHex("01020304AABB").value());
 
-  EXPECT_OUTCOME_TRUE(res, p->validate_transaction(ext));
+  ASSERT_FALSE(p->validate_transaction(ext));
 }
