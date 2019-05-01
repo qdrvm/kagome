@@ -334,11 +334,4 @@ namespace libp2p::crypto {
     // TODO(yuraz): pre-140 implement
     return {};
   }
-
-  outcome::result<PrivateKey> KeyGeneratorImpl::importKey(
-      const boost::filesystem::path &pem_path,
-      std::string_view password) const {
-    // TODO(yuraz): pre-140 implement
-    return KeyGeneratorError::KEY_IMPORT_FAILED;
-  }
 }  // namespace libp2p::crypto

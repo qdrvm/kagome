@@ -51,17 +51,8 @@ namespace libp2p::crypto {
     virtual std::vector<StretchedKey> stretchKey(
         common::CipherType cipher_type, common::HashType hash_type,
         const kagome::common::Buffer &secret) const = 0;
-
-    /**
-     * Import a private key from a password-protected PEM file
-     * @param pem_path - path to the .pem file
-     * @param password of that file
-     * @return private key from the file
-     */
-    virtual outcome::result<PrivateKey> importKey(
-        const boost::filesystem::path &pem_path,
-        std::string_view password) const = 0;
   };
+
 }  // namespace libp2p::crypto
 
 #endif  // KAGOME_CORE_LIBP2P_CRYPTO_KEY_GENERATOR_HPP

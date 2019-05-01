@@ -6,8 +6,6 @@
 #include "libp2p/crypto/key_generator/key_generator_impl.hpp"
 
 #include <gtest/gtest.h>
-#include <openssl/pem.h>
-#include <openssl/rsa.h>
 #include <boost/filesystem.hpp>
 #include <gsl/gsl_util>
 #include "libp2p/crypto/error.hpp"
@@ -62,6 +60,8 @@ class DeriveKeyTest : public KeyTest {
     ASSERT_EQ(keys.publicKey.data.toVector(), derived.data.toVector());
   }
 };
+
+
 
 /**
  * @given key generator

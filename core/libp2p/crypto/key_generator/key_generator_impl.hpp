@@ -28,10 +28,6 @@ namespace libp2p::crypto {
         common::CipherType cipher_type, common::HashType hash_type,
         const kagome::common::Buffer &secret) const override;
 
-    outcome::result<PrivateKey> importKey(
-        const boost::filesystem::path &pem_path,
-        std::string_view password) const override;
-
    private:
     void initialize();
 
