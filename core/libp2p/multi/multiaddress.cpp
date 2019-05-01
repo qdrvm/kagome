@@ -154,7 +154,7 @@ namespace libp2p::multi {
     std::list<Protocol> protocols;
     for (auto &token : tokens) {
       auto p = ProtocolList::get(token);
-      if (p) {
+      if (p != nullptr) {
         protocols.emplace_back(*p);
       }
     }
