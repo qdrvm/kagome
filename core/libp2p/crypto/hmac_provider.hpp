@@ -22,6 +22,7 @@ namespace libp2p::crypto::hmac {
     using Buffer = kagome::common::Buffer;
 
    public:
+    virtual ~HmacProvider() = default;
     /**
      * @brief calculates digests
      * @param hash_type hash type
@@ -29,9 +30,8 @@ namespace libp2p::crypto::hmac {
      * @param message source message
      * @return message digest if calculation was successful, error otherwise
      */
-    outcome::result<Buffer> calculateDigest(HashType hash_type,
-                                            const Buffer &key,
-                                            const Buffer &message) const;
+    virtual outcome::result<Buffer> calculateDigest(
+        HashType hash_type, const Buffer &key, const Buffer &message) const = 0;
   };
 }  // namespace libp2p::crypto::hmac
 

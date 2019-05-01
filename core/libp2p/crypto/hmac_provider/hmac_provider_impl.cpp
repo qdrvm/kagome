@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/crypto/hmac/hmac_provider.hpp"
+#include "libp2p/crypto/hmac_provider/hmac_provider_impl.hpp"
 
 #include <openssl/hmac.h>
 #include "libp2p/crypto/error.hpp"
@@ -35,7 +35,7 @@ namespace libp2p::crypto::hmac {
     return nullptr;
   }
 
-  outcome::result<Buffer> HmacProvider::calculateDigest(
+  outcome::result<Buffer> HmacProviderImpl::calculateDigest(
       HashType hash_type, const Buffer &key, const Buffer &message) const {
     const evp_md_st *evp_md = makeHashTraits(hash_type);
     auto digest_size = digestSize(hash_type);

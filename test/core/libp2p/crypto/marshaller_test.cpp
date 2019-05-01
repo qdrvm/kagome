@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/crypto/marshaller/key_marshaller.hpp"
+#include "libp2p/crypto/marshaller/key_marshaller_impl.hpp"
 
 #include <gtest/gtest.h>
 #include "libp2p/crypto/common.hpp"
@@ -12,11 +12,11 @@ using kagome::common::Buffer;
 using libp2p::crypto::Key;
 using libp2p::crypto::PrivateKey;
 using libp2p::crypto::PublicKey;
-using libp2p::crypto::marshaller::KeyMarshaller;
+using libp2p::crypto::marshaller::KeyMarshallerImpl;
 
 class MarshallerTest : public testing::Test {
  public:
-  KeyMarshaller marshaller_;
+  KeyMarshallerImpl marshaller_;
 };
 
 /**
