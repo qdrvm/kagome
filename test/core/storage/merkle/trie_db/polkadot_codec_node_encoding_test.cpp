@@ -23,14 +23,14 @@ struct Case {
   Buffer encoded;
 };
 
-struct NodeEncoding_Test : public ::testing::TestWithParam<Case> {
+struct NodeEncodingTest : public ::testing::TestWithParam<Case> {
   std::shared_ptr<BufferScaleCodec> scale =
       std::make_shared<BufferScaleCodec>();
 
   std::unique_ptr<PolkadotCodec> codec = std::make_unique<PolkadotCodec>(scale);
 };
 
-TEST_P(NodeEncoding_Test, GetHeader) {
+TEST_P(NodeEncodingTest, GetHeader) {
   auto [node, expected] = GetParam();
 
   EXPECT_OUTCOME_TRUE_2(actual, codec->getHeader(*node));
@@ -75,4 +75,4 @@ static const std::vector<Case> CASES = {
     {make<BranchNode>(Buffer(573, 0xf), {0x01}), {255, 255, 255, 0}},  // 22
 };
 
-INSTANTIATE_TEST_CASE_P(PolkadotCodec, NodeEncoding_Test, ValuesIn(CASES));
+INSTANTIATE_TEST_CASE_P(PolkadotCodec, NodeEncodingTest, ValuesIn(CASES));

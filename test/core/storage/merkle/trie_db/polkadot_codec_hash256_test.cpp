@@ -16,10 +16,10 @@ using namespace storage;
 using namespace merkle;
 using namespace testing;
 
-struct Hash256_Test
+struct Hash256Test
     : public ::testing::TestWithParam<std::pair<Buffer, Buffer>> {};
 
-TEST_P(Hash256_Test, Valid) {
+TEST_P(Hash256Test, Valid) {
   auto [in, out] = GetParam();
   auto codec = std::make_unique<PolkadotCodec>(nullptr);
   auto actualOut = codec->hash256(in);
@@ -43,4 +43,4 @@ const std::vector<std::pair<Buffer, Buffer>> cases = {
     // buffer of size 32, consists of ones
     {Buffer(32, 1), getBlake2s(Buffer(32, 1))}};
 
-INSTANTIATE_TEST_CASE_P(PolkadotCodec, Hash256_Test, ValuesIn(cases));
+INSTANTIATE_TEST_CASE_P(PolkadotCodec, Hash256Test, ValuesIn(cases));

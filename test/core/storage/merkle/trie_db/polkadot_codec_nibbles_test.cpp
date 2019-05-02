@@ -22,21 +22,21 @@ struct OddNibbles
     // pair{nibbles, key}
     : public ::testing::TestWithParam<std::pair<Buffer, Buffer>> {};
 
-TEST_P(EvenNibbles, Key_To_Nibbles) {
+TEST_P(EvenNibbles, KeyToNibbles) {
   auto codec = std::make_unique<PolkadotCodec>(nullptr);
   auto [nibbles, key] = GetParam();
   auto actualNibbles = codec->keyToNibbles(key);
   ASSERT_EQ(actualNibbles, nibbles);
 }
 
-TEST_P(EvenNibbles, Nibbles_To_Key) {
+TEST_P(EvenNibbles, NibblesToKey) {
   auto codec = std::make_unique<PolkadotCodec>(nullptr);
   auto [nibbles, key] = GetParam();
   auto actualKey = codec->nibblesToKey(nibbles);
   ASSERT_EQ(key, actualKey);
 }
 
-TEST_P(OddNibbles, Nibbles_To_Key) {
+TEST_P(OddNibbles, NibblesToKey) {
   auto codec = std::make_unique<PolkadotCodec>(nullptr);
   auto [nibbles, key] = GetParam();
   auto actualKey = codec->nibblesToKey(nibbles);
@@ -52,8 +52,7 @@ const std::vector<std::pair<Buffer, Buffer>> EVEN = {
     {{5, 5}, {0x55}},
     {{5, 5, 5, 5}, {0x55, 0x55}},
     {{0, 1}, {0x10}},
-    {{1, 1}, {0x11}},
-    {{0xf, 0xf}, {0xff}}};
+};
 
 // those cases contain either even number of nibbles && last nibble == 0
 // or odd number of nibbles
