@@ -39,3 +39,11 @@ target_link_libraries(scale
     outcome
     byte_array_stream
     )
+
+
+add_library(scale_buffer_codec
+    buffer_codec.cpp
+    )
+target_link_libraries(scale_buffer_codec
+    scale
+    )

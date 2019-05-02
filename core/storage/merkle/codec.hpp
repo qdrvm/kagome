@@ -19,27 +19,21 @@ namespace kagome::storage::merkle {
    */
   class Codec {
    public:
+    virtual ~Codec() = default;
+
     /**
      * @brief Encode node to byte representation
      * @param node node in the trie
      * @return encoded representation of a {@param node}
      */
-    virtual common::Buffer nodeEncode(const Node &node) const = 0;
-
-    /**
-     * @brief Decode node from byte representation to {@class Node}
-     * @param node encoded representation of a trie node
-     * @return Node pointer
-     */
-    virtual std::shared_ptr<Node> nodeDecode(
-        const common::Buffer &node) const = 0;
+    virtual outcome::result<common::Buffer> nodeEncode(const Node &node) const = 0;
 
     /**
      * @brief Algorithm that is used for hashing of nodes.
      * @param buf node's byte representation
      * @return hash of the node.
      */
-    virtual common::Hash256 hash256(const common::Buffer &buf) const = 0;
+    virtual common::Buffer hash256(common::Buffer buf) const = 0;
   };
 
 }  // namespace kagome::storage::merkle

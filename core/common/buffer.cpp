@@ -148,6 +148,11 @@ namespace kagome::common {
     return data_.data();
   }
 
+  Buffer &Buffer::operator+=(const Buffer &other) noexcept {
+    this->put(other.toVector());
+    return *this;
+  }
+
   std::ostream &operator<<(std::ostream &os, const Buffer &buffer) {
     return os << buffer.toHex();
   }
