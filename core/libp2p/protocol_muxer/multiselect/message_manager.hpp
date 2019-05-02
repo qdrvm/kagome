@@ -31,6 +31,11 @@ namespace libp2p::protocol_muxer {
       std::vector<std::string> protocols_{};
     };
 
+    struct ProtocolsMessageHeader {
+      uint64_t size_of_protocols_;
+      uint64_t number_of_protocols_;
+    };
+
     enum class ParseError {
       MSG_IS_TOO_SHORT = 1,
       VARINT_IS_EXPECTED,
@@ -38,13 +43,17 @@ namespace libp2p::protocol_muxer {
       MSG_IS_ILL_FORMED
     };
 
-    /**
-     * Parse bytes into the message
-     * @param bytes to be parsed
-     * @return message, if parsing is successful, error otherwise
-     */
-    static outcome::result<MultiselectMessage> parseMessage(
-        const kagome::common::Buffer &bytes);
+    static outcome::result<MultiselectMessage> parseConstantMsg(
+        gsl::span<const uint8_t> bytes);
+
+    static outcome::result<ProtocolsMessageHeader> parseProtocolsHeader(
+        gsl::span<const uint8_t> bytes);
+
+    static outcome::result<MultiselectMessage> parseProtocols(
+        gsl::span<const uint8_t> bytes, uint64_t expected_protocols_number);
+
+    static outcome::result<MultiselectMessage> parseProtocol(
+        gsl::span<const uint8_t> bytes);
 
     /**
      * Create an opening message
