@@ -32,7 +32,7 @@ namespace kagome::storage::merkle {
 
     outcome::result<Buffer> nodeEncode(const Node &node) const override;
 
-    common::Buffer hash256(Buffer buf) const override;
+    common::Hash256 hash256(const Buffer &buf) const override;
 
     /// non-overriding helper methods
 

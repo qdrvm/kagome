@@ -33,7 +33,7 @@ namespace kagome::storage::merkle {
      * @param buf node's byte representation
      * @return hash of the node.
      */
-    virtual common::Buffer hash256(common::Buffer buf) const = 0;
+    virtual common::Hash256 hash256(const common::Buffer &buf) const = 0;
   };
 
 }  // namespace kagome::storage::merkle

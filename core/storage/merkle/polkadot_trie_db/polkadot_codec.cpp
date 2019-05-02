@@ -106,16 +106,16 @@ namespace kagome::storage::merkle {
     return out;
   }
 
-  common::Buffer PolkadotCodec::hash256(common::Buffer buf) const {
+  common::Hash256 PolkadotCodec::hash256(const common::Buffer &buf) const {
+    common::Hash256 out;
+
     static constexpr uint32_t k256 = 32;
     if (buf.size() < k256) {
-      buf.resize(k256);  // add 0 padding to 32 bytes
-      return buf;
+      std::copy(buf.begin(), buf.end(), out.begin());
+      return out;
     }
 
-    common::Buffer out(k256, 0);
-    blake2s(out.toBytes(), k256, nullptr, 0, buf.toBytes(), buf.size());
-
+    blake2s(out.data(), k256, nullptr, 0, buf.toBytes(), buf.size());
     return out;
   }
 
