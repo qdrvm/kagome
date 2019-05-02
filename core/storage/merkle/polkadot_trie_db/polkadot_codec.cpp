@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/merkle/polkadot_trie_db/codec.hpp"
+#include "storage/merkle/polkadot_trie_db/polkadot_codec.hpp"
 
 #include "crypto/blake2/blake2s.h"
-#include "storage/merkle/polkadot_trie_db/node.hpp"
+#include "storage/merkle/polkadot_trie_db/polkadot_node.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::merkle, PolkadotCodec::Error, e) {
   using E = kagome::storage::merkle::PolkadotCodec::Error;

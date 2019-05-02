@@ -11,7 +11,7 @@
 
 #include "scale/scale_codec.hpp"
 #include "storage/merkle/codec.hpp"
-#include "storage/merkle/polkadot_trie_db/node.hpp"
+#include "storage/merkle/polkadot_trie_db/polkadot_node.hpp"
 
 namespace kagome::storage::merkle {
 

@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "crypto/blake2/blake2s.h"
-#include "storage/merkle/polkadot_trie_db/codec.hpp"
+#include "storage/merkle/polkadot_trie_db/polkadot_codec.hpp"
 
 using namespace kagome;
 using namespace common;

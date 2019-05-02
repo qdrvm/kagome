@@ -7,8 +7,8 @@
 
 #include <gtest/gtest.h>
 #include "scale/buffer_codec.hpp"
-#include "storage/merkle/polkadot_trie_db/codec.hpp"
-#include "storage/merkle/polkadot_trie_db/node.hpp"
+#include "storage/merkle/polkadot_trie_db/polkadot_codec.hpp"
+#include "storage/merkle/polkadot_trie_db/polkadot_node.hpp"
 #include "testutil/outcome.hpp"
 
 using namespace kagome;
