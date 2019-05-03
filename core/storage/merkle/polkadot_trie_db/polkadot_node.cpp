@@ -7,12 +7,12 @@
 
 namespace kagome::storage::merkle {
 
-  Node::Type LeafNode::getType() const {
-    return Type::Leaf;
+  int LeafNode::getType() const {
+    return static_cast<int>(PolkadotNode::Type::Leaf);
   }
 
-  Node::Type BranchNode::getType() const {
-    return Type::Branch;
+  int BranchNode::getType() const {
+    return static_cast<int>(PolkadotNode::Type::Branch);
   }
 
   uint16_t BranchNode::childrenBitmap() const {

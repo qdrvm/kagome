@@ -17,6 +17,8 @@ namespace kagome::storage::merkle {
   struct PolkadotNode : public Node {
     ~PolkadotNode() override = default;
 
+    enum class Type { Leaf, Branch };
+
     bool is_dirty;
     common::Buffer key_nibbles;
     common::Buffer value;
@@ -25,13 +27,13 @@ namespace kagome::storage::merkle {
   struct LeafNode : public PolkadotNode {
     ~LeafNode() override = default;
 
-    Type getType() const override;
+    int getType() const override;
   };
 
   struct BranchNode : public PolkadotNode {
     ~BranchNode() override = default;
 
-    Type getType() const override;
+    int getType() const override;
 
     uint16_t childrenBitmap() const;
 

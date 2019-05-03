@@ -9,12 +9,10 @@
 namespace kagome::storage::merkle {
 
   struct Node {
-    enum class Type { Leaf, Branch };
-
     virtual ~Node() = default;
 
     // returns type of a node
-    virtual Type getType() const = 0;
+    virtual int getType() const = 0;
   };
 
 }  // namespace kagome::storage::merkle

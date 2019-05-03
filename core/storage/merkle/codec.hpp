@@ -26,7 +26,7 @@ namespace kagome::storage::merkle {
      * @param node node in the trie
      * @return encoded representation of a {@param node}
      */
-    virtual outcome::result<common::Buffer> nodeEncode(const Node &node) const = 0;
+    virtual outcome::result<common::Buffer> encodeNode(const Node &node) const = 0;
 
     /**
      * @brief Algorithm that is used for hashing of nodes.

@@ -30,7 +30,7 @@ namespace kagome::storage::merkle {
 
     explicit PolkadotCodec(std::shared_ptr<ScaleBufferEncoder> codec);
 
-    outcome::result<Buffer> nodeEncode(const Node &node) const override;
+    outcome::result<Buffer> encodeNode(const Node &node) const override;
 
     common::Hash256 hash256(const Buffer &buf) const override;
 

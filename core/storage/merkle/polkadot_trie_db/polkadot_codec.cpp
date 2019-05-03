@@ -119,12 +119,12 @@ namespace kagome::storage::merkle {
     return out;
   }
 
-  outcome::result<common::Buffer> PolkadotCodec::nodeEncode(
+  outcome::result<common::Buffer> PolkadotCodec::encodeNode(
       const Node &node) const {
-    switch (node.getType()) {
-      case Node::Type::Branch:
+    switch (static_cast<PolkadotNode::Type>(node.getType())) {
+      case PolkadotNode::Type::Branch:
         return encodeBranch(dynamic_cast<const BranchNode &>(node));
-      case Node::Type::Leaf:
+      case PolkadotNode::Type::Leaf:
         return encodeLeaf(dynamic_cast<const LeafNode &>(node));
     }
 
@@ -139,12 +139,12 @@ namespace kagome::storage::merkle {
 
     uint8_t head = 0;
     // set bits 6..7
-    switch (node.getType()) {
-      case Node::Type::Branch:
+    switch (static_cast<PolkadotNode::Type>(node.getType())) {
+      case PolkadotNode::Type::Branch:
         // has value?
         head = node.value.size() > 0 ? 0b11 : 0b10;
         break;
-      case Node::Type::Leaf:
+      case PolkadotNode::Type::Leaf:
         head = 0b01;
         break;
       default:
@@ -193,7 +193,7 @@ namespace kagome::storage::merkle {
     // encode each child
     for (const auto &child : node.children) {
       if (child) {
-        OUTCOME_TRY(encChild, nodeEncode(*child));
+        OUTCOME_TRY(encChild, encodeNode(*child));
         encoding += encChild;
       }
     }
