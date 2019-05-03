@@ -15,10 +15,10 @@ namespace kagome::runtime {
       common::Buffer state_code,
       std::shared_ptr<extensions::Extension> extension,
       std::shared_ptr<primitives::ScaleCodec> codec)
-      : state_code_(std::move(state_code)),
-        memory_(extension->memory()),
+      : memory_(extension->memory()),
+        codec_(std::move(codec)),
         executor_(std::move(extension)),
-        codec_(std::move(codec)) {}
+        state_code_(std::move(state_code)) {}
 
   result<primitives::TransactionValidity>
   TaggedTransactionQueueImpl::validate_transaction(
@@ -44,4 +44,4 @@ namespace kagome::runtime {
     return codec_->decodeTransactionValidity(s);
   }
 
-}
+}  // namespace kagome::runtime
