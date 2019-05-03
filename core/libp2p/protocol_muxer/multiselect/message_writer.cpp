@@ -29,25 +29,28 @@ namespace libp2p::protocol_muxer {
   }
 
   void MessageWriter::sendOpeningMsg(ConnectionState connection_state) {
-    connection_state.write_buffer_ = MessageManager::openingMsg();
+    *connection_state.write_buffer_ = MessageManager::openingMsg();
     auto connection = connection_state.connection_;
     const auto &write_buffer = connection_state.write_buffer_;
     connection->asyncWrite(
-        boost::asio::const_buffer{write_buffer.toBytes(), write_buffer.size()},
-        getWriteCallback(
-            connection_state, ConnectionState::NegotiationStatus::OPENING_SENT,
-            [](const std::error_code &ec) {
-              return "cannot send an opening message: " + ec.message();
-            }));
+        boost::asio::const_buffer{write_buffer->toBytes(),
+                                  write_buffer->size()},
+        getWriteCallback(std::move(connection_state),
+                         ConnectionState::NegotiationStatus::OPENING_SENT,
+                         [](const std::error_code &ec) {
+                           return "cannot send an opening message: "
+                               + ec.message();
+                         }));
   }
 
   void MessageWriter::sendProtocolMsg(const Protocol &protocol,
                                       ConnectionState connection_state) {
-    connection_state.write_buffer_ = MessageManager::protocolMsg(protocol);
+    *connection_state.write_buffer_ = MessageManager::protocolMsg(protocol);
     auto connection = connection_state.connection_;
     const auto &write_buffer = connection_state.write_buffer_;
     connection->asyncWrite(
-        boost::asio::const_buffer{write_buffer.toBytes(), write_buffer.size()},
+        boost::asio::const_buffer{write_buffer->toBytes(),
+                                  write_buffer->size()},
         getWriteCallback(std::move(connection_state),
                          ConnectionState::NegotiationStatus::PROTOCOL_SENT,
                          [](const std::error_code &ec) {
@@ -58,11 +61,12 @@ namespace libp2p::protocol_muxer {
 
   void MessageWriter::sendProtocolsMsg(gsl::span<const Protocol> protocols,
                                        ConnectionState connection_state) {
-    connection_state.write_buffer_ = MessageManager::protocolsMsg(protocols);
+    *connection_state.write_buffer_ = MessageManager::protocolsMsg(protocols);
     auto connection = connection_state.connection_;
     const auto &write_buffer = connection_state.write_buffer_;
     connection->asyncWrite(
-        boost::asio::const_buffer{write_buffer.toBytes(), write_buffer.size()},
+        boost::asio::const_buffer{write_buffer->toBytes(),
+                                  write_buffer->size()},
         getWriteCallback(std::move(connection_state),
                          ConnectionState::NegotiationStatus::PROTOCOLS_SENT,
                          [](const std::error_code &ec) {
@@ -72,11 +76,12 @@ namespace libp2p::protocol_muxer {
   }
 
   void MessageWriter::sendLsMsg(ConnectionState connection_state) {
-    connection_state.write_buffer_ = MessageManager::lsMsg();
+    *connection_state.write_buffer_ = MessageManager::lsMsg();
     auto connection = connection_state.connection_;
     const auto &write_buffer = connection_state.write_buffer_;
     connection->asyncWrite(
-        boost::asio::const_buffer{write_buffer.toBytes(), write_buffer.size()},
+        boost::asio::const_buffer{write_buffer->toBytes(),
+                                  write_buffer->size()},
         getWriteCallback(std::move(connection_state),
                          ConnectionState::NegotiationStatus::LS_SENT,
                          [](const std::error_code &ec) {
@@ -85,11 +90,12 @@ namespace libp2p::protocol_muxer {
   }
 
   void MessageWriter::sendNaMsg(ConnectionState connection_state) {
-    connection_state.write_buffer_ = MessageManager::naMsg();
+    *connection_state.write_buffer_ = MessageManager::naMsg();
     auto connection = connection_state.connection_;
     const auto &write_buffer = connection_state.write_buffer_;
     connection->asyncWrite(
-        boost::asio::const_buffer{write_buffer.toBytes(), write_buffer.size()},
+        boost::asio::const_buffer{write_buffer->toBytes(),
+                                  write_buffer->size()},
         getWriteCallback(std::move(connection_state),
                          ConnectionState::NegotiationStatus::NA_SENT,
                          [](const std::error_code &ec) {
@@ -99,11 +105,12 @@ namespace libp2p::protocol_muxer {
 
   void MessageWriter::sendProtocolAck(ConnectionState connection_state,
                                       const peer::Protocol &protocol) {
-    connection_state.write_buffer_ = MessageManager::naMsg();
+    *connection_state.write_buffer_ = MessageManager::naMsg();
     auto connection = connection_state.connection_;
     const auto &write_buffer = connection_state.write_buffer_;
     connection->asyncWrite(
-        boost::asio::const_buffer{write_buffer.toBytes(), write_buffer.size()},
+        boost::asio::const_buffer{write_buffer->toBytes(),
+                                  write_buffer->size()},
         [connection_state = std::move(connection_state), &protocol](
             const std::error_code &ec, size_t n) mutable {
           auto multiselect = connection_state.multiselect_;

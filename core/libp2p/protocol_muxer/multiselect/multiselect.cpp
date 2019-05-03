@@ -55,11 +55,24 @@ namespace libp2p::protocol_muxer {
       protocol_callback(MultiselectErrors::NO_PROTOCOLS_SUPPORTED);
       return;
     }
-    MessageWriter::sendOpeningMsg(
-        ConnectionState{std::move(connection), std::move(protocol_callback),
-                        ConnectionState::NegotiationStatus::OPENING_SENT,
-                        write_buffers_.emplace_back(),
-                        read_buffers_.emplace_back(), shared_from_this()});
+
+    // if there are free read/write buffers, reuse them; otherwise, create new
+    // ones
+    if (!free_buffers_.empty()) {
+      auto free_buffers_index = free_buffers_.front();
+      free_buffers_.pop();
+      MessageWriter::sendOpeningMsg(ConnectionState{
+          std::move(connection), std::move(protocol_callback),
+          ConnectionState::NegotiationStatus::NOTHING_SENT,
+          write_buffers_[free_buffers_index], read_buffers_[free_buffers_index],
+          free_buffers_index, shared_from_this()});
+      return;
+    }
+    MessageWriter::sendOpeningMsg(ConnectionState{
+        std::move(connection), std::move(protocol_callback),
+        ConnectionState::NegotiationStatus::NOTHING_SENT,
+        write_buffers_.emplace_back(), read_buffers_.emplace_back(),
+        read_buffers_.size() - 1, shared_from_this()});
   }
 
   void Multiselect::onWriteCompleted(ConnectionState connection_state) const {
@@ -312,9 +325,12 @@ namespace libp2p::protocol_muxer {
   }
 
   void Multiselect::clearResources(const ConnectionState &connection_state) {
-    read_buffers_.erase(std::find(read_buffers_.begin(), read_buffers_.end(),
-                                  connection_state.read_buffer_));
-    write_buffers_.erase(std::find(write_buffers_.begin(), write_buffers_.end(),
-                                   connection_state.write_buffer_));
+    // clear the buffers
+    connection_state.read_buffer_->consume(
+        connection_state.read_buffer_->size());
+    connection_state.write_buffer_->clear();
+
+    // add them to the pool of free buffers
+    free_buffers_.push(connection_state.buffers_index_);
   }
 }  // namespace libp2p::protocol_muxer

@@ -44,8 +44,7 @@ namespace libp2p::multi {
      * @param varint_bytes an array of bytes, possibly representing an unsigned
      * varint
      */
-    static std::optional<UVarint> createVarint(
-        gsl::span<const uint8_t> varint_bytes);
+    static std::optional<UVarint> create(gsl::span<const uint8_t> varint_bytes);
 
     /**
      * Converts a varint back to a usual unsigned integer.

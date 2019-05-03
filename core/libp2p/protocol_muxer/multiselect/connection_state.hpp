@@ -43,10 +43,13 @@ namespace libp2p::protocol_muxer {
     NegotiationStatus status_ = NegotiationStatus::NOTHING_SENT;
 
     /// write buffer of this connection
-    kagome::common::Buffer &write_buffer_;
+    std::shared_ptr<kagome::common::Buffer> write_buffer_;
 
     /// read buffer of this connection
-    boost::asio::streambuf &read_buffer_;
+    std::shared_ptr<boost::asio::streambuf> read_buffer_;
+
+    /// index of both buffers in Multiselect collection
+    size_t buffers_index_;
 
     /// Multiselect instance, which spawned this connection state
     std::shared_ptr<Multiselect> multiselect_;

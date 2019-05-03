@@ -15,7 +15,7 @@ namespace {
   using libp2p::multi::UVarint;
 
   std::optional<UVarint> getVarint(boost::asio::streambuf &buffer) {
-    return UVarint::createVarint(gsl::make_span(
+    return UVarint::create(gsl::make_span(
         static_cast<const uint8_t *>(buffer.data().data()), buffer.size()));
   }
 }  // namespace
@@ -30,7 +30,7 @@ namespace libp2p::protocol_muxer {
   void MessageReader::readNextVarint(ConnectionState connection_state) {
     // we don't know exact length of varint, so read byte-by-byte
     auto conn = connection_state.connection_;
-    conn->asyncRead(connection_state.read_buffer_, 1,
+    conn->asyncRead(*connection_state.read_buffer_, 1,
                     [connection_state = std::move(connection_state)](
                         const std::error_code &ec, size_t n) mutable {
                       if (ec || n != 1) {
@@ -46,14 +46,14 @@ namespace libp2p::protocol_muxer {
   }
 
   void MessageReader::onReadVarintCompleted(ConnectionState connection_state) {
-    auto varint_opt = getVarint(connection_state.read_buffer_);
+    auto varint_opt = getVarint(*connection_state.read_buffer_);
     if (!varint_opt) {
       // no varint; continue reading
       readNextVarint(std::move(connection_state));
       return;
     }
     // we have length of the line to be read; do it
-    connection_state.read_buffer_.consume(varint_opt->size());
+    connection_state.read_buffer_->consume(varint_opt->size());
     readNextBytes(
         std::move(connection_state), varint_opt->toUInt64(),
         [](ConnectionState state) { onReadLineCompleted(std::move(state)); });
@@ -63,7 +63,7 @@ namespace libp2p::protocol_muxer {
       ConnectionState connection_state, uint64_t bytes_to_read,
       std::function<void(ConnectionState)> final_callback) {
     auto conn = connection_state.connection_;
-    conn->asyncRead(connection_state.read_buffer_, bytes_to_read,
+    conn->asyncRead(*connection_state.read_buffer_, bytes_to_read,
                     [connection_state = std::move(connection_state),
                      bytes_to_read, final_callback = std::move(final_callback)](
                         const std::error_code &ec, size_t n) mutable {
@@ -84,9 +84,9 @@ namespace libp2p::protocol_muxer {
 
     auto msg_span =
         gsl::make_span(static_cast<const uint8_t *>(
-                           connection_state.read_buffer_.data().data()),
-                       connection_state.read_buffer_.size());
-    connection_state.read_buffer_.consume(msg_span.size());
+                           connection_state.read_buffer_->data().data()),
+                       connection_state.read_buffer_->size());
+    connection_state.read_buffer_->consume(msg_span.size());
 
     // firstly, try to match the message against constant messages
     auto const_msg_res = MessageManager::parseConstantMsg(msg_span);
@@ -94,9 +94,10 @@ namespace libp2p::protocol_muxer {
       multiselect->onReadCompleted(std::move(connection_state),
                                    std::move(const_msg_res.value()));
       return;
-    } else if (!const_msg_res
-               && const_msg_res.error()
-                   != MessageManager::ParseError::MSG_IS_ILL_FORMED) {
+    }
+    if (!const_msg_res
+        && const_msg_res.error()
+            != MessageManager::ParseError::MSG_IS_ILL_FORMED) {
       // MSG_IS_ILL_FORMED allows us to continue parsing; otherwise, it's an
       // error
       multiselect->onError(
@@ -139,10 +140,11 @@ namespace libp2p::protocol_muxer {
 
     auto msg_res = MessageManager::parseProtocols(
         gsl::make_span(static_cast<const uint8_t *>(
-                           connection_state.read_buffer_.data().data()),
-                       connection_state.read_buffer_.size()),
+                           connection_state.read_buffer_->data().data()),
+                       connection_state.read_buffer_->size()),
         expected_protocols_number);
-    connection_state.read_buffer_.consume(connection_state.read_buffer_.size());
+    connection_state.read_buffer_->consume(
+        connection_state.read_buffer_->size());
     if (!msg_res) {
       multiselect->onError(
           std::move(connection_state),

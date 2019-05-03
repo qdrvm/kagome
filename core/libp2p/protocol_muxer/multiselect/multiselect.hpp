@@ -7,6 +7,7 @@
 #define KAGOME_MULTISELECT_IMPL_HPP
 
 #include <memory>
+#include <queue>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -177,8 +178,9 @@ namespace libp2p::protocol_muxer {
     std::vector<peer::Protocol> stream_protocols_;
     kagome::common::Logger log_;
 
-    std::vector<kagome::common::Buffer> write_buffers_;
-    std::vector<boost::asio::streambuf> read_buffers_;
+    std::vector<std::shared_ptr<kagome::common::Buffer>> write_buffers_;
+    std::vector<std::shared_ptr<boost::asio::streambuf>> read_buffers_;
+    std::queue<size_t> free_buffers_;
   };
 }  // namespace libp2p::protocol_muxer
 
