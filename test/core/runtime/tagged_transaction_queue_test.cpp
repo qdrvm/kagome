@@ -6,7 +6,7 @@
 #include "runtime/impl/tagged_transaction_queue_impl.hpp"
 
 #include <gtest/gtest.h>
-#include "core/runtime/runtime_fixture.hpp"
+#include "core/runtime/runtime_test.hpp"
 #include "core/storage/merkle/mock_trie_db.hpp"
 #include "extensions/extension_impl.hpp"
 #include "primitives/impl/scale_codec_impl.hpp"
@@ -24,19 +24,17 @@ using kagome::runtime::TaggedTransactionQueueImpl;
 using kagome::runtime::WasmMemoryImpl;
 using kagome::storage::merkle::MockTrieDb;
 
-class TTQFixture: public RuntimeFixture {
+class TTQTest: public RuntimeTest {
  public:
-  TTQFixture() {}
-
   void SetUp() override {
-    RuntimeFixture::SetUp();
+    RuntimeTest::SetUp();
 
-    p = std::make_unique<TaggedTransactionQueueImpl>(state_code_, extension_,
+    ttq_ = std::make_unique<TaggedTransactionQueueImpl>(state_code_, extension_,
                                                      codec_);
   }
 
  protected:
-  std::unique_ptr<TaggedTransactionQueue> p;
+  std::unique_ptr<TaggedTransactionQueue> ttq_;
 };
 
 /**
@@ -45,8 +43,8 @@ class TTQFixture: public RuntimeFixture {
  * @then a TransactionValidity structure is obtained after successful call,
  * otherwise an outcome error
  */
-TEST_F(TTQFixture, validate_transaction) {
+TEST_F(TTQTest, validate_transaction) {
   Extrinsic ext(Buffer::fromHex("01020304AABB").value());
 
-  ASSERT_FALSE(p->validate_transaction(ext));
+  ASSERT_FALSE(ttq_->validate_transaction(ext));
 }

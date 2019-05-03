@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_FIXTURE_HPP
-#define KAGOME_RUNTIME_FIXTURE_HPP
+#ifndef KAGOME_RUNTIME_TEST_HPP
+#define KAGOME_RUNTIME_TEST_HPP
 
 #include <fstream>
 #include <memory>
@@ -20,14 +20,16 @@
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/wasm_test.hpp"
 
-class RuntimeFixture : public test::WasmTest {
+class RuntimeTest : public test::WasmTest {
  public:
   using Buffer = kagome::common::Buffer;
   using Block = kagome::primitives::Block;
   using BlockId = kagome::primitives::BlockId;
   using BlockHeader = kagome::primitives::BlockHeader;
 
-  RuntimeFixture()
+  RuntimeTest()
+      // path to a file with polkadot runtime wasm code located in wasm/
+      // subfolder
       : WasmTest(boost::filesystem::path(__FILE__).parent_path().string()
                  + "/wasm/polkadot_runtime.compact.wasm") {}
 
@@ -49,7 +51,7 @@ class RuntimeFixture : public test::WasmTest {
     state_root.fill('s');
 
     kagome::common::Hash256 extrinsics_root{};
-    state_root.fill('e');
+    extrinsics_root.fill('e');
 
     Buffer digest{};
 
@@ -83,4 +85,4 @@ class RuntimeFixture : public test::WasmTest {
   std::shared_ptr<kagome::primitives::ScaleCodecImpl> codec_;
 };
 
-#endif  // KAGOME_RUNTIME_FIXTURE_HPP
+#endif  // KAGOME_RUNTIME_TEST_HPP

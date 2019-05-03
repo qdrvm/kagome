@@ -23,9 +23,10 @@ using ::testing::Return;
 
 namespace fs = boost::filesystem;
 
-class WasmExecutorTest: public test::WasmTest {
+class WasmExecutorTest : public test::WasmTest {
  public:
   WasmExecutorTest()
+      // path to a file with wasm code in wasm/ subfolder
       : WasmTest{fs::path(__FILE__).parent_path().string()
                  + "/wasm/sumtwo.wasm"} {}
 

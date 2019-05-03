@@ -15,7 +15,7 @@
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/wasm_test.hpp"
-#include "core/runtime/runtime_fixture.hpp"
+#include "core/runtime/runtime_test.hpp"
 
 using kagome::common::Buffer;
 using kagome::extensions::ExtensionImpl;
@@ -35,10 +35,10 @@ using ::testing::Return;
 
 namespace fs = boost::filesystem;
 
- class CoreTest: public RuntimeFixture {
+ class CoreTest: public RuntimeTest {
  public:
   void SetUp() override {
-    RuntimeFixture::SetUp();
+    RuntimeTest::SetUp();
 
     core_ = std::make_shared<CoreImpl>(state_code_, extension_, codec_);
   }

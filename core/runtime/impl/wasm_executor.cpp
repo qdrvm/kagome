@@ -41,7 +41,7 @@ namespace kagome::runtime {
         false);
     try {
       parser.read();
-    } catch (...) {
+    } catch (wasm::ParseException& e) {
       return Error::INVALID_STATE_CODE;
     }
     try {

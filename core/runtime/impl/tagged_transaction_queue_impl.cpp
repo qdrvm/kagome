@@ -39,7 +39,7 @@ namespace kagome::runtime {
     uint32_t res_addr = res.geti64() >> 32;
 
     WasmMemoryStream s(memory_);
-    s.advance(res_addr);
+    OUTCOME_TRY(s.advance(res_addr));
 
     return codec_->decodeTransactionValidity(s);
   }
