@@ -41,8 +41,7 @@ namespace kagome::runtime {
     WasmMemoryStream s(memory_);
     s.advance(res_addr);
 
-    auto t = codec_->decodeTransactionValidity(s);
-    return t;
+    return codec_->decodeTransactionValidity(s);
   }
 
 }
