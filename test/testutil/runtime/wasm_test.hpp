@@ -30,7 +30,6 @@ namespace test {
 
   protected:
     kagome::common::Buffer state_code_;
-
   };
 }  // namespace test
 

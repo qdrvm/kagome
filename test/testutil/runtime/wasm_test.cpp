@@ -20,7 +20,6 @@ namespace test {
     Buffer b(size, 0);
     ifd.read((char *)b.toBytes(), size);
     state_code_ = b;
-
   }
 
 }  // namespace test
