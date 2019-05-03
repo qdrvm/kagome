@@ -18,7 +18,7 @@ namespace test {
     int size = ifd.tellg();
     ifd.seekg(0, std::ios::beg);
     Buffer b(size, 0);
-    ifd.read((char *)b.toBytes(), size);
+    ifd.read((char *)b.toBytes(), size); // NOLINT
     state_code_ = b;
   }
 
