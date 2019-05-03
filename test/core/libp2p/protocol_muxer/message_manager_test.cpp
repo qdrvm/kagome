@@ -30,7 +30,9 @@ class MessageManagerTest : public ::testing::Test {
  public:
   const std::vector<Protocol> kDefaultProtocols{
       "/plaintext/1.0.0", "/ipfs-dht/0.2.3", "/http/w3id.org/http/1.1"};
+  static constexpr uint64_t kProtocolsVarintsSize = 3;
   static constexpr uint64_t kProtocolsListBytesSize = 60;
+  static constexpr uint64_t kProtocolsNumber = 3;
 
   const Buffer kOpeningMsg =
       Buffer{}
@@ -46,9 +48,9 @@ class MessageManagerTest : public ::testing::Test {
           .put("\n");
   const Buffer kProtocolsMsg =
       Buffer{}
-          .put(UVarint{3}.toBytes())
+          .put(UVarint{kProtocolsVarintsSize}.toBytes())
           .put(UVarint{kProtocolsListBytesSize}.toBytes())
-          .put(UVarint{3}.toBytes())
+          .put(UVarint{kProtocolsNumber}.toBytes())
           .put("\n")
           .put(UVarint{kDefaultProtocols[0].size() + 1}.toBytes())
           .put(kDefaultProtocols[0])
@@ -61,105 +63,104 @@ class MessageManagerTest : public ::testing::Test {
           .put("\n");
 };
 
-///**
-// * @given message manager
-// * @when getting an opening message from it
-// * @then well-formed opening message is returned
-// */
-//TEST_F(MessageManagerTest, ComposeOpeningMessage) {
-//  auto opening_msg = MessageManager::openingMsg();
-//  ASSERT_EQ(opening_msg, kOpeningMsg);
-//}
-//
-///**
-// * @given message manager
-// * @when getting an ls message from it
-// * @then well-formed ls message is returned
-// */
-//TEST_F(MessageManagerTest, ComposeLsMessage) {
-//  auto ls_msg = MessageManager::lsMsg();
-//  ASSERT_EQ(ls_msg, kLsMsg);
-//}
-//
-///**
-// * @given message manager
-// * @when getting an na message from it
-// * @then well-formed na message is returned
-// */
-//TEST_F(MessageManagerTest, ComposeNaMessage) {
-//  auto na_msg = MessageManager::naMsg();
-//  ASSERT_EQ(na_msg, kNaMsg);
-//}
-//
-///**
-// * @given message manager @and protocol
-// * @when getting a protocol message from it
-// * @then well-formed protocol message is returned
-// */
-//TEST_F(MessageManagerTest, ComposeProtocolMessage) {
-//  auto protocol_msg = MessageManager::protocolMsg(kDefaultProtocols[0]);
-//  ASSERT_EQ(protocol_msg, kProtocolMsg);
-//}
-//
-///**
-// * @given message manager @and protocols
-// * @when getting a protocols message from it
-// * @then well-formed protocols message is returned
-// */
-//TEST_F(MessageManagerTest, ComposeProtocolsMessage) {
-//  auto protocols_msg = MessageManager::protocolsMsg(kDefaultProtocols);
-//  ASSERT_EQ(protocols_msg, kProtocolsMsg);
-//}
-//
-///**
-// * @given opening message
-// * @when parsing it with a message manager
-// * @then the message is parsed
-// */
-//TEST_F(MessageManagerTest, ParseOpeningMessage) {
-//  EXPECT_OUTCOME_TRUE(opening_msg, MessageManager::parseMessage(kOpeningMsg))
-//  ASSERT_EQ(opening_msg.type_, MessageType::OPENING);
-//}
-//
-///**
-// * @given ls message
-// * @when parsing it with a message manager
-// * @then the message is parsed
-// */
-//TEST_F(MessageManagerTest, ParseLsMessage) {
-//  EXPECT_OUTCOME_TRUE(ls_msg, MessageManager::parseMessage(kLsMsg))
-//  ASSERT_EQ(ls_msg.type_, MessageType::LS);
-//}
-//
-///**
-// * @given na message
-// * @when parsing it with a message manager
-// * @then the message is parsed
-// */
-//TEST_F(MessageManagerTest, ParseNaMessage) {
-//  EXPECT_OUTCOME_TRUE(na_msg, MessageManager::parseMessage(kNaMsg))
-//  ASSERT_EQ(na_msg.type_, MessageType::NA);
-//}
-//
-///**
-// * @given protocol message
-// * @when parsing it with a message manager
-// * @then the message is parsed
-// */
-//TEST_F(MessageManagerTest, ParseProtocolMessage) {
-//  EXPECT_OUTCOME_TRUE(protocol_msg, MessageManager::parseMessage(kProtocolMsg))
-//  ASSERT_EQ(protocol_msg.type_, MessageType::PROTOCOL);
-//  ASSERT_EQ(protocol_msg.protocols_[0], kDefaultProtocols[0]);
-//}
-//
-///**
-// * @given protocols message
-// * @when parsing it with a message manager
-// * @then the message is parsed
-// */
-//TEST_F(MessageManagerTest, ParseProtocolsMessage) {
-//  EXPECT_OUTCOME_TRUE(protocols_msg,
-//                      MessageManager::parseMessage(kProtocolsMsg))
-//  ASSERT_EQ(protocols_msg.type_, MessageType::PROTOCOLS);
-//  ASSERT_EQ(protocols_msg.protocols_, kDefaultProtocols);
-//}
+/**
+ * @given message manager
+ * @when getting an opening message from it
+ * @then well-formed opening message is returned
+ */
+TEST_F(MessageManagerTest, ComposeOpeningMessage) {
+  auto opening_msg = MessageManager::openingMsg();
+  ASSERT_EQ(opening_msg, kOpeningMsg);
+}
+
+/**
+ * @given message manager
+ * @when getting an ls message from it
+ * @then well-formed ls message is returned
+ */
+TEST_F(MessageManagerTest, ComposeLsMessage) {
+  auto ls_msg = MessageManager::lsMsg();
+  ASSERT_EQ(ls_msg, kLsMsg);
+}
+
+/**
+ * @given message manager
+ * @when getting an na message from it
+ * @then well-formed na message is returned
+ */
+TEST_F(MessageManagerTest, ComposeNaMessage) {
+  auto na_msg = MessageManager::naMsg();
+  ASSERT_EQ(na_msg, kNaMsg);
+}
+
+/**
+ * @given message manager @and protocol
+ * @when getting a protocol message from it
+ * @then well-formed protocol message is returned
+ */
+TEST_F(MessageManagerTest, ComposeProtocolMessage) {
+  auto protocol_msg = MessageManager::protocolMsg(kDefaultProtocols[0]);
+  ASSERT_EQ(protocol_msg, kProtocolMsg);
+}
+
+/**
+ * @given message manager @and protocols
+ * @when getting a protocols message from it
+ * @then well-formed protocols message is returned
+ */
+TEST_F(MessageManagerTest, ComposeProtocolsMessage) {
+  auto protocols_msg = MessageManager::protocolsMsg(kDefaultProtocols);
+  ASSERT_EQ(protocols_msg, kProtocolsMsg);
+}
+
+TEST_F(MessageManagerTest, ParseConstLs) {
+  EXPECT_OUTCOME_TRUE(ls_msg,
+                      MessageManager::parseConstantMsg(kLsMsg.toVector()))
+  ASSERT_EQ(ls_msg.type_, MessageType::LS);
+}
+
+TEST_F(MessageManagerTest, ParseConstNa) {
+  EXPECT_OUTCOME_TRUE(na_msg,
+                      MessageManager::parseConstantMsg(kNaMsg.toVector()))
+  ASSERT_EQ(na_msg.type_, MessageType::NA);
+}
+
+TEST_F(MessageManagerTest, ParseConstFail) {
+  EXPECT_FALSE(MessageManager::parseConstantMsg(kProtocolMsg.toVector()));
+}
+
+TEST_F(MessageManagerTest, ParseProtocolsHeader) {
+  auto protocols_header = gsl::make_span(kProtocolsMsg.toVector());
+  EXPECT_OUTCOME_TRUE(
+      parsed_header,
+      MessageManager::parseProtocolsHeader(protocols_header.subspan(1)))
+  ASSERT_EQ(parsed_header.number_of_protocols_, kProtocolsNumber);
+  ASSERT_EQ(parsed_header.size_of_protocols_, kProtocolsListBytesSize);
+}
+
+TEST_F(MessageManagerTest, ParseProtocols) {
+  auto protocols = gsl::make_span(kProtocolsMsg.toVector());
+  EXPECT_OUTCOME_TRUE(
+      parsed_protocols,
+      MessageManager::parseProtocols(protocols.subspan(4), kProtocolsNumber))
+  ASSERT_EQ(parsed_protocols.type_, MessageType::PROTOCOLS);
+  ASSERT_EQ(parsed_protocols.protocols_, kDefaultProtocols);
+}
+
+TEST_F(MessageManagerTest, ParseProtocolsFail) {
+  EXPECT_FALSE(MessageManager::parseProtocols(kProtocolMsg.toVector(),
+                                              kProtocolsNumber));
+}
+
+TEST_F(MessageManagerTest, ParseProtocol) {
+  auto protocol = gsl::make_span(kProtocolMsg.toVector());
+  EXPECT_OUTCOME_TRUE(parsed_protocol,
+                      MessageManager::parseProtocol(
+                          protocol.subspan(1), kDefaultProtocols[0].size() + 1))
+  ASSERT_EQ(parsed_protocol.type_, MessageType::PROTOCOL);
+  ASSERT_EQ(parsed_protocol.protocols_[0], kDefaultProtocols[0]);
+}
+
+TEST_F(MessageManagerTest, ParseProtocolFail) {
+  EXPECT_FALSE(MessageManager::parseProtocol(kProtocolMsg.toVector(), 100));
+}

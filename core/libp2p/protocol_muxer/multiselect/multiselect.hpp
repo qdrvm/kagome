@@ -41,8 +41,8 @@ namespace libp2p::protocol_muxer {
 
     Multiselect(const Multiselect &other) = delete;
     Multiselect &operator=(const Multiselect &other) = delete;
-    Multiselect(Multiselect &&other) noexcept = default;
-    Multiselect &operator=(Multiselect &&other) noexcept = default;
+    Multiselect(Multiselect &&other) = default;
+    Multiselect &operator=(Multiselect &&other) = default;
 
     ~Multiselect() override = default;
 

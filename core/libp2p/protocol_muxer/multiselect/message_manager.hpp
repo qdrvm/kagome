@@ -53,7 +53,7 @@ namespace libp2p::protocol_muxer {
         gsl::span<const uint8_t> bytes, uint64_t expected_protocols_number);
 
     static outcome::result<MultiselectMessage> parseProtocol(
-        gsl::span<const uint8_t> bytes);
+        gsl::span<const uint8_t> bytes, uint64_t protocol_size);
 
     /**
      * Create an opening message

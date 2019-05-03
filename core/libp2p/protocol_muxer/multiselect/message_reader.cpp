@@ -54,9 +54,11 @@ namespace libp2p::protocol_muxer {
     }
     // we have length of the line to be read; do it
     connection_state.read_buffer_->consume(varint_opt->size());
-    readNextBytes(
-        std::move(connection_state), varint_opt->toUInt64(),
-        [](ConnectionState state) { onReadLineCompleted(std::move(state)); });
+    auto bytes_to_read = varint_opt->toUInt64();
+    readNextBytes(std::move(connection_state), bytes_to_read,
+                  [bytes_to_read](ConnectionState state) {
+                    onReadLineCompleted(std::move(state), bytes_to_read);
+                  });
   }
 
   void MessageReader::readNextBytes(
@@ -79,7 +81,11 @@ namespace libp2p::protocol_muxer {
                     });
   }
 
-  void MessageReader::onReadLineCompleted(ConnectionState connection_state) {
+  void MessageReader::onReadLineCompleted(ConnectionState connection_state,
+                                          uint64_t read_bytes) {
+    // '/tls/1.3.0\n' - the shortest protocol, which could be found
+    static constexpr size_t kShortestProtocolLength = 11;
+
     auto multiselect = connection_state.multiselect_;
 
     auto msg_span =
@@ -107,21 +113,30 @@ namespace libp2p::protocol_muxer {
       return;
     }
 
-    // secondly, try protocols header
-    auto proto_header_res = MessageManager::parseProtocolsHeader(msg_span);
-    if (proto_header_res) {
-      readNextBytes(std::move(connection_state),
-                    proto_header_res.value().size_of_protocols_,
-                    [&proto_header_res](ConnectionState state) {
-                      onReadProtocolsCompleted(
-                          std::move(state),
-                          proto_header_res.value().number_of_protocols_);
-                    });
+    // here, we assume that protocols header - two varints + '\n' - cannot be
+    // longer or equal to the shortest protocol length; varints should be very
+    // big for it to happen; thus, continue parsing depending on the length of
+    // the current string
+    if (read_bytes < kShortestProtocolLength) {
+      auto proto_header_res = MessageManager::parseProtocolsHeader(msg_span);
+      if (proto_header_res) {
+        readNextBytes(std::move(connection_state),
+                      proto_header_res.value().size_of_protocols_,
+                      [&proto_header_res](ConnectionState state) {
+                        onReadProtocolsCompleted(
+                            std::move(state),
+                            proto_header_res.value().number_of_protocols_);
+                      });
+      } else {
+        multiselect->onError(
+            std::move(connection_state),
+            "cannot parse message, received from the other side: "
+                + proto_header_res.error().message());
+      }
       return;
     }
 
-    // finally, a single protocol message
-    auto proto_res = MessageManager::parseProtocol(msg_span);
+    auto proto_res = MessageManager::parseProtocol(msg_span, read_bytes);
     if (!proto_res) {
       multiselect->onError(
           std::move(connection_state),

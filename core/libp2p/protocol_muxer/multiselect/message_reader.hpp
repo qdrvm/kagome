@@ -52,8 +52,10 @@ namespace libp2p::protocol_muxer {
      * Completion handler for read bytes operation in case a single line was
      * expected to be read
      * @param connection_state - state of the connection
+     * @param read_bytes - how much bytes were read (or in this line)
      */
-    static void onReadLineCompleted(ConnectionState connection_state);
+    static void onReadLineCompleted(ConnectionState connection_state,
+                                    uint64_t read_bytes);
 
     /**
      * Completion handler for read bytes operation in case several lines (with
