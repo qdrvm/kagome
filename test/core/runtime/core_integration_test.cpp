@@ -9,13 +9,13 @@
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
-#include "core/runtime/runtime_fixture.hpp"
 #include "core/storage/merkle/mock_trie_db.hpp"
 #include "extensions/extension_impl.hpp"
 #include "primitives/impl/scale_codec_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/wasm_test.hpp"
+#include "core/runtime/runtime_fixture.hpp"
 
 using kagome::common::Buffer;
 using kagome::extensions::ExtensionImpl;
@@ -35,13 +35,12 @@ using ::testing::Return;
 
 namespace fs = boost::filesystem;
 
-class CoreTest : public RuntimeTestFixture {
+ class CoreTest: public RuntimeFixture {
  public:
   void SetUp() override {
-    RuntimeTestFixture::SetUp();
+    RuntimeFixture::SetUp();
 
-    auto state_code = getRuntimeCode();
-    core_ = std::make_shared<CoreImpl>(state_code, extension_, codec_);
+    core_ = std::make_shared<CoreImpl>(state_code_, extension_, codec_);
   }
 
  protected:

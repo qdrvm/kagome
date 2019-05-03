@@ -37,7 +37,7 @@ addtest(tagged_transaction_queue_test
     )
 target_link_libraries(tagged_transaction_queue_test
     tagged_transaction_queue
-    Boost::filesystem
+    wasm_test
     )
 
 addtest(wasm_executor_test
@@ -47,4 +47,3 @@ target_link_libraries(wasm_executor_test
     wasm_executor
     wasm_test
     )
-

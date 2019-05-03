@@ -6,12 +6,13 @@
 #include "runtime/impl/tagged_transaction_queue_impl.hpp"
 
 #include <gtest/gtest.h>
+#include "core/runtime/runtime_fixture.hpp"
 #include "core/storage/merkle/mock_trie_db.hpp"
 #include "extensions/extension_impl.hpp"
 #include "primitives/impl/scale_codec_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
-#include "core/runtime/runtime_fixture.hpp"
+#include "testutil/runtime/wasm_test.hpp"
 
 using namespace testing;
 using kagome::common::Buffer;
@@ -23,20 +24,20 @@ using kagome::runtime::TaggedTransactionQueueImpl;
 using kagome::runtime::WasmMemoryImpl;
 using kagome::storage::merkle::MockTrieDb;
 
-class TTQFixture : public RuntimeTestFixture {
+class TTQFixture: public RuntimeFixture {
  public:
+  TTQFixture() {}
+
   void SetUp() override {
-    RuntimeTestFixture::SetUp();
+    RuntimeFixture::SetUp();
 
-    auto state_code = getRuntimeCode();
-
-    p = std::make_unique<TaggedTransactionQueueImpl>(state_code, extension_, codec_);
+    p = std::make_unique<TaggedTransactionQueueImpl>(state_code_, extension_,
+                                                     codec_);
   }
 
  protected:
   std::unique_ptr<TaggedTransactionQueue> p;
 };
-
 
 /**
  * @given initialised tagged transaction queue api

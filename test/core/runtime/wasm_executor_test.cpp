@@ -23,16 +23,16 @@ using ::testing::Return;
 
 namespace fs = boost::filesystem;
 
-class WasmExecutorTest : public test::WasmTest {
+class WasmExecutorTest: public test::WasmTest {
  public:
   WasmExecutorTest()
-      : test::WasmTest(fs::path(__FILE__).parent_path().string()
-                       + "/wasm/sumtwo.wasm") {}
+      : WasmTest{fs::path(__FILE__).parent_path().string()
+                 + "/wasm/sumtwo.wasm"} {}
 
   void SetUp() override {
+    WasmTest::SetUp();
     extension_ = std::make_shared<MockExtension>();
     memory_ = std::make_shared<WasmMemoryImpl>();
-
     EXPECT_CALL(*extension_, memory()).WillRepeatedly(Return(memory_));
     executor_ = std::make_shared<WasmExecutor>(extension_);
   }
@@ -52,13 +52,13 @@ TEST_F(WasmExecutorTest, ExecuteCode) {
   auto res =
       executor_->call(state_code_, "addTwo",
                       wasm::LiteralList{wasm::Literal(1), wasm::Literal(2)});
-  ASSERT_TRUE(res);
+  ASSERT_TRUE(res) << res.error().message();
   ASSERT_EQ(res.value().geti32(), 3);
 }
 
 /**
  * @given wasm executor
- * @when call is invoked with wasm module with initiaalized with code with
+ * @when call is invoked with wasm module with initialised with code with
  * addTwo function
  * @then proper result is returned
  */
@@ -75,15 +75,15 @@ TEST_F(WasmExecutorTest, ExecuteModule) {
   ASSERT_EQ(res.geti32(), 3);
 }
 
-
 /**
  * @given wasm executor
  * @when call is invoked with invalid or empty state code
  * @then proper error is returned
  */
 TEST_F(WasmExecutorTest, ExecuteWithInvalidStateCode) {
-    Buffer state_code;
+  Buffer state_code;
 
-    ASSERT_FALSE(executor_->call(state_code, "foo", wasm::LiteralList{}));
-    ASSERT_FALSE(executor_->call(Buffer::fromHex("12345A").value(), "foo", wasm::LiteralList{}));
+  ASSERT_FALSE(executor_->call(state_code, "foo", wasm::LiteralList{}));
+  ASSERT_FALSE(executor_->call(Buffer::fromHex("12345A").value(), "foo",
+                               wasm::LiteralList{}));
 }

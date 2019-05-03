@@ -20,7 +20,7 @@ namespace kagome::runtime {
       std::shared_ptr<extensions::Extension> extension,
               std::shared_ptr<primitives::ScaleCodec> codec);
 
-      virtual outcome::result<primitives::TransactionValidity>
+      outcome::result<primitives::TransactionValidity>
       validate_transaction(
         const primitives::Extrinsic &ext) override;
 

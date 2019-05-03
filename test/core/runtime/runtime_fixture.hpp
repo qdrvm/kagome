@@ -11,48 +11,35 @@
 
 #include <gtest/gtest.h>
 #include <boost/filesystem/path.hpp>
-#include "primitives/block.hpp"
-#include "primitives/block_header.hpp"
 #include "core/storage/merkle/mock_trie_db.hpp"
 #include "extensions/extension_impl.hpp"
+#include "primitives/block.hpp"
+#include "primitives/block_header.hpp"
 #include "primitives/impl/scale_codec_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/runtime/wasm_test.hpp"
 
-using kagome::common::Buffer;
-using kagome::extensions::ExtensionImpl;
-using kagome::primitives::Block;
-using kagome::primitives::BlockHeader;
-using kagome::primitives::BlockId;
-using kagome::primitives::BlockNumber;
-using kagome::primitives::Extrinsic;
-using kagome::primitives::ScaleCodecImpl;
-using kagome::runtime::WasmMemory;
-using kagome::runtime::WasmMemoryImpl;
-using kagome::storage::merkle::MockTrieDb;
-
-class RuntimeTestFixture : public ::testing::Test {
+class RuntimeFixture : public test::WasmTest {
  public:
+  using Buffer = kagome::common::Buffer;
+  using Block = kagome::primitives::Block;
+  using BlockId = kagome::primitives::BlockId;
+  using BlockHeader = kagome::primitives::BlockHeader;
+
+  RuntimeFixture()
+      : WasmTest(boost::filesystem::path(__FILE__).parent_path().string()
+                 + "/wasm/polkadot_runtime.compact.wasm") {}
+
   void SetUp() override {
-    trie_db_ = std::make_shared<MockTrieDb>();
-    memory_ = std::make_shared<WasmMemoryImpl>();
-    extension_ = std::make_shared<ExtensionImpl>(memory_, trie_db_);
-    codec_ = std::make_shared<ScaleCodecImpl>();
+    trie_db_ = std::make_shared<kagome::storage::merkle::MockTrieDb>();
+    memory_ = std::make_shared<kagome::runtime::WasmMemoryImpl>();
+    extension_ =
+        std::make_shared<kagome::extensions::ExtensionImpl>(memory_, trie_db_);
+    codec_ = std::make_shared<kagome::primitives::ScaleCodecImpl>();
   }
 
-  Buffer getRuntimeCode() {
-    // get file from wasm/ folder
-    auto path =  boost::filesystem::path(__FILE__).parent_path().string()
-                + "/wasm/polkadot_runtime.compact.wasm";
-    std::ifstream ifd(path, std::ios::binary | std::ios::ate);
-    int size = ifd.tellg();
-    ifd.seekg(0, std::ios::beg);
-    Buffer b(size, 0);
-    ifd.read((char *)b.toBytes(), size);
-    return b;
-  }
-
-  BlockHeader createBlockHeader() {
+  kagome::primitives::BlockHeader createBlockHeader() {
     kagome::common::Hash256 parent_hash{};
     parent_hash.fill('p');
 
@@ -66,15 +53,15 @@ class RuntimeTestFixture : public ::testing::Test {
 
     Buffer digest{};
 
-    BlockHeader header(parent_hash, number, state_root,
-                       extrinsics_root, digest);
+    BlockHeader header(parent_hash, number, state_root, extrinsics_root,
+                       digest);
     return header;
   }
 
-  Block createBlock() {
+  kagome::primitives::Block createBlock() {
     auto header = createBlockHeader();
 
-    std::vector<Extrinsic> xts;
+    std::vector<kagome::primitives::Extrinsic> xts;
 
     xts.emplace_back(Buffer{'a', 'b', 'c'});
     xts.emplace_back(Buffer{'1', '2', '3'});
@@ -84,16 +71,16 @@ class RuntimeTestFixture : public ::testing::Test {
     return b;
   }
 
-  BlockId createBlockId() {
-    BlockId res = BlockNumber{0};
+  kagome::primitives::BlockId createBlockId() {
+    BlockId res = kagome::primitives::BlockNumber{0};
     return res;
   }
 
  protected:
-  std::shared_ptr<MockTrieDb> trie_db_;
-  std::shared_ptr<WasmMemory> memory_;
-  std::shared_ptr<ExtensionImpl> extension_;
-  std::shared_ptr<ScaleCodecImpl> codec_;
+  std::shared_ptr<kagome::storage::merkle::MockTrieDb> trie_db_;
+  std::shared_ptr<kagome::runtime::WasmMemory> memory_;
+  std::shared_ptr<kagome::extensions::ExtensionImpl> extension_;
+  std::shared_ptr<kagome::primitives::ScaleCodecImpl> codec_;
 };
 
 #endif  // KAGOME_RUNTIME_FIXTURE_HPP
