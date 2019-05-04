@@ -11,7 +11,6 @@ target_link_libraries(base_fs_test
     logger
     )
 
-
 add_library(base_leveldb_test
     base_leveldb_test.hpp
     base_leveldb_test.cpp
@@ -23,4 +22,3 @@ target_link_libraries(base_leveldb_test
     logger
     leveldb
     )
-
