@@ -1,3 +1,5 @@
+#include <utility>
+
 /**
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
@@ -25,7 +27,7 @@ namespace kagome::runtime {
 
   WasmExecutor::WasmExecutor(std::shared_ptr<extensions::Extension> extension,
                              common::Logger logger)
-      : extension_(std::move(extension)), logger_{logger} {}
+      : extension_(std::move(extension)), logger_{std::move(logger)} {}
 
   outcome::result<wasm::Literal> WasmExecutor::call(
       const common::Buffer &state_code, wasm::Name method_name,
