@@ -1,11 +1,11 @@
-#include <utility>
-
 /**
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "runtime/impl/wasm_executor.hpp"
+
+#include <utility>
 
 #include <binaryen/wasm-binary.h>
 #include "runtime/impl/runtime_external_interface.hpp"
