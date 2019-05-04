@@ -8,6 +8,7 @@
 
 #include <binaryen/wasm-interpreter.h>
 #include "common/buffer.hpp"
+#include "common/logger.hpp"
 #include "extensions/extension.hpp"
 
 namespace kagome::runtime {
@@ -26,7 +27,9 @@ namespace kagome::runtime {
       EXECUTION_ERROR
     };
 
-    explicit WasmExecutor(std::shared_ptr<extensions::Extension> extension);
+    explicit WasmExecutor(
+        std::shared_ptr<extensions::Extension> extension,
+        common::Logger logger = common::createLogger(kDefaultLoggerTag));
 
     /**
      * Executes export method from provided wasm code and returns result
@@ -42,7 +45,10 @@ namespace kagome::runtime {
                                const wasm::LiteralList &args);
 
    private:
+    constexpr static auto kDefaultLoggerTag = "Wasm executor";
+
     std::shared_ptr<extensions::Extension> extension_;
+    common::Logger logger_;
   };
 
 }  // namespace kagome::runtime

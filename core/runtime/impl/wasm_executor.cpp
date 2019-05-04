@@ -23,8 +23,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, WasmExecutor::Error, e) {
 
 namespace kagome::runtime {
 
-  WasmExecutor::WasmExecutor(std::shared_ptr<extensions::Extension> extension)
-      : extension_(std::move(extension)) {}
+  WasmExecutor::WasmExecutor(std::shared_ptr<extensions::Extension> extension,
+                             common::Logger logger)
+      : extension_(std::move(extension)), logger_{logger} {}
 
   outcome::result<wasm::Literal> WasmExecutor::call(
       const common::Buffer &state_code, wasm::Name method_name,
@@ -41,12 +42,17 @@ namespace kagome::runtime {
         false);
     try {
       parser.read();
-    } catch (wasm::ParseException& e) {
+    } catch (wasm::ParseException &e) {
+      std::ostringstream msg;
+      e.dump(msg);
+      logger_->error(msg.str());
       return Error::INVALID_STATE_CODE;
     }
     try {
       return callInModule(module, method_name, args);
-    } catch (...) {
+    } catch (wasm::ExitException &e) {
+      return Error::EXECUTION_ERROR;
+    } catch (wasm::TrapException &e) {
       return Error::EXECUTION_ERROR;
     }
   }
