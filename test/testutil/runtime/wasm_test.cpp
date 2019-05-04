@@ -5,13 +5,16 @@
 
 #include "testutil/runtime/wasm_test.hpp"
 
+#include <string_view>
+
 #include <boost/filesystem.hpp>
+
+using kagome::common::Buffer;
 
 namespace test {
 
-  WasmTest::WasmTest(const std::string &path) {
-    namespace fs = boost::filesystem;
-    std::ifstream ifd(path, std::ios::binary | std::ios::ate);
+  WasmTest::WasmTest(const std::string& filename) {
+    std::ifstream ifd(filename, std::ios::binary | std::ios::ate);
     int size = ifd.tellg();
     ifd.seekg(0, std::ios::beg);
     kagome::common::Buffer b(size, 0);

@@ -15,6 +15,7 @@
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/wasm_test.hpp"
+#include "core/runtime/runtime_test.hpp"
 
 using kagome::common::Buffer;
 using kagome::extensions::ExtensionImpl;
@@ -34,63 +35,15 @@ using ::testing::Return;
 
 namespace fs = boost::filesystem;
 
-class CoreTest : public test::WasmTest {
+ class CoreTest: public RuntimeTest {
  public:
-  CoreTest()
-      : test::WasmTest(fs::path(__FILE__).parent_path().string()
-                       + "/wasm/polkadot_runtime.compact.wasm") {}
-
   void SetUp() override {
-    trie_db_ = std::make_shared<MockTrieDb>();
-    memory_ = std::make_shared<WasmMemoryImpl>();
-    extension_ = std::make_shared<ExtensionImpl>(memory_, trie_db_);
-    codec_ = std::make_shared<ScaleCodecImpl>();
+    RuntimeTest::SetUp();
 
     core_ = std::make_shared<CoreImpl>(state_code_, extension_, codec_);
   }
 
-  BlockHeader createBlockHeader() {
-    kagome::common::Hash256 parent_hash{};
-    parent_hash.fill('p');
-
-    size_t number = 1;
-
-    kagome::common::Hash256 state_root{};
-    state_root.fill('s');
-
-    kagome::common::Hash256 extrinsics_root{};
-    state_root.fill('e');
-
-    Buffer digest{};
-
-    BlockHeader header(parent_hash, number, state_root, extrinsics_root,
-                       digest);
-    return header;
-  }
-
-  Block createBlock() {
-    auto header = createBlockHeader();
-
-    std::vector<Extrinsic> xts;
-
-    xts.emplace_back(Buffer{'a', 'b', 'c'});
-    xts.emplace_back(Buffer{'1', '2', '3'});
-
-    Block b(header, xts);
-
-    return b;
-  }
-
-  BlockId createBlockId() {
-    BlockId res = BlockNumber{0};
-    return res;
-  }
-
  protected:
-  std::shared_ptr<MockTrieDb> trie_db_;
-  std::shared_ptr<WasmMemory> memory_;
-  std::shared_ptr<ExtensionImpl> extension_;
-  std::shared_ptr<ScaleCodecImpl> codec_;
   std::shared_ptr<CoreImpl> core_;
 };
 

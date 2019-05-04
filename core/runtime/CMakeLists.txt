@@ -27,3 +27,16 @@ target_link_libraries(core
     wasm_memory_stream
     wasm_executor
     )
+
+add_library(tagged_transaction_queue
+    tagged_transaction_queue.hpp
+    impl/tagged_transaction_queue_impl.cpp
+    impl/tagged_transaction_queue_impl.hpp
+    )
+target_link_libraries(tagged_transaction_queue
+    buffer
+    logger
+    scale_codec
+    wasm_memory_stream
+    wasm_executor
+    )
