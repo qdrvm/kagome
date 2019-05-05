@@ -17,7 +17,12 @@ namespace kagome::storage::merkle {
   struct PolkadotNode : public Node {
     ~PolkadotNode() override = default;
 
-    enum class Type { Leaf, Branch };
+    enum class Type {
+      Special = 0b00,
+      Leaf = 0b01,
+      BranchEmptyValue = 0b10,
+      BranchWithValue = 0b11
+    };
 
     bool is_dirty;
     common::Buffer key_nibbles;

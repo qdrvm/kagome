@@ -122,13 +122,17 @@ namespace kagome::storage::merkle {
   outcome::result<common::Buffer> PolkadotCodec::encodeNode(
       const Node &node) const {
     switch (static_cast<PolkadotNode::Type>(node.getType())) {
-      case PolkadotNode::Type::Branch:
+      case PolkadotNode::Type::BranchEmptyValue:
+      case PolkadotNode::Type::BranchWithValue:
         return encodeBranch(dynamic_cast<const BranchNode &>(node));
       case PolkadotNode::Type::Leaf:
         return encodeLeaf(dynamic_cast<const LeafNode &>(node));
-    }
 
-    return std::errc::invalid_argument;
+      case PolkadotNode::Type::Special:
+        // special node is not handled right now
+      default:
+        return std::errc::invalid_argument;
+    }
   }
 
   outcome::result<common::Buffer> PolkadotCodec::getHeader(
@@ -140,29 +144,23 @@ namespace kagome::storage::merkle {
     uint8_t head = 0;
     // set bits 6..7
     switch (static_cast<PolkadotNode::Type>(node.getType())) {
-      case PolkadotNode::Type::Branch:
-        // has value?
-        head = node.value.size() > 0 ? 0b11 : 0b10;
-        break;
+      case PolkadotNode::Type::BranchEmptyValue:
+      case PolkadotNode::Type::BranchWithValue:
       case PolkadotNode::Type::Leaf:
-        head = 0b01;
+        head = node.getType();
         break;
       default:
         return Error::UNKNOWN_NODE_TYPE;
     }
-    // FIXME: in the spec above two bits are most significant
-    //    head <<= 6u;  // head_{6..7} * 64
+    head <<= 6u;  // head_{6..7} * 64
 
     // set bits 0..5
     if (node.key_nibbles.size() < 63u) {
-      // FIXME: in the spec it is
-      //   head |= uint8_t(node.key_nibbles.size());
-      head |= uint8_t(node.key_nibbles.size()) << 2u;
+      head |= uint8_t(node.key_nibbles.size());
       return Buffer{head};  // header contains 1 byte
     }
 
-    // FIXME: in the spec it is += 63u; - set least 6 bits with 1
-    head += 0xfcu;
+    head += 63u;
 
     size_t l = node.key_nibbles.size() - 63u;
     Buffer out(1u +             /// 1 byte head

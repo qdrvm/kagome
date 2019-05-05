@@ -12,7 +12,9 @@ namespace kagome::storage::merkle {
   }
 
   int BranchNode::getType() const {
-    return static_cast<int>(PolkadotNode::Type::Branch);
+    return static_cast<int>(value.size() > 0
+                                ? PolkadotNode::Type::BranchWithValue
+                                : PolkadotNode::Type::BranchEmptyValue);
   }
 
   uint16_t BranchNode::childrenBitmap() const {
