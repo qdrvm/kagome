@@ -149,8 +149,7 @@ namespace kagome::common {
   }
 
   Buffer &Buffer::operator+=(const Buffer &other) noexcept {
-   return this->putBuffer(other);
-    return *this;
+    return this->putBuffer(other);
   }
 
   std::ostream &operator<<(std::ostream &os, const Buffer &buffer) {
