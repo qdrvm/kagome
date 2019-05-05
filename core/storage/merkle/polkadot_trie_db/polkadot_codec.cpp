@@ -109,13 +109,12 @@ namespace kagome::storage::merkle {
   common::Hash256 PolkadotCodec::hash256(const common::Buffer &buf) const {
     common::Hash256 out;
 
-    static constexpr uint32_t k32bytes = 32;
-    if (buf.size() < k32bytes) {
+    if (buf.size() < common::Hash256::size()) {
       std::copy(buf.begin(), buf.end(), out.begin());
       return out;
     }
 
-    blake2s(out.data(), k32bytes, nullptr, 0, buf.toBytes(), buf.size());
+    blake2s(out.data(), common::Hash256::size(), nullptr, 0, buf.toBytes(), buf.size());
     return out;
   }
 
