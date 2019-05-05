@@ -149,7 +149,7 @@ namespace kagome::common {
   }
 
   Buffer &Buffer::operator+=(const Buffer &other) noexcept {
-    this->put(other.toVector());
+   return this->putBuffer(other);
     return *this;
   }
 
