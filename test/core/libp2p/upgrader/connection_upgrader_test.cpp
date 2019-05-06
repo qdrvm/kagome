@@ -33,23 +33,20 @@ class ConnectionUpgraderTest : public ::testing::Test {
  protected:
   boost::asio::io_context context_;
 
-  std::shared_ptr<Yamux> yamux_;
-  std::vector<std::unique_ptr<Stream>> accepted_streams_;
-
   std::unique_ptr<Transport> transport_;
   std::shared_ptr<TransportListener> transport_listener_;
   std::shared_ptr<Multiaddress> multiaddress_;
-  std::shared_ptr<Connection> connection_;
-  std::shared_ptr<ConnectionUpgraderImpl> upgrader_;
+  std::shared_ptr<ConnectionUpgraderImpl> upgrader_ =
+      std::make_shared<ConnectionUpgraderImpl>();
   std::unique_ptr<MuxedConnection> muxed_connection_;
 };
 
 /**
- * @given
- * @when
- * @then
+ * @given transport, listener, context and local client
+ * @when context_.run_for() is called
+ * @then upgrader_ upgrades incoming connection to muxed
  */
-TEST_F(ConnectionUpgraderTest, ServerInstantiateSuccess) {
+TEST_F(ConnectionUpgraderTest, ServerUpgradeSuccess) {
   // create transport
   transport_ = std::make_unique<TransportImpl>(context_);
   ASSERT_TRUE(transport_) << "cannot create transport";
@@ -62,27 +59,33 @@ TEST_F(ConnectionUpgraderTest, ServerInstantiateSuccess) {
 
         // here, our Yamux instance is going to be a server, as a new
         // connection is accepted
+        MuxerOptions options = {ConnectionType::SERVER_SIDE};
         muxed_connection_ = upgrader_->upgradeToMuxed(
-            c, {ConnectionType::SERVER_SIDE},
-            [this](std::unique_ptr<Stream> new_stream) mutable {
-              accepted_streams_.push_back(std::move(new_stream));
-              std::cout << "accepted new stream" << std::endl;
+            c, options, [](std::unique_ptr<Stream> new_stream) mutable {
+              // do nothing
             });
-
-        ASSERT_TRUE(yamux_) << "cannot create Yamux from a new connection";
-        yamux_->start();
       });
 
   // create multiaddress, from which we are going to connect
-  EXPECT_OUTCOME_TRUE(ma, Multiaddress::create("/ip4/127.0.0.1/tcp/40009"))
-  EXPECT_TRUE(transport_listener_->listen(ma)) << "is port 40019 busy?";
+  auto &&ma_res = Multiaddress::create("/ip4/127.0.0.1/tcp/40009");
+  ASSERT_TRUE(ma_res);
+  auto &&ma = ma_res.value();
+  ASSERT_TRUE(transport_listener_->listen(ma)) << "is port 40019 busy?";
   multiaddress_ = std::make_shared<Multiaddress>(std::move(ma));
 
   // dial to our "server", getting a connection
-  EXPECT_OUTCOME_TRUE(conn, transport_->dial(*multiaddress_))
-  connection_ = std::move(conn);
+  EXPECT_OUTCOME_TRUE_void(conn, transport_->dial(*multiaddress_))
 
   // let MuxedConnection be created
-  context_.run_for(100ms);
-  ASSERT_TRUE(muxed_connection_);
+  context_.run_for(10ms);
+  ASSERT_TRUE(muxed_connection_) << "failed to upgrade raw connection to muxed";
+}
+
+/**
+ * @given
+ * @when
+ * @then
+ */
+TEST_F(ConnectionUpgraderTest, DISABLED_ClientUpgradeSuccess) {
+  FAIL() << "not implemented yet";
 }
