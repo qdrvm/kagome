@@ -330,8 +330,10 @@ namespace libp2p::protocol_muxer {
       return {write_buffers_[free_buffers_index],
               read_buffers_[free_buffers_index], free_buffers_index};
     }
-    return {write_buffers_.emplace_back(), read_buffers_.emplace_back(),
-            write_buffers_.size() - 1};
+    return {
+        write_buffers_.emplace_back(std::make_shared<kagome::common::Buffer>()),
+        read_buffers_.emplace_back(std::make_shared<boost::asio::streambuf>()),
+        write_buffers_.size() - 1};
   }
 
   void Multiselect::clearResources(const ConnectionState &connection_state) {

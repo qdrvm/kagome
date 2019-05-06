@@ -204,3 +204,11 @@ TEST_F(MessageManagerTest, ParseProtocol) {
 TEST_F(MessageManagerTest, ParseProtocolFail) {
   EXPECT_FALSE(MessageManager::parseProtocol(kProtocolMsg.toVector(), 100));
 }
+
+TEST_F(MessageManagerTest, ParseOpening) {
+  auto opening = gsl::make_span(kOpeningMsg.toVector());
+  EXPECT_OUTCOME_TRUE(
+      parsed_protocol,
+      MessageManager::parseProtocol(opening.subspan(1), opening.size() - 1))
+  ASSERT_EQ(parsed_protocol.type_, MessageType::OPENING);
+}

@@ -126,7 +126,7 @@ namespace libp2p::protocol_muxer {
 
   outcome::result<MultiselectMessage> MessageManager::parseConstantMsg(
       gsl::span<const uint8_t> bytes) {
-    static constexpr int64_t kShortestMessageLength{4};
+    static constexpr int64_t kShortestMessageLength{3};
 
     static const std::string kLsMsgHex{"036C730A"};  // '3ls\n'
     static const std::string kNaMsgHex{"036E610A"};  // '3na\n'
@@ -189,6 +189,9 @@ namespace libp2p::protocol_muxer {
 
     auto current_line =
         std::string{bytes.data(), bytes.data() + protocol_size};  // NOLINT
+    if (current_line == kMultiselectHeaderString) {
+      return MultiselectMessage{MultiselectMessage::MessageType::OPENING};
+    }
     OUTCOME_TRY(protocol, parseProtocolLine(current_line));
 
     MultiselectMessage parsed_msg{MultiselectMessage::MessageType::PROTOCOL};
