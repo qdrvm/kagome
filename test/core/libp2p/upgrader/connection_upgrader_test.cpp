@@ -70,7 +70,7 @@ TEST_F(ConnectionUpgraderTest, ServerUpgradeSuccess) {
   auto &&ma_res = Multiaddress::create("/ip4/127.0.0.1/tcp/40009");
   ASSERT_TRUE(ma_res);
   auto &&ma = ma_res.value();
-  ASSERT_TRUE(transport_listener_->listen(ma)) << "is port 40019 busy?";
+  ASSERT_TRUE(transport_listener_->listen(ma)) << "is port 40009 busy?";
   multiaddress_ = std::make_shared<Multiaddress>(std::move(ma));
 
   // dial to our "server", getting a connection
