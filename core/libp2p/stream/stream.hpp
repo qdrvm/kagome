@@ -20,7 +20,8 @@ namespace libp2p::stream {
     using NetworkMessageOutcome = outcome::result<kagome::common::Buffer>;
     using ReadCompletionHandler = std::function<void(NetworkMessageOutcome)>;
 
-    using ErrorCodeCallback = std::function<void(std::error_code, size_t)>;
+    using ErrorCodeCallback =
+        std::function<void(const std::error_code &, size_t)>;
 
     /**
      * Read one frame - unit of data exchange in streams - from this stream

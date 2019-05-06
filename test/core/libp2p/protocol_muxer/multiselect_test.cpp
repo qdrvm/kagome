@@ -8,12 +8,16 @@
 #include <gtest/gtest.h>
 #include <testutil/outcome.hpp>
 #include "core/libp2p/transport_fixture/transport_fixture.hpp"
+#include "libp2p/muxer/yamux.hpp"
 
 using kagome::common::Buffer;
+using libp2p::muxer::Yamux;
+using libp2p::muxer::YamuxConfig;
 using libp2p::peer::Protocol;
 using libp2p::protocol_muxer::MessageManager;
 using libp2p::protocol_muxer::Multiselect;
 using libp2p::protocol_muxer::ProtocolMuxer;
+using libp2p::stream::Stream;
 using libp2p::transport::Connection;
 
 class MultiselectTest : public libp2p::testing::TransportFixture {
@@ -36,12 +40,15 @@ class MultiselectTest : public libp2p::testing::TransportFixture {
   const Protocol kDefaultEncryptionProtocol1 = "/plaintext/1.0.0";
   const Protocol kDefaultEncryptionProtocol2 = "/plaintext/2.0.0";
   const Protocol kDefaultMultiplexerProtocol = "/mplex/6.7.0";
-  const Protocol kDefaultStreamProocol = "/http/2.2.8";
+  const Protocol kDefaultStreamProtocol = "/http/2.2.8";
 
   std::shared_ptr<Multiselect> multiselect_ = std::make_shared<Multiselect>();
   std::shared_ptr<Connection> other_peers_connection_;
 
-  void negotiationOpenings() {
+  /**
+   * Exchange opening messages with the other side
+   */
+  void negotiationOpenings() const {
     auto expected_opening_msg =
         std::make_shared<Buffer>(MessageManager::openingMsg());
     auto opening_msg_buf =
@@ -62,26 +69,74 @@ class MultiselectTest : public libp2p::testing::TransportFixture {
         });
   }
 
+  /**
+   * @see negotiationOpenings()
+   * @param stream to be negotiated over
+   */
+  void negotiationOpenings(const Stream &stream) {
+    auto expected_opening_msg =
+        std::make_shared<Buffer>(MessageManager::openingMsg());
+    stream.readAsync(
+        [&stream, expected_opening_msg](Stream::NetworkMessageOutcome msg_res) {
+          EXPECT_OUTCOME_TRUE(msg, msg_res)
+          ASSERT_EQ(msg, *expected_opening_msg);
+
+          stream.writeAsync(
+              *expected_opening_msg,
+              [expected_opening_msg](const std::error_code &ec, size_t n) {
+                checkIOSuccess(ec, n, expected_opening_msg->size());
+              });
+        });
+  }
+
+  /**
+   * Expect our side to send ls and respond with a list of protocols
+   * @param protos_to_send - protocols, which are going to be sent
+   */
   void negotiationLs(gsl::span<const Protocol> protos_to_send) {
     auto expected_ls_msg = std::make_shared<Buffer>(MessageManager::lsMsg());
     auto ls_msg_buf = std::make_shared<Buffer>(expected_ls_msg->size(), 0);
-    auto encryption_protocols_msg =
+    auto protocols_msg =
         std::make_shared<Buffer>(MessageManager::protocolsMsg(protos_to_send));
     other_peers_connection_->asyncRead(
         boost::asio::buffer(ls_msg_buf->toVector()), expected_ls_msg->size(),
-        [this, expected_ls_msg, ls_msg_buf, encryption_protocols_msg](
+        [this, expected_ls_msg, ls_msg_buf, protocols_msg](
             const std::error_code &ec, size_t n) {
           checkIOSuccess(ec, n, expected_ls_msg->size());
           ASSERT_EQ(*ls_msg_buf, *expected_ls_msg);
 
           other_peers_connection_->asyncWrite(
-              boost::asio::buffer(encryption_protocols_msg->toVector()),
-              [encryption_protocols_msg](const std::error_code &ec, size_t n) {
-                checkIOSuccess(ec, n, encryption_protocols_msg->size());
+              boost::asio::buffer(protocols_msg->toVector()),
+              [protocols_msg](const std::error_code &ec, size_t n) {
+                checkIOSuccess(ec, n, protocols_msg->size());
               });
         });
   }
 
+  /**
+   * @see negotiationLs(..)
+   * @param stream to be negotiated over
+   */
+  void negotiationLs(const Stream &stream,
+                     gsl::span<const Protocol> protos_to_send) {
+    auto expected_ls_msg = std::make_shared<Buffer>(MessageManager::lsMsg());
+    auto protocols_msg =
+        std::make_shared<Buffer>(MessageManager::protocolsMsg(protos_to_send));
+    stream.readAsync([&stream, expected_ls_msg,
+                      protocols_msg](Stream::NetworkMessageOutcome msg_res) {
+      EXPECT_OUTCOME_TRUE(msg, msg_res)
+      ASSERT_EQ(msg, *expected_ls_msg);
+
+      stream.writeAsync(*protocols_msg,
+                        [protocols_msg](const std::error_code &ec, size_t n) {
+                          checkIOSuccess(ec, n, protocols_msg->size());
+                        });
+    });
+  }
+
+  /**
+   * Expect our side to send na
+   */
   void negotiationNa() {
     auto expected_na_msg = std::make_shared<Buffer>(MessageManager::naMsg());
     auto na_msg_buf = std::make_shared<Buffer>(expected_na_msg->size(), 0);
@@ -93,6 +148,12 @@ class MultiselectTest : public libp2p::testing::TransportFixture {
         });
   }
 
+  /**
+   * Expect our side to send a protocol and respond with the same message as an
+   * acknowledgement
+   * @param expected_protocol - protocol, which is expected to be received and
+   * sent back
+   */
   void negotiationProtocols(const Protocol &expected_protocol) {
     auto expected_proto_msg = std::make_shared<Buffer>(
         MessageManager::protocolMsg(expected_protocol));
@@ -113,13 +174,34 @@ class MultiselectTest : public libp2p::testing::TransportFixture {
               });
         });
   }
+
+  /**
+   * @see negotiationProtocols(..)
+   * @param stream to be negotiated over
+   */
+  void negotiationProtocols(const Stream &stream,
+                            const Protocol &expected_protocol) {
+    auto expected_proto_msg = std::make_shared<Buffer>(
+        MessageManager::protocolMsg(expected_protocol));
+    stream.readAsync(
+        [&stream, expected_proto_msg](Stream::NetworkMessageOutcome msg_res) {
+          EXPECT_OUTCOME_TRUE(msg, msg_res)
+          ASSERT_EQ(msg, *expected_proto_msg);
+
+          stream.writeAsync(
+              *expected_proto_msg,
+              [expected_proto_msg](const std::error_code &ec, size_t n) {
+                checkIOSuccess(ec, n, expected_proto_msg->size());
+              });
+        });
+  }
 };
 
 /**
- * @given connection, over which we want to negotiate, @and multiselect instance
+ * @given connection, over which we want to negotiate @and multiselect instance
  * over that connection @and encryption protocol, supported by both sides
- * @when negotiating about the protocols
- * @then the two common protocols are selected
+ * @when negotiating about the protocol
+ * @then the common protocol is selected
  */
 TEST_F(MultiselectTest, NegotiateEncryption) {
   multiselect_->addEncryptionProtocol(kDefaultEncryptionProtocol2);
@@ -146,6 +228,12 @@ TEST_F(MultiselectTest, NegotiateEncryption) {
   launchContext();
 }
 
+/**
+ * @given connection, over which we want to negotiate @and multiselect instance
+ * over that connection @and mutiplexer protocol, supported by both sides
+ * @when negotiating about the protocol
+ * @then the common protocol is selected
+ */
 TEST_F(MultiselectTest, NegotiateMultiplexer) {
   multiselect_->addMultiplexerProtocol(kDefaultMultiplexerProtocol);
 
@@ -163,8 +251,45 @@ TEST_F(MultiselectTest, NegotiateMultiplexer) {
   launchContext();
 }
 
-TEST_F(MultiselectTest, NegotiateStream) {}
+/**
+ * @given stream, over which we want to negotiate @and multiselect instance
+ * over that connection @and stream protocol, supported by both sides
+ * @when negotiating about the protocol
+ * @then the common protocol is selected
+ *
+ * DOES NOT WORK YET
+ */
+TEST_F(MultiselectTest, NegotiateStream) {
+  // set up Yamuxes to have both endings of streams
+  std::shared_ptr<Yamux> yamux1{std::make_shared<Yamux>(
+      connection_, [](auto &&) {}, YamuxConfig{true})},
+      yamux2{std::make_shared<Yamux>(
+          other_peers_connection_, [](auto &&) {}, YamuxConfig{false})};
+  EXPECT_OUTCOME_TRUE(stream1, yamux1->newStream())
+  EXPECT_OUTCOME_TRUE(stream2, yamux2->newStream())
 
+  // create a success handler
+  multiselect_->addStreamProtocol(kDefaultStreamProtocol);
+  multiselect_->negotiateStream(std::move(stream1),
+                                [this](outcome::result<Protocol> protocol_res) {
+                                  EXPECT_OUTCOME_TRUE(protocol, protocol_res)
+                                  EXPECT_EQ(protocol, kDefaultStreamProtocol);
+                                });
+
+  // the rest of the exchange stays the same
+  negotiationOpenings(*stream2);
+  negotiationLs(*stream2, std::vector<Protocol>{kDefaultStreamProtocol});
+  negotiationProtocols(*stream2, kDefaultStreamProtocol);
+
+  launchContext();
+}
+
+/**
+ * @given connection, over which we want to negotiate @and multiselect instance
+ * over that connection @and encryption protocol, not supported by our side
+ * @when negotiating about the protocol
+ * @then the common protocol is not selected
+ */
 TEST_F(MultiselectTest, NegotiateFailure) {
   multiselect_->addEncryptionProtocol(kDefaultEncryptionProtocol1);
 
@@ -183,6 +308,12 @@ TEST_F(MultiselectTest, NegotiateFailure) {
   launchContext();
 }
 
+/**
+ * @given connection, over which we want to negotiate @and multiselect instance
+ * over that connection @and no protocols, supported by our side
+ * @when negotiating about the protocol
+ * @then the common protocol is not selected
+ */
 TEST_F(MultiselectTest, NoProtocols) {
   // create a failure handler, which is going to be called immediately
   multiselect_->negotiateEncryption(connection_,
