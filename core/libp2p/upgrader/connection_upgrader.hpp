@@ -32,7 +32,6 @@ namespace libp2p::upgrader {
     virtual ~ConnectionUpgrader() = default;
 
     using NewStreamHandler = muxer::Yamux::NewStreamHandler;
-    using ConnectionPtr = std::shared_ptr<transport::Connection>;
 
     /**
      * @brief upgrades connection to muxed
@@ -41,8 +40,9 @@ namespace libp2p::upgrader {
      * @param handler generic protocol handler
      * @return muxed connection instance
      */
-    virtual outcome::result<std::unique_ptr<transport::MuxedConnection>>
-    upgradeToMuxed(ConnectionPtr connection, MuxerOptions muxer_options,
+    virtual std::unique_ptr<transport::MuxedConnection>
+    upgradeToMuxed(std::shared_ptr<transport::Connection> connection,
+                   MuxerOptions muxer_options,
                    NewStreamHandler handler) const = 0;
 
     // TODO(yuraz): PRE-149 implement upgradeToSecure()

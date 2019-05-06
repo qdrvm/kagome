@@ -16,7 +16,7 @@ namespace libp2p::upgrader {
    public:
     using NewStreamHandler = muxer::Yamux::NewStreamHandler;
 
-    outcome::result<std::unique_ptr<transport::MuxedConnection>> upgradeToMuxed(
+    std::unique_ptr<transport::MuxedConnection> upgradeToMuxed(
         std::shared_ptr<transport::Connection> connection,
         MuxerOptions muxer_options, NewStreamHandler handler) const override;
   };

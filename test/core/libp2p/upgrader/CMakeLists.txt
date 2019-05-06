@@ -8,4 +8,6 @@ addtest(connection_upgrader_test
     )
 target_link_libraries(connection_upgrader_test
     connection_upgrader
+    multiaddress
+    libp2p_transport
     )

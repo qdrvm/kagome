@@ -10,7 +10,7 @@
 
 namespace libp2p::upgrader {
 
-  outcome::result<std::unique_ptr<transport::MuxedConnection>>
+  std::unique_ptr<transport::MuxedConnection>
   ConnectionUpgraderImpl::upgradeToMuxed(
       std::shared_ptr<transport::Connection> connection,
       MuxerOptions muxer_options,

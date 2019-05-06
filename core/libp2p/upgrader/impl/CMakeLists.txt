@@ -9,6 +9,4 @@ add_library(connection_upgrader
     )
 target_link_libraries(connection_upgrader
     yamux
-    outcome
-    logger
     )
