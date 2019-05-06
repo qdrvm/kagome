@@ -113,22 +113,42 @@ TEST_F(MessageManagerTest, ComposeProtocolsMessage) {
   ASSERT_EQ(protocols_msg, kProtocolsMsg);
 }
 
+/**
+ * @given message manager @and ls msg
+ * @when parsing it with a ParseConstMsg
+ * @then parse is successful
+ */
 TEST_F(MessageManagerTest, ParseConstLs) {
   EXPECT_OUTCOME_TRUE(ls_msg,
                       MessageManager::parseConstantMsg(kLsMsg.toVector()))
   ASSERT_EQ(ls_msg.type_, MessageType::LS);
 }
 
+/**
+ * @given message manager @and na msg
+ * @when parsing it with a ParseConstMsg
+ * @then parse is successful
+ */
 TEST_F(MessageManagerTest, ParseConstNa) {
   EXPECT_OUTCOME_TRUE(na_msg,
                       MessageManager::parseConstantMsg(kNaMsg.toVector()))
   ASSERT_EQ(na_msg.type_, MessageType::NA);
 }
 
+/**
+ * @given message manager @and protocol msg
+ * @when parsing it with a ParseConstMsg
+ * @then parse fails
+ */
 TEST_F(MessageManagerTest, ParseConstFail) {
   EXPECT_FALSE(MessageManager::parseConstantMsg(kProtocolMsg.toVector()));
 }
 
+/**
+ * @given message manager @and part of message with protocols header
+ * @when parsing it
+ * @then parse is successful
+ */
 TEST_F(MessageManagerTest, ParseProtocolsHeader) {
   auto protocols_header = gsl::make_span(kProtocolsMsg.toVector());
   EXPECT_OUTCOME_TRUE(
@@ -138,6 +158,11 @@ TEST_F(MessageManagerTest, ParseProtocolsHeader) {
   ASSERT_EQ(parsed_header.size_of_protocols_, kProtocolsListBytesSize);
 }
 
+/**
+ * @given message manager @and part of message with protocols
+ * @when parsing it
+ * @then parse is successful
+ */
 TEST_F(MessageManagerTest, ParseProtocols) {
   auto protocols = gsl::make_span(kProtocolsMsg.toVector());
   EXPECT_OUTCOME_TRUE(
@@ -147,11 +172,21 @@ TEST_F(MessageManagerTest, ParseProtocols) {
   ASSERT_EQ(parsed_protocols.protocols_, kDefaultProtocols);
 }
 
+/**
+ * @given message manager @and protocol msg
+ * @when parsing it as a protocols message
+ * @then parse fails
+ */
 TEST_F(MessageManagerTest, ParseProtocolsFail) {
   EXPECT_FALSE(MessageManager::parseProtocols(kProtocolMsg.toVector(),
                                               kProtocolsNumber));
 }
 
+/**
+ * @given message manager @and protocol msg
+ * @when parsing it
+ * @then parse is successful
+ */
 TEST_F(MessageManagerTest, ParseProtocol) {
   auto protocol = gsl::make_span(kProtocolMsg.toVector());
   EXPECT_OUTCOME_TRUE(parsed_protocol,
@@ -161,6 +196,11 @@ TEST_F(MessageManagerTest, ParseProtocol) {
   ASSERT_EQ(parsed_protocol.protocols_[0], kDefaultProtocols[0]);
 }
 
+/**
+ * @given message manager @and protocol msg
+ * @when parsing it with incorrect length parameter
+ * @then parse fails
+ */
 TEST_F(MessageManagerTest, ParseProtocolFail) {
   EXPECT_FALSE(MessageManager::parseProtocol(kProtocolMsg.toVector(), 100));
 }

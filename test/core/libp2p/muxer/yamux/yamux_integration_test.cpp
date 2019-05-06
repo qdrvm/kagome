@@ -21,7 +21,65 @@ using namespace libp2p::multi;
 
 using std::chrono_literals::operator""ms;
 
-class YamuxIntegrationTest : public libp2p::testing::TransportFixture {};
+class YamuxIntegrationTest : public libp2p::testing::TransportFixture {
+ public:
+  void SetUp() override {
+    libp2p::testing::TransportFixture::SetUp();
+
+    // create a listener, which is going to wrap new connections to Yamux
+    transport_listener_ = transport_->createListener(
+        [this](std::shared_ptr<Connection> c) mutable {  // NOLINT
+          ASSERT_FALSE(c->isClosed());
+          ASSERT_TRUE(c) << "createListener: connection is nullptr";
+
+          // here, our Yamux instance is going to be a server, as a new
+          // connection is accepted
+          yamux_ = std::make_shared<Yamux>(
+              std::move(c),
+              [this](std::unique_ptr<Stream> new_stream) mutable {
+                accepted_streams_.push_back(std::move(new_stream));
+              },
+              YamuxConfig{true});
+
+          ASSERT_TRUE(yamux_) << "cannot create Yamux from a new connection";
+          yamux_->start();
+        });
+    defaultDial();
+
+    // let Yamux be created
+    context_.run_for(10ms);
+    ASSERT_TRUE(yamux_);
+  }
+
+  /**
+   * Get a pointer to a new stream
+   * @param expected_stream_id - id, which is expected to be assigned to that
+   * stream
+   * @return pointer to the stream
+   */
+  std::unique_ptr<libp2p::stream::Stream> getNewStream(
+      libp2p::muxer::Yamux::StreamId expected_stream_id =
+          kDefaulExpectedStreamId) {
+    auto stream = yamux_->newStream().value();
+
+    auto new_stream_msg = newStreamMsg(expected_stream_id);
+    auto rcvd_msg = std::make_shared<Buffer>(new_stream_msg.size(), 0);
+    connection_->asyncRead(boost::asio::buffer(rcvd_msg->toVector()),
+                           new_stream_msg.size(),
+                           [&new_stream_msg, rcvd_msg](auto &&ec, auto &&n) {
+                             checkIOSuccess(ec, n, new_stream_msg.size());
+                             EXPECT_EQ(*rcvd_msg, new_stream_msg);  // NOLINT
+                           });
+    context_.run_for(10ms);
+
+    return stream;
+  }
+
+  std::shared_ptr<libp2p::muxer::Yamux> yamux_;
+  std::vector<std::unique_ptr<libp2p::stream::Stream>> accepted_streams_;
+
+  static constexpr libp2p::muxer::Yamux::StreamId kDefaulExpectedStreamId = 2;
+};
 
 /**
  * @given initialized Yamux

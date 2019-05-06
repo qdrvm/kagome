@@ -11,6 +11,7 @@
 
 #include <outcome/outcome.hpp>
 #include "libp2p/peer/protocol.hpp"
+#include "libp2p/stream/stream.hpp"
 #include "libp2p/transport/connection.hpp"
 
 namespace libp2p::protocol_muxer {
@@ -20,17 +21,6 @@ namespace libp2p::protocol_muxer {
    */
   class ProtocolMuxer {
    public:
-    /**
-     * Pair of protocols, on which the two sides negotiated
-     */
-    struct NegotiatedProtocols {
-      peer::Protocol encryption_protocol_;
-      peer::Protocol multiplexer_protocol_;
-      peer::Protocol initial_stream_protocol_;
-    };
-    using ChosenProtocolsCallback =
-        std::function<void(outcome::result<NegotiatedProtocols>)>;
-
     /**
      * Add a new encryption protocol, which can be handled by this node
      * @param protocol to be added
@@ -49,28 +39,37 @@ namespace libp2p::protocol_muxer {
      */
     virtual void addStreamProtocol(const peer::Protocol &protocol) = 0;
 
-    /**
-     * Negotiate about the protocols from the server side of the connection - we
-     * are going to wait for some time for client to start negotiation; if
-     * nothing happens, start it ourselves
-     * @param connection to be negotiated over
-     * @param protocols_callback, which is going to be called, when the
-     * protocols are chosen or error occurs
-     */
-    virtual void negotiateServer(
-        std::shared_ptr<transport::Connection> connection,
-        ChosenProtocolsCallback protocols_callback) = 0;
+    using ChosenProtocolCallback =
+        std::function<void(outcome::result<peer::Protocol>)>;
 
     /**
-     * Negotiate about the protocols from the client side of the connection - we
-     * are going to start the process immediately
+     * Negotiate about the encryption protocol with the other side
      * @param connection to be negotiated over
-     * @param protocols_callback, which is going to be called, when the
-     * protocols are chosen or error occurs
+     * @param protocol_callback, which is going to be called, when the
+     * protocol is chosen or error occurs
      */
-    virtual void negotiateClient(
+    virtual void negotiateEncryption(
         std::shared_ptr<transport::Connection> connection,
-        ChosenProtocolsCallback protocols_callback) = 0;
+        ChosenProtocolCallback protocol_callback) = 0;
+
+    /**
+     * Negotiate about the multiplexer protocol with the other side
+     * @param connection to be negotiated over
+     * @param protocol_callback, which is going to be called, when the
+     * protocol is chosen or error occurs
+     */
+    virtual void negotiateMultiplexer(
+        std::shared_ptr<transport::Connection> connection,
+        ChosenProtocolCallback protocol_callback) = 0;
+
+    /**
+     * Negotiate about the stream protocol with the other side
+     * @param stream to be negotiated over
+     * @param protocol_callback, which is going to be called, when the
+     * protocol is chosen or error occurs
+     */
+    virtual void negotiateStream(std::unique_ptr<stream::Stream> stream,
+                                 ChosenProtocolCallback protocol_callback) = 0;
 
     virtual ~ProtocolMuxer() = default;
   };

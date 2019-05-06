@@ -25,43 +25,47 @@ namespace libp2p::protocol_muxer {
      * Send a message, signalizing about start of the negotiation
      * @param connection_state - state of the connection
      */
-    static void sendOpeningMsg(ConnectionState connection_state);
+    static void sendOpeningMsg(
+        std::shared_ptr<ConnectionState> connection_state);
 
     /**
      * Send a message, containing a protocol
      * @param protocol to be sent
      * @param connection_state - state of the connection
      */
-    static void sendProtocolMsg(const peer::Protocol &protocol,
-                                ConnectionState connection_state);
+    static void sendProtocolMsg(
+        const peer::Protocol &protocol,
+        std::shared_ptr<ConnectionState> connection_state);
 
     /**
      * Send a message, containing protocols
      * @param protocols to be sent
      * @param connection_state - state of the connection
      */
-    static void sendProtocolsMsg(gsl::span<const peer::Protocol> protocols,
-                                 ConnectionState connection_state);
+    static void sendProtocolsMsg(
+        gsl::span<const peer::Protocol> protocols,
+        std::shared_ptr<ConnectionState> connection_state);
 
     /**
      * Send a message, containing an ls
      * @param connection_state - state of the connection
      */
-    static void sendLsMsg(ConnectionState connection_state);
+    static void sendLsMsg(std::shared_ptr<ConnectionState> connection_state);
 
     /**
      * Send a message, containing an na
      * @param connection_state - state of the connection
      */
-    static void sendNaMsg(ConnectionState connection_state);
+    static void sendNaMsg(std::shared_ptr<ConnectionState> connection_state);
 
     /**
      * Send an ack message for the chosen protocol
      * @param connection_state - state of the connection
      * @param protocol - chosen protocol
      */
-    static void sendProtocolAck(ConnectionState connection_state,
-                                const peer::Protocol &protocol);
+    static void sendProtocolAck(
+        std::shared_ptr<ConnectionState> connection_state,
+        const peer::Protocol &protocol);
 
    private:
     /**
@@ -72,7 +76,7 @@ namespace libp2p::protocol_muxer {
      * @return lambda-callback for the write operation
      */
     static auto getWriteCallback(
-        ConnectionState connection_state,
+        std::shared_ptr<ConnectionState> connection_state,
         ConnectionState::NegotiationStatus success_status,
         std::function<std::string(const std::error_code &ec)> error);
   };

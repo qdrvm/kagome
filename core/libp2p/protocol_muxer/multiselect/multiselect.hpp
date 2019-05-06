@@ -10,6 +10,7 @@
 #include <queue>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <vector>
 
 #include <boost/asio/streambuf.hpp>
@@ -52,11 +53,15 @@ namespace libp2p::protocol_muxer {
 
     void addStreamProtocol(const peer::Protocol &protocol) override;
 
-    void negotiateServer(std::shared_ptr<transport::Connection> connection,
-                         ChosenProtocolsCallback protocol_callback) override;
+    void negotiateEncryption(std::shared_ptr<transport::Connection> connection,
+                             ChosenProtocolCallback protocol_callback) override;
 
-    void negotiateClient(std::shared_ptr<transport::Connection> connection,
-                         ChosenProtocolsCallback protocol_callback) override;
+    void negotiateMultiplexer(
+        std::shared_ptr<transport::Connection> connection,
+        ChosenProtocolCallback protocol_callback) override;
+
+    void negotiateStream(std::unique_ptr<stream::Stream> stream,
+                         ChosenProtocolCallback protocol_callback) override;
 
     enum class MultiselectErrors {
       NO_PROTOCOLS_SUPPORTED = 1,
@@ -65,32 +70,35 @@ namespace libp2p::protocol_muxer {
     };
 
    private:
-    void onWriteCompleted(ConnectionState connection_state) const;
+    void onWriteCompleted(
+        std::shared_ptr<ConnectionState> connection_state) const;
 
-    void onWriteAckCompleted(ConnectionState connection_state,
+    void onWriteAckCompleted(std::shared_ptr<ConnectionState> connection_state,
                              const peer::Protocol &protocol);
 
-    void onReadCompleted(ConnectionState connection_state,
+    void onReadCompleted(std::shared_ptr<ConnectionState> connection_state,
                          MessageManager::MultiselectMessage msg);
 
-    void onError(ConnectionState connection_state, std::string_view error);
+    void onError(std::shared_ptr<ConnectionState> connection_state,
+                 std::string_view error);
 
-    void onError(ConnectionState connection_state, std::string_view error,
-                 const std::error_code &ec);
+    void onError(std::shared_ptr<ConnectionState> connection_state,
+                 std::string_view error, const std::error_code &ec);
 
     /**
      * Process a response for our previous command
      * @param connection_state - state of the connection
      * @param msg arrived from the other side of the connection
      */
-    void processResponse(ConnectionState connection_state,
+    void processResponse(std::shared_ptr<ConnectionState> connection_state,
                          MessageManager::MultiselectMessage msg);
 
     /**
      * Handle a message, signalizing about start of the negotiation
      * @param connection_state - state of the connection
      */
-    void handleOpeningMsg(ConnectionState connection_state) const;
+    void handleOpeningMsg(
+        std::shared_ptr<ConnectionState> connection_state) const;
 
     /**
      * Handle a message, containing a protocol
@@ -98,35 +106,37 @@ namespace libp2p::protocol_muxer {
      * @param connection_state - state of the connection
      */
     void handleProtocolMsg(const peer::Protocol &protocol,
-                           ConnectionState connection_state);
+                           std::shared_ptr<ConnectionState> connection_state);
 
     /**
      * Handle a message, containing protocols
      * @param protocols - received protocols
      * @param connection_state - state of the connection
      */
-    void handleProtocolsMsg(const std::vector<peer::Protocol> &protocols,
-                            ConnectionState connection_state) const;
+    void handleProtocolsMsg(
+        const std::vector<peer::Protocol> &protocols,
+        std::shared_ptr<ConnectionState> connection_state) const;
 
     /**
      * Handle a message, containing an ls
      * @param connection_state - state of the connection
      */
-    void handleLsMsg(ConnectionState connection_state) const;
+    void handleLsMsg(std::shared_ptr<ConnectionState> connection_state) const;
 
     /**
      * Handle a message, containing an na
      * @param connection_state - state of the connection
      */
-    void handleNaMsg(ConnectionState connection_state) const;
+    void handleNaMsg(std::shared_ptr<ConnectionState> connection_state) const;
 
     /**
      * Triggered, when a protocol msg arrives after we sent an opening or ls one
      * @param connection_state - state of the connection
      * @param protocol, which was inside the message
      */
-    void onProtocolAfterOpeningOrLs(ConnectionState connection_state,
-                                    const peer::Protocol &protocol) const;
+    void onProtocolAfterOpeningOrLs(
+        std::shared_ptr<ConnectionState> connection_state,
+        const peer::Protocol &protocol) const;
 
     /**
      * Triggered, when a new message with protocols arrived, and the last
@@ -135,7 +145,7 @@ namespace libp2p::protocol_muxer {
      * @param received_protocols - protocols, received from the other side
      */
     void onProtocolsAfterLs(
-        ConnectionState connection_state,
+        std::shared_ptr<ConnectionState> connection_state,
         gsl::span<const peer::Protocol> received_protocols) const;
 
     /**
@@ -143,20 +153,22 @@ namespace libp2p::protocol_muxer {
      * request
      * @param connection_state - state of the connection
      */
-    void onUnexpectedRequestResponse(ConnectionState connection_state) const;
+    void onUnexpectedRequestResponse(
+        std::shared_ptr<ConnectionState> connection_state) const;
 
     /**
      * Triggered, when a stream status contains garbage value
      * @param connection_state - state of the connection
      */
-    void onGarbagedStreamStatus(ConnectionState connection_state) const;
+    void onGarbagedStreamStatus(
+        std::shared_ptr<ConnectionState> connection_state) const;
 
     /**
      * Triggered, when negotiation round is finished
      * @param connection_state - state of the connection
      * @param chosen_protocol - protocol, which was chosen during the round
      */
-    void negotiationRoundFinished(ConnectionState connection_state,
+    void negotiationRoundFinished(const ConnectionState &connection_state,
                                   const peer::Protocol &chosen_protocol);
 
     /**
@@ -166,6 +178,14 @@ namespace libp2p::protocol_muxer {
      */
     gsl::span<const peer::Protocol> getProtocolsByRound(
         ConnectionState::NegotiationRound round) const;
+
+    /**
+     * Get read/write buffers, if there are free ones, or create new
+     * @return tuple <WriteBuffer, ReadBuffer, Index>
+     */
+    std::tuple<std::shared_ptr<kagome::common::Buffer>,
+               std::shared_ptr<boost::asio::streambuf>, size_t>
+    getBuffers();
 
     /**
      * Clear the resources, which left after the provided connection state

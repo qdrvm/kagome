@@ -23,20 +23,23 @@ namespace libp2p::protocol_muxer {
      * @param connection_state - state of the connection
      * @note will call Multiselect->onReadCompleted(..) after successful read
      */
-    static void readNextMessage(ConnectionState connection_state);
+    static void readNextMessage(
+        std::shared_ptr<ConnectionState> connection_state);
 
    private:
     /**
      * Read next varint from the connection
      * @param connection_state - state of the connection
      */
-    static void readNextVarint(ConnectionState connection_state);
+    static void readNextVarint(
+        std::shared_ptr<ConnectionState> connection_state);
 
     /**
      * Completion handler of varint read operation
      * @param connection_state - state of the connection
      */
-    static void onReadVarintCompleted(ConnectionState connection_state);
+    static void onReadVarintCompleted(
+        std::shared_ptr<ConnectionState> connection_state);
 
     /**
      * Read specified number of bytes from the connection
@@ -45,8 +48,9 @@ namespace libp2p::protocol_muxer {
      * @param final_callback - in case of success, this callback is called
      */
     static void readNextBytes(
-        ConnectionState connection_state, uint64_t bytes_to_read,
-        std::function<void(ConnectionState)> final_callback);
+        std::shared_ptr<ConnectionState> connection_state,
+        uint64_t bytes_to_read,
+        std::function<void(std::shared_ptr<ConnectionState>)> final_callback);
 
     /**
      * Completion handler for read bytes operation in case a single line was
@@ -54,8 +58,8 @@ namespace libp2p::protocol_muxer {
      * @param connection_state - state of the connection
      * @param read_bytes - how much bytes were read (or in this line)
      */
-    static void onReadLineCompleted(ConnectionState connection_state,
-                                    uint64_t read_bytes);
+    static void onReadLineCompleted(
+        std::shared_ptr<ConnectionState> connection_state, uint64_t read_bytes);
 
     /**
      * Completion handler for read bytes operation in case several lines (with
@@ -63,8 +67,9 @@ namespace libp2p::protocol_muxer {
      * @param connection_state - state of the connection
      * @param expected_protocols_number - how much protocols were to be read
      */
-    static void onReadProtocolsCompleted(ConnectionState connection_state,
-                                         uint64_t expected_protocols_number);
+    static void onReadProtocolsCompleted(
+        std::shared_ptr<ConnectionState> connection_state,
+        uint64_t expected_protocols_number);
   };
 }  // namespace libp2p::protocol_muxer
 
