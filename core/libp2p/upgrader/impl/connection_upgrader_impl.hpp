@@ -12,23 +12,13 @@ namespace libp2p::upgrader {
   /**
    * @class ConnectionUpgrader connection upgrader
    */
-  class ConnectionUpgraderImpl: public ConnectionUpgrader {
+  class ConnectionUpgraderImpl : public ConnectionUpgrader {
    public:
     using NewStreamHandler = muxer::Yamux::NewStreamHandler;
 
-    /**
-     * @brief constructor
-     * @param muxer_options muxer options
-     */
-    explicit ConnectionUpgraderImpl(MuxerOptions muxer_options)
-        : muxer_options_{muxer_options} {}
-
     outcome::result<std::unique_ptr<transport::MuxedConnection>> upgradeToMuxed(
         std::shared_ptr<transport::Connection> connection,
-        NewStreamHandler handler) const override;
-
-   private:
-    MuxerOptions muxer_options_;
+        MuxerOptions muxer_options, NewStreamHandler handler) const override;
   };
 }  // namespace libp2p::upgrader
 

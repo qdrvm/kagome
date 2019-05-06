@@ -12,7 +12,6 @@
 #include "libp2p/transport/muxed_connection.hpp"
 
 namespace libp2p::upgrader {
-
   /**
    * @brief connection type
    */
@@ -38,12 +37,15 @@ namespace libp2p::upgrader {
     /**
      * @brief upgrades connection to muxed
      * @param connection shared ptr to connection instance
+     * @param muxer_options Muxer configuration options
      * @param handler generic protocol handler
      * @return muxed connection instance
      */
     virtual outcome::result<std::unique_ptr<transport::MuxedConnection>>
-    upgradeToMuxed(ConnectionPtr connection,
+    upgradeToMuxed(ConnectionPtr connection, MuxerOptions muxer_options,
                    NewStreamHandler handler) const = 0;
+
+    // TODO(yuraz): PRE-149 implement upgradeToSecure()
   };
 }  // namespace libp2p::upgrader
 

@@ -13,11 +13,12 @@ namespace libp2p::upgrader {
   outcome::result<std::unique_ptr<transport::MuxedConnection>>
   ConnectionUpgraderImpl::upgradeToMuxed(
       std::shared_ptr<transport::Connection> connection,
+      MuxerOptions muxer_options,
       ConnectionUpgrader::NewStreamHandler handler) const {
-    muxer::YamuxConfig yamux_config = {muxer_options_.connection_type_
+    muxer::YamuxConfig yamux_config = {muxer_options.connection_type_
                                        == ConnectionType::SERVER_SIDE};
 
     return std::make_unique<muxer::Yamux>(connection, handler,
                                           yamux_config);  // use yamux logger
-  }  // namespace libp2p::upgrader
+  }
 }  // namespace libp2p::upgrader
