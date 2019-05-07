@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/crypto/aes/aes_provider.hpp"
+#include "libp2p/crypto/aes_provider/aes_provider_impl.hpp"
 
 #include <openssl/aes.h>  // for AES_BLOCK_SIZE
 #include <openssl/evp.h>
@@ -21,7 +21,7 @@ namespace libp2p::crypto::aes {
                                   gsl::span<const uint8_t> iv,
                                   const EVP_CIPHER *cipher) {
     if (nullptr == cipher) {
-      return MiscError::WRONG_ARGUMENT_VALUE;
+      return std::errc::invalid_argument;
     }
 
     int len = 0;
@@ -76,7 +76,7 @@ namespace libp2p::crypto::aes {
                                   gsl::span<const uint8_t> iv,
                                   const EVP_CIPHER *cipher) {
     if (nullptr == cipher) {
-      return MiscError::WRONG_ARGUMENT_VALUE;
+      return std::errc::invalid_argument;
     }
 
     int len = 0;
@@ -122,7 +122,7 @@ namespace libp2p::crypto::aes {
     return Buffer(std::move(plain_text));
   }
 
-  outcome::result<Buffer> AesProvider::encrypt_128_ctr(
+  outcome::result<Buffer> AesProviderImpl::encryptAesCtr128(
       const Aes128Secret &secret, const Buffer &data) const {
     auto key_span = gsl::make_span(secret.key);
     auto iv_span = gsl::make_span(secret.iv);
@@ -130,7 +130,7 @@ namespace libp2p::crypto::aes {
     return encrypt(data, key_span, iv_span, EVP_aes_128_ctr());
   }
 
-  outcome::result<Buffer> AesProvider::encrypt_256_ctr(
+  outcome::result<Buffer> AesProviderImpl::encryptAesCtr256(
       const Aes256Secret &secret, const Buffer &data) const {
     auto key_span = gsl::make_span(secret.key);
     auto iv_span = gsl::make_span(secret.iv);
@@ -138,7 +138,7 @@ namespace libp2p::crypto::aes {
     return encrypt(data, key_span, iv_span, EVP_aes_256_ctr());
   }
 
-  outcome::result<Buffer> AesProvider::decrypt_128_ctr(
+  outcome::result<Buffer> AesProviderImpl::decryptAesCtr128(
       const Aes128Secret &secret, const Buffer &data) const {
     auto key_span = gsl::make_span(secret.key);
     auto iv_span = gsl::make_span(secret.iv);
@@ -146,7 +146,7 @@ namespace libp2p::crypto::aes {
     return decrypt(data, key_span, iv_span, EVP_aes_128_ctr());
   }
 
-  outcome::result<Buffer> AesProvider::decrypt_256_ctr(
+  outcome::result<Buffer> AesProviderImpl::decryptAesCtr256(
       const Aes256Secret &secret, const Buffer &data) const {
     auto key_span = gsl::make_span(secret.key);
     auto iv_span = gsl::make_span(secret.iv);

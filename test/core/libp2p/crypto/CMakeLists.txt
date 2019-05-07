@@ -28,7 +28,7 @@ addtest(random_test
     random_test.cpp
     )
 target_link_libraries(random_test
-    random_provider
+    random_generator
     )
 
 addtest(marshaller_test
@@ -36,4 +36,11 @@ addtest(marshaller_test
     )
 target_link_libraries(marshaller_test
     marshaller
+    )
+
+addtest(keygen_test
+    key_generator_test.cpp
+    )
+target_link_libraries(keygen_test
+    key_generator
     )

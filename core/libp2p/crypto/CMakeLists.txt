@@ -3,11 +3,12 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(aes)
-add_subdirectory(hmac)
+add_subdirectory(aes_provider)
+add_subdirectory(hmac_provider)
 add_subdirectory(marshaller)
 add_subdirectory(proto)
-add_subdirectory(random)
+add_subdirectory(random_generator)
+add_subdirectory(key_generator)
 
 add_library(crypto_error
     error.hpp

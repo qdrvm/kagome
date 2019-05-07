@@ -32,6 +32,14 @@ target_link_libraries(core_integration_test
     wasm_test
     )
 
+addtest(tagged_transaction_queue_test
+    tagged_transaction_queue_test.cpp
+    )
+target_link_libraries(tagged_transaction_queue_test
+    tagged_transaction_queue
+    wasm_test
+    )
+
 addtest(wasm_executor_test
     wasm_executor_test.cpp
     )
@@ -39,4 +47,3 @@ target_link_libraries(wasm_executor_test
     wasm_executor
     wasm_test
     )
-

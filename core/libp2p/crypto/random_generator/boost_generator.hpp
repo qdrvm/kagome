@@ -8,7 +8,7 @@
 
 #include <boost/nondet_random.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
-#include "libp2p/crypto/random/csprng.hpp"
+#include "libp2p/crypto/random_generator.hpp"
 
 namespace libp2p::crypto::random {
   /**

@@ -7,20 +7,28 @@
 #define KAGOME_TEST_TESTUTIL_COMMON_HPP
 
 #include <fstream>
+#include <memory>
 
 #include <gtest/gtest.h>
-#include "common/buffer.hpp"
+#include <boost/filesystem/path.hpp>
+#include "primitives/block.hpp"
+#include "primitives/block_header.hpp"
+#include "core/storage/merkle/mock_trie_db.hpp"
+#include "extensions/extension_impl.hpp"
+#include "primitives/impl/scale_codec_impl.hpp"
+#include "runtime/impl/wasm_memory_impl.hpp"
+#include "testutil/outcome.hpp"
 
 namespace test {
 
   /**
-   * Fixture for the tests with wasm to read file and work with it
+   * Fixture for wasm tests that read a wasm code file
    */
-  class WasmTest : public ::testing::Test {
+  class WasmTest: public ::testing::Test {
    public:
-    explicit WasmTest(const std::string &path);
+      explicit WasmTest(const std::string& filepath);
 
-   protected:
+  protected:
     kagome::common::Buffer state_code_;
   };
 }  // namespace test

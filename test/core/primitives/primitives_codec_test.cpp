@@ -15,8 +15,8 @@
 #include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
-using kagome::common::Hash256;
 using kagome::primitives::AuthorityId;
+using kagome::common::Hash256;
 using kagome::primitives::Block;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;

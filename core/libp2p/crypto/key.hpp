@@ -16,9 +16,7 @@ namespace libp2p::crypto {
     /**
      * Supported types of all keys
      */
-    enum class Type { UNSPECIFIED, RSA1024, RSA2048, RSA4096, ED25519 };
-    // TODO(yuraz): add support for Secp256k1 like in js version (added to
-    // PRE-103)
+    enum class Type { UNSPECIFIED, RSA1024, RSA2048, RSA4096, ED25519, SECP256K1 };
 
     Type type;    ///< key type
     Buffer data;  ///< key content

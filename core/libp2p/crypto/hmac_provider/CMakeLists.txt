@@ -4,8 +4,8 @@
 #
 
 add_library(hmac_provider
-    hmac_provider.hpp
-    hmac_provider.cpp
+    hmac_provider_impl.hpp
+    hmac_provider_impl.cpp
     )
 
 target_link_libraries(hmac_provider
