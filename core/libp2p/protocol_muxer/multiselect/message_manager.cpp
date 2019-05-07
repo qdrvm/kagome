@@ -126,10 +126,11 @@ namespace libp2p::protocol_muxer {
 
   outcome::result<MultiselectMessage> MessageManager::parseConstantMsg(
       gsl::span<const uint8_t> bytes) {
-    static constexpr int64_t kShortestMessageLength{3};
-
     static const std::string kLsMsgHex{"036C730A"};  // '3ls\n'
     static const std::string kNaMsgHex{"036E610A"};  // '3na\n'
+
+    static constexpr int64_t kShortestMessageLength{3};
+    static constexpr int64_t kConstMsgsLength{4};
 
     auto buffer_size = bytes.size();
     // shortest messages are LS, NA and (sometimes) a header for LS response
@@ -138,7 +139,7 @@ namespace libp2p::protocol_muxer {
     }
 
     // check the message against the constant ones
-    if (buffer_size == kShortestMessageLength) {
+    if (buffer_size == kConstMsgsLength) {
       auto msg_hex = kagome::common::hex_upper(bytes);
       if (msg_hex == kLsMsgHex) {
         return MultiselectMessage{MultiselectMessage::MessageType::LS};
