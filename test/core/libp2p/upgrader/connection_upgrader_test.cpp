@@ -42,9 +42,9 @@ class ConnectionUpgraderTest : public ::testing::Test {
 };
 
 /**
- * @given transport, listener, context and local client
+ * @given transport, listener, context and local client prepared
  * @when context_.run_for() is called
- * @then upgrader_ upgrades incoming connection to muxed
+ * @then upgrader_ receives and upgrades incoming connection to muxed
  */
 TEST_F(ConnectionUpgraderTest, ServerUpgradeSuccess) {
   // create transport
@@ -76,16 +76,7 @@ TEST_F(ConnectionUpgraderTest, ServerUpgradeSuccess) {
   // dial to our "server", getting a connection
   EXPECT_OUTCOME_TRUE_void(conn, transport_->dial(*multiaddress_))
 
-  // let MuxedConnection be created
-  context_.run_for(10ms);
+      // let MuxedConnection be created
+      context_.run_for(10ms);
   ASSERT_TRUE(muxed_connection_) << "failed to upgrade raw connection to muxed";
-}
-
-/**
- * @given
- * @when
- * @then
- */
-TEST_F(ConnectionUpgraderTest, DISABLED_ClientUpgradeSuccess) {
-  FAIL() << "not implemented yet";
 }
