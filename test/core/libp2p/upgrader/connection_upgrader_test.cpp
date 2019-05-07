@@ -7,13 +7,14 @@
 
 #include <gtest/gtest.h>
 
+#include "common/logger.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/muxer/yamux/yamux_frame.hpp"
 #include "libp2p/muxer/yamux/yamux_stream.hpp"
 #include "libp2p/transport/all.hpp"
 #include "testutil/outcome.hpp"
-#include "common/logger.hpp"
 
+using kagome::common::Logger;
 using libp2p::multi::Multiaddress;
 using libp2p::stream::Stream;
 using libp2p::transport::Connection;
@@ -24,7 +25,6 @@ using libp2p::transport::TransportListener;
 using libp2p::upgrader::ConnectionType;
 using libp2p::upgrader::ConnectionUpgraderImpl;
 using libp2p::upgrader::MuxerOptions;
-using kagome::common::Logger;
 
 using std::chrono_literals::operator""ms;
 
@@ -36,7 +36,8 @@ class ConnectionUpgraderTest : public ::testing::Test {
   std::shared_ptr<TransportListener> transport_listener_;
   std::shared_ptr<ConnectionUpgraderImpl> upgrader_ =
       std::make_shared<ConnectionUpgraderImpl>();
-  std::unique_ptr<MuxedConnection> muxed_connection_;
+  std::unique_ptr<MuxedConnection> server_muxed_connection_;
+  std::unique_ptr<MuxedConnection> client_muxed_connection_;
 };
 
 /**
@@ -44,23 +45,25 @@ class ConnectionUpgraderTest : public ::testing::Test {
  * @when context_.run_for() is called
  * @then upgrader_ receives and upgrades incoming connection to muxed
  */
-TEST_F(ConnectionUpgraderTest, ServerUpgradeSuccess) {
+TEST_F(ConnectionUpgraderTest, IntegrationTest) {
   // create transport
   transport_ = std::make_unique<TransportImpl>(context_);
   ASSERT_TRUE(transport_) << "cannot create transport";
 
   // create a listener, which is going to wrap new connections to Yamux
-  transport_listener_ =
-      transport_->createListener([this](std::shared_ptr<Connection> c) mutable {
-        ASSERT_FALSE(c->isClosed());
-        ASSERT_TRUE(c) << "createListener: connection is nullptr";
+  transport_listener_ = transport_->createListener(
+      [this](std::shared_ptr<Connection> server_connection) mutable {
+        ASSERT_FALSE(server_connection->isClosed());
+        ASSERT_TRUE(server_connection)
+            << "createListener: connection is nullptr";
 
         // here, our Yamux instance is going to be a server, as a new
         // connection is accepted
-        MuxerOptions options = {ConnectionType::SERVER_SIDE};
-        muxed_connection_ = upgrader_->upgradeToMuxed(
-            c, options, [this](std::unique_ptr<Stream> new_stream) mutable {
-              logger_->info("connection upgraded to muxed");
+        MuxerOptions server_options = {ConnectionType::SERVER_SIDE};
+        server_muxed_connection_ = upgrader_->upgradeToMuxed(
+            server_connection, server_options,
+            [this](std::unique_ptr<Stream> new_stream) mutable {
+              logger_->info("server muxed stream received");
             });
       });
 
@@ -69,9 +72,19 @@ TEST_F(ConnectionUpgraderTest, ServerUpgradeSuccess) {
   ASSERT_TRUE(transport_listener_->listen(ma)) << "is port 40009 busy?";
 
   // dial to our "server", getting a connection
-  EXPECT_OUTCOME_TRUE_void(conn, transport_->dial(ma));
+  EXPECT_OUTCOME_TRUE(client_connection, transport_->dial(ma));
+  MuxerOptions client_options = {ConnectionType::CLIENT_SIDE};
+  client_muxed_connection_ = upgrader_->upgradeToMuxed(
+      client_connection, client_options,
+      [this](std::unique_ptr<Stream> new_stream) mutable {
+        logger_->info("client muxed stream received");
+      });
 
   // let MuxedConnection be created
   context_.run_for(10ms);
-  ASSERT_TRUE(muxed_connection_) << "failed to upgrade raw connection to muxed";
+  ASSERT_TRUE(server_muxed_connection_)
+      << "failed to upgrade raw server connection to muxed";
+  ASSERT_TRUE(client_muxed_connection_)
+      << "failed to upgrade raw client connection to muxed";
 }
+
