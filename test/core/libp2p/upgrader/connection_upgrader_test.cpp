@@ -12,11 +12,9 @@
 #include "libp2p/muxer/yamux/yamux_stream.hpp"
 #include "libp2p/transport/all.hpp"
 #include "testutil/outcome.hpp"
+#include "common/logger.hpp"
 
 using libp2p::multi::Multiaddress;
-using libp2p::muxer::Yamux;
-using libp2p::muxer::YamuxConfig;
-using libp2p::muxer::YamuxFrame;
 using libp2p::stream::Stream;
 using libp2p::transport::Connection;
 using libp2p::transport::MuxedConnection;
@@ -26,16 +24,16 @@ using libp2p::transport::TransportListener;
 using libp2p::upgrader::ConnectionType;
 using libp2p::upgrader::ConnectionUpgraderImpl;
 using libp2p::upgrader::MuxerOptions;
+using kagome::common::Logger;
 
 using std::chrono_literals::operator""ms;
 
 class ConnectionUpgraderTest : public ::testing::Test {
  protected:
+  Logger logger_ = kagome::common::createLogger("ConnectionUpgraderTest");
   boost::asio::io_context context_;
-
   std::unique_ptr<Transport> transport_;
   std::shared_ptr<TransportListener> transport_listener_;
-  std::shared_ptr<Multiaddress> multiaddress_;
   std::shared_ptr<ConnectionUpgraderImpl> upgrader_ =
       std::make_shared<ConnectionUpgraderImpl>();
   std::unique_ptr<MuxedConnection> muxed_connection_;
@@ -61,22 +59,19 @@ TEST_F(ConnectionUpgraderTest, ServerUpgradeSuccess) {
         // connection is accepted
         MuxerOptions options = {ConnectionType::SERVER_SIDE};
         muxed_connection_ = upgrader_->upgradeToMuxed(
-            c, options, [](std::unique_ptr<Stream> new_stream) mutable {
-              // do nothing
+            c, options, [this](std::unique_ptr<Stream> new_stream) mutable {
+              logger_->info("connection upgraded to muxed");
             });
       });
 
   // create multiaddress, from which we are going to connect
-  auto &&ma_res = Multiaddress::create("/ip4/127.0.0.1/tcp/40009");
-  ASSERT_TRUE(ma_res);
-  auto &&ma = ma_res.value();
+  EXPECT_OUTCOME_TRUE(ma, Multiaddress::create("/ip4/127.0.0.1/tcp/40009"));
   ASSERT_TRUE(transport_listener_->listen(ma)) << "is port 40009 busy?";
-  multiaddress_ = std::make_shared<Multiaddress>(std::move(ma));
 
   // dial to our "server", getting a connection
-  EXPECT_OUTCOME_TRUE_void(conn, transport_->dial(*multiaddress_))
+  EXPECT_OUTCOME_TRUE_void(conn, transport_->dial(ma));
 
-      // let MuxedConnection be created
-      context_.run_for(10ms);
+  // let MuxedConnection be created
+  context_.run_for(10ms);
   ASSERT_TRUE(muxed_connection_) << "failed to upgrade raw connection to muxed";
 }
