@@ -41,8 +41,13 @@ namespace libp2p::protocol_muxer {
     /// stream, over which we are negotiating
     std::unique_ptr<stream::Stream> stream_;
 
-    /// callback, which is to be called, when a protocol is established
+    /// callback, which is to be called, when a protocol is established over the
+    /// connection
     ProtocolMuxer::ChosenProtocolCallback proto_callback_;
+
+    /// callback, which is to be called, when a protocol is established over the
+    /// stream
+    ProtocolMuxer::ChosenProtocolAndStreamCallback proto_stream_callback_;
 
     /// write buffer of this connection
     std::shared_ptr<kagome::common::Buffer> write_buffer_;
@@ -87,13 +92,19 @@ namespace libp2p::protocol_muxer {
      */
     void read(size_t n,
               std::function<basic::Readable::CompletionHandler> handler) {
+      // if there are already enough bytes in our buffer, return them
+      if (read_buffer_->size() >= n) {
+        handler(std::error_code{}, n);
+        return;
+      }
+
       if (connection_ != nullptr) {
         connection_->asyncRead(*read_buffer_, n, std::move(handler));
         return;
       }
       stream_->readAsync(
-          [t = shared_from_this(), handler = std::move(handler)](
-              stream::Stream::NetworkMessageOutcome msg_res) mutable {
+          [t = shared_from_this(), handler = std::move(handler),
+           n](stream::Stream::NetworkMessageOutcome msg_res) mutable {
             if (msg_res) {
               // put the received message to our buffer
               std::ostream out(&*t->read_buffer_);
@@ -102,25 +113,33 @@ namespace libp2p::protocol_muxer {
                   msg_res.value().toBytes()
                       + msg_res.value().size());  // NOLINT
               out << incoming_bytes;
-              handler(std::error_code{}, incoming_bytes.size());
+
+              // if we read less bytes, than needed, read one more frame
+              if (t->read_buffer_->size() < n) {
+                t->read(n, std::move(handler));
+                return;
+              }
+              handler(std::error_code{}, n);
             } else {
               handler(msg_res.error(), 0);
             }
           });
     }
 
-    ConnectionState(std::shared_ptr<transport::Connection> conn,
-                    std::unique_ptr<stream::Stream> stream,
-                    ProtocolMuxer::ChosenProtocolCallback proto_cb,
-                    std::shared_ptr<kagome::common::Buffer> write_buffer,
-                    std::shared_ptr<boost::asio::streambuf> read_buffer,
-                    size_t buffers_index,
-                    std::shared_ptr<Multiselect> multiselect,
-                    NegotiationRound round,
-                    NegotiationStatus status = NegotiationStatus::NOTHING_SENT)
+    ConnectionState(
+        std::shared_ptr<transport::Connection> conn,
+        std::unique_ptr<stream::Stream> stream,
+        ProtocolMuxer::ChosenProtocolCallback proto_cb,
+        ProtocolMuxer::ChosenProtocolAndStreamCallback proto_stream_cb,
+        std::shared_ptr<kagome::common::Buffer> write_buffer,
+        std::shared_ptr<boost::asio::streambuf> read_buffer,
+        size_t buffers_index, std::shared_ptr<Multiselect> multiselect,
+        NegotiationRound round,
+        NegotiationStatus status = NegotiationStatus::NOTHING_SENT)
         : connection_{std::move(conn)},
           stream_{std::move(stream)},
           proto_callback_{std::move(proto_cb)},
+          proto_stream_callback_{std::move(proto_stream_cb)},
           write_buffer_{std::move(write_buffer)},
           read_buffer_{std::move(read_buffer)},
           buffers_index_{buffers_index},

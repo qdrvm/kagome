@@ -135,7 +135,8 @@ namespace libp2p::muxer {
   void Yamux::writingCompleted(
       const std::error_code &ec, size_t n,
       const stream::Stream::ErrorCodeCallback &error_callback) {
-    error_callback(ec, n);
+    // we have written <MsgLength + HeaderLength> bytes
+    error_callback(ec, n - YamuxFrame::kHeaderLength);
     outcoming_messages_.pop();
     startWriting();
   }

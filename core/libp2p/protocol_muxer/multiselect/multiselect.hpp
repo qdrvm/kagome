@@ -61,9 +61,9 @@ namespace libp2p::protocol_muxer {
         ChosenProtocolCallback protocol_callback) override;
 
     void negotiateStream(std::unique_ptr<stream::Stream> stream,
-                         ChosenProtocolCallback protocol_callback) override;
+                         ChosenProtocolAndStreamCallback cb) override;
 
-    enum class MultiselectErrors {
+    enum class MultiselectError {
       NO_PROTOCOLS_SUPPORTED = 1,
       NEGOTIATION_FAILED,
       INTERNAL_ERROR
@@ -113,15 +113,14 @@ namespace libp2p::protocol_muxer {
      * @param protocols - received protocols
      * @param connection_state - state of the connection
      */
-    void handleProtocolsMsg(
-        const std::vector<peer::Protocol> &protocols,
-        std::shared_ptr<ConnectionState> connection_state) const;
+    void handleProtocolsMsg(const std::vector<peer::Protocol> &protocols,
+                            std::shared_ptr<ConnectionState> connection_state);
 
     /**
      * Handle a message, containing an ls
      * @param connection_state - state of the connection
      */
-    void handleLsMsg(std::shared_ptr<ConnectionState> connection_state) const;
+    void handleLsMsg(std::shared_ptr<ConnectionState> connection_state);
 
     /**
      * Handle a message, containing an na
@@ -136,7 +135,7 @@ namespace libp2p::protocol_muxer {
      */
     void onProtocolAfterOpeningOrLs(
         std::shared_ptr<ConnectionState> connection_state,
-        const peer::Protocol &protocol) const;
+        const peer::Protocol &protocol);
 
     /**
      * Triggered, when a new message with protocols arrived, and the last
@@ -144,9 +143,8 @@ namespace libp2p::protocol_muxer {
      * @param connection_state - state of the connection
      * @param received_protocols - protocols, received from the other side
      */
-    void onProtocolsAfterLs(
-        std::shared_ptr<ConnectionState> connection_state,
-        gsl::span<const peer::Protocol> received_protocols) const;
+    void onProtocolsAfterLs(std::shared_ptr<ConnectionState> connection_state,
+                            gsl::span<const peer::Protocol> received_protocols);
 
     /**
      * Triggered, when an unexpected message arrives to as a response to our
@@ -168,8 +166,18 @@ namespace libp2p::protocol_muxer {
      * @param connection_state - state of the connection
      * @param chosen_protocol - protocol, which was chosen during the round
      */
-    void negotiationRoundFinished(const ConnectionState &connection_state,
-                                  const peer::Protocol &chosen_protocol);
+    void negotiationRoundFinished(
+        std::shared_ptr<ConnectionState> connection_state,
+        const peer::Protocol &chosen_protocol);
+
+    /**
+     * Triggered, when error happens during the negotiation round
+     * @param connection_state - state of the connection
+     * @param ec - error, which happened
+     */
+    void negotiationRoundFailed(
+        std::shared_ptr<ConnectionState> connection_state,
+        const std::error_code &ec);
 
     /**
      * Get a collection of protocols, which are available for a particular round
@@ -204,7 +212,6 @@ namespace libp2p::protocol_muxer {
   };
 }  // namespace libp2p::protocol_muxer
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::protocol_muxer,
-                          Multiselect::MultiselectErrors)
+OUTCOME_HPP_DECLARE_ERROR(libp2p::protocol_muxer, Multiselect::MultiselectError)
 
 #endif  // KAGOME_MULTISELECT_IMPL_HPP

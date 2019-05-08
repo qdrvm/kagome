@@ -62,14 +62,17 @@ namespace libp2p::protocol_muxer {
         std::shared_ptr<transport::Connection> connection,
         ChosenProtocolCallback protocol_callback) = 0;
 
+    using ChosenProtocolAndStreamCallback = std::function<void(
+        outcome::result<peer::Protocol>, std::unique_ptr<stream::Stream>)>;
+
     /**
      * Negotiate about the stream protocol with the other side
      * @param stream to be negotiated over
-     * @param protocol_callback, which is going to be called, when the
+     * @param cb, which is going to be called, when the
      * protocol is chosen or error occurs
      */
     virtual void negotiateStream(std::unique_ptr<stream::Stream> stream,
-                                 ChosenProtocolCallback protocol_callback) = 0;
+                                 ChosenProtocolAndStreamCallback cb) = 0;
 
     virtual ~ProtocolMuxer() = default;
   };

@@ -65,10 +65,12 @@ namespace libp2p::protocol_muxer {
      * Completion handler for read bytes operation in case several lines (with
      * protocols) were expected to be read
      * @param connection_state - state of the connection
+     * @param expected_protocols_size - how much (in bytes) the protocols take
      * @param expected_protocols_number - how much protocols were to be read
      */
     static void onReadProtocolsCompleted(
         std::shared_ptr<ConnectionState> connection_state,
+        uint64_t expected_protocols_size,
         uint64_t expected_protocols_number);
   };
 }  // namespace libp2p::protocol_muxer

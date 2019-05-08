@@ -256,30 +256,39 @@ TEST_F(MultiselectTest, NegotiateMultiplexer) {
  * over that connection @and stream protocol, supported by both sides
  * @when negotiating about the protocol
  * @then the common protocol is selected
- *
- * DOES NOT WORK YET
  */
 TEST_F(MultiselectTest, NegotiateStream) {
-  // set up Yamuxes to have both endings of streams
+  // create a lambda, which is going to accept another end's stream, created by
+  // Yamux, and participate in negotiations via that stream
+  std::unique_ptr<Stream> received_stream;
+  auto stream_handler =
+      [this, &received_stream](std::unique_ptr<Stream> stream) mutable {
+        negotiationOpenings(*stream);
+        negotiationLs(*stream, std::vector<Protocol>{kDefaultStreamProtocol});
+        negotiationProtocols(*stream, kDefaultStreamProtocol);
+
+        // prolongate life of the stream
+        received_stream = std::move(stream);
+      };
+
+  // set up Yamuxes
   std::shared_ptr<Yamux> yamux1{std::make_shared<Yamux>(
-      connection_, [](auto &&) {}, YamuxConfig{true})},
-      yamux2{std::make_shared<Yamux>(
-          other_peers_connection_, [](auto &&) {}, YamuxConfig{false})};
+      connection_, [](auto &&) {}, YamuxConfig{false})},
+      yamux2{std::make_shared<Yamux>(other_peers_connection_,
+                                     std::move(stream_handler),
+                                     YamuxConfig{true})};
+  yamux1->start();
+  yamux2->start();
   EXPECT_OUTCOME_TRUE(stream1, yamux1->newStream())
-  EXPECT_OUTCOME_TRUE(stream2, yamux2->newStream())
 
   // create a success handler
   multiselect_->addStreamProtocol(kDefaultStreamProtocol);
-  multiselect_->negotiateStream(std::move(stream1),
-                                [this](outcome::result<Protocol> protocol_res) {
-                                  EXPECT_OUTCOME_TRUE(protocol, protocol_res)
-                                  EXPECT_EQ(protocol, kDefaultStreamProtocol);
-                                });
-
-  // the rest of the exchange stays the same
-  negotiationOpenings(*stream2);
-  negotiationLs(*stream2, std::vector<Protocol>{kDefaultStreamProtocol});
-  negotiationProtocols(*stream2, kDefaultStreamProtocol);
+  multiselect_->negotiateStream(
+      std::move(stream1),
+      [this](outcome::result<Protocol> protocol_res, std::unique_ptr<Stream>) {
+        EXPECT_OUTCOME_TRUE(protocol, protocol_res)
+        EXPECT_EQ(protocol, kDefaultStreamProtocol);
+      });
 
   launchContext();
 }

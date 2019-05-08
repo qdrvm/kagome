@@ -92,7 +92,7 @@ namespace libp2p::protocol_muxer {
     auto msg_span =
         gsl::make_span(static_cast<const uint8_t *>(
                            connection_state->read_buffer_->data().data()),
-                       connection_state->read_buffer_->size());
+                       read_bytes);
     connection_state->read_buffer_->consume(msg_span.size());
 
     // firstly, try to match the message against constant messages
@@ -126,7 +126,7 @@ namespace libp2p::protocol_muxer {
             proto_header_res.value().size_of_protocols_,
             [&proto_header_res](std::shared_ptr<ConnectionState> state) {
               onReadProtocolsCompleted(
-                  std::move(state),
+                  std::move(state), proto_header_res.value().size_of_protocols_,
                   proto_header_res.value().number_of_protocols_);
             });
       } else {
@@ -153,16 +153,15 @@ namespace libp2p::protocol_muxer {
 
   void MessageReader::onReadProtocolsCompleted(
       std::shared_ptr<ConnectionState> connection_state,
-      uint64_t expected_protocols_number) {
+      uint64_t expected_protocols_size, uint64_t expected_protocols_number) {
     auto multiselect = connection_state->multiselect_;
 
     auto msg_res = MessageManager::parseProtocols(
         gsl::make_span(static_cast<const uint8_t *>(
                            connection_state->read_buffer_->data().data()),
-                       connection_state->read_buffer_->size()),
+                       expected_protocols_size),
         expected_protocols_number);
-    connection_state->read_buffer_->consume(
-        connection_state->read_buffer_->size());
+    connection_state->read_buffer_->consume(expected_protocols_size);
     if (!msg_res) {
       multiselect->onError(
           std::move(connection_state),
