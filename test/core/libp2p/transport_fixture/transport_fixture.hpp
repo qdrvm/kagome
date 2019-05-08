@@ -48,8 +48,9 @@ namespace libp2p::testing {
      * @param received_size - how much bytes were received
      * @param expected_size - how much bytes were expected to be received
      */
-    static void checkIOSuccess(const std::error_code &ec, size_t received_size,
-                               size_t expected_size);
+#define CHECK_IO_SUCCESS(error_code, received_size, expected_size) \
+  ASSERT_FALSE(ec);                                                \
+  ASSERT_EQ(received_size, expected_size);
 
     boost::asio::io_context context_;
 

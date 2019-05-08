@@ -39,15 +39,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, OpenSslError, e) {
   return "unknown CryptoProviderError code";
 }
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, MiscError, e) {
-  using libp2p::crypto::MiscError;
-  switch (e) {  // NOLINT
-    case MiscError::WRONG_ARGUMENT_VALUE:
-      return "wrong argument value";
-  }
-  return "unknown MiscError code";
-}
-
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, HmacProviderError, e) {
   using libp2p::crypto::HmacProviderError;
   switch (e) {  // NOLINT
@@ -80,4 +71,35 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, RandomProviderError, e) {
       return "invalid or unsupported random provider type";
   }
   return "unknown RandomProviderError code";
+}
+
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, KeyGeneratorError, e) {
+  using libp2p::crypto::KeyGeneratorError;
+  switch (e) {  // NOLINT
+    case KeyGeneratorError::CANNOT_GENERATE_UNSPECIFIED:
+      return "you need to specify valid key type";
+    case KeyGeneratorError::UNKNOWN_KEY_TYPE:
+      return "unknown key type";
+    case KeyGeneratorError::GENERATOR_NOT_INITIALIZED:
+      return "generator not initialized";
+    case KeyGeneratorError::KEY_GENERATION_FAILED:
+      return "key generation failed";
+    case KeyGeneratorError::KEY_DERIVATION_FAILED:
+      return "failed to derive key";
+    case KeyGeneratorError::FILE_NOT_FOUND:
+      return "file not found";
+    case KeyGeneratorError::FAILED_TO_READ_FILE:
+      return "failed to read file";
+    case KeyGeneratorError::INCORRECT_BITS_COUNT:
+      return "incorrect bits count";
+    case KeyGeneratorError::WRONG_KEY_TYPE:
+      return "incorrect key type";
+    case KeyGeneratorError::UNSUPPORTED_KEY_TYPE:
+      return "key type is not supported";
+    case KeyGeneratorError::CANNOT_LOAD_UNSPECIFIED:
+      return "cannot load unspecified key";
+    case KeyGeneratorError::GET_KEY_BYTES_FAILED:
+      return "failed to get key bytes from PKEY";
+  }
+  return "unknown KeyGenerator error";
 }

@@ -121,14 +121,14 @@ namespace libp2p::protocol_muxer {
     if (read_bytes < kShortestProtocolLength) {
       auto proto_header_res = MessageManager::parseProtocolsHeader(msg_span);
       if (proto_header_res) {
-        readNextBytes(
-            std::move(connection_state),
-            proto_header_res.value().size_of_protocols_,
-            [&proto_header_res](std::shared_ptr<ConnectionState> state) {
-              onReadProtocolsCompleted(
-                  std::move(state), proto_header_res.value().size_of_protocols_,
-                  proto_header_res.value().number_of_protocols_);
-            });
+        auto proto_header = proto_header_res.value();
+        readNextBytes(std::move(connection_state),
+                      proto_header.size_of_protocols_,
+                      [proto_header](std::shared_ptr<ConnectionState> state) {
+                        onReadProtocolsCompleted(
+                            std::move(state), proto_header.size_of_protocols_,
+                            proto_header.number_of_protocols_);
+                      });
       } else {
         multiselect->onError(
             std::move(connection_state),

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/crypto/hmac/hmac_provider.hpp"
+#include "libp2p/crypto/hmac_provider/hmac_provider_impl.hpp"
 
 #include <gtest/gtest.h>
 #include <outcome/outcome.hpp>
@@ -22,7 +22,7 @@ class HmacTest : public testing::Test {
   }
 
   /// hash provider
-  hmac::HmacProvider provider;
+  hmac::HmacProviderImpl provider;
   /// message to be hashed
   Buffer message;
 

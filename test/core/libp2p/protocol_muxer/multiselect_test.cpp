@@ -58,13 +58,13 @@ class MultiselectTest : public libp2p::testing::TransportFixture {
         expected_opening_msg->size(),
         [this, expected_opening_msg, opening_msg_buf](const std::error_code &ec,
                                                       size_t n) {
-          checkIOSuccess(ec, n, expected_opening_msg->size());
+          CHECK_IO_SUCCESS(ec, n, expected_opening_msg->size())
           ASSERT_EQ(*opening_msg_buf, *expected_opening_msg);
 
           other_peers_connection_->asyncWrite(
               boost::asio::buffer(expected_opening_msg->toVector()),
               [expected_opening_msg](const std::error_code &ec, size_t n) {
-                checkIOSuccess(ec, n, expected_opening_msg->size());
+                CHECK_IO_SUCCESS(ec, n, expected_opening_msg->size())
               });
         });
   }
@@ -84,7 +84,7 @@ class MultiselectTest : public libp2p::testing::TransportFixture {
           stream.writeAsync(
               *expected_opening_msg,
               [expected_opening_msg](const std::error_code &ec, size_t n) {
-                checkIOSuccess(ec, n, expected_opening_msg->size());
+                CHECK_IO_SUCCESS(ec, n, expected_opening_msg->size())
               });
         });
   }
@@ -102,13 +102,13 @@ class MultiselectTest : public libp2p::testing::TransportFixture {
         boost::asio::buffer(ls_msg_buf->toVector()), expected_ls_msg->size(),
         [this, expected_ls_msg, ls_msg_buf, protocols_msg](
             const std::error_code &ec, size_t n) {
-          checkIOSuccess(ec, n, expected_ls_msg->size());
+          CHECK_IO_SUCCESS(ec, n, expected_ls_msg->size())
           ASSERT_EQ(*ls_msg_buf, *expected_ls_msg);
 
           other_peers_connection_->asyncWrite(
               boost::asio::buffer(protocols_msg->toVector()),
               [protocols_msg](const std::error_code &ec, size_t n) {
-                checkIOSuccess(ec, n, protocols_msg->size());
+                CHECK_IO_SUCCESS(ec, n, protocols_msg->size())
               });
         });
   }
@@ -129,7 +129,7 @@ class MultiselectTest : public libp2p::testing::TransportFixture {
 
       stream.writeAsync(*protocols_msg,
                         [protocols_msg](const std::error_code &ec, size_t n) {
-                          checkIOSuccess(ec, n, protocols_msg->size());
+                          CHECK_IO_SUCCESS(ec, n, protocols_msg->size())
                         });
     });
   }
@@ -143,7 +143,7 @@ class MultiselectTest : public libp2p::testing::TransportFixture {
     other_peers_connection_->asyncRead(
         boost::asio::buffer(na_msg_buf->toVector()), expected_na_msg->size(),
         [expected_na_msg, na_msg_buf](const std::error_code &ec, size_t n) {
-          checkIOSuccess(ec, n, expected_na_msg->size());
+          CHECK_IO_SUCCESS(ec, n, expected_na_msg->size())
           ASSERT_EQ(*na_msg_buf, *expected_na_msg);
         });
   }
@@ -164,13 +164,13 @@ class MultiselectTest : public libp2p::testing::TransportFixture {
         expected_proto_msg->size(),
         [this, expected_proto_msg, proto_msg_buf](const std::error_code &ec,
                                                   size_t n) {
-          checkIOSuccess(ec, n, expected_proto_msg->size());
+          CHECK_IO_SUCCESS(ec, n, expected_proto_msg->size())
           ASSERT_EQ(*proto_msg_buf, *expected_proto_msg);
 
           other_peers_connection_->asyncWrite(
               boost::asio::buffer(expected_proto_msg->toVector()),
               [expected_proto_msg](const std::error_code &ec, size_t n) {
-                checkIOSuccess(ec, n, expected_proto_msg->size());
+                CHECK_IO_SUCCESS(ec, n, expected_proto_msg->size())
               });
         });
   }
@@ -191,7 +191,7 @@ class MultiselectTest : public libp2p::testing::TransportFixture {
           stream.writeAsync(
               *expected_proto_msg,
               [expected_proto_msg](const std::error_code &ec, size_t n) {
-                checkIOSuccess(ec, n, expected_proto_msg->size());
+                CHECK_IO_SUCCESS(ec, n, expected_proto_msg->size())
               });
         });
   }
@@ -285,7 +285,7 @@ TEST_F(MultiselectTest, NegotiateStream) {
   multiselect_->addStreamProtocol(kDefaultStreamProtocol);
   multiselect_->negotiateStream(
       std::move(stream1),
-      [this](outcome::result<Protocol> protocol_res, std::unique_ptr<Stream>) {
+      [this](outcome::result<Protocol> protocol_res, auto &&) {
         EXPECT_OUTCOME_TRUE(protocol, protocol_res)
         EXPECT_EQ(protocol, kDefaultStreamProtocol);
       });

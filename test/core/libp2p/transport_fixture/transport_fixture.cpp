@@ -43,11 +43,4 @@ namespace libp2p::testing {
     context_.run_for(50ms);
   }
 
-  void TransportFixture::checkIOSuccess(const std::error_code &ec,
-                                        size_t received_size,
-                                        size_t expected_size) {
-    ASSERT_FALSE(ec);
-    ASSERT_EQ(received_size, expected_size);  // NOLINT
-  }
-
 }  // namespace libp2p::testing
