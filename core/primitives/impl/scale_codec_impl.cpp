@@ -81,6 +81,7 @@ namespace kagome::scale {
     outcome::result<void> encode(const primitives::Extrinsic &value,
                                  common::Buffer &out) {
       out.putBuffer(value.data());
+      return outcome::success();
     }
   };
 
@@ -100,7 +101,7 @@ namespace kagome::scale {
     outcome::result<array_type> decode(common::ByteStream &stream) {
       array_type array;
 
-      for (int i = 0; i < sz; i++) {
+      for (size_t i = 0; i < sz; i++) {
         OUTCOME_TRY(byte, fixedwidth::decodeUint8(stream));
         array[i] = byte;
       }
@@ -113,7 +114,7 @@ namespace kagome::scale {
   struct TypeDecoder<common::Hash256> {
     outcome::result<common::Hash256> decode(common::ByteStream &stream) {
       common::Hash256 hash;
-      for (int i = 0; i < common::Hash256::size(); i++) {
+      for (size_t i = 0; i < common::Hash256::size(); i++) {
         OUTCOME_TRY(byte, fixedwidth::decodeUint8(stream));
         hash[i] = byte;
       }
@@ -272,7 +273,7 @@ namespace kagome::primitives {
   outcome::result<Buffer> ScaleCodecImpl::encodeExtrinsic(
       const Extrinsic &extrinsic) const {
     Buffer out;
-    scale::TypeEncoder<Extrinsic> {}.encode(extrinsic, out);
+    OUTCOME_TRY(scale::TypeEncoder<Extrinsic> {}.encode(extrinsic, out));
     return out;
   }
   outcome::result<Extrinsic> ScaleCodecImpl::decodeExtrinsic(
