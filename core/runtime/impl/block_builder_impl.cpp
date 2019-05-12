@@ -41,6 +41,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(
         res, executor_.call(state_code_, "BlockBuilder_apply_extrinsic", ll));
 
+    return true;
     /// @todo figure out what wasm function returns
   }
 
