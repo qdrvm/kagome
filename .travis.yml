@@ -87,8 +87,9 @@ matrix:
       after_success:
         # collect coverage
         - sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-8 90
+        - gcov --version || true
         - cmake --build build --target ctest_coverage
-        - bash <(curl -s https://codecov.io/bash) -s build 2>&1 | head -n 100
+        - bash <(curl -s https://codecov.io/bash) -s build 2>/dev/null
 
 
     - os: linux

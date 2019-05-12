@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SCALE_CODEC_HPP
-#define KAGOME_SCALE_CODEC_HPP
+#ifndef KAGOME_SCALE_PRIMITIVES_CODEC_HPP
+#define KAGOME_SCALE_PRIMITIVES_CODEC_HPP
 
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
@@ -148,4 +148,4 @@ namespace kagome::primitives {
   };
 }  // namespace kagome::primitives
 
-#endif  // KAGOME_SCALE_CODEC_HPP
+#endif  // KAGOME_SCALE_PRIMITIVES_CODEC_HPP

@@ -5,32 +5,40 @@
 
 #include "libp2p/transport/impl/transport_impl.hpp"
 
-#include <boost/asio/ip/address.hpp>
-#include <boost/lexical_cast.hpp>
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/transport/impl/transport_listener_impl.hpp"
+#include "libp2p/transport/impl/transport_parser.hpp"
 #include "libp2p/transport/tcp/tcp_connection.hpp"
 
 namespace libp2p::transport {
-  using boost::asio::ip::make_address;
   using multi::Multiaddress;
   using multi::Protocol;
 
+  /**
+   * Visitor for std::variant that return the address data corresponding to the
+   * protocol stored in the variant
+   */
+  class ParserVisitor {
+   public:
+    explicit ParserVisitor(TransportImpl const &transport)
+        : transport_{transport} {}
+
+    using Result = outcome::result<std::shared_ptr<Connection>>;
+
+    /// IP/TCP address
+    Result operator()(
+        const std::pair<TransportParser::IpAddress, uint16_t> &ip_tcp) {
+      return transport_.ipTcp(ip_tcp.first, ip_tcp.second);
+    }
+
+   private:
+    TransportImpl const &transport_;
+  };
+
   outcome::result<std::shared_ptr<Connection>> TransportImpl::dial(
       const multi::Multiaddress &address) const {
-    // TODO(warchant): PRE-100 use parser here
-    OUTCOME_TRY(addr,
-                address.getFirstValueForProtocol<boost::asio::ip::address>(
-                    Protocol::Code::ip4,
-                    [](const std::string &val) { return make_address(val); }));
-
-    OUTCOME_TRY(port,
-                address.getFirstValueForProtocol<uint16_t>(
-                    Protocol::Code::tcp, [](const std::string &val) {
-                      return boost::lexical_cast<uint16_t>(val);
-                    }));
-
-    return ipTcp(addr, port);
+    OUTCOME_TRY(res, TransportParser::parse(address));
+    return std::visit(ParserVisitor{*this}, res.data_);
   }
 
   std::shared_ptr<TransportListener> TransportImpl::createListener(
