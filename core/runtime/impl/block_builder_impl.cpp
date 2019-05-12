@@ -39,7 +39,10 @@ namespace kagome::runtime {
     wasm::LiteralList ll{Literal(ptr), Literal(ext_size)};
 
     OUTCOME_TRY(
-        executor_.call(state_code_, "BlockBuilder_apply_extrinsic", ll));
+        res, executor_.call(state_code_, "BlockBuilder_apply_extrinsic", ll));
+
+    /// @todo figure out what wasm function returns
+
   }
 
   outcome::result<primitives::BlockHeader> BlockBuilderImpl::finalize_block() {
@@ -116,7 +119,6 @@ namespace kagome::runtime {
   }
 
   outcome::result<common::Hash256> BlockBuilderImpl::random_seed() {
-
     OUTCOME_TRY(res,
                 executor_.call(state_code_, "BlockBuilder_random_seed", {}));
 

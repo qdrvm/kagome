@@ -15,8 +15,6 @@
 #include "primitives/inherent_data.hpp"
 #include "primitives/extrinsic.hpp"
 #include "scale/types.hpp"
-#include "scale/type_encoder.hpp"
-#include "scale/type_decoder.hpp"
 
 namespace kagome::primitives {
   class Block;  ///< forward declaration of class Block
