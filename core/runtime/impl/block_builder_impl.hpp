@@ -20,20 +20,20 @@ namespace kagome::runtime {
                      std::shared_ptr<extensions::Extension> extension,
                      std::shared_ptr<primitives::ScaleCodec> codec);
 
-    virtual ~BlockBuilderImpl() override = default;
+    ~BlockBuilderImpl() override = default;
 
-    virtual outcome::result<bool> apply_extrinsic(
+    outcome::result<bool> apply_extrinsic(
         primitives::Extrinsic extrinsic) override;
 
-    virtual outcome::result<primitives::BlockHeader> finalize_block() override;
+    outcome::result<primitives::BlockHeader> finalize_block() override;
 
-    virtual outcome::result<std::vector<primitives::Extrinsic>>
+    outcome::result<std::vector<primitives::Extrinsic>>
     inherent_extrinsics(primitives::InherentData data) override;
 
-    virtual outcome::result<CheckInherentsResult> check_inherents(
+    outcome::result<CheckInherentsResult> check_inherents(
         primitives::Block block, primitives::InherentData data) override;
 
-    virtual outcome::result<common::Hash256> random_seed() override;
+    outcome::result<common::Hash256> random_seed() override;
 
    private:
     std::shared_ptr<WasmMemory> memory_;
