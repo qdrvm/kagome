@@ -45,6 +45,12 @@ namespace kagome::primitives {
     outcome::result<TransactionValidity> decodeTransactionValidity(
         Stream &stream) const override;
 
+    outcome::result<Buffer> encodeInherentData(
+        const InherentData &inherentData) const override;
+
+    outcome::result<InherentData> decodeInherentData(
+        Stream &stream) const override;
+
     outcome::result<Buffer> encodeAuthorityIds(
         const std::vector<kagome::primitives::AuthorityId> &ids) const override;
 
