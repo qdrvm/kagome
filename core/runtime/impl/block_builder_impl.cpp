@@ -26,7 +26,7 @@ namespace kagome::runtime {
                                      std::shared_ptr<ScaleCodec> codec)
       : memory_{extension->memory()},
         codec_{std::move(codec)},
-        executor_{extension},
+        executor_{std::move(extension)},
         state_code_{std::move(state_code)} {}
 
   outcome::result<bool> BlockBuilderImpl::apply_extrinsic(Extrinsic extrinsic) {
