@@ -42,7 +42,6 @@ namespace kagome::runtime {
         res, executor_.call(state_code_, "BlockBuilder_apply_extrinsic", ll));
 
     /// @todo figure out what wasm function returns
-
   }
 
   outcome::result<primitives::BlockHeader> BlockBuilderImpl::finalize_block() {
