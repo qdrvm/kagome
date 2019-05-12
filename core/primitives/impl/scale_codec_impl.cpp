@@ -22,7 +22,7 @@ namespace kagome::scale {
   struct TypeEncoder<std::array<T, sz>> {
     outcome::result<void> encode(const std::array<T, sz> &array,
                                  common::Buffer &out) {
-      for (int i = 0; i < sz; i++) {
+      for (size_t i = 0; i < sz; i++) {
         fixedwidth::encodeUInt8(gsl::at(array, i), out);
       }
       return outcome::success();
@@ -34,7 +34,7 @@ namespace kagome::scale {
   struct TypeEncoder<common::Hash256> {
     outcome::result<void> encode(const common::Hash256 &value,
                                  common::Buffer &out) {
-      for (size_t i = 0; i < value.size(); i++) {
+      for (size_t i = 0; i < common::Hash256::size(); i++) {
         fixedwidth::encodeUInt8(value[i], out);
       }
       return outcome::success();

@@ -39,7 +39,7 @@ namespace kagome::runtime {
     wasm::LiteralList ll{Literal(ptr), Literal(ext_size)};
 
     OUTCOME_TRY(
-        res, executor_.call(state_code_, "BlockBuilder_apply_extrinsic", ll));
+        _, executor_.call(state_code_, "BlockBuilder_apply_extrinsic", ll));
 
     return true;
     /// @todo figure out what wasm function returns

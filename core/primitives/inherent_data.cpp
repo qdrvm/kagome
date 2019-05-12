@@ -21,10 +21,8 @@ namespace kagome::primitives {
     if (data_.find(identifier) == data_.end()) {
       data_[identifier] = std::move(inherent);
       return outcome::success();
-
-    } else {
-      return Error::IDENTIFIER_ALREADY_EXISTS;
     }
+    return Error::IDENTIFIER_ALREADY_EXISTS;
   }
 
   /** Replace the data for an inherent.
@@ -44,9 +42,8 @@ namespace kagome::primitives {
     auto inherent = data_.find(identifier);
     if (inherent != data_.end()) {
       return inherent->second;
-    } else {
-      return std::nullopt;
     }
+    return std::nullopt;
   }
 
   const std::map<InherentIdentifier, common::Buffer>
