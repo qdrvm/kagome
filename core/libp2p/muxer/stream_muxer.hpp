@@ -6,13 +6,13 @@
 #ifndef KAGOME_STREAM_MUXER_HPP
 #define KAGOME_STREAM_MUXER_HPP
 
-#include "../../../../../../../Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/functional"
-#include "../../../../../../../Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/memory"
-#include "../../../../../../../Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/optional"
+#include <functional>
+#include <memory>
+#include <optional>
 
-#include "../../../deps/outcome/outcome/outcome.hpp"
-#include "../multi/multistream.hpp"
-#include "../stream/stream.hpp"
+#include <outcome/outcome.hpp>
+#include "libp2p/multi/multistream.hpp"
+#include "libp2p/stream/stream.hpp"
 
 namespace libp2p::muxer {
   /**
