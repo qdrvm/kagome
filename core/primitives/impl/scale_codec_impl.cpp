@@ -273,7 +273,7 @@ namespace kagome::primitives {
   outcome::result<Buffer> ScaleCodecImpl::encodeExtrinsic(
       const Extrinsic &extrinsic) const {
     Buffer out;
-    OUTCOME_TRY(scale::TypeEncoder<Extrinsic> {}.encode(extrinsic, out));
+    OUTCOME_TRY(scale::TypeEncoder<Extrinsic>{}.encode(extrinsic, out));
     return out;
   }
   outcome::result<Extrinsic> ScaleCodecImpl::decodeExtrinsic(
