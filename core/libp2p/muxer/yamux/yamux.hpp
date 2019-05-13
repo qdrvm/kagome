@@ -14,11 +14,11 @@
 #include <boost/system/error_code.hpp>
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
+#include "libp2p/muxer/stream_muxer.hpp"
 #include "libp2p/muxer/yamux/yamux_config.hpp"
 #include "libp2p/muxer/yamux/yamux_stream_parameters.hpp"
 #include "libp2p/stream/stream.hpp"
 #include "libp2p/transport/connection.hpp"
-#include "libp2p/transport/muxed_connection.hpp"
 
 namespace libp2p::stream {
   class YamuxStream;
@@ -33,7 +33,7 @@ namespace libp2p::muxer {
    * several applications
    * Read more: https://github.com/hashicorp/yamux/blob/master/spec.md
    */
-  class Yamux : public transport::MuxedConnection,
+  class Yamux : public muxer::StreamMuxer,
                 public std::enable_shared_from_this<Yamux> {
    public:
     using StreamId = uint32_t;

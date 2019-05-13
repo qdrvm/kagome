@@ -9,7 +9,7 @@
 #include <memory>
 
 #include "libp2p/muxer/yamux/yamux.hpp"
-#include "libp2p/transport/muxed_connection.hpp"
+#include "libp2p/muxer/stream_muxer.hpp"
 
 namespace libp2p::upgrader {
   /**
@@ -40,7 +40,7 @@ namespace libp2p::upgrader {
      * @param handler generic protocol handler
      * @return muxed connection instance
      */
-    virtual std::unique_ptr<transport::MuxedConnection>
+    virtual std::unique_ptr<muxer::StreamMuxer>
     upgradeToMuxed(std::shared_ptr<transport::Connection> connection,
                    MuxerOptions muxer_options,
                    NewStreamHandler handler) const = 0;

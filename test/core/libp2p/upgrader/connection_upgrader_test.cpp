@@ -16,9 +16,9 @@
 
 using kagome::common::Logger;
 using libp2p::multi::Multiaddress;
+using libp2p::muxer::StreamMuxer;
 using libp2p::stream::Stream;
 using libp2p::transport::Connection;
-using libp2p::transport::MuxedConnection;
 using libp2p::transport::Transport;
 using libp2p::transport::TransportImpl;
 using libp2p::transport::TransportListener;
@@ -36,8 +36,8 @@ class ConnectionUpgraderTest : public ::testing::Test {
   std::shared_ptr<TransportListener> transport_listener_;
   std::shared_ptr<ConnectionUpgraderImpl> upgrader_ =
       std::make_shared<ConnectionUpgraderImpl>();
-  std::unique_ptr<MuxedConnection> server_muxed_connection_;
-  std::unique_ptr<MuxedConnection> client_muxed_connection_;
+  std::unique_ptr<StreamMuxer> server_muxed_connection_;
+  std::unique_ptr<StreamMuxer> client_muxed_connection_;
 };
 
 /**
@@ -80,11 +80,10 @@ TEST_F(ConnectionUpgraderTest, IntegrationTest) {
         logger_->info("client muxed stream received");
       });
 
-  // let MuxedConnection be created
+  // let StreamMuxer be created
   context_.run_for(10ms);
   ASSERT_TRUE(server_muxed_connection_)
       << "failed to upgrade raw server connection to muxed";
   ASSERT_TRUE(client_muxed_connection_)
       << "failed to upgrade raw client connection to muxed";
 }
-
