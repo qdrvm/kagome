@@ -278,7 +278,7 @@ namespace kagome::primitives {
   }
   outcome::result<Extrinsic> ScaleCodecImpl::decodeExtrinsic(
       Stream &stream) const {
-    return scale::TypeDecoder<Extrinsic> {}.decode(stream);
+    return scale::TypeDecoder<Extrinsic>{}.decode(stream);
   }
 
   outcome::result<Buffer> ScaleCodecImpl::encodeVersion(
