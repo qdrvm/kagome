@@ -87,8 +87,9 @@ namespace libp2p::muxer {
 
     void readingHeaderCompleted(const std::error_code &ec, size_t n);
 
-    void readingDataCompleted(const std::error_code &ec, size_t n,
-                              YamuxStreamParameters &stream);
+    void readingDataCompleted(
+        const std::error_code &ec, size_t n,
+        std::reference_wrapper<YamuxStreamParameters> stream_wrapper);
 
     void write(const kagome::common::Buffer &msg,
                stream::Stream::ErrorCodeCallback cb);
@@ -118,7 +119,8 @@ namespace libp2p::muxer {
      * @return true, if it is going to initiate new iteration of Yamux event
      * loop itself, false if caller should do it
      */
-    bool processData(YamuxStreamParameters &stream, const YamuxFrame &frame);
+    bool processData(std::reference_wrapper<YamuxStreamParameters> stream,
+                     const YamuxFrame &frame);
 
     /**
      * Process ack message for such stream_id

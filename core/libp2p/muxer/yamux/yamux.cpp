@@ -77,13 +77,15 @@ namespace libp2p::muxer {
     }
   }
 
-  void Yamux::readingDataCompleted(const std::error_code &ec, size_t n,
-                                   YamuxStreamParameters &stream) {
+  void Yamux::readingDataCompleted(
+      const std::error_code &ec, size_t n,
+      std::reference_wrapper<YamuxStreamParameters> stream_wrapper) {
     if (ec) {
       logger_->error("cannot read from the connection: {}", ec.message());
       close();
     }
 
+    auto &stream = stream_wrapper.get();
     // if there's a callback, which awaits for the message from this stream,
     // call it; buffer the message otherwise
     kagome::common::Buffer msg(n, 0);
@@ -223,7 +225,7 @@ namespace libp2p::muxer {
           });
   }
 
-  bool Yamux::processData(YamuxStreamParameters &stream,
+  bool Yamux::processData(std::reference_wrapper<YamuxStreamParameters> stream,
                           const YamuxFrame &frame) {
     auto data_length = frame.length_;
     if (data_length == 0) {
@@ -231,7 +233,7 @@ namespace libp2p::muxer {
     }
 
     connection_->asyncRead(read_buffer_, data_length,
-                           [t = shared_from_this(), &stream](
+                           [t = shared_from_this(), stream](
                                const std::error_code &ec, size_t n) mutable {
                              t->readingDataCompleted(ec, n, stream);
                            });
@@ -369,12 +371,12 @@ namespace libp2p::muxer {
           stream = *findStream(stream_id);
         }
         // process data in this frame, if there is one
-        return processData(stream->get(), frame);
+        return processData(*stream, frame);
       }
       case Flag::ACK: {
         // can be ack of a new stream, just data or both
         if (auto stream = processAck(stream_id)) {
-          return processData(stream->get(), frame);
+          return processData(*stream, frame);
         }
         break;
       }

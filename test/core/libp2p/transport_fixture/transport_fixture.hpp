@@ -44,12 +44,12 @@ namespace libp2p::testing {
 
     /**
      * Check that IO operation has finished successfully
-     * @param ec returned from the operation
+     * @param error_code returned from the operation
      * @param received_size - how much bytes were received
      * @param expected_size - how much bytes were expected to be received
      */
 #define CHECK_IO_SUCCESS(error_code, received_size, expected_size) \
-  ASSERT_FALSE(ec);                                                \
+  ASSERT_FALSE(error_code);                                        \
   ASSERT_EQ(received_size, expected_size);
 
     boost::asio::io_context context_;

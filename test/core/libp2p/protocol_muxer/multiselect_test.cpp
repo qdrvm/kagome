@@ -32,6 +32,7 @@ class MultiselectTest : public libp2p::testing::TransportFixture {
         });
     defaultDial();
     launchContext();
+    launchContext();
 
     ASSERT_TRUE(connection_);
     ASSERT_TRUE(other_peers_connection_);
@@ -285,9 +286,11 @@ TEST_F(MultiselectTest, NegotiateStream) {
   multiselect_->addStreamProtocol(kDefaultStreamProtocol);
   multiselect_->negotiateStream(
       std::move(stream1),
-      [this](outcome::result<Protocol> protocol_res, auto &&) {
+      [this, &stream1](outcome::result<Protocol> protocol_res,  // NOLINT
+                       std::unique_ptr<Stream> stream) mutable {
         EXPECT_OUTCOME_TRUE(protocol, protocol_res)
         EXPECT_EQ(protocol, kDefaultStreamProtocol);
+        stream1 = std::move(stream);
       });
 
   launchContext();

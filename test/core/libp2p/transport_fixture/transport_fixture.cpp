@@ -13,8 +13,6 @@ namespace libp2p::testing {
   using libp2p::transport::Connection;
   using libp2p::transport::TransportImpl;
 
-  using std::chrono_literals::operator""ms;
-
   void TransportFixture::SetUp() {
     init();
   }
@@ -40,6 +38,7 @@ namespace libp2p::testing {
   }
 
   void TransportFixture::launchContext() {
+    using std::chrono_literals::operator""ms;
     context_.run_for(50ms);
   }
 
