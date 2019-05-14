@@ -30,7 +30,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::muxer, YamuxedConnection::YamuxErrorStream,
 namespace libp2p::muxer {
   YamuxedConnection::YamuxedConnection(
       std::shared_ptr<transport::Connection> connection,
-      ConnectionMuxer::NewStreamHandler stream_handler,
+      StreamMuxer::NewStreamHandler stream_handler,
       YamuxConfig yamux_config, kagome::common::Logger logger)
       : connection_{std::move(connection)},
         new_stream_handler_{std::move(stream_handler)},

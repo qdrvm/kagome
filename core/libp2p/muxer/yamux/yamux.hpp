@@ -14,7 +14,7 @@ namespace libp2p::muxer {
   /**
    * Strategy to upgrade connections to Yamuxed ones
    */
-  class Yamux : public ConnectionMuxer {
+  class Yamux : public StreamMuxer {
    public:
     /**
      * Create a Yamux strategy

@@ -55,7 +55,7 @@ namespace libp2p::muxer {
      * @param yamux_config to configure this instance
      */
     YamuxedConnection(std::shared_ptr<transport::Connection> connection,
-                      ConnectionMuxer::NewStreamHandler stream_handler,
+                      StreamMuxer::NewStreamHandler stream_handler,
                       YamuxConfig yamux_config,
                       kagome::common::Logger logger =
                           kagome::common::createLogger("YamuxedConnection"));
@@ -189,7 +189,7 @@ namespace libp2p::muxer {
     void processGoAwayFrame(const YamuxFrame &frame);
 
     std::shared_ptr<transport::Connection> connection_;
-    ConnectionMuxer::NewStreamHandler new_stream_handler_;
+    StreamMuxer::NewStreamHandler new_stream_handler_;
     bool is_active_;
     uint32_t last_created_stream_id_;
     YamuxConfig config_;

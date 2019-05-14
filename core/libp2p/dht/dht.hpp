@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RECORD_HPP
-#define KAGOME_RECORD_HPP
+#ifndef KAGOME_DHT_HPP
+#define KAGOME_DHT_HPP
 
-namespace libp2p::store {
+namespace libp2p::dht {
   /**
-   * IPFS record
+   * Distributed Hash Table
    */
-  class Record {};
+  class DHT {};
 }  // namespace libp2p::store
 
-#endif  // KAGOME_RECORD_HPP
+#endif  // KAGOME_DHT_HPP
