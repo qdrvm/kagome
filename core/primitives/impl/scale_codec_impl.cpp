@@ -7,8 +7,11 @@
 
 #include "primitives/block.hpp"
 #include "primitives/block_id.hpp"
+#include "primitives/parachain_host.hpp"
 #include "primitives/transaction_validity.hpp"
 #include "primitives/version.hpp"
+#include "scale/blob_codec.hpp"
+#include "scale/buffer_codec.hpp"
 #include "scale/collection.hpp"
 #include "scale/compact.hpp"
 #include "scale/fixedwidth.hpp"
@@ -22,20 +25,8 @@ namespace kagome::scale {
   struct TypeEncoder<std::array<T, sz>> {
     outcome::result<void> encode(const std::array<T, sz> &array,
                                  common::Buffer &out) {
-      for (int i = 0; i < sz; i++) {
+      for (size_t i = 0; i < sz; i++) {
         fixedwidth::encodeUInt8(gsl::at(array, i), out);
-      }
-      return outcome::success();
-    }
-  };
-
-  /// encodes common::Hash256
-  template <>
-  struct TypeEncoder<common::Hash256> {
-    outcome::result<void> encode(const common::Hash256 &value,
-                                 common::Buffer &out) {
-      for (size_t i = 0; i < value.size(); i++) {
-        fixedwidth::encodeUInt8(value[i], out);
       }
       return outcome::success();
     }
@@ -84,6 +75,30 @@ namespace kagome::scale {
     }
   };
 
+  /// encodes parachain::Chain
+  template <>
+  struct TypeEncoder<primitives::parachain::Chain> {
+    outcome::result<void> encode(const primitives::parachain::Chain &value,
+                                 common::Buffer &out) {
+      return variant::encodeVariant(value, out);
+    }
+  };
+
+  /// encodes object which has no content
+  template <class T>
+  struct EmptyEncoder {
+    outcome::result<void> encode(const T &value, common::Buffer &out) {
+      return outcome::success();  // no content
+    }
+  };
+
+  /// encodes object of class primitives::parachain::Relay
+  template <>
+  struct TypeEncoder<primitives::parachain::Relay>
+      : public EmptyEncoder<primitives::parachain::Relay> {};
+
+  // Decode part
+
   /// decodes std::array
   template <class T, size_t sz>
   struct TypeDecoder<std::array<T, sz>> {
@@ -96,19 +111,6 @@ namespace kagome::scale {
         array[i] = byte;
       }
       return array;
-    }
-  };
-
-  /// decodes common::Hash256
-  template <>
-  struct TypeDecoder<common::Hash256> {
-    outcome::result<common::Hash256> decode(common::ByteStream &stream) {
-      common::Hash256 hash;
-      for (int i = 0; i < common::Hash256::size(); i++) {
-        OUTCOME_TRY(byte, fixedwidth::decodeUint8(stream));
-        hash[i] = byte;
-      }
-      return hash;
     }
   };
 
@@ -155,6 +157,30 @@ namespace kagome::scale {
       return collection::decodeCollection<uint8_t>(stream);
     }
   };
+
+  /// decodes primitives::parachain::Chain
+  template <>
+  struct TypeDecoder<primitives::parachain::Chain> {
+    outcome::result<primitives::parachain::Chain> decode(
+        common::ByteStream &stream) {
+      return variant::decodeVariant<primitives::parachain::Relay,
+                                    primitives::parachain::Parachain>(stream);
+    }
+  };
+
+  /// decodes object of empty class
+  template <class T>
+  struct EmptyDecoder {
+    outcome::result<T> decode(common::ByteStream &) {
+      return T{};
+    }
+  };
+
+  /// decodes fake type primitives::parachain::Relay, which has no content
+  template <>
+  struct TypeDecoder<primitives::parachain::Relay>
+      : public EmptyDecoder<primitives::parachain::Relay> {};
+
 }  // namespace kagome::scale
 
 namespace kagome::primitives {
@@ -164,7 +190,6 @@ namespace kagome::primitives {
   using ApiEncoder = scale::TypeEncoder<std::pair<ArrayChar8Encoder, uint32_t>>;
   using kagome::scale::collection::decodeCollection;
   using kagome::scale::collection::decodeString;
-  using kagome::scale::collection::encodeBuffer;
   using kagome::scale::collection::encodeCollection;
   using kagome::scale::collection::encodeString;
   using kagome::scale::compact::decodeInteger;
@@ -175,6 +200,10 @@ namespace kagome::primitives {
   using kagome::scale::fixedwidth::encodeUint64;
   using kagome::scale::variant::decodeVariant;
   using kagome::scale::variant::encodeVariant;
+
+  ScaleCodecImpl::ScaleCodecImpl() {
+    buffer_codec_ = std::make_unique<scale::BufferScaleCodec>();
+  }
 
   outcome::result<Buffer> ScaleCodecImpl::encodeBlock(
       const Block &block) const {
@@ -221,7 +250,9 @@ namespace kagome::primitives {
     encodeUint64(block_header.number(), out);
     OUTCOME_TRY(encoder.encode(block_header.stateRoot(), out));
     OUTCOME_TRY(encoder.encode(block_header.extrinsicsRoot(), out));
-    OUTCOME_TRY(encodeBuffer(block_header.digest(), out));
+    OUTCOME_TRY(digest, buffer_codec_->encode(block_header.digest()));
+    // TODO(yuraz): PRE-119 refactor ScaleEncode interface
+    out.putBuffer(digest);
 
     return out;
   }
@@ -236,8 +267,8 @@ namespace kagome::primitives {
     OUTCOME_TRY(extrinsics_root, decoder.decode(stream));
     OUTCOME_TRY(digest, decodeCollection<uint8_t>(stream));
 
-    return BlockHeader(parent_hash, number, state_root,
-                       extrinsics_root, Buffer{digest});
+    return BlockHeader(parent_hash, number, state_root, extrinsics_root,
+                       Buffer{digest});
   }
 
   outcome::result<Buffer> ScaleCodecImpl::encodeExtrinsic(
@@ -316,5 +347,16 @@ namespace kagome::primitives {
       kagome::primitives::ScaleCodec::Stream &stream) const {
     return decodeCollection<AuthorityId>(stream);
   }
-}  // namespace kagome::primitives
 
+  outcome::result<Buffer> ScaleCodecImpl::encodeDutyRoster(
+      const parachain::DutyRoster &duty_roster) const {
+    Buffer out;
+    OUTCOME_TRY(encodeCollection<parachain::Chain>(duty_roster, out));
+    return out;
+  }
+
+  outcome::result<parachain::DutyRoster> ScaleCodecImpl::decodeDutyRoster(
+      ScaleCodec::Stream &stream) const {
+    return decodeCollection<parachain::Chain>(stream);
+  }
+}  // namespace kagome::primitives
