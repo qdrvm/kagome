@@ -7,6 +7,6 @@
 #define KAGOME_YAMUX_HPP
 
 #include "libp2p/muxer/yamux/yamux.hpp"
-#include "libp2p/muxer/yamux/yamux_config.hpp"
+#include "libp2p/muxer/yamux/yamuxed_connection.hpp"
 
-#endif //KAGOME_YAMUX_HPP
+#endif  // KAGOME_YAMUX_HPP

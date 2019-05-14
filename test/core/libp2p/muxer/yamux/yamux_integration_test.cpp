@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/muxer/yamux/yamux.hpp"
+#include "libp2p/muxer/yamux/yamuxed_connection.hpp"
 
 #include <gtest/gtest.h>
 #include "libp2p/multi/multiaddress.hpp"
@@ -38,22 +38,22 @@ class YamuxIntegrationTest : public ::testing::Test {
     transport_ = std::make_unique<TransportImpl>(context_);
     ASSERT_TRUE(transport_) << "cannot create transport";
 
-    // create a listener, which is going to wrap new connections to Yamux
+    // create a listener, which is going to wrap new connections to YamuxedConnection
     transport_listener_ = transport_->createListener(
         [this](std::shared_ptr<Connection> c) mutable {
           ASSERT_FALSE(c->isClosed());
           ASSERT_TRUE(c) << "createListener: connection is nullptr";
 
-          // here, our Yamux instance is going to be a server, as a new
+          // here, our YamuxedConnection instance is going to be a server, as a new
           // connection is accepted
-          yamux_ = std::make_shared<Yamux>(
+          yamux_ = std::make_shared<YamuxedConnection>(
               std::move(c),
               [this](std::unique_ptr<Stream> new_stream) mutable {
                 accepted_streams_.push_back(std::move(new_stream));
               },
               YamuxConfig{true});
 
-          ASSERT_TRUE(yamux_) << "cannot create Yamux from a new connection";
+          ASSERT_TRUE(yamux_) << "cannot create YamuxedConnection from a new connection";
           yamux_->start();
         });
 
@@ -66,7 +66,7 @@ class YamuxIntegrationTest : public ::testing::Test {
     EXPECT_OUTCOME_TRUE(conn, transport_->dial(*multiaddress_))
     connection_ = std::move(conn);
 
-    // let Yamux be created
+    // let YamuxedConnection be created
     context_.run_for(10ms);
     ASSERT_TRUE(yamux_);
   }
@@ -89,7 +89,7 @@ class YamuxIntegrationTest : public ::testing::Test {
    * @return pointer to the stream
    */
   std::unique_ptr<Stream> getNewStream(
-      Yamux::StreamId expected_stream_id = kDefaulExpectedStreamId) {
+      YamuxedConnection::StreamId expected_stream_id = kDefaulExpectedStreamId) {
     auto stream = yamux_->newStream().value();
 
     auto new_stream_msg = newStreamMsg(expected_stream_id);
@@ -107,7 +107,7 @@ class YamuxIntegrationTest : public ::testing::Test {
 
   boost::asio::io_context context_;
 
-  std::shared_ptr<Yamux> yamux_;
+  std::shared_ptr<YamuxedConnection> yamux_;
   std::vector<std::unique_ptr<Stream>> accepted_streams_;
 
   std::unique_ptr<Transport> transport_;
@@ -115,7 +115,7 @@ class YamuxIntegrationTest : public ::testing::Test {
   std::shared_ptr<Multiaddress> multiaddress_;
   std::shared_ptr<Connection> connection_;
 
-  static constexpr Yamux::StreamId kDefaulExpectedStreamId = 2;
+  static constexpr YamuxedConnection::StreamId kDefaulExpectedStreamId = 2;
 };
 
 /**
@@ -124,7 +124,7 @@ class YamuxIntegrationTest : public ::testing::Test {
  * @then stream is created @and corresponding ack message is sent to the client
  */
 TEST_F(YamuxIntegrationTest, StreamFromClient) {
-  constexpr Yamux::StreamId created_stream_id = 1;
+  constexpr YamuxedConnection::StreamId created_stream_id = 1;
 
   auto new_stream_ack_msg_rcv =
       std::make_shared<Buffer>(YamuxFrame::kHeaderLength, 0);
@@ -165,7 +165,7 @@ TEST_F(YamuxIntegrationTest, StreamFromClient) {
  * the client
  */
 TEST_F(YamuxIntegrationTest, StreamFromServer) {
-  constexpr Yamux::StreamId expected_stream_id = 2;
+  constexpr YamuxedConnection::StreamId expected_stream_id = 2;
 
   auto stream_res = yamux_->newStream();
   ASSERT_TRUE(stream_res);

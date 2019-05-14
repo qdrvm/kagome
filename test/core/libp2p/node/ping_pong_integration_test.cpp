@@ -53,9 +53,10 @@ TEST_F(PingPongIntegrationTest, PingPong) {
   first_node->addTransport(std::make_unique<TransportImpl>(context_));
   second_node->addTransport(std::make_unique<TransportImpl>(context_));
 
-  // both nodes are to support Yamux protocol
-  first_node->addMuxer(Libp2pNode::SupportedMuxers::YAMUX, MuxerConfig{});
-  second_node->addMuxer(Libp2pNode::SupportedMuxers::YAMUX, MuxerConfig{});
+  // both nodes are to support YamuxedConnection protocol
+  // for now, we assume first node is a server, and the second is a client
+  first_node->addMuxer(std::make_unique<Yamux>(YamuxConfig{true}));
+  second_node->addMuxer(std::make_unique<Yamux>(YamuxConfig{false}));
 
   // make the nodes listen on their addresses
   first_node->listen(kFirstMultiaddress);

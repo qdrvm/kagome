@@ -16,9 +16,9 @@
 
 using kagome::common::Logger;
 using libp2p::multi::Multiaddress;
-using libp2p::muxer::StreamMuxer;
 using libp2p::stream::Stream;
 using libp2p::transport::Connection;
+using libp2p::transport::MuxedConnection;
 using libp2p::transport::Transport;
 using libp2p::transport::TransportImpl;
 using libp2p::transport::TransportListener;
@@ -36,8 +36,8 @@ class ConnectionUpgraderTest : public ::testing::Test {
   std::shared_ptr<TransportListener> transport_listener_;
   std::shared_ptr<ConnectionUpgraderImpl> upgrader_ =
       std::make_shared<ConnectionUpgraderImpl>();
-  std::unique_ptr<StreamMuxer> server_muxed_connection_;
-  std::unique_ptr<StreamMuxer> client_muxed_connection_;
+  std::unique_ptr<MuxedConnection> server_muxed_connection_;
+  std::unique_ptr<MuxedConnection> client_muxed_connection_;
 };
 
 /**
@@ -50,14 +50,14 @@ TEST_F(ConnectionUpgraderTest, IntegrationTest) {
   transport_ = std::make_unique<TransportImpl>(context_);
   ASSERT_TRUE(transport_) << "cannot create transport";
 
-  // create a listener, which is going to wrap new connections to Yamux
+  // create a listener, which is going to wrap new connections to YamuxedConnection
   transport_listener_ = transport_->createListener(
       [this](std::shared_ptr<Connection> server_connection) mutable {
         ASSERT_FALSE(server_connection->isClosed());
         ASSERT_TRUE(server_connection)
             << "createListener: connection is nullptr";
 
-        // here, our Yamux instance is going to be a server, as a new
+        // here, our YamuxedConnection instance is going to be a server, as a new
         // connection is accepted
         MuxerOptions server_options = {ConnectionType::SERVER_SIDE};
         server_muxed_connection_ = upgrader_->upgradeToMuxed(
@@ -80,7 +80,7 @@ TEST_F(ConnectionUpgraderTest, IntegrationTest) {
         logger_->info("client muxed stream received");
       });
 
-  // let StreamMuxer be created
+  // let MuxedConnection be created
   context_.run_for(10ms);
   ASSERT_TRUE(server_muxed_connection_)
       << "failed to upgrade raw server connection to muxed";

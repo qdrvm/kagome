@@ -6,7 +6,7 @@
 #ifndef KAGOME_LIBP2P_YAMUX_STREAM_HPP
 #define KAGOME_LIBP2P_YAMUX_STREAM_HPP
 
-#include "libp2p/muxer/yamux/yamux.hpp"
+#include "libp2p/muxer/yamux/yamuxed_connection.hpp"
 #include "libp2p/stream/stream.hpp"
 
 namespace libp2p::stream {
@@ -15,8 +15,8 @@ namespace libp2p::stream {
    */
   class YamuxStream : public Stream {
    public:
-    YamuxStream(std::shared_ptr<muxer::Yamux> yamux,
-                muxer::Yamux::StreamId stream_id);
+    YamuxStream(std::shared_ptr<muxer::YamuxedConnection> yamux,
+                muxer::YamuxedConnection::StreamId stream_id);
 
     YamuxStream(const YamuxStream &other) = delete;
     YamuxStream &operator=(const YamuxStream &other) = delete;
@@ -44,8 +44,8 @@ namespace libp2p::stream {
     ~YamuxStream() override;
 
    private:
-    std::shared_ptr<muxer::Yamux> yamux_;
-    muxer::Yamux::StreamId stream_id_;
+    std::shared_ptr<muxer::YamuxedConnection> yamux_;
+    muxer::YamuxedConnection::StreamId stream_id_;
 
     /**
      * Helper function, which resets the stream; needed in order to void

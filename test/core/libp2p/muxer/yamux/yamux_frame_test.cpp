@@ -13,7 +13,7 @@ using namespace kagome::common;
 class YamuxFrameTest : public ::testing::Test {
  public:
   static constexpr size_t data_length = 6;
-  static constexpr Yamux::StreamId default_stream_id = 1;
+  static constexpr YamuxedConnection::StreamId default_stream_id = 1;
   static constexpr uint32_t default_ping_value = 337;
 
   Buffer data{0x12, 0x34, 0x45, 0x67, 0x89, 0xAB};
@@ -23,7 +23,7 @@ class YamuxFrameTest : public ::testing::Test {
    */
   void checkFrame(std::optional<YamuxFrame> frame_opt, uint8_t version,
                   YamuxFrame::FrameType type, YamuxFrame::Flag flag,
-                  Yamux::StreamId stream_id, uint32_t length,
+                  YamuxedConnection::StreamId stream_id, uint32_t length,
                   const Buffer &frame_data) {
     ASSERT_TRUE(frame_opt);
     auto frame = *frame_opt;

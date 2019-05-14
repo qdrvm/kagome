@@ -7,8 +7,8 @@
 
 namespace libp2p::stream {
 
-  YamuxStream::YamuxStream(std::shared_ptr<muxer::Yamux> yamux,
-                           muxer::Yamux::StreamId stream_id)
+  YamuxStream::YamuxStream(std::shared_ptr<muxer::YamuxedConnection> yamux,
+                           muxer::YamuxedConnection::StreamId stream_id)
       : yamux_{std::move(yamux)}, stream_id_{stream_id} {}
 
   YamuxStream::~YamuxStream() {

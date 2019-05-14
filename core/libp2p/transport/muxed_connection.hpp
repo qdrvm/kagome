@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STREAM_MUXER_HPP
-#define KAGOME_STREAM_MUXER_HPP
+#ifndef KAGOME_MUXED_CONNECTION_HPP
+#define KAGOME_MUXED_CONNECTION_HPP
 
 #include <functional>
 #include <memory>
@@ -14,25 +14,25 @@
 #include "libp2p/multi/multistream.hpp"
 #include "libp2p/stream/stream.hpp"
 
-namespace libp2p::muxer {
+namespace libp2p::transport {
   /**
-   * Stream muxer, allowing to create streams over the underlying connection
+   * Multiplexed connection, which allows to create streams over the underlying
+   * connection
    */
-  class StreamMuxer {
+  class MuxedConnection {
    public:
     /**
-     * Start a StreamMuxer instance; it is going to read a connection and
-     * accept new messages and streams
+     * Start a MuxedConnection
      */
     virtual void start() = 0;
 
     /**
-     * Stop a StreamMuxer instance
+     * Stop a MuxedConnection
      */
     virtual void stop() = 0;
 
     /**
-     * Create a new stream over this muxer
+     * Create a new stream over this connection
      * @return pointer to a created stream in case of success, error otherwise
      */
     virtual outcome::result<std::unique_ptr<stream::Stream>> newStream() = 0;
@@ -48,8 +48,8 @@ namespace libp2p::muxer {
      */
     virtual bool isClosed() = 0;
 
-    virtual ~StreamMuxer() = default;
+    virtual ~MuxedConnection() = default;
   };
 }  // namespace libp2p::transport
 
-#endif  // KAGOME_STREAM_MUXER_HPP
+#endif  // KAGOME_MUXED_CONNECTION_HPP

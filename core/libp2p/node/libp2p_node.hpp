@@ -11,12 +11,11 @@
 
 #include <outcome/outcome.hpp>
 #include "libp2p/multi/multiaddress.hpp"
-#include "libp2p/muxer/muxer_config.hpp"
-#include "libp2p/muxer/stream_muxer.hpp"
+#include "libp2p/muxer/connection_muxer.hpp"
 #include "libp2p/peer/peer_info.hpp"
 #include "libp2p/peer/protocol.hpp"
 #include "libp2p/routing/router.hpp"
-#include "libp2p/security/connection_encryptor.hpp"
+#include "libp2p/security/connection_security.hpp"
 #include "libp2p/store/record_store.hpp"
 #include "libp2p/stream/stream.hpp"
 #include "libp2p/swarm/swarm.hpp"
@@ -42,21 +41,19 @@ namespace libp2p::node {
      */
     virtual void addTransport(std::unique_ptr<transport::Transport> transport);
 
-    /// muxers, which are currently supported in this implementation
-    enum class SupportedMuxers { YAMUX };
+    // TODO(akvinikym) 14.05.19: understand, how to distinguish between
+    // server&client muxers, where it matters
+    /**
+     * Add a muxer strategy to this node
+     */
+    virtual void addMuxer(std::unique_ptr<muxer::ConnectionMuxer> conn_muxer);
 
     /**
-     * Add a muxer to this node
+     * Add a security strategy to this node
+     * @param conn_security to be added
      */
-    virtual void addMuxer(SupportedMuxers muxer_type,
-                          muxer::MuxerConfig config);
-
-    /**
-     * Add a connection encryptor to this node
-     * @param conn_encryptor to be added
-     */
-    virtual void addEncryptor(
-        std::unique_ptr<security::ConnectionEncryptor> conn_encryptor);
+    virtual void addSecurity(
+        std::unique_ptr<security::ConnectionSecurity> conn_security);
 
     /**
      * Add a swarm to this node
