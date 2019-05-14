@@ -46,7 +46,7 @@ class ParachainHostTest : public RuntimeTest {
   std::shared_ptr<ParachainHost> api_;
 };
 
-// TODO(yuraz): PRE-*** find out do we need to give block_id to api functions
+// TODO(yuraz): PRE-157 find out do we need to give block_id to api functions
 /**
  * @given initialized parachain host api
  * @when dutyRoster() is invoked
