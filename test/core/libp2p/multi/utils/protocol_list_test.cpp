@@ -28,9 +28,9 @@ TEST(ProtocolList, getByName) {
  * returned
  */
 TEST(ProtocolList, getByCode) {
-  static_assert(ProtocolList::get(Protocol::Code::ip6)->name == "ip6");
-  static_assert(ProtocolList::get(Protocol::Code::dccp)->code
-                == Protocol::Code::dccp);
+  static_assert(ProtocolList::get(Protocol::Code::IP6)->name == "ip6");
+  static_assert(ProtocolList::get(Protocol::Code::DCCP)->code
+                == Protocol::Code::DCCP);
   static_assert(!ProtocolList::get(static_cast<Protocol::Code>(1312312)));
 }
 
