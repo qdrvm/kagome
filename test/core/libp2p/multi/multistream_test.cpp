@@ -4,14 +4,15 @@
  */
 
 #include "libp2p/multi/multistream.hpp"
-#include <gtest/gtest.h>
+
 #include <functional>
+
+#include <gtest/gtest.h>
+#include <testutil/outcome.hpp>
 #include "common/hexutil.hpp"
 #include "libp2p/multi/uvarint.hpp"
 
 using kagome::common::Buffer;
-using kagome::expected::Error;
-using kagome::expected::Value;
 using libp2p::multi::Multistream;
 using libp2p::multi::UVarint;
 
@@ -22,9 +23,8 @@ using libp2p::multi::UVarint;
  * created
  */
 TEST(Multistream, Create) {
-  Multistream m =
-      Multistream::create("/bittorrent.org/1.0", Buffer({1, 2, 3, 4}))
-          .getValue();
+  EXPECT_OUTCOME_TRUE(
+      m, Multistream::create("/bittorrent.org/1.0", Buffer({1, 2, 3, 4})))
 
   ASSERT_EQ(m.getProtocolPath(), "/bittorrent.org/1.0");
   ASSERT_EQ(Buffer({1, 2, 3, 4}), m.getEncodedData());
@@ -47,7 +47,8 @@ TEST(Multistream, CreateFromBuffer) {
   buf.put(UVarint(protocol.size() + 5).toBytes());
   buf.put(protocol);
   buf.put({1, 2, 3, 4, 5});
-  Multistream m2 = Multistream::create(buf).getValue();
+
+  EXPECT_OUTCOME_TRUE(m2, Multistream::create(buf))
 
   ASSERT_EQ(
       m2.getProtocolPath(),
@@ -68,13 +69,8 @@ TEST(Multistream, FailCreate) {
       "ipfs.protocol\n";
   Buffer buf;
   buf.put({1, 2, 3, 4, 5});
-  Multistream::create(protocol, buf)
-      .match(
-          [](Value<Multistream> &v) {
-            ADD_FAILURE()
-                << "Protocol was invalid, multistream shouldn't be created";
-          },
-          [](Error<std::string> &e) { ; });
+
+  ASSERT_FALSE(Multistream::create(protocol, buf));
 }
 
 /**
@@ -84,10 +80,10 @@ TEST(Multistream, FailCreate) {
  * returns Error if the condition was not satisfied
  */
 TEST(Multistream, AddPrefix) {
-  Multistream m = Multistream::create("/json", Buffer{1, 2, 3}).getValue();
-  ASSERT_FALSE(m.addPrefix("/http/").hasValue());
-  ASSERT_FALSE(m.addPrefix("ht\ntp").hasValue());
-  ASSERT_TRUE(m.addPrefix("http").hasValue());
+  EXPECT_OUTCOME_TRUE(m, Multistream::create("/json", Buffer{1, 2, 3}))
+  ASSERT_FALSE(m.addPrefix("/http/"));
+  ASSERT_FALSE(m.addPrefix("ht\ntp"));
+  ASSERT_TRUE(m.addPrefix("http"));
   ASSERT_EQ(m.getProtocolPath(), "/http/json");
   ASSERT_EQ(Buffer({1, 2, 3}), m.getEncodedData());
 }
@@ -99,14 +95,14 @@ TEST(Multistream, AddPrefix) {
  * removing the prefix returns Error if the condition was not satisfied
  */
 TEST(Multistream, RmPrefix) {
-  Multistream m = Multistream::create("/json", Buffer{1, 2, 3}).getValue();
-  ASSERT_FALSE(m.removePrefix("/http").hasValue());
-  ASSERT_FALSE(m.removePrefix("/json").hasValue());
-  ASSERT_FALSE(m.removePrefix("json\n").hasValue());
-  ASSERT_FALSE(m.removePrefix("json").hasValue());
-  ASSERT_TRUE(m.addPrefix("html").hasValue());
+  EXPECT_OUTCOME_TRUE(m, Multistream::create("/json", Buffer{1, 2, 3}))
+  ASSERT_FALSE(m.removePrefix("/http"));
+  ASSERT_FALSE(m.removePrefix("/json"));
+  ASSERT_FALSE(m.removePrefix("json\n"));
+  ASSERT_FALSE(m.removePrefix("json"));
+  ASSERT_TRUE(m.addPrefix("html"));
   ASSERT_EQ(m.getProtocolPath(), "/html/json");
-  ASSERT_TRUE(m.removePrefix("json").hasValue());
+  ASSERT_TRUE(m.removePrefix("json"));
   ASSERT_EQ(m.getProtocolPath(), "/html");
   ASSERT_EQ(Buffer({1, 2, 3}), m.getEncodedData());
 }
