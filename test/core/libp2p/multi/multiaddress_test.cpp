@@ -189,7 +189,7 @@ TEST_F(MultiaddressTest, GetValueForProtocolValid) {
   auto address =
       createValidMultiaddress(std::string{valid_ip_udp_address} + "udp/432/");
 
-  auto protocols = address.getValuesForProtocol(Protocol::Code::udp);
+  auto protocols = address.getValuesForProtocol(Protocol::Code::UDP);
   ASSERT_TRUE(!protocols.empty());
   ASSERT_EQ(protocols[0], "228");
   ASSERT_EQ(protocols[1], "432");
@@ -203,7 +203,7 @@ TEST_F(MultiaddressTest, GetValueForProtocolValid) {
 TEST_F(MultiaddressTest, GetValueForProtocolInvalid) {
   auto address = createValidMultiaddress();
 
-  auto protocols = address.getValuesForProtocol(Protocol::Code::sctp);
+  auto protocols = address.getValuesForProtocol(Protocol::Code::SCTP);
   ASSERT_TRUE(protocols.empty());
 }
 

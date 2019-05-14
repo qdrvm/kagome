@@ -101,7 +101,7 @@ TEST_F(InmemAddressRepository_Test, GarbageCollection) {
     auto v2 = db->getAddresses(p2);
     EXPECT_FALSE(v2);
     // peers without addresses are removed... so we can't find this peer
-    EXPECT_EQ(v2.error().value(), (int)PeerError::NotFound);
+    EXPECT_EQ(v2.error().value(), (int)PeerError::NOT_FOUND);
   }
 
   // @when clear p1 addresses
@@ -117,7 +117,7 @@ TEST_F(InmemAddressRepository_Test, GarbageCollection) {
     // @and p2 is still evicted
     auto v2 = db->getAddresses(p2);
     EXPECT_FALSE(v2);
-    EXPECT_EQ(v2.error().value(), (int)PeerError::NotFound);
+    EXPECT_EQ(v2.error().value(), (int)PeerError::NOT_FOUND);
   }
 
   // @when third collect garbage is called
@@ -129,7 +129,7 @@ TEST_F(InmemAddressRepository_Test, GarbageCollection) {
     for (const auto &it : {p1, p2}) {
       auto v = db->getAddresses(it);
       EXPECT_FALSE(v);
-      EXPECT_EQ(v.error().value(), (int)PeerError::NotFound);
+      EXPECT_EQ(v.error().value(), (int)PeerError::NOT_FOUND);
     }
   }
 }

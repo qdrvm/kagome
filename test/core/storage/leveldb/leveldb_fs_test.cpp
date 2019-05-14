@@ -29,7 +29,7 @@ TEST_F(LevelDB_Open, OpenNonExistingDB) {
 
   auto r = LevelDB::create(getPathString(), options);
   EXPECT_FALSE(r);
-  EXPECT_EQ(r.error(), LevelDBError::kInvalidArgument);
+  EXPECT_EQ(r.error(), LevelDBError::INVALID_ARGUMENT);
 }
 
 /**

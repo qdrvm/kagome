@@ -26,12 +26,12 @@ namespace libp2p::transport {
     // TODO(warchant): PRE-100 use parser here
     OUTCOME_TRY(addr,
                 address.getFirstValueForProtocol<boost::asio::ip::address>(
-                    Protocol::Code::ip4,
+                    Protocol::Code::IP4,
                     [](const std::string &val) { return make_address(val); }));
 
     OUTCOME_TRY(port,
                 address.getFirstValueForProtocol<uint16_t>(
-                    Protocol::Code::tcp, [](const std::string &val) {
+                    Protocol::Code::TCP, [](const std::string &val) {
                       return boost::lexical_cast<uint16_t>(val);
                     }));
 
