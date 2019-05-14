@@ -169,8 +169,7 @@ namespace kagome::scale {
   /// decodes primitives::Extrinsic
   template <>
   struct TypeDecoder<primitives::Extrinsic> {
-    outcome::result<primitives::Extrinsic> decode(
-        common::ByteStream &stream) {
+    outcome::result<primitives::Extrinsic> decode(common::ByteStream &stream) {
       common::Buffer out;
 
       OUTCOME_TRY(extrinsic, collection::decodeCollection<uint8_t>(stream));
@@ -205,6 +204,7 @@ namespace kagome::primitives {
   using kagome::scale::fixedwidth::encodeUint64;
   using kagome::scale::variant::decodeVariant;
   using kagome::scale::variant::encodeVariant;
+  using primitives::InherentData;
 
   outcome::result<Buffer> ScaleCodecImpl::encodeBlock(
       const Block &block) const {
@@ -266,19 +266,19 @@ namespace kagome::primitives {
     OUTCOME_TRY(extrinsics_root, decoder.decode(stream));
     OUTCOME_TRY(digest, decodeCollection<uint8_t>(stream));
 
-    return BlockHeader(parent_hash, number, state_root, extrinsics_root,
-                       Buffer{digest});
+    return BlockHeader(std::move(parent_hash), number, std::move(state_root),
+                       std::move(extrinsics_root), Buffer{digest});
   }
 
   outcome::result<Buffer> ScaleCodecImpl::encodeExtrinsic(
       const Extrinsic &extrinsic) const {
     Buffer out;
-    OUTCOME_TRY(scale::TypeEncoder<Extrinsic> {}.encode(extrinsic, out));
+    OUTCOME_TRY(scale::TypeEncoder<Extrinsic>{}.encode(extrinsic, out));
     return out;
   }
   outcome::result<Extrinsic> ScaleCodecImpl::decodeExtrinsic(
       Stream &stream) const {
-    return scale::TypeDecoder<Extrinsic> {}.decode(stream);
+    return scale::TypeDecoder<Extrinsic>{}.decode(stream);
   }
 
   outcome::result<Buffer> ScaleCodecImpl::encodeVersion(
@@ -329,16 +329,18 @@ namespace kagome::primitives {
 
   outcome::result<Buffer> ScaleCodecImpl::encodeInherentData(
       const InherentData &inherentData) const {
-    auto& data = inherentData.getDataCollection();
+    auto &data = inherentData.getDataCollection();
 
-    std::vector<primitives::InherentIdentifier> ids;
+    // TODO(Harrm) PRE-153 Change to vectors of ref wrappers to avoid copying
+    // vectors
+    std::vector<InherentData::InherentIdentifier> ids;
     ids.reserve(data.size());
     std::vector<std::vector<uint8_t>> vals;
     vals.reserve(data.size());
 
-    for(auto& pair: data) {
+    for (auto &pair : data) {
       ids.push_back(pair.first);
-      vals.push_back(pair.second.toVector());
+      vals.push_back(std::cref(pair.second.toVector()));
     }
 
     Buffer res;
@@ -349,7 +351,8 @@ namespace kagome::primitives {
 
   outcome::result<InherentData> ScaleCodecImpl::decodeInherentData(
       Stream &stream) const {
-    OUTCOME_TRY(ids, decodeCollection<primitives::InherentIdentifier>(stream));
+    OUTCOME_TRY(ids,
+                decodeCollection<InherentData::InherentIdentifier>(stream));
     OUTCOME_TRY(vals, decodeCollection<std::vector<uint8_t>>(stream));
 
     InherentData data;

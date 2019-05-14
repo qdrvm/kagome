@@ -61,8 +61,6 @@ TEST_F(BlockBuilderTest, ApplyExtrinsic) {
  * @given block builder
  * @when calling random_seed runtime function
  * @then the result of the check is obtained given that the provided arguments were valid
- *
- * @todo figure out what arguments it requires
  */
 TEST_F(BlockBuilderTest, DISABLED_RandomSeed) {
   EXPECT_OUTCOME_FALSE_1(builder_->random_seed());

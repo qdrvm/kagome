@@ -29,11 +29,13 @@ namespace kagome::runtime {
         executor_{std::move(extension)},
         state_code_{std::move(state_code)} {}
 
-  outcome::result<bool> BlockBuilderImpl::apply_extrinsic(Extrinsic extrinsic) {
+  outcome::result<bool> BlockBuilderImpl::apply_extrinsic(
+      const Extrinsic &extrinsic) {
     OUTCOME_TRY(encoded_ext, codec_->encodeExtrinsic(extrinsic));
 
     runtime::SizeType ext_size = encoded_ext.size();
     runtime::WasmPointer ptr = memory_->allocate(ext_size);
+
     memory_->storeBuffer(ptr, encoded_ext);
 
     wasm::LiteralList ll{Literal(ptr), Literal(ext_size)};
@@ -42,7 +44,7 @@ namespace kagome::runtime {
         _, executor_.call(state_code_, "BlockBuilder_apply_extrinsic", ll));
 
     return true;
-    /// @todo figure out what wasm function returns
+    // TODO(Harrm) PRE-154 figure out what wasm function returns
   }
 
   outcome::result<primitives::BlockHeader> BlockBuilderImpl::finalize_block() {
@@ -60,7 +62,7 @@ namespace kagome::runtime {
   }
 
   outcome::result<std::vector<primitives::Extrinsic>>
-  BlockBuilderImpl::inherent_extrinsics(primitives::InherentData data) {
+  BlockBuilderImpl::inherent_extrinsics(const primitives::InherentData &data) {
     OUTCOME_TRY(enc_data, codec_->encodeInherentData(data));
 
     runtime::SizeType data_size = enc_data.size();
@@ -78,7 +80,6 @@ namespace kagome::runtime {
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));
 
-    using std::placeholders::_1;
     auto decode_f = [this](common::ByteStream &stream) {
       return codec_->decodeExtrinsic(stream);
     };
@@ -88,7 +89,7 @@ namespace kagome::runtime {
   }
 
   outcome::result<CheckInherentsResult> BlockBuilderImpl::check_inherents(
-      primitives::Block block, primitives::InherentData data) {
+      const primitives::Block &block, const primitives::InherentData &data) {
     OUTCOME_TRY(enc_block, codec_->encodeBlock(block));
     OUTCOME_TRY(enc_data, codec_->encodeInherentData(data));
 
@@ -100,7 +101,8 @@ namespace kagome::runtime {
     runtime::WasmPointer data_ptr = memory_->allocate(data_size);
     memory_->storeBuffer(data_ptr, enc_data);
 
-    wasm::LiteralList ll{Literal(block_ptr), Literal(data_ptr)};
+    // TODO(Harrm) PRE-154 check what exactly its input arguments should be
+    wasm::LiteralList ll{Literal(data_ptr), Literal(data_size)};
 
     OUTCOME_TRY(
         res, executor_.call(state_code_, "BlockBuilder_check_inherents", ll));
@@ -119,14 +121,17 @@ namespace kagome::runtime {
   }
 
   outcome::result<common::Hash256> BlockBuilderImpl::random_seed() {
+    // TODO(Harrm) PRE-154 Figure out what it requires
+    wasm::LiteralList ll {Literal(0), Literal(0)};
     OUTCOME_TRY(res,
-                executor_.call(state_code_, "BlockBuilder_random_seed", {}));
+                executor_.call(state_code_, "BlockBuilder_random_seed", ll));
 
     uint32_t res_addr = static_cast<uint64_t>(res.geti64()) >> 32ul;
 
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));
 
+    /// TODO(Harrm) change it after scale codec is refactored
     common::Hash256 hash;
     for (size_t i = 0; i < common::Hash256::size(); i++) {
       OUTCOME_TRY(byte, scale::fixedwidth::decodeUint8(s));

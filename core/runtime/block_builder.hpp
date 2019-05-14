@@ -34,18 +34,19 @@ namespace kagome::runtime {
 
     /// Apply the given extrinsics.
     virtual outcome::result<bool> apply_extrinsic(
-        primitives::Extrinsic extrinsic) = 0;
+        const primitives::Extrinsic &extrinsic) = 0;
 
     /// Finish the current block.
     virtual outcome::result<primitives::BlockHeader> finalize_block() = 0;
 
     /// Generate inherent extrinsics. The inherent data will vary from chain to chain.
     virtual outcome::result<std::vector<primitives::Extrinsic>>
-    inherent_extrinsics(primitives::InherentData data) = 0;
+    inherent_extrinsics(const primitives::InherentData &data) = 0;
 
     /// Check that the inherents are valid. The inherent data will vary from chain to chain.
     virtual outcome::result<CheckInherentsResult> check_inherents(
-        primitives::Block block, primitives::InherentData data) = 0;
+        const primitives::Block &block,
+        const primitives::InherentData &data) = 0;
 
     /// Generate a random seed.
     virtual outcome::result<common::Hash256> random_seed() = 0;

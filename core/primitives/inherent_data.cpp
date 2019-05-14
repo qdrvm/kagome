@@ -25,18 +25,11 @@ namespace kagome::primitives {
     return Error::IDENTIFIER_ALREADY_EXISTS;
   }
 
-  /** Replace the data for an inherent.
-   * If it does not exist, the data is just inserted.
-   * @arg inherent encoded data to be stored
-   */
   void InherentData::replaceData(InherentIdentifier identifier,
                                  common::Buffer inherent) {
     data_[identifier] = std::move(inherent);
   }
 
-  /**
-   * @returns the data for the requested inherent.
-   */
   outcome::result<std::optional<common::Buffer>> InherentData::getData(
       const InherentIdentifier &identifier) const {
     auto inherent = data_.find(identifier);
@@ -46,7 +39,7 @@ namespace kagome::primitives {
     return std::nullopt;
   }
 
-  const std::map<InherentIdentifier, common::Buffer>
+  const std::map<InherentData::InherentIdentifier, common::Buffer>
       &InherentData::getDataCollection() const {
     return data_;
   }

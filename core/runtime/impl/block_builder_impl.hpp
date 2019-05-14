@@ -23,15 +23,17 @@ namespace kagome::runtime {
     ~BlockBuilderImpl() override = default;
 
     outcome::result<bool> apply_extrinsic(
-        primitives::Extrinsic extrinsic) override;
+        const primitives::Extrinsic &extrinsic) override;
 
     outcome::result<primitives::BlockHeader> finalize_block() override;
 
     outcome::result<std::vector<primitives::Extrinsic>>
-    inherent_extrinsics(primitives::InherentData data) override;
+    inherent_extrinsics(
+        const primitives::InherentData &data) override;
 
     outcome::result<CheckInherentsResult> check_inherents(
-        primitives::Block block, primitives::InherentData data) override;
+        const primitives::Block &block,
+        const primitives::InherentData &data) override;
 
     outcome::result<common::Hash256> random_seed() override;
 
