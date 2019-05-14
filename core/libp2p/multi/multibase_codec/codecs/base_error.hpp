@@ -15,7 +15,6 @@ namespace libp2p::multi::detail {
     INVALID_BASE64_INPUT,
     NON_UPPERCASE_INPUT,
     NON_LOWERCASE_INPUT
-
   };
 
 }

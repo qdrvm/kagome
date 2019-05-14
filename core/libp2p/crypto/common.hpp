@@ -37,7 +37,7 @@ namespace libp2p::crypto::common {
   /**
    * Supported hash types
    */
-  enum class HashType { kSHA1, kSHA256, kSHA512 };
+  enum class HashType { SHA1, SHA256, SHA512 };
 
   /**
    * Supported types of RSA keys
@@ -47,14 +47,12 @@ namespace libp2p::crypto::common {
   /**
    * Supported ECDH curves
    */
-  enum class CurveType { kP256, kP384, kP521 };
-
-
+  enum class CurveType { P256, P384, P521 };
 
   /**
    * Supported cipher types
    */
-  enum class CipherType { kAES128, kAES256 };
+  enum class CipherType { AES128, AES256 };
 }  // namespace libp2p::crypto::common
 
 #endif  // KAGOME_CRYPTO_COMMON_HPP
