@@ -39,6 +39,7 @@ namespace kagome::primitives {
      * @arg inherent encoded data to be stored
      */
     void replaceData(InherentIdentifier identifier, common::Buffer inherent);
+
     /**
      * @returns the data for the requested inherent.
      */
