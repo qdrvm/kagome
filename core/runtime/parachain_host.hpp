@@ -6,31 +6,8 @@
 #ifndef KAGOME_CORE_RUNTIME_PARACHAIN_HOST_HPP
 #define KAGOME_CORE_RUNTIME_PARACHAIN_HOST_HPP
 
-#include <cstdint>
-#include <vector>
-
-#include <boost/optional.hpp>
-#include <boost/variant.hpp>
-#include "common/buffer.hpp"
-
-namespace kagome::primitives::parachain {
-  class ValidatorId {
-    int a;
-  };
-
-  using ParachainId = uint32_t;
-
-  struct Relay {};  // empty
-
-  struct Parachain {
-    ParachainId id_;
-  };
-
-  using Chain = boost::variant<Relay, Parachain>;
-
-  using DutyRoster = std::vector<Chain>;
-
-}  // namespace kagome::primitives::parachain
+#include "primitives/block_id.hpp"
+#include "primitives/parachain_host.hpp"
 
 namespace kagome::runtime {
 
@@ -39,31 +16,47 @@ namespace kagome::runtime {
     using Buffer = common::Buffer;
     using ValidatorId = primitives::parachain::ValidatorId;
     using DutyRoster = primitives::parachain::DutyRoster;
-    using ParachainId = primitives::parachain::ParachainId;
+    using ParachainId = primitives::parachain::ParaId;
 
    public:
     virtual ~ParachainHost() = default;
 
-    // $ParachainHost_duty_roster
+    /**
+     * @brief Calls the ParachainHost_duty_roster function from wasm code
+     * @return DutyRoster structure or error if fails
+     */
     virtual outcome::result<DutyRoster> dutyRoster() = 0;
 
-    // $ParachainHost_active_parachains
+    /**
+     * @brief Calls the ParachainHost_active_parachains function from wasm code
+     * @return vector of ParachainId items or error if fails
+     */
     virtual outcome::result<std::vector<ParachainId>> activeParachains() = 0;
 
-    // $ParachainHost_parachain_head
+    /**
+     * @brief Calls the ParachainHost_parachain_head function from wasm code
+     * @param id parachain id
+     * @return parachain head or error if fails
+     */
     virtual outcome::result<std::optional<Buffer>> parachainHead(
         ParachainId id) = 0;
 
     // $ParachainHost_parachain_code
+    /**
+     * @brief Calls the ParachainHost_parachain_code function from wasm code
+     * @param id parachain id
+     * @return parachain code or error if fails
+     */
     virtual outcome::result<std::optional<kagome::common::Buffer>>
     parachainCode(ParachainId id) = 0;
 
-    // reports the set of authorities at a given block
-    // receives block_id as argument
-    // returns array of authority_id
-    // ParachainHost_validators() alias for Core_authorities
-    // $Core_authorities ???
-    virtual outcome::result<std::vector<ValidatorId>> validators() = 0;
+    /**
+     * @brief reports validators list for given block_id
+     * @param block_id block id
+     * @return validators list
+     */
+    virtual outcome::result<std::vector<ValidatorId>> validators(
+        primitives::BlockId block_id) = 0;
   };
 
 }  // namespace kagome::runtime

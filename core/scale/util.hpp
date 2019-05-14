@@ -47,6 +47,7 @@ namespace kagome::scale::impl {
    */
   template <class T>
   outcome::result<T> decodeInteger(common::ByteStream &stream) {
+    static_assert(std::is_integral<T>());
     constexpr size_t size = sizeof(T);
     static_assert(size == 1 || size == 2 || size == 4 || size == 8);
 

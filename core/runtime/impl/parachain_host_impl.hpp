@@ -8,32 +8,46 @@
 
 #include "runtime/parachain_host.hpp"
 
+#include <outcome/outcome.hpp>
+#include "primitives/scale_codec.hpp"
+#include "runtime/impl/wasm_executor.hpp"
+#include "runtime/tagged_transaction_queue.hpp"
+#include "runtime/wasm_memory.hpp"
+
 namespace kagome::runtime {
 
   class ParachainHostImpl : public ParachainHost {
    public:
     ~ParachainHostImpl() override = default;
 
-    // $ParachainHost_duty_roster
+    /**
+     * @brief constructor
+     * @param state_code error or result code
+     * @param extension extension instance
+     * @param codec scale codec instance
+     */
+    ParachainHostImpl(common::Buffer state_code,
+                      std::shared_ptr<extensions::Extension> extension,
+                      std::shared_ptr<primitives::ScaleCodec> codec);
+
     outcome::result<DutyRoster> dutyRoster() override;
 
-    // $ParachainHost_active_parachains
     outcome::result<std::vector<ParachainId>> activeParachains() override;
 
-    // $ParachainHost_parachain_head
-    outcome::result<std::optional<Buffer>> parachainHead(ParachainId id) override;
+    outcome::result<std::optional<Buffer>> parachainHead(
+        ParachainId id) override;
 
-    // $ParachainHost_parachain_code
-    outcome::result<std::optional<Buffer>> parachainCode(ParachainId id) override;
+    outcome::result<std::optional<Buffer>> parachainCode(
+        ParachainId id) override;
 
-    // reports the set of authorities at a given block
-    // receives block_id as argument
-    // returns array of authority_id
-    // ParachainHost_validators() alias for Core_authorities
-    // $Core_authorities ???
-    outcome::result<std::vector<ValidatorId>> validators() override{
-      return {{}};
-    };
+    outcome::result<std::vector<ValidatorId>> validators(
+        primitives::BlockId block_id) override;
+
+   private:
+    std::shared_ptr<WasmMemory> memory_;
+    std::shared_ptr<primitives::ScaleCodec> codec_;
+    WasmExecutor executor_;
+    common::Buffer state_code_;
   };
 
 }  // namespace kagome::runtime

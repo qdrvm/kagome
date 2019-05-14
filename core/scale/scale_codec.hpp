@@ -7,6 +7,7 @@
 #define KAGOME_SCALE_CODEC_HPP
 
 #include "common/buffer.hpp"
+#include "common/byte_stream.hpp"
 
 namespace kagome::scale {
 
@@ -19,7 +20,7 @@ namespace kagome::scale {
   template <typename T>
   struct ScaleDecoder {
     virtual ~ScaleDecoder() = default;
-    virtual outcome::result<T> decode(const common::Buffer &buf) = 0;
+    virtual outcome::result<T> decode(common::ByteStream &stream) = 0;
   };
 
   template <typename T>

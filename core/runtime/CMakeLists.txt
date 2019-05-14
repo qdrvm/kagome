@@ -41,12 +41,12 @@ target_link_libraries(tagged_transaction_queue
     wasm_executor
     )
 
-add_library(parachain_host
+add_library(parachain_host_api
     parachain_host.hpp
     impl/parachain_host_impl.hpp
     impl/parachain_host_impl.cpp
     )
-target_link_libraries(parachain_host
+target_link_libraries(parachain_host_api
     buffer
     logger
     scale_codec
