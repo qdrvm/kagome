@@ -79,9 +79,7 @@ namespace kagome::scale::collection {
    * @return decoded collection or error
    */
   template <class T>
-  outcome::result<std::vector<T>> decodeCollection(
-      common::ByteStream &stream,
-      std::function<outcome::result<T>(common::ByteStream &)> decode_f) {
+  outcome::result<std::vector<T>> decodeCollection(common::ByteStream &stream) {
     // determine number of items
     OUTCOME_TRY(collection_size, compact::decodeInteger(stream));
 

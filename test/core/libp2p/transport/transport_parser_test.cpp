@@ -9,34 +9,36 @@
 #include <testutil/outcome.hpp>
 
 using libp2p::multi::Multiaddress;
-using libp2p::transport::SupportedProtocol;
+using libp2p::multi::Protocol;
 using libp2p::transport::TransportParser;
 
 using ::testing::Test;
+using ::testing::TestWithParam;
 
-struct TransportParserTest : public Test {
-  TransportParserTest()
-      : addr_{Multiaddress::create("/ip4/127.0.0.1/tcp/5050").value()},
-        unsupported_addr_{
-            Multiaddress::create("/ipfs/QmcgpsyWgH8Y8ajJz1Cu72KnS5uo2Aa2LpzU7kinSupNKC/tcp/1234").value()} {}
-
-  const Multiaddress addr_;
-  const Multiaddress unsupported_addr_;
-};
+struct TransportParserTest : public TestWithParam<Multiaddress> {};
 
 /**
  * @given Transport parser and a multiaddress
  * @when parse the address
- * @then the supported protocol field in the result has the value corresponding
- * to the content of the multiaddress
+ * @then the chosen protocols by parser are the protocols of the multiaddress
  */
-TEST_F(TransportParserTest, Parse) {
-  auto r = TransportParser::parse(addr_);
-  ASSERT_EQ(r.value().proto_, SupportedProtocol::IpTcp);
-
-  r = TransportParser::parse(unsupported_addr_);
-  EXPECT_OUTCOME_FALSE_1(r);
+TEST_P(TransportParserTest, ParseSuccessfully) {
+  auto r_ok = TransportParser::parse(GetParam());
+  std::list<Protocol::Code> proto_codes;
+  auto multiaddr_protos = GetParam().getProtocols();
+  auto callback = [](Protocol const& proto) { return proto.code; };
+  std::transform(multiaddr_protos.begin(),
+                 multiaddr_protos.end(), std::back_inserter(proto_codes),
+                 callback);
+  ASSERT_EQ(r_ok.value().chosen_protos_, proto_codes);
 }
+
+auto addresses = {
+    Multiaddress::create("/ip4/127.0.0.1/tcp/5050").value()
+};
+INSTANTIATE_TEST_CASE_P(
+    TestSupported, TransportParserTest,
+    ::testing::ValuesIn(addresses));
 
 /**
  * @given Transport parser and a multiaddress
@@ -45,7 +47,8 @@ TEST_F(TransportParserTest, Parse) {
  * content of the multiaddress
  */
 TEST_F(TransportParserTest, Visit) {
-  auto r = TransportParser::parse(addr_);
+  auto r = TransportParser::parse(
+      Multiaddress::create("/ip4/127.0.0.1/tcp/5050").value());
 
   class Visitor {
    public:
@@ -54,7 +57,7 @@ TEST_F(TransportParserTest, Visit) {
       return ip_tcp.first.to_string() == "127.0.0.1" && ip_tcp.second == 5050;
     }
 
-    bool operator()(int i) {
+    bool operator()(std::string_view s) {
       return false;
     }
   } visitor;

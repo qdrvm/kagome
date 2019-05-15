@@ -11,7 +11,7 @@
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::transport, TransportParser::Error, e) {
   using E = libp2p::transport::TransportParser::Error;
   switch (e) {
-    case E::PROTOCOL_UNSUPPORTED:
+    case E::PROTOCOLS_UNSUPPORTED:
       return "This protocol is not supported by libp2p transport";
   }
   return "Unknown error";
@@ -23,24 +23,49 @@ namespace libp2p::transport {
   using boost::asio::ip::make_address;
   using multi::Protocol;
 
+  // clang-format off
+  const std::list<std::list<Protocol::Code>> TransportParser::kSupportedProtocols {
+    {multi::Protocol::Code::ip4, multi::Protocol::Code::tcp}
+  };
+  // clang-format on
+
   outcome::result<TransportParser::ParseResult> TransportParser::parse(
       const multi::Multiaddress &address) {
-    ParseResult res;
-
     auto pvs = address.getProtocolsWithValues();
 
-    auto current = pvs.begin();
-    if (current->first.code == Protocol::Code::ip4) {
-      auto addr = make_address(current->second);
-      current++;
-      if (current->first.code == Protocol::Code::tcp) {
-        auto port = lexical_cast<uint16_t>(current->second);
-        return ParseResult {SupportedProtocol::IpTcp, std::make_pair(addr, port)};
-      }
-      return Error::PROTOCOL_UNSUPPORTED;
+    int16_t chosen_entry = -1;
+    auto entry = std::find_if(
+        kSupportedProtocols.begin(), kSupportedProtocols.end(),
+        [&pvs](auto const &entry) {
+          return std::equal(entry.begin(), entry.end(), pvs.begin(), pvs.end(),
+                            [](Protocol::Code entry_proto, auto &pair) {
+                              return entry_proto == pair.first.code;
+                            });
+        });
+    if (entry == kSupportedProtocols.end()) {
+      return Error::PROTOCOLS_UNSUPPORTED;
     }
+    chosen_entry = std::distance(std::begin(kSupportedProtocols), entry);
 
-    return Error::PROTOCOL_UNSUPPORTED;
+    switch (chosen_entry) {
+      case 0: {
+        auto it = pvs.begin();
+        auto addr = parseIp(it->second);
+        it++;
+        auto port = parseTcp(it->second);
+        return ParseResult{*entry, std::make_pair(addr, port)};
+      }
+      default:
+        return Error::PROTOCOLS_UNSUPPORTED;
+    }
+  }
+
+  uint16_t TransportParser::parseTcp(std::string_view value) {
+    return lexical_cast<uint16_t>(value);
+  }
+
+  TransportParser::IpAddress TransportParser::parseIp(std::string_view value) {
+    return make_address(value);
   }
 
 }  // namespace libp2p::transport

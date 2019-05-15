@@ -60,13 +60,11 @@ class Primitives : public testing::Test {
   Buffer encoded_header_ = []() {
     Buffer h;
     // SCALE-encoded
-    h.put(std::vector<uint8_t>(32, 0));  // parent_hash: hash256 with value 0
-    h.putUint8(2).put(std::vector<uint8_t>(7, 0));  // number: 2
-    h.putUint8(1).put(
-        std::vector<uint8_t>(31, 0));  // state_root: hash256 with value 1
-    h.putUint8(2).put(
-        std::vector<uint8_t>(31, 0));  // extrinsic_root: hash256 with value 2
-    h.putUint8(4).putUint8(5);         // digest: buffer with element 5
+    h.put(std::vector<uint8_t>(32, 0)); // parent_hash: hash256 with value 0
+    h.putUint8(2).put(std::vector<uint8_t>(7, 0)); // number: 2
+    h.putUint8(1).put(std::vector<uint8_t>(31, 0)); // state_root: hash256 with value 1
+    h.putUint8(2).put(std::vector<uint8_t>(31, 0)); // extrinsic_root: hash256 with value 2
+    h.putUint8(4).putUint8(5); // digest: buffer with element 5
     return h;
   }();
   /// Extrinsic instance and corresponding scale representation
