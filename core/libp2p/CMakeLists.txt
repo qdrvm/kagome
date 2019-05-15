@@ -9,6 +9,7 @@ add_subdirectory(crypto)
 add_subdirectory(peer)
 add_subdirectory(muxer)
 add_subdirectory(upgrader)
+add_subdirectory(protocol_muxer)
 
 add_library(libp2p
     config.hpp

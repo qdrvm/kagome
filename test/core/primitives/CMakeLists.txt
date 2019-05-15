@@ -4,13 +4,13 @@
 #
 
 addtest(primitives_test
-        primitives_codec_test.cpp
-        )
+    primitives_codec_test.cpp
+    )
 
 target_link_libraries(primitives_test
-        outcome
-        scale_codec
-        buffer
-        scale
-        Boost::boost
-        )
+    outcome
+    scale_codec
+    buffer
+    scale
+    Boost::boost
+    )

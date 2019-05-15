@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/muxer/yamux/yamuxed_connection.hpp"
+#include "libp2p/muxer/yamux/yamux.hpp"
 
 #include <gtest/gtest.h>
+#include "core/libp2p/transport_fixture/transport_fixture.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/muxer/yamux/yamux_frame.hpp"
 #include "libp2p/muxer/yamux/yamux_stream.hpp"
@@ -20,76 +21,45 @@ using namespace libp2p::multi;
 
 using std::chrono_literals::operator""ms;
 
-class YamuxIntegrationTest : public ::testing::Test {
+class YamuxIntegrationTest : public libp2p::testing::TransportFixture {
  public:
   void SetUp() override {
-    init();
-  }
+    libp2p::testing::TransportFixture::SetUp();
 
-  /**
-   * Initialize:
-   *    - transport
-   *    - listener, which wraps new connections into Yamux
-   *    - multiaddress, which is listened by the created transport
-   *    - Yamux itself
-   */
-  void init() {
-    // create transport
-    transport_ = std::make_unique<TransportImpl>(context_);
-    ASSERT_TRUE(transport_) << "cannot create transport";
-
-    // create a listener, which is going to wrap new connections to YamuxedConnection
+    // create a listener, which is going to wrap new connections to Yamux
     transport_listener_ = transport_->createListener(
-        [this](std::shared_ptr<Connection> c) mutable {
+        [this](std::shared_ptr<Connection> c) mutable {  // NOLINT
           ASSERT_FALSE(c->isClosed());
           ASSERT_TRUE(c) << "createListener: connection is nullptr";
 
-          // here, our YamuxedConnection instance is going to be a server, as a new
+          // here, our Yamux instance is going to be a server, as a new
           // connection is accepted
-          yamux_ = std::make_shared<YamuxedConnection>(
+          yamux_ = std::make_shared<Yamux>(
               std::move(c),
               [this](std::unique_ptr<Stream> new_stream) mutable {
                 accepted_streams_.push_back(std::move(new_stream));
               },
               YamuxConfig{true});
 
-          ASSERT_TRUE(yamux_) << "cannot create YamuxedConnection from a new connection";
+          ASSERT_TRUE(yamux_) << "cannot create Yamux from a new connection";
           yamux_->start();
         });
+    defaultDial();
 
-    // create multiaddress, from which we are going to connect
-    EXPECT_OUTCOME_TRUE(ma, Multiaddress::create("/ip4/127.0.0.1/tcp/40009"))
-    EXPECT_TRUE(transport_listener_->listen(ma)) << "is port 40009 busy?";
-    multiaddress_ = std::make_shared<Multiaddress>(std::move(ma));
-
-    // dial to our "server", getting a connection
-    EXPECT_OUTCOME_TRUE(conn, transport_->dial(*multiaddress_))
-    connection_ = std::move(conn);
-
-    // let YamuxedConnection be created
+    // let Yamux be created
     context_.run_for(10ms);
     ASSERT_TRUE(yamux_);
   }
 
   /**
-   * Run the context for some time to execute async operations
-   */
-  void launchContext() {
-    context_.run_for(50ms);
-  }
-
-  static void checkIOSuccess(const std::error_code ec, size_t received_size,
-                             size_t expected_size) {
-    ASSERT_FALSE(ec);
-    ASSERT_EQ(received_size, expected_size);
-  }
-
-  /**
    * Get a pointer to a new stream
+   * @param expected_stream_id - id, which is expected to be assigned to that
+   * stream
    * @return pointer to the stream
    */
-  std::unique_ptr<Stream> getNewStream(
-      YamuxedConnection::StreamId expected_stream_id = kDefaulExpectedStreamId) {
+  std::unique_ptr<libp2p::stream::Stream> getNewStream(
+      libp2p::muxer::Yamux::StreamId expected_stream_id =
+          kDefaulExpectedStreamId) {
     auto stream = yamux_->newStream().value();
 
     auto new_stream_msg = newStreamMsg(expected_stream_id);
@@ -97,25 +67,18 @@ class YamuxIntegrationTest : public ::testing::Test {
     connection_->asyncRead(boost::asio::buffer(rcvd_msg->toVector()),
                            new_stream_msg.size(),
                            [&new_stream_msg, rcvd_msg](auto &&ec, auto &&n) {
-                             checkIOSuccess(ec, n, new_stream_msg.size());
-                             EXPECT_EQ(*rcvd_msg, new_stream_msg);
+                             CHECK_IO_SUCCESS(ec, n, new_stream_msg.size())
+                             EXPECT_EQ(*rcvd_msg, new_stream_msg);  // NOLINT
                            });
     context_.run_for(10ms);
 
     return stream;
   }
 
-  boost::asio::io_context context_;
+  std::shared_ptr<libp2p::muxer::Yamux> yamux_;
+  std::vector<std::unique_ptr<libp2p::stream::Stream>> accepted_streams_;
 
-  std::shared_ptr<YamuxedConnection> yamux_;
-  std::vector<std::unique_ptr<Stream>> accepted_streams_;
-
-  std::unique_ptr<Transport> transport_;
-  std::shared_ptr<TransportListener> transport_listener_;
-  std::shared_ptr<Multiaddress> multiaddress_;
-  std::shared_ptr<Connection> connection_;
-
-  static constexpr YamuxedConnection::StreamId kDefaulExpectedStreamId = 2;
+  static constexpr libp2p::muxer::Yamux::StreamId kDefaulExpectedStreamId = 2;
 };
 
 /**
@@ -124,7 +87,7 @@ class YamuxIntegrationTest : public ::testing::Test {
  * @then stream is created @and corresponding ack message is sent to the client
  */
 TEST_F(YamuxIntegrationTest, StreamFromClient) {
-  constexpr YamuxedConnection::StreamId created_stream_id = 1;
+  constexpr Yamux::StreamId created_stream_id = 1;
 
   auto new_stream_ack_msg_rcv =
       std::make_shared<Buffer>(YamuxFrame::kHeaderLength, 0);
@@ -134,7 +97,7 @@ TEST_F(YamuxIntegrationTest, StreamFromClient) {
       boost::asio::buffer(new_stream_msg.toVector()),
       [this, &new_stream_msg, new_stream_ack_msg_rcv, created_stream_id](
           auto &&ec, auto &&n) {
-        checkIOSuccess(ec, n, new_stream_msg.size());
+        CHECK_IO_SUCCESS(ec, n, new_stream_msg.size())
 
         connection_->asyncRead(
             boost::asio::buffer(new_stream_ack_msg_rcv->toVector()),
@@ -144,7 +107,7 @@ TEST_F(YamuxIntegrationTest, StreamFromClient) {
               // check a new stream is in our 'accepted_streams'
               ASSERT_EQ(accepted_streams_.size(), 1);
 
-              checkIOSuccess(ec, n, YamuxFrame::kHeaderLength);
+              CHECK_IO_SUCCESS(ec, n, YamuxFrame::kHeaderLength)
 
               // check our yamux has sent an ack message for that
               // stream
@@ -165,7 +128,7 @@ TEST_F(YamuxIntegrationTest, StreamFromClient) {
  * the client
  */
 TEST_F(YamuxIntegrationTest, StreamFromServer) {
-  constexpr YamuxedConnection::StreamId expected_stream_id = 2;
+  constexpr Yamux::StreamId expected_stream_id = 2;
 
   auto stream_res = yamux_->newStream();
   ASSERT_TRUE(stream_res);
@@ -182,7 +145,7 @@ TEST_F(YamuxIntegrationTest, StreamFromServer) {
       boost::asio::buffer(new_stream_msg_buf->toVector()),
       YamuxFrame::kHeaderLength,
       [new_stream_msg_buf, &expected_new_stream_msg](auto &&ec, auto &&n) {
-        checkIOSuccess(ec, n, YamuxFrame::kHeaderLength);
+        CHECK_IO_SUCCESS(ec, n, YamuxFrame::kHeaderLength)
 
         ASSERT_EQ(*new_stream_msg_buf, expected_new_stream_msg);
       });
@@ -204,16 +167,17 @@ TEST_F(YamuxIntegrationTest, StreamWrite) {
       std::make_shared<Buffer>(expected_data_msg.size(), 0);
 
   stream->writeAsync(
-      data, [this, &expected_data_msg, received_data_msg](auto &&ec, auto &&n) {
-        checkIOSuccess(ec, n, expected_data_msg.size());
+      data,
+      [this, &data, &expected_data_msg, received_data_msg](auto &&ec,
+                                                           auto &&n) {
+        CHECK_IO_SUCCESS(ec, n, data.size())
 
-        // check that our written data has achieved the
-        // destination
+        // check that our written data has achieved the destination
         connection_->asyncRead(
             boost::asio::buffer(received_data_msg->toVector()),
             expected_data_msg.size(),
             [&expected_data_msg, received_data_msg](auto &&ec, auto &&n) {
-              checkIOSuccess(ec, n, expected_data_msg.size());
+              CHECK_IO_SUCCESS(ec, n, expected_data_msg.size())
 
               ASSERT_EQ(*received_data_msg, expected_data_msg);
             });
@@ -225,7 +189,7 @@ TEST_F(YamuxIntegrationTest, StreamWrite) {
 /**
  * @given initialized Yamux @and streams, multiplexed by that Yamux
  * @when reading from that stream
- * @then the operation is succesfully executed
+ * @then the operation is successfully executed
  */
 TEST_F(YamuxIntegrationTest, StreamRead) {
   auto stream = getNewStream();
@@ -236,7 +200,7 @@ TEST_F(YamuxIntegrationTest, StreamRead) {
   connection_->asyncWrite(
       boost::asio::buffer(written_data_msg.toVector()),
       [&written_data_msg, &stream, &data](auto &&ec, auto &&n) mutable {
-        checkIOSuccess(ec, n, written_data_msg.size());
+        CHECK_IO_SUCCESS(ec, n, written_data_msg.size())
 
         stream->readAsync([&data](Stream::NetworkMessageOutcome msg_res) {
           ASSERT_TRUE(msg_res);
@@ -268,7 +232,7 @@ TEST_F(YamuxIntegrationTest, CloseForWrites) {
       boost::asio::buffer(close_stream_msg_rcv->toVector()),
       YamuxFrame::kHeaderLength,
       [&expected_close_stream_msg, close_stream_msg_rcv](auto &&ec, auto &&n) {
-        checkIOSuccess(ec, n, YamuxFrame::kHeaderLength);
+        CHECK_IO_SUCCESS(ec, n, YamuxFrame::kHeaderLength)
 
         ASSERT_EQ(*close_stream_msg_rcv, expected_close_stream_msg);
       });
@@ -288,11 +252,11 @@ TEST_F(YamuxIntegrationTest, CloseForReads) {
 
   auto sent_close_stream_msg = closeStreamMsg(kDefaulExpectedStreamId);
 
-  connection_->asyncWrite(
-      boost::asio::buffer(sent_close_stream_msg.toVector()),
-      [&sent_close_stream_msg](auto &&ec, auto &&n) {
-        checkIOSuccess(ec, n, sent_close_stream_msg.size());
-      });
+  connection_->asyncWrite(boost::asio::buffer(sent_close_stream_msg.toVector()),
+                          [&sent_close_stream_msg](auto &&ec, auto &&n) {
+                            CHECK_IO_SUCCESS(ec, n,
+                                             sent_close_stream_msg.size())
+                          });
 
   launchContext();
   ASSERT_TRUE(stream->isClosedForRead());
@@ -318,15 +282,15 @@ TEST_F(YamuxIntegrationTest, CloseEntirely) {
   connection_->asyncRead(
       boost::asio::buffer(close_stream_msg_rcv->toVector()),
       YamuxFrame::kHeaderLength,
-      [this, &expected_close_stream_msg, close_stream_msg_rcv](
-          auto &&ec, auto &&n) {
-        checkIOSuccess(ec, n, YamuxFrame::kHeaderLength);
+      [this, &expected_close_stream_msg, close_stream_msg_rcv](auto &&ec,
+                                                               auto &&n) {
+        CHECK_IO_SUCCESS(ec, n, YamuxFrame::kHeaderLength)
         ASSERT_EQ(*close_stream_msg_rcv, expected_close_stream_msg);
 
         connection_->asyncWrite(
             boost::asio::buffer(expected_close_stream_msg.toVector()),
             [&expected_close_stream_msg](auto &&ec, auto &&n) {
-              checkIOSuccess(ec, n, expected_close_stream_msg.size());
+              CHECK_IO_SUCCESS(ec, n, expected_close_stream_msg.size())
             });
       });
 
@@ -348,12 +312,12 @@ TEST_F(YamuxIntegrationTest, Ping) {
 
   connection_->asyncWrite(boost::asio::buffer(ping_in_msg.toVector()),
                           [&ping_in_msg](auto &&ec, auto &&n) {
-                            checkIOSuccess(ec, n, ping_in_msg.size());
+                            CHECK_IO_SUCCESS(ec, n, ping_in_msg.size())
                           });
   connection_->asyncRead(boost::asio::buffer(received_ping->toVector()),
                          ping_out_msg.size(),
                          [&ping_out_msg, received_ping](auto &&ec, auto &&n) {
-                           checkIOSuccess(ec, n, ping_out_msg.size());
+                           CHECK_IO_SUCCESS(ec, n, ping_out_msg.size())
                            ASSERT_EQ(*received_ping, ping_out_msg);
                          });
   launchContext();
@@ -378,7 +342,7 @@ TEST_F(YamuxIntegrationTest, Reset) {
   connection_->asyncRead(boost::asio::buffer(rcvd_msg->toVector()),
                          expected_reset_msg.size(),
                          [&expected_reset_msg, rcvd_msg](auto &&ec, auto &&n) {
-                           checkIOSuccess(ec, n, rcvd_msg->size());
+                           CHECK_IO_SUCCESS(ec, n, rcvd_msg->size())
                            ASSERT_EQ(*rcvd_msg, expected_reset_msg);
                          });
 

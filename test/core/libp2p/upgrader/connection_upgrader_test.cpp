@@ -28,6 +28,7 @@ using libp2p::upgrader::MuxerOptions;
 
 using std::chrono_literals::operator""ms;
 
+// TODO(akvinikym) [PRE-150] 08.05.19: use TransportFixture in this test
 class ConnectionUpgraderTest : public ::testing::Test {
  protected:
   Logger logger_ = kagome::common::createLogger("ConnectionUpgraderTest");

@@ -18,26 +18,26 @@ namespace kagome::storage {
   template <typename T>
   inline outcome::result<T> error_as_result(const leveldb::Status &s) {
     if (s.IsNotFound()) {
-      return LevelDBError ::kNotFound;
+      return LevelDBError::NOT_FOUND;
     }
 
     if (s.IsIOError()) {
-      return LevelDBError::kIOError;
+      return LevelDBError::IO_ERROR;
     }
 
     if (s.IsInvalidArgument()) {
-      return LevelDBError::kInvalidArgument;
+      return LevelDBError::INVALID_ARGUMENT;
     }
 
     if (s.IsCorruption()) {
-      return LevelDBError::kCorruption;
+      return LevelDBError::CORRUPTION;
     }
 
     if (s.IsNotSupportedError()) {
-      return LevelDBError::kNotSupported;
+      return LevelDBError::NOT_SUPPORTED;
     }
 
-    return LevelDBError::kUnknown;
+    return LevelDBError::UNKNOWN;
   }
 
   template <typename T>

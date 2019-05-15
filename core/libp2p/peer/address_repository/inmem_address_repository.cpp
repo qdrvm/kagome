@@ -48,7 +48,7 @@ namespace libp2p::peer {
   InmemAddressRepository::getAddresses(const PeerId &p) const {
     auto it = db_.find(p);
     if (it == db_.end()) {
-      return PeerError::NotFound;
+      return PeerError::NOT_FOUND;
     }
 
     std::list<multi::Multiaddress> ma;

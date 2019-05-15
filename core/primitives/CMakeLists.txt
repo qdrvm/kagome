@@ -15,6 +15,7 @@ add_library(primitives
     transaction_validity.hpp
     block_id.hpp
     common.hpp
+    parachain_host.hpp
     )
 target_link_libraries(primitives
     buffer
@@ -30,5 +31,6 @@ add_library(scale_codec
     )
 target_link_libraries(
     scale_codec
+    scale_buffer_codec
     primitives
 )

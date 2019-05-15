@@ -58,9 +58,9 @@ namespace {
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, MultibaseCodecImpl::Error, e) {
   using E = libp2p::multi::MultibaseCodecImpl::Error;
   switch (e) {
-    case E::kInputTooShort:
+    case E::INPUT_TOO_SHORT:
       return "Input must be at least two bytes long";
-    case E::kUnsupportedBase:
+    case E::UNSUPPORTED_BASE:
       return "The base is either not supported or does not exist";
     default:
       return "Unknown error";
@@ -82,12 +82,12 @@ namespace libp2p::multi {
   outcome::result<Buffer> MultibaseCodecImpl::decode(
       std::string_view string) const {
     if (string.length() < 2) {
-      return Error::kInputTooShort;
+      return Error::INPUT_TOO_SHORT;
     }
 
     auto encoding_base = encodingByChar(string.front());
     if (!encoding_base) {
-      return Error::kUnsupportedBase;
+      return Error::UNSUPPORTED_BASE;
     }
 
     return codecs.at(*encoding_base).decode(string.substr(1));

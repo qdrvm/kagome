@@ -31,3 +31,4 @@ namespace kagome::scale::compact {
 }  // namespace kagome::scale::compact
 
 #endif  // KAGOME_SCALE_HPP
+

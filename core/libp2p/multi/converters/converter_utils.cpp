@@ -32,7 +32,7 @@ namespace libp2p::multi::converters {
 
     str.remove_prefix(1);
     if (str.empty()) {
-      return ConversionError ::INVALID_ADDRESS;
+      return ConversionError::INVALID_ADDRESS;
     }
 
     if (str.back() == '/') {
@@ -42,8 +42,8 @@ namespace libp2p::multi::converters {
 
     std::string processed;
 
-    enum class WordType { Protocol, Address };
-    WordType type = WordType::Protocol;
+    enum class WordType { PROTOCOL, ADDRESS };
+    WordType type = WordType::PROTOCOL;
 
     Protocol const *protx = nullptr;
 
@@ -51,11 +51,11 @@ namespace libp2p::multi::converters {
     boost::algorithm::split(tokens, str, boost::algorithm::is_any_of("/"));
 
     for (auto &word : tokens) {
-      if (type == WordType::Protocol) {
+      if (type == WordType::PROTOCOL) {
         protx = ProtocolList::get(word);
         if (protx != nullptr) {
           processed += UVarint(static_cast<uint64_t>(protx->code)).toHex();
-          type = WordType::Address;  // Since the next word will be an address
+          type = WordType::ADDRESS;  // Since the next word will be an address
         } else {
           return ConversionError::NO_SUCH_PROTOCOL;
         }
@@ -64,7 +64,7 @@ namespace libp2p::multi::converters {
         processed += val;
         protx = nullptr;  // Since right now it doesn't need that
         // assignment anymore.
-        type = WordType::Protocol;  // Since the next word will be an protocol
+        type = WordType::PROTOCOL;  // Since the next word will be an protocol
       }
     }
 
@@ -78,29 +78,29 @@ namespace libp2p::multi::converters {
 
     // TODO(Akvinikym) 25.02.19 PRE-49: add more protocols
     switch (protocol.code) {
-      case Protocol::Code::ip4:
+      case Protocol::Code::IP4:
         return IPv4Converter::addressToHex(addr);
-      case Protocol::Code::tcp:
+      case Protocol::Code::TCP:
         return TcpConverter::addressToHex(addr);
-      case Protocol::Code::udp:
+      case Protocol::Code::UDP:
         return UdpConverter::addressToHex(addr);
-      case Protocol::Code::ipfs:
+      case Protocol::Code::IPFS:
         return IpfsConverter::addressToHex(addr);
 
-      case Protocol::Code::ip6zone:
-      case Protocol::Code::dns:
-      case Protocol::Code::dns4:
-      case Protocol::Code::dns6:
-      case Protocol::Code::dnsaddr:
-      case Protocol::Code::unix:
-      case Protocol::Code::onion3:
-      case Protocol::Code::garlic64:
-      case Protocol::Code::quic:
-      case Protocol::Code::wss:
-      case Protocol::Code::p2p_websocket_star:
-      case Protocol::Code::p2p_stardust:
-      case Protocol::Code::p2p_webrtc_direct:
-      case Protocol::Code::p2p_circuit:
+      case Protocol::Code::IP6_ZONE:
+      case Protocol::Code::DNS:
+      case Protocol::Code::DNS4:
+      case Protocol::Code::DNS6:
+      case Protocol::Code::DNS_ADDR:
+      case Protocol::Code::UNIX:
+      case Protocol::Code::ONION3:
+      case Protocol::Code::GARLIC64:
+      case Protocol::Code::QUIC:
+      case Protocol::Code::WSS:
+      case Protocol::Code::P2P_WEBSOCKET_STAR:
+      case Protocol::Code::P2P_STARDUST:
+      case Protocol::Code::P2P_WEBRTC_DIRECT:
+      case Protocol::Code::P2P_CIRCUIT:
         return ConversionError::NOT_IMPLEMENTED;
       default:
         return ConversionError::NO_SUCH_PROTOCOL;
@@ -152,7 +152,7 @@ namespace libp2p::multi::converters {
             return ConversionError::NOT_IMPLEMENTED;
           }
         } catch (const std::exception &e) {
-          return ConversionError ::INVALID_ADDRESS;
+          return ConversionError::INVALID_ADDRESS;
         }
 
       } else {

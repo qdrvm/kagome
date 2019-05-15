@@ -47,7 +47,7 @@ TEST_F(LevelDB_Integration_Test, Get_NonExistent) {
   EXPECT_OUTCOME_TRUE_1(db_->remove(key_));
   auto r = db_->get(key_);
   EXPECT_FALSE(r);
-  EXPECT_EQ(r.error().value(), (int)LevelDBError::kNotFound);
+  EXPECT_EQ(r.error().value(), (int)LevelDBError::NOT_FOUND);
 }
 
 /**

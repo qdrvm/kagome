@@ -27,7 +27,7 @@ namespace libp2p::peer {
   InmemKeyRepository::getPublicKeys(const PeerId &p) {
     auto it = pub_.find(p);
     if (it == pub_.end()) {
-      return PeerError ::NotFound;
+      return PeerError::NOT_FOUND;
     }
 
     return it->second;
@@ -52,7 +52,7 @@ namespace libp2p::peer {
   InmemKeyRepository::getKeyPairs(const PeerId &p) {
     auto it = kp_.find(p);
     if (it == kp_.end()) {
-      return PeerError ::NotFound;
+      return PeerError::NOT_FOUND;
     }
 
     return it->second;
