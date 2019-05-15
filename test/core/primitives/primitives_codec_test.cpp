@@ -43,9 +43,9 @@ Hash256 createHash(std::initializer_list<uint8_t> bytes) {
 class Primitives : public testing::Test {
   void SetUp() override {
     block_id_hash_ = Hash256::fromHex(
-        "000102030405060708090A0B0C0D0E0F"
-        "101112131415161718191A1B1C1D1E1F")
-        .value();
+                         "000102030405060708090A0B0C0D0E0F"
+                         "101112131415161718191A1B1C1D1E1F")
+                         .value();
 
     codec_ = std::make_shared<ScaleCodecImpl>();
   }
