@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_YAMUX_HPP
-#define KAGOME_YAMUX_HPP
+#ifndef KAGOME_YAMUX_IMPL_HPP
+#define KAGOME_YAMUX_IMPL_HPP
 
 #include <functional>
 #include <map>
@@ -87,8 +87,9 @@ namespace libp2p::muxer {
 
     void readingHeaderCompleted(const std::error_code &ec, size_t n);
 
-    void readingDataCompleted(const std::error_code &ec, size_t n,
-                              YamuxStreamParameters &stream);
+    void readingDataCompleted(
+        const std::error_code &ec, size_t n,
+        std::reference_wrapper<YamuxStreamParameters> stream_wrapper);
 
     void write(const kagome::common::Buffer &msg,
                stream::Stream::ErrorCodeCallback cb);
@@ -118,7 +119,8 @@ namespace libp2p::muxer {
      * @return true, if it is going to initiate new iteration of Yamux event
      * loop itself, false if caller should do it
      */
-    bool processData(YamuxStreamParameters &stream, const YamuxFrame &frame);
+    bool processData(std::reference_wrapper<YamuxStreamParameters> stream,
+                     const YamuxFrame &frame);
 
     /**
      * Process ack message for such stream_id
@@ -233,4 +235,4 @@ namespace libp2p::muxer {
 
 OUTCOME_HPP_DECLARE_ERROR(libp2p::muxer, Yamux::YamuxErrorStream)
 
-#endif  // KAGOME_YAMUX_HPP
+#endif  // KAGOME_YAMUX_IMPL_HPP
