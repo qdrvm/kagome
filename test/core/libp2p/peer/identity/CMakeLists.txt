@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(peer_identity_factory_test
-    peer_identity_factory_test.cpp
+addtest(peer_identity_test
+    peer_identity_test.cpp
     )
-target_link_libraries(peer_identity_factory_test
+target_link_libraries(peer_identity_test
     libp2p_peer_identity
     )

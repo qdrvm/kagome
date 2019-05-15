@@ -88,10 +88,6 @@ namespace libp2p::multi {
     return hash_;
   }
 
-  std::string Multihash::getStringHash() const {
-    return std::string{hash_.begin(), hash_.end()};
-  }
-
   std::string Multihash::toHex() const {
     return data_.toHex();
   }

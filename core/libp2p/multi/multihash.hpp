@@ -75,11 +75,6 @@ namespace libp2p::multi {
     const Hash &getHash() const;
 
     /**
-     * @return stringified hash stored in this multihash
-     */
-    std::string getStringHash() const;
-
-    /**
      * @return a string with hexadecimal representation of the multihash
      */
     std::string toHex() const;

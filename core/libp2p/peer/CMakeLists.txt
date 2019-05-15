@@ -6,7 +6,6 @@
 add_subdirectory(address_repository)
 add_subdirectory(key_repository)
 add_subdirectory(protocol_repository)
-add_subdirectory(identity)
 
 
 add_library(address_repository
@@ -16,7 +15,6 @@ target_link_libraries(address_repository
     Boost::boost
     )
 
-
 add_library(libp2p_peer_errors
     errors.cpp
     )
@@ -24,10 +22,19 @@ target_link_libraries(libp2p_peer_errors
     outcome
     )
 
-
 add_library(libp2p_peer_repository
     peer_repository.cpp
     )
 target_link_libraries(libp2p_peer_repository
     address_repository
+    )
+
+add_library(libp2p_peer_identity
+    peer_identity.cpp
+    peer_identity.hpp
+    )
+target_link_libraries(libp2p_peer_identity
+    outcome
+    multiaddress
+    multihash
     )
