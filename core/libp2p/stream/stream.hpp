@@ -17,6 +17,7 @@ namespace libp2p::stream {
    */
   class Stream {
    public:
+    using Handler = void(std::shared_ptr<stream::Stream>);
     using NetworkMessageOutcome = outcome::result<kagome::common::Buffer>;
     using ReadCompletionHandler = std::function<void(NetworkMessageOutcome)>;
 

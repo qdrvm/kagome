@@ -25,12 +25,12 @@ namespace libp2p::swarm {
         const std::function<bool(const peer::Protocol &)> &predicate,
         const std::function<StreamHandler> &handler) = 0;
 
-    virtual void invoke(const peer::Protocol &p,
-                        std::shared_ptr<stream::Stream> stream) = 0;
-
     virtual void removeProtocolHandler(const peer::Protocol &protocol) = 0;
 
     virtual void removeAll() = 0;
+
+    virtual void invoke(const peer::Protocol &p,
+                        std::shared_ptr<stream::Stream> stream) = 0;
   };
 
 }  // namespace libp2p::swarm

@@ -17,15 +17,14 @@
 #include "libp2p/peer/peer_repository.hpp"
 #include "libp2p/peer/protocol.hpp"
 #include "libp2p/stream/stream.hpp"
-
-#include <boost/asio.hpp>
+#include "libp2p/swarm/switch.hpp"
+#include "libp2p/swarm/connection_manager.hpp"
+#include "libp2p/swarm/protocol_manager.hpp"
 
 namespace libp2p {
 
   class Host {
    public:
-    using StreamHandler = void(std::shared_ptr<stream::Stream>);
-
     /**
      * @brief Get identifier of this Host
      */
@@ -44,8 +43,9 @@ namespace libp2p {
      * @param handler callback that is executed when some other Host creates
      * stream to our host with {@param proto} protocol.
      */
-    void setProtocolHandler(const peer::Protocol &proto,
-                            const std::function<StreamHandler> &handler);
+    void setProtocolHandler(
+        const peer::Protocol &proto,
+        const std::function<stream::Stream::Handler> &handler);
 
     /**
      * @brief Let Host handle all protocols with prefix={@param prefix}, for
@@ -58,7 +58,7 @@ namespace libp2p {
     void setProtocolHandlerMatch(
         std::string_view prefix,
         const std::function<bool(const peer::Protocol &)> &predicate,
-        const std::function<StreamHandler> &handler);
+        const std::function<stream::Stream::Handler> &handler);
 
     /**
      * @brief Initiates connection to the peer {@param p}. If connection exists,
@@ -68,7 +68,7 @@ namespace libp2p {
      * If not found, will be searched using Routing module.
      * @return nothing on success, error otherwise.
      */
-    outcome::result<void> connect(const peer::PeerId &p);
+    outcome::result<void> connect(const peer::PeerInfo &p);
 
     /**
      * @brief Open new stream to the peer {@param p} with protocol {@param
@@ -80,7 +80,7 @@ namespace libp2p {
      */
     outcome::result<void> newStream(
         const peer::PeerInfo &p, const peer::Protocol &protocol,
-        const std::function<StreamHandler> &handler);
+        const std::function<stream::Stream::Handler> &handler);
 
     ///////////////////////// adequate code boundary /////////////////////////
     // inadequate
@@ -94,6 +94,9 @@ namespace libp2p {
    private:
     const peer::PeerId id_;
     Config config_;
+    std::unique_ptr<swarm::Switch> switch_;
+    std::unique_ptr<swarm::ProtocolManager> protocol_manager_;
+    std::unique_ptr<swarm::ConnectionManager> connection_manager_;
   };
 
 }  // namespace libp2p
