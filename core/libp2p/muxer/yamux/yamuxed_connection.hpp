@@ -14,7 +14,7 @@
 #include <boost/system/error_code.hpp>
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
-#include "libp2p/muxer/connection_muxer.hpp"
+#include "libp2p/muxer/stream_muxer.hpp"
 #include "libp2p/muxer/yamux/yamux_config.hpp"
 #include "libp2p/muxer/yamux/yamux_stream_parameters.hpp"
 #include "libp2p/stream/stream.hpp"

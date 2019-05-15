@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_HOST_HPP
+#ifndef KAGOME_NODE_HPP
 #define KAGOME_NODE_HPP
 
 namespace kagome::storage::merkle {
@@ -17,4 +17,4 @@ namespace kagome::storage::merkle {
 
 }  // namespace kagome::storage::merkle
 
-#endif  //KAGOME_HOST_HPP
+#endif  // KAGOME_NODE_HPP

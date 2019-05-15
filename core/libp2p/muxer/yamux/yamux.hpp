@@ -6,7 +6,7 @@
 #ifndef KAGOME_YAMUX_IMPL_HPP
 #define KAGOME_YAMUX_IMPL_HPP
 
-#include "libp2p/muxer/connection_muxer.hpp"
+#include "libp2p/muxer/stream_muxer.hpp"
 
 #include "libp2p/muxer/yamux/yamux_config.hpp"
 

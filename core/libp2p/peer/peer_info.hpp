@@ -14,8 +14,8 @@
 namespace libp2p::peer {
 
   struct PeerInfo {
-    std::optional<PeerId> id_{};
-    std::set<multi::Multiaddress> addresses_{};
+    PeerId id;
+    std::set<multi::Multiaddress> addresses;
   };
 
 }  // namespace libp2p::peer

@@ -15,7 +15,7 @@
 #include "libp2p/discovery/peer_discovery.hpp"
 #include "libp2p/host.hpp"
 #include "libp2p/multi/multiaddress.hpp"
-#include "libp2p/muxer/connection_muxer.hpp"
+#include "libp2p/muxer/stream_muxer.hpp"
 #include "libp2p/routing/router.hpp"
 #include "libp2p/security/connection_security.hpp"
 #include "libp2p/transport/transport.hpp"

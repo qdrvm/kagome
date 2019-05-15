@@ -13,6 +13,7 @@
 #include "libp2p/config.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/peer/peer_id.hpp"
+#include "libp2p/peer/peer_info.hpp"
 #include "libp2p/peer/peer_repository.hpp"
 #include "libp2p/peer/protocol.hpp"
 #include "libp2p/stream/stream.hpp"
@@ -23,12 +24,14 @@ namespace libp2p {
 
   class Host {
    public:
-    using StreamHandler = void(std::unique_ptr<stream::Stream>);
+    using StreamHandler = void(std::shared_ptr<stream::Stream>);
 
     /**
      * @brief Get identifier of this Host
      */
     peer::PeerId getId() const noexcept;
+
+    peer::PeerInfo getPeerInfo() const noexcept;
 
     /**
      * @brief Get list of addresses this Host listens on
@@ -44,8 +47,19 @@ namespace libp2p {
     void setProtocolHandler(const peer::Protocol &proto,
                             const std::function<StreamHandler> &handler);
 
-    void setProtocolHandlerMatch(const std::function<,
-                            const std::function<StreamHandler> &handler);
+    /**
+     * @brief Let Host handle all protocols with prefix={@param prefix}, for
+     * which predicate {@param predicate} is true.
+     * param prefix prefix for the protocol. Example: /ping/
+     * @param predicate function that takes received protocol (/ping/1.0.0) and
+     * eturns true, if this protocol can be handled.
+     * @param handler handler
+     */
+    void setProtocolHandlerMatch(
+        std::string_view prefix,
+        const std::function<bool(const peer::Protocol &)> &predicate,
+        const std::function<StreamHandler> &handler);
+
     /**
      * @brief Initiates connection to the peer {@param p}. If connection exists,
      * does nothing, otherwise blocks until successful connection is created or
@@ -55,7 +69,6 @@ namespace libp2p {
      * @return nothing on success, error otherwise.
      */
     outcome::result<void> connect(const peer::PeerId &p);
-    outcome::result<void> connect(const multi::Multiaddress &ma);
 
     /**
      * @brief Open new stream to the peer {@param p} with protocol {@param
@@ -66,7 +79,7 @@ namespace libp2p {
      * @return May return error if peer {@param p} is not known to this peer.
      */
     outcome::result<void> newStream(
-        const peer::PeerId &p, const peer::Protocol &protocol,
+        const peer::PeerInfo &p, const peer::Protocol &protocol,
         const std::function<StreamHandler> &handler);
 
     ///////////////////////// adequate code boundary /////////////////////////

@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "libp2p/crypto/key.hpp"
-#include "libp2p/muxer/connection_muxer.hpp"
+#include "libp2p/muxer/stream_muxer.hpp"
 #include "libp2p/peer/peer_repository.hpp"
 #include "libp2p/routing/router.hpp"
 #include "libp2p/transport/transport.hpp"
