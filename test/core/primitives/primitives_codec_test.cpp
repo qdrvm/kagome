@@ -23,7 +23,6 @@ using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::InherentData;
-using kagome::primitives::InherentIdentifier;
 using kagome::primitives::Invalid;
 using kagome::primitives::ScaleCodec;
 using kagome::primitives::ScaleCodecImpl;
@@ -439,9 +438,9 @@ TEST_F(Primitives, EncodeDecodeAuthorityIds) {
  */
 TEST_F(Primitives, EncodeInherentData) {
   InherentData data;
-  InherentIdentifier id1 {1};
-  InherentIdentifier id2 {2};
-  InherentIdentifier id3 {3};
+  InherentData::InherentIdentifier id1 {1};
+  InherentData::InherentIdentifier id2 {2};
+  InherentData::InherentIdentifier id3 {3};
   EXPECT_OUTCOME_TRUE_void(r1, data.putData(id1, {1, 2, 3, 4}));
   EXPECT_OUTCOME_TRUE_void(r2, data.putData(id2, {5, 6, 7, 8}));
   EXPECT_OUTCOME_TRUE_void(r3, data.putData(id3, {1, 2, 3, 4}));

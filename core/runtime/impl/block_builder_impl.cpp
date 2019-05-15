@@ -51,7 +51,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(res,
                 executor_.call(state_code_, "BlockBuilder_finalize_block", {}));
 
-    uint32_t res_addr = static_cast<uint64_t>(res.geti64()) >> 32ul;
+    uint32_t res_addr = result_long.geti64() & 0xFFFFFFFFLLU;
 
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));
