@@ -15,4 +15,10 @@ namespace kagome::scale {
     OUTCOME_TRY(collection::encodeCollection(val.toVector(), out));
     return out;
   }
+
+  outcome::result<common::Buffer> BufferScaleCodec::decode(
+      common::ByteStream &stream) {
+    OUTCOME_TRY(bytes, collection::decodeCollection<uint8_t>(stream));
+    return common::Buffer(std::move(bytes));
+  }
 }  // namespace kagome::scale

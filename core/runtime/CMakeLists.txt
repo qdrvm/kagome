@@ -53,3 +53,16 @@ target_link_libraries(block_builder
     wasm_memory_stream
     wasm_executor
     )
+
+add_library(parachain_host_api
+    parachain_host.hpp
+    impl/parachain_host_impl.hpp
+    impl/parachain_host_impl.cpp
+    )
+target_link_libraries(parachain_host_api
+    buffer
+    logger
+    scale_codec
+    wasm_memory_stream
+    wasm_executor
+    )

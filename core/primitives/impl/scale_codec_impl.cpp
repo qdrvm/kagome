@@ -7,8 +7,11 @@
 
 #include "primitives/block.hpp"
 #include "primitives/block_id.hpp"
+#include "primitives/parachain_host.hpp"
 #include "primitives/transaction_validity.hpp"
 #include "primitives/version.hpp"
+#include "scale/blob_codec.hpp"
+#include "scale/buffer_codec.hpp"
 #include "scale/collection.hpp"
 #include "scale/compact.hpp"
 #include "scale/fixedwidth.hpp"
@@ -93,6 +96,30 @@ namespace kagome::scale {
       return collection::encodeCollection(value, out);
     }
   };
+
+  /// encodes parachain::Chain
+  template <>
+  struct TypeEncoder<primitives::parachain::Chain> {
+    outcome::result<void> encode(const primitives::parachain::Chain &value,
+                                 common::Buffer &out) {
+      return variant::encodeVariant(value, out);
+    }
+  };
+
+  /// encodes object which has no content
+  template <class T>
+  struct EmptyEncoder {
+    outcome::result<void> encode(const T &value, common::Buffer &out) {
+      return outcome::success();  // no content
+    }
+  };
+
+  /// encodes object of class primitives::parachain::Relay
+  template <>
+  struct TypeEncoder<primitives::parachain::Relay>
+      : public EmptyEncoder<primitives::parachain::Relay> {};
+
+  // Decode part
 
   /// decodes std::array
   template <class T, size_t sz>
@@ -184,6 +211,30 @@ namespace kagome::scale {
     }
   };
 
+
+  /// decodes primitives::parachain::Chain
+  template <>
+  struct TypeDecoder<primitives::parachain::Chain> {
+    outcome::result<primitives::parachain::Chain> decode(
+        common::ByteStream &stream) {
+      return variant::decodeVariant<primitives::parachain::Relay,
+                                    primitives::parachain::Parachain>(stream);
+    }
+  };
+
+  /// decodes object of empty class
+  template <class T>
+  struct EmptyDecoder {
+    outcome::result<T> decode(common::ByteStream &) {
+      return T{};
+    }
+  };
+
+  /// decodes fake type primitives::parachain::Relay, which has no content
+  template <>
+  struct TypeDecoder<primitives::parachain::Relay>
+      : public EmptyDecoder<primitives::parachain::Relay> {};
+
 }  // namespace kagome::scale
 
 namespace kagome::primitives {
@@ -193,7 +244,6 @@ namespace kagome::primitives {
   using ApiEncoder = scale::TypeEncoder<std::pair<ArrayChar8Encoder, uint32_t>>;
   using kagome::scale::collection::decodeCollection;
   using kagome::scale::collection::decodeString;
-  using kagome::scale::collection::encodeBuffer;
   using kagome::scale::collection::encodeCollection;
   using kagome::scale::collection::encodeString;
   using kagome::scale::compact::decodeInteger;
@@ -205,6 +255,10 @@ namespace kagome::primitives {
   using kagome::scale::variant::decodeVariant;
   using kagome::scale::variant::encodeVariant;
   using primitives::InherentData;
+
+  ScaleCodecImpl::ScaleCodecImpl() {
+    buffer_codec_ = std::make_unique<scale::BufferScaleCodec>();
+  }
 
   outcome::result<Buffer> ScaleCodecImpl::encodeBlock(
       const Block &block) const {
@@ -251,7 +305,9 @@ namespace kagome::primitives {
     encodeUint64(block_header.number(), out);
     OUTCOME_TRY(encoder.encode(block_header.stateRoot(), out));
     OUTCOME_TRY(encoder.encode(block_header.extrinsicsRoot(), out));
-    OUTCOME_TRY(encodeBuffer(block_header.digest(), out));
+    OUTCOME_TRY(digest, buffer_codec_->encode(block_header.digest()));
+    // TODO(yuraz): PRE-119 refactor ScaleEncode interface
+    out.putBuffer(digest);
 
     return out;
   }
@@ -266,8 +322,8 @@ namespace kagome::primitives {
     OUTCOME_TRY(extrinsics_root, decoder.decode(stream));
     OUTCOME_TRY(digest, decodeCollection<uint8_t>(stream));
 
-    return BlockHeader(std::move(parent_hash), number, std::move(state_root),
-                       std::move(extrinsics_root), Buffer{digest});
+    return BlockHeader(parent_hash, number, state_root, extrinsics_root,
+                       Buffer{digest});
   }
 
   outcome::result<Buffer> ScaleCodecImpl::encodeExtrinsic(
@@ -373,5 +429,17 @@ namespace kagome::primitives {
   outcome::result<std::vector<AuthorityId>> ScaleCodecImpl::decodeAuthorityIds(
       kagome::primitives::ScaleCodec::Stream &stream) const {
     return decodeCollection<AuthorityId>(stream);
+  }
+
+  outcome::result<Buffer> ScaleCodecImpl::encodeDutyRoster(
+      const parachain::DutyRoster &duty_roster) const {
+    Buffer out;
+    OUTCOME_TRY(encodeCollection<parachain::Chain>(duty_roster, out));
+    return out;
+  }
+
+  outcome::result<parachain::DutyRoster> ScaleCodecImpl::decodeDutyRoster(
+      ScaleCodec::Stream &stream) const {
+    return decodeCollection<parachain::Chain>(stream);
   }
 }  // namespace kagome::primitives

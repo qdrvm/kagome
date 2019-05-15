@@ -7,11 +7,14 @@
 #define KAGOME_PRIMITIVES_SCALE_CODEC_IMPL_HPP
 
 #include "primitives/scale_codec.hpp"
+#include "scale/buffer_codec.hpp"
 #include "scale/types.hpp"
 
 namespace kagome::primitives {
   class ScaleCodecImpl : public ScaleCodec {
    public:
+    ScaleCodecImpl();
+
     ~ScaleCodecImpl() override = default;
 
     outcome::result<Buffer> encodeBlock(const Block &block) const override;
@@ -56,6 +59,17 @@ namespace kagome::primitives {
 
     outcome::result<std::vector<AuthorityId>> decodeAuthorityIds(
         kagome::primitives::ScaleCodec::Stream &stream) const override;
+
+    outcome::result<Buffer> encodeDutyRoster(
+        const parachain::DutyRoster &duty_roster) const override;
+    ;
+
+    outcome::result<parachain::DutyRoster> decodeDutyRoster(
+        Stream &stream) const override;
+
+   protected:
+    std::unique_ptr<scale::BufferScaleCodec>
+        buffer_codec_;  ///< scale codec for common::Buffer
   };
 }  // namespace kagome::primitives
 

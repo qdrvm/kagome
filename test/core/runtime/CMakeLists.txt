@@ -55,3 +55,11 @@ target_link_libraries(wasm_executor_test
     wasm_executor
     wasm_test
     )
+
+addtest(parachain_test
+    parachain_test.cpp
+    )
+target_link_libraries(parachain_test
+    parachain_host_api
+    wasm_test
+    )

@@ -23,13 +23,13 @@ namespace kagome::storage {
 
   using Buffer = common::Buffer;
 
-  using BufferMap = face ::GenericMap<Buffer, Buffer>;
+  using BufferMap = face::GenericMap<Buffer, Buffer>;
 
-  using BufferBatch = face ::WriteBatch<Buffer, Buffer>;
+  using BufferBatch = face::WriteBatch<Buffer, Buffer>;
 
-  using PersistedBufferMap = face ::PersistedMap<Buffer, Buffer>;
+  using PersistedBufferMap = face::PersistedMap<Buffer, Buffer>;
 
-  using BufferMapCursor = face ::MapCursor<Buffer, Buffer>;
+  using BufferMapCursor = face::MapCursor<Buffer, Buffer>;
 
 }  // namespace kagome::storage
 

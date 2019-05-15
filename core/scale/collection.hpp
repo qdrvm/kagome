@@ -18,7 +18,7 @@ namespace kagome::scale::collection {
    *         collection of same type values
    *  @tparam T Item type stored in collection
    *  @param collection source vector items
-   *  @return true if operation succeeded and false otherwise
+   *  @return success or failure
    */
   template <class T>
   outcome::result<void> encodeCollection(gsl::span<T> collection,
@@ -36,6 +36,13 @@ namespace kagome::scale::collection {
     return outcome::success();
   }
 
+  /**
+   * @brief encides collection of same type values
+   * @tparam T item type
+   * @param collection collection of items
+   * @param out output buffer
+   * @return success or failure
+   */
   template <class T>
   outcome::result<void> encodeCollection(const std::vector<T> collection,
                                          common::Buffer &out) {
@@ -51,15 +58,6 @@ namespace kagome::scale::collection {
 
     return outcome::success();
   }
-
-  /**
-   * @brief encodes buffer as collection of bytes
-   * @param buf bytes to encode
-   * @param out output buffer
-   * @return true if operation succeeded false otherwise
-   */
-  outcome::result<void> encodeBuffer(const common::Buffer &buf,
-                                     common::Buffer &out);
 
   /**
    * @brief encodes std::string as collection of bytes
@@ -117,5 +115,7 @@ namespace kagome::scale::collection {
    * @return decoded string or error
    */
   outcome::result<std::string> decodeString(common::ByteStream &stream);
+
 }  // namespace kagome::scale::collection
+
 #endif  // KAGOME_SCALE_ADVANCED_HPP

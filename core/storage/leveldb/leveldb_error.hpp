@@ -15,14 +15,14 @@ namespace kagome::storage {
    * <leveldb/status.h>, Status::Code (it is private)
    */
   enum class LevelDBError {
-    kOk = 0,
-    kNotFound = 1,
-    kCorruption = 2,
-    kNotSupported = 3,
-    kInvalidArgument = 4,
-    kIOError = 5,
+    OK = 0,
+    NOT_FOUND = 1,
+    CORRUPTION = 2,
+    NOT_SUPPORTED = 3,
+    INVALID_ARGUMENT = 4,
+    IO_ERROR = 5,
 
-    kUnknown = 1000
+    UNKNOWN = 1000
   };
 
 }  // namespace kagome::storage
