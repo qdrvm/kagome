@@ -7,8 +7,8 @@
 #define KAGOME_MULTISTREAM_HPP
 
 #include <gsl/span>
+#include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
-#include "common/result.hpp"
 
 namespace libp2p::multi {
   /**
@@ -28,6 +28,16 @@ namespace libp2p::multi {
      */
     Multistream() noexcept = default;
 
+    enum class Error {
+      NEW_LINE_EXPECTED = 1,
+      NEW_LINE_NOT_EXPECTED,
+      SLASH_EXPECTED,
+      WRONG_DATA_SIZE,
+      PREFIX_ILL_FORMATTED,
+      REMOVE_LEAVES_EMPTY_PATH,
+      PREFIX_NOT_FOUND
+    };
+
     /**
      * Creates a Multistream object from
      * a URI, which contains info about the protocol of the stream,
@@ -36,8 +46,8 @@ namespace libp2p::multi {
      * @returns a Result object that contains either the Multistream, or an
      * error, if any occured
      */
-    static auto create(Path codecPath, const kagome::common::Buffer &data)
-        -> kagome::expected::Result<Multistream, std::string>;
+    static outcome::result<Multistream> create(
+        Path codecPath, const kagome::common::Buffer &data);
 
     /**
      * Creates a Multistream object from
@@ -46,8 +56,8 @@ namespace libp2p::multi {
      * @returns a Result object that contains either the Multistream, or an
      * error, if any occured
      */
-    static auto create(const kagome::common::Buffer &bytes)
-        -> kagome::expected::Result<Multistream, std::string>;
+    static outcome::result<Multistream> create(
+        const kagome::common::Buffer &bytes);
 
     /**
      * Adds a prefix to the multistream protocol path ('/path -> /prefix/path')
@@ -55,18 +65,16 @@ namespace libp2p::multi {
      * @return this multistream with prefix added to the beginning of the
      * protocol path or error, if the prefix was invalid
      */
-    auto addPrefix(std::string_view prefix)
-        -> kagome::expected::Result<std::reference_wrapper<Multistream>,
-                                    std::string>;
+    outcome::result<std::reference_wrapper<Multistream>> addPrefix(
+        std::string_view prefix);
 
     /**
      * @return this multistream with the prefix removed from the protocol path
      * or Error if the prefix was not present in the path or removal leaves the
      * path empty
      */
-    auto removePrefix(std::string_view prefix)
-        -> kagome::expected::Result<std::reference_wrapper<Multistream>,
-                                    std::string>;
+    outcome::result<std::reference_wrapper<Multistream>> removePrefix(
+        std::string_view prefix);
 
     /**
      * @return the URI with information about the protocol that is used in the
@@ -98,5 +106,7 @@ namespace libp2p::multi {
     gsl::span<const uint8_t> data_;
   };
 }  // namespace libp2p::multi
+
+OUTCOME_HPP_DECLARE_ERROR(libp2p::multi, Multistream::Error)
 
 #endif  // KAGOME_MULTISTREAM_HPP

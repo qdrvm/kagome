@@ -11,6 +11,7 @@
 #include "common/byte_stream.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
+#include "primitives/parachain_host.hpp"
 #include "primitives/transaction_validity.hpp"
 #include "scale/types.hpp"
 
@@ -144,6 +145,22 @@ namespace kagome::primitives {
      * @return decoded Vector of AuthorityIds or error
      */
     virtual outcome::result<std::vector<AuthorityId>> decodeAuthorityIds(
+        Stream &stream) const = 0;
+
+    /**
+     * @brief scale-encodes DutyRoster instance
+     * @param ids value which should be encoded
+     * @return encoded value or error
+     */
+    virtual outcome::result<Buffer> encodeDutyRoster(
+        const parachain::DutyRoster &duty_roster) const = 0;
+
+    /**
+     * @brief decodes DutyRoster item
+     * @param stream source stram containing encoded bytes
+     * @return decoded DutyRoster item
+     */
+    virtual outcome::result<parachain::DutyRoster> decodeDutyRoster(
         Stream &stream) const = 0;
   };
 }  // namespace kagome::primitives

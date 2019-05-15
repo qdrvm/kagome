@@ -27,8 +27,9 @@ namespace kagome::scale::optional {
       return outcome::success();
     }
 
+    TypeEncoder<T> codec{};
     common::Buffer tmp;
-    OUTCOME_TRY(TypeEncoder<T>{}.encode(*optional, tmp));
+    OUTCOME_TRY(codec.encode(*optional, tmp));
 
     out.putUint8(1);
     out.putBuffer(tmp);
@@ -53,7 +54,8 @@ namespace kagome::scale::optional {
       return std::nullopt;
     }
 
-    OUTCOME_TRY(result, TypeDecoder<T>{}.decode(stream));
+    TypeDecoder<T> codec{};
+    OUTCOME_TRY(result, codec.decode(stream));
 
     return std::optional<T>{result};
   }

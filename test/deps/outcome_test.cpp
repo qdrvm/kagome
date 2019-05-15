@@ -13,39 +13,39 @@ using std::string_literals::operator""s;
 #define DIV_0_MSG "division by 0"s
 
 enum class ConversionErrc {
-  Success = 0,      // 0 should not represent an error
-  EmptyString = 1,  // (for rationale, see tutorial on error codes)
-  IllegalChar = 2,
-  TooLong = 3,
+  SUCCESS = 0,       // 0 should not represent an error
+  EMPTY_STRING = 1,  // (for rationale, see tutorial on error codes)
+  ILLEGAL_CHAR = 2,
+  TOO_LONG = 3,
 };
 
 namespace sooper::loong::ns {
   enum class DivisionErrc {
-    DivisionByZero = 1,
+    DIVISION_BY_ZERO = 1,
   };
 }
 
-OUTCOME_HPP_DECLARE_ERROR(ConversionErrc);
+OUTCOME_HPP_DECLARE_ERROR(ConversionErrc)
 OUTCOME_CPP_DEFINE_CATEGORY(ConversionErrc, e) {
   switch (e) {
-    case ConversionErrc ::Success:
+    case ConversionErrc::SUCCESS:
       return "success";
-    case ConversionErrc ::EmptyString:
+    case ConversionErrc::EMPTY_STRING:
       return "empty string";
-    case ConversionErrc ::IllegalChar:
+    case ConversionErrc::ILLEGAL_CHAR:
       return ILLEGAL_CHAR_MSG;
-    case ConversionErrc ::TooLong:
+    case ConversionErrc::TOO_LONG:
       return "too long";
     default:
       return "unknown";
   }
 }
 
-OUTCOME_HPP_DECLARE_ERROR(sooper::loong::ns, DivisionErrc);
+OUTCOME_HPP_DECLARE_ERROR(sooper::loong::ns, DivisionErrc)
 OUTCOME_CPP_DEFINE_CATEGORY(sooper::loong::ns, DivisionErrc, e) {
   using sooper::loong::ns::DivisionErrc;
   switch (e) {
-    case DivisionErrc ::DivisionByZero:
+    case DivisionErrc::DIVISION_BY_ZERO:
       return "division by 0";
     default:
       return "unknown";
@@ -54,13 +54,13 @@ OUTCOME_CPP_DEFINE_CATEGORY(sooper::loong::ns, DivisionErrc, e) {
 
 outcome::result<int> convert(const std::string &str) {
   if (str.empty())
-    return ConversionErrc::EmptyString;
+    return ConversionErrc::EMPTY_STRING;
 
   if (!std::all_of(str.begin(), str.end(), ::isdigit))
-    return ConversionErrc::IllegalChar;
+    return ConversionErrc::ILLEGAL_CHAR;
 
   if (str.length() > 9)
-    return ConversionErrc::TooLong;
+    return ConversionErrc::TOO_LONG;
 
   return atoi(str.c_str());
 }
@@ -68,7 +68,7 @@ outcome::result<int> convert(const std::string &str) {
 outcome::result<int> divide(int a, int b) {
   using sooper::loong::ns::DivisionErrc;
   if (b == 0)
-    return DivisionErrc::DivisionByZero;
+    return DivisionErrc::DIVISION_BY_ZERO;
 
   return a / b;
 }

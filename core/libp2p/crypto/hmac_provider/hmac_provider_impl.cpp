@@ -13,11 +13,11 @@ namespace libp2p::crypto::hmac {
 
   size_t digestSize(common::HashType type) {
     switch (type) {
-      case common::HashType::kSHA1:
+      case common::HashType::SHA1:
         return 20;
-      case common::HashType::kSHA256:
+      case common::HashType::SHA256:
         return 32;
-      case common::HashType::kSHA512:
+      case common::HashType::SHA512:
         return 64;
     }
     return 0;
@@ -25,11 +25,11 @@ namespace libp2p::crypto::hmac {
 
   const evp_md_st *makeHashTraits(common::HashType type) {
     switch (type) {
-      case common::HashType::kSHA1:
+      case common::HashType::SHA1:
         return EVP_sha1();
-      case common::HashType::kSHA256:
+      case common::HashType::SHA256:
         return EVP_sha256();
-      case common::HashType::kSHA512:
+      case common::HashType::SHA512:
         return EVP_sha512();
     }
     return nullptr;

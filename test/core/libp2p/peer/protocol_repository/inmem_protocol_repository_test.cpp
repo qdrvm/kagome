@@ -52,7 +52,7 @@ TEST_F(InmemProtocolRepository_Test, Add) {
 
     auto r = db->getProtocols(p2);
     EXPECT_FALSE(r);
-    EXPECT_EQ(r.error().value(), (int)PeerError::NotFound);
+    EXPECT_EQ(r.error().value(), (int)PeerError::NOT_FOUND);
   }
 }
 
@@ -74,7 +74,7 @@ TEST_F(InmemProtocolRepository_Test, CollectGarbage) {
 
     auto r = db->getProtocols(p2);
     EXPECT_FALSE(r);
-    EXPECT_EQ(r.error().value(), (int)PeerError::NotFound);
+    EXPECT_EQ(r.error().value(), (int)PeerError::NOT_FOUND);
   }
 
   // clear p1. now p1 has 0 protocols
@@ -87,7 +87,7 @@ TEST_F(InmemProtocolRepository_Test, CollectGarbage) {
     for (const auto &it : {p1, p2}) {
       auto r = db->getProtocols(it);
       EXPECT_FALSE(r);
-      EXPECT_EQ(r.error().value(), (int)PeerError::NotFound);
+      EXPECT_EQ(r.error().value(), (int)PeerError::NOT_FOUND);
     }
   }
 }

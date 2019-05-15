@@ -191,7 +191,7 @@ namespace libp2p::multi {
 
   void Multiaddress::calculatePeerId() {
     auto ipfsName =
-        "/"s + std::string(ProtocolList::get(Protocol::Code::ipfs)->name);
+        "/"s + std::string(ProtocolList::get(Protocol::Code::IPFS)->name);
     auto ipfs_beginning = stringified_address_.find(ipfsName);
     if (ipfs_beginning == std::string_view::npos) {
       peer_id_ = std::nullopt;

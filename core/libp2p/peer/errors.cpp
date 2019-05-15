@@ -9,9 +9,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::peer, PeerError, e) {
   using libp2p::peer::PeerError;
 
   switch (e) {
-    case PeerError ::Success:
+    case PeerError::SUCCESS:
       return "success";
-    case PeerError ::NotFound:
+    case PeerError::NOT_FOUND:
       return "not found";
   }
 
