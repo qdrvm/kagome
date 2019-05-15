@@ -17,7 +17,7 @@
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/muxer/stream_muxer.hpp"
 #include "libp2p/routing/router.hpp"
-#include "libp2p/security/connection_security.hpp"
+#include "libp2p/security/secure_transport.hpp"
 #include "libp2p/transport/transport.hpp"
 
 namespace libp2p {
@@ -57,7 +57,7 @@ namespace libp2p {
     HostBuilder &addDHT(uptr<dht::DHT> d);
 
     // add supported security options
-    HostBuilder &addConnectionEncryption(uptr<security::ConnectionSecurity> s);
+    HostBuilder &addSecurityManager(uptr<security::SecureTransport> s);
 
     // Host will listen on this addresses
     HostBuilder &addListenAddress(const multi::Multiaddress &address);

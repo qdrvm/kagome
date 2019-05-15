@@ -11,7 +11,7 @@
 #include "libp2p/peer/peer_info.hpp"
 #include "libp2p/peer/protocol.hpp"
 #include "libp2p/stream/stream.hpp"
-#include "libp2p/swarm/protocol_manager.hpp"
+#include "libp2p/swarm/stream_manager.hpp"
 
 namespace libp2p::swarm {
 

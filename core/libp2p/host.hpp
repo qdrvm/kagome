@@ -17,9 +17,9 @@
 #include "libp2p/peer/peer_repository.hpp"
 #include "libp2p/peer/protocol.hpp"
 #include "libp2p/stream/stream.hpp"
-#include "libp2p/swarm/switch.hpp"
 #include "libp2p/swarm/connection_manager.hpp"
-#include "libp2p/swarm/protocol_manager.hpp"
+#include "libp2p/swarm/stream_manager.hpp"
+#include "libp2p/swarm/switch.hpp"
 
 namespace libp2p {
 
@@ -95,7 +95,7 @@ namespace libp2p {
     const peer::PeerId id_;
     Config config_;
     std::unique_ptr<swarm::Switch> switch_;
-    std::unique_ptr<swarm::ProtocolManager> protocol_manager_;
+    std::unique_ptr<swarm::StreamManager> protocol_manager_;
     std::unique_ptr<swarm::ConnectionManager> connection_manager_;
   };
 
