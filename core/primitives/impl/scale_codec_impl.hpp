@@ -56,12 +56,11 @@ namespace kagome::primitives {
 
     outcome::result<Buffer> encodeDutyRoster(
         const parachain::DutyRoster &duty_roster) const override;
-    ;
 
     outcome::result<parachain::DutyRoster> decodeDutyRoster(
         Stream &stream) const override;
 
-   protected:
+   private:
     std::unique_ptr<scale::BufferScaleCodec>
         buffer_codec_;  ///< scale codec for common::Buffer
   };

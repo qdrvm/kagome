@@ -7,10 +7,10 @@
 #define KAGOME_MULTIHASH_HPP
 
 #include <cstdint>
+#include <string>
 #include <utility>
 
 #include <outcome/outcome.hpp>
-
 #include "common/buffer.hpp"
 #include "libp2p/multi/hash_type.hpp"
 
@@ -73,6 +73,11 @@ namespace libp2p::multi {
      * @return the hash stored in this multihash
      */
     const Hash &getHash() const;
+
+    /**
+     * @return stringified hash stored in this multihash
+     */
+    std::string getStringHash() const;
 
     /**
      * @return a string with hexadecimal representation of the multihash

@@ -30,7 +30,6 @@ namespace libp2p::multi {
 
    public:
     Multiaddress() = delete;
-    ~Multiaddress() = default;
 
     enum class Error {
       INVALID_INPUT = 1,      ///< input contains invalid multiaddress

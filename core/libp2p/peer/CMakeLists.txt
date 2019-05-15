@@ -6,6 +6,7 @@
 add_subdirectory(address_repository)
 add_subdirectory(key_repository)
 add_subdirectory(protocol_repository)
+add_subdirectory(identity)
 
 
 add_library(address_repository
