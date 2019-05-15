@@ -25,7 +25,7 @@ namespace libp2p::transport {
 
   // clang-format off
   const std::list<std::list<Protocol::Code>> TransportParser::kSupportedProtocols {
-    {multi::Protocol::Code::ip4, multi::Protocol::Code::tcp}
+    {multi::Protocol::Code::IP4, multi::Protocol::Code::TCP}
   };
   // clang-format on
 

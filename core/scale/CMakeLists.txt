@@ -12,10 +12,11 @@ target_link_libraries(byte_array_stream
     )
 
 add_library(scale
-    byte_array_stream.hpp
-    byte_array_stream.cpp
+    blob_codec.hpp
     boolean.hpp
     boolean.cpp
+    byte_array_stream.hpp
+    byte_array_stream.cpp
     collection.hpp
     collection.cpp
     compact.hpp

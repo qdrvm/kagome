@@ -8,19 +8,19 @@
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage, LevelDBError, e) {
   using E = kagome::storage::LevelDBError;
   switch (e) {
-    case E::kOk:
+    case E::OK:
       return "success";
-    case E::kNotSupported:
+    case E::NOT_SUPPORTED:
       return "operation is not supported";
-    case E::kCorruption:
+    case E::CORRUPTION:
       return "data corruption";
-    case E::kInvalidArgument:
+    case E::INVALID_ARGUMENT:
       return "invalid argument";
-    case E::kIOError:
+    case E::IO_ERROR:
       return "IO error";
-    case E::kNotFound:
+    case E::NOT_FOUND:
       return "not found";
-    case E::kUnknown:
+    case E::UNKNOWN:
       break;
   }
 

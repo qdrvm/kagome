@@ -68,7 +68,7 @@ class HmacTest : public testing::Test {
  */
 TEST_F(HmacTest, HashSha1Success) {
   auto &&digest =
-      provider.calculateDigest(common::HashType::kSHA1, sha1_key, message);
+      provider.calculateDigest(common::HashType::SHA1, sha1_key, message);
   ASSERT_TRUE(digest);
   ASSERT_EQ(digest.value().size(), 20);
   ASSERT_EQ(digest.value(), sha1_dgst);
@@ -81,7 +81,7 @@ TEST_F(HmacTest, HashSha1Success) {
  */
 TEST_F(HmacTest, HashSha256Success) {
   auto &&digest =
-      provider.calculateDigest(common::HashType::kSHA256, sha256_key, message);
+      provider.calculateDigest(common::HashType::SHA256, sha256_key, message);
   ASSERT_TRUE(digest);
   ASSERT_EQ(digest.value().size(), 32);
   ASSERT_EQ(digest.value(), sha256_dgst);
@@ -94,7 +94,7 @@ TEST_F(HmacTest, HashSha256Success) {
  */
 TEST_F(HmacTest, HashSha512Success) {
   auto &&digest =
-      provider.calculateDigest(common::HashType::kSHA512, sha512_key, message);
+      provider.calculateDigest(common::HashType::SHA512, sha512_key, message);
   ASSERT_TRUE(digest);
   ASSERT_EQ(digest.value().size(), 64);
   ASSERT_EQ(digest.value(), sha512_dgst);

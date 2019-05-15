@@ -42,7 +42,7 @@ TEST(AddressConverter, Ip4AddressToBytes) {
  * address is returned
  */
 TEST(AddressConverter, TcpAddressToBytes) {
-  auto p = ProtocolList::get(libp2p::multi::Protocol::Code::tcp);
+  auto p = ProtocolList::get(libp2p::multi::Protocol::Code::TCP);
   ASSERT_EQ("04D2", addressToHex(*p, "1234").value());
   ASSERT_EQ("0000", addressToHex(*p, "0").value());
   ASSERT_FALSE(addressToHex(*p, "34343430"));
@@ -56,7 +56,7 @@ TEST(AddressConverter, TcpAddressToBytes) {
  * address is returned
  */
 TEST(AddressConverter, UdpAddressToBytes) {
-  auto p = ProtocolList::get(libp2p::multi::Protocol::Code::udp);
+  auto p = ProtocolList::get(libp2p::multi::Protocol::Code::UDP);
   ASSERT_EQ("04D2", addressToHex(*p, "1234").value());
   ASSERT_EQ("0000", addressToHex(*p, "0").value());
   ASSERT_FALSE(addressToHex(*p, "34343430"));
@@ -71,7 +71,7 @@ TEST(AddressConverter, UdpAddressToBytes) {
  * address is returned
  */
 TEST(AddressConverter, IpfsAddressToBytes) {
-  auto p = ProtocolList::get(libp2p::multi::Protocol::Code::ipfs);
+  auto p = ProtocolList::get(libp2p::multi::Protocol::Code::IPFS);
   ASSERT_EQ(
       "221220D52EBB89D85B02A284948203A62FF28389C57C9F42BEEC4EC20DB76A68911C0B",
       addressToHex(*p, "QmcgpsyWgH8Y8ajJz1Cu72KnS5uo2Aa2LpzU7kinSupNKC")

@@ -9,7 +9,6 @@
 #include <optional>
 #include <vector>
 
-#include "common/result.hpp"
 #include "libp2p/basic/closeable.hpp"
 #include "libp2p/basic/readable.hpp"
 #include "libp2p/basic/writable.hpp"
