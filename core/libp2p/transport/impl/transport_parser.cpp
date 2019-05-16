@@ -13,6 +13,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::transport, TransportParser::Error, e) {
   switch (e) {
     case E::PROTOCOLS_UNSUPPORTED:
       return "This protocol is not supported by libp2p transport";
+    case E::INVALID_ADDR_VALUE:
+      return "Some of the values in the multiaddress are invalid";
   }
   return "Unknown error";
 }
@@ -24,7 +26,7 @@ namespace libp2p::transport {
   using multi::Protocol;
 
   // clang-format off
-  const std::list<std::list<Protocol::Code>> TransportParser::kSupportedProtocols {
+  const std::vector<std::vector<Protocol::Code>> TransportParser::kSupportedProtocols {
     {multi::Protocol::Code::IP4, multi::Protocol::Code::TCP}
   };
   // clang-format on
@@ -33,7 +35,9 @@ namespace libp2p::transport {
       const multi::Multiaddress &address) {
     auto pvs = address.getProtocolsWithValues();
 
-    int16_t chosen_entry = -1;
+    int16_t entry_idx{};
+    // find an entry in supported protocols list that is equal to the list of
+    // protocols in the multiaddr
     auto entry = std::find_if(
         kSupportedProtocols.begin(), kSupportedProtocols.end(),
         [&pvs](auto const &entry) {
@@ -45,14 +49,18 @@ namespace libp2p::transport {
     if (entry == kSupportedProtocols.end()) {
       return Error::PROTOCOLS_UNSUPPORTED;
     }
-    chosen_entry = std::distance(std::begin(kSupportedProtocols), entry);
+    // calculate the index of this entry in the supported protocols list
+    entry_idx = std::distance(std::begin(kSupportedProtocols), entry);
 
-    switch (chosen_entry) {
+    // decompose the values of the multiaddr to a data structure that can be
+    // stored in ParseResult variant field, accroding to the sequence of
+    // protocols in the entry
+    switch (entry_idx) {
       case 0: {
         auto it = pvs.begin();
-        auto addr = parseIp(it->second);
+        OUTCOME_TRY(addr, parseIp(it->second));
         it++;
-        auto port = parseTcp(it->second);
+        OUTCOME_TRY(port, parseTcp(it->second));
         return ParseResult{*entry, std::make_pair(addr, port)};
       }
       default:
@@ -60,12 +68,22 @@ namespace libp2p::transport {
     }
   }
 
-  uint16_t TransportParser::parseTcp(std::string_view value) {
-    return lexical_cast<uint16_t>(value);
+  outcome::result<uint16_t> TransportParser::parseTcp(std::string_view value) {
+    try {
+      return lexical_cast<uint16_t>(value);
+    } catch (boost::bad_lexical_cast &) {
+      return Error::INVALID_ADDR_VALUE;
+    }
   }
 
-  TransportParser::IpAddress TransportParser::parseIp(std::string_view value) {
-    return make_address(value);
+  outcome::result<TransportParser::IpAddress> TransportParser::parseIp(
+      std::string_view value) {
+    boost::system::error_code ec;
+    auto addr = make_address(value, ec);
+    if (!ec) {
+      return addr;
+    }
+    return Error::INVALID_ADDR_VALUE;
   }
 
 }  // namespace libp2p::transport

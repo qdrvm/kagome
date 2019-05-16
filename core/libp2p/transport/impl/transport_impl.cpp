@@ -15,15 +15,15 @@ namespace libp2p::transport {
   using multi::Protocol;
 
   /**
-   * Visitor for std::variant that return the address data corresponding to the
+   * Visitor for std::variant that returns the address data corresponding to the
    * protocol stored in the variant
    */
   class ParserVisitor {
+    using Result = outcome::result<std::shared_ptr<Connection>>;
+
    public:
     explicit ParserVisitor(TransportImpl const &transport)
         : transport_{transport} {}
-
-    using Result = outcome::result<std::shared_ptr<Connection>>;
 
     /// IP/TCP address
     Result operator()(

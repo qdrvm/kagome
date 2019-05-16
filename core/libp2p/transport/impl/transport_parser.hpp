@@ -22,12 +22,12 @@ namespace libp2p::transport {
     using IpAddress = boost::asio::ip::address;
     using AddressData = std::variant<std::pair<IpAddress, uint16_t>>;
 
-    enum class Error { PROTOCOLS_UNSUPPORTED = 1 };
+    enum class Error { PROTOCOLS_UNSUPPORTED = 1, INVALID_ADDR_VALUE };
 
     struct ParseResult {
       /// @brief protocols from the list of supported protocols that were stored
       /// in the parsed multiaddress
-      const std::list<multi::Protocol::Code> &chosen_protos_;
+      const std::vector<multi::Protocol::Code> &chosen_protos_;
       AddressData data_;
     };
 
@@ -39,7 +39,7 @@ namespace libp2p::transport {
      * entry {ip4, tcp} is in the list, whereas
      * /ip4/127.0.0.1/ipfs/QmcgpsyWgH8Y8ajJz1Cu is not
      */
-    static const std::list<std::list<multi::Protocol::Code>>
+    static const std::vector<std::vector<multi::Protocol::Code>>
         kSupportedProtocols;
 
     /**
@@ -50,11 +50,12 @@ namespace libp2p::transport {
      * @return a structure containing the information of what protocol stack the
      * multiaddress contains and a variant with the data extracted from it
      */
-    static outcome::result<ParseResult> parse(const multi::Multiaddress &address);
+    static outcome::result<ParseResult> parse(
+        const multi::Multiaddress &address);
 
    private:
-    static uint16_t parseTcp(std::string_view value);
-    static IpAddress parseIp(std::string_view value);
+    static outcome::result<uint16_t> parseTcp(std::string_view value);
+    static outcome::result<IpAddress> parseIp(std::string_view value);
   };
 
 }  // namespace libp2p::transport
