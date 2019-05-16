@@ -8,4 +8,5 @@ target_link_libraries(libp2p_inmem_key_repository
     libp2p_peer_errors
     multihash
     crypto_key
+    libp2p_peer_id
     )

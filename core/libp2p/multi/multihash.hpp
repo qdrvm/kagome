@@ -7,10 +7,10 @@
 #define KAGOME_MULTIHASH_HPP
 
 #include <cstdint>
+#include <string>
 #include <utility>
 
 #include <outcome/outcome.hpp>
-
 #include "common/buffer.hpp"
 #include "libp2p/multi/hash_type.hpp"
 

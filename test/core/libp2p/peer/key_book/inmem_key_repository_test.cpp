@@ -7,8 +7,8 @@
 
 #include <gtest/gtest.h>
 #include "libp2p/crypto/key.hpp"
-#include "libp2p/peer/key_repository/inmem_key_repository.hpp"
 #include "libp2p/peer/key_repository.hpp"
+#include "libp2p/peer/key_repository/inmem_key_repository.hpp"
 #include "testutil/outcome.hpp"
 
 using namespace libp2p::peer;
@@ -18,7 +18,12 @@ using namespace libp2p::crypto;
 
 struct InmemKeyRepositoryTest : ::testing::Test {
   static PeerId createPeerId(HashType type, Buffer b) {
-    auto r1 = PeerId::create(type, std::move(b));
+    auto hash = Multihash::create(type, std::move(b));
+    if (!hash) {
+      throw std::invalid_argument(hash.error().message());
+    }
+
+    auto r1 = PeerId::fromHash(hash.value());
     if (!r1) {
       throw std::invalid_argument(r1.error().message());
     }
@@ -27,7 +32,7 @@ struct InmemKeyRepositoryTest : ::testing::Test {
   }
 
   PeerId p1_ = createPeerId(HashType::sha256, {1});
-  PeerId p2_ = createPeerId(HashType::sha512, {2});
+  PeerId p2_ = createPeerId(HashType::sha256, {2});
 
   std::unique_ptr<KeyRepository> db_ = std::make_unique<InmemKeyRepository>();
 };
@@ -73,7 +78,7 @@ TEST_F(InmemKeyRepositoryTest, GetPeers) {
 
   db_->addPublicKey(p1_, z);
   db_->addKeyPair(p2_, kp);
-  
+
   auto s = db_->getPeers();
   EXPECT_EQ(s.size(), 2);
 }

@@ -38,7 +38,7 @@ namespace libp2p::multi {
       UDT = 301,
       UTP = 302,
       UNIX = 400,
-      IPFS = 421,
+      P2P = 421,
       ONION = 444,
       ONION3 = 445,
       GARLIC64 = 446,
@@ -71,7 +71,7 @@ namespace libp2p::multi {
     /**
      * The total number of known protocols
      */
-    static const std::size_t kProtocolsNum = 28;
+    static const std::size_t kProtocolsNum = 29;
 
     /**
      * Returns a protocol with the corresponding name if it exists, or nullptr
@@ -127,7 +127,8 @@ namespace libp2p::multi {
         {Protocol::Code::UDT, 0, "udt"},
         {Protocol::Code::UTP, 0, "utp"},
         {Protocol::Code::UNIX, Protocol::kVarLen, "unix"},
-        {Protocol::Code::IPFS, Protocol::kVarLen, "ipfs"},
+        {Protocol::Code::P2P, Protocol::kVarLen, "p2p"},
+        {Protocol::Code::P2P, Protocol::kVarLen, "ipfs"},
         {Protocol::Code::ONION, 96, "onion"},
         {Protocol::Code::ONION3, 296, "onion3"},
         {Protocol::Code::GARLIC64, Protocol::kVarLen, "garlic64"},
