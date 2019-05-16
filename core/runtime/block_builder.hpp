@@ -17,12 +17,12 @@
 namespace kagome::runtime {
 
   struct CheckInherentsResult {
+    /// We use the `InherentData` to store our errors.
+    primitives::InherentData errors_;
     /// Did the check succeed?
     bool okay_ = false;
     /// Did we encounter a fatal error?
     bool fatal_error_ = false;
-    /// We use the `InherentData` to store our errors.
-    primitives::InherentData errors_;
   };
 
   /**
@@ -39,11 +39,13 @@ namespace kagome::runtime {
     /// Finish the current block.
     virtual outcome::result<primitives::BlockHeader> finalize_block() = 0;
 
-    /// Generate inherent extrinsics. The inherent data will vary from chain to chain.
+    /// Generate inherent extrinsics. The inherent data will vary from chain to
+    /// chain.
     virtual outcome::result<std::vector<primitives::Extrinsic>>
     inherent_extrinsics(const primitives::InherentData &data) = 0;
 
-    /// Check that the inherents are valid. The inherent data will vary from chain to chain.
+    /// Check that the inherents are valid. The inherent data will vary from
+    /// chain to chain.
     virtual outcome::result<CheckInherentsResult> check_inherents(
         const primitives::Block &block,
         const primitives::InherentData &data) = 0;
@@ -52,6 +54,6 @@ namespace kagome::runtime {
     virtual outcome::result<common::Hash256> random_seed() = 0;
   };
 
-} // namespace kagome::runtime
+}  // namespace kagome::runtime
 
 #endif  // KAGOME_BLOCK_BUILDER_HPP

@@ -25,6 +25,7 @@ namespace kagome::runtime {
       const primitives::Extrinsic &ext) {
     OUTCOME_TRY(encoded_ext, codec_->encodeExtrinsic(ext));
 
+    // TODO (Harrm) PRE-98: after check for memory overflow is done, refactor it
     runtime::SizeType ext_size = encoded_ext.size();
     runtime::WasmPointer ptr = memory_->allocate(ext_size);
     memory_->storeBuffer(ptr, encoded_ext);

@@ -34,8 +34,8 @@ namespace kagome::runtime {
     OUTCOME_TRY(encoded_ext, codec_->encodeExtrinsic(extrinsic));
 
     runtime::SizeType ext_size = encoded_ext.size();
+    // TODO (Harrm) PRE-98: after check for memory overflow is done, refactor it
     runtime::WasmPointer ptr = memory_->allocate(ext_size);
-
     memory_->storeBuffer(ptr, encoded_ext);
 
     wasm::LiteralList ll{Literal(ptr), Literal(ext_size)};
@@ -66,6 +66,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(enc_data, codec_->encodeInherentData(data));
 
     runtime::SizeType data_size = enc_data.size();
+    // TODO (Harrm) PRE-98: after check for memory overflow is done, refactor it
     runtime::WasmPointer ptr = memory_->allocate(data_size);
     memory_->storeBuffer(ptr, enc_data);
 
@@ -93,6 +94,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(enc_block, codec_->encodeBlock(block));
     OUTCOME_TRY(enc_data, codec_->encodeInherentData(data));
 
+    // TODO (Harrm) PRE-98: after check for memory overflow is done, refactor it
     runtime::SizeType block_size = enc_block.size();
     runtime::WasmPointer block_ptr = memory_->allocate(block_size);
     memory_->storeBuffer(block_ptr, enc_block);
