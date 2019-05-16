@@ -29,6 +29,17 @@ target_link_libraries(libp2p_peer_repository
     address_repository
     )
 
+add_library(libp2p_peer_id
+    peer_id.cpp
+    peer_id.hpp
+    )
+target_link_libraries(libp2p_peer_id
+    outcome
+    multihash
+    multibase_codec
+    hasher
+    )
+
 add_library(libp2p_peer_identity
     peer_identity.cpp
     peer_identity.hpp
@@ -37,4 +48,6 @@ target_link_libraries(libp2p_peer_identity
     outcome
     multiaddress
     multihash
+    multibase_codec
+    libp2p_peer_id
     )

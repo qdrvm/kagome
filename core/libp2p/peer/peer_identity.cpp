@@ -44,16 +44,12 @@ namespace libp2p::peer {
     OUTCOME_TRY(address, Multiaddress::create(address_str));
 
     auto id_b58_str = identity.substr(id_begin + kIdSubstr.size());
-    OUTCOME_TRY(id_bytes, kCodec.decode(id_b58_str));
-    OUTCOME_TRY(id_hash, Multihash::createFromBuffer(id_bytes.toVector()));
+    OUTCOME_TRY(id, PeerId::fromBase58(id_b58_str));
 
-    return PeerIdentity{std::move(id_hash), std::move(address)};
+    return PeerIdentity{std::move(id), std::move(address)};
   }
 
   PeerIdentity::FactoryResult PeerIdentity::create(const PeerInfo &peer_info) {
-    if (peer_info.id.getType() != multi::HashType::sha256) {
-      return FactoryError::SHA256_EXPECTED;
-    }
     if (peer_info.addresses.empty()) {
       return FactoryError::NO_ADDRESSES;
     }
@@ -63,16 +59,12 @@ namespace libp2p::peer {
 
   PeerIdentity::FactoryResult PeerIdentity::create(
       const PeerId &peer_id, const Multiaddress &address) {
-    if (peer_id.getType() != multi::HashType::sha256) {
-      return FactoryError::SHA256_EXPECTED;
-    }
-
     return PeerIdentity{peer_id, address};
   }
 
   std::string PeerIdentity::getIdentity() const {
     return std::string{address_.getStringAddress()} + std::string{kIdSubstr}
-    + kCodec.encode(id_.toBuffer(), MultibaseCodec::Encoding::BASE58);
+    + id_.toBase58();
   }
 
   const PeerId &PeerIdentity::getId() const noexcept {
