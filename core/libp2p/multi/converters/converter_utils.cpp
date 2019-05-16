@@ -126,7 +126,7 @@ namespace libp2p::multi::converters {
         return ConversionError::NO_SUCH_PROTOCOL;
       }
 
-      if (protocol->name != "ipfs") {
+      if (protocol->name != "p2p") {
         lastpos = lastpos
             + UVarint::calculateSize(pid_bytes.subspan(lastpos / 2)) * 2;
         std::string address;
@@ -178,7 +178,6 @@ namespace libp2p::multi::converters {
         lastpos += addrsize * 2 + 2;
       }
     }
-    results += "/";
 
     return results;
   }

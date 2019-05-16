@@ -23,7 +23,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::peer, PeerAddress::FactoryError, e) {
     case E::SHA256_EXPECTED:
       return "peer id is not SHA-256 hash";
     case E::NO_ADDRESSES:
-      return "no addresses in the provided PeerInfo";
+      return "no addresses found";
   }
   return "unknown error";
 }
@@ -31,21 +31,19 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::peer, PeerAddress::FactoryError, e) {
 namespace libp2p::peer {
   using multi::Multiaddress;
   using multi::Multihash;
+  using multi::Protocol;
 
   PeerAddress::PeerAddress(PeerId id, Multiaddress address)
       : id_{std::move(id)}, address_{std::move(address)} {}
 
   PeerAddress::FactoryResult PeerAddress::create(std::string_view address) {
-    auto id_begin = address.find(kP2PSubstr);
-    if (id_begin == std::string_view::npos) {
-      return FactoryError::ID_EXPECTED;
-    }
+    OUTCOME_TRY(multiaddress, Multiaddress::create(address));
 
-    auto address_str = address.substr(0, id_begin);
-    OUTCOME_TRY(multiaddress, Multiaddress::create(address_str));
-
-    auto id_b58_str = address.substr(id_begin + kP2PSubstr.size());
+    OUTCOME_TRY(id_b58_str,
+                multiaddress.getFirstValueForProtocol(Protocol::Code::P2P));
     OUTCOME_TRY(id, PeerId::fromBase58(id_b58_str));
+
+    multiaddress.decapsulate(Protocol::Code::P2P);
 
     return PeerAddress{std::move(id), std::move(multiaddress)};
   }

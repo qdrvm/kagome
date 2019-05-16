@@ -50,6 +50,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, Multiaddress::Error, e) {
 }
 
 namespace libp2p::multi {
+  using std::string_literals::operator""s;
 
   Multiaddress::FactoryResult Multiaddress::create(std::string_view address) {
     // convert string address to bytes and make sure they represent valid
@@ -82,10 +83,8 @@ namespace libp2p::multi {
   }
 
   void Multiaddress::encapsulate(const Multiaddress &address) {
-    // both string addresses begin and end with '/', which should be cut
-    stringified_address_ += address.stringified_address_.substr(1);
+    stringified_address_ += address.stringified_address_;
 
-    // but '/' is not encoded to bytes, we don't cut the vector
     const auto &other_bytes = address.bytes_.toVector();
     bytes_.put(std::vector<uint8_t>{other_bytes.begin(), other_bytes.end()});
 
@@ -93,17 +92,32 @@ namespace libp2p::multi {
   }
 
   bool Multiaddress::decapsulate(const Multiaddress &address) {
-    auto str_pos = stringified_address_.rfind(address.stringified_address_);
+    return decapsulateStringFromAddress(address.stringified_address_,
+                                        address.bytes_);
+  }
+
+  bool Multiaddress::decapsulate(Protocol::Code proto) {
+    std::string_view proto_str =
+        "/"s + std::string{ProtocolList::get(proto)->name};
+    auto proto_bytes = converters::multiaddrToBytes(proto_str);
+    if (!proto_bytes) {
+      return false;
+    }
+    return decapsulateStringFromAddress(proto_str, proto_bytes.value());
+  }
+
+  bool Multiaddress::decapsulateStringFromAddress(std::string_view proto,
+                                                  const ByteBuffer &bytes) {
+    auto str_pos = stringified_address_.rfind(proto);
     if (str_pos == std::string::npos) {
       return false;
     }
-    // don't erase '/' in the end of the left address
-    stringified_address_.erase(str_pos + 1);
+    stringified_address_.erase(str_pos);
 
     const auto &this_bytes = bytes_.toVector();
-    const auto &other_bytes = address.bytes_.toVector();
-    auto bytes_pos = std::search(this_bytes.begin(), this_bytes.end(),
-                                 other_bytes.begin(), other_bytes.end());
+    const auto &other_bytes = bytes.toVector();
+    auto bytes_pos = std::find_end(this_bytes.begin(), this_bytes.end(),
+                                   other_bytes.begin(), other_bytes.end());
     bytes_ = ByteBuffer{std::vector<uint8_t>{this_bytes.begin(), bytes_pos}};
 
     calculatePeerId();
@@ -190,15 +204,15 @@ namespace libp2p::multi {
   }
 
   void Multiaddress::calculatePeerId() {
-    auto ipfsName =
+    auto ipfs_name =
         "/"s + std::string(ProtocolList::get(Protocol::Code::P2P)->name);
-    auto ipfs_beginning = stringified_address_.find(ipfsName);
+    auto ipfs_beginning = stringified_address_.find(ipfs_name);
     if (ipfs_beginning == std::string_view::npos) {
       peer_id_ = std::nullopt;
       return;
     }
 
-    auto id_beginning = ipfs_beginning + 6;
+    auto id_beginning = ipfs_beginning + ipfs_name.size() + 1;
     auto id_size = stringified_address_.find_first_of('/', id_beginning + 1)
         - id_beginning;
 
