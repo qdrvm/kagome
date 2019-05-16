@@ -5,8 +5,14 @@
 
 #include "libp2p/peer/peer_address.hpp"
 
+#include "libp2p/multi/multiaddress_protocol_list.hpp"
+
 namespace {
-  constexpr std::string_view kIdSubstr = "/p2p/";
+  using libp2p::multi::Protocol;
+  using libp2p::multi::ProtocolList;
+
+  const std::string kP2PSubstr =
+      "/" + std::string{ProtocolList::get(Protocol::Code::P2P)->name} + "/";
 }  // namespace
 
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::peer, PeerAddress::FactoryError, e) {
@@ -30,7 +36,7 @@ namespace libp2p::peer {
       : id_{std::move(id)}, address_{std::move(address)} {}
 
   PeerAddress::FactoryResult PeerAddress::create(std::string_view address) {
-    auto id_begin = address.find(kIdSubstr);
+    auto id_begin = address.find(kP2PSubstr);
     if (id_begin == std::string_view::npos) {
       return FactoryError::ID_EXPECTED;
     }
@@ -38,7 +44,7 @@ namespace libp2p::peer {
     auto address_str = address.substr(0, id_begin);
     OUTCOME_TRY(multiaddress, Multiaddress::create(address_str));
 
-    auto id_b58_str = address.substr(id_begin + kIdSubstr.size());
+    auto id_b58_str = address.substr(id_begin + kP2PSubstr.size());
     OUTCOME_TRY(id, PeerId::fromBase58(id_b58_str));
 
     return PeerAddress{std::move(id), std::move(multiaddress)};
@@ -58,7 +64,7 @@ namespace libp2p::peer {
   }
 
   std::string PeerAddress::toString() const {
-    return std::string{address_.getStringAddress()} + std::string{kIdSubstr}
+    return std::string{address_.getStringAddress()} + std::string{kP2PSubstr}
     + id_.toBase58();
   }
 

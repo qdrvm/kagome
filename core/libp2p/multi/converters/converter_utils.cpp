@@ -84,7 +84,7 @@ namespace libp2p::multi::converters {
         return TcpConverter::addressToHex(addr);
       case Protocol::Code::UDP:
         return UdpConverter::addressToHex(addr);
-      case Protocol::Code::IPFS:
+      case Protocol::Code::P2P:
         return IpfsConverter::addressToHex(addr);
 
       case Protocol::Code::IP6_ZONE:
