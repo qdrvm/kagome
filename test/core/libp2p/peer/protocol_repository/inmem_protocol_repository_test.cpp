@@ -25,8 +25,16 @@ struct InmemProtocolRepository_Test : public ::testing::Test {
   const Protocol s1 = "/bittorrent.org/1.0";
   const Protocol s2 = "/ipfs/1.0";
 
-  const PeerId p1 = Multihash::createFromHex("1203020304").value();
-  const PeerId p2 = Multihash::createFromHex("1203ffffff").value();
+  const PeerId p1 =
+      PeerId::fromHash(Multihash::create(HashType::sha256,
+                                         Buffer{0x12, 0x03, 0x02, 0x03, 0x04})
+                           .value())
+          .value();
+  const PeerId p2 =
+      PeerId::fromHash(Multihash::create(HashType::sha256,
+                                         Buffer{0x12, 0x03, 0xFF, 0xFF, 0xFF})
+                           .value())
+          .value();
 
   template <typename... T>
   std::vector<Protocol> vec(T &&... arg) {

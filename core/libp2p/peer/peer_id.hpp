@@ -42,6 +42,13 @@ namespace libp2p::peer {
 
 }  // namespace libp2p::peer
 
+namespace std {
+  template <>
+  struct hash<libp2p::peer::PeerId> {
+    size_t operator()(const libp2p::peer::PeerId &peer_id) const;
+  };
+}  // namespace std
+
 OUTCOME_HPP_DECLARE_ERROR(libp2p::peer, PeerId::FactoryError)
 
 #endif  // KAGOME_PEER_ID_HPP

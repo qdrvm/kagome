@@ -14,19 +14,21 @@
 
 using namespace libp2p::peer;
 using namespace libp2p::multi;
+
+using kagome::common::Buffer;
 using std::literals::chrono_literals::operator""ms;
 
 struct InmemAddressRepository_Test : public ::testing::Test {
   void SetUp() override {
     db = std::make_unique<InmemAddressRepository>();
     db->onAddressAdded([](const PeerId &p, const Multiaddress &ma) {
-      std::cout << "added  : <" << p.toHex() << "> " << ma.getStringAddress()
-                << '\n';
+      std::cout << "added  : <" << p.toHash().toHex() << "> "
+                << ma.getStringAddress() << '\n';
     });
 
     db->onAddressRemoved([](const PeerId &p, const Multiaddress &ma) {
-      std::cout << "removed: <" << p.toHex() << "> " << ma.getStringAddress()
-                << '\n';
+      std::cout << "removed: <" << p.toHash().toHex() << "> "
+                << ma.getStringAddress() << '\n';
     });
   }
 
@@ -38,8 +40,16 @@ struct InmemAddressRepository_Test : public ::testing::Test {
 
   std::unique_ptr<AddressRepository> db;
 
-  const PeerId p1 = Multihash::createFromHex("1203020304").value();
-  const PeerId p2 = Multihash::createFromHex("1203ffffff").value();
+  const PeerId p1 =
+      PeerId::fromHash(Multihash::create(HashType::sha256,
+                                         Buffer{0x12, 0x03, 0x02, 0x03, 0x04})
+                           .value())
+          .value();
+  const PeerId p2 =
+      PeerId::fromHash(Multihash::create(HashType::sha256,
+                                         Buffer{0x12, 0x03, 0xFF, 0xFF, 0xFF})
+                           .value())
+          .value();
 
   const Multiaddress ma1 =
       Multiaddress::create("/ip4/127.0.0.1/tcp/8080").value();

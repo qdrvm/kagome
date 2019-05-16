@@ -9,4 +9,5 @@ target_link_libraries(libp2p_inmem_address_repository
     multihash
     multiaddress
     libp2p_peer_errors
+    libp2p_peer_id
     )

@@ -27,6 +27,7 @@ add_library(libp2p_peer_repository
     )
 target_link_libraries(libp2p_peer_repository
     address_repository
+    libp2p_peer_id
     )
 
 add_library(libp2p_peer_id
