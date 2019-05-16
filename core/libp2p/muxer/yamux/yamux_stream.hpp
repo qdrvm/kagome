@@ -24,12 +24,12 @@ namespace libp2p::stream {
     YamuxStream(YamuxStream &&other) noexcept = default;
     YamuxStream &operator=(YamuxStream &&other) noexcept = default;
 
-    void readAsync(ReadCompletionHandler completion_handler) override;
+    void readAsync(ReadCompletionHandler completion_handler) const override;
 
-    void writeAsync(const kagome::common::Buffer &msg) override;
+    void writeAsync(const kagome::common::Buffer &msg) const override;
 
     void writeAsync(const kagome::common::Buffer &msg,
-                    ErrorCodeCallback error_callback) override;
+                    ErrorCodeCallback error_callback) const override;
 
     void close() override;
 

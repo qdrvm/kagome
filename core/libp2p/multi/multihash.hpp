@@ -85,6 +85,7 @@ namespace libp2p::multi {
     const kagome::common::Buffer &toBuffer() const;
 
     bool operator==(const Multihash &other) const;
+    bool operator!=(const Multihash &other) const;
 
    private:
     /**

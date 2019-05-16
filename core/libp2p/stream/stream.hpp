@@ -20,20 +20,21 @@ namespace libp2p::stream {
     using NetworkMessageOutcome = outcome::result<kagome::common::Buffer>;
     using ReadCompletionHandler = std::function<void(NetworkMessageOutcome)>;
 
-    using ErrorCodeCallback = std::function<void(std::error_code, size_t)>;
+    using ErrorCodeCallback =
+        std::function<void(const std::error_code &, size_t)>;
 
     /**
      * Read one frame - unit of data exchange in streams - from this stream
      * @param completion_handler - function, which is going to be called, when
      * message is read from the stream
      */
-    virtual void readAsync(ReadCompletionHandler completion_handler) = 0;
+    virtual void readAsync(ReadCompletionHandler completion_handler) const = 0;
 
     /**
      * Write data to the stream
      * @param msg to be written
      */
-    virtual void writeAsync(const kagome::common::Buffer &msg) = 0;
+    virtual void writeAsync(const kagome::common::Buffer &msg) const = 0;
 
     /**
      * Write data to the stream
@@ -42,7 +43,7 @@ namespace libp2p::stream {
      * write finishes
      */
     virtual void writeAsync(const kagome::common::Buffer &msg,
-                            ErrorCodeCallback error_callback) = 0;
+                            ErrorCodeCallback error_callback) const = 0;
 
     /**
      * Check, if this stream is closed from the other side of the connection and
