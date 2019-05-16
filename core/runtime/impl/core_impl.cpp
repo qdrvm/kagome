@@ -26,9 +26,7 @@ namespace kagome::runtime {
                     state_code_, "Core_version",
                     wasm::LiteralList({wasm::Literal(0), wasm::Literal(0)})));
 
-    // first 32 bits are address and second are length (length not needed)
-    runtime::WasmPointer version_address =
-        version_long.geti64() & 0xFFFFFFFFLLU;
+    runtime::WasmPointer version_address = getWasmAddr(version_long);
 
     WasmMemoryStream stream(memory_);
 
@@ -82,9 +80,7 @@ namespace kagome::runtime {
                                wasm::LiteralList({wasm::Literal(ptr),
                                                   wasm::Literal(id_size)})));
 
-    // first 32 bits are address and second are the length (length not needed)
-    runtime::WasmPointer authority_address =
-        result_long.geti64() & 0xFFFFFFFFLLU;
+    runtime::WasmPointer authority_address = getWasmAddr(result_long);
 
     WasmMemoryStream stream(memory_);
     OUTCOME_TRY(stream.advance(authority_address));

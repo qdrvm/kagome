@@ -16,7 +16,9 @@
 
 namespace kagome::primitives {
 
-
+  /**
+   * Inherent data to include in a block
+   */
   class InherentData {
    public:
     enum class Error { IDENTIFIER_ALREADY_EXISTS = 1 };
@@ -46,7 +48,8 @@ namespace kagome::primitives {
     outcome::result<std::optional<common::Buffer>> getData(
         const InherentIdentifier &identifier) const;
 
-    const std::map<InherentIdentifier, common::Buffer>& getDataCollection() const;
+    const std::map<InherentIdentifier, common::Buffer> &getDataCollection()
+        const;
 
    private:
     std::map<InherentIdentifier, common::Buffer> data_;

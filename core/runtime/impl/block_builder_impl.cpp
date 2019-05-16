@@ -51,7 +51,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(res,
                 executor_.call(state_code_, "BlockBuilder_finalize_block", {}));
 
-    uint32_t res_addr = res.geti64() & 0xFFFFFFFFLLU;
+    uint32_t res_addr = getWasmAddr(res);
 
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));
@@ -75,7 +75,7 @@ namespace kagome::runtime {
         res,
         executor_.call(state_code_, "BlockBuilder_inherent_extrinsics", ll));
 
-    uint32_t res_addr = static_cast<uint64_t>(res.geti64()) >> 32ul;
+    uint32_t res_addr = getWasmAddr(res);
 
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));
@@ -107,7 +107,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(
         res, executor_.call(state_code_, "BlockBuilder_check_inherents", ll));
 
-    uint32_t res_addr = static_cast<uint64_t>(res.geti64()) >> 32ul;
+    uint32_t res_addr = getWasmAddr(res);
 
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));
@@ -122,11 +122,11 @@ namespace kagome::runtime {
 
   outcome::result<common::Hash256> BlockBuilderImpl::random_seed() {
     // TODO(Harrm) PRE-154 Figure out what it requires
-    wasm::LiteralList ll {Literal(0), Literal(0)};
+    wasm::LiteralList ll{Literal(0), Literal(0)};
     OUTCOME_TRY(res,
                 executor_.call(state_code_, "BlockBuilder_random_seed", ll));
 
-    uint32_t res_addr = static_cast<uint64_t>(res.geti64()) >> 32ul;
+    uint32_t res_addr = getWasmAddr(res);
 
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));

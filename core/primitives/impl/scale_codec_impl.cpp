@@ -396,7 +396,7 @@ namespace kagome::primitives {
 
     for (auto &pair : data) {
       ids.push_back(pair.first);
-      vals.push_back(std::cref(pair.second.toVector()));
+      vals.push_back(pair.second.toVector());
     }
 
     Buffer res;
