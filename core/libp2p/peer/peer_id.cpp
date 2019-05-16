@@ -5,13 +5,8 @@
 
 #include "libp2p/peer/peer_id.hpp"
 
-#include "crypto/hasher/hasher_impl.hpp"
-#include "libp2p/multi/multibase_codec/multibase_codec_impl.hpp"
-
-namespace {
-  const libp2p::multi::MultibaseCodecImpl kCodec{};
-  const kagome::hash::HasherImpl kHasher{};
-}  // namespace
+#include "crypto/sha/sha256.hpp"
+#include "libp2p/multi/multibase_codec/codecs/base58.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::peer, PeerId::FactoryError, e) {
   using E = libp2p::peer::PeerId::FactoryError;
@@ -24,13 +19,14 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::peer, PeerId::FactoryError, e) {
 
 namespace libp2p::peer {
   using kagome::common::Buffer;
-  using multi::MultibaseCodec;
   using multi::Multihash;
+  using multi::detail::decodeBase58;
+  using multi::detail::encodeBase58;
 
   PeerId::PeerId(multi::Multihash hash) : hash_{std::move(hash)} {}
 
   PeerId::FactoryResult PeerId::fromPublicKey(const crypto::PublicKey &key) {
-    auto hash = kHasher.sha2_256(key.data);
+    auto hash = kagome::crypto::sha256(key.data.toVector());
     OUTCOME_TRY(
         multihash,
         Multihash::create(multi::sha256, Buffer{hash.begin(), hash.end()}));
@@ -39,7 +35,7 @@ namespace libp2p::peer {
   }
 
   PeerId::FactoryResult PeerId::fromBase58(std::string_view id) {
-    OUTCOME_TRY(decoded_id, kCodec.decode(id));
+    OUTCOME_TRY(decoded_id, decodeBase58(id));
     OUTCOME_TRY(hash, Multihash::createFromBuffer(decoded_id.toVector()));
 
     if (hash.getType() != multi::HashType::sha256) {
@@ -62,15 +58,15 @@ namespace libp2p::peer {
   }
 
   std::string PeerId::toBase58() const {
-    return kCodec.encode(hash_.toBuffer(), MultibaseCodec::Encoding::BASE58);
+    return encodeBase58(hash_.toBuffer());
   }
 
-  const multi::Multihash &PeerId::toHash() const {
+  const multi::Multihash &PeerId::toMultihash() const {
     return hash_;
   }
 }  // namespace libp2p::peer
 
 size_t std::hash<libp2p::peer::PeerId>::operator()(
     const libp2p::peer::PeerId &peer_id) const {
-  return std::hash<libp2p::multi::Multihash>()(peer_id.toHash());
+  return std::hash<libp2p::multi::Multihash>()(peer_id.toMultihash());
 }

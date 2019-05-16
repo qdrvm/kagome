@@ -22,12 +22,12 @@ struct InmemAddressRepository_Test : public ::testing::Test {
   void SetUp() override {
     db = std::make_unique<InmemAddressRepository>();
     db->onAddressAdded([](const PeerId &p, const Multiaddress &ma) {
-      std::cout << "added  : <" << p.toHash().toHex() << "> "
+      std::cout << "added  : <" << p.toMultihash().toHex() << "> "
                 << ma.getStringAddress() << '\n';
     });
 
     db->onAddressRemoved([](const PeerId &p, const Multiaddress &ma) {
-      std::cout << "removed: <" << p.toHash().toHex() << "> "
+      std::cout << "removed: <" << p.toMultihash().toHex() << "> "
                 << ma.getStringAddress() << '\n';
     });
   }

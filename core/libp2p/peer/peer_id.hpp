@@ -22,19 +22,47 @@ namespace libp2p::peer {
    public:
     enum class FactoryError { SHA256_EXPECTED = 1 };
 
+    /**
+     * Create a PeerId from the public key
+     * @param key, from which PeerId is to be created
+     * @return instance of PeerId in case of success, error otherwise
+     */
     static FactoryResult fromPublicKey(const crypto::PublicKey &key);
 
+    /**
+     * Create a PeerId from base58-encoded string (not Multibase58!) with its
+     * SHA256-hashed ID
+     * @param id, with which PeerId is to be created
+     * @return instance of PeerId in case of success, error otherwise
+     */
     static FactoryResult fromBase58(std::string_view id);
 
+    /**
+     * Create a PeerId from SHA256 hash of its ID
+     * @param hash, with which PeerId is to be created; MUST be SHA256
+     * @return instance of PeerId in case of success, error otherwise
+     */
     static FactoryResult fromHash(const multi::Multihash &hash);
 
+    /**
+     * Get a base58 (not Multibase58!) representation of this PeerId
+     * @return base58-encoded SHA256 multihash of the peer's ID
+     */
     std::string toBase58() const;
 
-    const multi::Multihash &toHash() const;
+    /**
+     * Get a SHA256 multihash of the peer's ID
+     * @return multihash
+     */
+    const multi::Multihash &toMultihash() const;
 
     bool operator==(const PeerId &other) const;
 
    private:
+    /**
+     * Create an instance of PeerId
+     * @param hash, with which PeerId is to be created
+     */
     explicit PeerId(multi::Multihash hash);
 
     multi::Multihash hash_;

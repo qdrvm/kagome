@@ -41,11 +41,11 @@ target_link_libraries(libp2p_peer_id
     hasher
     )
 
-add_library(libp2p_peer_identity
-    peer_identity.cpp
-    peer_identity.hpp
+add_library(libp2p_peer_address
+    peer_address.cpp
+    peer_address.hpp
     )
-target_link_libraries(libp2p_peer_identity
+target_link_libraries(libp2p_peer_address
     outcome
     multiaddress
     multihash

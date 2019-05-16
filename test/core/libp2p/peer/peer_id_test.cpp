@@ -7,19 +7,16 @@
 
 #include <gtest/gtest.h>
 #include <testutil/outcome.hpp>
-#include "crypto/hasher/hasher_impl.hpp"
-#include "libp2p/multi/multibase_codec/multibase_codec_impl.hpp"
+#include "crypto/sha/sha256.hpp"
+#include "libp2p/multi/multibase_codec/codecs/base58.hpp"
 
 using namespace libp2p::crypto;
 using namespace libp2p::peer;
 using namespace libp2p::multi;
-using namespace kagome::hash;
+using namespace libp2p::multi::detail;
 
 class PeerIdTest : public ::testing::Test {
  public:
-  const MultibaseCodecImpl kCodec{};
-  const HasherImpl kHasher{};
-
   const Buffer kBuffer{0x11, 0x22, 0x33};
 };
 
@@ -33,15 +30,13 @@ TEST_F(PeerIdTest, FromPubkeySuccess) {
   pubkey.type = Key::Type::RSA1024;
   pubkey.data = kBuffer;
 
-  auto hash = kHasher.sha2_256(pubkey.data);
+  auto hash = kagome::crypto::sha256(pubkey.data.toVector());
   EXPECT_OUTCOME_TRUE(
       multihash, Multihash::create(sha256, Buffer{hash.begin(), hash.end()}))
 
   EXPECT_OUTCOME_TRUE(peer_id, PeerId::fromPublicKey(pubkey))
-  EXPECT_EQ(
-      peer_id.toBase58(),
-      kCodec.encode(multihash.toBuffer(), MultibaseCodec::Encoding::BASE58));
-  EXPECT_EQ(peer_id.toHash(), multihash);
+  EXPECT_EQ(peer_id.toBase58(), encodeBase58(multihash.toBuffer()));
+  EXPECT_EQ(peer_id.toMultihash(), multihash);
 }
 
 /**
@@ -51,12 +46,11 @@ TEST_F(PeerIdTest, FromPubkeySuccess) {
  */
 TEST_F(PeerIdTest, FromBase58Success) {
   EXPECT_OUTCOME_TRUE(hash, Multihash::create(sha256, kBuffer))
-  auto hash_b58 =
-      kCodec.encode(hash.toBuffer(), MultibaseCodec::Encoding::BASE58);
+  auto hash_b58 = encodeBase58(hash.toBuffer());
 
   EXPECT_OUTCOME_TRUE(peer_id, PeerId::fromBase58(hash_b58))
   EXPECT_EQ(peer_id.toBase58(), hash_b58);
-  EXPECT_EQ(peer_id.toHash(), hash);
+  EXPECT_EQ(peer_id.toMultihash(), hash);
 }
 
 /**
@@ -74,7 +68,7 @@ TEST_F(PeerIdTest, FromBase58NotBase58) {
  * @then creation fails
  */
 TEST_F(PeerIdTest, FromBase58IcorrectHash) {
-  auto not_hash_b58 = kCodec.encode(kBuffer, MultibaseCodec::Encoding::BASE58);
+  auto not_hash_b58 = encodeBase58(kBuffer);
 
   EXPECT_FALSE(PeerId::fromBase58(not_hash_b58));
 }
@@ -86,8 +80,7 @@ TEST_F(PeerIdTest, FromBase58IcorrectHash) {
  */
 TEST_F(PeerIdTest, FromBase58NotSha256) {
   EXPECT_OUTCOME_TRUE(hash, Multihash::create(sha512, kBuffer))
-  auto hash_b58 =
-      kCodec.encode(hash.toBuffer(), MultibaseCodec::Encoding::BASE58);
+  auto hash_b58 = encodeBase58(hash.toBuffer());
 
   EXPECT_FALSE(PeerId::fromBase58(hash_b58));
 }
@@ -99,12 +92,11 @@ TEST_F(PeerIdTest, FromBase58NotSha256) {
  */
 TEST_F(PeerIdTest, FromHashSuccess) {
   EXPECT_OUTCOME_TRUE(hash, Multihash::create(sha256, kBuffer))
-  auto hash_b58 =
-      kCodec.encode(hash.toBuffer(), MultibaseCodec::Encoding::BASE58);
+  auto hash_b58 = encodeBase58(hash.toBuffer());
 
   EXPECT_OUTCOME_TRUE(peer_id, PeerId::fromHash(hash))
   EXPECT_EQ(peer_id.toBase58(), hash_b58);
-  EXPECT_EQ(peer_id.toHash(), hash);
+  EXPECT_EQ(peer_id.toMultihash(), hash);
 }
 
 /**

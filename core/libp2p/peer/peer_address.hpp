@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PEER_IDENTITY_HPP
-#define KAGOME_PEER_IDENTITY_HPP
+#ifndef KAGOME_PEER_ADDRESS_HPP
+#define KAGOME_PEER_ADDRESS_HPP
 
 #include <memory>
 #include <string>
@@ -16,27 +16,27 @@
 
 namespace libp2p::peer {
   /**
-   * Identity of the given peer; includes its ID and multiaddress; usually is
+   * Address of the given peer; includes its ID and multiaddress; usually is
    * passed over the network
    */
-  class PeerIdentity {
-    using FactoryResult = outcome::result<PeerIdentity>;
+  class PeerAddress {
+    using FactoryResult = outcome::result<PeerAddress>;
 
    public:
     enum class FactoryError { ID_EXPECTED = 1, NO_ADDRESSES, SHA256_EXPECTED };
 
     /**
-     * Create a PeerIdentity from the string of format
+     * Create a PeerAddress from the string of format
      * "<multiaddress>/id/<base58_encoded_peer_id>"
-     * @param identity - stringified identity, for instance,
-     * "/ip4/192.168.0.1/tcp/1234/id/<ID>"
+     * @param address - stringified address, for instance,
+     * "/ip4/192.168.0.1/tcp/1234/p2p/<ID>"
      * @return created object in case of success, error otherwise
      */
-    static FactoryResult create(std::string_view identity);
+    static FactoryResult create(std::string_view address);
 
     /**
-     * Create a PeerIdentity from the PeerInfo structure
-     * @param peer_info, from which identity is to be created; MUST contain both
+     * Create a PeerAddress from the PeerInfo structure
+     * @param peer_info, from which address is to be created; MUST contain both
      * PeerId and at least one Multiaddress; if there are several addresses in
      * the structure, a random one is chosen
      * @return created object in case of success, error otherwise
@@ -44,46 +44,46 @@ namespace libp2p::peer {
     static FactoryResult create(const PeerInfo &peer_info);
 
     /**
-     * Create a PeerIdentity from PeerId and Multiaddress
-     * @param peer_id of the identity to be created
-     * @param address of the identity to be created
+     * Create a PeerAddress from PeerId and Multiaddress
+     * @param peer_id of the address to be created
+     * @param address of the address to be created
      * @return created object in case of success, error otherwise
      */
     static FactoryResult create(const PeerId &peer_id,
                                 const multi::Multiaddress &address);
 
     /**
-     * Get a string representation of this identity;
-     * "<multiaddress>/id/<base64-peer-id>"
-     * @return identity string
+     * Get a string representation of this address;
+     * "<multiaddress>/p2p/<base58-peer-id>"
+     * @return address string
      */
-    std::string getIdentity() const;
+    std::string toString() const;
 
     /**
-     * Get a PeerId in this identity
+     * Get a PeerId in this address
      * @return peer id
      */
     const PeerId &getId() const noexcept;
 
     /**
-     * Get a Multiaddress in this identity
+     * Get a Multiaddress in this address
      * @return multiaddress
      */
     const multi::Multiaddress &getAddress() const noexcept;
 
    private:
     /**
-     * Construct a PeerIdentity instance
+     * Construct a PeerAddress instance
      * @param id, with which an instance is to be created
      * @param address, with which an instance is to be created
      */
-    PeerIdentity(PeerId id, multi::Multiaddress address);
+    PeerAddress(PeerId id, multi::Multiaddress address);
 
     PeerId id_;
     multi::Multiaddress address_;
   };
 }  // namespace libp2p::peer
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::peer, PeerIdentity::FactoryError)
+OUTCOME_HPP_DECLARE_ERROR(libp2p::peer, PeerAddress::FactoryError)
 
-#endif  // KAGOME_PEER_IDENTITY_HPP
+#endif  // KAGOME_PEER_ADDRESS_HPP

@@ -10,11 +10,11 @@ target_link_libraries(peer_id_test
     libp2p_peer_id
     )
 
-addtest(peer_identity_test
-    peer_identity_test.cpp
+addtest(peer_address_test
+    peer_address_test.cpp
     )
-target_link_libraries(peer_identity_test
-    libp2p_peer_identity
+target_link_libraries(peer_address_test
+    libp2p_peer_address
     )
 
 add_subdirectory(address_repository)
