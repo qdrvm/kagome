@@ -51,7 +51,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(res,
                 executor_.call(state_code_, "BlockBuilder_finalize_block", {}));
 
-    uint32_t res_addr = getWasmAddr(res);
+    uint32_t res_addr = getWasmAddr(res.geti64());
 
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));
@@ -75,7 +75,7 @@ namespace kagome::runtime {
         res,
         executor_.call(state_code_, "BlockBuilder_inherent_extrinsics", ll));
 
-    uint32_t res_addr = getWasmAddr(res);
+    uint32_t res_addr = getWasmAddr(res.geti64());
 
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));
@@ -107,7 +107,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(
         res, executor_.call(state_code_, "BlockBuilder_check_inherents", ll));
 
-    uint32_t res_addr = getWasmAddr(res);
+    uint32_t res_addr = getWasmAddr(res.geti64());
 
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));
@@ -126,7 +126,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(res,
                 executor_.call(state_code_, "BlockBuilder_random_seed", ll));
 
-    uint32_t res_addr = getWasmAddr(res);
+    uint32_t res_addr = getWasmAddr(res.geti64());
 
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));

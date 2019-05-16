@@ -36,7 +36,7 @@ namespace kagome::runtime {
         executor_.call(state_code_,
                        "TaggedTransactionQueue_validate_transaction", ll));
 
-    uint32_t res_addr = getWasmAddr(res);
+    uint32_t res_addr = getWasmAddr(res.geti64());
 
 
     WasmMemoryStream s(memory_);

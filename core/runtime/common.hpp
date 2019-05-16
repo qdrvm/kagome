@@ -16,15 +16,15 @@ namespace kagome::runtime {
   using SizeType = uint32_t;
 
   /**
-   * Result of a call of a wasm runtime function is a i64 where first 32 bits
-   * are address and next 32 bits are the size of the returned buffer.
+   * Result of a call to a Runtime API wasm function is an i64 where first 32
+   * bits are the address and next 32 bits are the size of the returned buffer.
    *
    * @arg runtime_call_result is a wasm literal which is the result of execution
    * of a wasm function in Runtime API
    * @returns the address of the buffer returned by the function
    */
-  constexpr uint32_t getWasmAddr(const wasm::Literal &runtime_call_result) {
-    return static_cast<uint64_t>(runtime_call_result.geti64()) & 0xFFFFFFFFLLU;
+  constexpr uint32_t getWasmAddr(int64_t runtime_call_result) {
+    return static_cast<uint64_t>(runtime_call_result) & 0xFFFFFFFFLLU;
   }
 
 }  // namespace kagome::runtime

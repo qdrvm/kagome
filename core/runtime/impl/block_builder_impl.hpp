@@ -10,7 +10,7 @@
 #include "primitives/scale_codec.hpp"
 #include "runtime/block_builder.hpp"
 #include "runtime/wasm_memory.hpp"
-#include "wasm_executor.hpp"
+#include "runtime/impl/wasm_executor.hpp"
 
 namespace kagome::runtime {
 
