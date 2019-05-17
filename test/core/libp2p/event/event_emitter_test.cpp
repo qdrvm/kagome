@@ -33,11 +33,24 @@ class EventEmitterTest : public ::testing::Test {
 };
 
 TEST_F(EventEmitterTest, EmitEvents) {
+  std::string connection_opened{};
+  auto connection_closed = -1;
+
   ConnectionStateEmitter emitter{};
 
   /// only works like this, just a lambda do not; find a way to fix it?
-  std::function<void(int)> handler = [](int n) { std::cout << n; };
-  emitter.on<ConnectionClosed>(handler);
+  std::function<void(std::string)> handler1 =
+      [&connection_opened](std::string str) { connection_opened = str; };
+  emitter.on<ConnectionOpened>(handler1);
 
+  std::function<void(int)> handler2 = [&connection_closed](int n) {
+    connection_closed = n;
+  };
+  emitter.on<ConnectionClosed>(handler2);
+
+  emitter.emit<ConnectionOpened>(std::string{"foo"});
   emitter.emit<ConnectionClosed>(2);
+
+  ASSERT_EQ(connection_opened, "foo");
+  ASSERT_EQ(connection_closed, 2);
 }
