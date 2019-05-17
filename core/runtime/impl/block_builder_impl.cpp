@@ -119,7 +119,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(is_fatal, decoder.decode(s));
     OUTCOME_TRY(error_data, codec_->decodeInherentData(s));
 
-    return CheckInherentsResult{ok, is_fatal, error_data};
+    return CheckInherentsResult{error_data, ok, is_fatal};
   }
 
   outcome::result<common::Hash256> BlockBuilderImpl::random_seed() {
