@@ -23,3 +23,7 @@ addtest(blob_test
 target_link_libraries(blob_test
   blob
   )
+
+addtest(event_emitter_test
+    event_emitter_test.cpp
+    )
