@@ -441,9 +441,20 @@ TEST_F(Primitives, EncodeInherentData) {
   InherentData::InherentIdentifier id1 {1};
   InherentData::InherentIdentifier id2 {2};
   InherentData::InherentIdentifier id3 {3};
-  EXPECT_OUTCOME_TRUE_void(r1, data.putData(id1, {1, 2, 3, 4}));
-  EXPECT_OUTCOME_TRUE_void(r2, data.putData(id2, {5, 6, 7, 8}));
-  EXPECT_OUTCOME_TRUE_void(r3, data.putData(id3, {1, 2, 3, 4}));
+  Buffer b1 {1, 2, 3, 4};
+  Buffer b2 {5, 6, 7, 8};
+  Buffer b3 {1, 2, 3, 4};
+  EXPECT_OUTCOME_TRUE_void(r1, data.putData(id1, b1));
+  EXPECT_OUTCOME_TRUE_void(r2, data.putData(id2, b2));
+  EXPECT_OUTCOME_TRUE_void(r3, data.putData(id3, b3));
+
+  ASSERT_EQ(data.getData(id1).value(), b1);
+  ASSERT_EQ(data.getData(id2).value(), b2);
+  ASSERT_EQ(data.getData(id3).value(), b3);
+
+  Buffer b4 {1, 3, 5, 7};
+  data.replaceData(id3, b4);
+  ASSERT_EQ(data.getData(id3).value(), b4);
 
   EXPECT_OUTCOME_TRUE(enc_data, codec_->encodeInherentData(data));
   ByteArrayStream s(enc_data);
