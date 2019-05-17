@@ -24,6 +24,8 @@ add_library(scale
     fixedwidth.hpp
     fixedwidth.cpp
     optional.hpp
+    optional_bool.hpp
+    optional_bool.cpp
     scale.hpp
     scale_error.hpp
     scale_error.cpp

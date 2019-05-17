@@ -5,13 +5,13 @@
 
 #include "primitives/block_header.hpp"
 
-using kagome::common::Buffer;
 using kagome::common::Hash256;
 
 namespace kagome::primitives {
 
-  BlockHeader::BlockHeader(Hash256 parent_hash, size_t number, Hash256 state_root,
-                           Hash256 extrinsics_root, Buffer digest)
+  BlockHeader::BlockHeader(Hash256 parent_hash, size_t number,
+                           Hash256 state_root, Hash256 extrinsics_root,
+                           Digest digest)
       : parent_hash_(std::move(parent_hash)),
         number_(number),
         state_root_(std::move(state_root)),
@@ -34,7 +34,7 @@ namespace kagome::primitives {
     return extrinsics_root_;
   }
 
-  const Buffer &BlockHeader::digest() const {
+  const Digest &BlockHeader::digest() const {
     return digest_;
   }
 

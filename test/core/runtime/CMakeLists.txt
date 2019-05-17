@@ -55,3 +55,11 @@ target_link_libraries(parachain_test
     parachain_host_api
     wasm_test
     )
+
+addtest(grandpa_test
+    grandpa_test.cpp
+    )
+target_link_libraries(grandpa_test
+    grandpa_api
+    wasm_test
+    )

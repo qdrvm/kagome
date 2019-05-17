@@ -15,6 +15,7 @@
 #include "scale/collection.hpp"
 #include "scale/compact.hpp"
 #include "scale/fixedwidth.hpp"
+#include "scale/optional.hpp"
 #include "scale/scale_error.hpp"
 #include "scale/variant.hpp"
 
@@ -106,7 +107,7 @@ namespace kagome::scale {
     outcome::result<array_type> decode(common::ByteStream &stream) {
       array_type array;
 
-      for (int i = 0; i < sz; i++) {
+      for (size_t i = 0ul; i < sz; i++) {
         OUTCOME_TRY(byte, fixedwidth::decodeUint8(stream));
         array[i] = byte;
       }
@@ -181,6 +182,33 @@ namespace kagome::scale {
   struct TypeDecoder<primitives::parachain::Relay>
       : public EmptyDecoder<primitives::parachain::Relay> {};
 
+  template struct TypeDecoder<std::array<uint8_t, 8>>;
+  template struct TypeEncoder<std::array<uint8_t, 8>>;
+
+  template <>
+  struct TypeEncoder<primitives::ScheduledChange> {
+    outcome::result<void> encode(const primitives::ScheduledChange &value,
+                                 common::Buffer &out) {
+      OUTCOME_TRY((collection::encodeCollection<
+                   std::pair<primitives::AuthorityId, uint64_t>>(
+          value.next_authorities_, out)));
+      fixedwidth::encodeUint64(value.delay_, out);
+      return outcome::success();
+    }
+  };
+
+  template <>
+  struct TypeDecoder<primitives::ScheduledChange> {
+    outcome::result<primitives::ScheduledChange> decode(
+        common::ByteStream &stream) {
+      OUTCOME_TRY(next_authorities,
+                  collection::decodeCollection<
+                      std::pair<primitives::AuthorityId, uint64_t>>(stream));
+      OUTCOME_TRY(delay, fixedwidth::decodeUint64(stream));
+
+      return primitives::ScheduledChange{std::move(next_authorities), delay};
+    }
+  };
 }  // namespace kagome::scale
 
 namespace kagome::primitives {
@@ -198,6 +226,8 @@ namespace kagome::primitives {
   using kagome::scale::fixedwidth::decodeUint64;
   using kagome::scale::fixedwidth::encodeUint32;
   using kagome::scale::fixedwidth::encodeUint64;
+  using kagome::scale::optional::decodeOptional;
+  using kagome::scale::optional::encodeOptional;
   using kagome::scale::variant::decodeVariant;
   using kagome::scale::variant::encodeVariant;
 
@@ -358,5 +388,37 @@ namespace kagome::primitives {
   outcome::result<parachain::DutyRoster> ScaleCodecImpl::decodeDutyRoster(
       ScaleCodec::Stream &stream) const {
     return decodeCollection<parachain::Chain>(stream);
+  }
+
+  outcome::result<Buffer> ScaleCodecImpl::encodeDigest(
+      const Digest &digest) const {
+    return buffer_codec_->encode(digest);
+  }
+
+  outcome::result<Digest> ScaleCodecImpl::decodeDigest(
+      ScaleCodec::Stream &stream) const {
+    return buffer_codec_->decode(stream);
+  }
+
+  outcome::result<Buffer> ScaleCodecImpl::encodeScheduledChange(
+      const ScheduledChange &value) const {
+    Buffer out;
+    scale::TypeEncoder<ScheduledChange> codec;
+    OUTCOME_TRY(codec.encode(value, out));
+    return out;
+  }
+
+  outcome::result<std::optional<ScheduledChange>>
+  ScaleCodecImpl::decodeScheduledChange(ScaleCodec::Stream &stream) const {
+    return decodeOptional<ScheduledChange>(stream);
+  }
+  outcome::result<std::optional<primitives::ForcedChangeType>>
+  ScaleCodecImpl::decodeForcedChange(ScaleCodec::Stream &stream) const {
+    return scale::optional::decodeOptional<
+        std::pair<BlockNumber, ScheduledChange>>(stream);
+  }
+  outcome::result<std::vector<primitives::WeightedAuthority>>
+  ScaleCodecImpl::decodeGrandpaAuthorities(ScaleCodec::Stream &stream) const {
+    return scale::collection::decodeCollection<primitives::WeightedAuthority>(stream);
   }
 }  // namespace kagome::primitives

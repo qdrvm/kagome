@@ -53,3 +53,16 @@ target_link_libraries(parachain_host_api
     wasm_memory_stream
     wasm_executor
     )
+
+add_library(grandpa_api
+    grandpa.hpp
+    impl/grandpa_impl.hpp
+    impl/grandpa_impl.cpp
+    )
+target_link_libraries(grandpa_api
+    buffer
+    logger
+    scale_codec
+    wasm_memory_stream
+    wasm_executor
+    )

@@ -8,6 +8,7 @@ add_library(primitives
     block.cpp
     block_header.hpp
     block_header.cpp
+    digest.hpp
     extrinsic.hpp
     extrinsic.cpp
     version.hpp
@@ -16,6 +17,8 @@ add_library(primitives
     block_id.hpp
     common.hpp
     parachain_host.hpp
+    scheduled_change.hpp
+    scheduled_change.cpp
     )
 target_link_libraries(primitives
     buffer

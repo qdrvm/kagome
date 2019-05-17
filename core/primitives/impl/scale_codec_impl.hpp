@@ -6,6 +6,8 @@
 #ifndef KAGOME_PRIMITIVES_SCALE_CODEC_IMPL_HPP
 #define KAGOME_PRIMITIVES_SCALE_CODEC_IMPL_HPP
 
+#include <primitives/digest.hpp>
+#include <primitives/scheduled_change.hpp>
 #include "primitives/scale_codec.hpp"
 #include "scale/buffer_codec.hpp"
 #include "scale/types.hpp"
@@ -61,9 +63,24 @@ namespace kagome::primitives {
     outcome::result<parachain::DutyRoster> decodeDutyRoster(
         Stream &stream) const override;
 
+    outcome::result<Buffer> encodeDigest(const Digest &digest) const override;
+
+    outcome::result<Digest> decodeDigest(Stream &stream) const override;
+
+    outcome::result<Buffer> encodeScheduledChange(
+        const ScheduledChange &value) const override;
+
+    outcome::result<std::optional<ScheduledChange>> decodeScheduledChange(
+        Stream &stream) const override;
+
+    outcome::result<std::optional<primitives::ForcedChangeType>>
+    decodeForcedChange(Stream &stream) const override;
+
+    outcome::result<std::vector<primitives::WeightedAuthority>>
+    decodeGrandpaAuthorities(Stream &stream) const override;
+
    protected:
-    std::unique_ptr<scale::BufferScaleCodec>
-        buffer_codec_;  ///< scale codec for common::Buffer
+    std::unique_ptr<scale::BufferScaleCodec> buffer_codec_;
   };
 }  // namespace kagome::primitives
 
