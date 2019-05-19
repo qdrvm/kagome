@@ -26,9 +26,11 @@ namespace kagome::runtime {
         state_code_(std::move(state_code)) {}
 
   outcome::result<std::optional<ScheduledChange>> GrandpaImpl::pendingChange(
-      const Grandpa::Digest &digest) {
+      BlockId block_id, const Grandpa::Digest &digest) {
     common::Buffer params;
+    OUTCOME_TRY(encoded_block_id, codec_->encodeBlockId(block_id));
     OUTCOME_TRY(encoded_digest, codec_->encodeDigest(digest));
+    params.putBuffer(encoded_block_id);
     params.putBuffer(encoded_digest);
 
     runtime::SizeType ext_size = params.size();
@@ -37,7 +39,9 @@ namespace kagome::runtime {
 
     wasm::LiteralList ll{wasm::Literal(ptr), wasm::Literal(ext_size)};
 
-    OUTCOME_TRY(res, executor_.call(state_code_, "GrandpaApi_grandpa_pending_change", ll));
+    OUTCOME_TRY(
+        res,
+        executor_.call(state_code_, "GrandpaApi_grandpa_pending_change", ll));
 
     uint32_t res_addr = static_cast<uint64_t>(res.geti64()) & 0xFFFFFFFFull;
 
@@ -48,9 +52,11 @@ namespace kagome::runtime {
   }
 
   outcome::result<std::optional<ForcedChangeType>> GrandpaImpl::forcedChange(
-      const Grandpa::Digest &digest) {
+      BlockId block_id, const Grandpa::Digest &digest) {
     common::Buffer params;
+    OUTCOME_TRY(encoded_block_id, codec_->encodeBlockId(block_id));
     OUTCOME_TRY(encoded_digest, codec_->encodeDigest(digest));
+    params.putBuffer(encoded_block_id);
     params.putBuffer(encoded_digest);
 
     runtime::SizeType ext_size = params.size();
@@ -59,7 +65,9 @@ namespace kagome::runtime {
 
     wasm::LiteralList ll{wasm::Literal(ptr), wasm::Literal(ext_size)};
 
-    OUTCOME_TRY(res, executor_.call(state_code_, "GrandpaApi_grandpa_forced_change", ll));
+    OUTCOME_TRY(
+        res,
+        executor_.call(state_code_, "GrandpaApi_grandpa_forced_change", ll));
 
     uint32_t res_addr = static_cast<uint64_t>(res.geti64()) & 0xFFFFFFFFull;
 
@@ -69,10 +77,19 @@ namespace kagome::runtime {
     return codec_->decodeForcedChange(s);
   }
 
-  outcome::result<std::vector<WeightedAuthority>> GrandpaImpl::authorities() {
-    wasm::LiteralList ll{wasm::Literal(0), wasm::Literal(0)};
+  outcome::result<std::vector<WeightedAuthority>> GrandpaImpl::authorities(BlockId block_id) {
+    common::Buffer params;
+    OUTCOME_TRY(encoded_block_id, codec_->encodeBlockId(block_id));
+    params.putBuffer(encoded_block_id);
 
-    OUTCOME_TRY(res, executor_.call(state_code_, "GrandpaApi_grandpa_authorities", ll));
+    runtime::SizeType ext_size = params.size();
+    runtime::WasmPointer ptr = memory_->allocate(ext_size);
+    memory_->storeBuffer(ptr, params);
+
+    wasm::LiteralList ll{wasm::Literal(ptr), wasm::Literal(ext_size)};
+
+    OUTCOME_TRY(
+        res, executor_.call(state_code_, "GrandpaApi_grandpa_authorities", ll));
 
     uint32_t res_addr = static_cast<uint64_t>(res.geti64()) & 0xFFFFFFFFull;
 

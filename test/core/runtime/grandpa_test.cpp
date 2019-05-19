@@ -48,8 +48,9 @@ class GrandpaTest : public RuntimeTest {
  * @then successful result is returned
  */
 TEST_F(GrandpaTest, PendingChange) {
+  auto &&block_id = createBlockId();
   auto &&digest = createDigest();
-  ASSERT_TRUE(api_->pendingChange(digest));
+  ASSERT_TRUE(api_->pendingChange(block_id, digest));
 }
 
 /**
@@ -58,9 +59,9 @@ TEST_F(GrandpaTest, PendingChange) {
  * @then successful result is returned
  */
 TEST_F(GrandpaTest, ForcedChange) {
+  auto &&block_id = createBlockId();
   auto &&digest = createDigest();
-  EXPECT_OUTCOME_TRUE(res, api_->forcedChange(digest));
-  std::cout << "initialized = " << res.has_value() << std::endl;
+  ASSERT_TRUE(api_->forcedChange(block_id, digest));
 }
 
 /**
@@ -70,6 +71,6 @@ TEST_F(GrandpaTest, ForcedChange) {
  * @brief writes "Uninteresting mock function call - returning default value"
  */
 TEST_F(GrandpaTest, DISABLED_Authorities) {
-  EXPECT_OUTCOME_TRUE(res, api_->authorities());
-  std::cout << "count = " << res.size() << std::endl;
+  auto &&block_id = createBlockId();
+  ASSERT_TRUE(api_->authorities(block_id));
 }

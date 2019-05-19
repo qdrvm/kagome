@@ -29,12 +29,12 @@ namespace kagome::runtime {
                 std::shared_ptr<primitives::ScaleCodec> codec);
 
     outcome::result<std::optional<ScheduledChange>> pendingChange(
-        const Digest &digest) override;
+        BlockId block_id, const Digest &digest) override;
 
     outcome::result<std::optional<ForcedChangeType>> forcedChange(
-        const Digest &digest) override;
+        BlockId block_id, const Digest &digest) override;
 
-    outcome::result<std::vector<WeightedAuthority>> authorities() override;
+    outcome::result<std::vector<WeightedAuthority>> authorities(BlockId block_id) override;
 
    protected:
     std::shared_ptr<WasmMemory> memory_;

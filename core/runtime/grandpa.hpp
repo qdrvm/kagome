@@ -9,6 +9,7 @@
 #include <boost/optional.hpp>
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
+#include "primitives/block_id.hpp"
 #include "primitives/digest.hpp"
 #include "primitives/scheduled_change.hpp"
 #include "primitives/session_key.hpp"
@@ -27,30 +28,35 @@ namespace kagome::runtime {
     using SessionKey = primitives::SessionKey;
     using WeightedAuthority = primitives::WeightedAuthority;
     using ForcedChangeType = primitives::ForcedChangeType;
+    using BlockId = primitives::BlockId;
 
    public:
     virtual ~Grandpa() = default;
     /**
      * @brief calls Grandpa_pending_change runtime api function
+     * @param block_id block id
      * @param digest digest
      * @return optional ScheduledChange or error
      */
     virtual outcome::result<std::optional<ScheduledChange>> pendingChange(
-        const Digest &digest) = 0;
+        BlockId block_id, const Digest &digest) = 0;
 
     /**
      * @brief calls Grandpa_forced_change runtime api function
+     * @param block_id block id
      * @param digest digest
      * @return don't really know the meaning of result
      */
     virtual outcome::result<std::optional<ForcedChangeType>> forcedChange(
-        const Digest &digest) = 0;
+        BlockId block_id, const Digest &digest) = 0;
 
     /**
      * @brief calls Grandpa_authorities runtime api function
+     * @param block_id block id
      * @return collection of authorities with their weights
      */
-    virtual outcome::result<std::vector<WeightedAuthority>> authorities() = 0;
+    virtual outcome::result<std::vector<WeightedAuthority>> authorities(
+        BlockId block_id) = 0;
   };
 
 }  // namespace kagome::runtime
