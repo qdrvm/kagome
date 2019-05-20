@@ -92,7 +92,7 @@ namespace kagome::scale::collection {
 
     std::vector<T> decoded_collection;
     decoded_collection.reserve(item_count);
-
+// TODO (yuraz): PRE-119 refactor
     // parse items one by one
     for (uint64_t i = 0; i < item_count; ++i) {
       OUTCOME_TRY(r, decode_f(stream));
