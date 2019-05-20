@@ -12,31 +12,23 @@
 
 namespace libp2p::event {
 
-  template <typename Tag, typename... EventArgs>
-  struct Emitter {
-    template <typename _Tag, typename... _EventArgs,
-              typename = std::enable_if_t<std::is_same<_Tag, Tag>::value>,
-              typename = std::enable_if_t<
-                  std::is_same<_EventArgs..., EventArgs...>::value>>
-    void on(const std::function<void(_EventArgs...)> &handler) {
-      signal_.connect(handler);
-    }
-
-    template <typename _Tag, typename... _EventArgs,
-              typename = std::enable_if_t<std::is_same<_Tag, Tag>::value>,
-              typename = std::enable_if_t<
-                  std::is_same<_EventArgs..., EventArgs...>::value>>
-    void emit(_EventArgs &&... args) {
-      signal_(std::forward<_EventArgs &&...>(args...));
-    }
-
-   private:
-    boost::signals2::signal<void(EventArgs...)> signal_;
-  };
-
-#define USINGS(args...)    \
-  using Emitter<args>::on; \
-  using Emitter<args>::emit;
+/**
+ * Make an event emitter with a specified type as an event argument
+ * @param Tag - type (should be a structure) to be emitted by this instance
+ * @note usage example can be found in event_emitter_test.cpp
+ */
+#define KAGOME_EMITS(Tag)                             \
+ private:                                             \
+  boost::signals2::signal<void(Tag)> signal_##Tag##_; \
+                                                      \
+ public:                                              \
+  void on(const std::function<void(Tag)> &handler) {  \
+    signal_##Tag##_.connect(handler);                 \
+  }                                                   \
+                                                      \
+  void emit(Tag tag) {                                \
+    signal_##Tag##_(std::move(tag));                  \
+  }
 
 }  // namespace libp2p::event
 

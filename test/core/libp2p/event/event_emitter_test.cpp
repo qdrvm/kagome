@@ -12,45 +12,47 @@ using namespace libp2p::event;
 class EventEmitterTest : public ::testing::Test {
  public:
   /// events, which are to be emitted by the test emitter
-  struct ConnectionOpened {};
-  struct ConnectionClosed {};
-  struct CoffeeIsPrepared {};  // will not be emitted
+  struct ConnectionOpened {
+    std::string my_str;
+  };
+  struct ConnectionClosed {
+    int code1;
+    int code2;
+  };
+  struct CoffeeIsPrepared {};  // compile failure if tried to be emitted
 
-  class ConnectionStateEmitter : public Emitter<ConnectionOpened, std::string>,
-                                 public Emitter<ConnectionClosed, int> {
-   public:
-    /// without usings it's not gonna work
-    //    using Emitter<ConnectionOpened, std::string>::on;
-    //    using Emitter<ConnectionClosed, int>::on;
-    //    using Emitter<ConnectionOpened, std::string>::emit;
-    //    using Emitter<ConnectionClosed, int>::emit;
-
-    /// way to merge those macroses into USINGS(ConnectionOpened, std::string,
-    /// ConnectionClosed, int)?
-    USINGS(ConnectionOpened, std::string)
-    USINGS(ConnectionClosed, int)
+  struct ConnectionStateEmitter {
+    KAGOME_EMITS(ConnectionOpened)
+    KAGOME_EMITS(ConnectionClosed)
   };
 };
 
+/**
+ * @given event emitter with two events
+ * @when subscribing to those events @and emitting them
+ * @then events are successfully emitted
+ */
 TEST_F(EventEmitterTest, EmitEvents) {
   std::string connection_opened{};
-  auto connection_closed = -1;
+  auto connection_closed_n = -1;
+  auto connection_closed_k = -1;
 
   ConnectionStateEmitter emitter{};
 
-  /// only works like this, just a lambda do not; find a way to fix it?
-  std::function<void(std::string)> handler1 =
-      [&connection_opened](std::string str) { connection_opened = str; };
-  emitter.on<ConnectionOpened>(handler1);
+  emitter.on([&connection_opened](ConnectionOpened event) {
+    connection_opened = event.my_str;
+  });
 
-  std::function<void(int)> handler2 = [&connection_closed](int n) {
-    connection_closed = n;
-  };
-  emitter.on<ConnectionClosed>(handler2);
+  emitter.on(
+      [&connection_closed_n, &connection_closed_k](ConnectionClosed event) {
+        connection_closed_n = event.code1;
+        connection_closed_k = event.code2;
+      });
 
-  emitter.emit<ConnectionOpened>(std::string{"foo"});
-  emitter.emit<ConnectionClosed>(2);
+  emitter.emit(ConnectionOpened{"foo"});
+  emitter.emit(ConnectionClosed{2, 5});
 
   ASSERT_EQ(connection_opened, "foo");
-  ASSERT_EQ(connection_closed, 2);
+  ASSERT_EQ(connection_closed_n, 2);
+  ASSERT_EQ(connection_closed_k, 5);
 }
