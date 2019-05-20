@@ -6,10 +6,10 @@
 #include "runtime/impl/parachain_host_impl.hpp"
 
 #include "runtime/impl/wasm_memory_stream.hpp"
+#include "scale/blob_codec.hpp"
+#include "scale/buffer_codec.hpp"
 #include "scale/collection.hpp"
 #include "scale/optional.hpp"
-#include "scale/buffer_codec.hpp"
-#include "scale/blob_codec.hpp"
 
 namespace kagome::runtime {
   using common::Buffer;
@@ -34,7 +34,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(res,
                 executor_.call(state_code_, "ParachainHost_duty_roster", ll));
 
-    uint32_t res_addr = static_cast<uint64_t>(res.geti64()) & 0xFFFFFFFFull;
+    uint32_t res_addr = getWasmAddr(res.geti64());
 
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));
@@ -49,7 +49,7 @@ namespace kagome::runtime {
         res,
         executor_.call(state_code_, "ParachainHost_active_parachains", ll));
 
-    uint32_t res_addr = static_cast<uint64_t>(res.geti64()) & 0xFFFFFFFFull;
+    uint32_t res_addr = getWasmAddr(res.geti64());
 
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));
@@ -71,7 +71,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(
         res, executor_.call(state_code_, "ParachainHost_parachain_head", ll));
 
-    uint32_t res_addr = static_cast<uint64_t>(res.geti64()) & 0xFFFFFFFFull;
+    uint32_t res_addr = getWasmAddr(res.geti64());
 
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));
@@ -93,7 +93,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(
         res, executor_.call(state_code_, "ParachainHost_parachain_code", ll));
 
-    uint32_t res_addr = static_cast<uint64_t>(res.geti64()) & 0xFFFFFFFFull;
+    uint32_t res_addr = getWasmAddr(res.geti64());
 
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));
@@ -101,25 +101,16 @@ namespace kagome::runtime {
     return scale::optional::decodeOptional<Buffer>(s);
   }
 
-  outcome::result<std::vector<ValidatorId>> ParachainHostImpl::validators(
-      primitives::BlockId block_id) {
-    OUTCOME_TRY(encoded_id, codec_->encodeBlockId(block_id));
-
-    runtime::SizeType id_size = encoded_id.size();
-    runtime::WasmPointer ptr = memory_->allocate(id_size);
-    memory_->storeBuffer(ptr, encoded_id);
-
+  outcome::result<std::vector<ValidatorId>> ParachainHostImpl::validators() {
+    wasm::LiteralList ll{wasm::Literal(0), wasm::Literal(0)};
     OUTCOME_TRY(res,
-                executor_.call(state_code_, "Core_authorities",
-                               wasm::LiteralList({wasm::Literal(ptr),
-                                                  wasm::Literal(id_size)})));
+                executor_.call(state_code_, "ParachainHost_validators", ll));
 
     // first 32 bits are address and second are the length (length not needed)
-    runtime::WasmPointer authority_address =
-        static_cast<uint64_t>(res.geti64()) & 0xFFFFFFFFull;
+    uint32_t res_addr = getWasmAddr(res.geti64());
 
     WasmMemoryStream stream(memory_);
-    OUTCOME_TRY(stream.advance(authority_address));
+    OUTCOME_TRY(stream.advance(res_addr));
 
     return scale::collection::decodeCollection<ValidatorId>(stream);
   }

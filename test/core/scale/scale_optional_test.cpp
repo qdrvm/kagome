@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 
 #include "scale/byte_array_stream.hpp"
-#include "scale/optional.hpp"
+#include "scale/optional_bool.hpp"
 
 using namespace kagome;          // NOLINT
 using namespace kagome::common;  // NOLINT
