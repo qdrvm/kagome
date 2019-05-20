@@ -13,8 +13,8 @@
 namespace kagome::primitives {
   /// @struct ScheduledChange is returned by Grandpa::pending_change function
   struct ScheduledChange {
-    std::vector<std::pair<AuthorityId, uint64_t>> next_authorities_;
-    BlockNumber delay_;
+    std::vector<std::pair<AuthorityId, uint64_t>> next_authorities;
+    BlockNumber delay;
   };
 
   /// @brief api function returns optional value

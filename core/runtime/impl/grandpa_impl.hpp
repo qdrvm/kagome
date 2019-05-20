@@ -7,7 +7,6 @@
 #define KAGOME_CORE_RUNTIME_IMPL_GRANDPA_IMPL_HPP
 
 #include "runtime/grandpa.hpp"
-
 #include "primitives/scale_codec.hpp"
 #include "primitives/scheduled_change.hpp"
 #include "runtime/impl/wasm_executor.hpp"
@@ -29,12 +28,12 @@ namespace kagome::runtime {
                 std::shared_ptr<primitives::ScaleCodec> codec);
 
     outcome::result<std::optional<ScheduledChange>> pendingChange(
-        BlockId block_id, const Digest &digest) override;
+        const Digest &digest) override;
 
     outcome::result<std::optional<ForcedChangeType>> forcedChange(
-        BlockId block_id, const Digest &digest) override;
+        const Digest &digest) override;
 
-    outcome::result<std::vector<WeightedAuthority>> authorities(BlockId block_id) override;
+    outcome::result<std::vector<WeightedAuthority>> authorities() override;
 
    protected:
     std::shared_ptr<WasmMemory> memory_;

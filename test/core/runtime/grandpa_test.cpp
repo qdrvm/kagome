@@ -47,10 +47,9 @@ class GrandpaTest : public RuntimeTest {
  * @when pendingChange() is invoked
  * @then successful result is returned
  */
-TEST_F(GrandpaTest, PendingChange) {
-  auto &&block_id = createBlockId();
+TEST_F(GrandpaTest, DISABLED_PendingChange) {
   auto &&digest = createDigest();
-  ASSERT_TRUE(api_->pendingChange(block_id, digest));
+  ASSERT_TRUE(api_->pendingChange(digest));
 }
 
 /**
@@ -58,10 +57,9 @@ TEST_F(GrandpaTest, PendingChange) {
  * @when pendingChange() is invoked
  * @then successful result is returned
  */
-TEST_F(GrandpaTest, ForcedChange) {
-  auto &&block_id = createBlockId();
+TEST_F(GrandpaTest, DISABLED_ForcedChange) {
   auto &&digest = createDigest();
-  ASSERT_TRUE(api_->forcedChange(block_id, digest));
+  ASSERT_TRUE(api_->forcedChange(digest));
 }
 
 /**
@@ -71,6 +69,5 @@ TEST_F(GrandpaTest, ForcedChange) {
  * @brief writes "Uninteresting mock function call - returning default value"
  */
 TEST_F(GrandpaTest, DISABLED_Authorities) {
-  auto &&block_id = createBlockId();
-  ASSERT_TRUE(api_->authorities(block_id));
+  ASSERT_TRUE(api_->authorities());
 }

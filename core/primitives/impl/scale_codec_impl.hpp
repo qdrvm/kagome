@@ -6,8 +6,8 @@
 #ifndef KAGOME_PRIMITIVES_SCALE_CODEC_IMPL_HPP
 #define KAGOME_PRIMITIVES_SCALE_CODEC_IMPL_HPP
 
-#include <primitives/digest.hpp>
-#include <primitives/scheduled_change.hpp>
+#include "primitives/digest.hpp"
+#include "primitives/scheduled_change.hpp"
 #include "primitives/scale_codec.hpp"
 #include "scale/buffer_codec.hpp"
 #include "scale/types.hpp"

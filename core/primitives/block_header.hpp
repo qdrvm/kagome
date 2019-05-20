@@ -22,11 +22,12 @@ namespace kagome::primitives {
     /**
      * @brief BlockHeader class constructor
      * @param parent_hash parent hash
+     * @param number index of block in the chain
      * @param state_root state root
      * @param extrinsics_root extrinsics root
      * @param digest digest collection
      */
-    BlockHeader(common::Hash256 parent_hash, size_t number,
+    BlockHeader(common::Hash256 parent_hash, BlockNumber number,
                 common::Hash256 state_root, common::Hash256 extrinsics_root,
                 Buffer digest);
 

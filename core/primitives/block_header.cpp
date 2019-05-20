@@ -9,7 +9,7 @@ using kagome::common::Hash256;
 
 namespace kagome::primitives {
 
-  BlockHeader::BlockHeader(Hash256 parent_hash, size_t number,
+  BlockHeader::BlockHeader(Hash256 parent_hash, BlockNumber number,
                            Hash256 state_root, Hash256 extrinsics_root,
                            Digest digest)
       : parent_hash_(std::move(parent_hash)),

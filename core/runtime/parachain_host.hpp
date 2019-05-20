@@ -52,11 +52,9 @@ namespace kagome::runtime {
 
     /**
      * @brief reports validators list for given block_id
-     * @param block_id block id
      * @return validators list
      */
-    virtual outcome::result<std::vector<ValidatorId>> validators(
-        primitives::BlockId block_id) = 0;
+    virtual outcome::result<std::vector<ValidatorId>> validators() = 0;
   };
 
 }  // namespace kagome::runtime

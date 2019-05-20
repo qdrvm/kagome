@@ -6,18 +6,21 @@
 #include "scale/optional_bool.hpp"
 
 namespace kagome::scale::optional {
+  /// @brief OptionalBool is internal extended bool type
+  enum class OptionalBool : uint8_t { NONE = 0u, FALSE = 1u, TRUE = 2u };
+
   template <>
   outcome::result<void> encodeOptional<bool>(
       const std::optional<bool> &optional, common::Buffer &out) {
-    uint8_t result = 2;  // true
+    auto result = OptionalBool::TRUE;
 
-    if (!optional.has_value()) {  // none
-      result = 0;
-    } else if (!*optional) {  // false
-      result = 1;
+    if (!optional.has_value()) {
+      result = OptionalBool::NONE;
+    } else if (!*optional) {
+      result = OptionalBool::FALSE;
     }
 
-    out.putUint8(result);
+    out.putUint8(static_cast<uint8_t>(result));
     return outcome::success();
   }
 
@@ -30,11 +33,11 @@ namespace kagome::scale::optional {
     }
 
     switch (*byte) {
-      case 0:
+      case static_cast<uint8_t>(OptionalBool::NONE):
         return outcome::success(std::nullopt);
-      case 1:
+      case static_cast<uint8_t>(OptionalBool::FALSE):
         return std::optional<bool>{false};
-      case 2:
+      case static_cast<uint8_t>(OptionalBool::TRUE):
         return std::optional<bool>{true};
       default:
         break;

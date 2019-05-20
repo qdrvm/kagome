@@ -6,10 +6,10 @@
 #include "runtime/impl/parachain_host_impl.hpp"
 
 #include "runtime/impl/wasm_memory_stream.hpp"
+#include "scale/blob_codec.hpp"
+#include "scale/buffer_codec.hpp"
 #include "scale/collection.hpp"
 #include "scale/optional.hpp"
-#include "scale/buffer_codec.hpp"
-#include "scale/blob_codec.hpp"
 
 namespace kagome::runtime {
   using common::Buffer;
@@ -101,18 +101,10 @@ namespace kagome::runtime {
     return scale::optional::decodeOptional<Buffer>(s);
   }
 
-  outcome::result<std::vector<ValidatorId>> ParachainHostImpl::validators(
-      primitives::BlockId block_id) {
-    OUTCOME_TRY(encoded_id, codec_->encodeBlockId(block_id));
-
-    runtime::SizeType id_size = encoded_id.size();
-    runtime::WasmPointer ptr = memory_->allocate(id_size);
-    memory_->storeBuffer(ptr, encoded_id);
-
+  outcome::result<std::vector<ValidatorId>> ParachainHostImpl::validators() {
+    wasm::LiteralList ll{wasm::Literal(0), wasm::Literal(0)};
     OUTCOME_TRY(res,
-                executor_.call(state_code_, "Core_authorities",
-                               wasm::LiteralList({wasm::Literal(ptr),
-                                                  wasm::Literal(id_size)})));
+                executor_.call(state_code_, "ParachainHost_validators", ll));
 
     // first 32 bits are address and second are the length (length not needed)
     runtime::WasmPointer authority_address =

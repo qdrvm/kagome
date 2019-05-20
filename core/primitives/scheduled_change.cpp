@@ -5,11 +5,5 @@
 
 #include "primitives/scheduled_change.hpp"
 
-#include "primitives/common.hpp"
-#include "scale/collection.hpp"
-#include "scale/fixedwidth.hpp"
-
 // it's going to be necessary later when refactoring scale
-namespace kagome::scale {
-
-}  // namespace kagome::scale
+namespace kagome::scale {}  // namespace kagome::scale

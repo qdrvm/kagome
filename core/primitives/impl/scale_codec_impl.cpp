@@ -191,8 +191,8 @@ namespace kagome::scale {
                                  common::Buffer &out) {
       OUTCOME_TRY((collection::encodeCollection<
                    std::pair<primitives::AuthorityId, uint64_t>>(
-          value.next_authorities_, out)));
-      fixedwidth::encodeUint64(value.delay_, out);
+          value.next_authorities, out)));
+      fixedwidth::encodeUint64(value.delay, out);
       return outcome::success();
     }
   };
@@ -412,13 +412,16 @@ namespace kagome::primitives {
   ScaleCodecImpl::decodeScheduledChange(ScaleCodec::Stream &stream) const {
     return decodeOptional<ScheduledChange>(stream);
   }
+
   outcome::result<std::optional<primitives::ForcedChangeType>>
   ScaleCodecImpl::decodeForcedChange(ScaleCodec::Stream &stream) const {
     return scale::optional::decodeOptional<
         std::pair<BlockNumber, ScheduledChange>>(stream);
   }
+
   outcome::result<std::vector<primitives::WeightedAuthority>>
   ScaleCodecImpl::decodeGrandpaAuthorities(ScaleCodec::Stream &stream) const {
-    return scale::collection::decodeCollection<primitives::WeightedAuthority>(stream);
+    return scale::collection::decodeCollection<primitives::WeightedAuthority>(
+        stream);
   }
 }  // namespace kagome::primitives

@@ -34,29 +34,25 @@ namespace kagome::runtime {
     virtual ~Grandpa() = default;
     /**
      * @brief calls Grandpa_pending_change runtime api function
-     * @param block_id block id
      * @param digest digest
      * @return optional ScheduledChange or error
      */
     virtual outcome::result<std::optional<ScheduledChange>> pendingChange(
-        BlockId block_id, const Digest &digest) = 0;
+        const Digest &digest) = 0;
 
     /**
      * @brief calls Grandpa_forced_change runtime api function
-     * @param block_id block id
      * @param digest digest
      * @return don't really know the meaning of result
      */
     virtual outcome::result<std::optional<ForcedChangeType>> forcedChange(
-        BlockId block_id, const Digest &digest) = 0;
+        const Digest &digest) = 0;
 
     /**
      * @brief calls Grandpa_authorities runtime api function
-     * @param block_id block id
      * @return collection of authorities with their weights
      */
-    virtual outcome::result<std::vector<WeightedAuthority>> authorities(
-        BlockId block_id) = 0;
+    virtual outcome::result<std::vector<WeightedAuthority>> authorities() = 0;
   };
 
 }  // namespace kagome::runtime
