@@ -211,7 +211,6 @@ namespace kagome::scale {
     }
   };
 
-
   /// decodes primitives::parachain::Chain
   template <>
   struct TypeDecoder<primitives::parachain::Chain> {
@@ -322,8 +321,8 @@ namespace kagome::primitives {
     OUTCOME_TRY(extrinsics_root, decoder.decode(stream));
     OUTCOME_TRY(digest, decodeCollection<uint8_t>(stream));
 
-    return BlockHeader(parent_hash, number, state_root, extrinsics_root,
-                       Buffer{digest});
+    return BlockHeader(std::move(parent_hash), number, std::move(state_root),
+                       std::move(extrinsics_root), Buffer{std::move(digest)});
   }
 
   outcome::result<Buffer> ScaleCodecImpl::encodeExtrinsic(
