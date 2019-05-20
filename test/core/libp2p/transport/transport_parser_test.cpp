@@ -49,6 +49,15 @@ TEST_F(TransportParserTest, CorrectAlternative) {
 
   using IpTcp = std::pair<TransportParser::IpAddress, uint16_t>;
 
-  // TODO(Harrm) Change to std::visit when CI for Mac OS X is upgraded
-  ASSERT_TRUE(std::get_if<IpTcp>(&r.value().data_) != nullptr);
+  class ParserVisitor {
+   public:
+
+    /// IP/TCP address
+    bool operator()(
+        const IpTcp &ip_tcp) {
+      return ip_tcp.first.to_string() == "127.0.0.1" && ip_tcp.second == 5050;
+    }
+  } visitor;
+  
+  ASSERT_TRUE(boost::apply_visitor(visitor, r.value().data_));
 }

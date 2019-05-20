@@ -38,14 +38,8 @@ namespace libp2p::transport {
   outcome::result<std::shared_ptr<Connection>> TransportImpl::dial(
       const multi::Multiaddress &address) const {
     OUTCOME_TRY(res, TransportParser::parse(address));
-    // TODO(Harrm) Change to std::visit when CI for Mac OS X is upgraded
-    ParserVisitor visitor {*this};
-    switch(res.data_.index()) {
-      case 0:
-        return visitor(std::get<0>(res.data_));
-      default:
-        return TransportParser::Error::PROTOCOLS_UNSUPPORTED;
-    }
+    ParserVisitor visitor{*this};
+    return boost::apply_visitor(visitor, res.data_);
   }
 
   std::shared_ptr<TransportListener> TransportImpl::createListener(

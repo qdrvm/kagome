@@ -6,8 +6,7 @@
 #ifndef KAGOME_TRANSPORT_PARSER_HPP
 #define KAGOME_TRANSPORT_PARSER_HPP
 
-#include <variant>
-
+#include <boost/variant.hpp>
 #include <boost/asio/ip/address.hpp>
 #include "libp2p/multi/multiaddress.hpp"
 
@@ -20,7 +19,7 @@ namespace libp2p::transport {
   class TransportParser {
    public:
     using IpAddress = boost::asio::ip::address;
-    using AddressData = std::variant<std::pair<IpAddress, uint16_t>>;
+    using AddressData = boost::variant<std::pair<IpAddress, uint16_t>>;
 
     enum class Error { PROTOCOLS_UNSUPPORTED = 1, INVALID_ADDR_VALUE };
 
