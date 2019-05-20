@@ -135,12 +135,6 @@ class Primitives : public testing::Test {
       2, 0, 0, 0, 0, 0, 0, 0,  // longevity
   };
 
-  Buffer encoded_authority_ids_ = {
-      {12,  /// sequence of 3 authority ids: 1, 2, 3; 12 == (3 << 2)
-       1, 2, 3}};
-
-  std::vector<AuthorityId> decoded_authority_ids_ = {1, 2, 3};
-
   /// ScaleCodec impl instance
   std::shared_ptr<ScaleCodec> codec_;
 };
@@ -367,10 +361,11 @@ TEST_F(Primitives, decodeTransactionValidityInvalid) {
   auto &&res = codec_->decodeTransactionValidity(stream);
   ASSERT_TRUE(res);
   TransactionValidity value = res.value();
-  kagome::visit_in_place(value,                                       // value
-                         [](Invalid &v) { ASSERT_EQ(v.error_, 1); },  // ok
-                         [](Unknown &v) { FAIL(); },                  // fail
-                         [](Valid &v) { FAIL(); });                   // fail
+  kagome::visit_in_place(
+      value,                                       // value
+      [](Invalid &v) { ASSERT_EQ(v.error_, 1); },  // ok
+      [](Unknown &v) { FAIL(); },                  // fail
+      [](Valid &v) { FAIL(); });                   // fail
 }
 
 /**
@@ -385,10 +380,11 @@ TEST_F(Primitives, decodeTransactionValidityUnknown) {
   auto &&res = codec_->decodeTransactionValidity(stream);
   ASSERT_TRUE(res);
   TransactionValidity value = res.value();
-  kagome::visit_in_place(value,                                       // value
-                         [](Invalid &v) { FAIL(); },                  // fail
-                         [](Unknown &v) { ASSERT_EQ(v.error_, 2); },  // ok
-                         [](Valid &v) { FAIL(); }                     // fail
+  kagome::visit_in_place(
+      value,                                       // value
+      [](Invalid &v) { FAIL(); },                  // fail
+      [](Unknown &v) { ASSERT_EQ(v.error_, 2); },  // ok
+      [](Valid &v) { FAIL(); }                     // fail
   );
 }
 
@@ -403,16 +399,17 @@ TEST_F(Primitives, decodeTransactionValidityValid) {
   auto &&res = codec_->decodeTransactionValidity(stream);
   ASSERT_TRUE(res);
   TransactionValidity value = res.value();
-  kagome::visit_in_place(value,                       // value
-                         [](Invalid &v) { FAIL(); },  // fail
-                         [](Unknown &v) { FAIL(); },  // fail
-                         [this](Valid &v) {           // ok
-                           auto &valid = valid_transaction_;
-                           ASSERT_EQ(v.priority_, valid.priority_);
-                           ASSERT_EQ(v.requires_, valid.requires_);
-                           ASSERT_EQ(v.provides_, valid.provides_);
-                           ASSERT_EQ(v.longevity_, valid.longevity_);
-                         });
+  kagome::visit_in_place(
+      value,                       // value
+      [](Invalid &v) { FAIL(); },  // fail
+      [](Unknown &v) { FAIL(); },  // fail
+      [this](Valid &v) {           // ok
+        auto &valid = valid_transaction_;
+        ASSERT_EQ(v.priority_, valid.priority_);
+        ASSERT_EQ(v.requires_, valid.requires_);
+        ASSERT_EQ(v.provides_, valid.provides_);
+        ASSERT_EQ(v.longevity_, valid.longevity_);
+      });
 }
 
 /**
@@ -421,7 +418,10 @@ TEST_F(Primitives, decodeTransactionValidityValid) {
  * @then decoded vector of authority ids matches the original one
  */
 TEST_F(Primitives, EncodeDecodeAuthorityIds) {
-  std::vector<AuthorityId> original{1234, 4321};
+  AuthorityId id1, id2;
+  id1.fill(1u);
+  id2.fill(2u);
+  std::vector<AuthorityId> original{id1, id2};
 
   EXPECT_OUTCOME_TRUE(res, codec_->encodeAuthorityIds(original));
 
@@ -438,12 +438,12 @@ TEST_F(Primitives, EncodeDecodeAuthorityIds) {
  */
 TEST_F(Primitives, EncodeInherentData) {
   InherentData data;
-  InherentData::InherentIdentifier id1 {1};
-  InherentData::InherentIdentifier id2 {2};
-  InherentData::InherentIdentifier id3 {3};
-  Buffer b1 {1, 2, 3, 4};
-  Buffer b2 {5, 6, 7, 8};
-  Buffer b3 {1, 2, 3, 4};
+  InherentData::InherentIdentifier id1{1};
+  InherentData::InherentIdentifier id2{2};
+  InherentData::InherentIdentifier id3{3};
+  Buffer b1{1, 2, 3, 4};
+  Buffer b2{5, 6, 7, 8};
+  Buffer b3{1, 2, 3, 4};
   EXPECT_OUTCOME_TRUE_void(r1, data.putData(id1, b1));
   EXPECT_OUTCOME_TRUE_void(r2, data.putData(id2, b2));
   EXPECT_OUTCOME_TRUE_void(r3, data.putData(id3, b3));
@@ -453,7 +453,7 @@ TEST_F(Primitives, EncodeInherentData) {
   ASSERT_EQ(data.getData(id2).value(), b2);
   ASSERT_EQ(data.getData(id3).value(), b3);
 
-  Buffer b4 {1, 3, 5, 7};
+  Buffer b4{1, 3, 5, 7};
   data.replaceData(id3, b4);
   ASSERT_EQ(data.getData(id3).value(), b4);
 
