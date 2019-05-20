@@ -12,7 +12,7 @@
 #include "libp2p/peer/peer_info.hpp"
 #include "libp2p/transport/connection.hpp"
 
-namespace libp2p::swarm {
+namespace libp2p::network {
 
   // connections here are already muxed and secured, and ready-to-be-used
   struct ConnectionManager {
@@ -67,6 +67,6 @@ namespace libp2p::swarm {
     //    OpenedStream(Network, Stream)
   };
 
-}  // namespace libp2p::swarm
+}  // namespace libp2p::network
 
 #endif  // KAGOME_CONNECTION_MANAGER_HPP

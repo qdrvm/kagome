@@ -14,7 +14,7 @@
 #include "libp2p/swarm/connection_manager.hpp"
 #include "libp2p/swarm/router.hpp"
 
-namespace libp2p::swarm {
+namespace libp2p::network {
 
   // Network is the interface used to connect to the outside world.
   // It dials and listens for connections.
@@ -40,6 +40,6 @@ namespace libp2p::swarm {
         std::function<transport::Connection::Handler> func) = 0;
   };
 
-}  // namespace libp2p::swarm
+}  // namespace libp2p::network
 
 #endif  // KAGOME_NETWORK_HPP

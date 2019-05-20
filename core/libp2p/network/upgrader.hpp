@@ -6,7 +6,7 @@
 #ifndef KAGOME_UPGRADER_HPP
 #define KAGOME_UPGRADER_HPP
 
-namespace libp2p::swarm {
+namespace libp2p::network {
 
 struct Upgrader {
 

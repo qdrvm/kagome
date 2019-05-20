@@ -9,7 +9,7 @@
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/transport/transport.hpp"
 
-namespace libp2p::swarm {
+namespace libp2p::network {
 
   struct TransportManager {
     using t_id = multi::Protocol::Code;
@@ -31,6 +31,6 @@ namespace libp2p::swarm {
     virtual std::vector<sptrt> getAll() const = 0;
   };
 
-}  // namespace libp2p::swarm
+}  // namespace libp2p::network
 
 #endif  // KAGOME_TRANSPORT_MANAGER_HPP

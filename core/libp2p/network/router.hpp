@@ -9,7 +9,7 @@
 #include "libp2p/peer/protocol.hpp"
 #include "libp2p/stream/stream.hpp"
 
-namespace libp2p::swarm {
+namespace libp2p::network {
 
   // manager for application-level protocols
   // in go implementation called Switch
@@ -64,6 +64,6 @@ namespace libp2p::swarm {
                         std::shared_ptr<stream::Stream> stream) = 0;
   };
 
-}  // namespace libp2p::swarm
+}  // namespace libp2p::network
 
 #endif  // KAGOME_ROUTER_HPP

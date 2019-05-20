@@ -12,7 +12,7 @@
 #include "libp2p/peer/protocol.hpp"
 #include "libp2p/stream/stream.hpp"
 
-namespace libp2p::swarm {
+namespace libp2p::network {
 
   /**
    * @brief Negotiator is a component capable of reaching agreement over what
@@ -53,6 +53,6 @@ namespace libp2p::swarm {
         std::shared_ptr<basic::ReadWriteCloser> io) = 0;
   };
 
-}  // namespace libp2p::swarm
+}  // namespace libp2p::network
 
 #endif  // KAGOME_NEGOTIATOR_HPP

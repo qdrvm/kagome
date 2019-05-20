@@ -17,9 +17,9 @@
 #include "libp2p/peer/peer_repository.hpp"
 #include "libp2p/peer/protocol.hpp"
 #include "libp2p/stream/stream.hpp"
-#include "libp2p/swarm/connection_manager.hpp"
-#include "libp2p/swarm/stream_manager.hpp"
-#include "libp2p/swarm/switch.hpp"
+#include "libp2p/network/connection_manager.hpp"
+#include "libp2p/network/router.hpp"
+#include "libp2p/network/network.hpp"
 
 namespace libp2p {
 
@@ -82,21 +82,12 @@ namespace libp2p {
         const peer::PeerInfo &p, const peer::Protocol &protocol,
         const std::function<stream::Stream::Handler> &handler);
 
-    ///////////////////////// adequate code boundary /////////////////////////
-    // inadequate
-
-    peer::PeerRepository &getPeerRepository() const;
-
-    outcome::result<void> addKnownPeer(const peer::PeerId &p,
-                                       gsl::span<const multi::Multiaddress> mas,
-                                       std::chrono::milliseconds ttl);
-
    private:
     const peer::PeerId id_;
     Config config_;
-    std::unique_ptr<swarm::Switch> switch_;
-    std::unique_ptr<swarm::StreamManager> protocol_manager_;
-    std::unique_ptr<swarm::ConnectionManager> connection_manager_;
+    std::unique_ptr<network::Network> network_;
+    std::unique_ptr<network::StreamManager> protocol_manager_;
+    std::unique_ptr<network::ConnectionManager> connection_manager_;
   };
 
 }  // namespace libp2p

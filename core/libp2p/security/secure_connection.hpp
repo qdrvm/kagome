@@ -12,13 +12,17 @@
 
 namespace libp2p::security {
 
+  /**
+   * @brief Class that represents a connection that is authenticated and
+   * encrypted.
+   */
   struct SecureConnection : public transport::Connection {
     virtual peer::PeerId localPeer() const = 0;
     virtual peer::PeerId remotePeer() const = 0;
+    virtual crypto::PublicKey remotePublicKey() const = 0;
 
     // TODO(warchant): figure out, if it is needed
     // virtual crypto::PrivateKey localPrivateKey() const = 0;
-    virtual crypto::PublicKey remotePublicKey() const = 0;
   };
 
 }  // namespace libp2p::security

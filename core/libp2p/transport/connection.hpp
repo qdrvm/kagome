@@ -24,6 +24,8 @@ namespace libp2p::transport {
    public:
     ~Connection() override = default;
 
+    using Handler = void(std::shared_ptr<Connection>);
+
     /**
      * This method retrieves the observed addresses we get from the underlying
      * transport, if any.
