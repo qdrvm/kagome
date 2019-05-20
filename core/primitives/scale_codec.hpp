@@ -13,6 +13,8 @@
 #include "primitives/common.hpp"
 #include "primitives/parachain_host.hpp"
 #include "primitives/transaction_validity.hpp"
+#include "primitives/inherent_data.hpp"
+#include "primitives/extrinsic.hpp"
 #include "scale/types.hpp"
 
 namespace kagome::primitives {
@@ -35,7 +37,7 @@ namespace kagome::primitives {
 
    public:
     /**
-     * @brief virtual destuctor
+     * @brief virtual destructor
      */
     virtual ~ScaleCodec() = default;
 
@@ -130,6 +132,22 @@ namespace kagome::primitives {
      */
     virtual outcome::result<TransactionValidity> decodeTransactionValidity(
         Stream &stream) const = 0;
+
+      /**
+       * @brief scale-encodes InherentData instance
+       * @param inherentData value which should be encoded
+       * @return encoded value or error
+       */
+      virtual outcome::result<Buffer> encodeInherentData(
+              const InherentData &inherentData) const = 0;
+
+      /**
+       * @brief decodes scale-encoded InherentData instance
+       * @param stream source stream containing encoded bytes
+       * @return decoded InherentData instance or error
+       */
+      virtual outcome::result<InherentData> decodeInherentData(
+              Stream &stream) const = 0;
 
     /**
      * @brief scale-encodes AuthorityIds instance

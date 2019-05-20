@@ -12,11 +12,14 @@ add_library(primitives
     extrinsic.cpp
     version.hpp
     version.cpp
+    inherent_data.cpp
+    inherent_data.hpp
     transaction_validity.hpp
     block_id.hpp
     common.hpp
     parachain_host.hpp
     )
+
 target_link_libraries(primitives
     buffer
     outcome
