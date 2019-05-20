@@ -197,15 +197,11 @@ namespace kagome::primitives {
     decodeScheduledChange(Stream &stream) const = 0;
 
     /**
-     * encodeForcedChange is meaningless and not required
-     */
-
-    /**
      * @brief decodes forced_change function result type
      * @param stream source stream containing encoded bytes
      * @return decoded result
      */
-    virtual outcome::result<std::optional<primitives::ForcedChangeType>>
+    virtual outcome::result<std::optional<primitives::ForcedChange>>
     decodeForcedChange(Stream &stream) const = 0;
 
     /**

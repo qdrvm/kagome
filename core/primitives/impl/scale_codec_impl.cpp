@@ -413,7 +413,7 @@ namespace kagome::primitives {
     return decodeOptional<ScheduledChange>(stream);
   }
 
-  outcome::result<std::optional<primitives::ForcedChangeType>>
+  outcome::result<std::optional<primitives::ForcedChange>>
   ScaleCodecImpl::decodeForcedChange(ScaleCodec::Stream &stream) const {
     return scale::optional::decodeOptional<
         std::pair<BlockNumber, ScheduledChange>>(stream);

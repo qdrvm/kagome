@@ -72,7 +72,7 @@ namespace kagome::primitives {
     outcome::result<std::optional<ScheduledChange>> decodeScheduledChange(
         Stream &stream) const override;
 
-    outcome::result<std::optional<primitives::ForcedChangeType>>
+    outcome::result<std::optional<primitives::ForcedChange>>
     decodeForcedChange(Stream &stream) const override;
 
     outcome::result<std::vector<primitives::WeightedAuthority>>

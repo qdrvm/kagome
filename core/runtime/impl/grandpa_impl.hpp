@@ -18,7 +18,6 @@ namespace kagome::runtime {
     ~GrandpaImpl() override = default;
 
     /**
-     * @brief constructor
      * @param state_code error or result code
      * @param extension extension instance
      * @param codec scale codec instance
@@ -27,10 +26,10 @@ namespace kagome::runtime {
                 std::shared_ptr<extensions::Extension> extension,
                 std::shared_ptr<primitives::ScaleCodec> codec);
 
-    outcome::result<std::optional<ScheduledChange>> pendingChange(
+    outcome::result<std::optional<ScheduledChange>> pending_change(
         const Digest &digest) override;
 
-    outcome::result<std::optional<ForcedChangeType>> forcedChange(
+    outcome::result<std::optional<ForcedChange>> forced_change(
         const Digest &digest) override;
 
     outcome::result<std::vector<WeightedAuthority>> authorities() override;

@@ -49,7 +49,7 @@ class GrandpaTest : public RuntimeTest {
  */
 TEST_F(GrandpaTest, DISABLED_PendingChange) {
   auto &&digest = createDigest();
-  ASSERT_TRUE(api_->pendingChange(digest));
+  ASSERT_TRUE(api_->pending_change(digest));
 }
 
 /**
@@ -59,7 +59,7 @@ TEST_F(GrandpaTest, DISABLED_PendingChange) {
  */
 TEST_F(GrandpaTest, DISABLED_ForcedChange) {
   auto &&digest = createDigest();
-  ASSERT_TRUE(api_->forcedChange(digest));
+  ASSERT_TRUE(api_->forced_change(digest));
 }
 
 /**

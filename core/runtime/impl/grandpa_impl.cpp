@@ -12,7 +12,7 @@
 
 namespace kagome::runtime {
   using primitives::Digest;
-  using primitives::ForcedChangeType;
+  using primitives::ForcedChange;
   using primitives::ScheduledChange;
   using primitives::SessionKey;
   using primitives::WeightedAuthority;
@@ -25,11 +25,12 @@ namespace kagome::runtime {
         executor_(std::move(extension)),
         state_code_(std::move(state_code)) {}
 
-  outcome::result<std::optional<ScheduledChange>> GrandpaImpl::pendingChange(
+  outcome::result<std::optional<ScheduledChange>> GrandpaImpl::pending_change(
       const Grandpa::Digest &digest) {
     OUTCOME_TRY(encoded_digest, codec_->encodeDigest(digest));
 
     runtime::SizeType ext_size = encoded_digest.size();
+    // TODO (yuraz) PRE-98: after check for memory overflow is done, refactor it
     runtime::WasmPointer ptr = memory_->allocate(ext_size);
     memory_->storeBuffer(ptr, encoded_digest);
 
@@ -47,11 +48,12 @@ namespace kagome::runtime {
     return codec_->decodeScheduledChange(s);
   }
 
-  outcome::result<std::optional<ForcedChangeType>> GrandpaImpl::forcedChange(
+  outcome::result<std::optional<ForcedChange>> GrandpaImpl::forced_change(
       const Grandpa::Digest &digest) {
     OUTCOME_TRY(encoded_digest, codec_->encodeDigest(digest));
 
     runtime::SizeType ext_size = encoded_digest.size();
+    // TODO (yuraz) PRE-98: after check for memory overflow is done, refactor it
     runtime::WasmPointer ptr = memory_->allocate(ext_size);
     memory_->storeBuffer(ptr, encoded_digest);
 

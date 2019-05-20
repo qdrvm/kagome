@@ -27,30 +27,35 @@ namespace kagome::runtime {
     using BlockNumber = primitives::BlockNumber;
     using SessionKey = primitives::SessionKey;
     using WeightedAuthority = primitives::WeightedAuthority;
-    using ForcedChangeType = primitives::ForcedChangeType;
+    using ForcedChange = primitives::ForcedChange;
     using BlockId = primitives::BlockId;
 
    public:
     virtual ~Grandpa() = default;
     /**
-     * @brief calls Grandpa_pending_change runtime api function
-     * @param digest digest
-     * @return optional ScheduledChange or error
+     * @brief calls Grandpa_pending_change runtime api function,
+     * which checks a digest for pending changes.
+     * @param digest digest to check
+     * @return nullopt if there are no pending changes,
+     * scheduled change item if exists or error if error occured
      */
-    virtual outcome::result<std::optional<ScheduledChange>> pendingChange(
+    virtual outcome::result<std::optional<ScheduledChange>> pending_change(
         const Digest &digest) = 0;
 
     /**
      * @brief calls Grandpa_forced_change runtime api function
-     * @param digest digest
-     * @return don't really know the meaning of result
+     * which checks a digest for forced changes
+     * @param digest digest to check
+     * @return nullopt if no forced changes,
+     * forced change item if exists or error if error occured
+     *
      */
-    virtual outcome::result<std::optional<ForcedChangeType>> forcedChange(
+    virtual outcome::result<std::optional<ForcedChange>> forced_change(
         const Digest &digest) = 0;
 
     /**
      * @brief calls Grandpa_authorities runtime api function
-     * @return collection of authorities with their weights
+     * @return collection of current grandpa authorities with their weights
      */
     virtual outcome::result<std::vector<WeightedAuthority>> authorities() = 0;
   };

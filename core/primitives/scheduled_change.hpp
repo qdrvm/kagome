@@ -11,7 +11,7 @@
 #include "primitives/session_key.hpp"
 
 namespace kagome::primitives {
-  /// @struct ScheduledChange is returned by Grandpa::pending_change function
+  /// @struct ScheduledChange is used by Grandpa api runtime
   struct ScheduledChange {
     std::vector<std::pair<AuthorityId, uint64_t>> next_authorities;
     BlockNumber delay;
@@ -21,7 +21,7 @@ namespace kagome::primitives {
   using ScheduledChangeOptional = boost::optional<ScheduledChange>;
 
   /// @brief result type for grandpa forced_change function
-  using ForcedChangeType = std::pair<BlockNumber, ScheduledChange>;
+  using ForcedChange = std::pair<BlockNumber, ScheduledChange>;
 
   /// @brief authority weight
   using Weight = uint64_t;
