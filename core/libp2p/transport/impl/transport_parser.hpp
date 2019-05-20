@@ -26,8 +26,8 @@ namespace libp2p::transport {
     struct ParseResult {
       /// @brief protocols from the list of supported protocols that were stored
       /// in the parsed multiaddress
-      const std::vector<multi::Protocol::Code> &chosen_protos_;
-      AddressData data_;
+      const std::vector<multi::Protocol::Code> &chosen_protos;
+      AddressData data;
     };
 
     /**

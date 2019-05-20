@@ -30,7 +30,7 @@ TEST_P(TransportParserTest, ParseSuccessfully) {
   auto callback = [](Protocol const &proto) { return proto.code; };
   std::transform(multiaddr_protos.begin(), multiaddr_protos.end(),
                  std::back_inserter(proto_codes), callback);
-  ASSERT_EQ(r_ok.value().chosen_protos_, proto_codes);
+  ASSERT_EQ(r_ok.value().chosen_protos, proto_codes);
 }
 
 auto addresses = {Multiaddress::create("/ip4/127.0.0.1/tcp/5050").value()};
@@ -51,7 +51,6 @@ TEST_F(TransportParserTest, CorrectAlternative) {
 
   class ParserVisitor {
    public:
-
     /// IP/TCP address
     bool operator()(
         const IpTcp &ip_tcp) {
@@ -59,5 +58,5 @@ TEST_F(TransportParserTest, CorrectAlternative) {
     }
   } visitor;
   
-  ASSERT_TRUE(boost::apply_visitor(visitor, r.value().data_));
+  ASSERT_TRUE(boost::apply_visitor(visitor, r.value().data));
 }

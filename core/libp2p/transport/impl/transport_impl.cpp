@@ -39,7 +39,7 @@ namespace libp2p::transport {
       const multi::Multiaddress &address) const {
     OUTCOME_TRY(res, TransportParser::parse(address));
     ParserVisitor visitor{*this};
-    return boost::apply_visitor(visitor, res.data_);
+    return boost::apply_visitor(visitor, res.data);
   }
 
   std::shared_ptr<TransportListener> TransportImpl::createListener(
