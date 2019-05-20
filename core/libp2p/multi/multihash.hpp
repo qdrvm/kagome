@@ -7,10 +7,10 @@
 #define KAGOME_MULTIHASH_HPP
 
 #include <cstdint>
+#include <string>
 #include <utility>
 
 #include <outcome/outcome.hpp>
-
 #include "common/buffer.hpp"
 #include "libp2p/multi/hash_type.hpp"
 
@@ -85,6 +85,7 @@ namespace libp2p::multi {
     const kagome::common::Buffer &toBuffer() const;
 
     bool operator==(const Multihash &other) const;
+    bool operator!=(const Multihash &other) const;
 
    private:
     /**

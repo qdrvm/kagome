@@ -15,18 +15,18 @@ namespace libp2p::stream {
     this->resetStream();
   }
 
-  void YamuxStream::readAsync(ReadCompletionHandler completion_handler) {
+  void YamuxStream::readAsync(ReadCompletionHandler completion_handler) const {
     yamux_->streamReadFrameAsync(stream_id_, std::move(completion_handler));
   }
 
-  void YamuxStream::writeAsync(const kagome::common::Buffer &msg) {
+  void YamuxStream::writeAsync(const kagome::common::Buffer &msg) const {
     yamux_->streamWriteFrameAsync(
         stream_id_, msg,
         [](std::error_code /* unused */, size_t /* unused */) {});
   }
 
   void YamuxStream::writeAsync(const kagome::common::Buffer &msg,
-                               ErrorCodeCallback error_callback) {
+                               ErrorCodeCallback error_callback) const {
     yamux_->streamWriteFrameAsync(stream_id_, msg, std::move(error_callback));
   }
 

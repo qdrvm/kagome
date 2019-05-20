@@ -127,6 +127,10 @@ namespace kagome::common {
     return put(buf.toVector());
   }
 
+  void Buffer::clear() {
+    data_.clear();
+  }
+
   Buffer::Buffer(const uint8_t *begin, const uint8_t *end)
       : data_{begin, end} {}
 

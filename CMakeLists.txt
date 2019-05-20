@@ -6,10 +6,20 @@ if(CCACHE_FOUND)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif(CCACHE_FOUND)
 
+
+set(
+    CMAKE_TOOLCHAIN_FILE
+    "${CMAKE_SOURCE_DIR}/cmake/toolchain/cxx17.cmake"
+    CACHE
+    FILEPATH
+    "Default toolchain"
+)
+
 include("cmake/Hunter/init.cmake")
 HunterGate(
-  URL "https://github.com/ruslo/hunter/archive/v0.23.135.tar.gz"
-  SHA1 "72eecdf1dea9fb6299d7fb61bbd00bd4ca170fa4"
+    URL "https://github.com/ruslo/hunter/archive/v0.23.171.tar.gz"
+    SHA1 "5d68bcca78eee347239ca5f4d34f4b6c12683154"
+    FILEPATH ${CMAKE_SOURCE_DIR}/cmake/Hunter/config.cmake
 )
 
 PROJECT(kagome C CXX)
@@ -17,14 +27,6 @@ PROJECT(kagome C CXX)
 include(CheckCXXCompilerFlag)
 include(cmake/dependencies.cmake)
 include(cmake/functions.cmake)
-
-if(NOT EXISTS "${CMAKE_TOOLCHAIN_FILE}")
-  # https://cgold.readthedocs.io/en/latest/tutorials/toolchain/globals/cxx-standard.html#summary
-  set(CMAKE_CXX_STANDARD 17)
-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
-  set(CMAKE_CXX_EXTENSIONS OFF)
-  set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
-endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
