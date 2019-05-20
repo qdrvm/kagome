@@ -40,7 +40,7 @@ namespace kagome::runtime {
         res,
         executor_.call(state_code_, "GrandpaApi_grandpa_pending_change", ll));
 
-    uint32_t res_addr = static_cast<uint64_t>(res.geti64()) & 0xFFFFFFFFull;
+    uint32_t res_addr = getWasmAddr(res.geti64());
 
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));
@@ -63,7 +63,7 @@ namespace kagome::runtime {
         res,
         executor_.call(state_code_, "GrandpaApi_grandpa_forced_change", ll));
 
-    uint32_t res_addr = static_cast<uint64_t>(res.geti64()) & 0xFFFFFFFFull;
+    uint32_t res_addr = getWasmAddr(res.geti64());
 
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));
@@ -77,7 +77,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(
         res, executor_.call(state_code_, "GrandpaApi_grandpa_authorities", ll));
 
-    uint32_t res_addr = static_cast<uint64_t>(res.geti64()) & 0xFFFFFFFFull;
+    uint32_t res_addr = getWasmAddr(res.geti64());
 
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));

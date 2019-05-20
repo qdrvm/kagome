@@ -34,7 +34,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(res,
                 executor_.call(state_code_, "ParachainHost_duty_roster", ll));
 
-    uint32_t res_addr = static_cast<uint64_t>(res.geti64()) & 0xFFFFFFFFull;
+    uint32_t res_addr = getWasmAddr(res.geti64());
 
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));
@@ -49,7 +49,7 @@ namespace kagome::runtime {
         res,
         executor_.call(state_code_, "ParachainHost_active_parachains", ll));
 
-    uint32_t res_addr = static_cast<uint64_t>(res.geti64()) & 0xFFFFFFFFull;
+    uint32_t res_addr = getWasmAddr(res.geti64());
 
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));
@@ -71,7 +71,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(
         res, executor_.call(state_code_, "ParachainHost_parachain_head", ll));
 
-    uint32_t res_addr = static_cast<uint64_t>(res.geti64()) & 0xFFFFFFFFull;
+    uint32_t res_addr = getWasmAddr(res.geti64());
 
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));
@@ -93,7 +93,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(
         res, executor_.call(state_code_, "ParachainHost_parachain_code", ll));
 
-    uint32_t res_addr = static_cast<uint64_t>(res.geti64()) & 0xFFFFFFFFull;
+    uint32_t res_addr = getWasmAddr(res.geti64());
 
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));
@@ -107,11 +107,10 @@ namespace kagome::runtime {
                 executor_.call(state_code_, "ParachainHost_validators", ll));
 
     // first 32 bits are address and second are the length (length not needed)
-    runtime::WasmPointer authority_address =
-        static_cast<uint64_t>(res.geti64()) & 0xFFFFFFFFull;
+    uint32_t res_addr = getWasmAddr(res.geti64());
 
     WasmMemoryStream stream(memory_);
-    OUTCOME_TRY(stream.advance(authority_address));
+    OUTCOME_TRY(stream.advance(res_addr));
 
     return scale::collection::decodeCollection<ValidatorId>(stream);
   }

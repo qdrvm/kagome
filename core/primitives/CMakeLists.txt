@@ -13,6 +13,8 @@ add_library(primitives
     extrinsic.cpp
     version.hpp
     version.cpp
+    inherent_data.cpp
+    inherent_data.hpp
     transaction_validity.hpp
     block_id.hpp
     common.hpp
@@ -20,6 +22,7 @@ add_library(primitives
     scheduled_change.hpp
     scheduled_change.cpp
     )
+
 target_link_libraries(primitives
     buffer
     outcome
