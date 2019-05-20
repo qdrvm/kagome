@@ -133,7 +133,7 @@ namespace kagome::runtime {
     WasmMemoryStream s(memory_);
     OUTCOME_TRY(s.advance(res_addr));
 
-    /// TODO(Harrm) change it after scale codec is refactored
+    /// TODO(yuraz): PRE-119 (part of refactor scale)
     common::Hash256 hash;
     for (size_t i = 0; i < common::Hash256::size(); i++) {
       OUTCOME_TRY(byte, scale::fixedwidth::decodeUint8(s));
