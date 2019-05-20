@@ -447,6 +447,7 @@ TEST_F(Primitives, EncodeInherentData) {
   EXPECT_OUTCOME_TRUE_void(r1, data.putData(id1, b1));
   EXPECT_OUTCOME_TRUE_void(r2, data.putData(id2, b2));
   EXPECT_OUTCOME_TRUE_void(r3, data.putData(id3, b3));
+  EXPECT_OUTCOME_FALSE_void(_, data.putData(id1, b2));
 
   ASSERT_EQ(data.getData(id1).value(), b1);
   ASSERT_EQ(data.getData(id2).value(), b2);
