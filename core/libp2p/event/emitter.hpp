@@ -9,6 +9,7 @@
 #include <functional>
 
 #include <boost/signals2.hpp>
+#include "libp2p/event/subscription.hpp"
 
 namespace libp2p::event {
 
@@ -94,11 +95,12 @@ namespace libp2p::event {
      * Subscribe to the specified event
      * @tparam Event, for which the subscription is to be registered
      * @param handler to be called, when a corresponding event is triggered
+     * @return subscription to the event, which can be used, for example, to
+     * unsubscribe
      */
     template <typename Event>
-    void on(const std::function<void(Event)> &handler) {
-      auto &signal = Base::template getSignal<Event>();
-      signal.connect(handler);
+    Subscription on(const std::function<void(Event)> &handler) {
+      return Base::template getSignal<Event>().connect(handler);
     }
 
     /**
@@ -109,8 +111,7 @@ namespace libp2p::event {
      */
     template <typename Event>
     void emit(Event &&event) {
-      auto &signal = Base::template getSignal<Event>();
-      signal(std::forward<Event>(event));
+      Base::template getSignal<Event>()(std::forward<Event>(event));
     }
   };
 

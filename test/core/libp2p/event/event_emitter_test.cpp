@@ -27,12 +27,12 @@ class EventEmitterTest : public ::testing::Test {
  * @then events are successfully emitted
  */
 TEST_F(EventEmitterTest, EmitEvents) {
+  Emitter<ConnectionOpened, ConnectionPaused, ConnectionClosed> emitter{};
+
   std::string connection_opened{};
   auto connection_paused = -1;
   auto connection_closed_n = -1;
   auto connection_closed_k = -1;
-
-  Emitter<ConnectionOpened, ConnectionPaused, ConnectionClosed> emitter{};
 
   emitter.on<ConnectionOpened>([&connection_opened](ConnectionOpened event) {
     connection_opened = event.my_str;
@@ -53,4 +53,25 @@ TEST_F(EventEmitterTest, EmitEvents) {
   ASSERT_EQ(connection_paused, 10);
   ASSERT_EQ(connection_closed_n, 2);
   ASSERT_EQ(connection_closed_k, 5);
+}
+
+/**
+ * @given event emitter
+ * @when subscribing to the event @and unsubscribing from it
+ * @then operations execute successfully
+ */
+TEST_F(EventEmitterTest, Unsubscribe) {
+  Emitter<ConnectionOpened, ConnectionPaused, ConnectionClosed> emitter{};
+
+  auto event_res = -1;
+
+  auto subscription = emitter.on<ConnectionPaused>([&event_res](ConnectionPaused) {
+    event_res++;
+  });
+  emitter.emit(ConnectionPaused{});
+  ASSERT_EQ(event_res, 0);
+
+  subscription.unsubscribe();
+  emitter.emit(ConnectionPaused{});
+  ASSERT_EQ(event_res, 0);
 }
