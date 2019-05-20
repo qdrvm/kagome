@@ -12,20 +12,21 @@
 using libp2p::multi::Multiaddress;
 using libp2p::multi::Protocol;
 using libp2p::multi::ProtocolList;
+using std::string_literals::operator""s;
 
 using namespace kagome::common;
 
 class MultiaddressTest : public ::testing::Test {
  public:
-  const std::string_view valid_ip_udp_address = "/ip4/192.168.0.1/udp/228/";
-  const std::vector<uint8_t> valid_ip_udp_bytes{0x4, 0xC0, 0xA8, 0x0,
-                                                0x1, 0x91, 0x2, 0x0, 0xE4};
+  const std::string_view valid_ip_udp_address = "/ip4/192.168.0.1/udp/228";
+  const std::vector<uint8_t> valid_ip_udp_bytes{0x4,  0xC0, 0xA8, 0x0, 0x1,
+                                                0x91, 0x2,  0x0,  0xE4};
   const Buffer valid_id_udp_buffer{valid_ip_udp_bytes};
 
-  const std::string_view valid_ip_address = "/ip4/192.168.0.1/";
-  const std::string_view valid_ipfs_address = "/ipfs/mypeer/";
+  const std::string_view valid_ip_address = "/ip4/192.168.0.1";
+  const std::string_view valid_ipfs_address = "/p2p/mypeer";
 
-  const std::string_view invalid_address = "/ip4/192.168.0.1/2/";
+  const std::string_view invalid_address = "/ip4/192.168.0.1/2";
   const std::vector<uint8_t> invalid_bytes{0x4, 0xC0, 0xA8, 0x0, 0x1, 0x02};
   const Buffer invalid_buffer{invalid_bytes};
 
@@ -35,7 +36,7 @@ class MultiaddressTest : public ::testing::Test {
    * @return pointer to address
    */
   Multiaddress createValidMultiaddress(
-      std::string_view string_address = "/ip4/192.168.0.1/udp/228/") {
+      std::string_view string_address = "/ip4/192.168.0.1/udp/228") {
     return Multiaddress::create(string_address).value();
   }
 };
@@ -97,8 +98,8 @@ TEST_F(MultiaddressTest, Encapsulate) {
   auto address1 = createValidMultiaddress();
   auto address2 = createValidMultiaddress(valid_ipfs_address);
 
-  auto joined_string_address = std::string{valid_ip_udp_address}
-      + std::string{valid_ipfs_address.substr(1)};
+  auto joined_string_address =
+      std::string{valid_ip_udp_address} + std::string{valid_ipfs_address};
 
   auto joined_byte_address = address1.getBytesAddress();
   joined_byte_address.put(address2.getBytesAddress().toVector());
@@ -120,7 +121,7 @@ TEST_F(MultiaddressTest, Encapsulate) {
  */
 TEST_F(MultiaddressTest, DecapsulateValid) {
   auto initial_address = createValidMultiaddress();
-  auto address_to_decapsulate = createValidMultiaddress("/udp/228/");
+  auto address_to_decapsulate = createValidMultiaddress("/udp/228");
   auto decapsulated_address = createValidMultiaddress(valid_ip_address);
 
   ASSERT_TRUE(initial_address.decapsulate(address_to_decapsulate));
@@ -187,7 +188,7 @@ TEST_F(MultiaddressTest, GetPeerIdNotExists) {
  */
 TEST_F(MultiaddressTest, GetValueForProtocolValid) {
   auto address =
-      createValidMultiaddress(std::string{valid_ip_udp_address} + "udp/432/");
+      createValidMultiaddress(std::string{valid_ip_udp_address} + "/udp/432");
 
   auto protocols = address.getValuesForProtocol(Protocol::Code::UDP);
   ASSERT_TRUE(!protocols.empty());

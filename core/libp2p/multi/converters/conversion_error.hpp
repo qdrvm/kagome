@@ -22,6 +22,6 @@ namespace libp2p::multi::converters {
   };
 }
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::multi::converters, ConversionError);
+OUTCOME_HPP_DECLARE_ERROR(libp2p::multi::converters, ConversionError)
 
 #endif  // KAGOME_CORE_LIBP2P_MULTI_CONVERTERS_CONVERSION_ERROR_HPP_
