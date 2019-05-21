@@ -6,8 +6,8 @@
 #ifndef KAGOME_TRANSPORT_PARSER_HPP
 #define KAGOME_TRANSPORT_PARSER_HPP
 
-#include <boost/variant.hpp>
 #include <boost/asio/ip/address.hpp>
+#include <boost/variant.hpp>
 #include "libp2p/multi/multiaddress.hpp"
 
 namespace libp2p::transport {
@@ -24,9 +24,16 @@ namespace libp2p::transport {
     enum class Error { PROTOCOLS_UNSUPPORTED = 1, INVALID_ADDR_VALUE };
 
     struct ParseResult {
-      /// @brief protocols from the list of supported protocols that were stored
-      /// in the parsed multiaddress
+      /*
+       * Protocols from the list of supported protocols that were stored
+       * in the parsed multiaddress
+       */
       const std::vector<multi::Protocol::Code> &chosen_protos;
+      /*
+       * Variant that stores data extracted from a multiadress in a structure
+       * that fits the protocol stack (e. g. pair of an ip address and a port
+       * for ip4/tcp)
+       */
       AddressData data;
     };
 
