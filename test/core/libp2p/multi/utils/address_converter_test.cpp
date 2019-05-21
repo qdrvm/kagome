@@ -4,7 +4,7 @@
  */
 
 #include <gtest/gtest.h>
-
+#include <testutil/outcome.hpp>
 #include "libp2p/multi/converters/converter_utils.hpp"
 #include "libp2p/multi/multiaddress_protocol_list.hpp"
 
@@ -33,6 +33,25 @@ TEST(AddressConverter, Ip4AddressToBytes) {
 
   res = addressToHex(*ProtocolList::get("ip4"), "0.0.0.1.");
   ASSERT_FALSE(res);
+}
+
+/**
+ * @given A string with an ip6 address
+ * @when converting it to bytes representation
+ * @then if the address was valid then valid byte sequence representing the
+ * address is returned
+ */
+TEST(AddressConverter, Ip6AddressToBytes) {
+  EXPECT_OUTCOME_TRUE(bytes, addressToHex(*ProtocolList::get("ip6"), "2001:0db8:0000:0000:0000:ff00:0042:8329"));
+  ASSERT_EQ(bytes, "20010db8000000000000ff0000428329");
+
+  EXPECT_OUTCOME_TRUE(res, addressToHex(*ProtocolList::get("ip6"), "2001:db8::ff00:42:8329"));
+  ASSERT_EQ(res, "20010db8000000000000ff0000428329");
+
+  EXPECT_OUTCOME_FALSE_1(addressToHex(*ProtocolList::get("ip6"), "0.0.0.1"));
+
+  EXPECT_OUTCOME_TRUE(res2, addressToHex(*ProtocolList::get("ip6"), "::1"));
+  ASSERT_EQ(res2, "00000000000000000000000000000001");
 }
 
 /**
