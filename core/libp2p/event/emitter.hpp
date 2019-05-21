@@ -33,7 +33,7 @@ namespace libp2p::event {
         : public EmitterBase<EventsAmount, OtherEvents...> {
       /// type of underlying signal
       template <typename EventType>
-      using Signal = boost::signals2::signal<void(EventType)>;
+      using Signal = boost::signals2::signal<void(const EventType &)>;
 
       /// base of this template - in fact, the base's "ThisEvent" is the the
       /// first of this "OtherEvents"
@@ -46,8 +46,9 @@ namespace libp2p::event {
        * @return reference to signal
        */
       template <typename ExpectedEvent>
-      std::enable_if_t<std::is_same_v<ThisEvent, ExpectedEvent>,
-                       Signal<ExpectedEvent>>
+      std::enable_if_t<
+          std::is_same_v<std::decay_t<ThisEvent>, std::decay_t<ExpectedEvent>>,
+          Signal<ExpectedEvent>>
           &getSignal() {
         return signal_;
       }
@@ -58,8 +59,9 @@ namespace libp2p::event {
        * @return reference to signal
        */
       template <typename ExpectedEvent>
-      std::enable_if_t<!std::is_same_v<ThisEvent, ExpectedEvent>,
-                       Signal<ExpectedEvent>>
+      std::enable_if_t<
+          !std::is_same_v<std::decay_t<ThisEvent>, std::decay_t<ExpectedEvent>>,
+          Signal<ExpectedEvent>>
           &getSignal() {
         return Base::template getSignal<ExpectedEvent>();
       }
@@ -99,7 +101,7 @@ namespace libp2p::event {
      * unsubscribe
      */
     template <typename Event>
-    Subscription on(const std::function<void(Event)> &handler) {
+    Subscription on(const std::function<void(const Event &)> &handler) {
       return Base::template getSignal<Event>().connect(handler);
     }
 

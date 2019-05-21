@@ -34,16 +34,17 @@ TEST_F(EventEmitterTest, EmitEvents) {
   auto connection_closed_n = -1;
   auto connection_closed_k = -1;
 
-  emitter.on<ConnectionOpened>([&connection_opened](ConnectionOpened event) {
-    connection_opened = event.my_str;
-  });
-  emitter.on<ConnectionPaused>(
-      [&connection_paused](ConnectionPaused) { connection_paused = 10; });
-  emitter.on<ConnectionClosed>(
-      [&connection_closed_n, &connection_closed_k](ConnectionClosed event) {
-        connection_closed_n = event.code1;
-        connection_closed_k = event.code2;
+  emitter.on<ConnectionOpened>(
+      [&connection_opened](const ConnectionOpened &event) {
+        connection_opened = event.my_str;
       });
+  emitter.on<ConnectionPaused>(
+      [&connection_paused](auto &&) { connection_paused = 10; });
+  emitter.on<ConnectionClosed>([&connection_closed_n, &connection_closed_k](
+                                   const ConnectionClosed &event) {
+    connection_closed_n = event.code1;
+    connection_closed_k = event.code2;
+  });
 
   emitter.emit(ConnectionOpened{"foo"});
   emitter.emit(ConnectionPaused{});
@@ -65,13 +66,93 @@ TEST_F(EventEmitterTest, Unsubscribe) {
 
   auto event_res = -1;
 
-  auto subscription = emitter.on<ConnectionPaused>([&event_res](ConnectionPaused) {
-    event_res++;
-  });
+  auto subscription =
+      emitter.on<ConnectionPaused>([&event_res](auto &&) { event_res++; });
   emitter.emit(ConnectionPaused{});
   ASSERT_EQ(event_res, 0);
 
   subscription.unsubscribe();
   emitter.emit(ConnectionPaused{});
   ASSERT_EQ(event_res, 0);
+}
+
+/**
+ * @given event emitter @and non-copyable event to be emitted
+ * @when subscribing to that event @and emitting it
+ * @then the event is successfully emitted
+ */
+TEST_F(EventEmitterTest, NonCopyableEvent) {
+  struct NonCopyableEvent {
+    NonCopyableEvent(const NonCopyableEvent &other) = delete;
+    NonCopyableEvent &operator=(const NonCopyableEvent &other) = delete;
+    NonCopyableEvent(NonCopyableEvent &&other) noexcept = default;
+    NonCopyableEvent &operator=(NonCopyableEvent &&other) noexcept = default;
+
+    int value;
+  };
+
+  auto new_value = -1;
+
+  Emitter<NonCopyableEvent> emitter{};
+  emitter.on<NonCopyableEvent>(
+      [&new_value](const NonCopyableEvent &event) { new_value = event.value; });
+
+  emitter.emit(NonCopyableEvent{2});
+
+  ASSERT_EQ(new_value, 2);
+}
+
+/**
+ * @given event emitter @and non-movable event to be emitted
+ * @when subscribing to that event @and emitting it
+ * @then the event is successfully emitted
+ */
+TEST_F(EventEmitterTest, NonMovableEvent) {
+  struct NonMovableEvent {
+    NonMovableEvent(const NonMovableEvent &other) = default;
+    NonMovableEvent &operator=(const NonMovableEvent &other) = default;
+    NonMovableEvent(NonMovableEvent &&other) noexcept = delete;
+    NonMovableEvent &operator=(NonMovableEvent &&other) noexcept = delete;
+
+    int value;
+  };
+
+  auto new_value = -1;
+
+  Emitter<const NonMovableEvent &> emitter{};
+  emitter.on<NonMovableEvent>(
+      [&new_value](const NonMovableEvent &event) { new_value = event.value; });
+  emitter.emit(NonMovableEvent{2});
+
+  ASSERT_EQ(new_value, 2);
+}
+
+/**
+ * @given event emitter @and non-copyable-movable event to be emitted
+ * @when subscribing to that event @and emitting it
+ * @then the event is successfully emitted
+ */
+TEST_F(EventEmitterTest, NonCopyableOrMovableEvent) {
+  struct NonCopyableOrMovableEvent {
+    NonCopyableOrMovableEvent(const NonCopyableOrMovableEvent &other) = delete;
+    NonCopyableOrMovableEvent &operator=(
+        const NonCopyableOrMovableEvent &other) = delete;
+    NonCopyableOrMovableEvent(NonCopyableOrMovableEvent &&other) noexcept =
+        delete;
+    NonCopyableOrMovableEvent &operator=(
+        NonCopyableOrMovableEvent &&other) noexcept = delete;
+
+    int value;
+  };
+
+  auto new_value = -1;
+
+  Emitter<NonCopyableOrMovableEvent> emitter{};
+  emitter.on<NonCopyableOrMovableEvent>(
+      [&new_value](const NonCopyableOrMovableEvent &event) {
+        new_value = event.value;
+      });
+  emitter.emit(NonCopyableOrMovableEvent{2});
+
+  ASSERT_EQ(new_value, 2);
 }
