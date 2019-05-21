@@ -45,12 +45,11 @@ namespace kagome::runtime {
         const primitives::BlockHeader &header) = 0;
 
     /**
-     * Get authorities of given block
-     * @param block_id id of the block to get authorities
-     * @return authorities of given block
+     * Get current authorities
+     * @return collection of authorities
      */
-    virtual outcome::result<std::vector<primitives::AuthorityId>> authorities(
-        primitives::BlockId block_id) = 0;
+    virtual outcome::result<std::vector<primitives::AuthorityId>>
+    authorities() = 0;
   };
 
 }  // namespace kagome::runtime

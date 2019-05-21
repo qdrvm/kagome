@@ -8,10 +8,12 @@
 
 #include <cstdint>
 
+#include "common/blob.hpp"
+
 namespace kagome::primitives {
   using BlockNumber = uint64_t;
 
-  using AuthorityId = uint32_t;
+  using AuthorityId = common::Blob<32>;
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_CORE_PRIMITIVES_COMMON_HPP

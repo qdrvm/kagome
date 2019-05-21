@@ -42,6 +42,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(encoded_block, codec_->encodeBlock(block));
 
     runtime::SizeType block_size = encoded_block.size();
+    // TODO (yuraz): PRE-98 after check for memory overflow is done, refactor it
     runtime::WasmPointer ptr = memory_->allocate(block_size);
     memory_->storeBuffer(ptr, encoded_block);
 
@@ -57,6 +58,7 @@ namespace kagome::runtime {
     OUTCOME_TRY(encoded_header, codec_->encodeBlockHeader(header));
 
     runtime::SizeType header_size = encoded_header.size();
+    // TODO (yuraz): PRE-98 after check for memory overflow is done, refactor it
     runtime::WasmPointer ptr = memory_->allocate(header_size);
     memory_->storeBuffer(ptr, encoded_header);
 
@@ -67,18 +69,12 @@ namespace kagome::runtime {
     return outcome::success();
   }
 
-  outcome::result<std::vector<primitives::AuthorityId>> CoreImpl::authorities(
-      primitives::BlockId block_id) {
-    OUTCOME_TRY(encoded_id, codec_->encodeBlockId(block_id));
-
-    runtime::SizeType id_size = encoded_id.size();
-    runtime::WasmPointer ptr = memory_->allocate(id_size);
-    memory_->storeBuffer(ptr, encoded_id);
-
+  outcome::result<std::vector<primitives::AuthorityId>> CoreImpl::authorities() {
     OUTCOME_TRY(result_long,
                 executor_.call(state_code_, "Core_authorities",
-                               wasm::LiteralList({wasm::Literal(ptr),
-                                                  wasm::Literal(id_size)})));
+                               wasm::LiteralList({wasm::Literal(0),
+                                                  wasm::Literal(0)})));
+
 
     runtime::WasmPointer authority_address = getWasmAddr(result_long.geti64());
 
