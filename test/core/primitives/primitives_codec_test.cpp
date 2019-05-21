@@ -23,6 +23,7 @@ using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::InherentData;
+using kagome::primitives::InherentIdentifier;
 using kagome::primitives::Invalid;
 using kagome::primitives::ScaleCodec;
 using kagome::primitives::ScaleCodecImpl;
@@ -145,10 +146,8 @@ class Primitives : public testing::Test {
  * @then expected result obtained
  */
 TEST_F(Primitives, encodeBlockHeader) {
-  auto &&res = codec_->encodeBlockHeader(block_header_);
-
-  ASSERT_TRUE(res);
-  ASSERT_EQ(res.value(), encoded_header_);
+  EXPECT_OUTCOME_TRUE(val, codec_->encodeBlockHeader(block_header_));
+  ASSERT_EQ(val, encoded_header_);
 }
 
 /**
@@ -158,17 +157,12 @@ TEST_F(Primitives, encodeBlockHeader) {
  */
 TEST_F(Primitives, decodeBlockHeader) {
   ByteArrayStream stream{encoded_header_};
-
-  auto &&res = codec_->decodeBlockHeader(stream);
-  ASSERT_TRUE(res);
-
-  auto &&val = res.value();
-
-  ASSERT_EQ(val.parentHash(), block_header_.parentHash());
-  ASSERT_EQ(val.number(), block_header_.number());
-  ASSERT_EQ(val.stateRoot(), block_header_.stateRoot());
-  ASSERT_EQ(val.extrinsicsRoot(), block_header_.extrinsicsRoot());
-  ASSERT_EQ(val.digest(), block_header_.digest());
+  EXPECT_OUTCOME_TRUE(val, codec_->decodeBlockHeader(stream));
+  ASSERT_EQ(val.parent_hash, block_header_.parent_hash);
+  ASSERT_EQ(val.number, block_header_.number);
+  ASSERT_EQ(val.state_root, block_header_.state_root);
+  ASSERT_EQ(val.extrinsics_root, block_header_.extrinsics_root);
+  ASSERT_EQ(val.digest, block_header_.digest);
 }
 
 /**
@@ -177,10 +171,7 @@ TEST_F(Primitives, decodeBlockHeader) {
  * @then the same expected buffer obtained {12, 1, 2, 3}
  */
 TEST_F(Primitives, encodeExtrinsic) {
-  auto &&res = codec_->encodeExtrinsic(extrinsic_);
-  ASSERT_TRUE(res);
-
-  auto &&val = res.value();
+  EXPECT_OUTCOME_TRUE(val, codec_->encodeExtrinsic(extrinsic_));
   ASSERT_EQ(val, encoded_extrinsic_);
 }
 
@@ -191,9 +182,8 @@ TEST_F(Primitives, encodeExtrinsic) {
  */
 TEST_F(Primitives, decodeExtrinsic) {
   ByteArrayStream stream{encoded_extrinsic_};
-  auto &&res = codec_->decodeExtrinsic(stream);
-  ASSERT_TRUE(res);
-  ASSERT_EQ(res.value().data(), extrinsic_.data());
+  EXPECT_OUTCOME_TRUE(res, codec_->decodeExtrinsic(stream));
+  ASSERT_EQ(res.data, extrinsic_.data);
 }
 
 /**
@@ -202,9 +192,8 @@ TEST_F(Primitives, decodeExtrinsic) {
  * @then expected result obtained
  */
 TEST_F(Primitives, encodeBlock) {
-  auto &&res = codec_->encodeBlock(block_);
-  ASSERT_TRUE(res);
-  ASSERT_EQ(res.value(), encoded_block_);
+  EXPECT_OUTCOME_TRUE(res, codec_->encodeBlock(block_));
+  ASSERT_EQ(res, encoded_block_);
 }
 
 /**
@@ -214,21 +203,17 @@ TEST_F(Primitives, encodeBlock) {
  */
 TEST_F(Primitives, decodeBlock) {
   ByteArrayStream stream{encoded_block_};
-  auto &&res = codec_->decodeBlock(stream);
-  ASSERT_TRUE(res);
+  EXPECT_OUTCOME_TRUE(val, codec_->decodeBlock(stream));
+  auto &&h = val.header;
+  ASSERT_EQ(h.parent_hash, block_header_.parent_hash);
+  ASSERT_EQ(h.number, block_header_.number);
+  ASSERT_EQ(h.state_root, block_header_.state_root);
+  ASSERT_EQ(h.extrinsics_root, block_header_.extrinsics_root);
+  ASSERT_EQ(h.digest, block_header_.digest);
 
-  auto &&h = res.value().header();
-
-  ASSERT_EQ(h.parentHash(), block_header_.parentHash());
-  ASSERT_EQ(h.number(), block_header_.number());
-  ASSERT_EQ(h.stateRoot(), block_header_.stateRoot());
-  ASSERT_EQ(h.extrinsicsRoot(), block_header_.extrinsicsRoot());
-  ASSERT_EQ(h.digest(), block_header_.digest());
-
-  auto &&extrinsics = res.value().extrinsics();
-
+  auto &&extrinsics = val.extrinsics;
   ASSERT_EQ(extrinsics.size(), 1);
-  ASSERT_EQ(extrinsics[0].data(), extrinsic_.data());
+  ASSERT_EQ(extrinsics[0].data, extrinsic_.data);
 }
 
 /// Version
@@ -239,9 +224,8 @@ TEST_F(Primitives, decodeBlock) {
  * @then obtained result equal to predefined match
  */
 TEST_F(Primitives, encodeVersion) {
-  auto &&res = codec_->encodeVersion(version_);
-  ASSERT_TRUE(res);
-  ASSERT_EQ(res.value(), encoded_version_);
+  EXPECT_OUTCOME_TRUE(val, codec_->encodeVersion(version_));
+  ASSERT_EQ(val, encoded_version_);
 }
 
 /**
@@ -251,13 +235,11 @@ TEST_F(Primitives, encodeVersion) {
  */
 TEST_F(Primitives, decodeVersion) {
   auto stream = ByteArrayStream(encoded_version_);
-  auto &&res = codec_->decodeVersion(stream);
-  ASSERT_TRUE(res);
-  auto &&ver = res.value();
-  ASSERT_EQ(ver.specName(), version_.specName());
-  ASSERT_EQ(ver.implName(), version_.implName());
-  ASSERT_EQ(ver.authoringVersion(), version_.authoringVersion());
-  ASSERT_EQ(ver.apis(), version_.apis());
+  EXPECT_OUTCOME_TRUE(ver, codec_->decodeVersion(stream));
+  ASSERT_EQ(ver.spec_name, version_.spec_name);
+  ASSERT_EQ(ver.impl_name, version_.impl_name);
+  ASSERT_EQ(ver.authoring_version, version_.authoring_version);
+  ASSERT_EQ(ver.apis, version_.apis);
 }
 
 /// BlockId
@@ -268,9 +250,8 @@ TEST_F(Primitives, decodeVersion) {
  * @then obtained result matches predefined value
  */
 TEST_F(Primitives, encodeBlockIdHash256) {
-  auto &&res = codec_->encodeBlockId(block_id_hash_);
-  ASSERT_TRUE(res);
-  ASSERT_EQ(res.value(), encoded_block_id_hash_);
+  EXPECT_OUTCOME_TRUE(val, codec_->encodeBlockId(block_id_hash_));
+  ASSERT_EQ(val, encoded_block_id_hash_);
 }
 
 /**
@@ -279,9 +260,8 @@ TEST_F(Primitives, encodeBlockIdHash256) {
  * @then obtained result matches predefined value
  */
 TEST_F(Primitives, encodeBlockIdBlockNumber) {
-  auto &&res = codec_->encodeBlockId(block_id_number_);
-  ASSERT_TRUE(res);
-  ASSERT_EQ(res.value(), (encoded_block_id_number_));
+  EXPECT_OUTCOME_TRUE(val, codec_->encodeBlockId(block_id_number_));
+  ASSERT_EQ(val, (encoded_block_id_number_));
 }
 
 /**
@@ -292,10 +272,9 @@ TEST_F(Primitives, encodeBlockIdBlockNumber) {
  */
 TEST_F(Primitives, decodeBlockIdHash) {
   auto stream = ByteArrayStream(encoded_block_id_hash_);
-  auto &&res = codec_->decodeBlockId(stream);
-  ASSERT_TRUE(res);
+  EXPECT_OUTCOME_TRUE(val, codec_->decodeBlockId(stream));
   // ASSERT_EQ has problems with pretty-printing variants
-  ASSERT_TRUE(res.value() == block_id_hash_);
+  ASSERT_TRUE(val == block_id_hash_);
 }
 
 /**
@@ -306,10 +285,9 @@ TEST_F(Primitives, decodeBlockIdHash) {
  */
 TEST_F(Primitives, decodeBlockIdNumber) {
   auto stream = ByteArrayStream(encoded_block_id_number_);
-  auto &&res = codec_->decodeBlockId(stream);
-  ASSERT_TRUE(res);
+  EXPECT_OUTCOME_TRUE(val, codec_->decodeBlockId(stream));
   // ASSERT_EQ has problems with pretty-printing variants
-  ASSERT_TRUE(res.value() == block_id_number_);
+  ASSERT_TRUE(val == block_id_number_);
 }
 
 /// TransactionValidity
@@ -321,9 +299,8 @@ TEST_F(Primitives, decodeBlockIdNumber) {
  */
 TEST_F(Primitives, encodeTransactionValidityInvalid) {
   TransactionValidity invalid = Invalid{1};
-  auto &&res = codec_->encodeTransactionValidity(invalid);
-  ASSERT_TRUE(res);
-  ASSERT_EQ(res.value(), (Buffer{0, 1}));
+  EXPECT_OUTCOME_TRUE(val, codec_->encodeTransactionValidity(invalid));
+  ASSERT_EQ(val, (Buffer{0, 1}));
 }
 
 /**
@@ -333,9 +310,8 @@ TEST_F(Primitives, encodeTransactionValidityInvalid) {
  */
 TEST_F(Primitives, encodeTransactionValidityUnknown) {
   TransactionValidity unknown = Unknown{2};
-  auto &&res = codec_->encodeTransactionValidity(unknown);
-  ASSERT_TRUE(res);
-  ASSERT_EQ(res.value(), (Buffer{2, 2}));
+  EXPECT_OUTCOME_TRUE(val, codec_->encodeTransactionValidity(unknown));
+  ASSERT_EQ(val, (Buffer{2, 2}));
 }
 
 /**
@@ -344,9 +320,9 @@ TEST_F(Primitives, encodeTransactionValidityUnknown) {
  * @then obtained result matches predefined value
  */
 TEST_F(Primitives, encodeTransactionValidity) {
-  auto &&res = codec_->encodeTransactionValidity(valid_transaction_);
-  ASSERT_TRUE(res);
-  ASSERT_EQ(res.value(), encoded_valid_transaction_);
+  EXPECT_OUTCOME_TRUE(val,
+                      codec_->encodeTransactionValidity(valid_transaction_));
+  ASSERT_EQ(val, encoded_valid_transaction_);
 }
 
 /**
@@ -358,11 +334,9 @@ TEST_F(Primitives, encodeTransactionValidity) {
 TEST_F(Primitives, decodeTransactionValidityInvalid) {
   Buffer bytes = {0, 1};
   auto stream = ByteArrayStream(bytes);
-  auto &&res = codec_->decodeTransactionValidity(stream);
-  ASSERT_TRUE(res);
-  TransactionValidity value = res.value();
+  EXPECT_OUTCOME_TRUE(val, codec_->decodeTransactionValidity(stream));
   kagome::visit_in_place(
-      value,                                       // value
+      val,                                         // value
       [](Invalid &v) { ASSERT_EQ(v.error_, 1); },  // ok
       [](Unknown &v) { FAIL(); },                  // fail
       [](Valid &v) { FAIL(); });                   // fail
@@ -396,11 +370,9 @@ TEST_F(Primitives, decodeTransactionValidityUnknown) {
  */
 TEST_F(Primitives, decodeTransactionValidityValid) {
   auto stream = ByteArrayStream(encoded_valid_transaction_);
-  auto &&res = codec_->decodeTransactionValidity(stream);
-  ASSERT_TRUE(res);
-  TransactionValidity value = res.value();
+  EXPECT_OUTCOME_TRUE(val, codec_->decodeTransactionValidity(stream));
   kagome::visit_in_place(
-      value,                       // value
+      val,                         // value
       [](Invalid &v) { FAIL(); },  // fail
       [](Unknown &v) { FAIL(); },  // fail
       [this](Valid &v) {           // ok
@@ -422,11 +394,9 @@ TEST_F(Primitives, EncodeDecodeAuthorityIds) {
   id1.fill(1u);
   id2.fill(2u);
   std::vector<AuthorityId> original{id1, id2};
-
   EXPECT_OUTCOME_TRUE(res, codec_->encodeAuthorityIds(original));
 
   ByteArrayStream stream(res);
-
   EXPECT_OUTCOME_TRUE(decoded, codec_->decodeAuthorityIds(stream));
   ASSERT_EQ(original, decoded);
 }
@@ -438,9 +408,9 @@ TEST_F(Primitives, EncodeDecodeAuthorityIds) {
  */
 TEST_F(Primitives, EncodeInherentData) {
   InherentData data;
-  InherentData::InherentIdentifier id1{1};
-  InherentData::InherentIdentifier id2{2};
-  InherentData::InherentIdentifier id3{3};
+  InherentIdentifier id1{1};
+  InherentIdentifier id2{2};
+  InherentIdentifier id3{3};
   Buffer b1{1, 2, 3, 4};
   Buffer b2{5, 6, 7, 8};
   Buffer b3{1, 2, 3, 4};

@@ -20,13 +20,13 @@
 #include "scale/types.hpp"
 
 namespace kagome::primitives {
-  class Block;  ///< forward declaration of class Block
+  struct Block;  ///< forward declaration of class Block
 
-  class BlockHeader;  ///< forward declaration of class BlockHeader
+  struct BlockHeader;  ///< forward declaration of class BlockHeader
 
-  class Extrinsic;  ///< forward declaration of class Extrinsic
+  struct Extrinsic;  ///< forward declaration of class Extrinsic
 
-  class Version;  ///< forward declaration of class Version
+  struct Version;  ///< forward declaration of class Version
 
   /**
    * class ScaleCodec is an interface declaring methods

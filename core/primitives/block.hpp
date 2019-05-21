@@ -12,30 +12,11 @@
 
 namespace kagome::primitives {
   /**
-   * @brief Block class represents block
+   * @brief Block class represents polkadot block primitive
    */
-  class Block {
-   public:
-    /**
-     * @brief Block constructor
-     * @param header block header
-     * @param extrinsics collection of extrinsics
-     */
-    Block(BlockHeader header, std::vector<Extrinsic> extrinsics);
-
-    /**
-     * @return block header const reference
-     */
-    const BlockHeader &header() const;
-
-    /**
-     * @return const reference to extrinsics collection
-     */
-    const std::vector<Extrinsic> &extrinsics() const;
-
-   private:
-    BlockHeader header_;                 ///< block header
-    std::vector<Extrinsic> extrinsics_;  ///< extrinsics collection
+  struct Block {
+    BlockHeader header;                 ///< block header
+    std::vector<Extrinsic> extrinsics;  ///< extrinsics collection
   };
 
 }  // namespace kagome::primitives

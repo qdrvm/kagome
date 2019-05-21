@@ -44,7 +44,7 @@ class TTQTest: public RuntimeTest {
  * otherwise an outcome error
  */
 TEST_F(TTQTest, validate_transaction) {
-  Extrinsic ext(Buffer::fromHex("01020304AABB").value());
+  Extrinsic ext{Buffer::fromHex("01020304AABB").value()};
 
   ASSERT_FALSE(ttq_->validate_transaction(ext));
 }

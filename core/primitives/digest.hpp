@@ -9,9 +9,10 @@
 #include "common/buffer.hpp"
 
 namespace kagome::primitives {
-
-  /// @brief Digest is an implementation defined entity, it should be considered
-  /// as an array of bytes
+  /**
+   * Digest is an implementation defined entity, it should be considered as an
+   * array of bytes
+   */
   using Digest = common::Buffer;
 
 }  // namespace kagome::primitives
