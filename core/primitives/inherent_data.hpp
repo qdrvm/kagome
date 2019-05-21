@@ -16,14 +16,14 @@
 
 namespace kagome::primitives {
 
+  using InherentIdentifier = std::array<uint8_t, 8>;
+
   /**
    * Inherent data to include in a block
    */
   class InherentData {
    public:
     enum class Error { IDENTIFIER_ALREADY_EXISTS = 1 };
-
-    using InherentIdentifier = std::array<uint8_t, 8>;
 
     /** Put data for an inherent into the internal storage.
      *

@@ -79,15 +79,15 @@ namespace kagome::scale {
     }
   };
 
-/// encodes primitives::Extrinsic
-template <>
-struct TypeEncoder<primitives::Extrinsic> {
-  outcome::result<void> encode(const primitives::Extrinsic &value,
-                               common::Buffer &out) {
-    out.putBuffer(value.data());
-    return outcome::success();
-  }
-};
+  /// encodes primitives::Extrinsic
+  template <>
+  struct TypeEncoder<primitives::Extrinsic> {
+    outcome::result<void> encode(const primitives::Extrinsic &value,
+                                 common::Buffer &out) {
+      out.putBuffer(value.data);
+      return outcome::success();
+    }
+  };
 
   /// encodes std::vector
   template <class T>
@@ -208,7 +208,7 @@ struct TypeEncoder<primitives::Extrinsic> {
       // and then bytes as well
       out.put(extrinsic);
 
-      return primitives::Extrinsic(out);
+      return primitives::Extrinsic{out};
     }
   };
 
@@ -235,8 +235,8 @@ struct TypeEncoder<primitives::Extrinsic> {
   struct TypeDecoder<primitives::parachain::Relay>
       : public EmptyDecoder<primitives::parachain::Relay> {};
 
-//  template struct TypeDecoder<std::array<uint8_t, 8>>;
-//  template struct TypeEncoder<std::array<uint8_t, 8>>;
+  //  template struct TypeDecoder<std::array<uint8_t, 8>>;
+  //  template struct TypeEncoder<std::array<uint8_t, 8>>;
 
   template <>
   struct TypeEncoder<primitives::ScheduledChange> {
@@ -292,13 +292,13 @@ namespace kagome::primitives {
   outcome::result<Buffer> ScaleCodecImpl::encodeBlock(
       const Block &block) const {
     Buffer out;
-    OUTCOME_TRY(encoded_header, encodeBlockHeader(block.header()));
+    OUTCOME_TRY(encoded_header, encodeBlockHeader(block.header));
     out.putBuffer(encoded_header);
 
     // put number of extrinsics
-    OUTCOME_TRY(encodeInteger(block.extrinsics().size(), out));
+    OUTCOME_TRY(encodeInteger(block.extrinsics.size(), out));
 
-    for (auto &&extrinsic : block.extrinsics()) {
+    for (auto &&extrinsic : block.extrinsics) {
       OUTCOME_TRY(encoded_extrinsic, encodeExtrinsic(extrinsic));
       out.putBuffer(encoded_extrinsic);
     }
@@ -308,20 +308,21 @@ namespace kagome::primitives {
 
   outcome::result<Block> ScaleCodecImpl::decodeBlock(Stream &stream) const {
     OUTCOME_TRY(header, decodeBlockHeader(stream));
-    // first decode number of items
-    OUTCOME_TRY(integer, decodeInteger(stream));
-    auto items_count = integer.convert_to<uint64_t>();
+    OUTCOME_TRY(extrinsics, decodeCollection<Extrinsic>(stream));
+    //    // first decode number of items
+    //    OUTCOME_TRY(integer, decodeInteger(stream));
+    //    auto items_count = integer.convert_to<uint64_t>();
+    //
+    //    std::vector<Extrinsic> extrinsics;
+    //    extrinsics.reserve(items_count);
+    //
+    //    // now decode collection of extrinsics
+    //    for (uint64_t i = 0u; i < items_count; ++i) {
+    //      OUTCOME_TRY(e, decodeExtrinsic(stream));
+    //      extrinsics.push_back(e);
+    //    }
 
-    std::vector<Extrinsic> collection;
-    collection.reserve(items_count);
-
-    // now decode collection of extrinsics
-    for (uint64_t i = 0u; i < items_count; ++i) {
-      OUTCOME_TRY(extrinsic, decodeExtrinsic(stream));
-      collection.push_back(extrinsic);
-    }
-
-    return Block(header, collection);
+    return Block{header, extrinsics};
   }
 
   outcome::result<Buffer> ScaleCodecImpl::encodeBlockHeader(
@@ -329,12 +330,11 @@ namespace kagome::primitives {
     Buffer out;
 
     scale::TypeEncoder<Hash256> encoder;
-
-    OUTCOME_TRY(encoder.encode(block_header.parentHash(), out));
-    encodeUint64(block_header.number(), out);
-    OUTCOME_TRY(encoder.encode(block_header.stateRoot(), out));
-    OUTCOME_TRY(encoder.encode(block_header.extrinsicsRoot(), out));
-    OUTCOME_TRY(digest, buffer_codec_->encode(block_header.digest()));
+    OUTCOME_TRY(encoder.encode(block_header.parent_hash, out));
+    encodeUint64(block_header.number, out);
+    OUTCOME_TRY(encoder.encode(block_header.state_root, out));
+    OUTCOME_TRY(encoder.encode(block_header.extrinsics_root, out));
+    OUTCOME_TRY(digest, buffer_codec_->encode(block_header.digest));
     // TODO(yuraz): PRE-119 refactor ScaleEncode interface
     out.putBuffer(digest);
 
@@ -344,15 +344,14 @@ namespace kagome::primitives {
   outcome::result<BlockHeader> ScaleCodecImpl::decodeBlockHeader(
       Stream &stream) const {
     scale::TypeDecoder<Hash256> decoder;
-
     OUTCOME_TRY(parent_hash, decoder.decode(stream));
     OUTCOME_TRY(number, decodeUint64(stream));
     OUTCOME_TRY(state_root, decoder.decode(stream));
     OUTCOME_TRY(extrinsics_root, decoder.decode(stream));
     OUTCOME_TRY(digest, decodeCollection<uint8_t>(stream));
 
-    return BlockHeader(std::move(parent_hash), number, std::move(state_root),
-                       std::move(extrinsics_root), Buffer{std::move(digest)});
+    return BlockHeader{std::move(parent_hash), number, std::move(state_root),
+                       std::move(extrinsics_root), Buffer{std::move(digest)}};
   }
 
   outcome::result<Buffer> ScaleCodecImpl::encodeExtrinsic(
@@ -369,11 +368,11 @@ namespace kagome::primitives {
   outcome::result<Buffer> ScaleCodecImpl::encodeVersion(
       const Version &version) const {
     Buffer out;
-    OUTCOME_TRY(encodeString(version.specName(), out));
-    OUTCOME_TRY(encodeString(version.implName(), out));
-    encodeUint32(version.authoringVersion(), out);
-    encodeUint32(version.implVersion(), out);
-    OUTCOME_TRY(encodeCollection<Api>(version.apis(), out));
+    OUTCOME_TRY(encodeString(version.spec_name, out));
+    OUTCOME_TRY(encodeString(version.impl_name, out));
+    encodeUint32(version.authoring_version, out);
+    encodeUint32(version.impl_version, out);
+    OUTCOME_TRY(encodeCollection<Api>(version.apis, out));
     return out;
   }
 
@@ -385,7 +384,7 @@ namespace kagome::primitives {
     OUTCOME_TRY(impl_version, decodeUint32(stream));
     OUTCOME_TRY(apis, decodeCollection<Api>(stream));
 
-    return Version(spec_name, impl_name, authoring_version, impl_version, apis);
+    return Version{spec_name, impl_name, authoring_version, impl_version, apis};
   }
 
   outcome::result<Buffer> ScaleCodecImpl::encodeBlockId(
@@ -418,7 +417,7 @@ namespace kagome::primitives {
 
     // TODO(Harrm) PRE-153 Change to vectors of ref wrappers to avoid copying
     // vectors
-    std::vector<InherentData::InherentIdentifier> ids;
+    std::vector<InherentIdentifier> ids;
     ids.reserve(data.size());
     std::vector<std::vector<uint8_t>> vals;
     vals.reserve(data.size());
@@ -436,8 +435,7 @@ namespace kagome::primitives {
 
   outcome::result<InherentData> ScaleCodecImpl::decodeInherentData(
       Stream &stream) const {
-    OUTCOME_TRY(ids,
-                decodeCollection<InherentData::InherentIdentifier>(stream));
+    OUTCOME_TRY(ids, decodeCollection<InherentIdentifier>(stream));
     OUTCOME_TRY(vals, decodeCollection<std::vector<uint8_t>>(stream));
 
     InherentData data;

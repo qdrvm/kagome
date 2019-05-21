@@ -39,7 +39,7 @@ namespace kagome::primitives {
     return std::nullopt;
   }
 
-  const std::map<InherentData::InherentIdentifier, common::Buffer>
+  const std::map<InherentIdentifier, common::Buffer>
       &InherentData::getDataCollection() const {
     return data_;
   }

@@ -26,6 +26,8 @@ class RuntimeTest : public test::WasmTest {
   using Block = kagome::primitives::Block;
   using BlockId = kagome::primitives::BlockId;
   using BlockHeader = kagome::primitives::BlockHeader;
+  using Extrinsic = kagome::primitives::Extrinsic;
+  using Digest = kagome::primitives::Digest;
 
   RuntimeTest()
       // path to a file with polkadot runtime wasm code located in wasm/
@@ -42,35 +44,32 @@ class RuntimeTest : public test::WasmTest {
   }
 
   kagome::primitives::BlockHeader createBlockHeader() {
-    kagome::common::Hash256 parent_hash{};
+    kagome::common::Hash256 parent_hash;
     parent_hash.fill('p');
 
     size_t number = 1;
 
-    kagome::common::Hash256 state_root{};
+    kagome::common::Hash256 state_root;
     state_root.fill('s');
 
-    kagome::common::Hash256 extrinsics_root{};
+    kagome::common::Hash256 extrinsics_root;
     extrinsics_root.fill('e');
 
-    Buffer digest{};
+    Digest digest;
 
-    BlockHeader header(parent_hash, number, state_root, extrinsics_root,
-                       digest);
-    return header;
+    return BlockHeader{parent_hash, number, state_root, extrinsics_root,
+                       digest};
   }
 
   kagome::primitives::Block createBlock() {
     auto header = createBlockHeader();
 
-    std::vector<kagome::primitives::Extrinsic> xts;
+    std::vector<Extrinsic> xts;
 
-    xts.emplace_back(Buffer{'a', 'b', 'c'});
-    xts.emplace_back(Buffer{'1', '2', '3'});
+    xts.emplace_back(Extrinsic{Buffer{'a', 'b', 'c'}});
+    xts.emplace_back(Extrinsic{Buffer{'1', '2', '3'}});
 
-    Block b(header, xts);
-
-    return b;
+    return Block{header, xts};
   }
 
   kagome::primitives::BlockId createBlockId() {
