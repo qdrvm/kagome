@@ -225,7 +225,7 @@ namespace kagome::scale {
   /// decodes object of empty class
   template <class T>
   struct EmptyDecoder {
-    outcome::result<T> decode(common::ByteStream &) {
+    outcome::result<T> decode(common::ByteStream & /*unused*/) {  // NOLINT
       return T{};
     }
   };
@@ -309,18 +309,6 @@ namespace kagome::primitives {
   outcome::result<Block> ScaleCodecImpl::decodeBlock(Stream &stream) const {
     OUTCOME_TRY(header, decodeBlockHeader(stream));
     OUTCOME_TRY(extrinsics, decodeCollection<Extrinsic>(stream));
-    //    // first decode number of items
-    //    OUTCOME_TRY(integer, decodeInteger(stream));
-    //    auto items_count = integer.convert_to<uint64_t>();
-    //
-    //    std::vector<Extrinsic> extrinsics;
-    //    extrinsics.reserve(items_count);
-    //
-    //    // now decode collection of extrinsics
-    //    for (uint64_t i = 0u; i < items_count; ++i) {
-    //      OUTCOME_TRY(e, decodeExtrinsic(stream));
-    //      extrinsics.push_back(e);
-    //    }
 
     return Block{header, extrinsics};
   }
@@ -350,8 +338,8 @@ namespace kagome::primitives {
     OUTCOME_TRY(extrinsics_root, decoder.decode(stream));
     OUTCOME_TRY(digest, decodeCollection<uint8_t>(stream));
 
-    return BlockHeader{std::move(parent_hash), number, std::move(state_root),
-                       std::move(extrinsics_root), Buffer{std::move(digest)}};
+    return BlockHeader{parent_hash, number, state_root, extrinsics_root,
+                       Buffer{std::move(digest)}};
   }
 
   outcome::result<Buffer> ScaleCodecImpl::encodeExtrinsic(
