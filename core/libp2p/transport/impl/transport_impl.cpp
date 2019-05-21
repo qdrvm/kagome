@@ -6,8 +6,8 @@
 #include "libp2p/transport/impl/transport_impl.hpp"
 
 #include "libp2p/multi/multiaddress.hpp"
+#include "libp2p/transport/impl/multiaddress_parser.hpp"
 #include "libp2p/transport/impl/transport_listener_impl.hpp"
-#include "libp2p/transport/impl/transport_parser.hpp"
 #include "libp2p/transport/tcp/tcp_connection.hpp"
 
 namespace libp2p::transport {
@@ -25,9 +25,9 @@ namespace libp2p::transport {
     explicit ParserVisitor(TransportImpl const &transport)
         : transport_{transport} {}
 
-    /// IP/TCP address
+    /// IP/TCP address (both v4 and v6)
     Result operator()(
-        const std::pair<TransportParser::IpAddress, uint16_t> &ip_tcp) {
+        const std::pair<MultiaddressParser::IpAddress, uint16_t> &ip_tcp) {
       return transport_.ipTcp(ip_tcp.first, ip_tcp.second);
     }
 
@@ -37,7 +37,7 @@ namespace libp2p::transport {
 
   outcome::result<std::shared_ptr<Connection>> TransportImpl::dial(
       const multi::Multiaddress &address) const {
-    OUTCOME_TRY(res, TransportParser::parse(address));
+    OUTCOME_TRY(res, MultiaddressParser::parse(address));
     ParserVisitor visitor{*this};
     return boost::apply_visitor(visitor, res.data);
   }

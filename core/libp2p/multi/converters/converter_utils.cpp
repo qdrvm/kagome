@@ -7,11 +7,13 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/asio/ip/address_v4.hpp>
+#include <boost/asio/ip/address_v6.hpp>
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
 #include "common/hexutil.hpp"
 #include "libp2p/multi/converters/conversion_error.hpp"
 #include "libp2p/multi/converters/ip_v4_converter.hpp"
+#include "libp2p/multi/converters/ip_v6_converter.hpp"
 #include "libp2p/multi/converters/ipfs_converter.hpp"
 #include "libp2p/multi/converters/tcp_converter.hpp"
 #include "libp2p/multi/converters/udp_converter.hpp"
@@ -72,14 +74,14 @@ namespace libp2p::multi::converters {
     return Buffer{std::move(bytes)};
   }
 
-  auto addressToHex(const Protocol &protocol, std::string_view addr)
-      -> outcome::result<std::string> {
-    std::string astb__stringy;
-
+  outcome::result<std::string> addressToHex(const Protocol &protocol,
+                                            std::string_view addr) {
     // TODO(Akvinikym) 25.02.19 PRE-49: add more protocols
     switch (protocol.code) {
       case Protocol::Code::IP4:
         return IPv4Converter::addressToHex(addr);
+      case Protocol::Code::IP6:
+        return IPv6Converter::addressToHex(addr);
       case Protocol::Code::TCP:
         return TcpConverter::addressToHex(addr);
       case Protocol::Code::UDP:
@@ -107,8 +109,7 @@ namespace libp2p::multi::converters {
     }
   }
 
-  auto bytesToMultiaddrString(const Buffer &bytes)
-      -> outcome::result<std::string> {
+  outcome::result<std::string> bytesToMultiaddrString(const Buffer &bytes) {
     std::string results;
 
     size_t lastpos = 0;
@@ -144,6 +145,12 @@ namespace libp2p::multi::converters {
             results += boost::asio::ip::make_address_v4(
                            std::stoul(address, nullptr, 16))
                            .to_string();
+          } else if (protocol->name == "ip6") {
+            OUTCOME_TRY(addr_bytes, unhex(address));
+            std::array<uint8_t, 16> arr {};
+            std::copy_n(addr_bytes.begin(), 16, arr.begin());
+            results += boost::asio::ip::make_address_v6(arr).to_string();
+
           } else if (protocol->name == "tcp") {
             results += std::to_string(std::stoul(address, nullptr, 16));
           } else if (protocol->name == "udp") {

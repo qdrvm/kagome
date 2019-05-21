@@ -27,6 +27,8 @@ target_link_libraries(conversion_error
 add_library(converters
     ip_v4_converter.hpp
     ip_v4_converter.cpp
+    ip_v6_converter.hpp
+    ip_v6_converter.cpp
     tcp_converter.hpp
     tcp_converter.cpp
     udp_converter.hpp

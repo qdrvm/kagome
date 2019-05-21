@@ -4,7 +4,7 @@
 
 
 add_library(libp2p_transport_parser
-    transport_parser.cpp
+    multiaddress_parser.cpp
     )
 target_link_libraries(libp2p_transport_parser
     Boost::boost

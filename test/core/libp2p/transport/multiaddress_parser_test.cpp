@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/transport/impl/transport_parser.hpp"
+#include "libp2p/transport/impl/multiaddress_parser.hpp"
 
 #include <gtest/gtest.h>
 #include <outcome/outcome.hpp>
@@ -11,7 +11,7 @@
 
 using libp2p::multi::Multiaddress;
 using libp2p::multi::Protocol;
-using libp2p::transport::TransportParser;
+using libp2p::transport::MultiaddressParser;
 
 using ::testing::Test;
 using ::testing::TestWithParam;
@@ -24,7 +24,7 @@ struct TransportParserTest : public TestWithParam<Multiaddress> {};
  * @then the chosen protocols by parser are the protocols of the multiaddress
  */
 TEST_P(TransportParserTest, ParseSuccessfully) {
-  auto r_ok = TransportParser::parse(GetParam());
+  auto r_ok = MultiaddressParser::parse(GetParam());
   std::vector<Protocol::Code> proto_codes;
   auto multiaddr_protos = GetParam().getProtocols();
   auto callback = [](Protocol const &proto) { return proto.code; };
@@ -44,19 +44,26 @@ INSTANTIATE_TEST_CASE_P(TestSupported, TransportParserTest,
  * content of the multiaddress
  */
 TEST_F(TransportParserTest, CorrectAlternative) {
-  auto r = TransportParser::parse(
+  auto r4 = MultiaddressParser::parse(
       Multiaddress::create("/ip4/127.0.0.1/tcp/5050").value());
+  auto r6 = MultiaddressParser::parse(
+      Multiaddress::create("/ip6/2001:db8:85a3:8d3:1319:8a2e:370:7348/tcp/443")
+          .value());
 
-  using IpTcp = std::pair<TransportParser::IpAddress, uint16_t>;
+  using Ip4Tcp = std::pair<MultiaddressParser::Ip4Address, uint16_t>;
+  using Ip6Tcp = std::pair<MultiaddressParser::Ip6Address, uint16_t>;
 
   class ParserVisitor {
    public:
     /// IP/TCP address
-    bool operator()(
-        const IpTcp &ip_tcp) {
+    bool operator()(const Ip4Tcp &ip_tcp) {
       return ip_tcp.first.to_string() == "127.0.0.1" && ip_tcp.second == 5050;
     }
+    bool operator()(const Ip6Tcp &ip_tcp) {
+      return ip_tcp.first.to_string() == "2001:db8:85a3:8d3:1319:8a2e:370:7348" && ip_tcp.second == 443;
+    }
   } visitor;
-  
-  ASSERT_TRUE(boost::apply_visitor(visitor, r.value().data));
+
+  ASSERT_TRUE(boost::apply_visitor(visitor, r4.value().data));
+  ASSERT_TRUE(boost::apply_visitor(visitor, r6.value().data));
 }

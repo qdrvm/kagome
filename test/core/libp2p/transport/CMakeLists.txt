@@ -11,7 +11,7 @@ target_link_libraries(libp2p_tcp_edge_cases
   libp2p_transport
   )
 
-addtest(libp2p_transport_parser_test transport_parser_test.cpp)
+addtest(libp2p_transport_parser_test multiaddress_parser_test.cpp)
 target_link_libraries(libp2p_transport_parser_test
     libp2p_transport_parser
     )

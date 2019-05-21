@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/transport/impl/transport_parser.hpp"
+#include "libp2p/transport/impl/multiaddress_parser.hpp"
 
 #include <boost/asio/ip/address.hpp>
 #include <boost/lexical_cast.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::transport, TransportParser::Error, e) {
-  using E = libp2p::transport::TransportParser::Error;
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::transport, MultiaddressParser::Error, e) {
+  using E = libp2p::transport::MultiaddressParser::Error;
   switch (e) {
     case E::PROTOCOLS_UNSUPPORTED:
       return "This protocol is not supported by libp2p transport";
@@ -26,12 +26,13 @@ namespace libp2p::transport {
   using multi::Protocol;
 
   // clang-format off
-  const std::vector<std::vector<Protocol::Code>> TransportParser::kSupportedProtocols {
-    {multi::Protocol::Code::IP4, multi::Protocol::Code::TCP}
+  const std::vector<std::vector<Protocol::Code>> MultiaddressParser::kSupportedProtocols {
+    {multi::Protocol::Code::IP4, multi::Protocol::Code::TCP},
+    {multi::Protocol::Code::IP6, multi::Protocol::Code::TCP}
   };
   // clang-format on
 
-  outcome::result<TransportParser::ParseResult> TransportParser::parse(
+  outcome::result<MultiaddressParser::ParseResult> MultiaddressParser::parse(
       const multi::Multiaddress &address) {
     auto pvs = address.getProtocolsWithValues();
 
@@ -56,19 +57,26 @@ namespace libp2p::transport {
     // stored in ParseResult variant field, accroding to the sequence of
     // protocols in the entry
     switch (entry_idx) {
-      case 0: {
+      // process ip[4 or 6]/tcp
+      case 0:
+      case 1: {
         auto it = pvs.begin();
         OUTCOME_TRY(addr, parseIp(it->second));
         it++;
         OUTCOME_TRY(port, parseTcp(it->second));
-        return ParseResult{*entry, std::make_pair(addr, port)};
+        if (entry_idx == 0) {
+          return ParseResult{*entry, std::make_pair(addr.to_v4(), port)};
+        } else {
+          return ParseResult{*entry, std::make_pair(addr.to_v6(), port)};
+        }
       }
       default:
         return Error::PROTOCOLS_UNSUPPORTED;
     }
   }
 
-  outcome::result<uint16_t> TransportParser::parseTcp(std::string_view value) {
+  outcome::result<uint16_t> MultiaddressParser::parseTcp(
+      std::string_view value) {
     try {
       return lexical_cast<uint16_t>(value);
     } catch (boost::bad_lexical_cast &) {
@@ -76,7 +84,7 @@ namespace libp2p::transport {
     }
   }
 
-  outcome::result<TransportParser::IpAddress> TransportParser::parseIp(
+  outcome::result<MultiaddressParser::IpAddress> MultiaddressParser::parseIp(
       std::string_view value) {
     boost::system::error_code ec;
     auto addr = make_address(value, ec);

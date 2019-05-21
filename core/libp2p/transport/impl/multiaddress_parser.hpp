@@ -16,10 +16,13 @@ namespace libp2p::transport {
    * Extracts information stored in the provided multiaddress if the protocol
    * stack is supported by transport implementation
    */
-  class TransportParser {
+  class MultiaddressParser {
    public:
+    using Ip4Address = boost::asio::ip::address_v4;
+    using Ip6Address = boost::asio::ip::address_v6;
     using IpAddress = boost::asio::ip::address;
-    using AddressData = boost::variant<std::pair<IpAddress, uint16_t>>;
+    using AddressData = boost::variant<std::pair<Ip4Address, uint16_t>,
+                                       std::pair<Ip6Address, uint16_t>>;
 
     enum class Error { PROTOCOLS_UNSUPPORTED = 1, INVALID_ADDR_VALUE };
 
@@ -66,6 +69,6 @@ namespace libp2p::transport {
 
 }  // namespace libp2p::transport
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::transport, TransportParser::Error);
+OUTCOME_HPP_DECLARE_ERROR(libp2p::transport, MultiaddressParser::Error);
 
 #endif  // KAGOME_TRANSPORT_PARSER_HPP
