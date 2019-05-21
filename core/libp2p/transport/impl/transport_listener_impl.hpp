@@ -30,7 +30,7 @@ namespace libp2p::transport {
     ~TransportListenerImpl() override = default;
 
     TransportListenerImpl(boost::asio::io_context &context,
-                                   HandlerFunc handler);
+                          HandlerFunc handler);
 
     outcome::result<void> listen(const multi::Multiaddress &address) override;
 
