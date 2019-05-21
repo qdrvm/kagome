@@ -14,6 +14,9 @@
 
 namespace libp2p::basic {
 
+  /**
+   * @deprecated use Reader
+   */
   class Readable {
    public:
     //

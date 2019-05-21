@@ -8,5 +8,15 @@ add_subdirectory(transport)
 add_subdirectory(crypto)
 add_subdirectory(peer)
 add_subdirectory(muxer)
-add_subdirectory(upgrader)
 add_subdirectory(protocol_muxer)
+
+#add_library(libp2p
+#    config.hpp
+#    host.cpp
+#    host.hpp
+#    host_builder.cpp
+#    host_builder.hpp
+#    )
+#target_link_libraries(libp2p
+#    outcome
+#    )

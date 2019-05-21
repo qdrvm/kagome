@@ -63,7 +63,6 @@ namespace kagome::runtime {
     encodeUint32(id, params);
 
     runtime::SizeType ext_size = params.size();
-    // TODO (yuraz): PRE-98 after check for memory overflow is done, refactor it
     runtime::WasmPointer ptr = memory_->allocate(ext_size);
     memory_->storeBuffer(ptr, params);
 
@@ -86,7 +85,6 @@ namespace kagome::runtime {
     encodeUint32(id, params);
 
     runtime::SizeType ext_size = params.size();
-    // TODO (yuraz): PRE-98 after check for memory overflow is done, refactor it
     runtime::WasmPointer ptr = memory_->allocate(ext_size);
     memory_->storeBuffer(ptr, params);
 

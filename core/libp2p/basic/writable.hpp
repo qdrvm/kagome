@@ -12,6 +12,10 @@
 #include <boost/asio/streambuf.hpp>
 
 namespace libp2p::basic {
+
+  /**
+    * @deprecated use Writer
+    */
   class Writable {
    public:
     using CompletionHandler = void(const std::error_code & /* ec*/,
