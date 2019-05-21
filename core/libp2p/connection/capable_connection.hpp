@@ -14,11 +14,23 @@
 namespace libp2p::connection {
 
   // connection that provides basic libp2p requirements to the connection
-  struct CapableConnection : public MultiaddrConnection,
-                             public SecureConnection {
+  struct CapableConnection : public SecureConnection {
     ~CapableConnection() override = default;
 
+    /**
+     * @brief Opens new stream using this connection.
+     */
     virtual outcome::result<Stream> newStream() = 0;
+
+    /**
+     * @brief Get local multiaddress for this connection.
+     */
+    virtual multi::Multiaddress localMultiaddr() const = 0;
+
+    /**
+     * @brief Get remote multiaddress for this connection.
+     */
+    virtual multi::Multiaddress remoteMultiaddr() const = 0;
   };
 
 }  // namespace libp2p::connection

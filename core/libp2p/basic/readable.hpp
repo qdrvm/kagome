@@ -17,7 +17,7 @@ namespace libp2p::basic {
   /**
    * @deprecated use Reader
    */
-  class Readable {
+  class [[deprecated("use Reader")]] Readable {
    public:
     //
     using CompletionHandler = void(const std::error_code & /* error */,

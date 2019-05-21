@@ -16,7 +16,7 @@ namespace libp2p::basic {
   /**
     * @deprecated use Writer
     */
-  class Writable {
+  class [[deprecated("use Writer")]] Writable {
    public:
     using CompletionHandler = void(const std::error_code & /* ec*/,
                                    size_t /* written */);

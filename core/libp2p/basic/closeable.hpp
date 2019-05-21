@@ -10,9 +10,6 @@
 
 namespace libp2p::basic {
 
-  /**
-   * @deprecated use Closer
-   */
   class Closeable {
    public:
     virtual ~Closeable() = default;

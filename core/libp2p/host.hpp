@@ -51,7 +51,7 @@ namespace libp2p {
      * which predicate {@param predicate} is true.
      * param prefix prefix for the protocol. Example: /ping/
      * @param predicate function that takes received protocol (/ping/1.0.0) and
-     * eturns true, if this protocol can be handled.
+     * returns true, if this protocol can be handled.
      * @param handler handler
      */
     void setProtocolHandlerByPrefix(

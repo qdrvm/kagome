@@ -17,22 +17,24 @@
 
 namespace libp2p {
 
-  template <typename T>
-  using vec = std::vector<T>;
+  namespace detail {
+    template <typename T>
+    using vec = std::vector<T>;
 
-  template <typename T>
-  using sptr = std::shared_ptr<T>;
+    template <typename T>
+    using sptr = std::shared_ptr<T>;
 
-  template <typename T>
-  using vecsptr = vec<sptr<T>>;
+    template <typename T>
+    using vecsptr = vec<sptr<T>>;
+  }  // namespace detail
 
   struct Config {
     crypto::KeyPair peer_key;
-    vecsptr<transport::Transport> transports;
-    vecsptr<muxer::MuxerAdaptor> muxers;
-    vec<multi::Multiaddress> listen_addresses;
-    sptr<peer::PeerRepository> peer_repository;
-    sptr<routing::RoutingAdaptor> peer_routing;
+    detail::vecsptr<transport::Transport> transports;
+    detail::vecsptr<muxer::MuxerAdaptor> muxers;
+    detail::vec<multi::Multiaddress> listen_addresses;
+    detail::sptr<peer::PeerRepository> peer_repository;
+    detail::sptr<routing::RoutingAdaptor> peer_routing;
 
     bool enable_ping = true;
   };

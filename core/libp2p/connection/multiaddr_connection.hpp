@@ -12,10 +12,6 @@ namespace libp2p::connection {
 
   struct MultiaddrConnection {
     virtual ~MultiaddrConnection() = default;
-
-    virtual multi::Multiaddress localMultiaddr() const = 0;
-
-    virtual multi::Multiaddress remoteMultiaddr() const = 0;
   };
 
 }  // namespace libp2p::connection

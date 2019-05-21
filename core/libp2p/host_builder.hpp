@@ -61,7 +61,7 @@ namespace libp2p {
 
     // Host will listen on this addresses
     HostBuilder &addListenMultiaddr(const multi::Multiaddress &address);
-    HostBuilder &addListenMultiaddr(const std::string_view &address);
+    HostBuilder &addListenMultiaddr(std::string_view address);
 
     // create Host with given config
     Host build();

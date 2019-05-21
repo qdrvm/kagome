@@ -6,13 +6,13 @@
 #ifndef KAGOME_READWRITECLOSER_HPP
 #define KAGOME_READWRITECLOSER_HPP
 
-#include "libp2p/basic/closer.hpp"
+#include "libp2p/basic/closeable.hpp"
 #include "libp2p/basic/reader.hpp"
 #include "libp2p/basic/writer.hpp"
 
 namespace libp2p::basic {
 
-  struct ReadWriteCloser : public Reader, public Writer, public Closer {
+  struct ReadWriteCloser : public Reader, public Writer, public Closeable {
     ~ReadWriteCloser() override = default;
   };
 
