@@ -12,7 +12,7 @@
 
 namespace kagome::primitives {
   /**
-   * @brief Block class represents block
+   * @brief Block class represents polkadot block primitive
    */
   struct Block {
     BlockHeader header;                 ///< block header

@@ -13,8 +13,7 @@ namespace kagome::primitives {
    * @brief Extrinsic class represents extrinsic
    */
   struct Extrinsic {
-    using Buffer = kagome::common::Buffer;
-    Buffer data;  ///< extrinsic content as byte array
+    kagome::common::Buffer data;  ///< extrinsic content as byte array
   };
 
 }  // namespace kagome::primitives

@@ -235,9 +235,6 @@ namespace kagome::scale {
   struct TypeDecoder<primitives::parachain::Relay>
       : public EmptyDecoder<primitives::parachain::Relay> {};
 
-  //  template struct TypeDecoder<std::array<uint8_t, 8>>;
-  //  template struct TypeEncoder<std::array<uint8_t, 8>>;
-
   template <>
   struct TypeEncoder<primitives::ScheduledChange> {
     outcome::result<void> encode(const primitives::ScheduledChange &value,
