@@ -10,6 +10,7 @@ target_link_libraries(yamux_test
     yamux
     multiaddress
     libp2p_transport
+    transport_test_fixture
     )
 
 addtest(yamux_frame_test

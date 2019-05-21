@@ -40,8 +40,7 @@ namespace kagome::runtime {
     outcome::result<std::optional<Buffer>> parachainCode(
         ParachainId id) override;
 
-    outcome::result<std::vector<ValidatorId>> validators(
-        primitives::BlockId block_id) override;
+    outcome::result<std::vector<ValidatorId>> validators() override;
 
    private:
     std::shared_ptr<WasmMemory> memory_;

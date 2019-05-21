@@ -84,7 +84,5 @@ TEST_F(CoreTest, DISABLED_InitializeBlockTest) {
  * @then successful result is returned
  */
 TEST_F(CoreTest, DISABLED_AuthoritiesTest) {
-  auto block_id = createBlockId();
-
-  ASSERT_TRUE(core_->authorities(block_id));
+  ASSERT_TRUE(core_->authorities());
 }

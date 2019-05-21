@@ -15,6 +15,7 @@
 #include "scale/collection.hpp"
 #include "scale/compact.hpp"
 #include "scale/fixedwidth.hpp"
+#include "scale/optional.hpp"
 #include "scale/scale_error.hpp"
 #include "scale/variant.hpp"
 
@@ -27,6 +28,18 @@ namespace kagome::scale {
                                  common::Buffer &out) {
       for (size_t i = 0; i < sz; i++) {
         fixedwidth::encodeUInt8(gsl::at(array, i), out);
+      }
+      return outcome::success();
+    }
+  };
+
+  /// encodes common::Hash256
+  template <>
+  struct TypeEncoder<common::Hash256> {
+    outcome::result<void> encode(const common::Hash256 &value,
+                                 common::Buffer &out) {
+      for (size_t i = 0; i < common::Hash256::size(); i++) {
+        fixedwidth::encodeUInt8(value[i], out);
       }
       return outcome::success();
     }
@@ -65,6 +78,16 @@ namespace kagome::scale {
       return outcome::success();
     }
   };
+
+/// encodes primitives::Extrinsic
+template <>
+struct TypeEncoder<primitives::Extrinsic> {
+  outcome::result<void> encode(const primitives::Extrinsic &value,
+                               common::Buffer &out) {
+    out.putBuffer(value.data());
+    return outcome::success();
+  }
+};
 
   /// encodes std::vector
   template <class T>
@@ -106,11 +129,24 @@ namespace kagome::scale {
     outcome::result<array_type> decode(common::ByteStream &stream) {
       array_type array;
 
-      for (int i = 0; i < sz; i++) {
+      for (size_t i = 0u; i < sz; i++) {
         OUTCOME_TRY(byte, fixedwidth::decodeUint8(stream));
         array[i] = byte;
       }
       return array;
+    }
+  };
+
+  /// decodes common::Hash256
+  template <>
+  struct TypeDecoder<common::Hash256> {
+    outcome::result<common::Hash256> decode(common::ByteStream &stream) {
+      common::Hash256 hash;
+      for (size_t i = 0; i < common::Hash256::size(); i++) {
+        OUTCOME_TRY(byte, fixedwidth::decodeUint8(stream));
+        hash[i] = byte;
+      }
+      return hash;
     }
   };
 
@@ -158,6 +194,24 @@ namespace kagome::scale {
     }
   };
 
+  /// decodes primitives::Extrinsic
+  template <>
+  struct TypeDecoder<primitives::Extrinsic> {
+    outcome::result<primitives::Extrinsic> decode(common::ByteStream &stream) {
+      common::Buffer out;
+
+      OUTCOME_TRY(extrinsic, collection::decodeCollection<uint8_t>(stream));
+      // extrinsic is an encoded byte array, so when we decode it from stream
+      // we obtain just byte array, and in order to keep its form
+      // we need do write its size first
+      OUTCOME_TRY(compact::encodeInteger(extrinsic.size(), out));
+      // and then bytes as well
+      out.put(extrinsic);
+
+      return primitives::Extrinsic(out);
+    }
+  };
+
   /// decodes primitives::parachain::Chain
   template <>
   struct TypeDecoder<primitives::parachain::Chain> {
@@ -181,6 +235,33 @@ namespace kagome::scale {
   struct TypeDecoder<primitives::parachain::Relay>
       : public EmptyDecoder<primitives::parachain::Relay> {};
 
+//  template struct TypeDecoder<std::array<uint8_t, 8>>;
+//  template struct TypeEncoder<std::array<uint8_t, 8>>;
+
+  template <>
+  struct TypeEncoder<primitives::ScheduledChange> {
+    outcome::result<void> encode(const primitives::ScheduledChange &value,
+                                 common::Buffer &out) {
+      OUTCOME_TRY((collection::encodeCollection<
+                   std::pair<primitives::AuthorityId, uint64_t>>(
+          value.next_authorities, out)));
+      fixedwidth::encodeUint64(value.delay, out);
+      return outcome::success();
+    }
+  };
+
+  template <>
+  struct TypeDecoder<primitives::ScheduledChange> {
+    outcome::result<primitives::ScheduledChange> decode(
+        common::ByteStream &stream) {
+      OUTCOME_TRY(next_authorities,
+                  collection::decodeCollection<
+                      std::pair<primitives::AuthorityId, uint64_t>>(stream));
+      OUTCOME_TRY(delay, fixedwidth::decodeUint64(stream));
+
+      return primitives::ScheduledChange{std::move(next_authorities), delay};
+    }
+  };
 }  // namespace kagome::scale
 
 namespace kagome::primitives {
@@ -198,8 +279,11 @@ namespace kagome::primitives {
   using kagome::scale::fixedwidth::decodeUint64;
   using kagome::scale::fixedwidth::encodeUint32;
   using kagome::scale::fixedwidth::encodeUint64;
+  using kagome::scale::optional::decodeOptional;
+  using kagome::scale::optional::encodeOptional;
   using kagome::scale::variant::decodeVariant;
   using kagome::scale::variant::encodeVariant;
+  using primitives::InherentData;
 
   ScaleCodecImpl::ScaleCodecImpl() {
     buffer_codec_ = std::make_unique<scale::BufferScaleCodec>();
@@ -267,27 +351,19 @@ namespace kagome::primitives {
     OUTCOME_TRY(extrinsics_root, decoder.decode(stream));
     OUTCOME_TRY(digest, decodeCollection<uint8_t>(stream));
 
-    return BlockHeader(parent_hash, number, state_root, extrinsics_root,
-                       Buffer{digest});
+    return BlockHeader(std::move(parent_hash), number, std::move(state_root),
+                       std::move(extrinsics_root), Buffer{std::move(digest)});
   }
 
   outcome::result<Buffer> ScaleCodecImpl::encodeExtrinsic(
       const Extrinsic &extrinsic) const {
-    return extrinsic.data();
+    Buffer out;
+    OUTCOME_TRY(scale::TypeEncoder<Extrinsic>{}.encode(extrinsic, out));
+    return out;
   }
   outcome::result<Extrinsic> ScaleCodecImpl::decodeExtrinsic(
       Stream &stream) const {
-    Buffer out;
-
-    OUTCOME_TRY(extrinsic, decodeCollection<uint8_t>(stream));
-    // extrinsic is an encoded byte array, so when we decode it from stream
-    // we obtain just byte array, and in order to keep its form
-    // we need do write its size first
-    OUTCOME_TRY(encodeInteger(extrinsic.size(), out));
-    // and then bytes as well
-    out.put(extrinsic);
-
-    return Extrinsic(out);
+    return scale::TypeDecoder<Extrinsic>{}.decode(stream);
   }
 
   outcome::result<Buffer> ScaleCodecImpl::encodeVersion(
@@ -336,6 +412,42 @@ namespace kagome::primitives {
     return decodeVariant<Invalid, Valid, Unknown>(stream);
   }
 
+  outcome::result<Buffer> ScaleCodecImpl::encodeInherentData(
+      const InherentData &inherentData) const {
+    auto &data = inherentData.getDataCollection();
+
+    // TODO(Harrm) PRE-153 Change to vectors of ref wrappers to avoid copying
+    // vectors
+    std::vector<InherentData::InherentIdentifier> ids;
+    ids.reserve(data.size());
+    std::vector<std::vector<uint8_t>> vals;
+    vals.reserve(data.size());
+
+    for (auto &pair : data) {
+      ids.push_back(pair.first);
+      vals.push_back(pair.second.toVector());
+    }
+
+    Buffer res;
+    OUTCOME_TRY(encodeCollection(ids, res));
+    OUTCOME_TRY(encodeCollection(vals, res));
+    return res;
+  }
+
+  outcome::result<InherentData> ScaleCodecImpl::decodeInherentData(
+      Stream &stream) const {
+    OUTCOME_TRY(ids,
+                decodeCollection<InherentData::InherentIdentifier>(stream));
+    OUTCOME_TRY(vals, decodeCollection<std::vector<uint8_t>>(stream));
+
+    InherentData data;
+    for (size_t i = 0; i < ids.size(); i++) {
+      OUTCOME_TRY(data.putData(ids[i], Buffer{vals[i]}));
+    }
+
+    return data;
+  }
+
   outcome::result<Buffer> ScaleCodecImpl::encodeAuthorityIds(
       const std::vector<kagome::primitives::AuthorityId> &ids) const {
     Buffer out;
@@ -358,5 +470,40 @@ namespace kagome::primitives {
   outcome::result<parachain::DutyRoster> ScaleCodecImpl::decodeDutyRoster(
       ScaleCodec::Stream &stream) const {
     return decodeCollection<parachain::Chain>(stream);
+  }
+
+  outcome::result<Buffer> ScaleCodecImpl::encodeDigest(
+      const Digest &digest) const {
+    return buffer_codec_->encode(digest);
+  }
+
+  outcome::result<Digest> ScaleCodecImpl::decodeDigest(
+      ScaleCodec::Stream &stream) const {
+    return buffer_codec_->decode(stream);
+  }
+
+  outcome::result<Buffer> ScaleCodecImpl::encodeScheduledChange(
+      const ScheduledChange &value) const {
+    Buffer out;
+    scale::TypeEncoder<ScheduledChange> codec;
+    OUTCOME_TRY(codec.encode(value, out));
+    return out;
+  }
+
+  outcome::result<std::optional<ScheduledChange>>
+  ScaleCodecImpl::decodeScheduledChange(ScaleCodec::Stream &stream) const {
+    return decodeOptional<ScheduledChange>(stream);
+  }
+
+  outcome::result<std::optional<primitives::ForcedChange>>
+  ScaleCodecImpl::decodeForcedChange(ScaleCodec::Stream &stream) const {
+    return scale::optional::decodeOptional<
+        std::pair<BlockNumber, ScheduledChange>>(stream);
+  }
+
+  outcome::result<std::vector<primitives::WeightedAuthority>>
+  ScaleCodecImpl::decodeGrandpaAuthorities(ScaleCodec::Stream &stream) const {
+    return scale::collection::decodeCollection<primitives::WeightedAuthority>(
+        stream);
   }
 }  // namespace kagome::primitives

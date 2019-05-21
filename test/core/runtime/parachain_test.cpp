@@ -91,6 +91,5 @@ TEST_F(ParachainHostTest, DISABLED_ParachainCodeTest) {
  * @then successful result is returned
  */
 TEST_F(ParachainHostTest, DISABLED_ValidatorsTest) {
-  auto id = createBlockId();
-  ASSERT_TRUE(api_->validators(id));
+  ASSERT_TRUE(api_->validators());
 }

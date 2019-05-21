@@ -161,6 +161,11 @@ namespace kagome::common {
     Buffer &putBuffer(const Buffer &buf);
 
     /**
+     * Clear the contents of the Buffer
+     */
+    void clear();
+
+    /**
      * @brief getter for raw array of bytes
      */
     const uint8_t *toBytes() const;

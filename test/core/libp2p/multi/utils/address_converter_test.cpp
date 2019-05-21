@@ -90,7 +90,7 @@ TEST(AddressConverter, UdpAddressToBytes) {
  * address is returned
  */
 TEST(AddressConverter, IpfsAddressToBytes) {
-  auto p = ProtocolList::get(libp2p::multi::Protocol::Code::IPFS);
+  auto p = ProtocolList::get(libp2p::multi::Protocol::Code::P2P);
   ASSERT_EQ(
       "221220D52EBB89D85B02A284948203A62FF28389C57C9F42BEEC4EC20DB76A68911C0B",
       addressToHex(*p, "QmcgpsyWgH8Y8ajJz1Cu72KnS5uo2Aa2LpzU7kinSupNKC")

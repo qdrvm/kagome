@@ -40,6 +40,14 @@ target_link_libraries(tagged_transaction_queue_test
     wasm_test
     )
 
+addtest(block_builder_test
+    block_builder_test.cpp
+    )
+target_link_libraries(block_builder_test
+    block_builder
+    wasm_test
+    )
+
 addtest(wasm_executor_test
     wasm_executor_test.cpp
     )
@@ -53,5 +61,13 @@ addtest(parachain_test
     )
 target_link_libraries(parachain_test
     parachain_host_api
+    wasm_test
+    )
+
+addtest(grandpa_test
+    grandpa_test.cpp
+    )
+target_link_libraries(grandpa_test
+    grandpa_api
     wasm_test
     )

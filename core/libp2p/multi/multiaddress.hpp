@@ -30,7 +30,6 @@ namespace libp2p::multi {
 
    public:
     Multiaddress() = delete;
-    ~Multiaddress() = default;
 
     enum class Error {
       INVALID_INPUT = 1,      ///< input contains invalid multiaddress
@@ -63,13 +62,21 @@ namespace libp2p::multi {
     void encapsulate(const Multiaddress &address);
 
     /**
-     * Encapsulate a multiaddress from this one, such that:
+     * Decapsulate a multiaddress from this one, such that:
      * '/ip4/192.168.0.1/udp/138' after decapsulation with '/udp/' becomes
      * '/ip4/192.168.0.1'
      * @param address - another address to be decapsulated from this one
      * @return true, if such address was found and removed, false otherwise
      */
     bool decapsulate(const Multiaddress &address);
+
+    /**
+     * @see decapsulate(Multiaddress)
+     * @param proto - protocol, the last occurrence of which will be
+     * decapsulated
+     * @return true, if such protocol was found and removed, false otherwise
+     */
+    bool decapsulate(Protocol::Code proto);
 
     /**
      * Get the textual representation of the address inside
@@ -152,6 +159,13 @@ namespace libp2p::multi {
      * Recalculate peer_id inside this address (the first one, if exists)
      */
     void calculatePeerId();
+
+    /**
+     * Decapsulate a given string, which represents a protocol, from the address
+     * @return true, if it was found and removed, false otherwise
+     */
+    bool decapsulateStringFromAddress(std::string_view proto,
+                                      const ByteBuffer &bytes);
 
     std::string stringified_address_;
     ByteBuffer bytes_;

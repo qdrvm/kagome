@@ -73,10 +73,13 @@ namespace kagome::scale::collection {
    * same specified type
    * @tparam T collection item type
    * @param stream source stream
+   * @param decode a functor that decodes an object of type T
    * @return decoded collection or error
    */
   template <class T>
-  outcome::result<std::vector<T>> decodeCollection(common::ByteStream &stream) {
+  outcome::result<std::vector<T>> decodeCollection(
+      common::ByteStream &stream,
+      std::function<outcome::result<T>(common::ByteStream &)> decode_f) {
     // determine number of items
     OUTCOME_TRY(collection_size, compact::decodeInteger(stream));
 
@@ -89,15 +92,21 @@ namespace kagome::scale::collection {
 
     std::vector<T> decoded_collection;
     decoded_collection.reserve(item_count);
-
+// TODO (yuraz): PRE-119 refactor
     // parse items one by one
-    TypeDecoder<T> type_decoder{};
     for (uint64_t i = 0; i < item_count; ++i) {
-      OUTCOME_TRY(r, type_decoder.decode(stream));
+      OUTCOME_TRY(r, decode_f(stream));
       decoded_collection.push_back(r);
     }
 
     return decoded_collection;
+  }
+
+  template <class T>
+  outcome::result<std::vector<T>> decodeCollection(common::ByteStream &stream) {
+    TypeDecoder<T> type_decoder {};
+    using std::placeholders::_1;
+    return decodeCollection<T>(stream, std::bind(&TypeDecoder<T>::decode, &type_decoder, _1));
   }
 
   /**
