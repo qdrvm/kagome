@@ -28,8 +28,12 @@ namespace libp2p::network {
   }
 
   std::vector<peer::Protocol> RouterImpl::getSupportedProtocols() const {
-    std::string key_buffer;  // a workaround, recommended by the library's devs
     std::vector<peer::Protocol> protos;
+    if (proto_handlers_.empty()) {
+      return protos;
+    }
+
+    std::string key_buffer;  // a workaround, recommended by the library's devs
     protos.reserve(proto_handlers_.size());
     for (auto it = proto_handlers_.begin(); it != proto_handlers_.end(); ++it) {
       it.key(key_buffer);

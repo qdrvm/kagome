@@ -71,8 +71,7 @@ namespace libp2p::network {
      * handlers can be found (for example, if exact protocol match failed, and
      * prefix+predicate search returned more than one handlers, the random one
      * will be invoked)
-     * @param p handler for this protocol (MUST NOT be prefix, only a full
-     * protocol) will be invoked
+     * @param p handler for this protocol will be invoked
      * @param stream with this stream
      */
     virtual outcome::result<void> handle(
