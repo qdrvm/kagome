@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_DHT_STRATEGY_HPP
-#define KAGOME_DHT_STRATEGY_HPP
+#ifndef KAGOME_DHT_ADAPTOR_HPP
+#define KAGOME_DHT_ADAPTOR_HPP
 
 namespace libp2p::dht {
   /**
@@ -13,6 +13,6 @@ namespace libp2p::dht {
   struct DHTAdaptor {
     virtual ~DHTAdaptor() = default;
   };
-}  // namespace libp2p::store
+}  // namespace libp2p::dht
 
-#endif  //KAGOME_DHT_STRATEGY_HPP
+#endif  // KAGOME_DHT_ADAPTOR_HPP

@@ -6,7 +6,7 @@
 #ifndef KAGOME_PEER_INFO_HPP
 #define KAGOME_PEER_INFO_HPP
 
-#include <optional>
+#include <vector>
 
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/peer/peer_id.hpp"

@@ -12,6 +12,10 @@ namespace libp2p::connection {
 
   struct RawConnection : public basic::ReadWriteCloser {
     ~RawConnection() override = default;
+
+    /// returns if this side is an initiator of this connection, or false if it
+    /// was a server in that case
+    virtual bool isInitiator() const noexcept = 0;
   };
 
 }  // namespace libp2p::connection

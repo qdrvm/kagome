@@ -63,7 +63,7 @@ namespace libp2p::network {
     // /ip4/127.0.0.1/tcp/30000 and /ip4/192.168.1.2/tcp/30000
     virtual std::vector<multi::Multiaddress> getListenAddresses() const = 0;
 
-    // TODO: emits events:
+    // TODO(Warchant): emits events:
     //    ClosedStream(Network, Stream)
     //    Connected(Network, Conn)
     //    Disconnected(Network, Conn)

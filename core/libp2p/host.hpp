@@ -34,7 +34,7 @@ namespace libp2p {
     /**
      * @brief Get list of addresses this Host listens on
      */
-    gsl::span<const multi::Multiaddress> getListenAddresses();
+    gsl::span<const multi::Multiaddress> getListenAddresses() const;
 
     /**
      * @brief Let Host handle given {@param proto} protocol

@@ -34,7 +34,7 @@ namespace kagome::runtime {
 
     outcome::result<std::vector<WeightedAuthority>> authorities() override;
 
-   protected:
+   private:
     std::shared_ptr<WasmMemory> memory_;
     std::shared_ptr<primitives::ScaleCodec> codec_;
     WasmExecutor executor_;

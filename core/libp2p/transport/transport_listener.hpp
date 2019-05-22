@@ -38,7 +38,7 @@ namespace libp2p::transport {
      */
     virtual outcome::result<void> close(const multi::Multiaddress& ma) = 0;
 
-    // TODO: remove during refactor
+    // TODO(Warchant): remove during refactor
     outcome::result<void> close() override = 0;
 
     /**
@@ -53,10 +53,10 @@ namespace libp2p::transport {
      * Get addresses, which this listener listens to
      * @return collection of those addresses
      */
-     // TODO: rename to getListenMultiaddrs
+     // TODO(Warchant): rename to getListenMultiaddrs
     virtual std::vector<multi::Multiaddress> getAddresses() const = 0;
 
-    // TODO: remove all signals during refactor
+    // TODO(Warchant): remove all signals during refactor
 
     /**
      * Listener is initialized and ready to accept connections

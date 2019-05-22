@@ -10,6 +10,7 @@
 
 namespace libp2p::connection {
 
+  /// connection, which has assigned multiaddresses
   struct MultiaddrConnection {
     virtual ~MultiaddrConnection() = default;
   };

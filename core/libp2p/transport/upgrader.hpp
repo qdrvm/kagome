@@ -8,9 +8,9 @@
 
 #include <memory>
 
+#include "libp2p/connection/capable_connection.hpp"
 #include "libp2p/connection/raw_connection.hpp"
 #include "libp2p/connection/secure_connection.hpp"
-#include "libp2p/connection/capable_connection.hpp"
 #include "libp2p/connection/stream.hpp"
 
 namespace libp2p::transport {
@@ -26,7 +26,7 @@ namespace libp2p::transport {
 
     // upgrade raw connection to secure connection
     virtual std::shared_ptr<connection::SecureConnection> upgradeToSecure(
-        std::shared_ptr<connection::RawConnection> conn, bool is_initiator) = 0;
+        std::shared_ptr<connection::RawConnection> conn) = 0;
 
     // upgrade secure connection to capable connection
     virtual std::shared_ptr<connection::CapableConnection> upgradeToMuxed(

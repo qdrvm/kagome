@@ -10,13 +10,13 @@ add_subdirectory(peer)
 add_subdirectory(muxer)
 add_subdirectory(protocol_muxer)
 
-#add_library(libp2p
-#    config.hpp
-#    host.cpp
-#    host.hpp
-#    host_builder.cpp
-#    host_builder.hpp
-#    )
-#target_link_libraries(libp2p
-#    outcome
-#    )
+add_library(libp2p
+    config.hpp
+    host.cpp
+    host.hpp
+    host_builder.cpp
+    host_builder.hpp
+    )
+target_link_libraries(libp2p
+    outcome
+    )

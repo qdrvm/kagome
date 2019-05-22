@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_DISCOVERY_STRATEGY_HPP
-#define KAGOME_DISCOVERY_STRATEGY_HPP
+#ifndef KAGOME_DISCOVERY_ADAPTOR_HPP
+#define KAGOME_DISCOVERY_ADAPTOR_HPP
 
 namespace libp2p::discovery {
   /**
@@ -15,4 +15,4 @@ namespace libp2p::discovery {
   };
 }  // namespace libp2p::discovery
 
-#endif  // KAGOME_DISCOVERY_STRATEGY_HPP
+#endif  // KAGOME_DISCOVERY_ADAPTOR_HPP

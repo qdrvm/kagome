@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STREAM_MANAGER_HPP
-#define KAGOME_STREAM_MANAGER_HPP
+#ifndef KAGOME_ROUTER_HPP
+#define KAGOME_ROUTER_HPP
 
+#include "libp2p/connection/stream.hpp"
 #include "libp2p/peer/protocol.hpp"
-#include "libp2p/stream/stream.hpp"
 
 namespace libp2p::network {
 
@@ -59,7 +59,8 @@ namespace libp2p::network {
      * @param stream with this stream
      */
     virtual outcome::result<void> handle(
-        const peer::Protocol &p, std::shared_ptr<stream::Stream> stream) = 0;
+        const peer::Protocol &p,
+        std::shared_ptr<connection::Stream> stream) = 0;
   };
 
 }  // namespace libp2p::network

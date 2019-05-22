@@ -11,12 +11,12 @@ namespace libp2p {
     return id_;
   }
 
-  gsl::span<const multi::Multiaddress> Host::getListenAddresses() {
+  gsl::span<const multi::Multiaddress> Host::getListenAddresses() const {
     return network_->getListenAddresses();
   }
 
   outcome::result<void> Host::connect(const peer::PeerInfo &p) {
-    // TODO: review this. this logic may not be here
+    // TODO(Warchant): review this. this logic may not be here
     auto &&r = network_->dial(p);
     if (!r) {
       return r.error();
