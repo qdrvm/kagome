@@ -66,17 +66,13 @@ namespace kagome::extensions {
     static constexpr uint32_t kVerifyFail = 5;
 
     const auto &msg = memory_->loadN(msg_data, msg_len);
-    auto sig_bytes =
+    auto signature =
         memory_->loadN(sig_data, SR25519_SIGNATURE_SIZE).toVector();
-    uint8_t signature[SR25519_SIGNATURE_SIZE];
-    std::copy(sig_bytes.begin(), sig_bytes.end(), signature);
 
-    auto pubkey_bytes =
+    auto pubkey =
         memory_->loadN(pubkey_data, SR25519_PUBLIC_SIZE).toVector();
-    uint8_t pubkey[SR25519_PUBLIC_SIZE];
-    std::copy(pubkey_bytes.begin(), pubkey_bytes.end(), pubkey);
 
-    return sr25519_verify(signature, msg.toBytes(), msg_len, pubkey)
+    return sr25519_verify(signature.toBytes(), msg.toBytes(), msg_len, pubkey.toBytes())
         ? kVerifySuccess
         : kVerifyFail;
   }
