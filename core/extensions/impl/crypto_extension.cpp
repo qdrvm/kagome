@@ -67,10 +67,10 @@ namespace kagome::extensions {
 
     const auto &msg = memory_->loadN(msg_data, msg_len);
     auto signature =
-        memory_->loadN(sig_data, SR25519_SIGNATURE_SIZE).toVector();
+        memory_->loadN(sig_data, SR25519_SIGNATURE_SIZE);
 
     auto pubkey =
-        memory_->loadN(pubkey_data, SR25519_PUBLIC_SIZE).toVector();
+        memory_->loadN(pubkey_data, SR25519_PUBLIC_SIZE);
 
     return sr25519_verify(signature.toBytes(), msg.toBytes(), msg_len, pubkey.toBytes())
         ? kVerifySuccess
