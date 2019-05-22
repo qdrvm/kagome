@@ -32,7 +32,7 @@ namespace kagome::extensions {
                                          runtime::WasmPointer sig_data,
                                          runtime::WasmPointer pubkey_data);
     /**
-     * @see Extension::ext_ed25519_verify
+     * @see Extension::ext_sr25519_verify
      */
     runtime::SizeType ext_sr25519_verify(runtime::WasmPointer msg_data,
                                          runtime::SizeType msg_len,
