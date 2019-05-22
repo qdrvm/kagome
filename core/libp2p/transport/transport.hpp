@@ -29,6 +29,7 @@ namespace libp2p::transport {
      * @param address of the peer
      * @return connection in case of success, error otherwise
      */
+    // TODO(Warchant): PRE-158 replace Connection with RawConnection
     virtual outcome::result<std::shared_ptr<Connection>> dial(
         const multi::Multiaddress &address) const = 0;
 
@@ -39,6 +40,11 @@ namespace libp2p::transport {
      */
     virtual std::shared_ptr<TransportListener> createListener(
         TransportListener::HandlerFunc handler) const = 0;
+
+    // returns true if our transport supports this multiaddress, false
+    // otherwise. example: /tcp/... on tcp transport will return true
+    // TODO(Warchant): PRE-158 implement
+    // virtual bool canDial(const multi::Multiaddress &ma) const = 0;
   };
 }  // namespace libp2p::transport
 
