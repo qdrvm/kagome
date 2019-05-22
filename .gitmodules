@@ -7,6 +7,3 @@
 [submodule "sml"]
 	path = deps/sml
 	url = https://github.com/boost-experimental/sml
-[submodule "sr25519-crust"]
-	path = sr25519-crust
-	url = https://github.com/Harrm/sr25519-crust.git
