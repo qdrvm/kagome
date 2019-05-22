@@ -8,6 +8,7 @@ add_library(crypto_extension
     )
 target_link_libraries(crypto_extension
     iroha::ed25519
+    sr25519
     blake2
     twox
     )

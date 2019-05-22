@@ -92,6 +92,7 @@ include_directories(
   deps/GSL/include
   deps/outcome
   deps/sml/include
+  deps/sr25519-crust/include
 )
 
 add_subdirectory(core)

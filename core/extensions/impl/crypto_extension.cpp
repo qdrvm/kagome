@@ -7,6 +7,9 @@
 
 #include <exception>
 
+extern "C" {
+#include <sr25519/sr25519.h>
+}
 #include <ed25519/ed25519.h>
 #include <gsl/span>
 #include "crypto/blake2/blake2b.h"
@@ -50,6 +53,32 @@ namespace kagome::extensions {
 
     return ed25519_verify(&signature, msg.toBytes(), msg_len, &pubkey)
             == ED25519_SUCCESS
+        ? kVerifySuccess
+        : kVerifyFail;
+  }
+
+  runtime::SizeType CryptoExtension::ext_sr25519_verify(
+      runtime::WasmPointer msg_data, runtime::SizeType msg_len,
+      runtime::WasmPointer sig_data, runtime::WasmPointer pubkey_data) {
+    // for some reason, 0 and 5 are used in the reference implementation, so
+    // it's better to stick to them in ours, at least for now
+    static constexpr uint32_t kVerifySuccess = 0;
+    static constexpr uint32_t kVerifyFail = 5;
+
+    const auto &msg = memory_->loadN(msg_data, msg_len);
+    auto sig_bytes =
+        memory_->loadN(sig_data, SR25519_SIGNATURE_SIZE).toVector();
+    uint8_t signature[SR25519_SIGNATURE_SIZE];
+    gsl::span<uint8_t> sig_span(signature);
+    std::copy(sig_bytes.begin(), sig_bytes.end(), sig_span.begin());
+
+    auto pubkey_bytes =
+        memory_->loadN(pubkey_data, SR25519_PUBLIC_SIZE).toVector();
+    uint8_t pubkey[SR25519_PUBLIC_SIZE];
+    gsl::span<uint8_t> pubkey_span(pubkey);
+    std::copy(pubkey_bytes.begin(), pubkey_bytes.end(), pubkey_span.begin());
+
+    return sr25519_verify(signature, msg.toBytes(), msg_len, pubkey)
         ? kVerifySuccess
         : kVerifyFail;
   }
