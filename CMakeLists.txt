@@ -92,6 +92,7 @@ include_directories(
   deps/GSL/include
   deps/outcome
   deps/sml/include
+  deps/hat-trie/include
 )
 
 add_subdirectory(core)

@@ -6,56 +6,73 @@
 #ifndef KAGOME_ROUTER_HPP
 #define KAGOME_ROUTER_HPP
 
+#include <functional>
+
+#include <outcome/outcome.hpp>
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/peer/protocol.hpp"
 
 namespace libp2p::network {
 
-  // manager for application-level protocols
-  // in go implementation called Switch
-  // https://sourcegraph.com/github.com/libp2p/go-libp2p-core@consolidate-skeleton/-/blob/host/host.go#L37
+  /**
+   * Manager for application-level protocols; when a new stream arrives for a
+   * specific protocol, the corresponding handler is called
+   * @note analog of Go's switch:
+   * https://github.com/libp2p/go-libp2p-core/blob/consolidate-skeleton/host/host.go#L37
+   */
   struct Router {
+    using ProtoHandler = std::function<connection::Stream::Handler>;
+    using ProtoPredicate = std::function<bool(const peer::Protocol &)>;
+
     virtual ~Router() = default;
 
     /**
-     * @brief Set handler for the {@param protocol}
-     * @param protocol protocol
-     * @param handler function-handler
+     * Set handler for the {@param protocol}; only the perfect handler match
+     * will be invoked
+     * @param protocol to be handled
+     * @param handler to be called, when a new stream for this protocol arrives
      */
-    virtual void setProtocolHandler(
-        const peer::Protocol &protocol,
-        const std::function<connection::Stream::Handler> &handler) = 0;
+    virtual void setProtocolHandler(const peer::Protocol &protocol,
+                                    const ProtoHandler &handler) = 0;
 
     /**
-     * @brief Set handler for the protocol. First, searches all handlers by
-     * given prefix, then executes handler callback for all matches when {@param
-     * predicate} returns true.
+     * Set handler for the <protocol, predicate> pair. First, searches all
+     * handlers by prefix of the given protocol, then executes handler callback
+     * for all matches when {@param predicate} returns true
+     * @param protocol, for which pairs <protocol, handler> are to be retrieved
+     * @param handler to be executed over the protocols, for which the predicate
+     * was evaluated to true
+     * @param predicate to be executed over the found protocols
      */
-    virtual void setProtocolHandlerByPrefix(
-        std::string_view prefix,
-        const std::function<bool(const peer::Protocol &)> &predicate,
-        const std::function<connection::Stream::Handler> &handler) = 0;
+    virtual void setProtocolHandler(const peer::Protocol &protocol,
+                                    const ProtoHandler &handler,
+                                    const ProtoPredicate &predicate) = 0;
 
     /**
-     * @brief Returns list of supported protocols.
+     * Get a list of handled protocols
+     * @return supported protocols; may also include protocol prefixes
      */
     virtual std::vector<peer::Protocol> getSupportedProtocols() const = 0;
 
     /**
-     * @brief Removes all associated handlers to given protocol.
-     * @param protocol
+     * Remove handlers, associated with the given protocol prefix
+     * @param protocol prefix, for which the handlers are to be removed
      */
-    virtual void removeProtocolHandler(const peer::Protocol &protocol) = 0;
+    virtual void removeProtocolHandlers(const peer::Protocol &protocol) = 0;
 
     /**
-     * @brief Remove all handlers.
+     * Remove all handlers
      */
     virtual void removeAll() = 0;
 
    protected:
     /**
-     * @brief Execute stored handler for given protocol {@param p}
-     * @param p handler for this protocol will be invoked
+     * Execute stored handler for given protocol {@param p}; if several
+     * handlers can be found (for example, if exact protocol match failed, and
+     * prefix+predicate search returned more than one handlers, the random one
+     * will be invoked)
+     * @param p handler for this protocol (MUST NOT be prefix, only a full
+     * protocol) will be invoked
      * @param stream with this stream
      */
     virtual outcome::result<void> handle(
