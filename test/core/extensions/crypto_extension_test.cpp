@@ -176,6 +176,32 @@ TEST_F(CryptoExtensionTest, Sr25519VerifySuccess) {
 }
 
 /**
+ * @given initialized crypto extension @and sr25519-signed message
+ * @when verifying signature of this message
+ * @then verification fails
+ */
+TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
+  auto pub_key = gsl::span<uint8_t>(sr25519_keypair).subspan(SR25519_SECRET_SIZE, SR25519_PUBLIC_SIZE);
+  auto false_signature = Buffer(sr25519_signature);
+  false_signature[3] = 42;
+
+  WasmPointer input_data = 0;
+  SizeType input_size = input.size();
+  WasmPointer sig_data_ptr = 42;
+  WasmPointer pub_key_data_ptr = 123;
+
+  EXPECT_CALL(*memory_, loadN(input_data, input_size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, loadN(pub_key_data_ptr, SR25519_PUBLIC_SIZE))
+      .WillOnce(Return(Buffer(pub_key)));
+  EXPECT_CALL(*memory_, loadN(sig_data_ptr, SR25519_SIGNATURE_SIZE))
+      .WillOnce(Return(false_signature));
+
+  ASSERT_EQ(crypto_ext_->ext_sr25519_verify(input_data, input_size,
+                                            sig_data_ptr, pub_key_data_ptr),
+            5);
+}
+
+/**
  * @given initialized crypto extensions @and some bytes
  * @when XX-hashing those bytes to get 16-byte hash
  * @then resulting hash is correct
