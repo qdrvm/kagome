@@ -30,6 +30,17 @@ class CryptoExtensionTest : public ::testing::Test {
   void SetUp() override {
     memory_ = std::make_shared<MockMemory>();
     crypto_ext_ = std::make_shared<CryptoExtension>(memory_);
+
+    std::array<uint8_t, SR25519_SEED_SIZE> seed{};
+    std::iota(seed.begin(), seed.end(), 3);
+    sr25519_keypair_from_seed(sr25519_keypair.data(), seed.data());
+
+    gsl::span<uint8_t, SR25519_KEYPAIR_SIZE> keypair_span(sr25519_keypair);
+    auto secret = keypair_span.subspan(0, SR25519_SECRET_SIZE);
+    auto pub_key = keypair_span.subspan(SR25519_SECRET_SIZE, SR25519_PUBLIC_SIZE);
+
+    sr25519_sign(sr25519_signature.data(), pub_key.data(), secret.data(), input.toBytes(),
+                 input.size());
   }
 
  protected:
@@ -37,6 +48,9 @@ class CryptoExtensionTest : public ::testing::Test {
   std::shared_ptr<CryptoExtension> crypto_ext_;
 
   Buffer input{0x69, 0x20, 0x61, 0x6d, 0x20, 0x64, 0x61, 0x74, 0x61};
+
+  std::array<uint8_t, SR25519_SIGNATURE_SIZE> sr25519_signature{};
+  std::array<uint8_t, SR25519_KEYPAIR_SIZE> sr25519_keypair{};
 
   Buffer blake2b_result{0xba, 0x67, 0x33, 0x6e, 0xfd, 0x6a, 0x3d, 0xf3,
                         0xa7, 0x0e, 0xeb, 0x75, 0x78, 0x60, 0x76, 0x30,
@@ -143,18 +157,7 @@ TEST_F(CryptoExtensionTest, Ed25519VerifyFailure) {
  * @then verification is success
  */
 TEST_F(CryptoExtensionTest, Sr25519VerifySuccess) {
-  std::array<uint8_t, SR25519_KEYPAIR_SIZE> keypair{};
-  std::array<uint8_t, SR25519_SEED_SIZE> seed{};
-  std::iota(seed.begin(), seed.end(), 3);
-  sr25519_keypair_from_seed(keypair.data(), seed.data());
-
-  gsl::span<uint8_t, SR25519_KEYPAIR_SIZE> keypair_span(keypair);
-  auto secret = keypair_span.subspan(0, SR25519_SECRET_SIZE);
-  auto pub_key = keypair_span.subspan(SR25519_SECRET_SIZE, SR25519_PUBLIC_SIZE);
-
-  std::array<uint8_t, SR25519_SIGNATURE_SIZE> signature{};
-  sr25519_sign(signature.data(), pub_key.data(), secret.data(), input.toBytes(),
-               input.size());
+  auto pub_key = gsl::span<uint8_t>(sr25519_keypair).subspan(SR25519_SECRET_SIZE, SR25519_PUBLIC_SIZE);
 
   WasmPointer input_data = 0;
   SizeType input_size = input.size();
@@ -165,7 +168,7 @@ TEST_F(CryptoExtensionTest, Sr25519VerifySuccess) {
   EXPECT_CALL(*memory_, loadN(pub_key_data_ptr, SR25519_PUBLIC_SIZE))
       .WillOnce(Return(Buffer(pub_key)));
   EXPECT_CALL(*memory_, loadN(sig_data_ptr, SR25519_SIGNATURE_SIZE))
-      .WillOnce(Return(Buffer(signature)));
+      .WillOnce(Return(Buffer(sr25519_signature)));
 
   ASSERT_EQ(crypto_ext_->ext_sr25519_verify(input_data, input_size,
                                             sig_data_ptr, pub_key_data_ptr),
