@@ -17,6 +17,7 @@
 namespace libp2p::transport {
   /**
    * MuxedConnection, allowing to create streams over the underlying connection
+   * @deprecated
    */
   class MuxedConnection {
    public:

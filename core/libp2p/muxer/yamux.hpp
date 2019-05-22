@@ -9,4 +9,4 @@
 #include "libp2p/muxer/yamux/yamux.hpp"
 #include "libp2p/muxer/yamux/yamux_config.hpp"
 
-#endif //KAGOME_YAMUX_HPP
+#endif  // KAGOME_YAMUX_HPP

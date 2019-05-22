@@ -17,12 +17,15 @@
 namespace libp2p::transport {
   /**
    * Point-to-point link to the other peer
+   * @deprecated see RawConnection
    */
   class Connection : public basic::Readable,
                      public basic::Writable,
                      public basic::Closeable {
    public:
     ~Connection() override = default;
+
+    using Handler = void(std::shared_ptr<Connection>);
 
     /**
      * This method retrieves the observed addresses we get from the underlying
