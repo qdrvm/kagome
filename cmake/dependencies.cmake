@@ -7,8 +7,8 @@ find_package(GTest CONFIG REQUIRED)
 find_package(GMock CONFIG REQUIRED)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
-hunter_add_package(Boost COMPONENTS random filesystem system context fiber)
-find_package(Boost CONFIG REQUIRED  random filesystem system context fiber)
+hunter_add_package(Boost COMPONENTS random filesystem system context)
+find_package(Boost CONFIG REQUIRED  random filesystem system context)
 
 ## TODO: uncomment when it is really needed
 ## https://docs.hunter.sh/en/latest/packages/pkg/libjson-rpc-cpp.html
