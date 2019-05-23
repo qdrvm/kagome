@@ -201,6 +201,18 @@ namespace kagome::extensions {
         runtime::WasmPointer sig_data, runtime::WasmPointer pubkey_data) = 0;
 
     /**
+     * Verify the signature over the sr25519 message
+     * @param msg_data - msg to be verified
+     * @param msg_len - length of the msg
+     * @param sig_data - signature of the message
+     * @param pubkey_data - key of possible message's author
+     * @return 0, if key is successfully verified, 5 otherwise
+     */
+    virtual runtime::SizeType ext_sr25519_verify(
+        runtime::WasmPointer msg_data, runtime::SizeType msg_len,
+        runtime::WasmPointer sig_data, runtime::WasmPointer pubkey_data) = 0;
+
+    /**
      * Hash the data using XX128 hash
      * @param data to be hashed
      * @param len of the data

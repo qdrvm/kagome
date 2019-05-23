@@ -8,6 +8,7 @@ addtest(crypto_extension_test
     )
 target_link_libraries(crypto_extension_test
     crypto_extension
+    sr25519
     )
 
 addtest(io_extension_test
