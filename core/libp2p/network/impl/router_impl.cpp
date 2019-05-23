@@ -68,7 +68,7 @@ namespace libp2p::network {
 
     // fallback: find all matches for the first letter of the given protocol and
     // test them against the predicate; the longest match is to be called
-    auto matched_protos = proto_handlers_.equal_prefix_range_ks(p.data(), 1);
+    auto matched_protos = proto_handlers_.equal_prefix_range_ks(p.data(), 2);
 
     std::reference_wrapper<const ProtoHandler> longest_match{
         matched_protos.first.value().handler};

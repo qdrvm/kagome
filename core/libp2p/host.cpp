@@ -41,7 +41,7 @@ namespace libp2p {
       std::string_view prefix,
       const std::function<bool(const peer::Protocol &)> &predicate,
       const std::function<connection::Stream::Handler> &handler) {
-    router_->setProtocolHandlerByPrefix(prefix, predicate, handler);
+    router_->setProtocolHandler(std::string{prefix}, handler, predicate);
   }
 
   peer::PeerInfo Host::getPeerInfo() const noexcept {

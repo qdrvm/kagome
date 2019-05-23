@@ -20,11 +20,11 @@ class RouterTest : public ::testing::Test, public RouterImpl {
       std::make_shared<StreamMock>(kDefaultStreamId);
   std::shared_ptr<Stream> stream_to_receive;
 
-  const Protocol kDefaultProtocol = "ping/1.5.2";
-  const Protocol kVersionProtocolPrefix = "ping/1.5";
-  const Protocol kProtocolPrefix = "ping/";
+  const Protocol kDefaultProtocol = "/ping/1.5.2";
+  const Protocol kVersionProtocolPrefix = "/ping/1.5";
+  const Protocol kProtocolPrefix = "/ping/";
 
-  const Protocol kAnotherProtocol = "http/2.2.8";
+  const Protocol kAnotherProtocol = "/http/2.2.8";
 
   /**
    * Knowing that a provided stream is a mocked one, get its ID
