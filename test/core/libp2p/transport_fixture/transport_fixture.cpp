@@ -6,6 +6,7 @@
 #include "core/libp2p/transport_fixture/transport_fixture.hpp"
 
 #include "libp2p/transport/impl/transport_impl.hpp"
+#include "testutil/literals.hpp"
 
 namespace libp2p::testing {
   using kagome::common::Buffer;
@@ -23,7 +24,7 @@ namespace libp2p::testing {
     ASSERT_TRUE(transport_) << "cannot create transport";
 
     // create multiaddress, from which we are going to connect
-    EXPECT_OUTCOME_TRUE(ma, Multiaddress::create("/ip4/127.0.0.1/tcp/40009"))
+    auto ma = "/ip4/127.0.0.1/tcp/40009"_multiaddr;
     multiaddress_ = std::make_shared<Multiaddress>(std::move(ma));
   }
 

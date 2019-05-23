@@ -7,7 +7,8 @@
 
 #include <gtest/gtest.h>
 #include <outcome/outcome.hpp>
-#include <testutil/outcome.hpp>
+#include "testutil/outcome.hpp"
+#include "testutil/literals.hpp"
 
 using libp2p::multi::Multiaddress;
 using libp2p::multi::Protocol;
@@ -33,7 +34,7 @@ TEST_P(TransportParserTest, ParseSuccessfully) {
   ASSERT_EQ(r_ok.value().chosen_protos, proto_codes);
 }
 
-auto addresses = {Multiaddress::create("/ip4/127.0.0.1/tcp/5050").value()};
+auto addresses = {"/ip4/127.0.0.1/tcp/5050"_multiaddr};
 INSTANTIATE_TEST_CASE_P(TestSupported, TransportParserTest,
                         ::testing::ValuesIn(addresses));
 
@@ -45,10 +46,9 @@ INSTANTIATE_TEST_CASE_P(TestSupported, TransportParserTest,
  */
 TEST_F(TransportParserTest, CorrectAlternative) {
   auto r4 = MultiaddressParser::parse(
-      Multiaddress::create("/ip4/127.0.0.1/tcp/5050").value());
+      "/ip4/127.0.0.1/tcp/5050"_multiaddr);
   auto r6 = MultiaddressParser::parse(
-      Multiaddress::create("/ip6/2001:db8:85a3:8d3:1319:8a2e:370:7348/tcp/443")
-          .value());
+      "/ip6/2001:db8:85a3:8d3:1319:8a2e:370:7348/tcp/443"_multiaddr);
 
   using Ip4Tcp = std::pair<MultiaddressParser::Ip4Address, uint16_t>;
   using Ip6Tcp = std::pair<MultiaddressParser::Ip6Address, uint16_t>;

@@ -4,9 +4,12 @@
  */
 
 #include "libp2p/multi/multiaddress.hpp"
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "testutil/literals.hpp"
+#include "testutil/outcome.hpp"
 #include "libp2p/multi/multiaddress_protocol_list.hpp"
 
 using libp2p::multi::Multiaddress;
@@ -18,27 +21,13 @@ using namespace kagome::common;
 
 class MultiaddressTest : public ::testing::Test {
  public:
-  const std::string_view valid_ip_udp_address = "/ip4/192.168.0.1/udp/228";
-  const std::vector<uint8_t> valid_ip_udp_bytes{0x4,  0xC0, 0xA8, 0x0, 0x1,
-                                                0x91, 0x2,  0x0,  0xE4};
+  const std::string_view valid_ip_udp = "/ip4/192.168.0.1/udp/228";
+  const std::vector<uint8_t> valid_ip_udp_bytes = "04C0A80001910200E4"_unhex;
   const Buffer valid_id_udp_buffer{valid_ip_udp_bytes};
 
-  const std::string_view valid_ip_address = "/ip4/192.168.0.1";
-  const std::string_view valid_ipfs_address = "/p2p/mypeer";
-
-  const std::string_view invalid_address = "/ip4/192.168.0.1/2";
-  const std::vector<uint8_t> invalid_bytes{0x4, 0xC0, 0xA8, 0x0, 0x1, 0x02};
-  const Buffer invalid_buffer{invalid_bytes};
-
-  /**
-   * Create a valid multiaddress
-   * @param string_address of the address; MUST be valid
-   * @return pointer to address
-   */
-  Multiaddress createValidMultiaddress(
-      std::string_view string_address = "/ip4/192.168.0.1/udp/228") {
-    return Multiaddress::create(string_address).value();
-  }
+  const std::string_view invalid_addr = "/ip4/192.168.0.1/2";
+  const std::vector<uint8_t> invalid_addr_bytes = "04C0A8000102"_unhex;
+  const Buffer invalid_addr_buffer{invalid_addr_bytes};
 };
 
 /**
@@ -47,10 +36,10 @@ class MultiaddressTest : public ::testing::Test {
  * @then creation succeeds
  */
 TEST_F(MultiaddressTest, CreateFromStringValid) {
-  auto result = Multiaddress::create(valid_ip_udp_address);
+  auto result = Multiaddress::create(valid_ip_udp);
   ASSERT_TRUE(result);
   auto &&address = result.value();
-  ASSERT_EQ(address.getStringAddress(), valid_ip_udp_address);
+  ASSERT_EQ(address.getStringAddress(), valid_ip_udp);
   ASSERT_EQ(address.getBytesAddress(), valid_ip_udp_bytes);
 }
 
@@ -60,7 +49,7 @@ TEST_F(MultiaddressTest, CreateFromStringValid) {
  * @then creation fails
  */
 TEST_F(MultiaddressTest, CreateFromStringInvalid) {
-  auto result = Multiaddress::create(invalid_address);
+  auto result = Multiaddress::create(invalid_addr);
   ASSERT_FALSE(result);
 }
 
@@ -73,7 +62,7 @@ TEST_F(MultiaddressTest, CreateFromBytesValid) {
   auto result = Multiaddress::create(valid_id_udp_buffer);
   ASSERT_TRUE(result);
   auto &&v = result.value();
-  ASSERT_EQ(v.getStringAddress(), valid_ip_udp_address);
+  ASSERT_EQ(v.getStringAddress(), "/ip4/192.168.0.1/udp/228");
   ASSERT_EQ(v.getBytesAddress(), valid_ip_udp_bytes);
 }
 
@@ -83,7 +72,7 @@ TEST_F(MultiaddressTest, CreateFromBytesValid) {
  * @then creation fails
  */
 TEST_F(MultiaddressTest, CreateFromBytesInvalid) {
-  auto result = Multiaddress::create(invalid_buffer);
+  auto result = Multiaddress::create(invalid_addr_buffer);
   ASSERT_FALSE(result);
 }
 
@@ -95,14 +84,14 @@ TEST_F(MultiaddressTest, CreateFromBytesInvalid) {
  * same, as the encapsulated one
  */
 TEST_F(MultiaddressTest, Encapsulate) {
-  auto address1 = createValidMultiaddress();
-  auto address2 = createValidMultiaddress(valid_ipfs_address);
+  auto address1 = "/ip4/192.168.0.1/udp/228"_multiaddr;
+  auto address2 = "/p2p/mypeer"_multiaddr;
 
   auto joined_string_address =
-      std::string{valid_ip_udp_address} + std::string{valid_ipfs_address};
+      "/ip4/192.168.0.1/udp/228"s + "/p2p/mypeer";
 
   auto joined_byte_address = address1.getBytesAddress();
-  joined_byte_address.put(address2.getBytesAddress().toVector());
+  joined_byte_address.putBuffer(address2.getBytesAddress());
 
   address1.encapsulate(address2);
   ASSERT_EQ(address1.getStringAddress(), joined_string_address);
@@ -120,10 +109,9 @@ TEST_F(MultiaddressTest, Encapsulate) {
  * @then decapsulation is successful
  */
 TEST_F(MultiaddressTest, DecapsulateValid) {
-  auto initial_address = createValidMultiaddress();
-  auto address_to_decapsulate = createValidMultiaddress("/udp/228");
-  auto decapsulated_address = createValidMultiaddress(valid_ip_address);
-
+  auto initial_address = "/ip4/192.168.0.1/udp/228"_multiaddr;
+  auto address_to_decapsulate = "/udp/228"_multiaddr;
+  auto decapsulated_address = "/ip4/192.168.0.1"_multiaddr;
   ASSERT_TRUE(initial_address.decapsulate(address_to_decapsulate));
   ASSERT_EQ(initial_address, decapsulated_address);
 }
@@ -135,8 +123,8 @@ TEST_F(MultiaddressTest, DecapsulateValid) {
  * @then decapsulation fails
  */
 TEST_F(MultiaddressTest, DecapsulateInvalid) {
-  auto initial_address = createValidMultiaddress();
-  auto address_to_decapsulate = createValidMultiaddress(valid_ipfs_address);
+  auto initial_address = "/ip4/192.168.0.1/udp/228"_multiaddr;
+  auto address_to_decapsulate = "/p2p/mypeer"_multiaddr;
 
   ASSERT_FALSE(initial_address.decapsulate(address_to_decapsulate));
 }
@@ -147,8 +135,8 @@ TEST_F(MultiaddressTest, DecapsulateInvalid) {
  * @then result is equal to the expected one
  */
 TEST_F(MultiaddressTest, GetString) {
-  auto address = createValidMultiaddress();
-  ASSERT_EQ(address.getStringAddress(), valid_ip_udp_address);
+  auto address = "/ip4/192.168.0.1/udp/228"_multiaddr;
+  ASSERT_EQ(address.getStringAddress(), "/ip4/192.168.0.1/udp/228");
 }
 
 /**
@@ -157,7 +145,7 @@ TEST_F(MultiaddressTest, GetString) {
  * @then result is equal to the expected one
  */
 TEST_F(MultiaddressTest, GetBytes) {
-  auto address = createValidMultiaddress();
+  EXPECT_OUTCOME_TRUE(address, Multiaddress::create(valid_ip_udp));
   ASSERT_EQ(address.getBytesAddress(), valid_ip_udp_bytes);
 }
 
@@ -167,7 +155,7 @@ TEST_F(MultiaddressTest, GetBytes) {
  * @then it exists @and is equal to the expected one
  */
 TEST_F(MultiaddressTest, GetPeerIdExists) {
-  auto address = createValidMultiaddress(valid_ipfs_address);
+  auto address = "/p2p/mypeer"_multiaddr;
   ASSERT_EQ(*address.getPeerId(), "mypeer");
 }
 
@@ -177,7 +165,7 @@ TEST_F(MultiaddressTest, GetPeerIdExists) {
  * @then it does not exist
  */
 TEST_F(MultiaddressTest, GetPeerIdNotExists) {
-  auto address = createValidMultiaddress();
+  auto address = "/ip4/192.168.0.1/udp/228"_multiaddr;
   ASSERT_FALSE(address.getPeerId());
 }
 
@@ -187,8 +175,7 @@ TEST_F(MultiaddressTest, GetPeerIdNotExists) {
  * @then they are returned
  */
 TEST_F(MultiaddressTest, GetValueForProtocolValid) {
-  auto address =
-      createValidMultiaddress(std::string{valid_ip_udp_address} + "/udp/432");
+  auto address = "/ip4/192.168.0.1/udp/228/udp/432"_multiaddr;
 
   auto protocols = address.getValuesForProtocol(Protocol::Code::UDP);
   ASSERT_TRUE(!protocols.empty());
@@ -202,7 +189,7 @@ TEST_F(MultiaddressTest, GetValueForProtocolValid) {
  * @then result is empty
  */
 TEST_F(MultiaddressTest, GetValueForProtocolInvalid) {
-  auto address = createValidMultiaddress();
+  auto address = "/ip4/192.168.0.1/udp/228"_multiaddr;
 
   auto protocols = address.getValuesForProtocol(Protocol::Code::SCTP);
   ASSERT_TRUE(protocols.empty());
@@ -214,16 +201,16 @@ TEST_F(MultiaddressTest, GetValueForProtocolInvalid) {
  * @then the list with all protocols which the multiaddress includes is obtained
  */
 TEST_F(MultiaddressTest, GetProtocols) {
-  auto address = createValidMultiaddress();
+  auto address = "/ip4/192.168.0.1/udp/228"_multiaddr;
   ASSERT_THAT(address.getProtocols(),
               ::testing::ElementsAre(*ProtocolList::get("ip4"),
                                      *ProtocolList::get("udp")));
 
-  address = createValidMultiaddress(valid_ipfs_address);
+  address = "/p2p/mypeer"_multiaddr;
   ASSERT_THAT(address.getProtocols(),
               ::testing::ElementsAre(*ProtocolList::get("ipfs")));
 
-  address = createValidMultiaddress("/udp/322/ip4/127.0.0.1/udp/3232");
+  address = "/udp/322/ip4/127.0.0.1/udp/3232"_multiaddr;
   ASSERT_THAT(address.getProtocols(),
               ::testing::ElementsAre(*ProtocolList::get("udp"),
                                      *ProtocolList::get("ip4"),
@@ -237,18 +224,18 @@ TEST_F(MultiaddressTest, GetProtocols) {
  * is obtained
  */
 TEST_F(MultiaddressTest, GetProtocolsWithValues) {
-  auto address = createValidMultiaddress();
+  auto address = "/ip4/192.168.0.1/udp/228"_multiaddr;
   ASSERT_THAT(address.getProtocolsWithValues(),
               ::testing::ElementsAre(
                   std::make_pair(*ProtocolList::get("ip4"), "192.168.0.1"),
                   std::make_pair(*ProtocolList::get("udp"), "228")));
 
-  address = createValidMultiaddress(valid_ipfs_address);
+  address = "/p2p/mypeer"_multiaddr;
   ASSERT_THAT(address.getProtocolsWithValues(),
               ::testing::ElementsAre(
                   std::make_pair(*ProtocolList::get("ipfs"), "mypeer")));
 
-  address = createValidMultiaddress("/udp/322/ip4/127.0.0.1/udp/3232");
+  address = "/udp/322/ip4/127.0.0.1/udp/3232"_multiaddr;
   ASSERT_THAT(address.getProtocolsWithValues(),
               ::testing::ElementsAre(
                   std::make_pair(*ProtocolList::get("udp"), "322"),

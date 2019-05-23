@@ -8,6 +8,7 @@
 #include <optional>
 
 #include <gtest/gtest.h>
+#include "testutil/literals.hpp"
 #include "core/runtime/mock_memory.hpp"
 
 using namespace kagome::extensions;
@@ -34,15 +35,13 @@ class IOExtensionTest : public ::testing::Test {
   std::shared_ptr<IOExtension> io_extension_;
 
   // 0123456789abcdef
-  std::vector<uint8_t> hex_bytes_{0x01, 0x23, 0x45, 0x67,
-                                  0x89, 0xAB, 0xCD, 0xEF};
+  std::vector<uint8_t> hex_bytes_{"0123456789ABCDEF"_unhex};
 
   // 2^64 - 1
   static constexpr uint64_t number_ = std::numeric_limits<uint64_t>::max();
 
   // 1 @m $t|>i|\Ng
-  std::vector<uint8_t> utf8_bytes_{0x31, 0x20, 0x40, 0x6d, 0x20, 0x24, 0x74,
-                                   0x7c, 0x3e, 0x69, 0x7c, 0x5c, 0x4e, 0x67};
+  std::vector<uint8_t> utf8_bytes_{"3120406d2024747c3e697c5c4e67"_unhex};
 };
 
 /**

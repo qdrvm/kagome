@@ -6,6 +6,7 @@
 #include "extensions/impl/storage_extension.hpp"
 
 #include <gtest/gtest.h>
+#include "testutil/literals.hpp"
 #include "core/runtime/mock_memory.hpp"
 #include "core/storage/merkle/mock_trie_db.hpp"
 
@@ -174,7 +175,7 @@ TEST_F(StorageExtensionTest, GetStorageIntoKeyExistsTest) {
   SizeType key_size = 43;
   Buffer key(8, 'k');
 
-  Buffer value({'a', 'b', 'c', 'd', 'e', 'f'});
+  auto value = "abcdef"_buf;
   WasmPointer value_ptr = 123;
   SizeType value_length = 2;
   SizeType value_offset = 3;
@@ -208,7 +209,6 @@ TEST_F(StorageExtensionTest, GetStorageIntoKeyNotExistsTest) {
   SizeType key_size = 43;
   Buffer key(8, 'k');
 
-  Buffer value({'a', 'b', 'c', 'd', 'e', 'f'});
   WasmPointer value_ptr = 123;
   SizeType value_length = 2;
   SizeType value_offset = 3;

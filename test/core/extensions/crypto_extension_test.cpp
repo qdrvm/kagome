@@ -12,6 +12,7 @@
 extern "C" {
 #include <sr25519/sr25519.h>
 }
+#include "testutil/literals.hpp"
 #include <ed25519/ed25519.h>
 #include <gtest/gtest.h>
 #include <gsl/span>
@@ -48,17 +49,14 @@ class CryptoExtensionTest : public ::testing::Test {
   std::shared_ptr<MockMemory> memory_;
   std::shared_ptr<CryptoExtension> crypto_ext_;
 
-  Buffer input{0x69, 0x20, 0x61, 0x6d, 0x20, 0x64, 0x61, 0x74, 0x61};
+  Buffer input{"6920616d2064617461"_unhex};
 
   std::array<uint8_t, SR25519_SIGNATURE_SIZE> sr25519_signature{};
   std::array<uint8_t, SR25519_KEYPAIR_SIZE> sr25519_keypair{};
 
-  Buffer blake2b_result{0xba, 0x67, 0x33, 0x6e, 0xfd, 0x6a, 0x3d, 0xf3,
-                        0xa7, 0x0e, 0xeb, 0x75, 0x78, 0x60, 0x76, 0x30,
-                        0x36, 0x78, 0x5c, 0x18, 0x2f, 0xf4, 0xcf, 0x58,
-                        0x75, 0x41, 0xa0, 0x06, 0x8d, 0x09, 0xf5, 0xb2};
+  Buffer blake2b_result{"ba67336efd6a3df3a70eeb757860763036785c182ff4cf587541a0068d09f5b2"_unhex};
 
-  Buffer twox_input{0x41, 0x42, 0x43, 0x44, 0x45, 0x46};
+  Buffer twox_input{"414243444546"_unhex};
 
   Buffer twox128_result{184, 65, 176, 250, 243, 129, 181, 3,
                         77,  82, 63,  150, 129, 221, 191, 251};
