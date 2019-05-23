@@ -459,7 +459,7 @@ TEST_F(REITest, ext_sr25519_verify_Test) {
   WasmPointer sig_data = 42;
   WasmPointer pubkey_data = 321;
 
-  SizeType res = 1;
+  SizeType res = 0;
 
   EXPECT_CALL(*extension_,
               ext_sr25519_verify(msg_data, msg_len, sig_data, pubkey_data))
