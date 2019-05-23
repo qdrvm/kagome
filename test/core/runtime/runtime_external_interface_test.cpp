@@ -124,7 +124,7 @@ class REITest : public ::testing::Test {
       "  (import \"env\" \"ext_set_storage\" (func $ext_set_storage (type 6)))\n"
       "  (import \"env\" \"ext_clear_prefix\" (func $ext_clear_prefix (type 0)))\n"
       "  (import \"env\" \"ext_exists_storage\" (func $ext_exists_storage (type 3)))\n"
-      "  (import \"env\" \"ext_sr25519_verify\" (func $ext_sr25519_verify (type 9)))\n" // TODO (kamilsa) PRE-97 implement test for this function
+      "  (import \"env\" \"ext_sr25519_verify\" (func $ext_sr25519_verify (type 9)))\n"
       "  (import \"env\" \"ext_ed25519_verify\" (func $ext_ed25519_verify (type 9)))\n"
       "  (import \"env\" \"ext_storage_root\" (func $ext_storage_root (type 1)))\n"
       "  (import \"env\" \"ext_storage_changes_root\" (func $ext_storage_changes_root (type 10)))\n"
@@ -450,6 +450,33 @@ TEST_F(REITest, ext_ed25519_verify_Test) {
                        % msg_data % msg_len % sig_data % pubkey_data % res)
                           .str();
   SCOPED_TRACE("ext_ed25519_verify_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_sr25519_verify_Test) {
+  WasmPointer msg_data = 123;
+  SizeType msg_len = 1233;
+  WasmPointer sig_data = 42;
+  WasmPointer pubkey_data = 321;
+
+  SizeType res = 0;
+
+  EXPECT_CALL(*extension_,
+              ext_sr25519_verify(msg_data, msg_len, sig_data, pubkey_data))
+      .WillOnce(Return(res));
+
+  auto execute_code = (boost::format("    (call $assert_eq_i32\n"
+                                     "      (call $ext_sr25519_verify\n"
+                                     "        (i32.const %d)\n"
+                                     "        (i32.const %d)\n"
+                                     "        (i32.const %d)\n"
+                                     "        (i32.const %d)\n"
+                                     "      )\n"
+                                     "      (i32.const %d)\n"
+                                     "    )\n")
+      % msg_data % msg_len % sig_data % pubkey_data % res)
+      .str();
+  SCOPED_TRACE("ext_sr25519_verify_Test");
   executeWasm(execute_code);
 }
 

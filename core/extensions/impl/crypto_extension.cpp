@@ -7,6 +7,9 @@
 
 #include <exception>
 
+extern "C" {
+#include <sr25519/sr25519.h>
+}
 #include <ed25519/ed25519.h>
 #include <gsl/span>
 #include "crypto/blake2/blake2b.h"
@@ -50,6 +53,26 @@ namespace kagome::extensions {
 
     return ed25519_verify(&signature, msg.toBytes(), msg_len, &pubkey)
             == ED25519_SUCCESS
+        ? kVerifySuccess
+        : kVerifyFail;
+  }
+
+  runtime::SizeType CryptoExtension::ext_sr25519_verify(
+      runtime::WasmPointer msg_data, runtime::SizeType msg_len,
+      runtime::WasmPointer sig_data, runtime::WasmPointer pubkey_data) {
+    // for some reason, 0 and 5 are used in the reference implementation, so
+    // it's better to stick to them in ours, at least for now
+    static constexpr uint32_t kVerifySuccess = 0;
+    static constexpr uint32_t kVerifyFail = 5;
+
+    const auto &msg = memory_->loadN(msg_data, msg_len);
+    auto signature =
+        memory_->loadN(sig_data, SR25519_SIGNATURE_SIZE);
+
+    auto pubkey =
+        memory_->loadN(pubkey_data, SR25519_PUBLIC_SIZE);
+
+    return sr25519_verify(signature.toBytes(), msg.toBytes(), msg_len, pubkey.toBytes())
         ? kVerifySuccess
         : kVerifyFail;
   }
