@@ -42,6 +42,9 @@ namespace libp2p {
   HostBuilder::HostBuilder(boost::asio::io_context &io_context)
       : io_context_{io_context} {}
 
+  HostBuilder::HostBuilder(boost::asio::io_context &io_context, Config config)
+      : config_{std::move(config)}, io_context_{io_context} {}
+
   HostBuilder &HostBuilder::setKeypair(const crypto::KeyPair &kp) {
     config_.peer_key = kp;
     return *this;

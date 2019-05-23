@@ -29,7 +29,18 @@ namespace libp2p {
    */
   class HostBuilder {
    public:
+    /**
+     * Create a host builder
+     * @param io_context to be used inside
+     */
     explicit HostBuilder(boost::asio::io_context &io_context);
+
+    /**
+     * Create a host builder from the predefined config
+     * @param io_context to be used inside
+     * @param config to used inside
+     */
+    HostBuilder(boost::asio::io_context &io_context, Config config);
 
     /**
      * Set a long-term identity (keypair) of this Host
