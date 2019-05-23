@@ -50,7 +50,8 @@ namespace libp2p::network {
 
     /**
      * Get a list of handled protocols
-     * @return supported protocols; may also include protocol prefixes
+     * @return supported protocols; may also include protocol prefixes; if any
+     * set
      */
     virtual std::vector<peer::Protocol> getSupportedProtocols() const = 0;
 
