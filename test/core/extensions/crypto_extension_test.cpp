@@ -37,10 +37,11 @@ class CryptoExtensionTest : public ::testing::Test {
 
     gsl::span<uint8_t, SR25519_KEYPAIR_SIZE> keypair_span(sr25519_keypair);
     auto secret = keypair_span.subspan(0, SR25519_SECRET_SIZE);
-    auto pub_key = keypair_span.subspan(SR25519_SECRET_SIZE, SR25519_PUBLIC_SIZE);
+    auto pub_key =
+        keypair_span.subspan(SR25519_SECRET_SIZE, SR25519_PUBLIC_SIZE);
 
-    sr25519_sign(sr25519_signature.data(), pub_key.data(), secret.data(), input.toBytes(),
-                 input.size());
+    sr25519_sign(sr25519_signature.data(), pub_key.data(), secret.data(),
+                 input.toBytes(), input.size());
   }
 
  protected:
@@ -86,7 +87,7 @@ TEST_F(CryptoExtensionTest, Blake2Valid) {
 /**
  * @given initialized crypto extension @and ed25519-signed message
  * @when verifying signature of this message
- * @then verification is successul
+ * @then verification is successful
  */
 TEST_F(CryptoExtensionTest, Ed25519VerifySuccess) {
   private_key_t private_key{};
@@ -154,10 +155,11 @@ TEST_F(CryptoExtensionTest, Ed25519VerifyFailure) {
 /**
  * @given initialized crypto extension @and sr25519-signed message
  * @when verifying signature of this message
- * @then verification is success
+ * @then verification is successful
  */
 TEST_F(CryptoExtensionTest, Sr25519VerifySuccess) {
-  auto pub_key = gsl::span<uint8_t>(sr25519_keypair).subspan(SR25519_SECRET_SIZE, SR25519_PUBLIC_SIZE);
+  auto pub_key = gsl::span<uint8_t>(sr25519_keypair)
+                     .subspan(SR25519_SECRET_SIZE, SR25519_PUBLIC_SIZE);
 
   WasmPointer input_data = 0;
   SizeType input_size = input.size();
@@ -181,7 +183,8 @@ TEST_F(CryptoExtensionTest, Sr25519VerifySuccess) {
  * @then verification fails
  */
 TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
-  auto pub_key = gsl::span<uint8_t>(sr25519_keypair).subspan(SR25519_SECRET_SIZE, SR25519_PUBLIC_SIZE);
+  auto pub_key = gsl::span<uint8_t>(sr25519_keypair)
+                     .subspan(SR25519_SECRET_SIZE, SR25519_PUBLIC_SIZE);
   auto false_signature = Buffer(sr25519_signature);
   false_signature[3] = 42;
 

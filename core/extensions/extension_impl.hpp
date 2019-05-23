@@ -88,6 +88,11 @@ namespace kagome::extensions {
         runtime::WasmPointer sig_data,
         runtime::WasmPointer pubkey_data) override;
 
+    runtime::SizeType ext_sr25519_verify(
+        runtime::WasmPointer msg_data, runtime::SizeType msg_len,
+        runtime::WasmPointer sig_data,
+        runtime::WasmPointer pubkey_data) override;
+
     void ext_twox_128(runtime::WasmPointer data, runtime::SizeType len,
                       runtime::WasmPointer out) override;
 

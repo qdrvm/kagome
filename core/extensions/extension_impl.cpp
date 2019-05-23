@@ -118,6 +118,13 @@ namespace kagome::extensions {
                                           pubkey_data);
   }
 
+  runtime::SizeType ExtensionImpl::ext_sr25519_verify(
+      runtime::WasmPointer msg_data, runtime::SizeType msg_len,
+      runtime::WasmPointer sig_data, runtime::WasmPointer pubkey_data) {
+    return crypto_ext_.ext_sr25519_verify(msg_data, msg_len, sig_data,
+                                          pubkey_data);
+  }
+
   void ExtensionImpl::ext_twox_128(runtime::WasmPointer data,
                                    runtime::SizeType len,
                                    runtime::WasmPointer out) {
