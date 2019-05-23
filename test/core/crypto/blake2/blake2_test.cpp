@@ -56,12 +56,12 @@ TEST(Blake2b, Correctness) {
   // compute and compare the hash of hashes
   blake2b_final(&ctx, md);
 
-  EXPECT_EQ(memcmp(md, blake2b_res, 32), 0) << "hashes are different";
+  EXPECT_EQ(memcmp(md, blake2b_res.data(), 32), 0) << "hashes are different";
 }
 
 TEST(Blake2s, Correctness) {
   // Grand hash of hash results.
-  auto blake2s_res = "6A411F08CE25ADCDFB02ABA641451CEC53C598B24F4FC787FBDC88797F4C1DFE";
+  auto blake2s_res = "6A411F08CE25ADCDFB02ABA641451CEC53C598B24F4FC787FBDC88797F4C1DFE"_unhex;
   // Parameter sets.
   const size_t b2s_md_len[4] = {16, 20, 28, 32};
   const size_t b2s_in_len[6] = {0, 3, 64, 65, 255, 1024};
@@ -93,7 +93,7 @@ TEST(Blake2s, Correctness) {
   // Compute and compare the hash of hashes.
   blake2s_final(&ctx, md);
 
-  EXPECT_EQ(memcmp(md, blake2s_res, 32), 0) << "hashes are different";
+  EXPECT_EQ(memcmp(md, blake2s_res.data(), 32), 0) << "hashes are different";
 }
 
 TEST(Blake2s, UnkeyedInit) {

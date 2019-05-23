@@ -209,7 +209,6 @@ TEST_F(StorageExtensionTest, GetStorageIntoKeyNotExistsTest) {
   SizeType key_size = 43;
   Buffer key(8, 'k');
 
-  auto value = "abcdef";
   WasmPointer value_ptr = 123;
   SizeType value_length = 2;
   SizeType value_offset = 3;

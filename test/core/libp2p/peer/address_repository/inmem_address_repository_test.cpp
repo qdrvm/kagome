@@ -11,6 +11,7 @@
 #include "libp2p/peer/address_repository/inmem_address_repository.hpp"
 #include "libp2p/peer/errors.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/literals.hpp"
 
 using namespace libp2p::peer;
 using namespace libp2p::multi;
@@ -41,24 +42,20 @@ struct InmemAddressRepository_Test : public ::testing::Test {
   std::unique_ptr<AddressRepository> db;
 
   const PeerId p1 =
-      PeerId::fromHash(Multihash::create(HashType::sha256,
-                                         Buffer{0x12, 0x03, 0x02, 0x03, 0x04})
-                           .value())
+      PeerId::fromHash("12051203020304"_multihash)
           .value();
   const PeerId p2 =
-      PeerId::fromHash(Multihash::create(HashType::sha256,
-                                         Buffer{0x12, 0x03, 0xFF, 0xFF, 0xFF})
-                           .value())
+      PeerId::fromHash("12051203FFFFFF"_multihash)
           .value();
 
   const Multiaddress ma1 =
-      Multiaddress::create("/ip4/127.0.0.1/tcp/8080").value();
+      "/ip4/127.0.0.1/tcp/8080"_multiaddr;
   const Multiaddress ma2 =
-      Multiaddress::create("/ip4/127.0.0.1/tcp/8081").value();
+      "/ip4/127.0.0.1/tcp/8081"_multiaddr;
   const Multiaddress ma3 =
-      Multiaddress::create("/ip4/127.0.0.1/tcp/8082").value();
+      "/ip4/127.0.0.1/tcp/8082"_multiaddr;
   const Multiaddress ma4 =
-      Multiaddress::create("/ip4/127.0.0.1/tcp/8083").value();
+      "/ip4/127.0.0.1/tcp/8083"_multiaddr;
 
   template <typename... T>
   std::vector<T...> vec(T &&... arg) {

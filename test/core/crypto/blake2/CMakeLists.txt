@@ -3,4 +3,5 @@ addtest(blake2_test
     )
 target_link_libraries(blake2_test
     blake2
+    hexutil
     )

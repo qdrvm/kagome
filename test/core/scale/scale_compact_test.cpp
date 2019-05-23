@@ -8,6 +8,7 @@
 #include "scale/byte_array_stream.hpp"
 #include "scale/compact.hpp"
 #include "scale/scale_error.hpp"
+#include "testutil/literals.hpp"
 
 using namespace kagome;          // NOLINT
 using namespace kagome::common;  // NOLINT
@@ -328,14 +329,8 @@ TEST(Scale, compactEncodeMaxBigInteger) {
   ASSERT_TRUE(compact::encodeInteger(v, out));
   ASSERT_EQ(
       out.toVector(),
-      // clang-format off
-        (ByteArray{0b11111111,
-        // now 67 bytes of 255 = 0xFF
-        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-        255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
-        255, 255, 255, 255, 255, 255, 255}));
+      "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+      "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"_unhex);
   // clang-format on
 }
 

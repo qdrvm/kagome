@@ -19,6 +19,10 @@ inline kagome::common::Buffer operator"" _buf(const char *c, size_t s) {
   return kagome::common::Buffer(std::move(chars));
 }
 
+inline kagome::common::Buffer operator"" _hex2buf(const char *c, size_t s) {
+  return kagome::common::Buffer::fromHex(std::string_view(c, s)).value();
+}
+
 inline std::vector<uint8_t> operator""_unhex(const char *c, size_t s) {
   return kagome::common::unhex(std::string_view(c, s)).value();
 }
