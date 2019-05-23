@@ -5,7 +5,32 @@
 
 #include "libp2p/host.hpp"
 
+#include <exception>
+
+namespace {
+  using libp2p::peer::PeerId;
+
+  /**
+   * Tries to create a PeerId from the keypair
+   * @param keypair for PeerId to be created from
+   * @return PeerId
+   * @throws std::invalid_argument, if PeerId cannot be created from the given
+   * keypair
+   */
+  PeerId getPeerId(const libp2p::crypto::KeyPair &keypair) {
+    auto id_res = PeerId::fromPublicKey(keypair.publicKey);
+    if (!id_res) {
+      throw std::invalid_argument(
+          "cannot create PeerId from the provided key pair");
+    }
+    return id_res.value();
+  }
+}  // namespace
+
 namespace libp2p {
+
+  Host::Host(Config config)
+      : config_{std::move(config)}, id_{getPeerId(config_.peer_key)} {}
 
   peer::PeerId Host::getId() const noexcept {
     return id_;

@@ -24,6 +24,8 @@ namespace libp2p {
 
   class Host {
    public:
+    explicit Host(Config config);
+
     /**
      * @brief Get identifier of this Host
      */
@@ -82,8 +84,9 @@ namespace libp2p {
         const std::function<connection::Stream::Handler> &handler);
 
    private:
-    const peer::PeerId id_;
     Config config_;
+
+    peer::PeerId id_;
     std::unique_ptr<network::Network> network_;
     std::unique_ptr<network::Router> router_;
   };

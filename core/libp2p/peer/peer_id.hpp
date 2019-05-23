@@ -20,6 +20,12 @@ namespace libp2p::peer {
     using FactoryResult = outcome::result<PeerId>;
 
    public:
+    PeerId(const PeerId &other) = default;
+    PeerId &operator=(const PeerId &other) = default;
+    PeerId(PeerId &&other) noexcept = default;
+    PeerId &operator=(PeerId &&other) noexcept = default;
+    ~PeerId() = default;
+
     enum class FactoryError { SHA256_EXPECTED = 1 };
 
     /**
