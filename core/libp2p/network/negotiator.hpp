@@ -37,20 +37,20 @@ namespace libp2p::network {
     // been written to the stream. This is in contrast to Negotiate, which will
     // block until the Negotiator is finished with the stream.
     virtual outcome::result<Return> negotiateLazy(
-        std::shared_ptr<basic::ReadWriteCloser> io) = 0;
+        std::shared_ptr<connection::Stream> io) = 0;
 
     // Negotiate will return the registered protocol handler to use for a given
     // inbound stream, returning after the protocol has been determined and the
     // Negotiator has finished using the stream for negotiation. Returns an
     // error if negotiation fails.
     virtual outcome::result<Return> negotiate(
-        std::shared_ptr<basic::ReadWriteCloser> io) = 0;
+        std::shared_ptr<connection::Stream> io) = 0;
 
     // Handle calls Negotiate to determine which protocol handler to use for an
     // inbound stream, then invokes the protocol handler function, passing it
     // the protocol ID and the stream. Returns an error if negotiation fails.
     virtual outcome::result<void> handle(
-        std::shared_ptr<basic::ReadWriteCloser> io) = 0;
+        std::shared_ptr<connection::Stream> io) = 0;
   };
 
 }  // namespace libp2p::network
