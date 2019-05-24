@@ -45,7 +45,7 @@ namespace libp2p::network {
 
   /// in case the tree needs to be printed, this operator will be helpful
   std::ostream &operator<<(std::ostream &stream,
-                           const std::vector<unsigned char> &vec);
+                           const std::vector<unsigned char> vec);
 
 }  // namespace libp2p::network
 
