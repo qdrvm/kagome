@@ -72,7 +72,7 @@ namespace libp2p::multi {
 
   std::string MultibaseCodecImpl::encode(const Buffer &bytes,
                                          Encoding encoding) const {
-    if (bytes.size() == 0) {
+    if (bytes.empty()) {
       return "";
     }
 

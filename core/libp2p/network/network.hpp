@@ -77,15 +77,16 @@ namespace libp2p::network {
         const peer::PeerInfo &p, const peer::Protocol &protocol,
         const std::function<connection::Stream::Handler> &handler) = 0;
 
-    // SetStreamHandler sets the handler for new streams opened by the
-    // remote side.
-    virtual void setStreamHandler(
-        std::function<connection::Stream::Handler> func) = 0;
-
-    // SetConnHandler sets the handler for new connections opened by the
-    // remote side.
-    virtual void setConnectionHandler(
-        std::function<transport::Connection::Handler> func) = 0;
+    // TODO(@warchant): check if it is needed PRE-178
+//    // SetStreamHandler sets the handler for new streams opened by the
+//    // remote side.
+//    virtual void setStreamHandler(
+//        std::function<connection::Stream::Handler> func) = 0;
+//
+//    // SetConnHandler sets the handler for new connections opened by the
+//    // remote side.
+//    virtual void setConnectionHandler(
+//        std::function<connection::Connection::Handler> func) = 0;
   };
 
 }  // namespace libp2p::network

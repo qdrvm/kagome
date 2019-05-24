@@ -23,6 +23,9 @@ namespace kagome::common {
     using iterator = std::vector<uint8_t>::iterator;
     using const_iterator = std::vector<uint8_t>::const_iterator;
     using value_type = uint8_t;
+    // with this gsl::span can be built from Buffer
+    using pointer = typename std::vector<uint8_t>::pointer;
+    using const_pointer = typename std::vector<uint8_t>::const_pointer;
 
     /**
      * @brief allocates buffer of size={@param size}, filled with {@param byte}
@@ -170,6 +173,9 @@ namespace kagome::common {
      */
     const uint8_t *toBytes() const;
     uint8_t *toBytes();
+
+    const uint8_t *data() const;
+    uint8_t *data();
 
     /**
      * @brief getter for vector of vytes

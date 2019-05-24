@@ -9,7 +9,6 @@
 #include <memory>
 
 #include "libp2p/stream/stream.hpp"
-#include "libp2p/transport/connection.hpp"
 #include "libp2p/transport/muxed_connection.hpp"
 
 namespace libp2p::muxer {

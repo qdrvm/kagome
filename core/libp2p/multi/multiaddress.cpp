@@ -175,7 +175,7 @@ namespace libp2p::multi {
     return protocols;
   }
 
-  std::list<std::pair<Protocol, std::string>>
+  std::vector<std::pair<Protocol, std::string>>
   Multiaddress::getProtocolsWithValues() const {
     std::string_view addr{stringified_address_};
     addr.remove_prefix(1);
@@ -183,11 +183,11 @@ namespace libp2p::multi {
       addr.remove_suffix(1);
     }
 
-    std::list<std::string> tokens;
+    std::vector<std::string> tokens;
 
     boost::algorithm::split(tokens, addr, boost::algorithm::is_any_of("/"));
 
-    std::list<std::pair<Protocol, std::string>> pvs;
+    std::vector<std::pair<Protocol, std::string>> pvs;
     for (auto &token : tokens) {
       auto p = ProtocolList::get(token);
       if (p != nullptr) {
@@ -238,6 +238,16 @@ namespace libp2p::multi {
 
   bool Multiaddress::operator<(const Multiaddress &other) const {
     return this->stringified_address_ < other.stringified_address_;
+  }
+
+  bool Multiaddress::hasProtocol(Protocol::Code code) const {
+    auto p = ProtocolList::get(code);
+    if (p == nullptr) {
+      return false;
+    }
+
+    auto str = p->name;
+    return this->stringified_address_.find(str) != std::string::npos;
   }
 
 }  // namespace libp2p::multi

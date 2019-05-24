@@ -117,7 +117,7 @@ namespace libp2p::crypto {
         BN_free(bne);
       });
 
-      unsigned long exp = RSA_F4;
+      uint64_t exp = RSA_F4;
 
       // 1. generate rsa state
       bne = BN_new();

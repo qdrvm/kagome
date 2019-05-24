@@ -12,7 +12,7 @@
 #include <outcome/outcome.hpp>
 #include "libp2p/peer/protocol.hpp"
 #include "libp2p/stream/stream.hpp"
-#include "libp2p/transport/connection.hpp"
+#include "libp2p/connection/raw_connection.hpp"
 
 namespace libp2p::protocol_muxer {
   /**

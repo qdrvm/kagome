@@ -94,6 +94,14 @@ namespace kagome::common {
     return data_.end();
   }
 
+  const uint8_t *Buffer::data() const {
+    return data_.data();
+  }
+
+  uint8_t *Buffer::data() {
+    return data_.data();
+  }
+
   Buffer::Buffer(size_t size, uint8_t byte) : data_(size, byte) {}
 
   bool Buffer::operator==(const std::vector<uint8_t> &b) const noexcept {

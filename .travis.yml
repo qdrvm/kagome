@@ -21,6 +21,7 @@ env:
 
 cache:
   apt: true
+  cargo: true
   ccache: true
   directories:
     - "$HOME/.ccache"
