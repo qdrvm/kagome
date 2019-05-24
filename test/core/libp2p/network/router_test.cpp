@@ -117,71 +117,71 @@ TEST_F(RouterTest, SetHandlerWithPredicate) {
   EXPECT_EQ(getStreamMockId(*kStreamToSend),
             getStreamMockId(*stream_to_receive));
 }
-
-/**
- * @given router
- * @when setting protocol handlers
- * @then getSupportedProtocols() call returns protocol, which were set
- */
-TEST_F(RouterTest, GetSupportedProtocols) {
-  static const std::vector<Protocol> kExpectedVec1{kDefaultProtocol};
-  static const std::vector<Protocol> kExpectedVec2{kDefaultProtocol,
-                                                   kProtocolPrefix};
-
-  ASSERT_TRUE(this->getSupportedProtocols().empty());
-
-  setHandlerWithFail(kDefaultProtocol);
-  ASSERT_EQ(this->getSupportedProtocols(), kExpectedVec1);
-
-  setHandlerWithFail(kProtocolPrefix);
-  /// protocols may be returned in any order
-  ASSERT_TRUE(std::is_permutation(kExpectedVec2.begin(), kExpectedVec2.end(),
-                                  this->getSupportedProtocols().begin()));
-
-  setHandlerWithFail(kDefaultProtocol);
-  ASSERT_TRUE(std::is_permutation(kExpectedVec2.begin(), kExpectedVec2.end(),
-                                  this->getSupportedProtocols().begin()));
-}
-
-/**
- * @given router with some protocols set
- * @when removing protocol handlers for a particular protocol
- * @then corresponding handlers are removed
- */
-TEST_F(RouterTest, RemoveProtocolHandlers) {
-  setHandlersWithFail(
-      std::vector<Protocol>{kDefaultProtocol, kAnotherProtocol});
-
-  this->removeProtocolHandlers(kAnotherProtocol);
-  const auto supported_protos = this->getSupportedProtocols();
-  ASSERT_EQ(supported_protos.size(), 1);
-  ASSERT_EQ(supported_protos[0], kDefaultProtocol);
-}
-
-/**
- * @given router with some protocols set
- * @when removing protocol handlers for a particular prefix
- * @then corresponding handlers are removed
- */
-TEST_F(RouterTest, RemoveProtocolHandlersForPrefix) {
-  setHandlersWithFail(std::vector<Protocol>{
-      kDefaultProtocol, kVersionProtocolPrefix, kAnotherProtocol});
-
-  this->removeProtocolHandlers(kProtocolPrefix);
-  const auto supported_protos = this->getSupportedProtocols();
-  ASSERT_EQ(supported_protos.size(), 1);
-  ASSERT_EQ(supported_protos[0], kAnotherProtocol);
-}
-
-/**
- * @given router with some protocols set
- * @when removing all protocol handlers
- * @then all handlers are removed
- */
-TEST_F(RouterTest, RemoveAll) {
-  setHandlersWithFail(
-      std::vector<Protocol>{kDefaultProtocol, kAnotherProtocol});
-
-  this->removeAll();
-  ASSERT_TRUE(this->getSupportedProtocols().empty());
-}
+//
+///**
+// * @given router
+// * @when setting protocol handlers
+// * @then getSupportedProtocols() call returns protocol, which were set
+// */
+//TEST_F(RouterTest, GetSupportedProtocols) {
+//  static const std::vector<Protocol> kExpectedVec1{kDefaultProtocol};
+//  static const std::vector<Protocol> kExpectedVec2{kDefaultProtocol,
+//                                                   kProtocolPrefix};
+//
+//  ASSERT_TRUE(this->getSupportedProtocols().empty());
+//
+//  setHandlerWithFail(kDefaultProtocol);
+//  ASSERT_EQ(this->getSupportedProtocols(), kExpectedVec1);
+//
+//  setHandlerWithFail(kProtocolPrefix);
+//  /// protocols may be returned in any order
+//  ASSERT_TRUE(std::is_permutation(kExpectedVec2.begin(), kExpectedVec2.end(),
+//                                  this->getSupportedProtocols().begin()));
+//
+//  setHandlerWithFail(kDefaultProtocol);
+//  ASSERT_TRUE(std::is_permutation(kExpectedVec2.begin(), kExpectedVec2.end(),
+//                                  this->getSupportedProtocols().begin()));
+//}
+//
+///**
+// * @given router with some protocols set
+// * @when removing protocol handlers for a particular protocol
+// * @then corresponding handlers are removed
+// */
+//TEST_F(RouterTest, RemoveProtocolHandlers) {
+//  setHandlersWithFail(
+//      std::vector<Protocol>{kDefaultProtocol, kAnotherProtocol});
+//
+//  this->removeProtocolHandlers(kAnotherProtocol);
+//  const auto supported_protos = this->getSupportedProtocols();
+//  ASSERT_EQ(supported_protos.size(), 1);
+//  ASSERT_EQ(supported_protos[0], kDefaultProtocol);
+//}
+//
+///**
+// * @given router with some protocols set
+// * @when removing protocol handlers for a particular prefix
+// * @then corresponding handlers are removed
+// */
+//TEST_F(RouterTest, RemoveProtocolHandlersForPrefix) {
+//  setHandlersWithFail(std::vector<Protocol>{
+//      kDefaultProtocol, kVersionProtocolPrefix, kAnotherProtocol});
+//
+//  this->removeProtocolHandlers(kProtocolPrefix);
+//  const auto supported_protos = this->getSupportedProtocols();
+//  ASSERT_EQ(supported_protos.size(), 1);
+//  ASSERT_EQ(supported_protos[0], kAnotherProtocol);
+//}
+//
+///**
+// * @given router with some protocols set
+// * @when removing all protocol handlers
+// * @then all handlers are removed
+// */
+//TEST_F(RouterTest, RemoveAll) {
+//  setHandlersWithFail(
+//      std::vector<Protocol>{kDefaultProtocol, kAnotherProtocol});
+//
+//  this->removeAll();
+//  ASSERT_TRUE(this->getSupportedProtocols().empty());
+//}
