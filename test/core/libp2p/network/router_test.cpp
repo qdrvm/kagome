@@ -13,7 +13,7 @@ using namespace libp2p::network;
 using namespace libp2p::peer;
 using namespace libp2p::connection;
 
-class RouterTest : public ::testing::Test, public RouterImpl {
+class RouterTest : public ::testing::Test {
  public:
   static constexpr uint8_t kDefaultStreamId = 5;
   const std::shared_ptr<Stream> kStreamToSend =
@@ -35,27 +35,27 @@ class RouterTest : public ::testing::Test, public RouterImpl {
     return dynamic_cast<const StreamMock &>(stream).stream_id;
   }
 
-  /**
-   * Set a handler for a given protocol, which predicate will fail the test if
-   * called
-   * @param proto, for which the handler is to be set
-   */
-  void setHandlerWithFail(const Protocol &proto) {
-    this->setProtocolHandler(proto, [](auto &&) { FAIL(); });
-  }
-
-  /**
-   * Set handlers for the given protocols, which predicate will fail the test if
-   * called
-   * @param protocols, for which the handlers are to be set
-   */
-  void setHandlersWithFail(gsl::span<const Protocol> protocols) {
-    for (const auto &proto : protocols) {
-      setHandlerWithFail(proto);
-    }
-    ASSERT_TRUE(std::is_permutation(protocols.begin(), protocols.end(),
-                                    this->getSupportedProtocols().begin()));
-  }
+//  /**
+//   * Set a handler for a given protocol, which predicate will fail the test if
+//   * called
+//   * @param proto, for which the handler is to be set
+//   */
+//  void setHandlerWithFail(const Protocol &proto) {
+//    this->setProtocolHandler(proto, [](auto &&) { FAIL(); });
+//  }
+//
+//  /**
+//   * Set handlers for the given protocols, which predicate will fail the test if
+//   * called
+//   * @param protocols, for which the handlers are to be set
+//   */
+//  void setHandlersWithFail(gsl::span<const Protocol> protocols) {
+//    for (const auto &proto : protocols) {
+//      setHandlerWithFail(proto);
+//    }
+//    ASSERT_TRUE(std::is_permutation(protocols.begin(), protocols.end(),
+//                                    this->getSupportedProtocols().begin()));
+//  }
 };
 
 ///**
