@@ -7,6 +7,9 @@
 
 namespace libp2p {
 
+  Host::Host(Config config, peer::PeerId peer_id)
+      : config_{std::move(config)}, id_{std::move(peer_id)} {}
+
   peer::PeerId Host::getId() const noexcept {
     return id_;
   }

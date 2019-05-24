@@ -82,8 +82,13 @@ namespace libp2p {
         const std::function<connection::Stream::Handler> &handler);
 
    private:
-    const peer::PeerId id_;
+    friend class HostBuilder;
+
+    Host(Config config, peer::PeerId peer_id);
+
     Config config_;
+
+    peer::PeerId id_;
     std::unique_ptr<network::Network> network_;
     std::unique_ptr<network::Router> router_;
   };
