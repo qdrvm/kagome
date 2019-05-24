@@ -10,13 +10,7 @@
 using namespace libp2p;
 using namespace libp2p::multi;
 
-class HostBuilderTest : public ::testing::Test {
- public:
-  const Multiaddress kDefaultAddress =
-      Multiaddress::create("/ip4/192.168.0.1").value();
-
-  boost::asio::io_context io_context_;
-};
+class HostBuilderTest : public ::testing::Test {};
 
 /**
  * @given host builder
@@ -24,5 +18,5 @@ class HostBuilderTest : public ::testing::Test {
  * @then build does not fail
  */
 TEST_F(HostBuilderTest, AllDefaults) {
-  HostBuilder{io_context_}.build();
+  EXPECT_TRUE(HostBuilder{}.build());
 }

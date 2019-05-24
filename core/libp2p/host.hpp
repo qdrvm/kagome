@@ -24,7 +24,7 @@ namespace libp2p {
 
   class Host {
    public:
-    explicit Host(Config config);
+    Host(Config config, peer::PeerId peer_id);
 
     /**
      * @brief Get identifier of this Host

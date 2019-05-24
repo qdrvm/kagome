@@ -15,6 +15,7 @@
 #include "libp2p/dht/dht_adaptor.hpp"
 #include "libp2p/discovery/discovery_adaptor.hpp"
 #include "libp2p/muxer/muxer_adaptor.hpp"
+#include "libp2p/peer/peer_id.hpp"
 #include "libp2p/peer/peer_repository.hpp"
 #include "libp2p/routing/routing_adaptor.hpp"
 #include "libp2p/security/security_adaptor.hpp"
@@ -38,7 +39,7 @@ namespace libp2p {
    */
   struct Config {
     crypto::KeyPair peer_key;
-    detail::sptr<crypto::random::CSPRNG> c_prng;
+    detail::sptr<crypto::random::CSPRNG> cprng;
     detail::sptr<crypto::random::RandomGenerator> prng;
     detail::sptr<routing::RoutingAdaptor> routing;
     detail::sptr<discovery::DiscoveryAdaptor> discovery;
@@ -48,6 +49,8 @@ namespace libp2p {
     detail::vecsptr<dht::DHTAdaptor> dhts;
     detail::vecsptr<security::SecurityAdaptor> securities;
     detail::vec<multi::Multiaddress> listen_addresses;
+
+    detail::sptr<boost::asio::io_context> io_context;
 
     bool enable_ping = true;
   };

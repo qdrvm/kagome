@@ -5,8 +5,6 @@
 
 #include "libp2p/host_builder.hpp"
 
-#include <exception>
-
 #include "libp2p/crypto/key_generator/key_generator_impl.hpp"
 #include "libp2p/crypto/random_generator/boost_generator.hpp"
 #include "libp2p/crypto/random_generator/std_generator.hpp"
@@ -32,18 +30,14 @@ namespace {
     const auto &pubkey = keypair.publicKey;
     const auto &privkey = keypair.privateKey;
     return !pubkey.data.empty() && pubkey.type != KeyType::UNSPECIFIED
-        && !privkey.data.empty() && privkey.type != KeyType::UNSPECIFIED;
+        && !privkey.data.empty() && privkey.type == pubkey.type;
   }
 }  // namespace
 
 namespace libp2p {
   using multi::Multiaddress;
 
-  HostBuilder::HostBuilder(boost::asio::io_context &io_context)
-      : io_context_{io_context} {}
-
-  HostBuilder::HostBuilder(boost::asio::io_context &io_context, Config config)
-      : config_{std::move(config)}, io_context_{io_context} {}
+  HostBuilder::HostBuilder(Config config) : config_{std::move(config)} {}
 
   HostBuilder &HostBuilder::setKeypair(const crypto::KeyPair &kp) {
     config_.peer_key = kp;
@@ -51,7 +45,7 @@ namespace libp2p {
   }
 
   HostBuilder &HostBuilder::setCSPRNG(detail::sptr<crypto::random::CSPRNG> r) {
-    config_.c_prng = std::move(r);
+    config_.cprng = std::move(r);
     return *this;
   }
 
@@ -109,18 +103,24 @@ namespace libp2p {
   }
 
   HostBuilder &HostBuilder::addListenMultiaddr(std::string_view address) {
-    auto addr_res = Multiaddress::create(address);
-    if (!addr_res) {
-      throw std::invalid_argument("cannot add listen multiaddress: "
-                                  + addr_res.error().message());
-    }
-    config_.listen_addresses.push_back(std::move(addr_res.value()));
+    multiaddr_candidates_.push_back(address);
     return *this;
   }
 
-  Host HostBuilder::build() {
-    if (!config_.c_prng) {
-      config_.c_prng = std::make_shared<crypto::random::BoostRandomGenerator>();
+  HostBuilder &HostBuilder::setContext(
+      std::shared_ptr<boost::asio::io_context> c) {
+    config_.io_context = std::move(c);
+    return *this;
+  }
+
+  outcome::result<Host> HostBuilder::build() {
+    for (auto multiaddr_candidate : multiaddr_candidates_) {
+      OUTCOME_TRY(addr, Multiaddress::create(multiaddr_candidate));
+      config_.listen_addresses.push_back(std::move(addr));
+    }
+
+    if (!config_.cprng) {
+      config_.cprng = std::make_shared<crypto::random::BoostRandomGenerator>();
     }
 
     if (!config_.prng) {
@@ -128,13 +128,13 @@ namespace libp2p {
     }
 
     if (!keypairIsWellFormed(config_.peer_key)) {
-      crypto::KeyGeneratorImpl key_generator{*config_.c_prng};
-      auto keys_res = key_generator.generateKeys(crypto::Key::Type::RSA2048);
-      if (!keys_res) {
-        throw std::runtime_error("cannot generate a keypair");
-      }
-      config_.peer_key = std::move(keys_res.value());
+      crypto::KeyGeneratorImpl key_generator{*config_.cprng};
+      OUTCOME_TRY(keys, key_generator.generateKeys(crypto::Key::Type::RSA2048));
+      config_.peer_key = std::move(keys);
     }
+
+    OUTCOME_TRY(peer_id,
+                peer::PeerId::fromPublicKey(config_.peer_key.publicKey));
 
     if (!config_.routing) {
       config_.routing = std::make_shared<routing::RoutingImpl>();
@@ -151,9 +151,13 @@ namespace libp2p {
           std::make_shared<peer::InmemProtocolRepository>());
     }
 
+    if (!config_.io_context) {
+      config_.io_context = std::make_shared<boost::asio::io_context>(1);
+    }
+
     if (config_.transports.empty()) {
       config_.transports.push_back(
-          std::make_shared<transport::TransportImpl>(io_context_));
+          std::make_shared<transport::TransportImpl>(*config_.io_context));
     }
 
     if (config_.muxers.empty()) {
@@ -168,7 +172,7 @@ namespace libp2p {
       config_.securities.push_back(std::make_shared<security::SecurityImpl>());
     }
 
-    return Host{config_};
+    return Host{config_, std::move(peer_id)};
   }
 
 }  // namespace libp2p

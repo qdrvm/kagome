@@ -7,8 +7,11 @@
 #define KAGOME_LIBP2P_HOST_HPP
 
 #include <memory>
+#include <string_view>
+#include <vector>
 
 #include <boost/asio/io_context.hpp>
+#include <outcome/outcome.hpp>
 #include "libp2p/config.hpp"
 #include "libp2p/crypto/key.hpp"
 #include "libp2p/crypto/random_generator.hpp"
@@ -29,18 +32,13 @@ namespace libp2p {
    */
   class HostBuilder {
    public:
-    /**
-     * Create a host builder
-     * @param io_context to be used inside
-     */
-    explicit HostBuilder(boost::asio::io_context &io_context);
+    HostBuilder() = default;
 
     /**
      * Create a host builder from the predefined config
-     * @param io_context to be used inside
      * @param config to used inside
      */
-    HostBuilder(boost::asio::io_context &io_context, Config config);
+    explicit HostBuilder(Config config);
 
     /**
      * Set a long-term identity (keypair) of this Host
@@ -149,10 +147,18 @@ namespace libp2p {
     HostBuilder &addListenMultiaddr(std::string_view address);
 
     /**
-     * Finish the build process
-     * @return built host
+     * Set an execution context for the Host
+     * @param c - context to be set
+     * @return builder with the context set
+     * @note if no context was set, a default one {io_context(1)} will be used
      */
-    Host build();
+    HostBuilder &setContext(std::shared_ptr<boost::asio::io_context> c);
+
+    /**
+     * Finish the build process, making all validations
+     * @return built host in case of success, error otherwise
+     */
+    outcome::result<Host> build();
 
     // TODO(akvinikym) 23.05.19 PRE-183: implement this method
     /**
@@ -164,8 +170,7 @@ namespace libp2p {
    private:
     /// state of the builder
     Config config_;
-
-    boost::asio::io_context &io_context_;
+    std::vector<std::string_view> multiaddr_candidates_;
   };
 }  // namespace libp2p
 
