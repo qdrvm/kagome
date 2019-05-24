@@ -32,7 +32,6 @@ TEST(Scale, encodeCollectionOf80) {
   // clang-format on
 }
 
-
 /**
  * @given collection of items of type uint16_t
  * @when encodeCollection is applied

@@ -12,137 +12,266 @@
 using namespace kagome;          // NOLINT
 using namespace kagome::common;  // NOLINT
 using namespace kagome::scale;   // NOLINT
+using common::Buffer;
+using kagome::scale::ScaleEncoderStream;
+
+template <typename T>
+class IntegerTest : public ::testing::TestWithParam<std::pair<T, Buffer>> {
+ protected:
+  ScaleEncoderStream s;
+};
 
 /**
- * @given variety of integer numbers of different types
- * @when suitable encode function is applied
- * @then expected result obtained
+ * @brief class for testing int8_t encode and decode
  */
-TEST(Scale, fixedwidthEncodeIntegers) {
-//  // encode int8_t
-//  {
-//    Buffer out;
-//    fixedwidth::encodeInt8(0, out);
-//    ASSERT_EQ(out, (Buffer{0}));
-//  }
-//  {
-//    Buffer out;
-//    fixedwidth::encodeInt8(-1, out);
-//    ASSERT_EQ(out, (Buffer{255}));
-//  }
-//  {
-//    Buffer out;
-//    fixedwidth::encodeInt8(-128, out);
-//    ASSERT_EQ(out, (Buffer{128}));
-//  }
-//  {
-//    Buffer out;
-//    fixedwidth::encodeInt8(-127, out);
-//    ASSERT_EQ(out, (Buffer{129}));
-//  }
-//  {
-//    Buffer out;
-//    fixedwidth::encodeInt8(123, out);
-//    ASSERT_EQ(out, (Buffer{123}));
-//  }
-//  {
-//    Buffer out;
-//    fixedwidth::encodeInt8(-15, out);
-//    ASSERT_EQ(out, (Buffer{241}));
-//  }
-//  // encode uint8_t
-//  {
-//    Buffer out;
-//    fixedwidth::encodeUint8(0, out);
-//    ASSERT_EQ(out, (Buffer{0}));
-//  }
-//  {
-//    Buffer out;
-//    fixedwidth::encodeUint8(234, out);
-//    ASSERT_EQ(out, (Buffer{234}));
-//  }
-//  {
-//    Buffer out;
-//    fixedwidth::encodeUint8(255, out);
-//    ASSERT_EQ(out, (Buffer{255}));
-//  }
-//  // encode int16_t
-//  {
-//    Buffer out;
-//    fixedwidth::encodeInt16(-32767, out);
-//    ASSERT_EQ(out, (Buffer{1, 128}));
-//  }
-//  {
-//    Buffer out;
-//    fixedwidth::encodeInt16(-32768, out);
-//    ASSERT_EQ(out, (Buffer{0, 128}));
-//  }
-//  {
-//    Buffer out;
-//    fixedwidth::encodeInt16(-1, out);
-//    ASSERT_EQ(out, (Buffer{255, 255}));
-//  }
-//  {
-//    Buffer out;
-//    fixedwidth::encodeInt16(32767, out);
-//    ASSERT_EQ(out, (Buffer{255, 127}));
-//  }
-//  {
-//    Buffer out;
-//    fixedwidth::encodeInt16(12345, out);
-//    ASSERT_EQ(out, (Buffer{57, 48}));
-//  }
-//  {
-//    Buffer out;
-//    fixedwidth::encodeInt16(-12345, out);
-//    ASSERT_EQ(out, (Buffer{199, 207}));
-//  }
-//  // encode uint16_t
-//  {
-//    Buffer out;
-//    fixedwidth::encodeUint16(32770, out);
-//    ASSERT_EQ(out, (Buffer{2, 128}));
-//  }
-//  // encode int32_t
-//  {
-//    Buffer out;
-//    fixedwidth::encodeInt32(2147483647, out);  // max positive int32_t
-//    ASSERT_EQ(out, (Buffer{255, 255, 255, 127}));
-//  }
-//  {
-//    Buffer out;
-//    fixedwidth::encodeInt32(-1, out);
-//    ASSERT_EQ(out, (Buffer{255, 255, 255, 255}));
-//  }
-//  // encode uint32_t
-//  {
-//    Buffer out;
-//    fixedwidth::encodeUint32(16909060, out);
-//    ASSERT_EQ(out, (Buffer{4, 3, 2, 1}));
-//  }
-//  {
-//    Buffer out;
-//    fixedwidth::encodeUint32(67305985, out);
-//    ASSERT_EQ(out, (Buffer{1, 2, 3, 4}));
-//  }
-  // encode int64_t
-  {
-    ScaleEncoderStream out;
-    fixedwidth::encodeInt64(578437695752307201ll, out);
-    ASSERT_EQ(out.getBuffer(), (Buffer{1, 2, 3, 4, 5, 6, 7, 8}));
+class Int8Test : public IntegerTest<int8_t> {
+ public:
+  static std::pair<int8_t, Buffer> make_pair(int8_t value,
+                                             const Buffer &match) {
+    return std::make_pair(value, match);
   }
-  {
-    ScaleEncoderStream out;
-    fixedwidth::encodeInt64(-1, out);
-    ASSERT_EQ(out.getBuffer(), (Buffer{255, 255, 255, 255, 255, 255, 255, 255}));
-  }
-  // encode uint64_t
-  {
-    ScaleEncoderStream out;
-    fixedwidth::encodeUint64(578437695752307201ull, out);
-    ASSERT_EQ(out.getBuffer(), (Buffer{1, 2, 3, 4, 5, 6, 7, 8}));
-  }
+};
+
+/**
+ * @given a number and match buffer
+ * @when given number being encoded by ScaleEncoderStream
+ * @then resulting buffer matches predefined one
+ */
+TEST_P(Int8Test, EncodeSuccess) {
+  auto &&pair = GetParam();
+  int8_t value = pair.first;
+  auto &&match = pair.second;
+  ScaleEncoderStream s;
+  ASSERT_NO_THROW((s << value));
+  ASSERT_EQ(s.getBuffer(), match);
 }
+
+INSTANTIATE_TEST_CASE_P(
+    Int8TestCases, Int8Test,
+    ::testing::Values(Int8Test::make_pair(0, Buffer{0}),
+                      Int8Test::make_pair(-1, Buffer{255}),
+                      Int8Test::make_pair(-128, Buffer{128}),
+                      Int8Test::make_pair(-127, Buffer{129}),
+                      Int8Test::make_pair(123, Buffer{123}),
+                      Int8Test::make_pair(-15, Buffer{241})));
+
+/**
+ * @brief class for testing uint8_t encode and decode
+ */
+class Uint8Test : public IntegerTest<uint8_t> {
+ public:
+  static std::pair<uint8_t, Buffer> make_pair(uint8_t value,
+                                              const Buffer &match) {
+    return std::make_pair(value, match);
+  }
+};
+
+/**
+ * @given a number and match buffer
+ * @when given number being encoded by ScaleEncoderStream
+ * @then resulting buffer matches predefined one
+ */
+TEST_P(Uint8Test, EncodeSuccess) {
+  auto &&pair = GetParam();
+  uint8_t value = pair.first;
+  auto &&match = pair.second;
+  ScaleEncoderStream s;
+  ASSERT_NO_THROW((s << value));
+  ASSERT_EQ(s.getBuffer(), match);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    Uint8TestCases, Uint8Test,
+    ::testing::Values(Uint8Test::make_pair(0, Buffer{0}),
+                      Uint8Test::make_pair(234, Buffer{234}),
+                      Uint8Test::make_pair(255, Buffer{255})));
+
+/**
+ * @brief class for testing int16_t encode and decode
+ */
+class Int16Test : public IntegerTest<int16_t> {
+ public:
+  static std::pair<int16_t, Buffer> make_pair(int16_t value,
+                                              const Buffer &match) {
+    return std::make_pair(value, match);
+  }
+};
+
+/**
+ * @given a number and match buffer
+ * @when given number being encoded by ScaleEncoderStream
+ * @then resulting buffer matches predefined one
+ */
+TEST_P(Int16Test, EncodeSuccess) {
+  auto &&pair = GetParam();
+  int16_t value = pair.first;
+  auto &&match = pair.second;
+  ScaleEncoderStream s;
+  ASSERT_NO_THROW((s << value));
+  ASSERT_EQ(s.getBuffer(), match);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    Int16TestCases, Int16Test,
+    ::testing::Values(Int16Test::make_pair(-32767, Buffer{1, 128}),
+                      Int16Test::make_pair(-32768, Buffer{0, 128}),
+                      Int16Test::make_pair(-1, Buffer{255, 255}),
+                      Int16Test::make_pair(32767, Buffer{255, 127}),
+                      Int16Test::make_pair(12345, Buffer{57, 48}),
+                      Int16Test::make_pair(-12345, Buffer{199, 207})));
+
+/**
+ * @brief class for testing uint16_t encode and decode
+ */
+class Uint16Test : public IntegerTest<uint16_t> {
+ public:
+  static std::pair<uint16_t, Buffer> make_pair(uint16_t value,
+                                               const Buffer &match) {
+    return std::make_pair(value, match);
+  }
+};
+
+/**
+ * @given a number and match buffer
+ * @when given number being encoded by ScaleEncoderStream
+ * @then resulting buffer matches predefined one
+ */
+TEST_P(Uint16Test, EncodeSuccess) {
+  auto &&pair = GetParam();
+  uint16_t value = pair.first;
+  auto &&match = pair.second;
+  ScaleEncoderStream s;
+  ASSERT_NO_THROW((s << value));
+  ASSERT_EQ(s.getBuffer(), match);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    Uint16TestCases, Uint16Test,
+    ::testing::Values(Uint16Test::make_pair(32767, Buffer{255, 127}),
+                      Uint16Test::make_pair(12345, Buffer{57, 48})));
+
+/**
+ * @brief class for testing int32_t encode and decode
+ */
+class Int32Test : public IntegerTest<int32_t> {
+ public:
+  static std::pair<int32_t, Buffer> make_pair(int32_t value,
+                                              const Buffer &match) {
+    return std::make_pair(value, match);
+  }
+};
+
+/**
+ * @given a number and match buffer
+ * @when given number being encoded by ScaleEncoderStream
+ * @then resulting buffer matches predefined one
+ */
+TEST_P(Int32Test, EncodeSuccess) {
+  auto &&pair = GetParam();
+  int32_t value = pair.first;
+  auto &&match = pair.second;
+  ScaleEncoderStream s;
+  ASSERT_NO_THROW((s << value));
+  ASSERT_EQ(s.getBuffer(), match);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    Int32TestCases, Int32Test,
+    ::testing::Values(Int32Test::make_pair(2147483647l,
+                                           Buffer{255, 255, 255, 127}),
+                      Int32Test::make_pair(-1, Buffer{255, 255, 255, 255})));
+
+/**
+ * @brief class for testing uint32_t encode and decode
+ */
+class Uint32Test : public IntegerTest<uint32_t> {
+ public:
+  static std::pair<uint32_t, Buffer> make_pair(uint32_t value,
+                                               const Buffer &match) {
+    return std::make_pair(value, match);
+  }
+};
+
+/**
+ * @given a number and match buffer
+ * @when given number being encoded by ScaleEncoderStream
+ * @then resulting buffer matches predefined one
+ */
+TEST_P(Uint32Test, EncodeSuccess) {
+  auto &&pair = GetParam();
+  uint32_t value = pair.first;
+  auto &&match = pair.second;
+  ScaleEncoderStream s;
+  ASSERT_NO_THROW((s << value));
+  ASSERT_EQ(s.getBuffer(), match);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    Uint32TestCases, Uint32Test,
+    ::testing::Values(Uint32Test::make_pair(16909060ul, Buffer{4, 3, 2, 1}),
+                      Uint32Test::make_pair(67305985, Buffer{1, 2, 3, 4})));
+
+/**
+ * @brief class for testing int64_t encode and decode
+ */
+class Int64Test : public IntegerTest<int64_t> {
+ public:
+  static std::pair<int64_t, Buffer> make_pair(int64_t value,
+                                              const Buffer &match) {
+    return std::make_pair(value, match);
+  }
+};
+
+/**
+ * @given a number and match buffer
+ * @when given number being encoded by ScaleEncoderStream
+ * @then resulting buffer matches predefined one
+ */
+TEST_P(Int64Test, EncodeSuccess) {
+  auto &&pair = GetParam();
+  int64_t value = pair.first;
+  auto &&match = pair.second;
+  ScaleEncoderStream s;
+  ASSERT_NO_THROW((s << value));
+  ASSERT_EQ(s.getBuffer(), match);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    Int64TestCases, Int64Test,
+    ::testing::Values(Int64Test::make_pair(578437695752307201ll,
+                                           Buffer{1, 2, 3, 4, 5, 6, 7, 8}),
+                      Int64Test::make_pair(
+                          -1, Buffer{255, 255, 255, 255, 255, 255, 255, 255})));
+
+/**
+ * @brief class for testing uint64_t encode and decode
+ */
+class Uint64Test : public IntegerTest<uint64_t> {
+ public:
+  static std::pair<uint64_t, Buffer> make_pair(uint64_t value,
+                                              const Buffer &match) {
+    return std::make_pair(value, match);
+  }
+};
+
+/**
+ * @given a number and match buffer
+ * @when given number being encoded by ScaleEncoderStream
+ * @then resulting buffer matches predefined one
+ */
+TEST_P(Uint64Test, EncodeSuccess) {
+  auto &&pair = GetParam();
+  uint64_t value = pair.first;
+  auto &&match = pair.second;
+  ScaleEncoderStream s;
+  ASSERT_NO_THROW((s << value));
+  ASSERT_EQ(s.getBuffer(), match);
+}
+
+INSTANTIATE_TEST_CASE_P(
+    Uint64TestCases, Uint64Test,
+    ::testing::Values(Uint64Test::make_pair(578437695752307201ull,
+                                           Buffer{1, 2, 3, 4, 5, 6, 7, 8})));
 
 /**
  * @given byte array containing encoded int8_t values
