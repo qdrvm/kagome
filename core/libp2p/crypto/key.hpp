@@ -16,10 +16,17 @@ namespace libp2p::crypto {
     /**
      * Supported types of all keys
      */
-    enum class Type { UNSPECIFIED, RSA1024, RSA2048, RSA4096, ED25519, SECP256K1 };
+    enum class Type {
+      UNSPECIFIED,
+      RSA1024,
+      RSA2048,
+      RSA4096,
+      ED25519,
+      SECP256K1
+    };
 
-    Type type;    ///< key type
-    Buffer data;  ///< key content
+    Type type = Type::UNSPECIFIED;  ///< key type
+    Buffer data;                    ///< key content
   };
 
   inline bool operator==(const Key &a, const Key &b) {

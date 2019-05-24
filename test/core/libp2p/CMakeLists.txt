@@ -12,3 +12,10 @@ add_subdirectory(protocol_muxer)
 add_subdirectory(transport_fixture)
 add_subdirectory(event)
 add_subdirectory(network)
+
+addtest(host_builder_test
+    host_builder_test.cpp
+    )
+target_link_libraries(host_builder_test
+    libp2p
+    )

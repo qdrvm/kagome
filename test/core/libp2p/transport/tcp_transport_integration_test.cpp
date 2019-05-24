@@ -11,6 +11,7 @@
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/transport/impl/transport_impl.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/literals.hpp"
 
 using namespace libp2p::transport;
 using namespace libp2p::multi;
@@ -126,7 +127,7 @@ TEST(TCP, Integration) {
 
   ASSERT_TRUE(listener->isClosed()) << "listener is not closed";
 
-  EXPECT_OUTCOME_TRUE(ma, Multiaddress::create("/ip4/127.0.0.1/tcp/40009"));
+  auto ma = "/ip4/127.0.0.1/tcp/40009"_multiaddr;
   EXPECT_TRUE(listener->listen(ma)) << "is port 40009 busy?";
   auto listening_on = listener->getAddresses();
   ASSERT_FALSE(listening_on.empty());

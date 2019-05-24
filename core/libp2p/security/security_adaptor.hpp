@@ -10,7 +10,7 @@
 #include "libp2p/connection/secure_connection.hpp"
 #include "libp2p/peer/peer_id.hpp"
 #include "libp2p/peer/protocol.hpp"
-#include "libp2p/transport/connection.hpp"
+#include "libp2p/connection/raw_connection.hpp"
 
 namespace libp2p::security {
 

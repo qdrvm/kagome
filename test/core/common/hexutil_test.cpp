@@ -4,7 +4,9 @@
  */
 
 #include "common/hexutil.hpp"
+
 #include <gtest/gtest.h>
+#include "testutil/literals.hpp"
 
 using namespace kagome::common;
 using namespace std::string_literals;
@@ -15,7 +17,7 @@ using namespace std::string_literals;
  * @then hex matches expected encoding
  */
 TEST(Common, Hexutil_Hex) {
-  std::vector<uint8_t> bin{0, 1, 2, 4, 8, 16, 32, 255};
+  auto bin = "00010204081020FF"_unhex;
   auto hexed = hex_upper(bin);
   ASSERT_EQ(hexed, "00010204081020FF"s);
 }
@@ -33,7 +35,7 @@ TEST(Common, Hexutil_UnhexEven) {
       actual = unhex(s).value())
       << "unhex result does not contain expected std::vector<uint8_t>";
 
-  std::vector<uint8_t> expected{0, 1, 2, 4, 8, 16, 32, 255};
+  auto expected = "00010204081020ff"_unhex;
 
   ASSERT_EQ(actual, expected);
 }

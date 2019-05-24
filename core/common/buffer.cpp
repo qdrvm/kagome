@@ -43,6 +43,10 @@ namespace kagome::common {
     return hex_upper(data_);
   }
 
+  bool Buffer::empty() const {
+    return data_.empty();
+  }
+
   Buffer::Buffer(std::initializer_list<uint8_t> b) : data_(b) {}
 
   Buffer::iterator Buffer::begin() {

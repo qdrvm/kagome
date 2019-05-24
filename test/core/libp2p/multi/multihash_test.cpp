@@ -5,6 +5,7 @@
 
 #include <gtest/gtest.h>
 
+#include "testutil/literals.hpp"
 #include "common/hexutil.hpp"
 #include "libp2p/multi/multihash.hpp"
 #include "libp2p/multi/uvarint.hpp"
@@ -52,7 +53,7 @@ TEST(Multihash, FromToHex) {
   });
 
   ASSERT_NO_THROW({
-    auto m = Multihash::createFromHex("1203020304").value();
+    auto m = "1203020304"_multihash;
     ASSERT_EQ(m.toHex(), "1203020304");
   });
 
@@ -72,7 +73,7 @@ TEST(Multihash, FromToHex) {
  *multihash is returned
  **/
 TEST(Multihash, FromToBuffer) {
-  std::vector<uint8_t> hash{0x82, 3, 2, 3, 4};
+  auto hash = "8203020304"_unhex;
 
   ASSERT_NO_THROW({
     auto m = Multihash::createFromBuffer(hash).value();

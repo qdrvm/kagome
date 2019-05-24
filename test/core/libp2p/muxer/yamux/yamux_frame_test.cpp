@@ -6,6 +6,7 @@
 #include "libp2p/muxer/yamux/yamux_frame.hpp"
 
 #include <gtest/gtest.h>
+#include "testutil/literals.hpp"
 
 using namespace libp2p::muxer;
 using namespace kagome::common;
@@ -16,7 +17,7 @@ class YamuxFrameTest : public ::testing::Test {
   static constexpr Yamux::StreamId default_stream_id = 1;
   static constexpr uint32_t default_ping_value = 337;
 
-  Buffer data{0x12, 0x34, 0x45, 0x67, 0x89, 0xAB};
+  Buffer data{"1234456789AB"_unhex};
 
   /**
    * Check that all frame's fields are as expected

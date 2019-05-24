@@ -7,7 +7,9 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "testutil/literals.hpp"
 
+using kagome::common::Buffer;
 using namespace kagome::crypto;
 
 /**
@@ -24,7 +26,7 @@ TEST(Twox128, Correctness) {
     ASSERT_THAT(hash.data, ::testing::ElementsAreArray(reference));
   }
   {
-    auto hash = make_twox128({0x41, 0x42, 0x43, 0x44, 0x45, 0x46});
+    auto hash = make_twox128(Buffer{"414243444546"_unhex});
     // clang-format off
     uint8_t reference[16] = {184, 65, 176, 250, 243, 129, 181, 3, 77, 82, 63, 150, 129, 221, 191, 251};
     // clang-format on
@@ -46,7 +48,7 @@ TEST(Twox256, Correctness) {
     ASSERT_THAT(hash.data, ::testing::ElementsAreArray(reference));
   }
   {
-    auto hash = make_twox256({0x41, 0x42, 0x43, 0x44, 0x45, 0x46});
+    auto hash = make_twox256(Buffer{"414243444546"_unhex});
     // clang-format off
     uint8_t reference[32] = {184, 65, 176, 250, 243, 129, 181, 3, 77, 82, 63, 150, 129, 221, 191, 251, 33, 226, 149, 136, 6, 232, 81, 118, 200, 28, 69, 219, 120, 179, 208, 237};
     // clang-format on

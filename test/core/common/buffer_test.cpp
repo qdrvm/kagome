@@ -6,6 +6,7 @@
 #include "common/buffer.hpp"
 
 #include <gtest/gtest.h>
+#include <testutil/literals.hpp>
 
 using namespace kagome::common;
 using namespace std::string_literals;
@@ -78,7 +79,7 @@ TEST(Common, BufferInit) {
   ASSERT_EQ(a.size(), b.size());
 
   ASSERT_NO_THROW({
-    Buffer c = Buffer::fromHex("0102030405").value();
+    Buffer c {"0102030405"_unhex};
     ASSERT_EQ(c, a);
 
     Buffer d = c;

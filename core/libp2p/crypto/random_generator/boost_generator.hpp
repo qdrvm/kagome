@@ -13,7 +13,7 @@
 namespace libp2p::crypto::random {
   /**
    * @class BoostRandomGenerator provides implementation
-   * of cryptographic-secure random bytes generator
+   * of cryptographic-secure random bytes generator;
    * on systems which don't provide true random numbers source
    * it may not compile, so you will need to implement
    * your own random bytes generator

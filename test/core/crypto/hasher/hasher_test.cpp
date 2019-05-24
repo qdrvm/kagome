@@ -5,6 +5,7 @@
 
 #include <gtest/gtest.h>
 
+#include "testutil/literals.hpp"
 #include "common/blob.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 
@@ -47,7 +48,7 @@ class HasherFixture : public testing::Test {
  * @then expected result obtained
  */
 TEST_F(HasherFixture, twox_128) {
-  auto hash = hasher->twox_128({0x41, 0x42, 0x43, 0x44, 0x45, 0x46});
+  auto hash = hasher->twox_128(Buffer {"414243444546"_unhex});
   std::vector<uint8_t> match = {184, 65, 176, 250, 243, 129, 181, 3,
                                 77,  82, 63,  150, 129, 221, 191, 251};
   ASSERT_EQ(blob2buffer<16>(hash).toVector(), match);
@@ -87,11 +88,8 @@ TEST_F(HasherFixture, sha2_256) {
  * @then expected result obtained
  */
 TEST_F(HasherFixture, blake2_256) {
-  Buffer buffer = {0x69, 0x20, 0x61, 0x6d, 0x20, 0x64, 0x61, 0x74, 0x61};
-  std::vector<uint8_t> match = {0xba, 0x67, 0x33, 0x6e, 0xfd, 0x6a, 0x3d, 0xf3,
-                                0xa7, 0x0e, 0xeb, 0x75, 0x78, 0x60, 0x76, 0x30,
-                                0x36, 0x78, 0x5c, 0x18, 0x2f, 0xf4, 0xcf, 0x58,
-                                0x75, 0x41, 0xa0, 0x06, 0x8d, 0x09, 0xf5, 0xb2};
+  Buffer buffer {"6920616d2064617461"_unhex};
+  std::vector<uint8_t> match = "ba67336efd6a3df3a70eeb757860763036785c182ff4cf587541a0068d09f5b2"_unhex;
 
   auto hash = hasher->blake2_256(buffer);
   ASSERT_EQ(blob2buffer<32>(hash).toVector(), match);

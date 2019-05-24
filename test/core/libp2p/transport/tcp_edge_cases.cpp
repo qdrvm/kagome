@@ -13,6 +13,7 @@
 
 #include "libp2p/transport/impl/transport_impl.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/literals.hpp"
 
 using namespace libp2p::transport;
 using namespace libp2p::multi;
@@ -129,7 +130,7 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
       });
 
   ASSERT_TRUE(listener);
-  EXPECT_OUTCOME_TRUE(ma, Multiaddress::create("/ip4/127.0.0.1/tcp/40003"))
+  auto ma = "/ip4/127.0.0.1/tcp/40003"_multiaddr;
   ASSERT_TRUE(listener->listen(ma));
 
   std::vector<std::thread> clients(kClients);
@@ -180,7 +181,7 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
 TEST(TCP, DialToNoServer) {
   boost::asio::io_context context;
   auto transport = std::make_unique<TransportImpl>(context);
-  EXPECT_OUTCOME_TRUE(ma, Multiaddress::create("/ip4/127.0.0.1/tcp/40003"));
+  auto ma = "/ip4/127.0.0.1/tcp/40003"_multiaddr;
 
   auto &&res = transport->dial(ma);
   ASSERT_FALSE(res);

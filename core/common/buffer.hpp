@@ -185,6 +185,12 @@ namespace kagome::common {
     std::string toHex() const;
 
     /**
+     * Check if this buffer is empty
+     * @return true, if buffer is empty, false otherwise
+     */
+    bool empty() const;
+
+    /**
      * @brief Construct Buffer from hexstring
      * @param hex hexencoded string
      * @return result containing constructed buffer if input string is

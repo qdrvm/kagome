@@ -10,9 +10,11 @@
 #include "libp2p/peer/protocol_repository.hpp"
 #include "libp2p/peer/protocol_repository/inmem_protocol_repository.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/literals.hpp"
 
 using namespace libp2p::peer;
-using namespace libp2p::multi;
+using libp2p::multi::Multihash;
+using libp2p::multi::HashType;
 using kagome::common::Buffer;
 
 struct InmemProtocolRepository_Test : public ::testing::Test {
@@ -26,14 +28,10 @@ struct InmemProtocolRepository_Test : public ::testing::Test {
   const Protocol s2 = "/ipfs/1.0";
 
   const PeerId p1 =
-      PeerId::fromHash(Multihash::create(HashType::sha256,
-                                         Buffer{0x12, 0x03, 0x02, 0x03, 0x04})
-                           .value())
+      PeerId::fromHash("12051203020304"_multihash)
           .value();
   const PeerId p2 =
-      PeerId::fromHash(Multihash::create(HashType::sha256,
-                                         Buffer{0x12, 0x03, 0xFF, 0xFF, 0xFF})
-                           .value())
+      PeerId::fromHash("12051203FFFFFF"_multihash)
           .value();
 
   template <typename... T>

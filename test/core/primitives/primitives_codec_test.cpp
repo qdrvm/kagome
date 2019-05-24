@@ -13,6 +13,7 @@
 #include "primitives/inherent_data.hpp"
 #include "primitives/version.hpp"
 #include "scale/byte_array_stream.hpp"
+#include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
@@ -107,11 +108,10 @@ class Primitives : public testing::Test {
   Buffer encoded_block_id_number_{1, 1, 0, 0, 0, 0, 0, 0, 0};
   /// block id variant hash alternative and corresponding scale representation
   BlockId block_id_hash_;
-  Buffer encoded_block_id_hash_{0,  // variant type order
-                                0x0,  0x1,  0x2,  0x3,  0x4,  0x5,  0x6,  0x7,
-                                0x8,  0x9,  0xA,  0xB,  0xC,  0xD,  0xE,  0xF,
-                                0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
-                                0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F};
+  Buffer encoded_block_id_hash_ =
+      "00"  // variant type order
+      "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"_hex2buf;
+
   /// TransactionValidity variant instance as Valid alternative and
   /// corresponding scale representation
   Valid valid_transaction_{1,                    // priority
@@ -336,10 +336,10 @@ TEST_F(Primitives, decodeTransactionValidityInvalid) {
   auto stream = ByteArrayStream(bytes);
   EXPECT_OUTCOME_TRUE(val, codec_->decodeTransactionValidity(stream));
   kagome::visit_in_place(
-      val,                                         // value
-      [](Invalid &v) { ASSERT_EQ(v.error_, 1); },  // ok
-      [](Unknown &v) { FAIL(); },                  // fail
-      [](Valid &v) { FAIL(); });                   // fail
+      val,                                               // value
+      [](Invalid const &v) { ASSERT_EQ(v.error_, 1); },  // ok
+      [](Unknown const &v) { FAIL(); },                  // fail
+      [](Valid const &v) { FAIL(); });                   // fail
 }
 
 /**
@@ -355,10 +355,10 @@ TEST_F(Primitives, decodeTransactionValidityUnknown) {
   ASSERT_TRUE(res);
   TransactionValidity value = res.value();
   kagome::visit_in_place(
-      value,                                       // value
-      [](Invalid &v) { FAIL(); },                  // fail
-      [](Unknown &v) { ASSERT_EQ(v.error_, 2); },  // ok
-      [](Valid &v) { FAIL(); }                     // fail
+      value,                                             // value
+      [](Invalid const &v) { FAIL(); },                  // fail
+      [](Unknown const &v) { ASSERT_EQ(v.error_, 2); },  // ok
+      [](Valid const &v) { FAIL(); }                     // fail
   );
 }
 
@@ -371,17 +371,16 @@ TEST_F(Primitives, decodeTransactionValidityUnknown) {
 TEST_F(Primitives, decodeTransactionValidityValid) {
   auto stream = ByteArrayStream(encoded_valid_transaction_);
   EXPECT_OUTCOME_TRUE(val, codec_->decodeTransactionValidity(stream));
-  kagome::visit_in_place(
-      val,                         // value
-      [](Invalid &v) { FAIL(); },  // fail
-      [](Unknown &v) { FAIL(); },  // fail
-      [this](Valid &v) {           // ok
-        auto &valid = valid_transaction_;
-        ASSERT_EQ(v.priority_, valid.priority_);
-        ASSERT_EQ(v.requires_, valid.requires_);
-        ASSERT_EQ(v.provides_, valid.provides_);
-        ASSERT_EQ(v.longevity_, valid.longevity_);
-      });
+  kagome::visit_in_place(val,                               // value
+                         [](Invalid const &v) { FAIL(); },  // fail
+                         [](Unknown const &v) { FAIL(); },  // fail
+                         [this](Valid const &v) {           // ok
+                           auto &valid = valid_transaction_;
+                           ASSERT_EQ(v.priority_, valid.priority_);
+                           ASSERT_EQ(v.requires_, valid.requires_);
+                           ASSERT_EQ(v.provides_, valid.provides_);
+                           ASSERT_EQ(v.longevity_, valid.longevity_);
+                         });
 }
 
 /**
