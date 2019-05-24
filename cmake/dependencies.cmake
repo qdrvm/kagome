@@ -1,3 +1,7 @@
+## other Modules
+include(ExternalProject)
+find_package(sr25519-crust REQUIRED)
+
 # hunter dependencies
 # https://docs.hunter.sh/en/latest/packages/
 

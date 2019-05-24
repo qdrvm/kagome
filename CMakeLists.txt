@@ -24,6 +24,8 @@ HunterGate(
 
 PROJECT(kagome C CXX)
 
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/cmake/Modules")
+
 include(CheckCXXCompilerFlag)
 include(cmake/dependencies.cmake)
 include(cmake/functions.cmake)
