@@ -335,10 +335,11 @@ TEST_F(Primitives, decodeTransactionValidityInvalid) {
   Buffer bytes = {0, 1};
   auto stream = ByteArrayStream(bytes);
   EXPECT_OUTCOME_TRUE(val, codec_->decodeTransactionValidity(stream));
-  kagome::visit_in_place(val,                                         // value
-                         [](Invalid const& v) { ASSERT_EQ(v.error_, 1); },  // ok
-                         [](Unknown const& v) { FAIL(); },                  // fail
-                         [](Valid const& v) { FAIL(); });                   // fail
+  kagome::visit_in_place(
+      val,                                               // value
+      [](Invalid const &v) { ASSERT_EQ(v.error_, 1); },  // ok
+      [](Unknown const &v) { FAIL(); },                  // fail
+      [](Valid const &v) { FAIL(); });                   // fail
 }
 
 /**
@@ -353,10 +354,11 @@ TEST_F(Primitives, decodeTransactionValidityUnknown) {
   auto &&res = codec_->decodeTransactionValidity(stream);
   ASSERT_TRUE(res);
   TransactionValidity value = res.value();
-  kagome::visit_in_place(value,                                       // value
-                         [](Invalid const& v) { FAIL(); },                  // fail
-                         [](Unknown const& v) { ASSERT_EQ(v.error_, 2); },  // ok
-                         [](Valid const& v) { FAIL(); }                     // fail
+  kagome::visit_in_place(
+      value,                                             // value
+      [](Invalid const &v) { FAIL(); },                  // fail
+      [](Unknown const &v) { ASSERT_EQ(v.error_, 2); },  // ok
+      [](Valid const &v) { FAIL(); }                     // fail
   );
 }
 
@@ -369,10 +371,10 @@ TEST_F(Primitives, decodeTransactionValidityUnknown) {
 TEST_F(Primitives, decodeTransactionValidityValid) {
   auto stream = ByteArrayStream(encoded_valid_transaction_);
   EXPECT_OUTCOME_TRUE(val, codec_->decodeTransactionValidity(stream));
-  kagome::visit_in_place(val,                         // value
-                         [](Invalid const& v) { FAIL(); },  // fail
-                         [](Unknown const& v) { FAIL(); },  // fail
-                         [this](Valid const& v) {           // ok
+  kagome::visit_in_place(val,                               // value
+                         [](Invalid const &v) { FAIL(); },  // fail
+                         [](Unknown const &v) { FAIL(); },  // fail
+                         [this](Valid const &v) {           // ok
                            auto &valid = valid_transaction_;
                            ASSERT_EQ(v.priority_, valid.priority_);
                            ASSERT_EQ(v.requires_, valid.requires_);
