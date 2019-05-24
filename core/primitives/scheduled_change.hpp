@@ -30,4 +30,16 @@ namespace kagome::primitives {
   using WeightedAuthority = std::pair<SessionKey, Weight>;
 }  // namespace kagome::primitives
 
+namespace kagome::scale {
+  class ScaleEncoderStream;
+
+  /**
+   * @brief scale-encodes primitives::ScheduledChange instance
+   * @param s reference to scale encoder stream
+   * @param v value to encode
+   * @return reference to scale encoder stream
+   */
+  ScaleEncoderStream &operator<<(ScaleEncoderStream& s, const primitives::ScheduledChange &v);
+}
+
 #endif  // KAGOME_CORE_PRIMITIVES_SCHEDULED_CHANGE_HPP

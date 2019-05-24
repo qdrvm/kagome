@@ -5,4 +5,12 @@
 
 #include "primitives/version.hpp"
 
-namespace kagome::primitives {}  // namespace kagome::primitives
+#include "scale/scale_encoder_stream.hpp"
+
+namespace kagome::scale {
+  ScaleEncoderStream &operator<<(ScaleEncoderStream &s,
+                                 const primitives::Version &v) {
+    return s << std::string_view(v.spec_name) << std::string_view(v.impl_name)
+             << v.authoring_version << v.impl_version << v.apis;
+  }
+}  // namespace kagome::scale

@@ -48,15 +48,15 @@ namespace kagome::scale {
   };
 
   /// encoder for std::pair
-  template <class F, class S>
-  struct TypeEncoder<std::pair<F, S>> {
-    outcome::result<void> encode(const std::pair<F, S> &pair,
-                                 common::Buffer &out) {
-      OUTCOME_TRY(TypeEncoder<F>{}.encode(pair.first, out));
-      OUTCOME_TRY(TypeEncoder<S>{}.encode(pair.second, out));
-      return outcome::success();
-    }
-  };
+//  template <class F, class S>
+//  struct TypeEncoder<std::pair<F, S>> {
+//    outcome::result<void> encode(const std::pair<F, S> &pair,
+//                                 common::Buffer &out) {
+//      OUTCOME_TRY(TypeEncoder<F>{}.encode(pair.first, out));
+//      OUTCOME_TRY(TypeEncoder<S>{}.encode(pair.second, out));
+//      return outcome::success();
+//    }
+//  };
 }  // namespace kagome::scale
 
 #endif  // KAGOME_SCALE_TYPE_ENCODER_HPP

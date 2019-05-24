@@ -62,4 +62,11 @@ namespace kagome::primitives {
   };
 }  // namespace kagome::primitives
 
+namespace kagome::scale {
+  class ScaleEncoderStream;
+
+  ScaleEncoderStream &operator<<(ScaleEncoderStream &s,
+                                 const primitives::Version &v);
+}  // namespace kagome::scale
+
 #endif  // KAGOME_CORE_PRIMITIVES_VERSION_HPP

@@ -34,7 +34,7 @@ add_library(scale
     type_encoder.hpp
     util.hpp
     variant.hpp
-    scale_stream.cpp scale_stream.hpp)
+    scale_encoder_stream.cpp scale_encoder_stream.hpp scale_decoder_stream.cpp scale_decoder_stream.hpp scale_stream.hpp)
 
 target_link_libraries(scale
     Boost::boost

@@ -5,4 +5,14 @@
 
 #include "primitives/block_header.hpp"
 
-namespace kagome::primitives {}  // namespace kagome::primitives
+#include "scale/scale_encoder_stream.hpp"
+
+namespace kagome::scale {
+  class ScaleEncoderStream;
+
+  ScaleEncoderStream &operator<<(ScaleEncoderStream &s,
+                                 const primitives::BlockHeader &bh) {
+    return s << bh.parent_hash << bh.number << bh.state_root
+             << bh.extrinsics_root << bh.digest.toVector();
+  }
+}  // namespace kagome::scale

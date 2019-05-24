@@ -15,7 +15,12 @@ namespace kagome::primitives {
   struct Extrinsic {
     kagome::common::Buffer data;  ///< extrinsic content as byte array
   };
-
 }  // namespace kagome::primitives
+
+namespace kagome::scale {
+  class ScaleEncoderStream;
+
+  ScaleEncoderStream &operator<<(ScaleEncoderStream &s, const primitives::Extrinsic &v);
+}
 
 #endif  // KAGOME_PRIMITIVES_EXTRINSIC_HPP

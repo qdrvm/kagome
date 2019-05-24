@@ -47,4 +47,16 @@ namespace kagome::primitives::parachain {
   using DutyRoster = std::vector<Chain>;
 }  // namespace kagome::primitives::parachain
 
+namespace kagome::scale {
+  class ScaleEncoderStream;
+
+  /**
+   * @brief scale-encodes primitives::parachain::Relay instance
+   * @param s reference to scale encoder stream
+   * @param v value to encode
+   * @return referencce to scale encoder stream
+   */
+  ScaleEncoderStream &operator<<(ScaleEncoderStream &s, const primitives::parachain::Relay &v);
+}
+
 #endif  // KAGOME_CORE_PRIMITIVES_PARACHAIN_HOST_HPP

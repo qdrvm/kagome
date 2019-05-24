@@ -6,28 +6,26 @@
 #include <gtest/gtest.h>
 #include "scale/byte_array_stream.hpp"
 #include "scale/variant.hpp"
+#include "scale/scale_encoder_stream.hpp"
 
 using kagome::common::Buffer;
 using kagome::scale::ByteArrayStream;
 using kagome::scale::variant::decodeVariant;
 using kagome::scale::variant::encodeVariant;
+using kagome::scale::ScaleEncoderStream;
 
 TEST(Scale, encodeVariant) {
   {
     boost::variant<uint8_t, uint32_t> v = static_cast<uint8_t>(1);
-    Buffer out;
-    auto &&res = encodeVariant(v, out);
-    ASSERT_TRUE(res);
-    Buffer match = {0, 1};
-    ASSERT_EQ(out, match);
+    ScaleEncoderStream s;
+    ASSERT_NO_THROW(encodeVariant(v, s));
+    ASSERT_EQ(s.getBuffer(), (Buffer{0, 1}));
   }
   {
     boost::variant<uint8_t, uint32_t> v = static_cast<uint32_t>(1);
-    Buffer out;
-    auto &&res = encodeVariant(v, out);
-    ASSERT_TRUE(res);
-    Buffer match = {1, 1, 0, 0, 0};
-    ASSERT_EQ(out, match);
+    ScaleEncoderStream s;
+    ASSERT_NO_THROW(encodeVariant(v, s));
+    ASSERT_EQ(s.getBuffer(), (Buffer{1, 1, 0, 0, 0}));
   }
 }
 

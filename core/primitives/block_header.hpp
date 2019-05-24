@@ -21,7 +21,13 @@ namespace kagome::primitives {
     common::Hash256 extrinsics_root;  ///< field for validation integrity
     Digest digest;                    ///< chain-specific auxiliary data
   };
-
 }  // namespace kagome::primitives
+
+namespace kagome::scale {
+  class ScaleEncoderStream;
+
+  ScaleEncoderStream &operator<<(ScaleEncoderStream &s,
+                                 const primitives::BlockHeader &bh);
+}  // namespace kagome::scale
 
 #endif  // KAGOME_PRIMITIVES_BLOCK_HEADER_HPP

@@ -11,6 +11,9 @@
 #include "common/byte_stream.hpp"
 #include "scale/types.hpp"
 
+namespace kagome::scale {
+  class ScaleEncoderStream;
+}
 
 namespace kagome::scale::fixedwidth {
   // 8 bit
@@ -19,14 +22,14 @@ namespace kagome::scale::fixedwidth {
    * @param value source value
    * @return encoded value
    */
-  void encodeInt8(int8_t value, common::Buffer &out);
+  void encodeInt8(int8_t value, ScaleEncoderStream &out);
 
   /**
    * @brief encodeUInt8 encodes uint8_t from host- to little- endian
    * @param value source value
    * @return byte array representing encoded value
    */
-  void encodeUInt8(uint8_t value, common::Buffer &out);
+  void encodeUint8(uint8_t value, ScaleEncoderStream &out);
 
   // 16 bit
   /**
@@ -34,14 +37,14 @@ namespace kagome::scale::fixedwidth {
    * @param value source value
    * @return byte array representing encoded value
    */
-  void encodeInt16(int16_t value, common::Buffer &out);
+  void encodeInt16(int16_t value, ScaleEncoderStream &out);
 
   /**
    * @brief encodeUint16 encodes uint16_t from host- to little- endian
    * @param value source value
    * @return byte array representing encoded value
    */
-  void encodeUint16(uint16_t value, common::Buffer &out);
+  void encodeUint16(uint16_t value, ScaleEncoderStream &out);
 
   // 32 bit
   /**
@@ -49,14 +52,14 @@ namespace kagome::scale::fixedwidth {
    * @param value source value
    * @return byte array representing encoded value
    */
-  void encodeInt32(int32_t value, common::Buffer &out);
+  void encodeInt32(int32_t value, ScaleEncoderStream &out);
 
   /**
    * @brief encodeUint32 encodes uint32_t from host- to little- endian
    * @param value source value
    * @return byte array representing encoded value
    */
-  void encodeUint32(uint32_t value, common::Buffer &out);
+  void encodeUint32(uint32_t value, ScaleEncoderStream &out);
 
   // 64 bit
   /**
@@ -64,14 +67,14 @@ namespace kagome::scale::fixedwidth {
    * @param value source value
    * @return byte array representing encoded value
    */
-  void encodeInt64(int64_t value, common::Buffer &out);
+  void encodeInt64(int64_t value, ScaleEncoderStream &out);
 
   /**
    * @brief encodeInt64 encodes int64_t from host- to little- endian
    * @param value source value
    * @return byte array representing encoded value
    */
-  void encodeUint64(uint64_t value, common::Buffer &out);
+  void encodeUint64(uint64_t value, ScaleEncoderStream &out);
 
   // 8 bit
   /**

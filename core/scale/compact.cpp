@@ -13,55 +13,55 @@
 #include "macro/unreachable.hpp"
 #include "scale/scale_error.hpp"
 #include "scale/util.hpp"
+#include "scale/scale_encoder_stream.hpp"
 
 namespace kagome::scale::compact {
   struct EncodingCategoryLimits {
     // min integer encoded by 2 bytes
-    constexpr static size_t kMinUint16 = (1ul << 6);
+    constexpr static size_t kMinUint16 = (1ul << 6u);
     // min integer encoded by 4 bytes
-    constexpr static size_t kMinUint32 = (1ul << 14);
+    constexpr static size_t kMinUint32 = (1ul << 14u);
     // min integer encoded as multibyte
-    constexpr static size_t kMinBigInteger = (1ul << 30);
+    constexpr static size_t kMinBigInteger = (1ul << 30u);
   };
 
   namespace impl {
     outcome::result<void> encodeFirstCategory(uint8_t value,
-                                              common::Buffer &out) {
+                                              ScaleEncoderStream &out) {
       if (value >= EncodingCategoryLimits::kMinUint16) {
         return EncodeError::WRONG_CATEGORY;
       }
       // only values from [0, kMinUint16) can be put here
-      out.putUint8(static_cast<uint8_t>(value << 2));
+      out << static_cast<uint8_t>(value << 2u);
 
       return outcome::success();
-    };
+    }
 
     outcome::result<void> encodeSecondCategory(uint16_t value,
-                                               common::Buffer &out) {
+                                               ScaleEncoderStream &out) {
       if (value >= EncodingCategoryLimits::kMinUint32) {
         return EncodeError::WRONG_CATEGORY;
-      };
+      }
       // only values from [kMinUint16, kMinUint32) can be put here
       auto v = value;
-      v <<= 2;  // v *= 4
-      v += 1;   // set 0b01 flag
-      auto minor_byte = static_cast<uint8_t>(v & 0xFF);
-      v >>= 8;
-      auto major_byte = static_cast<uint8_t>(v & 0xFF);
-      out.putUint8(minor_byte);
-      out.putUint8(major_byte);
+      v <<= 2u;  // v *= 4
+      v += 1u;   // set 0b01 flag
+      auto minor_byte = static_cast<uint8_t>(v & 0xFFu);
+      v >>= 8u;
+      auto major_byte = static_cast<uint8_t>(v & 0xFFu);
+
+      out << minor_byte << major_byte;
 
       return outcome::success();
-      ;
-    };
+    }
 
     outcome::result<void> encodeThirdCategory(uint32_t value,
-                                              common::Buffer &out) {
+                                              ScaleEncoderStream &out) {
       if (value >= EncodingCategoryLimits::kMinBigInteger) {
         return EncodeError::WRONG_CATEGORY;
       };
 
-      uint32_t v = (value << 2) + 2;
+      uint32_t v = (value << 2u) + 2;
 
       scale::impl::encodeInteger<uint32_t>(v, out);
 
@@ -87,7 +87,7 @@ namespace kagome::scale::compact {
   }  // namespace
 
   outcome::result<void> encodeInteger(const BigInteger &value,
-                                      common::Buffer &out) {
+                                      ScaleEncoderStream &out) {
     // cannot encode negative numbers
     // there is no description how to encode compact negative numbers
     if (value < 0) {
@@ -154,60 +154,60 @@ namespace kagome::scale::compact {
       return outcome::failure(DecodeError::NOT_ENOUGH_DATA);
     }
 
-    const uint8_t flag = (*first_byte) & 0b00000011;
+    const uint8_t flag = (*first_byte) & 0b00000011u;
 
-    size_t number = 0;
+    size_t number = 0u;
 
     switch (flag) {
-      case 0b00: {
-        number = static_cast<size_t>((*first_byte) >> 2);
+      case 0b00u: {
+        number = static_cast<size_t>((*first_byte) >> 2u);
         break;
       }
 
-      case 0b01: {
+      case 0b01u: {
         auto second_byte = stream.nextByte();
         if (!second_byte.has_value()) {
           return outcome::failure(DecodeError::NOT_ENOUGH_DATA);
         }
 
-        number = (static_cast<size_t>((*first_byte) & 0b11111100)
-                  + static_cast<size_t>(*second_byte) * 256)
-            >> 2;
+        number = (static_cast<size_t>((*first_byte) & 0b11111100u)
+                  + static_cast<size_t>(*second_byte) * 256u)
+            >> 2u;
         break;
       }
 
-      case 0b10: {
+      case 0b10u: {
         number = *first_byte;
-        size_t multiplier = 256;
-        if (!stream.hasMore(3)) {
+        size_t multiplier = 256u;
+        if (!stream.hasMore(3u)) {
           // not enough data to decode integer
           return outcome::failure(DecodeError::NOT_ENOUGH_DATA);
         }
 
-        for (int i = 0; i < 3; ++i) {
+        for (auto i = 0u; i < 3u; ++i) {
           // we assured that there are 3 more bytes,
           // no need to make checks in a loop
           number += (*stream.nextByte()) * multiplier;
-          multiplier = multiplier << 8;
+          multiplier = multiplier << 8u;
         }
-        number = number >> 2;
+        number = number >> 2u;
         break;
       }
 
       case 0b11: {
-        auto bytes_count = ((*first_byte) >> 2) + 4;
+        auto bytes_count = ((*first_byte) >> 2u) + 4u;
         if (!stream.hasMore(bytes_count)) {
           // not enough data to decode integer
           return outcome::failure(DecodeError::NOT_ENOUGH_DATA);
         }
 
-        BigInteger multiplier{1};
+        BigInteger multiplier{1u};
         BigInteger value = 0;
         // we assured that there are m more bytes,
         // no need to make checks in a loop
-        for (auto i = 0; i < bytes_count; ++i) {
+        for (auto i = 0u; i < bytes_count; ++i) {
           value += (*stream.nextByte()) * multiplier;
-          multiplier *= 256;
+          multiplier *= 256u;
         }
 
         return value;  // special case

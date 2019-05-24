@@ -14,9 +14,9 @@ namespace kagome::scale::optional {
    * @param optional bool value
    * @return encoded value
    */
-  template <>
-  outcome::result<void> encodeOptional<bool>(
-      const std::optional<bool> &optional, common::Buffer &out);
+//  template <>
+//  outcome::result<void> encodeOptional<bool>(
+//      const std::optional<bool> &optional, common::Buffer &out);
 
   /**
    * @brief specialization of decodeOptional function for optional bool

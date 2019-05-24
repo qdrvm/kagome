@@ -86,4 +86,16 @@ namespace kagome::primitives {
 
 }  // namespace kagome::primitives
 
+namespace kagome::scale {
+  class ScaleEncoderStream;
+
+  ScaleEncoderStream &operator<<(ScaleEncoderStream &s,
+                                 const primitives::Invalid &v);
+
+  ScaleEncoderStream &operator<<(ScaleEncoderStream &s,
+                                 const primitives::Valid &v);
+
+  ScaleEncoderStream &operator<<(ScaleEncoderStream &s,
+                                 const primitives::Unknown &v);
+}  // namespace kagome::scale
 #endif  // KAGOME_CORE_PRIMITIVES_TRANSACTION_VALIDITY_HPP

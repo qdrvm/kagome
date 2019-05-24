@@ -7,37 +7,38 @@
 
 #include <boost/endian/buffers.hpp>
 #include "scale/util.hpp"
+#include "scale/scale_encoder_stream.hpp"
 
 namespace kagome::scale::fixedwidth {
-  void encodeInt8(int8_t value, common::Buffer &out) {
+  void encodeInt8(int8_t value, ScaleEncoderStream &out) {
     impl::encodeInteger(value, out);
   }
 
-  void encodeUInt8(uint8_t value, common::Buffer &out) {
+  void encodeUint8(uint8_t value, ScaleEncoderStream &out) {
     impl::encodeInteger(value, out);
   }
 
-  void encodeInt16(int16_t value, common::Buffer &out) {
+  void encodeInt16(int16_t value, ScaleEncoderStream &out) {
     impl::encodeInteger(value, out);
   }
 
-  void encodeUint16(uint16_t value, common::Buffer &out) {
+  void encodeUint16(uint16_t value, ScaleEncoderStream &out) {
     impl::encodeInteger(value, out);
   }
 
-  void encodeInt32(int32_t value, common::Buffer &out) {
+  void encodeInt32(int32_t value, ScaleEncoderStream &out) {
     impl::encodeInteger(value, out);
   }
 
-  void encodeUint32(uint32_t value, common::Buffer &out) {
+  void encodeUint32(uint32_t value, ScaleEncoderStream &out) {
     impl::encodeInteger(value, out);
   }
 
-  void encodeInt64(int64_t value, common::Buffer &out) {
+  void encodeInt64(int64_t value, ScaleEncoderStream &out) {
     impl::encodeInteger(value, out);
   }
 
-  void encodeUint64(uint64_t value, common::Buffer &out) {
+  void encodeUint64(uint64_t value, ScaleEncoderStream &out) {
     impl::encodeInteger(value, out);
   }
 

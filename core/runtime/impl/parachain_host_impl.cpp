@@ -10,6 +10,7 @@
 #include "scale/buffer_codec.hpp"
 #include "scale/collection.hpp"
 #include "scale/optional.hpp"
+#include "scale/scale_encoder_stream.hpp"
 
 namespace kagome::runtime {
   using common::Buffer;
@@ -18,6 +19,7 @@ namespace kagome::runtime {
   using primitives::parachain::ValidatorId;
   using scale::fixedwidth::encodeUint32;
   using scale::optional::decodeOptional;
+  using scale::ScaleEncoderStream;
 
   ParachainHostImpl::ParachainHostImpl(
       common::Buffer state_code,  // find out what is it
@@ -59,8 +61,9 @@ namespace kagome::runtime {
 
   outcome::result<std::optional<Buffer>> ParachainHostImpl::parachainHead(
       ParachainId id) {
-    Buffer params;
-    encodeUint32(id, params);
+    ScaleEncoderStream se;
+    se << id;
+    auto && params = se.getBuffer();
 
     runtime::SizeType ext_size = params.size();
     // TODO (yuraz): PRE-98 after check for memory overflow is done, refactor it
@@ -82,8 +85,9 @@ namespace kagome::runtime {
 
   outcome::result<std::optional<Buffer>> ParachainHostImpl::parachainCode(
       ParachainId id) {
-    Buffer params;
-    encodeUint32(id, params);
+    ScaleEncoderStream se;
+    se << id;
+    auto && params = se.getBuffer();
 
     runtime::SizeType ext_size = params.size();
     // TODO (yuraz): PRE-98 after check for memory overflow is done, refactor it

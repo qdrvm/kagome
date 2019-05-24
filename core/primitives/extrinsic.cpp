@@ -5,4 +5,11 @@
 
 #include "primitives/extrinsic.hpp"
 
-namespace kagome::primitives {}  // namespace kagome::primitives
+#include "scale/scale_encoder_stream.hpp"
+
+namespace kagome::scale {
+  ScaleEncoderStream &operator<<(ScaleEncoderStream &s, const primitives::Extrinsic &v) {
+    return s.putBuffer(v.data);
+  }
+
+}  // namespace kagome::primitives

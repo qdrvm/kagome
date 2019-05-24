@@ -23,8 +23,8 @@ namespace kagome::scale::impl {
    * @param value integer value
    * @return byte array representation of value
    */
-  template <class T>
-  void encodeInteger(T value, common::Buffer &out) {
+  template <class T, class S>
+  void encodeInteger(T value, S &out) {
     constexpr size_t size = sizeof(T);
     static_assert(std::is_integral<T>(), "only integral types are supported");
     static_assert(size >= 1, "types of size 0 are not supported");

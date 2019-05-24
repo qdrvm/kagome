@@ -19,23 +19,23 @@ namespace kagome::scale::optional {
    * @param optional value
    * @return encoded optional value or error
    */
-  template <class T>
-  outcome::result<void> encodeOptional(const std::optional<T> &optional,
-                                       common::Buffer &out) {
-    if (!optional.has_value()) {
-      out.putUint8(0);
-      return outcome::success();
-    }
-
-    TypeEncoder<T> codec{};
-    common::Buffer tmp;
-    OUTCOME_TRY(codec.encode(*optional, tmp));
-
-    out.putUint8(1);
-    out.putBuffer(tmp);
-
-    return outcome::success();
-  }
+//  template <class T>
+//  outcome::result<void> encodeOptional(const std::optional<T> &optional,
+//                                       common::Buffer &out) {
+//    if (!optional.has_value()) {
+//      out.putUint8(0);
+//      return outcome::success();
+//    }
+//
+//    TypeEncoder<T> codec{};
+//    common::Buffer tmp;
+//    OUTCOME_TRY(codec.encode(*optional, tmp));
+//
+//    out.putUint8(1);
+//    out.putBuffer(tmp);
+//
+//    return outcome::success();
+//  }
 
   /**
    * @brief decodeOptional function decodes optional value from stream

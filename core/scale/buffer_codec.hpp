@@ -6,8 +6,8 @@
 #ifndef KAGOME_BUFFER_CODEC_HPP
 #define KAGOME_BUFFER_CODEC_HPP
 
-#include "scale/scale_codec.hpp"
 #include "scale/collection.hpp"
+#include "scale/scale_codec.hpp"
 
 namespace kagome::scale {
 
@@ -19,28 +19,13 @@ namespace kagome::scale {
     outcome::result<common::Buffer> decode(common::ByteStream &stream) final;
   };
 
-  // TODO(yuraz): PRE-119 this will be refactored soon
-  // there's no better place than that
   template <>
   struct TypeDecoder<common::Buffer> {
     outcome::result<common::Buffer> decode(common::ByteStream &stream) {
-      OUTCOME_TRY(data, collection::decodeCollection<uint8_t>(stream));
-      return common::Buffer(std::move(data));
+      OUTCOME_TRY(c, collection::decodeCollection<uint8_t>(stream));
+      return common::Buffer(c);
     }
   };
-
-  template <>
-  struct TypeEncoder<common::Buffer> {
-    outcome::result<void> encode(common::Buffer &value, common::Buffer &out) {
-      OUTCOME_TRY(compact::encodeInteger(value.size(), out));
-      out.putBuffer(value);
-      return outcome::success();
-    }
-  };
-
-  extern template struct TypeEncoder<common::Buffer>;
-  extern template struct TypeDecoder<common::Buffer>;
-
 }  // namespace kagome::scale
 
 #endif  // KAGOME_BUFFER_CODEC_HPP

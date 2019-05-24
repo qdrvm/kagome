@@ -6,19 +6,21 @@
 #include "scale/buffer_codec.hpp"
 
 #include "scale/collection.hpp"
+#include "scale/scale_encoder_stream.hpp"
 
 namespace kagome::scale {
 
+  // TODO(yuraz): refactor
   outcome::result<common::Buffer> BufferScaleCodec::encode(
       const common::Buffer &val) {
-    common::Buffer out;
-    OUTCOME_TRY(collection::encodeCollection(val.toVector(), out));
-    return out;
+    ScaleEncoderStream out;
+    out << val.toVector();
+    return out.getBuffer();
   }
 
+  // TODO(yuraz): don't implement
   outcome::result<common::Buffer> BufferScaleCodec::decode(
       common::ByteStream &stream) {
-    OUTCOME_TRY(bytes, collection::decodeCollection<uint8_t>(stream));
-    return common::Buffer(std::move(bytes));
+    return common::Buffer{};
   }
 }  // namespace kagome::scale
