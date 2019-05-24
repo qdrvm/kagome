@@ -94,17 +94,17 @@ TEST_F(RouterTest, SetHandlerPerfectInvokeFail) {
  * @then the corresponding handler is invoked
  */
 TEST_F(RouterTest, SetHandlerWithPredicate) {
-  /// this match is shorter, than the next two; must not be invoked
+  // this match is shorter, than the next two; must not be invoked
   this->setProtocolHandler(
       kProtocolPrefix, [](auto &&) { FAIL(); }, [](auto &&) { return true; });
 
-  /// this match is equal to the next one, but its handler will evaluate to
-  /// false; must not be invoked
+  // this match is equal to the next one, but its handler will evaluate to
+  // false; must not be invoked
   this->setProtocolHandler(
       kVersionProtocolPrefix, [](auto &&) { FAIL(); },
       [](auto &&) { return false; });
 
-  /// this match must be invoked
+  // this match must be invoked
   this->setProtocolHandler(
       kVersionProtocolPrefix,
       [this](std::shared_ptr<Stream> stream) mutable {
@@ -134,7 +134,7 @@ TEST_F(RouterTest, GetSupportedProtocols) {
   ASSERT_EQ(this->getSupportedProtocols(), kExpectedVec1);
 
   setHandlerWithFail(kProtocolPrefix);
-  /// protocols may be returned in any order
+  // protocols may be returned in any order
   ASSERT_TRUE(std::is_permutation(kExpectedVec2.begin(), kExpectedVec2.end(),
                                   this->getSupportedProtocols().begin()));
 
