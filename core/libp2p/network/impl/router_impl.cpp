@@ -89,10 +89,10 @@ namespace libp2p::network {
     return outcome::success();
   }
 
-  std::ostream &operator<<(std::ostream &stream,
-                           const std::vector<unsigned char> vec) {
-    stream << std::string(vec.begin(), vec.end()) << "\n";
-    return stream;
-  }
-
 }  // namespace libp2p::network
+
+std::ostream &std::operator<<(std::ostream &stream,
+                              const std::vector<unsigned char> &vec) {
+  stream << std::string(vec.begin(), vec.end()) << "\n";
+  return stream;
+}

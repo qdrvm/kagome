@@ -43,11 +43,12 @@ namespace libp2p::network {
     tsl::htrie_map<char, PredicateAndHandler> proto_handlers_;
   };
 
-  /// in case the tree needs to be printed, this operator will be helpful
-  std::ostream &operator<<(std::ostream &stream,
-                           const std::vector<unsigned char> vec);
-
 }  // namespace libp2p::network
+
+namespace std {
+  std::ostream &operator<<(std::ostream &s,
+                           const std::vector<unsigned char> &v);
+}
 
 OUTCOME_HPP_DECLARE_ERROR(libp2p::network, RouterImpl::Error)
 
