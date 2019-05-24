@@ -17,6 +17,11 @@ using kagome::scale::ScaleEncoderStream;
 
 template <typename T>
 class IntegerTest : public ::testing::TestWithParam<std::pair<T, Buffer>> {
+ public:
+  static std::pair<T, Buffer> make_pair(T value, const Buffer &match) {
+    return std::make_pair(value, match);
+  }
+
  protected:
   ScaleEncoderStream s;
 };
@@ -24,13 +29,7 @@ class IntegerTest : public ::testing::TestWithParam<std::pair<T, Buffer>> {
 /**
  * @brief class for testing int8_t encode and decode
  */
-class Int8Test : public IntegerTest<int8_t> {
- public:
-  static std::pair<int8_t, Buffer> make_pair(int8_t value,
-                                             const Buffer &match) {
-    return std::make_pair(value, match);
-  }
-};
+class Int8Test : public IntegerTest<int8_t> {};
 
 /**
  * @given a number and match buffer
@@ -38,9 +37,7 @@ class Int8Test : public IntegerTest<int8_t> {
  * @then resulting buffer matches predefined one
  */
 TEST_P(Int8Test, EncodeSuccess) {
-  auto &&pair = GetParam();
-  int8_t value = pair.first;
-  auto &&match = pair.second;
+  auto [value, match] = GetParam();
   ScaleEncoderStream s;
   ASSERT_NO_THROW((s << value));
   ASSERT_EQ(s.getBuffer(), match);
@@ -58,13 +55,7 @@ INSTANTIATE_TEST_CASE_P(
 /**
  * @brief class for testing uint8_t encode and decode
  */
-class Uint8Test : public IntegerTest<uint8_t> {
- public:
-  static std::pair<uint8_t, Buffer> make_pair(uint8_t value,
-                                              const Buffer &match) {
-    return std::make_pair(value, match);
-  }
-};
+class Uint8Test : public IntegerTest<uint8_t> {};
 
 /**
  * @given a number and match buffer
@@ -72,9 +63,7 @@ class Uint8Test : public IntegerTest<uint8_t> {
  * @then resulting buffer matches predefined one
  */
 TEST_P(Uint8Test, EncodeSuccess) {
-  auto &&pair = GetParam();
-  uint8_t value = pair.first;
-  auto &&match = pair.second;
+  auto [value, match] = GetParam();
   ScaleEncoderStream s;
   ASSERT_NO_THROW((s << value));
   ASSERT_EQ(s.getBuffer(), match);
@@ -89,13 +78,7 @@ INSTANTIATE_TEST_CASE_P(
 /**
  * @brief class for testing int16_t encode and decode
  */
-class Int16Test : public IntegerTest<int16_t> {
- public:
-  static std::pair<int16_t, Buffer> make_pair(int16_t value,
-                                              const Buffer &match) {
-    return std::make_pair(value, match);
-  }
-};
+class Int16Test : public IntegerTest<int16_t> {};
 
 /**
  * @given a number and match buffer
@@ -103,9 +86,7 @@ class Int16Test : public IntegerTest<int16_t> {
  * @then resulting buffer matches predefined one
  */
 TEST_P(Int16Test, EncodeSuccess) {
-  auto &&pair = GetParam();
-  int16_t value = pair.first;
-  auto &&match = pair.second;
+  auto [value, match] = GetParam();
   ScaleEncoderStream s;
   ASSERT_NO_THROW((s << value));
   ASSERT_EQ(s.getBuffer(), match);
@@ -123,13 +104,7 @@ INSTANTIATE_TEST_CASE_P(
 /**
  * @brief class for testing uint16_t encode and decode
  */
-class Uint16Test : public IntegerTest<uint16_t> {
- public:
-  static std::pair<uint16_t, Buffer> make_pair(uint16_t value,
-                                               const Buffer &match) {
-    return std::make_pair(value, match);
-  }
-};
+class Uint16Test : public IntegerTest<uint16_t> {};
 
 /**
  * @given a number and match buffer
@@ -137,9 +112,7 @@ class Uint16Test : public IntegerTest<uint16_t> {
  * @then resulting buffer matches predefined one
  */
 TEST_P(Uint16Test, EncodeSuccess) {
-  auto &&pair = GetParam();
-  uint16_t value = pair.first;
-  auto &&match = pair.second;
+  auto [value, match] = GetParam();
   ScaleEncoderStream s;
   ASSERT_NO_THROW((s << value));
   ASSERT_EQ(s.getBuffer(), match);
@@ -153,13 +126,7 @@ INSTANTIATE_TEST_CASE_P(
 /**
  * @brief class for testing int32_t encode and decode
  */
-class Int32Test : public IntegerTest<int32_t> {
- public:
-  static std::pair<int32_t, Buffer> make_pair(int32_t value,
-                                              const Buffer &match) {
-    return std::make_pair(value, match);
-  }
-};
+class Int32Test : public IntegerTest<int32_t> {};
 
 /**
  * @given a number and match buffer
@@ -167,9 +134,7 @@ class Int32Test : public IntegerTest<int32_t> {
  * @then resulting buffer matches predefined one
  */
 TEST_P(Int32Test, EncodeSuccess) {
-  auto &&pair = GetParam();
-  int32_t value = pair.first;
-  auto &&match = pair.second;
+  auto [value, match] = GetParam();
   ScaleEncoderStream s;
   ASSERT_NO_THROW((s << value));
   ASSERT_EQ(s.getBuffer(), match);
@@ -184,13 +149,7 @@ INSTANTIATE_TEST_CASE_P(
 /**
  * @brief class for testing uint32_t encode and decode
  */
-class Uint32Test : public IntegerTest<uint32_t> {
- public:
-  static std::pair<uint32_t, Buffer> make_pair(uint32_t value,
-                                               const Buffer &match) {
-    return std::make_pair(value, match);
-  }
-};
+class Uint32Test : public IntegerTest<uint32_t> {};
 
 /**
  * @given a number and match buffer
@@ -198,9 +157,7 @@ class Uint32Test : public IntegerTest<uint32_t> {
  * @then resulting buffer matches predefined one
  */
 TEST_P(Uint32Test, EncodeSuccess) {
-  auto &&pair = GetParam();
-  uint32_t value = pair.first;
-  auto &&match = pair.second;
+  auto [value, match] = GetParam();
   ScaleEncoderStream s;
   ASSERT_NO_THROW((s << value));
   ASSERT_EQ(s.getBuffer(), match);
@@ -214,13 +171,7 @@ INSTANTIATE_TEST_CASE_P(
 /**
  * @brief class for testing int64_t encode and decode
  */
-class Int64Test : public IntegerTest<int64_t> {
- public:
-  static std::pair<int64_t, Buffer> make_pair(int64_t value,
-                                              const Buffer &match) {
-    return std::make_pair(value, match);
-  }
-};
+class Int64Test : public IntegerTest<int64_t> {};
 
 /**
  * @given a number and match buffer
@@ -228,9 +179,7 @@ class Int64Test : public IntegerTest<int64_t> {
  * @then resulting buffer matches predefined one
  */
 TEST_P(Int64Test, EncodeSuccess) {
-  auto &&pair = GetParam();
-  int64_t value = pair.first;
-  auto &&match = pair.second;
+  auto [value, match] = GetParam();
   ScaleEncoderStream s;
   ASSERT_NO_THROW((s << value));
   ASSERT_EQ(s.getBuffer(), match);
@@ -246,13 +195,7 @@ INSTANTIATE_TEST_CASE_P(
 /**
  * @brief class for testing uint64_t encode and decode
  */
-class Uint64Test : public IntegerTest<uint64_t> {
- public:
-  static std::pair<uint64_t, Buffer> make_pair(uint64_t value,
-                                              const Buffer &match) {
-    return std::make_pair(value, match);
-  }
-};
+class Uint64Test : public IntegerTest<uint64_t> {};
 
 /**
  * @given a number and match buffer
@@ -260,9 +203,7 @@ class Uint64Test : public IntegerTest<uint64_t> {
  * @then resulting buffer matches predefined one
  */
 TEST_P(Uint64Test, EncodeSuccess) {
-  auto &&pair = GetParam();
-  uint64_t value = pair.first;
-  auto &&match = pair.second;
+  auto [value, match] = GetParam();
   ScaleEncoderStream s;
   ASSERT_NO_THROW((s << value));
   ASSERT_EQ(s.getBuffer(), match);
@@ -271,7 +212,7 @@ TEST_P(Uint64Test, EncodeSuccess) {
 INSTANTIATE_TEST_CASE_P(
     Uint64TestCases, Uint64Test,
     ::testing::Values(Uint64Test::make_pair(578437695752307201ull,
-                                           Buffer{1, 2, 3, 4, 5, 6, 7, 8})));
+                                            Buffer{1, 2, 3, 4, 5, 6, 7, 8})));
 
 /**
  * @given byte array containing encoded int8_t values
