@@ -177,10 +177,9 @@ TEST(Scale, compactDecodeBigIntegerError) {
  */
 TEST(Scale, compactEncodeFirstCategory) {
   // encode MAX_UI8 := 63
-  ScaleEncoderStream out;
-  auto &&res = compact::encodeInteger(63, out);
-  ASSERT_TRUE(res);
-  ASSERT_EQ(out.data(), std::vector<uint8_t>({252}));
+  ScaleEncoderStream s;
+  ASSERT_NO_THROW((s << BigInteger(63)));
+  ASSERT_EQ(s.data(), (ByteArray{252}));
 }
 
 /**
@@ -191,34 +190,30 @@ TEST(Scale, compactEncodeFirstCategory) {
 TEST(Scale, compactEncodeSecondCategory) {
   {
     // encode MIN_UI16 := MAX_UI8 + 1
-    ScaleEncoderStream out;
-    auto &&res = compact::encodeInteger(64, out);
-    ASSERT_TRUE(res);
-    ASSERT_EQ(out.data(), (ByteArray{1, 1}));
+    ScaleEncoderStream s;
+    ASSERT_NO_THROW((s << BigInteger(64)));
+    ASSERT_EQ(s.data(), (ByteArray{1, 1}));
   }
 
   {
     // encode some UI16
-    ScaleEncoderStream out;
-    auto &&res = compact::encodeInteger(255, out);
-    ASSERT_TRUE(res);
-    ASSERT_EQ(out.data(), (ByteArray{253, 3}));
+    ScaleEncoderStream s;
+    ASSERT_NO_THROW((s << BigInteger(255)));
+    ASSERT_EQ(s.data(), (ByteArray{253, 3}));
   }
 
   {
     // encode some other UI16
-    ScaleEncoderStream out;
-    auto &&res = compact::encodeInteger(511, out);
-    ASSERT_TRUE(res);
-    ASSERT_EQ(out.data(), (ByteArray{253, 7}));
+    ScaleEncoderStream s;
+    ASSERT_NO_THROW((s << BigInteger(511)));
+    ASSERT_EQ(s.data(), (ByteArray{253, 7}));
   }
 
   {
     // encode MAX_UI16 := 2^14 - 1 = 16383
-    ScaleEncoderStream out;
-    auto &&res = compact::encodeInteger(16383, out);
-    ASSERT_TRUE(res);
-    ASSERT_EQ(out.data(), (ByteArray{253, 255}));
+    ScaleEncoderStream s;
+    ASSERT_NO_THROW((s << BigInteger(16383)));
+    ASSERT_EQ(s.data(), (ByteArray{253, 255}));
   }
 }
 
@@ -231,24 +226,24 @@ TEST(Scale, compactEncodeSecondCategory) {
 TEST(Scale, compactEncodeThirdCategory) {
   // encode MIN_UI32 := MAX_UI16 + 1 == 16384
   {
-    ScaleEncoderStream out;
-    ASSERT_TRUE(compact::encodeInteger(16384, out));
-    ASSERT_EQ(out.data(), (ByteArray{2, 0, 1, 0}));
+    ScaleEncoderStream s;
+    ASSERT_NO_THROW((s << BigInteger(16384)));
+    ASSERT_EQ(s.getBuffer(), (Buffer{2, 0, 1, 0}));
   }
 
   // encode some uint16_t value which requires 4 bytes
   {
-    ScaleEncoderStream out;
-    ASSERT_TRUE(compact::encodeInteger(65535, out));
-    ASSERT_EQ(out.data(), (ByteArray{254, 255, 3, 0}));
+    ScaleEncoderStream s;
+    ASSERT_NO_THROW((s << BigInteger(65535)));
+    ASSERT_EQ(s.getBuffer(), (Buffer{254, 255, 3, 0}));
   }
 
   // 2^30 - 1 is max 4 byte value
   // encode MAX_UI32 := 2^30 == 1073741823
   {
-    ScaleEncoderStream out;
-    ASSERT_TRUE(compact::encodeInteger(1073741823ul, out));
-    ASSERT_EQ(out.data(), (ByteArray{254, 255, 255, 255}));
+    ScaleEncoderStream s;
+    ASSERT_NO_THROW((s << BigInteger(1073741823ul)));
+    ASSERT_EQ(s.getBuffer(), (Buffer{254, 255, 255, 255}));
   }
 }
 
@@ -259,9 +254,9 @@ TEST(Scale, compactEncodeThirdCategory) {
  */
 TEST(Scale, compactEncodeFirstCategoryBigInteger) {
   auto v = BigInteger("63");
-  ScaleEncoderStream out;
-  ASSERT_TRUE(compact::encodeInteger(v, out));
-  ASSERT_EQ(out.data(), (ByteArray{252}));
+  ScaleEncoderStream s;
+  ASSERT_NO_THROW((s << v));
+  ASSERT_EQ(s.getBuffer(), (Buffer{252}));
 }
 
 /**

@@ -9,11 +9,19 @@
 #include "scale/fixedwidth.hpp"
 #include "scale/scale_encoder_stream.hpp"
 
-using namespace kagome;          // NOLINT
-using namespace kagome::common;  // NOLINT
-using namespace kagome::scale;   // NOLINT
-using common::Buffer;
+using kagome::common::Buffer;
 using kagome::scale::ScaleEncoderStream;
+using kagome::scale::ByteArrayStream;
+
+// will be removed soon
+using kagome::scale::fixedwidth::decodeInt8;
+using kagome::scale::fixedwidth::decodeUint8;
+using kagome::scale::fixedwidth::decodeInt16;
+using kagome::scale::fixedwidth::decodeUint16;
+using kagome::scale::fixedwidth::decodeInt32;
+using kagome::scale::fixedwidth::decodeUint32;
+using kagome::scale::fixedwidth::decodeInt64;
+using kagome::scale::fixedwidth::decodeUint64;
 
 template <typename T>
 class IntegerTest : public ::testing::TestWithParam<std::pair<T, Buffer>> {
@@ -216,7 +224,7 @@ INSTANTIATE_TEST_CASE_P(
 
 /**
  * @given byte array containing encoded int8_t values
- * @when fixedwidth::decodeInt8 is applied
+ * @when decodeInt8 is applied
  * @then correct sequence of decoded values is obtained
  */
 TEST(Scale, fixedwidthDecodeInt8) {
@@ -225,32 +233,32 @@ TEST(Scale, fixedwidthDecodeInt8) {
   auto stream = ByteArrayStream{bytes};
 
   {
-    auto &&res = fixedwidth::decodeInt8(stream);
+    auto &&res = decodeInt8(stream);
     ASSERT_TRUE(res);
     ASSERT_EQ(res.value(), 0);
   }
   {
-    auto &&res = fixedwidth::decodeInt8(stream);
+    auto &&res = decodeInt8(stream);
     ASSERT_TRUE(res);
     ASSERT_EQ(res.value(), -1);
   }
   {
-    auto &&res = fixedwidth::decodeInt8(stream);
+    auto &&res = decodeInt8(stream);
     ASSERT_TRUE(res);
     ASSERT_EQ(res.value(), -128);
   }
   {
-    auto &&res = fixedwidth::decodeInt8(stream);
+    auto &&res = decodeInt8(stream);
     ASSERT_TRUE(res);
     ASSERT_EQ(res.value(), -127);
   }
   {
-    auto &&res = fixedwidth::decodeInt8(stream);
+    auto &&res = decodeInt8(stream);
     ASSERT_TRUE(res);
     ASSERT_EQ(res.value(), 123);
   }
   {
-    auto &&res = fixedwidth::decodeInt8(stream);
+    auto &&res = decodeInt8(stream);
     ASSERT_TRUE(res);
     ASSERT_EQ(res.value(), -15);
   }
@@ -258,7 +266,7 @@ TEST(Scale, fixedwidthDecodeInt8) {
 
 /**
  * @given byte array containing encoded uint8_t values
- * @when fixedwidth::decodeUint8 is applied
+ * @when decodeUint8 is applied
  * @then correct sequence of decoded values is obtained
  */
 TEST(Scale, fixedwidthDecodeUint8) {
@@ -267,17 +275,17 @@ TEST(Scale, fixedwidthDecodeUint8) {
   auto stream = ByteArrayStream{bytes};
 
   {
-    auto &&res = fixedwidth::decodeUint8(stream);
+    auto &&res = decodeUint8(stream);
     ASSERT_TRUE(res);
     ASSERT_EQ(res.value(), 0);
   }
   {
-    auto &&res = fixedwidth::decodeUint8(stream);
+    auto &&res = decodeUint8(stream);
     ASSERT_TRUE(res);
     ASSERT_EQ(res.value(), 234);
   }
   {
-    auto &&res = fixedwidth::decodeUint8(stream);
+    auto &&res = decodeUint8(stream);
     ASSERT_TRUE(res);
     ASSERT_EQ(res.value(), 255);
   }
@@ -285,7 +293,7 @@ TEST(Scale, fixedwidthDecodeUint8) {
 
 /**
  * @given byte array containing encoded int16_t values
- * @when fixedwidth::decodeInt16 is applied
+ * @when decodeInt16 is applied
  * @then correct sequence of decoded values is obtained
  */
 TEST(Scale, fixedwidthDecodeInt16) {
@@ -302,32 +310,32 @@ TEST(Scale, fixedwidthDecodeInt16) {
   auto stream = ByteArrayStream{bytes};
 
   {
-    auto &&res = fixedwidth::decodeInt16(stream);
+    auto &&res = decodeInt16(stream);
     ASSERT_TRUE(res);
     ASSERT_EQ(res.value(), -32767);
   }
   {
-    auto &&res = fixedwidth::decodeInt16(stream);
+    auto &&res = decodeInt16(stream);
     ASSERT_TRUE(res);
     ASSERT_EQ(res.value(), -32768);
   }
   {
-    auto &&res = fixedwidth::decodeInt16(stream);
+    auto &&res = decodeInt16(stream);
     ASSERT_TRUE(res);
     ASSERT_EQ(res.value(), -1);
   }
   {
-    auto &&res = fixedwidth::decodeInt16(stream);
+    auto &&res = decodeInt16(stream);
     ASSERT_TRUE(res);
     ASSERT_EQ(res.value(), 32767);
   }
   {
-    auto &&res = fixedwidth::decodeInt16(stream);
+    auto &&res = decodeInt16(stream);
     ASSERT_TRUE(res);
     ASSERT_EQ(res.value(), 12345);
   }
   {
-    auto &&res = fixedwidth::decodeInt16(stream);
+    auto &&res = decodeInt16(stream);
     ASSERT_TRUE(res);
     ASSERT_EQ(res.value(), -12345);
   }
@@ -337,7 +345,7 @@ TEST(Scale, fixedwidthDecodeInt16) {
 
 /**
  * @given byte array containing encoded uint16_t values
- * @when fixedwidth::decodeUint16 is applied
+ * @when decodeUint16 is applied
  * @then correct sequence of decoded values is obtained
  */
 TEST(Scale, fixedwidthDecodeUint16) {
@@ -346,7 +354,7 @@ TEST(Scale, fixedwidthDecodeUint16) {
   auto stream = ByteArrayStream{bytes};
 
   {
-    auto &&res = fixedwidth::decodeUint16(stream);
+    auto &&res = decodeUint16(stream);
     ASSERT_TRUE(res);
     ASSERT_EQ(res.value(), 32770);
   }
@@ -354,7 +362,7 @@ TEST(Scale, fixedwidthDecodeUint16) {
 
 /**
  * @given byte array containing encoded int32_t values
- * @when fixedwidth::decodeInt32 is applied
+ * @when decodeInt32 is applied
  * @then correct sequence of decoded values is obtained
  */
 TEST(Scale, fixedwidthDecodeInt32) {
@@ -367,12 +375,12 @@ TEST(Scale, fixedwidthDecodeInt32) {
     auto stream = ByteArrayStream{bytes};
 
     {
-        auto &&res = fixedwidth::decodeInt32(stream);
+        auto &&res = decodeInt32(stream);
         ASSERT_TRUE(res);
         ASSERT_EQ(res.value(), 2147483647);
     }
     {
-        auto &&res = fixedwidth::decodeInt32(stream);
+        auto &&res = decodeInt32(stream);
         ASSERT_TRUE(res);
         ASSERT_EQ(res.value(), -1);
     }
@@ -380,7 +388,7 @@ TEST(Scale, fixedwidthDecodeInt32) {
 
 /**
  * @given byte array containing encoded uint32_t values
- * @when fixedwidth::decodeUint32 is applied
+ * @when decodeUint32 is applied
  * @then correct sequence of decoded values is obtained
  */
 TEST(Scale, fixedwidthDecodeUint32) {
@@ -393,12 +401,12 @@ TEST(Scale, fixedwidthDecodeUint32) {
     auto stream = ByteArrayStream{bytes};
 
     {
-        auto &&res = fixedwidth::decodeUint32(stream);
+        auto &&res = decodeUint32(stream);
         ASSERT_TRUE(res);
         ASSERT_EQ(res.value(), 16909060);
     }
     {
-        auto &&res = fixedwidth::decodeUint32(stream);
+        auto &&res = decodeUint32(stream);
         ASSERT_TRUE(res);
         ASSERT_EQ(res.value(), 67305985);
     }
@@ -406,7 +414,7 @@ TEST(Scale, fixedwidthDecodeUint32) {
 
 /**
  * @given byte array containing encoded int64_t values
- * @when fixedwidth::decodeInt64 is applied
+ * @when decodeInt64 is applied
  * @then correct sequence of decoded values is obtained
  */
 TEST(Scale, fixedwidthDecodeInt64) {
@@ -419,12 +427,12 @@ TEST(Scale, fixedwidthDecodeInt64) {
     auto stream = ByteArrayStream{bytes};
 
     {
-        auto &&res = fixedwidth::decodeInt64(stream);
+        auto &&res = decodeInt64(stream);
         ASSERT_TRUE(res);
         ASSERT_EQ(res.value(), 578437695752307201);
     }
     {
-        auto &&res = fixedwidth::decodeInt64(stream);
+        auto &&res = decodeInt64(stream);
         ASSERT_TRUE(res);
         ASSERT_EQ(res.value(), -1);
     }
@@ -432,7 +440,7 @@ TEST(Scale, fixedwidthDecodeInt64) {
 
 /**
  * @given byte array containing encoded uint64_t values
- * @when fixedwidth::decodeUint64 is applied
+ * @when decodeUint64 is applied
  * @then correct sequence of decoded values is obtained
  */
 TEST(Scale, fixedwidthDecodeUint64) {
@@ -445,12 +453,12 @@ TEST(Scale, fixedwidthDecodeUint64) {
     auto stream = ByteArrayStream{bytes};
 
     {
-        auto &&res = fixedwidth::decodeUint64(stream);
+        auto &&res = decodeUint64(stream);
         ASSERT_TRUE(res);
         ASSERT_EQ(res.value(), 578437695752307201);
     }
     {
-        auto &&res = fixedwidth::decodeUint64(stream);
+        auto &&res = decodeUint64(stream);
         ASSERT_TRUE(res);
         ASSERT_EQ(res.value(), 18446744073709551615ull);
     }

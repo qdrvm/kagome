@@ -210,6 +210,12 @@ namespace kagome::scale {
      */
     ScaleEncoderStream &operator<<(const BigInteger &v);
     /**
+     * scale-encodes tribool value
+     * @param v value to encode
+     * @return reference to stream
+     */
+    ScaleEncoderStream &operator<<(tribool v);
+    /**
      * scale-encodes bool value
      * @param v value to encode
      * @return reference to stream

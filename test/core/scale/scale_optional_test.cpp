@@ -65,11 +65,23 @@ TEST(Scale, encodeOptional) {
 }
 
 /**
+ * @given optional bool values: true, false, nullopt
+ * @when encode optional is applied
+ * @then expected result obtained
+ */
+TEST(ScaleTest, EncodeOptionalBoolSuccess) {
+  ScaleEncoderStream s;
+  ASSERT_NO_THROW((s << std::optional<bool>(true) << std::optional<bool>(false)
+                     << std::nullopt));
+  ASSERT_EQ(s.getBuffer(), (Buffer{2, 1, 0}));
+}
+
+/**
  * @given byte stream containing series of encoded optional values
  * @when decodeOptional function sequencially applied
  * @then expected values obtained
  */
-TEST(Scale, decodeOptional) {
+TEST(ScaleTest, DecodeOptionalSuccess) {
   // clang-format off
     auto bytes = ByteArray{
             0,              // first value
@@ -131,12 +143,6 @@ TEST(Scale, decodeOptional) {
 }
 
 /**
- * Optional bool is a special case of optinal values in SCALE
- * Optional bools are encoded using only 1 byte
- * 0 means no value, 1 means false, 2 means true
- */
-
-/**
  * @given stream containing series of encoded optionalBool values
  * @when decodeOptional<bool> function is applied
  * @then expected values obtained
@@ -184,33 +190,3 @@ TEST(Scale, decodeOptionalBool) {
               static_cast<int>(DecodeError::NOT_ENOUGH_DATA));
   }
 }
-
-/**
- * @given series of all possible values of optional bool value
- * @when encodeOptional<bool> is applied
- * @then expected values obtained
- */
-//TEST(Scale, encodeOptionalBool) {
-//  // encode none
-//  {
-//    Buffer out;
-//    auto &&res =
-//        optional::encodeOptional(std::optional<bool>{std::nullopt}, out);
-//    ASSERT_TRUE(res);
-//    ASSERT_EQ(out, (Buffer{0}));
-//  }
-//  // encode false
-//  {
-//    Buffer out;
-//    auto &&res = optional::encodeOptional(std::optional<bool>{false}, out);
-//    ASSERT_TRUE(res);
-//    ASSERT_EQ(out, (Buffer{1}));
-//  }
-//  // encode true
-//  {
-//    Buffer out;
-//    auto &&res = optional::encodeOptional(std::optional<bool>{true}, out);
-//    ASSERT_TRUE(res);
-//    ASSERT_EQ(out, (Buffer{2}));
-//  }
-//}

@@ -90,8 +90,20 @@ namespace kagome::scale {
     return *this;
   }
 
+  ScaleEncoderStream &ScaleEncoderStream::operator<<(tribool v) {
+    auto byte = static_cast<uint8_t>(2);
+    if (v) {
+      byte = static_cast<uint8_t>(1);
+    }
+    if (!v) {
+      byte = static_cast<uint8_t>(0);
+    }
+    return putByte(byte);
+  }
+
   ScaleEncoderStream &ScaleEncoderStream::operator<<(bool v) {
     uint8_t byte = (v ? 0x01u : 0x00u);
     return putByte(byte);
   }
+
 }  // namespace kagome::scale
