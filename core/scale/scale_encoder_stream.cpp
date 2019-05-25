@@ -31,12 +31,12 @@ namespace kagome::scale {
     return *this;
   }
 
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(const uint8_t v) {
+  ScaleEncoderStream &ScaleEncoderStream::operator<<(const uint8_t& v) {
     fixedwidth::encodeUint8(v, *this);
     return *this;
   }
 
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(const int8_t v) {
+  ScaleEncoderStream &ScaleEncoderStream::operator<<(const int8_t& v) {
     fixedwidth::encodeInt8(v, *this);
     return *this;
   }

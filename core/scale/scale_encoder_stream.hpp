@@ -154,13 +154,13 @@ namespace kagome::scale {
      * @param v value to encode
      * @return reference to stream
      */
-    ScaleEncoderStream &operator<<(const uint8_t v);
+    ScaleEncoderStream &operator<<(const uint8_t& v);
     /**
      * @brief scale-encodes int8_t value as fixed size integer
      * @param v value to encode
      * @return reference to stream
      */
-    ScaleEncoderStream &operator<<(const int8_t v);
+    ScaleEncoderStream &operator<<(const int8_t& v);
     /**
      * @brief scale-encodes uint16_t value as fixed size integer
      * @param v value to encode
