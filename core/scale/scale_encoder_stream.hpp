@@ -198,12 +198,6 @@ namespace kagome::scale {
      */
     ScaleEncoderStream &operator<<(int64_t v);
     /**
-     * @brief scale-encodes unsigned long value as fixed size integer
-     * @param v value to encode
-     * @return reference to stream
-     */
-    ScaleEncoderStream &operator<<(unsigned long v);
-    /**
      * @brief scale-encodes BigInteger value as compact integer
      * @param v value to encode
      * @return reference to stream

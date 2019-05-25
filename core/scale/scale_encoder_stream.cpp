@@ -71,17 +71,6 @@ namespace kagome::scale {
     return *this;
   }
 
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(unsigned long v) {
-    switch (sizeof(unsigned long)) {
-      case 4:
-        return *this << static_cast<uint32_t>(v);
-      case 8:
-        return *this << static_cast<uint64_t>(v);
-      default:
-        std::terminate();
-    }
-  }
-
   ScaleEncoderStream &ScaleEncoderStream::operator<<(const BigInteger &v) {
     auto &&res = compact::encodeInteger(v, *this);
     if (!res) {
