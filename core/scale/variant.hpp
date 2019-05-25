@@ -14,11 +14,6 @@
 #include "scale/fixedwidth.hpp"
 #include "scale/scale_error.hpp"
 #include "scale/type_decoder.hpp"
-#include "scale/type_encoder.hpp"
-
-namespace kagome::scale {
-  class ScaleEncoderStream;
-}
 
 namespace kagome::scale::variant {
   namespace detail {
@@ -41,14 +36,14 @@ namespace kagome::scale::variant {
       for_each_apply_impl<i + 1, F, T...>(f);
     }
 
-    template <class... T>
+    template <class Stream, class... T>
     struct StreamVariantEncoder {
       using Variant = boost::variant<T...>;
       using Result = outcome::result<void>;
       const Variant &v_;
-      ScaleEncoderStream &s_;
+      Stream &s_;
 
-      StreamVariantEncoder(const Variant &v, ScaleEncoderStream &s)
+      StreamVariantEncoder(const Variant &v, Stream &s)
           : v_{v}, s_{s} {}
 
       template <class H>
@@ -106,9 +101,9 @@ namespace kagome::scale::variant {
    * @param v variant value
    * @param s encoder stream
    */
-  template <class... T>
-  void encodeVariant(const boost::variant<T...> &v, ScaleEncoderStream &s) {
-    auto encoder = detail::StreamVariantEncoder<T...>(v, s);
+  template <class Stream, class... T>
+  void encodeVariant(const boost::variant<T...> &v, Stream &s) {
+    auto encoder = detail::StreamVariantEncoder<Stream, T...>(v, s);
     detail::for_each_apply<decltype(encoder), T...>(encoder);
   }
 
