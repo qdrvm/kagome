@@ -154,49 +154,49 @@ namespace kagome::scale {
      * @param v value to encode
      * @return reference to stream
      */
-    ScaleEncoderStream &operator<<(uint8_t v);
+    ScaleEncoderStream &operator<<(const uint8_t v);
     /**
      * @brief scale-encodes int8_t value as fixed size integer
      * @param v value to encode
      * @return reference to stream
      */
-    ScaleEncoderStream &operator<<(int8_t v);
+    ScaleEncoderStream &operator<<(const int8_t v);
     /**
      * @brief scale-encodes uint16_t value as fixed size integer
      * @param v value to encode
      * @return reference to stream
      */
-    ScaleEncoderStream &operator<<(uint16_t v);
+    ScaleEncoderStream &operator<<(const uint16_t v);
     /**
      * @brief scale-encodes int16_t value as fixed size integer
      * @param v value to encode
      * @return reference to stream
      */
-    ScaleEncoderStream &operator<<(int16_t v);
+    ScaleEncoderStream &operator<<(const int16_t v);
     /**
      * @brief scale-encodes uint32_t value as fixed size integer
      * @param v value to encode
      * @return reference to stream
      */
-    ScaleEncoderStream &operator<<(uint32_t v);
+    ScaleEncoderStream &operator<<(const uint32_t v);
     /**
      * @brief scale-encodes int32_t value as fixed size integer
      * @param v value to encode
      * @return reference to stream
      */
-    ScaleEncoderStream &operator<<(int32_t v);
+    ScaleEncoderStream &operator<<(const int32_t v);
     /**
      * @brief scale-encodes uint64_t value as fixed size integer
      * @param v value to encode
      * @return reference to stream
      */
-    ScaleEncoderStream &operator<<(uint64_t v);
+    ScaleEncoderStream &operator<<(const uint64_t v);
     /**
      * @brief scale-encodes int64_t value as fixed size integer
      * @param v value to encode
      * @return reference to stream
      */
-    ScaleEncoderStream &operator<<(int64_t v);
+    ScaleEncoderStream &operator<<(const int64_t v);
     /**
      * @brief scale-encodes BigInteger value as compact integer
      * @param v value to encode

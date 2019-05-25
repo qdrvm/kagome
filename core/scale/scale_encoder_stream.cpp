@@ -31,42 +31,42 @@ namespace kagome::scale {
     return *this;
   }
 
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(uint8_t v) {
+  ScaleEncoderStream &ScaleEncoderStream::operator<<(const uint8_t v) {
     fixedwidth::encodeUint8(v, *this);
     return *this;
   }
 
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(int8_t v) {
+  ScaleEncoderStream &ScaleEncoderStream::operator<<(const int8_t v) {
     fixedwidth::encodeInt8(v, *this);
     return *this;
   }
 
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(uint16_t v) {
+  ScaleEncoderStream &ScaleEncoderStream::operator<<(const uint16_t v) {
     fixedwidth::encodeUint16(v, *this);
     return *this;
   }
 
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(int16_t v) {
+  ScaleEncoderStream &ScaleEncoderStream::operator<<(const int16_t v) {
     fixedwidth::encodeInt16(v, *this);
     return *this;
   }
 
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(uint32_t v) {
+  ScaleEncoderStream &ScaleEncoderStream::operator<<(const uint32_t v) {
     fixedwidth::encodeUint32(v, *this);
     return *this;
   }
 
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(int32_t v) {
+  ScaleEncoderStream &ScaleEncoderStream::operator<<(const int32_t v) {
     fixedwidth::encodeInt32(v, *this);
     return *this;
   }
 
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(uint64_t v) {
+  ScaleEncoderStream &ScaleEncoderStream::operator<<(const uint64_t v) {
     fixedwidth::encodeUint64(v, *this);
     return *this;
   }
 
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(int64_t v) {
+  ScaleEncoderStream &ScaleEncoderStream::operator<<(const int64_t v) {
     fixedwidth::encodeInt64(v, *this);
     return *this;
   }
