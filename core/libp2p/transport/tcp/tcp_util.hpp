@@ -17,63 +17,68 @@
 
 namespace libp2p::transport::detail {
   template <typename T>
-  inline outcome::result<multi::Multiaddress> make_endpoint(T &&endpoint) {
-    auto address = endpoint.address();
-    auto port = endpoint.port();
+  inline outcome::result<multi::Multiaddress> makeEndpoint(T &&endpoint) {
+    try {
+      auto address = endpoint.address();
+      auto port = endpoint.port();
 
-    // TODO(warchant): PRE-181 refactor to use builder instead
-    std::ostringstream s;
-    if (address.is_v4()) {
-      s << "/ip4/" << address.to_v4().to_string();
-    } else {
-      s << "/ip6/" << address.to_v6().to_string();
+      // TODO(warchant): PRE-181 refactor to use builder instead
+      std::ostringstream s;
+      if (address.is_v4()) {
+        s << "/ip4/" << address.to_v4().to_string();
+      } else {
+        s << "/ip6/" << address.to_v6().to_string();
+      }
+
+      s << "/tcp/" << port;
+
+      return multi::Multiaddress::create(s.str());
+    } catch (const boost::system::system_error &e) {
+      return e.code();
     }
-
-    s << "/tcp/" << port;
-
-    return multi::Multiaddress::create(s.str());
   }
 
-  inline auto make_buffer(gsl::span<uint8_t> s) {
+  inline auto makeBuffer(gsl::span<uint8_t> s) {
     return boost::asio::buffer(s.data(), s.size());
   }
 
-  inline auto make_buffer(gsl::span<const uint8_t> s) {
+  inline auto makeBuffer(gsl::span<const uint8_t> s) {
     return boost::asio::buffer(s.data(), s.size());
   }
 
-  inline bool supports_ip_tcp(const multi::Multiaddress &ma) {
+  inline bool supportsIpTcp(const multi::Multiaddress &ma) {
     using P = multi::Protocol::Code;
     return (ma.hasProtocol(P::IP4) || ma.hasProtocol(P::IP6))
         && ma.hasProtocol(P::TCP);
   }
 
-  // @throws boost::bad_lexical_cast
-  // @throws boost::system::system_error
-  inline boost::asio::ip::tcp::endpoint make_endpoint(
+  inline outcome::result<boost::asio::ip::tcp::endpoint> makeEndpoint(
       const multi::Multiaddress &ma) {
     using P = multi::Protocol::Code;
-    using namespace boost::asio;    // NOLINT
-    using namespace boost::system;  // NOLINT
+    using namespace boost::asio;  // NOLINT
 
-    auto v = ma.getProtocolsWithValues();
-    auto it = v.begin();
-    if (!(it->first.code == P::IP4 || it->first.code == P::IP6)) {
-      boost::throw_exception(
-          system_error(make_error_code(errc::address_family_not_supported)));
+    try {
+      auto v = ma.getProtocolsWithValues();
+      auto it = v.begin();
+      if (!(it->first.code == P::IP4 || it->first.code == P::IP6)) {
+        return std::errc::address_family_not_supported;
+      }
+
+      auto addr = ip::make_address(it->second);
+      ++it;
+
+      if (it->first.code != P::TCP) {
+        return std::errc::address_family_not_supported;
+      }
+
+      auto port = boost::lexical_cast<uint16_t>(it->second);
+
+      return ip::tcp::endpoint{addr, port};
+    } catch (const boost::system::system_error &e) {
+      return e.code();
+    } catch (const boost::bad_lexical_cast & /* ignored */) {
+      return multi::Multiaddress::Error::INVALID_PROTOCOL_VALUE;
     }
-
-    auto addr = ip::make_address(it->second);
-    ++it;
-
-    if (it->first.code != P::TCP) {
-      boost::throw_exception(
-          system_error(make_error_code(errc::address_family_not_supported)));
-    }
-
-    auto port = boost::lexical_cast<uint16_t>(it->second);
-
-    return ip::tcp::endpoint{addr, port};
   }
 }  // namespace libp2p::transport::detail
 

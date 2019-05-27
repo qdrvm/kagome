@@ -40,34 +40,28 @@ namespace libp2p::transport {
            e{std::move(onError)}](auto &&yield) mutable {
             // same as canDial, but we do not need to pass transport instance
             // inside lambda
-            if (!detail::supports_ip_tcp(address)) {
+            if (!detail::supportsIpTcp(address)) {
               std::error_code ec =
                   make_error_code(std::errc::address_family_not_supported);
               return e(ec);
             }
 
             auto conn = std::make_shared<TcpConnection<Executor>>(yield);
-            try {
-              {
-                auto endpoint = detail::make_endpoint(address);
-                auto r = conn->connect(endpoint);
-                if (!r) {
-                  return e(r.error());
-                }
-              }
-              {
-                auto r = v(std::move(conn));
-                if (!r) {
-                  // report error, if user specified callback returned error.
-                  return e(r.error());
-                }
-              }
-            } catch (const boost::system::system_error &ex) {
-              return e(ex.code());
-            } catch (const boost::bad_lexical_cast & /*ignored*/) {
-              std::error_code ec = make_error_code(
-                  multi::Multiaddress::Error::INVALID_PROTOCOL_VALUE);
-              return e(ec);
+            auto rendpoint = detail::makeEndpoint(address);
+            if (!rendpoint) {
+              return e(rendpoint.error());
+            }
+
+            auto r1 = conn->connect(rendpoint.value());
+            if (!r1) {
+              return e(r1.error());
+            }
+
+            // execute handler
+            auto r2 = v(std::move(conn));
+            if (!r2) {
+              // report error, if user specified callback returned error.
+              return e(r2.error());
             }
           });
     };
@@ -80,12 +74,12 @@ namespace libp2p::transport {
     };
 
     bool canDial(const multi::Multiaddress &ma) const override {
-      return detail::supports_ip_tcp(ma);
+      return detail::supportsIpTcp(ma);
     };
 
    private:
     Executor &executor_;
-  };
+  };  // namespace libp2p::transport
 
 }  // namespace libp2p::transport
 

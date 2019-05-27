@@ -75,19 +75,11 @@ namespace libp2p::transport {
     }
 
     outcome::result<multi::Multiaddress> remoteMultiaddr() override {
-      try {
-        return detail::make_endpoint(socket_.remote_endpoint());
-      } catch (const boost::system::system_error &e) {
-        return handle_errcode(e.code());
-      };
+      return detail::makeEndpoint(socket_.remote_endpoint());
     }
 
     outcome::result<multi::Multiaddress> localMultiaddr() override {
-      try {
-        return detail::make_endpoint(socket_.local_endpoint());
-      } catch (const boost::system::system_error &e) {
-        return handle_errcode(e.code());
-      };
+      return detail::makeEndpoint(socket_.local_endpoint());
     }
 
     outcome::result<std::vector<uint8_t>> read(size_t bytes) override {
@@ -105,7 +97,7 @@ namespace libp2p::transport {
 
     outcome::result<size_t> read(gsl::span<uint8_t> buf) override {
       auto [ec, read] =
-          boost::asio::async_read(socket_, detail::make_buffer(buf), yield_);
+          boost::asio::async_read(socket_, detail::makeBuffer(buf), yield_);
       if (ec) {
         return handle_errcode(ec);
       }
@@ -115,7 +107,7 @@ namespace libp2p::transport {
 
     outcome::result<size_t> readSome(gsl::span<uint8_t> buf) override {
       auto [ec, read] =
-          socket_.async_read_some(detail::make_buffer(buf), yield_);
+          socket_.async_read_some(detail::makeBuffer(buf), yield_);
       if (ec) {
         return handle_errcode(ec);
       }
@@ -125,7 +117,7 @@ namespace libp2p::transport {
 
     outcome::result<size_t> write(gsl::span<const uint8_t> in) override {
       auto [ec, written] =
-          boost::asio::async_write(socket_, detail::make_buffer(in), yield_);
+          boost::asio::async_write(socket_, detail::makeBuffer(in), yield_);
       if (ec) {
         return handle_errcode(ec);
       }
@@ -135,7 +127,7 @@ namespace libp2p::transport {
 
     outcome::result<size_t> writeSome(gsl::span<const uint8_t> in) override {
       auto [ec, written] =
-          socket_.async_write_some(detail::make_buffer(in), yield_);
+          socket_.async_write_some(detail::makeBuffer(in), yield_);
       if (ec) {
         return handle_errcode(ec);
       }

@@ -16,7 +16,8 @@ namespace libp2p::transport {
 
   /**
    * @brief TCP Server (Listener) implementation.
-   * @tparam Executor asio executor type - can be a io_context, strand, or custom.
+   * @tparam Executor asio executor type - can be a io_context, strand, or
+   * custom.
    */
   template <typename Executor,
             typename = typename std::enable_if<
@@ -43,8 +44,7 @@ namespace libp2p::transport {
       // TODO(@warchant): replace with parser PRE-129
       using namespace boost::asio;  // NOLINT
       try {
-        // throws
-        auto endpoint = detail::make_endpoint(address);
+        OUTCOME_TRY(endpoint, detail::makeEndpoint(address));
 
         // setup acceptor, throws
         acceptor_.open(endpoint.protocol());
@@ -58,21 +58,15 @@ namespace libp2p::transport {
         return outcome::success();
       } catch (const boost::system::system_error &e) {
         return e.code();
-      } catch (const boost::bad_lexical_cast &e) {
-        return multi::Multiaddress::Error::INVALID_PROTOCOL_VALUE;
       }
     };
 
     bool canListen(const multi::Multiaddress &ma) const override {
-      return detail::supports_ip_tcp(ma);
+      return detail::supportsIpTcp(ma);
     };
 
     outcome::result<multi::Multiaddress> getListenMultiaddr() const override {
-      try {
-        return detail::make_endpoint(acceptor_.local_endpoint());
-      } catch (const boost::system::system_error &e) {
-        return e.code();
-      }
+      return detail::makeEndpoint(acceptor_.local_endpoint());
     };
 
     bool isClosed() const override {
