@@ -123,6 +123,8 @@ install:
       elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
         pip3 install --user pyyaml
       fi
+    pip install --upgrade pip
+    pip3 install --upgrade pip
     pip3 install --user --upgrade requests gitpython cmake gcovr
   - export PATH="$HOME/.cargo/bin:$PATH"
   - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly

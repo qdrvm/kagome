@@ -93,6 +93,7 @@ include_directories(
   deps/outcome
   deps/sml/include
   deps/sr25519-crust/include
+  deps/hat-trie/include
 )
 
 add_subdirectory(core)
