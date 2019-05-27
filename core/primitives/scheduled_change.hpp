@@ -28,22 +28,18 @@ namespace kagome::primitives {
 
   /// @brief item of collection returned by grandpa authorities function
   using WeightedAuthority = std::pair<SessionKey, Weight>;
-}  // namespace kagome::primitives
-
-namespace kagome::scale {
-  class ScaleEncoderStream;
 
   /**
-   * @brief scale-encodes primitives::ScheduledChange instance
-   * @tparam Stream stream
-   * @param s reference to encoder stream
-   * @param v value to encode
-   * @return reference to encoder stream
+   * @brief outputs ScheduledChange instance to stream
+   * @tparam Stream stream type
+   * @param s reference to stream
+   * @param v value to output
+   * @return reference to stream
    */
   template <class Stream>
-  Stream &operator<<(Stream &s, const primitives::ScheduledChange &v) {
+  Stream &operator<<(Stream &s, const ScheduledChange &v) {
     return s << v.next_authorities << v.delay;
   }
-}  // namespace kagome::scale
+}  // namespace kagome::primitives
 
 #endif  // KAGOME_CORE_PRIMITIVES_SCHEDULED_CHANGE_HPP

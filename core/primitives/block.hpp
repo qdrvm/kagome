@@ -19,13 +19,17 @@ namespace kagome::primitives {
     std::vector<Extrinsic> extrinsics;  ///< extrinsics collection
   };
 
-}  // namespace kagome::primitives
-
-namespace kagome::scale {
+  /**
+   * @brief outputs object of type BlockHeader to stream
+   * @tparam Stream stream type
+   * @param s stream reference
+   * @param v value to output
+   * @return reference to stream
+   */
   template <class Stream>
-  Stream &operator<<(Stream &s, const primitives::Block &b) {
+  Stream &operator<<(Stream &s, const Block &b) {
     return s << b.header << b.extrinsics;
   }
-}  // namespace kagome::scale
+}  // namespace kagome::primitives
 
 #endif  // KAGOME_PRIMITIVES_BLOCK_HPP

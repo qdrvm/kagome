@@ -68,15 +68,19 @@ namespace kagome::primitives {
     /// List of supported API "features" along with their versions.
     ApisVec apis;
   };
-}  // namespace kagome::primitives
 
-namespace kagome::scale {
-
+  /**
+   * @brief outputs object of type Version to stream
+   * @tparam Stream stream type
+   * @param s stream reference
+   * @param v value to output
+   * @return reference to stream
+   */
   template <class Stream>
-  Stream &operator<<(Stream &s, const primitives::Version &v) {
+  Stream &operator<<(Stream &s, const Version &v) {
     return s << std::string_view(v.spec_name) << std::string_view(v.impl_name)
              << v.authoring_version << v.impl_version << v.apis;
   }
-}  // namespace kagome::scale
+}  // namespace kagome::primitives
 
 #endif  // KAGOME_CORE_PRIMITIVES_VERSION_HPP

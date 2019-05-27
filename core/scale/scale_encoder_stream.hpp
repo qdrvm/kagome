@@ -9,6 +9,7 @@
 #include <deque>
 #include <optional>
 
+#include "common/type_traits.hpp"
 #include "common/blob.hpp"
 #include "common/byte_stream.hpp"
 #include "scale/compact.hpp"
@@ -171,7 +172,7 @@ namespace kagome::scale {
      * @return reference to stream
      */
     template <typename T,
-              typename I = std::remove_cv_t<std::remove_reference_t<T>>,
+              typename I = common::remove_cv_ref_t<T>,
               typename = std::enable_if_t<std::is_integral<I>::value>>
     ScaleEncoderStream &operator<<(T &&v) {
       // encode bool
@@ -210,7 +211,7 @@ namespace kagome::scale {
     ScaleEncoderStream &encodeCollection(const BigInteger &size, It &&begin,
                                          It &&end) {
       *this << size;
-      for (auto &&it = begin; it != end; ++it) {
+      for (auto &&it = begin; it != end; ++it) { // NOLINT
         *this << *it;
       }
       return *this;
