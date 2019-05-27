@@ -12,7 +12,7 @@
 namespace libp2p::connection {
 
   /**
-   * @bried Represents raw network connection, which is neither encryptod nor multiplexed.
+   * @bried Represents raw network connection, which is neither encrypted nor multiplexed.
    */
   struct RawConnection : public basic::ReadWriteCloser {
     ~RawConnection() override = default;
