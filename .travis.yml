@@ -61,9 +61,6 @@ matrix:
         - export CC=${_CC}
         - export CXX=${_CXX}
         - export PATH="$HOME/.cargo/bin:$PATH"
-        - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
-        - rustup install nightly
-        - rustup default nightly
         - cmake . -Bbuild -DCOVERAGE=${COVERAGE:OFF}
         - cmake --build build -- -j2
         - cmake --build build --target test
@@ -94,7 +91,7 @@ matrix:
         - sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-8 90
         - gcov --version || true
         - cmake --build build --target ctest_coverage
-        - bash <(curl -s https://codecov.io/bash) -s build 2>/dev/null
+        - bash <(curl -s https://codecov.io/bash) -s build 2>&1 | grep -v "arcs"
 
 
     - os: linux
@@ -127,7 +124,13 @@ install:
       elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
         pip3 install --user pyyaml
       fi
+    pip install --upgrade pip
+    pip3 install --upgrade pip
     pip3 install --user --upgrade requests gitpython cmake gcovr
+  - export PATH="$HOME/.cargo/bin:$PATH"
+  - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
+  - rustup install nightly
+  - rustup default nightly
 
 before_script:
   - cmake --version
@@ -141,9 +144,6 @@ script:
   - export CC=${_CC}
   - export CXX=${_CXX}
   - export PATH="$HOME/.cargo/bin:$PATH"
-  - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
-  - rustup install nightly
-  - rustup default nightly
   - cmake . -Bbuild -DCOVERAGE=${COVERAGE:OFF}
   - cmake --build build -- -j2
   - cmake --build build --target test

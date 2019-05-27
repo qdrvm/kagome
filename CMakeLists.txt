@@ -94,6 +94,7 @@ include_directories(
   deps/sml/include
   deps/ufiber/include
   deps/sr25519-crust/include
+  deps/hat-trie/include
 )
 
 add_subdirectory(core)
