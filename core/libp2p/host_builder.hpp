@@ -152,7 +152,7 @@ namespace libp2p {
      * @return builder with the context set
      * @note if no context was set, a default one {io_context(1)} will be used
      */
-    HostBuilder &setContext(std::shared_ptr<boost::asio::io_context> c);
+    HostBuilder &setContext(std::shared_ptr<boost::asio::execution_context> c);
 
     /**
      * Set boost asio executor
