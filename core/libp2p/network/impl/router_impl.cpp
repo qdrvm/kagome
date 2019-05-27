@@ -17,8 +17,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::network, RouterImpl::Error, e) {
 namespace libp2p::network {
   void RouterImpl::setProtocolHandler(const peer::Protocol &protocol,
                                       const ProtoHandler &handler) {
-    setProtocolHandler(protocol, handler,
-                       [&protocol](const auto &p) { return protocol == p; });
+    setProtocolHandler(protocol, handler, [protocol](const auto &p) {
+      // perfect match func
+      return protocol == p;
+    });
   }
 
   void RouterImpl::setProtocolHandler(const peer::Protocol &protocol,
@@ -66,8 +68,9 @@ namespace libp2p::network {
       return outcome::success();
     }
 
-    // fallback: find all matches for the first letter of the given protocol and
-    // test them against the predicate; the longest match is to be called
+    // fallback: find all matches for the first two letters of the given (the
+    // first letter is a '/', so we need two) protocol and test them against the
+    // predicate; the longest match is to be called
     auto matched_protos = proto_handlers_.equal_prefix_range_ks(p.data(), 2);
 
     std::reference_wrapper<const ProtoHandler> longest_match{

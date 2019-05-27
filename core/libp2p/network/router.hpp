@@ -31,6 +31,7 @@ namespace libp2p::network {
      * will be invoked
      * @param protocol to be handled
      * @param handler to be called, when a new stream for this protocol arrives
+     * @see Host::setProtocolHandler(...)
      */
     virtual void setProtocolHandler(const peer::Protocol &protocol,
                                     const ProtoHandler &handler) = 0;
@@ -43,6 +44,7 @@ namespace libp2p::network {
      * @param handler to be executed over the protocols, for which the predicate
      * was evaluated to true
      * @param predicate to be executed over the found protocols
+     * @see Host::setProtocolHandler(...) for examples
      */
     virtual void setProtocolHandler(const peer::Protocol &protocol,
                                     const ProtoHandler &handler,
