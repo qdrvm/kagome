@@ -26,7 +26,7 @@ void logError(const std::error_code &ec) {
   std::cout << "error(" << ec.value() << "): " << ec.message() << "\n";
 }
 
-void expectConnectionValid(std::shared_ptr<RawConnection> conn) {
+void expectConnectionValid(const std::shared_ptr<RawConnection>& conn) {
   EXPECT_TRUE(conn);
 
   EXPECT_OUTCOME_TRUE(mar, conn->remoteMultiaddr());
