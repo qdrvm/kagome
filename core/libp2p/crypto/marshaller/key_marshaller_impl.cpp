@@ -65,7 +65,7 @@ namespace libp2p::crypto::marshaller {
     OUTCOME_TRY(key_type, marshalKeyType(key.type));
     proto_key.set_key_type(key_type);
 
-    proto_key.set_key_value(key.data.toBytes(), key.data.size());
+    proto_key.set_key_value(key.data.data(), key.data.size());
 
     auto string = proto_key.SerializeAsString();
     Buffer out;
@@ -78,7 +78,7 @@ namespace libp2p::crypto::marshaller {
     proto::PublicKey proto_key;
     OUTCOME_TRY(key_type, marshalKeyType(key.type));
     proto_key.set_key_type(key_type);
-    proto_key.set_key_value(key.data.toBytes(), key.data.size());
+    proto_key.set_key_value(key.data.data(), key.data.size());
 
     auto string = proto_key.SerializeAsString();
     Buffer out;
@@ -90,7 +90,7 @@ namespace libp2p::crypto::marshaller {
   outcome::result<PublicKey> KeyMarshallerImpl::unmarshalPublicKey(
       const Buffer &key_bytes) const {
     proto::PublicKey proto_key;
-    if (!proto_key.ParseFromArray(key_bytes.toBytes(), key_bytes.size())) {
+    if (!proto_key.ParseFromArray(key_bytes.data(), key_bytes.size())) {
       return CryptoProviderError::FAILED_UNMARSHAL_DATA;
     }
 
@@ -104,7 +104,7 @@ namespace libp2p::crypto::marshaller {
   outcome::result<PrivateKey> KeyMarshallerImpl::unmarshalPrivateKey(
       const Buffer &key_bytes) const {
     proto::PublicKey proto_key;
-    if (!proto_key.ParseFromArray(key_bytes.toBytes(), key_bytes.size())) {
+    if (!proto_key.ParseFromArray(key_bytes.data(), key_bytes.size())) {
       return CryptoProviderError::FAILED_UNMARSHAL_DATA;
     }
 

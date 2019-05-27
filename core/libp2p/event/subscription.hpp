@@ -15,7 +15,7 @@ namespace libp2p::event {
    */
   class Subscription {
    public:
-    Subscription(boost::signals2::connection conn)
+    explicit Subscription(boost::signals2::connection conn)
         : connection_{std::move(conn)} {}
 
     /**

@@ -50,7 +50,8 @@ namespace libp2p {
     detail::vecsptr<security::SecurityAdaptor> securities;
     detail::vec<multi::Multiaddress> listen_addresses;
 
-    detail::sptr<boost::asio::io_context> io_context;
+    detail::sptr<boost::asio::execution_context> context;
+    detail::sptr<boost::asio::io_context::executor_type> executor;
 
     bool enable_ping = true;
   };

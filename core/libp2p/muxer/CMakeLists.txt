@@ -3,4 +3,5 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(yamux)
+# TODO(warchant): PRE-176 refactor yamux
+#add_subdirectory(yamux)

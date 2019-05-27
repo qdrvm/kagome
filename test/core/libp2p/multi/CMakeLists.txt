@@ -7,11 +7,11 @@ add_subdirectory(utils)
 
 
 addtest(multihash_test
-        multihash_test.cpp
-        )
+    multihash_test.cpp
+    )
 target_link_libraries(multihash_test
-        multihash
-        )
+    multihash
+    )
 
 addtest(multistream_test
     multistream_test.cpp

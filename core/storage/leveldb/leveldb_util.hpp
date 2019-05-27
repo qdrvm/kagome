@@ -49,7 +49,7 @@ namespace kagome::storage {
 
   inline leveldb::Slice make_slice(const common::Buffer &buf) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    const auto *ptr = reinterpret_cast<const char *>(buf.toBytes());
+    const auto *ptr = reinterpret_cast<const char *>(buf.data());
     size_t n = buf.size();
     return leveldb::Slice{ptr, n};
   }

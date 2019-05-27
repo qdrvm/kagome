@@ -4,12 +4,14 @@
 #
 
 add_subdirectory(multi)
-add_subdirectory(muxer)
+# TODO(warchant): PRE-176 refactor yamux
+#add_subdirectory(muxer)
 add_subdirectory(peer)
 add_subdirectory(transport)
 add_subdirectory(crypto)
-add_subdirectory(protocol_muxer)
-add_subdirectory(transport_fixture)
+# TODO(warchant): PRE-176 refactor yamux
+#add_subdirectory(protocol_muxer)
+#add_subdirectory(transport_fixture)
 add_subdirectory(event)
 add_subdirectory(network)
 

@@ -16,7 +16,7 @@
 #include "libp2p/peer/protocol_repository/inmem_protocol_repository.hpp"
 #include "libp2p/routing/routing_impl.hpp"
 #include "libp2p/security/security_impl.hpp"
-#include "libp2p/transport/impl/transport_impl.hpp"
+#include "libp2p/transport/tcp.hpp"
 
 namespace {
   /**
@@ -108,8 +108,8 @@ namespace libp2p {
   }
 
   HostBuilder &HostBuilder::setContext(
-      std::shared_ptr<boost::asio::io_context> c) {
-    config_.io_context = std::move(c);
+      std::shared_ptr<boost::asio::execution_context> c) {
+    config_.context = std::move(c);
     return *this;
   }
 
@@ -151,13 +151,21 @@ namespace libp2p {
           std::make_shared<peer::InmemProtocolRepository>());
     }
 
-    if (!config_.io_context) {
-      config_.io_context = std::make_shared<boost::asio::io_context>(1);
+    auto io_context = std::make_shared<boost::asio::io_context>(1);
+    if (!config_.context) {
+      config_.context = io_context;
+    }
+
+    if (!config_.executor) {
+      config_.executor =
+          std::make_shared<boost::asio::io_context::executor_type>(
+              io_context->get_executor());
     }
 
     if (config_.transports.empty()) {
+      using E = std::decay_t<decltype(*config_.executor)>;
       config_.transports.push_back(
-          std::make_shared<transport::TransportImpl>(*config_.io_context));
+          std::make_shared<transport::TcpTransport<E>>(*config_.executor));
     }
 
     if (config_.muxers.empty()) {
