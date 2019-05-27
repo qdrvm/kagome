@@ -52,11 +52,15 @@ namespace kagome::scale {
 
   /**
    * @brief scale-encodes primitives::parachain::Relay instance
+   * @tparam Stream encoder stream
    * @param s reference to scale encoder stream
    * @param v value to encode
    * @return referencce to scale encoder stream
    */
-  ScaleEncoderStream &operator<<(ScaleEncoderStream &s, const primitives::parachain::Relay &v);
-}
+  template <class Stream>
+  Stream &operator<<(Stream &s, const primitives::parachain::Relay &v) {
+    return s;
+  }
+}  // namespace kagome::scale
 
 #endif  // KAGOME_CORE_PRIMITIVES_PARACHAIN_HOST_HPP

@@ -24,10 +24,11 @@ namespace kagome::primitives {
 }  // namespace kagome::primitives
 
 namespace kagome::scale {
-  class ScaleEncoderStream;
-
-  ScaleEncoderStream &operator<<(ScaleEncoderStream &s,
-                                 const primitives::BlockHeader &bh);
+  template <class Stream>
+  Stream &operator<<(Stream &s, const primitives::BlockHeader &bh) {
+    return s << bh.parent_hash << bh.number << bh.state_root
+             << bh.extrinsics_root << bh.digest;
+  }
 }  // namespace kagome::scale
 
 #endif  // KAGOME_PRIMITIVES_BLOCK_HEADER_HPP

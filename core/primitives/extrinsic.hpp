@@ -18,9 +18,11 @@ namespace kagome::primitives {
 }  // namespace kagome::primitives
 
 namespace kagome::scale {
-  class ScaleEncoderStream;
 
-  ScaleEncoderStream &operator<<(ScaleEncoderStream &s, const primitives::Extrinsic &v);
-}
+  template <class Stream>
+  Stream &operator<<(Stream &s, const primitives::Extrinsic &v) {
+    return s.putBuffer(v.data);
+  }
+}  // namespace kagome::scale
 
 #endif  // KAGOME_PRIMITIVES_EXTRINSIC_HPP

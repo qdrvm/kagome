@@ -21,4 +21,11 @@ namespace kagome::primitives {
 
 }  // namespace kagome::primitives
 
+namespace kagome::scale {
+  template <class Stream>
+  Stream &operator<<(Stream &s, const primitives::Block &b) {
+    return s << b.header << b.extrinsics;
+  }
+}  // namespace kagome::scale
+
 #endif  // KAGOME_PRIMITIVES_BLOCK_HPP

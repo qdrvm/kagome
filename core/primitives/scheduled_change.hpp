@@ -35,11 +35,15 @@ namespace kagome::scale {
 
   /**
    * @brief scale-encodes primitives::ScheduledChange instance
-   * @param s reference to scale encoder stream
+   * @tparam Stream stream
+   * @param s reference to encoder stream
    * @param v value to encode
-   * @return reference to scale encoder stream
+   * @return reference to encoder stream
    */
-  ScaleEncoderStream &operator<<(ScaleEncoderStream& s, const primitives::ScheduledChange &v);
-}
+  template <class Stream>
+  Stream &operator<<(Stream &s, const primitives::ScheduledChange &v) {
+    return s << v.next_authorities << v.delay;
+  }
+}  // namespace kagome::scale
 
 #endif  // KAGOME_CORE_PRIMITIVES_SCHEDULED_CHANGE_HPP

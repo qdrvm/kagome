@@ -87,15 +87,19 @@ namespace kagome::primitives {
 }  // namespace kagome::primitives
 
 namespace kagome::scale {
-  class ScaleEncoderStream;
+  template <class Stream>
+  Stream &operator<<(Stream &s, const primitives::Invalid &v) {
+    return s << v.error_;
+  }
 
-  ScaleEncoderStream &operator<<(ScaleEncoderStream &s,
-                                 const primitives::Invalid &v);
+  template <class Stream>
+  Stream &operator<<(Stream &s, const primitives::Valid &v) {
+    return s << v.priority_ << v.requires_ << v.provides_ << v.longevity_;
+  }
 
-  ScaleEncoderStream &operator<<(ScaleEncoderStream &s,
-                                 const primitives::Valid &v);
-
-  ScaleEncoderStream &operator<<(ScaleEncoderStream &s,
-                                 const primitives::Unknown &v);
+  template <class Stream>
+  Stream &operator<<(Stream &s, const primitives::Unknown &v) {
+    return s << v.error_;
+  }
 }  // namespace kagome::scale
 #endif  // KAGOME_CORE_PRIMITIVES_TRANSACTION_VALIDITY_HPP

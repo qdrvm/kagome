@@ -5,24 +5,17 @@
 
 add_library(primitives
     block.hpp
-    block.cpp
     block_header.hpp
-    block_header.cpp
-    digest.hpp
-    extrinsic.hpp
-    extrinsic.cpp
-    version.hpp
-    version.cpp
-    inherent_data.cpp
-    inherent_data.hpp
-    transaction_validity.hpp
-    transaction_validity.cpp
     block_id.hpp
     common.hpp
+    digest.hpp
+    extrinsic.hpp
+    inherent_data.cpp
+    inherent_data.hpp
     parachain_host.hpp
     scheduled_change.hpp
-    scheduled_change.cpp
-    parachain_host.cpp
+    transaction_validity.hpp
+    version.hpp
     )
 
 target_link_libraries(primitives

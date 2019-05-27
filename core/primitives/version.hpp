@@ -17,7 +17,8 @@ namespace kagome::primitives {
    */
 
   /**
-   * @brief The identity of a particular API interface that the runtime might provide.
+   * @brief The identity of a particular API interface that the runtime might
+   * provide.
    */
   using ApiId = std::array<uint8_t, 8>;
 
@@ -70,10 +71,12 @@ namespace kagome::primitives {
 }  // namespace kagome::primitives
 
 namespace kagome::scale {
-  class ScaleEncoderStream;
 
-  ScaleEncoderStream &operator<<(ScaleEncoderStream &s,
-                                 const primitives::Version &v);
+  template <class Stream>
+  Stream &operator<<(Stream &s, const primitives::Version &v) {
+    return s << std::string_view(v.spec_name) << std::string_view(v.impl_name)
+             << v.authoring_version << v.impl_version << v.apis;
+  }
 }  // namespace kagome::scale
 
 #endif  // KAGOME_CORE_PRIMITIVES_VERSION_HPP
