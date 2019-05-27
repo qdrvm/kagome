@@ -16,12 +16,19 @@ namespace kagome::primitives {
    * https://github.com/paritytech/substrate/blob/master/core/sr-version/src/lib.rs
    */
 
-  /// The identity of a particular API interface that the runtime might provide.
+  /**
+   * @brief The identity of a particular API interface that the runtime might provide.
+   */
   using ApiId = std::array<uint8_t, 8>;
 
+  /**
+   * @brief single Api item
+   */
   using Api = std::pair<ApiId, uint32_t>;
 
-  /// A vector of pairs of `ApiId` and a `u32` for version.
+  /**
+   * @brief A vector of pairs of `ApiId` and a `u32` for version.
+   */
   using ApisVec = std::vector<Api>;
 
   /**

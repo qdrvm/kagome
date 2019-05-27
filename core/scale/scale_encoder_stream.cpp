@@ -18,7 +18,8 @@ namespace kagome::scale {
   }
 
   ScaleEncoderStream &ScaleEncoderStream::putByte(uint8_t v) {
-    return *this << static_cast<uint8_t>(v);
+    stream_.push_back(v);
+    return *this;
   }
 
   ScaleEncoderStream &ScaleEncoderStream::putBuffer(const Buffer &buffer) {
@@ -28,46 +29,6 @@ namespace kagome::scale {
 
   ScaleEncoderStream &ScaleEncoderStream::put(const std::vector<uint8_t> &v) {
     stream_.insert(stream_.end(), v.begin(), v.end());
-    return *this;
-  }
-
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(uint8_t v) {
-    fixedwidth::encodeUint8(v, *this);
-    return *this;
-  }
-
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(int8_t v) {
-    fixedwidth::encodeInt8(v, *this);
-    return *this;
-  }
-
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(uint16_t v) {
-    fixedwidth::encodeUint16(v, *this);
-    return *this;
-  }
-
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(int16_t v) {
-    fixedwidth::encodeInt16(v, *this);
-    return *this;
-  }
-
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(uint32_t v) {
-    fixedwidth::encodeUint32(v, *this);
-    return *this;
-  }
-
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(int32_t v) {
-    fixedwidth::encodeInt32(v, *this);
-    return *this;
-  }
-
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(uint64_t v) {
-    fixedwidth::encodeUint64(v, *this);
-    return *this;
-  }
-
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(int64_t v) {
-    fixedwidth::encodeInt64(v, *this);
     return *this;
   }
 
@@ -89,10 +50,4 @@ namespace kagome::scale {
     }
     return putByte(byte);
   }
-
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(bool v) {
-    uint8_t byte = (v ? 0x01u : 0x00u);
-    return putByte(byte);
-  }
-
 }  // namespace kagome::scale

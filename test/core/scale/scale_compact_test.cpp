@@ -237,27 +237,6 @@ TEST(Scale, compactDecodeBigIntegerError) {
 }
 
 /**
- * @given max value supported by scale
- * @when encode it a directly as BigInteger
- * @then obtain expected result: multibyte representation
- */
-TEST(Scale, compactEncodeMaxBigInteger) {
-  // encode max big integer value := 2^536 - 1
-  BigInteger v(
-      "224945689727159819140526925384299092943484855915095831"
-      "655037778630591879033574393515952034305194542857496045"
-      "531676044756160413302774714984450425759043258192756735");  // 2^536 - 1
-
-  ScaleEncoderStream out;
-  ASSERT_NO_THROW((out << v));
-  ASSERT_EQ(
-      out.data(),
-      "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
-      "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"_unhex);
-  // clang-format on
-}
-
-/**
  * Negative tests
  */
 
@@ -267,7 +246,7 @@ TEST(Scale, compactEncodeMaxBigInteger) {
  * @when trying to encode this value
  * @then obtain kValueIsTooBig error
  */
-TEST(ScaleCompactTest, EncodeMinBigInteger) {
+TEST(ScaleCompactTest, EncodeNegativeIntegerFails) {
   BigInteger v(-1);
   ScaleEncoderStream out;
   ASSERT_ANY_THROW((out << v));

@@ -23,6 +23,17 @@ using kagome::scale::fixedwidth::decodeUint32;
 using kagome::scale::fixedwidth::decodeInt64;
 using kagome::scale::fixedwidth::decodeUint64;
 
+//TEST(ScaleEncoderStreamTest, NoMatchFound) {
+//  ScaleEncoderStream s;
+//  struct  C {
+//    std::vector<uint32_t> a;
+//    int b;
+//  };
+//  C c = {{1,2,3},4};
+//  s << c;
+//  std::cout << s.getBuffer().toHex() << std::endl;
+//}
+
 template <typename T>
 class IntegerTest : public ::testing::TestWithParam<std::pair<T, Buffer>> {
  public:

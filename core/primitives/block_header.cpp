@@ -13,6 +13,6 @@ namespace kagome::scale {
   ScaleEncoderStream &operator<<(ScaleEncoderStream &s,
                                  const primitives::BlockHeader &bh) {
     return s << bh.parent_hash << bh.number << bh.state_root
-             << bh.extrinsics_root << bh.digest.toVector();
+             << bh.extrinsics_root << bh.digest;
   }
 }  // namespace kagome::scale

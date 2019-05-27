@@ -16,12 +16,14 @@ add_library(primitives
     inherent_data.cpp
     inherent_data.hpp
     transaction_validity.hpp
+    transaction_validity.cpp
     block_id.hpp
     common.hpp
     parachain_host.hpp
     scheduled_change.hpp
     scheduled_change.cpp
-    parachain_host.cpp transaction_validity.cpp)
+    parachain_host.cpp
+    )
 
 target_link_libraries(primitives
     buffer

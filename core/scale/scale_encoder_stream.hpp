@@ -9,10 +9,11 @@
 #include <deque>
 #include <optional>
 
-#include "common/byte_stream.hpp"
 #include "common/blob.hpp"
+#include "common/byte_stream.hpp"
 #include "scale/compact.hpp"
 #include "scale/fixedwidth.hpp"
+#include "scale/util.hpp"
 #include "scale/variant.hpp"
 
 namespace kagome::scale {
@@ -28,6 +29,13 @@ namespace kagome::scale {
      * @return buffer containing encoded data
      */
     Buffer getBuffer() const;
+    /**
+     * @brief scale-encodes pair of values
+     * @tparam F first value type
+     * @tparam S second value type
+     * @param p pair of values to encode
+     * @return reference to stream
+     */
 
     /// Appenders
     /**
@@ -49,7 +57,8 @@ namespace kagome::scale {
      */
     ScaleEncoderStream &put(const std::vector<uint8_t> &v);
     /**
-     * @brief copies content between begin and end iterators to the end of stream
+     * @brief copies content between begin and end iterators to the end of
+     * stream
      * @tparam It iterator type
      * @param begin first iterator
      * @param end last iterator
@@ -57,16 +66,24 @@ namespace kagome::scale {
      */
 
     /// Encoders
-    template<class It>
-    ScaleEncoderStream &put(It begin, It end) {
+    /**
+     * @brief appends bytes to stream without encoding them
+     * @tparam It iterator over collection of bytes
+     * @param begin iterator pointing to the begin of collection
+     * @param end iterator pointing to the end of collection
+     * @return reference to stream
+     */
+    template <class It>
+    ScaleEncoderStream &put(It &&begin, It &&end) {
       stream_.insert(stream_.end(), begin, end);
       return *this;
     }
+
     /**
-     * @brief scale-encodes pair of values
-     * @tparam F first value type
-     * @tparam S second value type
-     * @param p pair of values to encode
+     * @brief scale-encodes pair of objects
+     * @tparam F first object type
+     * @tparam S second object type
+     * @param p pair to encode
      * @return reference to stream
      */
     template <class F, class S>
@@ -81,7 +98,7 @@ namespace kagome::scale {
      * @return reference to stream
      */
     template <class... T>
-    ScaleEncoderStream &operator<<(const boost::variant<T...> v) {
+    ScaleEncoderStream &operator<<(const boost::variant<T...> &v) {
       kagome::scale::variant::encodeVariant(v, *this);
       return *this;
     }
@@ -93,11 +110,7 @@ namespace kagome::scale {
      */
     template <class T>
     ScaleEncoderStream &operator<<(const std::vector<T> &c) {
-      *this << BigInteger(c.size());
-      for (auto &&item : c) {
-        *this << item;
-      }
-      return *this;
+      return encodeCollection(c.size(), c.begin(), c.end());
     }
     /**
      * @brief scale-encodes optional value
@@ -121,8 +134,7 @@ namespace kagome::scale {
      */
     template <class T, size_t size>
     ScaleEncoderStream &operator<<(const std::array<T, size> &v) {
-      put(v.begin(), v.end());
-      return *this;
+      return put(v.begin(), v.end());
     }
     /**
      * @brief scale-encodes common::Blob as sequence of bytes, not collection
@@ -131,9 +143,8 @@ namespace kagome::scale {
      * @return reference to stream
      */
     template <size_t size>
-    ScaleEncoderStream &operator<<(const common::Blob<size> & v) {
-      put(v.begin(), v.end());
-      return *this;
+    ScaleEncoderStream &operator<<(const common::Blob<size> &v) {
+      return put(v.begin(), v.end());
     }
     /**
      * @brief scale-encodes common::Buffer as collection of bytes
@@ -141,62 +152,38 @@ namespace kagome::scale {
      * @return reference to stream
      */
     ScaleEncoderStream &operator<<(const Buffer &v) {
-      return *this << v.toVector();
+      return encodeCollection(v.size(), v.begin(), v.end());
     }
 
+    /**
+     * @brief scale-encodes a string view
+     * @param sv string_view item
+     * @return reference to stream
+     */
     ScaleEncoderStream &operator<<(std::string_view sv) {
-      *this << BigInteger(sv.size());
-      return put(sv.begin(), sv.end());
+      return encodeCollection(sv.size(), sv.begin(), sv.end());
     }
 
     /**
-     * @brief scale-encodes uint8_t value as fixed size integer
-     * @param v value to encode
+     * @brief scale-encodes any integral type including bool
+     * @tparam T integral type
+     * @param v value of integral type
      * @return reference to stream
      */
-    ScaleEncoderStream &operator<<(uint8_t v);
-    /**
-     * @brief scale-encodes int8_t value as fixed size integer
-     * @param v value to encode
-     * @return reference to stream
-     */
-    ScaleEncoderStream &operator<<(int8_t v);
-    /**
-     * @brief scale-encodes uint16_t value as fixed size integer
-     * @param v value to encode
-     * @return reference to stream
-     */
-    ScaleEncoderStream &operator<<(uint16_t v);
-    /**
-     * @brief scale-encodes int16_t value as fixed size integer
-     * @param v value to encode
-     * @return reference to stream
-     */
-    ScaleEncoderStream &operator<<(int16_t v);
-    /**
-     * @brief scale-encodes uint32_t value as fixed size integer
-     * @param v value to encode
-     * @return reference to stream
-     */
-    ScaleEncoderStream &operator<<(uint32_t v);
-    /**
-     * @brief scale-encodes int32_t value as fixed size integer
-     * @param v value to encode
-     * @return reference to stream
-     */
-    ScaleEncoderStream &operator<<(int32_t v);
-    /**
-     * @brief scale-encodes uint64_t value as fixed size integer
-     * @param v value to encode
-     * @return reference to stream
-     */
-    ScaleEncoderStream &operator<<(uint64_t v);
-    /**
-     * @brief scale-encodes int64_t value as fixed size integer
-     * @param v value to encode
-     * @return reference to stream
-     */
-    ScaleEncoderStream &operator<<(int64_t v);
+    template <typename T,
+              typename I = std::remove_cv_t<std::remove_reference_t<T>>,
+              typename = std::enable_if_t<std::is_integral<I>::value>>
+    ScaleEncoderStream &operator<<(T &&v) {
+      // encode bool
+      if constexpr (std::is_same<I, bool>::value) {
+        uint8_t byte = (v ? 0x01u : 0x00u);
+        return putByte(byte);
+      }
+      // encode any other integer
+      impl::encodeInteger<I>(v, *this);
+      return *this;
+    }
+
     /**
      * @brief scale-encodes BigInteger value as compact integer
      * @param v value to encode
@@ -209,14 +196,25 @@ namespace kagome::scale {
      * @return reference to stream
      */
     ScaleEncoderStream &operator<<(tribool v);
+
+   protected:
     /**
-     * scale-encodes bool value
-     * @param v value to encode
+     * @brief scale-encodes any collection
+     * @tparam It iterator over collection of bytes
+     * @param size size of the collection
+     * @param begin iterator pointing to the begin of collection
+     * @param end iterator pointing to the end of collection
      * @return reference to stream
      */
-    ScaleEncoderStream &operator<<(bool v);
-
-    // TODO(yuraz): PRE-??? add operators for signed long, signed/unsigned: short, int, long long
+    template <class It>
+    ScaleEncoderStream &encodeCollection(const BigInteger &size, It &&begin,
+                                         It &&end) {
+      *this << size;
+      for (auto &&it = begin; it != end; ++it) {
+        *this << *it;
+      }
+      return *this;
+    }
 
    private:
     std::deque<uint8_t> stream_;

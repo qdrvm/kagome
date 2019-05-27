@@ -17,7 +17,7 @@ namespace kagome::runtime {
   using primitives::parachain::DutyRoster;
   using primitives::parachain::ParaId;
   using primitives::parachain::ValidatorId;
-  using scale::fixedwidth::encodeUint32;
+//  using scale::fixedwidth::encodeUint32;
   using scale::optional::decodeOptional;
   using scale::ScaleEncoderStream;
 

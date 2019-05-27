@@ -168,10 +168,7 @@ namespace kagome::primitives {
   using kagome::scale::compact::encodeInteger;
   using kagome::scale::fixedwidth::decodeUint32;
   using kagome::scale::fixedwidth::decodeUint64;
-  using kagome::scale::fixedwidth::encodeUint32;
-  using kagome::scale::fixedwidth::encodeUint64;
   using kagome::scale::optional::decodeOptional;
-//  using kagome::scale::optional::encodeOptional;
   using kagome::scale::variant::decodeVariant;
   using kagome::scale::variant::encodeVariant;
   using primitives::InherentData;
@@ -186,6 +183,7 @@ namespace kagome::primitives {
     out.putBuffer(encoded_header);
 
     ScaleEncoderStream s;
+
     s << block.extrinsics;
 
     return out += s.getBuffer();

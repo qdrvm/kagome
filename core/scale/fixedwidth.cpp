@@ -10,38 +10,6 @@
 #include "scale/scale_encoder_stream.hpp"
 
 namespace kagome::scale::fixedwidth {
-  void encodeInt8(int8_t value, ScaleEncoderStream &out) {
-    impl::encodeInteger(value, out);
-  }
-
-  void encodeUint8(uint8_t value, ScaleEncoderStream &out) {
-    impl::encodeInteger(value, out);
-  }
-
-  void encodeInt16(int16_t value, ScaleEncoderStream &out) {
-    impl::encodeInteger(value, out);
-  }
-
-  void encodeUint16(uint16_t value, ScaleEncoderStream &out) {
-    impl::encodeInteger(value, out);
-  }
-
-  void encodeInt32(int32_t value, ScaleEncoderStream &out) {
-    impl::encodeInteger(value, out);
-  }
-
-  void encodeUint32(uint32_t value, ScaleEncoderStream &out) {
-    impl::encodeInteger(value, out);
-  }
-
-  void encodeInt64(int64_t value, ScaleEncoderStream &out) {
-    impl::encodeInteger(value, out);
-  }
-
-  void encodeUint64(uint64_t value, ScaleEncoderStream &out) {
-    impl::encodeInteger(value, out);
-  }
-
   outcome::result<int8_t> decodeInt8(common::ByteStream &stream) {
     return impl::decodeInteger<int8_t>(stream);
   }

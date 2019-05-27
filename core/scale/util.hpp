@@ -7,9 +7,9 @@
 #define KAGOME_SCALE_UTIL_HPP
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <vector>
-#include <array>
 
 #include <boost/endian/arithmetic.hpp>
 #include "common/buffer.hpp"
@@ -24,9 +24,9 @@ namespace kagome::scale::impl {
    * @return byte array representation of value
    */
   template <class T, class S>
-  void encodeInteger(T value, S &out) {
+  void encodeInteger(T value, S &out) { // no need to take integers by &&
     constexpr size_t size = sizeof(T);
-    static_assert(std::is_integral<T>(), "only integral types are supported");
+    static_assert(std::is_integral<std::remove_reference_t<T>>(), "only integral types are supported");
     static_assert(size >= 1, "types of size 0 are not supported");
     constexpr size_t bits = size * 8;
     boost::endian::endian_buffer<boost::endian::order::little, T, bits> buf{};
