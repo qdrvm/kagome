@@ -69,16 +69,16 @@ namespace libp2p::protocol_muxer {
 
    private:
     /**
-     * Get a callback to be used in connection write functions
+     * Write a message, which is now in the (\param connection_state)'s buffer
+     * and process success or error results
      * @param connection_state - state of the connection
      * @param success_status - status to be set after a successful write
      * @param error to be shown in case of write failure
-     * @return lambda-callback for the write operation
      */
-    static auto getWriteCallback(
+    static void writeMessage(
         std::shared_ptr<ConnectionState> connection_state,
         ConnectionState::NegotiationStatus success_status,
-        std::function<std::string(const std::error_code &ec)> error);
+        const std::function<std::string(const std::error_code &ec)> &error);
   };
 }  // namespace libp2p::protocol_muxer
 

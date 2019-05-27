@@ -53,15 +53,16 @@ namespace libp2p::protocol_muxer {
 
     void addStreamProtocol(const peer::Protocol &protocol) override;
 
-    void negotiateEncryption(std::shared_ptr<transport::Connection> connection,
-                             ChosenProtocolCallback protocol_callback) override;
-
-    void negotiateMultiplexer(
-        std::shared_ptr<transport::Connection> connection,
+    void negotiateEncryption(
+        std::shared_ptr<connection::RawConnection> connection,
         ChosenProtocolCallback protocol_callback) override;
 
-    void negotiateStream(std::unique_ptr<stream::Stream> stream,
-                         ChosenProtocolAndStreamCallback cb) override;
+    void negotiateMultiplexer(
+        std::shared_ptr<connection::SecureConnection> connection,
+        ChosenProtocolCallback protocol_callback) override;
+
+    void negotiateStream(std::shared_ptr<connection::Stream> stream,
+                         ChosenProtocolCallback protocol_callback) override;
 
     enum class MultiselectError {
       NO_PROTOCOLS_SUPPORTED = 1,
@@ -188,12 +189,10 @@ namespace libp2p::protocol_muxer {
         ConnectionState::NegotiationRound round) const;
 
     /**
-     * Get read/write buffers, if there are free ones, or create new
-     * @return tuple <WriteBuffer, ReadBuffer, Index>
+     * Get write buffer, if there is a free one, or create new
+     * @return pair <WriteBuffer, Index>
      */
-    std::tuple<std::shared_ptr<kagome::common::Buffer>,
-               std::shared_ptr<boost::asio::streambuf>, size_t>
-    getBuffers();
+    std::pair<std::shared_ptr<kagome::common::Buffer>, size_t> getWriteBuffer();
 
     /**
      * Clear the resources, which left after the provided connection state
@@ -207,7 +206,6 @@ namespace libp2p::protocol_muxer {
     kagome::common::Logger log_;
 
     std::vector<std::shared_ptr<kagome::common::Buffer>> write_buffers_;
-    std::vector<std::shared_ptr<boost::asio::streambuf>> read_buffers_;
     std::queue<size_t> free_buffers_;
   };
 }  // namespace libp2p::protocol_muxer

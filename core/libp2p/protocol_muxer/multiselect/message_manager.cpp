@@ -182,14 +182,13 @@ namespace libp2p::protocol_muxer {
   }
 
   outcome::result<MultiselectMessage> MessageManager::parseProtocol(
-      gsl::span<const uint8_t> bytes, uint64_t protocol_size) {
-    if (bytes.empty()
-        || (static_cast<uint64_t>(bytes.size()) < protocol_size)) {
+      gsl::span<const uint8_t> bytes) {
+    if (bytes.empty()) {
       return ParseError::MSG_LENGTH_IS_INCORRECT;
     }
 
     auto current_line =
-        std::string{bytes.data(), bytes.data() + protocol_size};  // NOLINT
+        std::string{bytes.data(), bytes.data() + bytes.size()};  // NOLINT
     if (current_line == kMultiselectHeaderString) {
       return MultiselectMessage{MultiselectMessage::MessageType::OPENING};
     }

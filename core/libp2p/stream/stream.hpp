@@ -14,7 +14,7 @@
 namespace libp2p::stream {
   /**
    * Stream between two peers in the network
-   * @deprecated
+   * @deprecated use connection::Stream
    */
   class Stream {
    public:

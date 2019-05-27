@@ -42,47 +42,47 @@ namespace libp2p::protocol_muxer {
   }
 
   void Multiselect::negotiateEncryption(
-      std::shared_ptr<transport::Connection> connection,
+      std::shared_ptr<connection::RawConnection> connection,
       ChosenProtocolCallback protocol_callback) {
     if (encryption_protocols_.empty()) {
       protocol_callback(MultiselectError::NO_PROTOCOLS_SUPPORTED);
       return;
     }
 
-    auto [write_buffer, read_buffer, index] = getBuffers();
+    auto [write_buffer, index] = getWriteBuffer();
     MessageWriter::sendOpeningMsg(std::make_shared<ConnectionState>(
-        std::move(connection), nullptr, std::move(protocol_callback), nullptr,
-        std::move(write_buffer), std::move(read_buffer), index,
-        shared_from_this(), ConnectionState::NegotiationRound::ENCRYPTION));
+        std::move(connection), std::move(protocol_callback),
+        std::move(write_buffer), index, shared_from_this(),
+        ConnectionState::NegotiationRound::ENCRYPTION));
   }
 
   void Multiselect::negotiateMultiplexer(
-      std::shared_ptr<transport::Connection> connection,
+      std::shared_ptr<connection::SecureConnection> connection,
       ChosenProtocolCallback protocol_callback) {
     if (multiplexer_protocols_.empty()) {
       protocol_callback(MultiselectError::NO_PROTOCOLS_SUPPORTED);
       return;
     }
 
-    auto [write_buffer, read_buffer, index] = getBuffers();
+    auto [write_buffer, index] = getWriteBuffer();
     MessageWriter::sendOpeningMsg(std::make_shared<ConnectionState>(
-        std::move(connection), nullptr, std::move(protocol_callback), nullptr,
-        std::move(write_buffer), std::move(read_buffer), index,
-        shared_from_this(), ConnectionState::NegotiationRound::MULTIPLEXER));
+        std::move(connection), std::move(protocol_callback),
+        std::move(write_buffer), index, shared_from_this(),
+        ConnectionState::NegotiationRound::MULTIPLEXER));
   }
 
-  void Multiselect::negotiateStream(std::unique_ptr<stream::Stream> stream,
-                                    ChosenProtocolAndStreamCallback cb) {
+  void Multiselect::negotiateStream(std::shared_ptr<connection::Stream> stream,
+                                    ChosenProtocolCallback protocol_callback) {
     if (stream_protocols_.empty()) {
-      cb(MultiselectError::NO_PROTOCOLS_SUPPORTED, std::move(stream));
+      protocol_callback(MultiselectError::NO_PROTOCOLS_SUPPORTED);
       return;
     }
 
-    auto [write_buffer, read_buffer, index] = getBuffers();
+    auto [write_buffer, index] = getWriteBuffer();
     MessageWriter::sendOpeningMsg(std::make_shared<ConnectionState>(
-        nullptr, std::move(stream), nullptr, std::move(cb),
-        std::move(write_buffer), std::move(read_buffer), index,
-        shared_from_this(), ConnectionState::NegotiationRound::STREAM));
+        std::move(stream), std::move(protocol_callback),
+        std::move(write_buffer), index, shared_from_this(),
+        ConnectionState::NegotiationRound::STREAM));
   }
 
   void Multiselect::onWriteCompleted(
@@ -306,21 +306,14 @@ namespace libp2p::protocol_muxer {
     switch (connection_state->round_) {
       case ConnectionState::NegotiationRound::ENCRYPTION:
       case ConnectionState::NegotiationRound::MULTIPLEXER:
-        connection_state->proto_callback_(chosen_protocol);
-        break;
       case ConnectionState::NegotiationRound::STREAM:
-        connection_state->proto_stream_callback_(
-            chosen_protocol, std::move(connection_state->stream_));
+        connection_state->proto_callback_(chosen_protocol);
         break;
       default:
         log_->error("stream state's round is set to garbage value");
         // we don't know, what round the connection has; check callback manually
         if (connection_state->proto_callback_ != nullptr) {
           connection_state->proto_callback_(MultiselectError::INTERNAL_ERROR);
-        } else if (connection_state->proto_stream_callback_ != nullptr) {
-          connection_state->proto_stream_callback_(
-              MultiselectError::INTERNAL_ERROR,
-              std::move(connection_state->stream_));
         } else {
           log_->critical("connection state is in absolutely garbaged state");
           return;
@@ -336,20 +329,13 @@ namespace libp2p::protocol_muxer {
     switch (connection_state->round_) {
       case ConnectionState::NegotiationRound::ENCRYPTION:
       case ConnectionState::NegotiationRound::MULTIPLEXER:
-        connection_state->proto_callback_(ec);
-        break;
       case ConnectionState::NegotiationRound::STREAM:
-        connection_state->proto_stream_callback_(
-            ec, std::move(connection_state->stream_));
+        connection_state->proto_callback_(ec);
         break;
       default:
         log_->error("stream state's round is set to garbage value");
-        // we don't know, what round the connection has; check callback manually
         if (connection_state->proto_callback_ != nullptr) {
           connection_state->proto_callback_(ec);
-        } else if (connection_state->proto_stream_callback_ != nullptr) {
-          connection_state->proto_stream_callback_(
-              ec, std::move(connection_state->stream_));
         } else {
           log_->critical("connection state is in absolutely garbaged state");
           return;
@@ -374,28 +360,23 @@ namespace libp2p::protocol_muxer {
     }
   }
 
-  std::tuple<std::shared_ptr<kagome::common::Buffer>,
-             std::shared_ptr<boost::asio::streambuf>, size_t>
-  Multiselect::getBuffers() {
+  std::pair<std::shared_ptr<kagome::common::Buffer>, size_t>
+  Multiselect::getWriteBuffer() {
     if (!free_buffers_.empty()) {
       auto free_buffers_index = free_buffers_.front();
       free_buffers_.pop();
-      return {write_buffers_[free_buffers_index],
-              read_buffers_[free_buffers_index], free_buffers_index};
+      return {write_buffers_[free_buffers_index], free_buffers_index};
     }
     return {
         write_buffers_.emplace_back(std::make_shared<kagome::common::Buffer>()),
-        read_buffers_.emplace_back(std::make_shared<boost::asio::streambuf>()),
         write_buffers_.size() - 1};
   }
 
   void Multiselect::clearResources(const ConnectionState &connection_state) {
-    // clear the buffers
-    connection_state.read_buffer_->consume(
-        connection_state.read_buffer_->size());
+    // clear the buffer
     connection_state.write_buffer_->clear();
 
-    // add them to the pool of free buffers
+    // add it to the pool of free buffers
     free_buffers_.push(connection_state.buffers_index_);
   }
 }  // namespace libp2p::protocol_muxer

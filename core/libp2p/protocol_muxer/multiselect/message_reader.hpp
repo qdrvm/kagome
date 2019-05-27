@@ -35,13 +35,6 @@ namespace libp2p::protocol_muxer {
         std::shared_ptr<ConnectionState> connection_state);
 
     /**
-     * Completion handler of varint read operation
-     * @param connection_state - state of the connection
-     */
-    static void onReadVarintCompleted(
-        std::shared_ptr<ConnectionState> connection_state);
-
-    /**
      * Read specified number of bytes from the connection
      * @param connection_state - state of the connection
      * @param bytes_to_read - how much bytes are to be read
@@ -50,7 +43,8 @@ namespace libp2p::protocol_muxer {
     static void readNextBytes(
         std::shared_ptr<ConnectionState> connection_state,
         uint64_t bytes_to_read,
-        std::function<void(std::shared_ptr<ConnectionState>)> final_callback);
+        const std::function<void(std::shared_ptr<ConnectionState>,
+                                 kagome::common::Buffer)> &final_callback);
 
     /**
      * Completion handler for read bytes operation in case a single line was
@@ -59,19 +53,29 @@ namespace libp2p::protocol_muxer {
      * @param read_bytes - how much bytes were read (or in this line)
      */
     static void onReadLineCompleted(
-        std::shared_ptr<ConnectionState> connection_state, uint64_t read_bytes);
+        std::shared_ptr<ConnectionState> connection_state,
+        kagome::common::Buffer line_bytes);
 
     /**
      * Completion handler for read bytes operation in case several lines (with
      * protocols) were expected to be read
      * @param connection_state - state of the connection
+     * @param protocols_bytes - bytes of the protocols
      * @param expected_protocols_size - how much (in bytes) the protocols take
      * @param expected_protocols_number - how much protocols were to be read
      */
     static void onReadProtocolsCompleted(
         std::shared_ptr<ConnectionState> connection_state,
-        uint64_t expected_protocols_size,
-        uint64_t expected_protocols_number);
+        kagome::common::Buffer protocols_bytes,
+        uint64_t expected_protocols_size, uint64_t expected_protocols_number);
+
+    /**
+     * Process error, appeared during the read
+     * @param connection_state - state of the connection
+     * @param ec - error code
+     */
+    static void processError(std::shared_ptr<ConnectionState> connection_state,
+                             const std::error_code &ec);
   };
 }  // namespace libp2p::protocol_muxer
 

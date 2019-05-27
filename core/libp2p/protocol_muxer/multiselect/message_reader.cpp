@@ -14,13 +14,14 @@
 namespace {
   using libp2p::multi::UVarint;
 
-  std::optional<UVarint> getVarint(boost::asio::streambuf &buffer) {
-    return UVarint::create(gsl::make_span(
-        static_cast<const uint8_t *>(buffer.data().data()), buffer.size()));
+  std::optional<UVarint> getVarint(gsl::span<uint8_t> buffer) {
+    return UVarint::create(buffer);
   }
 }  // namespace
 
 namespace libp2p::protocol_muxer {
+  using kagome::common::Buffer;
+
   void MessageReader::readNextMessage(
       std::shared_ptr<ConnectionState> connection_state) {
     // start with reading a varint, which must be at the beginning of each
@@ -30,73 +31,49 @@ namespace libp2p::protocol_muxer {
 
   void MessageReader::readNextVarint(
       std::shared_ptr<ConnectionState> connection_state) {
-    // we don't know exact length of varint, so read byte-by-byte
-    auto state = connection_state;
-    state->read(1,
-                [connection_state = std::move(connection_state)](
-                    const std::error_code &ec, size_t n) mutable {
-                  if (ec || n != 1) {
-                    auto multiselect = connection_state->multiselect_;
-                    multiselect->onError(
-                        std::move(connection_state),
-                        "cannot read from the connection: " + ec.message(), ec);
-                    return;
-                  }
-                  onReadVarintCompleted(std::move(connection_state));
-                });
-  }
-
-  void MessageReader::onReadVarintCompleted(
-      std::shared_ptr<ConnectionState> connection_state) {
-    auto varint_opt = getVarint(*connection_state->read_buffer_);
-    if (!varint_opt) {
-      // no varint; continue reading
-      readNextVarint(std::move(connection_state));
-      return;
+    // we don't know a length of the varint, so gather it byte-by-byte
+    std::vector<uint8_t> varint_bytes{};
+    std::optional<UVarint> varint{std::nullopt};
+    while (!varint) {
+      auto varint_candidate_res = connection_state->read(1);
+      if (!varint_candidate_res) {
+        // something bad happened during read
+        processError(std::move(connection_state), varint_candidate_res.error());
+        return;
+      }
+      varint_bytes.push_back(varint_candidate_res.value()[0]);
+      varint = getVarint(varint_bytes);
     }
-    // we have length of the line to be read; do it
-    connection_state->read_buffer_->consume(varint_opt->size());
-    auto bytes_to_read = varint_opt->toUInt64();
-    readNextBytes(std::move(connection_state), bytes_to_read,
-                  [bytes_to_read](std::shared_ptr<ConnectionState> state) {
-                    onReadLineCompleted(std::move(state), bytes_to_read);
-                  });
+
+    // that varint tells us, how much bytes to read next; do it
+    readNextBytes(std::move(connection_state), varint->toUInt64(),
+                  onReadLineCompleted);
   }
 
   void MessageReader::readNextBytes(
       std::shared_ptr<ConnectionState> connection_state, uint64_t bytes_to_read,
-      std::function<void(std::shared_ptr<ConnectionState>)> final_callback) {
-    auto state = connection_state;
-    state->read(bytes_to_read,
-                [connection_state = std::move(connection_state), bytes_to_read,
-                 final_callback = std::move(final_callback)](
-                    const std::error_code &ec, size_t n) mutable {
-                  if (ec || n != bytes_to_read) {
-                    auto multiselect = connection_state->multiselect_;
-                    multiselect->onError(
-                        std::move(connection_state),
-                        "cannot read from the connection: " + ec.message(), ec);
-                    return;
-                  }
-                  final_callback(std::move(connection_state));
-                });
+      const std::function<void(std::shared_ptr<ConnectionState>, Buffer)>
+          &final_callback) {
+    auto bytes_res = connection_state->read(bytes_to_read);
+    if (!bytes_res) {
+      processError(std::move(connection_state), bytes_res.error());
+      return;
+    }
+    final_callback(std::move(connection_state),
+                   Buffer{std::move(bytes_res.value())});
   }
 
   void MessageReader::onReadLineCompleted(
-      std::shared_ptr<ConnectionState> connection_state, uint64_t read_bytes) {
+      std::shared_ptr<ConnectionState> connection_state, Buffer line_bytes) {
     // '/tls/1.3.0\n' - the shortest protocol, which could be found
     static constexpr size_t kShortestProtocolLength = 11;
 
     auto multiselect = connection_state->multiselect_;
 
-    auto msg_span =
-        gsl::make_span(static_cast<const uint8_t *>(
-                           connection_state->read_buffer_->data().data()),
-                       read_bytes);
-    connection_state->read_buffer_->consume(msg_span.size());
+    gsl::span<const uint8_t> line_span = line_bytes.toVector();
 
     // firstly, try to match the message against constant messages
-    auto const_msg_res = MessageManager::parseConstantMsg(msg_span);
+    auto const_msg_res = MessageManager::parseConstantMsg(line_span);
     if (const_msg_res) {
       multiselect->onReadCompleted(std::move(connection_state),
                                    std::move(const_msg_res.value()));
@@ -118,17 +95,17 @@ namespace libp2p::protocol_muxer {
     // longer or equal to the shortest protocol length; varints should be very
     // big for it to happen; thus, continue parsing depending on the length of
     // the current string
-    if (read_bytes < kShortestProtocolLength) {
-      auto proto_header_res = MessageManager::parseProtocolsHeader(msg_span);
+    if (line_bytes.size() < kShortestProtocolLength) {
+      auto proto_header_res = MessageManager::parseProtocolsHeader(line_span);
       if (proto_header_res) {
         auto proto_header = proto_header_res.value();
-        readNextBytes(std::move(connection_state),
-                      proto_header.size_of_protocols_,
-                      [proto_header](std::shared_ptr<ConnectionState> state) {
-                        onReadProtocolsCompleted(
-                            std::move(state), proto_header.size_of_protocols_,
-                            proto_header.number_of_protocols_);
-                      });
+        readNextBytes(
+            std::move(connection_state), proto_header.size_of_protocols_,
+            [proto_header](std::shared_ptr<ConnectionState> state, Buffer buf) {
+              onReadProtocolsCompleted(std::move(state), std::move(buf),
+                                       proto_header.size_of_protocols_,
+                                       proto_header.number_of_protocols_);
+            });
       } else {
         multiselect->onError(
             std::move(connection_state),
@@ -138,7 +115,7 @@ namespace libp2p::protocol_muxer {
       return;
     }
 
-    auto proto_res = MessageManager::parseProtocol(msg_span, read_bytes);
+    auto proto_res = MessageManager::parseProtocol(line_span);
     if (!proto_res) {
       multiselect->onError(
           std::move(connection_state),
@@ -152,16 +129,12 @@ namespace libp2p::protocol_muxer {
   }
 
   void MessageReader::onReadProtocolsCompleted(
-      std::shared_ptr<ConnectionState> connection_state,
+      std::shared_ptr<ConnectionState> connection_state, Buffer protocols_bytes,
       uint64_t expected_protocols_size, uint64_t expected_protocols_number) {
     auto multiselect = connection_state->multiselect_;
 
-    auto msg_res = MessageManager::parseProtocols(
-        gsl::make_span(static_cast<const uint8_t *>(
-                           connection_state->read_buffer_->data().data()),
-                       expected_protocols_size),
-        expected_protocols_number);
-    connection_state->read_buffer_->consume(expected_protocols_size);
+    auto msg_res = MessageManager::parseProtocols(protocols_bytes.toVector(),
+                                                  expected_protocols_number);
     if (!msg_res) {
       multiselect->onError(
           std::move(connection_state),
@@ -172,5 +145,14 @@ namespace libp2p::protocol_muxer {
 
     multiselect->onReadCompleted(std::move(connection_state),
                                  std::move(msg_res.value()));
+  }
+
+  void MessageReader::processError(
+      std::shared_ptr<ConnectionState> connection_state,
+      const std::error_code &ec) {
+    auto multiselect = connection_state->multiselect_;
+    multiselect->onError(std::move(connection_state),
+                         "cannot read from the connection: " + ec.message(),
+                         ec);
   }
 }  // namespace libp2p::protocol_muxer

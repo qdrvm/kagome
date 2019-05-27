@@ -10,9 +10,10 @@
 #include <memory>
 
 #include <outcome/outcome.hpp>
-#include "libp2p/peer/protocol.hpp"
-#include "libp2p/stream/stream.hpp"
 #include "libp2p/connection/raw_connection.hpp"
+#include "libp2p/connection/secure_connection.hpp"
+#include "libp2p/connection/stream.hpp"
+#include "libp2p/peer/protocol.hpp"
 
 namespace libp2p::protocol_muxer {
   /**
@@ -49,7 +50,7 @@ namespace libp2p::protocol_muxer {
      * protocol is chosen or error occurs
      */
     virtual void negotiateEncryption(
-        std::shared_ptr<transport::Connection> connection,
+        std::shared_ptr<connection::RawConnection> connection,
         ChosenProtocolCallback protocol_callback) = 0;
 
     /**
@@ -59,20 +60,17 @@ namespace libp2p::protocol_muxer {
      * protocol is chosen or error occurs
      */
     virtual void negotiateMultiplexer(
-        std::shared_ptr<transport::Connection> connection,
+        std::shared_ptr<connection::SecureConnection> connection,
         ChosenProtocolCallback protocol_callback) = 0;
-
-    using ChosenProtocolAndStreamCallback = std::function<void(
-        outcome::result<peer::Protocol>, std::unique_ptr<stream::Stream>)>;
 
     /**
      * Negotiate about the stream protocol with the other side
      * @param stream to be negotiated over
-     * @param cb, which is going to be called, when the
-     * protocol is chosen or error occurs
+     * @param protocol_callback, which is going to be called, when the protocol
+     * is chosen or error occurs
      */
-    virtual void negotiateStream(std::unique_ptr<stream::Stream> stream,
-                                 ChosenProtocolAndStreamCallback cb) = 0;
+    virtual void negotiateStream(std::shared_ptr<connection::Stream> stream,
+                                 ChosenProtocolCallback protocol_callback) = 0;
 
     virtual ~ProtocolMuxer() = default;
   };
