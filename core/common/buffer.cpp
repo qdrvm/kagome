@@ -35,10 +35,6 @@ namespace kagome::common {
     return *this;
   }
 
-  const uint8_t *Buffer::toBytes() const {
-    return data_.data();
-  }
-
   std::string Buffer::toHex() const {
     return hex_upper(data_);
   }
@@ -158,10 +154,6 @@ namespace kagome::common {
   Buffer &Buffer::resize(size_t size) {
     data_.resize(size);
     return *this;
-  }
-
-  uint8_t *Buffer::toBytes() {
-    return data_.data();
   }
 
   Buffer &Buffer::operator+=(const Buffer &other) noexcept {

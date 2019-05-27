@@ -171,9 +171,6 @@ namespace kagome::common {
     /**
      * @brief getter for raw array of bytes
      */
-    const uint8_t *toBytes() const;
-    uint8_t *toBytes();
-
     const uint8_t *data() const;
     uint8_t *data();
 

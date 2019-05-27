@@ -14,29 +14,28 @@
 namespace kagome::hash {
 
   HasherImpl::Hash128 HasherImpl::twox_128(
-      const HasherImpl::Buffer &buffer) const {
+      gsl::span<const uint8_t> buffer) const {
     Hash128 out;
-    crypto::make_twox128(buffer.toBytes(), buffer.size(), out.data());
+    crypto::make_twox128(buffer.data(), buffer.size(), out.data());
     return out;
   }
 
   HasherImpl::Hash256 HasherImpl::twox_256(
-      const HasherImpl::Buffer &buffer) const {
+      gsl::span<const uint8_t> buffer) const {
     Hash256 out;
-    crypto::make_twox256(buffer.toBytes(), buffer.size(), out.data());
+    crypto::make_twox256(buffer.data(), buffer.size(), out.data());
     return out;
   }
 
   HasherImpl::Hash256 HasherImpl::blake2_256(
-      const HasherImpl::Buffer &buffer) const {
+      gsl::span<const uint8_t> buffer) const {
     Hash256 out;
-    blake2b(out.data(), 32, nullptr, 0, buffer.toBytes(), buffer.size());
+    blake2b(out.data(), 32, nullptr, 0, buffer.data(), buffer.size());
     return out;
   }
 
   HasherImpl::Hash256 HasherImpl::sha2_256(
-      const HasherImpl::Buffer &buffer) const {
-    return crypto::sha256(
-        {buffer.toBytes(), static_cast<int64_t>(buffer.size())});
+      gsl::span<const uint8_t> buffer) const {
+    return crypto::sha256(buffer);
   }
 }  // namespace kagome::hash

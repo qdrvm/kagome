@@ -59,8 +59,7 @@ namespace libp2p::multi {
 
   outcome::result<Multistream> Multistream::create(const Buffer &bytes) {
     size_t varint_length = UVarint::calculateSize(bytes.toVector());
-    UVarint size =
-        UVarint(gsl::span<const uint8_t>(bytes.toBytes(), varint_length));
+    UVarint size(bytes);
 
     auto path_end = std::find(bytes.begin() + varint_length, bytes.end(), '\n');
     if (path_end == bytes.end()) {

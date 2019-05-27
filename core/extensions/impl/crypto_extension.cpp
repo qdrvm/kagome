@@ -25,7 +25,7 @@ namespace kagome::extensions {
     const auto &buf = memory_->loadN(data, len);
 
     std::array<uint8_t, 32> hash{};
-    blake2b(hash.data(), hash.size(), nullptr, 0, buf.toBytes(), buf.size());
+    blake2b(hash.data(), hash.size(), nullptr, 0, buf.data(), buf.size());
 
     memory_->storeBuffer(out_ptr, common::Buffer(hash));
   }
@@ -51,7 +51,7 @@ namespace kagome::extensions {
     gsl::span<uint8_t> pubkey_span(pubkey.data);
     std::copy(pubkey_bytes.begin(), pubkey_bytes.end(), pubkey_span.begin());
 
-    return ed25519_verify(&signature, msg.toBytes(), msg_len, &pubkey)
+    return ed25519_verify(&signature, msg.data(), msg_len, &pubkey)
             == ED25519_SUCCESS
         ? kVerifySuccess
         : kVerifyFail;
@@ -72,7 +72,7 @@ namespace kagome::extensions {
     auto pubkey =
         memory_->loadN(pubkey_data, SR25519_PUBLIC_SIZE);
 
-    return sr25519_verify(signature.toBytes(), msg.toBytes(), msg_len, pubkey.toBytes())
+    return sr25519_verify(signature.data(), msg.data(), msg_len, pubkey.data())
         ? kVerifySuccess
         : kVerifyFail;
   }

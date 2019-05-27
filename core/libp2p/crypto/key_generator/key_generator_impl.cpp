@@ -29,7 +29,7 @@ namespace libp2p::crypto {
     auto bytes = random_provider_.randomBytes(kSeedBytesCount);
     // seeding random generator is required prior to calling RSA_generate_key
     // NOLINTNEXTLINE
-    RAND_seed(static_cast<const void *>(bytes.toBytes()), bytes.size());
+    RAND_seed(static_cast<const void *>(bytes.data()), bytes.size());
   }
 
   namespace detail {
@@ -42,7 +42,7 @@ namespace libp2p::crypto {
 
     outcome::result<PublicKey> deriveRsaPublicKey(const PrivateKey &key) {
       BIO *bio_private = BIO_new_mem_buf(
-          static_cast<const void *>(key.data.toBytes()), key.data.size());
+          static_cast<const void *>(key.data.data()), key.data.size());
       if (nullptr == bio_private) {
         return KeyGeneratorError::KEY_DERIVATION_FAILED;
       }
@@ -72,7 +72,7 @@ namespace libp2p::crypto {
     outcome::result<PublicKey> deriveNonRsaPublicKey(const PrivateKey &key) {
       auto &buffer = key.data;
       BIO *bio_private = BIO_new_mem_buf(
-          static_cast<const void *>(buffer.toBytes()), buffer.size());
+          static_cast<const void *>(buffer.data()), buffer.size());
       if (nullptr == bio_private) {
         return KeyGeneratorError::KEY_DERIVATION_FAILED;
       }

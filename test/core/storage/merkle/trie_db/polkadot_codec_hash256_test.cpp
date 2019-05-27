@@ -28,7 +28,7 @@ TEST_P(Hash256Test, Valid) {
 
 Buffer getBlake2s(const Buffer &in) {
   Buffer out(32, 0);
-  blake2s(out.toBytes(), 32, nullptr, 0, in.toBytes(), in.size());
+  blake2s(out.data(), 32, nullptr, 0, in.data(), in.size());
   return out;
 }
 

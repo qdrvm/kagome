@@ -13,7 +13,6 @@ namespace kagome::hash {
   class Hasher {
     using Hash128 = kagome::common::Hash128;
     using Hash256 = kagome::common::Hash256;
-    using Buffer = kagome::common::Buffer;
 
    public:
     virtual ~Hasher() = default;
@@ -23,28 +22,28 @@ namespace kagome::hash {
      * @param buffer source buffer
      * @return 128-bit hash value
      */
-    virtual Hash128 twox_128(const Buffer &buffer) const = 0;
+    virtual Hash128 twox_128(gsl::span<const uint8_t> buffer) const = 0;
 
     /**
      * @brief hashTwox256 calculates 32-byte twox hash
      * @param buffer source buffer
      * @return 256-bit hash value
      */
-    virtual Hash256 twox_256(const Buffer &buffer) const = 0;
+    virtual Hash256 twox_256(gsl::span<const uint8_t> buffer) const = 0;
 
     /**
      * @brief hashBlake2_256 function calculates 32-byte blake2 hash
      * @param buffer source value
      * @return 256-bit hash value
      */
-    virtual Hash256 blake2_256(const Buffer &buffer) const = 0;
+    virtual Hash256 blake2_256(gsl::span<const uint8_t> buffer) const = 0;
 
     /**
      * @brief hashSha2_256 function calculates 32-byte sha-2-256 hash
      * @param buffer source value
      * @return 256-bit hash value
      */
-    virtual Hash256 sha2_256(const Buffer &buffer) const = 0;
+    virtual Hash256 sha2_256(gsl::span<const uint8_t> buffer) const = 0;
   };
 }  // namespace kagome::hash
 

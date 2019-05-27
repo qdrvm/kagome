@@ -19,6 +19,8 @@ namespace kagome::crypto {
     std::array<uint8_t, 32> data;
   };
 
+  // TODO(warchant): refactor to span
+
   Twox128Hash make_twox128(const common::Buffer &buf);
   Twox128Hash make_twox128(const uint8_t *buf, size_t len);
   void make_twox128(const common::Buffer &in, common::Buffer &out);
