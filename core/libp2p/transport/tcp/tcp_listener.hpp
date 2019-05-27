@@ -6,15 +6,18 @@
 #ifndef KAGOME_TCP_LISTENER_HPP
 #define KAGOME_TCP_LISTENER_HPP
 
-#include "libp2p/transport/transport_listener.hpp"
-
 #include <boost/asio.hpp>
 #include <ufiber/ufiber.hpp>
 #include "libp2p/transport/tcp/tcp_connection.hpp"
 #include "libp2p/transport/tcp/tcp_util.hpp"
+#include "libp2p/transport/transport_listener.hpp"
 
 namespace libp2p::transport {
 
+  /**
+   * @brief TCP Server (Listener) implementation.
+   * @tparam Executor asio executor type - can be a io_context, strand, or custom.
+   */
   template <typename Executor,
             typename = typename std::enable_if<
                 boost::asio::is_executor<Executor>::value>::type>
@@ -38,7 +41,7 @@ namespace libp2p::transport {
       }
 
       // TODO(@warchant): replace with parser PRE-129
-      using namespace boost::asio; // NOLINT
+      using namespace boost::asio;  // NOLINT
       try {
         // throws
         auto endpoint = detail::make_endpoint(address);

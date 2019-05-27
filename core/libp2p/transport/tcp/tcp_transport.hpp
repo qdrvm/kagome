@@ -10,13 +10,16 @@
 
 #include <boost/asio.hpp>
 #include <ufiber/ufiber.hpp>
-
 #include "libp2p/transport/tcp/tcp_listener.hpp"
 #include "libp2p/transport/tcp/tcp_util.hpp"
 #include "libp2p/transport/transport.hpp"
 
 namespace libp2p::transport {
 
+  /**
+   * @brief TCP Transport implementation
+   * @tparam Executor executor type - io context executor, strand or custom
+   */
   template <typename Executor,
             typename = typename std::enable_if<
                 boost::asio::is_executor<Executor>::value>::type>
@@ -55,7 +58,7 @@ namespace libp2p::transport {
               {
                 auto r = v(std::move(conn));
                 if (!r) {
-                  // report error, if user specified callback returndd error.
+                  // report error, if user specified callback returned error.
                   return e(r.error());
                 }
               }

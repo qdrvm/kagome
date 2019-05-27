@@ -26,7 +26,7 @@ void logError(const std::error_code &ec) {
   std::cout << "error(" << ec.value() << "): " << ec.message() << "\n";
 }
 
-void expectConnectionValid(std::shared_ptr<RawConnection> conn){
+void expectConnectionValid(std::shared_ptr<RawConnection> conn) {
   EXPECT_TRUE(conn);
 
   EXPECT_OUTCOME_TRUE(mar, conn->remoteMultiaddr());
@@ -84,8 +84,8 @@ TEST(TCP, TwoListenersCantBindOnSamePort) {
  * @then each client is expected to receive sent message
  */
 TEST(TCP, SingleListenerCanAcceptManyClients) {
-  const int kClients = 4;
-  const int kSize = 1500;
+  constexpr static int kClients = 4;
+  constexpr static int kSize = 1500;
   size_t counter = 0;  // number of answers
 
   boost::asio::io_context context(1);

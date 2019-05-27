@@ -78,6 +78,11 @@ namespace libp2p::multi {
      */
     bool decapsulate(Protocol::Code proto);
 
+    /**
+     * @brief Tests if {@param code} exists in this multiaddr.
+     * @param code protocol to be tested
+     * @return true if exists, false otherwise
+     */
     bool hasProtocol(Protocol::Code code) const;
 
     /**

@@ -8,12 +8,10 @@
 
 #define BOOST_ASIO_NO_DEPRECATED
 
-#include "libp2p/connection/raw_connection.hpp"
-
-#include <array>
 #include <boost/asio.hpp>
 #include <boost/noncopyable.hpp>
 #include <ufiber/ufiber.hpp>
+#include "libp2p/connection/raw_connection.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/transport/tcp/tcp_util.hpp"
 
@@ -35,7 +33,7 @@ namespace libp2p::transport {
     using executor_t = Executor;
     using yield_t = ufiber::yield_token<Executor>;
 
-    explicit TcpConnection(yield_t &yield, Tcp::socket &&socket)
+    TcpConnection(yield_t &yield, Tcp::socket &&socket)
         : yield_(yield), socket_(std::move(socket)) {}
 
     explicit TcpConnection(yield_t &yield)
@@ -98,12 +96,6 @@ namespace libp2p::transport {
       return out;
     };
 
-    /**
-     * @brief Blocks until any number (not more that {@param bytes}) of bytes
-     * are read.
-     * @param bytes number of bytes to read
-     * @return vector of bytes or error code
-     */
     outcome::result<std::vector<uint8_t>> readSome(size_t bytes) override {
       std::vector<uint8_t> out(bytes, 0);
       OUTCOME_TRY(size, readSome(out));

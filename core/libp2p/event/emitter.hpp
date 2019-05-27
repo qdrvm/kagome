@@ -104,10 +104,6 @@ namespace libp2p::event {
      */
     template <typename Event>
     Subscription on(const std::function<void(const Event &)> &handler) {
-      // TODO(@warchant): check that Event exists in Events
-      // possible solution (fails compilation):
-      //      static_assert((std::is_same_v<std::decay_t<Event>, Events> ||
-      //      ...));
       return Subscription(Base::template getSignal<Event>().connect(handler));
     }
 
@@ -119,10 +115,6 @@ namespace libp2p::event {
      */
     template <typename Event>
     void emit(Event &&event) {
-      // TODO(@warchant): check that Event exists in Events
-      // possible solution (fails compilation):
-      //      static_assert((std::is_same_v<std::decay_t<Event>, Events> ||
-      //      ...));
       Base::template getSignal<Event>()(std::forward<Event>(event));
     }
   };
