@@ -19,9 +19,7 @@ namespace libp2p::testing {
 
   void TransportFixture::init() {
     // create transport
-    transport_ =
-        std::make_unique<TcpTransport<decltype(context_.get_executor())>>(
-            context_.get_executor());
+    transport_ = std::make_unique<TcpTransport<decltype(executor_)>>(executor_);
     ASSERT_TRUE(transport_) << "cannot create transport";
 
     // create multiaddress, from which we are going to connect
@@ -41,7 +39,7 @@ namespace libp2p::testing {
           connection_ = std::move(c);
           return outcome::success();
         },
-        [](auto &&) { FAIL() << "cannot dial"; });
+        [](auto &&) { FAIL() << "cannot dial"; });  // NOLINT
   }
 
   void TransportFixture::launchContext() {

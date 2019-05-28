@@ -8,7 +8,6 @@ add_library(transport_test_fixture
     transport_fixture.hpp
     )
 target_link_libraries(transport_test_fixture
-    yamux
-    libp2p_transport
     multiaddress
+    ufiber
     )
