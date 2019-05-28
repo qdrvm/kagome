@@ -12,34 +12,32 @@ namespace libp2p::testing {
   using kagome::common::Buffer;
   using libp2p::multi::Multiaddress;
   using libp2p::transport::TcpTransport;
+  using transport::TransportListener;
+
+  TransportFixture::TransportFixture()
+      : context_{1}, executor_{context_.get_executor()} {}
 
   void TransportFixture::SetUp() {
-    init();
-  }
-
-  void TransportFixture::init() {
-    // create transport
-    transport_ = std::make_unique<TcpTransport<decltype(executor_)>>(executor_);
-    ASSERT_TRUE(transport_) << "cannot create transport";
+    transport_ = std::make_shared<TcpTransport<decltype(executor_)>>(executor_);
+    ASSERT_TRUE(transport_) << "cannot create transport1";
 
     // create multiaddress, from which we are going to connect
     auto ma = "/ip4/127.0.0.1/tcp/40009"_multiaddr;
     multiaddress_ = std::make_shared<Multiaddress>(std::move(ma));
   }
 
-  void TransportFixture::defaultDial() {
-    // make the listener listen to the multiaddress
+  void TransportFixture::server(
+      const TransportListener::HandlerFunc &on_success,
+      const TransportListener::ErrorFunc &on_error) {
+    transport_listener_ = transport_->createListener(on_success, on_error);
     EXPECT_TRUE(transport_listener_->listen(*multiaddress_))
         << "is port 40009 busy?";
+  }
 
-    // dial to our "server", getting a connection
-    transport_->dial(
-        *multiaddress_,
-        [this](std::shared_ptr<connection::RawConnection> c) {
-          connection_ = std::move(c);
-          return outcome::success();
-        },
-        [](auto &&) { FAIL() << "cannot dial"; });  // NOLINT
+  void TransportFixture::client(
+      const TransportListener::HandlerFunc &on_success,
+      const TransportListener::ErrorFunc &on_error) {
+    transport_->dial(*multiaddress_, on_success, on_error);
   }
 
   void TransportFixture::launchContext() {

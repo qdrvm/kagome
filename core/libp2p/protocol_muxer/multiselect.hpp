@@ -8,4 +8,4 @@
 
 #include "libp2p/protocol_muxer/multiselect/multiselect.hpp"
 
-#endif //KAGOME_MULTISELECT_HPP
+#endif  // KAGOME_MULTISELECT_HPP

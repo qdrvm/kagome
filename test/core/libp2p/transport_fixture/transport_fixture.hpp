@@ -10,45 +10,48 @@
 
 #include <gtest/gtest.h>
 #include <boost/asio/io_context.hpp>
-#include <testutil/outcome.hpp>
-#include "libp2p/basic/readwritecloser.hpp"
+#include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/transport/transport.hpp"
 #include "libp2p/transport/transport_listener.hpp"
 
 namespace libp2p::testing {
   /**
-   * Support class, allowing to have a Yamuxed preset TCP connection
+   * Support class, allowing to have a preset TCP connection
    */
   class TransportFixture : public ::testing::Test {
    public:
+    TransportFixture();
+
     void SetUp() override;
 
     /**
-     * Initialize:
-     *    - transport
-     *    - default multiaddress
+     * Provide functions to be executed as a server side of the connection
+     * @param on_success - function to be executed in case of success
+     * @param on_error  - function to be executed in case of failure
      */
-    void init();
+    void server(const transport::TransportListener::HandlerFunc &on_success,
+                const transport::TransportListener::ErrorFunc &on_error);
 
     /**
-     * Dial to the default transport via the default multiaddress with a local
-     * listener; that listener MUST be created beforehand from the local
-     * transport
+     * Provide functions to be executed as a client side of the connection
+     * @param on_success - function to be executed in case of success
+     * @param on_error  - function to be executed in case of failure
      */
-    void defaultDial();
+    void client(const transport::TransportListener::HandlerFunc &on_success,
+                const transport::TransportListener::ErrorFunc &on_error);
 
     /**
-     * Run the context for some time to execute async operations
+     * Run the context for some time, enough to execute async operations
      */
     void launchContext();
 
-    boost::asio::io_context context_{1};
-    boost::asio::io_context::executor_type executor_ = context_.get_executor();
+   private:
+    boost::asio::io_context context_;
+    boost::asio::io_context::executor_type executor_;
 
-    std::unique_ptr<libp2p::transport::Transport> transport_;
+    std::shared_ptr<libp2p::transport::Transport> transport_;
     std::shared_ptr<libp2p::transport::TransportListener> transport_listener_;
     std::shared_ptr<libp2p::multi::Multiaddress> multiaddress_;
-    std::shared_ptr<libp2p::basic::ReadWriteCloser> connection_;
   };
 }  // namespace libp2p::testing
 
