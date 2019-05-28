@@ -9,9 +9,9 @@
 #include <deque>
 #include <optional>
 
-#include "common/type_traits.hpp"
 #include "common/blob.hpp"
 #include "common/byte_stream.hpp"
+#include "common/type_traits.hpp"
 #include "scale/compact.hpp"
 #include "scale/fixedwidth.hpp"
 #include "scale/util.hpp"
@@ -148,6 +148,16 @@ namespace kagome::scale {
       return put(v.begin(), v.end());
     }
     /**
+     * @brief scale-encodes std::reference_wrapper of a type
+     * @tparam T underlying type
+     * @param v value to encode
+     * @return reference to stream;
+     */
+    template <class T>
+    ScaleEncoderStream &operator<<(const std::reference_wrapper<T> &v) {
+      return *this << static_cast<const T&>(v);
+    }
+    /**
      * @brief scale-encodes common::Buffer as collection of bytes
      * @param v buffer to encode
      * @return reference to stream
@@ -171,8 +181,7 @@ namespace kagome::scale {
      * @param v value of integral type
      * @return reference to stream
      */
-    template <typename T,
-              typename I = common::remove_cv_ref_t<T>,
+    template <typename T, typename I = common::remove_cv_ref_t<T>,
               typename = std::enable_if_t<std::is_integral<I>::value>>
     ScaleEncoderStream &operator<<(T &&v) {
       // encode bool
@@ -198,7 +207,6 @@ namespace kagome::scale {
      */
     ScaleEncoderStream &operator<<(tribool v);
 
-   protected:
     /**
      * @brief scale-encodes any collection
      * @tparam It iterator over collection of bytes
@@ -211,7 +219,7 @@ namespace kagome::scale {
     ScaleEncoderStream &encodeCollection(const BigInteger &size, It &&begin,
                                          It &&end) {
       *this << size;
-      for (auto &&it = begin; it != end; ++it) { // NOLINT
+      for (auto &&it = begin; it != end; ++it) {  // NOLINT
         *this << *it;
       }
       return *this;
