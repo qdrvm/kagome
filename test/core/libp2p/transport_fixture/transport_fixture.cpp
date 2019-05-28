@@ -5,14 +5,13 @@
 
 #include "core/libp2p/transport_fixture/transport_fixture.hpp"
 
-#include "libp2p/transport/impl/transport_impl.hpp"
+#include "libp2p/transport/tcp.hpp"
 #include "testutil/literals.hpp"
 
 namespace libp2p::testing {
   using kagome::common::Buffer;
   using libp2p::multi::Multiaddress;
-  using libp2p::transport::Connection;
-  using libp2p::transport::TransportImpl;
+  using libp2p::transport::TcpTransport;
 
   void TransportFixture::SetUp() {
     init();
@@ -20,7 +19,9 @@ namespace libp2p::testing {
 
   void TransportFixture::init() {
     // create transport
-    transport_ = std::make_unique<TransportImpl>(context_);
+    transport_ =
+        std::make_unique<TcpTransport<decltype(context_.get_executor())>>(
+            context_.get_executor());
     ASSERT_TRUE(transport_) << "cannot create transport";
 
     // create multiaddress, from which we are going to connect
@@ -34,8 +35,13 @@ namespace libp2p::testing {
         << "is port 40009 busy?";
 
     // dial to our "server", getting a connection
-    EXPECT_OUTCOME_TRUE(conn, transport_->dial(*multiaddress_))
-    connection_ = std::move(conn);
+    transport_->dial(
+        *multiaddress_,
+        [this](std::shared_ptr<connection::RawConnection> c) {
+          connection_ = std::move(c);
+          return outcome::success();
+        },
+        [](auto &&) { FAIL() << "cannot dial"; });
   }
 
   void TransportFixture::launchContext() {

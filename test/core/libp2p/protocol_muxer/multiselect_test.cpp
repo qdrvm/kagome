@@ -8,17 +8,17 @@
 #include <gtest/gtest.h>
 #include <testutil/outcome.hpp>
 #include "core/libp2p/transport_fixture/transport_fixture.hpp"
-#include "libp2p/muxer/yamux.hpp"
+#include "mock/libp2p/connection/raw_connection_mock.hpp"
+#include "mock/libp2p/connection/secure_connection_mock.hpp"
+#include "mock/libp2p/connection/stream_mock.hpp"
 
 using kagome::common::Buffer;
-using libp2p::muxer::Yamux;
-using libp2p::muxer::YamuxConfig;
+using libp2p::basic::ReadWriteCloser;
+using libp2p::connection::RawConnection;
 using libp2p::peer::Protocol;
 using libp2p::protocol_muxer::MessageManager;
 using libp2p::protocol_muxer::Multiselect;
 using libp2p::protocol_muxer::ProtocolMuxer;
-using libp2p::stream::Stream;
-using libp2p::transport::Connection;
 
 class MultiselectTest : public libp2p::testing::TransportFixture {
  public:
@@ -26,12 +26,13 @@ class MultiselectTest : public libp2p::testing::TransportFixture {
     libp2p::testing::TransportFixture::SetUp();
 
     // connection for "another" peer
-    transport_listener_ =
-        transport_->createListener([this](std::shared_ptr<Connection> conn) {
+    transport_listener_ = transport_->createListener(
+        [this](std::shared_ptr<RawConnection> conn) {
           this->other_peers_connection_ = std::move(conn);
-        });
+          return outcome::success();
+        },
+        [](auto &&) { FAIL() << "cannot create listener"; });
     defaultDial();
-    launchContext();
     launchContext();
 
     ASSERT_TRUE(connection_);
@@ -44,7 +45,7 @@ class MultiselectTest : public libp2p::testing::TransportFixture {
   const Protocol kDefaultStreamProtocol = "/http/2.2.8";
 
   std::shared_ptr<Multiselect> multiselect_ = std::make_shared<Multiselect>();
-  std::shared_ptr<Connection> other_peers_connection_;
+  std::shared_ptr<ReadWriteCloser> other_peers_connection_;
 
   /**
    * Exchange opening messages with the other side
@@ -52,22 +53,15 @@ class MultiselectTest : public libp2p::testing::TransportFixture {
   void negotiationOpenings() const {
     auto expected_opening_msg =
         std::make_shared<Buffer>(MessageManager::openingMsg());
-    auto opening_msg_buf =
-        std::make_shared<Buffer>(expected_opening_msg->size(), 0);
-    other_peers_connection_->asyncRead(
-        boost::asio::buffer(opening_msg_buf->toVector()),
-        expected_opening_msg->size(),
-        [this, expected_opening_msg, opening_msg_buf](const std::error_code &ec,
-                                                      size_t n) {
-          CHECK_IO_SUCCESS(ec, n, expected_opening_msg->size())
-          ASSERT_EQ(*opening_msg_buf, *expected_opening_msg);
 
-          other_peers_connection_->asyncWrite(
-              boost::asio::buffer(expected_opening_msg->toVector()),
-              [expected_opening_msg](const std::error_code &ec, size_t n) {
-                CHECK_IO_SUCCESS(ec, n, expected_opening_msg->size())
-              });
-        });
+    EXPECT_OUTCOME_TRUE(
+        read_msg, other_peers_connection_->read(expected_opening_msg->size()))
+    ASSERT_EQ(read_msg, expected_opening_msg->toVector());
+
+    EXPECT_OUTCOME_TRUE(
+        written_bytes,
+        other_peers_connection_->write(expected_opening_msg->toVector()))
+    ASSERT_EQ(written_bytes, expected_opening_msg->size());
   }
 
   /**
