@@ -11,7 +11,6 @@
 #include "common/byte_stream.hpp"
 #include "scale/fixedwidth.hpp"
 #include "scale/type_decoder.hpp"
-#include "scale/type_encoder.hpp"
 
 namespace kagome::scale {
   // TODO(yuraz): PRE-119 refactor scale

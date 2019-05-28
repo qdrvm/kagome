@@ -11,7 +11,6 @@
 #include "scale/fixedwidth.hpp"
 #include "scale/scale_encoder_stream.hpp"
 #include "scale/type_decoder.hpp"
-#include "scale/type_encoder.hpp"
 
 namespace kagome::scale::collection {
   /**

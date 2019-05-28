@@ -35,7 +35,6 @@ add_library(scale
     scale_error.cpp
     types.hpp
     type_decoder.hpp
-    type_encoder.hpp
     detail/fixed_witdh_integer.hpp
     variant.hpp
     )
