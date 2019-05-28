@@ -11,12 +11,12 @@
 #include "scale/scale_error.hpp"
 #include "testutil/literals.hpp"
 
+using kagome::common::Buffer;
 using kagome::scale::BigInteger;
 using kagome::scale::ByteArray;
 using kagome::scale::ByteArrayStream;
 using kagome::scale::ScaleEncoderStream;
 using kagome::scale::compact::decodeInteger;
-using kagome::common::Buffer;
 
 /**
  * value parameterized tests
@@ -105,7 +105,7 @@ TEST(ScaleCompactTest, EncodeNegativeIntegerFails) {
  * @when encode it a directly as BigInteger
  * @then obtain kValueIsTooBig error
  */
-TEST(ScaleCompactTest, EncodeOutOfRangeBigInteger) {
+TEST(ScaleCompactTest, EncodeOutOfRangeBigIntegerFails) {
   // try to encode out of range big integer value MAX_BIGINT + 1 == 2^536
   // too big value, even for big integer case
   // we are going to have kValueIsTooBig error
@@ -274,41 +274,5 @@ TEST(Scale, compactDecodeBigIntegerError) {
   auto &&result = decodeInteger(stream);
   ASSERT_FALSE(result);
   ASSERT_EQ(result.error().value(),
-            static_cast<int>(DecodeError::NOT_ENOUGH_DATA));
-}
-
-/**
- * Negative tests
- */
-
-/**
- * @given a negative value -1
- * (negative values are not supported by compact encoding)
- * @when trying to encode this value
- * @then obtain kValueIsTooBig error
- */
-TEST(ScaleCompactTest, EncodeNegativeIntegerFails) {
-  BigInteger v(-1);
-  ScaleEncoderStream out;
-  ASSERT_ANY_THROW((out << v));
-  ASSERT_EQ(out.getBuffer().size(), 0);  // nothing was written to buffer
-}
-
-/**
- * @given a BigInteger value exceeding the range supported by scale
- * @when encode it a directly as BigInteger
- * @then obtain kValueIsTooBig error
- */
-TEST(ScaleCompactTest, EncodeOutOfRangeBigInteger) {
-  // try to encode out of range big integer value MAX_BIGINT + 1 == 2^536
-  // too big value, even for big integer case
-  // we are going to have kValueIsTooBig error
-  BigInteger v(
-      "224945689727159819140526925384299092943484855915095831"
-      "655037778630591879033574393515952034305194542857496045"
-      "531676044756160413302774714984450425759043258192756736");  // 2^536
-
-  ScaleEncoderStream out;
-  ASSERT_ANY_THROW((out << v));          // value is too big, it is not encoded
-  ASSERT_EQ(out.getBuffer().size(), 0);  // nothing was written to buffer
+            static_cast<int>(kagome::scale::DecodeError::NOT_ENOUGH_DATA));
 }
