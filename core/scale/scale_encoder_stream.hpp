@@ -208,7 +208,7 @@ namespace kagome::scale {
     ScaleEncoderStream &encodeCollection(const BigInteger &size, It &&begin,
                                          It &&end) {
       *this << size;
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       for (auto &&it = begin; it != end; ++it) {
         *this << *it;
       }
