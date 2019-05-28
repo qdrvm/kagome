@@ -22,6 +22,8 @@ namespace libp2p::protocol_muxer {
    */
   class ProtocolMuxer {
    public:
+    // TODO(akvinikym) 28.05.19 [PRE-189]: adders below are to be removed, when
+    // ProtocolRepository is reworked
     /**
      * Add a new encryption protocol, which can be handled by this node
      * @param protocol to be added
