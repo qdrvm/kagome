@@ -10,10 +10,9 @@
 #include "scale/compact.hpp"
 #include "scale/fixedwidth.hpp"
 #include "scale/types.hpp"
-#include "scale/util.hpp"
+#include "scale/detail/fixed_witdh_integer.hpp"
 
-// TODO(yuraz): PRE-119 conception of TypeEncoder/TypeDecoder needs to be
-// refactored
+// TODO(yuraz): PRE-119 this file will be removed
 
 namespace kagome::scale {
   /**
@@ -42,7 +41,7 @@ namespace kagome::scale {
       static_assert(std::is_integral<T>(),
                     "Only integral types are supported. You need to define "
                     "your own TypeDecoder specialization for custom type.");
-      return impl::decodeInteger<T>(stream);
+      return detail::decodeInteger<T>(stream);
     }
   };
 

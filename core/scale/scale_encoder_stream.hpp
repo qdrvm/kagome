@@ -14,7 +14,7 @@
 #include "common/type_traits.hpp"
 #include "scale/compact.hpp"
 #include "scale/fixedwidth.hpp"
-#include "scale/util.hpp"
+#include "scale/detail/fixed_witdh_integer.hpp"
 #include "scale/variant.hpp"
 
 namespace kagome::scale {
@@ -31,12 +31,9 @@ namespace kagome::scale {
      */
     Buffer getBuffer() const;
     /**
-     * @brief scale-encodes pair of values
-     * @tparam F first value type
-     * @tparam S second value type
-     * @param p pair of values to encode
-     * @return reference to stream
+     * @return vector of bytes containing encoded data
      */
+    std::vector<uint8_t> data() const;
 
     /// Appenders
     /**
@@ -57,14 +54,6 @@ namespace kagome::scale {
      * @return reference to stream
      */
     ScaleEncoderStream &put(const std::vector<uint8_t> &v);
-    /**
-     * @brief copies content between begin and end iterators to the end of
-     * stream
-     * @tparam It iterator type
-     * @param begin first iterator
-     * @param end last iterator
-     * @return reference to stream
-     */
 
     /// Encoders
     /**
@@ -81,10 +70,10 @@ namespace kagome::scale {
     }
 
     /**
-     * @brief scale-encodes pair of objects
-     * @tparam F first object type
-     * @tparam S second object type
-     * @param p pair to encode
+     * @brief scale-encodes pair of values
+     * @tparam F first value type
+     * @tparam S second value type
+     * @param p pair of values to encode
      * @return reference to stream
      */
     template <class F, class S>
@@ -190,7 +179,7 @@ namespace kagome::scale {
         return putByte(byte);
       }
       // encode any other integer
-      impl::encodeInteger<I>(v, *this);
+      detail::encodeInteger<I>(v, *this);
       return *this;
     }
 

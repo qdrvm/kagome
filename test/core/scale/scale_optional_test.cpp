@@ -14,7 +14,7 @@ using namespace kagome::common;  // NOLINT
 using namespace kagome::scale;   // NOLINT
 using kagome::scale::ScaleEncoderStream;
 
-// TODO(yuraz): PRE-*** refactor to parameterized tests
+// TODO(yuraz): PRE-119 refactor to parameterized tests
 /**
  * @given variety of optional values
  * @when encodeOptional function is applied

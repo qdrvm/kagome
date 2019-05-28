@@ -27,14 +27,18 @@ add_library(scale
     optional_bool.hpp
     optional_bool.cpp
     scale.hpp
+    scale_decoder_stream.hpp
+    scale_decoder_stream.cpp
+    scale_encoder_stream.hpp
+    scale_encoder_stream.cpp
     scale_error.hpp
     scale_error.cpp
     types.hpp
     type_decoder.hpp
     type_encoder.hpp
-    util.hpp
+    detail/fixed_witdh_integer.hpp
     variant.hpp
-    scale_encoder_stream.cpp scale_encoder_stream.hpp scale_decoder_stream.cpp scale_decoder_stream.hpp scale_stream.hpp)
+    )
 
 target_link_libraries(scale
     Boost::boost

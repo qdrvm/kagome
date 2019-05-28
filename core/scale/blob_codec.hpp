@@ -16,19 +16,6 @@
 namespace kagome::scale {
   // TODO(yuraz): PRE-119 refactor scale
   /**
-   * @brief scale encodes common::Blob
-   * @tparam sz Blob size
-   */
-  template <size_t sz>
-  struct TypeEncoder<common::Blob<sz>> {
-    using Blob = common::Blob<sz>;
-    outcome::result<void> encode(const Blob &blob, common::Buffer &out) {
-      out.put(blob);
-      return outcome::success();
-    }
-  };
-
-  /**
    * @brief scale decodes common::Blob
    * @tparam sz Blob size
    */

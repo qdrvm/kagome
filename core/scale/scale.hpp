@@ -6,83 +6,48 @@
 #ifndef KAGOME_SCALE_HPP
 #define KAGOME_SCALE_HPP
 
+#include <vector>
+
+#include <gsl/span>
+#include <boost/system/system_error.hpp>
+#include <boost/throw_exception.hpp>
+#include <outcome/outcome.hpp>
+#include "scale/scale_encoder_stream.hpp"
+#include "scale/scale_decoder_stream.hpp"
+
+namespace kagome::scale {
 /**
- * Scale namespace contains functions and classes
- * for encoding and decoding values in and from SCALE encoding.
- * There is no way to specify what exactly data is encoded,
- * and specification has no mentions concerning this fact.
- * However the SUBSTRATE documentation says directly, that
- * SCALE encoding is not self-describing and that encoding context
- * has to know what data it needs to decode.
- * In this concern, signed and unsigned integers encoded the same way.
- * When decoding you have to reinterpret integer value as signed
- * if you know it is signed.
- *
- * This library provides encoding and decoding following types:
- * ** Fixed width signed and unsigned 1,2,4 byte integers
- *    encoded little-endian
- *
- * ** Unsigned big integers in range 0..2^536-1
- *    use compact encoding, number of encoded bytes varies from 1 to 67
- *    depending on value
- *
- * ** Boolean values: false -> 0x00,
- *                    true  -> 0x01
- *
- * ** Tribool values: false is 0x00, true is 0x01, indeterminate is 0x02
- *
- * ** Collections of same type values
- *    Just like arrays they start with compact-encoded integer
- *    representing number of items in collection.
- *    After that collection of encoded items one by one,
- *    encoding depends on item type
- *
- * ** Optional values are encoded as follows:
- *    first byte is 0 when no value is provided, 1 - otherwise
- *    following bytes represent encoded values
- *
- *    Optional bool is a special case,
- *    they need only one byte: 0 - No value, 1 - false, 2 - true
- *
- * ** Tuples and structures
- *    Are simply concatenation of ordered encoded values
- *
- * ** Variant values
- *    Variants are encoded as follows:
- *    first byte represents index of type in variant
- *    following bytes are encoded value itself.
- *
- * The library consists of following header each representing own part
- * of functionality, and they can be used independently:
-
- * Fixed width integers operations
- * scale/fixedwidth.hpp
- *
- * Base compact operations:
- * scale/compact.hpp
- *
- * Boolean values operations:
- * common/scale/boolean.hpp
- *
- * Collection
- * scale/collection.hpp
- *
- * Optionals values operations:
- * scale/optional.hpp
- *
- * Variants
- * scale/variant.hpp
- *
- * Structures are user-defined type and need
- * to implement specialized TypeDecoder<>
- *
+ * @brief convenience function for encoding primitives data to stream
+ * @tparam T primitive type
+ * @param t data to encode
+ * @return encoded data
  */
+  template <class T>
+  outcome::result<std::vector<uint8_t>> scaleEncode(T &&t) {
+    try {
+      ScaleEncoderStream s;
+      s << t;
+      return s.data();
+    } catch (const boost::system::system_error &e) {
+      return e.code();
+    }
+  }
 
-#include "scale/boolean.hpp"
-#include "scale/collection.hpp"
-#include "scale/compact.hpp"
-#include "scale/fixedwidth.hpp"
-#include "scale/optional.hpp"
-#include "scale/variant.hpp"
-
+  /**
+   * @brief convenience function for decoding primitives data from stream
+   * @param span
+   * @return
+   */
+  template <class T>
+  outcome::result<T> scaleDecode(gsl::span<const uint8_t> span) {
+    try {
+      T t;
+      ScaleDecoderStream s(span);
+      s >> t;
+      return t;
+    } catch (const boost::system::system_error &e) {
+      return e.code();
+    }
+  }
+}  // namespace kagome::scale
 #endif  // KAGOME_SCALE_HPP

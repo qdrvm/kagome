@@ -12,11 +12,9 @@
 #include <vector>
 
 #include <boost/endian/arithmetic.hpp>
-#include "common/buffer.hpp"
 #include "scale/scale_error.hpp"
-#include "scale/types.hpp"
 
-namespace kagome::scale::impl {
+namespace kagome::scale::detail {
   /**
    * encodeInteger encodes any integer type to little-endian representation
    * @tparam T integer type
@@ -31,10 +29,10 @@ namespace kagome::scale::impl {
     constexpr size_t bits = size * 8;
     boost::endian::endian_buffer<boost::endian::order::little, T, bits> buf{};
     buf = value;
-    std::vector<uint8_t> tmp;
+    std::vector<uint8_t> tmp(size, 0u);
     for (size_t i = 0; i < size; ++i) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-      tmp.push_back(buf.data()[i]);
+      tmp[i] = buf.data()[i];
     }
     out.put(tmp);
   }

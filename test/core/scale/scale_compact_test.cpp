@@ -11,20 +11,21 @@
 #include "scale/scale_error.hpp"
 #include "testutil/literals.hpp"
 
-using namespace kagome::common;  // NOLINT
-using namespace kagome::scale;   // NOLINT
 using kagome::scale::BigInteger;
+using kagome::scale::ByteArray;
+using kagome::scale::ByteArrayStream;
 using kagome::scale::ScaleEncoderStream;
+using kagome::scale::compact::decodeInteger;
+using kagome::common::Buffer;
 
 /**
  * value parameterized tests
  */
-
 class CompactTest
-    : public ::testing::TestWithParam<std::pair<BigInteger, Buffer>> {
+    : public ::testing::TestWithParam<std::pair<BigInteger, ByteArray>> {
  public:
-  static std::pair<BigInteger, Buffer> pair(BigInteger v, Buffer m) {
-    return std::make_pair(std::move(v), std::move(m));
+  static std::pair<BigInteger, ByteArray> pair(BigInteger v, ByteArray m) {
+    return std::make_pair<BigInteger, ByteArray>(std::move(v), std::move(m));
   }
 
  protected:
@@ -39,7 +40,7 @@ class CompactTest
 TEST_P(CompactTest, EncodeSuccess) {
   const auto &[value, match] = GetParam();
   ASSERT_NO_THROW((s << value));
-  ASSERT_EQ(s.getBuffer(), match);
+  ASSERT_EQ(s.data(), match);
 }
 
 INSTANTIATE_TEST_CASE_P(
@@ -80,7 +81,47 @@ INSTANTIATE_TEST_CASE_P(
                 "531676044756160413302774714984450425759043258192756735"),
             "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
             "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
-            "FFFF"_hex2buf)));
+            "FFFF"_unhex)));
+
+/**
+ * Negative tests
+ */
+
+/**
+ * @given a negative value -1
+ * (negative values are not supported by compact encoding)
+ * @when trying to encode this value
+ * @then obtain error
+ */
+TEST(ScaleCompactTest, EncodeNegativeIntegerFails) {
+  BigInteger v(-1);
+  ScaleEncoderStream out;
+  ASSERT_ANY_THROW((out << v));
+  ASSERT_EQ(out.data().size(), 0);  // nothing was written to buffer
+}
+
+/**
+ * @given a BigInteger value exceeding the range supported by scale
+ * @when encode it a directly as BigInteger
+ * @then obtain kValueIsTooBig error
+ */
+TEST(ScaleCompactTest, EncodeOutOfRangeBigInteger) {
+  // try to encode out of range big integer value MAX_BIGINT + 1 == 2^536
+  // too big value, even for big integer case
+  // we are going to have kValueIsTooBig error
+  BigInteger v(
+      "224945689727159819140526925384299092943484855915095831"
+      "655037778630591879033574393515952034305194542857496045"
+      "531676044756160413302774714984450425759043258192756736");  // 2^536
+
+  ScaleEncoderStream out;
+  ASSERT_ANY_THROW((out << v));     // value is too big, it is not encoded
+  ASSERT_EQ(out.data().size(), 0);  // nothing was written to buffer
+}
+
+/**
+ * Decode Tests
+ */
 
 /**
  * @given byte array of correctly encoded number 0
@@ -93,7 +134,7 @@ TEST(Scale, compactDecodeZero) {
       0b00000000,  // 0
   };
   auto stream = ByteArrayStream{bytes};
-  auto &&result = compact::decodeInteger(stream);
+  auto &&result = decodeInteger(stream);
   ASSERT_TRUE(result);
   ASSERT_EQ(result.value(), 0);
 }
@@ -109,7 +150,7 @@ TEST(Scale, compactDecodeOne) {
       0b00000100,  // 4
   };
   auto stream = ByteArrayStream{bytes};
-  auto &&result = compact::decodeInteger(stream);
+  auto &&result = decodeInteger(stream);
   ASSERT_TRUE(result);
   ASSERT_EQ(result.value(), 1);
 }
@@ -126,7 +167,7 @@ TEST(Scale, compactDecodeMaxUi8) {
       0b11111100,  // 252
   };
   auto stream = ByteArrayStream{bytes};
-  auto &&result = compact::decodeInteger(stream);
+  auto &&result = decodeInteger(stream);
   ASSERT_TRUE(result);
   ASSERT_EQ(result.value(), 63);
 }
@@ -144,7 +185,7 @@ TEST(Scale, compactDecodeMinUi16) {
       0b00000001   // 1
   };
   auto stream = ByteArrayStream{bytes};
-  auto &&result = compact::decodeInteger(stream);
+  auto &&result = decodeInteger(stream);
   ASSERT_TRUE(result);
   ASSERT_EQ(result.value(), 64);
 }
@@ -162,7 +203,7 @@ TEST(Scale, compactDecodeMaxUi16) {
       0b11111111   // 255
   };
   auto stream = ByteArrayStream{bytes};
-  auto &&result = compact::decodeInteger(stream);
+  auto &&result = decodeInteger(stream);
   ASSERT_TRUE(result);
   ASSERT_EQ(result.value(), 16383);
 }
@@ -182,7 +223,7 @@ TEST(Scale, compactDecodeMinUi32) {
       0b00000000   // 0
   };
   auto stream = ByteArrayStream{bytes};
-  auto &&result = compact::decodeInteger(stream);
+  auto &&result = decodeInteger(stream);
   ASSERT_TRUE(result);
   ASSERT_EQ(result.value(), 16384);
 }
@@ -202,7 +243,7 @@ TEST(Scale, compactDecodeMaxUi32) {
       0b11111111   // 255
   };
   auto stream = ByteArrayStream{bytes};
-  auto &&result = compact::decodeInteger(stream);
+  auto &&result = decodeInteger(stream);
   ASSERT_TRUE(result);
   ASSERT_EQ(result.value(), 1073741823);
 }
@@ -217,7 +258,7 @@ TEST(Scale, compactDecodeMinBigInteger) {
   // decode MIN_BIG_INTEGER := 2^30
   auto bytes = ByteArray{3, 0, 0, 0, 64};
   auto stream = ByteArrayStream{bytes};
-  auto &&result = compact::decodeInteger(stream);
+  auto &&result = decodeInteger(stream);
   ASSERT_TRUE(result);
   ASSERT_EQ(result.value(), 1073741824);
 }
@@ -230,7 +271,7 @@ TEST(Scale, compactDecodeMinBigInteger) {
 TEST(Scale, compactDecodeBigIntegerError) {
   auto bytes = ByteArray{255, 255, 255, 255};
   auto stream = ByteArrayStream{bytes};
-  auto &&result = compact::decodeInteger(stream);
+  auto &&result = decodeInteger(stream);
   ASSERT_FALSE(result);
   ASSERT_EQ(result.error().value(),
             static_cast<int>(DecodeError::NOT_ENOUGH_DATA));

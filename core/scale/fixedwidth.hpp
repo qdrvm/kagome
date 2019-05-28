@@ -11,10 +11,6 @@
 #include "common/byte_stream.hpp"
 #include "scale/types.hpp"
 
-namespace kagome::scale {
-  class ScaleEncoderStream;
-}
-
 namespace kagome::scale::fixedwidth {
   // 8 bit
   /**

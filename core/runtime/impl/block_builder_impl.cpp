@@ -11,6 +11,7 @@
 #include "runtime/impl/wasm_memory_stream.hpp"
 #include "scale/collection.hpp"
 #include "scale/type_decoder.hpp"
+#include "scale/scale_encoder_stream.hpp"
 
 namespace kagome::runtime {
 

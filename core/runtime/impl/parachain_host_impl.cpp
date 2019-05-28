@@ -10,16 +10,16 @@
 #include "scale/buffer_codec.hpp"
 #include "scale/collection.hpp"
 #include "scale/optional.hpp"
-#include "scale/scale_encoder_stream.hpp"
+#include "scale/scale.hpp"
 
 namespace kagome::runtime {
   using common::Buffer;
   using primitives::parachain::DutyRoster;
   using primitives::parachain::ParaId;
   using primitives::parachain::ValidatorId;
-//  using scale::fixedwidth::encodeUint32;
   using scale::optional::decodeOptional;
-  using scale::ScaleEncoderStream;
+  using scale::scaleEncode;
+  using scale::scaleDecode;
 
   ParachainHostImpl::ParachainHostImpl(
       common::Buffer state_code,  // find out what is it
@@ -61,14 +61,12 @@ namespace kagome::runtime {
 
   outcome::result<std::optional<Buffer>> ParachainHostImpl::parachainHead(
       ParachainId id) {
-    ScaleEncoderStream se;
-    se << id;
-    auto && params = se.getBuffer();
+    OUTCOME_TRY(params, scaleEncode(id));
 
     runtime::SizeType ext_size = params.size();
     // TODO (yuraz): PRE-98 after check for memory overflow is done, refactor it
     runtime::WasmPointer ptr = memory_->allocate(ext_size);
-    memory_->storeBuffer(ptr, params);
+    memory_->storeBuffer(ptr, Buffer(params));
 
     wasm::LiteralList ll{wasm::Literal(ptr), wasm::Literal(ext_size)};
 
@@ -85,14 +83,12 @@ namespace kagome::runtime {
 
   outcome::result<std::optional<Buffer>> ParachainHostImpl::parachainCode(
       ParachainId id) {
-    ScaleEncoderStream se;
-    se << id;
-    auto && params = se.getBuffer();
+    OUTCOME_TRY(params, scaleEncode(id));
 
     runtime::SizeType ext_size = params.size();
     // TODO (yuraz): PRE-98 after check for memory overflow is done, refactor it
     runtime::WasmPointer ptr = memory_->allocate(ext_size);
-    memory_->storeBuffer(ptr, params);
+    memory_->storeBuffer(ptr, Buffer(params));
 
     wasm::LiteralList ll{wasm::Literal(ptr), wasm::Literal(ext_size)};
 

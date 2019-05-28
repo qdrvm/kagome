@@ -13,19 +13,7 @@
 #include "common/byte_stream.hpp"
 #include "scale/types.hpp"
 
-namespace kagome::scale {
-  class ScaleEncoderStream;
-}
-
 namespace kagome::scale::compact {
-  /**
-   * @brief compact-encodes BigInteger
-   * @param value source BigInteger value
-   * @return byte array result or error
-   */
-  outcome::result<void> encodeInteger(const BigInteger &value,
-                                      ScaleEncoderStream &out);
-
   /**
    * @brief function decodes compact-encoded integer
    * @param stream source stream
