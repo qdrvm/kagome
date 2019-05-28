@@ -254,3 +254,60 @@ TEST(TCP, ServerClosesConnection) {
 
   context.run_for(50ms);
 }
+
+/**
+ * @given single thread, single transport on a single default executor
+ * @when create server @and dial to this server
+ * @then connection successfully established
+ */
+TEST(TCP, OneTransportServerHandlesManyClients) {
+  constexpr static int kSize = 1500;
+  size_t counter = 0;  // number of answers
+
+  boost::asio::io_context context(1);
+  auto e = context.get_executor();
+
+  auto transport = std::make_shared<TcpTransport<decltype(e)>>(e);
+  using libp2p::connection::RawConnection;
+  auto listener = transport->createListener(
+      [&](std::shared_ptr<RawConnection> conn) {
+        expectConnectionValid(conn);
+        EXPECT_FALSE(conn->isInitiator());
+
+        EXPECT_OUTCOME_TRUE(buf, conn->readSome(kSize));
+        EXPECT_OUTCOME_TRUE(written, conn->write(buf));
+        EXPECT_EQ(written, buf.size());
+        counter++;
+
+        return outcome::success();
+      },
+      logError);
+
+  ASSERT_TRUE(listener);
+  auto ma = "/ip4/127.0.0.1/tcp/40003"_multiaddr;
+  ASSERT_TRUE(listener->listen(ma));
+
+  transport->dial(
+      ma,
+      [](auto &&conn) {
+        expectConnectionValid(conn);
+
+        auto buf = Buffer(kSize, 0);
+        std::generate(buf.begin(), buf.end(), []() {
+          return rand();  // NOLINT
+        });
+
+        EXPECT_TRUE(conn->isInitiator());
+
+        EXPECT_OUTCOME_TRUE(written, conn->write(buf));
+        EXPECT_EQ(written, buf.size());
+        EXPECT_OUTCOME_TRUE(readback, conn->read(kSize));
+        EXPECT_EQ(buf, readback);
+        return outcome::success();
+      },
+      logError);
+
+  context.run_for(100ms);
+
+  ASSERT_EQ(counter, 1);
+}
