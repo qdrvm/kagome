@@ -15,3 +15,6 @@ add_library(libp2p_transport_manager
     transport_manager_impl.cpp
     transport_manager_impl.hpp
     )
+target_link_libraries(libp2p_transport_manager
+    multiaddress
+    )
