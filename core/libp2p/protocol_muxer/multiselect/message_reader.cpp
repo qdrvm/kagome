@@ -64,7 +64,7 @@ namespace libp2p::protocol_muxer {
   }
 
   void MessageReader::onReadLineCompleted(
-      std::shared_ptr<ConnectionState> connection_state, Buffer line_bytes) {
+      std::shared_ptr<ConnectionState> connection_state, Buffer &&line_bytes) {
     // '/tls/1.3.0\n' - the shortest protocol, which could be found
     static constexpr size_t kShortestProtocolLength = 11;
 

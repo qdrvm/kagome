@@ -20,6 +20,20 @@ using libp2p::protocol_muxer::MessageManager;
 using libp2p::protocol_muxer::Multiselect;
 using libp2p::testing::TransportFixture;
 
+namespace std {
+  std::ostream &operator<<(std::ostream &s,
+                           const std::vector<unsigned char> &v) {
+    s << std::string(v.begin(), v.end()) << "\n";
+    return s;
+  }
+
+  std::ostream &operator<<(std::ostream &s,
+                           const libp2p::multi::Multiaddress &m) {
+    s << m.getStringAddress() << "\n";
+    return s;
+  }
+}  // namespace std
+
 class MultiselectTest : public TransportFixture {
  public:
   const Protocol kDefaultEncryptionProtocol1 = "/plaintext/1.0.0";

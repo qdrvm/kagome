@@ -54,7 +54,7 @@ namespace libp2p::protocol_muxer {
      */
     static void onReadLineCompleted(
         std::shared_ptr<ConnectionState> connection_state,
-        kagome::common::Buffer line_bytes);
+        kagome::common::Buffer &&line_bytes);
 
     /**
      * Completion handler for read bytes operation in case several lines (with

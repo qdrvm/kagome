@@ -187,9 +187,6 @@ namespace std {
   struct hash<libp2p::multi::Multiaddress> {
     size_t operator()(const libp2p::multi::Multiaddress &x) const;
   };
-
-  std::ostream &operator<<(std::ostream &s,
-                           const libp2p::multi::Multiaddress &m);
 }  // namespace std
 
 OUTCOME_HPP_DECLARE_ERROR(libp2p::multi, Multiaddress::Error)

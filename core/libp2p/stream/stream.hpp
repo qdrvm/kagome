@@ -14,9 +14,8 @@
 namespace libp2p::stream {
   /**
    * Stream between two peers in the network
-   * @deprecated use connection::Stream
    */
-  class Stream {
+  class [[deprecated("use connection::Stream")]] Stream {
    public:
     using Handler = void(std::shared_ptr<stream::Stream>);
     using NetworkMessageOutcome = outcome::result<kagome::common::Buffer>;
