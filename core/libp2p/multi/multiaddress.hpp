@@ -131,7 +131,8 @@ namespace libp2p::multi {
      * @return list of pairs with a protocol as the first element and the value
      * as the second one
      */
-    std::vector<std::pair<Protocol, std::string>> getProtocolsWithValues() const;
+    std::vector<std::pair<Protocol, std::string>> getProtocolsWithValues()
+        const;
 
     bool operator==(const Multiaddress &other) const;
 
@@ -186,6 +187,9 @@ namespace std {
   struct hash<libp2p::multi::Multiaddress> {
     size_t operator()(const libp2p::multi::Multiaddress &x) const;
   };
+
+  std::ostream &operator<<(std::ostream &s,
+                           const libp2p::multi::Multiaddress &m);
 }  // namespace std
 
 OUTCOME_HPP_DECLARE_ERROR(libp2p::multi, Multiaddress::Error)

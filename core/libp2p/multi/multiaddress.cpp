@@ -256,3 +256,9 @@ size_t std::hash<libp2p::multi::Multiaddress>::operator()(
     const libp2p::multi::Multiaddress &x) const {
   return std::hash<std::string_view>()(x.getStringAddress());
 }
+
+std::ostream &std::operator<<(std::ostream &s,
+                              const libp2p::multi::Multiaddress &m) {
+  s << m.getStringAddress() << "\n";
+  return s;
+}
