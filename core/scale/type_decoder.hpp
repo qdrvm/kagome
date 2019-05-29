@@ -16,22 +16,6 @@
 
 namespace kagome::scale {
   /**
-   * Type decoders are nested decoders used to decode types in optionals,
-   * variants, collections and tuples.
-   * If you need to decode custom type, you need to implement specialisation of
-   * TypeDecoder class.
-   * It is obligued to have one function:
-   *
-   *            TypeDecoderResult<T> decode(Stream & stream);
-   *
-   * Where Stream is the Stream interface defined in types.hpp.
-   * It is assumed that decoder takes data from input stream,
-   *
-   * Type decoders for basic integral types and bool and tribool are
-   * provided from the box.
-   */
-
-  /**
    * @class TypeDecoder implements decoding integral types from stream
    * @tparam T any integral type
    */

@@ -20,7 +20,7 @@ namespace kagome::scale {
       result = OptionalBool::FALSE;
     }
 
-    return s.putByte(static_cast<uint8_t>(result));
+    return s <<static_cast<uint8_t>(result);
   }
 }  // namespace kagome::scale
 

@@ -10,9 +10,6 @@
 #include "scale/types.hpp"
 
 namespace kagome::scale {
-  // TODO(yuraz): PRE-119 remove Buffer from scale
-  using common::Buffer;
-
   namespace {
     // must not use these functions outside encodeInteger
     inline void encodeFirstCategory(uint8_t value, ScaleEncoderStream &out) {
@@ -56,7 +53,8 @@ namespace kagome::scale {
      * @brief compact-encodes BigInteger
      * @param value source BigInteger value
      */
-    void encodeCompactInteger(const BigInteger &value, ScaleEncoderStream &out) {
+    void encodeCompactInteger(const BigInteger &value,
+                              ScaleEncoderStream &out) {
       // cannot encode negative numbers
       // there is no description how to encode compact negative numbers
       if (value < 0) {
@@ -115,18 +113,11 @@ namespace kagome::scale {
         v >>= 8;
       }
 
-      out.put(result);
+      for (const uint8_t c : result) {
+        out << c;
+      }
     }
   }  // namespace
-
-  Buffer ScaleEncoderStream::getBuffer() const {
-    Buffer buffer(stream_.size(), 0u);
-    for (auto [it, dest] = std::pair(stream_.begin(), buffer.begin());
-         it != stream_.end(); ++it, ++dest) {
-      *dest = *it;
-    }
-    return buffer;
-  }
 
   ByteArray ScaleEncoderStream::data() const {
     ByteArray buffer(stream_.size(), 0u);
@@ -139,16 +130,6 @@ namespace kagome::scale {
 
   ScaleEncoderStream &ScaleEncoderStream::putByte(uint8_t v) {
     stream_.push_back(v);
-    return *this;
-  }
-
-  ScaleEncoderStream &ScaleEncoderStream::putBuffer(const Buffer &buffer) {
-    stream_.insert(stream_.end(), buffer.begin(), buffer.end());
-    return *this;
-  }
-
-  ScaleEncoderStream &ScaleEncoderStream::put(const std::vector<uint8_t> &v) {
-    stream_.insert(stream_.end(), v.begin(), v.end());
     return *this;
   }
 

@@ -74,8 +74,7 @@ class Primitives : public testing::Test {
     return h;
   }();
   /// Extrinsic instance and corresponding scale representation
-  Extrinsic extrinsic_{{12,  /// sequence of 3 bytes: 1, 2, 3; 12 == (3 << 2)
-                        1, 2, 3}};
+  Extrinsic extrinsic_{{1, 2, 3}};
   Buffer encoded_extrinsic_{12, 1, 2, 3};
   /// block instance and corresponding scale representation
   Block block_{block_header_, {extrinsic_}};

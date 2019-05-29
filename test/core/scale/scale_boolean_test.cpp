@@ -11,7 +11,6 @@
 #include "scale/scale_encoder_stream.hpp"
 #include "scale/scale_error.hpp"
 
-using kagome::common::Buffer;
 using kagome::scale::ByteArray;
 using kagome::scale::ByteArrayStream;
 using kagome::scale::DecodeError;
@@ -32,12 +31,12 @@ TEST(ScaleBoolTest, EncodeBoolSuccess) {
   {
     ScaleEncoderStream s;
     ASSERT_NO_THROW((s << true));
-    ASSERT_EQ(s.getBuffer(), (Buffer{0x1}));
+    ASSERT_EQ(s.data(), (ByteArray{0x1}));
   }
   {
     ScaleEncoderStream s;
     ASSERT_NO_THROW((s << false));
-    ASSERT_EQ(s.getBuffer(), (Buffer{0x0}));
+    ASSERT_EQ(s.data(), (ByteArray{0x0}));
   }
 }
 
@@ -74,17 +73,17 @@ TEST(ScaleEncoderStreamTest, EncodeTriboolSuccess) {
   {  // encode false
     ScaleEncoderStream s;
     ASSERT_NO_THROW((s << tribool(false)));
-    ASSERT_EQ(s.getBuffer(), (Buffer{0x0}));
+    ASSERT_EQ(s.data(), (ByteArray{0x0}));
   }
   {  // encode true
     ScaleEncoderStream s;
     ASSERT_NO_THROW((s << tribool(true)));
-    ASSERT_EQ(s.getBuffer(), (Buffer{0x1}));
+    ASSERT_EQ(s.data(), (ByteArray{0x1}));
   }
   {  // encode intederminate
     ScaleEncoderStream s;
     ASSERT_NO_THROW((s << tribool(indeterminate)));
-    ASSERT_EQ(s.getBuffer(), (Buffer{0x2}));
+    ASSERT_EQ(s.data(), (ByteArray{0x2}));
   }
 }
 

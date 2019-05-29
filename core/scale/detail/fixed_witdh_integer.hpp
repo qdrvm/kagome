@@ -29,12 +29,12 @@ namespace kagome::scale::detail {
     constexpr size_t bits = size * 8;
     boost::endian::endian_buffer<boost::endian::order::little, T, bits> buf{};
     buf = value;
-    std::vector<uint8_t> tmp(size, 0u);
+    std::array<uint8_t, size> tmp;
     for (size_t i = 0; i < size; ++i) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       tmp[i] = buf.data()[i];
     }
-    out.put(tmp);
+    out << tmp;
   }
 
   /**

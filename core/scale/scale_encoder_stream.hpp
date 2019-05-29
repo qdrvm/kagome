@@ -13,8 +13,8 @@
 #include "common/byte_stream.hpp"
 #include "common/type_traits.hpp"
 #include "scale/compact.hpp"
-#include "scale/fixedwidth.hpp"
 #include "scale/detail/fixed_witdh_integer.hpp"
+#include "scale/fixedwidth.hpp"
 #include "scale/variant.hpp"
 
 namespace kagome::scale {
@@ -22,52 +22,12 @@ namespace kagome::scale {
    * @class ScaleEncoderStream designed to scale-encode data to stream
    */
   class ScaleEncoderStream {
-    using Buffer = common::Buffer;
-
    public:
     /// Getters
-    /**
-     * @return buffer containing encoded data
-     */
-    Buffer getBuffer() const;
     /**
      * @return vector of bytes containing encoded data
      */
     std::vector<uint8_t> data() const;
-
-    /// Appenders
-    /**
-     * @brief puts a byte to buffer
-     * @param v byte value
-     * @return reference to stream
-     */
-    ScaleEncoderStream &putByte(uint8_t v);
-    /**
-     * @brief appends buffer content to stream
-     * @param buffer to append
-     * @return reference to stream
-     */
-    ScaleEncoderStream &putBuffer(const Buffer &buffer);
-    /**
-     * @brief appends vector content to stream
-     * @param v vector to append
-     * @return reference to stream
-     */
-    ScaleEncoderStream &put(const std::vector<uint8_t> &v);
-
-    /// Encoders
-    /**
-     * @brief appends bytes to stream without encoding them
-     * @tparam It iterator over collection of bytes
-     * @param begin iterator pointing to the begin of collection
-     * @param end iterator pointing to the end of collection
-     * @return reference to stream
-     */
-    template <class It>
-    ScaleEncoderStream &put(It &&begin, It &&end) {
-      stream_.insert(stream_.end(), begin, end);
-      return *this;
-    }
 
     /**
      * @brief scale-encodes pair of values
@@ -115,6 +75,14 @@ namespace kagome::scale {
       }
       return putByte(1u) << *v;
     }
+    //    /**
+    //     * @brief appends sequence of bytes
+    //     * @param v bytes sequence
+    //     * @return reference to stream
+    //     */
+    //    ScaleEncoderStream &operator<<(const gsl::span<uint8_t> &v) {
+    //      return append(v.begin(), v.end());
+    //    }
     /**
      * @brief scale-encodes std::array as sequence of bytes, not collection
      * @tparam T array item type
@@ -124,17 +92,7 @@ namespace kagome::scale {
      */
     template <class T, size_t size>
     ScaleEncoderStream &operator<<(const std::array<T, size> &v) {
-      return put(v.begin(), v.end());
-    }
-    /**
-     * @brief scale-encodes common::Blob as sequence of bytes, not collection
-     * @tparam size size of blob
-     * @param v blob to encode
-     * @return reference to stream
-     */
-    template <size_t size>
-    ScaleEncoderStream &operator<<(const common::Blob<size> &v) {
-      return put(v.begin(), v.end());
+      return append(v.begin(), v.end());
     }
     /**
      * @brief scale-encodes std::reference_wrapper of a type
@@ -144,15 +102,7 @@ namespace kagome::scale {
      */
     template <class T>
     ScaleEncoderStream &operator<<(const std::reference_wrapper<T> &v) {
-      return *this << static_cast<const T&>(v);
-    }
-    /**
-     * @brief scale-encodes common::Buffer as collection of bytes
-     * @param v buffer to encode
-     * @return reference to stream
-     */
-    ScaleEncoderStream &operator<<(const Buffer &v) {
-      return encodeCollection(v.size(), v.begin(), v.end());
+      return *this << static_cast<const T &>(v);
     }
 
     /**
@@ -212,6 +162,28 @@ namespace kagome::scale {
       for (auto &&it = begin; it != end; ++it) {
         *this << *it;
       }
+      return *this;
+    }
+
+   protected:
+    /// Appenders
+    /**
+     * @brief puts a byte to buffer
+     * @param v byte value
+     * @return reference to stream
+     */
+    ScaleEncoderStream &putByte(uint8_t v);
+
+    /**
+     * @brief appends bytes to stream without encoding them
+     * @tparam It iterator over collection of bytes
+     * @param begin iterator pointing to the begin of collection
+     * @param end iterator pointing to the end of collection
+     * @return reference to stream
+     */
+    template <class It>
+    ScaleEncoderStream &append(It &&begin, It &&end) {
+      stream_.insert(stream_.end(), begin, end);
       return *this;
     }
 

@@ -15,7 +15,7 @@ namespace kagome::scale {
       const common::Buffer &val) {
     ScaleEncoderStream out;
     out << val.toVector();
-    return out.getBuffer();
+    return common::Buffer(out.data());
   }
 
   // TODO(yuraz): don't implement

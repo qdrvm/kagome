@@ -25,7 +25,7 @@ namespace kagome::primitives {
    */
   template <class Stream>
   Stream &operator<<(Stream &s, const Extrinsic &v) {
-    return s.putBuffer(v.data);
+    return s << v.data.toVector();
   }
 }  // namespace kagome::primitives
 

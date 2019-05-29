@@ -25,42 +25,42 @@ TEST(Scale, encodeOptional) {
   {
     ScaleEncoderStream s;
     ASSERT_NO_THROW((s << std::optional<uint8_t>{std::nullopt}));
-    ASSERT_EQ(s.getBuffer(), (Buffer{0}));
+    ASSERT_EQ(s.data(), (ByteArray{0}));
   }
 
   // encode existing uint8_t
   {
     ScaleEncoderStream s;
     ASSERT_NO_THROW((s << std::optional<uint8_t>{1}));
-    ASSERT_EQ(s.getBuffer(), (Buffer{1, 1}));
+    ASSERT_EQ(s.data(), (ByteArray{1, 1}));
   }
 
   // encode negative int8_t
   {
     ScaleEncoderStream s;
     ASSERT_NO_THROW((s << std::optional<int8_t>{-1}));
-    ASSERT_EQ(s.getBuffer(), (Buffer{1, 255}));
+    ASSERT_EQ(s.data(), (ByteArray{1, 255}));
   }
 
   // encode non-existing uint16_t
   {
     ScaleEncoderStream s;
     ASSERT_NO_THROW((s << std::optional<uint16_t>{std::nullopt}));
-    ASSERT_EQ(s.getBuffer(), (Buffer{0}));
+    ASSERT_EQ(s.data(), (ByteArray{0}));
   }
 
   // encode existing uint16_t
   {
     ScaleEncoderStream s;
     ASSERT_NO_THROW((s << std::optional<uint16_t>{511}));
-    ASSERT_EQ(s.getBuffer(), (Buffer{1, 255, 1}));
+    ASSERT_EQ(s.data(), (ByteArray{1, 255, 1}));
   }
 
   // encode existing uint32_t
   {
     ScaleEncoderStream s;
     ASSERT_NO_THROW((s << std::optional<uint32_t>{67305985}));
-    ASSERT_EQ(s.getBuffer(), (Buffer{1, 1, 2, 3, 4}));
+    ASSERT_EQ(s.data(), (ByteArray{1, 1, 2, 3, 4}));
   }
 }
 
@@ -73,7 +73,7 @@ TEST(ScaleTest, EncodeOptionalBoolSuccess) {
   ScaleEncoderStream s;
   ASSERT_NO_THROW((s << std::optional<bool>(true) << std::optional<bool>(false)
                      << std::nullopt));
-  ASSERT_EQ(s.getBuffer(), (Buffer{2, 1, 0}));
+  ASSERT_EQ(s.data(), (ByteArray{2, 1, 0}));
 }
 
 /**

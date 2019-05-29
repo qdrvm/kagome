@@ -18,8 +18,8 @@ namespace kagome::runtime {
   using primitives::parachain::ParaId;
   using primitives::parachain::ValidatorId;
   using scale::optional::decodeOptional;
-  using scale::scaleEncode;
-  using scale::scaleDecode;
+  using scale::encode;
+  using scale::decode;
 
   ParachainHostImpl::ParachainHostImpl(
       common::Buffer state_code,  // find out what is it
@@ -61,7 +61,7 @@ namespace kagome::runtime {
 
   outcome::result<std::optional<Buffer>> ParachainHostImpl::parachainHead(
       ParachainId id) {
-    OUTCOME_TRY(params, scaleEncode(id));
+    OUTCOME_TRY(params, encode(id));
 
     runtime::SizeType ext_size = params.size();
     // TODO (yuraz): PRE-98 after check for memory overflow is done, refactor it
@@ -83,7 +83,7 @@ namespace kagome::runtime {
 
   outcome::result<std::optional<Buffer>> ParachainHostImpl::parachainCode(
       ParachainId id) {
-    OUTCOME_TRY(params, scaleEncode(id));
+    OUTCOME_TRY(params, encode(id));
 
     runtime::SizeType ext_size = params.size();
     // TODO (yuraz): PRE-98 after check for memory overflow is done, refactor it

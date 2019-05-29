@@ -8,22 +8,22 @@
 
 #include <vector>
 
-#include <gsl/span>
 #include <boost/system/system_error.hpp>
 #include <boost/throw_exception.hpp>
+#include <gsl/span>
 #include <outcome/outcome.hpp>
-#include "scale/scale_encoder_stream.hpp"
 #include "scale/scale_decoder_stream.hpp"
+#include "scale/scale_encoder_stream.hpp"
 
 namespace kagome::scale {
-/**
- * @brief convenience function for encoding primitives data to stream
- * @tparam T primitive type
- * @param t data to encode
- * @return encoded data
- */
+  /**
+   * @brief convenience function for encoding primitives data to stream
+   * @tparam T primitive type
+   * @param t data to encode
+   * @return encoded data
+   */
   template <class T>
-  outcome::result<std::vector<uint8_t>> scaleEncode(T &&t) {
+  outcome::result<std::vector<uint8_t>> encode(T &&t) {
     try {
       ScaleEncoderStream s;
       s << t;
@@ -39,7 +39,7 @@ namespace kagome::scale {
    * @return
    */
   template <class T>
-  outcome::result<T> scaleDecode(gsl::span<const uint8_t> span) {
+  outcome::result<T> decode(gsl::span<const uint8_t> span) {
     try {
       T t;
       ScaleDecoderStream s(span);

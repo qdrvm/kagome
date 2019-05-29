@@ -9,24 +9,24 @@
 #include "scale/fixedwidth.hpp"
 #include "scale/scale_encoder_stream.hpp"
 
-using kagome::common::Buffer;
-using kagome::scale::ScaleEncoderStream;
+using kagome::scale::ByteArray;
 using kagome::scale::ByteArrayStream;
+using kagome::scale::ScaleEncoderStream;
 
 // will be removed soon
-using kagome::scale::fixedwidth::decodeInt8;
-using kagome::scale::fixedwidth::decodeUint8;
 using kagome::scale::fixedwidth::decodeInt16;
-using kagome::scale::fixedwidth::decodeUint16;
 using kagome::scale::fixedwidth::decodeInt32;
-using kagome::scale::fixedwidth::decodeUint32;
 using kagome::scale::fixedwidth::decodeInt64;
+using kagome::scale::fixedwidth::decodeInt8;
+using kagome::scale::fixedwidth::decodeUint16;
+using kagome::scale::fixedwidth::decodeUint32;
 using kagome::scale::fixedwidth::decodeUint64;
+using kagome::scale::fixedwidth::decodeUint8;
 
 template <typename T>
-class IntegerTest : public ::testing::TestWithParam<std::pair<T, Buffer>> {
+class IntegerTest : public ::testing::TestWithParam<std::pair<T, ByteArray>> {
  public:
-  static std::pair<T, Buffer> make_pair(T value, const Buffer &match) {
+  static std::pair<T, ByteArray> make_pair(T value, const ByteArray &match) {
     return std::make_pair(value, match);
   }
 
@@ -48,17 +48,16 @@ TEST_P(Int8Test, EncodeSuccess) {
   auto [value, match] = GetParam();
   ScaleEncoderStream s;
   ASSERT_NO_THROW((s << value));
-  ASSERT_EQ(s.getBuffer(), match);
+  ASSERT_EQ(s.data(), match);
 }
 
-INSTANTIATE_TEST_CASE_P(
-    Int8TestCases, Int8Test,
-    ::testing::Values(Int8Test::make_pair(0, Buffer{0}),
-                      Int8Test::make_pair(-1, Buffer{255}),
-                      Int8Test::make_pair(-128, Buffer{128}),
-                      Int8Test::make_pair(-127, Buffer{129}),
-                      Int8Test::make_pair(123, Buffer{123}),
-                      Int8Test::make_pair(-15, Buffer{241})));
+INSTANTIATE_TEST_CASE_P(Int8TestCases, Int8Test,
+                        ::testing::Values(Int8Test::make_pair(0, {0}),
+                                          Int8Test::make_pair(-1, {255}),
+                                          Int8Test::make_pair(-128, {128}),
+                                          Int8Test::make_pair(-127, {129}),
+                                          Int8Test::make_pair(123, {123}),
+                                          Int8Test::make_pair(-15, {241})));
 
 /**
  * @brief class for testing uint8_t encode and decode
@@ -74,14 +73,13 @@ TEST_P(Uint8Test, EncodeSuccess) {
   auto [value, match] = GetParam();
   ScaleEncoderStream s;
   ASSERT_NO_THROW((s << value));
-  ASSERT_EQ(s.getBuffer(), match);
+  ASSERT_EQ(s.data(), match);
 }
 
-INSTANTIATE_TEST_CASE_P(
-    Uint8TestCases, Uint8Test,
-    ::testing::Values(Uint8Test::make_pair(0, Buffer{0}),
-                      Uint8Test::make_pair(234, Buffer{234}),
-                      Uint8Test::make_pair(255, Buffer{255})));
+INSTANTIATE_TEST_CASE_P(Uint8TestCases, Uint8Test,
+                        ::testing::Values(Uint8Test::make_pair(0, {0}),
+                                          Uint8Test::make_pair(234, {234}),
+                                          Uint8Test::make_pair(255, {255})));
 
 /**
  * @brief class for testing int16_t encode and decode
@@ -97,17 +95,17 @@ TEST_P(Int16Test, EncodeSuccess) {
   auto [value, match] = GetParam();
   ScaleEncoderStream s;
   ASSERT_NO_THROW((s << value));
-  ASSERT_EQ(s.getBuffer(), match);
+  ASSERT_EQ(s.data(), match);
 }
 
 INSTANTIATE_TEST_CASE_P(
     Int16TestCases, Int16Test,
-    ::testing::Values(Int16Test::make_pair(-32767, Buffer{1, 128}),
-                      Int16Test::make_pair(-32768, Buffer{0, 128}),
-                      Int16Test::make_pair(-1, Buffer{255, 255}),
-                      Int16Test::make_pair(32767, Buffer{255, 127}),
-                      Int16Test::make_pair(12345, Buffer{57, 48}),
-                      Int16Test::make_pair(-12345, Buffer{199, 207})));
+    ::testing::Values(Int16Test::make_pair(-32767, {1, 128}),
+                      Int16Test::make_pair(-32768, {0, 128}),
+                      Int16Test::make_pair(-1, {255, 255}),
+                      Int16Test::make_pair(32767, {255, 127}),
+                      Int16Test::make_pair(12345, {57, 48}),
+                      Int16Test::make_pair(-12345, {199, 207})));
 
 /**
  * @brief class for testing uint16_t encode and decode
@@ -123,13 +121,13 @@ TEST_P(Uint16Test, EncodeSuccess) {
   auto [value, match] = GetParam();
   ScaleEncoderStream s;
   ASSERT_NO_THROW((s << value));
-  ASSERT_EQ(s.getBuffer(), match);
+  ASSERT_EQ(s.data(), match);
 }
 
 INSTANTIATE_TEST_CASE_P(
     Uint16TestCases, Uint16Test,
-    ::testing::Values(Uint16Test::make_pair(32767, Buffer{255, 127}),
-                      Uint16Test::make_pair(12345, Buffer{57, 48})));
+    ::testing::Values(Uint16Test::make_pair(32767, {255, 127}),
+                      Uint16Test::make_pair(12345, {57, 48})));
 
 /**
  * @brief class for testing int32_t encode and decode
@@ -145,14 +143,13 @@ TEST_P(Int32Test, EncodeSuccess) {
   auto [value, match] = GetParam();
   ScaleEncoderStream s;
   ASSERT_NO_THROW((s << value));
-  ASSERT_EQ(s.getBuffer(), match);
+  ASSERT_EQ(s.data(), match);
 }
 
 INSTANTIATE_TEST_CASE_P(
     Int32TestCases, Int32Test,
-    ::testing::Values(Int32Test::make_pair(2147483647l,
-                                           Buffer{255, 255, 255, 127}),
-                      Int32Test::make_pair(-1, Buffer{255, 255, 255, 255})));
+    ::testing::Values(Int32Test::make_pair(2147483647l, {255, 255, 255, 127}),
+                      Int32Test::make_pair(-1, {255, 255, 255, 255})));
 
 /**
  * @brief class for testing uint32_t encode and decode
@@ -168,13 +165,13 @@ TEST_P(Uint32Test, EncodeSuccess) {
   auto [value, match] = GetParam();
   ScaleEncoderStream s;
   ASSERT_NO_THROW((s << value));
-  ASSERT_EQ(s.getBuffer(), match);
+  ASSERT_EQ(s.data(), match);
 }
 
 INSTANTIATE_TEST_CASE_P(
     Uint32TestCases, Uint32Test,
-    ::testing::Values(Uint32Test::make_pair(16909060ul, Buffer{4, 3, 2, 1}),
-                      Uint32Test::make_pair(67305985, Buffer{1, 2, 3, 4})));
+    ::testing::Values(Uint32Test::make_pair(16909060ul, {4, 3, 2, 1}),
+                      Uint32Test::make_pair(67305985, {1, 2, 3, 4})));
 
 /**
  * @brief class for testing int64_t encode and decode
@@ -190,15 +187,14 @@ TEST_P(Int64Test, EncodeSuccess) {
   auto [value, match] = GetParam();
   ScaleEncoderStream s;
   ASSERT_NO_THROW((s << value));
-  ASSERT_EQ(s.getBuffer(), match);
+  ASSERT_EQ(s.data(), match);
 }
 
 INSTANTIATE_TEST_CASE_P(
     Int64TestCases, Int64Test,
-    ::testing::Values(Int64Test::make_pair(578437695752307201ll,
-                                           Buffer{1, 2, 3, 4, 5, 6, 7, 8}),
-                      Int64Test::make_pair(
-                          -1, Buffer{255, 255, 255, 255, 255, 255, 255, 255})));
+    ::testing::Values(
+        Int64Test::make_pair(578437695752307201ll, {1, 2, 3, 4, 5, 6, 7, 8}),
+        Int64Test::make_pair(-1, {255, 255, 255, 255, 255, 255, 255, 255})));
 
 /**
  * @brief class for testing uint64_t encode and decode
@@ -214,13 +210,12 @@ TEST_P(Uint64Test, EncodeSuccess) {
   auto [value, match] = GetParam();
   ScaleEncoderStream s;
   ASSERT_NO_THROW((s << value));
-  ASSERT_EQ(s.getBuffer(), match);
+  ASSERT_EQ(s.data(), match);
 }
 
-INSTANTIATE_TEST_CASE_P(
-    Uint64TestCases, Uint64Test,
-    ::testing::Values(Uint64Test::make_pair(578437695752307201ull,
-                                            Buffer{1, 2, 3, 4, 5, 6, 7, 8})));
+INSTANTIATE_TEST_CASE_P(Uint64TestCases, Uint64Test,
+                        ::testing::Values(Uint64Test::make_pair(
+                            578437695752307201ull, {1, 2, 3, 4, 5, 6, 7, 8})));
 
 /**
  * @given byte array containing encoded int8_t values
@@ -229,7 +224,7 @@ INSTANTIATE_TEST_CASE_P(
  */
 TEST(Scale, fixedwidthDecodeInt8) {
   // decode int8_t
-  auto bytes = Buffer{0, 255, 128, 129, 123, 241};
+  auto bytes = ByteArray{0, 255, 128, 129, 123, 241};
   auto stream = ByteArrayStream{bytes};
 
   {
@@ -271,7 +266,7 @@ TEST(Scale, fixedwidthDecodeInt8) {
  */
 TEST(Scale, fixedwidthDecodeUint8) {
   // decode uint8_t
-  auto bytes = Buffer{0, 234, 255};
+  auto bytes = ByteArray{0, 234, 255};
   auto stream = ByteArrayStream{bytes};
 
   {
@@ -299,7 +294,7 @@ TEST(Scale, fixedwidthDecodeUint8) {
 TEST(Scale, fixedwidthDecodeInt16) {
   // decode int16_t
   // clang-format off
-    auto bytes = Buffer{1, 128,
+    ByteArray bytes = {1, 128,
                            0, 128,
                            255, 255,
                            255, 127,
@@ -350,7 +345,7 @@ TEST(Scale, fixedwidthDecodeInt16) {
  */
 TEST(Scale, fixedwidthDecodeUint16) {
   // decode uint16_t
-  auto bytes = Buffer{2, 128};
+  auto bytes = ByteArray{2, 128};
   auto stream = ByteArrayStream{bytes};
 
   {
@@ -368,7 +363,7 @@ TEST(Scale, fixedwidthDecodeUint16) {
 TEST(Scale, fixedwidthDecodeInt32) {
   // decode int32_t
   // clang-format off
-    auto bytes = Buffer{255, 255, 255, 127,
+    auto bytes = ByteArray{255, 255, 255, 127,
                            255, 255, 255, 255};
     //clang-format on
 
@@ -394,7 +389,7 @@ TEST(Scale, fixedwidthDecodeInt32) {
 TEST(Scale, fixedwidthDecodeUint32) {
     // decode uint32_t
     // clang-format off
-    auto bytes = Buffer{4, 3, 2, 1,
+    auto bytes = ByteArray{4, 3, 2, 1,
                            1, 2, 3, 4};
     //clang-format on
 
@@ -420,7 +415,7 @@ TEST(Scale, fixedwidthDecodeUint32) {
 TEST(Scale, fixedwidthDecodeInt64) {
     // decode int64_t
     // clang-format off
-    auto bytes = Buffer{1, 2, 3, 4, 5, 6, 7, 8,
+    auto bytes = ByteArray{1, 2, 3, 4, 5, 6, 7, 8,
                            255, 255, 255, 255, 255, 255, 255, 255};
     //clang-format on
 
@@ -446,7 +441,7 @@ TEST(Scale, fixedwidthDecodeInt64) {
 TEST(Scale, fixedwidthDecodeUint64) {
     // decode uint64_t
     // clang-format off
-    auto bytes = Buffer{1, 2, 3, 4, 5, 6, 7, 8,
+    auto bytes = ByteArray{1, 2, 3, 4, 5, 6, 7, 8,
                            255, 255, 255, 255, 255, 255, 255, 255};
     //clang-format on
 

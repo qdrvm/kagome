@@ -9,6 +9,7 @@
 #include "scale/scale_encoder_stream.hpp"
 
 using kagome::common::Buffer;
+using kagome::scale::ByteArray;
 using kagome::scale::ByteArrayStream;
 using kagome::scale::variant::decodeVariant;
 using kagome::scale::variant::encodeVariant;
@@ -19,13 +20,13 @@ TEST(Scale, encodeVariant) {
     boost::variant<uint8_t, uint32_t> v = static_cast<uint8_t>(1);
     ScaleEncoderStream s;
     ASSERT_NO_THROW(encodeVariant(v, s));
-    ASSERT_EQ(s.getBuffer(), (Buffer{0, 1}));
+    ASSERT_EQ(s.data(), (ByteArray{0, 1}));
   }
   {
     boost::variant<uint8_t, uint32_t> v = static_cast<uint32_t>(1);
     ScaleEncoderStream s;
     ASSERT_NO_THROW(encodeVariant(v, s));
-    ASSERT_EQ(s.getBuffer(), (Buffer{1, 1, 0, 0, 0}));
+    ASSERT_EQ(s.data(), (ByteArray{1, 1, 0, 0, 0}));
   }
 }
 
