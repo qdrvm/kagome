@@ -74,24 +74,14 @@ namespace kagome::scale {
       }
       return putByte(1u) << *v;
     }
-    //    /**
-    //     * @brief appends sequence of bytes
-    //     * @param v bytes sequence
-    //     * @return reference to stream
-    //     */
-    //    ScaleEncoderStream &operator<<(const gsl::span<uint8_t> &v) {
-    //      return append(v.begin(), v.end());
-    //    }
     /**
-     * @brief scale-encodes std::array as sequence of bytes, not collection
-     * @tparam T array item type
-     * @tparam size array size
-     * @param v value to encode
+     * @brief appends sequence of bytes
+     * @param v bytes sequence
      * @return reference to stream
      */
-    template <class T, size_t size>
-    ScaleEncoderStream &operator<<(const std::array<T, size> &v) {
-      return append(v.begin(), v.end());
+    template <class T>
+    ScaleEncoderStream &operator<<(const gsl::span<T> &v) {
+      return encodeCollection(v.size(), v.begin(), v.end());
     }
     /**
      * @brief scale-encodes std::reference_wrapper of a type
@@ -145,6 +135,7 @@ namespace kagome::scale {
      */
     ScaleEncoderStream &operator<<(tribool v);
 
+   protected:
     /**
      * @brief scale-encodes any collection
      * @tparam It iterator over collection of bytes
@@ -163,8 +154,6 @@ namespace kagome::scale {
       }
       return *this;
     }
-
-   protected:
     /// Appenders
     /**
      * @brief puts a byte to buffer

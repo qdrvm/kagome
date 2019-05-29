@@ -20,7 +20,7 @@ namespace kagome::primitives {
    * @brief The identity of a particular API interface that the runtime might
    * provide.
    */
-  using ApiId = std::array<uint8_t, 8>;
+  using ApiId = common::Blob<8u>;
 
   /**
    * @brief single Api item

@@ -5,17 +5,20 @@
 
 #include "scale/buffer_codec.hpp"
 
+#include <gsl/span>
+
+#include "common/buffer.hpp"
 #include "scale/collection.hpp"
 #include "scale/scale_encoder_stream.hpp"
+#include "scale/scale.hpp"
 
 namespace kagome::scale {
 
   // TODO(yuraz): refactor
   outcome::result<common::Buffer> BufferScaleCodec::encode(
       const common::Buffer &val) {
-    ScaleEncoderStream out;
-    out << val.toVector();
-    return common::Buffer(out.data());
+    OUTCOME_TRY(res, scale::encode(val));
+    return common::Buffer(res);
   }
 
   // TODO(yuraz): don't implement

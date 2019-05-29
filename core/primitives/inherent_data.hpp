@@ -6,7 +6,6 @@
 #ifndef KAGOME_INHERENT_DATA_HPP
 #define KAGOME_INHERENT_DATA_HPP
 
-#include <array>
 #include <map>
 #include <optional>
 #include <vector>
@@ -14,10 +13,11 @@
 #include <boost/iterator_adaptors.hpp>
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
+#include "common/blob.hpp"
 
 namespace kagome::primitives {
 
-  using InherentIdentifier = std::array<uint8_t, 8>;
+  using InherentIdentifier = common::Blob<8u>;
 
   /**
    * Inherent data to include in a block
