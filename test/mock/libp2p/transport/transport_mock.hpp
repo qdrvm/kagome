@@ -11,6 +11,7 @@
 
 namespace libp2p::transport {
   class TransportMock : public Transport {
+   public:
     MOCK_CONST_METHOD3(dial,
                        void(const multi::Multiaddress &, HandlerFunc,
                             ErrorFunc));

@@ -28,9 +28,9 @@ namespace libp2p::network {
 
     void add(TransportSP t) override;
 
-    void add(gsl::span<TransportSP> t) override;
+    void add(gsl::span<const TransportSP> t) override;
 
-    gsl::span<TransportSP> getAll() const override;
+    gsl::span<const TransportSP> getAll() const override;
 
     void clear() override;
 

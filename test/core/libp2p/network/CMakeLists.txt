@@ -15,4 +15,5 @@ addtest(transport_manager_test
     )
 target_link_libraries(transport_manager_test
     libp2p_transport_manager
+    multiaddress
     )

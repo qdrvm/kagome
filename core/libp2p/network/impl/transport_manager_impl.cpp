@@ -18,12 +18,12 @@ namespace libp2p::network {
     transports_.push_back(std::move(t));
   }
 
-  void TransportManagerImpl::add(gsl::span<TransportSP> t) {
+  void TransportManagerImpl::add(gsl::span<const TransportSP> t) {
     transports_.insert(transports_.end(), t.begin(), t.end());
   }
 
-  gsl::span<TransportManagerImpl::TransportSP> TransportManagerImpl::getAll()
-      const {
+  gsl::span<const TransportManagerImpl::TransportSP>
+  TransportManagerImpl::getAll() const {
     return transports_;
   }
 

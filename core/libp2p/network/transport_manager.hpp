@@ -36,13 +36,13 @@ namespace libp2p::network {
      * Add transports to this transport manager
      * @param t - transports to be added
      */
-    virtual void add(gsl::span<TransportSP> t) = 0;
+    virtual void add(gsl::span<const TransportSP> t) = 0;
 
     /**
      * Get all transports, supported by this manager
      * @return transports
      */
-    virtual gsl::span<TransportSP> getAll() const = 0;
+    virtual gsl::span<const TransportSP> getAll() const = 0;
 
     /**
      * Remove all transports from the manager
