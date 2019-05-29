@@ -30,10 +30,14 @@ namespace kagome::scale::detail {
     constexpr size_t bits = size * 8;
     boost::endian::endian_buffer<boost::endian::order::little, T, bits> buf{};
     buf = value;
+    std::array<uint8_t, size> tmp; // NOLINT
+    tmp.fill(0);
     for (size_t i = 0; i < size; ++i) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-      out << buf.data()[i];
+      gsl::at(tmp, i) = buf.data()[i];
     }
+
+    out << gsl::make_span(tmp);
   }
 
   /**
