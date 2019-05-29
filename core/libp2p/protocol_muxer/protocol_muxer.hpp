@@ -71,8 +71,9 @@ namespace libp2p::protocol_muxer {
      * @param protocol_callback, which is going to be called, when the protocol
      * is chosen or error occurs
      */
-    virtual void negotiateStream(std::shared_ptr<connection::Stream> stream,
-                                 ChosenProtocolCallback protocol_callback) = 0;
+    virtual void negotiateStreamProtocol(
+        std::shared_ptr<connection::Stream> stream,
+        ChosenProtocolCallback protocol_callback) = 0;
 
     virtual ~ProtocolMuxer() = default;
   };

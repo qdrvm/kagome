@@ -61,8 +61,9 @@ namespace libp2p::protocol_muxer {
         std::shared_ptr<connection::SecureConnection> connection,
         ChosenProtocolCallback protocol_callback) override;
 
-    void negotiateStream(std::shared_ptr<connection::Stream> stream,
-                         ChosenProtocolCallback protocol_callback) override;
+    void negotiateStreamProtocol(
+        std::shared_ptr<connection::Stream> stream,
+        ChosenProtocolCallback protocol_callback) override;
 
     enum class MultiselectError {
       NO_PROTOCOLS_SUPPORTED = 1,

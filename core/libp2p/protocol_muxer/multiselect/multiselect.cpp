@@ -71,8 +71,9 @@ namespace libp2p::protocol_muxer {
         ConnectionState::NegotiationRound::MULTIPLEXER));
   }
 
-  void Multiselect::negotiateStream(std::shared_ptr<connection::Stream> stream,
-                                    ChosenProtocolCallback protocol_callback) {
+  void Multiselect::negotiateStreamProtocol(
+      std::shared_ptr<connection::Stream> stream,
+      ChosenProtocolCallback protocol_callback) {
     if (stream_protocols_.empty()) {
       protocol_callback(MultiselectError::NO_PROTOCOLS_SUPPORTED);
       return;
