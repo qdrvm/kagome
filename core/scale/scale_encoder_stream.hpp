@@ -11,7 +11,6 @@
 
 #include "common/blob.hpp"
 #include "common/byte_stream.hpp"
-#include "common/type_traits.hpp"
 #include "scale/compact.hpp"
 #include "scale/detail/fixed_witdh_integer.hpp"
 #include "scale/fixedwidth.hpp"
@@ -120,7 +119,7 @@ namespace kagome::scale {
      * @param v value of integral type
      * @return reference to stream
      */
-    template <typename T, typename I = common::remove_cv_ref_t<T>,
+    template <typename T, typename I = std::decay_t<T>,
               typename = std::enable_if_t<std::is_integral<I>::value>>
     ScaleEncoderStream &operator<<(T &&v) {
       // encode bool
