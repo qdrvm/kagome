@@ -6,6 +6,8 @@
 #ifndef KAGOME_SECURITY_ADAPTOR_HPP
 #define KAGOME_SECURITY_ADAPTOR_HPP
 
+#include <memory>
+
 #include <outcome/outcome.hpp>
 #include "libp2p/connection/secure_connection.hpp"
 #include "libp2p/peer/peer_id.hpp"
