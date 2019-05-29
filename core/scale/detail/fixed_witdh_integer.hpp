@@ -22,17 +22,19 @@ namespace kagome::scale::detail {
    * @return byte array representation of value
    */
   template <class T, class S>
-  void encodeInteger(T value, S &out) { // no need to take integers by &&
+  void encodeInteger(T value, S &out) {  // no need to take integers by &&
     constexpr size_t size = sizeof(T);
-    static_assert(std::is_integral<std::remove_reference_t<T>>(), "only integral types are supported");
+    static_assert(std::is_integral<std::remove_reference_t<T>>(),
+                  "only integral types are supported");
     static_assert(size >= 1, "types of size 0 are not supported");
     constexpr size_t bits = size * 8;
     boost::endian::endian_buffer<boost::endian::order::little, T, bits> buf{};
     buf = value;
     std::array<uint8_t, size> tmp;
+    tmp.fill(0u);
     for (size_t i = 0; i < size; ++i) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-      tmp[i] = buf.data()[i];
+      gsl::at(tmp,i) = buf.data()[i];
     }
     out << tmp;
   }
@@ -113,6 +115,6 @@ namespace kagome::scale::detail {
 
     return sv;
   }
-}  // namespace kagome::scale::impl
+}  // namespace kagome::scale::detail
 
 #endif  // KAGOME_SCALE_UTIL_HPP
