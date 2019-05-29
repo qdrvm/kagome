@@ -50,8 +50,12 @@ namespace libp2p::transport {
         TransportListener::HandlerFunc onSuccess,
         TransportListener::ErrorFunc onError) const = 0;
 
-    // returns true if our transport supports this multiaddress, false
-    // otherwise. example: /tcp/... on tcp transport will return true
+    /**
+     * Check, if this transport supports a given multiaddress
+     * @param ma to be checked against
+     * @return true, if transport supports that multiaddress, false otherwise
+     * @note example: '/tcp/...' on tcp transport will return true
+     */
     virtual bool canDial(const multi::Multiaddress &ma) const = 0;
   };
 }  // namespace libp2p::transport
