@@ -117,12 +117,12 @@ namespace kagome::scale {
         uint8_t byte = (v ? 0x01u : 0x00u);
         return putByte(byte);
       } else if constexpr (sizeof(T) == 1) {
+        // to avoid infinite recursion
         return putByte(static_cast<uint8_t>(v));
-      } else {
-        // encode any other integer
-        detail::encodeInteger<I>(v, *this);
-        return *this;
       }
+      // encode any other integer
+      detail::encodeInteger<I>(v, *this);
+      return *this;
     }
 
     /**

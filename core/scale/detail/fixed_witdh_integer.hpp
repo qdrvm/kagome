@@ -18,6 +18,7 @@ namespace kagome::scale::detail {
   /**
    * encodeInteger encodes any integer type to little-endian representation
    * @tparam T integer type
+   * @tparam S output stream type
    * @param value integer value
    * @return byte array representation of value
    */
@@ -26,8 +27,8 @@ namespace kagome::scale::detail {
   void encodeInteger(T value, S &out) {  // no need to take integers by &&
     constexpr size_t size = sizeof(T);
     constexpr size_t bits = size * 8;
-    boost::endian::endian_buffer<boost::endian::order::little, T, bits> buf;
-    buf = value; // cannot initialize, only assign
+    boost::endian::endian_buffer<boost::endian::order::little, T, bits> buf{};
+    buf = value;  // cannot initialize, only assign
     for (size_t i = 0; i < size; ++i) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       out << buf.data()[i];
@@ -40,10 +41,10 @@ namespace kagome::scale::detail {
    * @param stream source stream
    * @return decoded value or error
    */
-  template <class T>
-  outcome::result<T> decodeInteger(common::ByteStream &stream) {
-    static_assert(std::is_integral<T>());
-    constexpr size_t size = sizeof(T);
+  template <class T, typename I = std::decay_t<T>,
+            typename = std::enable_if_t<std::is_integral<I>::value>>
+  outcome::result<I> decodeInteger(common::ByteStream &stream) {
+    constexpr size_t size = sizeof(I);
     static_assert(size == 1 || size == 2 || size == 4 || size == 8);
 
     // clang-format off
@@ -76,8 +77,8 @@ namespace kagome::scale::detail {
     }
 
     // get integer as 4 bytes from little-endian stream
-    // and represent it as native-endian unsigned integer
-    uint64_t v{0};
+    // and represent it as native-endian unsigned int eger
+    uint64_t v = 0u;
     for (size_t i = 0; i < size; ++i) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       v += multiplier[i] * static_cast<uint64_t>(*stream.nextByte());
