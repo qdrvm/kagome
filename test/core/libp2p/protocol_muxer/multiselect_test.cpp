@@ -106,15 +106,9 @@ TEST_F(MultiselectTest, NegotiateEncryption) {
 
   this->server(
       [this, &negotiated](std::shared_ptr<RawConnection> conn) mutable {
-        // create a success handler to be called, when a negotiation is finished
-        multiselect_->negotiateEncryption(
-            conn,
-            [this,
-             &negotiated](outcome::result<Protocol> protocol_res) mutable {
-              EXPECT_OUTCOME_TRUE(protocol, protocol_res)
-              EXPECT_EQ(protocol, kDefaultEncryptionProtocol2);
-              negotiated = true;
-            });
+        EXPECT_OUTCOME_TRUE(protocol, multiselect_->negotiateEncryption(conn))
+        EXPECT_EQ(protocol, kDefaultEncryptionProtocol2);
+        negotiated = true;
         return outcome::success();
       },
       [](auto &&) { FAIL() << "cannot create server"; });
@@ -154,15 +148,12 @@ TEST_F(MultiselectTest, NegotiateMultiplexer) {
 
   this->server(
       [this, &negotiated](std::shared_ptr<RawConnection> conn) mutable {
-        // create a success handler to be called, when a negotiation is finished
-        multiselect_->negotiateMultiplexer(
-            std::static_pointer_cast<SecureConnection>(conn),
-            [this,
-             &negotiated](outcome::result<Protocol> protocol_res) mutable {
-              EXPECT_OUTCOME_TRUE(protocol, protocol_res)
-              EXPECT_EQ(protocol, kDefaultMultiplexerProtocol);
-              negotiated = true;
-            });
+        EXPECT_OUTCOME_TRUE(
+            protocol,
+            multiselect_->negotiateMultiplexer(
+                std::static_pointer_cast<SecureConnection>(conn)))
+        EXPECT_EQ(protocol, kDefaultMultiplexerProtocol);
+        negotiated = true;
         return outcome::success();
       },
       [](auto &&) { FAIL() << "cannot create server"; });
@@ -193,16 +184,12 @@ TEST_F(MultiselectTest, NegotiateStream) {
 
   this->server(
       [this, &negotiated](std::shared_ptr<RawConnection> conn) mutable {
-        // create a success handler to be called, when a negotiation is finished
-        multiselect_->negotiateAppProtocol(
-            std::static_pointer_cast<Stream>(
-                std::static_pointer_cast<ReadWriteCloser>(conn)),
-            [this,
-                &negotiated](outcome::result<Protocol> protocol_res) mutable {
-              EXPECT_OUTCOME_TRUE(protocol, protocol_res)
-              EXPECT_EQ(protocol, kDefaultStreamProtocol);
-              negotiated = true;
-            });
+        EXPECT_OUTCOME_TRUE(
+            protocol,
+            multiselect_->negotiateAppProtocol(std::static_pointer_cast<Stream>(
+                std::static_pointer_cast<ReadWriteCloser>(conn))))
+        EXPECT_EQ(protocol, kDefaultStreamProtocol);
+        negotiated = true;
         return outcome::success();
       },
       [](auto &&) { FAIL() << "cannot create server"; });
@@ -233,13 +220,8 @@ TEST_F(MultiselectTest, NegotiateFailure) {
 
   this->server(
       [this, &negotiated](std::shared_ptr<RawConnection> conn) mutable {
-        // create a failure handler to be called, when a negotiation is finished
-        multiselect_->negotiateEncryption(
-            conn,
-            [&negotiated](outcome::result<Protocol> protocol_res) mutable {
-              EXPECT_FALSE(protocol_res);
-              negotiated = true;
-            });
+        EXPECT_FALSE(multiselect_->negotiateEncryption(conn));
+        negotiated = true;
         return outcome::success();
       },
       [](auto &&) { FAIL() << "cannot create server"; });
@@ -266,13 +248,6 @@ TEST_F(MultiselectTest, NegotiateFailure) {
  * @then the common protocol is not selected
  */
 TEST_F(MultiselectTest, NoProtocols) {
-  auto negotiated = false;
-  // create a failure handler, which is going to be called immediately
   std::shared_ptr<RawConnection> conn = std::make_shared<RawConnectionMock>();
-  multiselect_->negotiateEncryption(
-      conn, [&negotiated](outcome::result<Protocol> protocol_res) mutable {
-        EXPECT_FALSE(protocol_res);
-        negotiated = true;
-      });
-  ASSERT_TRUE(negotiated);
+  EXPECT_FALSE(multiselect_->negotiateEncryption(conn));
 }
