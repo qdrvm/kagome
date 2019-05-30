@@ -38,8 +38,8 @@ namespace libp2p::protocol_muxer {
       auto varint_candidate_res = connection_state->read(1);
       if (!varint_candidate_res) {
         // something bad happened during read
-        processError(std::move(connection_state), varint_candidate_res.error());
-        return;
+        return processError(std::move(connection_state),
+                            varint_candidate_res.error());
       }
       varint_bytes.push_back(varint_candidate_res.value()[0]);
       varint = getVarint(varint_bytes);
@@ -70,10 +70,8 @@ namespace libp2p::protocol_muxer {
 
     auto multiselect = connection_state->multiselect_;
 
-    gsl::span<const uint8_t> line_span = line_bytes.toVector();
-
     // firstly, try to match the message against constant messages
-    auto const_msg_res = MessageManager::parseConstantMsg(line_span);
+    auto const_msg_res = MessageManager::parseConstantMsg(line_bytes);
     if (const_msg_res) {
       multiselect->onReadCompleted(std::move(connection_state),
                                    std::move(const_msg_res.value()));
@@ -96,7 +94,7 @@ namespace libp2p::protocol_muxer {
     // big for it to happen; thus, continue parsing depending on the length of
     // the current string
     if (line_bytes.size() < kShortestProtocolLength) {
-      auto proto_header_res = MessageManager::parseProtocolsHeader(line_span);
+      auto proto_header_res = MessageManager::parseProtocolsHeader(line_bytes);
       if (proto_header_res) {
         auto proto_header = proto_header_res.value();
         readNextBytes(
@@ -115,7 +113,7 @@ namespace libp2p::protocol_muxer {
       return;
     }
 
-    auto proto_res = MessageManager::parseProtocol(line_span);
+    auto proto_res = MessageManager::parseProtocol(line_bytes);
     if (!proto_res) {
       multiselect->onError(
           std::move(connection_state),

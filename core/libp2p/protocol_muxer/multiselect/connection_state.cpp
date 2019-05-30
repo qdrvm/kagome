@@ -5,16 +5,6 @@
 
 #include "libp2p/protocol_muxer/multiselect/connection_state.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol_muxer,
-                            ConnectionState::ReadWriteError, e) {
-  using E = libp2p::protocol_muxer::ConnectionState::ReadWriteError;
-  switch (e) {
-    case E::PARTIAL_WRITE:
-      return "less bytes were written than expected";
-  }
-  return "unknown error";
-}
-
 namespace libp2p::protocol_muxer {
   ConnectionState::ConnectionState(
       std::shared_ptr<basic::ReadWriteCloser> conn,
@@ -31,10 +21,7 @@ namespace libp2p::protocol_muxer {
         status_{status} {}
 
   outcome::result<void> ConnectionState::write() {
-    OUTCOME_TRY(written, connection_->write(write_buffer_->toVector()));
-    if (written != write_buffer_->size()) {
-      return ReadWriteError::PARTIAL_WRITE;
-    }
+    OUTCOME_TRY(connection_->write(write_buffer_->toVector()));
     return outcome::success();
   }
 

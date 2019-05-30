@@ -57,8 +57,6 @@ namespace libp2p::protocol_muxer {
     /// current status of the negotiation
     NegotiationStatus status_ = NegotiationStatus::NOTHING_SENT;
 
-    enum class ReadWriteError { PARTIAL_WRITE = 1 };
-
     /**
      * Write to the underlying connection or stream
      * @return nothing on success, error otherwise
@@ -83,8 +81,5 @@ namespace libp2p::protocol_muxer {
                     NegotiationStatus status = NegotiationStatus::NOTHING_SENT);
   };
 }  // namespace libp2p::protocol_muxer
-
-OUTCOME_HPP_DECLARE_ERROR(libp2p::protocol_muxer,
-                          ConnectionState::ReadWriteError)
 
 #endif  // KAGOME_CONNECTION_STATE_HPP
