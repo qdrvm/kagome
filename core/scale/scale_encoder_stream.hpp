@@ -167,19 +167,6 @@ namespace kagome::scale {
      */
     ScaleEncoderStream &putByte(uint8_t v);
 
-    /**
-     * @brief appends bytes to stream without encoding them
-     * @tparam It iterator over collection of bytes
-     * @param begin iterator pointing to the begin of collection
-     * @param end iterator pointing to the end of collection
-     * @return reference to stream
-     */
-    template <class It>
-    ScaleEncoderStream &append(It &&begin, It &&end) {
-      stream_.insert(stream_.end(), begin, end);
-      return *this;
-    }
-
    private:
     std::deque<uint8_t> stream_;
   };
