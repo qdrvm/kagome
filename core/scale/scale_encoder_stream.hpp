@@ -116,7 +116,9 @@ namespace kagome::scale {
       if constexpr (std::is_same<I, bool>::value) {
         uint8_t byte = (v ? 0x01u : 0x00u);
         return putByte(byte);
-      } else if constexpr (sizeof(T) == 1) {
+      }
+      // put byte
+      if constexpr (sizeof(T) == 1) {
         // to avoid infinite recursion
         return putByte(static_cast<uint8_t>(v));
       }
