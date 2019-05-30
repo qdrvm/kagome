@@ -51,7 +51,7 @@ namespace libp2p::transport {
         TransportListener::ErrorFunc onError) const = 0;
 
     /**
-     * Check, if this transport supports a given multiaddress
+     * Check if this transport supports a given multiaddress
      * @param ma to be checked against
      * @return true, if transport supports that multiaddress, false otherwise
      * @note example: '/tcp/...' on tcp transport will return true

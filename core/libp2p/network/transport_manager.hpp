@@ -21,7 +21,7 @@ namespace libp2p::network {
    */
   struct TransportManager {
    protected:
-    using TransportSP = std::shared_ptr<transport::Transport>;
+    using TransportSPtr = std::shared_ptr<transport::Transport>;
 
    public:
     virtual ~TransportManager() = default;
@@ -30,19 +30,19 @@ namespace libp2p::network {
      * Add a transport to this transport manager
      * @param t - transport to be added
      */
-    virtual void add(TransportSP t) = 0;
+    virtual void add(TransportSPtr t) = 0;
 
     /**
      * Add transports to this transport manager
      * @param t - transports to be added
      */
-    virtual void add(gsl::span<const TransportSP> t) = 0;
+    virtual void add(gsl::span<const TransportSPtr> t) = 0;
 
     /**
      * Get all transports, supported by this manager
      * @return transports
      */
-    virtual gsl::span<const TransportSP> getAll() const = 0;
+    virtual gsl::span<const TransportSPtr> getAll() const = 0;
 
     /**
      * Remove all transports from the manager
@@ -63,7 +63,7 @@ namespace libp2p::network {
      * @return nullptr if no transport available, pointer to transport instance
      * otherwise
      */
-    virtual TransportSP findBest(const multi::Multiaddress &ma) = 0;
+    virtual TransportSPtr findBest(const multi::Multiaddress &ma) = 0;
   };
 
 }  // namespace libp2p::network

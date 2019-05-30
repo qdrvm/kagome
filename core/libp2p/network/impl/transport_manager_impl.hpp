@@ -16,28 +16,28 @@ namespace libp2p::network {
     /**
      * Initialize a transport manager with no supported transports
      */
-    TransportManagerImpl();
+    TransportManagerImpl() = default;
 
     /**
      * Initialize a transport manager from a collection of transports
      * @param transports, which this manager is going to support
      */
-    explicit TransportManagerImpl(std::vector<TransportSP> transports);
+    explicit TransportManagerImpl(std::vector<TransportSPtr> transports);
 
     ~TransportManagerImpl() override = default;
 
-    void add(TransportSP t) override;
+    void add(TransportSPtr t) override;
 
-    void add(gsl::span<const TransportSP> t) override;
+    void add(gsl::span<const TransportSPtr> t) override;
 
-    gsl::span<const TransportSP> getAll() const override;
+    gsl::span<const TransportSPtr> getAll() const override;
 
     void clear() override;
 
-    TransportSP findBest(const multi::Multiaddress &ma) override;
+    TransportSPtr findBest(const multi::Multiaddress &ma) override;
 
    private:
-    std::vector<TransportSP> transports_;
+    std::vector<TransportSPtr> transports_;
   };
 }  // namespace libp2p::network
 

@@ -8,21 +8,19 @@
 #include <algorithm>
 
 namespace libp2p::network {
-  TransportManagerImpl::TransportManagerImpl() = default;
-
   TransportManagerImpl::TransportManagerImpl(
-      std::vector<TransportSP> transports)
+      std::vector<TransportSPtr> transports)
       : transports_{std::move(transports)} {}
 
-  void TransportManagerImpl::add(TransportSP t) {
+  void TransportManagerImpl::add(TransportSPtr t) {
     transports_.push_back(std::move(t));
   }
 
-  void TransportManagerImpl::add(gsl::span<const TransportSP> t) {
+  void TransportManagerImpl::add(gsl::span<const TransportSPtr> t) {
     transports_.insert(transports_.end(), t.begin(), t.end());
   }
 
-  gsl::span<const TransportManagerImpl::TransportSP>
+  gsl::span<const TransportManagerImpl::TransportSPtr>
   TransportManagerImpl::getAll() const {
     return transports_;
   }
@@ -31,7 +29,7 @@ namespace libp2p::network {
     transports_.clear();
   }
 
-  TransportManagerImpl::TransportSP TransportManagerImpl::findBest(
+  TransportManagerImpl::TransportSPtr TransportManagerImpl::findBest(
       const multi::Multiaddress &ma) {
     auto it = std::find_if(transports_.begin(), transports_.end(),
                            [&ma](const auto &t) { return t->canDial(ma); });
