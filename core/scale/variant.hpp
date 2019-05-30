@@ -14,7 +14,6 @@
 #include "scale/fixedwidth.hpp"
 #include "scale/scale_error.hpp"
 #include "scale/type_decoder.hpp"
-#include "scale/type_encoder.hpp"
 
 namespace kagome::scale::variant {
   namespace detail {
@@ -37,17 +36,15 @@ namespace kagome::scale::variant {
       for_each_apply_impl<i + 1, F, T...>(f);
     }
 
-    // TODO(yuraz): refactor PRE-119
-    template <class... T>
-    struct VariantEncoder {
+    template <class Stream, class... T>
+    struct StreamVariantEncoder {
       using Variant = boost::variant<T...>;
       using Result = outcome::result<void>;
       const Variant &v_;
-      common::Buffer &out_;
-      Result &res_;
+      Stream &s_;
 
-      VariantEncoder(const Variant &v, common::Buffer &buf, Result &res)
-          : v_{v}, out_{buf}, res_{res} {}
+      StreamVariantEncoder(const Variant &v, Stream &s)
+          : v_{v}, s_{s} {}
 
       template <class H>
       void apply(uint8_t index) {
@@ -56,11 +53,7 @@ namespace kagome::scale::variant {
             v_,
             [this, index](const H &h) {
               // first byte means type index
-              out_.putUint8(index);
-              auto &&encode_result = TypeEncoder<H>{}.encode(h, out_);
-              if (!encode_result) {
-                res_ = encode_result.error();
-              }
+              s_ << index << h;
             },
             [](const auto & /*unused*/) {});
       }
@@ -106,15 +99,12 @@ namespace kagome::scale::variant {
    * @brief encodes boost::variant value
    * @tparam T... sequence of types
    * @param v variant value
-   * @param out output buffer
+   * @param s encoder stream
    */
-  template <class... T>
-  outcome::result<void> encodeVariant(const boost::variant<T...> &v,
-                                      common::Buffer &out) {
-    outcome::result<void> res = outcome::success();
-    auto encoder = detail::VariantEncoder<T...>(v, out, res);
+  template <class Stream, class... T>
+  void encodeVariant(const boost::variant<T...> &v, Stream &s) {
+    auto encoder = detail::StreamVariantEncoder<Stream, T...>(v, s);
     detail::for_each_apply<decltype(encoder), T...>(encoder);
-    return res;
   }
 
   /**

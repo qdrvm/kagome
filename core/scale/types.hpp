@@ -24,4 +24,17 @@ namespace kagome::scale {
   }
 }  // namespace kagome::scale
 
+namespace kagome::scale::compact {
+  /**
+   * @brief categories of compact encoding
+   */
+  struct EncodingCategoryLimits {
+    // min integer encoded by 2 bytes
+    constexpr static size_t kMinUint16 = (1ul << 6u);
+    // min integer encoded by 4 bytes
+    constexpr static size_t kMinUint32 = (1ul << 14u);
+    // min integer encoded as multibyte
+    constexpr static size_t kMinBigInteger = (1ul << 30u);
+  };
+}  // namespace kagome::scale::compact
 #endif  // KAGOME_SCALE_TYPES_HPP

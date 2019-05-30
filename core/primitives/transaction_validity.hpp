@@ -84,6 +84,41 @@ namespace kagome::primitives {
    */
   using TransactionValidity = boost::variant<Invalid, Valid, Unknown>;
 
+  /**
+   * @brief outputs object of type Invalid to stream
+   * @tparam Stream stream type
+   * @param s stream reference
+   * @param v value to output
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator<<(Stream &s, const Invalid &v) {
+    return s << v.error_;
+  }
+
+  /**
+   * @brief outputs object of type Valid to stream
+   * @tparam Stream stream type
+   * @param s stream reference
+   * @param v value to output
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator<<(Stream &s, const Valid &v) {
+    return s << v.priority_ << v.requires_ << v.provides_ << v.longevity_;
+  }
+
+  /**
+   * @brief outputs object of type Unknown to stream
+   * @tparam Stream stream type
+   * @param s stream reference
+   * @param v value to output
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator<<(Stream &s, const Unknown &v) {
+    return s << v.error_;
+  }
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_CORE_PRIMITIVES_TRANSACTION_VALIDITY_HPP

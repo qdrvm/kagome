@@ -3,6 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/block.hpp"
+#include "scale/scale_decoder_stream.hpp"
 
-namespace kagome::primitives {}  // namespace kagome::primitives
+namespace kagome::scale {}

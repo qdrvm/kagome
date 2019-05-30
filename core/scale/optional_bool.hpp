@@ -8,16 +8,25 @@
 
 #include "scale/optional.hpp"
 
-namespace kagome::scale::optional {
-  /**
-   * @brief specialization of encodeOptional function for optional bool
-   * @param optional bool value
-   * @return encoded value
-   */
-  template <>
-  outcome::result<void> encodeOptional<bool>(
-      const std::optional<bool> &optional, common::Buffer &out);
+/**
+ * Optional bool is a special case of optional values in SCALE
+ * Optional bools are encoded using only 1 byte
+ * 0 means no value, 1 means false, 2 means true
+ */
 
+namespace kagome::scale {
+  class ScaleEncoderStream;
+
+  /**
+   * @brief scale-encodes optional bool value
+   * @param s reference to scale-encoder stream
+   * @param b optional bool value to encode
+   * @return reference to stream
+   */
+  ScaleEncoderStream &operator<<(ScaleEncoderStream &s, const std::optional<bool> &b);
+}
+
+namespace kagome::scale::optional {
   /**
    * @brief specialization of decodeOptional function for optional bool
    * @param optional bool value

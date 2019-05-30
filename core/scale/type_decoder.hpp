@@ -10,28 +10,11 @@
 #include "scale/compact.hpp"
 #include "scale/fixedwidth.hpp"
 #include "scale/types.hpp"
-#include "scale/util.hpp"
+#include "scale/detail/fixed_witdh_integer.hpp"
 
-// TODO(yuraz): PRE-119 conception of TypeEncoder/TypeDecoder needs to be
-// refactored
+// TODO(yuraz): PRE-119 this file will be removed
 
 namespace kagome::scale {
-  /**
-   * Type decoders are nested decoders used to decode types in optionals,
-   * variants, collections and tuples.
-   * If you need to decode custom type, you need to implement specialisation of
-   * TypeDecoder class.
-   * It is obligued to have one function:
-   *
-   *            TypeDecoderResult<T> decode(Stream & stream);
-   *
-   * Where Stream is the Stream interface defined in types.hpp.
-   * It is assumed that decoder takes data from input stream,
-   *
-   * Type decoders for basic integral types and bool and tribool are
-   * provided from the box.
-   */
-
   /**
    * @class TypeDecoder implements decoding integral types from stream
    * @tparam T any integral type
@@ -42,7 +25,7 @@ namespace kagome::scale {
       static_assert(std::is_integral<T>(),
                     "Only integral types are supported. You need to define "
                     "your own TypeDecoder specialization for custom type.");
-      return impl::decodeInteger<T>(stream);
+      return detail::decodeInteger<T>(stream);
     }
   };
 

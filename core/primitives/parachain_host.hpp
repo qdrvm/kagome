@@ -45,6 +45,18 @@ namespace kagome::primitives::parachain {
    * @brief DutyRoster primitive
    */
   using DutyRoster = std::vector<Chain>;
+
+  /**
+   * @brief outputs Relay instance to stream
+   * @tparam Stream stream type
+   * @param s reference to stream
+   * @param v value to output
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator<<(Stream &s, const Relay &v) {
+    return s;
+  }
 }  // namespace kagome::primitives::parachain
 
 #endif  // KAGOME_CORE_PRIMITIVES_PARACHAIN_HOST_HPP

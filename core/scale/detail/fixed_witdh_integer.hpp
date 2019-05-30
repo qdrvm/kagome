@@ -7,36 +7,32 @@
 #define KAGOME_SCALE_UTIL_HPP
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <vector>
-#include <array>
 
 #include <boost/endian/arithmetic.hpp>
-#include "common/buffer.hpp"
 #include "scale/scale_error.hpp"
-#include "scale/types.hpp"
 
-namespace kagome::scale::impl {
+namespace kagome::scale::detail {
   /**
    * encodeInteger encodes any integer type to little-endian representation
    * @tparam T integer type
+   * @tparam S output stream type
    * @param value integer value
    * @return byte array representation of value
    */
-  template <class T>
-  void encodeInteger(T value, common::Buffer &out) {
+  template <class T, class S, typename I = std::decay_t<T>,
+            typename = std::enable_if_t<std::is_integral<I>::value>>
+  void encodeInteger(T value, S &out) {  // no need to take integers by &&
     constexpr size_t size = sizeof(T);
-    static_assert(std::is_integral<T>(), "only integral types are supported");
-    static_assert(size >= 1, "types of size 0 are not supported");
     constexpr size_t bits = size * 8;
     boost::endian::endian_buffer<boost::endian::order::little, T, bits> buf{};
-    buf = value;
-    std::vector<uint8_t> tmp;
+    buf = value;  // cannot initialize, only assign
     for (size_t i = 0; i < size; ++i) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-      tmp.push_back(buf.data()[i]);
+      out << buf.data()[i];
     }
-    out.put(tmp);
   }
 
   /**
@@ -45,10 +41,10 @@ namespace kagome::scale::impl {
    * @param stream source stream
    * @return decoded value or error
    */
-  template <class T>
-  outcome::result<T> decodeInteger(common::ByteStream &stream) {
-    static_assert(std::is_integral<T>());
-    constexpr size_t size = sizeof(T);
+  template <class T, typename I = std::decay_t<T>,
+            typename = std::enable_if_t<std::is_integral<I>::value>>
+  outcome::result<I> decodeInteger(common::ByteStream &stream) {
+    constexpr size_t size = sizeof(I);
     static_assert(size == 1 || size == 2 || size == 4 || size == 8);
 
     // clang-format off
@@ -81,8 +77,8 @@ namespace kagome::scale::impl {
     }
 
     // get integer as 4 bytes from little-endian stream
-    // and represent it as native-endian unsigned integer
-    uint64_t v{0};
+    // and represent it as native-endian unsigned int eger
+    uint64_t v = 0u;
     for (size_t i = 0; i < size; ++i) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       v += multiplier[i] * static_cast<uint64_t>(*stream.nextByte());
@@ -115,6 +111,6 @@ namespace kagome::scale::impl {
 
     return sv;
   }
-}  // namespace kagome::scale::impl
+}  // namespace kagome::scale::detail
 
 #endif  // KAGOME_SCALE_UTIL_HPP

@@ -15,14 +15,6 @@
 
 namespace kagome::scale::compact {
   /**
-   * @brief compact-encodes BigInteger
-   * @param value source BigInteger value
-   * @return byte array result or error
-   */
-  outcome::result<void> encodeInteger(const BigInteger &value,
-                                      common::Buffer &out);
-
-  /**
    * @brief function decodes compact-encoded integer
    * @param stream source stream
    * @return decoded BigInteger or error
@@ -31,4 +23,3 @@ namespace kagome::scale::compact {
 }  // namespace kagome::scale::compact
 
 #endif  // KAGOME_SCALE_HPP
-

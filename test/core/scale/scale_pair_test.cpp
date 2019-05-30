@@ -6,12 +6,13 @@
 #include <gtest/gtest.h>
 #include "scale/byte_array_stream.hpp"
 #include "scale/type_decoder.hpp"
-#include "scale/type_encoder.hpp"
+#include "scale/scale_encoder_stream.hpp"
 
 using kagome::common::Buffer;
 using kagome::common::ByteStream;
 using kagome::scale::ByteArray;
 using kagome::scale::ByteArrayStream;
+using kagome::scale::ScaleEncoderStream;
 
 /**
  * @given pair of values of different types: uint8_t and uint32_t
@@ -21,12 +22,10 @@ using kagome::scale::ByteArrayStream;
 TEST(Scale, encodePair) {
   uint8_t v1 = 1;
   uint32_t v2 = 1;
-  using Pair = std::pair<uint8_t, uint32_t>;
-  kagome::scale::TypeEncoder<Pair> encoder;
-  Buffer out;
-  auto &&res = encoder.encode(std::make_pair(v1, v2), out);
-  ASSERT_TRUE(res);
-  ASSERT_EQ(out.toVector(), (std::vector<uint8_t>{1, 1, 0, 0, 0}));
+
+  ScaleEncoderStream s;
+  ASSERT_NO_THROW((s << std::make_pair(v1, v2)));
+  ASSERT_EQ(s.data(), (ByteArray{1, 1, 0, 0, 0}));
 }
 
 /**

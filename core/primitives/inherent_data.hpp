@@ -6,17 +6,18 @@
 #ifndef KAGOME_INHERENT_DATA_HPP
 #define KAGOME_INHERENT_DATA_HPP
 
-#include <array>
 #include <map>
 #include <optional>
 #include <vector>
 
+#include <boost/iterator_adaptors.hpp>
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
+#include "common/blob.hpp"
 
 namespace kagome::primitives {
 
-  using InherentIdentifier = std::array<uint8_t, 8>;
+  using InherentIdentifier = common::Blob<8u>;
 
   /**
    * Inherent data to include in a block
@@ -55,6 +56,31 @@ namespace kagome::primitives {
     std::map<InherentIdentifier, common::Buffer> data_;
   };
 
+
+  /**
+   * @brief output InherentData object instance to stream
+   * @tparam Stream stream type
+   * @param s stream reference
+   * @param v value to output
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator<<(Stream &s, const InherentData &v) {
+    const auto &data = v.getDataCollection();
+    // vectors
+    std::vector<std::reference_wrapper<const InherentIdentifier>> ids;
+    ids.reserve(data.size());
+    std::vector<std::reference_wrapper<const common::Buffer>> vals;
+    vals.reserve(data.size());
+
+    for (auto &pair : data) {
+      ids.push_back(std::ref(pair.first));
+      vals.push_back(std::ref(pair.second));
+    }
+
+    s << ids << vals;
+    return s;
+  }
 }  // namespace kagome::primitives
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::primitives, InherentData::Error);

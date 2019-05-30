@@ -7,10 +7,14 @@
 
 #include "scale/byte_array_stream.hpp"
 #include "scale/collection.hpp"
+#include "scale/scale.hpp"
+#include "scale/scale_encoder_stream.hpp"
+#include "testutil/outcome.hpp"
 
-using namespace kagome;          // NOLINT
-using namespace kagome::common;  // NOLINT
-using namespace kagome::scale;   // NOLINT
+using kagome::scale::ByteArray;
+using kagome::scale::ByteArrayStream;
+using kagome::scale::ScaleEncoderStream;
+using kagome::scale::encode;
 
 /**
  * @given collection of 80 items of type uint8_t
@@ -19,15 +23,15 @@ using namespace kagome::scale;   // NOLINT
  */
 TEST(Scale, encodeCollectionOf80) {
   // 80 items of value 1
-  std::vector<uint8_t> collection(80, 1);
-  auto out_bytes = Buffer{65, 1};
-  out_bytes.put(collection);
-  Buffer out;
-  auto &&res = collection::encodeCollection(collection, out);
-  ASSERT_TRUE(res);
-  ASSERT_EQ(out.toVector().size(), 82);
+  ByteArray collection(80, 1);
+  auto match = ByteArray{65, 1};  // header
+  match.insert(match.end(), collection.begin(), collection.end());
+  ScaleEncoderStream s;
+  ASSERT_NO_THROW((s << collection));
+  auto &&out = s.data();
+  ASSERT_EQ(out.size(), 82);
   // clang-format off
-  ASSERT_EQ(out.toVector(), out_bytes.toVector());
+  ASSERT_EQ(out, match);
   // clang-format on
 }
 
@@ -38,11 +42,11 @@ TEST(Scale, encodeCollectionOf80) {
  */
 TEST(Scale, encodeCollectionUint16) {
   std::vector<uint16_t> collection = {1, 2, 3, 4};
-  Buffer out;
-  auto res = collection::encodeCollection(collection, out);
-  ASSERT_TRUE(res);
+  ScaleEncoderStream s;
+  ASSERT_NO_THROW((s << collection));
+  auto &&out = s.data();
   // clang-format off
-  ASSERT_EQ(out.toVector(),
+  ASSERT_EQ(out,
           (ByteArray{
               16,  // header
             1, 0,  // first item
@@ -61,11 +65,11 @@ TEST(Scale, encodeCollectionUint16) {
 TEST(Scale, encodeCollectionUint32) {
   std::vector<uint32_t> collection = {50462976, 117835012, 185207048,
                                       252579084};
-  Buffer out;
-  auto &&res = collection::encodeCollection(collection, out);
-  ASSERT_TRUE(res);
+  ScaleEncoderStream s;
+  ASSERT_NO_THROW((s << collection));
+  auto &&out = s.data();
   // clang-format off
-  ASSERT_EQ(out.toVector(),
+  ASSERT_EQ(out,
             (ByteArray{
                     16,                // header
                     0, 1, 2, 3,        // first item
@@ -84,11 +88,11 @@ TEST(Scale, encodeCollectionUint32) {
 TEST(Scale, encodeCollectionUint64) {
   std::vector<uint64_t> collection = {506097522914230528ull,
                                       1084818905618843912ull};
-  Buffer out;
-  auto &&res = collection::encodeCollection(collection, out);
-  ASSERT_TRUE(res);
+  ScaleEncoderStream s;
+  ASSERT_NO_THROW((s << collection));
+  auto &&out = s.data();
   // clang-format off
-  ASSERT_EQ(out.toVector(),
+  ASSERT_EQ(out,
             (ByteArray{
                     8,                // header
                     0, 1, 2, 3,        // first item
@@ -114,18 +118,17 @@ TEST(Scale, encodeLongCollectionUint16) {
     collection.push_back(i % 256);
   }
 
-  Buffer out;
-
-  auto &&res = collection::encodeCollection(collection, out);
-  ASSERT_TRUE(res);
+  ScaleEncoderStream s;
+  ASSERT_NO_THROW((s << collection));
+  auto &&out = s.data();
   ASSERT_EQ(out.size(), (length * 2 + 4));
 
   // header takes 4 byte,
   // first 4 bytes represent le-encoded value 2^16 + 2
   // which is compact-encoded value 2^14 = 16384
-  auto stream = ByteArrayStream(out.toVector());
+  auto stream = ByteArrayStream(out);
 
-  auto &&res1 = compact::decodeInteger(stream);
+  auto &&res1 = kagome::scale::compact::decodeInteger(stream);
   ASSERT_TRUE(res1);
   ASSERT_EQ(res1.value(), 16384);
 
@@ -164,18 +167,18 @@ TEST(Scale, encodeVeryLongCollectionUint8) {
     collection.push_back(i % 256);
   }
 
-  Buffer out;
-  auto &&res = collection::encodeCollection(collection, out);
-  ASSERT_TRUE(res);
+  ScaleEncoderStream s;
+  ASSERT_NO_THROW((s << collection));
+  auto &&out = s.data();
   ASSERT_EQ(out.size(), (length + 4));
   // header takes 4 bytes,
   // first byte == (4-4) + 3 = 3,
   // which means that number of items requires 4 bytes
   // 3 next bytes are 0, and the last 4-th == 2^6 == 64
   // which is compact-encoded value 2^14 = 16384
-  auto stream = ByteArrayStream(out.toVector());
+  auto stream = ByteArrayStream(out);
 
-  auto &&bi = compact::decodeInteger(stream);
+  auto &&bi = kagome::scale::compact::decodeInteger(stream);
   ASSERT_TRUE(bi);
   ASSERT_EQ(bi.value(), 1048576);
 
@@ -211,18 +214,18 @@ TEST(Scale, DISABLED_encodeVeryLongCollectionUint8) {
     collection.push_back(i % 256);
   }
 
-  Buffer out;
-  auto &&res = collection::encodeCollection(collection, out);
-  ASSERT_TRUE(res);
+  ScaleEncoderStream s;
+  ASSERT_NO_THROW((s << collection));
+  auto &&out = s.data();
   ASSERT_EQ(out.size(), (length + 4));
   // header takes 4 bytes,
   // first byte == (4-4) + 3 = 3, which means that number of items
   // requires 4 bytes
   // 3 next bytes are 0, and the last 4-th == 2^6 == 64
   // which is compact-encoded value 2^14 = 16384
-  auto stream = ByteArrayStream(out.toVector());
+  auto stream = ByteArrayStream(out);
 
-  auto &&bi = compact::decodeInteger(stream);
+  auto &&bi = kagome::scale::compact::decodeInteger(stream);
   ASSERT_TRUE(bi);
   ASSERT_EQ(bi.value(), length);
 
@@ -257,7 +260,7 @@ TEST(Scale, decodeSimpleCollectionOfUint16) {
     };
   // clang-format on
   auto stream = ByteArrayStream{bytes};
-  auto &&res = collection::decodeCollection<uint16_t>(stream);
+  auto &&res = kagome::scale::collection::decodeCollection<uint16_t>(stream);
   ASSERT_TRUE(res);
   auto &&value = res.value();
   ASSERT_EQ(value.size(), 4);
@@ -277,14 +280,12 @@ TEST(Scale, decodeLongCollectionOfUint8) {
     collection.push_back(i % 256);
   }
 
-  Buffer out;
-  auto &&res = collection::encodeCollection(collection, out);
-  ASSERT_TRUE(res);
-
-  auto stream = ByteArrayStream(out.toVector());
-  auto &&decode_result = collection::decodeCollection<uint8_t>(stream);
-  ASSERT_TRUE(decode_result);
-  ASSERT_EQ(decode_result.value(), collection);
+  EXPECT_OUTCOME_TRUE(out, encode(collection))
+  auto stream = ByteArrayStream(out);
+  EXPECT_OUTCOME_TRUE(
+      decode_result,
+      kagome::scale::collection::decodeCollection<uint8_t>(stream))
+  ASSERT_EQ(decode_result, collection);
 }
 
 /**
@@ -306,10 +307,8 @@ TEST(Scale, decodeSimpleCollectionOfUint32) {
           0xC, 0xD, 0xE, 0xF // fourth item
   };
   // clang-format on
-
-  Buffer out;
   auto stream = ByteArrayStream{bytes};
-  auto &&res = collection::decodeCollection<uint32_t>(stream);
+  auto &&res = kagome::scale::collection::decodeCollection<uint32_t>(stream);
   ASSERT_TRUE(res);
   auto &&val = res.value();
   ASSERT_EQ(val.size(), 4);
@@ -336,10 +335,8 @@ TEST(Scale, decodeSimpleCollectionOfUint64) {
           0xC, 0xD, 0xE, 0xF // fourth item
   };
   // clang-format on
-
-  Buffer out;
   auto stream = ByteArrayStream{bytes};
-  auto &&res = collection::decodeCollection<uint64_t>(stream);
+  auto &&res = kagome::scale::collection::decodeCollection<uint64_t>(stream);
   ASSERT_TRUE(res);
   auto &&val = res.value();
   ASSERT_EQ(val.size(), 2);

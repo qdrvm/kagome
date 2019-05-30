@@ -18,6 +18,7 @@
 
 using kagome::common::Buffer;
 using kagome::common::Hash256;
+using kagome::primitives::ApiId;
 using kagome::primitives::AuthorityId;
 using kagome::primitives::Block;
 using kagome::primitives::BlockHeader;
@@ -55,6 +56,7 @@ class Primitives : public testing::Test {
   }
 
  protected:
+  using array = std::array<uint8_t, 8u>;
   /// block header and corresponding scale representation
   BlockHeader block_header_{createHash({0}),  // parent_hash
                             2,                // number: number
@@ -74,8 +76,7 @@ class Primitives : public testing::Test {
     return h;
   }();
   /// Extrinsic instance and corresponding scale representation
-  Extrinsic extrinsic_{{12,  /// sequence of 3 bytes: 1, 2, 3; 12 == (3 << 2)
-                        1, 2, 3}};
+  Extrinsic extrinsic_{{1, 2, 3}};
   Buffer encoded_extrinsic_{12, 1, 2, 3};
   /// block instance and corresponding scale representation
   Block block_{block_header_, {extrinsic_}};
@@ -85,12 +86,12 @@ class Primitives : public testing::Test {
                       12, 1, 2, 3});  // extrinsic itself {1, 2, 3}
   /// Version instance and corresponding scale representation
   Version version_{
-      "qwe",                                           // spec name
-      "asd",                                           // impl_name
-      1,                                               // auth version
-      2,                                               // impl version
-      {{{'1', '2', '3', '4', '5', '6', '7', '8'}, 1},  // ApiId_1
-       {{'8', '7', '6', '5', '4', '3', '2', '1'}, 2}}  // ApiId_2
+      "qwe",                                                // spec name
+      "asd",                                                // impl_name
+      1,                                                    // auth version
+      2,                                                    // impl version
+      {{array{'1', '2', '3', '4', '5', '6', '7', '8'}, 1},  // ApiId_1
+       {array{'8', '7', '6', '5', '4', '3', '2', '1'}, 2}}  // ApiId_2
   };
   Buffer encoded_version_{
       12,  'q', 'w', 'e',                      // spec name
@@ -371,16 +372,17 @@ TEST_F(Primitives, decodeTransactionValidityUnknown) {
 TEST_F(Primitives, decodeTransactionValidityValid) {
   auto stream = ByteArrayStream(encoded_valid_transaction_);
   EXPECT_OUTCOME_TRUE(val, codec_->decodeTransactionValidity(stream));
-  kagome::visit_in_place(val,                               // value
-                         [](Invalid const &v) { FAIL(); },  // fail
-                         [](Unknown const &v) { FAIL(); },  // fail
-                         [this](Valid const &v) {           // ok
-                           auto &valid = valid_transaction_;
-                           ASSERT_EQ(v.priority_, valid.priority_);
-                           ASSERT_EQ(v.requires_, valid.requires_);
-                           ASSERT_EQ(v.provides_, valid.provides_);
-                           ASSERT_EQ(v.longevity_, valid.longevity_);
-                         });
+  kagome::visit_in_place(
+      val,                               // value
+      [](Invalid const &v) { FAIL(); },  // fail
+      [](Unknown const &v) { FAIL(); },  // fail
+      [this](Valid const &v) {           // ok
+        auto &valid = valid_transaction_;
+        ASSERT_EQ(v.priority_, valid.priority_);
+        ASSERT_EQ(v.requires_, valid.requires_);
+        ASSERT_EQ(v.provides_, valid.provides_);
+        ASSERT_EQ(v.longevity_, valid.longevity_);
+      });
 }
 
 /**
@@ -406,10 +408,11 @@ TEST_F(Primitives, EncodeDecodeAuthorityIds) {
  * @then decoded result is exactly the original inherent data
  */
 TEST_F(Primitives, EncodeInherentData) {
+  using array = std::array<uint8_t, 8u>;
   InherentData data;
-  InherentIdentifier id1{1};
-  InherentIdentifier id2{2};
-  InherentIdentifier id3{3};
+  InherentIdentifier id1{array{1}};
+  InherentIdentifier id2{array{2}};
+  InherentIdentifier id3{array{3}};
   Buffer b1{1, 2, 3, 4};
   Buffer b2{5, 6, 7, 8};
   Buffer b3{1, 2, 3, 4};

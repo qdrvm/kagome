@@ -11,68 +11,7 @@
 #include "common/byte_stream.hpp"
 #include "scale/types.hpp"
 
-
 namespace kagome::scale::fixedwidth {
-  // 8 bit
-  /**
-   * @brief encodeInt8 encodes int8_t from host- to little- endian
-   * @param value source value
-   * @return encoded value
-   */
-  void encodeInt8(int8_t value, common::Buffer &out);
-
-  /**
-   * @brief encodeUInt8 encodes uint8_t from host- to little- endian
-   * @param value source value
-   * @return byte array representing encoded value
-   */
-  void encodeUInt8(uint8_t value, common::Buffer &out);
-
-  // 16 bit
-  /**
-   * @brief encodeInt16 encodes int16_t from host- to little- endian
-   * @param value source value
-   * @return byte array representing encoded value
-   */
-  void encodeInt16(int16_t value, common::Buffer &out);
-
-  /**
-   * @brief encodeUint16 encodes uint16_t from host- to little- endian
-   * @param value source value
-   * @return byte array representing encoded value
-   */
-  void encodeUint16(uint16_t value, common::Buffer &out);
-
-  // 32 bit
-  /**
-   * @brief encodeInt32 encodes int32_t from host- to little- endian
-   * @param value source value
-   * @return byte array representing encoded value
-   */
-  void encodeInt32(int32_t value, common::Buffer &out);
-
-  /**
-   * @brief encodeUint32 encodes uint32_t from host- to little- endian
-   * @param value source value
-   * @return byte array representing encoded value
-   */
-  void encodeUint32(uint32_t value, common::Buffer &out);
-
-  // 64 bit
-  /**
-   * @brief encodeInt64 encodes int64_t from host- to little- endian
-   * @param value source value
-   * @return byte array representing encoded value
-   */
-  void encodeInt64(int64_t value, common::Buffer &out);
-
-  /**
-   * @brief encodeInt64 encodes int64_t from host- to little- endian
-   * @param value source value
-   * @return byte array representing encoded value
-   */
-  void encodeUint64(uint64_t value, common::Buffer &out);
-
   // 8 bit
   /**
    * @brief decodeInt8 decodes int8_t from host- to little- endian
