@@ -194,7 +194,7 @@ TEST_F(MultiselectTest, NegotiateStream) {
   this->server(
       [this, &negotiated](std::shared_ptr<RawConnection> conn) mutable {
         // create a success handler to be called, when a negotiation is finished
-        multiselect_->negotiateStreamProtocol(
+        multiselect_->negotiateAppProtocol(
             std::static_pointer_cast<Stream>(
                 std::static_pointer_cast<ReadWriteCloser>(conn)),
             [this,

@@ -8,11 +8,11 @@
 
 #include <memory>
 
-#include "libp2p/protocol_muxer/multiselect/connection_state.hpp"
+#include <outcome/outcome.hpp>
+#include "libp2p/basic/readwritecloser.hpp"
+#include "libp2p/protocol_muxer/multiselect/message_manager.hpp"
 
 namespace libp2p::protocol_muxer {
-  class Multiselect;
-
   /**
    * Reads messages of Multiselect format
    */
@@ -20,63 +20,16 @@ namespace libp2p::protocol_muxer {
    public:
     /**
      * Read next Multistream message
-     * @param connection_state - state of the connection
-     * @note will call Multiselect->onReadCompleted(..) after successful read
+     * @param connection to read from
+     * @return message in case of success, error otherwise
      */
-    static void readNextMessage(
-        std::shared_ptr<ConnectionState> connection_state);
+    static outcome::result<MessageManager::MultiselectMessage> readNextMessage(
+        const std::shared_ptr<basic::ReadWriteCloser> &connection);
 
-   private:
-    /**
-     * Read next varint from the connection
-     * @param connection_state - state of the connection
-     */
-    static void readNextVarint(
-        std::shared_ptr<ConnectionState> connection_state);
-
-    /**
-     * Read specified number of bytes from the connection
-     * @param connection_state - state of the connection
-     * @param bytes_to_read - how much bytes are to be read
-     * @param final_callback - in case of success, this callback is called
-     */
-    static void readNextBytes(
-        std::shared_ptr<ConnectionState> connection_state,
-        uint64_t bytes_to_read,
-        const std::function<void(std::shared_ptr<ConnectionState>,
-                                 kagome::common::Buffer)> &final_callback);
-
-    /**
-     * Completion handler for read bytes operation in case a single line was
-     * expected to be read
-     * @param connection_state - state of the connection
-     * @param read_bytes - how much bytes were read (or in this line)
-     */
-    static void onReadLineCompleted(
-        std::shared_ptr<ConnectionState> connection_state,
-        kagome::common::Buffer &&line_bytes);
-
-    /**
-     * Completion handler for read bytes operation in case several lines (with
-     * protocols) were expected to be read
-     * @param connection_state - state of the connection
-     * @param protocols_bytes - bytes of the protocols
-     * @param expected_protocols_size - how much (in bytes) the protocols take
-     * @param expected_protocols_number - how much protocols were to be read
-     */
-    static void onReadProtocolsCompleted(
-        std::shared_ptr<ConnectionState> connection_state,
-        kagome::common::Buffer protocols_bytes,
-        uint64_t expected_protocols_size, uint64_t expected_protocols_number);
-
-    /**
-     * Process error, appeared during the read
-     * @param connection_state - state of the connection
-     * @param ec - error code
-     */
-    static void processError(std::shared_ptr<ConnectionState> connection_state,
-                             const std::error_code &ec);
+    enum class ReaderError { VARINT_EXPECTED = 1, MSG_TOO_SHORT };
   };
 }  // namespace libp2p::protocol_muxer
+
+OUTCOME_HPP_DECLARE_ERROR(libp2p::protocol_muxer, MessageReader::ReaderError)
 
 #endif  // KAGOME_MESSAGE_READER_HPP

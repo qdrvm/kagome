@@ -42,38 +42,29 @@ namespace libp2p::protocol_muxer {
      */
     virtual void addStreamProtocol(const peer::Protocol &protocol) = 0;
 
-    using ChosenProtocolCallback =
-        std::function<void(outcome::result<peer::Protocol>)>;
-
     /**
      * Negotiate about the encryption protocol with the other side
      * @param connection to be negotiated over
-     * @param protocol_callback, which is going to be called, when the
-     * protocol is chosen or error occurs
+     * @return chosen protocol or error
      */
-    virtual void negotiateEncryption(
-        std::shared_ptr<connection::RawConnection> connection,
-        ChosenProtocolCallback protocol_callback) = 0;
+    virtual outcome::result<peer::Protocol> negotiateEncryption(
+        std::shared_ptr<connection::RawConnection> connection) = 0;
 
     /**
      * Negotiate about the multiplexer protocol with the other side
      * @param connection to be negotiated over
-     * @param protocol_callback, which is going to be called, when the
-     * protocol is chosen or error occurs
+     * @return chosen protocol or error
      */
-    virtual void negotiateMultiplexer(
-        std::shared_ptr<connection::SecureConnection> connection,
-        ChosenProtocolCallback protocol_callback) = 0;
+    virtual outcome::result<peer::Protocol> negotiateMultiplexer(
+        std::shared_ptr<connection::SecureConnection> connection) = 0;
 
     /**
      * Negotiate about the stream protocol with the other side
      * @param stream to be negotiated over
-     * @param protocol_callback, which is going to be called, when the protocol
-     * is chosen or error occurs
+     * @return chosen protocol or error
      */
-    virtual void negotiateStreamProtocol(
-        std::shared_ptr<connection::Stream> stream,
-        ChosenProtocolCallback protocol_callback) = 0;
+    virtual outcome::result<peer::Protocol> negotiateAppProtocol(
+        std::shared_ptr<connection::Stream> stream) = 0;
 
     virtual ~ProtocolMuxer() = default;
   };

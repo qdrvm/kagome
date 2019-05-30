@@ -38,343 +38,258 @@ namespace libp2p::protocol_muxer {
   }
 
   void Multiselect::addStreamProtocol(const peer::Protocol &protocol) {
-    stream_protocols_.push_back(protocol);
+    app_protocols_.push_back(protocol);
   }
 
-  void Multiselect::negotiateEncryption(
-      std::shared_ptr<connection::RawConnection> connection,
-      ChosenProtocolCallback protocol_callback) {
+  outcome::result<peer::Protocol> Multiselect::negotiateEncryption(
+      std::shared_ptr<connection::RawConnection> connection) {
     if (encryption_protocols_.empty()) {
-      protocol_callback(MultiselectError::NO_PROTOCOLS_SUPPORTED);
-      return;
+      return MultiselectError::NO_PROTOCOLS_SUPPORTED;
     }
-
-    auto [write_buffer, index] = getWriteBuffer();
-    MessageWriter::sendOpeningMsg(std::make_shared<ConnectionState>(
-        std::move(connection), std::move(protocol_callback),
-        std::move(write_buffer), index, shared_from_this(),
-        ConnectionState::NegotiationRound::ENCRYPTION));
+    return negotiate(connection, Round::ENCRYPTION);
   }
 
-  void Multiselect::negotiateMultiplexer(
-      std::shared_ptr<connection::SecureConnection> connection,
-      ChosenProtocolCallback protocol_callback) {
+  outcome::result<peer::Protocol> Multiselect::negotiateMultiplexer(
+      std::shared_ptr<connection::SecureConnection> connection) {
     if (multiplexer_protocols_.empty()) {
-      protocol_callback(MultiselectError::NO_PROTOCOLS_SUPPORTED);
-      return;
+      return MultiselectError::NO_PROTOCOLS_SUPPORTED;
     }
-
-    auto [write_buffer, index] = getWriteBuffer();
-    MessageWriter::sendOpeningMsg(std::make_shared<ConnectionState>(
-        std::move(connection), std::move(protocol_callback),
-        std::move(write_buffer), index, shared_from_this(),
-        ConnectionState::NegotiationRound::MULTIPLEXER));
+    return negotiate(connection, Round::MUXER);
   }
 
-  void Multiselect::negotiateStreamProtocol(
-      std::shared_ptr<connection::Stream> stream,
-      ChosenProtocolCallback protocol_callback) {
-    if (stream_protocols_.empty()) {
-      protocol_callback(MultiselectError::NO_PROTOCOLS_SUPPORTED);
-      return;
+  outcome::result<peer::Protocol> Multiselect::negotiateAppProtocol(
+      std::shared_ptr<connection::Stream> stream) {
+    if (app_protocols_.empty()) {
+      return MultiselectError::NO_PROTOCOLS_SUPPORTED;
     }
-
-    auto [write_buffer, index] = getWriteBuffer();
-    MessageWriter::sendOpeningMsg(std::make_shared<ConnectionState>(
-        std::move(stream), std::move(protocol_callback),
-        std::move(write_buffer), index, shared_from_this(),
-        ConnectionState::NegotiationRound::STREAM));
+    return negotiate(stream, Round::APP);
   }
 
-  void Multiselect::onWriteCompleted(
-      std::shared_ptr<ConnectionState> connection_state) const {
-    MessageReader::readNextMessage(std::move(connection_state));
-  }
-
-  void Multiselect::onWriteAckCompleted(
-      std::shared_ptr<ConnectionState> connection_state,
-      const Protocol &protocol) {
-    negotiationRoundFinished(std::move(connection_state), protocol);
-  }
-
-  void Multiselect::onReadCompleted(
-      std::shared_ptr<ConnectionState> connection_state,
-      MessageManager::MultiselectMessage msg) {
-    processResponse(std::move(connection_state), std::move(msg));
-  }
-
-  void Multiselect::onError(std::shared_ptr<ConnectionState> connection_state,
-                            std::string_view error) {
-    onError(std::move(connection_state), error,
-            MultiselectError::INTERNAL_ERROR);
-  }
-
-  void Multiselect::onError(std::shared_ptr<ConnectionState> connection_state,
-                            std::string_view error, const std::error_code &ec) {
-    log_->error(error);
-    negotiationRoundFailed(std::move(connection_state), ec);
-  }
-
-  void Multiselect::processResponse(
-      std::shared_ptr<ConnectionState> connection_state,
-      MessageManager::MultiselectMessage msg) {
+  outcome::result<peer::Protocol> Multiselect::negotiate(
+      const std::shared_ptr<basic::ReadWriteCloser> &connection,
+      const Round round) {
     using MessageType = MessageManager::MultiselectMessage::MessageType;
 
-    switch (msg.type_) {
-      case MessageType::OPENING:
-        handleOpeningMsg(std::move(connection_state));
-        return;
-      case MessageType::PROTOCOL:
-        handleProtocolMsg(msg.protocols_[0], std::move(connection_state));
-        return;
-      case MessageType::PROTOCOLS:
-        handleProtocolsMsg(msg.protocols_, std::move(connection_state));
-        return;
-      case MessageType::LS:
-        handleLsMsg(std::move(connection_state));
-        return;
-      case MessageType::NA:
-        handleNaMsg(std::move(connection_state));
-        return;
+    OUTCOME_TRY(connection->write(MessageManager::openingMsg()));
+    auto current_status = Status::OPENING_SENT;
+    peer::Protocol previous_protocol{};
+
+    while (current_status != Status::NEGOTIATION_SUCCESS
+           || current_status != Status::NEGOTIATION_FAIL) {
+      OUTCOME_TRY(response, MessageReader::readNextMessage(connection));
+      switch (response.type) {
+        case MessageType::OPENING: {
+          OUTCOME_TRY(status, handleOpeningMsg(connection, current_status));
+          current_status = status;
+          break;
+        }
+        case MessageType::PROTOCOL: {
+          OUTCOME_TRY(
+              status,
+              handleProtocolMsg(connection, response.protocols[0],
+                                previous_protocol, current_status, round));
+          current_status = status;
+          break;
+        }
+        case MessageType::PROTOCOLS: {
+          OUTCOME_TRY(status,
+                      handleProtocolsMsg(connection, response.protocols,
+                                         current_status, round));
+          current_status = status;
+          break;
+        }
+        case MessageType::LS: {
+          OUTCOME_TRY(status, handleLsMsg(connection, round));
+          current_status = status;
+          break;
+        }
+        case MessageType::NA: {
+          OUTCOME_TRY(status, handleNaMsg(connection));
+          current_status = status;
+          break;
+        }
+        default:
+          return MultiselectError::INTERNAL_ERROR;
+      }
+      if (current_status == Status::PROTOCOL_SENT) {
+        // memorize the protocol we sent
+        previous_protocol = response.protocols[0];
+      }
+    }
+    return finalizeNegotiation(current_status, previous_protocol);
+  }
+
+  outcome::result<peer::Protocol> Multiselect::finalizeNegotiation(
+      const Status status, const peer::Protocol &protocol) {
+    switch (status) {
+      case Status::NEGOTIATION_SUCCESS:
+        return protocol;
+      case Status::NEGOTIATION_FAIL:
+        return MultiselectError::NEGOTIATION_FAILED;
       default:
-        log_->error("type of the message, returned by the parser, is unknown");
-        MessageWriter::sendLsMsg(std::move(connection_state));
-        return;
+        // never should be here
+        log_->critical("achieved state, which never should be achievable");
+        return MultiselectError::INTERNAL_ERROR;
     }
   }
 
-  void Multiselect::handleOpeningMsg(
-      std::shared_ptr<ConnectionState> connection_state) const {
-    using Status = ConnectionState::NegotiationStatus;
-
-    switch (connection_state->status_) {
-      case Status::NOTHING_SENT:
-        // we received an opening as a first message in this round; respond with
-        // an opening as well
-        MessageWriter::sendOpeningMsg(std::move(connection_state));
-        return;
-      case Status::OPENING_SENT:
+  outcome::result<Multiselect::Status> Multiselect::handleOpeningMsg(
+      const std::shared_ptr<basic::ReadWriteCloser> &connection,
+      Status status) const {
+    switch (status) {
+      case Status::OPENING_SENT: {
         // if opening is received as a response to ours, we can send ls to see
         // available protocols
-        MessageWriter::sendLsMsg(std::move(connection_state));
-        return;
+        OUTCOME_TRY(connection->write(MessageManager::lsMsg()));
+        return Status::LS_SENT;
+      }
       case Status::PROTOCOL_SENT:
       case Status::PROTOCOLS_SENT:
       case Status::LS_SENT:
       case Status::NA_SENT:
-        onUnexpectedRequestResponse(std::move(connection_state));
-        return;
+        return onUnexpectedRequestResponse(connection);
       default:
-        onGarbagedStreamStatus(std::move(connection_state));
-        return;
+        return onGarbagedStreamStatus(connection);
     }
   }
 
-  void Multiselect::handleProtocolMsg(
-      const Protocol &protocol,
-      std::shared_ptr<ConnectionState> connection_state) {
-    using Status = ConnectionState::NegotiationStatus;
-
-    switch (connection_state->status_) {
+  outcome::result<Multiselect::Status> Multiselect::handleProtocolMsg(
+      const std::shared_ptr<basic::ReadWriteCloser> &connection,
+      const Protocol &protocol, const Protocol &prev_protocol, Status status,
+      const Round round) {
+    switch (status) {
       case Status::OPENING_SENT:
-        onProtocolAfterOpeningOrLs(std::move(connection_state), protocol);
-        return;
-      case Status::PROTOCOL_SENT:
+        return onProtocolAfterOpeningOrLs(connection, protocol, round);
+      case Status::PROTOCOL_SENT: {
         // this is ack that the protocol we want to communicate over is
-        // supported by the other side; round is finished
-        negotiationRoundFinished(std::move(connection_state), protocol);
-        return;
-      case Status::PROTOCOLS_SENT:
+        // supported by the other side; check it's the same we sent
+        if (protocol == prev_protocol) {
+          return Status::NEGOTIATION_SUCCESS;
+        }
+        // if not, the other side sent another protocol for some reason; respond
+        // with ls
+        OUTCOME_TRY(connection->write(MessageManager::lsMsg()));
+        return Status::LS_SENT;
+      }
+      case Status::PROTOCOLS_SENT: {
         // the other side has chosen a protocol to communicate over; send an
         // ack, and round is finished
-        MessageWriter::sendProtocolAck(std::move(connection_state), protocol);
-        return;
+        OUTCOME_TRY(connection->write(MessageManager::protocolMsg(protocol)));
+        return Status::NEGOTIATION_SUCCESS;
+      }
       case Status::LS_SENT:
-        onProtocolAfterOpeningOrLs(std::move(connection_state), protocol);
-        return;
-      case Status::NOTHING_SENT:
+        return onProtocolAfterOpeningOrLs(connection, protocol, round);
       case Status::NA_SENT:
-        onUnexpectedRequestResponse(std::move(connection_state));
-        return;
+        return onUnexpectedRequestResponse(connection);
       default:
-        onGarbagedStreamStatus(std::move(connection_state));
-        return;
+        return onGarbagedStreamStatus(connection);
     }
   }
 
-  void Multiselect::handleProtocolsMsg(
-      const std::vector<Protocol> &protocols,
-      std::shared_ptr<ConnectionState> connection_state) {
-    using Status = ConnectionState::NegotiationStatus;
-
-    switch (connection_state->status_) {
+  outcome::result<Multiselect::Status> Multiselect::handleProtocolsMsg(
+      const std::shared_ptr<basic::ReadWriteCloser> &connection,
+      const std::vector<Protocol> &protocols, Status status,
+      const Round round) {
+    switch (status) {
+      case Status::LS_SENT:
+        return onProtocolsAfterLs(connection, protocols, round);
       case Status::OPENING_SENT:
       case Status::PROTOCOL_SENT:
       case Status::PROTOCOLS_SENT:
       case Status::NA_SENT:
-        onUnexpectedRequestResponse(std::move(connection_state));
-        return;
-      case Status::LS_SENT:
-        onProtocolsAfterLs(std::move(connection_state), protocols);
-        return;
+        return onUnexpectedRequestResponse(connection);
       default:
-        onGarbagedStreamStatus(std::move(connection_state));
-        return;
+        return onGarbagedStreamStatus(connection);
     }
   }
 
-  void Multiselect::handleLsMsg(
-      std::shared_ptr<ConnectionState> connection_state) {
+  outcome::result<Multiselect::Status> Multiselect::handleLsMsg(
+      const std::shared_ptr<basic::ReadWriteCloser> &connection,
+      const Round round) {
     // respond with a list of protocols, supported by us
-    auto protocols_to_send = getProtocolsByRound(connection_state->round_);
+    auto protocols_to_send = getProtocolsByRound(round);
     if (protocols_to_send.empty()) {
-      negotiationRoundFailed(std::move(connection_state),
-                             MultiselectError::INTERNAL_ERROR);
-      return;
+      return MultiselectError::INTERNAL_ERROR;
     }
-    MessageWriter::sendProtocolsMsg(protocols_to_send,
-                                    std::move(connection_state));
+    OUTCOME_TRY(
+        connection->write(MessageManager::protocolsMsg(protocols_to_send)));
+    return Status::PROTOCOLS_SENT;
   }
 
-  void Multiselect::handleNaMsg(
-      std::shared_ptr<ConnectionState> connection_state) const {
+  outcome::result<Multiselect::Status> Multiselect::handleNaMsg(
+      const std::shared_ptr<basic::ReadWriteCloser> &connection) const {
     // if we receive na message, just send an ls to understand, which protocols
     // the other side supports
-    MessageWriter::sendLsMsg(std::move(connection_state));
+    OUTCOME_TRY(connection->write(MessageManager::naMsg()));
+    return Status::NA_SENT;
   }
 
-  void Multiselect::onProtocolAfterOpeningOrLs(
-      std::shared_ptr<ConnectionState> connection_state,
-      const peer::Protocol &protocol) {
+  outcome::result<Multiselect::Status> Multiselect::onProtocolAfterOpeningOrLs(
+      const std::shared_ptr<basic::ReadWriteCloser> &connection,
+      const peer::Protocol &protocol, const Round round) {
     // the other side wants to communicate over that protocol; if it's available
     // on our side, round is finished
-    auto protocols_to_search = getProtocolsByRound(connection_state->round_);
+    auto protocols_to_search = getProtocolsByRound(round);
     if (protocols_to_search.empty()) {
-      negotiationRoundFailed(std::move(connection_state),
-                             MultiselectError::INTERNAL_ERROR);
-      return;
+      return MultiselectError::INTERNAL_ERROR;
     }
     if (std::find(protocols_to_search.begin(), protocols_to_search.end(),
                   protocol)
         != protocols_to_search.end()) {
-      MessageWriter::sendProtocolAck(std::move(connection_state), protocol);
-      return;
+      OUTCOME_TRY(connection->write(MessageManager::protocolMsg(protocol)));
+      return Status::NEGOTIATION_SUCCESS;
     }
 
     // if the protocol is not available, send na
-    MessageWriter::sendNaMsg(std::move(connection_state));
+    OUTCOME_TRY(connection->write(MessageManager::naMsg()));
+    return Status::NA_SENT;
   }
 
-  void Multiselect::onProtocolsAfterLs(
-      std::shared_ptr<ConnectionState> connection_state,
-      gsl::span<const Protocol> received_protocols) {
+  outcome::result<Multiselect::Status> Multiselect::onProtocolsAfterLs(
+      const std::shared_ptr<basic::ReadWriteCloser> &connection,
+      gsl::span<const Protocol> received_protocols, const Round round) {
     // if any of the received protocols is supported by our side, choose it;
     // fail otherwise
-    auto protocols_to_search = getProtocolsByRound(connection_state->round_);
+    auto protocols_to_search = getProtocolsByRound(round);
     for (const auto &proto : protocols_to_search) {
       // as size of vectors should be around 10 or less, we can use O(n*n)
       // approach
       if (std::find(received_protocols.begin(), received_protocols.end(), proto)
           != received_protocols.end()) {
         // the protocol is found
-        MessageWriter::sendProtocolMsg(proto, std::move(connection_state));
-        return;
+        OUTCOME_TRY(connection->write(MessageManager::protocolMsg(proto)));
+        return Status::PROTOCOL_SENT;
       }
     }
-
-    negotiationRoundFailed(std::move(connection_state),
-                           MultiselectError::NEGOTIATION_FAILED);
+    return Status::NEGOTIATION_FAIL;
   }
 
-  void Multiselect::onUnexpectedRequestResponse(
-      std::shared_ptr<ConnectionState> connection_state) const {
+  outcome::result<Multiselect::Status> Multiselect::onUnexpectedRequestResponse(
+      const std::shared_ptr<basic::ReadWriteCloser> &connection) const {
     log_->info("got a unexpected request-response combination - sending 'ls'");
-    MessageWriter::sendLsMsg(std::move(connection_state));
+    OUTCOME_TRY(connection->write(MessageManager::lsMsg()));
+    return Status::LS_SENT;
   }
 
-  void Multiselect::onGarbagedStreamStatus(
-      std::shared_ptr<ConnectionState> connection_state) const {
-    log_->error("there is some garbage in stream state status");
-    MessageWriter::sendLsMsg(std::move(connection_state));
-  }
-
-  void Multiselect::negotiationRoundFinished(
-      std::shared_ptr<ConnectionState> connection_state,  // NOLINT
-      const Protocol &chosen_protocol) {
-    switch (connection_state->round_) {
-      case ConnectionState::NegotiationRound::ENCRYPTION:
-      case ConnectionState::NegotiationRound::MULTIPLEXER:
-      case ConnectionState::NegotiationRound::STREAM:
-        connection_state->proto_callback_(chosen_protocol);
-        break;
-      default:
-        log_->error("stream state's round is set to garbage value");
-        // we don't know, what round the connection has; check callback manually
-        if (connection_state->proto_callback_ != nullptr) {
-          connection_state->proto_callback_(MultiselectError::INTERNAL_ERROR);
-        } else {
-          log_->critical("connection state is in absolutely garbaged state");
-          return;
-        }
-        break;
-    }
-    clearResources(*connection_state);
-  }
-
-  void Multiselect::negotiationRoundFailed(
-      std::shared_ptr<ConnectionState> connection_state,  // NOLINT
-      const std::error_code &ec) {
-    switch (connection_state->round_) {
-      case ConnectionState::NegotiationRound::ENCRYPTION:
-      case ConnectionState::NegotiationRound::MULTIPLEXER:
-      case ConnectionState::NegotiationRound::STREAM:
-        connection_state->proto_callback_(ec);
-        break;
-      default:
-        log_->error("stream state's round is set to garbage value");
-        if (connection_state->proto_callback_ != nullptr) {
-          connection_state->proto_callback_(ec);
-        } else {
-          log_->critical("connection state is in absolutely garbaged state");
-          return;
-        }
-        break;
-    }
-    clearResources(*connection_state);
+  outcome::result<Multiselect::Status> Multiselect::onGarbagedStreamStatus(
+      const std::shared_ptr<basic::ReadWriteCloser> &connection) const {
+    log_->error("there is some garbage in stream state status - sending 'ls'");
+    OUTCOME_TRY(connection->write(MessageManager::lsMsg()));
+    return Status::LS_SENT;
   }
 
   gsl::span<const peer::Protocol> Multiselect::getProtocolsByRound(
-      ConnectionState::NegotiationRound round) const {
+      Round round) const {
     switch (round) {
-      case ConnectionState::NegotiationRound::ENCRYPTION:
+      case Round::ENCRYPTION:
         return encryption_protocols_;
-      case ConnectionState::NegotiationRound::MULTIPLEXER:
+      case Round::MUXER:
         return multiplexer_protocols_;
-      case ConnectionState::NegotiationRound::STREAM:
-        return stream_protocols_;
+      case Round::APP:
+        return app_protocols_;
       default:
         log_->error("stream state's round is set to garbage value");
         return {};
     }
-  }
-
-  std::pair<std::shared_ptr<kagome::common::Buffer>, size_t>
-  Multiselect::getWriteBuffer() {
-    if (!free_buffers_.empty()) {
-      auto free_buffers_index = free_buffers_.front();
-      free_buffers_.pop();
-      return {write_buffers_[free_buffers_index], free_buffers_index};
-    }
-    return {
-        write_buffers_.emplace_back(std::make_shared<kagome::common::Buffer>()),
-        write_buffers_.size() - 1};
-  }
-
-  void Multiselect::clearResources(const ConnectionState &connection_state) {
-    // clear the buffer
-    connection_state.write_buffer_->clear();
-
-    // add it to the pool of free buffers
-    free_buffers_.push(connection_state.buffers_index_);
   }
 }  // namespace libp2p::protocol_muxer
