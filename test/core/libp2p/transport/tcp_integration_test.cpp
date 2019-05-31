@@ -74,7 +74,8 @@ TEST(TCP, TwoListenersCantBindOnSamePort) {
 
   boost::asio::io_context context(1);
   auto e = context.get_executor();
-  auto transport = std::make_shared<TcpTransport<decltype(e)>>(e, upgrader);
+  auto transport =
+      std::make_shared<TcpTransport<decltype(e)>>(e, std::move(upgrader));
 
   auto listener1 = transport->createListener(
       [](auto &&c) {
@@ -121,7 +122,8 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
   boost::asio::io_context context(1);
   auto e = context.get_executor();
 
-  auto transport = std::make_shared<TcpTransport<decltype(e)>>(e, upgrader);
+  auto transport =
+      std::make_shared<TcpTransport<decltype(e)>>(e, std::move(upgrader));
   using libp2p::connection::RawConnection;
   auto listener = transport->createListener(
       [&](auto &&conn) {
@@ -147,7 +149,8 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
       auto upgrader = makeUpgrader();
       boost::asio::io_context context(1);
       auto e = context.get_executor();
-      auto transport = std::make_shared<TcpTransport<decltype(e)>>(e, upgrader);
+      auto transport =
+          std::make_shared<TcpTransport<decltype(e)>>(e, std::move(upgrader));
 
       transport->dial(
           ma,
@@ -189,7 +192,8 @@ TEST(TCP, DialToNoServer) {
   auto upgrader = makeUpgrader();
   boost::asio::io_context context;
   auto e = context.get_executor();
-  auto transport = std::make_shared<TcpTransport<decltype(e)>>(e, upgrader);
+  auto transport =
+      std::make_shared<TcpTransport<decltype(e)>>(e, std::move(upgrader));
   auto ma = "/ip4/127.0.0.1/tcp/40003"_multiaddr;
 
   transport->dial(
@@ -218,7 +222,8 @@ TEST(TCP, ClientClosesConnection) {
   boost::asio::io_context context(1);
   auto e = context.get_executor();
 
-  auto transport = std::make_shared<TcpTransport<decltype(e)>>(e, upgrader);
+  auto transport =
+      std::make_shared<TcpTransport<decltype(e)>>(e, std::move(upgrader));
   auto listener = transport->createListener(
       [&](auto &&conn) {
         expectConnectionValid(conn);
@@ -259,7 +264,8 @@ TEST(TCP, ServerClosesConnection) {
   boost::asio::io_context context(1);
   auto e = context.get_executor();
 
-  auto transport = std::make_shared<TcpTransport<decltype(e)>>(e, upgrader);
+  auto transport =
+      std::make_shared<TcpTransport<decltype(e)>>(e, std::move(upgrader));
   auto listener = transport->createListener(
       [&](auto &&conn) {
         expectConnectionValid(conn);
@@ -301,7 +307,8 @@ TEST(TCP, OneTransportServerHandlesManyClients) {
   boost::asio::io_context context(1);
   auto e = context.get_executor();
 
-  auto transport = std::make_shared<TcpTransport<decltype(e)>>(e, upgrader);
+  auto transport =
+      std::make_shared<TcpTransport<decltype(e)>>(e, std::move(upgrader));
   auto listener = transport->createListener(
       [&](auto &&conn) {
         expectConnectionValid(conn);

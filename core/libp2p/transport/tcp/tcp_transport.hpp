@@ -30,8 +30,7 @@ namespace libp2p::transport {
    public:
     using executor_t = Executor;
 
-    explicit TcpTransport(Executor &executor,
-                          std::shared_ptr<Upgrader> upgrader)
+    TcpTransport(Executor &executor, std::shared_ptr<Upgrader> upgrader)
         : executor_(executor), upgrader_(std::move(upgrader)) {}
 
     void dial(const multi::Multiaddress &address,
