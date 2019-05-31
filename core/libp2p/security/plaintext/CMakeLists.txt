@@ -4,8 +4,8 @@
 #
 
 add_library(security_plaintext
-    plaintext_adaptor.cpp
-    plaintext_adaptor.hpp
+    plaintext.cpp
+    plaintext.hpp
     )
 target_link_libraries(security_plaintext
     plaintext_connection

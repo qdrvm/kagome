@@ -3,4 +3,4 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(security_conn_impl)
+add_subdirectory(plaintext)

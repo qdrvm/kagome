@@ -9,9 +9,12 @@
 #include "libp2p/security/security_adaptor.hpp"
 
 namespace libp2p::security {
-  class PlaintextAdaptor : public SecurityAdaptor {
+  /**
+   * Implementation of security adaptor, which created a plaintext connection
+   */
+  class Plaintext : public SecurityAdaptor {
    public:
-    ~PlaintextAdaptor() override = default;
+    ~Plaintext() override = default;
 
     const peer::Protocol &getProtocolId() const override;
 

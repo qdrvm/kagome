@@ -3,26 +3,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/security/impl/plaintext_adaptor.hpp"
+#include "libp2p/security/plaintext/plaintext.hpp"
 
-#include "libp2p/connection/security_conn_impl/plaintext_connection.hpp"
+#include "libp2p/connection/plaintext/plaintext.hpp"
 
 namespace libp2p::security {
-  const peer::Protocol PlaintextAdaptor::kProtocolId = "/plaintext/1.0.0";
+  const peer::Protocol Plaintext::kProtocolId = "/plaintext/1.0.0";
 
-  const peer::Protocol &PlaintextAdaptor::getProtocolId() const {
+  const peer::Protocol &Plaintext::getProtocolId() const {
     return kProtocolId;
   }
 
   outcome::result<std::shared_ptr<connection::SecureConnection>>
-  PlaintextAdaptor::secureInbound(
+  Plaintext::secureInbound(
       std::shared_ptr<connection::RawConnection> inbound) {
     return std::make_shared<connection::PlaintextConnection>(
         std::move(inbound));
   }
 
   outcome::result<std::shared_ptr<connection::SecureConnection>>
-  PlaintextAdaptor::secureOutbound(
+  Plaintext::secureOutbound(
       std::shared_ptr<connection::RawConnection> outbound,
       const peer::PeerId &) {
     return std::make_shared<connection::PlaintextConnection>(

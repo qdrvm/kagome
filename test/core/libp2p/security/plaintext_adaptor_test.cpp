@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/security/impl/plaintext_adaptor.hpp"
+#include "libp2p/security/plaintext/plaintext.hpp"
 
 #include <gtest/gtest.h>
 #include <testutil/outcome.hpp>
@@ -23,7 +23,7 @@ using testing::Return;
 class PlaintextAdaptorTest : public testing::Test {
  public:
   std::shared_ptr<SecurityAdaptor> adaptor_ =
-      std::make_shared<PlaintextAdaptor>();
+      std::make_shared<Plaintext>();
 
   std::shared_ptr<RawConnectionMock> connection_ =
       std::make_shared<RawConnectionMock>();

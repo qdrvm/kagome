@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/connection/security_conn_impl/plaintext_connection.hpp"
+#include "libp2p/connection/plaintext/plaintext.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, PlaintextConnection::Error, e) {
   using E = libp2p::connection::PlaintextConnection::Error;

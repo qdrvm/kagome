@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/connection/security_conn_impl/plaintext_connection.hpp"
+#include "libp2p/connection/plaintext/plaintext.hpp"
 
 #include <gtest/gtest.h>
 #include <testutil/outcome.hpp>

@@ -6,6 +6,6 @@
 #ifndef KAGOME_PLAINTEXT_HPP
 #define KAGOME_PLAINTEXT_HPP
 
-#include "libp2p/security/impl/plaintext_adaptor.hpp"
+#include "libp2p/security/plaintext/plaintext.hpp"
 
 #endif  // KAGOME_PLAINTEXT_HPP
