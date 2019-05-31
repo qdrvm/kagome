@@ -162,10 +162,13 @@ namespace libp2p {
               io_context->get_executor());
     }
 
+    // TODO(warchant): replace with real implementation PRE-149
+//    config_.upgrader = std::make_shared<transport::UpgraderMock>();
+
     if (config_.transports.empty()) {
-      using E = std::decay_t<decltype(*config_.executor)>;
-      config_.transports.push_back(
-          std::make_shared<transport::TcpTransport<E>>(*config_.executor));
+//      using E = std::decay_t<decltype(*config_.executor)>;
+//      config_.transports.push_back(std::make_shared<transport::TcpTransport<E>>(
+//          *config_.executor, config_.upgrader));
     }
 
     if (config_.muxers.empty()) {

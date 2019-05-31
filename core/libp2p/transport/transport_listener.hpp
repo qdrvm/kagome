@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "libp2p/basic/closeable.hpp"
-#include "libp2p/connection/raw_connection.hpp"
+#include "libp2p/connection/capable_connection.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 
 namespace libp2p::transport {
@@ -27,7 +27,7 @@ namespace libp2p::transport {
     using ErrorCallback = void(const std::error_code &);
     using MultiaddrCallback = void(const multi::Multiaddress &);
     using ConnectionCallback =
-        outcome::result<void>(std::shared_ptr<connection::RawConnection>);
+        outcome::result<void>(std::shared_ptr<connection::CapableConnection>);
     using HandlerFunc = std::function<ConnectionCallback>;
     using ErrorFunc = std::function<ErrorCallback>;
 
