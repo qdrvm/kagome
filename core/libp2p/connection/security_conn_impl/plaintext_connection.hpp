@@ -19,7 +19,7 @@ namespace libp2p::connection {
      * en/decryption
      * @param raw_connection, over which the security is to be established
      */
-    PlaintextConnection(std::shared_ptr<RawConnection> raw_connection);
+    explicit PlaintextConnection(std::shared_ptr<RawConnection> raw_connection);
 
     ~PlaintextConnection() override = default;
 
