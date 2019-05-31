@@ -34,4 +34,5 @@ target_link_libraries(libp2p
     libp2p_inmem_key_repository
     libp2p_inmem_protocol_repository
     ufiber
+    security_plaintext
     )
