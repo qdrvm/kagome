@@ -53,4 +53,4 @@ namespace libp2p::security {
 
 }  // namespace libp2p::security
 
-#endif  //KAGOME_SECURITY_ADAPTOR_HPP
+#endif  // KAGOME_SECURITY_ADAPTOR_HPP

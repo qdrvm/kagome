@@ -38,8 +38,8 @@ namespace {
   void expectConnectionValid(const std::shared_ptr<CapableConnection> &conn) {
     EXPECT_TRUE(conn);
 
-    EXPECT_OUTCOME_TRUE(mar, conn->remoteMultiaddr());
-    EXPECT_OUTCOME_TRUE(mal, conn->localMultiaddr());
+    EXPECT_OUTCOME_TRUE(mar, conn->remoteMultiaddr())
+    EXPECT_OUTCOME_TRUE(mal, conn->localMultiaddr())
     std::ostringstream s;
     s << mar.getStringAddress() << " -> " << mal.getStringAddress();
     std::cout << s.str() << '\n';

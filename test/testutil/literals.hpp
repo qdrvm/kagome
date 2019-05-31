@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 #ifndef KAGOME_TEST_TESTUTIL_LITERALS_HPP_
 #define KAGOME_TEST_TESTUTIL_LITERALS_HPP_
 
@@ -27,13 +26,15 @@ inline std::vector<uint8_t> operator""_unhex(const char *c, size_t s) {
   return kagome::common::unhex(std::string_view(c, s)).value();
 }
 
-inline libp2p::multi::Multiaddress operator""_multiaddr(const char *c, size_t s) {
+inline libp2p::multi::Multiaddress operator""_multiaddr(const char *c,
+                                                        size_t s) {
   return libp2p::multi::Multiaddress::create(std::string_view(c, s)).value();
 }
 
 /// creates a multihash instance from a hex string
 inline libp2p::multi::Multihash operator""_multihash(const char *c, size_t s) {
-  return libp2p::multi::Multihash::createFromHex(std::string_view(c, s)).value();
+  return libp2p::multi::Multihash::createFromHex(std::string_view(c, s))
+      .value();
 }
 
-#endif //KAGOME_TEST_TESTUTIL_LITERALS_HPP_
+#endif  // KAGOME_TEST_TESTUTIL_LITERALS_HPP_
