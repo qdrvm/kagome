@@ -31,6 +31,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::scale, DecodeError, e) {
       return "collection has too many items, unable to unpack";
     case DecodeError::WRONG_TYPE_INDEX:
       return "wrong type index, cannot decode variant";
+    case DecodeError::OUT_OF_BOUNDARIES:
+      return "advance went out of boundaries";
     default:
       break;
   }

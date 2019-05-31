@@ -23,8 +23,18 @@ namespace kagome::runtime {
    * of a wasm function in Runtime API
    * @returns the address of the buffer returned by the function
    */
-  constexpr uint32_t getWasmAddr(int64_t runtime_call_result) {
-    return static_cast<uint64_t>(runtime_call_result) & 0xFFFFFFFFLLU;
+  constexpr WasmPointer getWasmAddr(int64_t runtime_call_result) {
+    return static_cast<WasmPointer>(static_cast<uint64_t>(runtime_call_result)
+                                    & 0xFFFFFFFFLLU);
+  }
+
+  /**
+   * @param runtime_call_result the result of execution of a wasm function
+   * in Runtime API
+   * @return result length
+   */
+  constexpr SizeType getWasmLen(int64_t runtime_call_result) {
+    return static_cast<SizeType>((static_cast<uint64_t>(runtime_call_result) >> 32u) & 0xFFFFFFFFLLU);
   }
 
 }  // namespace kagome::runtime

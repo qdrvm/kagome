@@ -40,6 +40,18 @@ namespace kagome::primitives {
   Stream &operator<<(Stream &s, const ScheduledChange &v) {
     return s << v.next_authorities << v.delay;
   }
+
+  /**
+   * @brief decodes ScheduledChange instance from stream
+   * @tparam Stream stream type
+   * @param s reference to stream
+   * @param v value to decode
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator>>(Stream &s, const ScheduledChange &v) {
+    return s >> v.next_authorities >> v.delay;
+  }
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_CORE_PRIMITIVES_SCHEDULED_CHANGE_HPP

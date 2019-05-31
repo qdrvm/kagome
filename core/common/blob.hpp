@@ -115,6 +115,7 @@ namespace kagome::common {
   using Hash512 = Blob<64>;
 
   /**
+   * @brief scale-encodes blob instance to stream
    * @tparam Stream output stream type
    * @tparam size blob size
    * @param s output stream reference
@@ -125,6 +126,22 @@ namespace kagome::common {
   Stream &operator<<(Stream &s, const Blob<size> &blob) {
     for (auto &&it = blob.begin(), end = blob.end(); it != end; ++it) {
       s << *it;
+    }
+    return s;
+  }
+
+/**
+ * @brief decodes blob instance from stream
+ * @tparam Stream output stream type
+ * @tparam size blob size
+ * @param s input stream reference
+ * @param blob value to encode
+ * @return reference to stream
+ */
+  template<class Stream,size_t size>
+  Stream &operator>>(Stream &s, Blob<size> &blob) {
+    for (auto &&it = blob.begin(), end = blob.end(); it != end; ++it) {
+      s >> *it;
     }
     return s;
   }

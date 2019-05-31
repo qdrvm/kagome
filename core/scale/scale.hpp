@@ -41,8 +41,19 @@ namespace kagome::scale {
   template <class T>
   outcome::result<T> decode(gsl::span<const uint8_t> span) {
     try {
-      T t;
+      T t{};
       ScaleDecoderStream s(span);
+      s >> t;
+      return t;
+    } catch (const boost::system::system_error &e) {
+      return e.code();
+    }
+  }
+
+  template <class T>
+  outcome::result<T> decode(ScaleDecoderStream &s) {
+    try {
+      T t{};
       s >> t;
       return t;
     } catch (const boost::system::system_error &e) {

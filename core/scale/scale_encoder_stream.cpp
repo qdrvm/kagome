@@ -5,7 +5,7 @@
 
 #include "scale/scale_encoder_stream.hpp"
 
-#include "common/outcome_throw.hpp"
+#include "scale/outcome_throw.hpp"
 #include "scale/scale_error.hpp"
 #include "scale/types.hpp"
 
@@ -136,17 +136,6 @@ namespace kagome::scale {
   ScaleEncoderStream &ScaleEncoderStream::operator<<(const BigInteger &v) {
     encodeCompactInteger(v, *this);
     return *this;
-  }
-
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(tribool v) {
-    auto byte = static_cast<uint8_t>(2);
-    if (v) {
-      byte = static_cast<uint8_t>(1);
-    }
-    if (!v) {
-      byte = static_cast<uint8_t>(0);
-    }
-    return putByte(byte);
   }
 
 }  // namespace kagome::scale

@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_SCALE_OPTIONAL_BOOL_HPP
 #define KAGOME_CORE_SCALE_OPTIONAL_BOOL_HPP
 
-#include "scale/optional.hpp"
+#include <optional>
 
 /**
  * Optional bool is a special case of optional values in SCALE
@@ -16,26 +16,24 @@
 
 namespace kagome::scale {
   class ScaleEncoderStream;
+  class ScaleDecoderStream;
 
   /**
    * @brief scale-encodes optional bool value
-   * @param s reference to scale-encoder stream
+   * @param s reference to scale encoder stream
    * @param b optional bool value to encode
    * @return reference to stream
    */
-  ScaleEncoderStream &operator<<(ScaleEncoderStream &s, const std::optional<bool> &b);
-}
+  ScaleEncoderStream &operator<<(ScaleEncoderStream &s,
+                                 const std::optional<bool> &b);
 
-namespace kagome::scale::optional {
   /**
-   * @brief specialization of decodeOptional function for optional bool
-   * @param optional bool value
-   * @return decoded value or error
+   * @brief scale-decodes optional bool value
+   * @param s reference to scale decoder stream
+   * @param b optional bool value to decode
+   * @return reference to stream
    */
-  template <>
-  outcome::result<std::optional<bool>> decodeOptional(
-      common::ByteStream &stream);
-
-}  // namespace kagome::scale::optional
+  ScaleDecoderStream &operator>>(ScaleDecoderStream &s, std::optional<bool> &b);
+}  // namespace kagome::scale
 
 #endif  // KAGOME_CORE_SCALE_OPTIONAL_BOOL_HPP

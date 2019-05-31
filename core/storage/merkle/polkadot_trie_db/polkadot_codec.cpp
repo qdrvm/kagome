@@ -7,6 +7,7 @@
 
 #include "crypto/blake2/blake2s.h"
 #include "storage/merkle/polkadot_trie_db/polkadot_node.hpp"
+#include "scale/scale.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::merkle, PolkadotCodec::Error, e) {
   using E = kagome::storage::merkle::PolkadotCodec::Error;
@@ -43,10 +44,6 @@ namespace kagome::storage::merkle {
     out[1] = (b >> 8u) & 0xffu;
     return out;
   }
-
-  PolkadotCodec::PolkadotCodec(
-      std::shared_ptr<PolkadotCodec::ScaleBufferEncoder> codec)
-      : scale_(std::move(codec)) {}
 
   common::Buffer PolkadotCodec::nibblesToKey(
       const common::Buffer &nibbles) const {
@@ -197,8 +194,8 @@ namespace kagome::storage::merkle {
     }
 
     // scale encoded value
-    OUTCOME_TRY(encNodeValue, scale_->encode(node.value));
-    encoding += encNodeValue;
+    OUTCOME_TRY(encNodeValue, scale::encode(node.value));
+    encoding += Buffer(std::move(encNodeValue));
 
     return outcome::success(std::move(encoding));
   }
@@ -211,8 +208,8 @@ namespace kagome::storage::merkle {
     encoding += nibblesToKey(node.key_nibbles);
 
     // scale encoded value
-    OUTCOME_TRY(encNodeValue, scale_->encode(node.value));
-    encoding += encNodeValue;
+    OUTCOME_TRY(encNodeValue, scale::encode(node.value));
+    encoding += Buffer(std::move(encNodeValue));
 
     return outcome::success(std::move(encoding));
   }

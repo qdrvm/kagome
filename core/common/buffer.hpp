@@ -222,6 +222,22 @@ namespace kagome::common {
     return s << buffer.toVector();
   }
 
+  /**
+   * @brief decodes buffer object from stream
+   * @tparam Stream input stream type
+   * @param s stream reference
+   * @param buffer value to decode
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator>>(Stream &s, Buffer &buffer) {
+    std::vector<uint8_t> data;
+    s >> data;
+    buffer.clear();
+    buffer.put(data);
+    return s;
+  }
+
   std::ostream &operator<<(std::ostream &os, const Buffer &buffer);
 
 }  // namespace kagome::common

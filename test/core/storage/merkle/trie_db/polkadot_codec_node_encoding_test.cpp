@@ -6,14 +6,12 @@
 #include <memory>
 
 #include <gtest/gtest.h>
-#include "scale/buffer_codec.hpp"
 #include "storage/merkle/polkadot_trie_db/polkadot_codec.hpp"
 #include "storage/merkle/polkadot_trie_db/polkadot_node.hpp"
 #include "testutil/outcome.hpp"
 
 using namespace kagome;
 using namespace common;
-using namespace scale;
 using namespace storage;
 using namespace merkle;
 using namespace testing;
@@ -24,10 +22,7 @@ struct Case {
 };
 
 struct NodeEncodingTest : public ::testing::TestWithParam<Case> {
-  std::shared_ptr<BufferScaleCodec> scale =
-      std::make_shared<BufferScaleCodec>();
-
-  std::unique_ptr<PolkadotCodec> codec = std::make_unique<PolkadotCodec>(scale);
+  std::unique_ptr<PolkadotCodec> codec = std::make_unique<PolkadotCodec>();
 };
 
 TEST_P(NodeEncodingTest, GetHeader) {

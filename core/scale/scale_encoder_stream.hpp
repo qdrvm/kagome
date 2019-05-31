@@ -9,12 +9,9 @@
 #include <deque>
 #include <optional>
 
-#include "common/blob.hpp"
-#include "common/byte_stream.hpp"
-#include "scale/compact.hpp"
+#include <gsl/span>
 #include "scale/detail/fixed_witdh_integer.hpp"
-#include "scale/fixedwidth.hpp"
-#include "scale/variant.hpp"
+#include "scale/detail/variant.hpp"
 
 namespace kagome::scale {
   /**
@@ -37,8 +34,7 @@ namespace kagome::scale {
      */
     template <class F, class S>
     ScaleEncoderStream &operator<<(const std::pair<F, S> &p) {
-      *this << p.first << p.second;
-      return *this;
+      return *this << p.first << p.second;
     }
     /**
      * @brief scale-encodes variant value
@@ -48,7 +44,7 @@ namespace kagome::scale {
      */
     template <class... T>
     ScaleEncoderStream &operator<<(const boost::variant<T...> &v) {
-      kagome::scale::variant::encodeVariant(v, *this);
+      detail::encodeVariant(v, *this);
       return *this;
     }
     /**
@@ -61,6 +57,7 @@ namespace kagome::scale {
     ScaleEncoderStream &operator<<(const std::vector<T> &c) {
       return encodeCollection(c.size(), c.begin(), c.end());
     }
+    // TODO(yuraz): PRE-119 take into account optional bool
     /**
      * @brief scale-encodes optional value
      * @tparam T value type
@@ -114,11 +111,11 @@ namespace kagome::scale {
     ScaleEncoderStream &operator<<(T &&v) {
       // encode bool
       if constexpr (std::is_same<I, bool>::value) {
-        uint8_t byte = (v ? 0x01u : 0x00u);
+        uint8_t byte = (v ? 1u : 0u);
         return putByte(byte);
       }
       // put byte
-      if constexpr (sizeof(T) == 1) {
+      if constexpr (sizeof(T) == 1u) {
         // to avoid infinite recursion
         return putByte(static_cast<uint8_t>(v));
       }
@@ -133,12 +130,6 @@ namespace kagome::scale {
      * @return reference to stream
      */
     ScaleEncoderStream &operator<<(const BigInteger &v);
-    /**
-     * scale-encodes tribool value
-     * @param v value to encode
-     * @return reference to stream
-     */
-    ScaleEncoderStream &operator<<(tribool v);
 
    protected:
     /**

@@ -12,8 +12,10 @@
 
 #include <boost/iterator_adaptors.hpp>
 #include <outcome/outcome.hpp>
-#include "common/buffer.hpp"
 #include "common/blob.hpp"
+#include "common/buffer.hpp"
+#include "scale/outcome_throw.hpp"
+#include "scale/scale_error.hpp"
 
 namespace kagome::primitives {
 
@@ -56,7 +58,6 @@ namespace kagome::primitives {
     std::map<InherentIdentifier, common::Buffer> data_;
   };
 
-
   /**
    * @brief output InherentData object instance to stream
    * @tparam Stream stream type
@@ -79,6 +80,32 @@ namespace kagome::primitives {
     }
 
     s << ids << vals;
+    return s;
+  }
+
+  /**
+   * @brief decodes InherentData object instance from stream
+   * @tparam Stream input stream type
+   * @param s stream reference
+   * @param v value to decode
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator>>(Stream &s, InherentData &v) {
+    std::vector<InherentIdentifier> ids;
+    std::vector<common::Buffer> vals;
+    s >> ids >> vals;
+    if (ids.size() != vals.size()) {
+      scale::common::raise(kagome::scale::DecodeError::INVALID_DATA);
+    }
+
+    for (size_t i = 0u; i < ids.size(); ++i) {
+      auto &&res = v.putData(ids[i], vals[i]);
+      if (!res) {
+        scale::common::raise(res.error().value());
+      }
+    }
+
     return s;
   }
 }  // namespace kagome::primitives
