@@ -12,7 +12,7 @@
 #include <system_error>
 
 #include <outcome/outcome.hpp>  // for outcome::result
-#include "libp2p/connection/raw_connection.hpp"
+#include "libp2p/connection/capable_connection.hpp"
 #include "libp2p/event/emitter.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/peer/peer_id.hpp"
@@ -27,7 +27,7 @@ namespace libp2p::transport {
   class Transport {
    public:
     using ConnectionCallback =
-        outcome::result<void>(std::shared_ptr<connection::RawConnection>);
+        outcome::result<void>(std::shared_ptr<connection::CapableConnection>);
     using HandlerFunc = std::function<ConnectionCallback>;
     using ErrorFunc = std::function<void(const std::error_code &)>;
 
@@ -50,8 +50,12 @@ namespace libp2p::transport {
         TransportListener::HandlerFunc onSuccess,
         TransportListener::ErrorFunc onError) const = 0;
 
-    // returns true if our transport supports this multiaddress, false
-    // otherwise. example: /tcp/... on tcp transport will return true
+    /**
+     * Check if this transport supports a given multiaddress
+     * @param ma to be checked against
+     * @return true, if transport supports that multiaddress, false otherwise
+     * @note example: '/tcp/...' on tcp transport will return true
+     */
     virtual bool canDial(const multi::Multiaddress &ma) const = 0;
   };
 }  // namespace libp2p::transport

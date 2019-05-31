@@ -6,37 +6,41 @@
 #ifndef KAGOME_RAW_CONNECTION_MOCK_HPP
 #define KAGOME_RAW_CONNECTION_MOCK_HPP
 
-#include <gmock/gmock.h>
 #include "libp2p/connection/raw_connection.hpp"
 
+#include <gmock/gmock.h>
+
 namespace libp2p::connection {
-class RawConnectionMock : public RawConnection {
- public:
-  MOCK_CONST_METHOD0(isClosed, bool(void));
 
-  MOCK_METHOD0(close, outcome::result<void>(void));
+  class RawConnectionMock : public virtual RawConnection {
+   public:
+    MOCK_CONST_METHOD0(isClosed, bool(void));
 
-  MOCK_METHOD1(write, outcome::result<size_t>(gsl::span<const uint8_t>));
+    MOCK_METHOD0(close, outcome::result<void>(void));
 
-  MOCK_METHOD1(writeSome, outcome::result<size_t>(gsl::span<const uint8_t>));
+    MOCK_METHOD1(read, outcome::result<std::vector<uint8_t>>(size_t));
 
-  MOCK_METHOD1(read, outcome::result<std::vector<uint8_t>>(size_t));
+    MOCK_METHOD1(readSome, outcome::result<std::vector<uint8_t>>(size_t));
 
-  MOCK_METHOD1(readSome, outcome::result<std::vector<uint8_t>>(size_t));
+    MOCK_METHOD1(read, outcome::result<size_t>(gsl::span<uint8_t>));
 
-  MOCK_METHOD1(read, outcome::result<size_t>(gsl::span<uint8_t>));
+    MOCK_METHOD1(readSome, outcome::result<size_t>(gsl::span<uint8_t>));
 
-  MOCK_METHOD1(readSome, outcome::result<size_t>(gsl::span<uint8_t>));
+    MOCK_METHOD1(write, outcome::result<size_t>(gsl::span<const uint8_t>));
 
-  MOCK_CONST_METHOD0(isInitiatorMock, bool(void));
-  bool isInitiator() const noexcept override {
-    return isInitiatorMock();
-  }
+    MOCK_METHOD1(writeSome, outcome::result<size_t>(gsl::span<const uint8_t>));
 
-  MOCK_METHOD0(localMultiaddr, outcome::result<multi::Multiaddress>(void));
+    bool isInitiator() const noexcept override {
+      return isInitiator_hack();
+    }
 
-  MOCK_METHOD0(remoteMultiaddr, outcome::result<multi::Multiaddress>(void));
-};
+    MOCK_CONST_METHOD0(isInitiator_hack, bool());
+
+    MOCK_METHOD0(localMultiaddr, outcome::result<multi::Multiaddress>());
+
+    MOCK_METHOD0(remoteMultiaddr, outcome::result<multi::Multiaddress>());
+  };
+
 }  // namespace libp2p::connection
 
 #endif  // KAGOME_RAW_CONNECTION_MOCK_HPP

@@ -19,7 +19,7 @@ namespace libp2p::connection {
     /**
      * @brief Opens new stream using this connection.
      */
-    virtual outcome::result<Stream> newStream() = 0;
+    virtual outcome::result<std::shared_ptr<Stream>> newStream() = 0;
   };
 
 }  // namespace libp2p::connection

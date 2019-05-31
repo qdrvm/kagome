@@ -9,8 +9,11 @@
 #include <string>
 #include <system_error>
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "libp2p/transport/tcp.hpp"
+#include "mock/libp2p/connection/capable_connection_mock.hpp"
+#include "mock/libp2p/transport/upgrader_mock.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -21,20 +24,45 @@ using std::chrono_literals::operator""s;
 using std::chrono_literals::operator""ms;
 using kagome::common::Buffer;
 
-void logError(const std::error_code &ec) {
-  std::cout << "error(" << ec.value() << "): " << ec.message() << "\n";
-}
+using ::testing::_;
+using ::testing::AnyNumber;
+using ::testing::Invoke;
+using ::testing::NiceMock;
+using ::testing::Return;
 
-void expectConnectionValid(const std::shared_ptr<RawConnection> &conn) {
-  EXPECT_TRUE(conn);
+namespace {
+  void logError(const std::error_code &ec) {
+    std::cout << "error(" << ec.value() << "): " << ec.message() << "\n";
+  }
 
-  EXPECT_OUTCOME_TRUE(mar, conn->remoteMultiaddr());
-  EXPECT_OUTCOME_TRUE(mal, conn->localMultiaddr());
-  std::ostringstream s;
-  s << mar.getStringAddress() << " -> " << mal.getStringAddress();
-  std::string tag = s.str();
-  std::cout << tag << '\n';
-}
+  void expectConnectionValid(const std::shared_ptr<CapableConnection> &conn) {
+    EXPECT_TRUE(conn);
+
+    EXPECT_OUTCOME_TRUE(mar, conn->remoteMultiaddr());
+    EXPECT_OUTCOME_TRUE(mal, conn->localMultiaddr());
+    std::ostringstream s;
+    s << mar.getStringAddress() << " -> " << mal.getStringAddress();
+    std::cout << s.str() << '\n';
+  }
+
+  template <typename T, typename R>
+  outcome::result<R> _upgrade(T c) {
+    R r = std::make_shared<CapableConnBasedOnRawConnMock>(c);
+    return outcome::success(r);
+  }
+
+  auto makeUpgrader() {
+    auto upgrader = std::make_shared<NiceMock<UpgraderMock>>();
+    ON_CALL(*upgrader, upgradeToSecure(_))
+        .WillByDefault(
+            Invoke(_upgrade<Upgrader::RawSPtr, Upgrader::SecureSPtr>));
+    ON_CALL(*upgrader, upgradeToMuxed(_))
+        .WillByDefault(
+            Invoke(_upgrade<Upgrader::SecureSPtr, Upgrader::CapableSPtr>));
+
+    return upgrader;
+  }
+}  // namespace
 
 /**
  * @given two listeners
@@ -42,9 +70,12 @@ void expectConnectionValid(const std::shared_ptr<RawConnection> &conn) {
  * @then get error
  */
 TEST(TCP, TwoListenersCantBindOnSamePort) {
+  auto upgrader = makeUpgrader();
+
   boost::asio::io_context context(1);
   auto e = context.get_executor();
-  auto transport = std::make_shared<TcpTransport<decltype(e)>>(e);
+  auto transport =
+      std::make_shared<TcpTransport<decltype(e)>>(e, std::move(upgrader));
 
   auto listener1 = transport->createListener(
       [](auto &&c) {
@@ -87,13 +118,15 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
   constexpr static int kSize = 1500;
   size_t counter = 0;  // number of answers
 
+  auto upgrader = makeUpgrader();
   boost::asio::io_context context(1);
   auto e = context.get_executor();
 
-  auto transport = std::make_shared<TcpTransport<decltype(e)>>(e);
+  auto transport =
+      std::make_shared<TcpTransport<decltype(e)>>(e, std::move(upgrader));
   using libp2p::connection::RawConnection;
   auto listener = transport->createListener(
-      [&](std::shared_ptr<RawConnection> conn) {
+      [&](auto &&conn) {
         expectConnectionValid(conn);
         EXPECT_FALSE(conn->isInitiator());
 
@@ -113,9 +146,11 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
   std::vector<std::thread> clients(kClients);
   std::generate(clients.begin(), clients.end(), [&]() {
     return std::thread([&]() {
+      auto upgrader = makeUpgrader();
       boost::asio::io_context context(1);
       auto e = context.get_executor();
-      auto transport = std::make_shared<TcpTransport<decltype(e)>>(e);
+      auto transport =
+          std::make_shared<TcpTransport<decltype(e)>>(e, std::move(upgrader));
 
       transport->dial(
           ma,
@@ -154,9 +189,11 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
  * @then get connection_refused error
  */
 TEST(TCP, DialToNoServer) {
+  auto upgrader = makeUpgrader();
   boost::asio::io_context context;
   auto e = context.get_executor();
-  auto transport = std::make_shared<TcpTransport<decltype(e)>>(e);
+  auto transport =
+      std::make_shared<TcpTransport<decltype(e)>>(e, std::move(upgrader));
   auto ma = "/ip4/127.0.0.1/tcp/40003"_multiaddr;
 
   transport->dial(
@@ -181,13 +218,14 @@ TEST(TCP, DialToNoServer) {
  * @then server gets EOF
  */
 TEST(TCP, ClientClosesConnection) {
+  auto upgrader = makeUpgrader();
   boost::asio::io_context context(1);
   auto e = context.get_executor();
 
-  auto transport = std::make_shared<TcpTransport<decltype(e)>>(e);
-  using libp2p::connection::RawConnection;
+  auto transport =
+      std::make_shared<TcpTransport<decltype(e)>>(e, std::move(upgrader));
   auto listener = transport->createListener(
-      [&](std::shared_ptr<RawConnection> conn) {
+      [&](auto &&conn) {
         expectConnectionValid(conn);
         EXPECT_FALSE(conn->isInitiator());
 
@@ -222,13 +260,14 @@ TEST(TCP, ClientClosesConnection) {
  * @then client gets EOF
  */
 TEST(TCP, ServerClosesConnection) {
+  auto upgrader = makeUpgrader();
   boost::asio::io_context context(1);
   auto e = context.get_executor();
 
-  auto transport = std::make_shared<TcpTransport<decltype(e)>>(e);
-  using libp2p::connection::RawConnection;
+  auto transport =
+      std::make_shared<TcpTransport<decltype(e)>>(e, std::move(upgrader));
   auto listener = transport->createListener(
-      [&](std::shared_ptr<RawConnection> conn) {
+      [&](auto &&conn) {
         expectConnectionValid(conn);
         EXPECT_FALSE(conn->isInitiator());
 
@@ -264,13 +303,14 @@ TEST(TCP, OneTransportServerHandlesManyClients) {
   constexpr static int kSize = 1500;
   size_t counter = 0;  // number of answers
 
+  auto upgrader = makeUpgrader();
   boost::asio::io_context context(1);
   auto e = context.get_executor();
 
-  auto transport = std::make_shared<TcpTransport<decltype(e)>>(e);
-  using libp2p::connection::RawConnection;
+  auto transport =
+      std::make_shared<TcpTransport<decltype(e)>>(e, std::move(upgrader));
   auto listener = transport->createListener(
-      [&](std::shared_ptr<RawConnection> conn) {
+      [&](auto &&conn) {
         expectConnectionValid(conn);
         EXPECT_FALSE(conn->isInitiator());
 
