@@ -5,7 +5,6 @@
 
 #include <gtest/gtest.h>
 
-#include "scale/byte_array_stream.hpp"
 #include "scale/scale.hpp"
 #include "scale/scale_decoder_stream.hpp"
 #include "scale/scale_encoder_stream.hpp"

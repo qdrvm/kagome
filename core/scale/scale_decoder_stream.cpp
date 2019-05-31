@@ -81,7 +81,7 @@ namespace kagome::scale {
   }  // namespace
 
   ScaleDecoderStream::ScaleDecoderStream(gsl::span<const uint8_t> span)
-      : current_ptr_{span.begin()}, end_ptr_{span.end()} {}
+      : current_iterator_{span.begin()}, end_iterator_{span.end()} {}
 
   bool ScaleDecoderStream::decodeBool() {
     auto byte = nextByte();
@@ -115,7 +115,7 @@ namespace kagome::scale {
       common::raise(DecodeError::NOT_ENOUGH_DATA);
       UNREACHABLE
     }
-    return *current_ptr_++;
+    return *current_iterator_++;
   }
 
   void ScaleDecoderStream::advance(uint64_t dist) {
@@ -123,7 +123,8 @@ namespace kagome::scale {
       common::raise(DecodeError::OUT_OF_BOUNDARIES);
       UNREACHABLE
     }
-    current_ptr_ += dist;
+    std::advance(current_iterator_, dist);
+    current_iterator_ += dist;
   }
 
 }  // namespace kagome::scale

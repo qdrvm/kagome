@@ -3,11 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <gtest/gtest.h>
-#include "scale/byte_array_stream.hpp"
 #include "scale/scale.hpp"
 
-using kagome::common::Buffer;
+#include <gtest/gtest.h>
+
 using kagome::scale::ByteArray;
 using kagome::scale::ScaleDecoderStream;
 using kagome::scale::ScaleEncoderStream;

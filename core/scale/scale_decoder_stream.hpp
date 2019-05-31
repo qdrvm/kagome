@@ -132,7 +132,7 @@ namespace kagome::scale {
      * @return True if n more bytes are available and false otherwise
      */
     bool hasMore(uint64_t n) const {
-      return current_ptr_ + n <= end_ptr_;
+      return current_iterator_ + n <= end_iterator_;
     }
 
     /**
@@ -155,8 +155,8 @@ namespace kagome::scale {
     using ByteSpan = gsl::span<const uint8_t>;
     using SpanIterator = ByteSpan::const_iterator;
 
-    SpanIterator current_ptr_;
-    SpanIterator end_ptr_;
+    SpanIterator current_iterator_;
+    SpanIterator end_iterator_;
   };
 
 }  // namespace kagome::scale

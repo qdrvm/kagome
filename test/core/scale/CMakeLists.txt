@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 ##
 
-addtest(byte_array_stream_test
-    byte_array_stream_test.cpp
+addtest(scale_encoder_stream_test
+    scale_encoder_stream_test.cpp
     )
-target_link_libraries(byte_array_stream_test
+target_link_libraries(scale_encoder_stream_test
     scale
     )
 

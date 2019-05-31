@@ -5,14 +5,11 @@
 
 #include <gtest/gtest.h>
 
-#include "scale/byte_array_stream.hpp"
 #include "scale/optional_bool.hpp"
 #include "scale/scale_encoder_stream.hpp"
 
-using namespace kagome;          // NOLINT
-using namespace kagome::common;  // NOLINT
-using namespace kagome::scale;   // NOLINT
 using kagome::scale::ScaleEncoderStream;
+using kagome::scale::ByteArray;
 
 // TODO(yuraz): PRE-119 refactor to parameterized tests
 /**

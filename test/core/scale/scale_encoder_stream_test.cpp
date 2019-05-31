@@ -5,10 +5,11 @@
 
 #include <gtest/gtest.h>
 
-#include "scale/byte_array_stream.hpp"
+#include "scale/scale_decoder_stream.hpp"
+#include "scale/types.hpp"
 
 using kagome::scale::ByteArray;
-using kagome::scale::ByteArrayStream;
+using kagome::scale::ScaleDecoderStream;
 
 /**
  * @given byte array of 3 items: 0, 1, 2
@@ -19,14 +20,14 @@ using kagome::scale::ByteArrayStream;
  */
 TEST(ByteArrayStreamTest, NextByteSuccessTest) {
   auto bytes = ByteArray{0, 1, 2};
-  auto stream = ByteArrayStream{bytes};
+  auto stream = ScaleDecoderStream{bytes};
 
   for (size_t i = 0; i < bytes.size(); i++) {
-    auto byte = stream.nextByte();
-    ASSERT_TRUE(byte) << "Fail in " << i;
-    ASSERT_EQ(*byte, bytes.at(i)) << "Fail in " << i;
+    uint8_t byte = 0u;
+    ASSERT_NO_THROW((byte = stream.nextByte())) << "Fail in " << i;
+    ASSERT_EQ(byte, bytes.at(i)) << "Fail in " << i;
   }
-  ASSERT_FALSE(stream.nextByte());
+  ASSERT_ANY_THROW(stream.nextByte());
 }
 
 /**
@@ -37,9 +38,9 @@ TEST(ByteArrayStreamTest, NextByteSuccessTest) {
 TEST(ByteArrayStreamTest, AdvanceSuccessTest) {
   const size_t n = 42;
   ByteArray bytes(n, '0');
-  auto stream = ByteArrayStream{bytes};
+  auto stream = ScaleDecoderStream{bytes};
 
-  ASSERT_TRUE(stream.advance(bytes.size()));
+  ASSERT_NO_THROW(stream.advance(bytes.size()));
   ASSERT_FALSE(stream.hasMore(1));
 }
 
@@ -51,7 +52,7 @@ TEST(ByteArrayStreamTest, AdvanceSuccessTest) {
 TEST(ByteArrayStreamTest, AdvanceFailedTest) {
   const size_t n = 42;
   ByteArray bytes(n, '0');
-  auto stream = ByteArrayStream{bytes};
+  auto stream = ScaleDecoderStream{bytes};
 
-  ASSERT_FALSE(stream.advance(bytes.size() + 1));
+  ASSERT_ANY_THROW(stream.advance(bytes.size() + 1));
 }
