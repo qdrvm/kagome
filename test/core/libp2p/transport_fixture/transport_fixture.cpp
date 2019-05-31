@@ -6,19 +6,46 @@
 #include "core/libp2p/transport_fixture/transport_fixture.hpp"
 
 #include "libp2p/transport/tcp.hpp"
+#include "mock/libp2p/connection/capable_connection_mock.hpp"
 #include "testutil/literals.hpp"
+
+namespace {
+  template <typename T, typename R>
+  outcome::result<R> _upgrade(T c) {
+    R r =
+        std::make_shared<libp2p::connection::CapableConnBasedOnRawConnMock>(c);
+    return outcome::success(r);
+  }
+}  // namespace
 
 namespace libp2p::testing {
   using kagome::common::Buffer;
   using libp2p::multi::Multiaddress;
   using libp2p::transport::TcpTransport;
+  using libp2p::transport::Upgrader;
+  using libp2p::transport::UpgraderMock;
+  using ::testing::Invoke;
+  using ::testing::NiceMock;
   using transport::TransportListener;
+
+  auto TransportFixture::makeUpgrader() {
+    auto upgrader = std::make_shared<NiceMock<UpgraderMock>>();
+    ON_CALL(*upgrader, upgradeToSecure(_))
+        .WillByDefault(
+            Invoke(_upgrade<Upgrader::RawSPtr, Upgrader::SecureSPtr>));
+    ON_CALL(*upgrader, upgradeToMuxed(_))
+        .WillByDefault(
+            Invoke(_upgrade<Upgrader::SecureSPtr, Upgrader::CapableSPtr>));
+
+    return upgrader;
+  }
 
   TransportFixture::TransportFixture()
       : context_{1}, executor_{context_.get_executor()} {}
 
   void TransportFixture::SetUp() {
-    transport_ = std::make_shared<TcpTransport<decltype(executor_)>>(executor_);
+    transport_ = std::make_shared<TcpTransport<decltype(executor_)>>(
+        executor_, makeUpgrader());
     ASSERT_TRUE(transport_) << "cannot create transport1";
 
     // create multiaddress, from which we are going to connect

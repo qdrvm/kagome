@@ -13,6 +13,7 @@
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/transport/transport.hpp"
 #include "libp2p/transport/transport_listener.hpp"
+#include "mock/libp2p/transport/upgrader_mock.hpp"
 
 namespace libp2p::testing {
   /**
@@ -44,6 +45,13 @@ namespace libp2p::testing {
      * Run the context for some time, enough to execute async operations
      */
     void launchContext();
+
+    /**
+     * Create a connection upgrader, which is going to do nothing with the
+     * connection
+     * @return upgrader
+     */
+    static auto makeUpgrader();
 
    private:
     boost::asio::io_context context_;
