@@ -20,9 +20,11 @@ namespace libp2p::connection {
 
     MOCK_METHOD0(newStream, outcome::result<std::shared_ptr<Stream>>());
 
-    MOCK_CONST_METHOD0(localPeer, peer::PeerId());
-    MOCK_CONST_METHOD0(remotePeer, peer::PeerId());
-    MOCK_CONST_METHOD0(remotePublicKey, crypto::PublicKey());
+    MOCK_CONST_METHOD0(localPeer, outcome::result<peer::PeerId>());
+
+    MOCK_CONST_METHOD0(remotePeer, outcome::result<peer::PeerId>());
+
+    MOCK_CONST_METHOD0(remotePublicKey, outcome::result<crypto::PublicKey>());
 
     bool isInitiator() const noexcept override {
       return real_->isInitiator();

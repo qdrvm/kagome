@@ -59,7 +59,7 @@ TEST_F(PlaintextConnectionTest, RemotePublicKey) {
  * @then method behaves as expected
  */
 TEST_F(PlaintextConnectionTest, IsInitiator) {
-  EXPECT_CALL(*connection_, isInitiatorMock()).WillOnce(Return(true));
+  EXPECT_CALL(*connection_, isInitiator_hack()).WillOnce(Return(true));
   ASSERT_TRUE(secure_connection_->isInitiator());
 }
 
