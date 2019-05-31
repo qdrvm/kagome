@@ -24,7 +24,6 @@ target_link_libraries(core
     buffer
     logger
     scale
-    wasm_memory_stream
     wasm_executor
     )
 
@@ -37,7 +36,6 @@ target_link_libraries(tagged_transaction_queue
     buffer
     logger
     scale
-    wasm_memory_stream
     wasm_executor
     )
 
@@ -51,7 +49,6 @@ target_link_libraries(block_builder
     logger
     scale
     primitives
-    wasm_memory_stream
     wasm_executor
     )
 
@@ -64,7 +61,6 @@ target_link_libraries(parachain_host_api
     buffer
     logger
     scale
-    wasm_memory_stream
     wasm_executor
     )
 
@@ -77,6 +73,5 @@ target_link_libraries(grandpa_api
     buffer
     logger
     scale
-    wasm_memory_stream
     wasm_executor
     )

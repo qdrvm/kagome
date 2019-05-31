@@ -22,13 +22,3 @@ target_link_libraries(wasm_executor
     extensions
     runtime_external_interface
     )
-
-add_library(wasm_memory_stream
-    wasm_memory_stream.hpp
-    wasm_memory_stream.cpp
-    )
-target_link_libraries(wasm_memory_stream
-    memory
-    byte_stream
-    outcome
-    )

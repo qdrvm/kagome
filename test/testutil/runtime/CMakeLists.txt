@@ -9,6 +9,5 @@ target_link_libraries(
     wasm_test
     Boost::filesystem
     buffer
-    wasm_memory_stream
     wasm_executor
 )

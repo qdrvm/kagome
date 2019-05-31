@@ -8,7 +8,6 @@
 #include <utility>
 #include <vector>
 
-#include "runtime/impl/wasm_memory_stream.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::runtime {

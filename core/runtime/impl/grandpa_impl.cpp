@@ -5,7 +5,6 @@
 
 #include "runtime/impl/grandpa_impl.hpp"
 
-#include "runtime/impl/wasm_memory_stream.hpp"
 #include "scale/scale.hpp"
 #include "scale/scale_error.hpp"
 #include "common/blob.hpp"
