@@ -12,7 +12,7 @@
 #include <system_error>
 
 #include <outcome/outcome.hpp>  // for outcome::result
-#include "libp2p/connection/raw_connection.hpp"
+#include "libp2p/connection/capable_connection.hpp"
 #include "libp2p/event/emitter.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/peer/peer_id.hpp"
@@ -27,7 +27,7 @@ namespace libp2p::transport {
   class Transport {
    public:
     using ConnectionCallback =
-        outcome::result<void>(std::shared_ptr<connection::RawConnection>);
+        outcome::result<void>(std::shared_ptr<connection::CapableConnection>);
     using HandlerFunc = std::function<ConnectionCallback>;
     using ErrorFunc = std::function<void(const std::error_code &)>;
 

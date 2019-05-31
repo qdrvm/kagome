@@ -13,6 +13,7 @@
 #include "libp2p/transport/tcp/tcp_listener.hpp"
 #include "libp2p/transport/tcp/tcp_util.hpp"
 #include "libp2p/transport/transport.hpp"
+#include "libp2p/transport/upgrader.hpp"
 
 namespace libp2p::transport {
 
@@ -29,18 +30,18 @@ namespace libp2p::transport {
    public:
     using executor_t = Executor;
 
-    explicit TcpTransport(Executor &executor) : executor_(executor) {}
+    explicit TcpTransport(Executor &executor,
+                          std::shared_ptr<Upgrader> upgrader)
+        : executor_(executor), upgrader_(std::move(upgrader)) {}
 
     void dial(const multi::Multiaddress &address,
               Transport::HandlerFunc onSuccess,
               Transport::ErrorFunc onError) const override {
       ufiber::spawn(
           executor_,
-          [address, v{std::move(onSuccess)},
-           e{std::move(onError)}](auto &&yield) mutable {
-            // same as canDial, but we do not need to pass transport instance
-            // inside lambda
-            if (!detail::supportsIpTcp(address)) {
+          [address, v{std::move(onSuccess)}, e{std::move(onError)},
+           self{this->shared_from_this()}](auto &&yield) mutable {
+            if (!self->canDial(address)) {
               std::error_code ec =
                   make_error_code(std::errc::address_family_not_supported);
               return e(ec);
@@ -52,16 +53,28 @@ namespace libp2p::transport {
               return e(rendpoint.error());
             }
 
-            auto r1 = conn->connect(rendpoint.value());
-            if (!r1) {
-              return e(r1.error());
+            // connect to the other peer
+            if (auto r = conn->connect(rendpoint.value()); !r) {
+              return e(r.error());
+            }
+
+            // upgrade to secure
+            auto rsc = self->upgrader_->upgradeToSecure(std::move(conn));
+            if (!rsc) {
+              return e(rsc.error());
+            }
+
+            // upgrade to muxed
+            auto rmc = self->upgrader_->upgradeToMuxed(std::move(rsc.value()));
+            if (!rmc) {
+              return e(rmc.error());
             }
 
             // execute handler
-            auto r2 = v(std::move(conn));
-            if (!r2) {
+            auto rh = v(std::move(rmc.value()));
+            if (!rh) {
               // report error, if user specified callback returned error.
-              return e(r2.error());
+              return e(rh.error());
             }
           });
     };
@@ -70,7 +83,7 @@ namespace libp2p::transport {
         TransportListener::HandlerFunc onValue,
         TransportListener::ErrorFunc onError) const override {
       return std::make_shared<TcpListener<Executor>>(
-          executor_, std::move(onValue), std::move(onError));
+          executor_, upgrader_, std::move(onValue), std::move(onError));
     };
 
     bool canDial(const multi::Multiaddress &ma) const override {
@@ -79,6 +92,7 @@ namespace libp2p::transport {
 
    private:
     Executor &executor_;
+    std::shared_ptr<Upgrader> upgrader_;
   };  // namespace libp2p::transport
 
 }  // namespace libp2p::transport

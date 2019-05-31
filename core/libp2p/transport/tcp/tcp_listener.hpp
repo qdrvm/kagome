@@ -11,6 +11,7 @@
 #include "libp2p/transport/tcp/tcp_connection.hpp"
 #include "libp2p/transport/tcp/tcp_util.hpp"
 #include "libp2p/transport/transport_listener.hpp"
+#include "libp2p/transport/upgrader.hpp"
 
 namespace libp2p::transport {
 
@@ -26,9 +27,11 @@ namespace libp2p::transport {
       : public TransportListener,
         public std::enable_shared_from_this<TcpListener<Executor>> {
    public:
-    TcpListener(Executor &executor, TransportListener::HandlerFunc onValue,
+    TcpListener(Executor &executor, std::shared_ptr<Upgrader> upgrader,
+                TransportListener::HandlerFunc onValue,
                 TransportListener::ErrorFunc onError)
         : acceptor_(executor.context()),
+          upgrader_(std::move(upgrader)),
           v_(std::move(onValue)),
           e_(std::move(onError)) {}
 
@@ -81,6 +84,7 @@ namespace libp2p::transport {
 
    private:
     boost::asio::ip::tcp::acceptor acceptor_;
+    std::shared_ptr<Upgrader> upgrader_;
     TransportListener::HandlerFunc v_;
     TransportListener::ErrorFunc e_;
 
@@ -92,29 +96,44 @@ namespace libp2p::transport {
         return;
       }
 
-      acceptor_.async_accept(
-          [self{this->shared_from_this()}](const boost::system::error_code &ec,
-                                           ip::tcp::socket sock) {
-            if (ec) {
-              return self->e_(ec);
-            }
+      acceptor_.async_accept([self{this->shared_from_this()}](
+                                 const boost::system::error_code &ec,
+                                 ip::tcp::socket sock) {
+        if (ec) {
+          return self->e_(ec);
+        }
 
-            ufiber::spawn(self->acceptor_.get_executor(),
-                          [sock{std::move(sock)},
-                           self{std::move(self)}](auto &&yield) mutable {
-                            using E = decltype(yield.get_executor());
-                            auto conn = std::make_shared<TcpConnection<E>>(
-                                yield, std::move(sock));
-                            // execute user-provided callback
-                            auto r = self->v_(std::move(conn));
-                            if (!r) {
-                              // signal error in case of failure
-                              self->e_(r.error());
-                            }
-                          });
+        ufiber::spawn(
+            self->acceptor_.get_executor(),
+            [sock{std::move(sock)},
+             self{std::move(self)}](auto &&yield) mutable {
+              using E = decltype(yield.get_executor());
+              auto conn =
+                  std::make_shared<TcpConnection<E>>(yield, std::move(sock));
 
-            self->do_accept();
-          });
+              // upgrade to secure
+              auto rsc = self->upgrader_->upgradeToSecure(std::move(conn));
+              if (!rsc) {
+                return self->e_(rsc.error());
+              }
+
+              // upgrade to muxed
+              auto rmc =
+                  self->upgrader_->upgradeToMuxed(std::move(rsc.value()));
+              if (!rmc) {
+                return self->e_(rmc.error());
+              }
+
+              // execute user-provided callback
+              auto r = self->v_(std::move(rmc.value()));
+              if (!r) {
+                // signal error in case of failure
+                return self->e_(r.error());
+              }
+            });
+
+        self->do_accept();
+      });
     }
   };
 

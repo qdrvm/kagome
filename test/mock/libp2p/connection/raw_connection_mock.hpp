@@ -3,22 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STREAM_MOCK_HPP
-#define KAGOME_STREAM_MOCK_HPP
+#ifndef KAGOME_RAW_CONNECTION_MOCK_HPP
+#define KAGOME_RAW_CONNECTION_MOCK_HPP
+
+#include "libp2p/connection/raw_connection.hpp"
 
 #include <gmock/gmock.h>
-#include "libp2p/connection/stream.hpp"
 
 namespace libp2p::connection {
-  struct StreamMock : public Stream {
-    StreamMock() = default;
-    StreamMock(uint8_t id) : stream_id{id} {}
 
-    /// this field here is for easier testing
-    uint8_t stream_id = 137;
-
-    ~StreamMock() override = default;
-
+  class RawConnectionMock : public virtual RawConnection {
+   public:
     MOCK_CONST_METHOD0(isClosed, bool(void));
 
     MOCK_METHOD0(close, outcome::result<void>(void));
@@ -35,12 +30,17 @@ namespace libp2p::connection {
 
     MOCK_METHOD1(writeSome, outcome::result<size_t>(gsl::span<const uint8_t>));
 
-    MOCK_METHOD0(reset, void());
+    bool isInitiator() const noexcept override {
+      return isInitiator_hack();
+    }
 
-    MOCK_CONST_METHOD0(isClosedForRead, bool());
+    MOCK_CONST_METHOD0(isInitiator_hack, bool());
 
-    MOCK_CONST_METHOD0(isClosedForWrite, bool());
+    MOCK_METHOD0(localMultiaddr, outcome::result<multi::Multiaddress>());
+
+    MOCK_METHOD0(remoteMultiaddr, outcome::result<multi::Multiaddress>());
   };
+
 }  // namespace libp2p::connection
 
-#endif  // KAGOME_STREAM_MOCK_HPP
+#endif  // KAGOME_RAW_CONNECTION_MOCK_HPP
