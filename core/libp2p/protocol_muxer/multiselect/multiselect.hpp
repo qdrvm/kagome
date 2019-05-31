@@ -119,9 +119,9 @@ namespace libp2p::protocol_muxer {
      * @param protocols, which were in the message
      * @param status of the negotiation process
      * @param round, about which protocol the negotiation is held
-     * @return status after message handling
+     * @return status after message handling @and chosen protocol (if any)
      */
-    outcome::result<Status> handleProtocolsMsg(
+    outcome::result<std::pair<Status, peer::Protocol>> handleProtocolsMsg(
         const std::shared_ptr<basic::ReadWriteCloser> &connection,
         const std::vector<peer::Protocol> &protocols, Status status,
         Round round);
@@ -160,9 +160,9 @@ namespace libp2p::protocol_muxer {
      * @param connection, over which the message came
      * @param received_protocols, which were in the message
      * @param round, about which protocol the negotiation is held
-     * @return status after message handling
+     * @return status after message handling @and chosen protocol (if any)
      */
-    outcome::result<Status> onProtocolsAfterLs(
+    outcome::result<std::pair<Status, peer::Protocol>> onProtocolsAfterLs(
         const std::shared_ptr<basic::ReadWriteCloser> &connection,
         gsl::span<const peer::Protocol> received_protocols, Round round);
 

@@ -75,7 +75,7 @@ namespace libp2p::protocol_muxer {
     peer::Protocol previous_protocol{};
 
     while (current_status != Status::NEGOTIATION_SUCCESS
-           || current_status != Status::NEGOTIATION_FAIL) {
+           && current_status != Status::NEGOTIATION_FAIL) {
       OUTCOME_TRY(response, MessageReader::readNextMessage(connection));
       switch (response.type) {
         case MessageType::OPENING: {
@@ -95,12 +95,19 @@ namespace libp2p::protocol_muxer {
           OUTCOME_TRY(status,
                       handleProtocolsMsg(connection, response.protocols,
                                          current_status, round));
-          current_status = status;
+          current_status = status.first;
+          if (current_status == Status::PROTOCOL_SENT) {
+            previous_protocol = status.second;
+          }
           break;
         }
         case MessageType::LS: {
           OUTCOME_TRY(status, handleLsMsg(connection, round));
           current_status = status;
+          if (current_status == Status::PROTOCOL_SENT) {
+            // memorize the protocol we sent
+            previous_protocol = response.protocols[0];
+          }
           break;
         }
         case MessageType::NA: {
@@ -110,10 +117,6 @@ namespace libp2p::protocol_muxer {
         }
         default:
           return MultiselectError::INTERNAL_ERROR;
-      }
-      if (current_status == Status::PROTOCOL_SENT) {
-        // memorize the protocol we sent
-        previous_protocol = response.protocols[0];
       }
     }
     return finalizeNegotiation(current_status, previous_protocol);
@@ -186,7 +189,8 @@ namespace libp2p::protocol_muxer {
     }
   }
 
-  outcome::result<Multiselect::Status> Multiselect::handleProtocolsMsg(
+  outcome::result<std::pair<Multiselect::Status, peer::Protocol>>
+  Multiselect::handleProtocolsMsg(
       const std::shared_ptr<basic::ReadWriteCloser> &connection,
       const std::vector<Protocol> &protocols, Status status,
       const Round round) {
@@ -196,10 +200,14 @@ namespace libp2p::protocol_muxer {
       case Status::OPENING_SENT:
       case Status::PROTOCOL_SENT:
       case Status::PROTOCOLS_SENT:
-      case Status::NA_SENT:
-        return onUnexpectedRequestResponse(connection);
-      default:
-        return onGarbagedStreamStatus(connection);
+      case Status::NA_SENT: {
+        OUTCOME_TRY(h_status, onUnexpectedRequestResponse(connection));
+        return {h_status, ""};
+      }
+      default: {
+        OUTCOME_TRY(h_status, onGarbagedStreamStatus(connection));
+        return {h_status, ""};
+      }
     }
   }
 
@@ -245,7 +253,8 @@ namespace libp2p::protocol_muxer {
     return Status::NA_SENT;
   }
 
-  outcome::result<Multiselect::Status> Multiselect::onProtocolsAfterLs(
+  outcome::result<std::pair<Multiselect::Status, peer::Protocol>>
+  Multiselect::onProtocolsAfterLs(
       const std::shared_ptr<basic::ReadWriteCloser> &connection,
       gsl::span<const Protocol> received_protocols, const Round round) {
     // if any of the received protocols is supported by our side, choose it;
@@ -258,10 +267,10 @@ namespace libp2p::protocol_muxer {
           != received_protocols.end()) {
         // the protocol is found
         OUTCOME_TRY(connection->write(MessageManager::protocolMsg(proto)));
-        return Status::PROTOCOL_SENT;
+        return {Status::PROTOCOL_SENT, proto};
       }
     }
-    return Status::NEGOTIATION_FAIL;
+    return {Status::NEGOTIATION_FAIL, ""};
   }
 
   outcome::result<Multiselect::Status> Multiselect::onUnexpectedRequestResponse(
