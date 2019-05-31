@@ -6,17 +6,18 @@
 #include <gtest/gtest.h>
 
 #include "scale/byte_array_stream.hpp"
-#include "scale/compact.hpp"
-#include "scale/scale_encoder_stream.hpp"
+#include "scale/scale.hpp"
 #include "scale/scale_error.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
 using kagome::scale::BigInteger;
 using kagome::scale::ByteArray;
-using kagome::scale::ByteArrayStream;
+using kagome::scale::decode;
+using kagome::scale::encode;
+using kagome::scale::ScaleDecoderStream;
 using kagome::scale::ScaleEncoderStream;
-using kagome::scale::compact::decodeInteger;
 
 /**
  * value parameterized tests
@@ -41,6 +42,18 @@ TEST_P(CompactTest, EncodeSuccess) {
   const auto &[value, match] = GetParam();
   ASSERT_NO_THROW((s << value));
   ASSERT_EQ(s.data(), match);
+}
+
+/**
+ * @given a value and corresponding bytesof its encoding
+ * @when value is decoded by means of ScaleDecoderStream from given bytes
+ * @then decoded value matches predefined value
+ */
+TEST_P(CompactTest, DecodeSuccess) {
+  const auto &[value_match, bytes] = GetParam();
+  ScaleDecoderStream s(gsl::make_span(bytes));
+  EXPECT_OUTCOME_TRUE(v, decode<BigInteger>(s))
+  ASSERT_EQ(v, value_match);
 }
 
 INSTANTIATE_TEST_CASE_P(
@@ -72,7 +85,7 @@ INSTANTIATE_TEST_CASE_P(
             {0b110111, 210, 10, 63, 206, 150, 95, 188, 172, 184, 243, 219, 192,
              117, 32, 201, 160, 3}),
         // min multibyte integer
-        CompactTest::pair(1073741824, {0b00000011, 0, 0, 0, 64}),
+        CompactTest::pair(1073741824, {3, 0, 0, 0, 64}),
         // max multibyte integer
         CompactTest::pair(
             BigInteger(
@@ -120,159 +133,15 @@ TEST(ScaleCompactTest, EncodeOutOfRangeBigIntegerFails) {
 }
 
 /**
- * Decode Tests
- */
-
-/**
- * @given byte array of correctly encoded number 0
- * @when apply decodeInteger
- * @then result matches expectations
- */
-TEST(Scale, compactDecodeZero) {
-  // decode 0
-  auto bytes = ByteArray{
-      0b00000000,  // 0
-  };
-  auto stream = ByteArrayStream{bytes};
-  auto &&result = decodeInteger(stream);
-  ASSERT_TRUE(result);
-  ASSERT_EQ(result.value(), 0);
-}
-
-/**
- * @given byte array of correctly encoded number 1
- * @when apply decodeInteger
- * @then result matches expectation
- */
-TEST(Scale, compactDecodeOne) {
-  // decode 1
-  auto bytes = ByteArray{
-      0b00000100,  // 4
-  };
-  auto stream = ByteArrayStream{bytes};
-  auto &&result = decodeInteger(stream);
-  ASSERT_TRUE(result);
-  ASSERT_EQ(result.value(), 1);
-}
-
-/**
- * @given byte array of correctly encoded number 63, which is max value for 1-st
- * case of encoding
- * @when apply decodeInteger
- * @then result matches expectation
- */
-TEST(Scale, compactDecodeMaxUi8) {
-  // decode MAX_UI8 == 63
-  auto bytes = ByteArray{
-      0b11111100,  // 252
-  };
-  auto stream = ByteArrayStream{bytes};
-  auto &&result = decodeInteger(stream);
-  ASSERT_TRUE(result);
-  ASSERT_EQ(result.value(), 63);
-}
-
-/**
- * @given byte array of correctly encoded number 64, which is min value for 2-nd
- * case of encoding
- * @when apply decodeInteger
- * @then result matches expectation
- */
-TEST(Scale, compactDecodeMinUi16) {
-  // decode MIN_UI16 := MAX_UI8+1 == 64
-  auto bytes = ByteArray{
-      0b00000001,  // 1
-      0b00000001   // 1
-  };
-  auto stream = ByteArrayStream{bytes};
-  auto &&result = decodeInteger(stream);
-  ASSERT_TRUE(result);
-  ASSERT_EQ(result.value(), 64);
-}
-
-/**
- * @given byte array of correctly encoded number 2^14 - 1, which is max value
- * for 2-nd case of encoding
- * @when apply decodeInteger
- * @then result matches expectation
- */
-TEST(Scale, compactDecodeMaxUi16) {
-  // decode MAX_UI16 == 2^14 - 1 == 16383
-  auto bytes = ByteArray{
-      0b11111101,  // 253
-      0b11111111   // 255
-  };
-  auto stream = ByteArrayStream{bytes};
-  auto &&result = decodeInteger(stream);
-  ASSERT_TRUE(result);
-  ASSERT_EQ(result.value(), 16383);
-}
-
-/**
- * @given byte array of correctly encoded number 2^14, which is min value for
- * 3-rd case of encoding
- * @when apply decodeInteger
- * @then result matches expectation
- */
-TEST(Scale, compactDecodeMinUi32) {
-  // decode MIN_UI32 := MAX_UI16 + 1 = 2^14 = 16384
-  auto bytes = ByteArray{
-      0b00000010,  // 2
-      0b00000000,  // 0
-      0b00000001,  // 1
-      0b00000000   // 0
-  };
-  auto stream = ByteArrayStream{bytes};
-  auto &&result = decodeInteger(stream);
-  ASSERT_TRUE(result);
-  ASSERT_EQ(result.value(), 16384);
-}
-
-/**
- * @given byte array of correctly encoded number 2^30 - 1, which is max value
- * for 3-rd case of encoding
- * @when apply decodeInteger
- * @then result matches expectation
- */
-TEST(Scale, compactDecodeMaxUi32) {
-  // decode MAX_UI32 := 2^30 - 1 == 1073741823
-  auto bytes = ByteArray{
-      0b11111110,  // 254
-      0b11111111,  // 255
-      0b11111111,  // 255
-      0b11111111   // 255
-  };
-  auto stream = ByteArrayStream{bytes};
-  auto &&result = decodeInteger(stream);
-  ASSERT_TRUE(result);
-  ASSERT_EQ(result.value(), 1073741823);
-}
-
-/**
- * @given byte array of correctly encoded number 2^30 - 1, which is max value
- * for 4-th case of encoding
- * @when apply decodeInteger
- * @then result matches expectation
- */
-TEST(Scale, compactDecodeMinBigInteger) {
-  // decode MIN_BIG_INTEGER := 2^30
-  auto bytes = ByteArray{3, 0, 0, 0, 64};
-  auto stream = ByteArrayStream{bytes};
-  auto &&result = decodeInteger(stream);
-  ASSERT_TRUE(result);
-  ASSERT_EQ(result.value(), 1073741824);
-}
-
-/**
  * @given incorrect byte array, which assumes 4-th case of encoding
  * @when apply decodeInteger
  * @then get kNotEnoughData error
  */
 TEST(Scale, compactDecodeBigIntegerError) {
   auto bytes = ByteArray{255, 255, 255, 255};
-  auto stream = ByteArrayStream{bytes};
-  auto &&result = decodeInteger(stream);
-  ASSERT_FALSE(result);
-  ASSERT_EQ(result.error().value(),
+  auto stream = ScaleDecoderStream(gsl::make_span(bytes));
+  EXPECT_OUTCOME_FALSE_2(err, decode<BigInteger>(stream));
+
+  ASSERT_EQ(err.value(),
             static_cast<int>(kagome::scale::DecodeError::NOT_ENOUGH_DATA));
 }

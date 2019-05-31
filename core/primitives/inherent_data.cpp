@@ -5,8 +5,8 @@
 
 #include "primitives/inherent_data.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, InherentData::Error, e) {
-  using E = kagome::primitives::InherentData::Error;
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, InherentDataError, e) {
+  using E = kagome::primitives::InherentDataError;
   switch (e) {
     case E::IDENTIFIER_ALREADY_EXISTS:
       return "This identifier already exists";
@@ -22,7 +22,7 @@ namespace kagome::primitives {
       data_[identifier] = std::move(inherent);
       return outcome::success();
     }
-    return Error::IDENTIFIER_ALREADY_EXISTS;
+    return InherentDataError::IDENTIFIER_ALREADY_EXISTS;
   }
 
   void InherentData::replaceData(InherentIdentifier identifier,

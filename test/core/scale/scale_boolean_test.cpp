@@ -14,7 +14,6 @@
 #include "testutil/outcome.hpp"
 
 using kagome::scale::ByteArray;
-using kagome::scale::ByteArrayStream;
 using kagome::scale::DecodeError;
 using kagome::scale::EncodeError;
 using kagome::scale::ScaleDecoderStream;

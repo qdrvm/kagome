@@ -14,8 +14,6 @@ target_link_libraries(byte_array_stream
 add_library(scale
     byte_array_stream.hpp
     byte_array_stream.cpp
-    compact.hpp
-    compact.cpp
     optional_bool.hpp
     optional_bool.cpp
     scale.hpp

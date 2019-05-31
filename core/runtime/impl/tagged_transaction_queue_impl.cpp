@@ -5,30 +5,28 @@
 
 #include "runtime/impl/tagged_transaction_queue_impl.hpp"
 
-#include "runtime/impl/wasm_memory_stream.hpp"
-
-using outcome::result;
+#include "scale/scale.hpp"
 
 namespace kagome::runtime {
+  using outcome::result;
+  using scale::ScaleDecoderStream;
 
   TaggedTransactionQueueImpl::TaggedTransactionQueueImpl(
       common::Buffer state_code,
-      std::shared_ptr<extensions::Extension> extension,
-      std::shared_ptr<primitives::ScaleCodec> codec)
+      std::shared_ptr<extensions::Extension> extension)
       : memory_(extension->memory()),
-        codec_(std::move(codec)),
         executor_(std::move(extension)),
         state_code_(std::move(state_code)) {}
 
   result<primitives::TransactionValidity>
   TaggedTransactionQueueImpl::validate_transaction(
       const primitives::Extrinsic &ext) {
-    OUTCOME_TRY(encoded_ext, codec_->encodeExtrinsic(ext));
+    OUTCOME_TRY(encoded_ext, scale::encode(ext));
 
     // TODO (Harrm) PRE-98: after check for memory overflow is done, refactor it
     runtime::SizeType ext_size = encoded_ext.size();
     runtime::WasmPointer ptr = memory_->allocate(ext_size);
-    memory_->storeBuffer(ptr, encoded_ext);
+    memory_->storeBuffer(ptr, common::Buffer(encoded_ext));
 
     wasm::LiteralList ll{wasm::Literal(ptr), wasm::Literal(ext_size)};
 
@@ -37,13 +35,12 @@ namespace kagome::runtime {
         executor_.call(state_code_,
                        "TaggedTransactionQueue_validate_transaction", ll));
 
-    uint32_t res_addr = getWasmAddr(res.geti64());
+    WasmPointer res_addr = getWasmAddr(res.geti64());
+    SizeType len = getWasmLen(res.geti64());
+    auto buffer = memory_->loadN(res_addr, len);
+    ScaleDecoderStream s(gsl::make_span(buffer.toVector()));
 
-
-    WasmMemoryStream s(memory_);
-    OUTCOME_TRY(s.advance(res_addr));
-
-    return codec_->decodeTransactionValidity(s);
+    return scale::decode<primitives::TransactionValidity>(s);
   }
 
 }  // namespace kagome::runtime

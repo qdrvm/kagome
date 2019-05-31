@@ -6,9 +6,7 @@
 #include <gtest/gtest.h>
 
 #include "scale/byte_array_stream.hpp"
-#include "scale/fixedwidth.hpp"
-#include "scale/scale_encoder_stream.hpp"
-#include "scale/scale_decoder_stream.hpp"
+#include "scale/scale.hpp"
 
 using kagome::scale::ByteArray;
 using kagome::scale::ScaleEncoderStream;

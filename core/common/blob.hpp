@@ -130,15 +130,15 @@ namespace kagome::common {
     return s;
   }
 
-/**
- * @brief decodes blob instance from stream
- * @tparam Stream output stream type
- * @tparam size blob size
- * @param s input stream reference
- * @param blob value to encode
- * @return reference to stream
- */
-  template<class Stream,size_t size>
+  /**
+   * @brief decodes blob instance from stream
+   * @tparam Stream output stream type
+   * @tparam size blob size
+   * @param s input stream reference
+   * @param blob value to encode
+   * @return reference to stream
+   */
+  template <class Stream, size_t size>
   Stream &operator>>(Stream &s, Blob<size> &blob) {
     for (auto &&it = blob.begin(), end = blob.end(); it != end; ++it) {
       s >> *it;

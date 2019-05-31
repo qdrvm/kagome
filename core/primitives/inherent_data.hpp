@@ -22,12 +22,15 @@ namespace kagome::primitives {
   using InherentIdentifier = common::Blob<8u>;
 
   /**
+   * @brief inherent data encode/decode error codes
+   */
+  enum class InherentDataError { IDENTIFIER_ALREADY_EXISTS = 1 };
+
+  /**
    * Inherent data to include in a block
    */
   class InherentData {
    public:
-    enum class Error { IDENTIFIER_ALREADY_EXISTS = 1 };
-
     /** Put data for an inherent into the internal storage.
      *
      * @arg identifier need to be unique, otherwise decoding of these
@@ -102,7 +105,7 @@ namespace kagome::primitives {
     for (size_t i = 0u; i < ids.size(); ++i) {
       auto &&res = v.putData(ids[i], vals[i]);
       if (!res) {
-        scale::common::raise(res.error().value());
+        scale::common::raise(InherentDataError::IDENTIFIER_ALREADY_EXISTS);
       }
     }
 
@@ -110,6 +113,6 @@ namespace kagome::primitives {
   }
 }  // namespace kagome::primitives
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::primitives, InherentData::Error);
+OUTCOME_HPP_DECLARE_ERROR(kagome::primitives, InherentDataError);
 
 #endif  // KAGOME_INHERENT_DATA_HPP

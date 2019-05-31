@@ -22,6 +22,7 @@
 #include "primitives/transaction_validity.hpp"
 #include "primitives/version.hpp"
 #include "scale/scale.hpp"
+#include "scale/scale_error.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
