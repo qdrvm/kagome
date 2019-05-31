@@ -9,4 +9,5 @@ add_library(security_plaintext
     )
 target_link_libraries(security_plaintext
     plaintext_connection
+    outcome
     )

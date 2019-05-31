@@ -7,3 +7,6 @@ add_library(plaintext_connection
     plaintext_connection.cpp
     plaintext_connection.hpp
     )
+target_link_libraries(plaintext_connection
+    outcome
+    )
