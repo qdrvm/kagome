@@ -119,9 +119,10 @@ TEST_F(MessageManagerTest, ComposeProtocolsMessage) {
  * @then parse is successful
  */
 TEST_F(MessageManagerTest, ParseConstLs) {
-  EXPECT_OUTCOME_TRUE(ls_msg,
-                      MessageManager::parseConstantMsg(kLsMsg.toVector()))
-  ASSERT_EQ(ls_msg.type, MessageType::LS);
+  auto parsable_ls_msg = Buffer{}.put("ls\n");
+  auto msg_opt = MessageManager::parseConstantMsg(parsable_ls_msg);
+  ASSERT_TRUE(msg_opt);
+  ASSERT_EQ(msg_opt->type, MessageType::LS);
 }
 
 /**
@@ -130,9 +131,10 @@ TEST_F(MessageManagerTest, ParseConstLs) {
  * @then parse is successful
  */
 TEST_F(MessageManagerTest, ParseConstNa) {
-  EXPECT_OUTCOME_TRUE(na_msg,
-                      MessageManager::parseConstantMsg(kNaMsg.toVector()))
-  ASSERT_EQ(na_msg.type, MessageType::NA);
+  auto parsable_na_msg = Buffer{}.put("na\n");
+  auto msg_opt = MessageManager::parseConstantMsg(parsable_na_msg);
+  ASSERT_TRUE(msg_opt);
+  ASSERT_EQ(msg_opt->type, MessageType::NA);
 }
 
 /**

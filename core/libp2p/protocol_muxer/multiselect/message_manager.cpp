@@ -127,7 +127,7 @@ namespace libp2p::protocol_muxer {
     // first varint is already read
     static constexpr std::string_view kLsMsgHex{"6C730A"};  // 'ls\n'
     static constexpr std::string_view kNaMsgHex{"6E610A"};  // 'na\n'
-    static constexpr int64_t kConstMsgsLength{kLsMsgHex.size()};
+    static constexpr int64_t kConstMsgsLength{kLsMsgHex.size() / 2};
 
     if (bytes.size() == kConstMsgsLength) {
       auto msg_hex = kagome::common::hex_upper(bytes);
