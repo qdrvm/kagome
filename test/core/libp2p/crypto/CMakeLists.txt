@@ -29,8 +29,6 @@ addtest(random_test
     )
 target_link_libraries(random_test
     random_generator
-    Boost::system
-    GTest::gtest
     )
 
 addtest(marshaller_test
