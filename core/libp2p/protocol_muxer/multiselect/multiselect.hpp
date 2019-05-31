@@ -38,29 +38,20 @@ namespace libp2p::protocol_muxer {
 
     ~Multiselect() override = default;
 
-    void addEncryptionProtocol(const peer::Protocol &protocol) override;
-
-    void addMultiplexerProtocol(const peer::Protocol &protocol) override;
-
-    void addStreamProtocol(const peer::Protocol &protocol) override;
-
-    outcome::result<peer::Protocol> negotiateEncryption(
-        std::shared_ptr<connection::RawConnection> connection) override;
-
-    outcome::result<peer::Protocol> negotiateMultiplexer(
-        std::shared_ptr<connection::SecureConnection> connection) override;
-
-    outcome::result<peer::Protocol> negotiateAppProtocol(
-        std::shared_ptr<connection::Stream> stream) override;
+    outcome::result<peer::Protocol> selectOneOf(
+        gsl::span<const peer::Protocol> supported_protocols,
+        std::shared_ptr<basic::ReadWriteCloser> connection,
+        bool is_initiator) const override;
 
     enum class MultiselectError {
-      NO_PROTOCOLS_SUPPORTED = 1,
+      PROTOCOLS_LIST_EMPTY = 1,
       NEGOTIATION_FAILED,
       INTERNAL_ERROR
     };
 
    private:
     enum class Status {
+      NOTHING_SENT,
       OPENING_SENT,
       PROTOCOL_SENT,
       PROTOCOLS_SENT,
@@ -69,7 +60,6 @@ namespace libp2p::protocol_muxer {
       NEGOTIATION_SUCCESS,
       NEGOTIATION_FAIL
     };
-    enum class Round { ENCRYPTION, MUXER, APP };
 
     /**
      * Negotiate about a protocol
@@ -78,7 +68,8 @@ namespace libp2p::protocol_muxer {
      * @return chosen protocol in case of success, error otherwise
      */
     outcome::result<peer::Protocol> negotiate(
-        const std::shared_ptr<basic::ReadWriteCloser> &connection, Round round);
+        const std::shared_ptr<basic::ReadWriteCloser> &connection,
+        gsl::span<const peer::Protocol> protocols, Status initial_status) const;
 
     /**
      * Finish a negotiation process
@@ -87,7 +78,7 @@ namespace libp2p::protocol_muxer {
      * @return chosen protocol in case of success, error otherwise
      */
     outcome::result<peer::Protocol> finalizeNegotiation(
-        Status status, const peer::Protocol &protocol);
+        Status status, const peer::Protocol &protocol) const;
 
     /**
      * Handle a message, signalizing about start of the negotiation
@@ -110,8 +101,9 @@ namespace libp2p::protocol_muxer {
      */
     outcome::result<Status> handleProtocolMsg(
         const std::shared_ptr<basic::ReadWriteCloser> &connection,
+        gsl::span<const peer::Protocol> supported_protocols,
         const peer::Protocol &protocol, const peer::Protocol &prev_protocol,
-        Status status, Round round);
+        Status status) const;
 
     /**
      * Handle a message, containing protocols
@@ -123,8 +115,8 @@ namespace libp2p::protocol_muxer {
      */
     outcome::result<std::pair<Status, peer::Protocol>> handleProtocolsMsg(
         const std::shared_ptr<basic::ReadWriteCloser> &connection,
-        const std::vector<peer::Protocol> &protocols, Status status,
-        Round round);
+        gsl::span<const peer::Protocol> supported_protocols,
+        const std::vector<peer::Protocol> &protocols, Status status) const;
 
     /**
      * Handle a message, containing an ls
@@ -133,7 +125,8 @@ namespace libp2p::protocol_muxer {
      * @return status after message handling
      */
     outcome::result<Status> handleLsMsg(
-        const std::shared_ptr<basic::ReadWriteCloser> &connection, Round round);
+        const std::shared_ptr<basic::ReadWriteCloser> &connection,
+        gsl::span<const peer::Protocol> supported_protocols) const;
 
     /**
      * Handle a message, containing an na
@@ -142,29 +135,6 @@ namespace libp2p::protocol_muxer {
      */
     outcome::result<Status> handleNaMsg(
         const std::shared_ptr<basic::ReadWriteCloser> &connection) const;
-
-    /**
-     * Triggered, when a protocol msg arrives after we sent an opening or ls one
-     * @param connection, over which the message came
-     * @param protocol, which was in the message
-     * @param round, about which protocol the negotiation is held
-     * @return status after message handling
-     */
-    outcome::result<Status> onProtocolAfterOpeningOrLs(
-        const std::shared_ptr<basic::ReadWriteCloser> &connection,
-        const peer::Protocol &protocol, Round round);
-
-    /**
-     * Triggered, when a new message with protocols arrived, and the last
-     * message we sent was an ls one
-     * @param connection, over which the message came
-     * @param received_protocols, which were in the message
-     * @param round, about which protocol the negotiation is held
-     * @return status after message handling @and chosen protocol (if any)
-     */
-    outcome::result<std::pair<Status, peer::Protocol>> onProtocolsAfterLs(
-        const std::shared_ptr<basic::ReadWriteCloser> &connection,
-        gsl::span<const peer::Protocol> received_protocols, Round round);
 
     /**
      * Triggered, when an unexpected message arrives to as a response to our
@@ -183,16 +153,6 @@ namespace libp2p::protocol_muxer {
     outcome::result<Status> onGarbagedStreamStatus(
         const std::shared_ptr<basic::ReadWriteCloser> &connection) const;
 
-    /**
-     * Get a collection of protocols, which are available for a particular round
-     * @param round, for which the protocols are to be retrieved
-     * @return the protocols
-     */
-    gsl::span<const peer::Protocol> getProtocolsByRound(Round round) const;
-
-    std::vector<peer::Protocol> encryption_protocols_;
-    std::vector<peer::Protocol> multiplexer_protocols_;
-    std::vector<peer::Protocol> app_protocols_;
     kagome::common::Logger log_;
   };
 }  // namespace libp2p::protocol_muxer
