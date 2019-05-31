@@ -23,7 +23,7 @@ add_library(core
 target_link_libraries(core
     buffer
     logger
-    scale_codec
+    scale
     wasm_memory_stream
     wasm_executor
     )
@@ -36,7 +36,7 @@ add_library(tagged_transaction_queue
 target_link_libraries(tagged_transaction_queue
     buffer
     logger
-    scale_codec
+    scale
     wasm_memory_stream
     wasm_executor
     )
@@ -49,7 +49,8 @@ add_library(block_builder
 target_link_libraries(block_builder
     buffer
     logger
-    scale_codec
+    scale
+    primitives
     wasm_memory_stream
     wasm_executor
     )
@@ -62,7 +63,7 @@ add_library(parachain_host_api
 target_link_libraries(parachain_host_api
     buffer
     logger
-    scale_codec
+    scale
     wasm_memory_stream
     wasm_executor
     )
@@ -75,7 +76,7 @@ add_library(grandpa_api
 target_link_libraries(grandpa_api
     buffer
     logger
-    scale_codec
+    scale
     wasm_memory_stream
     wasm_executor
     )

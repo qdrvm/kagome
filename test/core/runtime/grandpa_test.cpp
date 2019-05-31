@@ -8,7 +8,6 @@
 #include <gtest/gtest.h>
 #include "core/runtime/runtime_test.hpp"
 #include "extensions/extension_impl.hpp"
-#include "primitives/impl/scale_codec_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/wasm_test.hpp"
@@ -16,7 +15,6 @@
 using kagome::common::Buffer;
 using kagome::extensions::ExtensionImpl;
 using kagome::primitives::Digest;
-using kagome::primitives::ScaleCodecImpl;
 using kagome::runtime::Grandpa;
 using kagome::runtime::GrandpaImpl;
 
@@ -30,7 +28,7 @@ class GrandpaTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    api_ = std::make_shared<GrandpaImpl>(state_code_, extension_, codec_);
+    api_ = std::make_shared<GrandpaImpl>(state_code_, extension_);
   }
 
   Digest createDigest() const {

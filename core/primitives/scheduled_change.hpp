@@ -49,7 +49,7 @@ namespace kagome::primitives {
    * @return reference to stream
    */
   template <class Stream>
-  Stream &operator>>(Stream &s, const ScheduledChange &v) {
+  Stream &operator>>(Stream &s, ScheduledChange &v) {
     return s >> v.next_authorities >> v.delay;
   }
 }  // namespace kagome::primitives
