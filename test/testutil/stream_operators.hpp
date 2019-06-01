@@ -10,6 +10,7 @@
 
 #include "libp2p/crypto/key.hpp"
 #include "libp2p/multi/multiaddress.hpp"
+#include "libp2p/peer/peer_id.hpp"
 
 namespace std {
   std::ostream &operator<<(std::ostream &s,
@@ -27,6 +28,11 @@ namespace std {
   std::ostream &operator<<(std::ostream &s,
                            const libp2p::crypto::PublicKey &key) {
     s << std::string(key.data.begin(), key.data.end()) << "\n";
+    return s;
+  }
+
+  std::ostream &operator<<(std::ostream &s, const libp2p::peer::PeerId &p) {
+    s << p.toBase58() << "\n";
     return s;
   }
 }  // namespace std
