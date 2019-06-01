@@ -11,6 +11,7 @@
 #include "libp2p/multi/multihash.hpp"
 #include "libp2p/peer/peer_id.hpp"
 #include "mock/libp2p/connection/raw_connection_mock.hpp"
+#include "testutil/stream_operators.hpp"
 
 using namespace libp2p::connection;
 using namespace libp2p::security;
@@ -22,8 +23,7 @@ using testing::Return;
 
 class PlaintextAdaptorTest : public testing::Test {
  public:
-  std::shared_ptr<SecurityAdaptor> adaptor_ =
-      std::make_shared<Plaintext>();
+  std::shared_ptr<SecurityAdaptor> adaptor_ = std::make_shared<Plaintext>();
 
   std::shared_ptr<RawConnectionMock> connection_ =
       std::make_shared<RawConnectionMock>();
