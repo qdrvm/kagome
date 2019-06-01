@@ -9,6 +9,7 @@
 #include <testutil/outcome.hpp>
 #include "core/libp2p/transport_fixture/transport_fixture.hpp"
 #include "mock/libp2p/connection/raw_connection_mock.hpp"
+#include "testutil/stream_operators.hpp"
 
 using libp2p::basic::ReadWriteCloser;
 using libp2p::connection::RawConnection;
@@ -17,20 +18,6 @@ using libp2p::peer::Protocol;
 using libp2p::protocol_muxer::MessageManager;
 using libp2p::protocol_muxer::Multiselect;
 using libp2p::testing::TransportFixture;
-
-namespace std {
-  std::ostream &operator<<(std::ostream &s,
-                           const std::vector<unsigned char> &v) {
-    s << std::string(v.begin(), v.end()) << "\n";
-    return s;
-  }
-
-  std::ostream &operator<<(std::ostream &s,
-                           const libp2p::multi::Multiaddress &m) {
-    s << m.getStringAddress() << "\n";
-    return s;
-  }
-}  // namespace std
 
 class MultiselectTest : public TransportFixture {
  public:

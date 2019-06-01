@@ -16,7 +16,7 @@ namespace libp2p::security {
    public:
     ~Plaintext() override = default;
 
-    const peer::Protocol &getProtocolId() const override;
+    peer::Protocol getProtocolId() const override;
 
     outcome::result<std::shared_ptr<connection::SecureConnection>>
     secureInbound(std::shared_ptr<connection::RawConnection> inbound) override;
@@ -24,10 +24,6 @@ namespace libp2p::security {
     outcome::result<std::shared_ptr<connection::SecureConnection>>
     secureOutbound(std::shared_ptr<connection::RawConnection> outbound,
                    const peer::PeerId &p) override;
-
-   private:
-    // TODO(akvinikym) 29.05.19: think about creating SecurityProtocolRegister
-    static const peer::Protocol kProtocolId;
   };
 }  // namespace libp2p::security
 
