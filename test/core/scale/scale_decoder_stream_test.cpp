@@ -2,9 +2,11 @@
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
-
 #include <gtest/gtest.h>
+#include <exception>
 
+#include <boost/exception/all.hpp>
+#include <boost/exception/info.hpp>
 #include "scale/scale_decoder_stream.hpp"
 #include "scale/types.hpp"
 
@@ -23,7 +25,7 @@ TEST(ByteArrayStreamTest, NextByteSuccessTest) {
   auto stream = ScaleDecoderStream{bytes};
 
   for (size_t i = 0; i < bytes.size(); i++) {
-    uint8_t byte = 0u;
+    uint8_t byte = 255u;
     ASSERT_NO_THROW((byte = stream.nextByte())) << "Fail in " << i;
     ASSERT_EQ(byte, bytes.at(i)) << "Fail in " << i;
   }

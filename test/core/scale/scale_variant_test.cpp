@@ -11,6 +11,7 @@
 #include "testutil/outcome.hpp"
 
 using kagome::scale::ByteArray;
+using kagome::scale::ScaleDecoderStream;
 using kagome::scale::decode;
 using kagome::scale::encode;
 
@@ -33,8 +34,9 @@ TEST(Scale, encodeVariant) {
 TEST(Scale, decodeVariant) {
   {
     ByteArray match = {0, 1};  // uint8_t{1}
+    ScaleDecoderStream s{gsl::make_span(match)};
     using variant_type = boost::variant<uint8_t, uint32_t>;
-    EXPECT_OUTCOME_TRUE(val, decode<variant_type>(match))
+    EXPECT_OUTCOME_TRUE(val, decode<variant_type>(s))
     kagome::visit_in_place(
         val, [](uint8_t v) { ASSERT_EQ(v, 1); }, [](uint32_t v) { FAIL(); });
   }

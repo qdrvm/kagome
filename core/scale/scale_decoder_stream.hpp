@@ -29,7 +29,6 @@ namespace kagome::scale {
     ScaleDecoderStream &operator>>(std::pair<F, S> &p) {
       return *this >> p.first >> p.second;
     }
-
     /**
      * @brief scale-decodes variant value
      * @tparam T type list
@@ -40,7 +39,6 @@ namespace kagome::scale {
     ScaleDecoderStream &operator>>(boost::variant<T...> &v) {
       return detail::decodeVariant(*this, v);
     }
-
     /**
      * @brief scale-encodes any integral type including bool
      * @tparam T integral type
@@ -61,11 +59,9 @@ namespace kagome::scale {
         return *this;
       }
       // decode any other integer
-      // TODO(yuraz): PRE-119 refactor decodeInteger
-      auto &&res = detail::decodeInteger<I>(*this);
+      v = detail::decodeInteger<I>(*this);
       return *this;
     }
-
     /**
      * @brief scale-decodes any optional value
      * @tparam T type of optional value
@@ -86,14 +82,12 @@ namespace kagome::scale {
 
       return *this;
     }
-
     /**
      * @brief scale-decodes compact integer value
      * @param v compact integer reference
      * @return
      */
     ScaleDecoderStream &operator>>(BigInteger &v);
-
     /**
      * @brief decodes collection of items
      * @tparam T item type
@@ -131,21 +125,17 @@ namespace kagome::scale {
      * @param n Number of bytes to check
      * @return True if n more bytes are available and false otherwise
      */
-    bool hasMore(uint64_t n) const {
-      return current_iterator_ + n <= end_iterator_;
-    }
-
+    bool hasMore(uint64_t n) const;
     /**
      * @brief takes one byte from stream and
      * advances current byte iterator by one
      * @return current byte
      */
     uint8_t nextByte();
-
     /**
      * @brief advances current byte iterator by specified number of positions
      * @param dist number of positions to advance iterator
-     * @return nothing, can throw DecodeError::OUT_OF_BOUNDARIES exception
+     * @return nothing, can throw DecodeError::OUT_OF_BOUNDARIES
      */
     void advance(uint64_t dist);
 
@@ -154,9 +144,11 @@ namespace kagome::scale {
 
     using ByteSpan = gsl::span<const uint8_t>;
     using SpanIterator = ByteSpan::const_iterator;
+    using SizeType = ByteSpan::size_type;
 
+    ByteSpan span_;
     SpanIterator current_iterator_;
-    SpanIterator end_iterator_;
+    SizeType current_index_;
   };
 
 }  // namespace kagome::scale

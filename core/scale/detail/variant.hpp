@@ -64,7 +64,9 @@ namespace kagome::scale::detail {
       template <class H>
       void apply(uint8_t index) {
         if (index == type_index_) {
-          s_ >> r_;  // decode custom type
+          H h{};
+          s_ >> h;  // decode custom type
+          r_ = std::move(h);
         }
       }
     };

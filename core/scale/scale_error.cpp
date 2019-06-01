@@ -40,3 +40,14 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::scale, DecodeError, e) {
   }
   return "unknown DecodeError";
 }
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::scale, CommonError, e) {
+  using kagome::scale::CommonError;
+  switch (e) {
+    case CommonError::UNKNOWN_ERROR:
+      return "unknown error";
+    default:
+      break;
+  }
+  return "unknown CommonError";
+}

@@ -81,7 +81,7 @@ namespace kagome::scale {
   }  // namespace
 
   ScaleDecoderStream::ScaleDecoderStream(gsl::span<const uint8_t> span)
-      : current_iterator_{span.begin()}, end_iterator_{span.end()} {}
+      : span_{span}, current_iterator_{span_.begin()}, current_index_{0} {}
 
   bool ScaleDecoderStream::decodeBool() {
     auto byte = nextByte();
@@ -110,11 +110,16 @@ namespace kagome::scale {
     return *this;
   }
 
+  bool ScaleDecoderStream::hasMore(uint64_t n) const {
+    return static_cast<SizeType>(current_index_ + n) <= span_.size();
+  }
+
   uint8_t ScaleDecoderStream::nextByte() {
     if (not hasMore(1)) {
       common::raise(DecodeError::NOT_ENOUGH_DATA);
       UNREACHABLE
     }
+    ++current_index_;
     return *current_iterator_++;
   }
 
@@ -123,8 +128,8 @@ namespace kagome::scale {
       common::raise(DecodeError::OUT_OF_BOUNDARIES);
       UNREACHABLE
     }
+    current_index_ += dist;
     std::advance(current_iterator_, dist);
-    current_iterator_ += dist;
   }
 
 }  // namespace kagome::scale

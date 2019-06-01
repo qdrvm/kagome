@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 ##
 
-addtest(scale_encoder_stream_test
-    scale_encoder_stream_test.cpp
+addtest(scale_decoder_stream_test
+    scale_decoder_stream_test.cpp
     )
-target_link_libraries(scale_encoder_stream_test
+target_link_libraries(scale_decoder_stream_test
     scale
     )
 

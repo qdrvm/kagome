@@ -11,7 +11,6 @@
 #include "scale/scale_error.hpp"
 
 namespace kagome::scale::common {
-
   /**
    * @brief throws outcome::result error as boost exception
    * @tparam T error type
@@ -19,15 +18,15 @@ namespace kagome::scale::common {
    */
   template <typename T>
   void raise(const T &t) {
-    boost::throw_exception(std::system_error(make_error_code(t)));
+    std::error_code ec = make_error_code(t);
+    boost::throw_exception(std::system_error(ec));
   }
 }  // namespace kagome::scale::common
 
-#define OUTCOME_CATCH(expr)                      \
-  try {                                          \
-    (expr);                                      \
-  } catch (boost::system::system_error & errc) { \
-    return outcome::failure(errc.code());        \
+#define OUTCOME_CATCH(expr)            \
+  try {                                \
+    (expr);                            \
+  } catch (std::system_error & e) {    \
+    return outcome::failure(e.code()); \
   }
-
 #endif  // KAGOME_CORE_COMMON_OUTCOME_THROW_HPP

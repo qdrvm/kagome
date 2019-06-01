@@ -24,13 +24,9 @@ namespace kagome::scale {
    */
   template <class T>
   outcome::result<std::vector<uint8_t>> encode(T &&t) {
-    try {
-      ScaleEncoderStream s;
-      s << t;
-      return s.data();
-    } catch (const boost::system::system_error &e) {
-      return e.code();
-    }
+    ScaleEncoderStream s;
+    OUTCOME_CATCH((s << t))
+    return s.data();
   }
 
   /**
@@ -40,25 +36,17 @@ namespace kagome::scale {
    */
   template <class T>
   outcome::result<T> decode(gsl::span<const uint8_t> span) {
-    try {
-      T t{};
-      ScaleDecoderStream s(span);
-      s >> t;
-      return t;
-    } catch (const boost::system::system_error &e) {
-      return e.code();
-    }
+    T t{};
+    ScaleDecoderStream s(span);
+    OUTCOME_CATCH((s >> t))
+    return t;
   }
 
   template <class T>
   outcome::result<T> decode(ScaleDecoderStream &s) {
-    try {
-      T t{};
-      s >> t;
-      return t;
-    } catch (const boost::system::system_error &e) {
-      return e.code();
-    }
+    T t{};
+    OUTCOME_CATCH((s >> t))
+    return t;
   }
 }  // namespace kagome::scale
 #endif  // KAGOME_SCALE_HPP
