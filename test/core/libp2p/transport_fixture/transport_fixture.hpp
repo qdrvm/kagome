@@ -14,6 +14,7 @@
 #include "libp2p/transport/transport.hpp"
 #include "libp2p/transport/transport_listener.hpp"
 #include "mock/libp2p/transport/upgrader_mock.hpp"
+#include "testutil/stream_operators.hpp"
 
 namespace libp2p::testing {
   /**
