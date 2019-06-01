@@ -42,6 +42,12 @@ namespace kagome::scale {
     return t;
   }
 
+  /**
+   * @brief when you already have a stream to decode from it
+   * @tparam T value type
+   * @param s stream reference
+   * @return decoded value or error
+   */
   template <class T>
   outcome::result<T> decode(ScaleDecoderStream &s) {
     T t{};

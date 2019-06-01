@@ -36,7 +36,7 @@ namespace kagome::scale {
     }
 
     // calculate number of bytes required
-    size_t countBytes(BigInteger v) {
+    size_t countBytes(CompactInteger v) {
       if (0 == v) {
         return 1;
       }
@@ -50,10 +50,10 @@ namespace kagome::scale {
       return counter;
     }
     /**
-     * @brief compact-encodes BigInteger
-     * @param value source BigInteger value
+     * @brief compact-encodes CompactInteger
+     * @param value source CompactInteger value
      */
-    void encodeCompactInteger(const BigInteger &value,
+    void encodeCompactInteger(const CompactInteger &value,
                               ScaleEncoderStream &out) {
       // cannot encode negative numbers
       // there is no description how to encode compact negative numbers
@@ -106,7 +106,7 @@ namespace kagome::scale {
 
       result.push_back(header);
 
-      BigInteger v{value};
+      CompactInteger v{value};
       for (size_t i = 0; i < bigIntLength; ++i) {
         result.push_back(static_cast<uint8_t>(
             v & 0xFF));  // push back least significant byte
@@ -133,9 +133,22 @@ namespace kagome::scale {
     return *this;
   }
 
-  ScaleEncoderStream &ScaleEncoderStream::operator<<(const BigInteger &v) {
+  ScaleEncoderStream &ScaleEncoderStream::operator<<(const CompactInteger &v) {
     encodeCompactInteger(v, *this);
     return *this;
+  }
+
+  ScaleEncoderStream &ScaleEncoderStream::encodeOptionalBool(
+      const std::optional<bool> &v) {
+    auto result = OptionalBool::TRUE;
+
+    if (!v.has_value()) {
+      result = OptionalBool::NONE;
+    } else if (!*v) {
+      result = OptionalBool::FALSE;
+    }
+
+    return putByte(static_cast<uint8_t>(result));
   }
 
 }  // namespace kagome::scale

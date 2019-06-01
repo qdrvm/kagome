@@ -12,8 +12,17 @@
 #include <outcome/outcome.hpp>
 
 namespace kagome::scale {
+  /**
+   * @brief convenience alias for arrays of bytes
+   */
   using ByteArray = std::vector<uint8_t>;
-  using BigInteger = boost::multiprecision::cpp_int;
+  /**
+   * @brief represents compact integer value
+   */
+  using CompactInteger = boost::multiprecision::cpp_int;
+
+  /// @brief OptionalBool is internal extended bool type
+  enum class OptionalBool : uint8_t { NONE = 0u, FALSE = 1u, TRUE = 2u };
 }  // namespace kagome::scale
 
 namespace kagome::scale::compact {

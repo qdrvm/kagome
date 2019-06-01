@@ -29,6 +29,7 @@ namespace kagome::scale {
     ScaleDecoderStream &operator>>(std::pair<F, S> &p) {
       return *this >> p.first >> p.second;
     }
+
     /**
      * @brief scale-decodes variant value
      * @tparam T type list
@@ -39,6 +40,7 @@ namespace kagome::scale {
     ScaleDecoderStream &operator>>(boost::variant<T...> &v) {
       return detail::decodeVariant(*this, v);
     }
+
     /**
      * @brief scale-encodes any integral type including bool
      * @tparam T integral type
@@ -62,6 +64,7 @@ namespace kagome::scale {
       v = detail::decodeInteger<I>(*this);
       return *this;
     }
+
     /**
      * @brief scale-decodes any optional value
      * @tparam T type of optional value
@@ -70,24 +73,35 @@ namespace kagome::scale {
      */
     template <class T>
     ScaleDecoderStream &operator>>(std::optional<T> &v) {
+      // optional bool is special case of optional values
+      // it is encoded as one byte instead of two
+      // as described in specification
+      if constexpr (std::is_same<T, bool>::value) {
+        v = decodeOptionalBool();
+        return *this;
+      }
+      // detect if optional has value
       bool has_value = false;
       *this >> has_value;
       if (!has_value) {
         v = std::nullopt;
         return *this;
       }
+      // decode value
       T t{};
       *this >> t;
       v = t;
 
       return *this;
     }
+
     /**
      * @brief scale-decodes compact integer value
      * @param v compact integer reference
      * @return
      */
-    ScaleDecoderStream &operator>>(BigInteger &v);
+    ScaleDecoderStream &operator>>(CompactInteger &v);
+
     /**
      * @brief decodes collection of items
      * @tparam T item type
@@ -97,7 +111,7 @@ namespace kagome::scale {
     template <class T>
     ScaleDecoderStream &operator>>(std::vector<T> &v) {
       v.clear();
-      BigInteger size{0u};
+      CompactInteger size{0u};
       *this >> size;
 
       using size_type = typename std::vector<T>::size_type;
@@ -114,24 +128,28 @@ namespace kagome::scale {
       }
       return *this;
     }
+
     /**
      * @brief decodes string from stream
      * @param v value to decode
      * @return reference to stream
      */
     ScaleDecoderStream &operator>>(std::string &v);
+
     /**
      * @brief hasMore Checks whether n more bytes are available
      * @param n Number of bytes to check
      * @return True if n more bytes are available and false otherwise
      */
     bool hasMore(uint64_t n) const;
+
     /**
      * @brief takes one byte from stream and
      * advances current byte iterator by one
      * @return current byte
      */
     uint8_t nextByte();
+
     /**
      * @brief advances current byte iterator by specified number of positions
      * @param dist number of positions to advance iterator
@@ -141,6 +159,11 @@ namespace kagome::scale {
 
    private:
     bool decodeBool();
+    /**
+     * @brief special case of optional values as described in specification
+     * @return std::optional<bool> value
+     */
+    std::optional<bool> decodeOptionalBool();
 
     using ByteSpan = gsl::span<const uint8_t>;
     using SpanIterator = ByteSpan::const_iterator;

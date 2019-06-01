@@ -11,7 +11,7 @@
 #include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
-using kagome::scale::BigInteger;
+using kagome::scale::CompactInteger;
 using kagome::scale::ByteArray;
 using kagome::scale::decode;
 using kagome::scale::encode;
@@ -22,10 +22,10 @@ using kagome::scale::ScaleEncoderStream;
  * value parameterized tests
  */
 class CompactTest
-    : public ::testing::TestWithParam<std::pair<BigInteger, ByteArray>> {
+    : public ::testing::TestWithParam<std::pair<CompactInteger, ByteArray>> {
  public:
-  static std::pair<BigInteger, ByteArray> pair(BigInteger v, ByteArray m) {
-    return std::make_pair<BigInteger, ByteArray>(std::move(v), std::move(m));
+  static std::pair<CompactInteger, ByteArray> pair(CompactInteger v, ByteArray m) {
+    return std::make_pair<CompactInteger, ByteArray>(std::move(v), std::move(m));
   }
 
  protected:
@@ -51,7 +51,7 @@ TEST_P(CompactTest, EncodeSuccess) {
 TEST_P(CompactTest, DecodeSuccess) {
   const auto &[value_match, bytes] = GetParam();
   ScaleDecoderStream s(gsl::make_span(bytes));
-  EXPECT_OUTCOME_TRUE(v, decode<BigInteger>(s))
+  EXPECT_OUTCOME_TRUE(v, decode<CompactInteger>(s))
   ASSERT_EQ(v, value_match);
 }
 
@@ -80,14 +80,14 @@ INSTANTIATE_TEST_CASE_P(
         CompactTest::pair(1073741823ul, {254, 255, 255, 255}),
         // some multibyte integer
         CompactTest::pair(
-            BigInteger("1234567890123456789012345678901234567890"),
+            CompactInteger("1234567890123456789012345678901234567890"),
             {0b110111, 210, 10, 63, 206, 150, 95, 188, 172, 184, 243, 219, 192,
              117, 32, 201, 160, 3}),
         // min multibyte integer
         CompactTest::pair(1073741824, {3, 0, 0, 0, 64}),
         // max multibyte integer
         CompactTest::pair(
-            BigInteger(
+            CompactInteger(
                 "224945689727159819140526925384299092943484855915095831"
                 "655037778630591879033574393515952034305194542857496045"
                 "531676044756160413302774714984450425759043258192756735"),
@@ -106,22 +106,22 @@ INSTANTIATE_TEST_CASE_P(
  * @then obtain error
  */
 TEST(ScaleCompactTest, EncodeNegativeIntegerFails) {
-  BigInteger v(-1);
+  CompactInteger v(-1);
   ScaleEncoderStream out;
   ASSERT_ANY_THROW((out << v));
   ASSERT_EQ(out.data().size(), 0);  // nothing was written to buffer
 }
 
 /**
- * @given a BigInteger value exceeding the range supported by scale
- * @when encode it a directly as BigInteger
+ * @given a CompactInteger value exceeding the range supported by scale
+ * @when encode it a directly as CompactInteger
  * @then obtain kValueIsTooBig error
  */
 TEST(ScaleCompactTest, EncodeOutOfRangeBigIntegerFails) {
   // try to encode out of range big integer value MAX_BIGINT + 1 == 2^536
   // too big value, even for big integer case
   // we are going to have kValueIsTooBig error
-  BigInteger v(
+  CompactInteger v(
       "224945689727159819140526925384299092943484855915095831"
       "655037778630591879033574393515952034305194542857496045"
       "531676044756160413302774714984450425759043258192756736");  // 2^536
@@ -139,7 +139,7 @@ TEST(ScaleCompactTest, EncodeOutOfRangeBigIntegerFails) {
 TEST(Scale, compactDecodeBigIntegerError) {
   auto bytes = ByteArray{255, 255, 255, 255};
   auto stream = ScaleDecoderStream(gsl::make_span(bytes));
-  EXPECT_OUTCOME_FALSE_2(err, decode<BigInteger>(stream));
+  EXPECT_OUTCOME_FALSE_2(err, decode<CompactInteger>(stream));
 
   ASSERT_EQ(err.value(),
             static_cast<int>(kagome::scale::DecodeError::NOT_ENOUGH_DATA));

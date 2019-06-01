@@ -74,6 +74,11 @@ TEST_P(Uint8Test, EncodeSuccess) {
   ASSERT_EQ(s.data(), match);
 }
 
+/**
+ * @given encoded sequence and match number
+ * @when a number is decoded from given bytes by ScaleDecoderStream
+ * @then resulting number matches predefined one
+ */
 TEST_P(Uint8Test, DecodeSuccess) {
   auto [value, match] = GetParam();
   ScaleDecoderStream s(match);
@@ -105,6 +110,11 @@ TEST_P(Int16Test, EncodeSuccess) {
   ASSERT_EQ(s.data(), match);
 }
 
+/**
+ * @given encoded sequence and match number
+ * @when a number is decoded from given bytes by ScaleDecoderStream
+ * @then resulting number matches predefined one
+ */
 TEST_P(Int16Test, DecodeSuccess) {
   auto [value, match] = GetParam();
   ScaleDecoderStream s(match);
@@ -140,6 +150,11 @@ TEST_P(Uint16Test, EncodeSuccess) {
   ASSERT_EQ(s.data(), match);
 }
 
+/**
+ * @given encoded sequence and match number
+ * @when a number is decoded from given bytes by ScaleDecoderStream
+ * @then resulting number matches predefined one
+ */
 TEST_P(Uint16Test, DecodeSuccess) {
   auto [value, match] = GetParam();
   ScaleDecoderStream s(match);
@@ -170,6 +185,11 @@ TEST_P(Int32Test, EncodeSuccess) {
   ASSERT_EQ(s.data(), match);
 }
 
+/**
+ * @given encoded sequence and match number
+ * @when a number is decoded from given bytes by ScaleDecoderStream
+ * @then resulting number matches predefined one
+ */
 TEST_P(Int32Test, DecodeSuccess) {
   auto [value, match] = GetParam();
   ScaleDecoderStream s(match);
@@ -200,6 +220,11 @@ TEST_P(Uint32Test, EncodeSuccess) {
   ASSERT_EQ(s.data(), match);
 }
 
+/**
+ * @given encoded sequence and match number
+ * @when a number is decoded from given bytes by ScaleDecoderStream
+ * @then resulting number matches predefined one
+ */
 TEST_P(Uint32Test, DecodeSuccess) {
   auto [value, match] = GetParam();
   ScaleDecoderStream s(match);
@@ -230,6 +255,11 @@ TEST_P(Int64Test, EncodeSuccess) {
   ASSERT_EQ(s.data(), match);
 }
 
+/**
+ * @given encoded sequence and match number
+ * @when a number is decoded from given bytes by ScaleDecoderStream
+ * @then resulting number matches predefined one
+ */
 TEST_P(Int64Test, DecodeSuccess) {
   auto [value, match] = GetParam();
   ScaleDecoderStream s(match);
@@ -261,6 +291,11 @@ TEST_P(Uint64Test, EncodeSuccess) {
   ASSERT_EQ(s.data(), match);
 }
 
+/**
+ * @given encoded sequence and match number
+ * @when a number is decoded from given bytes by ScaleDecoderStream
+ * @then resulting number matches predefined one
+ */
 TEST_P(Uint64Test, DecodeSuccess) {
   auto [value, match] = GetParam();
   ScaleDecoderStream s(match);
@@ -272,245 +307,3 @@ TEST_P(Uint64Test, DecodeSuccess) {
 INSTANTIATE_TEST_CASE_P(Uint64TestCases, Uint64Test,
                         ::testing::Values(Uint64Test::make_pair(
                             578437695752307201ull, {1, 2, 3, 4, 5, 6, 7, 8})));
-
-///**
-// * @given byte array containing encoded int8_t values
-// * @when decodeInt8 is applied
-// * @then correct sequence of decoded values is obtained
-// */
-//TEST(Scale, fixedwidthDecodeInt8) {
-//  // decode int8_t
-//  auto bytes = ByteArray{0, 255, 128, 129, 123, 241};
-//  auto stream = ByteArrayStream{bytes};
-//
-//  {
-//    auto &&res = decodeInt8(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_EQ(res.value(), 0);
-//  }
-//  {
-//    auto &&res = decodeInt8(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_EQ(res.value(), -1);
-//  }
-//  {
-//    auto &&res = decodeInt8(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_EQ(res.value(), -128);
-//  }
-//  {
-//    auto &&res = decodeInt8(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_EQ(res.value(), -127);
-//  }
-//  {
-//    auto &&res = decodeInt8(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_EQ(res.value(), 123);
-//  }
-//  {
-//    auto &&res = decodeInt8(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_EQ(res.value(), -15);
-//  }
-//}
-//
-///**
-// * @given byte array containing encoded uint8_t values
-// * @when decodeUint8 is applied
-// * @then correct sequence of decoded values is obtained
-// */
-//TEST(Scale, fixedwidthDecodeUint8) {
-//  // decode uint8_t
-//  auto bytes = ByteArray{0, 234, 255};
-//  auto stream = ByteArrayStream{bytes};
-//
-//  {
-//    auto &&res = decodeUint8(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_EQ(res.value(), 0);
-//  }
-//  {
-//    auto &&res = decodeUint8(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_EQ(res.value(), 234);
-//  }
-//  {
-//    auto &&res = decodeUint8(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_EQ(res.value(), 255);
-//  }
-//}
-//
-///**
-// * @given byte array containing encoded int16_t values
-// * @when decodeInt16 is applied
-// * @then correct sequence of decoded values is obtained
-// */
-//TEST(Scale, fixedwidthDecodeInt16) {
-//  // decode int16_t
-//  // clang-format off
-//    ByteArray bytes = {1, 128,
-//                           0, 128,
-//                           255, 255,
-//                           255, 127,
-//                           57, 48,
-//                           199, 207};
-//  // clang-format on
-//
-//  auto stream = ByteArrayStream{bytes};
-//
-//  {
-//    auto &&res = decodeInt16(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_EQ(res.value(), -32767);
-//  }
-//  {
-//    auto &&res = decodeInt16(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_EQ(res.value(), -32768);
-//  }
-//  {
-//    auto &&res = decodeInt16(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_EQ(res.value(), -1);
-//  }
-//  {
-//    auto &&res = decodeInt16(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_EQ(res.value(), 32767);
-//  }
-//  {
-//    auto &&res = decodeInt16(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_EQ(res.value(), 12345);
-//  }
-//  {
-//    auto &&res = decodeInt16(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_EQ(res.value(), -12345);
-//  }
-//
-//  //-0b11000000111001
-//}
-//
-///**
-// * @given byte array containing encoded uint16_t values
-// * @when decodeUint16 is applied
-// * @then correct sequence of decoded values is obtained
-// */
-//TEST(Scale, fixedwidthDecodeUint16) {
-//  // decode uint16_t
-//  auto bytes = ByteArray{2, 128};
-//  auto stream = ByteArrayStream{bytes};
-//
-//  {
-//    auto &&res = decodeUint16(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_EQ(res.value(), 32770);
-//  }
-//}
-//
-///**
-// * @given byte array containing encoded int32_t values
-// * @when decodeInt32 is applied
-// * @then correct sequence of decoded values is obtained
-// */
-//TEST(Scale, fixedwidthDecodeInt32) {
-//  // decode int32_t
-//  // clang-format off
-//    auto bytes = ByteArray{255, 255, 255, 127,
-//                           255, 255, 255, 255};
-//    //clang-format on
-//
-//    auto stream = ByteArrayStream{bytes};
-//
-//    {
-//        auto &&res = decodeInt32(stream);
-//        ASSERT_TRUE(res);
-//        ASSERT_EQ(res.value(), 2147483647);
-//    }
-//    {
-//        auto &&res = decodeInt32(stream);
-//        ASSERT_TRUE(res);
-//        ASSERT_EQ(res.value(), -1);
-//    }
-//}
-//
-///**
-// * @given byte array containing encoded uint32_t values
-// * @when decodeUint32 is applied
-// * @then correct sequence of decoded values is obtained
-// */
-//TEST(Scale, fixedwidthDecodeUint32) {
-//    // decode uint32_t
-//    // clang-format off
-//    auto bytes = ByteArray{4, 3, 2, 1,
-//                           1, 2, 3, 4};
-//    //clang-format on
-//
-//    auto stream = ByteArrayStream{bytes};
-//
-//    {
-//        auto &&res = decodeUint32(stream);
-//        ASSERT_TRUE(res);
-//        ASSERT_EQ(res.value(), 16909060);
-//    }
-//    {
-//        auto &&res = decodeUint32(stream);
-//        ASSERT_TRUE(res);
-//        ASSERT_EQ(res.value(), 67305985);
-//    }
-//}
-//
-///**
-// * @given byte array containing encoded int64_t values
-// * @when decodeInt64 is applied
-// * @then correct sequence of decoded values is obtained
-// */
-//TEST(Scale, fixedwidthDecodeInt64) {
-//    // decode int64_t
-//    // clang-format off
-//    auto bytes = ByteArray{1, 2, 3, 4, 5, 6, 7, 8,
-//                           255, 255, 255, 255, 255, 255, 255, 255};
-//    //clang-format on
-//
-//    auto stream = ByteArrayStream{bytes};
-//
-//    {
-//        auto &&res = decodeInt64(stream);
-//        ASSERT_TRUE(res);
-//        ASSERT_EQ(res.value(), 578437695752307201);
-//    }
-//    {
-//        auto &&res = decodeInt64(stream);
-//        ASSERT_TRUE(res);
-//        ASSERT_EQ(res.value(), -1);
-//    }
-//}
-//
-///**
-// * @given byte array containing encoded uint64_t values
-// * @when decodeUint64 is applied
-// * @then correct sequence of decoded values is obtained
-// */
-//TEST(Scale, fixedwidthDecodeUint64) {
-//    // decode uint64_t
-//    // clang-format off
-//    auto bytes = ByteArray{1, 2, 3, 4, 5, 6, 7, 8,
-//                           255, 255, 255, 255, 255, 255, 255, 255};
-//    //clang-format on
-//
-//    auto stream = ByteArrayStream{bytes};
-//
-//    {
-//        auto &&res = decodeUint64(stream);
-//        ASSERT_TRUE(res);
-//        ASSERT_EQ(res.value(), 578437695752307201);
-//    }
-//    {
-//        auto &&res = decodeUint64(stream);
-//        ASSERT_TRUE(res);
-//        ASSERT_EQ(res.value(), 18446744073709551615ull);
-//    }
-//}

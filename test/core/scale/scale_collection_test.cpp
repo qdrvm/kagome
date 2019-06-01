@@ -8,7 +8,7 @@
 #include "scale/scale.hpp"
 #include "testutil/outcome.hpp"
 
-using kagome::scale::BigInteger;
+using kagome::scale::CompactInteger;
 using kagome::scale::ByteArray;
 using kagome::scale::encode;
 using kagome::scale::ScaleDecoderStream;
@@ -126,7 +126,7 @@ TEST(Scale, encodeLongCollectionUint16) {
   // first 4 bytes represent le-encoded value 2^16 + 2
   // which is compact-encoded value 2^14 = 16384
   auto stream = ScaleDecoderStream(gsl::make_span(out));
-  EXPECT_OUTCOME_TRUE(res, decode<BigInteger>(stream));
+  EXPECT_OUTCOME_TRUE(res, decode<CompactInteger>(stream));
   ASSERT_EQ(res, 16384);
 
   // now only 32768 bytes left in stream
@@ -172,7 +172,7 @@ TEST(Scale, encodeVeryLongCollectionUint8) {
   // 3 next bytes are 0, and the last 4-th == 2^6 == 64
   // which is compact-encoded value 2^14 = 16384
   auto stream = ScaleDecoderStream(gsl::make_span(out));
-  EXPECT_OUTCOME_TRUE(bi, decode<BigInteger>(stream));
+  EXPECT_OUTCOME_TRUE(bi, decode<CompactInteger>(stream));
   ASSERT_EQ(bi, 1048576);
 
   // now only 1048576 bytes left in stream
@@ -217,7 +217,7 @@ TEST(Scale, DISABLED_encodeVeryLongCollectionUint8) {
   // 3 next bytes are 0, and the last 4-th == 2^6 == 64
   // which is compact-encoded value 2^14 = 16384
   auto stream = ScaleDecoderStream(gsl::make_span(out));
-  EXPECT_OUTCOME_TRUE(bi, decode<BigInteger>(stream));
+  EXPECT_OUTCOME_TRUE(bi, decode<CompactInteger>(stream));
   ASSERT_EQ(bi, length);
 
   // now only 1048576 bytes left in stream

@@ -4,8 +4,6 @@
 #
 
 add_library(scale
-    optional_bool.hpp
-    optional_bool.cpp
     scale.hpp
     scale_decoder_stream.hpp
     scale_decoder_stream.cpp

@@ -29,6 +29,7 @@ TEST(ByteArrayStreamTest, NextByteSuccessTest) {
     ASSERT_NO_THROW((byte = stream.nextByte())) << "Fail in " << i;
     ASSERT_EQ(byte, bytes.at(i)) << "Fail in " << i;
   }
+
   ASSERT_ANY_THROW(stream.nextByte());
 }
 

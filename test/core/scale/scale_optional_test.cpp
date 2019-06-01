@@ -5,7 +5,6 @@
 
 #include <gtest/gtest.h>
 
-#include "scale/optional_bool.hpp"
 #include "scale/scale.hpp"
 #include "testutil/outcome.hpp"
 
@@ -68,83 +67,88 @@ TEST(Scale, encodeOptional) {
 }
 
 /**
+ * @given byte stream containing series of encoded optional values
+ * @when decodeOptional function sequencially applied
+ * @then expected values obtained
+ */
+ TEST(ScaleTest, DecodeOptionalSuccess) {
+  // clang-format off
+    auto bytes = ByteArray{
+            0,              // first value
+            1, 1,           // second value
+            1, 255,         // third value
+            0,              // fourth value
+            1, 255, 1,      // fifth value
+            1, 1, 2, 3, 4}; // sixth value
+  // clang-format on
+
+  auto stream = ScaleDecoderStream{bytes};
+
+  // decode nullopt uint8_t
+  {
+    std::optional<uint8_t> opt;
+    ASSERT_NO_THROW((stream >> opt));
+    ASSERT_FALSE(opt.has_value());
+  }
+
+  // decode optional uint8_t
+  {
+    std::optional<uint8_t> opt;
+    ASSERT_NO_THROW((stream >> opt));
+    ASSERT_TRUE(opt.has_value());
+    ASSERT_EQ(*opt, 1);
+  }
+
+  // decode optional negative int8_t
+  {
+    std::optional<int8_t> opt;
+    ASSERT_NO_THROW((stream >> opt));
+    ASSERT_TRUE(opt.has_value());
+    ASSERT_EQ(*opt, -1);
+  }
+
+  // decode nullopt uint16_t
+  // it requires 1 zero byte just like any other nullopt
+  {
+    std::optional<uint16_t> opt;
+    ASSERT_NO_THROW((stream >> opt));
+    ASSERT_FALSE(opt.has_value());
+  }
+
+  // decode optional uint16_t
+  {
+    std::optional<uint16_t> opt;
+    ASSERT_NO_THROW((stream >> opt));
+    ASSERT_TRUE(opt.has_value());
+    ASSERT_EQ(*opt, 511);
+  }
+
+  // decode optional uint32_t
+  {
+    std::optional<uint32_t> opt;
+    ASSERT_NO_THROW((stream >> opt));
+    ASSERT_TRUE(opt.has_value());
+    ASSERT_EQ(*opt, 67305985);
+  }
+}
+
+/**
+ * optional bool tests
+ */
+
+/**
  * @given optional bool values: true, false, nullopt
  * @when encode optional is applied
  * @then expected result obtained
  */
 TEST(ScaleTest, EncodeOptionalBoolSuccess) {
+  std::vector<std::optional<bool>> values = {true, false, std::nullopt};
   ScaleEncoderStream s;
-  ASSERT_NO_THROW((s << std::optional<bool>(true) << std::optional<bool>(false)
-                     << std::nullopt));
+  for (auto && v : values) {
+    ASSERT_NO_THROW((s << v));
+  }
   ASSERT_EQ(s.data(), (ByteArray{2, 1, 0}));
 }
-
-///**
-// * @given byte stream containing series of encoded optional values
-// * @when decodeOptional function sequencially applied
-// * @then expected values obtained
-// */
-// TEST(ScaleTest, DecodeOptionalSuccess) {
-//  // clang-format off
-//    auto bytes = ByteArray{
-//            0,              // first value
-//            1, 1,           // second value
-//            1, 255,         // third value
-//            0,              // fourth value
-//            1, 255, 1,      // fifth value
-//            1, 1, 2, 3, 4}; // sixth value
-//  // clang-format on
-//
-//  auto stream = ByteArrayStream{bytes};
-//
-//  // decode nullopt uint8_t
-//  {
-//    auto &&res = optional::decodeOptional<uint8_t>(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_FALSE(res.value().has_value());
-//  }
-//
-//  // decode optional uint8_t
-//  {
-//    auto &&res = optional::decodeOptional<uint8_t>(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_TRUE(res.value().has_value());
-//    ASSERT_EQ(*res.value(), 1);
-//  }
-//
-//  // decode optional negative int8_t
-//  {
-//    auto &&res = optional::decodeOptional<int8_t>(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_TRUE(res.value().has_value());
-//    ASSERT_EQ(*res.value(), -1);
-//  }
-//
-//  // decode nullopt uint16_t
-//  // it requires 1 zero byte just like any other nullopt
-//  {
-//    auto &&res = optional::decodeOptional<uint16_t>(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_FALSE(res.value().has_value());
-//  }
-//
-//  // decode optional uint16_t
-//  {
-//    auto &&res = optional::decodeOptional<uint16_t>(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_TRUE(res.value().has_value());
-//    ASSERT_EQ(*res.value(), 511);
-//  }
-//
-//  // decode optional uint32_t
-//  {
-//    auto &&res = optional::decodeOptional<uint32_t>(stream);
-//    ASSERT_TRUE(res);
-//    ASSERT_TRUE(res.value().has_value());
-//    ASSERT_EQ(*res.value(), 67305985);
-//  }
-//}
-//
 
 /**
  * @given stream containing series of encoded optionalBool values
