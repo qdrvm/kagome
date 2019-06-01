@@ -16,4 +16,5 @@ addtest(multiselect_test
 target_link_libraries(multiselect_test
     multiselect
     transport_test_fixture
+    libp2p_peer_id
     )

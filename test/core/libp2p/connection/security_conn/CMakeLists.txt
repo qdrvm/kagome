@@ -9,4 +9,5 @@ addtest(plaintext_connection_test
 target_link_libraries(plaintext_connection_test
     security_plaintext
     multiaddress
+    libp2p_peer_id
     )
