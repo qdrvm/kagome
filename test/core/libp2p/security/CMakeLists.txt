@@ -11,4 +11,5 @@ target_link_libraries(plaintext_adaptor_test
     buffer
     libp2p_peer_id
     multihash
+    multiaddress
     )
