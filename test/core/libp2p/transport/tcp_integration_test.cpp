@@ -16,6 +16,7 @@
 #include "mock/libp2p/transport/upgrader_mock.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/stream_operators.hpp"
 
 using namespace libp2p::transport;
 using namespace libp2p::multi;
