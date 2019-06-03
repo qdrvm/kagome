@@ -14,7 +14,7 @@ namespace kagome::primitives {
   /// @struct ScheduledChange is used by Grandpa api runtime
   struct ScheduledChange {
     std::vector<std::pair<AuthorityId, uint64_t>> next_authorities;
-    BlockNumber delay;
+    BlockNumber delay = 0;
   };
 
   /// @brief api function returns optional value
