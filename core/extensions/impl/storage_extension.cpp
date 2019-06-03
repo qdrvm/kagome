@@ -110,7 +110,7 @@ namespace kagome::extensions {
   }
 
   void StorageExtension::ext_storage_root(runtime::WasmPointer result) const {
-    const auto &root = db_->getRoot();
+    const auto &root = db_->getRootHash();
     memory_->storeBuffer(result, root);
   }
 

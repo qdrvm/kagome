@@ -12,7 +12,7 @@ namespace kagome::storage::merkle {
   }
 
   int BranchNode::getType() const {
-    return static_cast<int>(value.size() > 0
+    return static_cast<int>(!value.empty()
                                 ? PolkadotNode::Type::BranchWithValue
                                 : PolkadotNode::Type::BranchEmptyValue);
   }
@@ -21,10 +21,21 @@ namespace kagome::storage::merkle {
     uint16_t bitmap = 0u;
     for (auto i = 0u; i < kMaxChildren; i++) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-      if (children[i] != nullptr) {
+      if (children[i]) {
         bitmap = bitmap | 1u << i;
       }
     }
     return bitmap;
   }
+
+  uint8_t BranchNode::childrenNum() const {
+    uint8_t count = 0;
+    for(auto &child: children) {
+      if(child) {
+        count++;
+      }
+    }
+    return count;
+  }
+
 }  // namespace kagome::storage::merkle

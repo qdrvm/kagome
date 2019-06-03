@@ -6,15 +6,19 @@
 #ifndef KAGOME_NODE_IMPL_HPP
 #define KAGOME_NODE_IMPL_HPP
 
-#include "storage/merkle/node.hpp"
-
+#include "common/blob.hpp"
 #include "common/buffer.hpp"
+#include "storage/merkle/node.hpp"
 
 namespace kagome::storage::merkle {
 
   const int kMaxChildren = 16;
 
   struct PolkadotNode : public Node {
+    PolkadotNode() = default;
+    PolkadotNode(common::Buffer key_nibbles, common::Buffer value)
+        : key_nibbles{std::move(key_nibbles)}, value{std::move(value)} {}
+
     ~PolkadotNode() override = default;
 
     enum class Type {
@@ -24,26 +28,67 @@ namespace kagome::storage::merkle {
       BranchWithValue = 0b11
     };
 
-    bool is_dirty;
+    virtual bool isDummy() const = 0;
+
+    // just to avoid static_casts every time you need a switch on a node type
+    Type getTrieType() const {
+      return static_cast<Type>(getType());
+    }
+
     common::Buffer key_nibbles;
     common::Buffer value;
   };
 
   struct LeafNode : public PolkadotNode {
+    LeafNode() = default;
+    LeafNode(common::Buffer key_nibbles, common::Buffer value)
+        : PolkadotNode{std::move(key_nibbles), std::move(value)} {}
+
     ~LeafNode() override = default;
 
+    bool isDummy() const override {
+      return false;
+    }
     int getType() const override;
   };
 
   struct BranchNode : public PolkadotNode {
+    BranchNode() = default;
+    explicit BranchNode(common::Buffer key_nibbles,
+                        common::Buffer value = common::Buffer{})
+        : PolkadotNode{std::move(key_nibbles), std::move(value)} {}
+
     ~BranchNode() override = default;
 
+    bool isDummy() const override {
+      return false;
+    }
     int getType() const override;
 
     uint16_t childrenBitmap() const;
+    uint8_t childrenNum() const;
 
-    // has 1..16 children
-    std::array<std::shared_ptr<Node>, kMaxChildren> children;
+    // Has 1..16 children.
+    // Stores their hashes to search for them in a storage and encode them more
+    // easily.
+    std::array<std::shared_ptr<PolkadotNode>, kMaxChildren> children;
+  };
+
+  /**
+   * Used to indicate that there is a node, but this node is not interesting at
+   * the moment and need not to be retrieved from the storage
+   */
+  struct DummyNode : public PolkadotNode {
+    explicit DummyNode(common::Buffer key) : db_key{std::move(key)} {}
+
+    bool isDummy() const override {
+      return true;
+    }
+    int getType() const override {
+      return static_cast<int>(Type::Special);
+    }
+
+    common::Buffer db_key;
   };
 
 }  // namespace kagome::storage::merkle

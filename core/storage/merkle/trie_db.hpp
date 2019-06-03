@@ -21,7 +21,7 @@ namespace kagome::storage::merkle {
      * @brief Calculate and return trie root.
      * @return byte buffer of any size (different hashing algos may be used)
      */
-    virtual common::Buffer getRoot() const = 0;
+    virtual common::Buffer getRootHash() const = 0;
 
     /**
      * remove storage entries which keys start with given prefix

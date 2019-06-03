@@ -76,7 +76,7 @@ namespace kagome::common {
   }
 
   Buffer::Buffer(std::vector<uint8_t> v) : data_(std::move(v)) {}
-  Buffer::Buffer(gsl::span<uint8_t> s) : data_(s.begin(), s.end()) {}
+  Buffer::Buffer(gsl::span<const uint8_t> s) : data_(s.begin(), s.end()) {}
 
   const std::vector<uint8_t> &Buffer::toVector() const {
     return data_;

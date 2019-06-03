@@ -11,8 +11,7 @@
 
 namespace kagome::scale {
 
-  class BufferScaleCodec : public ScaleEncoder<common::Buffer>,
-                           public ScaleDecoder<common::Buffer> {
+  class BufferScaleCodec : public ScaleCodec<common::Buffer> {
    public:
     outcome::result<common::Buffer> encode(const common::Buffer &val) final;
 
