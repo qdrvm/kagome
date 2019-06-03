@@ -38,7 +38,7 @@ namespace kagome::runtime {
     WasmPointer res_addr = getWasmAddr(res.geti64());
     SizeType len = getWasmLen(res.geti64());
     auto buffer = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(gsl::make_span(buffer.toVector()));
+    ScaleDecoderStream s(buffer);
 
     return scale::decode<primitives::TransactionValidity>(s);
   }

@@ -28,7 +28,7 @@ namespace kagome::runtime {
     runtime::WasmPointer param_addr = getWasmAddr(version_long.geti64());
     runtime::SizeType param_len = getWasmLen(version_long.geti64());
     auto buffer = memory_->loadN(param_addr, param_len);
-    ScaleDecoderStream stream(gsl::make_span(buffer.toVector()));
+    ScaleDecoderStream stream(buffer);
 
     OUTCOME_TRY(version, scale::decode<primitives::Version>(stream));
 
@@ -78,7 +78,7 @@ namespace kagome::runtime {
     runtime::SizeType len = getWasmLen(result_long.geti64());
 
     auto buffer = memory_->loadN(authority_address, len);
-    ScaleDecoderStream stream(gsl::make_span(buffer.toVector()));
+    ScaleDecoderStream stream(buffer);
 
     return scale::decode<std::vector<primitives::AuthorityId>>(stream);
   }

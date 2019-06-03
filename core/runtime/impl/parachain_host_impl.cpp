@@ -33,7 +33,7 @@ namespace kagome::runtime {
     SizeType len = getWasmLen(res.geti64());
 
     auto buffer = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(gsl::make_span(buffer.toVector()));
+    ScaleDecoderStream s(buffer);
 
     return decode<DutyRoster>(s);
   }
@@ -49,7 +49,7 @@ namespace kagome::runtime {
     SizeType len = getWasmLen(res.geti64());
     auto buffer = memory_->loadN(res_addr, len);
 
-    ScaleDecoderStream s(gsl::make_span(buffer.toVector()));
+    ScaleDecoderStream s(buffer);
 
     return decode<std::vector<ParaId>>(s);
   }
@@ -72,7 +72,7 @@ namespace kagome::runtime {
     SizeType len = getWasmLen(res.geti64());
     auto buffer = memory_->loadN(res_addr, len);
 
-    ScaleDecoderStream s(gsl::make_span(buffer.toVector()));
+    ScaleDecoderStream s(buffer);
 
     return decode<std::optional<Buffer>>(s);
   }
@@ -94,7 +94,7 @@ namespace kagome::runtime {
     WasmPointer res_addr = getWasmAddr(res.geti64());
     SizeType len = getWasmLen(res.geti64());
     auto buffer = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(gsl::make_span(buffer.toVector()));
+    ScaleDecoderStream s(buffer);
 
     return decode<std::optional<Buffer>>(s);
   }
@@ -109,7 +109,7 @@ namespace kagome::runtime {
     SizeType len = getWasmLen(res.geti64());
 
     auto buffer = memory_->loadN(res_addr, len);
-    ScaleDecoderStream stream(gsl::make_span(buffer.toVector()));
+    ScaleDecoderStream stream(buffer);
 
     return decode<std::vector<ValidatorId>>(stream);
   }

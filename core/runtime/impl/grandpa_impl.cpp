@@ -41,7 +41,7 @@ namespace kagome::runtime {
     runtime::WasmPointer res_addr = getWasmAddr(res.geti64());
     runtime::SizeType len = getWasmLen(res.geti64());
     auto buffer = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(gsl::make_span(buffer.toVector()));
+    ScaleDecoderStream s(buffer);
 
     return scale::decode<std::optional<ScheduledChange>>(s);
   }
@@ -64,7 +64,7 @@ namespace kagome::runtime {
     WasmPointer res_addr = getWasmAddr(res.geti64());
     SizeType len = getWasmLen(res.geti64());
     auto buffer = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(gsl::make_span(buffer.toVector()));
+    ScaleDecoderStream s(buffer);
 
     return scale::decode<std::optional<ForcedChange>>(s);
   }
@@ -79,7 +79,7 @@ namespace kagome::runtime {
     SizeType len= getWasmLen(res.geti64());
     auto buffer = memory_->loadN(res_addr, len);
 
-    ScaleDecoderStream s(gsl::make_span(buffer.toVector()));
+    ScaleDecoderStream s(buffer);
 
     return scale::decode<std::vector<WeightedAuthority>>(s);
   }

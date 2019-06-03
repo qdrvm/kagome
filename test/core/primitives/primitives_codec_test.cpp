@@ -155,7 +155,7 @@ class Primitives : public testing::Test {
  * @when encodeBlockHeader is applied
  * @then expected result obtained
  */
-TEST_F(Primitives, encodeBlockHeader) {
+TEST_F(Primitives, EncodeBlockHeaderSuccess) {
   EXPECT_OUTCOME_TRUE(val, encode(block_header_));
   ASSERT_EQ(val, encoded_header_);
 }
@@ -165,7 +165,7 @@ TEST_F(Primitives, encodeBlockHeader) {
  * @when decodeBlockHeader is applied
  * @then decoded instance of BlockHeader matches predefined block header
  */
-TEST_F(Primitives, decodeBlockHeader) {
+TEST_F(Primitives, DecodeBlockHeaderSuccess) {
   ScaleDecoderStream stream{encoded_header_};
   EXPECT_OUTCOME_TRUE(val, decode<BlockHeader>(stream))
   ASSERT_EQ(val.parent_hash, block_header_.parent_hash);
@@ -180,7 +180,7 @@ TEST_F(Primitives, decodeBlockHeader) {
  * @when encodeExtrinsic is applied
  * @then the same expected buffer obtained {12, 1, 2, 3}
  */
-TEST_F(Primitives, encodeExtrinsic) {
+TEST_F(Primitives, EncodeExtrinsicSuccess) {
   EXPECT_OUTCOME_TRUE(val, encode(extrinsic_));
   ASSERT_EQ(val, encoded_extrinsic_);
 }
@@ -190,7 +190,7 @@ TEST_F(Primitives, encodeExtrinsic) {
  * @when decodeExtrinsic is applied
  * @then decoded instance of Extrinsic matches predefined block header
  */
-TEST_F(Primitives, decodeExtrinsic) {
+TEST_F(Primitives, DecodeExtrinsicSuccess) {
   ScaleDecoderStream stream{encoded_extrinsic_};
   EXPECT_OUTCOME_TRUE(res, decode<Extrinsic>(stream))
   ASSERT_EQ(res.data, extrinsic_.data);
@@ -201,7 +201,7 @@ TEST_F(Primitives, decodeExtrinsic) {
  * @when encodeBlock is applied
  * @then expected result obtained
  */
-TEST_F(Primitives, encodeBlock) {
+TEST_F(Primitives, EncodeBlockSuccess) {
   EXPECT_OUTCOME_TRUE(res, encode(block_));
   ASSERT_EQ(res, encoded_block_);
 }
@@ -211,7 +211,7 @@ TEST_F(Primitives, encodeBlock) {
  * @when decodeBlock is applied
  * @then decoded instance of Block matches predefined Block instance
  */
-TEST_F(Primitives, decodeBlock) {
+TEST_F(Primitives, DecodeBlockSuccess) {
   ScaleDecoderStream stream{encoded_block_};
   EXPECT_OUTCOME_TRUE(val, decode<Block>(stream));
   auto &&h = val.header;
@@ -233,7 +233,7 @@ TEST_F(Primitives, decodeBlock) {
  * @when codec_->encodeVersion() is applied
  * @then obtained result equal to predefined match
  */
-TEST_F(Primitives, encodeVersion) {
+TEST_F(Primitives, EncodeVersionSuccess) {
   EXPECT_OUTCOME_TRUE(val, encode(version_));
   ASSERT_EQ(val, encoded_version_);
 }
@@ -243,7 +243,7 @@ TEST_F(Primitives, encodeVersion) {
  * @when codec_->decodeVersion() is applied
  * @then obtained result matches predefined version instance
  */
-TEST_F(Primitives, decodeVersion) {
+TEST_F(Primitives, DecodeVersionSuccess) {
   auto stream = ScaleDecoderStream(encoded_version_);
   EXPECT_OUTCOME_TRUE(ver, decode<Version>(stream));
   ASSERT_EQ(ver.spec_name, version_.spec_name);
@@ -259,7 +259,7 @@ TEST_F(Primitives, decodeVersion) {
  * @when codec_->encodeBlockId() is applied
  * @then obtained result matches predefined value
  */
-TEST_F(Primitives, encodeBlockIdHash256) {
+TEST_F(Primitives, EncodeBlockIdHash256Success) {
   EXPECT_OUTCOME_TRUE(val, encode(block_id_hash_))
   ASSERT_EQ(val, encoded_block_id_hash_);
 }
@@ -269,7 +269,7 @@ TEST_F(Primitives, encodeBlockIdHash256) {
  * @when codec_->encodeBlockId() is applied
  * @then obtained result matches predefined value
  */
-TEST_F(Primitives, encodeBlockIdBlockNumber) {
+TEST_F(Primitives, EncodeBlockIdBlockNumberSuccess) {
   EXPECT_OUTCOME_TRUE(val, encode(block_id_number_))
   ASSERT_EQ(val, (encoded_block_id_number_));
 }
@@ -280,7 +280,7 @@ TEST_F(Primitives, encodeBlockIdBlockNumber) {
  * @when codec_->decodeBlockId() is applied
  * @thenobtained result matches predefined block id instance
  */
-TEST_F(Primitives, decodeBlockIdHash) {
+TEST_F(Primitives, DecodeBlockIdHashSuccess) {
   auto stream = ScaleDecoderStream(encoded_block_id_hash_);
   EXPECT_OUTCOME_TRUE(val, decode<BlockId>(stream));
   // ASSERT_EQ has problems with pretty-printing variants
@@ -293,7 +293,7 @@ TEST_F(Primitives, decodeBlockIdHash) {
  * @when codec_->decodeBlockId() is applied
  * @thenobtained result matches predefined block id instance
  */
-TEST_F(Primitives, decodeBlockIdNumber) {
+TEST_F(Primitives, DecodeBlockIdNumberSuccess) {
   auto stream = ScaleDecoderStream(encoded_block_id_number_);
   EXPECT_OUTCOME_TRUE(val, decode<BlockId>(stream))
   // ASSERT_EQ has problems with pretty-printing variants
@@ -307,7 +307,7 @@ TEST_F(Primitives, decodeBlockIdNumber) {
  * @when codec_->encodeTransactionValidity() is applied
  * @then obtained result matches predefined value
  */
-TEST_F(Primitives, encodeTransactionValidityInvalid) {
+TEST_F(Primitives, EncodeTransactionValidityInvalidSuccess) {
   TransactionValidity invalid = Invalid{1};
   EXPECT_OUTCOME_TRUE(val, encode(invalid))
   ASSERT_EQ(val, (ByteArray{0, 1}));
@@ -318,7 +318,7 @@ TEST_F(Primitives, encodeTransactionValidityInvalid) {
  * @when codec_->encodeTransactionValidity() is applied
  * @then obtained result matches predefined value
  */
-TEST_F(Primitives, encodeTransactionValidityUnknown) {
+TEST_F(Primitives, EncodeTransactionValidityUnknown) {
   TransactionValidity unknown = Unknown{2};
   EXPECT_OUTCOME_TRUE(val, encode(unknown))
   ASSERT_EQ(val, (ByteArray{2, 2}));
@@ -329,8 +329,9 @@ TEST_F(Primitives, encodeTransactionValidityUnknown) {
  * @when codec_->encodeTransactionValidity() is applied
  * @then obtained result matches predefined value
  */
-TEST_F(Primitives, encodeTransactionValidity) {
-  EXPECT_OUTCOME_TRUE(val, encode(valid_transaction_))
+TEST_F(Primitives, EncodeTransactionValiditySuccess) {
+  TransactionValidity t = valid_transaction_; // make it variant type
+  EXPECT_OUTCOME_TRUE(val, encode(t))
   ASSERT_EQ(val, encoded_valid_transaction_);
 }
 
@@ -340,7 +341,7 @@ TEST_F(Primitives, encodeTransactionValidity) {
  * @when codec_->decodeBlockId() is applied
  * @thenobtained result matches predefined block id instance
  */
-TEST_F(Primitives, decodeTransactionValidityInvalid) {
+TEST_F(Primitives, DecodeTransactionValidityInvalidSuccess) {
   Buffer bytes = {0, 1};
   auto stream = ScaleDecoderStream(bytes);
   EXPECT_OUTCOME_TRUE(val, decode<TransactionValidity>(stream))
@@ -357,7 +358,7 @@ TEST_F(Primitives, decodeTransactionValidityInvalid) {
  * @when codec_->decodeBlockId() is applied
  * @then obtained result matches predefined block id instance
  */
-TEST_F(Primitives, decodeTransactionValidityUnknown) {
+TEST_F(Primitives, DecodeTransactionValidityUnknownSuccess) {
   Buffer bytes = {2, 2};
   auto stream = ScaleDecoderStream(bytes);
   auto &&res = decode<TransactionValidity>(stream);
@@ -377,7 +378,7 @@ TEST_F(Primitives, decodeTransactionValidityUnknown) {
  * @when codec_->decodeBlockId() is applied
  * @then obtained result matches predefined block id instance
  */
-TEST_F(Primitives, decodeTransactionValidityValid) {
+TEST_F(Primitives, DecodeTransactionValidityValidSuccess) {
   auto stream = ScaleDecoderStream(encoded_valid_transaction_);
   EXPECT_OUTCOME_TRUE(val, decode<TransactionValidity>(stream))
   kagome::visit_in_place(
@@ -398,7 +399,7 @@ TEST_F(Primitives, decodeTransactionValidityValid) {
  * @when encode and decode this vector using scale codec
  * @then decoded vector of authority ids matches the original one
  */
-TEST_F(Primitives, EncodeDecodeAuthorityIds) {
+TEST_F(Primitives, EncodeDecodeAuthorityIdsSuccess) {
   AuthorityId id1, id2;
   id1.fill(1u);
   id2.fill(2u);
@@ -415,7 +416,7 @@ TEST_F(Primitives, EncodeDecodeAuthorityIds) {
  * @when  encode and decode it
  * @then decoded result is exactly the original inherent data
  */
-TEST_F(Primitives, EncodeInherentData) {
+TEST_F(Primitives, EncodeInherentDataSuccess) {
   using array = std::array<uint8_t, 8u>;
   InherentData data;
   InherentIdentifier id1{array{1}};

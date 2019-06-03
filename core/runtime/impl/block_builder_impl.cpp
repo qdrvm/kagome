@@ -51,7 +51,7 @@ namespace kagome::runtime {
     SizeType len = getWasmLen(res.geti64());
 
     Buffer data = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(gsl::make_span(data.toVector()));
+    ScaleDecoderStream s(data);
 
     OUTCOME_TRY(header, scale::decode<primitives::BlockHeader>(s));
 
@@ -77,7 +77,7 @@ namespace kagome::runtime {
     SizeType len = getWasmLen(res.geti64());
 
     auto buffer = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(gsl::make_span(buffer.toVector()));
+    ScaleDecoderStream s(buffer);
 
     OUTCOME_TRY(decoded_res, scale::decode<std::vector<Extrinsic>>(s));
 
@@ -104,7 +104,7 @@ namespace kagome::runtime {
     SizeType len = getWasmLen(res.geti64());
 
     auto buffer = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(gsl::make_span(buffer.toVector()));
+    ScaleDecoderStream s(buffer);
 
     OUTCOME_TRY(ok, scale::decode<bool>(s));
     OUTCOME_TRY(is_fatal, scale::decode<bool>(s));
@@ -123,7 +123,7 @@ namespace kagome::runtime {
     SizeType len = getWasmLen(res.geti64());
 
     auto buffer = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(gsl::make_span(buffer.toVector()));
+    ScaleDecoderStream s(buffer);
 
     return scale::decode<common::Hash256>(s);
   }
