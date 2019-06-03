@@ -1,67 +1,138 @@
-#scale
-//TODO: rewrite scale description
- * Scale namespace contains functions and classes
- * for encoding and decoding values in and from SCALE encoding.
- * There is no way to specify what exactly data is encoded,
- * and specification has no mentions concerning this fact.
- * However the SUBSTRATE documentation says directly, that
- * SCALE encoding is not self-describing and that encoding context
- * has to know what data it needs to decode.
- * In this concern, signed and unsigned integers encoded the same way.
- * When decoding you have to reinterpret integer value as signed
- * if you know it is signed.
- *
- * This library provides encoding and decoding following types:
- * ** Fixed width signed and unsigned 1,2,4 byte integers
- *    encoded little-endian
- *
- * ** Unsigned big integers in range 0..2^536-1
- *    use compact encoding, number of encoded bytes varies from 1 to 67
- *    depending on value
- *
- * ** Boolean values: false -> 0x00,
- *                    true  -> 0x01
- *
- * ** Tribool values: false is 0x00, true is 0x01, indeterminate is 0x02
- *
- * ** Collections of same type values
- *    Just like arrays they start with compact-encoded integer
- *    representing number of items in collection.
- *    After that collection of encoded items one by one,
- *    encoding depends on item type
- *
- * ** Optional values are encoded as follows:
- *    first byte is 0 when no value is provided, 1 - otherwise
- *    following bytes represent encoded values
- *
- *    Optional bool is a special case,
- *    they need only one byte: 0 - No value, 1 - false, 2 - true
- *
- * ** Tuples and structures
- *    Are simply concatenation of ordered encoded values
- *
- * ** Variant values
- *    Variants are encoded as follows:
- *    first byte represents index of type in variant
- *    following bytes are encoded value itself.
- *
- * The library consists of following header each representing own part
- * of functionality, and they can be used independently:
+# SCALE codec C++ implementation
+fully meets polkadot specification.\
+It allows encoding and decoding following data types:
+1. Built-in integer types specified by size:
+    * ```uint8_t```, ```int8_t```
+    * ```uint16_t```, ```int16_t```
+    * ```uint32_t```, ```int32_t```
+    * ```uint64_t```, ```int64_t```
+2. bool values
+3. compact integers represented by CompactInteger type
+4. optional values represented by ```std::optional<T>```
+    1. as special case of optional values ```std::optional<bool>``` is encoded using one byte as specified in specification.
+5. collections of items represented by ```std::vector<T>```
+6. variants represented by ```boost::variant<T...>```
 
- * Fixed width integers operations
- * scale/fixedwidth.hpp
- *
- * Base compact operations:
- * scale/compact.hpp
- *
- * Boolean values operations:
- * common/scale/boolean.hpp
- *
- * Collection
- * scale/collection.hpp
- *
- * Optionals values operations:
- * scale/optional.hpp
- *
- * Variants
- * scale/variant.hpp
+## ScaleEncoderStream
+class ScaleEncoderStream is in charge of encoding data
+
+```
+ScaleEncoderStream s;
+uint32_t ui32 = 123u;
+uint8_t ui8 = 234u;
+std::string str = "asdasdasd";
+auto * raw_str = "zxczxczx";
+bool b = true;
+CompactInteger ci = 123456789;
+boost::variant<uint8_t, uint32_t, CompactInteger> vint = CompactInteger(12345);
+std::optional<std::string> opt_str = "asdfghjkl";
+std::optional<bool> opt_bool = false;
+std::vector<uint32_t> coll_ui32 = {1u, 2u, 3u, 4u};
+std::vector<std::string> coll_str = {"asd", "fgh", "jkl"};
+std::vector<std::vector<int32_t>> coll_coll_i32 = {{1, 2, 3}, {4, 5, 6, 7}};
+
+OUTCOME_CATCH(s << ui32 << ui8 << str << raw_str << b << ci << vint);
+OUTCOME_CATCH(s << opt_str << opt_bool << coll_ui32 << coll_str << coll_coll_i32);
+```
+You can now get encoded data:
+```
+ByteArray data = s.data();
+```
+The ```OUTCOME_CATCH``` macro catches exceptions thrown by scale codec and returns them as ```outcome::result```
+
+## ScaleDecoderStream
+class ScaleEncoderStream is in charge of encoding data
+
+```
+ByteArray bytes = {...};
+ScaleEncoderStream s(bytes);
+uint32_t ui32 = 0u;
+uint8_t ui8 = 0u;
+std::string str;
+bool b = true;
+CompactInteger ci;
+boost::variant<uint8_t, uint32_t, CompactInteger> vint;
+
+OUTCOME_CATCH(s >> ui32 >> ui8 >> str >> b >> ci >> vint);
+
+std::optional<std::string> opt_str;
+std::optional<bool> opt_bool;
+std::vector<uint32_t> coll_ui32;
+std::vector<std::string> coll_str;
+std::vector<std::vector<int32_t>> coll_coll_i32;
+
+OUTCOME_CATCH(s >> opt_str >> opt_bool >> coll_ui32 >> coll_str >> coll_coll_i32);
+```
+
+## Custom types
+You may need to encode or decode custom data types, you have to define custom << and >> operators.
+Please note, that your custom data types must be default-constructible.
+```
+struct MyType {
+    int a = 0;
+    std::string b;
+};
+
+ScaleEncoderStream &operator<<(ScaleEncoderStream &s, const MyType &v) {
+  return s << a << b;
+}
+
+ScaleDecoderStream &operator>>(ScaleDecoderStream &s, MyType &v) {
+  return s >> v.a >> v.b;
+}
+```
+Now you can use them in collections, optionals and variants
+```
+std::vector<MyType> v = {{1, "asd"}, {2, "qwe"}};
+ScaleEncoderStream s;
+OUTCOME_CATCH(s << v);
+```
+The same for ```ScaleDecoderStream```
+```
+ByteArray data = {...};
+std::vector<MyType> v;
+ScaleDecoderStream s{data};
+OUTCOME_CATCH(s >> v);
+```
+
+## Convenience functions
+Convenience functions 
+```
+template<class T> 
+outcome::result<std::vector<uint8_t>> encode(T &&t);
+
+template <class T>
+outcome::result<T> decode(gsl::span<const uint8_t> span)
+
+template <class T>
+outcome::result<T> decode(ScaleDecoderStream &s)  
+```
+are wrappers over ```<<``` and ```>>``` operators described above.
+
+Encoding data using ```encode``` convenience function looks as follows:
+```C/C++
+std::vector<uint32_t> v = {1u, 2u, 3u, 4u};
+auto &&result = encode(v);
+if (!res) {
+    // handle error
+}
+```
+
+Decoding data using ```decode``` convenience function looks as follows:
+
+```C/C++
+ByteArray bytes = {...};
+outcome::result<MyType> result = decode<MyType>(bytes);
+if (!result) {
+    // handle error
+}
+```
+or
+```C/C++
+ByteArray bytes = {...};
+ScaleDecoderStream s(bytes);
+outcome::result<MyType> result = decode<MyType>(s);
+if (!result) {
+    // handle error
+}
+```
