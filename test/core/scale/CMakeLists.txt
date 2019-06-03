@@ -65,3 +65,10 @@ target_link_libraries(scale_pair_test
     scale
     buffer
     )
+
+addtest(scale_strings_test
+    scale_strings_test.cpp
+    )
+target_link_libraries(scale_strings_test
+    scale
+    )
