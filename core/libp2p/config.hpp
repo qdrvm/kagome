@@ -20,6 +20,7 @@
 #include "libp2p/routing/routing_adaptor.hpp"
 #include "libp2p/security/security_adaptor.hpp"
 #include "libp2p/transport/transport.hpp"
+#include "libp2p/transport/upgrader.hpp"
 
 namespace libp2p {
 
@@ -50,7 +51,9 @@ namespace libp2p {
     detail::vecsptr<security::SecurityAdaptor> securities;
     detail::vec<multi::Multiaddress> listen_addresses;
 
-    detail::sptr<boost::asio::io_context> io_context;
+    detail::sptr<boost::asio::execution_context> context;
+    detail::sptr<boost::asio::io_context::executor_type> executor;
+    detail::sptr<transport::Upgrader> upgrader;
 
     bool enable_ping = true;
   };

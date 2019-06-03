@@ -40,11 +40,11 @@ namespace libp2p {
     router_->setProtocolHandler(proto, handler);
   }
 
-  void Host::setProtocolHandlerByPrefix(
-      std::string_view prefix,
-      const std::function<bool(const peer::Protocol &)> &predicate,
-      const std::function<connection::Stream::Handler> &handler) {
-    router_->setProtocolHandlerByPrefix(prefix, predicate, handler);
+  void Host::setProtocolHandler(
+      const std::string &prefix,
+      const std::function<connection::Stream::Handler> &handler,
+      const std::function<bool(const peer::Protocol &)> &predicate) {
+    router_->setProtocolHandler(prefix, handler, predicate);
   }
 
   peer::PeerInfo Host::getPeerInfo() const noexcept {

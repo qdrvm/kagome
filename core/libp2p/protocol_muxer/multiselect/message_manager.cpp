@@ -15,8 +15,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol_muxer, MessageManager::ParseError,
                             e) {
   using Error = libp2p::protocol_muxer::MessageManager::ParseError;
   switch (e) {
-    case Error::MSG_IS_TOO_SHORT:
-      return "message size is less than a minimum one";
     case Error::VARINT_IS_EXPECTED:
       return "expected varint, but not found";
     case Error::MSG_LENGTH_IS_INCORRECT:
@@ -124,22 +122,14 @@ namespace libp2p::protocol_muxer {
   using kagome::common::Buffer;
   using MultiselectMessage = MessageManager::MultiselectMessage;
 
-  outcome::result<MultiselectMessage> MessageManager::parseConstantMsg(
+  std::optional<MultiselectMessage> MessageManager::parseConstantMsg(
       gsl::span<const uint8_t> bytes) {
-    static const std::string kLsMsgHex{"036C730A"};  // '3ls\n'
-    static const std::string kNaMsgHex{"036E610A"};  // '3na\n'
+    // first varint is already read
+    static constexpr std::string_view kLsMsgHex{"6C730A"};  // 'ls\n'
+    static constexpr std::string_view kNaMsgHex{"6E610A"};  // 'na\n'
+    static constexpr int64_t kConstMsgsLength{kLsMsgHex.size() / 2};
 
-    static constexpr int64_t kShortestMessageLength{3};
-    static constexpr int64_t kConstMsgsLength{4};
-
-    auto buffer_size = bytes.size();
-    // shortest messages are LS, NA and (sometimes) a header for LS response
-    if (buffer_size < kShortestMessageLength) {
-      return ParseError::MSG_IS_TOO_SHORT;
-    }
-
-    // check the message against the constant ones
-    if (buffer_size == kConstMsgsLength) {
+    if (bytes.size() == kConstMsgsLength) {
       auto msg_hex = kagome::common::hex_upper(bytes);
       if (msg_hex == kLsMsgHex) {
         return MultiselectMessage{MultiselectMessage::MessageType::LS};
@@ -148,8 +138,7 @@ namespace libp2p::protocol_muxer {
         return MultiselectMessage{MultiselectMessage::MessageType::NA};
       }
     }
-
-    return ParseError::MSG_IS_ILL_FORMED;
+    return std::nullopt;
   }
 
   outcome::result<MessageManager::ProtocolsMessageHeader>
@@ -176,27 +165,26 @@ namespace libp2p::protocol_muxer {
     for (uint64_t i = 0; i < expected_protocols_number; ++i) {
       OUTCOME_TRY(current_line, lineToString(bytes, current_position));
       OUTCOME_TRY(protocol, parseProtocolLine(current_line));
-      parsed_msg.protocols_.push_back(std::move(protocol));
+      parsed_msg.protocols.push_back(std::move(protocol));
     }
     return parsed_msg;
   }
 
   outcome::result<MultiselectMessage> MessageManager::parseProtocol(
-      gsl::span<const uint8_t> bytes, uint64_t protocol_size) {
-    if (bytes.empty()
-        || (static_cast<uint64_t>(bytes.size()) < protocol_size)) {
+      gsl::span<const uint8_t> bytes) {
+    if (bytes.empty()) {
       return ParseError::MSG_LENGTH_IS_INCORRECT;
     }
 
     auto current_line =
-        std::string{bytes.data(), bytes.data() + protocol_size};  // NOLINT
+        std::string{bytes.data(), bytes.data() + bytes.size()};  // NOLINT
     if (current_line == kMultiselectHeaderString) {
       return MultiselectMessage{MultiselectMessage::MessageType::OPENING};
     }
     OUTCOME_TRY(protocol, parseProtocolLine(current_line));
 
     MultiselectMessage parsed_msg{MultiselectMessage::MessageType::PROTOCOL};
-    parsed_msg.protocols_.push_back(std::move(protocol));
+    parsed_msg.protocols.push_back(std::move(protocol));
     return parsed_msg;
   }
 

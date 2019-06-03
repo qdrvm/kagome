@@ -61,7 +61,8 @@ TEST_F(HasherFixture, twox_128) {
  */
 TEST_F(HasherFixture, twox_256) {
   // some value
-  auto hash = hasher->twox_256({0x41, 0x42, 0x43, 0x44, 0x45, 0x46});
+  auto v = Buffer{0x41, 0x42, 0x43, 0x44, 0x45, 0x46};
+  auto hash = hasher->twox_256(v);
   std::vector<uint8_t> match = {184, 65,  176, 250, 243, 129, 181, 3,
                                 77,  82,  63,  150, 129, 221, 191, 251,
                                 33,  226, 149, 136, 6,   232, 81,  118,

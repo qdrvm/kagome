@@ -6,13 +6,12 @@
 #ifndef KAGOME_PROTOCOL_MUXER_HPP
 #define KAGOME_PROTOCOL_MUXER_HPP
 
-#include <functional>
 #include <memory>
 
+#include <gsl/span>
 #include <outcome/outcome.hpp>
+#include "libp2p/basic/readwritecloser.hpp"
 #include "libp2p/peer/protocol.hpp"
-#include "libp2p/stream/stream.hpp"
-#include "libp2p/transport/connection.hpp"
 
 namespace libp2p::protocol_muxer {
   /**
@@ -22,57 +21,18 @@ namespace libp2p::protocol_muxer {
   class ProtocolMuxer {
    public:
     /**
-     * Add a new encryption protocol, which can be handled by this node
-     * @param protocol to be added
+     * Select a protocol for a given connection
+     * @param protocols - set of protocols, one of which should be chosen during
+     * the negotiation
+     * @param connection, for which the protocol is being chosen
+     * @param is_initiator - true, if we initiated the connection and thus
+     * taking lead in the Multiselect protocol; false otherwise
+     * @return chosen protocol or error
      */
-    virtual void addEncryptionProtocol(const peer::Protocol &protocol) = 0;
-
-    /**
-     * Add a new multiplexer protocol, which can be handled by this node
-     * @param protocol to be added
-     */
-    virtual void addMultiplexerProtocol(const peer::Protocol &protocol) = 0;
-
-    /**
-     * Add a new stream protocol, which can be handled by this node
-     * @param protocol to be added
-     */
-    virtual void addStreamProtocol(const peer::Protocol &protocol) = 0;
-
-    using ChosenProtocolCallback =
-        std::function<void(outcome::result<peer::Protocol>)>;
-
-    /**
-     * Negotiate about the encryption protocol with the other side
-     * @param connection to be negotiated over
-     * @param protocol_callback, which is going to be called, when the
-     * protocol is chosen or error occurs
-     */
-    virtual void negotiateEncryption(
-        std::shared_ptr<transport::Connection> connection,
-        ChosenProtocolCallback protocol_callback) = 0;
-
-    /**
-     * Negotiate about the multiplexer protocol with the other side
-     * @param connection to be negotiated over
-     * @param protocol_callback, which is going to be called, when the
-     * protocol is chosen or error occurs
-     */
-    virtual void negotiateMultiplexer(
-        std::shared_ptr<transport::Connection> connection,
-        ChosenProtocolCallback protocol_callback) = 0;
-
-    using ChosenProtocolAndStreamCallback = std::function<void(
-        outcome::result<peer::Protocol>, std::unique_ptr<stream::Stream>)>;
-
-    /**
-     * Negotiate about the stream protocol with the other side
-     * @param stream to be negotiated over
-     * @param cb, which is going to be called, when the
-     * protocol is chosen or error occurs
-     */
-    virtual void negotiateStream(std::unique_ptr<stream::Stream> stream,
-                                 ChosenProtocolAndStreamCallback cb) = 0;
+    virtual outcome::result<peer::Protocol> selectOneOf(
+        gsl::span<const peer::Protocol> protocols,
+        std::shared_ptr<basic::ReadWriteCloser> connection,
+        bool is_initiator) const = 0;
 
     virtual ~ProtocolMuxer() = default;
   };

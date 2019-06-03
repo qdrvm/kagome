@@ -53,11 +53,11 @@ namespace libp2p::crypto::hmac {
 
     auto clean_ctx_at_exit = gsl::finally([ctx]() { HMAC_CTX_free(ctx); });
 
-    if (1 != HMAC_Init_ex(ctx, key.toBytes(), key.size(), evp_md, nullptr)) {
+    if (1 != HMAC_Init_ex(ctx, key.data(), key.size(), evp_md, nullptr)) {
       return HmacProviderError::FAILED_INITIALIZE_CONTEXT;
     }
 
-    if (1 != HMAC_Update(ctx, message.toBytes(), message.size())) {
+    if (1 != HMAC_Update(ctx, message.data(), message.size())) {
       return HmacProviderError::FAILED_UPDATE_DIGEST;
     }
 

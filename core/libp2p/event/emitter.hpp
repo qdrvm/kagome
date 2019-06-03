@@ -93,6 +93,8 @@ namespace libp2p::event {
     using Base = detail::EmitterBase<sizeof...(Events), Events...>;
 
    public:
+    using emitter_t = Emitter<Events...>;
+
     /**
      * Subscribe to the specified event
      * @tparam Event, for which the subscription is to be registered
@@ -102,7 +104,7 @@ namespace libp2p::event {
      */
     template <typename Event>
     Subscription on(const std::function<void(const Event &)> &handler) {
-      return Base::template getSignal<Event>().connect(handler);
+      return Subscription(Base::template getSignal<Event>().connect(handler));
     }
 
     /**

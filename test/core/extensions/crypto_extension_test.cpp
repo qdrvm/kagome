@@ -12,11 +12,11 @@
 extern "C" {
 #include <sr25519/sr25519.h>
 }
-#include "testutil/literals.hpp"
 #include <ed25519/ed25519.h>
 #include <gtest/gtest.h>
 #include <gsl/span>
 #include "core/runtime/mock_memory.hpp"
+#include "testutil/literals.hpp"
 
 using namespace kagome::extensions;
 using kagome::common::Buffer;
@@ -42,7 +42,7 @@ class CryptoExtensionTest : public ::testing::Test {
         keypair_span.subspan(SR25519_SECRET_SIZE, SR25519_PUBLIC_SIZE);
 
     sr25519_sign(sr25519_signature.data(), pub_key.data(), secret.data(),
-                 input.toBytes(), input.size());
+                 input.data(), input.size());
   }
 
  protected:
@@ -54,7 +54,8 @@ class CryptoExtensionTest : public ::testing::Test {
   std::array<uint8_t, SR25519_SIGNATURE_SIZE> sr25519_signature{};
   std::array<uint8_t, SR25519_KEYPAIR_SIZE> sr25519_keypair{};
 
-  Buffer blake2b_result{"ba67336efd6a3df3a70eeb757860763036785c182ff4cf587541a0068d09f5b2"_unhex};
+  Buffer blake2b_result{
+      "ba67336efd6a3df3a70eeb757860763036785c182ff4cf587541a0068d09f5b2"_unhex};
 
   Buffer twox_input{"414243444546"_unhex};
 
@@ -93,7 +94,7 @@ TEST_F(CryptoExtensionTest, Ed25519VerifySuccess) {
   ASSERT_NE(ed25519_create_keypair(&private_key, &public_key), 0);
 
   signature_t signature{};
-  ed25519_sign(&signature, input.toBytes(), input.size(), &public_key,
+  ed25519_sign(&signature, input.data(), input.size(), &public_key,
                &private_key);
 
   Buffer pubkey_buf(public_key.data);

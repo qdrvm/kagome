@@ -79,6 +79,13 @@ namespace libp2p::multi {
     bool decapsulate(Protocol::Code proto);
 
     /**
+     * @brief Tests if {@param code} exists in this multiaddr.
+     * @param code protocol to be tested
+     * @return true if exists, false otherwise
+     */
+    bool hasProtocol(Protocol::Code code) const;
+
+    /**
      * Get the textual representation of the address inside
      * @return stringified address
      */
@@ -124,7 +131,8 @@ namespace libp2p::multi {
      * @return list of pairs with a protocol as the first element and the value
      * as the second one
      */
-    std::list<std::pair<Protocol, std::string>> getProtocolsWithValues() const;
+    std::vector<std::pair<Protocol, std::string>> getProtocolsWithValues()
+        const;
 
     bool operator==(const Multiaddress &other) const;
 

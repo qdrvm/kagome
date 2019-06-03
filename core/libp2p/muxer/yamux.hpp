@@ -6,11 +6,6 @@
 #ifndef KAGOME_YAMUX_HPP
 #define KAGOME_YAMUX_HPP
 
-/// for backward compatibility includes below are left - after refactoring will
-/// be removed
-#include "libp2p/muxer/yamux/yamux.hpp"
-#include "libp2p/muxer/yamux/yamux_config.hpp"
-
 #include "libp2p/muxer/muxer_adaptor.hpp"
 
 namespace libp2p::muxer {

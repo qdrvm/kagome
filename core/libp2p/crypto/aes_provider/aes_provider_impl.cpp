@@ -26,7 +26,7 @@ namespace libp2p::crypto::aes {
 
     int len = 0;
     int cipher_len = 0;
-    const auto *plain_text = data.toBytes();
+    const auto *plain_text = data.data();
     const auto plain_len = data.size();
 
     constexpr auto block_size = AES_BLOCK_SIZE;  // AES_BLOCK_SIZE = 16
@@ -81,7 +81,7 @@ namespace libp2p::crypto::aes {
 
     int len = 0;
     int plain_len = 0;
-    const auto *cipher_text = data.toBytes();
+    const auto *cipher_text = data.data();
     const auto cipher_len = data.size();
 
     std::vector<uint8_t> plain_text;

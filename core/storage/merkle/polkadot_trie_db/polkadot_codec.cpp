@@ -89,7 +89,7 @@ namespace kagome::storage::merkle {
 
     // if last nibble in `key` is 0
     bool last_nibble_0 =
-        key.size() > 0 && (highNibble(key[key.size() - 1]) == 0);
+        !key.empty() && (highNibble(key[key.size() - 1]) == 0);
     if (last_nibble_0) {
       --nibbles;
     }
@@ -115,7 +115,7 @@ namespace kagome::storage::merkle {
       return out;
     }
 
-    blake2s(out.data(), common::Hash256::size(), nullptr, 0, buf.toBytes(),
+    blake2s(out.data(), common::Hash256::size(), nullptr, 0, buf.data(),
             buf.size());
     return out;
   }

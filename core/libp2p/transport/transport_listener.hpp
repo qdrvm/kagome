@@ -12,8 +12,8 @@
 #include <vector>
 
 #include "libp2p/basic/closeable.hpp"
+#include "libp2p/connection/capable_connection.hpp"
 #include "libp2p/multi/multiaddress.hpp"
-#include "libp2p/transport/connection.hpp"
 
 namespace libp2p::transport {
 
@@ -26,20 +26,12 @@ namespace libp2p::transport {
     using NoArgsCallback = void();
     using ErrorCallback = void(const std::error_code &);
     using MultiaddrCallback = void(const multi::Multiaddress &);
-    using ConnectionCallback = void(std::shared_ptr<Connection>);
+    using ConnectionCallback =
+        outcome::result<void>(std::shared_ptr<connection::CapableConnection>);
     using HandlerFunc = std::function<ConnectionCallback>;
+    using ErrorFunc = std::function<ErrorCallback>;
 
     ~TransportListener() override = default;
-
-    /**
-     * @brief Close specific server, which listens on {@param ma}
-     * @param ma multiaddress
-     * @return error code if any error happened
-     */
-    virtual outcome::result<void> close(const multi::Multiaddress& ma) = 0;
-
-    // TODO(Warchant): remove during refactor
-    outcome::result<void> close() override = 0;
 
     /**
      * Switch the listener into 'listen' mode; it will react to every new
@@ -50,41 +42,17 @@ namespace libp2p::transport {
         const multi::Multiaddress &address) = 0;
 
     /**
+     * @brief Returns true if this transport can listen on given multiaddress,
+     * false otherwise.
+     * @param address multiaddress
+     */
+    virtual bool canListen(const multi::Multiaddress &address) const = 0;
+
+    /**
      * Get addresses, which this listener listens to
      * @return collection of those addresses
      */
-     // TODO(Warchant): rename to getListenMultiaddrs
-    virtual std::vector<multi::Multiaddress> getAddresses() const = 0;
-
-    // TODO(Warchant): remove all signals during refactor
-
-    /**
-     * Listener is initialized and ready to accept connections
-     * @param callback to be called, when event happens
-     */
-    virtual boost::signals2::connection onStartListening(
-        std::function<MultiaddrCallback> callback) = 0;
-
-    /**
-     * Listener accepts new connection
-     * @param callback to be called, when event happens
-     */
-    virtual boost::signals2::connection onNewConnection(
-        std::function<ConnectionCallback> callback) = 0;
-
-    /**
-     * Listener encounters an error
-     * @param callback to be called, when event happens
-     */
-    virtual boost::signals2::connection onError(
-        std::function<ErrorCallback> callback) = 0;
-
-    /**
-     * Listener stops
-     * @param callback to be called, when event happens
-     */
-    virtual boost::signals2::connection onClose(
-        std::function<MultiaddrCallback> callback) = 0;
+    virtual outcome::result<multi::Multiaddress> getListenMultiaddr() const = 0;
   };
 }  // namespace libp2p::transport
 

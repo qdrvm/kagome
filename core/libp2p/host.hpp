@@ -49,15 +49,20 @@ namespace libp2p {
     /**
      * @brief Let Host handle all protocols with prefix={@param prefix}, for
      * which predicate {@param predicate} is true.
-     * param prefix prefix for the protocol. Example: /ping/
+     * param prefix prefix for the protocol. Example:
+     * You want all streams, which came to Ping protocol with versions
+     * between 1.5 and 2.0 to be handled by your handler; so, you may pass
+     *  - prefix=/ping/1.
+     *  - predicate=[](proto){return proto.version >= 1.5
+     *      && proto.version < 2.0;}
+     * @param handler of the arrived stream
      * @param predicate function that takes received protocol (/ping/1.0.0) and
      * returns true, if this protocol can be handled.
-     * @param handler handler
      */
-    void setProtocolHandlerByPrefix(
-        std::string_view prefix,
-        const std::function<bool(const peer::Protocol &)> &predicate,
-        const std::function<connection::Stream::Handler> &handler);
+    void setProtocolHandler(
+        const std::string &prefix,
+        const std::function<connection::Stream::Handler> &handler,
+        const std::function<bool(const peer::Protocol &)> &predicate);
 
     /**
      * @brief Initiates connection to the peer {@param p}. If connection exists,

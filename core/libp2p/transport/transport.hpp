@@ -9,19 +9,28 @@
 #include <chrono>
 #include <functional>
 #include <memory>
-#include <outcome/outcome.hpp>  // for outcome::result
+#include <system_error>
 
+#include <outcome/outcome.hpp>  // for outcome::result
+#include "libp2p/connection/capable_connection.hpp"
+#include "libp2p/event/emitter.hpp"
 #include "libp2p/multi/multiaddress.hpp"
-#include "libp2p/transport/connection.hpp"
+#include "libp2p/peer/peer_id.hpp"
 #include "libp2p/transport/transport_listener.hpp"
 
 namespace libp2p::transport {
+
   /**
    * Allows to establish connections with other peers and react to received
    * attempts to do so; can be implemented, for example, as TCP, UDP etc
    */
   class Transport {
    public:
+    using ConnectionCallback =
+        outcome::result<void>(std::shared_ptr<connection::CapableConnection>);
+    using HandlerFunc = std::function<ConnectionCallback>;
+    using ErrorFunc = std::function<void(const std::error_code &)>;
+
     virtual ~Transport() = default;
 
     /**
@@ -29,9 +38,8 @@ namespace libp2p::transport {
      * @param address of the peer
      * @return connection in case of success, error otherwise
      */
-    // TODO(Warchant): PRE-158 replace Connection with RawConnection
-    virtual outcome::result<std::shared_ptr<Connection>> dial(
-        const multi::Multiaddress &address) const = 0;
+    virtual void dial(const multi::Multiaddress &address, HandlerFunc onSuccess,
+                      ErrorFunc onError) const = 0;
 
     /**
      * Create a listener for incoming connections of this Transport; in case
@@ -39,12 +47,16 @@ namespace libp2p::transport {
      * @return pointer to the created listener
      */
     virtual std::shared_ptr<TransportListener> createListener(
-        TransportListener::HandlerFunc handler) const = 0;
+        TransportListener::HandlerFunc onSuccess,
+        TransportListener::ErrorFunc onError) const = 0;
 
-    // returns true if our transport supports this multiaddress, false
-    // otherwise. example: /tcp/... on tcp transport will return true
-    // TODO(Warchant): PRE-158 implement
-    // virtual bool canDial(const multi::Multiaddress &ma) const = 0;
+    /**
+     * Check if this transport supports a given multiaddress
+     * @param ma to be checked against
+     * @return true, if transport supports that multiaddress, false otherwise
+     * @note example: '/tcp/...' on tcp transport will return true
+     */
+    virtual bool canDial(const multi::Multiaddress &ma) const = 0;
   };
 }  // namespace libp2p::transport
 
