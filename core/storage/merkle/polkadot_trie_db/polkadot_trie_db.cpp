@@ -1,18 +1,23 @@
-#include <utility>
-
 /**
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "storage/merkle/polkadot_trie_db/polkadot_trie_db.hpp"
+
+#include <utility>
+
 #include "scale/byte_array_stream.hpp"
 #include "storage/merkle/polkadot_trie_db/polkadot_codec.hpp"
 #include "storage/merkle/polkadot_trie_db/polkadot_node.hpp"
-#include "storage/merkle/polkadot_trie_db/polkadot_trie_db.hpp"
 
 using kagome::common::Buffer;
 
 namespace {
+  /**
+   * Returns a subspan of a buffer
+   * See gsl::span
+   */
   inline auto subbuffer(const Buffer &key, size_t offset = 0,
                         size_t length = -1) {
     return Buffer(
@@ -44,11 +49,18 @@ namespace kagome::storage::merkle {
     if (value.empty()) {
       OUTCOME_TRY(remove(key));
     } else if (not root_.has_value()) {
+      // will create a leaf node with provided key and value, save it to the
+      // storage and return the key to it
       OUTCOME_TRY(insertRoot(k_enc, value));
     } else {
       OUTCOME_TRY(root, retrieveNode(root_.value()));
+      // insert will pull a sequence of nodes (a path) from the storage and work
+      // on it in memory
       OUTCOME_TRY(
           n, insert(root, k_enc, std::make_shared<LeafNode>(k_enc, value)));
+      // after this storeNode will recursively write all changed nodes back to
+      // the storage and return the hash of the root node, which is used as a
+      // key in the storage
       OUTCOME_TRY(root_hash, storeNode(*n));
       root_ = root_hash;
     }
@@ -64,7 +76,7 @@ namespace kagome::storage::merkle {
   std::unique_ptr<PolkadotTrieDb::WriteBatch> PolkadotTrieDb::batch() {}
 
   std::unique_ptr<PolkadotTrieDb::MapCursor> PolkadotTrieDb::cursor() {
-    return db_->cursor();
+    return db_->cursor();  // perhaps should iterate over nodes in the trie
   }
 
   outcome::result<void> PolkadotTrieDb::insertRoot(
@@ -79,8 +91,10 @@ namespace kagome::storage::merkle {
       const NodePtr &parent, const common::Buffer &key_nibbles, NodePtr node) {
     using T = PolkadotNode::Type;
 
-    if(parent == nullptr) {
-      return nullptr;
+    // just update the node key and return it as the new root
+    if (parent == nullptr) {
+      node->key_nibbles = key_nibbles;
+      return node;
     }
 
     switch (parent->getTrieType()) {
@@ -193,6 +207,9 @@ namespace kagome::storage::merkle {
   outcome::result<PolkadotTrieDb::NodePtr> PolkadotTrieDb::getNode(
       NodePtr parent, const common::Buffer &key_nibbles) const {
     using T = PolkadotNode::Type;
+    if (parent == nullptr) {
+      return nullptr;
+    }
     switch (parent->getTrieType()) {
       case T::BranchEmptyValue:
       case T::BranchWithValue: {
@@ -236,7 +253,11 @@ namespace kagome::storage::merkle {
     if (root_.has_value()) {
       OUTCOME_TRY(root, retrieveNode(root_.value()));
       auto key_nibbles = PolkadotCodec::keyToNibbles(key);
+      // delete node will fetch nodes that it needs from the storage (the nodes
+      // typically are a path in the trie) and work on them in memory
       OUTCOME_TRY(n, deleteNode(root, key_nibbles));
+      // afterwards, the nodes are written back to the storage and the new trie
+      // root hash is obtained
       OUTCOME_TRY(root_hash, storeNode(*n));
       root_ = root_hash;
     }
@@ -343,19 +364,26 @@ namespace kagome::storage::merkle {
   outcome::result<common::Buffer> PolkadotTrieDb::storeNode(
       PolkadotNode &node) {
     using T = PolkadotNode::Type;
-    if (node.getTrieType() == T::BranchWithValue
+
+    // if node is a branch node, its children must be stored to the storage
+    // before it, as their hashes, which are used as database keys, are a part
+    // of its encoded representation required to save it to the storage
+    if (node.getTrieType() == T::BranchEmptyValue
         || node.getTrieType() == T::BranchWithValue) {
       auto &branch = dynamic_cast<BranchNode &>(node);
-      for(size_t i = 0; i < branch.children.size(); i++) {
+      for (size_t i = 0; i < branch.children.size(); i++) {
         auto child = branch.children[i];
-        if(child and not child->isDummy()) {
+        if (child and not child->isDummy()) {
           OUTCOME_TRY(hash, storeNode(*child));
+          // when a node is written to the storage, it is replaced with a dummy
+          // node to avoid memory waste
           branch.children[i] = std::make_shared<DummyNode>(hash);
         }
       }
     }
+
     OUTCOME_TRY(enc, codec_.encodeNode(node));
-    auto key = Buffer {codec_.hash256(enc)};
+    auto key = Buffer{codec_.hash256(enc)};
     OUTCOME_TRY(db_->put(key, enc));
     return key;
   }

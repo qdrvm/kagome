@@ -35,11 +35,20 @@ class TrieTest : public testing::Test {
 class MapDb : public kagome::storage::face::PersistedMap<Buffer, Buffer> {
  public:
   outcome::result<Buffer> get(const Buffer &key) const override {
-    return storage.at(key.toHex());
+    try {
+      return storage.at(key.toHex());
+    } catch (std::exception&) {
+      std::cout << "error on get " << key.toHex() << "\n";
+    }
+    return outcome::success();
   }
 
   outcome::result<void> put(const Buffer &key, const Buffer &value) override {
-    storage[key.toHex()] = value;
+    try {
+      storage[key.toHex()] = value;
+    } catch (std::exception&) {
+      std::cout << "error on put " << key.toHex() << "\n";
+    }
     return outcome::success();
   }
 
