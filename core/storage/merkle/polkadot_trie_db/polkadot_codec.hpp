@@ -29,6 +29,7 @@ namespace kagome::storage::merkle {
     ~PolkadotCodec() override = default;
 
     outcome::result<Buffer> encodeNode(const Node &node) const override;
+
     outcome::result<std::shared_ptr<Node>> decodeNode(
         common::ByteStream &stream) const override;
 
@@ -43,11 +44,23 @@ namespace kagome::storage::merkle {
     static Buffer nibblesToKey(const Buffer &key);
 
     // Algorithm 3: partial key length encoding
-    outcome::result<Buffer> getHeader(const PolkadotNode &node) const;
+    outcome::result<Buffer> encodeHeader(const PolkadotNode &node) const;
 
    private:
     outcome::result<Buffer> encodeBranch(const BranchNode &node) const;
     outcome::result<Buffer> encodeLeaf(const LeafNode &node) const;
+
+    outcome::result<std::pair<PolkadotNode::Type, size_t>> decodeHeader(
+        common::ByteStream &stream) const;
+
+    outcome::result<Buffer> decodePartialKey(size_t length,
+                                             common::ByteStream &stream) const;
+
+    outcome::result<std::shared_ptr<Node>> decodeBranch(
+        PolkadotNode::Type type, const Buffer &partial_key,
+        common::ByteStream &stream) const;
+
+    std::shared_ptr<ScaleBufferCodec> scale_;
   };
 
 }  // namespace kagome::storage::merkle
