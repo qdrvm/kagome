@@ -30,7 +30,7 @@ namespace kagome::storage::merkle {
     enum class Error { INVALID_NODE_TYPE = 1 };
 
    public:
-    PolkadotTrieDb(std::unique_ptr<PersistedBufferMap> db,
+    PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db,
                    std::shared_ptr<Codec> codec,
                    std::shared_ptr<hash::Hasher> hasher);
     ~PolkadotTrieDb() override = default;
@@ -53,17 +53,18 @@ namespace kagome::storage::merkle {
     outcome::result<void> insertRoot(const common::Buffer &key_nibbles,
                                      const common::Buffer &value);
 
-    outcome::result<NodePtr> insert(const NodePtr& parent,
+    outcome::result<NodePtr> insert(const NodePtr &parent,
                                     const common::Buffer &key_nibbles,
                                     NodePtr node);
 
     outcome::result<NodePtr> updateBranch(BranchPtr parent,
                                           const common::Buffer &key_nibbles,
-                                          const NodePtr& node);
+                                          const NodePtr &node);
 
     outcome::result<NodePtr> deleteNode(NodePtr parent,
                                         const common::Buffer &key_nibbles);
-    outcome::result<NodePtr> handleDeletion(const BranchPtr& parent, NodePtr node,
+    outcome::result<NodePtr> handleDeletion(const BranchPtr &parent,
+                                            NodePtr node,
                                             const common::Buffer &key_nibbles);
 
     outcome::result<NodePtr> getNode(NodePtr parent,
@@ -72,11 +73,26 @@ namespace kagome::storage::merkle {
     uint32_t getCommonPrefixLength(const common::Buffer &pref1,
                                    const common::Buffer &pref2) const;
 
+    /**
+     * Writes a node to a persistent storage, recursively storing its
+     * descendants as well. Then replaces the node children to dummy nodes to
+     * avoid memory waste
+     */
     outcome::result<common::Buffer> storeNode(PolkadotNode &node);
+    /**
+     * Fetches a node from the storage. A nullptr is returned in case that there
+     * is no entry for provided key. Mind that a branch node will have dummy
+     * nodes as its children
+     */
     outcome::result<NodePtr> retrieveNode(const common::Buffer &db_key) const;
-    outcome::result<NodePtr> retrieveChild(const BranchPtr& parent, uint8_t idx) const;
+    /**
+     * Retrieves a node child, replacing a dummy node to an actual node if
+     * needed
+     */
+    outcome::result<NodePtr> retrieveChild(const BranchPtr &parent,
+                                           uint8_t idx) const;
 
-    std::unique_ptr<PersistedBufferMap> db_;
+    std::unique_ptr<PersistentBufferMap> db_;
     std::shared_ptr<hash::Hasher> hasher_;
     PolkadotCodec codec_;
     std::optional<common::Buffer> root_;

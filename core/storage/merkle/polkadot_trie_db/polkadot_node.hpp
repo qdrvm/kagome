@@ -28,6 +28,7 @@ namespace kagome::storage::merkle {
       BranchWithValue = 0b11
     };
 
+    // dummy nodes are used to avoid unnecessary reads from the storage
     virtual bool isDummy() const = 0;
 
     // just to avoid static_casts every time you need a switch on a node type
@@ -75,10 +76,15 @@ namespace kagome::storage::merkle {
   };
 
   /**
-   * Used to indicate that there is a node, but this node is not interesting at
-   * the moment and need not to be retrieved from the storage
+   * Used in branch nodes to indicate that there is a node, but this node is not
+   * interesting at the moment and need not be retrieved from the storage.
    */
   struct DummyNode : public PolkadotNode {
+    /**
+     * Constructs a dummy node
+     * @param key a storage key, which is a hash of an encoded node according to
+     * PolkaDot specification
+     */
     explicit DummyNode(common::Buffer key) : db_key{std::move(key)} {}
 
     bool isDummy() const override {

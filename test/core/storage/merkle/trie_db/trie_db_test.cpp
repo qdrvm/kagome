@@ -32,7 +32,7 @@ class TrieTest : public testing::Test {
       {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
 };
 
-class MapDb : public kagome::storage::face::PersistedMap<Buffer, Buffer> {
+class MapDb : public kagome::storage::face::PersistentMap<Buffer, Buffer> {
  public:
   outcome::result<Buffer> get(const Buffer &key) const override {
     try {
