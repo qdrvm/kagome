@@ -8,6 +8,7 @@
 
 #include <gmock/gmock.h>
 #include "libp2p/connection/stream.hpp"
+#include "mock/libp2p/connection/connection_mock_common.hpp"
 
 namespace libp2p::connection {
   class StreamMock : public Stream {

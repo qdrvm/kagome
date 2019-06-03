@@ -8,6 +8,8 @@
 
 #include "libp2p/connection/capable_connection.hpp"
 
+#include "mock/libp2p/connection/connection_mock_common.hpp"
+
 using ::testing::_;
 using ::testing::Invoke;
 

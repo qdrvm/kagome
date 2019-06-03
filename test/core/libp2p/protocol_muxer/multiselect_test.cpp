@@ -9,7 +9,6 @@
 #include <testutil/outcome.hpp>
 #include "core/libp2p/transport_fixture/transport_fixture.hpp"
 #include "mock/libp2p/connection/raw_connection_mock.hpp"
-#include "testutil/stream_operators.hpp"
 
 using libp2p::basic::ReadWriteCloser;
 using libp2p::connection::RawConnection;

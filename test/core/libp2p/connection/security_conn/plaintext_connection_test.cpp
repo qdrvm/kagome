@@ -9,7 +9,6 @@
 #include <testutil/outcome.hpp>
 #include "mock/libp2p/connection/raw_connection_mock.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/stream_operators.hpp"
 
 using namespace libp2p::connection;
 
