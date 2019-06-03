@@ -10,7 +10,7 @@
 #include "libp2p/crypto/random_generator/std_generator.hpp"
 #include "libp2p/dht/dht_impl.hpp"
 #include "libp2p/discovery/discovery_impl.hpp"
-#include "libp2p/muxer/yamux.hpp"
+#include "libp2p/muxer/yamux/yamuxed_connection.hpp"
 #include "libp2p/peer/address_repository/inmem_address_repository.hpp"
 #include "libp2p/peer/key_repository/inmem_key_repository.hpp"
 #include "libp2p/peer/protocol_repository/inmem_protocol_repository.hpp"

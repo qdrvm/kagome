@@ -6,7 +6,7 @@
 #ifndef KAGOME_LIBP2P_YAMUX_STREAM_HPP
 #define KAGOME_LIBP2P_YAMUX_STREAM_HPP
 
-#include "libp2p/muxer/yamux/yamux.hpp"
+#include "yamuxed_connection.hpp"
 #include "libp2p/stream/stream.hpp"
 
 namespace libp2p::stream {

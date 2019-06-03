@@ -8,8 +8,10 @@
 
 #include <memory>
 
-#include "libp2p/stream/stream.hpp"
-#include "libp2p/transport/muxed_connection.hpp"
+#include <outcome/outcome.hpp>
+#include "libp2p/connection/capable_connection.hpp"
+#include "libp2p/connection/secure_connection.hpp"
+#include "libp2p/peer/protocol.hpp"
 
 namespace libp2p::muxer {
   /**
@@ -17,7 +19,23 @@ namespace libp2p::muxer {
    */
   struct MuxerAdaptor {
     virtual ~MuxerAdaptor() = default;
+
+    /**
+     * Get a string identifier, associated with this adaptor
+     * @return protocol id of the adaptor
+     * @example '/yamux/1.0.0'
+     */
+    virtual peer::Protocol getProtocolId() const = 0;
+
+    /**
+     * Make a muxed connection from the secure one, using this adaptor
+     * @param conn - connection to be upgraded
+     * @return muxed connection - in this case it is a capable one, as
+     * secure+muxed=capable
+     */
+    virtual outcome::result<std::shared_ptr<connection::CapableConnection>>
+    muxConnection(std::shared_ptr<connection::SecureConnection> conn) const = 0;
   };
 }  // namespace libp2p::muxer
 
-#endif  //KAGOME_MUXER_ADAPTOR_HPP
+#endif  // KAGOME_MUXER_ADAPTOR_HPP

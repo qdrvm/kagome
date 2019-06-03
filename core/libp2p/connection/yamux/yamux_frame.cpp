@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/muxer/yamux/yamux_frame.hpp"
+#include "yamux_frame.hpp"
 
 namespace {
   using kagome::common::Buffer;
@@ -28,7 +28,7 @@ namespace {
   }
 }  // namespace
 
-namespace libp2p::muxer {
+namespace libp2p::connection {
   kagome::common::Buffer YamuxFrame::frameBytes(
       uint8_t version, FrameType type, Flag flag, uint32_t stream_id,
       uint32_t length, const kagome::common::Buffer &data) {

@@ -8,9 +8,9 @@
 
 #include <gsl/span>
 #include "common/buffer.hpp"
-#include "libp2p/muxer/yamux/yamux.hpp"
+#include "yamuxed_connection.hpp"
 
-namespace libp2p::muxer {
+namespace libp2p::connection {
   /**
    * Header with optional data, which is sent and accepted with Yamux protocol
    */

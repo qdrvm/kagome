@@ -6,7 +6,7 @@
 #ifndef KAGOME_YAMUX_CONFIG_HPP
 #define KAGOME_YAMUX_CONFIG_HPP
 
-namespace libp2p::muxer {
+namespace libp2p::connection {
   /**
    * Configuration used to create instance of Yamux multiplexer
    */

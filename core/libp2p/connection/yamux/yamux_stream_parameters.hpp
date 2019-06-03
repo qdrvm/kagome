@@ -9,7 +9,7 @@
 #include "common/buffer.hpp"
 #include "libp2p/stream/stream.hpp"
 
-namespace libp2p::muxer {
+namespace libp2p::connection {
 
   /**
    * Run-time parameters of Yamux stream
@@ -31,6 +31,6 @@ namespace libp2p::muxer {
     std::queue<stream::Stream::ReadCompletionHandler> completion_handlers_{};
   };
 
-}  // namespace libp2p::muxer
+}  // namespace libp2p::connection
 
 #endif  // KAGOME_YAMUX_STREAM_PARAMETERS_HPP

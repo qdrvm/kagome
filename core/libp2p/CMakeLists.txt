@@ -9,8 +9,8 @@ add_subdirectory(crypto)
 add_subdirectory(peer)
 add_subdirectory(network)
 add_subdirectory(protocol_muxer)
-# TODO(warchant): PRE-176 refactor yamux
-#add_subdirectory(muxer)
+add_subdirectory(muxer)
+add_subdirectory(connection)
 
 add_library(libp2p
     config.hpp

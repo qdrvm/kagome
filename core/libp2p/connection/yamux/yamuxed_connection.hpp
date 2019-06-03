@@ -14,17 +14,16 @@
 #include <boost/system/error_code.hpp>
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
-#include "libp2p/muxer/yamux/yamux_config.hpp"
-#include "libp2p/muxer/yamux/yamux_stream_parameters.hpp"
 #include "libp2p/stream/stream.hpp"
-#include "libp2p/transport/connection.hpp"
 #include "libp2p/transport/muxed_connection.hpp"
+#include "yamux_config.hpp"
+#include "yamux_stream_parameters.hpp"
 
 namespace libp2p::stream {
   class YamuxStream;
 }
 
-namespace libp2p::muxer {
+namespace libp2p::connection {
   struct YamuxFrame;
 
   /**
@@ -33,8 +32,7 @@ namespace libp2p::muxer {
    * several applications
    * Read more: https://github.com/hashicorp/yamux/blob/master/spec.md
    */
-  class Yamux : public transport::MuxedConnection,
-                public std::enable_shared_from_this<Yamux> {
+  class YamuxedConnection : public transport::MuxedConnection {
    public:
     using StreamId = uint32_t;
     using NewStreamHandler =
@@ -54,17 +52,17 @@ namespace libp2p::muxer {
      * stream arrives
      * @param yamux_config to configure this instance
      */
-    Yamux(
+    YamuxedConnection(
         std::shared_ptr<transport::Connection> connection,
         NewStreamHandler stream_handler, YamuxConfig yamux_config,
         kagome::common::Logger logger = kagome::common::createLogger("Yamux"));
 
-    Yamux(const Yamux &other) = delete;
-    Yamux &operator=(const Yamux &other) = delete;
-    Yamux(Yamux &&other) noexcept = delete;
-    Yamux &operator=(Yamux &&other) noexcept = delete;
+    YamuxedConnection(const YamuxedConnection &other) = delete;
+    YamuxedConnection &operator=(const YamuxedConnection &other) = delete;
+    YamuxedConnection(YamuxedConnection &&other) noexcept = delete;
+    YamuxedConnection &operator=(YamuxedConnection &&other) noexcept = delete;
 
-    ~Yamux() override;
+    ~YamuxedConnection() override;
 
     void start() override;
 
