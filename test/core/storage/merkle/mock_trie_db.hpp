@@ -7,7 +7,7 @@
 #define KAGOME_TEST_CORE_STORAGE_MERKLE_MOCK_TRIE_DB_HPP_
 
 #include <gmock/gmock.h>
-#include "storage/merkle/trie_db.hpp"
+#include "storage/merkle/trie_db_test.hpp"
 
 namespace kagome::storage::merkle {
 

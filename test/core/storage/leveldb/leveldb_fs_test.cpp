@@ -33,8 +33,8 @@ TEST_F(LevelDB_Open, OpenNonExistingDB) {
 }
 
 /**
- * @given options with enavble option `create_if_missing`
- * @when open daabase
+ * @given options with enable option `create_if_missing`
+ * @when open database
  * @then database is opened
  */
 TEST_F(LevelDB_Open, OpenExistingDB) {
