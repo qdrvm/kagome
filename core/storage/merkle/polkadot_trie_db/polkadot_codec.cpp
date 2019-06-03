@@ -41,8 +41,8 @@ namespace kagome::storage::merkle {
 
   inline common::Buffer ushortToBytes(uint16_t b) {
     common::Buffer out(2, 0);
-    out[0] = b & 0xffu;
-    out[1] = (b >> 8u) & 0xffu;
+    out[0] = (b >> 8u) & 0xffu;
+    out[1] = b & 0xffu;
     return out;
   }
 
