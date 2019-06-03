@@ -14,8 +14,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::scale, EncodeError, e) {
       return "compact integers cannot be negative";
     case EncodeError::WRONG_CATEGORY:
       return "wrong compact encoding category";
-    default:
-      break;
+    case EncodeError::WRONG_ALTERNATIVE:
+      return "wrong cast to alternative";
   }
   return "unknown EncodeError";
 }
@@ -35,8 +35,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::scale, DecodeError, e) {
       return "incorrect source data";
     case DecodeError::OUT_OF_BOUNDARIES:
       return "advance went out of boundaries";
-    default:
-      break;
   }
   return "unknown DecodeError";
 }
@@ -46,8 +44,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::scale, CommonError, e) {
   switch (e) {
     case CommonError::UNKNOWN_ERROR:
       return "unknown error";
-    default:
-      break;
   }
   return "unknown CommonError";
 }

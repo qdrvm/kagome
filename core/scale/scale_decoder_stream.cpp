@@ -40,7 +40,6 @@ namespace kagome::scale {
           if (!stream.hasMore(3u)) {
             // not enough data to decode integer
             common::raise(DecodeError::NOT_ENOUGH_DATA);
-            UNREACHABLE
           }
 
           for (auto i = 0u; i < 3u; ++i) {
@@ -58,7 +57,6 @@ namespace kagome::scale {
           if (!stream.hasMore(bytes_count)) {
             // not enough data to decode integer
             common::raise(DecodeError::NOT_ENOUGH_DATA);
-            UNREACHABLE
           }
 
           CompactInteger multiplier{1u};
@@ -86,7 +84,6 @@ namespace kagome::scale {
 
   std::optional<bool> ScaleDecoderStream::decodeOptionalBool() {
     auto byte = nextByte();
-
     switch (byte) {
       case static_cast<uint8_t>(OptionalBool::NONE):
         return std::nullopt;
@@ -97,13 +94,12 @@ namespace kagome::scale {
         return true;
       default:
         common::raise(DecodeError::UNEXPECTED_VALUE);
-        UNREACHABLE
     }
+    UNREACHABLE
   }
 
   bool ScaleDecoderStream::decodeBool() {
     auto byte = nextByte();
-
     switch (byte) {
       case 0u:
         return false;
@@ -135,7 +131,6 @@ namespace kagome::scale {
   uint8_t ScaleDecoderStream::nextByte() {
     if (not hasMore(1)) {
       common::raise(DecodeError::NOT_ENOUGH_DATA);
-      UNREACHABLE
     }
     ++current_index_;
     return *current_iterator_++;
@@ -144,7 +139,6 @@ namespace kagome::scale {
   void ScaleDecoderStream::advance(uint64_t dist) {
     if (not hasMore(dist)) {
       common::raise(DecodeError::OUT_OF_BOUNDARIES);
-      UNREACHABLE
     }
     current_index_ += dist;
     std::advance(current_iterator_, dist);
