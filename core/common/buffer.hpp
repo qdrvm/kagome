@@ -233,7 +233,6 @@ namespace kagome::common {
   Stream &operator>>(Stream &s, Buffer &buffer) {
     std::vector<uint8_t> data;
     s >> data;
-    buffer.clear();
     buffer.put(data);
     return s;
   }
