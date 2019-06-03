@@ -34,10 +34,8 @@ namespace kagome::scale::detail {
     }
 
     template <class Stream, class... T>
-    struct VariantEncoder {
-      const boost::variant<T...> &v_;
-      Stream &s_;
-
+    class VariantEncoder {
+     public:
       VariantEncoder(const boost::variant<T...> &v, Stream &s) : v_{v}, s_{s} {}
 
       template <class H>
@@ -50,14 +48,15 @@ namespace kagome::scale::detail {
             },
             [](const auto & /*unused*/) {});
       }
+
+     private:
+      const boost::variant<T...> &v_;
+      Stream &s_;
     };
 
     template <class Stream, class... T>
-    struct VariantDecoder {
-      uint8_t type_index_;
-      boost::variant<T...> &r_;
-      Stream &s_;
-
+    class VariantDecoder {
+     public:
       VariantDecoder(uint8_t type_index, boost::variant<T...> &r, Stream &s)
           : type_index_{type_index}, r_{r}, s_{s} {};
 
@@ -69,6 +68,11 @@ namespace kagome::scale::detail {
           r_ = std::move(h);
         }
       }
+
+     private:
+      uint8_t type_index_;
+      boost::variant<T...> &r_;
+      Stream &s_;
     };
 
     template <class F, class... T>
@@ -86,7 +90,7 @@ namespace kagome::scale::detail {
    */
   template <class Stream, class... T>
   void encodeVariant(const boost::variant<T...> &v, Stream &s) {
-    auto encoder = impl::VariantEncoder<Stream, T...>(v, s);
+    auto &&encoder = impl::VariantEncoder(v, s);
     impl::for_each_apply<decltype(encoder), T...>(encoder);
   }
 
@@ -108,8 +112,7 @@ namespace kagome::scale::detail {
       common::raise(DecodeError::WRONG_TYPE_INDEX);
     }
 
-    auto decoder =
-        impl::VariantDecoder<Stream, T...>(type_index, result, stream);
+    auto &&decoder = impl::VariantDecoder(type_index, result, stream);
     impl::for_each_apply<decltype(decoder), T...>(decoder);
 
     return stream;

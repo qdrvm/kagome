@@ -44,10 +44,10 @@ namespace kagome::scale::detail {
    * @return decoded value or error
    */
   template <class T, class S, typename I = std::decay_t<T>,
-            typename = std::enable_if_t<std::is_integral<I>::value>>
+            typename = std::enable_if_t<std::is_integral_v<I>>>
   I decodeInteger(S &stream) {
     constexpr size_t size = sizeof(I);
-    static_assert(size >= 1 && size <= 8);
+    static_assert(size <= 8);
 
     // clang-format off
     // sign bit = 2^(num_bits - 1)
