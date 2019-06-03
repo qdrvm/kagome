@@ -3,365 +3,159 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "yamuxed_connection.hpp"
+#include "libp2p/connection/yamux/yamuxed_connection.hpp"
 
-#include <boost/asio/buffers_iterator.hpp>
-#include <gsl/span>
-#include "yamux_frame.hpp"
-#include "yamux_stream.hpp"
+#include "libp2p/connection/yamux/yamux_frame.hpp"
+#include "libp2p/connection/yamux/yamux_stream.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::muxer, YamuxedConnectionYamuxErrorStream,
-                            e) {
-  using ErrorType = libp2p::muxer::YamuxedConnectionYamuxErrorStream;
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, YamuxedConnection::Error, e) {
+  using ErrorType = libp2p::connection::YamuxedConnection::Error;
   switch (e) {
     case ErrorType::NO_SUCH_STREAM:
       return "no such stream was found; maybe, it is closed";
     case ErrorType::NOT_WRITABLE:
       return "the stream is closed for writes";
-    case ErrorType::NOT_READABLE:
-      return "the stream is closed for reads";
     case ErrorType::YAMUX_IS_CLOSED:
       return "this Yamux instance is closed";
+    case ErrorType::FORBIDDEN_CALL:
+      return "forbidden method was invoked";
+    case ErrorType::OTHER_SIDE_ERROR:
+      return "error happened on other side's behalf";
+    case ErrorType::INTERNAL_ERROR:
+      return "internal error happened";
   }
-
   return "unknown";
 }
 
-namespace libp2p::muxer {
-  YamuxedConnectionYamux(std::shared_ptr<transport::Connection> connection,
-                         NewStreamHandler stream_handler,
-                         YamuxConfig yamux_config,
-                         kagome::common::Logger logger)
+namespace libp2p::connection {
+  YamuxedConnection::YamuxedConnection(
+      std::shared_ptr<SecureConnection> connection,
+      NewStreamHandler stream_handler, kagome::common::Logger logger)
       : connection_{std::move(connection)},
         new_stream_handler_{std::move(stream_handler)},
         is_active_{true},
-        config_{yamux_config},
         logger_{std::move(logger)} {
     // client uses odd numbers, server - even
-    last_created_stream_id_ = config_.is_server ? 0 : 1;
+    last_created_stream_id_ = connection_->isInitiator() ? 1 : 0;
   }
 
-  YamuxedConnection ~Yamux() = default;
-
-  void YamuxedConnectionstart() {
-    startReadingHeader();
-  }
-
-  void YamuxedConnectionstartReadingHeader() {
-    if (!is_active_) {
-      return;
-    }
-    if (connection_->isClosed()) {
-      closeYamux();
-      return;
-    }
-
-    connection_->asyncRead(
-        read_buffer_, YamuxFrame::kHeaderLength,
-        [t = shared_from_this()](const std::error_code &ec, size_t n) {
-          t->readingHeaderCompleted(ec, n);
-        });
-  }
-
-  void YamuxedConnectionreadingHeaderCompleted(const std::error_code &ec,
-                                               size_t n) {
-    if (ec) {
-      logger_->error("cannot read from from the connection: {}", ec.message());
-      close();
-    }
-    if (n != YamuxFrame::kHeaderLength) {
-      logger_->error(
-          "connection error: read less bytes, than expected in header");
-      close();
-    }
-
-    if (!processHeader()) {
-      startReadingHeader();
-    }
-  }
-
-  void YamuxedConnectionreadingDataCompleted(
-      const std::error_code &ec, size_t n,
-      std::reference_wrapper<YamuxStreamParameters> stream_wrapper) {
-    if (ec) {
-      logger_->error("cannot read from the connection: {}", ec.message());
-      close();
-    }
-
-    auto &stream = stream_wrapper.get();
-    // if there's a callback, which awaits for the message from this stream,
-    // call it; buffer the message otherwise
-    kagome::common::Buffer msg(n, 0);
-    boost::asio::buffer_copy(boost::asio::buffer(msg.toVector()),
-                             read_buffer_.data());
-    read_buffer_.consume(n);
-    if (!stream.completion_handlers_.empty()) {
-      stream.completion_handlers_.front()(std::move(msg));
-      stream.completion_handlers_.pop();
-    } else {
-      stream.buffered_messages_.push(std::move(msg));
-    }
-
-    startReadingHeader();
-  }
-
-  void YamuxedConnectionwrite(const kagome::common::Buffer &msg,
-                              stream::Stream::ErrorCodeCallback cb) {
-    outcoming_messages_.push({msg, std::move(cb)});
-    if (!is_writing_) {
-      startWriting();
-    }
-  }
-
-  void YamuxedConnectionstartWriting() {
-    if (!is_active_) {
-      return;
-    }
-    if (connection_->isClosed()) {
-      closeYamux();
-      return;
-    }
-    is_writing_ = true;
-
-    if (!outcoming_messages_.empty()) {
-      const auto &msg_and_callback = outcoming_messages_.front();
-      connection_->asyncWrite(
-          boost::asio::const_buffer{msg_and_callback.first.toBytes(),
-                                    msg_and_callback.first.size()},
-          [t = shared_from_this(), &cb = msg_and_callback.second](
-              const std::error_code &ec, size_t n) mutable {
-            t->writingCompleted(ec, n, cb);
-          });
-    } else {
-      is_writing_ = false;
-    }
-  }
-
-  void YamuxedConnectionwritingCompleted(
-      const std::error_code &ec, size_t n,
-      const stream::Stream::ErrorCodeCallback &error_callback) {
-    // we have written <MsgLength + HeaderLength> bytes
-    error_callback(ec, n - YamuxFrame::kHeaderLength);
-    outcoming_messages_.pop();
-    startWriting();
-  }
-
-  void YamuxedConnectionstop() {
-    is_active_ = false;
-  }
-
-  outcome::result<std::unique_ptr<stream::Stream>>
-  YamuxedConnectionnewStream() {
-    if (!is_active_) {
-      return YamuxErrorStream::YAMUX_IS_CLOSED;
-    }
-
+  outcome::result<std::shared_ptr<Stream>> YamuxedConnection::newStream() {
     auto stream_id = getNewStreamId();
-    write(newStreamMsg(stream_id),
-          [t = shared_from_this(), stream_id](auto &&ec, auto && /*unused*/) {
-            if (ec) {
-              t->logger_->error(
-                  "could not write new stream message for stream_id {} with "
-                  "error {}",
-                  stream_id, ec.message());
-            }
-          });
-    streams_.insert(std::make_pair(
-        stream_id,
-        YamuxStreamParameters{true, true, YamuxFrame::kDefaultWindowSize}));
-    return std::make_unique<stream::YamuxStream>(shared_from_this(), stream_id);
+    OUTCOME_TRY(connection_->write(newStreamMsg(stream_id)));
+
+    auto created_stream =
+        std::make_shared<YamuxStream>(shared_from_this(), stream_id);
+    streams_.insert({stream_id, created_stream});
+    return created_stream;
   }
 
-  void YamuxedConnectionclose() {
-    // send a reset message too all streams to notify the other side
-    if (!streams_.empty()) {
-      auto last_stream_id = streams_.rbegin()->first;
-      for (const auto &stream : streams_) {
-        write(resetStreamMsg(stream.first),
-              [t = shared_from_this(), stream_id = stream.first,
-               last_stream_id](auto &&ec, auto && /*unused*/) {
-                if (ec) {
-                  t->logger_->error(
-                      "could not write reset stream message for stream_id {} "
-                      "with "
-                      "error {}",
-                      stream_id, ec.message());
-                }
-                if (stream_id == last_stream_id) {
-                  t->closeYamux();
-                }
-              });
-      }
-    } else {
-      closeYamux();
-    }
+  outcome::result<void> YamuxedConnection::start() {
+    return readerLoop();
   }
 
-  bool YamuxedConnectionisClosed() {
+  peer::PeerId YamuxedConnection::localPeer() const {
+    return connection_->localPeer();
+  }
+
+  peer::PeerId YamuxedConnection::remotePeer() const {
+    return connection_->remotePeer();
+  }
+
+  crypto::PublicKey YamuxedConnection::remotePublicKey() const {
+    return connection_->remotePublicKey();
+  }
+
+  bool YamuxedConnection::isInitiator() const noexcept {
+    return connection_->isInitiator();
+  }
+
+  outcome::result<multi::Multiaddress> YamuxedConnection::localMultiaddr() {
+    return connection_->localMultiaddr();
+  }
+
+  outcome::result<multi::Multiaddress> YamuxedConnection::remoteMultiaddr() {
+    return connection_->remoteMultiaddr();
+  }
+
+  bool YamuxedConnection::isClosed() const {
     return connection_->isClosed();
   }
 
-  void YamuxedConnectioncloseYamux() {
-    streams_.clear();
-    (void)connection_->close();
+  outcome::result<void> YamuxedConnection::close() {
+    OUTCOME_TRY(connection_->close());
     is_active_ = false;
-  }
-
-  YamuxedConnectionStreamId YamuxedConnectiongetNewStreamId() {
-    last_created_stream_id_ += 2;
-    return last_created_stream_id_;
-  }
-
-  void YamuxedConnectionregisterNewStream(StreamId stream_id) {
-    streams_.insert(
-        {stream_id,
-         YamuxStreamParameters{true, true, YamuxFrame::kDefaultWindowSize}});
-    new_stream_handler_(
-        std::make_unique<stream::YamuxStream>(shared_from_this(), stream_id));
-    write(ackStreamMsg(stream_id),
-          [t = shared_from_this(), stream_id](auto &&ec, auto && /* unused */) {
-            if (ec) {
-              t->logger_->error(
-                  "could not write ack stream message for stream_id {} with "
-                  "error {}",
-                  stream_id, ec.message());
-            }
-          });
-  }
-
-  bool YamuxedConnectionprocessData(
-      std::reference_wrapper<YamuxStreamParameters> stream,
-      const YamuxFrame &frame) {
-    auto data_length = frame.length_;
-    if (data_length == 0) {
-      return false;
+    for (const auto &stream : streams_) {
+      stream.second->resetStream();
     }
-
-    connection_->asyncRead(read_buffer_, data_length,
-                           [t = shared_from_this(), stream](
-                               const std::error_code &ec, size_t n) mutable {
-                             t->readingDataCompleted(ec, n, stream);
-                           });
-    return true;
+    return outcome::success();
   }
 
-  std::optional<std::reference_wrapper<YamuxStreamParameters>>
-  YamuxedConnectionprocessAck(StreamId stream_id) {
-    // acknowledge of start of a new stream; if we don't have such a stream,
-    // a reset should be sent in order to notify the other side about a
-    // problem
-    auto stream = findStream(stream_id);
-    if (!stream) {
-      write(
-          resetStreamMsg(stream_id),
-          [t = shared_from_this(), stream_id](auto &&ec, auto && /* unused */) {
-            if (ec) {
-              t->logger_->error(
-                  "could not write reset stream message for stream_id {} with "
-                  "error {}",
-                  stream_id, ec.message());
-            }
-          });
-    }
-    return std::ref(stream);
+  outcome::result<size_t> YamuxedConnection::write(gsl::span<const uint8_t>) {
+    return Error::FORBIDDEN_CALL;
   }
 
-  std::optional<std::reference_wrapper<YamuxStreamParameters>>
-  YamuxedConnectionfindStream(StreamId stream_id) {
-    auto stream = streams_.find(stream_id);
-    if (stream == streams_.end()) {
-      return {};
-    }
-    return std::ref(stream->second);
+  outcome::result<size_t> YamuxedConnection::writeSome(
+      gsl::span<const uint8_t>) {
+    return Error::FORBIDDEN_CALL;
   }
 
-  void YamuxedConnectioncloseStreamForRead(StreamId stream_id) {
-    auto stream = findStream(stream_id);
-    if (stream) {
-      stream->get().is_readable_ = false;
-    }
-    if (!stream
-        || (!stream->get().is_writable_ && !stream->get().is_readable_)) {
-      // stream is closed on our side; reset it on the other as well
-      removeStream(stream_id);
-    }
+  outcome::result<std::vector<uint8_t>> YamuxedConnection::read(size_t) {
+    return Error::FORBIDDEN_CALL;
   }
 
-  void YamuxedConnectioncloseStreamForWrite(StreamId stream_id) {
-    auto stream = findStream(stream_id);
-    if (stream) {
-      stream->get().is_writable_ = false;
-    }
-    if (!stream
-        || (!stream->get().is_writable_ && !stream->get().is_readable_)) {
-      // stream is closed entirely on our side; reset it on the other as well
-      removeStream(stream_id);
-    } else {
-      // tell other side not to wait for messages from us anymore
-      write(closeStreamMsg(stream_id),
-            [t = shared_from_this(), stream_id](auto &&ec, auto &&n) {
-              if (ec) {
-                t->logger_->error(
-                    "could not write close stream message for stream_id {} "
-                    "with error {}",
-                    stream_id, ec.message());
-              }
-            });
-    }
+  outcome::result<std::vector<uint8_t>> YamuxedConnection::readSome(size_t) {
+    return Error::FORBIDDEN_CALL;
   }
 
-  void YamuxedConnectionremoveStream(StreamId stream_id) {
-    write(resetStreamMsg(stream_id),
-          [t = shared_from_this(), stream_id](auto &&ec, auto && /* unused */) {
-            if (ec) {
-              t->logger_->error(
-                  "could not write reset stream message for stream_id {} with "
-                  "error {}",
-                  stream_id, ec.message());
-            }
-          });
-    streams_.erase(stream_id);
+  outcome::result<size_t> YamuxedConnection::read(gsl::span<uint8_t>) {
+    return Error::FORBIDDEN_CALL;
   }
 
-  bool YamuxedConnectionprocessHeader() {
+  outcome::result<size_t> YamuxedConnection::readSome(gsl::span<uint8_t>) {
+    return Error::FORBIDDEN_CALL;
+  }
+
+  outcome::result<void> YamuxedConnection::readerLoop() {
     using FrameType = YamuxFrame::FrameType;
 
-    auto frame_opt = parseFrame(
-        gsl::make_span(static_cast<const uint8_t *>(read_buffer_.data().data()),
-                       YamuxFrame::kHeaderLength));
-    read_buffer_.consume(YamuxFrame::kHeaderLength);
-    if (!frame_opt) {
-      // could not parse the frame => client sent some nonsense, break the
-      // connection
-      write(goAwayMsg(YamuxFrame::GoAwayError::PROTOCOL_ERROR),
-            [t = shared_from_this()](auto &&ec, auto && /* unused */) {
-              if (ec) {
-                t->logger_->error(
-                    "could not write go away message with error {}",
-                    ec.message());
-              }
-            });
-      return false;
+    while (is_active_ && !connection_->isClosed()) {
+      OUTCOME_TRY(header_bytes, connection_->read(YamuxFrame::kHeaderLength));
+      auto header_opt = parseFrame(header_bytes);
+      if (!header_opt) {
+        // could not parse the frame => client sent some nonsense
+        OUTCOME_TRY(connection_->write(
+            goAwayMsg(YamuxFrame::GoAwayError::PROTOCOL_ERROR)));
+        return Error::OTHER_SIDE_ERROR;
+      }
+
+      switch (header_opt->type_) {
+        case FrameType::DATA: {
+          OUTCOME_TRY(processDataFrame(*header_opt));
+          break;
+        }
+        case FrameType::WINDOW_UPDATE: {
+          OUTCOME_TRY(processWindowUpdateFrame(*header_opt));
+          break;
+        }
+        case FrameType::PING: {
+          OUTCOME_TRY(processPingFrame(*header_opt));
+          break;
+        }
+        case FrameType::GO_AWAY: {
+          OUTCOME_TRY(processGoAwayFrame(*header_opt));
+          break;
+        }
+        default:
+          logger_->critical("garbage in parsed frame's type");
+          return Error::INTERNAL_ERROR;
+      }
     }
 
-    auto frame = std::move(*frame_opt);
-    switch (frame.type_) {
-      case FrameType::DATA:
-        return processDataFrame(frame);
-      case FrameType::WINDOW_UPDATE:
-        processWindowUpdateFrame(frame);
-        break;
-      case FrameType::PING:
-        processPingFrame(frame);
-        break;
-      case FrameType::GO_AWAY:
-        processGoAwayFrame(frame);
-        break;
-    }
-    return false;
+    return outcome::success();
   }
 
-  bool YamuxedConnectionprocessDataFrame(const YamuxFrame &frame) {
+  outcome::result<void> YamuxedConnection::processDataFrame(
+      const YamuxFrame &frame) {
     using Flag = YamuxFrame::Flag;
 
     auto stream_id = frame.stream_id_;
@@ -372,16 +166,17 @@ namespace libp2p::muxer {
         if (!stream) {
           // it is at least a new stream request; register it and send ack
           // message
-          registerNewStream(stream_id);
-          stream = *findStream(stream_id);
+          OUTCOME_TRY(new_stream, registerNewStream(stream_id));
+          stream = std::move(new_stream);
         }
         // process data in this frame, if there is one
-        return processData(*stream, frame);
+        return processData(stream, frame);
       }
       case Flag::ACK: {
         // can be ack of a new stream, just data or both
-        if (auto stream = processAck(stream_id)) {
-          return processData(*stream, frame);
+        OUTCOME_TRY(stream, processAck(stream_id));
+        if (stream) {
+          return processData(stream, frame);
         }
         break;
       }
@@ -391,11 +186,15 @@ namespace libp2p::muxer {
       case Flag::RST:
         removeStream(stream_id);
         break;
+      default:
+        logger_->critical("garbage in parsed frame's flag");
+        return Error::INTERNAL_ERROR;
     }
-    return false;
+    return outcome::success();
   }
 
-  void YamuxedConnectionprocessWindowUpdateFrame(const YamuxFrame &frame) {
+  outcome::result<void> YamuxedConnection::processWindowUpdateFrame(
+      const YamuxFrame &frame) {
     using Flag = YamuxFrame::Flag;
 
     auto stream_id = frame.stream_id_;
@@ -405,127 +204,147 @@ namespace libp2p::muxer {
         auto stream = findStream(stream_id);
         if (stream) {
           // this stream is already opened => window update
-          stream->get().window_size_ = frame.length_;
+          stream->window_size_ = frame.length_;
         } else {
           // no such stream found => it's a creation of a new stream
-          registerNewStream(stream_id);
+          OUTCOME_TRY(registerNewStream(stream_id));
         }
         break;
       }
       case Flag::ACK: {
-        processAck(stream_id);
+        OUTCOME_TRY(processAck(stream_id));
         break;
       }
       case Flag::FIN: {
-        // stream was closed from the other side; still, we can write to it,
-        // but new messages will not come
         closeStreamForRead(stream_id);
         break;
       }
       case Flag::RST:
-        // close the stream (but not connection) entirely
         removeStream(stream_id);
         break;
+      default:
+        logger_->critical("garbage in parsed frame's flag");
+        return Error::INTERNAL_ERROR;
+    }
+    return outcome::success();
+  }
+
+  outcome::result<void> YamuxedConnection::processPingFrame(
+      const YamuxFrame &frame) {
+    OUTCOME_TRY(connection_->write(pingResponseMsg(frame.length_)));
+    return outcome::success();
+  }
+
+  outcome::result<void> YamuxedConnection::processGoAwayFrame(
+      const YamuxFrame &frame) {
+    OUTCOME_TRY(close());
+    return outcome::success();
+  }
+
+  std::shared_ptr<YamuxStream> YamuxedConnection::findStream(
+      StreamId stream_id) {
+    auto stream = streams_.find(stream_id);
+    if (stream == streams_.end()) {
+      return nullptr;
+    }
+    return stream->second;
+  }
+
+  outcome::result<std::shared_ptr<YamuxStream>>
+  YamuxedConnection::registerNewStream(StreamId stream_id) {
+    OUTCOME_TRY(connection_->write(ackStreamMsg(stream_id)));
+
+    auto new_stream =
+        std::make_shared<YamuxStream>(shared_from_this(), stream_id);
+    streams_.insert({stream_id, new_stream});
+    new_stream_handler_(new_stream);
+    return outcome::success();
+  }
+
+  outcome::result<void> YamuxedConnection::processData(
+      const std::shared_ptr<YamuxStream> &stream, const YamuxFrame &frame) {
+    auto data_length = frame.length_;
+    if (data_length == 0) {
+      return outcome::success();
+    }
+
+    OUTCOME_TRY(data_bytes, connection_->read(data_length));
+    stream->commitData(std::move(data_bytes));
+    return outcome::success();
+  }
+
+  outcome::result<std::shared_ptr<YamuxStream>> YamuxedConnection::processAck(
+      StreamId stream_id) {
+    // acknowledge of start of a new stream; if we don't have such a stream,
+    // a reset should be sent in order to notify the other side about the
+    // problem
+    if (auto stream = findStream(stream_id)) {
+      return stream;
+    }
+    OUTCOME_TRY(connection_->write(resetStreamMsg(stream_id)));
+    return nullptr;
+  }
+
+  void YamuxedConnection::closeStreamForRead(StreamId stream_id) {
+    if (auto stream = findStream(stream_id)) {
+      if (!stream->is_writable_) {
+        removeStream(stream_id);
+        return;
+      }
+      stream->is_readable_ = false;
     }
   }
 
-  void YamuxedConnectionprocessPingFrame(const YamuxFrame &frame) {
-    write(pingResponseMsg(frame.length_),
-          [t = shared_from_this(), stream_id = frame.stream_id_](auto &&ec,
-                                                                 auto &&n) {
-            if (ec) {
-              t->logger_->error(
-                  "cannot send ping message to stream with id {} and error {}",
-                  std::to_string(stream_id), ec.message());
-            }
-          });
+  void YamuxedConnection::closeStreamForWrite(StreamId stream_id) {
+    if (auto stream = findStream(stream_id)) {
+      if (!stream->is_readable_) {
+        removeStream(stream_id);
+        return;
+      }
+      stream->is_writable_ = false;
+    }
   }
 
-  void YamuxedConnectionprocessGoAwayFrame(const YamuxFrame &frame) {
-    close();
+  void YamuxedConnection::removeStream(StreamId stream_id) {
+    if (auto stream = findStream(stream_id)) {
+      streams_.erase(stream_id);
+      stream->resetStream();
+    }
+  }
+
+  YamuxedConnection::StreamId YamuxedConnection::getNewStreamId() {
+    last_created_stream_id_ += 2;
+    return last_created_stream_id_;
   }
 
   /// YAMUX STREAM API
 
-  void YamuxedConnectionstreamReadFrameAsync(
-      StreamId stream_id,
-      stream::Stream::ReadCompletionHandler completion_handler) {
+  outcome::result<void> YamuxedConnection::streamWrite(StreamId stream_id,
+                                                       gsl::span<uint8_t> msg) {
     if (!is_active_) {
-      completion_handler(YamuxErrorStream::YAMUX_IS_CLOSED);
-      return;
+      return Error::YAMUX_IS_CLOSED;
     }
 
     auto stream_opt = findStream(stream_id);
     if (!stream_opt) {
-      completion_handler(YamuxErrorStream::NO_SUCH_STREAM);
-      return;
+      return Error::NO_SUCH_STREAM;
     }
 
-    auto &stream = stream_opt->get();
-    if (!stream.is_readable_) {
-      completion_handler(YamuxErrorStream::NOT_READABLE);
-      return;
+    if (!stream_opt->is_writable_) {
+      return Error::NOT_WRITABLE;
     }
 
-    if (!stream.buffered_messages_.empty()) {
-      auto msg = stream.buffered_messages_.front();
-      stream.buffered_messages_.pop();
-      completion_handler(std::move(msg));
-      return;
-    }
-    // if there is no message available, push the callback to the queue of
-    // callback; it will be called, when the message appears
-    stream.completion_handlers_.push(std::move(completion_handler));
+    OUTCOME_TRY(connection_->write(dataMsg(stream_id, msg)));
+    return outcome::success();
   }
 
-  void YamuxedConnectionstreamWriteFrameAsync(
-      StreamId stream_id, const kagome::common::Buffer &msg,
-      stream::Stream::ErrorCodeCallback error_callback) {
-    if (!is_active_) {
-      error_callback(YamuxErrorStream::YAMUX_IS_CLOSED, 0);
-      return;
-    }
-
-    auto stream_opt = findStream(stream_id);
-    if (!stream_opt) {
-      error_callback(YamuxErrorStream::NO_SUCH_STREAM, 0);
-      return;
-    }
-
-    if (!stream_opt->get().is_writable_) {
-      error_callback(YamuxErrorStream::NOT_WRITABLE, 0);
-      return;
-    }
-
-    write(dataMsg(stream_id, msg), std::move(error_callback));
-  }
-
-  void YamuxedConnectionstreamClose(StreamId stream_id) {
+  outcome::result<void> YamuxedConnection::streamClose(StreamId stream_id) {
     closeStreamForWrite(stream_id);
   }
 
-  void YamuxedConnectionstreamReset(StreamId stream_id) {
+  outcome::result<void> YamuxedConnection::streamReset(StreamId stream_id) {
+    OUTCOME_TRY(connection_->write(resetStreamMsg(stream_id)));
     removeStream(stream_id);
   }
 
-  bool YamuxedConnectionstreamIsClosedForWrite(StreamId stream_id) {
-    auto stream = findStream(stream_id);
-    if (stream) {
-      return !stream->get().is_writable_;
-    }
-    return false;
-  }
-
-  bool YamuxedConnectionstreamIsClosedForRead(StreamId stream_id) {
-    auto stream = findStream(stream_id);
-    if (stream) {
-      return !stream->get().is_readable_;
-    }
-    return false;
-  }
-
-  bool YamuxedConnectionstreamIsClosedEntirely(StreamId stream_id) {
-    return !findStream(stream_id).has_value();
-  }
-
-}  // namespace libp2p::muxer
+}  // namespace libp2p::connection

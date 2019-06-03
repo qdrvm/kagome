@@ -5,53 +5,38 @@
 
 #include "yamux_stream.hpp"
 
-namespace libp2p::stream {
+namespace libp2p::connection {
 
-  YamuxStream::YamuxStream(std::shared_ptr<muxer::Yamux> yamux,
-                           muxer::Yamux::StreamId stream_id)
-      : yamux_{std::move(yamux)}, stream_id_{stream_id} {}
+  YamuxStream::YamuxStream(std::shared_ptr<YamuxedConnection> conn,
+                           YamuxedConnection::StreamId stream_id)
+      : yamux_{std::move(conn)}, stream_id_{stream_id} {}
 
   YamuxStream::~YamuxStream() {
     this->resetStream();
   }
 
-  void YamuxStream::readAsync(ReadCompletionHandler completion_handler) const {
-    yamux_->streamReadFrameAsync(stream_id_, std::move(completion_handler));
-  }
+  outcome::result<size_t> YamuxStream::write(gsl::span<const uint8_t> in) {}
 
-  void YamuxStream::writeAsync(const kagome::common::Buffer &msg) const {
-    yamux_->streamWriteFrameAsync(
-        stream_id_, msg,
-        [](std::error_code /* unused */, size_t /* unused */) {});
-  }
+  outcome::result<size_t> YamuxStream::writeSome(gsl::span<const uint8_t> in) {}
 
-  void YamuxStream::writeAsync(const kagome::common::Buffer &msg,
-                               ErrorCodeCallback error_callback) const {
-    yamux_->streamWriteFrameAsync(stream_id_, msg, std::move(error_callback));
-  }
+  outcome::result<std::vector<uint8_t>> YamuxStream::read(size_t bytes) {}
 
-  void YamuxStream::close() {
-    yamux_->streamClose(stream_id_);
-  }
+  outcome::result<std::vector<uint8_t>> YamuxStream::readSome(size_t bytes) {}
 
-  void YamuxStream::reset() {
-    resetStream();
-  }
+  outcome::result<size_t> YamuxStream::read(gsl::span<uint8_t> buf) {}
 
-  bool YamuxStream::isClosedForWrite() const {
-    return yamux_->streamIsClosedForWrite(stream_id_);
-  }
+  outcome::result<size_t> YamuxStream::readSome(gsl::span<uint8_t> buf) {}
 
-  bool YamuxStream::isClosedForRead() const {
-    return yamux_->streamIsClosedForRead(stream_id_);
-  }
+  void YamuxStream::reset() {}
 
-  bool YamuxStream::isClosedEntirely() const {
-    return yamux_->streamIsClosedEntirely(stream_id_);
-  }
+  bool YamuxStream::isClosedForRead() const {}
 
-  void YamuxStream::resetStream() {
-    yamux_->streamReset(stream_id_);
-  }
+  bool YamuxStream::isClosedForWrite() const {}
 
-}  // namespace libp2p::stream
+  bool YamuxStream::isClosed() const {}
+
+  outcome::result<void> YamuxStream::close() {}
+
+  void YamuxStream::resetStream() {}
+
+}  // namespace libp2p::connection

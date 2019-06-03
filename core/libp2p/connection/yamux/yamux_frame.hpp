@@ -15,7 +15,7 @@ namespace libp2p::connection {
    * Header with optional data, which is sent and accepted with Yamux protocol
    */
   struct YamuxFrame {
-    using StreamId = Yamux::StreamId;
+    using StreamId = YamuxedConnection::StreamId;
     static constexpr uint32_t kHeaderLength = 12;
 
     enum class FrameType : uint8_t {

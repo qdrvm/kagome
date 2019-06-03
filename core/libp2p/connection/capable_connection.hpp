@@ -6,7 +6,6 @@
 #ifndef KAGOME_CAPABLE_CONNECTION_HPP
 #define KAGOME_CAPABLE_CONNECTION_HPP
 
-#include "libp2p/connection/raw_connection.hpp"
 #include "libp2p/connection/secure_connection.hpp"
 #include "libp2p/connection/stream.hpp"
 
@@ -15,6 +14,15 @@ namespace libp2p::connection {
   // connection that provides basic libp2p requirements to the connection
   struct CapableConnection : public SecureConnection {
     ~CapableConnection() override = default;
+
+    /**
+     * Start a muxed connection - it will begin reading and processing the
+     * incoming data
+     * @return nothing on success, error otherwise
+     * @note method will return only if error happens or the connection is
+     * closed
+     */
+    virtual outcome::result<void> start() = 0;
 
     /**
      * @brief Opens new stream using this connection.
