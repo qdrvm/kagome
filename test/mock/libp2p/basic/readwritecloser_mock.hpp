@@ -7,6 +7,7 @@
 #define KAGOME_READWRITECLOSER_MOCK_HPP
 
 #include <gmock/gmock.h>
+#include "common/hexutil.hpp"
 #include "libp2p/basic/readwritecloser.hpp"
 
 namespace libp2p::basic {
@@ -31,5 +32,11 @@ namespace libp2p::basic {
     MOCK_METHOD1(writeSome, outcome::result<size_t>(gsl::span<const uint8_t>));
   };
 }  // namespace libp2p::basic
+
+inline std::ostream &operator<<(std::ostream &s,
+                                const std::vector<unsigned char> &v) {
+  s << kagome::common::hex_upper(v) << "\n";
+  return s;
+}
 
 #endif  // KAGOME_READWRITECLOSER_MOCK_HPP

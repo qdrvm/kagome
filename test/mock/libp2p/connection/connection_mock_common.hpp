@@ -9,7 +9,7 @@
 #include <ostream>
 #include <vector>
 
-#include <boost/functional/hash.hpp>
+#include "common/hexutil.hpp"
 #include "libp2p/crypto/key.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/peer/peer_id.hpp"
@@ -18,29 +18,29 @@
  * A couple of stream operators for values of results, without which the code
  * isn't going to compile
  */
-namespace libp2p::connection {
-  inline std::ostream &operator<<(std::ostream &s,
-                                  const std::vector<unsigned char> &v) {
-    s << boost::hash_value(v) << "\n";
-    return s;
-  }
 
-  inline std::ostream &operator<<(std::ostream &s,
-                                  const multi::Multiaddress &m) {
-    s << m.getStringAddress() << "\n";
-    return s;
-  }
+inline std::ostream &operator<<(std::ostream &s,
+                                const std::vector<unsigned char> &v) {
+  s << kagome::common::hex_upper(v) << "\n";
+  return s;
+}
 
-  inline std::ostream &operator<<(std::ostream &s,
-                                  const crypto::PublicKey &key) {
-    s << std::string(key.data.begin(), key.data.end()) << "\n";
-    return s;
-  }
+inline std::ostream &operator<<(std::ostream &s,
+                                const libp2p::multi::Multiaddress &m) {
+  s << m.getStringAddress() << "\n";
+  return s;
+}
 
-  inline std::ostream &operator<<(std::ostream &s, const peer::PeerId &p) {
-    s << p.toBase58() << "\n";
-    return s;
-  }
-}  // namespace libp2p::connection
+inline std::ostream &operator<<(std::ostream &s,
+                                const libp2p::crypto::PublicKey &key) {
+  s << kagome::common::hex_upper(key.data) << "\n";
+  return s;
+}
+
+inline std::ostream &operator<<(std::ostream &s,
+                                const libp2p::peer::PeerId &p) {
+  s << p.toBase58() << "\n";
+  return s;
+}
 
 #endif  // KAGOME_CONNECTION_MOCK_COMMON_HPP
