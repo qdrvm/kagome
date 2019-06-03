@@ -16,7 +16,7 @@ It allows encoding and decoding following data types:
 ## ScaleEncoderStream
 class ScaleEncoderStream is in charge of encoding data
 
-```
+```c++
 ScaleEncoderStream s;
 uint32_t ui32 = 123u;
 uint8_t ui8 = 234u;
@@ -35,7 +35,7 @@ OUTCOME_CATCH(s << ui32 << ui8 << str << raw_str << b << ci << vint);
 OUTCOME_CATCH(s << opt_str << opt_bool << coll_ui32 << coll_str << coll_coll_i32);
 ```
 You can now get encoded data:
-```
+```c++
 ByteArray data = s.data();
 ```
 The ```OUTCOME_CATCH``` macro catches exceptions thrown by scale codec and returns them as ```outcome::result```
@@ -43,7 +43,7 @@ The ```OUTCOME_CATCH``` macro catches exceptions thrown by scale codec and retur
 ## ScaleDecoderStream
 class ScaleEncoderStream is in charge of encoding data
 
-```
+```c++
 ByteArray bytes = {...};
 ScaleEncoderStream s(bytes);
 uint32_t ui32 = 0u;
@@ -67,14 +67,14 @@ OUTCOME_CATCH(s >> opt_str >> opt_bool >> coll_ui32 >> coll_str >> coll_coll_i32
 ## Custom types
 You may need to encode or decode custom data types, you have to define custom << and >> operators.
 Please note, that your custom data types must be default-constructible.
-```
+```c++
 struct MyType {
     int a = 0;
     std::string b;
 };
 
 ScaleEncoderStream &operator<<(ScaleEncoderStream &s, const MyType &v) {
-  return s << a << b;
+  return s << v.a << v.b;
 }
 
 ScaleDecoderStream &operator>>(ScaleDecoderStream &s, MyType &v) {
@@ -82,13 +82,13 @@ ScaleDecoderStream &operator>>(ScaleDecoderStream &s, MyType &v) {
 }
 ```
 Now you can use them in collections, optionals and variants
-```
+```c++
 std::vector<MyType> v = {{1, "asd"}, {2, "qwe"}};
 ScaleEncoderStream s;
 OUTCOME_CATCH(s << v);
 ```
 The same for ```ScaleDecoderStream```
-```
+```c++
 ByteArray data = {...};
 std::vector<MyType> v;
 ScaleDecoderStream s{data};
@@ -97,7 +97,7 @@ OUTCOME_CATCH(s >> v);
 
 ## Convenience functions
 Convenience functions 
-```
+```c++
 template<class T> 
 outcome::result<std::vector<uint8_t>> encode(T &&t);
 
@@ -110,7 +110,7 @@ outcome::result<T> decode(ScaleDecoderStream &s)
 are wrappers over ```<<``` and ```>>``` operators described above.
 
 Encoding data using ```encode``` convenience function looks as follows:
-```C/C++
+```c++
 std::vector<uint32_t> v = {1u, 2u, 3u, 4u};
 auto &&result = encode(v);
 if (!res) {
@@ -120,7 +120,7 @@ if (!res) {
 
 Decoding data using ```decode``` convenience function looks as follows:
 
-```C/C++
+```c++
 ByteArray bytes = {...};
 outcome::result<MyType> result = decode<MyType>(bytes);
 if (!result) {
@@ -128,7 +128,7 @@ if (!result) {
 }
 ```
 or
-```C/C++
+```c++
 ByteArray bytes = {...};
 ScaleDecoderStream s(bytes);
 outcome::result<MyType> result = decode<MyType>(s);
