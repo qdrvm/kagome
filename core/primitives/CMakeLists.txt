@@ -16,7 +16,7 @@ add_library(primitives
     scheduled_change.hpp
     transaction_validity.hpp
     version.hpp
-    )
+    opaque_metadata.hpp)
 
 target_link_libraries(primitives
     buffer

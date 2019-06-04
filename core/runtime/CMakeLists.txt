@@ -75,3 +75,15 @@ target_link_libraries(grandpa_api
     scale
     wasm_executor
     )
+
+add_library(metadata_api
+    metadata.hpp
+    impl/metadata_impl.hpp
+    impl/metadata_impl.cpp
+    )
+target_link_libraries(metadata_api
+    buffer
+    logger
+    scale
+    wasm_executor
+    )

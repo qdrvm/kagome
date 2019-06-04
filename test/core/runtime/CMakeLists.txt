@@ -64,3 +64,11 @@ target_link_libraries(grandpa_test
     grandpa_api
     wasm_test
     )
+
+addtest(metadata_test
+    metadata_test.cpp
+    )
+target_link_libraries(metadata_test
+    metadata_api
+    wasm_test
+    )
