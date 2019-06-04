@@ -54,6 +54,11 @@ namespace kagome::runtime {
     virtual outcome::result<common::Hash256> random_seed() = 0;
   };
 
+  template <class Stream>
+  Stream &operator>>(Stream &s, CheckInherentsResult& v) {
+    return s >> v.okay_ >> v.fatal_error_ >> v.errors_;
+  }
+
 }  // namespace kagome::runtime
 
 #endif  // KAGOME_BLOCK_BUILDER_HPP

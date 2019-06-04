@@ -135,13 +135,4 @@ namespace kagome::scale {
     ++current_index_;
     return *current_iterator_++;
   }
-
-  void ScaleDecoderStream::advance(uint64_t dist) {
-    if (not hasMore(dist)) {
-      common::raise(DecodeError::OUT_OF_BOUNDARIES);
-    }
-    current_index_ += dist;
-    std::advance(current_iterator_, dist);
-  }
-
 }  // namespace kagome::scale

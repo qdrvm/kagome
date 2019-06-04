@@ -25,7 +25,12 @@ namespace kagome::scale {
   template <class T>
   outcome::result<std::vector<uint8_t>> encode(T &&t) {
     ScaleEncoderStream s;
-    OUTCOME_CATCH((s << t))
+    try {
+      s << t;
+    } catch (std::system_error &e) {
+      return outcome::failure(e.code());
+    }
+
     return s.data();
   }
 
@@ -38,20 +43,12 @@ namespace kagome::scale {
   outcome::result<T> decode(gsl::span<const uint8_t> span) {
     T t{};
     ScaleDecoderStream s(span);
-    OUTCOME_CATCH((s >> t))
-    return t;
-  }
+    try {
+      s >> t;
+    } catch (std::system_error &e) {
+      return outcome::failure(e.code());
+    }
 
-  /**
-   * @brief when you already have a stream to decode from it
-   * @tparam T value type
-   * @param s stream reference
-   * @return decoded value or error
-   */
-  template <class T>
-  outcome::result<T> decode(ScaleDecoderStream &s) {
-    T t{};
-    OUTCOME_CATCH((s >> t))
     return t;
   }
 }  // namespace kagome::scale

@@ -31,11 +31,9 @@ namespace kagome::runtime {
 
     WasmPointer res_addr = getWasmAddr(res.geti64());
     SizeType len = getWasmLen(res.geti64());
-
     auto buffer = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(buffer);
 
-    return decode<DutyRoster>(s);
+    return decode<DutyRoster>(buffer);
   }
 
   outcome::result<std::vector<ParaId>> ParachainHostImpl::activeParachains() {
@@ -49,9 +47,7 @@ namespace kagome::runtime {
     SizeType len = getWasmLen(res.geti64());
     auto buffer = memory_->loadN(res_addr, len);
 
-    ScaleDecoderStream s(buffer);
-
-    return decode<std::vector<ParaId>>(s);
+    return decode<std::vector<ParaId>>(buffer);
   }
 
   outcome::result<std::optional<Buffer>> ParachainHostImpl::parachainHead(
@@ -72,9 +68,7 @@ namespace kagome::runtime {
     SizeType len = getWasmLen(res.geti64());
     auto buffer = memory_->loadN(res_addr, len);
 
-    ScaleDecoderStream s(buffer);
-
-    return decode<std::optional<Buffer>>(s);
+    return decode<std::optional<Buffer>>(buffer);
   }
 
   outcome::result<std::optional<Buffer>> ParachainHostImpl::parachainCode(
@@ -94,9 +88,8 @@ namespace kagome::runtime {
     WasmPointer res_addr = getWasmAddr(res.geti64());
     SizeType len = getWasmLen(res.geti64());
     auto buffer = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(buffer);
 
-    return decode<std::optional<Buffer>>(s);
+    return decode<std::optional<Buffer>>(buffer);
   }
 
   outcome::result<std::vector<ValidatorId>> ParachainHostImpl::validators() {
@@ -104,14 +97,11 @@ namespace kagome::runtime {
     OUTCOME_TRY(res,
                 executor_.call(state_code_, "ParachainHost_validators", ll));
 
-    // first 32 bits are address and second are the length (length not needed)
     WasmPointer res_addr = getWasmAddr(res.geti64());
     SizeType len = getWasmLen(res.geti64());
-
     auto buffer = memory_->loadN(res_addr, len);
-    ScaleDecoderStream stream(buffer);
 
-    return decode<std::vector<ValidatorId>>(stream);
+    return decode<std::vector<ValidatorId>>(buffer);
   }
 
 }  // namespace kagome::runtime

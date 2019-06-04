@@ -49,13 +49,9 @@ namespace kagome::runtime {
 
     WasmPointer res_addr = getWasmAddr(res.geti64());
     SizeType len = getWasmLen(res.geti64());
+    Buffer buffer = memory_->loadN(res_addr, len);
 
-    Buffer data = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(data);
-
-    OUTCOME_TRY(header, scale::decode<primitives::BlockHeader>(s));
-
-    return std::move(header);  // warning from clang-tidy without move
+    return scale::decode<primitives::BlockHeader>(buffer);
   }
 
   outcome::result<std::vector<primitives::Extrinsic>>
@@ -75,19 +71,20 @@ namespace kagome::runtime {
 
     WasmPointer res_addr = getWasmAddr(res.geti64());
     SizeType len = getWasmLen(res.geti64());
-
     auto buffer = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(buffer);
 
-    OUTCOME_TRY(decoded_res, scale::decode<std::vector<Extrinsic>>(s));
-
-    return std::move(decoded_res);
+    return scale::decode<std::vector<Extrinsic>>(buffer);
   }
 
   outcome::result<CheckInherentsResult> BlockBuilderImpl::check_inherents(
       const primitives::Block &block, const primitives::InherentData &data) {
     ScaleEncoderStream os;
-    OUTCOME_CATCH((os << block << data))
+    try {
+      os << block << data;
+    } catch (std::system_error &e) {
+      return outcome::failure(e.code());
+    }
+
     auto encoded_data = Buffer(os.data());
 
     // TODO (Harrm) PRE-98: after check for memory overflow is done, refactor it
@@ -106,11 +103,7 @@ namespace kagome::runtime {
     auto buffer = memory_->loadN(res_addr, len);
     ScaleDecoderStream s(buffer);
 
-    OUTCOME_TRY(ok, scale::decode<bool>(s));
-    OUTCOME_TRY(is_fatal, scale::decode<bool>(s));
-    OUTCOME_TRY(error_data, scale::decode<primitives::InherentData>(s));
-
-    return CheckInherentsResult{error_data, ok, is_fatal};
+    return scale::decode<CheckInherentsResult>(buffer);
   }
 
   outcome::result<common::Hash256> BlockBuilderImpl::random_seed() {
@@ -121,11 +114,9 @@ namespace kagome::runtime {
 
     WasmPointer res_addr = getWasmAddr(res.geti64());
     SizeType len = getWasmLen(res.geti64());
-
     auto buffer = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(buffer);
 
-    return scale::decode<common::Hash256>(s);
+    return scale::decode<common::Hash256>(buffer);
   }
 
 }  // namespace kagome::runtime

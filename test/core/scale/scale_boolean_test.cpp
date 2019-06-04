@@ -37,21 +37,42 @@ TEST(ScaleBoolTest, EncodeBoolSuccess) {
 }
 
 /**
+ * @brief helper structure for testing scale::decode
+ */
+struct ThreeBooleans {
+  bool b1 = false;
+  bool b2 = false;
+  bool b3 = false;
+};
+
+template <class Stream>
+Stream &operator>>(Stream &s, ThreeBooleans &v) {
+  return s >> v.b1 >> v.b2 >> v.b3;
+}
+
+
+/**
  * @given byte array containing values {0, 1, 2}
- * @when fixedwidth::decodeBool function is applied sequentially
+ * @when scale::decode function is applied sequentially
  * @then it returns false, true and kUnexpectedValue error correspondingly,
  * and in the end no more bytes left in stream
  */
-TEST(Scale, fixedwidthDecodeBool) {
+TEST(Scale, fixedwidthDecodeBoolFail) {
   auto bytes = ByteArray{0, 1, 2};
-  auto stream = ScaleDecoderStream(bytes);
-  EXPECT_OUTCOME_TRUE(res, kagome::scale::decode<bool>(stream))
-  ASSERT_FALSE(res);
-
-  EXPECT_OUTCOME_TRUE(res1, kagome::scale::decode<bool>(stream))
-  ASSERT_TRUE(res1);
-
-  EXPECT_OUTCOME_FALSE_2(err, kagome::scale::decode<bool>(stream))
+  EXPECT_OUTCOME_FALSE_2(err, kagome::scale::decode<ThreeBooleans>(bytes))
   ASSERT_EQ(err.value(), static_cast<int>(DecodeError::UNEXPECTED_VALUE));
-  ASSERT_FALSE(stream.hasMore(1));  // no more bytes left
+}
+
+/**
+ * @given byte array containing values {0, 1, 2}
+ * @when scale::decode function is applied sequentially
+ * @then it returns false, true and kUnexpectedValue error correspondingly,
+ * and in the end no more bytes left in stream
+ */
+TEST(Scale, fixedwidthDecodeBoolSuccess) {
+  auto bytes = ByteArray{0, 1, 0};
+  EXPECT_OUTCOME_TRUE(res, kagome::scale::decode<ThreeBooleans>(bytes))
+  ASSERT_EQ(res.b1, false);
+  ASSERT_EQ(res.b2, true);
+  ASSERT_EQ(res.b3, false);
 }

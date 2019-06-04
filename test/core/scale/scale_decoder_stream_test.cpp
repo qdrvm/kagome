@@ -20,7 +20,7 @@ using kagome::scale::ScaleDecoderStream;
  * @then bytes 0, 1, 2 are obtained sequentially @and next nextByte call returns
  * error
  */
-TEST(ByteArrayStreamTest, NextByteSuccessTest) {
+TEST(ScaleDecoderStreamTest, NextByteTest) {
   auto bytes = ByteArray{0, 1, 2};
   auto stream = ScaleDecoderStream{bytes};
 
@@ -34,28 +34,27 @@ TEST(ByteArrayStreamTest, NextByteSuccessTest) {
 }
 
 /**
- * @given ByteArrayStream with source ByteArray of size N
- * @when advance N is called on given ByteArrayStream
- * @then advance succeeded @and there is no next bytes
+ * @given byte array of two bytes
+ * @when taking bytes one by one
+ * @then first hasMore() answers that 2 bytes are available, but not 3
+ * then only 1 byte is available
+ * and then even 1 byte is not available, no bytes left
  */
-TEST(ByteArrayStreamTest, AdvanceSuccessTest) {
-  const size_t n = 42;
-  ByteArray bytes(n, '0');
+TEST(ScaleDecoderStreamTest, HasMoreTest) {
+  auto bytes = ByteArray{0, 1};
   auto stream = ScaleDecoderStream{bytes};
 
-  ASSERT_NO_THROW(stream.advance(bytes.size()));
+  ASSERT_TRUE(stream.hasMore(0));
+  ASSERT_TRUE(stream.hasMore(1));
+  ASSERT_TRUE(stream.hasMore(2));
+  ASSERT_FALSE(stream.hasMore(3));
+
+  ASSERT_NO_THROW(stream.nextByte());
+  ASSERT_TRUE(stream.hasMore(1));
+  ASSERT_FALSE(stream.hasMore(2));
+
+  ASSERT_NO_THROW(stream.nextByte());
   ASSERT_FALSE(stream.hasMore(1));
-}
 
-/**
- * @given ByteArrayStream with source ByteArray of size N
- * @when advance N+1 is called on given ByteArrayStream
- * @then advance is failed
- */
-TEST(ByteArrayStreamTest, AdvanceFailedTest) {
-  const size_t n = 42;
-  ByteArray bytes(n, '0');
-  auto stream = ScaleDecoderStream{bytes};
-
-  ASSERT_ANY_THROW(stream.advance(bytes.size() + 1));
+  ASSERT_ANY_THROW(stream.nextByte());
 }

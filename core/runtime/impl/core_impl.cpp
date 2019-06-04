@@ -28,11 +28,8 @@ namespace kagome::runtime {
     runtime::WasmPointer param_addr = getWasmAddr(version_long.geti64());
     runtime::SizeType param_len = getWasmLen(version_long.geti64());
     auto buffer = memory_->loadN(param_addr, param_len);
-    ScaleDecoderStream stream(buffer);
 
-    OUTCOME_TRY(version, scale::decode<primitives::Version>(stream));
-
-    return std::move(version);
+    return scale::decode<primitives::Version>(buffer);
   }
 
   outcome::result<void> CoreImpl::execute_block(
@@ -76,11 +73,9 @@ namespace kagome::runtime {
 
     runtime::WasmPointer authority_address = getWasmAddr(result_long.geti64());
     runtime::SizeType len = getWasmLen(result_long.geti64());
-
     auto buffer = memory_->loadN(authority_address, len);
-    ScaleDecoderStream stream(buffer);
 
-    return scale::decode<std::vector<primitives::AuthorityId>>(stream);
+    return scale::decode<std::vector<primitives::AuthorityId>>(buffer);
   }
 
 }  // namespace kagome::runtime
