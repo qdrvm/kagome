@@ -87,3 +87,15 @@ target_link_libraries(metadata_api
     scale
     wasm_executor
     )
+
+add_library(offchain_worker_api
+    offchain_worker.hpp
+    impl/offchain_worker_impl.hpp
+    impl/offchain_worker_impl.cpp
+    )
+target_link_libraries(offchain_worker_api
+    buffer
+    logger
+    scale
+    wasm_executor
+    )
