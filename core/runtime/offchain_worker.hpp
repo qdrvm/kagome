@@ -19,6 +19,11 @@ class OffchainWorker {
  public:
   virtual ~OffchainWorker() = default;
 
+  /**
+   * @brief calls offchain_worker method of OffchainWorker runtime api
+   * @param bn block number
+   * @return success or error
+   */
   virtual outcome::result<void> offchain_worker(BlockNumber bn) = 0;
 };
 

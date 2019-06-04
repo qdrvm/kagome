@@ -18,7 +18,8 @@ class Metadata {
   virtual ~Metadata() = default;
 
   /**
-   * @return opaque metadata object
+   * @brief calls metadata method of Metadata runtime api
+   * @return opaque metadata object or error
    */
   virtual outcome::result<OpaqueMetadata> metadata() = 0;
 

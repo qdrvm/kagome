@@ -43,6 +43,6 @@ class OffchainWorkerTest : public RuntimeTest {
  * @when dutyRoster() is invoked
  * @then successful result is returned
  */
-TEST_F(OffchainWorkerTest, OffchainWorkerTest) {
+TEST_F(OffchainWorkerTest, OffchainWorkerCallSuccess) {
   ASSERT_TRUE(api_->offchain_worker(createBlockNumber()));
 }
