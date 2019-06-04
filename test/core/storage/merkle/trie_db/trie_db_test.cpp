@@ -100,8 +100,16 @@ TEST_F(TrieTest, Remove) {
   for (auto &entry : data) {
     EXPECT_OUTCOME_TRUE_void(_, trie.put(entry.first, entry.second));
   }
+
   EXPECT_OUTCOME_TRUE_void(_, trie.remove(data[2].first));
+  EXPECT_OUTCOME_TRUE_void(__, trie.remove(data[3].first));
+  EXPECT_OUTCOME_TRUE_void(___, trie.remove(data[4].first));
+
   ASSERT_FALSE(trie.contains(data[2].first));
+  ASSERT_FALSE(trie.contains(data[3].first));
+  ASSERT_FALSE(trie.contains(data[4].first));
+  ASSERT_TRUE(trie.contains(data[0].first));
+  ASSERT_TRUE(trie.contains(data[1].first));
 }
 
 TEST_F(TrieTest, Replace) {

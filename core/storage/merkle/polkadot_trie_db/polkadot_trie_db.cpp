@@ -285,10 +285,8 @@ namespace kagome::storage::merkle {
           OUTCOME_TRY(n, deleteNode(child, subbuffer(key_nibbles, length + 1)));
           newRoot = parent;
           parent_as_branch->children[key_nibbles[length]] = n;
-          OUTCOME_TRY(storeNode(*parent_as_branch));
         }
         OUTCOME_TRY(n, handleDeletion(parent_as_branch, newRoot, key_nibbles));
-        OUTCOME_TRY(storeNode(*n));
         return n;
       }
       case T::Leaf:
@@ -307,10 +305,11 @@ namespace kagome::storage::merkle {
     auto newRoot = std::move(node);
     auto length = getCommonPrefixLength(key_nibbles, parent->key_nibbles);
     auto bitmap = parent->childrenBitmap();
+    // turn branch node left with no children to a leaf node
     if (bitmap == 0 && !parent->value.empty()) {
       newRoot = std::make_shared<LeafNode>(subbuffer(key_nibbles, 0, length),
                                            parent->value);
-    } else if (parent->childrenNum() && parent->value.empty()) {
+    } else if (parent->childrenNum() == 1 && parent->value.empty()) {
       size_t idx = 0;
       for (idx = 0; idx < 16; idx++) {
         bitmap >>= 1u;
