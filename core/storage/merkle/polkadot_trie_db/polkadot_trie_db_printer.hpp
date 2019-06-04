@@ -8,6 +8,11 @@
 
 #include "storage/merkle/polkadot_trie_db/polkadot_trie_db.hpp"
 
+
+/**
+ * IMPORTANT: This module is meant only for test usage and is not exception-safe
+ */
+
 namespace kagome::storage::merkle {
 
   namespace {
@@ -22,37 +27,46 @@ namespace kagome::storage::merkle {
 
   template <typename Stream>
   Stream &operator<<(Stream &s, const PolkadotTrieDb &trie) {
-    s << *trie.root_;
+    if(trie.root_.has_value()) {
+      auto root = trie.retrieveNode(trie.root_.value()).value();
+      printNode(s, root, trie);
+    }
     return s;
   }
 
   template <typename Stream>
-  Stream &operator<<(Stream &s, const PolkadotNode &node) {
+  Stream &printNode(Stream &s, PolkadotTrieDb::NodePtr node, const PolkadotTrieDb &trie) {
     using T = PolkadotNode::Type;
-    switch (node.getTrieType()) {
+    switch (node->getTrieType()) {
       case T::BranchWithValue:
       case T::BranchEmptyValue: {
-        auto &branch = dynamic_cast<BranchNode const &>(node);
-        s << "(branch) key_nibbles: <" << nibblesToHex(node.key_nibbles)
-          << "> value: " << node.value.toHex()
+        auto branch = std::dynamic_pointer_cast<BranchNode>(node);
+        s << "(branch) key_nibbles: <" << node->key_nibbles.toHex()
+          << "> value: " << node->value.toHex()
           << "\n";
         s << "children: ";
-        for (size_t i = 0; i < branch.children.size(); i++) {
-          if (branch.children[i]) {
+        for (size_t i = 0; i < branch->children.size(); i++) {
+          if (branch->children[i]) {
             s << std::hex << i;
           }
         }
         s << "\n";
-        for (auto &child : branch.children) {
+        for (size_t i = 0; i < branch->children.size(); i++) {
+          auto child = branch->children.at(i);
           if (child) {
-            s << *child;
+            if(not child->isDummy()) {
+              printNode(s, child, trie);
+            } else {
+              auto child = trie.retrieveChild(branch, i).value();
+              printNode(s, child, trie);
+            }
           }
         }
         break;
       }
       case T::Leaf:
-        s << "(leaf) key_nibbles: <" << nibblesToHex(node.key_nibbles)
-          << "> value: " << node.value.toHex()
+        s << "(leaf) key_nibbles: <" << node->key_nibbles.toHex()
+          << "> value: " << node->value.toHex()
           << "\n";
         break;
 

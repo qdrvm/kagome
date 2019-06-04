@@ -23,8 +23,12 @@ namespace kagome::storage::merkle {
     using NodePtr = std::shared_ptr<PolkadotNode>;
     using BranchPtr = std::shared_ptr<BranchNode>;
 
+    // to output the trie into a stream
     template <typename Stream>
     friend Stream &operator<<(Stream &s, const PolkadotTrieDb &trie);
+    template <typename Stream>
+    friend Stream &printNode(Stream &s, NodePtr node,
+                             const PolkadotTrieDb &trie);
 
    public:
     enum class Error { INVALID_NODE_TYPE = 1 };
