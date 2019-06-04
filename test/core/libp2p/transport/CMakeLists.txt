@@ -12,6 +12,7 @@ addtest(libp2p_tcp_integration_test
 target_link_libraries(libp2p_tcp_integration_test
     ufiber
     multiaddress
+    libp2p_peer_id
     )
 
 addtest(libp2p_transport_parser_test

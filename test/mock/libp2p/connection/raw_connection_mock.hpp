@@ -9,6 +9,7 @@
 #include "libp2p/connection/raw_connection.hpp"
 
 #include <gmock/gmock.h>
+#include "mock/libp2p/connection/connection_mock_common.hpp"
 
 namespace libp2p::connection {
 

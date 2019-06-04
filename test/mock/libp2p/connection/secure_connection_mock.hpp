@@ -8,6 +8,7 @@
 
 #include <gmock/gmock.h>
 #include "libp2p/connection/secure_connection.hpp"
+#include "mock/libp2p/connection/connection_mock_common.hpp"
 
 namespace libp2p::connection {
   class SecureConnectionMock : public SecureConnection {
