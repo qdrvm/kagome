@@ -19,28 +19,32 @@
  * isn't going to compile
  */
 
-inline std::ostream &operator<<(std::ostream &s,
-                                const std::vector<unsigned char> &v) {
-  s << kagome::common::hex_upper(v) << "\n";
-  return s;
-}
+namespace std {
 
-inline std::ostream &operator<<(std::ostream &s,
-                                const libp2p::multi::Multiaddress &m) {
-  s << m.getStringAddress() << "\n";
-  return s;
-}
+  inline std::ostream &operator<<(std::ostream &s,
+                                  const std::vector<unsigned char> &v) {
+    s << kagome::common::hex_upper(v) << "\n";
+    return s;
+  }
 
-inline std::ostream &operator<<(std::ostream &s,
-                                const libp2p::crypto::PublicKey &key) {
-  s << kagome::common::hex_upper(key.data) << "\n";
-  return s;
-}
+  inline std::ostream &operator<<(std::ostream &s,
+                                  const libp2p::multi::Multiaddress &m) {
+    s << m.getStringAddress() << "\n";
+    return s;
+  }
 
-inline std::ostream &operator<<(std::ostream &s,
-                                const libp2p::peer::PeerId &p) {
-  s << p.toBase58() << "\n";
-  return s;
-}
+  inline std::ostream &operator<<(std::ostream &s,
+                                  const libp2p::crypto::PublicKey &key) {
+    s << kagome::common::hex_upper(key.data) << "\n";
+    return s;
+  }
+
+  inline std::ostream &operator<<(std::ostream &s,
+                                  const libp2p::peer::PeerId &p) {
+    s << p.toBase58() << "\n";
+    return s;
+  }
+
+}  // namespace std
 
 #endif  // KAGOME_CONNECTION_MOCK_COMMON_HPP
