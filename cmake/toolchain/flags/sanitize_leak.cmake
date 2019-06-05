@@ -9,11 +9,14 @@ endif ()
 
 include(${CMAKE_CURRENT_LIST_DIR}/../../add_cache_flag.cmake)
 
-add_cache_flag(CMAKE_CXX_FLAGS "-fsanitize=leak")
-add_cache_flag(CMAKE_CXX_FLAGS "-g")
-
-add_cache_flag(CMAKE_C_FLAGS "-fsanitize=leak")
-add_cache_flag(CMAKE_C_FLAGS "-g")
+set(FLAGS
+    -fsanitize=leak
+    -g
+    )
+foreach(FLAG IN FLAGS)
+  add_cache_flag(CMAKE_CXX_FLAGS ${FLAG})
+  add_cache_flag(CMAKE_C_FLAGS ${FLAG})
+endforeach()
 
 set(ENV{LSAN_OPTIONS} detect_leaks=1)
 
