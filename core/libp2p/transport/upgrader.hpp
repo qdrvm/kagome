@@ -24,14 +24,15 @@ namespace libp2p::transport {
   struct Upgrader {
     virtual ~Upgrader() = default;
 
+    using RawSPtr = std::shared_ptr<connection::RawConnection>;
+    using SecureSPtr = std::shared_ptr<connection::SecureConnection>;
+    using CapableSPtr = std::shared_ptr<connection::CapableConnection>;
+
     // upgrade raw connection to secure connection
-    virtual std::shared_ptr<connection::SecureConnection> upgradeToSecure(
-        std::shared_ptr<connection::RawConnection> conn) = 0;
+    virtual outcome::result<SecureSPtr> upgradeToSecure(RawSPtr conn) = 0;
 
     // upgrade secure connection to capable connection
-    virtual std::shared_ptr<connection::CapableConnection> upgradeToMuxed(
-        std::shared_ptr<connection::SecureConnection> conn,
-        std::function<connection::Stream::Handler> f) = 0;
+    virtual outcome::result<CapableSPtr> upgradeToMuxed(SecureSPtr conn) = 0;
   };
 
 }  // namespace libp2p::transport

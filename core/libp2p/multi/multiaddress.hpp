@@ -131,7 +131,8 @@ namespace libp2p::multi {
      * @return list of pairs with a protocol as the first element and the value
      * as the second one
      */
-    std::vector<std::pair<Protocol, std::string>> getProtocolsWithValues() const;
+    std::vector<std::pair<Protocol, std::string>> getProtocolsWithValues()
+        const;
 
     bool operator==(const Multiaddress &other) const;
 

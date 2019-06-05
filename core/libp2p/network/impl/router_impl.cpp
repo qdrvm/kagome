@@ -93,9 +93,3 @@ namespace libp2p::network {
   }
 
 }  // namespace libp2p::network
-
-std::ostream &std::operator<<(std::ostream &stream,
-                              const std::vector<unsigned char> &vec) {
-  stream << std::string(vec.begin(), vec.end()) << "\n";
-  return stream;
-}

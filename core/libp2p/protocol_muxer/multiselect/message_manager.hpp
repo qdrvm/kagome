@@ -26,24 +26,23 @@ namespace libp2p::protocol_muxer {
       enum class MessageType { OPENING, PROTOCOL, PROTOCOLS, LS, NA };
 
       /// type of the message
-      MessageType type_;
+      MessageType type;
       /// zero or more protocols in that message
-      std::vector<std::string> protocols_{};
+      std::vector<std::string> protocols{};
     };
 
     struct ProtocolsMessageHeader {
-      uint64_t size_of_protocols_;
-      uint64_t number_of_protocols_;
+      uint64_t size_of_protocols;
+      uint64_t number_of_protocols;
     };
 
     enum class ParseError {
-      MSG_IS_TOO_SHORT = 1,
-      VARINT_IS_EXPECTED,
+      VARINT_IS_EXPECTED = 1,
       MSG_LENGTH_IS_INCORRECT,
       MSG_IS_ILL_FORMED
     };
 
-    static outcome::result<MultiselectMessage> parseConstantMsg(
+    static std::optional<MultiselectMessage> parseConstantMsg(
         gsl::span<const uint8_t> bytes);
 
     static outcome::result<ProtocolsMessageHeader> parseProtocolsHeader(
@@ -53,7 +52,7 @@ namespace libp2p::protocol_muxer {
         gsl::span<const uint8_t> bytes, uint64_t expected_protocols_number);
 
     static outcome::result<MultiselectMessage> parseProtocol(
-        gsl::span<const uint8_t> bytes, uint64_t protocol_size);
+        gsl::span<const uint8_t> bytes);
 
     /**
      * Create an opening message
