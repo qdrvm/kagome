@@ -69,16 +69,19 @@ namespace kagome::common {
      * @brief Lexicographical comparison of two buffers
      */
     bool operator==(const Buffer &b) const noexcept;
+    bool operator!=(const Buffer &b) const noexcept;
 
     /**
      * @brief Lexicographical comparison of buffer and vector of bytes
      */
     bool operator==(const std::vector<uint8_t> &b) const noexcept;
+    bool operator!=(const std::vector<uint8_t> &b) const noexcept;
 
     /**
      * @brief Lexicographical comparison of buffer and vector of bytes
      */
     bool operator==(gsl::span<const uint8_t> s) const noexcept;
+    bool operator!=(gsl::span<const uint8_t> s) const noexcept;
 
     /**
      * @brief Iterator, which points to begin of this buffer.

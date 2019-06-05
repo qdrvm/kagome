@@ -53,7 +53,7 @@ namespace kagome::storage::merkle {
     outcome::result<std::pair<PolkadotNode::Type, size_t>> decodeHeader(
         common::ByteStream &stream) const;
 
-    outcome::result<Buffer> decodePartialKey(size_t length,
+    outcome::result<Buffer> decodePartialKey(size_t nibbles_num,
                                              common::ByteStream &stream) const;
 
     outcome::result<std::shared_ptr<Node>> decodeBranch(
