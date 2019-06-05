@@ -12,27 +12,12 @@ include(${CMAKE_CURRENT_LIST_DIR}/../../add_cache_flag.cmake)
 add_cache_flag(CMAKE_CXX_FLAGS "-fsanitize=address")
 add_cache_flag(CMAKE_CXX_FLAGS "-fsanitize-address-use-after-scope")
 add_cache_flag(CMAKE_CXX_FLAGS "-g")
-
-set(
-    CMAKE_CXX_FLAGS_RELEASE
-    "-O1 -DNDEBUG"
-    CACHE
-    STRING
-    "C++ compiler flags"
-    FORCE
-)
+add_cache_flag(CMAKE_CXX_FLAGS "-O1")
+add_cache_flag(CMAKE_CXX_FLAGS "-DNDEBUG")
 
 add_cache_flag(CMAKE_C_FLAGS "-fsanitize=address")
 add_cache_flag(CMAKE_C_FLAGS "-fsanitize-address-use-after-scope")
-add_cache_flag(CMAKE_C_FLAGS "-g")
+add_cache_flag(CMAKE_C_FLAGS "-O1")
+add_cache_flag(CMAKE_C_FLAGS "-DNDEBUG")
 
-set(
-    CMAKE_C_FLAGS_RELEASE
-    "-O1 -DNDEBUG"
-    CACHE
-    STRING
-    "C compiler flags"
-    FORCE
-)
-
-set(ENV{ASAN_OPTIONS} detect_leaks=1)
+set(ENV{ASAN_OPTIONS} verbosity=1:debug=1:detect_leaks=1:check_initialization_order=1:alloc_dealloc_mismatch=true:use_odr_indicator=true)
