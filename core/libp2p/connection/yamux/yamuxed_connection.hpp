@@ -34,7 +34,6 @@ namespace libp2p::connection {
 
     enum class Error {
       NO_SUCH_STREAM = 1,
-      NOT_WRITABLE,
       YAMUX_IS_CLOSED,
       FORBIDDEN_CALL,
       OTHER_SIDE_ERROR,
@@ -90,11 +89,10 @@ namespace libp2p::connection {
     outcome::result<size_t> readSome(gsl::span<uint8_t> buf) override;
 
     /**
-     * Start a read-loop, which is returned only when error occurs, or
-     * connection closes
+     * Read and process one frame
      * @return nothing or error
      */
-    outcome::result<void> readerLoop();
+    outcome::result<void> readFrame();
 
     /**
      * Process frame of data type
@@ -190,12 +188,14 @@ namespace libp2p::connection {
 
     friend class YamuxStream;
 
-    outcome::result<void> streamWrite(StreamId stream_id,
-                                      gsl::span<uint8_t> msg);
+    outcome::result<void> streamReadFrame();
+
+    outcome::result<size_t> streamWrite(StreamId stream_id,
+                                        gsl::span<const uint8_t> msg);
 
     outcome::result<void> streamClose(StreamId stream_id);
 
-    outcome::result<void> streamReset(StreamId stream_id);
+    void streamReset(StreamId stream_id);
   };
 }  // namespace libp2p::connection
 

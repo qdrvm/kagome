@@ -5,6 +5,8 @@
 
 #include "libp2p/connection/yamux/yamuxed_connection.hpp"
 
+#include <future>
+
 #include "libp2p/connection/yamux/yamux_frame.hpp"
 #include "libp2p/connection/yamux/yamux_stream.hpp"
 
@@ -13,8 +15,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, YamuxedConnection::Error, e) {
   switch (e) {
     case ErrorType::NO_SUCH_STREAM:
       return "no such stream was found; maybe, it is closed";
-    case ErrorType::NOT_WRITABLE:
-      return "the stream is closed for writes";
     case ErrorType::YAMUX_IS_CLOSED:
       return "this Yamux instance is closed";
     case ErrorType::FORBIDDEN_CALL:
@@ -50,7 +50,7 @@ namespace libp2p::connection {
   }
 
   outcome::result<void> YamuxedConnection::start() {
-    return readerLoop();
+    return readerFrame();
   }
 
   peer::PeerId YamuxedConnection::localPeer() const {
@@ -115,10 +115,10 @@ namespace libp2p::connection {
     return Error::FORBIDDEN_CALL;
   }
 
-  outcome::result<void> YamuxedConnection::readerLoop() {
+  outcome::result<void> YamuxedConnection::readFrame() {
     using FrameType = YamuxFrame::FrameType;
 
-    while (is_active_ && !connection_->isClosed()) {
+    if (is_active_ && !connection_->isClosed()) {
       OUTCOME_TRY(header_bytes, connection_->read(YamuxFrame::kHeaderLength));
       auto header_opt = parseFrame(header_bytes);
       if (!header_opt) {
@@ -149,6 +149,8 @@ namespace libp2p::connection {
           logger_->critical("garbage in parsed frame's type");
           return Error::INTERNAL_ERROR;
       }
+    } else {
+      return Error::YAMUX_IS_CLOSED;
     }
 
     return outcome::success();
@@ -319,8 +321,12 @@ namespace libp2p::connection {
 
   /// YAMUX STREAM API
 
-  outcome::result<void> YamuxedConnection::streamWrite(StreamId stream_id,
-                                                       gsl::span<uint8_t> msg) {
+  outcome::result<void> YamuxedConnection::streamReadFrame() {
+    return readFrame();
+  }
+
+  outcome::result<size_t> YamuxedConnection::streamWrite(
+      StreamId stream_id, gsl::span<const uint8_t> msg) {
     if (!is_active_) {
       return Error::YAMUX_IS_CLOSED;
     }
@@ -330,20 +336,20 @@ namespace libp2p::connection {
       return Error::NO_SUCH_STREAM;
     }
 
-    if (!stream_opt->is_writable_) {
-      return Error::NOT_WRITABLE;
-    }
-
-    OUTCOME_TRY(connection_->write(dataMsg(stream_id, msg)));
-    return outcome::success();
+    OUTCOME_TRY(written, connection_->write(dataMsg(stream_id, msg)));
+    return written - YamuxFrame::kHeaderLength;
   }
 
   outcome::result<void> YamuxedConnection::streamClose(StreamId stream_id) {
     closeStreamForWrite(stream_id);
   }
 
-  outcome::result<void> YamuxedConnection::streamReset(StreamId stream_id) {
-    OUTCOME_TRY(connection_->write(resetStreamMsg(stream_id)));
+  void YamuxedConnection::streamReset(StreamId stream_id) {
+    auto written_res = connection_->write(resetStreamMsg(stream_id));
+    if (!written_res) {
+      logger_->error("cannot reset a stream: {}",
+                     written_res.error().message());
+    }
     removeStream(stream_id);
   }
 
