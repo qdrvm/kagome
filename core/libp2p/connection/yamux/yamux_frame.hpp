@@ -51,8 +51,7 @@ namespace libp2p::connection {
      */
     static kagome::common::Buffer frameBytes(
         uint8_t version, FrameType type, Flag flag, uint32_t stream_id,
-        uint32_t length,
-        const kagome::common::Buffer &data = kagome::common::Buffer{});
+        uint32_t length, gsl::span<const uint8_t> data = {});
   };
 
   /**
@@ -104,7 +103,7 @@ namespace libp2p::connection {
    * @return bytes of the message
    */
   kagome::common::Buffer dataMsg(YamuxFrame::StreamId stream_id,
-                                 const kagome::common::Buffer &data);
+                                 gsl::span<const uint8_t> data);
 
   /**
    * Create a message, which breaks a connection with a peer
@@ -119,6 +118,6 @@ namespace libp2p::connection {
    * @return frame object, if convertation is successful, none otherwise
    */
   std::optional<YamuxFrame> parseFrame(gsl::span<const uint8_t> frame_bytes);
-}  // namespace libp2p::muxer
+}  // namespace libp2p::connection
 
 #endif  // KAGOME_YAMUX_FRAME_HPP

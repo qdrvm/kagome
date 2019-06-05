@@ -49,10 +49,6 @@ namespace libp2p::connection {
     return created_stream;
   }
 
-  outcome::result<void> YamuxedConnection::start() {
-    return readerFrame();
-  }
-
   peer::PeerId YamuxedConnection::localPeer() const {
     return connection_->localPeer();
   }
@@ -297,14 +293,18 @@ namespace libp2p::connection {
     }
   }
 
-  void YamuxedConnection::closeStreamForWrite(StreamId stream_id) {
+  outcome::result<void> YamuxedConnection::closeStreamForWrite(
+      StreamId stream_id) {
     if (auto stream = findStream(stream_id)) {
+      OUTCOME_TRY(connection_->write(closeStreamMsg(stream_id)));
       if (!stream->is_readable_) {
         removeStream(stream_id);
-        return;
+      } else {
+        stream->is_writable_ = false;
       }
-      stream->is_writable_ = false;
+      return outcome::success();
     }
+    return Error::NO_SUCH_STREAM;
   }
 
   void YamuxedConnection::removeStream(StreamId stream_id) {
@@ -341,7 +341,7 @@ namespace libp2p::connection {
   }
 
   outcome::result<void> YamuxedConnection::streamClose(StreamId stream_id) {
-    closeStreamForWrite(stream_id);
+    return closeStreamForWrite(stream_id);
   }
 
   void YamuxedConnection::streamReset(StreamId stream_id) {

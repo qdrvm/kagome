@@ -16,15 +16,6 @@ namespace libp2p::connection {
     ~CapableConnection() override = default;
 
     /**
-     * Start a muxed connection - it will begin reading and processing the
-     * incoming data
-     * @return nothing on success, error otherwise
-     * @note method will return only if error happens or the connection is
-     * closed
-     */
-    virtual outcome::result<void> start() = 0;
-
-    /**
      * @brief Opens new stream using this connection.
      */
     virtual outcome::result<std::shared_ptr<Stream>> newStream() = 0;

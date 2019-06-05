@@ -29,9 +29,10 @@ namespace {
 }  // namespace
 
 namespace libp2p::connection {
-  kagome::common::Buffer YamuxFrame::frameBytes(
-      uint8_t version, FrameType type, Flag flag, uint32_t stream_id,
-      uint32_t length, const kagome::common::Buffer &data) {
+  kagome::common::Buffer YamuxFrame::frameBytes(uint8_t version, FrameType type,
+                                                Flag flag, uint32_t stream_id,
+                                                uint32_t length,
+                                                gsl::span<const uint8_t> data) {
     // TODO(akvinikym) PRE-118 15.04.19: refactor with NetworkOrderEncoder, when
     // implemented
     kagome::common::Buffer buffer{};
@@ -42,7 +43,7 @@ namespace libp2p::connection {
                                          static_cast<uint16_t>(flag)),
                    stream_id),
                length)
-        .putBuffer(data);
+        .put(data);
   }
 
   kagome::common::Buffer newStreamMsg(YamuxFrame::StreamId stream_id) {
@@ -82,7 +83,7 @@ namespace libp2p::connection {
   }
 
   kagome::common::Buffer dataMsg(YamuxFrame::StreamId stream_id,
-                                 const kagome::common::Buffer &data) {
+                                 gsl::span<const uint8_t> data) {
     return YamuxFrame::frameBytes(YamuxFrame::kDefaultVersion,
                                   YamuxFrame::FrameType::DATA,
                                   YamuxFrame::Flag::SYN, stream_id,
@@ -159,4 +160,4 @@ namespace libp2p::connection {
 
     return frame;
   }
-}  // namespace libp2p::muxer
+}  // namespace libp2p::connection

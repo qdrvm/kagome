@@ -60,8 +60,6 @@ namespace libp2p::connection {
 
     outcome::result<std::shared_ptr<Stream>> newStream() override;
 
-    outcome::result<void> start() override;
-
     peer::PeerId localPeer() const override;
 
     peer::PeerId remotePeer() const override;
@@ -160,8 +158,9 @@ namespace libp2p::connection {
     /**
      * Close stream for writes from this side
      * @param stream_id to be closed
+     * @return nothing or error
      */
-    void closeStreamForWrite(StreamId stream_id);
+    outcome::result<void> closeStreamForWrite(StreamId stream_id);
 
     /**
      * Close stream entirely
@@ -201,4 +200,4 @@ namespace libp2p::connection {
 
 OUTCOME_HPP_DECLARE_ERROR(libp2p::connection, YamuxedConnection::Error)
 
-#endif  // KAGOME_YAMUX_IMPL_HPP
+#endif  // KAGOME_YAMUXED_CONNECTION_HPP
