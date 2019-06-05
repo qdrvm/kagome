@@ -27,7 +27,7 @@ namespace kagome::storage::merkle {
      * remove storage entries which keys start with given prefix
      * @param buf
      */
-    virtual void clearPrefix(const common::Buffer &buf) = 0;
+    virtual outcome::result<void> clearPrefix(const common::Buffer &buf) = 0;
   };
 
 }  // namespace kagome::storage::merkle

@@ -40,7 +40,7 @@ namespace kagome::storage::merkle {
     ~PolkadotTrieDb() override = default;
 
     common::Buffer getRootHash() const override;
-    void clearPrefix(const common::Buffer &buf) override;
+    outcome::result<void> clearPrefix(const common::Buffer &prefix) override;
 
     std::unique_ptr<WriteBatch> batch() override;
 
@@ -70,7 +70,9 @@ namespace kagome::storage::merkle {
     outcome::result<NodePtr> handleDeletion(const BranchPtr &parent,
                                             NodePtr node,
                                             const common::Buffer &key_nibbles);
-
+    // remove a node with its children
+    outcome::result<NodePtr> detachNode(const NodePtr &parent,
+                                     const common::Buffer &prefix_nibbles);
     outcome::result<NodePtr> getNode(NodePtr parent,
                                      const common::Buffer &key_nibbles) const;
 

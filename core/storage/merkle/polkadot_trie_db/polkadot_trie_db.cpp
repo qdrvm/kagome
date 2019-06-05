@@ -31,6 +31,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::merkle, PolkadotTrieDb::Error, e) {
     case E::INVALID_NODE_TYPE:
       return "The node type is invalid";
   }
+  return "Unknown error";
 }
 
 namespace kagome::storage::merkle {
@@ -68,12 +69,30 @@ namespace kagome::storage::merkle {
   }
 
   common::Buffer PolkadotTrieDb::getRootHash() const {
-    return root_.value();
+    return root_.value_or(Buffer{});
   }
 
-  void PolkadotTrieDb::clearPrefix(const common::Buffer &buf) {}
+  outcome::result<void> PolkadotTrieDb::clearPrefix(
+      const common::Buffer &prefix) {
+    if (not root_.has_value()) {
+      return outcome::success();
+    }
+    auto key_nibbles = PolkadotCodec::keyToNibbles(prefix);
+    OUTCOME_TRY(root, retrieveNode(root_.value()));
+    OUTCOME_TRY(new_root, detachNode(root, key_nibbles));
+    if (new_root == nullptr) {
+      root_ = std::nullopt;
+    } else {
+      OUTCOME_TRY(hash, storeNode(*new_root));
+      root_ = hash;
+    }
+    return outcome::success();
+  }
 
-  std::unique_ptr<PolkadotTrieDb::WriteBatch> PolkadotTrieDb::batch() {}
+  std::unique_ptr<PolkadotTrieDb::WriteBatch> PolkadotTrieDb::batch() {
+    // TODO(Harrm) PRE-199 Implement batch in merkle trie
+    return nullptr;
+  }
 
   std::unique_ptr<PolkadotTrieDb::MapCursor> PolkadotTrieDb::cursor() {
     return db_->cursor();  // perhaps should iterate over nodes in the trie
@@ -258,8 +277,12 @@ namespace kagome::storage::merkle {
       OUTCOME_TRY(n, deleteNode(root, key_nibbles));
       // afterwards, the nodes are written back to the storage and the new trie
       // root hash is obtained
-      OUTCOME_TRY(root_hash, storeNode(*n));
-      root_ = root_hash;
+      if (n == nullptr) {
+        root_ = std::nullopt;
+      } else {
+        OUTCOME_TRY(root_hash, storeNode(*n));
+        root_ = root_hash;
+      }
     }
     return outcome::success();
   }
@@ -343,6 +366,41 @@ namespace kagome::storage::merkle {
     return newRoot;
   }
 
+  outcome::result<PolkadotTrieDb::NodePtr> PolkadotTrieDb::detachNode(
+      const NodePtr &parent, const common::Buffer &prefix_nibbles) {
+    if (parent == nullptr) {
+      return nullptr;
+    }
+    if (parent->key_nibbles.size() >= prefix_nibbles.size()) {
+      // if this is the node to be detached -- detach it
+      if (subbuffer(parent->key_nibbles, 0, prefix_nibbles.size())
+          == prefix_nibbles) {
+        return nullptr;
+      }
+      return parent;
+    }
+    // if parent's key is smaller and it is not a prefix of the prefix, don't
+    // change anything
+    if (subbuffer(prefix_nibbles, 0, parent->key_nibbles.size())
+        != parent->key_nibbles) {
+      return parent;
+    }
+    using T = PolkadotNode::Type;
+    if (parent->getTrieType() == T::BranchWithValue
+        || parent->getTrieType() == T::BranchEmptyValue) {
+      auto branch = std::dynamic_pointer_cast<BranchNode>(parent);
+      auto length = getCommonPrefixLength(parent->key_nibbles, prefix_nibbles);
+      OUTCOME_TRY(child, retrieveChild(branch, prefix_nibbles[length]));
+      if (child == nullptr) {
+        return parent;
+      }
+      OUTCOME_TRY(n, detachNode(child, subbuffer(prefix_nibbles, length + 1)));
+      branch->children[prefix_nibbles[length]] = n;
+      return branch;
+    }
+    return parent;
+  }
+
   uint32_t PolkadotTrieDb::getCommonPrefixLength(const Buffer &pref1,
                                                  const Buffer &pref2) const {
     uint32_t length = 0, min = pref1.size();
@@ -367,8 +425,8 @@ namespace kagome::storage::merkle {
     OUTCOME_TRY(batch->commit());
     return hash;
   }
-    outcome::result<common::Buffer> PolkadotTrieDb::storeNode(
-      PolkadotNode &node, WriteBatch& batch) {
+  outcome::result<common::Buffer> PolkadotTrieDb::storeNode(PolkadotNode &node,
+                                                            WriteBatch &batch) {
     using T = PolkadotNode::Type;
 
     // if node is a branch node, its children must be stored to the storage
