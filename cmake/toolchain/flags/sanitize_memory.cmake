@@ -14,7 +14,7 @@ set(FLAGS
     -fsanitize-memory-track-origins
     -g
     )
-foreach(FLAG IN FLAGS)
+foreach(FLAG IN LISTS FLAGS)
   add_cache_flag(CMAKE_CXX_FLAGS ${FLAG})
   add_cache_flag(CMAKE_C_FLAGS ${FLAG})
 endforeach()
