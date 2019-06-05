@@ -25,7 +25,12 @@ namespace libp2p::connection {
     YamuxStream &operator=(YamuxStream &&other) noexcept = delete;
     ~YamuxStream() override = default;
 
-    enum class Error { NOT_WRITABLE = 1, NOT_READABLE, INVALID_ARGUMENT };
+    enum class Error {
+      NOT_WRITABLE = 1,
+      NOT_READABLE,
+      INVALID_ARGUMENT,
+      RECEIVE_OVERFLOW
+    };
 
     outcome::result<size_t> write(gsl::span<const uint8_t> in) override;
 
@@ -49,6 +54,8 @@ namespace libp2p::connection {
 
     outcome::result<void> close() override;
 
+    outcome::result<void> adjustWindowSize(uint32_t new_size) override;
+
    private:
     std::shared_ptr<YamuxedConnection> yamux_;
     YamuxedConnection::StreamId stream_id_;
@@ -59,17 +66,18 @@ namespace libp2p::connection {
     /// is the stream opened for writes?
     bool is_writable_ = true;
 
-    /// sliding window size of the stream - how much unread bytes can be on the
-    /// other side
-    static constexpr uint32_t kDefaultWindowSize = 256;  // in kilobytes
-    uint32_t window_size_ = kDefaultWindowSize;
-    uint32_t current_load_ = 0;  // how much bytes were written, but not acked
+    /// default sliding window size of the stream - how much unread bytes can be
+    /// on both sides
+    static constexpr uint32_t kDefaultWindowSize = 256 * 1024;  // in bytes
+
+    /// how much unacked bytes can we have on our side
+    uint32_t receive_window_size_ = kDefaultWindowSize;
+
+    /// how much unacked bytes can we have sent to the other side
+    uint32_t send_window_size_ = kDefaultWindowSize;
 
     /// buffer with bytes, not consumed by this stream
     boost::asio::streambuf read_buffer_;
-
-    /// buffer with bytes, which cannot be sent because of the window
-    boost::asio::streambuf write_buffer_;
 
     /// YamuxedConnection API starts here
 
@@ -85,7 +93,7 @@ namespace libp2p::connection {
      * this stream
      * @param data received
      */
-    void commitData(std::vector<uint8_t> &&data);
+    outcome::result<void> commitData(std::vector<uint8_t> &&data);
   };
 }  // namespace libp2p::connection
 

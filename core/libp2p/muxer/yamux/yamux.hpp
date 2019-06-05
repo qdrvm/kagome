@@ -14,8 +14,8 @@ namespace libp2p::muxer {
     peer::Protocol getProtocolId() const override;
 
     outcome::result<std::shared_ptr<connection::CapableConnection>>
-    muxConnection(
-        std::shared_ptr<connection::SecureConnection> conn) const override;
+    muxConnection(std::shared_ptr<connection::SecureConnection> conn,
+                  StreamHandler handler) const override;
 
     ~Yamux() override = default;
   };

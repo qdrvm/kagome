@@ -33,6 +33,14 @@ namespace libp2p::connection {
      * @return true, of stream cannot be written to, false otherwise
      */
     virtual bool isClosedForWrite() const = 0;
+
+    /**
+     * Set a new receive window size of this stream - how much unacknowledged
+     * (not read) bytes can we on our side of the stream
+     * @param new_size for the window
+     * @return nothing on success, error otherwise
+     */
+    virtual outcome::result<void> adjustWindowSize(uint32_t new_size) = 0;
   };
 
 }  // namespace libp2p::connection

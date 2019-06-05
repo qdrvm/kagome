@@ -113,6 +113,15 @@ namespace libp2p::connection {
   kagome::common::Buffer goAwayMsg(YamuxFrame::GoAwayError error);
 
   /**
+   * Create a window update message
+   * @param stream_id to be put into the message
+   * @param window_delta to be put into the message
+   * @return bytes of the message
+   */
+  kagome::common::Buffer windowUpdateMsg(YamuxFrame::StreamId stream_id,
+                                         uint32_t window_delta);
+
+  /**
    * Convert bytes into a frame object, if it is correct
    * @param frame_bytes to be converted
    * @return frame object, if convertation is successful, none otherwise

@@ -13,8 +13,9 @@ namespace libp2p::muxer {
   }
 
   outcome::result<std::shared_ptr<connection::CapableConnection>>
-  Yamux::muxConnection(
-      std::shared_ptr<connection::SecureConnection> conn) const {
-    return connection::YamuxedConnection{std::move(conn)};
+  Yamux::muxConnection(std::shared_ptr<connection::SecureConnection> conn,
+                       StreamHandler handler) const {
+    return std::make_shared<connection::YamuxedConnection>(std::move(conn),
+                                                           std::move(handler));
   }
 }  // namespace libp2p::muxer

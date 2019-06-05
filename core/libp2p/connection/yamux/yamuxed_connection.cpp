@@ -86,28 +86,28 @@ namespace libp2p::connection {
     return outcome::success();
   }
 
-  outcome::result<size_t> YamuxedConnection::write(gsl::span<const uint8_t>) {
+  outcome::result<size_t> YamuxedConnection::write(gsl::span<const uint8_t> s) {
     return Error::FORBIDDEN_CALL;
   }
 
   outcome::result<size_t> YamuxedConnection::writeSome(
-      gsl::span<const uint8_t>) {
+      gsl::span<const uint8_t> s) {
     return Error::FORBIDDEN_CALL;
   }
 
-  outcome::result<std::vector<uint8_t>> YamuxedConnection::read(size_t) {
+  outcome::result<std::vector<uint8_t>> YamuxedConnection::read(size_t s) {
     return Error::FORBIDDEN_CALL;
   }
 
-  outcome::result<std::vector<uint8_t>> YamuxedConnection::readSome(size_t) {
+  outcome::result<std::vector<uint8_t>> YamuxedConnection::readSome(size_t s) {
     return Error::FORBIDDEN_CALL;
   }
 
-  outcome::result<size_t> YamuxedConnection::read(gsl::span<uint8_t>) {
+  outcome::result<size_t> YamuxedConnection::read(gsl::span<uint8_t> s) {
     return Error::FORBIDDEN_CALL;
   }
 
-  outcome::result<size_t> YamuxedConnection::readSome(gsl::span<uint8_t>) {
+  outcome::result<size_t> YamuxedConnection::readSome(gsl::span<uint8_t> s) {
     return Error::FORBIDDEN_CALL;
   }
 
@@ -199,21 +199,30 @@ namespace libp2p::connection {
     switch (frame.flag_) {
       case Flag::SYN: {
         // can be start of a new stream or update of a window size
-        auto stream = findStream(stream_id);
-        if (stream) {
-          // this stream is already opened => window update
-          stream->window_size_ = frame.length_;
-        } else {
-          // no such stream found => it's a creation of a new stream
-          OUTCOME_TRY(registerNewStream(stream_id));
+        if (auto stream = findStream(stream_id)) {
+          // this stream is already opened => delta window update
+          stream->send_window_size_ += frame.length_;
+          break;
         }
+        // no such stream found => it's a creation of a new stream
+        OUTCOME_TRY(stream, registerNewStream(stream_id));
+        stream->send_window_size_ += frame.length_;
         break;
       }
       case Flag::ACK: {
-        OUTCOME_TRY(processAck(stream_id));
+        if (auto stream = findStream(stream_id)) {
+          stream->send_window_size_ += frame.length_;
+          break;
+        }
+        // if no such stream found, some error happened - reset the stream on
+        // the other side just in case
+        OUTCOME_TRY(connection_->write(resetStreamMsg(stream_id)));
         break;
       }
       case Flag::FIN: {
+        if (auto stream = findStream(stream_id)) {
+          stream->send_window_size_ += frame.length_;
+        }
         closeStreamForRead(stream_id);
         break;
       }
@@ -267,7 +276,7 @@ namespace libp2p::connection {
     }
 
     OUTCOME_TRY(data_bytes, connection_->read(data_length));
-    stream->commitData(std::move(data_bytes));
+    OUTCOME_TRY(stream->commitData(std::move(data_bytes)));
     return outcome::success();
   }
 
@@ -342,6 +351,12 @@ namespace libp2p::connection {
     }
     OUTCOME_TRY(written, connection_->writeSome(dataMsg(stream_id, msg)));
     return written - YamuxFrame::kHeaderLength;
+  }
+
+  outcome::result<void> YamuxedConnection::streamAckBytes(StreamId stream_id,
+                                                          uint32_t bytes) {
+    OUTCOME_TRY(connection_->write(windowUpdateMsg(stream_id, bytes)));
+    return outcome::success();
   }
 
   outcome::result<void> YamuxedConnection::streamClose(StreamId stream_id) {

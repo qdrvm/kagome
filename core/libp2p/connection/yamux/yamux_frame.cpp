@@ -96,6 +96,13 @@ namespace libp2p::connection {
         YamuxFrame::Flag::SYN, 0, static_cast<uint32_t>(error));
   }
 
+  kagome::common::Buffer windowUpdateMsg(YamuxFrame::StreamId stream_id,
+                                         uint32_t window_delta) {
+    return YamuxFrame::frameBytes(
+        YamuxFrame::kDefaultVersion, YamuxFrame::FrameType::WINDOW_UPDATE,
+        YamuxFrame::Flag::SYN, stream_id, window_delta);
+  }
+
   std::optional<YamuxFrame> parseFrame(gsl::span<const uint8_t> frame_bytes) {
     if (frame_bytes.size() < YamuxFrame::kHeaderLength) {
       return {};

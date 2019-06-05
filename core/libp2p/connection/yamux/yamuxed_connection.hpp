@@ -193,6 +193,8 @@ namespace libp2p::connection {
                                         gsl::span<const uint8_t> msg,
                                         bool some);
 
+    outcome::result<void> streamAckBytes(StreamId stream_id, uint32_t bytes);
+
     outcome::result<void> streamClose(StreamId stream_id);
 
     void streamReset(StreamId stream_id);
