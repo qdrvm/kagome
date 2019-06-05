@@ -16,7 +16,6 @@ namespace kagome::runtime {
   using primitives::ScheduledChange;
   using primitives::SessionKey;
   using primitives::WeightedAuthority;
-  using scale::ScaleDecoderStream;
 
   GrandpaImpl::GrandpaImpl(common::Buffer state_code,
                            std::shared_ptr<extensions::Extension> extension)

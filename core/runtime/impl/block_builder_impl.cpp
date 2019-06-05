@@ -15,8 +15,6 @@ namespace kagome::runtime {
   using common::Buffer;
   using extensions::Extension;
   using primitives::Extrinsic;
-  using scale::ScaleDecoderStream;
-  using scale::ScaleEncoderStream;
   using wasm::Literal;
 
   BlockBuilderImpl::BlockBuilderImpl(Buffer state_code,
@@ -78,19 +76,12 @@ namespace kagome::runtime {
 
   outcome::result<CheckInherentsResult> BlockBuilderImpl::check_inherents(
       const primitives::Block &block, const primitives::InherentData &data) {
-    ScaleEncoderStream os;
-    try {
-      os << block << data;
-    } catch (std::system_error &e) {
-      return outcome::failure(e.code());
-    }
-
-    auto encoded_data = Buffer(os.data());
+    OUTCOME_TRY(encoded_data, scale::encode(block, data));
 
     // TODO (Harrm) PRE-98: after check for memory overflow is done, refactor it
     runtime::SizeType param_size = encoded_data.size();
     runtime::WasmPointer param_ptr = memory_->allocate(param_size);
-    memory_->storeBuffer(param_ptr, encoded_data);
+    memory_->storeBuffer(param_ptr, common::Buffer(encoded_data));
 
     wasm::LiteralList ll{Literal(param_ptr), Literal(param_size)};
 
@@ -101,7 +92,6 @@ namespace kagome::runtime {
     SizeType len = getWasmLen(res.geti64());
 
     auto buffer = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(buffer);
 
     return scale::decode<CheckInherentsResult>(buffer);
   }

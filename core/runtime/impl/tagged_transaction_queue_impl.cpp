@@ -9,7 +9,6 @@
 
 namespace kagome::runtime {
   using outcome::result;
-  using scale::ScaleDecoderStream;
 
   TaggedTransactionQueueImpl::TaggedTransactionQueueImpl(
       common::Buffer state_code,

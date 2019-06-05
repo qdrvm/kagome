@@ -11,7 +11,6 @@
 
 namespace kagome::runtime {
   using common::Buffer;
-  using scale::ScaleDecoderStream;
 
   CoreImpl::CoreImpl(common::Buffer state_code,
                      std::shared_ptr<extensions::Extension> extension)
