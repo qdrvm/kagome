@@ -46,6 +46,7 @@ cache:
 matrix:
   include:
     - os: osx
+      if: type = pull_request OR branch = master
       name: "OSX gcc"
       osx_image: xcode10.2
       compiler: gcc
@@ -61,6 +62,7 @@ matrix:
 
     - os: osx
       name: "OSX clang clang-tidy"
+      if: type = pull_request OR branch = master
       osx_image: xcode10.2
       compiler: clang
       before_cache:
@@ -84,6 +86,7 @@ matrix:
 
     - os: linux
       name: "Linux gcc8 Coverage"
+      if: type = pull_request OR branch = master
       env:
         - TOOLCHAIN=cmake/toolchain/gcc-8_cxx17.cmake
         - COVERAGE=ON
@@ -97,21 +100,21 @@ matrix:
 
     - os: linux
       name: "Linux clang-8 ASAN"
+      if: type = pull_request OR branch = master
       env:
         - TOOLCHAIN=cmake/san/clang-8_cxx17_asan.cmake
     - os: linux
-      name: "Linux clang-8 LSAN"
-      env:
-        - TOOLCHAIN=cmake/san/clang-8_cxx17_lsan.cmake
-    - os: linux
+      if: type = pull_request OR branch = master
       name: "Linux clang-8 MSAN"
       env:
         - TOOLCHAIN=cmake/san/clang-8_cxx17_msan.cmake
     - os: linux
+      if: type = pull_request OR branch = master
       name: "Linux clang-8 TSAN"
       env:
         - TOOLCHAIN=cmake/san/clang-8_cxx17_tsan.cmake
     - os: linux
+      if: type = pull_request OR branch = master
       name: "Linux clang-8 UBSAN"
       env:
         - TOOLCHAIN=cmake/san/clang-8_cxx17_ubsan.cmake
