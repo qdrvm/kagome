@@ -8,6 +8,7 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 
 #include "crypto/hasher.hpp"
 #include "storage/merkle/polkadot_trie_db/polkadot_codec.hpp"
