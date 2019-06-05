@@ -276,7 +276,7 @@ namespace kagome::storage::merkle {
       partial_key.putUint8(stream.nextByte().value());
     }
     partial_key = keyToNibbles(partial_key);
-    if(nibbles_num != partial_key.size()) {
+    if (nibbles_num != partial_key.size()) {
       partial_key.putUint8(0);
     }
     return partial_key;

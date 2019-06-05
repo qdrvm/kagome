@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <boost/container_hash/hash.hpp>
+#include <boost/operators.hpp>
 #include <gsl/span>
 #include <outcome/outcome.hpp>
 
@@ -18,7 +19,9 @@ namespace kagome::common {
   /**
    * @brief Class represents arbitrary (including empty) byte buffer.
    */
-  class Buffer {
+  class Buffer : public boost::equality_comparable<Buffer>,
+                 public boost::equality_comparable<gsl::span<uint8_t>>,
+                 public boost::equality_comparable<std::vector<uint8_t>> {
    public:
     using iterator = std::vector<uint8_t>::iterator;
     using const_iterator = std::vector<uint8_t>::const_iterator;
@@ -69,19 +72,16 @@ namespace kagome::common {
      * @brief Lexicographical comparison of two buffers
      */
     bool operator==(const Buffer &b) const noexcept;
-    bool operator!=(const Buffer &b) const noexcept;
 
     /**
      * @brief Lexicographical comparison of buffer and vector of bytes
      */
     bool operator==(const std::vector<uint8_t> &b) const noexcept;
-    bool operator!=(const std::vector<uint8_t> &b) const noexcept;
 
     /**
      * @brief Lexicographical comparison of buffer and vector of bytes
      */
     bool operator==(gsl::span<const uint8_t> s) const noexcept;
-    bool operator!=(gsl::span<const uint8_t> s) const noexcept;
 
     /**
      * @brief Iterator, which points to begin of this buffer.

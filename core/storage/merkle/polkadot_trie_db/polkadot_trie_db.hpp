@@ -72,7 +72,7 @@ namespace kagome::storage::merkle {
                                             const common::Buffer &key_nibbles);
     // remove a node with its children
     outcome::result<NodePtr> detachNode(const NodePtr &parent,
-                                     const common::Buffer &prefix_nibbles);
+                                        const common::Buffer &prefix_nibbles);
     outcome::result<NodePtr> getNode(NodePtr parent,
                                      const common::Buffer &key_nibbles) const;
 

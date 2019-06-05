@@ -294,12 +294,10 @@ TEST_F(TrieTest, Replace) {
  * @then there is no entries with such prefix in the trie
  */
 TEST_F(TrieTest, ClearPrefix) {
-  std::vector<std::pair<Buffer, Buffer>> data = {
-      {"bark"_buf, "123"_buf},
-      {"barnacle"_buf, "456"_buf},
-      {"bat"_buf, "789"_buf},
-      {"batch"_buf, "0-="_buf}
-  };
+  std::vector<std::pair<Buffer, Buffer>> data = {{"bark"_buf, "123"_buf},
+                                                 {"barnacle"_buf, "456"_buf},
+                                                 {"bat"_buf, "789"_buf},
+                                                 {"batch"_buf, "0-="_buf}};
   for (auto &entry : data) {
     EXPECT_OUTCOME_TRUE_void(_, trie->put(entry.first, entry.second));
   }
