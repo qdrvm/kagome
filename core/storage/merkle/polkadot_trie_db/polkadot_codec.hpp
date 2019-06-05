@@ -8,6 +8,7 @@
 
 #include <memory>
 #include <string>
+#include <optional>
 
 #include "common/byte_stream.hpp"
 #include "scale/scale_codec.hpp"
