@@ -78,8 +78,8 @@ namespace kagome::primitives {
    */
   template <class Stream>
   Stream &operator<<(Stream &s, const Version &v) {
-    return s << std::string_view(v.spec_name) << std::string_view(v.impl_name)
-             << v.authoring_version << v.impl_version << v.apis;
+    return s << v.spec_name << v.impl_name << v.authoring_version
+             << v.impl_version << v.apis;
   }
 
   /**

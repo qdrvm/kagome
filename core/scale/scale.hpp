@@ -35,7 +35,7 @@ namespace kagome::scale {
 
   /**
    * @brief convenience function for decoding primitives data from stream
-   * @tparam T primitive type that is decoded from provided blob
+   * @tparam T primitive type that is decoded from provided span
    * @param span of bytes with encoded data
    * @return decoded T
    */

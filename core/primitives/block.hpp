@@ -20,7 +20,7 @@ namespace kagome::primitives {
   };
 
   /**
-   * @brief outputs object of type BlockHeader to stream
+   * @brief outputs object of type Block to stream
    * @tparam Stream output stream type
    * @param s stream reference
    * @param v value to output
@@ -32,7 +32,7 @@ namespace kagome::primitives {
   }
 
   /**
-   * @brief decodes object of type BlockHeader from stream
+   * @brief decodes object of type Block from stream
    * @tparam Stream input stream type
    * @param s stream reference
    * @param v value to decode
