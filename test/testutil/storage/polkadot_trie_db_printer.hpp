@@ -31,7 +31,7 @@ namespace kagome::storage::merkle {
   Stream &operator<<(Stream &s, const PolkadotTrieDb &trie) {
     if (trie.root_.has_value()) {
       auto root = trie.retrieveNode(trie.root_.value()).value();
-      printNode(s, root, trie);
+      printNode(s, root, trie, 0);
     }
     return s;
   }
