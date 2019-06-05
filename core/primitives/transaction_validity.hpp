@@ -40,14 +40,14 @@ namespace kagome::primitives {
      * Priority determines the ordering of two transactions that have all
      * their dependencies (required tags) satisfied.
      */
-    TransactionPriority priority_;
+    TransactionPriority priority;
 
     /**
      * @brief Transaction dependencies
      * A non-empty list signifies that some other transactions which provide
      * given tags are required to be included before that one.
      */
-    std::vector<TransactionTag> requires_;
+    std::vector<TransactionTag> requires;
 
     /**
      * @brief Provided tags
@@ -57,7 +57,7 @@ namespace kagome::primitives {
      * Substrate to build a dependency graph of transactions and import them
      * in the right (linear) order.
      */
-    std::vector<TransactionTag> provides_;
+    std::vector<TransactionTag> provides;
 
     /**
      * @brief Transaction longevity
@@ -65,17 +65,17 @@ namespace kagome::primitives {
      * After this period transaction should be removed from the pool or
      * revalidated.
      */
-    TransactionLongevity longevity_;
+    TransactionLongevity longevity;
   };
 
   /// Transaction is invalid. Details are described by the error code.
   struct Invalid {
-    uint8_t error_;
+    uint8_t error;
   };
 
   /// Transaction validity can't be determined.
   struct Unknown {
-    uint8_t error_;
+    uint8_t error;
   };
 
   /**
@@ -93,7 +93,7 @@ namespace kagome::primitives {
    */
   template <class Stream>
   Stream &operator<<(Stream &s, const Invalid &v) {
-    return s << v.error_;
+    return s << v.error;
   }
 
   /**
@@ -105,7 +105,7 @@ namespace kagome::primitives {
    */
   template <class Stream>
   Stream &operator<<(Stream &s, const Valid &v) {
-    return s << v.priority_ << v.requires_ << v.provides_ << v.longevity_;
+    return s << v.priority << v.requires << v.provides << v.longevity;
   }
 
   /**
@@ -117,7 +117,7 @@ namespace kagome::primitives {
    */
   template <class Stream>
   Stream &operator<<(Stream &s, const Unknown &v) {
-    return s << v.error_;
+    return s << v.error;
   }
 
   /**
@@ -129,7 +129,7 @@ namespace kagome::primitives {
    */
   template <class Stream>
   Stream &operator>>(Stream &s, Invalid &v) {
-    return s >> v.error_;
+    return s >> v.error;
   }
 
   /**
@@ -141,7 +141,7 @@ namespace kagome::primitives {
    */
   template <class Stream>
   Stream &operator>>(Stream &s, Valid &v) {
-    return s >> v.priority_ >> v.requires_ >> v.provides_ >> v.longevity_;
+    return s >> v.priority >> v.requires >> v.provides >> v.longevity;
   }
 
   /**
@@ -153,7 +153,7 @@ namespace kagome::primitives {
    */
   template <class Stream>
   Stream &operator>>(Stream &s, Unknown &v) {
-    return s >> v.error_;
+    return s >> v.error;
   }
 }  // namespace kagome::primitives
 

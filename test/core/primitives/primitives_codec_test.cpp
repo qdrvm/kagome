@@ -340,7 +340,7 @@ TEST_F(Primitives, DecodeTransactionValidityInvalidSuccess) {
   EXPECT_OUTCOME_TRUE(val, decode<TransactionValidity>(bytes))
   kagome::visit_in_place(
       val,                                               // value
-      [](Invalid const &v) { ASSERT_EQ(v.error_, 1); },  // ok
+      [](Invalid const &v) { ASSERT_EQ(v.error, 1); },  // ok
       [](Unknown const &v) { FAIL(); },                  // fail
       [](Valid const &v) { FAIL(); });                   // fail
 }
@@ -359,7 +359,7 @@ TEST_F(Primitives, DecodeTransactionValidityUnknownSuccess) {
   kagome::visit_in_place(
       value,                                             // value
       [](Invalid const &v) { FAIL(); },                  // fail
-      [](Unknown const &v) { ASSERT_EQ(v.error_, 2); },  // ok
+      [](Unknown const &v) { ASSERT_EQ(v.error, 2); },  // ok
       [](Valid const &v) { FAIL(); }                     // fail
   );
 }
@@ -378,10 +378,10 @@ TEST_F(Primitives, DecodeTransactionValidityValidSuccess) {
       [](Unknown const &v) { FAIL(); },  // fail
       [this](Valid const &v) {           // ok
         auto &valid = valid_transaction_;
-        ASSERT_EQ(v.priority_, valid.priority_);
-        ASSERT_EQ(v.requires_, valid.requires_);
-        ASSERT_EQ(v.provides_, valid.provides_);
-        ASSERT_EQ(v.longevity_, valid.longevity_);
+        ASSERT_EQ(v.priority, valid.priority);
+        ASSERT_EQ(v.requires, valid.requires);
+        ASSERT_EQ(v.provides, valid.provides);
+        ASSERT_EQ(v.longevity, valid.longevity);
       });
 }
 

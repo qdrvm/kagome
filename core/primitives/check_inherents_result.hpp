@@ -14,16 +14,16 @@ namespace kagome::primitives {
    */
   struct CheckInherentsResult {
     /// Did the check succeed?
-    bool okay_ = false;
+    bool is_okay = false;
     /// Did we encounter a fatal error?
-    bool fatal_error_ = false;
+    bool is_fatal_error = false;
     /// We use the `InherentData` to store our errors.
-    primitives::InherentData errors_;
+    primitives::InherentData errors;
   };
 
   template <class Stream>
   Stream &operator>>(Stream &s, CheckInherentsResult &v) {
-    return s >> v.okay_ >> v.fatal_error_ >> v.errors_;
+    return s >> v.is_okay >> v.is_fatal_error >> v.errors;
   }
 
 }  // namespace kagome::primitives
