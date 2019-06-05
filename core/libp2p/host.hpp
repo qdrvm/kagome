@@ -11,6 +11,7 @@
 #include <gsl/span>
 #include <outcome/outcome.hpp>
 #include "libp2p/config.hpp"
+#include "libp2p/connection/stream.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/network/network.hpp"
 #include "libp2p/network/router.hpp"
@@ -18,7 +19,6 @@
 #include "libp2p/peer/peer_info.hpp"
 #include "libp2p/peer/peer_repository.hpp"
 #include "libp2p/peer/protocol.hpp"
-#include "libp2p/stream/stream.hpp"
 
 namespace libp2p {
 

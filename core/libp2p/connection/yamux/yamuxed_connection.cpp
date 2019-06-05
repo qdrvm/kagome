@@ -49,15 +49,16 @@ namespace libp2p::connection {
     return created_stream;
   }
 
-  peer::PeerId YamuxedConnection::localPeer() const {
+  outcome::result<peer::PeerId> YamuxedConnection::localPeer() const {
     return connection_->localPeer();
   }
 
-  peer::PeerId YamuxedConnection::remotePeer() const {
+  outcome::result<peer::PeerId> YamuxedConnection::remotePeer() const {
     return connection_->remotePeer();
   }
 
-  crypto::PublicKey YamuxedConnection::remotePublicKey() const {
+  outcome::result<crypto::PublicKey> YamuxedConnection::remotePublicKey()
+      const {
     return connection_->remotePublicKey();
   }
 

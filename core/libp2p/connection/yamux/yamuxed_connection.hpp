@@ -60,11 +60,11 @@ namespace libp2p::connection {
 
     outcome::result<std::shared_ptr<Stream>> newStream() override;
 
-    peer::PeerId localPeer() const override;
+    outcome::result<peer::PeerId> localPeer() const override;
 
-    peer::PeerId remotePeer() const override;
+    outcome::result<peer::PeerId> remotePeer() const override;
 
-    crypto::PublicKey remotePublicKey() const override;
+    outcome::result<crypto::PublicKey> remotePublicKey() const override;
 
     bool isInitiator() const noexcept override;
 

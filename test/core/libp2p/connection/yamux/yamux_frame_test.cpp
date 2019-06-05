@@ -6,15 +6,16 @@
 #include "libp2p/connection/yamux/yamux_frame.hpp"
 
 #include <gtest/gtest.h>
+#include "libp2p/connection/yamux/yamuxed_connection.hpp"
 #include "testutil/literals.hpp"
 
-using namespace libp2p::muxer;
+using namespace libp2p::connection;
 using namespace kagome::common;
 
 class YamuxFrameTest : public ::testing::Test {
  public:
   static constexpr size_t data_length = 6;
-  static constexpr Yamux::StreamId default_stream_id = 1;
+  static constexpr YamuxedConnection::StreamId default_stream_id = 1;
   static constexpr uint32_t default_ping_value = 337;
 
   Buffer data{"1234456789AB"_unhex};
@@ -24,7 +25,7 @@ class YamuxFrameTest : public ::testing::Test {
    */
   void checkFrame(std::optional<YamuxFrame> frame_opt, uint8_t version,
                   YamuxFrame::FrameType type, YamuxFrame::Flag flag,
-                  Yamux::StreamId stream_id, uint32_t length,
+                  YamuxedConnection::StreamId stream_id, uint32_t length,
                   const Buffer &frame_data) {
     ASSERT_TRUE(frame_opt);
     auto frame = *frame_opt;
@@ -167,4 +168,15 @@ TEST_F(YamuxFrameTest, GoAwayMsg) {
              YamuxFrame::FrameType::GO_AWAY, YamuxFrame::Flag::SYN, 0,
              static_cast<uint32_t>(YamuxFrame::GoAwayError::PROTOCOL_ERROR),
              Buffer{});
+}
+
+TEST_F(YamuxFrameTest, WindowUpdateMsg) {
+  constexpr uint32_t kWindowDelta = 42;
+  auto frame_bytes = windowUpdateMsg(default_stream_id, kWindowDelta);
+  auto frame_opt = parseFrame(frame_bytes);
+
+  SCOPED_TRACE("WindowUpdateMsg");
+  checkFrame(frame_opt, YamuxFrame::kDefaultVersion,
+             YamuxFrame::FrameType::WINDOW_UPDATE, YamuxFrame::Flag::SYN,
+             default_stream_id, kWindowDelta, Buffer{});
 }

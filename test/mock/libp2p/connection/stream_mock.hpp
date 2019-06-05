@@ -8,6 +8,7 @@
 
 #include <gmock/gmock.h>
 #include "libp2p/connection/stream.hpp"
+#include "mock/libp2p/connection/connection_mock_common.hpp"
 
 namespace libp2p::connection {
   class StreamMock : public Stream {
@@ -41,6 +42,8 @@ namespace libp2p::connection {
     MOCK_CONST_METHOD0(isClosedForRead, bool(void));
 
     MOCK_CONST_METHOD0(isClosedForWrite, bool(void));
+
+    MOCK_METHOD1(adjustWindowSize, outcome::result<void>(uint32_t));
   };
 }  // namespace libp2p::connection
 
