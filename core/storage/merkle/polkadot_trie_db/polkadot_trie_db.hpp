@@ -29,7 +29,7 @@ namespace kagome::storage::merkle {
     friend Stream &operator<<(Stream &s, const PolkadotTrieDb &trie);
     template <typename Stream>
     friend Stream &printNode(Stream &s, NodePtr node,
-                             const PolkadotTrieDb &trie, size_t nest_level = 0);
+                             const PolkadotTrieDb &trie, size_t nest_level);
 
    public:
     enum class Error { INVALID_NODE_TYPE = 1 };
