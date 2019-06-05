@@ -7,6 +7,7 @@
 #define KAGOME_READER_MOCK_HPP
 
 #include <gmock/gmock.h>
+#include "common/hexutil.hpp"
 #include "libp2p/basic/reader.hpp"
 
 namespace libp2p::basic {
@@ -23,5 +24,11 @@ namespace libp2p::basic {
     MOCK_METHOD1(readSome, outcome::result<size_t>(gsl::span<uint8_t>));
   };
 }  // namespace libp2p::basic
+
+inline std::ostream &operator<<(std::ostream &s,
+                                const std::vector<unsigned char> &v) {
+  s << kagome::common::hex_upper(v) << "\n";
+  return s;
+}
 
 #endif  // KAGOME_READER_MOCK_HPP

@@ -6,11 +6,13 @@
 #ifndef KAGOME_SECURITY_ADAPTOR_HPP
 #define KAGOME_SECURITY_ADAPTOR_HPP
 
+#include <memory>
+
 #include <outcome/outcome.hpp>
+#include "libp2p/connection/raw_connection.hpp"
 #include "libp2p/connection/secure_connection.hpp"
 #include "libp2p/peer/peer_id.hpp"
 #include "libp2p/peer/protocol.hpp"
-#include "libp2p/connection/raw_connection.hpp"
 
 namespace libp2p::security {
 
@@ -26,7 +28,7 @@ namespace libp2p::security {
      * @example /tls/1.0.0
      * (https://github.com/libp2p/go-libp2p-tls/blob/master/transport.go#L22)
      */
-    virtual const peer::Protocol &getProtocolId() const = 0;
+    virtual peer::Protocol getProtocolId() const = 0;
 
     /**
      * @brief Secure the connection, either locally or by communicating with

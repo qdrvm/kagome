@@ -16,12 +16,26 @@ namespace libp2p::connection {
    * @brief Class that represents a connection that is authenticated and
    * encrypted.
    */
-  struct SecureConnection : public connection::RawConnection {
+  struct SecureConnection : public RawConnection {
     ~SecureConnection() override = default;
 
-    virtual peer::PeerId localPeer() const = 0;
-    virtual peer::PeerId remotePeer() const = 0;
-    virtual crypto::PublicKey remotePublicKey() const = 0;
+    /**
+     * Get a PeerId of our local peer
+     * @return peer id
+     */
+    virtual outcome::result<peer::PeerId> localPeer() const = 0;
+
+    /**
+     * Get a PeerId of peer this connection is established with
+     * @return peer id
+     */
+    virtual outcome::result<peer::PeerId> remotePeer() const = 0;
+
+    /**
+     * Get a public key of peer this connection is established with
+     * @return public key
+     */
+    virtual outcome::result<crypto::PublicKey> remotePublicKey() const = 0;
 
     // TODO(warchant): figure out, if it is needed
     // virtual crypto::PrivateKey localPrivateKey() const = 0;

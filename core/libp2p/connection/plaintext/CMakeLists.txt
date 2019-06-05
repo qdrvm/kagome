@@ -1,0 +1,12 @@
+#
+# Copyright Soramitsu Co., Ltd. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+
+add_library(plaintext_connection
+    plaintext.cpp
+    plaintext.hpp
+    )
+target_link_libraries(plaintext_connection
+    outcome
+    )

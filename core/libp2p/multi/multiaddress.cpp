@@ -97,8 +97,12 @@ namespace libp2p::multi {
   }
 
   bool Multiaddress::decapsulate(Protocol::Code proto) {
-    std::string_view proto_str =
-        "/"s + std::string{ProtocolList::get(proto)->name};
+    auto p = ProtocolList::get(proto);
+    if (p == nullptr) {
+      return false;
+    }
+
+    std::string proto_str = '/' + std::string(p->name);
     auto proto_bytes = converters::multiaddrToBytes(proto_str);
     if (!proto_bytes) {
       return false;
