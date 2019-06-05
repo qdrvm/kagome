@@ -13,7 +13,7 @@ namespace kagome::storage::merkle {
 
   class MockTrieDb : public TrieDb {
    public:
-    MOCK_CONST_METHOD0(getRoot, common::Buffer());
+    MOCK_CONST_METHOD0(getRootHash, common::Buffer());
     MOCK_METHOD1(clearPrefix, outcome::result<void>(const common::Buffer &));
 
     MOCK_METHOD2(put,
