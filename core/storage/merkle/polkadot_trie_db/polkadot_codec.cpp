@@ -256,8 +256,9 @@ namespace kagome::storage::merkle {
     if (pk_length == 63) {
       uint8_t read_length = 0;
       do {
-        if (not stream.hasMore(1))
+        if (not stream.hasMore(1)) {
           return Error::INPUT_TOO_SMALL;
+        }
         read_length = stream.nextByte().value();
         pk_length += read_length;
       } while (read_length == 0xFF);
