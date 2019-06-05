@@ -9,7 +9,6 @@
 #include "runtime/parachain_host.hpp"
 
 #include <outcome/outcome.hpp>
-#include "primitives/scale_codec.hpp"
 #include "runtime/impl/wasm_executor.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
 #include "runtime/wasm_memory.hpp"
@@ -27,8 +26,7 @@ namespace kagome::runtime {
      * @param codec scale codec instance
      */
     ParachainHostImpl(common::Buffer state_code,
-                      std::shared_ptr<extensions::Extension> extension,
-                      std::shared_ptr<primitives::ScaleCodec> codec);
+                      std::shared_ptr<extensions::Extension> extension);
 
     outcome::result<DutyRoster> dutyRoster() override;
 
@@ -44,7 +42,6 @@ namespace kagome::runtime {
 
    private:
     std::shared_ptr<WasmMemory> memory_;
-    std::shared_ptr<primitives::ScaleCodec> codec_;
     WasmExecutor executor_;
     common::Buffer state_code_;
   };

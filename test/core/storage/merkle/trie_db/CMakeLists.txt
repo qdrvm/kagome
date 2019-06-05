@@ -8,5 +8,6 @@ addtest(polkadot_trie_db_test
     )
 target_link_libraries(polkadot_trie_db_test
     polkadot_trie_db_codec
-    scale_buffer_codec
+    scale
+    buffer
     )

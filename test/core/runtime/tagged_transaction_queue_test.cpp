@@ -9,7 +9,6 @@
 #include "core/runtime/runtime_test.hpp"
 #include "core/storage/merkle/mock_trie_db.hpp"
 #include "extensions/extension_impl.hpp"
-#include "primitives/impl/scale_codec_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/wasm_test.hpp"
@@ -18,7 +17,6 @@ using namespace testing;
 using kagome::common::Buffer;
 using kagome::extensions::ExtensionImpl;
 using kagome::primitives::Extrinsic;
-using kagome::primitives::ScaleCodecImpl;
 using kagome::runtime::TaggedTransactionQueue;
 using kagome::runtime::TaggedTransactionQueueImpl;
 using kagome::runtime::WasmMemoryImpl;
@@ -29,8 +27,7 @@ class TTQTest: public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    ttq_ = std::make_unique<TaggedTransactionQueueImpl>(state_code_, extension_,
-                                                     codec_);
+    ttq_ = std::make_unique<TaggedTransactionQueueImpl>(state_code_, extension_);
   }
 
  protected:

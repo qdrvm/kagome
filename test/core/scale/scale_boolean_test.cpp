@@ -5,107 +5,74 @@
 
 #include <gtest/gtest.h>
 
-#include "testutil/literals.hpp"
-#include "scale/boolean.hpp"
-#include "scale/byte_array_stream.hpp"
+#include "scale/scale.hpp"
+#include "scale/scale_decoder_stream.hpp"
+#include "scale/scale_encoder_stream.hpp"
 #include "scale/scale_error.hpp"
+#include "testutil/literals.hpp"
+#include "testutil/outcome.hpp"
 
-using namespace kagome;          // NOLINT
-using namespace kagome::common;  // NOLINT
-using namespace kagome::scale;   // NOLINT
+using kagome::scale::ByteArray;
+using kagome::scale::DecodeError;
+using kagome::scale::EncodeError;
+using kagome::scale::ScaleDecoderStream;
+using kagome::scale::ScaleEncoderStream;
 
 /**
  * @given bool values: true and false
  * @when encode them by fixedwidth::encodeBool function
  * @then obtain expected result each time
  */
-TEST(Scale, fixedwidthEncodeBool) {
+TEST(ScaleBoolTest, EncodeBoolSuccess) {
   {
-    Buffer out;
-    boolean::encodeBool(true, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{0x1}));
+    ScaleEncoderStream s;
+    ASSERT_NO_THROW((s << true));
+    ASSERT_EQ(s.data(), (ByteArray{0x1}));
   }
+  {
+    ScaleEncoderStream s;
+    ASSERT_NO_THROW((s << false));
+    ASSERT_EQ(s.data(), (ByteArray{0x0}));
+  }
+}
 
-  {
-    Buffer out;
-    boolean::encodeBool(false, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{0x0}));
-  }
+/**
+ * @brief helper structure for testing scale::decode
+ */
+struct ThreeBooleans {
+  bool b1 = false;
+  bool b2 = false;
+  bool b3 = false;
+};
+
+template <class Stream>
+Stream &operator>>(Stream &s, ThreeBooleans &v) {
+  return s >> v.b1 >> v.b2 >> v.b3;
+}
+
+
+/**
+ * @given byte array containing values {0, 1, 2}
+ * @when scale::decode function is applied sequentially
+ * @then it returns false, true and kUnexpectedValue error correspondingly,
+ * and in the end no more bytes left in stream
+ */
+TEST(Scale, fixedwidthDecodeBoolFail) {
+  auto bytes = ByteArray{0, 1, 2};
+  EXPECT_OUTCOME_FALSE_2(err, kagome::scale::decode<ThreeBooleans>(bytes))
+  ASSERT_EQ(err.value(), static_cast<int>(DecodeError::UNEXPECTED_VALUE));
 }
 
 /**
  * @given byte array containing values {0, 1, 2}
- * @when fixedwidth::decodeBool function is applied sequentially
- * @then it returns false, true and kUnexpectedValue error correspondingly
+ * @when scale::decode function is applied sequentially
+ * @then it returns false, true and kUnexpectedValue error correspondingly,
+ * and in the end no more bytes left in stream
  */
-TEST(Scale, fixedwidthDecodeBool) {
-  //  fixedwidth::DecodeBoolRes
-  // decode false
-  auto bytes = "000102"_unhex;
-  auto stream = ByteArrayStream{bytes};
-  auto &&res = boolean::decodeBool(stream);
-  ASSERT_TRUE(res);           // success, not failure
-  ASSERT_FALSE(res.value());  // actual value;
-
-  auto &&res1 = boolean::decodeBool(stream);
-  ASSERT_TRUE(res1);
-  ASSERT_TRUE(res1.value());
-
-  auto &&res2 = boolean::decodeBool(stream);
-  ASSERT_FALSE(res2);
-  ASSERT_EQ(res2.error().value(),
-            static_cast<int>(DecodeError::UNEXPECTED_VALUE));
-}
-
-/**
- * @given tribool values false, true and indeterminate
- * @when fixedwidth::encodeTribool function is applied sequentially
- * @then it returns 0, 1 and 2 correspondingly
- */
-TEST(Scale, fixedwidthEncodeTribool) {
-  {
-    // encode false
-    Buffer out;
-    boolean::encodeTribool(false, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{0x0}));
-  }
-  {
-    // encode true
-    Buffer out;
-    boolean::encodeTribool(true, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{0x1}));
-  }
-  {
-    // encode intederminate
-    Buffer out;
-    boolean::encodeTribool(indeterminate, out);
-    ASSERT_EQ(out.toVector(), (ByteArray{0x2}));
-  }
-}
-
-/**
- * @given byte array {0, 1, 2, 3}
- * @when decodeTribool function is applied sequentially
- * @then it returns false, true, indeterminate and kUnexpectedValue error as
- * expected
- */
-TEST(Scale, fixedwidthDecodeTribool) {
-  // decode none
-  auto bytes = "00010203"_unhex;
-  auto stream = ByteArrayStream{bytes};
-  auto &&res = boolean::decodeTribool(stream);
-  ASSERT_TRUE(res);
-  ASSERT_FALSE(res.value());
-  auto &&res1 = boolean::decodeTribool(stream);
-  ASSERT_TRUE(res1);
-  ASSERT_TRUE(res1.value());
-
-  auto &&res2 = boolean::decodeTribool(stream);
-  ASSERT_TRUE(res2);
-  ASSERT_TRUE(isIndeterminate(res2.value()));
-
-  auto &&res3 = boolean::decodeTribool(stream);
-  ASSERT_FALSE(res3);
-  ASSERT_EQ(res3.error().value(),
-            static_cast<int>(DecodeError::UNEXPECTED_VALUE));
+TEST(Scale, fixedwidthDecodeBoolSuccess) {
+  auto bytes = ByteArray{0, 1, 0};
+  EXPECT_OUTCOME_TRUE(res, kagome::scale::decode<ThreeBooleans>(bytes))
+  ASSERT_EQ(res.b1, false);
+  ASSERT_EQ(res.b2, true);
+  ASSERT_EQ(res.b3, false);
 }

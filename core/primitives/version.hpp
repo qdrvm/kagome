@@ -16,12 +16,20 @@ namespace kagome::primitives {
    * https://github.com/paritytech/substrate/blob/master/core/sr-version/src/lib.rs
    */
 
-  /// The identity of a particular API interface that the runtime might provide.
-  using ApiId = std::array<uint8_t, 8>;
+  /**
+   * @brief The identity of a particular API interface that the runtime might
+   * provide.
+   */
+  using ApiId = common::Blob<8u>;
 
+  /**
+   * @brief single Api item
+   */
   using Api = std::pair<ApiId, uint32_t>;
 
-  /// A vector of pairs of `ApiId` and a `u32` for version.
+  /**
+   * @brief A vector of pairs of `ApiId` and a `u32` for version.
+   */
   using ApisVec = std::vector<Api>;
 
   /**
@@ -60,6 +68,32 @@ namespace kagome::primitives {
     /// List of supported API "features" along with their versions.
     ApisVec apis;
   };
+
+  /**
+   * @brief outputs object of type Version to stream
+   * @tparam Stream output stream type
+   * @param s stream reference
+   * @param v value to output
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator<<(Stream &s, const Version &v) {
+    return s << v.spec_name << v.impl_name << v.authoring_version
+             << v.impl_version << v.apis;
+  }
+
+  /**
+   * @brief decodes object of type Version from stream
+   * @tparam Stream input stream type
+   * @param s stream reference
+   * @param v value to decode
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator>>(Stream &s, Version &v) {
+    return s >> v.spec_name >> v.impl_name >> v.authoring_version
+        >> v.impl_version >> v.apis;
+  }
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_CORE_PRIMITIVES_VERSION_HPP
