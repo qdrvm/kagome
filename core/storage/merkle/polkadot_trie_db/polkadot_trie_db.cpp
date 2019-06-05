@@ -143,7 +143,7 @@ namespace kagome::storage::merkle {
           // child to the new branch
           if (parent->key_nibbles.size() > key_nibbles.size()) {
             parent->key_nibbles = subbuffer(parent->key_nibbles, length + 1);
-            br->children[parentKey[length]] = parent;
+            br->children.at(parentKey[length]) = parent;
           }
 
           return br;
@@ -155,13 +155,13 @@ namespace kagome::storage::merkle {
           // if leaf's key is covered by this branch, then make the leaf's
           // value the value at this branch
           br->value = parent->value;
-          br->children[key_nibbles[length]] = node;
+          br->children.at(key_nibbles[length]) = node;
         } else {
           // otherwise, make the leaf a child of the branch and update its
           // partial key
           parent->key_nibbles = subbuffer(parent->key_nibbles, length + 1);
-          br->children[parentKey[length]] = parent;
-          br->children[key_nibbles[length]] = node;
+          br->children.at(parentKey[length]) = parent;
+          br->children.at(key_nibbles[length]) = node;
         }
 
         return br;
@@ -185,11 +185,11 @@ namespace kagome::storage::merkle {
       OUTCOME_TRY(c, retrieveChild(parent, key_nibbles[length]));
       if (c) {
         OUTCOME_TRY(n, insert(c, subbuffer(key_nibbles, length + 1), node));
-        parent->children[key_nibbles[length]] = n;
+        parent->children.at(key_nibbles[length]) = n;
         return parent;
       } else {
         node->key_nibbles = subbuffer(key_nibbles, length + 1);
-        parent->children[key_nibbles[length]] = node;
+        parent->children.at(key_nibbles[length]) = node;
         return parent;
       }
     }
@@ -198,13 +198,13 @@ namespace kagome::storage::merkle {
     OUTCOME_TRY(
         new_branch,
         insert(nullptr, subbuffer(parent->key_nibbles, length + 1), parent));
-    br->children[parentIdx] = new_branch;
+    br->children.at(parentIdx) = new_branch;
     if (key_nibbles.size() <= length) {
       br->value = node->value;
     } else {
       OUTCOME_TRY(new_child,
                   insert(nullptr, subbuffer(key_nibbles, length + 1), node));
-      br->children[key_nibbles[length]] = new_child;
+      br->children.at(key_nibbles[length]) = new_child;
     }
     return br;
   }
@@ -307,7 +307,7 @@ namespace kagome::storage::merkle {
                       retrieveChild(parent_as_branch, key_nibbles[length]));
           OUTCOME_TRY(n, deleteNode(child, subbuffer(key_nibbles, length + 1)));
           newRoot = parent;
-          parent_as_branch->children[key_nibbles[length]] = n;
+          parent_as_branch->children.at(key_nibbles[length]) = n;
         }
         OUTCOME_TRY(n, handleDeletion(parent_as_branch, newRoot, key_nibbles));
         return n;
@@ -355,8 +355,8 @@ namespace kagome::storage::merkle {
             .putBuffer(child->key_nibbles);
         auto child_as_branch = std::dynamic_pointer_cast<BranchNode>(child);
         for (size_t i = 0; i < child_as_branch->children.size(); i++) {
-          if (child_as_branch->children[i]) {
-            branch->children[i] = child_as_branch->children[i];
+          if (child_as_branch->children.at(i)) {
+            branch->children.at(i) = child_as_branch->children.at(i);
           }
         }
         branch->value = child->value;
@@ -395,7 +395,7 @@ namespace kagome::storage::merkle {
         return parent;
       }
       OUTCOME_TRY(n, detachNode(child, subbuffer(prefix_nibbles, length + 1)));
-      branch->children[prefix_nibbles[length]] = n;
+      branch->children.at(prefix_nibbles[length]) = n;
       return branch;
     }
     return parent;
@@ -403,7 +403,8 @@ namespace kagome::storage::merkle {
 
   uint32_t PolkadotTrieDb::getCommonPrefixLength(const Buffer &pref1,
                                                  const Buffer &pref2) const {
-    uint32_t length = 0, min = pref1.size();
+    uint32_t length = 0;
+    auto min = pref1.size();
 
     if (pref1.size() > pref2.size()) {
       min = pref2.size();
@@ -435,13 +436,13 @@ namespace kagome::storage::merkle {
     if (node.getTrieType() == T::BranchEmptyValue
         || node.getTrieType() == T::BranchWithValue) {
       auto &branch = dynamic_cast<BranchNode &>(node);
-      for (size_t i = 0; i < branch.children.size(); i++) {
-        auto child = branch.children[i];
+      for (auto & i : branch.children) {
+        auto child = i;
         if (child and not child->isDummy()) {
           OUTCOME_TRY(hash, storeNode(*child));
           // when a node is written to the storage, it is replaced with a dummy
           // node to avoid memory waste
-          branch.children[i] = std::make_shared<DummyNode>(hash);
+          i = std::make_shared<DummyNode>(hash);
         }
       }
     }
@@ -454,15 +455,15 @@ namespace kagome::storage::merkle {
 
   outcome::result<PolkadotTrieDb::NodePtr> PolkadotTrieDb::retrieveChild(
       const BranchPtr &parent, uint8_t idx) const {
-    if (parent->children[idx] == nullptr) {
+    if (parent->children.at(idx) == nullptr) {
       return nullptr;
     }
-    if (parent->children[idx]->isDummy()) {
-      auto dummy = std::dynamic_pointer_cast<DummyNode>(parent->children[idx]);
+    if (parent->children.at(idx)->isDummy()) {
+      auto dummy = std::dynamic_pointer_cast<DummyNode>(parent->children.at(idx));
       OUTCOME_TRY(n, retrieveNode(dummy->db_key));
-      parent->children[idx] = n;
+      parent->children.at(idx) = n;
     }
-    return parent->children[idx];
+    return parent->children.at(idx);
   }
 
   outcome::result<PolkadotTrieDb::NodePtr> PolkadotTrieDb::retrieveNode(
