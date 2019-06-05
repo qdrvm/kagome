@@ -40,8 +40,8 @@ class TrieTest
 
   void SetUp() override {
     open();
-    trie = std::make_unique<PolkadotTrieDb>(
-        std::make_unique<test::MapDb>(), codec, std::make_shared<HasherImpl>());
+    trie = std::make_unique<PolkadotTrieDb>(std::move(db_), codec,
+                                            std::make_shared<HasherImpl>());
   }
 
   std::shared_ptr<BufferScaleCodec> codec =
