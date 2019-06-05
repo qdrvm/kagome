@@ -14,7 +14,11 @@ namespace kagome::runtime {
 
   using common::Buffer;
   using extensions::Extension;
+  using primitives::Block;
+  using primitives::BlockHeader;
+  using primitives::CheckInherentsResult;
   using primitives::Extrinsic;
+  using primitives::InherentData;
   using wasm::Literal;
 
   BlockBuilderImpl::BlockBuilderImpl(Buffer state_code,
@@ -41,7 +45,7 @@ namespace kagome::runtime {
     // TODO(Harrm) PRE-154 figure out what wasm function returns
   }
 
-  outcome::result<primitives::BlockHeader> BlockBuilderImpl::finalize_block() {
+  outcome::result<BlockHeader> BlockBuilderImpl::finalize_block() {
     OUTCOME_TRY(res,
                 executor_.call(state_code_, "BlockBuilder_finalize_block", {}));
 
@@ -49,11 +53,11 @@ namespace kagome::runtime {
     SizeType len = getWasmLen(res.geti64());
     Buffer buffer = memory_->loadN(res_addr, len);
 
-    return scale::decode<primitives::BlockHeader>(buffer);
+    return scale::decode<BlockHeader>(buffer);
   }
 
-  outcome::result<std::vector<primitives::Extrinsic>>
-  BlockBuilderImpl::inherent_extrinsics(const primitives::InherentData &data) {
+  outcome::result<std::vector<Extrinsic>> BlockBuilderImpl::inherent_extrinsics(
+      const InherentData &data) {
     OUTCOME_TRY(enc_data, scale::encode(data));
 
     runtime::SizeType data_size = enc_data.size();
@@ -75,7 +79,7 @@ namespace kagome::runtime {
   }
 
   outcome::result<CheckInherentsResult> BlockBuilderImpl::check_inherents(
-      const primitives::Block &block, const primitives::InherentData &data) {
+      const Block &block, const InherentData &data) {
     OUTCOME_TRY(encoded_data, scale::encode(block, data));
 
     // TODO (Harrm) PRE-98: after check for memory overflow is done, refactor it

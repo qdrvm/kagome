@@ -8,6 +8,7 @@ add_library(primitives
     block_header.hpp
     block_id.hpp
     common.hpp
+    check_inherents_result.hpp
     digest.hpp
     extrinsic.hpp
     inherent_data.cpp
