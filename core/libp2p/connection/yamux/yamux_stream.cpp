@@ -5,6 +5,8 @@
 
 #include "libp2p/connection/yamux/yamux_stream.hpp"
 
+#define KILOBYTES(bytes) (bytes / 1024)
+
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, YamuxStream::Error, e) {
   using E = libp2p::connection::YamuxStream::Error;
   switch (e) {
@@ -24,22 +26,36 @@ namespace libp2p::connection {
                            YamuxedConnection::StreamId stream_id)
       : yamux_{std::move(conn)}, stream_id_{stream_id} {}
 
-  YamuxStream::~YamuxStream() {
-    this->resetStream();
-  }
-
   outcome::result<size_t> YamuxStream::write(gsl::span<const uint8_t> in) {
     if (!is_writable_) {
       return Error::NOT_WRITABLE;
     }
-    return yamux_->streamWrite(stream_id_, in);
+
+    auto in_size = KILOBYTES(in.size());
+    while (current_load_ + in_size > window_size_) {
+      // we are processing frames, as window update, which is going to decrease
+      // the load or increase the window size, is to be among those frames
+      OUTCOME_TRY(yamux_->streamProcessNextFrame());
+    }
+
+    OUTCOME_TRY(written_bytes, yamux_->streamWrite(stream_id_, in, false));
+    current_load_ += in_size;
+    return written_bytes;
   }
 
   outcome::result<size_t> YamuxStream::writeSome(gsl::span<const uint8_t> in) {
     if (!is_writable_) {
       return Error::NOT_WRITABLE;
     }
-    return yamux_->streamWrite(stream_id_, in);
+
+    auto in_size = KILOBYTES(in.size());
+    while (current_load_ + in_size > window_size_) {
+      OUTCOME_TRY(yamux_->streamProcessNextFrame());
+    }
+
+    OUTCOME_TRY(written_bytes, yamux_->streamWrite(stream_id_, in, true));
+    current_load_ += KILOBYTES(written_bytes);
+    return written_bytes;
   }
 
   outcome::result<std::vector<uint8_t>> YamuxStream::read(size_t bytes) {
@@ -66,7 +82,7 @@ namespace libp2p::connection {
     }
 
     while (read_buffer_.size() < static_cast<unsigned long>(buf.size())) {
-      OUTCOME_TRY(yamux_->streamReadFrame());
+      OUTCOME_TRY(yamux_->streamProcessNextFrame());
     }
 
     boost::asio::buffer_copy(boost::asio::buffer(buf.data(), buf.size()),
@@ -84,7 +100,7 @@ namespace libp2p::connection {
     }
 
     while (read_buffer_.size() == 0) {
-      OUTCOME_TRY(yamux_->streamReadFrame());
+      OUTCOME_TRY(yamux_->streamProcessNextFrame());
     }
 
     auto to_read =
@@ -97,6 +113,7 @@ namespace libp2p::connection {
 
   void YamuxStream::reset() {
     yamux_->streamReset(stream_id_);
+    resetStream();
   }
 
   bool YamuxStream::isClosedForRead() const noexcept {

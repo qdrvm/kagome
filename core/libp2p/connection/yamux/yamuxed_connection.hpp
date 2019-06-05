@@ -187,10 +187,11 @@ namespace libp2p::connection {
 
     friend class YamuxStream;
 
-    outcome::result<void> streamReadFrame();
+    outcome::result<void> streamProcessNextFrame();
 
     outcome::result<size_t> streamWrite(StreamId stream_id,
-                                        gsl::span<const uint8_t> msg);
+                                        gsl::span<const uint8_t> msg,
+                                        bool some);
 
     outcome::result<void> streamClose(StreamId stream_id);
 

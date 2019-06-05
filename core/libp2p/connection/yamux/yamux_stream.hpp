@@ -23,7 +23,7 @@ namespace libp2p::connection {
     YamuxStream &operator=(const YamuxStream &other) = delete;
     YamuxStream(YamuxStream &&other) noexcept = delete;
     YamuxStream &operator=(YamuxStream &&other) noexcept = delete;
-    ~YamuxStream() override;
+    ~YamuxStream() override = default;
 
     enum class Error { NOT_WRITABLE = 1, NOT_READABLE, INVALID_ARGUMENT };
 
@@ -63,6 +63,7 @@ namespace libp2p::connection {
     /// other side
     static constexpr uint32_t kDefaultWindowSize = 256;  // in kilobytes
     uint32_t window_size_ = kDefaultWindowSize;
+    uint32_t current_load_ = 0;  // how much bytes were written, but not acked
 
     /// buffer with bytes, not consumed by this stream
     boost::asio::streambuf read_buffer_;

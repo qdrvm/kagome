@@ -321,12 +321,12 @@ namespace libp2p::connection {
 
   /// YAMUX STREAM API
 
-  outcome::result<void> YamuxedConnection::streamReadFrame() {
+  outcome::result<void> YamuxedConnection::streamProcessNextFrame() {
     return readFrame();
   }
 
   outcome::result<size_t> YamuxedConnection::streamWrite(
-      StreamId stream_id, gsl::span<const uint8_t> msg) {
+      StreamId stream_id, gsl::span<const uint8_t> msg, bool some) {
     if (!is_active_) {
       return Error::YAMUX_IS_CLOSED;
     }
@@ -336,7 +336,11 @@ namespace libp2p::connection {
       return Error::NO_SUCH_STREAM;
     }
 
-    OUTCOME_TRY(written, connection_->write(dataMsg(stream_id, msg)));
+    if (!some) {
+      OUTCOME_TRY(written, connection_->write(dataMsg(stream_id, msg)));
+      return written - YamuxFrame::kHeaderLength;
+    }
+    OUTCOME_TRY(written, connection_->writeSome(dataMsg(stream_id, msg)));
     return written - YamuxFrame::kHeaderLength;
   }
 
