@@ -82,10 +82,6 @@ namespace kagome::common {
     return data_ == b.data_;
   }
 
-  bool Buffer::operator!=(const Buffer &b) const noexcept {
-    return data_ != b.data_;
-  }
-
   Buffer::const_iterator Buffer::begin() const {
     return data_.begin();
   }
@@ -108,17 +104,10 @@ namespace kagome::common {
     return data_ == b;
   }
 
-  bool Buffer::operator!=(const std::vector<uint8_t> &b) const noexcept {
-    return data_ != b;
-  }
-
   bool Buffer::operator==(gsl::span<const uint8_t> s) const noexcept {
     return std::equal(data_.begin(), data_.end(), s.begin(), s.end());
   }
 
-  bool Buffer::operator!=(gsl::span<const uint8_t> s) const noexcept {
-    return !std::equal(data_.begin(), data_.end(), s.begin(), s.end());
-  }
   template <typename T>
   Buffer &Buffer::putRange(const T &begin, const T &end) {
     static_assert(sizeof(*begin) == 1);
