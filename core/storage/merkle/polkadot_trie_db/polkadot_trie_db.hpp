@@ -28,7 +28,7 @@ namespace kagome::storage::merkle {
     friend Stream &operator<<(Stream &s, const PolkadotTrieDb &trie);
     template <typename Stream>
     friend Stream &printNode(Stream &s, NodePtr node,
-                             const PolkadotTrieDb &trie);
+                             const PolkadotTrieDb &trie, size_t nest_level = 0);
 
    public:
     enum class Error { INVALID_NODE_TYPE = 1 };
@@ -83,6 +83,8 @@ namespace kagome::storage::merkle {
      * avoid memory waste
      */
     outcome::result<common::Buffer> storeNode(PolkadotNode &node);
+    outcome::result<common::Buffer> storeNode(PolkadotNode &node,
+                                              WriteBatch &batch);
     /**
      * Fetches a node from the storage. A nullptr is returned in case that there
      * is no entry for provided key. Mind that a branch node will have dummy

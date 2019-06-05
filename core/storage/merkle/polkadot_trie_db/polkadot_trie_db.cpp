@@ -362,6 +362,13 @@ namespace kagome::storage::merkle {
 
   outcome::result<common::Buffer> PolkadotTrieDb::storeNode(
       PolkadotNode &node) {
+    auto batch = db_->batch();
+    OUTCOME_TRY(hash, storeNode(node, *batch));
+    OUTCOME_TRY(batch->commit());
+    return hash;
+  }
+    outcome::result<common::Buffer> PolkadotTrieDb::storeNode(
+      PolkadotNode &node, WriteBatch& batch) {
     using T = PolkadotNode::Type;
 
     // if node is a branch node, its children must be stored to the storage

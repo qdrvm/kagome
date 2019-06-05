@@ -8,7 +8,6 @@
 
 #include "storage/merkle/polkadot_trie_db/polkadot_trie_db.hpp"
 
-
 /**
  * IMPORTANT: This module is meant only for test usage and is not exception-safe
  */
@@ -16,18 +15,21 @@
 namespace kagome::storage::merkle {
 
   namespace {
-    std::string nibblesToHex(const common::Buffer &key_nibbles) {
-      std::stringstream ss;
-      for(auto& c: PolkadotCodec::nibblesToKey(key_nibbles)) {
-        ss << std::hex << (int)c;
+    std::string nibblesToStr(const Buffer &nibbles) {
+      std::stringstream s;
+      for (auto nibble : nibbles) {
+        if (nibble < 10)
+          s << static_cast<char>('0' + nibble);
+        else
+          s << static_cast<char>('a' + (nibble - 10));
       }
-      return ss.str();
+      return s.str();
     }
-  }
+  }  // namespace
 
   template <typename Stream>
   Stream &operator<<(Stream &s, const PolkadotTrieDb &trie) {
-    if(trie.root_.has_value()) {
+    if (trie.root_.has_value()) {
       auto root = trie.retrieveNode(trie.root_.value()).value();
       printNode(s, root, trie);
     }
@@ -35,16 +37,17 @@ namespace kagome::storage::merkle {
   }
 
   template <typename Stream>
-  Stream &printNode(Stream &s, PolkadotTrieDb::NodePtr node, const PolkadotTrieDb &trie) {
+  Stream &printNode(Stream &s, PolkadotTrieDb::NodePtr node,
+                    const PolkadotTrieDb &trie, size_t nest_level) {
     using T = PolkadotNode::Type;
+    std::string indent(nest_level, '\t');
     switch (node->getTrieType()) {
       case T::BranchWithValue:
       case T::BranchEmptyValue: {
         auto branch = std::dynamic_pointer_cast<BranchNode>(node);
-        s << "(branch) key_nibbles: <" << node->key_nibbles.toHex()
-          << "> value: " << node->value.toHex()
-          << "\n";
-        s << "children: ";
+        s << indent << "(branch) key_nibbles: <"
+          << nibblesToStr(node->key_nibbles)
+          << "> value: " << node->value.toHex() << " children: ";
         for (size_t i = 0; i < branch->children.size(); i++) {
           if (branch->children[i]) {
             s << std::hex << i;
@@ -54,20 +57,20 @@ namespace kagome::storage::merkle {
         for (size_t i = 0; i < branch->children.size(); i++) {
           auto child = branch->children.at(i);
           if (child) {
-            if(not child->isDummy()) {
-              printNode(s, child, trie);
+            if (not child->isDummy()) {
+              printNode(s, child, trie, nest_level + 1);
             } else {
-              auto child = trie.retrieveChild(branch, i).value();
-              printNode(s, child, trie);
+              auto fetched_child = trie.retrieveChild(branch, i).value();
+              printNode(s, fetched_child, trie, nest_level + 1);
             }
           }
         }
         break;
       }
       case T::Leaf:
-        s << "(leaf) key_nibbles: <" << node->key_nibbles.toHex()
-          << "> value: " << node->value.toHex()
-          << "\n";
+        s << indent << "(leaf) key_nibbles: <"
+          << nibblesToStr(node->key_nibbles)
+          << "> value: " << node->value.toHex() << "\n";
         break;
 
       default:
