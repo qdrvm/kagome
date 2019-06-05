@@ -15,7 +15,6 @@
 #include "primitives/block_header.hpp"
 #include "core/storage/merkle/mock_trie_db.hpp"
 #include "extensions/extension_impl.hpp"
-#include "primitives/impl/scale_codec_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 

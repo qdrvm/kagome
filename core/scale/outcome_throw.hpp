@@ -8,18 +8,19 @@
 
 #include <boost/system/system_error.hpp>
 #include <boost/throw_exception.hpp>
+#include "scale/scale_error.hpp"
 
-namespace kagome::common {
-
+namespace kagome::scale::common {
   /**
    * @brief throws outcome::result error as boost exception
-   * @tparam T error type
+   * @tparam T enum error type
    * @param t error value
    */
-  template <typename T>
-  void raise(const T &t) {
-    boost::throw_exception(std::system_error(make_error_code(t)));
+  template <typename T, typename = std::enable_if_t<std::is_enum_v<T>>>
+  void raise(T t) {
+    std::error_code ec = make_error_code(t);
+    boost::throw_exception(std::system_error(ec));
   }
-}  // namespace kagome::common::exception
+}  // namespace kagome::scale::common
 
 #endif  // KAGOME_CORE_COMMON_OUTCOME_THROW_HPP

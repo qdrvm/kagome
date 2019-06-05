@@ -71,7 +71,7 @@ namespace kagome::primitives {
 
   /**
    * @brief outputs object of type Version to stream
-   * @tparam Stream stream type
+   * @tparam Stream output stream type
    * @param s stream reference
    * @param v value to output
    * @return reference to stream
@@ -80,6 +80,19 @@ namespace kagome::primitives {
   Stream &operator<<(Stream &s, const Version &v) {
     return s << std::string_view(v.spec_name) << std::string_view(v.impl_name)
              << v.authoring_version << v.impl_version << v.apis;
+  }
+
+  /**
+   * @brief decodes object of type Version from stream
+   * @tparam Stream input stream type
+   * @param s stream reference
+   * @param v value to decode
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator>>(Stream &s, Version &v) {
+    return s >> v.spec_name >> v.impl_name >> v.authoring_version
+        >> v.impl_version >> v.apis;
   }
 }  // namespace kagome::primitives
 

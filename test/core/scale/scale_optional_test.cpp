@@ -5,13 +5,15 @@
 
 #include <gtest/gtest.h>
 
-#include "scale/byte_array_stream.hpp"
-#include "scale/optional_bool.hpp"
-#include "scale/scale_encoder_stream.hpp"
+#include "scale/scale.hpp"
+#include "testutil/outcome.hpp"
 
-using namespace kagome;          // NOLINT
-using namespace kagome::common;  // NOLINT
-using namespace kagome::scale;   // NOLINT
+using kagome::scale::ByteArray;
+using kagome::scale::decode;
+using kagome::scale::DecodeError;
+using kagome::scale::encode;
+using kagome::scale::EncodeError;
+using kagome::scale::ScaleDecoderStream;
 using kagome::scale::ScaleEncoderStream;
 
 // TODO(yuraz): PRE-119 refactor to parameterized tests
@@ -65,18 +67,6 @@ TEST(Scale, encodeOptional) {
 }
 
 /**
- * @given optional bool values: true, false, nullopt
- * @when encode optional is applied
- * @then expected result obtained
- */
-TEST(ScaleTest, EncodeOptionalBoolSuccess) {
-  ScaleEncoderStream s;
-  ASSERT_NO_THROW((s << std::optional<bool>(true) << std::optional<bool>(false)
-                     << std::nullopt));
-  ASSERT_EQ(s.data(), (ByteArray{2, 1, 0}));
-}
-
-/**
  * @given byte stream containing series of encoded optional values
  * @when decodeOptional function sequencially applied
  * @then expected values obtained
@@ -92,101 +82,114 @@ TEST(ScaleTest, DecodeOptionalSuccess) {
             1, 1, 2, 3, 4}; // sixth value
   // clang-format on
 
-  auto stream = ByteArrayStream{bytes};
+  auto stream = ScaleDecoderStream{bytes};
 
   // decode nullopt uint8_t
   {
-    auto &&res = optional::decodeOptional<uint8_t>(stream);
-    ASSERT_TRUE(res);
-    ASSERT_FALSE(res.value().has_value());
+    std::optional<uint8_t> opt;
+    ASSERT_NO_THROW((stream >> opt));
+    ASSERT_FALSE(opt.has_value());
   }
 
   // decode optional uint8_t
   {
-    auto &&res = optional::decodeOptional<uint8_t>(stream);
-    ASSERT_TRUE(res);
-    ASSERT_TRUE(res.value().has_value());
-    ASSERT_EQ(*res.value(), 1);
+    std::optional<uint8_t> opt;
+    ASSERT_NO_THROW((stream >> opt));
+    ASSERT_TRUE(opt.has_value());
+    ASSERT_EQ(*opt, 1);
   }
 
   // decode optional negative int8_t
   {
-    auto &&res = optional::decodeOptional<int8_t>(stream);
-    ASSERT_TRUE(res);
-    ASSERT_TRUE(res.value().has_value());
-    ASSERT_EQ(*res.value(), -1);
+    std::optional<int8_t> opt;
+    ASSERT_NO_THROW((stream >> opt));
+    ASSERT_TRUE(opt.has_value());
+    ASSERT_EQ(*opt, -1);
   }
 
   // decode nullopt uint16_t
   // it requires 1 zero byte just like any other nullopt
   {
-    auto &&res = optional::decodeOptional<uint16_t>(stream);
-    ASSERT_TRUE(res);
-    ASSERT_FALSE(res.value().has_value());
+    std::optional<uint16_t> opt;
+    ASSERT_NO_THROW((stream >> opt));
+    ASSERT_FALSE(opt.has_value());
   }
 
   // decode optional uint16_t
   {
-    auto &&res = optional::decodeOptional<uint16_t>(stream);
-    ASSERT_TRUE(res);
-    ASSERT_TRUE(res.value().has_value());
-    ASSERT_EQ(*res.value(), 511);
+    std::optional<uint16_t> opt;
+    ASSERT_NO_THROW((stream >> opt));
+    ASSERT_TRUE(opt.has_value());
+    ASSERT_EQ(*opt, 511);
   }
 
   // decode optional uint32_t
   {
-    auto &&res = optional::decodeOptional<uint32_t>(stream);
-    ASSERT_TRUE(res);
-    ASSERT_TRUE(res.value().has_value());
-    ASSERT_EQ(*res.value(), 67305985);
+    std::optional<uint32_t> opt;
+    ASSERT_NO_THROW((stream >> opt));
+    ASSERT_TRUE(opt.has_value());
+    ASSERT_EQ(*opt, 67305985);
   }
 }
 
 /**
- * @given stream containing series of encoded optionalBool values
- * @when decodeOptional<bool> function is applied
- * @then expected values obtained
+ * optional bool tests
  */
-TEST(Scale, decodeOptionalBool) {
+
+/**
+ * @given optional bool values: true, false, nullopt
+ * @when encode optional is applied
+ * @then expected result obtained
+ */
+TEST(ScaleTest, EncodeOptionalBoolSuccess) {
+  std::vector<std::optional<bool>> values = {true, false, std::nullopt};
+  ScaleEncoderStream s;
+  for (auto &&v : values) {
+    ASSERT_NO_THROW((s << v));
+  }
+  ASSERT_EQ(s.data(), (ByteArray{2, 1, 0}));
+}
+
+/**
+ * @brief helper struct for testing decode optional bool
+ */
+struct FourOptBools {
+  std::optional<bool> b1;
+  std::optional<bool> b2;
+  std::optional<bool> b3;
+  std::optional<bool> b4;
+};
+
+template <class Stream>
+Stream &operator>>(Stream &s, FourOptBools &v) {
+  return s >> v.b1 >> v.b2 >> v.b3 >> v.b4;
+}
+
+/**
+ * @given byte array containing series of encoded optional bool values
+ * where last byte is incorrect for optional bool type
+ * @when scale::decode function is applied
+ * @then DecoderError::UNEXPECTED_VALUE error is obtained
+ */
+TEST(Scale, DecodeOptionalBoolFail) {
   auto bytes = ByteArray{0, 1, 2, 3};
-  auto stream = ByteArrayStream{bytes};
 
-  // decode none
-  {
-    auto &&res = optional::decodeOptional<bool>(stream);
-    ASSERT_TRUE(res);
-    ASSERT_FALSE(res.value().has_value());
-  }
+  EXPECT_OUTCOME_FALSE_2(err, decode<FourOptBools>(bytes))
+  ASSERT_EQ(err.value(), static_cast<int>(DecodeError::UNEXPECTED_VALUE));
+}
 
-  // decode false
-  {
-    auto &&res = optional::decodeOptional<bool>(stream);
-    ASSERT_TRUE(res);
-    ASSERT_TRUE(res.value().has_value());
-    ASSERT_FALSE(*res.value());
-  }
+/**
+ * @given byte array containing series of encoded optional bool values
+ * @when scale::decode function is applied
+ * @then obtained values meet expectations
+ */
+TEST(Scale, DecodeOptionalBoolSuccess) {
+  auto bytes = ByteArray{0, 1, 2, 1};
+  using optbool = std::optional<bool>;
 
-  // decode true
-  {
-    auto &&res = optional::decodeOptional<bool>(stream);
-    ASSERT_TRUE(res);
-    ASSERT_TRUE(res.value().has_value());
-    ASSERT_TRUE(*res.value());
-  }
-
-  // decode error unexpected value
-  {
-    auto &&res = optional::decodeOptional<bool>(stream);
-    ASSERT_FALSE(res);
-    ASSERT_EQ(res.error().value(),
-              static_cast<int>(DecodeError::UNEXPECTED_VALUE));
-  }
-
-  // not enough data
-  {
-    auto &&res = optional::decodeOptional<bool>(stream);
-    ASSERT_FALSE(res);
-    ASSERT_EQ(res.error().value(),
-              static_cast<int>(DecodeError::NOT_ENOUGH_DATA));
-  }
+  EXPECT_OUTCOME_TRUE(res, decode<FourOptBools>(bytes))
+  ASSERT_EQ(res.b1, std::nullopt);
+  ASSERT_EQ(res.b2, optbool(false));
+  ASSERT_EQ(res.b3, optbool(true));
+  ASSERT_EQ(res.b4 , optbool(false));
 }

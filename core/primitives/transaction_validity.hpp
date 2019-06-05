@@ -119,6 +119,42 @@ namespace kagome::primitives {
   Stream &operator<<(Stream &s, const Unknown &v) {
     return s << v.error_;
   }
+
+  /**
+   * @brief decodes object of type Invalid from stream
+   * @tparam Stream input stream type
+   * @param s stream reference
+   * @param v value to decode
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator>>(Stream &s, Invalid &v) {
+    return s >> v.error_;
+  }
+
+  /**
+   * @brief decodes object of type Valid from stream
+   * @tparam Stream input stream type
+   * @param s stream reference
+   * @param v value to decode
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator>>(Stream &s, Valid &v) {
+    return s >> v.priority_ >> v.requires_ >> v.provides_ >> v.longevity_;
+  }
+
+  /**
+   * @brief decodes object of type Unknown from stream
+   * @tparam Stream input stream type
+   * @param s stream reference
+   * @param v value to decode
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator>>(Stream &s, Unknown &v) {
+    return s >> v.error_;
+  }
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_CORE_PRIMITIVES_TRANSACTION_VALIDITY_HPP

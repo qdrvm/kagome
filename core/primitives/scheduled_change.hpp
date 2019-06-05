@@ -14,7 +14,7 @@ namespace kagome::primitives {
   /// @struct ScheduledChange is used by Grandpa api runtime
   struct ScheduledChange {
     std::vector<std::pair<AuthorityId, uint64_t>> next_authorities;
-    BlockNumber delay;
+    BlockNumber delay = 0;
   };
 
   /// @brief api function returns optional value
@@ -39,6 +39,18 @@ namespace kagome::primitives {
   template <class Stream>
   Stream &operator<<(Stream &s, const ScheduledChange &v) {
     return s << v.next_authorities << v.delay;
+  }
+
+  /**
+   * @brief decodes ScheduledChange instance from stream
+   * @tparam Stream stream type
+   * @param s reference to stream
+   * @param v value to decode
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator>>(Stream &s, ScheduledChange &v) {
+    return s >> v.next_authorities >> v.delay;
   }
 }  // namespace kagome::primitives
 

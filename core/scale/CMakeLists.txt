@@ -3,29 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(byte_array_stream
-    byte_array_stream.hpp
-    byte_array_stream.cpp
-    )
-target_link_libraries(byte_array_stream
-    byte_stream
-    )
-
 add_library(scale
-    blob_codec.hpp
-    boolean.hpp
-    boolean.cpp
-    byte_array_stream.hpp
-    byte_array_stream.cpp
-    collection.hpp
-    collection.cpp
-    compact.hpp
-    compact.cpp
-    fixedwidth.hpp
-    fixedwidth.cpp
-    optional.hpp
-    optional_bool.hpp
-    optional_bool.cpp
     scale.hpp
     scale_decoder_stream.hpp
     scale_decoder_stream.cpp
@@ -34,21 +12,12 @@ add_library(scale
     scale_error.hpp
     scale_error.cpp
     types.hpp
-    type_decoder.hpp
     detail/fixed_witdh_integer.hpp
-    variant.hpp
+    detail/variant.hpp
     )
 
 target_link_libraries(scale
     Boost::boost
     buffer
     outcome
-    byte_array_stream
-    )
-
-add_library(scale_buffer_codec
-    buffer_codec.cpp
-    )
-target_link_libraries(scale_buffer_codec
-    scale
     )

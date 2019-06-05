@@ -3,15 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <gtest/gtest.h>
-#include "scale/byte_array_stream.hpp"
-#include "scale/type_decoder.hpp"
-#include "scale/scale_encoder_stream.hpp"
+#include "scale/scale.hpp"
 
-using kagome::common::Buffer;
-using kagome::common::ByteStream;
+#include <gtest/gtest.h>
+
 using kagome::scale::ByteArray;
-using kagome::scale::ByteArrayStream;
+using kagome::scale::ScaleDecoderStream;
 using kagome::scale::ScaleEncoderStream;
 
 /**
@@ -21,11 +18,11 @@ using kagome::scale::ScaleEncoderStream;
  */
 TEST(Scale, encodePair) {
   uint8_t v1 = 1;
-  uint32_t v2 = 1;
+  uint32_t v2 = 2;
 
   ScaleEncoderStream s;
   ASSERT_NO_THROW((s << std::make_pair(v1, v2)));
-  ASSERT_EQ(s.data(), (ByteArray{1, 1, 0, 0, 0}));
+  ASSERT_EQ(s.data(), (ByteArray{1, 2, 0, 0, 0}));
 }
 
 /**
@@ -35,12 +32,11 @@ TEST(Scale, encodePair) {
  * @then obtained pair mathces predefined one
  */
 TEST(Scale, decodePair) {
-  ByteArray bytes = {1, 1, 0, 0, 0};
-  auto stream = ByteArrayStream{bytes};
-  using Pair = std::pair<uint8_t, uint32_t>;
-  kagome::scale::TypeDecoder<Pair> decoder;
-  auto &&res = decoder.decode(stream);
-  ASSERT_TRUE(res);
-  ASSERT_EQ(res.value().first, 1);
-  ASSERT_EQ(res.value().second, 1);
+  ByteArray bytes = {1, 2, 0, 0, 0};
+  ScaleDecoderStream s(bytes);
+  using pair_type = std::pair<uint8_t, uint32_t>;
+  pair_type pair{};
+  ASSERT_NO_THROW((s >> pair));
+  ASSERT_EQ(pair.first, 1);
+  ASSERT_EQ(pair.second, 2);
 }

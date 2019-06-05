@@ -12,7 +12,9 @@
 #include <vector>
 
 #include <boost/endian/arithmetic.hpp>
+#include "scale/outcome_throw.hpp"
 #include "scale/scale_error.hpp"
+#include "macro/unreachable.hpp"
 
 namespace kagome::scale::detail {
   /**
@@ -41,11 +43,11 @@ namespace kagome::scale::detail {
    * @param stream source stream
    * @return decoded value or error
    */
-  template <class T, typename I = std::decay_t<T>,
-            typename = std::enable_if_t<std::is_integral<I>::value>>
-  outcome::result<I> decodeInteger(common::ByteStream &stream) {
+  template <class T, class S, typename I = std::decay_t<T>,
+            typename = std::enable_if_t<std::is_integral_v<I>>>
+  I decodeInteger(S &stream) {
     constexpr size_t size = sizeof(I);
-    static_assert(size == 1 || size == 2 || size == 4 || size == 8);
+    static_assert(size <= 8);
 
     // clang-format off
     // sign bit = 2^(num_bits - 1)
@@ -73,15 +75,17 @@ namespace kagome::scale::detail {
     // clang-format on
 
     if (!stream.hasMore(size)) {
-      return outcome::failure(DecodeError::NOT_ENOUGH_DATA);
+      common::raise(DecodeError::NOT_ENOUGH_DATA);
+      UNREACHABLE
     }
 
     // get integer as 4 bytes from little-endian stream
     // and represent it as native-endian unsigned int eger
     uint64_t v = 0u;
+
     for (size_t i = 0; i < size; ++i) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-      v += multiplier[i] * static_cast<uint64_t>(*stream.nextByte());
+      v += multiplier[i] * static_cast<uint64_t>(stream.nextByte());
     }
     // now we have uint64 native-endian value
     // which can be signed or unsigned under the cover
@@ -100,7 +104,6 @@ namespace kagome::scale::detail {
     }
 
     // T is signed integer type and the value v is negative
-
     // value is negative signed means ( - x )
     // where x is positive unsigned < sign_bits[size-1]
     // find this x, safely cast to signed and negate result

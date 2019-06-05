@@ -9,7 +9,6 @@
 #include <memory>
 #include <string>
 
-#include "scale/scale_codec.hpp"
 #include "storage/merkle/codec.hpp"
 #include "storage/merkle/polkadot_trie_db/polkadot_node.hpp"
 
@@ -18,7 +17,6 @@ namespace kagome::storage::merkle {
   class PolkadotCodec : public Codec {
    public:
     using Buffer = kagome::common::Buffer;
-    using ScaleBufferEncoder = scale::ScaleEncoder<Buffer>;
 
     enum class Error {
       SUCCESS = 0,
@@ -27,8 +25,6 @@ namespace kagome::storage::merkle {
     };
 
     ~PolkadotCodec() override = default;
-
-    explicit PolkadotCodec(std::shared_ptr<ScaleBufferEncoder> codec);
 
     outcome::result<Buffer> encodeNode(const Node &node) const override;
 
@@ -48,8 +44,6 @@ namespace kagome::storage::merkle {
    private:
     outcome::result<Buffer> encodeBranch(const BranchNode &node) const;
     outcome::result<Buffer> encodeLeaf(const LeafNode &node) const;
-
-    std::shared_ptr<ScaleBufferEncoder> scale_;
   };
 
 }  // namespace kagome::storage::merkle

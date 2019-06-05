@@ -8,7 +8,6 @@
 
 #include "common/logger.hpp"
 #include "extensions/extension.hpp"
-#include "primitives/scale_codec.hpp"
 #include "runtime/core.hpp"
 #include "runtime/impl/wasm_executor.hpp"
 
@@ -17,8 +16,7 @@ namespace kagome::runtime {
   class CoreImpl : public Core {
    public:
     CoreImpl(common::Buffer state_code,
-             std::shared_ptr<extensions::Extension> extension,
-             std::shared_ptr<primitives::ScaleCodec> codec);
+             std::shared_ptr<extensions::Extension> extension);
 
     outcome::result<primitives::Version> version() override;
 
@@ -35,7 +33,6 @@ namespace kagome::runtime {
     common::Buffer state_code_;
     std::shared_ptr<WasmMemory> memory_;
     WasmExecutor executor_;
-    std::shared_ptr<primitives::ScaleCodec> codec_;
   };
 
 }  // namespace kagome::runtime

@@ -28,11 +28,20 @@ namespace kagome::scale {
     UNEXPECTED_VALUE,       ///< unexpected value
     TOO_MANY_ITEMS,         ///< too many items, cannot address them in memory
     WRONG_TYPE_INDEX,       ///< wrong type index, cannot decode variant
-    INVALID_DATA            ///< invalid data
+    INVALID_DATA,           ///< invalid data
+    OUT_OF_BOUNDARIES       ///< advance went out of boundaries
+  };
+
+  /**
+   * @brief common errors
+   */
+  enum class CommonError {
+    UNKNOWN_ERROR = 1  ///< unknown error
   };
 }  // namespace kagome::scale
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::scale, EncodeError)
 OUTCOME_HPP_DECLARE_ERROR(kagome::scale, DecodeError)
+OUTCOME_HPP_DECLARE_ERROR(kagome::scale, CommonError)
 
 #endif  // KAGOME_SCALE_ERROR_HPP

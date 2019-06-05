@@ -18,7 +18,7 @@ namespace kagome::primitives {
 
   /**
    * @brief outputs object of type Extrinisic to stream
-   * @tparam Stream stream type
+   * @tparam Stream output stream type
    * @param s stream reference
    * @param v value to output
    * @return reference to stream
@@ -26,6 +26,18 @@ namespace kagome::primitives {
   template <class Stream>
   Stream &operator<<(Stream &s, const Extrinsic &v) {
     return s << v.data.toVector();
+  }
+
+  /**
+   * @brief decodes object of type Extrinisic from stream
+   * @tparam Stream input stream type
+   * @param s stream reference
+   * @param v value to output
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator>>(Stream &s, Extrinsic &v) {
+    return s >> v.data;
   }
 }  // namespace kagome::primitives
 

@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 ##
 
-addtest(byte_array_stream_test
-    byte_array_stream_test.cpp
+addtest(scale_decoder_stream_test
+    scale_decoder_stream_test.cpp
     )
-target_link_libraries(byte_array_stream_test
+target_link_libraries(scale_decoder_stream_test
     scale
     )
 
@@ -64,4 +64,18 @@ addtest(scale_pair_test
 target_link_libraries(scale_pair_test
     scale
     buffer
+    )
+
+addtest(scale_strings_test
+    scale_strings_test.cpp
+    )
+target_link_libraries(scale_strings_test
+    scale
+    )
+
+addtest(scale_convenience_functions_test
+    scale_convenience_functions_test.cpp
+    )
+target_link_libraries(scale_convenience_functions_test
+    scale
     )

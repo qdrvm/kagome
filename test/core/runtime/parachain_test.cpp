@@ -8,14 +8,12 @@
 #include <gtest/gtest.h>
 #include "core/runtime/runtime_test.hpp"
 #include "extensions/extension_impl.hpp"
-#include "primitives/impl/scale_codec_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/wasm_test.hpp"
 
 using kagome::common::Buffer;
 using kagome::extensions::ExtensionImpl;
-using kagome::primitives::ScaleCodecImpl;
 using kagome::primitives::parachain::Chain;
 using kagome::primitives::parachain::DutyRoster;
 using kagome::primitives::parachain::Parachain;
@@ -35,7 +33,7 @@ class ParachainHostTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    api_ = std::make_shared<ParachainHostImpl>(state_code_, extension_, codec_);
+    api_ = std::make_shared<ParachainHostImpl>(state_code_, extension_);
   }
 
   ParaId createParachainId() const {

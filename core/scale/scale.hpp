@@ -18,36 +18,38 @@
 namespace kagome::scale {
   /**
    * @brief convenience function for encoding primitives data to stream
-   * @tparam T primitive type
-   * @param t data to encode
+   * @tparam Args primitive types to be encoded
+   * @param args data to encode
    * @return encoded data
    */
-  template <class T>
-  outcome::result<std::vector<uint8_t>> encode(T &&t) {
+  template <typename... Args>
+  outcome::result<std::vector<uint8_t>> encode(Args &&... args) {
+    ScaleEncoderStream s;
     try {
-      ScaleEncoderStream s;
-      s << t;
-      return s.data();
-    } catch (const boost::system::system_error &e) {
-      return e.code();
+      (s << ... << std::forward<Args>(args));
+    } catch (std::system_error &e) {
+      return outcome::failure(e.code());
     }
+    return s.data();
   }
 
   /**
    * @brief convenience function for decoding primitives data from stream
-   * @param span
-   * @return
+   * @tparam T primitive type that is decoded from provided blob
+   * @param span of bytes with encoded data
+   * @return decoded T
    */
   template <class T>
   outcome::result<T> decode(gsl::span<const uint8_t> span) {
+    T t{};
+    ScaleDecoderStream s(span);
     try {
-      T t;
-      ScaleDecoderStream s(span);
       s >> t;
-      return t;
-    } catch (const boost::system::system_error &e) {
-      return e.code();
+    } catch (std::system_error &e) {
+      return outcome::failure(e.code());
     }
+
+    return t;
   }
 }  // namespace kagome::scale
 #endif  // KAGOME_SCALE_HPP

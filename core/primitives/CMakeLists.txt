@@ -8,6 +8,7 @@ add_library(primitives
     block_header.hpp
     block_id.hpp
     common.hpp
+    check_inherents_result.hpp
     digest.hpp
     extrinsic.hpp
     inherent_data.cpp
@@ -20,18 +21,6 @@ add_library(primitives
 
 target_link_libraries(primitives
     buffer
-    outcome
     scale
     blob
     )
-
-add_library(scale_codec
-    scale_codec.hpp
-    impl/scale_codec_impl.hpp
-    impl/scale_codec_impl.cpp
-    )
-target_link_libraries(
-    scale_codec
-    scale_buffer_codec
-    primitives
-)

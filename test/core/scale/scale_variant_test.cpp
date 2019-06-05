@@ -4,47 +4,92 @@
  */
 
 #include <gtest/gtest.h>
-#include "scale/byte_array_stream.hpp"
-#include "scale/variant.hpp"
-#include "scale/scale_encoder_stream.hpp"
 
-using kagome::common::Buffer;
+#include "scale/scale.hpp"
+
+#include <gsl/span>
+#include "testutil/outcome.hpp"
+
 using kagome::scale::ByteArray;
-using kagome::scale::ByteArrayStream;
-using kagome::scale::variant::decodeVariant;
-using kagome::scale::variant::encodeVariant;
+using kagome::scale::decode;
+using kagome::scale::encode;
+using kagome::scale::ScaleDecoderStream;
 using kagome::scale::ScaleEncoderStream;
 
+class VariantFixture
+    : public testing::TestWithParam<
+          std::pair<boost::variant<uint8_t, uint32_t>, ByteArray>> {
+ protected:
+  ScaleEncoderStream s;
+};
+namespace {
+  std::pair<boost::variant<uint8_t, uint32_t>, ByteArray> make_pair(
+      boost::variant<uint8_t, uint32_t> v, ByteArray m) {
+    return std::pair<boost::variant<uint8_t, uint32_t>, ByteArray>(
+        std::move(v), std::move(m));
+  }
+}  // namespace
+
+/**
+ * @given variant value and byte array
+ * @when value is scale-encoded
+ * @then encoded bytes match predefined byte array
+ */
+TEST_P(VariantFixture, EncodeSuccessTest) {
+  const auto &[value, match] = GetParam();
+  ASSERT_NO_THROW(s << value);
+  ASSERT_EQ(s.data(), match);
+}
+
+INSTANTIATE_TEST_CASE_P(CompactTestCases, VariantFixture,
+                        ::testing::Values(make_pair(uint8_t(1), {0, 1}),
+                                          make_pair(uint32_t(2),
+                                                    {1, 2, 0, 0, 0})));
+
+/**
+ * @given
+ */
 TEST(Scale, encodeVariant) {
   {
     boost::variant<uint8_t, uint32_t> v = static_cast<uint8_t>(1);
-    ScaleEncoderStream s;
-    ASSERT_NO_THROW(encodeVariant(v, s));
-    ASSERT_EQ(s.data(), (ByteArray{0, 1}));
+    EXPECT_OUTCOME_TRUE(data, encode(v))
+    ASSERT_EQ(data, (ByteArray{0, 1}));
   }
   {
     boost::variant<uint8_t, uint32_t> v = static_cast<uint32_t>(1);
-    ScaleEncoderStream s;
-    ASSERT_NO_THROW(encodeVariant(v, s));
-    ASSERT_EQ(s.data(), (ByteArray{1, 1, 0, 0, 0}));
+    EXPECT_OUTCOME_TRUE(data, encode(v))
+    ASSERT_EQ(data, (ByteArray{1, 1, 0, 0, 0}));
   }
 }
 
-TEST(Scale, decodeVariant) {
-  Buffer match = {0, 1,            // uint8_t{1}
-                  1, 1, 0, 0, 0};  // uint32_t{1}
+/**
+ * @given byte array of encoded variant of types uint8_t and uint32_t
+ * containing uint8_t value
+ * @when variant decoded from scale decoder stream
+ * @then obtained varian has alternative type uint8_t and is equal to encoded
+ * uint8_t value
+ */
+TEST(ScaleVariant, DecodeU8Success) {
+  ByteArray match = {0, 1};  // uint8_t{1}
+  ScaleDecoderStream s(match);
+  boost::variant<uint8_t, uint32_t> val{};
+  ASSERT_NO_THROW(s >> val);
+  kagome::visit_in_place(
+      val, [](uint8_t v) { ASSERT_EQ(v, 1); }, [](uint32_t v) { FAIL(); });
+}
 
-  auto stream = ByteArrayStream{match};
-  auto &&res = decodeVariant<uint8_t, uint32_t>(stream);
-  ASSERT_TRUE(res);
-  auto &&val = res.value();
-
-  kagome::visit_in_place(val, [](uint8_t v) { ASSERT_EQ(v, 1); },
-                         [](uint32_t v) { FAIL(); });
-
-  auto &&res1 = decodeVariant<uint8_t, uint32_t>(stream);
-  auto &&val1 = res1.value();
-
-  kagome::visit_in_place(val1, [](uint32_t v) { ASSERT_EQ(v, 1); },
-                         [](uint8_t v) { FAIL(); });
+/**
+ * @given byte array of encoded variant of types uint8_t and uint32_t
+ * containing uint32_t value
+ * @when variant decoded from scale decoder stream
+ * @then obtained varian has alternative type uint32_t and is equal to encoded
+ * uint32_t value
+ */
+TEST(ScaleVariant, DecodeU32Success) {
+  ByteArray match = {1, 1, 0, 0, 0};  // uint32_t{1}
+  ScaleDecoderStream s(match);
+  boost::variant<uint8_t, uint32_t> val{};
+  ASSERT_NO_THROW(s >> val);
+  kagome::visit_in_place(
+      val, [](uint32_t v) { ASSERT_EQ(v, 1); }, [](uint8_t v) { FAIL(); });
 }

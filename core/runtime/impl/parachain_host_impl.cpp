@@ -5,11 +5,6 @@
 
 #include "runtime/impl/parachain_host_impl.hpp"
 
-#include "runtime/impl/wasm_memory_stream.hpp"
-#include "scale/blob_codec.hpp"
-#include "scale/buffer_codec.hpp"
-#include "scale/collection.hpp"
-#include "scale/optional.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::runtime {
@@ -17,16 +12,11 @@ namespace kagome::runtime {
   using primitives::parachain::DutyRoster;
   using primitives::parachain::ParaId;
   using primitives::parachain::ValidatorId;
-  using scale::optional::decodeOptional;
-  using scale::encode;
-  using scale::decode;
 
   ParachainHostImpl::ParachainHostImpl(
       common::Buffer state_code,  // find out what is it
-      std::shared_ptr<extensions::Extension> extension,
-      std::shared_ptr<primitives::ScaleCodec> codec)
+      std::shared_ptr<extensions::Extension> extension)
       : memory_(extension->memory()),
-        codec_(std::move(codec)),
         executor_(std::move(extension)),
         state_code_(std::move(state_code)) {}
 
@@ -36,12 +26,11 @@ namespace kagome::runtime {
     OUTCOME_TRY(res,
                 executor_.call(state_code_, "ParachainHost_duty_roster", ll));
 
-    uint32_t res_addr = getWasmAddr(res.geti64());
+    WasmPointer res_addr = getWasmAddr(res.geti64());
+    SizeType len = getWasmLen(res.geti64());
+    auto buffer = memory_->loadN(res_addr, len);
 
-    WasmMemoryStream s(memory_);
-    OUTCOME_TRY(s.advance(res_addr));
-
-    return codec_->decodeDutyRoster(s);
+    return scale::decode<DutyRoster>(buffer);
   }
 
   outcome::result<std::vector<ParaId>> ParachainHostImpl::activeParachains() {
@@ -51,17 +40,16 @@ namespace kagome::runtime {
         res,
         executor_.call(state_code_, "ParachainHost_active_parachains", ll));
 
-    uint32_t res_addr = getWasmAddr(res.geti64());
+    WasmPointer res_addr = getWasmAddr(res.geti64());
+    SizeType len = getWasmLen(res.geti64());
+    auto buffer = memory_->loadN(res_addr, len);
 
-    WasmMemoryStream s(memory_);
-    OUTCOME_TRY(s.advance(res_addr));
-
-    return scale::collection::decodeCollection<ParaId>(s);
+    return scale::decode<std::vector<ParaId>>(buffer);
   }
 
   outcome::result<std::optional<Buffer>> ParachainHostImpl::parachainHead(
       ParachainId id) {
-    OUTCOME_TRY(params, encode(id));
+    OUTCOME_TRY(params, scale::encode(id));
 
     runtime::SizeType ext_size = params.size();
     // TODO (yuraz): PRE-98 after check for memory overflow is done, refactor it
@@ -73,17 +61,16 @@ namespace kagome::runtime {
     OUTCOME_TRY(
         res, executor_.call(state_code_, "ParachainHost_parachain_head", ll));
 
-    uint32_t res_addr = getWasmAddr(res.geti64());
+    WasmPointer res_addr = getWasmAddr(res.geti64());
+    SizeType len = getWasmLen(res.geti64());
+    auto buffer = memory_->loadN(res_addr, len);
 
-    WasmMemoryStream s(memory_);
-    OUTCOME_TRY(s.advance(res_addr));
-
-    return scale::optional::decodeOptional<Buffer>(s);
+    return scale::decode<std::optional<Buffer>>(buffer);
   }
 
   outcome::result<std::optional<Buffer>> ParachainHostImpl::parachainCode(
       ParachainId id) {
-    OUTCOME_TRY(params, encode(id));
+    OUTCOME_TRY(params, scale::encode(id));
 
     runtime::SizeType ext_size = params.size();
     // TODO (yuraz): PRE-98 after check for memory overflow is done, refactor it
@@ -95,12 +82,11 @@ namespace kagome::runtime {
     OUTCOME_TRY(
         res, executor_.call(state_code_, "ParachainHost_parachain_code", ll));
 
-    uint32_t res_addr = getWasmAddr(res.geti64());
+    WasmPointer res_addr = getWasmAddr(res.geti64());
+    SizeType len = getWasmLen(res.geti64());
+    auto buffer = memory_->loadN(res_addr, len);
 
-    WasmMemoryStream s(memory_);
-    OUTCOME_TRY(s.advance(res_addr));
-
-    return scale::optional::decodeOptional<Buffer>(s);
+    return scale::decode<std::optional<Buffer>>(buffer);
   }
 
   outcome::result<std::vector<ValidatorId>> ParachainHostImpl::validators() {
@@ -108,13 +94,11 @@ namespace kagome::runtime {
     OUTCOME_TRY(res,
                 executor_.call(state_code_, "ParachainHost_validators", ll));
 
-    // first 32 bits are address and second are the length (length not needed)
-    uint32_t res_addr = getWasmAddr(res.geti64());
+    WasmPointer res_addr = getWasmAddr(res.geti64());
+    SizeType len = getWasmLen(res.geti64());
+    auto buffer = memory_->loadN(res_addr, len);
 
-    WasmMemoryStream stream(memory_);
-    OUTCOME_TRY(stream.advance(res_addr));
-
-    return scale::collection::decodeCollection<ValidatorId>(stream);
+    return scale::decode<std::vector<ValidatorId>>(buffer);
   }
 
 }  // namespace kagome::runtime
