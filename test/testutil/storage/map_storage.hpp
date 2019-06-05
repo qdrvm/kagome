@@ -56,7 +56,6 @@ namespace test {
     outcome::result<Buffer> get(const Buffer &key) const override {
       try {
         return storage.at(key.toHex());
-
       } catch (std::exception_ptr &e) {
         return outcome::error_from_exception(std::move(e));
       }
@@ -66,7 +65,6 @@ namespace test {
       try {
         storage[key.toHex()] = value;
         return outcome::success();
-
       } catch (std::exception_ptr &e) {
         return outcome::error_from_exception(std::move(e));
       }
