@@ -47,22 +47,6 @@ INSTANTIATE_TEST_CASE_P(CompactTestCases, VariantFixture,
                                                     {1, 2, 0, 0, 0})));
 
 /**
- * @given
- */
-TEST(Scale, encodeVariant) {
-  {
-    boost::variant<uint8_t, uint32_t> v = static_cast<uint8_t>(1);
-    EXPECT_OUTCOME_TRUE(data, encode(v))
-    ASSERT_EQ(data, (ByteArray{0, 1}));
-  }
-  {
-    boost::variant<uint8_t, uint32_t> v = static_cast<uint32_t>(1);
-    EXPECT_OUTCOME_TRUE(data, encode(v))
-    ASSERT_EQ(data, (ByteArray{1, 1, 0, 0, 0}));
-  }
-}
-
-/**
  * @given byte array of encoded variant of types uint8_t and uint32_t
  * containing uint8_t value
  * @when variant decoded from scale decoder stream
