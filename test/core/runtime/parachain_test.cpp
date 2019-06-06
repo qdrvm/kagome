@@ -51,7 +51,7 @@ class ParachainHostTest : public RuntimeTest {
  * @then successful result is returned
  */
 TEST_F(ParachainHostTest, DISABLED_DutyRosterTest) {
-  ASSERT_TRUE(api_->dutyRoster());
+  ASSERT_TRUE(api_->duty_roster());
 }
 
 /**
@@ -60,7 +60,7 @@ TEST_F(ParachainHostTest, DISABLED_DutyRosterTest) {
  * @then successful result is returned
  */
 TEST_F(ParachainHostTest, DISABLED_ActiveParachainsTest) {
-  ASSERT_TRUE(api_->activeParachains());
+  ASSERT_TRUE(api_->active_parachains());
 }
 
 /**
@@ -70,7 +70,7 @@ TEST_F(ParachainHostTest, DISABLED_ActiveParachainsTest) {
  */
 TEST_F(ParachainHostTest, DISABLED_ParachainHeadTest) {
   auto id = createParachainId();
-  ASSERT_TRUE(api_->parachainHead(id));
+  ASSERT_TRUE(api_->parachain_head(id));
 }
 
 /**

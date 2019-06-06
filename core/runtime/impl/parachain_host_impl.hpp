@@ -28,11 +28,11 @@ namespace kagome::runtime {
     ParachainHostImpl(common::Buffer state_code,
                       std::shared_ptr<extensions::Extension> extension);
 
-    outcome::result<DutyRoster> dutyRoster() override;
+    outcome::result<DutyRoster> duty_roster() override;
 
-    outcome::result<std::vector<ParachainId>> activeParachains() override;
+    outcome::result<std::vector<ParachainId>> active_parachains() override;
 
-    outcome::result<std::optional<Buffer>> parachainHead(
+    outcome::result<std::optional<Buffer>> parachain_head(
         ParachainId id) override;
 
     outcome::result<std::optional<Buffer>> parachainCode(

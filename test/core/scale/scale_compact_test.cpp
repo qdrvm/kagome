@@ -25,8 +25,7 @@ class CompactTest
  public:
   static std::pair<CompactInteger, ByteArray> pair(CompactInteger v,
                                                    ByteArray m) {
-    return std::make_pair<CompactInteger, ByteArray>(std::move(v),
-                                                     std::move(m));
+    return std::make_pair(CompactInteger(std::move(v)), std::move(m));
   }
 
  protected:
@@ -109,7 +108,7 @@ INSTANTIATE_TEST_CASE_P(
  */
 TEST(ScaleCompactTest, EncodeNegativeIntegerFails) {
   CompactInteger v(-1);
-  ScaleEncoderStream out;
+  ScaleEncoderStream out{};
   ASSERT_ANY_THROW((out << v));
   ASSERT_EQ(out.data().size(), 0);  // nothing was written to buffer
 }
@@ -140,10 +139,8 @@ TEST(ScaleCompactTest, EncodeOutOfRangeBigIntegerFails) {
  */
 TEST(Scale, compactDecodeBigIntegerError) {
   auto bytes = ByteArray{255, 255, 255, 255};
-  auto stream = ScaleDecoderStream(gsl::make_span(bytes));
-  outcome::result<CompactInteger> res = decode<CompactInteger>(bytes);
-  ASSERT_FALSE(res);
+  EXPECT_OUTCOME_FALSE_2(err, decode<CompactInteger>(bytes));
 
-  ASSERT_EQ(res.error().value(),
+  ASSERT_EQ(err.value(),
             static_cast<int>(kagome::scale::DecodeError::NOT_ENOUGH_DATA));
 }

@@ -12,6 +12,7 @@ namespace kagome::runtime {
   using primitives::parachain::DutyRoster;
   using primitives::parachain::ParaId;
   using primitives::parachain::ValidatorId;
+  using scale::ScaleDecoderStream;
 
   ParachainHostImpl::ParachainHostImpl(
       common::Buffer state_code,  // find out what is it
@@ -20,7 +21,7 @@ namespace kagome::runtime {
         executor_(std::move(extension)),
         state_code_(std::move(state_code)) {}
 
-  outcome::result<DutyRoster> ParachainHostImpl::dutyRoster() {
+  outcome::result<DutyRoster> ParachainHostImpl::duty_roster() {
     wasm::LiteralList ll{wasm::Literal(0), wasm::Literal(0)};
 
     OUTCOME_TRY(res,
@@ -33,7 +34,7 @@ namespace kagome::runtime {
     return scale::decode<DutyRoster>(buffer);
   }
 
-  outcome::result<std::vector<ParaId>> ParachainHostImpl::activeParachains() {
+  outcome::result<std::vector<ParaId>> ParachainHostImpl::active_parachains() {
     wasm::LiteralList ll{wasm::Literal(0), wasm::Literal(0)};
 
     OUTCOME_TRY(
@@ -47,7 +48,7 @@ namespace kagome::runtime {
     return scale::decode<std::vector<ParaId>>(buffer);
   }
 
-  outcome::result<std::optional<Buffer>> ParachainHostImpl::parachainHead(
+  outcome::result<std::optional<Buffer>> ParachainHostImpl::parachain_head(
       ParachainId id) {
     OUTCOME_TRY(params, scale::encode(id));
 

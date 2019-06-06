@@ -25,20 +25,20 @@ namespace kagome::runtime {
      * @brief Calls the ParachainHost_duty_roster function from wasm code
      * @return DutyRoster structure or error if fails
      */
-    virtual outcome::result<DutyRoster> dutyRoster() = 0;
+    virtual outcome::result<DutyRoster> duty_roster() = 0;
 
     /**
      * @brief Calls the ParachainHost_active_parachains function from wasm code
      * @return vector of ParachainId items or error if fails
      */
-    virtual outcome::result<std::vector<ParachainId>> activeParachains() = 0;
+    virtual outcome::result<std::vector<ParachainId>> active_parachains() = 0;
 
     /**
      * @brief Calls the ParachainHost_parachain_head function from wasm code
      * @param id parachain id
      * @return parachain head or error if fails
      */
-    virtual outcome::result<std::optional<Buffer>> parachainHead(
+    virtual outcome::result<std::optional<Buffer>> parachain_head(
         ParachainId id) = 0;
 
     // $ParachainHost_parachain_code
