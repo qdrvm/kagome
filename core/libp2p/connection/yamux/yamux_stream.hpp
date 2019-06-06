@@ -56,6 +56,9 @@ namespace libp2p::connection {
 
     outcome::result<void> adjustWindowSize(uint32_t new_size) override;
 
+   protected:
+    outcome::result<void> processNextFrame() const;
+
    private:
     std::shared_ptr<YamuxedConnection> yamux_;
     YamuxedConnection::StreamId stream_id_;

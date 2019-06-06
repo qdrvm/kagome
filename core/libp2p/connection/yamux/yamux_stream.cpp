@@ -35,7 +35,7 @@ namespace libp2p::connection {
     while (send_window_size_ - in_size < 0) {
       // we are processing frames, as window update, which can decrease increase
       // the window size, is to be among those frames
-      OUTCOME_TRY(yamux_->streamProcessNextFrame());
+      OUTCOME_TRY(processNextFrame());
     }
 
     OUTCOME_TRY(written_bytes, yamux_->streamWrite(stream_id_, in, false));
@@ -50,7 +50,7 @@ namespace libp2p::connection {
 
     auto in_size = in.size();
     while (send_window_size_ - in_size < 0) {
-      OUTCOME_TRY(yamux_->streamProcessNextFrame());
+      OUTCOME_TRY(processNextFrame());
     }
 
     OUTCOME_TRY(written_bytes, yamux_->streamWrite(stream_id_, in, true));
@@ -84,7 +84,7 @@ namespace libp2p::connection {
     }
 
     while (read_buffer_.size() < static_cast<size_t>(buf.size())) {
-      OUTCOME_TRY(yamux_->streamProcessNextFrame());
+      OUTCOME_TRY(processNextFrame());
     }
 
     boost::asio::buffer_copy(boost::asio::buffer(buf.data(), buf.size()),
@@ -102,7 +102,7 @@ namespace libp2p::connection {
     }
 
     while (read_buffer_.size() == 0) {
-      OUTCOME_TRY(yamux_->streamProcessNextFrame());
+      OUTCOME_TRY(processNextFrame());
     }
 
     auto to_read =
@@ -140,6 +140,10 @@ namespace libp2p::connection {
         yamux_->streamAckBytes(stream_id_, receive_window_size_ - new_size));
     receive_window_size_ = new_size;
     return outcome::success();
+  }
+
+  outcome::result<void> YamuxStream::processNextFrame() const {
+    return yamux_->streamProcessNextFrame();
   }
 
   void YamuxStream::resetStream() {
