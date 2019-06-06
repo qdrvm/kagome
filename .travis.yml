@@ -105,11 +105,6 @@ matrix:
         - TOOLCHAIN=cmake/san/clang-8_cxx17_asan.cmake
     - os: linux
       if: type = pull_request OR branch = master
-      name: "Linux clang-8 MSAN"
-      env:
-        - TOOLCHAIN=cmake/san/clang-8_cxx17_msan.cmake
-    - os: linux
-      if: type = pull_request OR branch = master
       name: "Linux clang-8 TSAN"
       env:
         - TOOLCHAIN=cmake/san/clang-8_cxx17_tsan.cmake
