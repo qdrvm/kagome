@@ -21,8 +21,6 @@ add_library(core
     impl/core_impl.cpp
     )
 target_link_libraries(core
-    buffer
-    logger
     scale
     wasm_executor
     )
@@ -33,8 +31,6 @@ add_library(tagged_transaction_queue
     impl/tagged_transaction_queue_impl.hpp
     )
 target_link_libraries(tagged_transaction_queue
-    buffer
-    logger
     scale
     wasm_executor
     )
@@ -45,8 +41,6 @@ add_library(block_builder
     impl/block_builder_impl.hpp
     )
 target_link_libraries(block_builder
-    buffer
-    logger
     scale
     primitives
     wasm_executor
@@ -58,8 +52,6 @@ add_library(parachain_host_api
     impl/parachain_host_impl.cpp
     )
 target_link_libraries(parachain_host_api
-    buffer
-    logger
     scale
     wasm_executor
     )
@@ -70,9 +62,6 @@ add_library(grandpa_api
     impl/grandpa_impl.cpp
     )
 target_link_libraries(grandpa_api
-    buffer
-    logger
-    scale
     scale
     wasm_executor
     )
@@ -83,8 +72,6 @@ add_library(metadata_api
     impl/metadata_impl.cpp
     )
 target_link_libraries(metadata_api
-    buffer
-    logger
     scale
     wasm_executor
     )
@@ -95,8 +82,6 @@ add_library(offchain_worker_api
     impl/offchain_worker_impl.cpp
     )
 target_link_libraries(offchain_worker_api
-    buffer
-    logger
     scale
     wasm_executor
     )
