@@ -20,7 +20,7 @@ namespace kagome::storage::merkle {
   uint16_t BranchNode::childrenBitmap() const {
     uint16_t bitmap = 0u;
     for (auto i = 0u; i < kMaxChildren; i++) {
-      if (children[i]) {
+      if (children.at(i)) {
         bitmap = bitmap | 1u << i;
       }
     }
