@@ -3,13 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/merkle/polkadot_trie_db/polkadot_trie_db.hpp"
+#include "storage/trie/polkadot_trie_db/polkadot_trie_db.hpp"
 
 #include <utility>
 
-#include "scale/byte_array_stream.hpp"
-#include "storage/merkle/polkadot_trie_db/polkadot_codec.hpp"
-#include "storage/merkle/polkadot_trie_db/polkadot_node.hpp"
+#include "storage/trie/polkadot_trie_db/polkadot_codec.hpp"
+#include "storage/trie/polkadot_trie_db/polkadot_node.hpp"
 
 using kagome::common::Buffer;
 
@@ -25,8 +24,8 @@ namespace {
   }
 }  // namespace
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::merkle, PolkadotTrieDb::Error, e) {
-  using E = kagome::storage::merkle::PolkadotTrieDb::Error;
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotTrieDb::Error, e) {
+  using E = kagome::storage::trie::PolkadotTrieDb::Error;
   switch (e) {
     case E::INVALID_NODE_TYPE:
       return "The node type is invalid";
@@ -34,7 +33,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::merkle, PolkadotTrieDb::Error, e) {
   return "Unknown error";
 }
 
-namespace kagome::storage::merkle {
+namespace kagome::storage::trie {
 
   PolkadotTrieDb::PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db,
                                  std::shared_ptr<hash::Hasher> hasher)
@@ -46,12 +45,12 @@ namespace kagome::storage::merkle {
 
     if (value.empty()) {
       OUTCOME_TRY(remove(key));
-    } else if (not root_.has_value()) {
-      // will create a leaf node with provided key and value, save it to the
-      // storage and return the key to it
-      OUTCOME_TRY(insertRoot(k_enc, value));
     } else {
-      OUTCOME_TRY(root, retrieveNode(root_.value()));
+      NodePtr root = nullptr;
+      if(root_.has_value()) {
+        OUTCOME_TRY(r, retrieveNode(root_.value()));
+        root = r;
+      }
       // insert will pull a sequence of nodes (a path) from the storage and work
       // on it in memory
       OUTCOME_TRY(
@@ -87,20 +86,12 @@ namespace kagome::storage::merkle {
   }
 
   std::unique_ptr<PolkadotTrieDb::WriteBatch> PolkadotTrieDb::batch() {
-    // TODO(Harrm) PRE-199 Implement batch in merkle trie
+    // TODO(Harrm) PRE-199 Implement batch in trie trie
     return nullptr;
   }
 
   std::unique_ptr<PolkadotTrieDb::MapCursor> PolkadotTrieDb::cursor() {
     return db_->cursor();  // perhaps should iterate over nodes in the trie
-  }
-
-  outcome::result<void> PolkadotTrieDb::insertRoot(
-      const common::Buffer &key_nibbles, const common::Buffer &value) {
-    LeafNode root(key_nibbles, value);
-    OUTCOME_TRY(root_hash, storeNode(root));
-    root_ = root_hash;
-    return outcome::success();
   }
 
   outcome::result<PolkadotTrieDb::NodePtr> PolkadotTrieDb::insert(
@@ -422,7 +413,7 @@ namespace kagome::storage::merkle {
     OUTCOME_TRY(batch->commit());
     return hash;
   }
-
+  
   outcome::result<common::Buffer> PolkadotTrieDb::storeNode(PolkadotNode &node,
                                                             WriteBatch &batch) {
     using T = PolkadotNode::Type;
@@ -470,4 +461,4 @@ namespace kagome::storage::merkle {
     return std::dynamic_pointer_cast<PolkadotNode>(n);
   }
 
-}  // namespace kagome::storage::merkle
+}  // namespace kagome::storage::trie

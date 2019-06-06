@@ -3,17 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_MERKLE_TRIE_HPP
-#define KAGOME_MERKLE_TRIE_HPP
+#ifndef KAGOME_TRIE_TRIE_HPP
+#define KAGOME_TRIE_TRIE_HPP
 
 #include "common/buffer.hpp"
 #include "storage/buffer_map.hpp"
 
-namespace kagome::storage::merkle {
+namespace kagome::storage::trie {
 
   /**
    * @brief This class represents a cryptographically authenticated key-value
-   * storage - Merkle Trie DB backed by Key-Value database.
+   * storage - Trie DB backed by Key-Value database.
    */
   class TrieDb : public PersistentBufferMap {
    public:
@@ -25,11 +25,10 @@ namespace kagome::storage::merkle {
 
     /**
      * remove storage entries which keys start with given prefix
-     * @param buf
      */
     virtual outcome::result<void> clearPrefix(const common::Buffer &buf) = 0;
   };
 
-}  // namespace kagome::storage::merkle
+}  // namespace kagome::storage::trie
 
-#endif  // KAGOME_MERKLE_TRIE_HPP
+#endif  // KAGOME_TRIE_TRIE_HPP

@@ -3,14 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/merkle/polkadot_trie_db/polkadot_codec.hpp"
+#include "storage/trie/polkadot_trie_db/polkadot_codec.hpp"
 
 #include "crypto/blake2/blake2s.h"
-#include "storage/merkle/polkadot_trie_db/polkadot_node.hpp"
 #include "scale/scale.hpp"
+#include "scale/scale_decoder_stream.hpp"
+#include "storage/trie/polkadot_trie_db/polkadot_node.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::merkle, PolkadotCodec::Error, e) {
-  using E = kagome::storage::merkle::PolkadotCodec::Error;
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotCodec::Error, e) {
+  using E = kagome::storage::trie::PolkadotCodec::Error;
   switch (e) {
     case E::SUCCESS:
       return "success";
@@ -25,7 +26,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::merkle, PolkadotCodec::Error, e) {
   return "unknown";
 }
 
-namespace kagome::storage::merkle {
+namespace kagome::storage::trie {
 
   inline uint8_t lowNibble(uint8_t byte) {
     return byte & 0xFu;
@@ -47,8 +48,7 @@ namespace kagome::storage::merkle {
     return out;
   }
 
-  common::Buffer PolkadotCodec::nibblesToKey(
-      const common::Buffer &nibbles) const {
+  common::Buffer PolkadotCodec::nibblesToKey(const common::Buffer &nibbles) {
     const auto nibbles_size = nibbles.size();
     if (nibbles_size == 0) {
       return {};
@@ -107,6 +107,8 @@ namespace kagome::storage::merkle {
   common::Hash256 PolkadotCodec::hash256(const common::Buffer &buf) const {
     common::Hash256 out;
 
+    // if a buffer size is less than the size of a would-be hash, just return
+    // this buffer to save space
     if (buf.size() < common::Hash256::size()) {
       std::copy(buf.begin(), buf.end(), out.begin());
       return out;
@@ -150,14 +152,16 @@ namespace kagome::storage::merkle {
       default:
         return Error::UNKNOWN_NODE_TYPE;
     }
+    // the first two bits are a node type
     head <<= 6u;  // head_{6..7} * 64
 
-    // set bits 0..5
+    // set bits 0..5, partial key length
     if (node.key_nibbles.size() < 63u) {
       head |= uint8_t(node.key_nibbles.size());
       return Buffer{head};  // header contains 1 byte
     }
-
+    // if partial key length is greater than 62, then the rest of the length is
+    // stored in consequent bytes
     head += 63u;
 
     size_t l = node.key_nibbles.size() - 63u;
@@ -221,13 +225,18 @@ namespace kagome::storage::merkle {
   }
 
   outcome::result<std::shared_ptr<Node>> PolkadotCodec::decodeNode(
-      common::ByteStream &stream) const {
+      const common::Buffer &encoded_data) const {
+    auto stream = BufferStream(encoded_data);
+    // decode the header with the node type and the partial key length
     OUTCOME_TRY(header, decodeHeader(stream));
     auto [type, pk_length] = header;
+    // decode the partial key
     OUTCOME_TRY(partial_key, decodePartialKey(pk_length, stream));
+    // decode the node subvalue (see Definition 28 of the polkadot
+    // specification)
     switch (type) {
       case PolkadotNode::Type::Leaf: {
-        OUTCOME_TRY(value, scale_->decode(stream));
+        OUTCOME_TRY(value, scale::decode<Buffer>(stream.leftBytes()));
         return std::make_shared<LeafNode>(partial_key, value);
       }
       case PolkadotNode::Type::BranchEmptyValue:
@@ -240,15 +249,18 @@ namespace kagome::storage::merkle {
   }
 
   outcome::result<std::pair<PolkadotNode::Type, size_t>>
-  PolkadotCodec::decodeHeader(common::ByteStream &stream) const {
+  PolkadotCodec::decodeHeader(BufferStream &stream) const {
     PolkadotNode::Type type;
     size_t pk_length = 0;
     if (not stream.hasMore(1)) {
       return Error::INPUT_TOO_SMALL;
     }
-    auto first = stream.nextByte().value();
+    auto first = stream.next();
+    // decode type, which is in the first two bits
     type = static_cast<PolkadotNode::Type>((first & 0xC0u) >> 6u);
     first &= 0x3Fu;
+    // decode partial key length, which is stored in the last 6 bits and, if its
+    // greater than 62, in the following bytes
     pk_length += first;
 
     if (pk_length == 63) {
@@ -257,7 +269,7 @@ namespace kagome::storage::merkle {
         if (not stream.hasMore(1)) {
           return Error::INPUT_TOO_SMALL;
         }
-        read_length = stream.nextByte().value();
+        read_length = stream.next();
         pk_length += read_length;
       } while (read_length == 0xFF);
     }
@@ -265,16 +277,22 @@ namespace kagome::storage::merkle {
   }
 
   outcome::result<common::Buffer> PolkadotCodec::decodePartialKey(
-      size_t nibbles_num, common::ByteStream &stream) const {
+      size_t nibbles_num, BufferStream &stream) const {
+    // length in bytes is length in nibbles over two round up
     auto byte_length = nibbles_num / 2 + nibbles_num % 2;
     Buffer partial_key;
     partial_key.reserve(byte_length);
     while (byte_length--) {
-      if (not stream.hasMore(1))
+      if (not stream.hasMore(1)) {
         return Error::INPUT_TOO_SMALL;
-      partial_key.putUint8(stream.nextByte().value());
+      }
+      partial_key.putUint8(stream.next());
     }
+    // array of nibbles is much more convenient than array of bytes, though it
+    // wastes some memory
     partial_key = keyToNibbles(partial_key);
+    // when the last nibble is zero, keyToNibbles throws it away, which may
+    // break the node key in this case, so restore this nibble if needed
     if (nibbles_num != partial_key.size()) {
       partial_key.putUint8(0);
     }
@@ -283,34 +301,39 @@ namespace kagome::storage::merkle {
 
   outcome::result<std::shared_ptr<Node>> PolkadotCodec::decodeBranch(
       PolkadotNode::Type type, const Buffer &partial_key,
-      common::ByteStream &stream) const {
+      BufferStream &stream) const {
     if (not stream.hasMore(2))
       return Error::INPUT_TOO_SMALL;
     auto node = std::make_shared<BranchNode>(partial_key);
 
-    uint16_t children_bitmap = stream.nextByte().value();
+    uint16_t children_bitmap = stream.next();
     children_bitmap <<= 8u;
-    children_bitmap += stream.nextByte().value();
+    children_bitmap += stream.next();
 
     uint8_t i = 0;
     while (children_bitmap) {
+      // if there is a child
       if (children_bitmap & (1u << i)) {
+        // unset bit for this child
         children_bitmap &= ~(1u << i);
+        // read the hash of the child and make a dummy node from it for this
+        // child in the processed branch
         if (not stream.hasMore(common::Hash256::size()))
           return Error::INPUT_TOO_SMALL;
         common::Buffer child_hash(32, 0);
         for (auto &b : child_hash) {
-          b = stream.nextByte().value();
+          b = stream.next();
         }
-        node->children[i] = std::make_shared<DummyNode>(child_hash);
+        node->children.at(i) = std::make_shared<DummyNode>(child_hash);
       }
       i++;
     }
+    // decode the branch value if needed
     if (type == PolkadotNode::Type::BranchWithValue) {
-      OUTCOME_TRY(value, scale_->decode(stream));
+      OUTCOME_TRY(value, scale::decode<Buffer>(stream.leftBytes()));
       node->value = value;
     }
     return node;
   }
 
-}  // namespace kagome::storage::merkle
+}  // namespace kagome::storage::trie

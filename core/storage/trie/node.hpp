@@ -6,7 +6,7 @@
 #ifndef KAGOME_NODE_HPP
 #define KAGOME_NODE_HPP
 
-namespace kagome::storage::merkle {
+namespace kagome::storage::trie {
 
   struct Node {
     virtual ~Node() = default;
@@ -15,6 +15,6 @@ namespace kagome::storage::merkle {
     virtual int getType() const = 0;
   };
 
-}  // namespace kagome::storage::merkle
+}  // namespace kagome::storage::trie
 
 #endif  // KAGOME_NODE_HPP

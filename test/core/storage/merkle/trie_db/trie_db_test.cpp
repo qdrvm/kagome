@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/merkle/polkadot_trie_db/polkadot_trie_db.hpp"
+#include "storage/trie/polkadot_trie_db/polkadot_trie_db.hpp"
 
 #include <gtest/gtest.h>
 #include "crypto/hasher/hasher_impl.hpp"
@@ -19,7 +19,7 @@ using kagome::common::Buffer;
 using kagome::hash::HasherImpl;
 using kagome::scale::BufferScaleCodec;
 using kagome::storage::LevelDB;
-using kagome::storage::merkle::PolkadotTrieDb;
+using kagome::storage::trie::PolkadotTrieDb;
 
 /**
  * Automation of operations over a trie

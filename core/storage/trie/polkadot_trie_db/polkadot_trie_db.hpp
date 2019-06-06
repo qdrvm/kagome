@@ -3,19 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_STORAGE_MERKLE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_HPP_
-#define KAGOME_CORE_STORAGE_MERKLE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_HPP_
+#ifndef KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_HPP_
+#define KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_HPP_
 
 #include <map>
 #include <memory>
 #include <optional>
 
 #include "crypto/hasher.hpp"
-#include "storage/merkle/polkadot_trie_db/polkadot_codec.hpp"
-#include "storage/merkle/polkadot_trie_db/polkadot_node.hpp"
-#include "storage/merkle/trie_db.hpp"
+#include "storage/trie/polkadot_trie_db/polkadot_codec.hpp"
+#include "storage/trie/polkadot_trie_db/polkadot_node.hpp"
+#include "storage/trie/trie_db.hpp"
 
-namespace kagome::storage::merkle {
+namespace kagome::storage::trie {
 
   class PolkadotTrieDb : public TrieDb {
     using MapCursor = face::MapCursor<common::Buffer, common::Buffer>;
@@ -23,6 +23,8 @@ namespace kagome::storage::merkle {
     using Codec = scale::ScaleCodec<common::Buffer>;
     using NodePtr = std::shared_ptr<PolkadotNode>;
     using BranchPtr = std::shared_ptr<BranchNode>;
+
+    friend class PolkadotTrieBatch;
 
     // to output the trie into a stream
     template <typename Stream>
@@ -107,8 +109,8 @@ namespace kagome::storage::merkle {
     std::optional<common::Buffer> root_;
   };
 
-}  // namespace kagome::storage::merkle
+}  // namespace kagome::storage::trie
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::storage::merkle, PolkadotTrieDb::Error);
+OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie, PolkadotTrieDb::Error);
 
-#endif  // KAGOME_CORE_STORAGE_MERKLE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_HPP_
+#endif  // KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_HPP_

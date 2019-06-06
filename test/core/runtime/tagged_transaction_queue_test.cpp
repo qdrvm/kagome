@@ -20,7 +20,7 @@ using kagome::primitives::Extrinsic;
 using kagome::runtime::TaggedTransactionQueue;
 using kagome::runtime::TaggedTransactionQueueImpl;
 using kagome::runtime::WasmMemoryImpl;
-using kagome::storage::merkle::MockTrieDb;
+using kagome::storage::trie::MockTrieDb;
 
 class TTQTest: public RuntimeTest {
  public:

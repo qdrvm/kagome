@@ -15,7 +15,7 @@ using kagome::extensions::StorageExtension;
 using kagome::runtime::MockMemory;
 using kagome::runtime::SizeType;
 using kagome::runtime::WasmPointer;
-using kagome::storage::merkle::MockTrieDb;
+using kagome::storage::trie::MockTrieDb;
 
 using ::testing::_;
 using ::testing::Return;

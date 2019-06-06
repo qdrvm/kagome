@@ -26,7 +26,7 @@ using kagome::primitives::Extrinsic;
 using kagome::runtime::CoreImpl;
 using kagome::runtime::WasmMemory;
 using kagome::runtime::WasmMemoryImpl;
-using kagome::storage::merkle::MockTrieDb;
+using kagome::storage::trie::MockTrieDb;
 
 using ::testing::_;
 using ::testing::Return;

@@ -36,7 +36,7 @@ class RuntimeTest : public test::WasmTest {
                  + "/wasm/polkadot_runtime.compact.wasm") {}
 
   void SetUp() override {
-    trie_db_ = std::make_shared<kagome::storage::merkle::MockTrieDb>();
+    trie_db_ = std::make_shared<kagome::storage::trie::MockTrieDb>();
     memory_ = std::make_shared<kagome::runtime::WasmMemoryImpl>();
     extension_ =
         std::make_shared<kagome::extensions::ExtensionImpl>(memory_, trie_db_);
@@ -77,7 +77,7 @@ class RuntimeTest : public test::WasmTest {
   }
 
  protected:
-  std::shared_ptr<kagome::storage::merkle::MockTrieDb> trie_db_;
+  std::shared_ptr<kagome::storage::trie::MockTrieDb> trie_db_;
   std::shared_ptr<kagome::runtime::WasmMemory> memory_;
   std::shared_ptr<kagome::extensions::ExtensionImpl> extension_;
 };

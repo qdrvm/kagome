@@ -21,7 +21,7 @@ using kagome::primitives::InherentData;
 using kagome::runtime::BlockBuilder;
 using kagome::runtime::BlockBuilderImpl;
 using kagome::runtime::WasmMemoryImpl;
-using kagome::storage::merkle::MockTrieDb;
+using kagome::storage::trie::MockTrieDb;
 
 class BlockBuilderTest : public RuntimeTest {
  public:
