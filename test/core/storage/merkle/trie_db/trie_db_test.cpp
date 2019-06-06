@@ -6,7 +6,6 @@
 #include "storage/merkle/polkadot_trie_db/polkadot_trie_db.hpp"
 
 #include <gtest/gtest.h>
-#include "crypto/hasher/hasher_impl.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -15,7 +14,6 @@
 #include "testutil/storage/polkadot_trie_db_printer.hpp"
 
 using kagome::common::Buffer;
-using kagome::hash::HasherImpl;
 using kagome::storage::LevelDB;
 using kagome::storage::merkle::PolkadotTrieDb;
 
@@ -38,8 +36,7 @@ class TrieTest
 
   void SetUp() override {
     open();
-    trie = std::make_unique<PolkadotTrieDb>(std::move(db_),
-                                            std::make_shared<HasherImpl>());
+    trie = std::make_unique<PolkadotTrieDb>(std::move(db_));
   }
 
   std::vector<std::pair<Buffer, Buffer>> data = {

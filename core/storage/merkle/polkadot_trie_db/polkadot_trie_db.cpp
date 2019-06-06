@@ -35,9 +35,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::merkle, PolkadotTrieDb::Error, e) {
 
 namespace kagome::storage::merkle {
 
-  PolkadotTrieDb::PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db,
-                                 std::shared_ptr<hash::Hasher> hasher)
-      : db_{std::move(db)}, hasher_{std::move(hasher)} {}
+  PolkadotTrieDb::PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db)
+      : db_{std::move(db)} {}
 
   outcome::result<void> PolkadotTrieDb::put(const Buffer &key,
                                             const Buffer &value) {
