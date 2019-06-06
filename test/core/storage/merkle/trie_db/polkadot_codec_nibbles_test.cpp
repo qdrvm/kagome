@@ -10,7 +10,6 @@
 
 using namespace kagome;
 using namespace common;
-using namespace scale;
 using namespace storage;
 using namespace merkle;
 
@@ -23,21 +22,21 @@ struct OddNibbles
     : public ::testing::TestWithParam<std::pair<Buffer, Buffer>> {};
 
 TEST_P(EvenNibbles, KeyToNibbles) {
-  auto codec = std::make_unique<PolkadotCodec>(nullptr);
+  auto codec = std::make_unique<PolkadotCodec>();
   auto [nibbles, key] = GetParam();
   auto actualNibbles = codec->keyToNibbles(key);
   ASSERT_EQ(actualNibbles, nibbles);
 }
 
 TEST_P(EvenNibbles, NibblesToKey) {
-  auto codec = std::make_unique<PolkadotCodec>(nullptr);
+  auto codec = std::make_unique<PolkadotCodec>();
   auto [nibbles, key] = GetParam();
   auto actualKey = codec->nibblesToKey(nibbles);
   ASSERT_EQ(key, actualKey);
 }
 
 TEST_P(OddNibbles, NibblesToKey) {
-  auto codec = std::make_unique<PolkadotCodec>(nullptr);
+  auto codec = std::make_unique<PolkadotCodec>();
   auto [nibbles, key] = GetParam();
   auto actualKey = codec->nibblesToKey(nibbles);
   ASSERT_EQ(key, actualKey);

@@ -12,6 +12,12 @@
 
 namespace kagome::storage::merkle {
 
+  /**
+   * For specification see
+   * https://github.com/w3f/polkadot-re-spec/blob/master/polkadot_re_spec.pdf
+   * 5.3 The Trie structure
+   */
+
   const int kMaxChildren = 16;
 
   struct PolkadotNode : public Node {
@@ -90,7 +96,11 @@ namespace kagome::storage::merkle {
     bool isDummy() const override {
       return true;
     }
+
     int getType() const override {
+      // Special only because a node has to have a type. Actually this is not
+      // the real node and the type of the underlying node is inaccessible
+      // before reading from the storage
       return static_cast<int>(Type::Special);
     }
 

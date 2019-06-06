@@ -45,6 +45,30 @@ namespace kagome::primitives::parachain {
    * @brief DutyRoster primitive
    */
   using DutyRoster = std::vector<Chain>;
-}  // namespace kagome::primitives::parachain
+  // TODO(yuraz): PRE-152 update Relay << and >> operators
+  //  when Relay updates in polkadot
+  /**
+   * @brief outputs Relay instance to stream
+   * @tparam Stream stream type
+   * @param s reference to stream
+   * @param v value to output
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator<<(Stream &s, const Relay &v) {
+    return s;
+  }
 
+  /**
+   * @brief decodes Relay instance from stream
+   * @tparam Stream input stream type
+   * @param s reference to stream
+   * @param v value to decode
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator>>(Stream &s, Relay &v) {
+    return s;
+  }
+}  // namespace kagome::primitives::parachain
 #endif  // KAGOME_CORE_PRIMITIVES_PARACHAIN_HOST_HPP

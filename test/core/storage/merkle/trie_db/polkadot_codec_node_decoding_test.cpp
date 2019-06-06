@@ -6,34 +6,29 @@
 #include <memory>
 
 #include <gtest/gtest.h>
-#include "scale/buffer_codec.hpp"
-#include "scale/byte_array_stream.hpp"
 #include "storage/merkle/polkadot_trie_db/polkadot_codec.hpp"
 #include "storage/merkle/polkadot_trie_db/polkadot_node.hpp"
+#include "storage/merkle/polkadot_trie_db/buffer_stream.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/literals.hpp"
 
 using namespace kagome;
 using namespace common;
-using namespace scale;
 using namespace storage;
 using namespace merkle;
 using namespace testing;
 
 struct NodeDecodingTest
     : public ::testing::TestWithParam<std::shared_ptr<PolkadotNode>> {
-  std::shared_ptr<BufferScaleCodec> scale =
-      std::make_shared<BufferScaleCodec>();
 
-  std::unique_ptr<PolkadotCodec> codec = std::make_unique<PolkadotCodec>(scale);
+  std::unique_ptr<PolkadotCodec> codec = std::make_unique<PolkadotCodec>();
 };
 
 TEST_P(NodeDecodingTest, GetHeader) {
   auto node = GetParam();
 
   EXPECT_OUTCOME_TRUE(encoded, codec->encodeNode(*node));
-  scale::ByteArrayStream stream(encoded);
-  EXPECT_OUTCOME_TRUE(decoded, codec->decodeNode(stream));
+  EXPECT_OUTCOME_TRUE(decoded, codec->decodeNode(encoded));
   auto decoded_node = std::dynamic_pointer_cast<PolkadotNode>(decoded);
   EXPECT_EQ(decoded_node->key_nibbles, node->key_nibbles);
   EXPECT_EQ(decoded_node->value, node->value);

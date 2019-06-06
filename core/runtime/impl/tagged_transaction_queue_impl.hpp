@@ -7,7 +7,6 @@
 #define KAGOME_TAGGED_TRANSACTION_QUEUE_IMPL_HPP
 
 #include <outcome/outcome.hpp>
-#include "primitives/scale_codec.hpp"
 #include "runtime/impl/wasm_executor.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
 #include "runtime/wasm_memory.hpp"
@@ -17,15 +16,13 @@ namespace kagome::runtime {
   class TaggedTransactionQueueImpl : public TaggedTransactionQueue {
    public:
     TaggedTransactionQueueImpl(common::Buffer state_code,
-                               std::shared_ptr<extensions::Extension> extension,
-                               std::shared_ptr<primitives::ScaleCodec> codec);
+                               std::shared_ptr<extensions::Extension> extension);
 
     outcome::result<primitives::TransactionValidity> validate_transaction(
         const primitives::Extrinsic &ext) override;
 
    private:
     std::shared_ptr<WasmMemory> memory_;
-    std::shared_ptr<primitives::ScaleCodec> codec_;
     WasmExecutor executor_;
     common::Buffer state_code_;
   };

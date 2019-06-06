@@ -40,14 +40,14 @@ namespace kagome::primitives {
      * Priority determines the ordering of two transactions that have all
      * their dependencies (required tags) satisfied.
      */
-    TransactionPriority priority_;
+    TransactionPriority priority;
 
     /**
      * @brief Transaction dependencies
      * A non-empty list signifies that some other transactions which provide
      * given tags are required to be included before that one.
      */
-    std::vector<TransactionTag> requires_;
+    std::vector<TransactionTag> requires;
 
     /**
      * @brief Provided tags
@@ -57,7 +57,7 @@ namespace kagome::primitives {
      * Substrate to build a dependency graph of transactions and import them
      * in the right (linear) order.
      */
-    std::vector<TransactionTag> provides_;
+    std::vector<TransactionTag> provides;
 
     /**
      * @brief Transaction longevity
@@ -65,17 +65,17 @@ namespace kagome::primitives {
      * After this period transaction should be removed from the pool or
      * revalidated.
      */
-    TransactionLongevity longevity_;
+    TransactionLongevity longevity;
   };
 
   /// Transaction is invalid. Details are described by the error code.
   struct Invalid {
-    uint8_t error_;
+    uint8_t error;
   };
 
   /// Transaction validity can't be determined.
   struct Unknown {
-    uint8_t error_;
+    uint8_t error;
   };
 
   /**
@@ -84,6 +84,77 @@ namespace kagome::primitives {
    */
   using TransactionValidity = boost::variant<Invalid, Valid, Unknown>;
 
+  /**
+   * @brief outputs object of type Invalid to stream
+   * @tparam Stream stream type
+   * @param s stream reference
+   * @param v value to output
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator<<(Stream &s, const Invalid &v) {
+    return s << v.error;
+  }
+
+  /**
+   * @brief outputs object of type Valid to stream
+   * @tparam Stream stream type
+   * @param s stream reference
+   * @param v value to output
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator<<(Stream &s, const Valid &v) {
+    return s << v.priority << v.requires << v.provides << v.longevity;
+  }
+
+  /**
+   * @brief outputs object of type Unknown to stream
+   * @tparam Stream stream type
+   * @param s stream reference
+   * @param v value to output
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator<<(Stream &s, const Unknown &v) {
+    return s << v.error;
+  }
+
+  /**
+   * @brief decodes object of type Invalid from stream
+   * @tparam Stream input stream type
+   * @param s stream reference
+   * @param v value to decode
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator>>(Stream &s, Invalid &v) {
+    return s >> v.error;
+  }
+
+  /**
+   * @brief decodes object of type Valid from stream
+   * @tparam Stream input stream type
+   * @param s stream reference
+   * @param v value to decode
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator>>(Stream &s, Valid &v) {
+    return s >> v.priority >> v.requires >> v.provides >> v.longevity;
+  }
+
+  /**
+   * @brief decodes object of type Unknown from stream
+   * @tparam Stream input stream type
+   * @param s stream reference
+   * @param v value to decode
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator>>(Stream &s, Unknown &v) {
+    return s >> v.error;
+  }
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_CORE_PRIMITIVES_TRANSACTION_VALIDITY_HPP

@@ -7,7 +7,6 @@
 
 #include <gtest/gtest.h>
 #include "crypto/hasher/hasher_impl.hpp"
-#include "scale/buffer_codec.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -17,7 +16,6 @@
 
 using kagome::common::Buffer;
 using kagome::hash::HasherImpl;
-using kagome::scale::BufferScaleCodec;
 using kagome::storage::LevelDB;
 using kagome::storage::merkle::PolkadotTrieDb;
 
@@ -40,12 +38,9 @@ class TrieTest
 
   void SetUp() override {
     open();
-    trie = std::make_unique<PolkadotTrieDb>(std::move(db_), codec,
+    trie = std::make_unique<PolkadotTrieDb>(std::move(db_),
                                             std::make_shared<HasherImpl>());
   }
-
-  std::shared_ptr<BufferScaleCodec> codec =
-      std::make_shared<BufferScaleCodec>();
 
   std::vector<std::pair<Buffer, Buffer>> data = {
       {"123456"_hex2buf, "42"_hex2buf},

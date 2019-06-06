@@ -7,12 +7,12 @@
 #define KAGOME_MERKLE_UTIL_IMPL_HPP
 
 #include <memory>
-#include <string>
 #include <optional>
+#include <string>
 
 #include "common/byte_stream.hpp"
-#include "scale/scale_codec.hpp"
 #include "storage/merkle/codec.hpp"
+#include "storage/merkle/polkadot_trie_db/buffer_stream.hpp"
 #include "storage/merkle/polkadot_trie_db/polkadot_node.hpp"
 
 namespace kagome::storage::merkle {
@@ -20,7 +20,6 @@ namespace kagome::storage::merkle {
   class PolkadotCodec : public Codec {
    public:
     using Buffer = kagome::common::Buffer;
-    using ScaleBufferCodec = scale::ScaleCodec<Buffer>;
 
     enum class Error {
       SUCCESS = 0,
@@ -31,12 +30,10 @@ namespace kagome::storage::merkle {
 
     ~PolkadotCodec() override = default;
 
-    explicit PolkadotCodec(std::shared_ptr<ScaleBufferCodec> codec);
-
     outcome::result<Buffer> encodeNode(const Node &node) const override;
 
     outcome::result<std::shared_ptr<Node>> decodeNode(
-        common::ByteStream &stream) const override;
+        const common::Buffer &encoded_data) const override;
 
     common::Hash256 hash256(const Buffer &buf) const override;
 
@@ -56,16 +53,14 @@ namespace kagome::storage::merkle {
     outcome::result<Buffer> encodeLeaf(const LeafNode &node) const;
 
     outcome::result<std::pair<PolkadotNode::Type, size_t>> decodeHeader(
-        common::ByteStream &stream) const;
+        BufferStream& stream) const;
 
     outcome::result<Buffer> decodePartialKey(size_t nibbles_num,
-                                             common::ByteStream &stream) const;
+                                             BufferStream& stream) const;
 
     outcome::result<std::shared_ptr<Node>> decodeBranch(
         PolkadotNode::Type type, const Buffer &partial_key,
-        common::ByteStream &stream) const;
-
-    std::shared_ptr<ScaleBufferCodec> scale_;
+        BufferStream& stream) const;
   };
 
 }  // namespace kagome::storage::merkle

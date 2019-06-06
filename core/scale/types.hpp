@@ -8,20 +8,34 @@
 
 #include <vector>
 
-#include <boost/logic/tribool.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <outcome/outcome.hpp>
 
 namespace kagome::scale {
+  /**
+   * @brief convenience alias for arrays of bytes
+   */
   using ByteArray = std::vector<uint8_t>;
-  using BigInteger = boost::multiprecision::cpp_int;
+  /**
+   * @brief represents compact integer value
+   */
+  using CompactInteger = boost::multiprecision::cpp_int;
 
-  using tribool = boost::logic::tribool;
-
-  constexpr auto indeterminate = boost::logic::indeterminate;
-  constexpr auto isIndeterminate(tribool value) {
-    return boost::logic::indeterminate(value);
-  }
+  /// @brief OptionalBool is internal extended bool type
+  enum class OptionalBool : uint8_t { NONE = 0u, FALSE = 1u, TRUE = 2u };
 }  // namespace kagome::scale
 
+namespace kagome::scale::compact {
+  /**
+   * @brief categories of compact encoding
+   */
+  struct EncodingCategoryLimits {
+    // min integer encoded by 2 bytes
+    constexpr static size_t kMinUint16 = (1ul << 6u);
+    // min integer encoded by 4 bytes
+    constexpr static size_t kMinUint32 = (1ul << 14u);
+    // min integer encoded as multibyte
+    constexpr static size_t kMinBigInteger = (1ul << 30u);
+  };
+}  // namespace kagome::scale::compact
 #endif  // KAGOME_SCALE_TYPES_HPP

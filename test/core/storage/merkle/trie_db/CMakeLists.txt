@@ -12,7 +12,8 @@ target_link_libraries(polkadot_trie_db_test
     leveldb
     polkadot_trie_db
     polkadot_trie_db_codec
-    scale_buffer_codec
+    scale
+    buffer
     hasher
     base_leveldb_test
     )

@@ -11,7 +11,6 @@
 
 using namespace kagome;
 using namespace common;
-using namespace scale;
 using namespace storage;
 using namespace merkle;
 using namespace testing;
@@ -21,7 +20,7 @@ struct Hash256Test
 
 TEST_P(Hash256Test, Valid) {
   auto [in, out] = GetParam();
-  auto codec = std::make_unique<PolkadotCodec>(nullptr);
+  auto codec = std::make_unique<PolkadotCodec>();
   auto actualOut = codec->hash256(in);
   EXPECT_EQ(actualOut.toHex(), out.toHex());
 }

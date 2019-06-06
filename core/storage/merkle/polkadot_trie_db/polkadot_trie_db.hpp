@@ -17,10 +17,13 @@
 
 namespace kagome::storage::merkle {
 
+  /**
+   * For specification see https://github.com/w3f/polkadot-re-spec/blob/master/polkadot_re_spec.pdf
+   * 5.2 The General Tree Structure and further
+   */
   class PolkadotTrieDb : public TrieDb {
     using MapCursor = face::MapCursor<common::Buffer, common::Buffer>;
     using WriteBatch = face::WriteBatch<common::Buffer, common::Buffer>;
-    using Codec = scale::ScaleCodec<common::Buffer>;
     using NodePtr = std::shared_ptr<PolkadotNode>;
     using BranchPtr = std::shared_ptr<BranchNode>;
 
@@ -36,7 +39,6 @@ namespace kagome::storage::merkle {
 
    public:
     PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db,
-                   std::shared_ptr<Codec> codec,
                    std::shared_ptr<hash::Hasher> hasher);
     ~PolkadotTrieDb() override = default;
 
@@ -103,8 +105,8 @@ namespace kagome::storage::merkle {
 
     std::unique_ptr<PersistentBufferMap> db_;
     std::shared_ptr<hash::Hasher> hasher_;
-    PolkadotCodec codec_;
     std::optional<common::Buffer> root_;
+    PolkadotCodec codec_;
   };
 
 }  // namespace kagome::storage::merkle

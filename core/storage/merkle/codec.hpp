@@ -31,11 +31,11 @@ namespace kagome::storage::merkle {
 
     /**
      * @brief Decode node from bytes
-     * @param stream a stream containing encoded representation of a node
+     * @param encoded_data a buffer containing encoded representation of a node
      * @return a node in the trie
      */
     virtual outcome::result<std::shared_ptr<Node>> decodeNode(
-        common::ByteStream &stream) const = 0;
+        const common::Buffer &encoded_data) const = 0;
 
     /**
      * @brief Algorithm that is used for hashing of nodes.

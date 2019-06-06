@@ -211,6 +211,35 @@ namespace kagome::common {
     Buffer &putRange(const T &begin, const T &end);
   };
 
+  /**
+   * @brief override operator<< for all streams except std::ostream
+   * @tparam Stream stream type
+   * @param s stream reference
+   * @param buffer value to encode
+   * @return reference to stream
+   */
+  template <
+      class Stream,
+      typename = std::enable_if_t<!std::is_same<Stream, std::ostream>::value>>
+  Stream &operator<<(Stream &s, const Buffer &buffer) {
+    return s << buffer.toVector();
+  }
+
+  /**
+   * @brief decodes buffer object from stream
+   * @tparam Stream input stream type
+   * @param s stream reference
+   * @param buffer value to decode
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator>>(Stream &s, Buffer &buffer) {
+    std::vector<uint8_t> data;
+    s >> data;
+    buffer.put(data);
+    return s;
+  }
+
   std::ostream &operator<<(std::ostream &os, const Buffer &buffer);
 
 }  // namespace kagome::common
