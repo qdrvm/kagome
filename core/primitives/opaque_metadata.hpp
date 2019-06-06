@@ -7,6 +7,7 @@
 #define KAGOME_CORE_PRIMITIVES_OPAQUE_METADATA_HPP
 
 #include <vector>
+#include <cstdint>
 
 namespace kagome::primitives {
   using OpaqueMetadata = std::vector<uint8_t>;

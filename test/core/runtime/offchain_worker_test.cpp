@@ -39,8 +39,8 @@ class OffchainWorkerTest : public RuntimeTest {
 };
 
 /**
- * @given initialized parachain host api
- * @when dutyRoster() is invoked
+ * @given initialized offchain worker api
+ * @when offchain_worker() is invoked
  * @then successful result is returned
  */
 TEST_F(OffchainWorkerTest, OffchainWorkerCallSuccess) {

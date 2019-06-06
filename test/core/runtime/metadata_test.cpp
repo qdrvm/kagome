@@ -35,8 +35,8 @@ class MetadataTest : public RuntimeTest {
 };
 
 /**
- * @given initialized Grandpa api
- * @when pendingChange() is invoked
+ * @given initialized Metadata api
+ * @when metadata() is invoked
  * @then successful result is returned
  */
 TEST_F(MetadataTest, metadata) {
