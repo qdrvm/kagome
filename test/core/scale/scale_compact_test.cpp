@@ -11,10 +11,9 @@
 #include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
-using kagome::scale::CompactInteger;
 using kagome::scale::ByteArray;
+using kagome::scale::CompactInteger;
 using kagome::scale::decode;
-using kagome::scale::encode;
 using kagome::scale::ScaleDecoderStream;
 using kagome::scale::ScaleEncoderStream;
 
@@ -24,8 +23,10 @@ using kagome::scale::ScaleEncoderStream;
 class CompactTest
     : public ::testing::TestWithParam<std::pair<CompactInteger, ByteArray>> {
  public:
-  static std::pair<CompactInteger, ByteArray> pair(CompactInteger v, ByteArray m) {
-    return std::make_pair<CompactInteger, ByteArray>(std::move(v), std::move(m));
+  static std::pair<CompactInteger, ByteArray> pair(CompactInteger v,
+                                                   ByteArray m) {
+    return std::make_pair<CompactInteger, ByteArray>(std::move(v),
+                                                     std::move(m));
   }
 
  protected:
@@ -39,7 +40,7 @@ class CompactTest
  */
 TEST_P(CompactTest, EncodeSuccess) {
   const auto &[value, match] = GetParam();
-  ASSERT_NO_THROW((s << value));
+  ASSERT_NO_THROW(s << value);
   ASSERT_EQ(s.data(), match);
 }
 
@@ -51,7 +52,8 @@ TEST_P(CompactTest, EncodeSuccess) {
 TEST_P(CompactTest, DecodeSuccess) {
   const auto &[value_match, bytes] = GetParam();
   ScaleDecoderStream s(gsl::make_span(bytes));
-  EXPECT_OUTCOME_TRUE(v, decode<CompactInteger>(s))
+  CompactInteger v{};
+  ASSERT_NO_THROW(s >> v);
   ASSERT_EQ(v, value_match);
 }
 
@@ -107,7 +109,7 @@ INSTANTIATE_TEST_CASE_P(
  */
 TEST(ScaleCompactTest, EncodeNegativeIntegerFails) {
   CompactInteger v(-1);
-  ScaleEncoderStream out;
+  ScaleEncoderStream out{};
   ASSERT_ANY_THROW((out << v));
   ASSERT_EQ(out.data().size(), 0);  // nothing was written to buffer
 }
@@ -138,8 +140,7 @@ TEST(ScaleCompactTest, EncodeOutOfRangeBigIntegerFails) {
  */
 TEST(Scale, compactDecodeBigIntegerError) {
   auto bytes = ByteArray{255, 255, 255, 255};
-  auto stream = ScaleDecoderStream(gsl::make_span(bytes));
-  EXPECT_OUTCOME_FALSE_2(err, decode<CompactInteger>(stream));
+  EXPECT_OUTCOME_FALSE_2(err, decode<CompactInteger>(bytes));
 
   ASSERT_EQ(err.value(),
             static_cast<int>(kagome::scale::DecodeError::NOT_ENOUGH_DATA));

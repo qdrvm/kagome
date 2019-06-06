@@ -45,11 +45,6 @@ namespace libp2p::network {
 
 }  // namespace libp2p::network
 
-namespace std {
-  std::ostream &operator<<(std::ostream &s,
-                           const std::vector<unsigned char> &v);
-}
-
 OUTCOME_HPP_DECLARE_ERROR(libp2p::network, RouterImpl::Error)
 
 #endif  // KAGOME_ROUTER_IMPL_HPP

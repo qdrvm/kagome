@@ -10,54 +10,56 @@
 
 #include <gtest/gtest.h>
 #include <boost/asio/io_context.hpp>
-#include <testutil/outcome.hpp>
-#include "libp2p/transport/connection.hpp"
+#include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/transport/transport.hpp"
 #include "libp2p/transport/transport_listener.hpp"
+#include "mock/libp2p/transport/upgrader_mock.hpp"
 
 namespace libp2p::testing {
   /**
-   * Support class, allowing to have a Yamuxed preset TCP connection
+   * Support class, allowing to have a preset TCP connection
    */
   class TransportFixture : public ::testing::Test {
    public:
+    TransportFixture();
+
     void SetUp() override;
 
     /**
-     * Initialize:
-     *    - transport
-     *    - default multiaddress
+     * Provide functions to be executed as a server side of the connection
+     * @param on_success - function to be executed in case of success
+     * @param on_error  - function to be executed in case of failure
      */
-    void init();
+    void server(const transport::TransportListener::HandlerFunc &on_success,
+                const transport::TransportListener::ErrorFunc &on_error);
 
     /**
-     * Dial to the default transport via the default multiaddress with a local
-     * listener; that listener MUST be created beforehand from the local
-     * transport
+     * Provide functions to be executed as a client side of the connection
+     * @param on_success - function to be executed in case of success
+     * @param on_error  - function to be executed in case of failure
      */
-    void defaultDial();
+    void client(const transport::TransportListener::HandlerFunc &on_success,
+                const transport::TransportListener::ErrorFunc &on_error);
 
     /**
-     * Run the context for some time to execute async operations
+     * Run the context for some time, enough to execute async operations
      */
     void launchContext();
 
     /**
-     * Check that IO operation has finished successfully
-     * @param error_code returned from the operation
-     * @param received_size - how much bytes were received
-     * @param expected_size - how much bytes were expected to be received
+     * Create a connection upgrader, which is going to do nothing with the
+     * connection
+     * @return upgrader
      */
-#define CHECK_IO_SUCCESS(error_code, received_size, expected_size) \
-  ASSERT_FALSE(error_code);                                        \
-  ASSERT_EQ(received_size, expected_size);
+    static auto makeUpgrader();
 
+   private:
     boost::asio::io_context context_;
+    boost::asio::io_context::executor_type executor_;
 
-    std::unique_ptr<libp2p::transport::Transport> transport_;
+    std::shared_ptr<libp2p::transport::Transport> transport_;
     std::shared_ptr<libp2p::transport::TransportListener> transport_listener_;
     std::shared_ptr<libp2p::multi::Multiaddress> multiaddress_;
-    std::shared_ptr<libp2p::transport::Connection> connection_;
   };
 }  // namespace libp2p::testing
 

@@ -72,3 +72,10 @@ addtest(scale_strings_test
 target_link_libraries(scale_strings_test
     scale
     )
+
+addtest(scale_convenience_functions_test
+    scale_convenience_functions_test.cpp
+    )
+target_link_libraries(scale_convenience_functions_test
+    scale
+    )

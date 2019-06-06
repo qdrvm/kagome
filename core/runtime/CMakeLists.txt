@@ -73,6 +73,7 @@ target_link_libraries(grandpa_api
     buffer
     logger
     scale
+    scale
     wasm_executor
     )
 

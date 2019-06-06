@@ -18,40 +18,37 @@
 namespace kagome::scale {
   /**
    * @brief convenience function for encoding primitives data to stream
-   * @tparam T primitive type
-   * @param t data to encode
+   * @tparam Args primitive types to be encoded
+   * @param args data to encode
    * @return encoded data
    */
-  template <class T>
-  outcome::result<std::vector<uint8_t>> encode(T &&t) {
+  template <typename... Args>
+  outcome::result<std::vector<uint8_t>> encode(Args &&... args) {
     ScaleEncoderStream s;
-    OUTCOME_CATCH((s << t))
+    try {
+      (s << ... << std::forward<Args>(args));
+    } catch (std::system_error &e) {
+      return outcome::failure(e.code());
+    }
     return s.data();
   }
 
   /**
    * @brief convenience function for decoding primitives data from stream
-   * @param span
-   * @return
+   * @tparam T primitive type that is decoded from provided span
+   * @param span of bytes with encoded data
+   * @return decoded T
    */
   template <class T>
   outcome::result<T> decode(gsl::span<const uint8_t> span) {
     T t{};
     ScaleDecoderStream s(span);
-    OUTCOME_CATCH((s >> t))
-    return t;
-  }
+    try {
+      s >> t;
+    } catch (std::system_error &e) {
+      return outcome::failure(e.code());
+    }
 
-  /**
-   * @brief when you already have a stream to decode from it
-   * @tparam T value type
-   * @param s stream reference
-   * @return decoded value or error
-   */
-  template <class T>
-  outcome::result<T> decode(ScaleDecoderStream &s) {
-    T t{};
-    OUTCOME_CATCH((s >> t))
     return t;
   }
 }  // namespace kagome::scale

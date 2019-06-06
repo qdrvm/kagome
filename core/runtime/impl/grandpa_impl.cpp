@@ -5,9 +5,9 @@
 
 #include "runtime/impl/grandpa_impl.hpp"
 
+#include "common/blob.hpp"
 #include "scale/scale.hpp"
 #include "scale/scale_error.hpp"
-#include "common/blob.hpp"
 
 namespace kagome::runtime {
   using common::Buffer;
@@ -16,7 +16,6 @@ namespace kagome::runtime {
   using primitives::ScheduledChange;
   using primitives::SessionKey;
   using primitives::WeightedAuthority;
-  using scale::ScaleDecoderStream;
 
   GrandpaImpl::GrandpaImpl(common::Buffer state_code,
                            std::shared_ptr<extensions::Extension> extension)
@@ -41,9 +40,8 @@ namespace kagome::runtime {
     runtime::WasmPointer res_addr = getWasmAddr(res.geti64());
     runtime::SizeType len = getWasmLen(res.geti64());
     auto buffer = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(buffer);
 
-    return scale::decode<std::optional<ScheduledChange>>(s);
+    return scale::decode<std::optional<ScheduledChange>>(buffer);
   }
 
   outcome::result<std::optional<ForcedChange>> GrandpaImpl::forced_change(
@@ -64,9 +62,8 @@ namespace kagome::runtime {
     WasmPointer res_addr = getWasmAddr(res.geti64());
     SizeType len = getWasmLen(res.geti64());
     auto buffer = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(buffer);
 
-    return scale::decode<std::optional<ForcedChange>>(s);
+    return scale::decode<std::optional<ForcedChange>>(buffer);
   }
 
   outcome::result<std::vector<WeightedAuthority>> GrandpaImpl::authorities() {
@@ -76,11 +73,9 @@ namespace kagome::runtime {
         res, executor_.call(state_code_, "GrandpaApi_grandpa_authorities", ll));
 
     WasmPointer res_addr = getWasmAddr(res.geti64());
-    SizeType len= getWasmLen(res.geti64());
+    SizeType len = getWasmLen(res.geti64());
     auto buffer = memory_->loadN(res_addr, len);
 
-    ScaleDecoderStream s(buffer);
-
-    return scale::decode<std::vector<WeightedAuthority>>(s);
+    return scale::decode<std::vector<WeightedAuthority>>(buffer);
   }
 }  // namespace kagome::runtime

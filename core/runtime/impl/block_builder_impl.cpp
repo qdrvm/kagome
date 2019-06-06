@@ -14,9 +14,11 @@ namespace kagome::runtime {
 
   using common::Buffer;
   using extensions::Extension;
+  using primitives::Block;
+  using primitives::BlockHeader;
+  using primitives::CheckInherentsResult;
   using primitives::Extrinsic;
-  using scale::ScaleDecoderStream;
-  using scale::ScaleEncoderStream;
+  using primitives::InherentData;
   using wasm::Literal;
 
   BlockBuilderImpl::BlockBuilderImpl(Buffer state_code,
@@ -43,23 +45,19 @@ namespace kagome::runtime {
     // TODO(Harrm) PRE-154 figure out what wasm function returns
   }
 
-  outcome::result<primitives::BlockHeader> BlockBuilderImpl::finalize_block() {
+  outcome::result<BlockHeader> BlockBuilderImpl::finalize_block() {
     OUTCOME_TRY(res,
                 executor_.call(state_code_, "BlockBuilder_finalize_block", {}));
 
     WasmPointer res_addr = getWasmAddr(res.geti64());
     SizeType len = getWasmLen(res.geti64());
+    Buffer buffer = memory_->loadN(res_addr, len);
 
-    Buffer data = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(data);
-
-    OUTCOME_TRY(header, scale::decode<primitives::BlockHeader>(s));
-
-    return std::move(header);  // warning from clang-tidy without move
+    return scale::decode<BlockHeader>(buffer);
   }
 
-  outcome::result<std::vector<primitives::Extrinsic>>
-  BlockBuilderImpl::inherent_extrinsics(const primitives::InherentData &data) {
+  outcome::result<std::vector<Extrinsic>> BlockBuilderImpl::inherent_extrinsics(
+      const InherentData &data) {
     OUTCOME_TRY(enc_data, scale::encode(data));
 
     runtime::SizeType data_size = enc_data.size();
@@ -75,25 +73,19 @@ namespace kagome::runtime {
 
     WasmPointer res_addr = getWasmAddr(res.geti64());
     SizeType len = getWasmLen(res.geti64());
-
     auto buffer = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(buffer);
 
-    OUTCOME_TRY(decoded_res, scale::decode<std::vector<Extrinsic>>(s));
-
-    return std::move(decoded_res);
+    return scale::decode<std::vector<Extrinsic>>(buffer);
   }
 
   outcome::result<CheckInherentsResult> BlockBuilderImpl::check_inherents(
-      const primitives::Block &block, const primitives::InherentData &data) {
-    ScaleEncoderStream os;
-    OUTCOME_CATCH((os << block << data))
-    auto encoded_data = Buffer(os.data());
+      const Block &block, const InherentData &data) {
+    OUTCOME_TRY(encoded_data, scale::encode(block, data));
 
     // TODO (Harrm) PRE-98: after check for memory overflow is done, refactor it
     runtime::SizeType param_size = encoded_data.size();
     runtime::WasmPointer param_ptr = memory_->allocate(param_size);
-    memory_->storeBuffer(param_ptr, encoded_data);
+    memory_->storeBuffer(param_ptr, common::Buffer(encoded_data));
 
     wasm::LiteralList ll{Literal(param_ptr), Literal(param_size)};
 
@@ -104,13 +96,8 @@ namespace kagome::runtime {
     SizeType len = getWasmLen(res.geti64());
 
     auto buffer = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(buffer);
 
-    OUTCOME_TRY(ok, scale::decode<bool>(s));
-    OUTCOME_TRY(is_fatal, scale::decode<bool>(s));
-    OUTCOME_TRY(error_data, scale::decode<primitives::InherentData>(s));
-
-    return CheckInherentsResult{error_data, ok, is_fatal};
+    return scale::decode<CheckInherentsResult>(buffer);
   }
 
   outcome::result<common::Hash256> BlockBuilderImpl::random_seed() {
@@ -121,11 +108,9 @@ namespace kagome::runtime {
 
     WasmPointer res_addr = getWasmAddr(res.geti64());
     SizeType len = getWasmLen(res.geti64());
-
     auto buffer = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(buffer);
 
-    return scale::decode<common::Hash256>(s);
+    return scale::decode<common::Hash256>(buffer);
   }
 
 }  // namespace kagome::runtime

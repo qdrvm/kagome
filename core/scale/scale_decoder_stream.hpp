@@ -150,13 +150,6 @@ namespace kagome::scale {
      */
     uint8_t nextByte();
 
-    /**
-     * @brief advances current byte iterator by specified number of positions
-     * @param dist number of positions to advance iterator
-     * @return nothing, can throw DecodeError::OUT_OF_BOUNDARIES
-     */
-    void advance(uint64_t dist);
-
    private:
     bool decodeBool();
     /**

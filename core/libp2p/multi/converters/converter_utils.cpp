@@ -28,7 +28,7 @@ namespace libp2p::multi::converters {
   using kagome::common::Buffer;
 
   outcome::result<Buffer> multiaddrToBytes(std::string_view str) {
-    if (str[0] != '/') {
+    if (str.empty() || str[0] != '/') {
       return ConversionError::ADDRESS_DOES_NOT_BEGIN_WITH_SLASH;
     }
 
@@ -38,7 +38,7 @@ namespace libp2p::multi::converters {
     }
 
     if (str.back() == '/') {
-      // for split not to recognize an empty token in the end
+      // for split does not recognize an empty token in the end
       str.remove_suffix(1);
     }
 

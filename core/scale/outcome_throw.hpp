@@ -13,20 +13,14 @@
 namespace kagome::scale::common {
   /**
    * @brief throws outcome::result error as boost exception
-   * @tparam T error type
+   * @tparam T enum error type
    * @param t error value
    */
-  template <typename T>
-  void raise(const T &t) {
+  template <typename T, typename = std::enable_if_t<std::is_enum_v<T>>>
+  void raise(T t) {
     std::error_code ec = make_error_code(t);
     boost::throw_exception(std::system_error(ec));
   }
 }  // namespace kagome::scale::common
 
-#define OUTCOME_CATCH(expr)            \
-  try {                                \
-    (expr);                            \
-  } catch (std::system_error & e) {    \
-    return outcome::failure(e.code()); \
-  }
 #endif  // KAGOME_CORE_COMMON_OUTCOME_THROW_HPP

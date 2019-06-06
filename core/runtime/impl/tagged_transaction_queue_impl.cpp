@@ -9,7 +9,6 @@
 
 namespace kagome::runtime {
   using outcome::result;
-  using scale::ScaleDecoderStream;
 
   TaggedTransactionQueueImpl::TaggedTransactionQueueImpl(
       common::Buffer state_code,
@@ -38,9 +37,8 @@ namespace kagome::runtime {
     WasmPointer res_addr = getWasmAddr(res.geti64());
     SizeType len = getWasmLen(res.geti64());
     auto buffer = memory_->loadN(res_addr, len);
-    ScaleDecoderStream s(buffer);
 
-    return scale::decode<primitives::TransactionValidity>(s);
+    return scale::decode<primitives::TransactionValidity>(buffer);
   }
 
 }  // namespace kagome::runtime

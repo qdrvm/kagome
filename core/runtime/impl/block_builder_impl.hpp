@@ -28,7 +28,7 @@ namespace kagome::runtime {
     outcome::result<std::vector<primitives::Extrinsic>> inherent_extrinsics(
         const primitives::InherentData &data) override;
 
-    outcome::result<CheckInherentsResult> check_inherents(
+    outcome::result<primitives::CheckInherentsResult> check_inherents(
         const primitives::Block &block,
         const primitives::InherentData &data) override;
 

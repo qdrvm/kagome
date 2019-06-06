@@ -8,14 +8,11 @@
 #include "scale/scale.hpp"
 #include "testutil/outcome.hpp"
 
-using kagome::scale::CompactInteger;
 using kagome::scale::ByteArray;
+using kagome::scale::CompactInteger;
 using kagome::scale::encode;
 using kagome::scale::ScaleDecoderStream;
 using kagome::scale::ScaleEncoderStream;
-
-using kagome::scale::decode;
-using kagome::scale::encode;
 
 /**
  * @given collection of 80 items of type uint8_t
@@ -126,7 +123,8 @@ TEST(Scale, encodeLongCollectionUint16) {
   // first 4 bytes represent le-encoded value 2^16 + 2
   // which is compact-encoded value 2^14 = 16384
   auto stream = ScaleDecoderStream(gsl::make_span(out));
-  EXPECT_OUTCOME_TRUE(res, decode<CompactInteger>(stream));
+  CompactInteger res{};
+  ASSERT_NO_THROW(stream >> res);
   ASSERT_EQ(res, 16384);
 
   // now only 32768 bytes left in stream
@@ -134,10 +132,11 @@ TEST(Scale, encodeLongCollectionUint16) {
   ASSERT_EQ(stream.hasMore(32769), false);
 
   for (auto i = 0; i < length; ++i) {
-    EXPECT_OUTCOME_TRUE(byte, decode<uint8_t>(stream))
+    uint8_t byte = 0u;
+    ASSERT_NO_THROW(stream >> byte);
     ASSERT_EQ(byte, i % 256);
-    EXPECT_OUTCOME_TRUE(byte1, decode<uint8_t>(stream))
-    ASSERT_EQ(byte1, 0);
+    ASSERT_NO_THROW(stream >> byte);
+    ASSERT_EQ(byte, 0);
   }
 
   ASSERT_EQ(stream.hasMore(1), false);
@@ -172,7 +171,8 @@ TEST(Scale, encodeVeryLongCollectionUint8) {
   // 3 next bytes are 0, and the last 4-th == 2^6 == 64
   // which is compact-encoded value 2^14 = 16384
   auto stream = ScaleDecoderStream(gsl::make_span(out));
-  EXPECT_OUTCOME_TRUE(bi, decode<CompactInteger>(stream));
+  CompactInteger bi{};
+  ASSERT_NO_THROW(stream >> bi);
   ASSERT_EQ(bi, 1048576);
 
   // now only 1048576 bytes left in stream
@@ -217,7 +217,8 @@ TEST(Scale, DISABLED_encodeVeryLongCollectionUint8) {
   // 3 next bytes are 0, and the last 4-th == 2^6 == 64
   // which is compact-encoded value 2^14 = 16384
   auto stream = ScaleDecoderStream(gsl::make_span(out));
-  EXPECT_OUTCOME_TRUE(bi, decode<CompactInteger>(stream));
+  CompactInteger bi{};
+  ASSERT_NO_THROW(stream >> bi);
   ASSERT_EQ(bi, length);
 
   // now only 1048576 bytes left in stream
@@ -225,8 +226,10 @@ TEST(Scale, DISABLED_encodeVeryLongCollectionUint8) {
   ASSERT_EQ(stream.hasMore(length + 1), false);
 
   for (auto i = 0; i < length; ++i) {
-    EXPECT_OUTCOME_TRUE(byte, decode<uint8_t>(stream))
+    uint8_t byte = 0u;
+    ASSERT_NO_THROW(stream >> byte);
     ASSERT_EQ(byte, i % 256);
   }
+
   ASSERT_EQ(stream.hasMore(1), false);
 }

@@ -10,11 +10,11 @@
 
 using kagome::scale::ByteArray;
 using kagome::scale::decode;
+using kagome::scale::DecodeError;
 using kagome::scale::encode;
+using kagome::scale::EncodeError;
 using kagome::scale::ScaleDecoderStream;
 using kagome::scale::ScaleEncoderStream;
-using kagome::scale::DecodeError;
-using kagome::scale::EncodeError;
 
 // TODO(yuraz): PRE-119 refactor to parameterized tests
 /**
@@ -71,7 +71,7 @@ TEST(Scale, encodeOptional) {
  * @when decodeOptional function sequencially applied
  * @then expected values obtained
  */
- TEST(ScaleTest, DecodeOptionalSuccess) {
+TEST(ScaleTest, DecodeOptionalSuccess) {
   // clang-format off
     auto bytes = ByteArray{
             0,              // first value
@@ -144,51 +144,52 @@ TEST(Scale, encodeOptional) {
 TEST(ScaleTest, EncodeOptionalBoolSuccess) {
   std::vector<std::optional<bool>> values = {true, false, std::nullopt};
   ScaleEncoderStream s;
-  for (auto && v : values) {
+  for (auto &&v : values) {
     ASSERT_NO_THROW((s << v));
   }
   ASSERT_EQ(s.data(), (ByteArray{2, 1, 0}));
 }
 
 /**
- * @given stream containing series of encoded optionalBool values
- * @when decodeOptional<bool> function is applied
- * @then expected values obtained
+ * @brief helper struct for testing decode optional bool
  */
-TEST(Scale, decodeOptionalBool) {
+struct FourOptBools {
+  std::optional<bool> b1;
+  std::optional<bool> b2;
+  std::optional<bool> b3;
+  std::optional<bool> b4;
+};
+
+template <class Stream>
+Stream &operator>>(Stream &s, FourOptBools &v) {
+  return s >> v.b1 >> v.b2 >> v.b3 >> v.b4;
+}
+
+/**
+ * @given byte array containing series of encoded optional bool values
+ * where last byte is incorrect for optional bool type
+ * @when scale::decode function is applied
+ * @then DecoderError::UNEXPECTED_VALUE error is obtained
+ */
+TEST(Scale, DecodeOptionalBoolFail) {
   auto bytes = ByteArray{0, 1, 2, 3};
-  auto stream = ScaleDecoderStream{gsl::make_span(bytes)};
-  using bool_type = std::optional<bool>;
 
-  // decode none
-  {
-    EXPECT_OUTCOME_TRUE(res, decode<bool_type>(stream))
-    ASSERT_FALSE(res.has_value());
-  }
+  EXPECT_OUTCOME_FALSE_2(err, decode<FourOptBools>(bytes))
+  ASSERT_EQ(err.value(), static_cast<int>(DecodeError::UNEXPECTED_VALUE));
+}
 
-  // decode false
-  {
-    EXPECT_OUTCOME_TRUE(res, decode<bool_type>(stream))
-    ASSERT_TRUE(res.has_value());
-    ASSERT_FALSE(*res);
-  }
+/**
+ * @given byte array containing series of encoded optional bool values
+ * @when scale::decode function is applied
+ * @then obtained values meet expectations
+ */
+TEST(Scale, DecodeOptionalBoolSuccess) {
+  auto bytes = ByteArray{0, 1, 2, 1};
+  using optbool = std::optional<bool>;
 
-  // decode true
-  {
-    EXPECT_OUTCOME_TRUE(res, decode<bool_type>(stream))
-    ASSERT_TRUE(res.has_value());
-    ASSERT_TRUE(*res);
-  }
-
-  // decode error unexpected value
-  {
-    EXPECT_OUTCOME_FALSE_2(err, decode<bool_type>(stream));
-    ASSERT_EQ(err.value(), static_cast<int>(DecodeError::UNEXPECTED_VALUE));
-  }
-
-  // not enough data
-  {
-    EXPECT_OUTCOME_FALSE_2(err, decode<bool_type>(stream));
-    ASSERT_EQ(err.value(), static_cast<int>(DecodeError::NOT_ENOUGH_DATA));
-  }
+  EXPECT_OUTCOME_TRUE(res, decode<FourOptBools>(bytes))
+  ASSERT_EQ(res.b1, std::nullopt);
+  ASSERT_EQ(res.b2, optbool(false));
+  ASSERT_EQ(res.b3, optbool(true));
+  ASSERT_EQ(res.b4 , optbool(false));
 }
