@@ -12,7 +12,7 @@
 
 namespace kagome::storage::merkle {
 
-  const int kMaxChildren = 16;
+  constexpr int kMaxChildren = 16;
 
   struct PolkadotNode : public Node {
     PolkadotNode() = default;
