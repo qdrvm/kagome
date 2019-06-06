@@ -96,7 +96,7 @@ namespace kagome::storage::trie {
     bool isDummy() const override {
       return true;
     }
-    
+
     // Special only because a node has to have a type. Actually this is not
     // the real node and the type of the underlying node is inaccessible
     // before reading from the storage
