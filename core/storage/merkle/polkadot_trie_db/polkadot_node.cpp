@@ -20,11 +20,15 @@ namespace kagome::storage::merkle {
   uint16_t BranchNode::childrenBitmap() const {
     uint16_t bitmap = 0u;
     for (auto i = 0u; i < kMaxChildren; i++) {
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-      if (children[i] != nullptr) {
+      if (children.at(i)) {
         bitmap = bitmap | 1u << i;
       }
     }
     return bitmap;
   }
+
+  uint8_t BranchNode::childrenNum() const {
+    return std::count_if(children.begin(), children.end(), [](auto const& child) { return child; });;
+  }
+
 }  // namespace kagome::storage::merkle

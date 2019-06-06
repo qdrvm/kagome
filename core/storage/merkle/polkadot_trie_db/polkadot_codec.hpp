@@ -7,9 +7,12 @@
 #define KAGOME_MERKLE_UTIL_IMPL_HPP
 
 #include <memory>
+#include <optional>
 #include <string>
 
+#include "common/byte_stream.hpp"
 #include "storage/merkle/codec.hpp"
+#include "storage/merkle/polkadot_trie_db/buffer_stream.hpp"
 #include "storage/merkle/polkadot_trie_db/polkadot_node.hpp"
 
 namespace kagome::storage::merkle {
@@ -20,30 +23,44 @@ namespace kagome::storage::merkle {
 
     enum class Error {
       SUCCESS = 0,
-      TOO_MANY_NIBBLES = 1,  ///< number of nibbles in key is >= 2**16
-      UNKNOWN_NODE_TYPE = 2  ///< node type is unknown
+      TOO_MANY_NIBBLES,   ///< number of nibbles in key is >= 2**16
+      UNKNOWN_NODE_TYPE,  ///< node type is unknown
+      INPUT_TOO_SMALL     ///< cannot decode a node, not enough bytes on input
     };
 
     ~PolkadotCodec() override = default;
 
     outcome::result<Buffer> encodeNode(const Node &node) const override;
 
+    outcome::result<std::shared_ptr<Node>> decodeNode(
+        const common::Buffer &encoded_data) const override;
+
     common::Hash256 hash256(const Buffer &buf) const override;
 
     /// non-overriding helper methods
 
     // definition 14 KeyEncode
-    Buffer keyToNibbles(const Buffer &key) const;
+    static Buffer keyToNibbles(const Buffer &key);
 
     // 7.2 Hex encoding
-    Buffer nibblesToKey(const Buffer &key) const;
+    static Buffer nibblesToKey(const Buffer &key);
 
     // Algorithm 3: partial key length encoding
-    outcome::result<Buffer> getHeader(const PolkadotNode &node) const;
+    outcome::result<Buffer> encodeHeader(const PolkadotNode &node) const;
 
    private:
     outcome::result<Buffer> encodeBranch(const BranchNode &node) const;
     outcome::result<Buffer> encodeLeaf(const LeafNode &node) const;
+
+    outcome::result<std::pair<PolkadotNode::Type, size_t>> decodeHeader(
+        BufferStream& stream) const;
+
+    outcome::result<Buffer> decodePartialKey(size_t nibbles_num,
+                                             BufferStream& stream) const;
+
+    outcome::result<std::shared_ptr<Node>> decodeBranch(
+        PolkadotNode::Type type, const Buffer &partial_key,
+        BufferStream& stream) const;
   };
 
 }  // namespace kagome::storage::merkle

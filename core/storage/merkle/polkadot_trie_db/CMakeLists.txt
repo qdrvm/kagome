@@ -11,3 +11,10 @@ target_link_libraries(polkadot_trie_db_codec
     blake2
     blob
     )
+
+add_library(polkadot_trie_db
+    polkadot_trie_db.cpp
+    )
+target_link_libraries(polkadot_trie_db
+    polkadot_trie_db_codec
+    )

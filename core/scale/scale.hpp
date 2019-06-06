@@ -24,7 +24,7 @@ namespace kagome::scale {
    */
   template <typename... Args>
   outcome::result<std::vector<uint8_t>> encode(Args &&... args) {
-    ScaleEncoderStream s;
+    ScaleEncoderStream s {};
     try {
       (s << ... << std::forward<Args>(args));
     } catch (std::system_error &e) {
