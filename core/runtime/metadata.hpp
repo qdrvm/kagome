@@ -6,25 +6,25 @@
 #ifndef KAGOME_CORE_RUNTIME_METADATA_HPP
 #define KAGOME_CORE_RUNTIME_METADATA_HPP
 
-#include "primitives/opaque_metadata.hpp"
 #include <outcome/outcome.hpp>
+#include "primitives/opaque_metadata.hpp"
 
 namespace kagome::runtime {
 
-class Metadata {
- protected:
-  using OpaqueMetadata = primitives::OpaqueMetadata;
- public:
-  virtual ~Metadata() = default;
+  class Metadata {
+   protected:
+    using OpaqueMetadata = primitives::OpaqueMetadata;
 
-  /**
-   * @brief calls metadata method of Metadata runtime api
-   * @return opaque metadata object or error
-   */
-  virtual outcome::result<OpaqueMetadata> metadata() = 0;
+   public:
+    virtual ~Metadata() = default;
 
-};
+    /**
+     * @brief calls metadata method of Metadata runtime api
+     * @return opaque metadata object or error
+     */
+    virtual outcome::result<OpaqueMetadata> metadata() = 0;
+  };
 
-}
+}  // namespace kagome::runtime
 
-#endif //KAGOME_CORE_RUNTIME_METADATA_HPP
+#endif  // KAGOME_CORE_RUNTIME_METADATA_HPP

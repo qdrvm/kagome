@@ -25,8 +25,7 @@ class CompactTest
  public:
   static std::pair<CompactInteger, ByteArray> pair(CompactInteger v,
                                                    ByteArray m) {
-    return std::make_pair<CompactInteger, ByteArray>(std::move(v),
-                                                     std::move(m));
+    return std::make_pair(CompactInteger(std::move(v)), std::move(m));
   }
 
  protected:

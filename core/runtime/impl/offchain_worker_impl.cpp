@@ -29,7 +29,8 @@ namespace kagome::runtime {
     wasm::LiteralList ll{wasm::Literal(ptr), wasm::Literal(ext_size)};
 
     OUTCOME_TRY(
-        res, executor_.call(state_code_, "OffchainWorkerApi_offchain_worker", ll));
+        res,
+        executor_.call(state_code_, "OffchainWorkerApi_offchain_worker", ll));
 
     return outcome::success();
   }
