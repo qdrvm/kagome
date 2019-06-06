@@ -17,12 +17,12 @@ namespace kagome::storage::trie {
     struct Command {
       Action action;
       common::Buffer key;
-      common::Buffer value; // empty for remove
+      common::Buffer value;  // empty for remove
     };
 
    public:
-    PolkadotTrieBatch(PolkadotTrieDb &trie);
-    ~PolkadotTrieBatch() = default;
+    explicit PolkadotTrieBatch(PolkadotTrieDb &trie);
+    ~PolkadotTrieBatch() override = default;
     outcome::result<void> put(const common::Buffer &key,
                               const common::Buffer &value) override;
     outcome::result<void> remove(const common::Buffer &key) override;
@@ -30,10 +30,13 @@ namespace kagome::storage::trie {
     void clear() override;
 
    private:
-    outcome::result<PolkadotNode> applyPut(common::Buffer key, common::Buffer value);
-    outcome::result<PolkadotNode> applyRemove(common::Buffer key);
+    outcome::result<PolkadotTrieDb::NodePtr> applyPut(
+        const PolkadotTrieDb::NodePtr& root, const common::Buffer &key,
+        common::Buffer value);
+    outcome::result<PolkadotTrieDb::NodePtr> applyRemove(
+        PolkadotTrieDb::NodePtr root, const common::Buffer &key);
 
-    PolkadotTrieDb trie_;
+    PolkadotTrieDb &trie_;
     std::list<Command> commands_;
   };
 }  // namespace kagome::storage::trie

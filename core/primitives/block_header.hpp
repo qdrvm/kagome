@@ -17,7 +17,7 @@ namespace kagome::primitives {
   struct BlockHeader {
     common::Hash256 parent_hash;      ///< 32-byte Blake2s hash of parent header
     BlockNumber number;               ///< index of current block in the chain
-    common::Hash256 state_root;       ///< root of the Merkle trie
+    common::Hash256 state_root;       ///< root of the Merkle tree
     common::Hash256 extrinsics_root;  ///< field for validation integrity
     Digest digest;                    ///< chain-specific auxiliary data
   };

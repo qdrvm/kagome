@@ -14,59 +14,76 @@ namespace kagome::storage::trie {
   outcome::result<void> PolkadotTrieBatch::put(const Buffer &key,
                                                const Buffer &value) {
     commands_.push_back({Action::PUT, key, value});
+    return outcome::success();
   }
 
   outcome::result<void> PolkadotTrieBatch::remove(const Buffer &key) {
     commands_.push_back({Action::REMOVE, key, Buffer{}});
+    return outcome::success();
   }
 
   outcome::result<void> PolkadotTrieBatch::commit() {
-    PolkadotTrieDb::NodePtr new_root{};
+    if(commands_.empty()) {
+      return outcome::success();
+    }
+
+    PolkadotTrieDb::NodePtr new_root = nullptr;
+    if(not trie_.getRootHash().empty()) {
+      OUTCOME_TRY(n, trie_.retrieveNode(trie_.getRootHash()));
+      new_root = n;
+    }
     for (auto &command : commands_) {
       switch (command.action) {
-        case Action::PUT:
-          OUTCOME_TRY(
-              n, applyPut(std::move(command.key), std::move(command.value)));
+        case Action::PUT: {
+          OUTCOME_TRY(n, applyPut(new_root, command.key, std::move(command.value)));
           new_root = n;
           break;
-        case Action::REMOVE:
-          OUTCOME_TRY(n, applyRemove(std::move(command.key)));
+        }
+        case Action::REMOVE: {
+          OUTCOME_TRY(n, applyRemove(new_root, command.key));
           new_root = n;
           break;
+        }
       }
     }
-    trie_->storeNode(new_root);
+    if (new_root == nullptr) {
+      trie_.root_ = std::nullopt;
+    } else {
+      OUTCOME_TRY(n, trie_.storeNode(*new_root));
+      trie_.root_ = n;
+    }
     clear();
+    return outcome::success();
   }
 
   void PolkadotTrieBatch::clear() {
     commands_.clear();
   }
 
-  outcome::result<PolkadotNode> PolkadotTrieBatch::applyPut(
-      common::Buffer key, common::Buffer value) {
+  outcome::result<PolkadotTrieDb::NodePtr> PolkadotTrieBatch::applyPut(
+      const PolkadotTrieDb::NodePtr& root, const common::Buffer &key,
+      common::Buffer value) {
     auto k_enc = PolkadotCodec::keyToNibbles(key);
 
     if (value.empty()) {
       OUTCOME_TRY(remove(key));
-    } else if (not trie_.root_.has_value()) {
-      // will create a leaf node with provided key and value, save it to the
-      // storage and return the key to it
-      OUTCOME_TRY(trie_.insertRoot(k_enc, value));
     } else {
-      OUTCOME_TRY(root, trie_.retrieveNode(trie_.root_.value()));
       // insert will pull a sequence of nodes (a path) from the storage and work
       // on it in memory
       OUTCOME_TRY(
-          n, insert(root, k_enc, std::make_shared<LeafNode>(k_enc, value)));
-      return n;
+          n,
+          trie_.insert(root, k_enc, std::make_shared<LeafNode>(k_enc, value)));
+      return std::move(n);
     }
     return outcome::success();
   }
 
-  outcome::result<PolkadotNode> PolkadotTrieBatch::applyRemove(
-      common::Buffer key) {
-
+  outcome::result<PolkadotTrieDb::NodePtr> PolkadotTrieBatch::applyRemove(
+      PolkadotTrieDb::NodePtr root, const common::Buffer &key) {
+    auto key_nibbles = PolkadotCodec::keyToNibbles(key);
+    // delete node will fetch nodes that it needs from the storage (the nodes
+    // typically are a path in the trie) and work on them in memory
+    OUTCOME_TRY(n, trie_.deleteNode(std::move(root), key_nibbles));
+    return std::move(n);
   }
-
 }  // namespace kagome::storage::trie

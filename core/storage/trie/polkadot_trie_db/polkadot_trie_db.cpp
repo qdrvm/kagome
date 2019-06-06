@@ -9,6 +9,7 @@
 
 #include "storage/trie/polkadot_trie_db/polkadot_codec.hpp"
 #include "storage/trie/polkadot_trie_db/polkadot_node.hpp"
+#include "storage/trie/polkadot_trie_db/polkadot_trie_batch.hpp"
 
 using kagome::common::Buffer;
 
@@ -35,9 +36,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotTrieDb::Error, e) {
 
 namespace kagome::storage::trie {
 
-  PolkadotTrieDb::PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db,
-                                 std::shared_ptr<hash::Hasher> hasher)
-      : db_{std::move(db)}, hasher_{std::move(hasher)} {}
+  PolkadotTrieDb::PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db)
+      : db_{std::move(db)} {}
 
   outcome::result<void> PolkadotTrieDb::put(const Buffer &key,
                                             const Buffer &value) {
@@ -86,8 +86,7 @@ namespace kagome::storage::trie {
   }
 
   std::unique_ptr<PolkadotTrieDb::WriteBatch> PolkadotTrieDb::batch() {
-    // TODO(Harrm) PRE-199 Implement batch in trie trie
-    return nullptr;
+    return std::make_unique<PolkadotTrieBatch>(*this);
   }
 
   std::unique_ptr<PolkadotTrieDb::MapCursor> PolkadotTrieDb::cursor() {
@@ -297,7 +296,7 @@ namespace kagome::storage::trie {
           parent_as_branch->children.at(key_nibbles[length]) = n;
         }
         OUTCOME_TRY(n, handleDeletion(parent_as_branch, newRoot, key_nibbles));
-        return n;
+        return std::move(n);
       }
       case T::Leaf:
         if (parent->key_nibbles == key_nibbles || key_nibbles.empty()) {
@@ -411,7 +410,7 @@ namespace kagome::storage::trie {
     auto batch = db_->batch();
     OUTCOME_TRY(hash, storeNode(node, *batch));
     OUTCOME_TRY(batch->commit());
-    return hash;
+    return std::move(hash);
   }
   
   outcome::result<common::Buffer> PolkadotTrieDb::storeNode(PolkadotNode &node,

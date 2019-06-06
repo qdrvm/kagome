@@ -6,8 +6,6 @@
 #include "storage/trie/polkadot_trie_db/polkadot_trie_db.hpp"
 
 #include <gtest/gtest.h>
-#include "crypto/hasher/hasher_impl.hpp"
-#include "scale/buffer_codec.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -16,8 +14,6 @@
 #include "testutil/storage/polkadot_trie_db_printer.hpp"
 
 using kagome::common::Buffer;
-using kagome::hash::HasherImpl;
-using kagome::scale::BufferScaleCodec;
 using kagome::storage::LevelDB;
 using kagome::storage::trie::PolkadotTrieDb;
 
@@ -40,12 +36,8 @@ class TrieTest
 
   void SetUp() override {
     open();
-    trie = std::make_unique<PolkadotTrieDb>(std::move(db_), codec,
-                                            std::make_shared<HasherImpl>());
+    trie = std::make_unique<PolkadotTrieDb>(std::move(db_));
   }
-
-  std::shared_ptr<BufferScaleCodec> codec =
-      std::make_shared<BufferScaleCodec>();
 
   std::vector<std::pair<Buffer, Buffer>> data = {
       {"123456"_hex2buf, "42"_hex2buf},
@@ -234,8 +226,8 @@ INSTANTIATE_TEST_CASE_P(
 
 /**
  * @given an empty trie
- * @when putting some data to it
- * @then inserted data is accessible
+ * @when putting some entries into it
+ * @then all inserted entries are accessible from the trie
  */
 TEST_F(TrieTest, Put) {
   for (auto &entry : data) {

@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_CORE_STORAGE_MERKLE_MOCK_TRIE_DB_HPP_
-#define KAGOME_TEST_CORE_STORAGE_MERKLE_MOCK_TRIE_DB_HPP_
+#ifndef KAGOME_TEST_CORE_STORAGE_TRIE_MOCK_TRIE_DB_HPP_
+#define KAGOME_TEST_CORE_STORAGE_TRIE_MOCK_TRIE_DB_HPP_
 
 #include <gmock/gmock.h>
-#include "storage/merkle/trie_db.hpp"
+#include "storage/trie/trie_db.hpp"
 
 namespace kagome::storage::trie {
 
@@ -30,4 +30,4 @@ namespace kagome::storage::trie {
 
 }  // namespace kagome::storage::trie
 
-#endif  // KAGOME_TEST_CORE_STORAGE_MERKLE_MOCK_TRIE_DB_HPP_
+#endif  // KAGOME_TEST_CORE_STORAGE_TRIE_MOCK_TRIE_DB_HPP_

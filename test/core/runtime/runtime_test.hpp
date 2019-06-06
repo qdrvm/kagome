@@ -11,7 +11,7 @@
 
 #include <gtest/gtest.h>
 #include <boost/filesystem/path.hpp>
-#include "core/storage/merkle/mock_trie_db.hpp"
+#include "core/storage/trie/mock_trie_db.hpp"
 #include "extensions/extension_impl.hpp"
 #include "primitives/block.hpp"
 #include "primitives/block_header.hpp"

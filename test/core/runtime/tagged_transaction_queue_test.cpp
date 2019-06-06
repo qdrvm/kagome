@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "core/runtime/runtime_test.hpp"
-#include "core/storage/merkle/mock_trie_db.hpp"
+#include "core/storage/trie/mock_trie_db.hpp"
 #include "extensions/extension_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
