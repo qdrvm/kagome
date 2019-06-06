@@ -10,6 +10,9 @@
 #include <cstdint>
 
 namespace kagome::primitives {
+  /**
+   * Polkadot primitive, which is opaque representation of RuntimeMetadata
+   */
   using OpaqueMetadata = std::vector<uint8_t>;
 }
 
