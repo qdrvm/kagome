@@ -37,8 +37,7 @@ namespace kagome::storage::merkle {
 
   PolkadotTrieDb::PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db,
                                  std::shared_ptr<hash::Hasher> hasher)
-      : db_{std::move(db)},
-        hasher_{std::move(hasher)} {}
+      : db_{std::move(db)}, hasher_{std::move(hasher)} {}
 
   outcome::result<void> PolkadotTrieDb::put(const Buffer &key,
                                             const Buffer &value) {
@@ -422,6 +421,7 @@ namespace kagome::storage::merkle {
     OUTCOME_TRY(batch->commit());
     return hash;
   }
+  
   outcome::result<common::Buffer> PolkadotTrieDb::storeNode(PolkadotNode &node,
                                                             WriteBatch &batch) {
     using T = PolkadotNode::Type;
