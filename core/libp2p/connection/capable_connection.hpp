@@ -16,6 +16,12 @@ namespace libp2p::connection {
     ~CapableConnection() override = default;
 
     /**
+     * Start to process incoming messages for this connection
+     * @return nothing or error; returns when the connection closes
+     */
+    virtual outcome::result<void> start() = 0;
+
+    /**
      * @brief Opens new stream using this connection.
      */
     virtual outcome::result<std::shared_ptr<Stream>> newStream() = 0;

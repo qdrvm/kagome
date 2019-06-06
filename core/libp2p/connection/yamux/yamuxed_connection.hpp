@@ -8,12 +8,15 @@
 
 #include <functional>
 #include <map>
+#include <queue>
 
+#include <boost/asio/streambuf.hpp>
 #include <gsl/span>
 #include "common/logger.hpp"
 #include "libp2p/connection/capable_connection.hpp"
 #include "libp2p/connection/secure_connection.hpp"
 #include "libp2p/connection/stream.hpp"
+#include "libp2p/event/emitter.hpp"
 
 namespace libp2p::connection {
   class YamuxStream;
@@ -58,6 +61,8 @@ namespace libp2p::connection {
     YamuxedConnection &operator=(YamuxedConnection &&other) noexcept = delete;
     ~YamuxedConnection() override = default;
 
+    outcome::result<void> start() override;
+
     outcome::result<std::shared_ptr<Stream>> newStream() override;
 
     outcome::result<peer::PeerId> localPeer() const override;
@@ -87,10 +92,11 @@ namespace libp2p::connection {
     outcome::result<size_t> readSome(gsl::span<uint8_t> buf) override;
 
     /**
-     * Read and process one frame
+     * Read and process all incoming frames; return only when the connection is
+     * closed
      * @return nothing or error
      */
-    outcome::result<void> readFrame();
+    outcome::result<void> readerLoop();
 
     /**
      * Process frame of data type
@@ -136,7 +142,7 @@ namespace libp2p::connection {
      * If there is data in this length, buffer it to the according stream
      * @param stream, for which the data arrived
      * @param frame, which can have some data inside
-     * @return nothing on success, error ottherwise
+     * @return nothing on success, error otherwise
      */
     outcome::result<void> processData(
         const std::shared_ptr<YamuxStream> &stream, const YamuxFrame &frame);
@@ -148,6 +154,9 @@ namespace libp2p::connection {
      */
     outcome::result<std::shared_ptr<YamuxStream>> processAck(
         StreamId stream_id);
+
+    void processWindowUpdate(const std::shared_ptr<YamuxStream> &stream,
+                             uint32_t window_delta);
 
     /**
      * Close stream for reads on this side
@@ -189,9 +198,36 @@ namespace libp2p::connection {
 
     outcome::result<void> streamProcessNextFrame();
 
+    using ReadWriteCompletionHandler = std::function<bool()>;
+
+    /**
+     * Add a handler function, which is called, when a window update is
+     * received; event emitter cannot be used, as each stream is to receive that
+     * event independently based on id
+     * @param stream_id, which is to be notified
+     * @param handler to be called; if it returns true, it's removed from the
+     * list of handlers for that stream
+     */
+    void streamAddWindowUpdateHandler(
+        StreamId stream_id,
+        std::shared_ptr<ReadWriteCompletionHandler> handler);
     outcome::result<size_t> streamWrite(StreamId stream_id,
                                         gsl::span<const uint8_t> msg,
                                         bool some);
+    std::map<StreamId, std::queue<std::shared_ptr<ReadWriteCompletionHandler>>>
+        streams_write_handlers_;
+
+    /**
+     * Read a data for a specified (\param stream_id)
+     * @param stream_id, for which the data is to be read
+     * @param handler, which is called, when the data for that stream_id is
+     * arrived; if it returns true, it means that read operation is finished on
+     * the stream's side
+     */
+    void streamRead(StreamId stream_id,
+                    std::shared_ptr<ReadWriteCompletionHandler> handler);
+    std::map<StreamId, std::queue<std::shared_ptr<ReadWriteCompletionHandler>>>
+        streams_read_handlers_;
 
     outcome::result<void> streamAckBytes(StreamId stream_id, uint32_t bytes);
 

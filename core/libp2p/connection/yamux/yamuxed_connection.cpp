@@ -39,6 +39,10 @@ namespace libp2p::connection {
     last_created_stream_id_ = connection_->isInitiator() ? 1 : 0;
   }
 
+  outcome::result<void> YamuxedConnection::start() {
+    return readerLoop();
+  }
+
   outcome::result<std::shared_ptr<Stream>> YamuxedConnection::newStream() {
     auto stream_id = getNewStreamId();
     OUTCOME_TRY(connection_->write(newStreamMsg(stream_id)));
@@ -112,10 +116,10 @@ namespace libp2p::connection {
     return Error::FORBIDDEN_CALL;
   }
 
-  outcome::result<void> YamuxedConnection::readFrame() {
+  outcome::result<void> YamuxedConnection::readerLoop() {
     using FrameType = YamuxFrame::FrameType;
 
-    if (is_active_ && !connection_->isClosed()) {
+    while (is_active_ && !connection_->isClosed()) {
       OUTCOME_TRY(header_bytes, connection_->read(YamuxFrame::kHeaderLength));
       auto header_opt = parseFrame(header_bytes);
       if (!header_opt) {
@@ -146,8 +150,6 @@ namespace libp2p::connection {
           logger_->critical("garbage in parsed frame's type");
           return Error::INTERNAL_ERROR;
       }
-    } else {
-      return Error::YAMUX_IS_CLOSED;
     }
 
     return outcome::success();
@@ -202,17 +204,17 @@ namespace libp2p::connection {
         // can be start of a new stream or update of a window size
         if (auto stream = findStream(stream_id)) {
           // this stream is already opened => delta window update
-          stream->send_window_size_ += frame.length_;
+          processWindowUpdate(stream, frame.length_);
           break;
         }
         // no such stream found => it's a creation of a new stream
         OUTCOME_TRY(stream, registerNewStream(stream_id));
-        stream->send_window_size_ += frame.length_;
+        processWindowUpdate(stream, frame.length_);
         break;
       }
       case Flag::ACK: {
         if (auto stream = findStream(stream_id)) {
-          stream->send_window_size_ += frame.length_;
+          processWindowUpdate(stream, frame.length_);
           break;
         }
         // if no such stream found, some error happened - reset the stream on
@@ -222,7 +224,7 @@ namespace libp2p::connection {
       }
       case Flag::FIN: {
         if (auto stream = findStream(stream_id)) {
-          stream->send_window_size_ += frame.length_;
+          processWindowUpdate(stream, frame.length_);
         }
         closeStreamForRead(stream_id);
         break;
@@ -276,8 +278,19 @@ namespace libp2p::connection {
       return outcome::success();
     }
 
+    // read the data, commit it to the stream and call handler, if exists
     OUTCOME_TRY(data_bytes, connection_->read(data_length));
     OUTCOME_TRY(stream->commitData(std::move(data_bytes)));
+    if (auto stream_read_handlers =
+            streams_read_handlers_.find(frame.stream_id_);
+        stream_read_handlers != streams_read_handlers_.end()) {
+      auto &handlers = stream_read_handlers->second;
+      if (!handlers.empty() && handlers.front()->operator()()) {
+        // if handler returns true, it means that it should be removed
+        handlers.pop();
+      }
+    }
+
     return outcome::success();
   }
 
@@ -291,6 +304,18 @@ namespace libp2p::connection {
     }
     OUTCOME_TRY(connection_->write(resetStreamMsg(stream_id)));
     return nullptr;
+  }
+
+  void YamuxedConnection::processWindowUpdate(
+      const std::shared_ptr<YamuxStream> &stream, uint32_t window_delta) {
+    stream->send_window_size_ += window_delta;
+    if (auto write_handlers = streams_write_handlers_.find(stream->stream_id_);
+        write_handlers != streams_write_handlers_.end()) {
+      auto &handlers = write_handlers->second;
+      if (!handlers.empty() && handlers.front()->operator()()) {
+        handlers.pop();
+      }
+    }
   }
 
   void YamuxedConnection::closeStreamForRead(StreamId stream_id) {
@@ -332,7 +357,12 @@ namespace libp2p::connection {
   /// YAMUX STREAM API
 
   outcome::result<void> YamuxedConnection::streamProcessNextFrame() {
-    return readFrame();
+    return readerLoop();
+  }
+
+  void YamuxedConnection::streamAddWindowUpdateHandler(
+      StreamId stream_id, std::shared_ptr<ReadWriteCompletionHandler> handler) {
+    streams_write_handlers_[stream_id].push(std::move(handler));
   }
 
   outcome::result<size_t> YamuxedConnection::streamWrite(
@@ -352,6 +382,11 @@ namespace libp2p::connection {
     }
     OUTCOME_TRY(written, connection_->writeSome(dataMsg(stream_id, msg)));
     return written - YamuxFrame::kHeaderLength;
+  }
+
+  void YamuxedConnection::streamRead(
+      StreamId stream_id, std::shared_ptr<ReadWriteCompletionHandler> handler) {
+    streams_read_handlers_[stream_id].push(std::move(handler));
   }
 
   outcome::result<void> YamuxedConnection::streamAckBytes(StreamId stream_id,

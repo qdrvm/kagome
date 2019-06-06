@@ -20,6 +20,8 @@ namespace libp2p::connection {
     explicit CapableConnBasedOnRawConnMock(std::shared_ptr<RawConnection> c)
         : real_(std::move(c)) {}
 
+    MOCK_METHOD0(start, outcome::result<void>());
+
     MOCK_METHOD0(newStream, outcome::result<std::shared_ptr<Stream>>());
 
     MOCK_CONST_METHOD0(localPeer, outcome::result<peer::PeerId>());
