@@ -37,11 +37,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::merkle, PolkadotTrieDb::Error, e) {
 namespace kagome::storage::merkle {
 
   PolkadotTrieDb::PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db,
-                                 std::shared_ptr<Codec> codec,
                                  std::shared_ptr<hash::Hasher> hasher)
-      : db_{std::move(db)},
-        hasher_{std::move(hasher)},
-        codec_{std::move(codec)} {}
+      : db_{std::move(db)}, hasher_{std::move(hasher)} {}
 
   outcome::result<void> PolkadotTrieDb::put(const Buffer &key,
                                             const Buffer &value) {
@@ -182,16 +179,15 @@ namespace kagome::storage::merkle {
         parent->value = node->value;
         return parent;
       }
-      OUTCOME_TRY(c, retrieveChild(parent, key_nibbles[length]));
-      if (c) {
-        OUTCOME_TRY(n, insert(c, subbuffer(key_nibbles, length + 1), node));
+      OUTCOME_TRY(child, retrieveChild(parent, key_nibbles[length]));
+      if (child) {
+        OUTCOME_TRY(n, insert(child, subbuffer(key_nibbles, length + 1), node));
         parent->children.at(key_nibbles[length]) = n;
         return parent;
-      } else {
-        node->key_nibbles = subbuffer(key_nibbles, length + 1);
-        parent->children.at(key_nibbles[length]) = node;
-        return parent;
       }
+      node->key_nibbles = subbuffer(key_nibbles, length + 1);
+      parent->children.at(key_nibbles[length]) = node;
+      return parent;
     }
     auto br = std::make_shared<BranchNode>(subbuffer(key_nibbles, 0, length));
     auto parentIdx = parent->key_nibbles[length];
@@ -403,7 +399,7 @@ namespace kagome::storage::merkle {
 
   uint32_t PolkadotTrieDb::getCommonPrefixLength(const Buffer &pref1,
                                                  const Buffer &pref2) const {
-    uint32_t length = 0;
+    size_t length = 0;
     auto min = pref1.size();
 
     if (pref1.size() > pref2.size()) {
@@ -426,6 +422,7 @@ namespace kagome::storage::merkle {
     OUTCOME_TRY(batch->commit());
     return hash;
   }
+
   outcome::result<common::Buffer> PolkadotTrieDb::storeNode(PolkadotNode &node,
                                                             WriteBatch &batch) {
     using T = PolkadotNode::Type;
@@ -436,13 +433,12 @@ namespace kagome::storage::merkle {
     if (node.getTrieType() == T::BranchEmptyValue
         || node.getTrieType() == T::BranchWithValue) {
       auto &branch = dynamic_cast<BranchNode &>(node);
-      for (auto & i : branch.children) {
-        auto child = i;
+      for (auto &child : branch.children) {
         if (child and not child->isDummy()) {
           OUTCOME_TRY(hash, storeNode(*child));
           // when a node is written to the storage, it is replaced with a dummy
           // node to avoid memory waste
-          i = std::make_shared<DummyNode>(hash);
+          child = std::make_shared<DummyNode>(hash);
         }
       }
     }
@@ -459,7 +455,8 @@ namespace kagome::storage::merkle {
       return nullptr;
     }
     if (parent->children.at(idx)->isDummy()) {
-      auto dummy = std::dynamic_pointer_cast<DummyNode>(parent->children.at(idx));
+      auto dummy =
+          std::dynamic_pointer_cast<DummyNode>(parent->children.at(idx));
       OUTCOME_TRY(n, retrieveNode(dummy->db_key));
       parent->children.at(idx) = n;
     }
@@ -469,8 +466,7 @@ namespace kagome::storage::merkle {
   outcome::result<PolkadotTrieDb::NodePtr> PolkadotTrieDb::retrieveNode(
       const common::Buffer &db_key) const {
     OUTCOME_TRY(enc, db_->get(db_key));
-    scale::ByteArrayStream s{enc};
-    OUTCOME_TRY(n, codec_.decodeNode(s));
+    OUTCOME_TRY(n, codec_.decodeNode(enc));
     return std::dynamic_pointer_cast<PolkadotNode>(n);
   }
 
