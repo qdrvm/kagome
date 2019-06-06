@@ -18,7 +18,7 @@ namespace kagome::storage::merkle {
    * 5.3 The Trie structure
    */
 
-  const int kMaxChildren = 16;
+  constexpr int kMaxChildren = 16;
 
   struct PolkadotNode : public Node {
     PolkadotNode() = default;
