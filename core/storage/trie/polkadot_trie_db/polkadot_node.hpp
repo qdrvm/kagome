@@ -97,10 +97,10 @@ namespace kagome::storage::trie {
       return true;
     }
 
-    // Special only because a node has to have a type. Actually this is not
-    // the real node and the type of the underlying node is inaccessible
-    // before reading from the storage
     int getType() const override {
+      // Special only because a node has to have a type. Actually this is not
+      // the real node and the type of the underlying node is inaccessible
+      // before reading from the storage
       return static_cast<int>(Type::Special);
     }
 

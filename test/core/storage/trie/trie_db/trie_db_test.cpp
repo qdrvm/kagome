@@ -39,15 +39,23 @@ class TrieTest
     trie = std::make_unique<PolkadotTrieDb>(std::move(db_));
   }
 
-  std::vector<std::pair<Buffer, Buffer>> data = {
-      {"123456"_hex2buf, "42"_hex2buf},
-      {"1234"_hex2buf, "1234"_hex2buf},
-      {"010203"_hex2buf, "0a0b"_hex2buf},
-      {"010a0b"_hex2buf, "1337"_hex2buf},
-      {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
+  static const std::vector<std::pair<Buffer, Buffer>> data;
 
   std::unique_ptr<PolkadotTrieDb> trie;
 };
+
+const std::vector<std::pair<Buffer, Buffer>> TrieTest::data = {
+    {"123456"_hex2buf, "42"_hex2buf},
+    {"1234"_hex2buf, "1234"_hex2buf},
+    {"010203"_hex2buf, "0a0b"_hex2buf},
+    {"010a0b"_hex2buf, "1337"_hex2buf},
+    {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
+
+void FillSmallTree(PolkadotTrieDb& trie) {
+  for (auto &entry : TrieTest::data) {
+    EXPECT_OUTCOME_TRUE_void(_, trie.put(entry.first, entry.second));
+  }
+}
 
 /**
  * Runs a sequence of commands provided as a test parameter and checks the
@@ -230,9 +238,8 @@ INSTANTIATE_TEST_CASE_P(
  * @then all inserted entries are accessible from the trie
  */
 TEST_F(TrieTest, Put) {
-  for (auto &entry : data) {
-    EXPECT_OUTCOME_TRUE_void(_, trie->put(entry.first, entry.second));
-  }
+  FillSmallTree(*trie);
+
   for (auto &entry : data) {
     EXPECT_OUTCOME_TRUE(res, trie->get(entry.first));
     ASSERT_EQ(res, entry.second);
@@ -251,9 +258,7 @@ TEST_F(TrieTest, Put) {
  * @then removed entries are no longer in the trie, while the rest of them stays
  */
 TEST_F(TrieTest, Remove) {
-  for (auto &entry : data) {
-    EXPECT_OUTCOME_TRUE_void(_, trie->put(entry.first, entry.second));
-  }
+  FillSmallTree(*trie);
 
   EXPECT_OUTCOME_TRUE_void(_, trie->remove(data[2].first));
   EXPECT_OUTCOME_TRUE_void(__, trie->remove(data[3].first));
@@ -272,9 +277,8 @@ TEST_F(TrieTest, Remove) {
  * @then the value on the key is updated
  */
 TEST_F(TrieTest, Replace) {
-  for (auto &entry : data) {
-    EXPECT_OUTCOME_TRUE_void(_, trie->put(entry.first, entry.second));
-  }
+  FillSmallTree(*trie);
+
   EXPECT_OUTCOME_TRUE_void(__, trie->put(data[1].first, data[3].second));
   EXPECT_OUTCOME_TRUE(res, trie->get(data[1].first));
   ASSERT_EQ(res, data[3].second);

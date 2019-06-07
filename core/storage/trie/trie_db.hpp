@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TRIE_TRIE_HPP
-#define KAGOME_TRIE_TRIE_HPP
+#ifndef KAGOME_TRIE_TRIE_DB_HPP
+#define KAGOME_TRIE_TRIE_DB_HPP
 
 #include "common/buffer.hpp"
 #include "storage/buffer_map.hpp"
@@ -31,4 +31,4 @@ namespace kagome::storage::trie {
 
 }  // namespace kagome::storage::trie
 
-#endif  // KAGOME_TRIE_TRIE_HPP
+#endif  // KAGOME_TRIE_TRIE_DB_HPP

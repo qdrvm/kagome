@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_BATCH_HPP_
-#define KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_BATCH_HPP_
+#ifndef KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_BATCH_HPP
+#define KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_BATCH_HPP
 
 #include "common/buffer.hpp"
 #include "storage/face/write_batch.hpp"
@@ -17,12 +17,13 @@ namespace kagome::storage::trie {
     struct Command {
       Action action;
       common::Buffer key;
-      common::Buffer value;  // empty for remove
+      common::Buffer value {};
     };
 
    public:
     explicit PolkadotTrieBatch(PolkadotTrieDb &trie);
     ~PolkadotTrieBatch() override = default;
+
     outcome::result<void> put(const common::Buffer &key,
                               const common::Buffer &value) override;
     outcome::result<void> remove(const common::Buffer &key) override;
@@ -41,4 +42,4 @@ namespace kagome::storage::trie {
   };
 }  // namespace kagome::storage::trie
 
-#endif  // KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_BATCH_HPP_
+#endif  // KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_BATCH_HPP

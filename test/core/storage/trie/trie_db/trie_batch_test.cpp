@@ -2,11 +2,6 @@
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
-/**
- * @given an empty trie
- * @when putting some data to it
- * @then inserted data is accessible
- */
 
 #include "storage/trie/polkadot_trie_db/polkadot_trie_batch.hpp"
 
@@ -20,6 +15,7 @@
 #include "testutil/storage/polkadot_trie_db_printer.hpp"
 
 using namespace kagome::storage::trie;
+using kagome::storage::face::WriteBatch;
 using kagome::common::Buffer;
 using kagome::hash::HasherImpl;
 using testing::_;
@@ -35,15 +31,23 @@ class TrieBatchTest : public test::BaseLevelDB_Test {
     trie = std::make_unique<PolkadotTrieDb>(std::move(db_));
   }
 
-  std::vector<std::pair<Buffer, Buffer>> data = {
-      {"123456"_hex2buf, "42"_hex2buf},
-      {"1234"_hex2buf, "1234"_hex2buf},
-      {"010203"_hex2buf, "0a0b"_hex2buf},
-      {"010a0b"_hex2buf, "1337"_hex2buf},
-      {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
+  static const std::vector<std::pair<Buffer, Buffer>> data;
 
   std::unique_ptr<PolkadotTrieDb> trie;
 };
+
+const std::vector<std::pair<Buffer, Buffer>> TrieBatchTest::data = {
+    {"123456"_hex2buf, "42"_hex2buf},
+    {"1234"_hex2buf, "1234"_hex2buf},
+    {"010203"_hex2buf, "0a0b"_hex2buf},
+    {"010a0b"_hex2buf, "1337"_hex2buf},
+    {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
+
+void FillSmallTrieWithBatch(WriteBatch<Buffer, Buffer>& batch) {
+  for (auto &entry : TrieBatchTest::data) {
+    EXPECT_OUTCOME_TRUE_void(_, batch.put(entry.first, entry.second));
+  }
+}
 
 class MockPolkadotTrieDb : public PolkadotTrieDb {
  public:
@@ -70,9 +74,8 @@ class MockDb : public test::MapDb {
  */
 TEST_F(TrieBatchTest, Put) {
   auto batch = trie->batch();
-  for (auto &entry : data) {
-    EXPECT_OUTCOME_TRUE_void(_, batch->put(entry.first, entry.second));
-  }
+  FillSmallTrieWithBatch(*batch);
+
   for (auto &entry : data) {
     EXPECT_OUTCOME_TRUE(res, trie->get(entry.first));
     ASSERT_TRUE(res.empty());
@@ -98,9 +101,7 @@ TEST_F(TrieBatchTest, Put) {
  */
 TEST_F(TrieBatchTest, Remove) {
   auto batch = trie->batch();
-  for (auto &entry : data) {
-    EXPECT_OUTCOME_TRUE_void(_, batch->put(entry.first, entry.second));
-  }
+  FillSmallTrieWithBatch(*batch);
 
   EXPECT_OUTCOME_TRUE_void(_, batch->remove(data[2].first));
   EXPECT_OUTCOME_TRUE_void(__, batch->remove(data[3].first));
@@ -123,9 +124,6 @@ TEST_F(TrieBatchTest, Remove) {
  */
 TEST_F(TrieBatchTest, Replace) {
   auto batch = trie->batch();
-  for (auto &entry : data) {
-    EXPECT_OUTCOME_TRUE_void(_, batch->put(entry.first, entry.second));
-  }
   EXPECT_OUTCOME_TRUE_void(__, batch->put(data[1].first, data[3].second));
   EXPECT_OUTCOME_TRUE_void(r, batch->commit());
   EXPECT_OUTCOME_TRUE(res, trie->get(data[1].first));

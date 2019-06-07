@@ -51,8 +51,9 @@ namespace kagome::storage::trie {
         OUTCOME_TRY(r, retrieveNode(root_.value()));
         root = r;
       }
-      // insert will pull a sequence of nodes (a path) from the storage and work
-      // on it in memory
+      // insert fetches a sequence of nodes (a path) from the storage and
+      // these nodes are processed in memory, so any changes applied to them
+      // will be written back to the storage only on storeNode call
       OUTCOME_TRY(
           n, insert(root, k_enc, std::make_shared<LeafNode>(k_enc, value)));
       // after this storeNode will recursively write all changed nodes back to
@@ -86,6 +87,7 @@ namespace kagome::storage::trie {
   }
 
   std::unique_ptr<PolkadotTrieDb::WriteBatch> PolkadotTrieDb::batch() {
+    // create a new batch and pass a reference to *this to it
     return std::make_unique<PolkadotTrieBatch>(*this);
   }
 
