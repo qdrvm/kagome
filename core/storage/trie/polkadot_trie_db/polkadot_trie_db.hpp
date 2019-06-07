@@ -58,9 +58,6 @@ namespace kagome::storage::trie {
     std::unique_ptr<MapCursor> cursor() override;
 
    private:
-    outcome::result<void> insertRoot(const common::Buffer &key_nibbles,
-                                     const common::Buffer &value);
-
     outcome::result<NodePtr> insert(const NodePtr &parent,
                                     const common::Buffer &key_nibbles,
                                     NodePtr node);
