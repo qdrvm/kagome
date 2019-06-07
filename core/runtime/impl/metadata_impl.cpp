@@ -6,26 +6,20 @@
 #include "runtime/impl/metadata_impl.hpp"
 
 #include "scale/scale.hpp"
-#include "scale/scale_error.hpp"
+#include "runtime/impl/runtime_api.hpp"
 
 namespace kagome::runtime {
-  using OpaqueMetadata = primitives::OpaqueMetadata;
+  using primitives::OpaqueMetadata;
 
-  MetadataImpl::MetadataImpl(common::Buffer state_code,
-                             std::shared_ptr<extensions::Extension> extension)
-      : memory_(extension->memory()),
-        executor_(std::move(extension)),
-        state_code_(std::move(state_code)) {}
+  kagome::runtime::MetadataImpl::MetadataImpl(
+      common::Buffer state_code,
+      std::shared_ptr<extensions::Extension> extension) {
+    executor_ = std::make_unique<RuntimeApi>(std::move(state_code),
+                                                  std::move(extension));
+  }
 
-  outcome::result<std::vector<uint8_t>> MetadataImpl::metadata() {
-    wasm::LiteralList ll{wasm::Literal(0u), wasm::Literal(0u)};
-
-    OUTCOME_TRY(res, executor_.call(state_code_, "Metadata_metadata", ll));
-
-    WasmPointer res_addr = getWasmAddr(res.geti64());
-    SizeType len = getWasmLen(res.geti64());
-    auto buffer = memory_->loadN(res_addr, len);
-
-    return scale::decode<OpaqueMetadata>(buffer);
+  outcome::result<OpaqueMetadata> MetadataImpl::metadata() {
+    return TypedExecutor<OpaqueMetadata>(executor_.get())
+        .execute("Metadata_metadata");
   }
 }  // namespace kagome::runtime

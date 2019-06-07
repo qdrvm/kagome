@@ -13,19 +13,20 @@
 #include "runtime/wasm_memory.hpp"
 
 namespace kagome::runtime {
+
+  class RuntimeApi;
+
   class MetadataImpl : public Metadata {
    public:
-    ~MetadataImpl() override = default;
-
     MetadataImpl(common::Buffer state_code,
                  std::shared_ptr<extensions::Extension> extension);
+
+    ~MetadataImpl() override = default;
 
     outcome::result<OpaqueMetadata> metadata() override;
 
    private:
-    std::shared_ptr<WasmMemory> memory_;
-    WasmExecutor executor_;
-    common::Buffer state_code_;
+    std::unique_ptr<RuntimeApi> executor_;
   };
 }  // namespace kagome::runtime
 
