@@ -19,6 +19,14 @@ namespace kagome::storage::trie {
     MOCK_METHOD2(put,
                  outcome::result<void>(const common::Buffer &,
                                        const common::Buffer &));
+    // as GMock doesn't support rvalue-references
+    MOCK_METHOD2(put_proxy,
+                 outcome::result<void>(const common::Buffer &, common::Buffer));
+
+    outcome::result<void> put(const common::Buffer &key,
+                              common::Buffer &&value) override {
+      return put_proxy(key, std::move(value));
+    }
     MOCK_CONST_METHOD1(get,
                        outcome::result<common::Buffer>(const common::Buffer &));
     MOCK_METHOD1(remove, outcome::result<void>(const common::Buffer &));

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TRIE_UTIL_IMPL_HPP
-#define KAGOME_TRIE_UTIL_IMPL_HPP
+#ifndef KAGOME_TRIE_POLKADOT_CODEC_IMPL_HPP
+#define KAGOME_TRIE_POLKADOT_CODEC_IMPL_HPP
 
 #include <memory>
 #include <optional>
@@ -67,4 +67,4 @@ namespace kagome::storage::trie {
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie, PolkadotCodec::Error);
 
-#endif  // KAGOME_TRIE_UTIL_IMPL_HPP
+#endif  // KAGOME_TRIE_POLKADOT_CODEC_IMPL_HPP

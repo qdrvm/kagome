@@ -27,15 +27,23 @@ namespace kagome::storage::trie {
 
     outcome::result<void> put(const common::Buffer &key,
                               const common::Buffer &value) override;
+
+    outcome::result<void> put(const common::Buffer &key,
+                              common::Buffer &&value) override;
+
     outcome::result<void> remove(const common::Buffer &key) override;
+
     outcome::result<void> commit() override;
+
     void clear() override;
+
     bool is_empty() const;
 
    private:
     outcome::result<PolkadotTrieDb::NodePtr> applyPut(
         const PolkadotTrieDb::NodePtr& root, const common::Buffer &key,
         common::Buffer value);
+
     outcome::result<PolkadotTrieDb::NodePtr> applyRemove(
         PolkadotTrieDb::NodePtr root, const common::Buffer &key);
 

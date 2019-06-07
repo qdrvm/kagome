@@ -41,6 +41,12 @@ namespace kagome::storage::trie {
 
   outcome::result<void> PolkadotTrieDb::put(const Buffer &key,
                                             const Buffer &value) {
+    auto value_copy = value;
+    return put(key, std::move(value_copy));
+  }
+
+  outcome::result<void> PolkadotTrieDb::put(const Buffer &key,
+                                            Buffer &&value) {
     auto k_enc = PolkadotCodec::keyToNibbles(key);
 
     if (value.empty()) {
@@ -55,7 +61,7 @@ namespace kagome::storage::trie {
       // these nodes are processed in memory, so any changes applied to them
       // will be written back to the storage only on storeNode call
       OUTCOME_TRY(
-          n, insert(root, k_enc, std::make_shared<LeafNode>(k_enc, value)));
+          n, insert(root, k_enc, std::make_shared<LeafNode>(k_enc, std::move(value))));
       // after this storeNode will recursively write all changed nodes back to
       // the storage and return the hash of the root node, which is used as a
       // key in the storage

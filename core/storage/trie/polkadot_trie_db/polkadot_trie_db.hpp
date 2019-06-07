@@ -41,18 +41,26 @@ namespace kagome::storage::trie {
 
    public:
     PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db);
+
     ~PolkadotTrieDb() override = default;
 
     common::Buffer getRootHash() const override;
+
     outcome::result<void> clearPrefix(const common::Buffer &prefix) override;
 
     std::unique_ptr<WriteBatch> batch() override;
 
     outcome::result<void> put(const common::Buffer &key,
                               const common::Buffer &value) override;
+
+    outcome::result<void> put(const common::Buffer &key,
+                              common::Buffer &&value) override;
+
     outcome::result<void> remove(const common::Buffer &key) override;
+
     outcome::result<common::Buffer> get(
         const common::Buffer &key) const override;
+
     bool contains(const common::Buffer &key) const override;
 
     std::unique_ptr<MapCursor> cursor() override;

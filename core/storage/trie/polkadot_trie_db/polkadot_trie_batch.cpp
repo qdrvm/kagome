@@ -13,10 +13,16 @@ namespace kagome::storage::trie {
 
   outcome::result<void> PolkadotTrieBatch::put(const Buffer &key,
                                                const Buffer &value) {
+    auto value_copy = value;
+    return put(key, std::move(value_copy));
+  }
+
+  outcome::result<void> PolkadotTrieBatch::put(const Buffer &key,
+                                               Buffer &&value) {
     if (value.empty()) {
       OUTCOME_TRY(remove(key));
     } else {
-      commands_.push_back({Action::PUT, key, value});
+      commands_.push_back({Action::PUT, key, std::move(value)});
     }
     return outcome::success();
   }

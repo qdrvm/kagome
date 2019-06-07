@@ -31,6 +31,12 @@ namespace test {
         return outcome::success();
       }
 
+      outcome::result<void> put(const Buffer &key,
+                                Buffer &&value) override {
+        entries[key.toHex()] = std::move(value);
+        return outcome::success();
+      }
+
       outcome::result<void> remove(const Buffer &key) override {
         entries.erase(key.toHex());
         return outcome::success();
@@ -56,6 +62,15 @@ namespace test {
     outcome::result<Buffer> get(const Buffer &key) const override {
       try {
         return storage.at(key.toHex());
+      } catch (std::exception_ptr &e) {
+        return outcome::error_from_exception(std::move(e));
+      }
+    }
+
+    outcome::result<void> put(const Buffer &key, Buffer &&value) override {
+      try {
+        storage[key.toHex()] = std::move(value);
+        return outcome::success();
       } catch (std::exception_ptr &e) {
         return outcome::error_from_exception(std::move(e));
       }

@@ -57,6 +57,8 @@ namespace kagome::storage {
 
     outcome::result<void> put(const Buffer &key, const Buffer &value) override;
 
+    outcome::result<void> put(const Buffer &key, Buffer &&value) override;
+
     outcome::result<void> remove(const Buffer &key) override;
 
    private:
