@@ -13,7 +13,11 @@ namespace kagome::storage::trie {
 
   outcome::result<void> PolkadotTrieBatch::put(const Buffer &key,
                                                const Buffer &value) {
-    commands_.push_back({Action::PUT, key, value});
+    if (value.empty()) {
+      OUTCOME_TRY(remove(key));
+    } else {
+      commands_.push_back({Action::PUT, key, value});
+    }
     return outcome::success();
   }
 
@@ -27,12 +31,18 @@ namespace kagome::storage::trie {
       return outcome::success();
     }
 
+    // make the command list empty and store commands in a local list
+    // this is done because if an error occurs, commands that are not processed
+    // yet must not remain in the batch
+    decltype(commands_) commands{};
+    std::swap(commands_, commands);
+
     PolkadotTrieDb::NodePtr new_root = nullptr;
     if (not trie_.getRootHash().empty()) {
       OUTCOME_TRY(n, trie_.retrieveNode(trie_.getRootHash()));
       new_root = n;
     }
-    for (auto &command : commands_) {
+    for (auto &command : commands) {
       switch (command.action) {
         case Action::PUT: {
           OUTCOME_TRY(
@@ -53,7 +63,6 @@ namespace kagome::storage::trie {
       OUTCOME_TRY(n, trie_.storeNode(*new_root));
       trie_.root_ = n;
     }
-    clear();
     return outcome::success();
   }
 
@@ -66,18 +75,14 @@ namespace kagome::storage::trie {
       common::Buffer value) {
     auto k_enc = PolkadotCodec::keyToNibbles(key);
 
-    if (value.empty()) {
-      OUTCOME_TRY(remove(key));
-    } else {
-      // insert fetches a sequence of nodes (a path) from the storage and
-      // these nodes are processed in memory, so any changes applied to them
-      // will be written back to the storage only on storeNode call
-      OUTCOME_TRY(
-          n,
-          trie_.insert(root, k_enc, std::make_shared<LeafNode>(k_enc, value)));
-      return std::move(n);
-    }
-    return outcome::success();
+    // insert fetches a sequence of nodes (a path) from the storage and
+    // these nodes are processed in memory, so any changes applied to them
+    // will be written back to the storage only on storeNode call
+    OUTCOME_TRY(
+        n,
+        trie_.insert(root, k_enc,
+                     std::make_shared<LeafNode>(k_enc, std::move(value))));
+    return std::move(n);
   }
 
   outcome::result<PolkadotTrieDb::NodePtr> PolkadotTrieBatch::applyRemove(
@@ -88,4 +93,9 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(n, trie_.deleteNode(std::move(root), key_nibbles));
     return std::move(n);
   }
+
+  bool PolkadotTrieBatch::is_empty() const {
+    return commands_.empty();
+  }
+
 }  // namespace kagome::storage::trie

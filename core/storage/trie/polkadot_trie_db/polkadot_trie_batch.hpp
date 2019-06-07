@@ -17,6 +17,7 @@ namespace kagome::storage::trie {
     struct Command {
       Action action;
       common::Buffer key;
+      // value is unnecessary when action is REMOVE
       common::Buffer value {};
     };
 
@@ -29,6 +30,7 @@ namespace kagome::storage::trie {
     outcome::result<void> remove(const common::Buffer &key) override;
     outcome::result<void> commit() override;
     void clear() override;
+    bool is_empty() const;
 
    private:
     outcome::result<PolkadotTrieDb::NodePtr> applyPut(
