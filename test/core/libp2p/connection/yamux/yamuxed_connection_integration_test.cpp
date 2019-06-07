@@ -43,26 +43,12 @@ class YamuxedConnectionIntegrationTest : public TransportFixture {
                     accepted_streams_.push_back(std::move(s));
                   }))
           yamuxed_connection_ = std::move(mux_conn);
+          (void)
+              yamuxed_connection_->start();  // with high probability will
+                                             // return EOF error, but maybe not
           return outcome::success();
         },
         [](auto &&) { FAIL() << "cannot create server"; });
-  }
-
-  /**
-   *
-   * @param conn
-   */
-  void processServiceFrames(ReadWriteCloser &conn) {
-    std::shared_ptr<Stream> stream;
-    if (accepted_streams_.empty()) {
-      EXPECT_OUTCOME_TRUE(created_stream, yamuxed_connection_->newStream())
-      ASSERT_TRUE(conn.read(YamuxFrame::kHeaderLength));
-      stream = std::move(created_stream);
-    } else {
-      stream = accepted_streams_[0];
-    }
-    ASSERT_TRUE(conn.write(std::vector<uint8_t>{0x11}));
-    ASSERT_TRUE(stream->read(1));
   }
 
   //  /**
@@ -123,7 +109,6 @@ TEST_F(YamuxedConnectionIntegrationTest, StreamFromClient) {
         // open a stream, read the ack and make sure the stream is really
         // created
         EXPECT_TRUE(conn->write(new_stream_msg));
-        processServiceFrames(*conn);
 
         EXPECT_OUTCOME_TRUE(ack_msg, conn->read(YamuxFrame::kHeaderLength))
         auto parsed_ack_msg = parseFrame(ack_msg);

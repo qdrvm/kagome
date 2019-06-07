@@ -208,13 +208,12 @@ namespace libp2p::connection {
      * @param handler to be called; if it returns true, it's removed from the
      * list of handlers for that stream
      */
-    void streamAddWindowUpdateHandler(
-        StreamId stream_id,
-        std::shared_ptr<ReadWriteCompletionHandler> handler);
+    void streamAddWindowUpdateHandler(StreamId stream_id,
+                                      ReadWriteCompletionHandler handler);
     outcome::result<size_t> streamWrite(StreamId stream_id,
                                         gsl::span<const uint8_t> msg,
                                         bool some);
-    std::map<StreamId, std::queue<std::shared_ptr<ReadWriteCompletionHandler>>>
+    std::map<StreamId, std::queue<ReadWriteCompletionHandler>>
         streams_write_handlers_;
 
     /**
@@ -224,9 +223,8 @@ namespace libp2p::connection {
      * arrived; if it returns true, it means that read operation is finished on
      * the stream's side
      */
-    void streamRead(StreamId stream_id,
-                    std::shared_ptr<ReadWriteCompletionHandler> handler);
-    std::map<StreamId, std::queue<std::shared_ptr<ReadWriteCompletionHandler>>>
+    void streamRead(StreamId stream_id, ReadWriteCompletionHandler handler);
+    std::map<StreamId, std::queue<ReadWriteCompletionHandler>>
         streams_read_handlers_;
 
     outcome::result<void> streamAckBytes(StreamId stream_id, uint32_t bytes);

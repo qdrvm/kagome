@@ -46,22 +46,19 @@ namespace libp2p::connection {
     std::promise<outcome::result<size_t>> write_promise;
     auto fut = write_promise.get_future();
     yamux_->streamAddWindowUpdateHandler(
-        stream_id_,
-        std::make_shared<YamuxedConnection::ReadWriteCompletionHandler>(
-            [this, p = std::move(write_promise), in]() mutable {
-              if (send_window_size_ - in.size() >= 0) {
-                auto written_bytes_res =
-                    yamux_->streamWrite(stream_id_, in, false);
-                if (!written_bytes_res) {
-                  p.set_value(written_bytes_res);
-                } else {
-                  send_window_size_ -= in.size();
-                  p.set_value(written_bytes_res.value());
-                }
-                return true;
-              }
-              return false;
-            }));
+        stream_id_, [this, &write_promise, in]() mutable {
+          if (send_window_size_ - in.size() >= 0) {
+            auto written_bytes_res = yamux_->streamWrite(stream_id_, in, false);
+            if (!written_bytes_res) {
+              write_promise.set_value(written_bytes_res);
+            } else {
+              send_window_size_ -= in.size();
+              write_promise.set_value(written_bytes_res.value());
+            }
+            return true;
+          }
+          return false;
+        });
 
     return fut.get();
   }
@@ -81,22 +78,19 @@ namespace libp2p::connection {
     std::promise<outcome::result<size_t>> write_promise;
     auto fut = write_promise.get_future();
     yamux_->streamAddWindowUpdateHandler(
-        stream_id_,
-        std::make_shared<YamuxedConnection::ReadWriteCompletionHandler>(
-            [this, p = std::move(write_promise), in]() mutable {
-              if (send_window_size_ - in.size() >= 0) {
-                auto written_bytes_res =
-                    yamux_->streamWrite(stream_id_, in, true);
-                if (!written_bytes_res) {
-                  p.set_value(written_bytes_res);
-                } else {
-                  send_window_size_ -= in.size();
-                  p.set_value(written_bytes_res.value());
-                }
-                return true;
-              }
-              return false;
-            }));
+        stream_id_, [this, &write_promise, in]() mutable {
+          if (send_window_size_ - in.size() >= 0) {
+            auto written_bytes_res = yamux_->streamWrite(stream_id_, in, true);
+            if (!written_bytes_res) {
+              write_promise.set_value(written_bytes_res);
+            } else {
+              send_window_size_ -= in.size();
+              write_promise.set_value(written_bytes_res.value());
+            }
+            return true;
+          }
+          return false;
+        });
 
     return fut.get();
   }
@@ -137,20 +131,16 @@ namespace libp2p::connection {
     // else, create a promise for that data and pass it to the connection
     std::promise<size_t> read_promise;
     auto fut = read_promise.get_future();
-    yamux_->streamRead(
-        stream_id_,
-        std::make_shared<YamuxedConnection::ReadWriteCompletionHandler>(
-            [this, p = std::move(read_promise), buf]() mutable {
-              if (read_buffer_.size() >= static_cast<size_t>(buf.size())) {
-                boost::asio::buffer_copy(
-                    boost::asio::buffer(buf.data(), buf.size()),
-                    read_buffer_.data(), buf.size());
-                read_buffer_.consume(buf.size());
-                p.set_value(buf.size());
-                return true;
-              }
-              return false;
-            }));
+    yamux_->streamRead(stream_id_, [this, &read_promise, buf]() mutable {
+      if (read_buffer_.size() >= static_cast<size_t>(buf.size())) {
+        boost::asio::buffer_copy(boost::asio::buffer(buf.data(), buf.size()),
+                                 read_buffer_.data(), buf.size());
+        read_buffer_.consume(buf.size());
+        read_promise.set_value(buf.size());
+        return true;
+      }
+      return false;
+    });
 
     return fut.get();
   }
@@ -174,22 +164,18 @@ namespace libp2p::connection {
 
     std::promise<size_t> read_promise;
     auto fut = read_promise.get_future();
-    yamux_->streamRead(
-        stream_id_,
-        std::make_shared<YamuxedConnection::ReadWriteCompletionHandler>(
-            [this, p = std::move(read_promise), buf]() mutable {
-              if (read_buffer_.size() != 0) {
-                auto to_read = std::min(read_buffer_.size(),
-                                        static_cast<size_t>(buf.size()));
-                boost::asio::buffer_copy(
-                    boost::asio::buffer(buf.data(), to_read),
-                    read_buffer_.data(), to_read);
-                read_buffer_.consume(to_read);
-                p.set_value(to_read);
-                return true;
-              }
-              return false;
-            }));
+    yamux_->streamRead(stream_id_, [this, &read_promise, buf]() mutable {
+      if (read_buffer_.size() != 0) {
+        auto to_read =
+            std::min(read_buffer_.size(), static_cast<size_t>(buf.size()));
+        boost::asio::buffer_copy(boost::asio::buffer(buf.data(), to_read),
+                                 read_buffer_.data(), to_read);
+        read_buffer_.consume(to_read);
+        read_promise.set_value(to_read);
+        return true;
+      }
+      return false;
+    });
 
     return fut.get();
   }

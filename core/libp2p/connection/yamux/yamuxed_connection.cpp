@@ -266,9 +266,9 @@ namespace libp2p::connection {
 
     auto new_stream =
         std::make_shared<YamuxStream>(shared_from_this(), stream_id);
-    streams_.insert({stream_id, new_stream});
+    streams_[stream_id] = new_stream;
     new_stream_handler_(new_stream);
-    return outcome::success();
+    return new_stream;
   }
 
   outcome::result<void> YamuxedConnection::processData(
@@ -285,7 +285,7 @@ namespace libp2p::connection {
             streams_read_handlers_.find(frame.stream_id_);
         stream_read_handlers != streams_read_handlers_.end()) {
       auto &handlers = stream_read_handlers->second;
-      if (!handlers.empty() && handlers.front()->operator()()) {
+      if (!handlers.empty() && handlers.front()()) {
         // if handler returns true, it means that it should be removed
         handlers.pop();
       }
@@ -312,7 +312,7 @@ namespace libp2p::connection {
     if (auto write_handlers = streams_write_handlers_.find(stream->stream_id_);
         write_handlers != streams_write_handlers_.end()) {
       auto &handlers = write_handlers->second;
-      if (!handlers.empty() && handlers.front()->operator()()) {
+      if (!handlers.empty() && handlers.front()()) {
         handlers.pop();
       }
     }
@@ -361,7 +361,7 @@ namespace libp2p::connection {
   }
 
   void YamuxedConnection::streamAddWindowUpdateHandler(
-      StreamId stream_id, std::shared_ptr<ReadWriteCompletionHandler> handler) {
+      StreamId stream_id, ReadWriteCompletionHandler handler) {
     streams_write_handlers_[stream_id].push(std::move(handler));
   }
 
@@ -384,8 +384,8 @@ namespace libp2p::connection {
     return written - YamuxFrame::kHeaderLength;
   }
 
-  void YamuxedConnection::streamRead(
-      StreamId stream_id, std::shared_ptr<ReadWriteCompletionHandler> handler) {
+  void YamuxedConnection::streamRead(StreamId stream_id,
+                                     ReadWriteCompletionHandler handler) {
     streams_read_handlers_[stream_id].push(std::move(handler));
   }
 

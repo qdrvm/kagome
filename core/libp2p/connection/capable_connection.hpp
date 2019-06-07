@@ -17,7 +17,11 @@ namespace libp2p::connection {
 
     /**
      * Start to process incoming messages for this connection
-     * @return nothing or error; returns when the connection closes
+     * @return nothing or error
+     * @note this method is successfully executed (returns void) iff underlying
+     * connection was closed on our side via close() method; for example, if the
+     * connection wad closed from the other side, EOF boost error is going to be
+     * returned
      */
     virtual outcome::result<void> start() = 0;
 
