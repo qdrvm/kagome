@@ -6,10 +6,8 @@
 #ifndef CORE_RUNTIME_CORE_IMPL_HPP
 #define CORE_RUNTIME_CORE_IMPL_HPP
 
-#include "common/logger.hpp"
 #include "extensions/extension.hpp"
 #include "runtime/core.hpp"
-#include "runtime/impl/wasm_executor.hpp"
 
 namespace kagome::runtime {
 
@@ -17,6 +15,8 @@ namespace kagome::runtime {
    public:
     CoreImpl(common::Buffer state_code,
              std::shared_ptr<extensions::Extension> extension);
+
+    ~CoreImpl() override;
 
     outcome::result<primitives::Version> version() override;
 
@@ -30,9 +30,7 @@ namespace kagome::runtime {
         override;
 
    private:
-    common::Buffer state_code_;
-    std::shared_ptr<WasmMemory> memory_;
-    WasmExecutor executor_;
+    std::unique_ptr<RuntimeApi> runtime_;
   };
 
 }  // namespace kagome::runtime

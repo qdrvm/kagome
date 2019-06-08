@@ -9,9 +9,7 @@
 #include "runtime/offchain_worker.hpp"
 
 #include "common/buffer.hpp"
-#include "common/logger.hpp"
 #include "extensions/extension.hpp"
-#include "runtime/impl/wasm_executor.hpp"
 
 namespace kagome::runtime {
   class RuntimeApi;
@@ -26,7 +24,7 @@ namespace kagome::runtime {
     outcome::result<void> offchain_worker(BlockNumber bn) override;
 
    private:
-    std::unique_ptr<RuntimeApi> executor_;
+    std::unique_ptr<RuntimeApi> runtime_;
   };
 }  // namespace kagome::runtime
 

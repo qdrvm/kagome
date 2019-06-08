@@ -9,16 +9,14 @@
 #include "runtime/parachain_host.hpp"
 
 #include <outcome/outcome.hpp>
-#include "runtime/impl/wasm_executor.hpp"
+#include "extensions/extension.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
-#include "runtime/wasm_memory.hpp"
 
 namespace kagome::runtime {
+  class RuntimeApi;
 
   class ParachainHostImpl : public ParachainHost {
    public:
-    ~ParachainHostImpl() override = default;
-
     /**
      * @brief constructor
      * @param state_code error or result code
@@ -27,6 +25,8 @@ namespace kagome::runtime {
      */
     ParachainHostImpl(common::Buffer state_code,
                       std::shared_ptr<extensions::Extension> extension);
+
+    ~ParachainHostImpl() override;
 
     outcome::result<DutyRoster> duty_roster() override;
 
@@ -41,11 +41,8 @@ namespace kagome::runtime {
     outcome::result<std::vector<ValidatorId>> validators() override;
 
    private:
-    std::shared_ptr<WasmMemory> memory_;
-    WasmExecutor executor_;
-    common::Buffer state_code_;
+    std::unique_ptr<RuntimeApi> runtime_;
   };
-
 }  // namespace kagome::runtime
 
 #endif  // KAGOME_CORE_RUNTIME_IMPL_PARACHAIN_HOST_IMPL_HPP

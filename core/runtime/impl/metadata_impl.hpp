@@ -9,8 +9,7 @@
 #include "runtime/metadata.hpp"
 
 #include "common/buffer.hpp"
-#include "runtime/impl/wasm_executor.hpp"
-#include "runtime/wasm_memory.hpp"
+#include "extensions/extension.hpp"
 
 namespace kagome::runtime {
 
@@ -26,8 +25,9 @@ namespace kagome::runtime {
     outcome::result<OpaqueMetadata> metadata() override;
 
    private:
-    std::unique_ptr<RuntimeApi> executor_;
+    std::unique_ptr<RuntimeApi> runtime_;
   };
+
 }  // namespace kagome::runtime
 
 #endif  // KAGOME_CORE_RUNTIME_IMPL_METADATA_IMPL_HPP

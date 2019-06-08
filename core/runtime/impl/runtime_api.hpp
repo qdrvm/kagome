@@ -13,19 +13,27 @@
 
 namespace kagome::runtime {
 
-  struct ExecutorInterface {
-    virtual ~ExecutorInterface() = default;
+  /**
+   * @brief base class for all runtime apis
+   */
+  class RuntimeApi {
+   public:
+    RuntimeApi(common::Buffer state_code,
+               std::shared_ptr<extensions::Extension> extension)
+        : state_code_(std::move(state_code)),
+          memory_(extension->memory()),
+          executor_(std::move(extension)) {}
 
-    virtual common::Buffer &state_code() = 0;
-    virtual std::shared_ptr<WasmMemory> memory() = 0;
-    virtual WasmExecutor &executor() = 0;
-  };
-
-  template <class R>
-  struct TypedExecutor {
-    explicit TypedExecutor(ExecutorInterface *exec) : exec_{exec} {}
-
-    template <class... Args>
+    /**
+     * @brief executes wasm export method returning non-void result
+     * @tparam R non-void result type
+     * @tparam Args arguments types list
+     * @param name export method name
+     * @param args arguments
+     * @return parsed result or error
+     */
+    template <typename R, typename = std::enable_if_t<!std::is_same_v<R, void>>,
+              typename... Args>
     outcome::result<R> execute(std::string_view name, Args &&... args) {
       runtime::WasmPointer ptr = 0u;
       runtime::SizeType len = 0u;
@@ -33,30 +41,29 @@ namespace kagome::runtime {
       if constexpr (sizeof...(args) > 0) {
         OUTCOME_TRY(buffer, scale::encode(std::forward<Args...>(args...)));
         len = buffer.size();
-        ptr = exec_->memory()->allocate(len);
-        exec_->memory()->storeBuffer(ptr, common::Buffer(std::move(buffer)));
+        ptr = memory_->allocate(len);
+        memory_->storeBuffer(ptr, common::Buffer(std::move(buffer)));
       }
 
       wasm::LiteralList ll{wasm::Literal(ptr), wasm::Literal(len)};
       wasm::Name wasm_name = std::string(name);
-      OUTCOME_TRY(res,
-                  exec_->executor().call(exec_->state_code(), wasm_name, ll));
+      OUTCOME_TRY(res, executor_.call(state_code_, wasm_name, ll));
 
       runtime::WasmPointer res_addr = getWasmAddr(res.geti64());
       runtime::SizeType res_len = getWasmLen(res.geti64());
-      auto buffer = exec_->memory()->loadN(res_addr, res_len);
+      auto buffer = memory_->loadN(res_addr, res_len);
 
       return scale::decode<R>(buffer);
-    };
+    }
 
-    ExecutorInterface *exec_;
-  };
-
-  template <>
-  struct TypedExecutor<void> {
-    explicit TypedExecutor(ExecutorInterface *exec) : exec_{exec} {}
-
-    template <class... Args>
+    /**
+     * @brief executes wasm export method returning nothing
+     * @tparam Args arguments types list
+     * @param name export method name
+     * @param args arguments
+     * @return success of error
+     */
+    template <typename... Args>
     outcome::result<void> execute(std::string_view name, Args &&... args) {
       runtime::WasmPointer ptr = 0u;
       runtime::SizeType len = 0u;
@@ -64,45 +71,15 @@ namespace kagome::runtime {
       if constexpr (sizeof...(args) > 0) {
         OUTCOME_TRY(buffer, scale::encode(std::forward<Args...>(args...)));
         len = buffer.size();
-        ptr = exec_->memory()->allocate(len);
-        exec_->memory()->storeBuffer(ptr, common::Buffer(std::move(buffer)));
+        ptr = memory_->allocate(len);
+        memory_->storeBuffer(ptr, common::Buffer(std::move(buffer)));
       }
 
       wasm::LiteralList ll{wasm::Literal(ptr), wasm::Literal(len)};
       wasm::Name wasm_name = std::string(name);
-      OUTCOME_TRY(exec_->executor().call(exec_->state_code(), wasm_name, ll));
+      OUTCOME_TRY(executor_.call(state_code_, wasm_name, ll));
 
       return outcome::success();
-    };
-
-    ExecutorInterface *exec_;
-  };
-
-  class RuntimeApi : public ExecutorInterface {
-   public:
-    ~RuntimeApi() override = default;
-
-    common::Buffer &state_code() override {
-      return state_code_;
-    }
-
-    std::shared_ptr<WasmMemory> memory() override {
-      return memory_;
-    }
-
-    WasmExecutor &executor() override {
-      return executor_;
-    };
-
-    RuntimeApi(common::Buffer state_code,
-                    std::shared_ptr<extensions::Extension> extension)
-        : state_code_(std::move(state_code)),
-          memory_(extension->memory()),
-          executor_(std::move(extension)) {}
-
-    template <typename R, typename... Arg>
-    outcome::result<R> execute(std::string_view name, Arg &&... args) {
-      return TypedExecutor<R>(this).execute(name, std::forward<Arg...>(args...));
     }
 
    private:
