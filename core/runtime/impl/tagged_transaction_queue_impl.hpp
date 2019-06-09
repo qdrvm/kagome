@@ -6,9 +6,8 @@
 #ifndef KAGOME_TAGGED_TRANSACTION_QUEUE_IMPL_HPP
 #define KAGOME_TAGGED_TRANSACTION_QUEUE_IMPL_HPP
 
-#include <outcome/outcome.hpp>
-#include "extensions/extension.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
+#include "extensions/extension.hpp"
 
 namespace kagome::runtime {
   class RuntimeApi;

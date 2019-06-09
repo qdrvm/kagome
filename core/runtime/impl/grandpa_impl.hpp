@@ -6,11 +6,8 @@
 #ifndef KAGOME_CORE_RUNTIME_IMPL_GRANDPA_IMPL_HPP
 #define KAGOME_CORE_RUNTIME_IMPL_GRANDPA_IMPL_HPP
 
-#include "primitives/scheduled_change.hpp"
+#include "extensions/extension.hpp"
 #include "runtime/grandpa.hpp"
-#include "runtime/impl/wasm_executor.hpp"
-#include "runtime/wasm_memory.hpp"
-
 #include "runtime/impl/runtime_api.hpp"
 
 namespace kagome::runtime {

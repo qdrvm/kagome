@@ -6,10 +6,8 @@
 #ifndef KAGOME_CORE_RUNTIME_IMPL_OFFCHAIN_WORKER_IMPL_HPP
 #define KAGOME_CORE_RUNTIME_IMPL_OFFCHAIN_WORKER_IMPL_HPP
 
-#include "runtime/offchain_worker.hpp"
-
-#include "common/buffer.hpp"
 #include "extensions/extension.hpp"
+#include "runtime/offchain_worker.hpp"
 
 namespace kagome::runtime {
   class RuntimeApi;

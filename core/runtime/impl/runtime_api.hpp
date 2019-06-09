@@ -6,6 +6,8 @@
 #ifndef KAGOME_CORE_RUNTIME_RUNTIME_API_HPP
 #define KAGOME_CORE_RUNTIME_RUNTIME_API_HPP
 
+#include <utility>
+
 #include "common/buffer.hpp"
 #include "runtime/impl/wasm_executor.hpp"
 #include "runtime/wasm_memory.hpp"
@@ -39,7 +41,7 @@ namespace kagome::runtime {
       runtime::SizeType len = 0u;
 
       if constexpr (sizeof...(args) > 0) {
-        OUTCOME_TRY(buffer, scale::encode(std::forward<Args...>(args...)));
+        OUTCOME_TRY(buffer, scale::encode(std::forward<Args>(args)...));
         len = buffer.size();
         ptr = memory_->allocate(len);
         memory_->storeBuffer(ptr, common::Buffer(std::move(buffer)));
@@ -51,6 +53,8 @@ namespace kagome::runtime {
 
       runtime::WasmPointer res_addr = getWasmAddr(res.geti64());
       runtime::SizeType res_len = getWasmLen(res.geti64());
+      // TODO (yuraz) PRE-98: after check for memory overflow is done, refactor
+      // it
       auto buffer = memory_->loadN(res_addr, res_len);
 
       return scale::decode<R>(buffer);
@@ -69,7 +73,7 @@ namespace kagome::runtime {
       runtime::SizeType len = 0u;
 
       if constexpr (sizeof...(args) > 0) {
-        OUTCOME_TRY(buffer, scale::encode(std::forward<Args...>(args...)));
+        OUTCOME_TRY(buffer, scale::encode(std::forward<Args>(args)...));
         len = buffer.size();
         ptr = memory_->allocate(len);
         memory_->storeBuffer(ptr, common::Buffer(std::move(buffer)));

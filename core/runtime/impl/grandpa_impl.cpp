@@ -5,10 +5,7 @@
 
 #include "runtime/impl/grandpa_impl.hpp"
 
-#include "common/blob.hpp"
 #include "runtime/impl/runtime_api.hpp"
-#include "scale/scale.hpp"
-#include "scale/scale_error.hpp"
 
 namespace kagome::runtime {
   using common::Buffer;
@@ -26,8 +23,8 @@ namespace kagome::runtime {
 
   GrandpaImpl::~GrandpaImpl() {}
 
-  outcome::result<std::optional<ScheduledChange>>
-  GrandpaImpl::pending_change(const Digest &digest) {
+  outcome::result<std::optional<ScheduledChange>> GrandpaImpl::pending_change(
+      const Digest &digest) {
     return runtime_->execute<std::optional<ScheduledChange>>(
         "GrandpaApi_grandpa_pending_change", digest);
   }

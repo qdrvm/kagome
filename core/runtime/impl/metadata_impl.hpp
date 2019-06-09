@@ -6,10 +6,8 @@
 #ifndef KAGOME_CORE_RUNTIME_IMPL_METADATA_IMPL_HPP
 #define KAGOME_CORE_RUNTIME_IMPL_METADATA_IMPL_HPP
 
-#include "runtime/metadata.hpp"
-
-#include "common/buffer.hpp"
 #include "extensions/extension.hpp"
+#include "runtime/metadata.hpp"
 
 namespace kagome::runtime {
 

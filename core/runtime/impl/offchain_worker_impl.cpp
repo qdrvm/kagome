@@ -7,8 +7,6 @@
 
 #include "runtime/impl/runtime_api.hpp"
 #include "runtime/impl/runtime_external_interface.hpp"
-#include "runtime/impl/wasm_memory_impl.hpp"
-#include "scale/scale.hpp"
 
 namespace kagome::runtime {
   OffchainWorkerImpl::OffchainWorkerImpl(

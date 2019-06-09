@@ -6,19 +6,20 @@
 #ifndef KAGOME_BLOCK_BUILDER_IMPL_HPP
 #define KAGOME_BLOCK_BUILDER_IMPL_HPP
 
-#include "extensions/extension.hpp"
 #include "runtime/block_builder.hpp"
-#include "runtime/impl/wasm_executor.hpp"
-#include "runtime/wasm_memory.hpp"
+
+#include "extensions/extension.hpp"
 
 namespace kagome::runtime {
+
+  class RuntimeApi;
 
   class BlockBuilderImpl : public BlockBuilder {
    public:
     BlockBuilderImpl(common::Buffer state_code,
                      std::shared_ptr<extensions::Extension> extension);
 
-    ~BlockBuilderImpl() override = default;
+    ~BlockBuilderImpl() override;
 
     outcome::result<bool> apply_extrinsic(
         const primitives::Extrinsic &extrinsic) override;
@@ -35,9 +36,7 @@ namespace kagome::runtime {
     outcome::result<common::Hash256> random_seed() override;
 
    private:
-    std::shared_ptr<WasmMemory> memory_;
-    WasmExecutor executor_;
-    common::Buffer state_code_;
+    std::unique_ptr<RuntimeApi> runtime_;
   };
 
 }  // namespace kagome::runtime

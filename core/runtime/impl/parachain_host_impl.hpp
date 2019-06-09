@@ -6,10 +6,8 @@
 #ifndef KAGOME_CORE_RUNTIME_IMPL_PARACHAIN_HOST_IMPL_HPP
 #define KAGOME_CORE_RUNTIME_IMPL_PARACHAIN_HOST_IMPL_HPP
 
-#include "runtime/parachain_host.hpp"
-
-#include <outcome/outcome.hpp>
 #include "extensions/extension.hpp"
+#include "runtime/parachain_host.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
 
 namespace kagome::runtime {
