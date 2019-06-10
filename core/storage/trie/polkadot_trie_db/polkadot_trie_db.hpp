@@ -50,6 +50,7 @@ namespace kagome::storage::trie {
 
     std::unique_ptr<WriteBatch> batch() override;
 
+    // value will be copied
     outcome::result<void> put(const common::Buffer &key,
                               const common::Buffer &value) override;
 

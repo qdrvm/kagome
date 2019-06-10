@@ -54,10 +54,6 @@ std::shared_ptr<PolkadotNode> branch_with_2_children = []() {
 
 using T = PolkadotNode::Type;
 
-constexpr uint8_t LEAF = (uint8_t)T::Leaf << 6u;
-constexpr uint8_t BRANCH_VAL = (uint8_t)T::BranchWithValue << 6u;
-constexpr uint8_t BRANCH_NO_VAL = (uint8_t)T::BranchEmptyValue << 6u;
-
 static const std::vector<std::shared_ptr<PolkadotNode>> CASES = {
     make<LeafNode>("010203"_hex2buf, "abcdef"_hex2buf),
     make<LeafNode>("0a0b0c"_hex2buf, "abcdef"_hex2buf),
