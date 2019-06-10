@@ -8,6 +8,7 @@
 
 #include <functional>
 #include <map>
+#include <optional>
 #include <queue>
 
 #include <boost/asio/streambuf.hpp>
@@ -63,7 +64,7 @@ namespace libp2p::connection {
 
     outcome::result<void> start() override;
 
-    outcome::result<std::shared_ptr<Stream>> newStream() override;
+    void newStream(std::function<StreamResultHandler> stream_handler) override;
 
     outcome::result<peer::PeerId> localPeer() const override;
 
@@ -97,6 +98,24 @@ namespace libp2p::connection {
      * @return nothing or error
      */
     outcome::result<void> readerLoop();
+
+    struct WriteData {
+      kagome::common::Buffer data;
+      std::function<void(outcome::result<size_t>)> cb;
+      bool some = false;
+    };
+    std::queue<WriteData> write_queue_;
+
+    std::optional<std::error_code> last_write_error_;
+
+    bool is_writing_ = false;
+
+    /**
+     * Write message to the connection; ensures no more than one right would be
+     * executed at one time
+     * @param write_data - data to be written with a callback
+     */
+    void writeLoop(WriteData write_data);
 
     /**
      * Process frame of data type
@@ -133,10 +152,10 @@ namespace libp2p::connection {
     /**
      * Register a new stream in this instance, making it active
      * @param stream_id to be registered
-     * @return registered stream or error
+     * @param cb - callback with registered stream or error
      */
-    outcome::result<std::shared_ptr<YamuxStream>> registerNewStream(
-        StreamId stream_id);
+    void registerNewStream(StreamId stream_id,
+                           std::function<StreamResultHandler> cb);
 
     /**
      * If there is data in this length, buffer it to the according stream
@@ -196,8 +215,6 @@ namespace libp2p::connection {
 
     friend class YamuxStream;
 
-    outcome::result<void> streamProcessNextFrame();
-
     using ReadWriteCompletionHandler = std::function<bool()>;
 
     /**
@@ -210,6 +227,7 @@ namespace libp2p::connection {
      */
     void streamAddWindowUpdateHandler(StreamId stream_id,
                                       ReadWriteCompletionHandler handler);
+    std::map<StreamId, ReadWriteCompletionHandler> streams_window_updates_subs_;
 
     /**
      * Write bytes to the connection; before calling this method, the stream
@@ -219,10 +237,9 @@ namespace libp2p::connection {
      * @param some - some or all bytes must be written
      * @return number of bytes written or error
      */
-    outcome::result<size_t> streamWrite(StreamId stream_id,
-                                        gsl::span<const uint8_t> msg,
-                                        bool some);
-    std::map<StreamId, ReadWriteCompletionHandler> streams_write_handlers_;
+    void streamWrite(StreamId stream_id, gsl::span<const uint8_t> msg,
+                     bool some,
+                     std::function<void(outcome::result<size_t>)> cb);
 
     /**
      * Read a data for a specified (\param stream_id); before calling this

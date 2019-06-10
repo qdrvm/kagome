@@ -53,12 +53,7 @@ namespace libp2p::connection {
     auto in_size = in.size();
     if (send_window_size_ - in_size >= 0) {
       // we can write immediately - window size on the other sides allows us
-      auto written_bytes_res = yamux_->streamWrite(stream_id_, in, some);
-      if (written_bytes_res) {
-        send_window_size_ -= in_size;
-      }
-      is_writing_ = false;
-      return cb(written_bytes_res);
+      return yamux_->streamWrite(stream_id_, in, some, std::move(cb));
     }
 
     // each time a window size gets updated, that lambda will be called, and if
@@ -66,12 +61,7 @@ namespace libp2p::connection {
     yamux_->streamAddWindowUpdateHandler(
         stream_id_, [this, some, in, cb = std::move(cb)]() mutable {
           if (send_window_size_ - in.size() >= 0) {
-            auto written_bytes_res = yamux_->streamWrite(stream_id_, in, some);
-            if (written_bytes_res) {
-              send_window_size_ -= in.size();
-            }
-            is_writing_ = false;
-            cb(written_bytes_res);
+            yamux_->streamWrite(stream_id_, in, some, std::move(cb));
             return true;
           }
           return false;

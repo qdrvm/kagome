@@ -13,6 +13,8 @@ namespace libp2p::connection {
 
   // connection that provides basic libp2p requirements to the connection
   struct CapableConnection : public SecureConnection {
+    using StreamResultHandler = void(outcome::result<std::shared_ptr<Stream>>);
+
     ~CapableConnection() override = default;
 
     /**
@@ -26,9 +28,11 @@ namespace libp2p::connection {
     virtual outcome::result<void> start() = 0;
 
     /**
-     * @brief Opens new stream using this connection.
+     * @brief Opens new stream using this connection
+     * @param stream_handler to be called, when a stream is successfully opened
      */
-    virtual outcome::result<std::shared_ptr<Stream>> newStream() = 0;
+    virtual void newStream(
+        std::function<StreamResultHandler> stream_handler) = 0;
   };
 
 }  // namespace libp2p::connection
