@@ -53,7 +53,7 @@ const std::vector<std::pair<Buffer, Buffer>> TrieTest::data = {
 
 void FillSmallTree(PolkadotTrieDb& trie) {
   for (auto &entry : TrieTest::data) {
-    EXPECT_OUTCOME_TRUE_void(_, trie.put(entry.first, entry.second));
+    EXPECT_OUTCOME_TRUE_1(trie.put(entry.first, entry.second));
   }
 }
 
@@ -73,13 +73,13 @@ TEST_P(TrieTest, RunCommand) {
         break;
       }
       case Command::PUT: {
-        EXPECT_OUTCOME_TRUE_void(_, trie->put(command.key, command.value));
+        EXPECT_OUTCOME_TRUE_1(trie->put(command.key, command.value));
         EXPECT_OUTCOME_TRUE(val, trie->get(command.key));
         ASSERT_EQ(val, command.value);
         break;
       }
       case Command::REMOVE: {
-        EXPECT_OUTCOME_TRUE_void(_, trie->remove(command.key));
+        EXPECT_OUTCOME_TRUE_1(trie->remove(command.key));
         EXPECT_OUTCOME_TRUE(val, trie->get(command.key));
         ASSERT_NE(val, command.value);
         break;
@@ -244,8 +244,8 @@ TEST_F(TrieTest, Put) {
     EXPECT_OUTCOME_TRUE(res, trie->get(entry.first));
     ASSERT_EQ(res, entry.second);
   }
-  EXPECT_OUTCOME_TRUE_void(__, trie->put("102030"_hex2buf, "010203"_hex2buf));
-  EXPECT_OUTCOME_TRUE_void(_, trie->put("104050"_hex2buf, "0a0b0c"_hex2buf));
+  EXPECT_OUTCOME_TRUE_1(trie->put("102030"_hex2buf, "010203"_hex2buf));
+  EXPECT_OUTCOME_TRUE_1(trie->put("104050"_hex2buf, "0a0b0c"_hex2buf));
   EXPECT_OUTCOME_TRUE(v1, trie->get("102030"_hex2buf));
   ASSERT_EQ(v1, "010203"_hex2buf);
   EXPECT_OUTCOME_TRUE(v2, trie->get("104050"_hex2buf));
@@ -260,13 +260,13 @@ TEST_F(TrieTest, Put) {
 TEST_F(TrieTest, Remove) {
   FillSmallTree(*trie);
 
-  EXPECT_OUTCOME_TRUE_void(_, trie->remove(data[2].first));
-  EXPECT_OUTCOME_TRUE_void(__, trie->remove(data[3].first));
-  EXPECT_OUTCOME_TRUE_void(___, trie->remove(data[4].first));
+  for (auto i: {2, 3, 4}) {
+      EXPECT_OUTCOME_TRUE_1(trie->remove(data[i].first));
+  }
 
-  ASSERT_FALSE(trie->contains(data[2].first));
-  ASSERT_FALSE(trie->contains(data[3].first));
-  ASSERT_FALSE(trie->contains(data[4].first));
+  for (auto i: {2, 3, 4}) {
+    ASSERT_FALSE(trie->contains(data[i].first));
+  }
   ASSERT_TRUE(trie->contains(data[0].first));
   ASSERT_TRUE(trie->contains(data[1].first));
 }
@@ -279,7 +279,7 @@ TEST_F(TrieTest, Remove) {
 TEST_F(TrieTest, Replace) {
   FillSmallTree(*trie);
 
-  EXPECT_OUTCOME_TRUE_void(__, trie->put(data[1].first, data[3].second));
+  EXPECT_OUTCOME_TRUE_1(trie->put(data[1].first, data[3].second));
   EXPECT_OUTCOME_TRUE(res, trie->get(data[1].first));
   ASSERT_EQ(res, data[3].second);
 }
@@ -295,19 +295,19 @@ TEST_F(TrieTest, ClearPrefix) {
                                                  {"bat"_buf, "789"_buf},
                                                  {"batch"_buf, "0-="_buf}};
   for (auto &entry : data) {
-    EXPECT_OUTCOME_TRUE_void(_, trie->put(entry.first, entry.second));
+    EXPECT_OUTCOME_TRUE_1(trie->put(entry.first, entry.second));
   }
-  EXPECT_OUTCOME_TRUE_void(_, trie->clearPrefix("bar"_buf));
+  EXPECT_OUTCOME_TRUE_1(trie->clearPrefix("bar"_buf));
   ASSERT_TRUE(trie->contains("bat"_buf));
   ASSERT_TRUE(trie->contains("batch"_buf));
   ASSERT_FALSE(trie->contains("bark"_buf));
   ASSERT_FALSE(trie->contains("barnacle"_buf));
 
-  EXPECT_OUTCOME_TRUE_void(__, trie->clearPrefix("batc"_buf));
+  EXPECT_OUTCOME_TRUE_1(trie->clearPrefix("batc"_buf));
   ASSERT_TRUE(trie->contains("bat"_buf));
   ASSERT_FALSE(trie->contains("batch"_buf));
 
-  EXPECT_OUTCOME_TRUE_void(___, trie->clearPrefix("b"_buf));
+  EXPECT_OUTCOME_TRUE_1(trie->clearPrefix("b"_buf));
   ASSERT_FALSE(trie->contains("bat"_buf));
   ASSERT_TRUE(trie->getRootHash().empty());
 }

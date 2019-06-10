@@ -45,7 +45,7 @@ const std::vector<std::pair<Buffer, Buffer>> TrieBatchTest::data = {
 
 void FillSmallTrieWithBatch(WriteBatch<Buffer, Buffer>& batch) {
   for (auto &entry : TrieBatchTest::data) {
-    EXPECT_OUTCOME_TRUE_void(r, batch.put(entry.first, entry.second));
+    EXPECT_OUTCOME_TRUE_1(batch.put(entry.first, entry.second));
   }
 }
 
@@ -86,8 +86,8 @@ TEST_F(TrieBatchTest, Put) {
     ASSERT_EQ(res, entry.second);
   }
 
-  EXPECT_OUTCOME_TRUE_void(r1, trie->put("102030"_hex2buf, "010203"_hex2buf));
-  EXPECT_OUTCOME_TRUE_void(r2, trie->put("104050"_hex2buf, "0a0b0c"_hex2buf));
+  EXPECT_OUTCOME_TRUE_1(trie->put("102030"_hex2buf, "010203"_hex2buf));
+  EXPECT_OUTCOME_TRUE_1(trie->put("104050"_hex2buf, "0a0b0c"_hex2buf));
   EXPECT_OUTCOME_TRUE(v1, trie->get("102030"_hex2buf));
   ASSERT_EQ(v1, "010203"_hex2buf);
   EXPECT_OUTCOME_TRUE(v2, trie->get("104050"_hex2buf));
@@ -103,16 +103,16 @@ TEST_F(TrieBatchTest, Remove) {
   auto batch = trie->batch();
   FillSmallTrieWithBatch(*batch);
 
-  EXPECT_OUTCOME_TRUE_void(r1, batch->remove(data[2].first));
+  EXPECT_OUTCOME_TRUE_1(batch->remove(data[2].first));
   // putting an empty value is removal too
-  EXPECT_OUTCOME_TRUE_void(r2, batch->put(data[3].first, Buffer {}));
-  EXPECT_OUTCOME_TRUE_void(r3, batch->remove(data[4].first));
+  EXPECT_OUTCOME_TRUE_1(batch->put(data[3].first, Buffer {}));
+  EXPECT_OUTCOME_TRUE_1(batch->remove(data[4].first));
 
-  EXPECT_OUTCOME_TRUE_void(r, batch->commit());
+  EXPECT_OUTCOME_TRUE_1(batch->commit());
 
-  ASSERT_FALSE(trie->contains(data[2].first));
-  ASSERT_FALSE(trie->contains(data[3].first));
-  ASSERT_FALSE(trie->contains(data[4].first));
+  for (auto i: {2, 3, 4}) {
+      ASSERT_FALSE(trie->contains(data[i].first));
+  }
   ASSERT_TRUE(trie->contains(data[0].first));
   ASSERT_TRUE(trie->contains(data[1].first));
 }
@@ -125,8 +125,8 @@ TEST_F(TrieBatchTest, Remove) {
  */
 TEST_F(TrieBatchTest, Replace) {
   auto batch = trie->batch();
-  EXPECT_OUTCOME_TRUE_void(r1, batch->put(data[1].first, data[3].second));
-  EXPECT_OUTCOME_TRUE_void(r2, batch->commit());
+  EXPECT_OUTCOME_TRUE_1(batch->put(data[1].first, data[3].second));
+  EXPECT_OUTCOME_TRUE_1(batch->commit());
   EXPECT_OUTCOME_TRUE(res, trie->get(data[1].first));
   ASSERT_EQ(res, data[3].second);
 }
@@ -145,13 +145,13 @@ TEST_F(TrieBatchTest, Clear) {
   // undesired in this case
   EXPECT_CALL(mock_trie, getRootHash()).Times(0);
 
-  EXPECT_OUTCOME_TRUE_void(r1, batch.put("123"_buf, "111"_buf));
-  EXPECT_OUTCOME_TRUE_void(r2, batch.put("133"_buf, "111"_buf));
-  EXPECT_OUTCOME_TRUE_void(r3, batch.put("124"_buf, "111"_buf));
-  EXPECT_OUTCOME_TRUE_void(r4, batch.remove("123"_buf));
-  EXPECT_OUTCOME_TRUE_void(r5, batch.remove("133"_buf));
+  EXPECT_OUTCOME_TRUE_1(batch.put("123"_buf, "111"_buf));
+  EXPECT_OUTCOME_TRUE_1(batch.put("133"_buf, "111"_buf));
+  EXPECT_OUTCOME_TRUE_1(batch.put("124"_buf, "111"_buf));
+  EXPECT_OUTCOME_TRUE_1(batch.remove("123"_buf));
+  EXPECT_OUTCOME_TRUE_1(batch.remove("133"_buf));
   batch.clear();
-  EXPECT_OUTCOME_TRUE_void(r6, batch.commit());
+  EXPECT_OUTCOME_TRUE_1(batch.commit());
 }
 
 /**
@@ -177,14 +177,14 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
   PolkadotTrieDb trie{std::move(db)};
   PolkadotTrieBatch batch{trie};
 
-  EXPECT_OUTCOME_TRUE_void(r1, batch.put("123"_buf, "111"_buf));
-  EXPECT_OUTCOME_TRUE_void(r2, batch.commit());
+  EXPECT_OUTCOME_TRUE_1(batch.put("123"_buf, "111"_buf));
+  EXPECT_OUTCOME_TRUE_1(batch.commit());
 
   auto old_root = trie.getRootHash();
   ASSERT_FALSE(old_root.empty());
-  EXPECT_OUTCOME_TRUE_void(r3, batch.put("133"_buf, "111"_buf));
-  EXPECT_OUTCOME_TRUE_void(r4, batch.put("124"_buf, "111"_buf));
-  EXPECT_OUTCOME_TRUE_void(r5, batch.put("154"_buf, "111"_buf));
+  EXPECT_OUTCOME_TRUE_1(batch.put("133"_buf, "111"_buf));
+  EXPECT_OUTCOME_TRUE_1(batch.put("124"_buf, "111"_buf));
+  EXPECT_OUTCOME_TRUE_1(batch.put("154"_buf, "111"_buf));
   ASSERT_FALSE(batch.commit());
   ASSERT_TRUE(batch.is_empty());
 
