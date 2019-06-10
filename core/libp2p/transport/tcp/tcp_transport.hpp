@@ -23,7 +23,8 @@ namespace libp2p::transport {
   class TcpTransport : public Transport,
                        public std::enable_shared_from_this<TcpTransport> {
    public:
-    TcpTransport(boost::asio::io_context& context, std::shared_ptr<Upgrader> upgrader);
+    TcpTransport(boost::asio::io_context &context,
+                 std::shared_ptr<Upgrader> upgrader);
 
     void dial(const multi::Multiaddress &address,
               Transport::HandlerFunc handler) const override;
@@ -34,7 +35,7 @@ namespace libp2p::transport {
     bool canDial(const multi::Multiaddress &ma) const override;
 
    private:
-    boost::asio::io_context& context_;
+    boost::asio::io_context &context_;
     std::shared_ptr<Upgrader> upgrader_;
   };  // namespace libp2p::transport
 

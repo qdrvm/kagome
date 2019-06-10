@@ -35,6 +35,7 @@ namespace libp2p::transport {
     /**
      * Try to establish connection with a peer
      * @param address of the peer
+     * @param handler callback that will be executed on connection/error
      * @return connection in case of success, error otherwise
      */
     virtual void dial(const multi::Multiaddress &address,
@@ -43,6 +44,7 @@ namespace libp2p::transport {
     /**
      * Create a listener for incoming connections of this Transport; in case
      * it was already created, return it
+     * @param handler callback that will be executed on new connection
      * @return pointer to the created listener
      */
     virtual std::shared_ptr<TransportListener> createListener(

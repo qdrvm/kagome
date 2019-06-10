@@ -47,14 +47,15 @@ namespace libp2p::transport {
 
   std::shared_ptr<TransportListener> TcpTransport::createListener(
       TransportListener::HandlerFunc handler) const {
-    return std::make_shared<TcpListener>(context_, upgrader_, std::move(handler));
+    return std::make_shared<TcpListener>(context_, upgrader_,
+                                         std::move(handler));
   }
 
   bool TcpTransport::canDial(const multi::Multiaddress &ma) const {
     return detail::supportsIpTcp(ma);
   }
 
-  TcpTransport::TcpTransport(boost::asio::io_context& context,
+  TcpTransport::TcpTransport(boost::asio::io_context &context,
                              std::shared_ptr<Upgrader> upgrader)
       : context_(context), upgrader_(std::move(upgrader)) {}
 }  // namespace libp2p::transport
