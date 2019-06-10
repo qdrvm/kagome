@@ -54,7 +54,7 @@ namespace kagome::storage::trie {
     } else {
       NodePtr root = nullptr;
       if(root_.has_value()) {
-        OUTCOME_TRY(r, retrieveNode(root_.value()));
+        OUTCOME_TRY(r, retrieveNode(getRootHash()));
         root = r;
       }
       // insert fetches a sequence of nodes (a path) from the storage and
@@ -81,7 +81,7 @@ namespace kagome::storage::trie {
       return outcome::success();
     }
     auto key_nibbles = PolkadotCodec::keyToNibbles(prefix);
-    OUTCOME_TRY(root, retrieveNode(root_.value()));
+    OUTCOME_TRY(root, retrieveNode(getRootHash()));
     OUTCOME_TRY(new_root, detachNode(root, key_nibbles));
     if (new_root == nullptr) {
       root_ = std::nullopt;
@@ -208,7 +208,7 @@ namespace kagome::storage::trie {
     if (not root_.has_value()) {
       return common::Buffer{};
     }
-    OUTCOME_TRY(root, retrieveNode(root_.value()));
+    OUTCOME_TRY(root, retrieveNode(getRootHash()));
     auto nibbles = PolkadotCodec::keyToNibbles(key);
     OUTCOME_TRY(node, getNode(root, nibbles));
     if (node) {
@@ -254,7 +254,7 @@ namespace kagome::storage::trie {
   bool PolkadotTrieDb::contains(const common::Buffer &key) const {
     if (not root_.has_value())
       return false;
-    auto root = retrieveNode(root_.value());
+    auto root = retrieveNode(getRootHash());
     if (root) {
       auto node = getNode(root.value(), PolkadotCodec::keyToNibbles(key));
       return node.has_value() && (node.value() != nullptr);
@@ -264,7 +264,7 @@ namespace kagome::storage::trie {
 
   outcome::result<void> PolkadotTrieDb::remove(const common::Buffer &key) {
     if (root_.has_value()) {
-      OUTCOME_TRY(root, retrieveNode(root_.value()));
+      OUTCOME_TRY(root, retrieveNode(getRootHash()));
       auto key_nibbles = PolkadotCodec::keyToNibbles(key);
       // delete node will fetch nodes that it needs from the storage (the nodes
       // typically are a path in the trie) and work on them in memory

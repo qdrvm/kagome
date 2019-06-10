@@ -16,10 +16,12 @@ namespace kagome::storage::trie {
    * future, when one appears
    */
   class BufferStream {
+    using index_type = gsl::span<const uint8_t>::index_type;
+
    public:
     explicit BufferStream(const common::Buffer &buf) : data_{buf.toVector()} {}
 
-    bool hasMore(size_t num_bytes) const {
+    bool hasMore(index_type num_bytes) const {
       return data_.size() >= num_bytes;
     }
 

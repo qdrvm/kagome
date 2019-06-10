@@ -9,12 +9,13 @@ namespace kagome::storage::trie {
 
   using common::Buffer;
 
-  PolkadotTrieBatch::PolkadotTrieBatch(PolkadotTrieDb &trie) : trie_{trie} {}
+  PolkadotTrieBatch::PolkadotTrieBatch(PolkadotTrieDb &trie)
+      : trie_{trie}, commands_ {} {}
 
   outcome::result<void> PolkadotTrieBatch::put(const Buffer &key,
                                                const Buffer &value) {
-    auto value_copy = value;
-    return put(key, std::move(value_copy));
+    Buffer copy {value};
+    return put(key, std::move(copy));
   }
 
   outcome::result<void> PolkadotTrieBatch::put(const Buffer &key,
@@ -22,7 +23,7 @@ namespace kagome::storage::trie {
     if (value.empty()) {
       OUTCOME_TRY(remove(key));
     } else {
-      commands_.push_back({Action::PUT, key, std::move(value)});
+      commands_.push_back({Action::PUT, key, value});
     }
     return outcome::success();
   }
@@ -78,7 +79,7 @@ namespace kagome::storage::trie {
 
   outcome::result<PolkadotTrieDb::NodePtr> PolkadotTrieBatch::applyPut(
       const PolkadotTrieDb::NodePtr &root, const common::Buffer &key,
-      common::Buffer value) {
+      common::Buffer &&value) {
     auto k_enc = PolkadotCodec::keyToNibbles(key);
 
     // insert fetches a sequence of nodes (a path) from the storage and

@@ -16,15 +16,16 @@ namespace kagome::storage::trie {
     enum class Action { PUT, REMOVE };
     struct Command {
       Action action;
-      common::Buffer key;
+      common::Buffer key{};
       // value is unnecessary when action is REMOVE
-      common::Buffer value {};
+      common::Buffer value{};
     };
 
    public:
     explicit PolkadotTrieBatch(PolkadotTrieDb &trie);
     ~PolkadotTrieBatch() override = default;
 
+    // value will be copied
     outcome::result<void> put(const common::Buffer &key,
                               const common::Buffer &value) override;
 
@@ -42,7 +43,7 @@ namespace kagome::storage::trie {
    private:
     outcome::result<PolkadotTrieDb::NodePtr> applyPut(
         const PolkadotTrieDb::NodePtr& root, const common::Buffer &key,
-        common::Buffer value);
+        common::Buffer &&value);
 
     outcome::result<PolkadotTrieDb::NodePtr> applyRemove(
         PolkadotTrieDb::NodePtr root, const common::Buffer &key);

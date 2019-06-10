@@ -30,7 +30,7 @@ namespace kagome::storage::trie {
   template <typename Stream>
   Stream &operator<<(Stream &s, const PolkadotTrieDb &trie) {
     if (trie.root_.has_value()) {
-      auto root = trie.retrieveNode(trie.root_.value()).value();
+      auto root = trie.retrieveNode(trie.getRootHash()).value();
       printNode(s, root, trie, 0);
     }
     return s;
