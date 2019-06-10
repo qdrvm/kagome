@@ -13,7 +13,7 @@ namespace libp2p::transport {
       : context_(context),
         acceptor_(context),
         upgrader_(std::move(upgrader)),
-        v_(std::move(handler)) {}
+        handle_(std::move(handler)) {}
 
   outcome::result<void> TcpListener::listen(
       const multi::Multiaddress &address) {
@@ -79,7 +79,7 @@ namespace libp2p::transport {
                                const boost::system::error_code &ec,
                                ip::tcp::socket sock) {
       if (ec) {
-        return self->v_(ec);
+        return self->handle_(ec);
       }
 
       ufiber::spawn(
@@ -90,17 +90,17 @@ namespace libp2p::transport {
             // upgrade to secure
             auto rsc = self->upgrader_->upgradeToSecure(std::move(conn));
             if (!rsc) {
-              return self->v_(rsc.error());
+              return self->handle_(rsc.error());
             }
 
             // upgrade to muxed
             auto rmc = self->upgrader_->upgradeToMuxed(std::move(rsc.value()));
             if (!rmc) {
-              return self->v_(rmc.error());
+              return self->handle_(rmc.error());
             }
 
             // execute user-provided callback
-            return self->v_(std::move(rmc.value()));
+            return self->handle_(std::move(rmc.value()));
           });
 
       self->do_accept();

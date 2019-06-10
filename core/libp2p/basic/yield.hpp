@@ -11,6 +11,9 @@
 
 namespace libp2p::basic {
 
+  /**
+   * @brief Common type for all yields based on default io executor.
+   */
   using yield_t = ufiber::yield_token<boost::asio::io_context::executor_type>;
 
 }

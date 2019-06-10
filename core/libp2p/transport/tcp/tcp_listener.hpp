@@ -38,7 +38,7 @@ namespace libp2p::transport {
     boost::asio::io_context& context_;
     boost::asio::ip::tcp::acceptor acceptor_;
     std::shared_ptr<Upgrader> upgrader_;
-    TransportListener::HandlerFunc v_;
+    TransportListener::HandlerFunc handle_;
 
     void do_accept();
   };
