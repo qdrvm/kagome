@@ -34,9 +34,7 @@ namespace kagome::runtime {
      * @param args arguments
      * @return parsed result or error
      */
-    template <typename R,  // typename = std::enable_if_t<!std::is_same_v<R,
-                           // void>>,
-              typename... Args>
+    template <typename R, typename... Args>
     outcome::result<R> execute(std::string_view name, Args &&... args) {
       runtime::WasmPointer ptr = 0u;
       runtime::SizeType len = 0u;
@@ -52,16 +50,15 @@ namespace kagome::runtime {
       wasm::Name wasm_name = std::string(name);
       OUTCOME_TRY(res, executor_.call(state_code_, wasm_name, ll));
 
-      if constexpr (std::is_same<void, R>::value) {
-        return outcome::success();
-      } else {
+      if constexpr (!std::is_same<void, R>::value) {
         WasmResult r{res.geti64()};
+        auto buffer = memory_->loadN(r.address, r.length);
         // TODO (yuraz) PRE-98: after check for memory overflow is done,
         //  refactor it
-        auto buffer = memory_->loadN(r.address(), r.length());
-
         return scale::decode<R>(buffer);
       }
+
+      return outcome::success();
     }
 
    private:
@@ -69,7 +66,6 @@ namespace kagome::runtime {
     std::shared_ptr<WasmMemory> memory_;
     WasmExecutor executor_;
   };
-
 }  // namespace kagome::runtime
 
 #endif  // KAGOME_CORE_RUNTIME_RUNTIME_API_HPP
