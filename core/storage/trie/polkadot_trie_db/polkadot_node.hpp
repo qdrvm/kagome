@@ -8,9 +8,9 @@
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
-#include "storage/merkle/node.hpp"
+#include "storage/trie/node.hpp"
 
-namespace kagome::storage::merkle {
+namespace kagome::storage::trie {
 
   /**
    * For specification see
@@ -107,6 +107,6 @@ namespace kagome::storage::merkle {
     common::Buffer db_key;
   };
 
-}  // namespace kagome::storage::merkle
+}  // namespace kagome::storage::trie
 
 #endif  // KAGOME_NODE_IMPL_HPP

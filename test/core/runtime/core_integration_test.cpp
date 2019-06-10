@@ -9,7 +9,7 @@
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
-#include "core/storage/merkle/mock_trie_db.hpp"
+#include "core/storage/trie/mock_trie_db.hpp"
 #include "extensions/extension_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
@@ -26,7 +26,7 @@ using kagome::primitives::Extrinsic;
 using kagome::runtime::CoreImpl;
 using kagome::runtime::WasmMemory;
 using kagome::runtime::WasmMemoryImpl;
-using kagome::storage::merkle::MockTrieDb;
+using kagome::storage::trie::MockTrieDb;
 
 using ::testing::_;
 using ::testing::Return;

@@ -3,19 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_STORAGE_MERKLE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_HPP_
-#define KAGOME_CORE_STORAGE_MERKLE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_HPP_
+#ifndef KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_HPP
+#define KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_HPP
 
 #include <map>
 #include <memory>
 #include <optional>
 
 #include "crypto/hasher.hpp"
-#include "storage/merkle/polkadot_trie_db/polkadot_codec.hpp"
-#include "storage/merkle/polkadot_trie_db/polkadot_node.hpp"
-#include "storage/merkle/trie_db.hpp"
+#include "storage/trie/polkadot_trie_db/polkadot_codec.hpp"
+#include "storage/trie/polkadot_trie_db/polkadot_node.hpp"
+#include "storage/trie/trie_db.hpp"
 
-namespace kagome::storage::merkle {
+namespace kagome::storage::trie {
 
   /**
    * For specification see https://github.com/w3f/polkadot-re-spec/blob/master/polkadot_re_spec.pdf
@@ -26,6 +26,8 @@ namespace kagome::storage::merkle {
     using WriteBatch = face::WriteBatch<common::Buffer, common::Buffer>;
     using NodePtr = std::shared_ptr<PolkadotNode>;
     using BranchPtr = std::shared_ptr<BranchNode>;
+
+    friend class PolkadotTrieBatch;
 
     // to output the trie into a stream
     template <typename Stream>
@@ -39,26 +41,32 @@ namespace kagome::storage::merkle {
 
    public:
     PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db);
+
     ~PolkadotTrieDb() override = default;
 
     common::Buffer getRootHash() const override;
+
     outcome::result<void> clearPrefix(const common::Buffer &prefix) override;
 
     std::unique_ptr<WriteBatch> batch() override;
 
+    // value will be copied
     outcome::result<void> put(const common::Buffer &key,
                               const common::Buffer &value) override;
+
+    outcome::result<void> put(const common::Buffer &key,
+                              common::Buffer &&value) override;
+
     outcome::result<void> remove(const common::Buffer &key) override;
+
     outcome::result<common::Buffer> get(
         const common::Buffer &key) const override;
+
     bool contains(const common::Buffer &key) const override;
 
     std::unique_ptr<MapCursor> cursor() override;
 
    private:
-    outcome::result<void> insertRoot(const common::Buffer &key_nibbles,
-                                     const common::Buffer &value);
-
     outcome::result<NodePtr> insert(const NodePtr &parent,
                                     const common::Buffer &key_nibbles,
                                     NodePtr node);
@@ -107,8 +115,8 @@ namespace kagome::storage::merkle {
     PolkadotCodec codec_;
   };
 
-}  // namespace kagome::storage::merkle
+}  // namespace kagome::storage::trie
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::storage::merkle, PolkadotTrieDb::Error);
+OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie, PolkadotTrieDb::Error);
 
-#endif  // KAGOME_CORE_STORAGE_MERKLE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_HPP_
+#endif  // KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_HPP

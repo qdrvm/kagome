@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/merkle/polkadot_trie_db/polkadot_node.hpp"
+#include "storage/trie/polkadot_trie_db/polkadot_node.hpp"
 
-namespace kagome::storage::merkle {
+namespace kagome::storage::trie {
 
   int LeafNode::getType() const {
     return static_cast<int>(PolkadotNode::Type::Leaf);
@@ -31,4 +31,4 @@ namespace kagome::storage::merkle {
     return std::count_if(children.begin(), children.end(), [](auto const& child) { return child; });;
   }
 
-}  // namespace kagome::storage::merkle
+}  // namespace kagome::storage::trie

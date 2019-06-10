@@ -3,15 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_MERKLE_UTIL_HPP
-#define KAGOME_MERKLE_UTIL_HPP
+#ifndef KAGOME_TRIE_CODEC_HPP
+#define KAGOME_TRIE_CODEC_HPP
 
 #include "common/blob.hpp"  // for Hash256
 #include "common/buffer.hpp"
+#include "storage/trie/node.hpp"
 
-#include "storage/merkle/node.hpp"
-
-namespace kagome::storage::merkle {
+namespace kagome::storage::trie {
 
   /**
    * @brief Internal codec for nodes in the Trie. Eth and substrate have
@@ -45,6 +44,6 @@ namespace kagome::storage::merkle {
     virtual common::Hash256 hash256(const common::Buffer &buf) const = 0;
   };
 
-}  // namespace kagome::storage::merkle
+}  // namespace kagome::storage::trie
 
-#endif  // KAGOME_MERKLE_UTIL_HPP
+#endif  // KAGOME_TRIE_CODEC_HPP
