@@ -26,11 +26,11 @@ namespace libp2p::transport {
     TcpTransport(boost::asio::io_context &context,
                  std::shared_ptr<Upgrader> upgrader);
 
-    void dial(const multi::Multiaddress &address,
-              Transport::HandlerFunc handler) const override;
+    void dial(multi::Multiaddress address,
+              Transport::HandlerFunc handler) override;
 
     std::shared_ptr<TransportListener> createListener(
-        TransportListener::HandlerFunc handler) const override;
+        TransportListener::HandlerFunc handler) override;
 
     bool canDial(const multi::Multiaddress &ma) const override;
 

@@ -7,12 +7,12 @@
 
 namespace libp2p::transport {
 
-  void TcpTransport::dial(const multi::Multiaddress &address,
-                          Transport::HandlerFunc handler) const {
+  void TcpTransport::dial(multi::Multiaddress address,
+                          Transport::HandlerFunc handler) {
     ufiber::spawn(
         context_,
-        [address, handler_{std::move(handler)},
-         self{this->shared_from_this()}](basic::yield_t yield) mutable {
+        [address{std::move(address)}, handler_{std::move(handler)},
+         self{this->shared_from_this()}](basic::yield_t yield) {
           if (!self->canDial(address)) {
             return handler_(std::errc::address_family_not_supported);
           }
@@ -46,7 +46,7 @@ namespace libp2p::transport {
   }  // namespace libp2p::transport
 
   std::shared_ptr<TransportListener> TcpTransport::createListener(
-      TransportListener::HandlerFunc handler) const {
+      TransportListener::HandlerFunc handler) {
     return std::make_shared<TcpListener>(context_, upgrader_,
                                          std::move(handler));
   }
