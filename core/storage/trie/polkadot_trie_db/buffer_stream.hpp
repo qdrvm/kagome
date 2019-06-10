@@ -16,7 +16,7 @@ namespace kagome::storage::trie {
    * future, when one appears
    */
   class BufferStream {
-    using index_type = gsl::span<const uint8_t>::index_type;
+      using index_type = gsl::span<const uint8_t>::index_type;
 
    public:
     explicit BufferStream(const common::Buffer &buf) : data_{buf.toVector()} {}
