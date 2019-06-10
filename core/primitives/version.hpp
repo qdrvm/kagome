@@ -55,7 +55,7 @@ namespace kagome::primitives {
      * */
     std::string impl_name;
     /// authoring_version is the version of the authorship interface
-    uint32_t authoring_version;
+    uint32_t authoring_version = 0u;
     /**
      * Version of the implementation of the specification. Nodes are free to
      * ignore this; it serves only as an indication that the code is different;
@@ -64,7 +64,7 @@ namespace kagome::primitives {
      * Non-consensus-breaking optimizations are about the only changes that
      * could be made which would result in only the impl_version changing.
      */
-    uint32_t impl_version;
+    uint32_t impl_version = 0u;
     /// List of supported API "features" along with their versions.
     ApisVec apis;
   };
