@@ -8,12 +8,10 @@
 
 #include "extensions/extension.hpp"
 #include "runtime/metadata.hpp"
+#include "runtime/impl/runtime_api.hpp"
 
 namespace kagome::runtime {
-
-  class RuntimeApi;
-
-  class MetadataImpl : public Metadata {
+  class MetadataImpl : public RuntimeApi, public Metadata {
    public:
     MetadataImpl(common::Buffer state_code,
                  std::shared_ptr<extensions::Extension> extension);
@@ -21,11 +19,7 @@ namespace kagome::runtime {
     ~MetadataImpl() override = default;
 
     outcome::result<OpaqueMetadata> metadata() override;
-
-   private:
-    std::unique_ptr<RuntimeApi> runtime_;
   };
-
 }  // namespace kagome::runtime
 
 #endif  // KAGOME_CORE_RUNTIME_IMPL_METADATA_IMPL_HPP

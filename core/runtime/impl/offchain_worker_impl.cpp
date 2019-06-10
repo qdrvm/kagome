@@ -5,20 +5,13 @@
 
 #include "runtime/impl/offchain_worker_impl.hpp"
 
-#include "runtime/impl/runtime_api.hpp"
-#include "runtime/impl/runtime_external_interface.hpp"
-
 namespace kagome::runtime {
   OffchainWorkerImpl::OffchainWorkerImpl(
       common::Buffer state_code,
-      std::shared_ptr<extensions::Extension> extension) {
-    runtime_ = std::make_unique<RuntimeApi>(std::move(state_code),
-                                            std::move(extension));
-  }
-
-  OffchainWorkerImpl::~OffchainWorkerImpl() {}
+      std::shared_ptr<extensions::Extension> extension)
+      : RuntimeApi(std::move(state_code), std::move(extension)) {}
 
   outcome::result<void> OffchainWorkerImpl::offchain_worker(BlockNumber bn) {
-    return runtime_->execute("OffchainWorkerApi_offchain_worker", bn);
+    return execute<void>("OffchainWorkerApi_offchain_worker", bn);
   }
 }  // namespace kagome::runtime

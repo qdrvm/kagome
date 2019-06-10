@@ -9,11 +9,10 @@
 #include "extensions/extension.hpp"
 #include "runtime/parachain_host.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
+#include "runtime/impl/runtime_api.hpp"
 
 namespace kagome::runtime {
-  class RuntimeApi;
-
-  class ParachainHostImpl : public ParachainHost {
+  class ParachainHostImpl : public RuntimeApi, public ParachainHost {
    public:
     /**
      * @brief constructor
@@ -24,7 +23,7 @@ namespace kagome::runtime {
     ParachainHostImpl(common::Buffer state_code,
                       std::shared_ptr<extensions::Extension> extension);
 
-    ~ParachainHostImpl() override;
+    ~ParachainHostImpl() override = default;
 
     outcome::result<DutyRoster> duty_roster() override;
 
@@ -37,9 +36,6 @@ namespace kagome::runtime {
         ParachainId id) override;
 
     outcome::result<std::vector<ValidatorId>> validators() override;
-
-   private:
-    std::unique_ptr<RuntimeApi> runtime_;
   };
 }  // namespace kagome::runtime
 

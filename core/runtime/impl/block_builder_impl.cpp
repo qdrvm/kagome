@@ -5,13 +5,9 @@
 
 #include "runtime/impl/block_builder_impl.hpp"
 
-#include <utility>
-#include <vector>
-
 #include "runtime/impl/runtime_api.hpp"
 
 namespace kagome::runtime {
-
   using common::Buffer;
   using extensions::Extension;
   using primitives::Block;
@@ -21,38 +17,34 @@ namespace kagome::runtime {
   using primitives::InherentData;
 
   BlockBuilderImpl::BlockBuilderImpl(Buffer state_code,
-                                     std::shared_ptr<Extension> extension) {
-    runtime_ = std::make_unique<RuntimeApi>(std::move(state_code),
-                                            std::move(extension));
-  }
-
-  BlockBuilderImpl::~BlockBuilderImpl() {}
+                                     std::shared_ptr<Extension> extension)
+      : RuntimeApi(std::move(state_code), std::move(extension)) {}
 
   outcome::result<bool> BlockBuilderImpl::apply_extrinsic(
       const Extrinsic &extrinsic) {
     // TODO(Harrm) PRE-154 figure out what wasm function returns
-    return runtime_->execute<bool>("BlockBuilder_apply_extrinsic", extrinsic);
+    return execute<bool>("BlockBuilder_apply_extrinsic", extrinsic);
   }
 
   outcome::result<BlockHeader> BlockBuilderImpl::finalize_block() {
     // TODO(Harrm) PRE-154 figure out what wasm function returns
-    return runtime_->execute<BlockHeader>("BlockBuilder_finalize_block");
+    return execute<BlockHeader>("BlockBuilder_finalize_block");
   }
 
   outcome::result<std::vector<Extrinsic>> BlockBuilderImpl::inherent_extrinsics(
       const InherentData &data) {
-    return runtime_->execute<std::vector<Extrinsic>>(
-        "BlockBuilder_inherent_extrinsics", data);
+    return execute<std::vector<Extrinsic>>("BlockBuilder_inherent_extrinsics",
+                                           data);
   }
 
   outcome::result<CheckInherentsResult> BlockBuilderImpl::check_inherents(
       const Block &block, const InherentData &data) {
-    return runtime_->execute<CheckInherentsResult>(
-        "BlockBuilder_check_inherents", block, data);
+    return execute<CheckInherentsResult>("BlockBuilder_check_inherents", block,
+                                         data);
   }
 
   outcome::result<common::Hash256> BlockBuilderImpl::random_seed() {
     // TODO(Harrm) PRE-154 Figure out what it requires
-    return runtime_->execute<common::Hash256>("BlockBuilder_random_seed");
+    return execute<common::Hash256>("BlockBuilder_random_seed");
   }
 }  // namespace kagome::runtime

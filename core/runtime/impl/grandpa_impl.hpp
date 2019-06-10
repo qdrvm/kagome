@@ -11,14 +11,12 @@
 #include "runtime/impl/runtime_api.hpp"
 
 namespace kagome::runtime {
-  class RuntimeApi;
-
-  class GrandpaImpl : public Grandpa {
+  class GrandpaImpl : public RuntimeApi, public Grandpa {
    public:
     GrandpaImpl(common::Buffer state_code,
                 std::shared_ptr<extensions::Extension> extension);
 
-    ~GrandpaImpl() override;
+    ~GrandpaImpl() override = default;
 
     outcome::result<std::optional<ScheduledChange>> pending_change(
         const Digest &digest) override;
@@ -27,9 +25,6 @@ namespace kagome::runtime {
         const Digest &digest) override;
 
     outcome::result<std::vector<WeightedAuthority>> authorities() override;
-
-   private:
-    std::unique_ptr<RuntimeApi> runtime_;
   };
 }  // namespace kagome::runtime
 

@@ -14,7 +14,6 @@
 #include "scale/scale.hpp"
 
 namespace kagome::runtime {
-
   /**
    * @brief base class for all runtime apis
    */
@@ -28,13 +27,14 @@ namespace kagome::runtime {
 
     /**
      * @brief executes wasm export method returning non-void result
-     * @tparam R non-void result type
+     * @tparam R result type including void
      * @tparam Args arguments types list
      * @param name export method name
      * @param args arguments
      * @return parsed result or error
      */
-    template <typename R, typename = std::enable_if_t<!std::is_same_v<R, void>>,
+    template <typename R,  // typename = std::enable_if_t<!std::is_same_v<R,
+                           // void>>,
               typename... Args>
     outcome::result<R> execute(std::string_view name, Args &&... args) {
       runtime::WasmPointer ptr = 0u;
@@ -51,39 +51,19 @@ namespace kagome::runtime {
       wasm::Name wasm_name = std::string(name);
       OUTCOME_TRY(res, executor_.call(state_code_, wasm_name, ll));
 
-      runtime::WasmPointer res_addr = getWasmAddr(res.geti64());
-      runtime::SizeType res_len = getWasmLen(res.geti64());
-      // TODO (yuraz) PRE-98: after check for memory overflow is done, refactor
-      // it
-      auto buffer = memory_->loadN(res_addr, res_len);
-
-      return scale::decode<R>(buffer);
-    }
-
-    /**
-     * @brief executes wasm export method returning nothing
-     * @tparam Args arguments types list
-     * @param name export method name
-     * @param args arguments
-     * @return success of error
-     */
-    template <typename... Args>
-    outcome::result<void> execute(std::string_view name, Args &&... args) {
-      runtime::WasmPointer ptr = 0u;
-      runtime::SizeType len = 0u;
-
-      if constexpr (sizeof...(args) > 0) {
-        OUTCOME_TRY(buffer, scale::encode(std::forward<Args>(args)...));
-        len = buffer.size();
-        ptr = memory_->allocate(len);
-        memory_->storeBuffer(ptr, common::Buffer(std::move(buffer)));
+      if constexpr (std::is_same<void, R>::value) {
+        return outcome::success();
       }
 
-      wasm::LiteralList ll{wasm::Literal(ptr), wasm::Literal(len)};
-      wasm::Name wasm_name = std::string(name);
-      OUTCOME_TRY(executor_.call(state_code_, wasm_name, ll));
+      if constexpr (!std::is_same<void, R>::value) {
+        runtime::WasmPointer res_addr = getWasmAddr(res.geti64());
+        runtime::SizeType res_len = getWasmLen(res.geti64());
+        // TODO (yuraz) PRE-98: after check for memory overflow is done,
+        //  refactor it
+        auto buffer = memory_->loadN(res_addr, res_len);
 
-      return outcome::success();
+        return scale::decode<R>(buffer);
+      }
     }
 
    private:

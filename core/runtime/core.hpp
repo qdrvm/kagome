@@ -16,8 +16,6 @@
 #include "primitives/version.hpp"
 
 namespace kagome::runtime {
-  class RuntimeApi;
-
   /**
    * Core represents mandatory part of runtime api
    */
