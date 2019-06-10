@@ -7,6 +7,7 @@ add_subdirectory(impl)
 
 add_library(memory
     common.hpp
+    wasm_result.hpp
     wasm_memory.hpp
     impl/wasm_memory_impl.hpp
     impl/wasm_memory_impl.cpp

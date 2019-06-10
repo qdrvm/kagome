@@ -11,6 +11,7 @@
 #include "common/buffer.hpp"
 #include "runtime/impl/wasm_executor.hpp"
 #include "runtime/wasm_memory.hpp"
+#include "runtime/wasm_result.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::runtime {
@@ -53,14 +54,11 @@ namespace kagome::runtime {
 
       if constexpr (std::is_same<void, R>::value) {
         return outcome::success();
-      }
-
-      if constexpr (!std::is_same<void, R>::value) {
-        runtime::WasmPointer res_addr = getWasmAddr(res.geti64());
-        runtime::SizeType res_len = getWasmLen(res.geti64());
+      } else {
+        WasmResult r{res.geti64()};
         // TODO (yuraz) PRE-98: after check for memory overflow is done,
         //  refactor it
-        auto buffer = memory_->loadN(res_addr, res_len);
+        auto buffer = memory_->loadN(r.address(), r.length());
 
         return scale::decode<R>(buffer);
       }
