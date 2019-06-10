@@ -15,19 +15,19 @@ namespace kagome::storage::merkle {
    * @brief This class represents a cryptographically authenticated key-value
    * storage - Merkle Trie DB backed by Key-Value database.
    */
-  class TrieDb : public PersistedBufferMap {
+  class TrieDb : public PersistentBufferMap {
    public:
     /**
      * @brief Calculate and return trie root.
-     * @return byte buffer of any size (different hashing algos may be used)
+     * @return byte buffer of any size (different hashing algorithms may be used)
      */
-    virtual common::Buffer getRoot() const = 0;
+    virtual common::Buffer getRootHash() const = 0;
 
     /**
      * remove storage entries which keys start with given prefix
      * @param buf
      */
-    virtual void clearPrefix(const common::Buffer &buf) = 0;
+    virtual outcome::result<void> clearPrefix(const common::Buffer &buf) = 0;
   };
 
 }  // namespace kagome::storage::merkle

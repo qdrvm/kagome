@@ -7,6 +7,7 @@
 #define KAGOME_CORE_COMMON_BYTE_STREAM_HPP_
 
 #include <optional>
+
 #include <outcome/outcome.hpp>
 
 namespace kagome::common {

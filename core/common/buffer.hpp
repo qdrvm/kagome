@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <boost/container_hash/hash.hpp>
+#include <boost/operators.hpp>
 #include <gsl/span>
 #include <outcome/outcome.hpp>
 
@@ -18,7 +19,9 @@ namespace kagome::common {
   /**
    * @brief Class represents arbitrary (including empty) byte buffer.
    */
-  class Buffer {
+  class Buffer : public boost::equality_comparable<Buffer>,
+                 public boost::equality_comparable<gsl::span<uint8_t>>,
+                 public boost::equality_comparable<std::vector<uint8_t>> {
    public:
     using iterator = std::vector<uint8_t>::iterator;
     using const_iterator = std::vector<uint8_t>::const_iterator;
@@ -38,7 +41,7 @@ namespace kagome::common {
      * @brief lvalue construct buffer from a byte vector
      */
     explicit Buffer(std::vector<uint8_t> v);
-    explicit Buffer(gsl::span<uint8_t> s);
+    explicit Buffer(gsl::span<const uint8_t> s);
 
     Buffer(const uint8_t *begin, const uint8_t *end);
 
