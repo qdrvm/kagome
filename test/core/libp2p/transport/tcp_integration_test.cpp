@@ -116,8 +116,6 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
     EXPECT_OUTCOME_TRUE(written, conn->write(buf));
     EXPECT_EQ(written, buf.size());
     counter++;
-
-    return outcome::success();
   });
 
   ASSERT_TRUE(listener);
@@ -144,7 +142,6 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
         EXPECT_EQ(written, buf.size());
         EXPECT_OUTCOME_TRUE(readback, conn->read(kSize));
         EXPECT_EQ(buf, readback);
-        return outcome::success();
       });
 
       context.run_for(100ms);
@@ -204,7 +201,6 @@ TEST(TCP, ClientClosesConnection) {
     EXPECT_TRUE(conn->isInitiator());
 
     EXPECT_TRUE(conn->close());
-    return outcome::success();
   });
 
   context.run_for(50ms);
@@ -234,7 +230,6 @@ TEST(TCP, ServerClosesConnection) {
     EXPECT_TRUE(conn->isInitiator());
     EXPECT_OUTCOME_FALSE_2(ec, conn->read(1));
     EXPECT_EQ(ec.value(), (int)boost::asio::error::eof) << ec.message();
-    return outcome::success();
   });
 
   context.run_for(50ms);
