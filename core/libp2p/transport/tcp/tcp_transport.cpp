@@ -11,37 +11,37 @@ namespace libp2p::transport {
                           Transport::HandlerFunc handler) const {
     ufiber::spawn(
         context_,
-        [address, v{std::move(handler)},
+        [address, handler_{std::move(handler)},
          self{this->shared_from_this()}](basic::yield_t yield) mutable {
           if (!self->canDial(address)) {
-            return v(std::errc::address_family_not_supported);
+            return handler_(std::errc::address_family_not_supported);
           }
 
           auto conn = std::make_shared<TcpConnection>(yield);
           auto rendpoint = detail::makeEndpoint(address);
           if (!rendpoint) {
-            return v(rendpoint.error());
+            return handler_(rendpoint.error());
           }
 
           // connect to the other peer
           if (auto r = conn->connect(rendpoint.value()); !r) {
-            return v(r.error());
+            return handler_(r.error());
           }
 
           // upgrade to secure
           auto rsc = self->upgrader_->upgradeToSecure(std::move(conn));
           if (!rsc) {
-            return v(rsc.error());
+            return handler_(rsc.error());
           }
 
           // upgrade to muxed
           auto rmc = self->upgrader_->upgradeToMuxed(std::move(rsc.value()));
           if (!rmc) {
-            return v(rmc.error());
+            return handler_(rmc.error());
           }
 
           // execute handler with value
-          return v(std::move(rmc.value()));
+          return handler_(std::move(rmc.value()));
         });
   }  // namespace libp2p::transport
 
