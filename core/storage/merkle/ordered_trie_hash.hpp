@@ -1,0 +1,8 @@
+//
+// Created by mizuki on 2019-06-10.
+//
+
+#ifndef KAGOME_ORDERED_TRIE_HASH_HPP
+#define KAGOME_ORDERED_TRIE_HASH_HPP
+
+#endif //KAGOME_ORDERED_TRIE_HASH_HPP

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_CORE_STORAGE_MERKLE_TRIE_DB_MAP_STORAGE_HPP_
-#define KAGOME_TEST_CORE_STORAGE_MERKLE_TRIE_DB_MAP_STORAGE_HPP_
+#ifndef KAGOME_STORAGE_IN_MEMORY_STORAGE_IN_MEMORY_STORAGE_HPP
+#define KAGOME_STORAGE_IN_MEMORY_STORAGE_IN_MEMORY_STORAGE_HPP
 
 #include <memory>
 
@@ -12,18 +12,18 @@
 #include "common/buffer.hpp"
 #include "storage/face/persistent_map.hpp"
 
-namespace test {
+namespace kagome::storage {
   using kagome::common::Buffer;
 
   /**
-   * Simple storage that conforms PersistentMap interface to be used in Trie
-   * tests instead of LevelDB
+   * Simple storage that conforms PersistentMap interface
+   * Mostly needed to have an in-memory trie
    */
-  class MapDb : public kagome::storage::face::PersistentMap<Buffer, Buffer> {
+  class InMemoryStorage : public face::PersistentMap<Buffer, Buffer> {
    public:
     class Batch : public kagome::storage::face::WriteBatch<Buffer, Buffer> {
      public:
-      explicit Batch(MapDb &db) : db{db} {}
+      explicit Batch(InMemoryStorage &db) : db{db} {}
 
       outcome::result<void> put(const Buffer &key,
                                 const Buffer &value) override {
@@ -50,7 +50,7 @@ namespace test {
 
      private:
       std::map<std::string, Buffer> entries;
-      MapDb &db;
+      InMemoryStorage &db;
     };
 
     outcome::result<Buffer> get(const Buffer &key) const override {
@@ -91,6 +91,7 @@ namespace test {
 
     std::map<std::string, Buffer> storage;
   };
-}  // namespace test
 
-#endif  // KAGOME_TEST_CORE_STORAGE_MERKLE_TRIE_DB_MAP_STORAGE_HPP_
+}  // namespace kagome::storage
+
+#endif  // KAGOME_STORAGE_IN_MEMORY_STORAGE_IN_MEMORY_STORAGE_HPP
