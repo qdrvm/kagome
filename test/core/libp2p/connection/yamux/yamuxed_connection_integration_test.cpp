@@ -5,6 +5,8 @@
 
 #include "libp2p/connection/yamux/yamuxed_connection.hpp"
 
+#include <future>
+
 #include <gtest/gtest.h>
 #include <testutil/outcome.hpp>
 #include "core/libp2p/transport_fixture/transport_fixture.hpp"
@@ -26,6 +28,8 @@ using libp2p::basic::ReadWriteCloser;
 using libp2p::testing::TransportFixture;
 using std::chrono_literals::operator""ms;
 
+#define CLIENT_FAIL_LAMBDA [](auto &&) { FAIL() << "cannot create client"; }
+
 class YamuxedConnectionIntegrationTest : public TransportFixture {
  public:
   void SetUp() override {
@@ -43,40 +47,62 @@ class YamuxedConnectionIntegrationTest : public TransportFixture {
                     accepted_streams_.push_back(std::move(s));
                   }))
           yamuxed_connection_ = std::move(mux_conn);
-          (void)
-              yamuxed_connection_->start();  // with high probability will
-                                             // return EOF error, but maybe not
+          invokeCallbacks();
+          // with high probability will return EOF error, but maybe not
+          (void)yamuxed_connection_->start();
           return outcome::success();
         },
         [](auto &&) { FAIL() << "cannot create server"; });
   }
 
-  //  /**
-  //   * Get a pointer to a new stream
-  //   * @param expected_stream_id - id, which is expected to be assigned to
-  //   that
-  //   * stream
-  //   * @return pointer to the stream
-  //   */
-  //  std::unique_ptr<libp2p::stream::Stream> getNewStream(
-  //      libp2p::muxer::Yamux::StreamId expected_stream_id =
-  //          kDefaulExpectedStreamId) {
-  //    auto stream = yamux_->newStream().value();
-  //
-  //    auto new_stream_msg = newStreamMsg(expected_stream_id);
-  //    auto rcvd_msg = std::make_shared<Buffer>(new_stream_msg.size(), 0);
-  //    connection_->asyncRead(boost::asio::buffer(rcvd_msg->toVector()),
-  //                           new_stream_msg.size(),
-  //                           [&new_stream_msg, rcvd_msg](auto &&ec, auto &&n)
-  //                           {
-  //                             CHECK_IO_SUCCESS(ec, n, new_stream_msg.size())
-  //                             EXPECT_EQ(*rcvd_msg, new_stream_msg);  //
-  //                             NOLINT
-  //                           });
-  //    context_.run_for(10ms);
-  //
-  //    return stream;
-  //  }
+  /**
+   * Add a callback, which is called, when the connection is dialed and yamuxed
+   * @param cb to be added
+   */
+  void addYamuxCallback(std::function<void()> cb) {
+    if (yamuxed_connection_) {
+      return cb();
+    }
+    yamux_callbacks_.push_back(std::move(cb));
+  }
+
+  void invokeCallbacks() {
+    std::for_each(yamux_callbacks_.begin(), yamux_callbacks_.end(),
+                  [](const auto &cb) { cb(); });
+    yamux_callbacks_.clear();
+  }
+
+  std::shared_ptr<Stream> newStream(
+      std::shared_ptr<ReadWriteCloser> conn,
+      YamuxedConnection::StreamId stream_id = kDefaulExpectedStreamId) {
+    std::future<std::shared_ptr<Stream>> stream_future = std::async(
+        std::launch::deferred,
+        [this, conn = std::move(conn), stream_id]() mutable {
+
+          EXPECT_OUTCOME_TRUE(stream, yamuxed_connection_->newStream())
+          auto new_stream_msg = newStreamMsg(stream_id);
+          EXPECT_OUTCOME_TRUE(stream_msg, conn->read(YamuxFrame::kHeaderLength))
+          EXPECT_EQ(new_stream_msg, stream_msg);
+          return stream;
+        });
+    return stream_future.get();
+
+//    std::promise<std::shared_ptr<Stream>> stream_promise;
+//    auto fut = stream_promise.get_future();
+//
+//    addYamuxCallback(
+//        [this, conn = std::move(conn), stream_id, &stream_promise]() mutable {
+//          EXPECT_OUTCOME_TRUE(stream, yamuxed_connection_->newStream())
+//          auto new_stream_msg = newStreamMsg(stream_id);
+//          EXPECT_OUTCOME_TRUE(stream_msg, conn->read(YamuxFrame::kHeaderLength))
+//          EXPECT_EQ(new_stream_msg, stream_msg);
+//
+//          stream_promise.set_value(stream);
+//        });
+//
+//    fut.wait();
+//    return fut.get();
+  }
 
   std::shared_ptr<CapableConnection> yamuxed_connection_;
   std::vector<std::shared_ptr<Stream>> accepted_streams_;
@@ -87,6 +113,8 @@ class YamuxedConnectionIntegrationTest : public TransportFixture {
 
   /// to be set to true, when client's code is finished
   bool client_finished = false;
+
+  std::vector<std::function<void()>> yamux_callbacks_;
 
   static constexpr YamuxedConnection::StreamId kDefaulExpectedStreamId = 2;
 };
@@ -99,10 +127,7 @@ class YamuxedConnectionIntegrationTest : public TransportFixture {
 TEST_F(YamuxedConnectionIntegrationTest, StreamFromClient) {
   constexpr YamuxedConnection::StreamId created_stream_id = 1;
 
-  auto new_stream_ack_msg_rcv =
-      std::make_shared<Buffer>(YamuxFrame::kHeaderLength, 0);
   auto new_stream_msg = newStreamMsg(created_stream_id);
-
   this->client(
       [this, &new_stream_msg,
        &created_stream_id](std::shared_ptr<RawConnection> conn) mutable {
@@ -118,81 +143,72 @@ TEST_F(YamuxedConnectionIntegrationTest, StreamFromClient) {
         EXPECT_EQ(accepted_streams_.size(), 1);
 
         client_finished = true;
-
         return outcome::success();
       },
-      [](auto &&) { FAIL() << "cannot create client"; });
+      CLIENT_FAIL_LAMBDA);
 
   launchContext();
   ASSERT_TRUE(client_finished);
 }
 
-///**
-// * @given initialized Yamux
-// * @when creating a new stream from the server's side
-// * @then stream is created @and corresponding new stream message is received
-// by
-// * the client
-// */
-// TEST_F(YamuxIntegrationTest, StreamFromServer) {
-//  constexpr Yamux::StreamId expected_stream_id = 2;
-//
-//  auto stream_res = yamux_->newStream();
-//  ASSERT_TRUE(stream_res);
-//
-//  auto stream = std::move(stream_res.value());
-//  ASSERT_FALSE(stream->isClosedForRead());
-//  ASSERT_FALSE(stream->isClosedForWrite());
-//  ASSERT_FALSE(stream->isClosedEntirely());
-//
-//  auto expected_new_stream_msg = newStreamMsg(expected_stream_id);
-//  auto new_stream_msg_buf =
-//      std::make_shared<Buffer>(YamuxFrame::kHeaderLength, 0);
-//  connection_->asyncRead(
-//      boost::asio::buffer(new_stream_msg_buf->toVector()),
-//      YamuxFrame::kHeaderLength,
-//      [new_stream_msg_buf, &expected_new_stream_msg](auto &&ec, auto &&n) {
-//        CHECK_IO_SUCCESS(ec, n, YamuxFrame::kHeaderLength)
-//
-//        ASSERT_EQ(*new_stream_msg_buf, expected_new_stream_msg);
-//      });
-//
-//  launchContext();
-//}
-//
-///**
-// * @given initialized Yamux @and streams, multiplexed by that Yamux
-// * @When writing to that stream
-// * @then the operation is succesfully executed
-// */
-// TEST_F(YamuxIntegrationTest, StreamWrite) {
-//  auto stream = getNewStream();
-//
-//  Buffer data{{0x12, 0x34, 0xAA}};
-//  auto expected_data_msg = dataMsg(kDefaulExpectedStreamId, data);
-//  auto received_data_msg =
-//      std::make_shared<Buffer>(expected_data_msg.size(), 0);
-//
-//  stream->writeAsync(
-//      data,
-//      [this, &data, &expected_data_msg, received_data_msg](auto &&ec,
-//                                                           auto &&n) {
-//        CHECK_IO_SUCCESS(ec, n, data.size())
-//
-//        // check that our written data has achieved the destination
-//        connection_->asyncRead(
-//            boost::asio::buffer(received_data_msg->toVector()),
-//            expected_data_msg.size(),
-//            [&expected_data_msg, received_data_msg](auto &&ec, auto &&n) {
-//              CHECK_IO_SUCCESS(ec, n, expected_data_msg.size())
-//
-//              ASSERT_EQ(*received_data_msg, expected_data_msg);
-//            });
-//      });
-//
-//  launchContext();
-//}
-//
+/**
+ * @given initialized Yamux
+ * @when creating a new stream from the server's side
+ * @then stream is created @and corresponding new stream message is received by
+ * the client
+ */
+TEST_F(YamuxedConnectionIntegrationTest, StreamFromServer) {
+  constexpr YamuxedConnection::StreamId expected_stream_id = 2;
+
+  auto expected_new_stream_msg = newStreamMsg(expected_stream_id);
+  this->client(
+      [this, &expected_new_stream_msg](auto &&conn) mutable {
+        // create a new stream
+        addYamuxCallback([this]() {
+          EXPECT_OUTCOME_TRUE(stream, yamuxed_connection_->newStream())
+          EXPECT_FALSE(stream->isClosedForRead());
+          EXPECT_FALSE(stream->isClosedForWrite());
+          EXPECT_FALSE(stream->isClosed());
+        });
+
+        // check the client has received a message about that stream
+        EXPECT_OUTCOME_TRUE(new_stream_msg,
+                            conn->read(YamuxFrame::kHeaderLength))
+        EXPECT_EQ(new_stream_msg, expected_new_stream_msg.toVector());
+
+        client_finished = true;
+        return outcome::success();
+      },
+      CLIENT_FAIL_LAMBDA);
+
+  launchContext();
+  ASSERT_TRUE(client_finished);
+}
+
+/**
+ * @given initialized Yamux @and streams, multiplexed by that Yamux
+ * @When writing to that stream
+ * @then the operation is succesfully executed
+ */
+TEST_F(YamuxedConnectionIntegrationTest, StreamWrite) {
+  Buffer data{{0x12, 0x34, 0xAA}};
+  auto expected_data_msg = dataMsg(kDefaulExpectedStreamId, data);
+
+  this->client(
+      [this, &expected_data_msg, &data](auto &&conn) {
+        auto stream = newStream(conn);
+
+        EXPECT_TRUE(stream->write(data));
+        EXPECT_OUTCOME_TRUE(received_data, conn->read(expected_data_msg.size()))
+        EXPECT_EQ(received_data, expected_data_msg.toVector());
+
+        return outcome::success();
+      },
+      CLIENT_FAIL_LAMBDA);
+
+  launchContext();
+}
+
 ///**
 // * @given initialized Yamux @and streams, multiplexed by that Yamux
 // * @when reading from that stream

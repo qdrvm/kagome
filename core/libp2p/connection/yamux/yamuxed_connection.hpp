@@ -210,27 +210,54 @@ namespace libp2p::connection {
      */
     void streamAddWindowUpdateHandler(StreamId stream_id,
                                       ReadWriteCompletionHandler handler);
+
+    /**
+     * Write bytes to the connection; before calling this method, the stream
+     * must ensure that no write operations are currently running
+     * @param stream_id, for which the bytes are to be written
+     * @param msg - bytes to be written
+     * @param some - some or all bytes must be written
+     * @return number of bytes written or error
+     */
     outcome::result<size_t> streamWrite(StreamId stream_id,
                                         gsl::span<const uint8_t> msg,
                                         bool some);
-    std::map<StreamId, std::queue<ReadWriteCompletionHandler>>
-        streams_write_handlers_;
+    std::map<StreamId, ReadWriteCompletionHandler> streams_write_handlers_;
 
     /**
-     * Read a data for a specified (\param stream_id)
+     * Read a data for a specified (\param stream_id); before calling this
+     * method, the stream must ensure that no read operations are currently
+     * running
      * @param stream_id, for which the data is to be read
      * @param handler, which is called, when the data for that stream_id is
      * arrived; if it returns true, it means that read operation is finished on
      * the stream's side
      */
     void streamRead(StreamId stream_id, ReadWriteCompletionHandler handler);
-    std::map<StreamId, std::queue<ReadWriteCompletionHandler>>
-        streams_read_handlers_;
+    std::map<StreamId, ReadWriteCompletionHandler> streams_read_handlers_;
 
+    /**
+     * Send an acknowledgement, that a number of bytes was consumed by the
+     * stream
+     * @param stream_id of the stream
+     * @param bytes - number of consumed bytes
+     * @return nothing on success, error otherwise
+     */
     outcome::result<void> streamAckBytes(StreamId stream_id, uint32_t bytes);
 
+    /**
+     * Send a message, which denotes, that this stream is not going to write any
+     * bytes from now on
+     * @param stream_id of the stream
+     * @return nothing on success, error otherwise
+     */
     outcome::result<void> streamClose(StreamId stream_id);
 
+    /**
+     * Send a message, which denotes, that this stream is not going to write or
+     * read any bytes from now on
+     * @param stream_id of the stream
+     */
     void streamReset(StreamId stream_id);
   };
 }  // namespace libp2p::connection

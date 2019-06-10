@@ -29,22 +29,22 @@ namespace libp2p::connection {
       NOT_WRITABLE = 1,
       NOT_READABLE,
       INVALID_ARGUMENT,
-      RECEIVE_OVERFLOW
+      RECEIVE_OVERFLOW,
+      IS_WRITING,
+      IS_READING
     };
 
-    outcome::result<size_t> write(gsl::span<const uint8_t> in) override;
+    void write(gsl::span<const uint8_t> in,
+               std::function<WriteCallback> cb) override;
 
-    outcome::result<size_t> writeSome(gsl::span<const uint8_t> in) override;
+    void writeSome(gsl::span<const uint8_t> in,
+                   std::function<WriteCallback> cb) override;
 
-    outcome::result<std::vector<uint8_t>> read(size_t bytes) override;
+    void read(size_t bytes, std::function<ReadCallback> cb) override;
 
-    outcome::result<std::vector<uint8_t>> readSome(size_t bytes) override;
+    void readSome(size_t bytes, std::function<ReadCallback> cb) override;
 
-    outcome::result<size_t> read(gsl::span<uint8_t> buf) override;
-
-    outcome::result<size_t> readSome(gsl::span<uint8_t> buf) override;
-
-    void reset() override;
+    outcome::result<void> reset() override;
 
     bool isClosedForRead() const noexcept override;
 
@@ -52,11 +52,20 @@ namespace libp2p::connection {
 
     bool isClosed() const noexcept override;
 
-    outcome::result<void> close() override;
+    void close(const std::function<void(outcome::result<void>)> &cb) override;
 
-    outcome::result<void> adjustWindowSize(uint32_t new_size) override;
+    void adjustWindowSize(
+        uint32_t new_size,
+        const std::function<void(outcome::result<void>)> &cb) override;
 
    private:
+    /**
+     * Internal proxy method for writes; (\param some) denotes if the write
+     * should write 'some' or 'all' bytes
+     */
+    void write(gsl::span<const uint8_t> in, std::function<WriteCallback> cb,
+               bool some);
+
     std::shared_ptr<YamuxedConnection> yamux_;
     YamuxedConnection::StreamId stream_id_;
 
@@ -79,8 +88,13 @@ namespace libp2p::connection {
     /// buffer with bytes, not consumed by this stream
     boost::asio::streambuf read_buffer_;
 
-    /// YamuxedConnection API starts here
+    /// is the stream reading right now?
+    bool is_reading_ = false;
 
+    /// is the stream writing right now?
+    bool is_writing_ = false;
+
+    /// YamuxedConnection API starts here
     friend class YamuxedConnection;
 
     /**
