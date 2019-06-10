@@ -38,7 +38,7 @@ namespace kagome::storage::merkle {
     enum class Error { INVALID_NODE_TYPE = 1 };
 
    public:
-    PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db);
+    explicit PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db = );
     ~PolkadotTrieDb() override = default;
 
     common::Buffer getRootHash() const override;

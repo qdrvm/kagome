@@ -10,7 +10,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"
-#include "testutil/storage/map_storage.hpp"
+#include "storage/inmem_storage/inmem_storage.hpp"
 #include "testutil/storage/polkadot_trie_db_printer.hpp"
 
 using kagome::common::Buffer;
