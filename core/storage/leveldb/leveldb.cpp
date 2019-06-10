@@ -69,6 +69,11 @@ namespace kagome::storage {
     return error_as_result<void>(status, logger_);
   }
 
+  outcome::result<void> LevelDB::put(const Buffer &key, Buffer &&value) {
+    Buffer copy(std::move(value));
+    return put(key, copy);
+  }
+
   outcome::result<void> LevelDB::remove(const Buffer &key) {
     auto status = db_->Delete(wo_, make_slice(key));
     if (status.ok()) {

@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/merkle/polkadot_trie_db/polkadot_codec.hpp"
+#include "storage/trie/polkadot_trie_db/polkadot_codec.hpp"
 
 #include "crypto/blake2/blake2s.h"
 #include "scale/scale.hpp"
 #include "scale/scale_decoder_stream.hpp"
-#include "storage/merkle/polkadot_trie_db/polkadot_node.hpp"
+#include "storage/trie/polkadot_trie_db/polkadot_node.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::merkle, PolkadotCodec::Error, e) {
-  using E = kagome::storage::merkle::PolkadotCodec::Error;
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotCodec::Error, e) {
+  using E = kagome::storage::trie::PolkadotCodec::Error;
   switch (e) {
     case E::SUCCESS:
       return "success";
@@ -26,7 +26,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::merkle, PolkadotCodec::Error, e) {
   return "unknown";
 }
 
-namespace kagome::storage::merkle {
+namespace kagome::storage::trie {
 
   inline uint8_t lowNibble(uint8_t byte) {
     return byte & 0xFu;
@@ -336,4 +336,4 @@ namespace kagome::storage::merkle {
     return node;
   }
 
-}  // namespace kagome::storage::merkle
+}  // namespace kagome::storage::trie

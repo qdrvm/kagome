@@ -3,23 +3,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_STORAGE_MERKLE_POLKADOT_TRIE_DB_BUFFER_STREAM_HPP_
-#define KAGOME_CORE_STORAGE_MERKLE_POLKADOT_TRIE_DB_BUFFER_STREAM_HPP_
+#ifndef KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_BUFFER_STREAM_HPP
+#define KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_BUFFER_STREAM_HPP
 
 #include <gsl/span>
 #include "common/buffer.hpp"
 
-namespace kagome::storage::merkle {
+namespace kagome::storage::trie {
 
   /**
    * Needed for decoding, might be replaced to a more common stream in the
    * future, when one appears
    */
   class BufferStream {
+      using index_type = gsl::span<const uint8_t>::index_type;
+
    public:
     explicit BufferStream(const common::Buffer &buf) : data_{buf.toVector()} {}
 
-    bool hasMore(size_t num_bytes) const {
+    bool hasMore(index_type num_bytes) const {
       return data_.size() >= num_bytes;
     }
 
@@ -36,5 +38,5 @@ namespace kagome::storage::merkle {
    private:
     gsl::span<const uint8_t> data_;
   };
-}  // namespace kagome::storage::merkle
-#endif  // KAGOME_CORE_STORAGE_MERKLE_POLKADOT_TRIE_DB_BUFFER_STREAM_HPP_
+}  // namespace kagome::storage::trie
+#endif  // KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_BUFFER_STREAM_HPP

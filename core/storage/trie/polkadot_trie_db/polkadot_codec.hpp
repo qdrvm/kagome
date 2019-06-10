@@ -3,19 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_MERKLE_UTIL_IMPL_HPP
-#define KAGOME_MERKLE_UTIL_IMPL_HPP
+#ifndef KAGOME_TRIE_POLKADOT_CODEC_IMPL_HPP
+#define KAGOME_TRIE_POLKADOT_CODEC_IMPL_HPP
 
 #include <memory>
 #include <optional>
 #include <string>
 
 #include "common/byte_stream.hpp"
-#include "storage/merkle/codec.hpp"
-#include "storage/merkle/polkadot_trie_db/buffer_stream.hpp"
-#include "storage/merkle/polkadot_trie_db/polkadot_node.hpp"
+#include "storage/trie/codec.hpp"
+#include "storage/trie/polkadot_trie_db/buffer_stream.hpp"
+#include "storage/trie/polkadot_trie_db/polkadot_node.hpp"
 
-namespace kagome::storage::merkle {
+namespace kagome::storage::trie {
 
   class PolkadotCodec : public Codec {
    public:
@@ -63,8 +63,8 @@ namespace kagome::storage::merkle {
         BufferStream& stream) const;
   };
 
-}  // namespace kagome::storage::merkle
+}  // namespace kagome::storage::trie
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::storage::merkle, PolkadotCodec::Error);
+OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie, PolkadotCodec::Error);
 
-#endif  // KAGOME_MERKLE_UTIL_IMPL_HPP
+#endif  // KAGOME_TRIE_POLKADOT_CODEC_IMPL_HPP

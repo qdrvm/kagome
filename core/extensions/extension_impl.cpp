@@ -9,7 +9,7 @@ namespace kagome::extensions {
 
   ExtensionImpl::ExtensionImpl(
       const std::shared_ptr<runtime::WasmMemory> &memory,
-      std::shared_ptr<storage::merkle::TrieDb> db)
+      std::shared_ptr<storage::trie::TrieDb> db)
       : memory_(memory),
         db_(std::move(db)),
         crypto_ext_(memory),
