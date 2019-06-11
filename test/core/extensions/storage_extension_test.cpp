@@ -268,6 +268,13 @@ INSTANTIATE_TEST_CASE_P(Instance, OutcomeParameterizedTest,
                         // empty argument for the macro
 );
 
+/**
+ * @given a set of values, which ordered trie hash we want to calculate from
+ * wasm
+ * @when calling an extension method ext_blake2_256_enumerated_trie_root
+ * @then the method reads the data from wasm memory properly and stores the
+ * result in the wasm memory
+ */
 TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
   auto values = GetParam();
 
@@ -291,6 +298,8 @@ TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
       values_ptr, lens_ptr, values.size(), result);
 }
 
+// TODO(Harrm): Find tests from other PolkaDot implementations and test against
+// their input/output, as it must match
 INSTANTIATE_TEST_CASE_P(Instance, BuffersParametrizedTest,
                         testing::Values<std::list<Buffer>>(
                             std::list<Buffer>{"aardvark"_buf, "beguine"_buf,
