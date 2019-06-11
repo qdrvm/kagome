@@ -26,8 +26,7 @@ namespace kagome::storage::trie {
                                                            const It &end) {
     // clang-format off
     static_assert(
-        std::is_same_v<typename It::value_type, common::Buffer>
-            or std::is_same_v<std::decay_t<decltype(*begin)>, common::Buffer>);
+        std::is_same_v<std::decay_t<decltype(*begin)>, common::Buffer>);
     // clang-format on
     PolkadotTrie trie;
     It it = begin;
