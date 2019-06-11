@@ -12,23 +12,32 @@
 namespace kagome::storage {
 
   class InMemoryBatch
-      : public kagome::storage::face::WriteBatch<Buffer, Buffer> {
+      : public kagome::storage::face::WriteBatch<common::Buffer,
+                                                 common::Buffer> {
    public:
-    explicit Batch(InMemoryStorage &db) : db{db} {}
+    explicit InMemoryBatch(InMemoryStorage &db) : db{db} {}
 
-    outcome::result<void> put(const Buffer &key, const Buffer &value) override {
+    outcome::result<void> put(const common::Buffer &key,
+                              const common::Buffer &value) override {
       entries[key.toHex()] = value;
       return outcome::success();
     }
 
-    outcome::result<void> remove(const Buffer &key) override {
+    outcome::result<void> put(const common::Buffer &key,
+                              common::Buffer &&value) override {
+      entries[key.toHex()] = std::move(value);
+      return outcome::success();
+    }
+
+    outcome::result<void> remove(const common::Buffer &key) override {
       entries.erase(key.toHex());
       return outcome::success();
     }
 
     outcome::result<void> commit() override {
       for (auto &entry : entries) {
-        OUTCOME_TRY(db.put(Buffer::fromHex(entry.first).value(), entry.second));
+        OUTCOME_TRY(
+            db.put(common::Buffer::fromHex(entry.first).value(), entry.second));
       }
       return outcome::success();
     }
@@ -38,7 +47,7 @@ namespace kagome::storage {
     }
 
    private:
-    std::map<std::string, Buffer> entries;
+    std::map<std::string, common::Buffer> entries;
     InMemoryStorage &db;
   };
 }  // namespace kagome::storage

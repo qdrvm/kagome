@@ -6,11 +6,10 @@
 #ifndef KAGOME_ORDERED_TRIE_HASH_HPP
 #define KAGOME_ORDERED_TRIE_HASH_HPP
 
-#include "common/blob.hpp"
 #include "common/buffer.hpp"
-#include "storage/merkle/trie_db.hpp"
+#include "storage/trie/trie_db.hpp"
 
-namespace kagome::storage::merkle {
+namespace kagome::storage::trie {
 
   template <typename It>
   common::Hash256 calculateOrderedTrieHash(const It &begin, const It &end) {
@@ -30,6 +29,6 @@ namespace kagome::storage::merkle {
     return trie.getRootHash();
   }
 
-}  // namespace kagome::storage::merkle
+}  // namespace kagome::storage::trie
 
 #endif  // KAGOME_ORDERED_TRIE_HASH_HPP

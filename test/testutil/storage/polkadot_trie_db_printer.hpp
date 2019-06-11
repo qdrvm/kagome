@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_STORAGE_MERKLE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_PRINTER_HPP_
-#define KAGOME_CORE_STORAGE_MERKLE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_PRINTER_HPP_
+#ifndef KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_PRINTER_HPP
+#define KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_PRINTER_HPP
 
-#include "storage/merkle/polkadot_trie_db/polkadot_trie_db.hpp"
+#include "storage/trie/polkadot_trie_db/polkadot_trie_db.hpp"
 
 /**
  * IMPORTANT: This module is meant only for test usage and is not exception-safe
  */
 
-namespace kagome::storage::merkle {
+namespace kagome::storage::trie {
 
   namespace {
     std::string nibblesToStr(const Buffer &nibbles) {
@@ -30,14 +30,14 @@ namespace kagome::storage::merkle {
   template <typename Stream>
   Stream &operator<<(Stream &s, const PolkadotTrieDb &trie) {
     if (trie.root_.has_value()) {
-      auto root = trie.retrieveNode(trie.root_.value()).value();
+      auto root = trie.retrieveNode(trie.getRootHash()).value();
       printNode(s, root, trie, 0);
     }
     return s;
   }
 
   template <typename Stream>
-  Stream &printNode(Stream &s, PolkadotTrieDb::NodePtr node,
+  Stream &printNode(Stream &s, const PolkadotTrieDb::NodePtr &node,
                     const PolkadotTrieDb &trie, size_t nest_level) {
     using T = PolkadotNode::Type;
     std::string indent(nest_level, '\t');
@@ -78,6 +78,6 @@ namespace kagome::storage::merkle {
     }
     return s;
   }
-}  // namespace kagome::storage::merkle
+}  // namespace kagome::storage::trie
 
-#endif  // KAGOME_CORE_STORAGE_MERKLE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_PRINTER_HPP_
+#endif  // KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_PRINTER_HPP

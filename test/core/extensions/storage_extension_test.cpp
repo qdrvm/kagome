@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "core/runtime/mock_memory.hpp"
-#include "core/storage/merkle/mock_trie_db.hpp"
+#include "core/storage/trie/mock_trie_db.hpp"
 #include "testutil/literals.hpp"
 
 using kagome::common::Buffer;
@@ -15,7 +15,7 @@ using kagome::extensions::StorageExtension;
 using kagome::runtime::MockMemory;
 using kagome::runtime::SizeType;
 using kagome::runtime::WasmPointer;
-using kagome::storage::merkle::MockTrieDb;
+using kagome::storage::trie::MockTrieDb;
 
 using ::testing::_;
 using ::testing::Return;

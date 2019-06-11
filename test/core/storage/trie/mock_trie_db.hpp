@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_CORE_STORAGE_MERKLE_MOCK_TRIE_DB_HPP_
-#define KAGOME_TEST_CORE_STORAGE_MERKLE_MOCK_TRIE_DB_HPP_
+#ifndef KAGOME_TEST_CORE_STORAGE_TRIE_MOCK_TRIE_DB_HPP
+#define KAGOME_TEST_CORE_STORAGE_TRIE_MOCK_TRIE_DB_HPP
 
 #include <gmock/gmock.h>
-#include "storage/merkle/trie_db.hpp"
+#include "storage/trie/trie_db.hpp"
 
-namespace kagome::storage::merkle {
+namespace kagome::storage::trie {
 
   class MockTrieDb : public TrieDb {
    public:
@@ -19,6 +19,14 @@ namespace kagome::storage::merkle {
     MOCK_METHOD2(put,
                  outcome::result<void>(const common::Buffer &,
                                        const common::Buffer &));
+    // as GMock doesn't support rvalue-references
+    MOCK_METHOD2(put_proxy,
+                 outcome::result<void>(const common::Buffer &, common::Buffer));
+
+    outcome::result<void> put(const common::Buffer &key,
+                              common::Buffer &&value) override {
+      return put_proxy(key, std::move(value));
+    }
     MOCK_CONST_METHOD1(get,
                        outcome::result<common::Buffer>(const common::Buffer &));
     MOCK_METHOD1(remove, outcome::result<void>(const common::Buffer &));
@@ -28,6 +36,6 @@ namespace kagome::storage::merkle {
     MOCK_METHOD0(batch, std::unique_ptr<BufferBatch>());
   };
 
-}  // namespace kagome::storage::merkle
+}  // namespace kagome::storage::trie
 
-#endif  // KAGOME_TEST_CORE_STORAGE_MERKLE_MOCK_TRIE_DB_HPP_
+#endif  // KAGOME_TEST_CORE_STORAGE_TRIE_MOCK_TRIE_DB_HPP

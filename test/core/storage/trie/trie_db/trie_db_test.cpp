@@ -3,19 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/merkle/polkadot_trie_db/polkadot_trie_db.hpp"
+#include "storage/trie/polkadot_trie_db/polkadot_trie_db.hpp"
 
 #include <gtest/gtest.h>
 #include "storage/leveldb/leveldb.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"
-#include "storage/inmem_storage/inmem_storage.hpp"
+#include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/storage/polkadot_trie_db_printer.hpp"
 
 using kagome::common::Buffer;
 using kagome::storage::LevelDB;
-using kagome::storage::merkle::PolkadotTrieDb;
+using kagome::storage::trie::PolkadotTrieDb;
 
 /**
  * Automation of operations over a trie
@@ -39,15 +39,23 @@ class TrieTest
     trie = std::make_unique<PolkadotTrieDb>(std::move(db_));
   }
 
-  std::vector<std::pair<Buffer, Buffer>> data = {
-      {"123456"_hex2buf, "42"_hex2buf},
-      {"1234"_hex2buf, "1234"_hex2buf},
-      {"010203"_hex2buf, "0a0b"_hex2buf},
-      {"010a0b"_hex2buf, "1337"_hex2buf},
-      {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
+  static const std::vector<std::pair<Buffer, Buffer>> data;
 
   std::unique_ptr<PolkadotTrieDb> trie;
 };
+
+const std::vector<std::pair<Buffer, Buffer>> TrieTest::data = {
+    {"123456"_hex2buf, "42"_hex2buf},
+    {"1234"_hex2buf, "1234"_hex2buf},
+    {"010203"_hex2buf, "0a0b"_hex2buf},
+    {"010a0b"_hex2buf, "1337"_hex2buf},
+    {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
+
+void FillSmallTree(PolkadotTrieDb& trie) {
+  for (auto &entry : TrieTest::data) {
+    EXPECT_OUTCOME_TRUE_1(trie.put(entry.first, entry.second));
+  }
+}
 
 /**
  * Runs a sequence of commands provided as a test parameter and checks the
@@ -65,13 +73,13 @@ TEST_P(TrieTest, RunCommand) {
         break;
       }
       case Command::PUT: {
-        EXPECT_OUTCOME_TRUE_void(_, trie->put(command.key, command.value));
+        EXPECT_OUTCOME_TRUE_1(trie->put(command.key, command.value));
         EXPECT_OUTCOME_TRUE(val, trie->get(command.key));
         ASSERT_EQ(val, command.value);
         break;
       }
       case Command::REMOVE: {
-        EXPECT_OUTCOME_TRUE_void(_, trie->remove(command.key));
+        EXPECT_OUTCOME_TRUE_1(trie->remove(command.key));
         EXPECT_OUTCOME_TRUE(val, trie->get(command.key));
         ASSERT_NE(val, command.value);
         break;
@@ -226,19 +234,18 @@ INSTANTIATE_TEST_CASE_P(
 
 /**
  * @given an empty trie
- * @when putting some data to it
- * @then inserted data is accessible
+ * @when putting some entries into it
+ * @then all inserted entries are accessible from the trie
  */
 TEST_F(TrieTest, Put) {
-  for (auto &entry : data) {
-    EXPECT_OUTCOME_TRUE_void(_, trie->put(entry.first, entry.second));
-  }
+  FillSmallTree(*trie);
+
   for (auto &entry : data) {
     EXPECT_OUTCOME_TRUE(res, trie->get(entry.first));
     ASSERT_EQ(res, entry.second);
   }
-  EXPECT_OUTCOME_TRUE_void(__, trie->put("102030"_hex2buf, "010203"_hex2buf));
-  EXPECT_OUTCOME_TRUE_void(_, trie->put("104050"_hex2buf, "0a0b0c"_hex2buf));
+  EXPECT_OUTCOME_TRUE_1(trie->put("102030"_hex2buf, "010203"_hex2buf));
+  EXPECT_OUTCOME_TRUE_1(trie->put("104050"_hex2buf, "0a0b0c"_hex2buf));
   EXPECT_OUTCOME_TRUE(v1, trie->get("102030"_hex2buf));
   ASSERT_EQ(v1, "010203"_hex2buf);
   EXPECT_OUTCOME_TRUE(v2, trie->get("104050"_hex2buf));
@@ -251,17 +258,15 @@ TEST_F(TrieTest, Put) {
  * @then removed entries are no longer in the trie, while the rest of them stays
  */
 TEST_F(TrieTest, Remove) {
-  for (auto &entry : data) {
-    EXPECT_OUTCOME_TRUE_void(_, trie->put(entry.first, entry.second));
+  FillSmallTree(*trie);
+
+  for (auto i: {2, 3, 4}) {
+      EXPECT_OUTCOME_TRUE_1(trie->remove(data[i].first));
   }
 
-  EXPECT_OUTCOME_TRUE_void(_, trie->remove(data[2].first));
-  EXPECT_OUTCOME_TRUE_void(__, trie->remove(data[3].first));
-  EXPECT_OUTCOME_TRUE_void(___, trie->remove(data[4].first));
-
-  ASSERT_FALSE(trie->contains(data[2].first));
-  ASSERT_FALSE(trie->contains(data[3].first));
-  ASSERT_FALSE(trie->contains(data[4].first));
+  for (auto i: {2, 3, 4}) {
+    ASSERT_FALSE(trie->contains(data[i].first));
+  }
   ASSERT_TRUE(trie->contains(data[0].first));
   ASSERT_TRUE(trie->contains(data[1].first));
 }
@@ -272,10 +277,9 @@ TEST_F(TrieTest, Remove) {
  * @then the value on the key is updated
  */
 TEST_F(TrieTest, Replace) {
-  for (auto &entry : data) {
-    EXPECT_OUTCOME_TRUE_void(_, trie->put(entry.first, entry.second));
-  }
-  EXPECT_OUTCOME_TRUE_void(__, trie->put(data[1].first, data[3].second));
+  FillSmallTree(*trie);
+
+  EXPECT_OUTCOME_TRUE_1(trie->put(data[1].first, data[3].second));
   EXPECT_OUTCOME_TRUE(res, trie->get(data[1].first));
   ASSERT_EQ(res, data[3].second);
 }
@@ -291,19 +295,19 @@ TEST_F(TrieTest, ClearPrefix) {
                                                  {"bat"_buf, "789"_buf},
                                                  {"batch"_buf, "0-="_buf}};
   for (auto &entry : data) {
-    EXPECT_OUTCOME_TRUE_void(_, trie->put(entry.first, entry.second));
+    EXPECT_OUTCOME_TRUE_1(trie->put(entry.first, entry.second));
   }
-  EXPECT_OUTCOME_TRUE_void(_, trie->clearPrefix("bar"_buf));
+  EXPECT_OUTCOME_TRUE_1(trie->clearPrefix("bar"_buf));
   ASSERT_TRUE(trie->contains("bat"_buf));
   ASSERT_TRUE(trie->contains("batch"_buf));
   ASSERT_FALSE(trie->contains("bark"_buf));
   ASSERT_FALSE(trie->contains("barnacle"_buf));
 
-  EXPECT_OUTCOME_TRUE_void(__, trie->clearPrefix("batc"_buf));
+  EXPECT_OUTCOME_TRUE_1(trie->clearPrefix("batc"_buf));
   ASSERT_TRUE(trie->contains("bat"_buf));
   ASSERT_FALSE(trie->contains("batch"_buf));
 
-  EXPECT_OUTCOME_TRUE_void(___, trie->clearPrefix("b"_buf));
+  EXPECT_OUTCOME_TRUE_1(trie->clearPrefix("b"_buf));
   ASSERT_FALSE(trie->contains("bat"_buf));
   ASSERT_TRUE(trie->getRootHash().empty());
 }
