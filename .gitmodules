@@ -16,3 +16,9 @@
 [submodule "deps/hat-trie"]
 	path = deps/hat-trie
 	url = https://github.com/Tessil/hat-trie.git
+[submodule "continuable"]
+	path = deps/continuable
+	url = https://github.com/Naios/continuable/
+[submodule "function2"]
+	path = deps/function2
+	url = https://github.com/Naios/function2
