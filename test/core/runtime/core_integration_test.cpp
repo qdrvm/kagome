@@ -9,9 +9,8 @@
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
-#include "core/storage/merkle/mock_trie_db.hpp"
+#include "core/storage/trie/mock_trie_db.hpp"
 #include "extensions/extension_impl.hpp"
-#include "primitives/impl/scale_codec_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/wasm_test.hpp"
@@ -24,11 +23,10 @@ using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockNumber;
 using kagome::primitives::Extrinsic;
-using kagome::primitives::ScaleCodecImpl;
 using kagome::runtime::CoreImpl;
 using kagome::runtime::WasmMemory;
 using kagome::runtime::WasmMemoryImpl;
-using kagome::storage::merkle::MockTrieDb;
+using kagome::storage::trie::MockTrieDb;
 
 using ::testing::_;
 using ::testing::Return;
@@ -40,7 +38,7 @@ namespace fs = boost::filesystem;
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    core_ = std::make_shared<CoreImpl>(state_code_, extension_, codec_);
+    core_ = std::make_shared<CoreImpl>(state_code_, extension_);
   }
 
  protected:

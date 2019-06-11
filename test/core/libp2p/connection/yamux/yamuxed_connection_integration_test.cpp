@@ -26,7 +26,6 @@ using libp2p::basic::ReadWriteCloser;
 using libp2p::testing::TransportFixture;
 using std::chrono_literals::operator""ms;
 
-#define CLIENT_FAIL_LAMBDA [](auto &&) { FAIL() << "cannot create client"; }
 #define STREAM_WRITE_CB [](auto &&res) { ASSERT_TRUE(res); }
 
 class YamuxedConnectionIntegrationTest : public TransportFixture {
@@ -35,22 +34,21 @@ class YamuxedConnectionIntegrationTest : public TransportFixture {
     libp2p::testing::TransportFixture::SetUp();
 
     // test fixture is going to create Yamux for the received connection
-    this->server(
-        [this](std::shared_ptr<RawConnection> conn) mutable {
-          EXPECT_OUTCOME_TRUE(sec_conn,
-                              security_adaptor_->secureInbound(std::move(conn)))
-          EXPECT_OUTCOME_TRUE(
-              mux_conn,
-              muxer_adaptor_->muxConnection(
-                  std::move(sec_conn), [this](std::shared_ptr<Stream> s) {
-                    accepted_streams_.push_back(std::move(s));
-                  }))
-          yamuxed_connection_ = std::move(mux_conn);
-          invokeCallbacks();
-          (void)yamuxed_connection_->start();
-          return outcome::success();
-        },
-        [](auto &&) { FAIL() << "cannot create server"; });
+    this->server([this](auto &&conn_res) mutable {
+      EXPECT_OUTCOME_TRUE(conn, conn_res)
+      EXPECT_OUTCOME_TRUE(sec_conn,
+                          security_adaptor_->secureInbound(std::move(conn)))
+      EXPECT_OUTCOME_TRUE(
+          mux_conn,
+          muxer_adaptor_->muxConnection(
+              std::move(sec_conn), [this](std::shared_ptr<Stream> s) {
+                accepted_streams_.push_back(std::move(s));
+              }))
+      yamuxed_connection_ = std::move(mux_conn);
+      invokeCallbacks();
+      (void)yamuxed_connection_->start();
+      return outcome::success();
+    });
   }
 
   /**
@@ -117,8 +115,9 @@ TEST_F(YamuxedConnectionIntegrationTest, StreamFromClient) {
 
   auto new_stream_msg = newStreamMsg(created_stream_id);
   this->client(
-      [this, &new_stream_msg,
-       &created_stream_id](std::shared_ptr<RawConnection> conn) mutable {
+      [this, &new_stream_msg, &created_stream_id](auto &&conn_res) mutable {
+        EXPECT_OUTCOME_TRUE(conn, conn_res)
+
         // open a stream, read the ack and make sure the stream is really
         // created
         EXPECT_TRUE(conn->write(new_stream_msg));
@@ -132,8 +131,7 @@ TEST_F(YamuxedConnectionIntegrationTest, StreamFromClient) {
 
         client_finished = true;
         return outcome::success();
-      },
-      CLIENT_FAIL_LAMBDA);
+      });
 
   launchContext();
   ASSERT_TRUE(client_finished);
@@ -149,27 +147,25 @@ TEST_F(YamuxedConnectionIntegrationTest, StreamFromServer) {
   constexpr YamuxedConnection::StreamId expected_stream_id = 2;
 
   auto expected_new_stream_msg = newStreamMsg(expected_stream_id);
-  this->client(
-      [this, &expected_new_stream_msg](auto &&conn) mutable {
-        // create a new stream
-        addYamuxCallback([this]() {
-          yamuxed_connection_->newStream([](auto &&stream_res) {
-            EXPECT_OUTCOME_TRUE(stream, stream_res)
-            EXPECT_FALSE(stream->isClosedForRead());
-            EXPECT_FALSE(stream->isClosedForWrite());
-            EXPECT_FALSE(stream->isClosed());
-          });
-        });
+  this->client([this, &expected_new_stream_msg](auto &&conn_res) mutable {
+    EXPECT_OUTCOME_TRUE(conn, conn_res)
+    // create a new stream
+    addYamuxCallback([this]() {
+      yamuxed_connection_->newStream([](auto &&stream_res) {
+        EXPECT_OUTCOME_TRUE(stream, stream_res)
+        EXPECT_FALSE(stream->isClosedForRead());
+        EXPECT_FALSE(stream->isClosedForWrite());
+        EXPECT_FALSE(stream->isClosed());
+      });
+    });
 
-        // check the client has received a message about that stream
-        EXPECT_OUTCOME_TRUE(new_stream_msg,
-                            conn->read(YamuxFrame::kHeaderLength))
-        EXPECT_EQ(new_stream_msg, expected_new_stream_msg.toVector());
+    // check the client has received a message about that stream
+    EXPECT_OUTCOME_TRUE(new_stream_msg, conn->read(YamuxFrame::kHeaderLength))
+    EXPECT_EQ(new_stream_msg, expected_new_stream_msg.toVector());
 
-        client_finished = true;
-        return outcome::success();
-      },
-      CLIENT_FAIL_LAMBDA);
+    client_finished = true;
+    return outcome::success();
+  });
 
   launchContext();
   ASSERT_TRUE(client_finished);
@@ -184,25 +180,23 @@ TEST_F(YamuxedConnectionIntegrationTest, StreamWrite) {
   Buffer data{{0x12, 0x34, 0xAA}};
   auto expected_data_msg = dataMsg(kDefaulExpectedStreamId, data);
 
-  this->client(
-      [this, &expected_data_msg, &data](auto &&conn) {
-        addYamuxCallback([this, &expected_data_msg, &data, conn]() mutable {
-          yamuxed_connection_->newStream(
-              [this, &expected_data_msg, &data, conn](auto &&stream_res) {
-                EXPECT_OUTCOME_TRUE(stream, stream_res)
+  this->client([this, &expected_data_msg, &data](auto &&conn_res) {
+    EXPECT_OUTCOME_TRUE(conn, conn_res)
+    addYamuxCallback([this, &expected_data_msg, &data, conn]() mutable {
+      yamuxed_connection_->newStream([this, &expected_data_msg, &data,
+                                      conn](auto &&stream_res) {
+        EXPECT_OUTCOME_TRUE(stream, stream_res)
 
-                stream->write(data, STREAM_WRITE_CB);
-                EXPECT_OUTCOME_TRUE(received_data,
-                                    conn->read(expected_data_msg.size()))
-                EXPECT_EQ(received_data, expected_data_msg.toVector());
+        stream->write(data, STREAM_WRITE_CB);
+        EXPECT_OUTCOME_TRUE(received_data, conn->read(expected_data_msg.size()))
+        EXPECT_EQ(received_data, expected_data_msg.toVector());
 
-                client_finished = true;
-              });
-        });
-        EXPECT_TRUE(conn->read(YamuxFrame::kHeaderLength));
-        return outcome::success();
-      },
-      CLIENT_FAIL_LAMBDA);
+        client_finished = true;
+      });
+    });
+    EXPECT_TRUE(conn->read(YamuxFrame::kHeaderLength));
+    return outcome::success();
+  });
 
   launchContext();
   ASSERT_TRUE(client_finished);

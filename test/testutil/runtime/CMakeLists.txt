@@ -9,7 +9,5 @@ target_link_libraries(
     wasm_test
     Boost::filesystem
     buffer
-    scale_codec
-    wasm_memory_stream
     wasm_executor
 )

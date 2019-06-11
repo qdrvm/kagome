@@ -27,9 +27,8 @@ namespace libp2p::transport {
     using ErrorCallback = void(const std::error_code &);
     using MultiaddrCallback = void(const multi::Multiaddress &);
     using ConnectionCallback =
-        outcome::result<void>(std::shared_ptr<connection::CapableConnection>);
+        void(outcome::result<std::shared_ptr<connection::CapableConnection>>);
     using HandlerFunc = std::function<ConnectionCallback>;
-    using ErrorFunc = std::function<ErrorCallback>;
 
     ~TransportListener() override = default;
 

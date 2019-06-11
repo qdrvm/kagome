@@ -14,8 +14,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::scale, EncodeError, e) {
       return "compact integers cannot be negative";
     case EncodeError::WRONG_CATEGORY:
       return "wrong compact encoding category";
-    default:
-      break;
+    case EncodeError::WRONG_ALTERNATIVE:
+      return "wrong cast to alternative";
   }
   return "unknown EncodeError";
 }
@@ -31,8 +31,19 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::scale, DecodeError, e) {
       return "collection has too many items, unable to unpack";
     case DecodeError::WRONG_TYPE_INDEX:
       return "wrong type index, cannot decode variant";
-    default:
-      break;
+    case DecodeError::INVALID_DATA:
+      return "incorrect source data";
+    case DecodeError::OUT_OF_BOUNDARIES:
+      return "advance went out of boundaries";
   }
   return "unknown DecodeError";
+}
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::scale, CommonError, e) {
+  using kagome::scale::CommonError;
+  switch (e) {
+    case CommonError::UNKNOWN_ERROR:
+      return "unknown error";
+  }
+  return "unknown CommonError";
 }

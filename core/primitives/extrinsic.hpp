@@ -16,6 +16,29 @@ namespace kagome::primitives {
     kagome::common::Buffer data;  ///< extrinsic content as byte array
   };
 
+  /**
+   * @brief outputs object of type Extrinisic to stream
+   * @tparam Stream output stream type
+   * @param s stream reference
+   * @param v value to output
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator<<(Stream &s, const Extrinsic &v) {
+    return s << v.data.toVector();
+  }
+
+  /**
+   * @brief decodes object of type Extrinisic from stream
+   * @tparam Stream input stream type
+   * @param s stream reference
+   * @param v value to output
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator>>(Stream &s, Extrinsic &v) {
+    return s >> v.data;
+  }
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_PRIMITIVES_EXTRINSIC_HPP

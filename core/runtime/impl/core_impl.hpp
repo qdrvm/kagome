@@ -6,19 +6,17 @@
 #ifndef CORE_RUNTIME_CORE_IMPL_HPP
 #define CORE_RUNTIME_CORE_IMPL_HPP
 
-#include "common/logger.hpp"
 #include "extensions/extension.hpp"
-#include "primitives/scale_codec.hpp"
 #include "runtime/core.hpp"
-#include "runtime/impl/wasm_executor.hpp"
+#include "runtime/impl/runtime_api.hpp"
 
 namespace kagome::runtime {
-
-  class CoreImpl : public Core {
+  class CoreImpl : public RuntimeApi, public Core {
    public:
     CoreImpl(common::Buffer state_code,
-             std::shared_ptr<extensions::Extension> extension,
-             std::shared_ptr<primitives::ScaleCodec> codec);
+             std::shared_ptr<extensions::Extension> extension);
+
+    ~CoreImpl() override = default;
 
     outcome::result<primitives::Version> version() override;
 
@@ -30,14 +28,7 @@ namespace kagome::runtime {
 
     outcome::result<std::vector<primitives::AuthorityId>> authorities()
         override;
-
-   private:
-    common::Buffer state_code_;
-    std::shared_ptr<WasmMemory> memory_;
-    WasmExecutor executor_;
-    std::shared_ptr<primitives::ScaleCodec> codec_;
   };
-
 }  // namespace kagome::runtime
 
 #endif  // CORE_RUNTIME_CORE_IMPL_HPP

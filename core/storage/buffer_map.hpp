@@ -9,14 +9,14 @@
 /**
  * This file contains:
  *  - BufferMap - contains key-value bindings of Buffers
- *  - PersistedBufferMap - stores key-value bindings on filesystem or remote
+ *  - PersistentBufferMap - stores key-value bindings on filesystem or remote
  * connection.
  */
 
 #include <gsl/span>
 #include "common/buffer.hpp"
 #include "storage/face/generic_map.hpp"
-#include "storage/face/persisted_map.hpp"
+#include "storage/face/persistent_map.hpp"
 #include "storage/face/write_batch.hpp"
 
 namespace kagome::storage {
@@ -27,7 +27,7 @@ namespace kagome::storage {
 
   using BufferBatch = face::WriteBatch<Buffer, Buffer>;
 
-  using PersistedBufferMap = face::PersistedMap<Buffer, Buffer>;
+  using PersistentBufferMap = face::PersistentMap<Buffer, Buffer>;
 
   using BufferMapCursor = face::MapCursor<Buffer, Buffer>;
 

@@ -5,8 +5,6 @@
 
 #include "libp2p/connection/yamux/yamuxed_connection.hpp"
 
-#include <future>
-
 #include "libp2p/connection/yamux/yamux_frame.hpp"
 #include "libp2p/connection/yamux/yamux_stream.hpp"
 

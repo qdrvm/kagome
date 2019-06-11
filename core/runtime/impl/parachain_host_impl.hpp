@@ -6,20 +6,14 @@
 #ifndef KAGOME_CORE_RUNTIME_IMPL_PARACHAIN_HOST_IMPL_HPP
 #define KAGOME_CORE_RUNTIME_IMPL_PARACHAIN_HOST_IMPL_HPP
 
+#include "extensions/extension.hpp"
 #include "runtime/parachain_host.hpp"
-
-#include <outcome/outcome.hpp>
-#include "primitives/scale_codec.hpp"
-#include "runtime/impl/wasm_executor.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
-#include "runtime/wasm_memory.hpp"
+#include "runtime/impl/runtime_api.hpp"
 
 namespace kagome::runtime {
-
-  class ParachainHostImpl : public ParachainHost {
+  class ParachainHostImpl : public RuntimeApi, public ParachainHost {
    public:
-    ~ParachainHostImpl() override = default;
-
     /**
      * @brief constructor
      * @param state_code error or result code
@@ -27,28 +21,22 @@ namespace kagome::runtime {
      * @param codec scale codec instance
      */
     ParachainHostImpl(common::Buffer state_code,
-                      std::shared_ptr<extensions::Extension> extension,
-                      std::shared_ptr<primitives::ScaleCodec> codec);
+                      std::shared_ptr<extensions::Extension> extension);
 
-    outcome::result<DutyRoster> dutyRoster() override;
+    ~ParachainHostImpl() override = default;
 
-    outcome::result<std::vector<ParachainId>> activeParachains() override;
+    outcome::result<DutyRoster> duty_roster() override;
 
-    outcome::result<std::optional<Buffer>> parachainHead(
+    outcome::result<std::vector<ParachainId>> active_parachains() override;
+
+    outcome::result<std::optional<Buffer>> parachain_head(
         ParachainId id) override;
 
     outcome::result<std::optional<Buffer>> parachainCode(
         ParachainId id) override;
 
     outcome::result<std::vector<ValidatorId>> validators() override;
-
-   private:
-    std::shared_ptr<WasmMemory> memory_;
-    std::shared_ptr<primitives::ScaleCodec> codec_;
-    WasmExecutor executor_;
-    common::Buffer state_code_;
   };
-
 }  // namespace kagome::runtime
 
 #endif  // KAGOME_CORE_RUNTIME_IMPL_PARACHAIN_HOST_IMPL_HPP

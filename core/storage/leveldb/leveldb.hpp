@@ -14,10 +14,10 @@
 namespace kagome::storage {
 
   /**
-   * @brief An implementation of PersistedBufferMap interface, which uses
+   * @brief An implementation of PersistentBufferMap interface, which uses
    * LevelDB as underlying storage.
    */
-  class LevelDB : public PersistedBufferMap {
+  class LevelDB : public PersistentBufferMap {
    public:
     class Batch;
     class Cursor;
@@ -56,6 +56,9 @@ namespace kagome::storage {
     bool contains(const Buffer &key) const override;
 
     outcome::result<void> put(const Buffer &key, const Buffer &value) override;
+
+    // value will be copied, not moved, due to internal structure of LevelDB
+    outcome::result<void> put(const Buffer &key, Buffer &&value) override;
 
     outcome::result<void> remove(const Buffer &key) override;
 

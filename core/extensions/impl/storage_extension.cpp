@@ -7,7 +7,7 @@
 
 namespace kagome::extensions {
   StorageExtension::StorageExtension(
-      std::shared_ptr<storage::merkle::TrieDb> db,
+      std::shared_ptr<storage::trie::TrieDb> db,
       std::shared_ptr<runtime::WasmMemory> memory, common::Logger logger)
       : db_(std::move(db)),
         memory_(std::move(memory)),
@@ -110,7 +110,7 @@ namespace kagome::extensions {
   }
 
   void StorageExtension::ext_storage_root(runtime::WasmPointer result) const {
-    const auto &root = db_->getRoot();
+    const auto &root = db_->getRootHash();
     memory_->storeBuffer(result, root);
   }
 

@@ -27,19 +27,15 @@ namespace libp2p::testing {
 
     /**
      * Provide functions to be executed as a server side of the connection
-     * @param on_success - function to be executed in case of success
-     * @param on_error  - function to be executed in case of failure
+     * @param handler - function to be executed on new connection
      */
-    void server(const transport::TransportListener::HandlerFunc &on_success,
-                const transport::TransportListener::ErrorFunc &on_error);
+    void server(const transport::TransportListener::HandlerFunc &handler);
 
     /**
      * Provide functions to be executed as a client side of the connection
-     * @param on_success - function to be executed in case of success
-     * @param on_error  - function to be executed in case of failure
+     * @param handler - function to be executed on
      */
-    void client(const transport::TransportListener::HandlerFunc &on_success,
-                const transport::TransportListener::ErrorFunc &on_error);
+    void client(const transport::TransportListener::HandlerFunc &handler);
 
     /**
      * Run the context for some time, enough to execute async operations
@@ -55,7 +51,6 @@ namespace libp2p::testing {
 
    private:
     boost::asio::io_context context_;
-    boost::asio::io_context::executor_type executor_;
 
     std::shared_ptr<libp2p::transport::Transport> transport_;
     std::shared_ptr<libp2p::transport::TransportListener> transport_listener_;

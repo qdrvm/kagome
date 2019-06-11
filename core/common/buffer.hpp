@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <boost/container_hash/hash.hpp>
+#include <boost/operators.hpp>
 #include <gsl/span>
 #include <outcome/outcome.hpp>
 
@@ -18,7 +19,9 @@ namespace kagome::common {
   /**
    * @brief Class represents arbitrary (including empty) byte buffer.
    */
-  class Buffer {
+  class Buffer : public boost::equality_comparable<Buffer>,
+                 public boost::equality_comparable<gsl::span<uint8_t>>,
+                 public boost::equality_comparable<std::vector<uint8_t>> {
    public:
     using iterator = std::vector<uint8_t>::iterator;
     using const_iterator = std::vector<uint8_t>::const_iterator;
@@ -38,7 +41,7 @@ namespace kagome::common {
      * @brief lvalue construct buffer from a byte vector
      */
     explicit Buffer(std::vector<uint8_t> v);
-    explicit Buffer(gsl::span<uint8_t> s);
+    explicit Buffer(gsl::span<const uint8_t> s);
 
     Buffer(const uint8_t *begin, const uint8_t *end);
 
@@ -207,6 +210,35 @@ namespace kagome::common {
     template <typename T>
     Buffer &putRange(const T &begin, const T &end);
   };
+
+  /**
+   * @brief override operator<< for all streams except std::ostream
+   * @tparam Stream stream type
+   * @param s stream reference
+   * @param buffer value to encode
+   * @return reference to stream
+   */
+  template <
+      class Stream,
+      typename = std::enable_if_t<!std::is_same<Stream, std::ostream>::value>>
+  Stream &operator<<(Stream &s, const Buffer &buffer) {
+    return s << buffer.toVector();
+  }
+
+  /**
+   * @brief decodes buffer object from stream
+   * @tparam Stream input stream type
+   * @param s stream reference
+   * @param buffer value to decode
+   * @return reference to stream
+   */
+  template <class Stream>
+  Stream &operator>>(Stream &s, Buffer &buffer) {
+    std::vector<uint8_t> data;
+    s >> data;
+    buffer.put(data);
+    return s;
+  }
 
   std::ostream &operator<<(std::ostream &os, const Buffer &buffer);
 

@@ -64,6 +64,8 @@ namespace libp2p::crypto {
       if (PEM_write_bio_RSAPublicKey(bio_public, rsa) != 1) {
         return KeyGeneratorError::KEY_GENERATION_FAILED;
       }
+      auto free_public =
+          gsl::finally([bio_public]() { BIO_free_all(bio_public); });
 
       auto public_buffer = bio2buffer(bio_public);
       return PublicKey{{key.type, std::move(public_buffer)}};
@@ -84,6 +86,7 @@ namespace libp2p::crypto {
       if (nullptr == pkey) {
         return KeyGeneratorError::KEY_DERIVATION_FAILED;
       }
+      auto free_pkey = gsl::finally([pkey] { EVP_PKEY_free(pkey); });
 
       BIO *bio_public = BIO_new(BIO_s_mem());
       auto free_bio_public =
@@ -111,10 +114,18 @@ namespace libp2p::crypto {
 
       // clean up automatically
       auto cleanup = gsl::finally([&]() {
-        BIO_free_all(bio_public);
-        BIO_free_all(bio_private);
-        RSA_free(rsa);
-        BN_free(bne);
+        if (nullptr != bio_public) {
+          BIO_free_all(bio_public);
+        }
+        if (nullptr != bio_private) {
+          BIO_free_all(bio_private);
+        }
+        if (nullptr != rsa) {
+          RSA_free(rsa);
+        }
+        if (nullptr != bne) {
+          BN_free(bne);
+        }
       });
 
       uint64_t exp = RSA_F4;

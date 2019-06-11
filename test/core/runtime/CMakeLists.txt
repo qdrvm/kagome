@@ -10,13 +10,6 @@ target_link_libraries(wasm_memory_test
     memory
     )
 
-addtest(wasm_memory_stream_test
-    wasm_memory_stream_test.cpp
-    )
-target_link_libraries(wasm_memory_stream_test
-    wasm_memory_stream
-    )
-
 addtest(runtime_external_interface_test
     runtime_external_interface_test.cpp
     )
@@ -71,3 +64,24 @@ target_link_libraries(grandpa_test
     grandpa_api
     wasm_test
     )
+
+addtest(metadata_test
+    metadata_test.cpp
+    )
+target_link_libraries(metadata_test
+    metadata_api
+    wasm_test
+    )
+
+addtest(offchain_worker_test
+    offchain_worker_test.cpp
+    )
+target_link_libraries(offchain_worker_test
+    offchain_worker_api
+    wasm_test
+    )
+
+addtest(wasm_result_test
+    wasm_result_test.cpp
+    )
+

@@ -6,16 +6,16 @@
 #include "extensions/impl/storage_extension.hpp"
 
 #include <gtest/gtest.h>
-#include "testutil/literals.hpp"
 #include "core/runtime/mock_memory.hpp"
-#include "core/storage/merkle/mock_trie_db.hpp"
+#include "core/storage/trie/mock_trie_db.hpp"
+#include "testutil/literals.hpp"
 
 using kagome::common::Buffer;
 using kagome::extensions::StorageExtension;
 using kagome::runtime::MockMemory;
 using kagome::runtime::SizeType;
 using kagome::runtime::WasmPointer;
-using kagome::storage::merkle::MockTrieDb;
+using kagome::storage::trie::MockTrieDb;
 
 using ::testing::_;
 using ::testing::Return;
@@ -54,7 +54,9 @@ TEST_F(StorageExtensionTest, ClearPrefixTest) {
 
   EXPECT_CALL(*memory_, loadN(prefix_pointer, prefix_size))
       .WillOnce(Return(prefix));
-  EXPECT_CALL(*db_, clearPrefix(prefix)).Times(1);
+  EXPECT_CALL(*db_, clearPrefix(prefix))
+      .Times(1)
+      .WillOnce(Return(outcome::success()));
 
   storage_extension_->ext_clear_prefix(prefix_pointer, prefix_size);
 }
