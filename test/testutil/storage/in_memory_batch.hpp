@@ -7,7 +7,7 @@
 #define KAGOME_IN_MEMORY_BATCH_HPP
 
 #include "common/buffer.hpp"
-#include "storage/in_memory/in_memory_storage.hpp"
+#include "in_memory_storage.hpp"
 
 namespace kagome::storage {
 

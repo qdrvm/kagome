@@ -10,7 +10,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"
-#include "storage/in_memory/in_memory_storage.hpp"
+#include "testutil/storage/in_memory_storage.hpp"
 #include "testutil/storage/polkadot_trie_db_printer.hpp"
 
 using kagome::common::Buffer;
@@ -51,7 +51,7 @@ const std::vector<std::pair<Buffer, Buffer>> TrieTest::data = {
     {"010a0b"_hex2buf, "1337"_hex2buf},
     {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
 
-void FillSmallTree(PolkadotTrieDb& trie) {
+void FillSmallTree(PolkadotTrieDb &trie) {
   for (auto &entry : TrieTest::data) {
     EXPECT_OUTCOME_TRUE_1(trie.put(entry.first, entry.second));
   }
@@ -260,11 +260,11 @@ TEST_F(TrieTest, Put) {
 TEST_F(TrieTest, Remove) {
   FillSmallTree(*trie);
 
-  for (auto i: {2, 3, 4}) {
-      EXPECT_OUTCOME_TRUE_1(trie->remove(data[i].first));
+  for (auto i : {2, 3, 4}) {
+    EXPECT_OUTCOME_TRUE_1(trie->remove(data[i].first));
   }
 
-  for (auto i: {2, 3, 4}) {
+  for (auto i : {2, 3, 4}) {
     ASSERT_FALSE(trie->contains(data[i].first));
   }
   ASSERT_TRUE(trie->contains(data[0].first));

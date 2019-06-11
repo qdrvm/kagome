@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/in_memory/in_memory_storage.hpp"
+#include "in_memory_storage.hpp"
 
-#include "storage/in_memory/in_memory_batch.hpp"
+#include "in_memory_batch.hpp"
 
 using kagome::common::Buffer;
 
