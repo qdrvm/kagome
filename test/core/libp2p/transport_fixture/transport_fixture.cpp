@@ -40,12 +40,10 @@ namespace libp2p::testing {
     return upgrader;
   }
 
-  TransportFixture::TransportFixture()
-      : context_{1}, executor_{context_.get_executor()} {}
+  TransportFixture::TransportFixture() : context_{1} {}
 
   void TransportFixture::SetUp() {
-    transport_ = std::make_shared<TcpTransport<decltype(executor_)>>(
-        executor_, makeUpgrader());
+    transport_ = std::make_shared<TcpTransport>(context_, makeUpgrader());
     ASSERT_TRUE(transport_) << "cannot create transport1";
 
     // create multiaddress, from which we are going to connect
@@ -53,18 +51,14 @@ namespace libp2p::testing {
     multiaddress_ = std::make_shared<Multiaddress>(std::move(ma));
   }
 
-  void TransportFixture::server(
-      const TransportListener::HandlerFunc &on_success,
-      const TransportListener::ErrorFunc &on_error) {
-    transport_listener_ = transport_->createListener(on_success, on_error);
+  void TransportFixture::server(const TransportListener::HandlerFunc &handler) {
+    transport_listener_ = transport_->createListener(handler);
     EXPECT_TRUE(transport_listener_->listen(*multiaddress_))
         << "is port 40009 busy?";
   }
 
-  void TransportFixture::client(
-      const TransportListener::HandlerFunc &on_success,
-      const TransportListener::ErrorFunc &on_error) {
-    transport_->dial(*multiaddress_, on_success, on_error);
+  void TransportFixture::client(const TransportListener::HandlerFunc &handler) {
+    transport_->dial(*multiaddress_, handler);
   }
 
   void TransportFixture::launchContext() {
