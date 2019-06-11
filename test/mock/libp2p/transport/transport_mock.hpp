@@ -12,14 +12,11 @@
 namespace libp2p::transport {
   class TransportMock : public Transport {
    public:
-    MOCK_CONST_METHOD3(dial,
-                       void(const multi::Multiaddress &, HandlerFunc,
-                            ErrorFunc));
+    MOCK_METHOD2(dial, void(multi::Multiaddress, HandlerFunc));
 
-    MOCK_CONST_METHOD2(
+    MOCK_METHOD1(
         createListener,
-        std::shared_ptr<TransportListener>(TransportListener::HandlerFunc,
-                                           TransportListener::ErrorFunc));
+        std::shared_ptr<TransportListener>(TransportListener::HandlerFunc));
 
     MOCK_CONST_METHOD1(canDial, bool(const multi::Multiaddress &));
   };

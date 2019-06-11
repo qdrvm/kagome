@@ -27,28 +27,27 @@ namespace libp2p::transport {
   class Transport {
    public:
     using ConnectionCallback =
-        outcome::result<void>(std::shared_ptr<connection::CapableConnection>);
+        void(outcome::result<std::shared_ptr<connection::CapableConnection>>);
     using HandlerFunc = std::function<ConnectionCallback>;
-    using ErrorFunc = std::function<void(const std::error_code &)>;
 
     virtual ~Transport() = default;
 
     /**
      * Try to establish connection with a peer
      * @param address of the peer
+     * @param handler callback that will be executed on connection/error
      * @return connection in case of success, error otherwise
      */
-    virtual void dial(const multi::Multiaddress &address, HandlerFunc onSuccess,
-                      ErrorFunc onError) const = 0;
+    virtual void dial(multi::Multiaddress address, HandlerFunc handler) = 0;
 
     /**
      * Create a listener for incoming connections of this Transport; in case
      * it was already created, return it
+     * @param handler callback that will be executed on new connection
      * @return pointer to the created listener
      */
     virtual std::shared_ptr<TransportListener> createListener(
-        TransportListener::HandlerFunc onSuccess,
-        TransportListener::ErrorFunc onError) const = 0;
+        TransportListener::HandlerFunc handler) = 0;
 
     /**
      * Check if this transport supports a given multiaddress

@@ -11,6 +11,7 @@
 #include "mock/libp2p/connection/raw_connection_mock.hpp"
 
 using libp2p::basic::ReadWriteCloser;
+using libp2p::connection::CapableConnection;
 using libp2p::connection::RawConnection;
 using libp2p::connection::RawConnectionMock;
 using libp2p::peer::Protocol;
@@ -134,35 +135,33 @@ TEST_F(MultiselectTest, NegotiateAsInitiator) {
   auto negotiated = false;
 
   this->server(
-      [this, &negotiated](std::shared_ptr<RawConnection> conn) mutable {
+      [this, &negotiated](
+          outcome::result<std::shared_ptr<CapableConnection>> rconn) mutable {
+        EXPECT_OUTCOME_TRUE(conn, rconn);
         EXPECT_OUTCOME_TRUE(
             protocol,
             multiselect_->selectOneOf(
                 std::vector<Protocol>{kDefaultEncryptionProtocol2}, conn, true))
         EXPECT_EQ(protocol, kDefaultEncryptionProtocol2);
         negotiated = true;
-        return outcome::success();
-      },
-      [](auto &&) { FAIL() << "cannot create server"; });
+      });
 
-  this->client(
-      [this](std::shared_ptr<RawConnection> conn) {
-        // first, we expect an exchange of opening messages
-        negotiationOpeningsInitiator(*conn);
+  this->client([this](
+                   outcome::result<std::shared_ptr<CapableConnection>> rconn) {
+    EXPECT_OUTCOME_TRUE(conn, rconn);
+    // first, we expect an exchange of opening messages
+    negotiationOpeningsInitiator(*conn);
 
-        // second, ls message will be sent to us; respond with a list of
-        // encryption protocols we know
-        negotiationLsInitiator(
-            *conn,
-            std::vector<Protocol>{kDefaultEncryptionProtocol1,
-                                  kDefaultEncryptionProtocol2});
+    // second, ls message will be sent to us; respond with a list of
+    // encryption protocols we know
+    negotiationLsInitiator(*conn,
+                           std::vector<Protocol>{kDefaultEncryptionProtocol1,
+                                                 kDefaultEncryptionProtocol2});
 
-        // finally, we expect that the second of the protocols will be sent back
-        // to us, as it is the common one; after that, we should send an ack
-        negotiationProtocolsInitiator(*conn, kDefaultEncryptionProtocol2);
-        return outcome::success();
-      },
-      [](auto &&) { FAIL() << "cannot create client"; });
+    // finally, we expect that the second of the protocols will be sent back
+    // to us, as it is the common one; after that, we should send an ack
+    negotiationProtocolsInitiator(*conn, kDefaultEncryptionProtocol2);
+  });
 
   launchContext();
   EXPECT_TRUE(negotiated);
@@ -172,7 +171,9 @@ TEST_F(MultiselectTest, NegotiateAsListener) {
   auto negotiated = false;
 
   this->server(
-      [this, &negotiated](std::shared_ptr<RawConnection> conn) mutable {
+      [this, &negotiated](
+          outcome::result<std::shared_ptr<CapableConnection>> rconn) mutable {
+        EXPECT_OUTCOME_TRUE(conn, rconn);
         EXPECT_OUTCOME_TRUE(
             protocol,
             multiselect_->selectOneOf(
@@ -180,12 +181,11 @@ TEST_F(MultiselectTest, NegotiateAsListener) {
                 false))
         EXPECT_EQ(protocol, kDefaultEncryptionProtocol2);
         negotiated = true;
-        return outcome::success();
-      },
-      [](auto &&) { FAIL() << "cannot create server"; });
+      });
 
   this->client(
-      [this](std::shared_ptr<RawConnection> conn) {
+      [this](outcome::result<std::shared_ptr<CapableConnection>> rconn) {
+        EXPECT_OUTCOME_TRUE(conn, rconn);
         // first, we expect an exchange of opening messages
         negotiationOpeningsListener(*conn);
 
@@ -199,9 +199,7 @@ TEST_F(MultiselectTest, NegotiateAsListener) {
 
         // fourth, send this protocol as our choice and receive an ack
         negotiationProtocolsListener(*conn, kDefaultEncryptionProtocol2);
-        return outcome::success();
-      },
-      [](auto &&) { FAIL() << "cannot create client"; });
+      });
 
   launchContext();
   EXPECT_TRUE(negotiated);
@@ -218,23 +216,23 @@ TEST_F(MultiselectTest, NegotiateFailure) {
   auto negotiated = false;
 
   this->server(
-      [this, &negotiated](std::shared_ptr<RawConnection> conn) mutable {
+      [this, &negotiated](
+          outcome::result<std::shared_ptr<CapableConnection>> rconn) mutable {
+        EXPECT_OUTCOME_TRUE(conn, rconn);
         EXPECT_FALSE(multiselect_->selectOneOf(
             std::vector<Protocol>{kDefaultEncryptionProtocol1}, conn, true));
         negotiated = true;
-        return outcome::success();
-      },
-      [](auto &&) { FAIL() << "cannot create server"; });
+      });
 
   this->client(
-      [this](std::shared_ptr<RawConnection> conn) {
+      [this](outcome::result<std::shared_ptr<CapableConnection>> rconn) {
+        EXPECT_OUTCOME_TRUE(conn, rconn);
         negotiationOpeningsInitiator(*conn);
         // send a protocol, which is not supported by us
         negotiationLsInitiator(
             *conn, std::vector<Protocol>{kDefaultEncryptionProtocol2});
         return outcome::success();
-      },
-      [](auto &&) { FAIL() << "cannot create client"; });
+      });
 
   launchContext();
   ASSERT_TRUE(negotiated);
