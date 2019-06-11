@@ -35,10 +35,9 @@ target_link_libraries(polkadot_trie_batch
     polkadot_trie_db
     )
 
-add_library(ordered_trie_hash
-    ordered_trie_hash.cpp
-    )
-target_link_libraries(ordered_trie_hash
+add_library(ordered_trie_hash INTERFACE)
+
+target_link_libraries(ordered_trie_hash INTERFACE
     polkadot_trie
     polkadot_trie_db_codec
     scale
