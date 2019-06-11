@@ -6,26 +6,19 @@
 #ifndef KAGOME_CORE_RUNTIME_IMPL_METADATA_IMPL_HPP
 #define KAGOME_CORE_RUNTIME_IMPL_METADATA_IMPL_HPP
 
+#include "extensions/extension.hpp"
 #include "runtime/metadata.hpp"
-
-#include "common/buffer.hpp"
-#include "runtime/impl/wasm_executor.hpp"
-#include "runtime/wasm_memory.hpp"
+#include "runtime/impl/runtime_api.hpp"
 
 namespace kagome::runtime {
-  class MetadataImpl : public Metadata {
+  class MetadataImpl : public RuntimeApi, public Metadata {
    public:
-    ~MetadataImpl() override = default;
-
     MetadataImpl(common::Buffer state_code,
                  std::shared_ptr<extensions::Extension> extension);
 
-    outcome::result<OpaqueMetadata> metadata() override;
+    ~MetadataImpl() override = default;
 
-   private:
-    std::shared_ptr<WasmMemory> memory_;
-    WasmExecutor executor_;
-    common::Buffer state_code_;
+    outcome::result<OpaqueMetadata> metadata() override;
   };
 }  // namespace kagome::runtime
 

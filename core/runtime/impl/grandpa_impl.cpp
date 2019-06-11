@@ -5,10 +5,6 @@
 
 #include "runtime/impl/grandpa_impl.hpp"
 
-#include "common/blob.hpp"
-#include "scale/scale.hpp"
-#include "scale/scale_error.hpp"
-
 namespace kagome::runtime {
   using common::Buffer;
   using primitives::Digest;
@@ -19,63 +15,22 @@ namespace kagome::runtime {
 
   GrandpaImpl::GrandpaImpl(common::Buffer state_code,
                            std::shared_ptr<extensions::Extension> extension)
-      : memory_(extension->memory()),
-        executor_(std::move(extension)),
-        state_code_(std::move(state_code)) {}
+      : RuntimeApi(std::move(state_code), std::move(extension)) {}
 
   outcome::result<std::optional<ScheduledChange>> GrandpaImpl::pending_change(
-      const Grandpa::Digest &digest) {
-    OUTCOME_TRY(encoded_digest, scale::encode(digest));
-    runtime::SizeType ext_size = encoded_digest.size();
-    // TODO (yuraz) PRE-98: after check for memory overflow is done, refactor it
-    runtime::WasmPointer ptr = memory_->allocate(ext_size);
-    memory_->storeBuffer(ptr, Buffer(encoded_digest));
-
-    wasm::LiteralList ll{wasm::Literal(ptr), wasm::Literal(ext_size)};
-
-    OUTCOME_TRY(
-        res,
-        executor_.call(state_code_, "GrandpaApi_grandpa_pending_change", ll));
-
-    runtime::WasmPointer res_addr = getWasmAddr(res.geti64());
-    runtime::SizeType len = getWasmLen(res.geti64());
-    auto buffer = memory_->loadN(res_addr, len);
-
-    return scale::decode<std::optional<ScheduledChange>>(buffer);
+      const Digest &digest) {
+    return execute<std::optional<ScheduledChange>>(
+        "GrandpaApi_grandpa_pending_change", digest);
   }
 
   outcome::result<std::optional<ForcedChange>> GrandpaImpl::forced_change(
-      const Grandpa::Digest &digest) {
-    OUTCOME_TRY(encoded_digest, scale::encode(digest));
-
-    runtime::SizeType ext_size = encoded_digest.size();
-    // TODO (yuraz) PRE-98: after check for memory overflow is done, refactor it
-    runtime::WasmPointer ptr = memory_->allocate(ext_size);
-    memory_->storeBuffer(ptr, Buffer(encoded_digest));
-
-    wasm::LiteralList ll{wasm::Literal(ptr), wasm::Literal(ext_size)};
-
-    OUTCOME_TRY(
-        res,
-        executor_.call(state_code_, "GrandpaApi_grandpa_forced_change", ll));
-
-    WasmPointer res_addr = getWasmAddr(res.geti64());
-    SizeType len = getWasmLen(res.geti64());
-    auto buffer = memory_->loadN(res_addr, len);
-
-    return scale::decode<std::optional<ForcedChange>>(buffer);
+      const Digest &digest) {
+    return execute<std::optional<ForcedChange>>(
+        "GrandpaApi_grandpa_forced_change", digest);
   }
 
   outcome::result<std::vector<WeightedAuthority>> GrandpaImpl::authorities() {
-    wasm::LiteralList ll{wasm::Literal(0), wasm::Literal(0)};
-
-    OUTCOME_TRY(
-        res, executor_.call(state_code_, "GrandpaApi_grandpa_authorities", ll));
-
-    WasmPointer res_addr = getWasmAddr(res.geti64());
-    SizeType len = getWasmLen(res.geti64());
-    auto buffer = memory_->loadN(res_addr, len);
-
-    return scale::decode<std::vector<WeightedAuthority>>(buffer);
+    return execute<std::vector<WeightedAuthority>>(
+        "GrandpaApi_grandpa_authorities");
   }
 }  // namespace kagome::runtime

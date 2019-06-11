@@ -6,23 +6,17 @@
 #ifndef KAGOME_CORE_RUNTIME_IMPL_GRANDPA_IMPL_HPP
 #define KAGOME_CORE_RUNTIME_IMPL_GRANDPA_IMPL_HPP
 
+#include "extensions/extension.hpp"
 #include "runtime/grandpa.hpp"
-#include "primitives/scheduled_change.hpp"
-#include "runtime/impl/wasm_executor.hpp"
-#include "runtime/wasm_memory.hpp"
+#include "runtime/impl/runtime_api.hpp"
 
 namespace kagome::runtime {
-  class GrandpaImpl : public Grandpa {
+  class GrandpaImpl : public RuntimeApi, public Grandpa {
    public:
-    ~GrandpaImpl() override = default;
-
-    /**
-     * @param state_code error or result code
-     * @param extension extension instance
-     * @param codec scale codec instance
-     */
     GrandpaImpl(common::Buffer state_code,
                 std::shared_ptr<extensions::Extension> extension);
+
+    ~GrandpaImpl() override = default;
 
     outcome::result<std::optional<ScheduledChange>> pending_change(
         const Digest &digest) override;
@@ -31,11 +25,6 @@ namespace kagome::runtime {
         const Digest &digest) override;
 
     outcome::result<std::vector<WeightedAuthority>> authorities() override;
-
-   private:
-    std::shared_ptr<WasmMemory> memory_;
-    WasmExecutor executor_;
-    common::Buffer state_code_;
   };
 }  // namespace kagome::runtime
 

@@ -6,31 +6,20 @@
 #ifndef KAGOME_CORE_RUNTIME_IMPL_OFFCHAIN_WORKER_IMPL_HPP
 #define KAGOME_CORE_RUNTIME_IMPL_OFFCHAIN_WORKER_IMPL_HPP
 
+#include "extensions/extension.hpp"
+#include "runtime/impl/runtime_api.hpp"
 #include "runtime/offchain_worker.hpp"
 
-#include "common/buffer.hpp"
-#include "common/logger.hpp"
-#include "extensions/extension.hpp"
-#include "runtime/impl/wasm_executor.hpp"
-
 namespace kagome::runtime {
-
-  class OffchainWorkerImpl : public OffchainWorker {
-   protected:
+  class OffchainWorkerImpl : public RuntimeApi, public OffchainWorker {
    public:
-    ~OffchainWorkerImpl() override = default;
-
     OffchainWorkerImpl(common::Buffer state_code,
                        std::shared_ptr<extensions::Extension> extension);
 
+    ~OffchainWorkerImpl() override = default;
+
     outcome::result<void> offchain_worker(BlockNumber bn) override;
-
-   private:
-    common::Buffer state_code_;
-    std::shared_ptr<WasmMemory> memory_;
-    WasmExecutor executor_;
   };
-
 }  // namespace kagome::runtime
 
 #endif  // KAGOME_CORE_RUNTIME_IMPL_OFFCHAIN_WORKER_IMPL_HPP
