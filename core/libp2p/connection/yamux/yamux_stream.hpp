@@ -14,7 +14,8 @@ namespace libp2p::connection {
   /**
    * Stream implementation, used by Yamux multiplexer
    */
-  class YamuxStream : public Stream {
+  class YamuxStream : public Stream,
+                      public std::enable_shared_from_this<YamuxStream> {
    public:
     YamuxStream(std::shared_ptr<YamuxedConnection> conn,
                 YamuxedConnection::StreamId stream_id);
@@ -44,7 +45,7 @@ namespace libp2p::connection {
 
     void readSome(size_t bytes, std::function<ReadCallback> cb) override;
 
-    outcome::result<void> reset() override;
+    void reset(std::function<void(outcome::result<void>)> cb) override;
 
     bool isClosedForRead() const noexcept override;
 
@@ -52,11 +53,11 @@ namespace libp2p::connection {
 
     bool isClosed() const noexcept override;
 
-    void close(const std::function<void(outcome::result<void>)> &cb) override;
+    void close(std::function<void(outcome::result<void>)> cb) override;
 
     void adjustWindowSize(
         uint32_t new_size,
-        const std::function<void(outcome::result<void>)> &cb) override;
+        std::function<void(outcome::result<void>)> cb) override;
 
    private:
     /**

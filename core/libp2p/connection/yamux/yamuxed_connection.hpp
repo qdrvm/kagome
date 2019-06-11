@@ -115,7 +115,7 @@ namespace libp2p::connection {
      * executed at one time
      * @param write_data - data to be written with a callback
      */
-    void writeLoop(WriteData write_data);
+    void write(WriteData write_data);
 
     /**
      * Process frame of data type
@@ -186,9 +186,10 @@ namespace libp2p::connection {
     /**
      * Close stream for writes from this side
      * @param stream_id to be closed
-     * @return nothing or error
+     * @param cb - callback to be called, when operation finishes
      */
-    outcome::result<void> closeStreamForWrite(StreamId stream_id);
+    void closeStreamForWrite(StreamId stream_id,
+                             std::function<void(outcome::result<void>)> cb);
 
     /**
      * Close stream entirely
@@ -258,24 +259,28 @@ namespace libp2p::connection {
      * stream
      * @param stream_id of the stream
      * @param bytes - number of consumed bytes
-     * @return nothing on success, error otherwise
+     * @param cb - callback to be called, when operation finishes
      */
-    outcome::result<void> streamAckBytes(StreamId stream_id, uint32_t bytes);
+    void streamAckBytes(StreamId stream_id, uint32_t bytes,
+                        std::function<void(outcome::result<void>)> cb);
 
     /**
      * Send a message, which denotes, that this stream is not going to write any
      * bytes from now on
      * @param stream_id of the stream
-     * @return nothing on success, error otherwise
+     * @param cb - callback to be called, when operation finishes
      */
-    outcome::result<void> streamClose(StreamId stream_id);
+    void streamClose(StreamId stream_id,
+                     std::function<void(outcome::result<void>)> cb);
 
     /**
      * Send a message, which denotes, that this stream is not going to write or
      * read any bytes from now on
      * @param stream_id of the stream
+     * @param cb - callback to be called, when operation finishes
      */
-    void streamReset(StreamId stream_id);
+    void streamReset(StreamId stream_id,
+                     std::function<void(outcome::result<void>)> cb);
   };
 }  // namespace libp2p::connection
 

@@ -93,17 +93,17 @@ namespace libp2p::connection {
      * @note the method MUST NOT be called until the last 'write' or 'writeSome'
      * or 'close' or 'adjustWindowSize' or 'reset' completes
      */
-    virtual void close(
-        const std::function<void(outcome::result<void>)> &cb) = 0;
+    virtual void close(std::function<void(outcome::result<void>)> cb) = 0;
 
     /**
      * @brief Close this stream entirely; this normally means an error happened,
      * so it should not be used just to close the stream
-     * @return nothing on success, error otherwise
+     * @param cb - callback, which is called when the operation finishes,
+     * successfully or not
      * @note the method MUST NOT be called until the last 'write' or 'writeSome'
      * or 'close' or 'adjustWindowSize' or 'reset' completes
      */
-    virtual outcome::result<void> reset() = 0;
+    virtual void reset(std::function<void(outcome::result<void>)> cb) = 0;
 
     /**
      * Set a new receive window size of this stream - how much unacknowledged
@@ -115,8 +115,7 @@ namespace libp2p::connection {
      * or 'close' or 'adjustWindowSize' or 'reset' completes
      */
     virtual void adjustWindowSize(
-        uint32_t new_size,
-        const std::function<void(outcome::result<void>)> &cb) = 0;
+        uint32_t new_size, std::function<void(outcome::result<void>)> cb) = 0;
   };
 
 }  // namespace libp2p::connection
