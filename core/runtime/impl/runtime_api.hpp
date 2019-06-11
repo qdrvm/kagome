@@ -26,6 +26,7 @@ namespace kagome::runtime {
           memory_(extension->memory()),
           executor_(std::move(extension)) {}
 
+   protected:
     /**
      * @brief executes wasm export method returning non-void result
      * @tparam R result type including void
@@ -50,7 +51,7 @@ namespace kagome::runtime {
       wasm::Name wasm_name = std::string(name);
       OUTCOME_TRY(res, executor_.call(state_code_, wasm_name, ll));
 
-      if constexpr (!std::is_same<void, R>::value) {
+      if constexpr (!std::is_same_v<void, R>) {
         WasmResult r{res.geti64()};
         auto buffer = memory_->loadN(r.address, r.length);
         // TODO (yuraz) PRE-98: after check for memory overflow is done,

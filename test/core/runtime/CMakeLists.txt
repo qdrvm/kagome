@@ -84,6 +84,4 @@ target_link_libraries(offchain_worker_test
 addtest(wasm_result_test
     wasm_result_test.cpp
     )
-target_link_libraries(wasm_result_test
-    memory
-    )
+
