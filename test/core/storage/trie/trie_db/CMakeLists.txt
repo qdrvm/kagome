@@ -8,6 +8,7 @@ addtest(polkadot_trie_db_test
     polkadot_codec_node_decoding_test.cpp
     trie_db_test.cpp
     trie_batch_test.cpp
+    ordered_trie_hash_test.cpp
     )
 target_link_libraries(polkadot_trie_db_test
     leveldb
@@ -18,4 +19,5 @@ target_link_libraries(polkadot_trie_db_test
     scale
     buffer
     in_memory_storage
+    ordered_trie_hash
     )

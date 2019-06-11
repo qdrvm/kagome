@@ -5,6 +5,12 @@
 
 #include "extensions/impl/storage_extension.hpp"
 
+#include <forward_list>
+
+#include "storage/trie/polkadot_trie_db/ordered_trie_hash.hpp"
+
+using kagome::common::Buffer;
+
 namespace kagome::extensions {
   StorageExtension::StorageExtension(
       std::shared_ptr<storage::trie::TrieDb> db,
@@ -18,7 +24,10 @@ namespace kagome::extensions {
   void StorageExtension::ext_clear_prefix(runtime::WasmPointer prefix_data,
                                           runtime::SizeType prefix_length) {
     auto prefix = memory_->loadN(prefix_data, prefix_length);
-    db_->clearPrefix(prefix);
+    auto res = db_->clearPrefix(prefix);
+    if (not res) {
+      logger_->error("ext_clear_prefix failed: {}", res.error().message());
+    }
   }
 
   void StorageExtension::ext_clear_storage(runtime::WasmPointer key_data,
@@ -96,18 +105,26 @@ namespace kagome::extensions {
   void StorageExtension::ext_blake2_256_enumerated_trie_root(
       runtime::WasmPointer values_data, runtime::WasmPointer lens_data,
       runtime::SizeType lens_length, runtime::WasmPointer result) {
-      let values = (0..lens_len)
-                           .map(|i| this.memory.read_primitive(lens_data + i * 4))
-      .collect::<::std::result::Result<Vec<u32>, UserError>>()?
-      .into_iter()
-               .scan(0u32, |acc, v| { let o = *acc; *acc += v; Some((o, v)) })
-      .map(|(offset, len)|
-       this.memory.get(values_data + offset, len as usize)
-      .map_err(|_| UserError("Invalid attempt to get memory in ext_blake2_256_enumerated_trie_root"))
-      )
-      .collect::<::std::result::Result<Vec<_>, UserError>>()?;
-      let r = ordered_trie_root::<Blake2Hasher, _, _>(values.into_iter());
-      this.memory.set(result, &r[..]).map_err(|_| UserError("Invalid attempt to set memory in ext_blake2_256_enumerated_trie_root"))?;
+    std::vector<uint32_t> lengths(lens_length);
+    for (size_t i = 0; i < lens_length; i++) {
+      lengths.at(i) = memory_->load32u(lens_data + i * 4);
+    }
+    std::forward_list<Buffer> values(lens_length);
+    uint32_t offset = 0;
+    auto curr_value = values.begin();
+    for (size_t i = 0; i < lens_length; i++, curr_value++) {
+      *curr_value = memory_->loadN(values_data + offset, lengths.at(i));
+      offset += lengths.at(i);
+    }
+    auto ordered_hash =
+        storage::trie::calculateOrderedTrieHash(values.begin(), values.end());
+    if (ordered_hash.has_value()) {
+      memory_->storeBuffer(result, ordered_hash.value());
+    } else {
+      logger_->error(
+          "ext_blake2_256_enumerated_trie_root resulted with an error: {}",
+          ordered_hash.error().message());
+    }
   }
 
   runtime::SizeType StorageExtension::ext_storage_changes_root(
