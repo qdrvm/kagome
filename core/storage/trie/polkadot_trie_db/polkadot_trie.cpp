@@ -1,5 +1,3 @@
-#include <utility>
-
 /**
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
@@ -7,6 +5,7 @@
 
 #include "storage/trie/polkadot_trie_db/polkadot_trie.hpp"
 
+#include <utility>
 #include <functional>
 
 using kagome::common::Buffer;
@@ -208,9 +207,9 @@ namespace kagome::storage::trie {
       case T::BranchWithValue: {
         auto length = getCommonPrefixLength(parent->key_nibbles, key_nibbles);
         if (parent->key_nibbles == key_nibbles || key_nibbles.empty()) {
-          auto foundLeaf =
+          auto found_leaf =
               std::make_shared<LeafNode>(parent->key_nibbles, parent->value);
-          return foundLeaf;
+          return found_leaf;
         }
         if ((subbuffer(parent->key_nibbles, 0, length) == key_nibbles)
             && key_nibbles.size() < parent->key_nibbles.size()) {

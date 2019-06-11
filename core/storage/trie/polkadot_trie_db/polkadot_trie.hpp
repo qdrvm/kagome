@@ -25,7 +25,9 @@ namespace kagome::storage::trie {
     using ChildRetrieveCallback =
         std::function<outcome::result<NodePtr>(BranchPtr, uint8_t)>;
 
-    inline static outcome::result<NodePtr> DefaultChildRetrieveCallback(
+    // a child is obtained from the branch list of children as-is.
+    // should be used when the trie is completely in memory
+    inline static outcome::result<NodePtr> defaultChildRetrieveCallback(
         const BranchPtr &parent, uint8_t idx) {
       return parent->children.at(idx);
     }
@@ -33,7 +35,6 @@ namespace kagome::storage::trie {
    public:
     enum class Error { INVALID_NODE_TYPE = 1 };
 
-   public:
     /**
      * Creates an empty Trie
      * @param f a functor that will be used to obtain a child of a branch node
@@ -41,13 +42,19 @@ namespace kagome::storage::trie {
      * is stored on an external storage
      */
     explicit PolkadotTrie(
-        ChildRetrieveCallback f = DefaultChildRetrieveCallback);
+        ChildRetrieveCallback f = defaultChildRetrieveCallback);
 
     explicit PolkadotTrie(
-        NodePtr root, ChildRetrieveCallback f = DefaultChildRetrieveCallback);
+        NodePtr root, ChildRetrieveCallback f = defaultChildRetrieveCallback);
 
+    /**
+     * @return the root node of the trie
+     */
     NodePtr getRoot();
 
+    /**
+     * Remove all entries, which key starts with the prefix
+     */
     outcome::result<void> clearPrefix(const common::Buffer &prefix);
 
     // value will be copied
@@ -87,8 +94,9 @@ namespace kagome::storage::trie {
     uint32_t getCommonPrefixLength(const common::Buffer &pref1,
                                    const common::Buffer &pref2) const;
 
-    NodePtr root_;
     ChildRetrieveCallback retrieveChild;
+    
+    NodePtr root_;
   };
 
 }  // namespace kagome::storage::trie
