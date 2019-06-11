@@ -5,8 +5,8 @@
 
 #include "storage/trie/polkadot_trie_db/polkadot_trie.hpp"
 
-#include <utility>
 #include <functional>
+#include <utility>
 
 using kagome::common::Buffer;
 
@@ -32,13 +32,11 @@ namespace {
 }  // namespace
 
 namespace kagome::storage::trie {
-  PolkadotTrie::PolkadotTrie(
-      ChildRetrieveCallback f)
+  PolkadotTrie::PolkadotTrie(ChildRetrieveCallback f)
       : retrieveChild{std::move(f)} {}
 
-  PolkadotTrie::PolkadotTrie(
-      NodePtr root, ChildRetrieveCallback f)
-      : root_{std::move(root)}, retrieveChild{std::move(f)} {}
+  PolkadotTrie::PolkadotTrie(NodePtr root, ChildRetrieveCallback f)
+      : retrieveChild{std::move(f)}, root_{std::move(root)} {}
 
   outcome::result<void> PolkadotTrie::put(const Buffer &key,
                                           const Buffer &value) {
@@ -384,4 +382,4 @@ namespace kagome::storage::trie {
     return length;
   }
 
-}
+}  // namespace kagome::storage::trie
