@@ -3,19 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// disable exceptions
-#define CONTINUABLE_WITH_NO_EXCEPTIONS
-
-// use std::error_code instead of std::error_condition
-#define CONTINUABLE_WITH_CUSTOM_ERROR_TYPE std::error_code
-
+#include "libp2p/basic/continuable.hpp"
 #include <gtest/gtest.h>
 #include <boost/asio.hpp>
 #include <continuable/continuable-testing.hpp>
-#include <continuable/continuable.hpp>
-
-using std::chrono_literals::operator""ms;
-using std::string_literals::operator""s;
 
 auto async_get_success() {
   return cti::make_continuable<std::string>(
