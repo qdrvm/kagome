@@ -10,7 +10,6 @@
 #include <optional>
 #include <string>
 
-#include "common/byte_stream.hpp"
 #include "storage/trie/codec.hpp"
 #include "storage/trie/polkadot_trie_db/buffer_stream.hpp"
 #include "storage/trie/polkadot_trie_db/polkadot_node.hpp"
@@ -53,14 +52,14 @@ namespace kagome::storage::trie {
     outcome::result<Buffer> encodeLeaf(const LeafNode &node) const;
 
     outcome::result<std::pair<PolkadotNode::Type, size_t>> decodeHeader(
-        BufferStream& stream) const;
+        BufferStream &stream) const;
 
     outcome::result<Buffer> decodePartialKey(size_t nibbles_num,
-                                             BufferStream& stream) const;
+                                             BufferStream &stream) const;
 
     outcome::result<std::shared_ptr<Node>> decodeBranch(
         PolkadotNode::Type type, const Buffer &partial_key,
-        BufferStream& stream) const;
+        BufferStream &stream) const;
   };
 
 }  // namespace kagome::storage::trie
