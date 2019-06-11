@@ -32,7 +32,7 @@ namespace kagome::runtime {
     outcome::result<std::optional<Buffer>> parachain_head(
         ParachainId id) override;
 
-    outcome::result<std::optional<Buffer>> parachainCode(
+    outcome::result<std::optional<Buffer>> parachain_code(
         ParachainId id) override;
 
     outcome::result<std::vector<ValidatorId>> validators() override;
