@@ -29,7 +29,7 @@ namespace kagome::runtime {
     return execute<std::optional<Buffer>>("ParachainHost_parachain_head", id);
   }
 
-  outcome::result<std::optional<Buffer>> ParachainHostImpl::parachainCode(
+  outcome::result<std::optional<Buffer>> ParachainHostImpl::parachain_code(
       ParachainId id) {
     return execute<std::optional<Buffer>>("ParachainHost_parachain_code", id);
   }
