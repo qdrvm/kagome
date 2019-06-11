@@ -10,6 +10,7 @@ target_link_libraries(polkadot_trie_db_codec
     outcome
     blake2
     blob
+    scale
     )
 
 add_library(polkadot_trie_db
