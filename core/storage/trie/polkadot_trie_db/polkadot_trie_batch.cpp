@@ -10,7 +10,7 @@ namespace kagome::storage::trie {
   using common::Buffer;
 
   PolkadotTrieBatch::PolkadotTrieBatch(PolkadotTrieDb &trie)
-      : storage_{trie}, commands_{} {}
+      : storage_{trie} {}
 
   outcome::result<void> PolkadotTrieBatch::put(const Buffer &key,
                                                const Buffer &value) {

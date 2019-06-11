@@ -226,7 +226,7 @@ namespace kagome::storage::trie {
 
   outcome::result<std::shared_ptr<Node>> PolkadotCodec::decodeNode(
       const common::Buffer &encoded_data) const {
-    auto stream = BufferStream(encoded_data);
+    BufferStream stream {encoded_data};
     // decode the header with the node type and the partial key length
     OUTCOME_TRY(header, decodeHeader(stream));
     auto [type, pk_length] = header;

@@ -35,11 +35,11 @@ namespace {
 namespace kagome::storage::trie {
   PolkadotTrie::PolkadotTrie(
       ChildRetrieveCallback f)
-      : retrieveChild{f} {}
+      : retrieveChild{std::move(f)} {}
 
   PolkadotTrie::PolkadotTrie(
       NodePtr root, ChildRetrieveCallback f)
-      : root_{std::move(root)}, retrieveChild{f} {}
+      : root_{std::move(root)}, retrieveChild{std::move(f)} {}
 
   outcome::result<void> PolkadotTrie::put(const Buffer &key,
                                           const Buffer &value) {
@@ -232,8 +232,9 @@ namespace kagome::storage::trie {
   }
 
   bool PolkadotTrie::contains(const common::Buffer &key) const {
-    if (not root_)
+    if (not root_) {
       return false;
+    }
 
     auto node = getNode(root_, PolkadotCodec::keyToNibbles(key));
     return node.has_value() && (node.value() != nullptr);
