@@ -101,7 +101,7 @@ namespace kagome::storage::trie {
 
   outcome::result<PolkadotTrie> PolkadotTrieDb::initTrie() const {
     OUTCOME_TRY(root, retrieveNode(getRootHash()));
-    return PolkadotTrie{root, [this](BranchPtr parent, uint8_t idx) {
+    return PolkadotTrie{std::move(root), [this](const BranchPtr &parent, uint8_t idx) {
                           return retrieveChild(parent, idx);
                         }};
   }
