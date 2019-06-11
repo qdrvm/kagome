@@ -103,6 +103,26 @@ class YamuxedConnectionIntegrationTest : public TransportFixture {
   std::vector<std::function<void()>> yamux_callbacks_;
 
   static constexpr YamuxedConnection::StreamId kDefaulExpectedStreamId = 2;
+
+  std::shared_ptr<ReadWriteCloser> other_connection_;
+  std::queue<std::pair<size_t, std::function<void(std::vector<uint8_t>)>>>
+      pending_reads_;
+  bool is_reading_ = false;
+
+  void read(size_t bytes, std::function<void(std::vector<uint8_t>)> cb) {
+    pending_reads_.push({bytes, std::move(cb)});
+    if (is_reading_) {
+      return;
+    }
+    is_reading_ = true;
+    while (!pending_reads_.empty()) {
+      auto read_req = pending_reads_.front();
+      EXPECT_OUTCOME_TRUE(data, other_connection_->read(read_req.first));
+      read_req.second(std::move(data));
+      pending_reads_.pop();
+    }
+    is_reading_ = false;
+  }
 };
 
 /**
@@ -182,19 +202,21 @@ TEST_F(YamuxedConnectionIntegrationTest, StreamWrite) {
 
   this->client([this, &expected_data_msg, &data](auto &&conn_res) {
     EXPECT_OUTCOME_TRUE(conn, conn_res)
+    other_connection_ = conn;
     addYamuxCallback([this, &expected_data_msg, &data, conn]() mutable {
-      yamuxed_connection_->newStream([this, &expected_data_msg, &data,
-                                      conn](auto &&stream_res) {
-        EXPECT_OUTCOME_TRUE(stream, stream_res)
+      yamuxed_connection_->newStream(
+          [this, &expected_data_msg, &data, conn](auto &&stream_res) {
+            EXPECT_OUTCOME_TRUE(stream, stream_res)
 
-        stream->write(data, STREAM_WRITE_CB);
-        EXPECT_OUTCOME_TRUE(received_data, conn->read(expected_data_msg.size()))
-        EXPECT_EQ(received_data, expected_data_msg.toVector());
-
-        client_finished = true;
-      });
+            stream->write(data, STREAM_WRITE_CB);
+            read(expected_data_msg.size(),
+                 [this, &expected_data_msg](auto received_data) {
+                   EXPECT_EQ(received_data, expected_data_msg.toVector());
+                   client_finished = true;
+                 });
+          });
     });
-    EXPECT_TRUE(conn->read(YamuxFrame::kHeaderLength));
+    read(YamuxFrame::kHeaderLength, [](auto &&) {});
     return outcome::success();
   });
 
