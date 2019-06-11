@@ -41,14 +41,13 @@ namespace kagome::runtime {
     virtual outcome::result<std::optional<Buffer>> parachain_head(
         ParachainId id) = 0;
 
-    // $ParachainHost_parachain_code
     /**
      * @brief Calls the ParachainHost_parachain_code function from wasm code
      * @param id parachain id
      * @return parachain code or error if fails
      */
     virtual outcome::result<std::optional<kagome::common::Buffer>>
-    parachainCode(ParachainId id) = 0;
+    parachain_code(ParachainId id) = 0;
 
     /**
      * @brief reports validators list for given block_id
