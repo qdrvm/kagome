@@ -9,7 +9,7 @@
 
 using kagome::common::Buffer;
 
-namespace kagome::storage {
+namespace test{
 
   outcome::result<Buffer> InMemoryStorage::get(const Buffer &key) const {
     if (storage.find(key.toHex()) != storage.end()) {
