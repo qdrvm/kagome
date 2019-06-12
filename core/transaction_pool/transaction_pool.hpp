@@ -14,11 +14,20 @@ namespace kagome::transaction_pool {
 
   class TransactionPool {
    public:
+    virtual ~TransactionPool() = default;
 
-    outcome::result<void> submit_at(primitives::BlockId at, Transaction t);
+    virtual outcome::result<void> submitAt(primitives::BlockId at,
+                                           primitives::Transaction t) = 0;
 
-    std::vector<Transaction> getReadyTransactions();
+    virtual outcome::result<void> submitAt(
+        primitives::BlockId at, std::vector<primitives::Transaction> t) = 0;
+
+    virtual std::vector<primitives::Transaction> getReadyTransactions() = 0;
+
+    virtual std::vector<primitives::Transaction> removeStale() = 0;
+
+    virtual std::vector<primitives::Transaction> pruneByTag(primitives::TransactionTag tag) = 0;
   };
-}
+}  // namespace kagome::transaction_pool
 
 #endif  // KAGOME_TRANSACTION_POOL_HPP
