@@ -92,13 +92,6 @@ namespace libp2p::connection {
     outcome::result<size_t> read(gsl::span<uint8_t> buf) override;
     outcome::result<size_t> readSome(gsl::span<uint8_t> buf) override;
 
-    /**
-     * Read and process all incoming frames; return only when the connection is
-     * closed
-     * @return nothing or error
-     */
-    outcome::result<void> readerLoop();
-
     struct WriteData {
       kagome::common::Buffer data;
       std::function<void(outcome::result<size_t>)> cb;
@@ -116,6 +109,13 @@ namespace libp2p::connection {
      * @param write_data - data to be written with a callback
      */
     void write(WriteData write_data);
+
+    /**
+     * Read and process all incoming frames; return only when the connection is
+     * closed
+     * @return nothing or error
+     */
+    outcome::result<void> readerLoop();
 
     /**
      * Process frame of data type

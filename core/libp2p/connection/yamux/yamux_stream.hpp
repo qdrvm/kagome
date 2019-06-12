@@ -32,7 +32,8 @@ namespace libp2p::connection {
       INVALID_ARGUMENT,
       RECEIVE_OVERFLOW,
       IS_WRITING,
-      IS_READING
+      IS_READING,
+      INTERNAL_ERROR
     };
 
     void write(gsl::span<const uint8_t> in,

@@ -20,6 +20,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, YamuxStream::Error, e) {
       return "there is already a pending write operation on this stream";
     case E::IS_READING:
       return "there is already a pending read operation on this stream";
+    case E::INTERNAL_ERROR:
+      return "internal error happened";
   }
   return "unknown error";
 }
@@ -87,13 +89,15 @@ namespace libp2p::connection {
       return cb(Error::IS_READING);
     }
 
-    std::vector<uint8_t> result;
-    result.reserve(bytes);
+    std::vector<uint8_t> result(bytes);
 
     // if there is already enough data in our buffer, read it immediately
     if (read_buffer_.size() >= bytes) {
-      boost::asio::buffer_copy(boost::asio::buffer(result), read_buffer_.data(),
-                               bytes);
+      if (boost::asio::buffer_copy(boost::asio::buffer(result),
+                                   read_buffer_.data(), bytes)
+          != bytes) {
+        return cb(Error::INTERNAL_ERROR);
+      }
       read_buffer_.consume(bytes);
       return cb(std::move(result));
     }
@@ -105,8 +109,12 @@ namespace libp2p::connection {
         [t = shared_from_this(), bytes, result = std::move(result),
          cb = std::move(cb)]() mutable {
           if (t->read_buffer_.size() >= bytes) {
-            boost::asio::buffer_copy(boost::asio::buffer(result),
-                                     t->read_buffer_.data(), bytes);
+            if (boost::asio::buffer_copy(boost::asio::buffer(result),
+                                         t->read_buffer_.data(), bytes)
+                != bytes) {
+              cb(Error::INTERNAL_ERROR);
+              return true;
+            }
             t->read_buffer_.consume(bytes);
             t->is_reading_ = false;
             cb(std::move(result));
@@ -127,14 +135,16 @@ namespace libp2p::connection {
       return cb(Error::IS_READING);
     }
 
-    std::vector<uint8_t> result;
-    result.reserve(bytes);
+    std::vector<uint8_t> result(bytes);
 
     // if there is already enough data in our buffer, read it immediately
     if (read_buffer_.size() != 0) {
       auto to_read = std::min(read_buffer_.size(), bytes);
-      boost::asio::buffer_copy(boost::asio::buffer(result), read_buffer_.data(),
-                               to_read);
+      if (boost::asio::buffer_copy(boost::asio::buffer(result),
+                                   read_buffer_.data(), to_read)
+          != to_read) {
+        return cb(Error::INTERNAL_ERROR);
+      }
       result.resize(to_read);
       read_buffer_.consume(to_read);
       return cb(std::move(result));
@@ -148,8 +158,12 @@ namespace libp2p::connection {
          cb = std::move(cb)]() mutable {
           if (t->read_buffer_.size() != 0) {
             auto to_read = std::min(t->read_buffer_.size(), bytes);
-            boost::asio::buffer_copy(boost::asio::buffer(result),
-                                     t->read_buffer_.data(), to_read);
+            if (boost::asio::buffer_copy(boost::asio::buffer(result),
+                                         t->read_buffer_.data(), to_read)
+                != to_read) {
+              cb(Error::INTERNAL_ERROR);
+              return true;
+            }
             result.resize(to_read);
             t->read_buffer_.consume(to_read);
             t->is_reading_ = false;
@@ -229,8 +243,9 @@ namespace libp2p::connection {
     if (data.size() + read_buffer_.size() > receive_window_size_) {
       return Error::RECEIVE_OVERFLOW;
     }
+
     std::ostream s(&read_buffer_);
-    std::move(data.begin(), data.end(), std::ostream_iterator<uint8_t>(s));
+    s << data.data();
     return outcome::success();
   }
 

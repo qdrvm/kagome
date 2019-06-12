@@ -27,6 +27,7 @@ using libp2p::testing::TransportFixture;
 using std::chrono_literals::operator""ms;
 
 #define STREAM_WRITE_CB [](auto &&res) { ASSERT_TRUE(res); }
+#define READ_STREAM_OPENING read(YamuxFrame::kHeaderLength, [](auto &&) {})
 
 class YamuxedConnectionIntegrationTest : public TransportFixture {
  public:
@@ -110,6 +111,7 @@ class YamuxedConnectionIntegrationTest : public TransportFixture {
   bool is_reading_ = false;
 
   void read(size_t bytes, std::function<void(std::vector<uint8_t>)> cb) {
+    ASSERT_TRUE(other_connection_);
     pending_reads_.push({bytes, std::move(cb)});
     if (is_reading_) {
       return;
@@ -216,7 +218,7 @@ TEST_F(YamuxedConnectionIntegrationTest, StreamWrite) {
                  });
           });
     });
-    read(YamuxFrame::kHeaderLength, [](auto &&) {});
+    READ_STREAM_OPENING;
     return outcome::success();
   });
 
@@ -229,60 +231,68 @@ TEST_F(YamuxedConnectionIntegrationTest, StreamWrite) {
  * @when reading from that stream
  * @then the operation is successfully executed
  */
-// TEST_F(YamuxedConnectionIntegrationTest, StreamRead) {
-//  Buffer data{{0x12, 0x34, 0xAA}};
-//  auto written_data_msg = dataMsg(kDefaulExpectedStreamId, data);
-//
-//  this->client(
-//      [this, &written_data_msg, &data](auto &&conn) {
-//        addYamuxCallback([this, &written_data_msg, &data, conn] {
-//          auto stream = newStream(conn);
-//          EXPECT_TRUE(conn->write(written_data_msg));
-//          stream->read(data.size(), [this, &data](auto &&read_data) {
-//            ASSERT_TRUE(read_data);
-//            ASSERT_EQ(data.toVector(), read_data.value());
-//            client_finished = true;
-//          });
-//        });
-//        return outcome::success();
-//      },
-//      CLIENT_FAIL_LAMBDA);
-//
-//  launchContext();
-//  ASSERT_TRUE(client_finished);
-//}
+TEST_F(YamuxedConnectionIntegrationTest, StreamRead) {
+  Buffer data{{0x12, 0x34, 0xAA}};
+  auto written_data_msg = dataMsg(kDefaulExpectedStreamId, data);
 
-///**
-// * @given initialized Yamux @and stream over it
-// * @when closing that stream for writes
-// * @then the stream is closed for writes @and corresponding message is
-// received
-// * on the other side
-// */
-// TEST_F(YamuxIntegrationTest, CloseForWrites) {
-//  auto stream = getNewStream();
-//
-//  ASSERT_FALSE(stream->isClosedForWrite());
-//  stream->close();
-//  ASSERT_TRUE(stream->isClosedForWrite());
-//
-//  auto expected_close_stream_msg = closeStreamMsg(kDefaulExpectedStreamId);
-//  auto close_stream_msg_rcv =
-//      std::make_shared<Buffer>(YamuxFrame::kHeaderLength, 0);
-//
-//  connection_->asyncRead(
-//      boost::asio::buffer(close_stream_msg_rcv->toVector()),
-//      YamuxFrame::kHeaderLength,
-//      [&expected_close_stream_msg, close_stream_msg_rcv](auto &&ec, auto &&n)
-//      {
-//        CHECK_IO_SUCCESS(ec, n, YamuxFrame::kHeaderLength)
-//
-//        ASSERT_EQ(*close_stream_msg_rcv, expected_close_stream_msg);
-//      });
-//
-//  launchContext();
-//}
-//
+  this->client([this, &written_data_msg, &data](auto &&conn_res) {
+    EXPECT_OUTCOME_TRUE(conn, conn_res)
+    addYamuxCallback([this, &data, conn] {
+      yamuxed_connection_->newStream([this, &data](auto &&stream_res) {
+        EXPECT_OUTCOME_TRUE(stream, stream_res)
+        stream->read(data.size(), [this, &data, stream](auto &&read_data) {
+          ASSERT_TRUE(read_data);
+          ASSERT_EQ(data.toVector(), read_data.value());
+          client_finished = true;
+        });
+      });
+    });
+    EXPECT_TRUE(conn->write(written_data_msg));
+    return outcome::success();
+  });
+
+  launchContext();
+  ASSERT_TRUE(client_finished);
+}
+
+/**
+ * @given initialized Yamux @and stream over it
+ * @when closing that stream for writes
+ * @then the stream is closed for writes @and corresponding message is
+ received
+ * on the other side
+ */
+TEST_F(YamuxedConnectionIntegrationTest, CloseForWrites) {
+  auto expected_close_stream_msg = closeStreamMsg(kDefaulExpectedStreamId);
+
+  this->client([this, &expected_close_stream_msg](auto &&conn_res) {
+    EXPECT_OUTCOME_TRUE(conn, conn_res)
+    other_connection_ = conn;
+    addYamuxCallback([this, &expected_close_stream_msg, conn] {
+      yamuxed_connection_->newStream([this, &expected_close_stream_msg](
+                                         auto &&stream_res) {
+        EXPECT_OUTCOME_TRUE(stream, stream_res)
+        ASSERT_FALSE(stream->isClosedForWrite());
+        stream->close([stream](auto &&res) {
+          ASSERT_TRUE(res);
+          ASSERT_TRUE(stream->isClosedForWrite());
+        });
+
+        read(expected_close_stream_msg.size(),
+             [this, &expected_close_stream_msg](auto received_data) {
+               ASSERT_EQ(received_data, expected_close_stream_msg.toVector());
+               client_finished = true;
+             });
+      });
+    });
+    READ_STREAM_OPENING;
+    return outcome::success();
+  });
+
+  launchContext();
+  ASSERT_TRUE(client_finished);
+}
+
 ///**
 // * @given initialized Yamux @and stream over it
 // * @when the other side sends a close message for that stream

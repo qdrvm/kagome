@@ -55,12 +55,11 @@ namespace libp2p::connection {
     auto stream_id = getNewStreamId();
     write({newStreamMsg(stream_id),
            [t = shared_from_this(), stream_id,
-               cb = std::move(stream_handler)](auto &&res) {
+            cb = std::move(stream_handler)](auto &&res) {
              if (!res) {
                return cb(res.error());
              }
-             auto created_stream =
-                 std::make_shared<YamuxStream>(t, stream_id);
+             auto created_stream = std::make_shared<YamuxStream>(t, stream_id);
              t->streams_.insert({stream_id, created_stream});
              cb(created_stream);
            }});
@@ -127,6 +126,27 @@ namespace libp2p::connection {
 
   outcome::result<size_t> YamuxedConnection::readSome(gsl::span<uint8_t> s) {
     return Error::FORBIDDEN_CALL;
+  }
+
+  void YamuxedConnection::write(WriteData write_data) {
+    write_queue_.push(std::move(write_data));
+    if (is_writing_) {
+      return;
+    }
+
+    is_writing_ = true;
+    while (!write_queue_.empty()) {
+      const auto &data = write_queue_.front();
+      auto write_res = data.some ? connection_->writeSome(data.data)
+                                 : connection_->write(data.data);
+      if (write_res) {
+        data.cb(write_res.value() - YamuxFrame::kHeaderLength);
+      } else {
+        data.cb(write_res);
+      }
+      write_queue_.pop();
+    }
+    is_writing_ = false;
   }
 
   outcome::result<void> YamuxedConnection::readerLoop() {
@@ -302,18 +322,17 @@ namespace libp2p::connection {
 
   void YamuxedConnection::registerNewStream(
       StreamId stream_id, std::function<StreamResultHandler> cb) {
-    write(
-        {ackStreamMsg(stream_id),
-         [t = shared_from_this(), stream_id, cb = std::move(cb)](auto &&res) {
-           if (!res) {
-             t->last_write_error_ = res.error();
-             return cb(res.error());
-           }
-           auto new_stream = std::make_shared<YamuxStream>(t, stream_id);
-           t->streams_[stream_id] = new_stream;
-           t->new_stream_handler_(new_stream);
-           cb(std::move(new_stream));
-         }});
+    write({ackStreamMsg(stream_id),
+           [t = shared_from_this(), stream_id, cb = std::move(cb)](auto &&res) {
+             if (!res) {
+               t->last_write_error_ = res.error();
+               return cb(res.error());
+             }
+             auto new_stream = std::make_shared<YamuxStream>(t, stream_id);
+             t->streams_[stream_id] = new_stream;
+             t->new_stream_handler_(new_stream);
+             cb(std::move(new_stream));
+           }});
   }
 
   outcome::result<void> YamuxedConnection::processData(
@@ -378,7 +397,7 @@ namespace libp2p::connection {
     if (auto stream = findStream(stream_id)) {
       write({closeStreamMsg(stream_id),
              [t = shared_from_this(), cb = std::move(cb), stream,
-                 stream_id](auto &&write_res) {
+              stream_id](auto &&write_res) {
                if (!write_res) {
                  t->logger_->error("cannot write close stream msg: {}",
                                    write_res.error().message());
@@ -392,8 +411,9 @@ namespace libp2p::connection {
                }
                cb(outcome::success());
              }});
+    } else {
+      cb(Error::NO_SUCH_STREAM);
     }
-    cb(Error::NO_SUCH_STREAM);
   }
 
   void YamuxedConnection::removeStream(StreamId stream_id) {
@@ -419,36 +439,15 @@ namespace libp2p::connection {
       StreamId stream_id, gsl::span<const uint8_t> msg, bool some,
       std::function<void(outcome::result<size_t>)> cb) {
     if (!is_active_) {
-      cb(Error::YAMUX_IS_CLOSED);
+      return cb(Error::YAMUX_IS_CLOSED);
     }
 
     auto stream_opt = findStream(stream_id);
     if (!stream_opt) {
-      cb(Error::NO_SUCH_STREAM);
+      return cb(Error::NO_SUCH_STREAM);
     }
 
     write({dataMsg(stream_id, msg), std::move(cb), some});
-  }
-
-  void YamuxedConnection::write(WriteData write_data) {
-    write_queue_.push(std::move(write_data));
-    if (is_writing_) {
-      return;
-    }
-
-    is_writing_ = true;
-    while (!write_queue_.empty()) {
-      const auto &data = write_queue_.front();
-      auto write_res = data.some ? connection_->writeSome(data.data)
-                                 : connection_->write(data.data);
-      if (write_res) {
-        data.cb(write_res.value() - YamuxFrame::kHeaderLength);
-      } else {
-        data.cb(write_res);
-      }
-      write_queue_.pop();
-    }
-    is_writing_ = false;
   }
 
   void YamuxedConnection::streamRead(StreamId stream_id,
@@ -480,7 +479,7 @@ namespace libp2p::connection {
       StreamId stream_id, std::function<void(outcome::result<void>)> cb) {
     write({resetStreamMsg(stream_id),
            [t = shared_from_this(), cb = std::move(cb),
-               stream_id](auto &&write_res) {
+            stream_id](auto &&write_res) {
              if (!write_res) {
                t->logger_->error("cannot write reset stream msg: {}",
                                  write_res.error().message());
