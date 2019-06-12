@@ -1,24 +1,32 @@
 [submodule "deps/spdlog"]
 	path = deps/spdlog
 	url = https://github.com/gabime/spdlog
+    shallow = true
 [submodule "gsl"]
 	path = deps/GSL
 	url = https://github.com/Microsoft/GSL
+    shallow = true
 [submodule "sml"]
 	path = deps/sml
 	url = https://github.com/boost-experimental/sml
+    shallow = true
 [submodule "deps/sr25519-crust"]
 	path = deps/sr25519-crust
 	url = https://github.com/Warchant/sr25519-crust.git
+    shallow = true
 [submodule "ufiber"]
 	path = deps/ufiber
 	url = https://github.com/djarek/ufiber/
+    shallow = true
 [submodule "deps/hat-trie"]
 	path = deps/hat-trie
 	url = https://github.com/Tessil/hat-trie.git
+    shallow = true
 [submodule "continuable"]
 	path = deps/continuable
 	url = https://github.com/Naios/continuable/
+	shallow = true
 [submodule "function2"]
 	path = deps/function2
 	url = https://github.com/Naios/function2
+	shallow = true
