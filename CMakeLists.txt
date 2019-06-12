@@ -107,6 +107,8 @@ include_directories(
   deps/ufiber/include
   deps/sr25519-crust/include
   deps/hat-trie/include
+  deps/continuable/include
+  deps/function2/include
 )
 
 add_subdirectory(core)
