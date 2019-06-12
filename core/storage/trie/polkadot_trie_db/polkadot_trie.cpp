@@ -27,7 +27,7 @@ namespace {
   inline auto subbuffer(const Buffer &key, size_t offset = 0,
                         size_t length = -1) {
     return Buffer(
-        gsl::span<const uint8_t>(key.toVector()).subspan(offset, length));
+        gsl::make_span(key).subspan(offset, length));
   }
 }  // namespace
 
