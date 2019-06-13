@@ -8,4 +8,5 @@ addtest(transaction_pool_test
     )
 target_link_libraries(transaction_pool_test
     transaction_pool
+    hexutil
     )

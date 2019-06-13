@@ -10,8 +10,11 @@ using kagome::primitives::Transaction;
 namespace kagome::transaction_pool {
 
   TransactionPoolImpl::TransactionPoolImpl(std::unique_ptr<Container> ready,
-                                           std::unique_ptr<Container> waiting)
-      : ready_queue_{std::move(ready)}, waiting_queue_{std::move(waiting)} {}
+                                           std::unique_ptr<Container> waiting,
+                                           common::Logger logger)
+      : logger_{std::move(logger)},
+        ready_queue_{std::move(ready)},
+        waiting_queue_{std::move(waiting)} {}
 
   outcome::result<void> TransactionPoolImpl::submitOne(Transaction t) {
     return submit({t});
@@ -49,13 +52,15 @@ namespace kagome::transaction_pool {
     auto is_ready = [this](auto &&tx) {
       return std::all_of(
           tx.requires.begin(), tx.requires.end(), [this](auto &&tag) {
-            return provided_tags_.find(tag) == provided_tags_.end();
+            return provided_tags_.find(tag) != provided_tags_.end();
           });
     };
     auto border = std::stable_partition(waiting_queue_->begin(),
                                         waiting_queue_->end(), is_ready);
-    std::move(waiting_queue_->begin(), std::move(border),
+    std::move(waiting_queue_->begin(), border,
               std::back_inserter(*ready_queue_));
+    logger_->info("{}", std::distance(waiting_queue_->begin(), border));
+    waiting_queue_->erase(waiting_queue_->begin(), border);
   }
 
   TransactionPoolImpl::Status TransactionPoolImpl::getStatus() const {
