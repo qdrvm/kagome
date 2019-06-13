@@ -6,6 +6,7 @@
 #ifndef KAGOME_TRANSACTION_POOL_IMPL_HPP
 #define KAGOME_TRANSACTION_POOL_IMPL_HPP
 
+#include "common/logger.hpp"
 #include "storage/face/generic_list.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
@@ -15,8 +16,9 @@ namespace kagome::transaction_pool {
     using Container = face::GenericList<primitives::Transaction>;
 
    public:
-    explicit TransactionPoolImpl(std::unique_ptr<Container> ready,
-                                 std::unique_ptr<Container> waiting);
+    explicit TransactionPoolImpl(
+        std::unique_ptr<Container> ready, std::unique_ptr<Container> waiting,
+        common::Logger logger = common::createLogger("Transaction Pool"));
 
     ~TransactionPoolImpl() override = default;
 
@@ -42,6 +44,7 @@ namespace kagome::transaction_pool {
      */
     void updateReady();
 
+    common::Logger logger_;
     std::unique_ptr<Container> ready_queue_;
     std::unique_ptr<Container> waiting_queue_;
     std::set<primitives::TransactionTag> provided_tags_;
