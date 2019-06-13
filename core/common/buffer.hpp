@@ -178,15 +178,22 @@ namespace kagome::common {
     uint8_t *data();
 
     /**
-     * @brief getter for vector of vytes
+     * @brief getter for vector of bytes
      */
     const std::vector<uint8_t> &toVector() const;
 
     std::vector<uint8_t> &toVector();
 
     /**
+     * Returns a copy of a part of the buffer
+     * Works alike subspan() of gsl::span
+     */
+    Buffer subbuffer(size_t offset = 0,
+                          size_t length = -1) const;
+
+    /**
      * @brief encode bytearray as hex
-     * @return hexencoded string
+     * @return hex-encoded string
      */
     std::string toHex() const;
 
@@ -197,10 +204,10 @@ namespace kagome::common {
     bool empty() const;
 
     /**
-     * @brief Construct Buffer from hexstring
-     * @param hex hexencoded string
+     * @brief Construct Buffer from hex string
+     * @param hex hex-encoded string
      * @return result containing constructed buffer if input string is
-     * hexencoded string.
+     * hex-encoded string.
      */
     static outcome::result<Buffer> fromHex(std::string_view hex);
 

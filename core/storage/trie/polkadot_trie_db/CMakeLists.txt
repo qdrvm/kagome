@@ -22,12 +22,12 @@ target_link_libraries(polkadot_trie_db
     )
 
 add_library(polkadot_trie
-        polkadot_trie.cpp
-        )
+    polkadot_trie.cpp
+    )
 target_link_libraries(polkadot_trie
-        buffer
-        outcome
-        )
+    buffer
+    outcome
+    )
 
 add_library(polkadot_trie_batch
     polkadot_trie_batch.cpp

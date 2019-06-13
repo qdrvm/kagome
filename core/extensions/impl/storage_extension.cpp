@@ -103,16 +103,19 @@ namespace kagome::extensions {
   // -------------------------Trie operations--------------------------
 
   void StorageExtension::ext_blake2_256_enumerated_trie_root(
-      runtime::WasmPointer values_data, runtime::WasmPointer lens_data,
-      runtime::SizeType lens_length, runtime::WasmPointer result) {
-    std::vector<uint32_t> lengths(lens_length);
-    for (size_t i = 0; i < lens_length; i++) {
-      lengths.at(i) = memory_->load32u(lens_data + i * 4);
+      runtime::WasmPointer values_data, runtime::WasmPointer lengths_data,
+      runtime::SizeType values_num, runtime::WasmPointer result) {
+    if (values_num == 0) {
+      return;
     }
-    std::forward_list<Buffer> values(lens_length);
+    std::vector<uint32_t> lengths(values_num);
+    for (size_t i = 0; i < values_num; i++) {
+      lengths.at(i) = memory_->load32u(lengths_data + i * 4);
+    }
+    std::forward_list<Buffer> values(values_num);
     uint32_t offset = 0;
     auto curr_value = values.begin();
-    for (size_t i = 0; i < lens_length; i++, curr_value++) {
+    for (size_t i = 0; i < values_num; i++, curr_value++) {
       *curr_value = memory_->loadN(values_data + offset, lengths.at(i));
       offset += lengths.at(i);
     }

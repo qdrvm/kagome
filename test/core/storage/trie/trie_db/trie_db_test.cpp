@@ -6,11 +6,11 @@
 #include "storage/trie/polkadot_trie_db/polkadot_trie_db.hpp"
 
 #include <gtest/gtest.h>
+#include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"
-#include "testutil/storage/in_memory_storage.hpp"
 #include "testutil/storage/polkadot_trie_db_printer.hpp"
 
 using kagome::common::Buffer;
