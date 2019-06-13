@@ -168,3 +168,26 @@ TEST_F(ConnectionManagerTest, ConnectednessWhenCanNotConnect) {
 
   ASSERT_EQ(cmgr->connectedness(p3), C::CAN_NOT_CONNECT);
 }
+
+/**
+ * @given 3 peers: p1 has 2 closed connections, p1 has 1 closed connection, p3
+ * has 1 nullptr connection
+ * @when garbage colection is executed
+ * @then all invalid connections are cleaned up
+ */
+TEST_F(ConnectionManagerTest, GarbageCollection) {
+  cmgr->addConnectionToPeer(p3, nullptr);
+  ASSERT_EQ(cmgr->getConnectionsToPeer(p1).size(), 2);
+  ASSERT_EQ(cmgr->getConnectionsToPeer(p2).size(), 1);
+  ASSERT_EQ(cmgr->getConnectionsToPeer(p3).size(), 1);
+
+  EXPECT_CALL(*conn, isClosed()).Times(3).WillRepeatedly(Return(true));
+
+  cmgr->collectGarbage();
+
+  // since all connections are marked as "closed" or "nullptr", they all will be
+  // garbage collected
+  ASSERT_EQ(cmgr->getConnectionsToPeer(p1).size(), 0);
+  ASSERT_EQ(cmgr->getConnectionsToPeer(p2).size(), 0);
+  ASSERT_EQ(cmgr->getConnectionsToPeer(p3).size(), 0);
+}
