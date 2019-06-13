@@ -16,6 +16,9 @@ namespace libp2p::network {
   // TODO(warchant): when connection is closed ('onDisconnected' event fired),
   // manager should remove it from storage PRE-212
 
+  /**
+   * @brief Connection Manager stores all known connections, and is capable of selecting subset of connections
+   */
   struct ConnectionManager : public basic::GarbageCollectable {
     using Connection = connection::CapableConnection;
     using ConnectionSPtr = std::shared_ptr<Connection>;
@@ -23,10 +26,9 @@ namespace libp2p::network {
     enum class Connectedness {
       NOT_CONNECTED,  ///< we don't know peer's addresses, and are not connected
       CONNECTED,      ///< we have at least one connection to this peer
-      CAN_CONNECT,  ///< we know address of this peer, and we can dial to create
-                    ///< a connection
-      CAN_NOT_CONNECT  ///< we know address of this peer, but can not dial (no
-      ///< transports supported)
+      CAN_CONNECT,    ///< we know peer's addr, and we can dial
+      CAN_NOT_CONNECT  ///< we know peer's addr, but can not dial (no
+                       ///< transports)
     };
 
     ~ConnectionManager() override = default;
@@ -34,7 +36,7 @@ namespace libp2p::network {
     // get list of all connections (including inbound and outbound)
     virtual std::vector<ConnectionSPtr> getConnections() const = 0;
 
-    // get list of all outbound connections to a given peer.
+    // get list of all inbound or outbound connections to a given peer.
     virtual std::vector<ConnectionSPtr> getConnectionsToPeer(
         const peer::PeerId &p) const = 0;
 

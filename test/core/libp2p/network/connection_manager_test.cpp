@@ -102,7 +102,7 @@ TEST_F(ConnectionManagerTest, ConnectednessWhenConnected) {
 
   // even though there are 2 connections, we were able to find first open
   // connection, so isClosed called once
-  EXPECT_CALL(*conn, isClosed()).Times(1).WillRepeatedly(Return(false));
+  EXPECT_CALL(*conn, isClosed()).WillOnce(Return(false));
 
   ASSERT_EQ(conns.size(), 2);
 
@@ -135,8 +135,8 @@ TEST_F(ConnectionManagerTest, ConnectednessWhenCanConnect) {
   auto ma = "/ip4/192.168.1.2/tcp/8080"_multiaddr;
   std::vector<multi::Multiaddress> vma{ma};
 
-  EXPECT_CALL(*repo, getAddresses(_)).Times(1).WillRepeatedly(Return(vma));
-  EXPECT_CALL(*tmgr, findBest(_)).Times(1).WillRepeatedly(Return(t));
+  EXPECT_CALL(*repo, getAddresses(_)).WillOnce(Return(vma));
+  EXPECT_CALL(*tmgr, findBest(_)).WillOnce(Return(t));
 
   ASSERT_EQ(cmgr->connectedness(p3), C::CAN_CONNECT);
 }
@@ -147,9 +147,7 @@ TEST_F(ConnectionManagerTest, ConnectednessWhenCanConnect) {
  * @then get CAN_NOT_CONNECT
  */
 TEST_F(ConnectionManagerTest, ConnectednessWhenCanNotConnect_NoAddresses) {
-  EXPECT_CALL(*repo, getAddresses(_))
-      .Times(1)
-      .WillRepeatedly(Return(PeerError::NOT_FOUND));
+  EXPECT_CALL(*repo, getAddresses(_)).WillOnce(Return(PeerError::NOT_FOUND));
   ASSERT_EQ(cmgr->connectedness(p3), C::CAN_NOT_CONNECT);
 }
 
@@ -163,8 +161,8 @@ TEST_F(ConnectionManagerTest, ConnectednessWhenCanNotConnect) {
   auto ma = "/ip4/192.168.1.2/tcp/8080"_multiaddr;
   std::vector<multi::Multiaddress> vma{ma};
 
-  EXPECT_CALL(*repo, getAddresses(_)).Times(1).WillRepeatedly(Return(vma));
-  EXPECT_CALL(*tmgr, findBest(_)).Times(1).WillRepeatedly(Return(nullptr));
+  EXPECT_CALL(*repo, getAddresses(_)).WillOnce(Return(vma));
+  EXPECT_CALL(*tmgr, findBest(_)).WillOnce(Return(nullptr));
 
   ASSERT_EQ(cmgr->connectedness(p3), C::CAN_NOT_CONNECT);
 }

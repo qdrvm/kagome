@@ -19,7 +19,6 @@ target_link_libraries(libp2p_transport_manager
     multiaddress
     )
 
-
 add_library(libp2p_connection_manager
     connection_manager_impl.cpp
     )

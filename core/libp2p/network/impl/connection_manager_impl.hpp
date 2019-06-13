@@ -19,21 +19,16 @@ namespace libp2p::network {
         std::shared_ptr<peer::AddressRepository> addrRepo,
         std::shared_ptr<network::TransportManager> transportManager);
 
-    // get list of all connections (including inbound and outbound)
     std::vector<ConnectionSPtr> getConnections() const override;
 
-    // get list of all outbound connections to a given peer.
     std::vector<ConnectionSPtr> getConnectionsToPeer(
         const peer::PeerId &p) const override;
 
-    // get best connection to a given peer
     ConnectionSPtr getBestConnectionForPeer(
         const peer::PeerId &p) const override;
 
-    // get connectedness information for given peer p
     Connectedness connectedness(const peer::PeerId &p) const override;
 
-    // add connection to a given peer
     void addConnectionToPeer(const peer::PeerId &p, ConnectionSPtr c) override;
 
     void collectGarbage() override;
