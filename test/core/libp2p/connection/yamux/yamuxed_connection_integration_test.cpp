@@ -103,6 +103,8 @@ class YamuxedConnectionIntegrationTest : public TransportFixture {
 
   std::vector<std::function<void()>> yamux_callbacks_;
 
+  const std::vector<uint8_t> kSyncToken{0x11};
+
   static constexpr YamuxedConnection::StreamId kDefaulExpectedStreamId = 2;
 
   std::shared_ptr<ReadWriteCloser> other_connection_;
@@ -210,7 +212,7 @@ TEST_F(YamuxedConnectionIntegrationTest, StreamWrite) {
           [this, &expected_data_msg, &data, conn](auto &&stream_res) {
             EXPECT_OUTCOME_TRUE(stream, stream_res)
 
-            stream->write(data, STREAM_WRITE_CB);
+            stream->write(data).then(STREAM_WRITE_CB);
             read(expected_data_msg.size(),
                  [this, &expected_data_msg](auto received_data) {
                    EXPECT_EQ(received_data, expected_data_msg.toVector());
@@ -237,16 +239,18 @@ TEST_F(YamuxedConnectionIntegrationTest, StreamRead) {
 
   this->client([this, &written_data_msg, &data](auto &&conn_res) {
     EXPECT_OUTCOME_TRUE(conn, conn_res)
+    other_connection_ = conn;
     addYamuxCallback([this, &data, conn] {
       yamuxed_connection_->newStream([this, &data](auto &&stream_res) {
         EXPECT_OUTCOME_TRUE(stream, stream_res)
-        stream->read(data.size(), [this, &data, stream](auto &&read_data) {
+        stream->read(data.size()).then([this, &data, stream](auto &&read_data) {
           ASSERT_TRUE(read_data);
           ASSERT_EQ(data.toVector(), read_data.value());
           client_finished = true;
         });
       });
     });
+    READ_STREAM_OPENING;
     EXPECT_TRUE(conn->write(written_data_msg));
     return outcome::success();
   });
@@ -273,7 +277,7 @@ TEST_F(YamuxedConnectionIntegrationTest, CloseForWrites) {
                                          auto &&stream_res) {
         EXPECT_OUTCOME_TRUE(stream, stream_res)
         ASSERT_FALSE(stream->isClosedForWrite());
-        stream->close([stream](auto &&res) {
+        stream->close().then([stream](auto &&res) {
           ASSERT_TRUE(res);
           ASSERT_TRUE(stream->isClosedForWrite());
         });
@@ -306,21 +310,21 @@ TEST_F(YamuxedConnectionIntegrationTest, CloseForReads) {
       [this, &sent_close_stream_msg, &stream_out](auto &&conn_res) mutable {
         EXPECT_OUTCOME_TRUE(conn, conn_res)
         other_connection_ = conn;
-        addYamuxCallback([this, conn, &stream_out]() mutable {
+        addYamuxCallback([this, &stream_out]() mutable {
           yamuxed_connection_->newStream(
-              [this, conn, &stream_out](auto &&stream_res) mutable {
+              [this, &stream_out](auto &&stream_res) mutable {
                 EXPECT_OUTCOME_TRUE(stream, stream_res)
                 ASSERT_FALSE(stream->isClosedForRead());
-                stream->write(std::vector<uint8_t>{0x11},  // token
-                              [this, stream, &stream_out](auto &&res) mutable {
-                                ASSERT_TRUE(res);
-                                client_finished = true;
-                                stream_out = std::move(stream);
-                              });
+                stream->write(kSyncToken)
+                    .then([this, stream, &stream_out](auto &&res) mutable {
+                      ASSERT_TRUE(res);
+                      client_finished = true;
+                      stream_out = std::move(stream);
+                    });
               });
         });
         READ_STREAM_OPENING;
-        EXPECT_TRUE(conn->read(YamuxFrame::kHeaderLength + 1));  // token
+        EXPECT_TRUE(conn->read(YamuxFrame::kHeaderLength + kSyncToken.size()));
         EXPECT_TRUE(conn->write(sent_close_stream_msg));
         return outcome::success();
       });
@@ -331,102 +335,62 @@ TEST_F(YamuxedConnectionIntegrationTest, CloseForReads) {
   ASSERT_TRUE(stream_out->isClosedForRead());
 }
 
-///**
-// * @given initialized Yamux @and stream over it
-// * @when close message is sent over the stream @and the other side responses
-// * with a close message as well
-// * @then the stream is closed entirely - removed from Yamux
-// */
-// TEST_F(YamuxIntegrationTest, CloseEntirely) {
-//  auto stream = getNewStream();
-//
-//  ASSERT_FALSE(stream->isClosedForWrite());
-//  stream->close();
-//  ASSERT_TRUE(stream->isClosedForWrite());
-//
-//  auto expected_close_stream_msg = closeStreamMsg(kDefaulExpectedStreamId);
-//  auto close_stream_msg_rcv =
-//      std::make_shared<Buffer>(YamuxFrame::kHeaderLength, 0);
-//
-//  connection_->asyncRead(
-//      boost::asio::buffer(close_stream_msg_rcv->toVector()),
-//      YamuxFrame::kHeaderLength,
-//      [this, &expected_close_stream_msg, close_stream_msg_rcv](auto &&ec,
-//                                                               auto &&n) {
-//        CHECK_IO_SUCCESS(ec, n, YamuxFrame::kHeaderLength)
-//        ASSERT_EQ(*close_stream_msg_rcv, expected_close_stream_msg);
-//
-//        connection_->asyncWrite(
-//            boost::asio::buffer(expected_close_stream_msg.toVector()),
-//            [&expected_close_stream_msg](auto &&ec, auto &&n) {
-//              CHECK_IO_SUCCESS(ec, n, expected_close_stream_msg.size())
-//            });
-//      });
-//
-//  launchContext();
-//  ASSERT_TRUE(stream->isClosedEntirely());
-//}
-//
-///**
-// * @given initialized Yamux
-// * @when a ping message arrives to Yamux
-// * @then Yamux sends a ping response back
-// */
-// TEST_F(YamuxIntegrationTest, Ping) {
-//  static constexpr uint32_t ping_value = 42;
-//
-//  auto ping_in_msg = pingOutMsg(ping_value);
-//  auto ping_out_msg = pingResponseMsg(ping_value);
-//  auto received_ping = std::make_shared<Buffer>(ping_out_msg.size(), 0);
-//
-//  connection_->asyncWrite(boost::asio::buffer(ping_in_msg.toVector()),
-//                          [&ping_in_msg](auto &&ec, auto &&n) {
-//                            CHECK_IO_SUCCESS(ec, n, ping_in_msg.size())
-//                          });
-//  connection_->asyncRead(boost::asio::buffer(received_ping->toVector()),
-//                         ping_out_msg.size(),
-//                         [&ping_out_msg, received_ping](auto &&ec, auto &&n) {
-//                           CHECK_IO_SUCCESS(ec, n, ping_out_msg.size())
-//                           ASSERT_EQ(*received_ping, ping_out_msg);
-//                         });
-//  launchContext();
-//}
-//
-///**
-// * @given initialized Yamux @and stream over it
-// * @when a reset message is sent over that stream
-// * @then the stream is closed entirely - removed from Yamux @and the other
-// side
-// * receives a corresponding message
-// */
-// TEST_F(YamuxIntegrationTest, Reset) {
-//  auto stream = getNewStream();
-//
-//  ASSERT_FALSE(stream->isClosedEntirely());
-//  stream->reset();
-//  ASSERT_TRUE(stream->isClosedEntirely());
-//
-//  auto expected_reset_msg = resetStreamMsg(kDefaulExpectedStreamId);
-//  auto rcvd_msg = std::make_shared<Buffer>(expected_reset_msg.size(), 0);
-//
-//  connection_->asyncRead(boost::asio::buffer(rcvd_msg->toVector()),
-//                         expected_reset_msg.size(),
-//                         [&expected_reset_msg, rcvd_msg](auto &&ec, auto &&n)
-//                         {
-//                           CHECK_IO_SUCCESS(ec, n, rcvd_msg->size())
-//                           ASSERT_EQ(*rcvd_msg, expected_reset_msg);
-//                         });
-//
-//  launchContext();
-//}
-//
-///**
-// * @given initialized Yamux
-// * @when Yamux is closed
-// * @then an underlying connection is closed @and the other side receives a
-// * corresponding message
-// */
-// TEST_F(YamuxIntegrationTest, GoAway) {
-//  yamux_->close();
-//  ASSERT_TRUE(yamux_->isClosed());
-//}
+/**
+ * @given initialized Yamux @and stream over it
+ * @when reset message is sent over the connection
+ * @then the stream is closed entirely - removed from Yamux
+ */
+TEST_F(YamuxedConnectionIntegrationTest, Reset) {
+  auto reset_stream_msg = resetStreamMsg(kDefaulExpectedStreamId);
+
+  std::shared_ptr<Stream> stream_out;
+  this->client([this, &reset_stream_msg, &stream_out](auto &&conn_res) mutable {
+    EXPECT_OUTCOME_TRUE(conn, conn_res)
+    other_connection_ = conn;
+    addYamuxCallback([this, &stream_out]() mutable {
+      yamuxed_connection_->newStream(
+          [this, &stream_out](auto &&stream_res) mutable {
+            EXPECT_OUTCOME_TRUE(stream, stream_res)
+            ASSERT_FALSE(stream->isClosed());
+            stream->write(kSyncToken)
+                .then([this, stream, &stream_out](auto &&res) mutable {
+                  ASSERT_TRUE(res);
+                  client_finished = true;
+                  stream_out = std::move(stream);
+                });
+          });
+    });
+    READ_STREAM_OPENING;
+    EXPECT_TRUE(conn->read(YamuxFrame::kHeaderLength + kSyncToken.size()));
+    EXPECT_TRUE(conn->write(reset_stream_msg));
+    return outcome::success();
+  });
+
+  launchContext();
+  ASSERT_TRUE(client_finished);
+  ASSERT_TRUE(stream_out->isClosed());
+}
+
+/**
+ * @given initialized Yamux
+ * @when a ping message arrives to Yamux
+ * @then Yamux sends a ping response back
+ */
+TEST_F(YamuxedConnectionIntegrationTest, Ping) {
+  static constexpr uint32_t ping_value = 42;
+
+  auto ping_in_msg = pingOutMsg(ping_value);
+  auto ping_out_msg = pingResponseMsg(ping_value);
+
+  this->client([this, &ping_in_msg, &ping_out_msg](auto &&conn_res) {
+    EXPECT_OUTCOME_TRUE(conn, conn_res)
+    EXPECT_TRUE(conn->write(ping_in_msg));
+    EXPECT_OUTCOME_TRUE(received_msg, conn->read(ping_out_msg.size()))
+    EXPECT_EQ(received_msg, ping_out_msg.toVector());
+    client_finished = true;
+    return outcome::success();
+  });
+
+  launchContext();
+  ASSERT_TRUE(client_finished);
+}
