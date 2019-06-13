@@ -7,3 +7,5 @@ target_link_libraries(outcome_test
 
 
 addtest(sml_test sml_test.cpp)
+
+addtest(continuable_test continuable_test.cpp)

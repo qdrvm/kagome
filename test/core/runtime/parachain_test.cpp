@@ -75,12 +75,12 @@ TEST_F(ParachainHostTest, DISABLED_ParachainHeadTest) {
 
 /**
  * @given initialized parachain host api
- * @when parachainCode() is invoked
+ * @when parachain_code() is invoked
  * @then successful result is returned
  */
 TEST_F(ParachainHostTest, DISABLED_ParachainCodeTest) {
   auto id = createParachainId();
-  ASSERT_TRUE(api_->parachainCode(id));
+  ASSERT_TRUE(api_->parachain_code(id));
 }
 
 /**
