@@ -36,17 +36,16 @@ namespace libp2p::connection {
       INTERNAL_ERROR
     };
 
-    void write(gsl::span<const uint8_t> in,
-               std::function<WriteCallback> cb) override;
+    cti::continuable<WriteResult> write(gsl::span<const uint8_t> in) override;
 
-    void writeSome(gsl::span<const uint8_t> in,
-                   std::function<WriteCallback> cb) override;
+    cti::continuable<WriteResult> writeSome(
+        gsl::span<const uint8_t> in) override;
 
-    void read(size_t bytes, std::function<ReadCallback> cb) override;
+    cti::continuable<ReadResult> read(size_t bytes) override;
 
-    void readSome(size_t bytes, std::function<ReadCallback> cb) override;
+    cti::continuable<ReadResult> readSome(size_t bytes) override;
 
-    void reset(std::function<void(outcome::result<void>)> cb) override;
+    cti::continuable<VoidResult> reset() override;
 
     bool isClosedForRead() const noexcept override;
 
@@ -54,19 +53,16 @@ namespace libp2p::connection {
 
     bool isClosed() const noexcept override;
 
-    void close(std::function<void(outcome::result<void>)> cb) override;
+    cti::continuable<VoidResult> close() override;
 
-    void adjustWindowSize(
-        uint32_t new_size,
-        std::function<void(outcome::result<void>)> cb) override;
+    cti::continuable<VoidResult> adjustWindowSize(uint32_t new_size) override;
 
    private:
     /**
      * Internal proxy method for writes; (\param some) denotes if the write
      * should write 'some' or 'all' bytes
      */
-    void write(gsl::span<const uint8_t> in, std::function<WriteCallback> cb,
-               bool some);
+    cti::continuable<WriteResult> write(gsl::span<const uint8_t> in, bool some);
 
     std::shared_ptr<YamuxedConnection> yamux_;
     YamuxedConnection::StreamId stream_id_;
