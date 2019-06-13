@@ -22,12 +22,12 @@ namespace kagome::storage::trie {
         public face::WriteableMap<common::Buffer, common::Buffer> {
     using NodePtr = std::shared_ptr<PolkadotNode>;
     using BranchPtr = std::shared_ptr<BranchNode>;
-    using ChildRetrieveCallback =
+    using ChildRetrieveFunctor =
         std::function<outcome::result<NodePtr>(BranchPtr, uint8_t)>;
 
     // a child is obtained from the branch list of children as-is.
     // should be used when the trie is completely in memory
-    inline static outcome::result<NodePtr> defaultChildRetrieveCallback(
+    inline static outcome::result<NodePtr> defaultChildRetrieveFunctor(
         const BranchPtr &parent, uint8_t idx) {
       return parent->children.at(idx);
     }
@@ -42,10 +42,10 @@ namespace kagome::storage::trie {
      * is stored on an external storage
      */
     explicit PolkadotTrie(
-        ChildRetrieveCallback f = defaultChildRetrieveCallback);
+        ChildRetrieveFunctor f = defaultChildRetrieveFunctor);
 
     explicit PolkadotTrie(
-        NodePtr root, ChildRetrieveCallback f = defaultChildRetrieveCallback);
+        NodePtr root, ChildRetrieveFunctor f = defaultChildRetrieveFunctor);
 
     /**
      * @return the root node of the trie
@@ -94,8 +94,9 @@ namespace kagome::storage::trie {
     uint32_t getCommonPrefixLength(const common::Buffer &pref1,
                                    const common::Buffer &pref2) const;
 
-    ChildRetrieveCallback retrieveChild;
-    
+    outcome::result<NodePtr> retrieveChild(BranchPtr parent, uint8_t idx) const;
+
+    ChildRetrieveFunctor retrieve_child_;
     NodePtr root_;
   };
 

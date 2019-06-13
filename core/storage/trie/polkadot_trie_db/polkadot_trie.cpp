@@ -20,11 +20,11 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotTrie::Error, e) {
 }
 
 namespace kagome::storage::trie {
-  PolkadotTrie::PolkadotTrie(ChildRetrieveCallback f)
-      : retrieveChild{std::move(f)} {}
+  PolkadotTrie::PolkadotTrie(ChildRetrieveFunctor f)
+      : retrieve_child_{std::move(f)} {}
 
-  PolkadotTrie::PolkadotTrie(NodePtr root, ChildRetrieveCallback f)
-      : retrieveChild{std::move(f)}, root_{std::move(root)} {}
+  PolkadotTrie::PolkadotTrie(NodePtr root, ChildRetrieveFunctor f)
+      : retrieve_child_{std::move(f)}, root_{std::move(root)} {}
 
   outcome::result<void> PolkadotTrie::put(const Buffer &key,
                                           const Buffer &value) {
@@ -350,6 +350,11 @@ namespace kagome::storage::trie {
       return branch;
     }
     return parent;
+  }
+
+  outcome::result<PolkadotTrie::NodePtr> PolkadotTrie::retrieveChild(
+      BranchPtr parent, uint8_t idx) const {
+    return retrieve_child_(parent, idx);
   }
 
   uint32_t PolkadotTrie::getCommonPrefixLength(const Buffer &pref1,
