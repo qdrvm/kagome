@@ -354,7 +354,7 @@ namespace kagome::storage::trie {
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrie::retrieveChild(
       BranchPtr parent, uint8_t idx) const {
-    return retrieve_child_(parent, idx);
+    return retrieve_child_(std::move(parent), idx);
   }
 
   uint32_t PolkadotTrie::getCommonPrefixLength(const Buffer &pref1,
