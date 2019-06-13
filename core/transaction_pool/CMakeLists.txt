@@ -11,4 +11,5 @@ add_library(transaction_pool
 target_link_libraries(transaction_pool
     outcome
     pool_moderator
+    logger
     )

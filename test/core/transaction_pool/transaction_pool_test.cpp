@@ -121,5 +121,9 @@ TEST(TransactionPoolTest, Create) {
   t3.requires = {"1234"_unhex, "abcd"_unhex};
 
   EXPECT_OUTCOME_TRUE_1(tp->submit({t1, t3}));
-  ASSERT_EQ(tp->getStatus())
+  EXPECT_EQ(tp->getStatus().waiting(), 1);
+  ASSERT_EQ(tp->getStatus().ready(), 1);
+  EXPECT_OUTCOME_TRUE_1(tp->submit({t2}));
+  EXPECT_EQ(tp->getStatus().waiting(), 0);
+  ASSERT_EQ(tp->getStatus().ready(), 3);
 }
