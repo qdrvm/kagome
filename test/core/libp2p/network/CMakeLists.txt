@@ -20,3 +20,15 @@ target_link_libraries(transport_manager_test
     libp2p_transport_manager
     multiaddress
     )
+
+
+addtest(connection_manager_test
+    connection_manager_test.cpp
+    )
+target_link_libraries(connection_manager_test
+    libp2p_connection_manager
+    multiaddress
+    address_repository
+    libp2p_peer_id
+    libp2p_peer_errors
+    )
