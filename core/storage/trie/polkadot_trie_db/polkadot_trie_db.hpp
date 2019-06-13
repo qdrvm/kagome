@@ -6,20 +6,20 @@
 #ifndef KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_HPP
 #define KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_HPP
 
-#include <map>
 #include <memory>
 #include <optional>
 
 #include "crypto/hasher.hpp"
 #include "storage/trie/polkadot_trie_db/polkadot_codec.hpp"
 #include "storage/trie/polkadot_trie_db/polkadot_node.hpp"
+#include "storage/trie/polkadot_trie_db/polkadot_trie.hpp"
 #include "storage/trie/trie_db.hpp"
 
 namespace kagome::storage::trie {
 
   /**
-   * For specification see https://github.com/w3f/polkadot-re-spec/blob/master/polkadot_re_spec.pdf
-   * 5.2 The General Tree Structure and further
+   * A wrapper for PolkadotTrie that allows storing the trie in an external
+   * storage that supports PersistentBufferMap interface
    */
   class PolkadotTrieDb : public TrieDb {
     using MapCursor = face::MapCursor<common::Buffer, common::Buffer>;
@@ -33,14 +33,11 @@ namespace kagome::storage::trie {
     template <typename Stream>
     friend Stream &operator<<(Stream &s, const PolkadotTrieDb &trie);
     template <typename Stream>
-    friend Stream &printNode(Stream &s, NodePtr node,
+    friend Stream &printNode(Stream &s, const NodePtr &node,
                              const PolkadotTrieDb &trie, size_t nest_level);
 
    public:
-    enum class Error { INVALID_NODE_TYPE = 1 };
-
-   public:
-    PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db);
+    explicit PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db);
 
     ~PolkadotTrieDb() override = default;
 
@@ -67,27 +64,12 @@ namespace kagome::storage::trie {
     std::unique_ptr<MapCursor> cursor() override;
 
    private:
-    outcome::result<NodePtr> insert(const NodePtr &parent,
-                                    const common::Buffer &key_nibbles,
-                                    NodePtr node);
-
-    outcome::result<NodePtr> updateBranch(BranchPtr parent,
-                                          const common::Buffer &key_nibbles,
-                                          const NodePtr &node);
-
-    outcome::result<NodePtr> deleteNode(NodePtr parent,
-                                        const common::Buffer &key_nibbles);
-    outcome::result<NodePtr> handleDeletion(const BranchPtr &parent,
-                                            NodePtr node,
-                                            const common::Buffer &key_nibbles);
-    // remove a node with its children
-    outcome::result<NodePtr> detachNode(const NodePtr &parent,
-                                        const common::Buffer &prefix_nibbles);
-    outcome::result<NodePtr> getNode(NodePtr parent,
-                                     const common::Buffer &key_nibbles) const;
-
-    uint32_t getCommonPrefixLength(const common::Buffer &pref1,
-                                   const common::Buffer &pref2) const;
+    /**
+     * Creates an in-memory trie, which will fetch from the storage only the
+     * nodes that are required to complete operations applied to the trie.
+     * Usually it's the path from the root to the place of insertion/deletion
+     */
+    outcome::result<PolkadotTrie> initTrie() const;
 
     /**
      * Writes a node to a persistent storage, recursively storing its
@@ -116,7 +98,5 @@ namespace kagome::storage::trie {
   };
 
 }  // namespace kagome::storage::trie
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie, PolkadotTrieDb::Error);
 
 #endif  // KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_HPP

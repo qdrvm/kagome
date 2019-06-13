@@ -226,7 +226,7 @@ namespace kagome::storage::trie {
 
   outcome::result<std::shared_ptr<Node>> PolkadotCodec::decodeNode(
       const common::Buffer &encoded_data) const {
-    auto stream = BufferStream(encoded_data);
+    BufferStream stream{encoded_data};
     // decode the header with the node type and the partial key length
     OUTCOME_TRY(header, decodeHeader(stream));
     auto [type, pk_length] = header;
@@ -302,8 +302,11 @@ namespace kagome::storage::trie {
   outcome::result<std::shared_ptr<Node>> PolkadotCodec::decodeBranch(
       PolkadotNode::Type type, const Buffer &partial_key,
       BufferStream &stream) const {
-    if (not stream.hasMore(2))
+    constexpr uint8_t kChildrenBitmapSize = 2;
+
+    if (not stream.hasMore(kChildrenBitmapSize)) {
       return Error::INPUT_TOO_SMALL;
+    }
     auto node = std::make_shared<BranchNode>(partial_key);
 
     uint16_t children_bitmap = stream.next();
@@ -318,8 +321,9 @@ namespace kagome::storage::trie {
         children_bitmap &= ~(1u << i);
         // read the hash of the child and make a dummy node from it for this
         // child in the processed branch
-        if (not stream.hasMore(common::Hash256::size()))
+        if (not stream.hasMore(common::Hash256::size())) {
           return Error::INPUT_TOO_SMALL;
+        }
         common::Buffer child_hash(32, 0);
         for (auto &b : child_hash) {
           b = stream.next();

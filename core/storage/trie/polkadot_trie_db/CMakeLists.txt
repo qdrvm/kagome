@@ -10,6 +10,7 @@ target_link_libraries(polkadot_trie_db_codec
     outcome
     blake2
     blob
+    scale
     )
 
 add_library(polkadot_trie_db
@@ -17,6 +18,15 @@ add_library(polkadot_trie_db
     )
 target_link_libraries(polkadot_trie_db
     polkadot_trie_db_codec
+    polkadot_trie
+    )
+
+add_library(polkadot_trie
+    polkadot_trie.cpp
+    )
+target_link_libraries(polkadot_trie
+    buffer
+    outcome
     )
 
 add_library(polkadot_trie_batch
@@ -24,4 +34,12 @@ add_library(polkadot_trie_batch
     )
 target_link_libraries(polkadot_trie_batch
     polkadot_trie_db
+    )
+
+add_library(ordered_trie_hash INTERFACE)
+
+target_link_libraries(ordered_trie_hash INTERFACE
+    polkadot_trie
+    polkadot_trie_db_codec
+    scale
     )
