@@ -16,8 +16,8 @@ namespace libp2p::network {
   class ConnectionManagerImpl : public ConnectionManager {
    public:
     ConnectionManagerImpl(
-        std::shared_ptr<peer::AddressRepository> addrRepo,
-        std::shared_ptr<network::TransportManager> transportManager);
+        std::shared_ptr<peer::AddressRepository> repo,
+        std::shared_ptr<network::TransportManager> tmgr);
 
     std::vector<ConnectionSPtr> getConnections() const override;
 

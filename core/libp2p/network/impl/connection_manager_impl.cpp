@@ -92,10 +92,9 @@ namespace libp2p::network {
   }
 
   ConnectionManagerImpl::ConnectionManagerImpl(
-      std::shared_ptr<peer::AddressRepository> addrRepo,
-      std::shared_ptr<TransportManager> transportManager)
-      : addr_repo_(std::move(addrRepo)),
-        transport_manager_(std::move(transportManager)) {}
+      std::shared_ptr<peer::AddressRepository> addr,
+      std::shared_ptr<TransportManager> tmgr)
+      : addr_repo_(std::move(addr)), transport_manager_(std::move(tmgr)) {}
 
   void ConnectionManagerImpl::collectGarbage() {
     for (auto it = connections_.begin(); it != connections_.end();) {
