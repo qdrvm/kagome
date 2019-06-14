@@ -7,7 +7,7 @@
 #define KAGOME_ADDRESS_REPOSITORY_HPP
 
 #include <chrono>
-#include <list>
+#include <vector>
 #include <unordered_set>
 
 #include <boost/signals2.hpp>
@@ -74,7 +74,7 @@ namespace libp2p::peer {
      * @return array of addresses, or error when no peer {@param p} has been
      * found
      */
-    virtual outcome::result<std::list<multi::Multiaddress>> getAddresses(
+    virtual outcome::result<std::vector<multi::Multiaddress>> getAddresses(
         const PeerId &p) const = 0;
 
     /**

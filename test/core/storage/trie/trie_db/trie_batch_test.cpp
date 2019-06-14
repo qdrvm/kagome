@@ -7,17 +7,17 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <testutil/storage/map_storage.hpp>
 #include "crypto/hasher/hasher_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"
+#include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/storage/polkadot_trie_db_printer.hpp"
 
 using namespace kagome::storage::trie;
-using kagome::storage::face::WriteBatch;
 using kagome::common::Buffer;
 using kagome::hash::HasherImpl;
+using kagome::storage::face::WriteBatch;
 using testing::_;
 using testing::Invoke;
 using testing::Return;
@@ -43,7 +43,7 @@ const std::vector<std::pair<Buffer, Buffer>> TrieBatchTest::data = {
     {"010a0b"_hex2buf, "1337"_hex2buf},
     {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
 
-void FillSmallTrieWithBatch(WriteBatch<Buffer, Buffer>& batch) {
+void FillSmallTrieWithBatch(WriteBatch<Buffer, Buffer> &batch) {
   for (auto &entry : TrieBatchTest::data) {
     EXPECT_OUTCOME_TRUE_1(batch.put(entry.first, entry.second));
   }
@@ -56,14 +56,14 @@ class MockPolkadotTrieDb : public PolkadotTrieDb {
   MOCK_CONST_METHOD0(getRootHash, Buffer());
 };
 
-class MockDb : public test::MapDb {
+class MockDb : public test::InMemoryStorage {
  public:
   MOCK_METHOD2(put, outcome::result<void>(const Buffer &, const Buffer &));
 
   // to retain the ability to call the actual implementation of put from the
   // superclass
   outcome::result<void> true_put(const Buffer &key, const Buffer &value) {
-    return MapDb::put(key, value);
+    return InMemoryStorage::put(key, value);
   }
 };
 
@@ -105,13 +105,13 @@ TEST_F(TrieBatchTest, Remove) {
 
   EXPECT_OUTCOME_TRUE_1(batch->remove(data[2].first));
   // putting an empty value is removal too
-  EXPECT_OUTCOME_TRUE_1(batch->put(data[3].first, Buffer {}));
+  EXPECT_OUTCOME_TRUE_1(batch->put(data[3].first, Buffer{}));
   EXPECT_OUTCOME_TRUE_1(batch->remove(data[4].first));
 
   EXPECT_OUTCOME_TRUE_1(batch->commit());
 
-  for (auto i: {2, 3, 4}) {
-      ASSERT_FALSE(trie->contains(data[i].first));
+  for (auto i : {2, 3, 4}) {
+    ASSERT_FALSE(trie->contains(data[i].first));
   }
   ASSERT_TRUE(trie->contains(data[0].first));
   ASSERT_TRUE(trie->contains(data[1].first));

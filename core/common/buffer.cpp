@@ -156,6 +156,10 @@ namespace kagome::common {
     return *this;
   }
 
+  Buffer Buffer::subbuffer(size_t offset, size_t length) const {
+    return Buffer(gsl::make_span(*this).subspan(offset, length));
+  }
+
   Buffer &Buffer::operator+=(const Buffer &other) noexcept {
     return this->putBuffer(other);
   }

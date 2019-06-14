@@ -26,6 +26,7 @@ namespace libp2p::testing {
   using libp2p::transport::UpgraderMock;
   using ::testing::Invoke;
   using ::testing::NiceMock;
+  using ::testing::_;
   using transport::TransportListener;
 
   auto TransportFixture::makeUpgrader() {

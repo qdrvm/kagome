@@ -42,6 +42,11 @@ class OutcomeParameterizedTest
     : public StorageExtensionTest,
       public ::testing::WithParamInterface<outcome::result<void>> {};
 
+/// For tests that operate over a collection of buffers
+class BuffersParametrizedTest
+    : public StorageExtensionTest,
+      public testing::WithParamInterface<std::list<Buffer>> {};
+
 /**
  * @given prefix_pointer with prefix_length
  * @when ext_clear_prefix is invoked on StorageExtension with given prefix
@@ -262,3 +267,41 @@ INSTANTIATE_TEST_CASE_P(Instance, OutcomeParameterizedTest,
                             outcome::failure(std::error_code())),
                         // empty argument for the macro
 );
+
+/**
+ * @given a set of values, which ordered trie hash we want to calculate from
+ * wasm
+ * @when calling an extension method ext_blake2_256_enumerated_trie_root
+ * @then the method reads the data from wasm memory properly and stores the
+ * result in the wasm memory
+ */
+TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
+  auto values = GetParam();
+
+  using testing::_;
+  WasmPointer values_ptr = 42;
+  WasmPointer lens_ptr = 1337;
+  uint32_t val_offset = 0;
+  uint32_t len_offset = 0;
+  for (auto &&v : values) {
+    EXPECT_CALL(*memory_, load32u(lens_ptr + len_offset))
+        .WillOnce(Return(v.size()));
+    EXPECT_CALL(*memory_, loadN(values_ptr + val_offset, v.size()))
+        .WillOnce(Return(v));
+    val_offset += v.size();
+    len_offset += 4;
+  }
+  WasmPointer result = 1984;
+  EXPECT_CALL(*memory_, storeBuffer(result, _)).Times(1);
+
+  storage_extension_->ext_blake2_256_enumerated_trie_root(
+      values_ptr, lens_ptr, values.size(), result);
+}
+
+// TODO(Harrm): Find tests from other PolkaDot implementations and test against
+// their input/output, as it must match
+INSTANTIATE_TEST_CASE_P(Instance, BuffersParametrizedTest,
+                        testing::Values<std::list<Buffer>>(
+                            std::list<Buffer>{"aardvark"_buf, "beguine"_buf,
+                                              "concussion"_buf, "dwelling"_buf},
+                            std::list<Buffer>{"doe"_buf, "reindeer"_buf}));
