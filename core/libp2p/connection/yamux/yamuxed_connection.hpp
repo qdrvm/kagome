@@ -7,7 +7,7 @@
 #define KAGOME_YAMUXED_CONNECTION_HPP
 
 #include <functional>
-#include <map>
+#include <unordered_map>
 #include <optional>
 #include <queue>
 
@@ -18,6 +18,7 @@
 #include "libp2p/connection/secure_connection.hpp"
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/event/emitter.hpp"
+
 
 namespace libp2p::connection {
   class YamuxStream;
@@ -137,7 +138,7 @@ namespace libp2p::connection {
      * Process frame of ping type
      * @param frame to be processed
      */
-    outcome::result<void> processPingFrame(const YamuxFrame &frame);
+    void processPingFrame(const YamuxFrame &frame);
 
     /**
      * Process frame of go away type
@@ -210,7 +211,7 @@ namespace libp2p::connection {
     NewStreamHandler new_stream_handler_;
     uint32_t last_created_stream_id_;
     bool is_active_;
-    std::map<StreamId, std::shared_ptr<YamuxStream>> streams_;
+    std::unordered_map<StreamId, std::shared_ptr<YamuxStream>> streams_;
 
     kagome::common::Logger logger_;
 

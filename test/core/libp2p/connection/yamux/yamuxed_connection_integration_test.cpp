@@ -149,7 +149,7 @@ TEST_F(YamuxedConnectionIntegrationTest, StreamFromClient) {
         EXPECT_OUTCOME_TRUE(ack_msg, conn->read(YamuxFrame::kHeaderLength))
         auto parsed_ack_msg = parseFrame(ack_msg);
         EXPECT_TRUE(parsed_ack_msg);
-        EXPECT_EQ(parsed_ack_msg->stream_id_, created_stream_id);
+        EXPECT_EQ(parsed_ack_msg->stream_id, created_stream_id);
 
         EXPECT_EQ(accepted_streams_.size(), 1);
 

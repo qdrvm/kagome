@@ -7,16 +7,15 @@
 #define KAGOME_CAPABLE_CONNECTION_MOCK_HPP
 
 #include <gmock/gmock.h>
-
 #include "libp2p/connection/capable_connection.hpp"
-
 #include "mock/libp2p/connection/connection_mock_common.hpp"
 
 namespace libp2p::connection {
 
   class CapableConnectionMock : public CapableConnection {
    public:
-    MOCK_METHOD0(newStream, outcome::result<std::shared_ptr<Stream>>());
+    MOCK_METHOD0(start, outcome::result<void>());
+    MOCK_METHOD0(newStream, cti::continuable<std::shared_ptr<Stream>>());
 
     MOCK_CONST_METHOD0(localPeer, outcome::result<peer::PeerId>());
     MOCK_CONST_METHOD0(remotePeer, outcome::result<peer::PeerId>());

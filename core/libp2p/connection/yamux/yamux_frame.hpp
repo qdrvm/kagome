@@ -38,12 +38,12 @@ namespace libp2p::connection {
     static constexpr uint8_t kDefaultVersion = 0;
     static constexpr uint32_t kDefaultWindowSize = 256;
 
-    uint8_t version_;
-    FrameType type_;
-    Flag flag_;
-    StreamId stream_id_;
-    uint32_t length_;
-    kagome::common::Buffer data_;
+    uint8_t version;
+    FrameType type;
+    Flag flag;
+    StreamId stream_id;
+    uint32_t length;
+    kagome::common::Buffer data;
 
     /**
      * Get bytes representation of the Yamux frame with given parameters

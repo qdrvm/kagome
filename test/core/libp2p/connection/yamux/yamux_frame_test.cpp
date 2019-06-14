@@ -29,12 +29,12 @@ class YamuxFrameTest : public ::testing::Test {
                   const Buffer &frame_data) {
     ASSERT_TRUE(frame_opt);
     auto frame = *frame_opt;
-    ASSERT_EQ(frame.version_, version);
-    ASSERT_EQ(frame.type_, type);
-    ASSERT_EQ(frame.flag_, flag);
-    ASSERT_EQ(frame.stream_id_, stream_id);
-    ASSERT_EQ(frame.length_, length);
-    ASSERT_EQ(frame.data_, frame_data);
+    ASSERT_EQ(frame.version, version);
+    ASSERT_EQ(frame.type, type);
+    ASSERT_EQ(frame.flag, flag);
+    ASSERT_EQ(frame.stream_id, stream_id);
+    ASSERT_EQ(frame.length, length);
+    ASSERT_EQ(frame.data, frame_data);
   }
 };
 

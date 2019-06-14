@@ -52,18 +52,21 @@ namespace libp2p::connection {
 
   cti::continuable<std::shared_ptr<Stream>> YamuxedConnection::newStream() {
     return cti::make_continuable<std::shared_ptr<Stream>>(
-        [t = shared_from_this(), stream_id = getNewStreamId()](auto &&promise) {
+        [self = shared_from_this(), stream_id = getNewStreamId()](auto &&promise) {
           auto p = std::make_shared<std::decay_t<decltype(promise)>>(
               std::forward<decltype(promise)>(promise));
-          t->write({newStreamMsg(stream_id),
-                    [t, p = std::move(p), stream_id](auto &&res) {
+
+          self->write({newStreamMsg(stream_id),
+                    [self, p = std::move(p), stream_id](auto &&res) {
                       if (!res) {
-                        p->set_exception(res.error());
+                        return p->set_exception(res.error());
                       }
+
                       auto created_stream =
-                          std::make_shared<YamuxStream>(t, stream_id);
-                      t->streams_.insert({stream_id, created_stream});
-                      p->set_value(std::move(created_stream));
+                          std::make_shared<YamuxStream>(self, stream_id);
+                      self->streams_.insert({stream_id, created_stream});
+
+                      return p->set_value(std::move(created_stream));
                     }});
         });
   }
@@ -146,6 +149,7 @@ namespace libp2p::connection {
         data.cb(write_res.value() - YamuxFrame::kHeaderLength);
       } else {
         data.cb(write_res);
+        return;
       }
       write_queue_.pop();
     }
@@ -165,7 +169,7 @@ namespace libp2p::connection {
         return Error::OTHER_SIDE_ERROR;
       }
 
-      switch (header_opt->type_) {
+      switch (header_opt->type) {
         case FrameType::DATA: {
           OUTCOME_TRY(processDataFrame(*header_opt));
           break;
@@ -175,7 +179,7 @@ namespace libp2p::connection {
           break;
         }
         case FrameType::PING: {
-          OUTCOME_TRY(processPingFrame(*header_opt));
+          processPingFrame(*header_opt);
           break;
         }
         case FrameType::GO_AWAY: {
@@ -198,8 +202,8 @@ namespace libp2p::connection {
       const YamuxFrame &frame) {
     using Flag = YamuxFrame::Flag;
 
-    auto stream_id = frame.stream_id_;
-    switch (frame.flag_) {
+    auto stream_id = frame.stream_id;
+    switch (frame.flag) {
       case Flag::SYN: {
         // can be start of a new stream, just data or both
         auto stream = findStream(stream_id);
@@ -207,17 +211,18 @@ namespace libp2p::connection {
           // it is at least a new stream request; register it and send ack
           // message
           registerNewStream(
-              stream_id, [t = shared_from_this(), frame](auto &&stream_res) {
+              stream_id, [self = shared_from_this(), frame](auto &&stream_res) {
                 if (!stream_res) {
-                  t->logger_->error("cannot register new stream: {}",
+                  self->logger_->error("cannot register new stream: {}",
                                     stream_res.error().message());
                   return;
                 }
-                if (!t->processData(std::static_pointer_cast<YamuxStream>(
+                if (!self->processData(std::static_pointer_cast<YamuxStream>(
                                         stream_res.value()),
                                     frame)) {
-                  t->logger_->error("cannot register new stream: {}",
+                  self->logger_->error("cannot register new stream: {}",
                                     stream_res.error().message());
+                  return;
                 }
               });
           return outcome::success();
@@ -250,14 +255,14 @@ namespace libp2p::connection {
       const YamuxFrame &frame) {
     using Flag = YamuxFrame::Flag;
 
-    auto stream_id = frame.stream_id_;
-    auto window_delta = frame.length_;
-    switch (frame.flag_) {
+    auto stream_id = frame.stream_id;
+    auto window_delta = frame.length;
+    switch (frame.flag) {
       case Flag::SYN: {
         // can be start of a new stream or update of a window size
         if (auto stream = findStream(stream_id)) {
           // this stream is already opened => delta window update
-          processWindowUpdate(stream, frame.length_);
+          processWindowUpdate(stream, frame.length);
           break;
         }
         // no such stream found => it's a creation of a new stream
@@ -302,10 +307,9 @@ namespace libp2p::connection {
     return outcome::success();
   }
 
-  outcome::result<void> YamuxedConnection::processPingFrame(
+  void YamuxedConnection::processPingFrame(
       const YamuxFrame &frame) {
-    write({pingResponseMsg(frame.length_), HANDLE_WRITE_ERROR});
-    return outcome::success();
+    write({pingResponseMsg(frame.length), HANDLE_WRITE_ERROR});
   }
 
   outcome::result<void> YamuxedConnection::processGoAwayFrame(
@@ -340,7 +344,7 @@ namespace libp2p::connection {
 
   outcome::result<void> YamuxedConnection::processData(
       const std::shared_ptr<YamuxStream> &stream, const YamuxFrame &frame) {
-    auto data_length = frame.length_;
+    auto data_length = frame.length;
     if (data_length == 0) {
       return outcome::success();
     }
@@ -349,7 +353,7 @@ namespace libp2p::connection {
     OUTCOME_TRY(data_bytes, connection_->read(data_length));
     OUTCOME_TRY(stream->commitData(std::move(data_bytes)));
     if (auto stream_read_handler =
-            streams_read_handlers_.find(frame.stream_id_);
+            streams_read_handlers_.find(frame.stream_id);
         stream_read_handler != streams_read_handlers_.end()) {
       if (stream_read_handler->second()) {
         // if handler returns true, it means that it should be removed
