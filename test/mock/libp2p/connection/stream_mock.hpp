@@ -23,31 +23,23 @@ namespace libp2p::connection {
 
     MOCK_CONST_METHOD0(isClosed, bool(void));
 
-    MOCK_METHOD0(close, cti::continuable<outcome::result<void>>(void));
+    MOCK_METHOD0(close, cti::continuable<>(void));
 
-    MOCK_METHOD1(
-        write,
-        cti::continuable<outcome::result<size_t>>(gsl::span<const uint8_t>));
+    MOCK_METHOD1(write, cti::continuable<size_t>(gsl::span<const uint8_t>));
 
-    MOCK_METHOD1(
-        writeSome,
-        cti::continuable<outcome::result<size_t>>(gsl::span<const uint8_t>));
+    MOCK_METHOD1(writeSome, cti::continuable<size_t>(gsl::span<const uint8_t>));
 
-    MOCK_METHOD1(
-        read, cti::continuable<outcome::result<std::vector<uint8_t>>>(size_t));
+    MOCK_METHOD1(read, cti::continuable<std::vector<uint8_t>>(size_t));
 
-    MOCK_METHOD1(
-        readSome,
-        cti::continuable<outcome::result<std::vector<uint8_t>>>(size_t));
+    MOCK_METHOD1(readSome, cti::continuable<std::vector<uint8_t>>(size_t));
 
-    MOCK_METHOD0(reset, cti::continuable<outcome::result<void>>(void));
+    MOCK_METHOD0(reset, cti::continuable<>(void));
 
     MOCK_CONST_METHOD0(isClosedForRead, bool(void));
 
     MOCK_CONST_METHOD0(isClosedForWrite, bool(void));
 
-    MOCK_METHOD1(adjustWindowSize,
-                 cti::continuable<outcome::result<void>>(uint32_t));
+    MOCK_METHOD1(adjustWindowSize, cti::continuable<>(uint32_t));
   };
 }  // namespace libp2p::connection
 

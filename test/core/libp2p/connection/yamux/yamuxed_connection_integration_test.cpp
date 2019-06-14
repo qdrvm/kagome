@@ -83,7 +83,8 @@ class YamuxedConnectionIntegrationTest : public TransportFixture {
           EXPECT_OUTCOME_TRUE(stream_msg, c->read(YamuxFrame::kHeaderLength))
           auto new_stream_msg = newStreamMsg(stream_id);
           EXPECT_EQ(new_stream_msg, stream_msg);
-          return cti::make_ready_continuable(std::move(stream));
+          return stream;
+//          return cti::make_ready_continuable(std::move(stream));
         })
         .fail([](auto &&err) {
           FAIL() << "cannot create stream: " << err.message();

@@ -46,10 +46,12 @@ namespace libp2p::connection {
   cti::continuable<size_t> YamuxStream::write(gsl::span<const uint8_t> in,
                                               bool some) {
     if (!is_writable_) {
-      return ERROR_CONTINUABLE(Error::NOT_WRITABLE);
+      return cti::make_continuable<size_t>(
+          [](auto &&p) { p.set_exception(Error::NOT_WRITABLE); });
     }
     if (is_writing_) {
-      return ERROR_CONTINUABLE(Error::IS_WRITING);
+      return cti::make_continuable<size_t>(
+          [](auto &&p) { p.set_exception(Error::IS_WRITING); });
     }
     is_writing_ = true;
 
@@ -97,13 +99,16 @@ namespace libp2p::connection {
 
   cti::continuable<std::vector<uint8_t>> YamuxStream::read(size_t bytes) {
     if (bytes == 0) {
-      return ERROR_CONTINUABLE(Error::INVALID_ARGUMENT);
+      return cti::make_continuable<std::vector<uint8_t>>(
+          [](auto &&p) { p.set_exception(Error::INVALID_ARGUMENT); });
     }
     if (!is_readable_) {
-      return ERROR_CONTINUABLE(Error::NOT_READABLE);
+      return cti::make_continuable<std::vector<uint8_t>>(
+          [](auto &&p) { p.set_exception(Error::NOT_READABLE); });
     }
     if (is_reading_) {
-      return ERROR_CONTINUABLE(Error::IS_READING);
+      return cti::make_continuable<std::vector<uint8_t>>(
+          [](auto &&p) { p.set_exception(Error::IS_READING); });
     }
 
     // if there is already enough data in our buffer, read it immediately
@@ -112,10 +117,14 @@ namespace libp2p::connection {
       if (boost::asio::buffer_copy(boost::asio::buffer(result),
                                    read_buffer_.data(), bytes)
           != bytes) {
-        return ERROR_CONTINUABLE(Error::INTERNAL_ERROR);
+        return cti::make_continuable<std::vector<uint8_t>>(
+            [](auto &&p) { p.set_exception(Error::INTERNAL_ERROR); });
       }
       read_buffer_.consume(bytes);
-      return cti::make_ready_continuable(std::move(result));
+      return cti::make_continuable<std::vector<uint8_t>>(
+          [r = std::move(result)](auto &&p) mutable {
+            p.set_value(std::move(r));
+          });
     }
 
     // else, set a callback, which is called each time a new data arrives
@@ -146,13 +155,16 @@ namespace libp2p::connection {
 
   cti::continuable<std::vector<uint8_t>> YamuxStream::readSome(size_t bytes) {
     if (bytes == 0) {
-      return ERROR_CONTINUABLE(Error::INVALID_ARGUMENT);
+      return cti::make_continuable<std::vector<uint8_t>>(
+          [](auto &&p) { p.set_exception(Error::INVALID_ARGUMENT); });
     }
     if (!is_readable_) {
-      return ERROR_CONTINUABLE(Error::NOT_READABLE);
+      return cti::make_continuable<std::vector<uint8_t>>(
+          [](auto &&p) { p.set_exception(Error::NOT_READABLE); });
     }
     if (is_reading_) {
-      return ERROR_CONTINUABLE(Error::IS_READING);
+      return cti::make_continuable<std::vector<uint8_t>>(
+          [](auto &&p) { p.set_exception(Error::IS_READING); });
     }
 
     // if there is already enough data in our buffer, read it immediately
@@ -162,11 +174,15 @@ namespace libp2p::connection {
       if (boost::asio::buffer_copy(boost::asio::buffer(result),
                                    read_buffer_.data(), to_read)
           != to_read) {
-        return ERROR_CONTINUABLE(Error::INTERNAL_ERROR);
+        return cti::make_continuable<std::vector<uint8_t>>(
+            [](auto &&p) { p.set_exception(Error::INTERNAL_ERROR); });
       }
       result.resize(to_read);
       read_buffer_.consume(to_read);
-      return cti::make_ready_continuable(std::move(result));
+      return cti::make_continuable<std::vector<uint8_t>>(
+          [r = std::move(result)](auto &&p) mutable {
+            p.set_value(std::move(r));
+          });
     }
 
     // else, set a callback, which is called each time a new data arrives
@@ -199,7 +215,8 @@ namespace libp2p::connection {
 
   cti::continuable<> YamuxStream::reset() {
     if (is_writing_) {
-      return ERROR_CONTINUABLE(Error::IS_WRITING);
+      return cti::make_continuable<void>(
+          [](auto &&p) { p.set_exception(Error::IS_WRITING); });
     }
 
     is_writing_ = true;
@@ -231,7 +248,8 @@ namespace libp2p::connection {
 
   cti::continuable<> YamuxStream::close() {
     if (is_writing_) {
-      return ERROR_CONTINUABLE(Error::IS_WRITING);
+      return cti::make_continuable<void>(
+          [](auto &&p) { p.set_exception(Error::IS_WRITING); });
     }
 
     is_writing_ = true;
@@ -250,7 +268,8 @@ namespace libp2p::connection {
 
   cti::continuable<> YamuxStream::adjustWindowSize(uint32_t new_size) {
     if (is_writing_) {
-      return ERROR_CONTINUABLE(Error::IS_WRITING);
+      return cti::make_continuable<void>(
+          [](auto &&p) { p.set_exception(Error::IS_WRITING); });
     }
 
     is_writing_ = true;
