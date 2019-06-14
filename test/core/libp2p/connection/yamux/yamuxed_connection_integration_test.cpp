@@ -75,19 +75,18 @@ class YamuxedConnectionIntegrationTest : public TransportFixture {
   /**
    * Open a new stream; assumes yamuxed_connection_ exists
    */
-  void newStream(
+  cti::continuable<std::shared_ptr<Stream>> newStream(
       std::shared_ptr<ReadWriteCloser> conn,
-      std::function<CapableConnection::StreamResultHandler> cb,
       YamuxedConnection::StreamId stream_id = kDefaulExpectedStreamId) {
-    yamuxed_connection_->newStream(
-        [conn, stream_id, cb = std::move(cb)](auto &&stream_res) {
-          EXPECT_OUTCOME_TRUE(stream, stream_res)
-          EXPECT_OUTCOME_TRUE(stream_msg, conn->read(YamuxFrame::kHeaderLength))
-
+    return yamuxed_connection_->newStream()
+        .then([c = std::move(conn), stream_id](auto &&stream) {
+          EXPECT_OUTCOME_TRUE(stream_msg, c->read(YamuxFrame::kHeaderLength))
           auto new_stream_msg = newStreamMsg(stream_id);
           EXPECT_EQ(new_stream_msg, stream_msg);
-
-          cb(std::move(stream));
+          return cti::make_ready_continuable(std::move(stream));
+        })
+        .fail([](auto &&err) {
+          FAIL() << "cannot create stream: " << err.message();
         });
   }
 
@@ -175,8 +174,7 @@ TEST_F(YamuxedConnectionIntegrationTest, StreamFromServer) {
     EXPECT_OUTCOME_TRUE(conn, conn_res)
     // create a new stream
     addYamuxCallback([this]() {
-      yamuxed_connection_->newStream([](auto &&stream_res) {
-        EXPECT_OUTCOME_TRUE(stream, stream_res)
+      newStream(conn).then([](auto &&stream) {
         EXPECT_FALSE(stream->isClosedForRead());
         EXPECT_FALSE(stream->isClosedForWrite());
         EXPECT_FALSE(stream->isClosed());
@@ -208,10 +206,8 @@ TEST_F(YamuxedConnectionIntegrationTest, StreamWrite) {
     EXPECT_OUTCOME_TRUE(conn, conn_res)
     other_connection_ = conn;
     addYamuxCallback([this, &expected_data_msg, &data, conn]() mutable {
-      yamuxed_connection_->newStream(
-          [this, &expected_data_msg, &data, conn](auto &&stream_res) {
-            EXPECT_OUTCOME_TRUE(stream, stream_res)
-
+      newStream(conn).then(
+          [this, &expected_data_msg, &data, conn](auto &&stream) {
             stream->write(data).then(STREAM_WRITE_CB);
             read(expected_data_msg.size(),
                  [this, &expected_data_msg](auto received_data) {
@@ -241,8 +237,7 @@ TEST_F(YamuxedConnectionIntegrationTest, StreamRead) {
     EXPECT_OUTCOME_TRUE(conn, conn_res)
     other_connection_ = conn;
     addYamuxCallback([this, &data, conn] {
-      yamuxed_connection_->newStream([this, &data](auto &&stream_res) {
-        EXPECT_OUTCOME_TRUE(stream, stream_res)
+      newStream(conn).then([this, &data](auto &&stream) {
         stream->read(data.size()).then([this, &data, stream](auto &&read_data) {
           ASSERT_TRUE(read_data);
           ASSERT_EQ(data.toVector(), read_data.value());
@@ -273,9 +268,7 @@ TEST_F(YamuxedConnectionIntegrationTest, CloseForWrites) {
     EXPECT_OUTCOME_TRUE(conn, conn_res)
     other_connection_ = conn;
     addYamuxCallback([this, &expected_close_stream_msg, conn] {
-      yamuxed_connection_->newStream([this, &expected_close_stream_msg](
-                                         auto &&stream_res) {
-        EXPECT_OUTCOME_TRUE(stream, stream_res)
+      newStream(conn).then([this, &expected_close_stream_msg](auto &&stream) {
         ASSERT_FALSE(stream->isClosedForWrite());
         stream->close().then([stream](auto &&res) {
           ASSERT_TRUE(res);
@@ -311,17 +304,15 @@ TEST_F(YamuxedConnectionIntegrationTest, CloseForReads) {
         EXPECT_OUTCOME_TRUE(conn, conn_res)
         other_connection_ = conn;
         addYamuxCallback([this, &stream_out]() mutable {
-          yamuxed_connection_->newStream(
-              [this, &stream_out](auto &&stream_res) mutable {
-                EXPECT_OUTCOME_TRUE(stream, stream_res)
-                ASSERT_FALSE(stream->isClosedForRead());
-                stream->write(kSyncToken)
-                    .then([this, stream, &stream_out](auto &&res) mutable {
-                      ASSERT_TRUE(res);
-                      client_finished = true;
-                      stream_out = std::move(stream);
-                    });
-              });
+          newStream(conn).then([this, &stream_out](auto &&stream) mutable {
+            ASSERT_FALSE(stream->isClosedForRead());
+            stream->write(kSyncToken)
+                .then([this, stream, &stream_out](auto &&res) mutable {
+                  ASSERT_TRUE(res);
+                  client_finished = true;
+                  stream_out = std::move(stream);
+                });
+          });
         });
         READ_STREAM_OPENING;
         EXPECT_TRUE(conn->read(YamuxFrame::kHeaderLength + kSyncToken.size()));
@@ -348,17 +339,15 @@ TEST_F(YamuxedConnectionIntegrationTest, Reset) {
     EXPECT_OUTCOME_TRUE(conn, conn_res)
     other_connection_ = conn;
     addYamuxCallback([this, &stream_out]() mutable {
-      yamuxed_connection_->newStream(
-          [this, &stream_out](auto &&stream_res) mutable {
-            EXPECT_OUTCOME_TRUE(stream, stream_res)
-            ASSERT_FALSE(stream->isClosed());
-            stream->write(kSyncToken)
-                .then([this, stream, &stream_out](auto &&res) mutable {
-                  ASSERT_TRUE(res);
-                  client_finished = true;
-                  stream_out = std::move(stream);
-                });
-          });
+      newStream(conn).then([this, &stream_out](auto &&stream) mutable {
+        ASSERT_FALSE(stream->isClosed());
+        stream->write(kSyncToken)
+            .then([this, stream, &stream_out](auto &&res) mutable {
+              ASSERT_TRUE(res);
+              client_finished = true;
+              stream_out = std::move(stream);
+            });
+      });
     });
     READ_STREAM_OPENING;
     EXPECT_TRUE(conn->read(YamuxFrame::kHeaderLength + kSyncToken.size()));

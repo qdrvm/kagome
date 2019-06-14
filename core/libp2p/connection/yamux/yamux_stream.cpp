@@ -35,75 +35,75 @@ namespace libp2p::connection {
                            YamuxedConnection::StreamId stream_id)
       : yamux_{std::move(conn)}, stream_id_{stream_id} {}
 
-  cti::continuable<YamuxStream::WriteResult> YamuxStream::write(
-      gsl::span<const uint8_t> in) {
+  cti::continuable<size_t> YamuxStream::write(gsl::span<const uint8_t> in) {
     return write(in, false);
   }
 
-  cti::continuable<YamuxStream::WriteResult> YamuxStream::writeSome(
-      gsl::span<const uint8_t> in) {
+  cti::continuable<size_t> YamuxStream::writeSome(gsl::span<const uint8_t> in) {
     return write(in, true);
   }
 
-  cti::continuable<YamuxStream::WriteResult> YamuxStream::write(
-      gsl::span<const uint8_t> in, bool some) {
+  cti::continuable<size_t> YamuxStream::write(gsl::span<const uint8_t> in,
+                                              bool some) {
     if (!is_writable_) {
-      return cti::make_ready_continuable(Error::NOT_WRITABLE);
+      return ERROR_CONTINUABLE(Error::NOT_WRITABLE);
     }
     if (is_writing_) {
-      return cti::make_ready_continuable(Error::IS_WRITING);
+      return ERROR_CONTINUABLE(Error::IS_WRITING);
     }
     is_writing_ = true;
 
     if (send_window_size_ - in.size() >= 0) {
       // we can write immediately - window size on the other side allows us
-      return cti::make_continuable<WriteResult>(
+      return cti::make_continuable<size_t>(
           [t = shared_from_this(), in, some](auto &&promise) {
             auto p = SHP_FROM_PROMISE(promise);
-            t->yamux_->streamWrite(
-                t->stream_id_, in, some, [t, p = std::move(p), in](auto &&res) {
-                  t->is_writing_ = false;
-                  if (res) {
-                    t->send_window_size_ -= in.size();
-                  }
-                  p->set_value(std::forward<decltype(res)>(res));
-                });
+            t->yamux_->streamWrite(t->stream_id_, in, some,
+                                   [t, p = std::move(p), in](auto &&res) {
+                                     t->is_writing_ = false;
+                                     if (!res) {
+                                       return p->set_exception(res.error());
+                                     }
+                                     t->send_window_size_ -= in.size();
+                                     return p->set_value(res.value());
+                                   });
           });
     }
 
     // each time a window size gets updated, that lambda will be called, and if
     // that time the window is wide enough, finally write to the connection
-    return cti::make_continuable<WriteResult>([t = shared_from_this(), some,
-                                               in](auto &&promise) {
-      auto p = SHP_FROM_PROMISE(promise);
-      t->yamux_->streamAddWindowUpdateHandler(
-          t->stream_id_, [t, p = std::move(p), some, in] {
-            if (t->send_window_size_ - in.size() < 0) {
-              // not yet
-              return false;
-            }
-            t->yamux_->streamWrite(
-                t->stream_id_, in, some, [t, p = std::move(p), in](auto &&res) {
-                  t->is_writing_ = false;
-                  if (res) {
-                    t->send_window_size_ -= in.size();
-                  }
-                  p->set_value(std::forward<decltype(res)>(res));
-                });
-            return true;
-          });
-    });
+    return cti::make_continuable<size_t>(
+        [t = shared_from_this(), some, in](auto &&promise) {
+          auto p = SHP_FROM_PROMISE(promise);
+          t->yamux_->streamAddWindowUpdateHandler(
+              t->stream_id_, [t, p = std::move(p), some, in] {
+                if (t->send_window_size_ - in.size() < 0) {
+                  // not yet
+                  return false;
+                }
+                t->yamux_->streamWrite(t->stream_id_, in, some,
+                                       [t, p = std::move(p), in](auto &&res) {
+                                         t->is_writing_ = false;
+                                         if (!res) {
+                                           return p->set_exception(res.error());
+                                         }
+                                         t->send_window_size_ -= in.size();
+                                         return p->set_value(res.value());
+                                       });
+                return true;
+              });
+        });
   }
 
-  cti::continuable<YamuxStream::ReadResult> YamuxStream::read(size_t bytes) {
+  cti::continuable<std::vector<uint8_t>> YamuxStream::read(size_t bytes) {
     if (bytes == 0) {
-      return cti::make_ready_continuable(Error::INVALID_ARGUMENT);
+      return ERROR_CONTINUABLE(Error::INVALID_ARGUMENT);
     }
     if (!is_readable_) {
-      return cti::make_ready_continuable(Error::NOT_READABLE);
+      return ERROR_CONTINUABLE(Error::NOT_READABLE);
     }
     if (is_reading_) {
-      return cti::make_ready_continuable(Error::IS_READING);
+      return ERROR_CONTINUABLE(Error::IS_READING);
     }
 
     // if there is already enough data in our buffer, read it immediately
@@ -112,7 +112,7 @@ namespace libp2p::connection {
       if (boost::asio::buffer_copy(boost::asio::buffer(result),
                                    read_buffer_.data(), bytes)
           != bytes) {
-        return cti::make_ready_continuable(Error::INTERNAL_ERROR);
+        return ERROR_CONTINUABLE(Error::INTERNAL_ERROR);
       }
       read_buffer_.consume(bytes);
       return cti::make_ready_continuable(std::move(result));
@@ -120,7 +120,7 @@ namespace libp2p::connection {
 
     // else, set a callback, which is called each time a new data arrives
     is_reading_ = true;
-    return cti::make_continuable<ReadResult>(
+    return cti::make_continuable<std::vector<uint8_t>>(
         [t = shared_from_this(), bytes](auto &&promise) {
           auto p = SHP_FROM_PROMISE(promise);
           t->yamux_->streamRead(t->stream_id_, [t, p = std::move(p), bytes] {
@@ -133,27 +133,26 @@ namespace libp2p::connection {
             if (boost::asio::buffer_copy(boost::asio::buffer(result),
                                          t->read_buffer_.data(), bytes)
                 != bytes) {
-              p->set_value(Error::INTERNAL_ERROR);
-              return true;
+              p->set_exception(Error::INTERNAL_ERROR);
+            } else {
+              t->read_buffer_.consume(bytes);
+              t->is_reading_ = false;
+              p->set_value(std::move(result));
             }
-            t->read_buffer_.consume(bytes);
-            t->is_reading_ = false;
-            p->set_value(std::move(result));
             return true;
           });
         });
   }
 
-  cti::continuable<YamuxStream::ReadResult> YamuxStream::readSome(
-      size_t bytes) {
+  cti::continuable<std::vector<uint8_t>> YamuxStream::readSome(size_t bytes) {
     if (bytes == 0) {
-      return cti::make_ready_continuable(Error::INVALID_ARGUMENT);
+      return ERROR_CONTINUABLE(Error::INVALID_ARGUMENT);
     }
     if (!is_readable_) {
-      return cti::make_ready_continuable(Error::NOT_READABLE);
+      return ERROR_CONTINUABLE(Error::NOT_READABLE);
     }
     if (is_reading_) {
-      return cti::make_ready_continuable(Error::IS_READING);
+      return ERROR_CONTINUABLE(Error::IS_READING);
     }
 
     // if there is already enough data in our buffer, read it immediately
@@ -163,7 +162,7 @@ namespace libp2p::connection {
       if (boost::asio::buffer_copy(boost::asio::buffer(result),
                                    read_buffer_.data(), to_read)
           != to_read) {
-        return cti::make_ready_continuable(Error::INTERNAL_ERROR);
+        return ERROR_CONTINUABLE(Error::INTERNAL_ERROR);
       }
       result.resize(to_read);
       read_buffer_.consume(to_read);
@@ -172,7 +171,7 @@ namespace libp2p::connection {
 
     // else, set a callback, which is called each time a new data arrives
     is_reading_ = true;
-    return cti::make_continuable<ReadResult>(
+    return cti::make_continuable<std::vector<uint8_t>>(
         [t = shared_from_this(), bytes](auto &&promise) {
           auto p = SHP_FROM_PROMISE(promise);
           t->yamux_->streamRead(t->stream_id_, [t, p = std::move(p), bytes] {
@@ -186,33 +185,34 @@ namespace libp2p::connection {
             if (boost::asio::buffer_copy(boost::asio::buffer(result),
                                          t->read_buffer_.data(), to_read)
                 != to_read) {
-              cti::make_ready_continuable(Error::INTERNAL_ERROR);
-              return true;
+              p->set_exception(Error::INTERNAL_ERROR);
+            } else {
+              result.resize(bytes);
+              t->read_buffer_.consume(bytes);
+              t->is_reading_ = false;
+              p->set_value(std::move(result));
             }
-            result.resize(bytes);
-            t->read_buffer_.consume(bytes);
-            t->is_reading_ = false;
-            p->set_value(std::move(result));
             return true;
           });
         });
   }
 
-  cti::continuable<YamuxStream::VoidResult> YamuxStream::reset() {
+  cti::continuable<> YamuxStream::reset() {
     if (is_writing_) {
-      return cti::make_ready_continuable(Error::IS_WRITING);
+      return ERROR_CONTINUABLE(Error::IS_WRITING);
     }
 
     is_writing_ = true;
-    return cti::make_continuable<VoidResult>([t = shared_from_this()](
-                                                 auto &&promise) {
+    return cti::make_continuable<void>([t = shared_from_this()](
+                                           auto &&promise) {
       auto p = SHP_FROM_PROMISE(promise);
       t->yamux_->streamReset(t->stream_id_, [t, p = std::move(p)](auto &&res) {
         t->is_writing_ = false;
-        if (res) {
-          t->resetStream();
+        if (!res) {
+          return p->set_exception(res.error());
         }
-        p->set_value(std::forward<decltype(res)>(res));
+        t->resetStream();
+        p->set_value();
       });
     });
   }
@@ -229,43 +229,46 @@ namespace libp2p::connection {
     return !is_readable_ && !is_writable_;
   }
 
-  cti::continuable<YamuxStream::VoidResult> YamuxStream::close() {
+  cti::continuable<> YamuxStream::close() {
     if (is_writing_) {
-      return cti::make_ready_continuable(Error::IS_WRITING);
+      return ERROR_CONTINUABLE(Error::IS_WRITING);
     }
 
     is_writing_ = true;
-    return cti::make_continuable<VoidResult>([t = shared_from_this()](
-                                                 auto &&promise) {
+    return cti::make_continuable<void>([t = shared_from_this()](
+                                           auto &&promise) {
       auto p = SHP_FROM_PROMISE(promise);
       t->yamux_->streamClose(t->stream_id_, [t, p = std::move(p)](auto &&res) {
         t->is_writing_ = false;
-        p->set_value(std::forward<decltype(res)>(res));
+        if (!res) {
+          return p->set_exception(res.error());
+        }
+        p->set_value();
       });
     });
   }
 
-  cti::continuable<YamuxStream::VoidResult> YamuxStream::adjustWindowSize(
-      uint32_t new_size) {
+  cti::continuable<> YamuxStream::adjustWindowSize(uint32_t new_size) {
     if (is_writing_) {
-      return cti::make_ready_continuable(Error::IS_WRITING);
+      return ERROR_CONTINUABLE(Error::IS_WRITING);
     }
 
     is_writing_ = true;
-    return cti::make_continuable<VoidResult>(
-        [t = shared_from_this(), new_size](auto &&promise) {
-          auto p = SHP_FROM_PROMISE(promise);
-          // delta is sent over the network, so it can be negative as well
-          t->yamux_->streamAckBytes(
-              t->stream_id_, t->receive_window_size_ - new_size,
-              [t, p = std::move(p), new_size](auto &&res) {
-                t->is_writing_ = false;
-                if (res) {
-                  t->receive_window_size_ = new_size;
-                }
-                p->set_value(std::forward<decltype(res)>(res));
-              });
-        });
+    return cti::make_continuable<void>([t = shared_from_this(),
+                                        new_size](auto &&promise) {
+      auto p = SHP_FROM_PROMISE(promise);
+      // delta is sent over the network, so it can be negative as well
+      t->yamux_->streamAckBytes(t->stream_id_,
+                                t->receive_window_size_ - new_size,
+                                [t, p = std::move(p), new_size](auto &&res) {
+                                  t->is_writing_ = false;
+                                  if (!res) {
+                                    return p->set_exception(res.error());
+                                  }
+                                  t->receive_window_size_ = new_size;
+                                  p->set_value();
+                                });
+    });
   }
 
   void YamuxStream::resetStream() {

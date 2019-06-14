@@ -6,9 +6,9 @@
 #ifndef KAGOME_CONNECTION_STREAM_HPP
 #define KAGOME_CONNECTION_STREAM_HPP
 
-#include <continuable/continuable.hpp>
 #include <gsl/span>
 #include <outcome/outcome.hpp>
+#include "libp2p/basic/continuable.hpp"
 
 namespace libp2p::connection {
 
@@ -17,10 +17,6 @@ namespace libp2p::connection {
    */
   struct Stream {
     using Handler = void(std::shared_ptr<Stream>);
-
-    using ReadResult = outcome::result<std::vector<uint8_t>>;
-    using WriteResult = outcome::result<size_t>;
-    using VoidResult = outcome::result<void>;
 
     virtual ~Stream() = default;
 
@@ -31,7 +27,7 @@ namespace libp2p::connection {
      * @note the method MUST NOT be called until the last 'read' or 'readSome'
      * completes
      */
-    virtual cti::continuable<ReadResult> read(size_t bytes) = 0;
+    virtual cti::continuable<std::vector<uint8_t>> read(size_t bytes) = 0;
 
     /**
      * @brief Read any number of (but not more than) (\param bytes) from the
@@ -41,7 +37,7 @@ namespace libp2p::connection {
      * @note the method MUST NOT be called until the last 'read' or 'readSome'
      * completes
      */
-    virtual cti::continuable<ReadResult> readSome(size_t bytes) = 0;
+    virtual cti::continuable<std::vector<uint8_t>> readSome(size_t bytes) = 0;
 
     /**
      * @brief Write all data from {@param in} to the stream
@@ -50,8 +46,7 @@ namespace libp2p::connection {
      * @note the method MUST NOT be called until the last 'write' or 'writeSome'
      * or 'close' or 'adjustWindowSize' or 'reset' completes
      */
-    virtual cti::continuable<WriteResult> write(
-        gsl::span<const uint8_t> in) = 0;
+    virtual cti::continuable<size_t> write(gsl::span<const uint8_t> in) = 0;
 
     /**
      * @brief Write any data from {@param in} to the stream
@@ -60,8 +55,7 @@ namespace libp2p::connection {
      * @note the method MUST NOT be called until the last 'write' or 'writeSome'
      * or 'close' or 'adjustWindowSize' or 'reset' completes
      */
-    virtual cti::continuable<WriteResult> writeSome(
-        gsl::span<const uint8_t> in) = 0;
+    virtual cti::continuable<size_t> writeSome(gsl::span<const uint8_t> in) = 0;
 
     /**
      * Check, if this stream is closed from the other side of the connection and
@@ -89,7 +83,7 @@ namespace libp2p::connection {
      * @note the method MUST NOT be called until the last 'write' or 'writeSome'
      * or 'close' or 'adjustWindowSize' or 'reset' completes
      */
-    virtual cti::continuable<VoidResult> close() = 0;
+    virtual cti::continuable<> close() = 0;
 
     /**
      * @brief Close this stream entirely; this normally means an error happened,
@@ -98,7 +92,7 @@ namespace libp2p::connection {
      * @note the method MUST NOT be called until the last 'write' or 'writeSome'
      * or 'close' or 'adjustWindowSize' or 'reset' completes
      */
-    virtual cti::continuable<VoidResult> reset() = 0;
+    virtual cti::continuable<> reset() = 0;
 
     /**
      * Set a new receive window size of this stream - how much unacknowledged
@@ -108,8 +102,7 @@ namespace libp2p::connection {
      * @note the method MUST NOT be called until the last 'write' or 'writeSome'
      * or 'close' or 'adjustWindowSize' or 'reset' completes
      */
-    virtual cti::continuable<VoidResult> adjustWindowSize(
-        uint32_t new_size) = 0;
+    virtual cti::continuable<> adjustWindowSize(uint32_t new_size) = 0;
   };
 
 }  // namespace libp2p::connection

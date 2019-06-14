@@ -50,19 +50,22 @@ namespace libp2p::connection {
     return readerLoop();
   }
 
-  void YamuxedConnection::newStream(
-      std::function<StreamResultHandler> stream_handler) {
-    auto stream_id = getNewStreamId();
-    write({newStreamMsg(stream_id),
-           [t = shared_from_this(), stream_id,
-            cb = std::move(stream_handler)](auto &&res) {
-             if (!res) {
-               return cb(res.error());
-             }
-             auto created_stream = std::make_shared<YamuxStream>(t, stream_id);
-             t->streams_.insert({stream_id, created_stream});
-             cb(created_stream);
-           }});
+  cti::continuable<std::shared_ptr<Stream>> YamuxedConnection::newStream() {
+    return cti::make_continuable<std::shared_ptr<Stream>>(
+        [t = shared_from_this(), stream_id = getNewStreamId()](auto &&promise) {
+          auto p = std::make_shared<std::decay_t<decltype(promise)>>(
+              std::forward<decltype(promise)>(promise));
+          t->write({newStreamMsg(stream_id),
+                    [t, p = std::move(p), stream_id](auto &&res) {
+                      if (!res) {
+                        p->set_exception(res.error());
+                      }
+                      auto created_stream =
+                          std::make_shared<YamuxStream>(t, stream_id);
+                      t->streams_.insert({stream_id, created_stream});
+                      p->set_value(std::move(created_stream));
+                    }});
+        });
   }
 
   outcome::result<peer::PeerId> YamuxedConnection::localPeer() const {
@@ -320,8 +323,8 @@ namespace libp2p::connection {
     return stream->second;
   }
 
-  void YamuxedConnection::registerNewStream(
-      StreamId stream_id, std::function<StreamResultHandler> cb) {
+  void YamuxedConnection::registerNewStream(StreamId stream_id,
+                                            StreamResultHandler cb) {
     write({ackStreamMsg(stream_id),
            [t = shared_from_this(), stream_id, cb = std::move(cb)](auto &&res) {
              if (!res) {

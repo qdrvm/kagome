@@ -22,7 +22,7 @@ namespace libp2p::connection {
 
     MOCK_METHOD0(start, outcome::result<void>());
 
-    MOCK_METHOD1(newStream, void(std::function<StreamResultHandler>));
+    MOCK_METHOD0(newStream, cti::continuable<std::shared_ptr<Stream>>());
 
     MOCK_CONST_METHOD0(localPeer, outcome::result<peer::PeerId>());
 

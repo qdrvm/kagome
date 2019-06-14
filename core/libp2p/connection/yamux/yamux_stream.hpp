@@ -36,16 +36,15 @@ namespace libp2p::connection {
       INTERNAL_ERROR
     };
 
-    cti::continuable<WriteResult> write(gsl::span<const uint8_t> in) override;
+    cti::continuable<size_t> write(gsl::span<const uint8_t> in) override;
 
-    cti::continuable<WriteResult> writeSome(
-        gsl::span<const uint8_t> in) override;
+    cti::continuable<size_t> writeSome(gsl::span<const uint8_t> in) override;
 
-    cti::continuable<ReadResult> read(size_t bytes) override;
+    cti::continuable<std::vector<uint8_t>> read(size_t bytes) override;
 
-    cti::continuable<ReadResult> readSome(size_t bytes) override;
+    cti::continuable<std::vector<uint8_t>> readSome(size_t bytes) override;
 
-    cti::continuable<VoidResult> reset() override;
+    cti::continuable<> reset() override;
 
     bool isClosedForRead() const noexcept override;
 
@@ -53,16 +52,16 @@ namespace libp2p::connection {
 
     bool isClosed() const noexcept override;
 
-    cti::continuable<VoidResult> close() override;
+    cti::continuable<> close() override;
 
-    cti::continuable<VoidResult> adjustWindowSize(uint32_t new_size) override;
+    cti::continuable<> adjustWindowSize(uint32_t new_size) override;
 
    private:
     /**
      * Internal proxy method for writes; (\param some) denotes if the write
      * should write 'some' or 'all' bytes
      */
-    cti::continuable<WriteResult> write(gsl::span<const uint8_t> in, bool some);
+    cti::continuable<size_t> write(gsl::span<const uint8_t> in, bool some);
 
     std::shared_ptr<YamuxedConnection> yamux_;
     YamuxedConnection::StreamId stream_id_;

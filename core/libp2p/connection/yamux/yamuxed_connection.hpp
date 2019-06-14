@@ -32,6 +32,9 @@ namespace libp2p::connection {
   class YamuxedConnection
       : public CapableConnection,
         public std::enable_shared_from_this<YamuxedConnection> {
+    using StreamResultHandler =
+        std::function<void(outcome::result<std::shared_ptr<Stream>>)>;
+
    public:
     using StreamId = uint32_t;
     using NewStreamHandler = std::function<Stream::Handler>;
@@ -64,7 +67,7 @@ namespace libp2p::connection {
 
     outcome::result<void> start() override;
 
-    void newStream(std::function<StreamResultHandler> stream_handler) override;
+    cti::continuable<std::shared_ptr<Stream>> newStream() override;
 
     outcome::result<peer::PeerId> localPeer() const override;
 
@@ -154,8 +157,7 @@ namespace libp2p::connection {
      * @param stream_id to be registered
      * @param cb - callback with registered stream or error
      */
-    void registerNewStream(StreamId stream_id,
-                           std::function<StreamResultHandler> cb);
+    void registerNewStream(StreamId stream_id, StreamResultHandler cb);
 
     /**
      * If there is data in this length, buffer it to the according stream
