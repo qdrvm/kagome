@@ -5,6 +5,12 @@
 
 #include "extensions/impl/storage_extension.hpp"
 
+#include <forward_list>
+
+#include "storage/trie/polkadot_trie_db/ordered_trie_hash.hpp"
+
+using kagome::common::Buffer;
+
 namespace kagome::extensions {
   StorageExtension::StorageExtension(
       std::shared_ptr<storage::trie::TrieDb> db,
@@ -18,7 +24,10 @@ namespace kagome::extensions {
   void StorageExtension::ext_clear_prefix(runtime::WasmPointer prefix_data,
                                           runtime::SizeType prefix_length) {
     auto prefix = memory_->loadN(prefix_data, prefix_length);
-    db_->clearPrefix(prefix);
+    auto res = db_->clearPrefix(prefix);
+    if (not res) {
+      logger_->error("ext_clear_prefix failed: {}", res.error().message());
+    }
   }
 
   void StorageExtension::ext_clear_storage(runtime::WasmPointer key_data,
@@ -94,11 +103,31 @@ namespace kagome::extensions {
   // -------------------------Trie operations--------------------------
 
   void StorageExtension::ext_blake2_256_enumerated_trie_root(
-      runtime::WasmPointer values_data, runtime::WasmPointer lens_data,
-      runtime::SizeType lens_length, runtime::WasmPointer result) {
-    // TODO(Akvinikym) PRE-54 11.03.19: implement, when Merkle Trie is ready
-    logger_->error("Unimplemented");
-    std::terminate();
+      runtime::WasmPointer values_data, runtime::WasmPointer lengths_data,
+      runtime::SizeType values_num, runtime::WasmPointer result) {
+    if (values_num == 0) {
+      return;
+    }
+    std::vector<uint32_t> lengths(values_num);
+    for (size_t i = 0; i < values_num; i++) {
+      lengths.at(i) = memory_->load32u(lengths_data + i * 4);
+    }
+    std::forward_list<Buffer> values(values_num);
+    uint32_t offset = 0;
+    auto curr_value = values.begin();
+    for (size_t i = 0; i < values_num; i++, curr_value++) {
+      *curr_value = memory_->loadN(values_data + offset, lengths.at(i));
+      offset += lengths.at(i);
+    }
+    auto ordered_hash =
+        storage::trie::calculateOrderedTrieHash(values.begin(), values.end());
+    if (ordered_hash.has_value()) {
+      memory_->storeBuffer(result, ordered_hash.value());
+    } else {
+      logger_->error(
+          "ext_blake2_256_enumerated_trie_root resulted with an error: {}",
+          ordered_hash.error().message());
+    }
   }
 
   runtime::SizeType StorageExtension::ext_storage_changes_root(
