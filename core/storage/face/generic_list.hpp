@@ -81,11 +81,11 @@ namespace kagome::face {
     using const_reference = const typename Container::value_type &;
     using value_type = typename Container::value_type;
 
-    ForwardIterator(std::shared_ptr<GenericIterator<Container>> it)
+    ForwardIterator(std::unique_ptr<GenericIterator<Container>> it)
         : it_{std::move(it)} {}
 
     ForwardIterator(ForwardIterator &&it) noexcept : it_{std::move(it.it_)} {}
-    ForwardIterator(ForwardIterator const &it) : it_{it.it_} {}
+    ForwardIterator(ForwardIterator const &it) : it_{it.it_->create_copy()} {}
 
     GenericIterator<Container> &get_iterator() {
       return *it_;
@@ -96,12 +96,12 @@ namespace kagome::face {
     }
 
     ForwardIterator &operator=(const ForwardIterator &it) {
-      it_ = it.it_;
+      it_ = it.it_->create_copy();
       return *this;
     }
 
     ForwardIterator &operator=(ForwardIterator &&it) noexcept {
-      it_ = std::move(it.it_);
+      it_ = it.it_->create_copy();
       return *this;
     }
 
@@ -113,11 +113,7 @@ namespace kagome::face {
       return *it_ == *other.it_;
     }
 
-    reference operator*() {
-      return **it_;
-    }
-
-    const_reference operator*() const {
+    reference operator*() const {
       return **it_;
     }
 
@@ -131,7 +127,7 @@ namespace kagome::face {
     }
 
    private:
-    std::shared_ptr<GenericIterator<Container>> it_;
+    std::unique_ptr<GenericIterator<Container>> it_;
   };
 
 }  // namespace kagome::face

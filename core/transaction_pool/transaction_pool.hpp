@@ -15,47 +15,61 @@ namespace kagome::transaction_pool {
   class TransactionPool {
    public:
     struct Status;
+    struct Limits;
 
     virtual ~TransactionPool() = default;
 
+    /**
+     * Import one verified transaction to the pool. If it has unresolved
+     * dependencies (requires tags of transactions that are not in the pool
+     * yet), it will wait in the pool until its dependencies are solved, in
+     * which case it becomes ready and may be pruned, or it is banned from the
+     * pool for some amount of time as its longevity is reached or the pool is
+     * overflown
+     */
     virtual outcome::result<void> submitOne(primitives::Transaction t) = 0;
 
+    /**
+     * Import several transactions to the pool
+     * @see submitOne()
+     */
     virtual outcome::result<void> submit(
         std::vector<primitives::Transaction> ts) = 0;
 
+    /**
+     * @return transactions ready to included in the next block, sorted by their
+     * priority
+     */
     virtual std::vector<primitives::Transaction> getReadyTransactions() = 0;
 
+    /**
+     * Remove from the pool and temporarily ban transactions which longevity is
+     * expired
+     * @param at a block that is considered current for removal (transaction t
+     * is banned if
+     * 'block number when t got to pool' + 't.longevity' <= block number of at)
+     * @return removed transactions
+     */
     virtual std::vector<primitives::Transaction> removeStale(
         const primitives::BlockId &at) = 0;
 
-    virtual std::vector<primitives::Transaction> pruneByTag(
-        primitives::TransactionTag tag) = 0;
+    virtual std::vector<primitives::Transaction> prune(
+        const std::vector<primitives::Extrinsic> &exts) = 0;
+
+    virtual std::vector<primitives::Transaction> pruneTags(
+        const std::vector<primitives::TransactionTag> &tag) = 0;
 
     virtual Status getStatus() const = 0;
   };
 
   struct TransactionPool::Status {
-   public:
-    Status &ready(size_t n) {
-      ready_num = n;
-      return *this;
-    }
-    Status &waiting(size_t n) {
-      waiting_num = n;
-      return *this;
-    }
-
-    size_t ready() const {
-      return ready_num;
-    }
-
-    size_t waiting() const {
-      return waiting_num;
-    }
-
-   private:
     size_t ready_num;
     size_t waiting_num;
+  };
+
+  struct TransactionPool::Limits {
+    size_t max_ready_num;
+    size_t max_waiting_num;
   };
 
 }  // namespace kagome::transaction_pool
