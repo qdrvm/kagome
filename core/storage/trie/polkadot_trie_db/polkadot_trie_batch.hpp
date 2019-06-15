@@ -41,14 +41,12 @@ namespace kagome::storage::trie {
     bool is_empty() const;
 
    private:
-    outcome::result<PolkadotTrieDb::NodePtr> applyPut(
-        const PolkadotTrieDb::NodePtr& root, const common::Buffer &key,
+    outcome::result<PolkadotTrieDb::NodePtr> applyPut(PolkadotTrie &trie, const common::Buffer &key,
         common::Buffer &&value);
 
-    outcome::result<PolkadotTrieDb::NodePtr> applyRemove(
-        PolkadotTrieDb::NodePtr root, const common::Buffer &key);
+    outcome::result<PolkadotTrieDb::NodePtr> applyRemove(PolkadotTrie &trie, const common::Buffer &key);
 
-    PolkadotTrieDb &trie_;
+    PolkadotTrieDb &storage_;
     std::list<Command> commands_;
   };
 }  // namespace kagome::storage::trie

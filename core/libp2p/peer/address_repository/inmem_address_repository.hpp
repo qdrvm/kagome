@@ -6,7 +6,6 @@
 #ifndef KAGOME_INMEM_ADDRESS_REPOSITORY_HPP
 #define KAGOME_INMEM_ADDRESS_REPOSITORY_HPP
 
-#include <list>
 #include <unordered_map>
 
 #include "libp2p/peer/address_repository.hpp"
@@ -32,7 +31,7 @@ namespace libp2p::peer {
         const PeerId &p, gsl::span<const multi::Multiaddress> ma,
         Milliseconds ttl) override;
 
-    outcome::result<std::list<multi::Multiaddress>> getAddresses(
+    outcome::result<std::vector<multi::Multiaddress>> getAddresses(
         const PeerId &p) const override;
 
     void collectGarbage() override;

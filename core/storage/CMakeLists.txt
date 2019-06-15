@@ -3,3 +3,4 @@
 
 add_subdirectory(leveldb)
 add_subdirectory(trie)
+add_subdirectory(in_memory)

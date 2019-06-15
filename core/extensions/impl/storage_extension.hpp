@@ -73,8 +73,8 @@ namespace kagome::extensions {
      * @see Extension::ext_blake2_256_enumerated_trie_root
      */
     void ext_blake2_256_enumerated_trie_root(runtime::WasmPointer values_data,
-                                             runtime::WasmPointer lens_data,
-                                             runtime::SizeType lens_length,
+                                             runtime::WasmPointer lengths_data,
+                                             runtime::SizeType values_num,
                                              runtime::WasmPointer result);
 
     /**
