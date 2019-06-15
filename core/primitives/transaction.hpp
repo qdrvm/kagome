@@ -29,18 +29,25 @@ namespace kagome::primitives {
   struct Transaction {
     /// Raw extrinsic representing that transaction.
     primitives::Extrinsic ext;
+
     /// Number of bytes encoding of the transaction requires.
     size_t bytes;
+
     /// Transaction hash (unique)
     common::Buffer hash;
+
     /// Transaction priority (higher = better)
     TransactionPriority priority;
+
     /// At which block the transaction becomes invalid?
     TransactionLongevity valid_till;
+
     /// Tags required by the transaction.
     std::vector<TransactionTag> requires;
+
     /// Tags that this transaction provides.
     std::vector<TransactionTag> provides;
+
     /// Should that transaction be propagated.
     bool should_propogate;
   };

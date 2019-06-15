@@ -15,6 +15,8 @@ namespace kagome::face {
 
     virtual ~GenericIterator() = default;
 
+    virtual std::unique_ptr<GenericIterator> create_copy() const = 0;
+
     virtual value_type *get() = 0;
     virtual value_type const *get() const = 0;
 
