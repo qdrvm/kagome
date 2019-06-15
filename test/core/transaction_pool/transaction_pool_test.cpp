@@ -6,124 +6,66 @@
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
 
 #include <gtest/gtest.h>
-#include "testutil/outcome.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/outcome.hpp"
+#include "testutil/storage/std_list_adapter.hpp"
+#include "transaction_pool/impl/clock_impl.hpp"
+#include "transaction_pool/impl/pool_moderator_impl.hpp"
 
+using kagome::common::Buffer;
 using kagome::face::ForwardIterator;
 using kagome::face::GenericIterator;
 using kagome::face::GenericList;
-using kagome::transaction_pool::TransactionPoolImpl;
 using kagome::primitives::Transaction;
 using kagome::primitives::TransactionTag;
+using kagome::transaction_pool::Clock;
+using kagome::transaction_pool::PoolModerator;
+using kagome::transaction_pool::PoolModeratorImpl;
+using kagome::transaction_pool::SystemClock;
+using kagome::transaction_pool::TransactionPool;
+using kagome::transaction_pool::TransactionPoolImpl;
+using test::StdListAdapter;
 
-template <typename T>
-class It : public GenericIterator<GenericList<T>> {
-  template <typename>
-  friend class StdList;
-
+class TransactionPoolTest : public testing::Test {
  public:
-  using value_type = T;
-
-  explicit It(typename std::list<T>::iterator l) : it_{l} {}
-  ~It() = default;
-
-  value_type *get() override {
-    return &*it_;
+  void SetUp() {
+    auto clock_ = std::make_shared<SystemClock>();
+    auto moderator_ = std::make_unique<PoolModeratorImpl>(clock_);
+    pool_ = TransactionPoolImpl::create<StdListAdapter>(std::move(moderator_));
   }
 
-  value_type const *get() const override {
-    return &*it_;
-  }
-
-  value_type &operator*() override {
-    return *it_;
-  }
-
-  value_type const &operator*() const override {
-    return *it_;
-  }
-
-  kagome::face::GenericIterator<GenericList<T>> &operator++() override {
-    it_++;
-    return *this;
-  }
-
- private:
-  typename std::list<T>::iterator it_;
+  std::shared_ptr<TransactionPool> pool_;
 };
 
+Transaction makeTx(Buffer hash, std::initializer_list<TransactionTag> provides,
+                   std::initializer_list<TransactionTag> requires) {
+  Transaction tx;
+  tx.hash = std::move(hash);
+  tx.provides = std::vector(provides);
+  tx.requires = std::vector(requires);
+  return tx;
+}
 
+TEST_F(TransactionPoolTest, Create) {
+  StdListAdapter<int> list;
+  std::vector<int> v{1, 2, 3, 4, 5};
+  std::copy(v.begin(), v.end(), std::back_inserter(list));
+  std::stable_partition(list.begin(), list.end(),
+                        [](int x) { return x % 2 == 0; });
+}
 
-template <typename T>
-class StdList : public GenericList<T> {
- public:
-  using value_type = T;
-  using size_type = typename GenericList<T>::size_type;
-  using iterator = ForwardIterator<GenericList<T>>;
+TEST_F(TransactionPoolTest, CorrectImportToReady) {
+  std::vector<Transaction> txs{
+      makeTx("01"_hex2buf, {"01"_unhex}, {}),
+      makeTx("02"_hex2buf, {"02"_unhex}, {}),
+      makeTx("03"_hex2buf, {}, {"02"_unhex, "01"_unhex}),
+      makeTx("04"_hex2buf, {"04"_unhex}, {"05"_unhex}),
+      makeTx("05"_hex2buf, {"05"_unhex}, {"04"_unhex, "02"_unhex})};
 
-  void push_back(T &&t) override {
-    list_.push_back(t);
-  }
-  void push_back(const T &t) override {
-    list_.push_back(t);
-  }
-  void push_front(T &&t) override {
-    list_.push_front(t);
-  }
-  void push_front(const T &t) override {
-    list_.push_front(t);
-  }
-  T pop_back() override {
-    value_type t = list_.back();
-    list_.pop_back();
-    return t;
-  }
-  T pop_front() override {
-    value_type t = list_.front();
-    list_.pop_front();
-    return t;
-  }
-
-  void erase(const iterator &begin, const iterator &end) override {
-    auto &begin_it = dynamic_cast<It<T> const&>(begin.get_iterator());
-    auto &end_it = dynamic_cast<It<T> const&>(end.get_iterator());
-    list_.erase(begin_it.it_, end_it.it_);
-  }
-
-  ForwardIterator<GenericList<T>> begin() override {
-    return {std::make_shared<It<T>>(list_.begin())};
-  }
-  ForwardIterator<GenericList<T>> end() override {
-    return {std::make_shared<It<T>>(list_.end())};
-  }
-  bool empty() const override {
-    return list_.empty();
-  }
-
-  size_type size() const override {
-    return list_.size();
-  }
-
- private:
-  std::list<T> list_;
-};
-
-
-
-TEST(TransactionPoolTest, Create) {
-  auto tp = std::make_unique<TransactionPoolImpl>(
-      std::make_unique<StdList<Transaction>>(),
-      std::make_unique<StdList<Transaction>>());
-
-  Transaction t1, t2, t3;
-  t1.provides = {"1234"_unhex};
-  t2.provides = {"abcd"_unhex};
-  t3.requires = {"1234"_unhex, "abcd"_unhex};
-
-  EXPECT_OUTCOME_TRUE_1(tp->submit({t1, t3}));
-  EXPECT_EQ(tp->getStatus().waiting(), 1);
-  ASSERT_EQ(tp->getStatus().ready(), 1);
-  EXPECT_OUTCOME_TRUE_1(tp->submit({t2}));
-  EXPECT_EQ(tp->getStatus().waiting(), 0);
-  ASSERT_EQ(tp->getStatus().ready(), 3);
+  EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[0], txs[2], txs[3], txs[4]}));
+  EXPECT_EQ(pool_->getStatus().waiting_num, 2);
+  ASSERT_EQ(pool_->getStatus().ready_num, 2);
+  EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[1]}));
+  EXPECT_EQ(pool_->getStatus().waiting_num, 0);
+  ASSERT_EQ(pool_->getStatus().ready_num, 5);
 }
