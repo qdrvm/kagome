@@ -69,3 +69,14 @@ TEST_F(TransactionPoolTest, CorrectImportToReady) {
   EXPECT_EQ(pool_->getStatus().waiting_num, 0);
   ASSERT_EQ(pool_->getStatus().ready_num, 5);
 }
+
+class MockClock : public Clock {
+  MOCK_CONST_METHOD0(now, Clock::TimePoint());
+};
+
+TEST_F(TransactionPoolTest, BanDurationCorrect) {
+  auto clock = std::shared_ptr<MockClock>();
+  PoolModeratorImpl moderator(clock, std::chrono::minutes(42));
+  
+
+}
