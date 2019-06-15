@@ -6,14 +6,37 @@
 #ifndef KAGOME_CAPABLE_CONNECTION_MOCK_HPP
 #define KAGOME_CAPABLE_CONNECTION_MOCK_HPP
 
+#include <gmock/gmock.h>
+
 #include "libp2p/connection/capable_connection.hpp"
 
 #include "mock/libp2p/connection/connection_mock_common.hpp"
 
-using ::testing::_;
-using ::testing::Invoke;
-
 namespace libp2p::connection {
+
+  class CapableConnectionMock : public CapableConnection {
+   public:
+    MOCK_METHOD0(newStream, outcome::result<std::shared_ptr<Stream>>());
+
+    MOCK_CONST_METHOD0(localPeer, outcome::result<peer::PeerId>());
+    MOCK_CONST_METHOD0(remotePeer, outcome::result<peer::PeerId>());
+    MOCK_CONST_METHOD0(remotePublicKey, outcome::result<crypto::PublicKey>());
+
+    MOCK_CONST_METHOD0(isClosed, bool(void));
+    MOCK_METHOD0(close, outcome::result<void>(void));
+    MOCK_METHOD1(read, outcome::result<std::vector<uint8_t>>(size_t));
+    MOCK_METHOD1(readSome, outcome::result<std::vector<uint8_t>>(size_t));
+    MOCK_METHOD1(read, outcome::result<size_t>(gsl::span<uint8_t>));
+    MOCK_METHOD1(readSome, outcome::result<size_t>(gsl::span<uint8_t>));
+    MOCK_METHOD1(write, outcome::result<size_t>(gsl::span<const uint8_t>));
+    MOCK_METHOD1(writeSome, outcome::result<size_t>(gsl::span<const uint8_t>));
+    bool isInitiator() const noexcept override {
+      return isInitiator_hack();
+    }
+    MOCK_CONST_METHOD0(isInitiator_hack, bool());
+    MOCK_METHOD0(localMultiaddr, outcome::result<multi::Multiaddress>());
+    MOCK_METHOD0(remoteMultiaddr, outcome::result<multi::Multiaddress>());
+  };
 
   class CapableConnBasedOnRawConnMock : public CapableConnection {
    public:

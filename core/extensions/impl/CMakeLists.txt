@@ -41,4 +41,5 @@ target_link_libraries(storage_extension
     buffer
     blob
     logger
+    ordered_trie_hash
     )

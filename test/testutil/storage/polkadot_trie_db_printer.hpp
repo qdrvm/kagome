@@ -37,7 +37,7 @@ namespace kagome::storage::trie {
   }
 
   template <typename Stream>
-  Stream &printNode(Stream &s, PolkadotTrieDb::NodePtr node,
+  Stream &printNode(Stream &s, const PolkadotTrieDb::NodePtr &node,
                     const PolkadotTrieDb &trie, size_t nest_level) {
     using T = PolkadotNode::Type;
     std::string indent(nest_level, '\t');

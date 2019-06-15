@@ -44,14 +44,14 @@ namespace libp2p::peer {
     return outcome::success();
   }
 
-  outcome::result<std::list<multi::Multiaddress>>
+  outcome::result<std::vector<multi::Multiaddress>>
   InmemAddressRepository::getAddresses(const PeerId &p) const {
     auto it = db_.find(p);
     if (it == db_.end()) {
       return PeerError::NOT_FOUND;
     }
 
-    std::list<multi::Multiaddress> ma;
+    std::vector<multi::Multiaddress> ma;
     for (auto &item : *it->second) {
       ma.push_back(item.first);
     }
