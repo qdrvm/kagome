@@ -38,7 +38,6 @@ namespace libp2p::security {
      */
     virtual outcome::result<std::shared_ptr<connection::SecureConnection>>
     secureInbound(std::shared_ptr<connection::RawConnection> inbound) = 0;
-
     /**
      * @brief Secure the connection, either locally or by communicating with
      * opposing node via outbound connection (we are initiator).

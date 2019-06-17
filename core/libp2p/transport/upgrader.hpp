@@ -8,36 +8,37 @@
 
 #include <memory>
 
+#include <outcome/outcome.hpp>
 #include "libp2p/connection/capable_connection.hpp"
 #include "libp2p/connection/raw_connection.hpp"
 #include "libp2p/connection/secure_connection.hpp"
-#include "libp2p/connection/stream.hpp"
 
 namespace libp2p::transport {
 
-  // upgrader knows about all transport and muxer adaptors, knows current peer
-  // id it uses multiselect to negotiate all protocols in 2 rounds:
-  // 1. upgrade security by finding intersection of our supported adaptors and
-  // supported adaptors of remote peer
-  // 2. upgrade muxer by finding intersection of our supported adaptors and
-  // supported adaptors of remote peer
+  /**
+   * Lifetime of the connection is: Raw -> Secure -> Muxed -> [Streams over
+   * Muxed]. Upgrader handles the first two steps, understanding, which security
+   * and muxer protocols are available on both sides (via Multiselect protocol)
+   * and using the chosen protocols to actually upgrade the connections
+   */
   struct Upgrader {
     virtual ~Upgrader() = default;
 
-    using RawSPtr = std::shared_ptr<connection::RawConnection>;
-    using SecureSPtr = std::shared_ptr<connection::SecureConnection>;
-    using CapableSPtr = std::shared_ptr<connection::CapableConnection>;
+    /**
+     * Upgrade a raw connection to the secure one
+     * @param conn to be upgraded
+     * @return upgraded connection or error
+     */
+    virtual outcome::result<std::shared_ptr<connection::SecureConnection>>
+    upgradeToSecure(std::shared_ptr<connection::RawConnection> conn) = 0;
 
-    using OnSecuredCallback = void(outcome::result<SecureSPtr>);
-    using OnSecuredCallbackFunc = std::function<OnSecuredCallback>;
-    using OnMuxedCallback = void(outcome::result<CapableSPtr>);
-    using OnMuxedCallbackFunc = std::function<OnMuxedCallback>;
-
-    // upgrade raw connection to secure connection
-    virtual void upgradeToSecure(RawSPtr conn, OnSecuredCallbackFunc cb) = 0;
-
-    // upgrade secure connection to capable connection
-    virtual void upgradeToMuxed(SecureSPtr conn, OnMuxedCallbackFunc cb) = 0;
+    /**
+     * Upgrade a secure connection to the muxed (capable) one
+     * @param conn to be upgraded
+     * @return upgraded connection or error
+     */
+    virtual outcome::result<std::shared_ptr<connection::CapableConnection>>
+    upgradeToMuxed(std::shared_ptr<connection::SecureConnection> conn) = 0;
   };
 
 }  // namespace libp2p::transport
