@@ -5,6 +5,7 @@
 
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -25,6 +26,8 @@ using kagome::transaction_pool::SystemClock;
 using kagome::transaction_pool::TransactionPool;
 using kagome::transaction_pool::TransactionPoolImpl;
 using test::StdListAdapter;
+using testing::Return;
+using namespace std::chrono_literals;
 
 class TransactionPoolTest : public testing::Test {
  public:
@@ -71,12 +74,42 @@ TEST_F(TransactionPoolTest, CorrectImportToReady) {
 }
 
 class MockClock : public Clock {
-  MOCK_CONST_METHOD0(now, Clock::TimePoint());
+ public:
+  MOCK_CONST_METHOD0(now, Clock::TimePoint(void));
 };
 
 TEST_F(TransactionPoolTest, BanDurationCorrect) {
-  auto clock = std::shared_ptr<MockClock>();
-  PoolModeratorImpl moderator(clock, std::chrono::minutes(42));
-  
+  auto clock = std::make_shared<MockClock>();
+  auto duration = 42min;
+  auto submit_time = 10min;
+  PoolModeratorImpl moderator(clock, duration);
+  testing::Expectation exp1 =
+      EXPECT_CALL(*clock, now()).WillOnce(Return(submit_time));
+  testing::Expectation exp2 = EXPECT_CALL(*clock, now())
+                                  .After(exp1)
+                                  .WillOnce(Return(submit_time + 20min));
+  EXPECT_CALL(*clock, now())
+      .After(exp2)
+      .WillOnce(Return(submit_time + duration + 1min));
+  Transaction t;
+  t.hash = "beef"_hex2buf;
+  moderator.ban(t);
+  ASSERT_TRUE(moderator.isBanned(t));
+  moderator.updateBan();
+  ASSERT_FALSE(moderator.isBanned(t));
+}
 
+TEST_F(TransactionPoolTest, BanStaleCorrect) {
+  auto clock = std::make_shared<SystemClock>();
+  PoolModeratorImpl moderator(clock);
+  Transaction t;
+  t.valid_till = 42;
+  t.hash = "abcd"_hex2buf;
+  moderator.banIfStale(43, t);
+  ASSERT_TRUE(moderator.isBanned(t));
+  Transaction t1;
+  t1.valid_till = 42;
+  t1.hash = "efef"_hex2buf;
+  moderator.banIfStale(41, t1);
+  ASSERT_FALSE(moderator.isBanned(t1));
 }

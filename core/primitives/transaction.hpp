@@ -53,4 +53,5 @@ namespace kagome::primitives {
   };
 
 }  // namespace kagome::primitives
+
 #endif  // KAGOME_TRANSACTION_HPP
