@@ -37,17 +37,13 @@ namespace libp2p::connection {
 
     outcome::result<multi::Multiaddress> remoteMultiaddr() override;
 
-    outcome::result<std::vector<uint8_t>> read(size_t bytes) override;
+    void read(gsl::span<uint8_t> out, ReadCallbackFunc cb) override;
 
-    outcome::result<std::vector<uint8_t>> readSome(size_t bytes) override;
+    void readSome(gsl::span<uint8_t> out, ReadCallbackFunc cb) override;
 
-    outcome::result<size_t> read(gsl::span<uint8_t> buf) override;
+    void write(gsl::span<const uint8_t> in, WriteCallbackFunc cb) override;
 
-    outcome::result<size_t> readSome(gsl::span<uint8_t> buf) override;
-
-    outcome::result<size_t> write(gsl::span<const uint8_t> in) override;
-
-    outcome::result<size_t> writeSome(gsl::span<const uint8_t> in) override;
+    void writeSome(gsl::span<const uint8_t> in, WriteCallbackFunc cb) override;
 
     bool isClosed() const override;
 

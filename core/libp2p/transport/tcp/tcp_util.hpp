@@ -17,7 +17,7 @@
 
 namespace libp2p::transport::detail {
   template <typename T>
-  inline outcome::result<multi::Multiaddress> makeEndpoint(T &&endpoint) {
+  inline outcome::result<multi::Multiaddress> makeAddress(T &&endpoint) {
     try {
       auto address = endpoint.address();
       auto port = endpoint.port();

@@ -6,34 +6,31 @@
 #ifndef KAGOME_READER_HPP
 #define KAGOME_READER_HPP
 
-#include <vector>
-
+#include <boost/system/error_code.hpp>
 #include <gsl/span>
-#include <outcome/outcome.hpp>
 
 namespace libp2p::basic {
 
   struct Reader {
+    using ErrorCode = boost::system::error_code;
+    using ReadCallback = void(const ErrorCode & /*ec*/, size_t /*read bytes */);
+    using ReadCallbackFunc = std::function<ReadCallback>;
+
     virtual ~Reader() = default;
 
     /**
-     * @brief Blocks until all {@param bytes} bytes are read.
-     * @param bytes number of bytes to read
-     * @return vector of bytes or error code
+     * @brief Reads exactly {@code} out.size() {@nocode} bytes to the buffer.
+     * @param out output argument. Read data will be written to this buffer.
+     * @param cb callback with result of operation
      */
-    virtual outcome::result<std::vector<uint8_t>> read(size_t bytes) = 0;
+    virtual void read(gsl::span<uint8_t> out, ReadCallbackFunc cb) = 0;
 
     /**
-     * @brief Blocks until any number (not more that {@param bytes}) of bytes
-     * are read.
-     * @param bytes number of bytes to read
-     * @return vector of bytes or error code
+     * @brief Reads up to {@code} out.size() {@nocode} bytes to the buffer.
+     * @param out output argument. Read data will be written to this buffer.
+     * @param cb callback with result of operation
      */
-    virtual outcome::result<std::vector<uint8_t>> readSome(size_t bytes) = 0;
-
-    virtual outcome::result<size_t> read(gsl::span<uint8_t> buf) = 0;
-
-    virtual outcome::result<size_t> readSome(gsl::span<uint8_t> buf) = 0;
+    virtual void readSome(gsl::span<uint8_t> out, ReadCallbackFunc cb) = 0;
   };
 
 }  // namespace libp2p::basic

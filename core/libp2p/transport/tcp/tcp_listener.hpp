@@ -7,7 +7,6 @@
 #define KAGOME_TCP_LISTENER_HPP
 
 #include <boost/asio.hpp>
-#include <ufiber/ufiber.hpp>
 #include "libp2p/transport/tcp/tcp_connection.hpp"
 #include "libp2p/transport/tcp/tcp_util.hpp"
 #include "libp2p/transport/transport_listener.hpp"
@@ -40,7 +39,8 @@ namespace libp2p::transport {
     std::shared_ptr<Upgrader> upgrader_;
     TransportListener::HandlerFunc handle_;
 
-    void do_accept();
+    void doAccept();
+
   };
 
 }  // namespace libp2p::transport
