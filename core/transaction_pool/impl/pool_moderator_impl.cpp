@@ -8,6 +8,8 @@
 using kagome::common::Buffer;
 
 namespace kagome::transaction_pool {
+
+
   PoolModeratorImpl::PoolModeratorImpl(std::shared_ptr<Clock> clock,
                                        Clock::Duration ban_for,
                                        size_t expected_size)
@@ -47,10 +49,14 @@ namespace kagome::transaction_pool {
 
   void PoolModeratorImpl::updateBan() {
     auto now = clock_->now();
+    std::list<Map::iterator> removed;
     for (auto it = banned_until_.begin(); it != banned_until_.end(); it++) {
       if (it->second < now) {
-        banned_until_.erase(it);
+        removed.push_back(it);
       }
+    }
+    for (auto &it : removed) {
+      banned_until_.erase(it);
     }
   }
 
