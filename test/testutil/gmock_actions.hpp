@@ -13,9 +13,9 @@
 /**
  * @code
  * const int size = 1;
- * EXPECT_CALL(*connection_, read(_, _)).WillOnce(AsioSuccess(size));
+ * EXPECT_CALL(*connection_, read(_, _, _)).WillOnce(AsioSuccess(size));
  * auto buf = std::make_shared<std::vector<uint8_t>>(size, 0);
- * secure_connection_->read(*buf, [&size, buf](auto &&ec, size_t read) mutable {
+ * secure_connection_->read(*buf, size, [&size, buf](auto &&ec, size_t read) mutable {
  *   ASSERT_FALSE(ec) << ec.message();
  *   ASSERT_EQ(read, size);
  * });
@@ -24,17 +24,18 @@
 ACTION_P(AsioSuccess, size) {
   boost::system::error_code ec{};
   // arg0 - buffer
-  // arg1 - callback
-  arg1(ec, size);
+  // arg1 - bytes
+  // arg2 - callback
+  arg2(ec, size);
 }
 
 /**
  * @code
  * const int size = 1;
  * boost::system::error_code ec = ...;
- * EXPECT_CALL(*connection_, read(_, _)).WillOnce(AsioCallback(ec, size));
+ * EXPECT_CALL(*connection_, read(_, _, _)).WillOnce(AsioCallback(ec, size));
  * auto buf = std::make_shared<std::vector<uint8_t>>(size, 0);
- * secure_connection_->read(*buf, [&size, buf, e=ec](auto &&ec, size_t read) mutable {
+ * secure_connection_->read(*buf, size, [&size, buf, e=ec](auto &&ec, size_t read) mutable {
  *   ASSERT_EQ(ec.value(), e.value());
  *   ASSERT_EQ(read, size);
  * });
@@ -42,8 +43,9 @@ ACTION_P(AsioSuccess, size) {
  */
 ACTION_P2(AsioCallback, ec, size) {
   // arg0 - buffer
-  // arg1 - callback
-  arg1(ec, size);
+  // arg1 - bytes
+  // arg2 - callback
+  arg2(ec, size);
 }
 
 ACTION_P(Arg0CallbackWithArg, in){

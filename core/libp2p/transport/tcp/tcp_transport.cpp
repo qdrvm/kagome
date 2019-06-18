@@ -69,10 +69,8 @@ namespace libp2p::transport {
             return handler(rsecureConn.error());
           }
 
-          auto &&secureConn = rsecureConn.value();
-
           return self->upgrader_->upgradeToMuxed(
-              std::forward<decltype(secureConn)>(secureConn),
+              std::move(rsecureConn.value()),
               [self, handler{std::move(handler)}](auto &&rcapableConn) mutable {
                 // handles both error and value
                 return handler(

@@ -22,10 +22,16 @@ namespace libp2p::connection {
 
     MOCK_CONST_METHOD0(isClosed, bool(void));
     MOCK_METHOD0(close, outcome::result<void>(void));
-    MOCK_METHOD2(read, void(gsl::span<uint8_t>, Reader::ReadCallbackFunc));
-    MOCK_METHOD2(readSome, void(gsl::span<uint8_t>, Reader::ReadCallbackFunc));
-    MOCK_METHOD2(write, void(gsl::span<const uint8_t>, Writer::WriteCallbackFunc));
-    MOCK_METHOD2(writeSome, void(gsl::span<const uint8_t>, Writer::WriteCallbackFunc));
+    MOCK_METHOD3(read,
+                 void(gsl::span<uint8_t>, size_t, Reader::ReadCallbackFunc));
+    MOCK_METHOD3(readSome,
+                 void(gsl::span<uint8_t>, size_t, Reader::ReadCallbackFunc));
+    MOCK_METHOD3(write,
+                 void(gsl::span<const uint8_t>, size_t,
+                      Writer::WriteCallbackFunc));
+    MOCK_METHOD3(writeSome,
+                 void(gsl::span<const uint8_t>, size_t,
+                      Writer::WriteCallbackFunc));
     bool isInitiator() const noexcept override {
       return isInitiator_hack();
     }
@@ -59,20 +65,24 @@ namespace libp2p::connection {
       return real_->remoteMultiaddr();
     };
 
-    void read(gsl::span<uint8_t>in, Reader::ReadCallbackFunc f) override {
-      return real_->read(in, f);
+    void read(gsl::span<uint8_t> in, size_t bytes,
+              Reader::ReadCallbackFunc f) override {
+      return real_->read(in, bytes, f);
     };
 
-    void readSome(gsl::span<uint8_t>in, Reader::ReadCallbackFunc f) override {
-      return real_->readSome(in, f);
+    void readSome(gsl::span<uint8_t> in, size_t bytes,
+                  Reader::ReadCallbackFunc f) override {
+      return real_->readSome(in, bytes, f);
     };
 
-    void write(gsl::span<const uint8_t> in, Writer::WriteCallbackFunc f) override {
-      return real_->write(in, f);
+    void write(gsl::span<const uint8_t> in, size_t bytes,
+               Writer::WriteCallbackFunc f) override {
+      return real_->write(in, bytes, f);
     }
 
-    void writeSome(gsl::span<const uint8_t> in, Writer::WriteCallbackFunc f) override {
-      return real_->writeSome(in, f);
+    void writeSome(gsl::span<const uint8_t> in, size_t bytes,
+                   Writer::WriteCallbackFunc f) override {
+      return real_->writeSome(in, bytes, f);
     }
 
     bool isClosed() const override {

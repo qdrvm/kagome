@@ -42,8 +42,16 @@ namespace libp2p::transport::detail {
     return boost::asio::buffer(s.data(), s.size());
   }
 
+  inline auto makeBuffer(gsl::span<uint8_t> s, size_t size) {
+    return boost::asio::buffer(s.data(), size);
+  }
+
   inline auto makeBuffer(gsl::span<const uint8_t> s) {
     return boost::asio::buffer(s.data(), s.size());
+  }
+
+  inline auto makeBuffer(gsl::span<const uint8_t> s, size_t size) {
+    return boost::asio::buffer(s.data(), size);
   }
 
   inline bool supportsIpTcp(const multi::Multiaddress &ma) {

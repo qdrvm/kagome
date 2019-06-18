@@ -48,13 +48,13 @@ namespace libp2p::transport {
      */
     void connect(const ResolverResultsType &iterator, ConnectCallbackFunc cb);
 
-    void read(gsl::span<uint8_t> out, ReadCallbackFunc cb) override;
+    void read(gsl::span<uint8_t> out, size_t bytes, ReadCallbackFunc cb) override;
 
-    void readSome(gsl::span<uint8_t> out, ReadCallbackFunc cb) override;
+    void readSome(gsl::span<uint8_t> out, size_t bytes, ReadCallbackFunc cb) override;
 
-    void write(gsl::span<const uint8_t> in, WriteCallbackFunc cb) override;
+    void write(gsl::span<const uint8_t> in, size_t bytes, WriteCallbackFunc cb) override;
 
-    void writeSome(gsl::span<const uint8_t> in, WriteCallbackFunc cb) override;
+    void writeSome(gsl::span<const uint8_t> in, size_t bytes, WriteCallbackFunc cb) override;
 
     outcome::result<multi::Multiaddress> remoteMultiaddr() override;
 

@@ -16,10 +16,16 @@ namespace libp2p::connection {
 
     MOCK_METHOD0(close, outcome::result<void>(void));
 
-    MOCK_METHOD2(read, void(gsl::span<uint8_t>, Reader::ReadCallbackFunc));
-    MOCK_METHOD2(readSome, void(gsl::span<uint8_t>, Reader::ReadCallbackFunc));
-    MOCK_METHOD2(write, void(gsl::span<const uint8_t>, Writer::WriteCallbackFunc));
-    MOCK_METHOD2(writeSome, void(gsl::span<const uint8_t>, Writer::WriteCallbackFunc));
+    MOCK_METHOD3(read,
+                 void(gsl::span<uint8_t>, size_t, Reader::ReadCallbackFunc));
+    MOCK_METHOD3(readSome,
+                 void(gsl::span<uint8_t>, size_t, Reader::ReadCallbackFunc));
+    MOCK_METHOD3(write,
+                 void(gsl::span<const uint8_t>, size_t,
+                     Writer::WriteCallbackFunc));
+    MOCK_METHOD3(writeSome,
+                 void(gsl::span<const uint8_t>, size_t,
+                     Writer::WriteCallbackFunc));
 
     MOCK_CONST_METHOD0(isInitiatorMock, bool(void));
     bool isInitiator() const noexcept override {

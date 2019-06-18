@@ -22,16 +22,28 @@ namespace libp2p::basic {
     /**
      * @brief Write exactly {@code} in.size() {@nocode} bytes.
      * @param in data to write.
+     * @param bytes number of bytes to write
      * @param cb callback with result of operation
+     *
+     * @note caller should maintain validity of an input buffer until callback
+     * is executed. It is usually done with either wrapping buffer as shared
+     * pointer, or having buffer as part of some class/struct, and using
+     * enable_shared_from_this()
      */
-    virtual void write(gsl::span<const uint8_t> in, WriteCallbackFunc cb) = 0;
+    virtual void write(gsl::span<const uint8_t> in, size_t bytes, WriteCallbackFunc cb) = 0;
 
     /**
      * @brief Write up to {@code} in.size() {@nocode} bytes.
      * @param in data to write.
+     * @param bytes number of bytes to write
      * @param cb callback with result of operation
+     *
+     * @note caller should maintain validity of an input buffer until callback
+     * is executed. It is usually done with either wrapping buffer as shared
+     * pointer, or having buffer as part of some class/struct, and using
+     * enable_shared_from_this()
      */
-    virtual void writeSome(gsl::span<const uint8_t> in,
+    virtual void writeSome(gsl::span<const uint8_t> in, size_t bytes,
                            WriteCallbackFunc cb) = 0;
   };
 

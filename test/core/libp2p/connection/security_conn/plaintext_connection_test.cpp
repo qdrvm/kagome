@@ -102,12 +102,13 @@ TEST_F(PlaintextConnectionTest, RemoteMultiaddr) {
  */
 TEST_F(PlaintextConnectionTest, Read) {
   const int size = 100;
-  EXPECT_CALL(*connection_, read(_, _)).WillOnce(AsioSuccess(size));
+  EXPECT_CALL(*connection_, read(_, _, _)).WillOnce(AsioSuccess(size));
   auto buf = std::make_shared<std::vector<uint8_t>>(size, 0);
-  secure_connection_->read(*buf, [&size, buf](auto &&ec, size_t read) mutable {
-    ASSERT_FALSE(ec) << ec.message();
-    ASSERT_EQ(read, size);
-  });
+  secure_connection_->read(*buf, size,
+                           [&size, buf](auto &&ec, size_t read) mutable {
+                             ASSERT_FALSE(ec) << ec.message();
+                             ASSERT_EQ(read, size);
+                           });
 }
 
 /**
@@ -118,13 +119,14 @@ TEST_F(PlaintextConnectionTest, Read) {
 TEST_F(PlaintextConnectionTest, ReadSome) {
   const int size = 100;
   const int smaller = 50;
-  EXPECT_CALL(*connection_, readSome(_, _))
+  EXPECT_CALL(*connection_, readSome(_, _, _))
       .WillOnce(AsioSuccess(smaller /* less than 100 */));
   auto buf = std::make_shared<std::vector<uint8_t>>(size, 0);
-  secure_connection_->readSome(*buf, [&, buf](auto &&ec, size_t read) mutable {
-    ASSERT_FALSE(ec) << ec.message();
-    ASSERT_EQ(read, smaller);
-  });
+  secure_connection_->readSome(*buf, smaller,
+                               [&, buf](auto &&ec, size_t read) mutable {
+                                 ASSERT_FALSE(ec) << ec.message();
+                                 ASSERT_EQ(read, smaller);
+                               });
 }
 
 /**
@@ -132,14 +134,15 @@ TEST_F(PlaintextConnectionTest, ReadSome) {
  * @when invoking write method of the connection
  * @then method behaves as expected
  */
- TEST_F(PlaintextConnectionTest, Write) {
+TEST_F(PlaintextConnectionTest, Write) {
   const int size = 100;
-  EXPECT_CALL(*connection_, write(_, _)).WillOnce(AsioSuccess(size));
+  EXPECT_CALL(*connection_, write(_, _, _)).WillOnce(AsioSuccess(size));
   auto buf = std::make_shared<std::vector<uint8_t>>(size, 0);
-  secure_connection_->write(*buf, [&size, buf](auto &&ec, size_t write) mutable {
-    ASSERT_FALSE(ec) << ec.message();
-    ASSERT_EQ(write, size);
-  });
+  secure_connection_->write(*buf, size,
+                            [&size, buf](auto &&ec, size_t write) mutable {
+                              ASSERT_FALSE(ec) << ec.message();
+                              ASSERT_EQ(write, size);
+                            });
 }
 
 /**
@@ -147,16 +150,17 @@ TEST_F(PlaintextConnectionTest, ReadSome) {
  * @when invoking writeSome method of the connection
  * @then method behaves as expected
  */
- TEST_F(PlaintextConnectionTest, WriteSome) {
+TEST_F(PlaintextConnectionTest, WriteSome) {
   const int size = 100;
   const int smaller = 50;
-  EXPECT_CALL(*connection_, writeSome(_, _))
+  EXPECT_CALL(*connection_, writeSome(_, _, _))
       .WillOnce(AsioSuccess(smaller /* less than 100 */));
   auto buf = std::make_shared<std::vector<uint8_t>>(size, 0);
-  secure_connection_->writeSome(*buf, [&, buf](auto &&ec, size_t write) mutable {
-    ASSERT_FALSE(ec) << ec.message();
-    ASSERT_EQ(write, smaller);
-  });
+  secure_connection_->writeSome(*buf, smaller,
+                                [&, buf](auto &&ec, size_t write) mutable {
+                                  ASSERT_FALSE(ec) << ec.message();
+                                  ASSERT_EQ(write, smaller);
+                                });
 }
 
 /**

@@ -77,24 +77,24 @@ namespace libp2p::transport {
                                });
   }
 
-  void TcpConnection::read(gsl::span<uint8_t> out,
+  void TcpConnection::read(gsl::span<uint8_t> out, size_t bytes,
                            TcpConnection::ReadCallbackFunc cb) {
-    boost::asio::async_read(socket_, detail::makeBuffer(out), cb);
+    boost::asio::async_read(socket_, detail::makeBuffer(out, bytes), cb);
   }
 
-  void TcpConnection::readSome(gsl::span<uint8_t> out,
+  void TcpConnection::readSome(gsl::span<uint8_t> out, size_t bytes,
                                TcpConnection::ReadCallbackFunc cb) {
-    socket_.async_read_some(detail::makeBuffer(out), cb);
+    socket_.async_read_some(detail::makeBuffer(out, bytes), cb);
   }
 
-  void TcpConnection::write(gsl::span<const uint8_t> in,
+  void TcpConnection::write(gsl::span<const uint8_t> in, size_t bytes,
                             TcpConnection::WriteCallbackFunc cb) {
-    boost::asio::async_write(socket_, detail::makeBuffer(in), cb);
+    boost::asio::async_write(socket_, detail::makeBuffer(in, bytes), cb);
   }
 
-  void TcpConnection::writeSome(gsl::span<const uint8_t> in,
+  void TcpConnection::writeSome(gsl::span<const uint8_t> in, size_t bytes,
                                 TcpConnection::WriteCallbackFunc cb) {
-    socket_.async_write_some(detail::makeBuffer(in), cb);
+    socket_.async_write_some(detail::makeBuffer(in, bytes), cb);
   }
 
 }  // namespace libp2p::transport
