@@ -17,7 +17,7 @@ add_library(primitives
     scheduled_change.hpp
     transaction_validity.hpp
     version.hpp
-    )
+    auth_api.hpp)
 
 target_link_libraries(primitives
     buffer

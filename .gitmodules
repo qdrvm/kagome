@@ -30,3 +30,6 @@
 	path = deps/function2
 	url = https://github.com/Naios/function2
 	shallow = true
+[submodule "jsonrpc-lean"]
+	path = deps/jsonrpc-lean
+	url = https://github.com/uskr/jsonrpc-lean

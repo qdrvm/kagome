@@ -1,1 +1,0 @@
-add_subdirectory(extrinsics_submission_service)
