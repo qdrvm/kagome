@@ -8,13 +8,14 @@
 #include "libp2p/transport/tcp.hpp"
 #include "mock/libp2p/connection/capable_connection_mock.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/gmock_actions.hpp"
 
 namespace {
-  template <typename T, typename R>
-  outcome::result<R> _upgrade(T c) {
+  template <typename Conn, typename R, typename Callback>
+  void _upgrade(Conn c, Callback cb) {
     R r =
         std::make_shared<libp2p::connection::CapableConnBasedOnRawConnMock>(c);
-    return outcome::success(r);
+    cb(std::move(r));
   }
 }  // namespace
 
@@ -24,19 +25,20 @@ namespace libp2p::testing {
   using libp2p::transport::TcpTransport;
   using libp2p::transport::Upgrader;
   using libp2p::transport::UpgraderMock;
+  using ::testing::_;
   using ::testing::Invoke;
   using ::testing::NiceMock;
-  using ::testing::_;
   using transport::TransportListener;
 
   auto TransportFixture::makeUpgrader() {
     auto upgrader = std::make_shared<NiceMock<UpgraderMock>>();
-    ON_CALL(*upgrader, upgradeToSecure(_))
+    ON_CALL(*upgrader, upgradeToSecure(_, _))
+        .WillByDefault(Invoke(_upgrade<Upgrader::RawSPtr, Upgrader::SecureSPtr,
+                                       Upgrader::OnSecuredCallbackFunc>));
+    ON_CALL(*upgrader, upgradeToMuxed(_, _))
         .WillByDefault(
-            Invoke(_upgrade<Upgrader::RawSPtr, Upgrader::SecureSPtr>));
-    ON_CALL(*upgrader, upgradeToMuxed(_))
-        .WillByDefault(
-            Invoke(_upgrade<Upgrader::SecureSPtr, Upgrader::CapableSPtr>));
+            Invoke(_upgrade<Upgrader::SecureSPtr, Upgrader::CapableSPtr,
+                            Upgrader::OnMuxedCallbackFunc>));
 
     return upgrader;
   }

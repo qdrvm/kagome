@@ -104,11 +104,8 @@ include_directories(
   deps/GSL/include
   deps/outcome
   deps/sml/include
-  deps/ufiber/include
   deps/sr25519-crust/include
   deps/hat-trie/include
-  deps/continuable/include
-  deps/function2/include
 )
 
 add_subdirectory(core)

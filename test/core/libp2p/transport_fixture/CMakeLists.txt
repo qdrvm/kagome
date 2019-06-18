@@ -9,6 +9,5 @@ add_library(transport_test_fixture
     )
 target_link_libraries(transport_test_fixture
     multiaddress
-    ufiber
     tcp_transport
     )

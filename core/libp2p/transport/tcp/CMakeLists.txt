@@ -4,7 +4,6 @@
 add_library(tcp_connection tcp_connection.cpp)
 target_link_libraries(tcp_connection
     Boost::boost
-    ufiber
     multiaddress
     )
 

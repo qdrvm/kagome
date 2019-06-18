@@ -14,11 +14,11 @@ namespace libp2p::transport {
 
   class UpgraderMock : public Upgrader {
    public:
-    MOCK_METHOD1(upgradeToSecure,
-                 outcome::result<Upgrader::SecureSPtr>(Upgrader::RawSPtr));
+    MOCK_METHOD2(upgradeToSecure,
+                 void(Upgrader::RawSPtr, Upgrader::OnSecuredCallbackFunc));
 
-    MOCK_METHOD1(upgradeToMuxed,
-                 outcome::result<Upgrader::CapableSPtr>(Upgrader::SecureSPtr));
+    MOCK_METHOD2(upgradeToMuxed,
+                 void(Upgrader::SecureSPtr, Upgrader::OnMuxedCallbackFunc));
   };
 
 }  // namespace libp2p::transport

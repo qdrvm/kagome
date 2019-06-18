@@ -37,7 +37,7 @@ namespace libp2p::transport {
       acceptor_.listen();
 
       // start listening
-      do_accept();
+      doAccept();
 
       return outcome::success();
     } catch (const boost::system::system_error &e) {
@@ -50,7 +50,7 @@ namespace libp2p::transport {
   }
 
   outcome::result<multi::Multiaddress> TcpListener::getListenMultiaddr() const {
-    return detail::makeEndpoint(acceptor_.local_endpoint());
+    return detail::makeAddress(acceptor_.local_endpoint());
   }
 
   bool TcpListener::isClosed() const {
@@ -67,7 +67,7 @@ namespace libp2p::transport {
     return outcome::success();
   }
 
-  void TcpListener::do_accept() {
+  void TcpListener::doAccept() {
     using namespace boost::asio;    // NOLINT
     using namespace boost::system;  // NOLINT
 
@@ -75,35 +75,30 @@ namespace libp2p::transport {
       return;
     }
 
-    acceptor_.async_accept([self{this->shared_from_this()}](
-                               const boost::system::error_code &ec,
-                               ip::tcp::socket sock) {
-      if (ec) {
-        return self->handle_(ec);
-      }
+    acceptor_.async_accept(
+        [self{this->shared_from_this()}](const boost::system::error_code &ec,
+                                         ip::tcp::socket sock) {
+          if (ec) {
+            return self->handle_(ec);
+          }
 
-      ufiber::spawn(
-          self->context_,
-          [sock{std::move(sock)}, self](basic::yield_t yield) mutable {
-            auto conn = std::make_shared<TcpConnection>(yield, std::move(sock));
+          auto conn =
+              std::make_shared<TcpConnection>(self->context_, std::move(sock));
 
-            // upgrade to secure
-            auto rsc = self->upgrader_->upgradeToSecure(std::move(conn));
-            if (!rsc) {
-              return self->handle_(rsc.error());
-            }
+          self->upgrader_->upgradeToSecure(
+              std::move(conn), [self](auto &&rsecureConn) {
+                if (rsecureConn) {
+                  // if secured, then do upgrade
+                  self->upgrader_->upgradeToMuxed(rsecureConn.value(),
+                                                  self->handle_);
+                } else {
+                  // error. propagate it to the caller
+                  self->handle_(rsecureConn.error());
+                }
+              });
 
-            // upgrade to muxed
-            auto rmc = self->upgrader_->upgradeToMuxed(std::move(rsc.value()));
-            if (!rmc) {
-              return self->handle_(rmc.error());
-            }
+          self->doAccept();
+        });
+  };
 
-            // execute user-provided callback
-            return self->handle_(std::move(rmc.value()));
-          });
-
-      self->do_accept();
-    });
-  }
 }  // namespace libp2p::transport

@@ -8,11 +8,15 @@
 #include <gtest/gtest.h>
 #include <testutil/outcome.hpp>
 #include "mock/libp2p/connection/raw_connection_mock.hpp"
+#include "testutil/gmock_actions.hpp"
 #include "testutil/literals.hpp"
 
 using namespace libp2p::connection;
+using namespace libp2p::basic;
 
+using testing::_;
 using testing::ByMove;
+using testing::IgnoreResult;
 using testing::Return;
 
 class PlaintextConnectionTest : public testing::Test {
@@ -97,9 +101,14 @@ TEST_F(PlaintextConnectionTest, RemoteMultiaddr) {
  * @then method behaves as expected
  */
 TEST_F(PlaintextConnectionTest, Read) {
-  EXPECT_CALL(*connection_, read(1)).WillOnce(Return(bytes_));
-  EXPECT_OUTCOME_TRUE(read_bytes, secure_connection_->read(1))
-  ASSERT_EQ(read_bytes, bytes_);
+  const int size = 100;
+  EXPECT_CALL(*connection_, read(_, _, _)).WillOnce(AsioSuccess(size));
+  auto buf = std::make_shared<std::vector<uint8_t>>(size, 0);
+  secure_connection_->read(*buf, size,
+                           [&size, buf](auto &&ec, size_t read) mutable {
+                             ASSERT_FALSE(ec) << ec.message();
+                             ASSERT_EQ(read, size);
+                           });
 }
 
 /**
@@ -108,33 +117,16 @@ TEST_F(PlaintextConnectionTest, Read) {
  * @then method behaves as expected
  */
 TEST_F(PlaintextConnectionTest, ReadSome) {
-  EXPECT_CALL(*connection_, readSome(1)).WillOnce(Return(bytes_));
-  EXPECT_OUTCOME_TRUE(read_bytes, secure_connection_->readSome(1))
-  ASSERT_EQ(read_bytes, bytes_);
-}
-
-/**
- * @given plaintext secure connection
- * @when invoking read method of the connection
- * @then method behaves as expected
- */
-TEST_F(PlaintextConnectionTest, ReadSpan) {
-  EXPECT_CALL(*connection_, read(gsl::span<uint8_t>(bytes_)))
-      .WillOnce(Return(1));
-  EXPECT_OUTCOME_TRUE(bytes_read, secure_connection_->read(bytes_))
-  ASSERT_EQ(bytes_read, 1);
-}
-
-/**
- * @given plaintext secure connection
- * @when invoking readSome method of the connection
- * @then method behaves as expected
- */
-TEST_F(PlaintextConnectionTest, ReadSomeSpan) {
-  EXPECT_CALL(*connection_, readSome(gsl::span<uint8_t>(bytes_)))
-      .WillOnce(Return(1));
-  EXPECT_OUTCOME_TRUE(bytes_read, secure_connection_->readSome(bytes_))
-  ASSERT_EQ(bytes_read, 1);
+  const int size = 100;
+  const int smaller = 50;
+  EXPECT_CALL(*connection_, readSome(_, _, _))
+      .WillOnce(AsioSuccess(smaller /* less than 100 */));
+  auto buf = std::make_shared<std::vector<uint8_t>>(size, 0);
+  secure_connection_->readSome(*buf, smaller,
+                               [&, buf](auto &&ec, size_t read) mutable {
+                                 ASSERT_FALSE(ec) << ec.message();
+                                 ASSERT_EQ(read, smaller);
+                               });
 }
 
 /**
@@ -143,10 +135,14 @@ TEST_F(PlaintextConnectionTest, ReadSomeSpan) {
  * @then method behaves as expected
  */
 TEST_F(PlaintextConnectionTest, Write) {
-  EXPECT_CALL(*connection_, write(gsl::span<const uint8_t>(bytes_)))
-      .WillOnce(Return(1));
-  EXPECT_OUTCOME_TRUE(bytes_written, secure_connection_->write(bytes_))
-  ASSERT_EQ(bytes_written, 1);
+  const int size = 100;
+  EXPECT_CALL(*connection_, write(_, _, _)).WillOnce(AsioSuccess(size));
+  auto buf = std::make_shared<std::vector<uint8_t>>(size, 0);
+  secure_connection_->write(*buf, size,
+                            [&size, buf](auto &&ec, size_t write) mutable {
+                              ASSERT_FALSE(ec) << ec.message();
+                              ASSERT_EQ(write, size);
+                            });
 }
 
 /**
@@ -155,10 +151,16 @@ TEST_F(PlaintextConnectionTest, Write) {
  * @then method behaves as expected
  */
 TEST_F(PlaintextConnectionTest, WriteSome) {
-  EXPECT_CALL(*connection_, writeSome(gsl::span<const uint8_t>(bytes_)))
-      .WillOnce(Return(1));
-  EXPECT_OUTCOME_TRUE(bytes_written, secure_connection_->writeSome(bytes_))
-  ASSERT_EQ(bytes_written, 1);
+  const int size = 100;
+  const int smaller = 50;
+  EXPECT_CALL(*connection_, writeSome(_, _, _))
+      .WillOnce(AsioSuccess(smaller /* less than 100 */));
+  auto buf = std::make_shared<std::vector<uint8_t>>(size, 0);
+  secure_connection_->writeSome(*buf, smaller,
+                                [&, buf](auto &&ec, size_t write) mutable {
+                                  ASSERT_FALSE(ec) << ec.message();
+                                  ASSERT_EQ(write, smaller);
+                                });
 }
 
 /**

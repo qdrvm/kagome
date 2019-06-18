@@ -45,20 +45,21 @@ namespace {
     return conn;
   }
 
-  template <typename T, typename R>
-  outcome::result<R> _upgrade(T c) {
+  template <typename Conn, typename R, typename Callback>
+  void _upgrade(Conn c, Callback cb) {
     R r = std::make_shared<CapableConnBasedOnRawConnMock>(c);
-    return outcome::success(r);
+    cb(std::move(r));
   }
 
   auto makeUpgrader() {
     auto upgrader = std::make_shared<NiceMock<UpgraderMock>>();
-    ON_CALL(*upgrader, upgradeToSecure(_))
+    ON_CALL(*upgrader, upgradeToSecure(_, _))
+        .WillByDefault(Invoke(_upgrade<Upgrader::RawSPtr, Upgrader::SecureSPtr,
+                                       Upgrader::OnSecuredCallbackFunc>));
+    ON_CALL(*upgrader, upgradeToMuxed(_, _))
         .WillByDefault(
-            Invoke(_upgrade<Upgrader::RawSPtr, Upgrader::SecureSPtr>));
-    ON_CALL(*upgrader, upgradeToMuxed(_))
-        .WillByDefault(
-            Invoke(_upgrade<Upgrader::SecureSPtr, Upgrader::CapableSPtr>));
+            Invoke(_upgrade<Upgrader::SecureSPtr, Upgrader::CapableSPtr,
+                            Upgrader::OnMuxedCallbackFunc>));
 
     return upgrader;
   }
@@ -99,7 +100,7 @@ TEST(TCP, TwoListenersCantBindOnSamePort) {
  * @then each client is expected to receive sent message
  */
 TEST(TCP, SingleListenerCanAcceptManyClients) {
-  constexpr static int kClients = 4;
+  constexpr static int kClients = 2;
   constexpr static int kSize = 1500;
   size_t counter = 0;  // number of answers
   auto ma = "/ip4/127.0.0.1/tcp/40003"_multiaddr;
@@ -112,10 +113,18 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
     auto conn = expectConnectionValid(rconn);
     EXPECT_FALSE(conn->isInitiator());
 
-    EXPECT_OUTCOME_TRUE(buf, conn->readSome(kSize));
-    EXPECT_OUTCOME_TRUE(written, conn->write(buf));
-    EXPECT_EQ(written, buf.size());
-    counter++;
+    auto buf = std::make_shared<std::vector<uint8_t>>(kSize, 0);
+    conn->readSome(*buf, buf->size(),
+                   [&counter, conn, buf](auto &&ec, size_t read) {
+                     ASSERT_FALSE(ec) << ec.message();
+
+                     conn->write(*buf, buf->size(),
+                                 [&counter, buf](auto &&ec, size_t written) {
+                                   ASSERT_FALSE(ec) << ec.message();
+                                   EXPECT_EQ(written, buf->size());
+                                   counter++;
+                                 });
+                   });
   });
 
   ASSERT_TRUE(listener);
@@ -131,17 +140,25 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
       transport->dial(ma, [](auto &&rconn) {
         auto conn = expectConnectionValid(rconn);
 
-        auto buf = Buffer(kSize, 0);
-        std::generate(buf.begin(), buf.end(), []() {
+        auto readback = std::make_shared<Buffer>(kSize, 0);
+        auto buf = std::make_shared<Buffer>(kSize, 0);
+        std::generate(buf->begin(), buf->end(), []() {
           return rand();  // NOLINT
         });
 
         EXPECT_TRUE(conn->isInitiator());
 
-        EXPECT_OUTCOME_TRUE(written, conn->write(buf));
-        EXPECT_EQ(written, buf.size());
-        EXPECT_OUTCOME_TRUE(readback, conn->read(kSize));
-        EXPECT_EQ(buf, readback);
+        conn->write(*buf, buf->size(),
+                    [conn, readback, buf](auto &&ec, size_t written) {
+                      ASSERT_FALSE(ec) << ec.message();
+                      ASSERT_EQ(written, buf->size());
+                      conn->read(*readback, readback->size(),
+                                 [conn, readback, buf](auto &&ec, size_t read) {
+                                   ASSERT_FALSE(ec) << ec.message();
+                                   ASSERT_EQ(read, readback->size());
+                                   ASSERT_EQ(*buf, *readback);
+                                 });
+                    });
       });
 
       context.run_for(100ms);
@@ -188,8 +205,10 @@ TEST(TCP, ClientClosesConnection) {
     auto conn = expectConnectionValid(rconn);
     EXPECT_FALSE(conn->isInitiator());
 
-    EXPECT_OUTCOME_FALSE_2(ec, conn->readSome(100));
-    EXPECT_EQ(ec.value(), (int)boost::asio::error::eof) << ec.message();
+    auto buf = std::make_shared<std::vector<uint8_t>>(100, 0);
+    conn->readSome(*buf, buf->size(), [conn, buf](auto &&ec, size_t read) {
+      EXPECT_EQ(ec.value(), (int)boost::asio::error::eof) << ec.message();
+    });
   });
 
   ASSERT_TRUE(listener);
@@ -228,8 +247,10 @@ TEST(TCP, ServerClosesConnection) {
   transport->dial(ma, [](auto &&rconn) {
     auto conn = expectConnectionValid(rconn);
     EXPECT_TRUE(conn->isInitiator());
-    EXPECT_OUTCOME_FALSE_2(ec, conn->read(1));
-    EXPECT_EQ(ec.value(), (int)boost::asio::error::eof) << ec.message();
+    auto buf = std::make_shared<std::vector<uint8_t>>(100, 0);
+    conn->readSome(*buf, buf->size(), [conn, buf](auto &&ec, size_t read) {
+      EXPECT_EQ(ec.value(), (int)boost::asio::error::eof) << ec.message();
+    });
   });
 
   context.run_for(50ms);
@@ -241,7 +262,7 @@ TEST(TCP, ServerClosesConnection) {
  * @then connection successfully established
  */
 TEST(TCP, OneTransportServerHandlesManyClients) {
-  constexpr static int kSize = 1500;
+  constexpr int kSize = 1500;
   size_t counter = 0;  // number of answers
 
   boost::asio::io_context context(1);
@@ -251,34 +272,48 @@ TEST(TCP, OneTransportServerHandlesManyClients) {
     auto conn = expectConnectionValid(rconn);
     EXPECT_FALSE(conn->isInitiator());
 
-    EXPECT_OUTCOME_TRUE(buf, conn->readSome(kSize));
-    EXPECT_OUTCOME_TRUE(written, conn->write(buf));
-    EXPECT_EQ(written, buf.size());
-    counter++;
+    auto buf = std::make_shared<std::vector<uint8_t>>(kSize, 0);
+    conn->readSome(
+        *buf, kSize, [kSize, &counter, conn, buf](auto &&ec, size_t read) {
+          ASSERT_FALSE(ec) << ec.message();
+
+          conn->write(*buf, kSize, [&counter, buf](auto &&ec, size_t written) {
+            ASSERT_FALSE(ec) << ec.message();
+            EXPECT_EQ(written, buf->size());
+            counter++;
+          });
+        });
   });
 
   ASSERT_TRUE(listener);
   auto ma = "/ip4/127.0.0.1/tcp/40003"_multiaddr;
   ASSERT_TRUE(listener->listen(ma));
 
-  transport->dial(ma, [](auto &&rconn) {
+  transport->dial(ma, [kSize](auto &&rconn) {
     auto conn = expectConnectionValid(rconn);
 
-    auto buf = Buffer(kSize, 0);
-    std::generate(buf.begin(), buf.end(), []() {
+    auto readback = std::make_shared<Buffer>(kSize, 0);
+    auto buf = std::make_shared<Buffer>(kSize, 0);
+    std::generate(buf->begin(), buf->end(), []() {
       return rand();  // NOLINT
     });
 
     EXPECT_TRUE(conn->isInitiator());
 
-    EXPECT_OUTCOME_TRUE(written, conn->write(buf));
-    EXPECT_EQ(written, buf.size());
-    EXPECT_OUTCOME_TRUE(readback, conn->read(kSize));
-    EXPECT_EQ(buf, readback);
+    conn->write(*buf, kSize,
+                [conn, kSize, readback, buf](auto &&ec, size_t written) {
+                  ASSERT_FALSE(ec) << ec.message();
+                  ASSERT_EQ(written, buf->size());
+                  conn->read(*readback, kSize,
+                             [conn, readback, buf](auto &&ec, size_t read) {
+                               ASSERT_FALSE(ec) << ec.message();
+                               ASSERT_EQ(read, readback->size());
+                               ASSERT_EQ(*buf, *readback);
+                             });
+                });
   });
 
-  //  context.run_for(100ms);
-  context.run();
+  context.run_for(100ms);
 
   ASSERT_EQ(counter, 1);
 }

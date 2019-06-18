@@ -19,17 +19,10 @@ namespace libp2p::basic {
 
     MOCK_METHOD0(close, outcome::result<void>(void));
 
-    MOCK_METHOD1(read, outcome::result<std::vector<uint8_t>>(size_t));
-
-    MOCK_METHOD1(readSome, outcome::result<std::vector<uint8_t>>(size_t));
-
-    MOCK_METHOD1(read, outcome::result<size_t>(gsl::span<uint8_t>));
-
-    MOCK_METHOD1(readSome, outcome::result<size_t>(gsl::span<uint8_t>));
-
-    MOCK_METHOD1(write, outcome::result<size_t>(gsl::span<const uint8_t>));
-
-    MOCK_METHOD1(writeSome, outcome::result<size_t>(gsl::span<const uint8_t>));
+    MOCK_METHOD2(read, void(gsl::span<uint8_t>, Reader::ReadCallbackFunc));
+    MOCK_METHOD2(readSome, void(gsl::span<uint8_t>, Reader::ReadCallbackFunc));
+    MOCK_METHOD2(write, void(gsl::span<const uint8_t>, Writer::WriteCallbackFunc));
+    MOCK_METHOD2(writeSome, void(gsl::span<const uint8_t>, Writer::WriteCallbackFunc));
   };
 }  // namespace libp2p::basic
 
