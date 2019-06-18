@@ -23,6 +23,7 @@ namespace libp2p::basic {
      * @brief Reads exactly {@code} min(out.size(), bytes) {@nocode} bytes to
      * the buffer.
      * @param out output argument. Read data will be written to this buffer.
+     * @param bytes number of bytes to read
      * @param cb callback with result of operation
      *
      * @note caller should maintain validity of an output buffer until callback
