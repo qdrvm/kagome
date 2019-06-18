@@ -11,6 +11,7 @@
 
 namespace libp2p::protocol_muxer {
   class ProtocolMuxerMock : public ProtocolMuxer {
+   public:
     MOCK_CONST_METHOD3(selectOneOf,
                        outcome::result<peer::Protocol>(
                            gsl::span<const peer::Protocol>,

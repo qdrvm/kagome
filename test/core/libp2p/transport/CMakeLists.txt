@@ -21,5 +21,6 @@ addtest(libp2p_upgrader_test
     )
 target_link_libraries(libp2p_upgrader_test
     libp2p_upgrader
-    miltihash
+    multihash
+    libp2p_peer_id
     )

@@ -29,12 +29,16 @@ namespace libp2p::transport {
     // otherwise, we need to extract lists of supported protos every time
     security_protocols_ = std::reduce(
         security_adaptors_.begin(), security_adaptors_.end(),
-        std::vector<peer::Protocol>(),
-        [](const auto &adaptor) { return adaptor->getProtocolId(); });
-    muxer_protocols_ = std::reduce(
-        muxer_adaptors.begin(), muxer_adaptors.end(),
-        std::vector<peer::Protocol>(),
-        [](const auto &adaptor) { return adaptor->getProtocolId(); });
+        std::vector<peer::Protocol>(), [](auto &&acc, const auto &adaptor) {
+          acc.push_back(adaptor->getProtocolId());
+          return acc;
+        });
+//    muxer_protocols_ = std::reduce(muxer_adaptors.begin(), muxer_adaptors.end(),
+//                                   std::vector<peer::Protocol>(),
+//                                   [](auto &&acc, const auto &adaptor) {
+//                                     acc.push_back(adaptor->getProtocolId());
+//                                     return acc;
+//                                   });
   }
 
   outcome::result<UpgraderImpl::SecureSPtr> UpgraderImpl::upgradeToSecure(
@@ -57,17 +61,19 @@ namespace libp2p::transport {
 
   outcome::result<UpgraderImpl::CapableSPtr> UpgraderImpl::upgradeToMuxed(
       SecureSPtr conn) {
-    OUTCOME_TRY(selected_proto,
-                protocol_muxer_->selectOneOf(muxer_protocols_, conn,
-                                             conn->isInitiator()));
-    if (auto adaptor =
-            std::find_if(security_adaptors_.begin(), security_adaptors_.end(),
-                         [&selected_proto](const auto &adaptor) {
-                           return selected_proto == adaptor->getProtocolId();
-                         });
-        adaptor != security_adaptors_.end()) {
-      return (*adaptor)->mux(std::move(conn));
-    }
+    //    OUTCOME_TRY(selected_proto,
+    //                protocol_muxer_->selectOneOf(muxer_protocols_, conn,
+    //                                             conn->isInitiator()));
+    //    if (auto adaptor =
+    //            std::find_if(security_adaptors_.begin(),
+    //            security_adaptors_.end(),
+    //                         [&selected_proto](const auto &adaptor) {
+    //                           return selected_proto ==
+    //                           adaptor->getProtocolId();
+    //                         });
+    //        adaptor != security_adaptors_.end()) {
+    //      return (*adaptor)->mux(std::move(conn));
+    //    }
     return Error::INTERNAL_ERROR;
   }
 }  // namespace libp2p::transport

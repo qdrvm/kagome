@@ -23,6 +23,7 @@ using namespace libp2p::security;
 using namespace libp2p::peer;
 using namespace libp2p::connection;
 using namespace libp2p::protocol_muxer;
+using namespace libp2p::basic;
 
 using testing::Return;
 
@@ -30,16 +31,18 @@ class UpgraderTest : public testing::Test {
  protected:
   void SetUp() override {
     for (size_t i = 0; i < security_protos_.size(); ++i) {
-      ON_CALL(*security_mocks_[i], getProtocolId())
+      ON_CALL(
+          *std::static_pointer_cast<SecurityAdaptorMock>(security_mocks_[i]),
+          getProtocolId())
           .WillByDefault(Return(security_protos_[i]));
     }
-    for (size_t i = 0; i < muxer_protos_.size(); ++i) {
-      ON_CALL(*muxer_mocks_[i], getProtocolId())
-          .WillByDefault(Return(muxer_protos_[i]));
-    }
+    //    for (size_t i = 0; i < muxer_protos_.size(); ++i) {
+    //      ON_CALL(*muxer_mocks_[i], getProtocolId())
+    //          .WillByDefault(Return(muxer_protos_[i]));
+    //    }
 
-    upgrader_ = UpgraderImpl{peer_id_, multiselect_mock_, security_mocks_,
-                             muxer_mocks_};
+    upgrader_ = std::make_shared<UpgraderImpl>(peer_id_, multiselect_mock_,
+                                               security_mocks_, muxer_mocks_);
   }
 
   PeerId peer_id_ = PeerId::fromHash(libp2p::multi::Multihash::create(
@@ -52,16 +55,16 @@ class UpgraderTest : public testing::Test {
       std::make_shared<ProtocolMuxerMock>();
 
   std::vector<Protocol> security_protos_{"security_proto1", "security_proto2"};
-  std::vector<std::shared_ptr<SecurityAdaptorMock>> security_mocks_{
+  std::vector<std::shared_ptr<SecurityAdaptor>> security_mocks_{
       std::make_shared<SecurityAdaptorMock>(),
       std::make_shared<SecurityAdaptorMock>()};
 
   std::vector<Protocol> muxer_protos_{"muxer_proto1", "muxer_proto2"};
-  std::vector<std::shared_ptr<MuxerAdaptorMock>> muxer_mocks_{
+  std::vector<std::shared_ptr<MuxerAdaptor>> muxer_mocks_{
       std::make_shared<MuxerAdaptorMock>(),
       std::make_shared<MuxerAdaptorMock>()};
 
-  UpgraderImpl upgrader_;
+  std::shared_ptr<Upgrader> upgrader_;
 
   std::shared_ptr<RawConnectionMock> raw_conn_ =
       std::make_shared<RawConnectionMock>();
@@ -71,35 +74,46 @@ class UpgraderTest : public testing::Test {
 
 TEST_F(UpgraderTest, UpgradeSecureInitiator) {
   EXPECT_CALL(*raw_conn_, isInitiator_hack()).WillOnce(Return(true));
-  EXPECT_CALL(*multiselect_mock_,
-              selectOneOf(security_protos_, raw_conn_, true))
+  EXPECT_CALL(
+      *multiselect_mock_,
+      selectOneOf(gsl::span<const Protocol>(security_protos_),
+                  std::static_pointer_cast<ReadWriteCloser>(raw_conn_), true))
       .WillOnce(Return(security_protos_[0]));
-  EXPECT_CALL(*security_mocks_[0], secureOutbound(raw_conn_, peer_id_))
+  EXPECT_CALL(
+      *std::static_pointer_cast<SecurityAdaptorMock>(security_mocks_[0]),
+      secureOutbound(std::static_pointer_cast<RawConnection>(raw_conn_),
+                     peer_id_))
       .WillOnce(Return(sec_conn_));
 
-  EXPECT_OUTCOME_TRUE(upgraded_conn, upgrader_.upgradeToSecure(raw_conn_))
+  EXPECT_OUTCOME_TRUE(upgraded_conn, upgrader_->upgradeToSecure(raw_conn_))
   ASSERT_EQ(upgraded_conn, sec_conn_);
 }
 
 TEST_F(UpgraderTest, UpgradeSecureNotInitiator) {
   EXPECT_CALL(*raw_conn_, isInitiator_hack()).WillOnce(Return(false));
-  EXPECT_CALL(*multiselect_mock_,
-              selectOneOf(security_protos_, raw_conn_, false))
+  EXPECT_CALL(
+      *multiselect_mock_,
+      selectOneOf(gsl::span<const Protocol>(security_protos_),
+                  std::static_pointer_cast<ReadWriteCloser>(raw_conn_), false))
       .WillOnce(Return(outcome::success(security_protos_[1])));
-  EXPECT_CALL(*security_mocks_[1], secureInbound(raw_conn_))
+  EXPECT_CALL(
+      *std::static_pointer_cast<SecurityAdaptorMock>(security_mocks_[1]),
+      secureInbound(std::static_pointer_cast<RawConnection>(raw_conn_)))
       .WillOnce(Return(outcome::success(sec_conn_)));
 
-  EXPECT_OUTCOME_TRUE(upgraded_conn, upgrader_.upgradeToSecure(raw_conn_))
+  EXPECT_OUTCOME_TRUE(upgraded_conn, upgrader_->upgradeToSecure(raw_conn_))
   ASSERT_EQ(upgraded_conn, sec_conn_);
 }
 
 TEST_F(UpgraderTest, UpgradeSecureFail) {
   EXPECT_CALL(*raw_conn_, isInitiator_hack()).WillOnce(Return(false));
-  EXPECT_CALL(*multiselect_mock_,
-              selectOneOf(security_protos_, raw_conn_, false))
+  EXPECT_CALL(
+      *multiselect_mock_,
+      selectOneOf(gsl::span<const Protocol>(security_protos_),
+                  std::static_pointer_cast<ReadWriteCloser>(raw_conn_), false))
       .WillOnce(Return(outcome::failure(std::error_code())));
 
-  ASSERT_FALSE(upgrader_.upgradeToSecure(raw_conn_));
+  ASSERT_FALSE(upgrader_->upgradeToSecure(raw_conn_));
 }
 
 TEST_F(UpgraderTest, UpgradeMux) {}

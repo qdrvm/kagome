@@ -11,6 +11,7 @@
 
 namespace libp2p::security {
   struct SecurityAdaptorMock : public SecurityAdaptor {
+   public:
     MOCK_CONST_METHOD0(getProtocolId, peer::Protocol());
 
     MOCK_METHOD1(secureInbound,
