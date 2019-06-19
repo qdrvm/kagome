@@ -34,7 +34,7 @@ namespace kagome::service {
         [&](const primitives::Valid &v) -> outcome::result<common::Hash256> {
           // compose Transaction
           common::Hash256 hash = hasher_->blake2_256(bytes);
-          common::Buffer buffer_hash(hash);  // make hash
+          common::Buffer buffer_hash(hash);  // make hash parameter
           size_t length = bytes.size();      // find out what is length
           bool should_propagate = false;     // find out what is this value
 

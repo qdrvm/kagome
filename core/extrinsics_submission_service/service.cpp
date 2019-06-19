@@ -7,18 +7,18 @@
 
 namespace kagome::service {
   ExtrinsicSubmissionService::ExtrinsicSubmissionService(
-      ExtrinsicSubmissionProxy &api_proxy)
+      std::shared_ptr<ExtrinsicSubmissionProxy> api_proxy)
       : api_proxy_(api_proxy),
         on_request_([this](const std::string &data) { processData(data); }) {
     auto &dispatcher = server_.GetDispatcher();
 
     dispatcher.AddMethod("author_submitExtrinsic",
                          &ExtrinsicSubmissionProxy::submit_extrinsic,
-                         api_proxy_);
+                         *api_proxy_.get());
 
     dispatcher.AddMethod("author_pendingExtrinsics",
                          &ExtrinsicSubmissionProxy::pending_extrinsics,
-                         api_proxy_);
+                         *api_proxy_.get());
   }
 
   void ExtrinsicSubmissionService::processData(const std::string &data) {

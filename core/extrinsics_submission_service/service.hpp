@@ -27,7 +27,8 @@ namespace kagome::service {
      * @param config server configuration
      * @param api_proxy extrinsic submission api proxy reference
      */
-    explicit ExtrinsicSubmissionService(ExtrinsicSubmissionProxy &api_proxy);
+    explicit ExtrinsicSubmissionService(
+        std::shared_ptr<ExtrinsicSubmissionProxy> api_proxy);
 
     /**
      * @return request handler slot
@@ -50,8 +51,8 @@ namespace kagome::service {
      */
     void processData(const std::string &data);
 
-    jsonrpc::Server server_;               ///< json rpc server instance
-    ExtrinsicSubmissionProxy &api_proxy_;  ///< api reference
+    jsonrpc::Server server_;  ///< json rpc server instance
+    std::shared_ptr<ExtrinsicSubmissionProxy> api_proxy_;  ///< api reference
 
     boost::signals2::slot<void(const std::string &)>
         on_request_;  ///< received data handler
