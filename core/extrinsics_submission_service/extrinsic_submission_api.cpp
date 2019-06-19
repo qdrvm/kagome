@@ -11,9 +11,8 @@
 
 namespace kagome::service {
   ExtrinsicSubmissionApi::ExtrinsicSubmissionApi(
-      std::shared_ptr<runtime::TaggedTransactionQueue> api,
-      std::shared_ptr<transaction_pool::TransactionPool> pool,
-      std::shared_ptr<hash::Hasher> hasher)
+      sptr<runtime::TaggedTransactionQueue> api,
+      sptr<transaction_pool::TransactionPool> pool, sptr<hash::Hasher> hasher)
       : api_{std::move(api)},
         pool_{std::move(pool)},
         hasher_{std::move(hasher)} {}

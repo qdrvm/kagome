@@ -7,12 +7,12 @@
 
 namespace kagome::service {
   ExtrinsicSubmissionProxy::ExtrinsicSubmissionProxy(
-      ExtrinsicSubmissionApi &api)
+      sptr<ExtrinsicSubmissionApi> api)
       : api_{api} {}
 
   std::vector<uint8_t> ExtrinsicSubmissionProxy::submit_extrinsic(
       std::vector<uint8_t> bytes) {
-    auto &&res = api_.submit_extrinsic(common::Buffer(std::move(bytes)));
+    auto &&res = api_->submit_extrinsic(common::Buffer(std::move(bytes)));
     if (!res) {
       throw jsonrpc::Fault(res.error().message());
     }
@@ -22,7 +22,7 @@ namespace kagome::service {
 
   std::vector<std::vector<uint8_t>>
   ExtrinsicSubmissionProxy::pending_extrinsics() {
-    auto &&res = api_.pending_extrinsics();
+    auto &&res = api_->pending_extrinsics();
     if (!res) {
       throw jsonrpc::Fault(res.error().message());
     }

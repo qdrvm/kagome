@@ -29,6 +29,9 @@ namespace kagome::runtime {
 
 namespace kagome::service {
   class ExtrinsicSubmissionApi {
+    template <class T>
+    using sptr = std::shared_ptr<T>;
+
    public:
     /**
      * @constructor
@@ -71,9 +74,10 @@ namespace kagome::service {
         const primitives::SubscriptionId &id);
 
    private:
-    std::shared_ptr<runtime::TaggedTransactionQueue> api_;
-    std::shared_ptr<transaction_pool::TransactionPool> pool_;
-    std::shared_ptr<hash::Hasher> hasher_;
+    sptr<runtime::TaggedTransactionQueue> api_;  ///< pointer to ttq api
+    sptr<transaction_pool::TransactionPool>
+        pool_;                   ///< pointer to transaction pool apo
+    sptr<hash::Hasher> hasher_;  ///< pointer to hasher
   };
 
 }  // namespace kagome::service

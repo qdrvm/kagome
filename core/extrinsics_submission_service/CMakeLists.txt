@@ -12,7 +12,13 @@ add_library(extrinsics_submission_service
     extrinsic_submission_proxy.cpp
     service.hpp
     service.cpp
-    transport.hpp)
+    json_transport.hpp
+    impl/json_transport_impl.cpp
+    impl/json_transport_impl.hpp
+    service_configuration.hpp
+    impl/service_builder.hpp
+    impl/service_builder.cpp
+    )
 target_link_libraries(extrinsics_submission_service
     buffer
     RapidJSON::rapidjson

@@ -10,15 +10,11 @@
 
 #include <jsonrpc-lean/server.h>
 #include <boost/asio/io_context.hpp>
+#include <boost/signals2/signal.hpp>
 
 #include "extrinsics_submission_service/extrinsic_submission_proxy.hpp"
 
 namespace kagome::service {
-  class JsonTransport;
-
-  struct ExtrinsicSubmissionServiceConfig {
-    uint32_t port;
-  };
 
   /**
    * @brief extrinsic submission service implementation
@@ -31,23 +27,37 @@ namespace kagome::service {
      * @param config server configuration
      * @param api_proxy extrinsic submission api proxy reference
      */
-    ExtrinsicSubmissionService(boost::asio::io_context &context,
-                               ExtrinsicSubmissionServiceConfig config,
-                               ExtrinsicSubmissionProxy &api_proxy,
-                               std::shared_ptr<JsonTransport> transport);
+    explicit ExtrinsicSubmissionService(ExtrinsicSubmissionProxy &api_proxy);
 
+    /**
+     * @return request handler slot
+     */
+    inline auto &onRequest() {
+      return on_request_;
+    }
+
+    /**
+     * @return response signal
+     */
+    inline auto &onResponse() {
+      return on_response_;
+    }
+
+   private:
     /**
      * @brief handles decoded network message
      * @param data json request string
      */
     void processData(const std::string &data);
 
-   private:
-    boost::asio::io_context &context_;          ///< reference to io_context
-    ExtrinsicSubmissionServiceConfig config_;   ///< server configuration
-    jsonrpc::Server server_;                    ///< json rpc server instance
-    ExtrinsicSubmissionProxy &api_proxy_;       ///< api reference
-    std::shared_ptr<JsonTransport> transport_;  ///< json transport
+    jsonrpc::Server server_;               ///< json rpc server instance
+    ExtrinsicSubmissionProxy &api_proxy_;  ///< api reference
+
+    boost::signals2::slot<void(const std::string &)>
+        on_request_;  ///< received data handler
+
+    boost::signals2::signal<void(const std::string &)>
+        on_response_;  ///< notifies response
   };
 
 }  // namespace kagome::service

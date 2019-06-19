@@ -14,13 +14,21 @@
 
 namespace kagome::service {
 
+  /**
+   * @brief ExtrinsicSubmissionProxy decodes json-serialized params and calls
+   * underlying api
+   */
   class ExtrinsicSubmissionProxy {
+    template <class T>
+    using sptr = std::shared_ptr<T>;
+
    public:
     /**
      * @brief proxy between extrinsic submission server and api
      * @param api reference to extrinsic submission api instance
      */
-    explicit ExtrinsicSubmissionProxy(ExtrinsicSubmissionApi &api);
+    explicit ExtrinsicSubmissionProxy(
+        std::shared_ptr<ExtrinsicSubmissionApi> api);
 
     /**
      * @brief calls submit_extrinsic api method
@@ -38,8 +46,8 @@ namespace kagome::service {
     // other methods will be implemented later
 
    private:
-    ExtrinsicSubmissionApi
-        &api_;  ///< refernce to extrinsic submission api instance
+    sptr<ExtrinsicSubmissionApi>
+        api_;  ///< pointer to extrinsic submission api instance
   };
 }  // namespace kagome::service
 
