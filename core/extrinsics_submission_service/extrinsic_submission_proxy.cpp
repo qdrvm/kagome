@@ -8,7 +8,7 @@
 namespace kagome::service {
   ExtrinsicSubmissionProxy::ExtrinsicSubmissionProxy(
       sptr<ExtrinsicSubmissionApi> api)
-      : api_{api} {}
+      : api_(std::move(api)) {}
 
   std::vector<uint8_t> ExtrinsicSubmissionProxy::submit_extrinsic(
       std::vector<uint8_t> bytes) {
