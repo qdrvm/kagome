@@ -21,9 +21,11 @@ namespace libp2p::basic {
     virtual bool isClosed() const = 0;
 
     /**
-     * @brief Closes current object.
+     * @brief Closes current object
+     * @param cb - callback, which is called after the object is closed, or
+     * error happens
      */
-    virtual outcome::result<void> close() = 0;
+    virtual void close(std::function<void(outcome::result<void>)> cb) = 0;
   };
 
 }  // namespace libp2p::basic

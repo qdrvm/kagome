@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/muxer/yamux/yamux_frame.hpp"
+#include "yamux_frame.hpp"
 
 namespace {
   using kagome::common::Buffer;
@@ -28,10 +28,11 @@ namespace {
   }
 }  // namespace
 
-namespace libp2p::muxer {
-  kagome::common::Buffer YamuxFrame::frameBytes(
-      uint8_t version, FrameType type, Flag flag, uint32_t stream_id,
-      uint32_t length, const kagome::common::Buffer &data) {
+namespace libp2p::connection {
+  kagome::common::Buffer YamuxFrame::frameBytes(uint8_t version, FrameType type,
+                                                Flag flag, uint32_t stream_id,
+                                                uint32_t length,
+                                                gsl::span<const uint8_t> data) {
     // TODO(akvinikym) PRE-118 15.04.19: refactor with NetworkOrderEncoder, when
     // implemented
     kagome::common::Buffer buffer{};
@@ -42,7 +43,7 @@ namespace libp2p::muxer {
                                          static_cast<uint16_t>(flag)),
                    stream_id),
                length)
-        .putBuffer(data);
+        .put(data);
   }
 
   kagome::common::Buffer newStreamMsg(YamuxFrame::StreamId stream_id) {
@@ -82,7 +83,7 @@ namespace libp2p::muxer {
   }
 
   kagome::common::Buffer dataMsg(YamuxFrame::StreamId stream_id,
-                                 const kagome::common::Buffer &data) {
+                                 gsl::span<const uint8_t> data) {
     return YamuxFrame::frameBytes(YamuxFrame::kDefaultVersion,
                                   YamuxFrame::FrameType::DATA,
                                   YamuxFrame::Flag::SYN, stream_id,
@@ -95,6 +96,13 @@ namespace libp2p::muxer {
         YamuxFrame::Flag::SYN, 0, static_cast<uint32_t>(error));
   }
 
+  kagome::common::Buffer windowUpdateMsg(YamuxFrame::StreamId stream_id,
+                                         uint32_t window_delta) {
+    return YamuxFrame::frameBytes(
+        YamuxFrame::kDefaultVersion, YamuxFrame::FrameType::WINDOW_UPDATE,
+        YamuxFrame::Flag::SYN, stream_id, window_delta);
+  }
+
   std::optional<YamuxFrame> parseFrame(gsl::span<const uint8_t> frame_bytes) {
     if (frame_bytes.size() < YamuxFrame::kHeaderLength) {
       return {};
@@ -102,20 +110,20 @@ namespace libp2p::muxer {
 
     YamuxFrame frame{};
 
-    frame.version_ = frame_bytes[0];
+    frame.version = frame_bytes[0];
 
     switch (frame_bytes[1]) {
       case 0:
-        frame.type_ = YamuxFrame::FrameType::DATA;
+        frame.type = YamuxFrame::FrameType::DATA;
         break;
       case 1:
-        frame.type_ = YamuxFrame::FrameType::WINDOW_UPDATE;
+        frame.type = YamuxFrame::FrameType::WINDOW_UPDATE;
         break;
       case 2:
-        frame.type_ = YamuxFrame::FrameType::PING;
+        frame.type = YamuxFrame::FrameType::PING;
         break;
       case 3:
-        frame.type_ = YamuxFrame::FrameType::GO_AWAY;
+        frame.type = YamuxFrame::FrameType::GO_AWAY;
         break;
       default:
         return {};
@@ -126,37 +134,37 @@ namespace libp2p::muxer {
 
     switch ((static_cast<uint16_t>(frame_bytes[3]) << 8) | frame_bytes[2]) {
       case 1:
-        frame.flag_ = YamuxFrame::Flag::SYN;
+        frame.flag = YamuxFrame::Flag::SYN;
         break;
       case 2:
-        frame.flag_ = YamuxFrame::Flag::ACK;
+        frame.flag = YamuxFrame::Flag::ACK;
         break;
       case 4:
-        frame.flag_ = YamuxFrame::Flag::FIN;
+        frame.flag = YamuxFrame::Flag::FIN;
         break;
       case 8:
-        frame.flag_ = YamuxFrame::Flag::RST;
+        frame.flag = YamuxFrame::Flag::RST;
         break;
       default:
         return {};
     }
 
-    frame.stream_id_ = (static_cast<uint32_t>(frame_bytes[7]) << 24)
+    frame.stream_id = (static_cast<uint32_t>(frame_bytes[7]) << 24)
         | (static_cast<uint16_t>(frame_bytes[6]) << 16)
         | (static_cast<uint16_t>(frame_bytes[5]) << 8)
         | (static_cast<uint16_t>(frame_bytes[4]));
 
-    frame.length_ = (static_cast<uint32_t>(frame_bytes[11]) << 24)
+    frame.length = (static_cast<uint32_t>(frame_bytes[11]) << 24)
         | (static_cast<uint16_t>(frame_bytes[10]) << 16)
         | (static_cast<uint16_t>(frame_bytes[9]) << 8)
         | (static_cast<uint16_t>(frame_bytes[8]));
 
     const auto &data_begin = frame_bytes.begin() + YamuxFrame::kHeaderLength;
     if (data_begin != frame_bytes.end()) {
-      frame.data_ = kagome::common::Buffer{
+      frame.data = kagome::common::Buffer{
           std::vector<uint8_t>(data_begin, frame_bytes.end())};
     }
 
     return frame;
   }
-}  // namespace libp2p::muxer
+}  // namespace libp2p::connection
