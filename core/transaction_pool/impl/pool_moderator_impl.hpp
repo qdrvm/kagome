@@ -15,6 +15,9 @@ namespace kagome::transaction_pool {
   class PoolModeratorImpl : public PoolModerator {
     static constexpr size_t kDefaultExpectedSize = 2048;
 
+    static bool Compare(const common::Buffer &b1, const common::Buffer &b2);
+    using Map = std::map<common::Buffer, Clock::TimePoint, decltype(&Compare)>;
+
    public:
     /**
      * @param clock a clock used to determine when it is time to unban a
@@ -40,8 +43,7 @@ namespace kagome::transaction_pool {
     void updateBan() override;
 
    private:
-    static bool Compare(const common::Buffer &b1, const common::Buffer &b2);
-    std::map<common::Buffer, Clock::TimePoint, decltype(&Compare)> banned_until_;
+    Map banned_until_;
     Clock::Duration ban_for_;
     std::shared_ptr<Clock> clock_;
     size_t expected_size_ = kDefaultExpectedSize;
