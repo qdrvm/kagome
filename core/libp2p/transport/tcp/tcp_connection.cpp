@@ -21,8 +21,9 @@ namespace libp2p::transport {
     socket_.close(ec);
     if (ec) {
       handle_errcode(ec);
+      return cb(ec);
     }
-    cb(ec);
+    cb(outcome::success());
   }
 
   bool TcpConnection::isClosed() const {

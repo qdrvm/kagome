@@ -4,6 +4,7 @@
  */
 
 #include "libp2p/connection/yamux/yamuxed_connection.hpp"
+#include <boost/asio/error.hpp>
 
 #include "libp2p/connection/yamux/yamux_frame.hpp"
 #include "libp2p/connection/yamux/yamux_stream.hpp"
@@ -100,7 +101,8 @@ namespace libp2p::connection {
     return connection_->close(
         [self{shared_from_this()}, cb = std::move(cb)](auto &&res) {
           if (!res) {
-            self->log_->error("cannot close the connection: {}", res.error());
+            self->log_->error("cannot close the connection: {}",
+                              res.error().message());
             return cb(res.error());
           }
           self->is_active_ = false;
@@ -190,6 +192,10 @@ namespace libp2p::connection {
     using FrameType = YamuxFrame::FrameType;
 
     if (!res) {
+      if (res.error().value() == boost::asio::error::eof) {
+        log_->info("the client has closed a session");
+        return;
+      }
       log_->error(
           "cannot read header from the connection: {}; closing the session",
           res.error().message());

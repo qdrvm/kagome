@@ -60,7 +60,10 @@ namespace libp2p::transport {
   void TcpListener::close(std::function<void(outcome::result<void>)> cb) {
     boost::system::error_code ec;
     acceptor_.close(ec);
-    cb(ec);
+    if (ec) {
+      return cb(ec);
+    }
+    cb(outcome::success());
   }
 
   void TcpListener::doAccept() {
