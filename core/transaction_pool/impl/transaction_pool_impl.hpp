@@ -14,10 +14,9 @@
 
 namespace kagome::transaction_pool {
 
-  struct ReadyTransaction: public primitives::Transaction {
-  };
+  struct ReadyTransaction : public primitives::Transaction {};
 
-  struct WaitingTransaction: public primitives::Transaction  {
+  struct WaitingTransaction : public primitives::Transaction {
     std::vector<primitives::TransactionTag> still_requires;
   };
 
@@ -36,15 +35,18 @@ namespace kagome::transaction_pool {
         std::unique_ptr<PoolModerator> moderator,
         Limits limits = Limits{kDefaultMaxReadyNum, kDefaultMaxWaitingNum},
         common::Logger logger = common::createLogger(kDefaultLoggerTag)) {
-      return std::make_shared<TransactionPoolImpl>(TransactionPoolImpl {
+      return std::make_shared<TransactionPoolImpl>(TransactionPoolImpl{
           std::move(moderator), std::make_unique<Container<ReadyTransaction>>(),
           std::make_unique<Container<WaitingTransaction>>(), limits,
           std::move(logger)});
     }
 
     TransactionPoolImpl(TransactionPoolImpl &&) = default;
+    TransactionPoolImpl(const TransactionPoolImpl &&) = delete;
 
     ~TransactionPoolImpl() override = default;
+
+    TransactionPool &operator=(const TransactionPool &) = delete;
 
     outcome::result<void> submitOne(primitives::Transaction t) override;
 

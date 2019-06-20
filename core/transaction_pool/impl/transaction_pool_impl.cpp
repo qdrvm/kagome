@@ -100,8 +100,10 @@ namespace kagome::transaction_pool {
   }
 
   std::vector<primitives::Transaction> TransactionPoolImpl::pruneTags(
-      const std::vector<primitives::TransactionTag> &tag) {
-    return {};
+      const std::vector<primitives::TransactionTag> &tags) {
+    provided_tags_.insert(tags.begin(), tags.end());
+    updateReady();
+
   }
 
   void TransactionPoolImpl::updateReady() {
