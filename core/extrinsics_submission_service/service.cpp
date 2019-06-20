@@ -10,12 +10,10 @@ namespace kagome::service {
   ExtrinsicSubmissionService::ExtrinsicSubmissionService(
       Configuration configuration, sptr<JsonTransport> transport,
       sptr<ExtrinsicSubmissionApi> api)
-      : configuration_{configuration},
-        transport_{transport},
-        api_proxy_(std::make_shared<ExtrinsicSubmissionProxy>(api)),
+      : configuration_{std::move(configuration)},
+        transport_{std::move(transport)},
+        api_proxy_(std::make_shared<ExtrinsicSubmissionProxy>(std::move(api))),
         on_request_([this](std::string_view data) { processData(data); }) {
-    api_proxy_ = std::make_shared<ExtrinsicSubmissionProxy>(api);
-
     transport->dataReceived().connect(on_request_);
     on_response_.connect(transport->onResponse());
 

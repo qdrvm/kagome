@@ -19,33 +19,34 @@ namespace kagome::service {
 
   outcome::result<common::Hash256> ExtrinsicSubmissionApi::submit_extrinsic(
       const primitives::Extrinsic &extrinsic) {
-    // validate
+    // validate transaction
     OUTCOME_TRY(res, api_->validate_transaction(extrinsic));
 
     return kagome::visit_in_place(
         res,
-        [&](const primitives::Invalid &v) {
-          // send response
+        [&](const primitives::Invalid &) {
           return ExtrinsicSubmissionError::INVALID_STATE_TRANSACTION;
         },
-        [&](const primitives::Unknown &v) {
+        [&](const primitives::Unknown &) {
           return ExtrinsicSubmissionError::UNKNOWN_STATE_TRANSACTION;
         },
         [&](const primitives::Valid &v) -> outcome::result<common::Hash256> {
-          // compose Transaction
+          // compose Transaction object
           common::Hash256 hash = hasher_->blake2_256(extrinsic.data);
-          common::Buffer buffer_hash(hash);       // make hash parameter
-          size_t length = extrinsic.data.size();  // find out what is length
-          bool should_propagate = false;          // find out what is this value
+          common::Buffer buffer_hash(hash);
+          // TODO(yuraz): PRE-207 find out what is length
+          size_t length = extrinsic.data.size();
+          // TODO(yuraz): PRE-208 find out what value to use for this parameter
+          bool should_propagate = false;
 
           primitives::Transaction transaction{
               extrinsic,   length,     buffer_hash, v.priority,
               v.longevity, v.requires, v.provides,  should_propagate};
 
           // send to pool
-          OUTCOME_TRY(pool_->submitOne(transaction));
+          OUTCOME_TRY(pool_->submitOne(std::move(transaction)));
 
-          return outcome::success();
+          return hash;
         });
   }
 

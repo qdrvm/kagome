@@ -11,7 +11,6 @@
 #include <jsonrpc-lean/server.h>
 #include <boost/asio/io_context.hpp>
 #include <boost/signals2/signal.hpp>
-
 #include "extrinsics_submission_service/extrinsic_submission_proxy.hpp"
 #include "extrinsics_submission_service/json_transport.hpp"
 
@@ -21,7 +20,7 @@ namespace kagome::service {
    * @brief extrinsic submission service implementation
    */
   class ExtrinsicSubmissionService {
-    using signal_type = void(std::string_view);
+    using SignalType = void(std::string_view);
     template <class T>
     using sptr = std::shared_ptr<T>;
 
@@ -39,9 +38,9 @@ namespace kagome::service {
      * @param config server configuration
      * @param api_proxy extrinsic submission api proxy reference
      */
-    explicit ExtrinsicSubmissionService(
-        Configuration configuration, std::shared_ptr<JsonTransport> transport,
-        std::shared_ptr<ExtrinsicSubmissionApi> api);
+    ExtrinsicSubmissionService(Configuration configuration,
+                               std::shared_ptr<JsonTransport> transport,
+                               std::shared_ptr<ExtrinsicSubmissionApi> api);
 
     /**
      * @brief starts service
@@ -67,8 +66,8 @@ namespace kagome::service {
     Configuration configuration_;               ///< service configuration
     sptr<JsonTransport> transport_;             ///< json transport
     sptr<ExtrinsicSubmissionProxy> api_proxy_;  ///< api reference
-    boost::signals2::slot<signal_type> on_request_;  ///< received data handler
-    boost::signals2::signal<signal_type> on_response_{};  ///< notifies response
+    boost::signals2::slot<SignalType> on_request_;  ///< received data handler
+    boost::signals2::signal<SignalType> on_response_{};  ///< notifies response
   };
 
 }  // namespace kagome::service

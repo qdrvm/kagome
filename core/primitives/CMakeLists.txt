@@ -4,6 +4,7 @@
 #
 
 add_library(primitives
+    auth_api.hpp
     block.hpp
     block_header.hpp
     block_id.hpp
@@ -17,8 +18,7 @@ add_library(primitives
     scheduled_change.hpp
     transaction_validity.hpp
     version.hpp
-    auth_api.hpp)
-
+    )
 target_link_libraries(primitives
     buffer
     scale
