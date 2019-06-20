@@ -10,11 +10,11 @@ add_library(extrinsics_submission_service
     extrinsic_submission_api.cpp
     extrinsic_submission_proxy.hpp
     extrinsic_submission_proxy.cpp
-    service.hpp
-    service.cpp
+    extrinsic_submission_service.hpp
+    extrinsic_submission_service.cpp
     json_transport.hpp
-    impl/json_transport_impl.cpp
-    impl/json_transport_impl.hpp
+    json_transport.cpp
+    network_address.hpp
     )
 target_link_libraries(extrinsics_submission_service
     buffer

@@ -8,8 +8,11 @@
 
 #include <boost/signals2/signal.hpp>
 #include <outcome/outcome.hpp>
+#include "extrinsics_submission_service/network_address.hpp"
 
 namespace kagome::service {
+
+  // TODO(yuraz): PRE-207 implement (will be implemented in next PR)
   class JsonTransport {
    public:
     using SignalType = void(std::string_view);
@@ -18,19 +21,18 @@ namespace kagome::service {
 
     virtual ~JsonTransport() = default;
 
-    explicit JsonTransport(std::function<SignalType> response_callback)
-        : on_response_{std::move(response_callback)} {}
+    JsonTransport();
 
     /**
      * @brief starts listening
      * @return true if successfully started, false otherwise
      */
-    virtual bool start(uint32_t port) = 0;
+    virtual outcome::result<void> start(NetworkAddress address);
 
     /**
      * @brief stops transport
      */
-    virtual void stop() = 0;
+    virtual void stop();
 
     /**
      * @return data received signal
@@ -47,6 +49,12 @@ namespace kagome::service {
     }
 
    private:
+    /**
+     * @brief processes response
+     * @param response data to send
+     */
+    void processResponse(std::string_view response);
+
     OnData on_data_;          ///< data received signal
     OnResponse on_response_;  ///< response handler slot
   };

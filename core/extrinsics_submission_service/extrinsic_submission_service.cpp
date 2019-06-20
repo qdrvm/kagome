@@ -3,15 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "extrinsics_submission_service/service.hpp"
+#include "extrinsics_submission_service/extrinsic_submission_service.hpp"
 #include "extrinsics_submission_service/impl/json_transport_impl.hpp"
 
 namespace kagome::service {
   ExtrinsicSubmissionService::ExtrinsicSubmissionService(
-      Configuration configuration, sptr<JsonTransport> transport,
-      sptr<ExtrinsicSubmissionApi> api)
-      : configuration_{std::move(configuration)},
-        transport_{std::move(transport)},
+      sptr<JsonTransport> transport, sptr<ExtrinsicSubmissionApi> api)
+      : transport_{std::move(transport)},
         api_proxy_(std::make_shared<ExtrinsicSubmissionProxy>(std::move(api))),
         on_request_([this](std::string_view data) { processData(data); }) {
     transport->dataReceived().connect(on_request_);
@@ -42,7 +40,7 @@ namespace kagome::service {
   }
 
   bool ExtrinsicSubmissionService::start() {
-    return transport_->start(configuration_.port);
+    return transport_->start();
   }
 
   void ExtrinsicSubmissionService::stop() {

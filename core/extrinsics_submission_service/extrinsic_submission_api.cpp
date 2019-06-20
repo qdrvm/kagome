@@ -36,7 +36,7 @@ namespace kagome::service {
           common::Buffer buffer_hash(hash);
           // TODO(yuraz): PRE-207 find out what is length
           size_t length = extrinsic.data.size();
-          // TODO(yuraz): PRE-208 find out what value to use for this parameter
+          // TODO(yuraz): PRE-207 find out what value to use for this parameter
           bool should_propagate = false;
 
           primitives::Transaction transaction{

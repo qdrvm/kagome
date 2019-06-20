@@ -13,6 +13,7 @@
 #include <boost/signals2/signal.hpp>
 #include "extrinsics_submission_service/extrinsic_submission_proxy.hpp"
 #include "extrinsics_submission_service/json_transport.hpp"
+#include "extrinsics_submission_service/network_address.hpp"
 
 namespace kagome::service {
 
@@ -26,20 +27,12 @@ namespace kagome::service {
 
    public:
     /**
-     * @brief service configuration
-     */
-    struct Configuration {
-      uint32_t port;  ///< port to listen
-    };
-
-    /**
      * @brief constructor
      * @param context io_context reference
      * @param config server configuration
      * @param api_proxy extrinsic submission api proxy reference
      */
-    ExtrinsicSubmissionService(Configuration configuration,
-                               std::shared_ptr<JsonTransport> transport,
+    ExtrinsicSubmissionService(std::shared_ptr<JsonTransport> transport,
                                std::shared_ptr<ExtrinsicSubmissionApi> api);
 
     /**
@@ -63,7 +56,6 @@ namespace kagome::service {
     jsonrpc::JsonFormatHandler
         json_format_handler_{};                 ///< format handler instance
     jsonrpc::Server server_{};                  ///< json rpc server instance
-    Configuration configuration_;               ///< service configuration
     sptr<JsonTransport> transport_;             ///< json transport
     sptr<ExtrinsicSubmissionProxy> api_proxy_;  ///< api reference
     boost::signals2::slot<SignalType> on_request_;  ///< received data handler
