@@ -9,7 +9,6 @@ using kagome::common::Buffer;
 
 namespace kagome::transaction_pool {
 
-
   PoolModeratorImpl::PoolModeratorImpl(std::shared_ptr<Clock> clock,
                                        Clock::Duration ban_for,
                                        size_t expected_size)
@@ -40,11 +39,10 @@ namespace kagome::transaction_pool {
     auto it = banned_until_.find(tx.hash);
     if (it == banned_until_.end()) {
       return false;
-    } else {
-      // if ban time is exceeded, the transaction will be removed from the list
-      // on next updateBan()
-      return it->second >= clock_->now();
     }
+    // if ban time is exceeded, the transaction will be removed from the list
+    // on next updateBan()
+    return it->second >= clock_->now();
   }
 
   void PoolModeratorImpl::updateBan() {
@@ -63,19 +61,12 @@ namespace kagome::transaction_pool {
   bool PoolModeratorImpl::Compare(const Buffer &b1, const Buffer &b2) {
     if (b1.size() == b2.size()) {
       for (size_t i = 0; i < b1.size(); i++) {
-        if (b1[i] > b2[i]) {
-          return true;
-        } else if (b1[i] < b2[i]) {
-          return false;
+        if (b1[i] != b2[i]) {
+          return b1[i] > b2[i];
         }
       }
-    } else if (b1.size() > b2.size()) {
-      return true;
-
-    } else if (b2.size() > b1.size()) {
-      return false;
     }
-    return false;
+    return b1.size() > b2.size();
   }
 
 }  // namespace kagome::transaction_pool

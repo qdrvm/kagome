@@ -87,6 +87,8 @@ namespace kagome::face {
     ForwardIterator(ForwardIterator &&it) noexcept : it_{std::move(it.it_)} {}
     ForwardIterator(ForwardIterator const &it) : it_{it.it_->create_copy()} {}
 
+    ~ForwardIterator() = default;
+
     GenericIterator<Container> &get_iterator() {
       return *it_;
     }
