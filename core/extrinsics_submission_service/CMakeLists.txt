@@ -15,9 +15,6 @@ add_library(extrinsics_submission_service
     json_transport.hpp
     impl/json_transport_impl.cpp
     impl/json_transport_impl.hpp
-    service_configuration.hpp
-    impl/service_builder.hpp
-    impl/service_builder.cpp
     )
 target_link_libraries(extrinsics_submission_service
     buffer

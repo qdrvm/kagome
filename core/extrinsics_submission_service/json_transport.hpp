@@ -12,14 +12,25 @@
 namespace kagome::service {
   class JsonTransport {
    public:
-    using OnData = boost::signals2::signal<void(const std::string &)>;
-    using OnResponse = boost::signals2::slot<void(const std::string &)>;
+    using signal_type = void(std::string_view);
+    using OnData = boost::signals2::signal<signal_type>;
+    using OnResponse = boost::signals2::slot<signal_type>;
 
     virtual ~JsonTransport() = default;
 
-    explicit inline JsonTransport(
-        std::function<void(const std::string &)> response_callback)
-        : on_response_{response_callback} {}
+    explicit inline JsonTransport(std::function<signal_type> response_callback)
+        : on_response_{std::move(response_callback)} {}
+
+    /**
+     * @brief starts listening
+     * @return true if successfully started, false otherwise
+     */
+    virtual bool start(uint32_t port) = 0;
+
+    /**
+     * @brief stops transport
+     */
+    virtual void stop() = 0;
 
     /**
      * @return data received signal

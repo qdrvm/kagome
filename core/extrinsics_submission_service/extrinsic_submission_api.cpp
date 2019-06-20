@@ -18,9 +18,9 @@ namespace kagome::service {
         hasher_{std::move(hasher)} {}
 
   outcome::result<common::Hash256> ExtrinsicSubmissionApi::submit_extrinsic(
-      const common::Buffer &bytes) {
+      const primitives::Extrinsic &extrinsic) {
     // validate
-    OUTCOME_TRY(res, api_->validate_transaction(primitives::Extrinsic{bytes}));
+    OUTCOME_TRY(res, api_->validate_transaction(extrinsic));
 
     return kagome::visit_in_place(
         res,
@@ -33,13 +33,13 @@ namespace kagome::service {
         },
         [&](const primitives::Valid &v) -> outcome::result<common::Hash256> {
           // compose Transaction
-          common::Hash256 hash = hasher_->blake2_256(bytes);
-          common::Buffer buffer_hash(hash);  // make hash parameter
-          size_t length = bytes.size();      // find out what is length
-          bool should_propagate = false;     // find out what is this value
+          common::Hash256 hash = hasher_->blake2_256(extrinsic.data);
+          common::Buffer buffer_hash(hash);       // make hash parameter
+          size_t length = extrinsic.data.size();  // find out what is length
+          bool should_propagate = false;          // find out what is this value
 
           primitives::Transaction transaction{
-              {bytes},     length,     buffer_hash, v.priority,
+              extrinsic,   length,     buffer_hash, v.priority,
               v.longevity, v.requires, v.provides,  should_propagate};
 
           // send to pool

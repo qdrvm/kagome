@@ -13,6 +13,7 @@
 #include <boost/signals2/signal.hpp>
 
 #include "extrinsics_submission_service/extrinsic_submission_proxy.hpp"
+#include "extrinsics_submission_service/json_transport.hpp"
 
 namespace kagome::service {
 
@@ -20,7 +21,18 @@ namespace kagome::service {
    * @brief extrinsic submission service implementation
    */
   class ExtrinsicSubmissionService {
+    using signal_type = void(std::string_view);
+    template <class T>
+    using sptr = std::shared_ptr<T>;
+
    public:
+    /**
+     * @brief service configuration
+     */
+    struct Configuration {
+      uint32_t port;  ///< port to listen
+    };
+
     /**
      * @brief constructor
      * @param context io_context reference
@@ -28,37 +40,35 @@ namespace kagome::service {
      * @param api_proxy extrinsic submission api proxy reference
      */
     explicit ExtrinsicSubmissionService(
-        std::shared_ptr<ExtrinsicSubmissionProxy> api_proxy);
+        Configuration configuration, std::shared_ptr<JsonTransport> transport,
+        std::shared_ptr<ExtrinsicSubmissionApi> api);
 
     /**
-     * @return request handler slot
+     * @brief starts service
+     * @return true if successful, false otherwise
      */
-    inline auto &onRequest() {
-      return on_request_;
-    }
+    bool start();
 
     /**
-     * @return response signal
+     * @brief stops listening
      */
-    inline auto &onResponse() {
-      return on_response_;
-    }
+    void stop();
 
    private:
     /**
      * @brief handles decoded network message
      * @param data json request string
      */
-    void processData(const std::string &data);
+    void processData(std::string_view data);
 
-    jsonrpc::Server server_;  ///< json rpc server instance
-    std::shared_ptr<ExtrinsicSubmissionProxy> api_proxy_;  ///< api reference
-
-    boost::signals2::slot<void(const std::string &)>
-        on_request_;  ///< received data handler
-
-    boost::signals2::signal<void(const std::string &)>
-        on_response_;  ///< notifies response
+    jsonrpc::JsonFormatHandler
+        json_format_handler_{};                 ///< format handler instance
+    jsonrpc::Server server_{};                  ///< json rpc server instance
+    Configuration configuration_;               ///< service configuration
+    sptr<JsonTransport> transport_;             ///< json transport
+    sptr<ExtrinsicSubmissionProxy> api_proxy_;  ///< api reference
+    boost::signals2::slot<signal_type> on_request_;  ///< received data handler
+    boost::signals2::signal<signal_type> on_response_{};  ///< notifies response
   };
 
 }  // namespace kagome::service

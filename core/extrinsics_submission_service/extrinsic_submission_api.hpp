@@ -51,7 +51,7 @@ namespace kagome::service {
      * or error if state is invalid or unknown
      */
     outcome::result<common::Hash256> submit_extrinsic(
-        const common::Buffer &bytes);
+        const primitives::Extrinsic &extrinsic);
 
     /**
      * @return collection of pending extrinsics
