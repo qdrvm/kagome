@@ -6,6 +6,7 @@
 #ifndef KAGOME_TRANSPORT_FIXTURE_HPP
 #define KAGOME_TRANSPORT_FIXTURE_HPP
 
+#include <chrono>
 #include <memory>
 
 #include <gtest/gtest.h>
@@ -49,9 +50,10 @@ namespace libp2p::testing {
      */
     static auto makeUpgrader();
 
-   private:
-    boost::asio::io_context context_;
+   protected:
+    boost::asio::io_context context_;  // NOLINT
 
+   private:
     std::shared_ptr<libp2p::transport::Transport> transport_;
     std::shared_ptr<libp2p::transport::TransportListener> transport_listener_;
     std::shared_ptr<libp2p::multi::Multiaddress> multiaddress_;

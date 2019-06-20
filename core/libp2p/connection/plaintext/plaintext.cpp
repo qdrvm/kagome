@@ -68,7 +68,8 @@ namespace libp2p::connection {
     return raw_connection_->isClosed();
   }
 
-  outcome::result<void> PlaintextConnection::close() {
-    return raw_connection_->close();
+  void PlaintextConnection::close(
+      std::function<void(outcome::result<void>)> cb) {
+    raw_connection_->close(std::move(cb));
   }
 }  // namespace libp2p::connection

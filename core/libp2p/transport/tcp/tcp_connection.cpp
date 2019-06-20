@@ -16,14 +16,13 @@ namespace libp2p::transport {
   TcpConnection::TcpConnection(boost::asio::io_context &ctx)
       : context_(ctx), socket_(ctx) {}
 
-  outcome::result<void> TcpConnection::close() {
+  void TcpConnection::close(std::function<void(outcome::result<void>)> cb) {
     boost::system::error_code ec;
     socket_.close(ec);
     if (ec) {
-      return handle_errcode(ec);
+      handle_errcode(ec);
     }
-
-    return outcome::success();
+    cb(ec);
   }
 
   bool TcpConnection::isClosed() const {

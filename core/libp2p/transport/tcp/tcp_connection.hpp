@@ -25,14 +25,15 @@ namespace libp2p::transport {
     using Tcp = boost::asio::ip::tcp;
     using ErrorCode = boost::system::error_code;
     using ResolverResultsType = Tcp::resolver::results_type;
-    using ResolveCallback = void(const ErrorCode&, const ResolverResultsType&);
+    using ResolveCallback = void(const ErrorCode &,
+                                 const ResolverResultsType &);
     using ResolveCallbackFunc = std::function<ResolveCallback>;
-    using ConnectCallback = void(const ErrorCode&, const Tcp::endpoint&);
+    using ConnectCallback = void(const ErrorCode &, const Tcp::endpoint &);
     using ConnectCallbackFunc = std::function<ConnectCallback>;
 
-    explicit TcpConnection(boost::asio::io_context& ctx);
+    explicit TcpConnection(boost::asio::io_context &ctx);
 
-    TcpConnection(boost::asio::io_context& ctx, Tcp::socket &&socket);
+    TcpConnection(boost::asio::io_context &ctx, Tcp::socket &&socket);
 
     /**
      * @brief Resolve service name (DNS).
@@ -48,13 +49,17 @@ namespace libp2p::transport {
      */
     void connect(const ResolverResultsType &iterator, ConnectCallbackFunc cb);
 
-    void read(gsl::span<uint8_t> out, size_t bytes, ReadCallbackFunc cb) override;
+    void read(gsl::span<uint8_t> out, size_t bytes,
+              ReadCallbackFunc cb) override;
 
-    void readSome(gsl::span<uint8_t> out, size_t bytes, ReadCallbackFunc cb) override;
+    void readSome(gsl::span<uint8_t> out, size_t bytes,
+                  ReadCallbackFunc cb) override;
 
-    void write(gsl::span<const uint8_t> in, size_t bytes, WriteCallbackFunc cb) override;
+    void write(gsl::span<const uint8_t> in, size_t bytes,
+               WriteCallbackFunc cb) override;
 
-    void writeSome(gsl::span<const uint8_t> in, size_t bytes, WriteCallbackFunc cb) override;
+    void writeSome(gsl::span<const uint8_t> in, size_t bytes,
+                   WriteCallbackFunc cb) override;
 
     outcome::result<multi::Multiaddress> remoteMultiaddr() override;
 
@@ -62,12 +67,12 @@ namespace libp2p::transport {
 
     bool isInitiator() const noexcept override;
 
-    outcome::result<void> close() override;
+    void close(std::function<void(outcome::result<void>)> cb) override;
 
     bool isClosed() const override;
 
    private:
-    boost::asio::io_context& context_;
+    boost::asio::io_context &context_;
     Tcp::socket socket_;
     bool initiator_ = false;
 

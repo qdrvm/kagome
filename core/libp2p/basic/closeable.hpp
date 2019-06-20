@@ -6,6 +6,8 @@
 #ifndef KAGOME_CLOSEABLE_HPP
 #define KAGOME_CLOSEABLE_HPP
 
+#include <functional>
+
 #include <outcome/outcome.hpp>
 
 namespace libp2p::basic {
