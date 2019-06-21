@@ -15,7 +15,7 @@
 #include "common/logger.hpp"
 #include "libp2p/connection/capable_connection.hpp"
 #include "libp2p/connection/stream.hpp"
-#include "libp2p/connection/yamux/yamux_config.hpp"
+#include "libp2p/muxer/muxed_connection_config.hpp"
 
 namespace libp2p::connection {
   struct YamuxFrame;
@@ -53,7 +53,7 @@ namespace libp2p::connection {
      */
     YamuxedConnection(
         std::shared_ptr<SecureConnection> connection,
-        NewStreamHandler stream_handler, YamuxConfig config,
+        NewStreamHandler stream_handler, muxer::MuxedConnectionConfig config,
         kagome::common::Logger logger = kagome::common::createLogger("Yamux"));
 
     YamuxedConnection(const YamuxedConnection &other) = delete;
@@ -227,7 +227,7 @@ namespace libp2p::connection {
 
     std::shared_ptr<SecureConnection> connection_;
     NewStreamHandler new_stream_handler_;
-    YamuxConfig config_;
+    muxer::MuxedConnectionConfig config_;
 
     uint32_t last_created_stream_id_;
     bool is_active_;

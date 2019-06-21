@@ -6,7 +6,7 @@
 #ifndef KAGOME_YAMUX_IMPL_HPP
 #define KAGOME_YAMUX_IMPL_HPP
 
-#include "libp2p/connection/yamux/yamux_config.hpp"
+#include "libp2p/muxer/muxed_connection_config.hpp"
 #include "libp2p/muxer/muxer_adaptor.hpp"
 
 namespace libp2p::muxer {
@@ -17,7 +17,7 @@ namespace libp2p::muxer {
     outcome::result<std::shared_ptr<connection::CapableConnection>>
     muxConnection(std::shared_ptr<connection::SecureConnection> conn,
                   StreamHandlerFunc handler,
-                  connection::YamuxConfig config) const override;
+                  MuxedConnectionConfig config) const override;
   };
 }  // namespace libp2p::muxer
 

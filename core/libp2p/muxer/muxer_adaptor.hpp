@@ -11,7 +11,7 @@
 #include <outcome/outcome.hpp>
 #include "libp2p/connection/capable_connection.hpp"
 #include "libp2p/connection/secure_connection.hpp"
-#include "libp2p/connection/yamux/yamux_config.hpp"
+#include "libp2p/muxer/muxed_connection_config.hpp"
 #include "libp2p/peer/protocol.hpp"
 
 namespace libp2p::connection {
@@ -41,13 +41,13 @@ namespace libp2p::muxer {
      * @param conn - connection to be upgraded
      * @param handler - function, which is called, when new streams arrive over
      * this connection
-     * @param config of Yamux to be created over the connection
+     * @param config of muxer to be created over the connection
      * @return upgraded connection or error
      */
     virtual outcome::result<std::shared_ptr<connection::CapableConnection>>
     muxConnection(std::shared_ptr<connection::SecureConnection> conn,
                   StreamHandlerFunc handler,
-                  connection::YamuxConfig config) const = 0;
+                  MuxedConnectionConfig config) const = 0;
   };
 }  // namespace libp2p::muxer
 

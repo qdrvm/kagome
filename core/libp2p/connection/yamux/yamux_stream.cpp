@@ -88,7 +88,8 @@ namespace libp2p::connection {
           } else {
             self->yamuxed_connection_->streamAckBytes(
                 self->stream_id_, bytes,
-                [self, cb = std::move(cb), bytes](auto &&res) {
+                [self, cb = std::move(cb), out, bytes](auto &&res) {
+                  (void)out;
                   self->is_reading_ = false;
                   if (!res) {
                     return cb(res.error());

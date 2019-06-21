@@ -32,7 +32,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, YamuxedConnection::Error, e) {
 namespace libp2p::connection {
   YamuxedConnection::YamuxedConnection(
       std::shared_ptr<SecureConnection> connection,
-      NewStreamHandler stream_handler, YamuxConfig config,
+      NewStreamHandler stream_handler, muxer::MuxedConnectionConfig config,
       kagome::common::Logger logger)
       : header_buffer_(YamuxFrame::kHeaderLength, 0),
         data_buffer_(config.maximum_window_size, 0),

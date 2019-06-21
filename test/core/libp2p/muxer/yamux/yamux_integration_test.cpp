@@ -22,8 +22,6 @@ using namespace libp2p::basic;
 using namespace libp2p::security;
 using namespace libp2p::muxer;
 
-using std::chrono_literals::operator""ms;
-
 class YamuxIntegrationTest : public libp2p::testing::TransportFixture {
  public:
   void SetUp() override {
@@ -40,7 +38,7 @@ class YamuxIntegrationTest : public libp2p::testing::TransportFixture {
                                 EXPECT_OUTCOME_TRUE(stream, stream_res)
                                 accepted_streams_.push_back(std::move(stream));
                               },
-                              YamuxConfig{}))
+                              MuxedConnectionConfig{}))
       yamuxed_connection_ =
           std::move(std::static_pointer_cast<YamuxedConnection>(mux_conn));
       yamuxed_connection_->start();

@@ -15,18 +15,17 @@
  * const int size = 1;
  * EXPECT_CALL(*connection_, read(_, _, _)).WillOnce(AsioSuccess(size));
  * auto buf = std::make_shared<std::vector<uint8_t>>(size, 0);
- * secure_connection_->read(*buf, size, [&size, buf](auto &&ec, size_t read) mutable {
- *   ASSERT_FALSE(ec) << ec.message();
+ * secure_connection_->read(*buf, size, [&size, buf](auto &&res) mutable {
+ *   ASSERT_TRUE(res) << res.error().message();
  *   ASSERT_EQ(read, size);
  * });
  * @nocode
  */
 ACTION_P(AsioSuccess, size) {
-  boost::system::error_code ec{};
   // arg0 - buffer
   // arg1 - bytes
   // arg2 - callback
-  arg2(ec, size);
+  arg2(size);
 }
 
 /**

@@ -22,7 +22,7 @@ namespace libp2p::connection {
 
     MOCK_CONST_METHOD0(isClosed, bool(void));
 
-    MOCK_METHOD0(close, outcome::result<void>(void));
+    MOCK_METHOD1(close, void(std::function<void(outcome::result<void>)>));
 
     MOCK_METHOD3(read,
                  void(gsl::span<uint8_t>, size_t, Reader::ReadCallbackFunc));
@@ -30,16 +30,19 @@ namespace libp2p::connection {
                  void(gsl::span<uint8_t>, size_t, Reader::ReadCallbackFunc));
     MOCK_METHOD3(write,
                  void(gsl::span<const uint8_t>, size_t,
-                     Writer::WriteCallbackFunc));
+                      Writer::WriteCallbackFunc));
     MOCK_METHOD3(writeSome,
                  void(gsl::span<const uint8_t>, size_t,
-                     Writer::WriteCallbackFunc));
+                      Writer::WriteCallbackFunc));
 
-    MOCK_METHOD0(reset, void(void));
+    MOCK_METHOD1(reset, void(std::function<void(outcome::result<void>)>));
 
     MOCK_CONST_METHOD0(isClosedForRead, bool(void));
 
     MOCK_CONST_METHOD0(isClosedForWrite, bool(void));
+
+    MOCK_METHOD2(adjustWindowSize,
+                 void(uint32_t, std::function<void(outcome::result<void>)>));
   };
 }  // namespace libp2p::connection
 

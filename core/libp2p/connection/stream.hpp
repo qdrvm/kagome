@@ -25,6 +25,8 @@ namespace libp2p::connection {
    * forbidden
    */
   struct Stream : public basic::ReadWriteCloser {
+    using Handler = void(std::shared_ptr<Stream>);
+
     ~Stream() override = default;
 
     /**
