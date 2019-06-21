@@ -3,21 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "extrinsics_submission_service/extrinsic_submission_api.hpp"
+#include "extrinsic_submission_api_impl.hpp"
 
 #include "primitives/transaction.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::service {
-  ExtrinsicSubmissionApi::ExtrinsicSubmissionApi(
+  ExtrinsicSubmissionApiImpl::ExtrinsicSubmissionApiImpl(
       sptr<runtime::TaggedTransactionQueue> api,
       sptr<transaction_pool::TransactionPool> pool, sptr<hash::Hasher> hasher)
       : api_{std::move(api)},
         pool_{std::move(pool)},
         hasher_{std::move(hasher)} {}
 
-  outcome::result<common::Hash256> ExtrinsicSubmissionApi::submit_extrinsic(
+  outcome::result<common::Hash256> ExtrinsicSubmissionApiImpl::submit_extrinsic(
       const primitives::Extrinsic &extrinsic) {
     // validate transaction
     OUTCOME_TRY(res, api_->validate_transaction(extrinsic));
@@ -51,27 +51,27 @@ namespace kagome::service {
   }
 
   outcome::result<std::vector<std::vector<uint8_t>>>
-  ExtrinsicSubmissionApi::pending_extrinsics() {
+  ExtrinsicSubmissionApiImpl::pending_extrinsics() {
     // not implemented yet
     std::terminate();
   }
 
   outcome::result<std::vector<common::Hash256>>
-  ExtrinsicSubmissionApi::remove_extrinsic(
+  ExtrinsicSubmissionApiImpl::remove_extrinsic(
       const std::vector<boost::variant<std::vector<uint8_t>, common::Hash256>>
           &bytes_or_hash) {
     // not implemented yet
     std::terminate();
   }
 
-  void ExtrinsicSubmissionApi::watch_extrinsic(
+  void ExtrinsicSubmissionApiImpl::watch_extrinsic(
       const primitives::Metadata &metadata,
       const primitives::Subscriber &subscriber, const common::Buffer &data) {
     // not implemented yet
     std::terminate();
   }
 
-  outcome::result<bool> ExtrinsicSubmissionApi::unwatch_extrinsic(
+  outcome::result<bool> ExtrinsicSubmissionApiImpl::unwatch_extrinsic(
       const std::optional<primitives::Metadata> &metadata,
       const primitives::SubscriptionId &id) {
     // not implemented yet

@@ -6,80 +6,43 @@
 #ifndef KAGOME_CORE_EXTRINSICS_SUBMISSION_SERVICE_EXTRINSIC_SUBMISSION_API_HPP
 #define KAGOME_CORE_EXTRINSICS_SUBMISSION_SERVICE_EXTRINSIC_SUBMISSION_API_HPP
 
-/**
- * ExtrinsicSubmissionApi based on auth api implemented in substrate here
- * https://github.com/paritytech/substrate/blob/e8739300ae3f7f2e7b72f64668573275f2806ea5/core/rpc/src/author/mod.rs#L50-L49
- */
-
-#include <boost/variant.hpp>
-#include <outcome/outcome.hpp>
-#include "common/visitor.hpp"
-#include "crypto/hasher.hpp"
-#include "extrinsics_submission_service/error.hpp"
 #include "primitives/auth_api.hpp"
 #include "primitives/extrinsic.hpp"
 
-namespace kagome::transaction_pool {
-  class TransactionPool;
-}
-
-namespace kagome::runtime {
-  class TaggedTransactionQueue;
-}
-
 namespace kagome::service {
   class ExtrinsicSubmissionApi {
-    template <class T>
-    using sptr = std::shared_ptr<T>;
-
    public:
-    /**
-     * @constructor
-     * @param api ttq instance shared ptr
-     * @param pool transaction pool instance shared ptr
-     * @param hasher hasher instance shared ptr
-     */
-    ExtrinsicSubmissionApi(
-        std::shared_ptr<runtime::TaggedTransactionQueue> api,
-        std::shared_ptr<transaction_pool::TransactionPool> pool,
-        std::shared_ptr<hash::Hasher> hasher);
-
+    virtual ~ExtrinsicSubmissionApi() = default;
     /**
      * @brief validates and sends extrinsic to transaction pool
      * @param bytes encoded extrinsic
      * @return hash of successfully validated extrinsic
      * or error if state is invalid or unknown
      */
-    outcome::result<common::Hash256> submit_extrinsic(
-        const primitives::Extrinsic &extrinsic);
+    virtual outcome::result<common::Hash256> submit_extrinsic(
+        const primitives::Extrinsic &extrinsic) = 0;
 
     /**
      * @return collection of pending extrinsics
      */
-    outcome::result<std::vector<std::vector<uint8_t>>> pending_extrinsics();
+    virtual outcome::result<std::vector<std::vector<uint8_t>>>
+    pending_extrinsics() = 0;
 
     // TODO(yuraz): probably will be documented later (no task yet)
-    outcome::result<std::vector<common::Hash256>> remove_extrinsic(
+    virtual outcome::result<std::vector<common::Hash256>> remove_extrinsic(
         const std::vector<boost::variant<std::vector<uint8_t>, common::Hash256>>
-            &bytes_or_hash);
+            &bytes_or_hash) = 0;
 
     // TODO(yuraz): probably will be documented later (no task yet)
-    void watch_extrinsic(const primitives::Metadata &metadata,
-                         const primitives::Subscriber &subscriber,
-                         const common::Buffer &data);
+    virtual void watch_extrinsic(const primitives::Metadata &metadata,
+                                 const primitives::Subscriber &subscriber,
+                                 const common::Buffer &data) = 0;
 
     // TODO(yuraz): probably will be documented later (no task yet)
-    outcome::result<bool> unwatch_extrinsic(
+    virtual outcome::result<bool> unwatch_extrinsic(
         const std::optional<primitives::Metadata> &metadata,
-        const primitives::SubscriptionId &id);
-
-   private:
-    sptr<runtime::TaggedTransactionQueue> api_;  ///< pointer to ttq api
-    sptr<transaction_pool::TransactionPool>
-        pool_;                   ///< pointer to transaction pool apo
-    sptr<hash::Hasher> hasher_;  ///< pointer to hasher
+        const primitives::SubscriptionId &id) = 0;
   };
-
 }  // namespace kagome::service
 
 #endif  // KAGOME_CORE_EXTRINSICS_SUBMISSION_SERVICE_EXTRINSIC_SUBMISSION_API_HPP

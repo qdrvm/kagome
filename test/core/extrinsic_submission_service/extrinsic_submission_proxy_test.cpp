@@ -10,6 +10,11 @@
 
 using namespace kagome::service;
 
+class ExtrinsicSubmissionApiMock: public ExtrinsicSubmissionApi {
+ public:
+
+};
+
 TEST(ExtrinsicSubmissionProxyTest, Simple) {
 
 }

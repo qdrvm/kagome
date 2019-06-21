@@ -10,7 +10,7 @@
 
 #include <jsonrpc-lean/fault.h>
 #include "common/buffer.hpp"
-#include "extrinsics_submission_service/extrinsic_submission_api.hpp"
+#include "extrinsics_submission_service/impl/extrinsic_submission_api_impl.hpp"
 
 namespace kagome::service {
 
@@ -28,7 +28,7 @@ namespace kagome::service {
      * @param api reference to extrinsic submission api instance
      */
     explicit ExtrinsicSubmissionProxy(
-        std::shared_ptr<ExtrinsicSubmissionApi> api);
+        std::shared_ptr<ExtrinsicSubmissionApiImpl> api);
 
     /**
      * @brief calls submit_extrinsic api method
@@ -46,7 +46,7 @@ namespace kagome::service {
     // other methods will be implemented later
 
    private:
-    sptr<ExtrinsicSubmissionApi>
+    sptr<ExtrinsicSubmissionApiImpl>
         api_;  ///< pointer to extrinsic submission api instance
   };
 }  // namespace kagome::service

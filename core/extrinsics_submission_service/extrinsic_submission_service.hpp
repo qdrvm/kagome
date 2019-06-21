@@ -40,7 +40,7 @@ namespace kagome::service {
      */
     ExtrinsicSubmissionService(Configuration configuration,
                                std::shared_ptr<JsonTransport> transport,
-                               std::shared_ptr<ExtrinsicSubmissionApi> api);
+                               std::shared_ptr<ExtrinsicSubmissionApiImpl> api);
 
     /**
      * @brief starts service

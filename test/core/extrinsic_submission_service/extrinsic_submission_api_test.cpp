@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "extrinsics_submission_service/extrinsic_submission_api.hpp"
+#include "extrinsics_submission_service/impl/extrinsic_submission_api_impl.hpp"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -78,7 +78,7 @@ class ExtrinsicSubmissionApiTest : public ::testing::Test {
   sptr<TransactionPoolMock> tp{
       std::make_shared<TransactionPoolMock>()};  ///< transaction pool mock
 
-  ExtrinsicSubmissionApi api{ttq, tp, hasher};  ///< api instance
+  ExtrinsicSubmissionApiImpl api{ttq, tp, hasher};  ///< api instance
 
   Extrinsic extrinsic{"12"_hex2buf};
   Valid valid_transaction{1, {{2}}, {{3}}, 4};
