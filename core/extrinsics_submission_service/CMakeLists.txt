@@ -19,4 +19,5 @@ add_library(extrinsics_submission_service
 target_link_libraries(extrinsics_submission_service
     buffer
     RapidJSON::rapidjson
+    transaction_pool
     )
