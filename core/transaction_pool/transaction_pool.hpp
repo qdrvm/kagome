@@ -63,13 +63,13 @@ namespace kagome::transaction_pool {
   };
 
   struct TransactionPool::Status {
-    size_t ready_num;
-    size_t waiting_num;
+    size_t ready_num{};
+    size_t waiting_num{};
   };
 
   struct TransactionPool::Limits {
-    size_t max_ready_num;
-    size_t max_waiting_num;
+    size_t max_ready_num{};
+    size_t max_waiting_num{};
   };
 
 }  // namespace kagome::transaction_pool

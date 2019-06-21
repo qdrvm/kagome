@@ -24,20 +24,20 @@ namespace kagome::service {
 
     return kagome::visit_in_place(
         res,
-        [&](const primitives::Invalid &) {
+        [](const primitives::Invalid &) {
           return ExtrinsicSubmissionError::INVALID_STATE_TRANSACTION;
         },
-        [&](const primitives::Unknown &) {
+        [](const primitives::Unknown &) {
           return ExtrinsicSubmissionError::UNKNOWN_STATE_TRANSACTION;
         },
         [&](const primitives::Valid &v) -> outcome::result<common::Hash256> {
           // compose Transaction object
           common::Hash256 hash = hasher_->blake2_256(extrinsic.data);
           common::Buffer buffer_hash(hash);
-          // TODO(yuraz): PRE-207 find out what is length
           size_t length = extrinsic.data.size();
-          // TODO(yuraz): PRE-207 find out what value to use for this parameter
-          bool should_propagate = false;
+          // TODO(yuraz): PRE-220 find out what value to use for this parameter
+          // in substrate tests it is always true (except the case of initialization check)
+          bool should_propagate = true;
 
           primitives::Transaction transaction{
               extrinsic,   length,     buffer_hash, v.priority,
