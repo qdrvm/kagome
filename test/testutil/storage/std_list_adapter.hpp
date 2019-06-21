@@ -6,15 +6,21 @@
 #ifndef KAGOME_STD_LIST_ADAPTER_HPP
 #define KAGOME_STD_LIST_ADAPTER_HPP
 
-#include "storage/face/generic_list.hpp"
+#include <list>
+
 #include "storage/face/generic_iterator.hpp"
+#include "storage/face/generic_list.hpp"
 
 namespace test {
 
+  using kagome::face::ForwardIterator;
   using kagome::face::GenericIterator;
   using kagome::face::GenericList;
-  using kagome::face::ForwardIterator;
 
+  /**
+   * An adapter of std::list iterator for face::GenericIterator interface
+   * @tparam T type of an element stored in the list
+   */
   template <typename T>
   class StdListIterator : public GenericIterator<GenericList<T>> {
     template <typename>
@@ -23,7 +29,8 @@ namespace test {
    public:
     using value_type = T;
 
-    explicit StdListIterator(typename std::list<T>::iterator l) : it_{std::move(l)} {}
+    explicit StdListIterator(typename std::list<T>::iterator l)
+        : it_{std::move(l)} {}
     ~StdListIterator() override = default;
 
     std::unique_ptr<GenericIterator<GenericList<T>>> create_copy()
@@ -56,8 +63,12 @@ namespace test {
     typename std::list<T>::iterator it_;
   };
 
+  /**
+   * An adapter of std::list for face::GenericList interface
+   * @tparam T type of an element stored in the list
+   */
   template <typename T>
-  class StdListAdapter: public GenericList<T> {
+  class StdListAdapter : public GenericList<T> {
    public:
     using value_type = T;
     using size_type = typename GenericList<T>::size_type;
@@ -112,6 +123,6 @@ namespace test {
     std::list<T> list_;
   };
 
-}
+}  // namespace test
 
-#endif //KAGOME_STD_LIST_ADAPTER_HPP
+#endif  // KAGOME_STD_LIST_ADAPTER_HPP

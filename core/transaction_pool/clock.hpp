@@ -10,14 +10,25 @@
 
 namespace kagome::transaction_pool {
 
-
+  /**
+   * An interface for a clock
+   */
   class Clock {
    public:
-      using Duration = std::chrono::milliseconds;
-      using TimePoint = std::chrono::milliseconds;
+    /**
+     * Difference between two time points
+     */
+    using Duration = std::chrono::milliseconds;
+    /**
+     * A moment in time, stored in milliseconds since Unix epoch start
+     */
+    using TimePoint = std::chrono::milliseconds;
 
     virtual ~Clock() = default;
 
+    /**
+     * @return a time point representing the current time
+     */
     virtual TimePoint now() const = 0;
   };
 
