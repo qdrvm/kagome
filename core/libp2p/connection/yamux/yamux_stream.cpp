@@ -226,7 +226,7 @@ namespace libp2p::connection {
     return !is_readable_ && !is_writable_;
   }
 
-  void YamuxStream::close(std::function<void(outcome::result<void>)> cb) {
+  void YamuxStream::close(CloseCallbackFunc cb) {
     if (is_writing_) {
       return cb(Error::IS_WRITING);
     }

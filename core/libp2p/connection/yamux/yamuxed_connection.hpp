@@ -48,7 +48,7 @@ namespace libp2p::connection {
      * @param connection to be multiplexed by this instance
      * @param stream_handler - function, which is going to be called, when a new
      * stream arrives
-     * @param yamux_config to configure this instance
+     * @param config to configure this instance
      * @param logger to output messages
      */
     YamuxedConnection(
@@ -80,7 +80,7 @@ namespace libp2p::connection {
 
     outcome::result<multi::Multiaddress> remoteMultiaddr() override;
 
-    void close(std::function<void(outcome::result<void>)> cb) override;
+    void close(CloseCallbackFunc cb) override;
 
     bool isClosed() const override;
 
@@ -111,24 +111,42 @@ namespace libp2p::connection {
      */
     void write(WriteData write_data);
 
+    /**
+     * First part of writing loop, which takes queued messaged to be written
+     */
     void doWrite();
 
+    /**
+     * Finishing part of writing loop
+     * @param res, with which the last write finished
+     */
     void writeCompleted(outcome::result<size_t> res);
 
+    /// buffers to store header and data parts of Yamux frame, which were read last
     kagome::common::Buffer header_buffer_;
-
     kagome::common::Buffer data_buffer_;
 
+    /**
+     * First part of reader loop, which is going to read a header
+     */
     void doReadHeader();
 
+    /**
+     * Finishing part of the reader loop
+     * @param res, with which the last read finished
+     */
     void readHeaderCompleted(outcome::result<size_t> res);
 
+    /**
+     * Read a data part of Yamux frame
+     * @param data_size - size of the data to be read
+     * @param cb - callback, which is called, when the data is read
+     */
     void doReadData(size_t data_size, basic::Reader::ReadCallbackFunc cb);
 
     /**
      * Process frame of data type
      * @param frame to be processed
-     * @return nothing on success, error otherwise
      */
     void processDataFrame(const YamuxFrame &frame);
 

@@ -14,7 +14,8 @@
 namespace libp2p::connection {
 
   /**
-   * Connection that provides basic libp2p requirements to the connection
+   * Connection that provides basic libp2p requirements to the connection: it is
+   * both secured and muxed (streams can be created over that connection)
    */
   struct CapableConnection : public SecureConnection {
     using StreamHandler = void(outcome::result<std::shared_ptr<Stream>>);

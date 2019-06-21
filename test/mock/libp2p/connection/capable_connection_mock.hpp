@@ -24,7 +24,7 @@ namespace libp2p::connection {
     MOCK_CONST_METHOD0(remotePublicKey, outcome::result<crypto::PublicKey>());
 
     MOCK_CONST_METHOD0(isClosed, bool(void));
-    MOCK_METHOD1(close, void(std::function<void(outcome::result<void>)>));
+    MOCK_METHOD1(close, void(CloseCallbackFunc));
     MOCK_METHOD3(read,
                  void(gsl::span<uint8_t>, size_t, Reader::ReadCallbackFunc));
     MOCK_METHOD3(readSome,

@@ -6,7 +6,6 @@
 add_library(libp2p_yamuxed_connection
     yamuxed_connection.cpp
     yamuxed_connection.hpp
-    ../../muxer/muxed_connection_config.hpp
     yamux_frame.cpp
     yamux_frame.hpp
     yamux_stream.cpp

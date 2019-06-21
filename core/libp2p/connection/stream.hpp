@@ -47,8 +47,6 @@ namespace libp2p::connection {
      * @brief Close this stream entirely; this normally means an error happened,
      * so it should not be used just to close the stream
      * @param cb to be called, when the operation succeeds of fails
-     * @note the method MUST NOT be called until the last 'write' or 'writeSome'
-     * or 'close' or 'adjustWindowSize' or 'reset' completes
      */
     virtual void reset(std::function<void(outcome::result<void>)> cb) = 0;
 
@@ -57,8 +55,6 @@ namespace libp2p::connection {
      * (not read) bytes can we on our side of the stream
      * @param new_size for the window
      * @param cb to be called, when the operation succeeds of fails
-     * @note the method MUST NOT be called until the last 'write' or 'writeSome'
-     * or 'close' or 'adjustWindowSize' or 'reset' completes
      */
     virtual void adjustWindowSize(
         uint32_t new_size, std::function<void(outcome::result<void>)> cb) = 0;

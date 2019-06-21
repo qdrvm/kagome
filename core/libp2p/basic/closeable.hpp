@@ -14,6 +14,9 @@ namespace libp2p::basic {
 
   class Closeable {
    public:
+    using CloseCallback = void(outcome::result<void>);
+    using CloseCallbackFunc = std::function<CloseCallback>;
+
     virtual ~Closeable() = default;
 
     /**
@@ -27,7 +30,7 @@ namespace libp2p::basic {
      * @param cb - callback, which is called after the object is closed, or
      * error happens
      */
-    virtual void close(std::function<void(outcome::result<void>)> cb) = 0;
+    virtual void close(CloseCallbackFunc cb) = 0;
   };
 
 }  // namespace libp2p::basic

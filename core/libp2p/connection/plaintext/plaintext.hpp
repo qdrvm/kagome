@@ -51,7 +51,7 @@ namespace libp2p::connection {
 
     bool isClosed() const override;
 
-    void close(std::function<void(outcome::result<void>)> cb) override;
+    void close(CloseCallbackFunc cb) override;
 
    private:
     std::shared_ptr<RawConnection> raw_connection_;

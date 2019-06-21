@@ -97,7 +97,7 @@ namespace libp2p::connection {
     return connection_->remoteMultiaddr();
   }
 
-  void YamuxedConnection::close(std::function<void(outcome::result<void>)> cb) {
+  void YamuxedConnection::close(CloseCallbackFunc cb) {
     return connection_->close(
         [self{shared_from_this()}, cb = std::move(cb)](auto &&res) {
           if (!res) {

@@ -56,7 +56,7 @@ namespace libp2p::connection {
 
     bool isClosed() const noexcept override;
 
-    void close(std::function<void(outcome::result<void>)> cb) override;
+    void close(CloseCallbackFunc cb) override;
 
     bool isClosedForRead() const noexcept override;
 
@@ -119,6 +119,7 @@ namespace libp2p::connection {
      * Called by underlying connection to signalize some data was received for
      * this stream
      * @param data received
+     * @param data_size - size of the received data
      */
     outcome::result<void> commitData(gsl::span<const uint8_t> data,
                                      size_t data_size);

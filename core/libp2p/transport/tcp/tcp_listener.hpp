@@ -32,7 +32,7 @@ namespace libp2p::transport {
 
     bool isClosed() const override;
 
-    void close(std::function<void(outcome::result<void>)> cb) override;
+    void close(CloseCallbackFunc cb) override;
 
    private:
     boost::asio::io_context &context_;
