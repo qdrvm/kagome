@@ -70,6 +70,11 @@ namespace kagome::face {
     virtual size_type size() const = 0;
   };
 
+  /**
+   * As GenericIterator is abstract and cannot be instantiated, there is a
+   * concrete object that wraps a pointer to a generic iterator
+   * @tparam Container over which the iterator would iterate
+   */
   template <typename Container>
   class ForwardIterator {
    public:

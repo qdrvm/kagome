@@ -6,8 +6,14 @@
 #ifndef KAGOME_GENERIC_ITERATOR_HPP
 #define KAGOME_GENERIC_ITERATOR_HPP
 
+#include <memory>
+
 namespace kagome::face {
 
+  /**
+   * An interface for an iterator
+   * @tparam Container over which the iterator would iterate
+   */
   template <typename Container>
   class GenericIterator {
    public:
@@ -15,7 +21,9 @@ namespace kagome::face {
 
     virtual ~GenericIterator() = default;
 
-    virtual std::unique_ptr<GenericIterator> create_copy() const = 0;
+    // needed as there's no simple way to copy an object by a pointer to its
+    // abstract interface
+    virtual std::unique_ptr<GenericIterator> clone() const = 0;
 
     virtual value_type *get() = 0;
     virtual value_type const *get() const = 0;
@@ -36,7 +44,6 @@ namespace kagome::face {
     bool operator==(const GenericIterator<Container> &other) {
       return get() == other.get();
     }
-
   };
 
 }  // namespace kagome::face
