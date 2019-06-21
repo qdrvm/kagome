@@ -11,7 +11,7 @@
 namespace kagome::face {
 
   /**
-   * An interface for a forward iterator
+   * An interface for an iterator
    * @tparam Container over which the iterator would iterate
    */
   template <typename Container>
@@ -23,7 +23,7 @@ namespace kagome::face {
 
     // needed as there's no simple way to copy an object by a pointer to its
     // abstract interface
-    virtual std::unique_ptr<GenericIterator> create_copy() const = 0;
+    virtual std::unique_ptr<GenericIterator> clone() const = 0;
 
     virtual value_type *get() = 0;
     virtual value_type const *get() const = 0;
