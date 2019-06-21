@@ -22,9 +22,3 @@ target_link_libraries(base_leveldb_test
     logger
     leveldb
     )
-
-add_library(std_list_adapter INTERFACE)
-
-target_link_libraries(std_list_adapter INTERFACE
-    outcome
-    )
