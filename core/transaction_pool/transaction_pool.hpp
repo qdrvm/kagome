@@ -77,8 +77,7 @@ namespace kagome::transaction_pool {
      * prevent importing them in the (near) future.
      */
     virtual std::vector<primitives::Transaction> pruneTags(
-        const primitives::BlockId &at,
-        const std::vector<primitives::TransactionTag> &tag,
+        const primitives::BlockId &at, const primitives::TransactionTag &tag,
         const std::vector<common::Hash256> &known_imported_hashes = {}) = 0;
 
     virtual Status getStatus() const = 0;

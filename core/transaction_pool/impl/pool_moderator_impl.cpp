@@ -9,8 +9,8 @@ using kagome::common::Buffer;
 
 namespace kagome::transaction_pool {
 
-  PoolModeratorImpl::PoolModeratorImpl(std::shared_ptr<Clock> clock,
-                                       Clock::Duration ban_for,
+  PoolModeratorImpl::PoolModeratorImpl(std::shared_ptr<SystemClock> clock,
+                                       SystemClock::Duration ban_for,
                                        size_t expected_size)
       : banned_until_{Compare},
         ban_for_{ban_for},

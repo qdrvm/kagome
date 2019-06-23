@@ -10,14 +10,12 @@
 
 namespace kagome::transaction_pool {
 
-  class SystemClock : public Clock {
+  class SystemClock : public Clock<std::chrono::system_clock> {
    public:
     ~SystemClock() override = default;
 
     TimePoint now() const override {
-      auto now =
-          std::chrono::system_clock::now().time_since_epoch();
-      return std::chrono::duration_cast<TimePoint>(now);
+      return std::chrono::system_clock::now();
     }
   };
 
