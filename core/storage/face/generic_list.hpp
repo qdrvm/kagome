@@ -90,7 +90,7 @@ namespace kagome::face {
         : it_{std::move(it)} {}
 
     ForwardIterator(ForwardIterator &&it) noexcept : it_{std::move(it.it_)} {}
-    ForwardIterator(ForwardIterator const &it) : it_{it.it_->create_copy()} {}
+    ForwardIterator(ForwardIterator const &it) : it_{it.it_->clone()} {}
 
     ~ForwardIterator() = default;
 
@@ -103,12 +103,12 @@ namespace kagome::face {
     }
 
     ForwardIterator &operator=(const ForwardIterator &it) {
-      it_ = it.it_->create_copy();
+      it_ = it.it_->clone();
       return *this;
     }
 
     ForwardIterator &operator=(ForwardIterator &&it) noexcept {
-      it_ = it.it_->create_copy();
+      it_ = it.it_->clone();
       return *this;
     }
 
