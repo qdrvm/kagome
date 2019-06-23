@@ -5,36 +5,16 @@
 
 #include "libp2p/transport/tcp/tcp_connection.hpp"
 
+#include "libp2p/transport/tcp/tcp_util.hpp"
+
 namespace libp2p::transport {
 
-  TcpConnection::TcpConnection(basic::yield_t &yield,
+  TcpConnection::TcpConnection(boost::asio::io_context &ctx,
                                boost::asio::ip::tcp::socket &&socket)
-      : yield_(yield), socket_(std::move(socket)) {}
+      : context_(ctx), socket_(std::move(socket)) {}
 
-  TcpConnection::TcpConnection(basic::yield_t &yield)
-      : yield_(yield), socket_(yield.get_executor().context()) {}
-
-  outcome::result<TcpConnection::ResolverResultsType> TcpConnection::resolve(
-      const boost::asio::ip::tcp::endpoint &e) {
-    Tcp::resolver resolver{yield_.get_executor().context()};
-    auto [ec, iterator] = resolver.async_resolve(e, yield_);
-    if (ec) {
-      return handle_errcode(ec);
-    }
-
-    return iterator;
-  }
-
-  outcome::result<void> TcpConnection::connect(
-      const boost::asio::ip::tcp::endpoint &endpoint) {
-    OUTCOME_TRY(resolved, resolve(endpoint));
-    initiator_ = true;
-    auto [ec, e] = boost::asio::async_connect(socket_, resolved, yield_);
-    if (ec) {
-      return handle_errcode(ec);
-    }
-    return outcome::success();
-  }
+  TcpConnection::TcpConnection(boost::asio::io_context &ctx)
+      : context_(ctx), socket_(ctx) {}
 
   outcome::result<void> TcpConnection::close() {
     boost::system::error_code ec;
@@ -51,64 +31,11 @@ namespace libp2p::transport {
   }
 
   outcome::result<multi::Multiaddress> TcpConnection::remoteMultiaddr() {
-    return detail::makeEndpoint(socket_.remote_endpoint());
+    return detail::makeAddress(socket_.remote_endpoint());
   }
 
   outcome::result<multi::Multiaddress> TcpConnection::localMultiaddr() {
-    return detail::makeEndpoint(socket_.local_endpoint());
-  }
-
-  outcome::result<std::vector<uint8_t>> TcpConnection::read(size_t bytes) {
-    std::vector<uint8_t> out(bytes, 0);
-    OUTCOME_TRY(read(out));
-    return out;
-  }
-
-  outcome::result<std::vector<uint8_t>> TcpConnection::readSome(size_t bytes) {
-    std::vector<uint8_t> out(bytes, 0);
-    OUTCOME_TRY(size, readSome(out));
-    out.resize(size);
-    return out;
-  }
-
-  outcome::result<size_t> TcpConnection::read(gsl::span<uint8_t> buf) {
-    auto [ec, read] =
-        boost::asio::async_read(socket_, detail::makeBuffer(buf), yield_);
-    if (ec) {
-      return handle_errcode(ec);
-    }
-
-    return read;
-  }
-
-  outcome::result<size_t> TcpConnection::readSome(gsl::span<uint8_t> buf) {
-    auto [ec, read] = socket_.async_read_some(detail::makeBuffer(buf), yield_);
-    if (ec) {
-      return handle_errcode(ec);
-    }
-
-    return read;
-  }
-
-  outcome::result<size_t> TcpConnection::write(gsl::span<const uint8_t> in) {
-    auto [ec, written] =
-        boost::asio::async_write(socket_, detail::makeBuffer(in), yield_);
-    if (ec) {
-      return handle_errcode(ec);
-    }
-
-    return written;
-  }
-
-  outcome::result<size_t> TcpConnection::writeSome(
-      gsl::span<const uint8_t> in) {
-    auto [ec, written] =
-        socket_.async_write_some(detail::makeBuffer(in), yield_);
-    if (ec) {
-      return handle_errcode(ec);
-    }
-
-    return written;
+    return detail::makeAddress(socket_.local_endpoint());
   }
 
   bool TcpConnection::isInitiator() const noexcept {
@@ -127,4 +54,47 @@ namespace libp2p::transport {
 
     return e;
   }
+
+  void TcpConnection::resolve(const TcpConnection::Tcp::endpoint &endpoint,
+                              TcpConnection::ResolveCallbackFunc cb) {
+    auto resolver = std::make_shared<Tcp::resolver>(context_);
+    resolver->async_resolve(
+        endpoint,
+        [resolver, cb{std::move(cb)}](const ErrorCode &ec, auto &&iterator) {
+          cb(ec, std::forward<decltype(iterator)>(iterator));
+        });
+  }
+
+  void TcpConnection::connect(
+      const TcpConnection::ResolverResultsType &iterator,
+      TcpConnection::ConnectCallbackFunc cb) {
+    boost::asio::async_connect(socket_, iterator,
+                               [self{shared_from_this()}, cb{std::move(cb)}](
+                                   auto &&ec, auto &&endpoint) {
+                                 self->initiator_ = true;
+                                 cb(std::forward<decltype(ec)>(ec),
+                                    std::forward<decltype(endpoint)>(endpoint));
+                               });
+  }
+
+  void TcpConnection::read(gsl::span<uint8_t> out, size_t bytes,
+                           TcpConnection::ReadCallbackFunc cb) {
+    boost::asio::async_read(socket_, detail::makeBuffer(out, bytes), cb);
+  }
+
+  void TcpConnection::readSome(gsl::span<uint8_t> out, size_t bytes,
+                               TcpConnection::ReadCallbackFunc cb) {
+    socket_.async_read_some(detail::makeBuffer(out, bytes), cb);
+  }
+
+  void TcpConnection::write(gsl::span<const uint8_t> in, size_t bytes,
+                            TcpConnection::WriteCallbackFunc cb) {
+    boost::asio::async_write(socket_, detail::makeBuffer(in, bytes), cb);
+  }
+
+  void TcpConnection::writeSome(gsl::span<const uint8_t> in, size_t bytes,
+                                TcpConnection::WriteCallbackFunc cb) {
+    socket_.async_write_some(detail::makeBuffer(in, bytes), cb);
+  }
+
 }  // namespace libp2p::transport

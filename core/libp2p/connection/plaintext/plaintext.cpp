@@ -44,33 +44,24 @@ namespace libp2p::connection {
     return raw_connection_->remoteMultiaddr();
   }
 
-  outcome::result<std::vector<uint8_t>> PlaintextConnection::read(
-      size_t bytes) {
-    return raw_connection_->read(bytes);
+  void PlaintextConnection::read(gsl::span<uint8_t> in, size_t bytes,
+                                 Reader::ReadCallbackFunc f) {
+    return raw_connection_->read(in, bytes, std::move(f));
+  };
+
+  void PlaintextConnection::readSome(gsl::span<uint8_t> in, size_t bytes,
+                                     Reader::ReadCallbackFunc f) {
+    return raw_connection_->readSome(in, bytes, std::move(f));
+  };
+
+  void PlaintextConnection::write(gsl::span<const uint8_t> in, size_t bytes,
+                                  Writer::WriteCallbackFunc f) {
+    return raw_connection_->write(in, bytes, std::move(f));
   }
 
-  outcome::result<std::vector<uint8_t>> PlaintextConnection::readSome(
-      size_t bytes) {
-    return raw_connection_->readSome(bytes);
-  }
-
-  outcome::result<size_t> PlaintextConnection::read(gsl::span<uint8_t> buf) {
-    return raw_connection_->read(buf);
-  }
-
-  outcome::result<size_t> PlaintextConnection::readSome(
-      gsl::span<uint8_t> buf) {
-    return raw_connection_->readSome(buf);
-  }
-
-  outcome::result<size_t> PlaintextConnection::write(
-      gsl::span<const uint8_t> in) {
-    return raw_connection_->write(in);
-  }
-
-  outcome::result<size_t> PlaintextConnection::writeSome(
-      gsl::span<const uint8_t> in) {
-    return raw_connection_->writeSome(in);
+  void PlaintextConnection::writeSome(gsl::span<const uint8_t> in, size_t bytes,
+                                      Writer::WriteCallbackFunc f) {
+    return raw_connection_->writeSome(in, bytes, std::move(f));
   }
 
   bool PlaintextConnection::isClosed() const {

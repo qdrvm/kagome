@@ -8,7 +8,6 @@
 
 #include <gmock/gmock.h>
 #include "libp2p/connection/secure_connection.hpp"
-#include "mock/libp2p/connection/connection_mock_common.hpp"
 
 namespace libp2p::connection {
   class SecureConnectionMock : public SecureConnection {
@@ -17,17 +16,16 @@ namespace libp2p::connection {
 
     MOCK_METHOD0(close, outcome::result<void>(void));
 
-    MOCK_METHOD1(write, outcome::result<size_t>(gsl::span<const uint8_t>));
-
-    MOCK_METHOD1(writeSome, outcome::result<size_t>(gsl::span<const uint8_t>));
-
-    MOCK_METHOD1(read, outcome::result<std::vector<uint8_t>>(size_t));
-
-    MOCK_METHOD1(readSome, outcome::result<std::vector<uint8_t>>(size_t));
-
-    MOCK_METHOD1(read, outcome::result<size_t>(gsl::span<uint8_t>));
-
-    MOCK_METHOD1(readSome, outcome::result<size_t>(gsl::span<uint8_t>));
+    MOCK_METHOD3(read,
+                 void(gsl::span<uint8_t>, size_t, Reader::ReadCallbackFunc));
+    MOCK_METHOD3(readSome,
+                 void(gsl::span<uint8_t>, size_t, Reader::ReadCallbackFunc));
+    MOCK_METHOD3(write,
+                 void(gsl::span<const uint8_t>, size_t,
+                     Writer::WriteCallbackFunc));
+    MOCK_METHOD3(writeSome,
+                 void(gsl::span<const uint8_t>, size_t,
+                     Writer::WriteCallbackFunc));
 
     MOCK_CONST_METHOD0(isInitiatorMock, bool(void));
     bool isInitiator() const noexcept override {
@@ -38,11 +36,11 @@ namespace libp2p::connection {
 
     MOCK_METHOD0(remoteMultiaddr, outcome::result<multi::Multiaddress>(void));
 
-    MOCK_CONST_METHOD0(localPeer, peer::PeerId(void));
+    MOCK_CONST_METHOD0(localPeer, outcome::result<peer::PeerId>(void));
 
-    MOCK_CONST_METHOD0(remotePeer, peer::PeerId(void));
+    MOCK_CONST_METHOD0(remotePeer, outcome::result<peer::PeerId>(void));
 
-    MOCK_CONST_METHOD0(remotePublicKey, crypto::PublicKey(void));
+    MOCK_CONST_METHOD0(remotePublicKey, outcome::result<crypto::PublicKey>(void));
   };
 }  // namespace libp2p::connection
 
