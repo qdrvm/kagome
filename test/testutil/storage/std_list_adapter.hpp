@@ -26,7 +26,7 @@ namespace test {
     explicit StdListIterator(typename std::list<T>::iterator l) : it_{std::move(l)} {}
     ~StdListIterator() override = default;
 
-    std::unique_ptr<GenericIterator<GenericList<T>>> create_copy()
+    std::unique_ptr<GenericIterator<GenericList<T>>> clone()
         const override {
       return std::make_unique<StdListIterator<T>>(it_);
     }

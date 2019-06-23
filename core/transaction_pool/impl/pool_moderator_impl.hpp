@@ -16,7 +16,8 @@ namespace kagome::transaction_pool {
     static constexpr size_t kDefaultExpectedSize = 2048;
 
     static bool Compare(const common::Buffer &b1, const common::Buffer &b2);
-    using Map = std::map<common::Buffer, Clock::TimePoint, decltype(&Compare)>;
+    using SystemClock = Clock<std::chrono::system_clock>;
+    using Map = std::map<common::Buffer, SystemClock::TimePoint, decltype(&Compare)>;
 
    public:
     /**
@@ -27,8 +28,8 @@ namespace kagome::transaction_pool {
      * significantly exceeded, some transactions will be removed from ban list
      */
     explicit PoolModeratorImpl(
-        std::shared_ptr<Clock> clock,
-        Clock::Duration ban_for = std::chrono::minutes(30),
+        std::shared_ptr<SystemClock> clock,
+        SystemClock::Duration ban_for = std::chrono::minutes(30),
         size_t expected_size = kDefaultExpectedSize);
 
     ~PoolModeratorImpl() override = default;
@@ -44,8 +45,8 @@ namespace kagome::transaction_pool {
 
    private:
     Map banned_until_;
-    Clock::Duration ban_for_;
-    std::shared_ptr<Clock> clock_;
+    SystemClock::Duration ban_for_;
+    std::shared_ptr<SystemClock> clock_;
     size_t expected_size_ = kDefaultExpectedSize;
   };
 

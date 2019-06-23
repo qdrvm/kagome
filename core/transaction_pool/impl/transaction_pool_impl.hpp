@@ -58,13 +58,15 @@ namespace kagome::transaction_pool {
     std::vector<primitives::Transaction> removeStale(
         const primitives::BlockId &at) override;
 
+    Status getStatus() const override;
+
     std::vector<primitives::Transaction> prune(
+        const primitives::BlockId &at,
         const std::vector<primitives::Extrinsic> &exts) override;
 
     std::vector<primitives::Transaction> pruneTags(
-        const std::vector<primitives::TransactionTag> &tag) override;
-
-    Status getStatus() const override;
+        const primitives::BlockId &at, const primitives::TransactionTag &tag,
+        const std::vector<common::Hash256> &known_imported_hashes) override;
 
    private:
     TransactionPoolImpl(std::unique_ptr<PoolModerator> moderator,

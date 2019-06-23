@@ -73,15 +73,15 @@ TEST_F(TransactionPoolTest, CorrectImportToReady) {
   ASSERT_EQ(pool_->getStatus().ready_num, 5);
 }
 
-class MockClock : public Clock {
+ class MockClock : public Clock<std::chrono::system_clock> {
  public:
-  MOCK_CONST_METHOD0(now, Clock::TimePoint(void));
+  MOCK_CONST_METHOD0(now, MockClock::TimePoint(void));
 };
 
 TEST_F(TransactionPoolTest, BanDurationCorrect) {
   auto clock = std::make_shared<MockClock>();
   auto duration = 42min;
-  auto submit_time = 10min;
+  MockClock::TimePoint submit_time {10min};
   PoolModeratorImpl moderator(clock, duration);
   testing::Expectation exp1 =
       EXPECT_CALL(*clock, now()).WillOnce(Return(submit_time));

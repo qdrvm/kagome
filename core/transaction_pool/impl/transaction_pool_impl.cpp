@@ -94,18 +94,6 @@ namespace kagome::transaction_pool {
     return removed;
   }
 
-  std::vector<primitives::Transaction> TransactionPoolImpl::prune(
-      const std::vector<primitives::Extrinsic> &exts) {
-    return {};
-  }
-
-  std::vector<primitives::Transaction> TransactionPoolImpl::pruneTags(
-      const std::vector<primitives::TransactionTag> &tags) {
-    provided_tags_.insert(tags.begin(), tags.end());
-    updateReady();
-
-  }
-
   void TransactionPoolImpl::updateReady() {
     auto is_ready = [this](auto &&tx) {
       return std::all_of(
@@ -142,6 +130,20 @@ namespace kagome::transaction_pool {
 
   TransactionPoolImpl::Status TransactionPoolImpl::getStatus() const {
     return Status{ready_queue_->size(), waiting_queue_->size()};
+  }
+
+  std::vector<Transaction> TransactionPoolImpl::prune(
+      const primitives::BlockId &at,
+      const std::vector<primitives::Extrinsic> &exts) {
+    return {};
+  }
+
+  std::vector<Transaction> TransactionPoolImpl::pruneTags(
+      const primitives::BlockId &at, const primitives::TransactionTag &tag,
+      const std::vector<common::Hash256> &known_imported_hashes) {
+    provided_tags_.insert(tag);
+    updateReady();
+    return {};
   }
 
 }  // namespace kagome::transaction_pool
