@@ -160,33 +160,33 @@ struct Client : public std::enable_shared_from_this<Client> {
                           outcome::result<std::shared_ptr<Stream>> rstream) {
         EXPECT_OUTCOME_TRUE(stream, rstream);
         self->println("new stream number ", i, " created");
-        self->onStream(stream);
+        self->onStream(i, stream);
       });
     }
   }
 
-  void onStream(const std::shared_ptr<Stream> &stream) {
+  void onStream(size_t streamId, const std::shared_ptr<Stream> &stream) {
     auto buf = randomBuffer();
-    stream->write(
-        *buf, buf->size(),
-        [buf, stream,
-         self{this->shared_from_this()}](outcome::result<size_t> rwrite) {
-          EXPECT_OUTCOME_TRUE(write, rwrite);
-          self->println("write ", write, " bytes");
+    stream->write(*buf, buf->size(),
+                  [streamId, buf, stream, self{this->shared_from_this()}](
+                      outcome::result<size_t> rwrite) {
+                    EXPECT_OUTCOME_TRUE(write, rwrite);
+                    self->println(streamId, " write ", write, " bytes");
 
-          auto readbuf = std::make_shared<std::vector<uint8_t>>();
-          readbuf->resize(write);
+                    auto readbuf = std::make_shared<std::vector<uint8_t>>();
+                    readbuf->resize(write);
 
-          stream->readSome(*readbuf, readbuf->size(),
-                           [write, buf, readbuf, stream,
-                            self](outcome::result<size_t> rread) {
-                             EXPECT_OUTCOME_TRUE(read, rread);
-                             self->println("readSome ", read, " bytes");
+                    stream->readSome(*readbuf, readbuf->size(),
+                                     [streamId, write, buf, readbuf, stream,
+                                      self](outcome::result<size_t> rread) {
+                                       EXPECT_OUTCOME_TRUE(read, rread);
+                                       self->println(streamId, " readSome ",
+                                                     read, " bytes");
 
-                             ASSERT_EQ(write, read);
-                             ASSERT_EQ(*buf, *readbuf);
-                           });
-        });
+                                       ASSERT_EQ(write, read);
+                                       ASSERT_EQ(*buf, *readbuf);
+                                     });
+                  });
   }
 
  private:
@@ -230,7 +230,7 @@ TEST(Yamux, StressTest) {
   // total number of parallel clients
   const int totalClients = 3;
   // total number of streams per connection
-  const int streams = 1;
+  const int streams = 3;
   // number, which makes tests reproducible
   const int seed = 0;
 
