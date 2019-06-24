@@ -12,10 +12,11 @@
 namespace libp2p::protocol_muxer {
   class ProtocolMuxerMock : public ProtocolMuxer {
    public:
-    MOCK_CONST_METHOD3(selectOneOf,
-                       outcome::result<peer::Protocol>(
-                           gsl::span<const peer::Protocol>,
-                           std::shared_ptr<basic::ReadWriteCloser>, bool));
+    MOCK_CONST_METHOD4(
+        selectOneOf,
+        void(gsl::span<const peer::Protocol>,
+             std::shared_ptr<basic::ReadWriteCloser>, bool,
+             std::function<void(outcome::result<peer::Protocol>)>));
   };
 }  // namespace libp2p::protocol_muxer
 

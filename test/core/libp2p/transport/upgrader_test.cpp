@@ -9,6 +9,7 @@
 #include <unordered_map>
 
 #include <gtest/gtest.h>
+#include <testutil/gmock_actions.hpp>
 #include <testutil/outcome.hpp>
 #include "libp2p/multi/multihash.hpp"
 #include "mock/libp2p/connection/capable_connection_mock.hpp"
@@ -26,6 +27,7 @@ using namespace libp2p::connection;
 using namespace libp2p::protocol_muxer;
 using namespace libp2p::basic;
 
+using testing::_;
 using testing::Return;
 
 class UpgraderTest : public testing::Test {
@@ -78,11 +80,11 @@ class UpgraderTest : public testing::Test {
 
 TEST_F(UpgraderTest, UpgradeSecureInitiator) {
   EXPECT_CALL(*raw_conn_, isInitiator_hack()).WillOnce(Return(true));
-  EXPECT_CALL(
-      *multiselect_mock_,
-      selectOneOf(gsl::span<const Protocol>(security_protos_),
-                  std::static_pointer_cast<ReadWriteCloser>(raw_conn_), true))
-      .WillOnce(Return(security_protos_[0]));
+  EXPECT_CALL(*multiselect_mock_,
+              selectOneOf(gsl::span<const Protocol>(security_protos_),
+                          std::static_pointer_cast<ReadWriteCloser>(raw_conn_),
+                          true, _))
+      .WillOnce(Arg3CallbackWithArg(security_protos_[0]));
   EXPECT_CALL(
       *std::static_pointer_cast<SecurityAdaptorMock>(security_mocks_[0]),
       secureOutbound(std::static_pointer_cast<RawConnection>(raw_conn_),
@@ -97,11 +99,11 @@ TEST_F(UpgraderTest, UpgradeSecureInitiator) {
 
 TEST_F(UpgraderTest, UpgradeSecureNotInitiator) {
   EXPECT_CALL(*raw_conn_, isInitiator_hack()).WillOnce(Return(false));
-  EXPECT_CALL(
-      *multiselect_mock_,
-      selectOneOf(gsl::span<const Protocol>(security_protos_),
-                  std::static_pointer_cast<ReadWriteCloser>(raw_conn_), false))
-      .WillOnce(Return(outcome::success(security_protos_[1])));
+  EXPECT_CALL(*multiselect_mock_,
+              selectOneOf(gsl::span<const Protocol>(security_protos_),
+                          std::static_pointer_cast<ReadWriteCloser>(raw_conn_),
+                          false, _))
+      .WillOnce(Arg3CallbackWithArg(outcome::success(security_protos_[1])));
   EXPECT_CALL(
       *std::static_pointer_cast<SecurityAdaptorMock>(security_mocks_[1]),
       secureInbound(std::static_pointer_cast<RawConnection>(raw_conn_)))
@@ -115,11 +117,11 @@ TEST_F(UpgraderTest, UpgradeSecureNotInitiator) {
 
 TEST_F(UpgraderTest, UpgradeSecureFail) {
   EXPECT_CALL(*raw_conn_, isInitiator_hack()).WillOnce(Return(false));
-  EXPECT_CALL(
-      *multiselect_mock_,
-      selectOneOf(gsl::span<const Protocol>(security_protos_),
-                  std::static_pointer_cast<ReadWriteCloser>(raw_conn_), false))
-      .WillOnce(Return(outcome::failure(std::error_code())));
+  EXPECT_CALL(*multiselect_mock_,
+              selectOneOf(gsl::span<const Protocol>(security_protos_),
+                          std::static_pointer_cast<ReadWriteCloser>(raw_conn_),
+                          false, _))
+      .WillOnce(Arg3CallbackWithArg(outcome::failure(std::error_code())));
 
   upgrader_->upgradeToSecure(raw_conn_, [](auto &&upgraded_conn_res) {
     ASSERT_FALSE(upgraded_conn_res);
@@ -128,11 +130,11 @@ TEST_F(UpgraderTest, UpgradeSecureFail) {
 
 TEST_F(UpgraderTest, UpgradeMux) {
   EXPECT_CALL(*sec_conn_, isInitiatorMock()).WillOnce(Return(true));
-  EXPECT_CALL(
-      *multiselect_mock_,
-      selectOneOf(gsl::span<const Protocol>(muxer_protos_),
-                  std::static_pointer_cast<ReadWriteCloser>(sec_conn_), true))
-      .WillOnce(Return(outcome::success(muxed_conn_)));
+  EXPECT_CALL(*multiselect_mock_,
+              selectOneOf(gsl::span<const Protocol>(muxer_protos_),
+                          std::static_pointer_cast<ReadWriteCloser>(sec_conn_),
+                          true, _))
+      .WillOnce(Arg3CallbackWithArg(outcome::success(muxer_protos_[0])));
   EXPECT_CALL(
       *std::static_pointer_cast<MuxerAdaptorMock>(muxer_mocks_[0]),
       muxConnection(std::static_pointer_cast<SecureConnection>(sec_conn_)))
@@ -146,11 +148,11 @@ TEST_F(UpgraderTest, UpgradeMux) {
 
 TEST_F(UpgraderTest, UpgradeMuxFail) {
   EXPECT_CALL(*sec_conn_, isInitiatorMock()).WillOnce(Return(true));
-  EXPECT_CALL(
-      *multiselect_mock_,
-      selectOneOf(gsl::span<const Protocol>(muxer_protos_),
-                  std::static_pointer_cast<ReadWriteCloser>(sec_conn_), true))
-      .WillOnce(Return(outcome::failure(std::error_code())));
+  EXPECT_CALL(*multiselect_mock_,
+              selectOneOf(gsl::span<const Protocol>(muxer_protos_),
+                          std::static_pointer_cast<ReadWriteCloser>(sec_conn_),
+                          true, _))
+      .WillOnce(Arg3CallbackWithArg(outcome::failure(std::error_code())));
 
   upgrader_->upgradeToMuxed(sec_conn_, [](auto &&upgraded_conn_res) {
     ASSERT_FALSE(upgraded_conn_res);

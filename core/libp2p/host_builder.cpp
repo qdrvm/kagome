@@ -14,8 +14,10 @@
 #include "libp2p/peer/address_repository/inmem_address_repository.hpp"
 #include "libp2p/peer/key_repository/inmem_key_repository.hpp"
 #include "libp2p/peer/protocol_repository/inmem_protocol_repository.hpp"
+#include "libp2p/protocol_muxer/multiselect.hpp"
 #include "libp2p/routing/routing_impl.hpp"
 #include "libp2p/security/plaintext.hpp"
+#include "libp2p/transport/impl/upgrader_impl.hpp"
 #include "libp2p/transport/tcp.hpp"
 
 namespace {
@@ -162,9 +164,6 @@ namespace libp2p {
               io_context->get_executor());
     }
 
-    // TODO(warchant): replace with real implementation PRE-149
-    //    config_.upgrader = std::make_shared<transport::UpgraderMock>();
-
     if (config_.transports.empty()) {
       //      using E = std::decay_t<decltype(*config_.executor)>;
       //      config_.transports.push_back(std::make_shared<transport::TcpTransport<E>>(
@@ -182,6 +181,11 @@ namespace libp2p {
     if (config_.securities.empty()) {
       config_.securities.push_back(std::make_shared<security::Plaintext>());
     }
+
+    config_.protocol_muxer = std::make_shared<protocol_muxer::Multiselect>();
+
+    config_.upgrader = std::make_shared<transport::UpgraderImpl>(
+        peer_id, config_.protocol_muxer, config_.securities, config_.muxers);
 
     return Host{config_, std::move(peer_id)};
   }
