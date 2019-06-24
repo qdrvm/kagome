@@ -6,6 +6,7 @@
 #ifndef KAGOME_CORE_EXTRINSICS_SUBMISSION_SERVICE_EXTRINSIC_SUBMISSION_API_HPP
 #define KAGOME_CORE_EXTRINSICS_SUBMISSION_SERVICE_EXTRINSIC_SUBMISSION_API_HPP
 
+#include "common/blob.hpp"
 #include "primitives/auth_api.hpp"
 #include "primitives/extrinsic.hpp"
 
@@ -25,13 +26,12 @@ namespace kagome::service {
     /**
      * @return collection of pending extrinsics
      */
-    virtual outcome::result<std::vector<std::vector<uint8_t>>>
+    virtual outcome::result<std::vector<primitives::Extrinsic>>
     pending_extrinsics() = 0;
 
     // TODO(yuraz): probably will be documented later (no task yet)
     virtual outcome::result<std::vector<common::Hash256>> remove_extrinsic(
-        const std::vector<boost::variant<std::vector<uint8_t>, common::Hash256>>
-            &bytes_or_hash) = 0;
+        const std::vector<primitives::ExtrinsicKey> &bytes_or_hash) = 0;
 
     // TODO(yuraz): probably will be documented later (no task yet)
     virtual void watch_extrinsic(const primitives::Metadata &metadata,

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "extrinsic_submission_api_impl.hpp"
+#include "extrinsics_submission_service/impl/extrinsic_submission_api_impl.hpp"
 
 #include "primitives/transaction.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
@@ -36,7 +36,8 @@ namespace kagome::service {
           common::Buffer buffer_hash(hash);
           size_t length = extrinsic.data.size();
           // TODO(yuraz): PRE-220 find out what value to use for this parameter
-          // in substrate tests it is always true (except the case of initialization check)
+          // in substrate tests it is always true (except the case of
+          // initialization check)
           bool should_propagate = true;
 
           primitives::Transaction transaction{
@@ -50,7 +51,7 @@ namespace kagome::service {
         });
   }
 
-  outcome::result<std::vector<std::vector<uint8_t>>>
+  outcome::result<std::vector<primitives::Extrinsic>>
   ExtrinsicSubmissionApiImpl::pending_extrinsics() {
     // not implemented yet
     std::terminate();
@@ -58,8 +59,7 @@ namespace kagome::service {
 
   outcome::result<std::vector<common::Hash256>>
   ExtrinsicSubmissionApiImpl::remove_extrinsic(
-      const std::vector<boost::variant<std::vector<uint8_t>, common::Hash256>>
-          &bytes_or_hash) {
+      const std::vector<primitives::ExtrinsicKey> &bytes_or_hash) {
     // not implemented yet
     std::terminate();
   }

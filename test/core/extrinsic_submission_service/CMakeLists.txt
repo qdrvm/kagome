@@ -16,6 +16,7 @@ addtest(extrinsic_submission_proxy_test
     )
 target_link_libraries(extrinsic_submission_proxy_test
     extrinsics_submission_service
+    blob
     )
 
 addtest(extrinsic_submission_api_test

@@ -24,8 +24,10 @@ namespace kagome::primitives {
   /**
    * @brief Session primitive
    */
-  class Session;
-  // TODO(yuraz): investigate Session primitive
+  struct Session {
+    uint32_t id{};
+  };
+  // TODO(yuraz): PRE-221 investigate and implement Session primitive
 
   /**
    * @brief Metadata primitive
@@ -35,8 +37,16 @@ namespace kagome::primitives {
   /**
    * @brief Subscriber primitive
    */
-  class Subscriber;
-  // TODO(yuraz): investigate Subscriber primitive
+  struct Subscriber {
+    uint32_t id{};
+  };
+
+  /**
+   * @brief ExtrinsicKey is used as a key to search extrinsic
+   */
+  using ExtrinsicKey =
+      boost::variant<std::vector<uint8_t>, kagome::common::Hash256>;
+  // TODO(yuraz): PRE-221 investigate and implement Subscriber primitive
 
 }  // namespace kagome::primitives
 

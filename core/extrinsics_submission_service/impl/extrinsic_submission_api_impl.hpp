@@ -48,12 +48,12 @@ namespace kagome::service {
     outcome::result<common::Hash256> submit_extrinsic(
         const primitives::Extrinsic &extrinsic) override;
 
-    outcome::result<std::vector<std::vector<uint8_t>>> pending_extrinsics()
+    outcome::result<std::vector<primitives::Extrinsic>> pending_extrinsics()
         override;
 
     // TODO(yuraz): probably will be documented later (no task yet)
     outcome::result<std::vector<common::Hash256>> remove_extrinsic(
-        const std::vector<boost::variant<std::vector<uint8_t>, common::Hash256>>
+        const std::vector<primitives::ExtrinsicKey>
             &bytes_or_hash) override;
 
     // TODO(yuraz): probably will be documented later (no task yet)

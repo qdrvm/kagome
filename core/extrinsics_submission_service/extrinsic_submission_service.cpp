@@ -8,7 +8,7 @@
 namespace kagome::service {
   ExtrinsicSubmissionService::ExtrinsicSubmissionService(
       Configuration configuration, sptr<JsonTransport> transport,
-      sptr<ExtrinsicSubmissionApiImpl> api)
+      sptr<ExtrinsicSubmissionApi> api)
       : configuration_{configuration},
         transport_{std::move(transport)},
         api_proxy_(std::make_shared<ExtrinsicSubmissionProxy>(std::move(api))),
