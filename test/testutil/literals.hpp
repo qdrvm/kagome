@@ -42,4 +42,10 @@ inline libp2p::multi::Multihash operator""_multihash(const char *c, size_t s) {
       .value();
 }
 
+inline libp2p::peer::PeerId operator"" _peerid(const char *c, size_t s) {
+  libp2p::crypto::PublicKey p;
+  p.data = kagome::common::Buffer{}.put(std::string_view(c, s));
+  return libp2p::peer::PeerId::fromPublicKey(p).value();
+}
+
 #endif  // KAGOME_TEST_TESTUTIL_LITERALS_HPP_
