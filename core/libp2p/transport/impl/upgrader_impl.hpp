@@ -12,7 +12,6 @@
 #include "libp2p/muxer/muxer_adaptor.hpp"
 #include "libp2p/peer/peer_id.hpp"
 #include "libp2p/peer/protocol.hpp"
-#include "libp2p/protocol_muxer/multiselect.hpp"
 #include "libp2p/protocol_muxer/protocol_muxer.hpp"
 #include "libp2p/security/security_adaptor.hpp"
 #include "libp2p/transport/upgrader.hpp"

@@ -16,6 +16,5 @@ add_library(libp2p_upgrader
     upgrader_impl.cpp
     )
 target_link_libraries(libp2p_upgrader
-    multiselect
     outcome
     )

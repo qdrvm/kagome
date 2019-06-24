@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 #include <testutil/outcome.hpp>
 #include "libp2p/multi/multihash.hpp"
+#include "mock/libp2p/connection/capable_connection_mock.hpp"
 #include "mock/libp2p/connection/raw_connection_mock.hpp"
 #include "mock/libp2p/connection/secure_connection_mock.hpp"
 #include "mock/libp2p/muxer/muxer_adaptor_mock.hpp"
@@ -36,10 +37,11 @@ class UpgraderTest : public testing::Test {
           getProtocolId())
           .WillByDefault(Return(security_protos_[i]));
     }
-    //    for (size_t i = 0; i < muxer_protos_.size(); ++i) {
-    //      ON_CALL(*muxer_mocks_[i], getProtocolId())
-    //          .WillByDefault(Return(muxer_protos_[i]));
-    //    }
+    for (size_t i = 0; i < muxer_protos_.size(); ++i) {
+      ON_CALL(*std::static_pointer_cast<MuxerAdaptorMock>(muxer_mocks_[i]),
+              getProtocolId())
+          .WillByDefault(Return(muxer_protos_[i]));
+    }
 
     upgrader_ = std::make_shared<UpgraderImpl>(peer_id_, multiselect_mock_,
                                                security_mocks_, muxer_mocks_);
@@ -70,6 +72,8 @@ class UpgraderTest : public testing::Test {
       std::make_shared<RawConnectionMock>();
   std::shared_ptr<SecureConnectionMock> sec_conn_ =
       std::make_shared<SecureConnectionMock>();
+  std::shared_ptr<CapableConnectionMock> muxed_conn_ =
+      std::make_shared<CapableConnectionMock>();
 };
 
 TEST_F(UpgraderTest, UpgradeSecureInitiator) {
@@ -85,8 +89,10 @@ TEST_F(UpgraderTest, UpgradeSecureInitiator) {
                      peer_id_))
       .WillOnce(Return(sec_conn_));
 
-  EXPECT_OUTCOME_TRUE(upgraded_conn, upgrader_->upgradeToSecure(raw_conn_))
-  ASSERT_EQ(upgraded_conn, sec_conn_);
+  upgrader_->upgradeToSecure(raw_conn_, [this](auto &&upgraded_conn_res) {
+    ASSERT_TRUE(upgraded_conn_res);
+    ASSERT_EQ(upgraded_conn_res.value(), sec_conn_);
+  });
 }
 
 TEST_F(UpgraderTest, UpgradeSecureNotInitiator) {
@@ -101,8 +107,10 @@ TEST_F(UpgraderTest, UpgradeSecureNotInitiator) {
       secureInbound(std::static_pointer_cast<RawConnection>(raw_conn_)))
       .WillOnce(Return(outcome::success(sec_conn_)));
 
-  EXPECT_OUTCOME_TRUE(upgraded_conn, upgrader_->upgradeToSecure(raw_conn_))
-  ASSERT_EQ(upgraded_conn, sec_conn_);
+  upgrader_->upgradeToSecure(raw_conn_, [this](auto &&upgraded_conn_res) {
+    ASSERT_TRUE(upgraded_conn_res);
+    ASSERT_EQ(upgraded_conn_res.value(), sec_conn_);
+  });
 }
 
 TEST_F(UpgraderTest, UpgradeSecureFail) {
@@ -113,9 +121,38 @@ TEST_F(UpgraderTest, UpgradeSecureFail) {
                   std::static_pointer_cast<ReadWriteCloser>(raw_conn_), false))
       .WillOnce(Return(outcome::failure(std::error_code())));
 
-  ASSERT_FALSE(upgrader_->upgradeToSecure(raw_conn_));
+  upgrader_->upgradeToSecure(raw_conn_, [](auto &&upgraded_conn_res) {
+    ASSERT_FALSE(upgraded_conn_res);
+  });
 }
 
-TEST_F(UpgraderTest, UpgradeMux) {}
+TEST_F(UpgraderTest, UpgradeMux) {
+  EXPECT_CALL(*sec_conn_, isInitiatorMock()).WillOnce(Return(true));
+  EXPECT_CALL(
+      *multiselect_mock_,
+      selectOneOf(gsl::span<const Protocol>(muxer_protos_),
+                  std::static_pointer_cast<ReadWriteCloser>(sec_conn_), true))
+      .WillOnce(Return(outcome::success(muxed_conn_)));
+  EXPECT_CALL(
+      *std::static_pointer_cast<MuxerAdaptorMock>(muxer_mocks_[0]),
+      muxConnection(std::static_pointer_cast<SecureConnection>(sec_conn_)))
+      .WillOnce(Return(muxed_conn_));
 
-TEST_F(UpgraderTest, UpgradeMuxFail) {}
+  upgrader_->upgradeToMuxed(sec_conn_, [this](auto &&upgraded_conn_res) {
+    ASSERT_TRUE(upgraded_conn_res);
+    ASSERT_EQ(upgraded_conn_res.value(), muxed_conn_);
+  });
+}
+
+TEST_F(UpgraderTest, UpgradeMuxFail) {
+  EXPECT_CALL(*sec_conn_, isInitiatorMock()).WillOnce(Return(true));
+  EXPECT_CALL(
+      *multiselect_mock_,
+      selectOneOf(gsl::span<const Protocol>(muxer_protos_),
+                  std::static_pointer_cast<ReadWriteCloser>(sec_conn_), true))
+      .WillOnce(Return(outcome::failure(std::error_code())));
+
+  upgrader_->upgradeToMuxed(sec_conn_, [](auto &&upgraded_conn_res) {
+    ASSERT_FALSE(upgraded_conn_res);
+  });
+}
