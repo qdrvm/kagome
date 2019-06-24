@@ -5,6 +5,7 @@
 
 #include "libp2p/connection/yamux/yamuxed_connection.hpp"
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "core/libp2p/transport_fixture/transport_fixture.hpp"
 #include "libp2p/connection/yamux/yamux_frame.hpp"
@@ -32,13 +33,7 @@ class YamuxIntegrationTest : public libp2p::testing::TransportFixture {
       EXPECT_OUTCOME_TRUE(sec_conn,
                           security_adaptor_->secureInbound(std::move(conn)))
       EXPECT_OUTCOME_TRUE(mux_conn,
-                          muxer_adaptor_->muxConnection(
-                              std::move(sec_conn),
-                              [this](auto &&stream_res) {
-                                EXPECT_OUTCOME_TRUE(stream, stream_res)
-                                accepted_streams_.push_back(std::move(stream));
-                              },
-                              MuxedConnectionConfig{}))
+                          muxer_adaptor_->muxConnection(std::move(sec_conn)))
       yamuxed_connection_ =
           std::move(std::static_pointer_cast<YamuxedConnection>(mux_conn));
       yamuxed_connection_->start();
@@ -102,7 +97,11 @@ class YamuxIntegrationTest : public libp2p::testing::TransportFixture {
 
   std::shared_ptr<SecurityAdaptor> security_adaptor_ =
       std::make_shared<Plaintext>();
-  std::shared_ptr<MuxerAdaptor> muxer_adaptor_ = std::make_shared<Yamux>();
+  std::shared_ptr<MuxerAdaptor> muxer_adaptor_ =
+      std::make_shared<Yamux>([this](auto &&stream_res) {
+        EXPECT_OUTCOME_TRUE(stream, stream_res)
+        accepted_streams_.push_back(std::move(stream));
+      });
 
   std::vector<std::function<void(std::shared_ptr<YamuxedConnection>)>>
       yamux_callbacks_;
@@ -486,4 +485,3 @@ TEST_F(YamuxIntegrationTest, Reset) {
   ASSERT_TRUE(client_finished_);
   ASSERT_TRUE(ret_stream->isClosed());
 }
-
