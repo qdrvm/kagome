@@ -9,9 +9,9 @@
 #include <functional>
 
 #include "libp2p/connection/secure_connection.hpp"
-#include "libp2p/connection/stream.hpp"
 
 namespace libp2p::connection {
+  struct Stream;
 
   /**
    * Connection that provides basic libp2p requirements to the connection: it is
@@ -20,6 +20,8 @@ namespace libp2p::connection {
   struct CapableConnection : public SecureConnection {
     using StreamHandler = void(outcome::result<std::shared_ptr<Stream>>);
     using StreamHandlerFunc = std::function<StreamHandler>;
+
+    using NewStreamHandlerFunc = std::function<void(std::shared_ptr<Stream>)>;
 
     ~CapableConnection() override = default;
 
@@ -42,6 +44,15 @@ namespace libp2p::connection {
      * error appears
      */
     virtual void newStream(StreamHandlerFunc cb) = 0;
+
+    /**
+     * @brief Set a handler, which is called, when a new stream arrives from the
+     * other side
+     * @param cb, to which a received stream is passed
+     * @note if a handler is not set, all received streams will be immediately
+     * reset
+     */
+    virtual void onStream(NewStreamHandlerFunc cb) = 0;
   };
 
 }  // namespace libp2p::connection

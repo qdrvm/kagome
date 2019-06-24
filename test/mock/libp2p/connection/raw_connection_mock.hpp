@@ -16,7 +16,7 @@ namespace libp2p::connection {
    public:
     MOCK_CONST_METHOD0(isClosed, bool(void));
 
-    MOCK_METHOD1(close, void(CloseCallbackFunc));
+    MOCK_METHOD0(close, outcome::result<void>());
 
     MOCK_METHOD3(read,
                  void(gsl::span<uint8_t>, size_t, Reader::ReadCallbackFunc));

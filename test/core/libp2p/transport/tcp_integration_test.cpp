@@ -217,7 +217,7 @@ TEST(TCP, ClientClosesConnection) {
   transport->dial(ma, [](auto &&rconn) {
     auto conn = expectConnectionValid(rconn);
     EXPECT_TRUE(conn->isInitiator());
-    conn->close([](auto &&res) { ASSERT_TRUE(res) << res.error().message(); });
+    EXPECT_TRUE(conn->close());
   });
 
   context.run_for(50ms);
@@ -235,7 +235,7 @@ TEST(TCP, ServerClosesConnection) {
   auto listener = transport->createListener([&](auto &&rconn) {
     auto conn = expectConnectionValid(rconn);
     EXPECT_FALSE(conn->isInitiator());
-    conn->close([](auto &&res) { ASSERT_TRUE(res) << res.error().message(); });
+    EXPECT_OUTCOME_TRUE_1(conn->close())
   });
 
   ASSERT_TRUE(listener);

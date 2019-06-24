@@ -43,6 +43,16 @@ namespace libp2p::connection {
      */
     virtual bool isClosedForWrite() const = 0;
 
+    using CloseCallbackFunc = std::function<void(outcome::result<void>)>;
+
+    /**
+     * Close a stream, indicating we are not going to write to it anymore; the
+     * other side, however, can write to it, if it was not closed from there
+     * before
+     * @param cb to be called, when the stream is closed, or error happens
+     */
+    virtual void close(CloseCallbackFunc cb) = 0;
+
     /**
      * @brief Close this stream entirely; this normally means an error happened,
      * so it should not be used just to close the stream
@@ -58,6 +68,13 @@ namespace libp2p::connection {
      */
     virtual void adjustWindowSize(
         uint32_t new_size, std::function<void(outcome::result<void>)> cb) = 0;
+
+   private:
+    /// this method is not to be used, as Stream supports only close with a
+    /// callback
+    outcome::result<void> close() override {
+      return std::error_code();
+    }
   };
 
 }  // namespace libp2p::connection

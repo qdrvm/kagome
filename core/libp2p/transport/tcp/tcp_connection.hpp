@@ -67,7 +67,7 @@ namespace libp2p::transport {
 
     bool isInitiator() const noexcept override;
 
-    void close(CloseCallbackFunc cb) override;
+    outcome::result<void> close() override;
 
     bool isClosed() const override;
 

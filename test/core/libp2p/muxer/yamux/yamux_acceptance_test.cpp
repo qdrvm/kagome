@@ -28,20 +28,9 @@ class YamuxAcceptanceTest : public libp2p::testing::TransportFixture {
       std::make_shared<Plaintext>();
 
   std::shared_ptr<MuxerAdaptor> server_muxer_adaptor_ =
-      std::make_shared<Yamux>([this](auto &&stream_res) {
-        // wrap each received stream into a server
-        // structure and start reading
-        ASSERT_TRUE(stream_res);
-        auto server =
-            std::make_shared<ServerStream>(std::move(stream_res.value()));
-        server->doRead();
-        server_streams_.push_back(std::move(server));
-      });
+      std::make_shared<Yamux>();
   std::shared_ptr<MuxerAdaptor> client_muxer_adaptor_ =
-      std::make_shared<Yamux>([](auto &&stream_res) {
-        // here we are not going to accept any streams - pure client
-        FAIL() << "no streams should be here";
-      });
+      std::make_shared<Yamux>();
 
   std::shared_ptr<CapableConnection> server_connection_;
   std::shared_ptr<CapableConnection> client_connection_;
@@ -104,6 +93,13 @@ TEST_F(YamuxAcceptanceTest, PingPong) {
     EXPECT_OUTCOME_TRUE(
         mux_conn, server_muxer_adaptor_->muxConnection(std::move(sec_conn)))
     server_connection_ = std::move(mux_conn);
+    server_connection_->onStream([this](auto &&stream) {
+      // wrap each received stream into a server structure and start reading
+      ASSERT_TRUE(stream);
+      auto server = std::make_shared<ServerStream>(std::move(stream));
+      server->doRead();
+      server_streams_.push_back(std::move(server));
+    });
     server_connection_->start();
     return outcome::success();
   });

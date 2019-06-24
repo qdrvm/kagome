@@ -32,12 +32,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, YamuxedConnection::Error, e) {
 namespace libp2p::connection {
   YamuxedConnection::YamuxedConnection(
       std::shared_ptr<SecureConnection> connection,
-      NewStreamHandler stream_handler, muxer::MuxedConnectionConfig config,
-      kagome::common::Logger logger)
+      muxer::MuxedConnectionConfig config, kagome::common::Logger logger)
       : header_buffer_(YamuxFrame::kHeaderLength, 0),
         data_buffer_(config.maximum_window_size, 0),
         connection_{std::move(connection)},
-        new_stream_handler_{std::move(stream_handler)},
         config_{config},
         is_active_{true},
         log_{std::move(logger)} {
@@ -72,6 +70,10 @@ namespace libp2p::connection {
          }});
   }
 
+  void YamuxedConnection::onStream(NewStreamHandlerFunc cb) {
+    new_stream_handler_ = std::move(cb);
+  }
+
   outcome::result<peer::PeerId> YamuxedConnection::localPeer() const {
     return connection_->localPeer();
   }
@@ -97,20 +99,12 @@ namespace libp2p::connection {
     return connection_->remoteMultiaddr();
   }
 
-  void YamuxedConnection::close(CloseCallbackFunc cb) {
-    return connection_->close(
-        [self{shared_from_this()}, cb = std::move(cb)](auto &&res) {
-          if (!res) {
-            self->log_->error("cannot close the connection: {}",
-                              res.error().message());
-            return cb(res.error());
-          }
-          self->is_active_ = false;
-          for (const auto &stream : self->streams_) {
-            stream.second->resetStream();
-          }
-          return cb(outcome::success());
-        });
+  outcome::result<void> YamuxedConnection::close() {
+    is_active_ = false;
+    for (const auto &stream : streams_) {
+      stream.second->resetStream();
+    }
+    return connection_->close();
   }
 
   bool YamuxedConnection::isClosed() const {
@@ -255,7 +249,7 @@ namespace libp2p::connection {
           break;
         }
         // this is a new stream request, maybe with data inside
-        if (streams_.size() < config_.maximum_streams) {
+        if (streams_.size() < config_.maximum_streams || !new_stream_handler_) {
           return registerNewStream(
               stream_id, [self{shared_from_this()}, frame](auto &&stream_res) {
                 if (stream_res) {
@@ -317,7 +311,7 @@ namespace libp2p::connection {
         }
 
         // no such stream found => it's a creation of a new stream
-        if (streams_.size() < config_.maximum_streams) {
+        if (streams_.size() < config_.maximum_streams || !new_stream_handler_) {
           return registerNewStream(
               stream_id,
               [self{shared_from_this()}](auto &&res) { self->doReadHeader(); });

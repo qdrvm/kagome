@@ -14,7 +14,6 @@
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
 #include "libp2p/connection/capable_connection.hpp"
-#include "libp2p/connection/stream.hpp"
 #include "libp2p/muxer/muxed_connection_config.hpp"
 
 namespace libp2p::connection {
@@ -32,7 +31,6 @@ namespace libp2p::connection {
         public std::enable_shared_from_this<YamuxedConnection> {
    public:
     using StreamId = uint32_t;
-    using NewStreamHandler = std::function<void(std::shared_ptr<Stream>)>;
 
     enum class Error {
       NO_SUCH_STREAM = 1,
@@ -46,14 +44,12 @@ namespace libp2p::connection {
     /**
      * Create a new YamuxedConnection instance
      * @param connection to be multiplexed by this instance
-     * @param stream_handler - function, which is going to be called, when a new
-     * stream arrives
      * @param config to configure this instance
      * @param logger to output messages
      */
     YamuxedConnection(
         std::shared_ptr<SecureConnection> connection,
-        NewStreamHandler stream_handler, muxer::MuxedConnectionConfig config,
+        muxer::MuxedConnectionConfig config,
         kagome::common::Logger logger = kagome::common::createLogger("Yamux"));
 
     YamuxedConnection(const YamuxedConnection &other) = delete;
@@ -68,6 +64,8 @@ namespace libp2p::connection {
 
     void newStream(StreamHandlerFunc cb) override;
 
+    void onStream(NewStreamHandlerFunc cb) override;
+
     outcome::result<peer::PeerId> localPeer() const override;
 
     outcome::result<peer::PeerId> remotePeer() const override;
@@ -80,7 +78,7 @@ namespace libp2p::connection {
 
     outcome::result<multi::Multiaddress> remoteMultiaddr() override;
 
-    void close(CloseCallbackFunc cb) override;
+    outcome::result<void> close() override;
 
     bool isClosed() const override;
 
@@ -122,7 +120,8 @@ namespace libp2p::connection {
      */
     void writeCompleted(outcome::result<size_t> res);
 
-    /// buffers to store header and data parts of Yamux frame, which were read last
+    /// buffers to store header and data parts of Yamux frame, which were read
+    /// last
     kagome::common::Buffer header_buffer_;
     kagome::common::Buffer data_buffer_;
 
@@ -244,7 +243,7 @@ namespace libp2p::connection {
     void closeSession();
 
     std::shared_ptr<SecureConnection> connection_;
-    NewStreamHandler new_stream_handler_;
+    NewStreamHandlerFunc new_stream_handler_;
     muxer::MuxedConnectionConfig config_;
 
     uint32_t last_created_stream_id_;
