@@ -42,19 +42,19 @@ struct Server : public std::enable_shared_from_this<Server> {
     EXPECT_CALL(*upgrader_, upgradeToSecure(_, _))
         .WillRepeatedly(Upgrade([&](std::shared_ptr<RawConnection> raw) {
           println("secure inbound");
-          return this->security_adaptor_->secureInbound(raw);
+          return this->security_adaptor_->secureInbound(std::move(raw));
         }));
     EXPECT_CALL(*upgrader_, upgradeToMuxed(_, _))
         .WillRepeatedly(Upgrade([&](std::shared_ptr<SecureConnection> sec) {
           println("mux connection");
-          return this->muxer_adaptor_->muxConnection(sec);
+          return this->muxer_adaptor_->muxConnection(std::move(sec));
         }));
 
     transport_ = std::make_shared<TcpTransport>(context, upgrader_);
 
     listener_ = transport_->createListener(
         [this](outcome::result<std::shared_ptr<CapableConnection>> rconn) {
-          EXPECT_OUTCOME_TRUE(conn, rconn);
+          EXPECT_OUTCOME_TRUE(conn, rconn)
           this->println("new connection received");
           this->onConnection(conn);
         });
@@ -63,7 +63,7 @@ struct Server : public std::enable_shared_from_this<Server> {
   void onConnection(const std::shared_ptr<CapableConnection> &conn) {
     conn->onStream([self{shared_from_this()}](
                        outcome::result<std::shared_ptr<Stream>> rstream) {
-      EXPECT_OUTCOME_TRUE(stream, rstream);
+      EXPECT_OUTCOME_TRUE(stream, rstream)
       self->println("new stream created");
       self->onStream(stream);
     });
@@ -81,7 +81,7 @@ struct Server : public std::enable_shared_from_this<Server> {
     stream->readSome(*buf, buf->size(),
                      [buf, stream, self{this->shared_from_this()}](
                          outcome::result<size_t> rread) {
-                       EXPECT_OUTCOME_TRUE(read, rread);
+                       EXPECT_OUTCOME_TRUE(read, rread)
 
                        self->println("readSome ", read, " bytes");
 
@@ -89,7 +89,7 @@ struct Server : public std::enable_shared_from_this<Server> {
                        stream->write(*buf, read,
                                      [buf, read, stream,
                                       self](outcome::result<size_t> rwrite) {
-                                       EXPECT_OUTCOME_TRUE(write, rwrite);
+                                       EXPECT_OUTCOME_TRUE(write, rwrite)
                                        self->println("write ", write, " bytes");
                                        ASSERT_EQ(write, read);
                                      });
@@ -97,7 +97,7 @@ struct Server : public std::enable_shared_from_this<Server> {
   }
 
   void listen(const Multiaddress &ma) {
-    EXPECT_OUTCOME_TRUE_1(this->listener_->listen(ma));
+    EXPECT_OUTCOME_TRUE_1(this->listener_->listen(ma))
   }
 
  private:
