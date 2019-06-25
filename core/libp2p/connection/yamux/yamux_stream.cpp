@@ -85,7 +85,9 @@ namespace libp2p::connection {
   }
 
   void YamuxStream::readSome(gsl::span<uint8_t> out, size_t bytes,
-                             ReadCallbackFunc cb) {}
+                             ReadCallbackFunc cb) {
+    return read(out, bytes, std::move(cb), true);
+  }
 
   void YamuxStream::read(gsl::span<uint8_t> out, size_t bytes,
                          ReadCallbackFunc cb, bool some) {

@@ -28,7 +28,7 @@ using ::testing::Mock;
 using ::testing::NiceMock;
 using std::chrono_literals::operator""ms;
 
-static const size_t kServerBufSize = 10000;  // Kb
+static const size_t kServerBufSize = 10000;  // 10 Kb
 
 ACTION_P(Upgrade, do_upgrade) {
   // arg0 - prev conn
@@ -65,7 +65,7 @@ struct Server : public std::enable_shared_from_this<Server> {
   void onConnection(const std::shared_ptr<CapableConnection> &conn) {
     this->clientsConnected++;
 
-    conn->onStream([self{shared_from_this()}](
+    conn->onStream([conn, self{shared_from_this()}](
                        outcome::result<std::shared_ptr<Stream>> rstream) {
       EXPECT_OUTCOME_TRUE(stream, rstream)
       self->println("new stream created");
@@ -99,6 +99,8 @@ struct Server : public std::enable_shared_from_this<Server> {
                                        self->println("write ", write, " bytes");
                                        self->streamWrites++;
                                        ASSERT_EQ(write, read);
+
+                                       self->onStream(stream);
                                      });
                      });
   }
@@ -264,9 +266,9 @@ TEST(Yamux, StressTest) {
   // total number of parallel clients
   const int totalClients = 3;
   // total number of streams per connection
-  const int streams = 10;
+  const int streams = 1;
   // total number of rounds per stream
-  const int rounds = 100;
+  const int rounds = 1;
   // number, which makes tests reproducible
   const int seed = 100;
 
