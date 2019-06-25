@@ -61,10 +61,13 @@ struct Server : public std::enable_shared_from_this<Server> {
   }
 
   void onConnection(const std::shared_ptr<CapableConnection> &conn) {
+    this->clientsConnected++;
+
     conn->onStream([self{shared_from_this()}](
                        outcome::result<std::shared_ptr<Stream>> rstream) {
       EXPECT_OUTCOME_TRUE(stream, rstream)
       self->println("new stream created");
+      self->streamsCreated++;
       self->onStream(stream);
     });
 
@@ -84,6 +87,7 @@ struct Server : public std::enable_shared_from_this<Server> {
                        EXPECT_OUTCOME_TRUE(read, rread)
 
                        self->println("readSome ", read, " bytes");
+                       self->streamReads++;
 
                        // echo back read data
                        stream->write(*buf, read,
@@ -91,14 +95,19 @@ struct Server : public std::enable_shared_from_this<Server> {
                                       self](outcome::result<size_t> rwrite) {
                                        EXPECT_OUTCOME_TRUE(write, rwrite)
                                        self->println("write ", write, " bytes");
+                                       self->streamWrites++;
                                        ASSERT_EQ(write, read);
                                      });
                      });
   }
 
-  void listen(const Multiaddress &ma) {
-    EXPECT_OUTCOME_TRUE_1(this->listener_->listen(ma))
-  }
+  void listen(const Multiaddress &ma){
+      EXPECT_OUTCOME_TRUE_1(this->listener_->listen(ma))}
+
+  size_t clientsConnected = 0;
+  size_t streamsCreated = 0;
+  size_t streamReads = 0;
+  size_t streamWrites = 0;
 
  private:
   template <typename... Args>
@@ -119,9 +128,11 @@ struct Server : public std::enable_shared_from_this<Server> {
 };
 
 struct Client : public std::enable_shared_from_this<Client> {
-  Client(boost::asio::io_context &context, PeerId p, size_t streams)
+  Client(boost::asio::io_context &context, PeerId p, size_t streams,
+         size_t rounds)
       : peer_id_(std::move(p)),
         streams_(streams),
+        rounds_(rounds),
         distribution(1, kServerBufSize) {
     generator.seed(rand());  // intentional
 
@@ -160,34 +171,48 @@ struct Client : public std::enable_shared_from_this<Client> {
                           outcome::result<std::shared_ptr<Stream>> rstream) {
         EXPECT_OUTCOME_TRUE(stream, rstream);
         self->println("new stream number ", i, " created");
-        self->onStream(i, stream);
+        self->onStream(i, self->rounds_, stream);
       });
     }
   }
 
-  void onStream(size_t streamId, const std::shared_ptr<Stream> &stream) {
+  void onStream(size_t streamId, size_t round,
+                const std::shared_ptr<Stream> &stream) {
+    this->println(streamId, " onStream round ", round);
+    if (round <= 0) {
+      return;
+    }
+
     auto buf = randomBuffer();
-    stream->write(*buf, buf->size(),
-                  [streamId, buf, stream, self{this->shared_from_this()}](
-                      outcome::result<size_t> rwrite) {
-                    EXPECT_OUTCOME_TRUE(write, rwrite);
-                    self->println(streamId, " write ", write, " bytes");
+    stream->write(
+        *buf, buf->size(),
+        [round, streamId, buf, stream,
+         self{this->shared_from_this()}](outcome::result<size_t> rwrite) {
+          EXPECT_OUTCOME_TRUE(write, rwrite);
+          self->println(streamId, " write ", write, " bytes");
+          self->streamWrites++;
 
-                    auto readbuf = std::make_shared<std::vector<uint8_t>>();
-                    readbuf->resize(write);
+          auto readbuf = std::make_shared<std::vector<uint8_t>>();
+          readbuf->resize(write);
 
-                    stream->readSome(*readbuf, readbuf->size(),
-                                     [streamId, write, buf, readbuf, stream,
-                                      self](outcome::result<size_t> rread) {
-                                       EXPECT_OUTCOME_TRUE(read, rread);
-                                       self->println(streamId, " readSome ",
-                                                     read, " bytes");
+          stream->readSome(*readbuf, readbuf->size(),
+                           [round, streamId, write, buf, readbuf, stream,
+                            self](outcome::result<size_t> rread) {
+                             EXPECT_OUTCOME_TRUE(read, rread);
+                             self->println(streamId, " readSome ", read,
+                                           " bytes");
+                             self->streamReads++;
 
-                                       ASSERT_EQ(write, read);
-                                       ASSERT_EQ(*buf, *readbuf);
-                                     });
-                  });
+                             ASSERT_EQ(write, read);
+                             ASSERT_EQ(*buf, *readbuf);
+
+                             self->onStream(streamId, round - 1, stream);
+                           });
+        });
   }
+
+  size_t streamWrites = 0;
+  size_t streamReads = 0;
 
  private:
   template <typename... Args>
@@ -214,6 +239,7 @@ struct Client : public std::enable_shared_from_this<Client> {
   PeerId peer_id_;
 
   size_t streams_;
+  size_t rounds_;
 
   std::default_random_engine generator;
   std::uniform_int_distribution<int> distribution;
@@ -230,9 +256,11 @@ TEST(Yamux, StressTest) {
   // total number of parallel clients
   const int totalClients = 3;
   // total number of streams per connection
-  const int streams = 3;
+  const int streams = 10;
+  // total number of rounds per stream
+  const int rounds = 100;
   // number, which makes tests reproducible
-  const int seed = 0;
+  const int seed = 100;
 
   boost::asio::io_context context(1);
   srand(seed);  // intentional
@@ -249,10 +277,13 @@ TEST(Yamux, StressTest) {
       boost::asio::io_context context(1);
       auto pid = testutil::randomPeerId();
 
-      auto client = std::make_shared<Client>(context, pid, streams);
+      auto client = std::make_shared<Client>(context, pid, streams, rounds);
       client->connect(serverAddr);
 
       context.run_for(5000ms);
+
+      EXPECT_EQ(client->streamWrites, rounds * streams);
+      EXPECT_EQ(client->streamReads, rounds * streams);
     });
 
     thread.detach();
@@ -265,4 +296,9 @@ TEST(Yamux, StressTest) {
       c.join();
     }
   }
+
+  EXPECT_EQ(server->clientsConnected, totalClients);
+  EXPECT_EQ(server->streamsCreated, totalClients * streams);
+  EXPECT_EQ(server->streamReads, totalClients * streams * rounds);
+  EXPECT_EQ(server->streamWrites, totalClients * streams * rounds);
 }
