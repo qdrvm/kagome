@@ -48,7 +48,9 @@ struct Server : public std::enable_shared_from_this<Server> {
     EXPECT_CALL(*upgrader_, upgradeToMuxed(_, _))
         .WillRepeatedly(Upgrade([&](std::shared_ptr<SecureConnection> sec) {
           println("mux connection");
-          return this->muxer_adaptor_->muxConnection(std::move(sec));
+          auto c = this->muxer_adaptor_->muxConnection(std::move(sec)).value();
+          c->start();
+          return c;
         }));
     Mock::AllowLeak(upgrader_.get());
 
@@ -72,8 +74,6 @@ struct Server : public std::enable_shared_from_this<Server> {
       self->streamsCreated++;
       self->onStream(stream);
     });
-
-    conn->start();
   }
 
   void onStream(const std::shared_ptr<Stream> &stream) {
@@ -152,7 +152,9 @@ struct Client : public std::enable_shared_from_this<Client> {
         .WillRepeatedly(Upgrade([&](std::shared_ptr<SecureConnection> sec) {
           // client has its own muxer, therefore, upgrader
           println("mux connection");
-          return this->muxer_adaptor_->muxConnection(sec);
+          auto c = this->muxer_adaptor_->muxConnection(sec).value();
+          c->start();
+          return c;
         }));
     Mock::AllowLeak(upgrader_.get());
 
@@ -172,7 +174,6 @@ struct Client : public std::enable_shared_from_this<Client> {
   }
 
   void onConnection(const std::shared_ptr<CapableConnection> &conn) {
-    conn->start();
     for (size_t i = 0; i < streams_; i++) {
       boost::asio::post(context_, [i, conn, self{this->shared_from_this()}]() {
         conn->newStream(
@@ -269,9 +270,9 @@ TEST(Yamux, StressTest) {
   // total number of streams per connection
   const int streams = 10;
   // total number of rounds per stream
-  const int rounds = 1;
+  const int rounds = 10;
   // number, which makes tests reproducible
-  const int seed = 100;
+  const int seed = 0;
 
   boost::asio::io_context context(1);
   srand(seed);  // intentional
@@ -284,21 +285,21 @@ TEST(Yamux, StressTest) {
   std::vector<std::thread> clients;
   clients.reserve(totalClients);
   for (int i = 0; i < totalClients; i++) {
-    auto &thread = clients.emplace_back([&]() {
+    clients.emplace_back([&]() {
       boost::asio::io_context context(1);
       auto pid = testutil::randomPeerId();
 
       auto client = std::make_shared<Client>(context, pid, streams, rounds);
       client->connect(serverAddr);
 
-      context.run_for(5000ms);
+      context.run_for(2000ms);
 
       EXPECT_EQ(client->streamWrites, rounds * streams);
       EXPECT_EQ(client->streamReads, rounds * streams);
     });
   }
 
-  context.run_for(10000ms);
+  context.run_for(4000ms);
 
   for (auto &c : clients) {
     if (c.joinable()) {
