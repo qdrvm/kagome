@@ -42,7 +42,7 @@ namespace kagome::service {
   }
 
   outcome::result<void> ExtrinsicSubmissionService::start() {
-    return transport_->start(configuration_.address);
+    return transport_->start();
   }
 
   void ExtrinsicSubmissionService::stop() {

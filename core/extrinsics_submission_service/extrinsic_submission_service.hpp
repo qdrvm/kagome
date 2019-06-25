@@ -36,6 +36,7 @@ namespace kagome::service {
      */
     struct Configuration {
       NetworkAddress address{};
+      uint16_t port{};
     };
     /**
      * @brief constructor

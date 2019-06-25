@@ -19,7 +19,7 @@ namespace kagome::primitives {
   /**
    * @brief SubscriptionId primitive
    */
-  using SubscriptionId = boost::variant<uint64_t, std::string>;
+  using SubscriptionId = uint64_t;
 
   /**
    * @brief Session primitive
@@ -44,8 +44,7 @@ namespace kagome::primitives {
   /**
    * @brief ExtrinsicKey is used as a key to search extrinsic
    */
-  using ExtrinsicKey =
-      boost::variant<std::vector<uint8_t>, kagome::common::Hash256>;
+  using ExtrinsicKey = std::vector<uint8_t>;
   // TODO(yuraz): PRE-221 investigate and implement Subscriber primitive
 
 }  // namespace kagome::primitives

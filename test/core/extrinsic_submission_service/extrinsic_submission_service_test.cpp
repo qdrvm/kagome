@@ -37,7 +37,10 @@ class JsonTransportMock : public JsonTransport {
  public:
   ~JsonTransportMock() override = default;
 
-  MOCK_METHOD1(start, outcome::result<void>(NetworkAddress));
+  explicit JsonTransportMock(NetworkAddress address)
+      : address_{std::move(address)} {}
+
+  MOCK_METHOD0(start, outcome::result<void>());
 
   void stop() override {}
 
@@ -46,6 +49,9 @@ class JsonTransportMock : public JsonTransport {
   }
 
   MOCK_METHOD1(processResponse, void(const std::string &));
+
+ private:
+  NetworkAddress address_;
 };
 
 class ExtrinsicSubmissionServiceTest : public ::testing::Test {
@@ -54,17 +60,20 @@ class ExtrinsicSubmissionServiceTest : public ::testing::Test {
 
  protected:
   void SetUp() override {
-    EXPECT_CALL(*transport, start(_))
-        .WillRepeatedly(Return(outcome::success()));
+    EXPECT_CALL(*transport, start()).WillRepeatedly(Return(outcome::success()));
     extrinsic.data.put("hello world");
     hash.fill(1);
   }
 
-  ExtrinsicSubmissionService::Configuration configuration{
-      {IpVersion::IPV4, 777}};
-  sptr<JsonTransportMock> transport = std::make_shared<JsonTransportMock>();
+  ExtrinsicSubmissionService::Configuration configuration = {
+      boost::asio::ip::make_address_v4("127.0.0.1"), 1234};
+
+  sptr<JsonTransportMock> transport =
+      std::make_shared<JsonTransportMock>(configuration.address);
+
   sptr<ExtrinsicSubmissionApiMock> api =
       std::make_shared<ExtrinsicSubmissionApiMock>();
+
   sptr<ExtrinsicSubmissionService> service =
       std::make_shared<ExtrinsicSubmissionService>(configuration, transport,
                                                    api);
@@ -77,18 +86,19 @@ class ExtrinsicSubmissionServiceTest : public ::testing::Test {
 };
 
 /**
- * @given extrinsic submission service configured with mock transport and mock api
+ * @given extrinsic submission service configured with mock transport and mock
+ * api
  * @when start method is called
  * @then start method of transport is called
  */
 TEST_F(ExtrinsicSubmissionServiceTest, StartSuccess) {
-  EXPECT_CALL(*transport, start(configuration.address))
-      .WillOnce(Return(outcome::success()));
+  EXPECT_CALL(*transport, start()).WillOnce(Return(outcome::success()));
   ASSERT_EQ(service->start(), outcome::success());
 }
 
 /**
- * @given extrinsic submission service configured with mock transport and mock api
+ * @given extrinsic submission service configured with mock transport and mock
+ * api
  * @when a valid request is submitted
  * @then request is successfully parsed and response matches expectation
  */
@@ -102,7 +112,8 @@ TEST_F(ExtrinsicSubmissionServiceTest, RequestSuccess) {
 }
 
 /**
- * @given extrinsic submission service configured with mock transport and mock api
+ * @given extrinsic submission service configured with mock transport and mock
+ * api
  * @when a valid request is submitted, but mocked api returns error
  * @then request fails and response matches expectation
  */

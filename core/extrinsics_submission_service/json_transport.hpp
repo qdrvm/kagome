@@ -27,7 +27,7 @@ namespace kagome::service {
      * @brief starts listening
      * @return true if successfully started, false otherwise
      */
-    virtual outcome::result<void> start(NetworkAddress address) = 0;
+    virtual outcome::result<void> start() = 0;
 
     /**
      * @brief stops transport
