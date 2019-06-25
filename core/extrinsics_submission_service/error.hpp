@@ -11,7 +11,8 @@
 namespace kagome::service {
   enum class ExtrinsicSubmissionError {
     INVALID_STATE_TRANSACTION = 1,  // transaction is in invalid state
-    UNKNOWN_STATE_TRANSACTION       // transaction is in unknown state
+    UNKNOWN_STATE_TRANSACTION,      // transaction is in unknown state
+    DECODE_FAILURE                  // failed to decode value
   };
 }
 

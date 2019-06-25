@@ -3,9 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// needs to be included before boost/variant.hpp,
-// don't move it down
-#include "testutil/vector_printer.hpp"
+// needs to be included at the top, don't move it down
+#include "core/extrinsic_submission_service/extrinsic_submission_api_mock.hpp"
 
 #include "extrinsics_submission_service/extrinsic_submission_proxy.hpp"
 
@@ -19,6 +18,7 @@
 #include "extrinsics_submission_service/error.hpp"
 #include "primitives/auth_api.hpp"
 #include "primitives/extrinsic.hpp"
+#include "testutil/literals.hpp"
 
 using namespace kagome::service;
 using kagome::common::Buffer;
@@ -33,26 +33,6 @@ using ::testing::_;
 using ::testing::DoAll;
 using ::testing::Return;
 
-class ExtrinsicSubmissionApiMock : public ExtrinsicSubmissionApi {
- public:
-  ~ExtrinsicSubmissionApiMock() override = default;
-
-  MOCK_METHOD1(submit_extrinsic, outcome::result<Hash256>(const Extrinsic &));
-
-  MOCK_METHOD0(pending_extrinsics, outcome::result<std::vector<Extrinsic>>());
-
-  MOCK_METHOD1(
-      remove_extrinsic,
-      outcome::result<std::vector<Hash256>>(const std::vector<ExtrinsicKey> &));
-
-  MOCK_METHOD3(watch_extrinsic,
-               void(const Metadata &, const Subscriber &, const Buffer &));
-
-  MOCK_METHOD2(unwatch_extrinsic,
-               outcome::result<bool>(const std::optional<Metadata> &,
-                                     const SubscriptionId &));
-};
-
 class ExtrinsicSubmissionProxyTest : public ::testing::Test {
   template <class T>
   using sptr = std::shared_ptr<T>;
@@ -63,6 +43,7 @@ class ExtrinsicSubmissionProxyTest : public ::testing::Test {
 
   ExtrinsicSubmissionProxy proxy{api};
   std::vector<uint8_t> bytes = {0, 1};
+  Extrinsic extrinsic {"0001"_hex2buf};
 };
 
 /**
@@ -79,7 +60,7 @@ TEST_F(ExtrinsicSubmissionProxyTest, SubmitExtrinsicSuccess) {
   EXPECT_CALL(*api, submit_extrinsic(_)).WillOnce(Return(hash));
 
   std::vector<uint8_t> result;
-  ASSERT_NO_THROW(result = proxy.submit_extrinsic(bytes));
+  ASSERT_NO_THROW(result = proxy.submit_extrinsic(extrinsic.data.toHex()));
   ASSERT_EQ(result, hash_as_vector);
 }
 
@@ -93,5 +74,5 @@ TEST_F(ExtrinsicSubmissionProxyTest, SubmitExtrinsicFail) {
       .WillOnce(Return(outcome::failure(
           ExtrinsicSubmissionError::INVALID_STATE_TRANSACTION)));
 
-  ASSERT_THROW(proxy.submit_extrinsic(bytes), jsonrpc::Fault);
+  ASSERT_THROW(proxy.submit_extrinsic(extrinsic.data.toHex()), jsonrpc::Fault);
 }

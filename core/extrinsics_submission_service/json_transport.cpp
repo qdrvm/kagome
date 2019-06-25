@@ -7,17 +7,8 @@
 
 namespace kagome::service {
 
-  JsonTransport::JsonTransport()
-      : on_response_{[this](std::string_view data) { processResponse(data); }} {
+  JsonTransport::JsonTransport() {
+    on_response_ = [this](const std::string &data) { processResponse(data); };
   }
-
-  void JsonTransport::processResponse(std::string_view response) {}
-
-  // TODO(yuraz): PRE-207 implement
-  outcome::result<void> JsonTransport::start(NetworkAddress address) {
-    std::terminate();
-  }
-
-  void JsonTransport::stop() {}
 
 }  // namespace kagome::service

@@ -12,6 +12,15 @@
 
 namespace kagome::service {
   class ExtrinsicSubmissionApi {
+   protected:
+    using Hash256 = common::Hash256;
+    using Buffer = common::Buffer;
+    using Extrinsic = primitives::Extrinsic;
+    using Metadata = primitives::Metadata;
+    using Subscriber = primitives::Subscriber;
+    using SubscriptionId = primitives::SubscriptionId;
+    using ExtrinsicKey = primitives::ExtrinsicKey;
+
    public:
     virtual ~ExtrinsicSubmissionApi() = default;
     /**
@@ -20,28 +29,26 @@ namespace kagome::service {
      * @return hash of successfully validated extrinsic
      * or error if state is invalid or unknown
      */
-    virtual outcome::result<common::Hash256> submit_extrinsic(
-        const primitives::Extrinsic &extrinsic) = 0;
+    virtual outcome::result<Hash256> submit_extrinsic(
+        const Extrinsic &extrinsic) = 0;
 
     /**
      * @return collection of pending extrinsics
      */
-    virtual outcome::result<std::vector<primitives::Extrinsic>>
-    pending_extrinsics() = 0;
+    virtual outcome::result<std::vector<Extrinsic>> pending_extrinsics() = 0;
 
-    // TODO(yuraz): probably will be documented later (no task yet)
-    virtual outcome::result<std::vector<common::Hash256>> remove_extrinsic(
-        const std::vector<primitives::ExtrinsicKey> &bytes_or_hash) = 0;
+    // TODO(yuraz): will be documented later (no task yet)
+    virtual outcome::result<std::vector<Hash256>> remove_extrinsic(
+        const std::vector<ExtrinsicKey> &bytes_or_hash) = 0;
 
-    // TODO(yuraz): probably will be documented later (no task yet)
-    virtual void watch_extrinsic(const primitives::Metadata &metadata,
-                                 const primitives::Subscriber &subscriber,
-                                 const common::Buffer &data) = 0;
+    // TODO(yuraz): will be documented later (no task yet)
+    virtual void watch_extrinsic(const Metadata &metadata,
+                                 const Subscriber &subscriber,
+                                 const Buffer &data) = 0;
 
-    // TODO(yuraz): probably will be documented later (no task yet)
+    // TODO(yuraz): will be documented later (no task yet)
     virtual outcome::result<bool> unwatch_extrinsic(
-        const std::optional<primitives::Metadata> &metadata,
-        const primitives::SubscriptionId &id) = 0;
+        const std::optional<Metadata> &metadata, const SubscriptionId &id) = 0;
   };
 }  // namespace kagome::service
 

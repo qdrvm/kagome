@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <jsonrpc-lean/fault.h>
+#include <jsonrpc-lean/value.h>
 #include "common/buffer.hpp"
 #include "extrinsics_submission_service/extrinsic_submission_api.hpp"
 
@@ -32,10 +33,10 @@ namespace kagome::service {
 
     /**
      * @brief calls submit_extrinsic api method
-     * @param bytes encoded extrinsic
+     * @param hexified_extrinsic hex-encoded extrinsic
      * @return extrinsic hash as vector
      */
-    std::vector<uint8_t> submit_extrinsic(std::vector<uint8_t> bytes);
+    std::vector<uint8_t> submit_extrinsic(const jsonrpc::Value::String &hexified_extrinsic);
 
     /**
      * @brief calls pending_extrinsic api method

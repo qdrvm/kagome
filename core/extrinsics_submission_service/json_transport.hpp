@@ -15,9 +15,9 @@ namespace kagome::service {
   // TODO(yuraz): PRE-207 implement (will be implemented in next PR)
   class JsonTransport {
    public:
-    using SignalType = void(std::string_view);
+    using SignalType = void(const std::string&);
     using OnData = boost::signals2::signal<SignalType>;
-    using OnResponse = boost::signals2::slot<SignalType>;
+    using OnResponse = std::function<SignalType>;
 
     virtual ~JsonTransport() = default;
 
@@ -27,12 +27,12 @@ namespace kagome::service {
      * @brief starts listening
      * @return true if successfully started, false otherwise
      */
-    virtual outcome::result<void> start(NetworkAddress address);
+    virtual outcome::result<void> start(NetworkAddress address) = 0;
 
     /**
      * @brief stops transport
      */
-    virtual void stop();
+    virtual void stop() = 0;
 
     /**
      * @return data received signal
@@ -53,7 +53,7 @@ namespace kagome::service {
      * @brief processes response
      * @param response data to send
      */
-    void processResponse(std::string_view response);
+    virtual void processResponse(const std::string &response) = 0;
 
     OnData on_data_;          ///< data received signal
     OnResponse on_response_;  ///< response handler slot

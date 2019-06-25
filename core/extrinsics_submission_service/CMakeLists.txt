@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(extrinsics_submission_service
+add_library(extrinsic_submission_service
     error.cpp
     error.hpp
     extrinsic_submission_api.hpp
@@ -17,7 +17,7 @@ add_library(extrinsics_submission_service
     json_transport.cpp
     network_address.hpp
     )
-target_link_libraries(extrinsics_submission_service
+target_link_libraries(extrinsic_submission_service
     buffer
     RapidJSON::rapidjson
     transaction_pool

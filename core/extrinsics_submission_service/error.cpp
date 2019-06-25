@@ -12,6 +12,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::service, ExtrinsicSubmissionError, e) {
       return "transaction is in invalid state";
     case ExtrinsicSubmissionError::UNKNOWN_STATE_TRANSACTION:
       return "transaction is in unknown state";
+    case ExtrinsicSubmissionError::DECODE_FAILURE:
+      return "failed to decode value";
   }
   return "unknown extrinsic submission error";
 }

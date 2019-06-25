@@ -11,13 +11,14 @@ namespace kagome::service {
       sptr<ExtrinsicSubmissionApi> api)
       : configuration_{configuration},
         transport_{std::move(transport)},
-        api_proxy_(std::make_shared<ExtrinsicSubmissionProxy>(std::move(api))),
-        on_request_([this](std::string_view data) { processData(data); }) {
-    transport->dataReceived().connect(on_request_);
-    on_response_.connect(transport->onResponse());
+        api_proxy_(std::make_shared<ExtrinsicSubmissionProxy>(std::move(api))) {
+    request_cnn_ = transport_->dataReceived().connect(
+        [this](std::string_view data) { processData(data); });
+
+    response_cnn_ = on_response_.connect(transport_->onResponse());
 
     // register json format handler
-    server_.RegisterFormatHandler(json_format_handler_);
+    server_.RegisterFormatHandler(format_handler_);
 
     auto &dispatcher = server_.GetDispatcher();
 
@@ -26,9 +27,9 @@ namespace kagome::service {
                          &ExtrinsicSubmissionProxy::submit_extrinsic,
                          *api_proxy_);
 
-    dispatcher.AddMethod("author_pendingExtrinsics",
-                         &ExtrinsicSubmissionProxy::pending_extrinsics,
-                         *api_proxy_);
+    //    dispatcher.AddMethod("author_pendingExtrinsics",
+    //                         &ExtrinsicSubmissionProxy::pending_extrinsics,
+    //                         *api_proxy_);
     // other methods to be registered as soon as implemented
   }
 

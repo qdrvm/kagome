@@ -21,9 +21,14 @@ namespace kagome::service {
    * @brief extrinsic submission service implementation
    */
   class ExtrinsicSubmissionService {
-    using SignalType = void(std::string_view);
+    using SignalType = void(const std::string &);
     template <class T>
     using sptr = std::shared_ptr<T>;
+
+    template <class T>
+    using signal_t = boost::signals2::signal<T>;
+
+    using connection_t = boost::signals2::connection;
 
    public:
     /**
@@ -60,14 +65,14 @@ namespace kagome::service {
      */
     void processData(std::string_view data);
 
-    jsonrpc::JsonFormatHandler
-        json_format_handler_{};                 ///< format handler instance
-    jsonrpc::Server server_{};                  ///< json rpc server instance
-    Configuration configuration_;               ///< service configuration
-    sptr<JsonTransport> transport_;             ///< json transport
-    sptr<ExtrinsicSubmissionProxy> api_proxy_;  ///< api reference
-    boost::signals2::slot<SignalType> on_request_;  ///< received data handler
-    boost::signals2::signal<SignalType> on_response_{};  ///< notifies response
+    jsonrpc::JsonFormatHandler format_handler_{};  ///< format handler instance
+    jsonrpc::Server server_{};                     ///< json rpc server instance
+    Configuration configuration_;                  ///< service configuration
+    sptr<JsonTransport> transport_;                ///< json transport
+    sptr<ExtrinsicSubmissionProxy> api_proxy_;     ///< api reference
+    signal_t<SignalType> on_response_{};           ///< notifies response
+    connection_t request_cnn_;   ///< request connection holder
+    connection_t response_cnn_;  ///< response connection holder
   };
 
 }  // namespace kagome::service
