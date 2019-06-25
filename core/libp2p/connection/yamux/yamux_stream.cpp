@@ -40,52 +40,13 @@ namespace libp2p::connection {
 
   void YamuxStream::read(gsl::span<uint8_t> out, size_t bytes,
                          ReadCallbackFunc cb) {
-    if (bytes == 0 || out.empty() || static_cast<size_t>(out.size()) < bytes) {
-      return cb(Error::INVALID_ARGUMENT);
-    }
-    if (!is_readable_) {
-      return cb(Error::NOT_READABLE);
-    }
-    if (is_reading_) {
-      return cb(Error::IS_READING);
-    }
-
-    is_reading_ = true;
-
-    // if there is already enough data in our buffer, read it immediately and
-    // send an acknowledgement
-
-    // else, set a callback, which is called each time a new data arrives
-    yamuxed_connection_->streamOnAddData(
-        stream_id_,
-        [self{shared_from_this()}, cb = std::move(cb), out, bytes]() mutable {
-          if (self->read_buffer_.size() < bytes) {
-            // not yet
-            return false;
-          }
-
-          if (boost::asio::buffer_copy(boost::asio::buffer(out.data(), bytes),
-                                       self->read_buffer_.data(), bytes)
-              != bytes) {
-            cb(Error::INTERNAL_ERROR);
-          } else {
-            self->yamuxed_connection_->streamAckBytes(
-                self->stream_id_, bytes,
-                [self, cb = std::move(cb), bytes](auto &&res) {
-                  self->is_reading_ = false;
-                  if (!res) {
-                    return cb(res.error());
-                  }
-                  self->read_buffer_.consume(bytes);
-                  cb(bytes);
-                });
-          }
-          return true;
-        });
+    return read(out, bytes, std::move(cb), false);
   }
 
   void YamuxStream::readSome(gsl::span<uint8_t> out, size_t bytes,
-                             ReadCallbackFunc cb) {}
+                             ReadCallbackFunc cb) {
+    return read(out, bytes, std::move(cb), true);
+  }
 
   void YamuxStream::read(gsl::span<uint8_t> out, size_t bytes,
                          ReadCallbackFunc cb, bool some) {

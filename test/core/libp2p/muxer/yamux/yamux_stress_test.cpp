@@ -254,8 +254,6 @@ TEST(Yamux, StressTest) {
 
       context.run_for(5000ms);
     });
-
-    thread.detach();
   }
 
   context.run_for(10000ms);
