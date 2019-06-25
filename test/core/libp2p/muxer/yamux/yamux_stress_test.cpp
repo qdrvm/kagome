@@ -24,6 +24,7 @@ using namespace multi;
 using namespace peer;
 
 using ::testing::_;
+using ::testing::Mock;
 using ::testing::NiceMock;
 using std::chrono_literals::operator""ms;
 
@@ -49,6 +50,7 @@ struct Server : public std::enable_shared_from_this<Server> {
           println("mux connection");
           return this->muxer_adaptor_->muxConnection(std::move(sec));
         }));
+    Mock::AllowLeak(upgrader_.get());
 
     transport_ = std::make_shared<TcpTransport>(context, upgrader_);
 
@@ -130,7 +132,8 @@ struct Server : public std::enable_shared_from_this<Server> {
 struct Client : public std::enable_shared_from_this<Client> {
   Client(boost::asio::io_context &context, PeerId p, size_t streams,
          size_t rounds)
-      : peer_id_(std::move(p)),
+      : context_(context),
+        peer_id_(std::move(p)),
         streams_(streams),
         rounds_(rounds),
         distribution(1, kServerBufSize) {
@@ -149,6 +152,7 @@ struct Client : public std::enable_shared_from_this<Client> {
           println("mux connection");
           return this->muxer_adaptor_->muxConnection(sec);
         }));
+    Mock::AllowLeak(upgrader_.get());
 
     transport_ = std::make_shared<TcpTransport>(context, upgrader_);
   }
@@ -167,11 +171,13 @@ struct Client : public std::enable_shared_from_this<Client> {
 
   void onConnection(const std::shared_ptr<CapableConnection> &conn) {
     for (size_t i = 0; i < streams_; i++) {
-      conn->newStream([i, conn, self{this->shared_from_this()}](
-                          outcome::result<std::shared_ptr<Stream>> rstream) {
-        EXPECT_OUTCOME_TRUE(stream, rstream);
-        self->println("new stream number ", i, " created");
-        self->onStream(i, self->rounds_, stream);
+      boost::asio::post(context_, [i, conn, self{this->shared_from_this()}]() {
+        conn->newStream(
+            [i, conn, self](outcome::result<std::shared_ptr<Stream>> rstream) {
+              EXPECT_OUTCOME_TRUE(stream, rstream);
+              self->println("new stream number ", i, " created");
+              self->onStream(i, self->rounds_, stream);
+            });
       });
     }
   }
@@ -235,6 +241,8 @@ struct Client : public std::enable_shared_from_this<Client> {
     });
     return buf;
   }
+
+  boost::asio::io_context &context_;
 
   PeerId peer_id_;
 
