@@ -95,6 +95,7 @@ TEST_F(YamuxAcceptanceTest, PingPong) {
     EXPECT_OUTCOME_TRUE(
         mux_conn, server_muxer_adaptor_->muxConnection(std::move(sec_conn)))
     server_connection_ = std::move(mux_conn);
+    server_connection_->start();
     server_connection_->onStream([this](auto &&stream) {
       // wrap each received stream into a server structure and start reading
       ASSERT_TRUE(stream);
@@ -102,7 +103,6 @@ TEST_F(YamuxAcceptanceTest, PingPong) {
       server->doRead();
       server_streams_.push_back(std::move(server));
     });
-    server_connection_->start();
     return outcome::success();
   });
 

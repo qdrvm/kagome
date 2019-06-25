@@ -20,6 +20,8 @@ namespace libp2p::transport {
   class TcpListener : public TransportListener,
                       public std::enable_shared_from_this<TcpListener> {
    public:
+    ~TcpListener() override = default;
+
     TcpListener(boost::asio::io_context &context,
                 std::shared_ptr<Upgrader> upgrader,
                 TransportListener::HandlerFunc handler);

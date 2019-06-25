@@ -22,6 +22,8 @@ namespace libp2p::transport {
                         public std::enable_shared_from_this<TcpConnection>,
                         private boost::noncopyable {
    public:
+    ~TcpConnection() override = default;
+
     using Tcp = boost::asio::ip::tcp;
     using ErrorCode = boost::system::error_code;
     using ResolverResultsType = Tcp::resolver::results_type;

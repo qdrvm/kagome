@@ -38,11 +38,13 @@ class YamuxIntegrationTest : public libp2p::testing::TransportFixture {
                           muxer_adaptor_->muxConnection(std::move(sec_conn)))
       yamuxed_connection_ =
           std::move(std::static_pointer_cast<YamuxedConnection>(mux_conn));
+
+      yamuxed_connection_->start();
+
       yamuxed_connection_->onStream([this](auto &&stream) {
         ASSERT_TRUE(stream);
         accepted_streams_.push_back(std::forward<decltype(stream)>(stream));
       });
-      yamuxed_connection_->start();
       invokeCallbacks();
     });
   }
