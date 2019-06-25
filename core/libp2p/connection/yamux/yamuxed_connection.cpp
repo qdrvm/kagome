@@ -530,13 +530,13 @@ namespace libp2p::connection {
                   }});
   }
 
-  void YamuxedConnection::streamAddWindowUpdateNotifyee(StreamId stream_id,
-                                                        NotifyeeCallback cb) {
+  void YamuxedConnection::streamOnWindowUpdate(StreamId stream_id,
+                                               NotifyeeCallback cb) {
     window_updates_subs_[stream_id] = std::move(cb);
   }
 
-  void YamuxedConnection::streamAddDataNotifyee(StreamId stream_id,
-                                                NotifyeeCallback cb) {
+  void YamuxedConnection::streamOnAddData(StreamId stream_id,
+                                          NotifyeeCallback cb) {
     data_subs_[stream_id] = std::move(cb);
   }
 

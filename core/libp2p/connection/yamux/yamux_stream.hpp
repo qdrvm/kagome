@@ -56,19 +56,24 @@ namespace libp2p::connection {
 
     bool isClosed() const noexcept override;
 
-    void close(CloseCallbackFunc cb) override;
+    void close(VoidResultHandlerFunc cb) override;
 
     bool isClosedForRead() const noexcept override;
 
     bool isClosedForWrite() const noexcept override;
 
-    void reset(std::function<void(outcome::result<void>)> cb) override;
+    void reset(VoidResultHandlerFunc cb) override;
 
-    void adjustWindowSize(
-        uint32_t new_size,
-        std::function<void(outcome::result<void>)> cb) override;
+    void adjustWindowSize(uint32_t new_size, VoidResultHandlerFunc cb) override;
 
    private:
+    /**
+     * Internal proxy method for reads; (\param some) denotes if the read should
+     * read 'some' or 'all' bytes
+     */
+    void read(gsl::span<uint8_t> out, size_t bytes, ReadCallbackFunc cb,
+              bool some);
+
     /**
      * Internal proxy method for writes; (\param some) denotes if the write
      * should write 'some' or 'all' bytes

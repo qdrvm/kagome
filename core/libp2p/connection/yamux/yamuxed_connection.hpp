@@ -267,7 +267,7 @@ namespace libp2p::connection {
      * @note this is done through a function and not event emitters, as each
      * stream is to receive that event independently based on id
      */
-    void streamAddWindowUpdateNotifyee(StreamId stream_id, NotifyeeCallback cb);
+    void streamOnWindowUpdate(StreamId stream_id, NotifyeeCallback cb);
     std::map<StreamId, NotifyeeCallback> window_updates_subs_;
 
     /**
@@ -279,7 +279,7 @@ namespace libp2p::connection {
      * @note this is done through a function and not event emitters, as each
      * stream is to receive that event independently based on id
      */
-    void streamAddDataNotifyee(StreamId stream_id, NotifyeeCallback cb);
+    void streamOnAddData(StreamId stream_id, NotifyeeCallback cb);
     std::map<StreamId, NotifyeeCallback> data_subs_;
 
     /**

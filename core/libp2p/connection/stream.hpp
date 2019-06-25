@@ -7,7 +7,8 @@
 #define KAGOME_CONNECTION_STREAM_HPP
 
 #include <outcome/outcome.hpp>
-#include "libp2p/basic/readwritecloser.hpp"
+#include "libp2p/basic/reader.hpp"
+#include "libp2p/basic/writer.hpp"
 
 namespace libp2p::connection {
 
@@ -24,8 +25,9 @@ namespace libp2p::connection {
    * possibility to read and write simultaneously, but double read or write is
    * forbidden
    */
-  struct Stream : public basic::ReadWriteCloser {
+  struct Stream : public basic::Reader, public basic::Writer {
     using Handler = void(std::shared_ptr<Stream>);
+    using VoidResultHandlerFunc = std::function<void(outcome::result<void>)>;
 
     ~Stream() override = default;
 
@@ -43,7 +45,11 @@ namespace libp2p::connection {
      */
     virtual bool isClosedForWrite() const = 0;
 
-    using CloseCallbackFunc = std::function<void(outcome::result<void>)>;
+    /**
+     * Check, if this stream is closed bor both writes and reads
+     * @return true, if stream is closed entirely, false otherwise
+     */
+    virtual bool isClosed() const = 0;
 
     /**
      * Close a stream, indicating we are not going to write to it anymore; the
@@ -51,14 +57,14 @@ namespace libp2p::connection {
      * before
      * @param cb to be called, when the stream is closed, or error happens
      */
-    virtual void close(CloseCallbackFunc cb) = 0;
+    virtual void close(VoidResultHandlerFunc cb) = 0;
 
     /**
      * @brief Close this stream entirely; this normally means an error happened,
      * so it should not be used just to close the stream
      * @param cb to be called, when the operation succeeds of fails
      */
-    virtual void reset(std::function<void(outcome::result<void>)> cb) = 0;
+    virtual void reset(VoidResultHandlerFunc cb) = 0;
 
     /**
      * Set a new receive window size of this stream - how much unacknowledged
@@ -66,17 +72,9 @@ namespace libp2p::connection {
      * @param new_size for the window
      * @param cb to be called, when the operation succeeds of fails
      */
-    virtual void adjustWindowSize(
-        uint32_t new_size, std::function<void(outcome::result<void>)> cb) = 0;
-
-   private:
-    /// this method is not to be used, as Stream supports only close with a
-    /// callback
-    outcome::result<void> close() override {
-      return std::error_code();
-    }
+    virtual void adjustWindowSize(uint32_t new_size,
+                                  VoidResultHandlerFunc cb) = 0;
   };
-
 }  // namespace libp2p::connection
 
 #endif  // KAGOME_CONNECTION_STREAM_HPP
