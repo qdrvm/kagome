@@ -83,6 +83,7 @@ namespace libp2p::connection {
                   return cb(res.error());
                 }
                 self->read_buffer_.consume(to_read);
+                self->receive_window_size_ += to_read;
                 cb(to_read);
               });
         }
@@ -228,8 +229,16 @@ namespace libp2p::connection {
       return Error::RECEIVE_OVERFLOW;
     }
 
-    std::ostream s(&read_buffer_);
-    s << data.data();
+    if (boost::asio::buffer_copy(
+            read_buffer_.prepare(data_size),
+            boost::asio::const_buffer(data.data(), data_size))
+        != data_size) {
+      return Error::INTERNAL_ERROR;
+    }
+    read_buffer_.commit(data_size);
+
+    receive_window_size_ -= data_size;
+
     return outcome::success();
   }
 
