@@ -10,4 +10,6 @@ add_library(transport_test_fixture
 target_link_libraries(transport_test_fixture
     multiaddress
     tcp_transport
+    GTest::main
+    GMock::main
     )
