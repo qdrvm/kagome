@@ -304,11 +304,11 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
   std::vector<std::thread> clients;
   clients.reserve(totalClients);
   for (int i = 0; i < totalClients; i++) {
-    clients.emplace_back([&]() {
+    auto localSeed = randomEngine();
+    clients.emplace_back([&, localSeed]() {
       boost::asio::io_context context(1);
       auto pid = testutil::randomPeerId();
 
-      auto localSeed = randomEngine();
       auto muxer = GetParam();
       auto client = std::make_shared<Client>(muxer, localSeed, context, pid,
                                              streams, rounds);
