@@ -135,14 +135,14 @@ struct Server : public std::enable_shared_from_this<Server> {
 };
 
 struct Client : public std::enable_shared_from_this<Client> {
-  Client(std::shared_ptr<MuxerAdaptor> muxer, std::default_random_engine gen,
+  Client(std::shared_ptr<MuxerAdaptor> muxer, size_t seed,
          boost::asio::io_context &context, PeerId p, size_t streams,
          size_t rounds)
       : context_(context),
         peer_id_(std::move(p)),
         streams_(streams),
         rounds_(rounds),
-        generator(std::move(gen)),
+        generator(seed),
         distribution(1, kServerBufSize),
         muxer_adaptor_(std::move(muxer)) {
     upgrader_ = std::make_shared<UpgraderMock>();
@@ -308,11 +308,10 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
       boost::asio::io_context context(1);
       auto pid = testutil::randomPeerId();
 
-      std::default_random_engine gen(randomEngine());
-
+      auto localSeed = randomEngine();
       auto muxer = GetParam();
-      auto client = std::make_shared<Client>(muxer, std::move(gen), context,
-                                             pid, streams, rounds);
+      auto client = std::make_shared<Client>(muxer, localSeed, context, pid,
+                                             streams, rounds);
       client->connect(serverAddr);
 
       context.run_for(2000ms);
