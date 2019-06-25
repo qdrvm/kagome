@@ -1,3 +1,5 @@
+#include <utility>
+
 /**
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
@@ -38,7 +40,7 @@ ACTION_P(Upgrade, do_upgrade) {
 struct Server : public std::enable_shared_from_this<Server> {
   explicit Server(std::shared_ptr<MuxerAdaptor> muxer,
                   boost::asio::io_context &context)
-      : muxer_adaptor_(muxer) {
+      : muxer_adaptor_(std::move(muxer)) {
     upgrader_ = std::make_shared<NiceMock<UpgraderMock>>();
 
     EXPECT_CALL(*upgrader_, upgradeToSecure(_, _))
@@ -140,7 +142,7 @@ struct Client : public std::enable_shared_from_this<Client> {
         streams_(streams),
         rounds_(rounds),
         distribution(1, kServerBufSize),
-        muxer_adaptor_(muxer) {
+        muxer_adaptor_(std::move(muxer)) {
     generator.seed(rand());  // intentional
 
     upgrader_ = std::make_shared<UpgraderMock>();
