@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/connection/yamux/yamux_frame.hpp"
+#include "libp2p/muxer/yamux/yamux_frame.hpp"
 
 namespace {
   using kagome::common::Buffer;

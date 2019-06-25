@@ -9,7 +9,7 @@
 #include <boost/asio/streambuf.hpp>
 #include <boost/noncopyable.hpp>
 #include "libp2p/connection/stream.hpp"
-#include "libp2p/connection/yamux/yamuxed_connection.hpp"
+#include "libp2p/muxer/yamux/yamuxed_connection.hpp"
 
 namespace libp2p::connection {
   /**

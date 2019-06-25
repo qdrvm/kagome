@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/connection/yamux/yamuxed_connection.hpp"
+#include "libp2p/muxer/yamux/yamuxed_connection.hpp"
 
 #include <gtest/gtest.h>
 #include "common/buffer.hpp"

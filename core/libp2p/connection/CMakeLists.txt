@@ -4,4 +4,3 @@
 #
 
 add_subdirectory(plaintext)
-add_subdirectory(yamux)

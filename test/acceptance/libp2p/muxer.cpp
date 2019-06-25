@@ -1,11 +1,10 @@
-#include <utility>
-
 /**
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include <gtest/gtest.h>
+#include <algorithm>
 #include <random>
 #include "libp2p/muxer/yamux.hpp"
 #include "libp2p/security/plaintext.hpp"
@@ -37,7 +36,9 @@ ACTION_P(Upgrade, do_upgrade) {
 }
 
 struct Server : public std::enable_shared_from_this<Server> {
-  explicit Server(boost::asio::io_context &context) {
+  explicit Server(std::shared_ptr<MuxerAdaptor> muxer,
+                  boost::asio::io_context &context)
+      : muxer_adaptor_(muxer) {
     upgrader_ = std::make_shared<NiceMock<UpgraderMock>>();
 
     EXPECT_CALL(*upgrader_, upgradeToSecure(_, _))
@@ -128,17 +129,18 @@ struct Server : public std::enable_shared_from_this<Server> {
 
   std::shared_ptr<SecurityAdaptor> security_adaptor_ =
       std::make_shared<Plaintext>();
-  std::shared_ptr<MuxerAdaptor> muxer_adaptor_ = std::make_shared<Yamux>();
+  std::shared_ptr<MuxerAdaptor> muxer_adaptor_;
 };
 
 struct Client : public std::enable_shared_from_this<Client> {
-  Client(boost::asio::io_context &context, PeerId p, size_t streams,
-         size_t rounds)
+  Client(std::shared_ptr<MuxerAdaptor> muxer, boost::asio::io_context &context,
+         PeerId p, size_t streams, size_t rounds)
       : context_(context),
         peer_id_(std::move(p)),
         streams_(streams),
         rounds_(rounds),
-        distribution(1, kServerBufSize) {
+        distribution(1, kServerBufSize),
+        muxer_adaptor_(muxer) {
     generator.seed(rand());  // intentional
 
     upgrader_ = std::make_shared<UpgraderMock>();
@@ -261,10 +263,24 @@ struct Client : public std::enable_shared_from_this<Client> {
 
   std::shared_ptr<SecurityAdaptor> security_adaptor_ =
       std::make_shared<Plaintext>();
-  std::shared_ptr<MuxerAdaptor> muxer_adaptor_ = std::make_shared<Yamux>();
+  std::shared_ptr<MuxerAdaptor> muxer_adaptor_;
 };
 
-TEST(Yamux, StressTest) {
+struct MuxerAcceptanceTest
+    : public ::testing::TestWithParam<std::shared_ptr<MuxerAdaptor>> {
+  struct PrintToStringParamName {
+    template <class ParamType>
+    std::string operator()(
+        const testing::TestParamInfo<ParamType> &info) const {
+      auto m = static_cast<std::shared_ptr<MuxerAdaptor>>(info.param);
+      auto p = m->getProtocolId();
+
+      return p.substr(1, p.find('/', 1) - 1);
+    }
+  };
+};
+
+TEST_P(MuxerAcceptanceTest, ParallelEcho) {
   // total number of parallel clients
   const int totalClients = 3;
   // total number of streams per connection
@@ -279,7 +295,8 @@ TEST(Yamux, StressTest) {
 
   auto serverAddr = "/ip4/127.0.0.1/tcp/40312"_multiaddr;
 
-  auto server = std::make_shared<Server>(context);
+  auto muxer = GetParam();
+  auto server = std::make_shared<Server>(muxer, context);
   server->listen(serverAddr);
 
   std::vector<std::thread> clients;
@@ -289,7 +306,9 @@ TEST(Yamux, StressTest) {
       boost::asio::io_context context(1);
       auto pid = testutil::randomPeerId();
 
-      auto client = std::make_shared<Client>(context, pid, streams, rounds);
+      auto muxer = GetParam();
+      auto client =
+          std::make_shared<Client>(muxer, context, pid, streams, rounds);
       client->connect(serverAddr);
 
       context.run_for(2000ms);
@@ -312,3 +331,9 @@ TEST(Yamux, StressTest) {
   EXPECT_EQ(server->streamReads, totalClients * streams * rounds);
   EXPECT_EQ(server->streamWrites, totalClients * streams * rounds);
 }
+
+INSTANTIATE_TEST_CASE_P(AllMuxers, MuxerAcceptanceTest,
+                        ::testing::Values(
+                            // list here all muxers
+                            std::make_shared<Yamux>()),
+                        MuxerAcceptanceTest::PrintToStringParamName());

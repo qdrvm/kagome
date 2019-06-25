@@ -5,7 +5,7 @@
 
 #include "libp2p/muxer/yamux/yamux.hpp"
 
-#include "libp2p/connection/yamux/yamuxed_connection.hpp"
+#include "libp2p/muxer/yamux/yamuxed_connection.hpp"
 
 namespace libp2p::muxer {
   Yamux::Yamux(MuxedConnectionConfig config) : config_{config} {}

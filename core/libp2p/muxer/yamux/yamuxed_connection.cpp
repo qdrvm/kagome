@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/connection/yamux/yamuxed_connection.hpp"
+#include "libp2p/muxer/yamux/yamuxed_connection.hpp"
 #include <boost/asio/error.hpp>
 
-#include "libp2p/connection/yamux/yamux_frame.hpp"
-#include "libp2p/connection/yamux/yamux_stream.hpp"
+#include "libp2p/muxer/yamux/yamux_frame.hpp"
+#include "libp2p/muxer/yamux/yamux_stream.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, YamuxedConnection::Error, e) {
   using ErrorType = libp2p::connection::YamuxedConnection::Error;
