@@ -102,6 +102,7 @@ namespace libp2p::connection {
     std::queue<WriteData> write_queue_;
     bool is_writing_ = false;
 
+    // indicates whether start() has been executed or not
     bool started_ = false;
 
     /**
@@ -249,7 +250,6 @@ namespace libp2p::connection {
     muxer::MuxedConnectionConfig config_;
 
     uint32_t last_created_stream_id_;
-    bool is_active_;
     std::unordered_map<StreamId, std::shared_ptr<YamuxStream>> streams_;
 
     kagome::common::Logger log_;
