@@ -25,6 +25,8 @@ using namespace libp2p::muxer;
 
 class YamuxIntegrationTest : public libp2p::testing::TransportFixture {
  public:
+  ~YamuxIntegrationTest() override = default;
+
   void SetUp() override {
     libp2p::testing::TransportFixture::SetUp();
 
@@ -42,7 +44,6 @@ class YamuxIntegrationTest : public libp2p::testing::TransportFixture {
       });
       yamuxed_connection_->start();
       invokeCallbacks();
-      return outcome::success();
     });
   }
 

@@ -13,6 +13,8 @@ using namespace kagome::common;
 
 class YamuxFrameTest : public ::testing::Test {
  public:
+  ~YamuxFrameTest() override = default;
+
   static constexpr size_t data_length = 6;
   static constexpr YamuxedConnection::StreamId default_stream_id = 1;
   static constexpr uint32_t default_ping_value = 337;

@@ -19,6 +19,9 @@ namespace libp2p::connection {
                       public std::enable_shared_from_this<YamuxStream>,
                       private boost::noncopyable {
    public:
+
+    ~YamuxStream() override = default;
+
     /**
      * Create an instance of YamuxStream
      * @param yamuxed_connection, over which this stream is created
@@ -28,8 +31,6 @@ namespace libp2p::connection {
     YamuxStream(std::shared_ptr<YamuxedConnection> yamuxed_connection,
                 YamuxedConnection::StreamId stream_id,
                 uint32_t maximum_window_size);
-
-    ~YamuxStream() override = default;
 
     enum class Error {
       NOT_WRITABLE = 1,

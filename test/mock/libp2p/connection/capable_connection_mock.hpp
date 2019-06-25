@@ -14,6 +14,8 @@ namespace libp2p::connection {
 
   class CapableConnectionMock : public CapableConnection {
    public:
+    ~CapableConnectionMock() override = default;
+
     MOCK_METHOD1(newStream, void(StreamHandlerFunc));
 
     MOCK_METHOD1(onStream, void(NewStreamHandlerFunc));

@@ -12,6 +12,8 @@
 namespace libp2p::muxer {
   class Yamux : public MuxerAdaptor {
    public:
+    ~Yamux() override = default;
+
     /**
      * Create a muxer with Yamux protocol
      * @param config of muxers to be created over the connections

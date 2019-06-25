@@ -24,6 +24,8 @@ struct ServerStream;
 
 class YamuxAcceptanceTest : public libp2p::testing::TransportFixture {
  public:
+  ~YamuxAcceptanceTest() override = default;
+
   std::shared_ptr<SecurityAdaptor> security_adaptor_ =
       std::make_shared<Plaintext>();
 

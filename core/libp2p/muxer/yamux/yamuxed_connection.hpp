@@ -35,7 +35,7 @@ namespace libp2p::connection {
     enum class Error {
       NO_SUCH_STREAM = 1,
       YAMUX_IS_CLOSED,
-      TOO_MUCH_STREAMS,
+      TOO_MANY_STREAMS,
       FORBIDDEN_CALL,
       OTHER_SIDE_ERROR,
       INTERNAL_ERROR
@@ -101,6 +101,8 @@ namespace libp2p::connection {
     };
     std::queue<WriteData> write_queue_;
     bool is_writing_ = false;
+
+    bool started_ = false;
 
     /**
      * Write message to the connection; ensures no more than one wright would be

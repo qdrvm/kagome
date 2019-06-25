@@ -14,6 +14,8 @@ namespace libp2p::connection {
 
   class RawConnectionMock : public virtual RawConnection {
    public:
+    ~RawConnectionMock() override = default;
+
     MOCK_CONST_METHOD0(isClosed, bool(void));
 
     MOCK_METHOD0(close, outcome::result<void>());

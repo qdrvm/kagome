@@ -14,6 +14,8 @@ namespace libp2p::transport {
 
   class UpgraderMock : public Upgrader {
    public:
+    ~UpgraderMock() override = default;
+
     MOCK_METHOD2(upgradeToSecure,
                  void(Upgrader::RawSPtr, Upgrader::OnSecuredCallbackFunc));
 

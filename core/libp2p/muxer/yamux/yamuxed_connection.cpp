@@ -16,7 +16,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, YamuxedConnection::Error, e) {
       return "no such stream was found; maybe, it is closed";
     case ErrorType::YAMUX_IS_CLOSED:
       return "this Yamux instance is closed";
-    case ErrorType::TOO_MUCH_STREAMS:
+    case ErrorType::TOO_MANY_STREAMS:
       return "streams number exceeded the maximum - close some of the existing "
              "in order to create a new one";
     case ErrorType::FORBIDDEN_CALL:
@@ -37,23 +37,25 @@ namespace libp2p::connection {
         data_buffer_(config.maximum_window_size, 0),
         connection_{std::move(connection)},
         config_{config},
-        is_active_{true},
         log_{std::move(logger)} {
     // client uses odd numbers, server - even
     last_created_stream_id_ = connection_->isInitiator() ? 1 : 0;
   }
 
   void YamuxedConnection::start() {
+    started_ = true;
     return doReadHeader();
   }
 
   void YamuxedConnection::stop() {
-    is_active_ = false;
+    started_ = false;
   }
 
   void YamuxedConnection::newStream(StreamHandlerFunc cb) {
+    BOOST_ASSERT_MSG(started_, "newStream is called but yamux is stopped");
+
     if (streams_.size() == config_.maximum_streams) {
-      return cb(Error::TOO_MUCH_STREAMS);
+      return cb(Error::TOO_MANY_STREAMS);
     }
 
     auto stream_id = getNewStreamId();
@@ -71,6 +73,7 @@ namespace libp2p::connection {
   }
 
   void YamuxedConnection::onStream(NewStreamHandlerFunc cb) {
+    BOOST_ASSERT_MSG(started_, "onStream is called but yamux is stopped");
     new_stream_handler_ = std::move(cb);
   }
 
@@ -100,7 +103,7 @@ namespace libp2p::connection {
   }
 
   outcome::result<void> YamuxedConnection::close() {
-    is_active_ = false;
+    started_ = false;
     for (const auto &stream : streams_) {
       stream.second->resetStream();
     }
@@ -108,7 +111,7 @@ namespace libp2p::connection {
   }
 
   bool YamuxedConnection::isClosed() const {
-    return !is_active_ || connection_->isClosed();
+    return !started_ || connection_->isClosed();
   }
 
   void YamuxedConnection::read(gsl::span<uint8_t> out, size_t bytes,
@@ -141,7 +144,7 @@ namespace libp2p::connection {
   }
 
   void YamuxedConnection::doWrite() {
-    if (write_queue_.empty() || !is_active_ || connection_->isClosed()) {
+    if (write_queue_.empty() || !started_ || connection_->isClosed()) {
       is_writing_ = false;
       return;
     }
@@ -171,7 +174,7 @@ namespace libp2p::connection {
   }
 
   void YamuxedConnection::doReadHeader() {
-    if (!is_active_ || connection_->isClosed()) {
+    if (!started_ || connection_->isClosed()) {
       return;
     }
 
@@ -367,7 +370,7 @@ namespace libp2p::connection {
   }
 
   void YamuxedConnection::processGoAwayFrame(const YamuxFrame &frame) {
-    is_active_ = false;
+    started_ = false;
     for (const auto &stream : streams_) {
       stream.second->resetStream();
     }
@@ -521,7 +524,7 @@ namespace libp2p::connection {
   void YamuxedConnection::closeSession() {
     return write({goAwayMsg(YamuxFrame::GoAwayError::PROTOCOL_ERROR),
                   [self{shared_from_this()}](auto &&res) {
-                    self->is_active_ = false;
+                    self->started_ = false;
                     if (!res) {
                       self->log_->error("cannot close a Yamux session: {}",
                                         res.error().message());
@@ -545,7 +548,7 @@ namespace libp2p::connection {
                                       gsl::span<const uint8_t> in, size_t bytes,
                                       bool some,
                                       basic::Writer::WriteCallbackFunc cb) {
-    if (!is_active_) {
+    if (!started_) {
       return cb(Error::YAMUX_IS_CLOSED);
     }
 

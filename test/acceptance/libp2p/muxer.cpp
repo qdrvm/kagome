@@ -37,34 +37,42 @@ ACTION_P(Upgrade, do_upgrade) {
   arg1(do_upgrade(arg0));
 }
 
+struct UpgraderSemiMock : public Upgrader {
+  ~UpgraderSemiMock() override = default;
+
+  UpgraderSemiMock(std::shared_ptr<SecurityAdaptor> s,
+                   std::shared_ptr<MuxerAdaptor> m)
+      : security(std::move(s)), mux(std::move(m)) {}
+
+  void upgradeToSecure(RawSPtr conn, OnSecuredCallbackFunc cb) override {
+    if (conn->isInitiator()) {
+      EXPECT_OUTCOME_TRUE(
+          s, security->secureOutbound(conn, testutil::randomPeerId()));
+      cb(s);
+    } else {
+      EXPECT_OUTCOME_TRUE(s, security->secureInbound(conn));
+      cb(s);
+    }
+  }
+
+  void upgradeToMuxed(SecureSPtr conn, OnMuxedCallbackFunc cb) override {
+    EXPECT_OUTCOME_TRUE(cc, mux->muxConnection(conn));
+    cc->start();
+    return cb(cc);
+  }
+
+  std::shared_ptr<SecurityAdaptor> security;
+  std::shared_ptr<MuxerAdaptor> mux;
+};
+
 struct Server : public std::enable_shared_from_this<Server> {
   explicit Server(std::shared_ptr<MuxerAdaptor> muxer,
                   boost::asio::io_context &context)
       : muxer_adaptor_(std::move(muxer)) {
-    upgrader_ = std::make_shared<NiceMock<UpgraderMock>>();
-
-    EXPECT_CALL(*upgrader_, upgradeToSecure(_, _))
-        .WillRepeatedly(Upgrade([&](std::shared_ptr<RawConnection> raw) {
-          println("secure inbound");
-          return this->security_adaptor_->secureInbound(std::move(raw));
-        }));
-    EXPECT_CALL(*upgrader_, upgradeToMuxed(_, _))
-        .WillRepeatedly(Upgrade([&](std::shared_ptr<SecureConnection> sec) {
-          println("mux connection");
-          auto c = this->muxer_adaptor_->muxConnection(std::move(sec)).value();
-          c->start();
-          return c;
-        }));
-    Mock::AllowLeak(upgrader_.get());
+    upgrader_ =
+        std::make_shared<UpgraderSemiMock>(security_adaptor_, muxer_adaptor_);
 
     transport_ = std::make_shared<TcpTransport>(context, upgrader_);
-
-    listener_ = transport_->createListener(
-        [this](outcome::result<std::shared_ptr<CapableConnection>> rconn) {
-          EXPECT_OUTCOME_TRUE(conn, rconn)
-          this->println("new connection received");
-          this->onConnection(conn);
-        });
   }
 
   void onConnection(const std::shared_ptr<CapableConnection> &conn) {
@@ -108,8 +116,17 @@ struct Server : public std::enable_shared_from_this<Server> {
                      });
   }
 
-  void listen(const Multiaddress &ma){
-      EXPECT_OUTCOME_TRUE_1(this->listener_->listen(ma))}
+  void listen(const Multiaddress &ma) {
+    listener_ = transport_->createListener(
+        [self{this->shared_from_this()}](
+            outcome::result<std::shared_ptr<CapableConnection>> rconn) {
+          EXPECT_OUTCOME_TRUE(conn, rconn)
+          self->println("new connection received");
+          self->onConnection(conn);
+        });
+
+    EXPECT_OUTCOME_TRUE_1(this->listener_->listen(ma));
+  }
 
   size_t clientsConnected = 0;
   size_t streamsCreated = 0;
@@ -124,7 +141,7 @@ struct Server : public std::enable_shared_from_this<Server> {
     std::cout << std::endl;
   }
 
-  std::shared_ptr<UpgraderMock> upgrader_;
+  std::shared_ptr<Upgrader> upgrader_;
   std::shared_ptr<Transport> transport_;
 
   std::shared_ptr<TransportListener> listener_;
@@ -145,23 +162,8 @@ struct Client : public std::enable_shared_from_this<Client> {
         generator(seed),
         distribution(1, kServerBufSize),
         muxer_adaptor_(std::move(muxer)) {
-    upgrader_ = std::make_shared<UpgraderMock>();
-
-    EXPECT_CALL(*upgrader_, upgradeToSecure(_, _))
-        .WillRepeatedly(Upgrade([&](std::shared_ptr<RawConnection> raw) {
-          println("secure outbound");
-          return this->security_adaptor_->secureOutbound(raw, this->peer_id_);
-        }));
-    EXPECT_CALL(*upgrader_, upgradeToMuxed(_, _))
-        .WillRepeatedly(Upgrade([&](std::shared_ptr<SecureConnection> sec) {
-          // client has its own muxer, therefore, upgrader
-          println("mux connection");
-          auto c = this->muxer_adaptor_->muxConnection(sec).value();
-          c->start();
-          return c;
-        }));
-    Mock::AllowLeak(upgrader_.get());
-
+    upgrader_ =
+        std::make_shared<UpgraderSemiMock>(security_adaptor_, muxer_adaptor_);
     transport_ = std::make_shared<TcpTransport>(context, upgrader_);
   }
 
@@ -260,7 +262,7 @@ struct Client : public std::enable_shared_from_this<Client> {
   std::default_random_engine generator;
   std::uniform_int_distribution<int> distribution;
 
-  std::shared_ptr<UpgraderMock> upgrader_;
+  std::shared_ptr<Upgrader> upgrader_;
   std::shared_ptr<Transport> transport_;
 
   std::shared_ptr<SecurityAdaptor> security_adaptor_ =

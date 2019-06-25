@@ -24,6 +24,8 @@ namespace libp2p::testing {
    public:
     TransportFixture();
 
+    ~TransportFixture() override = default;
+
     void SetUp() override;
 
     /**
