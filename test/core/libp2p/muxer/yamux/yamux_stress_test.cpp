@@ -174,6 +174,7 @@ struct Client : public std::enable_shared_from_this<Client> {
   void onConnection(const std::shared_ptr<CapableConnection> &conn) {
     for (size_t i = 0; i < streams_; i++) {
       boost::asio::post(context_, [i, conn, self{this->shared_from_this()}]() {
+        conn->start();
         conn->newStream(
             [i, conn, self](outcome::result<std::shared_ptr<Stream>> rstream) {
               EXPECT_OUTCOME_TRUE(stream, rstream);

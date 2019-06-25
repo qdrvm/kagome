@@ -436,6 +436,7 @@ namespace libp2p::connection {
               self->data_subs_.erase(stream_data_sub);
             }
           }
+          self->doReadHeader();
         });
     return true;
   }
