@@ -41,7 +41,8 @@ class TTQTest: public RuntimeTest {
  * otherwise an outcome error
  */
 TEST_F(TTQTest, validate_transaction) {
-  Extrinsic ext{Buffer::fromHex("01020304AABB").value()};
+  using std::string_literals::operator""s;
+  Extrinsic ext{Buffer::fromHex("01020304AABB"s).value()};
 
   ASSERT_FALSE(ttq_->validate_transaction(ext));
 }

@@ -99,7 +99,7 @@ TEST_F(YamuxAcceptanceTest, PingPong) {
     server_connection_->onStream([this](auto &&stream) {
       // wrap each received stream into a server structure and start reading
       ASSERT_TRUE(stream);
-      auto server = std::make_shared<ServerStream>(std::move(stream));
+      auto server = std::make_shared<ServerStream>(std::forward<decltype(stream)>(stream));
       server->doRead();
       server_streams_.push_back(std::move(server));
     });
