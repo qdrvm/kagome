@@ -19,8 +19,6 @@
 #include "runtime/tagged_transaction_queue.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "transaction_pool/impl/transaction_pool_impl.hpp"
-#include "transaction_pool/transaction_pool.hpp"
 
 using namespace kagome::api;
 using namespace kagome::runtime;

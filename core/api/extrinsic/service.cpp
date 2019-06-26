@@ -5,11 +5,13 @@
 
 #include "api/extrinsic/service.hpp"
 
+#include "api/extrinsic/request/submit_extrinsic.hpp"
+#include "api/extrinsic/response/value.hpp"
+
 namespace kagome::api {
   ExtrinsicApiService::ExtrinsicApiService(sptr<BasicTransport> transport,
                                            sptr<ExtrinsicApi> api)
-      : transport_{std::move(transport)},
-        api_proxy_(std::make_shared<ExtrinsicApiProxy>(std::move(api))) {
+      : transport_{std::move(transport)} {
     request_cnn_ = transport_->dataReceived().connect(
         [this](std::string_view data) { processData(data); });
 
@@ -18,15 +20,36 @@ namespace kagome::api {
     // register json format handler
     server_.RegisterFormatHandler(format_handler_);
 
-    auto &dispatcher = server_.GetDispatcher();
-
     // register all api methods
-    dispatcher.AddMethod("author_submitExtrinsic",
-                         &ExtrinsicApiProxy::submit_extrinsic, *api_proxy_);
+    registerHandler(
+        "author_submitExtrinsic",
+        [api](const jsonrpc::Request::Parameters &params) -> jsonrpc::Value {
+          auto request = SubmitExtrinsicRequest::fromParams(params);
 
-    dispatcher.AddMethod("author_pendingExtrinsics",
-                         &ExtrinsicApiProxy::pending_extrinsics, *api_proxy_);
+          auto &&res = api->submitExtrinsic(std::move(request.extrinsic));
+          if (!res) {
+            throw jsonrpc::Fault(res.error().message());
+          }
+          return makeValue(res.value());
+        });
+
+    registerHandler(
+        "author_pendingExtrinsics",
+        [api](const jsonrpc::Request::Parameters &params) -> jsonrpc::Value {
+          auto &&res = api->pendingExtrinsics();
+          if (!res) {
+            throw jsonrpc::Fault(res.error().message());
+          }
+
+          return makeValue(res.value());
+        });
     // other methods to be registered as soon as implemented
+  }
+
+  void ExtrinsicApiService::registerHandler(const std::string &name,
+                                            Method method) {
+    auto &dispatcher = server_.GetDispatcher();
+    dispatcher.AddMethod(name, std::move(method));
   }
 
   void ExtrinsicApiService::processData(std::string_view data) {

@@ -10,7 +10,7 @@
 
 #include <jsonrpc-lean/server.h>
 #include <boost/signals2/signal.hpp>
-#include "api/extrinsic/extrinsic_api_proxy.hpp"
+#include "api/extrinsic/extrinsic_api.hpp"
 #include "api/transport/basic_transport.hpp"
 
 namespace kagome::api {
@@ -54,6 +54,13 @@ namespace kagome::api {
     void stop();
 
    private:
+    using Method = jsonrpc::MethodWrapper::Method;
+    /**
+     * @brief registers rpc request handler lambda
+     * @param name rpc method name
+     * @param method handler functor
+     */
+    void registerHandler(const std::string &name, Method method);
     /**
      * @brief handles decoded network message
      * @param data json request string
@@ -63,7 +70,6 @@ namespace kagome::api {
     jsonrpc::JsonFormatHandler format_handler_{};  ///< format handler instance
     jsonrpc::Server server_{};                     ///< json rpc server instance
     sptr<BasicTransport> transport_;               ///< json transport
-    sptr<ExtrinsicApiProxy> api_proxy_;            ///< api reference
     signal_t<SignalType> on_response_{};           ///< notifies response
     connection_t request_cnn_;   ///< request connection holder
     connection_t response_cnn_;  ///< response connection holder
