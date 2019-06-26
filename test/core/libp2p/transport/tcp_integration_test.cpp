@@ -114,17 +114,15 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
     EXPECT_FALSE(conn->isInitiator());
 
     auto buf = std::make_shared<std::vector<uint8_t>>(kSize, 0);
-    conn->readSome(*buf, buf->size(),
-                   [&counter, conn, buf](auto &&ec, size_t read) {
-                     ASSERT_FALSE(ec) << ec.message();
+    conn->readSome(*buf, buf->size(), [&counter, conn, buf](auto &&res) {
+      ASSERT_TRUE(res) << res.error().message();
 
-                     conn->write(*buf, buf->size(),
-                                 [&counter, buf](auto &&ec, size_t written) {
-                                   ASSERT_FALSE(ec) << ec.message();
-                                   EXPECT_EQ(written, buf->size());
-                                   counter++;
-                                 });
-                   });
+      conn->write(*buf, buf->size(), [&counter, buf](auto &&res) {
+        ASSERT_TRUE(res) << res.error().message();
+        EXPECT_EQ(res.value(), buf->size());
+        counter++;
+      });
+    });
   });
 
   ASSERT_TRUE(listener);
@@ -148,17 +146,16 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
 
         EXPECT_TRUE(conn->isInitiator());
 
-        conn->write(*buf, buf->size(),
-                    [conn, readback, buf](auto &&ec, size_t written) {
-                      ASSERT_FALSE(ec) << ec.message();
-                      ASSERT_EQ(written, buf->size());
-                      conn->read(*readback, readback->size(),
-                                 [conn, readback, buf](auto &&ec, size_t read) {
-                                   ASSERT_FALSE(ec) << ec.message();
-                                   ASSERT_EQ(read, readback->size());
-                                   ASSERT_EQ(*buf, *readback);
-                                 });
-                    });
+        conn->write(*buf, buf->size(), [conn, readback, buf](auto &&res) {
+          ASSERT_TRUE(res) << res.error().message();
+          ASSERT_EQ(res.value(), buf->size());
+          conn->read(*readback, readback->size(),
+                     [conn, readback, buf](auto &&res) {
+                       ASSERT_TRUE(res) << res.error().message();
+                       ASSERT_EQ(res.value(), readback->size());
+                       ASSERT_EQ(*buf, *readback);
+                     });
+        });
       });
 
       context.run_for(100ms);
@@ -206,8 +203,10 @@ TEST(TCP, ClientClosesConnection) {
     EXPECT_FALSE(conn->isInitiator());
 
     auto buf = std::make_shared<std::vector<uint8_t>>(100, 0);
-    conn->readSome(*buf, buf->size(), [conn, buf](auto &&ec, size_t read) {
-      EXPECT_EQ(ec.value(), (int)boost::asio::error::eof) << ec.message();
+    conn->readSome(*buf, buf->size(), [conn, buf](auto &&res) {
+      ASSERT_FALSE(res);
+      ASSERT_EQ(res.error().value(), (int)boost::asio::error::eof)
+          << res.error().message();
     });
   });
 
@@ -218,7 +217,6 @@ TEST(TCP, ClientClosesConnection) {
   transport->dial(ma, [](auto &&rconn) {
     auto conn = expectConnectionValid(rconn);
     EXPECT_TRUE(conn->isInitiator());
-
     EXPECT_TRUE(conn->close());
   });
 
@@ -237,7 +235,7 @@ TEST(TCP, ServerClosesConnection) {
   auto listener = transport->createListener([&](auto &&rconn) {
     auto conn = expectConnectionValid(rconn);
     EXPECT_FALSE(conn->isInitiator());
-    EXPECT_OUTCOME_TRUE_1(conn->close());
+    EXPECT_OUTCOME_TRUE_1(conn->close())
   });
 
   ASSERT_TRUE(listener);
@@ -248,8 +246,10 @@ TEST(TCP, ServerClosesConnection) {
     auto conn = expectConnectionValid(rconn);
     EXPECT_TRUE(conn->isInitiator());
     auto buf = std::make_shared<std::vector<uint8_t>>(100, 0);
-    conn->readSome(*buf, buf->size(), [conn, buf](auto &&ec, size_t read) {
-      EXPECT_EQ(ec.value(), (int)boost::asio::error::eof) << ec.message();
+    conn->readSome(*buf, buf->size(), [conn, buf](auto &&res) {
+      ASSERT_FALSE(res);
+      ASSERT_EQ(res.error().value(), (int)boost::asio::error::eof)
+          << res.error().message();
     });
   });
 
@@ -273,16 +273,15 @@ TEST(TCP, OneTransportServerHandlesManyClients) {
     EXPECT_FALSE(conn->isInitiator());
 
     auto buf = std::make_shared<std::vector<uint8_t>>(kSize, 0);
-    conn->readSome(
-        *buf, kSize, [kSize, &counter, conn, buf](auto &&ec, size_t read) {
-          ASSERT_FALSE(ec) << ec.message();
+    conn->readSome(*buf, kSize, [kSize, &counter, conn, buf](auto &&res) {
+      ASSERT_TRUE(res) << res.error().message();
 
-          conn->write(*buf, kSize, [&counter, buf](auto &&ec, size_t written) {
-            ASSERT_FALSE(ec) << ec.message();
-            EXPECT_EQ(written, buf->size());
-            counter++;
-          });
-        });
+      conn->write(*buf, kSize, [&counter, buf](auto &&res) {
+        ASSERT_TRUE(res) << res.error().message();
+        EXPECT_EQ(res.value(), buf->size());
+        counter++;
+      });
+    });
   });
 
   ASSERT_TRUE(listener);
@@ -300,17 +299,15 @@ TEST(TCP, OneTransportServerHandlesManyClients) {
 
     EXPECT_TRUE(conn->isInitiator());
 
-    conn->write(*buf, kSize,
-                [conn, kSize, readback, buf](auto &&ec, size_t written) {
-                  ASSERT_FALSE(ec) << ec.message();
-                  ASSERT_EQ(written, buf->size());
-                  conn->read(*readback, kSize,
-                             [conn, readback, buf](auto &&ec, size_t read) {
-                               ASSERT_FALSE(ec) << ec.message();
-                               ASSERT_EQ(read, readback->size());
-                               ASSERT_EQ(*buf, *readback);
-                             });
-                });
+    conn->write(*buf, kSize, [conn, kSize, readback, buf](auto &&res) {
+      ASSERT_TRUE(res) << res.error().message();
+      ASSERT_EQ(res.value(), buf->size());
+      conn->read(*readback, kSize, [conn, readback, buf](auto &&res) {
+        ASSERT_TRUE(res) << res.error().message();
+        ASSERT_EQ(res.value(), readback->size());
+        ASSERT_EQ(*buf, *readback);
+      });
+    });
   });
 
   context.run_for(100ms);

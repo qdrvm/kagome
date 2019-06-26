@@ -14,14 +14,21 @@ namespace libp2p::connection {
 
   class CapableConnectionMock : public CapableConnection {
    public:
-    MOCK_METHOD0(newStream, outcome::result<std::shared_ptr<Stream>>());
+    ~CapableConnectionMock() override = default;
+
+    MOCK_METHOD1(newStream, void(StreamHandlerFunc));
+
+    MOCK_METHOD1(onStream, void(NewStreamHandlerFunc));
+
+    MOCK_METHOD0(start, void());
+    MOCK_METHOD0(stop, void());
 
     MOCK_CONST_METHOD0(localPeer, outcome::result<peer::PeerId>());
     MOCK_CONST_METHOD0(remotePeer, outcome::result<peer::PeerId>());
     MOCK_CONST_METHOD0(remotePublicKey, outcome::result<crypto::PublicKey>());
 
     MOCK_CONST_METHOD0(isClosed, bool(void));
-    MOCK_METHOD0(close, outcome::result<void>(void));
+    MOCK_METHOD0(close, outcome::result<void>());
     MOCK_METHOD3(read,
                  void(gsl::span<uint8_t>, size_t, Reader::ReadCallbackFunc));
     MOCK_METHOD3(readSome,
@@ -45,7 +52,13 @@ namespace libp2p::connection {
     explicit CapableConnBasedOnRawConnMock(std::shared_ptr<RawConnection> c)
         : real_(std::move(c)) {}
 
-    MOCK_METHOD0(newStream, outcome::result<std::shared_ptr<Stream>>());
+    MOCK_METHOD1(newStream, void(StreamHandlerFunc));
+
+    MOCK_METHOD1(onStream, void(NewStreamHandlerFunc));
+
+    MOCK_METHOD0(start, void());
+
+    MOCK_METHOD0(stop, void());
 
     MOCK_CONST_METHOD0(localPeer, outcome::result<peer::PeerId>());
 

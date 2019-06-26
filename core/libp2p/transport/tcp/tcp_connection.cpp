@@ -22,7 +22,6 @@ namespace libp2p::transport {
     if (ec) {
       return handle_errcode(ec);
     }
-
     return outcome::success();
   }
 
@@ -79,22 +78,46 @@ namespace libp2p::transport {
 
   void TcpConnection::read(gsl::span<uint8_t> out, size_t bytes,
                            TcpConnection::ReadCallbackFunc cb) {
-    boost::asio::async_read(socket_, detail::makeBuffer(out, bytes), cb);
+    boost::asio::async_read(socket_, detail::makeBuffer(out, bytes),
+                            [cb = std::move(cb)](auto &&ec, auto &&read) {
+                              if (ec) {
+                                return cb(std::forward<decltype(ec)>(ec));
+                              }
+                              return cb(read);
+                            });
   }
 
   void TcpConnection::readSome(gsl::span<uint8_t> out, size_t bytes,
                                TcpConnection::ReadCallbackFunc cb) {
-    socket_.async_read_some(detail::makeBuffer(out, bytes), cb);
+    socket_.async_read_some(detail::makeBuffer(out, bytes),
+                            [cb = std::move(cb)](auto &&ec, auto &&read) {
+                              if (ec) {
+                                return cb(std::forward<decltype(ec)>(ec));
+                              }
+                              return cb(read);
+                            });
   }
 
   void TcpConnection::write(gsl::span<const uint8_t> in, size_t bytes,
                             TcpConnection::WriteCallbackFunc cb) {
-    boost::asio::async_write(socket_, detail::makeBuffer(in, bytes), cb);
+    boost::asio::async_write(socket_, detail::makeBuffer(in, bytes),
+                             [cb = std::move(cb)](auto &&ec, auto &&written) {
+                               if (ec) {
+                                 return cb(std::forward<decltype(ec)>(ec));
+                               }
+                               return cb(written);
+                             });
   }
 
   void TcpConnection::writeSome(gsl::span<const uint8_t> in, size_t bytes,
                                 TcpConnection::WriteCallbackFunc cb) {
-    socket_.async_write_some(detail::makeBuffer(in, bytes), cb);
+    socket_.async_write_some(detail::makeBuffer(in, bytes),
+                             [cb = std::move(cb)](auto &&ec, auto &&written) {
+                               if (ec) {
+                                 return cb(std::forward<decltype(ec)>(ec));
+                               }
+                               return cb(written);
+                             });
   }
 
 }  // namespace libp2p::transport

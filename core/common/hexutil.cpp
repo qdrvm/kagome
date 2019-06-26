@@ -52,10 +52,11 @@ namespace kagome::common {
   }
 
   outcome::result<std::vector<uint8_t>> unhex(std::string_view hex) {
-    std::vector<uint8_t> blob((hex.size() + 1) / 2);
+    std::vector<uint8_t> blob;
+    blob.reserve((hex.size() + 1) / 2);
 
     try {
-      boost::algorithm::unhex(hex.begin(), hex.end(), blob.begin());
+      boost::algorithm::unhex(hex.begin(), hex.end(), std::back_inserter(blob));
       return blob;
 
     } catch (const boost::algorithm::not_enough_input &e) {

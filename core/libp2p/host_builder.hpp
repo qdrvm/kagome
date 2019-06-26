@@ -109,13 +109,13 @@ namespace libp2p {
      * connection; adaptor is a strategy to update connection to the muxed one
      * @param mux - adaptor to be added
      * @return builder with the adaptor added
-     * @note if no muxers are added, Yamux will be used
+     * @note if no muxers are added, Yamux will be used; it will THROW AWAY all streams
      */
     HostBuilder &addMuxerAdaptor(detail::sptr<muxer::MuxerAdaptor> mux);
 
     /**
      * Add a distributed hash table adaptor to be supported by this Host; it is
-     * used to store information across several nodes in the netowrk
+     * used to store information across several nodes in the network
      * @param d - adaptor to be added
      * @return builder with the adaptor added
      * @note if no adaptors are added, the default one will be used

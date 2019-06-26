@@ -6,15 +6,15 @@
 #ifndef KAGOME_WRITER_HPP
 #define KAGOME_WRITER_HPP
 
+#include <functional>
+
 #include <boost/system/error_code.hpp>
 #include <gsl/span>
 
 namespace libp2p::basic {
 
   struct Writer {
-    using ErrorCode = boost::system::error_code;
-    using WriteCallback = void(const ErrorCode & /*ec*/,
-                               size_t /*written bytes*/);
+    using WriteCallback = void(outcome::result<size_t> /*written bytes*/);
     using WriteCallbackFunc = std::function<WriteCallback>;
 
     virtual ~Writer() = default;
@@ -30,7 +30,8 @@ namespace libp2p::basic {
      * pointer, or having buffer as part of some class/struct, and using
      * enable_shared_from_this()
      */
-    virtual void write(gsl::span<const uint8_t> in, size_t bytes, WriteCallbackFunc cb) = 0;
+    virtual void write(gsl::span<const uint8_t> in, size_t bytes,
+                       WriteCallbackFunc cb) = 0;
 
     /**
      * @brief Write up to {@code} in.size() {@nocode} bytes.

@@ -63,7 +63,6 @@ namespace libp2p::transport {
     if (ec) {
       return outcome::failure(ec);
     }
-
     return outcome::success();
   }
 

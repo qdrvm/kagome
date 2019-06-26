@@ -9,16 +9,40 @@
 #include "libp2p/transport/upgrader.hpp"
 
 #include <gmock/gmock.h>
+#include "libp2p/muxer/yamux.hpp"
+#include "libp2p/security/plaintext.hpp"
 
 namespace libp2p::transport {
 
   class UpgraderMock : public Upgrader {
    public:
+    ~UpgraderMock() override = default;
+
     MOCK_METHOD2(upgradeToSecure,
                  void(Upgrader::RawSPtr, Upgrader::OnSecuredCallbackFunc));
 
     MOCK_METHOD2(upgradeToMuxed,
                  void(Upgrader::SecureSPtr, Upgrader::OnMuxedCallbackFunc));
+  };
+
+  /**
+   * Upgrader, which upgrades raw connection to plaintexted (inbound) and
+   * secured to Yamuxed
+   */
+  class DefaultUpgrader : public Upgrader {
+    std::shared_ptr<security::SecurityAdaptor> security_adaptor_ =
+        std::make_shared<security::Plaintext>();
+    std::shared_ptr<muxer::MuxerAdaptor> muxer_adaptor_ =
+        std::make_shared<muxer::Yamux>();
+
+   public:
+    void upgradeToSecure(RawSPtr conn, OnSecuredCallbackFunc cb) override {
+      cb(security_adaptor_->secureInbound(std::move(conn)));
+    }
+
+    void upgradeToMuxed(SecureSPtr conn, OnMuxedCallbackFunc cb) override {
+      cb(muxer_adaptor_->muxConnection(std::move(conn)));
+    }
   };
 
 }  // namespace libp2p::transport
