@@ -7,19 +7,19 @@
 #define KAGOME_TEST_MOCK_API_EXTRINSIC_JSON_TRANSPORT_MOCK_HPP
 
 #include <gmock/gmock.h>
-#include "api/extrinsic/json_transport.hpp"
+#include "api/transport/basic_transport.hpp"
 
 namespace kagome::api {
-  class JsonTransportMock : public JsonTransport {
+  class BasicTransportMock : public BasicTransport {
    public:
-    ~JsonTransportMock() override = default;
+    ~BasicTransportMock() override = default;
 
-    explicit JsonTransportMock(NetworkAddress address)
+    explicit BasicTransportMock(NetworkAddress address)
         : address_{std::move(address)} {}
 
     MOCK_METHOD0(start, outcome::result<void>());
 
-    void stop() override {}
+    MOCK_METHOD0(stop, void());
 
     void doRequest(std::string_view request) {
       dataReceived()(std::string(request));

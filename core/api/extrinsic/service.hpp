@@ -11,7 +11,7 @@
 #include <jsonrpc-lean/server.h>
 #include <boost/signals2/signal.hpp>
 #include "api/extrinsic/extrinsic_api_proxy.hpp"
-#include "api/extrinsic/json_transport.hpp"
+#include "api/transport/basic_transport.hpp"
 #include "api/extrinsic/network_address.hpp"
 
 namespace kagome::api {
@@ -19,7 +19,7 @@ namespace kagome::api {
   /**
    * @brief extrinsic submission service implementation
    */
-  class ExtrinsicSubmissionService {
+  class ExtrinsicApiService {
     using SignalType = void(const std::string &);
     template <class T>
     using sptr = std::shared_ptr<T>;
@@ -43,8 +43,8 @@ namespace kagome::api {
      * @param config server configuration
      * @param api_proxy extrinsic submission api proxy reference
      */
-    ExtrinsicSubmissionService(Configuration configuration,
-                               std::shared_ptr<JsonTransport> transport,
+    ExtrinsicApiService(Configuration configuration,
+                               std::shared_ptr<BasicTransport> transport,
                                std::shared_ptr<ExtrinsicApi> api);
 
     /**
@@ -68,13 +68,13 @@ namespace kagome::api {
     jsonrpc::JsonFormatHandler format_handler_{};  ///< format handler instance
     jsonrpc::Server server_{};                     ///< json rpc server instance
     Configuration configuration_;                  ///< service configuration
-    sptr<JsonTransport> transport_;                ///< json transport
-    sptr<ExtrinsicApiProxy> api_proxy_;     ///< api reference
+    sptr<BasicTransport> transport_;                ///< json transport
+    sptr<ExtrinsicApiProxy> api_proxy_;            ///< api reference
     signal_t<SignalType> on_response_{};           ///< notifies response
     connection_t request_cnn_;   ///< request connection holder
     connection_t response_cnn_;  ///< response connection holder
   };
 
-}  // namespace kagome::service
+}  // namespace kagome::api
 
 #endif  // KAGOME_CORE_SERVICE_EXTRINSICS_SUBMISSION_SERVICE_HPP

@@ -13,12 +13,11 @@ add_library(extrinsic_api_service
     service.cpp
     impl/extrinsic_api_impl.hpp
     impl/extrinsic_api_impl.cpp
-    json_transport.hpp
-    json_transport.cpp
     network_address.hpp
     )
 target_link_libraries(extrinsic_api_service
     buffer
     RapidJSON::rapidjson
     transaction_pool
+    basic_transport
     )

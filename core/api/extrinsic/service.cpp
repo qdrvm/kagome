@@ -6,8 +6,8 @@
 #include "api/extrinsic/service.hpp"
 
 namespace kagome::api {
-  ExtrinsicSubmissionService::ExtrinsicSubmissionService(
-      Configuration configuration, sptr<JsonTransport> transport,
+  ExtrinsicApiService::ExtrinsicApiService(
+      Configuration configuration, sptr<BasicTransport> transport,
       sptr<ExtrinsicApi> api)
       : configuration_{configuration},
         transport_{std::move(transport)},
@@ -24,16 +24,14 @@ namespace kagome::api {
 
     // register all api methods
     dispatcher.AddMethod("author_submitExtrinsic",
-                         &ExtrinsicApiProxy::submit_extrinsic,
-                         *api_proxy_);
+                         &ExtrinsicApiProxy::submit_extrinsic, *api_proxy_);
 
-    //    dispatcher.AddMethod("author_pendingExtrinsics",
-    //                         &ExtrinsicApiProxy::pending_extrinsics,
-    //                         *api_proxy_);
+    dispatcher.AddMethod("author_pendingExtrinsics",
+                         &ExtrinsicApiProxy::pending_extrinsics, *api_proxy_);
     // other methods to be registered as soon as implemented
   }
 
-  void ExtrinsicSubmissionService::processData(std::string_view data) {
+  void ExtrinsicApiService::processData(std::string_view data) {
     auto &&formatted_response = server_.HandleRequest(std::string(data));
     std::string response(formatted_response->GetData(),
                          formatted_response->GetSize());
@@ -41,11 +39,11 @@ namespace kagome::api {
     on_response_(response);
   }
 
-  outcome::result<void> ExtrinsicSubmissionService::start() {
+  outcome::result<void> ExtrinsicApiService::start() {
     return transport_->start();
   }
 
-  void ExtrinsicSubmissionService::stop() {
+  void ExtrinsicApiService::stop() {
     transport_->stop();
   }
-}  // namespace kagome::service
+}  // namespace kagome::api

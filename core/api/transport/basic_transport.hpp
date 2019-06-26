@@ -13,15 +13,15 @@
 namespace kagome::api {
 
   // TODO(yuraz): PRE-207 implement (will be implemented in next PR)
-  class JsonTransport {
+  class BasicTransport {
    public:
     using SignalType = void(const std::string &);
     using OnData = boost::signals2::signal<SignalType>;
     using OnResponse = std::function<SignalType>;
 
-    virtual ~JsonTransport() = default;
+    virtual ~BasicTransport() = default;
 
-    JsonTransport();
+    BasicTransport();
 
     /**
      * @brief starts listening

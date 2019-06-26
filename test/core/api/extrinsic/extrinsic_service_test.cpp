@@ -12,7 +12,7 @@
 #include <gtest/gtest.h>
 #include "common/blob.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
-#include "mock/api/extrinsic/json_transport_mock.hpp"
+#include "mock/api/transport/basic_transport_mock.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/transaction.hpp"
@@ -45,23 +45,21 @@ class ExtrinsicSubmissionServiceTest : public ::testing::Test {
     hash.fill(1);
   }
 
-  ExtrinsicSubmissionService::Configuration configuration = {
+  ExtrinsicApiService::Configuration configuration = {
       boost::asio::ip::make_address_v4("127.0.0.1"), 1234};
 
-  sptr<JsonTransportMock> transport =
-      std::make_shared<JsonTransportMock>(configuration.address);
+  sptr<BasicTransportMock> transport =
+      std::make_shared<BasicTransportMock>(configuration.address);
 
-  sptr<ExtrinsicApiMock> api =
-      std::make_shared<ExtrinsicApiMock>();
+  sptr<ExtrinsicApiMock> api = std::make_shared<ExtrinsicApiMock>();
 
-  sptr<ExtrinsicSubmissionService> service =
-      std::make_shared<ExtrinsicSubmissionService>(configuration, transport,
+  sptr<ExtrinsicApiService> service =
+      std::make_shared<ExtrinsicApiService>(configuration, transport,
                                                    api);
 
   Extrinsic extrinsic{};
   std::string request =
-      "{\"jsonrpc\":\"2.0\",\"method\":\"author_submitExtrinsic\",\"id\":0,"
-      "\"params\":[\"68656C6C6F20776F726C64\"]}";
+      R"({"jsonrpc":"2.0","method":"author_submitExtrinsic=","id":0,"params":["68656C6C6F20776F726C64"]})";
   Hash256 hash{};
 };
 
@@ -99,8 +97,8 @@ TEST_F(ExtrinsicSubmissionServiceTest, RequestSuccess) {
  */
 TEST_F(ExtrinsicSubmissionServiceTest, RequestFail) {
   EXPECT_CALL(*api, submit_extrinsic(extrinsic))
-      .WillOnce(Return(outcome::failure(
-          ExtrinsicApiError::INVALID_STATE_TRANSACTION)));
+      .WillOnce(Return(
+          outcome::failure(ExtrinsicApiError::INVALID_STATE_TRANSACTION)));
   std::string response =
       R"({"jsonrpc":"2.0","id":0,"error":{"code":0,"message":"transaction is in invalid state"}})";
 
