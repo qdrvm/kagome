@@ -64,52 +64,49 @@ struct Server : public std::enable_shared_from_this<Server> {
   void onConnection(const std::shared_ptr<CapableConnection> &conn) {
     this->clientsConnected++;
 
-    conn->onStream([self{shared_from_this()}](
-                       outcome::result<std::shared_ptr<Stream>> rstream) {
+    conn->onStream([this](outcome::result<std::shared_ptr<Stream>> rstream) {
       EXPECT_OUTCOME_TRUE(stream, rstream)
-      self->println("new stream created");
-      self->streamsCreated++;
+      this->println("new stream created");
+      this->streamsCreated++;
       auto buf = std::make_shared<std::vector<uint8_t>>();
-      self->onStream(buf, stream);
+      this->onStream(buf, stream);
     });
   }
 
-  void onStream(std::shared_ptr<std::vector<uint8_t>> buf,
+  void onStream(const std::shared_ptr<std::vector<uint8_t>> &buf,
                 const std::shared_ptr<Stream> &stream) {
     // we should create buffer per stream (session)
     buf->resize(kServerBufSize);
 
     println("onStream executed");
 
-    stream->readSome(*buf, buf->size(),
-                     [buf, stream, self{this->shared_from_this()}](
-                         outcome::result<size_t> rread) {
-                       EXPECT_OUTCOME_TRUE(read, rread)
+    stream->readSome(
+        *buf, buf->size(), [buf, stream, this](outcome::result<size_t> rread) {
+          EXPECT_OUTCOME_TRUE(read, rread)
 
-                       self->println("readSome ", read, " bytes");
-                       self->streamReads++;
+          this->println("readSome ", read, " bytes");
+          this->streamReads++;
 
-                       // echo back read data
-                       stream->write(*buf, read,
-                                     [buf, read, stream,
-                                      self](outcome::result<size_t> rwrite) {
-                                       EXPECT_OUTCOME_TRUE(write, rwrite)
-                                       self->println("write ", write, " bytes");
-                                       self->streamWrites++;
-                                       ASSERT_EQ(write, read);
+          // echo back read data
+          stream->write(
+              *buf, read,
+              [buf, read, stream, this](outcome::result<size_t> rwrite) {
+                EXPECT_OUTCOME_TRUE(write, rwrite)
+                this->println("write ", write, " bytes");
+                this->streamWrites++;
+                ASSERT_EQ(write, read);
 
-                                       self->onStream(buf, stream);
-                                     });
-                     });
+                this->onStream(buf, stream);
+              });
+        });
   }
 
   void listen(const Multiaddress &ma) {
     listener_ = transport_->createListener(
-        [self{this->shared_from_this()}](
-            outcome::result<std::shared_ptr<CapableConnection>> rconn) {
+        [this](outcome::result<std::shared_ptr<CapableConnection>> rconn) {
           EXPECT_OUTCOME_TRUE(conn, rconn)
-          self->println("new connection received");
-          self->onConnection(conn);
+          this->println("new connection received");
+          this->onConnection(conn);
         });
 
     EXPECT_OUTCOME_TRUE_1(this->listener_->listen(ma));
@@ -146,22 +143,21 @@ struct Client : public std::enable_shared_from_this<Client> {
     // create new stream
     transport_->dial(
         server,
-        [self{this->shared_from_this()}](
-            outcome::result<std::shared_ptr<CapableConnection>> rconn) {
+        [this](outcome::result<std::shared_ptr<CapableConnection>> rconn) {
           EXPECT_OUTCOME_TRUE(conn, rconn);
-          self->println("connected");
-          self->onConnection(conn);
+          this->println("connected");
+          this->onConnection(conn);
         });
   }
 
   void onConnection(const std::shared_ptr<CapableConnection> &conn) {
     for (size_t i = 0; i < streams_; i++) {
-      boost::asio::post(context_, [i, conn, self{this->shared_from_this()}]() {
+      boost::asio::post(context_, [i, conn, this]() {
         conn->newStream(
-            [i, conn, self](outcome::result<std::shared_ptr<Stream>> rstream) {
+            [i, conn, this](outcome::result<std::shared_ptr<Stream>> rstream) {
               EXPECT_OUTCOME_TRUE(stream, rstream);
-              self->println("new stream number ", i, " created");
-              self->onStream(i, self->rounds_, stream);
+              this->println("new stream number ", i, " created");
+              this->onStream(i, this->rounds_, stream);
             });
       });
     }
@@ -177,27 +173,26 @@ struct Client : public std::enable_shared_from_this<Client> {
     auto buf = randomBuffer();
     stream->write(
         *buf, buf->size(),
-        [round, streamId, buf, stream,
-         self{this->shared_from_this()}](outcome::result<size_t> rwrite) {
+        [round, streamId, buf, stream, this](outcome::result<size_t> rwrite) {
           EXPECT_OUTCOME_TRUE(write, rwrite);
-          self->println(streamId, " write ", write, " bytes");
-          self->streamWrites++;
+          this->println(streamId, " write ", write, " bytes");
+          this->streamWrites++;
 
           auto readbuf = std::make_shared<std::vector<uint8_t>>();
           readbuf->resize(write);
 
           stream->readSome(*readbuf, readbuf->size(),
                            [round, streamId, write, buf, readbuf, stream,
-                            self](outcome::result<size_t> rread) {
+                            this](outcome::result<size_t> rread) {
                              EXPECT_OUTCOME_TRUE(read, rread);
-                             self->println(streamId, " readSome ", read,
+                             this->println(streamId, " readSome ", read,
                                            " bytes");
-                             self->streamReads++;
+                             this->streamReads++;
 
                              ASSERT_EQ(write, read);
                              ASSERT_EQ(*buf, *readbuf);
 
-                             self->onStream(streamId, round - 1, stream);
+                             this->onStream(streamId, round - 1, stream);
                            });
         });
   }
