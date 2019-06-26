@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "extrinsics_submission_service/extrinsic_submission_service.hpp"
+#include "api/extrinsic/service.hpp"
 
-namespace kagome::service {
+namespace kagome::api {
   ExtrinsicSubmissionService::ExtrinsicSubmissionService(
       Configuration configuration, sptr<JsonTransport> transport,
-      sptr<ExtrinsicSubmissionApi> api)
+      sptr<ExtrinsicApi> api)
       : configuration_{configuration},
         transport_{std::move(transport)},
-        api_proxy_(std::make_shared<ExtrinsicSubmissionProxy>(std::move(api))) {
+        api_proxy_(std::make_shared<ExtrinsicApiProxy>(std::move(api))) {
     request_cnn_ = transport_->dataReceived().connect(
         [this](std::string_view data) { processData(data); });
 
@@ -24,11 +24,11 @@ namespace kagome::service {
 
     // register all api methods
     dispatcher.AddMethod("author_submitExtrinsic",
-                         &ExtrinsicSubmissionProxy::submit_extrinsic,
+                         &ExtrinsicApiProxy::submit_extrinsic,
                          *api_proxy_);
 
     //    dispatcher.AddMethod("author_pendingExtrinsics",
-    //                         &ExtrinsicSubmissionProxy::pending_extrinsics,
+    //                         &ExtrinsicApiProxy::pending_extrinsics,
     //                         *api_proxy_);
     // other methods to be registered as soon as implemented
   }

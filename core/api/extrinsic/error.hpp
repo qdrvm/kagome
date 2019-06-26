@@ -8,14 +8,14 @@
 
 #include <outcome/outcome.hpp>
 
-namespace kagome::service {
-  enum class ExtrinsicSubmissionError {
+namespace kagome::api {
+  enum class ExtrinsicApiError {
     INVALID_STATE_TRANSACTION = 1,  // transaction is in invalid state
     UNKNOWN_STATE_TRANSACTION,      // transaction is in unknown state
     DECODE_FAILURE                  // failed to decode value
   };
 }
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::service, ExtrinsicSubmissionError)
+OUTCOME_HPP_DECLARE_ERROR(kagome::api, ExtrinsicApiError)
 
 #endif  // KAGOME_CORE_EXTRINSICS_SUBMISSION_SERVICE_ERROR_HPP

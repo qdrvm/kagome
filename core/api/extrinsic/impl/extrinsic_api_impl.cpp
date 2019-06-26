@@ -3,21 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "extrinsics_submission_service/impl/extrinsic_submission_api_impl.hpp"
+#include "extrinsic_api_impl.hpp"
 
 #include "primitives/transaction.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
-namespace kagome::service {
-  ExtrinsicSubmissionApiImpl::ExtrinsicSubmissionApiImpl(
+namespace kagome::api {
+  ExtrinsicApiImpl::ExtrinsicApiImpl(
       sptr<runtime::TaggedTransactionQueue> api,
       sptr<transaction_pool::TransactionPool> pool, sptr<hash::Hasher> hasher)
       : api_{std::move(api)},
         pool_{std::move(pool)},
         hasher_{std::move(hasher)} {}
 
-  outcome::result<common::Hash256> ExtrinsicSubmissionApiImpl::submit_extrinsic(
+  outcome::result<common::Hash256> ExtrinsicApiImpl::submit_extrinsic(
       const primitives::Extrinsic &extrinsic) {
     // validate transaction
     OUTCOME_TRY(res, api_->validate_transaction(extrinsic));
@@ -25,10 +25,10 @@ namespace kagome::service {
     return kagome::visit_in_place(
         res,
         [](const primitives::Invalid &) {
-          return ExtrinsicSubmissionError::INVALID_STATE_TRANSACTION;
+          return ExtrinsicApiError::INVALID_STATE_TRANSACTION;
         },
         [](const primitives::Unknown &) {
-          return ExtrinsicSubmissionError::UNKNOWN_STATE_TRANSACTION;
+          return ExtrinsicApiError::UNKNOWN_STATE_TRANSACTION;
         },
         [&](const primitives::Valid &v) -> outcome::result<common::Hash256> {
           // compose Transaction object
@@ -52,26 +52,26 @@ namespace kagome::service {
   }
 
   outcome::result<std::vector<primitives::Extrinsic>>
-  ExtrinsicSubmissionApiImpl::pending_extrinsics() {
+  ExtrinsicApiImpl::pending_extrinsics() {
     // not implemented yet
     std::terminate();
   }
 
   outcome::result<std::vector<common::Hash256>>
-  ExtrinsicSubmissionApiImpl::remove_extrinsic(
-      const std::vector<primitives::ExtrinsicKey> &bytes_or_hash) {
+  ExtrinsicApiImpl::remove_extrinsic(
+      const std::vector<primitives::ExtrinsicKey> &keys) {
     // not implemented yet
     std::terminate();
   }
 
-  void ExtrinsicSubmissionApiImpl::watch_extrinsic(
+  void ExtrinsicApiImpl::watch_extrinsic(
       const primitives::Metadata &metadata,
       const primitives::Subscriber &subscriber, const common::Buffer &data) {
     // not implemented yet
     std::terminate();
   }
 
-  outcome::result<bool> ExtrinsicSubmissionApiImpl::unwatch_extrinsic(
+  outcome::result<bool> ExtrinsicApiImpl::unwatch_extrinsic(
       const std::optional<primitives::Metadata> &metadata,
       const primitives::SubscriptionId &id) {
     // not implemented yet

@@ -10,15 +10,15 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "api/extrinsic/impl/extrinsic_api_impl.hpp"
 #include "common/blob.hpp"
-#include "extrinsics_submission_service/impl/extrinsic_submission_api_impl.hpp"
 #include "primitives/extrinsic.hpp"
 
-namespace kagome::service {
+namespace kagome::api {
 
-  class ExtrinsicSubmissionApiMock : public ExtrinsicSubmissionApi {
+  class ExtrinsicApiMock : public ExtrinsicApi {
    public:
-    ~ExtrinsicSubmissionApiMock() override = default;
+    ~ExtrinsicApiMock() override = default;
 
     MOCK_METHOD1(submit_extrinsic, outcome::result<Hash256>(const Extrinsic &));
 

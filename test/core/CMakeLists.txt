@@ -6,7 +6,7 @@
 add_subdirectory(common)
 add_subdirectory(crypto)
 add_subdirectory(extensions)
-add_subdirectory(extrinsic_submission_service)
+add_subdirectory(api)
 add_subdirectory(libp2p)
 add_subdirectory(primitives)
 add_subdirectory(runtime)

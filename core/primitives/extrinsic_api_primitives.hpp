@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_PRIMITIVES_AUTH_API_HPP
-#define KAGOME_CORE_PRIMITIVES_AUTH_API_HPP
+#ifndef KAGOME_CORE_PRIMITIVES_EXTRINSIC_API_PRIMITIVES_HPP
+#define KAGOME_CORE_PRIMITIVES_EXTRINSIC_API_PRIMITIVES_HPP
 
 #include <memory>
 #include <optional>
@@ -49,4 +49,4 @@ namespace kagome::primitives {
 
 }  // namespace kagome::primitives
 
-#endif  // KAGOME_CORE_PRIMITIVES_AUTH_API_HPP
+#endif  //KAGOME_CORE_PRIMITIVES_EXTRINSIC_API_PRIMITIVES_HPP

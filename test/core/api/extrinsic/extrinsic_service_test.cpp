@@ -4,14 +4,15 @@
  */
 
 // needs to be included at the top, don't move it down
-#include "core/extrinsic_submission_service/extrinsic_submission_api_mock.hpp"
+#include "mock/api/extrinsic/extrinsic_api_mock.hpp"
 
-#include "extrinsics_submission_service/extrinsic_submission_service.hpp"
+#include "api/extrinsic/service.hpp"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "common/blob.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "mock/api/extrinsic/json_transport_mock.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/transaction.hpp"
@@ -21,7 +22,7 @@
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
-using namespace kagome::service;
+using namespace kagome::api;
 using namespace kagome::runtime;
 
 using kagome::common::Buffer;
@@ -32,27 +33,6 @@ using kagome::primitives::Extrinsic;
 using ::testing::_;
 using ::testing::DoAll;
 using ::testing::Return;
-
-class JsonTransportMock : public JsonTransport {
- public:
-  ~JsonTransportMock() override = default;
-
-  explicit JsonTransportMock(NetworkAddress address)
-      : address_{std::move(address)} {}
-
-  MOCK_METHOD0(start, outcome::result<void>());
-
-  void stop() override {}
-
-  void doRequest(std::string_view request) {
-    dataReceived()(std::string(request));
-  }
-
-  MOCK_METHOD1(processResponse, void(const std::string &));
-
- private:
-  NetworkAddress address_;
-};
 
 class ExtrinsicSubmissionServiceTest : public ::testing::Test {
   template <class T>
@@ -71,8 +51,8 @@ class ExtrinsicSubmissionServiceTest : public ::testing::Test {
   sptr<JsonTransportMock> transport =
       std::make_shared<JsonTransportMock>(configuration.address);
 
-  sptr<ExtrinsicSubmissionApiMock> api =
-      std::make_shared<ExtrinsicSubmissionApiMock>();
+  sptr<ExtrinsicApiMock> api =
+      std::make_shared<ExtrinsicApiMock>();
 
   sptr<ExtrinsicSubmissionService> service =
       std::make_shared<ExtrinsicSubmissionService>(configuration, transport,
@@ -120,7 +100,7 @@ TEST_F(ExtrinsicSubmissionServiceTest, RequestSuccess) {
 TEST_F(ExtrinsicSubmissionServiceTest, RequestFail) {
   EXPECT_CALL(*api, submit_extrinsic(extrinsic))
       .WillOnce(Return(outcome::failure(
-          ExtrinsicSubmissionError::INVALID_STATE_TRANSACTION)));
+          ExtrinsicApiError::INVALID_STATE_TRANSACTION)));
   std::string response =
       R"({"jsonrpc":"2.0","id":0,"error":{"code":0,"message":"transaction is in invalid state"}})";
 

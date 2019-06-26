@@ -7,11 +7,11 @@
 #define KAGOME_CORE_EXTRINSICS_SUBMISSION_SERVICE_EXTRINSIC_SUBMISSION_API_HPP
 
 #include "common/blob.hpp"
-#include "primitives/auth_api.hpp"
+#include "primitives/extrinsic_api_primitives.hpp"
 #include "primitives/extrinsic.hpp"
 
-namespace kagome::service {
-  class ExtrinsicSubmissionApi {
+namespace kagome::api {
+  class ExtrinsicApi {
    protected:
     using Hash256 = common::Hash256;
     using Buffer = common::Buffer;
@@ -22,7 +22,7 @@ namespace kagome::service {
     using ExtrinsicKey = primitives::ExtrinsicKey;
 
    public:
-    virtual ~ExtrinsicSubmissionApi() = default;
+    virtual ~ExtrinsicApi() = default;
     /**
      * @brief validates and sends extrinsic to transaction pool
      * @param bytes encoded extrinsic

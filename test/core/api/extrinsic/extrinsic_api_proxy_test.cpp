@@ -4,23 +4,25 @@
  */
 
 // needs to be included at the top, don't move it down
-#include "core/extrinsic_submission_service/extrinsic_submission_api_mock.hpp"
+#include "mock/api/extrinsic/extrinsic_api_mock.hpp"
 
-#include "extrinsics_submission_service/extrinsic_submission_proxy.hpp"
+#include "api/extrinsic/extrinsic_api_proxy.hpp"
 
 #include <iostream>
 #include <memory>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "api/extrinsic/error.hpp"
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
-#include "extrinsics_submission_service/error.hpp"
-#include "primitives/auth_api.hpp"
 #include "primitives/extrinsic.hpp"
+#include "primitives/extrinsic_api_primitives.hpp"
 #include "testutil/literals.hpp"
 
-using namespace kagome::service;
+using kagome::api::ExtrinsicApiError;
+using kagome::api::ExtrinsicApiMock;
+using kagome::api::ExtrinsicApiProxy;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::primitives::Extrinsic;
@@ -38,12 +40,11 @@ class ExtrinsicSubmissionProxyTest : public ::testing::Test {
   using sptr = std::shared_ptr<T>;
 
  protected:
-  sptr<ExtrinsicSubmissionApiMock> api =
-      std::make_shared<ExtrinsicSubmissionApiMock>();
+  sptr<ExtrinsicApiMock> api = std::make_shared<ExtrinsicApiMock>();
 
-  ExtrinsicSubmissionProxy proxy{api};
+  ExtrinsicApiProxy proxy{api};
   std::vector<uint8_t> bytes = {0, 1};
-  Extrinsic extrinsic {"0001"_hex2buf};
+  Extrinsic extrinsic{"0001"_hex2buf};
 };
 
 /**
@@ -71,8 +72,8 @@ TEST_F(ExtrinsicSubmissionProxyTest, SubmitExtrinsicSuccess) {
  */
 TEST_F(ExtrinsicSubmissionProxyTest, SubmitExtrinsicFail) {
   EXPECT_CALL(*api, submit_extrinsic(_))
-      .WillOnce(Return(outcome::failure(
-          ExtrinsicSubmissionError::INVALID_STATE_TRANSACTION)));
+      .WillOnce(Return(
+          outcome::failure(ExtrinsicApiError::INVALID_STATE_TRANSACTION)));
 
   ASSERT_THROW(proxy.submit_extrinsic(extrinsic.data.toHex()), jsonrpc::Fault);
 }

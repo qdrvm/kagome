@@ -13,10 +13,10 @@
 
 #include <boost/variant.hpp>
 #include <outcome/outcome.hpp>
+#include "api/extrinsic/error.hpp"
+#include "api/extrinsic/extrinsic_api.hpp"
 #include "common/visitor.hpp"
 #include "crypto/hasher.hpp"
-#include "extrinsics_submission_service/error.hpp"
-#include "extrinsics_submission_service/extrinsic_submission_api.hpp"
 
 namespace kagome::transaction_pool {
   class TransactionPool;
@@ -26,8 +26,8 @@ namespace kagome::runtime {
   class TaggedTransactionQueue;
 }
 
-namespace kagome::service {
-  class ExtrinsicSubmissionApiImpl : public ExtrinsicSubmissionApi {
+namespace kagome::api {
+  class ExtrinsicApiImpl : public ExtrinsicApi {
     template <class T>
     using sptr = std::shared_ptr<T>;
 
@@ -38,12 +38,11 @@ namespace kagome::service {
      * @param pool transaction pool instance shared ptr
      * @param hasher hasher instance shared ptr
      */
-    ExtrinsicSubmissionApiImpl(
-        std::shared_ptr<runtime::TaggedTransactionQueue> api,
-        std::shared_ptr<transaction_pool::TransactionPool> pool,
-        std::shared_ptr<hash::Hasher> hasher);
+    ExtrinsicApiImpl(std::shared_ptr<runtime::TaggedTransactionQueue> api,
+                     std::shared_ptr<transaction_pool::TransactionPool> pool,
+                     std::shared_ptr<hash::Hasher> hasher);
 
-    ~ExtrinsicSubmissionApiImpl() override = default;
+    ~ExtrinsicApiImpl() override = default;
 
     outcome::result<common::Hash256> submit_extrinsic(
         const primitives::Extrinsic &extrinsic) override;
@@ -53,8 +52,7 @@ namespace kagome::service {
 
     // TODO(yuraz): probably will be documented later (no task yet)
     outcome::result<std::vector<common::Hash256>> remove_extrinsic(
-        const std::vector<primitives::ExtrinsicKey>
-            &bytes_or_hash) override;
+        const std::vector<primitives::ExtrinsicKey> &keys) override;
 
     // TODO(yuraz): probably will be documented later (no task yet)
     void watch_extrinsic(const primitives::Metadata &metadata,

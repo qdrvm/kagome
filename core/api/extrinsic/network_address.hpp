@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <boost/asio/ip/address.hpp>
 
-namespace kagome::service {
+namespace kagome::api {
   using NetworkAddress = boost::asio::ip::address;
 }  // namespace kagome::service
 

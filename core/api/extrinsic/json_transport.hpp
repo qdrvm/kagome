@@ -8,14 +8,14 @@
 
 #include <boost/signals2/signal.hpp>
 #include <outcome/outcome.hpp>
-#include "extrinsics_submission_service/network_address.hpp"
+#include "api/extrinsic/network_address.hpp"
 
-namespace kagome::service {
+namespace kagome::api {
 
   // TODO(yuraz): PRE-207 implement (will be implemented in next PR)
   class JsonTransport {
    public:
-    using SignalType = void(const std::string&);
+    using SignalType = void(const std::string &);
     using OnData = boost::signals2::signal<SignalType>;
     using OnResponse = std::function<SignalType>;
 

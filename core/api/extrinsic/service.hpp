@@ -9,13 +9,12 @@
 #include <vector>
 
 #include <jsonrpc-lean/server.h>
-#include <boost/asio/io_context.hpp>
 #include <boost/signals2/signal.hpp>
-#include "extrinsics_submission_service/extrinsic_submission_proxy.hpp"
-#include "extrinsics_submission_service/json_transport.hpp"
-#include "extrinsics_submission_service/network_address.hpp"
+#include "api/extrinsic/extrinsic_api_proxy.hpp"
+#include "api/extrinsic/json_transport.hpp"
+#include "api/extrinsic/network_address.hpp"
 
-namespace kagome::service {
+namespace kagome::api {
 
   /**
    * @brief extrinsic submission service implementation
@@ -46,7 +45,7 @@ namespace kagome::service {
      */
     ExtrinsicSubmissionService(Configuration configuration,
                                std::shared_ptr<JsonTransport> transport,
-                               std::shared_ptr<ExtrinsicSubmissionApi> api);
+                               std::shared_ptr<ExtrinsicApi> api);
 
     /**
      * @brief starts service
@@ -70,7 +69,7 @@ namespace kagome::service {
     jsonrpc::Server server_{};                     ///< json rpc server instance
     Configuration configuration_;                  ///< service configuration
     sptr<JsonTransport> transport_;                ///< json transport
-    sptr<ExtrinsicSubmissionProxy> api_proxy_;     ///< api reference
+    sptr<ExtrinsicApiProxy> api_proxy_;     ///< api reference
     signal_t<SignalType> on_response_{};           ///< notifies response
     connection_t request_cnn_;   ///< request connection holder
     connection_t response_cnn_;  ///< response connection holder

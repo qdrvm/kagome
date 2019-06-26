@@ -3,22 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "extrinsics_submission_service/impl/extrinsic_submission_api_impl.hpp"
+#include "api/extrinsic/impl/extrinsic_api_impl.hpp"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "common/blob.hpp"
-#include "crypto/hasher/hasher_impl.hpp"
+#include "mock/crypto/hasher.hpp"
+#include "mock/runtime/tagged_transaction_queue_mock.hpp"
+#include "mock/transaction_pool/transaction_pool_mock.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/transaction.hpp"
-#include "runtime/tagged_transaction_queue.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
 
-using namespace kagome::service;
+using namespace kagome::api;
 using namespace kagome::hash;
 using namespace kagome::transaction_pool;
 using namespace kagome::runtime;
@@ -39,34 +40,6 @@ using ::testing::_;
 using ::testing::DoAll;
 using ::testing::Return;
 
-class HasherMock : public HasherImpl {
- public:
-  MOCK_CONST_METHOD1(blake2_256, Hash256(gsl::span<const uint8_t>));
-};
-
-class TaggedTransactionQueueMock : public TaggedTransactionQueue {
- public:
-  ~TaggedTransactionQueueMock() override = default;
-
-  MOCK_METHOD1(validate_transaction,
-               outcome::result<TransactionValidity>(const Extrinsic &));
-};
-
-class TransactionPoolMock : public TransactionPool {
- public:
-  ~TransactionPoolMock() override = default;
-
-  // only this one we need here
-  MOCK_METHOD1(submitOne, outcome::result<void>(Transaction));
-  MOCK_METHOD1(submit, outcome::result<void>(std::vector<Transaction>));
-  MOCK_METHOD0(getReadyTransactions, std::vector<Transaction>());
-  MOCK_METHOD1(removeStale, std::vector<Transaction>(const BlockId &));
-  MOCK_METHOD1(prune, std::vector<Transaction>(const std::vector<Extrinsic> &));
-  MOCK_METHOD1(pruneTags,
-               std::vector<Transaction>(const std::vector<TransactionTag> &));
-  MOCK_CONST_METHOD0(getStatus, Status(void));
-};
-
 class ExtrinsicSubmissionApiTest : public ::testing::Test {
   template <class T>
   using sptr = std::shared_ptr<T>;
@@ -78,7 +51,7 @@ class ExtrinsicSubmissionApiTest : public ::testing::Test {
   sptr<TransactionPoolMock> tp{
       std::make_shared<TransactionPoolMock>()};  ///< transaction pool mock
 
-  ExtrinsicSubmissionApiImpl api{ttq, tp, hasher};  ///< api instance
+  ExtrinsicApiImpl api{ttq, tp, hasher};  ///< api instance
 
   Extrinsic extrinsic{"12"_hex2buf};
   Valid valid_transaction{1, {{2}}, {{3}}, 4};
@@ -119,14 +92,13 @@ TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicInvalidFail) {
   TransactionValidity tv = Invalid{1u};
 
   EXPECT_CALL(*ttq, validate_transaction(extrinsic))
-      .WillOnce(Return(outcome::failure(
-          ExtrinsicSubmissionError::INVALID_STATE_TRANSACTION)));
+      .WillOnce(Return(
+          outcome::failure(ExtrinsicApiError::INVALID_STATE_TRANSACTION)));
   EXPECT_CALL(*hasher, blake2_256(_)).Times(0);
   EXPECT_CALL(*tp, submitOne(_)).Times(0);
   EXPECT_OUTCOME_FALSE_2(err, api.submit_extrinsic(extrinsic))
-  ASSERT_EQ(
-      err.value(),
-      static_cast<int>(ExtrinsicSubmissionError::INVALID_STATE_TRANSACTION));
+  ASSERT_EQ(err.value(),
+            static_cast<int>(ExtrinsicApiError::INVALID_STATE_TRANSACTION));
 }
 
 /**
@@ -140,14 +112,13 @@ TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicUnknownFail) {
   TransactionValidity tv = Unknown{1u};
 
   EXPECT_CALL(*ttq, validate_transaction(extrinsic))
-      .WillOnce(Return(outcome::failure(
-          ExtrinsicSubmissionError::UNKNOWN_STATE_TRANSACTION)));
+      .WillOnce(Return(
+          outcome::failure(ExtrinsicApiError::UNKNOWN_STATE_TRANSACTION)));
   EXPECT_CALL(*hasher, blake2_256(_)).Times(0);
   EXPECT_CALL(*tp, submitOne(_)).Times(0);
   EXPECT_OUTCOME_FALSE_2(err, api.submit_extrinsic(extrinsic))
-  ASSERT_EQ(
-      err.value(),
-      static_cast<int>(ExtrinsicSubmissionError::UNKNOWN_STATE_TRANSACTION));
+  ASSERT_EQ(err.value(),
+            static_cast<int>(ExtrinsicApiError::UNKNOWN_STATE_TRANSACTION));
 }
 
 /**

@@ -4,7 +4,7 @@
 #
 
 add_library(primitives
-    auth_api.hpp
+    extrinsic_api_primitives.hpp
     block.hpp
     block_header.hpp
     block_id.hpp

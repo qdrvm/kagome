@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "extrinsics_submission_service/json_transport.hpp"
+#include "api/extrinsic/json_transport.hpp"
 
-namespace kagome::service {
+namespace kagome::api {
 
   JsonTransport::JsonTransport() {
     on_response_ = [this](const std::string &data) { processResponse(data); };
