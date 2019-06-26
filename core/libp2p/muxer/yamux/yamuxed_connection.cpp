@@ -43,11 +43,13 @@ namespace libp2p::connection {
   }
 
   void YamuxedConnection::start() {
+    BOOST_ASSERT_MSG(!started_, "YamuxedConnection already started (double start)");
     started_ = true;
     return doReadHeader();
   }
 
   void YamuxedConnection::stop() {
+    BOOST_ASSERT_MSG(started_, "YamuxedConnection is not started (double stop)");
     started_ = false;
   }
 
@@ -104,6 +106,9 @@ namespace libp2p::connection {
   outcome::result<void> YamuxedConnection::close() {
     started_ = false;
     resetAllStreams();
+    streams_.clear();
+    window_updates_subs_.clear();
+    data_subs_.clear();
     return connection_->close();
   }
 
