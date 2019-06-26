@@ -142,6 +142,7 @@ namespace libp2p::connection {
 
   void YamuxedConnection::doWrite() {
     if (write_queue_.empty() || !started_ || connection_->isClosed()) {
+      std::queue<WriteData>().swap(write_queue_);
       is_writing_ = false;
       return;
     }
@@ -410,8 +411,8 @@ namespace libp2p::connection {
          }});
   }
 
-  bool YamuxedConnection::processData(
-      const std::shared_ptr<YamuxStream> &stream, const YamuxFrame &frame) {
+  bool YamuxedConnection::processData(std::shared_ptr<YamuxStream> stream,
+                                      const YamuxFrame &frame) {
     auto data_len = frame.length;
     if (data_len == 0) {
       return false;
@@ -427,7 +428,8 @@ namespace libp2p::connection {
     // read the data, commit it to the stream and call handler, if exists
     doReadData(
         data_len,
-        [self{shared_from_this()}, stream, data_len, frame](auto &&res) {
+        [self{shared_from_this()}, stream = std::move(stream), data_len,
+         frame](auto &&res) {
           if (!res) {
             self->log_->error("cannot read data from the connection: {}",
                               res.error().message());

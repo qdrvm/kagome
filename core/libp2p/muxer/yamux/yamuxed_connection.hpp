@@ -197,7 +197,7 @@ namespace libp2p::connection {
      * @return true if there is some data in the frame, and the function is
      * going to read it, false otherwise
      */
-    bool processData(const std::shared_ptr<YamuxStream> &stream,
+    bool processData(std::shared_ptr<YamuxStream> stream,
                      const YamuxFrame &frame);
 
     /**
