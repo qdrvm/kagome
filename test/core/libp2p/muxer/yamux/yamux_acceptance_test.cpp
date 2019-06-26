@@ -63,99 +63,63 @@ struct ServerStream : std::enable_shared_from_this<ServerStream> {
   }
 };
 
-class YamuxAcceptanceTest : public testing::Test {
- public:
-  void SetUp() override {
-    transport_ = std::make_shared<TcpTransport>(
-        context_, std::make_shared<DefaultUpgrader>());
-    ASSERT_TRUE(transport_) << "cannot create transport";
-
-    auto ma = "/ip4/127.0.0.1/tcp/40009"_multiaddr;
-    multiaddress_ = std::make_shared<Multiaddress>(std::move(ma));
-
-    // set up a Yamux server - that lambda is to be called, when a new
-    // connection is received
-    transport_listener_ =
-        transport_->createListener([this](auto &&conn_res) mutable {
-          EXPECT_OUTCOME_TRUE(conn, conn_res)
-          server_connection_ = std::move(conn);
-          server_connection_->start();
-          server_connection_->onStream([this](auto &&stream) {
-            // wrap each received stream into a server structure and start
-            // reading
-            ASSERT_TRUE(stream);
-            auto server = std::make_shared<ServerStream>(
-                std::forward<decltype(stream)>(stream));
-            server->doRead();
-            server_streams_.push_back(std::move(server));
-          });
-          return outcome::success();
-        });
-    ASSERT_TRUE(transport_listener_->listen(*multiaddress_))
-        << "is port 40009 busy?";
-  }
-
-  boost::asio::io_context context_;
-
-  std::shared_ptr<libp2p::transport::Transport> transport_;
-  std::shared_ptr<libp2p::transport::TransportListener> transport_listener_;
-  std::shared_ptr<libp2p::multi::Multiaddress> multiaddress_;
-
-  std::shared_ptr<SecurityAdaptor> security_adaptor_ =
-      std::make_shared<Plaintext>();
-
-  std::shared_ptr<MuxerAdaptor> server_muxer_adaptor_ =
-      std::make_shared<Yamux>();
-  std::shared_ptr<MuxerAdaptor> client_muxer_adaptor_ =
-      std::make_shared<Yamux>();
-
-  std::shared_ptr<CapableConnection> server_connection_;
-  std::shared_ptr<CapableConnection> client_connection_;
-
-  std::vector<std::shared_ptr<ServerStream>> server_streams_;
-};
-
 /**
  * @given Yamuxed server, which is setup to write 'PONG' for any received 'PING'
  * message @and Yamuxed client, connected to that server
  * @when the client sets up a listener on that server @and writes 'PING'
  * @then the 'PONG' message is received by the client
  */
-TEST_F(YamuxAcceptanceTest, PingPong) {
-  transport_->dial(*multiaddress_, [this](auto &&conn_res) {
+TEST(YamuxAcceptanceTest, PingPong) {
+  auto ma = "/ip4/127.0.0.1/tcp/40009"_multiaddr;
+  auto stream_read = false, stream_wrote = false;
+  boost::asio::io_context context(1);
+
+  auto upgrader = std::make_shared<DefaultUpgrader>();
+  auto transport = std::make_shared<TcpTransport>(context, upgrader);
+  ASSERT_TRUE(transport) << "cannot create transport";
+
+  auto transport_listener = transport->createListener([](auto &&conn_res) {
     EXPECT_OUTCOME_TRUE(conn, conn_res)
-    client_connection_ = std::move(conn);
-    client_connection_->start();
-    return outcome::success();
+    conn->onStream([](auto &&stream) {
+      // wrap each received stream into a server structure and start
+      // reading
+      ASSERT_TRUE(stream);
+      auto server = std::make_shared<ServerStream>(
+          std::forward<decltype(stream)>(stream));
+      server->doRead();
+    });
+
+    conn->start();
   });
 
-  // let both client and server be created
-  context_.run_for(100ms);
-  ASSERT_TRUE(server_connection_);
-  ASSERT_TRUE(client_connection_);
+  ASSERT_TRUE(transport_listener->listen(ma)) << "is port 40009 busy?";
 
-  auto stream_read = false, stream_wrote = false;
-  Buffer stream_read_buffer(kPongBytes.size(), 0);
-  client_connection_->newStream([&stream_read_buffer, &stream_read,
-                                 &stream_wrote](auto &&stream_res) mutable {
-    EXPECT_OUTCOME_TRUE(stream, stream_res)
+  transport->dial(ma, [&](auto &&conn_res) {
+    EXPECT_OUTCOME_TRUE(conn, conn_res)
+    conn->start();
 
-    // proof our streams have parallelism: set up both read and write on the
-    // stream and make sure they are successfully executed
-    stream->read(stream_read_buffer, stream_read_buffer.size(),
-                 [&stream_read_buffer, &stream_read](auto &&res) {
-                   ASSERT_EQ(stream_read_buffer, kPongBytes);
-                   stream_read = true;
-                 });
-    stream->write(kPingBytes, kPingBytes.size(), [&stream_wrote](auto &&res) {
-      ASSERT_TRUE(res);
-      stream_wrote = true;
+    conn->newStream([&](auto &&stream_res) mutable {
+      EXPECT_OUTCOME_TRUE(stream, stream_res)
+      auto stream_read_buffer = std::make_shared<Buffer>(kPongBytes.size(), 0);
+
+      // proof our streams have parallelism: set up both read and write on the
+      // stream and make sure they are successfully executed
+      stream->read(*stream_read_buffer, stream_read_buffer->size(),
+                   [&, stream_read_buffer](auto &&res) {
+                     ASSERT_EQ(*stream_read_buffer, kPongBytes);
+                     stream_read = true;
+                   });
+
+      stream->write(kPingBytes, kPingBytes.size(), [&stream_wrote](auto &&res) {
+        ASSERT_TRUE(res);
+        stream_wrote = true;
+      });
     });
   });
 
   // let the streams make their jobs
-  context_.run_for(100ms);
+  context.run_for(100ms);
 
-  ASSERT_TRUE(stream_read);
-  ASSERT_TRUE(stream_wrote);
+  EXPECT_TRUE(stream_read);
+  EXPECT_TRUE(stream_wrote);
 }
