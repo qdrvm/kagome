@@ -7,7 +7,6 @@
 #define KAGOME_TCP_LISTENER_HPP
 
 #include <boost/asio.hpp>
-#include <ufiber/ufiber.hpp>
 #include "libp2p/transport/tcp/tcp_connection.hpp"
 #include "libp2p/transport/tcp/tcp_util.hpp"
 #include "libp2p/transport/transport_listener.hpp"
@@ -21,7 +20,10 @@ namespace libp2p::transport {
   class TcpListener : public TransportListener,
                       public std::enable_shared_from_this<TcpListener> {
    public:
-    TcpListener(boost::asio::io_context &context, std::shared_ptr<Upgrader> upgrader,
+    ~TcpListener() override = default;
+
+    TcpListener(boost::asio::io_context &context,
+                std::shared_ptr<Upgrader> upgrader,
                 TransportListener::HandlerFunc handler);
 
     outcome::result<void> listen(const multi::Multiaddress &address) override;
@@ -35,12 +37,12 @@ namespace libp2p::transport {
     outcome::result<void> close() override;
 
    private:
-    boost::asio::io_context& context_;
+    boost::asio::io_context &context_;
     boost::asio::ip::tcp::acceptor acceptor_;
     std::shared_ptr<Upgrader> upgrader_;
     TransportListener::HandlerFunc handle_;
 
-    void do_accept();
+    void doAccept();
   };
 
 }  // namespace libp2p::transport

@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.12)
 
 find_program(CCACHE_FOUND ccache)
-if (CCACHE_FOUND)
+if(CCACHE_FOUND)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
-endif (CCACHE_FOUND)
+endif(CCACHE_FOUND)
 
 
 set(
@@ -73,43 +73,40 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
   add_flag(-Werror-non-virtual-dtor) # warn the user if a class with virtual functions has a non-virtual destructor. This helps catch hard to track down memory errors
 
   # TODO(warchant): FIX WARNING: comparison of signed and unsigned; then uncomment
-  #  add_flag(-Werror-sign-compare)     # warn the user if they compare a signed and unsigned numbers
+#  add_flag(-Werror-sign-compare)     # warn the user if they compare a signed and unsigned numbers
   add_flag(-Werror-reorder)          # field '$1' will be initialized after field '$2'
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   # using Visual Studio C++
   # TODO(warchant): add flags https://github.com/lefticus/cppbestpractices/blob/master/02-Use_the_Tools_Available.md#msvc
-endif ()
+endif()
 
-if (COVERAGE)
+if(COVERAGE)
   include(cmake/coverage.cmake)
-endif ()
-if (CLANG_TIDY)
+endif()
+if(CLANG_TIDY)
   include(cmake/clang-tidy.cmake)
-endif ()
-if (CLANG_FORMAT)
+endif()
+if(CLANG_FORMAT)
   include(cmake/clang-format.cmake)
-endif ()
+endif()
 
 add_subdirectory(deps)
 
 include_directories(
-    # project includes
-    ${PROJECT_SOURCE_DIR}/core
+  # project includes
+  ${PROJECT_SOURCE_DIR}/core
 )
 
 include_directories(
-    SYSTEM
-    # system includes
-    deps/spdlog/include
-    deps/GSL/include
-    deps/outcome
-    deps/sml/include
-    deps/ufiber/include
-    deps/sr25519-crust/include
-    deps/hat-trie/include
-    deps/continuable/include
-    deps/function2/include
-    deps/jsonrpc-lean/include
+  SYSTEM
+  # system includes
+  deps/spdlog/include
+  deps/GSL/include
+  deps/outcome
+  deps/sml/include
+  deps/sr25519-crust/include
+  deps/hat-trie/include
+  deps/jsonrpc-lean/include
 )
 
 add_subdirectory(core)

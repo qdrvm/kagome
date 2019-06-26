@@ -14,22 +14,10 @@
 	path = deps/sr25519-crust
 	url = https://github.com/Warchant/sr25519-crust.git
     shallow = true
-[submodule "ufiber"]
-	path = deps/ufiber
-	url = https://github.com/djarek/ufiber/
-    shallow = true
 [submodule "deps/hat-trie"]
 	path = deps/hat-trie
 	url = https://github.com/Tessil/hat-trie.git
     shallow = true
-[submodule "continuable"]
-	path = deps/continuable
-	url = https://github.com/Naios/continuable/
-	shallow = true
-[submodule "function2"]
-	path = deps/function2
-	url = https://github.com/Naios/function2
-	shallow = true
 [submodule "jsonrpc-lean"]
 	path = deps/jsonrpc-lean
 	url = https://github.com/uskr/jsonrpc-lean

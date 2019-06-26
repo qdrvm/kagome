@@ -8,14 +8,14 @@
 
 #include <gsl/span>
 #include "common/buffer.hpp"
-#include "libp2p/muxer/yamux/yamux.hpp"
+#include "libp2p/muxer/yamux/yamuxed_connection.hpp"
 
-namespace libp2p::muxer {
+namespace libp2p::connection {
   /**
    * Header with optional data, which is sent and accepted with Yamux protocol
    */
   struct YamuxFrame {
-    using StreamId = Yamux::StreamId;
+    using StreamId = YamuxedConnection::StreamId;
     static constexpr uint32_t kHeaderLength = 12;
 
     enum class FrameType : uint8_t {
@@ -38,12 +38,12 @@ namespace libp2p::muxer {
     static constexpr uint8_t kDefaultVersion = 0;
     static constexpr uint32_t kDefaultWindowSize = 256;
 
-    uint8_t version_;
-    FrameType type_;
-    Flag flag_;
-    StreamId stream_id_;
-    uint32_t length_;
-    kagome::common::Buffer data_;
+    uint8_t version;
+    FrameType type;
+    Flag flag;
+    StreamId stream_id;
+    uint32_t length;
+    kagome::common::Buffer data;
 
     /**
      * Get bytes representation of the Yamux frame with given parameters
@@ -52,7 +52,7 @@ namespace libp2p::muxer {
     static kagome::common::Buffer frameBytes(
         uint8_t version, FrameType type, Flag flag, uint32_t stream_id,
         uint32_t length,
-        const kagome::common::Buffer &data = kagome::common::Buffer{});
+        gsl::span<const uint8_t> data = gsl::span<const uint8_t>());
   };
 
   /**
@@ -104,7 +104,7 @@ namespace libp2p::muxer {
    * @return bytes of the message
    */
   kagome::common::Buffer dataMsg(YamuxFrame::StreamId stream_id,
-                                 const kagome::common::Buffer &data);
+                                 gsl::span<const uint8_t> data);
 
   /**
    * Create a message, which breaks a connection with a peer
@@ -114,11 +114,20 @@ namespace libp2p::muxer {
   kagome::common::Buffer goAwayMsg(YamuxFrame::GoAwayError error);
 
   /**
+   * Create a window update message
+   * @param stream_id to be put into the message
+   * @param window_delta to be put into the message
+   * @return bytes of the message
+   */
+  kagome::common::Buffer windowUpdateMsg(YamuxFrame::StreamId stream_id,
+                                         uint32_t window_delta);
+
+  /**
    * Convert bytes into a frame object, if it is correct
    * @param frame_bytes to be converted
    * @return frame object, if convertation is successful, none otherwise
    */
   std::optional<YamuxFrame> parseFrame(gsl::span<const uint8_t> frame_bytes);
-}  // namespace libp2p::muxer
+}  // namespace libp2p::connection
 
 #endif  // KAGOME_YAMUX_FRAME_HPP
