@@ -44,25 +44,15 @@ namespace kagome::api {
 
     ~ExtrinsicApiImpl() override = default;
 
-    outcome::result<common::Hash256> submit_extrinsic(
+    outcome::result<common::Hash256> submitExtrinsic(
         const primitives::Extrinsic &extrinsic) override;
 
-    outcome::result<std::vector<primitives::Extrinsic>> pending_extrinsics()
+    outcome::result<std::vector<primitives::Extrinsic>> pendingExtrinsics()
         override;
 
     // TODO(yuraz): probably will be documented later (no task yet)
-    outcome::result<std::vector<common::Hash256>> remove_extrinsic(
+    outcome::result<std::vector<common::Hash256>> removeExtrinsic(
         const std::vector<primitives::ExtrinsicKey> &keys) override;
-
-    // TODO(yuraz): probably will be documented later (no task yet)
-    void watch_extrinsic(const primitives::Metadata &metadata,
-                         const primitives::Subscriber &subscriber,
-                         const common::Buffer &data) override;
-
-    // TODO(yuraz): probably will be documented later (no task yet)
-    outcome::result<bool> unwatch_extrinsic(
-        const std::optional<primitives::Metadata> &metadata,
-        const primitives::SubscriptionId &id) override;
 
    private:
     sptr<runtime::TaggedTransactionQueue> api_;  ///< pointer to ttq api
@@ -70,6 +60,6 @@ namespace kagome::api {
         pool_;                   ///< pointer to transaction pool apo
     sptr<hash::Hasher> hasher_;  ///< pointer to hasher
   };
-}  // namespace kagome::service
+}  // namespace kagome::api
 
 #endif  // KAGOME_CORE_EXTRINSICS_SUBMISSION_SERVICE_EXTRINSIC_SUBMISSION_API_IMPL_HPP

@@ -58,7 +58,7 @@ TEST_F(ExtrinsicSubmissionProxyTest, SubmitExtrinsicSuccess) {
   hash.fill(1);
   std::vector<uint8_t> hash_as_vector{hash.begin(), hash.end()};
 
-  EXPECT_CALL(*api, submit_extrinsic(_)).WillOnce(Return(hash));
+  EXPECT_CALL(*api, submitExtrinsic(_)).WillOnce(Return(hash));
 
   std::vector<uint8_t> result;
   ASSERT_NO_THROW(result = proxy.submit_extrinsic(extrinsic.data.toHex()));
@@ -71,7 +71,7 @@ TEST_F(ExtrinsicSubmissionProxyTest, SubmitExtrinsicSuccess) {
  * @then submit_extrinsic proxy method throws jsonrpc::Fault exception
  */
 TEST_F(ExtrinsicSubmissionProxyTest, SubmitExtrinsicFail) {
-  EXPECT_CALL(*api, submit_extrinsic(_))
+  EXPECT_CALL(*api, submitExtrinsic(_))
       .WillOnce(Return(
           outcome::failure(ExtrinsicApiError::INVALID_STATE_TRANSACTION)));
 

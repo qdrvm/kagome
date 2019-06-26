@@ -14,8 +14,8 @@ namespace kagome::api {
    public:
     ~BasicTransportMock() override = default;
 
-    explicit BasicTransportMock(NetworkAddress address)
-        : address_{std::move(address)} {}
+    explicit BasicTransportMock(NetworkAddress address, uint16_t port)
+        : address_{std::move(address)}, port_{port} {}
 
     MOCK_METHOD0(start, outcome::result<void>());
 
@@ -29,6 +29,7 @@ namespace kagome::api {
 
    private:
     NetworkAddress address_;
+    uint16_t port_;
   };
 }  // namespace kagome::service
 

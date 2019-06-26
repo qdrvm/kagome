@@ -13,7 +13,7 @@ add_library(extrinsic_api_service
     service.cpp
     impl/extrinsic_api_impl.hpp
     impl/extrinsic_api_impl.cpp
-    network_address.hpp
+    ../transport/network_address.hpp
     )
 target_link_libraries(extrinsic_api_service
     buffer

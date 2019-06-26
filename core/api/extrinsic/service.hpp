@@ -12,7 +12,6 @@
 #include <boost/signals2/signal.hpp>
 #include "api/extrinsic/extrinsic_api_proxy.hpp"
 #include "api/transport/basic_transport.hpp"
-#include "api/extrinsic/network_address.hpp"
 
 namespace kagome::api {
 
@@ -33,19 +32,15 @@ namespace kagome::api {
     /**
      * @brief service configuration
      */
-    struct Configuration {
-      NetworkAddress address{};
-      uint16_t port{};
-    };
+    struct Configuration;
     /**
      * @brief constructor
      * @param context io_context reference
      * @param config server configuration
      * @param api_proxy extrinsic submission api proxy reference
      */
-    ExtrinsicApiService(Configuration configuration,
-                               std::shared_ptr<BasicTransport> transport,
-                               std::shared_ptr<ExtrinsicApi> api);
+    ExtrinsicApiService(std::shared_ptr<BasicTransport> transport,
+                        std::shared_ptr<ExtrinsicApi> api);
 
     /**
      * @brief starts service
@@ -67,8 +62,7 @@ namespace kagome::api {
 
     jsonrpc::JsonFormatHandler format_handler_{};  ///< format handler instance
     jsonrpc::Server server_{};                     ///< json rpc server instance
-    Configuration configuration_;                  ///< service configuration
-    sptr<BasicTransport> transport_;                ///< json transport
+    sptr<BasicTransport> transport_;               ///< json transport
     sptr<ExtrinsicApiProxy> api_proxy_;            ///< api reference
     signal_t<SignalType> on_response_{};           ///< notifies response
     connection_t request_cnn_;   ///< request connection holder

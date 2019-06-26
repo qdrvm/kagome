@@ -8,7 +8,7 @@
 
 #include <boost/signals2/signal.hpp>
 #include <outcome/outcome.hpp>
-#include "api/extrinsic/network_address.hpp"
+#include "api/transport/network_address.hpp"
 
 namespace kagome::api {
 

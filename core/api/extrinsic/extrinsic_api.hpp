@@ -7,8 +7,8 @@
 #define KAGOME_CORE_EXTRINSICS_SUBMISSION_SERVICE_EXTRINSIC_SUBMISSION_API_HPP
 
 #include "common/blob.hpp"
-#include "primitives/extrinsic_api_primitives.hpp"
 #include "primitives/extrinsic.hpp"
+#include "primitives/extrinsic_api_primitives.hpp"
 
 namespace kagome::api {
   class ExtrinsicApi {
@@ -29,27 +29,18 @@ namespace kagome::api {
      * @return hash of successfully validated extrinsic
      * or error if state is invalid or unknown
      */
-    virtual outcome::result<Hash256> submit_extrinsic(
+    virtual outcome::result<Hash256> submitExtrinsic(
         const Extrinsic &extrinsic) = 0;
 
     /**
      * @return collection of pending extrinsics
      */
-    virtual outcome::result<std::vector<Extrinsic>> pending_extrinsics() = 0;
+    virtual outcome::result<std::vector<Extrinsic>> pendingExtrinsics() = 0;
 
     // TODO(yuraz): will be documented later (no task yet)
-    virtual outcome::result<std::vector<Hash256>> remove_extrinsic(
-        const std::vector<ExtrinsicKey> &bytes_or_hash) = 0;
-
-    // TODO(yuraz): will be documented later (no task yet)
-    virtual void watch_extrinsic(const Metadata &metadata,
-                                 const Subscriber &subscriber,
-                                 const Buffer &data) = 0;
-
-    // TODO(yuraz): will be documented later (no task yet)
-    virtual outcome::result<bool> unwatch_extrinsic(
-        const std::optional<Metadata> &metadata, const SubscriptionId &id) = 0;
+    virtual outcome::result<std::vector<Hash256>> removeExtrinsic(
+        const std::vector<ExtrinsicKey> &keys) = 0;
   };
-}  // namespace kagome::service
+}  // namespace kagome::api
 
 #endif  // KAGOME_CORE_EXTRINSICS_SUBMISSION_SERVICE_EXTRINSIC_SUBMISSION_API_HPP

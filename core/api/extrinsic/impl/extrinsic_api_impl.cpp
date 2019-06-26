@@ -17,7 +17,7 @@ namespace kagome::api {
         pool_{std::move(pool)},
         hasher_{std::move(hasher)} {}
 
-  outcome::result<common::Hash256> ExtrinsicApiImpl::submit_extrinsic(
+  outcome::result<common::Hash256> ExtrinsicApiImpl::submitExtrinsic(
       const primitives::Extrinsic &extrinsic) {
     // validate transaction
     OUTCOME_TRY(res, api_->validate_transaction(extrinsic));
@@ -52,30 +52,16 @@ namespace kagome::api {
   }
 
   outcome::result<std::vector<primitives::Extrinsic>>
-  ExtrinsicApiImpl::pending_extrinsics() {
+  ExtrinsicApiImpl::pendingExtrinsics() {
     // not implemented yet
     std::terminate();
   }
 
   outcome::result<std::vector<common::Hash256>>
-  ExtrinsicApiImpl::remove_extrinsic(
+  ExtrinsicApiImpl::removeExtrinsic(
       const std::vector<primitives::ExtrinsicKey> &keys) {
     // not implemented yet
     std::terminate();
   }
 
-  void ExtrinsicApiImpl::watch_extrinsic(
-      const primitives::Metadata &metadata,
-      const primitives::Subscriber &subscriber, const common::Buffer &data) {
-    // not implemented yet
-    std::terminate();
-  }
-
-  outcome::result<bool> ExtrinsicApiImpl::unwatch_extrinsic(
-      const std::optional<primitives::Metadata> &metadata,
-      const primitives::SubscriptionId &id) {
-    // not implemented yet
-    std::terminate();
-  }
-
-}  // namespace kagome::service
+}  // namespace kagome::api

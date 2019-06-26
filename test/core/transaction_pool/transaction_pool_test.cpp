@@ -7,7 +7,6 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <gmock/gmock.h>
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/std_list_adapter.hpp"

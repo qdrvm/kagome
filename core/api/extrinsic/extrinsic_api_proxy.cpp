@@ -23,7 +23,7 @@ namespace kagome::api {
     }
 
     auto &&extrinsic = Extrinsic{std::move(buffer.value())};
-    auto &&res = api_->submit_extrinsic(std::move(extrinsic));
+    auto &&res = api_->submitExtrinsic(std::move(extrinsic));
     if (!res) {
       throw jsonrpc::Fault(res.error().message());
     }
@@ -33,7 +33,7 @@ namespace kagome::api {
 
     std::vector<std::vector<uint8_t>>
     ExtrinsicApiProxy::pending_extrinsics() {
-      auto &&res = api_->pending_extrinsics();
+      auto &&res = api_->pendingExtrinsics();
       if (!res) {
         throw jsonrpc::Fault(res.error().message());
       }

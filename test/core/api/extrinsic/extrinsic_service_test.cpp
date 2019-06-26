@@ -45,17 +45,16 @@ class ExtrinsicSubmissionServiceTest : public ::testing::Test {
     hash.fill(1);
   }
 
-  ExtrinsicApiService::Configuration configuration = {
-      boost::asio::ip::make_address_v4("127.0.0.1"), 1234};
+  NetworkAddress ip = boost::asio::ip::make_address_v4("127.0.0.1");
+  uint16_t port = 1234;
 
   sptr<BasicTransportMock> transport =
-      std::make_shared<BasicTransportMock>(configuration.address);
+      std::make_shared<BasicTransportMock>(ip, port);
 
   sptr<ExtrinsicApiMock> api = std::make_shared<ExtrinsicApiMock>();
 
   sptr<ExtrinsicApiService> service =
-      std::make_shared<ExtrinsicApiService>(configuration, transport,
-                                                   api);
+      std::make_shared<ExtrinsicApiService>(transport, api);
 
   Extrinsic extrinsic{};
   std::string request =
@@ -81,7 +80,7 @@ TEST_F(ExtrinsicSubmissionServiceTest, StartSuccess) {
  * @then request is successfully parsed and response matches expectation
  */
 TEST_F(ExtrinsicSubmissionServiceTest, RequestSuccess) {
-  EXPECT_CALL(*api, submit_extrinsic(extrinsic)).WillOnce(Return(hash));
+  EXPECT_CALL(*api, submitExtrinsic(extrinsic)).WillOnce(Return(hash));
   std::string response =
       R"({"jsonrpc":"2.0","id":0,"result":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]})";
   EXPECT_CALL(*transport, processResponse(response)).WillOnce(Return());
@@ -96,7 +95,7 @@ TEST_F(ExtrinsicSubmissionServiceTest, RequestSuccess) {
  * @then request fails and response matches expectation
  */
 TEST_F(ExtrinsicSubmissionServiceTest, RequestFail) {
-  EXPECT_CALL(*api, submit_extrinsic(extrinsic))
+  EXPECT_CALL(*api, submitExtrinsic(extrinsic))
       .WillOnce(Return(
           outcome::failure(ExtrinsicApiError::INVALID_STATE_TRANSACTION)));
   std::string response =

@@ -77,7 +77,7 @@ TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicSuccess) {
                  true};
   EXPECT_CALL(*tp, submitOne(tr)).WillOnce(Return(outcome::success()));
 
-  EXPECT_OUTCOME_TRUE(hash, api.submit_extrinsic(extrinsic))
+  EXPECT_OUTCOME_TRUE(hash, api.submitExtrinsic(extrinsic))
   ASSERT_EQ(hash, Hash256{});
 }
 
@@ -96,7 +96,7 @@ TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicInvalidFail) {
           outcome::failure(ExtrinsicApiError::INVALID_STATE_TRANSACTION)));
   EXPECT_CALL(*hasher, blake2_256(_)).Times(0);
   EXPECT_CALL(*tp, submitOne(_)).Times(0);
-  EXPECT_OUTCOME_FALSE_2(err, api.submit_extrinsic(extrinsic))
+  EXPECT_OUTCOME_FALSE_2(err, api.submitExtrinsic(extrinsic))
   ASSERT_EQ(err.value(),
             static_cast<int>(ExtrinsicApiError::INVALID_STATE_TRANSACTION));
 }
@@ -116,7 +116,7 @@ TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicUnknownFail) {
           outcome::failure(ExtrinsicApiError::UNKNOWN_STATE_TRANSACTION)));
   EXPECT_CALL(*hasher, blake2_256(_)).Times(0);
   EXPECT_CALL(*tp, submitOne(_)).Times(0);
-  EXPECT_OUTCOME_FALSE_2(err, api.submit_extrinsic(extrinsic))
+  EXPECT_OUTCOME_FALSE_2(err, api.submitExtrinsic(extrinsic))
   ASSERT_EQ(err.value(),
             static_cast<int>(ExtrinsicApiError::UNKNOWN_STATE_TRANSACTION));
 }
@@ -144,7 +144,7 @@ TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicSubmitFail) {
       .WillOnce(Return(
           outcome::failure(TransactionPoolImpl::Error::ALREADY_IMPORTED)));
 
-  EXPECT_OUTCOME_FALSE_2(err, api.submit_extrinsic(extrinsic))
+  EXPECT_OUTCOME_FALSE_2(err, api.submitExtrinsic(extrinsic))
   ASSERT_EQ(err.value(),
             static_cast<int>(TransactionPoolImpl::Error::ALREADY_IMPORTED));
 }

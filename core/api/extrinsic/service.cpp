@@ -6,11 +6,9 @@
 #include "api/extrinsic/service.hpp"
 
 namespace kagome::api {
-  ExtrinsicApiService::ExtrinsicApiService(
-      Configuration configuration, sptr<BasicTransport> transport,
-      sptr<ExtrinsicApi> api)
-      : configuration_{configuration},
-        transport_{std::move(transport)},
+  ExtrinsicApiService::ExtrinsicApiService(sptr<BasicTransport> transport,
+                                           sptr<ExtrinsicApi> api)
+      : transport_{std::move(transport)},
         api_proxy_(std::make_shared<ExtrinsicApiProxy>(std::move(api))) {
     request_cnn_ = transport_->dataReceived().connect(
         [this](std::string_view data) { processData(data); });
