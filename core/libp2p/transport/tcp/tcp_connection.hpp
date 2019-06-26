@@ -10,11 +10,8 @@
 
 #include <boost/asio.hpp>
 #include <boost/noncopyable.hpp>
-#include <ufiber/ufiber.hpp>
-#include "libp2p/basic/yield.hpp"
 #include "libp2p/connection/raw_connection.hpp"
 #include "libp2p/multi/multiaddress.hpp"
-#include "libp2p/transport/tcp/tcp_util.hpp"
 
 namespace libp2p::transport {
 
@@ -25,42 +22,59 @@ namespace libp2p::transport {
                         public std::enable_shared_from_this<TcpConnection>,
                         private boost::noncopyable {
    public:
+    ~TcpConnection() override = default;
+
     using Tcp = boost::asio::ip::tcp;
+    using ErrorCode = boost::system::error_code;
     using ResolverResultsType = Tcp::resolver::results_type;
+    using ResolveCallback = void(const ErrorCode &,
+                                 const ResolverResultsType &);
+    using ResolveCallbackFunc = std::function<ResolveCallback>;
+    using ConnectCallback = void(const ErrorCode &, const Tcp::endpoint &);
+    using ConnectCallbackFunc = std::function<ConnectCallback>;
 
-    TcpConnection(basic::yield_t &yield, Tcp::socket &&socket);
+    explicit TcpConnection(boost::asio::io_context &ctx);
 
-    explicit TcpConnection(basic::yield_t &yield);
+    TcpConnection(boost::asio::io_context &ctx, Tcp::socket &&socket);
 
-    outcome::result<TcpConnection::ResolverResultsType> resolve(
-        const Tcp::endpoint &e);
+    /**
+     * @brief Resolve service name (DNS).
+     * @param endpoint endpoint to resolve.
+     * @param cb callback executed on operation completion.
+     */
+    void resolve(const Tcp::endpoint &endpoint, ResolveCallbackFunc cb);
 
-    outcome::result<void> connect(const Tcp::endpoint &endpoint);
+    /**
+     * @brief Connect to a remote service.
+     * @param iterator list of resolved IP addresses of remote service.
+     * @param cb callback executed on operation completion.
+     */
+    void connect(const ResolverResultsType &iterator, ConnectCallbackFunc cb);
 
-    outcome::result<void> close() override;
+    void read(gsl::span<uint8_t> out, size_t bytes,
+              ReadCallbackFunc cb) override;
 
-    bool isClosed() const override;
+    void readSome(gsl::span<uint8_t> out, size_t bytes,
+                  ReadCallbackFunc cb) override;
+
+    void write(gsl::span<const uint8_t> in, size_t bytes,
+               WriteCallbackFunc cb) override;
+
+    void writeSome(gsl::span<const uint8_t> in, size_t bytes,
+                   WriteCallbackFunc cb) override;
 
     outcome::result<multi::Multiaddress> remoteMultiaddr() override;
 
     outcome::result<multi::Multiaddress> localMultiaddr() override;
 
-    outcome::result<std::vector<uint8_t>> read(size_t bytes) override;
-
-    outcome::result<std::vector<uint8_t>> readSome(size_t bytes) override;
-
-    outcome::result<size_t> read(gsl::span<uint8_t> buf) override;
-
-    outcome::result<size_t> readSome(gsl::span<uint8_t> buf) override;
-
-    outcome::result<size_t> write(gsl::span<const uint8_t> in) override;
-
-    outcome::result<size_t> writeSome(gsl::span<const uint8_t> in) override;
-
     bool isInitiator() const noexcept override;
 
+    outcome::result<void> close() override;
+
+    bool isClosed() const override;
+
    private:
-    basic::yield_t &yield_;
+    boost::asio::io_context &context_;
     Tcp::socket socket_;
     bool initiator_ = false;
 

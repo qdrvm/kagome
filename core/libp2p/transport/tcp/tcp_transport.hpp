@@ -9,7 +9,6 @@
 #define BOOST_ASIO_NO_DEPRECATED
 
 #include <boost/asio.hpp>
-#include <ufiber/ufiber.hpp>
 #include "libp2p/transport/tcp/tcp_listener.hpp"
 #include "libp2p/transport/tcp/tcp_util.hpp"
 #include "libp2p/transport/transport.hpp"
@@ -23,6 +22,8 @@ namespace libp2p::transport {
   class TcpTransport : public Transport,
                        public std::enable_shared_from_this<TcpTransport> {
    public:
+    ~TcpTransport() override = default;
+
     TcpTransport(boost::asio::io_context &context,
                  std::shared_ptr<Upgrader> upgrader);
 
@@ -37,6 +38,16 @@ namespace libp2p::transport {
    private:
     boost::asio::io_context &context_;
     std::shared_ptr<Upgrader> upgrader_;
+
+    void onResolved(std::shared_ptr<TcpConnection> c,
+                    const TcpConnection::ResolverResultsType &r,
+                    Transport::HandlerFunc handler);
+
+    void onConnected(std::shared_ptr<TcpConnection> c,
+                     Transport::HandlerFunc handler);
+
+    void onConnSecured(std::shared_ptr<connection::SecureConnection> c,
+                       Transport::HandlerFunc handler);
   };  // namespace libp2p::transport
 
 }  // namespace libp2p::transport

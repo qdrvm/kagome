@@ -172,7 +172,7 @@ namespace libp2p {
     }
 
     if (config_.muxers.empty()) {
-      config_.muxers.push_back(std::make_shared<muxer::YamuxAdaptor>());
+      config_.muxers.push_back(std::make_shared<muxer::Yamux>());
     }
 
     if (config_.dhts.empty()) {

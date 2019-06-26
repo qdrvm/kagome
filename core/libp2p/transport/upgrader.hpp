@@ -28,11 +28,16 @@ namespace libp2p::transport {
     using SecureSPtr = std::shared_ptr<connection::SecureConnection>;
     using CapableSPtr = std::shared_ptr<connection::CapableConnection>;
 
+    using OnSecuredCallback = void(outcome::result<SecureSPtr>);
+    using OnSecuredCallbackFunc = std::function<OnSecuredCallback>;
+    using OnMuxedCallback = void(outcome::result<CapableSPtr>);
+    using OnMuxedCallbackFunc = std::function<OnMuxedCallback>;
+
     // upgrade raw connection to secure connection
-    virtual outcome::result<SecureSPtr> upgradeToSecure(RawSPtr conn) = 0;
+    virtual void upgradeToSecure(RawSPtr conn, OnSecuredCallbackFunc cb) = 0;
 
     // upgrade secure connection to capable connection
-    virtual outcome::result<CapableSPtr> upgradeToMuxed(SecureSPtr conn) = 0;
+    virtual void upgradeToMuxed(SecureSPtr conn, OnMuxedCallbackFunc cb) = 0;
   };
 
 }  // namespace libp2p::transport

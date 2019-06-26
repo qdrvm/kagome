@@ -1,0 +1,11 @@
+addtest(all_muxers_acceptance_test
+    muxer.cpp
+    )
+target_link_libraries(all_muxers_acceptance_test
+    libp2p_yamux
+    libp2p_yamuxed_connection
+    multiaddress
+    security_plaintext
+    libp2p_peer_id
+    tcp_transport
+    )
