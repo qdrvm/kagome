@@ -5,7 +5,7 @@ target_link_libraries(all_muxers_acceptance_test
     libp2p_yamux
     libp2p_yamuxed_connection
     multiaddress
-    transport_test_fixture
     security_plaintext
     libp2p_peer_id
+    tcp_transport
     )

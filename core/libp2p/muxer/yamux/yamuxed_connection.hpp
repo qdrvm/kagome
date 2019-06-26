@@ -82,18 +82,19 @@ namespace libp2p::connection {
 
     bool isClosed() const override;
 
-   private:
-    /// part of connection API, which use is forbidden - client may only use
-    /// streams to communicate over the multiplexed connection
     void read(gsl::span<uint8_t> out, size_t bytes,
               ReadCallbackFunc cb) override;
+
     void readSome(gsl::span<uint8_t> out, size_t bytes,
                   ReadCallbackFunc cb) override;
+
     void write(gsl::span<const uint8_t> in, size_t bytes,
                WriteCallbackFunc cb) override;
+
     void writeSome(gsl::span<const uint8_t> in, size_t bytes,
                    WriteCallbackFunc cb) override;
 
+   private:
     struct WriteData {
       kagome::common::Buffer data;
       std::function<void(outcome::result<size_t>)> cb;

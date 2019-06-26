@@ -73,7 +73,6 @@ namespace libp2p::connection {
   }
 
   void YamuxedConnection::onStream(NewStreamHandlerFunc cb) {
-    BOOST_ASSERT_MSG(started_, "onStream is called but yamux is stopped");
     new_stream_handler_ = std::move(cb);
   }
 
@@ -114,22 +113,22 @@ namespace libp2p::connection {
 
   void YamuxedConnection::read(gsl::span<uint8_t> out, size_t bytes,
                                ReadCallbackFunc cb) {
-    return cb(Error::FORBIDDEN_CALL);
+    connection_->read(out, bytes, std::move(cb));
   }
 
   void YamuxedConnection::readSome(gsl::span<uint8_t> out, size_t bytes,
                                    ReadCallbackFunc cb) {
-    return cb(Error::FORBIDDEN_CALL);
+    connection_->readSome(out, bytes, std::move(cb));
   }
 
   void YamuxedConnection::write(gsl::span<const uint8_t> in, size_t bytes,
                                 WriteCallbackFunc cb) {
-    return cb(Error::FORBIDDEN_CALL);
+    connection_->write(in, bytes, std::move(cb));
   }
 
   void YamuxedConnection::writeSome(gsl::span<const uint8_t> in, size_t bytes,
                                     WriteCallbackFunc cb) {
-    return cb(Error::FORBIDDEN_CALL);
+    connection_->writeSome(in, bytes, std::move(cb));
   }
 
   void YamuxedConnection::write(WriteData write_data) {
