@@ -23,6 +23,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, YamuxStream::Error, e) {
     case E::INVALID_WINDOW_SIZE:
       return "either window size greater than the maximum one or less than "
              "current number of unconsumed bytes was tried to be set";
+    case E::CONNECTION_IS_DEAD:
+      return "connection, over which this stream is created, is destroyed";
     case E::INTERNAL_ERROR:
       return "internal error happened";
   }
@@ -32,7 +34,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, YamuxStream::Error, e) {
 namespace libp2p::connection {
 
   YamuxStream::YamuxStream(
-      std::shared_ptr<YamuxedConnection> yamuxed_connection,
+      std::weak_ptr<YamuxedConnection> yamuxed_connection,
       YamuxedConnection::StreamId stream_id, uint32_t maximum_window_size)
       : yamuxed_connection_{std::move(yamuxed_connection)},
         stream_id_{stream_id},
@@ -75,17 +77,22 @@ namespace libp2p::connection {
             != to_read) {
           cb(Error::INTERNAL_ERROR);
         } else {
-          self->yamuxed_connection_->streamAckBytes(
-              self->stream_id_, to_read,
-              [self, cb = std::move(cb), to_read](auto &&res) {
-                self->is_reading_ = false;
-                if (!res) {
-                  return cb(res.error());
-                }
-                self->read_buffer_.consume(to_read);
-                self->receive_window_size_ += to_read;
-                cb(to_read);
-              });
+          auto conn_wptr = self->yamuxed_connection_;
+          if (conn_wptr.expired()) {
+            cb(Error::CONNECTION_IS_DEAD);
+          } else {
+            conn_wptr.lock()->streamAckBytes(
+                self->stream_id_, to_read,
+                [self, cb = std::move(cb), to_read](auto &&res) {
+                  self->is_reading_ = false;
+                  if (!res) {
+                    return cb(res.error());
+                  }
+                  self->read_buffer_.consume(to_read);
+                  self->receive_window_size_ += to_read;
+                  cb(to_read);
+                });
+          }
         }
         return true;
       }
@@ -98,7 +105,10 @@ namespace libp2p::connection {
     }
 
     // else, set a callback, which is called each time a new data arrives
-    yamuxed_connection_->streamOnAddData(
+    if (yamuxed_connection_.expired()) {
+      return cb(Error::CONNECTION_IS_DEAD);
+    }
+    yamuxed_connection_.lock()->streamOnAddData(
         stream_id_, [read_lambda = std::move(read_lambda)]() mutable {
           return read_lambda();
         });
@@ -129,15 +139,20 @@ namespace libp2p::connection {
                          bytes, some]() mutable {
       if (self->send_window_size_ - bytes >= 0) {
         // we can write - window size on the other side allows us
-        self->yamuxed_connection_->streamWrite(
-            self->stream_id_, in, bytes, some,
-            [self, cb = std::move(cb)](auto &&res) {
-              self->is_writing_ = false;
-              if (res) {
-                self->send_window_size_ -= res.value();
-              }
-              return cb(std::forward<decltype(res)>(res));
-            });
+        auto conn_wptr = self->yamuxed_connection_;
+        if (conn_wptr.expired()) {
+          cb(Error::CONNECTION_IS_DEAD);
+        } else {
+          conn_wptr.lock()->streamWrite(
+              self->stream_id_, in, bytes, some,
+              [self, cb = std::move(cb)](auto &&res) {
+                self->is_writing_ = false;
+                if (res) {
+                  self->send_window_size_ -= res.value();
+                }
+                return cb(std::forward<decltype(res)>(res));
+              });
+        }
         return true;
       }
       return false;
@@ -150,7 +165,10 @@ namespace libp2p::connection {
 
     // else, subscribe to window updates, so that when the window gets wide
     // enough, we could write
-    return yamuxed_connection_->streamOnWindowUpdate(
+    if (yamuxed_connection_.expired()) {
+      return cb(Error::CONNECTION_IS_DEAD);
+    }
+    yamuxed_connection_.lock()->streamOnWindowUpdate(
         stream_id_, [write_lambda = std::move(write_lambda)]() mutable {
           return write_lambda();
         });
@@ -166,7 +184,10 @@ namespace libp2p::connection {
     }
 
     is_writing_ = true;
-    return yamuxed_connection_->streamClose(
+    if (yamuxed_connection_.expired()) {
+      return cb(Error::CONNECTION_IS_DEAD);
+    }
+    yamuxed_connection_.lock()->streamClose(
         stream_id_, [self{shared_from_this()}, cb = std::move(cb)](auto &&res) {
           self->is_writing_ = false;
           cb(std::forward<decltype(res)>(res));
@@ -187,7 +208,10 @@ namespace libp2p::connection {
     }
 
     is_writing_ = true;
-    return yamuxed_connection_->streamReset(
+    if (yamuxed_connection_.expired()) {
+      return cb(Error::CONNECTION_IS_DEAD);
+    }
+    yamuxed_connection_.lock()->streamReset(
         stream_id_, [self{shared_from_this()}, cb = std::move(cb)](auto &&res) {
           self->is_writing_ = false;
           self->resetStream();
@@ -206,7 +230,10 @@ namespace libp2p::connection {
     }
 
     is_writing_ = true;
-    return yamuxed_connection_->streamAckBytes(
+    if (yamuxed_connection_.expired()) {
+      return cb(Error::CONNECTION_IS_DEAD);
+    }
+    yamuxed_connection_.lock()->streamAckBytes(
         stream_id_, new_size - receive_window_size_,
         [self{shared_from_this()}, cb = std::move(cb), new_size](auto &&res) {
           self->is_writing_ = false;

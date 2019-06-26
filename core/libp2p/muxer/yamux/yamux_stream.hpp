@@ -27,7 +27,7 @@ namespace libp2p::connection {
      * @param stream_id - id of this stream
      * @param maximum_window_size - maximum size of the stream's window
      */
-    YamuxStream(std::shared_ptr<YamuxedConnection> yamuxed_connection,
+    YamuxStream(std::weak_ptr<YamuxedConnection> yamuxed_connection,
                 YamuxedConnection::StreamId stream_id,
                 uint32_t maximum_window_size);
 
@@ -39,6 +39,7 @@ namespace libp2p::connection {
       IS_WRITING,
       IS_READING,
       INVALID_WINDOW_SIZE,
+      CONNECTION_IS_DEAD,
       INTERNAL_ERROR
     };
 
@@ -81,7 +82,7 @@ namespace libp2p::connection {
     void write(gsl::span<const uint8_t> in, size_t bytes, WriteCallbackFunc cb,
                bool some);
 
-    std::shared_ptr<YamuxedConnection> yamuxed_connection_;
+    std::weak_ptr<YamuxedConnection> yamuxed_connection_;
     YamuxedConnection::StreamId stream_id_;
 
     /// is the stream opened for reads?

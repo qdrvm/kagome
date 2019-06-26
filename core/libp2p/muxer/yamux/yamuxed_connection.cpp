@@ -43,13 +43,15 @@ namespace libp2p::connection {
   }
 
   void YamuxedConnection::start() {
-    BOOST_ASSERT_MSG(!started_, "YamuxedConnection already started (double start)");
+    BOOST_ASSERT_MSG(!started_,
+                     "YamuxedConnection already started (double start)");
     started_ = true;
     return doReadHeader();
   }
 
   void YamuxedConnection::stop() {
-    BOOST_ASSERT_MSG(started_, "YamuxedConnection is not started (double stop)");
+    BOOST_ASSERT_MSG(started_,
+                     "YamuxedConnection is not started (double stop)");
     started_ = false;
   }
 
@@ -68,7 +70,8 @@ namespace libp2p::connection {
              return cb(res.error());
            }
            auto created_stream = std::make_shared<YamuxStream>(
-               self, stream_id, self->config_.maximum_window_size);
+               std::weak_ptr<YamuxedConnection>(self), stream_id,
+               self->config_.maximum_window_size);
            self->streams_.insert({stream_id, created_stream});
            return cb(std::move(created_stream));
          }});
@@ -374,9 +377,7 @@ namespace libp2p::connection {
 
   void YamuxedConnection::resetAllStreams() {
     for (const auto &stream : streams_) {
-      if (!stream.second.expired()) {
-        stream.second.lock()->resetStream();
-      }
+      stream.second->resetStream();
     }
   }
 
@@ -391,11 +392,7 @@ namespace libp2p::connection {
     if (stream == streams_.end()) {
       return nullptr;
     }
-    if (stream->second.expired()) {
-      streams_.erase(stream);
-      return nullptr;
-    }
-    return stream->second.lock();
+    return stream->second;
   }
 
   void YamuxedConnection::registerNewStream(StreamId stream_id,
@@ -409,7 +406,8 @@ namespace libp2p::connection {
              return cb(res.error());
            }
            auto new_stream = std::make_shared<YamuxStream>(
-               self, stream_id, self->config_.maximum_window_size);
+               std::weak_ptr<YamuxedConnection>(self), stream_id,
+               self->config_.maximum_window_size);
            self->streams_.insert({stream_id, new_stream});
            self->new_stream_handler_(new_stream);
            return cb(std::move(new_stream));

@@ -256,7 +256,7 @@ namespace libp2p::connection {
     muxer::MuxedConnectionConfig config_;
 
     uint32_t last_created_stream_id_;
-    std::unordered_map<StreamId, std::weak_ptr<YamuxStream>> streams_;
+    std::unordered_map<StreamId, std::shared_ptr<YamuxStream>> streams_;
 
     kagome::common::Logger log_;
 
