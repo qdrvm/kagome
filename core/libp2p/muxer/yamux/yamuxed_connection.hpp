@@ -171,6 +171,11 @@ namespace libp2p::connection {
     void processGoAwayFrame(const YamuxFrame &frame);
 
     /**
+     * Reset all streams, which were created over this connection
+     */
+    void resetAllStreams();
+
+    /**
      * Find stream with such id in local streams
      * @param stream_id to be found
      * @return stream, if it is opened on this side, nullptr otherwise
@@ -250,7 +255,7 @@ namespace libp2p::connection {
     muxer::MuxedConnectionConfig config_;
 
     uint32_t last_created_stream_id_;
-    std::unordered_map<StreamId, std::shared_ptr<YamuxStream>> streams_;
+    std::unordered_map<StreamId, std::weak_ptr<YamuxStream>> streams_;
 
     kagome::common::Logger log_;
 

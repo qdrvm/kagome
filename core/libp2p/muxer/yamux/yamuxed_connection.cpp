@@ -104,9 +104,7 @@ namespace libp2p::connection {
 
   outcome::result<void> YamuxedConnection::close() {
     started_ = false;
-    for (const auto &stream : streams_) {
-      stream.second->resetStream();
-    }
+    resetAllStreams();
     return connection_->close();
   }
 
@@ -369,11 +367,17 @@ namespace libp2p::connection {
          }});
   }
 
+  void YamuxedConnection::resetAllStreams() {
+    for (const auto &stream : streams_) {
+      if (!stream.second.expired()) {
+        stream.second.lock()->resetStream();
+      }
+    }
+  }
+
   void YamuxedConnection::processGoAwayFrame(const YamuxFrame &frame) {
     started_ = false;
-    for (const auto &stream : streams_) {
-      stream.second->resetStream();
-    }
+    resetAllStreams();
   }
 
   std::shared_ptr<YamuxStream> YamuxedConnection::findStream(
@@ -382,7 +386,11 @@ namespace libp2p::connection {
     if (stream == streams_.end()) {
       return nullptr;
     }
-    return stream->second;
+    if (stream->second.expired()) {
+      streams_.erase(stream);
+      return nullptr;
+    }
+    return stream->second.lock();
   }
 
   void YamuxedConnection::registerNewStream(StreamId stream_id,

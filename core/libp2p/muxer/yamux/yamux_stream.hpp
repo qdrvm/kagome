@@ -19,7 +19,6 @@ namespace libp2p::connection {
                       public std::enable_shared_from_this<YamuxStream>,
                       private boost::noncopyable {
    public:
-
     ~YamuxStream() override = default;
 
     /**

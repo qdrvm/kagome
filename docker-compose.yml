@@ -1,5 +1,9 @@
 version: '3'
 
+# usage:
+# - docker-compose up -d && docker-compose exec dev bash
+# - cd app
+
 services:
   dev:
     image: warchantua/dev-essential
