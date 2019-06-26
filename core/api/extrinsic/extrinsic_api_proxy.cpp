@@ -15,7 +15,7 @@ namespace kagome::api {
       : api_(std::move(api)) {}
 
   std::vector<uint8_t> ExtrinsicApiProxy::submit_extrinsic(
-      const std::string &hexified_extrinsic) {
+      const jsonrpc::Value::String &hexified_extrinsic) {
     // hex-decode extrinsic data
     auto &&buffer = common::Buffer::fromHex(hexified_extrinsic);
     if (!buffer) {
