@@ -8,7 +8,7 @@
 using kagome::common::Buffer;
 
 namespace kagome::transaction_pool {
-
+  
   PoolModeratorImpl::PoolModeratorImpl(std::shared_ptr<Clock> clock,
                                        Clock::Duration ban_for,
                                        size_t expected_size)
