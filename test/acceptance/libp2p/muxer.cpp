@@ -1,5 +1,3 @@
-#include <utility>
-
 /**
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
@@ -31,12 +29,6 @@ using std::chrono_literals::operator""ms;
 
 static const size_t kServerBufSize = 10000;  // 10 Kb
 
-ACTION_P(Upgrade, do_upgrade) {
-  // arg0 - prev conn
-  // arg1 - callback(next conn)
-  arg1(do_upgrade(arg0));
-}
-
 struct UpgraderSemiMock : public Upgrader {
   ~UpgraderSemiMock() override = default;
 
@@ -66,30 +58,25 @@ struct UpgraderSemiMock : public Upgrader {
 };
 
 struct Server : public std::enable_shared_from_this<Server> {
-  explicit Server(std::shared_ptr<MuxerAdaptor> muxer,
-                  boost::asio::io_context &context)
-      : muxer_adaptor_(std::move(muxer)) {
-    upgrader_ =
-        std::make_shared<UpgraderSemiMock>(security_adaptor_, muxer_adaptor_);
-
-    transport_ = std::make_shared<TcpTransport>(context, upgrader_);
-  }
+  explicit Server(std::shared_ptr<Transport> transport)
+      : transport_(std::move(transport)) {}
 
   void onConnection(const std::shared_ptr<CapableConnection> &conn) {
     this->clientsConnected++;
 
-    conn->onStream([conn, self{shared_from_this()}](
+    conn->onStream([self{shared_from_this()}](
                        outcome::result<std::shared_ptr<Stream>> rstream) {
       EXPECT_OUTCOME_TRUE(stream, rstream)
       self->println("new stream created");
       self->streamsCreated++;
-      self->onStream(stream);
+      auto buf = std::make_shared<std::vector<uint8_t>>();
+      self->onStream(buf, stream);
     });
   }
 
-  void onStream(const std::shared_ptr<Stream> &stream) {
+  void onStream(std::shared_ptr<std::vector<uint8_t>> buf,
+                const std::shared_ptr<Stream> &stream) {
     // we should create buffer per stream (session)
-    auto buf = std::make_shared<std::vector<uint8_t>>();
     buf->resize(kServerBufSize);
 
     println("onStream executed");
@@ -111,7 +98,7 @@ struct Server : public std::enable_shared_from_this<Server> {
                                        self->streamWrites++;
                                        ASSERT_EQ(write, read);
 
-                                       self->onStream(stream);
+                                       self->onStream(buf, stream);
                                      });
                      });
   }
@@ -141,31 +128,19 @@ struct Server : public std::enable_shared_from_this<Server> {
     std::cout << std::endl;
   }
 
-  std::shared_ptr<Upgrader> upgrader_;
   std::shared_ptr<Transport> transport_;
-
   std::shared_ptr<TransportListener> listener_;
-
-  std::shared_ptr<SecurityAdaptor> security_adaptor_ =
-      std::make_shared<Plaintext>();
-  std::shared_ptr<MuxerAdaptor> muxer_adaptor_;
 };
 
 struct Client : public std::enable_shared_from_this<Client> {
-  Client(std::shared_ptr<MuxerAdaptor> muxer, size_t seed,
-         boost::asio::io_context &context, PeerId p, size_t streams,
-         size_t rounds)
+  Client(std::shared_ptr<TcpTransport> transport, size_t seed,
+         boost::asio::io_context &context, size_t streams, size_t rounds)
       : context_(context),
-        peer_id_(std::move(p)),
         streams_(streams),
         rounds_(rounds),
         generator(seed),
         distribution(1, kServerBufSize),
-        muxer_adaptor_(std::move(muxer)) {
-    upgrader_ =
-        std::make_shared<UpgraderSemiMock>(security_adaptor_, muxer_adaptor_);
-    transport_ = std::make_shared<TcpTransport>(context, upgrader_);
-  }
+        transport_(std::move(transport)) {}
 
   void connect(const Multiaddress &server) {
     // create new stream
@@ -254,20 +229,13 @@ struct Client : public std::enable_shared_from_this<Client> {
 
   boost::asio::io_context &context_;
 
-  PeerId peer_id_;
-
   size_t streams_;
   size_t rounds_;
 
   std::default_random_engine generator;
   std::uniform_int_distribution<int> distribution;
 
-  std::shared_ptr<Upgrader> upgrader_;
   std::shared_ptr<Transport> transport_;
-
-  std::shared_ptr<SecurityAdaptor> security_adaptor_ =
-      std::make_shared<Plaintext>();
-  std::shared_ptr<MuxerAdaptor> muxer_adaptor_;
 };
 
 struct MuxerAcceptanceTest
@@ -300,7 +268,10 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
   auto serverAddr = "/ip4/127.0.0.1/tcp/40312"_multiaddr;
 
   auto muxer = GetParam();
-  auto server = std::make_shared<Server>(muxer, context);
+  auto plaintext = std::make_shared<Plaintext>();
+  auto upgrader = std::make_shared<UpgraderSemiMock>(plaintext, muxer);
+  auto transport = std::make_shared<TcpTransport>(context, upgrader);
+  auto server = std::make_shared<Server>(transport);
   server->listen(serverAddr);
 
   std::vector<std::thread> clients;
@@ -309,10 +280,12 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
     auto localSeed = randomEngine();
     clients.emplace_back([&, localSeed]() {
       boost::asio::io_context context(1);
-      auto pid = testutil::randomPeerId();
 
       auto muxer = GetParam();
-      auto client = std::make_shared<Client>(muxer, localSeed, context, pid,
+      auto plaintext = std::make_shared<Plaintext>();
+      auto upgrader = std::make_shared<UpgraderSemiMock>(plaintext, muxer);
+      auto transport = std::make_shared<TcpTransport>(context, upgrader);
+      auto client = std::make_shared<Client>(transport, localSeed, context,
                                              streams, rounds);
       client->connect(serverAddr);
 
