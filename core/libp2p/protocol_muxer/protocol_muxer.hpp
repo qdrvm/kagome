@@ -29,10 +29,10 @@ namespace libp2p::protocol_muxer {
      * taking lead in the Multiselect protocol; false otherwise
      * @return chosen protocol or error
      */
-    virtual outcome::result<peer::Protocol> selectOneOf(
+    virtual void selectOneOf(
         gsl::span<const peer::Protocol> protocols,
-        std::shared_ptr<basic::ReadWriteCloser> connection,
-        bool is_initiator) const = 0;
+        std::shared_ptr<basic::ReadWriteCloser> connection, bool is_initiator,
+        std::function<void(outcome::result<peer::Protocol>)> cb) const = 0;
 
     virtual ~ProtocolMuxer() = default;
   };

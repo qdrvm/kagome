@@ -13,16 +13,15 @@ namespace libp2p::security {
     return "/plaintext/1.0.0";
   }
 
-  outcome::result<std::shared_ptr<connection::SecureConnection>>
-  Plaintext::secureInbound(std::shared_ptr<connection::RawConnection> inbound) {
-    return std::make_shared<connection::PlaintextConnection>(
-        std::move(inbound));
+  void Plaintext::secureInbound(
+      std::shared_ptr<connection::RawConnection> inbound,
+      SecConnCallbackFunc cb) {
+    cb(std::make_shared<connection::PlaintextConnection>(std::move(inbound)));
   }
 
-  outcome::result<std::shared_ptr<connection::SecureConnection>>
-  Plaintext::secureOutbound(std::shared_ptr<connection::RawConnection> outbound,
-                            const peer::PeerId &) {
-    return std::make_shared<connection::PlaintextConnection>(
-        std::move(outbound));
+  void Plaintext::secureOutbound(
+      std::shared_ptr<connection::RawConnection> outbound, const peer::PeerId &,
+      SecConnCallbackFunc cb) {
+    cb(std::make_shared<connection::PlaintextConnection>(std::move(outbound)));
   }
 }  // namespace libp2p::security

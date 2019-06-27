@@ -13,10 +13,9 @@ namespace libp2p::muxer {
   struct MuxerAdaptorMock : public MuxerAdaptor {
     MOCK_CONST_METHOD0(getProtocolId, peer::Protocol());
 
-    MOCK_CONST_METHOD1(
-        muxConnection,
-        outcome::result<std::shared_ptr<connection::CapableConnection>>(
-            std::shared_ptr<connection::SecureConnection>));
+    MOCK_CONST_METHOD2(muxConnection,
+                       void(std::shared_ptr<connection::SecureConnection>,
+                            CapConnCallbackFunc));
   };
 }  // namespace libp2p::muxer
 

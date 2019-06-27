@@ -14,11 +14,12 @@
 #include "libp2p/peer/address_repository/inmem_address_repository.hpp"
 #include "libp2p/peer/key_repository/inmem_key_repository.hpp"
 #include "libp2p/peer/protocol_repository/inmem_protocol_repository.hpp"
-#include "libp2p/protocol_muxer/multiselect.hpp"
 #include "libp2p/routing/routing_impl.hpp"
 #include "libp2p/security/plaintext.hpp"
 #include "libp2p/transport/impl/upgrader_impl.hpp"
 #include "libp2p/transport/tcp.hpp"
+// TODO(akvinikym) PRE-215 27.06.19: revert multiselect
+//#include "libp2p/protocol_muxer/multiselect.hpp"
 
 namespace {
   /**
@@ -182,7 +183,9 @@ namespace libp2p {
       config_.securities.push_back(std::make_shared<security::Plaintext>());
     }
 
-    config_.protocol_muxer = std::make_shared<protocol_muxer::Multiselect>();
+    // TODO(akvinikym) PRE-215 27.06.19: revert multiselect
+    //    config_.protocol_muxer =
+    //    std::make_shared<protocol_muxer::Multiselect>();
 
     config_.upgrader = std::make_shared<transport::UpgraderImpl>(
         peer_id, config_.protocol_muxer, config_.securities, config_.muxers);

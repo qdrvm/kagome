@@ -22,7 +22,7 @@ namespace libp2p::transport {
                  void(Upgrader::RawSPtr, Upgrader::OnSecuredCallbackFunc));
 
     MOCK_METHOD2(upgradeToMuxed,
-                 void(Upgrader::SecureSPtr, Upgrader::OnMuxedCallbackFunc));
+                 void(Upgrader::SecSPtr, Upgrader::OnMuxedCallbackFunc));
   };
 
   /**
@@ -37,11 +37,11 @@ namespace libp2p::transport {
 
    public:
     void upgradeToSecure(RawSPtr conn, OnSecuredCallbackFunc cb) override {
-      cb(security_adaptor_->secureInbound(std::move(conn)));
+      security_adaptor_->secureInbound(std::move(conn), std::move(cb));
     }
 
-    void upgradeToMuxed(SecureSPtr conn, OnMuxedCallbackFunc cb) override {
-      cb(muxer_adaptor_->muxConnection(std::move(conn)));
+    void upgradeToMuxed(SecSPtr conn, OnMuxedCallbackFunc cb) override {
+      muxer_adaptor_->muxConnection(std::move(conn), std::move(cb));
     }
   };
 

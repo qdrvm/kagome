@@ -88,8 +88,8 @@ TEST_F(UpgraderTest, UpgradeSecureInitiator) {
   EXPECT_CALL(
       *std::static_pointer_cast<SecurityAdaptorMock>(security_mocks_[0]),
       secureOutbound(std::static_pointer_cast<RawConnection>(raw_conn_),
-                     peer_id_))
-      .WillOnce(Return(sec_conn_));
+                     peer_id_, _))
+      .WillOnce(Arg2CallbackWithArg(sec_conn_));
 
   upgrader_->upgradeToSecure(raw_conn_, [this](auto &&upgraded_conn_res) {
     ASSERT_TRUE(upgraded_conn_res);
@@ -106,8 +106,8 @@ TEST_F(UpgraderTest, UpgradeSecureNotInitiator) {
       .WillOnce(Arg3CallbackWithArg(outcome::success(security_protos_[1])));
   EXPECT_CALL(
       *std::static_pointer_cast<SecurityAdaptorMock>(security_mocks_[1]),
-      secureInbound(std::static_pointer_cast<RawConnection>(raw_conn_)))
-      .WillOnce(Return(outcome::success(sec_conn_)));
+      secureInbound(std::static_pointer_cast<RawConnection>(raw_conn_), _))
+      .WillOnce(Arg1CallbackWithArg(outcome::success(sec_conn_)));
 
   upgrader_->upgradeToSecure(raw_conn_, [this](auto &&upgraded_conn_res) {
     ASSERT_TRUE(upgraded_conn_res);
@@ -137,8 +137,8 @@ TEST_F(UpgraderTest, UpgradeMux) {
       .WillOnce(Arg3CallbackWithArg(outcome::success(muxer_protos_[0])));
   EXPECT_CALL(
       *std::static_pointer_cast<MuxerAdaptorMock>(muxer_mocks_[0]),
-      muxConnection(std::static_pointer_cast<SecureConnection>(sec_conn_)))
-      .WillOnce(Return(muxed_conn_));
+      muxConnection(std::static_pointer_cast<SecureConnection>(sec_conn_), _))
+      .WillOnce(Arg1CallbackWithArg(muxed_conn_));
 
   upgrader_->upgradeToMuxed(sec_conn_, [this](auto &&upgraded_conn_res) {
     ASSERT_TRUE(upgraded_conn_res);

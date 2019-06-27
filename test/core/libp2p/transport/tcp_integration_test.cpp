@@ -54,12 +54,11 @@ namespace {
   auto makeUpgrader() {
     auto upgrader = std::make_shared<NiceMock<UpgraderMock>>();
     ON_CALL(*upgrader, upgradeToSecure(_, _))
-        .WillByDefault(Invoke(_upgrade<Upgrader::RawSPtr, Upgrader::SecureSPtr,
+        .WillByDefault(Invoke(_upgrade<Upgrader::RawSPtr, Upgrader::SecSPtr,
                                        Upgrader::OnSecuredCallbackFunc>));
     ON_CALL(*upgrader, upgradeToMuxed(_, _))
-        .WillByDefault(
-            Invoke(_upgrade<Upgrader::SecureSPtr, Upgrader::CapableSPtr,
-                            Upgrader::OnMuxedCallbackFunc>));
+        .WillByDefault(Invoke(_upgrade<Upgrader::SecSPtr, Upgrader::CapSPtr,
+                                       Upgrader::OnMuxedCallbackFunc>));
 
     return upgrader;
   }

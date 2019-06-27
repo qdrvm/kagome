@@ -17,11 +17,8 @@
 #include "libp2p/transport/upgrader.hpp"
 
 namespace libp2p::transport {
-  class UpgraderImpl : public Upgrader {
-    using RawSPtr = std::shared_ptr<connection::RawConnection>;
-    using SecureSPtr = std::shared_ptr<connection::SecureConnection>;
-    using CapableSPtr = std::shared_ptr<connection::CapableConnection>;
-
+  class UpgraderImpl : public Upgrader,
+                       public std::enable_shared_from_this<UpgraderImpl> {
     using SecAdaptorSPtr = std::shared_ptr<security::SecurityAdaptor>;
     using MuxAdaptorSPtr = std::shared_ptr<muxer::MuxerAdaptor>;
 
@@ -41,9 +38,11 @@ namespace libp2p::transport {
                  gsl::span<SecAdaptorSPtr> security_adaptors,
                  gsl::span<MuxAdaptorSPtr> muxer_adaptors);
 
-    outcome::result<SecureSPtr> upgradeToSecure(RawSPtr conn) override;
+    ~UpgraderImpl() override = default;
 
-    outcome::result<CapableSPtr> upgradeToMuxed(SecureSPtr conn) override;
+    void upgradeToSecure(RawSPtr conn, OnSecuredCallbackFunc cb) override;
+
+    void upgradeToMuxed(SecSPtr conn, OnMuxedCallbackFunc cb) override;
 
     enum class Error { INTERNAL_ERROR = 1 };
 
