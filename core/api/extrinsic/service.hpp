@@ -70,6 +70,7 @@ namespace kagome::api {
     jsonrpc::JsonFormatHandler format_handler_{};  ///< format handler instance
     jsonrpc::Server server_{};                     ///< json rpc server instance
     sptr<BasicTransport> transport_;               ///< json transport
+    sptr<ExtrinsicApi> api_;                       ///< sptr to api implementation
     signal_t<SignalType> on_response_{};           ///< notifies response
     connection_t request_cnn_;   ///< request connection holder
     connection_t response_cnn_;  ///< response connection holder
