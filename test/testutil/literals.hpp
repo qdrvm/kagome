@@ -8,6 +8,7 @@
 
 #include "common/buffer.hpp"
 #include "common/hexutil.hpp"
+#include "common/blob.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/multi/multihash.hpp"
 #include "libp2p/peer/peer_id.hpp"
