@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 #include <algorithm>
 #include <random>
+#include "libp2p/connection/stream.hpp"
 #include "libp2p/muxer/yamux.hpp"
 #include "libp2p/security/plaintext.hpp"
 #include "libp2p/transport/tcp.hpp"
@@ -38,19 +39,18 @@ struct UpgraderSemiMock : public Upgrader {
 
   void upgradeToSecure(RawSPtr conn, OnSecuredCallbackFunc cb) override {
     if (conn->isInitiator()) {
-      EXPECT_OUTCOME_TRUE(
-          s, security->secureOutbound(conn, testutil::randomPeerId()));
-      cb(s);
+      security->secureOutbound(conn, testutil::randomPeerId(), std::move(cb));
     } else {
-      EXPECT_OUTCOME_TRUE(s, security->secureInbound(conn));
-      cb(s);
+      security->secureInbound(conn, std::move(cb));
     }
   }
 
-  void upgradeToMuxed(SecureSPtr conn, OnMuxedCallbackFunc cb) override {
-    EXPECT_OUTCOME_TRUE(cc, mux->muxConnection(conn));
-    cc->start();
-    return cb(cc);
+  void upgradeToMuxed(SecSPtr conn, OnMuxedCallbackFunc cb) override {
+    mux->muxConnection(std::move(conn), [cb = std::move(cb)](auto &&conn_res) {
+      EXPECT_OUTCOME_TRUE(conn, conn_res)
+      conn->start();
+      cb(std::move(conn));
+    });
   }
 
   std::shared_ptr<SecurityAdaptor> security;

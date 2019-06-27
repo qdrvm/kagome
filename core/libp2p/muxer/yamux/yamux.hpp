@@ -22,9 +22,8 @@ namespace libp2p::muxer {
 
     peer::Protocol getProtocolId() const noexcept override;
 
-    outcome::result<std::shared_ptr<connection::CapableConnection>>
-    muxConnection(
-        std::shared_ptr<connection::SecureConnection> conn) const override;
+    void muxConnection(std::shared_ptr<connection::SecureConnection> conn,
+                       CapConnCallbackFunc cb) const override;
 
    private:
     MuxedConnectionConfig config_;

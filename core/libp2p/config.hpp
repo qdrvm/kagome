@@ -17,6 +17,7 @@
 #include "libp2p/muxer/muxer_adaptor.hpp"
 #include "libp2p/peer/peer_id.hpp"
 #include "libp2p/peer/peer_repository.hpp"
+#include "libp2p/protocol_muxer/protocol_muxer.hpp"
 #include "libp2p/routing/routing_adaptor.hpp"
 #include "libp2p/security/security_adaptor.hpp"
 #include "libp2p/transport/transport.hpp"
@@ -53,6 +54,7 @@ namespace libp2p {
 
     detail::sptr<boost::asio::execution_context> context;
     detail::sptr<boost::asio::io_context::executor_type> executor;
+    detail::sptr<protocol_muxer::ProtocolMuxer> protocol_muxer;
     detail::sptr<transport::Upgrader> upgrader;
 
     bool enable_ping = true;
