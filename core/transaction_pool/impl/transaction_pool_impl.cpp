@@ -84,15 +84,16 @@ namespace kagome::transaction_pool {
     return removed;
   }
 
+  bool TransactionPoolImpl::isReady(const WaitingTransaction &tx) const {
+    return std::all_of(
+        tx.requires.begin(), tx.requires.end(), [this](auto &&tag) {
+          return provided_tags_.find(tag) != provided_tags_.end();
+        });
+  };
+
   void TransactionPoolImpl::updateReady() {
-    auto is_ready = [this](auto &&tx) {
-      return std::all_of(
-          tx.requires.begin(), tx.requires.end(), [this](auto &&tag) {
-            return provided_tags_.find(tag) != provided_tags_.end();
-          });
-    };
     for (auto it = waiting_queue_.begin(); it != waiting_queue_.end();) {
-      if (is_ready(*it)) {
+      if (isReady(*it)) {
         Transaction tx = *it;
         ReadyTransaction rtx{tx, {}};
         updateUnlockingTransactions(rtx);

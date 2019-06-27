@@ -56,16 +56,4 @@ namespace kagome::transaction_pool {
       banned_until_.erase(it);
     }
   }
-
-  bool PoolModeratorImpl::Compare(const Buffer &b1, const Buffer &b2) {
-    if (b1.size() == b2.size()) {
-      for (size_t i = 0; i < b1.size(); i++) {
-        if (b1[i] != b2[i]) {
-          return b1[i] > b2[i];
-        }
-      }
-    }
-    return b1.size() > b2.size();
-  }
-
 }  // namespace kagome::transaction_pool

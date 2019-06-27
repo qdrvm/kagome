@@ -15,9 +15,8 @@ namespace kagome::transaction_pool {
   class PoolModeratorImpl : public PoolModerator {
     static constexpr size_t kDefaultExpectedSize = 2048;
 
-    static bool Compare(const common::Buffer &b1, const common::Buffer &b2);
     using SystemClock = Clock<std::chrono::system_clock>;
-    using Map = std::map<common::Hash256, SystemClock::TimePoint/*, decltype(&Compare)*/>;
+    using Map = std::map<common::Hash256, SystemClock::TimePoint>;
 
    public:
     /**

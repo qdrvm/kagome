@@ -60,11 +60,11 @@ TEST_F(TransactionPoolTest, Create) {
 
 TEST_F(TransactionPoolTest, CorrectImportToReady) {
   std::vector<Transaction> txs{
-      makeTx("01"_hash256, {"01"_unhex}, {}),
-      makeTx("02"_hash256, {"02"_unhex}, {}),
-      makeTx("03"_hash256, {}, {"02"_unhex, "01"_unhex}),
-      makeTx("04"_hash256, {"04"_unhex}, {"05"_unhex}),
-      makeTx("05"_hash256, {"05"_unhex}, {"04"_unhex, "02"_unhex})};
+      makeTx("01"_hash256, {{1}}, {}),
+      makeTx("02"_hash256, {{2}}, {}),
+      makeTx("03"_hash256, {{3}}, {{2}, {1}}),
+      makeTx("04"_hash256, {{4}}, {{5}}),
+      makeTx("05"_hash256, {{5}}, {{4}, {2}})};
 
   EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[0], txs[2], txs[3], txs[4]}));
   EXPECT_EQ(pool_->getStatus().waiting_num, 2);
@@ -76,11 +76,11 @@ TEST_F(TransactionPoolTest, CorrectImportToReady) {
 
 TEST_F(TransactionPoolTest, PruneTags) {
   std::vector<Transaction> txs{
-      makeTx("01"_hash256, {"01"_unhex}, {}),
-      makeTx("02"_hash256, {"02"_unhex}, {}),
-      makeTx("03"_hash256, {"03"_unhex}, {"02"_unhex, "01"_unhex}),
-      makeTx("04"_hash256, {"04"_unhex}, {"03"_unhex}),
-      makeTx("05"_hash256, {"05"_unhex}, {"04"_unhex, "02"_unhex})};
+      makeTx("01"_hash256, {{1}}, {}),
+      makeTx("02"_hash256, {{2}}, {}),
+      makeTx("03"_hash256, {{3}}, {{2}, {1}}),
+      makeTx("04"_hash256, {{4}}, {{3}}),
+      makeTx("05"_hash256, {{5}}, {{4}, {2}})};
 
   EXPECT_OUTCOME_TRUE_1(
       pool_->submit({txs[0], txs[1], txs[2], txs[3], txs[4]}));

@@ -68,6 +68,8 @@ namespace kagome::transaction_pool {
      * them to ready queue
      */
     void updateReady();
+    bool isReady(const WaitingTransaction &tx) const;
+
     /**
      * When a transaction becomes ready, add it to 'unlocks' list of
      * corresponding transactions
