@@ -53,16 +53,6 @@ namespace kagome::transaction_pool {
     virtual std::vector<primitives::Transaction> removeStale(
         const primitives::BlockId &at) = 0;
 
-    /**
-     * Prunes ready transactions.
-     * Used to clear the pool from transactions that were part of recently
-     * imported block. To perform pruning we need the tags that each extrinsic
-     * provides
-     */
-    virtual std::vector<primitives::Transaction> prune(
-        const primitives::BlockId &at,
-        const std::vector<primitives::Extrinsic> &exts) = 0;
-
     /* Prunes ready transactions that provide given list of tags.
      *
      * Given tags are assumed to be always provided now, so all transactions
