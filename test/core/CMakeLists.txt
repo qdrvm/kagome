@@ -11,4 +11,4 @@ add_subdirectory(primitives)
 add_subdirectory(runtime)
 add_subdirectory(scale)
 add_subdirectory(storage)
-add_subdirectory(transaction_pool)
+
