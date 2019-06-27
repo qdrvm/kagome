@@ -4,6 +4,7 @@
 #
 
 add_library(primitives
+    extrinsic_api_primitives.hpp
     block.hpp
     block_header.hpp
     block_id.hpp
@@ -18,7 +19,6 @@ add_library(primitives
     transaction_validity.hpp
     version.hpp
     )
-
 target_link_libraries(primitives
     buffer
     scale
