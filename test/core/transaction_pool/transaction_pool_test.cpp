@@ -14,6 +14,7 @@
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 
 using kagome::common::Buffer;
+using kagome::common::Hash256;
 using kagome::face::ForwardIterator;
 using kagome::face::GenericIterator;
 using kagome::face::GenericList;
@@ -40,7 +41,7 @@ class TransactionPoolTest : public testing::Test {
   std::shared_ptr<TransactionPool> pool_;
 };
 
-Transaction makeTx(Buffer hash, std::initializer_list<TransactionTag> provides,
+Transaction makeTx(Hash256 hash, std::initializer_list<TransactionTag> provides,
                    std::initializer_list<TransactionTag> requires) {
   Transaction tx;
   tx.hash = std::move(hash);
@@ -59,11 +60,11 @@ TEST_F(TransactionPoolTest, Create) {
 
 TEST_F(TransactionPoolTest, CorrectImportToReady) {
   std::vector<Transaction> txs{
-      makeTx("01"_hex2buf, {"01"_unhex}, {}),
-      makeTx("02"_hex2buf, {"02"_unhex}, {}),
-      makeTx("03"_hex2buf, {}, {"02"_unhex, "01"_unhex}),
-      makeTx("04"_hex2buf, {"04"_unhex}, {"05"_unhex}),
-      makeTx("05"_hex2buf, {"05"_unhex}, {"04"_unhex, "02"_unhex})};
+      makeTx("01"_hash256, {"01"_unhex}, {}),
+      makeTx("02"_hash256, {"02"_unhex}, {}),
+      makeTx("03"_hash256, {}, {"02"_unhex, "01"_unhex}),
+      makeTx("04"_hash256, {"04"_unhex}, {"05"_unhex}),
+      makeTx("05"_hash256, {"05"_unhex}, {"04"_unhex, "02"_unhex})};
 
   EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[0], txs[2], txs[3], txs[4]}));
   EXPECT_EQ(pool_->getStatus().waiting_num, 2);
@@ -73,7 +74,22 @@ TEST_F(TransactionPoolTest, CorrectImportToReady) {
   ASSERT_EQ(pool_->getStatus().ready_num, 5);
 }
 
- class MockClock : public Clock<std::chrono::system_clock> {
+TEST_F(TransactionPoolTest, PruneTags) {
+  std::vector<Transaction> txs{
+      makeTx("01"_hash256, {"01"_unhex}, {}),
+      makeTx("02"_hash256, {"02"_unhex}, {}),
+      makeTx("03"_hash256, {"03"_unhex}, {"02"_unhex, "01"_unhex}),
+      makeTx("04"_hash256, {"04"_unhex}, {"03"_unhex}),
+      makeTx("05"_hash256, {"05"_unhex}, {"04"_unhex, "02"_unhex})};
+
+  EXPECT_OUTCOME_TRUE_1(
+      pool_->submit({txs[0], txs[1], txs[2], txs[3], txs[4]}));
+
+  pool_->pruneTags(42, "05"_unhex);
+  ASSERT_EQ(pool_->getReadyTransactions().size(), 0);
+}
+
+class MockClock : public Clock<std::chrono::system_clock> {
  public:
   MOCK_CONST_METHOD0(now, MockClock::TimePoint(void));
 };
@@ -81,7 +97,7 @@ TEST_F(TransactionPoolTest, CorrectImportToReady) {
 TEST_F(TransactionPoolTest, BanDurationCorrect) {
   auto clock = std::make_shared<MockClock>();
   auto duration = 42min;
-  MockClock::TimePoint submit_time {10min};
+  MockClock::TimePoint submit_time{10min};
   PoolModeratorImpl moderator(clock, duration);
   testing::Expectation exp1 =
       EXPECT_CALL(*clock, now()).WillOnce(Return(submit_time));
@@ -92,7 +108,7 @@ TEST_F(TransactionPoolTest, BanDurationCorrect) {
       .After(exp2)
       .WillOnce(Return(submit_time + duration + 1min));
   Transaction t;
-  t.hash = "beef"_hex2buf;
+  t.hash = "beef"_hash256;
   moderator.ban(t);
   ASSERT_TRUE(moderator.isBanned(t));
   moderator.updateBan();
@@ -104,12 +120,12 @@ TEST_F(TransactionPoolTest, BanStaleCorrect) {
   PoolModeratorImpl moderator(clock);
   Transaction t;
   t.valid_till = 42;
-  t.hash = "abcd"_hex2buf;
+  t.hash = "abcd"_hash256;
   moderator.banIfStale(43, t);
   ASSERT_TRUE(moderator.isBanned(t));
   Transaction t1;
   t1.valid_till = 42;
-  t1.hash = "efef"_hex2buf;
+  t1.hash = "efef"_hash256;
   moderator.banIfStale(41, t1);
   ASSERT_FALSE(moderator.isBanned(t1));
 }
