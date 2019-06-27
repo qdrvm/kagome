@@ -11,7 +11,7 @@
 namespace kagome::api {
   ExtrinsicApiService::ExtrinsicApiService(sptr<BasicTransport> transport,
                                            sptr<ExtrinsicApi> api)
-      : transport_{std::move(transport)} {
+      : transport_{std::move(transport)}, api_(std::move(api)) {
     request_cnn_ = transport_->dataReceived().connect(
         [this](std::string_view data) { processData(data); });
 
@@ -23,10 +23,10 @@ namespace kagome::api {
     // register all api methods
     registerHandler(
         "author_submitExtrinsic",
-        [api](const jsonrpc::Request::Parameters &params) -> jsonrpc::Value {
+        [s = api_](const jsonrpc::Request::Parameters &params) -> jsonrpc::Value {
           auto request = SubmitExtrinsicRequest::fromParams(params);
 
-          auto &&res = api->submitExtrinsic(std::move(request.extrinsic));
+          auto &&res = s->submitExtrinsic(request.extrinsic);
           if (!res) {
             throw jsonrpc::Fault(res.error().message());
           }
@@ -35,8 +35,8 @@ namespace kagome::api {
 
     registerHandler(
         "author_pendingExtrinsics",
-        [api](const jsonrpc::Request::Parameters &params) -> jsonrpc::Value {
-          auto &&res = api->pendingExtrinsics();
+        [s = api_](const jsonrpc::Request::Parameters &params) -> jsonrpc::Value {
+          auto &&res = s->pendingExtrinsics();
           if (!res) {
             throw jsonrpc::Fault(res.error().message());
           }
