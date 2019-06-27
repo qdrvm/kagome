@@ -75,13 +75,13 @@ namespace test {
     using iterator = ForwardIterator<GenericList<T>>;
 
     void push_back(T &&t) override {
-      list_.push_back(t);
+      list_.push_back(std::move(t));
     }
     void push_back(const T &t) override {
       list_.push_back(t);
     }
     void push_front(T &&t) override {
-      list_.push_front(t);
+      list_.push_front(std::move(t));
     }
     void push_front(const T &t) override {
       list_.push_front(t);
