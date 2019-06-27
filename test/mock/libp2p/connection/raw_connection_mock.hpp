@@ -14,9 +14,11 @@ namespace libp2p::connection {
 
   class RawConnectionMock : public virtual RawConnection {
    public:
+    ~RawConnectionMock() override = default;
+
     MOCK_CONST_METHOD0(isClosed, bool(void));
 
-    MOCK_METHOD0(close, outcome::result<void>(void));
+    MOCK_METHOD0(close, outcome::result<void>());
 
     MOCK_METHOD3(read,
                  void(gsl::span<uint8_t>, size_t, Reader::ReadCallbackFunc));
@@ -24,10 +26,10 @@ namespace libp2p::connection {
                  void(gsl::span<uint8_t>, size_t, Reader::ReadCallbackFunc));
     MOCK_METHOD3(write,
                  void(gsl::span<const uint8_t>, size_t,
-                     Writer::WriteCallbackFunc));
+                      Writer::WriteCallbackFunc));
     MOCK_METHOD3(writeSome,
                  void(gsl::span<const uint8_t>, size_t,
-                     Writer::WriteCallbackFunc));
+                      Writer::WriteCallbackFunc));
 
     bool isInitiator() const noexcept override {
       return isInitiator_hack();

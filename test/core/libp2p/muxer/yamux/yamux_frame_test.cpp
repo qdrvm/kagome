@@ -8,13 +8,15 @@
 #include <gtest/gtest.h>
 #include "testutil/literals.hpp"
 
-using namespace libp2p::muxer;
+using namespace libp2p::connection;
 using namespace kagome::common;
 
 class YamuxFrameTest : public ::testing::Test {
  public:
+  ~YamuxFrameTest() override = default;
+
   static constexpr size_t data_length = 6;
-  static constexpr Yamux::StreamId default_stream_id = 1;
+  static constexpr YamuxedConnection::StreamId default_stream_id = 1;
   static constexpr uint32_t default_ping_value = 337;
 
   Buffer data{"1234456789AB"_unhex};
@@ -24,16 +26,16 @@ class YamuxFrameTest : public ::testing::Test {
    */
   void checkFrame(std::optional<YamuxFrame> frame_opt, uint8_t version,
                   YamuxFrame::FrameType type, YamuxFrame::Flag flag,
-                  Yamux::StreamId stream_id, uint32_t length,
+                  YamuxedConnection::StreamId stream_id, uint32_t length,
                   const Buffer &frame_data) {
     ASSERT_TRUE(frame_opt);
     auto frame = *frame_opt;
-    ASSERT_EQ(frame.version_, version);
-    ASSERT_EQ(frame.type_, type);
-    ASSERT_EQ(frame.flag_, flag);
-    ASSERT_EQ(frame.stream_id_, stream_id);
-    ASSERT_EQ(frame.length_, length);
-    ASSERT_EQ(frame.data_, frame_data);
+    ASSERT_EQ(frame.version, version);
+    ASSERT_EQ(frame.type, type);
+    ASSERT_EQ(frame.flag, flag);
+    ASSERT_EQ(frame.stream_id, stream_id);
+    ASSERT_EQ(frame.length, length);
+    ASSERT_EQ(frame.data, frame_data);
   }
 };
 

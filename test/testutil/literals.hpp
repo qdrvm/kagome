@@ -10,6 +10,7 @@
 #include "common/hexutil.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/multi/multihash.hpp"
+#include "libp2p/peer/peer_id.hpp"
 
 /// creates a buffer filled with characters from the original string
 /// mind that it does not perform unhexing, there is ""_unhex for it
@@ -40,6 +41,12 @@ inline libp2p::multi::Multiaddress operator""_multiaddr(const char *c,
 inline libp2p::multi::Multihash operator""_multihash(const char *c, size_t s) {
   return libp2p::multi::Multihash::createFromHex(std::string_view(c, s))
       .value();
+}
+
+inline libp2p::peer::PeerId operator""_peerid(const char *c, size_t s) {
+  libp2p::crypto::PublicKey p;
+  p.data = kagome::common::Buffer{}.put(std::string_view(c, s));
+  return libp2p::peer::PeerId::fromPublicKey(p).value();
 }
 
 #endif  // KAGOME_TEST_TESTUTIL_LITERALS_HPP_

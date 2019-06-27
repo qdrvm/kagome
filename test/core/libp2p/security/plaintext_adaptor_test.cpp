@@ -6,6 +6,7 @@
 #include "libp2p/security/plaintext/plaintext.hpp"
 
 #include <gtest/gtest.h>
+#include <testutil/gmock_actions.hpp>
 #include <testutil/outcome.hpp>
 #include "common/buffer.hpp"
 #include "libp2p/multi/multihash.hpp"
@@ -48,11 +49,12 @@ TEST_F(PlaintextAdaptorTest, GetId) {
  * @then connection is secured
  */
 TEST_F(PlaintextAdaptorTest, SecureInbound) {
-  EXPECT_OUTCOME_TRUE(secure_conn, adaptor_->secureInbound(connection_))
-
   EXPECT_CALL(*connection_, isClosed()).WillOnce(Return(false));
 
-  ASSERT_FALSE(secure_conn->isClosed());
+  adaptor_->secureInbound(connection_, [](auto &&conn_res) {
+    EXPECT_OUTCOME_TRUE(sec_conn, conn_res)
+    ASSERT_FALSE(sec_conn->isClosed());
+  });
 }
 
 /**
@@ -61,10 +63,10 @@ TEST_F(PlaintextAdaptorTest, SecureInbound) {
  * @then connection is secured
  */
 TEST_F(PlaintextAdaptorTest, SecureOutbound) {
-  EXPECT_OUTCOME_TRUE(secure_conn,
-                      adaptor_->secureOutbound(connection_, kDefaultPeerId));
-
   EXPECT_CALL(*connection_, isClosed()).WillOnce(Return(false));
 
-  ASSERT_FALSE(secure_conn->isClosed());
+  adaptor_->secureOutbound(connection_, kDefaultPeerId, [](auto &&conn_res) {
+    EXPECT_OUTCOME_TRUE(sec_conn, conn_res)
+    ASSERT_FALSE(sec_conn->isClosed());
+  });
 }

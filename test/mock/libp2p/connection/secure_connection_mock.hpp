@@ -12,6 +12,8 @@
 namespace libp2p::connection {
   class SecureConnectionMock : public SecureConnection {
    public:
+    ~SecureConnectionMock() override = default;
+
     MOCK_CONST_METHOD0(isClosed, bool(void));
 
     MOCK_METHOD0(close, outcome::result<void>(void));
@@ -40,7 +42,8 @@ namespace libp2p::connection {
 
     MOCK_CONST_METHOD0(remotePeer, outcome::result<peer::PeerId>(void));
 
-    MOCK_CONST_METHOD0(remotePublicKey, outcome::result<crypto::PublicKey>(void));
+    MOCK_CONST_METHOD0(remotePublicKey,
+                       outcome::result<crypto::PublicKey>(void));
   };
 }  // namespace libp2p::connection
 

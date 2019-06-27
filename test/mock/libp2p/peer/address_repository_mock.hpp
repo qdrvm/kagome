@@ -12,6 +12,7 @@
 namespace libp2p::peer {
 
   struct AddressRepositoryMock : public AddressRepository {
+    ~AddressRepositoryMock() override = default;
     // address repository
     MOCK_METHOD3(addAddresses,
                  outcome::result<void>(const PeerId &,

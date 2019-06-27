@@ -22,6 +22,8 @@ namespace libp2p::transport {
   class TcpTransport : public Transport,
                        public std::enable_shared_from_this<TcpTransport> {
    public:
+    ~TcpTransport() override = default;
+
     TcpTransport(boost::asio::io_context &context,
                  std::shared_ptr<Upgrader> upgrader);
 

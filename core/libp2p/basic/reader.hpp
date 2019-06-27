@@ -6,15 +6,17 @@
 #ifndef KAGOME_READER_HPP
 #define KAGOME_READER_HPP
 
+#include <functional>
+#include <vector>
+
 #include <boost/system/error_code.hpp>
 #include <gsl/span>
-#include <vector>
+#include <outcome/outcome.hpp>
 
 namespace libp2p::basic {
 
   struct Reader {
-    using ErrorCode = boost::system::error_code;
-    using ReadCallback = void(const ErrorCode & /*ec*/, size_t /*read bytes */);
+    using ReadCallback = void(outcome::result<size_t> /*read bytes*/);
     using ReadCallbackFunc = std::function<ReadCallback>;
 
     virtual ~Reader() = default;
