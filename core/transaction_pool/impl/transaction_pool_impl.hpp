@@ -41,7 +41,8 @@ namespace kagome::transaction_pool {
 
     ~TransactionPoolImpl() override = default;
 
-    TransactionPool &operator=(const TransactionPool &) = delete;
+    TransactionPoolImpl &operator=(TransactionPoolImpl &&) = delete;
+    TransactionPoolImpl &operator=(const TransactionPoolImpl &) = delete;
 
     outcome::result<void> submitOne(primitives::Transaction t) override;
 
