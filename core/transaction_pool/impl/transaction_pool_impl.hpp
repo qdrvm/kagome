@@ -37,7 +37,7 @@ namespace kagome::transaction_pool {
     }
 
     TransactionPoolImpl(TransactionPoolImpl &&) = default;
-    TransactionPoolImpl(const TransactionPoolImpl &&) = delete;
+    TransactionPoolImpl(const TransactionPoolImpl &) = delete;
 
     ~TransactionPoolImpl() override = default;
 

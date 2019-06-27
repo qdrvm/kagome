@@ -172,9 +172,8 @@ namespace kagome::transaction_pool {
         // Alternatively the caller may attempt to re-import these transactions.
         if (tx2.unlocks.empty()) {
           return std::optional(tx2.provides);
-        } else {
-          return std::nullopt;
         }
+        return std::nullopt;
       };
       for (auto &required_tag : tx.requires) {
         if (auto tags_to_remove = find_previous(required_tag); tags_to_remove) {
