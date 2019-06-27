@@ -10,7 +10,7 @@
 
 #include <gsl/span>
 #include <outcome/outcome.hpp>
-#include "libp2p/basic/readwritecloser.hpp"
+#include "libp2p/basic/readwriter.hpp"
 #include "libp2p/peer/protocol.hpp"
 
 namespace libp2p::protocol_muxer {
@@ -31,7 +31,7 @@ namespace libp2p::protocol_muxer {
      */
     virtual void selectOneOf(
         gsl::span<const peer::Protocol> protocols,
-        std::shared_ptr<basic::ReadWriteCloser> connection, bool is_initiator,
+        std::shared_ptr<basic::ReadWriter> connection, bool is_initiator,
         std::function<void(outcome::result<peer::Protocol>)> cb) const = 0;
 
     virtual ~ProtocolMuxer() = default;

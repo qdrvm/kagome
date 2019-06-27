@@ -16,6 +16,22 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::transport, UpgraderImpl::Error, e) {
   return "unknown error";
 }
 
+namespace {
+  template <typename AdaptorType>
+  std::shared_ptr<AdaptorType> findAdaptor(
+      const std::vector<std::shared_ptr<AdaptorType>> &adaptors,
+      const libp2p::peer::Protocol &proto) {
+    auto adaptor = std::find_if(
+        adaptors.begin(), adaptors.end(),
+        [&proto](const auto &a) { return proto == a->getProtocolId(); });
+
+    if (adaptor != adaptors.end()) {
+      return *adaptor;
+    }
+    return nullptr;
+  }
+}  // namespace
+
 namespace libp2p::transport {
   UpgraderImpl::UpgraderImpl(
       peer::PeerId peer_id,
@@ -27,18 +43,18 @@ namespace libp2p::transport {
         security_adaptors_{security_adaptors.begin(), security_adaptors.end()},
         muxer_adaptors_{muxer_adaptors.begin(), muxer_adaptors.end()} {
     // so that we don't need to extract lists of supported protos every time
-    security_protocols_ = std::reduce(
+    security_protocols_ = std::accumulate(
         security_adaptors_.begin(), security_adaptors_.end(),
         std::vector<peer::Protocol>(), [](auto &&acc, const auto &adaptor) {
           acc.push_back(adaptor->getProtocolId());
           return acc;
         });
-    muxer_protocols_ = std::reduce(muxer_adaptors.begin(), muxer_adaptors.end(),
-                                   std::vector<peer::Protocol>(),
-                                   [](auto &&acc, const auto &adaptor) {
-                                     acc.push_back(adaptor->getProtocolId());
-                                     return acc;
-                                   });
+    muxer_protocols_ = std::accumulate(
+        muxer_adaptors.begin(), muxer_adaptors.end(),
+        std::vector<peer::Protocol>(), [](auto &&acc, const auto &adaptor) {
+          acc.push_back(adaptor->getProtocolId());
+          return acc;
+        });
   }
 
   void UpgraderImpl::upgradeToSecure(RawSPtr conn, OnSecuredCallbackFunc cb) {
@@ -52,20 +68,16 @@ namespace libp2p::transport {
             return cb(proto_res.error());
           }
 
-          auto selected_proto = std::move(proto_res.value());
-          if (auto adaptor = std::find_if(
-                  self->security_adaptors_.begin(),
-                  self->security_adaptors_.end(),
-                  [&selected_proto](const auto &adaptor) {
-                    return selected_proto == adaptor->getProtocolId();
-                  });
-              adaptor != self->security_adaptors_.end()) {
-            return initiator
-                ? (*adaptor)->secureOutbound(std::move(conn), self->peer_id_,
-                                             std::move(cb))
-                : (*adaptor)->secureInbound(std::move(conn), std::move(cb));
+          auto adaptor =
+              findAdaptor(self->security_adaptors_, proto_res.value());
+          if (!adaptor) {
+            return cb(Error::INTERNAL_ERROR);
           }
-          cb(Error::INTERNAL_ERROR);
+
+          return initiator
+              ? adaptor->secureOutbound(std::move(conn), self->peer_id_,
+                                        std::move(cb))
+              : adaptor->secureInbound(std::move(conn), std::move(cb));
         });
   }
 
@@ -78,25 +90,21 @@ namespace libp2p::transport {
             return cb(proto_res.error());
           }
 
-          auto selected_proto = std::move(proto_res.value());
-          if (auto adaptor = std::find_if(
-                  self->muxer_adaptors_.begin(), self->muxer_adaptors_.end(),
-                  [&selected_proto](const auto &adaptor) {
-                    return selected_proto == adaptor->getProtocolId();
-                  });
-              adaptor != self->muxer_adaptors_.end()) {
-            return (*adaptor)->muxConnection(
-                std::move(conn), [cb = std::move(cb)](auto &&conn_res) {
-                  if (!conn_res) {
-                    return cb(conn_res.error());
-                  }
-
-                  auto conn = std::move(conn_res.value());
-                  conn->start();
-                  return cb(std::move(conn));
-                });
+          auto adaptor = findAdaptor(self->muxer_adaptors_, proto_res.value());
+          if (!adaptor) {
+            return cb(Error::INTERNAL_ERROR);
           }
-          cb(Error::INTERNAL_ERROR);
+
+          return adaptor->muxConnection(
+              std::move(conn), [cb = std::move(cb)](auto &&conn_res) {
+                if (!conn_res) {
+                  return cb(conn_res.error());
+                }
+
+                auto conn = std::move(conn_res.value());
+                conn->start();
+                return cb(std::move(conn));
+              });
         });
   }
 }  // namespace libp2p::transport

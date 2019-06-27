@@ -15,7 +15,7 @@ namespace libp2p::protocol_muxer {
     MOCK_CONST_METHOD4(
         selectOneOf,
         void(gsl::span<const peer::Protocol>,
-             std::shared_ptr<basic::ReadWriteCloser>, bool,
+             std::shared_ptr<basic::ReadWriter>, bool,
              std::function<void(outcome::result<peer::Protocol>)>));
   };
 }  // namespace libp2p::protocol_muxer

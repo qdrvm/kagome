@@ -20,8 +20,9 @@ namespace libp2p::security {
   }
 
   void Plaintext::secureOutbound(
-      std::shared_ptr<connection::RawConnection> outbound, const peer::PeerId &,
-      SecConnCallbackFunc cb) {
-    cb(std::make_shared<connection::PlaintextConnection>(std::move(outbound)));
+      std::shared_ptr<connection::RawConnection> outbound,
+      const peer::PeerId &p, SecConnCallbackFunc cb) {
+    cb(std::make_shared<connection::PlaintextConnection>(std::move(outbound),
+                                                         p));
   }
 }  // namespace libp2p::security
