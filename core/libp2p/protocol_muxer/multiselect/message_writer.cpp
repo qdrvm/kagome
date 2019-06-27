@@ -1,0 +1,104 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include "libp2p/protocol_muxer/multiselect/message_writer.hpp"
+
+#include "libp2p/protocol_muxer/multiselect/message_manager.hpp"
+#include "libp2p/protocol_muxer/multiselect/multiselect.hpp"
+
+namespace libp2p::protocol_muxer {
+  using peer::Protocol;
+
+  namespace {
+    void copyToStreambuf(boost::asio::streambuf &target,
+                         const kagome::common::Buffer &source) {
+      boost::asio::buffer_copy(
+          target.prepare(source.size()),
+          boost::asio::const_buffer(source.data(), source.size()));
+    }
+  }  // namespace
+
+  auto MessageWriter::getWriteCallback(
+      std::shared_ptr<ConnectionState> connection_state,
+      ConnectionState::NegotiationStatus success_status) {
+    return [connection_state = std::move(connection_state), success_status](
+               const std::error_code &ec, size_t n) mutable {
+      auto multiselect = connection_state->multiselect_;
+      if (ec) {
+        multiselect->negotiationRoundFailed(connection_state, ec);
+        return;
+      }
+      connection_state->status_ = success_status;
+      multiselect->onWriteCompleted(std::move(connection_state));
+    };
+  }
+
+  void MessageWriter::sendOpeningMsg(
+      std::shared_ptr<ConnectionState> connection_state) {
+    copyToStreambuf(*connection_state->write_buffer_,
+                    MessageManager::openingMsg());
+    auto state = connection_state;
+    state->write(
+        getWriteCallback(std::move(connection_state),
+                         ConnectionState::NegotiationStatus::OPENING_SENT));
+  }
+
+  void MessageWriter::sendProtocolMsg(
+      const Protocol &protocol,
+      const std::shared_ptr<ConnectionState> &connection_state) {
+    copyToStreambuf(*connection_state->write_buffer_,
+                    MessageManager::protocolMsg(protocol));
+    const auto &state = connection_state;
+    state->write(
+        getWriteCallback(std::move(connection_state),
+                         ConnectionState::NegotiationStatus::PROTOCOL_SENT));
+  }
+
+  void MessageWriter::sendProtocolsMsg(
+      gsl::span<const Protocol> protocols,
+      const std::shared_ptr<ConnectionState> &connection_state) {
+    copyToStreambuf(*connection_state->write_buffer_,
+                    MessageManager::protocolsMsg(protocols));
+    const auto &state = connection_state;
+    state->write(
+        getWriteCallback(std::move(connection_state),
+                         ConnectionState::NegotiationStatus::PROTOCOLS_SENT));
+  }
+
+  void MessageWriter::sendLsMsg(
+      const std::shared_ptr<ConnectionState> &connection_state) {
+    copyToStreambuf(*connection_state->write_buffer_, MessageManager::lsMsg());
+    const auto &state = connection_state;
+    state->write(getWriteCallback(std::move(connection_state),
+                                  ConnectionState::NegotiationStatus::LS_SENT));
+  }
+
+  void MessageWriter::sendNaMsg(
+      const std::shared_ptr<ConnectionState> &connection_state) {
+    copyToStreambuf(*connection_state->write_buffer_, MessageManager::naMsg());
+    const auto &state = connection_state;
+    state->write(getWriteCallback(std::move(connection_state),
+                                  ConnectionState::NegotiationStatus::NA_SENT));
+  }
+
+  void MessageWriter::sendProtocolAck(
+      std::shared_ptr<ConnectionState> connection_state,
+      const peer::Protocol &protocol) {
+    copyToStreambuf(*connection_state->write_buffer_, MessageManager::naMsg());
+    auto state = connection_state;
+    state->write([connection_state = std::move(connection_state), &protocol](
+                     const std::error_code &ec, size_t n) mutable {
+      auto multiselect = connection_state->multiselect_;
+      if (ec) {
+        multiselect->negotiationRoundFailed(connection_state, ec);
+        return;
+      }
+      connection_state->status_ =
+          ConnectionState::NegotiationStatus::PROTOCOL_SENT;
+      multiselect->onWriteAckCompleted(connection_state, protocol);
+    });
+  }
+
+}  // namespace libp2p::protocol_muxer

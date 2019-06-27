@@ -20,6 +20,8 @@ namespace libp2p::protocol_muxer {
    */
   class ProtocolMuxer {
    public:
+    using ProtocolHandlerFunc =
+        std::function<void(const outcome::result<peer::Protocol> &)>;
     /**
      * Select a protocol for a given connection
      * @param protocols - set of protocols, one of which should be chosen during
@@ -29,10 +31,9 @@ namespace libp2p::protocol_muxer {
      * taking lead in the Multiselect protocol; false otherwise
      * @return chosen protocol or error
      */
-    virtual outcome::result<peer::Protocol> selectOneOf(
-        gsl::span<const peer::Protocol> protocols,
-        std::shared_ptr<basic::ReadWriteCloser> connection,
-        bool is_initiator) const = 0;
+    virtual void selectOneOf(gsl::span<const peer::Protocol> protocols,
+                             std::shared_ptr<basic::ReadWriteCloser> connection,
+                             ProtocolHandlerFunc handler) = 0;
 
     virtual ~ProtocolMuxer() = default;
   };

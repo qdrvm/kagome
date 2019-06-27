@@ -10,6 +10,8 @@ add_library(multiselect
     message_manager.hpp
     message_reader.cpp
     message_reader.hpp
+    message_writer.cpp
+    message_writer.hpp
     )
 target_link_libraries(multiselect
     buffer
