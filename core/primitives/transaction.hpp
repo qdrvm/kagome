@@ -49,7 +49,7 @@ namespace kagome::primitives {
     std::vector<TransactionTag> provides;
 
     /// Should that transaction be propagated.
-    bool should_propagate;
+    bool should_propogate;
   };
 
 }  // namespace kagome::primitives
