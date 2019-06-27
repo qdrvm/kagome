@@ -34,7 +34,7 @@ namespace kagome::primitives {
     size_t bytes;
 
     /// Transaction hash (unique)
-    common::Buffer hash;
+    common::Hash256 hash;
 
     /// Transaction priority (higher = better)
     TransactionPriority priority;

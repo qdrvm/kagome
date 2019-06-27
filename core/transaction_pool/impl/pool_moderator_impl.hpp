@@ -17,7 +17,7 @@ namespace kagome::transaction_pool {
 
     static bool Compare(const common::Buffer &b1, const common::Buffer &b2);
     using SystemClock = Clock<std::chrono::system_clock>;
-    using Map = std::map<common::Buffer, SystemClock::TimePoint, decltype(&Compare)>;
+    using Map = std::map<common::Hash256, SystemClock::TimePoint/*, decltype(&Compare)*/>;
 
    public:
     /**

@@ -14,7 +14,7 @@ namespace kagome::transaction_pool {
    * An interface for a clock
    * @tparam clock type is an underlying clock type, such as std::steady_clock
    */
-   template <typename ClockType>
+   template <typename ClockType = std::chrono::steady_clock>
   class Clock {
    public:
     /**

@@ -12,7 +12,7 @@ namespace kagome::transaction_pool {
   PoolModeratorImpl::PoolModeratorImpl(std::shared_ptr<SystemClock> clock,
                                        SystemClock::Duration ban_for,
                                        size_t expected_size)
-      : banned_until_{Compare},
+      : banned_until_{},
         ban_for_{ban_for},
         clock_{std::move(clock)},
         expected_size_{expected_size} {}
