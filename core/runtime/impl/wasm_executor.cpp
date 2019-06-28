@@ -32,7 +32,7 @@ namespace kagome::runtime {
   outcome::result<wasm::Literal> WasmExecutor::call(
       const common::Buffer &state_code, wasm::Name method_name,
       const wasm::LiteralList &args) {
-    if (state_code.size() == 0) {
+    if (state_code.empty()) {  // NOLINT supresses false positive later
       return Error::EMPTY_STATE_CODE;
     }
 

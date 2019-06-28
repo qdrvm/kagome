@@ -14,18 +14,16 @@
 
 namespace kagome::storage::trie {
 
-  namespace {
-    std::string nibblesToStr(const Buffer &nibbles) {
-      std::stringstream s;
-      for (auto nibble : nibbles) {
-        if (nibble < 10)
-          s << static_cast<char>('0' + nibble);
-        else
-          s << static_cast<char>('a' + (nibble - 10));
-      }
-      return s.str();
+  inline std::string nibblesToStr(const kagome::common::Buffer &nibbles) {
+    std::stringstream s;
+    for (auto nibble : nibbles) {
+      if (nibble < 10)
+        s << static_cast<char>('0' + nibble);
+      else
+        s << static_cast<char>('a' + (nibble - 10));
     }
-  }  // namespace
+    return s.str();
+  }
 
   template <typename Stream>
   Stream &operator<<(Stream &s, const PolkadotTrieDb &trie) {
