@@ -36,10 +36,12 @@ namespace libp2p::protocol_muxer {
     auto state = connection_state;
     state->read(1,
                 [connection_state = std::move(connection_state)](
-                    const std::error_code &ec, size_t n) mutable {
-                  if (ec || n != 1) {
+                    const outcome::result<size_t> &read_bytes_res) mutable {
+                  if (not read_bytes_res or read_bytes_res.value() != 1) {
                     auto multiselect = connection_state->multiselect_;
-                    multiselect->negotiationRoundFailed(connection_state, ec);
+                    multiselect->negotiationRoundFailed(
+                        connection_state,
+                        Multiselect::MultiselectError::INTERNAL_ERROR);
                     return;
                   }
                   onReadVarintCompleted(std::move(connection_state));
@@ -71,10 +73,13 @@ namespace libp2p::protocol_muxer {
     state->read(bytes_to_read,
                 [connection_state = std::move(connection_state), bytes_to_read,
                  final_callback = std::move(final_callback)](
-                    const std::error_code &ec, size_t n) mutable {
-                  if (ec || n != bytes_to_read) {
+                    const outcome::result<size_t> &read_bytes_res) mutable {
+                  if (not read_bytes_res
+                      or read_bytes_res.value() != bytes_to_read) {
                     auto multiselect = connection_state->multiselect_;
-                    multiselect->negotiationRoundFailed(connection_state, ec);
+                    multiselect->negotiationRoundFailed(
+                        connection_state,
+                        Multiselect::MultiselectError::INTERNAL_ERROR);
                     return;
                   }
                   final_callback(std::move(connection_state));

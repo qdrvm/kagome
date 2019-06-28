@@ -45,8 +45,8 @@ namespace libp2p::protocol_muxer {
     ~Multiselect() override = default;
 
     void selectOneOf(gsl::span<const peer::Protocol> protocols,
-                     std::shared_ptr<basic::ReadWriteCloser> connection,
-                     ProtocolHandlerFunc handler) override;
+                     std::shared_ptr<basic::ReadWriter> connection,
+                     ProtocolHandlerFunc cb) override;
 
     enum class MultiselectError {
       PROTOCOLS_LIST_EMPTY = 1,
@@ -61,7 +61,7 @@ namespace libp2p::protocol_muxer {
      * @param round, about which protocol the negotiation is to take place
      * @return chosen protocol in case of success, error otherwise
      */
-    void negotiate(const std::shared_ptr<basic::ReadWriteCloser> &connection,
+    void negotiate(const std::shared_ptr<basic::ReadWriter> &connection,
                    gsl::span<const peer::Protocol> protocols,
                    ProtocolHandlerFunc handler);
 

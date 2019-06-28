@@ -24,10 +24,11 @@ namespace libp2p::protocol_muxer {
       std::shared_ptr<ConnectionState> connection_state,
       ConnectionState::NegotiationStatus success_status) {
     return [connection_state = std::move(connection_state), success_status](
-               const std::error_code &ec, size_t n) mutable {
+               const outcome::result<size_t> written_bytes_res) mutable {
       auto multiselect = connection_state->multiselect_;
-      if (ec) {
-        multiselect->negotiationRoundFailed(connection_state, ec);
+      if (not written_bytes_res) {
+        multiselect->negotiationRoundFailed(connection_state,
+                                            written_bytes_res.error());
         return;
       }
       connection_state->status_ = success_status;
@@ -89,10 +90,11 @@ namespace libp2p::protocol_muxer {
     copyToStreambuf(*connection_state->write_buffer_, MessageManager::naMsg());
     auto state = connection_state;
     state->write([connection_state = std::move(connection_state), &protocol](
-                     const std::error_code &ec, size_t n) mutable {
+                     const outcome::result<size_t> written_bytes_res) mutable {
       auto multiselect = connection_state->multiselect_;
-      if (ec) {
-        multiselect->negotiationRoundFailed(connection_state, ec);
+      if (not written_bytes_res) {
+        multiselect->negotiationRoundFailed(connection_state,
+                                            written_bytes_res.error());
         return;
       }
       connection_state->status_ =

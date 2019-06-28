@@ -30,7 +30,7 @@ namespace libp2p::protocol_muxer {
 
   void Multiselect::selectOneOf(
       gsl::span<const peer::Protocol> supported_protocols,
-      std::shared_ptr<basic::ReadWriteCloser> connection,
+      std::shared_ptr<basic::ReadWriter> connection,
       ProtocolMuxer::ProtocolHandlerFunc handler) {
     if (supported_protocols.empty()) {
       handler(MultiselectError::PROTOCOLS_LIST_EMPTY);
@@ -41,15 +41,19 @@ namespace libp2p::protocol_muxer {
   }
 
   void Multiselect::negotiate(
-      const std::shared_ptr<basic::ReadWriteCloser> &connection,
+      const std::shared_ptr<basic::ReadWriter> &connection,
       gsl::span<const peer::Protocol> supported_protocols,
       ProtocolHandlerFunc handler) {
     auto [write_buffer, read_buffer, index] = getBuffers();
 
-    MessageWriter::sendOpeningMsg(std::make_shared<ConnectionState>(
+    ConnectionState s(
         connection,
         std::make_shared<decltype(supported_protocols)>(supported_protocols),
-        handler, write_buffer, read_buffer, index, shared_from_this()));
+        handler, write_buffer, read_buffer, index, shared_from_this());
+    //    MessageWriter::sendOpeningMsg(std::make_shared<ConnectionState>(
+    //        connection,
+    //        std::make_shared<decltype(supported_protocols)>(supported_protocols),
+    //        handler, write_buffer, read_buffer, index, shared_from_this()));
   }
   void Multiselect::negotiationRoundFailed(
       const std::shared_ptr<ConnectionState> &connection_state,
