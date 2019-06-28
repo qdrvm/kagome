@@ -7,22 +7,25 @@
 
 namespace kagome::runtime {
 
-  WasmMemoryImpl::WasmMemoryImpl() {
-    offset_ = 0;
-    allocate(1);  // We should allocate very first byte to prohibit allocating
-                  // memory at 0 in future, as returning 0 from allocate method
-                  // means that wasm memory was exhausted
-  }
+  WasmMemoryImpl::WasmMemoryImpl()
+      : offset_{1}  // We should allocate very first byte to prohibit allocating
+                    // memory at 0 in future, as returning 0 from allocate
+                    // method means that wasm memory was exhausted
+  {}
 
   WasmMemoryImpl::WasmMemoryImpl(SizeType size) : WasmMemoryImpl() {
-    resize(size);
+    resizeInternal(size);
   }
 
   SizeType WasmMemoryImpl::size() const {
     return memory_.size();
   }
 
-  void WasmMemoryImpl::resize(runtime::SizeType newSize) {
+  void WasmMemoryImpl::resize(runtime::SizeType new_size) {
+    return resizeInternal(new_size);
+  }
+
+  void WasmMemoryImpl::resizeInternal(SizeType new_size) {
     // Ensure the smallest allocation is large enough that most allocators
     // will provide page-aligned storage. This hopefully allows the
     // interpreter's memory to be as aligned as the MemoryImpl being
@@ -31,9 +34,9 @@ namespace kagome::runtime {
     // The code is optimistic this will work until WG21's p0035r0 happens.
     const size_t minSize = 1 << 12;
     size_t oldSize = memory_.size();
-    memory_.resize(std::max(minSize, static_cast<size_t>(newSize)));
-    if (newSize < oldSize && newSize < minSize) {
-      std::memset(&memory_[newSize], 0, minSize - newSize);
+    memory_.resize(std::max(minSize, static_cast<size_t>(new_size)));
+    if (new_size < oldSize && new_size < minSize) {
+      std::memset(&memory_[new_size], 0, minSize - new_size);
     }
   }
 
@@ -44,9 +47,13 @@ namespace kagome::runtime {
     const auto ptr = offset_;
     const auto new_offset = ptr + size;
 
-    // TODO(warchant): FIX WARNING: comparison of signed and unsigned
-    if (new_offset < ptr) {  // overflow
-      return -1;
+    if (ptr < 0) {
+      // very bad state, which should be possible, but the check must be done
+      // before the cast
+      return 0;
+    }
+    if (new_offset < static_cast<const uint32_t>(ptr)) {  // overflow
+      return 0;
     }
     if (new_offset <= memory_.size()) {
       offset_ = new_offset;
@@ -72,7 +79,7 @@ namespace kagome::runtime {
 
   WasmPointer WasmMemoryImpl::freealloc(SizeType size) {
     auto ptr = findContaining(size);
-    if (ptr == -1) {
+    if (ptr == 0) {
       // if did not find available space among deallocated memory chunks, then
       // grow memory and allocate in new space
       return growAlloc(size);
@@ -84,11 +91,12 @@ namespace kagome::runtime {
 
   WasmPointer WasmMemoryImpl::findContaining(SizeType size) {
     auto min_value = std::numeric_limits<WasmPointer>::max();
-    WasmPointer min_key = -1;
+    WasmPointer min_key = 0;
     for (const auto &[key, value] : deallocated_) {
-      // TODO(warchant): FIX WARNING: comparison of signed and unsigned
-      // NOLINTNEXTLINE
-      if (value < min_value and value >= size) {
+      if (min_value < 0) {
+        return 0;
+      }
+      if (value < static_cast<uint32_t>(min_value) and value >= size) {
         min_value = value;
         min_key = key;
       }
@@ -97,15 +105,18 @@ namespace kagome::runtime {
   }
 
   WasmPointer WasmMemoryImpl::growAlloc(SizeType size) {
-    // TODO(warchant): FIX WARNING: comparison of signed and unsigned
+    if (offset_ < 0) {
+      return 0;
+    }
+
     // check that we do not exceed max memory size
-    if (offset_ > kMaxMemorySize - size) {
-      return -1;
+    if (static_cast<uint32_t>(offset_) > kMaxMemorySize - size) {
+      return 0;
     }
     // try to increase memory size up to offset + size * 4 (we multiply by 4 to
     // have more memory than currently needed to avoid resizing every time when
     // we exceed current memory)
-    if (offset_ < kMaxMemorySize - size * 4) {
+    if (static_cast<uint32_t>(offset_) < kMaxMemorySize - size * 4) {
       memory_.resize(offset_ + size * 4);
     } else {
       // if we can't increase by size * 4 then increase memory size by provided
