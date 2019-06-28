@@ -120,12 +120,12 @@ namespace kagome::scale {
               typename = std::enable_if_t<std::is_integral<I>::value>>
     ScaleEncoderStream &operator<<(T &&v) {
       // encode bool
-      if constexpr (std::is_same<I, bool>::value) {  // NOLINT
+      if constexpr (std::is_same<I, bool>::value) {
         uint8_t byte = (v ? 1u : 0u);
         return putByte(byte);
       }
       // put byte
-      if constexpr (sizeof(T) == 1u) {  // NOLINT
+      if constexpr (sizeof(T) == 1u) {
         // to avoid infinite recursion
         return putByte(static_cast<uint8_t>(v));
       }

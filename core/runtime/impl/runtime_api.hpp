@@ -40,7 +40,7 @@ namespace kagome::runtime {
       runtime::WasmPointer ptr = 0u;
       runtime::SizeType len = 0u;
 
-      if constexpr (sizeof...(args) > 0) {  // NOLINT
+      if constexpr (sizeof...(args) > 0) {
         OUTCOME_TRY(buffer, scale::encode(std::forward<Args>(args)...));
         len = buffer.size();
         ptr = memory_->allocate(len);
@@ -51,7 +51,7 @@ namespace kagome::runtime {
       wasm::Name wasm_name = std::string(name);
       OUTCOME_TRY(res, executor_.call(state_code_, wasm_name, ll));
 
-      if constexpr (!std::is_same_v<void, R>) {  // NOLINT
+      if constexpr (!std::is_same_v<void, R>) {
         WasmResult r{res.geti64()};
         auto buffer = memory_->loadN(r.address, r.length);
         // TODO (yuraz) PRE-98: after check for memory overflow is done,

@@ -51,12 +51,12 @@ namespace kagome::scale {
               typename = std::enable_if_t<std::is_integral<I>::value>>
     ScaleDecoderStream &operator>>(T &v) {
       // check bool
-      if constexpr (std::is_same<I, bool>::value) {  // NOLINT
+      if constexpr (std::is_same<I, bool>::value) {
         v = decodeBool();
         return *this;
       }
       // check byte
-      if constexpr (sizeof(T) == 1u) {  // NOLINT
+      if constexpr (sizeof(T) == 1u) {
         v = nextByte();
         return *this;
       }
@@ -76,7 +76,7 @@ namespace kagome::scale {
       // optional bool is special case of optional values
       // it is encoded as one byte instead of two
       // as described in specification
-      if constexpr (std::is_same<T, bool>::value) {  // NOLINT
+      if constexpr (std::is_same<T, bool>::value) {
         v = decodeOptionalBool();
         return *this;
       }

@@ -32,7 +32,9 @@ namespace kagome::runtime {
   outcome::result<wasm::Literal> WasmExecutor::call(
       const common::Buffer &state_code, wasm::Name method_name,
       const wasm::LiteralList &args) {
-    if (state_code.empty()) {  // NOLINT supresses false positive later
+    // that nolint supresses false positive in a library function
+    // NOLINTNEXTLINE(clang-analyzer-core.NonNullParamChecker)
+    if (state_code.empty()) {
       return Error::EMPTY_STATE_CODE;
     }
 

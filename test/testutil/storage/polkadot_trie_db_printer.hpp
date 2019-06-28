@@ -17,13 +17,14 @@ namespace kagome::storage::trie {
   inline std::string nibblesToStr(const kagome::common::Buffer &nibbles) {
     std::stringstream s;
     for (auto nibble : nibbles) {
-      if (nibble < 10)
+      if (nibble < 10) {
         s << static_cast<char>('0' + nibble);
-      else
+      } else {
         s << static_cast<char>('a' + (nibble - 10));
+      }
     }
     return s.str();
-  }
+  }  // namespace kagome::storage::trie
 
   template <typename Stream>
   Stream &operator<<(Stream &s, const PolkadotTrieDb &trie) {
