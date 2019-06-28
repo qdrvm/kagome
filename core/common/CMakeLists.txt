@@ -1,7 +1,7 @@
  add_library(hexutil
   hexutil.hpp
   hexutil.cpp
-)
+  )
 target_link_libraries(hexutil
   Boost::boost
   )

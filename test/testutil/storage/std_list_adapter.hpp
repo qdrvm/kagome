@@ -6,15 +6,21 @@
 #ifndef KAGOME_STD_LIST_ADAPTER_HPP
 #define KAGOME_STD_LIST_ADAPTER_HPP
 
-#include "storage/face/generic_list.hpp"
+#include <list>
+
 #include "storage/face/generic_iterator.hpp"
+#include "storage/face/generic_list.hpp"
 
 namespace test {
 
+  using kagome::face::ForwardIterator;
   using kagome::face::GenericIterator;
   using kagome::face::GenericList;
-  using kagome::face::ForwardIterator;
 
+  /**
+   * An adapter of std::list iterator for face::GenericIterator interface
+   * @tparam T type of an element stored in the list
+   */
   template <typename T>
   class StdListIterator : public GenericIterator<GenericList<T>> {
     template <typename>
@@ -56,21 +62,25 @@ namespace test {
     typename std::list<T>::iterator it_;
   };
 
+  /**
+   * An adapter of std::list for face::GenericList interface
+   * @tparam T type of an element stored in the list
+   */
   template <typename T>
-  class StdListAdapter: public GenericList<T> {
+  class StdListAdapter : public GenericList<T> {
    public:
     using value_type = T;
     using size_type = typename GenericList<T>::size_type;
     using iterator = ForwardIterator<GenericList<T>>;
 
     void push_back(T &&t) override {
-      list_.push_back(t);
+      list_.push_back(std::move(t));
     }
     void push_back(const T &t) override {
       list_.push_back(t);
     }
     void push_front(T &&t) override {
-      list_.push_front(t);
+      list_.push_front(std::move(t));
     }
     void push_front(const T &t) override {
       list_.push_front(t);
@@ -112,6 +122,6 @@ namespace test {
     std::list<T> list_;
   };
 
-}
+}  // namespace test
 
-#endif //KAGOME_STD_LIST_ADAPTER_HPP
+#endif  // KAGOME_STD_LIST_ADAPTER_HPP
