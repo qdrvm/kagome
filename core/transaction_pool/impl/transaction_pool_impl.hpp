@@ -17,8 +17,7 @@ namespace kagome::transaction_pool {
     std::list<common::Hash256> unlocks;
   };
 
-  struct WaitingTransaction : public primitives::Transaction {
-  };
+  struct WaitingTransaction : public primitives::Transaction {};
 
   class TransactionPoolImpl : public TransactionPool {
     static constexpr auto kDefaultLoggerTag = "Transaction Pool: ";
@@ -32,8 +31,7 @@ namespace kagome::transaction_pool {
         Limits limits = Limits{kDefaultMaxReadyNum, kDefaultMaxWaitingNum},
         common::Logger logger = common::createLogger(kDefaultLoggerTag)) {
       return std::make_shared<TransactionPoolImpl>(
-          TransactionPoolImpl{std::move(moderator),
-                              limits, std::move(logger)});
+          TransactionPoolImpl{std::move(moderator), limits, std::move(logger)});
     }
 
     TransactionPoolImpl(TransactionPoolImpl &&) = default;
@@ -56,13 +54,13 @@ namespace kagome::transaction_pool {
 
     Status getStatus() const override;
 
-    std::vector<primitives::Transaction> pruneTags(
+    std::vector<primitives::Transaction> pruneTag(
         const primitives::BlockId &at, const primitives::TransactionTag &tag,
         const std::vector<common::Hash256> &known_imported_hashes) override;
 
    private:
-    TransactionPoolImpl(std::unique_ptr<PoolModerator> moderator,
-                        Limits limits, common::Logger logger);
+    TransactionPoolImpl(std::unique_ptr<PoolModerator> moderator, Limits limits,
+                        common::Logger logger);
     /**
      * If there are waiting transactions with satisfied tag requirements, move
      * them to ready queue
@@ -90,7 +88,8 @@ namespace kagome::transaction_pool {
     std::list<WaitingTransaction> waiting_queue_;
 
     // tags provided by imported transactions
-    std::map<primitives::TransactionTag, common::Hash256> provided_tags_;
+    std::map<primitives::TransactionTag, std::optional<common::Hash256>>
+        provided_tags_by_;
 
     // hexadecimal representations of imported transactions hashes
     // optimization of searching for already inserted transactions

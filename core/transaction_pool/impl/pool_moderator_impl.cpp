@@ -16,8 +16,8 @@ namespace kagome::transaction_pool {
         clock_{std::move(clock)},
         expected_size_{expected_size} {}
 
-  void PoolModeratorImpl::ban(const primitives::Transaction &tx) {
-    banned_until_.insert({tx.hash, clock_->now() + ban_for_});
+  void PoolModeratorImpl::ban(const common::Hash256 &tx_hash) {
+    banned_until_.insert({tx_hash, clock_->now() + ban_for_});
     if (banned_until_.size() > expected_size_ * 2) {
       while (banned_until_.size() > expected_size_) {
         banned_until_.erase(banned_until_.begin());
@@ -30,12 +30,12 @@ namespace kagome::transaction_pool {
     if (tx.valid_till > current_block) {
       return false;
     }
-    ban(tx);
+    ban(tx.hash);
     return true;
   }
 
-  bool PoolModeratorImpl::isBanned(const primitives::Transaction &tx) const {
-    auto it = banned_until_.find(tx.hash);
+  bool PoolModeratorImpl::isBanned(const common::Hash256 &tx_hash) const {
+    auto it = banned_until_.find(tx_hash);
     if (it == banned_until_.end()) {
       return false;
     }

@@ -19,6 +19,7 @@ using kagome::face::ForwardIterator;
 using kagome::face::GenericIterator;
 using kagome::face::GenericList;
 using kagome::primitives::Transaction;
+using kagome::primitives::TransactionLongevity;
 using kagome::primitives::TransactionTag;
 using kagome::transaction_pool::Clock;
 using kagome::transaction_pool::PoolModerator;
@@ -42,11 +43,13 @@ class TransactionPoolTest : public testing::Test {
 };
 
 Transaction makeTx(Hash256 hash, std::initializer_list<TransactionTag> provides,
-                   std::initializer_list<TransactionTag> requires) {
+                   std::initializer_list<TransactionTag> requires,
+                   TransactionLongevity valid_till = 10000) {
   Transaction tx;
   tx.hash = std::move(hash);
   tx.provides = std::vector(provides);
   tx.requires = std::vector(requires);
+  tx.valid_till = valid_till;
   return tx;
 }
 
@@ -59,12 +62,11 @@ TEST_F(TransactionPoolTest, Create) {
 }
 
 TEST_F(TransactionPoolTest, CorrectImportToReady) {
-  std::vector<Transaction> txs{
-      makeTx("01"_hash256, {{1}}, {}),
-      makeTx("02"_hash256, {{2}}, {}),
-      makeTx("03"_hash256, {{3}}, {{2}, {1}}),
-      makeTx("04"_hash256, {{4}}, {{5}}),
-      makeTx("05"_hash256, {{5}}, {{4}, {2}})};
+  std::vector<Transaction> txs{makeTx("01"_hash256, {{1}}, {}),
+                               makeTx("02"_hash256, {{2}}, {}),
+                               makeTx("03"_hash256, {{3}}, {{2}, {1}}),
+                               makeTx("04"_hash256, {{4}}, {{5}}),
+                               makeTx("05"_hash256, {{5}}, {{4}, {2}})};
 
   EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[0], txs[2], txs[3], txs[4]}));
   EXPECT_EQ(pool_->getStatus().waiting_num, 2);
@@ -74,19 +76,64 @@ TEST_F(TransactionPoolTest, CorrectImportToReady) {
   ASSERT_EQ(pool_->getStatus().ready_num, 5);
 }
 
-TEST_F(TransactionPoolTest, PruneTags) {
-  std::vector<Transaction> txs{
-      makeTx("01"_hash256, {{1}}, {}),
-      makeTx("02"_hash256, {{2}}, {}),
-      makeTx("03"_hash256, {{3}}, {{2}, {1}}),
-      makeTx("04"_hash256, {{4}}, {{3}}),
-      makeTx("05"_hash256, {{5}}, {{4}, {2}})};
+TEST_F(TransactionPoolTest, PruneAllTags) {
+  std::vector<Transaction> txs{makeTx("01"_hash256, {{1}}, {}),
+                               makeTx("02"_hash256, {{2}}, {}),
+                               makeTx("03"_hash256, {{3}}, {{2}, {1}}),
+                               makeTx("04"_hash256, {{4}}, {{3}}),
+                               makeTx("05"_hash256, {{5}}, {{4}, {2}})};
 
   EXPECT_OUTCOME_TRUE_1(
       pool_->submit({txs[0], txs[1], txs[2], txs[3], txs[4]}));
 
-  pool_->pruneTags(42, "05"_unhex);
-  ASSERT_EQ(pool_->getReadyTransactions().size(), 0);
+  auto pruned = pool_->pruneTag(42, "05"_unhex);
+  ASSERT_TRUE(std::is_permutation(
+      pruned.begin(), pruned.end(), txs.begin(), txs.end(),
+      [](auto &tx1, auto &tx2) { return tx1.hash == tx2.hash; }));
+  ASSERT_EQ(pool_->getStatus().ready_num, 0);
+  ASSERT_EQ(pool_->getStatus().waiting_num, 0);
+}
+
+TEST_F(TransactionPoolTest, PruneWrongTags) {
+  std::vector<Transaction> txs{
+      makeTx("01"_hash256, {{1}}, {}), makeTx("02"_hash256, {{2}}, {{4}}),
+      makeTx("03"_hash256, {{3}}, {{4}}),
+      // 6 will be passed to pruneTag in the last argument
+      makeTx("04"_hash256, {{4}}, {{3}, {6}}),
+      makeTx("05"_hash256, {{5}}, {{4}, {3}})};
+
+  EXPECT_OUTCOME_TRUE_1(
+      pool_->submit({txs[0], txs[1], txs[2], txs[3], txs[4]}));
+
+  // wrong tag 65
+  auto pruned = pool_->pruneTag(42, {{6, 5}});
+  ASSERT_EQ(pool_->getStatus().ready_num, 4);
+  ASSERT_EQ(pool_->getStatus().waiting_num, 1);
+  ASSERT_TRUE(pruned.empty());
+}
+
+TEST_F(TransactionPoolTest, PruneSomeTags) {
+  std::vector<Transaction> txs{
+      makeTx("01"_hash256, {{1}}, {}),
+      makeTx("02"_hash256, {{2}}, {{4}}),
+      makeTx("03"_hash256, {{3}}, {{4}}),
+      // 6 will be passed to pruneTag in the last argument
+      makeTx("04"_hash256, {{4}}, {{3}, {6}}),
+      makeTx("05"_hash256, {{5}}, {{4}, {3}})};
+
+  EXPECT_OUTCOME_TRUE_1(
+      pool_->submit({txs[0], txs[1], txs[2], txs[3], txs[4]}));
+  ASSERT_EQ(pool_->getStatus().ready_num, 4);
+  ASSERT_EQ(pool_->getStatus().waiting_num, 1);
+
+  auto pruned = pool_->pruneTag(42, {6});
+  auto pruned_ = pool_->pruneTag(42, {5});
+  pruned.insert(pruned.end(), pruned_.begin(), pruned_.end());
+  ASSERT_EQ(pool_->getStatus().ready_num, 2);
+  ASSERT_EQ(pool_->getStatus().waiting_num, 0);
+  ASSERT_TRUE(std::is_permutation(
+      pruned.begin(), pruned.end(), txs.begin() + 2, txs.end(),
+      [](auto &tx1, auto &tx2) { return tx1.hash == tx2.hash; }));
 }
 
 class MockClock : public Clock<std::chrono::system_clock> {
@@ -109,10 +156,10 @@ TEST_F(TransactionPoolTest, BanDurationCorrect) {
       .WillOnce(Return(submit_time + duration + 1min));
   Transaction t;
   t.hash = "beef"_hash256;
-  moderator.ban(t);
-  ASSERT_TRUE(moderator.isBanned(t));
+  moderator.ban(t.hash);
+  ASSERT_TRUE(moderator.isBanned(t.hash));
   moderator.updateBan();
-  ASSERT_FALSE(moderator.isBanned(t));
+  ASSERT_FALSE(moderator.isBanned(t.hash));
 }
 
 TEST_F(TransactionPoolTest, BanStaleCorrect) {
@@ -122,10 +169,10 @@ TEST_F(TransactionPoolTest, BanStaleCorrect) {
   t.valid_till = 42;
   t.hash = "abcd"_hash256;
   moderator.banIfStale(43, t);
-  ASSERT_TRUE(moderator.isBanned(t));
+  ASSERT_TRUE(moderator.isBanned(t.hash));
   Transaction t1;
   t1.valid_till = 42;
   t1.hash = "efef"_hash256;
   moderator.banIfStale(41, t1);
-  ASSERT_FALSE(moderator.isBanned(t1));
+  ASSERT_FALSE(moderator.isBanned(t1.hash));
 }

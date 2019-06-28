@@ -66,7 +66,7 @@ namespace kagome::transaction_pool {
      * (if pruned) are not revalidated and become temporarily banned to
      * prevent importing them in the (near) future.
      */
-    virtual std::vector<primitives::Transaction> pruneTags(
+    virtual std::vector<primitives::Transaction> pruneTag(
         const primitives::BlockId &at, const primitives::TransactionTag &tag,
         const std::vector<common::Hash256> &known_imported_hashes = {}) = 0;
 

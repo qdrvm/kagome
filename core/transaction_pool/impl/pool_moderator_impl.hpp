@@ -33,12 +33,12 @@ namespace kagome::transaction_pool {
 
     ~PoolModeratorImpl() override = default;
 
-    void ban(const primitives::Transaction &tx) override;
+    void ban(const common::Hash256 &tx_hash) override;
 
     bool banIfStale(primitives::BlockNumber current_block,
                     const primitives::Transaction &tx) override;
 
-    bool isBanned(const primitives::Transaction &tx) const override;
+    bool isBanned(const common::Hash256 &tx_hash) const override;
 
     void updateBan() override;
 

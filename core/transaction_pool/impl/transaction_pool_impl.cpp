@@ -32,7 +32,7 @@ namespace kagome::transaction_pool {
         return TransactionPoolError::ALREADY_IMPORTED;
       }
       for (auto &tag : t.provides) {
-        provided_tags_.insert({tag, t.hash});
+        provided_tags_by_.insert({tag, t.hash});
       }
       imported_hashes_.insert(hash);
       waiting_queue_.push_back(WaitingTransaction{std::move(t)});
@@ -87,7 +87,7 @@ namespace kagome::transaction_pool {
   bool TransactionPoolImpl::isReady(const WaitingTransaction &tx) const {
     return std::all_of(
         tx.requires.begin(), tx.requires.end(), [this](auto &&tag) {
-          return provided_tags_.find(tag) != provided_tags_.end();
+          return provided_tags_by_.find(tag) != provided_tags_by_.end();
         });
   };
 
@@ -98,9 +98,7 @@ namespace kagome::transaction_pool {
         ReadyTransaction rtx{tx, {}};
         updateUnlockingTransactions(rtx);
         ready_queue_.insert({rtx.hash, rtx});
-        auto old_it = it;
-        it++;
-        waiting_queue_.erase(old_it);
+        it = waiting_queue_.erase(it);
       } else {
         it++;
       }
@@ -110,8 +108,9 @@ namespace kagome::transaction_pool {
   void TransactionPoolImpl::updateUnlockingTransactions(
       const ReadyTransaction &rtx) {
     for (auto &tag : rtx.requires) {
-      if (auto it = provided_tags_.find(tag); it != provided_tags_.end()) {
-        if (auto ready_it = ready_queue_.find(it->second);
+      if (auto it = provided_tags_by_.find(tag);
+          it != provided_tags_by_.end() && it->second.has_value()) {
+        if (auto ready_it = ready_queue_.find(it->second.value());
             ready_it != ready_queue_.end()) {
           auto &unlocking_transaction = ready_it->second;
           unlocking_transaction.unlocks.push_back(rtx.hash);
@@ -143,24 +142,39 @@ namespace kagome::transaction_pool {
     return Status{ready_queue_.size(), waiting_queue_.size()};
   }
 
-  std::vector<Transaction> TransactionPoolImpl::pruneTags(
+  std::vector<Transaction> TransactionPoolImpl::pruneTag(
       const primitives::BlockId &at, const primitives::TransactionTag &tag,
       const std::vector<common::Hash256> &known_imported_hashes) {
+    provided_tags_by_.insert({tag, {}});
+    updateReady();
+
     std::list<primitives::TransactionTag> to_remove{tag};
     std::vector<Transaction> removed;
 
     while (not to_remove.empty()) {
       auto tag = to_remove.front();
       to_remove.pop_front();
-      auto hash = provided_tags_.at(tag);
-      provided_tags_.erase(tag);
-      auto tx = ready_queue_.at(hash);
-      ready_queue_.erase(hash);
+      if(provided_tags_by_.find(tag) == provided_tags_by_.end()) {
+        continue;
+      }
+      auto hash_opt = provided_tags_by_.at(tag);
+      provided_tags_by_.erase(tag);
+      if(not hash_opt) {
+        continue;
+      }
+      auto tx = ready_queue_.at(hash_opt.value());
+      ready_queue_.erase(hash_opt.value());
 
       auto find_previous = [this, &tx](primitives::TransactionTag const &tag)
           -> std::optional<std::vector<primitives::TransactionTag>> {
-        auto prev_hash = provided_tags_.at(tag);
-        auto &tx2 = ready_queue_[prev_hash];
+        if(provided_tags_by_.find(tag) == provided_tags_by_.end()) {
+          return std::nullopt;
+        }
+        auto prev_hash_opt = provided_tags_by_.at(tag);
+        if(!prev_hash_opt) {
+          return std::nullopt;
+        }
+        auto &tx2 = ready_queue_[prev_hash_opt.value()];
         tx2.unlocks.remove_if([&tx](auto &t) { return t == tx.hash; });
         // We eagerly prune previous transactions as well.
         // But it might not always be good.
@@ -185,6 +199,17 @@ namespace kagome::transaction_pool {
       }
       removed.push_back(tx);
     }
+    // make sure that we don't revalidate extrinsics that were part of the
+    // recently imported block. This is especially important for UTXO-like
+    // chains cause the inputs are pruned so such transaction would go to future
+    // again.
+    for (auto &hash : known_imported_hashes) {
+      moderator_->ban(hash);
+    }
+
+    auto stale = removeStale(at);
+    removed.insert(removed.end(), std::move_iterator(stale.begin()),
+                   std::move_iterator(stale.end()));
     return removed;
   }
 
