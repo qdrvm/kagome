@@ -56,4 +56,9 @@ namespace kagome::transaction_pool {
       banned_until_.erase(it);
     }
   }
+
+  size_t PoolModeratorImpl::bannedNum() const {
+    return banned_until_.size();
+  }
+
 }  // namespace kagome::transaction_pool

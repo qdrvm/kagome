@@ -154,9 +154,6 @@ namespace kagome::transaction_pool {
     while (not to_remove.empty()) {
       auto tag = to_remove.front();
       to_remove.pop_front();
-      if(provided_tags_by_.find(tag) == provided_tags_by_.end()) {
-        continue;
-      }
       auto hash_opt = provided_tags_by_.at(tag);
       provided_tags_by_.erase(tag);
       if(not hash_opt) {

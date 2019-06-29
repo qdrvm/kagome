@@ -46,6 +46,11 @@ namespace kagome::transaction_pool {
      * Unbans transaction which ban time is exceeded
      */
     virtual void updateBan() = 0;
+
+    /**
+     * Return the number of currently banned transactions
+     */
+     virtual size_t bannedNum() const = 0;
   };
 
 }  // namespace kagome::transaction_pool

@@ -53,14 +53,14 @@ Transaction makeTx(Hash256 hash, std::initializer_list<TransactionTag> provides,
   return tx;
 }
 
-TEST_F(TransactionPoolTest, Create) {
-  StdListAdapter<int> list;
-  std::vector<int> v{1, 2, 3, 4, 5};
-  std::copy(v.begin(), v.end(), std::back_inserter(list));
-  std::stable_partition(list.begin(), list.end(),
-                        [](int x) { return x % 2 == 0; });
-}
-
+/**
+ * @given a set of transactions and transaction pool
+ * @when import transactions to the pool
+ * @then the transactions are imported and the pool status updates accordingly
+ * to resolution of transaction dependencies. As the provided set of
+ * transactions includes all required tags, once all transactions are imported
+ * they all must be ready
+ */
 TEST_F(TransactionPoolTest, CorrectImportToReady) {
   std::vector<Transaction> txs{makeTx("01"_hash256, {{1}}, {}),
                                makeTx("02"_hash256, {{2}}, {}),
@@ -72,10 +72,19 @@ TEST_F(TransactionPoolTest, CorrectImportToReady) {
   EXPECT_EQ(pool_->getStatus().waiting_num, 2);
   ASSERT_EQ(pool_->getStatus().ready_num, 2);
   EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[1]}));
+  // already imported
+  EXPECT_OUTCOME_FALSE_1(pool_->submit({txs[1]}));
   EXPECT_EQ(pool_->getStatus().waiting_num, 0);
   ASSERT_EQ(pool_->getStatus().ready_num, 5);
 }
 
+/**
+ * @given a transaction pool and a set of transactions where one transaction
+ * transitively depends on every other in the set
+ * @when when pruning the tag of the aforementioned transaction
+ * @then as by the time of pruning all transactions are ready, all of them are
+ * pruned as ready dependencies of the pruned transaction
+ */
 TEST_F(TransactionPoolTest, PruneAllTags) {
   std::vector<Transaction> txs{makeTx("01"_hash256, {{1}}, {}),
                                makeTx("02"_hash256, {{2}}, {}),
@@ -94,6 +103,11 @@ TEST_F(TransactionPoolTest, PruneAllTags) {
   ASSERT_EQ(pool_->getStatus().waiting_num, 0);
 }
 
+/**
+ * @given a transaction pool with transactions
+ * @when pruning a non-exisiting tag
+ * @then nothing happens
+ */
 TEST_F(TransactionPoolTest, PruneWrongTags) {
   std::vector<Transaction> txs{
       makeTx("01"_hash256, {{1}}, {}), makeTx("02"_hash256, {{2}}, {{4}}),
@@ -112,10 +126,14 @@ TEST_F(TransactionPoolTest, PruneWrongTags) {
   ASSERT_TRUE(pruned.empty());
 }
 
+/**
+ * @given a transaction pool with transactions
+ * @when prune a tag of a transaction
+ * @then the transaction and all its dependencies are removed from ready queue
+ */
 TEST_F(TransactionPoolTest, PruneSomeTags) {
   std::vector<Transaction> txs{
-      makeTx("01"_hash256, {{1}}, {}),
-      makeTx("02"_hash256, {{2}}, {{4}}),
+      makeTx("01"_hash256, {{1}}, {}), makeTx("02"_hash256, {{2}}, {{4}}),
       makeTx("03"_hash256, {{3}}, {{4}}),
       // 6 will be passed to pruneTag in the last argument
       makeTx("04"_hash256, {{4}}, {{3}, {6}}),
@@ -136,43 +154,19 @@ TEST_F(TransactionPoolTest, PruneSomeTags) {
       [](auto &tx1, auto &tx2) { return tx1.hash == tx2.hash; }));
 }
 
-class MockClock : public Clock<std::chrono::system_clock> {
- public:
-  MOCK_CONST_METHOD0(now, MockClock::TimePoint(void));
-};
-
-TEST_F(TransactionPoolTest, BanDurationCorrect) {
-  auto clock = std::make_shared<MockClock>();
-  auto duration = 42min;
-  MockClock::TimePoint submit_time{10min};
-  PoolModeratorImpl moderator(clock, duration);
-  testing::Expectation exp1 =
-      EXPECT_CALL(*clock, now()).WillOnce(Return(submit_time));
-  testing::Expectation exp2 = EXPECT_CALL(*clock, now())
-                                  .After(exp1)
-                                  .WillOnce(Return(submit_time + 20min));
-  EXPECT_CALL(*clock, now())
-      .After(exp2)
-      .WillOnce(Return(submit_time + duration + 1min));
-  Transaction t;
-  t.hash = "beef"_hash256;
-  moderator.ban(t.hash);
-  ASSERT_TRUE(moderator.isBanned(t.hash));
-  moderator.updateBan();
-  ASSERT_FALSE(moderator.isBanned(t.hash));
-}
-
-TEST_F(TransactionPoolTest, BanStaleCorrect) {
-  auto clock = std::make_shared<SystemClock>();
-  PoolModeratorImpl moderator(clock);
-  Transaction t;
-  t.valid_till = 42;
-  t.hash = "abcd"_hash256;
-  moderator.banIfStale(43, t);
-  ASSERT_TRUE(moderator.isBanned(t.hash));
-  Transaction t1;
-  t1.valid_till = 42;
-  t1.hash = "efef"_hash256;
-  moderator.banIfStale(41, t1);
-  ASSERT_FALSE(moderator.isBanned(t1.hash));
+TEST_F(TransactionPoolTest, PruneInSeveralSteps) {
+  std::vector<Transaction> txs{
+      makeTx("01"_hash256, {{1}}, {}), makeTx("02"_hash256, {{2}}, {{1}}),
+      makeTx("03"_hash256, {{3}}, {{1}}), makeTx("04"_hash256, {{4}}, {{3}}),
+      makeTx("05"_hash256, {{5}}, {{4}, {3}})};
+  EXPECT_OUTCOME_TRUE_1(pool_->submit(txs));
+  ASSERT_EQ(pool_->getStatus().ready_num, 5);
+  pool_->pruneTag(42, {3});
+  // 1 is not pruned despite it being a dependency of 3 because 2 also depends
+  // on it
+  ASSERT_EQ(pool_->getStatus().ready_num, 4);
+  pool_->pruneTag(42, {2});
+  ASSERT_EQ(pool_->getStatus().ready_num, 2);
+  pool_->pruneTag(42, {5});
+  ASSERT_EQ(pool_->getStatus().ready_num, 0);
 }

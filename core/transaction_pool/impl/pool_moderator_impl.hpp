@@ -42,6 +42,8 @@ namespace kagome::transaction_pool {
 
     void updateBan() override;
 
+    size_t bannedNum() const override;
+
    private:
     Map banned_until_;
     SystemClock::Duration ban_for_;

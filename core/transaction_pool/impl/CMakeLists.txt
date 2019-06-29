@@ -8,4 +8,5 @@ add_library(pool_moderator
     )
 target_link_libraries(pool_moderator
     Boost::boost
+    blob
     )
