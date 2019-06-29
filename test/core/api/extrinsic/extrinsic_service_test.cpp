@@ -38,7 +38,7 @@ class ExtrinsicSubmissionServiceTest : public ::testing::Test {
 
  protected:
   void SetUp() override {
-    EXPECT_CALL(*transport, start()).WillRepeatedly(Return(outcome::success()));
+    EXPECT_CALL(*transport, start()).WillRepeatedly(Return());
     extrinsic.data.put("hello world");
     hash.fill(1);
   }
@@ -67,7 +67,7 @@ class ExtrinsicSubmissionServiceTest : public ::testing::Test {
  * @then start method of transport is called
  */
 TEST_F(ExtrinsicSubmissionServiceTest, StartSuccess) {
-  EXPECT_CALL(*transport, start()).WillOnce(Return(outcome::success()));
+  EXPECT_CALL(*transport, start()).WillOnce(Return());
   ASSERT_EQ(service->start(), outcome::success());
 }
 

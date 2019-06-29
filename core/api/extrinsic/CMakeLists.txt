@@ -18,5 +18,4 @@ target_link_libraries(extrinsic_api_service
     buffer
     RapidJSON::rapidjson
     transaction_pool
-    basic_transport
     )

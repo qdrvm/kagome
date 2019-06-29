@@ -17,7 +17,7 @@ namespace kagome::api {
     explicit BasicTransportMock(NetworkAddress address, uint16_t port)
         : address_{std::move(address)}, port_{port} {}
 
-    MOCK_METHOD0(start, outcome::result<void>());
+    MOCK_METHOD0(start, void());
 
     MOCK_METHOD0(stop, void());
 

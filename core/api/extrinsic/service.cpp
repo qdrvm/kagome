@@ -61,7 +61,8 @@ namespace kagome::api {
   }
 
   outcome::result<void> ExtrinsicApiService::start() {
-    return transport_->start();
+    transport_->start();
+    return outcome::success();
   }
 
   void ExtrinsicApiService::stop() {

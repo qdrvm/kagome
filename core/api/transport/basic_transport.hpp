@@ -21,13 +21,15 @@ namespace kagome::api {
 
     virtual ~BasicTransport() = default;
 
-    BasicTransport();
+    inline BasicTransport() {
+      on_response_ = [this](const std::string &data) { processResponse(data); };
+    }
 
     /**
      * @brief starts listening
      * @return true if successfully started, false otherwise
      */
-    virtual outcome::result<void> start() = 0;
+    virtual void start() = 0;
 
     /**
      * @brief stops transport
@@ -58,6 +60,6 @@ namespace kagome::api {
     OnData on_data_;          ///< data received signal
     OnResponse on_response_;  ///< response handler slot
   };
-}  // namespace kagome::service
+}  // namespace kagome::api
 
 #endif  // KAGOME_CORE_EXTRINSICS_SUBMISSION_SERVICE_JSON_TRANSPORT_HPP
