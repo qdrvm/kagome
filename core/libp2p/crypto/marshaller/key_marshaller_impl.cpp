@@ -41,7 +41,7 @@ namespace libp2p::crypto::marshaller {
      * @return common key type value
      */
     outcome::result<Key::Type> unmarshalKeyType(proto::KeyType key_type) {
-      switch (key_type) {  // NOLINT
+      switch (key_type) {
         case proto::KeyType::UNSPECIFIED:
           return Key::Type::UNSPECIFIED;
         case proto::KeyType::RSA1024:
@@ -54,13 +54,14 @@ namespace libp2p::crypto::marshaller {
           return Key::Type::ED25519;
         case proto::KeyType::SECP256K1:
           return Key::Type::SECP256K1;
+        default:
+          return CryptoProviderError::UNKNOWN_KEY_TYPE;
       }
-
-      return CryptoProviderError::UNKNOWN_KEY_TYPE;
     }
   }  // namespace
 
-  outcome::result<Buffer> KeyMarshallerImpl::marshal(const PublicKey &key) const {
+  outcome::result<Buffer> KeyMarshallerImpl::marshal(
+      const PublicKey &key) const {
     proto::PublicKey proto_key;
     OUTCOME_TRY(key_type, marshalKeyType(key.type));
     proto_key.set_key_type(key_type);
@@ -74,7 +75,8 @@ namespace libp2p::crypto::marshaller {
     return out;
   }
 
-  outcome::result<Buffer> KeyMarshallerImpl::marshal(const PrivateKey &key) const {
+  outcome::result<Buffer> KeyMarshallerImpl::marshal(
+      const PrivateKey &key) const {
     proto::PublicKey proto_key;
     OUTCOME_TRY(key_type, marshalKeyType(key.type));
     proto_key.set_key_type(key_type);

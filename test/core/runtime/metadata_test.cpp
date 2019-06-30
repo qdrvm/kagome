@@ -8,10 +8,10 @@
 #include <gtest/gtest.h>
 #include "core/runtime/runtime_test.hpp"
 #include "extensions/extension_impl.hpp"
+#include "runtime/impl/metadata_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/wasm_test.hpp"
-#include "runtime/impl/metadata_impl.hpp"
 
 using ::testing::_;
 using ::testing::Return;
@@ -23,7 +23,6 @@ namespace fs = boost::filesystem;
 
 class MetadataTest : public RuntimeTest {
  public:
-
   void SetUp() override {
     RuntimeTest::SetUp();
 
@@ -40,5 +39,5 @@ class MetadataTest : public RuntimeTest {
  * @then successful result is returned
  */
 TEST_F(MetadataTest, metadata) {
-  EXPECT_OUTCOME_TRUE(res, api_->metadata())
+  ASSERT_TRUE(api_->metadata());
 }

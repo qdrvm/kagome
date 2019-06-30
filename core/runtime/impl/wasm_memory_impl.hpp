@@ -49,7 +49,7 @@ namespace kagome::runtime {
     uint64_t load64u(WasmPointer addr) const override;
     std::array<uint8_t, 16> load128(WasmPointer addr) const override;
     common::Buffer loadN(kagome::runtime::WasmPointer addr,
-                                   kagome::runtime::SizeType n) const override;
+                         kagome::runtime::SizeType n) const override;
 
     void store8(WasmPointer addr, int8_t value) override;
     void store16(WasmPointer addr, int16_t value) override;
@@ -114,7 +114,7 @@ namespace kagome::runtime {
     /**
      * Finds memory segment of given size among deallocated pieces of memory
      * @param size of target memory
-     * @return address of memory of given size, or -1 if it is impossible to
+     * @return address of memory of given size, or 0 if it is impossible to
      * allocate this amount of memory
      */
     WasmPointer findContaining(SizeType size);
@@ -122,9 +122,12 @@ namespace kagome::runtime {
     /**
      * Resize memory and allocate memory segment of given size
      * @param size memory size to be allocated
-     * @return pointer to the allocated memory
+     * @return pointer to the allocated memory @or 0 if it is impossible to
+     * allocate this amount of memory
      */
     WasmPointer growAlloc(SizeType size);
+
+    void resizeInternal(SizeType newSize);
   };
 
 }  // namespace kagome::runtime
