@@ -13,12 +13,11 @@
 #include <boost/exception/diagnostic_information.hpp>
 #include <boost/signals2.hpp>
 
+/**
+ * Most of the implementation here is taken from
+ * https://github.com/EOSIO/appbase
+ */
 namespace libp2p::event {
-  /**
-   * Most of the implementation here is taken from
-   * https://github.com/EOSIO/appbase
-   */
-
   using erased_channel_ptr = std::unique_ptr<void, void (*)(void *)>;
 
   /**
@@ -206,7 +205,6 @@ namespace libp2p::event {
     }
 
    private:
-    using erased_channel_ptr = std::unique_ptr<void, void (*)(void *)>;
     std::map<std::type_index, erased_channel_ptr> channels_;
   };
 }  // namespace libp2p::event
