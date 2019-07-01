@@ -5,10 +5,25 @@
 
 #include "libp2p/host.hpp"
 
+#include <string_view>
+
+namespace {
+  constexpr std::string_view kLibp2pVersion = "ipfs/0.1.0";
+  constexpr std::string_view kClientVersion = "cpp-libp2p/0.1.0";
+}  // namespace
+
 namespace libp2p {
 
   Host::Host(Config config, peer::PeerId peer_id)
       : config_{std::move(config)}, id_{std::move(peer_id)} {}
+
+  std::string_view Host::getLibp2pVersion() const noexcept {
+    return kLibp2pVersion;
+  }
+
+  std::string_view Host::getLibp2pClientVersion() const noexcept {
+    return kClientVersion;
+  }
 
   peer::PeerId Host::getId() const noexcept {
     return id_;
@@ -49,6 +64,10 @@ namespace libp2p {
 
   peer::PeerInfo Host::getPeerInfo() const noexcept {
     return peer::PeerInfo{id_, network_->getListenAddresses()};
+  }
+
+  const network::Router &Host::router() const noexcept {
+    return *router_;
   }
 
 }  // namespace libp2p

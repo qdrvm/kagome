@@ -3,10 +3,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(pb)
+
 add_library(libp2p_identify
     identify.cpp
     identify.hpp
     )
 target_link_libraries(libp2p_identify
     libp2p
+    identify_proto
     )

@@ -11,6 +11,7 @@
 #include <gsl/span>
 #include <outcome/outcome.hpp>
 #include "libp2p/config.hpp"
+#include "libp2p/connection/stream.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/network/network.hpp"
 #include "libp2p/network/router.hpp"
@@ -18,12 +19,15 @@
 #include "libp2p/peer/peer_info.hpp"
 #include "libp2p/peer/peer_repository.hpp"
 #include "libp2p/peer/protocol.hpp"
-#include "libp2p/connection/stream.hpp"
 
 namespace libp2p {
 
   class Host {
    public:
+    std::string_view getLibp2pVersion() const noexcept;
+
+    std::string_view getLibp2pClientVersion() const noexcept;
+
     /**
      * @brief Get identifier of this Host
      */
@@ -85,6 +89,12 @@ namespace libp2p {
     outcome::result<void> newStream(
         const peer::PeerInfo &p, const peer::Protocol &protocol,
         const std::function<connection::Stream::Handler> &handler);
+
+    /**
+     * Get a router component of the Host
+     * @return reference to router
+     */
+    const network::Router &router() const noexcept;
 
    private:
     friend class HostBuilder;

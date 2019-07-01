@@ -8,6 +8,8 @@
 
 #include <outcome/outcome.hpp>
 #include "libp2p/basic/readwriter.hpp"
+#include "libp2p/connection/capable_connection.hpp"
+#include "libp2p/multi/multiaddress.hpp"
 
 namespace libp2p::connection {
 
@@ -73,6 +75,12 @@ namespace libp2p::connection {
      */
     virtual void adjustWindowSize(uint32_t new_size,
                                   VoidResultHandlerFunc cb) = 0;
+
+    /**
+     * Get a multiaddress, to which the stream is connected
+     * @return multiaddress or error
+     */
+    virtual outcome::result<multi::Multiaddress> remoteMultiaddr() const = 0;
   };
 }  // namespace libp2p::connection
 

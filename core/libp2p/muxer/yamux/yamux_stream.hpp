@@ -67,6 +67,8 @@ namespace libp2p::connection {
 
     void adjustWindowSize(uint32_t new_size, VoidResultHandlerFunc cb) override;
 
+    outcome::result<multi::Multiaddress> remoteMultiaddr() const override;
+
    private:
     /**
      * Internal proxy method for reads; (\param some) denotes if the read should
