@@ -62,4 +62,17 @@ ACTION_P(Arg3CallbackWithArg, in) {
   arg3(in);
 }
 
+ACTION_P(UpgradeToSecureInbound, do_upgrade) {
+  arg1(do_upgrade(arg0));
+}
+
+ACTION_P(UpgradeToSecureOutbound, do_upgrade) {
+  arg2(do_upgrade(arg0));
+}
+
+ACTION_P(UpgradeToMuxed, do_upgrade) {
+  arg1(do_upgrade(arg0));
+}
+
+
 #endif  // KAGOME_GMOCK_ACTIONS_HPP

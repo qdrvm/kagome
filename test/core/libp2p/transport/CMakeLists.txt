@@ -6,7 +6,7 @@ addtest(libp2p_tcp_integration_test
     )
 target_link_libraries(libp2p_tcp_integration_test
     tcp_transport
-    libp2p_peer_id
+    testutil
     )
 
 addtest(libp2p_transport_parser_test
@@ -22,5 +22,5 @@ addtest(libp2p_upgrader_test
 target_link_libraries(libp2p_upgrader_test
     libp2p_upgrader
     multihash
-    libp2p_peer_id
+    testutil
     )
