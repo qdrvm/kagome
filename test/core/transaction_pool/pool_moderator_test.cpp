@@ -37,7 +37,7 @@ TEST_F(PoolModeratorTest, BanDurationCorrect) {
   auto clock = std::make_shared<MockClock>();
   auto duration = 42min;
   MockClock::TimePoint submit_time{10min};
-  PoolModeratorImpl moderator({duration}, clock);
+  PoolModeratorImpl moderator(clock, {duration});
   testing::Expectation exp1 =
       EXPECT_CALL(*clock, now()).WillOnce(Return(submit_time));
   testing::Expectation exp2 = EXPECT_CALL(*clock, now())
@@ -61,7 +61,7 @@ TEST_F(PoolModeratorTest, BanDurationCorrect) {
  */
 TEST_F(PoolModeratorTest, BanStaleCorrect) {
   auto clock = std::make_shared<SystemClock>();
-  PoolModeratorImpl moderator({30min}, clock);
+  PoolModeratorImpl moderator(clock, {30min});
   Transaction t;
   t.valid_till = 42;
   t.hash = "abcd"_hash256;
@@ -79,7 +79,7 @@ TEST_F(PoolModeratorTest, BanStaleCorrect) {
  */
 TEST_F(PoolModeratorTest, UnbanWhenFull) {
   auto clock = std::make_shared<SystemClock>();
-  PoolModeratorImpl moderator({1min, 5}, clock);
+  PoolModeratorImpl moderator(clock, {1min, 5});
 
   for (int i = 0; i < 11; i++) {
     kagome::common::Hash256 hash;

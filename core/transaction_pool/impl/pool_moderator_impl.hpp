@@ -8,7 +8,6 @@
 
 #include <map>
 
-#include "transaction_pool/impl/clock_impl.hpp"
 #include "transaction_pool/pool_moderator.hpp"
 
 namespace kagome::transaction_pool {
@@ -44,10 +43,9 @@ namespace kagome::transaction_pool {
      * @param clock a clock used to determine when it is time to unban a
      * transaction
      */
-    explicit PoolModeratorImpl(
-        Params parameters = Params{kDefaultBanFor, kDefaultExpectedSize},
-        std::shared_ptr<SystemClock> clock =
-            std::make_shared<kagome::transaction_pool::SystemClock>());
+    explicit PoolModeratorImpl(std::shared_ptr<SystemClock> clock,
+                               Params parameters = Params{
+                                   kDefaultBanFor, kDefaultExpectedSize});
 
     ~PoolModeratorImpl() override = default;
 
@@ -63,8 +61,8 @@ namespace kagome::transaction_pool {
     size_t bannedNum() const override;
 
    private:
-    Params params_;
     std::shared_ptr<SystemClock> clock_;
+    Params params_;
     Map banned_until_;
   };
 

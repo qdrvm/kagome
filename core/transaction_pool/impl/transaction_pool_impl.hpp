@@ -20,7 +20,7 @@ namespace kagome::transaction_pool {
   struct WaitingTransaction : public primitives::Transaction {};
 
   class TransactionPoolImpl : public TransactionPool {
-    static constexpr auto kDefaultLoggerTag = "Transaction Pool: ";
+    static constexpr auto kDefaultLoggerTag = "Transaction Pool";
     static constexpr size_t kDefaultMaxReadyNum = 512;
     static constexpr size_t kDefaultMaxWaitingNum = 128;
 
