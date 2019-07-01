@@ -32,12 +32,25 @@ namespace libp2p::transport {
     virtual ~Upgrader() = default;
 
     /**
-     * Upgrade a raw connection to the secure one
+     * Upgrade outbound raw connection to the secure one
      * @param conn to be upgraded
+     * @param remoteId peer id of remote peer
      * @param cb - callback, which is called, when a connection is upgraded or
      * error happens
      */
-    virtual void upgradeToSecure(RawSPtr conn, OnSecuredCallbackFunc cb) = 0;
+    virtual void upgradeToSecureOutbound(RawSPtr conn,
+                                         const peer::PeerId &remoteId,
+                                         OnSecuredCallbackFunc cb) = 0;
+
+    /**
+     * Upgrade inbound raw connection to the secure one
+     * @param conn to be upgraded
+     * @param remoteId peer id of remote peer
+     * @param cb - callback, which is called, when a connection is upgraded or
+     * error happens
+     */
+    virtual void upgradeToSecureInbound(RawSPtr conn,
+                                        OnSecuredCallbackFunc cb) = 0;
 
     /**
      * Upgrade a secure connection to the muxed (capable) one
