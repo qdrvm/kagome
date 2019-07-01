@@ -39,7 +39,9 @@ namespace libp2p::protocol {
      */
     virtual void newStream(
         const peer::PeerInfo &p,
-        outcome::result<std::shared_ptr<connection::Stream>> rstream) = 0;
+        std::function<
+            void(outcome::result<std::shared_ptr<connection::Stream>>)>
+            rstream) = 0;
   };
 
 }  // namespace libp2p::protocol
