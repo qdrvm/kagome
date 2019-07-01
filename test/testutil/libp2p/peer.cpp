@@ -7,7 +7,7 @@
 
 namespace testutil {
 
-  PeerId testutil::randomPeerId() {
+  PeerId randomPeerId() {
     PublicKey k;
 
     k.type = T::ED25519;
