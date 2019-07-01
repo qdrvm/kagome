@@ -34,9 +34,8 @@ using namespace std::chrono_literals;
 class TransactionPoolTest : public testing::Test {
  public:
   void SetUp() {
-    auto clock_ = std::make_shared<SystemClock>();
-    auto moderator_ = std::make_unique<PoolModeratorImpl>(30min, clock_);
-    pool_ = TransactionPoolImpl::create<StdListAdapter>(std::move(moderator_));
+    auto moderator_ = std::make_unique<PoolModeratorImpl>();
+    pool_ = std::make_shared<TransactionPoolImpl>(std::move(moderator_));
   }
 
   std::shared_ptr<TransactionPool> pool_;

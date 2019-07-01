@@ -22,7 +22,7 @@ namespace kagome::transaction_pool {
   class PoolModerator {
    public:
     virtual ~PoolModerator() = default;
-
+    
     /**
      * Bans a transaction for a fixed amount of time
      * @param tx_hash

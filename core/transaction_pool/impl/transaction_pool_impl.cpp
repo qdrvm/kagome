@@ -152,10 +152,10 @@ namespace kagome::transaction_pool {
     std::vector<Transaction> removed;
 
     while (not to_remove.empty()) {
-      auto tag = to_remove.front();
+      auto tag_to_remove = to_remove.front();
       to_remove.pop_front();
-      auto hash_opt = provided_tags_by_.at(tag);
-      provided_tags_by_.erase(tag);
+      auto hash_opt = provided_tags_by_.at(tag_to_remove);
+      provided_tags_by_.erase(tag_to_remove);
       if(not hash_opt) {
         continue;
       }

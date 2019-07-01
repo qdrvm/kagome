@@ -14,24 +14,40 @@
 namespace kagome::transaction_pool {
 
   class PoolModeratorImpl : public PoolModerator {
-    static constexpr size_t kDefaultExpectedSize = 2048;
-
     using SystemClock = Clock<std::chrono::system_clock>;
     using Map = std::map<common::Hash256, SystemClock::TimePoint>;
 
    public:
     /**
+     * Default value of expected size parameter
+     */
+    static constexpr size_t kDefaultExpectedSize = 2048;
+
+    /**
+     * Default ban duration
+     */
+    static constexpr SystemClock::Duration kDefaultBanFor =
+        std::chrono::minutes(30);
+
+    /**
      * @param ban_for amount of time for which a transaction is banned
-     * @param clock a clock used to determine when it is time to unban a
-     * transaction
      * @param expected_size expected maximum number of banned transactions. If
      * significantly exceeded, some transactions will be removed from ban list
      */
+    struct Params {
+      SystemClock::Duration ban_for = kDefaultBanFor;
+      size_t expected_size = kDefaultExpectedSize;
+    };
+
+    /**
+     * @param parameters configuration of the pool moderator
+     * @param clock a clock used to determine when it is time to unban a
+     * transaction
+     */
     explicit PoolModeratorImpl(
-        SystemClock::Duration ban_for = std::chrono::minutes(30),
+        Params parameters = Params{kDefaultBanFor, kDefaultExpectedSize},
         std::shared_ptr<SystemClock> clock =
-            std::make_shared<kagome::transaction_pool::SystemClock>(),
-        size_t expected_size = kDefaultExpectedSize);
+            std::make_shared<kagome::transaction_pool::SystemClock>());
 
     ~PoolModeratorImpl() override = default;
 
@@ -47,10 +63,9 @@ namespace kagome::transaction_pool {
     size_t bannedNum() const override;
 
    private:
-    Map banned_until_;
-    SystemClock::Duration ban_for_;
+    Params params_;
     std::shared_ptr<SystemClock> clock_;
-    size_t expected_size_ = kDefaultExpectedSize;
+    Map banned_until_;
   };
 
 }  // namespace kagome::transaction_pool

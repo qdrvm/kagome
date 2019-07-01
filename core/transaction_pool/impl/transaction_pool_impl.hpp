@@ -25,14 +25,10 @@ namespace kagome::transaction_pool {
     static constexpr size_t kDefaultMaxWaitingNum = 128;
 
    public:
-    template <template <typename T> typename Container>
-    static auto create(
+    TransactionPoolImpl(
         std::unique_ptr<PoolModerator> moderator,
         Limits limits = Limits{kDefaultMaxReadyNum, kDefaultMaxWaitingNum},
-        common::Logger logger = common::createLogger(kDefaultLoggerTag)) {
-      return std::make_shared<TransactionPoolImpl>(
-          TransactionPoolImpl{std::move(moderator), limits, std::move(logger)});
-    }
+        common::Logger logger = common::createLogger(kDefaultLoggerTag));
 
     TransactionPoolImpl(TransactionPoolImpl &&) = default;
     TransactionPoolImpl(const TransactionPoolImpl &) = delete;
@@ -59,8 +55,6 @@ namespace kagome::transaction_pool {
         const std::vector<common::Hash256> &known_imported_hashes) override;
 
    private:
-    TransactionPoolImpl(std::unique_ptr<PoolModerator> moderator, Limits limits,
-                        common::Logger logger);
     /**
      * If there are waiting transactions with satisfied tag requirements, move
      * them to ready queue
