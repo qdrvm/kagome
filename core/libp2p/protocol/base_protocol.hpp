@@ -27,21 +27,23 @@ namespace libp2p::protocol {
 
     /**
      * @brief Server-side handler, invoked when client is opened stream to us.
-     * @param stream valid stream to client
+     * @param cb callback executed when new stream opened to us
      */
-    virtual void onStream(std::shared_ptr<connection::Stream> stream) = 0;
+    virtual void onStream(
+        std::function<void(std::shared_ptr<connection::Stream>)> cb) = 0;
 
     /**
      * @brief Client-side handler, invoked when we (client) successfully
      * established connection to peer p.
      * @param p remote peer
-     * @param rstream result on valid stream opened to remote peer.
+     * @param cb callback executed when we successfully opened stream to remote
+     * peer
      */
     virtual void newStream(
         const peer::PeerInfo &p,
         std::function<
             void(outcome::result<std::shared_ptr<connection::Stream>>)>
-            rstream) = 0;
+            cb) = 0;
   };
 
 }  // namespace libp2p::protocol
