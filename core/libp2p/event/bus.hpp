@@ -8,6 +8,7 @@
 
 #include <map>
 #include <memory>
+#include <typeindex>
 
 #include <boost/asio.hpp>
 #include <boost/exception/diagnostic_information.hpp>
