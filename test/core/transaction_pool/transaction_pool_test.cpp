@@ -35,7 +35,7 @@ class TransactionPoolTest : public testing::Test {
  public:
   void SetUp() {
     auto clock_ = std::make_shared<SystemClock>();
-    auto moderator_ = std::make_unique<PoolModeratorImpl>(clock_);
+    auto moderator_ = std::make_unique<PoolModeratorImpl>(30min, clock_);
     pool_ = TransactionPoolImpl::create<StdListAdapter>(std::move(moderator_));
   }
 

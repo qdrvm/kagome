@@ -37,7 +37,7 @@ TEST_F(PoolModeratorTest, BanDurationCorrect) {
   auto clock = std::make_shared<MockClock>();
   auto duration = 42min;
   MockClock::TimePoint submit_time{10min};
-  PoolModeratorImpl moderator(clock, duration);
+  PoolModeratorImpl moderator(duration, clock);
   testing::Expectation exp1 =
       EXPECT_CALL(*clock, now()).WillOnce(Return(submit_time));
   testing::Expectation exp2 = EXPECT_CALL(*clock, now())
@@ -61,7 +61,7 @@ TEST_F(PoolModeratorTest, BanDurationCorrect) {
  */
 TEST_F(PoolModeratorTest, BanStaleCorrect) {
   auto clock = std::make_shared<SystemClock>();
-  PoolModeratorImpl moderator(clock);
+  PoolModeratorImpl moderator(30min, clock);
   Transaction t;
   t.valid_till = 42;
   t.hash = "abcd"_hash256;
@@ -79,14 +79,13 @@ TEST_F(PoolModeratorTest, BanStaleCorrect) {
  */
 TEST_F(PoolModeratorTest, UnbanWhenFull) {
   auto clock = std::make_shared<SystemClock>();
-  PoolModeratorImpl moderator(clock, 1min, 5);
+  PoolModeratorImpl moderator(1min, clock, 5);
 
   for (int i = 0; i < 11; i++) {
     kagome::common::Hash256 hash;
     std::fill(hash.begin(), hash.end(), 0);
     hash[0] = i;
     moderator.ban(hash);
-    std::cout << moderator.bannedNum();
   }
   // 11th ban exceeds the limit of EXPECTED_SIZE * 2 (5 * 2 = 10) and the number
   // of banned transactions drops to 5
