@@ -14,6 +14,10 @@
 #include <boost/signals2.hpp>
 
 namespace libp2p::event {
+  /**
+   * Most of the implementation here is taken from
+   * https://github.com/EOSIO/appbase
+   */
 
   using erased_channel_ptr = std::unique_ptr<void, void (*)(void *)>;
 
@@ -39,8 +43,7 @@ namespace libp2p::event {
   };
 
   /**
-   * Channel, which can emit events and allows to subscribe to them;
-   * implementation taken from https://github.com/EOSIO/appbase
+   * Channel, which can emit events and allows to subscribe to them
    */
   template <typename Data, typename DispatchPolicy>
   class Channel {
@@ -206,7 +209,6 @@ namespace libp2p::event {
     using erased_channel_ptr = std::unique_ptr<void, void (*)(void *)>;
     std::map<std::type_index, erased_channel_ptr> channels_;
   };
-
 }  // namespace libp2p::event
 
 #endif  // KAGOME_BUS_HPP
