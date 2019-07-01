@@ -18,6 +18,12 @@ namespace libp2p::protocol {
   struct BaseProtocol {
     virtual ~BaseProtocol() = default;
 
+    using StreamSPtr = std::shared_ptr<connection::Stream>;
+    using StreamSPtrFunc = std::function<void(StreamSPtr)>;
+
+    using StreamSPtrResult = outcome::result<StreamSPtr>;
+    using StreamSPtrResultFunc = std::function<void(StreamSPtrResult)>;
+
     /**
      * @brief Getter for a unique identifier for this protocol.
      * @example /yamux/1.0.0 or /ping/1.0.0
@@ -29,8 +35,7 @@ namespace libp2p::protocol {
      * @brief Server-side handler, invoked when client is opened stream to us.
      * @param cb callback executed when new stream opened to us
      */
-    virtual void onStream(
-        std::function<void(std::shared_ptr<connection::Stream>)> cb) = 0;
+    virtual void onStream(StreamSPtrFunc cb) = 0;
 
     /**
      * @brief Client-side handler, invoked when we (client) successfully
@@ -39,11 +44,8 @@ namespace libp2p::protocol {
      * @param cb callback executed when we successfully opened stream to remote
      * peer
      */
-    virtual void newStream(
-        const peer::PeerInfo &p,
-        std::function<
-            void(outcome::result<std::shared_ptr<connection::Stream>>)>
-            cb) = 0;
+    virtual void newStream(const peer::PeerInfo &p,
+                           StreamSPtrResultFunc cb) = 0;
   };
 
 }  // namespace libp2p::protocol
