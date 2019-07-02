@@ -14,7 +14,7 @@ namespace libp2p::transport {
    public:
     ~TransportMock() override = default;
 
-    MOCK_METHOD2(dial, void(multi::Multiaddress, HandlerFunc));
+    MOCK_METHOD3(dial, void(const peer::PeerId&, multi::Multiaddress, HandlerFunc));
 
     MOCK_METHOD1(
         createListener,

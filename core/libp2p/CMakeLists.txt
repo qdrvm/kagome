@@ -18,8 +18,6 @@ add_library(libp2p
     config.hpp
     host.cpp
     host.hpp
-    host_builder.cpp
-    host_builder.hpp
     )
 target_link_libraries(libp2p
     outcome

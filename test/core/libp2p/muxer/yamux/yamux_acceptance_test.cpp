@@ -12,6 +12,7 @@
 #include "libp2p/security/plaintext.hpp"
 #include "libp2p/transport/tcp.hpp"
 #include "mock/libp2p/transport/upgrader_mock.hpp"
+#include "testutil/libp2p/peer.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -94,7 +95,7 @@ TEST(YamuxAcceptanceTest, PingPong) {
 
   ASSERT_TRUE(transport_listener->listen(ma)) << "is port 40009 busy?";
 
-  transport->dial(ma, [&](auto &&conn_res) {
+  transport->dial(testutil::randomPeerId(), ma, [&](auto &&conn_res) {
     EXPECT_OUTCOME_TRUE(conn, conn_res)
     conn->start();
 

@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <boost/variant.hpp>
+#include "primitives/transaction.hpp"
 
 namespace kagome::primitives {
 
@@ -17,21 +18,6 @@ namespace kagome::primitives {
    * This is the same structure as in
    * https://github.com/paritytech/substrate/blob/master/core/sr-primitives/src/transaction_validity.rs
    */
-
-  /// Priority for a transaction. Additive. Higher is better.
-  using TransactionPriority = uint64_t;
-
-  /**
-   * Minimum number of blocks a transaction will remain valid for.
-   * `TransactionLongevity::max_value()` means "forever".
-   */
-  using TransactionLongevity = uint64_t;
-
-  /**
-   * Tag for a transaction. No two transactions with the same tag should
-   * be placed on-chain.
-   */
-  using TransactionTag = std::vector<uint8_t>;
 
   /// Transaction is valid
   struct Valid {
