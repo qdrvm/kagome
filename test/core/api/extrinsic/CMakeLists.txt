@@ -8,6 +8,7 @@ addtest(extrinsic_service_test
     )
 target_link_libraries(extrinsic_service_test
     extrinsic_api_service
+    api_transport
     blob
     )
 

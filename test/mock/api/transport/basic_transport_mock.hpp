@@ -8,6 +8,7 @@
 
 #include <gmock/gmock.h>
 #include "api/transport/basic_transport.hpp"
+#include "api/transport/worker_api.hpp"
 
 namespace kagome::api {
   class BasicTransportMock : public BasicTransport {
@@ -22,8 +23,10 @@ namespace kagome::api {
     MOCK_METHOD0(stop, void());
 
     void doRequest(std::string_view request) {
-      dataReceived()(std::string(request));
+      //      dataReceived()(std::string(request));
     }
+
+    MOCK_METHOD1(connect, void(server::WorkerApi &));
 
     MOCK_METHOD1(processResponse, void(const std::string &));
 
@@ -31,6 +34,6 @@ namespace kagome::api {
     NetworkAddress address_;
     uint16_t port_;
   };
-}  // namespace kagome::service
+}  // namespace kagome::api
 
 #endif  // KAGOME_TEST_MOCK_API_EXTRINSIC_JSON_TRANSPORT_MOCK_HPP

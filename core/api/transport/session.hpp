@@ -12,14 +12,19 @@
 #include <boost/asio/read_until.hpp>
 #include <boost/asio/streambuf.hpp>
 #include <boost/asio/write.hpp>
+#include <boost/signals2/signal.hpp>
 #include "api/transport/basic_transport.hpp"
 
 namespace kagome::server {
   /**
+   * @brief keeps and manages sessions
+   */
+  class SessionManager;
+  /**
    * @brief rpc session
    */
-  class Session : public std::enable_shared_from_this<Session>,
-                  public api::BasicTransport {
+  class Session : public api::BasicTransport,
+                  public std::enable_shared_from_this<Session> {
     /**
      * @brief session state
      */
@@ -28,7 +33,6 @@ namespace kagome::server {
       WAITING_FOR_REQUEST,
       PROCESSING_RESPONSE,
       STOPPED
-
     };
 
    public:
@@ -38,72 +42,75 @@ namespace kagome::server {
     using Streambuf = boost::asio::streambuf;
     using Timer = boost::asio::steady_timer;
     using Id = uint64_t;
+    using Connection = boost::signals2::connection;
+    template <class T>
+    using Signal = boost::signals2::signal<T>;
 
-    Session(Socket socket, Id id, io_context &context)
-        : socket_(std::move(socket)), deadline_(context), id_{id} {
-      deadline_.async_wait(std::bind(&Session::checkDeadline, this));
-    }
+    Session(Socket socket, Id id, io_context &context, SessionManager &manager);
 
-    Id id() const {
+    ~Session() override;
+
+    /**
+     * @return session id
+     */
+    inline Id id() const {
       return id_;
     }
 
-    void start() override {
-      do_read();
-    }
+    /**
+     * @brief starts listening on socket
+     */
+    void start() override;
 
-    void stop() override {
-      deadline_.cancel();
-    }
+    /**
+     * @brief closes connection and session
+     */
+    void stop() override;
+
+    /**
+     * @brief connects to data processor
+     * @param worker data processor
+     */
+    void connect(server::WorkerApi &worker) override;
 
    private:
-    void do_read() {
-      boost::asio::async_read_until(
-          socket_, buffer_, '\n',
-          [this, self = shared_from_this()](error_code ec, std::size_t length) {
-            deadline_.cancel();
-            if (!ec) {
-              std::string data(buffer_.data().begin(), buffer_.data().end());
-              dataReceived()(data);
-            } else {
-              stop();
-            }
-          });
-    }
+    /**
+     * starts listening to requests
+     */
+    void do_read();
 
     /**
      * @brief runs when responce is obtained
      * @param response json string response
      */
-    void processResponse(const std::string &response) override {
-      // 10 seconds for new request
-      deadline_.expires_at(std::chrono::seconds(10));
-      do_write(response);
-    }
+    void processResponse(const std::string &response) override;
 
-    void do_write(const std::string &response) {
-      boost::asio::async_write(
-          socket_, boost::asio::buffer(response.data(), response.size()),
-          [this, self = shared_from_this()](
-              boost::system::error_code ec, std::size_t
-              /*length*/) {
-            if (!ec) {
-              do_read();
-            } else {
-              stop();
-            }
-          });
-    }
+    /**
+     * @brief sends response
+     * @param response json result string
+     */
+    void do_write(const std::string &response);
 
-   private:
-    void checkDeadline() {}
+    /**
+     * @brief is called when no requests for too long time
+     * closes session
+     */
+    void processHeartBeat();
 
-    State state_{State::READY};
-    Socket socket_;
-    Timer deadline_;
-    Streambuf buffer_;
+    Id id_;                                 ///< session id
+    State state_{State::READY};             ///< session state
+    Socket socket_;                         ///< socket
+    Timer heartbeat_;                       ///< heartbeat timer
+    Streambuf buffer_;                      ///< request buffer
+    Signal<void(Session::Id)> on_stopped_;  ///< signal to be sent to manager
+                                            ///< for processing `stopped` event
 
-    Id id_;  ///< session id
+    Signal<void(Session::Id, const std::string &)> on_request_;
+    Signal<void(const std::string &)> on_response_;
+
+    Connection on_stopped_cnn_;   ///< connection for on_stopped event
+    Connection on_request_cnn_;   ///< connetion for `on request` event
+    Connection on_response_cnn_;  ///< connection for `on response` event
   };
 
 }  // namespace kagome::server

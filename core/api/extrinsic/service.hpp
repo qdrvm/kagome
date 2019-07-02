@@ -12,35 +12,35 @@
 #include <boost/signals2/signal.hpp>
 #include "api/extrinsic/extrinsic_api.hpp"
 #include "api/transport/basic_transport.hpp"
+#include "api/transport/listener.hpp"
+#include "api/transport/worker_api.hpp"
 
 namespace kagome::api {
 
   /**
    * @brief extrinsic submission service implementation
    */
-  class ExtrinsicApiService {
+  class ExtrinsicApiService : public server::WorkerApi {
     using SignalType = void(const std::string &);
     template <class T>
     using sptr = std::shared_ptr<T>;
 
     template <class T>
-    using signal_t = boost::signals2::signal<T>;
+    using Signal = boost::signals2::signal<T>;
 
-    using connection_t = boost::signals2::connection;
+    using Connection = boost::signals2::connection;
 
    public:
-    /**
-     * @brief service configuration
-     */
-    struct Configuration;
     /**
      * @brief constructor
      * @param context io_context reference
      * @param config server configuration
      * @param api_proxy extrinsic submission api proxy reference
      */
-    ExtrinsicApiService(std::shared_ptr<BasicTransport> transport,
+    ExtrinsicApiService(std::shared_ptr<server::Listener> listener,
                         std::shared_ptr<ExtrinsicApi> api);
+
+    ~ExtrinsicApiService();
 
     /**
      * @brief starts service
@@ -61,19 +61,19 @@ namespace kagome::api {
      * @param method handler functor
      */
     void registerHandler(const std::string &name, Method method);
+
     /**
      * @brief handles decoded network message
      * @param data json request string
      */
-    void processData(std::string_view data);
+    void processData(const std::string &data);
 
     jsonrpc::JsonFormatHandler format_handler_{};  ///< format handler instance
-    jsonrpc::Server server_{};                     ///< json rpc server instance
-    sptr<BasicTransport> transport_;               ///< json transport
-    sptr<ExtrinsicApi> api_;                       ///< sptr to api implementation
-    signal_t<SignalType> on_response_{};           ///< notifies response
-    connection_t request_cnn_;   ///< request connection holder
-    connection_t response_cnn_;  ///< response connection holder
+    jsonrpc::Server jsonrpc_handler_{};            ///< json rpc server instance
+    sptr<server::Listener> listener_;              ///< endpoint listener
+    Connection new_session_cnn_;                   ///< new session cnn holder
+    sptr<ExtrinsicApi> api_;                       ///< api implementation
+    Signal<SignalType> on_response_{};             ///< notifies response
   };
 
 }  // namespace kagome::api

@@ -10,20 +10,15 @@
 #include <outcome/outcome.hpp>
 #include "api/transport/network_address.hpp"
 
+namespace kagome::server {
+  class WorkerApi;
+}
+
 namespace kagome::api {
 
-  // TODO(yuraz): PRE-207 implement (will be implemented in next PR)
   class BasicTransport {
    public:
-    using SignalType = void(const std::string &);
-    using OnData = boost::signals2::signal<SignalType>;
-    using OnResponse = std::function<SignalType>;
-
-    virtual ~BasicTransport() = default;
-
-    inline BasicTransport() {
-      on_response_ = [this](const std::string &data) { processResponse(data); };
-    }
+    virtual ~BasicTransport() {}
 
     /**
      * @brief starts listening
@@ -37,18 +32,10 @@ namespace kagome::api {
     virtual void stop() = 0;
 
     /**
-     * @return data received signal
+     * @brief connects transport with api
+     * @param worker
      */
-    inline OnData &dataReceived() {
-      return on_data_;
-    }
-
-    /**
-     * @return response handler slot
-     */
-    inline OnResponse &onResponse() {
-      return on_response_;
-    }
+    virtual void connect(server::WorkerApi &worker) = 0;
 
    private:
     /**
@@ -56,9 +43,6 @@ namespace kagome::api {
      * @param response data to send
      */
     virtual void processResponse(const std::string &response) = 0;
-
-    OnData on_data_;          ///< data received signal
-    OnResponse on_response_;  ///< response handler slot
   };
 }  // namespace kagome::api
 

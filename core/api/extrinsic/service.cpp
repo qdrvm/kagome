@@ -9,51 +9,63 @@
 #include "api/extrinsic/response/value.hpp"
 
 namespace kagome::api {
-  ExtrinsicApiService::ExtrinsicApiService(sptr<BasicTransport> transport,
-                                           sptr<ExtrinsicApi> api)
-      : transport_{std::move(transport)}, api_(std::move(api)) {
-    request_cnn_ = transport_->dataReceived().connect(
-        [this](std::string_view data) { processData(data); });
+  ExtrinsicApiService::ExtrinsicApiService(
+      std::shared_ptr<server::Listener> listener,
+      std::shared_ptr<ExtrinsicApi> api)
+      : listener_{std::move(listener)}, api_(std::move(api)) {
+    //    request_cnn_ =
+    new_session_cnn_ = listener_->onNewSession().connect(
+        [this](sptr<server::Session> session) {
+          session->connect(static_cast<WorkerApi&>(*this));
+        });
 
-    response_cnn_ = on_response_.connect(transport_->onResponse());
+//    transport_->dataReceived().connect(
+//        [this](const std::string &data) { processData(data); });
+//
+//    //    response_cnn_ =
+//    on_response_.connect(transport_->onResponse());
 
     // register json format handler
-    server_.RegisterFormatHandler(format_handler_);
+    jsonrpc_handler_.RegisterFormatHandler(format_handler_);
 
     // register all api methods
-    registerHandler(
-        "author_submitExtrinsic",
-        [s = api_](const jsonrpc::Request::Parameters &params) -> jsonrpc::Value {
-          auto request = SubmitExtrinsicRequest::fromParams(params);
+    registerHandler("author_submitExtrinsic",
+                    [s = api_](const jsonrpc::Request::Parameters &params)
+                        -> jsonrpc::Value {
+                      auto request = SubmitExtrinsicRequest::fromParams(params);
 
-          auto &&res = s->submitExtrinsic(request.extrinsic);
-          if (!res) {
-            throw jsonrpc::Fault(res.error().message());
-          }
-          return makeValue(res.value());
-        });
+                      auto &&res = s->submitExtrinsic(request.extrinsic);
+                      if (!res) {
+                        throw jsonrpc::Fault(res.error().message());
+                      }
+                      return makeValue(res.value());
+                    });
 
-    registerHandler(
-        "author_pendingExtrinsics",
-        [s = api_](const jsonrpc::Request::Parameters &params) -> jsonrpc::Value {
-          auto &&res = s->pendingExtrinsics();
-          if (!res) {
-            throw jsonrpc::Fault(res.error().message());
-          }
+    registerHandler("author_pendingExtrinsics",
+                    [s = api_](const jsonrpc::Request::Parameters &params)
+                        -> jsonrpc::Value {
+                      auto &&res = s->pendingExtrinsics();
+                      if (!res) {
+                        throw jsonrpc::Fault(res.error().message());
+                      }
 
-          return makeValue(res.value());
-        });
+                      return makeValue(res.value());
+                    });
     // other methods to be registered as soon as implemented
+  }
+
+  ExtrinsicApiService::~ExtrinsicApiService() {
+    new_session_cnn_.disconnect();
   }
 
   void ExtrinsicApiService::registerHandler(const std::string &name,
                                             Method method) {
-    auto &dispatcher = server_.GetDispatcher();
+    auto &dispatcher = jsonrpc_handler_.GetDispatcher();
     dispatcher.AddMethod(name, std::move(method));
   }
 
-  void ExtrinsicApiService::processData(std::string_view data) {
-    auto &&formatted_response = server_.HandleRequest(std::string(data));
+  void ExtrinsicApiService::processData(const std::string &data) {
+    auto &&formatted_response = jsonrpc_handler_.HandleRequest(data);
     std::string response(formatted_response->GetData(),
                          formatted_response->GetSize());
 
@@ -61,11 +73,11 @@ namespace kagome::api {
   }
 
   outcome::result<void> ExtrinsicApiService::start() {
-    transport_->start();
+    listener_->start();
     return outcome::success();
   }
 
   void ExtrinsicApiService::stop() {
-    transport_->stop();
+    listener_->stop();
   }
 }  // namespace kagome::api
