@@ -52,24 +52,22 @@ namespace libp2p::peer {
      * @param pub public key
      * @return error code in case of error.
      */
-    virtual void addPublicKey(const PeerId &p,
-                              const crypto::PublicKey &pub) = 0;
+    virtual outcome::result<void> addPublicKey(
+        const PeerId &p, const crypto::PublicKey &pub) = 0;
 
     /**
-     * @brief Getter for keypairs associated with {@param p} PeerId. Mostly used
-     * to store our (current peer) keypair(s).
+     * @brief Getter for keypairs associated with this peer.
      * @param p PeerId.
      * @return pointer to a set of keypairs associated with {@param p}.
      */
-    virtual outcome::result<KeyPairVecPtr> getKeyPairs(const PeerId &p) = 0;
+    virtual outcome::result<KeyPairVecPtr> getKeyPairs() = 0;
 
     /**
-     * @brief Associate a keypair {@param kp} with a given {@param p} PeerId.
-     * @param p PeerId
+     * @brief Associate a keypair {@param kp} with current peer.
      * @param kp KeyPair
      * @return error code in case of error.
      */
-    virtual void addKeyPair(const PeerId &p, const KeyPair &kp) = 0;
+    virtual outcome::result<void> addKeyPair(const KeyPair &kp) = 0;
 
     /**
      * @brief Returns set of peer ids known by this repository.
