@@ -10,14 +10,23 @@
 
 #include "libp2p/basic/garbage_collectable.hpp"
 #include "libp2p/connection/capable_connection.hpp"
+#include "libp2p/event/bus.hpp"
 
 namespace libp2p::network {
+
+  namespace event {
+    /// fired when any new connection, in or outbound, is created
+    struct OnNewConnection {};
+    using OnNewConnectionChannel = libp2p::event::channel_decl<
+        OnNewConnection, std::weak_ptr<connection::CapableConnection>>;
+  }  // namespace event
 
   // TODO(warchant): when connection is closed ('onDisconnected' event fired),
   // manager should remove it from storage PRE-212
 
   /**
-   * @brief Connection Manager stores all known connections, and is capable of selecting subset of connections
+   * @brief Connection Manager stores all known connections, and is capable of
+   * selecting subset of connections
    */
   struct ConnectionManager : public basic::GarbageCollectable {
     using Connection = connection::CapableConnection;

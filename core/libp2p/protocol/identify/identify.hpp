@@ -10,10 +10,12 @@
 #include <string_view>
 
 #include "common/logger.hpp"
+#include "libp2p/connection/capable_connection.hpp"
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/crypto/key_marshaller.hpp"
 #include "libp2p/event/bus.hpp"
 #include "libp2p/host.hpp"
+#include "libp2p/peer/identity_manager.hpp"
 #include "libp2p/protocol/identify/observed_addresses.hpp"
 
 namespace libp2p::protocol {
@@ -33,15 +35,24 @@ namespace libp2p::protocol {
      * connection events and react to them
      * @param host - this Libp2p instance
      * @param event_bus - bus, over which the events arrive
-     * @param key_marshaller - marshaller of private&public keys
+     * @param identity_manager - this peer's identity manager
+     * @param key_marshaller - marshaller of private & public keys
      * @param log to write information to
      */
     Identify(
         HostSPtr host, event::Bus &event_bus,
+        peer::IdentityManager &identity_manager,
         std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller,
         kagome::common::Logger log = kagome::common::createLogger("Identify"));
 
    private:
+    /**
+     * Handler for new connections, established by or with our host
+     * @param conn - new connection
+     */
+    void onNewConnection(
+        const std::weak_ptr<connection::CapableConnection> &conn);
+
     /**
      * Handler for the case, when we are being identified by the other peer; we
      * should respond with an Identify message and close the stream
@@ -103,6 +114,7 @@ namespace libp2p::protocol {
 
     HostSPtr host_;
     event::Bus &bus_;
+    peer::IdentityManager &identity_manager_;
 
     std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller_;
 

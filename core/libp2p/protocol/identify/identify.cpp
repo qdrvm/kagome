@@ -9,6 +9,7 @@
 #include <tuple>
 
 #include "common/hexutil.hpp"
+#include "libp2p/network/connection_manager.hpp"
 #include "libp2p/network/network.hpp"
 #include "libp2p/peer/address_repository.hpp"
 #include "libp2p/protocol/identify/pb/identify.pb.h"
@@ -38,21 +39,74 @@ namespace libp2p::protocol {
 
   Identify::Identify(
       HostSPtr host, event::Bus &event_bus,
+      peer::IdentityManager &identity_manager,
       std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller,
       kagome::common::Logger log)
       : host_{std::move(host)},
         bus_{event_bus},
+        identity_manager_{identity_manager},
         key_marshaller_{std::move(key_marshaller)},
         log_{std::move(log)} {
-    // firstly, we need to handle cases, when a stream with Identify protocol is
-    // created from the other side - that side wants to know our info
-    host_->setProtocolHandler(
-        kIdentifyProto, [self{shared_from_this()}](auto &&stream) {
-          self->sendIdentify(std::forward<decltype(stream)>(stream));
+    // firstly, we want to request identify for any connection we or the other
+    // side established
+    bus_.getChannel<network::event::OnNewConnectionChannel>().subscribe(
+        [self{shared_from_this()}](auto &&conn) {
+          self->onNewConnection(conn);
         });
 
-    // secondly, we want to request identify for any connection we or the other
-    // side established
+    // secondly, we need to handle cases, when a stream with Identify protocol
+    // is created from the other side - that side wants to know our info
+    host_->setProtocolHandler(
+        kIdentifyProto, [self{weak_from_this()}](auto &&stream) {
+          if (self.expired()) {
+            return;
+          }
+          self.lock()->sendIdentify(std::forward<decltype(stream)>(stream));
+        });
+  }
+
+  void Identify::onNewConnection(
+      const std::weak_ptr<connection::CapableConnection> &conn) {
+    if (conn.expired()) {
+      log_->error("received a dead weak ptr in NewConnectionEvent; strange");
+      return;
+    }
+
+    auto remote_peer_res = conn.lock()->remotePeer();
+    if (!remote_peer_res) {
+      log_->error(
+          "cannot get a remote peer id from the received connection: {}",
+          remote_peer_res.error().message());
+      return;
+    }
+
+    auto remote_peer_addr_res = conn.lock()->remoteMultiaddr();
+    if (!remote_peer_addr_res) {
+      log_->error(
+          "cannot get a remote peer address from the received connection: {}",
+          remote_peer_addr_res.error().message());
+      return;
+    }
+
+    peer::PeerInfo peer_info{std::move(remote_peer_res.value()),
+                             std::vector<multi::Multiaddress>{
+                                 std::move(remote_peer_addr_res.value())}};
+
+    auto res = host_->newStream(
+        std::move(peer_info), kIdentifyProto,
+        [self{shared_from_this()}](auto &&stream_res) {
+          if (!stream_res) {
+            self->log_->error(
+                "cannot create a stream over a received connection: {}",
+                stream_res.error().message());
+            return;
+          }
+          self->receiveIdentify(std::move(stream_res.value()));
+        });
+    if (!res) {
+      log_->error("cannot create a stream over a received connection: {}",
+                  res.error().message());
+    }
   }
 
   void Identify::sendIdentify(StreamSPtr stream) {
@@ -75,9 +129,17 @@ namespace libp2p::protocol {
     }
 
     // set our public key
-    // if (auto key = host_->key_repo.getKey(host_->peer_repo.getOurPeerId()) {
-    //    msg.set_publickey(key);
-    // }
+    auto marshalled_pubkey_res =
+        key_marshaller_->marshal(identity_manager_.getKeyPair().publicKey);
+    if (!marshalled_pubkey_res) {
+      log_->critical(
+          "cannot marshal public key, which was provided to us by the identity "
+          "manager: {}",
+          marshalled_pubkey_res.error().message());
+    } else {
+      auto &&marshalled_pubkey = marshalled_pubkey_res.value();
+      msg.set_publickey(marshalled_pubkey.data(), marshalled_pubkey.size());
+    }
 
     // set versions of Libp2p and our implementation
     msg.set_protocolversion(std::string{host_->getLibp2pVersion()});
