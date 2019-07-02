@@ -23,7 +23,8 @@ namespace libp2p::peer {
 
     outcome::result<PubVecPtr> getPublicKeys(const PeerId &p) override;
 
-    outcome::result<void> addPublicKey(const PeerId &p, const crypto::PublicKey &pub) override;
+    outcome::result<void> addPublicKey(const PeerId &p,
+                                       const crypto::PublicKey &pub) override;
 
     outcome::result<KeyPairVecPtr> getKeyPairs() override;
 
@@ -38,4 +39,4 @@ namespace libp2p::peer {
 
 }  // namespace libp2p::peer
 
-#endif  //KAGOME_INMEM_KEY_REPOSITORY_HPP
+#endif  // KAGOME_INMEM_KEY_REPOSITORY_HPP
