@@ -91,6 +91,18 @@ namespace libp2p {
         const std::function<connection::Stream::Handler> &handler);
 
     /**
+     * Get a network component of the Host
+     * @return reference to network
+     */
+    const network::Network &network() const noexcept;
+
+    /**
+     * Get a peer repository of the Host
+     * @return reference to repository
+     */
+    peer::PeerRepository &peerRepository() const noexcept;
+
+    /**
      * Get a router component of the Host
      * @return reference to router
      */

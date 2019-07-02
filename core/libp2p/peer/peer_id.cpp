@@ -57,6 +57,10 @@ namespace libp2p::peer {
     return this->hash_ == other.hash_;
   }
 
+  bool PeerId::operator!=(const PeerId &other) const {
+    return !(*this == other);
+  }
+
   std::string PeerId::toBase58() const {
     return encodeBase58(hash_.toBuffer());
   }

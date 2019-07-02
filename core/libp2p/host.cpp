@@ -66,6 +66,14 @@ namespace libp2p {
     return peer::PeerInfo{id_, network_->getListenAddresses()};
   }
 
+  const network::Network &Host::network() const noexcept {
+    return *network_;
+  }
+
+  peer::PeerRepository &Host::peerRepository() const noexcept {
+    return *config_.peer_repository;
+  }
+
   const network::Router &Host::router() const noexcept {
     return *router_;
   }

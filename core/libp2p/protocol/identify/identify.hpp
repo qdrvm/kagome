@@ -7,10 +7,14 @@
 #define KAGOME_IDENTIFY_IMPL_HPP
 
 #include <memory>
+#include <string_view>
 
 #include "common/logger.hpp"
 #include "libp2p/connection/stream.hpp"
+#include "libp2p/crypto/key_marshaller.hpp"
+#include "libp2p/event/bus.hpp"
 #include "libp2p/host.hpp"
+#include "libp2p/protocol/identify/observed_addresses.hpp"
 
 namespace libp2p::protocol {
   /**
@@ -21,10 +25,20 @@ namespace libp2p::protocol {
   class Identify : public std::enable_shared_from_this<Identify> {
     using HostSPtr = std::shared_ptr<Host>;
     using StreamSPtr = std::shared_ptr<connection::Stream>;
+    using BufSPtr = std::shared_ptr<kagome::common::Buffer>;
 
    public:
-    explicit Identify(
-        HostSPtr host,
+    /**
+     * Create an Identify instance; it will immediately start watching
+     * connection events and react to them
+     * @param host - this Libp2p instance
+     * @param event_bus - bus, over which the events arrive
+     * @param key_marshaller - marshaller of private&public keys
+     * @param log to write information to
+     */
+    Identify(
+        HostSPtr host, event::Bus &event_bus,
+        std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller,
         kagome::common::Logger log = kagome::common::createLogger("Identify"));
 
    private:
@@ -39,10 +53,9 @@ namespace libp2p::protocol {
      * Called, when an identify message is written to the stream
      * @param written_bytes - how much bytes were written
      * @param stream with the other side
-     * @param remote_address, to which it was written
      */
     void identifySent(outcome::result<size_t> written_bytes,
-                      const StreamSPtr &stream, std::string &&remote_address);
+                      const StreamSPtr &stream);
 
     /**
      * Handler for the case, when we want to identify the other side
@@ -52,11 +65,49 @@ namespace libp2p::protocol {
 
     /**
      * Called, when an identify message is received from the other peer
+     * @param read_bytes - how much bytes were read
      * @param stream, over which it was received
+     * @param buffer - bytes, which were read
      */
-    void identifyReceived(StreamSPtr stream);
+    void identifyReceived(outcome::result<size_t> read_bytes,
+                          const StreamSPtr &stream, const BufSPtr &buffer);
+
+    /**
+     * Process a received public key of the other peer
+     * @param stream, over which the key was received
+     * @param pubkey_str - marshalled public key; can be empty, if there was no
+     * public key in the message
+     * @return peer id, which was derived from the provided public key (if it
+     * can be derived)
+     */
+    std::optional<peer::PeerId> consumePublicKey(const StreamSPtr &stream,
+                                                 std::string_view pubkey_str);
+
+    /**
+     * Process received address, which the other peer used to connect to us
+     * @param address - observed address string
+     * @param peer_id - ID of that peer
+     * @param stream, over which the message came
+     */
+    void consumeObservedAddresses(const std::string &address_str,
+                                  const peer::PeerId &peer_id,
+                                  const StreamSPtr &stream);
+
+    /**
+     * Process received addresses, which the other peer listens to
+     * @param addresses_strings - stringified listen addresses
+     * @param peer_id - ID of that peer
+     */
+    void consumeListenAddresses(gsl::span<const std::string> addresses_strings,
+                                const peer::PeerId &peer_id);
 
     HostSPtr host_;
+    event::Bus &bus_;
+
+    std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller_;
+
+    ObservedAddresses observed_addresses_;
+
     kagome::common::Logger log_;
   };
 }  // namespace libp2p::protocol

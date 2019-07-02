@@ -11,6 +11,10 @@
 #include "libp2p/connection/capable_connection.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 
+namespace libp2p::peer {
+  class PeerId;
+}
+
 namespace libp2p::connection {
 
   /**
@@ -75,6 +79,23 @@ namespace libp2p::connection {
      */
     virtual void adjustWindowSize(uint32_t new_size,
                                   VoidResultHandlerFunc cb) = 0;
+
+    /**
+     * Is that stream opened over a connection, which was an initiator?
+     */
+    virtual outcome::result<bool> isInitiator() const = 0;
+
+    /**
+     * Get a peer, which the stream is connected to
+     * @return id of the peer
+     */
+    virtual outcome::result<peer::PeerId> remotePeerId() const = 0;
+
+    /**
+     * Get a local multiaddress
+     * @return address or error
+     */
+    virtual outcome::result<multi::Multiaddress> localMultiaddr() const = 0;
 
     /**
      * Get a multiaddress, to which the stream is connected

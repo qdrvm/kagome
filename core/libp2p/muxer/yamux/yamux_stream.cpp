@@ -245,6 +245,27 @@ namespace libp2p::connection {
         });
   }
 
+  outcome::result<peer::PeerId> YamuxStream::remotePeerId() const {
+    if (yamuxed_connection_.expired()) {
+      return Error::CONNECTION_IS_DEAD;
+    }
+    return yamuxed_connection_.lock()->remotePeer();
+  }
+
+  outcome::result<bool> YamuxStream::isInitiator() const {
+    if (yamuxed_connection_.expired()) {
+      return Error::CONNECTION_IS_DEAD;
+    }
+    return yamuxed_connection_.lock()->isInitiator();
+  }
+
+  outcome::result<multi::Multiaddress> YamuxStream::localMultiaddr() const {
+    if (yamuxed_connection_.expired()) {
+      return Error::CONNECTION_IS_DEAD;
+    }
+    return yamuxed_connection_.lock()->localMultiaddr();
+  }
+
   outcome::result<multi::Multiaddress> YamuxStream::remoteMultiaddr() const {
     if (yamuxed_connection_.expired()) {
       return Error::CONNECTION_IS_DEAD;

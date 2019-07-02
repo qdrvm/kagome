@@ -64,6 +64,8 @@ namespace libp2p::peer {
 
     bool operator==(const PeerId &other) const;
 
+    bool operator!=(const PeerId &other) const;
+
    private:
     /**
      * Create an instance of PeerId

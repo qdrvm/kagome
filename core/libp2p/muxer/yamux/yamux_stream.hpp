@@ -67,6 +67,12 @@ namespace libp2p::connection {
 
     void adjustWindowSize(uint32_t new_size, VoidResultHandlerFunc cb) override;
 
+    outcome::result<peer::PeerId> remotePeerId() const override;
+
+    outcome::result<bool> isInitiator() const override;
+
+    outcome::result<multi::Multiaddress> localMultiaddr() const override;
+
     outcome::result<multi::Multiaddress> remoteMultiaddr() const override;
 
    private:
