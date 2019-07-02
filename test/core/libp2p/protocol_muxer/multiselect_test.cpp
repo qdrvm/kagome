@@ -397,8 +397,7 @@ TEST_F(MultiselectTest, NegotiateFailure) {
 }
 
 /**
- * @given connection, over which we want to negotiate @and multiselect
- instance
+ * @given connection, over which we want to negotiate @and multiselect instance
  * over that connection @and no protocols, supported by our side
  * @when negotiating about the protocol
  * @then the common protocol is not selected
