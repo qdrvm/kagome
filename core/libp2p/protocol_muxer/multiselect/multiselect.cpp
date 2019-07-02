@@ -6,6 +6,7 @@
 #include "libp2p/protocol_muxer/multiselect/multiselect.hpp"
 
 #include <boost/asio/buffers_iterator.hpp>
+#include <iostream>
 
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol_muxer,
                             Multiselect::MultiselectError, e) {
@@ -30,30 +31,36 @@ namespace libp2p::protocol_muxer {
 
   void Multiselect::selectOneOf(
       gsl::span<const peer::Protocol> supported_protocols,
-      std::shared_ptr<basic::ReadWriter> connection,
+      std::shared_ptr<basic::ReadWriter> connection, bool is_initiator,
       ProtocolMuxer::ProtocolHandlerFunc handler) {
     if (supported_protocols.empty()) {
       handler(MultiselectError::PROTOCOLS_LIST_EMPTY);
       return;
     }
 
-    negotiate(connection, supported_protocols, handler);
+    negotiate(connection, supported_protocols, is_initiator, handler);
   }
 
   void Multiselect::negotiate(
       const std::shared_ptr<basic::ReadWriter> &connection,
-      gsl::span<const peer::Protocol> supported_protocols,
+      gsl::span<const peer::Protocol> supported_protocols, bool is_initiator,
       ProtocolHandlerFunc handler) {
     auto [write_buffer, read_buffer, index] = getBuffers();
 
-    ConnectionState s(
-        connection,
-        std::make_shared<decltype(supported_protocols)>(supported_protocols),
-        handler, write_buffer, read_buffer, index, shared_from_this());
-    //    MessageWriter::sendOpeningMsg(std::make_shared<ConnectionState>(
-    //        connection,
-    //        std::make_shared<decltype(supported_protocols)>(supported_protocols),
-    //        handler, write_buffer, read_buffer, index, shared_from_this()));
+    if (is_initiator) {
+      MessageWriter::sendOpeningMsg(std::make_shared<ConnectionState>(
+          connection,
+          std::make_shared<std::vector<const peer::Protocol>>(
+              supported_protocols.begin(), supported_protocols.end()),
+          handler, write_buffer, read_buffer, index, shared_from_this()));
+    } else {
+      MessageReader::readNextMessage(std::make_shared<ConnectionState>(
+          connection,
+          std::make_shared<std::vector<const peer::Protocol>>(
+              supported_protocols.begin(), supported_protocols.end()),
+          handler, write_buffer, read_buffer, index, shared_from_this(),
+          ConnectionState::NegotiationStatus::NOTHING_SENT));
+    }
   }
   void Multiselect::negotiationRoundFailed(
       const std::shared_ptr<ConnectionState> &connection_state,
@@ -189,6 +196,7 @@ namespace libp2p::protocol_muxer {
     // respond with a list of protocols, supported by us
     auto protocols_to_send = connection_state->protocols_;
     if (protocols_to_send->empty()) {
+      std::cerr << "here22" << std::endl;
       negotiationRoundFailed(connection_state,
                              MultiselectError::INTERNAL_ERROR);
       return;
@@ -211,6 +219,7 @@ namespace libp2p::protocol_muxer {
     // on our side, round is finished
     auto protocols_to_search = connection_state->protocols_;
     if (protocols_to_search->empty()) {
+      std::cerr << "here11" << std::endl;
       negotiationRoundFailed(connection_state,
                              MultiselectError::INTERNAL_ERROR);
       return;
@@ -269,7 +278,7 @@ namespace libp2p::protocol_muxer {
     clearResources(connection_state);
   }
 
-  std::tuple<std::shared_ptr<boost::asio::streambuf>,
+  std::tuple<std::shared_ptr<kagome::common::Buffer>,
              std::shared_ptr<boost::asio::streambuf>, size_t>
   Multiselect::getBuffers() {
     if (!free_buffers_.empty()) {
@@ -279,7 +288,7 @@ namespace libp2p::protocol_muxer {
               read_buffers_[free_buffers_index], free_buffers_index};
     }
     return {
-        write_buffers_.emplace_back(std::make_shared<boost::asio::streambuf>()),
+        write_buffers_.emplace_back(std::make_shared<kagome::common::Buffer>()),
         read_buffers_.emplace_back(std::make_shared<boost::asio::streambuf>()),
         write_buffers_.size() - 1};
   }

@@ -70,20 +70,20 @@ namespace libp2p::protocol_muxer {
       std::shared_ptr<ConnectionState> connection_state, uint64_t bytes_to_read,
       std::function<void(std::shared_ptr<ConnectionState>)> final_callback) {
     auto state = connection_state;
-    state->read(bytes_to_read,
-                [connection_state = std::move(connection_state), bytes_to_read,
-                 final_callback = std::move(final_callback)](
-                    const outcome::result<size_t> &read_bytes_res) mutable {
-                  if (not read_bytes_res
-                      or read_bytes_res.value() != bytes_to_read) {
-                    auto multiselect = connection_state->multiselect_;
-                    multiselect->negotiationRoundFailed(
-                        connection_state,
-                        Multiselect::MultiselectError::INTERNAL_ERROR);
-                    return;
-                  }
-                  final_callback(std::move(connection_state));
-                });
+    state->read(
+        bytes_to_read,
+        [connection_state = std::move(connection_state), bytes_to_read,
+         final_callback = std::move(final_callback)](
+            const outcome::result<size_t> &read_bytes_res) mutable {
+          if (not read_bytes_res or read_bytes_res.value() != bytes_to_read) {
+            auto multiselect = connection_state->multiselect_;
+            multiselect->negotiationRoundFailed(
+                connection_state,
+                Multiselect::MultiselectError::INTERNAL_ERROR);
+            return;
+          }
+          final_callback(std::move(connection_state));
+        });
   }
 
   void MessageReader::onReadLineCompleted(
@@ -107,7 +107,9 @@ namespace libp2p::protocol_muxer {
                                    std::move(const_msg_res.value()));
       return;
     }
-    if (!const_msg_res) {
+    if (!const_msg_res
+        && const_msg_res.error()
+            != MessageManager::ParseError::MSG_IS_ILL_FORMED) {
       // MSG_IS_ILL_FORMED allows us to continue parsing; otherwise, it's an
       // error
       multiselect->negotiationRoundFailed(connection_state,

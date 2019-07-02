@@ -33,7 +33,7 @@ namespace libp2p::protocol_muxer {
      */
     virtual void selectOneOf(gsl::span<const peer::Protocol> protocols,
                              std::shared_ptr<basic::ReadWriter> connection,
-                             ProtocolHandlerFunc cb) = 0;
+                             bool is_initiator, ProtocolHandlerFunc cb) = 0;
 
     virtual ~ProtocolMuxer() = default;
   };

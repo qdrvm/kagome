@@ -14,9 +14,11 @@ namespace libp2p::protocol_muxer {
   namespace {
     void copyToStreambuf(boost::asio::streambuf &target,
                          const kagome::common::Buffer &source) {
+      auto to_copy = source.size();
       boost::asio::buffer_copy(
           target.prepare(source.size()),
           boost::asio::const_buffer(source.data(), source.size()));
+      target.commit(to_copy);
     }
   }  // namespace
 
@@ -38,8 +40,7 @@ namespace libp2p::protocol_muxer {
 
   void MessageWriter::sendOpeningMsg(
       std::shared_ptr<ConnectionState> connection_state) {
-    copyToStreambuf(*connection_state->write_buffer_,
-                    MessageManager::openingMsg());
+    *connection_state->write_buffer_ = MessageManager::openingMsg();
     auto state = connection_state;
     state->write(
         getWriteCallback(std::move(connection_state),
@@ -49,19 +50,16 @@ namespace libp2p::protocol_muxer {
   void MessageWriter::sendProtocolMsg(
       const Protocol &protocol,
       const std::shared_ptr<ConnectionState> &connection_state) {
-    copyToStreambuf(*connection_state->write_buffer_,
-                    MessageManager::protocolMsg(protocol));
+    *connection_state->write_buffer_ = MessageManager::protocolMsg(protocol);
     const auto &state = connection_state;
-    state->write(
-        getWriteCallback(std::move(connection_state),
-                         ConnectionState::NegotiationStatus::PROTOCOL_SENT));
+    state->write(getWriteCallback(
+        connection_state, ConnectionState::NegotiationStatus::PROTOCOL_SENT));
   }
 
   void MessageWriter::sendProtocolsMsg(
       gsl::span<const Protocol> protocols,
       const std::shared_ptr<ConnectionState> &connection_state) {
-    copyToStreambuf(*connection_state->write_buffer_,
-                    MessageManager::protocolsMsg(protocols));
+    *connection_state->write_buffer_ = MessageManager::protocolsMsg(protocols);
     const auto &state = connection_state;
     state->write(
         getWriteCallback(std::move(connection_state),
@@ -70,7 +68,7 @@ namespace libp2p::protocol_muxer {
 
   void MessageWriter::sendLsMsg(
       const std::shared_ptr<ConnectionState> &connection_state) {
-    copyToStreambuf(*connection_state->write_buffer_, MessageManager::lsMsg());
+    *connection_state->write_buffer_ = MessageManager::lsMsg();
     const auto &state = connection_state;
     state->write(getWriteCallback(std::move(connection_state),
                                   ConnectionState::NegotiationStatus::LS_SENT));
@@ -78,7 +76,7 @@ namespace libp2p::protocol_muxer {
 
   void MessageWriter::sendNaMsg(
       const std::shared_ptr<ConnectionState> &connection_state) {
-    copyToStreambuf(*connection_state->write_buffer_, MessageManager::naMsg());
+    *connection_state->write_buffer_ = MessageManager::naMsg();
     const auto &state = connection_state;
     state->write(getWriteCallback(std::move(connection_state),
                                   ConnectionState::NegotiationStatus::NA_SENT));
@@ -87,9 +85,9 @@ namespace libp2p::protocol_muxer {
   void MessageWriter::sendProtocolAck(
       std::shared_ptr<ConnectionState> connection_state,
       const peer::Protocol &protocol) {
-    copyToStreambuf(*connection_state->write_buffer_, MessageManager::naMsg());
+    *connection_state->write_buffer_ = MessageManager::protocolMsg(protocol);
     auto state = connection_state;
-    state->write([connection_state = std::move(connection_state), &protocol](
+    state->write([connection_state = std::move(connection_state), protocol](
                      const outcome::result<size_t> written_bytes_res) mutable {
       auto multiselect = connection_state->multiselect_;
       if (not written_bytes_res) {

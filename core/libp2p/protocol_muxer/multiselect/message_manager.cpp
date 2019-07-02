@@ -138,7 +138,7 @@ namespace libp2p::protocol_muxer {
         return MultiselectMessage{MultiselectMessage::MessageType::NA};
       }
     }
-    return ParseError::MSG_LENGTH_IS_INCORRECT;
+    return ParseError::MSG_IS_ILL_FORMED;
   }
 
   outcome::result<MessageManager::ProtocolsMessageHeader>

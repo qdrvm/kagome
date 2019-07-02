@@ -25,7 +25,7 @@ namespace libp2p::protocol_muxer {
    * https://github.com/multiformats/multistream-select
    */
   class Multiselect : public ProtocolMuxer,
-                      std::enable_shared_from_this<Multiselect> {
+                      public std::enable_shared_from_this<Multiselect> {
     friend MessageWriter;
     friend MessageReader;
 
@@ -46,7 +46,7 @@ namespace libp2p::protocol_muxer {
 
     void selectOneOf(gsl::span<const peer::Protocol> protocols,
                      std::shared_ptr<basic::ReadWriter> connection,
-                     ProtocolHandlerFunc cb) override;
+                     bool is_initiator, ProtocolHandlerFunc cb) override;
 
     enum class MultiselectError {
       PROTOCOLS_LIST_EMPTY = 1,
@@ -62,7 +62,7 @@ namespace libp2p::protocol_muxer {
      * @return chosen protocol in case of success, error otherwise
      */
     void negotiate(const std::shared_ptr<basic::ReadWriter> &connection,
-                   gsl::span<const peer::Protocol> protocols,
+                   gsl::span<const peer::Protocol> protocols, bool is_initiator,
                    ProtocolHandlerFunc handler);
 
     /**
@@ -114,14 +114,14 @@ namespace libp2p::protocol_muxer {
         const std::shared_ptr<ConnectionState> &connection_state,
         const peer::Protocol &chosen_protocol);
 
-    std::tuple<std::shared_ptr<boost::asio::streambuf>,
+    std::tuple<std::shared_ptr<kagome::common::Buffer>,
                std::shared_ptr<boost::asio::streambuf>, size_t>
     getBuffers();
 
     void clearResources(
         const std::shared_ptr<ConnectionState> &connection_state);
 
-    std::vector<std::shared_ptr<boost::asio::streambuf>> write_buffers_;
+    std::vector<std::shared_ptr<kagome::common::Buffer>> write_buffers_;
     std::vector<std::shared_ptr<boost::asio::streambuf>> read_buffers_;
     std::queue<size_t> free_buffers_;
 
