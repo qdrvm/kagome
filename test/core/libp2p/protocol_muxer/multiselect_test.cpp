@@ -11,6 +11,7 @@
 #include "libp2p/transport/tcp.hpp"
 #include "mock/libp2p/connection/raw_connection_mock.hpp"
 #include "mock/libp2p/transport/upgrader_mock.hpp"
+#include "testutil/libp2p/peer.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -58,7 +59,7 @@ class MultiselectTest : public ::testing::Test {
    */
   static void negotiationOpeningsInitiator(
       const std::shared_ptr<ReadWriteCloser> &conn,
-      std::function<void()> next_step) {
+      const std::function<void()> &next_step) {
     auto expected_opening_msg = MessageManager::openingMsg();
 
     auto read_msg = std::make_shared<Buffer>(expected_opening_msg.size(), 0);
@@ -120,7 +121,7 @@ class MultiselectTest : public ::testing::Test {
   static void negotiationLsInitiator(
       const std::shared_ptr<ReadWriteCloser> &conn,
       gsl::span<const Protocol> protos_to_send,
-      std::function<void()> next_step) {
+      const std::function<void()> &next_step) {
     auto expected_ls_msg = MessageManager::lsMsg();
     auto protocols_msg = MessageManager::protocolsMsg(protos_to_send);
 
@@ -149,7 +150,7 @@ class MultiselectTest : public ::testing::Test {
   static void negotiationLsListener(
       const std::shared_ptr<ReadWriteCloser> &conn,
       gsl::span<const Protocol> protos_to_receive,
-      std::function<void()> next_step) {
+      const std::function<void()> &next_step) {
     auto ls_msg = MessageManager::lsMsg();
     auto protocols_msg = MessageManager::protocolsMsg(protos_to_receive);
 
@@ -177,7 +178,7 @@ class MultiselectTest : public ::testing::Test {
    */
   static void negotiationProtocolNaListener(
       const std::shared_ptr<ReadWriteCloser> &conn,
-      const Protocol &proto_to_send, std::function<void()> next_step) {
+      const Protocol &proto_to_send, const std::function<void()> &next_step) {
     auto na_msg = MessageManager::naMsg();
     auto protocol_msg = MessageManager::protocolMsg(proto_to_send);
 
@@ -289,7 +290,7 @@ TEST_F(MultiselectTest, NegotiateAsInitiator) {
   ASSERT_TRUE(transport_->canDial(*multiaddress_));
 
   transport_->dial(
-      *multiaddress_,
+      testutil::randomPeerId(), *multiaddress_,
       [this,
        &negotiated](outcome::result<std::shared_ptr<CapableConnection>> rconn) {
         EXPECT_OUTCOME_TRUE(conn, rconn);
@@ -329,7 +330,7 @@ TEST_F(MultiselectTest, NegotiateAsListener) {
   ASSERT_TRUE(transport_->canDial(*multiaddress_));
 
   transport_->dial(
-      *multiaddress_,
+      testutil::randomPeerId(), *multiaddress_,
       [this](outcome::result<std::shared_ptr<CapableConnection>> rconn) {
         EXPECT_OUTCOME_TRUE(conn, rconn);
         // first, we expect an exchange of opening messages
@@ -383,7 +384,7 @@ TEST_F(MultiselectTest, NegotiateFailure) {
   ASSERT_TRUE(transport_->canDial(*multiaddress_));
 
   transport_->dial(
-      *multiaddress_,
+      testutil::randomPeerId(), *multiaddress_,
       [this](outcome::result<std::shared_ptr<CapableConnection>> rconn) {
         EXPECT_OUTCOME_TRUE(conn, rconn);
         negotiationOpeningsInitiator(conn, [this, conn] {

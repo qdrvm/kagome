@@ -20,4 +20,5 @@ target_link_libraries(multiselect_test
     libp2p_yamux
     tcp_transport
     security_plaintext
+    testutil_peer
     )
