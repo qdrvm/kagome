@@ -56,7 +56,7 @@ class MultiselectTest : public ::testing::Test {
   /**
    * Exchange opening messages as an initiator
    */
-  void negotiationOpeningsInitiator(
+  static void negotiationOpeningsInitiator(
       const std::shared_ptr<ReadWriteCloser> &conn,
       std::function<void()> next_step) {
     auto expected_opening_msg = MessageManager::openingMsg();
