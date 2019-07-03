@@ -68,10 +68,18 @@ namespace kagome::server {
     void stop() override;
 
     /**
-     * @brief connects to data processor
-     * @param worker data processor
+     * @return `on request` signal
      */
-    void connect(server::WorkerApi &worker) override;
+    inline auto &onRequest() {
+      return on_request_;
+    }
+
+    /**
+     * @return `on response` signal
+     */
+    inline auto &onResponse() {
+      return on_response_;
+    }
 
    private:
     /**
@@ -83,7 +91,7 @@ namespace kagome::server {
      * @brief runs when responce is obtained
      * @param response json string response
      */
-    void processResponse(const std::string &response) override;
+    void processResponse(std::string response) override;
 
     /**
      * @brief sends response
@@ -105,12 +113,11 @@ namespace kagome::server {
     Signal<void(Session::Id)> on_stopped_;  ///< signal to be sent to manager
                                             ///< for processing `stopped` event
 
-    Signal<void(Session::Id, const std::string &)> on_request_;
-    Signal<void(const std::string &)> on_response_;
+    Signal<void(std::shared_ptr<Session>, const std::string &)>
+        on_request_;                                 ///< request sender
+    Signal<void(const std::string &)> on_response_;  ///< response handler
 
-    Connection on_stopped_cnn_;   ///< connection for on_stopped event
-    Connection on_request_cnn_;   ///< connetion for `on request` event
-    Connection on_response_cnn_;  ///< connection for `on response` event
+    Connection on_stopped_cnn_;  ///< connection for on_stopped event
   };
 
 }  // namespace kagome::server

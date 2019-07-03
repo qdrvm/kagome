@@ -8,27 +8,20 @@
 
 #include <gmock/gmock.h>
 #include "api/transport/basic_transport.hpp"
-#include "api/transport/worker_api.hpp"
 
 namespace kagome::api {
   class BasicTransportMock : public BasicTransport {
    public:
     ~BasicTransportMock() override = default;
 
-    explicit BasicTransportMock(NetworkAddress address, uint16_t port)
+    BasicTransportMock(NetworkAddress address, uint16_t port)
         : address_{std::move(address)}, port_{port} {}
 
     MOCK_METHOD0(start, void());
 
     MOCK_METHOD0(stop, void());
 
-    void doRequest(std::string_view request) {
-      //      dataReceived()(std::string(request));
-    }
-
-    MOCK_METHOD1(connect, void(server::WorkerApi &));
-
-    MOCK_METHOD1(processResponse, void(const std::string &));
+    MOCK_METHOD1(processResponse, void(std::string));
 
    private:
     NetworkAddress address_;

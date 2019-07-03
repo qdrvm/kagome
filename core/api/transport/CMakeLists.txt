@@ -10,7 +10,6 @@ add_library(api_transport
     session.hpp
     session.cpp
     session_manager.cpp
-    worker_api.hpp
     impl/listener_impl.hpp
     impl/listener_impl.cpp
     )

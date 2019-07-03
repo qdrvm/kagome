@@ -13,14 +13,13 @@
 #include "api/extrinsic/extrinsic_api.hpp"
 #include "api/transport/basic_transport.hpp"
 #include "api/transport/impl/listener_impl.hpp"
-#include "api/transport/worker_api.hpp"
 
 namespace kagome::api {
 
   /**
    * @brief extrinsic submission service implementation
    */
-  class ExtrinsicApiService : public server::WorkerApi {
+  class ExtrinsicApiService {
     using SignalType = void(const std::string &);
     template <class T>
     using sptr = std::shared_ptr<T>;
@@ -40,7 +39,7 @@ namespace kagome::api {
     ExtrinsicApiService(std::shared_ptr<server::Listener> listener,
                         std::shared_ptr<ExtrinsicApi> api);
 
-    ~ExtrinsicApiService();
+    virtual ~ExtrinsicApiService();
 
     /**
      * @brief starts service
@@ -66,7 +65,7 @@ namespace kagome::api {
      * @brief handles decoded network message
      * @param data json request string
      */
-    void processData(const std::string &data);
+    void processData(std::shared_ptr<server::Session> session, const std::string &data);
 
     jsonrpc::JsonFormatHandler format_handler_{};  ///< format handler instance
     jsonrpc::Server jsonrpc_handler_{};            ///< json rpc server instance

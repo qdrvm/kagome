@@ -6,7 +6,6 @@
 #include "api/transport/session.hpp"
 
 #include "api/transport/session_manager.hpp"
-#include "api/transport/worker_api.hpp"
 
 namespace kagome::server {
 
@@ -32,18 +31,6 @@ namespace kagome::server {
     if (!on_stopped_.empty()) {
       on_stopped_(id());
     }
-
-    on_request_cnn_.disconnect();
-    on_response_cnn_.disconnect();
-  }
-
-  void Session::connect(server::WorkerApi &worker) {
-    on_request_cnn_.disconnect();
-    on_response_cnn_.disconnect();
-
-    on_request_cnn_ = on_request_.connect(worker.onRequest());
-    on_response_cnn_ = worker.onResponse().connect(
-        [this](const std::string &response) { processResponse(response); });
   }
 
   void Session::do_read() {
@@ -54,15 +41,15 @@ namespace kagome::server {
           if (!ec) {
             std::string data((std::istreambuf_iterator<char>(&buffer_)),
                              std::istreambuf_iterator<char>());
-            on_request_(id(), data);
+            on_request_(shared_from_this(), data);
           } else {
             stop();
           }
         });
   }
 
-  void Session::processResponse(const std::string &response) {
-    // 10 seconds for new request
+  void Session::processResponse(std::string response) {
+    // 10 seconds wait for new request, then close session
     heartbeat_.expires_after(std::chrono::seconds(10));
     do_write(response);
   }
@@ -84,5 +71,4 @@ namespace kagome::server {
   void Session::processHeartBeat() {
     stop();
   }
-
 }  // namespace kagome::server

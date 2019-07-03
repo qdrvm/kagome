@@ -10,15 +10,11 @@
 #include <outcome/outcome.hpp>
 #include "api/transport/network_address.hpp"
 
-namespace kagome::server {
-  class WorkerApi;
-}
-
 namespace kagome::api {
 
   class BasicTransport {
    public:
-    virtual ~BasicTransport() {}
+    virtual ~BasicTransport() = default;
 
     /**
      * @brief starts listening
@@ -31,18 +27,12 @@ namespace kagome::api {
      */
     virtual void stop() = 0;
 
-    /**
-     * @brief connects transport with api
-     * @param worker
-     */
-    virtual void connect(server::WorkerApi &worker) = 0;
-
    private:
     /**
      * @brief processes response
      * @param response data to send
      */
-    virtual void processResponse(const std::string &response) = 0;
+    virtual void processResponse(std::string response) = 0;
   };
 }  // namespace kagome::api
 

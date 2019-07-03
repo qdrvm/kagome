@@ -16,7 +16,9 @@ namespace kagome::api {
       : listener_{std::move(listener)}, api_(std::move(api)) {
     new_session_cnn_ = listener_->onNewSession().connect(
         [this](sptr<server::Session> session) {
-          session->connect(static_cast<WorkerApi &>(*this));
+          session->onRequest().connect([this](std::shared_ptr<server::Session> session, const std::string &request) {
+            processData(session, request);
+          });
         });
 
 //    on_listener_stopped_cnn_ = listener_->onStopped().connect([](void(){
@@ -26,10 +28,6 @@ namespace kagome::api {
 //    on_listener_error_cnn_ = listener_->onError().connect([](outcome::result<void> err) {
 //      // TODO(yuraz): pre-230 process error
 //    });
-
-    onRequest().connect([this](server::Session::Id, const std::string &data) {
-      processData(data);
-    });
 
     // register json format handler
     jsonrpc_handler_.RegisterFormatHandler(format_handler_);
@@ -70,12 +68,12 @@ namespace kagome::api {
     dispatcher.AddMethod(name, std::move(method));
   }
 
-  void ExtrinsicApiService::processData(const std::string &data) {
+  void ExtrinsicApiService::processData(std::shared_ptr<server::Session> session, const std::string &data) {
     auto &&formatted_response = jsonrpc_handler_.HandleRequest(data);
     std::string response(formatted_response->GetData(),
                          formatted_response->GetSize());
 
-    onResponse()(response);
+    session->onResponse()(response);
   }
 
   outcome::result<void> ExtrinsicApiService::start() {

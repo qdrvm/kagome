@@ -50,9 +50,6 @@ class ExtrinsicSubmissionServiceTest : public ::testing::Test {
   NetworkAddress ip = boost::asio::ip::make_address_v4("127.0.0.1");
   uint16_t port = 1234;
 
-  //  sptr<BasicTransportMock> transport =
-  //      std::make_shared<BasicTransportMock>(ip, port);
-
   sptr<ListenerMock> listener = std::make_shared<ListenerMock>();
 
   sptr<ExtrinsicApiMock> api = std::make_shared<ExtrinsicApiMock>();
@@ -90,6 +87,7 @@ TEST_F(ExtrinsicSubmissionServiceTest, DISABLED_RequestSuccess) {
   EXPECT_CALL(*api, submitExtrinsic(extrinsic)).WillOnce(Return(hash));
   std::string response =
       R"({"jsonrpc":"2.0","id":0,"result":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]})";
+
   //  EXPECT_CALL(*listener, processResponse(response)).WillOnce(Return());
 
   //  listener->doRequest(request);
