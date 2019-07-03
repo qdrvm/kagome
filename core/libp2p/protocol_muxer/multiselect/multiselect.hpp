@@ -6,7 +6,6 @@
 #ifndef KAGOME_MULTISELECT_IMPL_HPP
 #define KAGOME_MULTISELECT_IMPL_HPP
 
-#include <future>
 #include <memory>
 #include <queue>
 #include <string_view>
@@ -17,6 +16,7 @@
 #include "libp2p/protocol_muxer/multiselect/message_manager.hpp"
 #include "libp2p/protocol_muxer/multiselect/message_reader.hpp"
 #include "libp2p/protocol_muxer/multiselect/message_writer.hpp"
+#include "libp2p/protocol_muxer/multiselect/multiselect_error.hpp"
 #include "libp2p/protocol_muxer/protocol_muxer.hpp"
 
 namespace libp2p::protocol_muxer {
@@ -47,12 +47,6 @@ namespace libp2p::protocol_muxer {
     void selectOneOf(gsl::span<const peer::Protocol> protocols,
                      std::shared_ptr<basic::ReadWriter> connection,
                      bool is_initiator, ProtocolHandlerFunc cb) override;
-
-    enum class MultiselectError {
-      PROTOCOLS_LIST_EMPTY = 1,
-      NEGOTIATION_FAILED,
-      INTERNAL_ERROR
-    };
 
    private:
     /**
@@ -97,18 +91,20 @@ namespace libp2p::protocol_muxer {
         std::shared_ptr<ConnectionState> connection_state,
         const peer::Protocol &protocol);
 
-    void onProtocolsAfterLs(std::shared_ptr<ConnectionState> connection_state,
-                            gsl::span<const peer::Protocol> received_protocols);
+    void onProtocolsAfterLs(
+        const std::shared_ptr<ConnectionState> &connection_state,
+        gsl::span<const peer::Protocol> received_protocols);
 
-    void handleLsMsg(std::shared_ptr<ConnectionState> connection_state);
+    void handleLsMsg(const std::shared_ptr<ConnectionState> &connection_state);
 
-    void handleNaMsg(std::shared_ptr<ConnectionState> connection_state) const;
+    void handleNaMsg(
+        const std::shared_ptr<ConnectionState> &connection_state) const;
 
     void onUnexpectedRequestResponse(
-        std::shared_ptr<ConnectionState> connection_state) const;
+        const std::shared_ptr<ConnectionState> &connection_state) const;
 
     void onGarbagedStreamStatus(
-        std::shared_ptr<ConnectionState> connection_state) const;
+        const std::shared_ptr<ConnectionState> &connection_state) const;
 
     void negotiationRoundFinished(
         const std::shared_ptr<ConnectionState> &connection_state,
@@ -128,7 +124,5 @@ namespace libp2p::protocol_muxer {
     kagome::common::Logger log_;
   };
 }  // namespace libp2p::protocol_muxer
-
-OUTCOME_HPP_DECLARE_ERROR(libp2p::protocol_muxer, Multiselect::MultiselectError)
 
 #endif  // KAGOME_MULTISELECT_IMPL_HPP

@@ -1,13 +1,9 @@
-#include <utility>
-
 /**
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "libp2p/protocol_muxer/multiselect/message_reader.hpp"
-
-#include <optional>
 
 #include "libp2p/multi/uvarint.hpp"
 #include "libp2p/protocol_muxer/multiselect/message_manager.hpp"
@@ -36,12 +32,11 @@ namespace libp2p::protocol_muxer {
     auto state = connection_state;
     state->read(1,
                 [connection_state = std::move(connection_state)](
-                    const outcome::result<size_t> &read_bytes_res) mutable {
-                  if (not read_bytes_res or read_bytes_res.value() != 1) {
+                    const outcome::result<void> &res) mutable {
+                  if (not res) {
                     auto multiselect = connection_state->multiselect_;
                     multiselect->negotiationRoundFailed(
-                        connection_state,
-                        Multiselect::MultiselectError::INTERNAL_ERROR);
+                        connection_state, MultiselectError::INTERNAL_ERROR);
                     return;
                   }
                   onReadVarintCompleted(std::move(connection_state));
@@ -69,21 +64,19 @@ namespace libp2p::protocol_muxer {
   void MessageReader::readNextBytes(
       std::shared_ptr<ConnectionState> connection_state, uint64_t bytes_to_read,
       std::function<void(std::shared_ptr<ConnectionState>)> final_callback) {
-    auto state = connection_state;
-    state->read(
-        bytes_to_read,
-        [connection_state = std::move(connection_state), bytes_to_read,
-         final_callback = std::move(final_callback)](
-            const outcome::result<size_t> &read_bytes_res) mutable {
-          if (not read_bytes_res or read_bytes_res.value() != bytes_to_read) {
-            auto multiselect = connection_state->multiselect_;
-            multiselect->negotiationRoundFailed(
-                connection_state,
-                Multiselect::MultiselectError::INTERNAL_ERROR);
-            return;
-          }
-          final_callback(std::move(connection_state));
-        });
+    const auto &state = connection_state;
+    state->read(bytes_to_read,
+                [connection_state = std::move(connection_state),
+                 final_callback = std::move(final_callback)](
+                    const outcome::result<void> &res) mutable {
+                  if (not res) {
+                    auto multiselect = connection_state->multiselect_;
+                    multiselect->negotiationRoundFailed(
+                        connection_state, MultiselectError::INTERNAL_ERROR);
+                    return;
+                  }
+                  final_callback(std::move(connection_state));
+                });
   }
 
   void MessageReader::onReadLineCompleted(

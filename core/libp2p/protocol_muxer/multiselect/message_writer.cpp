@@ -11,17 +11,6 @@
 namespace libp2p::protocol_muxer {
   using peer::Protocol;
 
-  namespace {
-    void copyToStreambuf(boost::asio::streambuf &target,
-                         const kagome::common::Buffer &source) {
-      auto to_copy = source.size();
-      boost::asio::buffer_copy(
-          target.prepare(source.size()),
-          boost::asio::const_buffer(source.data(), source.size()));
-      target.commit(to_copy);
-    }
-  }  // namespace
-
   auto MessageWriter::getWriteCallback(
       std::shared_ptr<ConnectionState> connection_state,
       ConnectionState::NegotiationStatus success_status) {

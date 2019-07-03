@@ -8,11 +8,11 @@
 
 #include <functional>
 #include <memory>
-#include <optional>
 
 #include <boost/asio/streambuf.hpp>
 #include "common/buffer.hpp"
 #include "libp2p/connection/stream.hpp"
+#include "libp2p/protocol_muxer/multiselect/multiselect_error.hpp"
 #include "libp2p/protocol_muxer/protocol_muxer.hpp"
 
 namespace libp2p::protocol_muxer {
@@ -34,7 +34,7 @@ namespace libp2p::protocol_muxer {
     /// connection, over which we are negotiating
     std::shared_ptr<basic::ReadWriter> connection_;
 
-    ///
+    /// protocols to be selected
     std::shared_ptr<std::vector<const peer::Protocol>> protocols_;
 
     /// callback, which is to be called, when a protocol is established over the
@@ -72,10 +72,11 @@ namespace libp2p::protocol_muxer {
      * @param handler to be called, when the read is done
      * @note resul of read is going to be in the local read buffer
      */
-    void read(size_t n, basic::Reader::ReadCallbackFunc handler) {
+    void read(size_t n,
+              std::function<void(const outcome::result<void> &)> handler) {
       // if there are already enough bytes in our buffer, return them
       if (read_buffer_->size() >= n) {
-        return handler(n);
+        return handler(outcome::success());
       }
 
       auto to_read = n - read_buffer_->size();
@@ -83,18 +84,18 @@ namespace libp2p::protocol_muxer {
       return connection_->read(
           *buf, to_read,
           [self{shared_from_this()}, buf = std::move(buf),
-           h = std::move(handler), to_read, n](auto &&res) {
+           h = std::move(handler), to_read](auto &&res) {
             if (!res) {
-              return h(boost::system::error_code{});  // SUBSTITUE BY ERROR
+              return h(res.error());
             }
             if (boost::asio::buffer_copy(
                     self->read_buffer_->prepare(to_read),
                     boost::asio::const_buffer(buf->data(), to_read))
                 != to_read) {
-              return h(boost::system::error_code{});  // SUBSTITUE BY ERROR
+              return h(MultiselectError::INTERNAL_ERROR);
             }
             self->read_buffer_->commit(to_read);
-            h(n);
+            h(outcome::success());
           });
     }
 
