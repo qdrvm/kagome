@@ -65,7 +65,8 @@ namespace libp2p::multi {
     if (path_end == bytes.end()) {
       return Error::NEW_LINE_EXPECTED;
     }
-    if (std::distance(bytes.begin() + varint_length, bytes.end())
+    if (static_cast<uint64_t>(
+            std::distance(bytes.begin() + varint_length, bytes.end()))
         != size.toUInt64()) {
       return Error::WRONG_DATA_SIZE;
     }

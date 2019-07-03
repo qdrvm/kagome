@@ -33,7 +33,6 @@ namespace kagome::api {
         [&](const primitives::Valid &v) -> outcome::result<common::Hash256> {
           // compose Transaction object
           common::Hash256 hash = hasher_->blake2_256(extrinsic.data);
-          common::Buffer buffer_hash(hash);
           size_t length = extrinsic.data.size();
           // TODO(yuraz): PRE-220 find out what value to use for this parameter
           // in substrate tests it is always true (except the case of
@@ -41,7 +40,7 @@ namespace kagome::api {
           bool should_propagate = true;
 
           primitives::Transaction transaction{
-              extrinsic,   length,     buffer_hash, v.priority,
+              extrinsic,   length,     hash, v.priority,
               v.longevity, v.requires, v.provides,  should_propagate};
 
           // send to pool

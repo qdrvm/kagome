@@ -31,16 +31,16 @@ namespace kagome::primitives {
     primitives::Extrinsic ext;
 
     /// Number of bytes encoding of the transaction requires.
-    size_t bytes;
+    size_t bytes{};
 
     /// Transaction hash (unique)
-    common::Buffer hash;
+    common::Hash256 hash;
 
     /// Transaction priority (higher = better)
-    TransactionPriority priority;
+    TransactionPriority priority{};
 
     /// At which block the transaction becomes invalid?
-    TransactionLongevity valid_till;
+    TransactionLongevity valid_till{};
 
     /// Tags required by the transaction.
     std::vector<TransactionTag> requires;
@@ -49,14 +49,14 @@ namespace kagome::primitives {
     std::vector<TransactionTag> provides;
 
     /// Should that transaction be propagated.
-    bool should_propogate;
+    bool should_propagate{false};
   };
 
   inline bool operator==(const Transaction &v1, const Transaction &v2) {
     return v1.ext == v2.ext && v1.bytes == v2.bytes && v1.hash == v2.hash
         && v1.priority == v2.priority && v1.valid_till == v2.valid_till
         && v1.requires == v2.requires && v1.provides == v2.provides
-        && v1.should_propogate == v2.should_propogate;
+        && v1.should_propagate == v2.should_propagate;
   }
 
 }  // namespace kagome::primitives

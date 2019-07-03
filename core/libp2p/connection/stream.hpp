@@ -7,8 +7,7 @@
 #define KAGOME_CONNECTION_STREAM_HPP
 
 #include <outcome/outcome.hpp>
-#include "libp2p/basic/reader.hpp"
-#include "libp2p/basic/writer.hpp"
+#include "libp2p/basic/readwriter.hpp"
 
 namespace libp2p::connection {
 
@@ -25,7 +24,7 @@ namespace libp2p::connection {
    * possibility to read and write simultaneously, but double read or write is
    * forbidden
    */
-  struct Stream : public basic::Reader, public basic::Writer {
+  struct Stream : public basic::ReadWriter {
     using Handler = void(std::shared_ptr<Stream>);
     using VoidResultHandlerFunc = std::function<void(outcome::result<void>)>;
 

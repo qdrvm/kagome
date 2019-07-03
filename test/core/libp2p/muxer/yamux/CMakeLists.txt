@@ -12,6 +12,7 @@ target_link_libraries(yamux_integration_test
     multiaddress
     security_plaintext
     tcp_transport
+    testutil
     )
 
 addtest(yamux_acceptance_test
@@ -23,6 +24,7 @@ target_link_libraries(yamux_acceptance_test
     multiaddress
     security_plaintext
     tcp_transport
+    testutil
     )
 
 addtest(yamux_frame_test

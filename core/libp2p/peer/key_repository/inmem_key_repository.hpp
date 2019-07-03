@@ -17,24 +17,26 @@ namespace libp2p::peer {
    public:
     ~InmemKeyRepository() override = default;
 
+    InmemKeyRepository();
+
     void clear(const PeerId &p) override;
 
     outcome::result<PubVecPtr> getPublicKeys(const PeerId &p) override;
 
-    void addPublicKey(const PeerId &p, const crypto::PublicKey &pub) override;
+    outcome::result<void> addPublicKey(const PeerId &p,
+                                       const crypto::PublicKey &pub) override;
 
-    outcome::result<KeyPairVecPtr> getKeyPairs(const PeerId &p) override;
+    outcome::result<KeyPairVecPtr> getKeyPairs() override;
 
-    void addKeyPair(const PeerId &p, const KeyPair &kp) override;
+    outcome::result<void> addKeyPair(const KeyPair &kp) override;
 
     std::unordered_set<PeerId> getPeers() const override;
 
-
    private:
     std::unordered_map<PeerId, PubVecPtr> pub_;
-    std::unordered_map<PeerId, KeyPairVecPtr> kp_;
+    KeyPairVecPtr kp_;
   };
 
 }  // namespace libp2p::peer
 
-#endif  //KAGOME_INMEM_KEY_REPOSITORY_HPP
+#endif  // KAGOME_INMEM_KEY_REPOSITORY_HPP

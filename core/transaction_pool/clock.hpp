@@ -10,14 +10,27 @@
 
 namespace kagome::transaction_pool {
 
-
+  /**
+   * An interface for a clock
+   * @tparam clock type is an underlying clock type, such as std::steady_clock
+   */
+   template <typename ClockType = std::chrono::steady_clock>
   class Clock {
    public:
-      using Duration = std::chrono::milliseconds;
-      using TimePoint = std::chrono::milliseconds;
+    /**
+     * Difference between two time points
+     */
+    using Duration = typename ClockType::duration;
+    /**
+     * A moment in time, stored in milliseconds since Unix epoch start
+     */
+    using TimePoint = typename ClockType::time_point;
 
     virtual ~Clock() = default;
 
+    /**
+     * @return a time point representing the current time
+     */
     virtual TimePoint now() const = 0;
   };
 

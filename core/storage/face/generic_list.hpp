@@ -70,6 +70,11 @@ namespace kagome::face {
     virtual size_type size() const = 0;
   };
 
+  /**
+   * As GenericIterator is abstract and cannot be instantiated, there is a
+   * concrete object that wraps a pointer to a generic iterator
+   * @tparam Container over which the iterator would iterate
+   */
   template <typename Container>
   class ForwardIterator {
    public:
@@ -85,7 +90,9 @@ namespace kagome::face {
         : it_{std::move(it)} {}
 
     ForwardIterator(ForwardIterator &&it) noexcept : it_{std::move(it.it_)} {}
-    ForwardIterator(ForwardIterator const &it) : it_{it.it_->create_copy()} {}
+    ForwardIterator(ForwardIterator const &it) : it_{it.it_->clone()} {}
+
+    ~ForwardIterator() = default;
 
     GenericIterator<Container> &get_iterator() {
       return *it_;
@@ -96,12 +103,12 @@ namespace kagome::face {
     }
 
     ForwardIterator &operator=(const ForwardIterator &it) {
-      it_ = it.it_->create_copy();
+      it_ = it.it_->clone();
       return *this;
     }
 
     ForwardIterator &operator=(ForwardIterator &&it) noexcept {
-      it_ = it.it_->create_copy();
+      it_ = it.it_->clone();
       return *this;
     }
 

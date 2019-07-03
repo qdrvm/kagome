@@ -8,19 +8,15 @@
 using kagome::common::Buffer;
 
 namespace kagome::transaction_pool {
-  
-  PoolModeratorImpl::PoolModeratorImpl(std::shared_ptr<Clock> clock,
-                                       Clock::Duration ban_for,
-                                       size_t expected_size)
-      : banned_until_{Compare},
-        ban_for_{ban_for},
-        clock_{std::move(clock)},
-        expected_size_{expected_size} {}
 
-  void PoolModeratorImpl::ban(const primitives::Transaction &tx) {
-    banned_until_.insert({tx.hash, clock_->now() + ban_for_});
-    if (banned_until_.size() > expected_size_ * 2) {
-      while (banned_until_.size() > expected_size_) {
+  PoolModeratorImpl::PoolModeratorImpl(std::shared_ptr<SystemClock> clock,
+                                       Params parameters)
+      : clock_{std::move(clock)}, params_{std::move(parameters)} {}
+
+  void PoolModeratorImpl::ban(const common::Hash256 &tx_hash) {
+    banned_until_.insert({tx_hash, clock_->now() + params_.ban_for});
+    if (banned_until_.size() > params_.expected_size * 2) {
+      while (banned_until_.size() > params_.expected_size) {
         banned_until_.erase(banned_until_.begin());
       }
     }
@@ -31,16 +27,15 @@ namespace kagome::transaction_pool {
     if (tx.valid_till > current_block) {
       return false;
     }
-    ban(tx);
+    ban(tx.hash);
     return true;
   }
 
-  bool PoolModeratorImpl::isBanned(const primitives::Transaction &tx) const {
-    auto it = banned_until_.find(tx.hash);
+  bool PoolModeratorImpl::isBanned(const common::Hash256 &tx_hash) const {
+    auto it = banned_until_.find(tx_hash);
     if (it == banned_until_.end()) {
       return false;
     }
-
     // if ban time is exceeded, the transaction will be removed from the list
     // on next updateBan()
     return it->second >= clock_->now();
@@ -48,27 +43,17 @@ namespace kagome::transaction_pool {
 
   void PoolModeratorImpl::updateBan() {
     auto now = clock_->now();
-    std::list<Map::iterator> removed;
-    for (auto it = banned_until_.begin(); it != banned_until_.end(); it++) {
+    for (auto it = banned_until_.begin(); it != banned_until_.end();) {
       if (it->second < now) {
-        removed.push_back(it);
+        it = banned_until_.erase(it);
+      } else {
+        it++;
       }
-    }
-    for (auto &it : removed) {
-      banned_until_.erase(it);
     }
   }
 
-  bool PoolModeratorImpl::Compare(const Buffer &b1, const Buffer &b2) {
-    if (b1.size() == b2.size()) {
-      for (size_t i = 0; i < b1.size(); i++) {
-        if (b1[i] == b2[i]) {
-          continue;
-        }
-        return b1[i] > b2[i];
-      }
-    }
-    return b1.size() > b2.size();
+  size_t PoolModeratorImpl::bannedNum() const {
+    return banned_until_.size();
   }
 
 }  // namespace kagome::transaction_pool

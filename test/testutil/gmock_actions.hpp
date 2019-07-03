@@ -34,9 +34,8 @@ ACTION_P(AsioSuccess, size) {
  * boost::system::error_code ec = ...;
  * EXPECT_CALL(*connection_, read(_, _, _)).WillOnce(AsioCallback(ec, size));
  * auto buf = std::make_shared<std::vector<uint8_t>>(size, 0);
- * secure_connection_->read(*buf, size, [&size, buf, e=ec](auto &&ec, size_t read) mutable {
- *   ASSERT_EQ(ec.value(), e.value());
- *   ASSERT_EQ(read, size);
+ * secure_connection_->read(*buf, size, [&size, buf, e=ec](auto &&ec, size_t
+ * read) mutable { ASSERT_EQ(ec.value(), e.value()); ASSERT_EQ(read, size);
  * });
  * @nocode
  */
@@ -47,16 +46,33 @@ ACTION_P2(AsioCallback, ec, size) {
   arg2(ec, size);
 }
 
-ACTION_P(Arg0CallbackWithArg, in){
+ACTION_P(Arg0CallbackWithArg, in) {
   arg0(in);
 }
 
-ACTION_P(Arg1CallbackWithArg, in){
+ACTION_P(Arg1CallbackWithArg, in) {
   arg1(in);
 }
 
-ACTION_P(Arg2CallbackWithArg, in){
+ACTION_P(Arg2CallbackWithArg, in) {
   arg2(in);
 }
+
+ACTION_P(Arg3CallbackWithArg, in) {
+  arg3(in);
+}
+
+ACTION_P(UpgradeToSecureInbound, do_upgrade) {
+  arg1(do_upgrade(arg0));
+}
+
+ACTION_P(UpgradeToSecureOutbound, do_upgrade) {
+  arg2(do_upgrade(arg0));
+}
+
+ACTION_P(UpgradeToMuxed, do_upgrade) {
+  arg1(do_upgrade(arg0));
+}
+
 
 #endif  // KAGOME_GMOCK_ACTIONS_HPP

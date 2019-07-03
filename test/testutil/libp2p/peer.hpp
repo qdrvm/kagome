@@ -17,16 +17,7 @@ namespace testutil {
   using libp2p::peer::PeerId;
   using T = libp2p::crypto::PublicKey::Type;
 
-  inline PeerId randomPeerId() {
-    PublicKey k;
-
-    k.type = T::ED25519;
-    for (auto i = 0u; i < 32u; i++) {
-      k.data.putUint8(rand() & 0xff);
-    }
-
-    return PeerId::fromPublicKey(k).value();
-  }
+  PeerId randomPeerId();
 
 }  // namespace testutil
 
