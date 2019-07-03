@@ -42,8 +42,16 @@ namespace kagome::server {
 
     virtual ~Listener() = default;
 
-    auto &onNewSession() {
+    inline auto &onNewSession() {
       return on_new_session_;
+    }
+
+    inline auto &onError() {
+      return on_error_;
+    }
+
+    inline auto &onStopped() {
+      return on_stopped_;
     }
 
     virtual void start() {
@@ -54,17 +62,26 @@ namespace kagome::server {
     virtual void stop() {
       state_ = State::STOPPED;
       acceptor_.cancel();
+      onStopped();
     }
 
    private:
+    /**
+     * @brief accepts incoming connection
+     */
     virtual void doAccept();
 
-    Signal<void(sptr<Session>)> on_new_session_;
-    Context &context_;
-    Acceptor acceptor_;
+    Context &context_;   ///< io context
+    Acceptor acceptor_;  ///< connections acceptor
+    // TODO(yuraz): pre-230 add logger and logging in case of errors
 
-    State state_{State::READY};
-    SessionManager session_manager_;
+    State state_{State::READY};       ///< working state
+    SessionManager session_manager_;  ///< session manager instance
+    Signal<void(sptr<Session>)>
+        on_new_session_;  ///< emitted when new session is created
+    Signal<void(outcome::result<void>)>
+        on_error_;               ///< emitted when error occurs
+    Signal<void()> on_stopped_;  ///< emitted when listener stops
   };
 }  // namespace kagome::server
 

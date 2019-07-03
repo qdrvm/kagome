@@ -11,7 +11,12 @@ namespace kagome::server {
                      boost::asio::ip::tcp::endpoint endpoint)
       : context_(context),
         acceptor_(context_, std::move(endpoint)),
-        session_manager_(context_) {}
+        session_manager_(context_) {
+    onError().connect([this](outcome::result<void> err) {
+      // TODO(yuraz): pre-230 log error
+      stop();
+    });
+  }
 
   void Listener::doAccept() {
     acceptor_.async_accept(
@@ -24,6 +29,8 @@ namespace kagome::server {
             auto id = session_manager_.newSession(std::move(socket));
             auto session = session_manager_[id];
             on_new_session_(session);
+          } else {
+            onError()(outcome::failure(ec));
           }
         });
   }

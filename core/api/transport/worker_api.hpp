@@ -17,16 +17,17 @@ namespace kagome::server {
    public:
     virtual ~WorkerApi() = default;
 
-    auto &onRequest() {
+    inline auto &onRequest() {
       return on_request_;
     }
-    auto &onResponse() {
+    inline auto &onResponse() {
       return on_response_;
     }
 
    protected:
-    Signal<void(Session::Id, const std::string &)> on_request_;
-    Signal<void(const std::string &)> on_response_;
+    Signal<void(Session::Id, const std::string &)>
+        on_request_;  ///< incoming request obtained
+    Signal<void(const std::string &)> on_response_;  ///< response is ready
   };
 }  // namespace kagome::server
 

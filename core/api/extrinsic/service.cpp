@@ -7,23 +7,29 @@
 
 #include "api/extrinsic/request/submit_extrinsic.hpp"
 #include "api/extrinsic/response/value.hpp"
+#include "api/transport/session.hpp"
 
 namespace kagome::api {
   ExtrinsicApiService::ExtrinsicApiService(
       std::shared_ptr<server::Listener> listener,
       std::shared_ptr<ExtrinsicApi> api)
       : listener_{std::move(listener)}, api_(std::move(api)) {
-    //    request_cnn_ =
     new_session_cnn_ = listener_->onNewSession().connect(
         [this](sptr<server::Session> session) {
-          session->connect(static_cast<WorkerApi&>(*this));
+          session->connect(static_cast<WorkerApi &>(*this));
         });
 
-//    transport_->dataReceived().connect(
-//        [this](const std::string &data) { processData(data); });
-//
-//    //    response_cnn_ =
-//    on_response_.connect(transport_->onResponse());
+    on_listener_stopped_cnn_ = listener_->onStopped().connect([](void(){
+        // TODO(yuraz): pre-230 log listener stop
+    }));
+
+    on_listener_error_cnn_ = listener_->onError().connect([](outcome::result<void> err) {
+      // TODO(yuraz): pre-230 process error
+    });
+
+    onRequest().connect([this](server::Session::Id, const std::string &data) {
+      processData(data);
+    });
 
     // register json format handler
     jsonrpc_handler_.RegisterFormatHandler(format_handler_);
@@ -69,7 +75,7 @@ namespace kagome::api {
     std::string response(formatted_response->GetData(),
                          formatted_response->GetSize());
 
-    on_response_(response);
+    onResponse()(response);
   }
 
   outcome::result<void> ExtrinsicApiService::start() {
@@ -78,6 +84,7 @@ namespace kagome::api {
   }
 
   void ExtrinsicApiService::stop() {
+    new_session_cnn_.disconnect();
     listener_->stop();
   }
 }  // namespace kagome::api

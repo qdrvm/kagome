@@ -73,7 +73,6 @@ namespace kagome::api {
     sptr<server::Listener> listener_;              ///< endpoint listener
     Connection new_session_cnn_;                   ///< new session cnn holder
     sptr<ExtrinsicApi> api_;                       ///< api implementation
-    Signal<SignalType> on_response_{};             ///< notifies response
   };
 
 }  // namespace kagome::api
