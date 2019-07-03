@@ -26,7 +26,7 @@ namespace libp2p::protocol_muxer {
   void Multiselect::negotiate(
       const std::shared_ptr<basic::ReadWriter> &connection,
       gsl::span<peer::Protocol> supported_protocols, bool is_initiator,
-      ProtocolHandlerFunc handler) {
+      const ProtocolHandlerFunc &handler) {
     auto [write_buffer, read_buffer, index] = getBuffers();
 
     if (is_initiator) {

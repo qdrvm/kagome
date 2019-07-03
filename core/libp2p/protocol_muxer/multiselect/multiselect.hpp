@@ -57,7 +57,7 @@ namespace libp2p::protocol_muxer {
      */
     void negotiate(const std::shared_ptr<basic::ReadWriter> &connection,
                    gsl::span<peer::Protocol> protocols, bool is_initiator,
-                   ProtocolHandlerFunc handler);
+                   const ProtocolHandlerFunc &handler);
 
     /**
      * Triggered, when error happens during the negotiation round

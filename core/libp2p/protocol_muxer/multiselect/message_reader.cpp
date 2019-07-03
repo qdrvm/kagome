@@ -56,8 +56,8 @@ namespace libp2p::protocol_muxer {
 
     auto bytes_to_read = varint_opt->toUInt64();
     readNextBytes(std::move(connection_state), bytes_to_read,
-                  [bytes_to_read](std::shared_ptr<ConnectionState> state) {
-                    onReadLineCompleted(state, bytes_to_read);
+                  [bytes_to_read](auto &&state) {
+                    onReadLineCompleted(std::move(state), bytes_to_read);
                   });
   }
 
