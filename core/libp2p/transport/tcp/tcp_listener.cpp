@@ -5,6 +5,8 @@
 
 #include "libp2p/transport/tcp/tcp_listener.hpp"
 
+#include "libp2p/transport/impl/upgrader_session.hpp"
+
 namespace libp2p::transport {
 
   TcpListener::TcpListener(boost::asio::io_context &context,
@@ -84,17 +86,10 @@ namespace libp2p::transport {
           auto conn =
               std::make_shared<TcpConnection>(self->context_, std::move(sock));
 
-          self->upgrader_->upgradeToSecure(
-              std::move(conn), [self](auto &&rsecureConn) {
-                if (rsecureConn) {
-                  // if secured, then do upgrade
-                  self->upgrader_->upgradeToMuxed(rsecureConn.value(),
-                                                  self->handle_);
-                } else {
-                  // error. propagate it to the caller
-                  self->handle_(rsecureConn.error());
-                }
-              });
+          auto session = std::make_shared<UpgraderSession>(
+              self->upgrader_, std::move(conn), self->handle_);
+
+          session->secureInbound();
 
           self->doAccept();
         });

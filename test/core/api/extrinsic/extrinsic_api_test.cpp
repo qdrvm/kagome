@@ -18,6 +18,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
+#include "transaction_pool/transaction_pool_error.hpp"
 
 using namespace kagome::api;
 using namespace kagome::hash;
@@ -69,7 +70,7 @@ TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicSuccess) {
   EXPECT_CALL(*ttq, validate_transaction(extrinsic)).WillOnce(Return(tv));
   Transaction tr{extrinsic,
                  extrinsic.data.size(),
-                 Buffer(Hash256{}),
+                 Hash256{},
                  valid_transaction.priority,
                  valid_transaction.longevity,
                  valid_transaction.requires,
@@ -134,7 +135,7 @@ TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicSubmitFail) {
   EXPECT_CALL(*ttq, validate_transaction(extrinsic)).WillOnce(Return(tv));
   Transaction tr{extrinsic,
                  extrinsic.data.size(),
-                 Buffer(Hash256{}),
+                 Hash256{},
                  valid_transaction.priority,
                  valid_transaction.longevity,
                  valid_transaction.requires,
@@ -142,9 +143,9 @@ TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicSubmitFail) {
                  true};
   EXPECT_CALL(*tp, submitOne(tr))
       .WillOnce(Return(
-          outcome::failure(TransactionPoolImpl::Error::ALREADY_IMPORTED)));
+          outcome::failure(TransactionPoolError::ALREADY_IMPORTED)));
 
   EXPECT_OUTCOME_FALSE_2(err, api.submitExtrinsic(extrinsic))
   ASSERT_EQ(err.value(),
-            static_cast<int>(TransactionPoolImpl::Error::ALREADY_IMPORTED));
+            static_cast<int>(TransactionPoolError::ALREADY_IMPORTED));
 }

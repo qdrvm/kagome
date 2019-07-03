@@ -30,5 +30,6 @@ target_link_libraries(connection_manager_test
     multiaddress
     address_repository
     libp2p_peer_id
+    testutil
     libp2p_peer_errors
     )

@@ -26,6 +26,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
+using kagome::common::Blob;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::primitives::ApiId;
@@ -98,12 +99,12 @@ class Primitives : public testing::Test {
           .toVector();  // extrinsic itself {1, 2, 3}
   /// Version instance and corresponding scale representation
   Version version_{
-      "qwe",                                                // spec name
-      "asd",                                                // impl_name
-      1,                                                    // auth version
-      2,                                                    // impl version
-      {{array{'1', '2', '3', '4', '5', '6', '7', '8'}, 1},  // ApiId_1
-       {array{'8', '7', '6', '5', '4', '3', '2', '1'}, 2}}  // ApiId_2
+      "qwe",  // spec name
+      "asd",  // impl_name
+      1,      // auth version
+      2,      // impl version
+      {{Blob{array{'1', '2', '3', '4', '5', '6', '7', '8'}}, 1},  // ApiId_1
+       {Blob{array{'8', '7', '6', '5', '4', '3', '2', '1'}}, 2}}  // ApiId_2
   };
   ByteArray encoded_version_{
       12,  'q', 'w', 'e',                      // spec name
@@ -324,7 +325,7 @@ TEST_F(Primitives, EncodeTransactionValidityUnknown) {
  * @then obtained result matches predefined value
  */
 TEST_F(Primitives, EncodeTransactionValiditySuccess) {
-  TransactionValidity t = valid_transaction_; // make it variant type
+  TransactionValidity t = valid_transaction_;  // make it variant type
   EXPECT_OUTCOME_TRUE(val, encode(t))
   ASSERT_EQ(val, encoded_valid_transaction_);
 }
@@ -339,10 +340,10 @@ TEST_F(Primitives, DecodeTransactionValidityInvalidSuccess) {
   Buffer bytes = {0, 1};
   EXPECT_OUTCOME_TRUE(val, decode<TransactionValidity>(bytes))
   kagome::visit_in_place(
-      val,                                               // value
+      val,                                              // value
       [](Invalid const &v) { ASSERT_EQ(v.error, 1); },  // ok
-      [](Unknown const &v) { FAIL(); },                  // fail
-      [](Valid const &v) { FAIL(); });                   // fail
+      [](Unknown const &v) { FAIL(); },                 // fail
+      [](Valid const &v) { FAIL(); });                  // fail
 }
 
 /**
@@ -357,10 +358,10 @@ TEST_F(Primitives, DecodeTransactionValidityUnknownSuccess) {
   ASSERT_TRUE(res);
   TransactionValidity value = res.value();
   kagome::visit_in_place(
-      value,                                             // value
-      [](Invalid const &v) { FAIL(); },                  // fail
+      value,                                            // value
+      [](Invalid const &v) { FAIL(); },                 // fail
       [](Unknown const &v) { ASSERT_EQ(v.error, 2); },  // ok
-      [](Valid const &v) { FAIL(); }                     // fail
+      [](Valid const &v) { FAIL(); }                    // fail
   );
 }
 
@@ -371,7 +372,8 @@ TEST_F(Primitives, DecodeTransactionValidityUnknownSuccess) {
  * @then obtained result matches predefined block id instance
  */
 TEST_F(Primitives, DecodeTransactionValidityValidSuccess) {
-  EXPECT_OUTCOME_TRUE(val, decode<TransactionValidity>(encoded_valid_transaction_))
+  EXPECT_OUTCOME_TRUE(val,
+                      decode<TransactionValidity>(encoded_valid_transaction_))
   kagome::visit_in_place(
       val,                               // value
       [](Invalid const &v) { FAIL(); },  // fail

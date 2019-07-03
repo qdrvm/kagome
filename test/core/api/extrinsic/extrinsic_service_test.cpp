@@ -10,7 +10,7 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include "api/transport/listener.hpp"
+#include "api/transport/impl/listener_impl.hpp"
 #include "common/blob.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/api/transport/basic_transport_mock.hpp"
@@ -60,7 +60,8 @@ class ExtrinsicSubmissionServiceTest : public ::testing::Test {
   sptr<ExtrinsicApiService> service =
       std::make_shared<ExtrinsicApiService>(listener, api);
 
-  sptr<BasicTransportMock> session = std::make_shared<BasicTransportMock>(ip, port);
+  sptr<BasicTransportMock> session =
+      std::make_shared<BasicTransportMock>(ip, port);
 
   Extrinsic extrinsic{};
   std::string request =
@@ -89,7 +90,7 @@ TEST_F(ExtrinsicSubmissionServiceTest, DISABLED_RequestSuccess) {
   EXPECT_CALL(*api, submitExtrinsic(extrinsic)).WillOnce(Return(hash));
   std::string response =
       R"({"jsonrpc":"2.0","id":0,"result":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]})";
-//  EXPECT_CALL(*listener, processResponse(response)).WillOnce(Return());
+  //  EXPECT_CALL(*listener, processResponse(response)).WillOnce(Return());
 
   //  listener->doRequest(request);
 }
@@ -107,7 +108,7 @@ TEST_F(ExtrinsicSubmissionServiceTest, DISABLED_RequestFail) {
   std::string response =
       R"({"jsonrpc":"2.0","id":0,"error":{"code":0,"message":"transaction is in invalid state"}})";
 
-//  EXPECT_CALL(*transport, processResponse(_)).WillOnce(Return());
-//
-//  transport->doRequest(request);
+  //  EXPECT_CALL(*transport, processResponse(_)).WillOnce(Return());
+  //
+  //  transport->doRequest(request);
 }

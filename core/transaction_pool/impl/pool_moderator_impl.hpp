@@ -13,40 +13,57 @@
 namespace kagome::transaction_pool {
 
   class PoolModeratorImpl : public PoolModerator {
-    static constexpr size_t kDefaultExpectedSize = 2048;
-
-    static bool Compare(const common::Buffer &b1, const common::Buffer &b2);
-    using Map = std::map<common::Buffer, Clock::TimePoint, decltype(&Compare)>;
+    using SystemClock = Clock<std::chrono::system_clock>;
+    using Map = std::map<common::Hash256, SystemClock::TimePoint>;
 
    public:
     /**
-     * @param clock a clock used to determine when it is time to unban a
-     * transaction
+     * Default value of expected size parameter
+     */
+    static constexpr size_t kDefaultExpectedSize = 2048;
+
+    /**
+     * Default ban duration
+     */
+    static constexpr SystemClock::Duration kDefaultBanFor =
+        std::chrono::minutes(30);
+
+    /**
      * @param ban_for amount of time for which a transaction is banned
      * @param expected_size expected maximum number of banned transactions. If
      * significantly exceeded, some transactions will be removed from ban list
      */
-    explicit PoolModeratorImpl(
-        std::shared_ptr<Clock> clock,
-        Clock::Duration ban_for = std::chrono::minutes(30),
-        size_t expected_size = kDefaultExpectedSize);
+    struct Params {
+      SystemClock::Duration ban_for = kDefaultBanFor;
+      size_t expected_size = kDefaultExpectedSize;
+    };
+
+    /**
+     * @param parameters configuration of the pool moderator
+     * @param clock a clock used to determine when it is time to unban a
+     * transaction
+     */
+    explicit PoolModeratorImpl(std::shared_ptr<SystemClock> clock,
+                               Params parameters = Params{
+                                   kDefaultBanFor, kDefaultExpectedSize});
 
     ~PoolModeratorImpl() override = default;
 
-    void ban(const primitives::Transaction &tx) override;
+    void ban(const common::Hash256 &tx_hash) override;
 
     bool banIfStale(primitives::BlockNumber current_block,
                     const primitives::Transaction &tx) override;
 
-    bool isBanned(const primitives::Transaction &tx) const override;
+    bool isBanned(const common::Hash256 &tx_hash) const override;
 
     void updateBan() override;
 
+    size_t bannedNum() const override;
+
    private:
+    std::shared_ptr<SystemClock> clock_;
+    Params params_;
     Map banned_until_;
-    Clock::Duration ban_for_;
-    std::shared_ptr<Clock> clock_;
-    size_t expected_size_ = kDefaultExpectedSize;
   };
 
 }  // namespace kagome::transaction_pool

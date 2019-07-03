@@ -7,6 +7,7 @@
 #define KAGOME_PLAINTEXT_CONNECTION_HPP
 
 #include <memory>
+#include <optional>
 
 #include "libp2p/connection/secure_connection.hpp"
 
@@ -20,6 +21,9 @@ namespace libp2p::connection {
      * @param raw_connection, over which the security is to be established
      */
     explicit PlaintextConnection(std::shared_ptr<RawConnection> raw_connection);
+
+    PlaintextConnection(std::shared_ptr<RawConnection> raw_connection,
+                        peer::PeerId peer_id);
 
     ~PlaintextConnection() override = default;
 
@@ -55,6 +59,8 @@ namespace libp2p::connection {
 
    private:
     std::shared_ptr<RawConnection> raw_connection_;
+
+    std::optional<peer::PeerId> peer_id_;
   };
 }  // namespace libp2p::connection
 

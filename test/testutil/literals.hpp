@@ -8,6 +8,7 @@
 
 #include "common/buffer.hpp"
 #include "common/hexutil.hpp"
+#include "common/blob.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/multi/multihash.hpp"
 #include "libp2p/peer/peer_id.hpp"
@@ -17,6 +18,14 @@
 inline kagome::common::Buffer operator"" _buf(const char *c, size_t s) {
   std::vector<uint8_t> chars(c, c + s);
   return kagome::common::Buffer(std::move(chars));
+}
+
+inline kagome::common::Hash256 operator"" _hash256(const char *c, size_t s) {
+  std::array<uint8_t, 32> bytes;
+  bytes.fill(0);
+  std::copy_n(c, std::min(s, 32ul), bytes.rbegin());
+  kagome::common::Hash256 hash {std::move(bytes)};
+  return hash;
 }
 
 inline std::vector<uint8_t> operator"" _v(const char *c, size_t s) {

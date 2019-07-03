@@ -13,8 +13,6 @@ namespace kagome::server {
 
   class ListenerMock : public Listener {
    public:
-    ListenerMock() {}
-
     ~ListenerMock() override = default;
     MOCK_METHOD0(start, void(void));
     MOCK_METHOD0(stop, void(void));
@@ -23,4 +21,4 @@ namespace kagome::server {
 
 }  // namespace kagome::server
 
-#endif  //KAGOME_TEST_MOCK_API_TRANSPORT_LISTENER_MOCK_HPP
+#endif  // KAGOME_TEST_MOCK_API_TRANSPORT_LISTENER_MOCK_HPP

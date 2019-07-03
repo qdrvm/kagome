@@ -9,7 +9,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, PlaintextConnection::Error, e) {
   using E = libp2p::connection::PlaintextConnection::Error;
   switch (e) {
     case E::FIELD_IS_UNSUPPORTED:
-      return "this field is not supported in this connection implementation";
+      return "this field is either not supported or not set in this connection";
   }
   return "unknown error";
 }
@@ -19,11 +19,19 @@ namespace libp2p::connection {
       std::shared_ptr<RawConnection> raw_connection)
       : raw_connection_{std::move(raw_connection)} {}
 
+  PlaintextConnection::PlaintextConnection(
+      std::shared_ptr<RawConnection> raw_connection, peer::PeerId peer_id)
+      : raw_connection_{std::move(raw_connection)},
+        peer_id_{std::move(peer_id)} {}
+
   outcome::result<peer::PeerId> PlaintextConnection::localPeer() const {
     return Error::FIELD_IS_UNSUPPORTED;
   }
 
   outcome::result<peer::PeerId> PlaintextConnection::remotePeer() const {
+    if (peer_id_) {
+      return *peer_id_;
+    }
     return Error::FIELD_IS_UNSUPPORTED;
   }
 

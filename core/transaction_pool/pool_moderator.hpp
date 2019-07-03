@@ -25,9 +25,9 @@ namespace kagome::transaction_pool {
 
     /**
      * Bans a transaction for a fixed amount of time
-     * @param tx
+     * @param tx_hash
      */
-    virtual void ban(const primitives::Transaction &tx) = 0;
+    virtual void ban(const common::Hash256 &tx_hash) = 0;
 
     /**
      * Bans a transaction \param tx if its longevity is past \param
@@ -38,14 +38,19 @@ namespace kagome::transaction_pool {
                             const primitives::Transaction &tx) = 0;
 
     /**
-     * @return true if \param tx is banned, false otherwise
+     * @return true if \param tx_hash is banned, false otherwise
      */
-    virtual bool isBanned(const primitives::Transaction &tx) const = 0;
+    virtual bool isBanned(const common::Hash256 &tx_hash) const = 0;
 
     /**
      * Unbans transaction which ban time is exceeded
      */
     virtual void updateBan() = 0;
+
+    /**
+     * Return the number of currently banned transactions
+     */
+     virtual size_t bannedNum() const = 0;
   };
 
 }  // namespace kagome::transaction_pool

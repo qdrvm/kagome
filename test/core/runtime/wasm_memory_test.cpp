@@ -52,7 +52,7 @@ TEST_F(MemoryHeapTest, AllocatedTooBigMemoryFailed) {
   // The memory size that can be allocated is within interval (0, kMaxMemorySize
   // - memory_size_]. Trying to allocate more
   auto big_memory_size = WasmMemoryImpl::kMaxMemorySize - memory_size_ + 1;
-  ASSERT_EQ(memory_.allocate(big_memory_size), -1);
+  ASSERT_EQ(memory_.allocate(big_memory_size), 0);
 }
 
 /**
@@ -72,7 +72,7 @@ TEST_F(MemoryHeapTest, ReturnOffsetWhenAllocated) {
   // allocated second memory chunk
   auto ptr2 = memory_.allocate(size2);
   // second memory chunk is placed right after the first one
-  ASSERT_EQ(ptr2, size1+ptr1);
+  ASSERT_EQ(ptr2, size1 + ptr1);
 }
 
 /**

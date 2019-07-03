@@ -1,0 +1,45 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#ifndef KAGOME_CORE_API_TRANSPORT_IMPL_LISTENER_IMPL_HPP
+#define KAGOME_CORE_API_TRANSPORT_IMPL_LISTENER_IMPL_HPP
+
+#include "api/transport/listener.hpp"
+
+namespace kagome::server {
+  /**
+   * @brief server which listens for incoming connection,
+   * accepts connections making session from socket
+   */
+  class ListenerImpl : public Listener {
+   public:
+    /**
+     * @param context reference to boost::asio::io_context instance
+     * @param endpoint loopback ip address to listen
+     */
+    ListenerImpl(Context &context, Endpoint endpoint);
+
+    ~ListenerImpl() override = default;
+
+    void start() override;
+
+    void stop() override;
+
+   protected:
+    /**
+     * @brief accepts incoming connection
+     */
+    void doAccept() override;
+
+    Context &context_;   ///< io context
+    Acceptor acceptor_;  ///< connections acceptor
+    // TODO(yuraz): pre-230 add logger and logging in case of errors
+
+    State state_{State::READY};       ///< working state
+    SessionManager session_manager_;  ///< session manager instance
+  };
+}  // namespace kagome::server
+
+#endif  // KAGOME_CORE_API_TRANSPORT_IMPL_LISTENER_IMPL_HPP

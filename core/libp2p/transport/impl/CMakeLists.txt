@@ -11,3 +11,19 @@ target_link_libraries(libp2p_transport_parser
     multiaddress
     )
 
+add_library(libp2p_upgrader
+    upgrader_impl.hpp
+    upgrader_impl.cpp
+    )
+target_link_libraries(libp2p_upgrader
+    outcome
+    )
+
+
+add_library(libp2p_upgrader_session
+    upgrader_session.cpp
+    )
+target_link_libraries(libp2p_upgrader_session
+    outcome
+    libp2p_upgrader
+    )

@@ -19,13 +19,13 @@ namespace kagome::api {
           session->connect(static_cast<WorkerApi &>(*this));
         });
 
-    on_listener_stopped_cnn_ = listener_->onStopped().connect([](void(){
-        // TODO(yuraz): pre-230 log listener stop
-    }));
+//    on_listener_stopped_cnn_ = listener_->onStopped().connect([](void(){
+//        // TODO(yuraz): pre-230 log listener stop
+//    }));
 
-    on_listener_error_cnn_ = listener_->onError().connect([](outcome::result<void> err) {
-      // TODO(yuraz): pre-230 process error
-    });
+//    on_listener_error_cnn_ = listener_->onError().connect([](outcome::result<void> err) {
+//      // TODO(yuraz): pre-230 process error
+//    });
 
     onRequest().connect([this](server::Session::Id, const std::string &data) {
       processData(data);

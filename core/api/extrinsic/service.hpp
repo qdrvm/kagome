@@ -12,7 +12,7 @@
 #include <boost/signals2/signal.hpp>
 #include "api/extrinsic/extrinsic_api.hpp"
 #include "api/transport/basic_transport.hpp"
-#include "api/transport/listener.hpp"
+#include "api/transport/impl/listener_impl.hpp"
 #include "api/transport/worker_api.hpp"
 
 namespace kagome::api {
