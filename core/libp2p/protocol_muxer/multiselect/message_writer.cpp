@@ -16,7 +16,7 @@ namespace libp2p::protocol_muxer {
       ConnectionState::NegotiationStatus success_status) {
     return [connection_state = std::move(connection_state), success_status](
                const outcome::result<size_t> written_bytes_res) mutable {
-      auto multiselect = connection_state->multiselect_;
+      auto multiselect = connection_state->multiselect;
       if (not written_bytes_res) {
         multiselect->negotiationRoundFailed(connection_state,
                                             written_bytes_res.error());
@@ -29,7 +29,7 @@ namespace libp2p::protocol_muxer {
 
   void MessageWriter::sendOpeningMsg(
       std::shared_ptr<ConnectionState> connection_state) {
-    *connection_state->write_buffer_ = MessageManager::openingMsg();
+    *connection_state->write_buffer = MessageManager::openingMsg();
     auto state = connection_state;
     state->write(
         getWriteCallback(std::move(connection_state),
@@ -39,7 +39,7 @@ namespace libp2p::protocol_muxer {
   void MessageWriter::sendProtocolMsg(
       const Protocol &protocol,
       const std::shared_ptr<ConnectionState> &connection_state) {
-    *connection_state->write_buffer_ = MessageManager::protocolMsg(protocol);
+    *connection_state->write_buffer = MessageManager::protocolMsg(protocol);
     const auto &state = connection_state;
     state->write(getWriteCallback(
         connection_state, ConnectionState::NegotiationStatus::PROTOCOL_SENT));
@@ -48,37 +48,37 @@ namespace libp2p::protocol_muxer {
   void MessageWriter::sendProtocolsMsg(
       gsl::span<const Protocol> protocols,
       const std::shared_ptr<ConnectionState> &connection_state) {
-    *connection_state->write_buffer_ = MessageManager::protocolsMsg(protocols);
+    *connection_state->write_buffer = MessageManager::protocolsMsg(protocols);
     const auto &state = connection_state;
     state->write(
-        getWriteCallback(std::move(connection_state),
+        getWriteCallback(connection_state,
                          ConnectionState::NegotiationStatus::PROTOCOLS_SENT));
   }
 
   void MessageWriter::sendLsMsg(
       const std::shared_ptr<ConnectionState> &connection_state) {
-    *connection_state->write_buffer_ = MessageManager::lsMsg();
+    *connection_state->write_buffer = MessageManager::lsMsg();
     const auto &state = connection_state;
-    state->write(getWriteCallback(std::move(connection_state),
+    state->write(getWriteCallback(connection_state,
                                   ConnectionState::NegotiationStatus::LS_SENT));
   }
 
   void MessageWriter::sendNaMsg(
       const std::shared_ptr<ConnectionState> &connection_state) {
-    *connection_state->write_buffer_ = MessageManager::naMsg();
+    *connection_state->write_buffer = MessageManager::naMsg();
     const auto &state = connection_state;
-    state->write(getWriteCallback(std::move(connection_state),
+    state->write(getWriteCallback(connection_state,
                                   ConnectionState::NegotiationStatus::NA_SENT));
   }
 
   void MessageWriter::sendProtocolAck(
       std::shared_ptr<ConnectionState> connection_state,
       const peer::Protocol &protocol) {
-    *connection_state->write_buffer_ = MessageManager::protocolMsg(protocol);
+    *connection_state->write_buffer = MessageManager::protocolMsg(protocol);
     auto state = connection_state;
     state->write([connection_state = std::move(connection_state), protocol](
                      const outcome::result<size_t> written_bytes_res) mutable {
-      auto multiselect = connection_state->multiselect_;
+      auto multiselect = connection_state->multiselect;
       if (not written_bytes_res) {
         multiselect->negotiationRoundFailed(connection_state,
                                             written_bytes_res.error());

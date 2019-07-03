@@ -44,7 +44,7 @@ namespace libp2p::protocol_muxer {
 
     ~Multiselect() override = default;
 
-    void selectOneOf(gsl::span<const peer::Protocol> protocols,
+    void selectOneOf(gsl::span<peer::Protocol> protocols,
                      std::shared_ptr<basic::ReadWriter> connection,
                      bool is_initiator, ProtocolHandlerFunc cb) override;
 
@@ -56,7 +56,7 @@ namespace libp2p::protocol_muxer {
      * @return chosen protocol in case of success, error otherwise
      */
     void negotiate(const std::shared_ptr<basic::ReadWriter> &connection,
-                   gsl::span<const peer::Protocol> protocols, bool is_initiator,
+                   gsl::span<peer::Protocol> protocols, bool is_initiator,
                    ProtocolHandlerFunc handler);
 
     /**
@@ -81,11 +81,13 @@ namespace libp2p::protocol_muxer {
     void handleOpeningMsg(
         std::shared_ptr<ConnectionState> connection_state) const;
 
-    void handleProtocolMsg(const peer::Protocol &protocol,
-                           std::shared_ptr<ConnectionState> connection_state);
+    void handleProtocolMsg(
+        const peer::Protocol &protocol,
+        const std::shared_ptr<ConnectionState> &connection_state);
 
-    void handleProtocolsMsg(const std::vector<peer::Protocol> &protocols,
-                            std::shared_ptr<ConnectionState> connection_state);
+    void handleProtocolsMsg(
+        const std::vector<peer::Protocol> &protocols,
+        const std::shared_ptr<ConnectionState> &connection_state);
 
     void onProtocolAfterOpeningOrLs(
         std::shared_ptr<ConnectionState> connection_state,

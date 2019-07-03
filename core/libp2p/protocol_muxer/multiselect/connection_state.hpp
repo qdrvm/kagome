@@ -32,26 +32,26 @@ namespace libp2p::protocol_muxer {
     };
 
     /// connection, over which we are negotiating
-    std::shared_ptr<basic::ReadWriter> connection_;
+    std::shared_ptr<basic::ReadWriter> connection;
 
     /// protocols to be selected
-    std::shared_ptr<std::vector<const peer::Protocol>> protocols_;
+    std::shared_ptr<std::vector<peer::Protocol>> protocols;
 
     /// callback, which is to be called, when a protocol is established over the
     /// connection
-    ProtocolMuxer::ProtocolHandlerFunc proto_callback_;
+    ProtocolMuxer::ProtocolHandlerFunc proto_callback;
 
     /// write buffer of this connection
-    std::shared_ptr<kagome::common::Buffer> write_buffer_;
+    std::shared_ptr<kagome::common::Buffer> write_buffer;
 
     /// read buffer of this connection
-    std::shared_ptr<boost::asio::streambuf> read_buffer_;
+    std::shared_ptr<boost::asio::streambuf> read_buffer;
 
     /// index of both buffers in Multiselect collection
-    size_t buffers_index_;
+    size_t buffers_index;
 
     /// Multiselect instance, which spawned this connection state
-    std::shared_ptr<Multiselect> multiselect_;
+    std::shared_ptr<Multiselect> multiselect;
 
     /// current status of the negotiation
     NegotiationStatus status_ = NegotiationStatus::NOTHING_SENT;
@@ -62,8 +62,8 @@ namespace libp2p::protocol_muxer {
      * @note the function expects data to be written in the local write buffer
      */
     void write(basic::Writer::WriteCallbackFunc handler) {
-      connection_->write(*write_buffer_, write_buffer_->size(),
-                         std::move(handler));
+      connection->write(*write_buffer, write_buffer->size(),
+                        std::move(handler));
     }
 
     /**
@@ -75,45 +75,45 @@ namespace libp2p::protocol_muxer {
     void read(size_t n,
               std::function<void(const outcome::result<void> &)> handler) {
       // if there are already enough bytes in our buffer, return them
-      if (read_buffer_->size() >= n) {
+      if (read_buffer->size() >= n) {
         return handler(outcome::success());
       }
 
-      auto to_read = n - read_buffer_->size();
+      auto to_read = n - read_buffer->size();
       auto buf = std::make_shared<kagome::common::Buffer>(to_read, 0);
-      return connection_->read(
+      return connection->read(
           *buf, to_read,
-          [self{shared_from_this()}, buf = std::move(buf),
-           h = std::move(handler), to_read](auto &&res) {
+          [self{shared_from_this()}, buf, h = std::move(handler),
+           to_read](auto &&res) {
             if (!res) {
               return h(res.error());
             }
             if (boost::asio::buffer_copy(
-                    self->read_buffer_->prepare(to_read),
+                    self->read_buffer->prepare(to_read),
                     boost::asio::const_buffer(buf->data(), to_read))
                 != to_read) {
               return h(MultiselectError::INTERNAL_ERROR);
             }
-            self->read_buffer_->commit(to_read);
+            self->read_buffer->commit(to_read);
             h(outcome::success());
           });
     }
 
     ConnectionState(
         std::shared_ptr<basic::ReadWriter> conn,
-        std::shared_ptr<std::vector<const peer::Protocol>> protocols,
+        std::shared_ptr<std::vector<peer::Protocol>> protocols,
         std::function<void(const outcome::result<peer::Protocol> &)> proto_cb,
         std::shared_ptr<kagome::common::Buffer> write_buffer,
         std::shared_ptr<boost::asio::streambuf> read_buffer,
         size_t buffers_index, std::shared_ptr<Multiselect> multiselect,
         NegotiationStatus status = NegotiationStatus::NOTHING_SENT)
-        : connection_{std::move(conn)},
-          protocols_{std::move(protocols)},
-          proto_callback_{std::move(proto_cb)},
-          write_buffer_{std::move(write_buffer)},
-          read_buffer_{std::move(read_buffer)},
-          buffers_index_{buffers_index},
-          multiselect_{std::move(multiselect)},
+        : connection{std::move(conn)},
+          protocols{std::move(protocols)},
+          proto_callback{std::move(proto_cb)},
+          write_buffer{std::move(write_buffer)},
+          read_buffer{std::move(read_buffer)},
+          buffers_index{buffers_index},
+          multiselect{std::move(multiselect)},
           status_{status} {}
   };
 }  // namespace libp2p::protocol_muxer

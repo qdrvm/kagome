@@ -29,9 +29,10 @@ namespace libp2p::protocol_muxer {
      * @param connection, for which the protocol is being chosen
      * @param is_initiator - true, if we initiated the connection and thus
      * taking lead in the Multiselect protocol; false otherwise
+     * @param cb - callback for handling negotiated protocol
      * @return chosen protocol or error
      */
-    virtual void selectOneOf(gsl::span<const peer::Protocol> protocols,
+    virtual void selectOneOf(gsl::span<peer::Protocol> protocols,
                              std::shared_ptr<basic::ReadWriter> connection,
                              bool is_initiator, ProtocolHandlerFunc cb) = 0;
 

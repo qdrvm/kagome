@@ -34,7 +34,7 @@ namespace libp2p::protocol_muxer {
                 [connection_state = std::move(connection_state)](
                     const outcome::result<void> &res) mutable {
                   if (not res) {
-                    auto multiselect = connection_state->multiselect_;
+                    auto multiselect = connection_state->multiselect;
                     multiselect->negotiationRoundFailed(
                         connection_state, MultiselectError::INTERNAL_ERROR);
                     return;
@@ -45,14 +45,14 @@ namespace libp2p::protocol_muxer {
 
   void MessageReader::onReadVarintCompleted(
       std::shared_ptr<ConnectionState> connection_state) {
-    auto varint_opt = getVarint(*connection_state->read_buffer_);
+    auto varint_opt = getVarint(*connection_state->read_buffer);
     if (!varint_opt) {
       // no varint; continue reading
       readNextVarint(std::move(connection_state));
       return;
     }
     // we have length of the line to be read; do it
-    connection_state->read_buffer_->consume(varint_opt->size());
+    connection_state->read_buffer->consume(varint_opt->size());
 
     auto bytes_to_read = varint_opt->toUInt64();
     readNextBytes(std::move(connection_state), bytes_to_read,
@@ -70,7 +70,7 @@ namespace libp2p::protocol_muxer {
                  final_callback = std::move(final_callback)](
                     const outcome::result<void> &res) mutable {
                   if (not res) {
-                    auto multiselect = connection_state->multiselect_;
+                    auto multiselect = connection_state->multiselect;
                     multiselect->negotiationRoundFailed(
                         connection_state, MultiselectError::INTERNAL_ERROR);
                     return;
@@ -85,13 +85,13 @@ namespace libp2p::protocol_muxer {
     // '/tls/1.3.0\n' - the shortest protocol, which could be found
     static constexpr size_t kShortestProtocolLength = 11;
 
-    auto multiselect = connection_state->multiselect_;
+    auto multiselect = connection_state->multiselect;
 
     auto msg_span =
         gsl::make_span(static_cast<const uint8_t *>(
-                           connection_state->read_buffer_->data().data()),
+                           connection_state->read_buffer->data().data()),
                        read_bytes);
-    connection_state->read_buffer_->consume(msg_span.size());
+    connection_state->read_buffer->consume(msg_span.size());
 
     // firstly, try to match the message against constant messages
     auto const_msg_res = MessageManager::parseConstantMsg(msg_span);
@@ -144,14 +144,14 @@ namespace libp2p::protocol_muxer {
   void MessageReader::onReadProtocolsCompleted(
       std::shared_ptr<ConnectionState> connection_state,
       uint64_t expected_protocols_size, uint64_t expected_protocols_number) {
-    auto multiselect = connection_state->multiselect_;
+    auto multiselect = connection_state->multiselect;
 
     auto msg_res = MessageManager::parseProtocols(
         gsl::make_span(static_cast<const uint8_t *>(
-                           connection_state->read_buffer_->data().data()),
+                           connection_state->read_buffer->data().data()),
                        expected_protocols_size),
         expected_protocols_number);
-    connection_state->read_buffer_->consume(expected_protocols_size);
+    connection_state->read_buffer->consume(expected_protocols_size);
     if (!msg_res) {
       multiselect->negotiationRoundFailed(connection_state, msg_res.error());
       return;

@@ -47,6 +47,9 @@ class MultiselectTest : public ::testing::Test {
   const Protocol kDefaultEncryptionProtocol1 = "/plaintext/1.0.0";
   const Protocol kDefaultEncryptionProtocol2 = "/plaintext/2.0.0";
 
+  std::vector<Protocol> protocols_{kDefaultEncryptionProtocol1,
+                                   kDefaultEncryptionProtocol2};
+
   std::shared_ptr<Multiselect> multiselect_ = std::make_shared<Multiselect>();
 
   void launchContext() {
@@ -225,7 +228,7 @@ class MultiselectTest : public ::testing::Test {
               });
         });
   }
-  //
+
   /**
    * Send a protocol and expect it to be received as an ack
    */
@@ -271,17 +274,12 @@ TEST_F(MultiselectTest, NegotiateAsInitiator) {
         negotiationOpeningsInitiator(conn, [this, conn] {
           // second, ls message will be sent to us; respond with a list of
           // encryption protocols we know
-          negotiationLsInitiator(
-              conn,
-              std::vector<Protocol>{kDefaultEncryptionProtocol1,
-                                    kDefaultEncryptionProtocol2},
-              [this, conn] {
-                // finally, we expect that the second of the protocols will
-                // be sent back to us, as it is the common one; after that,
-                // we should send an ack
-                negotiationProtocolsInitiator(conn,
-                                              kDefaultEncryptionProtocol2);
-              });
+          negotiationLsInitiator(conn, protocols_, [this, conn] {
+            // finally, we expect that the second of the protocols will
+            // be sent back to us, as it is the common one; after that,
+            // we should send an ack
+            negotiationProtocolsInitiator(conn, kDefaultEncryptionProtocol2);
+          });
         });
       });
 
@@ -289,14 +287,15 @@ TEST_F(MultiselectTest, NegotiateAsInitiator) {
       << "is port 40009 busy?";
   ASSERT_TRUE(transport_->canDial(*multiaddress_));
 
+  std::vector<Protocol> protocol_vec{kDefaultEncryptionProtocol2};
   transport_->dial(
       testutil::randomPeerId(), *multiaddress_,
-      [this,
-       &negotiated](outcome::result<std::shared_ptr<CapableConnection>> rconn) {
+      [this, &negotiated, &protocol_vec](
+          outcome::result<std::shared_ptr<CapableConnection>> rconn) {
         EXPECT_OUTCOME_TRUE(conn, rconn);
 
         multiselect_->selectOneOf(
-            std::vector<Protocol>{kDefaultEncryptionProtocol2}, conn, true,
+            protocol_vec, conn, true,
             [this, &negotiated,
              conn](const outcome::result<Protocol> &protocol_res) {
               EXPECT_OUTCOME_TRUE(protocol, protocol_res);
@@ -312,12 +311,13 @@ TEST_F(MultiselectTest, NegotiateAsInitiator) {
 TEST_F(MultiselectTest, NegotiateAsListener) {
   auto negotiated = false;
 
+  std::vector<Protocol> protocol_vec{kDefaultEncryptionProtocol2};
   auto transport_listener = transport_->createListener(
-      [this, &negotiated](
+      [this, &negotiated, &protocol_vec](
           outcome::result<std::shared_ptr<CapableConnection>> rconn) mutable {
         EXPECT_OUTCOME_TRUE(conn, rconn);
         multiselect_->selectOneOf(
-            std::vector<Protocol>{kDefaultEncryptionProtocol2}, conn, false,
+            protocol_vec, conn, false,
             [this, &negotiated](const outcome::result<Protocol> &protocol_res) {
               EXPECT_OUTCOME_TRUE(protocol, protocol_res);
               EXPECT_EQ(protocol, kDefaultEncryptionProtocol2);
@@ -358,8 +358,7 @@ TEST_F(MultiselectTest, NegotiateAsListener) {
 }
 
 /**
- * @given connection, over which we want to negotiate @and multiselect
- instance
+ * @given connection, over which we want to negotiate @and multiselect instance
  * over that connection @and encryption protocol, not supported by our side
  * @when negotiating about the protocol
  * @then the common protocol is not selected
@@ -367,12 +366,14 @@ TEST_F(MultiselectTest, NegotiateAsListener) {
 TEST_F(MultiselectTest, NegotiateFailure) {
   auto negotiated = false;
 
+  std::vector<Protocol> protocol_vec{kDefaultEncryptionProtocol1};
   auto transport_listener = transport_->createListener(
-      [this, &negotiated](
+      [this, &negotiated, &protocol_vec](
           outcome::result<std::shared_ptr<CapableConnection>> rconn) mutable {
         EXPECT_OUTCOME_TRUE(conn, rconn);
+
         multiselect_->selectOneOf(
-            std::vector<Protocol>{kDefaultEncryptionProtocol1}, conn, true,
+            protocol_vec, conn, true,
             [](const outcome::result<Protocol> &protocol_result) {
               EXPECT_FALSE(protocol_result);
             });
@@ -405,7 +406,8 @@ TEST_F(MultiselectTest, NegotiateFailure) {
  */
 TEST_F(MultiselectTest, NoProtocols) {
   std::shared_ptr<RawConnection> conn = std::make_shared<RawConnectionMock>();
-  multiselect_->selectOneOf(std::vector<Protocol>{}, conn, true,
+  std::vector<Protocol> empty_vec{};
+  multiselect_->selectOneOf(empty_vec, conn, true,
                             [](const outcome::result<Protocol> &protocol_res) {
                               EXPECT_FALSE(protocol_res);
                             });
