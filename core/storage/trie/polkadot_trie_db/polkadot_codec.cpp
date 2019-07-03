@@ -282,7 +282,7 @@ namespace kagome::storage::trie {
     auto byte_length = nibbles_num / 2 + nibbles_num % 2;
     Buffer partial_key;
     partial_key.reserve(byte_length);
-    while (byte_length--) {
+    while (byte_length-- != 0) {
       if (not stream.hasMore(1)) {
         return Error::INPUT_TOO_SMALL;
       }
@@ -314,9 +314,9 @@ namespace kagome::storage::trie {
     children_bitmap += stream.next();
 
     uint8_t i = 0;
-    while (children_bitmap) {
+    while (children_bitmap != 0) {
       // if there is a child
-      if (children_bitmap & (1u << i)) {
+      if ((children_bitmap & (1u << i)) != 0) {
         // unset bit for this child
         children_bitmap &= ~(1u << i);
         // read the hash of the child and make a dummy node from it for this

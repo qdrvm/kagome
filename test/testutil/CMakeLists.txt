@@ -3,3 +3,10 @@
 
 add_subdirectory(storage)
 add_subdirectory(runtime)
+add_subdirectory(libp2p)
+
+
+add_library(testutil INTERFACE)
+target_link_libraries(testutil INTERFACE
+    testutil_peer
+    )

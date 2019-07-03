@@ -42,7 +42,7 @@ namespace kagome::common {
      * @brief constructor enabling initializer list
      * @param l initializer list
      */
-    Blob(const std::array<byte_t, size_> &l) {
+    explicit Blob(const std::array<byte_t, size_> &l) {
       std::copy(l.begin(), l.end(), this->begin());
     }
 

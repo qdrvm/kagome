@@ -37,12 +37,13 @@ struct UpgraderSemiMock : public Upgrader {
                    std::shared_ptr<MuxerAdaptor> m)
       : security(std::move(s)), mux(std::move(m)) {}
 
-  void upgradeToSecure(RawSPtr conn, OnSecuredCallbackFunc cb) override {
-    if (conn->isInitiator()) {
-      security->secureOutbound(conn, testutil::randomPeerId(), std::move(cb));
-    } else {
-      security->secureInbound(conn, std::move(cb));
-    }
+  void upgradeToSecureOutbound(RawSPtr conn, const peer::PeerId &remoteId,
+                               OnSecuredCallbackFunc cb) override {
+    security->secureOutbound(conn, remoteId, std::move(cb));
+  }
+
+  void upgradeToSecureInbound(RawSPtr conn, OnSecuredCallbackFunc cb) override {
+    security->secureInbound(conn, std::move(cb));
   }
 
   void upgradeToMuxed(SecSPtr conn, OnMuxedCallbackFunc cb) override {
@@ -142,6 +143,7 @@ struct Client : public std::enable_shared_from_this<Client> {
   void connect(const Multiaddress &server) {
     // create new stream
     transport_->dial(
+        testutil::randomPeerId(),  // ignore peer id
         server,
         [this](outcome::result<std::shared_ptr<CapableConnection>> rconn) {
           EXPECT_OUTCOME_TRUE(conn, rconn);

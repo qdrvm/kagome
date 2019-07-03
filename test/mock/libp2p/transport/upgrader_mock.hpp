@@ -18,7 +18,11 @@ namespace libp2p::transport {
    public:
     ~UpgraderMock() override = default;
 
-    MOCK_METHOD2(upgradeToSecure,
+    MOCK_METHOD3(upgradeToSecureOutbound,
+                 void(Upgrader::RawSPtr, const peer::PeerId &,
+                      Upgrader::OnSecuredCallbackFunc));
+
+    MOCK_METHOD2(upgradeToSecureInbound,
                  void(Upgrader::RawSPtr, Upgrader::OnSecuredCallbackFunc));
 
     MOCK_METHOD2(upgradeToMuxed,
@@ -36,8 +40,15 @@ namespace libp2p::transport {
         std::make_shared<muxer::Yamux>();
 
    public:
-    void upgradeToSecure(RawSPtr conn, OnSecuredCallbackFunc cb) override {
+    void upgradeToSecureInbound(RawSPtr conn,
+                                OnSecuredCallbackFunc cb) override {
       security_adaptor_->secureInbound(std::move(conn), std::move(cb));
+    }
+
+    void upgradeToSecureOutbound(RawSPtr conn, const peer::PeerId &remoteId,
+                                 OnSecuredCallbackFunc cb) override {
+      security_adaptor_->secureOutbound(std::move(conn), remoteId,
+                                        std::move(cb));
     }
 
     void upgradeToMuxed(SecSPtr conn, OnMuxedCallbackFunc cb) override {
