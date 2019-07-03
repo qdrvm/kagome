@@ -8,6 +8,7 @@
 
 #include <memory>
 #include <string_view>
+#include <vector>
 
 #include "common/logger.hpp"
 #include "libp2p/connection/capable_connection.hpp"
@@ -17,6 +18,10 @@
 #include "libp2p/host.hpp"
 #include "libp2p/peer/identity_manager.hpp"
 #include "libp2p/protocol/identify/observed_addresses.hpp"
+
+namespace libp2p::multi {
+  class Multiaddress;
+}
 
 namespace libp2p::protocol {
   /**
@@ -44,6 +49,21 @@ namespace libp2p::protocol {
         peer::IdentityManager &identity_manager,
         std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller,
         kagome::common::Logger log = kagome::common::createLogger("Identify"));
+
+    /**
+     * Get addresses other peers reported we have dialed from
+     * @return set of addresses
+     */
+    std::vector<multi::Multiaddress> getAllObservedAddresses() const;
+
+    /**
+     * Get addresses other peers reported we have dialed from, when they
+     * provided a (\param address)
+     * @param address, for which to retrieve observed addresses
+     * @return set of addresses
+     */
+    std::vector<multi::Multiaddress> getObservedAddressesFor(
+        const multi::Multiaddress &address) const;
 
    private:
     /**

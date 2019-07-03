@@ -9,3 +9,10 @@ addtest(identify_test
 target_link_libraries(identify_test
     libp2p_identify
     )
+
+addtest(observed_addresses_test
+    observed_addresses_test.cpp
+    )
+target_link_libraries(observed_addresses_test
+    libp2p_identify
+    )

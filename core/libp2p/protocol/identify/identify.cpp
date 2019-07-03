@@ -66,6 +66,15 @@ namespace libp2p::protocol {
         });
   }
 
+  std::vector<multi::Multiaddress> Identify::getAllObservedAddresses() const {
+    return observed_addresses_.getAllAddresses();
+  }
+
+  std::vector<multi::Multiaddress> Identify::getObservedAddressesFor(
+      const multi::Multiaddress &address) const {
+    return observed_addresses_.getAddressesFor(address);
+  }
+
   void Identify::onNewConnection(
       const std::weak_ptr<connection::CapableConnection> &conn) {
     if (conn.expired()) {
@@ -175,6 +184,9 @@ namespace libp2p::protocol {
   void Identify::receiveIdentify(StreamSPtr stream) {
     static constexpr size_t kMaxMessageSize = 2048;  // from Go implementation
 
+    // TODO(akvinikym): not sure, how to read Protobuf message - do they have a
+    // varint according to Libp2p conventions or not? In Go, it seems it is
+    // there
     auto msg_buf = std::make_shared<Buffer>(kMaxMessageSize, 0);
     return stream->readSome(
         *msg_buf, kMaxMessageSize,
