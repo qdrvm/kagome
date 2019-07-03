@@ -30,6 +30,9 @@ namespace libp2p::peer {
     /// address we add
     constexpr const auto kRecentlyConnected = std::chrono::minutes(10);
 
+    /// for our own external addresses, observed by other peers
+    constexpr const auto kOwnObserved = std::chrono::minutes(10);
+
     /// invalidated addresses
     constexpr const auto kTransient = std::chrono::seconds(10);
 

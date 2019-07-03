@@ -23,7 +23,8 @@ namespace {
    */
   std::tuple<std::string, std::string> getPeerIdentity(
       const std::shared_ptr<libp2p::connection::Stream> &stream) {
-    std::string id = "unknown", addr = "unknown";
+    std::string id = "unknown";
+    std::string addr = "unknown";
     if (auto id_res = stream->remotePeerId()) {
       id = id_res.value().toBase58();
     }
@@ -93,15 +94,8 @@ namespace libp2p::protocol {
                                  std::move(remote_peer_addr_res.value())}};
 
     auto res = host_->newStream(
-        std::move(peer_info), kIdentifyProto,
-        [self{shared_from_this()}](auto &&stream_res) {
-          if (!stream_res) {
-            self->log_->error(
-                "cannot create a stream over a received connection: {}",
-                stream_res.error().message());
-            return;
-          }
-          self->receiveIdentify(std::move(stream_res.value()));
+        peer_info, kIdentifyProto, [self{shared_from_this()}](auto &&stream) {
+          self->receiveIdentify(std::forward<decltype(stream)>(stream));
         });
     if (!res) {
       log_->error("cannot create a stream over a received connection: {}",
@@ -255,7 +249,8 @@ namespace libp2p::protocol {
 
     // peer id can be set in stream, derived from the received public key or
     // both; handle all possible cases
-    std::optional<peer::PeerId> stream_peer_id, msg_peer_id;
+    std::optional<peer::PeerId> stream_peer_id;
+    std::optional<peer::PeerId> msg_peer_id;
     std::optional<crypto::PublicKey> pubkey;
 
     // retrieve a peer id from the stream
@@ -288,7 +283,11 @@ namespace libp2p::protocol {
     if (!stream_peer_id) {
       // didn't know the ID before; memorize the key, from which it can be
       // derived later
-      key_repo.addPublicKey(*msg_peer_id, *pubkey);
+      auto add_res = key_repo.addPublicKey(*msg_peer_id, *pubkey);
+      if (!add_res) {
+        log_->error("cannot add key to the repo of peer {}: {}",
+                    msg_peer_id->toBase58(), add_res.error().message());
+      }
       return msg_peer_id;
     }
 
@@ -301,7 +300,12 @@ namespace libp2p::protocol {
     }
 
     // insert the derived key into key repository
-    key_repo.addPublicKey(*stream_peer_id, *pubkey);
+    auto add_res = key_repo.addPublicKey(*stream_peer_id, *pubkey);
+    if (!add_res) {
+      log_->error("cannot add key to the repo of peer {}: {}",
+                  stream_peer_id->toBase58(), add_res.error().message());
+    }
+    return stream_peer_id;
   }
 
   void Identify::consumeObservedAddresses(const std::string &address_str,
@@ -335,9 +339,9 @@ namespace libp2p::protocol {
 
     // TODO(akvinikym): hasConsistentTransport(..)
 
-    observed_addresses_.add(
-        std::move(observed_address), std::move(local_addr_res.value()),
-        std::move(remote_addr_res.value()), is_initiator_res.value());
+    observed_addresses_.add(std::move(observed_address),
+                            std::move(local_addr_res.value()),
+                            remote_addr_res.value(), is_initiator_res.value());
   }
 
   void Identify::consumeListenAddresses(

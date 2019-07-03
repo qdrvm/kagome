@@ -110,6 +110,24 @@ namespace libp2p::multi {
     return decapsulateStringFromAddress(proto_str, proto_bytes.value());
   }
 
+  std::pair<Multiaddress, std::optional<Multiaddress>>
+  Multiaddress::splitFirst() const {
+    auto second_slash = stringified_address_.find('/', 1);
+    if (second_slash == std::string::npos) {
+      return {*this, std::nullopt};
+    }
+
+    auto third_slash = stringified_address_.find('/', second_slash + 1);
+    if (third_slash == std::string::npos) {
+      return {*this, std::nullopt};
+    }
+
+    // it's safe to get values in-place, as parts of Multiaddress are guaranteed
+    // to be valid Multiaddresses themselves
+    return {create(stringified_address_.substr(0, third_slash - 1)).value(),
+            create(stringified_address_.substr(third_slash)).value()};
+  }
+
   bool Multiaddress::decapsulateStringFromAddress(std::string_view proto,
                                                   const ByteBuffer &bytes) {
     auto str_pos = stringified_address_.rfind(proto);

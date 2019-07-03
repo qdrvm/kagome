@@ -54,7 +54,8 @@ namespace libp2p::event {
      */
     class Handle {
      public:
-      ~Handle() {
+      ~Handle() {  // NOLINT(bugprone-exception-escape) - no way we can call it
+                   // with noexcept guarantee, but we need
         unsubscribe();
       }
 
@@ -70,8 +71,11 @@ namespace libp2p::event {
 
       // This handle can be constructed and moved
       Handle() = default;
-      Handle(Handle &&) = default;
-      Handle &operator=(Handle &&rhs) = default;
+
+      // no way they can be noexcept because of none-noexcept
+      // boost::signal2::connection move ctor
+      Handle(Handle &&) = default;                // NOLINT
+      Handle &operator=(Handle &&rhs) = default;  // NOLINT
 
       // dont allow copying since this protects the resource
       Handle(const Handle &) = delete;
@@ -131,8 +135,10 @@ namespace libp2p::event {
      * @param erased_channel_ptr
      */
     static void deleter(void *erased_channel_ptr) {
-      auto ptr = reinterpret_cast<Channel *>(erased_channel_ptr);
-      delete ptr;
+      auto ptr =
+          reinterpret_cast<  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+              Channel *>(erased_channel_ptr);
+      delete ptr;  // NOLINT(cppcoreguidelines-owning-memory)
     }
 
     /**
@@ -141,7 +147,8 @@ namespace libp2p::event {
      * @return - the type safe channel pointer
      */
     static Channel *get_channel(erased_channel_ptr &ptr) {
-      return reinterpret_cast<Channel *>(ptr.get());
+      return reinterpret_cast<  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+          Channel *>(ptr.get());
     }
 
     /**
@@ -199,10 +206,9 @@ namespace libp2p::event {
       auto itr = channels_.find(key);
       if (itr != channels_.end()) {
         return *channel_type::get_channel(itr->second);
-      } else {
-        channels_.emplace(std::make_pair(key, channel_type::make_unique()));
-        return *channel_type::get_channel(channels_.at(key));
       }
+      channels_.emplace(std::make_pair(key, channel_type::make_unique()));
+      return *channel_type::get_channel(channels_.at(key));
     }
 
    private:

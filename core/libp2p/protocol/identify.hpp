@@ -6,6 +6,6 @@
 #ifndef KAGOME_IDENTIFY_HPP
 #define KAGOME_IDENTIFY_HPP
 
-#include "libp2p/service/identify/identify.hpp"
+#include "libp2p/protocol/identify/identify.hpp"
 
 #endif  // KAGOME_IDENTIFY_HPP
