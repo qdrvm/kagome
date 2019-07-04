@@ -62,15 +62,18 @@ namespace libp2p::basic {
      * @param msg to be written
      * @param cb to be called after a successful right or error
      */
-    void write(const std::shared_ptr<ReadWriter> &conn, Message &&msg,
+    void write(const std::shared_ptr<ReadWriter> &conn, const Message &msg,
                Writer::WriteCallbackFunc cb) {
-      auto varint_len = multi::UVarint{msg.ByteSize()};
+      auto varint_len = multi::UVarint{static_cast<uint64_t>(msg.ByteSize())};
 
       auto msg_bytes = std::make_shared<kagome::common::Buffer>(
           varint_len.size() + msg.ByteSize(), 0);
-      msg_bytes->put(varint_len.toBytes());
+      for (auto i = 0u; i < varint_len.size(); ++i) {
+        msg_bytes->toVector()[i] = varint_len.toVector()[i];
+      }
       msg.SerializeToArray(msg_bytes->data() + varint_len.size(),
                            msg.ByteSize());
+
       conn->write(*msg_bytes, msg_bytes->size(),
                   [conn, msg_bytes, cb = std::move(cb)](auto &&res) {
                     cb(std::forward<decltype(res)>(res));

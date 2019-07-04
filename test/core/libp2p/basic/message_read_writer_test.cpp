@@ -33,6 +33,9 @@ class MessageReadWriterTest : public testing::Test {
 
   Buffer msg_bytes_{0x11, 0x22, 0x33, 0x44};
 
+  Buffer msg_with_varint_bytes_ =
+      Buffer{}.put(len_varint_.toBytes()).put(msg_bytes_);
+
   bool operation_completed_ = false;
 };
 
@@ -69,4 +72,29 @@ TEST_F(MessageReadWriterTest, Read) {
   ASSERT_TRUE(operation_completed_);
 }
 
-TEST_F(MessageReadWriterTest, Write) {}
+ACTION_P2(CheckWrite, buf, varint) {
+  ASSERT_EQ(arg0.size(), buf.size());
+
+  // it's hard to check, that message bytes were copied, but at least check
+  // varint is at the beginning
+  for (auto i = 0u; i < varint.size(); ++i) {
+    ASSERT_EQ(arg0[i], varint.toBytes()[i]);
+  }
+  arg2(buf.size());
+}
+
+TEST_F(MessageReadWriterTest, Write) {
+  ProtobufMessageMock msg;
+  EXPECT_CALL(msg, ByteSize()).Times(3).WillRepeatedly(Return(kMsgLength));
+  EXPECT_CALL(msg, SerializeToArray(_, kMsgLength));
+
+  EXPECT_CALL(*conn_mock_, write(_, kMsgLength + 1, _))
+      .WillOnce(CheckWrite(msg_with_varint_bytes_, len_varint_));
+
+  msg_rw_->write(conn_mock_, msg, [this](auto &&res) {
+    ASSERT_TRUE(res);
+    operation_completed_ = true;
+  });
+
+  ASSERT_TRUE(operation_completed_);
+}
