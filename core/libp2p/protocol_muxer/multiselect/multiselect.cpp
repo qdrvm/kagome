@@ -69,32 +69,28 @@ namespace libp2p::protocol_muxer {
 
     switch (msg.type) {
       case MessageType::OPENING:
-        handleOpeningMsg(std::move(connection_state));
-        return;
+        return handleOpeningMsg(std::move(connection_state));
       case MessageType::PROTOCOL:
-        handleProtocolMsg(msg.protocols[0], connection_state);
-        return;
+        return handleProtocolMsg(msg.protocols[0], connection_state);
       case MessageType::PROTOCOLS:
-        handleProtocolsMsg(msg.protocols, connection_state);
-        return;
+        return handleProtocolsMsg(msg.protocols, connection_state);
       case MessageType::LS:
-        handleLsMsg(connection_state);
-        return;
+        return handleLsMsg(connection_state);
       case MessageType::NA:
-        handleNaMsg(connection_state);
-        return;
+        return handleNaMsg(connection_state);
       default:
         log_->critical(
             "type of the message, returned by the parser, is unknown");
-        return;
+        return negotiationRoundFailed(connection_state,
+                                      MultiselectError::INTERNAL_ERROR);
     }
   }
 
   void Multiselect::handleOpeningMsg(
-      std::shared_ptr<ConnectionState> connection_state) const {
+      std::shared_ptr<ConnectionState> connection_state) {
     using Status = ConnectionState::NegotiationStatus;
 
-    switch (connection_state->status_) {
+    switch (connection_state->status) {
       case Status::NOTHING_SENT:
         // we received an opening as a first message in this round; respond with
         // an opening as well
@@ -118,7 +114,7 @@ namespace libp2p::protocol_muxer {
       const std::shared_ptr<ConnectionState> &connection_state) {
     using Status = ConnectionState::NegotiationStatus;
 
-    switch (connection_state->status_) {
+    switch (connection_state->status) {
       case Status::OPENING_SENT:
         return onProtocolAfterOpeningOrLs(connection_state, protocol);
       case Status::PROTOCOL_SENT:
@@ -144,7 +140,7 @@ namespace libp2p::protocol_muxer {
       const std::shared_ptr<ConnectionState> &connection_state) {
     using Status = ConnectionState::NegotiationStatus;
 
-    switch (connection_state->status_) {
+    switch (connection_state->status) {
       case Status::OPENING_SENT:
       case Status::PROTOCOL_SENT:
       case Status::PROTOCOLS_SENT:
@@ -220,15 +216,15 @@ namespace libp2p::protocol_muxer {
   }
 
   void Multiselect::onUnexpectedRequestResponse(
-      const std::shared_ptr<ConnectionState> &connection_state) const {
+      const std::shared_ptr<ConnectionState> &connection_state) {
     log_->info("got a unexpected request-response combination - sending 'ls'");
-    MessageWriter::sendLsMsg(connection_state);
+    negotiationRoundFailed(connection_state, MultiselectError::INTERNAL_ERROR);
   }
 
   void Multiselect::onGarbagedStreamStatus(
-      const std::shared_ptr<ConnectionState> &connection_state) const {
+      const std::shared_ptr<ConnectionState> &connection_state) {
     log_->critical("there is some garbage in stream state status");
-    MessageWriter::sendLsMsg(connection_state);
+    negotiationRoundFailed(connection_state, MultiselectError::INTERNAL_ERROR);
   }
 
   void Multiselect::negotiationRoundFinished(

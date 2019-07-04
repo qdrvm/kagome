@@ -22,7 +22,7 @@ namespace libp2p::protocol_muxer {
                                             written_bytes_res.error());
         return;
       }
-      connection_state->status_ = success_status;
+      connection_state->status = success_status;
       multiselect->onWriteCompleted(std::move(connection_state));
     };
   }
@@ -50,9 +50,8 @@ namespace libp2p::protocol_muxer {
       const std::shared_ptr<ConnectionState> &connection_state) {
     *connection_state->write_buffer = MessageManager::protocolsMsg(protocols);
     const auto &state = connection_state;
-    state->write(
-        getWriteCallback(connection_state,
-                         ConnectionState::NegotiationStatus::PROTOCOLS_SENT));
+    state->write(getWriteCallback(
+        connection_state, ConnectionState::NegotiationStatus::PROTOCOLS_SENT));
   }
 
   void MessageWriter::sendLsMsg(
@@ -84,7 +83,7 @@ namespace libp2p::protocol_muxer {
                                             written_bytes_res.error());
         return;
       }
-      connection_state->status_ =
+      connection_state->status =
           ConnectionState::NegotiationStatus::PROTOCOL_SENT;
       multiselect->onWriteAckCompleted(connection_state, protocol);
     });

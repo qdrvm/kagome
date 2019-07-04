@@ -78,8 +78,7 @@ namespace libp2p::protocol_muxer {
     void onReadCompleted(std::shared_ptr<ConnectionState> connection_state,
                          MessageManager::MultiselectMessage msg);
 
-    void handleOpeningMsg(
-        std::shared_ptr<ConnectionState> connection_state) const;
+    void handleOpeningMsg(std::shared_ptr<ConnectionState> connection_state);
 
     void handleProtocolMsg(
         const peer::Protocol &protocol,
@@ -103,10 +102,10 @@ namespace libp2p::protocol_muxer {
         const std::shared_ptr<ConnectionState> &connection_state) const;
 
     void onUnexpectedRequestResponse(
-        const std::shared_ptr<ConnectionState> &connection_state) const;
+        const std::shared_ptr<ConnectionState> &connection_state);
 
     void onGarbagedStreamStatus(
-        const std::shared_ptr<ConnectionState> &connection_state) const;
+        const std::shared_ptr<ConnectionState> &connection_state);
 
     void negotiationRoundFinished(
         const std::shared_ptr<ConnectionState> &connection_state,

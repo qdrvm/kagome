@@ -11,7 +11,7 @@
 
 #include <boost/asio/streambuf.hpp>
 #include "common/buffer.hpp"
-#include "libp2p/connection/stream.hpp"
+#include "libp2p/basic/readwriter.hpp"
 #include "libp2p/protocol_muxer/multiselect/multiselect_error.hpp"
 #include "libp2p/protocol_muxer/protocol_muxer.hpp"
 
@@ -54,7 +54,7 @@ namespace libp2p::protocol_muxer {
     std::shared_ptr<Multiselect> multiselect;
 
     /// current status of the negotiation
-    NegotiationStatus status_ = NegotiationStatus::NOTHING_SENT;
+    NegotiationStatus status = NegotiationStatus::NOTHING_SENT;
 
     /**
      * Write to the underlying connection or stream
@@ -114,7 +114,7 @@ namespace libp2p::protocol_muxer {
           read_buffer{std::move(read_buffer)},
           buffers_index{buffers_index},
           multiselect{std::move(multiselect)},
-          status_{status} {}
+          status{status} {}
   };
 }  // namespace libp2p::protocol_muxer
 
