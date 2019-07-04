@@ -42,7 +42,7 @@ namespace libp2p::protocol_muxer {
       MSG_IS_ILL_FORMED
     };
 
-    static std::optional<MultiselectMessage> parseConstantMsg(
+    static outcome::result<MultiselectMessage> parseConstantMsg(
         gsl::span<const uint8_t> bytes);
 
     static outcome::result<ProtocolsMessageHeader> parseProtocolsHeader(

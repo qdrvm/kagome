@@ -78,9 +78,10 @@ class UpgraderTest : public testing::Test {
 
 TEST_F(UpgraderTest, UpgradeSecureInitiator) {
   EXPECT_CALL(*raw_conn_, isInitiator_hack()).WillRepeatedly(Return(true));
+
   EXPECT_CALL(
       *multiselect_mock_,
-      selectOneOf(gsl::span<const Protocol>(security_protos_),
+      selectOneOf(gsl::span<Protocol>(security_protos_),
                   std::static_pointer_cast<ReadWriter>(raw_conn_), true, _))
       .WillOnce(Arg3CallbackWithArg(security_protos_[0]));
   EXPECT_CALL(
@@ -100,7 +101,7 @@ TEST_F(UpgraderTest, UpgradeSecureNotInitiator) {
   EXPECT_CALL(*raw_conn_, isInitiator_hack()).WillRepeatedly(Return(false));
   EXPECT_CALL(
       *multiselect_mock_,
-      selectOneOf(gsl::span<const Protocol>(security_protos_),
+      selectOneOf(gsl::span<Protocol>(security_protos_),
                   std::static_pointer_cast<ReadWriter>(raw_conn_), false, _))
       .WillOnce(Arg3CallbackWithArg(outcome::success(security_protos_[1])));
   EXPECT_CALL(
@@ -119,7 +120,7 @@ TEST_F(UpgraderTest, UpgradeSecureFail) {
   EXPECT_CALL(*raw_conn_, isInitiator_hack()).WillOnce(Return(false));
   EXPECT_CALL(
       *multiselect_mock_,
-      selectOneOf(gsl::span<const Protocol>(security_protos_),
+      selectOneOf(gsl::span<Protocol>(security_protos_),
                   std::static_pointer_cast<ReadWriter>(raw_conn_), false, _))
       .WillOnce(Arg3CallbackWithArg(outcome::failure(std::error_code())));
 
@@ -132,7 +133,7 @@ TEST_F(UpgraderTest, UpgradeMux) {
   EXPECT_CALL(*sec_conn_, isInitiatorMock()).WillOnce(Return(true));
   EXPECT_CALL(
       *multiselect_mock_,
-      selectOneOf(gsl::span<const Protocol>(muxer_protos_),
+      selectOneOf(gsl::span<Protocol>(muxer_protos_),
                   std::static_pointer_cast<ReadWriter>(sec_conn_), true, _))
       .WillOnce(Arg3CallbackWithArg(outcome::success(muxer_protos_[0])));
   EXPECT_CALL(
@@ -150,7 +151,7 @@ TEST_F(UpgraderTest, UpgradeMuxFail) {
   EXPECT_CALL(*sec_conn_, isInitiatorMock()).WillOnce(Return(true));
   EXPECT_CALL(
       *multiselect_mock_,
-      selectOneOf(gsl::span<const Protocol>(muxer_protos_),
+      selectOneOf(gsl::span<Protocol>(muxer_protos_),
                   std::static_pointer_cast<ReadWriter>(sec_conn_), true, _))
       .WillOnce(Arg3CallbackWithArg(outcome::failure(std::error_code())));
 
