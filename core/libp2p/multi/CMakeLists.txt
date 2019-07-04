@@ -13,6 +13,7 @@ add_library(uvarint
 
 target_link_libraries(uvarint
   outcome
+  hexutil
   )
 
 

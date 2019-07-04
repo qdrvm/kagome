@@ -43,6 +43,7 @@ namespace libp2p::basic {
         return cb(std::nullopt);
       }
 
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       conn->read(gsl::make_span(varint_buf->data() + current_length, 1), 1,
                  [c = std::move(conn), cb = std::move(cb), current_length,
                   varint_buf](auto &&res) mutable {
