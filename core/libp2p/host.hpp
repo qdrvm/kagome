@@ -7,10 +7,11 @@
 #define KAGOME_HOST_HPP
 
 #include <functional>
+#include <string>
+#include <string_view>
 
 #include <gsl/span>
 #include <outcome/outcome.hpp>
-#include "libp2p/config.hpp"
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/network/network.hpp"
@@ -21,24 +22,37 @@
 #include "libp2p/peer/protocol.hpp"
 
 namespace libp2p {
+  /**
+   * Entry point of Libp2p - through this class all interactions with the
+   * library should go
+   */
+  struct Host {
+    virtual ~Host() = default;
 
-  class Host {
-   public:
-    std::string_view getLibp2pVersion() const noexcept;
+    /**
+     * @brief Get a version of Libp2p, supported by this Host
+     */
+    virtual std::string_view getLibp2pVersion() const = 0;
 
-    std::string_view getLibp2pClientVersion() const noexcept;
+    /**
+     * @brief Get a version of this Libp2p client
+     */
+    virtual std::string_view getLibp2pClientVersion() const = 0;
 
     /**
      * @brief Get identifier of this Host
      */
-    peer::PeerId getId() const noexcept;
+    virtual peer::PeerId getId() const = 0;
 
-    peer::PeerInfo getPeerInfo() const noexcept;
+    /**
+     * @brief Get PeerInfo of this Host
+     */
+    virtual peer::PeerInfo getPeerInfo() const = 0;
 
     /**
      * @brief Get list of addresses this Host listens on
      */
-    gsl::span<const multi::Multiaddress> getListenAddresses() const;
+    virtual gsl::span<const multi::Multiaddress> getListenAddresses() const = 0;
 
     /**
      * @brief Let Host handle given {@param proto} protocol
@@ -46,9 +60,9 @@ namespace libp2p {
      * @param handler callback that is executed when some other Host creates
      * stream to our host with {@param proto} protocol.
      */
-    void setProtocolHandler(
+    virtual void setProtocolHandler(
         const peer::Protocol &proto,
-        const std::function<connection::Stream::Handler> &handler);
+        const std::function<connection::Stream::Handler> &handler) = 0;
 
     /**
      * @brief Let Host handle all protocols with prefix={@param prefix}, for
@@ -63,10 +77,10 @@ namespace libp2p {
      * @param predicate function that takes received protocol (/ping/1.0.0) and
      * returns true, if this protocol can be handled.
      */
-    void setProtocolHandler(
+    virtual void setProtocolHandler(
         const std::string &prefix,
         const std::function<connection::Stream::Handler> &handler,
-        const std::function<bool(const peer::Protocol &)> &predicate);
+        const std::function<bool(const peer::Protocol &)> &predicate) = 0;
 
     /**
      * @brief Initiates connection to the peer {@param p}. If connection exists,
@@ -76,7 +90,7 @@ namespace libp2p {
      * If not found, will be searched using Routing module.
      * @return nothing on success, error otherwise.
      */
-    outcome::result<void> connect(const peer::PeerInfo &p);
+    virtual outcome::result<void> connect(const peer::PeerInfo &p) = 0;
 
     /**
      * @brief Open new stream to the peer {@param p} with protocol {@param
@@ -86,40 +100,28 @@ namespace libp2p {
      * @param handler callback, will be executed on successful stream creation
      * @return May return error if peer {@param p} is not known to this peer.
      */
-    outcome::result<void> newStream(
+    virtual outcome::result<void> newStream(
         const peer::PeerInfo &p, const peer::Protocol &protocol,
-        const std::function<connection::Stream::Handler> &handler);
+        const std::function<connection::Stream::Handler> &handler) = 0;
 
     /**
-     * Get a network component of the Host
+     * @brief Get a network component of the Host
      * @return reference to network
      */
-    const network::Network &network() const noexcept;
+    virtual const network::Network &network() const = 0;
 
     /**
-     * Get a peer repository of the Host
+     * @brief Get a peer repository of the Host
      * @return reference to repository
      */
-    peer::PeerRepository &peerRepository() const noexcept;
+    virtual peer::PeerRepository &peerRepository() const = 0;
 
     /**
-     * Get a router component of the Host
+     * @brief Get a router component of the Host
      * @return reference to router
      */
-    const network::Router &router() const noexcept;
-
-   private:
-    friend class HostBuilder;
-
-    Host(Config config, peer::PeerId peer_id);
-
-    Config config_;
-
-    peer::PeerId id_;
-    std::unique_ptr<network::Network> network_;
-    std::unique_ptr<network::Router> router_;
+    virtual const network::Router &router() const = 0;
   };
-
 }  // namespace libp2p
 
 #endif  // KAGOME_HOST_HPP

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/host.hpp"
+#include "libp2p/host_impl.hpp"
 
 #include <string_view>
 
@@ -14,26 +14,26 @@ namespace {
 
 namespace libp2p {
 
-  Host::Host(Config config, peer::PeerId peer_id)
+  HostImpl::HostImpl(Config config, peer::PeerId peer_id)
       : config_{std::move(config)}, id_{std::move(peer_id)} {}
 
-  std::string_view Host::getLibp2pVersion() const noexcept {
+  std::string_view HostImpl::getLibp2pVersion() const noexcept {
     return kLibp2pVersion;
   }
 
-  std::string_view Host::getLibp2pClientVersion() const noexcept {
+  std::string_view HostImpl::getLibp2pClientVersion() const noexcept {
     return kClientVersion;
   }
 
-  peer::PeerId Host::getId() const noexcept {
+  peer::PeerId HostImpl::getId() const noexcept {
     return id_;
   }
 
-  gsl::span<const multi::Multiaddress> Host::getListenAddresses() const {
+  gsl::span<const multi::Multiaddress> HostImpl::getListenAddresses() const {
     return network_->getListenAddresses();
   }
 
-  outcome::result<void> Host::connect(const peer::PeerInfo &p) {
+  outcome::result<void> HostImpl::connect(const peer::PeerInfo &p) {
     // TODO(Warchant): review this. this logic may not be here
     auto &&r = network_->dial(p);
     if (!r) {
@@ -43,38 +43,38 @@ namespace libp2p {
     return outcome::success();
   }
 
-  outcome::result<void> Host::newStream(
+  outcome::result<void> HostImpl::newStream(
       const peer::PeerInfo &p, const peer::Protocol &protocol,
       const std::function<connection::Stream::Handler> &handler) {
     return network_->newStream(p, protocol, handler);
   }
 
-  void Host::setProtocolHandler(
+  void HostImpl::setProtocolHandler(
       const peer::Protocol &proto,
       const std::function<connection::Stream::Handler> &handler) {
     router_->setProtocolHandler(proto, handler);
   }
 
-  void Host::setProtocolHandler(
+  void HostImpl::setProtocolHandler(
       const std::string &prefix,
       const std::function<connection::Stream::Handler> &handler,
       const std::function<bool(const peer::Protocol &)> &predicate) {
     router_->setProtocolHandler(prefix, handler, predicate);
   }
 
-  peer::PeerInfo Host::getPeerInfo() const noexcept {
+  peer::PeerInfo HostImpl::getPeerInfo() const noexcept {
     return peer::PeerInfo{id_, network_->getListenAddresses()};
   }
 
-  const network::Network &Host::network() const noexcept {
+  const network::Network &HostImpl::network() const noexcept {
     return *network_;
   }
 
-  peer::PeerRepository &Host::peerRepository() const noexcept {
+  peer::PeerRepository &HostImpl::peerRepository() const noexcept {
     return *config_.peer_repository;
   }
 
-  const network::Router &Host::router() const noexcept {
+  const network::Router &HostImpl::router() const noexcept {
     return *router_;
   }
 

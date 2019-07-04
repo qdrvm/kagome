@@ -15,7 +15,7 @@
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/crypto/key_marshaller.hpp"
 #include "libp2p/event/bus.hpp"
-#include "libp2p/host.hpp"
+#include "libp2p/host_impl.hpp"
 #include "libp2p/peer/identity_manager.hpp"
 #include "libp2p/protocol/identify/observed_addresses.hpp"
 
@@ -30,7 +30,7 @@ namespace libp2p::protocol {
    * Read more: https://github.com/libp2p/specs/tree/master/identify
    */
   class Identify : public std::enable_shared_from_this<Identify> {
-    using HostSPtr = std::shared_ptr<Host>;
+    using HostSPtr = std::shared_ptr<HostImpl>;
     using StreamSPtr = std::shared_ptr<connection::Stream>;
     using BufSPtr = std::shared_ptr<kagome::common::Buffer>;
 
