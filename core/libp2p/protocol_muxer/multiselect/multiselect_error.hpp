@@ -12,7 +12,8 @@ namespace libp2p::protocol_muxer {
   enum class MultiselectError {
     PROTOCOLS_LIST_EMPTY = 1,
     NEGOTIATION_FAILED,
-    INTERNAL_ERROR
+    INTERNAL_ERROR,
+    PROTOCOL_VIOLATION
   };
 }
 

@@ -218,7 +218,8 @@ namespace libp2p::protocol_muxer {
   void Multiselect::onUnexpectedRequestResponse(
       const std::shared_ptr<ConnectionState> &connection_state) {
     log_->info("got a unexpected request-response combination - sending 'ls'");
-    negotiationRoundFailed(connection_state, MultiselectError::INTERNAL_ERROR);
+    negotiationRoundFailed(connection_state,
+                           MultiselectError::PROTOCOL_VIOLATION);
   }
 
   void Multiselect::onGarbagedStreamStatus(
