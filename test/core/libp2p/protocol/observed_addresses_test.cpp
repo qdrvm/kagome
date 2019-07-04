@@ -57,12 +57,13 @@ TEST_F(ObservedAddressesTest, GetAddressesFor) {
  * @when retrieving all addresses
  * @then all addresses are returned
  */
-TEST_F(ObservedAddressesTest, GetAllAddresses) {}
+TEST_F(ObservedAddressesTest, GetAllAddresses) {
+  observed_addresses_.add(observed_ma2, local_ma2, observer_ma4, true);
 
-/**
- * @given observed addresses object with some addresses inside @and some of
- * those addresses are expired
- * @when collecting garbage
- * @then expired addresses are removed
- */
-TEST_F(ObservedAddressesTest, CollectGarbage) {}
+  auto addresses = observed_addresses_.getAllAddresses();
+  ASSERT_EQ(addresses.size(), 2);
+  ASSERT_NE(std::find(addresses.begin(), addresses.end(), observed_ma1),
+            addresses.end());
+  ASSERT_NE(std::find(addresses.begin(), addresses.end(), observed_ma2),
+            addresses.end());
+}

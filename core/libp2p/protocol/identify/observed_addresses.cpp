@@ -7,9 +7,6 @@
 
 #include <algorithm>
 
-#include <boost/range/adaptors.hpp>
-#include <boost/range/algorithm.hpp>
-
 namespace libp2p::protocol {
   std::vector<multi::Multiaddress> ObservedAddresses::getAddressesFor(
       const multi::Multiaddress &address) const {
@@ -21,13 +18,11 @@ namespace libp2p::protocol {
     }
 
     auto now = Clock::now();
-    boost::copy(addr_entry_it->second
-                    | boost::adaptors::filtered([this, now](const auto &addr) {
-                        return addressIsActivated(addr, now);
-                      })
-                    | boost::adaptors::transformed(
-                        [](const auto &addr) { return addr.address; }),
-                result.begin());
+    for (const auto &addr : addr_entry_it->second) {
+      if (addressIsActivated(addr, now)) {
+        result.push_back(addr.address);
+      }
+    }
 
     return result;
   }

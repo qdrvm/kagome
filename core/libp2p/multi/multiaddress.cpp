@@ -124,7 +124,7 @@ namespace libp2p::multi {
 
     // it's safe to get values in-place, as parts of Multiaddress are guaranteed
     // to be valid Multiaddresses themselves
-    return {create(stringified_address_.substr(0, third_slash - 1)).value(),
+    return {create(stringified_address_.substr(0, third_slash)).value(),
             create(stringified_address_.substr(third_slash)).value()};
   }
 
