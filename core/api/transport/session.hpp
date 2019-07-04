@@ -97,7 +97,7 @@ namespace kagome::server {
      * @brief sends response
      * @param response json result string
      */
-    void do_write(const std::string &response);
+    void do_write(std::string response);
 
     /**
      * @brief is called when no requests for too long time
@@ -115,7 +115,7 @@ namespace kagome::server {
 
     Signal<void(std::shared_ptr<Session>, const std::string &)>
         on_request_;                                 ///< request sender
-    Signal<void(const std::string &)> on_response_;  ///< response handler
+    Signal<void(std::string)> on_response_;  ///< response handler
 
     Connection on_stopped_cnn_;  ///< connection for on_stopped event
   };

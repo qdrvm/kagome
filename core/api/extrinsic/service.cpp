@@ -69,11 +69,12 @@ namespace kagome::api {
   }
 
   void ExtrinsicApiService::processData(std::shared_ptr<server::Session> session, const std::string &data) {
+    // TOOD(yuraz): pre-230 add mutex
     auto &&formatted_response = jsonrpc_handler_.HandleRequest(data);
     std::string response(formatted_response->GetData(),
                          formatted_response->GetSize());
 
-    session->onResponse()(response);
+    session->onResponse()(std::move(response));
   }
 
   outcome::result<void> ExtrinsicApiService::start() {

@@ -14,6 +14,8 @@ namespace kagome::server {
       : id_{id}, socket_(std::move(socket)), heartbeat_(context) {
     heartbeat_.async_wait(std::bind(&Session::processHeartBeat, this));
     on_stopped_cnn_ = manager.subscribeOnClosed(on_stopped_);
+    onResponse().connect(
+        [this](std::string response) { processResponse(std::move(response)); });
   }
 
   Session::~Session() {
@@ -51,24 +53,27 @@ namespace kagome::server {
   void Session::processResponse(std::string response) {
     // 10 seconds wait for new request, then close session
     heartbeat_.expires_after(std::chrono::seconds(10));
-    do_write(response);
+    do_write(std::move(response));
   }
 
-  void Session::do_write(const std::string &response) {
-    boost::asio::async_write(
-        socket_, boost::asio::buffer(response.data(), response.size()),
-        [this, self = shared_from_this()](
-            boost::system::error_code ec, std::size_t
-            /*length*/) {
-          if (!ec) {
-            do_read();
-          } else {
-            stop();
-          }
-        });
+  void Session::do_write(std::string response) {
+    auto r = std::make_shared<std::string>(std::move(response));
+
+    boost::asio::async_write(socket_,
+                             boost::asio::const_buffer(r->data(), r->size()),
+                             [this, self = shared_from_this(), r](
+                                 boost::system::error_code ec, std::size_t
+                                 /*length*/) {
+                               if (!ec) {
+                                 do_read();
+                               } else {
+                                 stop();
+                               }
+                             });
   }
 
   void Session::processHeartBeat() {
+    // TODO(yuraz): pre-230 addD log message
     stop();
   }
 }  // namespace kagome::server
