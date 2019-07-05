@@ -35,6 +35,7 @@ addons:
       - python3
       - python3-pip
       - python3-setuptools
+      - devscripts # for rmadison
 
 cache:
   apt: true
@@ -144,8 +145,9 @@ before_script:
   - pip3 -V
   - gcovr --version || true
   - echo $PATH
-  - apt-cache madison clang-8 || true
-  - apt-cache madison gcc-8 || true
+  - rmadison clang-8 || true
+  - rmadison gcc-8 || true
+  - apt update -y && apt upgrade -y || true
 
 script:
   - export CC=${_CC}
