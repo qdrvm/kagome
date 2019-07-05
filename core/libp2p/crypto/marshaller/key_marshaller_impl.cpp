@@ -9,7 +9,6 @@
 #include "libp2p/crypto/proto/keys.pb.h"
 
 namespace libp2p::crypto::marshaller {
-  using kagome::common::Buffer;
   namespace {
     /**
      * @brief converts Key::Type to proto::KeyType
@@ -60,22 +59,19 @@ namespace libp2p::crypto::marshaller {
     }
   }  // namespace
 
-  outcome::result<Buffer> KeyMarshallerImpl::marshal(
+  outcome::result<KeyMarshallerImpl::Buffer> KeyMarshallerImpl::marshal(
       const PublicKey &key) const {
     proto::PublicKey proto_key;
     OUTCOME_TRY(key_type, marshalKeyType(key.type));
     proto_key.set_key_type(key_type);
-
     proto_key.set_key_value(key.data.data(), key.data.size());
 
     auto string = proto_key.SerializeAsString();
-    Buffer out;
-    out.put(proto_key.SerializeAsString());
-
-    return out;
+    Buffer out(string.begin(), string.end());
+    return outcome::success(out);
   }
 
-  outcome::result<Buffer> KeyMarshallerImpl::marshal(
+  outcome::result<KeyMarshallerImpl::Buffer> KeyMarshallerImpl::marshal(
       const PrivateKey &key) const {
     proto::PublicKey proto_key;
     OUTCOME_TRY(key_type, marshalKeyType(key.type));
@@ -83,10 +79,7 @@ namespace libp2p::crypto::marshaller {
     proto_key.set_key_value(key.data.data(), key.data.size());
 
     auto string = proto_key.SerializeAsString();
-    Buffer out;
-    out.put(proto_key.SerializeAsString());
-
-    return out;
+    return Buffer(string.begin(), string.end());
   }
 
   outcome::result<PublicKey> KeyMarshallerImpl::unmarshalPublicKey(
@@ -97,9 +90,8 @@ namespace libp2p::crypto::marshaller {
     }
 
     OUTCOME_TRY(key_type, unmarshalKeyType(proto_key.key_type()));
-
-    Buffer key_value;
-    key_value.put(proto_key.key_value());
+    Buffer key_value(proto_key.key_value().begin(),
+                     proto_key.key_value().end());
     return PublicKey{{key_type, key_value}};
   }
 
@@ -111,9 +103,8 @@ namespace libp2p::crypto::marshaller {
     }
 
     OUTCOME_TRY(key_type, unmarshalKeyType(proto_key.key_type()));
-    Buffer key_value;
-    key_value.put(proto_key.key_value());
-
+    Buffer key_value(proto_key.key_value().begin(),
+                     proto_key.key_value().end());
     return PrivateKey{{key_type, key_value}};
   }
 

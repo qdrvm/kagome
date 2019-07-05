@@ -9,30 +9,52 @@
 #include "libp2p/connection/capable_connection.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/transport/tcp.hpp"
+#include "mock/libp2p/connection/capable_connection_mock.hpp"
 #include "mock/libp2p/connection/raw_connection_mock.hpp"
 #include "mock/libp2p/transport/upgrader_mock.hpp"
+#include "testutil/gmock_actions.hpp"
 #include "testutil/libp2p/peer.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
 using libp2p::basic::ReadWriteCloser;
+using libp2p::connection::CapableConnBasedOnRawConnMock;
 using libp2p::connection::CapableConnection;
 using libp2p::connection::RawConnection;
 using libp2p::connection::RawConnectionMock;
+using libp2p::connection::SecureConnection;
 using libp2p::multi::Multiaddress;
 using libp2p::peer::Protocol;
 using libp2p::protocol_muxer::MessageManager;
 using libp2p::protocol_muxer::Multiselect;
-using libp2p::transport::DefaultUpgrader;
 using libp2p::transport::TcpTransport;
 using libp2p::transport::Upgrader;
+using libp2p::transport::UpgraderMock;
+
+using ::testing::_;
 
 class MultiselectTest : public ::testing::Test {
  public:
   void SetUp() override {
     transport_ = std::make_shared<TcpTransport>(context_, upgrader);
     ASSERT_TRUE(transport_) << "cannot create transport";
+
+    EXPECT_CALL(*upgrader, upgradeToSecureOutbound(_, _, _))
+        .WillRepeatedly(UpgradeToSecureOutbound(
+            [](auto &&raw) -> std::shared_ptr<SecureConnection> {
+              return std::make_shared<CapableConnBasedOnRawConnMock>(raw);
+            }));
+    EXPECT_CALL(*upgrader, upgradeToSecureInbound(_, _))
+        .WillRepeatedly(UpgradeToSecureInbound(
+            [](auto &&raw) -> std::shared_ptr<SecureConnection> {
+              return std::make_shared<CapableConnBasedOnRawConnMock>(raw);
+            }));
+    EXPECT_CALL(*upgrader, upgradeToMuxed(_, _))
+        .WillRepeatedly(UpgradeToMuxed(
+            [](auto &&sec) -> std::shared_ptr<CapableConnection> {
+              return std::make_shared<CapableConnBasedOnRawConnMock>(sec);
+            }));
 
     auto ma = "/ip4/127.0.0.1/tcp/40009"_multiaddr;
     multiaddress_ = std::make_shared<Multiaddress>(std::move(ma));
@@ -42,7 +64,7 @@ class MultiselectTest : public ::testing::Test {
   std::shared_ptr<libp2p::transport::Transport> transport_;
   std::shared_ptr<libp2p::multi::Multiaddress> multiaddress_;
 
-  std::shared_ptr<Upgrader> upgrader = std::make_shared<DefaultUpgrader>();
+  std::shared_ptr<UpgraderMock> upgrader = std::make_shared<UpgraderMock>();
 
   const Protocol kDefaultEncryptionProtocol1 = "/plaintext/1.0.0";
   const Protocol kDefaultEncryptionProtocol2 = "/plaintext/2.0.0";

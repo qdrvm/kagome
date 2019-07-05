@@ -11,7 +11,9 @@
 #include "libp2p/muxer/yamux.hpp"
 #include "libp2p/security/plaintext.hpp"
 #include "libp2p/transport/tcp.hpp"
+#include "mock/libp2p/connection/capable_connection_mock.hpp"
 #include "mock/libp2p/transport/upgrader_mock.hpp"
+#include "testutil/gmock_actions.hpp"
 #include "testutil/libp2p/peer.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -23,6 +25,8 @@ using namespace libp2p::multi;
 using namespace libp2p::basic;
 using namespace libp2p::security;
 using namespace libp2p::muxer;
+
+using testing::_;
 
 using std::chrono_literals::operator""ms;
 
@@ -75,7 +79,25 @@ TEST(YamuxAcceptanceTest, PingPong) {
   auto stream_read = false, stream_wrote = false;
   boost::asio::io_context context(1);
 
-  auto upgrader = std::make_shared<DefaultUpgrader>();
+  auto upgrader = std::make_shared<UpgraderMock>();
+  EXPECT_CALL(*upgrader, upgradeToSecureInbound(_, _))
+      .WillRepeatedly(
+          UpgradeToSecureInbound([](std::shared_ptr<RawConnection> raw)
+                                     -> std::shared_ptr<SecureConnection> {
+            return std::make_shared<CapableConnBasedOnRawConnMock>(raw);
+          }));
+  EXPECT_CALL(*upgrader, upgradeToSecureOutbound(_, _, _))
+      .WillRepeatedly(
+          UpgradeToSecureOutbound([](std::shared_ptr<RawConnection> raw)
+                                      -> std::shared_ptr<SecureConnection> {
+            return std::make_shared<CapableConnBasedOnRawConnMock>(raw);
+          }));
+  EXPECT_CALL(*upgrader, upgradeToMuxed(_, _))
+      .WillRepeatedly(UpgradeToMuxed([](std::shared_ptr<SecureConnection> sec)
+                                         -> std::shared_ptr<CapableConnection> {
+        return std::make_shared<YamuxedConnection>(sec);
+      }));
+
   auto transport = std::make_shared<TcpTransport>(context, upgrader);
   ASSERT_TRUE(transport) << "cannot create transport";
 

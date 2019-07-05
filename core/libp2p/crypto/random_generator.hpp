@@ -6,14 +6,14 @@
 #ifndef KAGOME_CORE_LIBP2P_CRYPTO_RANDOM_RANDOM_GENERATOR_HPP
 #define KAGOME_CORE_LIBP2P_CRYPTO_RANDOM_RANDOM_GENERATOR_HPP
 
-#include "common/buffer.hpp"
+#include <vector>
 
 namespace libp2p::crypto::random {
 
   /// class RandomGenerator provides interface for random generator
   class RandomGenerator {
    protected:
-    using Buffer = kagome::common::Buffer;
+    using Buffer = std::vector<uint8_t>;
 
    public:
     virtual ~RandomGenerator() = default;

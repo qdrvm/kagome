@@ -47,8 +47,8 @@ TEST_P(KeyGeneratorTest, TwoKeysAreDifferent) {
   auto key_type = GetParam();
   EXPECT_OUTCOME_TRUE_2(val1, keygen_.generateKeys(key_type));
   EXPECT_OUTCOME_TRUE_2(val2, keygen_.generateKeys(key_type));
-  ASSERT_NE(val1.privateKey.data.toVector(), val2.privateKey.data.toVector());
-  ASSERT_NE(val1.publicKey.data.toVector(), val2.privateKey.data.toVector());
+  ASSERT_NE(val1.privateKey.data, val2.privateKey.data);
+  ASSERT_NE(val1.publicKey.data, val2.privateKey.data);
 }
 
 /**
@@ -63,7 +63,7 @@ TEST_P(KeyGeneratorTest, DerivePublicKeySuccess) {
   EXPECT_OUTCOME_TRUE_2(keys, keygen_.generateKeys(key_type));
   EXPECT_OUTCOME_TRUE_2(derived, keygen_.derivePublicKey(keys.privateKey));
   ASSERT_EQ(derived.type, key_type);
-  ASSERT_EQ(keys.publicKey.data.toVector(), derived.data.toVector());
+  ASSERT_EQ(keys.publicKey.data, derived.data);
 }
 
 INSTANTIATE_TEST_CASE_P(TestAllKeyTypes, KeyGeneratorTest,

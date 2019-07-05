@@ -11,8 +11,9 @@ namespace testutil {
     PublicKey k;
 
     k.type = T::ED25519;
+    k.data.resize(32u);
     for (auto i = 0u; i < 32u; i++) {
-      k.data.putUint8(rand() & 0xff);
+      k.data[i] = (rand() & 0xff);
     }
 
     return PeerId::fromPublicKey(k).value();

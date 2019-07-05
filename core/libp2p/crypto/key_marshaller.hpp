@@ -16,9 +16,8 @@ namespace libp2p::crypto::marshaller {
  * private and public keys from/to google-protobuf format
  */
 class KeyMarshaller {
-  using Buffer = kagome::common::Buffer;
-
  public:
+  using Buffer = std::vector<uint8_t>;
   virtual ~KeyMarshaller() = default;
   /**
    * Convert the public key into Protobuf representation

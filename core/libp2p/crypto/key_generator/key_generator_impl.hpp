@@ -26,7 +26,7 @@ namespace libp2p::crypto {
 
     std::vector<StretchedKey> stretchKey(
         common::CipherType cipher_type, common::HashType hash_type,
-        const kagome::common::Buffer &secret) const override;
+        const Buffer &secret) const override;
 
    private:
     void initialize();

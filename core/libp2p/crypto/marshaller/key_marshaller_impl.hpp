@@ -6,15 +6,13 @@
 #ifndef KAGOME_CORE_LIBP2P_CRYPTO_MARSHALER_KEY_MARSHALER_IMPL_HPP
 #define KAGOME_CORE_LIBP2P_CRYPTO_MARSHALER_KEY_MARSHALER_IMPL_HPP
 
-#include "libp2p/crypto/key_marshaller.hpp"
-
-#include "common/buffer.hpp"
 #include "libp2p/crypto/error.hpp"
 #include "libp2p/crypto/key.hpp"
+#include "libp2p/crypto/key_marshaller.hpp"
 
 namespace libp2p::crypto::marshaller {
   class KeyMarshallerImpl : public KeyMarshaller {
-    using Buffer = kagome::common::Buffer;
+    using Buffer = std::vector<uint8_t>;
 
    public:
     outcome::result<Buffer> marshal(const PublicKey &key) const override;

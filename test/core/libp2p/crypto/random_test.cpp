@@ -29,7 +29,7 @@ TEST(BoostGeneratorTest, StartSequencesAreNotSame) {
   auto bytes1 = generator1.randomBytes(BUFFER_SIZE);
   auto bytes2 = generator2.randomBytes(BUFFER_SIZE);
 
-  ASSERT_NE(bytes1.toVector(), bytes2.toVector());
+  ASSERT_NE(bytes1, bytes2);
 }
 
 /**
@@ -47,7 +47,7 @@ TEST(StdGeneratorTest, StartSequencesAreNotSame) {
   auto bytes1 = generator1.randomBytes(BUFFER_SIZE);
   auto bytes2 = generator2.randomBytes(BUFFER_SIZE);
 
-  ASSERT_NE(bytes1.toVector(), bytes2.toVector());
+  ASSERT_NE(bytes1, bytes2);
 }
 
 namespace {
@@ -101,7 +101,7 @@ bool checkRandomGenerator(RandomGenerator &generator) {
   auto buffer = generator.randomBytes(BUFFER_SIZE);
 
   auto max = max_entropy(256);  // 8
-  auto ent = entropy(buffer.toVector());
+  auto ent = entropy(buffer);
 
   return ent >= (max - 2);
 }
