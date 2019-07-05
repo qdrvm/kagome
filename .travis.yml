@@ -117,7 +117,6 @@ matrix:
 
 install:
   - |
-    # install python pip3 deps
     if [ "$TRAVIS_OS_NAME" = "linux" ]; then
         LLVM_BIN=/usr/lib/llvm-8/bin
         if [ -d $LLVM_BIN ]; then
@@ -133,7 +132,6 @@ install:
     pip3 install --user --upgrade requests gitpython cmake gcovr
   - export PATH="$HOME/.cargo/bin:$PATH"
   - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
-  - rustup install nightly
   - rustup default nightly
 
 
@@ -145,6 +143,7 @@ before_script:
   - pip3 -V
   - gcovr --version || true
   - echo $PATH
+  - apt-cache show clang-8 || true
 
 script:
   - export CC=${_CC}
