@@ -26,6 +26,7 @@ addons:
     sources:
       - llvm-toolchain-xenial-8
       - ubuntu-toolchain-r-test
+    update: true
     packages:
       - llvm-8
       - g++-8
