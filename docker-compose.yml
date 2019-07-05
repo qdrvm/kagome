@@ -1,7 +1,8 @@
 version: '3'
 
 # usage:
-# - docker-compose up -d && docker-compose exec dev bash
+# - docker-compose up -d
+# - docker-compose exec dev bash
 # - cd app
 
 services:
