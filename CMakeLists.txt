@@ -17,8 +17,8 @@ set(
 
 include("cmake/Hunter/init.cmake")
 HunterGate(
-    URL "https://github.com/ruslo/hunter/archive/v0.23.171.tar.gz"
-    SHA1 "5d68bcca78eee347239ca5f4d34f4b6c12683154"
+    URL "https://github.com/ruslo/hunter/archive/v0.23.198.tar.gz"
+    SHA1 "f44b698691eedfe9d1ee6763a6fb9b4af7756c24"
     FILEPATH ${CMAKE_SOURCE_DIR}/cmake/Hunter/config.cmake
 )
 
