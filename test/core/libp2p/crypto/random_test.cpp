@@ -4,7 +4,6 @@
  */
 
 #include "libp2p/crypto/random_generator/boost_generator.hpp"
-#include "libp2p/crypto/random_generator/std_generator.hpp"
 
 #include <gtest/gtest.h>
 #include "common/buffer.hpp"
@@ -12,7 +11,6 @@
 using kagome::common::Buffer;
 using libp2p::crypto::random::BoostRandomGenerator;
 using libp2p::crypto::random::RandomGenerator;
-using libp2p::crypto::random::StdRandomGenerator;
 
 /**
  * @given 2 instances of boost random numbers generators
@@ -24,24 +22,6 @@ using libp2p::crypto::random::StdRandomGenerator;
  */
 TEST(BoostGeneratorTest, StartSequencesAreNotSame) {
   BoostRandomGenerator generator1, generator2;
-  constexpr size_t BUFFER_SIZE = 32;
-
-  auto bytes1 = generator1.randomBytes(BUFFER_SIZE);
-  auto bytes2 = generator2.randomBytes(BUFFER_SIZE);
-
-  ASSERT_NE(bytes1, bytes2);
-}
-
-/**
- * @given 2 instances of std random numbers generators
- * @when each generator's randomBytes method is called to generate to buffers of
- * random nubmers
- * @then obtained byte sequences are not equal
- * This test checks that random bytes generator dosn't start with the same
- * sequence each time it has been created
- */
-TEST(StdGeneratorTest, StartSequencesAreNotSame) {
-  StdRandomGenerator generator1, generator2;
   constexpr size_t BUFFER_SIZE = 32;
 
   auto bytes1 = generator1.randomBytes(BUFFER_SIZE);
@@ -113,17 +93,6 @@ bool checkRandomGenerator(RandomGenerator &generator) {
  */
 TEST(BoostGeneratorTest, EnoughEntropy) {
   BoostRandomGenerator generator;
-  bool res = checkRandomGenerator(static_cast<RandomGenerator &>(generator));
-  ASSERT_TRUE(res) << "bad randomness source in BoostRandomGenerator";
-}
-
-/**
- * @given StdRandomGenerator instance, max entropy value for given source
- * @when get random bytes and calculate entropy
- * @then calculated entropy is not less than (max entropy - 2)
- */
-TEST(StdGeneratorTest, EnoughEntropy) {
-  StdRandomGenerator generator;
   bool res = checkRandomGenerator(static_cast<RandomGenerator &>(generator));
   ASSERT_TRUE(res) << "bad randomness source in BoostRandomGenerator";
 }

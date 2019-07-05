@@ -6,8 +6,6 @@
 add_library(random_generator
     boost_generator.hpp
     boost_generator.cpp
-    std_generator.hpp
-    std_generator.cpp
     )
 
 target_link_libraries(random_generator

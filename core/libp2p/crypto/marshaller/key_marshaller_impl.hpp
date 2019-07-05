@@ -12,18 +12,16 @@
 
 namespace libp2p::crypto::marshaller {
   class KeyMarshallerImpl : public KeyMarshaller {
-    using Buffer = std::vector<uint8_t>;
-
    public:
-    outcome::result<Buffer> marshal(const PublicKey &key) const override;
+    outcome::result<KeyMarshaller::ByteArray> marshal(const PublicKey &key) const override;
 
-    outcome::result<Buffer> marshal(const PrivateKey &key) const override;
+    outcome::result<KeyMarshaller::ByteArray> marshal(const PrivateKey &key) const override;
 
     outcome::result<PublicKey> unmarshalPublicKey(
-        const Buffer &key_bytes) const override;
+        const KeyMarshaller::ByteArray &key_bytes) const override;
 
     outcome::result<PrivateKey> unmarshalPrivateKey(
-        const Buffer &key_bytes) const override;
+        const KeyMarshaller::ByteArray &key_bytes) const override;
   };
 }  // namespace libp2p::crypto::marshaller
 

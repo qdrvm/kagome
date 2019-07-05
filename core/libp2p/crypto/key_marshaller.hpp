@@ -17,7 +17,7 @@ namespace libp2p::crypto::marshaller {
  */
 class KeyMarshaller {
  public:
-  using Buffer = std::vector<uint8_t>;
+  using ByteArray = std::vector<uint8_t>;
   virtual ~KeyMarshaller() = default;
   /**
    * Convert the public key into Protobuf representation
@@ -25,7 +25,7 @@ class KeyMarshaller {
    * @return bytes of Protobuf object if marshalling was successful, error
    * otherwise
    */
-  virtual outcome::result<Buffer> marshal(const PublicKey &key) const = 0;
+  virtual outcome::result<ByteArray> marshal(const PublicKey &key) const = 0;
 
   /**
    * Convert the private key into Protobuf representation
@@ -33,7 +33,7 @@ class KeyMarshaller {
    * @return bytes of Protobuf object if marshalling was successful, error
    * otherwise
    */
-  virtual outcome::result<Buffer> marshal(const PrivateKey &key) const = 0;
+  virtual outcome::result<ByteArray> marshal(const PrivateKey &key) const = 0;
 
   /**
    * Convert Protobuf representation of public key into the object
@@ -41,7 +41,7 @@ class KeyMarshaller {
    * @return public key in case of success, error otherwise
    */
   virtual outcome::result<PublicKey> unmarshalPublicKey(
-      const Buffer &key_bytes) const = 0;
+      const ByteArray &key_bytes) const = 0;
 
   /**
    * Convert Protobuf representation of private key into the object
@@ -49,7 +49,7 @@ class KeyMarshaller {
    * @return private key in case of success, error otherwise
    */
   virtual outcome::result<PrivateKey> unmarshalPrivateKey(
-      const Buffer &key_bytes) const = 0;
+      const ByteArray &key_bytes) const = 0;
 };
 }  // namespace libp2p::crypto::marshaller
 
