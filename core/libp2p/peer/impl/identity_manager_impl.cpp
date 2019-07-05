@@ -7,18 +7,18 @@
 
 namespace libp2p::peer {
 
-  const peer::PeerId &IdentityManagerImpl::getId() const noexcept {
+  const peer::PeerId &IdentityManagerImpl::getId() const {
     BOOST_ASSERT(id_ != nullptr);
     return *id_;
   }
 
-  const crypto::KeyPair &IdentityManagerImpl::getKeyPair() const noexcept {
+  const crypto::KeyPair &IdentityManagerImpl::getKeyPair() const {
     BOOST_ASSERT(keyPair_ != nullptr);
     return *keyPair_;
   }
 
   IdentityManagerImpl::IdentityManagerImpl(crypto::KeyPair keyPair) {
-    BOOST_ASSERT(keyPair.publicKey.data.size() > 0);
+    BOOST_ASSERT(!keyPair.publicKey.data.empty());
 
     keyPair_ = std::make_unique<crypto::KeyPair>(std::move(keyPair));
 
