@@ -9,6 +9,7 @@
 #include <memory>
 #include <vector>
 
+#include <gsl/span>
 #include "common/buffer.hpp"
 #include "libp2p/basic/message_read_writer_error.hpp"
 #include "libp2p/basic/readwriter.hpp"
@@ -21,64 +22,58 @@ namespace libp2p::basic {
    * @tparam Message - type of the message; for now, works with Protobuf
    * messages only
    */
-  template <typename Message>
-  class MessageReadWriter {
+  class MessageReadWriter
+      : public std::enable_shared_from_this<MessageReadWriter> {
    public:
-    /**
-     * Read a message from the provided connection
-     * @param conn to read message from
-     * @param msg - reference to (\tparam Message) type, to which put the read
-     * message
-     * @param cb to be called after a successful read or error
-     */
-    void read(std::shared_ptr<ReadWriter> conn, Message &msg,
-              std::function<void(outcome::result<void>)> cb) {
-      // each Protobuf message in Libp2p is prepended with a varint, showing its
-      // length
+    explicit MessageReadWriter(std::shared_ptr<ReadWriter> conn)
+        : conn_{std::move(conn)} {}
+
+    void read(gsl::span<uint8_t> buffer, Reader::ReadCallbackFunc cb) {
+      if (buffer.empty()) {
+        return cb(MessageReadWriterError::LITTLE_BUFFER);
+      }
       VarintReader::readVarint(
-          conn, [conn, cb = std::move(cb), &msg](auto varint_opt) mutable {
+          conn_,
+          [self{shared_from_this()}, cb = std::move(cb),
+           buffer](auto varint_opt) mutable {
             if (!varint_opt) {
               return cb(MessageReadWriterError::VARINT_EXPECTED);
             }
 
             auto msg_len = varint_opt->toUInt64();
-            auto msg_buf = std::make_shared<kagome::common::Buffer>(msg_len, 0);
-            conn->read(
-                *msg_buf, msg_len,
-                [conn, cb = std::move(cb), msg_buf, &msg](auto &&res) mutable {
-                  if (!res) {
-                    return cb(res.error());
-                  }
+            if (static_cast<uint64_t>(buffer.size()) < msg_len) {
+              return cb(MessageReadWriterError::LITTLE_BUFFER);
+            }
 
-                  msg.ParseFromArray(msg_buf->data(), msg_buf->size());
-                  cb(outcome::success());
-                });
+            self->conn_->read(buffer, msg_len,
+                              [self, cb = std::move(cb)](auto &&res) mutable {
+                                cb(std::forward<decltype(res)>(res));
+                              });
           });
     }
 
-    /**
-     * Write a message to the provided connection
-     * @param conn to write message to
-     * @param msg to be written
-     * @param cb to be called after a successful right or error
-     */
-    void write(const std::shared_ptr<ReadWriter> &conn, const Message &msg,
-               Writer::WriteCallbackFunc cb) {
-      auto varint_len = multi::UVarint{static_cast<uint64_t>(msg.ByteSize())};
-
-      auto msg_bytes = std::make_shared<kagome::common::Buffer>(
-          varint_len.size() + msg.ByteSize(), 0);
-      for (auto i = 0u; i < varint_len.size(); ++i) {
-        msg_bytes->toVector()[i] = varint_len.toVector()[i];
+    void write(gsl::span<const uint8_t> buffer, Writer::WriteCallbackFunc cb) {
+      if (buffer.empty()) {
+        return cb(outcome::success());
       }
-      msg.SerializeToArray(msg_bytes->data() + varint_len.size(),
-                           msg.ByteSize());
 
-      conn->write(*msg_bytes, msg_bytes->size(),
-                  [conn, msg_bytes, cb = std::move(cb)](auto &&res) {
-                    cb(std::forward<decltype(res)>(res));
-                  });
+      auto varint_len = multi::UVarint{static_cast<uint64_t>(buffer.size())};
+
+      auto msg_bytes = std::make_shared<std::vector<uint8_t>>();
+      msg_bytes->reserve(varint_len.size() + buffer.size());
+      msg_bytes->insert(msg_bytes->end(),
+                        std::make_move_iterator(varint_len.toVector().begin()),
+                        std::make_move_iterator(varint_len.toVector().end()));
+      msg_bytes->insert(msg_bytes->end(), buffer.begin(), buffer.end());
+
+      conn_->write(*msg_bytes, msg_bytes->size(),
+                   [cb = std::move(cb)](auto &&res) {
+                     cb(std::forward<decltype(res)>(res));
+                   });
     }
+
+   private:
+    std::shared_ptr<ReadWriter> conn_;
   };
 }  // namespace libp2p::basic
 

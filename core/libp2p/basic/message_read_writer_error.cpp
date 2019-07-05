@@ -10,6 +10,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::basic, MessageReadWriterError, e) {
   switch (e) {
     case E::VARINT_EXPECTED:
       return "varint expected at the beginning of Protobuf message";
+    case E::LITTLE_BUFFER:
+      return "provided buffer's size is less than the size of the expected "
+             "message";
   }
   return "unknown error";
 }
