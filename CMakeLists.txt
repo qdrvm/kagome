@@ -104,6 +104,7 @@ include_directories(
   deps/sml/include
   deps/sr25519-crust/include
   deps/hat-trie/include
+  deps/jsonrpc-lean/include
   deps/di/include
   deps/di/extension/include
 )

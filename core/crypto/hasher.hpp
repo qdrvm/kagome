@@ -11,6 +11,7 @@
 
 namespace kagome::hash {
   class Hasher {
+   protected:
     using Hash128 = kagome::common::Hash128;
     using Hash256 = kagome::common::Hash256;
 

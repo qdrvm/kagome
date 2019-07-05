@@ -11,10 +11,6 @@
 namespace kagome::hash {
 
   class HasherImpl : public Hasher {
-    using Hash128 = kagome::common::Hash128;
-    using Hash256 = kagome::common::Hash256;
-    using Buffer = kagome::common::Buffer;
-
    public:
     ~HasherImpl() override = default;
 
