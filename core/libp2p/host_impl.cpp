@@ -33,17 +33,18 @@ namespace libp2p {
     return network_->getListenAddresses();
   }
 
-  outcome::result<void> HostImpl::connect(const peer::PeerInfo &p) {
+  void HostImpl::connect(const peer::PeerInfo &p,
+                         std::function<void(outcome::result<void>)> cb) {
     // TODO(Warchant): review this. this logic may not be here
-    auto &&r = network_->dial(p);
-    if (!r) {
-      return r.error();
-    }
-
-    return outcome::success();
+    network_->dial(p, [cb = std::move(cb)](auto &&conn_res) {
+      if (!conn_res) {
+        return cb(conn_res.error());
+      }
+      cb(outcome::success());
+    });
   }
 
-  outcome::result<void> HostImpl::newStream(
+  void HostImpl::newStream(
       const peer::PeerInfo &p, const peer::Protocol &protocol,
       const std::function<connection::Stream::Handler> &handler) {
     return network_->newStream(p, protocol, handler);
@@ -66,15 +67,15 @@ namespace libp2p {
     return peer::PeerInfo{id_, network_->getListenAddresses()};
   }
 
-  const network::Network &HostImpl::network() const noexcept {
+  const network::Network &HostImpl::getNetwork() const noexcept {
     return *network_;
   }
 
-  peer::PeerRepository &HostImpl::peerRepository() const noexcept {
+  peer::PeerRepository &HostImpl::getPeerRepository() const noexcept {
     return *config_.peer_repository;
   }
 
-  const network::Router &HostImpl::router() const noexcept {
+  const network::Router &HostImpl::getRouter() const noexcept {
     return *router_;
   }
 

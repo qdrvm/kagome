@@ -102,21 +102,17 @@ namespace libp2p::protocol {
                              std::vector<multi::Multiaddress>{
                                  std::move(remote_peer_addr_res.value())}};
 
-    auto res = host_->newStream(
+    host_->newStream(
         peer_info, kIdentifyProto, [self{shared_from_this()}](auto &&stream) {
           self->receiveIdentify(std::forward<decltype(stream)>(stream));
         });
-    if (!res) {
-      log_->error("cannot create a stream over a received connection: {}",
-                  res.error().message());
-    }
   }
 
   void Identify::sendIdentify(StreamSPtr stream) {
     identify::pb::Identify msg;
 
     // set the protocols we speak on
-    for (const auto &proto : host_->router().getSupportedProtocols()) {
+    for (const auto &proto : host_->getRouter().getSupportedProtocols()) {
       msg.add_protocols(proto);
     }
 
@@ -184,9 +180,8 @@ namespace libp2p::protocol {
   void Identify::receiveIdentify(StreamSPtr stream) {
     static constexpr size_t kMaxMessageSize = 2048;  // from Go implementation
 
-    // TODO(akvinikym): not sure, how to read Protobuf message - do they have a
-    // varint according to Libp2p conventions or not? In Go, it seems it is
-    // there
+    // TODO(akvinikym): add MessageReader, when merged
+
     auto msg_buf = std::make_shared<Buffer>(kMaxMessageSize, 0);
     return stream->readSome(
         *msg_buf, kMaxMessageSize,
@@ -228,10 +223,11 @@ namespace libp2p::protocol {
     auto peer_id = std::move(*peer_id_opt);
 
     // store the received protocols
-    auto add_res = host_->peerRepository().getProtocolRepository().addProtocols(
-        peer_id,
-        gsl::make_span(*msg.protocols().pointer_begin(),
-                       *msg.protocols().pointer_end()));
+    auto add_res =
+        host_->getPeerRepository().getProtocolRepository().addProtocols(
+            peer_id,
+            gsl::make_span(*msg.protocols().pointer_begin(),
+                           *msg.protocols().pointer_end()));
     if (!add_res) {
       log_->error("cannot add protocols to peer {}: {}", peer_id.toBase58(),
                   add_res.error().message());
@@ -291,7 +287,7 @@ namespace libp2p::protocol {
     }
     msg_peer_id = std::move(peer_id_res.value());
 
-    auto &key_repo = host_->peerRepository().getKeyRepository();
+    auto &key_repo = host_->getPeerRepository().getKeyRepository();
     if (!stream_peer_id) {
       // didn't know the ID before; memorize the key, from which it can be
       // derived later
@@ -342,7 +338,7 @@ namespace libp2p::protocol {
     // if our local address is not one of our "official" listen addresses, we
     // are not going to save its mapping to the observed one
     // TODO(akvinikym): also getInterfaceListenAddresses() when added
-    auto listen_addresses = host_->network().getListenAddresses();
+    auto listen_addresses = host_->getNetwork().getListenAddresses();
     if (std::find(listen_addresses.begin(), listen_addresses.end(),
                   observed_address)
         == listen_addresses.end()) {
@@ -374,7 +370,7 @@ namespace libp2p::protocol {
       listen_addresses.push_back(std::move(addr_res.value()));
     }
 
-    auto &addr_repo = host_->peerRepository().getAddressRepository();
+    auto &addr_repo = host_->getPeerRepository().getAddressRepository();
 
     // invalidate previously known addresses of that peer
     auto add_res = addr_repo.updateAddresses(peer_id, peer::ttl::kTransient);
@@ -384,7 +380,7 @@ namespace libp2p::protocol {
     }
 
     // memorize the addresses
-    switch (host_->network().connectedness(peer_id)) {
+    switch (host_->getNetwork().connectedness(peer_id)) {
       case network::Network::Connectedness::CONNECTED:
         add_res = addr_repo.upsertAddresses(peer_id, listen_addresses,
                                             peer::ttl::kPermanent);

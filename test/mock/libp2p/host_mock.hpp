@@ -43,7 +43,7 @@ namespace libp2p {
 
     MOCK_CONST_METHOD0(peerRepository, peer::PeerRepository &());
 
-    MOCK_CONST_METHOD0(router, const network::Router &());
+    MOCK_CONST_METHOD0(getRouter, const network::Router &());
   };
 }  // namespace libp2p
 

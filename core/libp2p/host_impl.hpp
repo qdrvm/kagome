@@ -34,17 +34,18 @@ namespace libp2p {
         const std::function<connection::Stream::Handler> &handler,
         const std::function<bool(const peer::Protocol &)> &predicate) override;
 
-    outcome::result<void> connect(const peer::PeerInfo &p) override;
+    void connect(const peer::PeerInfo &p,
+                 std::function<void(outcome::result<void>)> cb) override;
 
-    outcome::result<void> newStream(
+    void newStream(
         const peer::PeerInfo &p, const peer::Protocol &protocol,
         const std::function<connection::Stream::Handler> &handler) override;
 
-    const network::Network &network() const noexcept override;
+    const network::Network &getNetwork() const noexcept override;
 
-    peer::PeerRepository &peerRepository() const noexcept override;
+    peer::PeerRepository &getPeerRepository() const noexcept override;
 
-    const network::Router &router() const noexcept override;
+    const network::Router &getRouter() const noexcept override;
 
    private:
     friend class HostBuilder;

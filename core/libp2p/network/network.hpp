@@ -49,7 +49,8 @@ namespace libp2p::network {
     virtual Connectedness connectedness(const peer::PeerId &p) const = 0;
 
     // Establishes a connection to a given peer
-    virtual outcome::result<connptr_t> dial(const peer::PeerInfo &p) = 0;
+    virtual void dial(const peer::PeerInfo &p,
+                      std::function<void(outcome::result<connptr_t>)> cb) = 0;
 
     // Closes all connections to a given peer
     virtual outcome::result<void> close(const peer::PeerInfo &p) = 0;
@@ -73,20 +74,20 @@ namespace libp2p::network {
 
     // NewStream returns a new stream to given peer p.
     // If there is no connection to p, attempts to create one.
-    virtual outcome::result<void> newStream(
+    virtual void newStream(
         const peer::PeerInfo &p, const peer::Protocol &protocol,
         const std::function<connection::Stream::Handler> &handler) = 0;
 
     // TODO(@warchant): check if it is needed PRE-178
-//    // SetStreamHandler sets the handler for new streams opened by the
-//    // remote side.
-//    virtual void setStreamHandler(
-//        std::function<connection::Stream::Handler> func) = 0;
-//
-//    // SetConnHandler sets the handler for new connections opened by the
-//    // remote side.
-//    virtual void setConnectionHandler(
-//        std::function<connection::Connection::Handler> func) = 0;
+    //    // SetStreamHandler sets the handler for new streams opened by the
+    //    // remote side.
+    //    virtual void setStreamHandler(
+    //        std::function<connection::Stream::Handler> func) = 0;
+    //
+    //    // SetConnHandler sets the handler for new connections opened by the
+    //    // remote side.
+    //    virtual void setConnectionHandler(
+    //        std::function<connection::Connection::Handler> func) = 0;
   };
 
 }  // namespace libp2p::network

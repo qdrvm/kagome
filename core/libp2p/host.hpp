@@ -88,9 +88,10 @@ namespace libp2p {
      * error happens.
      * @param p peer to connect. Addresses will be searched in PeerRepository.
      * If not found, will be searched using Routing module.
-     * @return nothing on success, error otherwise.
+     * @param cb to be called, when a connection is initiated, or error happens
      */
-    virtual outcome::result<void> connect(const peer::PeerInfo &p) = 0;
+    virtual void connect(const peer::PeerInfo &p,
+                         std::function<void(outcome::result<void>)> cb) = 0;
 
     /**
      * @brief Open new stream to the peer {@param p} with protocol {@param
@@ -98,9 +99,8 @@ namespace libp2p {
      * @param p stream will be opened with this peer
      * @param protocol "speak" using this protocol
      * @param handler callback, will be executed on successful stream creation
-     * @return May return error if peer {@param p} is not known to this peer.
      */
-    virtual outcome::result<void> newStream(
+    virtual void newStream(
         const peer::PeerInfo &p, const peer::Protocol &protocol,
         const std::function<connection::Stream::Handler> &handler) = 0;
 
@@ -108,19 +108,19 @@ namespace libp2p {
      * @brief Get a network component of the Host
      * @return reference to network
      */
-    virtual const network::Network &network() const = 0;
+    virtual const network::Network &getNetwork() const = 0;
 
     /**
      * @brief Get a peer repository of the Host
      * @return reference to repository
      */
-    virtual peer::PeerRepository &peerRepository() const = 0;
+    virtual peer::PeerRepository &getPeerRepository() const = 0;
 
     /**
      * @brief Get a router component of the Host
      * @return reference to router
      */
-    virtual const network::Router &router() const = 0;
+    virtual const network::Router &getRouter() const = 0;
   };
 }  // namespace libp2p
 
