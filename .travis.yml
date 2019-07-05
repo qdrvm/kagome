@@ -144,7 +144,8 @@ before_script:
   - pip3 -V
   - gcovr --version || true
   - echo $PATH
-  - apt-cache show clang-8 || true
+  - apt-cache madison clang-8 || true
+  - apt-cache madison gcc-8 || true
 
 script:
   - export CC=${_CC}
