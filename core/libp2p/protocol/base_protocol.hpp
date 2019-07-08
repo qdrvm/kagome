@@ -27,32 +27,19 @@ namespace libp2p::protocol {
    * // register protocol handler (server side callback will be executed
    * // when client opens a stream to us)
    * nw->addProtocol(p);
-   *
-   * // create new stream to peerinfo (client side callback is executed
-   * // when we opened a stream)
-   * nw->newStream(peerinfo, p);
    * {@nocode}
    */
   struct BaseProtocol : public basic::Adaptor {
     ~BaseProtocol() override = default;
 
-    using StreamResult =
-        void(outcome::result<std::shared_ptr<connection::Stream>>);
-    using StreamResultFunc = std::function<StreamResult>;
+    using StreamResult = outcome::result<std::shared_ptr<connection::Stream>>;
 
     /**
      * @brief Handler that is executed on responder (server) side of the
      * protocol.
      * @param cb callback that is executed
      */
-    virtual void onListenerStream(StreamResultFunc cb) = 0;
-
-    /**
-     * @brief Handler that is executed on initiator (client) side of the
-     * protocol.
-     * @param cb callback that is executed
-     */
-    virtual void onDialerStream(StreamResultFunc cb) = 0;
+    virtual void handle(StreamResult cb) = 0;
   };
 
 }  // namespace libp2p::protocol
