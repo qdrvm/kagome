@@ -41,9 +41,7 @@ class MessageReadWriterTest : public testing::Test {
 
 ACTION_P(ReadPut, buf) {
   ASSERT_GE(arg0.size(), buf.size());
-  for (auto i = 0u; i < buf.size(); ++i) {
-    arg0[i] = buf[i];
-  }
+  std::copy(buf.begin(), buf.end(), arg0.begin());
   arg2(buf.size());
 }
 

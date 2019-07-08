@@ -11,7 +11,7 @@
 namespace libp2p::basic {
   enum class MessageReadWriterError {
     SUCCESS = 0,
-    BUFFER_EMPTY,
+    BUFFER_IS_EMPTY,
     VARINT_EXPECTED,
     INTERNAL_ERROR
   };

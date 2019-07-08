@@ -13,20 +13,21 @@
 
 namespace libp2p::basic {
   MessageReadWriter::MessageReadWriter(std::shared_ptr<ReadWriter> conn)
-      : conn_{std::move(conn)} {}
+      : conn_{std::move(conn)} {
+    BOOST_ASSERT(conn_ != nullptr);
+  }
 
   void MessageReadWriter::read(ReadCallbackFunc cb) {
     VarintReader::readVarint(
         conn_,
         [self{shared_from_this()},
-         cb = std::move(cb)](auto varint_opt) mutable {
+         cb = std::move(cb)](std::optional<multi::UVarint> varint_opt) mutable {
           if (!varint_opt) {
             return cb(MessageReadWriterError::VARINT_EXPECTED);
           }
 
           auto msg_len = varint_opt->toUInt64();
-          std::shared_ptr<std::vector<uint8_t>> buffer =
-              std::make_shared<std::vector<uint8_t>>(msg_len);
+          auto buffer = std::make_shared<std::vector<uint8_t>>(msg_len);
           self->conn_->read(
               *buffer, msg_len,
               [self, buffer, cb = std::move(cb)](auto &&res) mutable {
@@ -41,7 +42,7 @@ namespace libp2p::basic {
   void MessageReadWriter::write(gsl::span<const uint8_t> buffer,
                                 Writer::WriteCallbackFunc cb) {
     if (buffer.empty()) {
-      return cb(MessageReadWriterError::BUFFER_EMPTY);
+      return cb(MessageReadWriterError::BUFFER_IS_EMPTY);
     }
 
     auto varint_len = multi::UVarint{static_cast<uint64_t>(buffer.size())};
@@ -53,14 +54,14 @@ namespace libp2p::basic {
                       std::make_move_iterator(varint_len.toVector().end()));
     msg_bytes->insert(msg_bytes->end(), buffer.begin(), buffer.end());
 
-    conn_->write(
-        *msg_bytes, msg_bytes->size(),
-        [cb = std::move(cb), varint_size = varint_len.size()](auto &&res) {
-          if (!res) {
-            return cb(res.error());
-          }
-          // hide a written varint from the user of the method
-          cb(res.value() - varint_size);
-        });
+    conn_->write(*msg_bytes, msg_bytes->size(),
+                 [cb = std::move(cb), varint_size = varint_len.size(),
+                  msg_bytes](auto &&res) {
+                   if (!res) {
+                     return cb(res.error());
+                   }
+                   // hide a written varint from the user of the method
+                   cb(res.value() - varint_size);
+                 });
   }
 }  // namespace libp2p::basic

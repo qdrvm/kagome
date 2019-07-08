@@ -10,7 +10,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::basic, MessageReadWriterError, e) {
   switch (e) {
     case E::SUCCESS:
       return "success";
-    case E::BUFFER_EMPTY:
+    case E::BUFFER_IS_EMPTY:
       return "empty buffer provided";
     case E::VARINT_EXPECTED:
       return "varint expected at the beginning of Protobuf message";
