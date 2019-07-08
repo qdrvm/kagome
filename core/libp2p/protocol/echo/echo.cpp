@@ -27,8 +27,8 @@ namespace libp2p::protocol {
   Echo::Echo(EchoConfig config) : config_(config) {}
 
   std::shared_ptr<ClientEchoSession> Echo::createClient(
-      std::shared_ptr<connection::Stream> stream) {
-    return std::make_shared<ClientEchoSession>(std::move(stream));
+      const std::shared_ptr<connection::Stream> &stream) {
+    return std::make_shared<ClientEchoSession>(stream);
   }
 
 }  // namespace libp2p::protocol
