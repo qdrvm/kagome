@@ -21,6 +21,9 @@ namespace libp2p::basic {
   class MessageReadWriter
       : public std::enable_shared_from_this<MessageReadWriter> {
    public:
+    using ReadCallback = outcome::result<std::shared_ptr<std::vector<uint8_t>>>;
+    using ReadCallbackFunc = std::function<void(ReadCallback)>;
+
     /**
      * Create an instance of MessageReadWriter
      * @param conn, from which to read/write messages
@@ -31,9 +34,7 @@ namespace libp2p::basic {
      * Read a message, which is prepended with a varint
      * @param cb, which is called, when the message is read or error happens
      */
-    void read(std::function<
-              void(outcome::result<std::shared_ptr<std::vector<uint8_t>>>)>
-                  cb);
+    void read(ReadCallbackFunc cb);
 
     /**
      * Write a message; varint with its length will be prepended to it

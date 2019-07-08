@@ -15,10 +15,7 @@ namespace libp2p::basic {
   MessageReadWriter::MessageReadWriter(std::shared_ptr<ReadWriter> conn)
       : conn_{std::move(conn)} {}
 
-  void MessageReadWriter::read(
-      std::function<
-          void(outcome::result<std::shared_ptr<std::vector<uint8_t>>>)>
-          cb) {
+  void MessageReadWriter::read(ReadCallbackFunc cb) {
     VarintReader::readVarint(
         conn_,
         [self{shared_from_this()},
