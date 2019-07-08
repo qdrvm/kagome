@@ -52,7 +52,7 @@ namespace libp2p::protocol {
      * protocol.
      * @param cb callback that is executed
      */
-    virtual void onDialierStream(StreamResultFunc cb) = 0;
+    virtual void onDialerStream(StreamResultFunc cb) = 0;
   };
 
 }  // namespace libp2p::protocol
