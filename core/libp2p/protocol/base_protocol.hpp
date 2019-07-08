@@ -33,7 +33,6 @@ namespace libp2p::protocol {
    * nw->newStream(peerinfo, p);
    * {@nocode}
    */
-
   struct BaseProtocol : public basic::Adaptor {
     ~BaseProtocol() override = default;
 
