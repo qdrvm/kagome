@@ -68,9 +68,6 @@ namespace libp2p::peer {
   const multi::Multihash &PeerId::toMultihash() const {
     return hash_;
   }
-  bool PeerId::operator!=(const PeerId &other) const {
-    return !this->operator==(other);
-  }
 }  // namespace libp2p::peer
 
 size_t std::hash<libp2p::peer::PeerId>::operator()(

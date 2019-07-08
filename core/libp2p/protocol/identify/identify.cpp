@@ -9,6 +9,7 @@
 #include <tuple>
 
 #include "common/hexutil.hpp"
+#include "libp2p/host_impl.hpp"
 #include "libp2p/network/connection_manager.hpp"
 #include "libp2p/network/network.hpp"
 #include "libp2p/peer/address_repository.hpp"
@@ -267,7 +268,8 @@ namespace libp2p::protocol {
     }
 
     // unmarshal a received public key
-    auto pubkey_buf = Buffer{}.put(pubkey_str);
+    std::vector<uint8_t> pubkey_buf;
+    pubkey_buf.insert(pubkey_buf.end(), pubkey_str.begin(), pubkey_str.end());
     auto pubkey_res = key_marshaller_->unmarshalPublicKey(pubkey_buf);
     if (!pubkey_res) {
       log_->info("cannot unmarshal public key for peer {}: {}",
