@@ -110,7 +110,7 @@ namespace kagome::transaction_pool {
     for (auto &tag : rtx.requires) {
       if (auto it = provided_tags_by_.find(tag);
           it != provided_tags_by_.end() && it->second.has_value()) {
-        if (auto ready_it = ready_queue_.find(it->second.value());
+        if (auto ready_it = ready_queue_.find(*it->second);
             ready_it != ready_queue_.end()) {
           auto &unlocking_transaction = ready_it->second;
           unlocking_transaction.unlocks.push_back(rtx.hash);
@@ -156,22 +156,22 @@ namespace kagome::transaction_pool {
       to_remove.pop_front();
       auto hash_opt = provided_tags_by_.at(tag_to_remove);
       provided_tags_by_.erase(tag_to_remove);
-      if(not hash_opt) {
+      if (not hash_opt) {
         continue;
       }
-      auto tx = ready_queue_.at(hash_opt.value());
-      ready_queue_.erase(hash_opt.value());
+      auto tx = ready_queue_.at(*hash_opt);
+      ready_queue_.erase(*hash_opt);
 
       auto find_previous = [this, &tx](primitives::TransactionTag const &tag)
           -> std::optional<std::vector<primitives::TransactionTag>> {
-        if(provided_tags_by_.find(tag) == provided_tags_by_.end()) {
+        if (provided_tags_by_.find(tag) == provided_tags_by_.end()) {
           return std::nullopt;
         }
         auto prev_hash_opt = provided_tags_by_.at(tag);
-        if(!prev_hash_opt) {
+        if (!prev_hash_opt) {
           return std::nullopt;
         }
-        auto &tx2 = ready_queue_[prev_hash_opt.value()];
+        auto &tx2 = ready_queue_[*prev_hash_opt];
         tx2.unlocks.remove_if([&tx](auto &t) { return t == tx.hash; });
         // We eagerly prune previous transactions as well.
         // But it might not always be good.
@@ -183,14 +183,13 @@ namespace kagome::transaction_pool {
         // - we will have to wait for re-propagation of that transaction
         // Alternatively the caller may attempt to re-import these transactions.
         if (tx2.unlocks.empty()) {
-          return std::optional(tx2.provides);
+          return std::make_optional(tx2.provides);
         }
         return std::nullopt;
       };
       for (auto &required_tag : tx.requires) {
         if (auto tags_to_remove = find_previous(required_tag); tags_to_remove) {
-          std::copy(tags_to_remove.value().begin(),
-                    tags_to_remove.value().end(),
+          std::copy(tags_to_remove->begin(), tags_to_remove->end(),
                     std::back_inserter(to_remove));
         }
       }

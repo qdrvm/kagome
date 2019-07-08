@@ -10,3 +10,11 @@ add_library(message_read_writer_error
 target_link_libraries(message_read_writer_error
     outcome
     )
+
+add_library(message_read_writer
+    message_read_writer.hpp
+    message_read_writer.cpp
+    )
+target_link_libraries(message_read_writer
+    uvarint
+    )

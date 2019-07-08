@@ -9,7 +9,12 @@
 #include <outcome/outcome.hpp>
 
 namespace libp2p::basic {
-  enum class MessageReadWriterError { VARINT_EXPECTED = 1, LITTLE_BUFFER };
+  enum class MessageReadWriterError {
+    VARINT_EXPECTED = 1,
+    BUFFER_EMPTY,
+    LITTLE_BUFFER,
+    INTERNAL_ERROR
+  };
 }
 
 OUTCOME_HPP_DECLARE_ERROR(libp2p::basic, MessageReadWriterError)

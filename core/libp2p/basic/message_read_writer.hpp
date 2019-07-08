@@ -7,70 +7,44 @@
 #define KAGOME_MESSAGE_READ_WRITER_HPP
 
 #include <memory>
-#include <vector>
 
 #include <gsl/span>
-#include "common/buffer.hpp"
-#include "libp2p/basic/message_read_writer_error.hpp"
+#include <outcome/outcome.hpp>
 #include "libp2p/basic/readwriter.hpp"
-#include "libp2p/basic/varint_reader.hpp"
-#include "libp2p/multi/uvarint.hpp"
 
 namespace libp2p::basic {
   /**
-   * Allows to read and write messages of (\tparam Message) type
-   * @tparam Message - type of the message; for now, works with Protobuf
-   * messages only
+   * Allows to read and write messages, which are prepended with a varint -
+   * standard, for example, for Protobuf messages in Libp2p
    */
   class MessageReadWriter
       : public std::enable_shared_from_this<MessageReadWriter> {
    public:
-    explicit MessageReadWriter(std::shared_ptr<ReadWriter> conn)
-        : conn_{std::move(conn)} {}
+    /**
+     * Create an instance of MessageReadWriter
+     * @param conn, from which to read/write messages
+     */
+    explicit MessageReadWriter(std::shared_ptr<ReadWriter> conn);
 
-    void read(gsl::span<uint8_t> buffer, Reader::ReadCallbackFunc cb) {
-      if (buffer.empty()) {
-        return cb(MessageReadWriterError::LITTLE_BUFFER);
-      }
-      VarintReader::readVarint(
-          conn_,
-          [self{shared_from_this()}, cb = std::move(cb),
-           buffer](auto varint_opt) mutable {
-            if (!varint_opt) {
-              return cb(MessageReadWriterError::VARINT_EXPECTED);
-            }
+    /**
+     * Read a message, which is prepended with a varint
+     * @param buffer, to which the message is to be read; MUST be big enough for
+     * that message
+     * @param cb, which is called, when the message is read or error happens
+     * @note if MessageReadWriterError::LITTLE_BUFFER happens, the second
+     * argument of the callback will be size of the message, which is to be
+     * read; as varint will already be read from the connection by that time,
+     * you can just use simple conn->read(..) method
+     */
+    void read(gsl::span<uint8_t> buffer,
+              std::function<void(outcome::result<size_t>, size_t)> cb);
 
-            auto msg_len = varint_opt->toUInt64();
-            if (static_cast<uint64_t>(buffer.size()) < msg_len) {
-              return cb(MessageReadWriterError::LITTLE_BUFFER);
-            }
-
-            self->conn_->read(buffer, msg_len,
-                              [self, cb = std::move(cb)](auto &&res) mutable {
-                                cb(std::forward<decltype(res)>(res));
-                              });
-          });
-    }
-
-    void write(gsl::span<const uint8_t> buffer, Writer::WriteCallbackFunc cb) {
-      if (buffer.empty()) {
-        return cb(outcome::success());
-      }
-
-      auto varint_len = multi::UVarint{static_cast<uint64_t>(buffer.size())};
-
-      auto msg_bytes = std::make_shared<std::vector<uint8_t>>();
-      msg_bytes->reserve(varint_len.size() + buffer.size());
-      msg_bytes->insert(msg_bytes->end(),
-                        std::make_move_iterator(varint_len.toVector().begin()),
-                        std::make_move_iterator(varint_len.toVector().end()));
-      msg_bytes->insert(msg_bytes->end(), buffer.begin(), buffer.end());
-
-      conn_->write(*msg_bytes, msg_bytes->size(),
-                   [cb = std::move(cb)](auto &&res) {
-                     cb(std::forward<decltype(res)>(res));
-                   });
-    }
+    /**
+     * Write a message; varint with its length will be prepended to it
+     * @param buffer - the message to be written
+     * @param cb, which is called, when the message is read or error happens
+     */
+    void write(gsl::span<const uint8_t> buffer, Writer::WriteCallbackFunc cb);
 
    private:
     std::shared_ptr<ReadWriter> conn_;

@@ -7,7 +7,6 @@
 
 #include <gtest/gtest.h>
 #include "libp2p/multi/uvarint.hpp"
-#include "mock/libp2p/basic/protobuf_message_mock.hpp"
 #include "mock/libp2p/connection/raw_connection_mock.hpp"
 #include "testutil/gmock_actions.hpp"
 
@@ -25,8 +24,8 @@ class MessageReadWriterTest : public testing::Test {
   std::shared_ptr<RawConnectionMock> conn_mock_ =
       std::make_shared<RawConnectionMock>();
 
-  std::shared_ptr<MessageReadWriter<ProtobufMessageMock>> msg_rw_ =
-      std::make_shared<MessageReadWriter<ProtobufMessageMock>>();
+  std::shared_ptr<MessageReadWriter> msg_rw_ =
+      std::make_shared<MessageReadWriter>(conn_mock_);
 
   static constexpr uint64_t kMsgLength = 4;
   UVarint len_varint_ = UVarint{kMsgLength};
@@ -47,25 +46,18 @@ ACTION_P(ReadPut, buf) {
   arg2(buf.size());
 }
 
-ACTION_P(CheckParse, buf) {
-  for (auto i = 0u; i < buf.size(); ++i) {
-    EXPECT_EQ(static_cast<const uint8_t *>(arg0)[i], buf[i]);
-  }
-  return true;
-}
-
 TEST_F(MessageReadWriterTest, Read) {
+  std::vector<uint8_t> buffer(msg_bytes_.size(), 0);
+
   EXPECT_CALL(*conn_mock_, read(_, 1, _))
       .WillOnce(ReadPut(len_varint_.toBytes()));
   EXPECT_CALL(*conn_mock_, read(_, kMsgLength, _))
       .WillOnce(ReadPut(msg_bytes_));
 
-  ProtobufMessageMock msg;
-  EXPECT_CALL(msg, ParseFromArray(_, kMsgLength))
-      .WillOnce(CheckParse(msg_bytes_));
-
-  msg_rw_->read(conn_mock_, msg, [this](auto &&res) {
+  msg_rw_->read(buffer, [this, &buffer](auto &&res, size_t len) {
     ASSERT_TRUE(res);
+    ASSERT_EQ(res.value(), msg_bytes_.size());
+    ASSERT_EQ(buffer, msg_bytes_.toVector());
     operation_completed_ = true;
   });
 
@@ -75,8 +67,6 @@ TEST_F(MessageReadWriterTest, Read) {
 ACTION_P2(CheckWrite, buf, varint) {
   ASSERT_EQ(arg0.size(), buf.size());
 
-  // it's hard to check, that message bytes were copied, but at least check
-  // varint is at the beginning
   for (auto i = 0u; i < varint.size(); ++i) {
     ASSERT_EQ(arg0[i], varint.toBytes()[i]);
   }
@@ -84,15 +74,12 @@ ACTION_P2(CheckWrite, buf, varint) {
 }
 
 TEST_F(MessageReadWriterTest, Write) {
-  ProtobufMessageMock msg;
-  EXPECT_CALL(msg, ByteSize()).Times(3).WillRepeatedly(Return(kMsgLength));
-  EXPECT_CALL(msg, SerializeToArray(_, kMsgLength));
-
   EXPECT_CALL(*conn_mock_, write(_, kMsgLength + 1, _))
       .WillOnce(CheckWrite(msg_with_varint_bytes_, len_varint_));
 
-  msg_rw_->write(conn_mock_, msg, [this](auto &&res) {
+  msg_rw_->write(msg_bytes_, [this](auto &&res) {
     ASSERT_TRUE(res);
+    ASSERT_EQ(res.value(), msg_bytes_.size());
     operation_completed_ = true;
   });
 
