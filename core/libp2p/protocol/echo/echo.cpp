@@ -15,7 +15,7 @@ namespace libp2p::protocol {
       return;
     }
 
-    auto session = std::make_shared<EchoSession>(rstream.value(), config_);
+    auto session = std::make_shared<ServerEchoSession>(rstream.value(), config_);
     session->start();
   }
 

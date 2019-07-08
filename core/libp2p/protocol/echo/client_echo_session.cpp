@@ -5,6 +5,8 @@
 
 #include "libp2p/protocol/echo/client_echo_session.hpp"
 
+#include <boost/assert.hpp>
+
 namespace libp2p::protocol {
 
   ClientEchoSession::ClientEchoSession(
@@ -21,30 +23,29 @@ namespace libp2p::protocol {
 
     buf_ = std::vector<uint8_t>(send.begin(), send.end());
 
-    BOOST_ASSERT(stream_ != nullptr);
+    auto self{shared_from_this()};
     stream_->write(
         buf_, buf_.size(),
-        [this, then{std::move(then)}](outcome::result<size_t> rw) mutable {
+        [self, then{std::move(then)}](outcome::result<size_t> rw) mutable {
           if (!rw) {
             return then(rw.error());
           }
 
-          if (stream_->isClosedForRead()) {
+          if (self->stream_->isClosedForRead()) {
             return;
           }
 
-          stream_->read(buf_, buf_.size(),
-                        [this, then{std::move(then)}](
-                            outcome::result<size_t> rr) mutable {
-                          if (!rr) {
-                            return then(rr.error());
-                          }
+          self->stream_->read(
+              self->buf_, self->buf_.size(),
+              [self,
+               then{std::move(then)}](outcome::result<size_t> rr) mutable {
+                if (!rr) {
+                  return then(rr.error());
+                }
 
-                          auto begin = buf_.begin();
-                          auto end = buf_.begin();
-                          std::advance(end, rr.value());
-                          return then(std::string(begin, end));
-                        });
+                auto begin = self->buf_.begin();
+                return then(std::string(begin, begin + rr.value()));
+              });
         });
   }
 }  // namespace libp2p::protocol

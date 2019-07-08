@@ -8,12 +8,14 @@
 
 #include <vector>
 
-#include <boost/assert.hpp>
 #include "libp2p/connection/stream.hpp"
-#include "libp2p/protocol/echo/echo_config.hpp"
 
 namespace libp2p::protocol {
 
+  /**
+   * @brief Session, created by client. Basically, a convenient interface to
+   * echo server.
+   */
   class ClientEchoSession
       : public std::enable_shared_from_this<ClientEchoSession> {
    public:
@@ -21,6 +23,10 @@ namespace libp2p::protocol {
 
     explicit ClientEchoSession(std::shared_ptr<connection::Stream> stream);
 
+    /**
+     * @brief Send a message, read back the same message and execute {@param
+     * then} with that message.
+     */
     void sendAnd(const std::string &send, Then then);
 
    private:

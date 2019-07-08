@@ -15,15 +15,22 @@
 
 namespace libp2p::protocol {
 
+  /**
+   * @brief Simple echo protocol. It will keep responding with the same data it
+   * reads from the connection.
+   */
   class Echo : public BaseProtocol {
    public:
     explicit Echo(EchoConfig config = EchoConfig{});
 
-    peer::Protocol getProtocolId() const override ;
+    peer::Protocol getProtocolId() const override;
 
+    // handle incoming stream
     void handle(
         outcome::result<std::shared_ptr<connection::Stream>> rstream) override;
 
+    // create client session, which simplifies writing tests and interation with
+    // server.
     ClientEchoSession createClient(std::shared_ptr<connection::Stream> stream);
 
    private:

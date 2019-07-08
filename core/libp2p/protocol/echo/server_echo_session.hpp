@@ -14,12 +14,19 @@
 
 namespace libp2p::protocol {
 
-  class EchoSession : public std::enable_shared_from_this<EchoSession> {
+  /**
+   * @brief Echo session created by server.
+   */
+  class ServerEchoSession
+      : public std::enable_shared_from_this<ServerEchoSession> {
    public:
-    explicit EchoSession(std::shared_ptr<connection::Stream> stream,
-                         EchoConfig config = {});
+    explicit ServerEchoSession(std::shared_ptr<connection::Stream> stream,
+                               EchoConfig config = {});
+
+    // start session
     void start();
 
+    // stop session
     void stop();
 
    private:
@@ -37,4 +44,4 @@ namespace libp2p::protocol {
 
 }  // namespace libp2p::protocol
 
-#endif  //KAGOME_SERVER_ECHO_SESSION_HPP
+#endif  // KAGOME_SERVER_ECHO_SESSION_HPP

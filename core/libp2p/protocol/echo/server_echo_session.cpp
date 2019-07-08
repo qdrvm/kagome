@@ -7,24 +7,24 @@
 
 namespace libp2p::protocol {
 
-  EchoSession::EchoSession(std::shared_ptr<connection::Stream> stream,
+  ServerEchoSession::ServerEchoSession(std::shared_ptr<connection::Stream> stream,
                            EchoConfig config)
       : stream_(std::move(stream)), buf_(config.max_recv_size, 0) {
     BOOST_ASSERT(stream_ != nullptr);
     BOOST_ASSERT(config.max_recv_size > 0);
   }
 
-  void EchoSession::start() {
+  void ServerEchoSession::start() {
     doRead();
   }
 
-  void EchoSession::stop() {
+  void ServerEchoSession::stop() {
     stream_->close([self{shared_from_this()}](auto && /* ignore */) {
       // ignore result
     });
   }
 
-  void EchoSession::doRead() {
+  void ServerEchoSession::doRead() {
     if (stream_->isClosedForRead()) {
       return stop();
     }
@@ -36,7 +36,7 @@ namespace libp2p::protocol {
         });
   }
 
-  void EchoSession::onRead(outcome::result<size_t> rread) {
+  void ServerEchoSession::onRead(outcome::result<size_t> rread) {
     if (!rread) {
       return stop();
     }
@@ -44,7 +44,7 @@ namespace libp2p::protocol {
     this->doWrite(rread.value());
   }
 
-  void EchoSession::doWrite(size_t size) {
+  void ServerEchoSession::doWrite(size_t size) {
     if (stream_->isClosedForWrite()) {
       return stop();
     }
@@ -55,7 +55,7 @@ namespace libp2p::protocol {
                    });
   }
 
-  void EchoSession::onWrite(outcome::result<size_t> rwrite) {
+  void ServerEchoSession::onWrite(outcome::result<size_t> rwrite) {
     if (!rwrite) {
       return stop();
     }

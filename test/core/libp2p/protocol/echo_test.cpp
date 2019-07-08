@@ -4,6 +4,7 @@
  */
 
 #include "libp2p/protocol/echo.hpp"
+
 #include <gtest/gtest.h>
 #include "mock/libp2p/connection/stream_mock.hpp"
 #include "testutil/gmock_actions.hpp"
@@ -35,6 +36,11 @@ ACTION_P(WriteMsgAssertEqual, msg) {
   arg2(msg.size());
 }
 
+/**
+ * @given Stream
+ * @when server reads string "hello" from Stream
+ * @then server writes back the same string
+ */
 TEST(EchoTest, Server) {
   Echo echo;
   auto stream = std::make_shared<connection::StreamMock>();
@@ -55,6 +61,11 @@ TEST(EchoTest, Server) {
   echo.handle(stream);
 }
 
+/**
+ * @given Stream
+ * @when client writes string "hello" to the Stream
+ * @then client reads back the same string
+ */
 TEST(EchoTest, Client) {
   Echo echo;
   auto stream = std::make_shared<connection::StreamMock>();
