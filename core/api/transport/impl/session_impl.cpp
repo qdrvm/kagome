@@ -31,7 +31,7 @@ namespace kagome::server {
           if (!ec) {
             std::string data((std::istreambuf_iterator<char>(&buffer_)),
                              std::istreambuf_iterator<char>());
-            onRequest()(shared_from_this(), data);
+            onRequest()(shared_from_this(), std::move(data));
           } else {
             stop();
           }

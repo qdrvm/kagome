@@ -10,9 +10,9 @@
 namespace kagome::server {
   using kagome::server::SessionImpl;
 
-  ListenerImpl::ListenerImpl(boost::asio::io_context &context,
-                             boost::asio::ip::tcp::endpoint endpoint)
-      : context_(context), acceptor_(context_, std::move(endpoint)) {
+  ListenerImpl::ListenerImpl(ListenerImpl::Context &context,
+                             const ListenerImpl::Endpoint &endpoint)
+      : context_(context), acceptor_(context_, endpoint) {
     onError().connect([this](outcome::result<void> err) {
       // TODO(yuraz): pre-230 log error
       stop();
@@ -45,6 +45,5 @@ namespace kagome::server {
   void ListenerImpl::stop() {
     state_ = State::STOPPED;
     acceptor_.cancel();
-    onStopped();
   }
 }  // namespace kagome::server

@@ -15,19 +15,17 @@ namespace kagome::api {
       std::shared_ptr<ExtrinsicApi> api)
       : listener_{std::move(listener)}, api_(std::move(api)) {
     new_session_cnn_ = listener_->onNewSession().connect(
+        // NOLINTNEXTLINE(performance-unnecessary-value-param)
         [this](sptr<server::Session> session) {
-          session->onRequest().connect([this](std::shared_ptr<server::Session> session, const std::string &request) {
-            processData(session, request);
-          });
+          session->onRequest().connect(
+              // NOLINTNEXTLINE(performance-unnecessary-value-param)
+              [this](std::shared_ptr<server::Session> session,
+                     std::string request) {
+                processData(session, std::move(request));
+              });
         });
 
-//    on_listener_stopped_cnn_ = listener_->onStopped().connect([](void(){
-//        // TODO(yuraz): pre-230 log listener stop
-//    }));
-
-//    on_listener_error_cnn_ = listener_->onError().connect([](outcome::result<void> err) {
-//      // TODO(yuraz): pre-230 process error
-//    });
+    listener_->onError().connect([this](outcome::result<void> err) { stop(); });
 
     // register json format handler
     jsonrpc_handler_.RegisterFormatHandler(format_handler_);
@@ -68,7 +66,8 @@ namespace kagome::api {
     dispatcher.AddMethod(name, std::move(method));
   }
 
-  void ExtrinsicApiService::processData(std::shared_ptr<server::Session> session, const std::string &data) {
+  void ExtrinsicApiService::processData(sptr<server::Session> session,
+                                        const std::string &data) {
     // TOOD(yuraz): pre-230 add mutex
     auto &&formatted_response = jsonrpc_handler_.HandleRequest(data);
     std::string response(formatted_response->GetData(),

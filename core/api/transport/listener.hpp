@@ -31,8 +31,6 @@ namespace kagome::server {
     using OnStopped = Signal<void()>;
 
    public:
-    using Endpoint = boost::asio::ip::tcp::endpoint;
-
     virtual ~Listener() = default;
 
     /**
@@ -44,16 +42,10 @@ namespace kagome::server {
 
     /**
      * @return `on error` signal
+     * which is emitted when start listening fails
      */
     Signal<void(outcome::result<void>)> &onError() {
       return on_error_;
-    }
-
-    /**
-     * @return `on stopped` signal
-     */
-    Signal<void()> &onStopped() {
-      return on_stopped_;
     }
 
     /**
@@ -74,7 +66,6 @@ namespace kagome::server {
 
     OnNewSession on_new_session_;  ///< emitted when new session is created
     OnError on_error_;             ///< emitted when error occurs
-    OnStopped on_stopped_;         ///< emitted when listener stops
   };
 }  // namespace kagome::server
 

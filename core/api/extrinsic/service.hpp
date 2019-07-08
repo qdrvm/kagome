@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <jsonrpc-lean/server.h>
+#include <boost/core/noncopyable.hpp>
 #include <boost/signals2/signal.hpp>
 #include "api/extrinsic/extrinsic_api.hpp"
 #include "api/transport/impl/listener_impl.hpp"
@@ -18,7 +19,7 @@ namespace kagome::api {
   /**
    * @brief extrinsic submission service implementation
    */
-  class ExtrinsicApiService {
+  class ExtrinsicApiService : private boost::noncopyable {
     using SignalType = void(const std::string &);
     template <class T>
     using sptr = std::shared_ptr<T>;
@@ -64,7 +65,8 @@ namespace kagome::api {
      * @brief handles decoded network message
      * @param data json request string
      */
-    void processData(std::shared_ptr<server::Session> session, const std::string &data);
+    void processData(std::shared_ptr<server::Session> session,
+                     const std::string &data);
 
     jsonrpc::JsonFormatHandler format_handler_{};  ///< format handler instance
     jsonrpc::Server jsonrpc_handler_{};            ///< json rpc server instance

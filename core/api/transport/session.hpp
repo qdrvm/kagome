@@ -24,7 +24,7 @@ namespace kagome::server {
 
     using OnStopped = Signal<void(std::shared_ptr<Session>)>;
     using OnRequest =
-        Signal<void(std::shared_ptr<Session>, const std::string &)>;
+        Signal<void(std::shared_ptr<Session>, std::string)>;
     using OnResponse = Signal<void(std::string)>;
 
    public:

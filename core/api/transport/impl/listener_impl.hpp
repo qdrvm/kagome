@@ -17,13 +17,14 @@ namespace kagome::server {
     enum class State { READY, WORKING, STOPPED = READY };
     using Context = boost::asio::io_context;
     using Acceptor = boost::asio::ip::tcp::acceptor;
+    using Endpoint = boost::asio::ip::tcp::endpoint;
 
    public:
     /**
      * @param context reference to boost::asio::io_context instance
      * @param endpoint loopback ip address to listen
      */
-    ListenerImpl(Context &context, Endpoint endpoint);
+    ListenerImpl(Context &context, const Endpoint &endpoint);
 
     ~ListenerImpl() override = default;
 
