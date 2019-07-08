@@ -11,7 +11,7 @@ size_t std::hash<libp2p::crypto::Key>::operator()(
     const libp2p::crypto::Key &x) const {
   size_t seed = 0;
   boost::hash_combine(seed, x.type);
-  boost::hash_combine(seed, std::hash<kagome::common::Buffer>()(x.data));
+  boost::hash_combine(seed, boost::hash_range(x.data.begin(), x.data.end()));
   return seed;
 }
 

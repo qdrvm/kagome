@@ -82,7 +82,7 @@ namespace kagome::transaction_pool {
     std::list<WaitingTransaction> waiting_queue_;
 
     // tags provided by imported transactions
-    std::map<primitives::TransactionTag, std::optional<common::Hash256>>
+    std::map<primitives::TransactionTag, boost::optional<common::Hash256>>
         provided_tags_by_;
 
     // hexadecimal representations of imported transactions hashes

@@ -9,7 +9,6 @@
 #include "libp2p/crypto/proto/keys.pb.h"
 
 namespace libp2p::crypto::marshaller {
-  using kagome::common::Buffer;
   namespace {
     /**
      * @brief converts Key::Type to proto::KeyType
@@ -60,22 +59,19 @@ namespace libp2p::crypto::marshaller {
     }
   }  // namespace
 
-  outcome::result<Buffer> KeyMarshallerImpl::marshal(
+  outcome::result<KeyMarshallerImpl::ByteArray> KeyMarshallerImpl::marshal(
       const PublicKey &key) const {
     proto::PublicKey proto_key;
     OUTCOME_TRY(key_type, marshalKeyType(key.type));
     proto_key.set_key_type(key_type);
-
     proto_key.set_key_value(key.data.data(), key.data.size());
 
     auto string = proto_key.SerializeAsString();
-    Buffer out;
-    out.put(proto_key.SerializeAsString());
-
-    return out;
+    KeyMarshallerImpl::ByteArray out(string.begin(), string.end());
+    return KeyMarshallerImpl::ByteArray(string.begin(), string.end());
   }
 
-  outcome::result<Buffer> KeyMarshallerImpl::marshal(
+  outcome::result<KeyMarshallerImpl::ByteArray> KeyMarshallerImpl::marshal(
       const PrivateKey &key) const {
     proto::PublicKey proto_key;
     OUTCOME_TRY(key_type, marshalKeyType(key.type));
@@ -83,37 +79,32 @@ namespace libp2p::crypto::marshaller {
     proto_key.set_key_value(key.data.data(), key.data.size());
 
     auto string = proto_key.SerializeAsString();
-    Buffer out;
-    out.put(proto_key.SerializeAsString());
-
-    return out;
+    return KeyMarshallerImpl::ByteArray(string.begin(), string.end());
   }
 
   outcome::result<PublicKey> KeyMarshallerImpl::unmarshalPublicKey(
-      const Buffer &key_bytes) const {
+      const KeyMarshallerImpl::ByteArray &key_bytes) const {
     proto::PublicKey proto_key;
     if (!proto_key.ParseFromArray(key_bytes.data(), key_bytes.size())) {
       return CryptoProviderError::FAILED_UNMARSHAL_DATA;
     }
 
     OUTCOME_TRY(key_type, unmarshalKeyType(proto_key.key_type()));
-
-    Buffer key_value;
-    key_value.put(proto_key.key_value());
+    KeyMarshallerImpl::ByteArray key_value(proto_key.key_value().begin(),
+                                           proto_key.key_value().end());
     return PublicKey{{key_type, key_value}};
   }
 
   outcome::result<PrivateKey> KeyMarshallerImpl::unmarshalPrivateKey(
-      const Buffer &key_bytes) const {
+      const KeyMarshallerImpl::ByteArray &key_bytes) const {
     proto::PublicKey proto_key;
     if (!proto_key.ParseFromArray(key_bytes.data(), key_bytes.size())) {
       return CryptoProviderError::FAILED_UNMARSHAL_DATA;
     }
 
     OUTCOME_TRY(key_type, unmarshalKeyType(proto_key.key_type()));
-    Buffer key_value;
-    key_value.put(proto_key.key_value());
-
+    KeyMarshallerImpl::ByteArray key_value(proto_key.key_value().begin(),
+                                           proto_key.key_value().end());
     return PrivateKey{{key_type, key_value}};
   }
 

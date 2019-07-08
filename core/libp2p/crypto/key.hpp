@@ -26,7 +26,7 @@ namespace libp2p::crypto {
     };
 
     Type type = Type::UNSPECIFIED;  ///< key type
-    Buffer data;                    ///< key content
+    std::vector<uint8_t> data;      ///< key content
   };
 
   inline bool operator==(const Key &a, const Key &b) {

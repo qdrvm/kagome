@@ -28,9 +28,9 @@ class PeerIdTest : public ::testing::Test {
 TEST_F(PeerIdTest, FromPubkeySuccess) {
   PublicKey pubkey{};
   pubkey.type = Key::Type::RSA1024;
-  pubkey.data = kBuffer;
+  pubkey.data = kBuffer.toVector();
 
-  auto hash = kagome::crypto::sha256(pubkey.data.toVector());
+  auto hash = kagome::crypto::sha256(pubkey.data);
   EXPECT_OUTCOME_TRUE(
       multihash, Multihash::create(sha256, Buffer{hash.begin(), hash.end()}))
 
@@ -45,7 +45,7 @@ TEST_F(PeerIdTest, FromPubkeySuccess) {
  * @then creation is successful
  */
 TEST_F(PeerIdTest, FromBase58Success) {
-  EXPECT_OUTCOME_TRUE(hash, Multihash::create(sha256, kBuffer))
+  EXPECT_OUTCOME_TRUE(hash, Multihash::create(sha256, kBuffer));
   auto hash_b58 = encodeBase58(hash.toBuffer());
 
   EXPECT_OUTCOME_TRUE(peer_id, PeerId::fromBase58(hash_b58))
@@ -91,7 +91,7 @@ TEST_F(PeerIdTest, FromBase58NotSha256) {
  * @then creation is successful
  */
 TEST_F(PeerIdTest, FromHashSuccess) {
-  EXPECT_OUTCOME_TRUE(hash, Multihash::create(sha256, kBuffer))
+  EXPECT_OUTCOME_TRUE(hash, Multihash::create(sha256, kBuffer));
   auto hash_b58 = encodeBase58(hash.toBuffer());
 
   EXPECT_OUTCOME_TRUE(peer_id, PeerId::fromHash(hash))

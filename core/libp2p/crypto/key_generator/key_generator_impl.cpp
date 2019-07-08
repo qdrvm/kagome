@@ -17,8 +17,6 @@
 #include "libp2p/crypto/random_generator.hpp"
 
 namespace libp2p::crypto {
-  using kagome::common::Buffer;
-
   KeyGeneratorImpl::KeyGeneratorImpl(random::CSPRNG &random_provider)
       : random_provider_(random_provider) {
     initialize();
@@ -33,11 +31,11 @@ namespace libp2p::crypto {
   }
 
   namespace detail {
-    Buffer bio2buffer(BIO *bio) {
+    KeyGenerator::Buffer bio2buffer(BIO *bio) {
       auto length = BIO_pending(bio);
       std::vector<uint8_t> bytes(length + 1, 0);
       BIO_read(bio, bytes.data(), length);
-      return Buffer(std::move(bytes));
+      return bytes;
     }
 
     outcome::result<PublicKey> deriveRsaPublicKey(const PrivateKey &key) {
@@ -105,7 +103,8 @@ namespace libp2p::crypto {
      * @param bits rsa key bits count
      * @return pair of private and public key content
      */
-    outcome::result<std::pair<Buffer, Buffer>> generateRsaKeys(int bits) {
+    outcome::result<std::pair<KeyGenerator::Buffer, KeyGenerator::Buffer>>
+    generateRsaKeys(int bits) {
       int ret = 0;
       RSA *rsa = nullptr;
       BIGNUM *bne = nullptr;
@@ -341,7 +340,7 @@ namespace libp2p::crypto {
 
   std::vector<StretchedKey> KeyGeneratorImpl::stretchKey(
       common::CipherType cipher_type, common::HashType hash_type,
-      const kagome::common::Buffer &secret) const {
+      const Buffer &secret) const {
     // TODO(yuraz): pre-140 implement
     return {};
   }
