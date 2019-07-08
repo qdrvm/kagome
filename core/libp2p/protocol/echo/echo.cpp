@@ -15,7 +15,8 @@ namespace libp2p::protocol {
       return;
     }
 
-    auto session = std::make_shared<ServerEchoSession>(rstream.value(), config_);
+    auto session =
+        std::make_shared<ServerEchoSession>(rstream.value(), config_);
     session->start();
   }
 
@@ -25,9 +26,9 @@ namespace libp2p::protocol {
 
   Echo::Echo(EchoConfig config) : config_(config) {}
 
-  ClientEchoSession Echo::createClient(
+  std::shared_ptr<ClientEchoSession> Echo::createClient(
       std::shared_ptr<connection::Stream> stream) {
-    return ClientEchoSession{std::move(stream)};
+    return std::make_shared<ClientEchoSession>(std::move(stream));
   }
 
 }  // namespace libp2p::protocol

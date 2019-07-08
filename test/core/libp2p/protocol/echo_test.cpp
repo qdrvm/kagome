@@ -80,7 +80,7 @@ TEST(EchoTest, Client) {
   bool executed = false;
 
   auto client = echo.createClient(stream);
-  client.sendAnd(msg, [&](outcome::result<std::string> rm) {
+  client->sendAnd(msg, [&](outcome::result<std::string> rm) {
     EXPECT_OUTCOME_TRUE(m, rm);
     ASSERT_EQ(m, msg);
     executed = true;

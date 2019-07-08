@@ -31,7 +31,7 @@ namespace libp2p::protocol {
 
     // create client session, which simplifies writing tests and interation with
     // server.
-    ClientEchoSession createClient(std::shared_ptr<connection::Stream> stream);
+    std::shared_ptr<ClientEchoSession> createClient(std::shared_ptr<connection::Stream> stream);
 
    private:
     EchoConfig config_;
