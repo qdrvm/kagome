@@ -7,7 +7,7 @@
 #define KAGOME_MULTISELECT_IMPL_HPP
 
 #include <memory>
-#include <string>
+#include <queue>
 #include <string_view>
 #include <vector>
 
@@ -15,6 +15,8 @@
 #include "common/logger.hpp"
 #include "libp2p/protocol_muxer/multiselect/message_manager.hpp"
 #include "libp2p/protocol_muxer/multiselect/message_reader.hpp"
+#include "libp2p/protocol_muxer/multiselect/message_writer.hpp"
+#include "libp2p/protocol_muxer/multiselect/multiselect_error.hpp"
 #include "libp2p/protocol_muxer/protocol_muxer.hpp"
 
 namespace libp2p::protocol_muxer {
@@ -22,7 +24,11 @@ namespace libp2p::protocol_muxer {
    * Implementation of a protocol muxer. Read more
    * https://github.com/multiformats/multistream-select
    */
-  class Multiselect : public ProtocolMuxer {
+  class Multiselect : public ProtocolMuxer,
+                      public std::enable_shared_from_this<Multiselect> {
+    friend MessageWriter;
+    friend MessageReader;
+
    public:
     /**
      * Create a Multiselect instance
@@ -38,125 +44,86 @@ namespace libp2p::protocol_muxer {
 
     ~Multiselect() override = default;
 
-    outcome::result<peer::Protocol> selectOneOf(
-        gsl::span<const peer::Protocol> supported_protocols,
-        std::shared_ptr<basic::ReadWriteCloser> connection,
-        bool is_initiator) const override;
-
-    enum class MultiselectError {
-      PROTOCOLS_LIST_EMPTY = 1,
-      NEGOTIATION_FAILED,
-      INTERNAL_ERROR
-    };
+    void selectOneOf(gsl::span<peer::Protocol> protocols,
+                     std::shared_ptr<basic::ReadWriter> connection,
+                     bool is_initiator, ProtocolHandlerFunc cb) override;
 
    private:
-    enum class Status {
-      NOTHING_SENT,
-      OPENING_SENT,
-      PROTOCOL_SENT,
-      PROTOCOLS_SENT,
-      LS_SENT,
-      NA_SENT,
-      NEGOTIATION_SUCCESS,
-      NEGOTIATION_FAIL
-    };
-
     /**
      * Negotiate about a protocol
      * @param connection to be negotiated over
      * @param round, about which protocol the negotiation is to take place
      * @return chosen protocol in case of success, error otherwise
      */
-    outcome::result<peer::Protocol> negotiate(
-        const std::shared_ptr<basic::ReadWriteCloser> &connection,
-        gsl::span<const peer::Protocol> protocols, Status initial_status) const;
+    void negotiate(const std::shared_ptr<basic::ReadWriter> &connection,
+                   gsl::span<peer::Protocol> protocols, bool is_initiator,
+                   const ProtocolHandlerFunc &handler);
 
     /**
-     * Finish a negotiation process
-     * @param status, in which the negotiation ended
-     * @param protocol, which was (or not) chosen
-     * @return chosen protocol in case of success, error otherwise
+     * Triggered, when error happens during the negotiation round
+     * @param connection_state - state of the connection
+     * @param ec - error, which happened
      */
-    outcome::result<peer::Protocol> finalizeNegotiation(
-        Status status, const peer::Protocol &protocol) const;
+    void negotiationRoundFailed(
+        const std::shared_ptr<ConnectionState> &connection_state,
+        const std::error_code &ec);
 
-    /**
-     * Handle a message, signalizing about start of the negotiation
-     * @param connection, over which the message came
-     * @param status of the negotiation process
-     * @return status after message handling
-     */
-    outcome::result<Status> handleOpeningMsg(
-        const std::shared_ptr<basic::ReadWriteCloser> &connection,
-        Status status) const;
+    void onWriteCompleted(
+        std::shared_ptr<ConnectionState> connection_state) const;
 
-    /**
-     * Handle a message, containing a protocol
-     * @param connection, over which the message came
-     * @param protocol, which was in the message
-     * @param prev_protocol - protocol, which we sent the last time
-     * @param status of the negotiation process
-     * @param round, about which protocol the negotiation is held
-     * @return status after message handling
-     */
-    outcome::result<Status> handleProtocolMsg(
-        const std::shared_ptr<basic::ReadWriteCloser> &connection,
-        gsl::span<const peer::Protocol> supported_protocols,
-        const peer::Protocol &protocol, const peer::Protocol &prev_protocol,
-        Status status) const;
+    void onWriteAckCompleted(
+        const std::shared_ptr<ConnectionState> &connection_state,
+        const peer::Protocol &protocol);
 
-    /**
-     * Handle a message, containing protocols
-     * @param connection, over which the message came
-     * @param protocols, which were in the message
-     * @param status of the negotiation process
-     * @param round, about which protocol the negotiation is held
-     * @return status after message handling @and chosen protocol (if any)
-     */
-    outcome::result<std::pair<Status, peer::Protocol>> handleProtocolsMsg(
-        const std::shared_ptr<basic::ReadWriteCloser> &connection,
-        gsl::span<const peer::Protocol> supported_protocols,
-        const std::vector<peer::Protocol> &protocols, Status status) const;
+    void onReadCompleted(std::shared_ptr<ConnectionState> connection_state,
+                         MessageManager::MultiselectMessage msg);
 
-    /**
-     * Handle a message, containing an ls
-     * @param connection, over which the message came
-     * @param round, about which protocol the negotiation is held
-     * @return status after message handling
-     */
-    outcome::result<Status> handleLsMsg(
-        const std::shared_ptr<basic::ReadWriteCloser> &connection,
-        gsl::span<const peer::Protocol> supported_protocols) const;
+    void handleOpeningMsg(std::shared_ptr<ConnectionState> connection_state);
 
-    /**
-     * Handle a message, containing an na
-     * @param connection, over which the message came
-     * @return status after message handling
-     */
-    outcome::result<Status> handleNaMsg(
-        const std::shared_ptr<basic::ReadWriteCloser> &connection) const;
+    void handleProtocolMsg(
+        const peer::Protocol &protocol,
+        const std::shared_ptr<ConnectionState> &connection_state);
 
-    /**
-     * Triggered, when an unexpected message arrives to as a response to our
-     * request
-     * @param connection, over which the message came
-     * @return status after handling
-     */
-    outcome::result<Status> onUnexpectedRequestResponse(
-        const std::shared_ptr<basic::ReadWriteCloser> &connection) const;
+    void handleProtocolsMsg(
+        const std::vector<peer::Protocol> &protocols,
+        const std::shared_ptr<ConnectionState> &connection_state);
 
-    /**
-     * Triggered, when a stream status contains garbage value
-     * @param connection, over which the message came
-     * @return status after handling
-     */
-    outcome::result<Status> onGarbagedStreamStatus(
-        const std::shared_ptr<basic::ReadWriteCloser> &connection) const;
+    void onProtocolAfterOpeningOrLs(
+        std::shared_ptr<ConnectionState> connection_state,
+        const peer::Protocol &protocol);
+
+    void onProtocolsAfterLs(
+        const std::shared_ptr<ConnectionState> &connection_state,
+        gsl::span<const peer::Protocol> received_protocols);
+
+    void handleLsMsg(const std::shared_ptr<ConnectionState> &connection_state);
+
+    void handleNaMsg(
+        const std::shared_ptr<ConnectionState> &connection_state) const;
+
+    void onUnexpectedRequestResponse(
+        const std::shared_ptr<ConnectionState> &connection_state);
+
+    void onGarbagedStreamStatus(
+        const std::shared_ptr<ConnectionState> &connection_state);
+
+    void negotiationRoundFinished(
+        const std::shared_ptr<ConnectionState> &connection_state,
+        const peer::Protocol &chosen_protocol);
+
+    std::tuple<std::shared_ptr<kagome::common::Buffer>,
+               std::shared_ptr<boost::asio::streambuf>, size_t>
+    getBuffers();
+
+    void clearResources(
+        const std::shared_ptr<ConnectionState> &connection_state);
+
+    std::vector<std::shared_ptr<kagome::common::Buffer>> write_buffers_;
+    std::vector<std::shared_ptr<boost::asio::streambuf>> read_buffers_;
+    std::queue<size_t> free_buffers_;
 
     kagome::common::Logger log_;
   };
 }  // namespace libp2p::protocol_muxer
-
-OUTCOME_HPP_DECLARE_ERROR(libp2p::protocol_muxer, Multiselect::MultiselectError)
 
 #endif  // KAGOME_MULTISELECT_IMPL_HPP

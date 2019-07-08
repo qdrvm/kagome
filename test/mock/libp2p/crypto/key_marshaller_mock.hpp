@@ -10,20 +10,25 @@
 #include "libp2p/crypto/key_marshaller.hpp"
 
 namespace libp2p::crypto::marshaller {
-  class KeyMarshallerMock : public KeyMarshaller {
-    using Buffer = kagome::common::Buffer;
 
-   public:
-    MOCK_CONST_METHOD1(marshal, outcome::result<Buffer>(const PublicKey &));
+  struct KeyMarshallerMock : public KeyMarshaller {
+    ~KeyMarshallerMock() override = default;
 
-    MOCK_CONST_METHOD1(marshal, outcome::result<Buffer>(const PrivateKey &));
+    MOCK_CONST_METHOD1(
+        marshal, outcome::result<KeyMarshaller::ByteArray>(const PublicKey &));
 
-    MOCK_CONST_METHOD1(unmarshalPublicKey,
-                       outcome::result<PublicKey>(const Buffer &));
+    MOCK_CONST_METHOD1(
+        marshal, outcome::result<KeyMarshaller::ByteArray>(const PrivateKey &));
 
-    MOCK_CONST_METHOD1(unmarshalPrivateKey,
-                       outcome::result<PrivateKey>(const Buffer &));
+    MOCK_CONST_METHOD1(
+        unmarshalPublicKey,
+        outcome::result<PublicKey>(const KeyMarshaller::ByteArray &));
+
+    MOCK_CONST_METHOD1(
+        unmarshalPrivateKey,
+        outcome::result<PrivateKey>(const KeyMarshaller::ByteArray &));
   };
+
 }  // namespace libp2p::crypto::marshaller
 
 #endif  // KAGOME_KEY_MARSHALLER_MOCK_HPP

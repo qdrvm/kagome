@@ -17,9 +17,9 @@ namespace libp2p::peer {
   struct IdentityManager {
     virtual ~IdentityManager() = default;
 
-    virtual const peer::PeerId &getId() const noexcept = 0;
+    virtual const peer::PeerId &getId() const = 0;
 
-    virtual const crypto::KeyPair &getKeyPair() const noexcept = 0;
+    virtual const crypto::KeyPair &getKeyPair() const = 0;
   };
 
 }  // namespace libp2p::peer

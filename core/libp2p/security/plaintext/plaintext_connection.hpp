@@ -14,20 +14,11 @@
 namespace libp2p::connection {
   class PlaintextConnection : public SecureConnection {
    public:
-    /**
-     * Create an instance of plaintext secure connection from the raw
-     * connection; this connection just forwards all writes/reads without any
-     * en/decryption
-     * @param raw_connection, over which the security is to be established
-     */
-    explicit PlaintextConnection(std::shared_ptr<RawConnection> raw_connection);
-
     PlaintextConnection(std::shared_ptr<RawConnection> raw_connection,
-                        peer::PeerId peer_id);
+                        crypto::PublicKey localPubkey,
+                        crypto::PublicKey remotePubkey);
 
     ~PlaintextConnection() override = default;
-
-    enum class Error { FIELD_IS_UNSUPPORTED = 1 };
 
     outcome::result<peer::PeerId> localPeer() const override;
 
@@ -60,10 +51,9 @@ namespace libp2p::connection {
    private:
     std::shared_ptr<RawConnection> raw_connection_;
 
-    std::optional<peer::PeerId> peer_id_;
+    crypto::PublicKey local_;
+    crypto::PublicKey remote_;
   };
 }  // namespace libp2p::connection
-
-OUTCOME_HPP_DECLARE_ERROR(libp2p::connection, PlaintextConnection::Error)
 
 #endif  // KAGOME_PLAINTEXT_CONNECTION_HPP

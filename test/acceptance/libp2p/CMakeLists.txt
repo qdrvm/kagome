@@ -3,9 +3,10 @@ addtest(all_muxers_acceptance_test
     )
 target_link_libraries(all_muxers_acceptance_test
     libp2p_yamux
-    libp2p_yamuxed_connection
     multiaddress
     security_plaintext
     tcp_transport
     testutil
+    marshaller
+    libp2p_identity_manager
     )

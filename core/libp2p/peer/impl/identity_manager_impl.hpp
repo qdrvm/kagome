@@ -17,9 +17,9 @@ namespace libp2p::peer {
 
     explicit IdentityManagerImpl(crypto::KeyPair keyPair);
 
-    const peer::PeerId &getId() const noexcept override;;
+    const peer::PeerId &getId() const override;
 
-    const crypto::KeyPair &getKeyPair() const noexcept override;;
+    const crypto::KeyPair &getKeyPair() const override;
 
    private:
     std::unique_ptr<peer::PeerId> id_;

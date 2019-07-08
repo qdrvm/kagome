@@ -3,41 +3,28 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/connection/plaintext/plaintext.hpp"
-
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, PlaintextConnection::Error, e) {
-  using E = libp2p::connection::PlaintextConnection::Error;
-  switch (e) {
-    case E::FIELD_IS_UNSUPPORTED:
-      return "this field is either not supported or not set in this connection";
-  }
-  return "unknown error";
-}
+#include "libp2p/security/plaintext/plaintext_connection.hpp"
 
 namespace libp2p::connection {
-  PlaintextConnection::PlaintextConnection(
-      std::shared_ptr<RawConnection> raw_connection)
-      : raw_connection_{std::move(raw_connection)} {}
 
   PlaintextConnection::PlaintextConnection(
-      std::shared_ptr<RawConnection> raw_connection, peer::PeerId peer_id)
+      std::shared_ptr<RawConnection> raw_connection,
+      crypto::PublicKey localPubkey, crypto::PublicKey remotePubkey)
       : raw_connection_{std::move(raw_connection)},
-        peer_id_{std::move(peer_id)} {}
+        local_(std::move(localPubkey)),
+        remote_(std::move(remotePubkey)) {}
 
   outcome::result<peer::PeerId> PlaintextConnection::localPeer() const {
-    return Error::FIELD_IS_UNSUPPORTED;
+    return peer::PeerId::fromPublicKey(local_);
   }
 
   outcome::result<peer::PeerId> PlaintextConnection::remotePeer() const {
-    if (peer_id_) {
-      return *peer_id_;
-    }
-    return Error::FIELD_IS_UNSUPPORTED;
+    return peer::PeerId::fromPublicKey(remote_);
   }
 
   outcome::result<crypto::PublicKey> PlaintextConnection::remotePublicKey()
       const {
-    return Error::FIELD_IS_UNSUPPORTED;
+    return remote_;
   }
 
   bool PlaintextConnection::isInitiator() const noexcept {

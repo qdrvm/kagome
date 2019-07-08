@@ -6,8 +6,12 @@
 add_library(security_plaintext
     plaintext.cpp
     plaintext.hpp
+    plaintext_connection.cpp
+    plaintext_connection.hpp
+    plaintext_session.cpp
+    plaintext_session.hpp
     )
 target_link_libraries(security_plaintext
-    plaintext_connection
     outcome
+    libp2p_security_error
     )
