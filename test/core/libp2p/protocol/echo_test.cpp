@@ -64,7 +64,7 @@ TEST(EchoTest, Client) {
   EXPECT_CALL(*stream, isClosedForWrite()).WillOnce(Return(false));
 
   EXPECT_CALL(*stream, write(_, _, _)).WillOnce(WriteMsgAssertEqual(msg));
-  EXPECT_CALL(*stream, read(_, _, _)).WillOnce(Arg2CallbackWithArg(5));
+  EXPECT_CALL(*stream, read(_, _, _)).WillOnce(WriteMsgAssertEqual(msg));
 
   bool executed = false;
 
