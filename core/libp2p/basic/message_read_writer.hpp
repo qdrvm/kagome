@@ -7,6 +7,7 @@
 #define KAGOME_MESSAGE_READ_WRITER_HPP
 
 #include <memory>
+#include <vector>
 
 #include <gsl/span>
 #include <outcome/outcome.hpp>
@@ -28,16 +29,11 @@ namespace libp2p::basic {
 
     /**
      * Read a message, which is prepended with a varint
-     * @param buffer, to which the message is to be read; MUST be big enough for
-     * that message
      * @param cb, which is called, when the message is read or error happens
-     * @note if MessageReadWriterError::LITTLE_BUFFER happens, the second
-     * argument of the callback will be size of the message, which is to be
-     * read; as varint will already be read from the connection by that time,
-     * you can just use simple conn->read(..) method
      */
-    void read(gsl::span<uint8_t> buffer,
-              std::function<void(outcome::result<size_t>, size_t)> cb);
+    void read(std::function<
+              void(outcome::result<std::shared_ptr<std::vector<uint8_t>>>)>
+                  cb);
 
     /**
      * Write a message; varint with its length will be prepended to it

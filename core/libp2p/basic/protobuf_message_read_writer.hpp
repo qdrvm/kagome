@@ -36,37 +36,16 @@ namespace libp2p::basic {
      */
     template <typename ProtoMsgType>
     void read(ReadCallbackFunc<ProtoMsgType> cb) {
-      // we don't know size of the message in advance, so firstly allocate 1KB,
-      // maybe that'll be enough
-      static constexpr size_t kInitialSize = 1024;
-      auto buf = std::make_shared<std::vector<uint8_t>>(kInitialSize, 0);
-
       read_writer_->read(
-          *buf,
-          [self{shared_from_this()}, cb = std::move(cb), buf](
-              auto &&res, auto &&msg_len) mutable {
-            if (res) {
-              return self->readCompleted(buf, std::move(cb));
-            }
-            if (res.error() != MessageReadWriterError::LITTLE_BUFFER) {
+          [self{shared_from_this()}, cb = std::move(cb)](auto &&res) mutable {
+            if (!res) {
               return cb(std::forward<decltype(res)>(res));
             }
 
-            // the buffer was not big enough; increase its size and this time
-            // read from a raw connection
-            if (msg_len == 0) {
-              // should never happen
-              return cb(MessageReadWriterError::INTERNAL_ERROR);
-            }
-            buf->insert(buf->end(), msg_len - buf->size(), 0);
-            self->conn_->read(
-                *buf, msg_len,
-                [self, buf, cb = std::move(cb)](auto &&res) mutable {
-                  if (!res) {
-                    return cb(std::forward<decltype(res)>(res));
-                  }
-                  self->readCompleted(buf, std::move(cb));
-                });
+            auto &&buf = res.value();
+            auto msg = std::make_shared<ProtoMsgType>();
+            msg->ParseFromArray(buf->data(), buf->size());
+            cb(std::move(msg));
           });
     }
 
@@ -87,14 +66,6 @@ namespace libp2p::basic {
     }
 
    private:
-    template <typename ProtoMsgType>
-    void readCompleted(const std::shared_ptr<std::vector<uint8_t>> &read_buf,
-                       ReadCallbackFunc<ProtoMsgType> cb) {
-      auto msg = std::make_shared<ProtoMsgType>();
-      msg->ParseFromArray(read_buf->data(), read_buf->size());
-      cb(std::move(msg));
-    }
-
     std::shared_ptr<ReadWriter> conn_;
     std::shared_ptr<MessageReadWriter> read_writer_;
   };

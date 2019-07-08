@@ -16,28 +16,28 @@ namespace libp2p::basic {
       : conn_{std::move(conn)} {}
 
   void MessageReadWriter::read(
-      gsl::span<uint8_t> buffer,
-      std::function<void(outcome::result<size_t>, size_t)> cb) {
-    if (buffer.empty()) {
-      return cb(MessageReadWriterError::BUFFER_EMPTY, 0);
-    }
+      std::function<
+          void(outcome::result<std::shared_ptr<std::vector<uint8_t>>>)>
+          cb) {
     VarintReader::readVarint(
         conn_,
-        [self{shared_from_this()}, cb = std::move(cb),
-         buffer](auto varint_opt) mutable {
+        [self{shared_from_this()},
+         cb = std::move(cb)](auto varint_opt) mutable {
           if (!varint_opt) {
-            return cb(MessageReadWriterError::VARINT_EXPECTED, 0);
+            return cb(MessageReadWriterError::VARINT_EXPECTED);
           }
 
           auto msg_len = varint_opt->toUInt64();
-          if (static_cast<uint64_t>(buffer.size()) < msg_len) {
-            return cb(MessageReadWriterError::LITTLE_BUFFER, msg_len);
-          }
-
-          self->conn_->read(buffer, msg_len,
-                            [self, cb = std::move(cb)](auto &&res) mutable {
-                              cb(std::forward<decltype(res)>(res), 0);
-                            });
+          std::shared_ptr<std::vector<uint8_t>> buffer =
+              std::make_shared<std::vector<uint8_t>>(msg_len);
+          self->conn_->read(
+              *buffer, msg_len,
+              [self, buffer, cb = std::move(cb)](auto &&res) mutable {
+                if (!res) {
+                  return cb(res.error());
+                }
+                cb(std::move(buffer));
+              });
         });
   }
 

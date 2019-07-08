@@ -6,6 +6,7 @@
 #include "libp2p/basic/message_read_writer.hpp"
 
 #include <gtest/gtest.h>
+#include "libp2p/basic/protobuf_message_read_writer.hpp"
 #include "libp2p/multi/uvarint.hpp"
 #include "mock/libp2p/connection/raw_connection_mock.hpp"
 #include "testutil/gmock_actions.hpp"
@@ -47,17 +48,14 @@ ACTION_P(ReadPut, buf) {
 }
 
 TEST_F(MessageReadWriterTest, Read) {
-  std::vector<uint8_t> buffer(msg_bytes_.size(), 0);
-
   EXPECT_CALL(*conn_mock_, read(_, 1, _))
       .WillOnce(ReadPut(len_varint_.toBytes()));
   EXPECT_CALL(*conn_mock_, read(_, kMsgLength, _))
       .WillOnce(ReadPut(msg_bytes_));
 
-  msg_rw_->read(buffer, [this, &buffer](auto &&res, size_t len) {
+  msg_rw_->read([this](auto &&res) {
     ASSERT_TRUE(res);
-    ASSERT_EQ(res.value(), msg_bytes_.size());
-    ASSERT_EQ(buffer, msg_bytes_.toVector());
+    ASSERT_EQ(*res.value(), msg_bytes_.toVector());
     operation_completed_ = true;
   });
 

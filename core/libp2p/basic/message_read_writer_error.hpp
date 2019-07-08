@@ -10,9 +10,9 @@
 
 namespace libp2p::basic {
   enum class MessageReadWriterError {
-    VARINT_EXPECTED = 1,
+    SUCCESS = 0,
     BUFFER_EMPTY,
-    LITTLE_BUFFER,
+    VARINT_EXPECTED,
     INTERNAL_ERROR
   };
 }
