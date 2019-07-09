@@ -45,11 +45,12 @@ namespace kagome::server {
   }
 
   void SessionImpl::asyncWrite(std::string response) {
-    auto r = std::make_shared<std::string>(std::move(response));
+    auto r = std::make_shared<std::string>();
+    *r = std::move(response);
 
     boost::asio::async_write(
         socket_, boost::asio::const_buffer(r->data(), r->size()),
-        [self = shared_from_this(), r_holder = std::move(r)](
+        [self = shared_from_this(), holder = std::move(r)](
             boost::system::error_code ec, std::size_t) {
           if (!ec) {
             self->asyncRead();
