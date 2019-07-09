@@ -3,3 +3,4 @@
 
 add_subdirectory(outcome)
 add_subdirectory(sr25519-crust)
+add_subdirectory(scale)

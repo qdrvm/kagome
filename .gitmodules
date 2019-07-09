@@ -18,3 +18,6 @@
 	path = deps/hat-trie
 	url = https://github.com/Tessil/hat-trie.git
     shallow = true
+[submodule "deps/scale"]
+	path = deps/scale
+	url = https://github.com/Harrm/scale
