@@ -24,9 +24,9 @@ namespace libp2p::peer {
     PeerId &operator=(const PeerId &other) = default;
     PeerId(PeerId &&other) noexcept = default;
     PeerId &operator=(PeerId &&other) noexcept = default;
-    ~PeerId() = default;
+    ~PeerId() = default;s
 
-    enum class FactoryError { SUCCESS=0, SHA256_EXPECTED = 1 };
+    enum class FactoryError { SUCCESS = 0, SHA256_EXPECTED = 1 };
 
     /**
      * Create a PeerId from the public key
