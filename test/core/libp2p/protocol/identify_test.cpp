@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <gtest/gtest.h>
+#include "libp2p/multi/uvarint.hpp"
 #include "libp2p/network/connection_manager.hpp"
 #include "libp2p/network/network.hpp"
 #include "libp2p/protocol/identify/pb/identify.pb.h"
@@ -31,6 +32,7 @@ using namespace protocol;
 using namespace network;
 using namespace connection;
 using namespace kagome::common;
+using namespace multi;
 
 using testing::_;
 using testing::Const;
@@ -55,13 +57,20 @@ class IdentifyTest : public testing::Test {
     identify_pb_msg_.set_protocolversion(kLibp2pVersion);
     identify_pb_msg_.set_agentversion(kClientVersion);
 
+    pb_msg_len_varint_ = std::make_shared<UVarint>(
+        static_cast<uint64_t>(identify_pb_msg_.ByteSize()));
+    identify_pb_msg_bytes_.insert(
+        identify_pb_msg_bytes_.end(),
+        std::make_move_iterator(pb_msg_len_varint_->toVector().begin()),
+        std::make_move_iterator(pb_msg_len_varint_->toVector().end()));
     identify_pb_msg_bytes_.insert(identify_pb_msg_bytes_.end(),
                                   identify_pb_msg_.ByteSize(), 0);
-    identify_pb_msg_.SerializeToArray(identify_pb_msg_bytes_.data(),
-                                      identify_pb_msg_.ByteSize());
+    identify_pb_msg_.SerializeToArray(
+        identify_pb_msg_bytes_.data() + pb_msg_len_varint_->size(),
+        identify_pb_msg_.ByteSize());
 
     identify_ =
-        std::make_shared<Identify>(host_, bus_, id_manager_, key_marshaller_);
+        std::make_shared<Identify>(*host_, bus_, id_manager_, key_marshaller_);
   }
 
   std::shared_ptr<Host> host_ = std::make_shared<HostMock>();
@@ -84,24 +93,28 @@ class IdentifyTest : public testing::Test {
   // Identify Protobuf message and its components
   identify::pb::Identify identify_pb_msg_;
   std::vector<uint8_t> identify_pb_msg_bytes_;
+  std::shared_ptr<UVarint> pb_msg_len_varint_;
 
-  std::vector<Protocol> protocols_{"/http/5.0.1", "/dogeproto/2.2.8"};
-  multi::Multiaddress remote_multiaddr_ = "/ip4/93.32.12.54/tcp/228"_multiaddr;
+  std::vector<peer::Protocol> protocols_{"/http/5.0.1", "/dogeproto/2.2.8"};
+
   std::vector<multi::Multiaddress> listen_addresses_{
       "/ip4/111.111.111.111/udp/21"_multiaddr,
       "/ip4/222.222.222.222/tcp/57"_multiaddr};
   std::vector<multi::Multiaddress> observed_addresses_{
       "/ip4/222.222.222.222/tcp/60"_multiaddr};
+
   std::vector<uint8_t> marshalled_pubkey_{0x11, 0x22, 0x33, 0x44},
       pubkey_data_{0x55, 0x66, 0x77, 0x88};
   PublicKey pubkey_{{Key::Type::RSA2048, pubkey_data_}};
   KeyPair key_pair_{pubkey_, PrivateKey{}};
-  const std::string kLibp2pVersion = "ipfs/0.1.0";
-  const std::string kClientVersion = "cpp-libp2p/0.1.0";
 
-  const peer::PeerId kRemotePeerId = "xxxMyCoolPeerxxx"_peerid;
+  const peer::PeerId kRemotePeerId = PeerId::fromPublicKey(pubkey_).value();
+  multi::Multiaddress remote_multiaddr_ = "/ip4/93.32.12.54/tcp/228"_multiaddr;
   const peer::PeerInfo kPeerInfo{
       kRemotePeerId, std::vector<multi::Multiaddress>{remote_multiaddr_}};
+
+  const std::string kLibp2pVersion = "ipfs/0.1.0";
+  const std::string kClientVersion = "cpp-libp2p/0.1.0";
 
   PeerRepositoryMock peer_repo_;
   ProtocolRepositoryMock proto_repo_;
@@ -162,6 +175,11 @@ TEST_F(IdentifyTest, Send) {
   identify_->handle(std::static_pointer_cast<Stream>(stream_));
 }
 
+ACTION_P(ReadPut, buf) {
+  std::copy(buf.begin(), buf.end(), arg0.begin());
+  arg2(buf.size());
+}
+
 ACTION_P(ReturnStream, s) {
   arg2(std::move(s));
 }
@@ -174,13 +192,19 @@ ACTION_P(ReturnStream, s) {
  */
 TEST_F(IdentifyTest, Receive) {
   EXPECT_CALL(*connection_, remotePeer()).WillOnce(Return(kRemotePeerId));
-  EXPECT_CALL(*connection_, remoteMultiaddr)
+  EXPECT_CALL(*connection_, remoteMultiaddr())
       .WillOnce(Return(remote_multiaddr_));
 
   EXPECT_CALL(*host_mock_, newStream(kPeerInfo, kIdentifyProto, _))
       .WillOnce(ReturnStream(std::static_pointer_cast<Stream>(stream_)));
 
-  // EXPECT_CALL with ProtoMessageRW...
+  EXPECT_CALL(*stream_, read(_, 1, _))
+      .WillOnce(ReadPut(gsl::make_span(identify_pb_msg_bytes_.data(), 1)))
+      .WillOnce(ReadPut(gsl::make_span(identify_pb_msg_bytes_.data() + 1, 1)));
+  EXPECT_CALL(*stream_, read(_, pb_msg_len_varint_->toUInt64(), _))
+      .WillOnce(ReadPut(gsl::make_span(
+          identify_pb_msg_bytes_.data() + pb_msg_len_varint_->size(),
+          identify_pb_msg_bytes_.size() - pb_msg_len_varint_->size())));
 
   EXPECT_CALL(*stream_, remotePeerId())
       .Times(2)
@@ -225,14 +249,18 @@ TEST_F(IdentifyTest, Receive) {
   // consumeListenAddresses
   EXPECT_CALL(peer_repo_, getAddressRepository())
       .WillOnce(ReturnRef(addr_repo_));
-  EXPECT_CALL(addr_repo_, updateAddresses(kRemotePeerId, peer::ttl::kTransient))
+  EXPECT_CALL(
+      addr_repo_,
+      updateAddresses(kRemotePeerId,
+                      std::chrono::duration_cast<std::chrono::milliseconds>(
+                          peer::ttl::kTransient)))
       .WillOnce(Return(outcome::success()));
   EXPECT_CALL(network_, connectedness(kRemotePeerId))
       .WillOnce(Return(network::Network::Connectedness::CONNECTED));
   EXPECT_CALL(
       addr_repo_,
       upsertAddresses(kRemotePeerId,
-                      gsl::span<const multi::Multiaddress>(observed_addresses_),
+                      gsl::span<const multi::Multiaddress>(listen_addresses_),
                       peer::ttl::kPermanent))
       .WillOnce(Return(outcome::success()));
 

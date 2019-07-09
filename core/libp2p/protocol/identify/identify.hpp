@@ -19,6 +19,7 @@
 #include "libp2p/peer/identity_manager.hpp"
 #include "libp2p/protocol/base_protocol.hpp"
 #include "libp2p/protocol/identify/observed_addresses.hpp"
+#include "libp2p/protocol/identify/pb/identify.pb.h"
 
 namespace libp2p::multi {
   class Multiaddress;
@@ -32,7 +33,6 @@ namespace libp2p::protocol {
    */
   class Identify : public BaseProtocol,
                    public std::enable_shared_from_this<Identify> {
-    using HostSPtr = std::shared_ptr<Host>;
     using StreamSPtr = std::shared_ptr<connection::Stream>;
 
    public:
@@ -46,7 +46,7 @@ namespace libp2p::protocol {
      * @param log to write information to
      */
     Identify(
-        HostSPtr host, event::Bus &event_bus,
+        Host &host, event::Bus &event_bus,
         peer::IdentityManager &identity_manager,
         std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller,
         kagome::common::Logger log = kagome::common::createLogger("Identify"));
@@ -112,13 +112,11 @@ namespace libp2p::protocol {
 
     /**
      * Called, when an identify message is received from the other peer
-     * @param read_bytes - how much bytes were read
+     * @param msg, which was read
      * @param stream, over which it was received
-     * @param buffer - bytes, which were read
      */
-    void identifyReceived(outcome::result<size_t> read_bytes,
-                          const StreamSPtr &stream,
-                          const std::vector<uint8_t> &buffer);
+    void identifyReceived(outcome::result<identify::pb::Identify> msg,
+                          const StreamSPtr &stream);
 
     /**
      * Process a received public key of the other peer
@@ -149,7 +147,7 @@ namespace libp2p::protocol {
     void consumeListenAddresses(gsl::span<const std::string> addresses_strings,
                                 const peer::PeerId &peer_id);
 
-    HostSPtr host_;
+    Host &host_;
     event::Bus &bus_;
     peer::IdentityManager &identity_manager_;
     std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller_;

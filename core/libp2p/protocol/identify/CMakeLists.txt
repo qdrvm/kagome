@@ -14,4 +14,5 @@ add_library(libp2p_identify
 target_link_libraries(libp2p_identify
     libp2p
     identify_proto
+    protobuf_message_read_writer
     )

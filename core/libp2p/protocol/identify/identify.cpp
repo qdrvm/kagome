@@ -10,11 +10,11 @@
 
 #include <boost/assert.hpp>
 #include "common/hexutil.hpp"
+#include "libp2p/basic/protobuf_message_read_writer.hpp"
 #include "libp2p/host_impl.hpp"
 #include "libp2p/network/connection_manager.hpp"
 #include "libp2p/network/network.hpp"
 #include "libp2p/peer/address_repository.hpp"
-#include "libp2p/protocol/identify/pb/identify.pb.h"
 
 namespace {
   const std::string kIdentifyProto = "/ipfs/id/1.0.0";
@@ -39,16 +39,15 @@ namespace {
 
 namespace libp2p::protocol {
   Identify::Identify(
-      HostSPtr host, event::Bus &event_bus,
+      Host &host, event::Bus &event_bus,
       peer::IdentityManager &identity_manager,
       std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller,
       kagome::common::Logger log)
-      : host_{std::move(host)},
+      : host_{host},
         bus_{event_bus},
         identity_manager_{identity_manager},
         key_marshaller_{std::move(key_marshaller)},
         log_{std::move(log)} {
-    BOOST_ASSERT(host_);
     BOOST_ASSERT(key_marshaller_);
     BOOST_ASSERT(log_);
   }
@@ -91,7 +90,7 @@ namespace libp2p::protocol {
     identify::pb::Identify msg;
 
     // set the protocols we speak on
-    for (const auto &proto : host_->getRouter().getSupportedProtocols()) {
+    for (const auto &proto : host_.getRouter().getSupportedProtocols()) {
       msg.add_protocols(proto);
     }
 
@@ -102,7 +101,7 @@ namespace libp2p::protocol {
     }
 
     // set addresses we are listening on
-    for (const auto &addr : host_->getListenAddresses()) {
+    for (const auto &addr : host_.getListenAddresses()) {
       msg.add_listenaddrs(std::string{addr.getStringAddress()});
     }
 
@@ -120,19 +119,17 @@ namespace libp2p::protocol {
     }
 
     // set versions of Libp2p and our implementation
-    msg.set_protocolversion(std::string{host_->getLibp2pVersion()});
-    msg.set_agentversion(std::string{host_->getLibp2pClientVersion()});
+    msg.set_protocolversion(std::string{host_.getLibp2pVersion()});
+    msg.set_agentversion(std::string{host_.getLibp2pClientVersion()});
 
     // write the resulting Protobuf message
-    auto size = msg.ByteSize();
-    auto msg_bytes = std::make_shared<std::vector<uint8_t>>(size, 0);
-    msg.SerializeToArray(msg_bytes->data(), size);
-    stream->write(*msg_bytes, size,
-                  [self{shared_from_this()}, stream = std::move(stream),
-                   msg_bytes](auto &&res) mutable {
-                    self->identifySent(std::forward<decltype(res)>(res),
-                                       stream);
-                  });
+    auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
+    rw->write<identify::pb::Identify>(
+        msg,
+        [self{shared_from_this()},
+         stream = std::move(stream)](auto &&res) mutable {
+          self->identifySent(std::forward<decltype(res)>(res), stream);
+        });
   }
 
   void Identify::identifySent(outcome::result<size_t> written_bytes,
@@ -183,32 +180,27 @@ namespace libp2p::protocol {
                              std::vector<multi::Multiaddress>{
                                  std::move(remote_peer_addr_res.value())}};
 
-    host_->newStream(
+    host_.newStream(
         peer_info, kIdentifyProto, [self{shared_from_this()}](auto &&stream) {
           self->receiveIdentify(std::forward<decltype(stream)>(stream));
         });
   }
 
   void Identify::receiveIdentify(StreamSPtr stream) {
-    static constexpr size_t kMaxMessageSize = 2048;  // from Go implementation
-
-    // TODO(akvinikym): add MessageReader, when merged
-
-    auto msg_buf = std::make_shared<std::vector<uint8_t>>(kMaxMessageSize, 0);
-    return stream->readSome(
-        *msg_buf, kMaxMessageSize,
-        [self{shared_from_this()}, s = std::move(stream), msg_buf](auto &&res) {
-          self->identifyReceived(std::forward<decltype(res)>(res), s, *msg_buf);
+    auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
+    rw->read<identify::pb::Identify>(
+        [self{shared_from_this()}, s = std::move(stream)](auto &&res) {
+          self->identifyReceived(std::forward<decltype(res)>(res), s);
         });
   }
 
-  void Identify::identifyReceived(outcome::result<size_t> read_bytes,
-                                  const StreamSPtr &stream,
-                                  const std::vector<uint8_t> &buffer) {
+  void Identify::identifyReceived(
+      outcome::result<identify::pb::Identify> msg_res,
+      const StreamSPtr &stream) {
     auto [peer_id_str, peer_addr_str] = getPeerIdentity(stream);
-    if (!read_bytes) {
+    if (!msg_res) {
       log_->error("cannot read an identify message from peer {}, {}: {}",
-                  peer_id_str, peer_addr_str, read_bytes.error());
+                  peer_id_str, peer_addr_str, msg_res.error());
       return stream->reset([](auto &&) {});
     }
 
@@ -222,8 +214,7 @@ namespace libp2p::protocol {
       }
     });
 
-    identify::pb::Identify msg;
-    msg.ParseFromArray(buffer.data(), read_bytes.value());
+    auto &&msg = std::move(msg_res.value());
 
     // process a received public key and retrieve an ID of the other peer
     auto received_pubkey_str = msg.has_publickey() ? msg.publickey() : "";
@@ -235,11 +226,13 @@ namespace libp2p::protocol {
     auto peer_id = std::move(*peer_id_opt);
 
     // store the received protocols
+    std::vector<peer::Protocol> protocols;
+    for (const auto &proto : msg.protocols()) {
+      protocols.push_back(proto);
+    }
     auto add_res =
-        host_->getPeerRepository().getProtocolRepository().addProtocols(
-            peer_id,
-            gsl::make_span(*msg.protocols().pointer_begin(),
-                           *msg.protocols().pointer_end()));
+        host_.getPeerRepository().getProtocolRepository().addProtocols(
+            peer_id, protocols);
     if (!add_res) {
       log_->error("cannot add protocols to peer {}: {}", peer_id.toBase58(),
                   add_res.error().message());
@@ -249,9 +242,11 @@ namespace libp2p::protocol {
       consumeObservedAddresses(msg.observedaddr(), peer_id, stream);
     }
 
-    consumeListenAddresses(gsl::make_span(*msg.listenaddrs().pointer_begin(),
-                                          *msg.listenaddrs().pointer_end()),
-                           peer_id);
+    std::vector<std::string> addresses;
+    for (const auto &addr : msg.listenaddrs()) {
+      addresses.push_back(addr);
+    }
+    consumeListenAddresses(addresses, peer_id);
   }
 
   std::optional<peer::PeerId> Identify::consumePublicKey(
@@ -300,7 +295,7 @@ namespace libp2p::protocol {
     }
     msg_peer_id = std::move(peer_id_res.value());
 
-    auto &key_repo = host_->getPeerRepository().getKeyRepository();
+    auto &key_repo = host_.getPeerRepository().getKeyRepository();
     if (!stream_peer_id) {
       // didn't know the ID before; memorize the key, from which it can be
       // derived later
@@ -351,7 +346,7 @@ namespace libp2p::protocol {
     // if our local address is not one of our "official" listen addresses, we
     // are not going to save its mapping to the observed one
     // TODO(akvinikym): also getInterfaceListenAddresses() when added
-    auto listen_addresses = host_->getNetwork().getListenAddresses();
+    auto listen_addresses = host_.getNetwork().getListenAddresses();
     if (std::find(listen_addresses.begin(), listen_addresses.end(),
                   observed_address)
         == listen_addresses.end()) {
@@ -383,7 +378,7 @@ namespace libp2p::protocol {
       listen_addresses.push_back(std::move(addr_res.value()));
     }
 
-    auto &addr_repo = host_->getPeerRepository().getAddressRepository();
+    auto &addr_repo = host_.getPeerRepository().getAddressRepository();
 
     // invalidate previously known addresses of that peer
     auto add_res = addr_repo.updateAddresses(peer_id, peer::ttl::kTransient);
@@ -393,7 +388,7 @@ namespace libp2p::protocol {
     }
 
     // memorize the addresses
-    switch (host_->getNetwork().connectedness(peer_id)) {
+    switch (host_.getNetwork().connectedness(peer_id)) {
       case network::Network::Connectedness::CONNECTED:
         add_res = addr_repo.upsertAddresses(peer_id, listen_addresses,
                                             peer::ttl::kPermanent);
