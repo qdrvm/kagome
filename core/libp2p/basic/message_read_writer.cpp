@@ -7,6 +7,7 @@
 
 #include <vector>
 
+#include <boost/assert.hpp>
 #include "libp2p/basic/message_read_writer_error.hpp"
 #include "libp2p/basic/varint_reader.hpp"
 #include "libp2p/multi/uvarint.hpp"
