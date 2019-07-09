@@ -6,8 +6,8 @@
 #ifndef KAGOME_PROTOBUF_MESSAGE_READ_WRITER_HPP
 #define KAGOME_PROTOBUF_MESSAGE_READ_WRITER_HPP
 
+#include <boost/assert.hpp>
 #include "libp2p/basic/message_read_writer.hpp"
-#include "libp2p/basic/message_read_writer_error.hpp"
 
 namespace libp2p::basic {
   /**
@@ -22,11 +22,13 @@ namespace libp2p::basic {
    public:
     /**
      * Create an instance of read/writer
-     * @param conn, from/to which the messages are to be read/written
+     * @param read_writer, with the help of which messages are read & written
      */
-    explicit ProtobufMessageReadWriter(std::shared_ptr<ReadWriter> conn)
-        : conn_{conn},
-          read_writer_{std::make_shared<MessageReadWriter>(std::move(conn))} {}
+    explicit ProtobufMessageReadWriter(
+        std::shared_ptr<MessageReadWriter> read_writer)
+        : read_writer_{std::move(read_writer)} {
+      BOOST_ASSERT(read_writer_);
+    }
 
     /**
      * Read a message from the connection
@@ -69,7 +71,6 @@ namespace libp2p::basic {
     }
 
    private:
-    std::shared_ptr<ReadWriter> conn_;
     std::shared_ptr<MessageReadWriter> read_writer_;
   };
 }  // namespace libp2p::basic
