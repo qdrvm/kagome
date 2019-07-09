@@ -3,9 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// needs to be included at the top, don't move it down
-#include "mock/api/extrinsic/extrinsic_api_mock.hpp"
-
 #include "api/extrinsic/service.hpp"
 
 #include <gmock/gmock.h>
@@ -13,6 +10,7 @@
 #include "api/transport/impl/listener_impl.hpp"
 #include "common/blob.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "mock/api/extrinsic/extrinsic_api_mock.hpp"
 #include "mock/api/transport/listener_mock.hpp"
 #include "mock/api/transport/session_mock.hpp"
 #include "primitives/block_id.hpp"

@@ -11,8 +11,8 @@ namespace kagome::server {
   using kagome::server::SessionImpl;
 
   ListenerImpl::ListenerImpl(ListenerImpl::Context &context,
-                             const ListenerImpl::Endpoint &endpoint)
-      : context_(context), acceptor_(context_, endpoint) {
+                             const ListenerImpl::Endpoint &endpoint, Configuration config)
+      : context_(context), acceptor_(context_, endpoint), config_(config) {
     onError().connect([this](outcome::result<void> err) {
       // TODO(yuraz): pre-230 log error
       stop();
@@ -28,7 +28,7 @@ namespace kagome::server {
               return;
             }
             auto session =
-                std::make_shared<SessionImpl>(std::move(socket), context_);
+                std::make_shared<SessionImpl>(std::move(socket), context_, config_.operation_timeout);
             onNewSession()(session);
             session->start();
           } else {

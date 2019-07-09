@@ -18,13 +18,19 @@ namespace kagome::server {
     using Context = boost::asio::io_context;
     using Acceptor = boost::asio::ip::tcp::acceptor;
     using Endpoint = boost::asio::ip::tcp::endpoint;
+    using Duration = boost::asio::steady_timer::duration;
 
    public:
+    struct Configuration {
+      Duration operation_timeout;
+    };
+
     /**
      * @param context reference to boost::asio::io_context instance
      * @param endpoint loopback ip address to listen
      */
-    ListenerImpl(Context &context, const Endpoint &endpoint);
+    ListenerImpl(Context &context, const Endpoint &endpoint,
+                 Configuration config);
 
     ~ListenerImpl() override = default;
 
@@ -42,7 +48,8 @@ namespace kagome::server {
     Acceptor acceptor_;  ///< connections acceptor
     // TODO(yuraz): pre-230 add logger and logging in case of errors
 
-    State state_{State::READY};       ///< working state
+    State state_{State::READY};  ///< working state
+    Configuration config_;       ///< configuration
   };
 }  // namespace kagome::server
 

@@ -6,8 +6,6 @@
 #ifndef KAGOME_TEST_CORE_EXTRINSIC_SUBMISSION_SERVICE_EXTRINSIC_SUBMISSION_API_MOCK_HPP
 #define KAGOME_TEST_CORE_EXTRINSIC_SUBMISSION_SERVICE_EXTRINSIC_SUBMISSION_API_MOCK_HPP
 
-#include "testutil/vector_printer.hpp"
-
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "api/extrinsic/impl/extrinsic_api_impl.hpp"

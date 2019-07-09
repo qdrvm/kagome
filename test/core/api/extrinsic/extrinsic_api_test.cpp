@@ -7,7 +7,6 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-
 #include "common/blob.hpp"
 #include "mock/crypto/hasher.hpp"
 #include "mock/runtime/tagged_transaction_queue_mock.hpp"

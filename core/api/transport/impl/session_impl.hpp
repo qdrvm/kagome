@@ -9,7 +9,10 @@
 #include "api/transport/session.hpp"
 
 namespace kagome::server {
-  class SessionImpl : public Session {
+  class SessionImpl : public Session,
+                      public std::enable_shared_from_this<SessionImpl> {
+    using Duration = boost::asio::steady_timer::duration;
+
    public:
     /**
      * @brief constructor
@@ -18,7 +21,7 @@ namespace kagome::server {
      * @param context boost asio context
      * @param manager session manager
      */
-    SessionImpl(Socket socket, Context &context);
+    SessionImpl(Socket socket, Context &context, Duration timeout);
 
     ~SessionImpl() override = default;
 
@@ -56,9 +59,20 @@ namespace kagome::server {
      */
     void processHeartBeat();
 
-    Socket socket_;           ///< socket
-    Timer heartbeat_;         ///< heartbeat timer
-    Streambuf buffer_;        ///< request buffer
+    /**
+     * @brief resets timer
+     */
+    void resetTimer();
+
+    /**
+     * @brief stops timer
+     */
+    void stopTimer();
+
+    Socket socket_;     ///< socket
+    Timer heartbeat_;   ///< heartbeat timer
+    Streambuf buffer_;  ///< request buffer
+    Duration timeout_;  ///< operation timeout duration
   };
 }  // namespace kagome::server
 
