@@ -49,8 +49,8 @@ namespace kagome::server {
 
     boost::asio::async_write(
         socket_, boost::asio::const_buffer(r->data(), r->size()),
-        [self = shared_from_this(), r](boost::system::error_code ec, std::size_t
-                                       /*length*/) {
+        [self = shared_from_this(), r_holder = std::move(r)](
+            boost::system::error_code ec, std::size_t) {
           if (!ec) {
             self->asyncRead();
           } else {

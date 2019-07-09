@@ -39,8 +39,6 @@ namespace kagome::api {
     ExtrinsicApiService(std::shared_ptr<server::Listener> listener,
                         std::shared_ptr<ExtrinsicApi> api);
 
-    virtual ~ExtrinsicApiService();
-
     /**
      * @brief starts service
      * @return true if successful, false otherwise
@@ -65,13 +63,12 @@ namespace kagome::api {
      * @brief handles decoded network message
      * @param data json request string
      */
-    void processData(std::shared_ptr<server::Session> session,
+    void processData(const std::shared_ptr<server::Session> &session,
                      const std::string &data);
 
     jsonrpc::JsonFormatHandler format_handler_{};  ///< format handler instance
     jsonrpc::Server jsonrpc_handler_{};            ///< json rpc server instance
     sptr<server::Listener> listener_;              ///< endpoint listener
-    Connection new_session_cnn_;                   ///< new session cnn holder
     sptr<ExtrinsicApi> api_;                       ///< api implementation
   };
 

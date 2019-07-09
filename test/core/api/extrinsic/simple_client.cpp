@@ -65,7 +65,7 @@ namespace test {
     deadline_timer_.expires_after(timeout_duration_);
   }
 
-  void SimpleClient::onTimeout(SimpleClient::ErrorCode error) {
+  void SimpleClient::onTimeout(SimpleClient::ErrorCode) {
     if (deadline_timer_.expiry()
         <= boost::asio::steady_timer::clock_type::now()) {
       on_timeout_();
