@@ -16,3 +16,10 @@ addtest(observed_addresses_test
 target_link_libraries(observed_addresses_test
     libp2p_identify
     )
+
+addtest(echo_test
+    echo_test.cpp
+    )
+target_link_libraries(echo_test
+    libp2p_protocol_echo
+    )
