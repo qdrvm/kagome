@@ -8,8 +8,10 @@
 #include <vector>
 
 #include <gtest/gtest.h>
+#include "libp2p/network/connection_manager.hpp"
 #include "libp2p/network/network.hpp"
 #include "libp2p/protocol/identify/pb/identify.pb.h"
+#include "mock/libp2p/connection/capable_connection_mock.hpp"
 #include "mock/libp2p/connection/stream_mock.hpp"
 #include "mock/libp2p/crypto/key_marshaller_mock.hpp"
 #include "mock/libp2p/host_mock.hpp"
@@ -60,13 +62,15 @@ class IdentifyTest : public testing::Test {
   std::shared_ptr<Host> host_ = std::make_shared<HostMock>();
   std::shared_ptr<HostMock> host_mock_ =
       std::static_pointer_cast<HostMock>(host_);
-  event::Bus bus_;
+  libp2p::event::Bus bus_;
   IdentityManagerMock id_manager_;
   std::shared_ptr<marshaller::KeyMarshaller> key_marshaller_ =
       std::make_shared<marshaller::KeyMarshallerMock>();
 
   std::shared_ptr<Identify> identify_;
 
+  std::shared_ptr<CapableConnectionMock> connection_ =
+      std::make_shared<CapableConnectionMock>();
   std::shared_ptr<StreamMock> stream_ = std::make_shared<StreamMock>();
 
   // mocked host's components
@@ -89,6 +93,8 @@ class IdentifyTest : public testing::Test {
   const std::string kClientVersion = "cpp-libp2p/0.1.0";
 
   const peer::PeerId kRemotePeerId = "xxxMyCoolPeerxxx"_peerid;
+  const peer::PeerInfo kPeerInfo{
+      kRemotePeerId, std::vector<multi::Multiaddress>{remote_multiaddr_}};
 
   const std::string kIdentifyProto = "/ipfs/id/1.0.0";
 };
@@ -142,4 +148,26 @@ TEST_F(IdentifyTest, Send) {
   identify_->handle(std::static_pointer_cast<Stream>(stream_));
 }
 
-TEST_F(IdentifyTest, Receive) {}
+ACTION_P(ReturnStream, s) {
+  arg2(std::move(s));
+}
+
+/**
+ * @given Identify object
+ * @when a new connection event is triggered
+ * @then Identify opens a new stream over that connection @and requests other
+ * peer to be identified @and accepts the received message
+ */
+TEST_F(IdentifyTest, Receive) {
+  EXPECT_CALL(*connection_, remotePeer()).WillOnce(Return(kRemotePeerId));
+  EXPECT_CALL(*connection_, remoteMultiaddr)
+      .WillOnce(Return(remote_multiaddr_));
+
+  EXPECT_CALL(*host_mock_, newStream(kPeerInfo, kIdentifyProto, _))
+      .WillOnce(ReturnStream(std::static_pointer_cast<Stream>(stream_)));
+
+  // trigger the event, to which Identify object reacts
+  identify_->start();
+  bus_.getChannel<network::event::OnNewConnectionChannel>().publish(
+      std::weak_ptr<CapableConnection>(connection_));
+}

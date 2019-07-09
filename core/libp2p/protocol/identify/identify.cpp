@@ -79,8 +79,11 @@ namespace libp2p::protocol {
     started_ = true;
 
     sub_ = bus_.getChannel<network::event::OnNewConnectionChannel>().subscribe(
-        [self{shared_from_this()}](auto &&conn) {
-          self->onNewConnection(conn);
+        [self{weak_from_this()}](auto &&conn) {
+          if (self.expired()) {
+            return;
+          }
+          self.lock()->onNewConnection(conn);
         });
   }
 
