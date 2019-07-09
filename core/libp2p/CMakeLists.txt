@@ -13,6 +13,7 @@ add_subdirectory(muxer)
 add_subdirectory(security)
 add_subdirectory(connection)
 add_subdirectory(protocol)
+add_subdirectory(basic)
 
 add_library(libp2p
     config.hpp
