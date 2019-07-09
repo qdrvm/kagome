@@ -15,8 +15,13 @@
 #include "mock/libp2p/connection/stream_mock.hpp"
 #include "mock/libp2p/crypto/key_marshaller_mock.hpp"
 #include "mock/libp2p/host_mock.hpp"
+#include "mock/libp2p/network/network_mock.hpp"
 #include "mock/libp2p/network/router_mock.hpp"
+#include "mock/libp2p/peer/address_repository_mock.hpp"
 #include "mock/libp2p/peer/identity_manager_mock.hpp"
+#include "mock/libp2p/peer/key_repository_mock.hpp"
+#include "mock/libp2p/peer/peer_repository_mock.hpp"
+#include "mock/libp2p/peer/protocol_repository_mock.hpp"
 #include "testutil/literals.hpp"
 
 using namespace libp2p;
@@ -85,6 +90,8 @@ class IdentifyTest : public testing::Test {
   std::vector<multi::Multiaddress> listen_addresses_{
       "/ip4/111.111.111.111/udp/21"_multiaddr,
       "/ip4/222.222.222.222/tcp/57"_multiaddr};
+  std::vector<multi::Multiaddress> observed_addresses_{
+      "/ip4/222.222.222.222/tcp/60"_multiaddr};
   std::vector<uint8_t> marshalled_pubkey_{0x11, 0x22, 0x33, 0x44},
       pubkey_data_{0x55, 0x66, 0x77, 0x88};
   PublicKey pubkey_{{Key::Type::RSA2048, pubkey_data_}};
@@ -95,6 +102,13 @@ class IdentifyTest : public testing::Test {
   const peer::PeerId kRemotePeerId = "xxxMyCoolPeerxxx"_peerid;
   const peer::PeerInfo kPeerInfo{
       kRemotePeerId, std::vector<multi::Multiaddress>{remote_multiaddr_}};
+
+  PeerRepositoryMock peer_repo_;
+  ProtocolRepositoryMock proto_repo_;
+  KeyRepositoryMock key_repo_;
+  AddressRepositoryMock addr_repo_;
+
+  NetworkMock network_;
 
   const std::string kIdentifyProto = "/ipfs/id/1.0.0";
 };
@@ -165,6 +179,62 @@ TEST_F(IdentifyTest, Receive) {
 
   EXPECT_CALL(*host_mock_, newStream(kPeerInfo, kIdentifyProto, _))
       .WillOnce(ReturnStream(std::static_pointer_cast<Stream>(stream_)));
+
+  // EXPECT_CALL with ProtoMessageRW...
+
+  EXPECT_CALL(*stream_, remotePeerId())
+      .Times(2)
+      .WillRepeatedly(Return(kRemotePeerId));
+  EXPECT_CALL(*stream_, remoteMultiaddr())
+      .Times(2)
+      .WillRepeatedly(Return(outcome::success(remote_multiaddr_)));
+
+  EXPECT_CALL(*stream_, close(_)).WillOnce(Close(outcome::success()));
+
+  // consumePublicKey
+  EXPECT_CALL(
+      *std::static_pointer_cast<marshaller::KeyMarshallerMock>(key_marshaller_),
+      unmarshalPublicKey(marshalled_pubkey_))
+      .WillOnce(Return(pubkey_));
+
+  EXPECT_CALL(*host_mock_, getPeerRepository())
+      .Times(3)
+      .WillRepeatedly(ReturnRef(peer_repo_));
+  EXPECT_CALL(peer_repo_, getKeyRepository()).WillOnce(ReturnRef(key_repo_));
+  EXPECT_CALL(key_repo_, addPublicKey(kRemotePeerId, pubkey_))
+      .WillOnce(Return(outcome::success()));
+
+  EXPECT_CALL(peer_repo_, getProtocolRepository())
+      .WillOnce(ReturnRef(proto_repo_));
+  EXPECT_CALL(
+      proto_repo_,
+      addProtocols(kRemotePeerId, gsl::span<const peer::Protocol>(protocols_)))
+      .WillOnce(Return(outcome::success()));
+
+  // consumeObservedAddresses
+  EXPECT_CALL(*stream_, localMultiaddr())
+      .WillOnce(Return(listen_addresses_[0]));
+  EXPECT_CALL(*stream_, isInitiator()).WillOnce(Return(true));
+
+  EXPECT_CALL(*host_mock_, getNetwork())
+      .Times(2)
+      .WillRepeatedly(ReturnRef(network_));
+  EXPECT_CALL(network_, getListenAddresses())
+      .WillOnce(Return(listen_addresses_));
+
+  // consumeListenAddresses
+  EXPECT_CALL(peer_repo_, getAddressRepository())
+      .WillOnce(ReturnRef(addr_repo_));
+  EXPECT_CALL(addr_repo_, updateAddresses(kRemotePeerId, peer::ttl::kTransient))
+      .WillOnce(Return(outcome::success()));
+  EXPECT_CALL(network_, connectedness(kRemotePeerId))
+      .WillOnce(Return(network::Network::Connectedness::CONNECTED));
+  EXPECT_CALL(
+      addr_repo_,
+      upsertAddresses(kRemotePeerId,
+                      gsl::span<const multi::Multiaddress>(observed_addresses_),
+                      peer::ttl::kPermanent))
+      .WillOnce(Return(outcome::success()));
 
   // trigger the event, to which Identify object reacts
   identify_->start();
