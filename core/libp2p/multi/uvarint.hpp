@@ -57,6 +57,8 @@ namespace libp2p::multi {
      */
     gsl::span<const uint8_t> toBytes() const;
 
+    const std::vector<uint8_t> &toVector() const;
+
     std::string toHex() const;
 
     /**
