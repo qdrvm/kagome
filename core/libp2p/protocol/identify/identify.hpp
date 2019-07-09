@@ -17,6 +17,7 @@
 #include "libp2p/event/bus.hpp"
 #include "libp2p/host.hpp"
 #include "libp2p/peer/identity_manager.hpp"
+#include "libp2p/protocol/base_protocol.hpp"
 #include "libp2p/protocol/identify/observed_addresses.hpp"
 
 namespace libp2p::multi {
@@ -29,10 +30,10 @@ namespace libp2p::protocol {
    * "hello" to the other peer, sending our listen addresses, ID, etc
    * Read more: https://github.com/libp2p/specs/tree/master/identify
    */
-  class Identify : public std::enable_shared_from_this<Identify> {
+  class Identify : public BaseProtocol,
+                   public std::enable_shared_from_this<Identify> {
     using HostSPtr = std::shared_ptr<Host>;
     using StreamSPtr = std::shared_ptr<connection::Stream>;
-    using BufSPtr = std::shared_ptr<kagome::common::Buffer>;
 
    public:
     /**
@@ -50,6 +51,8 @@ namespace libp2p::protocol {
         std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller,
         kagome::common::Logger log = kagome::common::createLogger("Identify"));
 
+    ~Identify() override = default;
+
     /**
      * Get addresses other peers reported we have dialed from
      * @return set of addresses
@@ -65,14 +68,20 @@ namespace libp2p::protocol {
     std::vector<multi::Multiaddress> getObservedAddressesFor(
         const multi::Multiaddress &address) const;
 
-   private:
-    /**
-     * Handler for new connections, established by or with our host
-     * @param conn - new connection
-     */
-    void onNewConnection(
-        const std::weak_ptr<connection::CapableConnection> &conn);
+    peer::Protocol getProtocolId() const override;
 
+    /**
+     * In Identify, handle means we are being identified by the other peer, so
+     * we are expected to send the Identify message
+     */
+    void handle(StreamResult stream_res) override;
+
+    /**
+     * Start accepting NewConnectionEvent-s and asking each of them for Identify
+     */
+    void start();
+
+   private:
     /**
      * Handler for the case, when we are being identified by the other peer; we
      * should respond with an Identify message and close the stream
@@ -89,6 +98,13 @@ namespace libp2p::protocol {
                       const StreamSPtr &stream);
 
     /**
+     * Handler for new connections, established by or with our host
+     * @param conn - new connection
+     */
+    void onNewConnection(
+        const std::weak_ptr<connection::CapableConnection> &conn);
+
+    /**
      * Handler for the case, when we want to identify the other side
      * @param stream to be identified over
      */
@@ -101,7 +117,8 @@ namespace libp2p::protocol {
      * @param buffer - bytes, which were read
      */
     void identifyReceived(outcome::result<size_t> read_bytes,
-                          const StreamSPtr &stream, const BufSPtr &buffer);
+                          const StreamSPtr &stream,
+                          const std::vector<uint8_t> &buffer);
 
     /**
      * Process a received public key of the other peer
@@ -135,10 +152,12 @@ namespace libp2p::protocol {
     HostSPtr host_;
     event::Bus &bus_;
     peer::IdentityManager &identity_manager_;
-
     std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller_;
-
     ObservedAddresses observed_addresses_;
+
+    event::Handle sub_;  // will unsubscribe during destruction by itself
+
+    bool started_ = false;
 
     kagome::common::Logger log_;
   };

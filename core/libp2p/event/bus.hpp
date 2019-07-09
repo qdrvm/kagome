@@ -43,59 +43,60 @@ namespace libp2p::event {
   };
 
   /**
+   * Type that represents an active subscription to a channel allowing
+   * for ownership via RAII and also explicit unsubscribe actions
+   */
+  class Handle {
+   public:
+    ~Handle() {  // NOLINT(bugprone-exception-escape) - no way we can call it
+      // with noexcept guarantee, but we need
+      unsubscribe();
+    }
+
+    /**
+     * Explicitly unsubscribe from channel before the lifetime
+     * of this object expires
+     */
+    void unsubscribe() {
+      if (handle_.connected()) {
+        handle_.disconnect();
+      }
+    }
+
+    // This handle can be constructed and moved
+    Handle() = default;
+
+    // no way they can be noexcept because of none-noexcept
+    // boost::signal2::connection move ctor
+    Handle(Handle &&) = default;                // NOLINT
+    Handle &operator=(Handle &&rhs) = default;  // NOLINT
+
+    // dont allow copying since this protects the resource
+    Handle(const Handle &) = delete;
+    Handle &operator=(const Handle &) = delete;
+
+   private:
+    using handle_type = boost::signals2::connection;
+    handle_type handle_;
+
+    /**
+     * Construct a handle from an internal representation of a handle
+     * In this case a boost::signals2::connection
+     *
+     * @param _handle - the boost::signals2::connection to wrap
+     */
+    explicit Handle(handle_type &&handle) : handle_(std::move(handle)) {}
+
+    template <typename D, typename DP>
+    friend class Channel;
+  };
+
+  /**
    * Channel, which can emit events and allows to subscribe to them
    */
   template <typename Data, typename DispatchPolicy>
   class Channel {
    public:
-    /**
-     * Type that represents an active subscription to a channel allowing
-     * for ownership via RAII and also explicit unsubscribe actions
-     */
-    class Handle {
-     public:
-      ~Handle() {  // NOLINT(bugprone-exception-escape) - no way we can call it
-                   // with noexcept guarantee, but we need
-        unsubscribe();
-      }
-
-      /**
-       * Explicitly unsubscribe from channel before the lifetime
-       * of this object expires
-       */
-      void unsubscribe() {
-        if (handle_.connected()) {
-          handle_.disconnect();
-        }
-      }
-
-      // This handle can be constructed and moved
-      Handle() = default;
-
-      // no way they can be noexcept because of none-noexcept
-      // boost::signal2::connection move ctor
-      Handle(Handle &&) = default;                // NOLINT
-      Handle &operator=(Handle &&rhs) = default;  // NOLINT
-
-      // dont allow copying since this protects the resource
-      Handle(const Handle &) = delete;
-      Handle &operator=(const Handle &) = delete;
-
-     private:
-      using handle_type = boost::signals2::connection;
-      handle_type handle_;
-
-      /**
-       * Construct a handle from an internal representation of a handle
-       * In this case a boost::signals2::connection
-       *
-       * @param _handle - the boost::signals2::connection to wrap
-       */
-      explicit Handle(handle_type &&handle) : handle_(std::move(handle)) {}
-
-      friend class Channel;
-    };
-
     /**
      * Subscribe to data on a channel
      * @tparam Callback the type of the callback (functor|lambda)

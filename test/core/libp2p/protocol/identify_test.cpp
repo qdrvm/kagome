@@ -52,6 +52,9 @@ class IdentifyTest : public testing::Test {
                                   identify_pb_msg_.ByteSize(), 0);
     identify_pb_msg_.SerializeToArray(identify_pb_msg_bytes_.data(),
                                       identify_pb_msg_.ByteSize());
+
+    identify_ =
+        std::make_shared<Identify>(host_, bus_, id_manager_, key_marshaller_);
   }
 
   std::shared_ptr<Host> host_ = std::make_shared<HostMock>();
@@ -64,7 +67,7 @@ class IdentifyTest : public testing::Test {
 
   std::shared_ptr<Identify> identify_;
 
-  std::shared_ptr<StreamMock> stream_;
+  std::shared_ptr<StreamMock> stream_ = std::make_shared<StreamMock>();
 
   // mocked host's components
   RouterMock router_;
@@ -85,11 +88,20 @@ class IdentifyTest : public testing::Test {
   const std::string kLibp2pVersion = "ipfs/0.1.0";
   const std::string kClientVersion = "cpp-libp2p/0.1.0";
 
+  const peer::PeerId kRemotePeerId = "xxxMyCoolPeerxxx"_peerid;
+
   const std::string kIdentifyProto = "/ipfs/id/1.0.0";
 };
 
-ACTION_P(Success, res) {
+ACTION_P2(Success, buf, res) {
+  // better compare here, as this will show diff
+  ASSERT_EQ(arg0, buf);
+  ASSERT_EQ(arg1, buf.size());
   arg2(std::move(res));
+}
+
+ACTION_P(Close, res) {
+  arg0(std::move(res));
 }
 
 /**
@@ -98,21 +110,14 @@ ACTION_P(Success, res) {
  * @then well-formed Identify message is sent by our peer
  */
 TEST_F(IdentifyTest, Send) {
-  // save lambda, which is to be called with a new stream over Identify protocol
-  std::function<connection::Stream::Handler> new_stream_lambda;
-  EXPECT_CALL(*host_mock_, setProtocolHandler(kIdentifyProto, _))
-      .WillOnce(testing::SaveArg<1>(&new_stream_lambda));
-
-  identify_ =
-      std::make_shared<Identify>(host_, bus_, id_manager_, key_marshaller_);
-
   // setup components, so that when Identify asks them, they give expected
   // parameters to be put into the Protobuf message
   EXPECT_CALL(*host_mock_, getRouter()).WillOnce(ReturnRef(Const(router_)));
   EXPECT_CALL(router_, getSupportedProtocols()).WillOnce(Return(protocols_));
 
   EXPECT_CALL(*stream_, remoteMultiaddr())
-      .WillOnce(Return(outcome::success(remote_multiaddr_)));
+      .Times(2)
+      .WillRepeatedly(Return(outcome::success(remote_multiaddr_)));
 
   EXPECT_CALL(*host_mock_, getListenAddresses())
       .WillOnce(Return(listen_addresses_));
@@ -127,14 +132,14 @@ TEST_F(IdentifyTest, Send) {
   EXPECT_CALL(*host_mock_, getLibp2pClientVersion())
       .WillOnce(Return(kClientVersion));
 
-  // trigger the lambda
-  EXPECT_CALL(*stream_,
-              write(gsl::span<const uint8_t>(identify_pb_msg_bytes_),
-                    identify_pb_msg_bytes_.size(), _))
-      .WillOnce(Success(outcome::success()));
-  new_stream_lambda(stream_);
+  EXPECT_CALL(*stream_, remotePeerId()).WillOnce(Return(kRemotePeerId));
 
-  EXPECT_CALL(*stream_, close(_));
+  // handle Identify request and check it
+  EXPECT_CALL(*stream_, write(_, _, _))
+      .WillOnce(Success(gsl::span<const uint8_t>(identify_pb_msg_bytes_.data(),
+                                                 identify_pb_msg_bytes_.size()),
+                        outcome::success(identify_pb_msg_bytes_.size())));
+  identify_->handle(std::static_pointer_cast<Stream>(stream_));
 }
 
 TEST_F(IdentifyTest, Receive) {}

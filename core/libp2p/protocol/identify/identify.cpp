@@ -8,6 +8,7 @@
 #include <string>
 #include <tuple>
 
+#include <boost/assert.hpp>
 #include "common/hexutil.hpp"
 #include "libp2p/host_impl.hpp"
 #include "libp2p/network/connection_manager.hpp"
@@ -37,8 +38,6 @@ namespace {
 }  // namespace
 
 namespace libp2p::protocol {
-  using kagome::common::Buffer;
-
   Identify::Identify(
       HostSPtr host, event::Bus &event_bus,
       peer::IdentityManager &identity_manager,
@@ -49,22 +48,9 @@ namespace libp2p::protocol {
         identity_manager_{identity_manager},
         key_marshaller_{std::move(key_marshaller)},
         log_{std::move(log)} {
-    // firstly, we want to request identify for any connection we or the other
-    // side established
-    bus_.getChannel<network::event::OnNewConnectionChannel>().subscribe(
-        [self{shared_from_this()}](auto &&conn) {
-          self->onNewConnection(conn);
-        });
-
-    // secondly, we need to handle cases, when a stream with Identify protocol
-    // is created from the other side - that side wants to know our info
-    host_->setProtocolHandler(
-        kIdentifyProto, [self{weak_from_this()}](auto &&stream) {
-          if (self.expired()) {
-            return;
-          }
-          self.lock()->sendIdentify(std::forward<decltype(stream)>(stream));
-        });
+    BOOST_ASSERT(host_);
+    BOOST_ASSERT(key_marshaller_);
+    BOOST_ASSERT(log_);
   }
 
   std::vector<multi::Multiaddress> Identify::getAllObservedAddresses() const {
@@ -76,36 +62,25 @@ namespace libp2p::protocol {
     return observed_addresses_.getAddressesFor(address);
   }
 
-  void Identify::onNewConnection(
-      const std::weak_ptr<connection::CapableConnection> &conn) {
-    if (conn.expired()) {
-      log_->error("received a dead weak ptr in NewConnectionEvent; strange");
+  peer::Protocol Identify::getProtocolId() const {
+    return kIdentifyProto;
+  }
+
+  void Identify::handle(StreamResult stream_res) {
+    if (!stream_res) {
       return;
     }
+    sendIdentify(std::move(stream_res.value()));
+  }
 
-    auto remote_peer_res = conn.lock()->remotePeer();
-    if (!remote_peer_res) {
-      log_->error(
-          "cannot get a remote peer id from the received connection: {}",
-          remote_peer_res.error().message());
-      return;
-    }
+  void Identify::start() {
+    // no double starts
+    BOOST_ASSERT(!started_);
+    started_ = true;
 
-    auto remote_peer_addr_res = conn.lock()->remoteMultiaddr();
-    if (!remote_peer_addr_res) {
-      log_->error(
-          "cannot get a remote peer address from the received connection: {}",
-          remote_peer_addr_res.error().message());
-      return;
-    }
-
-    peer::PeerInfo peer_info{std::move(remote_peer_res.value()),
-                             std::vector<multi::Multiaddress>{
-                                 std::move(remote_peer_addr_res.value())}};
-
-    host_->newStream(
-        peer_info, kIdentifyProto, [self{shared_from_this()}](auto &&stream) {
-          self->receiveIdentify(std::forward<decltype(stream)>(stream));
+    sub_ = bus_.getChannel<network::event::OnNewConnectionChannel>().subscribe(
+        [self{shared_from_this()}](auto &&conn) {
+          self->onNewConnection(conn);
         });
   }
 
@@ -147,7 +122,7 @@ namespace libp2p::protocol {
 
     // write the resulting Protobuf message
     auto size = msg.ByteSize();
-    auto msg_bytes = std::make_shared<Buffer>(size, 0);
+    auto msg_bytes = std::make_shared<std::vector<uint8_t>>(size, 0);
     msg.SerializeToArray(msg_bytes->data(), size);
     stream->write(*msg_bytes, size,
                   [self{shared_from_this()}, stream = std::move(stream),
@@ -178,22 +153,55 @@ namespace libp2p::protocol {
     });
   }
 
+  void Identify::onNewConnection(
+      const std::weak_ptr<connection::CapableConnection> &conn) {
+    if (conn.expired()) {
+      log_->error("received a dead weak ptr in NewConnectionEvent; strange");
+      return;
+    }
+
+    auto remote_peer_res = conn.lock()->remotePeer();
+    if (!remote_peer_res) {
+      log_->error(
+          "cannot get a remote peer id from the received connection: {}",
+          remote_peer_res.error().message());
+      return;
+    }
+
+    auto remote_peer_addr_res = conn.lock()->remoteMultiaddr();
+    if (!remote_peer_addr_res) {
+      log_->error(
+          "cannot get a remote peer address from the received connection: {}",
+          remote_peer_addr_res.error().message());
+      return;
+    }
+
+    peer::PeerInfo peer_info{std::move(remote_peer_res.value()),
+                             std::vector<multi::Multiaddress>{
+                                 std::move(remote_peer_addr_res.value())}};
+
+    host_->newStream(
+        peer_info, kIdentifyProto, [self{shared_from_this()}](auto &&stream) {
+          self->receiveIdentify(std::forward<decltype(stream)>(stream));
+        });
+  }
+
   void Identify::receiveIdentify(StreamSPtr stream) {
     static constexpr size_t kMaxMessageSize = 2048;  // from Go implementation
 
     // TODO(akvinikym): add MessageReader, when merged
 
-    auto msg_buf = std::make_shared<Buffer>(kMaxMessageSize, 0);
+    auto msg_buf = std::make_shared<std::vector<uint8_t>>(kMaxMessageSize, 0);
     return stream->readSome(
         *msg_buf, kMaxMessageSize,
         [self{shared_from_this()}, s = std::move(stream), msg_buf](auto &&res) {
-          self->identifyReceived(std::forward<decltype(res)>(res), s, msg_buf);
+          self->identifyReceived(std::forward<decltype(res)>(res), s, *msg_buf);
         });
   }
 
   void Identify::identifyReceived(outcome::result<size_t> read_bytes,
                                   const StreamSPtr &stream,
-                                  const BufSPtr &buffer) {
+                                  const std::vector<uint8_t> &buffer) {
     auto [peer_id_str, peer_addr_str] = getPeerIdentity(stream);
     if (!read_bytes) {
       log_->error("cannot read an identify message from peer {}, {}: {}",
@@ -212,7 +220,7 @@ namespace libp2p::protocol {
     });
 
     identify::pb::Identify msg;
-    msg.ParseFromArray(buffer->data(), read_bytes.value());
+    msg.ParseFromArray(buffer.data(), read_bytes.value());
 
     // process a received public key and retrieve an ID of the other peer
     auto received_pubkey_str = msg.has_publickey() ? msg.publickey() : "";
