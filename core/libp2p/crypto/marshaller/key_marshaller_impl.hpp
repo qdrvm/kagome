@@ -13,6 +13,8 @@
 namespace libp2p::crypto::marshaller {
   class KeyMarshallerImpl : public KeyMarshaller {
    public:
+    ~KeyMarshallerImpl() override  = default;
+
     outcome::result<KeyMarshaller::ByteArray> marshal(const PublicKey &key) const override;
 
     outcome::result<KeyMarshaller::ByteArray> marshal(const PrivateKey &key) const override;

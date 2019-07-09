@@ -25,23 +25,12 @@ class TransportManagerTest : public testing::Test {
       std::make_shared<TransportMock>();
   const std::shared_ptr<TransportMock> kTransport2 =
       std::make_shared<TransportMock>();
-  const std::vector<std::shared_ptr<Transport>> kTransports{kTransport1,
-                                                            kTransport2};
-
-#define ASSERT_SPAN_VECTOR_EQ(_span, vector) \
-  ASSERT_EQ(_span, gsl::span<const std::shared_ptr<Transport>>(vector));
+  const std::vector<std::shared_ptr<TransportAdaptor>> kTransports{kTransport1,
+                                                                   kTransport2};
 };
 
-/**
- * @given transport manager with no supported transports
- * @when getting transports, supported by the manager
- * @then response is empty
- */
-TEST_F(TransportManagerTest, CreateEmpty) {
-  TransportManagerImpl manager{};
-
-  ASSERT_TRUE(manager.getAll().empty());
-}
+#define ASSERT_SPAN_VECTOR_EQ(_span, vector) \
+  ASSERT_EQ(_span, gsl::span<const std::shared_ptr<TransportAdaptor>>(vector));
 
 /**
  * @given transport manager, created from the transports vector
@@ -60,10 +49,7 @@ TEST_F(TransportManagerTest, CreateFromVector) {
  * @then the transport is added
  */
 TEST_F(TransportManagerTest, AddTransport) {
-  TransportManagerImpl manager{};
-  ASSERT_TRUE(manager.getAll().empty());
-
-  manager.add(kTransport1);
+  TransportManagerImpl manager{{kTransport1}};
   auto transports = manager.getAll();
   ASSERT_EQ(transports.size(), 1);
   ASSERT_EQ(transports[0], kTransport1);
@@ -75,10 +61,7 @@ TEST_F(TransportManagerTest, AddTransport) {
  * @then the transports are added
  */
 TEST_F(TransportManagerTest, AddTransports) {
-  TransportManagerImpl manager{};
-  ASSERT_TRUE(manager.getAll().empty());
-
-  manager.add(kTransports);
+  TransportManagerImpl manager{kTransports};
   ASSERT_SPAN_VECTOR_EQ(manager.getAll(), kTransports)
 }
 
@@ -145,8 +128,7 @@ TEST_F(TransportManagerTest, FindBestSeveralCanDial) {
  * @then no transport is returned
  */
 TEST_F(TransportManagerTest, FindBestFailure) {
-  TransportManagerImpl manager{};
-  manager.add(kTransport1);
+  TransportManagerImpl manager{{kTransport1}};
 
   EXPECT_CALL(*kTransport1, canDial(kDefaultMultiaddress))
       .WillOnce(Return(false));

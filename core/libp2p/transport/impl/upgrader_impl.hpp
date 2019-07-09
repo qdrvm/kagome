@@ -33,12 +33,12 @@ namespace libp2p::transport {
      * the Muxed (Capable) ones
      */
     UpgraderImpl(std::shared_ptr<protocol_muxer::ProtocolMuxer> protocol_muxer,
-                 gsl::span<SecAdaptorSPtr> security_adaptors,
-                 gsl::span<MuxAdaptorSPtr> muxer_adaptors);
+                 std::vector<SecAdaptorSPtr> security_adaptors,
+                 std::vector<MuxAdaptorSPtr> muxer_adaptors);
 
     ~UpgraderImpl() override = default;
 
-    void upgradeToSecureOutbound(RawSPtr conn, const peer::PeerId& remoteId,
+    void upgradeToSecureOutbound(RawSPtr conn, const peer::PeerId &remoteId,
                                  OnSecuredCallbackFunc cb) override;
 
     void upgradeToSecureInbound(RawSPtr conn,

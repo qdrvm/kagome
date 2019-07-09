@@ -10,14 +10,11 @@
 namespace libp2p::network {
   TransportManagerImpl::TransportManagerImpl(
       std::vector<TransportSPtr> transports)
-      : transports_{std::move(transports)} {}
-
-  void TransportManagerImpl::add(TransportSPtr t) {
-    transports_.push_back(std::move(t));
-  }
-
-  void TransportManagerImpl::add(gsl::span<const TransportSPtr> t) {
-    transports_.insert(transports_.end(), t.begin(), t.end());
+      : transports_{std::move(transports)} {
+    BOOST_ASSERT_MSG(!transports_.empty(),
+                     "TransportManagerImpl got 0 transports");
+    BOOST_ASSERT(std::all_of(transports_.begin(), transports_.end(),
+                             [](auto &&t) { return t != nullptr; }));
   }
 
   gsl::span<const TransportManagerImpl::TransportSPtr>

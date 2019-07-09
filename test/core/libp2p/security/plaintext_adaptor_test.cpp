@@ -91,7 +91,7 @@ TEST_F(PlaintextAdaptorTest, SecureInbound) {
         EXPECT_EQ(remotePubkey, publicKey);
 
         EXPECT_OUTCOME_TRUE(remoteId, sec->remotePeer());
-        EXPECT_OUTCOME_TRUE(calculated, PeerId::fromPublicKey(publicKey));
+        auto calculated = PeerId::fromPublicKey(publicKey);
 
         EXPECT_EQ(remoteId, calculated);
       });
@@ -103,7 +103,7 @@ TEST_F(PlaintextAdaptorTest, SecureInbound) {
  * @then connection is secured
  */
 TEST_F(PlaintextAdaptorTest, SecureOutbound) {
-  const PeerId pid = PeerId::fromPublicKey(publicKey).value();
+  const PeerId pid = PeerId::fromPublicKey(publicKey);
   adaptor->secureOutbound(
       conn, pid,
       [pid, this](outcome::result<std::shared_ptr<SecureConnection>> rc) {
@@ -113,7 +113,7 @@ TEST_F(PlaintextAdaptorTest, SecureOutbound) {
         EXPECT_EQ(remotePubkey, publicKey);
 
         EXPECT_OUTCOME_TRUE(remoteId, sec->remotePeer());
-        EXPECT_OUTCOME_TRUE(calculated, PeerId::fromPublicKey(publicKey));
+        auto calculated = PeerId::fromPublicKey(publicKey);
 
         EXPECT_EQ(remoteId, calculated);
         EXPECT_EQ(remoteId, pid);

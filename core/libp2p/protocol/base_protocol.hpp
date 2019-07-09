@@ -39,7 +39,7 @@ namespace libp2p::protocol {
      * protocol.
      * @param cb callback that is executed
      */
-    virtual void handle(StreamResult cb) = 0;
+    virtual void handle(StreamResult res) = 0;
   };
 
 }  // namespace libp2p::protocol

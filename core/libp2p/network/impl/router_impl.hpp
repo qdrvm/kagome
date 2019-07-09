@@ -30,7 +30,6 @@ namespace libp2p::network {
 
     enum class Error { NO_HANDLER_FOUND = 1 };
 
-   protected:
     outcome::result<void> handle(
         const peer::Protocol &p,
         std::shared_ptr<connection::Stream> stream) override;

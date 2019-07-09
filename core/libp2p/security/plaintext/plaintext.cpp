@@ -53,7 +53,7 @@ namespace libp2p::security {
                             cb{std::move(cb)}](
                                crypto::PublicKey remotePubkey) mutable {
             peer::PeerId remoteIdCalculated =
-                peer::PeerId::fromPublicKey(remotePubkey).value();
+                peer::PeerId::fromPublicKey(remotePubkey);
 
             if (remoteIdCalculated != p) {
               return cb(make_error_code(SecurityError::AUTHENTICATION_ERROR));

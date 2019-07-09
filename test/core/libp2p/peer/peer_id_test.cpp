@@ -34,7 +34,7 @@ TEST_F(PeerIdTest, FromPubkeySuccess) {
   EXPECT_OUTCOME_TRUE(
       multihash, Multihash::create(sha256, Buffer{hash.begin(), hash.end()}))
 
-  EXPECT_OUTCOME_TRUE(peer_id, PeerId::fromPublicKey(pubkey))
+  auto peer_id = PeerId::fromPublicKey(pubkey);
   EXPECT_EQ(peer_id.toBase58(), encodeBase58(multihash.toBuffer()));
   EXPECT_EQ(peer_id.toMultihash(), multihash);
 }

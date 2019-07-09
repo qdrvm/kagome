@@ -72,7 +72,7 @@ namespace libp2p {
      * If not found, will be searched using Routing module.
      * @return nothing on success, error otherwise.
      */
-    outcome::result<void> connect(const peer::PeerInfo &p);
+    void connect(const peer::PeerInfo &p);
 
     /**
      * @brief Open new stream to the peer {@param p} with protocol {@param
@@ -82,20 +82,12 @@ namespace libp2p {
      * @param handler callback, will be executed on successful stream creation
      * @return May return error if peer {@param p} is not known to this peer.
      */
-    outcome::result<void> newStream(
+    void newStream(
         const peer::PeerInfo &p, const peer::Protocol &protocol,
         const std::function<connection::Stream::Handler> &handler);
 
    private:
-    friend class HostBuilder;
-
-    Host(Config config, peer::PeerId peer_id);
-
     Config config_;
-
-    peer::PeerId id_;
-    std::unique_ptr<network::Network> network_;
-    std::unique_ptr<network::Router> router_;
   };
 
 }  // namespace libp2p
