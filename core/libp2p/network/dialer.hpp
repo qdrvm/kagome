@@ -12,30 +12,30 @@
 
 namespace libp2p::network {
 
-struct Dialer {
-  virtual ~Dialer() = default;
+  struct Dialer {
+    virtual ~Dialer() = default;
 
-  using DialResult =
-  outcome::result<std::shared_ptr<connection::CapableConnection>>;
-  using DialResultFunc = std::function<void(DialResult)>;
+    using DialResult =
+        outcome::result<std::shared_ptr<connection::CapableConnection>>;
+    using DialResultFunc = std::function<void(DialResult)>;
 
-  using StreamResult = outcome::result<std::shared_ptr<connection::Stream>>;
-  using StreamResultFunc = std::function<void(StreamResult)>;
+    using StreamResult = outcome::result<std::shared_ptr<connection::Stream>>;
+    using StreamResultFunc = std::function<void(StreamResult)>;
 
-  enum class Error {
-    SUCCESS = 0,
-    NO_KNOWN_ADDRESSES,
+    enum class Error {
+      SUCCESS = 0,
+      NO_KNOWN_ADDRESSES,
+    };
+
+    // Establishes a connection or returns existing one to a given peer
+    virtual void dial(const peer::PeerInfo &p, DialResultFunc cb) = 0;
+
+    // NewStream returns a new stream to given peer p.
+    // If there is no connection to p, attempts to create one.
+    virtual void newStream(const peer::PeerInfo &p,
+                           const peer::Protocol &protocol,
+                           StreamResultFunc cb) = 0;
   };
-
-  // Establishes a connection or returns existing one to a given peer
-  virtual void dial(const peer::PeerInfo &p, DialResultFunc cb) = 0;
-
-  // NewStream returns a new stream to given peer p.
-  // If there is no connection to p, attempts to create one.
-  virtual void newStream(const peer::PeerInfo &p,
-                         const peer::Protocol &protocol,
-                         StreamResultFunc cb) = 0;
-};
 
 }  // namespace libp2p::network
 
