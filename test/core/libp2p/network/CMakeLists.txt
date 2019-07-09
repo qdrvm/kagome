@@ -34,3 +34,11 @@ target_link_libraries(connection_manager_test
     testutil
     libp2p_peer_errors
     )
+
+
+addtest(listener_test
+    listener_test.cpp
+    )
+target_link_libraries(listener_test
+    libp2p_listener
+    )
