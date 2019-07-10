@@ -37,11 +37,22 @@ namespace {
 namespace libp2p::transport {
   UpgraderImpl::UpgraderImpl(
       std::shared_ptr<protocol_muxer::ProtocolMuxer> protocol_muxer,
-      gsl::span<SecAdaptorSPtr> security_adaptors,
-      gsl::span<MuxAdaptorSPtr> muxer_adaptors)
+      std::vector<SecAdaptorSPtr> security_adaptors,
+      std::vector<MuxAdaptorSPtr> muxer_adaptors)
       : protocol_muxer_{std::move(protocol_muxer)},
         security_adaptors_{security_adaptors.begin(), security_adaptors.end()},
         muxer_adaptors_{muxer_adaptors.begin(), muxer_adaptors.end()} {
+    BOOST_ASSERT(protocol_muxer_ != nullptr);
+    BOOST_ASSERT_MSG(!security_adaptors_.empty(),
+                     "upgrader has no security adaptors");
+    BOOST_ASSERT(std::all_of(security_adaptors_.begin(),
+                             security_adaptors_.end(),
+                             [](auto &&t) { return t != nullptr; }));
+    BOOST_ASSERT_MSG(!muxer_adaptors_.empty(),
+                     "upgrader got no muxer adaptors");
+    BOOST_ASSERT(std::all_of(muxer_adaptors_.begin(), muxer_adaptors_.end(),
+                             [](auto &&t) { return t != nullptr; }));
+
     // so that we don't need to extract lists of supported protos every time
     security_protocols_ = std::accumulate(
         security_adaptors_.begin(), security_adaptors_.end(),

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(security_plaintext
+add_library(libp2p_plaintext
     plaintext.cpp
     plaintext.hpp
     plaintext_connection.cpp
@@ -11,7 +11,7 @@ add_library(security_plaintext
     plaintext_session.cpp
     plaintext_session.hpp
     )
-target_link_libraries(security_plaintext
+target_link_libraries(libp2p_plaintext
     outcome
     libp2p_security_error
     )

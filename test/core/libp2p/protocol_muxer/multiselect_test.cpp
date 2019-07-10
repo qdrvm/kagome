@@ -61,7 +61,7 @@ class MultiselectTest : public ::testing::Test {
   }
 
   boost::asio::io_context context_;
-  std::shared_ptr<libp2p::transport::Transport> transport_;
+  std::shared_ptr<libp2p::transport::TransportAdaptor> transport_;
   std::shared_ptr<libp2p::multi::Multiaddress> multiaddress_;
 
   std::shared_ptr<UpgraderMock> upgrader = std::make_shared<UpgraderMock>();

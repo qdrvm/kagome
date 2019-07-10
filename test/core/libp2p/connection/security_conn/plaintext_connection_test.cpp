@@ -41,7 +41,7 @@ class PlaintextConnectionTest : public testing::Test {
  * @then method behaves as expected
  */
 TEST_F(PlaintextConnectionTest, LocalPeer) {
-  ASSERT_EQ(secure_connection_->localPeer().value(), PeerId::fromPublicKey(local).value());
+  ASSERT_EQ(secure_connection_->localPeer().value(), PeerId::fromPublicKey(local));
 }
 
 /**
@@ -50,7 +50,7 @@ TEST_F(PlaintextConnectionTest, LocalPeer) {
  * @then method behaves as expected
  */
 TEST_F(PlaintextConnectionTest, RemotePeer) {
-  ASSERT_EQ(secure_connection_->remotePeer().value(), PeerId::fromPublicKey(remote).value());
+  ASSERT_EQ(secure_connection_->remotePeer().value(), PeerId::fromPublicKey(remote));
 }
 
 /**
