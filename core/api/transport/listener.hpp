@@ -11,8 +11,8 @@
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
-#include "api/transport/session.hpp"
 #include <outcome/outcome.hpp>
+#include "api/transport/session.hpp"
 
 namespace kagome::server {
   /**
@@ -27,8 +27,7 @@ namespace kagome::server {
     template <class T>
     using Signal = boost::signals2::signal<T>;
     using OnNewSession = Signal<void(sptr<Session>)>;
-    using OnError = Signal<void(outcome::result<void>)>;
-    using OnStopped = Signal<void()>;
+    using OnError = Signal<void(const outcome::result<void> &)>;
 
    public:
     virtual ~Listener() = default;
@@ -36,7 +35,7 @@ namespace kagome::server {
     /**
      * @return `on new session` signal
      */
-    Signal<void(sptr<Session>)> &onNewSession() {
+    OnNewSession &onNewSession() {
       return on_new_session_;
     }
 
@@ -44,7 +43,7 @@ namespace kagome::server {
      * @return `on error` signal
      * which is emitted when start listening fails
      */
-    Signal<void(outcome::result<void>)> &onError() {
+    OnError &onError() {
       return on_error_;
     }
 

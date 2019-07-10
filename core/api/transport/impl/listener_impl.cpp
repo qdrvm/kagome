@@ -11,9 +11,10 @@ namespace kagome::server {
   using kagome::server::SessionImpl;
 
   ListenerImpl::ListenerImpl(ListenerImpl::Context &context,
-                             const ListenerImpl::Endpoint &endpoint, Configuration config)
+                             const ListenerImpl::Endpoint &endpoint,
+                             Configuration config)
       : context_(context), acceptor_(context_, endpoint), config_(config) {
-    onError().connect([this](outcome::result<void> err) {
+    onError().connect([this](auto&&) {
       // TODO(yuraz): pre-230 log error
       stop();
     });
@@ -21,19 +22,18 @@ namespace kagome::server {
 
   void ListenerImpl::doAccept() {
     acceptor_.async_accept(
-        [this](boost::system::error_code ec, Session::Socket socket) {
-          if (!ec) {
-            if (state_ != State::WORKING) {
-              // TODO(yuraz): PRE-230 add log
-              return;
-            }
-            auto session =
-                std::make_shared<SessionImpl>(std::move(socket), context_, config_.operation_timeout);
-            onNewSession()(session);
-            session->start();
-          } else {
-            onError()(outcome::failure(ec));
+        [self = shared_from_this()](boost::system::error_code ec, Session::Socket socket) {
+          if (ec) {
+            return self->onError()(outcome::failure(ec));
           }
+          if (self->state_ != State::WORKING) {
+            // TODO(yuraz): PRE-230 add log
+            return;
+          }
+          auto session = std::make_shared<SessionImpl>(
+              std::move(socket), self->context_, self->config_.operation_timeout);
+          self->onNewSession()(session);
+          session->start();
         });
   }
 

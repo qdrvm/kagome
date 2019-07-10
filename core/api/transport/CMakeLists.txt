@@ -4,7 +4,6 @@
 #
 
 add_library(api_transport
-    network_address.hpp
     listener.hpp
     session.hpp
     impl/listener_impl.hpp

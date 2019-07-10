@@ -6,8 +6,9 @@
 #ifndef KAGOME_TEST_MOCK_RUNTIME_TAGGED_TRANSACTION_QUEUE_MOCK_HPP
 #define KAGOME_TEST_MOCK_RUNTIME_TAGGED_TRANSACTION_QUEUE_MOCK_HPP
 
-#include <gmock/gmock.h>
 #include "runtime/tagged_transaction_queue.hpp"
+
+#include <gmock/gmock.h>
 
 namespace kagome::runtime {
   class TaggedTransactionQueueMock : public TaggedTransactionQueue {

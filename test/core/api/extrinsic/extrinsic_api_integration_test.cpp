@@ -10,18 +10,12 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-
 #include "api/transport/impl/listener_impl.hpp"
 #include "api/transport/impl/session_impl.hpp"
 #include "common/blob.hpp"
 #include "core/api/extrinsic/simple_client.hpp"
-#include "crypto/hasher/hasher_impl.hpp"
 #include "mock/api/extrinsic/extrinsic_api_mock.hpp"
-#include "primitives/block_id.hpp"
 #include "primitives/extrinsic.hpp"
-#include "primitives/transaction.hpp"
-#include "runtime/tagged_transaction_queue.hpp"
-#include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
 using namespace kagome::api;

@@ -1,4 +1,4 @@
- add_library(hexutil
+add_library(hexutil
   hexutil.hpp
   hexutil.cpp
   )

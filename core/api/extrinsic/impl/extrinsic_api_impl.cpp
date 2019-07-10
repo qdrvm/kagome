@@ -52,15 +52,13 @@ namespace kagome::api {
 
   outcome::result<std::vector<primitives::Extrinsic>>
   ExtrinsicApiImpl::pendingExtrinsics() {
-    // not implemented yet
-    std::terminate();
+    BOOST_ASSERT_MSG(false, "not implemented");
   }
 
   outcome::result<std::vector<common::Hash256>>
   ExtrinsicApiImpl::removeExtrinsic(
       const std::vector<primitives::ExtrinsicKey> &keys) {
-    // not implemented yet
-    std::terminate();
+    BOOST_ASSERT_MSG(false, "not implemented");
   }
 
 }  // namespace kagome::api

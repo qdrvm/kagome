@@ -13,11 +13,11 @@
 #include "primitives/extrinsic.hpp"
 
 namespace kagome::api {
-  jsonrpc::Value makeValue(const common::Hash256 &v) {
+  inline jsonrpc::Value makeValue(const common::Hash256 &v) {
     return std::vector<uint8_t>{v.begin(), v.end()};
   }
 
-  jsonrpc::Value makeValue(const primitives::Extrinsic &v) {
+  inline jsonrpc::Value makeValue(const primitives::Extrinsic &v) {
     return v.data.toHex();
   }
 

@@ -6,9 +6,10 @@
 #ifndef KAGOME_TEST_MOCK_TRANSACTION_POOL_TRANSACTION_POOL_MOCK_HPP
 #define KAGOME_TEST_MOCK_TRANSACTION_POOL_TRANSACTION_POOL_MOCK_HPP
 
+#include "transaction_pool/transaction_pool.hpp"
+
 #include <gmock/gmock.h>
 #include "primitives/transaction.hpp"
-#include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::transaction_pool {
   class TransactionPoolMock : public TransactionPool {
