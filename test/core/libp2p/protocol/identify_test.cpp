@@ -16,6 +16,8 @@
 #include "mock/libp2p/connection/stream_mock.hpp"
 #include "mock/libp2p/crypto/key_marshaller_mock.hpp"
 #include "mock/libp2p/host_mock.hpp"
+#include "mock/libp2p/network/connection_manager_mock.hpp"
+#include "mock/libp2p/network/listener_mock.hpp"
 #include "mock/libp2p/network/network_mock.hpp"
 #include "mock/libp2p/network/router_mock.hpp"
 #include "mock/libp2p/peer/address_repository_mock.hpp"
@@ -69,8 +71,8 @@ class IdentifyTest : public testing::Test {
         identify_pb_msg_bytes_.data() + pb_msg_len_varint_->size(),
         identify_pb_msg_.ByteSize());
 
-    identify_ =
-        std::make_shared<Identify>(*host_, bus_, id_manager_, key_marshaller_);
+    identify_ = std::make_shared<Identify>(*host_, bus_, conn_manager_,
+                                           id_manager_, key_marshaller_);
   }
 
   std::shared_ptr<Host> host_ = std::make_shared<HostMock>();
@@ -108,7 +110,7 @@ class IdentifyTest : public testing::Test {
   PublicKey pubkey_{{Key::Type::RSA2048, pubkey_data_}};
   KeyPair key_pair_{pubkey_, PrivateKey{}};
 
-  const peer::PeerId kRemotePeerId = PeerId::fromPublicKey(pubkey_).value();
+  const peer::PeerId kRemotePeerId = PeerId::fromPublicKey(pubkey_);
   multi::Multiaddress remote_multiaddr_ = "/ip4/93.32.12.54/tcp/228"_multiaddr;
   const peer::PeerInfo kPeerInfo{
       kRemotePeerId, std::vector<multi::Multiaddress>{remote_multiaddr_}};
@@ -122,6 +124,8 @@ class IdentifyTest : public testing::Test {
   AddressRepositoryMock addr_repo_;
 
   NetworkMock network_;
+  ListenerMock listener_;
+  ConnectionManagerMock conn_manager_;
 
   const std::string kIdentifyProto = "/ipfs/id/1.0.0";
 };
@@ -243,7 +247,13 @@ TEST_F(IdentifyTest, Receive) {
   EXPECT_CALL(*host_mock_, getNetwork())
       .Times(2)
       .WillRepeatedly(ReturnRef(network_));
-  EXPECT_CALL(network_, getListenAddresses())
+  EXPECT_CALL(network_, getListener())
+      .Times(2)
+      .WillRepeatedly(ReturnRef(listener_));
+
+  EXPECT_CALL(listener_, getListenAddressesInterfaces())
+      .WillOnce(Return(outcome::success(std::vector<Multiaddress>{})));
+  EXPECT_CALL(listener_, getListenAddresses())
       .WillOnce(Return(listen_addresses_));
 
   // consumeListenAddresses
@@ -255,8 +265,8 @@ TEST_F(IdentifyTest, Receive) {
                       std::chrono::duration_cast<std::chrono::milliseconds>(
                           peer::ttl::kTransient)))
       .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(network_, connectedness(kRemotePeerId))
-      .WillOnce(Return(network::Network::Connectedness::CONNECTED));
+  EXPECT_CALL(conn_manager_, connectedness(kRemotePeerId))
+      .WillOnce(Return(network::ConnectionManager::Connectedness::CONNECTED));
   EXPECT_CALL(
       addr_repo_,
       upsertAddresses(kRemotePeerId,

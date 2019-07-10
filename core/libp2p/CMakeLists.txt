@@ -17,9 +17,8 @@ add_subdirectory(basic)
 
 add_library(libp2p
     config.hpp
+    host.cpp
     host.hpp
-    host_impl.cpp
-    host_impl.hpp
     )
 target_link_libraries(libp2p
     outcome

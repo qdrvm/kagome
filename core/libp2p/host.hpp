@@ -89,7 +89,7 @@ namespace libp2p {
      * @param p peer to connect. Addresses will be searched in PeerRepository.
      * If not found, will be searched using Routing module.
      */
-    void connect(const peer::PeerInfo &p);
+    virtual void connect(const peer::PeerInfo &p) = 0;
 
     /**
      * @brief Open new stream to the peer {@param p} with protocol {@param
@@ -101,6 +101,24 @@ namespace libp2p {
     virtual void newStream(
         const peer::PeerInfo &p, const peer::Protocol &protocol,
         const std::function<connection::Stream::Handler> &handler) = 0;
+
+    /**
+     * @brief Get a network component of the Host
+     * @return reference to network
+     */
+    virtual network::Network &getNetwork() const = 0;
+
+    /**
+     * @brief Get a peer repository of the Host
+     * @return reference to repository
+     */
+    virtual peer::PeerRepository &getPeerRepository() const = 0;
+
+    /**
+     * @brief Get a router component of the Host
+     * @return reference to router
+     */
+    virtual const network::Router &getRouter() const = 0;
   };
 }  // namespace libp2p
 

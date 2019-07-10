@@ -11,7 +11,6 @@
 #include <boost/assert.hpp>
 #include "common/hexutil.hpp"
 #include "libp2p/basic/protobuf_message_read_writer.hpp"
-#include "libp2p/host_impl.hpp"
 #include "libp2p/network/connection_manager.hpp"
 #include "libp2p/network/network.hpp"
 #include "libp2p/peer/address_repository.hpp"
@@ -40,14 +39,14 @@ namespace {
 namespace libp2p::protocol {
   Identify::Identify(
       Host &host, event::Bus &event_bus,
+      network::ConnectionManager &conn_manager,
       peer::IdentityManager &identity_manager,
-      std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller,
-      kagome::common::Logger log)
+      std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller)
       : host_{host},
         bus_{event_bus},
+        conn_manager_{conn_manager},
         identity_manager_{identity_manager},
-        key_marshaller_{std::move(key_marshaller)},
-        log_{std::move(log)} {
+        key_marshaller_{std::move(key_marshaller)} {
     BOOST_ASSERT(key_marshaller_);
     BOOST_ASSERT(log_);
   }
@@ -265,7 +264,6 @@ namespace libp2p::protocol {
     // peer id can be set in stream, derived from the received public key or
     // both; handle all possible cases
     std::optional<peer::PeerId> stream_peer_id;
-    std::optional<peer::PeerId> msg_peer_id;
     std::optional<crypto::PublicKey> pubkey;
 
     // retrieve a peer id from the stream
@@ -286,32 +284,25 @@ namespace libp2p::protocol {
     pubkey = std::move(pubkey_res.value());
 
     // derive a peer id from the received public key
-    auto peer_id_res = peer::PeerId::fromPublicKey(*pubkey);
-    if (!peer_id_res) {
-      log_->info("cannot create PeerId from the received public key {}: {}",
-                 kagome::common::hex_upper(pubkey->data),
-                 peer_id_res.error().message());
-      return stream_peer_id;
-    }
-    msg_peer_id = std::move(peer_id_res.value());
+    auto msg_peer_id = peer::PeerId::fromPublicKey(*pubkey);
 
     auto &key_repo = host_.getPeerRepository().getKeyRepository();
     if (!stream_peer_id) {
       // didn't know the ID before; memorize the key, from which it can be
       // derived later
-      auto add_res = key_repo.addPublicKey(*msg_peer_id, *pubkey);
+      auto add_res = key_repo.addPublicKey(msg_peer_id, *pubkey);
       if (!add_res) {
         log_->error("cannot add key to the repo of peer {}: {}",
-                    msg_peer_id->toBase58(), add_res.error().message());
+                    msg_peer_id.toBase58(), add_res.error().message());
       }
       return msg_peer_id;
     }
 
-    if (stream_peer_id && *stream_peer_id != *msg_peer_id) {
+    if (stream_peer_id && *stream_peer_id != msg_peer_id) {
       log_->error(
           "peer with id {} sent public key, which derives to id {}, but they "
           "must be equal",
-          stream_peer_id->toBase58(), msg_peer_id->toBase58());
+          stream_peer_id->toBase58(), msg_peer_id.toBase58());
       return std::nullopt;
     }
 
@@ -345,11 +336,25 @@ namespace libp2p::protocol {
 
     // if our local address is not one of our "official" listen addresses, we
     // are not going to save its mapping to the observed one
-    // TODO(akvinikym): also getInterfaceListenAddresses() when added
-    auto listen_addresses = host_.getNetwork().getListenAddresses();
-    if (std::find(listen_addresses.begin(), listen_addresses.end(),
+    auto i_listen_addresses_res =
+        host_.getNetwork().getListener().getListenAddressesInterfaces();
+    if (!i_listen_addresses_res) {
+      return log_->error("failed to get interface listen addresses: {}",
+                         i_listen_addresses_res.error().message());
+    }
+    auto i_listen_addresses = std::move(i_listen_addresses_res.value());
+
+    auto listen_addresses =
+        host_.getNetwork().getListener().getListenAddresses();
+
+    auto addr_in_addresses =
+        std::find(i_listen_addresses.begin(), i_listen_addresses.end(),
                   observed_address)
-        == listen_addresses.end()) {
+            != i_listen_addresses.end()
+        || std::find(listen_addresses.begin(), listen_addresses.end(),
+                     observed_address)
+            != listen_addresses.end();
+    if (!addr_in_addresses) {
       return;
     }
 
@@ -388,8 +393,8 @@ namespace libp2p::protocol {
     }
 
     // memorize the addresses
-    switch (host_.getNetwork().connectedness(peer_id)) {
-      case network::Network::Connectedness::CONNECTED:
+    switch (conn_manager_.connectedness(peer_id)) {
+      case network::ConnectionManager::Connectedness::CONNECTED:
         add_res = addr_repo.upsertAddresses(peer_id, listen_addresses,
                                             peer::ttl::kPermanent);
         break;
