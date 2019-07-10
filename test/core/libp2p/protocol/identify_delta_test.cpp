@@ -13,6 +13,7 @@
 #include "mock/libp2p/host_mock.hpp"
 #include "mock/libp2p/network/network_mock.hpp"
 #include "mock/libp2p/peer/peer_repository_mock.hpp"
+#include "mock/libp2p/peer/protocol_repository_mock.hpp"
 #include "testutil/gmock_actions.hpp"
 #include "testutil/literals.hpp"
 
@@ -42,28 +43,26 @@ class IdentifyDeltaTest : public testing::Test {
       msg_added_rm_protos_.mutable_delta()->add_rm_protocols(proto);
     }
 
-    UVarint added_proto_len{
-        static_cast<uint64_t>(msg_added_protos_.ByteSize())};
-    msg_added_protos_bytes_.insert(
-        msg_added_protos_bytes_.end(),
-        std::make_move_iterator(added_proto_len.toVector().begin()),
-        std::make_move_iterator(added_proto_len.toVector().end()));
+    added_proto_len_ =
+        UVarint{static_cast<uint64_t>(msg_added_protos_.ByteSize())};
+    msg_added_protos_bytes_.insert(msg_added_protos_bytes_.end(),
+                                   added_proto_len_.toVector().begin(),
+                                   added_proto_len_.toVector().end());
     msg_added_protos_bytes_.insert(msg_added_protos_bytes_.end(),
                                    msg_added_protos_.ByteSize(), 0);
     msg_added_protos_.SerializeToArray(
-        msg_added_protos_bytes_.data() + added_proto_len.size(),
+        msg_added_protos_bytes_.data() + added_proto_len_.size(),
         msg_added_protos_.ByteSize());
 
-    UVarint added_rm_proto_len{
-        static_cast<uint64_t>(msg_added_rm_protos_.ByteSize())};
-    msg_added_rm_protos_bytes_.insert(
-        msg_added_rm_protos_bytes_.end(),
-        std::make_move_iterator(added_rm_proto_len.toVector().begin()),
-        std::make_move_iterator(added_rm_proto_len.toVector().end()));
+    added_rm_proto_len_ =
+        UVarint{static_cast<uint64_t>(msg_added_rm_protos_.ByteSize())};
+    msg_added_rm_protos_bytes_.insert(msg_added_rm_protos_bytes_.end(),
+                                      added_rm_proto_len_.toVector().begin(),
+                                      added_rm_proto_len_.toVector().end());
     msg_added_rm_protos_bytes_.insert(msg_added_rm_protos_bytes_.end(),
                                       msg_added_rm_protos_.ByteSize(), 0);
     msg_added_rm_protos_.SerializeToArray(
-        msg_added_rm_protos_bytes_.data() + added_rm_proto_len.size(),
+        msg_added_rm_protos_bytes_.data() + added_rm_proto_len_.size(),
         msg_added_rm_protos_.ByteSize());
   }
 
@@ -78,12 +77,15 @@ class IdentifyDeltaTest : public testing::Test {
 
   identify::pb::Identify msg_added_protos_;
   std::vector<uint8_t> msg_added_protos_bytes_;
+  UVarint added_proto_len_{0};
 
   identify::pb::Identify msg_added_rm_protos_;
   std::vector<uint8_t> msg_added_rm_protos_bytes_;
+  UVarint added_rm_proto_len_{0};
 
   NetworkMock network_;
   PeerRepositoryMock peer_repo_;
+  ProtocolRepositoryMock proto_repo_;
   std::shared_ptr<CapableConnectionMock> conn_ =
       std::make_shared<CapableConnectionMock>();
   std::shared_ptr<StreamMock> stream_ = std::make_shared<StreamMock>();
@@ -129,4 +131,39 @@ TEST_F(IdentifyDeltaTest, Send) {
       added_protos_);
 }
 
-TEST_F(IdentifyDeltaTest, Receive) {}
+ACTION_P(ReadPut, buf) {
+  std::copy(buf.begin(), buf.end(), arg0.begin());
+  arg2(buf.size());
+}
+
+TEST_F(IdentifyDeltaTest, Receive) {
+  // handle
+  EXPECT_CALL(*stream_, read(_, 1, _))
+      .WillOnce(ReadPut(gsl::make_span(msg_added_rm_protos_bytes_.data(), 1)));
+  EXPECT_CALL(*stream_, read(_, added_rm_proto_len_.toUInt64(), _))
+      .WillOnce(ReadPut(gsl::make_span(
+          msg_added_rm_protos_bytes_.data() + added_proto_len_.size(),
+          msg_added_rm_protos_bytes_.size() - added_proto_len_.size())));
+
+  // deltaReceived
+  EXPECT_CALL(*stream_, remotePeerId())
+      .Times(2)
+      .WillRepeatedly(Return(kRemotePeerId));
+  EXPECT_CALL(*stream_, remoteMultiaddr())
+      .Times(1)
+      .WillRepeatedly(Return(outcome::success(kPeerInfo.addresses[0])));
+
+  EXPECT_CALL(host_, getPeerRepository()).WillOnce(ReturnRef(peer_repo_));
+  EXPECT_CALL(peer_repo_, getProtocolRepository())
+      .WillOnce(ReturnRef(proto_repo_));
+  EXPECT_CALL(proto_repo_,
+              addProtocols(kRemotePeerId,
+                           gsl::span<const peer::Protocol>(added_protos_)))
+      .WillOnce(Return(outcome::success()));
+  EXPECT_CALL(proto_repo_,
+              removeProtocols(kRemotePeerId,
+                              gsl::span<const peer::Protocol>(removed_protos_)))
+      .WillOnce(Return(outcome::success()));
+
+  id_delta_->handle(stream_);
+}
