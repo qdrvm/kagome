@@ -128,7 +128,7 @@ class YamuxIntegrationTest : public testing::Test {
 
   boost::asio::io_context context_;
 
-  std::shared_ptr<libp2p::transport::Transport> transport_;
+  std::shared_ptr<libp2p::transport::TransportAdaptor> transport_;
   std::shared_ptr<libp2p::transport::TransportListener> transport_listener_;
   std::shared_ptr<libp2p::multi::Multiaddress> multiaddress_;
 

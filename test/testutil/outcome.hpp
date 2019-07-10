@@ -25,11 +25,11 @@
   auto &&val = var.value();
 
 #define EXPECT_OUTCOME_FALSE_void(var, expr) \
-  auto &&var = expr;                        \
+  auto &&var = expr;                         \
   EXPECT_FALSE(var) << var.error().message();
 
 #define EXPECT_OUTCOME_FALSE_name(var, val, expr) \
-  auto &&var = expr;                             \
+  auto &&var = expr;                              \
   EXPECT_FALSE(var) << var.error().message();     \
   auto &&val = var.error();
 
@@ -45,7 +45,7 @@
 #define EXPECT_OUTCOME_FALSE_3(var, val, expr) \
   EXPECT_OUTCOME_FALSE_name(var, val, expr)
 
-  #define EXPECT_OUTCOME_FALSE_2(val, expr) \
+#define EXPECT_OUTCOME_FALSE_2(val, expr) \
   EXPECT_OUTCOME_FALSE_3(UNIQUE_NAME(_r), val, expr)
 
 #define EXPECT_OUTCOME_FALSE_1(expr) \
@@ -59,6 +59,7 @@
 #define EXPECT_OUTCOME_TRUE(val, expr) \
   EXPECT_OUTCOME_TRUE_name(UNIQUE_NAME(_r), val, expr)
 
-#define EXPECT_ERRCODE_SUCCESS(ec) EXPECT_FALSE(ec) << ec.message();
+#define EXPECT_OUTCOME_FALSE(val, expr) \
+  EXPECT_OUTCOME_FALSE_name(UNIQUE_NAME(_f), val, expr)
 
 #endif  // KAGOME_GTEST_OUTCOME_UTIL_HPP

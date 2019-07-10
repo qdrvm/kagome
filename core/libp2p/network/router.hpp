@@ -82,7 +82,6 @@ namespace libp2p::network {
      */
     virtual void removeAll() = 0;
 
-   protected:
     /**
      * Execute stored handler for given protocol {@param p}; if several
      * handlers can be found (for example, if exact protocol match failed, and

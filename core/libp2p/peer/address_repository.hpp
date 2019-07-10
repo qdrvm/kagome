@@ -36,6 +36,8 @@ namespace libp2p::peer {
     /// invalidated addresses
     constexpr const auto kTransient = std::chrono::seconds(10);
 
+    constexpr const auto kDay = std::chrono::hours(24);
+
   }  // namespace ttl
 
   /**

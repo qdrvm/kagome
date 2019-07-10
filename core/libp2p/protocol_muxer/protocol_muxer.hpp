@@ -32,7 +32,7 @@ namespace libp2p::protocol_muxer {
      * @param cb - callback for handling negotiated protocol
      * @return chosen protocol or error
      */
-    virtual void selectOneOf(gsl::span<peer::Protocol> protocols,
+    virtual void selectOneOf(gsl::span<const peer::Protocol> protocols,
                              std::shared_ptr<basic::ReadWriter> connection,
                              bool is_initiator, ProtocolHandlerFunc cb) = 0;
 

@@ -8,10 +8,9 @@ addtest(yamux_integration_test
     )
 target_link_libraries(yamux_integration_test
     libp2p_yamux
-    libp2p_yamuxed_connection
     multiaddress
-    security_plaintext
-    tcp_transport
+    libp2p_plaintext
+    libp2p_tcp
     testutil
     )
 
@@ -22,8 +21,8 @@ target_link_libraries(yamux_acceptance_test
     libp2p_yamux
     libp2p_yamuxed_connection
     multiaddress
-    security_plaintext
-    tcp_transport
+    libp2p_plaintext
+    libp2p_tcp
     testutil
     )
 

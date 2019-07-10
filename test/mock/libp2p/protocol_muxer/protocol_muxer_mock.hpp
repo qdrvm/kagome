@@ -13,7 +13,7 @@ namespace libp2p::protocol_muxer {
   class ProtocolMuxerMock : public ProtocolMuxer {
    public:
     MOCK_METHOD4(selectOneOf,
-                 void(gsl::span<peer::Protocol> protocols,
+                 void(gsl::span<const peer::Protocol> protocols,
                       std::shared_ptr<basic::ReadWriter> connection,
                       bool is_initiator, ProtocolHandlerFunc cb));
   };

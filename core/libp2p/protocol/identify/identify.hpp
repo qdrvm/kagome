@@ -16,6 +16,7 @@
 #include "libp2p/crypto/key_marshaller.hpp"
 #include "libp2p/event/bus.hpp"
 #include "libp2p/host.hpp"
+#include "libp2p/network/connection_manager.hpp"
 #include "libp2p/peer/identity_manager.hpp"
 #include "libp2p/protocol/base_protocol.hpp"
 #include "libp2p/protocol/identify/observed_addresses.hpp"
@@ -43,15 +44,14 @@ namespace libp2p::protocol {
      * connection events and react to them
      * @param host - this Libp2p instance
      * @param event_bus - bus, over which the events arrive
+     * @param conn_manager - this peer's connection manager
      * @param identity_manager - this peer's identity manager
      * @param key_marshaller - marshaller of private & public keys
-     * @param log to write information to
      */
-    Identify(
-        Host &host, event::Bus &event_bus,
-        peer::IdentityManager &identity_manager,
-        std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller,
-        kagome::common::Logger log = kagome::common::createLogger("Identify"));
+    Identify(Host &host, event::Bus &event_bus,
+             network::ConnectionManager &conn_manager,
+             peer::IdentityManager &identity_manager,
+             std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller);
 
     ~Identify() override = default;
 
@@ -151,6 +151,7 @@ namespace libp2p::protocol {
 
     Host &host_;
     event::Bus &bus_;
+    network::ConnectionManager &conn_manager_;
     peer::IdentityManager &identity_manager_;
     std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller_;
     ObservedAddresses observed_addresses_;
@@ -159,7 +160,7 @@ namespace libp2p::protocol {
 
     bool started_ = false;
 
-    kagome::common::Logger log_;
+    kagome::common::Logger log_ = kagome::common::createLogger("Identify");
   };
 }  // namespace libp2p::protocol
 
