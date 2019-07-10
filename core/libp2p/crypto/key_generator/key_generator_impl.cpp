@@ -13,6 +13,7 @@
 #include <openssl/pem.h>
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
+#include <openssl/x509.h>
 #include "libp2p/crypto/error.hpp"
 #include "libp2p/crypto/random_generator.hpp"
 
@@ -108,16 +109,15 @@ namespace libp2p::crypto {
       int ret = 0;
       RSA *rsa = nullptr;
       BIGNUM *bne = nullptr;
-      BIO *bio_public = nullptr;
-      BIO *bio_private = nullptr;
-
+      unsigned char *public_bytes = nullptr;
+      unsigned char *private_bytes = nullptr;
       // clean up automatically
       auto cleanup = gsl::finally([&]() {
-        if (nullptr != bio_public) {
-          BIO_free_all(bio_public);
+        if (nullptr != public_bytes) {
+          free(public_bytes);
         }
-        if (nullptr != bio_private) {
-          BIO_free_all(bio_private);
+        if (nullptr != private_bytes) {
+          free(private_bytes);
         }
         if (nullptr != rsa) {
           RSA_free(rsa);
@@ -127,7 +127,7 @@ namespace libp2p::crypto {
         }
       });
 
-      uint64_t exp = RSA_F4;
+      constexpr uint64_t exp = RSA_F4;
 
       // 1. generate rsa state
       bne = BN_new();
@@ -136,32 +136,56 @@ namespace libp2p::crypto {
         return KeyGeneratorError::KEY_GENERATION_FAILED;
       }
 
+      // 2. generate keys
       rsa = RSA_new();
       ret = RSA_generate_key_ex(rsa, bits, bne, nullptr);
       if (ret != 1) {
         return KeyGeneratorError::KEY_GENERATION_FAILED;
       }
 
-      // 2. save keys to memory
-      bio_private = BIO_new(BIO_s_mem());
-      bio_public = BIO_new(BIO_s_mem());
+      auto cleanup_keys = gsl::finally([public_bytes, private_bytes]() {
+        // not sure about it
+        free(public_bytes);
+        free(private_bytes);
+      });
 
-      ret = PEM_write_bio_RSAPublicKey(bio_public, rsa);
-      if (ret != 1) {
+      // 3. format keys
+      //
+      // according to libp2p specification:
+      // https://github.com/libp2p/specs/blob/master/peer-ids/peer-ids.md#how-keys-are-encoded-and-messages-signed
+      // We encode the public key using the DER-encoded PKIX format
+      // We encode the private key as a PKCS1 key using ASN.1 DER.
+      //
+      // according to openssl manual:
+      // https://www.openssl.org/docs/man1.0.2/man3/i2d_RSAPublicKey.html
+      // d2i_RSAPublicKey() and i2d_RSAPublicKey() decode and encode a PKCS#1
+      // RSAPublicKey structure.
+      //
+      // https://www.openssl.org/docs/man1.0.2/man3/i2d_RSAPrivateKey.html
+      //
+      // d2i_RSAPrivateKey(), i2d_RSAPrivateKey() decode and encode a PKCS#1
+      // RSAPrivateKey structure.
+
+      auto public_length = i2d_RSAPublicKey(rsa, &public_bytes);
+      if (public_length < 0) {
         return KeyGeneratorError::KEY_GENERATION_FAILED;
       }
 
-      ret = PEM_write_bio_RSAPrivateKey(bio_private, rsa, nullptr, nullptr, 0,
-                                        nullptr, nullptr);
-      if (ret != 1) {
+      auto private_length = i2d_RSAPrivateKey(rsa, &private_bytes);
+      if (private_length < 0) {
         return KeyGeneratorError::KEY_GENERATION_FAILED;
       }
 
-      // 3. Get keys
-      auto private_buffer = bio2buffer(bio_private);
-      auto public_buffer = bio2buffer(bio_public);
+      auto make_buffer = [](unsigned char *bytes,
+                            auto length) -> std::vector<uint8_t> {
+        std::vector<uint8_t> buffer(length, 0);
+        auto span = gsl::make_span(bytes, length);
+        std::copy(span.begin(), span.end(), buffer.begin());
+        return buffer;
+      };
 
-      return {std::move(public_buffer), std::move(private_buffer)};
+      return {make_buffer(public_bytes, public_length),
+              make_buffer(private_bytes, private_length)};
     }
   }  // namespace detail
 
