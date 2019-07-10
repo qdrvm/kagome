@@ -128,12 +128,11 @@ namespace libp2p::protocol {
       msg->mutable_delta()->add_rm_protocols(proto);
     }
 
-    for (const auto &peer : getActivePeers()) {
-      host_.newStream(peer, kIdentifyDeltaProtocol,
-                      [self{shared_from_this()}, msg](auto s) {
-                        self->sendDelta(std::move(s), msg);
-                      });
-    }
+    detail::streamToEachConnectedPeer(host_, conn_manager_,
+                                      kIdentifyDeltaProtocol,
+                                      [self{shared_from_this()}, msg](auto s) {
+                                        self->sendDelta(std::move(s), msg);
+                                      });
   }
 
   void IdentifyDelta::sendDelta(
@@ -149,22 +148,5 @@ namespace libp2p::protocol {
                               res.error().message());
           }
         });
-  }
-
-  std::vector<peer::PeerInfo> IdentifyDelta::getActivePeers() const {
-    std::vector<peer::PeerInfo> active_peers;
-    std::unordered_set<peer::PeerId> active_peers_ids;
-
-    for (const auto &conn : conn_manager_.getConnections()) {
-      active_peers_ids.insert(conn->remotePeer().value());
-    }
-
-    auto &peer_repo = host_.getPeerRepository();
-    active_peers.reserve(active_peers_ids.size());
-    for (const auto &peer_id : active_peers_ids) {
-      active_peers.push_back(peer_repo.getPeerInfo(peer_id));
-    }
-
-    return active_peers;
   }
 }  // namespace libp2p::protocol

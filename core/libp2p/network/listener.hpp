@@ -9,14 +9,26 @@
 #include <vector>
 
 #include <outcome/outcome.hpp>
+#include "libp2p/event/bus.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/network/router.hpp"
 #include "libp2p/protocol/base_protocol.hpp"
 
 namespace libp2p::network {
 
+  namespace event {
+    struct ListenAddressAdded {};
+    using ListenAddressAddedChannel =
+        libp2p::event::channel_decl<ListenAddressAdded, multi::Multiaddress>;
+
+    struct ListenAddressRemoved {};
+    using ListenAddressRemovedChannel =
+        libp2p::event::channel_decl<ListenAddressRemoved, multi::Multiaddress>;
+  }  // namespace event
+
   /**
-   * @brief Class, which is capable of listening (opening a server) on registered transports.
+   * @brief Class, which is capable of listening (opening a server) on
+   * registered transports.
    */
   struct Listener {
     using StreamResult = outcome::result<std::shared_ptr<connection::Stream>>;

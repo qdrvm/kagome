@@ -18,7 +18,8 @@ namespace libp2p::protocol {
    * whole Identify message. Read more:
    * https://github.com/libp2p/specs/blob/master/identify/README.md
    */
-  class IdentifyPush : public BaseProtocol {
+  class IdentifyPush : public BaseProtocol,
+                       public std::enable_shared_from_this<IdentifyPush> {
    public:
     explicit IdentifyPush(std::shared_ptr<Identify> id);
 
@@ -37,6 +38,11 @@ namespace libp2p::protocol {
     void start();
 
    private:
+    /**
+     * Send an Identify message to all peers we are connected to
+     */
+    void sendPush();
+
     std::shared_ptr<Identify> id_;
   };
 }  // namespace libp2p::protocol

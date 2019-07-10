@@ -75,13 +75,6 @@ namespace libp2p::protocol {
     void sendDelta(std::shared_ptr<connection::Stream> stream,
                    const std::shared_ptr<identify::pb::Identify> &msg) const;
 
-    // TODO(akvinikym): think about moving this method to somewhere else
-    /**
-     * Get collection of peers, to which we have at least one active connection
-     * @return PeerInfo-s
-     */
-    std::vector<peer::PeerInfo> getActivePeers() const;
-
     Host &host_;
     network::ConnectionManager &conn_manager_;
     event::Bus &bus_;
