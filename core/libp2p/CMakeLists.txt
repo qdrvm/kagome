@@ -27,13 +27,12 @@ target_link_libraries(libp2p
     libp2p_peer_id
     multiaddress
     libp2p_peer_repository
-    address_repository
     key_generator
     buffer
     libp2p_inmem_address_repository
     libp2p_inmem_key_repository
     libp2p_inmem_protocol_repository
-    security_plaintext
+    libp2p_plaintext
     libp2p_yamux
     libp2p_upgrader
     )

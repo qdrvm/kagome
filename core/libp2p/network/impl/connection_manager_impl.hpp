@@ -33,6 +33,8 @@ namespace libp2p::network {
 
     void collectGarbage() override;
 
+    void closeConnectionsToPeer(const peer::PeerId& p) override;
+
    private:
     std::shared_ptr<peer::AddressRepository> addr_repo_;
     std::shared_ptr<network::TransportManager> transport_manager_;

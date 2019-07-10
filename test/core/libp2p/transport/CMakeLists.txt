@@ -5,7 +5,7 @@ addtest(libp2p_tcp_integration_test
     tcp_integration_test.cpp
     )
 target_link_libraries(libp2p_tcp_integration_test
-    tcp_transport
+    libp2p_tcp
     testutil
     )
 

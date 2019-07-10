@@ -20,7 +20,7 @@
 #include "libp2p/protocol_muxer/protocol_muxer.hpp"
 #include "libp2p/routing/routing_adaptor.hpp"
 #include "libp2p/security/security_adaptor.hpp"
-#include "libp2p/transport/transport.hpp"
+#include "libp2p/transport/transport_adaptor.hpp"
 #include "libp2p/transport/upgrader.hpp"
 
 namespace libp2p {
@@ -46,7 +46,7 @@ namespace libp2p {
     detail::sptr<routing::RoutingAdaptor> routing;
     detail::sptr<discovery::DiscoveryAdaptor> discovery;
     detail::sptr<peer::PeerRepository> peer_repository;
-    detail::vecsptr<transport::Transport> transports;
+    detail::vecsptr<transport::TransportAdaptor> transports;
     detail::vecsptr<muxer::MuxerAdaptor> muxers;
     detail::vecsptr<dht::DHTAdaptor> dhts;
     detail::vecsptr<security::SecurityAdaptor> securities;

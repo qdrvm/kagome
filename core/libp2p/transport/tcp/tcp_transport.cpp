@@ -11,7 +11,7 @@ namespace libp2p::transport {
 
   void TcpTransport::dial(const peer::PeerId &remoteId,
                           multi::Multiaddress address,
-                          Transport::HandlerFunc handler) {
+                          TransportAdaptor::HandlerFunc handler) {
     if (!canDial(address)) {
       return handler(std::errc::address_family_not_supported);
     }
@@ -58,5 +58,9 @@ namespace libp2p::transport {
   TcpTransport::TcpTransport(boost::asio::io_context &context,
                              std::shared_ptr<Upgrader> upgrader)
       : context_(context), upgrader_(std::move(upgrader)) {}
+
+  peer::Protocol TcpTransport::getProtocolId() const {
+    return "/tcp/1.0.0";
+  }
 
 }  // namespace libp2p::transport

@@ -8,10 +8,7 @@
 namespace libp2p::protocol_muxer {
   using peer::Protocol;
 
-  Multiselect::Multiselect(kagome::common::Logger logger)
-      : log_{std::move(logger)} {}
-
-  void Multiselect::selectOneOf(gsl::span<peer::Protocol> supported_protocols,
+  void Multiselect::selectOneOf(gsl::span<const peer::Protocol> supported_protocols,
                                 std::shared_ptr<basic::ReadWriter> connection,
                                 bool is_initiator,
                                 ProtocolMuxer::ProtocolHandlerFunc handler) {
@@ -25,7 +22,7 @@ namespace libp2p::protocol_muxer {
 
   void Multiselect::negotiate(
       const std::shared_ptr<basic::ReadWriter> &connection,
-      gsl::span<peer::Protocol> supported_protocols, bool is_initiator,
+      gsl::span<const peer::Protocol> supported_protocols, bool is_initiator,
       const ProtocolHandlerFunc &handler) {
     auto [write_buffer, read_buffer, index] = getBuffers();
 
@@ -44,6 +41,7 @@ namespace libp2p::protocol_muxer {
           ConnectionState::NegotiationStatus::NOTHING_SENT));
     }
   }
+
   void Multiselect::negotiationRoundFailed(
       const std::shared_ptr<ConnectionState> &connection_state,
       const std::error_code &ec) {

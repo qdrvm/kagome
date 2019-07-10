@@ -88,10 +88,8 @@ namespace libp2p {
      * error happens.
      * @param p peer to connect. Addresses will be searched in PeerRepository.
      * If not found, will be searched using Routing module.
-     * @param cb to be called, when a connection is initiated, or error happens
      */
-    virtual void connect(const peer::PeerInfo &p,
-                         std::function<void(outcome::result<void>)> cb) = 0;
+    void connect(const peer::PeerInfo &p);
 
     /**
      * @brief Open new stream to the peer {@param p} with protocol {@param
@@ -103,24 +101,6 @@ namespace libp2p {
     virtual void newStream(
         const peer::PeerInfo &p, const peer::Protocol &protocol,
         const std::function<connection::Stream::Handler> &handler) = 0;
-
-    /**
-     * @brief Get a network component of the Host
-     * @return reference to network
-     */
-    virtual const network::Network &getNetwork() const = 0;
-
-    /**
-     * @brief Get a peer repository of the Host
-     * @return reference to repository
-     */
-    virtual peer::PeerRepository &getPeerRepository() const = 0;
-
-    /**
-     * @brief Get a router component of the Host
-     * @return reference to router
-     */
-    virtual const network::Router &getRouter() const = 0;
   };
 }  // namespace libp2p
 

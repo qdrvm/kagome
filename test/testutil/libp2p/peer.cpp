@@ -16,7 +16,7 @@ namespace testutil {
       k.data[i] = (rand() & 0xff);
     }
 
-    return PeerId::fromPublicKey(k).value();
+    return PeerId::fromPublicKey(k);
   }
 
 }  // namespace testutil
