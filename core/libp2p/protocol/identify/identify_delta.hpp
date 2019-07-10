@@ -11,6 +11,7 @@
 #include "common/logger.hpp"
 #include "libp2p/event/bus.hpp"
 #include "libp2p/host.hpp"
+#include "libp2p/network/connection_manager.hpp"
 #include "libp2p/network/router.hpp"
 #include "libp2p/peer/peer_info.hpp"
 #include "libp2p/peer/protocol_repository.hpp"
@@ -29,9 +30,11 @@ namespace libp2p::protocol {
     /**
      * Create an instance of Identify-Delta
      * @param host - this Libp2p node
+     * @param conn_manager - connection manager of this node
      * @param bus, over which the events arrive
      */
-    IdentifyDelta(Host &host, event::Bus &bus);
+    IdentifyDelta(Host &host, network::ConnectionManager &conn_manager,
+                  event::Bus &bus);
 
     peer::Protocol getProtocolId() const override;
 
@@ -80,6 +83,7 @@ namespace libp2p::protocol {
     std::vector<peer::PeerInfo> getActivePeers() const;
 
     Host &host_;
+    network::ConnectionManager &conn_manager_;
     event::Bus &bus_;
 
     event::Handle new_protos_sub_;

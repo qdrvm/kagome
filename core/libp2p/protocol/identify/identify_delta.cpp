@@ -16,8 +16,10 @@ namespace {
 }  // namespace
 
 namespace libp2p::protocol {
-  IdentifyDelta::IdentifyDelta(Host &host, event::Bus &bus)
-      : host_{host}, bus_{bus} {}
+  IdentifyDelta::IdentifyDelta(Host &host,
+                               network::ConnectionManager &conn_manager,
+                               event::Bus &bus)
+      : host_{host}, conn_manager_{conn_manager}, bus_{bus} {}
 
   peer::Protocol IdentifyDelta::getProtocolId() const {
     return kIdentifyDeltaProtocol;
@@ -153,7 +155,7 @@ namespace libp2p::protocol {
     std::vector<peer::PeerInfo> active_peers;
     std::unordered_set<peer::PeerId> active_peers_ids;
 
-    for (const auto &conn : host_.getNetwork().getConnections()) {
+    for (const auto &conn : conn_manager_.getConnections()) {
       active_peers_ids.insert(conn->remotePeer().value());
     }
 

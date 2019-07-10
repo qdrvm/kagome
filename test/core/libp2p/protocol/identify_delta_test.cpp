@@ -11,7 +11,7 @@
 #include "mock/libp2p/connection/capable_connection_mock.hpp"
 #include "mock/libp2p/connection/stream_mock.hpp"
 #include "mock/libp2p/host_mock.hpp"
-#include "mock/libp2p/network/network_mock.hpp"
+#include "mock/libp2p/network/connection_manager_mock.hpp"
 #include "mock/libp2p/peer/peer_repository_mock.hpp"
 #include "mock/libp2p/peer/protocol_repository_mock.hpp"
 #include "testutil/gmock_actions.hpp"
@@ -70,7 +70,7 @@ class IdentifyDeltaTest : public testing::Test {
   libp2p::event::Bus bus_;
 
   std::shared_ptr<IdentifyDelta> id_delta_ =
-      std::make_shared<IdentifyDelta>(static_cast<Host &>(host_), bus_);
+      std::make_shared<IdentifyDelta>(host_, conn_manager_, bus_);
 
   std::vector<peer::Protocol> added_protos_{"/ping/1.0.0", "/ping/1.5.0"};
   std::vector<peer::Protocol> removed_protos_{"/http/5.2.8"};
@@ -83,7 +83,7 @@ class IdentifyDeltaTest : public testing::Test {
   std::vector<uint8_t> msg_added_rm_protos_bytes_;
   UVarint added_rm_proto_len_{0};
 
-  NetworkMock network_;
+  ConnectionManagerMock conn_manager_;
   PeerRepositoryMock peer_repo_;
   ProtocolRepositoryMock proto_repo_;
   std::shared_ptr<CapableConnectionMock> conn_ =
@@ -109,9 +109,7 @@ ACTION_P(InvokeLambda, s) {
  */
 TEST_F(IdentifyDeltaTest, Send) {
   // getActivePeers
-  EXPECT_CALL(host_, getNetwork())
-      .WillOnce(ReturnRef(static_cast<const Network &>(network_)));
-  EXPECT_CALL(network_, getConnections())
+  EXPECT_CALL(conn_manager_, getConnections())
       .WillOnce(Return(std::vector<std::shared_ptr<CapableConnection>>{conn_}));
   EXPECT_CALL(*conn_, remotePeer()).WillOnce(Return(kRemotePeerId));
   EXPECT_CALL(host_, getPeerRepository()).WillOnce(ReturnRef(peer_repo_));
