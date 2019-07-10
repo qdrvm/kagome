@@ -10,6 +10,20 @@ target_link_libraries(identify_test
     libp2p_identify
     )
 
+addtest(identify_push_test
+    identify_push_test.cpp
+    )
+target_link_libraries(identify_push_test
+    libp2p_identify
+    )
+
+addtest(identify_delta_test
+    identify_delta_test.cpp
+    )
+target_link_libraries(identify_delta_test
+    libp2p_identify
+    )
+
 addtest(observed_addresses_test
     observed_addresses_test.cpp
     )

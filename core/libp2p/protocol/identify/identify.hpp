@@ -33,6 +33,8 @@ namespace libp2p::protocol {
    */
   class Identify : public BaseProtocol,
                    public std::enable_shared_from_this<Identify> {
+    friend class IdentifyPush;  // to reuse send/receive functions
+
     using StreamSPtr = std::shared_ptr<connection::Stream>;
 
    public:

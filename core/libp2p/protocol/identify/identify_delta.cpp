@@ -1,0 +1,168 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include "libp2p/protocol/identify/identify_delta.hpp"
+
+#include <string>
+#include <unordered_set>
+
+#include "libp2p/basic/protobuf_message_read_writer.hpp"
+#include "libp2p/protocol/identify/utils.hpp"
+
+namespace {
+  const std::string kIdentifyDeltaProtocol = "/p2p/id/delta/1.0.0";
+}  // namespace
+
+namespace libp2p::protocol {
+  IdentifyDelta::IdentifyDelta(Host &host, event::Bus &bus)
+      : host_{host}, bus_{bus} {}
+
+  peer::Protocol IdentifyDelta::getProtocolId() const {
+    return kIdentifyDeltaProtocol;
+  }
+
+  void IdentifyDelta::handle(StreamResult stream_res) {
+    if (!stream_res) {
+      return;
+    }
+    // receive a Delta message
+    auto rw =
+        std::make_shared<basic::ProtobufMessageReadWriter>(stream_res.value());
+    rw->read<identify::pb::Identify>(
+        [self{shared_from_this()},
+         s = std::move(stream_res.value())](auto &&msg_res) {
+          self->deltaReceived(std::forward<decltype(msg_res)>(msg_res), s);
+        });
+  }
+
+  void IdentifyDelta::start() {
+    new_protos_sub_ =
+        bus_.getChannel<network::event::ProtocolsAddedChannel>().subscribe(
+            [self{weak_from_this()}](std::vector<peer::Protocol> new_protos) {
+              if (self.expired()) {
+                return;
+              }
+              self.lock()->sendDelta(new_protos,
+                                     gsl::span<const peer::Protocol>());
+            });
+    rm_protos_sub_ =
+        bus_.getChannel<network::event::ProtocolsRemovedChannel>().subscribe(
+            [self{weak_from_this()}](std::vector<peer::Protocol> rm_protos) {
+              if (self.expired()) {
+                return;
+              }
+              self.lock()->sendDelta(gsl::span<const peer::Protocol>(),
+                                     rm_protos);
+            });
+  }
+
+  void IdentifyDelta::deltaReceived(
+      outcome::result<identify::pb::Identify> msg_res,
+      const std::shared_ptr<connection::Stream> &stream) {
+    auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
+    if (!msg_res) {
+      log_->error("cannot read identify-delta message from peer {}, {}: {}",
+                  peer_id_str, peer_addr_str, msg_res.error().message());
+      return stream->reset([](auto &&) {});
+    }
+
+    auto &&id_msg = std::move(msg_res.value());
+    if (!id_msg.has_delta()) {
+      log_->error(
+          "peer initiated a stream with IdentifyDelta, but sent something "
+          "else; peer {}, {}",
+          peer_id_str, peer_addr_str);
+      return stream->reset([](auto &&) {});
+    }
+
+    log_->info("received an IdentifyDelta message from peer {}, {}",
+               peer_id_str, peer_addr_str);
+    stream->close([self{shared_from_this()}, s = stream,
+                   p = std::move(peer_id_str),
+                   a = std::move(peer_addr_str)](auto &&res) {
+      if (!res) {
+        self->log_->error("cannot close stream to peer {}, {}: {}", p, a,
+                          res.error().message());
+      }
+    });
+
+    auto peer_id_res = stream->remotePeerId();
+    if (!peer_id_res) {
+      return log_->error("cannot retrieve peer id from the stream");
+    }
+    auto &&peer_id = peer_id_res.value();
+
+    auto &&delta_msg = id_msg.delta();
+    auto &proto_repo = host_.getPeerRepository().getProtocolRepository();
+
+    auto add_res = proto_repo.addProtocols(
+        peer_id,
+        std::vector<const peer::Protocol>(delta_msg.added_protocols().begin(),
+                                          delta_msg.added_protocols().end()));
+    if (!add_res) {
+      log_->error("cannot add new protocols of peer {}, {}: {}", peer_id_str,
+                  peer_addr_str, add_res.error().message());
+    }
+
+    auto rm_res = proto_repo.removeProtocols(
+        peer_id,
+        std::vector<const peer::Protocol>(delta_msg.rm_protocols().begin(),
+                                          delta_msg.rm_protocols().end()));
+    if (!rm_res) {
+      log_->error("cannot remove protocols of peer {}, {}: {}", peer_id_str,
+                  peer_addr_str, rm_res.error().message());
+    }
+  }
+
+  void IdentifyDelta::sendDelta(gsl::span<const peer::Protocol> added,
+                                gsl::span<const peer::Protocol> removed) {
+    auto msg = std::make_shared<identify::pb::Identify>();
+    for (const auto &proto : added) {
+      msg->mutable_delta()->add_added_protocols(proto);
+    }
+    for (const auto &proto : removed) {
+      msg->mutable_delta()->add_rm_protocols(proto);
+    }
+
+    for (const auto &peer : getActivePeers()) {
+      host_.newStream(peer, kIdentifyDeltaProtocol,
+                      [self{shared_from_this()}, msg](auto s) {
+                        self->sendDelta(std::move(s), msg);
+                      });
+    }
+  }
+
+  void IdentifyDelta::sendDelta(
+      std::shared_ptr<connection::Stream> stream,
+      const std::shared_ptr<identify::pb::Identify> &msg) const {
+    auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
+    rw->write<identify::pb::Identify>(
+        *msg, [self{shared_from_this()}, s = std::move(stream)](auto &&res) {
+          if (!res) {
+            self->log_->error("cannot write Identify-Delta to peer {}, {}: {}",
+                              s->remotePeerId().value().toBase58(),
+                              s->remoteMultiaddr().value().getStringAddress(),
+                              res.error().message());
+          }
+        });
+  }
+
+  std::vector<peer::PeerInfo> IdentifyDelta::getActivePeers() const {
+    std::vector<peer::PeerInfo> active_peers;
+    std::unordered_set<peer::PeerId> active_peers_ids;
+
+    for (const auto &conn : host_.getNetwork().getConnections()) {
+      active_peers_ids.insert(conn->remotePeer().value());
+    }
+
+    auto &peer_repo = host_.getPeerRepository();
+    active_peers.reserve(active_peers_ids.size());
+    for (const auto &peer_id : active_peers_ids) {
+      active_peers.push_back(peer_repo.getPeerInfo(peer_id));
+    }
+
+    return active_peers;
+  }
+}  // namespace libp2p::protocol

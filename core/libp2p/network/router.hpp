@@ -7,12 +7,26 @@
 #define KAGOME_ROUTER_HPP
 
 #include <functional>
+#include <vector>
 
 #include <outcome/outcome.hpp>
 #include "libp2p/connection/stream.hpp"
+#include "libp2p/event/bus.hpp"
 #include "libp2p/peer/protocol.hpp"
 
 namespace libp2p::network {
+
+  namespace event {
+    struct ProtocolsAdded {};
+    using ProtocolsAddedChannel =
+        libp2p::event::channel_decl<ProtocolsAdded,
+                                    std::vector<peer::Protocol>>;
+
+    struct ProtocolsRemoved {};
+    using ProtocolsRemovedChannel =
+        libp2p::event::channel_decl<ProtocolsRemoved,
+                                    std::vector<peer::Protocol>>;
+  }  // namespace event
 
   /**
    * Manager for application-level protocols; when a new stream arrives for a
