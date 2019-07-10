@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/block_builder_impl.hpp"
+#include "runtime/impl/block_builder_api_impl.hpp"
 
 #include "runtime/impl/runtime_api.hpp"
 

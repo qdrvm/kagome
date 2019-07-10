@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/block_builder_impl.hpp"
+#include "runtime/impl/block_builder_api_impl.hpp"
 
 #include <gtest/gtest.h>
 #include "core/runtime/runtime_test.hpp"
@@ -18,12 +18,12 @@ using kagome::common::Buffer;
 using kagome::extensions::ExtensionImpl;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::InherentData;
-using kagome::runtime::BlockBuilder;
+using kagome::runtime::BlockBuilderApi;
 using kagome::runtime::BlockBuilderImpl;
 using kagome::runtime::WasmMemoryImpl;
 using kagome::storage::trie::MockTrieDb;
 
-class BlockBuilderTest : public RuntimeTest {
+class BlockBuilderApiTest : public RuntimeTest {
  public:
   void SetUp() override {
     RuntimeTest::SetUp();
@@ -33,7 +33,7 @@ class BlockBuilderTest : public RuntimeTest {
   }
 
  protected:
-  std::unique_ptr<BlockBuilder> builder_;
+  std::unique_ptr<BlockBuilderApi> builder_;
 };
 
 /**
@@ -42,7 +42,7 @@ class BlockBuilderTest : public RuntimeTest {
  * @then the result of the check is obtained given that the provided arguments
  * were valid
  */
-TEST_F(BlockBuilderTest, CheckInherents) {
+TEST_F(BlockBuilderApiTest, CheckInherents) {
   EXPECT_OUTCOME_FALSE_1(
       builder_->check_inherents(createBlock(), InherentData{}));
 }
@@ -53,7 +53,7 @@ TEST_F(BlockBuilderTest, CheckInherents) {
  * @then the result of the check is obtained given that the provided arguments
  * were valid
  */
-TEST_F(BlockBuilderTest, ApplyExtrinsic) {
+TEST_F(BlockBuilderApiTest, ApplyExtrinsic) {
   EXPECT_OUTCOME_FALSE_1(builder_->apply_extrinsic(Extrinsic{Buffer{1, 2, 3}}));
 }
 
@@ -63,7 +63,7 @@ TEST_F(BlockBuilderTest, ApplyExtrinsic) {
  * @then the result of the check is obtained given that the provided arguments
  * were valid
  */
-TEST_F(BlockBuilderTest, DISABLED_RandomSeed) {
+TEST_F(BlockBuilderApiTest, DISABLED_RandomSeed) {
   EXPECT_OUTCOME_FALSE_1(builder_->random_seed());
 }
 
@@ -73,7 +73,7 @@ TEST_F(BlockBuilderTest, DISABLED_RandomSeed) {
  * @then the result of the check is obtained given that the provided arguments
  * were valid
  */
-TEST_F(BlockBuilderTest, InherentExtrinsics) {
+TEST_F(BlockBuilderApiTest, InherentExtrinsics) {
   EXPECT_OUTCOME_FALSE_1(builder_->inherent_extrinsics(InherentData{}));
 }
 
@@ -83,6 +83,6 @@ TEST_F(BlockBuilderTest, InherentExtrinsics) {
  * @then the result of the check is obtained given that the provided arguments
  * were valid
  */
-TEST_F(BlockBuilderTest, FinalizeBlock) {
+TEST_F(BlockBuilderApiTest, FinalizeBlock) {
   EXPECT_OUTCOME_FALSE_1(builder_->finalize_block());
 }
