@@ -12,6 +12,10 @@
 
 namespace libp2p::network {
 
+  /**
+   * @brief Class, which is capable of opening new connections and streams using
+   * registered transports.
+   */
   struct Dialer {
     virtual ~Dialer() = default;
 

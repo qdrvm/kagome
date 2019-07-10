@@ -18,8 +18,10 @@ namespace libp2p::network {
     // Closes all connections to a given peer
     virtual void closeConnections(const peer::PeerId &p) = 0;
 
+    // Getter for Dialer associated with this Network
     virtual Dialer &getDialer() = 0;
 
+    // Getter for Listener associated with this Network
     virtual Listener &getListener() = 0;
 
     // TODO(Warchant): emits events:

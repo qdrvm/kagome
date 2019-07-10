@@ -15,6 +15,9 @@
 
 namespace libp2p::network {
 
+  /**
+   * @brief Class, which is capable of listening (opening a server) on registered transports.
+   */
   struct Listener {
     using StreamResult = outcome::result<std::shared_ptr<connection::Stream>>;
     using StreamResultFunc = std::function<void(StreamResult)>;

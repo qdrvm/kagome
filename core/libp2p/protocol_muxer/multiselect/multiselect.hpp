@@ -11,6 +11,7 @@
 #include <string_view>
 #include <vector>
 
+#include <boost/core/noncopyable.hpp>
 #include <gsl/span>
 #include "common/logger.hpp"
 #include "libp2p/protocol_muxer/multiselect/message_manager.hpp"
@@ -25,7 +26,8 @@ namespace libp2p::protocol_muxer {
    * https://github.com/multiformats/multistream-select
    */
   class Multiselect : public ProtocolMuxer,
-                      public std::enable_shared_from_this<Multiselect> {
+                      public std::enable_shared_from_this<Multiselect>,
+                      private boost::noncopyable {
     friend MessageWriter;
     friend MessageReader;
 
