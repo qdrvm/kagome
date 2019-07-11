@@ -122,7 +122,6 @@ TEST_F(ListenerTest, StartStop) {
       .WillOnce(Return(outcome::success()));
   EXPECT_CALL(*transport_listener, close())
       .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(*transport_listener, isClosed()).WillOnce(Return(false));
 
   // given 1 listener
   auto supported = "/ip4/127.0.0.1/tcp/0"_multiaddr;
