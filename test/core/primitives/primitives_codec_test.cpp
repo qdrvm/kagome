@@ -42,12 +42,12 @@ using kagome::primitives::TransactionValidity;
 using kagome::primitives::Unknown;
 using kagome::primitives::Valid;
 using kagome::primitives::Version;
-using kagome::scale::ByteArray;
-using kagome::scale::ScaleDecoderStream;
-using kagome::scale::ScaleEncoderStream;
+using scale::ByteArray;
+using scale::ScaleDecoderStream;
+using scale::ScaleEncoderStream;
 
-using kagome::scale::decode;
-using kagome::scale::encode;
+using scale::decode;
+using scale::encode;
 
 Hash256 createHash(std::initializer_list<uint8_t> bytes) {
   Hash256 h;

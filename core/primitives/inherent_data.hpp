@@ -99,7 +99,7 @@ namespace kagome::primitives {
     std::vector<common::Buffer> vals;
     s >> ids >> vals;
     if (ids.size() != vals.size()) {
-      scale::common::raise(kagome::scale::DecodeError::INVALID_DATA);
+      scale::common::raise(scale::DecodeError::INVALID_DATA);
     }
 
     for (size_t i = 0u; i < ids.size(); ++i) {
