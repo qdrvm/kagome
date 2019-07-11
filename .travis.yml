@@ -134,8 +134,8 @@ install:
     pip3 install --user --upgrade requests gitpython cmake gcovr
   - export PATH="$HOME/.cargo/bin:$PATH"
   - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
-  - rustup install nightly
-  - rustup default nightly
+  - rustup install nightly-2019-07-07
+  - rustup default nightly-2019-07-07
 
 
 before_script:
