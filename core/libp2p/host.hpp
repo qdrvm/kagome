@@ -7,7 +7,6 @@
 #define KAGOME_HOST_HPP
 
 #include <functional>
-#include <string>
 #include <string_view>
 
 #include <gsl/span>
@@ -50,9 +49,11 @@ namespace libp2p {
     virtual peer::PeerInfo getPeerInfo() const = 0;
 
     /**
-     * @brief Get list of addresses this Host listens on
+     * @brief Get listen addresses of the Host
+     * @note is not the same as Network::getListenAddresses(), but why - do not
+     * yet know
      */
-    virtual gsl::span<const multi::Multiaddress> getListenAddresses() const = 0;
+    virtual gsl::span<const multi::Multiaddress> getAddresses() const = 0;
 
     /**
      * @brief Let Host handle given {@param proto} protocol
@@ -78,7 +79,7 @@ namespace libp2p {
      * returns true, if this protocol can be handled.
      */
     virtual void setProtocolHandler(
-        const std::string &prefix,
+        std::string_view prefix,
         const std::function<connection::Stream::Handler> &handler,
         const std::function<bool(const peer::Protocol &)> &predicate) = 0;
 
@@ -91,16 +92,20 @@ namespace libp2p {
      */
     virtual void connect(const peer::PeerInfo &p) = 0;
 
+    using StreamResultHandler = std::function<void(
+        outcome::result<std::shared_ptr<connection::Stream>>)>;
+
     /**
      * @brief Open new stream to the peer {@param p} with protocol {@param
      * protocol}.
      * @param p stream will be opened with this peer
      * @param protocol "speak" using this protocol
-     * @param handler callback, will be executed on successful stream creation
+     * @param handler callback, will be executed on successful or failed stream
+     * creation
      */
-    virtual void newStream(
-        const peer::PeerInfo &p, const peer::Protocol &protocol,
-        const std::function<connection::Stream::Handler> &handler) = 0;
+    virtual void newStream(const peer::PeerInfo &p,
+                           const peer::Protocol &protocol,
+                           const StreamResultHandler &handler) = 0;
 
     /**
      * @brief Get a network component of the Host

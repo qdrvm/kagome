@@ -78,10 +78,9 @@ namespace libp2p::protocol {
 
     sub_ = bus_.getChannel<network::event::OnNewConnectionChannel>().subscribe(
         [self{weak_from_this()}](auto &&conn) {
-          if (self.expired()) {
-            return;
+          if (auto s = self.lock()) {
+            return s->onNewConnection(conn);
           }
-          self.lock()->onNewConnection(conn);
         });
   }
 
@@ -100,7 +99,8 @@ namespace libp2p::protocol {
     }
 
     // set addresses we are listening on
-    for (const auto &addr : host_.getListenAddresses()) {
+    for (const auto &addr :
+         host_.getNetwork().getListener().getListenAddresses()) {
       msg.add_listenaddrs(std::string{addr.getStringAddress()});
     }
 
@@ -179,10 +179,13 @@ namespace libp2p::protocol {
                              std::vector<multi::Multiaddress>{
                                  std::move(remote_peer_addr_res.value())}};
 
-    host_.newStream(
-        peer_info, kIdentifyProto, [self{shared_from_this()}](auto &&stream) {
-          self->receiveIdentify(std::forward<decltype(stream)>(stream));
-        });
+    host_.newStream(peer_info, kIdentifyProto,
+                    [self{shared_from_this()}](auto &&stream_res) {
+                      if (!stream_res) {
+                        return;
+                      }
+                      self->receiveIdentify(std::move(stream_res.value()));
+                    });
   }
 
   void Identify::receiveIdentify(StreamSPtr stream) {
@@ -349,20 +352,31 @@ namespace libp2p::protocol {
 
     auto addr_in_addresses =
         std::find(i_listen_addresses.begin(), i_listen_addresses.end(),
-                  observed_address)
+                  local_addr_res.value())
             != i_listen_addresses.end()
         || std::find(listen_addresses.begin(), listen_addresses.end(),
-                     observed_address)
+                     local_addr_res.value())
             != listen_addresses.end();
     if (!addr_in_addresses) {
       return;
     }
 
-    // TODO(akvinikym): hasConsistentTransport(..)
+    if (!hasConsistentTransport(observed_address, host_.getAddresses())) {
+      return;
+    }
 
     observed_addresses_.add(std::move(observed_address),
                             std::move(local_addr_res.value()),
                             remote_addr_res.value(), is_initiator_res.value());
+  }
+
+  bool Identify::hasConsistentTransport(
+      const multi::Multiaddress &ma, gsl::span<const multi::Multiaddress> mas) {
+    auto ma_protos = ma.getProtocols();
+    return std::any_of(mas.begin(), mas.end(),
+                       [&ma_protos](const auto &ma_from_mas) {
+                         return ma_protos == ma_from_mas.getProtocols();
+                       });
   }
 
   void Identify::consumeListenAddresses(

@@ -10,6 +10,7 @@
 #include <string_view>
 #include <vector>
 
+#include <gsl/span>
 #include "common/logger.hpp"
 #include "libp2p/connection/capable_connection.hpp"
 #include "libp2p/connection/stream.hpp"
@@ -138,6 +139,16 @@ namespace libp2p::protocol {
     void consumeObservedAddresses(const std::string &address_str,
                                   const peer::PeerId &peer_id,
                                   const StreamSPtr &stream);
+
+    /**
+     * Check if provided multiaddress has the same set of transports as at least
+     * of the (\param mas)
+     * @param ma - address to be checked
+     * @param mas - addresses to be checked against
+     * @return true, if that address has common transports, false otherwise
+     */
+    bool hasConsistentTransport(const multi::Multiaddress &ma,
+                                gsl::span<const multi::Multiaddress> mas);
 
     /**
      * Process received addresses, which the other peer listens to

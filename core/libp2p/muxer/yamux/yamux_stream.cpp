@@ -246,31 +246,31 @@ namespace libp2p::connection {
   }
 
   outcome::result<peer::PeerId> YamuxStream::remotePeerId() const {
-    if (yamuxed_connection_.expired()) {
-      return Error::CONNECTION_IS_DEAD;
+    if (auto conn = yamuxed_connection_.lock()) {
+      return conn->remotePeer();
     }
-    return yamuxed_connection_.lock()->remotePeer();
+    return Error::CONNECTION_IS_DEAD;
   }
 
   outcome::result<bool> YamuxStream::isInitiator() const {
-    if (yamuxed_connection_.expired()) {
-      return Error::CONNECTION_IS_DEAD;
+    if (auto conn = yamuxed_connection_.lock()) {
+      return conn->isInitiator();
     }
-    return yamuxed_connection_.lock()->isInitiator();
+    return Error::CONNECTION_IS_DEAD;
   }
 
   outcome::result<multi::Multiaddress> YamuxStream::localMultiaddr() const {
-    if (yamuxed_connection_.expired()) {
-      return Error::CONNECTION_IS_DEAD;
+    if (auto conn = yamuxed_connection_.lock()) {
+      return conn->localMultiaddr();
     }
-    return yamuxed_connection_.lock()->localMultiaddr();
+    return Error::CONNECTION_IS_DEAD;
   }
 
   outcome::result<multi::Multiaddress> YamuxStream::remoteMultiaddr() const {
-    if (yamuxed_connection_.expired()) {
-      return Error::CONNECTION_IS_DEAD;
+    if (auto conn = yamuxed_connection_.lock()) {
+      return conn->remoteMultiaddr();
     }
-    return yamuxed_connection_.lock()->remoteMultiaddr();
+    return Error::CONNECTION_IS_DEAD;
   }
 
   void YamuxStream::resetStream() {

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "peer_repository_impl.hpp"
+#include "libp2p/peer/impl/peer_repository_impl.hpp"
 
 namespace {
 
