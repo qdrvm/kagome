@@ -10,6 +10,7 @@
 
 namespace kagome::blockchain {
 
+  // TODO(kamilsa): PRE-239 Implement header backend. 11.07.2019
   class HeaderBackend {
    public:
     virtual outcome::result<common::Hash256> hashFromBlockId(
