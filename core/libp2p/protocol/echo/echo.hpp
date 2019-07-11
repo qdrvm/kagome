@@ -26,11 +26,10 @@ namespace libp2p::protocol {
     peer::Protocol getProtocolId() const override;
 
     // handle incoming stream
-    void handle(
-        outcome::result<std::shared_ptr<connection::Stream>> rstream) override;
+    void handle(StreamResult rstream) override;
 
-    // create client session, which simplifies writing tests and interation with
-    // server.
+    // create client session, which simplifies writing tests and integration
+    // with server.
     std::shared_ptr<ClientEchoSession> createClient(
         const std::shared_ptr<connection::Stream> &stream);
 
