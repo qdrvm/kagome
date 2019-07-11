@@ -7,6 +7,7 @@
 #include "libp2p/network/impl/dialer_impl.hpp"
 
 #include "mock/libp2p/connection/capable_connection_mock.hpp"
+#include "mock/libp2p/connection/stream_mock.hpp"
 #include "mock/libp2p/network/connection_manager_mock.hpp"
 #include "mock/libp2p/network/router_mock.hpp"
 #include "mock/libp2p/network/transport_manager_mock.hpp"
@@ -25,9 +26,14 @@ using namespace transport;
 using namespace protocol_muxer;
 
 using ::testing::_;
+using ::testing::ContainerEq;
+using ::testing::Contains;
+using ::testing::Eq;
 using ::testing::Return;
 
 struct DialerTest : public ::testing::Test {
+  std::shared_ptr<StreamMock> stream = std::make_shared<StreamMock>();
+
   std::shared_ptr<CapableConnectionMock> connection =
       std::make_shared<CapableConnectionMock>();
 
@@ -167,13 +173,63 @@ TEST_F(DialerTest, NewStreamFailed) {
   // report random error.
   // we simulate a case when "newStream" gets error
   outcome::result<std::shared_ptr<Stream>> r = std::errc::io_error;
-  EXPECT_CALL(*connection, newStream(_))
-    .WillOnce(Arg0CallbackWithArg(r));
+  EXPECT_CALL(*connection, newStream(_)).WillOnce(Arg0CallbackWithArg(r));
 
   bool executed = false;
   dialer->newStream(pinfo, protocol, [&](auto &&rstream) {
     EXPECT_OUTCOME_FALSE(e, rstream);
     EXPECT_EQ(e.value(), (int)std::errc::io_error);
+    executed = true;
+  });
+  ASSERT_TRUE(executed);
+}
+
+/**
+ * @given existing connection to peer
+ * @when newStream is executed
+ * @then get negotiation failure
+ */
+TEST_F(DialerTest, NewStreamNegotiationFailed) {
+  // connection exist to peer
+  EXPECT_CALL(*cmgr, getBestConnectionForPeer(pid))
+      .WillOnce(Return(connection));
+
+  // newStream returns valid stream
+  EXPECT_CALL(*connection, newStream(_)).WillOnce(Arg0CallbackWithArg(stream));
+
+  outcome::result<peer::Protocol> r = std::errc::io_error;
+  EXPECT_CALL(*proto_muxer, selectOneOf(Contains(Eq(protocol)), _, true, _))
+      .WillOnce(Arg3CallbackWithArg(r));
+
+  bool executed = false;
+  dialer->newStream(pinfo, protocol, [&](auto &&rstream) {
+    EXPECT_OUTCOME_FALSE(e, rstream);
+    EXPECT_EQ(e.value(), (int)std::errc::io_error);
+    executed = true;
+  });
+  ASSERT_TRUE(executed);
+}
+
+/**
+ * @given existing connection to peer
+ * @when newStream is executed
+ * @then get new stream
+ */
+TEST_F(DialerTest, NewStreamSuccess) {
+  // connection exist to peer
+  EXPECT_CALL(*cmgr, getBestConnectionForPeer(pid))
+      .WillOnce(Return(connection));
+
+  // newStream returns valid stream
+  EXPECT_CALL(*connection, newStream(_)).WillOnce(Arg0CallbackWithArg(stream));
+
+  EXPECT_CALL(*proto_muxer, selectOneOf(Contains(Eq(protocol)), _, true, _))
+      .WillOnce(Arg3CallbackWithArg(protocol));
+
+  bool executed = false;
+  dialer->newStream(pinfo, protocol, [&](auto &&rstream) {
+    EXPECT_OUTCOME_TRUE(s, rstream);
+    (void)s;
     executed = true;
   });
   ASSERT_TRUE(executed);
