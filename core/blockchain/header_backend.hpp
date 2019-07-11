@@ -13,11 +13,12 @@ namespace kagome::blockchain {
   // TODO(kamilsa): PRE-239 Implement header backend. 11.07.2019
   class HeaderBackend {
    public:
+    virtual ~HeaderBackend() = default;
     virtual outcome::result<common::Hash256> hashFromBlockId(
-        primitives::BlockId block_id) = 0;
+        const primitives::BlockId &block_id) const = 0;
 
     [[nodiscard]] virtual outcome::result<primitives::BlockNumber>
-    numberFromBlockId(primitives::BlockId block_id) const = 0;
+    numberFromBlockId(const primitives::BlockId &block_id) const = 0;
   };
 
 }  // namespace kagome::blockchain

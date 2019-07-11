@@ -13,6 +13,8 @@ namespace kagome::basic_authorship {
 
   /**
    * Creates new blocks from provided header and extrinsics
+   * BlockBuilder collects extrinsics and creates new block and then should be
+   * destroyed
    */
   class BlockBuilder {
    public:
@@ -28,7 +30,7 @@ namespace kagome::basic_authorship {
     /**
      * Create a block from extrinsics and header
      */
-    virtual primitives::Block bake() const = 0;
+    [[nodiscard]] virtual primitives::Block bake() const = 0;
   };
 
 }  // namespace kagome::basic_authorship

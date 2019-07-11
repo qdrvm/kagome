@@ -10,3 +10,11 @@ addtest(block_builder_test
 target_link_libraries(block_builder_test
     block_builder
     )
+
+addtest(block_builder_factory_test
+    block_builder_factory_test.cpp
+    )
+
+target_link_libraries(block_builder_factory_test
+    block_builder_factory
+    )

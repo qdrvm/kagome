@@ -13,10 +13,17 @@
 
 namespace kagome::basic_authorship {
 
+  /**
+   * Creates new block builders
+   */
   class BlockBuilderFactory {
    public:
     virtual ~BlockBuilderFactory() = default;
 
+    /**
+     * Prepares BlockBuilder for creating block on top of parent block and using
+     * provided digest
+     */
     virtual outcome::result<std::unique_ptr<BlockBuilder>> create(
         const primitives::BlockId &parent_id,
         const primitives::Digest &inherent_digest) = 0;

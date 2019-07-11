@@ -33,7 +33,7 @@ namespace kagome::basic_authorship {
 
     OUTCOME_TRY(r_core_->initialise_block(parent_header));
 
-    return std::make_unique<BlockBuilderImpl>(parent_header);
+    return std::make_unique<BlockBuilderImpl>(parent_header, r_block_builder_);
   }
 
 }  // namespace kagome::basic_authorship
