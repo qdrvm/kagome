@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/connection/plaintext/plaintext.hpp"
+#include "libp2p/security/plaintext/plaintext_connection.hpp"
 
 #include <gtest/gtest.h>
 #include <testutil/outcome.hpp>
@@ -13,6 +13,8 @@
 
 using namespace libp2p::connection;
 using namespace libp2p::basic;
+using namespace libp2p::crypto;
+using namespace libp2p::peer;
 
 using testing::_;
 using testing::ByMove;
@@ -21,11 +23,14 @@ using testing::Return;
 
 class PlaintextConnectionTest : public testing::Test {
  public:
+  PublicKey local{{Key::Type::SECP256K1, {1}}};
+  PublicKey remote{{Key::Type::ED25519, {2}}};
+
   std::shared_ptr<RawConnectionMock> connection_ =
       std::make_shared<RawConnectionMock>();
 
   std::shared_ptr<SecureConnection> secure_connection_ =
-      std::make_shared<PlaintextConnection>(connection_);
+      std::make_shared<PlaintextConnection>(connection_, local, remote);
 
   std::vector<uint8_t> bytes_{0x11, 0x22};
 };
@@ -36,7 +41,7 @@ class PlaintextConnectionTest : public testing::Test {
  * @then method behaves as expected
  */
 TEST_F(PlaintextConnectionTest, LocalPeer) {
-  ASSERT_FALSE(secure_connection_->localPeer());
+  ASSERT_EQ(secure_connection_->localPeer().value(), PeerId::fromPublicKey(local));
 }
 
 /**
@@ -45,7 +50,7 @@ TEST_F(PlaintextConnectionTest, LocalPeer) {
  * @then method behaves as expected
  */
 TEST_F(PlaintextConnectionTest, RemotePeer) {
-  ASSERT_FALSE(secure_connection_->remotePeer());
+  ASSERT_EQ(secure_connection_->remotePeer().value(), PeerId::fromPublicKey(remote));
 }
 
 /**
@@ -54,7 +59,7 @@ TEST_F(PlaintextConnectionTest, RemotePeer) {
  * @then method behaves as expected
  */
 TEST_F(PlaintextConnectionTest, RemotePublicKey) {
-  ASSERT_FALSE(secure_connection_->remotePublicKey());
+  ASSERT_EQ(secure_connection_->remotePublicKey().value(), remote);
 }
 
 /**

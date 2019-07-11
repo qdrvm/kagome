@@ -13,6 +13,7 @@ target_link_libraries(router_test
     libp2p_peer_id
     )
 
+
 addtest(transport_manager_test
     transport_manager_test.cpp
     )
@@ -30,5 +31,6 @@ target_link_libraries(connection_manager_test
     multiaddress
     address_repository
     libp2p_peer_id
+    testutil
     libp2p_peer_errors
     )

@@ -49,7 +49,7 @@ namespace libp2p::connection {
      */
     YamuxedConnection(
         std::shared_ptr<SecureConnection> connection,
-        muxer::MuxedConnectionConfig config,
+        muxer::MuxedConnectionConfig config = {},
         kagome::common::Logger logger = kagome::common::createLogger("Yamux"));
 
     YamuxedConnection(const YamuxedConnection &other) = delete;

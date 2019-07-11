@@ -6,8 +6,11 @@
 #include <gtest/gtest.h>
 #include <algorithm>
 #include <random>
+
 #include "libp2p/connection/stream.hpp"
+#include "libp2p/crypto/marshaller/key_marshaller_impl.hpp"
 #include "libp2p/muxer/yamux.hpp"
+#include "libp2p/peer/impl/identity_manager_impl.hpp"
 #include "libp2p/security/plaintext.hpp"
 #include "libp2p/transport/tcp.hpp"
 #include "mock/libp2p/transport/upgrader_mock.hpp"
@@ -22,6 +25,8 @@ using namespace muxer;
 using namespace security;
 using namespace multi;
 using namespace peer;
+using namespace crypto;
+using namespace marshaller;
 
 using ::testing::_;
 using ::testing::Mock;
@@ -37,12 +42,13 @@ struct UpgraderSemiMock : public Upgrader {
                    std::shared_ptr<MuxerAdaptor> m)
       : security(std::move(s)), mux(std::move(m)) {}
 
-  void upgradeToSecure(RawSPtr conn, OnSecuredCallbackFunc cb) override {
-    if (conn->isInitiator()) {
-      security->secureOutbound(conn, testutil::randomPeerId(), std::move(cb));
-    } else {
-      security->secureInbound(conn, std::move(cb));
-    }
+  void upgradeToSecureOutbound(RawSPtr conn, const peer::PeerId &remoteId,
+                               OnSecuredCallbackFunc cb) override {
+    security->secureOutbound(conn, remoteId, std::move(cb));
+  }
+
+  void upgradeToSecureInbound(RawSPtr conn, OnSecuredCallbackFunc cb) override {
+    security->secureInbound(conn, std::move(cb));
   }
 
   void upgradeToMuxed(SecSPtr conn, OnMuxedCallbackFunc cb) override {
@@ -58,7 +64,7 @@ struct UpgraderSemiMock : public Upgrader {
 };
 
 struct Server : public std::enable_shared_from_this<Server> {
-  explicit Server(std::shared_ptr<Transport> transport)
+  explicit Server(std::shared_ptr<TransportAdaptor> transport)
       : transport_(std::move(transport)) {}
 
   void onConnection(const std::shared_ptr<CapableConnection> &conn) {
@@ -125,7 +131,7 @@ struct Server : public std::enable_shared_from_this<Server> {
     std::cout << std::endl;
   }
 
-  std::shared_ptr<Transport> transport_;
+  std::shared_ptr<TransportAdaptor> transport_;
   std::shared_ptr<TransportListener> listener_;
 };
 
@@ -139,10 +145,10 @@ struct Client : public std::enable_shared_from_this<Client> {
         distribution(1, kServerBufSize),
         transport_(std::move(transport)) {}
 
-  void connect(const Multiaddress &server) {
+  void connect(const PeerId &p, const Multiaddress &server) {
     // create new stream
     transport_->dial(
-        server,
+        p, server,
         [this](outcome::result<std::shared_ptr<CapableConnection>> rconn) {
           EXPECT_OUTCOME_TRUE(conn, rconn);
           this->println("connected");
@@ -230,7 +236,7 @@ struct Client : public std::enable_shared_from_this<Client> {
   std::default_random_engine generator;
   std::uniform_int_distribution<int> distribution;
 
-  std::shared_ptr<Transport> transport_;
+  std::shared_ptr<TransportAdaptor> transport_;
 };
 
 struct MuxerAcceptanceTest
@@ -262,8 +268,13 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
 
   auto serverAddr = "/ip4/127.0.0.1/tcp/40312"_multiaddr;
 
+  KeyPair serverKeyPair = {{{Key::Type ::ED25519, {1}}},
+                           {{Key::Type ::ED25519, {2}}}};
+
   auto muxer = GetParam();
-  auto plaintext = std::make_shared<Plaintext>();
+  auto idmgr = std::make_shared<IdentityManagerImpl>(serverKeyPair);
+  auto marshaller = std::make_shared<KeyMarshallerImpl>();
+  auto plaintext = std::make_shared<Plaintext>(marshaller, idmgr);
   auto upgrader = std::make_shared<UpgraderSemiMock>(plaintext, muxer);
   auto transport = std::make_shared<TcpTransport>(context, upgrader);
   auto server = std::make_shared<Server>(transport);
@@ -276,13 +287,20 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
     clients.emplace_back([&, localSeed]() {
       boost::asio::io_context context(1);
 
+      KeyPair clientKeyPair = {{{Key::Type ::ED25519, {3}}},
+                               {{Key::Type ::ED25519, {4}}}};
+
       auto muxer = GetParam();
-      auto plaintext = std::make_shared<Plaintext>();
+      auto idmgr = std::make_shared<IdentityManagerImpl>(clientKeyPair);
+      auto marshaller = std::make_shared<KeyMarshallerImpl>();
+      auto plaintext = std::make_shared<Plaintext>(marshaller, idmgr);
       auto upgrader = std::make_shared<UpgraderSemiMock>(plaintext, muxer);
       auto transport = std::make_shared<TcpTransport>(context, upgrader);
       auto client = std::make_shared<Client>(transport, localSeed, context,
                                              streams, rounds);
-      client->connect(serverAddr);
+
+      auto p = PeerId::fromPublicKey(serverKeyPair.publicKey);
+      client->connect(p, serverAddr);
 
       context.run_for(2000ms);
 

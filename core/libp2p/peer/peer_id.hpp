@@ -26,14 +26,14 @@ namespace libp2p::peer {
     PeerId &operator=(PeerId &&other) noexcept = default;
     ~PeerId() = default;
 
-    enum class FactoryError { SHA256_EXPECTED = 1 };
+    enum class FactoryError { SUCCESS = 0, SHA256_EXPECTED = 1 };
 
     /**
      * Create a PeerId from the public key
      * @param key, from which PeerId is to be created
-     * @return instance of PeerId in case of success, error otherwise
+     * @return instance of PeerId
      */
-    static FactoryResult fromPublicKey(const crypto::PublicKey &key);
+    static PeerId fromPublicKey(const crypto::PublicKey &key);
 
     /**
      * Create a PeerId from base58-encoded string (not Multibase58!) with its
@@ -63,6 +63,7 @@ namespace libp2p::peer {
     const multi::Multihash &toMultihash() const;
 
     bool operator==(const PeerId &other) const;
+    bool operator!=(const PeerId &other) const;
 
    private:
     /**

@@ -122,7 +122,7 @@ TEST_F(MessageManagerTest, ParseConstLs) {
   auto parsable_ls_msg = Buffer{}.put("ls\n");
   auto msg_opt = MessageManager::parseConstantMsg(parsable_ls_msg);
   ASSERT_TRUE(msg_opt);
-  ASSERT_EQ(msg_opt->type, MessageType::LS);
+  ASSERT_EQ(msg_opt.value().type, MessageType::LS);
 }
 
 /**
@@ -134,7 +134,7 @@ TEST_F(MessageManagerTest, ParseConstNa) {
   auto parsable_na_msg = Buffer{}.put("na\n");
   auto msg_opt = MessageManager::parseConstantMsg(parsable_na_msg);
   ASSERT_TRUE(msg_opt);
-  ASSERT_EQ(msg_opt->type, MessageType::NA);
+  ASSERT_EQ(msg_opt.value().type, MessageType::NA);
 }
 
 /**

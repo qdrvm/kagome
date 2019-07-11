@@ -13,7 +13,10 @@
 #include "libp2p/muxer/yamux/yamux_stream.hpp"
 #include "libp2p/transport/tcp.hpp"
 #include "libp2p/transport/upgrader.hpp"
+#include "mock/libp2p/connection/capable_connection_mock.hpp"
 #include "mock/libp2p/transport/upgrader_mock.hpp"
+#include "testutil/gmock_actions.hpp"
+#include "testutil/libp2p/peer.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -22,12 +25,30 @@ using namespace libp2p::transport;
 using namespace kagome::common;
 using namespace libp2p::multi;
 using namespace libp2p::basic;
+using ::testing::_;
 
 class YamuxIntegrationTest : public testing::Test {
  public:
   void SetUp() override {
     transport_ = std::make_shared<TcpTransport>(context_, upgrader);
     ASSERT_TRUE(transport_) << "cannot create transport";
+
+    EXPECT_CALL(*upgrader, upgradeToSecureOutbound(_, _, _))
+        .WillRepeatedly(UpgradeToSecureOutbound(
+            [](auto &&raw) -> std::shared_ptr<SecureConnection> {
+              return std::make_shared<CapableConnBasedOnRawConnMock>(raw);
+              ;
+            }));
+    EXPECT_CALL(*upgrader, upgradeToSecureInbound(_, _))
+        .WillRepeatedly(UpgradeToSecureInbound(
+            [](auto &&raw) -> std::shared_ptr<SecureConnection> {
+              return std::make_shared<CapableConnBasedOnRawConnMock>(raw);
+            }));
+    EXPECT_CALL(*upgrader, upgradeToMuxed(_, _))
+        .WillRepeatedly(UpgradeToMuxed(
+            [](auto &&sec) -> std::shared_ptr<CapableConnection> {
+              return std::make_shared<YamuxedConnection>(sec);
+            }));
 
     auto ma = "/ip4/127.0.0.1/tcp/40009"_multiaddr;
     multiaddress_ = std::make_shared<Multiaddress>(std::move(ma));
@@ -52,7 +73,7 @@ class YamuxIntegrationTest : public testing::Test {
 
   void launchContext() {
     using std::chrono_literals::operator""ms;
-    context_.run_for(100ms);
+    context_.run_for(200ms);
   }
 
   /**
@@ -107,14 +128,14 @@ class YamuxIntegrationTest : public testing::Test {
 
   boost::asio::io_context context_;
 
-  std::shared_ptr<libp2p::transport::Transport> transport_;
+  std::shared_ptr<libp2p::transport::TransportAdaptor> transport_;
   std::shared_ptr<libp2p::transport::TransportListener> transport_listener_;
   std::shared_ptr<libp2p::multi::Multiaddress> multiaddress_;
 
   std::shared_ptr<YamuxedConnection> yamuxed_connection_;
   std::vector<std::shared_ptr<Stream>> accepted_streams_;
 
-  std::shared_ptr<Upgrader> upgrader = std::make_shared<DefaultUpgrader>();
+  std::shared_ptr<UpgraderMock> upgrader = std::make_shared<UpgraderMock>();
 
   std::vector<std::function<void(std::shared_ptr<YamuxedConnection>)>>
       yamux_callbacks_;
@@ -137,7 +158,7 @@ TEST_F(YamuxIntegrationTest, StreamFromClient) {
   auto new_stream_msg = newStreamMsg(created_stream_id);
 
   transport_->dial(
-      *multiaddress_,
+      testutil::randomPeerId(), *multiaddress_,
       [this, created_stream_id, &new_stream_msg,
        new_stream_ack_msg_rcv](auto &&conn_res) {
         EXPECT_OUTCOME_TRUE(conn, conn_res)
@@ -186,7 +207,7 @@ TEST_F(YamuxIntegrationTest, StreamFromServer) {
       std::make_shared<Buffer>(YamuxFrame::kHeaderLength, 0);
 
   transport_->dial(
-      *multiaddress_,
+      testutil::randomPeerId(), *multiaddress_,
       [this, &expected_new_stream_msg, new_stream_msg_buf](auto &&conn_res) {
         EXPECT_OUTCOME_TRUE(conn, conn_res)
         withYamuxedConn([this, conn, &expected_new_stream_msg,
@@ -227,7 +248,7 @@ TEST_F(YamuxIntegrationTest, StreamWrite) {
       std::make_shared<Buffer>(expected_data_msg.size(), 0);
 
   transport_->dial(
-      *multiaddress_,
+      testutil::randomPeerId(), *multiaddress_,
       [this, &data, &expected_data_msg, received_data_msg](auto &&conn_res) {
         EXPECT_OUTCOME_TRUE(conn, conn_res)
         withYamuxedConn([this, conn, &data, &expected_data_msg,
@@ -272,7 +293,7 @@ TEST_F(YamuxIntegrationTest, StreamRead) {
   auto rcvd_data_msg = std::make_shared<Buffer>(data.size(), 0);
 
   transport_->dial(
-      *multiaddress_,
+      testutil::randomPeerId(), *multiaddress_,
       [this, &data, &written_data_msg, rcvd_data_msg](auto &&conn_res) {
         EXPECT_OUTCOME_TRUE(conn, conn_res)
         withYamuxedConn([this, conn, &data, &written_data_msg,
@@ -315,7 +336,7 @@ TEST_F(YamuxIntegrationTest, CloseForWrites) {
       std::make_shared<Buffer>(YamuxFrame::kHeaderLength, 0);
 
   transport_->dial(
-      *multiaddress_,
+      testutil::randomPeerId(), *multiaddress_,
       [this, &expected_close_stream_msg,
        close_stream_msg_rcv](auto &&conn_res) {
         EXPECT_OUTCOME_TRUE(conn, conn_res)
@@ -361,7 +382,7 @@ TEST_F(YamuxIntegrationTest, CloseForReads) {
   auto sent_close_stream_msg = closeStreamMsg(kDefaulExpectedStreamId);
 
   transport_->dial(
-      *multiaddress_,
+      testutil::randomPeerId(), *multiaddress_,
       [this, &sent_close_stream_msg, &ret_stream](auto &&conn_res) mutable {
         EXPECT_OUTCOME_TRUE(conn, conn_res)
         withYamuxedConn([this, conn, &sent_close_stream_msg,
@@ -401,7 +422,7 @@ TEST_F(YamuxIntegrationTest, CloseEntirely) {
       std::make_shared<Buffer>(YamuxFrame::kHeaderLength, 0);
 
   transport_->dial(
-      *multiaddress_,
+      testutil::randomPeerId(), *multiaddress_,
       [this, &expected_close_stream_msg, close_stream_msg_rcv,
        &ret_stream](auto &&conn_res) mutable {
         EXPECT_OUTCOME_TRUE(conn, conn_res)
@@ -458,7 +479,7 @@ TEST_F(YamuxIntegrationTest, Ping) {
   auto received_ping = std::make_shared<Buffer>(ping_out_msg.size(), 0);
 
   transport_->dial(
-      *multiaddress_,
+      testutil::randomPeerId(), *multiaddress_,
       [this, &ping_in_msg, &ping_out_msg, received_ping](auto &&conn_res) {
         EXPECT_OUTCOME_TRUE(conn, conn_res)
         conn->write(ping_in_msg, ping_in_msg.size(),
@@ -491,7 +512,7 @@ TEST_F(YamuxIntegrationTest, Reset) {
   auto rcvd_msg = std::make_shared<Buffer>(expected_reset_msg.size(), 0);
 
   transport_->dial(
-      *multiaddress_,
+      testutil::randomPeerId(), *multiaddress_,
       [this, &ret_stream, &expected_reset_msg,
        rcvd_msg](auto &&conn_res) mutable {
         EXPECT_OUTCOME_TRUE(conn, conn_res)

@@ -6,3 +6,7 @@
 addtest(event_emitter_test
     event_emitter_test.cpp
     )
+
+addtest(event_bus_test
+    event_bus_test.cpp
+    )

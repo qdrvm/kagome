@@ -6,8 +6,8 @@
 #ifndef KAGOME_CORE_LIBP2P_CRYPTO_KEY_GENERATOR_HPP
 #define KAGOME_CORE_LIBP2P_CRYPTO_KEY_GENERATOR_HPP
 
+#include <vector>
 #include <boost/filesystem.hpp>
-#include "common/buffer.hpp"
 #include "libp2p/crypto/common.hpp"
 #include "libp2p/crypto/key.hpp"
 
@@ -17,6 +17,8 @@ namespace libp2p::crypto {
    */
   class KeyGenerator {
    public:
+    using Buffer = std::vector<uint8_t>;
+    
     virtual ~KeyGenerator() = default;
     /**
      * @brief generates new key pair of specified type
@@ -50,7 +52,7 @@ namespace libp2p::crypto {
      */
     virtual std::vector<StretchedKey> stretchKey(
         common::CipherType cipher_type, common::HashType hash_type,
-        const kagome::common::Buffer &secret) const = 0;
+        const Buffer &secret) const = 0;
   };
 
 }  // namespace libp2p::crypto

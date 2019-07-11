@@ -105,6 +105,8 @@ include_directories(
   deps/sr25519-crust/include
   deps/hat-trie/include
   deps/scale/include
+  deps/di/include
+  deps/di/extension/include
 )
 
 add_subdirectory(core)

@@ -7,6 +7,7 @@
 #define KAGOME_INMEM_ADDRESS_REPOSITORY_HPP
 
 #include <unordered_map>
+#include <vector>
 
 #include "libp2p/peer/address_repository.hpp"
 

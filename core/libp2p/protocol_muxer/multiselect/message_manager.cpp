@@ -122,7 +122,7 @@ namespace libp2p::protocol_muxer {
   using kagome::common::Buffer;
   using MultiselectMessage = MessageManager::MultiselectMessage;
 
-  std::optional<MultiselectMessage> MessageManager::parseConstantMsg(
+  outcome::result<MultiselectMessage> MessageManager::parseConstantMsg(
       gsl::span<const uint8_t> bytes) {
     // first varint is already read
     static constexpr std::string_view kLsMsgHex{"6C730A"};  // 'ls\n'
@@ -138,7 +138,7 @@ namespace libp2p::protocol_muxer {
         return MultiselectMessage{MultiselectMessage::MessageType::NA};
       }
     }
-    return std::nullopt;
+    return ParseError::MSG_IS_ILL_FORMED;
   }
 
   outcome::result<MessageManager::ProtocolsMessageHeader>

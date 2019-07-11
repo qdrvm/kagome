@@ -11,7 +11,7 @@
 #include <gsl/span>
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/peer/peer_info.hpp"
-#include "libp2p/transport/transport.hpp"
+#include "libp2p/transport/transport_adaptor.hpp"
 
 namespace libp2p::network {
 
@@ -21,22 +21,10 @@ namespace libp2p::network {
    */
   struct TransportManager {
    protected:
-    using TransportSPtr = std::shared_ptr<transport::Transport>;
+    using TransportSPtr = std::shared_ptr<transport::TransportAdaptor>;
 
    public:
     virtual ~TransportManager() = default;
-
-    /**
-     * Add a transport to this transport manager
-     * @param t - transport to be added
-     */
-    virtual void add(TransportSPtr t) = 0;
-
-    /**
-     * Add transports to this transport manager
-     * @param t - transports to be added
-     */
-    virtual void add(gsl::span<const TransportSPtr> t) = 0;
 
     /**
      * Get all transports, supported by this manager

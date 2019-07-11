@@ -14,6 +14,8 @@
 #include "libp2p/transport/tcp.hpp"
 #include "mock/libp2p/connection/capable_connection_mock.hpp"
 #include "mock/libp2p/transport/upgrader_mock.hpp"
+#include "testutil/gmock_actions.hpp"
+#include "testutil/libp2p/peer.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -45,20 +47,26 @@ namespace {
     return conn;
   }
 
-  template <typename Conn, typename R, typename Callback>
-  void _upgrade(Conn c, Callback cb) {
-    R r = std::make_shared<CapableConnBasedOnRawConnMock>(c);
-    cb(std::move(r));
-  }
-
   auto makeUpgrader() {
     auto upgrader = std::make_shared<NiceMock<UpgraderMock>>();
-    ON_CALL(*upgrader, upgradeToSecure(_, _))
-        .WillByDefault(Invoke(_upgrade<Upgrader::RawSPtr, Upgrader::SecSPtr,
-                                       Upgrader::OnSecuredCallbackFunc>));
+    ON_CALL(*upgrader, upgradeToSecureOutbound(_, _, _))
+        .WillByDefault(UpgradeToSecureOutbound([](auto &&raw) {
+          std::shared_ptr<SecureConnection> sec =
+              std::make_shared<CapableConnBasedOnRawConnMock>(raw);
+          return sec;
+        }));
+    ON_CALL(*upgrader, upgradeToSecureInbound(_, _))
+        .WillByDefault(UpgradeToSecureInbound([](auto &&raw) {
+          std::shared_ptr<SecureConnection> sec =
+              std::make_shared<CapableConnBasedOnRawConnMock>(raw);
+          return sec;
+        }));
     ON_CALL(*upgrader, upgradeToMuxed(_, _))
-        .WillByDefault(Invoke(_upgrade<Upgrader::SecSPtr, Upgrader::CapSPtr,
-                                       Upgrader::OnMuxedCallbackFunc>));
+        .WillByDefault(UpgradeToMuxed([](auto &&sec) {
+          std::shared_ptr<CapableConnection> cap =
+              std::make_shared<CapableConnBasedOnRawConnMock>(sec);
+          return cap;
+        }));
 
     return upgrader;
   }
@@ -134,7 +142,7 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
       auto upgrader = makeUpgrader();
       auto transport =
           std::make_shared<TcpTransport>(context, std::move(upgrader));
-      transport->dial(ma, [](auto &&rconn) {
+      transport->dial(testutil::randomPeerId(), ma, [](auto &&rconn) {
         auto conn = expectConnectionValid(rconn);
 
         auto readback = std::make_shared<Buffer>(kSize, 0);
@@ -179,7 +187,7 @@ TEST(TCP, DialToNoServer) {
   auto transport = std::make_shared<TcpTransport>(context, std::move(upgrader));
   auto ma = "/ip4/127.0.0.1/tcp/40003"_multiaddr;
 
-  transport->dial(ma, [](auto &&rc) {
+  transport->dial(testutil::randomPeerId(), ma, [](auto &&rc) {
     ASSERT_FALSE(rc);
     ASSERT_EQ(rc.error().value(), (int)std::errc::connection_refused);
   });
@@ -213,7 +221,7 @@ TEST(TCP, ClientClosesConnection) {
   auto ma = "/ip4/127.0.0.1/tcp/40003"_multiaddr;
   ASSERT_TRUE(listener->listen(ma));
 
-  transport->dial(ma, [](auto &&rconn) {
+  transport->dial(testutil::randomPeerId(), ma, [](auto &&rconn) {
     auto conn = expectConnectionValid(rconn);
     EXPECT_TRUE(conn->isInitiator());
     EXPECT_TRUE(conn->close());
@@ -241,7 +249,7 @@ TEST(TCP, ServerClosesConnection) {
   auto ma = "/ip4/127.0.0.1/tcp/40003"_multiaddr;
   ASSERT_TRUE(listener->listen(ma));
 
-  transport->dial(ma, [](auto &&rconn) {
+  transport->dial(testutil::randomPeerId(), ma, [](auto &&rconn) {
     auto conn = expectConnectionValid(rconn);
     EXPECT_TRUE(conn->isInitiator());
     auto buf = std::make_shared<std::vector<uint8_t>>(100, 0);
@@ -287,27 +295,29 @@ TEST(TCP, OneTransportServerHandlesManyClients) {
   auto ma = "/ip4/127.0.0.1/tcp/40003"_multiaddr;
   ASSERT_TRUE(listener->listen(ma));
 
-  transport->dial(ma, [kSize](auto &&rconn) {
-    auto conn = expectConnectionValid(rconn);
+  transport->dial(
+      testutil::randomPeerId(),  // ignore arg
+      ma, [kSize](auto &&rconn) {
+        auto conn = expectConnectionValid(rconn);
 
-    auto readback = std::make_shared<Buffer>(kSize, 0);
-    auto buf = std::make_shared<Buffer>(kSize, 0);
-    std::generate(buf->begin(), buf->end(), []() {
-      return rand();  // NOLINT
-    });
+        auto readback = std::make_shared<Buffer>(kSize, 0);
+        auto buf = std::make_shared<Buffer>(kSize, 0);
+        std::generate(buf->begin(), buf->end(), []() {
+          return rand();  // NOLINT
+        });
 
-    EXPECT_TRUE(conn->isInitiator());
+        EXPECT_TRUE(conn->isInitiator());
 
-    conn->write(*buf, kSize, [conn, kSize, readback, buf](auto &&res) {
-      ASSERT_TRUE(res) << res.error().message();
-      ASSERT_EQ(res.value(), buf->size());
-      conn->read(*readback, kSize, [conn, readback, buf](auto &&res) {
-        ASSERT_TRUE(res) << res.error().message();
-        ASSERT_EQ(res.value(), readback->size());
-        ASSERT_EQ(*buf, *readback);
+        conn->write(*buf, kSize, [conn, kSize, readback, buf](auto &&res) {
+          ASSERT_TRUE(res) << res.error().message();
+          ASSERT_EQ(res.value(), buf->size());
+          conn->read(*readback, kSize, [conn, readback, buf](auto &&res) {
+            ASSERT_TRUE(res) << res.error().message();
+            ASSERT_EQ(res.value(), readback->size());
+            ASSERT_EQ(*buf, *readback);
+          });
+        });
       });
-    });
-  });
 
   context.run_for(100ms);
 

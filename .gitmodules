@@ -21,3 +21,6 @@
 [submodule "deps/scale"]
 	path = deps/scale
 	url = https://github.com/Harrm/scale
+[submodule "di"]
+	path = deps/di
+	url = https://github.com/boost-experimental/di

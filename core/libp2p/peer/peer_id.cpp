@@ -11,6 +11,8 @@
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::peer, PeerId::FactoryError, e) {
   using E = libp2p::peer::PeerId::FactoryError;
   switch (e) {
+    case E::SUCCESS:
+      return "success";
     case E::SHA256_EXPECTED:
       return "expected a sha-256 multihash";
   }
@@ -25,12 +27,11 @@ namespace libp2p::peer {
 
   PeerId::PeerId(multi::Multihash hash) : hash_{std::move(hash)} {}
 
-  PeerId::FactoryResult PeerId::fromPublicKey(const crypto::PublicKey &key) {
-    auto hash = kagome::crypto::sha256(key.data.toVector());
-    OUTCOME_TRY(
-        multihash,
-        Multihash::create(multi::sha256, Buffer{hash.begin(), hash.end()}));
-
+  PeerId PeerId::fromPublicKey(const crypto::PublicKey &key) {
+    auto hash = kagome::crypto::sha256(key.data);
+    auto multihash =
+        Multihash::create(multi::sha256, Buffer{hash.begin(), hash.end()})
+            .value();
     return PeerId{std::move(multihash)};
   }
 
@@ -63,6 +64,9 @@ namespace libp2p::peer {
 
   const multi::Multihash &PeerId::toMultihash() const {
     return hash_;
+  }
+  bool PeerId::operator!=(const PeerId &other) const {
+    return !this->operator==(other);
   }
 }  // namespace libp2p::peer
 

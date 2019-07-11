@@ -26,7 +26,7 @@ namespace libp2p::crypto::random {
      * @param len number of bytes
      * @return buffer containing random bytes
      */
-    Buffer randomBytes(size_t len) override;
+    ByteArray randomBytes(size_t len) override;
 
    private:
     /// boost cryptographic-secure random generator

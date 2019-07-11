@@ -163,13 +163,13 @@ namespace kagome::transaction_pool {
       ready_queue_.erase(hash_opt.value());
 
       auto find_previous = [this, &tx](primitives::TransactionTag const &tag)
-          -> std::optional<std::vector<primitives::TransactionTag>> {
+          -> boost::optional<std::vector<primitives::TransactionTag>> {
         if(provided_tags_by_.find(tag) == provided_tags_by_.end()) {
-          return std::nullopt;
+          return boost::none;
         }
         auto prev_hash_opt = provided_tags_by_.at(tag);
         if(!prev_hash_opt) {
-          return std::nullopt;
+          return boost::none;
         }
         auto &tx2 = ready_queue_[prev_hash_opt.value()];
         tx2.unlocks.remove_if([&tx](auto &t) { return t == tx.hash; });
@@ -183,9 +183,9 @@ namespace kagome::transaction_pool {
         // - we will have to wait for re-propagation of that transaction
         // Alternatively the caller may attempt to re-import these transactions.
         if (tx2.unlocks.empty()) {
-          return std::optional(tx2.provides);
+          return boost::make_optional(tx2.provides);
         }
-        return std::nullopt;
+        return boost::none;
       };
       for (auto &required_tag : tx.requires) {
         if (auto tags_to_remove = find_previous(required_tag); tags_to_remove) {

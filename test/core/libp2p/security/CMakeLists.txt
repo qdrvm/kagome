@@ -7,7 +7,7 @@ addtest(plaintext_adaptor_test
     plaintext_adaptor_test.cpp
     )
 target_link_libraries(plaintext_adaptor_test
-    security_plaintext
+    libp2p_plaintext
     buffer
     libp2p_peer_id
     multihash

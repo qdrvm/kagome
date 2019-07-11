@@ -15,5 +15,10 @@ addtest(multiselect_test
     )
 target_link_libraries(multiselect_test
     multiselect
+    multiaddress
     libp2p_peer_id
+    libp2p_yamux
+    libp2p_tcp
+    libp2p_plaintext
+    testutil_peer
     )

@@ -11,7 +11,7 @@
 #include <boost/asio.hpp>
 #include "libp2p/transport/tcp/tcp_listener.hpp"
 #include "libp2p/transport/tcp/tcp_util.hpp"
-#include "libp2p/transport/transport.hpp"
+#include "libp2p/transport/transport_adaptor.hpp"
 #include "libp2p/transport/upgrader.hpp"
 
 namespace libp2p::transport {
@@ -19,7 +19,7 @@ namespace libp2p::transport {
   /**
    * @brief TCP Transport implementation
    */
-  class TcpTransport : public Transport,
+  class TcpTransport : public TransportAdaptor,
                        public std::enable_shared_from_this<TcpTransport> {
    public:
     ~TcpTransport() override = default;
@@ -27,27 +27,19 @@ namespace libp2p::transport {
     TcpTransport(boost::asio::io_context &context,
                  std::shared_ptr<Upgrader> upgrader);
 
-    void dial(multi::Multiaddress address,
-              Transport::HandlerFunc handler) override;
+    void dial(const peer::PeerId &remoteId, multi::Multiaddress address,
+              TransportAdaptor::HandlerFunc handler) override;
 
     std::shared_ptr<TransportListener> createListener(
         TransportListener::HandlerFunc handler) override;
 
     bool canDial(const multi::Multiaddress &ma) const override;
 
+    peer::Protocol getProtocolId() const override;
+
    private:
     boost::asio::io_context &context_;
     std::shared_ptr<Upgrader> upgrader_;
-
-    void onResolved(std::shared_ptr<TcpConnection> c,
-                    const TcpConnection::ResolverResultsType &r,
-                    Transport::HandlerFunc handler);
-
-    void onConnected(std::shared_ptr<TcpConnection> c,
-                     Transport::HandlerFunc handler);
-
-    void onConnSecured(std::shared_ptr<connection::SecureConnection> c,
-                       Transport::HandlerFunc handler);
   };  // namespace libp2p::transport
 
 }  // namespace libp2p::transport

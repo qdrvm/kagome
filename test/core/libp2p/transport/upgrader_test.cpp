@@ -29,6 +29,7 @@ using namespace libp2p::protocol_muxer;
 using namespace libp2p::basic;
 
 using testing::_;
+using testing::NiceMock;
 using testing::Return;
 
 class UpgraderTest : public testing::Test {
@@ -46,7 +47,7 @@ class UpgraderTest : public testing::Test {
           .WillByDefault(Return(muxer_protos_[i]));
     }
 
-    upgrader_ = std::make_shared<UpgraderImpl>(peer_id_, multiselect_mock_,
+    upgrader_ = std::make_shared<UpgraderImpl>(multiselect_mock_,
                                                security_mocks_, muxer_mocks_);
   }
 
@@ -57,26 +58,27 @@ class UpgraderTest : public testing::Test {
 
   std::vector<Protocol> security_protos_{"security_proto1", "security_proto2"};
   std::vector<std::shared_ptr<SecurityAdaptor>> security_mocks_{
-      std::make_shared<SecurityAdaptorMock>(),
-      std::make_shared<SecurityAdaptorMock>()};
+      std::make_shared<NiceMock<SecurityAdaptorMock>>(),
+      std::make_shared<NiceMock<SecurityAdaptorMock>>()};
 
   std::vector<Protocol> muxer_protos_{"muxer_proto1", "muxer_proto2"};
   std::vector<std::shared_ptr<MuxerAdaptor>> muxer_mocks_{
-      std::make_shared<MuxerAdaptorMock>(),
-      std::make_shared<MuxerAdaptorMock>()};
+      std::make_shared<NiceMock<MuxerAdaptorMock>>(),
+      std::make_shared<NiceMock<MuxerAdaptorMock>>()};
 
   std::shared_ptr<Upgrader> upgrader_;
 
   std::shared_ptr<RawConnectionMock> raw_conn_ =
-      std::make_shared<RawConnectionMock>();
+      std::make_shared<NiceMock<RawConnectionMock>>();
   std::shared_ptr<SecureConnectionMock> sec_conn_ =
-      std::make_shared<SecureConnectionMock>();
+      std::make_shared<NiceMock<SecureConnectionMock>>();
   std::shared_ptr<CapableConnectionMock> muxed_conn_ =
-      std::make_shared<CapableConnectionMock>();
+      std::make_shared<NiceMock<CapableConnectionMock>>();
 };
 
 TEST_F(UpgraderTest, UpgradeSecureInitiator) {
-  EXPECT_CALL(*raw_conn_, isInitiator_hack()).WillOnce(Return(true));
+  EXPECT_CALL(*raw_conn_, isInitiator_hack()).WillRepeatedly(Return(true));
+
   EXPECT_CALL(
       *multiselect_mock_,
       selectOneOf(gsl::span<const Protocol>(security_protos_),
@@ -88,14 +90,15 @@ TEST_F(UpgraderTest, UpgradeSecureInitiator) {
                      peer_id_, _))
       .WillOnce(Arg2CallbackWithArg(sec_conn_));
 
-  upgrader_->upgradeToSecure(raw_conn_, [this](auto &&upgraded_conn_res) {
-    ASSERT_TRUE(upgraded_conn_res);
-    ASSERT_EQ(upgraded_conn_res.value(), sec_conn_);
-  });
+  upgrader_->upgradeToSecureOutbound(
+      raw_conn_, peer_id_, [this](auto &&upgraded_conn_res) {
+        ASSERT_TRUE(upgraded_conn_res);
+        ASSERT_EQ(upgraded_conn_res.value(), sec_conn_);
+      });
 }
 
 TEST_F(UpgraderTest, UpgradeSecureNotInitiator) {
-  EXPECT_CALL(*raw_conn_, isInitiator_hack()).WillOnce(Return(false));
+  EXPECT_CALL(*raw_conn_, isInitiator_hack()).WillRepeatedly(Return(false));
   EXPECT_CALL(
       *multiselect_mock_,
       selectOneOf(gsl::span<const Protocol>(security_protos_),
@@ -106,10 +109,11 @@ TEST_F(UpgraderTest, UpgradeSecureNotInitiator) {
       secureInbound(std::static_pointer_cast<RawConnection>(raw_conn_), _))
       .WillOnce(Arg1CallbackWithArg(outcome::success(sec_conn_)));
 
-  upgrader_->upgradeToSecure(raw_conn_, [this](auto &&upgraded_conn_res) {
-    ASSERT_TRUE(upgraded_conn_res);
-    ASSERT_EQ(upgraded_conn_res.value(), sec_conn_);
-  });
+  upgrader_->upgradeToSecureInbound(
+      raw_conn_, [this](auto &&upgraded_conn_res) {
+        ASSERT_TRUE(upgraded_conn_res);
+        ASSERT_EQ(upgraded_conn_res.value(), sec_conn_);
+      });
 }
 
 TEST_F(UpgraderTest, UpgradeSecureFail) {
@@ -120,7 +124,7 @@ TEST_F(UpgraderTest, UpgradeSecureFail) {
                   std::static_pointer_cast<ReadWriter>(raw_conn_), false, _))
       .WillOnce(Arg3CallbackWithArg(outcome::failure(std::error_code())));
 
-  upgrader_->upgradeToSecure(raw_conn_, [](auto &&upgraded_conn_res) {
+  upgrader_->upgradeToSecureInbound(raw_conn_, [](auto &&upgraded_conn_res) {
     ASSERT_FALSE(upgraded_conn_res);
   });
 }

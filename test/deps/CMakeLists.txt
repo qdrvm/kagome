@@ -6,3 +6,6 @@ target_link_libraries(outcome_test
     )
 
 addtest(sml_test sml_test.cpp)
+
+
+addtest(di_test di_test.cpp)

@@ -7,7 +7,7 @@ addtest(plaintext_connection_test
     plaintext_connection_test.cpp
     )
 target_link_libraries(plaintext_connection_test
-    security_plaintext
+    libp2p_plaintext
     multiaddress
     libp2p_peer_id
     )
