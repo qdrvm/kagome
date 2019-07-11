@@ -61,7 +61,7 @@ namespace std {
 /**
  * @given BlockBuilderApi that fails to apply extrinsic @and BlockBuilder that
  * uses that BlockBuilderApi
- * @when BlockBuilder tries to push extrinsic
+ * @when BlockBuilder tries to push extrinsic @and BlockBuilder bakes a block
  * @then push fails
  */
 TEST_F(BlockBuilderTest, PushWhenApplyFails) {
@@ -72,15 +72,17 @@ TEST_F(BlockBuilderTest, PushWhenApplyFails) {
 
   // when
   auto res = block_builder_->pushExtrinsic(xt);
+  auto block = block_builder_->bake();
 
   // then
   ASSERT_FALSE(res);
+  ASSERT_THAT(block.extrinsics, IsEmpty());
 }
 
 /**
  * @given BlockBuilderApi that returns false to apply extrinsic @and
  * BlockBuilder that uses that BlockBuilderApi
- * @when BlockBuilder tries to push extrinsic
+ * @when BlockBuilder tries to push extrinsic @and BlockBuilder bakes a block
  * @then Extrinsic is not added to the baked block
  */
 TEST_F(BlockBuilderTest, PushWhenApplySucceedsWithTrue) {
@@ -102,7 +104,7 @@ TEST_F(BlockBuilderTest, PushWhenApplySucceedsWithTrue) {
 /**
  * @given BlockBuilderApi that returns true to apply extrinsic @and
  * BlockBuilder that uses that BlockBuilderApi
- * @when BlockBuilder tries to push extrinsic
+ * @when BlockBuilder tries to push extrinsic @and BlockBuilder bakes a block
  * @then Extrinsic is added to the baked block
  */
 TEST_F(BlockBuilderTest, PushWhenApplySucceedsWithFalse) {
