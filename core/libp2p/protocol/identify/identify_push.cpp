@@ -16,8 +16,9 @@ namespace {
 }
 
 namespace libp2p::protocol {
-  IdentifyPush::IdentifyPush(std::shared_ptr<Identify> id)
-      : id_{std::move(id)} {}
+  IdentifyPush::IdentifyPush(
+      std::shared_ptr<IdentifyMessageProcessor> msg_processor, event::Bus &bus)
+      : msg_processor_{std::move(msg_processor)}, bus_{bus} {}
 
   peer::Protocol IdentifyPush::getProtocolId() const {
     return kIdentifyPushProtocol;
@@ -27,40 +28,49 @@ namespace libp2p::protocol {
     if (!stream_res) {
       return;
     }
-    id_->receiveIdentify(std::move(stream_res.value()));
+    msg_processor_->receiveIdentify(std::move(stream_res.value()));
   }
 
   void IdentifyPush::start() {
-    id_->bus_.getChannel<network::event::ListenAddressAddedChannel>().subscribe(
-        [self{weak_from_this()}](auto && /*ignored*/) {
-          if (self.expired()) {
-            return;
-          }
-          self.lock()->sendPush();
-        });
-    id_->bus_.getChannel<network::event::ListenAddressRemovedChannel>()
-        .subscribe([self{weak_from_this()}](auto && /*ignored*/) {
-          if (self.expired()) {
-            return;
-          }
-          self.lock()->sendPush();
-        });
+    static constexpr uint8_t kChannelsAmount = 3;
+    sub_handles_.reserve(kChannelsAmount);
 
-    id_->bus_.getChannel<peer::event::KeyPairChangedChannel>().subscribe(
-        [self{weak_from_this()}](auto && /*ignored*/) {
-          if (self.expired()) {
-            return;
-          }
-          self.lock()->sendPush();
-        });
+    sub_handles_.push_back(
+        bus_.getChannel<network::event::ListenAddressAddedChannel>().subscribe(
+            [self{weak_from_this()}](auto && /*ignored*/) {
+              if (self.expired()) {
+                return;
+              }
+              self.lock()->sendPush();
+            }));
+    sub_handles_.push_back(
+        bus_.getChannel<network::event::ListenAddressRemovedChannel>()
+            .subscribe([self{weak_from_this()}](auto && /*ignored*/) {
+              if (self.expired()) {
+                return;
+              }
+              self.lock()->sendPush();
+            }));
+
+    sub_handles_.push_back(
+        bus_.getChannel<peer::event::KeyPairChangedChannel>().subscribe(
+            [self{weak_from_this()}](auto && /*ignored*/) {
+              if (self.expired()) {
+                return;
+              }
+              self.lock()->sendPush();
+            }));
   }
 
   void IdentifyPush::sendPush() {
     detail::streamToEachConnectedPeer(
-        id_->host_, id_->conn_manager_, kIdentifyPushProtocol,
-        [self{weak_from_this()}](auto &&s) {
+        msg_processor_->getHost(), msg_processor_->getConnectionManager(),
+        kIdentifyPushProtocol, [self{weak_from_this()}](auto &&s_res) {
+          if (!s_res) {
+            return;
+          }
           if (auto t = self.lock()) {
-            return t->id_->sendIdentify(std::forward<decltype(s)>(s));
+            return t->msg_processor_->sendIdentify(std::move(s_res.value()));
           }
         });
   }

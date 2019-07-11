@@ -43,20 +43,18 @@ namespace libp2p::protocol {
     new_protos_sub_ =
         bus_.getChannel<network::event::ProtocolsAddedChannel>().subscribe(
             [self{weak_from_this()}](std::vector<peer::Protocol> new_protos) {
-              if (self.expired()) {
-                return;
+              if (auto s = self.lock()) {
+                return self.lock()->sendDelta(
+                    new_protos, gsl::span<const peer::Protocol>());
               }
-              self.lock()->sendDelta(new_protos,
-                                     gsl::span<const peer::Protocol>());
             });
     rm_protos_sub_ =
         bus_.getChannel<network::event::ProtocolsRemovedChannel>().subscribe(
             [self{weak_from_this()}](std::vector<peer::Protocol> rm_protos) {
-              if (self.expired()) {
-                return;
+              if (auto s = self.lock()) {
+                return self.lock()->sendDelta(gsl::span<const peer::Protocol>(),
+                                              rm_protos);
               }
-              self.lock()->sendDelta(gsl::span<const peer::Protocol>(),
-                                     rm_protos);
             });
   }
 
@@ -128,11 +126,14 @@ namespace libp2p::protocol {
       msg->mutable_delta()->add_rm_protocols(proto);
     }
 
-    detail::streamToEachConnectedPeer(host_, conn_manager_,
-                                      kIdentifyDeltaProtocol,
-                                      [self{shared_from_this()}, msg](auto s) {
-                                        self->sendDelta(std::move(s), msg);
-                                      });
+    detail::streamToEachConnectedPeer(
+        host_, conn_manager_, kIdentifyDeltaProtocol,
+        [self{shared_from_this()}, msg](auto s_res) {
+          if (!s_res) {
+            return;
+          }
+          self->sendDelta(std::move(s_res.value()), msg);
+        });
   }
 
   void IdentifyDelta::sendDelta(

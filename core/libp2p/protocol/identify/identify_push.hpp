@@ -7,9 +7,11 @@
 #define KAGOME_IDENTIFY_PUSH_HPP
 
 #include <memory>
+#include <vector>
 
+#include "libp2p/event/bus.hpp"
 #include "libp2p/protocol/base_protocol.hpp"
-#include "libp2p/protocol/identify/identify.hpp"
+#include "libp2p/protocol/identify/identify_msg_processor.hpp"
 
 namespace libp2p::protocol {
   /**
@@ -21,7 +23,8 @@ namespace libp2p::protocol {
   class IdentifyPush : public BaseProtocol,
                        public std::enable_shared_from_this<IdentifyPush> {
    public:
-    explicit IdentifyPush(std::shared_ptr<Identify> id);
+    IdentifyPush(std::shared_ptr<IdentifyMessageProcessor> msg_processor,
+                 event::Bus &bus);
 
     peer::Protocol getProtocolId() const override;
 
@@ -43,7 +46,10 @@ namespace libp2p::protocol {
      */
     void sendPush();
 
-    std::shared_ptr<Identify> id_;
+    std::shared_ptr<IdentifyMessageProcessor> msg_processor_;
+
+    event::Bus &bus_;
+    std::vector<event::Handle> sub_handles_;
   };
 }  // namespace libp2p::protocol
 

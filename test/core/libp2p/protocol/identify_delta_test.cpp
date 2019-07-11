@@ -135,6 +135,11 @@ ACTION_P(ReadPut, buf) {
   arg2(buf.size());
 }
 
+/**
+ * @given Identify-Delta
+ * @when stream with Identify-Delta protocol was opened from the other side
+ * @then receive and process Identify-Delta message
+ */
 TEST_F(IdentifyDeltaTest, Receive) {
   // handle
   EXPECT_CALL(*stream_, read(_, 1, _))

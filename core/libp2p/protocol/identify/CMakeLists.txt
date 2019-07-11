@@ -16,6 +16,8 @@ add_library(libp2p_identify
     identify_push.hpp
     identify_delta.cpp
     identify_delta.hpp
+    utils.cpp
+    utils.hpp
     )
 target_link_libraries(libp2p_identify
     libp2p
