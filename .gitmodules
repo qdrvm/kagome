@@ -2,10 +2,6 @@
 	path = deps/spdlog
 	url = https://github.com/gabime/spdlog
     shallow = true
-[submodule "gsl"]
-	path = deps/GSL
-	url = https://github.com/Microsoft/GSL
-    shallow = true
 [submodule "sml"]
 	path = deps/sml
 	url = https://github.com/boost-experimental/sml
