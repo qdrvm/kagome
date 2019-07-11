@@ -21,6 +21,8 @@ namespace kagome::api {
       const primitives::Extrinsic &extrinsic) {
     // validate transaction
     OUTCOME_TRY(res, api_->validate_transaction(extrinsic));
+    // TODO(yuraz): PRE-242 correct transaction validation
+    // according to specification
 
     return kagome::visit_in_place(
         res,

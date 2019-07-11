@@ -14,7 +14,7 @@ namespace kagome::server {
    * accepts connections making session from socket
    */
   class ListenerImpl : public Listener,
-                       std::enable_shared_from_this<ListenerImpl> {
+                       public std::enable_shared_from_this<ListenerImpl> {
     enum class State { READY, WORKING, STOPPED = READY };
     using Context = boost::asio::io_context;
     using Acceptor = boost::asio::ip::tcp::acceptor;

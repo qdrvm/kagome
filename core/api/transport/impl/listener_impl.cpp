@@ -5,6 +5,8 @@
 
 #include "api/transport/impl/listener_impl.hpp"
 
+#include <iostream>
+
 #include "api/transport/impl/session_impl.hpp"
 
 namespace kagome::server {
