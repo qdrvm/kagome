@@ -71,8 +71,9 @@ class IdentifyTest : public testing::Test {
         identify_pb_msg_bytes_.data() + pb_msg_len_varint_->size(),
         identify_pb_msg_.ByteSize());
 
-    identify_ = std::make_shared<Identify>(host_, bus_, conn_manager_,
-                                           id_manager_, key_marshaller_);
+    id_msg_processor_ = std::make_shared<IdentifyMessageProcessor>(
+        host_, conn_manager_, id_manager_, key_marshaller_);
+    identify_ = std::make_shared<Identify>(id_msg_processor_, bus_);
   }
 
   HostMock host_;
@@ -81,6 +82,7 @@ class IdentifyTest : public testing::Test {
   std::shared_ptr<marshaller::KeyMarshaller> key_marshaller_ =
       std::make_shared<marshaller::KeyMarshallerMock>();
 
+  std::shared_ptr<IdentifyMessageProcessor> id_msg_processor_;
   std::shared_ptr<Identify> identify_;
 
   std::shared_ptr<CapableConnectionMock> connection_ =

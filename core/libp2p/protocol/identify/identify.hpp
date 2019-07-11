@@ -7,21 +7,11 @@
 #define KAGOME_IDENTIFY_IMPL_HPP
 
 #include <memory>
-#include <string_view>
 #include <vector>
 
-#include <gsl/span>
-#include "common/logger.hpp"
-#include "libp2p/connection/capable_connection.hpp"
-#include "libp2p/connection/stream.hpp"
-#include "libp2p/crypto/key_marshaller.hpp"
 #include "libp2p/event/bus.hpp"
-#include "libp2p/host.hpp"
-#include "libp2p/network/connection_manager.hpp"
-#include "libp2p/peer/identity_manager.hpp"
 #include "libp2p/protocol/base_protocol.hpp"
-#include "libp2p/protocol/identify/observed_addresses.hpp"
-#include "libp2p/protocol/identify/pb/identify.pb.h"
+#include "libp2p/protocol/identify/identify_msg_processor.hpp"
 
 namespace libp2p::multi {
   class Multiaddress;
@@ -35,22 +25,15 @@ namespace libp2p::protocol {
    */
   class Identify : public BaseProtocol,
                    public std::enable_shared_from_this<Identify> {
-    using StreamSPtr = std::shared_ptr<connection::Stream>;
-
    public:
     /**
      * Create an Identify instance; it will immediately start watching
      * connection events and react to them
-     * @param host - this Libp2p instance
+     * @param msg_processor to work with Identify messages
      * @param event_bus - bus, over which the events arrive
-     * @param conn_manager - this peer's connection manager
-     * @param identity_manager - this peer's identity manager
-     * @param key_marshaller - marshaller of private & public keys
      */
-    Identify(Host &host, event::Bus &event_bus,
-             network::ConnectionManager &conn_manager,
-             peer::IdentityManager &identity_manager,
-             std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller);
+    Identify(std::shared_ptr<IdentifyMessageProcessor> msg_processor,
+             event::Bus &event_bus);
 
     ~Identify() override = default;
 
@@ -84,92 +67,17 @@ namespace libp2p::protocol {
 
    private:
     /**
-     * Handler for the case, when we are being identified by the other peer; we
-     * should respond with an Identify message and close the stream
-     * @param stream to be identified over
-     */
-    void sendIdentify(StreamSPtr stream);
-
-    /**
-     * Called, when an identify message is written to the stream
-     * @param written_bytes - how much bytes were written
-     * @param stream with the other side
-     */
-    void identifySent(outcome::result<size_t> written_bytes,
-                      const StreamSPtr &stream);
-
-    /**
      * Handler for new connections, established by or with our host
      * @param conn - new connection
      */
     void onNewConnection(
         const std::weak_ptr<connection::CapableConnection> &conn);
 
-    /**
-     * Handler for the case, when we want to identify the other side
-     * @param stream to be identified over
-     */
-    void receiveIdentify(StreamSPtr stream);
-
-    /**
-     * Called, when an identify message is received from the other peer
-     * @param msg, which was read
-     * @param stream, over which it was received
-     */
-    void identifyReceived(outcome::result<identify::pb::Identify> msg,
-                          const StreamSPtr &stream);
-
-    /**
-     * Process a received public key of the other peer
-     * @param stream, over which the key was received
-     * @param pubkey_str - marshalled public key; can be empty, if there was no
-     * public key in the message
-     * @return peer id, which was derived from the provided public key (if it
-     * can be derived)
-     */
-    std::optional<peer::PeerId> consumePublicKey(const StreamSPtr &stream,
-                                                 std::string_view pubkey_str);
-
-    /**
-     * Process received address, which the other peer used to connect to us
-     * @param address - observed address string
-     * @param peer_id - ID of that peer
-     * @param stream, over which the message came
-     */
-    void consumeObservedAddresses(const std::string &address_str,
-                                  const peer::PeerId &peer_id,
-                                  const StreamSPtr &stream);
-
-    /**
-     * Check if provided multiaddress has the same set of transports as at least
-     * of the (\param mas)
-     * @param ma - address to be checked
-     * @param mas - addresses to be checked against
-     * @return true, if that address has common transports, false otherwise
-     */
-    bool hasConsistentTransport(const multi::Multiaddress &ma,
-                                gsl::span<const multi::Multiaddress> mas);
-
-    /**
-     * Process received addresses, which the other peer listens to
-     * @param addresses_strings - stringified listen addresses
-     * @param peer_id - ID of that peer
-     */
-    void consumeListenAddresses(gsl::span<const std::string> addresses_strings,
-                                const peer::PeerId &peer_id);
-
-    Host &host_;
+    std::shared_ptr<IdentifyMessageProcessor> msg_processor_;
     event::Bus &bus_;
-    network::ConnectionManager &conn_manager_;
-    peer::IdentityManager &identity_manager_;
-    std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller_;
-    ObservedAddresses observed_addresses_;
-
     event::Handle sub_;  // will unsubscribe during destruction by itself
 
     bool started_ = false;
-
-    kagome::common::Logger log_ = kagome::common::createLogger("Identify");
   };
 }  // namespace libp2p::protocol
 
