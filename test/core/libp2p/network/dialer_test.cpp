@@ -34,9 +34,6 @@ struct DialerTest : public ::testing::Test {
 
   std::shared_ptr<TransportMock> transport = std::make_shared<TransportMock>();
 
-  std::shared_ptr<peer::AddressRepository> addrepo =
-      std::make_shared<peer::AddressRepositoryMock>();
-
   std::shared_ptr<ProtocolMuxerMock> proto_muxer =
       std::make_shared<ProtocolMuxerMock>();
 
@@ -51,6 +48,7 @@ struct DialerTest : public ::testing::Test {
 
   multi::Multiaddress ma1 = "/ip4/127.0.0.1/tcp/1"_multiaddr;
   peer::PeerId pid = "1"_peerid;
+  peer::Protocol protocol = "/protocol/1.0.0";
 
   peer::PeerInfo pinfo{.id = pid, .addresses = {ma1}};
 };
@@ -78,6 +76,7 @@ TEST_F(DialerTest, DialNewConnection) {
   bool executed = false;
   dialer->dial(pinfo, [&](auto &&rconn) {
     EXPECT_OUTCOME_TRUE(conn, rconn);
+    (void)conn;
     executed = true;
   });
 
@@ -107,7 +106,8 @@ TEST_F(DialerTest, DialNoAddresses) {
 }
 
 /**
- * @given no known connections to peer, have 1 tcp transport, 1 UDP address supplied
+ * @given no known connections to peer, have 1 tcp transport, 1 UDP address
+ * supplied
  * @when dial
  * @then can not dial, no transports found
  */
@@ -126,5 +126,56 @@ TEST_F(DialerTest, DialNoTransports) {
     executed = true;
   });
 
+  ASSERT_TRUE(executed);
+}
+
+/**
+ * @given existing connection to peer
+ * @when dial
+ * @then get existing connection
+ */
+TEST_F(DialerTest, DialExistingConnection) {
+  // we have connection
+  EXPECT_CALL(*cmgr, getBestConnectionForPeer(pinfo.id))
+      .WillOnce(Return(connection));
+
+  bool executed = false;
+  dialer->dial(pinfo, [&](auto &&rconn) {
+    EXPECT_OUTCOME_TRUE(conn, rconn);
+    (void)conn;
+    executed = true;
+  });
+
+  ASSERT_TRUE(executed);
+}
+
+///
+/// All tests that use newStream assume connections already exist, because
+/// newStream uses dial to get connection, and dial is already tested for all
+/// cases.
+///
+
+/**
+ * @given existing connection to peer
+ * @when newStream is executed
+ * @then get failure
+ */
+TEST_F(DialerTest, NewStreamFailed) {
+  // no existing connections to peer
+  EXPECT_CALL(*cmgr, getBestConnectionForPeer(pid))
+      .WillOnce(Return(connection));
+
+  // report random error.
+  // we simulate a case when "newStream" gets error
+  outcome::result<std::shared_ptr<Stream>> r = std::errc::io_error;
+  EXPECT_CALL(*connection, newStream(_))
+    .WillOnce(Arg0CallbackWithArg(r));
+
+  bool executed = false;
+  dialer->newStream(pinfo, protocol, [&](auto &&rstream) {
+    EXPECT_OUTCOME_FALSE(e, rstream);
+    EXPECT_EQ(e.value(), (int)std::errc::io_error);
+    executed = true;
+  });
   ASSERT_TRUE(executed);
 }
