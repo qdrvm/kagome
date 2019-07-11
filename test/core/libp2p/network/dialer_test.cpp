@@ -21,7 +21,6 @@
 using namespace libp2p;
 using namespace network;
 using namespace connection;
-using namespace protocol;
 using namespace transport;
 using namespace protocol_muxer;
 

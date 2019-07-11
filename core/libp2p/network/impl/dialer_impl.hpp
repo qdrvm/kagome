@@ -6,19 +6,10 @@
 #ifndef KAGOME_DIALER_IMPL_HPP
 #define KAGOME_DIALER_IMPL_HPP
 
-#include "libp2p/connection/capable_connection.hpp"
-#include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/network/connection_manager.hpp"
 #include "libp2p/network/dialer.hpp"
-#include "libp2p/network/listener.hpp"
-#include "libp2p/network/network.hpp"
 #include "libp2p/network/transport_manager.hpp"
-#include "libp2p/peer/identity_manager.hpp"
-#include "libp2p/peer/peer_id.hpp"
-#include "libp2p/peer/peer_repository.hpp"
 #include "libp2p/protocol_muxer/protocol_muxer.hpp"
-#include "libp2p/transport/transport_listener.hpp"
-#include "libp2p/transport/upgrader.hpp"
 
 namespace libp2p::network {
 
