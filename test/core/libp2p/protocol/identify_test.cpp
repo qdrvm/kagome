@@ -71,18 +71,18 @@ class IdentifyTest : public testing::Test {
         identify_pb_msg_bytes_.data() + pb_msg_len_varint_->size(),
         identify_pb_msg_.ByteSize());
 
-    identify_ = std::make_shared<Identify>(*host_, bus_, conn_manager_,
-                                           id_manager_, key_marshaller_);
+    id_msg_processor_ = std::make_shared<IdentifyMessageProcessor>(
+        host_, conn_manager_, id_manager_, key_marshaller_);
+    identify_ = std::make_shared<Identify>(id_msg_processor_, bus_);
   }
 
-  std::shared_ptr<Host> host_ = std::make_shared<HostMock>();
-  std::shared_ptr<HostMock> host_mock_ =
-      std::static_pointer_cast<HostMock>(host_);
+  HostMock host_;
   libp2p::event::Bus bus_;
   IdentityManagerMock id_manager_;
   std::shared_ptr<marshaller::KeyMarshaller> key_marshaller_ =
       std::make_shared<marshaller::KeyMarshallerMock>();
 
+  std::shared_ptr<IdentifyMessageProcessor> id_msg_processor_;
   std::shared_ptr<Identify> identify_;
 
   std::shared_ptr<CapableConnectionMock> connection_ =
@@ -149,14 +149,16 @@ ACTION_P(Close, res) {
 TEST_F(IdentifyTest, Send) {
   // setup components, so that when Identify asks them, they give expected
   // parameters to be put into the Protobuf message
-  EXPECT_CALL(*host_mock_, getRouter()).WillOnce(ReturnRef(Const(router_)));
+  EXPECT_CALL(host_, getRouter()).WillOnce(ReturnRef(Const(router_)));
   EXPECT_CALL(router_, getSupportedProtocols()).WillOnce(Return(protocols_));
 
   EXPECT_CALL(*stream_, remoteMultiaddr())
       .Times(2)
       .WillRepeatedly(Return(outcome::success(remote_multiaddr_)));
 
-  EXPECT_CALL(*host_mock_, getListenAddresses())
+  EXPECT_CALL(host_, getNetwork()).WillOnce(ReturnRef(network_));
+  EXPECT_CALL(network_, getListener()).WillOnce(ReturnRef(listener_));
+  EXPECT_CALL(listener_, getListenAddresses())
       .WillOnce(Return(listen_addresses_));
 
   EXPECT_CALL(id_manager_, getKeyPair()).WillOnce(ReturnRef(Const(key_pair_)));
@@ -165,9 +167,8 @@ TEST_F(IdentifyTest, Send) {
       marshal(pubkey_))
       .WillOnce(Return(marshalled_pubkey_));
 
-  EXPECT_CALL(*host_mock_, getLibp2pVersion()).WillOnce(Return(kLibp2pVersion));
-  EXPECT_CALL(*host_mock_, getLibp2pClientVersion())
-      .WillOnce(Return(kClientVersion));
+  EXPECT_CALL(host_, getLibp2pVersion()).WillOnce(Return(kLibp2pVersion));
+  EXPECT_CALL(host_, getLibp2pClientVersion()).WillOnce(Return(kClientVersion));
 
   EXPECT_CALL(*stream_, remotePeerId()).WillOnce(Return(kRemotePeerId));
 
@@ -184,8 +185,8 @@ ACTION_P(ReadPut, buf) {
   arg2(buf.size());
 }
 
-ACTION_P(ReturnStream, s) {
-  arg2(std::move(s));
+ACTION_P(ReturnStreamRes, s) {
+  arg2(outcome::success(std::move(s)));
 }
 
 /**
@@ -199,8 +200,8 @@ TEST_F(IdentifyTest, Receive) {
   EXPECT_CALL(*connection_, remoteMultiaddr())
       .WillOnce(Return(remote_multiaddr_));
 
-  EXPECT_CALL(*host_mock_, newStream(kPeerInfo, kIdentifyProto, _))
-      .WillOnce(ReturnStream(std::static_pointer_cast<Stream>(stream_)));
+  EXPECT_CALL(host_, newStream(kPeerInfo, kIdentifyProto, _))
+      .WillOnce(ReturnStreamRes(std::static_pointer_cast<Stream>(stream_)));
 
   EXPECT_CALL(*stream_, read(_, 1, _))
       .WillOnce(ReadPut(gsl::make_span(identify_pb_msg_bytes_.data(), 1)))
@@ -225,7 +226,7 @@ TEST_F(IdentifyTest, Receive) {
       unmarshalPublicKey(marshalled_pubkey_))
       .WillOnce(Return(pubkey_));
 
-  EXPECT_CALL(*host_mock_, getPeerRepository())
+  EXPECT_CALL(host_, getPeerRepository())
       .Times(3)
       .WillRepeatedly(ReturnRef(peer_repo_));
   EXPECT_CALL(peer_repo_, getKeyRepository()).WillOnce(ReturnRef(key_repo_));
@@ -244,9 +245,7 @@ TEST_F(IdentifyTest, Receive) {
       .WillOnce(Return(listen_addresses_[0]));
   EXPECT_CALL(*stream_, isInitiator()).WillOnce(Return(true));
 
-  EXPECT_CALL(*host_mock_, getNetwork())
-      .Times(2)
-      .WillRepeatedly(ReturnRef(network_));
+  EXPECT_CALL(host_, getNetwork()).Times(2).WillRepeatedly(ReturnRef(network_));
   EXPECT_CALL(network_, getListener())
       .Times(2)
       .WillRepeatedly(ReturnRef(listener_));
@@ -255,6 +254,8 @@ TEST_F(IdentifyTest, Receive) {
       .WillOnce(Return(outcome::success(std::vector<Multiaddress>{})));
   EXPECT_CALL(listener_, getListenAddresses())
       .WillOnce(Return(listen_addresses_));
+
+  EXPECT_CALL(host_, getAddresses()).WillOnce(Return(listen_addresses_));
 
   // consumeListenAddresses
   EXPECT_CALL(peer_repo_, getAddressRepository())

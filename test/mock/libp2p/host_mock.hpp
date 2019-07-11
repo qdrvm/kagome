@@ -20,15 +20,14 @@ namespace libp2p {
 
     MOCK_CONST_METHOD0(getPeerInfo, peer::PeerInfo());
 
-    MOCK_CONST_METHOD0(getListenAddresses,
-                       gsl::span<const multi::Multiaddress>());
+    MOCK_CONST_METHOD0(getAddresses, gsl::span<const multi::Multiaddress>());
 
     MOCK_METHOD2(setProtocolHandler,
                  void(const peer::Protocol &,
                       const std::function<connection::Stream::Handler> &));
 
     MOCK_METHOD3(setProtocolHandler,
-                 void(const std::string &,
+                 void(std::string_view,
                       const std::function<connection::Stream::Handler> &,
                       const std::function<bool(const peer::Protocol &)> &));
 
@@ -36,7 +35,7 @@ namespace libp2p {
 
     MOCK_METHOD3(newStream,
                  void(const peer::PeerInfo &, const peer::Protocol &,
-                      const std::function<connection::Stream::Handler> &));
+                      const StreamResultHandler &));
 
     MOCK_CONST_METHOD0(getNetwork, network::Network &());
 

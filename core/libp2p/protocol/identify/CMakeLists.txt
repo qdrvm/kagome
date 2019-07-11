@@ -8,6 +8,8 @@ add_subdirectory(pb)
 add_library(libp2p_identify
     identify.cpp
     identify.hpp
+    identify_msg_processor.cpp
+    identify_msg_processor.hpp
     observed_addresses.cpp
     observed_addresses.hpp
     identify_push.cpp
