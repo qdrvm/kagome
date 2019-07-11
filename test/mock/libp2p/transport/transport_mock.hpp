@@ -7,14 +7,17 @@
 #define KAGOME_TRANSPORT_MOCK_HPP
 
 #include <gmock/gmock.h>
-#include "libp2p/transport/transport.hpp"
+#include "libp2p/transport/transport_adaptor.hpp"
 
 namespace libp2p::transport {
-  class TransportMock : public Transport {
+  class TransportMock : public TransportAdaptor {
    public:
     ~TransportMock() override = default;
 
-    MOCK_METHOD3(dial, void(const peer::PeerId&, multi::Multiaddress, HandlerFunc));
+    MOCK_CONST_METHOD0(getProtocolId, peer::Protocol());
+
+    MOCK_METHOD3(dial,
+                 void(const peer::PeerId &, multi::Multiaddress, HandlerFunc));
 
     MOCK_METHOD1(
         createListener,

@@ -65,6 +65,10 @@ namespace libp2p::multi {
     return gsl::span(bytes_.data(), bytes_.size());
   }
 
+  const std::vector<uint8_t> &UVarint::toVector() const {
+    return bytes_;
+  }
+
   std::string UVarint::toHex() const {
     return hex_upper(bytes_);
   }

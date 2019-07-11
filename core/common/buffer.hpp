@@ -188,8 +188,7 @@ namespace kagome::common {
      * Returns a copy of a part of the buffer
      * Works alike subspan() of gsl::span
      */
-    Buffer subbuffer(size_t offset = 0,
-                          size_t length = -1) const;
+    Buffer subbuffer(size_t offset = 0, size_t length = -1) const;
 
     /**
      * @brief encode bytearray as hex

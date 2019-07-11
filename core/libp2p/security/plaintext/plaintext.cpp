@@ -52,9 +52,7 @@ namespace libp2p::security {
           session->recvKey([this, p, outbound{std::move(outbound)},
                             cb{std::move(cb)}](
                                crypto::PublicKey remotePubkey) mutable {
-            peer::PeerId remoteIdCalculated =
-                peer::PeerId::fromPublicKey(remotePubkey).value();
-
+            auto remoteIdCalculated = peer::PeerId::fromPublicKey(remotePubkey);
             if (remoteIdCalculated != p) {
               return cb(make_error_code(SecurityError::AUTHENTICATION_ERROR));
             }

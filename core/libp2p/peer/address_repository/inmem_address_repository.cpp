@@ -52,6 +52,7 @@ namespace libp2p::peer {
     }
 
     std::vector<multi::Multiaddress> ma;
+    ma.reserve(it->second->size());
     for (auto &item : *it->second) {
       ma.push_back(item.first);
     }

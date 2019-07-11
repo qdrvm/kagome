@@ -11,6 +11,7 @@
 #include <string_view>
 #include <vector>
 
+#include <boost/core/noncopyable.hpp>
 #include <gsl/span>
 #include "common/logger.hpp"
 #include "libp2p/protocol_muxer/multiselect/message_manager.hpp"
@@ -25,26 +26,15 @@ namespace libp2p::protocol_muxer {
    * https://github.com/multiformats/multistream-select
    */
   class Multiselect : public ProtocolMuxer,
-                      public std::enable_shared_from_this<Multiselect> {
+                      public std::enable_shared_from_this<Multiselect>,
+                      private boost::noncopyable {
     friend MessageWriter;
     friend MessageReader;
 
    public:
-    /**
-     * Create a Multiselect instance
-     * @param logger to write debug messages to
-     */
-    explicit Multiselect(kagome::common::Logger logger =
-                             kagome::common::createLogger("Multiselect"));
-
-    Multiselect(const Multiselect &other) = delete;
-    Multiselect &operator=(const Multiselect &other) = delete;
-    Multiselect(Multiselect &&other) = default;
-    Multiselect &operator=(Multiselect &&other) = default;
-
     ~Multiselect() override = default;
 
-    void selectOneOf(gsl::span<peer::Protocol> protocols,
+    void selectOneOf(gsl::span<const peer::Protocol> protocols,
                      std::shared_ptr<basic::ReadWriter> connection,
                      bool is_initiator, ProtocolHandlerFunc cb) override;
 
@@ -56,7 +46,7 @@ namespace libp2p::protocol_muxer {
      * @return chosen protocol in case of success, error otherwise
      */
     void negotiate(const std::shared_ptr<basic::ReadWriter> &connection,
-                   gsl::span<peer::Protocol> protocols, bool is_initiator,
+                   gsl::span<const peer::Protocol> protocols, bool is_initiator,
                    const ProtocolHandlerFunc &handler);
 
     /**
@@ -122,7 +112,8 @@ namespace libp2p::protocol_muxer {
     std::vector<std::shared_ptr<boost::asio::streambuf>> read_buffers_;
     std::queue<size_t> free_buffers_;
 
-    kagome::common::Logger log_;
+    // TODO(warchant): use logger interface here and inject it PRE-235
+    kagome::common::Logger log_ = kagome::common::createLogger("multiselect");
   };
 }  // namespace libp2p::protocol_muxer
 

@@ -64,7 +64,7 @@ struct UpgraderSemiMock : public Upgrader {
 };
 
 struct Server : public std::enable_shared_from_this<Server> {
-  explicit Server(std::shared_ptr<Transport> transport)
+  explicit Server(std::shared_ptr<TransportAdaptor> transport)
       : transport_(std::move(transport)) {}
 
   void onConnection(const std::shared_ptr<CapableConnection> &conn) {
@@ -131,7 +131,7 @@ struct Server : public std::enable_shared_from_this<Server> {
     std::cout << std::endl;
   }
 
-  std::shared_ptr<Transport> transport_;
+  std::shared_ptr<TransportAdaptor> transport_;
   std::shared_ptr<TransportListener> listener_;
 };
 
@@ -236,7 +236,7 @@ struct Client : public std::enable_shared_from_this<Client> {
   std::default_random_engine generator;
   std::uniform_int_distribution<int> distribution;
 
-  std::shared_ptr<Transport> transport_;
+  std::shared_ptr<TransportAdaptor> transport_;
 };
 
 struct MuxerAcceptanceTest
@@ -299,7 +299,7 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
       auto client = std::make_shared<Client>(transport, localSeed, context,
                                              streams, rounds);
 
-      auto p = PeerId::fromPublicKey(serverKeyPair.publicKey).value();
+      auto p = PeerId::fromPublicKey(serverKeyPair.publicKey);
       client->connect(p, serverAddr);
 
       context.run_for(2000ms);

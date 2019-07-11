@@ -24,6 +24,8 @@ namespace libp2p::peer {
 
     constexpr const auto kHour = std::chrono::hours(1);
 
+    constexpr const auto kDay = std::chrono::hours(24);
+
   }  // namespace ttl
 
   /**

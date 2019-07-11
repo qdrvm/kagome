@@ -50,6 +50,9 @@ namespace libp2p::network {
     // add connection to a given peer
     virtual void addConnectionToPeer(const peer::PeerId &p,
                                      ConnectionSPtr c) = 0;
+
+    // closes all connections (outbound and inbound) to given peer
+    virtual void closeConnectionsToPeer(const peer::PeerId& p) = 0;
   };
 
 }  // namespace libp2p::network

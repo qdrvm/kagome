@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TRANSPORT_HPP
-#define KAGOME_TRANSPORT_HPP
+#ifndef KAGOME_TRANSPORT_ADAPTOR_HPP
+#define KAGOME_TRANSPORT_ADAPTOR_HPP
 
 #include <chrono>
 #include <functional>
@@ -12,6 +12,7 @@
 #include <system_error>
 
 #include <outcome/outcome.hpp>  // for outcome::result
+#include "libp2p/basic/adaptor.hpp"
 #include "libp2p/connection/capable_connection.hpp"
 #include "libp2p/event/emitter.hpp"
 #include "libp2p/multi/multiaddress.hpp"
@@ -24,13 +25,13 @@ namespace libp2p::transport {
    * Allows to establish connections with other peers and react to received
    * attempts to do so; can be implemented, for example, as TCP, UDP etc
    */
-  class Transport {
+ class TransportAdaptor : public basic::Adaptor {
    public:
     using ConnectionCallback =
         void(outcome::result<std::shared_ptr<connection::CapableConnection>>);
     using HandlerFunc = std::function<ConnectionCallback>;
 
-    virtual ~Transport() = default;
+    ~TransportAdaptor() override = default;
 
     /**
      * Try to establish connection with a peer
@@ -61,4 +62,4 @@ namespace libp2p::transport {
   };
 }  // namespace libp2p::transport
 
-#endif  // KAGOME_TRANSPORT_HPP
+#endif  //KAGOME_TRANSPORT_ADAPTOR_HPP
