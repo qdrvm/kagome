@@ -34,3 +34,11 @@ target_link_libraries(connection_manager_test
     testutil
     libp2p_peer_errors
     )
+
+
+addtest(dialer_test
+    dialer_test.cpp
+    )
+target_link_libraries(dialer_test
+    libp2p_dialer
+    )
