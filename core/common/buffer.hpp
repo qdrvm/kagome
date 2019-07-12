@@ -224,9 +224,8 @@ namespace kagome::common {
    * @param buffer value to encode
    * @return reference to stream
    */
-  template <
-      class Stream,
-      typename = std::enable_if_t<!std::is_same<Stream, std::ostream>::value>>
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Buffer &buffer) {
     return s << buffer.toVector();
   }
@@ -238,7 +237,8 @@ namespace kagome::common {
    * @param buffer value to decode
    * @return reference to stream
    */
-  template <class Stream>
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, Buffer &buffer) {
     std::vector<uint8_t> data;
     s >> data;

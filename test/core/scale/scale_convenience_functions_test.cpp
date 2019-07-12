@@ -20,21 +20,14 @@ struct TestStruct {
   }
 };
 
-namespace std {
-  inline std::ostream &operator<<(std::ostream &s,
-                                  const TestStruct &test_struct) {
-    s << test_struct.a << test_struct.b;
-    return s;
-  }
-}  // namespace std
-
-template <class Stream>
-Stream &operator<<(Stream &s, const TestStruct &test_struct) {
+template <class Stream, typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const TestStruct &test_struct) {
   return s << test_struct.a << test_struct.b;
 }
 
-template <class Stream>
-Stream &operator>>(Stream &s, TestStruct &test_struct) {
+template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, TestStruct &test_struct) {
   return s >> test_struct.a >> test_struct.b;
 }
 

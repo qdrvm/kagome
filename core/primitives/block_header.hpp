@@ -29,7 +29,8 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream>
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const BlockHeader &bh) {
     return s << bh.parent_hash << bh.number << bh.state_root
              << bh.extrinsics_root << bh.digest;
@@ -42,7 +43,8 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream>
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, BlockHeader &bh) {
     return s >> bh.parent_hash >> bh.number >> bh.state_root
         >> bh.extrinsics_root >> bh.digest;
