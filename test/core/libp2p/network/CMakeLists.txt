@@ -42,3 +42,11 @@ addtest(listener_test
 target_link_libraries(listener_test
     libp2p_listener
     )
+
+
+addtest(dialer_test
+    dialer_test.cpp
+    )
+target_link_libraries(dialer_test
+    libp2p_dialer
+    )

@@ -13,4 +13,11 @@ namespace libp2p::basic {
       : read_writer_{std::move(read_writer)} {
     BOOST_ASSERT(read_writer_);
   }
+
+  ProtobufMessageReadWriter::ProtobufMessageReadWriter(
+      std::shared_ptr<ReadWriter>
+          conn)  // NOLINT(performance-unnecessary-value-param)
+      : read_writer_{std::make_shared<MessageReadWriter>(std::move(conn))} {
+    BOOST_ASSERT(read_writer_);
+  }
 }  // namespace libp2p::basic

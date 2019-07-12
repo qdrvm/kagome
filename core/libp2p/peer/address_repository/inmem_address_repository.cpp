@@ -44,6 +44,21 @@ namespace libp2p::peer {
     return outcome::success();
   }
 
+  outcome::result<void> InmemAddressRepository::updateAddresses(
+      const PeerId &p, Milliseconds ttl) {
+    auto it = db_.find(p);
+    if (it == db_.end()) {
+      return PeerError::NOT_FOUND;
+    }
+
+    auto expires_in = Clock::now() + ttl;
+    for (auto &item : *it->second) {
+      item.second = expires_in;
+    }
+
+    return outcome::success();
+  }
+
   outcome::result<std::vector<multi::Multiaddress>>
   InmemAddressRepository::getAddresses(const PeerId &p) const {
     auto it = db_.find(p);

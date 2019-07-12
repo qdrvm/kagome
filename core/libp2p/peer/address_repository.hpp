@@ -7,8 +7,8 @@
 #define KAGOME_ADDRESS_REPOSITORY_HPP
 
 #include <chrono>
-#include <vector>
 #include <unordered_set>
+#include <vector>
 
 #include <boost/signals2.hpp>
 #include <gsl/span>
@@ -20,9 +20,21 @@ namespace libp2p::peer {
 
   namespace ttl {
 
+    /// permanent addresses, for example, bootstrap nodes
     constexpr const auto kPermanent = std::chrono::milliseconds::max();
 
-    constexpr const auto kHour = std::chrono::hours(1);
+    /// standard expiration time of the addresses
+    constexpr const auto kAddress = std::chrono::hours(1);
+
+    /// we have recently connected to the peer and pretty certain about the
+    /// address we add
+    constexpr const auto kRecentlyConnected = std::chrono::minutes(10);
+
+    /// for our own external addresses, observed by other peers
+    constexpr const auto kOwnObserved = std::chrono::minutes(10);
+
+    /// invalidated addresses
+    constexpr const auto kTransient = std::chrono::seconds(10);
 
     constexpr const auto kDay = std::chrono::hours(24);
 
@@ -68,6 +80,15 @@ namespace libp2p::peer {
     virtual outcome::result<void> upsertAddresses(
         const PeerId &p, gsl::span<const multi::Multiaddress> ma,
         Milliseconds ttl) = 0;
+
+    /**
+     * @brief Update all addresses of a given peer {@param p}
+     * @param p peer
+     * @param ttl time to live for update multiaddresses
+     * @return error when no peer has been found
+     */
+    virtual outcome::result<void> updateAddresses(const PeerId &p,
+                                                  Milliseconds ttl) = 0;
 
     /**
      * @brief Get all addresses associated with this Peer {@param p}. May

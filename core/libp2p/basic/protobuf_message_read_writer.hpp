@@ -25,15 +25,16 @@ namespace libp2p::basic {
      */
     explicit ProtobufMessageReadWriter(
         std::shared_ptr<MessageReadWriter> read_writer);
+    explicit ProtobufMessageReadWriter(std::shared_ptr<ReadWriter> conn);
 
     /**
      * Read a message from the connection
      * @tparam ProtoMsgType - type of the message to be read
      * @param cb to be called, when the message is read, or error happens
      */
-    template <
-        typename ProtoMsgType,
-        typename = typename std::is_default_constructible<ProtoMsgType>::value>
+    template <typename ProtoMsgType,
+              typename = std::enable_if_t<
+                  std::is_default_constructible<ProtoMsgType>::value>>
     void read(ReadCallbackFunc<ProtoMsgType> cb) {
       read_writer_->read(
           [self{shared_from_this()}, cb = std::move(cb)](auto &&res) mutable {
@@ -54,16 +55,16 @@ namespace libp2p::basic {
      * @param msg to be written
      * @param cb to be called, when the message is written, or error happens
      */
-    template <
-        typename ProtoMsgType,
-        typename = typename std::is_default_constructible<ProtoMsgType>::value>
+    template <typename ProtoMsgType,
+              typename = std::enable_if_t<
+                  std::is_default_constructible<ProtoMsgType>::value>>
     void write(const ProtoMsgType &msg, Writer::WriteCallbackFunc cb) {
-      auto msg_bytes = std::make_shared<std::vector<uint8_t>>();
-      msg_bytes->reserve(msg.ByteSize());
+      auto msg_bytes = std::make_shared<std::vector<uint8_t>>(msg.ByteSize(), 0);
       msg.SerializeToArray(msg_bytes->data(), msg.ByteSize());
-      read_writer_->write(*msg, [msg, cb = std::move(cb)](auto &&res) {
-        cb(std::forward<decltype(res)>(res));
-      });
+      read_writer_->write(*msg_bytes,
+                          [cb = std::move(cb), msg_bytes](auto &&res) {
+                            cb(std::forward<decltype(res)>(res));
+                          });
     }
 
    private:

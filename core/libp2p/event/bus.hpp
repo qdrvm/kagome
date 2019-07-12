@@ -43,55 +43,60 @@ namespace libp2p::event {
   };
 
   /**
+   * Type that represents an active subscription to a channel allowing
+   * for ownership via RAII and also explicit unsubscribe actions
+   */
+  class Handle {
+   public:
+    ~Handle() {  // NOLINT(bugprone-exception-escape) - no way we can call it
+      // with noexcept guarantee, but we need
+      unsubscribe();
+    }
+
+    /**
+     * Explicitly unsubscribe from channel before the lifetime
+     * of this object expires
+     */
+    void unsubscribe() {
+      if (handle_.connected()) {
+        handle_.disconnect();
+      }
+    }
+
+    // This handle can be constructed and moved
+    Handle() = default;
+
+    // no way they can be noexcept because of none-noexcept
+    // boost::signal2::connection move ctor
+    Handle(Handle &&) = default;                // NOLINT
+    Handle &operator=(Handle &&rhs) = default;  // NOLINT
+
+    // dont allow copying since this protects the resource
+    Handle(const Handle &) = delete;
+    Handle &operator=(const Handle &) = delete;
+
+   private:
+    using handle_type = boost::signals2::connection;
+    handle_type handle_;
+
+    /**
+     * Construct a handle from an internal representation of a handle
+     * In this case a boost::signals2::connection
+     *
+     * @param _handle - the boost::signals2::connection to wrap
+     */
+    explicit Handle(handle_type &&handle) : handle_(std::move(handle)) {}
+
+    template <typename D, typename DP>
+    friend class Channel;
+  };
+
+  /**
    * Channel, which can emit events and allows to subscribe to them
    */
   template <typename Data, typename DispatchPolicy>
   class Channel {
    public:
-    /**
-     * Type that represents an active subscription to a channel allowing
-     * for ownership via RAII and also explicit unsubscribe actions
-     */
-    class Handle {
-     public:
-      ~Handle() {
-        unsubscribe();
-      }
-
-      /**
-       * Explicitly unsubscribe from channel before the lifetime
-       * of this object expires
-       */
-      void unsubscribe() {
-        if (handle_.connected()) {
-          handle_.disconnect();
-        }
-      }
-
-      // This handle can be constructed and moved
-      Handle() = default;
-      Handle(Handle &&) = default;
-      Handle &operator=(Handle &&rhs) = default;
-
-      // dont allow copying since this protects the resource
-      Handle(const Handle &) = delete;
-      Handle &operator=(const Handle &) = delete;
-
-     private:
-      using handle_type = boost::signals2::connection;
-      handle_type handle_;
-
-      /**
-       * Construct a handle from an internal representation of a handle
-       * In this case a boost::signals2::connection
-       *
-       * @param _handle - the boost::signals2::connection to wrap
-       */
-      explicit Handle(handle_type &&handle) : handle_(std::move(handle)) {}
-
-      friend class Channel;
-    };
-
     /**
      * Subscribe to data on a channel
      * @tparam Callback the type of the callback (functor|lambda)
@@ -131,8 +136,10 @@ namespace libp2p::event {
      * @param erased_channel_ptr
      */
     static void deleter(void *erased_channel_ptr) {
-      auto ptr = reinterpret_cast<Channel *>(erased_channel_ptr);
-      delete ptr;
+      auto ptr =
+          reinterpret_cast<  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+              Channel *>(erased_channel_ptr);
+      delete ptr;  // NOLINT(cppcoreguidelines-owning-memory)
     }
 
     /**
@@ -141,7 +148,8 @@ namespace libp2p::event {
      * @return - the type safe channel pointer
      */
     static Channel *get_channel(erased_channel_ptr &ptr) {
-      return reinterpret_cast<Channel *>(ptr.get());
+      return reinterpret_cast<  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+          Channel *>(ptr.get());
     }
 
     /**
@@ -199,10 +207,9 @@ namespace libp2p::event {
       auto itr = channels_.find(key);
       if (itr != channels_.end()) {
         return *channel_type::get_channel(itr->second);
-      } else {
-        channels_.emplace(std::make_pair(key, channel_type::make_unique()));
-        return *channel_type::get_channel(channels_.at(key));
       }
+      channels_.emplace(std::make_pair(key, channel_type::make_unique()));
+      return *channel_type::get_channel(channels_.at(key));
     }
 
    private:
