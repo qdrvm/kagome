@@ -96,7 +96,7 @@ matrix:
         - sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-8 90
         - gcov --version || true
         - cmake --build build --target ctest_coverage
-        - bash <(curl -s https://codecov.io/bash) -s build 2>&1 | grep -v "arcs"
+        - bash <(curl -s https://codecov.io/bash) -s build 2>&1 1>/dev/null
 
 
 # TODO(Warchant): compiler updated and new build does not pass. Fix.
