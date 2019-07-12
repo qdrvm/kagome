@@ -7,7 +7,7 @@
 #define KAGOME_NETWORK_HPP
 
 #include "libp2p/network/dialer.hpp"
-#include "libp2p/network/listener.hpp"
+#include "libp2p/network/listener_manager.hpp"
 
 namespace libp2p::network {
 
@@ -15,14 +15,14 @@ namespace libp2p::network {
   struct Network {
     virtual ~Network() = default;
 
-    // Closes all connections to a given peer
+    /// Closes all connections to a given peer
     virtual void closeConnections(const peer::PeerId &p) = 0;
 
-    // Getter for Dialer associated with this Network
+    /// Getter for Dialer associated with this Network
     virtual Dialer &getDialer() = 0;
 
-    // Getter for Listener associated with this Network
-    virtual Listener &getListener() = 0;
+    /// Getter for Listener associated with this Network
+    virtual ListenerManager &getListener() = 0;
 
     // TODO(Warchant): emits events:
     //    ClosedStream(Network, Stream)

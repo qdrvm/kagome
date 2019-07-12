@@ -12,6 +12,16 @@ target_link_libraries(libp2p_router
     )
 
 
+add_library(libp2p_listener_manager
+    listener_manager_impl.cpp
+    )
+target_link_libraries(libp2p_listener_manager
+    Boost::boost
+    multiaddress
+    libp2p_peer_id
+    )
+
+
 add_library(libp2p_dialer
     dialer_impl.cpp
     )
