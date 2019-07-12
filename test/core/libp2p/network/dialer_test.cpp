@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <gtest/gtest.h>
 #include "libp2p/network/impl/dialer_impl.hpp"
 
+#include <gtest/gtest.h>
 #include "mock/libp2p/connection/capable_connection_mock.hpp"
 #include "mock/libp2p/connection/stream_mock.hpp"
 #include "mock/libp2p/network/connection_manager_mock.hpp"
@@ -14,7 +14,6 @@
 #include "mock/libp2p/peer/address_repository_mock.hpp"
 #include "mock/libp2p/protocol_muxer/protocol_muxer_mock.hpp"
 #include "mock/libp2p/transport/transport_mock.hpp"
-
 #include "testutil/gmock_actions.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
