@@ -326,7 +326,12 @@ namespace libp2p::protocol {
     }
 
     // memorize the addresses
-    switch (conn_manager_.connectedness(peer_id)) {
+    auto addresses = addr_repo.getAddresses(peer_id);
+    if(!addresses) {
+      log_->error("can not get addresses for peer {}", peer_id.toBase58());
+    }
+
+    switch (conn_manager_.connectedness({peer_id, addresses.value()})) {
       case network::ConnectionManager::Connectedness::CONNECTED:
         add_res = addr_repo.upsertAddresses(peer_id, listen_addresses,
                                             peer::ttl::kPermanent);

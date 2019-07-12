@@ -266,7 +266,7 @@ TEST_F(IdentifyTest, Receive) {
                       std::chrono::duration_cast<std::chrono::milliseconds>(
                           peer::ttl::kTransient)))
       .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(conn_manager_, connectedness(kRemotePeerId))
+  EXPECT_CALL(conn_manager_, connectedness(_))
       .WillOnce(Return(network::ConnectionManager::Connectedness::CONNECTED));
   EXPECT_CALL(
       addr_repo_,
