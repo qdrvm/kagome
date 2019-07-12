@@ -77,7 +77,7 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream>
+  template <class Stream, typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Invalid &v) {
     return s << v.error;
   }
@@ -89,7 +89,7 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream>
+  template <class Stream, typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Valid &v) {
     return s << v.priority << v.requires << v.provides << v.longevity;
   }
@@ -101,7 +101,7 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream>
+  template <class Stream, typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Unknown &v) {
     return s << v.error;
   }
@@ -113,7 +113,8 @@ namespace kagome::primitives {
    * @param v value to decode
    * @return reference to stream
    */
-  template <class Stream>
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, Invalid &v) {
     return s >> v.error;
   }
@@ -125,7 +126,8 @@ namespace kagome::primitives {
    * @param v value to decode
    * @return reference to stream
    */
-  template <class Stream>
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, Valid &v) {
     return s >> v.priority >> v.requires >> v.provides >> v.longevity;
   }
@@ -137,7 +139,8 @@ namespace kagome::primitives {
    * @param v value to decode
    * @return reference to stream
    */
-  template <class Stream>
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, Unknown &v) {
     return s >> v.error;
   }

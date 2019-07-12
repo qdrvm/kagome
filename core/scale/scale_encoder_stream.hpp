@@ -19,6 +19,8 @@ namespace kagome::scale {
    */
   class ScaleEncoderStream {
    public:
+    // special tag to differentiate encoding streams from others
+    static constexpr std::true_type is_encoder_stream;
     /// Getters
     /**
      * @return vector of bytes containing encoded data

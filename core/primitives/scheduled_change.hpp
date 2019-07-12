@@ -36,7 +36,8 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream>
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const ScheduledChange &v) {
     return s << v.next_authorities << v.delay;
   }
@@ -48,7 +49,8 @@ namespace kagome::primitives {
    * @param v value to decode
    * @return reference to stream
    */
-  template <class Stream>
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, ScheduledChange &v) {
     return s >> v.next_authorities >> v.delay;
   }

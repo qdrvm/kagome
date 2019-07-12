@@ -16,6 +16,9 @@
 namespace kagome::scale {
   class ScaleDecoderStream {
    public:
+    // special tag to differentiate decoding streams from others
+    static constexpr std::true_type is_decoder_stream;
+
     explicit ScaleDecoderStream(gsl::span<const uint8_t> span);
 
     /**

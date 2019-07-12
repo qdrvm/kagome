@@ -25,7 +25,7 @@ namespace kagome::transaction_pool {
     static constexpr size_t kDefaultMaxWaitingNum = 128;
 
    public:
-    TransactionPoolImpl(
+    explicit TransactionPoolImpl(
         std::unique_ptr<PoolModerator> moderator,
         Limits limits = Limits{kDefaultMaxReadyNum, kDefaultMaxWaitingNum},
         common::Logger logger = common::createLogger(kDefaultLoggerTag));
