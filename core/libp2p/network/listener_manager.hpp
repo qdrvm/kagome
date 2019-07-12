@@ -59,7 +59,6 @@ namespace libp2p::network {
      */
     virtual outcome::result<void> listen(const multi::Multiaddress &ma) = 0;
 
-    // Returns a list of addresses, added by user
     /**
      * @brief Returns an unmodified list of addresses, added by user.
      */
