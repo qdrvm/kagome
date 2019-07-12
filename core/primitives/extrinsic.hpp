@@ -26,7 +26,8 @@ namespace kagome::primitives {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Extrinsic &v) {
-    return s << v.data.toVector();
+    //    return s << v.data.toVector();
+    return s;
   }
 
   /**
