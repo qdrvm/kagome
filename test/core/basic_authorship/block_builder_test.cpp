@@ -40,24 +40,6 @@ class BlockBuilderTest : public ::testing::Test {
   std::shared_ptr<BlockBuilderImpl> block_builder_;
 };
 
-namespace std {
-  std::ostream &operator<<(std::ostream &s, const Extrinsic &xt) {
-    return testing::internal2::operator<<(s, xt);
-  }
-
-  std::ostream &operator<<(std::ostream &s, const InherentData &inherent_data) {
-    return testing::internal2::operator<<(s, inherent_data);
-  }
-
-  std::ostream &operator<<(std::ostream &s, const Block &block) {
-    return testing::internal2::operator<<(s, block);
-  }
-
-  std::ostream &operator<<(std::ostream &s, const BlockHeader &block_header) {
-    return testing::internal2::operator<<(s, block_header);
-  }
-}  // namespace std
-
 /**
  * @given BlockBuilderApi that fails to apply extrinsic @and BlockBuilder that
  * uses that BlockBuilderApi
