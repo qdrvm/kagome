@@ -99,26 +99,48 @@ namespace libp2p::crypto {
       return PublicKey{{key.type, std::move(public_buffer)}};
     }
 
+    template <class KeyStructure, class Function>
+    outcome::result<std::vector<uint8_t>> encodeKeyDer(KeyStructure *ks,
+                                                       Function *function) {
+      unsigned char *buffer = nullptr;
+      auto cleanup_buffer = gsl::finally([buffer]() {
+        if (buffer != nullptr) {
+          free(buffer);
+        }
+      });
+
+      int length = function(ks, &buffer);
+      if (length < 0) {
+        return KeyGeneratorError::KEY_GENERATION_FAILED;
+      }
+
+      std::vector<uint8_t> bytes(length, 0);
+      auto span = gsl::span(buffer, length);
+      std::copy(span.begin(), span.end(), bytes.begin());
+
+      return bytes;
+    }
+
     /**
-     * @brief generates private and public rsa key contents
-     * @param bits rsa key bits count
-     * @return pair of private and public key content
+     * according to libp2p specification:
+     *  https://github.com/libp2p/specs/blob/master/peer-ids/peer-ids.md#how-keys-are-encoded-and-messages-signed
+     *  We encode the public key using the DER-encoded PKIX format
+     *  We encode the private key as a PKCS1 key using ASN.1 DER.
+     *
+     *  according to openssl manual:
+     *  https://www.openssl.org/docs/man1.0.2/man3/i2d_RSAPublicKey.html
+     *  d2i_RSAPublicKey() and i2d_RSAPublicKey() decode and encode a PKCS#1
+     *
+     *  https://www.openssl.org/docs/man1.0.2/man3/i2d_RSAPrivateKey.html
+     *  d2i_RSAPrivateKey(), i2d_RSAPrivateKey() decode and encode a PKCS#1
      */
     outcome::result<std::pair<KeyGenerator::Buffer, KeyGenerator::Buffer>>
     generateRsaKeys(int bits) {
       int ret = 0;
       RSA *rsa = nullptr;
       BIGNUM *bne = nullptr;
-      unsigned char *public_bytes = nullptr;
-      unsigned char *private_bytes = nullptr;
       // clean up automatically
       auto cleanup = gsl::finally([&]() {
-        if (nullptr != public_bytes) {
-          free(public_bytes);
-        }
-        if (nullptr != private_bytes) {
-          free(private_bytes);
-        }
         if (nullptr != rsa) {
           RSA_free(rsa);
         }
@@ -143,49 +165,10 @@ namespace libp2p::crypto {
         return KeyGeneratorError::KEY_GENERATION_FAILED;
       }
 
-      auto cleanup_keys = gsl::finally([public_bytes, private_bytes]() {
-        // not sure about it
-        free(public_bytes);
-        free(private_bytes);
-      });
+      OUTCOME_TRY(public_bytes, detail::encodeKeyDer(rsa, i2d_RSAPublicKey));
+      OUTCOME_TRY(private_bytes, detail::encodeKeyDer(rsa, i2d_RSAPrivateKey));
 
-      // 3. format keys
-      //
-      // according to libp2p specification:
-      // https://github.com/libp2p/specs/blob/master/peer-ids/peer-ids.md#how-keys-are-encoded-and-messages-signed
-      // We encode the public key using the DER-encoded PKIX format
-      // We encode the private key as a PKCS1 key using ASN.1 DER.
-      //
-      // according to openssl manual:
-      // https://www.openssl.org/docs/man1.0.2/man3/i2d_RSAPublicKey.html
-      // d2i_RSAPublicKey() and i2d_RSAPublicKey() decode and encode a PKCS#1
-      // RSAPublicKey structure.
-      //
-      // https://www.openssl.org/docs/man1.0.2/man3/i2d_RSAPrivateKey.html
-      //
-      // d2i_RSAPrivateKey(), i2d_RSAPrivateKey() decode and encode a PKCS#1
-      // RSAPrivateKey structure.
-
-      auto public_length = i2d_RSAPublicKey(rsa, &public_bytes);
-      if (public_length < 0) {
-        return KeyGeneratorError::KEY_GENERATION_FAILED;
-      }
-
-      auto private_length = i2d_RSAPrivateKey(rsa, &private_bytes);
-      if (private_length < 0) {
-        return KeyGeneratorError::KEY_GENERATION_FAILED;
-      }
-
-      auto make_buffer = [](unsigned char *bytes,
-                            auto length) -> std::vector<uint8_t> {
-        std::vector<uint8_t> buffer(length, 0);
-        auto span = gsl::make_span(bytes, length);
-        std::copy(span.begin(), span.end(), buffer.begin());
-        return buffer;
-      };
-
-      return {make_buffer(public_bytes, public_length),
-              make_buffer(private_bytes, private_length)};
+      return {std::move(public_bytes), std::move(private_bytes)};
     }
   }  // namespace detail
 
@@ -241,17 +224,15 @@ namespace libp2p::crypto {
 
   outcome::result<KeyPair> KeyGeneratorImpl::generateEd25519() const {
     EVP_PKEY *pkey = nullptr;
-    EVP_PKEY_CTX *pctx = nullptr;
-    BIO *bio_public = nullptr;
-    BIO *bio_private = nullptr;
-
-    pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, nullptr);
+    EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, nullptr);
 
     auto cleanup = gsl::finally([&]() {
-      EVP_PKEY_free(pkey);
-      EVP_PKEY_CTX_free(pctx);
-      BIO_free_all(bio_public);
-      BIO_free_all(bio_private);
+      if (pkey != nullptr) {
+        EVP_PKEY_free(pkey);
+      }
+      if (pctx != nullptr) {
+        EVP_PKEY_CTX_free(pctx);
+      }
     });
 
     auto ret = EVP_PKEY_keygen_init(pctx);
@@ -264,26 +245,30 @@ namespace libp2p::crypto {
       return KeyGeneratorError::KEY_GENERATION_FAILED;
     }
 
-    // 2. save keys to memory
-    bio_private = BIO_new(BIO_s_mem());
-    bio_public = BIO_new(BIO_s_mem());
+    // get private or public key raw bytes in uniform way
+    auto get_key_bytes =
+        [pkey](auto *funptr) -> outcome::result<std::vector<uint8_t>> {
+      size_t len = 0;
+      // get length
+      if (1 != funptr(pkey, nullptr, &len)) {
+        return KeyGeneratorError::KEY_GENERATION_FAILED;
+      }
 
-    if (1 != PEM_write_bio_PUBKEY(bio_public, pkey)) {
-      return KeyGeneratorError::KEY_GENERATION_FAILED;
-    }
-    if (1
-        != PEM_write_bio_PrivateKey(bio_private, pkey, nullptr, nullptr, 0,
-                                    nullptr, nullptr)) {
-      return KeyGeneratorError::KEY_GENERATION_FAILED;
-    }
+      std::vector<uint8_t> key_bytes(len, 0);
+      if (1 != funptr(pkey, key_bytes.data(), &len)) {
+        return KeyGeneratorError::KEY_GENERATION_FAILED;
+      }
 
-    // 3. Get keys
-    auto private_buffer = detail::bio2buffer(bio_private);
-    auto public_buffer = detail::bio2buffer(bio_public);
+      return key_bytes;
+    };
 
-    auto public_key = PublicKey{{Key::Type::ED25519, std::move(public_buffer)}};
+    OUTCOME_TRY(private_key_bytes, get_key_bytes(EVP_PKEY_get_raw_private_key));
+    OUTCOME_TRY(public_key_bytes, get_key_bytes(EVP_PKEY_get_raw_public_key));
+
+    auto public_key =
+        PublicKey{{Key::Type::ED25519, std::move(public_key_bytes)}};
     auto private_key =
-        PrivateKey{{Key::Type::ED25519, std::move(private_buffer)}};
+        PrivateKey{{Key::Type::ED25519, std::move(private_key_bytes)}};
 
     return KeyPair{std::move(public_key), std::move(private_key)};
   }
@@ -296,7 +281,12 @@ namespace libp2p::crypto {
     if (nullptr == key) {
       return KeyGeneratorError::KEY_GENERATION_FAILED;
     }
-    auto free_key = gsl::finally([key]() { EC_KEY_free(key); });
+
+    auto free_key = gsl::finally([key]() {
+      if (key != nullptr) {
+        EC_KEY_free(key);
+      }
+    });
 
     EC_GROUP *group = EC_GROUP_new_by_curve_name(NID_secp256k1);
     if (nullptr == group) {
@@ -311,26 +301,8 @@ namespace libp2p::crypto {
       return KeyGeneratorError::KEY_GENERATION_FAILED;
     }
 
-    // 2. save keys to memory
-    BIO *bio_public = BIO_new(BIO_s_mem());
-    BIO *bio_private = BIO_new(BIO_s_mem());
-    auto free_bio = gsl::finally([bio_private, bio_public]() {
-      BIO_free_all(bio_private);
-      BIO_free_all(bio_public);
-    });
-
-    if (1 != PEM_write_bio_EC_PUBKEY(bio_public, key)) {
-      return KeyGeneratorError::KEY_GENERATION_FAILED;
-    }
-    if (1
-        != PEM_write_bio_ECPrivateKey(bio_private, key, nullptr, nullptr, 0,
-                                      nullptr, nullptr)) {
-      return KeyGeneratorError::KEY_GENERATION_FAILED;
-    }
-
-    // 3. Get keys
-    auto public_bytes = detail::bio2buffer(bio_public);
-    auto private_bytes = detail::bio2buffer(bio_private);
+    OUTCOME_TRY(public_bytes, detail::encodeKeyDer(key, i2d_EC_PUBKEY));
+    OUTCOME_TRY(private_bytes, detail::encodeKeyDer(key, i2d_ECPrivateKey));
 
     auto public_key =
         PublicKey{{Key::Type::SECP256K1, std::move(public_bytes)}};
