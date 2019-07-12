@@ -12,7 +12,7 @@ namespace libp2p::network {
       std::shared_ptr<network::Router> router,
       std::shared_ptr<TransportManager> tmgr,
       std::shared_ptr<ConnectionManager> cmgr)
-      : ultiselect_(std::move(multiselect)),
+      : multiselect_(std::move(multiselect)),
         router_(std::move(router)),
         tmgr_(std::move(tmgr)),
         cmgr_(std::move(cmgr)) {
@@ -93,7 +93,7 @@ namespace libp2p::network {
     for (auto it = begin; it != end;) {
       auto r = it->second->close();
       if (!r) {
-        // error while stopping listener, remote it
+        // error while stopping listener, remove it
         it = listeners_.erase(it);
       } else {
         ++it;
@@ -103,8 +103,8 @@ namespace libp2p::network {
     started = false;
   }
 
-  outcome::result<void> ListenerManagerImpl::listen(c
-      onst multi::Multiaddress &ma) {
+  outcome::result<void> ListenerManagerImpl::listen(
+      const multi::Multiaddress &ma) {
     auto tr = this->tmgr_->findBest(ma);
     if (tr == nullptr) {
       // can not listen on this address
@@ -126,7 +126,7 @@ namespace libp2p::network {
   }
 
   std::vector<multi::Multiaddress> ListenerManagerImpl::getListenAddresses()
-      onst {
+      const {
     std::vector<multi::Multiaddress> mas;
     mas.reserve(listeners_.size());
 
@@ -204,15 +204,13 @@ namespace libp2p::network {
 
   void ListenerManagerImpl::setProtocolHandler(const peer::Protocol &protocol,
 
-                                               treamResultFunc cb) {
+                                               StreamResultFunc cb) {
     this->router_->setProtocolHandler(protocol, std::move(cb));
   }
 
-  void ListenerManagerImpl::setProtocolHandler(c
-      onst peer::Protocol &protocol,
- treamResultFunc cb,
-
-      outer::ProtoPredicate predicate) {
+  void ListenerManagerImpl::setProtocolHandler(
+      const peer::Protocol &protocol, StreamResultFunc cb,
+      Router::ProtoPredicate predicate) {
     this->router_->setProtocolHandler(protocol, std::move(cb), predicate);
   }
 

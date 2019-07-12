@@ -36,11 +36,11 @@ target_link_libraries(connection_manager_test
     )
 
 
-addtest(listener_test
-    listener_test.cpp
+addtest(listener_manager_test
+    listener_manager_test.cpp
     )
-target_link_libraries(listener_test
-    libp2p_listener
+target_link_libraries(listener_manager_test
+    libp2p_listener_manager
     )
 
 
