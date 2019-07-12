@@ -8,16 +8,13 @@
 
 #include "libp2p/network/connection_manager.hpp"
 #include "libp2p/network/transport_manager.hpp"
-#include "libp2p/peer/address_repository.hpp"
 #include "libp2p/peer/peer_id.hpp"
 
 namespace libp2p::network {
 
   class ConnectionManagerImpl : public ConnectionManager {
    public:
-    ConnectionManagerImpl(
-        std::shared_ptr<peer::AddressRepository> repo,
-        std::shared_ptr<network::TransportManager> tmgr);
+    ConnectionManagerImpl(std::shared_ptr<network::TransportManager> tmgr);
 
     std::vector<ConnectionSPtr> getConnections() const override;
 
@@ -27,16 +24,15 @@ namespace libp2p::network {
     ConnectionSPtr getBestConnectionForPeer(
         const peer::PeerId &p) const override;
 
-    Connectedness connectedness(const peer::PeerId &p) const override;
+    Connectedness connectedness(const peer::PeerInfo &p) const override;
 
     void addConnectionToPeer(const peer::PeerId &p, ConnectionSPtr c) override;
 
     void collectGarbage() override;
 
-    void closeConnectionsToPeer(const peer::PeerId& p) override;
+    void closeConnectionsToPeer(const peer::PeerId &p) override;
 
    private:
-    std::shared_ptr<peer::AddressRepository> addr_repo_;
     std::shared_ptr<network::TransportManager> transport_manager_;
 
     std::unordered_map<peer::PeerId, std::vector<ConnectionSPtr>> connections_;

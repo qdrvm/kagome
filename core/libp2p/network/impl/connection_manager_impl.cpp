@@ -32,8 +32,8 @@ namespace libp2p::network {
   }
 
   ConnectionManager::Connectedness ConnectionManagerImpl::connectedness(
-      const peer::PeerId &p) const {
-    auto it = connections_.find(p);
+      const peer::PeerInfo &p) const {
+    auto it = connections_.find(p.id);
     if (it != connections_.end()) {
       // if all connections are nullptr or closed
       if (it->second.empty()
@@ -46,18 +46,15 @@ namespace libp2p::network {
       // valid connections have been found
       return Connectedness::CONNECTED;
     }
-
     // no valid connections found
 
-    // try to find addresses of that peer
-    auto r = addr_repo_->getAddresses(p);
-    if (!r) {
-      // can not query address repository
+    // if no connectios to this peer
+    if (p.addresses.empty()) {
       return Connectedness::CAN_NOT_CONNECT;
     }
 
     // for each address, try to find transport to dial
-    for (auto &&ma : r.value()) {
+    for (auto &&ma : p.addresses) {
       if (auto tr = transport_manager_->findBest(ma); tr != nullptr) {
         // we can dial to the peer
         return Connectedness::CAN_CONNECT;
@@ -92,10 +89,8 @@ namespace libp2p::network {
   }
 
   ConnectionManagerImpl::ConnectionManagerImpl(
-      std::shared_ptr<peer::AddressRepository> addr,
       std::shared_ptr<TransportManager> tmgr)
-      : addr_repo_(std::move(addr)), transport_manager_(std::move(tmgr)) {
-    BOOST_ASSERT(addr_repo_ != nullptr);
+      : transport_manager_(std::move(tmgr)) {
     BOOST_ASSERT(transport_manager_ != nullptr);
   }
 
@@ -120,8 +115,8 @@ namespace libp2p::network {
   }
 
   void ConnectionManagerImpl::closeConnectionsToPeer(const peer::PeerId &p) {
-    for(auto &&conn : getConnectionsToPeer(p)){
-      if(!conn->isClosed()){
+    for (auto &&conn : getConnectionsToPeer(p)) {
+      if (!conn->isClosed()) {
         // ignore errors
         (void)conn->close();
       }
