@@ -72,14 +72,9 @@ def makeAsanBuild(){
 
 node(workerLabel){
   try {
-      stage("clang-tidy") {
-        parallel([
-          "clang-tidy" : makeClangTidyBuild()
-        ])
-      }
-
       stage("checks") {
         def builds = [:]
+        builds["clang-tidy"] = makeClangTidyBuild()
         builds["gcc-8 ASAN No Toolchain"] = makeAsanBuild()
         builds["clang-8 TSAN"] = makeToolchainBuild("cmake/san/clang-8_cxx17_tsan.cmake")
         builds["clang-8 UBSAN"] = makeToolchainBuild("cmake/san/clang-8_cxx17_ubsan.cmake")
