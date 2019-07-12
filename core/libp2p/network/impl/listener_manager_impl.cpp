@@ -3,33 +3,30 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/network/impl/listener_impl.hpp"
+#include "libp2p/network/impl/listener_manager_impl.hpp"
 
 namespace libp2p::network {
 
-  ListenerImpl::ListenerImpl(
-      std::shared_ptr<peer::AddressRepository> addrrepo,
+  ListenerManagerImpl::ListenerManagerImpl(
       std::shared_ptr<protocol_muxer::ProtocolMuxer> multiselect,
       std::shared_ptr<network::Router> router,
       std::shared_ptr<TransportManager> tmgr,
       std::shared_ptr<ConnectionManager> cmgr)
-      : addrrepo_(std::move(addrrepo)),
-        multiselect_(std::move(multiselect)),
+      : ultiselect_(std::move(multiselect)),
         router_(std::move(router)),
         tmgr_(std::move(tmgr)),
         cmgr_(std::move(cmgr)) {
-    BOOST_ASSERT(addrrepo_ != nullptr);
     BOOST_ASSERT(multiselect_ != nullptr);
     BOOST_ASSERT(router_ != nullptr);
     BOOST_ASSERT(tmgr_ != nullptr);
     BOOST_ASSERT(cmgr_ != nullptr);
   }
 
-  bool ListenerImpl::isStarted() const {
+  bool ListenerManagerImpl::isStarted() const {
     return started;
   }
 
-  outcome::result<void> ListenerImpl::closeListener(
+  outcome::result<void> ListenerManagerImpl::closeListener(
       const multi::Multiaddress &ma) {
     // we can find multiaddress directly
     auto it = listeners_.find(ma);
@@ -65,11 +62,11 @@ namespace libp2p::network {
       }
     }
 
-    return outcome::success();
+    return std::errc::invalid_argument;
   }
 
   // starts listening on all provided multiaddresses
-  void ListenerImpl::start() {
+  void ListenerManagerImpl::start() {
     BOOST_ASSERT(!started);
 
     auto begin = listeners_.begin();
@@ -88,7 +85,7 @@ namespace libp2p::network {
   }
 
   // stops listening on all multiaddresses
-  void ListenerImpl::stop() {
+  void ListenerManagerImpl::stop() {
     BOOST_ASSERT(started);
 
     auto begin = listeners_.begin();
@@ -106,7 +103,8 @@ namespace libp2p::network {
     started = false;
   }
 
-  outcome::result<void> ListenerImpl::listen(const multi::Multiaddress &ma) {
+  outcome::result<void> ListenerManagerImpl::listen(c
+      onst multi::Multiaddress &ma) {
     auto tr = this->tmgr_->findBest(ma);
     if (tr == nullptr) {
       // can not listen on this address
@@ -127,7 +125,8 @@ namespace libp2p::network {
     return outcome::success();
   }
 
-  std::vector<multi::Multiaddress> ListenerImpl::getListenAddresses() const {
+  std::vector<multi::Multiaddress> ListenerManagerImpl::getListenAddresses()
+      onst {
     std::vector<multi::Multiaddress> mas;
     mas.reserve(listeners_.size());
 
@@ -139,7 +138,7 @@ namespace libp2p::network {
   }
 
   outcome::result<std::vector<multi::Multiaddress>>
-  ListenerImpl::getListenAddressesInterfaces() const {
+  ListenerManagerImpl::getListenAddressesInterfaces() const {
     std::vector<multi::Multiaddress> mas;
     mas.reserve(listeners_.size());
 
@@ -151,7 +150,7 @@ namespace libp2p::network {
     return mas;
   }
 
-  void ListenerImpl::onConnection(
+  void ListenerManagerImpl::onConnection(
       outcome::result<std::shared_ptr<connection::CapableConnection>> rconn) {
     if (!rconn) {
       // can not accept valid connection
@@ -203,18 +202,21 @@ namespace libp2p::network {
     this->cmgr_->addConnectionToPeer(id, conn);
   }
 
-  void ListenerImpl::setProtocolHandler(const peer::Protocol &protocol,
-                                        StreamResultFunc cb) {
+  void ListenerManagerImpl::setProtocolHandler(const peer::Protocol &protocol,
+
+                                               treamResultFunc cb) {
     this->router_->setProtocolHandler(protocol, std::move(cb));
   }
 
-  void ListenerImpl::setProtocolHandler(const peer::Protocol &protocol,
-                                        StreamResultFunc cb,
-                                        Router::ProtoPredicate predicate) {
+  void ListenerManagerImpl::setProtocolHandler(c
+      onst peer::Protocol &protocol,
+ treamResultFunc cb,
+
+      outer::ProtoPredicate predicate) {
     this->router_->setProtocolHandler(protocol, std::move(cb), predicate);
   }
 
-  void ListenerImpl::handleProtocol(
+  void ListenerManagerImpl::handleProtocol(
       std::shared_ptr<protocol::BaseProtocol> protocol) {
     this->setProtocolHandler(
         protocol->getProtocolId(),

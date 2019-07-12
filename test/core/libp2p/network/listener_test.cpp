@@ -3,24 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "libp2p/network/impl/listener_manager_impl.hpp"
+
 #include <gtest/gtest.h>
-#include <boost/di.hpp>
-
-#include "libp2p/network/impl/listener_impl.hpp"
-
-#include "testutil/gmock_actions.hpp"
-#include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
-
 #include "mock/libp2p/connection/stream_mock.hpp"
 #include "mock/libp2p/network/connection_manager_mock.hpp"
 #include "mock/libp2p/network/router_mock.hpp"
 #include "mock/libp2p/network/transport_manager_mock.hpp"
-#include "mock/libp2p/peer/address_repository_mock.hpp"
 #include "mock/libp2p/protocol/base_protocol_mock.hpp"
 #include "mock/libp2p/protocol_muxer/protocol_muxer_mock.hpp"
 #include "mock/libp2p/transport/transport_listener_mock.hpp"
 #include "mock/libp2p/transport/transport_mock.hpp"
+#include "testutil/gmock_actions.hpp"
+#include "testutil/literals.hpp"
+#include "testutil/outcome.hpp"
 
 using namespace libp2p;
 using namespace network;
@@ -33,8 +29,8 @@ using ::testing::Eq;
 using ::testing::MockFunction;
 using ::testing::Return;
 
-struct ListenerTest : public ::testing::Test {
-  ~ListenerTest() override = default;
+struct ListenerManagerTest : public ::testing::Test {
+  ~ListenerManagerTest() override = default;
 
   std::shared_ptr<StreamMock> stream = std::make_shared<StreamMock>();
 
@@ -45,9 +41,6 @@ struct ListenerTest : public ::testing::Test {
       std::make_shared<TransportListenerMock>();
 
   std::shared_ptr<TransportMock> transport = std::make_shared<TransportMock>();
-
-  std::shared_ptr<peer::AddressRepository> addrepo =
-      std::make_shared<peer::AddressRepositoryMock>();
 
   std::shared_ptr<ProtocolMuxerMock> proto_muxer =
       std::make_shared<ProtocolMuxerMock>();
@@ -60,8 +53,8 @@ struct ListenerTest : public ::testing::Test {
   std::shared_ptr<ConnectionManagerMock> cmgr =
       std::make_shared<ConnectionManagerMock>();
 
-  std::shared_ptr<Listener> listener =
-      std::make_shared<ListenerImpl>(addrepo, proto_muxer, router, tmgr, cmgr);
+  std::shared_ptr<ListenerManager> listener =
+      std::make_shared<ListenerManagerImpl>(proto_muxer, router, tmgr, cmgr);
 };
 
 /**
@@ -69,7 +62,7 @@ struct ListenerTest : public ::testing::Test {
  * @when listen on valid address
  * @then new transport listener is created
  */
-TEST_F(ListenerTest, ListenValidAddr) {
+TEST_F(ListenerManagerTest, ListenValidAddr) {
   EXPECT_CALL(*tmgr, findBest(_)).Times(2).WillRepeatedly(Return(transport));
   EXPECT_CALL(*transport, createListener(_))
       .WillOnce(Return(transport_listener));
@@ -97,7 +90,7 @@ TEST_F(ListenerTest, ListenValidAddr) {
  * @when listen on unsupported addr
  * @then listen fails
  */
-TEST_F(ListenerTest, ListenInvalidAddr) {
+TEST_F(ListenerManagerTest, ListenInvalidAddr) {
   EXPECT_CALL(*tmgr, findBest(_)).WillOnce(Return(nullptr));
 
   auto unsupported = "/ip4/127.0.0.1/udp/0"_multiaddr;
@@ -114,7 +107,7 @@ TEST_F(ListenerTest, ListenInvalidAddr) {
  * @when start then stop the listener
  * @then listener started, then stopped without error
  */
-TEST_F(ListenerTest, StartStop) {
+TEST_F(ListenerManagerTest, StartStop) {
   EXPECT_CALL(*tmgr, findBest(_)).WillOnce(Return(transport));
   EXPECT_CALL(*transport, createListener(_))
       .WillOnce(Return(transport_listener));
@@ -139,7 +132,7 @@ TEST_F(ListenerTest, StartStop) {
  * @when add new handler for protocol
  * @then handler is registered
  */
-TEST_F(ListenerTest, HandleProtocol) {
+TEST_F(ListenerManagerTest, HandleProtocol) {
   using std::string_literals::operator""s;
   auto p = "/test/1.0.0"s;
 
@@ -158,11 +151,11 @@ TEST_F(ListenerTest, HandleProtocol) {
  * @when setProtocolHandler is executed
  * @then router successfully binds this protocol
  */
-TEST_F(ListenerTest, SetProtocolHandler) {
+TEST_F(ListenerManagerTest, SetProtocolHandler) {
   using std::string_literals::operator""s;
   auto p = "/test/1.0.0"s;
 
-  MockFunction<void(Listener::StreamResult)> cb;
+  MockFunction<void(ListenerManager::StreamResult)> cb;
 
   EXPECT_CALL(cb, Call(Eq(outcome::success(stream)))).Times(1);
 
@@ -177,11 +170,11 @@ TEST_F(ListenerTest, SetProtocolHandler) {
  * @when setProtocolHandler is executed
  * @then router successfully binds this protocol
  */
-TEST_F(ListenerTest, SetProtocolHandlerWithMatcher) {
+TEST_F(ListenerManagerTest, SetProtocolHandlerWithMatcher) {
   using std::string_literals::operator""s;
   auto p = "/test/1.0.0"s;
 
-  MockFunction<void(Listener::StreamResult)> cb;
+  MockFunction<void(ListenerManager::StreamResult)> cb;
 
   EXPECT_CALL(cb, Call(Eq(outcome::success(stream)))).Times(1);
 

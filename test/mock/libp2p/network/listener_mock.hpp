@@ -6,12 +6,12 @@
 #ifndef KAGOME_LISTENER_MOCK_HPP
 #define KAGOME_LISTENER_MOCK_HPP
 
-#include "libp2p/network/listener.hpp"
+#include "libp2p/network/listener_manager.hpp"
 
 #include <gmock/gmock.h>
 
 namespace libp2p::network {
-  struct ListenerMock : public Listener {
+  struct ListenerMock : public ListenerManager {
     MOCK_CONST_METHOD0(isStarted, bool());
 
     MOCK_METHOD0(start, void());
