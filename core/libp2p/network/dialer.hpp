@@ -26,11 +26,6 @@ namespace libp2p::network {
     using StreamResult = outcome::result<std::shared_ptr<connection::Stream>>;
     using StreamResultFunc = std::function<void(StreamResult)>;
 
-    enum class Error {
-      SUCCESS = 0,
-      NO_KNOWN_ADDRESSES,
-    };
-
     // Establishes a connection or returns existing one to a given peer
     virtual void dial(const peer::PeerInfo &p, DialResultFunc cb) = 0;
 
@@ -42,7 +37,5 @@ namespace libp2p::network {
   };
 
 }  // namespace libp2p::network
-
-OUTCOME_HPP_DECLARE_ERROR(libp2p::network, Dialer::Error);
 
 #endif  // KAGOME_NETWORK_DIALER_HPP
