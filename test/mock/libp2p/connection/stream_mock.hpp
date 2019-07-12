@@ -42,6 +42,14 @@ namespace libp2p::connection {
     MOCK_CONST_METHOD0(isClosedForWrite, bool(void));
 
     MOCK_METHOD2(adjustWindowSize, void(uint32_t, VoidResultHandlerFunc));
+
+    MOCK_CONST_METHOD0(isInitiator, outcome::result<bool>());
+
+    MOCK_CONST_METHOD0(remotePeerId, outcome::result<peer::PeerId>());
+
+    MOCK_CONST_METHOD0(localMultiaddr, outcome::result<multi::Multiaddress>());
+
+    MOCK_CONST_METHOD0(remoteMultiaddr, outcome::result<multi::Multiaddress>());
   };
 }  // namespace libp2p::connection
 

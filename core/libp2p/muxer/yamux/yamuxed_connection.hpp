@@ -47,7 +47,7 @@ namespace libp2p::connection {
      * @param config to configure this instance
      * @param logger to output messages
      */
-    YamuxedConnection(
+    explicit YamuxedConnection(
         std::shared_ptr<SecureConnection> connection,
         muxer::MuxedConnectionConfig config = {},
         kagome::common::Logger logger = kagome::common::createLogger("Yamux"));

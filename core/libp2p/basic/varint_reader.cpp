@@ -36,7 +36,8 @@ namespace libp2p::basic {
                    return cb(std::nullopt);
                  }
 
-                 auto varint_opt = multi::UVarint::create(*varint_buf);
+                 auto varint_opt = multi::UVarint::create(
+                     gsl::make_span(varint_buf->data(), current_length + 1));
                  if (varint_opt) {
                    return cb(*varint_opt);
                  }

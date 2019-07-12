@@ -37,9 +37,9 @@ namespace libp2p::protocol {
     /**
      * @brief Handler that is executed on responder (server) side of the
      * protocol.
-     * @param cb callback that is executed
+     * @param stream_res, which was received
      */
-    virtual void handle(StreamResult res) = 0;
+    virtual void handle(StreamResult stream_res) = 0;
   };
 
 }  // namespace libp2p::protocol
