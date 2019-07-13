@@ -4,6 +4,7 @@
  */
 
 #include "basic_authorship/impl/block_builder_factory_impl.hpp"
+
 #include "basic_authorship/impl/block_builder_impl.hpp"
 
 namespace kagome::basic_authorship {
@@ -14,7 +15,11 @@ namespace kagome::basic_authorship {
       std::shared_ptr<blockchain::HeaderBackend> header_backend)
       : r_core_(std::move(r_core)),
         r_block_builder_(std::move(r_block_builder)),
-        header_backend_(std::move(header_backend)) {}
+        header_backend_(std::move(header_backend)) {
+    BOOST_ASSERT(r_core_ != nullptr);
+    BOOST_ASSERT(r_block_builder_ != nullptr);
+    BOOST_ASSERT(header_backend_ != nullptr);
+  }
 
   outcome::result<std::unique_ptr<BlockBuilder>>
   BlockBuilderFactoryImpl::create(
@@ -33,7 +38,8 @@ namespace kagome::basic_authorship {
 
     OUTCOME_TRY(r_core_->initialise_block(parent_header));
 
-    return std::make_unique<BlockBuilderImpl>(parent_header, r_block_builder_);
+    return std::make_unique<BlockBuilderImpl>(std::move(parent_header),
+                                              r_block_builder_);
   }
 
 }  // namespace kagome::basic_authorship

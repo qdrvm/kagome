@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <gtest/gtest.h>
 #include "basic_authorship/impl/block_builder_factory_impl.hpp"
+
+#include <gtest/gtest.h>
 #include "mock/core/blockchain/header_backend_mock.hpp"
 #include "mock/core/runtime/block_builder_api_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"

@@ -14,7 +14,8 @@
 namespace kagome::basic_authorship {
 
   /**
-   * Creates new block builders
+   * Creates new block builders. Each of them encapsulates the logic for
+   * creating a single block from provided block information
    */
   class BlockBuilderFactory {
    public:

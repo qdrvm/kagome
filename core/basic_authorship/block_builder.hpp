@@ -12,7 +12,6 @@
 namespace kagome::basic_authorship {
 
   /**
-   * Creates new blocks from provided header and extrinsics
    * BlockBuilder collects extrinsics and creates new block and then should be
    * destroyed
    */
@@ -22,7 +21,8 @@ namespace kagome::basic_authorship {
 
     /**
      * Push extrinsic to wait its inclusion to the block
-     * Returns true if xt was pushed, false otherwise
+     * Returns result containing true if xt was pushed, false otherwise and
+     * failure if error happened
      */
     virtual outcome::result<bool> pushExtrinsic(
         primitives::Extrinsic extrinsic) = 0;
