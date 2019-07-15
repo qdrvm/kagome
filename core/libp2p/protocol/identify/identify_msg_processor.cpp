@@ -329,6 +329,7 @@ namespace libp2p::protocol {
     auto addresses = addr_repo.getAddresses(peer_id);
     if(!addresses) {
       log_->error("can not get addresses for peer {}", peer_id.toBase58());
+      return;
     }
 
     switch (conn_manager_.connectedness({peer_id, addresses.value()})) {
