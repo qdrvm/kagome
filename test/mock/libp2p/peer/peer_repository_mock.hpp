@@ -19,6 +19,8 @@ namespace libp2p::peer {
     MOCK_METHOD0(getProtocolRepository, ProtocolRepository &());
 
     MOCK_CONST_METHOD0(getPeers, std::unordered_set<PeerId>());
+
+    MOCK_CONST_METHOD1(getPeerInfo, PeerInfo(const PeerId &));
   };
 }  // namespace libp2p::peer
 

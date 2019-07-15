@@ -66,6 +66,11 @@ TEST_F(PingTest, PingServer) {
               write(gsl::span<const uint8_t>(buffer_), kPingMsgSize, _))
       .WillOnce(InvokeArgument<2>(buffer_.size()));
 
+  EXPECT_CALL(*stream_, isClosedForWrite()).WillOnce(Return(false));
+  EXPECT_CALL(*stream_, isClosedForRead())
+      .Times(2)
+      .WillRepeatedly(Return(false));
+
   ping_->handle(stream_);
 }
 
@@ -88,6 +93,11 @@ TEST_F(PingTest, PingClient) {
       .WillOnce(  // no second write
           InvokeArgument<2>(outcome::failure(boost::system::error_code{})));
   EXPECT_CALL(*stream_, read(_, kPingMsgSize, _)).WillOnce(ReadPut(buffer_));
+
+  EXPECT_CALL(*stream_, isClosedForWrite())
+      .Times(2)
+      .WillRepeatedly(Return(false));
+  EXPECT_CALL(*stream_, isClosedForRead()).WillOnce(Return(false));
 
   ping_->startPinging(conn_,
                       [](auto &&session_res) { ASSERT_TRUE(session_res); });

@@ -23,6 +23,10 @@ namespace libp2p::protocol {
   }
 
   void PingServerSession::read() {
+    if (!is_started_ || stream_->isClosedForRead()) {
+      return;
+    }
+
     stream_->read(buffer_, detail::kPingMsgSize,
                   [self{shared_from_this()}](auto &&read_res) {
                     if (!read_res) {
@@ -37,6 +41,10 @@ namespace libp2p::protocol {
   }
 
   void PingServerSession::write() {
+    if (!is_started_ || stream_->isClosedForWrite()) {
+      return;
+    }
+
     stream_->write(buffer_, detail::kPingMsgSize,
                    [self{shared_from_this()}](auto &&write_res) {
                      if (!write_res) {

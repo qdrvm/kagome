@@ -16,8 +16,8 @@ namespace libp2p::protocol {
       std::shared_ptr<crypto::random::RandomGenerator> rand_gen)
       : stream_{std::move(stream)},
         rand_gen_{std::move(rand_gen)},
-        write_buffer_(0, kPingMsgSize),
-        read_buffer_(0, kPingMsgSize) {
+        write_buffer_(kPingMsgSize, 0),
+        read_buffer_(kPingMsgSize, 0) {
     BOOST_ASSERT(stream_);
     BOOST_ASSERT(rand_gen_);
   }
