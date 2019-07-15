@@ -43,6 +43,8 @@ namespace libp2p::peer {
      * @return unordered set of peers
      */
     virtual std::unordered_set<PeerId> getPeers() const = 0;
+
+    virtual PeerInfo getPeerInfo(const PeerId &peer_id) const;
   };
 }  // namespace libp2p::peer
 

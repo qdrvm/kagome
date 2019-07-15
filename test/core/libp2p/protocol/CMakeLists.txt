@@ -23,3 +23,10 @@ addtest(echo_test
 target_link_libraries(echo_test
     libp2p_protocol_echo
     )
+
+addtest(ping_test
+    ping_test.cpp
+    )
+target_link_libraries(ping_test
+    libp2p_ping
+    )

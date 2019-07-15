@@ -7,10 +7,10 @@
 #define KAGOME_COMMON_HPP
 
 #include <cstdint>
-#include <string_view>
+#include <string>
 
 namespace libp2p::protocol::detail {
-  constexpr std::string_view kPingProto = "/ipfs/ping/1.0.0";
+  const std::string kPingProto = "/ipfs/ping/1.0.0";
 
   constexpr uint8_t kPingMsgSize = 32;
 }  // namespace libp2p::protocol::detail

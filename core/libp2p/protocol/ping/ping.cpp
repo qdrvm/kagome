@@ -12,29 +12,41 @@
 namespace {}
 
 namespace libp2p::protocol {
-  Ping::Ping(Host &host) : host_{host} {}
+  Ping::Ping(Host &host,
+             std::shared_ptr<crypto::random::RandomGenerator> rand_gen)
+      : host_{host}, rand_gen_{std::move(rand_gen)} {}
 
   peer::Protocol Ping::getProtocolId() const {
-    return std::string{detail::kPingProto};
+    return detail::kPingProto;
   }
 
   void Ping::handle(StreamResult res) {
     if (!res) {
       return;
     }
-    auto session =
-        std::make_shared<PingServerSession>(host_, std::move(res.value()));
+    auto session = std::make_shared<PingServerSession>(std::move(res.value()));
     session->start();
   }
 
-  std::unique_ptr<PingClientSession> Ping::startPinging(
-      std::shared_ptr<connection::CapableConnection> conn) {
-    auto peer_info =
-    host_.newStream()
-
-    auto session =
-        std::make_unique<PingClientSession>(host_, std::move(stream));
-    session->start();
-    return session;
+  void Ping::startPinging(
+      const std::shared_ptr<connection::CapableConnection> &conn,
+      std::function<void(outcome::result<std::shared_ptr<PingClientSession>>)>
+          cb) {
+    auto remote_peer = conn->remotePeer();
+    if (!remote_peer) {
+      return cb(remote_peer.error());
+    }
+    auto peer_info = host_.getPeerRepository().getPeerInfo(remote_peer.value());
+    return host_.newStream(
+        peer_info, detail::kPingProto,
+        [self{shared_from_this()}, cb = std::move(cb)](auto &&stream_res) {
+          if (!stream_res) {
+            return cb(stream_res.error());
+          }
+          auto session = std::make_shared<PingClientSession>(
+              std::move(stream_res.value()), self->rand_gen_);
+          session->start();
+          cb(std::move(session));
+        });
   }
 }  // namespace libp2p::protocol

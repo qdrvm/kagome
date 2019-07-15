@@ -3,18 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PING_HPP
-#define KAGOME_PING_HPP
+#ifndef KAGOME_PING_IMPL_HPP
+#define KAGOME_PING_IMPL_HPP
 
 #include <memory>
-#include <string_view>
 
+#include <outcome/outcome.hpp>
 #include "libp2p/connection/capable_connection.hpp"
 #include "libp2p/host.hpp"
 #include "libp2p/protocol/base_protocol.hpp"
 
+namespace libp2p::crypto::random {
+  class RandomGenerator;
+}
+
 namespace libp2p::protocol {
-  class PingServerSession;
   class PingClientSession;
 
   /**
@@ -22,28 +25,33 @@ namespace libp2p::protocol {
    * continuously send Ping messages to another peer until it's dead or session
    * is closed
    */
-  class Ping : public BaseProtocol {
+  class Ping : public BaseProtocol, public std::enable_shared_from_this<Ping> {
    public:
     /**
      * Create an instance of Ping protocol handler
      * @param host to be in the instance
+     * @param rand_gen - generator, which is used to generate Ping bytes
      */
-    explicit Ping(Host &host);
+    Ping(Host &host, std::shared_ptr<crypto::random::RandomGenerator> rand_gen);
 
     peer::Protocol getProtocolId() const override;
 
     void handle(StreamResult res) override;
 
     /**
-     * Start pinging the peer, to which the (\param conn) is
-     * @return ping session, which can be closed; can be NULL in case of error
+     * Start pinging the peer
+     * @param conn to the peer we want to ping
+     * @param cb to be called, when a ping session is started, or error happens
      */
-    std::unique_ptr<PingClientSession> startPinging(
-        std::shared_ptr<connection::CapableConnection> conn);
+    void startPinging(
+        const std::shared_ptr<connection::CapableConnection> &conn,
+        std::function<void(outcome::result<std::shared_ptr<PingClientSession>>)>
+            cb);
 
    private:
     Host &host_;
+    std::shared_ptr<crypto::random::RandomGenerator> rand_gen_;
   };
 }  // namespace libp2p::protocol
 
-#endif  // KAGOME_PING_HPP
+#endif  // KAGOME_PING_IMPL_HPP
