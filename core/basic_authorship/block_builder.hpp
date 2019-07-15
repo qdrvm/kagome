@@ -25,7 +25,7 @@ namespace kagome::basic_authorship {
      * failure if error happened
      */
     virtual outcome::result<bool> pushExtrinsic(
-        primitives::Extrinsic extrinsic) = 0;
+        const primitives::Extrinsic &extrinsic) = 0;
 
     /**
      * Create a block from extrinsics and header

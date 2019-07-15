@@ -22,7 +22,7 @@ namespace kagome::basic_authorship {
                      std::shared_ptr<runtime::BlockBuilderApi> r_block_builder);
 
     outcome::result<bool> pushExtrinsic(
-        kagome::primitives::Extrinsic extrinsic) override;
+        const primitives::Extrinsic &extrinsic) override;
 
     [[nodiscard]] primitives::Block bake() const override;
 

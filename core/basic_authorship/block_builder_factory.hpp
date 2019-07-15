@@ -27,7 +27,7 @@ namespace kagome::basic_authorship {
      */
     virtual outcome::result<std::unique_ptr<BlockBuilder>> create(
         const primitives::BlockId &parent_id,
-        const primitives::Digest &inherent_digest) = 0;
+        const primitives::Digest &inherent_digest) const = 0;
   };
 
 }  // namespace kagome::basic_authorship

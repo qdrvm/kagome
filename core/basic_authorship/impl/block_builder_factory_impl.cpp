@@ -24,7 +24,7 @@ namespace kagome::basic_authorship {
   outcome::result<std::unique_ptr<BlockBuilder>>
   BlockBuilderFactoryImpl::create(
       const kagome::primitives::BlockId &parent_id,
-      const kagome::primitives::Digest &inherent_digest) {
+      const kagome::primitives::Digest &inherent_digest) const {
     // based on
     // https://github.com/paritytech/substrate/blob/dbf322620948935d2bbae214504e6c668c3073ed/core/basic-authorship/src/basic_authorship.rs#L94
 

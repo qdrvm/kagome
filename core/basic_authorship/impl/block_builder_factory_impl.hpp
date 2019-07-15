@@ -23,7 +23,7 @@ namespace kagome::basic_authorship {
 
     outcome::result<std::unique_ptr<BlockBuilder>> create(
         const kagome::primitives::BlockId &parent_id,
-        const kagome::primitives::Digest &inherent_digest) override;
+        const kagome::primitives::Digest &inherent_digest) const override;
 
    private:
     std::shared_ptr<runtime::Core> r_core_;

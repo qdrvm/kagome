@@ -16,7 +16,7 @@ namespace kagome::basic_authorship {
   }
 
   outcome::result<bool> BlockBuilderImpl::pushExtrinsic(
-      primitives::Extrinsic extrinsic) {
+      const primitives::Extrinsic &extrinsic) {
     OUTCOME_TRY(ok, r_block_builder_->apply_extrinsic(extrinsic));
 
     if (ok) {
