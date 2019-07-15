@@ -97,19 +97,24 @@ namespace libp2p::protocol {
     auto &&delta_msg = id_msg.delta();
     auto &proto_repo = host_.getPeerRepository().getProtocolRepository();
 
-    auto add_res = proto_repo.addProtocols(
-        peer_id,
-        std::vector<const peer::Protocol>(delta_msg.added_protocols().begin(),
-                                          delta_msg.added_protocols().end()));
+    // more beautiful ways cause compile errors :(
+    std::vector<const peer::Protocol> added_protocols;
+    added_protocols.reserve(delta_msg.added_protocols().size());
+    for (const auto &proto : delta_msg.added_protocols()) {
+      added_protocols.push_back(proto);
+    }
+    auto add_res = proto_repo.addProtocols(peer_id, added_protocols);
     if (!add_res) {
       log_->error("cannot add new protocols of peer {}, {}: {}", peer_id_str,
                   peer_addr_str, add_res.error().message());
     }
 
-    auto rm_res = proto_repo.removeProtocols(
-        peer_id,
-        std::vector<const peer::Protocol>(delta_msg.rm_protocols().begin(),
-                                          delta_msg.rm_protocols().end()));
+    std::vector<const peer::Protocol> rm_protocols;
+    rm_protocols.reserve(delta_msg.rm_protocols().size());
+    for (const auto &proto : delta_msg.rm_protocols()) {
+      rm_protocols.push_back(proto);
+    }
+    auto rm_res = proto_repo.removeProtocols(peer_id, rm_protocols);
     if (!rm_res) {
       log_->error("cannot remove protocols of peer {}, {}: {}", peer_id_str,
                   peer_addr_str, rm_res.error().message());
