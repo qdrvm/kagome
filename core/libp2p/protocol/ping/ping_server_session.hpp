@@ -16,9 +16,11 @@ namespace libp2p::protocol {
   class PingServerSession
       : public std::enable_shared_from_this<PingServerSession> {
    public:
-    PingServerSession(Host &host, std::shared_ptr<connection::Stream> stream);
+    explicit PingServerSession(std::shared_ptr<connection::Stream> stream);
 
     void start();
+
+    void stop();
 
    private:
     void read();
@@ -29,11 +31,7 @@ namespace libp2p::protocol {
 
     void writeCompleted();
 
-    static constexpr uint8_t kPingMsgSize = 32;
-
-    Host &host_;
     std::shared_ptr<connection::Stream> stream_;
-
     std::vector<uint8_t> buffer_;
 
     bool is_started_ = false;

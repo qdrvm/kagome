@@ -6,11 +6,12 @@
 #include "libp2p/protocol/ping/ping_server_session.hpp"
 
 #include <boost/assert.hpp>
+#include "libp2p/protocol/ping/common.hpp"
 
 namespace libp2p::protocol {
   PingServerSession::PingServerSession(
-      Host &host, std::shared_ptr<connection::Stream> stream)
-      : host_{host}, stream_{std::move(stream)}, buffer_(kPingMsgSize, 0) {
+      std::shared_ptr<connection::Stream> stream)
+      : stream_{std::move(stream)}, buffer_(detail::kPingMsgSize, 0) {
     BOOST_ASSERT(stream_);
   }
 
@@ -22,7 +23,7 @@ namespace libp2p::protocol {
   }
 
   void PingServerSession::read() {
-    stream_->read(buffer_, kPingMsgSize,
+    stream_->read(buffer_, detail::kPingMsgSize,
                   [self{shared_from_this()}](auto &&read_res) {
                     if (!read_res) {
                       return;
@@ -36,7 +37,7 @@ namespace libp2p::protocol {
   }
 
   void PingServerSession::write() {
-    stream_->write(buffer_, kPingMsgSize,
+    stream_->write(buffer_, detail::kPingMsgSize,
                    [self{shared_from_this()}](auto &&write_res) {
                      if (!write_res) {
                        return;
