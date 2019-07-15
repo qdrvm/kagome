@@ -1,14 +1,17 @@
 version: '3'
 
 # usage:
-# - docker-compose up -d && docker-compose exec dev bash
-# - cd app
+# - docker-compose up -d
+# - docker-compose exec dev bash
 
 services:
   dev:
-    image: warchantua/dev-essential
+    image: soramitsu/kagome-dev:6
     tty: true
     stdin_open: true
+    working_dir: /app
+    cap_add:
+      - SYS_PTRACE
     volumes:
       - .:/app:rw
     environment:
