@@ -10,6 +10,8 @@
 
 #include "libp2p/peer/address_repository.hpp"
 #include "libp2p/peer/key_repository.hpp"
+#include "libp2p/peer/peer_id.hpp"
+#include "libp2p/peer/peer_info.hpp"
 #include "libp2p/peer/protocol_repository.hpp"
 
 namespace libp2p::peer {
@@ -43,6 +45,15 @@ namespace libp2p::peer {
      * @return unordered set of peers
      */
     virtual std::unordered_set<PeerId> getPeers() const = 0;
+
+    /**
+     * @brief Derive a PeerInfo object from the PeerId; can be useful, for
+     * example, to establish connections, when only a PeerId is known at the
+     * current program point
+     * @param peer_id to get PeerInfo for
+     * @return PeerInfo
+     */
+    virtual PeerInfo getPeerInfo(const PeerId &peer_id) const = 0;
   };
 }  // namespace libp2p::peer
 

@@ -5,6 +5,8 @@
 
 #include "libp2p/peer/impl/peer_repository_impl.hpp"
 
+#include "libp2p/multi/multiaddress.hpp"
+
 namespace {
 
   template <typename T>
@@ -43,6 +45,14 @@ namespace libp2p::peer {
     merge_sets<PeerId>(peers, key_->getPeers());
     merge_sets<PeerId>(peers, proto_->getPeers());
     return peers;
+  }
+
+  PeerInfo PeerRepositoryImpl::getPeerInfo(const PeerId &peer_id) const {
+    auto peer_addrs_res = addr_->getAddresses(peer_id);
+    if (!peer_addrs_res) {
+      return PeerInfo{peer_id, {}};
+    }
+    return PeerInfo{peer_id, std::move(peer_addrs_res.value())};
   }
 
 }  // namespace libp2p::peer

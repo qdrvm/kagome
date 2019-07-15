@@ -7,9 +7,16 @@
 #define KAGOME_IDENTITY_MANAGER_HPP
 
 #include "libp2p/crypto/key.hpp"
+#include "libp2p/event/bus.hpp"
 #include "libp2p/peer/peer_id.hpp"
 
 namespace libp2p::peer {
+
+  namespace event {
+    struct KeyPairChanged {};
+    using KeyPairChangedChannel =
+        libp2p::event::channel_decl<KeyPairChanged, crypto::KeyPair>;
+  }  // namespace event
 
   /**
    * @brief Component, which "owns" information about current Host identity.

@@ -518,26 +518,22 @@ TEST_F(YamuxIntegrationTest, Reset) {
         EXPECT_OUTCOME_TRUE(conn, conn_res)
         withYamuxedConn([this, conn, &ret_stream, &expected_reset_msg,
                          rcvd_msg](auto &&) mutable {
-          withStream(
-              conn,
-              [this, conn, &ret_stream, &expected_reset_msg,
-               rcvd_msg](auto &&stream) mutable {
-                ASSERT_FALSE(stream->isClosed());
-                stream->reset([this, conn, stream, &ret_stream,
-                               &expected_reset_msg,
-                               rcvd_msg](auto &&res) mutable {
-                  ASSERT_TRUE(res);
-                  conn->read(
-                      *rcvd_msg, expected_reset_msg.size(),
-                      [this, conn, &ret_stream, stream, &expected_reset_msg,
-                       rcvd_msg](auto &&res) mutable {
-                        ASSERT_TRUE(res);
-                        ASSERT_EQ(*rcvd_msg, expected_reset_msg);
-                        ret_stream = std::forward<decltype(stream)>(stream);
-                        client_finished_ = true;
-                      });
-                });
-              });
+          withStream(conn,
+                     [this, conn, &ret_stream, &expected_reset_msg,
+                      rcvd_msg](auto &&stream) mutable {
+                       ASSERT_FALSE(stream->isClosed());
+                       stream->reset();
+                       conn->read(
+                           *rcvd_msg, expected_reset_msg.size(),
+                           [this, conn, &ret_stream, stream,
+                            &expected_reset_msg, rcvd_msg](auto &&res) mutable {
+                             ASSERT_TRUE(res);
+                             ASSERT_EQ(*rcvd_msg, expected_reset_msg);
+                             ret_stream =
+                                 std::forward<decltype(stream)>(stream);
+                             client_finished_ = true;
+                           });
+                     });
         });
         return outcome::success();
       });
