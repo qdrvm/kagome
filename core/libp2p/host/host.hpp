@@ -9,9 +9,9 @@
 #include <functional>
 #include <string_view>
 
-#include <gsl/span>
 #include <outcome/outcome.hpp>
 #include "libp2p/connection/stream.hpp"
+#include "libp2p/event/bus.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/network/network.hpp"
 #include "libp2p/network/router.hpp"
@@ -19,14 +19,25 @@
 #include "libp2p/peer/peer_info.hpp"
 #include "libp2p/peer/peer_repository.hpp"
 #include "libp2p/peer/protocol.hpp"
+#include "libp2p/protocol/base_protocol.hpp"
 
 namespace libp2p {
   /**
-   * Entry point of Libp2p - through this class all interactions with the
-   * library should go
+   * Main class, which represents single peer in p2p network.
+   *
+   * It is capable to:
+   * - create new connections to remote peers
+   * - create new streams to remote peers
+   * - listen on one or multiple addresses
+   * - register protocols
+   * - handle registered protocols (receive and handle incoming streams with
+   * given protocol)
    */
   struct Host {
     virtual ~Host() = default;
+
+    using StreamResultHandler = std::function<void(
+        outcome::result<std::shared_ptr<connection::Stream>>)>;
 
     /**
      * @brief Get a version of Libp2p, supported by this Host
@@ -49,11 +60,23 @@ namespace libp2p {
     virtual peer::PeerInfo getPeerInfo() const = 0;
 
     /**
-     * @brief Get listen addresses of the Host
-     * @note is not the same as Network::getListenAddresses(), but why - do not
-     * yet know
+     * @brief Get addresses we provided to listen on (added by listen).
      */
-    virtual gsl::span<const multi::Multiaddress> getAddresses() const = 0;
+    virtual std::vector<multi::Multiaddress> getAddresses() const = 0;
+
+    /**
+     * @brief Get addresses that read from listen sockets.
+     *
+     * May return 0 addresses if no listeners found or all listeners stopped.
+     */
+    virtual std::vector<multi::Multiaddress> getAddressesInterfaces() const = 0;
+
+    /**
+     * @brief Get our addresses observed by other peers.
+     *
+     * May return 0 addresses if we don't know our observed addresses.
+     */
+    virtual std::vector<multi::Multiaddress> getObservedAddreses() const = 0;
 
     /**
      * @brief Let Host handle given {@param proto} protocol
@@ -76,7 +99,7 @@ namespace libp2p {
      *      && proto.version < 2.0;}
      * @param handler of the arrived stream
      * @param predicate function that takes received protocol (/ping/1.0.0) and
-     * returns true, if this protocol can be handled.
+     * should return true, if this protocol can be handled.
      */
     virtual void setProtocolHandler(
         std::string_view prefix,
@@ -84,46 +107,83 @@ namespace libp2p {
         const std::function<bool(const peer::Protocol &)> &predicate) = 0;
 
     /**
+     * @brief Register {@param protocol} for this host. User MUST transfer
+     * ownership on protocol to the Host.
+     * @param protocol protocol instance
+     */
+    virtual void handleProtocol(
+        std::unique_ptr<protocol::BaseProtocol> protocol) = 0;
+
+    /**
      * @brief Initiates connection to the peer {@param p}. If connection exists,
-     * does nothing, otherwise blocks until successful connection is created or
-     * error happens.
-     * @param p peer to connect. Addresses will be searched in PeerRepository.
-     * If not found, will be searched using Routing module.
+     * does nothing.
+     * @param p peer to connect.
      */
     virtual void connect(const peer::PeerInfo &p) = 0;
-
-    using StreamResultHandler = std::function<void(
-        outcome::result<std::shared_ptr<connection::Stream>>)>;
 
     /**
      * @brief Open new stream to the peer {@param p} with protocol {@param
      * protocol}.
-     * @param p stream will be opened with this peer
+     * @param p stream will be opened to this peer
      * @param protocol "speak" using this protocol
-     * @param handler callback, will be executed on successful or failed stream
-     * creation
+     * @param handler callback, will be executed on success or fail
      */
     virtual void newStream(const peer::PeerInfo &p,
                            const peer::Protocol &protocol,
                            const StreamResultHandler &handler) = 0;
 
     /**
-     * @brief Get a network component of the Host
-     * @return reference to network
+     * @brief Create listener on given multiaddress.
+     * @param ma address
+     * @return may return error
+     */
+    virtual outcome::result<void> listen(const multi::Multiaddress &ma) = 0;
+
+    /**
+     * @brief Close listener on given address.
+     * @param ma address
+     * @return may return error
+     */
+    virtual outcome::result<void> closeListener(
+        const multi::Multiaddress &ma) = 0;
+
+    /**
+     * @brief Removes listener on given address.
+     * @param ma address
+     * @return may return error
+     */
+    virtual outcome::result<void> removeListener(
+        const multi::Multiaddress &ma) = 0;
+
+    /**
+     * @brief Start all listeners.
+     */
+    virtual void start() = 0;
+
+    /**
+     * @brief Stop all listeners.
+     */
+    virtual void stop() = 0;
+
+    /**
+     * @brief Getter for a network.
      */
     virtual network::Network &getNetwork() const = 0;
 
     /**
-     * @brief Get a peer repository of the Host
-     * @return reference to repository
+     * @brief Getter for a peer repository.
      */
     virtual peer::PeerRepository &getPeerRepository() const = 0;
 
     /**
-     * @brief Get a router component of the Host
-     * @return reference to router
+     * @brief Getter for a router.
      */
     virtual const network::Router &getRouter() const = 0;
+
+    /**
+     * @brief Getter for event bus.
+     */
+    virtual event::Bus &getBus() const = 0;
   };
 }  // namespace libp2p
 

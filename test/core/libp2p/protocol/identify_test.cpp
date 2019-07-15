@@ -15,7 +15,7 @@
 #include "mock/libp2p/connection/capable_connection_mock.hpp"
 #include "mock/libp2p/connection/stream_mock.hpp"
 #include "mock/libp2p/crypto/key_marshaller_mock.hpp"
-#include "mock/libp2p/host_mock.hpp"
+#include "mock/libp2p/host/host_mock.hpp"
 #include "mock/libp2p/network/connection_manager_mock.hpp"
 #include "mock/libp2p/network/listener_mock.hpp"
 #include "mock/libp2p/network/network_mock.hpp"

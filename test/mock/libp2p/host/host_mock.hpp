@@ -7,41 +7,42 @@
 #define KAGOME_HOST_MOCK_HPP
 
 #include <gmock/gmock.h>
-#include "libp2p/host.hpp"
+#include "libp2p/host/host.hpp"
 
 namespace libp2p {
   class HostMock : public Host {
    public:
     MOCK_CONST_METHOD0(getLibp2pVersion, std::string_view());
-
     MOCK_CONST_METHOD0(getLibp2pClientVersion, std::string_view());
-
     MOCK_CONST_METHOD0(getId, peer::PeerId());
-
     MOCK_CONST_METHOD0(getPeerInfo, peer::PeerInfo());
-
-    MOCK_CONST_METHOD0(getAddresses, gsl::span<const multi::Multiaddress>());
-
+    MOCK_CONST_METHOD0(getAddresses, std::vector<multi::Multiaddress>());
+    MOCK_CONST_METHOD0(getAddressesInterfaces,
+                       std::vector<multi::Multiaddress>());
+    MOCK_CONST_METHOD0(getObservedAddreses, std::vector<multi::Multiaddress>());
     MOCK_METHOD2(setProtocolHandler,
                  void(const peer::Protocol &,
                       const std::function<connection::Stream::Handler> &));
-
     MOCK_METHOD3(setProtocolHandler,
-                 void(std::string_view,
+                 void(std::string_view prefix,
                       const std::function<connection::Stream::Handler> &,
                       const std::function<bool(const peer::Protocol &)> &));
-
+    MOCK_METHOD1(handleProtocol, void(std::unique_ptr<protocol::BaseProtocol>));
     MOCK_METHOD1(connect, void(const peer::PeerInfo &));
-
     MOCK_METHOD3(newStream,
-                 void(const peer::PeerInfo &, const peer::Protocol &,
-                      const StreamResultHandler &));
-
+                 void(const peer::PeerInfo &p, const peer::Protocol &protocol,
+                      const StreamResultHandler &handler));
+    MOCK_METHOD1(listen, outcome::result<void>(const multi::Multiaddress &ma));
+    MOCK_METHOD1(closeListener,
+                 outcome::result<void>(const multi::Multiaddress &ma));
+    MOCK_METHOD1(removeListener,
+                 outcome::result<void>(const multi::Multiaddress &ma));
+    MOCK_METHOD0(start, void());
+    MOCK_METHOD0(stop, void());
     MOCK_CONST_METHOD0(getNetwork, network::Network &());
-
     MOCK_CONST_METHOD0(getPeerRepository, peer::PeerRepository &());
-
-    MOCK_CONST_METHOD0(getRouter, const network::Router &());
+    MOCK_CONST_METHOD0(getRouter, network::Router &());
+    MOCK_CONST_METHOD0(getBus, event::Bus &());
   };
 }  // namespace libp2p
 
