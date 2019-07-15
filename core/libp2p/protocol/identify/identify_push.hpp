@@ -15,7 +15,7 @@
 
 namespace libp2p::protocol {
   /**
-   * Implementation of Identify-Push protocol, which is used to inform known
+   * Implementation of Identify-Push protocol, which is used to inform known the
    * peers about changes in this peer's configuration by sending or receiving a
    * whole Identify message. Read more:
    * https://github.com/libp2p/specs/blob/master/identify/README.md
