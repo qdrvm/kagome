@@ -98,7 +98,7 @@ namespace libp2p::protocol {
     auto &proto_repo = host_.getPeerRepository().getProtocolRepository();
 
     // more beautiful ways cause compile errors :(
-    std::vector<const peer::Protocol> added_protocols;
+    std::vector<peer::Protocol> added_protocols;
     added_protocols.reserve(delta_msg.added_protocols().size());
     for (const auto &proto : delta_msg.added_protocols()) {
       added_protocols.push_back(proto);
@@ -109,7 +109,7 @@ namespace libp2p::protocol {
                   peer_addr_str, add_res.error().message());
     }
 
-    std::vector<const peer::Protocol> rm_protocols;
+    std::vector<peer::Protocol> rm_protocols;
     rm_protocols.reserve(delta_msg.rm_protocols().size());
     for (const auto &proto : delta_msg.rm_protocols()) {
       rm_protocols.push_back(proto);
