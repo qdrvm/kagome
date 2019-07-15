@@ -36,12 +36,12 @@ target_link_libraries(tagged_transaction_queue
     wasm_executor
     )
 
-add_library(block_builder
-    block_builder.hpp
-    impl/block_builder_impl.cpp
-    impl/block_builder_impl.hpp
+add_library(block_builder_api
+    block_builder_api.hpp
+    impl/block_builder_api_impl.cpp
+    impl/block_builder_api_impl.hpp
     )
-target_link_libraries(block_builder
+target_link_libraries(block_builder_api
     scale
     primitives
     wasm_executor

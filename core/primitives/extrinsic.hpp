@@ -14,6 +14,10 @@ namespace kagome::primitives {
    */
   struct Extrinsic {
     kagome::common::Buffer data;  ///< extrinsic content as byte array
+
+    inline bool operator==(const Extrinsic &rhs) const {
+      return data == rhs.data;
+    }
   };
 
   /**

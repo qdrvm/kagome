@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "connection_manager_impl.hpp"
+#include "libp2p/network/impl/connection_manager_impl.hpp"
 
 #include <algorithm>
 
@@ -120,8 +120,8 @@ namespace libp2p::network {
   }
 
   void ConnectionManagerImpl::closeConnectionsToPeer(const peer::PeerId &p) {
-    for(auto &&conn : getConnectionsToPeer(p)){
-      if(!conn->isClosed()){
+    for (auto &&conn : getConnectionsToPeer(p)) {
+      if (!conn->isClosed()) {
         // ignore errors
         (void)conn->close();
       }

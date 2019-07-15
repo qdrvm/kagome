@@ -3,20 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCK_BUILDER_IMPL_HPP
-#define KAGOME_BLOCK_BUILDER_IMPL_HPP
+#ifndef KAGOME_BLOCK_BUILDER_API_IMPL_HPP
+#define KAGOME_BLOCK_BUILDER_API_IMPL_HPP
 
-#include "runtime/block_builder.hpp"
 #include "extensions/extension.hpp"
+#include "runtime/block_builder_api.hpp"
 #include "runtime/impl/runtime_api.hpp"
 
 namespace kagome::runtime {
-  class BlockBuilderImpl : public RuntimeApi, public BlockBuilder {
+  class BlockBuilderApiImpl : public RuntimeApi, public BlockBuilderApi {
    public:
-    BlockBuilderImpl(common::Buffer state_code,
-                     std::shared_ptr<extensions::Extension> extension);
+    BlockBuilderApiImpl(common::Buffer state_code,
+                        std::shared_ptr<extensions::Extension> extension);
 
-    ~BlockBuilderImpl() override = default;
+    ~BlockBuilderApiImpl() override = default;
 
     outcome::result<bool> apply_extrinsic(
         const primitives::Extrinsic &extrinsic) override;
@@ -34,4 +34,4 @@ namespace kagome::runtime {
   };
 }  // namespace kagome::runtime
 
-#endif  // KAGOME_BLOCK_BUILDER_IMPL_HPP
+#endif  // KAGOME_BLOCK_BUILDER_API_IMPL_HPP
