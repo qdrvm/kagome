@@ -38,3 +38,7 @@ find_package(OpenSSL REQUIRED)
 # https://developers.google.com/protocol-buffers/
 hunter_add_package(Protobuf)
 find_package(Protobuf CONFIG REQUIRED)
+
+# https://docs.hunter.sh/en/latest/packages/pkg/Microsoft.GSL.html
+hunter_add_package(Microsoft.GSL)
+find_package(Microsoft.GSL CONFIG REQUIRED)

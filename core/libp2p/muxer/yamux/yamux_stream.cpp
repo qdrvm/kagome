@@ -33,9 +33,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, YamuxStream::Error, e) {
 
 namespace libp2p::connection {
 
-  YamuxStream::YamuxStream(
-      std::weak_ptr<YamuxedConnection> yamuxed_connection,
-      YamuxedConnection::StreamId stream_id, uint32_t maximum_window_size)
+  YamuxStream::YamuxStream(std::weak_ptr<YamuxedConnection> yamuxed_connection,
+                           YamuxedConnection::StreamId stream_id,
+                           uint32_t maximum_window_size)
       : yamuxed_connection_{std::move(yamuxed_connection)},
         stream_id_{stream_id},
         maximum_window_size_{maximum_window_size} {}
@@ -243,6 +243,34 @@ namespace libp2p::connection {
           self->receive_window_size_ = new_size;
           cb(outcome::success());
         });
+  }
+
+  outcome::result<peer::PeerId> YamuxStream::remotePeerId() const {
+    if (auto conn = yamuxed_connection_.lock()) {
+      return conn->remotePeer();
+    }
+    return Error::CONNECTION_IS_DEAD;
+  }
+
+  outcome::result<bool> YamuxStream::isInitiator() const {
+    if (auto conn = yamuxed_connection_.lock()) {
+      return conn->isInitiator();
+    }
+    return Error::CONNECTION_IS_DEAD;
+  }
+
+  outcome::result<multi::Multiaddress> YamuxStream::localMultiaddr() const {
+    if (auto conn = yamuxed_connection_.lock()) {
+      return conn->localMultiaddr();
+    }
+    return Error::CONNECTION_IS_DEAD;
+  }
+
+  outcome::result<multi::Multiaddress> YamuxStream::remoteMultiaddr() const {
+    if (auto conn = yamuxed_connection_.lock()) {
+      return conn->remoteMultiaddr();
+    }
+    return Error::CONNECTION_IS_DEAD;
   }
 
   void YamuxStream::resetStream() {
