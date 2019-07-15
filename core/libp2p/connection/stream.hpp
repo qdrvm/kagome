@@ -67,9 +67,8 @@ namespace libp2p::connection {
     /**
      * @brief Close this stream entirely; this normally means an error happened,
      * so it should not be used just to close the stream
-     * @param cb to be called, when the operation succeeds of fails
      */
-    virtual void reset(VoidResultHandlerFunc cb) = 0;
+    virtual void reset() = 0;
 
     /**
      * Set a new receive window size of this stream - how much unacknowledged

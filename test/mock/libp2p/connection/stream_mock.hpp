@@ -35,7 +35,7 @@ namespace libp2p::connection {
                  void(gsl::span<const uint8_t>, size_t,
                       Writer::WriteCallbackFunc));
 
-    MOCK_METHOD1(reset, void(VoidResultHandlerFunc));
+    MOCK_METHOD0(reset, void());
 
     MOCK_CONST_METHOD0(isClosedForRead, bool(void));
 

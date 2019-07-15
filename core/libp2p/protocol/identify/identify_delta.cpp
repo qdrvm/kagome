@@ -65,7 +65,7 @@ namespace libp2p::protocol {
     if (!msg_res) {
       log_->error("cannot read identify-delta message from peer {}, {}: {}",
                   peer_id_str, peer_addr_str, msg_res.error().message());
-      return stream->reset([](auto &&) {});
+      return stream->reset();
     }
 
     auto &&id_msg = std::move(msg_res.value());
@@ -74,7 +74,7 @@ namespace libp2p::protocol {
           "peer initiated a stream with IdentifyDelta, but sent something "
           "else; peer {}, {}",
           peer_id_str, peer_addr_str);
-      return stream->reset([](auto &&) {});
+      return stream->reset();
     }
 
     log_->info("received an IdentifyDelta message from peer {}, {}",

@@ -33,33 +33,24 @@ namespace libp2p::protocol {
 
   void IdentifyPush::start() {
     static constexpr uint8_t kChannelsAmount = 3;
-    sub_handles_.reserve(kChannelsAmount);
 
+    auto send_push = [self{weak_from_this()}](auto && /*ignored*/) {
+      if (self.expired()) {
+        return;
+      }
+      self.lock()->sendPush();
+    };
+
+    sub_handles_.reserve(kChannelsAmount);
     sub_handles_.push_back(
         bus_.getChannel<network::event::ListenAddressAddedChannel>().subscribe(
-            [self{weak_from_this()}](auto && /*ignored*/) {
-              if (self.expired()) {
-                return;
-              }
-              self.lock()->sendPush();
-            }));
+            send_push));
     sub_handles_.push_back(
         bus_.getChannel<network::event::ListenAddressRemovedChannel>()
-            .subscribe([self{weak_from_this()}](auto && /*ignored*/) {
-              if (self.expired()) {
-                return;
-              }
-              self.lock()->sendPush();
-            }));
-
+            .subscribe(send_push));
     sub_handles_.push_back(
         bus_.getChannel<peer::event::KeyPairChangedChannel>().subscribe(
-            [self{weak_from_this()}](auto && /*ignored*/) {
-              if (self.expired()) {
-                return;
-              }
-              self.lock()->sendPush();
-            }));
+            std::move(send_push)));
   }
 
   void IdentifyPush::sendPush() {

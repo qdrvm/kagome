@@ -78,7 +78,7 @@ namespace libp2p::protocol {
     if (!written_bytes) {
       log_->error("cannot write identify message to stream to peer {}, {}: {}",
                   peer_id, peer_addr, written_bytes.error().message());
-      return stream->reset([](auto &&) {});
+      return stream->reset();
     }
 
     log_->info("successfully written an identify message to peer {}, {}",
@@ -122,7 +122,7 @@ namespace libp2p::protocol {
     if (!msg_res) {
       log_->error("cannot read an identify message from peer {}, {}: {}",
                   peer_id_str, peer_addr_str, msg_res.error());
-      return stream->reset([](auto &&) {});
+      return stream->reset();
     }
 
     log_->info("received an identify message from peer {}, {}", peer_id_str,

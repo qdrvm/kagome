@@ -17,15 +17,15 @@
 namespace libp2p::network {
 
   namespace event {
+    using libp2p::event::channel_decl;
+
     struct ProtocolsAdded {};
     using ProtocolsAddedChannel =
-        libp2p::event::channel_decl<ProtocolsAdded,
-                                    std::vector<peer::Protocol>>;
+        channel_decl<ProtocolsAdded, std::vector<peer::Protocol>>;
 
     struct ProtocolsRemoved {};
     using ProtocolsRemovedChannel =
-        libp2p::event::channel_decl<ProtocolsRemoved,
-                                    std::vector<peer::Protocol>>;
+        channel_decl<ProtocolsRemoved, std::vector<peer::Protocol>>;
   }  // namespace event
 
   /**

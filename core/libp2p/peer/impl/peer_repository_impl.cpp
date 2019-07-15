@@ -50,7 +50,7 @@ namespace libp2p::peer {
   PeerInfo PeerRepositoryImpl::getPeerInfo(const PeerId &peer_id) const {
     auto peer_addrs_res = addr_->getAddresses(peer_id);
     if (!peer_addrs_res) {
-      return PeerInfo{peer_id, std::vector<multi::Multiaddress>()};
+      return PeerInfo{peer_id, {}};
     }
     return PeerInfo{peer_id, std::move(peer_addrs_res.value())};
   }

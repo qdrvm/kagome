@@ -33,6 +33,8 @@ namespace libp2p::protocol::detail {
   std::vector<peer::PeerInfo> getActivePeers(
       Host &host, network::ConnectionManager &conn_manager);
 
+  // TODO(akvinikym) 15.07.19 PRE-252: when a broadcast will being implemented,
+  // that method should be considered as a main part of it
   /**
    * Open a stream to each peer this host is connected to and execute a provided
    * function
