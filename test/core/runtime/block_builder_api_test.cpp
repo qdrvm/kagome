@@ -19,7 +19,7 @@ using kagome::extensions::ExtensionImpl;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::InherentData;
 using kagome::runtime::BlockBuilderApi;
-using kagome::runtime::BlockBuilderImpl;
+using kagome::runtime::BlockBuilderApiImpl;
 using kagome::runtime::WasmMemoryImpl;
 using kagome::storage::trie::MockTrieDb;
 
@@ -28,8 +28,7 @@ class BlockBuilderApiTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    builder_ =
-        std::make_unique<BlockBuilderImpl>(state_code_, extension_);
+    builder_ = std::make_unique<BlockBuilderApiImpl>(state_code_, extension_);
   }
 
  protected:
