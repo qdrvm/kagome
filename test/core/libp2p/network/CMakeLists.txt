@@ -36,6 +36,14 @@ target_link_libraries(connection_manager_test
     )
 
 
+addtest(listener_manager_test
+    listener_manager_test.cpp
+    )
+target_link_libraries(listener_manager_test
+    libp2p_listener_manager
+    )
+
+
 addtest(dialer_test
     dialer_test.cpp
     )

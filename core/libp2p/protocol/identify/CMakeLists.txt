@@ -12,6 +12,12 @@ add_library(libp2p_identify
     identify_msg_processor.hpp
     observed_addresses.cpp
     observed_addresses.hpp
+    identify_push.cpp
+    identify_push.hpp
+    identify_delta.cpp
+    identify_delta.hpp
+    utils.cpp
+    utils.hpp
     )
 target_link_libraries(libp2p_identify
     libp2p

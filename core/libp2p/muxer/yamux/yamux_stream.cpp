@@ -202,20 +202,19 @@ namespace libp2p::connection {
     return !is_writable_;
   }
 
-  void YamuxStream::reset(VoidResultHandlerFunc cb) {
+  void YamuxStream::reset() {
     if (is_writing_) {
-      return cb(Error::IS_WRITING);
+      return;
     }
 
     is_writing_ = true;
     if (yamuxed_connection_.expired()) {
-      return cb(Error::CONNECTION_IS_DEAD);
+      return;
     }
     yamuxed_connection_.lock()->streamReset(
-        stream_id_, [self{shared_from_this()}, cb = std::move(cb)](auto &&res) {
+        stream_id_, [self{shared_from_this()}](auto && /*ignore*/) {
           self->is_writing_ = false;
           self->resetStream();
-          cb(std::forward<decltype(res)>(res));
         });
   }
 

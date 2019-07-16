@@ -3,25 +3,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCK_BUILDER_HPP
-#define KAGOME_BLOCK_BUILDER_HPP
+#ifndef KAGOME_BLOCK_BUILDER_API_HPP
+#define KAGOME_BLOCK_BUILDER_API_HPP
 
 #include <list>
 
 #include <outcome/outcome.hpp>
 #include "primitives/block.hpp"
 #include "primitives/block_header.hpp"
+#include "primitives/check_inherents_result.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/inherent_data.hpp"
-#include "primitives/check_inherents_result.hpp"
 
 namespace kagome::runtime {
   /**
    * Part of runtime API responsible for building a block for a runtime.
    */
-  class BlockBuilder {
+  class BlockBuilderApi {
    public:
-    virtual ~BlockBuilder() = default;
+    virtual ~BlockBuilderApi() = default;
 
     /// Apply the given extrinsics.
     virtual outcome::result<bool> apply_extrinsic(
@@ -46,4 +46,4 @@ namespace kagome::runtime {
   };
 }  // namespace kagome::runtime
 
-#endif  // KAGOME_BLOCK_BUILDER_HPP
+#endif  // KAGOME_BLOCK_BUILDER_API_HPP

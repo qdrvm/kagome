@@ -24,6 +24,8 @@ namespace libp2p::peer {
 
     std::unordered_set<PeerId> getPeers() const override;
 
+    PeerInfo getPeerInfo(const PeerId &peer_id) const override;
+
    private:
     std::shared_ptr<AddressRepository> addr_;
     std::shared_ptr<KeyRepository> key_;

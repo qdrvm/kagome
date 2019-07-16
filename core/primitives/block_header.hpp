@@ -20,6 +20,16 @@ namespace kagome::primitives {
     common::Hash256 state_root;       ///< root of the Merkle tree
     common::Hash256 extrinsics_root;  ///< field for validation integrity
     Digest digest;                    ///< chain-specific auxiliary data
+
+    bool operator==(const BlockHeader &rhs) const {
+      return std::tie(parent_hash, number, state_root, extrinsics_root, digest)
+          == std::tie(rhs.parent_hash, rhs.number, rhs.state_root,
+                      rhs.extrinsics_root, rhs.digest);
+    }
+
+    bool operator!=(const BlockHeader &rhs) const {
+      return !operator==(rhs);
+    }
   };
 
   /**
@@ -29,7 +39,8 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream>
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const BlockHeader &bh) {
     return s << bh.parent_hash << bh.number << bh.state_root
              << bh.extrinsics_root << bh.digest;
@@ -42,7 +53,8 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream>
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, BlockHeader &bh) {
     return s >> bh.parent_hash >> bh.number >> bh.state_root
         >> bh.extrinsics_root >> bh.digest;

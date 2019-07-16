@@ -45,8 +45,9 @@ struct ThreeBooleans {
   bool b3 = false;
 };
 
-template <class Stream>
-Stream &operator>>(Stream &s, ThreeBooleans &v) {
+template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, ThreeBooleans &v) {
   return s >> v.b1 >> v.b2 >> v.b3;
 }
 

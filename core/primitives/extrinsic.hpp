@@ -14,6 +14,10 @@ namespace kagome::primitives {
    */
   struct Extrinsic {
     kagome::common::Buffer data;  ///< extrinsic content as byte array
+
+    inline bool operator==(const Extrinsic &rhs) const {
+      return data == rhs.data;
+    }
   };
 
   /**
@@ -23,7 +27,8 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream>
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Extrinsic &v) {
     return s << v.data.toVector();
   }
@@ -35,7 +40,8 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream>
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, Extrinsic &v) {
     return s >> v.data;
   }

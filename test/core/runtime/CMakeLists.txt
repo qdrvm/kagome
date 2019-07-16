@@ -33,11 +33,11 @@ target_link_libraries(tagged_transaction_queue_test
     wasm_test
     )
 
-addtest(block_builder_test
-    block_builder_test.cpp
+addtest(block_builder_api_test
+    block_builder_api_test.cpp
     )
-target_link_libraries(block_builder_test
-    block_builder
+target_link_libraries(block_builder_api_test
+    block_builder_api
     wasm_test
     )
 
