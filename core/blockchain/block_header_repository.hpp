@@ -15,42 +15,78 @@
 
 namespace kagome::blockchain {
 
+  /**
+   * Status of a block
+   */
   enum class BlockStatus { InChain, Unknown };
 
+  /**
+   * An interface to a storage with block headers that provides several
+   * convenience methods, such as getting bloch number by its hash and vice
+   * versa or getting a block status
+   */
   class BlockHeaderRepository {
    public:
     virtual ~BlockHeaderRepository() = default;
 
-    virtual auto getNumberByHash(const common::Hash256 &hash) const
-        -> outcome::result<boost::optional<primitives::BlockNumber>> = 0;
+    /**
+     * @param hash - a blake2_256 hash of an SCALE encoded block header
+     * @return the number of the block with the provided hash in case one is in
+     * the storage
+     */
+    virtual outcome::result<primitives::BlockNumber> getNumberByHash(
+        const common::Hash256 &hash) const = 0;
 
-    virtual auto getHashByNumber(const primitives::BlockNumber &number) const
-        -> outcome::result<boost::optional<common::Hash256>> = 0;
+    /**
+     * @param number - the number of a block, contained in a block header
+     * @return the hash of the block with the provided number in case one is in
+     * the storage
+     */
+    virtual outcome::result<common::Hash256> getHashByNumber(
+        const primitives::BlockNumber &number) const = 0;
 
-    virtual auto getBlockHeader(const primitives::BlockId &id) const
-        -> outcome::result<primitives::BlockHeader> = 0;
+    /**
+     * @return block header with corresponding id or an error
+     */
+    virtual outcome::result<primitives::BlockHeader> getBlockHeader(
+        const primitives::BlockId &id) const = 0;
 
-    virtual outcome::result<bool> getBlockStatus() const = 0;
+    /**
+     * @param id of a block which status is returned
+     * @return status of a block or a storage error
+     */
+    virtual outcome::result<kagome::blockchain::BlockStatus> getBlockStatus(
+        const primitives::BlockId &id) const = 0;
 
+    /**
+     * @param id of a block which number is returned
+     * @return block number or a none optional if the corresponding block header
+     * is not in storage or a storage error
+     */
     auto getNumberById(const primitives::BlockId &id) const
-        -> outcome::result<boost::optional<primitives::BlockNumber>> {
+        -> outcome::result<primitives::BlockNumber> {
       return visit_in_place(id,
                             [](const primitives::BlockNumber &n) {
-                              return boost::make_optional(n);
+                              return n;
                             },
                             [this](const common::Hash256 &hash) {
                               return getNumberByHash(hash);
                             });
     }
 
+    /**
+     * @param id of a block which hash is returned
+     * @return block hash or a none optional if the corresponding block header
+     * is not in storage or a storage error
+     */
     auto getHashById(const primitives::BlockId &id) const
-        -> outcome::result<boost::optional<common::Hash256>> {
+        -> outcome::result<common::Hash256> {
       return visit_in_place(id,
                             [this](const primitives::BlockNumber &n) {
                               return getHashByNumber(n);
                             },
                             [](const common::Hash256 &hash) {
-                              return boost::make_optional(hash);
+                              return hash;
                             });
     }
   };
