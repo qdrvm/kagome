@@ -28,7 +28,7 @@ namespace libp2p::protocol {
     // handle incoming stream
     void handle(StreamResult rstream) override;
 
-    // create client session, which simplifies writing tests and integration
+    // create client session, which simplifies writing tests and interaction
     // with server.
     std::shared_ptr<ClientEchoSession> createClient(
         const std::shared_ptr<connection::Stream> &stream);
