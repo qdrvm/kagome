@@ -29,11 +29,11 @@ using testing::ReturnRef;
 
 class PingTest : public testing::Test {
  public:
-  std::shared_ptr<Ping> ping_ = std::make_shared<Ping>(host_, rand_gen_);
-
   HostMock host_;
   std::shared_ptr<RandomGeneratorMock> rand_gen_ =
       std::make_shared<RandomGeneratorMock>();
+
+  std::shared_ptr<Ping> ping_ = std::make_shared<Ping>(host_, rand_gen_);
 
   std::shared_ptr<CapableConnectionMock> conn_ =
       std::make_shared<CapableConnectionMock>();
@@ -86,7 +86,9 @@ TEST_F(PingTest, PingClient) {
   EXPECT_CALL(host_, newStream(peer_info_, kPingProto, _))
       .WillOnce(InvokeArgument<2>(stream_));
 
-  EXPECT_CALL(*rand_gen_, randomBytes(kPingMsgSize)).WillOnce(Return(buffer_));
+  EXPECT_CALL(*rand_gen_, randomBytes(kPingMsgSize))
+      .Times(2)
+      .WillRepeatedly(Return(buffer_));
   EXPECT_CALL(*stream_,
               write(gsl::span<const uint8_t>(buffer_), kPingMsgSize, _))
       .WillOnce(InvokeArgument<2>(buffer_.size()))
