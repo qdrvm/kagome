@@ -127,9 +127,9 @@ namespace libp2p::network::injector {
 
       // clang-format off
       return di::make_injector(
-          di::bind<crypto::marshaller::KeyMarshaller>.to<crypto::marshaller::KeyMarshallerImpl>(),
-          di::bind<peer::IdentityManager>.to<peer::IdentityManagerImpl>(),
-          di::bind<crypto::KeyPair>.to(std::move(keyPair))
+          di::bind<crypto::marshaller::KeyMarshaller>().template to<crypto::marshaller::KeyMarshallerImpl>(),
+          di::bind<peer::IdentityManager>().template to<peer::IdentityManagerImpl>(),
+          di::bind<crypto::KeyPair>().template to(std::move(keyPair))
       );
       // clang-format on
     }
@@ -145,8 +145,8 @@ namespace libp2p::network::injector {
 
       // clang-format off
       return di::make_injector(
-          di::bind<crypto::random::CSPRNG>.to(std::move(csprng)),
-          di::bind<crypto::KeyGenerator>.to(std::move(gen)),
+          di::bind<crypto::random::CSPRNG>().template to(std::move(csprng)),
+          di::bind<crypto::KeyGenerator>().template to(std::move(gen)),
           makeIdentity(std::move(keypair))
       );
       // clang-format on
@@ -164,7 +164,7 @@ namespace libp2p::network::injector {
    * @endcode
    */
   inline auto useKeyPair(crypto::KeyPair keyPair) {
-    return boost::di::bind<crypto::KeyPair>.to(
+    return boost::di::bind<crypto::KeyPair>().template to(
         std::move(keyPair))[boost::di::override];
   }
 
@@ -195,7 +195,7 @@ namespace libp2p::network::injector {
    */
   template <typename C>
   auto useConfig(C &&c) {
-    return boost::di::bind<std::decay<C>>.to(std::forward<C>(c));
+    return boost::di::bind<std::decay<C>>().template to(std::forward<C>(c));
   }
 
   /**
@@ -215,7 +215,8 @@ namespace libp2p::network::injector {
    */
   template <typename... SecImpl>
   auto useSecurityAdaptors() {
-    return boost::di::bind<security::SecurityAdaptor *[]>.to<SecImpl...>()[boost::di::override];
+    return boost::di::bind<security::SecurityAdaptor *[]>()
+        .template to<SecImpl...>()[boost::di::override];
   }
 
   /**
@@ -227,7 +228,8 @@ namespace libp2p::network::injector {
    */
   template <typename... MuxerImpl>
   auto useMuxerAdaptors() {
-    return boost::di::bind<muxer::MuxerAdaptor *[]>.to<MuxerImpl...>()[boost::di::override];
+    return boost::di::bind<muxer::MuxerAdaptor *[]>()
+        .template to<MuxerImpl...>()[boost::di::override];
   }
 
   /**
@@ -239,8 +241,8 @@ namespace libp2p::network::injector {
    */
   template <typename... TransportImpl>
   auto useTransportAdaptors() {
-    return boost::di::bind<transport::TransportAdaptor *[]>.to<TransportImpl...>()
-        [boost::di::override];
+    return boost::di::bind<transport::TransportAdaptor *[]>()
+        .template to<TransportImpl...>()[boost::di::override];
   }
 
   /**
@@ -256,19 +258,19 @@ namespace libp2p::network::injector {
     return di::make_injector(
         detail::makeRandomIdentity(),
         // internal
-        di::bind<network::Router>.to<network::RouterImpl>(),
-        di::bind<network::ConnectionManager>.to<network::ConnectionManagerImpl>(),
-        di::bind<network::ListenerManager>.to<network::ListenerManagerImpl>(),
-        di::bind<network::Dialer>.to<network::DialerImpl>(),
-        di::bind<network::Network>.to<network::NetworkImpl>(),
-        di::bind<network::TransportManager>.to<network::TransportManagerImpl>(),
-        di::bind<transport::Upgrader>.to<transport::UpgraderImpl>(),
-        di::bind<protocol_muxer::ProtocolMuxer>.to<protocol_muxer::Multiselect>(),
+        di::bind<network::Router>().template to<network::RouterImpl>(),
+        di::bind<network::ConnectionManager>().template to<network::ConnectionManagerImpl>(),
+        di::bind<network::ListenerManager>().template to<network::ListenerManagerImpl>(),
+        di::bind<network::Dialer>().template to<network::DialerImpl>(),
+        di::bind<network::Network>().template to<network::NetworkImpl>(),
+        di::bind<network::TransportManager>().template to<network::TransportManagerImpl>(),
+        di::bind<transport::Upgrader>().template to<transport::UpgraderImpl>(),
+        di::bind<protocol_muxer::ProtocolMuxer>().template to<protocol_muxer::Multiselect>(),
 
         // default adaptors
-        di::bind<security::SecurityAdaptor *[]>.to<security::Plaintext>(),
-        di::bind<muxer::MuxerAdaptor *[]>.to<muxer::Yamux>(),
-        di::bind<transport::TransportAdaptor *[]>.to<transport::TcpTransport>(),
+        di::bind<security::SecurityAdaptor *[]>().template to<security::Plaintext>(),
+        di::bind<muxer::MuxerAdaptor *[]>().template to<muxer::Yamux>(),
+        di::bind<transport::TransportAdaptor *[]>().template to<transport::TcpTransport>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...
