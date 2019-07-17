@@ -14,6 +14,7 @@
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
+#include <gsl/pointers>
 #include "libp2p/crypto/error.hpp"
 #include "libp2p/crypto/random_generator.hpp"
 
@@ -36,23 +37,15 @@ namespace libp2p::crypto {
     template <class KeyStructure, class Function>
     outcome::result<std::vector<uint8_t>> encodeKeyDer(KeyStructure *ks,
                                                        Function *function) {
-      unsigned char *buffer = nullptr;
-      auto cleanup_buffer = gsl::finally([buffer]() {
-        if (buffer != nullptr) {
-          free(buffer);
-        }
-      });
+      gsl::owner<unsigned char *> buffer = nullptr;
 
       int length = function(ks, &buffer);
       if (length < 0) {
         return KeyGeneratorError::KEY_GENERATION_FAILED;
       }
 
-      std::vector<uint8_t> bytes(length, 0);
       auto span = gsl::span(buffer, length);
-      std::copy(span.begin(), span.end(), bytes.begin());
-
-      return bytes;
+      return std::vector<uint8_t>{span.begin(), span.end()};
     }
 
     // get private or public key of EVP_PKEY raw bytes in uniform way
@@ -156,23 +149,15 @@ namespace libp2p::crypto {
         return KeyGeneratorError::KEY_DERIVATION_FAILED;
       }
 
-      // compressed form has 33 bytes
-      const size_t COMPRESSED_PUBKEY_SIZE = 33;
-      std::vector<uint8_t> public_buffer(COMPRESSED_PUBKEY_SIZE, 0);
-      uint8_t *data_pointer = nullptr;
+      gsl::owner<uint8_t *> data_pointer = nullptr;
       int public_length = EC_POINT_point2buf(
           group, point, POINT_CONVERSION_COMPRESSED, &data_pointer, nullptr);
       if (public_length < 0) {
         return KeyGeneratorError::KEY_GENERATION_FAILED;
       }
-      auto cleanup_buffer = gsl::finally([data_pointer]() {
-        if (data_pointer != nullptr) {
-          free(data_pointer);
-        }
-      });
 
       auto span = gsl::span(data_pointer, public_length);
-      std::copy(span.begin(), span.end(), public_buffer.begin());
+      std::vector<uint8_t> public_buffer(span.begin(), span.end());
 
       return PublicKey{{key.type, std::move(public_buffer)}};
     }
