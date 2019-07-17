@@ -6,6 +6,8 @@
 #ifndef KAGOME_HOST_MOCK_HPP
 #define KAGOME_HOST_MOCK_HPP
 
+#include <vector>
+
 #include <gmock/gmock.h>
 #include "libp2p/host/host.hpp"
 
@@ -27,7 +29,6 @@ namespace libp2p {
                  void(std::string_view prefix,
                       const std::function<connection::Stream::Handler> &,
                       const std::function<bool(const peer::Protocol &)> &));
-    MOCK_METHOD1(handleProtocol, void(std::unique_ptr<protocol::BaseProtocol>));
     MOCK_METHOD1(connect, void(const peer::PeerInfo &));
     MOCK_METHOD3(newStream,
                  void(const peer::PeerInfo &p, const peer::Protocol &protocol,
@@ -43,6 +44,16 @@ namespace libp2p {
     MOCK_CONST_METHOD0(getPeerRepository, peer::PeerRepository &());
     MOCK_CONST_METHOD0(getRouter, network::Router &());
     MOCK_CONST_METHOD0(getBus, event::Bus &());
+
+    MOCK_METHOD1(handleProtocol_hack, void(protocol::BaseProtocol *));
+
+    void handleProtocol(
+        std::unique_ptr<protocol::BaseProtocol> protocol) override {
+      handleProtocol_hack(protocol.get());
+      protocols.emplace_back(std::move(protocol));
+    }
+
+    std::vector<std::unique_ptr<protocol::BaseProtocol>> protocols;
   };
 }  // namespace libp2p
 

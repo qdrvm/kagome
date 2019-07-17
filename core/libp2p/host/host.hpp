@@ -178,7 +178,7 @@ namespace libp2p {
     /**
      * @brief Getter for a router.
      */
-    virtual const network::Router &getRouter() const = 0;
+    virtual network::Router &getRouter() const = 0;
 
     /**
      * @brief Getter for event bus.

@@ -150,7 +150,7 @@ ACTION_P(Close, res) {
 TEST_F(IdentifyTest, Send) {
   // setup components, so that when Identify asks them, they give expected
   // parameters to be put into the Protobuf message
-  EXPECT_CALL(host_, getRouter()).WillOnce(ReturnRef(Const(router_)));
+  EXPECT_CALL(host_, getRouter()).WillOnce(ReturnRef(router_));
   EXPECT_CALL(router_, getSupportedProtocols()).WillOnce(Return(protocols_));
 
   EXPECT_CALL(*stream_, remoteMultiaddr())

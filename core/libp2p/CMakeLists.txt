@@ -15,3 +15,23 @@ add_subdirectory(connection)
 add_subdirectory(protocol)
 add_subdirectory(basic)
 add_subdirectory(host)
+
+add_library(libp2p
+    libp2p.cpp
+    )
+target_link_libraries(libp2p INTERFACE
+    libp2p_network
+    libp2p_tcp
+    libp2p_yamux
+    libp2p_plaintext
+    libp2p_connection_manager
+    libp2p_transport_manager
+    libp2p_listener_manager
+    libp2p_identity_manager
+    libp2p_dialer
+    libp2p_router
+    multiselect
+    random_generator
+    key_generator
+    marshaller
+    )
