@@ -88,6 +88,12 @@ matrix:
         - cmake . -Bbuild
         - housekeeping/clang-tidy.sh build
 
+    - os: linux
+      name: "git clone --recursive works"
+      if: type = pull_request OR branch = master
+      script:
+        - git clone --recursive https://github.com/soramitsu/kagome
+
 install:
   - |
     # install python pip3 deps
