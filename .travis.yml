@@ -37,6 +37,7 @@ addons:
       - python3
       - python3-pip
       - python3-setuptools
+      - clang-tidy-8
 
 cache:
   apt: true
@@ -71,6 +72,22 @@ matrix:
         - _CC=clang
         - _CXX=clang++
 
+    - os: linux
+      name: "Linux gcc-8 clang-tidy"
+      if: type = pull_request OR branch = master
+      env:
+        - _CC=gcc-8
+        - _CXX=g++-8
+      script:
+        - export CC=${_CC}
+        - export CXX=${_CXX}
+        - export PATH="$HOME/.cargo/bin:$PATH"
+        - export LLVM_ROOT=/usr/lib/llvm-8
+        - export PATH=${LLVM_ROOT}/bin:${LLVM_ROOT}/share/clang:${PATH}
+        - sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-8 90
+        - cmake . -Bbuild
+        - housekeeping/clang-tidy.sh build
+
 install:
   - |
     # install python pip3 deps
@@ -88,8 +105,7 @@ install:
     sudo pip3 install --upgrade pip
     pip3 install --user --upgrade requests gitpython cmake gcovr
   - export PATH="$HOME/.cargo/bin:$PATH"
-  - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
-  - rustup install nightly-2019-07-07
+  - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2019-07-07
   - rustup default nightly-2019-07-07
 
 
