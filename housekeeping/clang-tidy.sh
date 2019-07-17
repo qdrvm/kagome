@@ -12,10 +12,7 @@ function get_files(){
     if [[ "${head}" = "master" ]]; then
         echo $(find core -type f | grep "cpp")
     else
-        # TODO(bogdan): we exclude identify_msg_processor because of https://bugs.llvm.org/show_bug.cgi?id=42648
-        echo $(git diff --name-only HEAD..origin/master | grep "cpp" | grep -v "test" \
-        | grep -v "identify_msg_processor" \
-        )
+        echo $(git diff --name-only HEAD..origin/master | grep "cpp" | grep -v "test")
     fi
 }
 
