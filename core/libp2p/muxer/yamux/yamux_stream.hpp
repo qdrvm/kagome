@@ -63,9 +63,17 @@ namespace libp2p::connection {
 
     bool isClosedForWrite() const noexcept override;
 
-    void reset(VoidResultHandlerFunc cb) override;
+    void reset() override;
 
     void adjustWindowSize(uint32_t new_size, VoidResultHandlerFunc cb) override;
+
+    outcome::result<peer::PeerId> remotePeerId() const override;
+
+    outcome::result<bool> isInitiator() const override;
+
+    outcome::result<multi::Multiaddress> localMultiaddr() const override;
+
+    outcome::result<multi::Multiaddress> remoteMultiaddr() const override;
 
    private:
     /**

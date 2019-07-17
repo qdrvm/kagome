@@ -10,50 +10,51 @@
 
 #include "libp2p/peer/address_repository.hpp"
 #include "libp2p/peer/key_repository.hpp"
+#include "libp2p/peer/peer_id.hpp"
+#include "libp2p/peer/peer_info.hpp"
 #include "libp2p/peer/protocol_repository.hpp"
 
 namespace libp2p::peer {
-
   /**
    * @brief Repository which stores all known information about peers, including
    * this peer.
    */
-  class PeerRepository {
-   public:
-    PeerRepository(std::shared_ptr<AddressRepository> addrRepo,
-                   std::shared_ptr<KeyRepository> keyRepo,
-                   std::shared_ptr<ProtocolRepository> protocolRepo);
+  struct PeerRepository {
+    virtual ~PeerRepository() = default;
 
     /**
      * @brief Getter for an address repository.
      * @return associated instance of an address repository.
      */
-    AddressRepository &getAddressRepository();
+    virtual AddressRepository &getAddressRepository() = 0;
 
     /**
      * @brief Getter for a key repository.
      * @return associated instance of a key repository
      */
-    KeyRepository &getKeyRepository();
+    virtual KeyRepository &getKeyRepository() = 0;
 
     /**
      * @brief Getter for a protocol repository.
      * @return associated instance of a protocol repository.
      */
-    ProtocolRepository &getProtocolRepository();
+    virtual ProtocolRepository &getProtocolRepository() = 0;
 
     /**
      * @brief Returns set of peer ids known by this peer repository.
      * @return unordered set of peers
      */
-    std::unordered_set<PeerId> getPeers() const;
+    virtual std::unordered_set<PeerId> getPeers() const = 0;
 
-   private:
-    std::shared_ptr<AddressRepository> addr_;
-    std::shared_ptr<KeyRepository> key_;
-    std::shared_ptr<ProtocolRepository> proto_;
+    /**
+     * @brief Derive a PeerInfo object from the PeerId; can be useful, for
+     * example, to establish connections, when only a PeerId is known at the
+     * current program point
+     * @param peer_id to get PeerInfo for
+     * @return PeerInfo
+     */
+    virtual PeerInfo getPeerInfo(const PeerId &peer_id) const = 0;
   };
-
 }  // namespace libp2p::peer
 
 #endif  // KAGOME_PEER_REPOSITORY_HPP

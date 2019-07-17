@@ -29,6 +29,14 @@ print("C flags: ${CMAKE_C_FLAGS}")
 print("CXX flags: ${CMAKE_CXX_FLAGS}")
 print("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
 
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+find_package(Threads)
+link_libraries(Threads::Threads)
+if(THREADS_HAVE_PTHREAD_ARG)
+  add_link_options(-lpthread)
+endif()
+
+
 include(CheckCXXCompilerFlag)
 include(cmake/dependencies.cmake)
 include(cmake/functions.cmake)
@@ -60,6 +68,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
   add_flag(-Wnull-dereference)       # (only in GCC >= 6.0) warn if a null dereference is detected
   add_flag(-Wdouble-promotion)       # (GCC >= 4.6, Clang >= 3.8) warn if float is implicit promoted to double
   add_flag(-Wsign-compare)
+  add_flag(-Wtype-limits)            # size_t - size_t >= 0 -> always true
 
   # disable those flags
   add_flag(-Wno-unused-command-line-argument)    # clang: warning: argument unused during compilation: '--coverage' [-Wunused-command-line-argument]

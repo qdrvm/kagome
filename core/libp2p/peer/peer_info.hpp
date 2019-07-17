@@ -16,6 +16,13 @@ namespace libp2p::peer {
   struct PeerInfo {
     PeerId id;
     std::vector<multi::Multiaddress> addresses;
+
+    bool operator==(const PeerInfo &other) const {
+      return id == other.id && addresses == other.addresses;
+    }
+    bool operator!=(const PeerInfo &other) const {
+      return !(*this == other);
+    }
   };
 
 }  // namespace libp2p::peer

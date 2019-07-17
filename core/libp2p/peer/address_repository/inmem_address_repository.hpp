@@ -32,6 +32,9 @@ namespace libp2p::peer {
         const PeerId &p, gsl::span<const multi::Multiaddress> ma,
         Milliseconds ttl) override;
 
+    outcome::result<void> updateAddresses(const PeerId &p,
+                                          Milliseconds ttl) override;
+
     outcome::result<std::vector<multi::Multiaddress>> getAddresses(
         const PeerId &p) const override;
 

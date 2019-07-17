@@ -5,4 +5,4 @@
 
 #include "libp2p/host.hpp"
 
-namespace libp2p {}  // namespace libp2p
+namespace libp2p {}

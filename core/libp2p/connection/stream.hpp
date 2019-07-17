@@ -8,6 +8,12 @@
 
 #include <outcome/outcome.hpp>
 #include "libp2p/basic/readwriter.hpp"
+#include "libp2p/connection/capable_connection.hpp"
+#include "libp2p/multi/multiaddress.hpp"
+
+namespace libp2p::peer {
+  class PeerId;
+}
 
 namespace libp2p::connection {
 
@@ -61,9 +67,8 @@ namespace libp2p::connection {
     /**
      * @brief Close this stream entirely; this normally means an error happened,
      * so it should not be used just to close the stream
-     * @param cb to be called, when the operation succeeds of fails
      */
-    virtual void reset(VoidResultHandlerFunc cb) = 0;
+    virtual void reset() = 0;
 
     /**
      * Set a new receive window size of this stream - how much unacknowledged
@@ -73,6 +78,29 @@ namespace libp2p::connection {
      */
     virtual void adjustWindowSize(uint32_t new_size,
                                   VoidResultHandlerFunc cb) = 0;
+
+    /**
+     * Is that stream opened over a connection, which was an initiator?
+     */
+    virtual outcome::result<bool> isInitiator() const = 0;
+
+    /**
+     * Get a peer, which the stream is connected to
+     * @return id of the peer
+     */
+    virtual outcome::result<peer::PeerId> remotePeerId() const = 0;
+
+    /**
+     * Get a local multiaddress
+     * @return address or error
+     */
+    virtual outcome::result<multi::Multiaddress> localMultiaddr() const = 0;
+
+    /**
+     * Get a multiaddress, to which the stream is connected
+     * @return multiaddress or error
+     */
+    virtual outcome::result<multi::Multiaddress> remoteMultiaddr() const = 0;
   };
 }  // namespace libp2p::connection
 

@@ -21,7 +21,8 @@ namespace kagome::primitives {
     primitives::InherentData errors;
   };
 
-  template <class Stream>
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, CheckInherentsResult &v) {
     return s >> v.is_okay >> v.is_fatal_error >> v.errors;
   }

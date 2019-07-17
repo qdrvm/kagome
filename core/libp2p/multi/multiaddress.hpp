@@ -10,11 +10,11 @@
 #include <list>
 #include <memory>
 #include <optional>
-#include <outcome/outcome.hpp>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 
+#include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
 #include "libp2p/multi/multiaddress_protocol_list.hpp"
 
@@ -77,6 +77,14 @@ namespace libp2p::multi {
      * @return true, if such protocol was found and removed, false otherwise
      */
     bool decapsulate(Protocol::Code proto);
+
+    /**
+     * Split the Multiaddress by the first protocol, such that:
+     * '/ip4/192.168.0.1/tcp/228' => <'/ip4/192.168.0.1', '/tcp/228'>
+     * @return pair of addresses; if there's only one protocol in the provided
+     * address, the second element will be none
+     */
+    std::pair<Multiaddress, std::optional<Multiaddress>> splitFirst() const;
 
     /**
      * @brief Tests if {@param code} exists in this multiaddr.

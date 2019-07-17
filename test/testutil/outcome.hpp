@@ -13,24 +13,25 @@
 #define PP_CAT_I(a, b) PP_CAT_II(~, a##b)
 #define PP_CAT_II(p, res) res
 
+#define STRINGIFY(x) #x
 #define UNIQUE_NAME(base) PP_CAT(base, __LINE__)
 
 #define EXPECT_OUTCOME_TRUE_void(var, expr) \
   auto &&var = expr;                        \
-  EXPECT_TRUE(var) << var.error().message();
+  EXPECT_TRUE(var) << STRINGIFY(__LINE__) << ": " << var.error().message();
 
 #define EXPECT_OUTCOME_TRUE_name(var, val, expr) \
   auto &&var = expr;                             \
-  EXPECT_TRUE(var) << var.error().message();     \
+  EXPECT_TRUE(var) << STRINGIFY(__LINE__) << ": " << var.error().message();     \
   auto &&val = var.value();
 
 #define EXPECT_OUTCOME_FALSE_void(var, expr) \
   auto &&var = expr;                         \
-  EXPECT_FALSE(var) << var.error().message();
+  EXPECT_FALSE(var) << STRINGIFY(__LINE__) << ": " << var.error().message();
 
 #define EXPECT_OUTCOME_FALSE_name(var, val, expr) \
   auto &&var = expr;                              \
-  EXPECT_FALSE(var) << var.error().message();     \
+  EXPECT_FALSE(var) << STRINGIFY(__LINE__) << ": " << var.error().message();     \
   auto &&val = var.error();
 
 #define EXPECT_OUTCOME_TRUE_3(var, val, expr) \

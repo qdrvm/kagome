@@ -33,9 +33,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, YamuxStream::Error, e) {
 
 namespace libp2p::connection {
 
-  YamuxStream::YamuxStream(
-      std::weak_ptr<YamuxedConnection> yamuxed_connection,
-      YamuxedConnection::StreamId stream_id, uint32_t maximum_window_size)
+  YamuxStream::YamuxStream(std::weak_ptr<YamuxedConnection> yamuxed_connection,
+                           YamuxedConnection::StreamId stream_id,
+                           uint32_t maximum_window_size)
       : yamuxed_connection_{std::move(yamuxed_connection)},
         stream_id_{stream_id},
         maximum_window_size_{maximum_window_size} {}
@@ -202,20 +202,19 @@ namespace libp2p::connection {
     return !is_writable_;
   }
 
-  void YamuxStream::reset(VoidResultHandlerFunc cb) {
+  void YamuxStream::reset() {
     if (is_writing_) {
-      return cb(Error::IS_WRITING);
+      return;
     }
 
     is_writing_ = true;
     if (yamuxed_connection_.expired()) {
-      return cb(Error::CONNECTION_IS_DEAD);
+      return;
     }
     yamuxed_connection_.lock()->streamReset(
-        stream_id_, [self{shared_from_this()}, cb = std::move(cb)](auto &&res) {
+        stream_id_, [self{shared_from_this()}](auto && /*ignore*/) {
           self->is_writing_ = false;
           self->resetStream();
-          cb(std::forward<decltype(res)>(res));
         });
   }
 
@@ -243,6 +242,34 @@ namespace libp2p::connection {
           self->receive_window_size_ = new_size;
           cb(outcome::success());
         });
+  }
+
+  outcome::result<peer::PeerId> YamuxStream::remotePeerId() const {
+    if (auto conn = yamuxed_connection_.lock()) {
+      return conn->remotePeer();
+    }
+    return Error::CONNECTION_IS_DEAD;
+  }
+
+  outcome::result<bool> YamuxStream::isInitiator() const {
+    if (auto conn = yamuxed_connection_.lock()) {
+      return conn->isInitiator();
+    }
+    return Error::CONNECTION_IS_DEAD;
+  }
+
+  outcome::result<multi::Multiaddress> YamuxStream::localMultiaddr() const {
+    if (auto conn = yamuxed_connection_.lock()) {
+      return conn->localMultiaddr();
+    }
+    return Error::CONNECTION_IS_DEAD;
+  }
+
+  outcome::result<multi::Multiaddress> YamuxStream::remoteMultiaddr() const {
+    if (auto conn = yamuxed_connection_.lock()) {
+      return conn->remoteMultiaddr();
+    }
+    return Error::CONNECTION_IS_DEAD;
   }
 
   void YamuxStream::resetStream() {

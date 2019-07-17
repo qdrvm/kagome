@@ -28,7 +28,7 @@ namespace libp2p::basic {
           }
 
           auto msg_len = varint_opt->toUInt64();
-          auto buffer = std::make_shared<std::vector<uint8_t>>(msg_len);
+          auto buffer = std::make_shared<std::vector<uint8_t>>(msg_len, 0);
           self->conn_->read(
               *buffer, msg_len,
               [self, buffer, cb = std::move(cb)](auto &&res) mutable {

@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/peer/peer_repository.hpp"
+#include "libp2p/peer/impl/peer_repository_impl.hpp"
+
+#include "libp2p/multi/multiaddress.hpp"
 
 namespace {
 
@@ -17,7 +19,7 @@ namespace {
 
 namespace libp2p::peer {
 
-  PeerRepository::PeerRepository(
+  PeerRepositoryImpl::PeerRepositoryImpl(
       std::shared_ptr<AddressRepository> addrRepo,
       std::shared_ptr<KeyRepository> keyRepo,
       std::shared_ptr<ProtocolRepository> protocolRepo)
@@ -25,24 +27,32 @@ namespace libp2p::peer {
         key_(std::move(keyRepo)),
         proto_(std::move(protocolRepo)) {}
 
-  AddressRepository &PeerRepository::getAddressRepository() {
+  AddressRepository &PeerRepositoryImpl::getAddressRepository() {
     return *addr_;
   }
 
-  KeyRepository &PeerRepository::getKeyRepository() {
+  KeyRepository &PeerRepositoryImpl::getKeyRepository() {
     return *key_;
   }
 
-  ProtocolRepository &PeerRepository::getProtocolRepository() {
+  ProtocolRepository &PeerRepositoryImpl::getProtocolRepository() {
     return *proto_;
   }
 
-  std::unordered_set<PeerId> PeerRepository::getPeers() const {
+  std::unordered_set<PeerId> PeerRepositoryImpl::getPeers() const {
     std::unordered_set<PeerId> peers;
     merge_sets<PeerId>(peers, addr_->getPeers());
     merge_sets<PeerId>(peers, key_->getPeers());
     merge_sets<PeerId>(peers, proto_->getPeers());
     return peers;
+  }
+
+  PeerInfo PeerRepositoryImpl::getPeerInfo(const PeerId &peer_id) const {
+    auto peer_addrs_res = addr_->getAddresses(peer_id);
+    if (!peer_addrs_res) {
+      return PeerInfo{peer_id, {}};
+    }
+    return PeerInfo{peer_id, std::move(peer_addrs_res.value())};
   }
 
 }  // namespace libp2p::peer
