@@ -28,8 +28,8 @@ namespace kagome::blockchain {
   outcome::result<BlockNumber> LevelDbBlockHeaderRepository::getNumberByHash(
       const Hash256 &hash) const {
     OUTCOME_TRY(key, idToLookupKey(hash));
-    auto maybe_number = lookupKeyToNumber(key);
-    if (maybe_number.has_value()) {
+
+    if (auto maybe_number = lookupKeyToNumber(key); maybe_number.has_value()) {
       return maybe_number.value();
     } else {
       return maybe_number.error();
