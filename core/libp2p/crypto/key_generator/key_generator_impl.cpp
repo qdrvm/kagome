@@ -38,13 +38,14 @@ namespace libp2p::crypto {
     outcome::result<std::vector<uint8_t>> encodeKeyDer(KeyStructure *ks,
                                                        Function *function) {
       gsl::owner<unsigned char *> buffer = nullptr;
+      auto cleanup = gsl::finally([buffer]() { free(buffer); });
 
       int length = function(ks, &buffer);
       if (length < 0) {
         return KeyGeneratorError::KEY_GENERATION_FAILED;
       }
 
-      auto span = gsl::span(buffer, length);
+      auto span = gsl::make_span(buffer, length);
       return std::vector<uint8_t>{span.begin(), span.end()};
     }
 
@@ -150,6 +151,8 @@ namespace libp2p::crypto {
       }
 
       gsl::owner<uint8_t *> data_pointer = nullptr;
+      auto cleanup_data =
+          gsl::finally([data_pointer]() { free(data_pointer); });
       int public_length = EC_POINT_point2buf(
           group, point, POINT_CONVERSION_COMPRESSED, &data_pointer, nullptr);
       if (public_length < 0) {
