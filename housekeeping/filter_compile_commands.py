@@ -52,7 +52,7 @@ def do(args) -> None:
         j = list(j)
         s = json.dumps(j, indent=4)
 
-    with open(p, "w") as w:
+    with p.open("w") as w:
         w.write(s)
         print("success")
 
