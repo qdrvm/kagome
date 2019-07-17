@@ -44,13 +44,14 @@ class ESSIntegrationTest : public ::testing::Test {
     hash.fill(1);
   }
 
-  SimpleClient::Context context{2};
+  SimpleClient::Context main_context{1};
+  SimpleClient::Context client_context{1};
 
   SimpleClient::Endpoint endpoint = {
       boost::asio::ip::address::from_string("127.0.0.1"), 12349};
   ListenerImpl::Configuration listener_config{std::chrono::milliseconds(100)};
   sptr<ListenerImpl> listener =
-      std::make_shared<ListenerImpl>(context, endpoint, listener_config);
+      std::make_shared<ListenerImpl>(main_context, endpoint, listener_config);
 
   sptr<ExtrinsicApiMock> api = std::make_shared<ExtrinsicApiMock>();
 
@@ -82,7 +83,7 @@ TEST_F(ESSIntegrationTest, ProcessSingleClientSuccess) {
   ASSERT_NO_THROW(service->start());
 
   std::thread client_thread([&]() {
-    SimpleClient client(context, timeout_duration, [&]() {
+    SimpleClient client(client_context, timeout_duration, [&client]() {
       client.stop();
       FAIL();
     });
@@ -120,9 +121,9 @@ TEST_F(ESSIntegrationTest, ProcessSingleClientSuccess) {
 
     client.asyncConnect(endpoint, on_connect_success);
 
-    context.run_for(timeout_duration);
+    client.getContext().run_for(timeout_duration);
   });
 
-  context.run_for(timeout_duration);
+  main_context.run_for(timeout_duration);
   client_thread.join();
 }

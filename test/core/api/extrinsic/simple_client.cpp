@@ -10,7 +10,8 @@ namespace test {
   SimpleClient::SimpleClient(SimpleClient::Context &context,
                              SimpleClient::Duration timeout_duration,
                              SimpleClient::HandleTimeout on_timeout)
-      : socket_(context),
+      : context_{context},
+        socket_(context),
         deadline_timer_(context),
         timeout_duration_{timeout_duration},
         on_timeout_{std::move(on_timeout)} {}

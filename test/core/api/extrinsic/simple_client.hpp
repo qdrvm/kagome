@@ -58,11 +58,14 @@ namespace test {
 
     void stop();
 
+    inline auto & getContext() {return context_;}
+
    private:
     void resetTimer();
 
     void onTimeout(ErrorCode error);
 
+    Context &context_;
     Socket socket_;
     Timer deadline_timer_;
     Streambuf buffer_;
