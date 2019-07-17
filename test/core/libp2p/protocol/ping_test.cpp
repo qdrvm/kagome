@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 #include <boost/asio/io_service.hpp>
+#include <boost/optional.hpp>
 #include "libp2p/event/bus.hpp"
 #include "libp2p/peer/peer_id.hpp"
 #include "libp2p/protocol/ping/common.hpp"
@@ -116,4 +117,38 @@ TEST_F(PingTest, PingClient) {
                       [](auto &&session_res) { ASSERT_TRUE(session_res); });
 
   io_service_.run_for(100ms);
+}
+
+/**
+ * @given Ping protocol handler
+ * @when a stream over the Ping protocol is initiated from our side @and the
+ * other side does not respond in timeout time
+ * @then PingIsDead event is emitted over the bus
+ */
+TEST_F(PingTest, PingClientTimeoutExpired) {
+  EXPECT_CALL(*conn_, remotePeer()).WillOnce(Return(peer_id_));
+  EXPECT_CALL(host_, getPeerRepository()).WillOnce(ReturnRef(peer_repo_));
+  EXPECT_CALL(peer_repo_, getPeerInfo(peer_id_)).WillOnce(Return(peer_info_));
+  EXPECT_CALL(host_, newStream(peer_info_, kPingProto, _))
+      .WillOnce(InvokeArgument<2>(stream_));
+
+  EXPECT_CALL(*rand_gen_, randomBytes(kPingMsgSize)).WillOnce(Return(buffer_));
+  EXPECT_CALL(*stream_,
+              write(gsl::span<const uint8_t>(buffer_), kPingMsgSize, _));
+
+  EXPECT_CALL(*stream_, isClosedForWrite()).WillOnce(Return(false));
+
+  EXPECT_CALL(*stream_, remotePeerId()).WillOnce(Return(peer_id_));
+
+  boost::optional<peer::PeerId> dead_peer_id;
+  auto h = bus_.getChannel<protocol::event::PeerIsDeadChannel>().subscribe(
+      [&dead_peer_id](auto &&peer_id) mutable { dead_peer_id = peer_id; });
+
+  ping_->startPinging(conn_,
+                      [](auto &&session_res) { ASSERT_TRUE(session_res); });
+
+  io_service_.run_for(100ms);
+
+  ASSERT_TRUE(dead_peer_id);
+  ASSERT_EQ(*dead_peer_id, peer_id_);
 }

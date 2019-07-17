@@ -52,7 +52,7 @@ namespace libp2p::protocol {
 
     boost::asio::io_service &io_service_;
     libp2p::event::Bus &bus_;
-    decltype(bus_.getChannel<event::PeerIsDeadChannel>()) &channel_;
+    decltype(bus_.getChannel<event::PeerIsDeadChannel>()) channel_;
 
     std::shared_ptr<connection::Stream> stream_;
     std::shared_ptr<crypto::random::RandomGenerator> rand_gen_;
