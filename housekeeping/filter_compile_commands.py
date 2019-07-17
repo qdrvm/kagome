@@ -29,7 +29,7 @@ def make_backup(src: Path):
 
 
 def do(args) -> None:
-    builddir: Path = args.p
+    builddir = args.p
 
     if not builddir.exists():
         raise Exception("build dir {} does not exist".format(builddir))
