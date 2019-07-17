@@ -80,6 +80,10 @@ function(compile_proto_to_cpp PB_H PB_CC PROTO)
   set(${PB_CC} ${SCHEMA_OUT_DIR}/${GEN_PB} PARENT_SCOPE)
 endfunction()
 
+add_custom_target(generated
+    COMMENT "Building generated files..."
+    )
+
 function(add_proto_library NAME)
   set(SOURCES "")
   foreach (PROTO IN ITEMS ${ARGN})
@@ -97,4 +101,6 @@ function(add_proto_library NAME)
       ${CMAKE_BINARY_DIR}/generated/core
       )
   disable_clang_tidy(${NAME})
+
+  add_dependencies(generated ${NAME})
 endfunction()
