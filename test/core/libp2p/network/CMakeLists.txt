@@ -56,18 +56,5 @@ addtest(network_injector_test
     network_injector_test.cpp
     )
 target_link_libraries(network_injector_test
-    libp2p_network
-    libp2p_tcp
-    libp2p_yamux
-    libp2p_plaintext
-    libp2p_connection_manager
-    libp2p_transport_manager
-    libp2p_listener_manager
-    libp2p_identity_manager
-    libp2p_dialer
-    libp2p_router
-    multiselect
-    random_generator
-    key_generator
-    marshaller
+    libp2p_default_network
     )
