@@ -12,9 +12,15 @@
 namespace {}
 
 namespace libp2p::protocol {
-  Ping::Ping(Host &host,
-             std::shared_ptr<crypto::random::RandomGenerator> rand_gen)
-      : host_{host}, rand_gen_{std::move(rand_gen)} {}
+  Ping::Ping(Host &host, libp2p::event::Bus &bus,
+             boost::asio::io_service &io_service,
+             std::shared_ptr<crypto::random::RandomGenerator> rand_gen,
+             PingConfig config)
+      : host_{host},
+        bus_{bus},
+        io_service_{io_service},
+        rand_gen_{std::move(rand_gen)},
+        config_{config} {}
 
   peer::Protocol Ping::getProtocolId() const {
     return detail::kPingProto;
@@ -44,7 +50,8 @@ namespace libp2p::protocol {
             return cb(stream_res.error());
           }
           auto session = std::make_shared<PingClientSession>(
-              std::move(stream_res.value()), self->rand_gen_);
+              self->io_service_, self->bus_, std::move(stream_res.value()),
+              self->rand_gen_, self->config_);
           session->start();
           cb(std::move(session));
         });

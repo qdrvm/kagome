@@ -5,6 +5,7 @@
 
 #include "libp2p/protocol/ping/ping_client_session.hpp"
 
+#include <boost/asio/deadline_timer.hpp>
 #include <boost/assert.hpp>
 #include "libp2p/protocol/ping/common.hpp"
 
@@ -12,12 +13,19 @@ namespace libp2p::protocol {
   using detail::kPingMsgSize;
 
   PingClientSession::PingClientSession(
+      boost::asio::io_service &io_service, libp2p::event::Bus &bus,
       std::shared_ptr<connection::Stream> stream,
-      std::shared_ptr<crypto::random::RandomGenerator> rand_gen)
-      : stream_{std::move(stream)},
+      std::shared_ptr<crypto::random::RandomGenerator> rand_gen,
+      PingConfig config)
+      : io_service_{io_service},
+        bus_{bus},
+        channel_{bus_.getChannel<event::PeerIsDeadChannel>()},
+        stream_{std::move(stream)},
         rand_gen_{std::move(rand_gen)},
+        config_{config},
         write_buffer_(kPingMsgSize, 0),
-        read_buffer_(kPingMsgSize, 0) {
+        read_buffer_(kPingMsgSize, 0),
+        timer_{io_service_, boost::posix_time::milliseconds(config_.timeout)} {
     BOOST_ASSERT(stream_);
     BOOST_ASSERT(rand_gen_);
   }
@@ -43,13 +51,26 @@ namespace libp2p::protocol {
     stream_->write(write_buffer_, kPingMsgSize,
                    [self{shared_from_this()}](auto &&write_res) {
                      if (!write_res) {
-                       return;
+                       self->last_error_ = write_res.error();
                      }
-                     self->writeCompleted();
+                     self->last_op_completed_ = true;
                    });
+
+    timer_.async_wait([self{shared_from_this()}](auto &&ec) {
+      self->writeCompleted(std::forward<decltype(ec)>(ec));
+    });
   }
 
-  void PingClientSession::writeCompleted() {
+  void PingClientSession::writeCompleted(const boost::system::error_code &ec) {
+    if (ec || !last_op_completed_ || last_error_) {
+      // timeout passed or error happened; in any case, we cannot ping it
+      // anymore
+      if (auto peer_id_res = stream_->remotePeerId()) {
+        channel_.publish(peer_id_res.value());
+      }
+      return;
+    }
+    last_op_completed_ = false;
     read();
   }
 
@@ -61,16 +82,27 @@ namespace libp2p::protocol {
     stream_->read(read_buffer_, kPingMsgSize,
                   [self{shared_from_this()}](auto &&read_res) {
                     if (!read_res) {
-                      return;
+                      self->last_error_ = read_res.error();
                     }
-                    self->readCompleted();
+                    self->last_op_completed_ = true;
                   });
+
+    timer_.async_wait([self{shared_from_this()}](auto &&ec) {
+      self->readCompleted(std::forward<decltype(ec)>(ec));
+    });
   }
 
-  void PingClientSession::readCompleted() {
-    if (write_buffer_ != read_buffer_) {
+  void PingClientSession::readCompleted(const boost::system::error_code &ec) {
+    if (ec || !last_op_completed_ || last_error_
+        || write_buffer_ != read_buffer_) {
+      // again, in case of any error we cannot continue to ping the peer and
+      // thus declare it dead
+      if (auto peer_id_res = stream_->remotePeerId()) {
+        channel_.publish(peer_id_res.value());
+      }
       return;
     }
+    last_op_completed_ = false;
     write();
   }
 }  // namespace libp2p::protocol

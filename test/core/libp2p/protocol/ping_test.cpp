@@ -6,6 +6,8 @@
 #include "libp2p/protocol/ping.hpp"
 
 #include <gtest/gtest.h>
+#include <boost/asio/io_service.hpp>
+#include "libp2p/event/bus.hpp"
 #include "libp2p/peer/peer_id.hpp"
 #include "libp2p/protocol/ping/common.hpp"
 #include "mock/libp2p/connection/capable_connection_mock.hpp"
@@ -27,13 +29,19 @@ using testing::InvokeArgument;
 using testing::Return;
 using testing::ReturnRef;
 
+using std::chrono_literals::operator""ms;
+
 class PingTest : public testing::Test {
  public:
+  boost::asio::io_service io_service_;
+  libp2p::event::Bus bus_;
+
   HostMock host_;
   std::shared_ptr<RandomGeneratorMock> rand_gen_ =
       std::make_shared<RandomGeneratorMock>();
 
-  std::shared_ptr<Ping> ping_ = std::make_shared<Ping>(host_, rand_gen_);
+  std::shared_ptr<Ping> ping_ = std::make_shared<Ping>(
+      host_, bus_, io_service_, rand_gen_, PingConfig{1});
 
   std::shared_ptr<CapableConnectionMock> conn_ =
       std::make_shared<CapableConnectionMock>();
@@ -93,7 +101,8 @@ TEST_F(PingTest, PingClient) {
               write(gsl::span<const uint8_t>(buffer_), kPingMsgSize, _))
       .WillOnce(InvokeArgument<2>(buffer_.size()))
       .WillOnce(  // no second write
-          InvokeArgument<2>(outcome::failure(boost::system::error_code{})));
+          InvokeArgument<2>(outcome::failure(boost::system::error_code{
+              boost::asio::error::invalid_argument})));
   EXPECT_CALL(*stream_, read(_, kPingMsgSize, _)).WillOnce(ReadPut(buffer_));
 
   EXPECT_CALL(*stream_, isClosedForWrite())
@@ -101,6 +110,10 @@ TEST_F(PingTest, PingClient) {
       .WillRepeatedly(Return(false));
   EXPECT_CALL(*stream_, isClosedForRead()).WillOnce(Return(false));
 
+  EXPECT_CALL(*stream_, remotePeerId()).WillOnce(Return(peer_id_));
+
   ping_->startPinging(conn_,
                       [](auto &&session_res) { ASSERT_TRUE(session_res); });
+
+  io_service_.run_for(100ms);
 }

@@ -8,10 +8,13 @@
 
 #include <memory>
 
+#include <boost/asio/io_service.hpp>
 #include <outcome/outcome.hpp>
 #include "libp2p/connection/capable_connection.hpp"
+#include "libp2p/event/bus.hpp"
 #include "libp2p/host.hpp"
 #include "libp2p/protocol/base_protocol.hpp"
+#include "libp2p/protocol/ping/ping_config.hpp"
 
 namespace libp2p::crypto::random {
   class RandomGenerator;
@@ -30,9 +33,14 @@ namespace libp2p::protocol {
     /**
      * Create an instance of Ping protocol handler
      * @param host to be in the instance
+     * @param bus, over which event will be emitted
+     * @param io_service for async features
      * @param rand_gen - generator, which is used to generate Ping bytes
+     * @param config, with which the instance is to be created
      */
-    Ping(Host &host, std::shared_ptr<crypto::random::RandomGenerator> rand_gen);
+    Ping(Host &host, event::Bus &bus, boost::asio::io_service &io_service,
+         std::shared_ptr<crypto::random::RandomGenerator> rand_gen,
+         PingConfig config = PingConfig{});
 
     peer::Protocol getProtocolId() const override;
 
@@ -50,7 +58,10 @@ namespace libp2p::protocol {
 
    private:
     Host &host_;
+    event::Bus &bus_;
+    boost::asio::io_service &io_service_;
     std::shared_ptr<crypto::random::RandomGenerator> rand_gen_;
+    PingConfig config_;
   };
 }  // namespace libp2p::protocol
 

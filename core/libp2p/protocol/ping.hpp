@@ -8,6 +8,7 @@
 
 #include "libp2p/protocol/ping/ping.hpp"
 #include "libp2p/protocol/ping/ping_client_session.hpp"
+#include "libp2p/protocol/ping/ping_config.hpp"
 #include "libp2p/protocol/ping/ping_server_session.hpp"
 
 #endif  // KAGOME_PING_HPP
