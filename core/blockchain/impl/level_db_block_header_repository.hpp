@@ -20,7 +20,7 @@ namespace kagome::blockchain {
     explicit LevelDbBlockHeaderRepository(Db &db,
                                           std::shared_ptr<hash::Hasher> hasher);
 
-    virtual ~LevelDbBlockHeaderRepository() = default;
+    ~LevelDbBlockHeaderRepository() override = default;
 
     outcome::result<primitives::BlockNumber> getNumberByHash(
         const common::Hash256 &hash) const override;

@@ -29,11 +29,11 @@ namespace kagome::blockchain {
       const Hash256 &hash) const {
     OUTCOME_TRY(key, idToLookupKey(hash));
 
-    if (auto maybe_number = lookupKeyToNumber(key); maybe_number.has_value()) {
+    auto maybe_number = lookupKeyToNumber(key);
+    if (maybe_number.has_value()) {
       return maybe_number.value();
-    } else {
-      return maybe_number.error();
     }
+    return maybe_number.error();
   }
 
   auto LevelDbBlockHeaderRepository::getHashByNumber(
@@ -48,11 +48,11 @@ namespace kagome::blockchain {
       -> outcome::result<primitives::BlockHeader> {
     OUTCOME_TRY(key, idToLookupKey(id));
     OUTCOME_TRY(header, db_.get(prependPrefix(key, Prefix::HEADER)));
-    if (auto &&res = scale::decode<primitives::BlockHeader>(header); res) {
+    auto &&res = scale::decode<primitives::BlockHeader>(header);
+    if (res) {
       return res.value();
-    } else {
-      return res.error();
     }
+    return res.error();
   }
 
   outcome::result<kagome::blockchain::BlockStatus, std::error_code,
