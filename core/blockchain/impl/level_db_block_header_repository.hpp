@@ -17,13 +17,12 @@ namespace kagome::blockchain {
     using Db = storage::face::PersistentMap<common::Buffer, common::Buffer>;
 
    public:
-    explicit LevelDbBlockHeaderRepository(Db &db,
-                                          std::shared_ptr<hash::Hasher> hasher);
+    LevelDbBlockHeaderRepository(Db &db, std::shared_ptr<hash::Hasher> hasher);
 
     ~LevelDbBlockHeaderRepository() override = default;
 
-    outcome::result<primitives::BlockNumber> getNumberByHash(
-        const common::Hash256 &hash) const override;
+    auto getNumberByHash(const common::Hash256 &hash) const
+        -> outcome::result<primitives::BlockNumber> override;
 
     auto getHashByNumber(const primitives::BlockNumber &number) const
         -> outcome::result<common::Hash256> override;
@@ -31,8 +30,8 @@ namespace kagome::blockchain {
     auto getBlockHeader(const primitives::BlockId &id) const
         -> outcome::result<primitives::BlockHeader> override;
 
-    outcome::result<blockchain::BlockStatus> getBlockStatus(
-        const primitives::BlockId &id) const override;
+    auto getBlockStatus(const primitives::BlockId &id) const
+        -> outcome::result<blockchain::BlockStatus> override;
 
    private:
     outcome::result<common::Buffer> idToLookupKey(

@@ -200,7 +200,7 @@ namespace kagome::transaction_pool {
       moderator_->ban(hash);
     }
 
-    if(auto stale = removeStale(at); stale) {
+    if (auto stale = removeStale(at); stale) {
       removed.insert(removed.end(), std::move_iterator(stale.value().begin()),
                      std::move_iterator(stale.value().end()));
     }

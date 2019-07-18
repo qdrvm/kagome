@@ -11,6 +11,7 @@
 #include "blockchain/impl/level_db_util.hpp"
 #include "common/hexutil.hpp"
 #include "scale/scale.hpp"
+#include "storage/leveldb/leveldb_error.hpp"
 
 using kagome::blockchain::prefix::Prefix;
 using kagome::common::Buffer;
@@ -21,9 +22,11 @@ using kagome::primitives::BlockNumber;
 namespace kagome::blockchain {
 
   LevelDbBlockHeaderRepository::LevelDbBlockHeaderRepository(
-      kagome::blockchain::LevelDbBlockHeaderRepository::Db &db,
-      std::shared_ptr<kagome::hash::Hasher> hasher)
-      : db_{db}, hasher_{std::move(hasher)} {}
+      LevelDbBlockHeaderRepository::Db &db,
+      std::shared_ptr<hash::Hasher> hasher)
+      : db_{db}, hasher_{std::move(hasher)} {
+    BOOST_ASSERT(hasher_);
+  }
 
   outcome::result<BlockNumber> LevelDbBlockHeaderRepository::getNumberByHash(
       const Hash256 &hash) const {
@@ -36,29 +39,27 @@ namespace kagome::blockchain {
     return maybe_number.error();
   }
 
-  auto LevelDbBlockHeaderRepository::getHashByNumber(
-      const primitives::BlockNumber &number) const
-      -> outcome::result<common::Hash256> {
+  outcome::result<common::Hash256>
+  LevelDbBlockHeaderRepository::getHashByNumber(
+      const primitives::BlockNumber &number) const {
     OUTCOME_TRY(header, getBlockHeader(number));
     OUTCOME_TRY(enc_header, scale::encode(header));
     return hasher_->blake2_256(enc_header);
   }
 
-  auto LevelDbBlockHeaderRepository::getBlockHeader(const BlockId &id) const
-      -> outcome::result<primitives::BlockHeader> {
+  outcome::result<primitives::BlockHeader>
+  LevelDbBlockHeaderRepository::getBlockHeader(const BlockId &id) const {
     OUTCOME_TRY(key, idToLookupKey(id));
-    OUTCOME_TRY(header, db_.get(prependPrefix(key, Prefix::HEADER)));
-    auto &&res = scale::decode<primitives::BlockHeader>(header);
-    if (res) {
-      return res.value();
+    auto header = db_.get(prependPrefix(key, Prefix::HEADER));
+    if (!header) {
+      return (header.error() == kagome::storage::LevelDBError::NOT_FOUND)
+          ? Error::NOT_FOUND
+          : header.error();
     }
-    return res.error();
+    return scale::decode<primitives::BlockHeader>(header.value());
   }
 
-  outcome::result<kagome::blockchain::BlockStatus, std::error_code,
-                  boost::outcome_v2::policy::error_code_throw_as_system_error<
-                      kagome::blockchain::BlockStatus, std::error_code, void>>
-  LevelDbBlockHeaderRepository::getBlockStatus(
+  outcome::result<BlockStatus> LevelDbBlockHeaderRepository::getBlockStatus(
       const primitives::BlockId &id) const {
     return getBlockHeader(id).has_value() ? BlockStatus::InChain
                                           : BlockStatus::Unknown;
@@ -76,6 +77,9 @@ namespace kagome::blockchain {
         [this](const common::Hash256 &hash) {
           return db_.get(prependPrefix(Buffer{hash}, Prefix::ID_TO_LOOKUP_KEY));
         });
+    if(!key && key.error() == storage::LevelDBError::NOT_FOUND) {
+      return Error::NOT_FOUND;
+    }
     return key;
   }
 

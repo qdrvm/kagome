@@ -39,7 +39,7 @@ namespace kagome::blockchain {
    * @return key_column|key
    */
   common::Buffer prependPrefix(const common::Buffer &key,
-                               kagome::blockchain::prefix::Prefix key_column);
+                               prefix::Prefix key_column);
 
   /**
    * Put an entry to key space \param prefix and corresponding lookup keys to

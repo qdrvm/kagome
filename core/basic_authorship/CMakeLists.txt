@@ -20,4 +20,5 @@ add_library(block_builder_factory
     )
 target_link_libraries(block_builder_factory
     block_builder
+    block_header_repository
     )

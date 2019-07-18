@@ -61,7 +61,7 @@ namespace kagome::blockchain {
   }
 
   common::Buffer prependPrefix(const common::Buffer &key,
-                               kagome::blockchain::prefix::Prefix key_column) {
+                               prefix::Prefix key_column) {
     return common::Buffer{}.reserve(key.size() + 1).putUint8(key_column).put(key);
   }
 

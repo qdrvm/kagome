@@ -29,10 +29,17 @@ namespace kagome::blockchain {
    public:
     virtual ~BlockHeaderRepository() = default;
 
+    enum class Error {
+      // it's important to convert storage errors of this type to this one to
+      // enable a user to discern between cases when a header with provided id
+      // is not found and when an internal storage error occurs
+      NOT_FOUND = 1
+    };
+
     /**
      * @param hash - a blake2_256 hash of an SCALE encoded block header
      * @return the number of the block with the provided hash in case one is in
-     * the storage
+     * the storage or an error
      */
     virtual outcome::result<primitives::BlockNumber> getNumberByHash(
         const common::Hash256 &hash) const = 0;
@@ -40,7 +47,7 @@ namespace kagome::blockchain {
     /**
      * @param number - the number of a block, contained in a block header
      * @return the hash of the block with the provided number in case one is in
-     * the storage
+     * the storage or an error
      */
     virtual outcome::result<common::Hash256> getHashByNumber(
         const primitives::BlockNumber &number) const = 0;
@@ -64,15 +71,7 @@ namespace kagome::blockchain {
      * is not in storage or a storage error
      */
     auto getNumberById(const primitives::BlockId &id) const
-        -> outcome::result<primitives::BlockNumber> {
-      return visit_in_place(id,
-                            [](const primitives::BlockNumber &n) {
-                              return n;
-                            },
-                            [this](const common::Hash256 &hash) {
-                              return getNumberByHash(hash);
-                            });
-    }
+        -> outcome::result<primitives::BlockNumber>;
 
     /**
      * @param id of a block which hash is returned
@@ -80,17 +79,11 @@ namespace kagome::blockchain {
      * is not in storage or a storage error
      */
     auto getHashById(const primitives::BlockId &id) const
-        -> outcome::result<common::Hash256> {
-      return visit_in_place(id,
-                            [this](const primitives::BlockNumber &n) {
-                              return getHashByNumber(n);
-                            },
-                            [](const common::Hash256 &hash) {
-                              return hash;
-                            });
-    }
+        -> outcome::result<common::Hash256>;
   };
 
 }  // namespace kagome::blockchain
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, BlockHeaderRepository::Error);
 
 #endif  // KAGOME_CORE_BLOCKCHAIN_BLOCK_HEADER_REPOSITORY_HPP
