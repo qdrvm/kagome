@@ -26,4 +26,5 @@ target_link_libraries(transaction_pool
     logger
     blob
     transaction_pool_error
+    block_header_repository
     )
