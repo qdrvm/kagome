@@ -10,7 +10,7 @@
 
 #include "common/logger.hpp"
 #include "libp2p/event/bus.hpp"
-#include "libp2p/host.hpp"
+#include "libp2p/host/host.hpp"
 #include "libp2p/network/connection_manager.hpp"
 #include "libp2p/network/router.hpp"
 #include "libp2p/peer/peer_info.hpp"

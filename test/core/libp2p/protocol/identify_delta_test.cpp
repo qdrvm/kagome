@@ -11,7 +11,7 @@
 #include "libp2p/protocol/identify/pb/identify.pb.h"
 #include "mock/libp2p/connection/capable_connection_mock.hpp"
 #include "mock/libp2p/connection/stream_mock.hpp"
-#include "mock/libp2p/host_mock.hpp"
+#include "mock/libp2p/host/host_mock.hpp"
 #include "mock/libp2p/network/connection_manager_mock.hpp"
 #include "mock/libp2p/peer/peer_repository_mock.hpp"
 #include "mock/libp2p/peer/protocol_repository_mock.hpp"

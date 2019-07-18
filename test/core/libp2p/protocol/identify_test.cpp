@@ -15,7 +15,7 @@
 #include "mock/libp2p/connection/capable_connection_mock.hpp"
 #include "mock/libp2p/connection/stream_mock.hpp"
 #include "mock/libp2p/crypto/key_marshaller_mock.hpp"
-#include "mock/libp2p/host_mock.hpp"
+#include "mock/libp2p/host/host_mock.hpp"
 #include "mock/libp2p/network/connection_manager_mock.hpp"
 #include "mock/libp2p/network/listener_mock.hpp"
 #include "mock/libp2p/network/network_mock.hpp"
@@ -41,6 +41,7 @@ using testing::Const;
 using testing::Ref;
 using testing::Return;
 using testing::ReturnRef;
+using testing::NiceMock;
 
 class IdentifyTest : public testing::Test {
  public:
@@ -87,7 +88,7 @@ class IdentifyTest : public testing::Test {
 
   std::shared_ptr<CapableConnectionMock> connection_ =
       std::make_shared<CapableConnectionMock>();
-  std::shared_ptr<StreamMock> stream_ = std::make_shared<StreamMock>();
+  std::shared_ptr<NiceMock<StreamMock>> stream_ = std::make_shared<NiceMock<StreamMock>>();
 
   // mocked host's components
   RouterMock router_;
@@ -149,7 +150,7 @@ ACTION_P(Close, res) {
 TEST_F(IdentifyTest, Send) {
   // setup components, so that when Identify asks them, they give expected
   // parameters to be put into the Protobuf message
-  EXPECT_CALL(host_, getRouter()).WillOnce(ReturnRef(Const(router_)));
+  EXPECT_CALL(host_, getRouter()).WillOnce(ReturnRef(router_));
   EXPECT_CALL(router_, getSupportedProtocols()).WillOnce(Return(protocols_));
 
   EXPECT_CALL(*stream_, remoteMultiaddr())
@@ -266,7 +267,13 @@ TEST_F(IdentifyTest, Receive) {
                       std::chrono::duration_cast<std::chrono::milliseconds>(
                           peer::ttl::kTransient)))
       .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(conn_manager_, connectedness(kRemotePeerId))
+
+  EXPECT_CALL(addr_repo_, getAddresses(kRemotePeerId))
+      .WillOnce(Return(std::vector<multi::Multiaddress>{remote_multiaddr_}));
+
+  peer::PeerInfo pinfo = {kRemotePeerId, {remote_multiaddr_}};
+
+  EXPECT_CALL(conn_manager_, connectedness(pinfo))
       .WillOnce(Return(network::ConnectionManager::Connectedness::CONNECTED));
   EXPECT_CALL(
       addr_repo_,

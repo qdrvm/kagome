@@ -8,10 +8,11 @@
 
 #include "libp2p/network/dialer.hpp"
 #include "libp2p/network/listener_manager.hpp"
+#include "libp2p/event/bus.hpp"
 
 namespace libp2p::network {
 
-  // Network is the interface used to connect to the outside world.
+  /// Network is the interface used to connect to the outside world.
   struct Network {
     virtual ~Network() = default;
 
