@@ -116,42 +116,7 @@
 
 // clang-format on
 
-namespace libp2p::network::injector {
-
-  /**
-   * For internal use only.
-   */
-  namespace detail {
-    inline auto makeIdentity(crypto::KeyPair keyPair) {
-      using namespace boost;  // NOLINT
-
-      // clang-format off
-      return di::make_injector(
-          di::bind<crypto::marshaller::KeyMarshaller>().template to<crypto::marshaller::KeyMarshallerImpl>(),
-          di::bind<peer::IdentityManager>().template to<peer::IdentityManagerImpl>(),
-          di::bind<crypto::KeyPair>().template to(std::move(keyPair))
-      );
-      // clang-format on
-    }
-
-    inline auto makeRandomIdentity() {
-      using namespace boost;  // NOLINT
-
-      auto csprng = std::make_shared<crypto::random::BoostRandomGenerator>();
-      auto gen = std::make_shared<crypto::KeyGeneratorImpl>(*csprng);
-
-      // assume no error here. otherwise... just blow up executable
-      auto keypair = gen->generateKeys(crypto::Key::Type::ED25519).value();
-
-      // clang-format off
-      return di::make_injector(
-          di::bind<crypto::random::CSPRNG>().template to(std::move(csprng)),
-          di::bind<crypto::KeyGenerator>().template to(std::move(gen)),
-          makeIdentity(std::move(keypair))
-      );
-      // clang-format on
-    }
-  }  // namespace detail
+namespace libp2p::injector {
 
   /**
    * @brief Instruct injector to use this keypair. Can be used once.
@@ -254,9 +219,21 @@ namespace libp2p::network::injector {
   template <typename... Ts>
   auto makeNetworkInjector(Ts &&... args) {
     using namespace boost;  // NOLINT
+
+    auto csprng = std::make_shared<crypto::random::BoostRandomGenerator>();
+    auto gen = std::make_shared<crypto::KeyGeneratorImpl>(*csprng);
+
+    // assume no error here. otherwise... just blow up executable
+    auto keypair = gen->generateKeys(crypto::Key::Type::ED25519).value();
+
     // clang-format off
     return di::make_injector(
-        detail::makeRandomIdentity(),
+        di::bind<crypto::KeyPair>().template to(std::move(keypair)),
+        di::bind<crypto::random::CSPRNG>().template to(std::move(csprng)),
+        di::bind<crypto::KeyGenerator>().template to(std::move(gen)),
+        di::bind<crypto::marshaller::KeyMarshaller>().template to<crypto::marshaller::KeyMarshallerImpl>(),
+        di::bind<peer::IdentityManager>().template to<peer::IdentityManagerImpl>(),
+
         // internal
         di::bind<network::Router>().template to<network::RouterImpl>(),
         di::bind<network::ConnectionManager>().template to<network::ConnectionManagerImpl>(),
@@ -278,6 +255,6 @@ namespace libp2p::network::injector {
     // clang-format on
   }
 
-}  // namespace libp2p::network::injector
+}  // namespace libp2p::injector
 
 #endif  // KAGOME_NETWORK_INJECTOR_HPP
