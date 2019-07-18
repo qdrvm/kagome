@@ -252,7 +252,7 @@ TEST_F(IdentifyTest, Receive) {
       .WillRepeatedly(ReturnRef(listener_));
 
   EXPECT_CALL(listener_, getListenAddressesInterfaces())
-      .WillOnce(Return(outcome::success(std::vector<Multiaddress>{})));
+      .WillOnce(Return(std::vector<Multiaddress>{}));
   EXPECT_CALL(listener_, getListenAddresses())
       .WillOnce(Return(listen_addresses_));
 

@@ -65,6 +65,16 @@ namespace libp2p::network {
     return std::errc::invalid_argument;
   }
 
+  outcome::result<void> ListenerManagerImpl::removeListener(
+      const multi::Multiaddress &ma) {
+    auto it = listeners_.find(ma);
+    if (it != listeners_.end()) {
+      listeners_.erase(it);
+    }
+
+    return std::errc::invalid_argument;
+  };
+
   // starts listening on all provided multiaddresses
   void ListenerManagerImpl::start() {
     BOOST_ASSERT(!started);
@@ -137,14 +147,17 @@ namespace libp2p::network {
     return mas;
   }
 
-  outcome::result<std::vector<multi::Multiaddress>>
+  std::vector<multi::Multiaddress>
   ListenerManagerImpl::getListenAddressesInterfaces() const {
     std::vector<multi::Multiaddress> mas;
     mas.reserve(listeners_.size());
 
     for (auto &&e : listeners_) {
-      OUTCOME_TRY(addr, e.second->getListenMultiaddr());
-      mas.push_back(addr);
+      auto addr = e.second->getListenMultiaddr();
+      // ignore failed sockets
+      if (addr) {
+        mas.push_back(std::move(addr.value()));
+      }
     }
 
     return mas;
@@ -203,7 +216,6 @@ namespace libp2p::network {
   }
 
   void ListenerManagerImpl::setProtocolHandler(const peer::Protocol &protocol,
-
                                                StreamResultFunc cb) {
     this->router_->setProtocolHandler(protocol, std::move(cb));
   }
@@ -212,13 +224,6 @@ namespace libp2p::network {
       const peer::Protocol &protocol, StreamResultFunc cb,
       Router::ProtoPredicate predicate) {
     this->router_->setProtocolHandler(protocol, std::move(cb), predicate);
-  }
-
-  void ListenerManagerImpl::handleProtocol(
-      std::shared_ptr<protocol::BaseProtocol> protocol) {
-    this->setProtocolHandler(
-        protocol->getProtocolId(),
-        [protocol](StreamResult res) { protocol->handle(std::move(res)); });
   }
 
   Router &ListenerManagerImpl::getRouter() {

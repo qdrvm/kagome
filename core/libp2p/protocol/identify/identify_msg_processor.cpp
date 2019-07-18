@@ -258,16 +258,10 @@ namespace libp2p::protocol {
 
     // if our local address is not one of our "official" listen addresses, we
     // are not going to save its mapping to the observed one
-    auto i_listen_addresses_res =
-        host_.getNetwork().getListener().getListenAddressesInterfaces();
-    if (!i_listen_addresses_res) {
-      return log_->error("failed to get interface listen addresses: {}",
-                         i_listen_addresses_res.error().message());
-    }
-    auto i_listen_addresses = std::move(i_listen_addresses_res.value());
+    auto &listener = host_.getNetwork().getListener();
+    auto i_listen_addresses = listener.getListenAddressesInterfaces();
 
-    auto listen_addresses =
-        host_.getNetwork().getListener().getListenAddresses();
+    auto listen_addresses = listener.getListenAddresses();
 
     auto addr_in_addresses =
         std::find(i_listen_addresses.begin(), i_listen_addresses.end(),
@@ -327,7 +321,7 @@ namespace libp2p::protocol {
 
     // memorize the addresses
     auto addresses = addr_repo.getAddresses(peer_id);
-    if(!addresses) {
+    if (!addresses) {
       log_->error("can not get addresses for peer {}", peer_id.toBase58());
       return;
     }

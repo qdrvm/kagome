@@ -53,6 +53,7 @@ struct ListenerManagerTest : public ::testing::Test {
   std::shared_ptr<ConnectionManagerMock> cmgr =
       std::make_shared<ConnectionManagerMock>();
 
+  ListenerManagerImpl* p = new ListenerManagerImpl(proto_muxer, router, tmgr, cmgr);
   std::shared_ptr<ListenerManager> listener =
       std::make_shared<ListenerManagerImpl>(proto_muxer, router, tmgr, cmgr);
 };
@@ -77,7 +78,7 @@ TEST_F(ListenerManagerTest, ListenValidAddr) {
   EXPECT_CALL(*transport_listener, getListenMultiaddr())
       .WillOnce(Return(random_port_resolved));
 
-  EXPECT_OUTCOME_TRUE(addrs_resolved, listener->getListenAddressesInterfaces());
+  auto addrs_resolved = listener->getListenAddressesInterfaces();
   EXPECT_EQ(addrs_resolved,
             std::vector<multi::Multiaddress>{random_port_resolved});
 
@@ -98,7 +99,7 @@ TEST_F(ListenerManagerTest, ListenInvalidAddr) {
 
   EXPECT_TRUE(listener->getListenAddresses().empty());
 
-  EXPECT_OUTCOME_TRUE(addrs_resolved, listener->getListenAddressesInterfaces());
+  auto addrs_resolved = listener->getListenAddressesInterfaces();
   EXPECT_TRUE(addrs_resolved.empty());
 }
 
@@ -125,25 +126,6 @@ TEST_F(ListenerManagerTest, StartStop) {
   ASSERT_TRUE(listener->isStarted());
   ASSERT_NO_FATAL_FAILURE(listener->stop());
   ASSERT_FALSE(listener->isStarted());
-}
-
-/**
- * @given listener
- * @when add new handler for protocol
- * @then handler is registered
- */
-TEST_F(ListenerManagerTest, HandleProtocol) {
-  using std::string_literals::operator""s;
-  auto p = "/test/1.0.0"s;
-
-  EXPECT_CALL(*protocol, getProtocolId()).WillOnce(Return(p));
-  EXPECT_CALL(*protocol, handle(Eq(outcome::success(stream)))).Times(1);
-
-  // execute `handle` provided by protocol
-  EXPECT_CALL(*router, setProtocolHandler(Eq(p), _))
-      .WillOnce(Arg1CallbackWithArg(stream));
-
-  listener->handleProtocol(protocol);
 }
 
 /**
