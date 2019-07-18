@@ -37,11 +37,11 @@ namespace libp2p::crypto {
     template <class KeyStructure, class Function>
     outcome::result<std::vector<uint8_t>> encodeKeyDer(KeyStructure *ks,
                                                        Function *function) {
-      gsl::owner<unsigned char *> buffer = nullptr;
-      // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-      auto cleanup = gsl::finally([buffer]() {
-        // NOLINTNEXTLINE(cppcoreguidelines-no-malloc, hicpp-no-malloc)
-        OPENSSL_free(buffer);
+      unsigned char *buffer = nullptr;
+      auto cleanup = gsl::finally([pptr = &buffer]() {
+        if (*pptr != nullptr) {
+          OPENSSL_free(*pptr);
+        }
       });
 
       int length = function(ks, &buffer);
@@ -154,21 +154,15 @@ namespace libp2p::crypto {
         return KeyGeneratorError::KEY_DERIVATION_FAILED;
       }
 
-      gsl::owner<uint8_t *> data_pointer = nullptr;
-      // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-      auto cleanup_data = gsl::finally([data_pointer]() {
-        // NOLINTNEXTLINE(cppcoreguidelines-no-malloc, hicpp-no-malloc)
-        OPENSSL_free(data_pointer);
+      uint8_t *data_pointer = nullptr;
+      auto cleanup_data = gsl::finally([pptr = &data_pointer]() {
+        if (*pptr != nullptr) {
+          OPENSSL_free(*pptr);
+        }
       });
-      BN_CTX *context = BN_CTX_secure_new();
-      if (context == nullptr) {
-        return KeyGeneratorError::KEY_GENERATION_FAILED;
-      }
-      auto cleanup_context =
-          gsl::finally([context]() { BN_CTX_free(context); });
 
       int public_length = EC_POINT_point2buf(
-          group, point, POINT_CONVERSION_COMPRESSED, &data_pointer, context);
+          group, point, POINT_CONVERSION_COMPRESSED, &data_pointer, nullptr);
       if (public_length < 0) {
         return KeyGeneratorError::KEY_GENERATION_FAILED;
       }
