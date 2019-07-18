@@ -59,7 +59,7 @@ class ESSIntegrationTest : public ::testing::Test {
       std::make_shared<ExtrinsicApiService>(listener, api);
 
   Extrinsic extrinsic{};
-  std::string request =
+  const std::string request =
       R"({"jsonrpc":"2.0","method":"author_submitExtrinsic","id":0,"params":["68656C6C6F20776F726C64"]})"
       + std::string("\n");
   Hash256 hash{};
@@ -75,54 +75,61 @@ class ESSIntegrationTest : public ::testing::Test {
 TEST_F(ESSIntegrationTest, ProcessSingleClientSuccess) {
   EXPECT_CALL(*api, submitExtrinsic(extrinsic)).WillOnce(Return(hash));
 
-  std::string response =
+  const std::string response =
       R"({"jsonrpc":"2.0","id":0,"result":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]})";
 
-  SimpleClient::Duration timeout_duration = std::chrono::milliseconds(100);
+  const SimpleClient::Duration timeout_duration = std::chrono::milliseconds(200);
 
   ASSERT_NO_THROW(service->start());
 
-  std::thread client_thread([&]() {
-    SimpleClient client(client_context, timeout_duration, [&client]() {
-      client.stop();
-      FAIL();
-    });
+  std::shared_ptr<SimpleClient> client;
+  client = std::make_shared<SimpleClient>(client_context, timeout_duration,
+                                          [client]() {
+                                            client->stop();
+                                            FAIL();
+                                          });
 
-    auto on_error = [&](const auto &error) {
-      client.stop();
-      std::cout << error.message() << std::endl;
-      FAIL();
-    };
+  std::thread client_thread(
+      [this, client, timeout_duration, response, request = this->request]() {
+        auto on_error = [&](const auto &error) {
+          std::cout << "error occured" << std::endl;
+          client->stop();
+          FAIL();
+        };
 
-    // make client and start
-    auto on_read_success = [&](const ErrorCode &error, std::size_t n) {
-      if (!error) {
-        ASSERT_EQ(client.data(), response);
-      } else {
-        on_error(error);
-      }
-    };
+        // make client and start
+        auto on_read_success = [&](const ErrorCode &error, std::size_t n) {
+          std::cout << "handle read" << std::endl;
+          if (!error) {
+            std::cout << "read success" << std::endl;
+            ASSERT_EQ(client->data(), response);
+          } else {
+            on_error(error);
+          }
+        };
 
-    auto on_write_success = [&](const ErrorCode &error, std::size_t n) {
-      if (!error) {
-        client.asyncRead(on_read_success);
-      } else {
-        on_error(error);
-      }
-    };
+        auto on_write_success = [&](const ErrorCode &error, std::size_t n) {
+          if (!error) {
+            std::cout << "write success" << std::endl;
+            client->asyncRead(on_read_success);
+          } else {
+            on_error(error);
+          }
+        };
 
-    auto on_connect_success = [&](const ErrorCode &error) {
-      if (!error) {
-        client.asyncWrite(request, on_write_success);
-      } else {
-        on_error(error);
-      }
-    };
+        auto on_connect_success = [&](const ErrorCode &error) {
+          if (!error) {
+            std::cout << "connect success" << std::endl;
+            client->asyncWrite(request, on_write_success);
+          } else {
+            on_error(error);
+          }
+        };
 
-    client.asyncConnect(endpoint, on_connect_success);
+        client->asyncConnect(endpoint, on_connect_success);
 
-    client.getContext().run_for(timeout_duration);
-  });
+        client->getContext().run_for(timeout_duration);
+      });
 
   main_context.run_for(timeout_duration);
   client_thread.join();
