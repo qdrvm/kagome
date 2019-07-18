@@ -41,6 +41,7 @@ using testing::Const;
 using testing::Ref;
 using testing::Return;
 using testing::ReturnRef;
+using testing::NiceMock;
 
 class IdentifyTest : public testing::Test {
  public:
@@ -87,7 +88,7 @@ class IdentifyTest : public testing::Test {
 
   std::shared_ptr<CapableConnectionMock> connection_ =
       std::make_shared<CapableConnectionMock>();
-  std::shared_ptr<StreamMock> stream_ = std::make_shared<StreamMock>();
+  std::shared_ptr<NiceMock<StreamMock>> stream_ = std::make_shared<NiceMock<StreamMock>>();
 
   // mocked host's components
   RouterMock router_;
@@ -266,7 +267,13 @@ TEST_F(IdentifyTest, Receive) {
                       std::chrono::duration_cast<std::chrono::milliseconds>(
                           peer::ttl::kTransient)))
       .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(conn_manager_, connectedness(kRemotePeerId))
+
+  EXPECT_CALL(addr_repo_, getAddresses(kRemotePeerId))
+      .WillOnce(Return(std::vector<multi::Multiaddress>{remote_multiaddr_}));
+
+  peer::PeerInfo pinfo = {kRemotePeerId, {remote_multiaddr_}};
+
+  EXPECT_CALL(conn_manager_, connectedness(pinfo))
       .WillOnce(Return(network::ConnectionManager::Connectedness::CONNECTED));
   EXPECT_CALL(
       addr_repo_,

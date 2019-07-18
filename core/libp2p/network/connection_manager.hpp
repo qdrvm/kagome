@@ -11,6 +11,7 @@
 #include "libp2p/basic/garbage_collectable.hpp"
 #include "libp2p/connection/capable_connection.hpp"
 #include "libp2p/event/bus.hpp"
+#include "libp2p/peer/peer_info.hpp"
 
 namespace libp2p::network {
 
@@ -54,14 +55,14 @@ namespace libp2p::network {
         const peer::PeerId &p) const = 0;
 
     // get connectedness information for given peer p
-    virtual Connectedness connectedness(const peer::PeerId &p) const = 0;
+    virtual Connectedness connectedness(const peer::PeerInfo &p) const = 0;
 
     // add connection to a given peer
     virtual void addConnectionToPeer(const peer::PeerId &p,
                                      ConnectionSPtr c) = 0;
 
     // closes all connections (outbound and inbound) to given peer
-    virtual void closeConnectionsToPeer(const peer::PeerId& p) = 0;
+    virtual void closeConnectionsToPeer(const peer::PeerId &p) = 0;
   };
 
 }  // namespace libp2p::network

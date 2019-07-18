@@ -47,8 +47,8 @@ RUN apt-get update && apt-get upgrade -y && \
 # set env
 ENV LLVM_ROOT=/usr/lib/llvm-8
 ENV PATH=${LLVM_ROOT}/bin:${LLVM_ROOT}/share/clang:${PATH}
-ENV CC=clang-8
-ENV CXX=clang++-8
+ENV CC=gcc-8
+ENV CXX=g++-8
 
 # set default compilers and tools
 RUN update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-8               90 && \

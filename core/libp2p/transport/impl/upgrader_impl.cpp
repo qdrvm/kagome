@@ -54,19 +54,17 @@ namespace libp2p::transport {
                              [](auto &&t) { return t != nullptr; }));
 
     // so that we don't need to extract lists of supported protos every time
-    security_protocols_ = std::accumulate(
+    std::transform(
         security_adaptors_.begin(), security_adaptors_.end(),
-        std::vector<peer::Protocol>(), [](auto &&acc, const auto &adaptor) {
-          acc.push_back(adaptor->getProtocolId());
-          return acc;
+        std::back_inserter(security_protocols_),
+        [](const auto &adaptor) {
+          return adaptor->getProtocolId();
         });
 
-    muxer_protocols_ = std::accumulate(
+    std::transform(
         muxer_adaptors.begin(), muxer_adaptors.end(),
-        std::vector<peer::Protocol>(), [](auto &&acc, const auto &adaptor) {
-          acc.push_back(adaptor->getProtocolId());
-          return acc;
-        });
+        std::back_inserter(muxer_protocols_),
+        [](const auto &adaptor) { return adaptor->getProtocolId(); });
   }
 
   void UpgraderImpl::upgradeToSecureInbound(RawSPtr conn,
