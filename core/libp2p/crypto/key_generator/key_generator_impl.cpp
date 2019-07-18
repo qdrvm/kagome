@@ -160,9 +160,15 @@ namespace libp2p::crypto {
         // NOLINTNEXTLINE(cppcoreguidelines-no-malloc, hicpp-no-malloc)
         OPENSSL_free(data_pointer);
       });
-      // clang-format on
+      BN_CTX *context = BN_CTX_secure_new();
+      if (context == nullptr) {
+        return KeyGeneratorError::KEY_GENERATION_FAILED;
+      }
+      auto cleanup_context =
+          gsl::finally([context]() { BN_CTX_free(context); });
+
       int public_length = EC_POINT_point2buf(
-          group, point, POINT_CONVERSION_COMPRESSED, &data_pointer, nullptr);
+          group, point, POINT_CONVERSION_COMPRESSED, &data_pointer, context);
       if (public_length < 0) {
         return KeyGeneratorError::KEY_GENERATION_FAILED;
       }
@@ -353,7 +359,7 @@ namespace libp2p::crypto {
     std::vector<uint8_t> public_bytes(public_length, 0);
     // the `i2o_ECPublicKey` function modifies input pointer
     // so we need lvalue pointer to buffer
-    uint8_t * public_pointer = public_bytes.data();
+    uint8_t *public_pointer = public_bytes.data();
     // serialize public key
     if (i2o_ECPublicKey(key, &public_pointer) != public_length) {
       return KeyGeneratorError::KEY_GENERATION_FAILED;
