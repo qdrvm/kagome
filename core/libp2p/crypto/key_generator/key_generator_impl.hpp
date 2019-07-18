@@ -2,8 +2,9 @@
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
-#ifndef KAGOME_KEY_GENERATOR_IMPL
-#define KAGOME_KEY_GENERATOR_IMPL
+
+#ifndef KAGOME_CORE_LIBP2P_CRYPTO_KEY_GENERATOR_KEY_GENERATOR_IMPL_HPP
+#define KAGOME_CORE_LIBP2P_CRYPTO_KEY_GENERATOR_KEY_GENERATOR_IMPL_HPP
 
 #include "libp2p/crypto/key_generator.hpp"
 
@@ -41,4 +42,4 @@ namespace libp2p::crypto {
   };
 }  // namespace libp2p::crypto
 
-#endif  // KAGOME_KEY_GENERATOR_IMPL
+#endif  // KAGOME_CORE_LIBP2P_CRYPTO_KEY_GENERATOR_KEY_GENERATOR_IMPL_HPP

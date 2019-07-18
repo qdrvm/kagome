@@ -50,7 +50,7 @@ namespace kagome::transaction_pool {
      * 'block number when t got to pool' + 't.longevity' <= block number of at)
      * @return removed transactions
      */
-    virtual std::vector<primitives::Transaction> removeStale(
+    virtual outcome::result<std::vector<primitives::Transaction>> removeStale(
         const primitives::BlockId &at) = 0;
 
     /* Prunes ready transactions that provide given list of tags.

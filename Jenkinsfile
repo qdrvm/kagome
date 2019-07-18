@@ -53,7 +53,11 @@ def makeCoverageBuild(String name){
 
     // submit coverage
     sh(script: "cmake --build ${buildDir} --target ctest_coverage")
-    sh(script: "./housekeeping/codecov.sh ${buildDir}")
+    withCredentials([
+      string(credentialsId: 'codecov-token', variable: 'codecov_token')
+    ]){
+      sh(script: "./housekeeping/codecov.sh ${buildDir} ${codecov_token}")
+    }
   })
 }
 
