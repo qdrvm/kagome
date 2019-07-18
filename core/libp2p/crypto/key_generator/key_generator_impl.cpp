@@ -38,8 +38,11 @@ namespace libp2p::crypto {
     outcome::result<std::vector<uint8_t>> encodeKeyDer(KeyStructure *ks,
                                                        Function *function) {
       gsl::owner<unsigned char *> buffer = nullptr;
-      // NOLINTNEXTLINE(cppcoreguidelines-owning-memory, cppcoreguidelines-no-malloc)
-      auto cleanup = gsl::finally([buffer]() { free(buffer); });
+      // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+      auto cleanup = gsl::finally([buffer]() {
+        // NOLINTNEXTLINE(cppcoreguidelines-no-malloc, hicpp-no-malloc)
+        free(buffer);
+      });
 
       int length = function(ks, &buffer);
       if (length < 0) {
@@ -152,8 +155,12 @@ namespace libp2p::crypto {
       }
 
       gsl::owner<uint8_t *> data_pointer = nullptr;
-      auto cleanup_data = // NOLINTNEXTLINE(cppcoreguidelines-owning-memory, cppcoreguidelines-no-malloc)
-          gsl::finally([data_pointer]() { free(data_pointer); });
+      // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+      auto cleanup_data = gsl::finally([data_pointer]() {
+        // NOLINTNEXTLINE(cppcoreguidelines-no-malloc, hicpp-no-malloc)
+        free(data_pointer);
+      });
+      // clang-format on
       int public_length = EC_POINT_point2buf(
           group, point, POINT_CONVERSION_COMPRESSED, &data_pointer, nullptr);
       if (public_length < 0) {
