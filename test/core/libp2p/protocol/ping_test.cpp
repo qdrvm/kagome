@@ -14,7 +14,7 @@
 #include "mock/libp2p/connection/capable_connection_mock.hpp"
 #include "mock/libp2p/connection/stream_mock.hpp"
 #include "mock/libp2p/crypto/random_generator_mock.hpp"
-#include "mock/libp2p/host_mock.hpp"
+#include "mock/libp2p/host/host_mock.hpp"
 #include "mock/libp2p/peer/peer_repository_mock.hpp"
 #include "testutil/literals.hpp"
 

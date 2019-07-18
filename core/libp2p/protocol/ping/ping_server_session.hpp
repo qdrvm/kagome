@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "libp2p/connection/stream.hpp"
-#include "libp2p/host.hpp"
+#include "libp2p/host/host.hpp"
 #include "libp2p/protocol/ping/ping_config.hpp"
 
 namespace libp2p::protocol {
