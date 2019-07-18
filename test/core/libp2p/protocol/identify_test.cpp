@@ -38,10 +38,10 @@ using namespace multi;
 
 using testing::_;
 using testing::Const;
+using testing::NiceMock;
 using testing::Ref;
 using testing::Return;
 using testing::ReturnRef;
-using testing::NiceMock;
 
 class IdentifyTest : public testing::Test {
  public:
@@ -88,7 +88,8 @@ class IdentifyTest : public testing::Test {
 
   std::shared_ptr<CapableConnectionMock> connection_ =
       std::make_shared<CapableConnectionMock>();
-  std::shared_ptr<NiceMock<StreamMock>> stream_ = std::make_shared<NiceMock<StreamMock>>();
+  std::shared_ptr<NiceMock<StreamMock>> stream_ =
+      std::make_shared<NiceMock<StreamMock>>();
 
   // mocked host's components
   RouterMock router_;
@@ -246,9 +247,9 @@ TEST_F(IdentifyTest, Receive) {
       .WillOnce(Return(listen_addresses_[0]));
   EXPECT_CALL(*stream_, isInitiator()).WillOnce(Return(true));
 
-  EXPECT_CALL(host_, getNetwork()).Times(2).WillRepeatedly(ReturnRef(network_));
+  EXPECT_CALL(host_, getNetwork()).Times(1).WillRepeatedly(ReturnRef(network_));
   EXPECT_CALL(network_, getListener())
-      .Times(2)
+      .Times(1)
       .WillRepeatedly(ReturnRef(listener_));
 
   EXPECT_CALL(listener_, getListenAddressesInterfaces())

@@ -53,7 +53,6 @@ struct ListenerManagerTest : public ::testing::Test {
   std::shared_ptr<ConnectionManagerMock> cmgr =
       std::make_shared<ConnectionManagerMock>();
 
-  ListenerManagerImpl* p = new ListenerManagerImpl(proto_muxer, router, tmgr, cmgr);
   std::shared_ptr<ListenerManager> listener =
       std::make_shared<ListenerManagerImpl>(proto_muxer, router, tmgr, cmgr);
 };
