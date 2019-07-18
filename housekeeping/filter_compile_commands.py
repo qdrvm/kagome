@@ -29,7 +29,7 @@ def make_backup(src: Path):
 
 
 def do(args) -> None:
-    builddir: Path = args.p
+    builddir = args.p
 
     if not builddir.exists():
         raise Exception("build dir {} does not exist".format(builddir))
@@ -52,7 +52,7 @@ def do(args) -> None:
         j = list(j)
         s = json.dumps(j, indent=4)
 
-    with open(p, "w") as w:
+    with p.open("w") as w:
         w.write(s)
         print("success")
 
