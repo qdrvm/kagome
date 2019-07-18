@@ -10,6 +10,7 @@
 #include "common/logger.hpp"
 #include "transaction_pool/pool_moderator.hpp"
 #include "transaction_pool/transaction_pool.hpp"
+#include "blockchain/block_header_repository.hpp"
 
 namespace kagome::transaction_pool {
 
@@ -27,6 +28,7 @@ namespace kagome::transaction_pool {
    public:
     explicit TransactionPoolImpl(
         std::unique_ptr<PoolModerator> moderator,
+        std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
         Limits limits = Limits{kDefaultMaxReadyNum, kDefaultMaxWaitingNum},
         common::Logger logger = common::createLogger(kDefaultLoggerTag));
 
@@ -45,7 +47,7 @@ namespace kagome::transaction_pool {
 
     std::vector<primitives::Transaction> getReadyTransactions() override;
 
-    std::vector<primitives::Transaction> removeStale(
+    outcome::result<std::vector<primitives::Transaction>> removeStale(
         const primitives::BlockId &at) override;
 
     Status getStatus() const override;
@@ -69,6 +71,8 @@ namespace kagome::transaction_pool {
     void updateUnlockingTransactions(const ReadyTransaction &rtx);
 
     std::vector<primitives::Transaction> enforceLimits();
+
+    std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
 
     common::Logger logger_;
 

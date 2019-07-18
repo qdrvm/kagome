@@ -14,9 +14,11 @@ using kagome::primitives::Transaction;
 namespace kagome::transaction_pool {
 
   TransactionPoolImpl::TransactionPoolImpl(
-      std::unique_ptr<PoolModerator> moderator, Limits limits,
-      common::Logger logger)
-      : logger_{std::move(logger)},
+      std::unique_ptr<PoolModerator> moderator,
+      std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
+      Limits limits, common::Logger logger)
+      : header_repo_{std::move(header_repo)},
+        logger_{std::move(logger)},
         moderator_{std::move(moderator)},
         limits_{limits} {}
 
@@ -52,15 +54,9 @@ namespace kagome::transaction_pool {
     return ready;
   }
 
-  std::vector<Transaction> TransactionPoolImpl::removeStale(
-      const primitives::BlockId &at) {
-    BlockNumber number;
-    if (at.type() == typeid(BlockNumber)) {
-      number = boost::get<BlockNumber>(at);
-    } else {
-      number = 0;
-      // TODO(Harrm) Figure out how to obtain block number from block hash
-    }
+  outcome::result<std::vector<kagome::primitives::Transaction>>
+  TransactionPoolImpl::removeStale(const primitives::BlockId &at) {
+    OUTCOME_TRY(number, header_repo_->getNumberById(at));
 
     std::vector<Transaction> removed;
 
@@ -156,7 +152,7 @@ namespace kagome::transaction_pool {
       to_remove.pop_front();
       auto hash_opt = provided_tags_by_.at(tag_to_remove);
       provided_tags_by_.erase(tag_to_remove);
-      if(not hash_opt) {
+      if (not hash_opt) {
         continue;
       }
       auto tx = ready_queue_.at(hash_opt.value());
@@ -164,11 +160,11 @@ namespace kagome::transaction_pool {
 
       auto find_previous = [this, &tx](primitives::TransactionTag const &tag)
           -> boost::optional<std::vector<primitives::TransactionTag>> {
-        if(provided_tags_by_.find(tag) == provided_tags_by_.end()) {
+        if (provided_tags_by_.find(tag) == provided_tags_by_.end()) {
           return boost::none;
         }
         auto prev_hash_opt = provided_tags_by_.at(tag);
-        if(!prev_hash_opt) {
+        if (!prev_hash_opt) {
           return boost::none;
         }
         auto &tx2 = ready_queue_[prev_hash_opt.value()];
@@ -204,9 +200,10 @@ namespace kagome::transaction_pool {
       moderator_->ban(hash);
     }
 
-    auto stale = removeStale(at);
-    removed.insert(removed.end(), std::move_iterator(stale.begin()),
-                   std::move_iterator(stale.end()));
+    if (auto stale = removeStale(at); stale) {
+      removed.insert(removed.end(), std::move_iterator(stale.value().begin()),
+                     std::move_iterator(stale.value().end()));
+    }
     return removed;
   }
 
