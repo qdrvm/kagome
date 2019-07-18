@@ -41,7 +41,7 @@ namespace libp2p::crypto {
       // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
       auto cleanup = gsl::finally([buffer]() {
         // NOLINTNEXTLINE(cppcoreguidelines-no-malloc, hicpp-no-malloc)
-        free(buffer);
+        OPENSSL_free(buffer);
       });
 
       int length = function(ks, &buffer);
@@ -158,7 +158,7 @@ namespace libp2p::crypto {
       // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
       auto cleanup_data = gsl::finally([data_pointer]() {
         // NOLINTNEXTLINE(cppcoreguidelines-no-malloc, hicpp-no-malloc)
-        free(data_pointer);
+        OPENSSL_free(data_pointer);
       });
       // clang-format on
       int public_length = EC_POINT_point2buf(
@@ -353,7 +353,7 @@ namespace libp2p::crypto {
     std::vector<uint8_t> public_bytes(public_length, 0);
     // the `i2o_ECPublicKey` function modifies input pointer
     // so we need lvalue pointer to buffer
-    uint8_t *public_pointer = public_bytes.data();
+    uint8_t * public_pointer = public_bytes.data();
     // serialize public key
     if (i2o_ECPublicKey(key, &public_pointer) != public_length) {
       return KeyGeneratorError::KEY_GENERATION_FAILED;
