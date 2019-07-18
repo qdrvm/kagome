@@ -17,3 +17,4 @@
 [submodule "di"]
 	path = deps/di
 	url = https://github.com/boost-experimental/di
+    shallow = true
