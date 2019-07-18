@@ -19,13 +19,10 @@ namespace libp2p::network {
                 std::unique_ptr<Dialer> dialer,
                 std::shared_ptr<ConnectionManager> cmgr);
 
-    // Closes all connections to a given peer
     void closeConnections(const peer::PeerId &p) override;
 
-    // Getter for Dialer associated with this Network
     Dialer &getDialer() override;
 
-    // Getter for Listener associated with this Network
     ListenerManager &getListener() override;
 
    private:
