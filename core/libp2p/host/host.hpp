@@ -25,7 +25,7 @@ namespace libp2p {
   /**
    * Main class, which represents single peer in p2p network.
    *
-   * It is capable to:
+   * It is capable of:
    * - create new connections to remote peers
    * - create new streams to remote peers
    * - listen on one or multiple addresses
