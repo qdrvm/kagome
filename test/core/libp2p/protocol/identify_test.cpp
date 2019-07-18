@@ -15,7 +15,7 @@
 #include "mock/libp2p/connection/capable_connection_mock.hpp"
 #include "mock/libp2p/connection/stream_mock.hpp"
 #include "mock/libp2p/crypto/key_marshaller_mock.hpp"
-#include "mock/libp2p/host_mock.hpp"
+#include "mock/libp2p/host/host_mock.hpp"
 #include "mock/libp2p/network/connection_manager_mock.hpp"
 #include "mock/libp2p/network/listener_mock.hpp"
 #include "mock/libp2p/network/network_mock.hpp"
@@ -150,7 +150,7 @@ ACTION_P(Close, res) {
 TEST_F(IdentifyTest, Send) {
   // setup components, so that when Identify asks them, they give expected
   // parameters to be put into the Protobuf message
-  EXPECT_CALL(host_, getRouter()).WillOnce(ReturnRef(Const(router_)));
+  EXPECT_CALL(host_, getRouter()).WillOnce(ReturnRef(router_));
   EXPECT_CALL(router_, getSupportedProtocols()).WillOnce(Return(protocols_));
 
   EXPECT_CALL(*stream_, remoteMultiaddr())
