@@ -12,7 +12,7 @@ namespace kagome::basic_authorship {
   BlockBuilderFactoryImpl::BlockBuilderFactoryImpl(
       std::shared_ptr<runtime::Core> r_core,
       std::shared_ptr<runtime::BlockBuilderApi> r_block_builder,
-      std::shared_ptr<blockchain::HeaderBackend> header_backend)
+      std::shared_ptr<blockchain::BlockHeaderRepository> header_backend)
       : r_core_(std::move(r_core)),
         r_block_builder_(std::move(r_block_builder)),
         header_backend_(std::move(header_backend)) {
@@ -28,8 +28,8 @@ namespace kagome::basic_authorship {
     // based on
     // https://github.com/paritytech/substrate/blob/dbf322620948935d2bbae214504e6c668c3073ed/core/basic-authorship/src/basic_authorship.rs#L94
 
-    OUTCOME_TRY(parent_hash, header_backend_->hashFromBlockId(parent_id));
-    OUTCOME_TRY(parent_number, header_backend_->numberFromBlockId(parent_id));
+    OUTCOME_TRY(parent_hash, header_backend_->getHashById(parent_id));
+    OUTCOME_TRY(parent_number, header_backend_->getNumberById(parent_id));
 
     primitives::BlockHeader parent_header;
     parent_header.number = parent_number;

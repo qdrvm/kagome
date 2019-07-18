@@ -7,12 +7,14 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "mock/core/blockchain/header_backend_mock.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/std_list_adapter.hpp"
 #include "transaction_pool/impl/clock_impl.hpp"
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 
+using kagome::blockchain::HeaderRepositoryMock;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::face::ForwardIterator;
@@ -34,8 +36,11 @@ using namespace std::chrono_literals;
 class TransactionPoolTest : public testing::Test {
  public:
   void SetUp() {
-    auto moderator_ = std::make_unique<PoolModeratorImpl>(std::make_shared<SystemClock>());
-    pool_ = std::make_shared<TransactionPoolImpl>(std::move(moderator_));
+    auto moderator =
+        std::make_unique<PoolModeratorImpl>(std::make_shared<SystemClock>());
+    auto header_repo = std::make_unique<HeaderRepositoryMock>();
+    pool_ = std::make_shared<TransactionPoolImpl>(std::move(moderator),
+                                                  std::move(header_repo));
   }
 
   std::shared_ptr<TransactionPool> pool_;
