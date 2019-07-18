@@ -32,6 +32,13 @@ target_link_libraries(libp2p_dialer
     )
 
 
+add_library(libp2p_network
+    network_impl.cpp
+    )
+target_link_libraries(libp2p_network
+    outcome
+    )
+
 add_library(libp2p_transport_manager
     transport_manager_impl.cpp
     transport_manager_impl.hpp

@@ -11,7 +11,6 @@
 #include "libp2p/peer/peer_id.hpp"
 #include "mock/libp2p/connection/capable_connection_mock.hpp"
 #include "mock/libp2p/network/transport_manager_mock.hpp"
-#include "mock/libp2p/peer/address_repository_mock.hpp"
 #include "mock/libp2p/transport/transport_mock.hpp"
 #include "testutil/libp2p/peer.hpp"
 #include "testutil/literals.hpp"
@@ -30,10 +29,9 @@ using C = ConnectionManager::Connectedness;
 struct ConnectionManagerTest : public ::testing::Test {
   void SetUp() override {
     t = std::make_shared<TransportMock>();
-    repo = std::make_shared<AddressRepositoryMock>();
     tmgr = std::make_shared<TransportManagerMock>();
 
-    cmgr = std::make_shared<ConnectionManagerImpl>(repo, tmgr);
+    cmgr = std::make_shared<ConnectionManagerImpl>(tmgr);
 
     conn = std::make_shared<CapableConnectionMock>();
 
@@ -43,7 +41,6 @@ struct ConnectionManagerTest : public ::testing::Test {
     cmgr->addConnectionToPeer(p2, conn);
   }
 
-  std::shared_ptr<AddressRepositoryMock> repo;
   std::shared_ptr<TransportManagerMock> tmgr;
   std::shared_ptr<TransportMock> t;
 
@@ -109,7 +106,7 @@ TEST_F(ConnectionManagerTest, ConnectednessWhenConnected) {
   ASSERT_NE(conns[0], nullptr);
   ASSERT_NE(conns[1], nullptr);
 
-  ASSERT_EQ(cmgr->connectedness(p1), C::CONNECTED);
+  ASSERT_EQ(cmgr->connectedness({p1, {}}), C::CONNECTED);
 }
 
 /**
@@ -122,7 +119,7 @@ TEST_F(ConnectionManagerTest, ConnectednessWhenNotConnected) {
   cmgr->addConnectionToPeer(p3, nullptr);
 
   // no valid connections
-  ASSERT_EQ(cmgr->connectedness(p3), C::NOT_CONNECTED);
+  ASSERT_EQ(cmgr->connectedness({p3, {}}), C::NOT_CONNECTED);
 }
 
 /**
@@ -133,12 +130,10 @@ TEST_F(ConnectionManagerTest, ConnectednessWhenNotConnected) {
  */
 TEST_F(ConnectionManagerTest, ConnectednessWhenCanConnect) {
   auto ma = "/ip4/192.168.1.2/tcp/8080"_multiaddr;
-  std::vector<multi::Multiaddress> vma{ma};
 
-  EXPECT_CALL(*repo, getAddresses(_)).WillOnce(Return(vma));
   EXPECT_CALL(*tmgr, findBest(_)).WillOnce(Return(t));
 
-  ASSERT_EQ(cmgr->connectedness(p3), C::CAN_CONNECT);
+  ASSERT_EQ(cmgr->connectedness({p3, {ma}}), C::CAN_CONNECT);
 }
 
 /**
@@ -147,8 +142,7 @@ TEST_F(ConnectionManagerTest, ConnectednessWhenCanConnect) {
  * @then get CAN_NOT_CONNECT
  */
 TEST_F(ConnectionManagerTest, ConnectednessWhenCanNotConnect_NoAddresses) {
-  EXPECT_CALL(*repo, getAddresses(_)).WillOnce(Return(PeerError::NOT_FOUND));
-  ASSERT_EQ(cmgr->connectedness(p3), C::CAN_NOT_CONNECT);
+  ASSERT_EQ(cmgr->connectedness({p3, {}}), C::CAN_NOT_CONNECT);
 }
 
 /**
@@ -159,12 +153,10 @@ TEST_F(ConnectionManagerTest, ConnectednessWhenCanNotConnect_NoAddresses) {
  */
 TEST_F(ConnectionManagerTest, ConnectednessWhenCanNotConnect) {
   auto ma = "/ip4/192.168.1.2/tcp/8080"_multiaddr;
-  std::vector<multi::Multiaddress> vma{ma};
 
-  EXPECT_CALL(*repo, getAddresses(_)).WillOnce(Return(vma));
   EXPECT_CALL(*tmgr, findBest(_)).WillOnce(Return(nullptr));
 
-  ASSERT_EQ(cmgr->connectedness(p3), C::CAN_NOT_CONNECT);
+  ASSERT_EQ(cmgr->connectedness({p3, {ma}}), C::CAN_NOT_CONNECT);
 }
 
 /**
