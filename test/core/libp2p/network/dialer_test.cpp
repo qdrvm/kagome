@@ -98,7 +98,7 @@ TEST_F(DialerTest, DialNoAddresses) {
       .WillOnce(Return(nullptr));
 
   // no addresses supplied
-  peer::PeerInfo pinfo = {.id = pid};
+  peer::PeerInfo pinfo = {pid, {}};
   bool executed = false;
   dialer->dial(pinfo, [&](auto &&rconn) {
     EXPECT_OUTCOME_FALSE(e, rconn);
