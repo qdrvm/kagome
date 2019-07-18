@@ -6,12 +6,13 @@
 
 # polkadot
 
-## Guides
+## Dev Guides
 
 1. [Terms](./docs/terms.md)
 2. [Rules](./docs/rules.md)
 3. [Development guide](./docs/dev-guide.md)
 4. [`outcome::result<T>` docs](./docs/result.md)
+5. [Tooling](./docs/tooling.md)
 
 ## Dev Environment
 
