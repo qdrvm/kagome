@@ -11,16 +11,16 @@
 
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/host.hpp"
+#include "libp2p/protocol/ping/ping_config.hpp"
 
 namespace libp2p::protocol {
   class PingServerSession
       : public std::enable_shared_from_this<PingServerSession> {
    public:
-    explicit PingServerSession(std::shared_ptr<connection::Stream> stream);
+    PingServerSession(std::shared_ptr<connection::Stream> stream,
+                      PingConfig config);
 
     void start();
-
-    void stop();
 
    private:
     void read();
@@ -32,6 +32,8 @@ namespace libp2p::protocol {
     void writeCompleted();
 
     std::shared_ptr<connection::Stream> stream_;
+    PingConfig config_;
+
     std::vector<uint8_t> buffer_;
 
     bool is_started_ = false;

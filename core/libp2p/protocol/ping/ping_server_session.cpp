@@ -10,8 +10,10 @@
 
 namespace libp2p::protocol {
   PingServerSession::PingServerSession(
-      std::shared_ptr<connection::Stream> stream)
-      : stream_{std::move(stream)}, buffer_(detail::kPingMsgSize, 0) {
+      std::shared_ptr<connection::Stream> stream, PingConfig config)
+      : stream_{std::move(stream)},
+        config_{config},
+        buffer_(config_.message_size, 0) {
     BOOST_ASSERT(stream_);
   }
 
@@ -27,7 +29,7 @@ namespace libp2p::protocol {
       return;
     }
 
-    stream_->read(buffer_, detail::kPingMsgSize,
+    stream_->read(buffer_, config_.message_size,
                   [self{shared_from_this()}](auto &&read_res) {
                     if (!read_res) {
                       return;
@@ -45,7 +47,7 @@ namespace libp2p::protocol {
       return;
     }
 
-    stream_->write(buffer_, detail::kPingMsgSize,
+    stream_->write(buffer_, config_.message_size,
                    [self{shared_from_this()}](auto &&write_res) {
                      if (!write_res) {
                        return;

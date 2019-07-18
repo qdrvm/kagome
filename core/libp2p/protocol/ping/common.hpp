@@ -11,8 +11,6 @@
 
 namespace libp2p::protocol::detail {
   const std::string kPingProto = "/ipfs/ping/1.0.0";
-
-  constexpr uint8_t kPingMsgSize = 32;
 }  // namespace libp2p::protocol::detail
 
 #endif  // KAGOME_COMMON_HPP

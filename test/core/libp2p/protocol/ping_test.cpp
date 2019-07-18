@@ -34,6 +34,8 @@ using std::chrono_literals::operator""ms;
 
 class PingTest : public testing::Test {
  public:
+  static constexpr uint32_t kPingMsgSize = 32;
+
   boost::asio::io_service io_service_;
   libp2p::event::Bus bus_;
 
@@ -42,7 +44,7 @@ class PingTest : public testing::Test {
       std::make_shared<RandomGeneratorMock>();
 
   std::shared_ptr<Ping> ping_ = std::make_shared<Ping>(
-      host_, bus_, io_service_, rand_gen_, PingConfig{1});
+      host_, bus_, io_service_, rand_gen_, PingConfig{1, kPingMsgSize});
 
   std::shared_ptr<CapableConnectionMock> conn_ =
       std::make_shared<CapableConnectionMock>();

@@ -9,8 +9,6 @@
 #include "libp2p/protocol/ping/ping_client_session.hpp"
 #include "libp2p/protocol/ping/ping_server_session.hpp"
 
-namespace {}
-
 namespace libp2p::protocol {
   Ping::Ping(Host &host, libp2p::event::Bus &bus,
              boost::asio::io_service &io_service,
@@ -30,7 +28,8 @@ namespace libp2p::protocol {
     if (!res) {
       return;
     }
-    auto session = std::make_shared<PingServerSession>(std::move(res.value()));
+    auto session =
+        std::make_shared<PingServerSession>(std::move(res.value()), config_);
     session->start();
   }
 
