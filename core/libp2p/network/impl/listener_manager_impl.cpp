@@ -70,6 +70,7 @@ namespace libp2p::network {
     auto it = listeners_.find(ma);
     if (it != listeners_.end()) {
       listeners_.erase(it);
+      return outcome::success();
     }
 
     return std::errc::invalid_argument;
