@@ -33,10 +33,8 @@ namespace kagome::blockchain {
     OUTCOME_TRY(key, idToLookupKey(hash));
 
     auto maybe_number = lookupKeyToNumber(key);
-    if (maybe_number.has_value()) {
-      return maybe_number.value();
-    }
-    return maybe_number.error();
+
+    return maybe_number;
   }
 
   outcome::result<common::Hash256>
