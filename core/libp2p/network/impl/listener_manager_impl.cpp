@@ -221,4 +221,8 @@ namespace libp2p::network {
         [protocol](StreamResult res) { protocol->handle(std::move(res)); });
   }
 
+  Router &ListenerManagerImpl::getRouter() {
+    return *router_;
+  }
+
 }  // namespace libp2p::network

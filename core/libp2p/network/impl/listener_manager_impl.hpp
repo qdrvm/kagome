@@ -48,6 +48,8 @@ namespace libp2p::network {
     void setProtocolHandler(const peer::Protocol &protocol, StreamResultFunc cb,
                             Router::ProtoPredicate predicate) override;
 
+    Router &getRouter() override;
+
    private:
     bool started = false;
 

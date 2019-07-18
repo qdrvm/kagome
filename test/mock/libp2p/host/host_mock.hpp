@@ -21,12 +21,12 @@ namespace libp2p {
     MOCK_CONST_METHOD0(getAddresses, std::vector<multi::Multiaddress>());
     MOCK_CONST_METHOD0(getAddressesInterfaces,
                        std::vector<multi::Multiaddress>());
-    MOCK_CONST_METHOD0(getObservedAddreses, std::vector<multi::Multiaddress>());
+    MOCK_CONST_METHOD0(getObservedAddresses, std::vector<multi::Multiaddress>());
     MOCK_METHOD2(setProtocolHandler,
                  void(const peer::Protocol &,
                       const std::function<connection::Stream::Handler> &));
     MOCK_METHOD3(setProtocolHandler,
-                 void(std::string_view prefix,
+                 void(const peer::Protocol&,
                       const std::function<connection::Stream::Handler> &,
                       const std::function<bool(const peer::Protocol &)> &));
     MOCK_METHOD1(connect, void(const peer::PeerInfo &));
@@ -40,20 +40,10 @@ namespace libp2p {
                  outcome::result<void>(const multi::Multiaddress &ma));
     MOCK_METHOD0(start, void());
     MOCK_METHOD0(stop, void());
-    MOCK_CONST_METHOD0(getNetwork, network::Network &());
-    MOCK_CONST_METHOD0(getPeerRepository, peer::PeerRepository &());
-    MOCK_CONST_METHOD0(getRouter, network::Router &());
-    MOCK_CONST_METHOD0(getBus, event::Bus &());
-
-    MOCK_METHOD1(handleProtocol_hack, void(protocol::BaseProtocol *));
-
-    void handleProtocol(
-        std::unique_ptr<protocol::BaseProtocol> protocol) override {
-      handleProtocol_hack(protocol.get());
-      protocols.emplace_back(std::move(protocol));
-    }
-
-    std::vector<std::unique_ptr<protocol::BaseProtocol>> protocols;
+    MOCK_METHOD0(getNetwork, network::Network &());
+    MOCK_METHOD0(getPeerRepository, peer::PeerRepository &());
+    MOCK_METHOD0(getRouter, network::Router &());
+    MOCK_METHOD0(getBus, event::Bus &());
   };
 }  // namespace libp2p
 
