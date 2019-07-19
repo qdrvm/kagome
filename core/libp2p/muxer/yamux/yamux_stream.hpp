@@ -63,7 +63,7 @@ namespace libp2p::connection {
 
     bool isClosedForWrite() const noexcept override;
 
-    void reset(VoidResultHandlerFunc cb) override;
+    void reset() override;
 
     void adjustWindowSize(uint32_t new_size, VoidResultHandlerFunc cb) override;
 

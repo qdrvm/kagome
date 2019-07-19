@@ -9,11 +9,24 @@
 #include <vector>
 
 #include <outcome/outcome.hpp>
+#include "libp2p/event/bus.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/network/router.hpp"
 #include "libp2p/protocol/base_protocol.hpp"
 
 namespace libp2p::network {
+
+  namespace event {
+    using libp2p::event::channel_decl;
+
+    struct ListenAddressAdded {};
+    using ListenAddressAddedChannel =
+        channel_decl<ListenAddressAdded, multi::Multiaddress>;
+
+    struct ListenAddressRemoved {};
+    using ListenAddressRemovedChannel =
+        channel_decl<ListenAddressRemoved, multi::Multiaddress>;
+  }  // namespace event
 
   /**
    * @brief Class, which is capable of listening (opening a server) on
@@ -51,6 +64,15 @@ namespace libp2p::network {
         const multi::Multiaddress &ma) = 0;
 
     /**
+     * @brief Close, then remove listener and all incoming connection on address
+     * \ma
+     * @param ma address to be closed
+     * @return error if close failed or no listener with given \ma exist
+     */
+    virtual outcome::result<void> removeListener(
+        const multi::Multiaddress &ma) = 0;
+
+    /**
      * @brief Listen tells the ListenerManager to start listening on given
      * multiaddr. May be executed many times (with different
      * addresses/protocols).
@@ -69,17 +91,9 @@ namespace libp2p::network {
      * different from those supplied to `listen`.
      *
      * @example: /ip4/0.0.0.0/tcp/0 -> /ip4/0.0.0.0/tcp/54211 (random port)
-     * @return error if any of listeners returned error.
      */
-    virtual outcome::result<std::vector<multi::Multiaddress>>
-    getListenAddressesInterfaces() const = 0;
-
-    /**
-     * @brief Add new protocol handler. Same as if one would use
-     * setProtocolHandler.
-     */
-    virtual void handleProtocol(
-        std::shared_ptr<protocol::BaseProtocol> protocol) = 0;
+    virtual std::vector<multi::Multiaddress> getListenAddressesInterfaces()
+        const = 0;
 
     /**
      * @brief Add new protocol handler
@@ -98,6 +112,11 @@ namespace libp2p::network {
     virtual void setProtocolHandler(const peer::Protocol &protocol,
                                     StreamResultFunc cb,
                                     Router::ProtoPredicate matcher) = 0;
+
+    /**
+     * @brief Getter for Router.
+     */
+    virtual Router &getRouter() = 0;
   };
 
 }  // namespace libp2p::network

@@ -135,6 +135,8 @@ namespace libp2p::peer {
         const std::function<AddressCallback> &cb);
 
    protected:
+    // TODO(warchant): change signals to events + Bus PRE-254
+
     // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
     boost::signals2::signal<AddressCallback> signal_added_;
     // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)

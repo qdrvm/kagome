@@ -8,7 +8,7 @@
 
 #include "authorship/block_builder_factory.hpp"
 
-#include "blockchain/header_backend.hpp"
+#include "blockchain/block_header_repository.hpp"
 
 namespace kagome::authorship {
 
@@ -19,7 +19,7 @@ namespace kagome::authorship {
     BlockBuilderFactoryImpl(
         std::shared_ptr<runtime::Core> r_core,
         std::shared_ptr<runtime::BlockBuilderApi> r_block_builder,
-        std::shared_ptr<blockchain::HeaderBackend> header_backend);
+        std::shared_ptr<blockchain::BlockHeaderRepository> header_backend);
 
     outcome::result<std::unique_ptr<BlockBuilder>> create(
         const kagome::primitives::BlockId &parent_id,
@@ -28,7 +28,7 @@ namespace kagome::authorship {
    private:
     std::shared_ptr<runtime::Core> r_core_;
     std::shared_ptr<runtime::BlockBuilderApi> r_block_builder_;
-    std::shared_ptr<blockchain::HeaderBackend> header_backend_;
+    std::shared_ptr<blockchain::BlockHeaderRepository> header_backend_;
   };
 
 }  // namespace kagome::authorship

@@ -14,7 +14,7 @@
 using ::testing::Return;
 
 using kagome::authorship::BlockBuilderFactoryImpl;
-using kagome::blockchain::HeaderBackendMock;
+using kagome::blockchain::HeaderRepositoryMock;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockNumber;
@@ -32,17 +32,15 @@ class BlockBuilderFactoryTest : public ::testing::Test {
     expected_header_.number = expected_number_;
     expected_header_.digest = inherent_digest_;
 
-    EXPECT_CALL(*header_backend_, hashFromBlockId(block_id_))
-        .WillOnce(Return(expected_hash_));
-    EXPECT_CALL(*header_backend_, numberFromBlockId(block_id_))
+   EXPECT_CALL(*header_backend_, getNumberByHash(expected_hash_))
         .WillOnce(Return(expected_number_));
   }
 
   std::shared_ptr<CoreMock> core_ = std::make_shared<CoreMock>();
   std::shared_ptr<BlockBuilderApiMock> block_builder_api_ =
       std::make_shared<BlockBuilderApiMock>();
-  std::shared_ptr<HeaderBackendMock> header_backend_ =
-      std::make_shared<HeaderBackendMock>();
+  std::shared_ptr<HeaderRepositoryMock> header_backend_ =
+      std::make_shared<HeaderRepositoryMock>();
 
   BlockNumber expected_number_{42};
   kagome::common::Hash256 expected_hash_;

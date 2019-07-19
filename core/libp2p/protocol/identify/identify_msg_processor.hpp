@@ -15,7 +15,7 @@
 #include "common/logger.hpp"
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/crypto/key_marshaller.hpp"
-#include "libp2p/host.hpp"
+#include "libp2p/host/host.hpp"
 #include "libp2p/multi/multiaddress.hpp"
 #include "libp2p/network/connection_manager.hpp"
 #include "libp2p/peer/identity_manager.hpp"
@@ -54,6 +54,12 @@ namespace libp2p::protocol {
      * @return Host
      */
     Host &getHost() const noexcept;
+
+    /**
+     * Get a ConnectionManager of this processor
+     * @return ConnectionManager
+     */
+    network::ConnectionManager &getConnectionManager() const noexcept;
 
     /**
      * Get an ObservedAddresses of this processor

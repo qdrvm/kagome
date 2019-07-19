@@ -33,7 +33,7 @@ class KeyGeneratorTest : public ::testing::TestWithParam<Key::Type> {
  */
 TEST_P(KeyGeneratorTest, GenerateKeyPairSuccess) {
   auto key_type = GetParam();
-  EXPECT_OUTCOME_TRUE_2(val, keygen_.generateKeys(key_type));
+  EXPECT_OUTCOME_TRUE_2(val, keygen_.generateKeys(key_type))
   ASSERT_EQ(val.privateKey.type, key_type);
   ASSERT_EQ(val.publicKey.type, key_type);
 }
@@ -72,3 +72,28 @@ INSTANTIATE_TEST_CASE_P(TestAllKeyTypes, KeyGeneratorTest,
                                           Key::Type::RSA4096,
                                           Key::Type::ED25519,
                                           Key::Type::SECP256K1));
+
+class KeyLengthTest
+    : public ::testing::TestWithParam<
+          std::tuple<Key::Type, const uint32_t, const uint32_t>> {
+ protected:
+  BoostRandomGenerator random_;
+  KeyGeneratorImpl keygen_{random_};
+};
+
+INSTANTIATE_TEST_CASE_P(
+    TestSomeKeyLengths, KeyLengthTest,
+    ::testing::Values(std::tuple(Key::Type::ED25519, 32, 32),
+                      std::tuple(Key::Type::SECP256K1, 32, 33)));
+
+/**
+ * @given key generator and tuple of <key type, private key length, public key length>
+ * @when key pair is generated
+ * @then public and private key lengths are equal to those in parameters
+ */
+TEST_P(KeyLengthTest, KeyLengthCorrect) {
+  auto [key_type, private_key_length, public_key_length] = GetParam();
+
+  EXPECT_OUTCOME_TRUE_2(val, keygen_.generateKeys(key_type))
+  ASSERT_EQ(val.privateKey.data.size(), private_key_length);
+}

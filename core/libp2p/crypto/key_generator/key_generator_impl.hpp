@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#ifndef KAGOME_CORE_LIBP2P_CRYPTO_KEY_GENERATOR_KEY_GENERATOR_IMPL_HPP
+#define KAGOME_CORE_LIBP2P_CRYPTO_KEY_GENERATOR_KEY_GENERATOR_IMPL_HPP
+
 #include "libp2p/crypto/key_generator.hpp"
 
 namespace libp2p::crypto {
@@ -24,9 +27,9 @@ namespace libp2p::crypto {
     outcome::result<EphemeralKeyPair> generateEphemeralKeyPair(
         common::CurveType curve) const override;
 
-    std::vector<StretchedKey> stretchKey(
-        common::CipherType cipher_type, common::HashType hash_type,
-        const Buffer &secret) const override;
+    std::vector<StretchedKey> stretchKey(common::CipherType cipher_type,
+                                         common::HashType hash_type,
+                                         const Buffer &secret) const override;
 
    private:
     void initialize();
@@ -38,3 +41,5 @@ namespace libp2p::crypto {
     random::CSPRNG &random_provider_;  ///< random bytes generator
   };
 }  // namespace libp2p::crypto
+
+#endif  // KAGOME_CORE_LIBP2P_CRYPTO_KEY_GENERATOR_KEY_GENERATOR_IMPL_HPP

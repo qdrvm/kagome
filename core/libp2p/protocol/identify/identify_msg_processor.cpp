@@ -11,25 +11,7 @@
 #include "libp2p/basic/protobuf_message_read_writer.hpp"
 #include "libp2p/network/network.hpp"
 #include "libp2p/peer/address_repository.hpp"
-
-namespace {
-  /**
-   * Get a tuple of stringified <PeerId, Multiaddress> of the peer the (\param
-   * stream) is connected to
-   */
-  std::tuple<std::string, std::string> getPeerIdentity(
-      const std::shared_ptr<libp2p::connection::Stream> &stream) {
-    std::string id = "unknown";
-    std::string addr = "unknown";
-    if (auto id_res = stream->remotePeerId()) {
-      id = id_res.value().toBase58();
-    }
-    if (auto addr_res = stream->remoteMultiaddr()) {
-      addr = addr_res.value().getStringAddress();
-    }
-    return {std::move(id), std::move(addr)};
-  }
-}  // namespace
+#include "libp2p/protocol/identify/utils.hpp"
 
 namespace libp2p::protocol {
   IdentifyMessageProcessor::IdentifyMessageProcessor(
@@ -92,11 +74,11 @@ namespace libp2p::protocol {
 
   void IdentifyMessageProcessor::identifySent(
       outcome::result<size_t> written_bytes, const StreamSPtr &stream) {
-    auto [peer_id, peer_addr] = getPeerIdentity(stream);
+    auto [peer_id, peer_addr] = detail::getPeerIdentity(stream);
     if (!written_bytes) {
       log_->error("cannot write identify message to stream to peer {}, {}: {}",
                   peer_id, peer_addr, written_bytes.error().message());
-      return stream->reset([](auto &&) {});
+      return stream->reset();
     }
 
     log_->info("successfully written an identify message to peer {}, {}",
@@ -123,6 +105,11 @@ namespace libp2p::protocol {
     return host_;
   }
 
+  network::ConnectionManager &IdentifyMessageProcessor::getConnectionManager()
+      const noexcept {
+    return conn_manager_;
+  }
+
   const ObservedAddresses &IdentifyMessageProcessor::getObservedAddresses()
       const noexcept {
     return observed_addresses_;
@@ -131,11 +118,11 @@ namespace libp2p::protocol {
   void IdentifyMessageProcessor::identifyReceived(
       outcome::result<identify::pb::Identify> msg_res,
       const StreamSPtr &stream) {
-    auto [peer_id_str, peer_addr_str] = getPeerIdentity(stream);
+    auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
     if (!msg_res) {
       log_->error("cannot read an identify message from peer {}, {}: {}",
                   peer_id_str, peer_addr_str, msg_res.error());
-      return stream->reset([](auto &&) {});
+      return stream->reset();
     }
 
     log_->info("received an identify message from peer {}, {}", peer_id_str,
@@ -271,16 +258,10 @@ namespace libp2p::protocol {
 
     // if our local address is not one of our "official" listen addresses, we
     // are not going to save its mapping to the observed one
-    auto i_listen_addresses_res =
-        host_.getNetwork().getListener().getListenAddressesInterfaces();
-    if (!i_listen_addresses_res) {
-      return log_->error("failed to get interface listen addresses: {}",
-                         i_listen_addresses_res.error().message());
-    }
-    auto i_listen_addresses = std::move(i_listen_addresses_res.value());
+    auto &listener = host_.getNetwork().getListener();
+    auto i_listen_addresses = listener.getListenAddressesInterfaces();
 
-    auto listen_addresses =
-        host_.getNetwork().getListener().getListenAddresses();
+    auto listen_addresses = listener.getListenAddresses();
 
     auto addr_in_addresses =
         std::find(i_listen_addresses.begin(), i_listen_addresses.end(),
@@ -339,7 +320,13 @@ namespace libp2p::protocol {
     }
 
     // memorize the addresses
-    switch (conn_manager_.connectedness(peer_id)) {
+    auto addresses = addr_repo.getAddresses(peer_id);
+    if (!addresses) {
+      log_->error("can not get addresses for peer {}", peer_id.toBase58());
+      return;
+    }
+
+    switch (conn_manager_.connectedness({peer_id, addresses.value()})) {
       case network::ConnectionManager::Connectedness::CONNECTED:
         add_res = addr_repo.upsertAddresses(peer_id, listen_addresses,
                                             peer::ttl::kPermanent);

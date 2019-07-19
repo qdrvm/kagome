@@ -76,7 +76,7 @@ class MultiselectTest : public ::testing::Test {
 
   void launchContext() {
     using std::chrono_literals::operator""ms;
-    context_.run_for(100ms);
+    context_.run_for(200ms);
   }
 
   /**
