@@ -6,8 +6,9 @@
 #ifndef KAGOME_TEST_MOCK_CORE_AUTHORSHIP_BLOCK_BUILDER_MOCK_HPP
 #define KAGOME_TEST_MOCK_CORE_AUTHORSHIP_BLOCK_BUILDER_MOCK_HPP
 
-#include <gmock/gmock.h>
 #include "authorship/block_builder.hpp"
+
+#include <gmock/gmock.h>
 
 namespace kagome::authorship {
 

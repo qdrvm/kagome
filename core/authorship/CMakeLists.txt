@@ -26,7 +26,7 @@ target_link_libraries(block_builder_factory
     )
 
 add_library(proposer
-    proposer_test.hpp
+    proposer.hpp
     impl/proposer_impl.cpp
     impl/proposer_impl.hpp
     )

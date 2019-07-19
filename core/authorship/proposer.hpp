@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_AUTHORSHIP_PROPOSER_HPP
-#define KAGOME_CORE_AUTHORSHIP_PROPOSER_HPP
+#ifndef KAGOME_CORE_AUTHORSHIP_PROPOSER_TEST_HPP
+#define KAGOME_CORE_AUTHORSHIP_PROPOSER_TEST_HPP
 
 #include "common/time.hpp"
 #include "primitives/block.hpp"
@@ -37,4 +37,4 @@ namespace kagome::authorship {
 
 }  // namespace kagome::authorship
 
-#endif  // KAGOME_CORE_AUTHORSHIP_PROPOSER_HPP
+#endif  // KAGOME_CORE_AUTHORSHIP_PROPOSER_TEST_HPP

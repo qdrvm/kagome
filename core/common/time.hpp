@@ -6,6 +6,9 @@
 #ifndef KAGOME_CORE_COMMON_TIME_HPP
 #define KAGOME_CORE_COMMON_TIME_HPP
 
+// copied from
+// https://github.com/hyperledger/iroha/blob/1.0.1/libs/datetime/time.hpp
+
 #include <chrono>
 
 namespace kagome {

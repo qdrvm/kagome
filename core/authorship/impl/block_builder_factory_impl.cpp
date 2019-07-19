@@ -26,7 +26,7 @@ namespace kagome::authorship {
       const kagome::primitives::BlockId &parent_id,
       const kagome::primitives::Digest &inherent_digest) const {
     // based on
-    // https://github.com/paritytech/substrate/blob/dbf322620948935d2bbae214504e6c668c3073ed/core/basic-authorship/src/authorship.rs#L94
+    // https://github.com/paritytech/substrate/blob/dbf322620948935d2bbae214504e6c668c3073ed/core/basic-authorship/src/basic_authorship.rs#L94
 
     OUTCOME_TRY(parent_hash, header_backend_->getHashById(parent_id));
     OUTCOME_TRY(parent_number, header_backend_->getNumberById(parent_id));
