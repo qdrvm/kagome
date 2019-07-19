@@ -19,9 +19,9 @@ namespace kagome::transaction_pool {
                  outcome::result<void>(std::vector<primitives::Transaction>));
     MOCK_METHOD0(getReadyTransactions, std::vector<primitives::Transaction>());
 
-    MOCK_METHOD1(
-        removeStale,
-        std::vector<primitives::Transaction>(const primitives::BlockId &));
+    MOCK_METHOD1(removeStale,
+                 outcome::result<std::vector<primitives::Transaction>>(
+                     const primitives::BlockId &));
 
     MOCK_METHOD3(pruneTag,
                  std::vector<primitives::Transaction>(
