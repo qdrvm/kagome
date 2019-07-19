@@ -28,7 +28,7 @@ namespace kagome::runtime {
         const primitives::Extrinsic &extrinsic) = 0;
 
     /// Finish the current block.
-    virtual outcome::result<primitives::BlockHeader> finalize_block() = 0;
+    virtual outcome::result<primitives::BlockHeader> finalise_block() = 0;
 
     /// Generate inherent extrinsics. The inherent data will vary from chain to
     /// chain.

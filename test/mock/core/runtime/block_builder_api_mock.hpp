@@ -15,7 +15,7 @@ namespace kagome::runtime {
    public:
     MOCK_METHOD1(apply_extrinsic,
                  outcome::result<bool>(const primitives::Extrinsic &));
-    MOCK_METHOD0(finalize_block, outcome::result<primitives::BlockHeader>());
+    MOCK_METHOD0(finalise_block, outcome::result<primitives::BlockHeader>());
     MOCK_METHOD1(inherent_extrinsics,
                  outcome::result<std::vector<primitives::Extrinsic>>(
                      const primitives::InherentData &));

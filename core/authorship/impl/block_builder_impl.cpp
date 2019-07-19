@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "basic_authorship/impl/block_builder_impl.hpp"
+#include "authorship/impl/block_builder_impl.hpp"
+#include "authorship/impl/block_builder_error.hpp"
 
-namespace kagome::basic_authorship {
+namespace kagome::authorship {
 
   BlockBuilderImpl::BlockBuilderImpl(
       primitives::BlockHeader block_header,
@@ -15,19 +16,20 @@ namespace kagome::basic_authorship {
     BOOST_ASSERT(r_block_builder_ != nullptr);
   }
 
-  outcome::result<bool> BlockBuilderImpl::pushExtrinsic(
+  outcome::result<void> BlockBuilderImpl::pushExtrinsic(
       const primitives::Extrinsic &extrinsic) {
     OUTCOME_TRY(ok, r_block_builder_->apply_extrinsic(extrinsic));
 
     if (ok) {
       extrinsics_.push_back(extrinsic);
-      return true;
+      return outcome::success();
     }
-    return false;
+    return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
   }
 
-  primitives::Block BlockBuilderImpl::bake() const {
-    return {block_header_, extrinsics_};
+  outcome::result<primitives::Block> BlockBuilderImpl::bake() const {
+    OUTCOME_TRY(finalised_header, r_block_builder_->finalise_block());
+    return primitives::Block{finalised_header, extrinsics_};
   }
 
-}  // namespace kagome::basic_authorship
+}  // namespace kagome::authorship

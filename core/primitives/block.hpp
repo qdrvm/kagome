@@ -17,6 +17,14 @@ namespace kagome::primitives {
   struct Block {
     BlockHeader header;                 ///< block header
     std::vector<Extrinsic> extrinsics;  ///< extrinsics collection
+
+    inline bool operator==(const Block &rhs) const {
+      return header == rhs.header and extrinsics == rhs.extrinsics;
+    }
+
+    inline bool operator!=(const Block &rhs) const {
+      return operator==(rhs);
+    }
   };
 
   /**

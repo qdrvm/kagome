@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "basic_authorship/impl/block_builder_factory_impl.hpp"
+#include "authorship/impl/block_builder_factory_impl.hpp"
 
-#include "basic_authorship/impl/block_builder_impl.hpp"
+#include "authorship/impl/block_builder_impl.hpp"
 
-namespace kagome::basic_authorship {
+namespace kagome::authorship {
 
   BlockBuilderFactoryImpl::BlockBuilderFactoryImpl(
       std::shared_ptr<runtime::Core> r_core,
@@ -26,7 +26,7 @@ namespace kagome::basic_authorship {
       const kagome::primitives::BlockId &parent_id,
       const kagome::primitives::Digest &inherent_digest) const {
     // based on
-    // https://github.com/paritytech/substrate/blob/dbf322620948935d2bbae214504e6c668c3073ed/core/basic-authorship/src/basic_authorship.rs#L94
+    // https://github.com/paritytech/substrate/blob/dbf322620948935d2bbae214504e6c668c3073ed/core/basic-authorship/src/authorship.rs#L94
 
     OUTCOME_TRY(parent_hash, header_backend_->hashFromBlockId(parent_id));
     OUTCOME_TRY(parent_number, header_backend_->numberFromBlockId(parent_id));
@@ -42,4 +42,4 @@ namespace kagome::basic_authorship {
                                               r_block_builder_);
   }
 
-}  // namespace kagome::basic_authorship
+}  // namespace kagome::authorship

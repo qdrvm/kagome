@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "basic_authorship/impl/block_builder_factory_impl.hpp"
+#include "authorship/impl/block_builder_factory_impl.hpp"
 
 #include <gtest/gtest.h>
 #include "mock/core/blockchain/header_backend_mock.hpp"
@@ -13,7 +13,7 @@
 
 using ::testing::Return;
 
-using kagome::basic_authorship::BlockBuilderFactoryImpl;
+using kagome::authorship::BlockBuilderFactoryImpl;
 using kagome::blockchain::HeaderBackendMock;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;

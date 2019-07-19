@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_BASIC_AUTHORSHIP_IMPL_BLOCK_BUILDER_IMPL_HPP
-#define KAGOME_CORE_BASIC_AUTHORSHIP_IMPL_BLOCK_BUILDER_IMPL_HPP
+#ifndef KAGOME_CORE_AUTHORSHIP_IMPL_BLOCK_BUILDER_IMPL_HPP
+#define KAGOME_CORE_AUTHORSHIP_IMPL_BLOCK_BUILDER_IMPL_HPP
 
-#include "basic_authorship/block_builder.hpp"
+#include "authorship/block_builder.hpp"
 
 #include "primitives/block_id.hpp"
 #include "runtime/block_builder_api.hpp"
 #include "runtime/core.hpp"
 
-namespace kagome::basic_authorship {
+namespace kagome::authorship {
 
   class BlockBuilderImpl : public BlockBuilder {
    public:
@@ -21,10 +21,10 @@ namespace kagome::basic_authorship {
     BlockBuilderImpl(primitives::BlockHeader block_header,
                      std::shared_ptr<runtime::BlockBuilderApi> r_block_builder);
 
-    outcome::result<bool> pushExtrinsic(
+    outcome::result<void> pushExtrinsic(
         const primitives::Extrinsic &extrinsic) override;
 
-    [[nodiscard]] primitives::Block bake() const override;
+    [[nodiscard]] outcome::result<primitives::Block> bake() const override;
 
    private:
     primitives::BlockHeader block_header_;
@@ -33,6 +33,6 @@ namespace kagome::basic_authorship {
     std::vector<primitives::Extrinsic> extrinsics_{};
   };
 
-}  // namespace kagome::basic_authorship
+}  // namespace kagome::authorship
 
-#endif  // KAGOME_CORE_BASIC_AUTHORSHIP_IMPL_BLOCK_BUILDER_IMPL_HPP
+#endif  // KAGOME_CORE_AUTHORSHIP_IMPL_BLOCK_BUILDER_IMPL_HPP
