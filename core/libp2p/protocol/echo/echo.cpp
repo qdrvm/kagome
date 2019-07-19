@@ -7,8 +7,7 @@
 
 namespace libp2p::protocol {
 
-  void Echo::handle(
-      outcome::result<std::shared_ptr<connection::Stream>> rstream) {
+  void Echo::handle(StreamResult rstream) {
     if (!rstream) {
       log_->info("incoming connection failed due to '{}'",
                  rstream.error().message());

@@ -193,9 +193,6 @@ namespace libp2p::protocol_muxer {
   void Multiselect::onProtocolsAfterLs(
       const std::shared_ptr<ConnectionState> &connection_state,
       gsl::span<const peer::Protocol> received_protocols) {
-    // TODO(akvinikym) [PRE-143] 30.04.19: store the protocols to the
-    // protocol repository
-
     // if any of the received protocols is supported by our side, choose it;
     // fail otherwise
     auto protocols_to_search = connection_state->protocols;
