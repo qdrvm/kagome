@@ -13,7 +13,6 @@
 #include "testutil/outcome.hpp"
 
 using ::testing::_;
-using ::testing::ByMove;
 using ::testing::Return;
 using ::testing::Test;
 
