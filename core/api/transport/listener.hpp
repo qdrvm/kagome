@@ -29,6 +29,7 @@ namespace kagome::server {
     using OnError = Signal<void(const outcome::result<void> &)>;
 
     using NewSessionHandler = std::function<void(sptr<Session>)>;
+
    public:
     virtual ~Listener() = default;
 
@@ -54,9 +55,10 @@ namespace kagome::server {
     /**
      * @brief accepts incoming connection
      */
-    virtual void doAccept(std::function<void(std::shared_ptr<Session>)> on_new_session) = 0;
+    virtual void doAccept(
+        std::function<void(std::shared_ptr<Session>)> on_new_session) = 0;
 
-    OnError on_error_;             ///< emitted when error occurs
+    OnError on_error_;  ///< emitted when error occurs
   };
 }  // namespace kagome::server
 
