@@ -15,6 +15,11 @@ using namespace injector;
 
 using ::testing::NiceMock;
 
+/**
+ * @given default host injector
+ * @when create sptr<Host> and uptr<Host>
+ * @then valid instance is created
+ */
 TEST(HostInjector, Default) {
   auto injector = makeHostInjector();
 
@@ -25,6 +30,11 @@ TEST(HostInjector, Default) {
   ASSERT_NE(shared, nullptr);
 }
 
+/**
+ * @given Host injector with overrided adaptors
+ * @when use 2 adaptors of each type
+ * @then Host has 2 adaptors of each type
+ */
 TEST(HostInjector, CustomAdaptors) {
   // hack for nice mocks.
   struct SecMock : public NiceMock<security::SecurityAdaptorMock> {};
