@@ -76,7 +76,7 @@ namespace libp2p {
      *
      * May return 0 addresses if we don't know our observed addresses.
      */
-    virtual std::vector<multi::Multiaddress> getObservedAddreses() const = 0;
+    virtual std::vector<multi::Multiaddress> getObservedAddresses() const = 0;
 
     /**
      * @brief Let Host handle given {@param proto} protocol
@@ -89,30 +89,16 @@ namespace libp2p {
         const std::function<connection::Stream::Handler> &handler) = 0;
 
     /**
-     * @brief Let Host handle all protocols with prefix={@param prefix}, for
-     * which predicate {@param predicate} is true.
-     * param prefix prefix for the protocol. Example:
-     * You want all streams, which came to Ping protocol with versions
-     * between 1.5 and 2.0 to be handled by your handler; so, you may pass
-     *  - prefix=/ping/1.
-     *  - predicate=[](proto){return proto.version >= 1.5
-     *      && proto.version < 2.0;}
+     * @brief Let Host handle given protocol, and use matcher to check if we
+     * support given remote protocol.
      * @param handler of the arrived stream
      * @param predicate function that takes received protocol (/ping/1.0.0) and
      * should return true, if this protocol can be handled.
      */
     virtual void setProtocolHandler(
-        std::string_view prefix,
+        const peer::Protocol &protocol,
         const std::function<connection::Stream::Handler> &handler,
         const std::function<bool(const peer::Protocol &)> &predicate) = 0;
-
-    /**
-     * @brief Register {@param protocol} for this host. User MUST transfer
-     * ownership on protocol to the Host.
-     * @param protocol protocol instance
-     */
-    virtual void handleProtocol(
-        std::unique_ptr<protocol::BaseProtocol> protocol) = 0;
 
     /**
      * @brief Initiates connection to the peer {@param p}. If connection exists,
@@ -168,22 +154,22 @@ namespace libp2p {
     /**
      * @brief Getter for a network.
      */
-    virtual network::Network &getNetwork() const = 0;
+    virtual network::Network &getNetwork() = 0;
 
     /**
      * @brief Getter for a peer repository.
      */
-    virtual peer::PeerRepository &getPeerRepository() const = 0;
+    virtual peer::PeerRepository &getPeerRepository() = 0;
 
     /**
      * @brief Getter for a router.
      */
-    virtual network::Router &getRouter() const = 0;
+    virtual network::Router &getRouter() = 0;
 
     /**
      * @brief Getter for event bus.
      */
-    virtual event::Bus &getBus() const = 0;
+    virtual event::Bus &getBus() = 0;
   };
 }  // namespace libp2p
 

@@ -190,7 +190,7 @@ namespace libp2p::event {
   /**
    * Event bus, containing channels and providing a convenient access to them
    */
-  class Bus {
+  class Bus : private boost::noncopyable {
    public:
     /**
      * Fetch a reference to the channel declared by the passed in type. This
