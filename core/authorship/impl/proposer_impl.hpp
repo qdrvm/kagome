@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_AUTHORSHIP_IMPL_AITHORING_IMPL_HPP
 #define KAGOME_CORE_AUTHORSHIP_IMPL_AITHORING_IMPL_HPP
 
-#include "authorship/proposer_test.hpp"
+#include "authorship/proposer.hpp"
 
 #include "authorship/block_builder_factory.hpp"
 #include "runtime/block_builder_api.hpp"
