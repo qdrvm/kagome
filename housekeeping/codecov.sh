@@ -3,6 +3,8 @@
 buildDir=$1
 token=$2
 
+which git
+
 
 if [ -z "$buildDir" ]; then
     echo "buildDir is empty"
@@ -14,5 +16,4 @@ if [ -z "$token" ]; then
     exit 2
 fi
 
-cd $buildDir
 bash <(curl -s https://codecov.io/bash) -s $buildDir -t $token
