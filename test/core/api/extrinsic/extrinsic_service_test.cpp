@@ -29,6 +29,7 @@ using kagome::primitives::BlockId;
 using kagome::primitives::Extrinsic;
 using kagome::server::Listener;
 using kagome::server::ListenerMock;
+using kagome::server::Session;
 using kagome::server::SessionMock;
 
 using ::testing::_;
@@ -40,18 +41,20 @@ class ExtrinsicSubmissionServiceTest : public ::testing::Test {
   template <class T>
   using sptr = std::shared_ptr<T>;
 
+  using NewSessionHandler = std::function<void(sptr<Session>)>;
+
  protected:
   void SetUp() override {
     // imitate listener start
-    EXPECT_CALL(*listener, start()).WillRepeatedly(Invoke([this]() {
-      listener->doAccept();
+    EXPECT_CALL(*listener, start(_)).WillRepeatedly(Invoke([this](auto &&on_new_session) {
+      listener->doAccept(on_new_session);
     }));
     extrinsic.data.put("hello world");
     hash.fill(1);
 
     // imitate new session
-    EXPECT_CALL(*listener, doAccept()).WillOnce(Invoke([this]() {
-      listener->onNewSession()(session);
+    EXPECT_CALL(*listener, doAccept(_)).WillOnce(Invoke([this](auto &&on_new_session) {
+      on_new_session(session);
     }));
   }
 

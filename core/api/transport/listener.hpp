@@ -26,18 +26,11 @@ namespace kagome::server {
 
     template <class T>
     using Signal = boost::signals2::signal<T>;
-    using OnNewSession = Signal<void(sptr<Session>)>;
     using OnError = Signal<void(const outcome::result<void> &)>;
 
+    using NewSessionHandler = std::function<void(sptr<Session>)>;
    public:
     virtual ~Listener() = default;
-
-    /**
-     * @return `on new session` signal
-     */
-    OnNewSession &onNewSession() {
-      return on_new_session_;
-    }
 
     /**
      * @return `on error` signal
@@ -50,7 +43,7 @@ namespace kagome::server {
     /**
      * @brief starts listening
      */
-    virtual void start() = 0;
+    virtual void start(NewSessionHandler on_new_session) = 0;
 
     /**
      * @brief stops listening
@@ -61,9 +54,8 @@ namespace kagome::server {
     /**
      * @brief accepts incoming connection
      */
-    virtual void doAccept() = 0;
+    virtual void doAccept(std::function<void(std::shared_ptr<Session>)> on_new_session) = 0;
 
-    OnNewSession on_new_session_;  ///< emitted when new session is created
     OnError on_error_;             ///< emitted when error occurs
   };
 }  // namespace kagome::server

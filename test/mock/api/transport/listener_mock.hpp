@@ -14,9 +14,9 @@ namespace kagome::server {
   class ListenerMock : public Listener {
    public:
     ~ListenerMock() override = default;
-    MOCK_METHOD0(start, void(void));
+    MOCK_METHOD1(start, void(NewSessionHandler));
     MOCK_METHOD0(stop, void(void));
-    MOCK_METHOD0(doAccept, void(void));
+    MOCK_METHOD1(doAccept, void(NewSessionHandler));
   };
 
 }  // namespace kagome::server

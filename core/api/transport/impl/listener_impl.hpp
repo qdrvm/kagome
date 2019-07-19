@@ -35,7 +35,7 @@ namespace kagome::server {
 
     ~ListenerImpl() override = default;
 
-    void start() override;
+    void start(std::function<void(std::shared_ptr<Session>)> on_new_session) override;
 
     void stop() override;
 
@@ -43,7 +43,7 @@ namespace kagome::server {
     /**
      * @brief accepts incoming connection
      */
-    void doAccept() override;
+    void doAccept(std::function<void(std::shared_ptr<Session>)> on_new_session) override;
 
     Context &context_;   ///< io context
     Acceptor acceptor_;  ///< connections acceptor

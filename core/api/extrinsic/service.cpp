@@ -14,17 +14,6 @@ namespace kagome::api {
       std::shared_ptr<server::Listener> listener,
       std::shared_ptr<ExtrinsicApi> api)
       : listener_{std::move(listener)}, api_(std::move(api)) {
-    listener_->onNewSession().connect(
-        // NOLINTNEXTLINE(performance-unnecessary-value-param)
-        [this](sptr<server::Session> session) {
-          session->onRequest().connect(
-              // NOLINTNEXTLINE(performance-unnecessary-value-param)
-              [this](std::shared_ptr<server::Session> session,
-                     const std::string &request) {
-                processData(std::move(session), request);
-              });
-        });
-
     listener_->onError().connect([this](outcome::result<void> err) { stop(); });
 
     // register json format handler
@@ -72,7 +61,16 @@ namespace kagome::api {
   }
 
   void ExtrinsicApiService::start() {
-    listener_->start();
+    listener_->start(
+        // NOLINTNEXTLINE(performance-unnecessary-value-param)
+        [this](sptr<server::Session> session) {
+          session->onRequest().connect(
+              // NOLINTNEXTLINE(performance-unnecessary-value-param)
+              [this](std::shared_ptr<server::Session> session,
+                     const std::string &request) {
+                processData(std::move(session), request);
+              });
+        });
   }
 
   void ExtrinsicApiService::stop() {
