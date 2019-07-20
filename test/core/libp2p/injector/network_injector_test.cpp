@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/network/network_injector.hpp"
+#include "libp2p/injector/network_injector.hpp"
 
 #include <gtest/gtest.h>
 #include <set>

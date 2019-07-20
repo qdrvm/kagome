@@ -50,11 +50,3 @@ addtest(dialer_test
 target_link_libraries(dialer_test
     libp2p_dialer
     )
-
-
-addtest(network_injector_test
-    network_injector_test.cpp
-    )
-target_link_libraries(network_injector_test
-    libp2p_default_network
-    )
