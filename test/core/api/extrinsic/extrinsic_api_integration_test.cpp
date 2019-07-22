@@ -31,6 +31,25 @@ using ::testing::DoAll;
 using ::testing::Invoke;
 using ::testing::Return;
 
+namespace {
+  struct ClientTestHelper {
+    virtual ~ClientTestHelper() = default;
+
+    virtual void connectSuccess() = 0;
+    virtual void writeSuccess() = 0;
+    virtual void readSuccess(const std::string &response) = 0;
+    virtual void errorOccured() = 0;
+  };
+
+  struct ClientHelperMock : public ClientTestHelper {
+    ~ClientHelperMock() override = default;
+    MOCK_METHOD0(connectSuccess, void(void));
+    MOCK_METHOD0(writeSuccess, void(void));
+    MOCK_METHOD1(readSuccess, void(const std::string &));
+    MOCK_METHOD0(errorOccured, void(void));
+  };
+}  // namespace
+
 class ESSIntegrationTest : public ::testing::Test {
   template <class T>
   using sptr = std::shared_ptr<T>;
@@ -63,7 +82,23 @@ class ESSIntegrationTest : public ::testing::Test {
       R"({"jsonrpc":"2.0","method":"author_submitExtrinsic","id":0,"params":["68656C6C6F20776F726C64"]})"
       + std::string("\n");
   Hash256 hash{};
+
+  sptr<ClientHelperMock> helper = std::make_shared<ClientHelperMock>();
 };
+
+namespace {
+  // inline trims string from right
+  inline std::string rtrim(std::string s, std::string_view characters) {
+    s.erase(std::find_if(s.rbegin(), s.rend(),
+                         [characters](int ch) {
+                           return characters.find_first_of(ch)
+                               == std::string_view::npos;
+                         })
+                .base(),
+            s.end());
+    return s;
+  }
+}  // namespace
 
 /**
  * @given extrinsic submission service
@@ -78,58 +113,63 @@ TEST_F(ESSIntegrationTest, ProcessSingleClientSuccess) {
   const std::string response =
       R"({"jsonrpc":"2.0","id":0,"result":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]})";
 
-  const SimpleClient::Duration timeout_duration = std::chrono::milliseconds(200);
+  const SimpleClient::Duration timeout_duration =
+      std::chrono::milliseconds(200);
+
+  std::shared_ptr<SimpleClient> client;
 
   ASSERT_NO_THROW(service->start());
 
-  std::shared_ptr<SimpleClient> client;
+  EXPECT_CALL(*helper, connectSuccess()).WillOnce(Return());
+  EXPECT_CALL(*helper, writeSuccess()).WillOnce(Return());
+  EXPECT_CALL(*helper, readSuccess(response)).WillOnce(Return());
+  EXPECT_CALL(*helper, errorOccured()).Times(0);
+
+  auto on_error = [helper = this->helper]() { helper->errorOccured(); };
+
   client = std::make_shared<SimpleClient>(client_context, timeout_duration,
-                                          [client]() {
-                                            client->stop();
-                                            FAIL();
-                                          });
+                                          on_error);
 
-  std::thread client_thread(
-      [this, client, timeout_duration, response, request = this->request]() {
-        auto on_error = [&](const auto &error) {
-          std::cout << "error occured" << std::endl;
-          client->stop();
-          FAIL();
-        };
+  std::thread client_thread([this, client, timeout_duration, on_error,
+                             request = this->request, helper = this->helper]() {
+    // make client and start
+    auto on_read_success = [client, on_error, helper](const ErrorCode &error,
+                                                      std::size_t n) {
+      if (!error) {
+        auto resp = rtrim(client->data(), "\n");
+        helper->readSuccess(resp);
+      } else {
+        client->stop();
+        on_error();
+      }
+    };
 
-        // make client and start
-        auto on_read_success = [&](const ErrorCode &error, std::size_t n) {
-          std::cout << "handle read" << std::endl;
-          if (!error) {
-            std::cout << "read success" << std::endl;
-            ASSERT_EQ(client->data(), response);
-          } else {
-            on_error(error);
-          }
-        };
+    auto on_write_success = [client, helper, on_error, on_read_success](
+                                const ErrorCode &error, std::size_t n) {
+      if (!error) {
+        helper->writeSuccess();
+        client->asyncRead(on_read_success);
+      } else {
+        client->stop();
+        on_error();
+      }
+    };
 
-        auto on_write_success = [&](const ErrorCode &error, std::size_t n) {
-          if (!error) {
-            std::cout << "write success" << std::endl;
-            client->asyncRead(on_read_success);
-          } else {
-            on_error(error);
-          }
-        };
+    auto on_connect_success = [client, helper, on_error, on_write_success,
+                               request](const ErrorCode &error) {
+      if (!error) {
+        helper->connectSuccess();
+        client->asyncWrite(request, on_write_success);
+      } else {
+        client->stop();
+        on_error();
+      }
+    };
 
-        auto on_connect_success = [&](const ErrorCode &error) {
-          if (!error) {
-            std::cout << "connect success" << std::endl;
-            client->asyncWrite(request, on_write_success);
-          } else {
-            on_error(error);
-          }
-        };
+    client->asyncConnect(endpoint, on_connect_success);
 
-        client->asyncConnect(endpoint, on_connect_success);
-
-        client->getContext().run_for(timeout_duration);
-      });
+    client->getContext().run_for(timeout_duration);
+  });
 
   main_context.run_for(timeout_duration);
   client_thread.join();

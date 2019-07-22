@@ -40,7 +40,7 @@ namespace test {
     resetTimer();
     boost::asio::async_read_until(
         socket_, buffer_, '\n',
-        [this, &on_success](ErrorCode error, std::size_t n) {
+        [this, on_success](ErrorCode error, std::size_t n) {
           if (!error) {
             read_count_ = n;
             on_success(error, n);

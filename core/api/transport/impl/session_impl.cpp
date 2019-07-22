@@ -5,8 +5,6 @@
 
 #include "api/transport/impl/session_impl.hpp"
 
-#include <iostream>
-
 namespace kagome::server {
   SessionImpl::SessionImpl(Session::Socket socket, Session::Context &context,
                            Duration timeout)
@@ -47,7 +45,7 @@ namespace kagome::server {
   }
 
   void SessionImpl::asyncWrite(std::string response) {
-    auto r = std::make_shared<std::string>(std::move(response));
+    auto r = std::make_shared<std::string>(response + '\n');
 
     boost::asio::async_write(
         socket_, boost::asio::const_buffer(r->data(), r->size()),
