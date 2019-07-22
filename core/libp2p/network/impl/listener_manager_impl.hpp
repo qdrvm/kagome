@@ -32,21 +32,23 @@ namespace libp2p::network {
 
     outcome::result<void> closeListener(const multi::Multiaddress &ma) override;
 
+    outcome::result<void> removeListener(
+        const multi::Multiaddress &ma) override;
+
     outcome::result<void> listen(const multi::Multiaddress &ma) override;
 
     std::vector<multi::Multiaddress> getListenAddresses() const override;
 
-    outcome::result<std::vector<multi::Multiaddress>>
-    getListenAddressesInterfaces() const override;
-
-    void handleProtocol(
-        std::shared_ptr<protocol::BaseProtocol> protocol) override;
+    std::vector<multi::Multiaddress> getListenAddressesInterfaces()
+        const override;
 
     void setProtocolHandler(const peer::Protocol &protocol,
                             StreamResultFunc cb) override;
 
     void setProtocolHandler(const peer::Protocol &protocol, StreamResultFunc cb,
                             Router::ProtoPredicate predicate) override;
+
+    Router &getRouter() override;
 
    private:
     bool started = false;

@@ -185,7 +185,10 @@ TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
   auto pub_key = gsl::span<uint8_t>(sr25519_keypair)
                      .subspan(SR25519_SECRET_SIZE, SR25519_PUBLIC_SIZE);
   auto false_signature = Buffer(sr25519_signature);
-  false_signature[3] = 42;
+  ++false_signature[0];
+  ++false_signature[1];
+  ++false_signature[2];
+  ++false_signature[3];
 
   WasmPointer input_data = 0;
   SizeType input_size = input.size();

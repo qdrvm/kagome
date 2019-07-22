@@ -20,12 +20,16 @@ namespace {
 namespace libp2p::peer {
 
   PeerRepositoryImpl::PeerRepositoryImpl(
-      std::shared_ptr<AddressRepository> addrRepo,
-      std::shared_ptr<KeyRepository> keyRepo,
-      std::shared_ptr<ProtocolRepository> protocolRepo)
-      : addr_(std::move(addrRepo)),
-        key_(std::move(keyRepo)),
-        proto_(std::move(protocolRepo)) {}
+      std::shared_ptr<AddressRepository> addr_repo,
+      std::shared_ptr<KeyRepository> key_repo,
+      std::shared_ptr<ProtocolRepository> protocol_repo)
+      : addr_(std::move(addr_repo)),
+        key_(std::move(key_repo)),
+        proto_(std::move(protocol_repo)) {
+    BOOST_ASSERT(addr_ != nullptr);
+    BOOST_ASSERT(key_ != nullptr);
+    BOOST_ASSERT(proto_ != nullptr);
+  }
 
   AddressRepository &PeerRepositoryImpl::getAddressRepository() {
     return *addr_;

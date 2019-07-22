@@ -3,3 +3,4 @@
 
 add_subdirectory(echo)
 add_subdirectory(identify)
+add_subdirectory(ping)
