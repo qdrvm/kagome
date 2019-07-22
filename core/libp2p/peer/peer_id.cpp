@@ -66,8 +66,17 @@ namespace libp2p::peer {
     return encodeBase58(hash_.toBuffer());
   }
 
+  std::vector<uint8_t> PeerId::toVector() const {
+    return hash_.toBuffer().toVector();
+  }
+
   const multi::Multihash &PeerId::toMultihash() const {
     return hash_;
+  }
+
+  PeerId::FactoryResult PeerId::fromBytes(std::vector<uint8_t> v) {
+    OUTCOME_TRY(mh, Multihash::createFromBuffer(v));
+    return fromHash(mh);
   }
 }  // namespace libp2p::peer
 

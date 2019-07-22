@@ -8,6 +8,7 @@
 
 #include "libp2p/network/dialer.hpp"
 #include "libp2p/network/listener_manager.hpp"
+#include "libp2p/network/connection_manager.hpp"
 #include "libp2p/event/bus.hpp"
 
 namespace libp2p::network {
@@ -24,6 +25,9 @@ namespace libp2p::network {
 
     /// Getter for Listener associated with this Network
     virtual ListenerManager &getListener() = 0;
+
+    /// Getter for Connection Manager associated with this Network
+    virtual ConnectionManager& getConnectionManager() = 0;
 
     // TODO(Warchant): emits events:
     //    ClosedStream(Network, Stream)
