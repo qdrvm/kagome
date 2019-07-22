@@ -52,6 +52,13 @@ namespace kagome::primitives {
     bool should_propagate{false};
   };
 
+  inline bool operator==(const Transaction &v1, const Transaction &v2) {
+    return v1.ext == v2.ext && v1.bytes == v2.bytes && v1.hash == v2.hash
+        && v1.priority == v2.priority && v1.valid_till == v2.valid_till
+        && v1.requires == v2.requires && v1.provides == v2.provides
+        && v1.should_propagate == v2.should_propagate;
+  }
+
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_TRANSACTION_HPP

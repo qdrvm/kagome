@@ -39,6 +39,11 @@ find_package(OpenSSL REQUIRED)
 hunter_add_package(Protobuf)
 find_package(Protobuf CONFIG REQUIRED)
 
+# http://rapidjson.org
+hunter_add_package(RapidJSON)
+find_package(RapidJSON CONFIG REQUIRED)
+#target_link_libraries(... RapidJSON::rapidjson)
+
 # https://docs.hunter.sh/en/latest/packages/pkg/Microsoft.GSL.html
 hunter_add_package(Microsoft.GSL)
 find_package(Microsoft.GSL CONFIG REQUIRED)
