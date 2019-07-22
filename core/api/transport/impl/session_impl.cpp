@@ -11,7 +11,7 @@ namespace kagome::server {
       : socket_(std::move(socket)), heartbeat_(context), timeout_{timeout} {
     resetTimer();
     onResponse().connect(
-        [this](std::string response) { processResponse(std::move(response)); });
+        [this](const std::string &response) { processResponse(response); });
   }
 
   void SessionImpl::start() {
@@ -39,12 +39,12 @@ namespace kagome::server {
         });
   }
 
-  void SessionImpl::processResponse(std::string response) {
+  void SessionImpl::processResponse(const std::string &response) {
     resetTimer();
-    asyncWrite(std::move(response));
+    asyncWrite(response);
   }
 
-  void SessionImpl::asyncWrite(std::string response) {
+  void SessionImpl::asyncWrite(const std::string &response) {
     auto r = std::make_shared<std::string>(response + '\n');
 
     boost::asio::async_write(

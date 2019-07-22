@@ -68,7 +68,7 @@ namespace kagome::api {
               // NOLINTNEXTLINE(performance-unnecessary-value-param)
               [this](std::shared_ptr<server::Session> session,
                      const std::string &request) {
-                processData(std::move(session), request);
+                processData(session, request);
               });
         });
   }

@@ -45,13 +45,13 @@ namespace kagome::server {
      * @brief runs when responce is obtained
      * @param response json string response
      */
-    void processResponse(std::string response);
+    void processResponse(const std::string &response);
 
     /**
      * @brief sends response
      * @param response json result string
      */
-    void asyncWrite(std::string response);
+    void asyncWrite(const std::string &response);
 
     /**
      * @brief is called when no requests for too long time
