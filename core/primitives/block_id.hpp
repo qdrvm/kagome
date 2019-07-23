@@ -11,8 +11,10 @@
 #include "primitives/common.hpp"
 
 namespace kagome::primitives {
+  using BlockHash = common::Hash256;
+
   /// Block id is the variant over BlockHash and BlockNumber
-  using BlockId = boost::variant<common::Hash256, BlockNumber>;
+  using BlockId = boost::variant<BlockHash, BlockNumber>;
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_CORE_PRIMITIVES_BLOCK_ID_HPP
