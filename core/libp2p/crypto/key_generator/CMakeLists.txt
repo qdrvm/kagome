@@ -10,7 +10,7 @@ add_library(key_generator
 
 target_link_libraries(key_generator
     crypto_error
-    buffer
+#    buffer
     random_generator
     OpenSSL::Crypto
     Boost::filesystem

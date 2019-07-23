@@ -103,3 +103,23 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, KeyGeneratorError, e) {
   }
   return "unknown KeyGenerator error";
 }
+
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, KeyValidatorError, e) {
+  using libp2p::crypto::KeyValidatorError;
+  switch (e) {  // NOLINT
+    case KeyValidatorError::WRONG_PUBLIC_KEY_SIZE:
+      return "public key has wrong size";
+    case KeyValidatorError::WRONG_PRIVATE_KEY_SIZE:
+      return "private key has wrong size";
+    case KeyValidatorError::INVALID_PUBLIC_KEY:
+      return "public key cannot be decoded";
+    case KeyValidatorError::INVALID_PRIVATE_KEY:
+      return "private key cannot be decoded";
+    case KeyValidatorError::KEYS_DONT_MATCH:
+      return "public key is not derived from private";
+    case KeyValidatorError::DIFFERENT_KEY_TYPES:
+      return "key types in pair don't match";
+  }
+
+  return "unknown KeyValidator error";
+}

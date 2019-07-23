@@ -6,6 +6,7 @@
 #include "libp2p/crypto/marshaller/key_marshaller_impl.hpp"
 
 #include "libp2p/crypto/common.hpp"
+#include "libp2p/crypto/key_generator.hpp"
 #include "libp2p/crypto/proto/keys.pb.h"
 
 namespace libp2p::crypto::marshaller {
@@ -59,6 +60,10 @@ namespace libp2p::crypto::marshaller {
     }
   }  // namespace
 
+  KeyMarshallerImpl::KeyMarshallerImpl(
+      std::shared_ptr<validator::KeyValidator> key_validator)
+      : key_validator_{std::move(key_validator)} {}
+
   outcome::result<KeyMarshallerImpl::ByteArray> KeyMarshallerImpl::marshal(
       const PublicKey &key) const {
     proto::PublicKey proto_key;
@@ -105,7 +110,10 @@ namespace libp2p::crypto::marshaller {
     OUTCOME_TRY(key_type, unmarshalKeyType(proto_key.key_type()));
     KeyMarshallerImpl::ByteArray key_value(proto_key.key_value().begin(),
                                            proto_key.key_value().end());
-    return PrivateKey{{key_type, key_value}};
+    auto key = PrivateKey{{key_type, key_value}};
+    OUTCOME_TRY(key_validator_->validate(key));
+
+    return key;
   }
 
 }  // namespace libp2p::crypto::marshaller

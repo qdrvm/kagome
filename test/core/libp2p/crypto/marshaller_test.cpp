@@ -5,14 +5,24 @@
 
 #include "libp2p/crypto/marshaller/key_marshaller_impl.hpp"
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "libp2p/crypto/common.hpp"
+#include "mock/libp2p/crypto/key_validator_mock.hpp"
 
 using Buffer = std::vector<uint8_t>;
 using libp2p::crypto::Key;
 using libp2p::crypto::PrivateKey;
 using libp2p::crypto::PublicKey;
 using libp2p::crypto::marshaller::KeyMarshallerImpl;
+using libp2p::crypto::validator::KeyValidator;
+using libp2p::crypto::validator::KeyValidatorMock;
+
+using ::testing::_;
+using ::testing::An;
+using ::testing::DoAll;
+using ::testing::Invoke;
+using ::testing::Return;
 
 template <typename T>
 struct KeyCase {
@@ -28,12 +38,21 @@ Buffer randomBuffer(size_t size) {
 
 class Pubkey : public testing::TestWithParam<KeyCase<PublicKey>> {
  public:
-  KeyMarshallerImpl marshaller_;
+  std::shared_ptr<KeyValidatorMock> validator_ =
+      std::make_shared<KeyValidatorMock>();
+  KeyMarshallerImpl marshaller_{validator_};
 };
 
 class Privkey : public testing::TestWithParam<KeyCase<PrivateKey>> {
  public:
-  KeyMarshallerImpl marshaller_;
+  void SetUp() override {
+    ON_CALL(*validator_, validate(::testing::An<const PrivateKey &>()))
+        .WillByDefault(Return(outcome::success()));
+  }
+
+  std::shared_ptr<KeyValidatorMock> validator_ =
+      std::make_shared<KeyValidatorMock>();
+  KeyMarshallerImpl marshaller_{validator_};
 };
 
 TEST_P(Pubkey, Valid) {

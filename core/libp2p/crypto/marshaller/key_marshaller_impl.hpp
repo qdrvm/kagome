@@ -9,10 +9,14 @@
 #include "libp2p/crypto/error.hpp"
 #include "libp2p/crypto/key.hpp"
 #include "libp2p/crypto/key_marshaller.hpp"
+#include "libp2p/crypto/key_validator.hpp"
 
 namespace libp2p::crypto::marshaller {
   class KeyMarshallerImpl : public KeyMarshaller {
    public:
+    explicit KeyMarshallerImpl(
+        std::shared_ptr<validator::KeyValidator> key_validator);
+
     ~KeyMarshallerImpl() override = default;
 
     outcome::result<KeyMarshaller::ByteArray> marshal(
@@ -26,6 +30,9 @@ namespace libp2p::crypto::marshaller {
 
     outcome::result<PrivateKey> unmarshalPrivateKey(
         const KeyMarshaller::ByteArray &key_bytes) const override;
+
+   private:
+    std::shared_ptr<validator::KeyValidator> key_validator_;
   };
 }  // namespace libp2p::crypto::marshaller
 
