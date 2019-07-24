@@ -19,7 +19,7 @@
  *   ASSERT_TRUE(res) << res.error().message();
  *   ASSERT_EQ(read, size);
  * });
- * @nocode
+ * @endcode
  */
 ACTION_P(AsioSuccess, size) {
   // arg0 - buffer
@@ -37,7 +37,7 @@ ACTION_P(AsioSuccess, size) {
  * secure_connection_->read(*buf, size, [&size, buf, e=ec](auto &&ec, size_t
  * read) mutable { ASSERT_EQ(ec.value(), e.value()); ASSERT_EQ(read, size);
  * });
- * @nocode
+ * @endcode
  */
 ACTION_P2(AsioCallback, ec, size) {
   // arg0 - buffer

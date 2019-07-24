@@ -23,7 +23,7 @@ namespace kagome::primitives {
     }
 
     inline bool operator!=(const Block &rhs) const {
-      return operator==(rhs);
+      return !operator==(rhs);
     }
   };
 

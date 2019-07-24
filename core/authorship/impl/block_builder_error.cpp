@@ -11,7 +11,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::authorship, BlockBuilderError, e) {
   switch (e) {
     case BlockBuilderError::EXTRINSIC_APPLICATION_FAILED:
       return "extrinsic was not applied";
-      break;
   }
   return "unknown error";
 }

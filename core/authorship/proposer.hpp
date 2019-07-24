@@ -27,7 +27,7 @@ namespace kagome::authorship {
      * @param inherent_data additional data on block from unsigned extrinsics
      * @param inherent_digest chain-specific block auxilary date
      * @param deadline time to create block
-     * @return proposed block
+     * @return proposed block or error
      */
     virtual outcome::result<primitives::Block> propose(
         const primitives::BlockId &parent_block_id,

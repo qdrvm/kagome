@@ -9,6 +9,7 @@
 #include "authorship/proposer.hpp"
 
 #include "authorship/block_builder_factory.hpp"
+#include "common/logger.hpp"
 #include "runtime/block_builder_api.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
@@ -21,7 +22,8 @@ namespace kagome::authorship {
     ProposerImpl(
         std::shared_ptr<BlockBuilderFactory> block_builder_factory,
         std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
-        std::shared_ptr<runtime::BlockBuilderApi> r_block_builder);
+        std::shared_ptr<runtime::BlockBuilderApi> r_block_builder,
+        common::Logger logger = common::createLogger("Proposer"));
 
     outcome::result<primitives::Block> propose(
         const primitives::BlockId &parent_block_id,
@@ -33,6 +35,7 @@ namespace kagome::authorship {
     std::shared_ptr<BlockBuilderFactory> block_builder_factory_;
     std::shared_ptr<transaction_pool::TransactionPool> transaction_pool_;
     std::shared_ptr<runtime::BlockBuilderApi> r_block_builder_;
+    common::Logger logger_;
   };
 
 }  // namespace kagome::authorship

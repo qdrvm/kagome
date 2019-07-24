@@ -11,10 +11,13 @@ namespace kagome::authorship {
 
   BlockBuilderImpl::BlockBuilderImpl(
       primitives::BlockHeader block_header,
-      std::shared_ptr<runtime::BlockBuilderApi> r_block_builder)
+      std::shared_ptr<runtime::BlockBuilderApi> r_block_builder,
+      common::Logger logger)
       : block_header_(std::move(block_header)),
-        r_block_builder_(std::move(r_block_builder)) {
+        r_block_builder_(std::move(r_block_builder)),
+        logger_(std::move(logger)) {
     BOOST_ASSERT(r_block_builder_ != nullptr);
+    BOOST_ASSERT(logger_);
   }
 
   outcome::result<void> BlockBuilderImpl::pushExtrinsic(
@@ -25,6 +28,9 @@ namespace kagome::authorship {
       extrinsics_.push_back(extrinsic);
       return outcome::success();
     }
+    logger_->warn(
+        "Extrinsic {} was not pushed to block. Extrinsic cannot be applied",
+        extrinsic.data.toHex());
     return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
   }
 

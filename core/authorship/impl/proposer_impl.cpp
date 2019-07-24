@@ -12,10 +12,17 @@ namespace kagome::authorship {
   ProposerImpl::ProposerImpl(
       std::shared_ptr<BlockBuilderFactory> block_builder_factory,
       std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
-      std::shared_ptr<runtime::BlockBuilderApi> r_block_builder)
+      std::shared_ptr<runtime::BlockBuilderApi> r_block_builder,
+      common::Logger logger)
       : block_builder_factory_{std::move(block_builder_factory)},
         transaction_pool_{std::move(transaction_pool)},
-        r_block_builder_{std::move(r_block_builder)} {}
+        r_block_builder_{std::move(r_block_builder)},
+        logger_{std::move(logger)} {
+    BOOST_ASSERT(block_builder_factory_);
+    BOOST_ASSERT(transaction_pool_);
+    BOOST_ASSERT(r_block_builder_);
+    BOOST_ASSERT(logger_);
+  }
 
   outcome::result<primitives::Block> ProposerImpl::propose(
       const primitives::BlockId &parent_block_id,
@@ -27,10 +34,17 @@ namespace kagome::authorship {
 
     OUTCOME_TRY(inherent_xts,
                 r_block_builder_->inherent_extrinsics(inherent_data));
+
+    auto log_push_error = [this](const primitives::Extrinsic &xt,
+                                 std::string_view message) {
+      logger_->warn("Extrinsic {} was not added to the block. Reason: {}",
+                    xt.data.toHex(), message);
+    };
+
     for (const auto &xt : inherent_xts) {
       auto inserted_res = block_builder->pushExtrinsic(xt);
       if (not inserted_res) {
-        // log error
+        log_push_error(xt, inserted_res.error().message());
         return inserted_res.error();
       }
     }
@@ -43,7 +57,7 @@ namespace kagome::authorship {
       }
       auto inserted_res = block_builder->pushExtrinsic(tx.ext);
       if (not inserted_res) {
-        // log error
+        log_push_error(tx.ext, inserted_res.error().message());
         return inserted_res.error();
       }
     }

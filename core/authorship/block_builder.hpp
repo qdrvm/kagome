@@ -29,7 +29,7 @@ namespace kagome::authorship {
     /**
      * Create a block from extrinsics and header
      */
-    [[nodiscard]] virtual outcome::result<primitives::Block> bake() const = 0;
+    virtual outcome::result<primitives::Block> bake() const = 0;
   };
 
 }  // namespace kagome::authorship
