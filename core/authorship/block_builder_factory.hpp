@@ -25,7 +25,7 @@ namespace kagome::authorship {
      * Prepares BlockBuilder for creating block on top of parent block and using
      * provided digest. Also initialises the block created in BlockBuilder
      */
-    [[nodiscard]] virtual outcome::result<std::unique_ptr<BlockBuilder>> create(
+    virtual outcome::result<std::unique_ptr<BlockBuilder>> create(
         const primitives::BlockId &parent_id,
         const primitives::Digest &inherent_digest) const = 0;
   };
