@@ -28,12 +28,16 @@ namespace kagome::blockchain {
       primitives::BlockNumber depth;
 
       boost::optional<TreeNode &> parent;
-      std::vector<TreeNode> children{};
 
       bool finalized = false;
 
+      std::vector<TreeNode> children{};
+
       outcome::result<std::reference_wrapper<TreeNode>> getByHash(
-          const primitives::BlockHash &hash) const;
+          const primitives::BlockHash &hash);
+
+      bool operator==(const TreeNode &other) const;
+      bool operator!=(const TreeNode &other) const;
     };
 
     /**
@@ -41,7 +45,7 @@ namespace kagome::blockchain {
      * the operations faster
      */
     struct TreeMeta {
-      std::unordered_set<TreeNode &> leaves;
+      std::unordered_set<TreeNode *> leaves;
       TreeNode &deepest_leaf;
 
       TreeNode &last_finalized;
@@ -58,17 +62,13 @@ namespace kagome::blockchain {
     /**
      * Create an instance of block tree
      * @param db for the tree to be put in
-     * @param genesis_block (root) of the tree
+     * @param last_finalized_block - last finalized block, from which the tree
+     * is going to grow
      * @return ptr to the created instance or error
-     *
-     * @note if genesis block is provided, the caller MUST ensure that the DB is
-     * empty, so that clashes will not happen; if the genesis block is not
-     * provided, the DB MUST contain it least one block, which is considered to
-     * be the genesis one
      */
     static outcome::result<std::unique_ptr<LevelDbBlockTree>> create(
         PersistentBufferMap &db,
-        boost::optional<primitives::Block> genesis_block);
+        const primitives::BlockId &last_finalized_block);
 
     ~LevelDbBlockTree() override = default;
 
@@ -82,23 +82,26 @@ namespace kagome::blockchain {
         const primitives::Justification &justification) override;
 
     BlockHashVecRes getChainByBlock(
-        const primitives::BlockHash &block) const override;
+        const primitives::BlockHash &block) override;
 
-    BlockHashVecRes longestPath(
-        const primitives::BlockHash &block) const override;
+    BlockHashVecRes longestPath(const primitives::BlockHash &block) override;
 
     const primitives::BlockHash &deepestLeaf() const override;
 
     std::vector<primitives::BlockHash> getLeaves() const override;
 
-    BlockHashVecRes getChildren(
-        const primitives::BlockHash &block) const override;
+    BlockHashVecRes getChildren(const primitives::BlockHash &block) override;
 
     primitives::BlockHash getLastFinalized() const override;
 
     void prune() override;
 
    private:
+    LevelDbBlockTree(PersistentBufferMap &db, TreeNode tree, TreeMeta meta);
+
+    static outcome::result<common::Hash256> blockHash(
+        const primitives::Block &block);
+
     PersistentBufferMap &db_;
 
     TreeNode tree_;

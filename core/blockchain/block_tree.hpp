@@ -38,17 +38,15 @@ namespace kagome::blockchain {
         const primitives::Justification &justification) = 0;
 
     virtual BlockHashVecRes getChainByBlock(
-        const primitives::BlockHash &block) const = 0;
+        const primitives::BlockHash &block) = 0;
 
-    virtual BlockHashVecRes longestPath(
-        const primitives::BlockHash &block) const = 0;
+    virtual BlockHashVecRes longestPath(const primitives::BlockHash &block) = 0;
 
     virtual const primitives::BlockHash &deepestLeaf() const = 0;
 
     virtual std::vector<primitives::BlockHash> getLeaves() const = 0;
 
-    virtual BlockHashVecRes getChildren(
-        const primitives::BlockHash &block) const = 0;
+    virtual BlockHashVecRes getChildren(const primitives::BlockHash &block) = 0;
 
     virtual primitives::BlockHash getLastFinalized() const = 0;
 
