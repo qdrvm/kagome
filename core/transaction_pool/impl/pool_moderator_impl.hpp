@@ -6,15 +6,16 @@
 #ifndef KAGOME_POOL_MODERATOR_IMPL_HPP
 #define KAGOME_POOL_MODERATOR_IMPL_HPP
 
+#include "transaction_pool/pool_moderator.hpp"
+
 #include <map>
 
-#include "transaction_pool/pool_moderator.hpp"
+#include "common/clock.hpp"
 
 namespace kagome::transaction_pool {
 
   class PoolModeratorImpl : public PoolModerator {
-    using SystemClock = Clock<std::chrono::system_clock>;
-    using Map = std::map<common::Hash256, SystemClock::TimePoint>;
+    using Map = std::map<common::Hash256, common::Clock::TimePoint>;
 
    public:
     /**
@@ -25,7 +26,7 @@ namespace kagome::transaction_pool {
     /**
      * Default ban duration
      */
-    static constexpr SystemClock::Duration kDefaultBanFor =
+    static constexpr common::Clock::Duration kDefaultBanFor =
         std::chrono::minutes(30);
 
     /**
@@ -34,7 +35,7 @@ namespace kagome::transaction_pool {
      * significantly exceeded, some transactions will be removed from ban list
      */
     struct Params {
-      SystemClock::Duration ban_for = kDefaultBanFor;
+      common::Clock::Duration ban_for = kDefaultBanFor;
       size_t expected_size = kDefaultExpectedSize;
     };
 
@@ -43,7 +44,7 @@ namespace kagome::transaction_pool {
      * @param clock a clock used to determine when it is time to unban a
      * transaction
      */
-    explicit PoolModeratorImpl(std::shared_ptr<SystemClock> clock,
+    explicit PoolModeratorImpl(std::shared_ptr<common::Clock> clock,
                                Params parameters = Params{
                                    kDefaultBanFor, kDefaultExpectedSize});
 
@@ -61,7 +62,7 @@ namespace kagome::transaction_pool {
     size_t bannedNum() const override;
 
    private:
-    std::shared_ptr<SystemClock> clock_;
+    std::shared_ptr<common::Clock> clock_;
     Params params_;
     Map banned_until_;
   };
