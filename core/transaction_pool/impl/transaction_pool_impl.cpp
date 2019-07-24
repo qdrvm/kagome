@@ -93,7 +93,7 @@ namespace kagome::transaction_pool {
         Transaction tx = *it;
         ReadyTransaction rtx{tx, {}};
         updateUnlockingTransactions(rtx);
-        ready_queue_.insert({rtx.hash, rtx});
+        ready_queue_.emplace(rtx.hash, rtx);
         it = waiting_queue_.erase(it);
       } else {
         it++;
