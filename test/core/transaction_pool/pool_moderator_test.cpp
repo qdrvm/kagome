@@ -80,11 +80,13 @@ TEST_F(PoolModeratorTest, UnbanWhenFull) {
   auto clock = std::make_shared<MockClock>();
   PoolModeratorImpl moderator(clock, {1min, 5});
 
+  constexpr size_t number_of_bans = 11;
+
   EXPECT_CALL(*clock, now())
-      .Times(11)
+      .Times(number_of_bans)
       .WillRepeatedly(Return(Clock::TimePoint{}));
 
-  for (int i = 0; i < 11; i++) {
+  for (size_t i = 0; i < number_of_bans; i++) {
     kagome::common::Hash256 hash;
     std::fill(hash.begin(), hash.end(), 0);
     hash[0] = i;
