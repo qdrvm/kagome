@@ -11,12 +11,14 @@
 #include "primitives/extrinsic.hpp"
 
 namespace kagome::primitives {
+  using BlockBody = std::vector<Extrinsic>;
+
   /**
    * @brief Block class represents polkadot block primitive
    */
   struct Block {
-    BlockHeader header;                 ///< block header
-    std::vector<Extrinsic> extrinsics;  ///< extrinsics collection
+    BlockHeader header;    ///< block header
+    BlockBody extrinsics;  ///< extrinsics collection
   };
 
   /**

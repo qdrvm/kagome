@@ -9,7 +9,6 @@
 #include <boost/optional.hpp>
 #include <outcome/outcome.hpp>
 #include "common/blob.hpp"
-#include "common/visitor.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
 
@@ -28,13 +27,6 @@ namespace kagome::blockchain {
   class BlockHeaderRepository {
    public:
     virtual ~BlockHeaderRepository() = default;
-
-    enum class Error {
-      // it's important to convert storage errors of this type to this one to
-      // enable a user to discern between cases when a header with provided id
-      // is not found and when an internal storage error occurs
-      NOT_FOUND = 1
-    };
 
     /**
      * @param hash - a blake2_256 hash of an SCALE encoded block header
@@ -83,7 +75,5 @@ namespace kagome::blockchain {
   };
 
 }  // namespace kagome::blockchain
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, BlockHeaderRepository::Error);
 
 #endif  // KAGOME_CORE_BLOCKCHAIN_BLOCK_HEADER_REPOSITORY_HPP
