@@ -10,7 +10,6 @@
 #include "primitives/transaction.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-//#include "transaction_pool/impl/clock_impl.hpp"
 
 using kagome::common::Clock;
 using kagome::primitives::Transaction;
