@@ -6,6 +6,8 @@
 #ifndef KAGOME_CLOCK_HPP
 #define KAGOME_CLOCK_HPP
 
+#include <chrono>
+
 namespace kagome::clock {
 
   /**
@@ -31,6 +33,18 @@ namespace kagome::clock {
      */
     virtual TimePoint now() const = 0;
   };
+
+  /**
+   * SteadyClock alias over Clock. Should be used when we need to measure
+   * interval between two moments in time
+   */
+  using SteadyClock = Clock<std::chrono::steady_clock>;
+
+  /**
+   * SystemClock alias over Clock. Should be used when we need to watch current
+   * time
+   */
+  using SystemClock = Clock<std::chrono::system_clock>;
 
 }  // namespace kagome::clock
 

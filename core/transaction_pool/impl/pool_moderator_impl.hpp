@@ -10,7 +10,7 @@
 
 #include <map>
 
-#include "clock/system_clock.hpp"
+#include "clock/clock.hpp"
 
 namespace kagome::transaction_pool {
 
