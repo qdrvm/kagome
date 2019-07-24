@@ -50,9 +50,9 @@ namespace test {
 
     void asyncConnect(const Endpoint &endpoint, HandleConnect on_success);
 
-    void asyncWrite(std::string data, HandleWrite on_success);
+    void asyncWrite(std::string_view data, HandleWrite on_success);
 
-    void asyncRead(HandleRead on_success);
+    void asyncRead(const HandleRead &on_success);
 
     std::string data() const;
 

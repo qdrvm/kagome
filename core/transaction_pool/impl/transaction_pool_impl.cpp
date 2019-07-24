@@ -207,4 +207,10 @@ namespace kagome::transaction_pool {
     return removed;
   }
 
+  std::vector<primitives::Transaction> TransactionPoolImpl::pruneTag(
+      const kagome::primitives::BlockId &at,
+      const kagome::primitives::TransactionTag &tag) {
+    return pruneTag(at, tag, {});
+  }
+
 }  // namespace kagome::transaction_pool
