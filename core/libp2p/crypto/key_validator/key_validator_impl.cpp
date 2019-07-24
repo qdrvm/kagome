@@ -18,7 +18,7 @@ namespace libp2p::crypto::validator {
         case Key::Type::RSA2048:
           return 2048;
         case Key::Type::RSA4096:
-          return 4098;
+          return 4096;
         default:
           break;
       }

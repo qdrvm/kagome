@@ -97,7 +97,10 @@ namespace libp2p::crypto::marshaller {
     OUTCOME_TRY(key_type, unmarshalKeyType(proto_key.key_type()));
     KeyMarshallerImpl::ByteArray key_value(proto_key.key_value().begin(),
                                            proto_key.key_value().end());
-    return PublicKey{{key_type, key_value}};
+    auto key = PublicKey{{key_type, key_value}};
+    OUTCOME_TRY(key_validator_->validate(key));
+
+    return key;
   }
 
   outcome::result<PrivateKey> KeyMarshallerImpl::unmarshalPrivateKey(

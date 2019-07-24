@@ -38,6 +38,10 @@ Buffer randomBuffer(size_t size) {
 
 class Pubkey : public testing::TestWithParam<KeyCase<PublicKey>> {
  public:
+  void SetUp() override {
+    ON_CALL(*validator_, validate(::testing::An<const PublicKey &>()))
+        .WillByDefault(Return(outcome::success()));
+  }
   std::shared_ptr<KeyValidatorMock> validator_ =
       std::make_shared<KeyValidatorMock>();
   KeyMarshallerImpl marshaller_{validator_};
