@@ -6,13 +6,13 @@
 #ifndef KAGOME_SYSTEM_CLOCK_HPP
 #define KAGOME_SYSTEM_CLOCK_HPP
 
-#include "common/clock.hpp"
+#include "clock/system_clock.hpp"
 
-namespace kagome::common {
+namespace kagome::clock {
 
-  class SystemClock : public Clock {
+  class SystemClockImpl : public SystemClock {
    public:
-    ~SystemClock() override = default;
+    ~SystemClockImpl() override = default;
 
     TimePoint now() const override;
   };

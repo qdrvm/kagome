@@ -26,9 +26,3 @@ target_link_libraries(blob
 add_library(logger
     logger.cpp
     )
-
-add_library(clock
-    clock.hpp
-    impl/system_clock.cpp
-    impl/system_clock.hpp
-    )

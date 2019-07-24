@@ -11,7 +11,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
-using kagome::common::Clock;
+using kagome::clock::SystemClock;
 using kagome::primitives::Transaction;
 using kagome::transaction_pool::PoolModerator;
 using kagome::transaction_pool::PoolModeratorImpl;
@@ -21,9 +21,9 @@ using namespace std::chrono_literals;
 
 class PoolModeratorTest : public testing::Test {};
 
-class MockClock : public Clock {
+class MockClock : public SystemClock {
  public:
-  MOCK_CONST_METHOD0(now, Clock::TimePoint());
+  MOCK_CONST_METHOD0(now, SystemClock::TimePoint());
 };
 
 /**
@@ -60,6 +60,10 @@ TEST_F(PoolModeratorTest, BanDurationCorrect) {
  */
 TEST_F(PoolModeratorTest, BanStaleCorrect) {
   auto clock = std::make_shared<MockClock>();
+
+  // timer invoked only in case when it is stale
+  EXPECT_CALL(*clock, now()).WillOnce(Return(SystemClock::TimePoint{}));
+
   PoolModeratorImpl moderator(clock, {30min});
   Transaction t;
   t.valid_till = 42;
@@ -84,7 +88,7 @@ TEST_F(PoolModeratorTest, UnbanWhenFull) {
 
   EXPECT_CALL(*clock, now())
       .Times(number_of_bans)
-      .WillRepeatedly(Return(Clock::TimePoint{}));
+      .WillRepeatedly(Return(SystemClock::TimePoint{}));
 
   for (size_t i = 0; i < number_of_bans; i++) {
     kagome::common::Hash256 hash;

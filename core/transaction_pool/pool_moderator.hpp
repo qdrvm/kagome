@@ -6,9 +6,6 @@
 #ifndef KAGOME_POOL_MODERATOR_HPP
 #define KAGOME_POOL_MODERATOR_HPP
 
-#include <chrono>
-
-#include "common/clock.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/transaction.hpp"
 

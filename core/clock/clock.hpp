@@ -6,23 +6,23 @@
 #ifndef KAGOME_CLOCK_HPP
 #define KAGOME_CLOCK_HPP
 
-#include <chrono>
-
-namespace kagome::common {
+namespace kagome::clock {
 
   /**
    * An interface for a clock
+   * @tparam clock type is an underlying clock type, such as std::steady_clock
    */
+  template <typename ClockType>
   class Clock {
    public:
     /**
      * Difference between two time points
      */
-    using Duration = std::chrono::system_clock::duration;
+    using Duration = typename ClockType::duration;
     /**
      * A moment in time, stored in milliseconds since Unix epoch start
      */
-    using TimePoint = std::chrono::system_clock::time_point;
+    using TimePoint = typename ClockType::time_point;
 
     virtual ~Clock() = default;
 
@@ -32,6 +32,6 @@ namespace kagome::common {
     virtual TimePoint now() const = 0;
   };
 
-}  // namespace kagome::transaction_pool
+}  // namespace kagome::clock
 
 #endif  // KAGOME_CLOCK_HPP

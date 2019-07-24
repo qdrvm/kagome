@@ -9,8 +9,8 @@ using kagome::common::Buffer;
 
 namespace kagome::transaction_pool {
 
-  PoolModeratorImpl::PoolModeratorImpl(std::shared_ptr<common::Clock> clock,
-                                       Params parameters)
+  PoolModeratorImpl::PoolModeratorImpl(
+      std::shared_ptr<clock::SystemClock> clock, Params parameters)
       : clock_{std::move(clock)}, params_{parameters} {}
 
   void PoolModeratorImpl::ban(const common::Hash256 &tx_hash) {
