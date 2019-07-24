@@ -148,6 +148,7 @@ TEST_F(ProposerTest, CreateBlockFailsWhenDeadlinePassed) {
       .WillOnce(Return(std::vector<Transaction>{{}}));
 
   // when
+  // create block with some passed deadline
   auto block_res =
       proposer_.propose(expected_block_id_, inherent_data_, inherent_digest_,
                         kagome::time::now() - 20);
