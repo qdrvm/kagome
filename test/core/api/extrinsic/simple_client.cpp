@@ -25,7 +25,7 @@ namespace test {
         });
   }
 
-  void SimpleClient::asyncWrite(std::string data,
+  void SimpleClient::asyncWrite(std::string_view data,
                                 SimpleClient::HandleWrite on_success) {
     resetTimer();
 
@@ -36,7 +36,7 @@ namespace test {
             ErrorCode error, std::size_t n) { handler(error, n); });
   }
 
-  void SimpleClient::asyncRead(SimpleClient::HandleRead on_success) {
+  void SimpleClient::asyncRead(const SimpleClient::HandleRead &on_success) {
     resetTimer();
     boost::asio::async_read_until(
         socket_, buffer_, '\n',

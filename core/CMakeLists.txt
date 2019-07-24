@@ -4,6 +4,7 @@
 #
 
 add_subdirectory(basic_authorship)
+add_subdirectory(clock)
 add_subdirectory(common)
 add_subdirectory(crypto)
 add_subdirectory(extensions)
