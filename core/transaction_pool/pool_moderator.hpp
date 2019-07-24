@@ -6,11 +6,8 @@
 #ifndef KAGOME_POOL_MODERATOR_HPP
 #define KAGOME_POOL_MODERATOR_HPP
 
-#include <chrono>
-
 #include "primitives/block_id.hpp"
 #include "primitives/transaction.hpp"
-#include "transaction_pool/clock.hpp"
 
 namespace kagome::transaction_pool {
 
@@ -22,7 +19,7 @@ namespace kagome::transaction_pool {
   class PoolModerator {
    public:
     virtual ~PoolModerator() = default;
-    
+
     /**
      * Bans a transaction for a fixed amount of time
      * @param tx_hash
@@ -50,7 +47,7 @@ namespace kagome::transaction_pool {
     /**
      * Return the number of currently banned transactions
      */
-     virtual size_t bannedNum() const = 0;
+    virtual size_t bannedNum() const = 0;
   };
 
 }  // namespace kagome::transaction_pool

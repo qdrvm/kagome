@@ -8,13 +8,13 @@
 
 #include <chrono>
 
-namespace kagome::transaction_pool {
+namespace kagome::clock {
 
   /**
    * An interface for a clock
    * @tparam clock type is an underlying clock type, such as std::steady_clock
    */
-   template <typename ClockType = std::chrono::steady_clock>
+  template <typename ClockType>
   class Clock {
    public:
     /**
@@ -34,6 +34,18 @@ namespace kagome::transaction_pool {
     virtual TimePoint now() const = 0;
   };
 
-}  // namespace kagome::transaction_pool
+  /**
+   * SteadyClock alias over Clock. Should be used when we need to measure
+   * interval between two moments in time
+   */
+  using SteadyClock = Clock<std::chrono::steady_clock>;
+
+  /**
+   * SystemClock alias over Clock. Should be used when we need to watch current
+   * time
+   */
+  using SystemClock = Clock<std::chrono::system_clock>;
+
+}  // namespace kagome::clock
 
 #endif  // KAGOME_CLOCK_HPP

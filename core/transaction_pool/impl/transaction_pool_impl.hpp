@@ -7,10 +7,10 @@
 #define KAGOME_TRANSACTION_POOL_IMPL_HPP
 
 #include <outcome/outcome.hpp>
+#include "blockchain/block_header_repository.hpp"
 #include "common/logger.hpp"
 #include "transaction_pool/pool_moderator.hpp"
 #include "transaction_pool/transaction_pool.hpp"
-#include "blockchain/block_header_repository.hpp"
 
 namespace kagome::transaction_pool {
 
@@ -55,6 +55,10 @@ namespace kagome::transaction_pool {
     std::vector<primitives::Transaction> pruneTag(
         const primitives::BlockId &at, const primitives::TransactionTag &tag,
         const std::vector<common::Hash256> &known_imported_hashes) override;
+
+    std::vector<primitives::Transaction> pruneTag(
+        const primitives::BlockId &at,
+        const primitives::TransactionTag &tag) override;
 
    private:
     /**

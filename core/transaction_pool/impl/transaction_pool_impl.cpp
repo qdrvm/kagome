@@ -93,7 +93,7 @@ namespace kagome::transaction_pool {
         Transaction tx = *it;
         ReadyTransaction rtx{tx, {}};
         updateUnlockingTransactions(rtx);
-        ready_queue_.insert({rtx.hash, rtx});
+        ready_queue_.emplace(rtx.hash, rtx);
         it = waiting_queue_.erase(it);
       } else {
         it++;
@@ -205,6 +205,12 @@ namespace kagome::transaction_pool {
                      std::move_iterator(stale.value().end()));
     }
     return removed;
+  }
+
+  std::vector<primitives::Transaction> TransactionPoolImpl::pruneTag(
+      const kagome::primitives::BlockId &at,
+      const kagome::primitives::TransactionTag &tag) {
+    return pruneTag(at, tag, {});
   }
 
 }  // namespace kagome::transaction_pool
