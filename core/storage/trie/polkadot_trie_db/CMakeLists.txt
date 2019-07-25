@@ -7,7 +7,6 @@ add_library(polkadot_trie_db_codec
     )
 target_link_libraries(polkadot_trie_db_codec
     buffer
-    outcome
     blake2
     blob
     scale
@@ -26,7 +25,7 @@ add_library(polkadot_trie
     )
 target_link_libraries(polkadot_trie
     buffer
-    outcome
+    polkadot_trie_batch
     )
 
 add_library(polkadot_trie_batch

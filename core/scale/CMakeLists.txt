@@ -19,5 +19,4 @@ add_library(scale
 target_link_libraries(scale
     Boost::boost
     buffer
-    outcome
     )
