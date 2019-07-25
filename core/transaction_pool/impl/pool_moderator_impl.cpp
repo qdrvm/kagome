@@ -9,9 +9,9 @@ using kagome::common::Buffer;
 
 namespace kagome::transaction_pool {
 
-  PoolModeratorImpl::PoolModeratorImpl(std::shared_ptr<SystemClock> clock,
-                                       Params parameters)
-      : clock_{std::move(clock)}, params_{std::move(parameters)} {}
+  PoolModeratorImpl::PoolModeratorImpl(
+      std::shared_ptr<clock::SystemClock> clock, Params parameters)
+      : clock_{std::move(clock)}, params_{parameters} {}
 
   void PoolModeratorImpl::ban(const common::Hash256 &tx_hash) {
     banned_until_.insert({tx_hash, clock_->now() + params_.ban_for});

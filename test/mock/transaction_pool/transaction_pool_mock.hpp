@@ -26,12 +26,16 @@ namespace kagome::transaction_pool {
     MOCK_METHOD1(submitOne, outcome::result<void>(Transaction));
     MOCK_METHOD1(submit, outcome::result<void>(std::vector<Transaction>));
     MOCK_METHOD0(getReadyTransactions, std::vector<Transaction>());
-    MOCK_METHOD1(removeStale, outcome::result<std::vector<Transaction>>(const BlockId &));
+    MOCK_METHOD1(removeStale,
+                 outcome::result<std::vector<Transaction>>(const BlockId &));
     MOCK_METHOD3(
         pruneTag,
         std::vector<Transaction>(const primitives::BlockId &,
                                  const primitives::TransactionTag &,
                                  const std::vector<common::Hash256> &));
+    MOCK_METHOD2(pruneTag,
+                 std::vector<Transaction>(const primitives::BlockId &,
+                                          const primitives::TransactionTag &));
     MOCK_CONST_METHOD0(getStatus, Status(void));
   };
 }  // namespace kagome::transaction_pool
