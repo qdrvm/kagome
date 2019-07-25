@@ -11,7 +11,7 @@
 namespace libp2p::crypto::validator {
 
   namespace {
-    int getRsaBitsCount(Key::Type key_type) {
+    constexpr int getRsaBitsCount(Key::Type key_type) {
       switch (key_type) {
         case Key::Type::RSA1024:
           return 1024;
@@ -20,9 +20,8 @@ namespace libp2p::crypto::validator {
         case Key::Type::RSA4096:
           return 4096;
         default:
-          break;
+          return 0;
       }
-      return 0;
     }
 
     // ed25519 private key has fixed size
@@ -92,7 +91,7 @@ namespace libp2p::crypto::validator {
     OUTCOME_TRY(validate(keys.publicKey));
 
     OUTCOME_TRY(public_key, key_generator_->derivePublicKey(keys.privateKey));
-    if (!(public_key == keys.publicKey)) {
+    if (public_key != keys.publicKey) {
       return KeyValidatorError::KEYS_DONT_MATCH;
     }
 

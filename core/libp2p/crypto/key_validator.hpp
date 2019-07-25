@@ -6,8 +6,6 @@
 #ifndef KAGOME_CORE_LIBP2P_CRYPTO_KEY_VALIDATOR_HPP
 #define KAGOME_CORE_LIBP2P_CRYPTO_KEY_VALIDATOR_HPP
 
-#include <memory>
-
 #include <outcome/outcome.hpp>
 #include "libp2p/crypto/key.hpp"
 

@@ -6,8 +6,9 @@
 #ifndef KAGOME_CORE_LIBP2P_CRYPTO_KEY_VALIDATOR_KEY_VALIDATOR_IMPL_HPP
 #define KAGOME_CORE_LIBP2P_CRYPTO_KEY_VALIDATOR_KEY_VALIDATOR_IMPL_HPP
 
-#include "libp2p/crypto/key_validator.hpp"
+#include <memory>
 
+#include "libp2p/crypto/key_validator.hpp"
 #include "libp2p/crypto/key_generator.hpp"
 
 namespace libp2p::crypto::validator {

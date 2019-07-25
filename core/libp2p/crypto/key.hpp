@@ -29,8 +29,12 @@ namespace libp2p::crypto {
     std::vector<uint8_t> data;      ///< key content
   };
 
-  inline bool operator==(const Key &a, const Key &b) {
-    return a.type == b.type && a.data == b.data;
+  inline bool operator==(const Key &lhs, const Key &rhs) {
+    return lhs.type == rhs.type && lhs.data == rhs.data;
+  }
+
+  inline bool operator !=(const Key &lhs, const Key &rhs) {
+    return !(lhs == rhs);
   }
 
   struct PublicKey : public Key {};

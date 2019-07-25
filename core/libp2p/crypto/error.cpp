@@ -7,7 +7,7 @@
 
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, CryptoProviderError, e) {
   using libp2p::crypto::CryptoProviderError;
-  switch (e) {  // NOLINT
+  switch (e) {
     case CryptoProviderError::INVALID_KEY_TYPE:
       return "failed to unmarshal key type, invalid value";
     case CryptoProviderError::UNKNOWN_KEY_TYPE:
@@ -20,7 +20,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, CryptoProviderError, e) {
 
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, OpenSslError, e) {
   using libp2p::crypto::OpenSslError;
-  switch (e) {  // NOLINT
+  switch (e) {
     case OpenSslError::FAILED_INITIALIZE_CONTEXT:
       return "failed to initialize context";
     case OpenSslError::FAILED_INITIALIZE_OPERATION:
@@ -41,7 +41,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, OpenSslError, e) {
 
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, HmacProviderError, e) {
   using libp2p::crypto::HmacProviderError;
-  switch (e) {  // NOLINT
+  switch (e) {
     case HmacProviderError::UNSUPPORTED_HASH_METHOD:
       return "hash method id provided is not supported";
     case HmacProviderError::FAILED_CREATE_CONTEXT:
@@ -60,7 +60,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, HmacProviderError, e) {
 
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, RandomProviderError, e) {
   using libp2p::crypto::RandomProviderError;
-  switch (e) {  // NOLINT
+  switch (e) {
     case RandomProviderError::FAILED_OPEN_FILE:
       return "failed to open file at specified path";
     case RandomProviderError::TOKEN_NOT_EXISTS:
@@ -75,7 +75,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, RandomProviderError, e) {
 
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, KeyGeneratorError, e) {
   using libp2p::crypto::KeyGeneratorError;
-  switch (e) {  // NOLINT
+  switch (e) {
     case KeyGeneratorError::CANNOT_GENERATE_UNSPECIFIED:
       return "you need to specify valid key type";
     case KeyGeneratorError::UNKNOWN_KEY_TYPE:
@@ -106,7 +106,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, KeyGeneratorError, e) {
 
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, KeyValidatorError, e) {
   using libp2p::crypto::KeyValidatorError;
-  switch (e) {  // NOLINT
+  switch (e) {
     case KeyValidatorError::WRONG_PUBLIC_KEY_SIZE:
       return "public key has wrong size";
     case KeyValidatorError::WRONG_PRIVATE_KEY_SIZE:
