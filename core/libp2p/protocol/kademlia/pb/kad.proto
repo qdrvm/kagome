@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+// https://github.com/libp2p/specs/pull/108
+
 package kad.pb;
 
 // Record represents a dht record that contains a value
