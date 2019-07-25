@@ -169,3 +169,36 @@ TEST_F(ProposerTest, CreateBlockFailsWhenDeadlinePassed) {
   ASSERT_TRUE(block_res);
   ASSERT_EQ(expected_block, block_res.value());
 }
+
+/**
+ * @given BlockBuilderApi creating inherent extrinsics @and TransactionPool
+ * returning extrinsics
+ * @when Proposer created from these BlockBuilderApi and TransactionPool is
+ * trying to create block @but push extrinsics to block builder failed
+ * @then Block is not created
+ */
+TEST_F(ProposerTest, PushFailed) {
+  // given
+  // we push 1 xt from inherent_xts and 1 Xt from transaction pool. Second push
+  // fails
+  EXPECT_CALL(*block_builder_, pushExtrinsic(_))
+      .WillOnce(Return(outcome::success()))  // for inherent xt
+      .WillOnce(Return(outcome::failure(
+          boost::system::error_code{})));  // for xt from tx pool
+
+  // getReadyTransaction will return vector with one transaction
+  EXPECT_CALL(*transaction_pool_, getReadyTransactions())
+      .WillOnce(Return(std::vector<Transaction>{{}}));
+
+  // when
+  // create block with some passed deadline
+  auto deadline = t2;
+  EXPECT_CALL(*clock_mock_, now())
+      .WillOnce(Return(t1));  // First tx was added before deadline
+
+  auto block_res = proposer_.propose(expected_block_id_, inherent_data_,
+                                     inherent_digest_, deadline);
+
+  // then
+  ASSERT_FALSE(block_res);
+}
