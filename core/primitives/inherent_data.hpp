@@ -57,6 +57,10 @@ namespace kagome::primitives {
     const std::map<InherentIdentifier, common::Buffer> &getDataCollection()
         const;
 
+    bool operator==(const InherentData& rhs) const;
+
+    bool operator!=(const InherentData& rhs) const;
+
    private:
     std::map<InherentIdentifier, common::Buffer> data_;
   };

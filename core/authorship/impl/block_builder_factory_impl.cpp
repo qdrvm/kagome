@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "basic_authorship/impl/block_builder_factory_impl.hpp"
+#include "authorship/impl/block_builder_factory_impl.hpp"
 
-#include "basic_authorship/impl/block_builder_impl.hpp"
+#include "authorship/impl/block_builder_impl.hpp"
 
-namespace kagome::basic_authorship {
+namespace kagome::authorship {
 
   BlockBuilderFactoryImpl::BlockBuilderFactoryImpl(
       std::shared_ptr<runtime::Core> r_core,
@@ -42,4 +42,4 @@ namespace kagome::basic_authorship {
                                               r_block_builder_);
   }
 
-}  // namespace kagome::basic_authorship
+}  // namespace kagome::authorship

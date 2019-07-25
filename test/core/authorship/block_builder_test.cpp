@@ -3,16 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "basic_authorship/impl/block_builder_impl.hpp"
+#include "authorship/impl/block_builder_impl.hpp"
 
 #include <gtest/gtest.h>
 #include "mock/core/runtime/block_builder_api_mock.hpp"
+#include "testutil/outcome.hpp"
 
 using ::testing::ElementsAre;
 using ::testing::IsEmpty;
 using ::testing::Return;
 
-using kagome::basic_authorship::BlockBuilderImpl;
+using kagome::authorship::BlockBuilderImpl;
 using kagome::primitives::Block;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockNumber;
@@ -44,17 +45,19 @@ class BlockBuilderTest : public ::testing::Test {
  * @given BlockBuilderApi that fails to apply extrinsic @and BlockBuilder that
  * uses that BlockBuilderApi
  * @when BlockBuilder tries to push extrinsic @and BlockBuilder bakes a block
- * @then push fails
+ * @then push fails @and created block is empty
  */
 TEST_F(BlockBuilderTest, PushWhenApplyFails) {
   // given
   Extrinsic xt{};
   EXPECT_CALL(*block_builder_api_, apply_extrinsic(xt))
       .WillOnce(Return(outcome::failure(boost::system::error_code{})));
+  EXPECT_CALL(*block_builder_api_, finalise_block())
+      .WillOnce(Return(expected_header_));
 
   // when
   auto res = block_builder_->pushExtrinsic(xt);
-  auto block = block_builder_->bake();
+  EXPECT_OUTCOME_TRUE(block, block_builder_->bake());
 
   // then
   ASSERT_FALSE(res);
@@ -71,12 +74,14 @@ TEST_F(BlockBuilderTest, PushWhenApplySucceedsWithTrue) {
   // given
   Extrinsic xt{};
   EXPECT_CALL(*block_builder_api_, apply_extrinsic(xt)).WillOnce(Return(true));
+  EXPECT_CALL(*block_builder_api_, finalise_block())
+      .WillOnce(Return(expected_header_));
 
   // when
   auto res = block_builder_->pushExtrinsic(xt);
   ASSERT_TRUE(res);
 
-  auto block = block_builder_->bake();
+  EXPECT_OUTCOME_TRUE(block, block_builder_->bake());
 
   // then
   ASSERT_EQ(block.header, expected_header_);
@@ -87,19 +92,21 @@ TEST_F(BlockBuilderTest, PushWhenApplySucceedsWithTrue) {
  * @given BlockBuilderApi that returns true to apply extrinsic @and
  * BlockBuilder that uses that BlockBuilderApi
  * @when BlockBuilder tries to push extrinsic @and BlockBuilder bakes a block
- * @then Extrinsic is added to the baked block
+ * @then Extrinsic is not added to the baked block
  */
 TEST_F(BlockBuilderTest, PushWhenApplySucceedsWithFalse) {
   // given
   Extrinsic xt{};
   EXPECT_CALL(*block_builder_api_, apply_extrinsic(xt)).WillOnce(Return(false));
+  EXPECT_CALL(*block_builder_api_, finalise_block())
+      .WillOnce(Return(expected_header_));
 
   // when
   auto res = block_builder_->pushExtrinsic(xt);
-  ASSERT_TRUE(res);
 
   // then
-  auto block = block_builder_->bake();
+  ASSERT_FALSE(res);
+  EXPECT_OUTCOME_TRUE(block, block_builder_->bake());
   ASSERT_EQ(block.header, expected_header_);
   ASSERT_THAT(block.extrinsics, IsEmpty());
 }

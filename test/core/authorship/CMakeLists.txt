@@ -18,3 +18,11 @@ addtest(block_builder_factory_test
 target_link_libraries(block_builder_factory_test
     block_builder_factory
     )
+
+addtest(proposer_test
+    proposer_test.cpp
+    )
+
+target_link_libraries(proposer_test
+    proposer
+    )
