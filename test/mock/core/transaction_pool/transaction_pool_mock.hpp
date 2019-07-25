@@ -28,6 +28,10 @@ namespace kagome::transaction_pool {
                      const primitives::BlockId &at,
                      const primitives::TransactionTag &,
                      const std::vector<common::Hash256> &));
+    MOCK_METHOD2(pruneTag,
+                 std::vector<primitives::Transaction>(
+                     const primitives::BlockId &at,
+                     const primitives::TransactionTag &));
 
     MOCK_CONST_METHOD0(getStatus, Status());
   };

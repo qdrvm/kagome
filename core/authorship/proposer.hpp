@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_AUTHORSHIP_PROPOSER_TEST_HPP
 #define KAGOME_CORE_AUTHORSHIP_PROPOSER_TEST_HPP
 
-#include "common/time.hpp"
+#include "clock/clock.hpp"
 #include "primitives/block.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/digest.hpp"
@@ -32,7 +32,8 @@ namespace kagome::authorship {
     virtual outcome::result<primitives::Block> propose(
         const primitives::BlockId &parent_block_id,
         const primitives::InherentData &inherent_data,
-        const primitives::Digest &inherent_digest, time::time_t deadline) = 0;
+        const primitives::Digest &inherent_digest,
+        clock::SystemClock::TimePoint deadline) = 0;
   };
 
 }  // namespace kagome::authorship

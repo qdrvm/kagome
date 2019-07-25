@@ -5,29 +5,30 @@
 
 #include "authorship/impl/proposer_impl.hpp"
 
-#include "common/time.hpp"
-
 namespace kagome::authorship {
 
   ProposerImpl::ProposerImpl(
       std::shared_ptr<BlockBuilderFactory> block_builder_factory,
       std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
       std::shared_ptr<runtime::BlockBuilderApi> r_block_builder,
-      common::Logger logger)
+      std::shared_ptr<clock::SystemClock> clock, common::Logger logger)
       : block_builder_factory_{std::move(block_builder_factory)},
         transaction_pool_{std::move(transaction_pool)},
         r_block_builder_{std::move(r_block_builder)},
+        clock_{std::move(clock)},
         logger_{std::move(logger)} {
     BOOST_ASSERT(block_builder_factory_);
     BOOST_ASSERT(transaction_pool_);
     BOOST_ASSERT(r_block_builder_);
+    BOOST_ASSERT(clock_);
     BOOST_ASSERT(logger_);
   }
 
   outcome::result<primitives::Block> ProposerImpl::propose(
       const primitives::BlockId &parent_block_id,
       const primitives::InherentData &inherent_data,
-      const primitives::Digest &inherent_digest, time::time_t deadline) {
+      const primitives::Digest &inherent_digest,
+      clock::SystemClock::TimePoint deadline) {
     OUTCOME_TRY(
         block_builder,
         block_builder_factory_->create(parent_block_id, inherent_digest));
@@ -51,7 +52,7 @@ namespace kagome::authorship {
 
     const auto &ready_txs = transaction_pool_->getReadyTransactions();
     for (const auto &tx : ready_txs) {
-      auto now = kagome::time::now();
+      auto now = clock_->now();
       if (now > deadline) {
         break;
       }

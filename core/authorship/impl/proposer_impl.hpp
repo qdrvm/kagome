@@ -23,18 +23,20 @@ namespace kagome::authorship {
         std::shared_ptr<BlockBuilderFactory> block_builder_factory,
         std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
         std::shared_ptr<runtime::BlockBuilderApi> r_block_builder,
+        std::shared_ptr<clock::SystemClock> clock,
         common::Logger logger = common::createLogger("Proposer"));
 
     outcome::result<primitives::Block> propose(
         const primitives::BlockId &parent_block_id,
         const primitives::InherentData &inherent_data,
         const primitives::Digest &inherent_digest,
-        time::time_t deadline) override;
+        clock::SystemClock::TimePoint deadline) override;
 
    private:
     std::shared_ptr<BlockBuilderFactory> block_builder_factory_;
     std::shared_ptr<transaction_pool::TransactionPool> transaction_pool_;
     std::shared_ptr<runtime::BlockBuilderApi> r_block_builder_;
+    std::shared_ptr<clock::SystemClock> clock_;
     common::Logger logger_;
   };
 
