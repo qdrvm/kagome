@@ -21,7 +21,9 @@ namespace kagome::blockchain {
    */
   class LevelDbBlockTree : public BlockTree {
     /**
-     * The tree itself
+     * In-memory light representation of the tree, used for efficiency and usage
+     * convenience - we would only ask the database for some info, when directly
+     * requested
      */
     struct TreeNode {
       primitives::BlockHash block_hash;
@@ -33,6 +35,10 @@ namespace kagome::blockchain {
 
       std::vector<TreeNode> children{};
 
+      /**
+       * Get a node of the tree, containing block with the specified hash, if it
+       * can be found
+       */
       outcome::result<std::reference_wrapper<TreeNode>> getByHash(
           const primitives::BlockHash &hash);
 
@@ -84,7 +90,7 @@ namespace kagome::blockchain {
     BlockHashVecRes getChainByBlock(
         const primitives::BlockHash &block) override;
 
-    BlockHashVecRes longestPath(const primitives::BlockHash &block) override;
+    BlockHashVecRes longestPath() override;
 
     const primitives::BlockHash &deepestLeaf() const override;
 
@@ -97,8 +103,15 @@ namespace kagome::blockchain {
     void prune() override;
 
    private:
+    /**
+     * Private ctor, so that instances are created only through the factory
+     * method
+     */
     LevelDbBlockTree(PersistentBufferMap &db, TreeNode tree, TreeMeta meta);
 
+    /**
+     * Calculate Blake2b hash of the provided block
+     */
     static outcome::result<common::Hash256> blockHash(
         const primitives::Block &block);
 

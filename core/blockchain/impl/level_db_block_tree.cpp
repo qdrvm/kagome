@@ -175,8 +175,7 @@ namespace kagome::blockchain {
     return result;
   }
 
-  LevelDbBlockTree::BlockHashVecRes LevelDbBlockTree::longestPath(
-      const primitives::BlockHash &block) {
+  LevelDbBlockTree::BlockHashVecRes LevelDbBlockTree::longestPath() {
     return getChainByBlock(deepestLeaf());
   }
 
