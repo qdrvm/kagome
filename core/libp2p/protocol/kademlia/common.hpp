@@ -26,10 +26,13 @@ namespace libp2p::protocol::kademlia {
   /// Set of peer Ids
   using PeerIdSet = std::unordered_set<peer::PeerId>;
 
+  /// Vector of peer Ids
   using PeerIdVec = std::vector<peer::PeerId>;
 
+  /// Vector of peer Infos
   using PeerInfoVec = std::vector<peer::PeerInfo>;
 
+  /// DHT Node Id
   struct NodeId : public Hash256 {
     using Hash256::Hash256;
 
@@ -43,6 +46,7 @@ namespace libp2p::protocol::kademlia {
     }
   };
 
+  /// Vector of Node Ids
   using NodeIdVec = std::vector<NodeId>;
 
   /// Content Id
