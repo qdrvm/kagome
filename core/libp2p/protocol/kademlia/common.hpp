@@ -38,7 +38,7 @@ namespace libp2p::protocol::kademlia {
 
     bool operator==(const peer::PeerId &other) {
       auto size = other.toVector().size();
-      if (other.toVector().size() != this->size()) {
+      if (other.toVector().size() != Hash256::size()) {
         return false;
       }
 
@@ -51,7 +51,7 @@ namespace libp2p::protocol::kademlia {
 
   /// Content Id
   struct Cid {
-    // TODO: tbd
+    // TODO(warchant): tbd
   };
 
   struct ReceivedValue {

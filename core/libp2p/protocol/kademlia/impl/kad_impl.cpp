@@ -60,7 +60,7 @@ namespace libp2p::protocol::kademlia {
           Query query{
               id.toVector(),  /// find this peer
               [this, id](
-                  Key key,
+                  const Key &key,
                   std::function<void(outcome::result<QueryResult>)> handle)
                   -> void {
                 mrw_->findPeerSingle(
