@@ -31,7 +31,7 @@ namespace kagome::blockchain {
       primitives::BlockHash block_hash;
       primitives::BlockNumber depth;
 
-      boost::optional<TreeNode &> parent;
+      boost::optional<TreeNode *> parent;
 
       bool finalized = false;
 
@@ -41,8 +41,7 @@ namespace kagome::blockchain {
        * Get a node of the tree, containing block with the specified hash, if it
        * can be found
        */
-      outcome::result<std::reference_wrapper<TreeNode>> getByHash(
-          const primitives::BlockHash &hash);
+      outcome::result<TreeNode *> getByHash(const primitives::BlockHash &hash);
 
       bool operator==(const TreeNode &other) const;
       bool operator!=(const TreeNode &other) const;
@@ -54,14 +53,15 @@ namespace kagome::blockchain {
      */
     struct TreeMeta {
       std::unordered_set<TreeNode *> leaves;
-      TreeNode &deepest_leaf;
+      TreeNode *deepest_leaf;
 
-      TreeNode &last_finalized;
+      TreeNode *last_finalized;
     };
 
    public:
     enum class Error {
       INVALID_DB = 1,
+      NO_PARENT,
       HASH_FAILED,
       NO_SUCH_BLOCK,
       INTERNAL_ERROR

@@ -17,8 +17,8 @@ namespace kagome::primitives {
    * @brief Block class represents polkadot block primitive
    */
   struct Block {
-    BlockHeader header;    ///< block header
-    BlockBody extrinsics;  ///< extrinsics collection
+    BlockHeader header;  ///< block header
+    BlockBody body;      ///< extrinsics collection
   };
 
   /**
@@ -31,7 +31,7 @@ namespace kagome::primitives {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Block &b) {
-    return s << b.header << b.extrinsics;
+    return s << b.header << b.body;
   }
 
   /**
@@ -44,7 +44,7 @@ namespace kagome::primitives {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, Block &b) {
-    return s >> b.header >> b.extrinsics;
+    return s >> b.header >> b.body;
   }
 }  // namespace kagome::primitives
 

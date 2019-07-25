@@ -19,6 +19,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, LevelDbBlockTree::Error, e) {
     case E::INVALID_DB:
       return "genesis block is not provided, and the database is either empty "
              "or does not contain valid block tree";
+    case E::NO_PARENT:
+      return "block, which was tried to be added, has no known parent";
     case E::HASH_FAILED:
       return "attempt to hash block part has failed";
     case E::NO_SUCH_BLOCK:
@@ -34,15 +36,15 @@ namespace kagome::blockchain {
   using Prefix = prefix::Prefix;
   using LevelDBError = kagome::storage::LevelDBError;
 
-  outcome::result<std::reference_wrapper<LevelDbBlockTree::TreeNode>>
+  outcome::result<LevelDbBlockTree::TreeNode *>
   LevelDbBlockTree::TreeNode::getByHash(const primitives::BlockHash &hash) {
     // standard BFS
     std::queue<TreeNode *> nodes_to_scan;
     nodes_to_scan.push(this);
     while (!nodes_to_scan.empty()) {
-      auto &node = nodes_to_scan.front();
+      auto *node = nodes_to_scan.front();
       if (node->block_hash == hash) {
-        return std::ref(*node);
+        return node;
       }
       for (auto &child : node->children) {
         nodes_to_scan.push(&child);
@@ -88,7 +90,7 @@ namespace kagome::blockchain {
     }
 
     TreeNode tree{hash_res.value(), header.number, boost::none, true};
-    TreeMeta meta{std::unordered_set<TreeNode *>{&tree}, tree, tree};
+    TreeMeta meta{std::unordered_set<TreeNode *>{&tree}, &tree, &tree};
 
     LevelDbBlockTree block_tree{db, std::move(tree), meta, std::move(hasher),
                                 std::move(log)};
@@ -119,7 +121,14 @@ namespace kagome::blockchain {
   outcome::result<void> LevelDbBlockTree::addBlock(primitives::Block block) {
     // first of all, check if we know parent of this block; if not, we cannot
     // insert it
-    OUTCOME_TRY(parent_wrapped, tree_.getByHash(block.header.parent_hash));
+    auto parent_res = tree_.getByHash(block.header.parent_hash);
+    if (!parent_res) {
+      if (parent_res.error() == Error::NO_SUCH_BLOCK) {
+        // want to be more specific in this case
+        return Error::NO_PARENT;
+      }
+      return parent_res.error();
+    }
 
     OUTCOME_TRY(encoded_block, scale::encode(block));
     auto block_hash = hasher_->blake2_256(encoded_block);
@@ -129,20 +138,21 @@ namespace kagome::blockchain {
     OUTCOME_TRY(putWithPrefix(db_, Prefix::HEADER, block.header.number,
                               block_hash, Buffer{encoded_header}));
 
-    OUTCOME_TRY(encoded_body, scale::encode(block.extrinsics));
+    OUTCOME_TRY(encoded_body, scale::encode(block.body));
     OUTCOME_TRY(putWithPrefix(db_, Prefix::BODY, block.header.number,
                               block_hash, Buffer{encoded_body}));
 
     // update local meta with the new block
-    auto &parent = parent_wrapped.get();
-    auto &new_node = *parent.children.insert(
-        parent.children.end(),
+    auto *parent = parent_res.value();
+
+    auto &new_node = *parent->children.insert(
+        parent->children.begin(),
         TreeNode{block_hash, block.header.number, parent});
 
     tree_meta_.leaves.insert(&new_node);
-    tree_meta_.leaves.erase(&parent);
-    if (new_node.depth > tree_meta_.deepest_leaf.depth) {
-      tree_meta_.deepest_leaf = new_node;
+    tree_meta_.leaves.erase(parent);
+    if (new_node.depth > tree_meta_.deepest_leaf->depth) {
+      tree_meta_.deepest_leaf = &new_node;
     }
 
     return outcome::success();
@@ -151,17 +161,16 @@ namespace kagome::blockchain {
   outcome::result<void> LevelDbBlockTree::finalize(
       const primitives::BlockHash &block,
       const primitives::Justification &justification) {
-    OUTCOME_TRY(node_wrapped, tree_.getByHash(block));
-    auto &node = node_wrapped.get();
+    OUTCOME_TRY(node, tree_.getByHash(block));
 
     // insert justification into the database
     OUTCOME_TRY(encoded_justification, scale::encode(justification));
-    OUTCOME_TRY(putWithPrefix(db_, Prefix::JUSTIFICATION, node.depth, block,
+    OUTCOME_TRY(putWithPrefix(db_, Prefix::JUSTIFICATION, node->depth, block,
                               Buffer{encoded_justification}));
 
     // update our local meta
     tree_meta_.last_finalized = node;
-    node.finalized = true;
+    node->finalized = true;
     prune();
 
     return outcome::success();
@@ -172,14 +181,15 @@ namespace kagome::blockchain {
     OUTCOME_TRY(node, tree_.getByHash(block));
 
     std::vector<primitives::BlockHash> result;
-    result.push_back(node.get().block_hash);
-    while (node.get() != tree_meta_.last_finalized) {
-      if (!node.get().parent) {
+    result.push_back(node->block_hash);
+    while (node != tree_meta_.last_finalized) {
+      if (!node->parent) {
         // should not be here: any node in our tree must be a descendant of the
         // last finalized block
         return Error::INTERNAL_ERROR;
       }
-      node = *node.get().parent;
+      node = *node->parent;
+      result.push_back(node->block_hash);
     }
 
     return result;
@@ -190,7 +200,7 @@ namespace kagome::blockchain {
   }
 
   const primitives::BlockHash &LevelDbBlockTree::deepestLeaf() const {
-    return tree_meta_.deepest_leaf.block_hash;
+    return tree_meta_.deepest_leaf->block_hash;
   }
 
   std::vector<primitives::BlockHash> LevelDbBlockTree::getLeaves() const {
@@ -204,12 +214,11 @@ namespace kagome::blockchain {
 
   LevelDbBlockTree::BlockHashVecRes LevelDbBlockTree::getChildren(
       const primitives::BlockHash &block) {
-    OUTCOME_TRY(node_wrapped, tree_.getByHash(block));
-    auto &node = node_wrapped.get();
+    OUTCOME_TRY(node, tree_.getByHash(block));
 
     std::vector<primitives::BlockHash> result;
-    result.reserve(node.children.size());
-    for (const auto &child : node.children) {
+    result.reserve(node->children.size());
+    for (const auto &child : node->children) {
       result.push_back(child.block_hash);
     }
 
@@ -217,18 +226,23 @@ namespace kagome::blockchain {
   }
 
   primitives::BlockHash LevelDbBlockTree::getLastFinalized() const {
-    return tree_meta_.last_finalized.block_hash;
+    return tree_meta_.last_finalized->block_hash;
   }
 
   void LevelDbBlockTree::prune() {
+    if (!tree_meta_.last_finalized->parent) {
+      // nothing to prune
+      return;
+    }
+
     // remove all non-finalized blocks from both database and meta
     std::vector<std::pair<primitives::BlockHash, primitives::BlockNumber>>
         to_remove;
 
-    auto last_node_hash = tree_meta_.last_finalized.block_hash;
-    auto current_node = std::ref(*tree_meta_.last_finalized.parent);
+    auto last_node_hash = tree_meta_.last_finalized->block_hash;
+    const auto *current_node = *tree_meta_.last_finalized->parent;
     do {
-      auto &node_children = current_node.get().children;
+      const auto &node_children = current_node->children;
 
       // memorize the hashes and numbers of block to be removed
       for (const auto &child : node_children) {
@@ -237,20 +251,21 @@ namespace kagome::blockchain {
         }
       }
 
-      // remove them from the meta
-      node_children.erase(
-          std::remove_if(node_children.begin(), node_children.end(),
-                         [&last_node_hash](const auto &node) {
-                           return node.block_hash != last_node_hash;
-                         }),
-          node_children.end());
-
       // go up to the next node
-      if (auto parent = current_node.get().parent) {
-        current_node = *parent;
+      last_node_hash = current_node->block_hash;
+      if (!current_node->parent) {
+        break;
       }
-      last_node_hash = current_node.get().block_hash;
-    } while (!current_node.get().finalized);
+      current_node = *current_node->parent;
+    } while (!current_node->finalized);
+
+    // leave only the last finalized block in memory, as we don't need anything
+    // else
+    tree_ = *tree_meta_.last_finalized;
+    tree_meta_.leaves.clear();
+    tree_meta_.leaves.insert(&tree_);
+    tree_meta_.deepest_leaf = &tree_;
+    tree_meta_.last_finalized = &tree_;
 
     // now, remove the blocks we remembered from the database
     for (const auto &[hash, number] : to_remove) {
