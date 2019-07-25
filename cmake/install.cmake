@@ -7,7 +7,7 @@ function(install_deps_headers)
 
 endfunction()
 
-function(enable_installable)
+function(kagome_install)
     set(options)
     set(oneValueArgs)
     set(multiValueArgs TARGETS HEADER_DIRS)

@@ -126,7 +126,7 @@ include(cmake/install.cmake)
 
 install_deps_headers()
 
-enable_installable(
+kagome_install(
     TARGETS scale buffer hexutil blob polkadot_trie_db
     polkadot_trie_db_codec polkadot_trie blake2 hasher
     twox sha polkadot_trie_batch leveldb logger
