@@ -10,7 +10,6 @@
 
 #include <openssl/err.h>
 #include <openssl/evp.h>
-#include <openssl/pem.h>
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
@@ -86,16 +85,6 @@ namespace libp2p::crypto {
         return KeyGeneratorError::KEY_DERIVATION_FAILED;
       }
       auto cleanup_rsa = gsl::finally([rsa]() { RSA_free(rsa); });
-
-      BIO *bio_public = BIO_new(BIO_s_mem());
-      if (nullptr == bio_public) {
-        return KeyGeneratorError::KEY_DERIVATION_FAILED;
-      }
-      auto cleanup_public =
-          gsl::finally([bio_public]() { BIO_free_all(bio_public); });
-      if (PEM_write_bio_RSAPublicKey(bio_public, rsa) != 1) {
-        return KeyGeneratorError::KEY_GENERATION_FAILED;
-      }
 
       OUTCOME_TRY(public_bytes, detail::encodeKeyDer(rsa, i2d_RSAPublicKey));
 

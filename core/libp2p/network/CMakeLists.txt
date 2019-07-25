@@ -22,5 +22,6 @@ target_link_libraries(libp2p_default_network
     multiselect
     random_generator
     key_generator
+    key_validator
     marshaller
     )

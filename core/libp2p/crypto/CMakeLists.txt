@@ -9,6 +9,7 @@ add_subdirectory(marshaller)
 add_subdirectory(proto)
 add_subdirectory(random_generator)
 add_subdirectory(key_generator)
+add_subdirectory(key_validator)
 
 add_library(crypto_error
     error.hpp
