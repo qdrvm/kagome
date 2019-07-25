@@ -6,11 +6,15 @@
 #ifndef KAGOME_JUSTIFICATION_HPP
 #define KAGOME_JUSTIFICATION_HPP
 
+#include "common/buffer.hpp"
+
 namespace kagome::primitives {
   /**
    * Justification of the finalized block
    */
-  struct Justification {};
+  struct Justification {
+    common::Buffer data;
+  };
 
   /**
    * @brief outputs object of type Justification to stream
@@ -22,7 +26,7 @@ namespace kagome::primitives {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Justification &v) {
-    return s;
+    return s << v.data;
   }
 
   /**
@@ -35,7 +39,7 @@ namespace kagome::primitives {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, Justification &v) {
-    return s;
+    return s >> v.data;
   }
 }  // namespace kagome::primitives
 

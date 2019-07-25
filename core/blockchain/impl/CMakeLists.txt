@@ -22,4 +22,6 @@ add_library(level_db_block_tree
     )
 target_link_libraries(level_db_block_tree
     blockchain_common
+    leveldb
+    hasher
     )

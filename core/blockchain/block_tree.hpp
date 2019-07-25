@@ -54,7 +54,7 @@ namespace kagome::blockchain {
      * @param justification of the finalization
      * @return nothing or error
      */
-    virtual outcome::result<void> finalizeBlock(
+    virtual outcome::result<void> finalize(
         const primitives::BlockHash &block,
         const primitives::Justification &justification) = 0;
 

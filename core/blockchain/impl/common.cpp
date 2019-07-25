@@ -11,8 +11,8 @@
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, Error, e) {
   switch (e) {
-    case kagome::blockchain::Error::NOT_FOUND:
-      return "A header with the provided id is not found";
+    case kagome::blockchain::Error::BLOCK_NOT_FOUND:
+      return "Block with such ID is not found";
   }
   return "Unknown error";
 }
@@ -34,7 +34,7 @@ namespace kagome::blockchain {
               prependPrefix(Buffer{hash}, prefix::Prefix::ID_TO_LOOKUP_KEY));
         });
     if (!key && key.error() == storage::LevelDBError::NOT_FOUND) {
-      return Error::NOT_FOUND;
+      return Error::BLOCK_NOT_FOUND;
     }
     return key;
   }

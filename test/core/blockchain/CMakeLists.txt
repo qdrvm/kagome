@@ -11,3 +11,10 @@ target_link_libraries(block_header_repository_test
     base_leveldb_test
     hasher
     )
+
+addtest(block_tree_test
+    block_tree_test.cpp
+    )
+target_link_libraries(block_tree_test
+    level_db_block_tree
+    )

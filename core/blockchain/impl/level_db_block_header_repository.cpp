@@ -48,7 +48,7 @@ namespace kagome::blockchain {
     auto header_res = getWithPrefix(db_, Prefix::HEADER, id);
     if (!header_res) {
       return (header_res.error() == kagome::storage::LevelDBError::NOT_FOUND)
-          ? Error::NOT_FOUND
+          ? Error::BLOCK_NOT_FOUND
           : header_res.error();
     }
     return scale::decode<primitives::BlockHeader>(header_res.value());

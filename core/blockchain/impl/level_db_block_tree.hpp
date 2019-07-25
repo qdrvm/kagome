@@ -14,6 +14,8 @@
 #include <boost/optional.hpp>
 #include "blockchain/block_tree.hpp"
 #include "blockchain/impl/common.hpp"
+#include "common/logger.hpp"
+#include "crypto/hasher.hpp"
 
 namespace kagome::blockchain {
   /**
@@ -70,11 +72,14 @@ namespace kagome::blockchain {
      * @param db for the tree to be put in
      * @param last_finalized_block - last finalized block, from which the tree
      * is going to grow
+     * @param hasher - pointer to the hasher
      * @return ptr to the created instance or error
      */
     static outcome::result<std::unique_ptr<LevelDbBlockTree>> create(
         PersistentBufferMap &db,
-        const primitives::BlockId &last_finalized_block);
+        const primitives::BlockId &last_finalized_block,
+        std::shared_ptr<hash::Hasher> hasher,
+        common::Logger log = common::createLogger("LevelDBBlockTree"));
 
     ~LevelDbBlockTree() override = default;
 
@@ -83,7 +88,7 @@ namespace kagome::blockchain {
 
     outcome::result<void> addBlock(primitives::Block block) override;
 
-    outcome::result<void> finalizeBlock(
+    outcome::result<void> finalize(
         const primitives::BlockHash &block,
         const primitives::Justification &justification) override;
 
@@ -107,18 +112,16 @@ namespace kagome::blockchain {
      * Private ctor, so that instances are created only through the factory
      * method
      */
-    LevelDbBlockTree(PersistentBufferMap &db, TreeNode tree, TreeMeta meta);
-
-    /**
-     * Calculate Blake2b hash of the provided block
-     */
-    static outcome::result<common::Hash256> blockHash(
-        const primitives::Block &block);
+    LevelDbBlockTree(PersistentBufferMap &db, TreeNode tree, TreeMeta meta,
+                     std::shared_ptr<hash::Hasher> hasher, common::Logger log);
 
     PersistentBufferMap &db_;
 
     TreeNode tree_;
     TreeMeta tree_meta_;
+
+    std::shared_ptr<hash::Hasher> hasher_;
+    common::Logger log_;
   };
 }  // namespace kagome::blockchain
 
