@@ -13,6 +13,7 @@
 #include "libp2p/peer/impl/identity_manager_impl.hpp"
 #include "libp2p/security/plaintext.hpp"
 #include "libp2p/transport/tcp.hpp"
+#include "mock/libp2p/crypto/key_validator_mock.hpp"
 #include "mock/libp2p/transport/upgrader_mock.hpp"
 #include "testutil/libp2p/peer.hpp"
 #include "testutil/literals.hpp"
@@ -27,6 +28,7 @@ using namespace multi;
 using namespace peer;
 using namespace crypto;
 using namespace marshaller;
+using namespace validator;
 
 using ::testing::_;
 using ::testing::Mock;
@@ -273,7 +275,13 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
 
   auto muxer = GetParam();
   auto idmgr = std::make_shared<IdentityManagerImpl>(serverKeyPair);
-  auto marshaller = std::make_shared<KeyMarshallerImpl>();
+  auto key_validator = std::make_shared<KeyValidatorMock>();
+  ON_CALL(*key_validator, validate(::testing::An<const PrivateKey &>()))
+      .WillByDefault(::testing::Return(outcome::success()));
+  ON_CALL(*key_validator, validate(::testing::An<const PublicKey &>()))
+      .WillByDefault(::testing::Return(outcome::success()));
+
+  auto marshaller = std::make_shared<KeyMarshallerImpl>(key_validator);
   auto plaintext = std::make_shared<Plaintext>(marshaller, idmgr);
   auto upgrader = std::make_shared<UpgraderSemiMock>(plaintext, muxer);
   auto transport = std::make_shared<TcpTransport>(context, upgrader);
@@ -292,7 +300,7 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
 
       auto muxer = GetParam();
       auto idmgr = std::make_shared<IdentityManagerImpl>(clientKeyPair);
-      auto marshaller = std::make_shared<KeyMarshallerImpl>();
+      auto marshaller = std::make_shared<KeyMarshallerImpl>(key_validator);
       auto plaintext = std::make_shared<Plaintext>(marshaller, idmgr);
       auto upgrader = std::make_shared<UpgraderSemiMock>(plaintext, muxer);
       auto transport = std::make_shared<TcpTransport>(context, upgrader);

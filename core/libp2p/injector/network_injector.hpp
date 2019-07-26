@@ -10,6 +10,7 @@
 
 // implementations
 #include "libp2p/crypto/key_generator/key_generator_impl.hpp"
+#include "libp2p/crypto/key_validator/key_validator_impl.hpp"
 #include "libp2p/crypto/marshaller/key_marshaller_impl.hpp"
 #include "libp2p/crypto/random_generator/boost_generator.hpp"
 #include "libp2p/muxer/yamux.hpp"
@@ -222,6 +223,7 @@ namespace libp2p::injector {
 
     auto csprng = std::make_shared<crypto::random::BoostRandomGenerator>();
     auto gen = std::make_shared<crypto::KeyGeneratorImpl>(*csprng);
+    auto validator = std::make_shared<crypto::validator::KeyValidatorImpl>(gen);
 
     // assume no error here. otherwise... just blow up executable
     auto keypair = gen->generateKeys(crypto::Key::Type::ED25519).value();
@@ -233,6 +235,7 @@ namespace libp2p::injector {
         di::bind<crypto::KeyGenerator>().template to(std::move(gen)),
         di::bind<crypto::marshaller::KeyMarshaller>().template to<crypto::marshaller::KeyMarshallerImpl>(),
         di::bind<peer::IdentityManager>().template to<peer::IdentityManagerImpl>(),
+        di::bind<crypto::validator::KeyValidator>().template to<crypto::validator::KeyValidatorImpl>(),
 
         // internal
         di::bind<network::Router>().template to<network::RouterImpl>(),

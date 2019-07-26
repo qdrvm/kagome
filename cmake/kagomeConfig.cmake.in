@@ -1,0 +1,32 @@
+get_filename_component(kagome_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+
+
+if(NOT TARGET kagome::buffer)
+    include("${kagome_CMAKE_DIR}/kagomeTargets.cmake")
+endif()
+
+find_package(Threads)
+
+
+include(GNUInstallDirs)
+
+set(kagome_INCLUDE_DIRS
+    ${CMAKE_INSTALL_FULL_INCLUDEDIR}/kagome
+)
+
+set(kagome_LIBRARIES
+        kagome::scale
+        kagome::buffer
+        kagome::hexutil
+        kagome::blob
+        kagome::polkadot_trie_db
+        kagome::polkadot_trie_db_codec
+        kagome::polkadot_trie
+        kagome::blake2
+        kagome::hasher
+        kagome::twox
+        kagome::sha
+        kagome::polkadot_trie_batch
+        kagome::leveldb
+        kagome::logger
+    )

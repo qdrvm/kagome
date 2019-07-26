@@ -83,5 +83,5 @@ TEST_F(BlockBuilderApiTest, InherentExtrinsics) {
  * were valid
  */
 TEST_F(BlockBuilderApiTest, FinalizeBlock) {
-  EXPECT_OUTCOME_FALSE_1(builder_->finalize_block());
+  EXPECT_OUTCOME_FALSE_1(builder_->finalise_block());
 }

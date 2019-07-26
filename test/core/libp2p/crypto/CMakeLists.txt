@@ -44,3 +44,10 @@ addtest(keygen_test
 target_link_libraries(keygen_test
     key_generator
     )
+
+addtest(key_validator_test
+    key_validator_test.cpp
+    )
+target_link_libraries(key_validator_test
+    key_validator
+    )
