@@ -60,8 +60,7 @@ namespace libp2p::protocol::kademlia {
               id.toVector(),  /// find this peer
               [this, id](
                   const Key &key,
-                  std::function<void(outcome::result<QueryResult>)> handle)
-                  -> void {
+                  std::function<void(outcome::result<QueryResult>)> handle) {
                 mrw_->findPeerSingle(
                     key,  /// ask this peer (serialized NodeId)
                     id,   /// where peer 'id' is
