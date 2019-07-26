@@ -20,7 +20,8 @@ namespace libp2p::protocol::kademlia {
     using PeerInfosResult = outcome::result<PeerInfos>;
     using PeerInfosResultFunc = std::function<void(PeerInfosResult)>;
 
-    virtual void findPeerSingle(const Key &p, const peer::PeerId &id,
+    virtual void findPeerSingle(const Key &p,
+                                const peer::PeerId &id,
                                 PeerInfosResultFunc f) = 0;
   };
 

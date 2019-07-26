@@ -41,8 +41,7 @@ namespace libp2p::protocol::kademlia {
     return table_->getNearestPeers(
         hash(id),       /// NodeId
         config_.ALPHA,  /// concurrency
-        [this, id,
-         f{std::move(f)}](outcome::result<PeerIdVec> rpeers) mutable -> void {
+        [this, id, f{std::move(f)}](outcome::result<PeerIdVec> rpeers) mutable {
           if (!rpeers) {
             // lookup failure
             return f(rpeers.error());
@@ -74,7 +73,7 @@ namespace libp2p::protocol::kademlia {
 
                       // see if we got the peer here
                       auto &&list = r.value();
-                      for (auto &p : list) {
+                      for (const auto &p : list) {
                         if (p.id == id) {
                           // yey!
                           return handle(
@@ -86,7 +85,8 @@ namespace libp2p::protocol::kademlia {
                     });
               }};
 
-          return runner_->run(std::move(query), std::move(peers),
+          return runner_->run(std::move(query),
+                              std::move(peers),
                               std::bind(f, std::placeholders::_1));
         });
   }
@@ -104,7 +104,8 @@ namespace libp2p::protocol::kademlia {
                    std::shared_ptr<peer::PeerRepository> repo,
                    std::shared_ptr<RoutingTable> table,
                    std::shared_ptr<MessageReadWriter> mrw,
-                   std::shared_ptr<QueryRunner> runner, KademliaConfig config)
+                   std::shared_ptr<QueryRunner> runner,
+                   KademliaConfig config)
       : network_(network),
         repo_(std::move(repo)),
         table_(std::move(table)),

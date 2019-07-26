@@ -21,7 +21,7 @@ namespace libp2p::protocol::kademlia {
   };
 
   using QueryResultFunc = std::function<void(outcome::result<QueryResult>)>;
-  using QueryFunc = std::function<void(const Key&, QueryResultFunc)>;
+  using QueryFunc = std::function<void(const Key &, QueryResultFunc)>;
 
   struct Query {
     Key key;

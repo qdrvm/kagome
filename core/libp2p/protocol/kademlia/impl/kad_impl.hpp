@@ -23,7 +23,8 @@ namespace libp2p::protocol::kademlia {
             std::shared_ptr<peer::PeerRepository> repo,
             std::shared_ptr<RoutingTable> table,
             std::shared_ptr<MessageReadWriter> mrw,
-            std::shared_ptr<QueryRunner> runner, KademliaConfig config = {});
+            std::shared_ptr<QueryRunner> runner,
+            KademliaConfig config = {});
 
     peer::PeerInfo findLocal(const peer::PeerId &id);
 

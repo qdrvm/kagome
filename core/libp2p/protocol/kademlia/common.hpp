@@ -37,12 +37,13 @@ namespace libp2p::protocol::kademlia {
     using Hash256::Hash256;
 
     bool operator==(const peer::PeerId &other) {
-      auto size = other.toVector().size();
-      if (other.toVector().size() != Hash256::size()) {
+      auto v = other.toVector();
+      auto size = v.size();
+      if (v.size() != Hash256::size()) {
         return false;
       }
 
-      return 0 == std::memcmp(this->data(), other.toVector().data(), size);
+      return 0 == std::memcmp(this->data(), v.data(), size);
     }
   };
 

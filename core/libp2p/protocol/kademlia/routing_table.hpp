@@ -27,7 +27,9 @@ namespace libp2p::protocol::kademlia {
     virtual PeerIdVec getAllPeers() const = 0;
 
     /// NearestPeers returns a list of the 'count' closest peers to the given ID
-    virtual void getNearestPeers(const NodeId &id, size_t count, PeerIdVecResultFunc f) = 0;
+    virtual void getNearestPeers(const NodeId &id,
+                                 size_t count,
+                                 PeerIdVecResultFunc f) = 0;
 
     /// Size returns the total number of peers in the routing table
     virtual size_t size() const = 0;
