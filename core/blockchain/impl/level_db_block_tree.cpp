@@ -135,9 +135,7 @@ namespace kagome::blockchain {
       const primitives::BlockId &block) const {
     auto body_res = getWithPrefix(db_, Prefix::BODY, block);
     if (!body_res) {
-      return (body_res.error() == LevelDBError::NOT_FOUND)
-          ? LevelDBError::NOT_FOUND
-          : body_res.error();
+      return body_res.error();
     }
     return scale::decode<primitives::BlockBody>(body_res.value());
   }
@@ -231,7 +229,7 @@ namespace kagome::blockchain {
     std::vector<primitives::BlockHash> result;
     result.reserve(tree_meta_->leaves.size());
     std::transform(tree_meta_->leaves.begin(), tree_meta_->leaves.end(),
-                   result.begin(),
+                   std::back_inserter(result),
                    [](const auto &node) { return node->block_hash_; });
     return result;
   }

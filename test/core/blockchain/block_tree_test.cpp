@@ -41,27 +41,19 @@ struct BlockTreeTest : public testing::Test {
    * Add a block with some data, which is a child of the top-most block
    * @return block, which was added, along with its hash
    */
-  std::pair<Block, BlockHash> addChildBlock() {
-    BlockHeader header{.parent_hash = kFinalizedBlockHash,
-                       .number = 1,
-                       .digest = Buffer{0x66, 0x44}};
-    BlockBody body{{Buffer{0x55, 0x55}}};
-    Block new_block{header, body};
-
+  BlockHash addBlock(const Block &block) {
     EXPECT_CALL(db_, put(_, _))
         .Times(4)
         .WillRepeatedly(Return(outcome::success()));
-    EXPECT_CALL(db_, put(_, Buffer{scale::encode(header).value()}))
+    EXPECT_CALL(db_, put(_, Buffer{scale::encode(block.header).value()}))
         .WillOnce(Return(outcome::success()));
-    EXPECT_CALL(db_, put(_, Buffer{scale::encode(body).value()}))
+    EXPECT_CALL(db_, put(_, Buffer{scale::encode(block.body).value()}))
         .WillOnce(Return(outcome::success()));
 
-    EXPECT_TRUE(block_tree_->addBlock(new_block));
+    EXPECT_TRUE(block_tree_->addBlock(block));
 
-    auto encoded_block = scale::encode(new_block).value();
-    auto hash = hasher_->blake2_256(encoded_block);
-
-    return {new_block, hash};
+    auto encoded_block = scale::encode(block).value();
+    return hasher_->blake2_256(encoded_block);
   }
 
   const Buffer kFinalizedBlockLookupKey{0x12, 0x85};
@@ -128,7 +120,12 @@ TEST_F(BlockTreeTest, AddBlock) {
   ASSERT_TRUE(children_res.value().empty());
 
   // WHEN
-  auto [block, hash] = addChildBlock();
+  BlockHeader header{.parent_hash = kFinalizedBlockHash,
+                     .number = 1,
+                     .digest = Buffer{0x66, 0x44}};
+  BlockBody body{{Buffer{0x55, 0x55}}};
+  Block new_block{header, body};
+  auto hash = addBlock(new_block);
 
   // THEN
   auto &&new_deepest_block_hash = block_tree_->deepestLeaf();
@@ -171,7 +168,12 @@ TEST_F(BlockTreeTest, Finalize) {
   auto &&last_finalized_hash = block_tree_->getLastFinalized();
   ASSERT_EQ(last_finalized_hash, kFinalizedBlockHash);
 
-  auto [block, hash] = addChildBlock();
+  BlockHeader header{.parent_hash = kFinalizedBlockHash,
+                     .number = 1,
+                     .digest = Buffer{0x66, 0x44}};
+  BlockBody body{{Buffer{0x55, 0x55}}};
+  Block new_block{header, body};
+  auto hash = addBlock(new_block);
 
   Justification justification{{0x45, 0xF4}};
   auto encoded_justification = scale::encode(justification).value();
@@ -186,8 +188,33 @@ TEST_F(BlockTreeTest, Finalize) {
 
   // THEN
   ASSERT_EQ(block_tree_->getLastFinalized(), hash);
-  ASSERT_FALSE(
-      block_tree_->getBlockBody(kFinalizedBlockHash));  // it was pruned
 }
 
-TEST_F(BlockTreeTest, GetChainByBlock) {}
+/**
+ * @given block tree with at least three blocks inside
+ * @when asking for chain from the lowest block
+ * @then chain from that block to the last finalized one is returned
+ */
+TEST_F(BlockTreeTest, GetChainByBlock) {
+  // GIVEN
+  BlockHeader header{.parent_hash = kFinalizedBlockHash,
+                     .number = 1,
+                     .digest = Buffer{0x66, 0x44}};
+  BlockBody body{{Buffer{0x55, 0x55}}};
+  Block new_block{header, body};
+  auto hash1 = addBlock(new_block);
+
+  header = BlockHeader{
+      .parent_hash = hash1, .number = 2, .digest = Buffer{0x66, 0x55}};
+  body = BlockBody{{Buffer{0x55, 0x55}}};
+  new_block = Block{header, body};
+  auto hash2 = addBlock(new_block);
+
+  std::vector<BlockHash> expected_chain{hash2, hash1, kFinalizedBlockHash};
+
+  // WHEN
+  EXPECT_OUTCOME_TRUE(chain, block_tree_->getChainByBlock(hash2))
+
+  // THEN
+  ASSERT_EQ(chain, expected_chain);
+}
