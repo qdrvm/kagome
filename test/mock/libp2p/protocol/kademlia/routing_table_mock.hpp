@@ -6,8 +6,9 @@
 #ifndef KAGOME_KAD_ROUTING_TABLE_MOCK_HPP
 #define KAGOME_KAD_ROUTING_TABLE_MOCK_HPP
 
-#include <gmock/gmock.h>
 #include "libp2p/protocol/kademlia/routing_table.hpp"
+
+#include <gmock/gmock.h>
 
 namespace libp2p::protocol::kademlia {
 

@@ -79,7 +79,12 @@ outcome::result<T> makeFailure() {
   return std::errc::invalid_argument;
 }
 
-TEST_F(KadTest, findPeerExists) {
+/**
+ * @given kad network, 1 connection to 'usid'
+ * @when FindPeer(usid)
+ * @then get Connected; expect to get correct PeerInfo
+ */
+TEST_F(KadTest, FindPeerExists) {
   EXPECT_CALL(*repo, getAddressRepository()).WillOnce(ReturnRef(addrrepo));
   EXPECT_CALL(addrrepo, getAddresses(usid)).WillOnce(Return(us.addresses));
   EXPECT_CALL(network, getConnectionManager()).WillOnce(ReturnRef(cmgr));
@@ -89,7 +94,12 @@ TEST_F(KadTest, findPeerExists) {
   executeTest(usid, us);
 }
 
-TEST_F(KadTest, findPeerNoAddresses) {
+/**
+ * @given kad network, 0 connections. peers 2,3,4 are in our routing table
+ * @when FindPeer(peer 1 id)
+ * @then find correct PeerInfo
+ */
+TEST_F(KadTest, FindPeerNoAddresses) {
   // we don't know address of peer 1, soo lets try to find it out
 
   EXPECT_CALL(*repo, getAddressRepository())
