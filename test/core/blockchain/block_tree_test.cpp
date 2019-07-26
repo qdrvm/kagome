@@ -97,10 +97,14 @@ struct BlockTreeTest : public testing::Test {
  * @then body is returned
  */
 TEST_F(BlockTreeTest, GetBody) {
+  // GIVEN
+
+  // WHEN
   EXPECT_CALL(db_, get(_))
       .WillOnce(Return(kFinalizedBlockLookupKey))
       .WillOnce(Return(Buffer{encoded_finalized_block_body_}));
 
+  // THEN
   EXPECT_OUTCOME_TRUE(body, block_tree_->getBlockBody(kLastFinalizedBlockId))
   ASSERT_EQ(body, finalized_block_body_);
 }
@@ -111,7 +115,32 @@ TEST_F(BlockTreeTest, GetBody) {
  * @then block is added
  */
 TEST_F(BlockTreeTest, AddBlock) {
+  // GIVEN
+  auto &&deepest_block_hash = block_tree_->deepestLeaf();
+  ASSERT_EQ(deepest_block_hash, kFinalizedBlockHash);
+
+  auto leaves = block_tree_->getLeaves();
+  ASSERT_EQ(leaves.size(), 1);
+  ASSERT_EQ(leaves[0], kFinalizedBlockHash);
+
+  auto children_res = block_tree_->getChildren(kFinalizedBlockHash);
+  ASSERT_TRUE(children_res);
+  ASSERT_TRUE(children_res.value().empty());
+
+  // WHEN
   auto [block, hash] = addChildBlock();
+
+  // THEN
+  auto &&new_deepest_block_hash = block_tree_->deepestLeaf();
+  ASSERT_EQ(new_deepest_block_hash, hash);
+
+  leaves = block_tree_->getLeaves();
+  ASSERT_EQ(leaves.size(), 1);
+  ASSERT_EQ(leaves[0], hash);
+
+  children_res = block_tree_->getChildren(hash);
+  ASSERT_TRUE(children_res);
+  ASSERT_TRUE(children_res.value().empty());
 }
 
 /**
@@ -120,15 +149,28 @@ TEST_F(BlockTreeTest, AddBlock) {
  * @then corresponding error is returned
  */
 TEST_F(BlockTreeTest, AddBlockNoParent) {
+  // GIVEN
   BlockHeader header{.digest = Buffer{0x66, 0x44}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
 
+  // WHEN
   EXPECT_OUTCOME_FALSE(err, block_tree_->addBlock(new_block));
+
+  // THEN
   ASSERT_EQ(err, LevelDbBlockTree::Error::NO_PARENT);
 }
 
+/**
+ * @given block tree with at least two blocks inside
+ * @when finalizing a non-finalized block
+ * @then finalization completes successfully
+ */
 TEST_F(BlockTreeTest, Finalize) {
+  // GIVEN
+  auto &&last_finalized_hash = block_tree_->getLastFinalized();
+  ASSERT_EQ(last_finalized_hash, kFinalizedBlockHash);
+
   auto [block, hash] = addChildBlock();
 
   Justification justification{{0x45, 0xF4}};
@@ -139,6 +181,13 @@ TEST_F(BlockTreeTest, Finalize) {
   EXPECT_CALL(db_, put(_, Buffer{encoded_justification}))
       .WillOnce(Return(outcome::success()));
 
+  // WHEN
   ASSERT_TRUE(block_tree_->finalize(hash, justification));
+
+  // THEN
   ASSERT_EQ(block_tree_->getLastFinalized(), hash);
+  ASSERT_FALSE(
+      block_tree_->getBlockBody(kFinalizedBlockHash));  // it was pruned
 }
+
+TEST_F(BlockTreeTest, GetChainByBlock) {}

@@ -27,21 +27,24 @@ namespace kagome::blockchain {
      * convenience - we would only ask the database for some info, when directly
      * requested
      */
-    struct TreeNode {
-      primitives::BlockHash block_hash;
-      primitives::BlockNumber depth;
+    struct TreeNode : public std::enable_shared_from_this<TreeNode> {
+      TreeNode(primitives::BlockHash hash, primitives::BlockNumber depth,
+               std::shared_ptr<TreeNode> parent, bool finalized = false);
 
-      boost::optional<TreeNode *> parent;
+      primitives::BlockHash block_hash_;
+      primitives::BlockNumber depth_;
 
-      bool finalized = false;
+      std::shared_ptr<TreeNode> parent_;
 
-      std::vector<TreeNode> children{};
+      bool finalized_;
+
+      std::vector<std::shared_ptr<TreeNode>> children_{};
 
       /**
        * Get a node of the tree, containing block with the specified hash, if it
        * can be found
        */
-      outcome::result<TreeNode *> getByHash(const primitives::BlockHash &hash);
+      std::shared_ptr<TreeNode> getByHash(const primitives::BlockHash &hash);
 
       bool operator==(const TreeNode &other) const;
       bool operator!=(const TreeNode &other) const;
@@ -52,10 +55,15 @@ namespace kagome::blockchain {
      * the operations faster
      */
     struct TreeMeta {
-      std::unordered_set<TreeNode *> leaves;
-      TreeNode *deepest_leaf;
+      // for make_shared :(
+      TreeMeta(std::unordered_set<std::shared_ptr<TreeNode>> leaves,
+               std::shared_ptr<TreeNode> deepest_leaf,
+               std::shared_ptr<TreeNode> last_finalized);
 
-      TreeNode *last_finalized;
+      std::unordered_set<std::shared_ptr<TreeNode>> leaves;
+      std::shared_ptr<TreeNode> deepest_leaf;
+
+      std::shared_ptr<TreeNode> last_finalized;
     };
 
    public:
@@ -112,13 +120,14 @@ namespace kagome::blockchain {
      * Private ctor, so that instances are created only through the factory
      * method
      */
-    LevelDbBlockTree(PersistentBufferMap &db, TreeNode tree, TreeMeta meta,
+    LevelDbBlockTree(PersistentBufferMap &db, std::shared_ptr<TreeNode> tree,
+                     std::shared_ptr<TreeMeta> meta,
                      std::shared_ptr<hash::Hasher> hasher, common::Logger log);
 
     PersistentBufferMap &db_;
 
-    TreeNode tree_;
-    TreeMeta tree_meta_;
+    std::shared_ptr<TreeNode> tree_;
+    std::shared_ptr<TreeMeta> tree_meta_;
 
     std::shared_ptr<hash::Hasher> hasher_;
     common::Logger log_;
