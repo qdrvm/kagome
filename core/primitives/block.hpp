@@ -17,7 +17,7 @@ namespace kagome::primitives {
    * @brief Block class represents polkadot block primitive
    */
   struct Block {
-    BlockHeader header;                 ///< block header
+    BlockHeader header;           ///< block header
     std::vector<Extrinsic> body;  ///< extrinsics collection
 
     inline bool operator==(const Block &rhs) const {
