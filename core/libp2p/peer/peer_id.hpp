@@ -36,6 +36,13 @@ namespace libp2p::peer {
     static PeerId fromPublicKey(const crypto::PublicKey &key);
 
     /**
+     * Create a PeerId from the byte array (serialized multihash).
+     * @param v buffer
+     * @return instance of PeerId
+     */
+    static FactoryResult fromBytes(gsl::span<const uint8_t> v);
+
+    /**
      * Create a PeerId from base58-encoded string (not Multibase58!) with its
      * SHA256-hashed ID
      * @param id, with which PeerId is to be created
@@ -55,6 +62,11 @@ namespace libp2p::peer {
      * @return base58-encoded SHA256 multihash of the peer's ID
      */
     std::string toBase58() const;
+
+    /**
+     * Creates a vector representation of PeerId.
+     */
+    std::vector<uint8_t> toVector() const;
 
     /**
      * Get a SHA256 multihash of the peer's ID
