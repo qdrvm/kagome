@@ -18,8 +18,9 @@ namespace kagome::blockchain {
    * Storage for blocks, which has a form of tree; it serves two functions:
    *    - keep tracking of all finalized blocks (they are kept in the
    *      non-volatile storage)
-   *    - work with blocks, which participate in the current round (handling
-   *      forks, pruning the blocks, resolving child-parent relations, etc)
+   *    - work with blocks, which participate in the current round of BABE block
+   *      production (handling forks, pruning the blocks, resolving child-parent
+   *      relations, etc)
    */
   struct BlockTree {
     using BlockHashVecRes = outcome::result<std::vector<primitives::BlockHash>>;
@@ -29,7 +30,8 @@ namespace kagome::blockchain {
     /**
      * Get a body (extrinsics) of the block
      * @param block - id of the block to get body for
-     * @return body, if the block exists in our storage, error otherwise
+     * @return body, if the block exists in our storage, error in case it does
+     * not exist in our storage, or actual error happens
      */
     virtual outcome::result<primitives::BlockBody> getBlockBody(
         const primitives::BlockId &block) const = 0;
@@ -99,7 +101,7 @@ namespace kagome::blockchain {
     virtual BlockHashVecRes getChildren(const primitives::BlockHash &block) = 0;
 
     /**
-     * Get a last finalized block
+     * Get the last finalized block
      * @return hash of the block
      */
     virtual primitives::BlockHash getLastFinalized() const = 0;

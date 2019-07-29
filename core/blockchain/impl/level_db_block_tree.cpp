@@ -73,15 +73,11 @@ namespace kagome::blockchain {
   }
 
   LevelDbBlockTree::TreeMeta::TreeMeta(
-      std::unordered_set<std::shared_ptr<TreeNode>> leaves,
-      std::shared_ptr<TreeNode> deepest_leaf,
-      std::shared_ptr<TreeNode> last_finalized)
+      std::unordered_set<primitives::BlockHash> leaves, TreeNode &deepest_leaf,
+      TreeNode &last_finalized)
       : leaves{std::move(leaves)},
-        deepest_leaf{std::move(deepest_leaf)},
-        last_finalized{std::move(last_finalized)} {
-    BOOST_ASSERT(this->deepest_leaf);
-    BOOST_ASSERT(this->last_finalized);
-  }
+        deepest_leaf{deepest_leaf},
+        last_finalized{last_finalized} {}
 
   outcome::result<std::unique_ptr<LevelDbBlockTree>> LevelDbBlockTree::create(
       PersistentBufferMap &db, const primitives::BlockId &last_finalized_block,
@@ -112,8 +108,8 @@ namespace kagome::blockchain {
 
     auto tree = std::make_shared<TreeNode>(hash_res.value(), header.number,
                                            nullptr, true);
-    auto meta = std::make_shared<TreeMeta>(decltype(TreeMeta::leaves){tree},
-                                           tree, tree);
+    auto meta = std::make_shared<TreeMeta>(
+        decltype(TreeMeta::leaves){tree->block_hash_}, *tree, *tree);
 
     LevelDbBlockTree block_tree{db, std::move(tree), std::move(meta),
                                 std::move(hasher), std::move(log)};
@@ -165,10 +161,10 @@ namespace kagome::blockchain {
         std::make_shared<TreeNode>(block_hash, block.header.number, parent);
     parent->children_.push_back(new_node);
 
-    tree_meta_->leaves.insert(new_node);
-    tree_meta_->leaves.erase(parent);
-    if (new_node->depth_ > tree_meta_->deepest_leaf->depth_) {
-      tree_meta_->deepest_leaf = new_node;
+    tree_meta_->leaves.insert(new_node->block_hash_);
+    tree_meta_->leaves.erase(parent->block_hash_);
+    if (new_node->depth_ > tree_meta_->deepest_leaf.get().depth_) {
+      tree_meta_->deepest_leaf = *new_node;
     }
 
     return outcome::success();
@@ -188,7 +184,7 @@ namespace kagome::blockchain {
                               Buffer{encoded_justification}));
 
     // update our local meta
-    tree_meta_->last_finalized = node;
+    tree_meta_->last_finalized = *node;
     node->finalized_ = true;
     prune();
 
@@ -204,7 +200,7 @@ namespace kagome::blockchain {
 
     std::vector<primitives::BlockHash> result;
     result.push_back(node->block_hash_);
-    while (node != tree_meta_->last_finalized) {
+    while (*node != tree_meta_->last_finalized) {
       if (!node->parent_) {
         // should not be here: any node in our tree must be a descendant of the
         // last finalized block
@@ -222,7 +218,7 @@ namespace kagome::blockchain {
   }
 
   const primitives::BlockHash &LevelDbBlockTree::deepestLeaf() const {
-    return tree_meta_->deepest_leaf->block_hash_;
+    return tree_meta_->deepest_leaf.get().block_hash_;
   }
 
   std::vector<primitives::BlockHash> LevelDbBlockTree::getLeaves() const {
@@ -230,7 +226,7 @@ namespace kagome::blockchain {
     result.reserve(tree_meta_->leaves.size());
     std::transform(tree_meta_->leaves.begin(), tree_meta_->leaves.end(),
                    std::back_inserter(result),
-                   [](const auto &node) { return node->block_hash_; });
+                   [](const auto &hash) { return hash; });
     return result;
   }
 
@@ -251,11 +247,11 @@ namespace kagome::blockchain {
   }
 
   primitives::BlockHash LevelDbBlockTree::getLastFinalized() const {
-    return tree_meta_->last_finalized->block_hash_;
+    return tree_meta_->last_finalized.get().block_hash_;
   }
 
   void LevelDbBlockTree::prune() {
-    if (!tree_meta_->last_finalized->parent_) {
+    if (!tree_meta_->last_finalized.get().parent_) {
       // nothing to prune
       return;
     }
@@ -264,8 +260,8 @@ namespace kagome::blockchain {
     std::vector<std::pair<primitives::BlockHash, primitives::BlockNumber>>
         to_remove;
 
-    auto last_node_hash = tree_meta_->last_finalized->block_hash_;
-    auto current_node = tree_meta_->last_finalized->parent_;
+    auto last_node_hash = tree_meta_->last_finalized.get().block_hash_;
+    auto current_node = tree_meta_->last_finalized.get().parent_;
     do {
       const auto &node_children = current_node->children_;
 
@@ -286,9 +282,10 @@ namespace kagome::blockchain {
 
     // leave only the last finalized block in memory, as we don't need anything
     // else
-    tree_ = tree_meta_->last_finalized;
-    tree_meta_ = std::make_shared<TreeMeta>(decltype(TreeMeta::leaves){tree_},
-                                            tree_, tree_);
+    tree_ = std::make_shared<TreeNode>(tree_meta_->last_finalized);
+    tree_->parent_.reset();
+    tree_meta_ = std::make_shared<TreeMeta>(
+        decltype(TreeMeta::leaves){tree_->block_hash_}, *tree_, *tree_);
 
     // now, remove the blocks we remembered from the database
     for (const auto &[hash, number] : to_remove) {

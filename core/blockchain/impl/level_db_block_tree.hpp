@@ -55,15 +55,13 @@ namespace kagome::blockchain {
      * the operations faster
      */
     struct TreeMeta {
-      // for make_shared :(
-      TreeMeta(std::unordered_set<std::shared_ptr<TreeNode>> leaves,
-               std::shared_ptr<TreeNode> deepest_leaf,
-               std::shared_ptr<TreeNode> last_finalized);
+      TreeMeta(std::unordered_set<primitives::BlockHash> leaves,
+               TreeNode &deepest_leaf, TreeNode &last_finalized);
 
-      std::unordered_set<std::shared_ptr<TreeNode>> leaves;
-      std::shared_ptr<TreeNode> deepest_leaf;
+      std::unordered_set<primitives::BlockHash> leaves;
+      std::reference_wrapper<TreeNode> deepest_leaf;
 
-      std::shared_ptr<TreeNode> last_finalized;
+      std::reference_wrapper<TreeNode> last_finalized;
     };
 
    public:
