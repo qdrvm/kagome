@@ -38,11 +38,11 @@ namespace kagome::blockchain {
 
   LevelDbBlockTree::TreeNode::TreeNode(primitives::BlockHash hash,
                                        primitives::BlockNumber depth,
-                                       std::shared_ptr<TreeNode> parent,
+                                       const std::shared_ptr<TreeNode> &parent,
                                        bool finalized)
       : block_hash_{hash},
         depth_{depth},
-        parent_{std::move(parent)},
+        parent_{parent},
         finalized_{finalized} {}
 
   std::shared_ptr<LevelDbBlockTree::TreeNode>
@@ -64,8 +64,13 @@ namespace kagome::blockchain {
   }
 
   bool LevelDbBlockTree::TreeNode::operator==(const TreeNode &other) const {
-    return block_hash_ == other.block_hash_ && depth_ == other.depth_
-        && parent_ == other.parent_;
+    const auto &other_parent = other.parent_;
+    auto parents_equal = (parent_.expired() && other_parent.expired())
+        || (!parent_.expired() && !other_parent.expired()
+            && parent_.lock() == other_parent.lock());
+
+    return parents_equal && block_hash_ == other.block_hash_
+        && depth_ == other.depth_;
   }
 
   bool LevelDbBlockTree::TreeNode::operator!=(const TreeNode &other) const {
@@ -201,12 +206,12 @@ namespace kagome::blockchain {
     std::vector<primitives::BlockHash> result;
     result.push_back(node->block_hash_);
     while (*node != tree_meta_->last_finalized) {
-      if (!node->parent_) {
+      if (node->parent_.expired()) {
         // should not be here: any node in our tree must be a descendant of the
         // last finalized block
         return Error::INTERNAL_ERROR;
       }
-      node = node->parent_;
+      node = node->parent_.lock();
       result.push_back(node->block_hash_);
     }
 
@@ -251,7 +256,7 @@ namespace kagome::blockchain {
   }
 
   void LevelDbBlockTree::prune() {
-    if (!tree_meta_->last_finalized.get().parent_) {
+    if (tree_meta_->last_finalized.get().parent_.expired()) {
       // nothing to prune
       return;
     }
@@ -261,7 +266,7 @@ namespace kagome::blockchain {
         to_remove;
 
     auto last_node_hash = tree_meta_->last_finalized.get().block_hash_;
-    auto current_node = tree_meta_->last_finalized.get().parent_;
+    auto current_node = tree_meta_->last_finalized.get().parent_.lock();
     do {
       const auto &node_children = current_node->children_;
 
@@ -274,10 +279,10 @@ namespace kagome::blockchain {
 
       // go up to the next node
       last_node_hash = current_node->block_hash_;
-      if (!current_node->parent_) {
+      if (current_node->parent_.expired()) {
         break;
       }
-      current_node = current_node->parent_;
+      current_node = current_node->parent_.lock();
     } while (!current_node->finalized_);
 
     // leave only the last finalized block in memory, as we don't need anything

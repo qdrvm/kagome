@@ -29,12 +29,12 @@ namespace kagome::blockchain {
      */
     struct TreeNode : public std::enable_shared_from_this<TreeNode> {
       TreeNode(primitives::BlockHash hash, primitives::BlockNumber depth,
-               std::shared_ptr<TreeNode> parent, bool finalized = false);
+               const std::shared_ptr<TreeNode> &parent, bool finalized = false);
 
       primitives::BlockHash block_hash_;
       primitives::BlockNumber depth_;
 
-      std::shared_ptr<TreeNode> parent_;
+      std::weak_ptr<TreeNode> parent_;
 
       bool finalized_;
 
