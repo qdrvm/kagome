@@ -12,6 +12,7 @@
 
 namespace kagome::primitives {
   using BlockNumber = uint64_t;
+  using BlockHash = common::Hash256;
 
   using AuthorityId = common::Blob<32>;
 }  // namespace kagome::primitives

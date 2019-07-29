@@ -15,7 +15,7 @@ namespace kagome::primitives {
    * @struct BlockHeader represents header of a block
    */
   struct BlockHeader {
-    common::Hash256 parent_hash;      ///< 32-byte Blake2s hash of parent header
+    BlockHash parent_hash;            ///< 32-byte Blake2s hash of parent header
     BlockNumber number = 0u;          ///< index of current block in the chain
     common::Hash256 state_root;       ///< root of the Merkle tree
     common::Hash256 extrinsics_root;  ///< field for validation integrity
@@ -23,8 +23,11 @@ namespace kagome::primitives {
 
     bool operator==(const BlockHeader &rhs) const {
       return std::tie(parent_hash, number, state_root, extrinsics_root, digest)
-          == std::tie(rhs.parent_hash, rhs.number, rhs.state_root,
-                      rhs.extrinsics_root, rhs.digest);
+             == std::tie(rhs.parent_hash,
+                         rhs.number,
+                         rhs.state_root,
+                         rhs.extrinsics_root,
+                         rhs.digest);
     }
 
     bool operator!=(const BlockHeader &rhs) const {
@@ -57,7 +60,7 @@ namespace kagome::primitives {
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, BlockHeader &bh) {
     return s >> bh.parent_hash >> bh.number >> bh.state_root
-        >> bh.extrinsics_root >> bh.digest;
+           >> bh.extrinsics_root >> bh.digest;
   }
 }  // namespace kagome::primitives
 
