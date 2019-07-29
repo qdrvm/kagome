@@ -219,7 +219,7 @@ TEST_F(Primitives, DecodeBlockSuccess) {
   ASSERT_EQ(h.extrinsics_root, block_header_.extrinsics_root);
   ASSERT_EQ(h.digest, block_header_.digest);
 
-  auto &&extrinsics = val.extrinsics;
+  auto &&extrinsics = val.body;
   ASSERT_EQ(extrinsics.size(), 1);
   ASSERT_EQ(extrinsics[0].data, extrinsic_.data);
 }

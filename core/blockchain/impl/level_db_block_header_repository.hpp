@@ -8,16 +8,15 @@
 
 #include "blockchain/block_header_repository.hpp"
 
+#include "blockchain/impl/common.hpp"
 #include "crypto/hasher.hpp"
-#include "storage/face/persistent_map.hpp"
 
 namespace kagome::blockchain {
 
   class LevelDbBlockHeaderRepository : public BlockHeaderRepository {
-    using Db = storage::face::PersistentMap<common::Buffer, common::Buffer>;
-
    public:
-    LevelDbBlockHeaderRepository(Db &db, std::shared_ptr<hash::Hasher> hasher);
+    LevelDbBlockHeaderRepository(PersistentBufferMap &db,
+                                 std::shared_ptr<hash::Hasher> hasher);
 
     ~LevelDbBlockHeaderRepository() override = default;
 
@@ -34,10 +33,7 @@ namespace kagome::blockchain {
         -> outcome::result<blockchain::BlockStatus> override;
 
    private:
-    outcome::result<common::Buffer> idToLookupKey(
-        const primitives::BlockId &id) const;
-
-    Db &db_;
+    PersistentBufferMap &db_;
     std::shared_ptr<hash::Hasher> hasher_;
   };
 
