@@ -34,7 +34,7 @@ namespace kagome::api {
         },
         [&](const primitives::Valid &v) -> outcome::result<common::Hash256> {
           // compose Transaction object
-          common::Hash256 hash = hasher_->blake2_256(extrinsic.data);
+          common::Hash256 hash = hasher_->blake2b_256(extrinsic.data);
           size_t length = extrinsic.data.size();
           // TODO(yuraz): PRE-220 find out what value to use for this parameter
           // in substrate tests it is always true (except the case of

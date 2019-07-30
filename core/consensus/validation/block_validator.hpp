@@ -6,8 +6,9 @@
 #ifndef KAGOME_BLOCK_VALIDATOR_HPP
 #define KAGOME_BLOCK_VALIDATOR_HPP
 
+#include <gsl/span>
 #include <outcome/outcome.hpp>
-#include "consensus/common.hpp"
+#include "consensus/babe/common.hpp"
 #include "libp2p/peer/peer_id.hpp"
 #include "primitives/block.hpp"
 
@@ -22,12 +23,12 @@ namespace kagome::consensus {
      * Validate the block
      * @param block to be validated
      * @param peer, which has produced the block
-     * @param slot_number - number of slot, in which the block was produced
      * @return nothing or validation error
      */
-    virtual outcome::result<void> validate(const primitives::Block &block,
-                                           const libp2p::peer::PeerId &peer,
-                                           BabeSlotNumber slot_number) = 0;
+    virtual outcome::result<void> validate(
+        const primitives::Block &block,
+        const libp2p::peer::PeerId &peer,
+        gsl::span<const Authority> authorities) = 0;
   };
 }  // namespace kagome::consensus
 

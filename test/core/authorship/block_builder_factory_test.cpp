@@ -30,7 +30,7 @@ class BlockBuilderFactoryTest : public ::testing::Test {
 
     expected_header_.parent_hash = expected_hash_;
     expected_header_.number = expected_number_;
-    expected_header_.digest = inherent_digest_;
+    expected_header_.digests = inherent_digest_;
 
    EXPECT_CALL(*header_backend_, getNumberByHash(expected_hash_))
         .WillOnce(Return(expected_number_));

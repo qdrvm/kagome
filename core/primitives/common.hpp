@@ -14,7 +14,9 @@ namespace kagome::primitives {
   using BlockNumber = uint64_t;
   using BlockHash = common::Hash256;
 
+  // TODO(akvinikym): must be a SR25519 key
   using AuthorityId = common::Blob<32>;
+  using AuthorityIndex = uint64_t;
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_CORE_PRIMITIVES_COMMON_HPP

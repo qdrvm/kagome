@@ -33,11 +33,18 @@ namespace kagome::hash {
     virtual Hash256 twox_256(gsl::span<const uint8_t> buffer) const = 0;
 
     /**
-     * @brief hashBlake2_256 function calculates 32-byte blake2 hash
+     * @brief hashBlake2b_256 function calculates 32-byte blake2b hash
      * @param buffer source value
      * @return 256-bit hash value
      */
-    virtual Hash256 blake2_256(gsl::span<const uint8_t> buffer) const = 0;
+    virtual Hash256 blake2b_256(gsl::span<const uint8_t> buffer) const = 0;
+
+    /**
+     * @brief hashBlake2s_256 function calculates 32-byte blake2s hash
+     * @param buffer source value
+     * @return 256-bit hash value
+     */
+    virtual Hash256 blake2s_256(gsl::span<const uint8_t> buffer) const = 0;
 
     /**
      * @brief hashSha2_256 function calculates 32-byte sha-2-256 hash

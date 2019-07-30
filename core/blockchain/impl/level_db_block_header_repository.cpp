@@ -40,7 +40,7 @@ namespace kagome::blockchain {
       const primitives::BlockNumber &number) const {
     OUTCOME_TRY(header, getBlockHeader(number));
     OUTCOME_TRY(enc_header, scale::encode(header));
-    return hasher_->blake2_256(enc_header);
+    return hasher_->blake2b_256(enc_header);
   }
 
   outcome::result<primitives::BlockHeader>

@@ -7,12 +7,16 @@
 #define KAGOME_BABE_BLOCK_VALIDATOR_HPP
 
 #include <memory>
+#include <tuple>
 #include <unordered_map>
 #include <unordered_set>
 
 #include "blockchain/block_tree.hpp"
 #include "common/logger.hpp"
+#include "consensus/babe/babe_block_header.hpp"
+#include "consensus/babe/seal.hpp"
 #include "consensus/validation/block_validator.hpp"
+#include "crypto/hasher.hpp"
 
 namespace kagome::consensus {
   /**
@@ -29,19 +33,50 @@ namespace kagome::consensus {
      * @param block_tree to be used by this instance
      * @param log to write info to
      */
-    explicit BabeBlockValidator(
+    BabeBlockValidator(
         std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<hash::Hasher> hasher,
         common::Logger log = common::createLogger("BabeBlockValidator"));
 
     ~BabeBlockValidator() override = default;
 
-    enum class ValidationError { TWO_BLOCKS_IN_SLOT = 1 };
+    enum class ValidationError {
+      NO_AUTHORITIES = 1,
+      INVALID_DIGESTS,
+      INVALID_SIGNATURE,
+      INVALID_VRF,
+      TWO_BLOCKS_IN_SLOT
+    };
 
-    outcome::result<void> validate(const primitives::Block &block,
-                                   const PeerId &peer,
-                                   BabeSlotNumber slot_number) override;
+    outcome::result<void> validate(
+        const primitives::Block &block,
+        const PeerId &peer,
+        gsl::span<const Authority> authorities) override;
 
    private:
+    /**
+     * Get Babe-specific digests, which must be in the block
+     * @return digests or error
+     */
+    outcome::result<std::pair<Seal, BabeBlockHeader>> getBabeDigests(
+        const primitives::Block &block) const;
+
+    /**
+     * Verify that \param babe_header contains valid SR25519 signature
+     * @return true, if signature is valid, false otherwise
+     */
+    bool verifySignature(const primitives::Block &block,
+                         const BabeBlockHeader &babe_header,
+                         const Seal &seal,
+                         const PeerId &peer,
+                         gsl::span<const Authority> authorities) const;
+
+    /**
+     * Verify that \param babe_header contains valid VRF output
+     * @return true, if output is correct, false otherwise
+     */
+    bool verifyVRF(const BabeBlockHeader &babe_header) const;
+
     /**
      * Check, if the peer has produced a block in this slot and memorize, if the
      * peer hasn't
@@ -50,11 +85,13 @@ namespace kagome::consensus {
      * @return true, if the peer has not produced any blocks in this slot, false
      * otherwise
      */
-    bool memorizeProducer(const PeerId &peer, BabeSlotNumber number);
+    bool verifyProducer(const PeerId &peer, BabeSlotNumber number);
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::unordered_map<BabeSlotNumber, std::unordered_set<PeerId>>
         blocks_producers_;
+
+    std::shared_ptr<hash::Hasher> hasher_;
 
     common::Logger log_;
   };

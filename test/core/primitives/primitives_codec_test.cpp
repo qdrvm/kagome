@@ -172,7 +172,7 @@ TEST_F(Primitives, DecodeBlockHeaderSuccess) {
   ASSERT_EQ(val.number, block_header_.number);
   ASSERT_EQ(val.state_root, block_header_.state_root);
   ASSERT_EQ(val.extrinsics_root, block_header_.extrinsics_root);
-  ASSERT_EQ(val.digest, block_header_.digest);
+  ASSERT_EQ(val.digests, block_header_.digests);
 }
 
 /**
@@ -217,7 +217,7 @@ TEST_F(Primitives, DecodeBlockSuccess) {
   ASSERT_EQ(h.number, block_header_.number);
   ASSERT_EQ(h.state_root, block_header_.state_root);
   ASSERT_EQ(h.extrinsics_root, block_header_.extrinsics_root);
-  ASSERT_EQ(h.digest, block_header_.digest);
+  ASSERT_EQ(h.digests, block_header_.digests);
 
   auto &&extrinsics = val.body;
   ASSERT_EQ(extrinsics.size(), 1);

@@ -8,6 +8,7 @@
 #include <gsl/span>
 
 #include "crypto/blake2/blake2b.h"
+#include "crypto/blake2/blake2s.h"
 #include "crypto/sha/sha256.hpp"
 #include "crypto/twox/twox.hpp"
 
@@ -27,10 +28,17 @@ namespace kagome::hash {
     return out;
   }
 
-  HasherImpl::Hash256 HasherImpl::blake2_256(
+  HasherImpl::Hash256 HasherImpl::blake2b_256(
       gsl::span<const uint8_t> buffer) const {
     Hash256 out;
     blake2b(out.data(), 32, nullptr, 0, buffer.data(), buffer.size());
+    return out;
+  }
+
+  HasherImpl::Hash256 HasherImpl::blake2s_256(
+      gsl::span<const uint8_t> buffer) const {
+    Hash256 out;
+    blake2s(out.data(), 32, nullptr, 0, buffer.data(), buffer.size());
     return out;
   }
 
