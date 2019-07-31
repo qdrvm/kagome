@@ -41,7 +41,7 @@ namespace libp2p::network {
     /**
      * @brief Returns true if listener started listening.
      */
-    virtual bool isStarted() const = 0;
+    [[nodiscard]] virtual bool isStarted() const = 0;
 
     /**
      * @brief Start all listeners on supplied multiaddresses

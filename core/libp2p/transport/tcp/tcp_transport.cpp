@@ -16,7 +16,7 @@ namespace libp2p::transport {
       return handler(std::errc::address_family_not_supported);
     }
 
-    auto conn = std::make_shared<TcpConnection>(context_);
+    auto conn = std::make_shared<TcpConnection>(*context_);
     auto rendpoint = detail::makeEndpoint(address);
     if (!rendpoint) {
       return handler(rendpoint.error());
@@ -47,7 +47,7 @@ namespace libp2p::transport {
 
   std::shared_ptr<TransportListener> TcpTransport::createListener(
       TransportListener::HandlerFunc handler) {
-    return std::make_shared<TcpListener>(context_, upgrader_,
+    return std::make_shared<TcpListener>(*context_, upgrader_,
                                          std::move(handler));
   }
 
@@ -55,7 +55,7 @@ namespace libp2p::transport {
     return detail::supportsIpTcp(ma);
   }
 
-  TcpTransport::TcpTransport(boost::asio::io_context &context,
+  TcpTransport::TcpTransport(std::shared_ptr<boost::asio::io_context> context,
                              std::shared_ptr<Upgrader> upgrader)
       : context_(context), upgrader_(std::move(upgrader)) {}
 

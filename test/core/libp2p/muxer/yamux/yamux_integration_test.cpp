@@ -73,7 +73,7 @@ class YamuxIntegrationTest : public testing::Test {
 
   void launchContext() {
     using std::chrono_literals::operator""ms;
-    context_.run_for(200ms);
+    context_->run_for(200ms);
   }
 
   /**
@@ -126,7 +126,8 @@ class YamuxIntegrationTest : public testing::Test {
     });
   }
 
-  boost::asio::io_context context_;
+  std::shared_ptr<boost::asio::io_context> context_ =
+      std::make_shared<boost::asio::io_context>();
 
   std::shared_ptr<libp2p::transport::TransportAdaptor> transport_;
   std::shared_ptr<libp2p::transport::TransportListener> transport_listener_;

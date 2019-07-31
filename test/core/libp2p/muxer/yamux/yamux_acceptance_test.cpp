@@ -77,7 +77,7 @@ struct ServerStream : std::enable_shared_from_this<ServerStream> {
 TEST(YamuxAcceptanceTest, PingPong) {
   auto ma = "/ip4/127.0.0.1/tcp/40009"_multiaddr;
   auto stream_read = false, stream_wrote = false;
-  boost::asio::io_context context(1);
+  auto context = std::make_shared<boost::asio::io_context>(1);
 
   auto upgrader = std::make_shared<UpgraderMock>();
   EXPECT_CALL(*upgrader, upgradeToSecureInbound(_, _))
@@ -141,7 +141,7 @@ TEST(YamuxAcceptanceTest, PingPong) {
   });
 
   // let the streams make their jobs
-  context.run_for(100ms);
+  context->run_for(100ms);
 
   EXPECT_TRUE(stream_read);
   EXPECT_TRUE(stream_wrote);

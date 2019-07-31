@@ -87,11 +87,11 @@ namespace libp2p::host {
   }
 
   void BasicHost::start() {
-    network_->getListener().stop();
+    network_->getListener().start();
   }
 
   void BasicHost::stop() {
-    network_->getListener().start();
+    network_->getListener().stop();
   }
 
   network::Network &BasicHost::getNetwork() {

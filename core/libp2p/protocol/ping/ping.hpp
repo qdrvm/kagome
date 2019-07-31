@@ -34,11 +34,11 @@ namespace libp2p::protocol {
      * Create an instance of Ping protocol handler
      * @param host to be in the instance
      * @param bus, over which event will be emitted
-     * @param io_service for async features
+     * @param io_context for async features
      * @param rand_gen - generator, which is used to generate Ping bytes
      * @param config, with which the instance is to be created
      */
-    Ping(Host &host, event::Bus &bus, boost::asio::io_service &io_service,
+    Ping(Host &host, event::Bus &bus, boost::asio::io_context &io_context,
          std::shared_ptr<crypto::random::RandomGenerator> rand_gen,
          PingConfig config = PingConfig{});
 
@@ -59,7 +59,7 @@ namespace libp2p::protocol {
    private:
     Host &host_;
     event::Bus &bus_;
-    boost::asio::io_service &io_service_;
+    boost::asio::io_context &io_context_;
     std::shared_ptr<crypto::random::RandomGenerator> rand_gen_;
     PingConfig config_;
   };

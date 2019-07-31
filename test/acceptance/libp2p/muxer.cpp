@@ -139,7 +139,8 @@ struct Server : public std::enable_shared_from_this<Server> {
 
 struct Client : public std::enable_shared_from_this<Client> {
   Client(std::shared_ptr<TcpTransport> transport, size_t seed,
-         boost::asio::io_context &context, size_t streams, size_t rounds)
+         std::shared_ptr<boost::asio::io_context> context, size_t streams,
+         size_t rounds)
       : context_(context),
         streams_(streams),
         rounds_(rounds),
@@ -160,7 +161,7 @@ struct Client : public std::enable_shared_from_this<Client> {
 
   void onConnection(const std::shared_ptr<CapableConnection> &conn) {
     for (size_t i = 0; i < streams_; i++) {
-      boost::asio::post(context_, [i, conn, this]() {
+      boost::asio::post(*context_, [i, conn, this]() {
         conn->newStream(
             [i, conn, this](outcome::result<std::shared_ptr<Stream>> rstream) {
               EXPECT_OUTCOME_TRUE(stream, rstream);
@@ -230,7 +231,7 @@ struct Client : public std::enable_shared_from_this<Client> {
     return buf;
   }
 
-  boost::asio::io_context &context_;
+  std::shared_ptr<boost::asio::io_context> context_;
 
   size_t streams_;
   size_t rounds_;
@@ -265,7 +266,8 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
   // number, which makes tests reproducible
   const int seed = 0;
 
-  boost::asio::io_context context(1);
+  std::shared_ptr<boost::asio::io_context> context =
+      std::make_shared<boost::asio::io_context>(1);
   std::default_random_engine randomEngine(seed);
 
   auto serverAddr = "/ip4/127.0.0.1/tcp/40312"_multiaddr;
@@ -293,7 +295,8 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
   for (int i = 0; i < totalClients; i++) {
     auto localSeed = randomEngine();
     clients.emplace_back([&, localSeed]() {
-      boost::asio::io_context context(1);
+      std::shared_ptr<boost::asio::io_context> context =
+          std::make_shared<boost::asio::io_context>(1);
 
       KeyPair clientKeyPair = {{{Key::Type ::ED25519, {3}}},
                                {{Key::Type ::ED25519, {4}}}};
@@ -310,14 +313,14 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
       auto p = PeerId::fromPublicKey(serverKeyPair.publicKey);
       client->connect(p, serverAddr);
 
-      context.run_for(2000ms);
+      context->run_for(2000ms);
 
       EXPECT_EQ(client->streamWrites, rounds * streams);
       EXPECT_EQ(client->streamReads, rounds * streams);
     });
   }
 
-  context.run_for(3000ms);
+  context->run_for(3000ms);
 
   for (auto &c : clients) {
     if (c.joinable()) {
