@@ -23,8 +23,8 @@ namespace kagome::consensus {
   /// threshold, which must not be exceeded for the party to be a slot leader
   using Threshold = crypto::VRFValue;
 
-  // TODO(akvinikym) should be a VRFValue?
-  using Randomness = boost::multiprecision::uint256_t;
+  /// random value, which serves as a seed for VRF slot leadership selection
+  using Randomness = crypto::VRFValue;
 }  // namespace kagome::consensus
 
 #endif  // KAGOME_COMMON_HPP

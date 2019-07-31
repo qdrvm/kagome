@@ -21,6 +21,7 @@ namespace kagome::consensus {
   struct BlockValidator {
     virtual ~BlockValidator() = default;
 
+    // TODO(akvinikym): last three parameters should be in BabeEpoch struct
     /**
      * Validate the block
      * @param block to be validated

@@ -211,8 +211,12 @@ namespace kagome::consensus {
           if (!validation_res) {
             log_->info("extrinsic validation failed: {}",
                        validation_res.error());
+            return false;
           }
-          return validation_res;
+          return visit_in_place(
+              validation_res.value(),
+              [](primitives::Valid) { return true; },
+              [](auto) { return false; });
         });
   }
 }  // namespace kagome::consensus
