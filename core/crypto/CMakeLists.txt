@@ -18,6 +18,7 @@ target_link_libraries(hasher
 
 add_library(crypto_types
     crypto_types.cpp
+    crypto_types.hpp
     )
 target_link_libraries(crypto_types
     blob
