@@ -8,10 +8,10 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "mock/core/blockchain/header_backend_mock.hpp"
+#include "mock/core/transaction_pool/pool_moderator_mock.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/std_list_adapter.hpp"
-#include "transaction_pool/impl/clock_impl.hpp"
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 
 using kagome::blockchain::HeaderRepositoryMock;
@@ -23,27 +23,27 @@ using kagome::face::GenericList;
 using kagome::primitives::Transaction;
 using kagome::primitives::TransactionLongevity;
 using kagome::primitives::TransactionTag;
-using kagome::transaction_pool::Clock;
 using kagome::transaction_pool::PoolModerator;
-using kagome::transaction_pool::PoolModeratorImpl;
-using kagome::transaction_pool::SystemClock;
-using kagome::transaction_pool::TransactionPool;
+using kagome::transaction_pool::PoolModeratorMock;
 using kagome::transaction_pool::TransactionPoolImpl;
+
 using test::StdListAdapter;
 using testing::Return;
+using testing::Return;
+
 using namespace std::chrono_literals;
 
 class TransactionPoolTest : public testing::Test {
  public:
-  void SetUp() {
-    auto moderator =
-        std::make_unique<PoolModeratorImpl>(std::make_shared<SystemClock>());
+  void SetUp() override {
+    auto moderator = std::make_unique<NiceMock<PoolModeratorMock>>();
     auto header_repo = std::make_unique<HeaderRepositoryMock>();
     pool_ = std::make_shared<TransactionPoolImpl>(std::move(moderator),
                                                   std::move(header_repo));
   }
 
-  std::shared_ptr<TransactionPool> pool_;
+ protected:
+  std::shared_ptr<TransactionPoolImpl> pool_;
 };
 
 Transaction makeTx(Hash256 hash, std::initializer_list<TransactionTag> provides,

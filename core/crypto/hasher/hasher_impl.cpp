@@ -11,7 +11,7 @@
 #include "crypto/sha/sha256.hpp"
 #include "crypto/twox/twox.hpp"
 
-namespace kagome::hash {
+namespace kagome::crypto {
 
   HasherImpl::Hash128 HasherImpl::twox_128(
       gsl::span<const uint8_t> buffer) const {

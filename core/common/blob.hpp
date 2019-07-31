@@ -9,6 +9,7 @@
 #include <array>
 
 #include <boost/format.hpp>
+#include <boost/functional/hash.hpp>
 #include "common/hexutil.hpp"
 
 namespace kagome::common {
@@ -146,6 +147,13 @@ namespace kagome::common {
     return s;
   }
 }  // namespace kagome::common
+
+template <size_t N>
+struct std::hash<kagome::common::Blob<N>> {
+  auto operator()(const kagome::common::Blob<N> &blob) const {
+    return boost::hash_range(blob.data(), blob.data() + N);  // NOLINT
+  }
+};
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::common, BlobError);
 

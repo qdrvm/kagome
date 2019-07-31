@@ -55,6 +55,15 @@ namespace libp2p::crypto {
     CANNOT_LOAD_UNSPECIFIED,          ///< cannot load unspecified key
     GET_KEY_BYTES_FAILED,             ///< failed to get key bytes from PKEY
   };
+
+  enum class KeyValidatorError {
+    WRONG_PUBLIC_KEY_SIZE = 1,  ///< public key has wrong size
+    WRONG_PRIVATE_KEY_SIZE,     ///< private key has wrong size
+    INVALID_PUBLIC_KEY,         ///< invalid public key
+    INVALID_PRIVATE_KEY,        ///< private key cannot be decoded
+    KEYS_DONT_MATCH,            ///< public key is not derived from private
+    DIFFERENT_KEY_TYPES,        ///< key types in pair don't match
+  };
 }  // namespace libp2p::crypto
 
 OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, CryptoProviderError)
@@ -62,5 +71,6 @@ OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, OpenSslError)
 OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, HmacProviderError)
 OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, RandomProviderError)
 OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, KeyGeneratorError)
+OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, KeyValidatorError)
 
 #endif  // KAGOME_CORE_LIBP2P_CRYPTO_ERROR_HPP

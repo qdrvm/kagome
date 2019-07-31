@@ -5,13 +5,7 @@
 
 #include "blockchain/block_header_repository.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, BlockHeaderRepository::Error, e) {
-  switch (e) {
-    case kagome::blockchain::BlockHeaderRepository::Error::NOT_FOUND:
-      return "A header with the provided id is not found";
-  }
-  return "Unknown error";
-}
+#include "common/visitor.hpp"
 
 namespace kagome::blockchain {
 
@@ -35,4 +29,4 @@ namespace kagome::blockchain {
         [](const common::Hash256 &hash) { return hash; });
   }
 
-}
+}  // namespace kagome::blockchain

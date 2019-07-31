@@ -7,25 +7,21 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "mock/core/clock/clock_mock.hpp"
 #include "primitives/transaction.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "transaction_pool/impl/clock_impl.hpp"
 
+using kagome::clock::SystemClock;
+using kagome::clock::SystemClockMock;
 using kagome::primitives::Transaction;
-using kagome::transaction_pool::Clock;
 using kagome::transaction_pool::PoolModerator;
 using kagome::transaction_pool::PoolModeratorImpl;
-using kagome::transaction_pool::SystemClock;
 using testing::Return;
+
 using namespace std::chrono_literals;
 
 class PoolModeratorTest : public testing::Test {};
-
-class MockClock : public Clock<std::chrono::system_clock> {
- public:
-  MOCK_CONST_METHOD0(now, MockClock::TimePoint(void));
-};
 
 /**
  * @given a pool moderator
@@ -34,9 +30,9 @@ class MockClock : public Clock<std::chrono::system_clock> {
  * transaction is no longer banned
  */
 TEST_F(PoolModeratorTest, BanDurationCorrect) {
-  auto clock = std::make_shared<MockClock>();
+  auto clock = std::make_shared<SystemClockMock>();
   auto duration = 42min;
-  MockClock::TimePoint submit_time{10min};
+  SystemClockMock::TimePoint submit_time{10min};
   PoolModeratorImpl moderator(clock, {duration});
   testing::Expectation exp1 =
       EXPECT_CALL(*clock, now()).WillOnce(Return(submit_time));
@@ -60,7 +56,11 @@ TEST_F(PoolModeratorTest, BanDurationCorrect) {
  * @then a transaction is banned if it's stale and vice versa
  */
 TEST_F(PoolModeratorTest, BanStaleCorrect) {
-  auto clock = std::make_shared<SystemClock>();
+  auto clock = std::make_shared<SystemClockMock>();
+
+  // timer invoked only in case when it is stale
+  EXPECT_CALL(*clock, now()).WillOnce(Return(SystemClock::TimePoint{}));
+
   PoolModeratorImpl moderator(clock, {30min});
   Transaction t;
   t.valid_till = 42;
@@ -78,10 +78,16 @@ TEST_F(PoolModeratorTest, BanStaleCorrect) {
  * @then the number of banned transactions drops to expected size 5
  */
 TEST_F(PoolModeratorTest, UnbanWhenFull) {
-  auto clock = std::make_shared<SystemClock>();
+  auto clock = std::make_shared<SystemClockMock>();
   PoolModeratorImpl moderator(clock, {1min, 5});
 
-  for (int i = 0; i < 11; i++) {
+  constexpr size_t number_of_bans = 11;
+
+  EXPECT_CALL(*clock, now())
+      .Times(number_of_bans)
+      .WillRepeatedly(Return(SystemClock::TimePoint{}));
+
+  for (size_t i = 0; i < number_of_bans; i++) {
     kagome::common::Hash256 hash;
     std::fill(hash.begin(), hash.end(), 0);
     hash[0] = i;

@@ -25,6 +25,8 @@ namespace libp2p::network {
 
     ListenerManager &getListener() override;
 
+    ConnectionManager &getConnectionManager() override;
+
    private:
     std::unique_ptr<ListenerManager> listener_;
     std::unique_ptr<Dialer> dialer_;

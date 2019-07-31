@@ -11,12 +11,22 @@
 #include "primitives/extrinsic.hpp"
 
 namespace kagome::primitives {
+  using BlockBody = std::vector<Extrinsic>;
+
   /**
    * @brief Block class represents polkadot block primitive
    */
   struct Block {
-    BlockHeader header;                 ///< block header
-    std::vector<Extrinsic> extrinsics;  ///< extrinsics collection
+    BlockHeader header;           ///< block header
+    std::vector<Extrinsic> body;  ///< extrinsics collection
+
+    inline bool operator==(const Block &rhs) const {
+      return header == rhs.header and body == rhs.body;
+    }
+
+    inline bool operator!=(const Block &rhs) const {
+      return !operator==(rhs);
+    }
   };
 
   /**
@@ -29,7 +39,7 @@ namespace kagome::primitives {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Block &b) {
-    return s << b.header << b.extrinsics;
+    return s << b.header << b.body;
   }
 
   /**
@@ -42,7 +52,7 @@ namespace kagome::primitives {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, Block &b) {
-    return s >> b.header >> b.extrinsics;
+    return s >> b.header >> b.body;
   }
 }  // namespace kagome::primitives
 

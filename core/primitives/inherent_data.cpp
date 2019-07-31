@@ -44,4 +44,14 @@ namespace kagome::primitives {
     return data_;
   }
 
+  bool InherentData::operator==(
+      const kagome::primitives::InherentData &rhs) const {
+    return data_ == rhs.data_;
+  }
+
+  bool InherentData::operator!=(
+      const kagome::primitives::InherentData &rhs) const {
+    return !operator==(rhs);
+  }
+
 }  // namespace kagome::primitives

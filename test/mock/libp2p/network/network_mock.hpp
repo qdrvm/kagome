@@ -17,6 +17,8 @@ namespace libp2p::network {
     MOCK_METHOD0(getDialer, Dialer &());
 
     MOCK_METHOD0(getListener, ListenerManager &());
+
+    MOCK_METHOD0(getConnectionManager, ConnectionManager &());
   };
 }  // namespace libp2p::network
 

@@ -37,7 +37,7 @@ class BlockHeaderRepository_Test : public test::BaseLevelDB_Test {
   void SetUp() override {
     open();
 
-    hasher_ = std::make_shared<kagome::hash::HasherImpl>();
+    hasher_ = std::make_shared<kagome::crypto::HasherImpl>();
     header_repo_ =
         std::make_shared<LevelDbBlockHeaderRepository>(*db_, hasher_);
   }
@@ -61,7 +61,7 @@ class BlockHeaderRepository_Test : public test::BaseLevelDB_Test {
     return h;
   }
 
-  std::shared_ptr<kagome::hash::Hasher> hasher_;
+  std::shared_ptr<kagome::crypto::Hasher> hasher_;
   std::shared_ptr<BlockHeaderRepository> header_repo_;
 };
 

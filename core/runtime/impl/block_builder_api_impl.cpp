@@ -26,7 +26,7 @@ namespace kagome::runtime {
     return execute<bool>("BlockBuilder_apply_extrinsic", extrinsic);
   }
 
-  outcome::result<BlockHeader> BlockBuilderApiImpl::finalize_block() {
+  outcome::result<BlockHeader> BlockBuilderApiImpl::finalise_block() {
     // TODO(Harrm) PRE-154 figure out what wasm function returns
     return execute<BlockHeader>("BlockBuilder_finalize_block");
   }
