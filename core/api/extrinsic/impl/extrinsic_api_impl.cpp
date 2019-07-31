@@ -12,7 +12,8 @@
 namespace kagome::api {
   ExtrinsicApiImpl::ExtrinsicApiImpl(
       sptr<runtime::TaggedTransactionQueue> api,
-      sptr<transaction_pool::TransactionPool> pool, sptr<hash::Hasher> hasher)
+      sptr<transaction_pool::TransactionPool> pool,
+      sptr<crypto::Hasher> hasher)
       : api_{std::move(api)},
         pool_{std::move(pool)},
         hasher_{std::move(hasher)} {}
