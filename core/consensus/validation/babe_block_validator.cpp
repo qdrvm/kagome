@@ -26,26 +26,35 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus,
       return "VRF value and output are invalid";
     case E::TWO_BLOCKS_IN_SLOT:
       return "peer tried to distribute several blocks in one slot";
+    case E::INVALID_TXS:
+      return "one or more transactions in the block are invalid";
   }
   return "unknown error";
 }
 
 namespace kagome::consensus {
+  using common::Buffer;
+
   BabeBlockValidator::BabeBlockValidator(
       std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue,
       std::shared_ptr<hash::Hasher> hasher,
       common::Logger log)
       : block_tree_{std::move(block_tree)},
+        tx_queue_{std::move(tx_queue)},
         hasher_{std::move(hasher)},
         log_{std::move(log)} {
     BOOST_ASSERT(block_tree_);
+    BOOST_ASSERT(tx_queue_);
     BOOST_ASSERT(log_);
   }
 
   outcome::result<void> BabeBlockValidator::validate(
       const primitives::Block &block,
       const PeerId &peer,
-      gsl::span<const Authority> authorities) {
+      gsl::span<const Authority> authorities,
+      const Randomness &randomness,
+      const Threshold &threshold) {
     if (authorities.empty()) {
       return ValidationError::NO_AUTHORITIES;
     }
@@ -68,11 +77,14 @@ namespace kagome::consensus {
     }
 
     // peer must not send two blocks in one slot
-    if (!memorizeProducer(peer, babe_header.slot_number)) {
+    if (!verifyProducer(peer, babe_header.slot_number)) {
       return ValidationError::TWO_BLOCKS_IN_SLOT;
     }
 
     // all transactions in the block must be valid
+    if (!verifyTransactions(block.body)) {
+      return ValidationError::INVALID_TXS;
+    }
 
     // there must exist a chain with the block in our storage, which is
     // specified as a parent of the block we are validating; BlockTree takes
@@ -84,6 +96,9 @@ namespace kagome::consensus {
   BabeBlockValidator::getBabeDigests(const primitives::Block &block) const {
     // valid BABE block has at least two digests: BabeHeader and a seal
     if (block.header.digests.size() < 2) {
+      log_->info(
+          "valid BABE block must have at least 2 digests, this one have {}",
+          block.header.digests.size());
       return ValidationError::INVALID_DIGESTS;
     }
     const auto &digests = block.header.digests;
@@ -91,6 +106,7 @@ namespace kagome::consensus {
     // last digest of the block must be a seal - signature
     auto seal_res = scale::decode<Seal>(digests.back());
     if (!seal_res) {
+      log_->info("last digest of the block is not a Seal");
       return ValidationError::INVALID_DIGESTS;
     }
 
@@ -101,6 +117,7 @@ namespace kagome::consensus {
       }
     }
 
+    log_->info("there is no BabeBlockHeader digest in the block");
     return ValidationError::INVALID_DIGESTS;
   }
 
@@ -117,8 +134,8 @@ namespace kagome::consensus {
 
     auto block_copy_encoded_res = scale::encode(block_copy.header);
     if (!block_copy_encoded_res) {
-      log_->error("could not encode block header: {}",
-                  block_copy_encoded_res.error());
+      log_->info("could not encode block header: {}",
+                 block_copy_encoded_res.error());
       return false;
     }
     auto block_hash = hasher_->blake2s_256(block_copy_encoded_res.value());
@@ -126,20 +143,41 @@ namespace kagome::consensus {
     // secondly, retrieve public key of the peer by its authority id
     if (static_cast<uint64_t>(authorities.size())
         < babe_header.authority_index) {
-      log_->error("don't know about authority with index {}",
-                  babe_header.authority_index);
+      log_->info("don't know about authority with index {}",
+                 babe_header.authority_index);
       return false;
     }
-    const auto &key = authorities[babe_header.authority_index];
+    const auto &key = authorities[babe_header.authority_index].id;
 
     // thirdly, use verify function to check the signature
     return sr25519_verify(seal.signature.data(),
                           block_hash.data(),
-                          block_hash.size(),
-                          key.id.data());
+                          decltype(block_hash)::size(),
+                          key.data());
   }
 
-  bool BabeBlockValidator::verifyVRF(const BabeBlockHeader &babe_header) const {
+  bool BabeBlockValidator::verifyVRF(const BabeBlockHeader &babe_header,
+                                     gsl::span<const Authority> authorities,
+                                     const Randomness &randomness,
+                                     const Threshold &threshold) const {
+    // verify VRF output
+    auto randomness_with_slot = Buffer{}
+                                    .putBytes(uint256_t_to_bytes(randomness))
+                                    .putBytes(uint128_t_to_bytes(threshold));
+    if (!vrf_provider_->verify(randomness_with_slot,
+                               babe_header.vrf_output,
+                               authorities[babe_header.authority_index].id)) {
+      log_->info("VRF proof in block is not valid");
+      return false;
+    }
+
+    // verify threshold
+    if (babe_header.vrf_output.value >= threshold) {
+      log_->info("VRF value is not less than the threshold");
+      return false;
+    }
+
+    return true;
   }
 
   bool BabeBlockValidator::verifyProducer(const PeerId &peer,
@@ -154,12 +192,27 @@ namespace kagome::consensus {
     auto &slot = slot_it->second;
     auto peer_in_slot = slot.find(peer);
     if (peer_in_slot != slot.end()) {
-      // this peer has already produced a block in this slot
+      log_->info("peer {} has already produced a block in the slot {}",
+                 peer.toBase58(),
+                 number);
       return false;
     }
 
     // OK
     slot.insert(peer);
     return true;
+  }
+
+  bool BabeBlockValidator::verifyTransactions(
+      const primitives::BlockBody block_body) const {
+    return std::all_of(
+        block_body.cbegin(), block_body.cend(), [this](const auto &ext) {
+          auto validation_res = tx_queue_->validate_transaction(ext);
+          if (!validation_res) {
+            log_->info("extrinsic validation failed: {}",
+                       validation_res.error());
+          }
+          return validation_res;
+        });
   }
 }  // namespace kagome::consensus

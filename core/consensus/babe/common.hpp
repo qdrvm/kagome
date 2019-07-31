@@ -8,6 +8,7 @@
 
 #include <cstdint>
 
+#include "crypto/vrf_types.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::consensus {
@@ -18,6 +19,12 @@ namespace kagome::consensus {
   };
 
   using BabeSlotNumber = uint64_t;
+
+  /// threshold, which must not be exceeded for the party to be a slot leader
+  using Threshold = crypto::VRFValue;
+
+  // TODO(akvinikym) should be a VRFValue?
+  using Randomness = boost::multiprecision::uint256_t;
 }  // namespace kagome::consensus
 
 #endif  // KAGOME_COMMON_HPP

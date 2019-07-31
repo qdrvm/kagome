@@ -18,8 +18,6 @@ namespace kagome::consensus {
   struct BabeBlockHeader {
     /// slot, in which the block was produced
     BabeSlotNumber slot_number;
-    /// proof that producer is a slot leader
-    crypto::VRFValue vrf_proof;
     /// output of VRF function
     crypto::VRFOutput vrf_output;
     /// authority index of the producer
@@ -37,8 +35,7 @@ namespace kagome::consensus {
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const BabeBlockHeader &bh) {
     // TODO(akvinikym): order of encoding/decoding may be incorrect
-    return s << bh.slot_number << bh.vrf_proof << bh.vrf_output
-             << bh.authority_index;
+    return s << bh.slot_number << bh.vrf_output << bh.authority_index;
   }
 
   /**
@@ -51,8 +48,8 @@ namespace kagome::consensus {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, BabeBlockHeader &bh) {
-    return s >> bh.slot_number >> bh.vrf_proof >> bh.vrf_output
-           >> bh.authority_index;
+    // TODO(akvinikym): order of encoding/decoding may be incorrect
+    return s >> bh.slot_number >> bh.vrf_output >> bh.authority_index;
   }
 }  // namespace kagome::consensus
 

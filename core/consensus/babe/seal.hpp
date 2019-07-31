@@ -31,7 +31,6 @@ namespace kagome::consensus {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Seal &seal) {
-    // TODO(akvinikym): order of encoding/decoding may be incorrect
     return s << seal.signature;
   }
 
