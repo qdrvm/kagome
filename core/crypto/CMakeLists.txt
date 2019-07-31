@@ -17,7 +17,6 @@ target_link_libraries(hasher
     )
 
 add_library(crypto_types
-    crypto_types.hpp
     crypto_types.cpp
     )
 target_link_libraries(crypto_types
