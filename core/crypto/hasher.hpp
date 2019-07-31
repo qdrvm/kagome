@@ -9,7 +9,7 @@
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 
-namespace kagome::hash {
+namespace kagome::crypto {
   class Hasher {
    protected:
     using Hash128 = common::Hash128;
@@ -46,6 +46,6 @@ namespace kagome::hash {
      */
     virtual Hash256 sha2_256(gsl::span<const uint8_t> buffer) const = 0;
   };
-}  // namespace kagome::hash
+}  // namespace kagome::crypto
 
 #endif  // KAGOME_CORE_HASHER_HASHER_HPP_

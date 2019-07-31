@@ -21,7 +21,7 @@ using kagome::primitives::BlockNumber;
 namespace kagome::blockchain {
 
   LevelDbBlockHeaderRepository::LevelDbBlockHeaderRepository(
-      PersistentBufferMap &db, std::shared_ptr<hash::Hasher> hasher)
+      PersistentBufferMap &db, std::shared_ptr<crypto::Hasher> hasher)
       : db_{db}, hasher_{std::move(hasher)} {
     BOOST_ASSERT(hasher_);
   }

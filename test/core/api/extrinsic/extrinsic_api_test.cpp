@@ -20,7 +20,7 @@
 #include "transaction_pool/transaction_pool_error.hpp"
 
 using namespace kagome::api;
-using namespace kagome::hash;
+using namespace kagome::crypto;
 using namespace kagome::transaction_pool;
 using namespace kagome::runtime;
 

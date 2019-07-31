@@ -8,6 +8,7 @@
     shallow = true
 [submodule "deps/sr25519-crust"]
 	path = deps/sr25519-crust
+	branch = 0.2.0
 	url = https://github.com/Warchant/sr25519-crust.git
     shallow = true
 [submodule "deps/hat-trie"]
