@@ -25,12 +25,21 @@ target_link_libraries(crypto_types
     sr25519
     )
 
+add_library(crypto_util
+    util.cpp
+    util.hpp
+    )
+target_link_libraries(crypto_util
+    Boost::boost
+    )
+
 add_library(vrf_provider
     vrf_provider.hpp
     vrf/vrf_provider_impl.cpp
     vrf/vrf_provider_impl.hpp
     )
 target_link_libraries(vrf_provider
+    crypto_util
     crypto_types
     buffer
     blob

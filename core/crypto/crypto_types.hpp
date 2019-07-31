@@ -6,10 +6,12 @@
 #ifndef KAGOME_CORE_CRYPTO_VRF_TYPES
 #define KAGOME_CORE_CRYPTO_VRF_TYPES
 
+extern "C" {
+#include <sr25519/sr25519.h>
+}
 #include <boost/multiprecision/cpp_int.hpp>
 #include <gsl/span>
 #include "common/blob.hpp"
-#include <sr25519/sr25519.h>
 
 namespace kagome::crypto {
 
@@ -34,6 +36,8 @@ namespace kagome::crypto {
 
     explicit SR25519Keypair(gsl::span<uint8_t, SR25519_KEYPAIR_SIZE> kp);
   };
+
+  using SR25519Signature = std::array<uint8_t, SR25519_SIGNATURE_SIZE>;
 
 }  // namespace kagome::crypto
 
