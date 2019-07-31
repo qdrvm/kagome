@@ -94,51 +94,45 @@ TEST_F(HostIntegrationTest, PreliminaryTest) {
   libp2p::protocol::Echo echo{};
 
   auto [ctx1, host1] = makeHost();
+  host1->setProtocolHandler(echo.getProtocolId(), [&](auto &&result) {
+    std::cout << "connection accepted" << std::endl;
+    helper.callback3();
+    //      echo.handle(result);
+  });
+  auto pi = host1->getPeerInfo();
+  pi.addresses.push_back(addr1);
+
   auto timeout = 100000ms;
-  std::thread c1([&echo, this, ctx = ctx1, host = host1, timeout, &helper]() {
-    host->setProtocolHandler(echo.getProtocolId(), [&](auto &&result) {
-      std::cout << "connection accepted" << std::endl;
-      helper.callback3();
-      //      echo.handle(result);
-    });
 
-    //    EXPECT_OUTCOME_TRUE_1(host->listen(addr1))
-    auto res = host->listen(addr1);
-    if (!res) {
-      std::cout << "failed: " << res.error().message() << std::endl;
-    }
-
+  std::thread c1([this, ctx = ctx1, host = host1, timeout, &helper]() mutable {
+    EXPECT_OUTCOME_TRUE_1(host->listen(addr1))
     host->start();
     helper.callback4();
     ctx->run();
     ctx->run_for(timeout);
   });
 
-  auto [ctx2, host2] = makeHost();
-  std::thread c2(
-      [&echo, ctx = ctx2, host = host2, timeout, &pinfo1, &helper]() {
-        std::this_thread::sleep_for(2000ms);
-        host->newStream(
-            pinfo1, echo.getProtocolId(),
-            [&](outcome::result<sptr<Stream>> stream_result) {
-              std::cout << "server1 on new stream" << std::endl;
+  std::thread c2([this, timeout, pinfo1, &helper, pi]() mutable {
+    std::this_thread::sleep_for(2000ms);
+    libp2p::protocol::Echo echo{};
+    auto [ctx, host] = makeHost();
 
-              EXPECT_OUTCOME_TRUE(stream, stream_result)
-              helper.callback1();
-              auto client = echo.createClient(stream);
-              using cb = std::function<void(outcome::result<std::string>)>;
-              std::shared_ptr<cb> lambda_ptr;
-              lambda_ptr = std::make_shared<cb>(
-                  [client, lambda_ptr](outcome::result<std::string> res) {
-                    EXPECT_OUTCOME_TRUE(str, res)
-                    std::cout << "received: " << str << std::endl;
-                    std::string msg = "we are here";
+    host->newStream(pi, echo.getProtocolId(),
+                    [&](outcome::result<sptr<Stream>> stream_result) {
+                      std::cout << "server1 on new stream" << std::endl;
 
-                    client->sendAnd(msg, *lambda_ptr);
-                  });
-            });
-        ctx->run_for(timeout);
-      });
+                      EXPECT_OUTCOME_TRUE(stream, stream_result)
+                      helper.callback1();
+                      auto client = echo.createClient(stream);
+                      client->sendAnd(
+                          "helloooooo", [](outcome::result<std::string> res) {
+                            std::cout << "here we are" << std::endl;
+                            EXPECT_OUTCOME_TRUE(str, res)
+                            std::cout << "received: " << str << std::endl;
+                          });
+                    });
+    ctx->run_for(timeout);
+  });
 
   c1.join();
   c2.join();
