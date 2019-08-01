@@ -31,7 +31,7 @@ namespace libp2p::host {
   }
 
   peer::PeerInfo BasicHost::getPeerInfo() const {
-    return {getId(), getObservedAddresses()};
+    return {getId(), getAddresses()};
   }
 
   std::vector<multi::Multiaddress> BasicHost::getAddresses() const {

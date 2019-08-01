@@ -58,7 +58,7 @@ namespace libp2p::connection {
   void YamuxedConnection::newStream(StreamHandlerFunc cb) {
     BOOST_ASSERT_MSG(started_, "newStream is called but yamux is stopped");
 
-    if (streams_.size() == config_.maximum_streams) {
+    if (streams_.size() >= config_.maximum_streams) {
       return cb(Error::TOO_MANY_STREAMS);
     }
 
