@@ -13,6 +13,7 @@
 #include "mock/crypto/hasher.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/outcome.hpp"
 
 using namespace kagome;
 using namespace blockchain;
@@ -113,6 +114,7 @@ TEST_F(BlockValidatorTest, Success) {
 
   EXPECT_CALL(*hasher_, blake2s_256(_))
       .WillOnce(Return(encoded_block_copy_hash));
+
   babe_epoch_.authorities.emplace_back();
   babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
 
@@ -132,4 +134,266 @@ TEST_F(BlockValidatorTest, Success) {
       .WillOnce(Return(outcome::success()));
 
   ASSERT_TRUE(validator_.validate(valid_block_, peer_id_, babe_epoch_));
+}
+
+TEST_F(BlockValidatorTest, LessDigestsThanNeeded) {
+  babe_epoch_.authorities.emplace_back();
+
+  // for this test we can just not seal the block - it's the second digest
+  EXPECT_OUTCOME_FALSE(
+      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_DIGESTS);
+}
+
+TEST_F(BlockValidatorTest, NoBabeHeader) {
+  auto block_copy = valid_block_;
+  block_copy.header.digests.pop_back();
+  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  Hash256 encoded_block_copy_hash{};  // not a real hash, but don't want to
+                                      // actually take it
+  std::copy(encoded_block_copy.begin(),
+            encoded_block_copy.begin() + Hash256::size(),
+            encoded_block_copy_hash.begin());
+
+  // take BabeHeader out before sealing the block
+  valid_block_.header.digests.pop_back();
+
+  auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
+
+  babe_epoch_.authorities.emplace_back();
+  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+
+  EXPECT_OUTCOME_FALSE(
+      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_DIGESTS);
+}
+
+TEST_F(BlockValidatorTest, NoAuthority) {
+  // GIVEN
+  auto block_copy = valid_block_;
+  block_copy.header.digests.pop_back();
+  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  Hash256 encoded_block_copy_hash{};
+  std::copy(encoded_block_copy.begin(),
+            encoded_block_copy.begin() + Hash256::size(),
+            encoded_block_copy_hash.begin());
+
+  auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
+
+  EXPECT_CALL(*hasher_, blake2s_256(_))
+      .WillOnce(Return(encoded_block_copy_hash));
+
+  // WHEN
+  // only one authority even though we want at least two
+  babe_epoch_.authorities.emplace_back();
+
+  // THEN
+  EXPECT_OUTCOME_FALSE(
+      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_SIGNATURE);
+}
+
+TEST_F(BlockValidatorTest, SignatureVerificationFail) {
+  // GIVEN
+  auto block_copy = valid_block_;
+  block_copy.header.digests.pop_back();
+  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  Hash256 encoded_block_copy_hash{};
+  std::copy(encoded_block_copy.begin(),
+            encoded_block_copy.begin() + Hash256::size(),
+            encoded_block_copy_hash.begin());
+
+  auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
+
+  EXPECT_CALL(*hasher_, blake2s_256(_))
+      .WillOnce(Return(encoded_block_copy_hash));
+
+  babe_epoch_.authorities.emplace_back();
+  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+
+  // WHEN
+  // mutate seal of the block to make signature invalid
+  valid_block_.header.digests[1][10]++;
+
+  // THEN
+  EXPECT_OUTCOME_FALSE(
+      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_SIGNATURE);
+}
+
+TEST_F(BlockValidatorTest, VRFFail) {
+  // GIVEN
+  auto block_copy = valid_block_;
+  block_copy.header.digests.pop_back();
+  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  Hash256 encoded_block_copy_hash{};
+  std::copy(encoded_block_copy.begin(),
+            encoded_block_copy.begin() + Hash256::size(),
+            encoded_block_copy_hash.begin());
+
+  auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
+
+  EXPECT_CALL(*hasher_, blake2s_256(_))
+      .WillOnce(Return(encoded_block_copy_hash));
+
+  babe_epoch_.authorities.emplace_back();
+  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+
+  // WHEN
+  auto randomness_with_slot =
+      Buffer{}
+          .put(util::uint256_t_to_bytes(babe_epoch_.randomness))
+          .put(util::uint256_t_to_bytes(babe_epoch_.threshold));
+  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
+      .WillOnce(Return(false));
+
+  // THEN
+  EXPECT_OUTCOME_FALSE(
+      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_VRF);
+}
+
+TEST_F(BlockValidatorTest, ThresholdGreater) {
+  // GIVEN
+  auto block_copy = valid_block_;
+  block_copy.header.digests.pop_back();
+  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  Hash256 encoded_block_copy_hash{};
+  std::copy(encoded_block_copy.begin(),
+            encoded_block_copy.begin() + Hash256::size(),
+            encoded_block_copy_hash.begin());
+
+  auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
+
+  EXPECT_CALL(*hasher_, blake2s_256(_))
+      .WillOnce(Return(encoded_block_copy_hash));
+
+  babe_epoch_.authorities.emplace_back();
+  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+
+  // WHEN
+  babe_epoch_.threshold = 0;
+
+  auto randomness_with_slot =
+      Buffer{}
+          .put(util::uint256_t_to_bytes(babe_epoch_.randomness))
+          .put(util::uint256_t_to_bytes(babe_epoch_.threshold));
+  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
+      .WillOnce(Return(true));
+
+  // THEN
+  EXPECT_OUTCOME_FALSE(
+      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_VRF);
+}
+
+TEST_F(BlockValidatorTest, TwoBlocksByOnePeer) {
+  // GIVEN
+  auto block_copy = valid_block_;
+  block_copy.header.digests.pop_back();
+  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  Hash256 encoded_block_copy_hash{};
+  std::copy(encoded_block_copy.begin(),
+            encoded_block_copy.begin() + Hash256::size(),
+            encoded_block_copy_hash.begin());
+
+  auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
+
+  EXPECT_CALL(*hasher_, blake2s_256(_))
+      .Times(2)
+      .WillRepeatedly(Return(encoded_block_copy_hash));
+
+  babe_epoch_.authorities.emplace_back();
+  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+
+  auto randomness_with_slot =
+      Buffer{}
+          .put(util::uint256_t_to_bytes(babe_epoch_.randomness))
+          .put(util::uint256_t_to_bytes(babe_epoch_.threshold));
+  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
+      .Times(2)
+      .WillRepeatedly(Return(true));
+
+  EXPECT_CALL(*tx_queue_, validate_transaction(ext_)).WillOnce(Return(Valid{}));
+
+  EXPECT_CALL(*tree_, addBlock(valid_block_))
+      .WillOnce(Return(outcome::success()));
+
+  // WHEN
+  ASSERT_TRUE(validator_.validate(valid_block_, peer_id_, babe_epoch_));
+
+  // THEN
+  EXPECT_OUTCOME_FALSE(
+      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  ASSERT_EQ(err, BabeBlockValidator::ValidationError::TWO_BLOCKS_IN_SLOT);
+}
+
+TEST_F(BlockValidatorTest, InvalidExtrinsic) {
+  // GIVEN
+  auto block_copy = valid_block_;
+  block_copy.header.digests.pop_back();
+  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  Hash256 encoded_block_copy_hash{};
+  std::copy(encoded_block_copy.begin(),
+            encoded_block_copy.begin() + Hash256::size(),
+            encoded_block_copy_hash.begin());
+
+  auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
+
+  EXPECT_CALL(*hasher_, blake2s_256(_))
+      .WillOnce(Return(encoded_block_copy_hash));
+
+  babe_epoch_.authorities.emplace_back();
+  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+
+  auto randomness_with_slot =
+      Buffer{}
+          .put(util::uint256_t_to_bytes(babe_epoch_.randomness))
+          .put(util::uint256_t_to_bytes(babe_epoch_.threshold));
+  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
+      .WillOnce(Return(true));
+
+  // WHEN
+  EXPECT_CALL(*tx_queue_, validate_transaction(ext_))
+      .WillOnce(Return(Invalid{}));
+
+  // THEN
+  EXPECT_OUTCOME_FALSE(
+      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_TXS);
+}
+
+TEST_F(BlockValidatorTest, BlockTreeFails) {
+  // GIVEN
+  auto block_copy = valid_block_;
+  block_copy.header.digests.pop_back();
+  auto encoded_block_copy = scale::encode(block_copy.header).value();
+  Hash256 encoded_block_copy_hash{};
+  std::copy(encoded_block_copy.begin(),
+            encoded_block_copy.begin() + Hash256::size(),
+            encoded_block_copy_hash.begin());
+
+  auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
+
+  EXPECT_CALL(*hasher_, blake2s_256(_))
+      .WillOnce(Return(encoded_block_copy_hash));
+
+  babe_epoch_.authorities.emplace_back();
+  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+
+  auto randomness_with_slot =
+      Buffer{}
+          .put(util::uint256_t_to_bytes(babe_epoch_.randomness))
+          .put(util::uint256_t_to_bytes(babe_epoch_.threshold));
+  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
+      .WillOnce(Return(true));
+
+  EXPECT_CALL(*tx_queue_, validate_transaction(ext_)).WillOnce(Return(Valid{}));
+
+  // WHEN
+  EXPECT_CALL(*tree_, addBlock(valid_block_))
+      .WillOnce(Return(outcome::failure(boost::system::error_code{})));
+
+  // THEN
+  ASSERT_FALSE(validator_.validate(valid_block_, peer_id_, babe_epoch_));
 }

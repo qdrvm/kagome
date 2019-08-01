@@ -143,7 +143,7 @@ namespace kagome::consensus {
 
     // secondly, retrieve public key of the peer by its authority id
     if (static_cast<uint64_t>(authorities.size())
-        < babe_header.authority_index) {
+        <= babe_header.authority_index) {
       log_->info("don't know about authority with index {}",
                  babe_header.authority_index);
       return false;
