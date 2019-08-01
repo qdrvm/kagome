@@ -8,7 +8,7 @@
 
 #include "crypto/hasher.hpp"
 
-namespace kagome::hash {
+namespace kagome::crypto {
 
   class HasherImpl : public Hasher {
    public:

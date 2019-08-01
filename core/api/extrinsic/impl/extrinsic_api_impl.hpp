@@ -40,7 +40,7 @@ namespace kagome::api {
      */
     ExtrinsicApiImpl(std::shared_ptr<runtime::TaggedTransactionQueue> api,
                      std::shared_ptr<transaction_pool::TransactionPool> pool,
-                     std::shared_ptr<hash::Hasher> hasher);
+                     std::shared_ptr<crypto::Hasher> hasher);
 
     ~ExtrinsicApiImpl() override = default;
 
@@ -55,10 +55,9 @@ namespace kagome::api {
         const std::vector<primitives::ExtrinsicKey> &keys) override;
 
    private:
-    sptr<runtime::TaggedTransactionQueue> api_;  ///< pointer to ttq api
-    sptr<transaction_pool::TransactionPool>
-        pool_;                   ///< pointer to transaction pool apo
-    sptr<hash::Hasher> hasher_;  ///< pointer to hasher
+    sptr<runtime::TaggedTransactionQueue> api_;
+    sptr<transaction_pool::TransactionPool> pool_;
+    sptr<crypto::Hasher> hasher_;
   };
 }  // namespace kagome::api
 

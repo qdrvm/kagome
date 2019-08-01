@@ -16,7 +16,7 @@ namespace kagome::blockchain {
   class LevelDbBlockHeaderRepository : public BlockHeaderRepository {
    public:
     LevelDbBlockHeaderRepository(PersistentBufferMap &db,
-                                 std::shared_ptr<hash::Hasher> hasher);
+                                 std::shared_ptr<crypto::Hasher> hasher);
 
     ~LevelDbBlockHeaderRepository() override = default;
 
@@ -34,7 +34,7 @@ namespace kagome::blockchain {
 
    private:
     PersistentBufferMap &db_;
-    std::shared_ptr<hash::Hasher> hasher_;
+    std::shared_ptr<crypto::Hasher> hasher_;
   };
 
 }  // namespace kagome::blockchain

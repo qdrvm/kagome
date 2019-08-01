@@ -19,7 +19,7 @@ class HasherFixture : public testing::Test {
   ~HasherFixture() override = default;
 
   HasherFixture() {
-    hasher = std::make_shared<kagome::hash::HasherImpl>();
+    hasher = std::make_shared<kagome::crypto::HasherImpl>();
   }
 
   /**
@@ -39,7 +39,7 @@ class HasherFixture : public testing::Test {
   }
 
  protected:
-  std::shared_ptr<kagome::hash::Hasher> hasher;
+  std::shared_ptr<kagome::crypto::Hasher> hasher;
 };
 
 /**

@@ -69,7 +69,8 @@ struct BlockTreeTest : public testing::Test {
 
   face::PersistentMapMock<Buffer, Buffer> db_;
   const BlockId kLastFinalizedBlockId = kFinalizedBlockHash;
-  std::shared_ptr<hash::Hasher> hasher_ = std::make_shared<hash::HasherImpl>();
+  std::shared_ptr<crypto::Hasher> hasher_ =
+      std::make_shared<crypto::HasherImpl>();
 
   std::unique_ptr<LevelDbBlockTree> block_tree_;
 

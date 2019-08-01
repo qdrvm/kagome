@@ -86,7 +86,8 @@ namespace kagome::blockchain {
 
   outcome::result<std::unique_ptr<LevelDbBlockTree>> LevelDbBlockTree::create(
       PersistentBufferMap &db, const primitives::BlockId &last_finalized_block,
-      std::shared_ptr<hash::Hasher> hasher, common::Logger log) {
+      std::shared_ptr<crypto::Hasher> hasher,
+      common::Logger log) {
     // retrieve the block's header: we need data from it
     OUTCOME_TRY(encoded_header,
                 getWithPrefix(db, Prefix::HEADER, last_finalized_block));
@@ -124,7 +125,7 @@ namespace kagome::blockchain {
   LevelDbBlockTree::LevelDbBlockTree(PersistentBufferMap &db,
                                      std::shared_ptr<TreeNode> tree,
                                      std::shared_ptr<TreeMeta> meta,
-                                     std::shared_ptr<hash::Hasher> hasher,
+                                     std::shared_ptr<crypto::Hasher> hasher,
                                      common::Logger log)
       : db_{db},
         tree_{std::move(tree)},
