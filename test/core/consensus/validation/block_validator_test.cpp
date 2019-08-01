@@ -6,7 +6,9 @@
 #include "consensus/validation/babe_block_validator.hpp"
 
 #include <gtest/gtest.h>
+#include "crypto/util.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/crypto/vrf_provider_mock.hpp"
 #include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
 #include "mock/crypto/hasher.hpp"
 #include "scale/scale.hpp"
@@ -16,17 +18,17 @@ using namespace kagome;
 using namespace blockchain;
 using namespace consensus;
 using namespace runtime;
-using namespace hash;
 using namespace primitives;
 using namespace common;
 using namespace crypto;
 
+using testing::_;
 using testing::Return;
 
 class BlockValidatorTest : public testing::Test {
  public:
   std::pair<Seal, Blob<SR25519_PUBLIC_SIZE>> sealBlock(
-      Block &block, gsl::span<const uint8_t> block_hash) const {
+      Block &block, Hash256 block_hash) const {
     // generate a new keypair
     std::array<uint8_t, SR25519_SIGNATURE_SIZE> sr25519_signature{};
 
@@ -44,7 +46,7 @@ class BlockValidatorTest : public testing::Test {
                  pub_key.data(),
                  secret.data(),
                  block_hash.data(),
-                 block_hash.size());
+                 Hash256::size());
 
     // seal the block
     Seal seal{sr25519_signature};
@@ -60,22 +62,18 @@ class BlockValidatorTest : public testing::Test {
   std::shared_ptr<TaggedTransactionQueueMock> tx_queue_ =
       std::make_shared<TaggedTransactionQueueMock>();
   std::shared_ptr<HasherMock> hasher_ = std::make_shared<HasherMock>();
+  std::shared_ptr<VRFProviderMock> vrf_provider_ =
+      std::make_shared<VRFProviderMock>();
 
-  BabeBlockValidator validator_{tree_, tx_queue_, hasher_};
+  BabeBlockValidator validator_{tree_, tx_queue_, hasher_, vrf_provider_};
 
   // fields for block
   Hash256 parent_hash_ =
-      Hash256::fromString("c30ojfn4983u4093jv3894j3f034oji").value();
+      Hash256::fromString("c30ojfn4983u4093jv3894j3f034ojs3").value();
 
   BabeSlotNumber slot_number_ = 2;
   VRFValue vrf_value_ = 1488228;
-  VRFProof vrf_proof_{
-      0x11, 0x2E, 0x4A, 0x5A, 0x11, 0x2E, 0x4A, 0x5A, 0x11, 0x2E, 0x4A,
-      0x5A, 0x11, 0x2E, 0x4A, 0x5A, 0x11, 0x2E, 0x4A, 0x5A, 0x11, 0x2E,
-      0x4A, 0x5A, 0x11, 0x2E, 0x4A, 0x5A, 0x11, 0x2E, 0x4A, 0x5A, 0x11,
-      0x2E, 0x4A, 0x5A, 0x11, 0x2E, 0x4A, 0x5A, 0x11, 0x2E, 0x4A, 0x5A,
-      0x11, 0x2E, 0x4A, 0x5A, 0x11, 0x2E, 0x4A, 0x5A, 0x11, 0x2E, 0x4A,
-      0x5A, 0x11, 0x2E, 0x4A, 0x5A, 0x11, 0x2E, 0x4A, 0x5A};
+  VRFProof vrf_proof_{};
   AuthorityIndex authority_index_ = 1;
   BabeBlockHeader babe_header_{
       slot_number_, {vrf_value_, vrf_proof_}, authority_index_};
@@ -91,10 +89,7 @@ class BlockValidatorTest : public testing::Test {
   // fields for validation
   libp2p::peer::PeerId peer_id_ = "my_peer"_peerid;
 
-  std::vector<Authority> authorities_{};
-
-  boost::multiprecision::uint256_t randomness_{475995757021};
-  boost::multiprecision::uint256_t threshold_{3820948573};
+  Epoch babe_epoch_{.randomness = 475995757021, .threshold = 3820948573};
 };
 
 /**
@@ -106,22 +101,27 @@ TEST_F(BlockValidatorTest, Success) {
   // verifySignature
   // get an encoded pre-seal part of the block's header
   auto block_copy = valid_block_;
-  valid_block_.header.digests.pop_back();
+  block_copy.header.digests.pop_back();
   auto encoded_block_copy = scale::encode(block_copy.header).value();
-  auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy);
+  Hash256 encoded_block_copy_hash{};  // not a real hash, but don't want to
+                                      // actually take it
+  std::copy(encoded_block_copy.begin(),
+            encoded_block_copy.begin() + Hash256::size(),
+            encoded_block_copy_hash.begin());
 
-  EXPECT_CALL(*hasher_,
-              blake2s_256(gsl::span<const uint8_t>(encoded_block_copy)))
-      .WillOnce(Return(encoded_block_copy));
-  authorities_.emplace_back();
-  authorities_.emplace_back(pubkey, 42);
+  auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
+
+  EXPECT_CALL(*hasher_, blake2s_256(_))
+      .WillOnce(Return(encoded_block_copy_hash));
+  babe_epoch_.authorities.emplace_back();
+  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
 
   // verifyVRF
-  auto randomness_with_slot = Buffer{}
-                                  .putBytes(uint256_t_to_bytes(randomness_))
-                                  .putBytes(uint128_t_to_bytes(threshold_));
-  EXPECT_CALL(*vrf_provider_,
-              verify(randomness_with_slot, babe_header_.vrf_output, 42))
+  auto randomness_with_slot =
+      Buffer{}
+          .put(util::uint256_t_to_bytes(babe_epoch_.randomness))
+          .put(util::uint256_t_to_bytes(babe_epoch_.threshold));
+  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .WillOnce(Return(true));
 
   // verifyTransactions
@@ -131,6 +131,5 @@ TEST_F(BlockValidatorTest, Success) {
   EXPECT_CALL(*tree_, addBlock(valid_block_))
       .WillOnce(Return(outcome::success()));
 
-  ASSERT_TRUE(validator_.validate(
-      valid_block_, peer_id_, authorities_, randomness_, threshold_));
+  ASSERT_TRUE(validator_.validate(valid_block_, peer_id_, babe_epoch_));
 }

@@ -6,19 +6,15 @@
 #ifndef KAGOME_SEAL_HPP
 #define KAGOME_SEAL_HPP
 
-#include <cstdint>
-
-#include "crypto/vrf_types.hpp"
+#include "crypto/crypto_types.hpp"
 
 namespace kagome::consensus {
-  using SR25519Signature = std::array<uint8_t, SR25519_SIGNATURE_SIZE>;
-
   /**
    * Basically a signature of the block's header
    */
   struct Seal {
     /// Sig_sr25519(Blake2s(block_header))
-    SR25519Signature signature;
+    crypto::SR25519Signature signature;
   };
 
   /**

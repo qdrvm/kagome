@@ -8,8 +8,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "common/blob.hpp"
+#include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
 #include "mock/crypto/hasher.hpp"
-#include "mock/runtime/tagged_transaction_queue_mock.hpp"
 #include "mock/transaction_pool/transaction_pool_mock.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/extrinsic.hpp"
@@ -141,8 +141,8 @@ TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicSubmitFail) {
                  valid_transaction.provides,
                  true};
   EXPECT_CALL(*tp, submitOne(tr))
-      .WillOnce(Return(
-          outcome::failure(TransactionPoolError::ALREADY_IMPORTED)));
+      .WillOnce(
+          Return(outcome::failure(TransactionPoolError::ALREADY_IMPORTED)));
 
   EXPECT_OUTCOME_FALSE_2(err, api.submitExtrinsic(extrinsic))
   ASSERT_EQ(err.value(),

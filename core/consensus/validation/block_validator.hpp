@@ -6,9 +6,6 @@
 #ifndef KAGOME_BLOCK_VALIDATOR_HPP
 #define KAGOME_BLOCK_VALIDATOR_HPP
 
-#include <memory>
-
-#include <gsl/span>
 #include <outcome/outcome.hpp>
 #include "consensus/babe/common.hpp"
 #include "libp2p/peer/peer_id.hpp"
@@ -26,17 +23,15 @@ namespace kagome::consensus {
      * Validate the block
      * @param block to be validated
      * @param peer, which has produced the block
-     * @param authorities of this epoch
-     * @param randomness of this epoch
-     * @param threshold of this epoch
+     * @param epoch, in which the block arrived
      * @return nothing or validation error
+     *
+     * @note in case of success validation, the block is inserted into the local
+     * blockchain state (tree or anything else)
      */
-    virtual outcome::result<void> validate(
-        const primitives::Block &block,
-        const libp2p::peer::PeerId &peer,
-        gsl::span<const Authority> authorities,
-        const Randomness &randomness,
-        const Threshold &threshold) = 0;
+    virtual outcome::result<void> validate(const primitives::Block &block,
+                                           const libp2p::peer::PeerId &peer,
+                                           const Epoch &epoch) = 0;
   };
 }  // namespace kagome::consensus
 

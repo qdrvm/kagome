@@ -7,9 +7,9 @@
 #define KAGOME_BABE_BLOCK_VALIDATOR_HPP
 
 #include <memory>
-#include <tuple>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 #include "blockchain/block_tree.hpp"
 #include "common/logger.hpp"
@@ -17,6 +17,7 @@
 #include "consensus/babe/seal.hpp"
 #include "consensus/validation/block_validator.hpp"
 #include "crypto/hasher.hpp"
+#include "crypto/vrf_provider.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
 
 namespace kagome::consensus {
@@ -34,12 +35,14 @@ namespace kagome::consensus {
      * @param block_tree to be used by this instance
      * @param tx_queue to validate the extrinsics
      * @param hasher to take hashes
+     * @param vrf_provider for VRF-specific operations
      * @param log to write info to
      */
     BabeBlockValidator(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue,
-        std::shared_ptr<hash::Hasher> hasher,
+        std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<crypto::VRFProvider> vrf_provider,
         common::Logger log = common::createLogger("BabeBlockValidator"));
 
     ~BabeBlockValidator() override = default;
@@ -55,9 +58,7 @@ namespace kagome::consensus {
 
     outcome::result<void> validate(const primitives::Block &block,
                                    const PeerId &peer,
-                                   gsl::span<const Authority> authorities,
-                                   const Randomness &randomness,
-                                   const Threshold &threshold) override;
+                                   const Epoch &epoch) override;
 
    private:
     /**
@@ -82,9 +83,7 @@ namespace kagome::consensus {
      * @return true, if output is correct, false otherwise
      */
     bool verifyVRF(const BabeBlockHeader &babe_header,
-                   gsl::span<const Authority> authorities,
-                   const Randomness &randomness,
-                   const Threshold &threshold) const;
+                   const Epoch &epoch) const;
 
     /**
      * Check, if the peer has produced a block in this slot and memorize, if the
@@ -101,7 +100,7 @@ namespace kagome::consensus {
      * @return true, if all transactions have passed verification, false
      * otherwise
      */
-    bool verifyTransactions(const primitives::BlockBody block_body) const;
+    bool verifyTransactions(const primitives::BlockBody &block_body) const;
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::unordered_map<BabeSlotNumber, std::unordered_set<PeerId>>
@@ -109,7 +108,9 @@ namespace kagome::consensus {
 
     std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue_;
 
-    std::shared_ptr<hash::Hasher> hasher_;
+    std::shared_ptr<crypto::Hasher> hasher_;
+
+    std::shared_ptr<crypto::VRFProvider> vrf_provider_;
 
     common::Logger log_;
   };

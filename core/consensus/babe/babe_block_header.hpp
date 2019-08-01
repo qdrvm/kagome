@@ -7,7 +7,7 @@
 #define KAGOME_BABE_BLOCK_HEADER_HPP
 
 #include "consensus/babe/common.hpp"
-#include "crypto/vrf_types.hpp"
+#include "crypto/crypto_types.hpp"
 #include "primitives/common.hpp"
 #include "primitives/digest.hpp"
 
@@ -17,11 +17,11 @@ namespace kagome::consensus {
    */
   struct BabeBlockHeader {
     /// slot, in which the block was produced
-    BabeSlotNumber slot_number;
+    BabeSlotNumber slot_number{};
     /// output of VRF function
     crypto::VRFOutput vrf_output;
     /// authority index of the producer
-    primitives::AuthorityIndex authority_index;
+    primitives::AuthorityIndex authority_index{};
   };
 
   /**
@@ -34,7 +34,7 @@ namespace kagome::consensus {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const BabeBlockHeader &bh) {
-    // TODO(akvinikym): order of encoding/decoding may be incorrect
+    // TODO(akvinikym) PRE-284: order of encoding/decoding may be incorrect
     return s << bh.slot_number << bh.vrf_output << bh.authority_index;
   }
 
@@ -48,7 +48,7 @@ namespace kagome::consensus {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, BabeBlockHeader &bh) {
-    // TODO(akvinikym): order of encoding/decoding may be incorrect
+    // TODO(akvinikym) PRE-284: order of encoding/decoding may be incorrect
     return s >> bh.slot_number >> bh.vrf_output >> bh.authority_index;
   }
 }  // namespace kagome::consensus

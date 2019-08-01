@@ -9,6 +9,7 @@
 
 #include <sr25519/sr25519.h>
 #include <boost/assert.hpp>
+#include "crypto/util.hpp"
 #include "scale/scale.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus,
@@ -38,41 +39,40 @@ namespace kagome::consensus {
   BabeBlockValidator::BabeBlockValidator(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue,
-      std::shared_ptr<hash::Hasher> hasher,
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::shared_ptr<crypto::VRFProvider> vrf_provider,
       common::Logger log)
       : block_tree_{std::move(block_tree)},
         tx_queue_{std::move(tx_queue)},
         hasher_{std::move(hasher)},
+        vrf_provider_{std::move(vrf_provider)},
         log_{std::move(log)} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(tx_queue_);
+    BOOST_ASSERT(vrf_provider_);
     BOOST_ASSERT(log_);
   }
 
   outcome::result<void> BabeBlockValidator::validate(
-      const primitives::Block &block,
-      const PeerId &peer,
-      gsl::span<const Authority> authorities,
-      const Randomness &randomness,
-      const Threshold &threshold) {
-    if (authorities.empty()) {
+      const primitives::Block &block, const PeerId &peer, const Epoch &epoch) {
+    if (epoch.authorities.empty()) {
       return ValidationError::NO_AUTHORITIES;
     }
 
     // get BABE-specific digests, which must be inside of this block
     auto digests_res = getBabeDigests(block);
-    if (digests_res) {
+    if (!digests_res) {
       return digests_res.error();
     }
     auto [seal, babe_header] = digests_res.value();
 
     // signature in seal of the header must be valid
-    if (!verifySignature(block, babe_header, seal, peer, authorities)) {
+    if (!verifySignature(block, babe_header, seal, peer, epoch.authorities)) {
       return ValidationError::INVALID_SIGNATURE;
     }
 
     // VRF must prove that the peer is the leader of the slot
-    if (!verifyVRF(babe_header)) {
+    if (!verifyVRF(babe_header, epoch)) {
       return ValidationError::INVALID_VRF;
     }
 
@@ -110,10 +110,11 @@ namespace kagome::consensus {
       return ValidationError::INVALID_DIGESTS;
     }
 
-    for (const auto &digest : digests) {
+    for (const auto &digest :
+         gsl::make_span(digests).subspan(0, digests.size() - 1)) {
       if (auto header = scale::decode<BabeBlockHeader>(digest)) {
         // found the BabeBlockHeader digest; return
-        return {std::move(seal_res.value()), std::move(header.value())};
+        return {seal_res.value(), std::move(header.value())};
       }
     }
 
@@ -157,22 +158,22 @@ namespace kagome::consensus {
   }
 
   bool BabeBlockValidator::verifyVRF(const BabeBlockHeader &babe_header,
-                                     gsl::span<const Authority> authorities,
-                                     const Randomness &randomness,
-                                     const Threshold &threshold) const {
+                                     const Epoch &epoch) const {
     // verify VRF output
-    auto randomness_with_slot = Buffer{}
-                                    .putBytes(uint256_t_to_bytes(randomness))
-                                    .putBytes(uint128_t_to_bytes(threshold));
-    if (!vrf_provider_->verify(randomness_with_slot,
-                               babe_header.vrf_output,
-                               authorities[babe_header.authority_index].id)) {
+    auto randomness_with_slot =
+        Buffer{}
+            .put(crypto::util::uint256_t_to_bytes(epoch.randomness))
+            .put(crypto::util::uint256_t_to_bytes(epoch.threshold));
+    if (!vrf_provider_->verify(
+            randomness_with_slot,
+            babe_header.vrf_output,
+            epoch.authorities[babe_header.authority_index].id)) {
       log_->info("VRF proof in block is not valid");
       return false;
     }
 
     // verify threshold
-    if (babe_header.vrf_output.value >= threshold) {
+    if (babe_header.vrf_output.value >= epoch.threshold) {
       log_->info("VRF value is not less than the threshold");
       return false;
     }
@@ -204,7 +205,7 @@ namespace kagome::consensus {
   }
 
   bool BabeBlockValidator::verifyTransactions(
-      const primitives::BlockBody block_body) const {
+      const primitives::BlockBody &block_body) const {
     return std::all_of(
         block_body.cbegin(), block_body.cend(), [this](const auto &ext) {
           auto validation_res = tx_queue_->validate_transaction(ext);
@@ -215,8 +216,9 @@ namespace kagome::consensus {
           }
           return visit_in_place(
               validation_res.value(),
-              [](primitives::Valid) { return true; },
-              [](auto) { return false; });
+              [](const primitives::Valid &) { return true; },
+              [](primitives::Invalid) { return false; },
+              [](primitives::Unknown) { return false; });
         });
   }
 }  // namespace kagome::consensus

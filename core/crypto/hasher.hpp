@@ -19,35 +19,35 @@ namespace kagome::crypto {
     virtual ~Hasher() = default;
 
     /**
-     * @brief hashTwox128 calculates 16-byte twox hash
+     * @brief twox_128 calculates 16-byte twox hash
      * @param buffer source buffer
      * @return 128-bit hash value
      */
     virtual Hash128 twox_128(gsl::span<const uint8_t> buffer) const = 0;
 
     /**
-     * @brief hashTwox256 calculates 32-byte twox hash
+     * @brief twox_256 calculates 32-byte twox hash
      * @param buffer source buffer
      * @return 256-bit hash value
      */
     virtual Hash256 twox_256(gsl::span<const uint8_t> buffer) const = 0;
 
     /**
-     * @brief hashBlake2b_256 function calculates 32-byte blake2b hash
+     * @brief blake2b_256 function calculates 32-byte blake2b hash
      * @param buffer source value
      * @return 256-bit hash value
      */
     virtual Hash256 blake2b_256(gsl::span<const uint8_t> buffer) const = 0;
 
     /**
-     * @brief hashBlake2s_256 function calculates 32-byte blake2s hash
+     * @brief blake2s_256 function calculates 32-byte blake2s hash
      * @param buffer source value
      * @return 256-bit hash value
      */
     virtual Hash256 blake2s_256(gsl::span<const uint8_t> buffer) const = 0;
 
     /**
-     * @brief hashSha2_256 function calculates 32-byte sha-2-256 hash
+     * @brief sha2_256 function calculates 32-byte sha2-256 hash
      * @param buffer source value
      * @return 256-bit hash value
      */
