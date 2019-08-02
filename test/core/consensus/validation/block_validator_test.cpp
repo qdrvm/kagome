@@ -96,7 +96,7 @@ class BlockValidatorTest : public testing::Test {
   // fields for validation
   libp2p::peer::PeerId peer_id_ = "my_peer"_peerid;
 
-  Epoch babe_epoch_{.randomness = 475995757021, .threshold = 3820948573};
+  Epoch babe_epoch_{.threshold = 3820948573, .randomness = 475995757021};
 };
 
 /**
