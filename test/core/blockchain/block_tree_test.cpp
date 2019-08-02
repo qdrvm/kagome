@@ -53,7 +53,7 @@ struct BlockTreeTest : public testing::Test {
     EXPECT_TRUE(block_tree_->addBlock(block));
 
     auto encoded_block = scale::encode(block).value();
-    return hasher_->blake2_256(encoded_block);
+    return hasher_->blake2b_256(encoded_block);
   }
 
   const Buffer kFinalizedBlockLookupKey{0x12, 0x85};
@@ -74,8 +74,7 @@ struct BlockTreeTest : public testing::Test {
 
   std::unique_ptr<LevelDbBlockTree> block_tree_;
 
-  BlockHeader finalized_block_header_{.number = 0,
-                                      .digest = Buffer{0x11, 0x33}};
+  BlockHeader finalized_block_header_{.number = 0, .digests = {{0x11, 0x33}}};
   std::vector<uint8_t> encoded_finalized_block_header_ =
       scale::encode(finalized_block_header_).value();
 
@@ -123,7 +122,7 @@ TEST_F(BlockTreeTest, AddBlock) {
   // WHEN
   BlockHeader header{.parent_hash = kFinalizedBlockHash,
                      .number = 1,
-                     .digest = Buffer{0x66, 0x44}};
+                     .digests = {{0x66, 0x44}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash = addBlock(new_block);
@@ -148,7 +147,7 @@ TEST_F(BlockTreeTest, AddBlock) {
  */
 TEST_F(BlockTreeTest, AddBlockNoParent) {
   // GIVEN
-  BlockHeader header{.digest = Buffer{0x66, 0x44}};
+  BlockHeader header{.digests = {{0x66, 0x44}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
 
@@ -171,7 +170,7 @@ TEST_F(BlockTreeTest, Finalize) {
 
   BlockHeader header{.parent_hash = kFinalizedBlockHash,
                      .number = 1,
-                     .digest = Buffer{0x66, 0x44}};
+                     .digests = {{0x66, 0x44}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash = addBlock(new_block);
@@ -200,13 +199,13 @@ TEST_F(BlockTreeTest, GetChainByBlock) {
   // GIVEN
   BlockHeader header{.parent_hash = kFinalizedBlockHash,
                      .number = 1,
-                     .digest = Buffer{0x66, 0x44}};
+                     .digests = {{0x66, 0x44}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash1 = addBlock(new_block);
 
-  header = BlockHeader{
-      .parent_hash = hash1, .number = 2, .digest = Buffer{0x66, 0x55}};
+  header =
+      BlockHeader{.parent_hash = hash1, .number = 2, .digests = {{0x66, 0x55}}};
   body = BlockBody{{Buffer{0x55, 0x55}}};
   new_block = Block{header, body};
   auto hash2 = addBlock(new_block);

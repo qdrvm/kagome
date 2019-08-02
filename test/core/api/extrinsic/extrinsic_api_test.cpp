@@ -8,8 +8,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "common/blob.hpp"
+#include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
 #include "mock/crypto/hasher.hpp"
-#include "mock/runtime/tagged_transaction_queue_mock.hpp"
 #include "mock/transaction_pool/transaction_pool_mock.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/extrinsic.hpp"
@@ -65,7 +65,7 @@ class ExtrinsicSubmissionApiTest : public ::testing::Test {
 TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicSuccess) {
   TransactionValidity tv = valid_transaction;
   gsl::span<const uint8_t> span = gsl::make_span(extrinsic.data);
-  EXPECT_CALL(*hasher, blake2_256(span)).WillOnce(Return(Hash256{}));
+  EXPECT_CALL(*hasher, blake2b_256(span)).WillOnce(Return(Hash256{}));
   EXPECT_CALL(*ttq, validate_transaction(extrinsic)).WillOnce(Return(tv));
   Transaction tr{extrinsic,
                  extrinsic.data.size(),
@@ -94,7 +94,7 @@ TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicInvalidFail) {
   EXPECT_CALL(*ttq, validate_transaction(extrinsic))
       .WillOnce(Return(
           outcome::failure(ExtrinsicApiError::INVALID_STATE_TRANSACTION)));
-  EXPECT_CALL(*hasher, blake2_256(_)).Times(0);
+  EXPECT_CALL(*hasher, blake2b_256(_)).Times(0);
   EXPECT_CALL(*tp, submitOne(_)).Times(0);
   EXPECT_OUTCOME_FALSE_2(err, api.submitExtrinsic(extrinsic))
   ASSERT_EQ(err.value(),
@@ -114,7 +114,7 @@ TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicUnknownFail) {
   EXPECT_CALL(*ttq, validate_transaction(extrinsic))
       .WillOnce(Return(
           outcome::failure(ExtrinsicApiError::UNKNOWN_STATE_TRANSACTION)));
-  EXPECT_CALL(*hasher, blake2_256(_)).Times(0);
+  EXPECT_CALL(*hasher, blake2b_256(_)).Times(0);
   EXPECT_CALL(*tp, submitOne(_)).Times(0);
   EXPECT_OUTCOME_FALSE_2(err, api.submitExtrinsic(extrinsic))
   ASSERT_EQ(err.value(),
@@ -130,7 +130,7 @@ TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicUnknownFail) {
 TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicSubmitFail) {
   TransactionValidity tv = valid_transaction;
   gsl::span<const uint8_t> span = gsl::make_span(extrinsic.data);
-  EXPECT_CALL(*hasher, blake2_256(span)).WillOnce(Return(Hash256{}));
+  EXPECT_CALL(*hasher, blake2b_256(span)).WillOnce(Return(Hash256{}));
   EXPECT_CALL(*ttq, validate_transaction(extrinsic)).WillOnce(Return(tv));
   Transaction tr{extrinsic,
                  extrinsic.data.size(),
@@ -141,8 +141,8 @@ TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicSubmitFail) {
                  valid_transaction.provides,
                  true};
   EXPECT_CALL(*tp, submitOne(tr))
-      .WillOnce(Return(
-          outcome::failure(TransactionPoolError::ALREADY_IMPORTED)));
+      .WillOnce(
+          Return(outcome::failure(TransactionPoolError::ALREADY_IMPORTED)));
 
   EXPECT_OUTCOME_FALSE_2(err, api.submitExtrinsic(extrinsic))
   ASSERT_EQ(err.value(),

@@ -26,14 +26,14 @@ namespace libp2p::crypto {
     };
 
     Type type = Type::UNSPECIFIED;  ///< key type
-    std::vector<uint8_t> data;      ///< key content
+    std::vector<uint8_t> data{};    ///< key content
   };
 
   inline bool operator==(const Key &lhs, const Key &rhs) {
     return lhs.type == rhs.type && lhs.data == rhs.data;
   }
 
-  inline bool operator !=(const Key &lhs, const Key &rhs) {
+  inline bool operator!=(const Key &lhs, const Key &rhs) {
     return !(lhs == rhs);
   }
 
