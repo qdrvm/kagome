@@ -53,7 +53,7 @@ namespace kagome::consensus {
       INVALID_SIGNATURE,
       INVALID_VRF,
       TWO_BLOCKS_IN_SLOT,
-      INVALID_TXS
+      INVALID_TRANSACTIONS
     };
 
     outcome::result<void> validate(const primitives::Block &block,

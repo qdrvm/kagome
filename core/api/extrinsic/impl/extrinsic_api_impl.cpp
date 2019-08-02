@@ -42,9 +42,14 @@ namespace kagome::api {
           // initialization check)
           bool should_propagate = true;
 
-          primitives::Transaction transaction{
-              extrinsic,   length,     hash,       v.priority,
-              v.longevity, v.requires, v.provides, should_propagate};
+          primitives::Transaction transaction{extrinsic,
+                                              length,
+                                              hash,
+                                              v.priority,
+                                              v.longevity,
+                                              v.requires,
+                                              v.provides,
+                                              should_propagate};
 
           // send to pool
           OUTCOME_TRY(pool_->submitOne(std::move(transaction)));
@@ -55,13 +60,13 @@ namespace kagome::api {
 
   outcome::result<std::vector<primitives::Extrinsic>>
   ExtrinsicApiImpl::pendingExtrinsics() {
-    BOOST_ASSERT_MSG(false, "not implemented");
+    BOOST_ASSERT_MSG(false, "not implemented");  // NOLINT
   }
 
   outcome::result<std::vector<common::Hash256>>
   ExtrinsicApiImpl::removeExtrinsic(
       const std::vector<primitives::ExtrinsicKey> &keys) {
-    BOOST_ASSERT_MSG(false, "not implemented");
+    BOOST_ASSERT_MSG(false, "not implemented");  // NOLINT
   }
 
 }  // namespace kagome::api

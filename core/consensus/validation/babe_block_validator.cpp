@@ -27,7 +27,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus,
       return "VRF value and output are invalid";
     case E::TWO_BLOCKS_IN_SLOT:
       return "peer tried to distribute several blocks in one slot";
-    case E::INVALID_TXS:
+    case E::INVALID_TRANSACTIONS:
       return "one or more transactions in the block are invalid";
   }
   return "unknown error";
@@ -83,7 +83,7 @@ namespace kagome::consensus {
 
     // all transactions in the block must be valid
     if (!verifyTransactions(block.body)) {
-      return ValidationError::INVALID_TXS;
+      return ValidationError::INVALID_TRANSACTIONS;
     }
 
     // there must exist a chain with the block in our storage, which is

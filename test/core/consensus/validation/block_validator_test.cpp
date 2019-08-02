@@ -28,6 +28,12 @@ using testing::Return;
 
 class BlockValidatorTest : public testing::Test {
  public:
+  /**
+   * Add a signature to the block
+   * @param block to seal
+   * @param block_hash - hash of the block to be sealed
+   * @return seal, which was produced, @and public key, which was generated
+   */
   std::pair<Seal, Blob<SR25519_PUBLIC_SIZE>> sealBlock(
       Block &block, Hash256 block_hash) const {
     // generate a new keypair
@@ -136,6 +142,11 @@ TEST_F(BlockValidatorTest, Success) {
   ASSERT_TRUE(validator_.validate(valid_block_, peer_id_, babe_epoch_));
 }
 
+/**
+ * @given block validator
+ * @when validating block, which has less than two digests
+ * @then validation fails
+ */
 TEST_F(BlockValidatorTest, LessDigestsThanNeeded) {
   babe_epoch_.authorities.emplace_back();
 
@@ -145,6 +156,11 @@ TEST_F(BlockValidatorTest, LessDigestsThanNeeded) {
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_DIGESTS);
 }
 
+/**
+ * @given block validator
+ * @when validating block, which does not have a BabeHeader digest
+ * @then validation fails
+ */
 TEST_F(BlockValidatorTest, NoBabeHeader) {
   auto block_copy = valid_block_;
   block_copy.header.digests.pop_back();
@@ -168,6 +184,12 @@ TEST_F(BlockValidatorTest, NoBabeHeader) {
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_DIGESTS);
 }
 
+/**
+ * @given block validator
+ * @when validating block, which was produced by authority, which we don't know
+ * about
+ * @then validation fails
+ */
 TEST_F(BlockValidatorTest, NoAuthority) {
   // GIVEN
   auto block_copy = valid_block_;
@@ -178,7 +200,7 @@ TEST_F(BlockValidatorTest, NoAuthority) {
             encoded_block_copy.begin() + Hash256::size(),
             encoded_block_copy_hash.begin());
 
-  auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
+  sealBlock(valid_block_, encoded_block_copy_hash);
 
   EXPECT_CALL(*hasher_, blake2s_256(_))
       .WillOnce(Return(encoded_block_copy_hash));
@@ -193,6 +215,11 @@ TEST_F(BlockValidatorTest, NoAuthority) {
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_SIGNATURE);
 }
 
+/**
+ * @given block validator
+ * @when validating block with an invalid signature in the seal
+ * @then validation fails
+ */
 TEST_F(BlockValidatorTest, SignatureVerificationFail) {
   // GIVEN
   auto block_copy = valid_block_;
@@ -221,6 +248,11 @@ TEST_F(BlockValidatorTest, SignatureVerificationFail) {
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_SIGNATURE);
 }
 
+/**
+ * @given block validator
+ * @when validating block with an invalid VRF proof
+ * @then validation fails
+ */
 TEST_F(BlockValidatorTest, VRFFail) {
   // GIVEN
   auto block_copy = valid_block_;
@@ -253,6 +285,11 @@ TEST_F(BlockValidatorTest, VRFFail) {
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_VRF);
 }
 
+/**
+ * @given block validator
+ * @when validating block, which was produced by a non-slot-leader
+ * @then validation fails
+ */
 TEST_F(BlockValidatorTest, ThresholdGreater) {
   // GIVEN
   auto block_copy = valid_block_;
@@ -287,6 +324,12 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_VRF);
 }
 
+/**
+ * @given block validator
+ * @when validating block, produced by a peer, which has already produced
+ * another block in that slot
+ * @then validation fails
+ */
 TEST_F(BlockValidatorTest, TwoBlocksByOnePeer) {
   // GIVEN
   auto block_copy = valid_block_;
@@ -328,6 +371,11 @@ TEST_F(BlockValidatorTest, TwoBlocksByOnePeer) {
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::TWO_BLOCKS_IN_SLOT);
 }
 
+/**
+ * @given block validator
+ * @when validating block, which contains an invalid extrinsic
+ * @then validation fails
+ */
 TEST_F(BlockValidatorTest, InvalidExtrinsic) {
   // GIVEN
   auto block_copy = valid_block_;
@@ -360,9 +408,14 @@ TEST_F(BlockValidatorTest, InvalidExtrinsic) {
   // THEN
   EXPECT_OUTCOME_FALSE(
       err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
-  ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_TXS);
+  ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_TRANSACTIONS);
 }
 
+/**
+ * @given block validator
+ * @when validating block, which cannot be inserted into a block tree
+ * @then validation fails
+ */
 TEST_F(BlockValidatorTest, BlockTreeFails) {
   // GIVEN
   auto block_copy = valid_block_;
