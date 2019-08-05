@@ -13,8 +13,8 @@
 
 #include "blockchain/block_tree.hpp"
 #include "common/logger.hpp"
-#include "consensus/babe/babe_block_header.hpp"
-#include "consensus/babe/seal.hpp"
+#include "consensus/babe/types/babe_block_header.hpp"
+#include "consensus/babe/types/seal.hpp"
 #include "consensus/validation/block_validator.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/vrf_provider.hpp"

@@ -19,6 +19,10 @@ namespace kagome::crypto::util {
     uint bytes_to_uint(gsl::span<uint8_t, size> bytes);
   }  // namespace detail
 
+  std::array<uint8_t, 8> uint64_t_to_bytes(uint64_t number);
+
+  uint64_t bytes_to_uint64_t(gsl::span<uint8_t, 8> bytes);
+
   std::array<uint8_t, 16> uint128_t_to_bytes(
       const boost::multiprecision::uint128_t &i);
 
