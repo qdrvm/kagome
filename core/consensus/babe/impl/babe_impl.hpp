@@ -62,7 +62,10 @@ namespace kagome::consensus {
 
     ~BabeImpl() override = default;
 
-    void runEpoch(Epoch epoch, TimePoint starting_slot_finish_time) override;
+    void runEpoch(Epoch epoch,
+                  BabeTimePoint starting_slot_finish_time) override;
+
+    BabeMeta getBabeMeta() const override;
 
     enum class Error { TIMER_ERROR = 1, NODE_FALL_BEHIND };
 
@@ -110,7 +113,7 @@ namespace kagome::consensus {
 
     BabeSlotNumber current_slot_{};
     BabeLottery::SlotsLeadership slots_leadership_;
-    TimePoint last_slot_finish_time_;
+    BabeTimePoint next_slot_finish_time_;
 
     decltype(event_bus_.getChannel<event::BabeErrorChannel>()) &error_channel_;
   };

@@ -6,7 +6,8 @@
 #ifndef KAGOME_BABE_HPP
 #define KAGOME_BABE_HPP
 
-#include "clock/clock.hpp"
+#include "consensus/babe/common.hpp"
+#include "consensus/babe/types/babe_meta.hpp"
 #include "consensus/babe/types/epoch.hpp"
 
 namespace kagome::consensus {
@@ -17,8 +18,6 @@ namespace kagome::consensus {
    */
   struct Babe {
     virtual ~Babe() = default;
-
-    using TimePoint = clock::SystemClock::TimePoint;
 
     /**
      * Start a Babe production
@@ -31,7 +30,14 @@ namespace kagome::consensus {
      * @note in fact, it is an implementation of "Invoke-Block-Authoring" from
      * the spec
      */
-    virtual void runEpoch(Epoch epoch, TimePoint starting_slot_finish_time) = 0;
+    virtual void runEpoch(Epoch epoch,
+                          BabeTimePoint starting_slot_finish_time) = 0;
+
+    /**
+     * Get a metainformation about current BABE's state
+     * @return reference to BabeMeta
+     */
+    virtual BabeMeta getBabeMeta() const = 0;
   };
 }  // namespace kagome::consensus
 

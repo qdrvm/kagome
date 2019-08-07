@@ -58,16 +58,24 @@ namespace kagome::consensus {
     BOOST_ASSERT(log_);
   }
 
-  void BabeImpl::runEpoch(Epoch epoch, TimePoint starting_slot_finish_time) {
+  void BabeImpl::runEpoch(Epoch epoch,
+                          BabeTimePoint starting_slot_finish_time) {
     BOOST_ASSERT(!epoch.authorities.empty());
     log_->info("starting an epoch with index {}", epoch.epoch_index);
 
     current_epoch_ = std::move(epoch);
     current_slot_ = current_epoch_.start_slot;
     slots_leadership_ = lottery_->slotsLeadership(current_epoch_, keypair_);
-    last_slot_finish_time_ = starting_slot_finish_time;
+    next_slot_finish_time_ = starting_slot_finish_time;
 
     runSlot();
+  }
+
+  BabeMeta BabeImpl::getBabeMeta() const {
+    return BabeMeta{current_epoch_,
+                    current_slot_,
+                    slots_leadership_,
+                    next_slot_finish_time_};
   }
 
   void BabeImpl::runSlot() {
@@ -84,15 +92,15 @@ namespace kagome::consensus {
     // cooperate with a relatively little (kMaxLatency) latency, as our node
     // will be able to retrieve
     auto now = clock_->now();
-    if (now > last_slot_finish_time_
-        && (now - last_slot_finish_time_ > kMaxLatency)) {
+    if (now > next_slot_finish_time_
+        && (now - next_slot_finish_time_ > kMaxLatency)) {
       // we are too far behind; after skipping some slots (or even epochs)
       // control will be returned to this method
       return synchronizeSlots();
     }
 
     // everything is OK: wait for the end of the slot
-    timer_.expires_at(last_slot_finish_time_);
+    timer_.expires_at(next_slot_finish_time_);
     timer_.async_wait([this](auto &&ec) {
       if (ec) {
         log_->error("error happened while waiting on the timer: {}",
@@ -110,7 +118,7 @@ namespace kagome::consensus {
     }
 
     ++current_slot_;
-    last_slot_finish_time_ += current_epoch_.slot_duration;
+    next_slot_finish_time_ += current_epoch_.slot_duration;
     runSlot();
   }
 
@@ -177,7 +185,7 @@ namespace kagome::consensus {
         current_epoch_.randomness, ++current_epoch_.epoch_index);
     current_epoch_.start_slot = 0;
 
-    runEpoch(current_epoch_, last_slot_finish_time_);
+    runEpoch(current_epoch_, next_slot_finish_time_);
   }
 
   void BabeImpl::synchronizeSlots() {
@@ -188,7 +196,7 @@ namespace kagome::consensus {
     // enough information; give up in that case
     log_->info("trying to synchronize our node with the others");
 
-    auto delay_in_time = clock_->now() - last_slot_finish_time_;
+    auto delay_in_time = clock_->now() - next_slot_finish_time_;
 
     // result of the division can be both integer or float number; in both
     // cases, we want that number to be incremented by one, so that after the
@@ -204,7 +212,7 @@ namespace kagome::consensus {
 
     // everything is OK: skip slots, set a new time and return control
     current_slot_ += delay_in_slots - 1;
-    last_slot_finish_time_ += std::chrono::milliseconds(
+    next_slot_finish_time_ += std::chrono::milliseconds(
         static_cast<uint64_t>(delay_in_slots) * current_epoch_.slot_duration);
     runSlot();
   }

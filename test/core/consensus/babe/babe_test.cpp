@@ -90,6 +90,8 @@ class BabeTest : public testing::Test {
   Block created_block_{block_header_, {extrinsic_}};
 
   Hash256 created_block_hash_{createHash(3)};
+
+  SystemClockImpl real_clock_{};
 };
 
 ACTION_P(CheckBlock, block) {
@@ -107,9 +109,7 @@ ACTION_P(CheckBlock, block) {
  * the next epoch
  */
 TEST_F(BabeTest, Success) {
-  // GIVEN
-  SystemClockImpl real_clock{};
-  auto test_begin = real_clock.now();
+  auto test_begin = real_clock_.now();
 
   // runEpoch
   epoch_.randomness.fill(0);
@@ -153,7 +153,40 @@ TEST_F(BabeTest, Success) {
  * @when launching it
  * @then it synchronizes successfully
  */
-TEST_F(BabeTest, SyncSuccess) {}
+TEST_F(BabeTest, SyncSuccess) {
+  epoch_.epoch_duration = 10;
+  epoch_.slot_duration = 5000ms;
+
+  auto test_begin = real_clock_.now();
+  auto delay = 9000ms;
+  auto slot_start_time = test_begin - delay;
+
+  // runEpoch
+  epoch_.randomness.fill(0);
+  EXPECT_CALL(*lottery_, slotsLeadership(epoch_, keypair_))
+      .WillOnce(Return(leadership_));
+
+  // runSlot
+  // emulate relatively big delay
+  EXPECT_CALL(*clock_, now())
+      .WillOnce(Return(test_begin))
+      .WillOnce(Return(test_begin + 50ms))
+      .WillOnce(Return(test_begin + 100ms));
+
+  // synchronizeSlots
+  auto delay_in_slots =
+      static_cast<uint64_t>(std::floor(delay / epoch_.slot_duration)) + 1;
+  auto expected_current_slot = delay_in_slots + epoch_.start_slot - 1;
+  auto expected_finish_slot_time =
+      (delay_in_slots * epoch_.slot_duration) + slot_start_time;
+
+  babe_.runEpoch(epoch_, slot_start_time);
+  io_context_.run_for(100ms);
+
+  auto meta = babe_.getBabeMeta();
+  ASSERT_EQ(meta.current_slot_, expected_current_slot);
+  ASSERT_EQ(meta.last_slot_finish_time_, expected_finish_slot_time);
+}
 
 /**
  * @given BABE production, which is configured to the already finished slot in

@@ -12,6 +12,9 @@
 #include "crypto/crypto_types.hpp"
 
 namespace kagome::consensus {
+  /// BABE uses system clock's time points
+  using BabeTimePoint = clock::SystemClock::TimePoint;
+
   /// slot number of the Babe production
   using BabeSlotNumber = uint64_t;
 
