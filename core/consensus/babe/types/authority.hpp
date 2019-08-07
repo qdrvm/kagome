@@ -18,6 +18,13 @@ namespace kagome::consensus {
   struct Authority {
     primitives::AuthorityId id;
     AuthorityWeight babe_weight{};
+
+    bool operator==(const Authority &other) const {
+      return id == other.id && babe_weight == other.babe_weight;
+    }
+    bool operator!=(const Authority &other) const {
+      return !(*this == other);
+    }
   };
 }  // namespace kagome::consensus
 

@@ -21,4 +21,7 @@ target_link_libraries(babe
     sr25519
     buffer
     logger
+    scale
+    blob
+    outcome
     )

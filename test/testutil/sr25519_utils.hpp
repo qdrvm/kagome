@@ -11,14 +11,13 @@
 
 /**
  * Generate a SR25519 with some seed
- * @param keypair - output of the function
  */
-void generateKeypair(kagome::crypto::SR25519Keypair &keypair) {
+kagome::crypto::SR25519Keypair generateSR25519Keypair() {
   std::array<uint8_t, SR25519_SEED_SIZE> seed{};
   seed.fill(1);
   std::vector<uint8_t> kp(SR25519_KEYPAIR_SIZE, 0);
   sr25519_keypair_from_seed(kp.data(), seed.data());
-  keypair = kagome::crypto::SR25519Keypair{kp};
+  return kagome::crypto::SR25519Keypair{kp};
 }
 
 #endif  // KAGOME_SR25519_UTILS_HPP

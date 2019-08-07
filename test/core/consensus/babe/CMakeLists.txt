@@ -8,4 +8,7 @@ addtest(babe_test
     )
 target_link_libraries(babe_test
     babe
+    clock
+    sr25519
+    crypto_types
     )

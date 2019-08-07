@@ -38,6 +38,17 @@ namespace kagome::consensus {
 
     /// randomness of the epoch
     Randomness randomness{};
+
+    bool operator==(const Epoch &other) const {
+      return epoch_index == other.epoch_index && start_slot == other.start_slot
+             && epoch_duration == other.epoch_duration
+             && slot_duration == other.slot_duration
+             && authorities == other.authorities && threshold == other.threshold
+             && randomness == other.randomness;
+    }
+    bool operator!=(const Epoch &other) const {
+      return !(*this == other);
+    }
   };
 }  // namespace kagome::consensus
 
