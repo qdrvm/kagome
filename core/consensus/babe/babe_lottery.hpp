@@ -30,13 +30,11 @@ namespace kagome::consensus {
 
     /**
      * Compute leadership for all slots in the given epoch
-     * @param epoch structure; "epoch_index" MUST be set to the epoch to compute
-     * randomness for
+     * @param epoch structure; "epoch_index" MUST be set to the epoch, for which
+     * the randomness is to be computed
      * @param keypair of this node
      * @return vector of outputs; none means the peer was not chosen as a leader
      * for that slot, value contains VRF value and proof
-     *
-     * @note must be called exactly ONCE per epoch, when it gets changed
      */
     virtual std::vector<boost::optional<crypto::VRFOutput>> slotsLeadership(
         const Epoch &epoch, crypto::SR25519Keypair keypair) const = 0;
@@ -46,6 +44,8 @@ namespace kagome::consensus {
      * @param last_epoch_randomness - randomness of the last epoch
      * @param new_epoch_index - index of the new epoch
      * @return computed randomness
+     *
+     * @note must be called exactly ONCE per epoch, when it gets changed
      */
     virtual Randomness computeRandomness(Randomness last_epoch_randomness,
                                          EpochIndex new_epoch_index) = 0;

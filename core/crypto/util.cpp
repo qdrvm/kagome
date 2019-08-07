@@ -40,14 +40,11 @@ namespace kagome::crypto::util {
   }
 
   uint64_t bytes_to_uint64_t(gsl::span<uint8_t, 8> bytes) {
-    return static_cast<uint64_t>(bytes[0])
-           | static_cast<uint64_t>(bytes[1]) << 8
-           | static_cast<uint64_t>(bytes[2]) << 16
-           | static_cast<uint64_t>(bytes[3]) << 24
-           | static_cast<uint64_t>(bytes[4]) << 32
-           | static_cast<uint64_t>(bytes[5]) << 40
-           | static_cast<uint64_t>(bytes[6]) << 48
-           | static_cast<uint64_t>(bytes[7]) << 56;
+    uint64_t result{0};
+    for (auto i = 0; i < 8; ++i) {
+      result |= static_cast<uint64_t>(bytes[i]) << (i * 8);
+    }
+    return result;
   }
 
   std::array<uint8_t, 16> uint128_t_to_bytes(

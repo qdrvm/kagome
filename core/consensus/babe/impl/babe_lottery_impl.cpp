@@ -5,6 +5,8 @@
 
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 
+#include <unordered_set>
+
 #include <boost/assert.hpp>
 #include "common/buffer.hpp"
 #include "crypto/util.hpp"
@@ -47,6 +49,11 @@ namespace kagome::consensus {
 
   Randomness BabeLotteryImpl::computeRandomness(
       Randomness last_epoch_randomness, EpochIndex last_epoch_index) {
+    static std::unordered_set<EpochIndex> computed_epochs_randomnesses{};
+
+    // the function must never be called twice for the same epoch
+    BOOST_ASSERT(computed_epochs_randomnesses.insert(last_epoch_index).second);
+
     // randomness || epoch_index || rho
     Buffer new_randomness(
         SR25519_VRF_OUTPUT_SIZE + 8 + last_epoch_vrf_values_.size() * 32, 0);
