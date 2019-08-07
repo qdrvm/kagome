@@ -6,6 +6,7 @@
 #include "consensus/babe/impl/babe_impl.hpp"
 
 #include <memory>
+#include <chrono>
 
 #include <gtest/gtest.h>
 #include <boost/asio/basic_waitable_timer.hpp>
@@ -25,6 +26,9 @@ using namespace authorship;
 using namespace crypto;
 using namespace primitives;
 using namespace clock;
+
+using testing::Return;
+using std::chrono_literals::operator""ms;
 
 class BabeTest : public testing::Test {
  public:
@@ -58,6 +62,8 @@ class BabeTest : public testing::Test {
       hasher_,
       boost::asio::basic_waitable_timer<std::chrono::system_clock>{io_context_},
       event_bus_};
+
+  Epoch epoch_;
 };
 
 /**
@@ -67,7 +73,15 @@ class BabeTest : public testing::Test {
  * @then block is emitted in the leader slot @and after two slots BABE moves to
  * the next epoch
  */
-TEST_F(BabeTest, Success) {}
+TEST_F(BabeTest, Success) {
+  // GIVEN
+
+  // WHEN
+  babe_.runEpoch(epoch_, 0);
+  io_context_.run_for(100ms);
+
+  // THEN
+}
 
 /**
  * @given BABE production, which is configured to the already finished slot in
