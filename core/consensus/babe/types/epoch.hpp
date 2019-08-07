@@ -18,17 +18,17 @@ namespace kagome::consensus {
    */
   struct Epoch {
     /// the epoch index
-    EpochIndex epoch_index;
+    EpochIndex epoch_index{};
 
     /// starting slot of the epoch; can be non-zero, as the node can join in the
     /// middle of the running epoch
-    BabeSlotNumber start_slot;
+    BabeSlotNumber start_slot{};
 
     /// duration of the epoch (number of slots it takes)
-    BabeSlotNumber epoch_duration;
+    BabeSlotNumber epoch_duration{};
 
     /// duration of the slot
-    std::chrono::milliseconds slot_duration;
+    std::chrono::milliseconds slot_duration{};
 
     /// authorities of the epoch with their weights
     std::vector<Authority> authorities;
@@ -37,7 +37,7 @@ namespace kagome::consensus {
     Threshold threshold;
 
     /// randomness of the epoch
-    Randomness randomness;
+    Randomness randomness{};
   };
 }  // namespace kagome::consensus
 

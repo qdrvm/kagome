@@ -4,6 +4,7 @@
 #
 
 add_subdirectory(validation)
+add_subdirectory(babe)
 
 addtest(babe_lottery_test
     babe_lottery_test.cpp
