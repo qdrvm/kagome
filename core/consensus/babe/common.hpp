@@ -8,20 +8,14 @@
 
 #include <array>
 #include <cstdint>
-#include <vector>
 
 #include "crypto/crypto_types.hpp"
-#include "primitives/common.hpp"
 
 namespace kagome::consensus {
+  /// slot number of the Babe production
   using BabeSlotNumber = uint64_t;
 
-  using AuthorityWeight = uint64_t;
-  struct Authority {
-    primitives::AuthorityId id;
-    AuthorityWeight babe_weight{};
-  };
-
+  /// number of the epoch in the Babe production
   using EpochIndex = uint64_t;
 
   /// threshold, which must not be exceeded for the party to be a slot leader
@@ -29,22 +23,6 @@ namespace kagome::consensus {
 
   /// random value, which serves as a seed for VRF slot leadership selection
   using Randomness = std::array<uint8_t, SR25519_VRF_OUTPUT_SIZE>;
-
-  /// metainformation about the Babe epoch
-  struct Epoch {
-    /// the epoch index
-    EpochIndex epoch_index;
-    /// starting slot of the epoch
-    BabeSlotNumber start_slot;
-    /// duration of the epoch (number of slots it takes)
-    BabeSlotNumber duration;
-    /// authorities of the epoch with their weights
-    std::vector<Authority> authorities;
-    /// threshold of the epoch
-    Threshold threshold;
-    /// randomness of the epoch
-    Randomness randomness;
-  };
 }  // namespace kagome::consensus
 
 #endif  // KAGOME_COMMON_HPP

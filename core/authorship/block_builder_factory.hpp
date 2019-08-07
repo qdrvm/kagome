@@ -6,6 +6,8 @@
 #ifndef KAGOME_CORE_AUTHORSHIP_BLOCK_BUILDER_FACTORY_HPP
 #define KAGOME_CORE_AUTHORSHIP_BLOCK_BUILDER_FACTORY_HPP
 
+#include <vector>
+
 #include "authorship/block_builder.hpp"
 #include "primitives/block_id.hpp"
 #include "runtime/block_builder_api.hpp"
@@ -23,11 +25,11 @@ namespace kagome::authorship {
 
     /**
      * Prepares BlockBuilder for creating block on top of parent block and using
-     * provided digest. Also initialises the block created in BlockBuilder
+     * provided digests. Also initialises the block created in BlockBuilder
      */
     virtual outcome::result<std::unique_ptr<BlockBuilder>> create(
         const primitives::BlockId &parent_id,
-        const primitives::Digest &inherent_digest) const = 0;
+        std::vector<primitives::Digest> inherent_digests) const = 0;
   };
 
 }  // namespace kagome::authorship
