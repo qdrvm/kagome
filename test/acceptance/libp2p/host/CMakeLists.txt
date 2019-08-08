@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 add_subdirectory(protocol)
+add_subdirectory(peer)
 
 addtest(basic_host_test
     basic_host_test.cpp
@@ -23,4 +24,6 @@ target_link_libraries(host_integration_test
     libp2p_inmem_key_repository
     libp2p_inmem_protocol_repository
     libp2p_protocol_echo
+    client_test_session
+    test_peer
     )

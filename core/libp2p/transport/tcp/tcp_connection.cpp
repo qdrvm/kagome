@@ -9,12 +9,14 @@
 
 namespace libp2p::transport {
 
-  TcpConnection::TcpConnection(boost::asio::io_context &ctx,
+  TcpConnection::TcpConnection(std::shared_ptr<boost::asio::io_context> ctx,
                                boost::asio::ip::tcp::socket &&socket)
-      : context_(ctx), socket_(std::move(socket)) {}
+      : context_(ctx), socket_(std::move(socket)) {
+  }
 
-  TcpConnection::TcpConnection(boost::asio::io_context &ctx)
-      : context_(ctx), socket_(ctx) {}
+  TcpConnection::TcpConnection(std::shared_ptr<boost::asio::io_context> ctx)
+      : context_(ctx), socket_(*ctx) {
+  }
 
   outcome::result<void> TcpConnection::close() {
     boost::system::error_code ec;
@@ -56,7 +58,7 @@ namespace libp2p::transport {
 
   void TcpConnection::resolve(const TcpConnection::Tcp::endpoint &endpoint,
                               TcpConnection::ResolveCallbackFunc cb) {
-    auto resolver = std::make_shared<Tcp::resolver>(context_);
+    auto resolver = std::make_shared<Tcp::resolver>(*context_);
     resolver->async_resolve(
         endpoint,
         [resolver, cb{std::move(cb)}](const ErrorCode &ec, auto &&iterator) {

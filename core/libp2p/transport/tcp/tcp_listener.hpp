@@ -22,7 +22,7 @@ namespace libp2p::transport {
    public:
     ~TcpListener() override = default;
 
-    TcpListener(boost::asio::io_context &context,
+    TcpListener(std::shared_ptr<boost::asio::io_context> context,
                 std::shared_ptr<Upgrader> upgrader,
                 TransportListener::HandlerFunc handler);
 
@@ -37,7 +37,7 @@ namespace libp2p::transport {
     outcome::result<void> close() override;
 
    private:
-    boost::asio::io_context &context_;
+    std::shared_ptr<boost::asio::io_context> context_;
     boost::asio::ip::tcp::acceptor acceptor_;
     std::shared_ptr<Upgrader> upgrader_;
     TransportListener::HandlerFunc handle_;

@@ -7,143 +7,100 @@
 
 #include <chrono>
 #include <future>
-#include <thread>
 
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <gsl/span>
-#include "common/buffer.hpp"
-#include "libp2p/injector/host_injector.hpp"
-#include "libp2p/injector/network_injector.hpp"
-#include "libp2p/protocol/echo.hpp"
-#include "testutil/literals.hpp"
+#include "acceptance/libp2p/host/peer/test_peer.hpp"
 #include "testutil/outcome.hpp"
 
 using namespace libp2p;
-using namespace injector;
 
 using ::testing::_;
 using ::testing::Return;
-using ::testing::ReturnRef;
 
-using std::chrono_literals::operator""ms;
 using std::chrono_literals::operator""s;
 
-using connection::Stream;
-
-struct HostIntegrationTest : public ::testing::Test {
+struct HostIntegrationTest
+    : public ::testing::TestWithParam<std::tuple<
+          size_t, size_t, uint16_t, Peer::Duration, Peer::Duration>> {
   template <class T>
   using sptr = std::shared_ptr<T>;
-  template <class T>
-  using uptr = std::unique_ptr<T>;
-  using host_uptr_t = uptr<Host>;
 
-  auto makeHost() {
-    // create hosts with default muxer, transport, security adaptors
-    auto ctx = std::make_shared<boost::asio::io_context>(1);
-    auto injector =
-        makeHostInjector(boost::di::bind<boost::asio::io_context>.to(ctx),
-                         boost::di::bind<muxer::MuxedConnectionConfig>.to(
-                             muxer::MuxedConnectionConfig::makeDefault()));
+  using Duration = kagome::clock::SteadyClockImpl::Duration;
 
-    sptr<Host> host = injector.create<std::shared_ptr<Host>>();
+  using PeerPromise = std::promise<peer::PeerInfo>;
+  using PeerFuture = std::shared_future<peer::PeerInfo>;
 
-    return std::make_pair(ctx, host);
+  std::vector<sptr<Peer>> peers;
+  std::vector<multi::Multiaddress> addresses;
+  std::vector<PeerPromise> peerinfo_promises;
+  std::vector<PeerFuture> peerinfo_futures;
+};
+
+/**
+ * @given a predefined number of peers each represents an echo server
+ * @when each peer starts its server, obtains peerinfo
+ * @and sets value to peerinfo promises
+ * @and initiates client sessions to all other servers
+ * @then all clients interact with all servers predefined number of times
+ */
+TEST_P(HostIntegrationTest, InteractAllToAllSuccess) {
+  const auto [peer_count, ping_times, start_port, timeout, future_timeout] =
+      GetParam();
+  const auto addr_prefix = "/ip4/127.0.0.1/tcp/";
+
+  // initialize
+  peers.reserve(peer_count);
+  for (size_t i = 0; i < peer_count; ++i) {
+    peers.push_back(std::make_shared<Peer>(timeout));
   }
 
-  /// VARS
-  multi::Multiaddress addr1 = "/ip4/127.0.0.1/tcp/40510"_multiaddr;
-  multi::Multiaddress addr2 = "/ip4/127.0.0.1/tcp/40511"_multiaddr;
+  addresses.reserve(peer_count);
+  peerinfo_promises.reserve(peer_count);
+  peerinfo_futures.reserve(peer_count);
 
-  std::vector<multi::Multiaddress> mas{addr1, addr2};
-};
+  // initialize peerinfo promises and futures and addresses
+  for (size_t i = 0; i < peer_count; ++i) {
+    auto port = i + start_port;
+    auto addr = addr_prefix + std::to_string(port);
+    EXPECT_OUTCOME_TRUE(ma, multi::Multiaddress::create(addr));
+    addresses.push_back(std::move(ma));
+    PeerPromise promise{};
+    PeerFuture future = promise.get_future();
+    peerinfo_promises.push_back(std::move(promise));
+    peerinfo_futures.push_back(std::move(future));
+  }
 
-struct HIHelper {
-  virtual ~HIHelper() = default;
-  virtual void callback1() = 0;
-  virtual void callback2() = 0;
-  virtual void callback3() = 0;
-  virtual void callback4() = 0;
-};
+  // start servers
+  for (size_t i = 0; i < peer_count; ++i) {
+    auto &peer = peers[i];
+    auto &address = addresses[i];
+    auto &promise = peerinfo_promises[i];
+    peer->startServer(address, promise);
+  }
 
-struct HIHelperMock : public HIHelper {
-  ~HIHelperMock() override = default;
-  MOCK_METHOD0(callback1, void(void));
-  MOCK_METHOD0(callback2, void(void));
-  MOCK_METHOD0(callback3, void(void));
-  MOCK_METHOD0(callback4, void(void));
-};
+  // need to wait for peerinfo values before starting client sessions
+  for (auto &f : peerinfo_futures) {
+    f.wait_for(future_timeout);
+  }
 
-TEST_F(HostIntegrationTest, PreliminaryTest) {
-  std::string msg1 = "hello 1";
-  std::string msg2 = "hello 2";
-
-  HIHelperMock helper;
-
-  EXPECT_CALL(helper, callback1()).WillOnce(Return());
-  EXPECT_CALL(helper, callback2()).WillRepeatedly(Return());
-  EXPECT_CALL(helper, callback3()).WillOnce(Return());
-  EXPECT_CALL(helper, callback4()).WillOnce(Return());
-
-  std::promise<peer::PeerInfo> pi_promise;
-  std::shared_future<peer::PeerInfo> pi_future(pi_promise.get_future());
-
-  auto timeout = 10000ms;
-
-  std::thread c1([this, timeout, &helper, &pi_promise]() mutable {
-    auto [ctx, host] = makeHost();
-    auto echo = std::make_shared<libp2p::protocol::Echo>();
-    host->setProtocolHandler(echo->getProtocolId(),
-                             [&](std::shared_ptr<connection::Stream> result) {
-                               std::cout << "connection accepted" << std::endl;
-                               helper.callback3();
-                               echo->handle(result);
-                             });
-    EXPECT_OUTCOME_TRUE_1(host->listen(addr1))
-    pi_promise.set_value(host->getPeerInfo());
-    host->start();
-    helper.callback4();
-    ctx->run_for(timeout);
-    ctx->run();
-  });
-
-  std::thread c2([this, timeout, &helper, pi_future]() mutable {
-    pi_future.wait_for(timeout);
-    if (!pi_future.valid()) {
-      FAIL();
-      return;
+  // start client sessions from all peers to all other peers
+  for (size_t i = 0; i < peer_count; ++i) {
+    for (size_t j = 0; j < peer_count; ++j) {
+      const auto &pinfo = peerinfo_futures[j].get();
+      auto checker = std::make_shared<TickCounter>(ping_times);
+      peers[i]->startClient(i, pinfo, ping_times, std::move(checker));
     }
+  }
 
-    auto pi = pi_future.get();
-
-    libp2p::protocol::Echo echo{};
-    auto [ctx, host] = makeHost();
-    kagome::common::Buffer msg = "helloooo"_buf;
-
-    host->newStream(
-        pi_future.get(), echo.getProtocolId(),
-        [&](outcome::result<sptr<Stream>> stream_result) {
-          std::cout << "server1 on new stream" << std::endl;
-
-          EXPECT_OUTCOME_TRUE(stream, stream_result)
-          helper.callback1();
-          gsl::span<uint8_t> wspan = msg.toVector();
-
-          stream->write(wspan, wspan.size(),
-                        [&](outcome::result<size_t> written_bytes) {
-                          std::cout << "stream write success" << std::endl;
-                        });
-//          auto client = echo.createClient(stream);
-//          client->sendAnd("helloooooo", [](outcome::result<std::string> res) {
-//            std::cout << "here we are" << std::endl;
-//            EXPECT_OUTCOME_TRUE(str, res)
-//            std::cout << "received: " << str << std::endl;
-//          });
-        });
-    ctx->run_for(timeout);
-    ctx->run();
-  });
-
-  c2.join();
-  c1.join();
+  // wait for peers to finish their jobs
+  for (const auto &p : peers) {
+    p->wait();
+  }
 }
+
+INSTANTIATE_TEST_CASE_P(AllTestCases, HostIntegrationTest,
+                        ::testing::Values(
+                            // ports are not freed, so new ports each time
+                            std::make_tuple(1u, 1u, 40510u, 2s, 2s),
+                            std::make_tuple(11u, 10u, 40511u, 5s, 2s),
+                            std::make_tuple(5u, 100u, 40522u, 5s, 2s)));

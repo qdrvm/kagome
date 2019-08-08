@@ -33,9 +33,9 @@ namespace libp2p::transport {
     using ConnectCallback = void(const ErrorCode &, const Tcp::endpoint &);
     using ConnectCallbackFunc = std::function<ConnectCallback>;
 
-    explicit TcpConnection(boost::asio::io_context &ctx);
+    explicit TcpConnection(std::shared_ptr<boost::asio::io_context> ctx);
 
-    TcpConnection(boost::asio::io_context &ctx, Tcp::socket &&socket);
+    TcpConnection(std::shared_ptr<boost::asio::io_context> ctx, Tcp::socket &&socket);
 
     /**
      * @brief Resolve service name (DNS).
@@ -74,7 +74,7 @@ namespace libp2p::transport {
     bool isClosed() const override;
 
    private:
-    boost::asio::io_context &context_;
+    std::shared_ptr<boost::asio::io_context> context_;
     Tcp::socket socket_;
     bool initiator_ = false;
 

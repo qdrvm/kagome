@@ -9,11 +9,11 @@
 
 namespace libp2p::transport {
 
-  TcpListener::TcpListener(boost::asio::io_context &context,
+  TcpListener::TcpListener(std::shared_ptr<boost::asio::io_context> context,
                            std::shared_ptr<Upgrader> upgrader,
                            TransportListener::HandlerFunc handler)
       : context_(context),
-        acceptor_(context),
+        acceptor_(*context),
         upgrader_(std::move(upgrader)),
         handle_(std::move(handler)) {}
 

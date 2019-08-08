@@ -196,7 +196,7 @@ namespace libp2p::network {
               this->router_->getSupportedProtocols(), stream,
               false /* not initiator */,
               [this, stream](outcome::result<peer::Protocol> rproto) {
-                if (rproto) {
+                if (!rproto) {
                   // can not negotiate protocols
                   // TODO(Warchant): log error
                   return;  // ignore
