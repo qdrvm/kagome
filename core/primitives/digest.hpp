@@ -10,11 +10,10 @@
 
 namespace kagome::primitives {
   /**
-   * Digest is an implementation defined entity, it should be considered as an
-   * array of bytes
+   * Digest is an implementation- and usage-defined entity, for example,
+   * information, needed to verify the block
    */
   using Digest = common::Buffer;
-
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_CORE_PRIMITIVES_DIGEST_HPP

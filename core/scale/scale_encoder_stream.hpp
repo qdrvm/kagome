@@ -94,6 +94,30 @@ namespace kagome::scale {
     }
 
     /**
+     * @brief scale-encodes array of items
+     * @tparam T item type
+     * @tparam size of the array
+     * @param a reference to the array
+     * @return reference to stream
+     */
+    template <typename T, size_t size>
+    ScaleEncoderStream &operator<<(const std::array<T, size> &a) {
+      // TODO(akvinikym) PRE-285: bad implementation: maybe move to another file
+      // and implement it
+      return encodeCollection(size, a.begin(), a.end());
+    }
+
+    /**
+     * @brief scale-encodes uint256_t to stream
+     * @param i value to decode
+     * @return reference to stream
+     */
+    ScaleEncoderStream &operator<<(const boost::multiprecision::uint256_t &i) {
+      // TODO(akvinikym) PRE-285: maybe move to another file and implement it
+      return *this;
+    }
+
+    /**
      * @brief scale-encodes std::reference_wrapper of a type
      * @tparam T underlying type
      * @param v value to encode
@@ -119,7 +143,8 @@ namespace kagome::scale {
      * @param v value of integral type
      * @return reference to stream
      */
-    template <typename T, typename I = std::decay_t<T>,
+    template <typename T,
+              typename I = std::decay_t<T>,
               typename = std::enable_if_t<std::is_integral<I>::value>>
     ScaleEncoderStream &operator<<(T &&v) {
       // encode bool
@@ -154,7 +179,8 @@ namespace kagome::scale {
      * @return reference to stream
      */
     template <class It>
-    ScaleEncoderStream &encodeCollection(const CompactInteger &size, It &&begin,
+    ScaleEncoderStream &encodeCollection(const CompactInteger &size,
+                                         It &&begin,
                                          It &&end) {
       *this << size;
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)

@@ -9,7 +9,7 @@
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 
-namespace kagome::hash {
+namespace kagome::crypto {
   class Hasher {
    protected:
     using Hash128 = common::Hash128;
@@ -19,33 +19,40 @@ namespace kagome::hash {
     virtual ~Hasher() = default;
 
     /**
-     * @brief hashTwox128 calculates 16-byte twox hash
+     * @brief twox_128 calculates 16-byte twox hash
      * @param buffer source buffer
      * @return 128-bit hash value
      */
     virtual Hash128 twox_128(gsl::span<const uint8_t> buffer) const = 0;
 
     /**
-     * @brief hashTwox256 calculates 32-byte twox hash
+     * @brief twox_256 calculates 32-byte twox hash
      * @param buffer source buffer
      * @return 256-bit hash value
      */
     virtual Hash256 twox_256(gsl::span<const uint8_t> buffer) const = 0;
 
     /**
-     * @brief hashBlake2_256 function calculates 32-byte blake2 hash
+     * @brief blake2b_256 function calculates 32-byte blake2b hash
      * @param buffer source value
      * @return 256-bit hash value
      */
-    virtual Hash256 blake2_256(gsl::span<const uint8_t> buffer) const = 0;
+    virtual Hash256 blake2b_256(gsl::span<const uint8_t> buffer) const = 0;
 
     /**
-     * @brief hashSha2_256 function calculates 32-byte sha-2-256 hash
+     * @brief blake2s_256 function calculates 32-byte blake2s hash
+     * @param buffer source value
+     * @return 256-bit hash value
+     */
+    virtual Hash256 blake2s_256(gsl::span<const uint8_t> buffer) const = 0;
+
+    /**
+     * @brief sha2_256 function calculates 32-byte sha2-256 hash
      * @param buffer source value
      * @return 256-bit hash value
      */
     virtual Hash256 sha2_256(gsl::span<const uint8_t> buffer) const = 0;
   };
-}  // namespace kagome::hash
+}  // namespace kagome::crypto
 
 #endif  // KAGOME_CORE_HASHER_HASHER_HPP_

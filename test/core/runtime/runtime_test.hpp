@@ -56,8 +56,8 @@ class RuntimeTest : public test::WasmTest {
 
     Digest digest;
 
-    return BlockHeader{parent_hash, number, state_root, extrinsics_root,
-                       digest};
+    return BlockHeader{
+        parent_hash, number, state_root, extrinsics_root, {digest}};
   }
 
   kagome::primitives::Block createBlock() {

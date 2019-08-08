@@ -23,9 +23,16 @@ namespace kagome::blockchain {
   namespace prefix {
     enum Prefix : uint8_t {
       // mapping of block id to a storage lookup key
-      ID_TO_LOOKUP_KEY,
+      ID_TO_LOOKUP_KEY = 3,
+
       // block headers
-      HEADER
+      HEADER = 4,
+
+      // body of the block (extrinsics)
+      BODY = 5,
+
+      // justification of the finalized block
+      JUSTIFICATION = 6
     };
   }
 
@@ -55,6 +62,17 @@ namespace kagome::blockchain {
       storage::face::PersistentMap<common::Buffer, common::Buffer> &db,
       prefix::Prefix prefix, primitives::BlockNumber num,
       common::Hash256 block_hash, const common::Buffer &value);
+
+  /**
+   * Get an entry from the database
+   * @param db to get the entry from
+   * @param prefix, with which the entry was put into
+   * @param block_id - id of the block to get entry for
+   * @return encoded entry or error
+   */
+  outcome::result<common::Buffer> getWithPrefix(
+      storage::face::PersistentMap<common::Buffer, common::Buffer> &db,
+      prefix::Prefix prefix, const primitives::BlockId &block_id);
 
   /**
    * Convert block number into short lookup key (LE representation) for

@@ -82,6 +82,7 @@ endfunction()
 
 add_custom_target(generated
     COMMENT "Building generated files..."
+    DEPENDS sr25519
     )
 
 function(add_proto_library NAME)

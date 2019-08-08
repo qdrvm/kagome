@@ -61,7 +61,7 @@ TEST_F(BlockBuilderTest, PushWhenApplyFails) {
 
   // then
   ASSERT_FALSE(res);
-  ASSERT_THAT(block.extrinsics, IsEmpty());
+  ASSERT_THAT(block.body, IsEmpty());
 }
 
 /**
@@ -85,7 +85,7 @@ TEST_F(BlockBuilderTest, PushWhenApplySucceedsWithTrue) {
 
   // then
   ASSERT_EQ(block.header, expected_header_);
-  ASSERT_THAT(block.extrinsics, ElementsAre(xt));
+  ASSERT_THAT(block.body, ElementsAre(xt));
 }
 
 /**
@@ -108,5 +108,5 @@ TEST_F(BlockBuilderTest, PushWhenApplySucceedsWithFalse) {
   ASSERT_FALSE(res);
   EXPECT_OUTCOME_TRUE(block, block_builder_->bake());
   ASSERT_EQ(block.header, expected_header_);
-  ASSERT_THAT(block.extrinsics, IsEmpty());
+  ASSERT_THAT(block.body, IsEmpty());
 }

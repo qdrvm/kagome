@@ -34,7 +34,7 @@ namespace kagome::authorship {
     primitives::BlockHeader parent_header;
     parent_header.number = parent_number;
     parent_header.parent_hash = parent_hash;
-    parent_header.digest = inherent_digest;
+    parent_header.digests = {inherent_digest};
 
     OUTCOME_TRY(r_core_->initialise_block(parent_header));
 

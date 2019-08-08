@@ -5,5 +5,6 @@
 
 add_subdirectory(blake2)
 add_subdirectory(twox)
+add_subdirectory(vrf)
 add_subdirectory(sha)
 add_subdirectory(hasher)

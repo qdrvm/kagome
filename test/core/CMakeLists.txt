@@ -4,6 +4,7 @@
 #
 
 add_subdirectory(authorship)
+add_subdirectory(consensus)
 add_subdirectory(common)
 add_subdirectory(crypto)
 add_subdirectory(extensions)

@@ -5,6 +5,8 @@
 
 #include "blockchain/impl/level_db_util.hpp"
 
+#include "blockchain/impl/common.hpp"
+
 using kagome::blockchain::prefix::Prefix;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
@@ -28,20 +30,28 @@ namespace kagome::blockchain {
       const common::Buffer &value) {
     auto block_lookup_key = numberAndHashToLookupKey(num, block_hash);
     auto value_lookup_key = prependPrefix(block_lookup_key, prefix);
-    auto num_to_idx_key = prependPrefix(numberToIndexKey(num), Prefix::ID_TO_LOOKUP_KEY);
-    auto hash_to_idx_key = prependPrefix(Buffer{block_hash}, Prefix::ID_TO_LOOKUP_KEY);
+    auto num_to_idx_key =
+        prependPrefix(numberToIndexKey(num), Prefix::ID_TO_LOOKUP_KEY);
+    auto hash_to_idx_key =
+        prependPrefix(Buffer{block_hash}, Prefix::ID_TO_LOOKUP_KEY);
     OUTCOME_TRY(db.put(num_to_idx_key, block_lookup_key));
     OUTCOME_TRY(db.put(hash_to_idx_key, block_lookup_key));
     return db.put(value_lookup_key, value);
+  }
+
+  outcome::result<common::Buffer> getWithPrefix(
+      storage::face::PersistentMap<common::Buffer, common::Buffer> &db,
+      prefix::Prefix prefix, const primitives::BlockId &block_id) {
+    OUTCOME_TRY(key, idToLookupKey(db, block_id));
+    return db.get(prependPrefix(key, prefix));
   }
 
   common::Buffer numberToIndexKey(primitives::BlockNumber n) {
     // TODO(Harrm) Figure out why exactly it is this way in substrate
     BOOST_ASSERT((n & 0xffffffff00000000) == 0);
 
-    return {uint8_t(n >> 24u),
-            uint8_t((n >> 16u) & 0xffu), uint8_t((n >> 8u) & 0xffu),
-            uint8_t(n & 0xffu)};
+    return {uint8_t(n >> 24u), uint8_t((n >> 16u) & 0xffu),
+            uint8_t((n >> 8u) & 0xffu), uint8_t(n & 0xffu)};
   }
 
   common::Buffer numberAndHashToLookupKey(primitives::BlockNumber number,
@@ -62,7 +72,10 @@ namespace kagome::blockchain {
 
   common::Buffer prependPrefix(const common::Buffer &key,
                                prefix::Prefix key_column) {
-    return common::Buffer{}.reserve(key.size() + 1).putUint8(key_column).put(key);
+    return common::Buffer{}
+        .reserve(key.size() + 1)
+        .putUint8(key_column)
+        .put(key);
   }
 
 }  // namespace kagome::blockchain

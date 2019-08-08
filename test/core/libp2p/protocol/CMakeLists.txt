@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(kademlia)
+
 addtest(identify_test
     identify_test.cpp
     )
