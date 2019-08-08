@@ -92,6 +92,9 @@ class BabeTest : public testing::Test {
   Hash256 created_block_hash_{createHash(3)};
 
   SystemClockImpl real_clock_{};
+
+  decltype(event_bus_.getChannel<event::BabeErrorChannel>()) &error_channel_{
+      event_bus_.getChannel<event::BabeErrorChannel>()};
 };
 
 ACTION_P(CheckBlock, block) {
@@ -194,4 +197,33 @@ TEST_F(BabeTest, SyncSuccess) {
  * @when launching it
  * @then it fails to synchronize
  */
-TEST_F(BabeTest, BigDelay) {}
+TEST_F(BabeTest, BigDelay) {
+  epoch_.epoch_duration = 1;
+
+  auto test_begin = real_clock_.now();
+  auto delay = 9000ms;
+  auto slot_start_time = test_begin - delay;
+
+  // runEpoch
+  epoch_.randomness.fill(0);
+  EXPECT_CALL(*lottery_, slotsLeadership(epoch_, keypair_))
+      .WillOnce(Return(leadership_));
+
+  // runSlot
+  // emulate a very big delay (so that the system understands other nodes moved
+  // to the next epoch already)
+  EXPECT_CALL(*clock_, now())
+      .Times(2)
+      .WillRepeatedly(Return(
+          test_begin + epoch_.slot_duration * epoch_.epoch_duration * 2));
+
+  auto error_emitted = false;
+  auto h = error_channel_.subscribe([&error_emitted](auto &&err) mutable {
+    ASSERT_EQ(err, BabeImpl::Error::NODE_FALL_BEHIND);
+    error_emitted = true;
+  });
+
+  babe_.runEpoch(epoch_, slot_start_time);
+
+  ASSERT_TRUE(error_emitted);
+}
