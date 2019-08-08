@@ -35,6 +35,7 @@ struct BabeLotteryTest : public testing::Test {
       1,
       0,
       3,
+      std::chrono::milliseconds(20),
       {},
       10,
       Randomness{

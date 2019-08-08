@@ -9,6 +9,7 @@
 #include <array>
 #include <cstdint>
 
+#include "clock/clock.hpp"
 #include "crypto/crypto_types.hpp"
 
 namespace kagome::consensus {
