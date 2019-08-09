@@ -6,8 +6,8 @@
 #ifndef KAGOME_BLOCK_REQUEST_HPP
 #define KAGOME_BLOCK_REQUEST_HPP
 
-#include <cstdint>
 #include <bitset>
+#include <cstdint>
 
 #include <boost/optional.hpp>
 #include <gsl/span>
@@ -31,7 +31,7 @@ namespace kagome::network {
     /// Include a justification for the block.
     JUSTIFICATION = 1u << 4u
   };
-  using BlockAttributes = uint8_t;
+  using BlockAttributes = std::bitset<8>;
 
   /**
    * Direction, in which to retrieve the blocks
