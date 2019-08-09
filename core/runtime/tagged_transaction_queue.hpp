@@ -19,7 +19,8 @@ namespace kagome::runtime {
     virtual ~TaggedTransactionQueue() = default;
 
     /**
-     * Calls the TaggedTransactionQueue_validate_transaction function from wasm code
+     * Calls the TaggedTransactionQueue_validate_transaction function from wasm
+     * code
      * @param ext extrinsic containing transaction to be validated
      * @return structure with information about transaction validity
      */

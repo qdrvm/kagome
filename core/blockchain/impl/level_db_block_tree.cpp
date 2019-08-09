@@ -86,7 +86,8 @@ namespace kagome::blockchain {
 
   outcome::result<std::unique_ptr<LevelDbBlockTree>> LevelDbBlockTree::create(
       PersistentBufferMap &db, const primitives::BlockId &last_finalized_block,
-      std::shared_ptr<hash::Hasher> hasher, common::Logger log) {
+      std::shared_ptr<crypto::Hasher> hasher,
+      common::Logger log) {
     // retrieve the block's header: we need data from it
     OUTCOME_TRY(encoded_header,
                 getWithPrefix(db, Prefix::HEADER, last_finalized_block));
@@ -104,7 +105,7 @@ namespace kagome::blockchain {
           OUTCOME_TRY(body, scale::decode<primitives::BlockBody>(encoded_body));
           OUTCOME_TRY(encoded_block,
                       scale::encode(primitives::Block{header, body}));
-          return hasher->blake2_256(encoded_block);
+          return hasher->blake2b_256(encoded_block);
         },
         [](const common::Hash256 &hash) { return hash; });
     if (!hash_res) {
@@ -124,7 +125,7 @@ namespace kagome::blockchain {
   LevelDbBlockTree::LevelDbBlockTree(PersistentBufferMap &db,
                                      std::shared_ptr<TreeNode> tree,
                                      std::shared_ptr<TreeMeta> meta,
-                                     std::shared_ptr<hash::Hasher> hasher,
+                                     std::shared_ptr<crypto::Hasher> hasher,
                                      common::Logger log)
       : db_{db},
         tree_{std::move(tree)},
@@ -150,7 +151,7 @@ namespace kagome::blockchain {
     }
 
     OUTCOME_TRY(encoded_block, scale::encode(block));
-    auto block_hash = hasher_->blake2_256(encoded_block);
+    auto block_hash = hasher_->blake2b_256(encoded_block);
 
     // insert our block's parts into the database
     OUTCOME_TRY(encoded_header, scale::encode(block.header));

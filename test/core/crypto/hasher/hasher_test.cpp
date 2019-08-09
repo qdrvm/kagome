@@ -19,7 +19,7 @@ class HasherFixture : public testing::Test {
   ~HasherFixture() override = default;
 
   HasherFixture() {
-    hasher = std::make_shared<kagome::hash::HasherImpl>();
+    hasher = std::make_shared<kagome::crypto::HasherImpl>();
   }
 
   /**
@@ -39,7 +39,7 @@ class HasherFixture : public testing::Test {
   }
 
  protected:
-  std::shared_ptr<kagome::hash::Hasher> hasher;
+  std::shared_ptr<kagome::crypto::Hasher> hasher;
 };
 
 /**
@@ -92,6 +92,6 @@ TEST_F(HasherFixture, blake2_256) {
   Buffer buffer {"6920616d2064617461"_unhex};
   std::vector<uint8_t> match = "ba67336efd6a3df3a70eeb757860763036785c182ff4cf587541a0068d09f5b2"_unhex;
 
-  auto hash = hasher->blake2_256(buffer);
+  auto hash = hasher->blake2b_256(buffer);
   ASSERT_EQ(blob2buffer<32>(hash).toVector(), match);
 }

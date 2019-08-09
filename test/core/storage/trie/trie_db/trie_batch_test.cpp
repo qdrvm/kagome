@@ -7,15 +7,16 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include "crypto/hasher/hasher_impl.hpp"
+#include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"
-#include "storage/in_memory/in_memory_storage.hpp"
-#include "crypto/hasher/hasher_impl.hpp"
+#include "testutil/storage/polkadot_trie_db_printer.hpp"
 
 using namespace kagome::storage::trie;
 using kagome::common::Buffer;
-using kagome::hash::HasherImpl;
+using kagome::crypto::HasherImpl;
 using kagome::storage::face::WriteBatch;
 using testing::_;
 using testing::Invoke;

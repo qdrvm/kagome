@@ -29,9 +29,10 @@ namespace test {
                                 SimpleClient::HandleWrite on_success) {
     resetTimer();
 
-    auto data_ptr = std::make_shared<std::string>(std::move(data));
+    auto data_ptr = std::make_shared<std::string>(data);
     boost::asio::async_write(
-        socket_, boost::asio::const_buffer(data_ptr->data(), data_ptr->size()),
+        socket_,
+        boost::asio::const_buffer(data_ptr->data(), data_ptr->size()),
         [data_ptr, handler = std::move(on_success)](
             ErrorCode error, std::size_t n) { handler(error, n); });
   }
@@ -39,7 +40,9 @@ namespace test {
   void SimpleClient::asyncRead(const SimpleClient::HandleRead &on_success) {
     resetTimer();
     boost::asio::async_read_until(
-        socket_, buffer_, '\n',
+        socket_,
+        buffer_,
+        '\n',
         [this, on_success](ErrorCode error, std::size_t n) {
           if (!error) {
             read_count_ = n;

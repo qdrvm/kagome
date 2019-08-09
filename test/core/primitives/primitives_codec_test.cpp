@@ -74,7 +74,7 @@ class Primitives : public testing::Test {
                             2,                // number: number
                             createHash({1}),  // state_root
                             createHash({2}),  // extrinsic root
-                            {5}};             // buffer: digest;
+                            {{5}}};             // buffer: digest;
   ByteArray encoded_header_ = []() {
     Buffer h;
     // SCALE-encoded
@@ -84,7 +84,8 @@ class Primitives : public testing::Test {
         std::vector<uint8_t>(31, 0));  // state_root: hash256 with value 1
     h.putUint8(2).put(
         std::vector<uint8_t>(31, 0));  // extrinsic_root: hash256 with value 2
-    h.putUint8(4).putUint8(5);         // digest: buffer with element 5
+//    h.putUint8(4).putUint8(5);         // digest: vector with buffer with element 5
+    h.putUint8(4).putUint8(4).put(std::vector<uint8_t>{5});
     return h.toVector();
   }();
   /// Extrinsic instance and corresponding scale representation
@@ -172,7 +173,7 @@ TEST_F(Primitives, DecodeBlockHeaderSuccess) {
   ASSERT_EQ(val.number, block_header_.number);
   ASSERT_EQ(val.state_root, block_header_.state_root);
   ASSERT_EQ(val.extrinsics_root, block_header_.extrinsics_root);
-  ASSERT_EQ(val.digest, block_header_.digest);
+  ASSERT_EQ(val.digests, block_header_.digests);
 }
 
 /**
@@ -217,7 +218,7 @@ TEST_F(Primitives, DecodeBlockSuccess) {
   ASSERT_EQ(h.number, block_header_.number);
   ASSERT_EQ(h.state_root, block_header_.state_root);
   ASSERT_EQ(h.extrinsics_root, block_header_.extrinsics_root);
-  ASSERT_EQ(h.digest, block_header_.digest);
+  ASSERT_EQ(h.digests, block_header_.digests);
 
   auto &&extrinsics = val.body;
   ASSERT_EQ(extrinsics.size(), 1);

@@ -84,7 +84,7 @@ namespace kagome::blockchain {
     static outcome::result<std::unique_ptr<LevelDbBlockTree>> create(
         PersistentBufferMap &db,
         const primitives::BlockId &last_finalized_block,
-        std::shared_ptr<hash::Hasher> hasher,
+        std::shared_ptr<crypto::Hasher> hasher,
         common::Logger log = common::createLogger("LevelDBBlockTree"));
 
     ~LevelDbBlockTree() override = default;
@@ -120,14 +120,15 @@ namespace kagome::blockchain {
      */
     LevelDbBlockTree(PersistentBufferMap &db, std::shared_ptr<TreeNode> tree,
                      std::shared_ptr<TreeMeta> meta,
-                     std::shared_ptr<hash::Hasher> hasher, common::Logger log);
+                     std::shared_ptr<crypto::Hasher> hasher,
+                     common::Logger log);
 
     PersistentBufferMap &db_;
 
     std::shared_ptr<TreeNode> tree_;
     std::shared_ptr<TreeMeta> tree_meta_;
 
-    std::shared_ptr<hash::Hasher> hasher_;
+    std::shared_ptr<crypto::Hasher> hasher_;
     common::Logger log_;
   };
 }  // namespace kagome::blockchain

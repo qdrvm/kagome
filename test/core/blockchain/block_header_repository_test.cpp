@@ -37,7 +37,7 @@ class BlockHeaderRepository_Test : public test::BaseLevelDB_Test {
   void SetUp() override {
     open();
 
-    hasher_ = std::make_shared<kagome::hash::HasherImpl>();
+    hasher_ = std::make_shared<kagome::crypto::HasherImpl>();
     header_repo_ =
         std::make_shared<LevelDbBlockHeaderRepository>(*db_, hasher_);
   }
@@ -46,7 +46,7 @@ class BlockHeaderRepository_Test : public test::BaseLevelDB_Test {
     BlockHeader header = std::move(h);
     header.number = num;
     OUTCOME_TRY(enc_header, kagome::scale::encode(header));
-    auto hash = hasher_->blake2_256(enc_header);
+    auto hash = hasher_->blake2b_256(enc_header);
     OUTCOME_TRY(putWithPrefix(*db_, Prefix::HEADER, header.number, hash,
                               Buffer{enc_header}));
     return hash;
@@ -61,7 +61,7 @@ class BlockHeaderRepository_Test : public test::BaseLevelDB_Test {
     return h;
   }
 
-  std::shared_ptr<kagome::hash::Hasher> hasher_;
+  std::shared_ptr<kagome::crypto::Hasher> hasher_;
   std::shared_ptr<BlockHeaderRepository> header_repo_;
 };
 
@@ -88,7 +88,7 @@ TEST_F(BlockHeaderRepository_Test, UnexistingHeader) {
   BlockHeader not_in_storage = getDefaultHeader();
   not_in_storage.number = chosen_number;
   EXPECT_OUTCOME_TRUE(enc_header, kagome::scale::encode(not_in_storage));
-  auto hash = hasher_->blake2_256(enc_header);
+  auto hash = hasher_->blake2b_256(enc_header);
   EXPECT_OUTCOME_FALSE_1(header_repo_->getBlockHeader(chosen_number));
   EXPECT_OUTCOME_FALSE_1(header_repo_->getBlockHeader(hash));
   EXPECT_OUTCOME_FALSE_1(header_repo_->getHashById(chosen_number));

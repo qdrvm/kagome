@@ -6,8 +6,10 @@
 #ifndef KAGOME_CORE_SCALE_SCALE_DECODER_STREAM_HPP
 #define KAGOME_CORE_SCALE_SCALE_DECODER_STREAM_HPP
 
+#include <array>
 #include <optional>
 
+#include <boost/multiprecision/cpp_int.hpp>
 #include <gsl/span>
 #include "scale/detail/fixed_witdh_integer.hpp"
 #include "scale/detail/variant.hpp"
@@ -50,7 +52,8 @@ namespace kagome::scale {
      * @param v value of integral type
      * @return reference to stream
      */
-    template <typename T, typename I = std::decay_t<T>,
+    template <typename T,
+              typename I = std::decay_t<T>,
               typename = std::enable_if_t<std::is_integral<I>::value>>
     ScaleDecoderStream &operator>>(T &v) {
       // check bool
@@ -129,6 +132,34 @@ namespace kagome::scale {
         *this >> t;
         v.push_back(std::move(t));
       }
+      return *this;
+    }
+
+    /**
+     * @brief decodes array of items
+     * @tparam T item type
+     * @tparam size of the array
+     * @param a reference to the array
+     * @return reference to stream
+     */
+    template <typename T, size_t size>
+    ScaleDecoderStream &operator>>(std::array<T, size> &a) {
+      // TODO(akvinikym) PRE-285: bad implementation: maybe move to another file
+      // and implement it
+      std::vector<T> v;
+      v.reserve(size);
+      *this >> v;
+      std::copy(v.begin(), v.end(), a.begin());
+      return *this;
+    }
+
+    /**
+     * @brief decodes uint256_t from stream
+     * @param i value to decode
+     * @return reference to stream
+     */
+    ScaleDecoderStream &operator>>(boost::multiprecision::uint256_t &i) {
+      // TODO(akvinikym) PRE-285: maybe move to another file and implement it
       return *this;
     }
 
