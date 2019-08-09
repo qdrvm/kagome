@@ -34,6 +34,8 @@ namespace kagome::storage::trie {
     outcome::result<std::shared_ptr<Node>> decodeNode(
         const common::Buffer &encoded_data) const override;
 
+    common::Hash256 merkleValue(const Buffer &buf) const override;
+
     common::Hash256 hash256(const Buffer &buf) const override;
 
     /// non-overriding helper methods
@@ -43,6 +45,7 @@ namespace kagome::storage::trie {
 
     // 7.2 Hex encoding
     static Buffer nibblesToKey(const Buffer &key);
+    //static Buffer nibblesToKeyLE(const Buffer &key);
 
     // Algorithm 3: partial key length encoding
     outcome::result<Buffer> encodeHeader(const PolkadotNode &node) const;

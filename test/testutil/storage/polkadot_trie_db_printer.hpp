@@ -28,7 +28,7 @@ namespace kagome::storage::trie {
 
   template <typename Stream>
   Stream &operator<<(Stream &s, const PolkadotTrieDb &trie) {
-    if (trie.root_.has_value()) {
+    if (not trie.empty()) {
       auto root = trie.retrieveNode(trie.getRootHash()).value();
       printNode(s, root, trie, 0);
     }
@@ -49,7 +49,7 @@ namespace kagome::storage::trie {
           << "> value: " << node->value.toHex() << " children: ";
         for (size_t i = 0; i < branch->children.size(); i++) {
           if (branch->children[i]) {
-            s << std::hex << i;
+            s << std::hex << i << "|";
           }
         }
         s << "\n";

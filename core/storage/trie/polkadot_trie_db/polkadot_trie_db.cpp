@@ -17,7 +17,8 @@ using kagome::common::Buffer;
 namespace kagome::storage::trie {
 
   PolkadotTrieDb::PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db)
-      : db_{std::move(db)} {}
+      : db_{std::move(db)},
+      root_{getEmptyRoot()} {}
 
   outcome::result<void> PolkadotTrieDb::put(const Buffer &key,
                                             const Buffer &value) {
@@ -39,18 +40,18 @@ namespace kagome::storage::trie {
   }
 
   common::Buffer PolkadotTrieDb::getRootHash() const {
-    return root_.value_or(Buffer{});
+    return root_;
   }
 
   outcome::result<void> PolkadotTrieDb::clearPrefix(
       const common::Buffer &prefix) {
-    if (not root_.has_value()) {
+    if (empty()) {
       return outcome::success();
     }
     OUTCOME_TRY(trie, initTrie());
     OUTCOME_TRY(trie.clearPrefix(prefix));
     if (trie.getRoot() == nullptr) {
-      root_ = std::nullopt;
+      root_ = getEmptyRoot();
     } else {
       OUTCOME_TRY(hash, storeNode(*trie.getRoot()));
       root_ = hash;
@@ -69,7 +70,7 @@ namespace kagome::storage::trie {
 
   outcome::result<common::Buffer> PolkadotTrieDb::get(
       const common::Buffer &key) const {
-    if (not root_.has_value()) {
+    if (empty()) {
       return common::Buffer{};
     }
     OUTCOME_TRY(trie, initTrie());
@@ -82,7 +83,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> PolkadotTrieDb::remove(const common::Buffer &key) {
-    if (not root_.has_value()) {
+    if (empty()) {
       return outcome::success();
     }
     OUTCOME_TRY(trie, initTrie());
@@ -91,7 +92,7 @@ namespace kagome::storage::trie {
     // after this, the nodes are written back to the storage and the new trie
     // root hash is obtained
     if (trie.getRoot() == nullptr) {
-      root_ = std::nullopt;
+      root_ = getEmptyRoot();
     } else {
       OUTCOME_TRY(root_hash, storeNode(*trie.getRoot()));
       root_ = root_hash;
@@ -135,7 +136,7 @@ namespace kagome::storage::trie {
     }
 
     OUTCOME_TRY(enc, codec_.encodeNode(node));
-    auto key = Buffer{codec_.hash256(enc)};
+    auto key = Buffer{codec_.merkleValue(enc)};
     OUTCOME_TRY(db_->put(key, enc));
     return key;
   }
@@ -156,12 +157,20 @@ namespace kagome::storage::trie {
 
   outcome::result<PolkadotTrieDb::NodePtr> PolkadotTrieDb::retrieveNode(
       const common::Buffer &db_key) const {
-    if (db_key.empty()) {
+    if (db_key.empty() or db_key == getEmptyRoot()) {
       return nullptr;
     }
     OUTCOME_TRY(enc, db_->get(db_key));
     OUTCOME_TRY(n, codec_.decodeNode(enc));
     return std::dynamic_pointer_cast<PolkadotNode>(n);
+  }
+
+  common::Buffer PolkadotTrieDb::getEmptyRoot() const {
+    return Buffer{}.put(codec_.hash256({0}));
+  }
+
+  bool PolkadotTrieDb::empty() const {
+    return root_ == getEmptyRoot();
   }
 
 }  // namespace kagome::storage::trie

@@ -7,7 +7,6 @@
 
 #include <gtest/gtest.h>
 #include "storage/in_memory/in_memory_storage.hpp"
-#include "storage/leveldb/leveldb.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"
@@ -16,6 +15,7 @@
 using kagome::common::Buffer;
 using kagome::storage::LevelDB;
 using kagome::storage::trie::PolkadotTrieDb;
+using kagome::storage::trie::operator<<;
 
 /**
  * Automation of operations over a trie
@@ -32,10 +32,12 @@ class TrieTest
     : public test::BaseLevelDB_Test,
       public ::testing::WithParamInterface<std::vector<TrieCommand>> {
  public:
-  TrieTest() : BaseLevelDB_Test("/tmp/leveldbtest") {}
+  TrieTest() : BaseLevelDB_Test("/tmp/leveldb_test") {}
 
   void SetUp() override {
     open();
+
+    //auto db_ = std::make_unique<test::InMemoryStorage>();
     trie = std::make_unique<PolkadotTrieDb>(std::move(db_));
   }
 
@@ -309,5 +311,28 @@ TEST_F(TrieTest, ClearPrefix) {
 
   EXPECT_OUTCOME_TRUE_1(trie->clearPrefix("b"_buf));
   ASSERT_FALSE(trie->contains("bat"_buf));
-  ASSERT_TRUE(trie->getRootHash().empty());
+  ASSERT_TRUE(trie->empty());
+}
+
+/**
+ * @given an empty trie
+ * @when
+ */
+TEST_F(TrieTest, EmptyTrie) {
+  ASSERT_TRUE(trie->empty());
+  EXPECT_OUTCOME_TRUE_1(trie->put({0}, "asdasd"_buf));
+  ASSERT_FALSE(trie->empty());
+}
+
+TEST_F(TrieTest, Limits) {
+  trie->put({0}, "qwerty"_buf);
+  std::cout << *trie;
+  trie->put({1}, "quaia"_buf);
+  std::cout << *trie;
+  ASSERT_TRUE(trie->get({0}));
+  ASSERT_TRUE(trie->get({1}));
+  trie->remove({0});
+  std::cout << *trie;
+  trie->remove({1});
+  std::cout << "trie:" << *trie;
 }

@@ -7,12 +7,11 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include "crypto/hasher/hasher_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
-#include "testutil/storage/polkadot_trie_db_printer.hpp"
+#include "crypto/hasher/hasher_impl.hpp"
 
 using namespace kagome::storage::trie;
 using kagome::common::Buffer;

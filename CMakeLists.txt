@@ -134,6 +134,7 @@ kagome_install(
 
 include(CMakePackageConfigHelpers)
 
+set(CONFIG_INCLUDE_DIRS ${CMAKE_INSTALL_FULL_INCLUDEDIR}/kagome)
 configure_package_config_file(${CMAKE_CURRENT_LIST_DIR}/cmake/kagomeConfig.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/kagomeConfig.cmake
     INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/kagome

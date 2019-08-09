@@ -5,7 +5,7 @@
 
 #include "storage/trie/polkadot_trie_db/polkadot_codec.hpp"
 
-#include "crypto/blake2/blake2s.h"
+#include "crypto/blake2/blake2b.h"
 #include "scale/scale.hpp"
 #include "scale/scale_decoder_stream.hpp"
 #include "storage/trie/polkadot_trie_db/polkadot_node.hpp"
@@ -47,43 +47,92 @@ namespace kagome::storage::trie {
     out[1] = b & 0xffu;
     return out;
   }
+/*
+  common::Buffer PolkadotCodec::nibblesToKey(const common::Buffer &nibbles) {
+    Buffer res;
+    if (nibbles.size() % 2 == 0) {
+      res.put(std::vector<uint8_t>(nibbles.size() / 2));
+      for (size_t i = 0; i < nibbles.size(); i += 2) {
+        res[i / 2] = ((nibbles[i]) & 0xfu) | (nibbles[i + 1] << 4u & 0xf0u);
+      }
+    } else {
+      res.put(std::vector<uint8_t>(nibbles.size() / 2 + 1));
+      for (size_t i = 0; i < nibbles.size(); i += 2) {
+        if (i < nibbles.size() - 1) {
+          res[i / 2] =
+              ((nibbles[i]) & 0xfu) | (nibbles[i + 1] << 4 & 0xf0u);
+        } else {
+          res[i / 2] = nibbles[i] & 0xfu;
+        }
+      }
+    }
+    return res;*/
+    /*const auto nibbles_size = nibbles.size();
+      if (nibbles_size == 0) {
+        return {};
+      }
+
+      if (nibbles_size == 1 && nibbles[0] == 0) {
+        return {0};
+      }
+
+      // if nibbles_size is odd, then allocate one more item
+      const size_t size = (nibbles_size + 1) / 2;
+      common::Buffer out(size, 0);
+
+      size_t iterations = size;
+
+      // if number of nibbles is odd, then iterate even number of times
+      bool nimbles_size_odd = nibbles_size % 2 != 0;
+      if (nimbles_size_odd) {
+        --iterations;
+      }
+
+      for (size_t i = 0; i < iterations; ++i) {
+        out[i] = collectByte(nibbles[2 * i], nibbles[2 * i + 1]);
+      }
+
+      // if number of nibbles is odd, then implicitly add 0 as very last nibble
+      if (nimbles_size_odd) {
+        out[iterations] = collectByte(nibbles[2 * iterations], 0);
+      }
+
+      return out;*/
+  //}
 
   common::Buffer PolkadotCodec::nibblesToKey(const common::Buffer &nibbles) {
-    const auto nibbles_size = nibbles.size();
-    if (nibbles_size == 0) {
-      return {};
+    Buffer res;
+    if (nibbles.size()%2 == 0) {
+      res = Buffer(nibbles.size()/2, 0);
+      for (size_t i = 0; i < nibbles.size(); i += 2) {
+        res[i/2] = (nibbles[i] << 4 & 0xf0) | (nibbles[i+1] & 0xf);
+      }
+    } else {
+      res = Buffer(nibbles.size()/2+1, 0);
+      res[0] = nibbles[0];
+      for (size_t i = 2; i < nibbles.size(); i += 2) {
+        res[i/2] = (nibbles[i-1] << 4 & 0xf0) | (nibbles[i] & 0xf);
+      }
     }
-
-    if (nibbles_size == 1 && nibbles[0] == 0) {
-      return {0};
-    }
-
-    // if nibbles_size is odd, then allocate one more item
-    const size_t size = (nibbles_size + 1) / 2;
-    common::Buffer out(size, 0);
-
-    size_t iterations = size;
-
-    // if number of nibbles is odd, then iterate even number of times
-    bool nimbles_size_odd = nibbles_size % 2 != 0;
-    if (nimbles_size_odd) {
-      --iterations;
-    }
-
-    for (size_t i = 0; i < iterations; ++i) {
-      out[i] = collectByte(nibbles[2 * i], nibbles[2 * i + 1]);
-    }
-
-    // if number of nibbles is odd, then implicitly add 0 as very last nibble
-    if (nimbles_size_odd) {
-      out[iterations] = collectByte(nibbles[2 * iterations], 0);
-    }
-
-    return out;
+    return res;
   }
 
   common::Buffer PolkadotCodec::keyToNibbles(const common::Buffer &key) {
-    auto nibbles = key.size() * 2;
+    if (key.empty()) {
+      return {};
+    } else if (key.size() == 1 && key[0] == 0) {
+      return {0, 0};
+    }
+
+    auto l = key.size() * 2;
+    Buffer res(l, 0);
+    for (size_t i = 0; i < key.size(); i++) {
+      res[2 * i] = key[i] / 16;
+      res[2 * i + 1] = key[i] % 16;
+    }
+
+    return res;
+    /*auto nibbles = key.size() * 2;
 
     // if last nibble in `key` is 0
     bool last_nibble_0 = !key.empty() && (highNibble(key[key.size() - 1]) == 0);
@@ -101,20 +150,30 @@ namespace kagome::storage::trie {
       out[nibbles - 1] = lowNibble(key[key.size() - 1]);
     }
 
-    return out;
+    return out;*/
+  }
+
+  common::Hash256 PolkadotCodec::merkleValue(const common::Buffer &buf) const {
+    common::Hash256 out;
+
+    // if a buffer size is less than the size of a would-be hash, just return
+    // this buffer to save space
+    /*if (buf.size() < common::Hash256::size()) {
+      std::copy(buf.begin(), buf.end(), out.begin());
+      return out;
+    }*/
+
+    return hash256(buf);
   }
 
   common::Hash256 PolkadotCodec::hash256(const common::Buffer &buf) const {
     common::Hash256 out;
 
-    // if a buffer size is less than the size of a would-be hash, just return
-    // this buffer to save space
-    if (buf.size() < common::Hash256::size()) {
-      std::copy(buf.begin(), buf.end(), out.begin());
-      return out;
-    }
-
-    blake2s(out.data(), common::Hash256::size(), nullptr, 0, buf.data(),
+    blake2b(out.data(),
+            common::Hash256::size(),
+            nullptr,
+            0,
+            buf.data(),
             buf.size());
     return out;
   }
@@ -198,7 +257,7 @@ namespace kagome::storage::trie {
           encoding.putBuffer(hash);
         } else {
           OUTCOME_TRY(enc, encodeNode(*child));
-          encoding.put(hash256(enc));
+          encoding.put(merkleValue(enc));
         }
       }
     }
@@ -291,16 +350,20 @@ namespace kagome::storage::trie {
     // array of nibbles is much more convenient than array of bytes, though it
     // wastes some memory
     partial_key = keyToNibbles(partial_key);
-    // when the last nibble is zero, keyToNibbles throws it away, which may
+    if(nibbles_num % 2 == 1) {
+      partial_key = partial_key.subbuffer(1);
+    }
+    /*// when the last nibble is zero, keyToNibbles throws it away, which may
     // break the node key in this case, so restore this nibble if needed
     if (nibbles_num != partial_key.size()) {
       partial_key.putUint8(0);
-    }
+    }*/
     return partial_key;
   }
 
   outcome::result<std::shared_ptr<Node>> PolkadotCodec::decodeBranch(
-      PolkadotNode::Type type, const Buffer &partial_key,
+      PolkadotNode::Type type,
+      const Buffer &partial_key,
       BufferStream &stream) const {
     constexpr uint8_t kChildrenBitmapSize = 2;
 

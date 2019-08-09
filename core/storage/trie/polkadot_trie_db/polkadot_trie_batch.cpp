@@ -59,7 +59,7 @@ namespace kagome::storage::trie {
       }
     }
     if (trie.getRoot() == nullptr) {
-      storage_.root_ = std::nullopt;
+      storage_.root_ = storage_.getEmptyRoot();
     } else {
       OUTCOME_TRY(n, storage_.storeNode(*trie.getRoot()));
       storage_.root_ = n;
