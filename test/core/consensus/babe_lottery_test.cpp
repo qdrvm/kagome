@@ -6,10 +6,8 @@
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 
 #include <gtest/gtest.h>
-#include <sr25519/sr25519.h>
 #include "common/buffer.hpp"
 #include "crypto/util.hpp"
-#include "crypto/vrf/vrf_provider_impl.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/vrf_provider_mock.hpp"
 
@@ -22,12 +20,8 @@ using testing::Return;
 
 struct BabeLotteryTest : public testing::Test {
   void SetUp() override {
-    // generate a SR25519 keypair
-    std::array<uint8_t, SR25519_SEED_SIZE> seed;
-    seed.fill(1);
-    std::vector<uint8_t> kp(SR25519_KEYPAIR_SIZE, 0);
-    sr25519_keypair_from_seed(kp.data(), seed.data());
-    keypair_ = SR25519Keypair{kp};
+    keypair_.public_key.fill(2);
+    keypair_.secret_key.fill(3);
   }
 
   std::shared_ptr<VRFProviderMock> vrf_provider_ =
@@ -48,7 +42,7 @@ struct BabeLotteryTest : public testing::Test {
           0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22,
           0x33, 0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44,
       }};
-  SR25519Keypair keypair_;
+  SR25519Keypair keypair_{};
 };
 
 /**
