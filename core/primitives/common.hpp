@@ -11,6 +11,8 @@
 #include "common/blob.hpp"
 
 namespace kagome::primitives {
+  using BlockRequestId = uint64_t;
+
   using BlockNumber = uint64_t;
   using BlockHash = common::Hash256;
 
