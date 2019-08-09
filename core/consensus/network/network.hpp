@@ -28,9 +28,10 @@ namespace kagome::consensus {
             &predicate) = 0;
 
     /**
-     * Broadcast \param message over a \param protocol for all peers
+     * Send \param message over a \param protocol to \param peer
      */
-    virtual void sendMessage(const libp2p::peer::Protocol &protocol,
+    virtual void sendMessage(const libp2p::peer::PeerInfo peer,
+                             const libp2p::peer::Protocol &protocol,
                              const common::Buffer &message);
 
     /**
