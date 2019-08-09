@@ -27,6 +27,7 @@ namespace kagome::network {
     boost::optional<primitives::Justification> justification;
   };
 
+  // TODO(akvinikym) PRE-279: add codec for this type
   /**
    * Response to the BlockRequest
    */

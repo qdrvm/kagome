@@ -9,6 +9,7 @@
 #include <cstdint>
 
 #include <boost/optional.hpp>
+#include <gsl/span>
 #include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
 
@@ -41,6 +42,7 @@ namespace kagome::network {
     DESCENDING = 1
   };
 
+  // TODO(akvinikym) PRE-279: add codec for this type
   /**
    * Request for blocks to another peer
    */
@@ -59,6 +61,14 @@ namespace kagome::network {
     /// maximum number of blocks to return; an implementation defined maximum is
     /// used when unspecified
     boost::optional<uint32_t> max;
+
+    // TODO(akvinikym) PRE-279: implement the helper functions
+    static uint8_t attributesToUint(gsl::span<BlockAttributesBits> attributes) {
+      return 0;
+    }
+    static std::vector<BlockAttributesBits> bitsToAttributes(uint8_t bits) {
+      return {};
+    }
   };
 }  // namespace kagome::network
 

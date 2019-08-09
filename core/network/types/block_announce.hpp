@@ -9,6 +9,7 @@
 #include "primitives/block_header.hpp"
 
 namespace kagome::network {
+  // TODO(akvinikym) PRE-279: add codec for this type
   /**
    * Announce a new complete block on the network
    */
