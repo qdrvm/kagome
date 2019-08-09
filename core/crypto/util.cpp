@@ -5,6 +5,8 @@
 
 #include "crypto/util.hpp"
 
+#include <gsl/gsl_util>
+
 namespace kagome::crypto::util {
 
   namespace detail {
@@ -19,10 +21,6 @@ namespace kagome::crypto::util {
       return output;
     }
 
-    //    template <>
-    //    std::array<uint8_t, 16> uint_to_bytes(
-    //        const boost::multiprecision::uint128_t &);
-
     template <size_t size, typename uint>
     uint bytes_to_uint(gsl::span<uint8_t, size> bytes) {
       uint i;
@@ -32,6 +30,22 @@ namespace kagome::crypto::util {
       return i;
     }
   }  // namespace detail
+
+  std::array<uint8_t, 8> uint64_t_to_bytes(uint64_t number) {
+    std::array<uint8_t, 8> result{};
+    for (auto i = 0; i < 8; ++i) {
+      gsl::at(result, i) = static_cast<uint8_t>((number >> 8 * (7 - i)) & 0xFF);
+    }
+    return result;
+  }
+
+  uint64_t bytes_to_uint64_t(gsl::span<uint8_t, 8> bytes) {
+    uint64_t result{0};
+    for (auto i = 0; i < 8; ++i) {
+      result |= static_cast<uint64_t>(bytes[i]) << (i * 8);
+    }
+    return result;
+  }
 
   std::array<uint8_t, 16> uint128_t_to_bytes(
       const boost::multiprecision::uint128_t &i) {

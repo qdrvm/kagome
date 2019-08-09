@@ -8,9 +8,9 @@
 #include <gtest/gtest.h>
 #include "crypto/util.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/vrf_provider_mock.hpp"
 #include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
-#include "mock/crypto/hasher.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -96,7 +96,8 @@ class BlockValidatorTest : public testing::Test {
   // fields for validation
   libp2p::peer::PeerId peer_id_ = "my_peer"_peerid;
 
-  Epoch babe_epoch_{.threshold = 3820948573, .randomness = 475995757021};
+  Epoch babe_epoch_{.threshold = 3820948573,
+                    .randomness = util::uint256_t_to_bytes(475995757021)};
 };
 
 /**
@@ -127,7 +128,7 @@ TEST_F(BlockValidatorTest, Success) {
   // verifyVRF
   auto randomness_with_slot =
       Buffer{}
-          .put(util::uint256_t_to_bytes(babe_epoch_.randomness))
+          .put(babe_epoch_.randomness)
           .put(util::uint256_t_to_bytes(babe_epoch_.threshold));
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .WillOnce(Return(true));
@@ -274,7 +275,7 @@ TEST_F(BlockValidatorTest, VRFFail) {
   // WHEN
   auto randomness_with_slot =
       Buffer{}
-          .put(util::uint256_t_to_bytes(babe_epoch_.randomness))
+          .put(babe_epoch_.randomness)
           .put(util::uint256_t_to_bytes(babe_epoch_.threshold));
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .WillOnce(Return(false));
@@ -313,7 +314,7 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
 
   auto randomness_with_slot =
       Buffer{}
-          .put(util::uint256_t_to_bytes(babe_epoch_.randomness))
+          .put(babe_epoch_.randomness)
           .put(util::uint256_t_to_bytes(babe_epoch_.threshold));
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .WillOnce(Return(true));
@@ -351,7 +352,7 @@ TEST_F(BlockValidatorTest, TwoBlocksByOnePeer) {
 
   auto randomness_with_slot =
       Buffer{}
-          .put(util::uint256_t_to_bytes(babe_epoch_.randomness))
+          .put(babe_epoch_.randomness)
           .put(util::uint256_t_to_bytes(babe_epoch_.threshold));
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .Times(2)
@@ -396,7 +397,7 @@ TEST_F(BlockValidatorTest, InvalidExtrinsic) {
 
   auto randomness_with_slot =
       Buffer{}
-          .put(util::uint256_t_to_bytes(babe_epoch_.randomness))
+          .put(babe_epoch_.randomness)
           .put(util::uint256_t_to_bytes(babe_epoch_.threshold));
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .WillOnce(Return(true));
@@ -436,7 +437,7 @@ TEST_F(BlockValidatorTest, BlockTreeFails) {
 
   auto randomness_with_slot =
       Buffer{}
-          .put(util::uint256_t_to_bytes(babe_epoch_.randomness))
+          .put(babe_epoch_.randomness)
           .put(util::uint256_t_to_bytes(babe_epoch_.threshold));
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .WillOnce(Return(true));

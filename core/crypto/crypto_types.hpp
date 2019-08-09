@@ -38,6 +38,9 @@ namespace kagome::crypto {
     SR25519Keypair() = default;
 
     explicit SR25519Keypair(gsl::span<uint8_t, SR25519_KEYPAIR_SIZE> kp);
+
+    bool operator==(const SR25519Keypair &other) const;
+    bool operator!=(const SR25519Keypair &other) const;
   };
 
   using SR25519Signature = std::array<uint8_t, SR25519_SIGNATURE_SIZE>;
