@@ -62,6 +62,9 @@ namespace kagome::network {
     /// maximum number of blocks to return; an implementation defined maximum is
     /// used when unspecified
     boost::optional<uint32_t> max;
+
+    /// includes HEADER, BODY and JUSTIFICATION
+    static constexpr BlockAttributes kBasicAttributes{19};
   };
 }  // namespace kagome::network
 

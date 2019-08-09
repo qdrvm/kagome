@@ -14,13 +14,7 @@
 
 namespace kagome::consensus {
   /**
-   * Synchronizer is used by the consensus in three cases:
-   *  - we produced a block and want to broadcast it over the network
-   *  - the local peer does not have block, which it is supposed to have (for
-   *    example, new block arrives, but its parent hash is unknown to it), so it
-   *    can ask another peer for the blocks it lacks
-   *  - another peer suffers for the same reasons and asks the local one to
-   *    provide the blocks
+   * Synchronizer, which retrieves blocks from other peers
    */
   struct Synchronizer {
     virtual ~Synchronizer() = default;
@@ -31,26 +25,37 @@ namespace kagome::consensus {
      */
     virtual void announce(const primitives::Block &block) = 0;
 
+    /// empty result, because methods, which use it, insert retrieved blocks
+    /// directly into the shared local tree
     using RequestCallback = std::function<outcome::result<void>()>;
 
     /**
-     * Request new blocks, starting from our deepest block
+     * Request new blocks, starting from our deepest block; received blocks will
+     * be inserted into the block tree
      * @param peer to request blocks from
-     * @param cb to be called, when the operation finishes
+     * @param cb to be called, when the operation finishes; contains nothing on
+     * success and error otherwise
      *
      * @note this function will request the (\param peer) for all new blocks,
      * starting from our deepest one
+     * @note example use-case: the node starts and downloads the chain from
+     * one of the peers it knows
      */
     virtual void requestBlocks(const libp2p::peer::PeerInfo &peer,
                                RequestCallback cb) = 0;
 
     /**
-     * Request new blocks, starting from our deepest block;
+     * Request new blocks, starting from our deepest block; received blocks will
+     * be inserted into the block tree
      * @param hash of the block, which it to appear in the result of the request
-     * @param cb to be called, when the operation finishes
+     * @param cb to be called, when the operation finishes; contains nothing on
+     * success and error otherwise
      *
      * @note this function will request all peers we know until the (\param
      * hash) block appears or we asked all known peers
+     * @note example use-case: the node received a block, which "parent_hash" is
+     * unknown to us; this method tries to download the lacking part of the
+     * local tree
      */
     virtual void requestBlocks(const primitives::BlockHash &hash,
                                primitives::BlockNumber number,
