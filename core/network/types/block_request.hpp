@@ -7,6 +7,7 @@
 #define KAGOME_BLOCK_REQUEST_HPP
 
 #include <cstdint>
+#include <bitset>
 
 #include <boost/optional.hpp>
 #include <gsl/span>
@@ -20,15 +21,15 @@ namespace kagome::network {
    */
   enum class BlockAttributesBits : uint8_t {
     /// Include block header.
-    HEADER = 0b00000001,
+    HEADER = 1u,
     /// Include block body.
-    BODY = 0b00000010,
+    BODY = 1u << 1u,
     /// Include block receipt.
-    RECEIPT = 0b00000100,
+    RECEIPT = 1u << 2u,
     /// Include block message queue.
-    MESSAGE_QUEUE = 0b00001000,
+    MESSAGE_QUEUE = 1u << 3u,
     /// Include a justification for the block.
-    JUSTIFICATION = 0b00010000
+    JUSTIFICATION = 1u << 4u
   };
   using BlockAttributes = uint8_t;
 
@@ -61,14 +62,6 @@ namespace kagome::network {
     /// maximum number of blocks to return; an implementation defined maximum is
     /// used when unspecified
     boost::optional<uint32_t> max;
-
-    // TODO(akvinikym) PRE-279: implement the helper functions
-    static uint8_t attributesToUint(gsl::span<BlockAttributesBits> attributes) {
-      return 0;
-    }
-    static std::vector<BlockAttributesBits> bitsToAttributes(uint8_t bits) {
-      return {};
-    }
   };
 }  // namespace kagome::network
 
