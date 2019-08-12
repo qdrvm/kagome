@@ -26,13 +26,6 @@ namespace kagome::network {
         std::function<void(const outcome::result<void> &)> handler) const = 0;
 
     /**
-     * Send block response
-     */
-    virtual void blocksResponse(
-        BlockResponse block_response,
-        std::function<void(const outcome::result<void> &)> handler) const = 0;
-
-    /**
      * Send block announce
      */
     virtual void blockAnnounce(
