@@ -20,8 +20,9 @@ using ::testing::Return;
 using std::chrono_literals::operator""s;
 
 struct HostIntegrationTest
-    : public ::testing::TestWithParam<std::tuple<
-          size_t, size_t, uint16_t, Peer::Duration, Peer::Duration>> {
+    : public ::testing::TestWithParam<
+          std::
+              tuple<size_t, size_t, uint16_t, Peer::Duration, Peer::Duration>> {
   template <class T>
   using sptr = std::shared_ptr<T>;
 
@@ -98,7 +99,8 @@ TEST_P(HostIntegrationTest, InteractAllToAllSuccess) {
   }
 }
 
-INSTANTIATE_TEST_CASE_P(AllTestCases, HostIntegrationTest,
+INSTANTIATE_TEST_CASE_P(AllTestCases,
+                        HostIntegrationTest,
                         ::testing::Values(
                             // ports are not freed, so new ports each time
                             std::make_tuple(1u, 1u, 40510u, 2s, 2s),

@@ -21,7 +21,10 @@ using namespace libp2p;
 using ::testing::_;
 using ::testing::Return;
 
-/// @brief helper class to count number of interactions
+/**
+ * @class TickCounter helper class which ensures that
+ * number of interactions is correct
+ */
 class TickCounter {
  public:
   explicit inline TickCounter(size_t times) {
@@ -45,28 +48,45 @@ class Peer {
   using Duration = kagome::clock::SteadyClockImpl::Duration;
 
   /**
+   * @brief constructs peer
    * @param timeout represents how long server and clients should work
    */
   explicit Peer(Duration timeout);
 
-  /// @brief schedules server start
+  /**
+   * @brief schedules server start
+   * @param address address to listen
+   * @param pp promise to set when peer info is obtained
+   */
   void startServer(const multi::Multiaddress &address,
                    std::promise<peer::PeerInfo> &pp);
 
-  /// @brief schedules start of client session
-  void startClient(size_t number, const peer::PeerInfo &pinfo,
-                   size_t message_count, sptr<TickCounter> tester);
+  /**
+   * @brief schedules start of client session
+   * @param number client number for testing purposes
+   * @param pinfo server peer info
+   * @param message_count number of messages to send
+   * @param tester object for testing purposes
+   */
+  void startClient(size_t number,
+                   const peer::PeerInfo &pinfo,
+                   size_t message_count,
+                   sptr<TickCounter> tester);
 
-  /// @brief wait for all threads to join
+  /**
+   * @brief wait for all threads to join
+   */
   void wait();
 
  private:
   sptr<host::BasicHost> makeHost(crypto::KeyPair keyPair);
-  const Duration timeout_;     ///< operations timeout
-  sptr<Context> context_;      ///< io context
-  std::thread thread_;         ///< peer working thread
-  sptr<Host> host_;            ///< host
-  sptr<protocol::Echo> echo_;  ///< echo protocol
+
+  muxer::MuxedConnectionConfig muxed_config_;  ///< muxed connection config
+  const Duration timeout_;                     ///< operations timeout
+  sptr<Context> context_;                      ///< io context
+  std::thread thread_;                         ///< peer working thread
+  sptr<Host> host_;                            ///< host
+  sptr<protocol::Echo> echo_;                  ///< echo protocol
   sptr<crypto::random::BoostRandomGenerator>
       random_provider_;                       ///< random provider
   sptr<crypto::KeyGenerator> key_generator_;  ///< key generator

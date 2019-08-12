@@ -30,6 +30,7 @@ using ::testing::_;
 class YamuxIntegrationTest : public testing::Test {
  public:
   void SetUp() override {
+    context_ = std::make_shared<boost::asio::io_context>();
     transport_ = std::make_shared<TcpTransport>(context_, upgrader);
     ASSERT_TRUE(transport_) << "cannot create transport";
 
@@ -92,7 +93,8 @@ class YamuxIntegrationTest : public testing::Test {
    * Invoke all callbacks, which were waiting for the connection to be yamuxed
    */
   void invokeCallbacks() {
-    std::for_each(yamux_callbacks_.begin(), yamux_callbacks_.end(),
+    std::for_each(yamux_callbacks_.begin(),
+                  yamux_callbacks_.end(),
                   [this](const auto &cb) { cb(yamuxed_connection_); });
     yamux_callbacks_.clear();
   }
@@ -112,23 +114,25 @@ class YamuxIntegrationTest : public testing::Test {
         std::make_shared<Buffer>(newStreamMsg(expected_stream_id));
     auto rcvd_msg = std::make_shared<Buffer>(new_stream_msg->size(), 0);
 
-    yamuxed_connection_->newStream([c = std::move(conn), cb = std::move(cb),
-                                    new_stream_msg,
-                                    rcvd_msg](auto &&stream_res) mutable {
-      ASSERT_TRUE(stream_res);
-      c->read(*rcvd_msg, new_stream_msg->size(),
-              [c, stream = std::move(stream_res.value()), new_stream_msg,
-               rcvd_msg, cb = std::move(cb)](auto &&res) {
-                ASSERT_TRUE(res);
-                ASSERT_EQ(*rcvd_msg, *new_stream_msg);
-                cb(std::move(stream));
-              });
-    });
+    yamuxed_connection_->newStream(
+        [c = std::move(conn), cb = std::move(cb), new_stream_msg, rcvd_msg](
+            auto &&stream_res) mutable {
+          ASSERT_TRUE(stream_res);
+          c->read(*rcvd_msg,
+                  new_stream_msg->size(),
+                  [c,
+                   stream = std::move(stream_res.value()),
+                   new_stream_msg,
+                   rcvd_msg,
+                   cb = std::move(cb)](auto &&res) {
+                    ASSERT_TRUE(res);
+                    ASSERT_EQ(*rcvd_msg, *new_stream_msg);
+                    cb(std::move(stream));
+                  });
+        });
   }
 
-  std::shared_ptr<boost::asio::io_context> context_ =
-      std::make_shared<boost::asio::io_context>();
-
+  std::shared_ptr<boost::asio::io_context> context_;
   std::shared_ptr<libp2p::transport::TransportAdaptor> transport_;
   std::shared_ptr<libp2p::transport::TransportListener> transport_listener_;
   std::shared_ptr<libp2p::multi::Multiaddress> multiaddress_;
@@ -159,35 +163,38 @@ TEST_F(YamuxIntegrationTest, StreamFromClient) {
   auto new_stream_msg = newStreamMsg(created_stream_id);
 
   transport_->dial(
-      testutil::randomPeerId(), *multiaddress_,
-      [this, created_stream_id, &new_stream_msg,
-       new_stream_ack_msg_rcv](auto &&conn_res) {
+      testutil::randomPeerId(),
+      *multiaddress_,
+      [this, created_stream_id, &new_stream_msg, new_stream_ack_msg_rcv](
+          auto &&conn_res) {
         EXPECT_OUTCOME_TRUE(conn, conn_res)
         // downcast the connection, as direct writes to capables are forbidden
-        conn->write(new_stream_msg, new_stream_msg.size(),
-                    [this, conn, created_stream_id,
-                     new_stream_ack_msg_rcv](auto &&res) {
-                      ASSERT_TRUE(res) << res.error().message();
-                      conn->read(
-                          *new_stream_ack_msg_rcv, YamuxFrame::kHeaderLength,
-                          [this, created_stream_id, new_stream_ack_msg_rcv,
-                           conn](auto &&res) {
-                            ASSERT_TRUE(res);
+        conn->write(
+            new_stream_msg,
+            new_stream_msg.size(),
+            [this, conn, created_stream_id, new_stream_ack_msg_rcv](
+                auto &&res) {
+              ASSERT_TRUE(res) << res.error().message();
+              conn->read(
+                  *new_stream_ack_msg_rcv,
+                  YamuxFrame::kHeaderLength,
+                  [this, created_stream_id, new_stream_ack_msg_rcv, conn](
+                      auto &&res) {
+                    ASSERT_TRUE(res);
 
-                            // check a new stream is in our 'accepted_streams'
-                            ASSERT_EQ(accepted_streams_.size(), 1);
+                    // check a new stream is in our 'accepted_streams'
+                    ASSERT_EQ(accepted_streams_.size(), 1);
 
-                            // check our yamux has sent an ack message for that
-                            // stream
-                            auto parsed_ack_opt =
-                                parseFrame(new_stream_ack_msg_rcv->toVector());
-                            ASSERT_TRUE(parsed_ack_opt);
-                            ASSERT_EQ(parsed_ack_opt->stream_id,
-                                      created_stream_id);
+                    // check our yamux has sent an ack message for that
+                    // stream
+                    auto parsed_ack_opt =
+                        parseFrame(new_stream_ack_msg_rcv->toVector());
+                    ASSERT_TRUE(parsed_ack_opt);
+                    ASSERT_EQ(parsed_ack_opt->stream_id, created_stream_id);
 
-                            client_finished_ = true;
-                          });
-                    });
+                    client_finished_ = true;
+                  });
+            });
       });
 
   launchContext();
@@ -208,28 +215,33 @@ TEST_F(YamuxIntegrationTest, StreamFromServer) {
       std::make_shared<Buffer>(YamuxFrame::kHeaderLength, 0);
 
   transport_->dial(
-      testutil::randomPeerId(), *multiaddress_,
+      testutil::randomPeerId(),
+      *multiaddress_,
       [this, &expected_new_stream_msg, new_stream_msg_buf](auto &&conn_res) {
         EXPECT_OUTCOME_TRUE(conn, conn_res)
-        withYamuxedConn([this, conn, &expected_new_stream_msg,
-                         new_stream_msg_buf](auto &&yamuxed_conn) {
-          yamuxed_conn->newStream([this, conn, &expected_new_stream_msg,
-                                   new_stream_msg_buf](auto &&stream_res) {
-            EXPECT_OUTCOME_TRUE(stream, stream_res)
-            ASSERT_FALSE(stream->isClosedForRead());
-            ASSERT_FALSE(stream->isClosedForWrite());
-            ASSERT_FALSE(stream->isClosed());
+        withYamuxedConn(
+            [this, conn, &expected_new_stream_msg, new_stream_msg_buf](
+                auto &&yamuxed_conn) {
+              yamuxed_conn->newStream([this,
+                                       conn,
+                                       &expected_new_stream_msg,
+                                       new_stream_msg_buf](auto &&stream_res) {
+                EXPECT_OUTCOME_TRUE(stream, stream_res)
+                ASSERT_FALSE(stream->isClosedForRead());
+                ASSERT_FALSE(stream->isClosedForWrite());
+                ASSERT_FALSE(stream->isClosed());
 
-            conn->read(*new_stream_msg_buf, new_stream_msg_buf->size(),
-                       [this, conn, &expected_new_stream_msg,
-                        new_stream_msg_buf](auto &&res) {
-                         ASSERT_TRUE(res);
-                         ASSERT_EQ(*new_stream_msg_buf,
-                                   expected_new_stream_msg);
-                         client_finished_ = true;
-                       });
-          });
-        });
+                conn->read(
+                    *new_stream_msg_buf,
+                    new_stream_msg_buf->size(),
+                    [this, conn, &expected_new_stream_msg, new_stream_msg_buf](
+                        auto &&res) {
+                      ASSERT_TRUE(res);
+                      ASSERT_EQ(*new_stream_msg_buf, expected_new_stream_msg);
+                      client_finished_ = true;
+                    });
+              });
+            });
         return outcome::success();
       });
 
@@ -249,32 +261,38 @@ TEST_F(YamuxIntegrationTest, StreamWrite) {
       std::make_shared<Buffer>(expected_data_msg.size(), 0);
 
   transport_->dial(
-      testutil::randomPeerId(), *multiaddress_,
+      testutil::randomPeerId(),
+      *multiaddress_,
       [this, &data, &expected_data_msg, received_data_msg](auto &&conn_res) {
         EXPECT_OUTCOME_TRUE(conn, conn_res)
-        withYamuxedConn([this, conn, &data, &expected_data_msg,
+        withYamuxedConn([this,
+                         conn,
+                         &data,
+                         &expected_data_msg,
                          received_data_msg](auto &&yamuxed_conn) {
-          withStream(conn,
-                     [this, conn, &data, &expected_data_msg,
-                      received_data_msg](auto &&stream) {
-                       stream->write(data, data.size(),
-                                     [this, conn, &expected_data_msg,
-                                      received_data_msg](auto &&res) {
-                                       ASSERT_TRUE(res);
-                                       // check that our written data has
-                                       // achieved the destination
-                                       conn->read(
-                                           *received_data_msg,
-                                           expected_data_msg.size(),
-                                           [this, conn, &expected_data_msg,
-                                            received_data_msg](auto &&res) {
-                                             ASSERT_TRUE(res);
-                                             ASSERT_EQ(*received_data_msg,
-                                                       expected_data_msg);
-                                             client_finished_ = true;
-                                           });
-                                     });
-                     });
+          withStream(
+              conn,
+              [this, conn, &data, &expected_data_msg, received_data_msg](
+                  auto &&stream) {
+                stream->write(
+                    data,
+                    data.size(),
+                    [this, conn, &expected_data_msg, received_data_msg](
+                        auto &&res) {
+                      ASSERT_TRUE(res);
+                      // check that our written data has
+                      // achieved the destination
+                      conn->read(
+                          *received_data_msg,
+                          expected_data_msg.size(),
+                          [this, conn, &expected_data_msg, received_data_msg](
+                              auto &&res) {
+                            ASSERT_TRUE(res);
+                            ASSERT_EQ(*received_data_msg, expected_data_msg);
+                            client_finished_ = true;
+                          });
+                    });
+              });
         });
         return outcome::success();
       });
@@ -294,21 +312,24 @@ TEST_F(YamuxIntegrationTest, StreamRead) {
   auto rcvd_data_msg = std::make_shared<Buffer>(data.size(), 0);
 
   transport_->dial(
-      testutil::randomPeerId(), *multiaddress_,
+      testutil::randomPeerId(),
+      *multiaddress_,
       [this, &data, &written_data_msg, rcvd_data_msg](auto &&conn_res) {
         EXPECT_OUTCOME_TRUE(conn, conn_res)
-        withYamuxedConn([this, conn, &data, &written_data_msg,
-                         rcvd_data_msg](auto &&yamuxed_conn) {
+        withYamuxedConn([this, conn, &data, &written_data_msg, rcvd_data_msg](
+                            auto &&yamuxed_conn) {
           withStream(
               conn,
-              [this, conn, &data, &written_data_msg,
-               rcvd_data_msg](auto &&stream) {
+              [this, conn, &data, &written_data_msg, rcvd_data_msg](
+                  auto &&stream) {
                 conn->write(
-                    written_data_msg, written_data_msg.size(),
+                    written_data_msg,
+                    written_data_msg.size(),
                     [this, conn, stream, &data, rcvd_data_msg](auto &&res) {
                       ASSERT_TRUE(res);
                       stream->read(
-                          *rcvd_data_msg, data.size(),
+                          *rcvd_data_msg,
+                          data.size(),
                           [this, stream, &data, rcvd_data_msg](auto &&res) {
                             ASSERT_TRUE(res);
                             ASSERT_EQ(*rcvd_data_msg, data);
@@ -337,26 +358,34 @@ TEST_F(YamuxIntegrationTest, CloseForWrites) {
       std::make_shared<Buffer>(YamuxFrame::kHeaderLength, 0);
 
   transport_->dial(
-      testutil::randomPeerId(), *multiaddress_,
-      [this, &expected_close_stream_msg,
-       close_stream_msg_rcv](auto &&conn_res) {
+      testutil::randomPeerId(),
+      *multiaddress_,
+      [this, &expected_close_stream_msg, close_stream_msg_rcv](
+          auto &&conn_res) {
         EXPECT_OUTCOME_TRUE(conn, conn_res)
-        withYamuxedConn([this, conn, &expected_close_stream_msg,
+        withYamuxedConn([this,
+                         conn,
+                         &expected_close_stream_msg,
                          close_stream_msg_rcv](auto &&yamuxed_conn) {
           withStream(
               conn,
-              [this, conn, &expected_close_stream_msg,
-               close_stream_msg_rcv](auto &&stream) {
+              [this, conn, &expected_close_stream_msg, close_stream_msg_rcv](
+                  auto &&stream) {
                 ASSERT_FALSE(stream->isClosedForWrite());
 
-                stream->close([this, conn, stream, &expected_close_stream_msg,
+                stream->close([this,
+                               conn,
+                               stream,
+                               &expected_close_stream_msg,
                                close_stream_msg_rcv](auto &&res) {
                   ASSERT_TRUE(res);
                   ASSERT_TRUE(stream->isClosedForWrite());
 
                   conn->read(*close_stream_msg_rcv,
                              expected_close_stream_msg.size(),
-                             [this, conn, &expected_close_stream_msg,
+                             [this,
+                              conn,
+                              &expected_close_stream_msg,
                               close_stream_msg_rcv](auto &&res) {
                                ASSERT_TRUE(res);
                                ASSERT_EQ(*close_stream_msg_rcv,
@@ -383,18 +412,20 @@ TEST_F(YamuxIntegrationTest, CloseForReads) {
   auto sent_close_stream_msg = closeStreamMsg(kDefaulExpectedStreamId);
 
   transport_->dial(
-      testutil::randomPeerId(), *multiaddress_,
+      testutil::randomPeerId(),
+      *multiaddress_,
       [this, &sent_close_stream_msg, &ret_stream](auto &&conn_res) mutable {
         EXPECT_OUTCOME_TRUE(conn, conn_res)
-        withYamuxedConn([this, conn, &sent_close_stream_msg,
-                         &ret_stream](auto &&yamuxed_conn) mutable {
+        withYamuxedConn([this, conn, &sent_close_stream_msg, &ret_stream](
+                            auto &&yamuxed_conn) mutable {
           withStream(
               conn,
-              [this, conn, &sent_close_stream_msg,
-               &ret_stream](auto &&stream) mutable {
+              [this, conn, &sent_close_stream_msg, &ret_stream](
+                  auto &&stream) mutable {
                 ASSERT_FALSE(stream->isClosedForRead());
                 conn->write(
-                    sent_close_stream_msg, sent_close_stream_msg.size(),
+                    sent_close_stream_msg,
+                    sent_close_stream_msg.size(),
                     [this, conn, stream, &ret_stream](auto &&res) mutable {
                       ASSERT_TRUE(res);
                       ret_stream = std::forward<decltype(stream)>(stream);
@@ -423,41 +454,55 @@ TEST_F(YamuxIntegrationTest, CloseEntirely) {
       std::make_shared<Buffer>(YamuxFrame::kHeaderLength, 0);
 
   transport_->dial(
-      testutil::randomPeerId(), *multiaddress_,
-      [this, &expected_close_stream_msg, close_stream_msg_rcv,
-       &ret_stream](auto &&conn_res) mutable {
+      testutil::randomPeerId(),
+      *multiaddress_,
+      [this, &expected_close_stream_msg, close_stream_msg_rcv, &ret_stream](
+          auto &&conn_res) mutable {
         EXPECT_OUTCOME_TRUE(conn, conn_res)
-        withYamuxedConn([this, conn, &expected_close_stream_msg,
-                         close_stream_msg_rcv, &ret_stream](auto &&) mutable {
-          withStream(
-              conn,
-              [this, conn, &expected_close_stream_msg, close_stream_msg_rcv,
-               &ret_stream](auto &&stream) mutable {
-                ASSERT_FALSE(stream->isClosed());
-                stream->close([this, conn, stream, &expected_close_stream_msg,
-                               close_stream_msg_rcv,
-                               &ret_stream](auto &&res) mutable {
-                  ASSERT_TRUE(res);
-                  conn->read(
-                      *close_stream_msg_rcv, close_stream_msg_rcv->size(),
-                      [this, conn, stream, &expected_close_stream_msg,
-                       close_stream_msg_rcv, &ret_stream](auto &&res) mutable {
-                        ASSERT_TRUE(res);
-                        ASSERT_EQ(*close_stream_msg_rcv,
-                                  expected_close_stream_msg);
-                        conn->write(
-                            expected_close_stream_msg,
-                            expected_close_stream_msg.size(),
-                            [this, conn, stream,
-                             &ret_stream](auto &&res) mutable {
-                              ASSERT_TRUE(res);
-                              ret_stream =
-                                  std::forward<decltype(stream)>(stream);
-                              client_finished_ = true;
-                            });
-                      });
-                });
-              });
+        withYamuxedConn([this,
+                         conn,
+                         &expected_close_stream_msg,
+                         close_stream_msg_rcv,
+                         &ret_stream](auto &&) mutable {
+          withStream(conn,
+                     [this,
+                      conn,
+                      &expected_close_stream_msg,
+                      close_stream_msg_rcv,
+                      &ret_stream](auto &&stream) mutable {
+                       ASSERT_FALSE(stream->isClosed());
+                       stream->close([this,
+                                      conn,
+                                      stream,
+                                      &expected_close_stream_msg,
+                                      close_stream_msg_rcv,
+                                      &ret_stream](auto &&res) mutable {
+                         ASSERT_TRUE(res);
+                         conn->read(
+                             *close_stream_msg_rcv,
+                             close_stream_msg_rcv->size(),
+                             [this,
+                              conn,
+                              stream,
+                              &expected_close_stream_msg,
+                              close_stream_msg_rcv,
+                              &ret_stream](auto &&res) mutable {
+                               ASSERT_TRUE(res);
+                               ASSERT_EQ(*close_stream_msg_rcv,
+                                         expected_close_stream_msg);
+                               conn->write(
+                                   expected_close_stream_msg,
+                                   expected_close_stream_msg.size(),
+                                   [this, conn, stream, &ret_stream](
+                                       auto &&res) mutable {
+                                     ASSERT_TRUE(res);
+                                     ret_stream =
+                                         std::forward<decltype(stream)>(stream);
+                                     client_finished_ = true;
+                                   });
+                             });
+                       });
+                     });
         });
         return outcome::success();
       });
@@ -480,15 +525,18 @@ TEST_F(YamuxIntegrationTest, Ping) {
   auto received_ping = std::make_shared<Buffer>(ping_out_msg.size(), 0);
 
   transport_->dial(
-      testutil::randomPeerId(), *multiaddress_,
+      testutil::randomPeerId(),
+      *multiaddress_,
       [this, &ping_in_msg, &ping_out_msg, received_ping](auto &&conn_res) {
         EXPECT_OUTCOME_TRUE(conn, conn_res)
-        conn->write(ping_in_msg, ping_in_msg.size(),
+        conn->write(ping_in_msg,
+                    ping_in_msg.size(),
                     [this, conn, &ping_out_msg, received_ping](auto &&res) {
                       ASSERT_TRUE(res);
-                      conn->read(*received_ping, received_ping->size(),
-                                 [this, conn, &ping_out_msg,
-                                  received_ping](auto &&res) {
+                      conn->read(*received_ping,
+                                 received_ping->size(),
+                                 [this, conn, &ping_out_msg, received_ping](
+                                     auto &&res) {
                                    ASSERT_TRUE(res);
                                    ASSERT_EQ(*received_ping, ping_out_msg);
                                    client_finished_ = true;
@@ -513,29 +561,36 @@ TEST_F(YamuxIntegrationTest, Reset) {
   auto rcvd_msg = std::make_shared<Buffer>(expected_reset_msg.size(), 0);
 
   transport_->dial(
-      testutil::randomPeerId(), *multiaddress_,
-      [this, &ret_stream, &expected_reset_msg,
-       rcvd_msg](auto &&conn_res) mutable {
+      testutil::randomPeerId(),
+      *multiaddress_,
+      [this, &ret_stream, &expected_reset_msg, rcvd_msg](
+          auto &&conn_res) mutable {
         EXPECT_OUTCOME_TRUE(conn, conn_res)
-        withYamuxedConn([this, conn, &ret_stream, &expected_reset_msg,
-                         rcvd_msg](auto &&) mutable {
-          withStream(conn,
-                     [this, conn, &ret_stream, &expected_reset_msg,
-                      rcvd_msg](auto &&stream) mutable {
-                       ASSERT_FALSE(stream->isClosed());
-                       stream->reset();
-                       conn->read(
-                           *rcvd_msg, expected_reset_msg.size(),
-                           [this, conn, &ret_stream, stream,
-                            &expected_reset_msg, rcvd_msg](auto &&res) mutable {
-                             ASSERT_TRUE(res);
-                             ASSERT_EQ(*rcvd_msg, expected_reset_msg);
-                             ret_stream =
-                                 std::forward<decltype(stream)>(stream);
-                             client_finished_ = true;
-                           });
-                     });
-        });
+        withYamuxedConn(
+            [this, conn, &ret_stream, &expected_reset_msg, rcvd_msg](
+                auto &&) mutable {
+              withStream(
+                  conn,
+                  [this, conn, &ret_stream, &expected_reset_msg, rcvd_msg](
+                      auto &&stream) mutable {
+                    ASSERT_FALSE(stream->isClosed());
+                    stream->reset();
+                    conn->read(*rcvd_msg,
+                               expected_reset_msg.size(),
+                               [this,
+                                conn,
+                                &ret_stream,
+                                stream,
+                                &expected_reset_msg,
+                                rcvd_msg](auto &&res) mutable {
+                                 ASSERT_TRUE(res);
+                                 ASSERT_EQ(*rcvd_msg, expected_reset_msg);
+                                 ret_stream =
+                                     std::forward<decltype(stream)>(stream);
+                                 client_finished_ = true;
+                               });
+                  });
+            });
         return outcome::success();
       });
 

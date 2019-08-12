@@ -23,8 +23,14 @@ namespace libp2p::protocol {
     using Callback =
         std::function<void(outcome::result<std::vector<uint8_t>>, size_t)>;
 
-    explicit ClientTestSession(std::shared_ptr<connection::Stream> stream,
-                               size_t client_number, size_t ping_times);
+    /**
+     * @param stream data stream
+     * @param client_number number of client for using in tests
+     * @param ping_times number of messages to be sent
+     */
+    ClientTestSession(std::shared_ptr<connection::Stream> stream,
+                      size_t client_number,
+                      size_t ping_times);
 
     /**
      * @brief Send a random message, read back the same message and execute

@@ -8,7 +8,8 @@
 #include "acceptance/libp2p/host/protocol/client_test_session.hpp"
 
 Peer::Peer(Peer::Duration timeout)
-    : timeout_{timeout},
+    : muxed_config_{1024576, 1000},
+      timeout_{timeout},
       context_{std::make_shared<Context>()},
       echo_{std::make_shared<protocol::Echo>()},
       random_provider_{
@@ -37,13 +38,20 @@ void Peer::startServer(const multi::Multiaddress &address,
   thread_ = std::thread([this] { context_->run_for(timeout_); });
 }
 
-void Peer::startClient(size_t number, const peer::PeerInfo &pinfo,
-                       size_t message_count, Peer::sptr<TickCounter> tester) {
-  context_->post([this, pinfo, number, message_count,
+void Peer::startClient(size_t number,
+                       const peer::PeerInfo &pinfo,
+                       size_t message_count,
+                       Peer::sptr<TickCounter> tester) {
+  context_->post([this,
+                  pinfo,
+                  number,
+                  message_count,
                   tester = std::move(tester)]() mutable {
     this->host_->newStream(
-        pinfo, echo_->getProtocolId(),
-        [client_number = number, ping_times = message_count,
+        pinfo,
+        echo_->getProtocolId(),
+        [client_number = number,
+         ping_times = message_count,
          tester =
              std::move(tester)](outcome::result<sptr<Stream>> rstream) mutable {
           EXPECT_OUTCOME_TRUE(stream, rstream)
@@ -88,8 +96,7 @@ Peer::sptr<host::BasicHost> Peer::makeHost(crypto::KeyPair keyPair) {
       std::make_shared<security::Plaintext>(std::move(marshaller), idmgr)};
 
   std::vector<std::shared_ptr<muxer::MuxerAdaptor>> muxer_adaptors = {
-      std::make_shared<muxer::Yamux>(
-          muxer::MuxedConnectionConfig::makeDefault())};
+      std::make_shared<muxer::Yamux>(muxed_config_)};
 
   auto upgrader = std::make_shared<transport::UpgraderImpl>(
       multiselect, std::move(security_adaptors), std::move(muxer_adaptors));
@@ -119,6 +126,6 @@ Peer::sptr<host::BasicHost> Peer::makeHost(crypto::KeyPair keyPair) {
   auto peer_repo = std::make_unique<peer::PeerRepositoryImpl>(
       std::move(addr_repo), std::move(key_repo), std::move(protocol_repo));
 
-  return std::make_shared<host::BasicHost>(idmgr, std::move(network),
-                                           std::move(peer_repo));
+  return std::make_shared<host::BasicHost>(
+      idmgr, std::move(network), std::move(peer_repo));
 }

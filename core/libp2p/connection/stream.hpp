@@ -30,7 +30,7 @@ namespace libp2p::connection {
    * possibility to read and write simultaneously, but double read or write is
    * forbidden
    */
-  struct  Stream : public basic::ReadWriter {
+  struct Stream : public basic::ReadWriter {
     using Handler = void(std::shared_ptr<Stream>);
     using VoidResultHandlerFunc = std::function<void(outcome::result<void>)>;
 

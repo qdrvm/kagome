@@ -31,7 +31,19 @@ namespace libp2p::host {
   }
 
   peer::PeerInfo BasicHost::getPeerInfo() const {
-    return {getId(), getAddresses()};
+    auto addresses = getAddresses();
+    auto interfaces = getAddressesInterfaces();
+    auto observed = getObservedAddresses();
+
+    std::set<multi::Multiaddress> unique_addresses;
+    unique_addresses.insert(addresses.begin(), addresses.end());
+    unique_addresses.insert(interfaces.begin(), interfaces.end());
+    unique_addresses.insert(observed.begin(), observed.end());
+
+    std::vector<multi::Multiaddress> unique_addr_list(unique_addresses.begin(),
+                                                      unique_addresses.end());
+
+    return {getId(), std::move(unique_addr_list)};
   }
 
   std::vector<multi::Multiaddress> BasicHost::getAddresses() const {
@@ -62,8 +74,8 @@ namespace libp2p::host {
       const peer::Protocol &proto,
       const std::function<connection::Stream::Handler> &handler,
       const std::function<bool(const peer::Protocol &)> &predicate) {
-    network_->getListener().getRouter().setProtocolHandler(proto, handler,
-                                                           predicate);
+    network_->getListener().getRouter().setProtocolHandler(
+        proto, handler, predicate);
   }
 
   void BasicHost::newStream(const peer::PeerInfo &p,

@@ -19,7 +19,7 @@ namespace libp2p::muxer {
      * @param config of muxers to be created over the connections
      */
     explicit Yamux(
-        MuxedConnectionConfig config = MuxedConnectionConfig::makeDefault());
+        MuxedConnectionConfig config);
 
     [[nodiscard]] peer::Protocol getProtocolId() const noexcept override;
 

@@ -16,7 +16,7 @@ namespace libp2p::transport {
       return handler(std::errc::address_family_not_supported);
     }
 
-    auto conn = std::make_shared<TcpConnection>(context_);
+    auto conn = std::make_shared<TcpConnection>(*context_);
     auto rendpoint = detail::makeEndpoint(address);
     if (!rendpoint) {
       return handler(rendpoint.error());
