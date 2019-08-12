@@ -17,25 +17,25 @@ namespace kagome::network {
    */
   class PeerClient {
    public:
+    virtual ~PeerClient() = default;
     /**
-     * Request block and process response
+     * Request block
      */
-    virtual void requestBlock(
+    virtual void BlocksRequest(
         BlockRequest request,
-        std::function<void(const outcome::result<BlockResponse> &)> handler)
-        const = 0;
+        std::function<void(const outcome::result<void> &)> handler) const = 0;
 
     /**
      * Send block response
      */
-    virtual void send(
+    virtual void blocksResponse(
         BlockResponse block_response,
         std::function<void(const outcome::result<void> &)> handler) const = 0;
 
     /**
      * Send block announce
      */
-    virtual void send(
+    virtual void blockAnnounce(
         BlockAnnounce block_announce,
         std::function<void(const outcome::result<void> &)> handler) const = 0;
   };

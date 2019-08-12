@@ -8,6 +8,7 @@
 
 #include "network/types/block_announce.hpp"
 #include "network/types/block_request.hpp"
+#include "network/types/block_response.hpp"
 
 namespace kagome::network {
 
@@ -24,11 +25,11 @@ namespace kagome::network {
         std::function<void(const outcome::result<void> &)>) const = 0;
 
     /**
-     * Process block request
+     * Subscribe for the block requests
      */
-    virtual void onRequestBlock(
-        BlockRequest request,
-        std::function<void(const outcome::result<void> &)>) const = 0;
+    virtual void onBlocksRequest(
+        std::function<outcome::result<BlockResponse>(
+            const outcome::result<BlockRequest> &)>) const = 0;
   };
 
 }  // namespace kagome::network
