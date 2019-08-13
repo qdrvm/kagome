@@ -39,8 +39,8 @@ using ::testing::_;
 namespace {
   class MultiaddressGenerator {
    public:
-    MultiaddressGenerator(const std::string &prefix, uint16_t start_port)
-        : prefix_{prefix}, current_port_{start_port} {}
+    MultiaddressGenerator(std::string prefix, uint16_t start_port)
+        : prefix_{std::move(prefix)}, current_port_{start_port} {}
 
     Multiaddress nextMultiaddress() {
       std::cout << "current port = " << current_port_ << std::endl;
@@ -58,13 +58,17 @@ namespace {
 class MultiselectTest : public ::testing::Test {
  public:
   void SetUp() override {
+    context_ = std::make_shared<boost::asio::io_context>();
+    upgrader = std::make_shared<UpgraderMock>();
     transport_ = std::make_shared<TcpTransport>(context_, upgrader);
+
     ASSERT_TRUE(transport_) << "cannot create transport";
 
     EXPECT_CALL(*upgrader, upgradeToSecureOutbound(_, _, _))
         .WillRepeatedly(UpgradeToSecureOutbound(
             [](auto &&raw) -> std::shared_ptr<SecureConnection> {
-              return std::make_shared<CapableConnBasedOnRawConnMock>(raw);
+              return std::make_shared<CapableConnBasedOnRawConnMock>(
+                  std::forward<decltype(raw)>(raw));
             }));
     EXPECT_CALL(*upgrader, upgradeToSecureInbound(_, _))
         .WillRepeatedly(UpgradeToSecureInbound(
@@ -80,6 +84,12 @@ class MultiselectTest : public ::testing::Test {
 
   void TearDown() override {
     ::testing::Mock::VerifyAndClearExpectations(upgrader.get());
+    std::cout << "transport count = " << transport_.use_count() << std::endl;
+    transport_.reset();
+    std::cout << "context count = " << context_.use_count() << std::endl;
+    context_.reset();
+    std::cout << "upgrader count = " << upgrader.use_count() << std::endl;
+    upgrader.reset();
   }
 
   static MultiaddressGenerator &getMaGenerator() {
@@ -87,11 +97,10 @@ class MultiselectTest : public ::testing::Test {
     return ma_generator_;
   }
 
-  std::shared_ptr<boost::asio::io_context> context_ =
-      std::make_shared<boost::asio::io_context>();
+  std::shared_ptr<boost::asio::io_context> context_;
   std::shared_ptr<libp2p::transport::TransportAdaptor> transport_;
 
-  std::shared_ptr<UpgraderMock> upgrader = std::make_shared<UpgraderMock>();
+  std::shared_ptr<UpgraderMock> upgrader;
 
   const Protocol kDefaultEncryptionProtocol1 = "/plaintext/1.0.0";
   const Protocol kDefaultEncryptionProtocol2 = "/plaintext/2.0.0";
@@ -330,6 +339,8 @@ class MultiselectTest : public ::testing::Test {
 TEST_F(MultiselectTest, NegotiateAsInitiator) {
   auto negotiated = false;
 
+  std::cout << "1. upgrader count = " << upgrader.use_count() << std::endl;
+
   auto transport_listener = transport_->createListener(
       [this](outcome::result<std::shared_ptr<CapableConnection>> rconn) {
         ASSERT_TRUE(rconn) << rconn.error().message();
@@ -351,6 +362,8 @@ TEST_F(MultiselectTest, NegotiateAsInitiator) {
 
   ASSERT_TRUE(transport_listener->listen(ma)) << "is port busy?";
   ASSERT_TRUE(transport_->canDial(ma));
+
+  std::cout << "2. upgrader count = " << upgrader.use_count() << std::endl;
 
   std::vector<Protocol> protocol_vec{kDefaultEncryptionProtocol2};
   transport_->dial(
@@ -374,6 +387,8 @@ TEST_F(MultiselectTest, NegotiateAsInitiator) {
 
   launchContext();
   EXPECT_TRUE(negotiated);
+
+  std::cout << "3. upgrader count = " << upgrader.use_count() << std::endl;
 }
 
 TEST_F(MultiselectTest, NegotiateAsListener) {
