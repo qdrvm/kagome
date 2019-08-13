@@ -14,6 +14,7 @@
 #include "common/logger.hpp"
 #include "consensus/synchronizer/synchronizer.hpp"
 #include "consensus/synchronizer/synchronizer_config.hpp"
+#include "network/network_state.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::network {
@@ -29,6 +30,7 @@ namespace kagome::consensus {
     SynchronizerImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
+        std::shared_ptr<network::NetworkState> network_state,
         SynchronizerConfig config = {},
         common::Logger log = common::createLogger("Synchronizer"));
 
@@ -41,18 +43,39 @@ namespace kagome::consensus {
                        const primitives::BlockHash &hash,
                        RequestCallback cb) override;
 
-    enum class Error { INVALID_BLOCK = 1, PEER_RETURNED_NOTHING };
+    enum class Error {
+      INVALID_BLOCK = 1,
+      PEER_RETURNED_NOTHING,
+      SYNCHRONIZER_DEAD,
+      NO_SUCH_PEER
+    };
 
    private:
+    /**
+     * Internal method for requesting blocks
+     */
+    void requestBlocks(network::BlockRequest request,
+                       const libp2p::peer::PeerInfo &peer,
+                       RequestCallback cb) const;
+
+    /**
+     * Handle a response for our request
+     */
+    void handleBlocksResponse(
+        const outcome::result<network::BlockResponse> &response_res,
+        RequestCallback cb) const;
+
     /**
      * Process a BlockRequest
      * @param request to be processed
      * @return a response to the request
      */
-    network::BlockResponse processRequest(network::BlockRequest request) const;
+    outcome::result<network::BlockResponse> processRequest(
+        network::BlockRequest request) const;
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers_;
+    std::shared_ptr<network::NetworkState> network_state_;
     SynchronizerConfig config_;
     common::Logger log_;
 

@@ -19,6 +19,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, SynchronizerImpl::Error, e) {
     case E::PEER_RETURNED_NOTHING:
       return "peer has not sent any blocks in response; either it does not "
              "have a required hash or it is in non-finalized fork";
+    case E::SYNCHRONIZER_DEAD:
+      return "instance of synchronizer, which is called, is dead";
+    case E::NO_SUCH_PEER:
+      return "no peer with such ID found";
   }
   return "unknown error";
 }
@@ -30,33 +34,41 @@ namespace kagome::consensus {
   SynchronizerImpl::SynchronizerImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
+      std::shared_ptr<network::NetworkState> network_state,
       SynchronizerConfig config,
       common::Logger log)
       : block_tree_{std::move(block_tree)},
         blocks_headers_{std::move(blocks_headers)},
+        network_state_{std::move(network_state)},
         config_{config},
         log_{std::move(log)} {
     BOOST_ASSERT(block_tree_);
+    BOOST_ASSERT(blocks_headers_);
+    BOOST_ASSERT(network_state_);
     BOOST_ASSERT(log_);
 
-    peer_server_->onBlocksRequest(
-        [self{shared_from_this()}](BlockRequest request) -> BlockResponse {
-          return self->processRequest(std::move(request));
+    network_state_->peer_server->onBlocksRequest(
+        [self{weak_from_this()}](
+            const BlockRequest &request) -> outcome::result<BlockResponse> {
+          if (self.expired()) {
+            return Error::SYNCHRONIZER_DEAD;
+          }
+          return self.lock()->processRequest(std::move(request));
         });
   }
 
   void SynchronizerImpl::announce(const primitives::Block &block) {
     auto announce = network::BlockAnnounce{block.header};
-    for (auto peer_client : peer_clients_) {
-      peer_client->send(std::move(announce),
-                        [self{shared_from_this()}, peer_client](auto &&res) {
-                          if (!res) {
-                            self->log_->error(
-                                "cannot send a block announce to peer {}: {}",
-                                peer_client->getPeerInfo().toBase58(),
+    for (auto peer_client : network_state_->peer_clients) {
+      peer_client.second->blockAnnounce(
+          std::move(announce),
+          [self{shared_from_this()}, peer_client](auto &&res) {
+            if (!res) {
+              self->log_->error("cannot send a block announce to peer {}: {}",
+                                peer_client.first.toBase58(),
                                 res.error().message());
-                          }
-                        });
+            }
+          });
     }
   }
 
@@ -69,36 +81,7 @@ namespace kagome::consensus {
                          boost::none,
                          network::Direction::DESCENDING,
                          boost::none};
-
-    peer_client_.requestBlock(
-        std::move(request),
-        [self{shared_from_this()}, cb = std::move(cb), request_id](
-            outcome::result<void> response_res) mutable {
-          if (!response_res) {
-            self->log_->error("block request failed: {}",
-                              response_res.error().message());
-            return cb(response_res.error());
-          }
-
-          self->peer_server_.onBlockResponse(
-              request_id, [self, cb = std::move(cb)](auto &&block_response) {
-                for (auto &block_data : block_response.blocks) {
-                  auto block_opt = block_data.toBlock();
-                  if (!block_opt) {
-                    // there is no sense in continuing: blocks are coming in
-                    // sequential order, and if one of them is skipped, we will
-                    // not be able to insert any further
-                    return cb(Error::INVALID_BLOCK);
-                  }
-                  auto block_insert_res =
-                      self->block_tree_->addBlock(std::move(*block_opt));
-                  if (!block_insert_res) {
-                    // the same logic applies here
-                    return cb(block_insert_res.error());
-                  }
-                }
-              });
-        });
+    requestBlocks(std::move(request), peer, std::move(cb));
   }
 
   void SynchronizerImpl::requestBlocks(const libp2p::peer::PeerInfo &peer,
@@ -106,7 +89,7 @@ namespace kagome::consensus {
                                        RequestCallback cb) {
     auto request_id = last_request_id_++;
     // using last_finalized, because if the block, which we want to get, is in
-    // non-filalized fork, we are not interested in it; otherwise, it 100% will
+    // non-finalized fork, we are not interested in it; otherwise, it 100% will
     // be a descendant of the last_finalized
     BlockRequest request{request_id,
                          BlockRequest::kBasicAttributes,
@@ -114,45 +97,57 @@ namespace kagome::consensus {
                          hash,
                          network::Direction::DESCENDING,
                          boost::none};
+    requestBlocks(std::move(request), peer, std::move(cb));
+  }
 
-    peer_client_.requestBlock(
+  void SynchronizerImpl::requestBlocks(network::BlockRequest request,
+                                       const libp2p::peer::PeerInfo &peer,
+                                       RequestCallback cb) const {
+    auto peer_client_it = network_state_->peer_clients.find(peer.id);
+    if (peer_client_it == network_state_->peer_clients.end()) {
+      log_->info("no peer with id {}", peer.id.toBase58());
+      return cb(Error::NO_SUCH_PEER);
+    }
+
+    peer_client_it->second->blocksRequest(
         std::move(request),
-        [self{shared_from_this()}, cb = std::move(cb), request_id](
-            auto &&response_res) {
-          if (!response_res) {
-            self->log_->error("block request failed: {}",
-                              response_res.error().message());
-            return cb(response_res.error());
-          }
-
-          self->peer_server_.onBlockResponse(
-              request_id, [self, cb = std::move(cb)](auto &&block_response) {
-                auto &blocks = block_response.blocks;
-                if (blocks.empty()) {
-                  return cb(Error::PEER_RETURNED_NOTHING);
-                }
-
-                // first element is a last_finalized block - we already know it
-                blocks.erase(blocks.begin());
-                for (auto &block : blocks) {
-                  auto block_opt = block_data.toBlock();
-                  if (!block_opt) {
-                    return cb(Error::INVALID_BLOCK);
-                  }
-                  auto block_insert_res =
-                      self->block_tree_->addBlock(std::move(*block_opt));
-                  if (!block_insert_res
-                      && block_insert_res.error()
-                             != blockchain::BlockTree::Error::BLOCK_EXISTS) {
-                    // if such block already exists, it's OK
-                    return cb(block_insert_res.error());
-                  }
-                }
-              });
+        [self{shared_from_this()},
+         cb = std::move(cb)](auto &&block_response_res) mutable {
+          self->handleBlocksResponse(
+              std::forward<decltype(block_response_res)>(block_response_res),
+              std::move(cb));
         });
   }
 
-  BlockResponse SynchronizerImpl::processRequest(BlockRequest request) const {
+  void SynchronizerImpl::handleBlocksResponse(
+      const outcome::result<network::BlockResponse> &response_res,
+      RequestCallback cb) const {
+    if (!response_res) {
+      return cb(response_res.error());
+    }
+
+    for (auto &block_data : response_res.value().blocks) {
+      auto block_opt = block_data.toBlock();
+      if (!block_opt) {
+        // there is no sense in continuing: blocks are coming in
+        // sequential order, and if one of them is skipped, we will
+        // not be able to insert any further
+        return cb(Error::INVALID_BLOCK);
+      }
+      auto block_insert_res = block_tree_->addBlock(std::move(*block_opt));
+      if (!block_insert_res
+          && block_insert_res.error()
+                 != blockchain::BlockTree::Error::BLOCK_EXISTS) {
+        // if such block already exists, it's OK
+        return cb(block_insert_res.error());
+      }
+    }
+
+    cb(outcome::success());
+  }
+
+  outcome::result<network::BlockResponse> SynchronizerImpl::processRequest(
+      BlockRequest request) const {
     BlockResponse response{request.id};
 
     // firstly, check if we have both "from" & "to" blocks (if set)
