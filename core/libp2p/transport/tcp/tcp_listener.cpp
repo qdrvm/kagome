@@ -9,11 +9,11 @@
 
 namespace libp2p::transport {
 
-  TcpListener::TcpListener(std::shared_ptr<boost::asio::io_context> context,
+  TcpListener::TcpListener(boost::asio::io_context &context,
                            std::shared_ptr<Upgrader> upgrader,
                            TransportListener::HandlerFunc handler)
-      : context_(std::move(context)),
-        acceptor_(*context_),
+      : context_(context),
+        acceptor_(context_),
         upgrader_(std::move(upgrader)),
         handle_(std::move(handler)) {}
 
@@ -84,7 +84,7 @@ namespace libp2p::transport {
           }
 
           auto conn =
-              std::make_shared<TcpConnection>(*self->context_, std::move(sock));
+              std::make_shared<TcpConnection>(self->context_, std::move(sock));
 
           auto session = std::make_shared<UpgraderSession>(
               self->upgrader_, std::move(conn), self->handle_);

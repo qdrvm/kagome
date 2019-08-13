@@ -40,7 +40,7 @@ struct TcpListenerTest : public ::testing::Test {
 
   void SetUp() override {
     listener = std::make_shared<TcpListener>(
-        context, upgrader,
+        *context, upgrader,
         [this](auto &&r) { cb.Call(std::forward<decltype(r)>(r)); });
   }
 };

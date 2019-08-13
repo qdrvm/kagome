@@ -47,7 +47,7 @@ namespace libp2p::transport {
 
   std::shared_ptr<TransportListener> TcpTransport::createListener(
       TransportListener::HandlerFunc handler) {
-    return std::make_shared<TcpListener>(context_, upgrader_,
+    return std::make_shared<TcpListener>(*context_, upgrader_,
                                          std::move(handler));
   }
 
