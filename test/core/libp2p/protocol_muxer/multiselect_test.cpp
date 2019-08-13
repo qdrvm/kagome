@@ -5,6 +5,8 @@
 
 #include "libp2p/protocol_muxer/multiselect.hpp"
 
+#include <iostream>
+
 #include <gtest/gtest.h>
 #include "libp2p/connection/capable_connection.hpp"
 #include "libp2p/multi/multiaddress.hpp"
@@ -34,6 +36,25 @@ using libp2p::transport::UpgraderMock;
 
 using ::testing::_;
 
+namespace {
+  class MultiaddressGenerator {
+   public:
+    MultiaddressGenerator(const std::string &prefix, uint16_t start_port)
+        : prefix_{prefix}, current_port_{start_port} {}
+
+    Multiaddress nextMultiaddress() {
+      std::cout << "current port = " << current_port_ << std::endl;
+      std::string ma = prefix_ + std::to_string(current_port_++);
+      EXPECT_OUTCOME_TRUE(res, Multiaddress::create(ma));
+      return res;
+    }
+
+   private:
+    std::string prefix_;
+    uint16_t current_port_;
+  };
+}  // namespace
+
 class MultiselectTest : public ::testing::Test {
  public:
   void SetUp() override {
@@ -55,15 +76,20 @@ class MultiselectTest : public ::testing::Test {
             [](auto &&sec) -> std::shared_ptr<CapableConnection> {
               return std::make_shared<CapableConnBasedOnRawConnMock>(sec);
             }));
+  }
 
-    auto ma = "/ip4/127.0.0.1/tcp/40009"_multiaddr;
-    multiaddress_ = std::make_shared<Multiaddress>(std::move(ma));
+  void TearDown() override {
+    ::testing::Mock::VerifyAndClearExpectations(upgrader.get());
+  }
+
+  static MultiaddressGenerator &getMaGenerator() {
+    static MultiaddressGenerator ma_generator_("/ip4/127.0.0.1/tcp/", 40009);
+    return ma_generator_;
   }
 
   std::shared_ptr<boost::asio::io_context> context_ =
       std::make_shared<boost::asio::io_context>();
   std::shared_ptr<libp2p::transport::TransportAdaptor> transport_;
-  std::shared_ptr<libp2p::multi::Multiaddress> multiaddress_;
 
   std::shared_ptr<UpgraderMock> upgrader = std::make_shared<UpgraderMock>();
 
@@ -321,14 +347,15 @@ TEST_F(MultiselectTest, NegotiateAsInitiator) {
         });
       });
 
-  ASSERT_TRUE(transport_listener->listen(*multiaddress_))
-      << "is port 40009 busy?";
-  ASSERT_TRUE(transport_->canDial(*multiaddress_));
+  auto ma = getMaGenerator().nextMultiaddress();
+
+  ASSERT_TRUE(transport_listener->listen(ma)) << "is port busy?";
+  ASSERT_TRUE(transport_->canDial(ma));
 
   std::vector<Protocol> protocol_vec{kDefaultEncryptionProtocol2};
   transport_->dial(
       testutil::randomPeerId(),
-      *multiaddress_,
+      ma,
       [this, &negotiated, &protocol_vec](
           outcome::result<std::shared_ptr<CapableConnection>> rconn) {
         EXPECT_OUTCOME_TRUE(conn, rconn);
@@ -368,13 +395,13 @@ TEST_F(MultiselectTest, NegotiateAsListener) {
             });
       });
 
-  ASSERT_TRUE(transport_listener->listen(*multiaddress_))
-      << "is port 40009 busy?";
-  ASSERT_TRUE(transport_->canDial(*multiaddress_));
+  auto ma = getMaGenerator().nextMultiaddress();
+  ASSERT_TRUE(transport_listener->listen(ma)) << "is port busy?";
+  ASSERT_TRUE(transport_->canDial(ma));
 
   transport_->dial(
       testutil::randomPeerId(),
-      *multiaddress_,
+      ma,
       [this](outcome::result<std::shared_ptr<CapableConnection>> rconn) {
         EXPECT_OUTCOME_TRUE(conn, rconn);
         // first, we expect an exchange of opening messages
@@ -427,13 +454,13 @@ TEST_F(MultiselectTest, NegotiateFailure) {
         negotiated = true;
       });
 
-  ASSERT_TRUE(transport_listener->listen(*multiaddress_))
-      << "is port 40009 busy?";
-  ASSERT_TRUE(transport_->canDial(*multiaddress_));
+  auto ma = getMaGenerator().nextMultiaddress();
+  ASSERT_TRUE(transport_listener->listen(ma)) << "is port busy?";
+  ASSERT_TRUE(transport_->canDial(ma));
 
   transport_->dial(
       testutil::randomPeerId(),
-      *multiaddress_,
+      ma,
       [this](outcome::result<std::shared_ptr<CapableConnection>> rconn) {
         EXPECT_OUTCOME_TRUE(conn, rconn);
         negotiationOpeningsInitiator(conn, [this, conn] {
