@@ -22,4 +22,12 @@ namespace kagome::crypto {
               public_key.begin());
   }
 
+  bool SR25519Keypair::operator==(const SR25519Keypair &other) const {
+    return secret_key == other.secret_key && public_key == other.public_key;
+  }
+
+  bool SR25519Keypair::operator!=(const SR25519Keypair &other) const {
+    return !(*this == other);
+  }
+
 }  // namespace kagome::crypto

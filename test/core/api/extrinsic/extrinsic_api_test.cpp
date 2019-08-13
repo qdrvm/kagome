@@ -9,7 +9,7 @@
 #include <gtest/gtest.h>
 #include "common/blob.hpp"
 #include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
-#include "mock/crypto/hasher.hpp"
+#include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/transaction_pool/transaction_pool_mock.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/extrinsic.hpp"

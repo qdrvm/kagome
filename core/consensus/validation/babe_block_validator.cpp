@@ -162,7 +162,7 @@ namespace kagome::consensus {
     // verify VRF output
     auto randomness_with_slot =
         Buffer{}
-            .put(crypto::util::uint256_t_to_bytes(epoch.randomness))
+            .put(epoch.randomness)
             .put(crypto::util::uint256_t_to_bytes(epoch.threshold));
     if (!vrf_provider_->verify(
             randomness_with_slot,

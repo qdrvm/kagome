@@ -6,6 +6,7 @@
 #ifndef KAGOME_COMMON_HPP
 #define KAGOME_COMMON_HPP
 
+#include <array>
 #include <cstdint>
 #include <vector>
 
@@ -21,16 +22,18 @@ namespace kagome::consensus {
     AuthorityWeight babe_weight{};
   };
 
+  using EpochIndex = uint64_t;
+
   /// threshold, which must not be exceeded for the party to be a slot leader
   using Threshold = crypto::VRFValue;
 
   /// random value, which serves as a seed for VRF slot leadership selection
-  using Randomness = crypto::VRFValue;
+  using Randomness = std::array<uint8_t, SR25519_VRF_OUTPUT_SIZE>;
 
   /// metainformation about the Babe epoch
   struct Epoch {
     /// the epoch index
-    uint64_t epoch_index;
+    EpochIndex epoch_index;
     /// starting slot of the epoch
     BabeSlotNumber start_slot;
     /// duration of the epoch (number of slots it takes)
