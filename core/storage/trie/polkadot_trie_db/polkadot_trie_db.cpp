@@ -17,8 +17,7 @@ using kagome::common::Buffer;
 namespace kagome::storage::trie {
 
   PolkadotTrieDb::PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db)
-      : db_{std::move(db)},
-      root_{getEmptyRoot()} {}
+      : db_{std::move(db)}, codec_{}, root_{getEmptyRoot()} {}
 
   outcome::result<void> PolkadotTrieDb::put(const Buffer &key,
                                             const Buffer &value) {
@@ -104,7 +103,8 @@ namespace kagome::storage::trie {
 
   outcome::result<PolkadotTrie> PolkadotTrieDb::initTrie() const {
     OUTCOME_TRY(root, retrieveNode(root_));
-    return PolkadotTrie{std::move(root), [this](const BranchPtr &parent, uint8_t idx) {
+    return PolkadotTrie{std::move(root),
+                        [this](const BranchPtr &parent, uint8_t idx) {
                           return retrieveChild(parent, idx);
                         }};
   }

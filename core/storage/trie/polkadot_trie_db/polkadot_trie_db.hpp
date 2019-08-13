@@ -102,8 +102,8 @@ namespace kagome::storage::trie {
                                            uint8_t idx) const;
 
     std::unique_ptr<PersistentBufferMap> db_;
-    common::Buffer root_;
     PolkadotCodec codec_;
+    common::Buffer root_;
   };
 
 }  // namespace kagome::storage::trie
