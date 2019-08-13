@@ -21,9 +21,10 @@ namespace kagome::network {
     /**
      * Request block
      */
-    virtual void BlocksRequest(
+    virtual void blocksRequest(
         BlockRequest request,
-        std::function<void(const outcome::result<void> &)> handler) const = 0;
+        std::function<void(const outcome::result<BlockResponse> &)> handler)
+        const = 0;
 
     /**
      * Send block announce
