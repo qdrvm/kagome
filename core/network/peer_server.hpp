@@ -28,8 +28,8 @@ namespace kagome::network {
      * Subscribe for the block requests
      */
     virtual void onBlocksRequest(
-        std::function<outcome::result<BlockResponse>(
-            const outcome::result<BlockRequest> &)>) const = 0;
+        std::function<outcome::result<BlockResponse>(const BlockRequest &)>)
+        const = 0;
   };
 
 }  // namespace kagome::network
