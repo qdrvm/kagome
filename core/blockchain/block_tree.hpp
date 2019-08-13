@@ -6,6 +6,7 @@
 #ifndef KAGOME_BLOCK_TREE_HPP
 #define KAGOME_BLOCK_TREE_HPP
 
+#include <cstdint>
 #include <vector>
 
 #include <outcome/outcome.hpp>
@@ -34,6 +35,9 @@ namespace kagome::blockchain {
      * not exist in our storage, or actual error happens
      */
     virtual outcome::result<primitives::BlockBody> getBlockBody(
+        const primitives::BlockId &block) const = 0;
+
+    virtual outcome::result<primitives::Justification> getBlockJustification(
         const primitives::BlockId &block) const = 0;
 
     /**
@@ -68,6 +72,28 @@ namespace kagome::blockchain {
      */
     virtual BlockHashVecRes getChainByBlock(
         const primitives::BlockHash &block) = 0;
+
+    /**
+     * Get a chain of blocks from the (\param block)
+     * @param block, from which the chain is started
+     * @param ascending - if true, the chain will grow up from the provided
+     * block (it is the lowest one); if false, down
+     * @param maximum number of blocks to be retrieved
+     * @return chain or blocks or error
+     */
+    virtual BlockHashVecRes getChainByBlock(const primitives::BlockHash &block,
+                                            bool ascending,
+                                            uint64_t maximum) = 0;
+
+    /**
+     * Get a chain of blocks
+     * @param top_block - block, which is at the top of the chain
+     * @param bottom_block - block, which is the bottim of the chain
+     * @return chain of blocks or error
+     */
+    virtual BlockHashVecRes getChainByBlocks(
+        const primitives::BlockHash &top_block,
+        const primitives::BlockHash &bottom_block) = 0;
 
     /**
      * Get a longest path (chain of blocks) from the last finalized block down
@@ -114,6 +140,15 @@ namespace kagome::blockchain {
      * harm in calling it more often, than needed
      */
     virtual void prune() = 0;
+
+    enum class Error {
+      INVALID_DB = 1,
+      NO_PARENT,
+      BLOCK_EXISTS,
+      HASH_FAILED,
+      NO_SUCH_BLOCK,
+      INTERNAL_ERROR
+    };
   };
 }  // namespace kagome::blockchain
 

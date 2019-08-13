@@ -27,7 +27,7 @@ namespace kagome::consensus {
 
     /// empty result, because methods, which use it, insert retrieved blocks
     /// directly into the shared local tree
-    using RequestCallback = std::function<outcome::result<void>()>;
+    using RequestCallback = std::function<void(outcome::result<void>)>;
 
     /**
      * Request new blocks, starting from our deepest block; received blocks will
@@ -45,8 +45,9 @@ namespace kagome::consensus {
                                RequestCallback cb) = 0;
 
     /**
-     * Request new blocks, starting from our deepest block; received blocks will
-     * be inserted into the block tree
+     * Request new blocks
+     * @param peer to request blocks from; most probably this is the peer, which
+     * sent the block
      * @param hash of the block, which it to appear in the result of the request
      * @param cb to be called, when the operation finishes; contains nothing on
      * success and error otherwise
@@ -54,11 +55,11 @@ namespace kagome::consensus {
      * @note this function will request all peers we know until the (\param
      * hash) block appears or we asked all known peers
      * @note example use-case: the node received a block, which "parent_hash" is
-     * unknown to us; this method tries to download the lacking part of the
+     * unknown to us; this method tries to download the lacking part to the
      * local tree
      */
-    virtual void requestBlocks(const primitives::BlockHash &hash,
-                               primitives::BlockNumber number,
+    virtual void requestBlocks(const libp2p::peer::PeerInfo &peer,
+                               const primitives::BlockHash &hash,
                                RequestCallback cb) = 0;
   };
 }  // namespace kagome::consensus

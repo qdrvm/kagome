@@ -18,7 +18,7 @@ namespace kagome::primitives {
    */
   struct Block {
     BlockHeader header;  ///< block header
-    BlockBody body;      ///< extrinsics collection
+    BlockBody body{};    ///< extrinsics collection
 
     inline bool operator==(const Block &rhs) const {
       return header == rhs.header and body == rhs.body;

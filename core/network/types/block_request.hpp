@@ -6,7 +6,6 @@
 #ifndef KAGOME_BLOCK_REQUEST_HPP
 #define KAGOME_BLOCK_REQUEST_HPP
 
-#include <bitset>
 #include <cstdint>
 
 #include <boost/optional.hpp>
@@ -15,11 +14,12 @@
 #include "primitives/common.hpp"
 
 namespace kagome::network {
+  using BlockAttributes = uint8_t;
   /**
    * Masks of bits, combination of which shows, which fields are to be presented
    * in the BlockResponse
    */
-  enum class BlockAttributesBits : uint8_t {
+  enum class BlockAttributesBits : BlockAttributes {
     /// Include block header.
     HEADER = 1u,
     /// Include block body.
@@ -31,7 +31,6 @@ namespace kagome::network {
     /// Include a justification for the block.
     JUSTIFICATION = 1u << 4u
   };
-  using BlockAttributes = std::bitset<8>;
 
   /**
    * Direction, in which to retrieve the blocks
@@ -65,6 +64,10 @@ namespace kagome::network {
 
     /// includes HEADER, BODY and JUSTIFICATION
     static constexpr BlockAttributes kBasicAttributes{19};
+
+    constexpr bool attributeIsSet(BlockAttributesBits attribute) const {
+      return fields & static_cast<uint8_t>(attribute);
+    }
   };
 }  // namespace kagome::network
 

@@ -65,14 +65,6 @@ namespace kagome::blockchain {
     };
 
    public:
-    enum class Error {
-      INVALID_DB = 1,
-      NO_PARENT,
-      HASH_FAILED,
-      NO_SUCH_BLOCK,
-      INTERNAL_ERROR
-    };
-
     /**
      * Create an instance of block tree
      * @param db for the tree to be put in

@@ -9,18 +9,27 @@
 #include <memory>
 #include <unordered_map>
 
+#include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/logger.hpp"
 #include "consensus/synchronizer/synchronizer.hpp"
+#include "consensus/synchronizer/synchronizer_config.hpp"
 #include "primitives/common.hpp"
+
+namespace kagome::network {
+  struct BlockResponse;
+  struct BlockRequest;
+}  // namespace kagome::network
 
 namespace kagome::consensus {
   class SynchronizerImpl
       : public Synchronizer,
         public std::enable_shared_from_this<SynchronizerImpl> {
    public:
-    explicit SynchronizerImpl(
+    SynchronizerImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
+        SynchronizerConfig config = {},
         common::Logger log = common::createLogger("Synchronizer"));
 
     void announce(const primitives::Block &block) override;
@@ -28,18 +37,29 @@ namespace kagome::consensus {
     void requestBlocks(const libp2p::peer::PeerInfo &peer,
                        RequestCallback cb) override;
 
-    void requestBlocks(const primitives::BlockHash &hash,
-                       primitives::BlockNumber number,
+    void requestBlocks(const libp2p::peer::PeerInfo &peer,
+                       const primitives::BlockHash &hash,
                        RequestCallback cb) override;
 
+    enum class Error { INVALID_BLOCK = 1, PEER_RETURNED_NOTHING };
+
    private:
+    /**
+     * Process a BlockRequest
+     * @param request to be processed
+     * @return a response to the request
+     */
+    network::BlockResponse processRequest(network::BlockRequest request) const;
+
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers_;
+    SynchronizerConfig config_;
     common::Logger log_;
 
     primitives::BlockRequestId last_request_id_ = 0;
-    std::unordered_map<primitives::BlockRequestId, RequestCallback>
-        issued_requests_cbs_;
   };
 }  // namespace kagome::consensus
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::consensus, SynchronizerImpl::Error)
 
 #endif  // KAGOME_SYNCHRONIZER_IMPL_HPP
