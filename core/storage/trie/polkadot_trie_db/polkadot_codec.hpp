@@ -34,7 +34,7 @@ namespace kagome::storage::trie {
     outcome::result<std::shared_ptr<Node>> decodeNode(
         const common::Buffer &encoded_data) const override;
 
-    common::Hash256 merkleValue(const Buffer &buf) const override;
+    common::Buffer merkleValue(const Buffer &buf) const override;
 
     common::Hash256 hash256(const Buffer &buf) const override;
 

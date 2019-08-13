@@ -323,16 +323,3 @@ TEST_F(TrieTest, EmptyTrie) {
   EXPECT_OUTCOME_TRUE_1(trie->put({0}, "asdasd"_buf));
   ASSERT_FALSE(trie->empty());
 }
-
-TEST_F(TrieTest, Limits) {
-  trie->put({0}, "qwerty"_buf);
-  std::cout << *trie;
-  trie->put({1}, "quaia"_buf);
-  std::cout << *trie;
-  ASSERT_TRUE(trie->get({0}));
-  ASSERT_TRUE(trie->get({1}));
-  trie->remove({0});
-  std::cout << *trie;
-  trie->remove({1});
-  std::cout << "trie:" << *trie;
-}

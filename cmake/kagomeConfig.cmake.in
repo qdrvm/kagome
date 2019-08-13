@@ -29,4 +29,5 @@ set(kagome_LIBRARIES
         kagome::leveldb
         kagome::polkadot_trie_batch
         kagome::logger
+        kagome::in_memory_storage
     )

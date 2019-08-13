@@ -41,7 +41,7 @@ namespace kagome::storage::trie {
      * @param buf byte representation of the node
      * @return hash of \param buf or \param buf if it is shorter than the hash
      */
-    virtual common::Hash256 merkleValue(const common::Buffer &buf) const = 0;
+    virtual common::Buffer merkleValue(const common::Buffer &buf) const = 0;
 
     /**
      * @brief Get the hash of a node

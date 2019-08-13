@@ -40,7 +40,9 @@ namespace kagome::storage::trie {
   }
 
   common::Buffer PolkadotTrieDb::getRootHash() const {
-    return root_;
+    // if the length of the encoded root is less than 32, it is not hashed,
+    // so hash it in this case
+    return root_.size() < 32 ? Buffer{codec_.hash256(root_)} : root_;
   }
 
   outcome::result<void> PolkadotTrieDb::clearPrefix(
@@ -101,7 +103,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<PolkadotTrie> PolkadotTrieDb::initTrie() const {
-    OUTCOME_TRY(root, retrieveNode(getRootHash()));
+    OUTCOME_TRY(root, retrieveNode(root_));
     return PolkadotTrie{std::move(root), [this](const BranchPtr &parent, uint8_t idx) {
                           return retrieveChild(parent, idx);
                         }};

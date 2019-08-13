@@ -43,75 +43,23 @@ namespace kagome::storage::trie {
 
   inline common::Buffer ushortToBytes(uint16_t b) {
     common::Buffer out(2, 0);
-    out[0] = (b >> 8u) & 0xffu;
-    out[1] = b & 0xffu;
+    out[1] = (b >> 8u) & 0xffu;
+    out[0] = b & 0xffu;
     return out;
   }
-/*
+
   common::Buffer PolkadotCodec::nibblesToKey(const common::Buffer &nibbles) {
     Buffer res;
     if (nibbles.size() % 2 == 0) {
-      res.put(std::vector<uint8_t>(nibbles.size() / 2));
+      res = Buffer(nibbles.size() / 2, 0);
       for (size_t i = 0; i < nibbles.size(); i += 2) {
-        res[i / 2] = ((nibbles[i]) & 0xfu) | (nibbles[i + 1] << 4u & 0xf0u);
+        res[i / 2] = (nibbles[i] << 4 & 0xf0) | (nibbles[i + 1] & 0xf);
       }
     } else {
-      res.put(std::vector<uint8_t>(nibbles.size() / 2 + 1));
-      for (size_t i = 0; i < nibbles.size(); i += 2) {
-        if (i < nibbles.size() - 1) {
-          res[i / 2] =
-              ((nibbles[i]) & 0xfu) | (nibbles[i + 1] << 4 & 0xf0u);
-        } else {
-          res[i / 2] = nibbles[i] & 0xfu;
-        }
-      }
-    }
-    return res;*/
-    /*const auto nibbles_size = nibbles.size();
-      if (nibbles_size == 0) {
-        return {};
-      }
-
-      if (nibbles_size == 1 && nibbles[0] == 0) {
-        return {0};
-      }
-
-      // if nibbles_size is odd, then allocate one more item
-      const size_t size = (nibbles_size + 1) / 2;
-      common::Buffer out(size, 0);
-
-      size_t iterations = size;
-
-      // if number of nibbles is odd, then iterate even number of times
-      bool nimbles_size_odd = nibbles_size % 2 != 0;
-      if (nimbles_size_odd) {
-        --iterations;
-      }
-
-      for (size_t i = 0; i < iterations; ++i) {
-        out[i] = collectByte(nibbles[2 * i], nibbles[2 * i + 1]);
-      }
-
-      // if number of nibbles is odd, then implicitly add 0 as very last nibble
-      if (nimbles_size_odd) {
-        out[iterations] = collectByte(nibbles[2 * iterations], 0);
-      }
-
-      return out;*/
-  //}
-
-  common::Buffer PolkadotCodec::nibblesToKey(const common::Buffer &nibbles) {
-    Buffer res;
-    if (nibbles.size()%2 == 0) {
-      res = Buffer(nibbles.size()/2, 0);
-      for (size_t i = 0; i < nibbles.size(); i += 2) {
-        res[i/2] = (nibbles[i] << 4 & 0xf0) | (nibbles[i+1] & 0xf);
-      }
-    } else {
-      res = Buffer(nibbles.size()/2+1, 0);
+      res = Buffer(nibbles.size() / 2 + 1, 0);
       res[0] = nibbles[0];
       for (size_t i = 2; i < nibbles.size(); i += 2) {
-        res[i/2] = (nibbles[i-1] << 4 & 0xf0) | (nibbles[i] & 0xf);
+        res[i / 2] = (nibbles[i - 1] << 4 & 0xf0) | (nibbles[i] & 0xf);
       }
     }
     return res;
@@ -132,38 +80,16 @@ namespace kagome::storage::trie {
     }
 
     return res;
-    /*auto nibbles = key.size() * 2;
-
-    // if last nibble in `key` is 0
-    bool last_nibble_0 = !key.empty() && (highNibble(key[key.size() - 1]) == 0);
-    if (last_nibble_0) {
-      --nibbles;
-    }
-
-    common::Buffer out(nibbles, 0);
-    for (size_t i = 0u, size = nibbles / 2; i < size; i++) {
-      out[2 * i] = lowNibble(key[i]);
-      out[2 * i + 1] = highNibble(key[i]);
-    }
-
-    if (last_nibble_0) {
-      out[nibbles - 1] = lowNibble(key[key.size() - 1]);
-    }
-
-    return out;*/
   }
 
-  common::Hash256 PolkadotCodec::merkleValue(const common::Buffer &buf) const {
-    common::Hash256 out;
-
+  common::Buffer PolkadotCodec::merkleValue(const common::Buffer &buf) const {
     // if a buffer size is less than the size of a would-be hash, just return
     // this buffer to save space
-    /*if (buf.size() < common::Hash256::size()) {
-      std::copy(buf.begin(), buf.end(), out.begin());
-      return out;
-    }*/
+    if (buf.size() < common::Hash256::size()) {
+      return buf;
+    }
 
-    return hash256(buf);
+    return Buffer{hash256(buf)};
   }
 
   common::Hash256 PolkadotCodec::hash256(const common::Buffer &buf) const {
@@ -253,18 +179,22 @@ namespace kagome::storage::trie {
     for (auto &child : node.children) {
       if (child) {
         if (child->isDummy()) {
-          auto hash = std::dynamic_pointer_cast<DummyNode>(child)->db_key;
-          encoding.putBuffer(hash);
+          auto merkle_value = std::dynamic_pointer_cast<DummyNode>(child)->db_key;
+          OUTCOME_TRY(scale_enc, scale::encode(std::move(merkle_value)));
+          encoding.put(scale_enc);
         } else {
           OUTCOME_TRY(enc, encodeNode(*child));
-          encoding.put(merkleValue(enc));
+          OUTCOME_TRY(scale_enc, scale::encode(merkleValue(enc)));
+          encoding.put(scale_enc);
         }
       }
     }
 
-    // scale encoded value
-    OUTCOME_TRY(encNodeValue, scale::encode(node.value));
-    encoding += Buffer(std::move(encNodeValue));
+    if (node.getTrieType() == PolkadotNode::Type::BranchWithValue) {
+      // scale encoded value
+      OUTCOME_TRY(encNodeValue, scale::encode(node.value));
+      encoding += Buffer(std::move(encNodeValue));
+    }
 
     return outcome::success(std::move(encoding));
   }
@@ -350,14 +280,9 @@ namespace kagome::storage::trie {
     // array of nibbles is much more convenient than array of bytes, though it
     // wastes some memory
     partial_key = keyToNibbles(partial_key);
-    if(nibbles_num % 2 == 1) {
+    if (nibbles_num % 2 == 1) {
       partial_key = partial_key.subbuffer(1);
     }
-    /*// when the last nibble is zero, keyToNibbles throws it away, which may
-    // break the node key in this case, so restore this nibble if needed
-    if (nibbles_num != partial_key.size()) {
-      partial_key.putUint8(0);
-    }*/
     return partial_key;
   }
 
@@ -373,10 +298,10 @@ namespace kagome::storage::trie {
     auto node = std::make_shared<BranchNode>(partial_key);
 
     uint16_t children_bitmap = stream.next();
-    children_bitmap <<= 8u;
-    children_bitmap += stream.next();
+    children_bitmap += stream.next() << 8u;
 
     uint8_t i = 0;
+    scale::ScaleDecoderStream ss(stream.leftBytes());
     while (children_bitmap != 0) {
       // if there is a child
       if ((children_bitmap & (1u << i)) != 0) {
@@ -384,20 +309,24 @@ namespace kagome::storage::trie {
         children_bitmap &= ~(1u << i);
         // read the hash of the child and make a dummy node from it for this
         // child in the processed branch
-        if (not stream.hasMore(common::Hash256::size())) {
-          return Error::INPUT_TOO_SMALL;
-        }
-        common::Buffer child_hash(32, 0);
-        for (auto &b : child_hash) {
-          b = stream.next();
+        common::Buffer child_hash;
+        try {
+          ss >> child_hash;
+        } catch (std::system_error &e) {
+          return outcome::failure(e.code());
         }
         node->children.at(i) = std::make_shared<DummyNode>(child_hash);
       }
       i++;
     }
     // decode the branch value if needed
+    common::Buffer value;
     if (type == PolkadotNode::Type::BranchWithValue) {
-      OUTCOME_TRY(value, scale::decode<Buffer>(stream.leftBytes()));
+      try {
+        ss >> value;
+      } catch (std::system_error &e) {
+        return outcome::failure(e.code());
+      }
       node->value = value;
     }
     return node;
