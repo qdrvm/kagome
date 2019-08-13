@@ -17,6 +17,7 @@ namespace kagome::network {
    */
   class PeerServer {
    public:
+    virtual ~PeerServer() = default;
     /**
      * Process block announcement
      */
