@@ -68,7 +68,8 @@ namespace kagome::storage::trie {
   common::Buffer PolkadotCodec::keyToNibbles(const common::Buffer &key) {
     if (key.empty()) {
       return {};
-    } else if (key.size() == 1 && key[0] == 0) {
+    }
+    if (key.size() == 1 && key[0] == 0) {
       return {0, 0};
     }
 
@@ -175,11 +176,18 @@ namespace kagome::storage::trie {
     // children bitmap
     encoding += ushortToBytes(node.childrenBitmap());
 
+    if (node.getTrieType() == PolkadotNode::Type::BranchWithValue) {
+      // scale encoded value
+      OUTCOME_TRY(encNodeValue, scale::encode(node.value));
+      encoding += Buffer(std::move(encNodeValue));
+    }
+
     // encode each child
     for (auto &child : node.children) {
       if (child) {
         if (child->isDummy()) {
-          auto merkle_value = std::dynamic_pointer_cast<DummyNode>(child)->db_key;
+          auto merkle_value =
+              std::dynamic_pointer_cast<DummyNode>(child)->db_key;
           OUTCOME_TRY(scale_enc, scale::encode(std::move(merkle_value)));
           encoding.put(scale_enc);
         } else {
@@ -188,12 +196,6 @@ namespace kagome::storage::trie {
           encoding.put(scale_enc);
         }
       }
-    }
-
-    if (node.getTrieType() == PolkadotNode::Type::BranchWithValue) {
-      // scale encoded value
-      OUTCOME_TRY(encNodeValue, scale::encode(node.value));
-      encoding += Buffer(std::move(encNodeValue));
     }
 
     return outcome::success(std::move(encoding));
@@ -300,8 +302,20 @@ namespace kagome::storage::trie {
     uint16_t children_bitmap = stream.next();
     children_bitmap += stream.next() << 8u;
 
-    uint8_t i = 0;
     scale::ScaleDecoderStream ss(stream.leftBytes());
+
+    // decode the branch value if needed
+    common::Buffer value;
+    if (type == PolkadotNode::Type::BranchWithValue) {
+      try {
+        ss >> value;
+      } catch (std::system_error &e) {
+        return outcome::failure(e.code());
+      }
+      node->value = value;
+    }
+
+    uint8_t i = 0;
     while (children_bitmap != 0) {
       // if there is a child
       if ((children_bitmap & (1u << i)) != 0) {
@@ -318,16 +332,6 @@ namespace kagome::storage::trie {
         node->children.at(i) = std::make_shared<DummyNode>(child_hash);
       }
       i++;
-    }
-    // decode the branch value if needed
-    common::Buffer value;
-    if (type == PolkadotNode::Type::BranchWithValue) {
-      try {
-        ss >> value;
-      } catch (std::system_error &e) {
-        return outcome::failure(e.code());
-      }
-      node->value = value;
     }
     return node;
   }
