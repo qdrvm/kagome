@@ -13,4 +13,5 @@ target_link_libraries(key_generator
     random_generator
     OpenSSL::Crypto
     Boost::filesystem
+    Boost::boost
     )
