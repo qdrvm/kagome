@@ -34,7 +34,7 @@ namespace kagome::consensus {
         SynchronizerConfig config = {},
         common::Logger log = common::createLogger("Synchronizer"));
 
-    void announce(const primitives::Block &block) override;
+    void announce(const primitives::BlockHeader &block_header) override;
 
     void requestBlocks(const libp2p::peer::PeerInfo &peer,
                        RequestCallback cb) override;

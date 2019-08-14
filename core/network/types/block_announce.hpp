@@ -15,6 +15,13 @@ namespace kagome::network {
    */
   struct BlockAnnounce {
     primitives::BlockHeader header;
+
+    bool operator==(const BlockAnnounce &other) const {
+      return header == other.header;
+    }
+    bool operator!=(const BlockAnnounce &other) const {
+      return !(*this == other);
+    }
   };
 }  // namespace kagome::network
 

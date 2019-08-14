@@ -10,7 +10,7 @@
 
 #include <outcome/outcome.hpp>
 #include "libp2p/peer/peer_info.hpp"
-#include "primitives/block.hpp"
+#include "primitives/block_header.hpp"
 
 namespace kagome::consensus {
   /**
@@ -21,9 +21,9 @@ namespace kagome::consensus {
 
     /**
      * Announce the network about a new block
-     * @param block to be announced
+     * @param block_header to be announced
      */
-    virtual void announce(const primitives::Block &block) = 0;
+    virtual void announce(const primitives::BlockHeader &block_header) = 0;
 
     /// empty result, because methods, which use it, insert retrieved blocks
     /// directly into the shared local tree

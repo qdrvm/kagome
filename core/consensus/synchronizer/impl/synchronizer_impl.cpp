@@ -58,8 +58,8 @@ namespace kagome::consensus {
         });
   }
 
-  void SynchronizerImpl::announce(const primitives::Block &block) {
-    auto announce = network::BlockAnnounce{block.header};
+  void SynchronizerImpl::announce(const primitives::BlockHeader &block_header) {
+    auto announce = network::BlockAnnounce{block_header};
     for (const auto &peer_client : network_state_->peer_clients) {
       peer_client.second->blockAnnounce(
           announce, [self{shared_from_this()}, peer_client](auto &&res) {
