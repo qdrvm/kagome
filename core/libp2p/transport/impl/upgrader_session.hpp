@@ -26,8 +26,6 @@ namespace libp2p::transport {
                     std::shared_ptr<connection::RawConnection> raw,
                     HandlerFunc handler);
 
-    ~UpgraderSession();
-
     void secureOutbound(const peer::PeerId &remoteId);
 
     void secureInbound();

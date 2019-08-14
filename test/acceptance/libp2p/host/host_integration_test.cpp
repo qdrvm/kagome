@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 #include "acceptance/libp2p/host/peer/test_peer.hpp"
+#include "testutil/ma_generator.hpp"
 #include "testutil/outcome.hpp"
 
 using namespace libp2p;
@@ -18,18 +19,30 @@ using ::testing::_;
 using ::testing::Return;
 
 using std::chrono_literals::operator""s;
+using Duration = kagome::clock::SteadyClockImpl::Duration;
+
+struct HostIntegrationTestConfig {
+  size_t peer_count;
+  size_t ping_times;
+  uint16_t start_port;
+  Duration operation_timeout;
+  Duration future_timeout;
+};
 
 struct HostIntegrationTest
-    : public ::testing::TestWithParam<
-          std::
-              tuple<size_t, size_t, uint16_t, Peer::Duration, Peer::Duration>> {
+    : public ::testing::TestWithParam<HostIntegrationTestConfig> {
   template <class T>
   using sptr = std::shared_ptr<T>;
 
-  using Duration = kagome::clock::SteadyClockImpl::Duration;
-
   using PeerPromise = std::promise<peer::PeerInfo>;
   using PeerFuture = std::shared_future<peer::PeerInfo>;
+
+  void TearDown() override {
+    peers.clear();
+    addresses.clear();
+    peerinfo_promises.clear();
+    peerinfo_futures.clear();
+  }
 
   std::vector<sptr<Peer>> peers;
   std::vector<multi::Multiaddress> addresses;
@@ -48,6 +61,7 @@ TEST_P(HostIntegrationTest, InteractAllToAllSuccess) {
   const auto [peer_count, ping_times, start_port, timeout, future_timeout] =
       GetParam();
   const auto addr_prefix = "/ip4/127.0.0.1/tcp/";
+  testutil::MultiaddressGenerator ma_generator(addr_prefix, start_port);
 
   // initialize
   peers.reserve(peer_count);
@@ -61,9 +75,7 @@ TEST_P(HostIntegrationTest, InteractAllToAllSuccess) {
 
   // initialize peerinfo promises and futures and addresses
   for (size_t i = 0; i < peer_count; ++i) {
-    auto port = i + start_port;
-    auto addr = addr_prefix + std::to_string(port);
-    EXPECT_OUTCOME_TRUE(ma, multi::Multiaddress::create(addr));
+    auto ma = ma_generator.nextMultiaddress();
     addresses.push_back(std::move(ma));
     PeerPromise promise{};
     PeerFuture future = promise.get_future();
@@ -89,7 +101,7 @@ TEST_P(HostIntegrationTest, InteractAllToAllSuccess) {
     for (size_t j = 0; j < peer_count; ++j) {
       const auto &pinfo = peerinfo_futures[j].get();
       auto checker = std::make_shared<TickCounter>(ping_times);
-      peers[i]->startClient(i, pinfo, ping_times, std::move(checker));
+      peers[i]->startClient(j, pinfo, ping_times, std::move(checker));
     }
   }
 
@@ -99,10 +111,13 @@ TEST_P(HostIntegrationTest, InteractAllToAllSuccess) {
   }
 }
 
+namespace {
+  using Config = HostIntegrationTestConfig;
+}
+
 INSTANTIATE_TEST_CASE_P(AllTestCases,
                         HostIntegrationTest,
                         ::testing::Values(
                             // ports are not freed, so new ports each time
-                            std::make_tuple(1u, 1u, 40510u, 2s, 2s),
-                            std::make_tuple(11u, 10u, 40511u, 5s, 2s),
-                            std::make_tuple(5u, 100u, 40522u, 5s, 2s)));
+                            Config{1u, 1u, 40510u, 2s, 2s},
+                            Config{5u, 500u, 40510u, 5s, 2s}));

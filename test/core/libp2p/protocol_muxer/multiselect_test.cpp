@@ -5,8 +5,6 @@
 
 #include "libp2p/protocol_muxer/multiselect.hpp"
 
-#include <iostream>
-
 #include <gtest/gtest.h>
 #include "libp2p/connection/capable_connection.hpp"
 #include "libp2p/multi/multiaddress.hpp"
@@ -17,6 +15,7 @@
 #include "testutil/gmock_actions.hpp"
 #include "testutil/libp2p/peer.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/ma_generator.hpp"
 #include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
@@ -33,27 +32,9 @@ using libp2p::protocol_muxer::Multiselect;
 using libp2p::transport::TcpTransport;
 using libp2p::transport::Upgrader;
 using libp2p::transport::UpgraderMock;
+using testutil::MultiaddressGenerator;
 
 using ::testing::_;
-
-namespace {
-  class MultiaddressGenerator {
-   public:
-    MultiaddressGenerator(std::string prefix, uint16_t start_port)
-        : prefix_{std::move(prefix)}, current_port_{start_port} {}
-
-    Multiaddress nextMultiaddress() {
-      std::cout << "current port = " << current_port_ << std::endl;
-      std::string ma = prefix_ + std::to_string(current_port_++);
-      EXPECT_OUTCOME_TRUE(res, Multiaddress::create(ma));
-      return res;
-    }
-
-   private:
-    std::string prefix_;
-    uint16_t current_port_;
-  };
-}  // namespace
 
 class MultiselectTest : public ::testing::Test {
  public:
@@ -84,11 +65,8 @@ class MultiselectTest : public ::testing::Test {
 
   void TearDown() override {
     ::testing::Mock::VerifyAndClearExpectations(upgrader.get());
-    std::cout << "transport count = " << transport_.use_count() << std::endl;
     transport_.reset();
-    std::cout << "context count = " << context_.use_count() << std::endl;
     context_.reset();
-    std::cout << "upgrader count = " << upgrader.use_count() << std::endl;
     upgrader.reset();
   }
 
@@ -338,9 +316,6 @@ class MultiselectTest : public ::testing::Test {
  */
 TEST_F(MultiselectTest, NegotiateAsInitiator) {
   auto negotiated = false;
-
-  std::cout << "1. upgrader count = " << upgrader.use_count() << std::endl;
-
   auto transport_listener = transport_->createListener(
       [this](outcome::result<std::shared_ptr<CapableConnection>> rconn) {
         ASSERT_TRUE(rconn) << rconn.error().message();
@@ -362,8 +337,6 @@ TEST_F(MultiselectTest, NegotiateAsInitiator) {
 
   ASSERT_TRUE(transport_listener->listen(ma)) << "is port busy?";
   ASSERT_TRUE(transport_->canDial(ma));
-
-  std::cout << "2. upgrader count = " << upgrader.use_count() << std::endl;
 
   std::vector<Protocol> protocol_vec{kDefaultEncryptionProtocol2};
   transport_->dial(
@@ -387,8 +360,6 @@ TEST_F(MultiselectTest, NegotiateAsInitiator) {
 
   launchContext();
   EXPECT_TRUE(negotiated);
-
-  std::cout << "3. upgrader count = " << upgrader.use_count() << std::endl;
 }
 
 TEST_F(MultiselectTest, NegotiateAsListener) {

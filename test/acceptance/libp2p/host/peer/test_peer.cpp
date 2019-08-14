@@ -55,10 +55,8 @@ void Peer::startClient(size_t number,
          tester =
              std::move(tester)](outcome::result<sptr<Stream>> rstream) mutable {
           EXPECT_OUTCOME_TRUE(stream, rstream)
-
           auto client = std::make_shared<protocol::ClientTestSession>(
               stream, client_number, ping_times);
-
           client->handle([client, tester = std::move(tester)](
                              outcome::result<std::vector<uint8_t>> res,
                              size_t client_number) mutable {
