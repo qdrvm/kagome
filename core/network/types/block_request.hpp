@@ -68,6 +68,19 @@ namespace kagome::network {
     constexpr bool attributeIsSet(BlockAttributesBits attribute) const {
       return (fields & static_cast<uint8_t>(attribute)) != 0;
     }
+
+    bool operator==(const BlockRequest &other) const {
+      return std::tie(id, fields, from, to, direction, max)
+             == std::tie(other.id,
+                         other.fields,
+                         other.from,
+                         other.to,
+                         other.direction,
+                         other.max);
+    }
+    bool operator!=(const BlockRequest &other) const {
+      return !(*this == other);
+    }
   };
 }  // namespace kagome::network
 
