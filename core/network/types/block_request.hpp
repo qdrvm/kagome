@@ -66,7 +66,7 @@ namespace kagome::network {
     static constexpr BlockAttributes kBasicAttributes{19};
 
     constexpr bool attributeIsSet(BlockAttributesBits attribute) const {
-      return fields & static_cast<uint8_t>(attribute);
+      return (fields & static_cast<uint8_t>(attribute)) != 0;
     }
   };
 }  // namespace kagome::network

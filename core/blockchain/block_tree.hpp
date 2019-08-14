@@ -29,7 +29,7 @@ namespace kagome::blockchain {
     virtual ~BlockTree() = default;
 
     /**
-     * Get a body (extrinsics) of the block
+     * Get a body (extrinsics) of the block (if present)
      * @param block - id of the block to get body for
      * @return body, if the block exists in our storage, error in case it does
      * not exist in our storage, or actual error happens
@@ -37,6 +37,12 @@ namespace kagome::blockchain {
     virtual outcome::result<primitives::BlockBody> getBlockBody(
         const primitives::BlockId &block) const = 0;
 
+    /**
+     * Get a justification of the block (if present)
+     * @param block - id of the block to get justification for
+     * @return body, if the block exists in our storage, error in case it does
+     * not exist in our storage, or actual error happens
+     */
     virtual outcome::result<primitives::Justification> getBlockJustification(
         const primitives::BlockId &block) const = 0;
 
@@ -140,15 +146,6 @@ namespace kagome::blockchain {
      * harm in calling it more often, than needed
      */
     virtual void prune() = 0;
-
-    enum class Error {
-      INVALID_DB = 1,
-      NO_PARENT,
-      BLOCK_EXISTS,
-      HASH_FAILED,
-      NO_SUCH_BLOCK,
-      INTERNAL_ERROR
-    };
   };
 }  // namespace kagome::blockchain
 

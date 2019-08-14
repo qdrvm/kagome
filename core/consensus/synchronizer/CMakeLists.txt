@@ -3,6 +3,4 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(validation)
-add_subdirectory(babe)
-add_subdirectory(synchronizer)
+add_subdirectory(impl)

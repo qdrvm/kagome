@@ -6,10 +6,12 @@
 #include "blockchain/impl/level_db_block_tree.hpp"
 
 #include <gtest/gtest.h>
+#include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/level_db_util.hpp"
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "mock/core/blockchain/header_backend_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
@@ -33,8 +35,9 @@ struct BlockTreeTest : public testing::Test {
         .WillOnce(Return(kFinalizedBlockLookupKey))
         .WillOnce(Return(Buffer{encoded_finalized_block_header_}));
 
-    block_tree_ =
-        LevelDbBlockTree::create(db_, kLastFinalizedBlockId, hasher_).value();
+    block_tree_ = LevelDbBlockTree::create(
+                      header_repo_, db_, kLastFinalizedBlockId, hasher_)
+                      .value();
   }
 
   /**
@@ -67,6 +70,8 @@ struct BlockTreeTest : public testing::Test {
   const BlockHash kFinalizedBlockHash =
       BlockHash::fromString("andj4kdn4odnfkslfn3k4jdnbmeodkv4").value();
 
+  std::shared_ptr<HeaderRepositoryMock> header_repo_ =
+      std::make_shared<HeaderRepositoryMock>();
   face::PersistentMapMock<Buffer, Buffer> db_;
   const BlockId kLastFinalizedBlockId = kFinalizedBlockHash;
   std::shared_ptr<crypto::Hasher> hasher_ =
@@ -155,7 +160,7 @@ TEST_F(BlockTreeTest, AddBlockNoParent) {
   EXPECT_OUTCOME_FALSE(err, block_tree_->addBlock(new_block));
 
   // THEN
-  ASSERT_EQ(err, LevelDbBlockTree::Error::NO_PARENT);
+  ASSERT_EQ(err, BlockTreeError::NO_PARENT);
 }
 
 /**

@@ -7,6 +7,7 @@
 
 #include <boost/assert.hpp>
 #include <boost/optional.hpp>
+#include "blockchain/block_tree_error.hpp"
 #include "network/types/block_announce.hpp"
 #include "network/types/block_request.hpp"
 #include "network/types/block_response.hpp"
@@ -53,16 +54,15 @@ namespace kagome::consensus {
           if (self.expired()) {
             return Error::SYNCHRONIZER_DEAD;
           }
-          return self.lock()->processRequest(std::move(request));
+          return self.lock()->processRequest(request);
         });
   }
 
   void SynchronizerImpl::announce(const primitives::Block &block) {
     auto announce = network::BlockAnnounce{block.header};
-    for (auto peer_client : network_state_->peer_clients) {
+    for (const auto &peer_client : network_state_->peer_clients) {
       peer_client.second->blockAnnounce(
-          std::move(announce),
-          [self{shared_from_this()}, peer_client](auto &&res) {
+          announce, [self{shared_from_this()}, peer_client](auto &&res) {
             if (!res) {
               self->log_->error("cannot send a block announce to peer {}: {}",
                                 peer_client.first.toBase58(),
@@ -115,13 +115,13 @@ namespace kagome::consensus {
          cb = std::move(cb)](auto &&block_response_res) mutable {
           self->handleBlocksResponse(
               std::forward<decltype(block_response_res)>(block_response_res),
-              std::move(cb));
+              cb);
         });
   }
 
   void SynchronizerImpl::handleBlocksResponse(
       const outcome::result<network::BlockResponse> &response_res,
-      RequestCallback cb) const {
+      const RequestCallback &cb) const {
     if (!response_res) {
       return cb(response_res.error());
     }
@@ -137,7 +137,7 @@ namespace kagome::consensus {
       auto block_insert_res = block_tree_->addBlock(std::move(*block_opt));
       if (!block_insert_res
           && block_insert_res.error()
-                 != blockchain::BlockTree::Error::BLOCK_EXISTS) {
+                 != blockchain::BlockTreeError::BLOCK_EXISTS) {
         // if such block already exists, it's OK
         return cb(block_insert_res.error());
       }
@@ -147,7 +147,7 @@ namespace kagome::consensus {
   }
 
   outcome::result<network::BlockResponse> SynchronizerImpl::processRequest(
-      BlockRequest request) const {
+      const BlockRequest &request) const {
     BlockResponse response{request.id};
 
     // firstly, check if we have both "from" & "to" blocks (if set)
@@ -156,7 +156,7 @@ namespace kagome::consensus {
       log_->info("cannot find a requested block with id {}", request.from);
       return response;
     }
-    auto from_hash = std::move(from_hash_res.value());
+    auto from_hash = from_hash_res.value();
 
     // secondly, retrieve hashes of blocks the other peer is interested in
     auto ascending_direction =

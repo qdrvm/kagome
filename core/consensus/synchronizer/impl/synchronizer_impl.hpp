@@ -63,7 +63,7 @@ namespace kagome::consensus {
      */
     void handleBlocksResponse(
         const outcome::result<network::BlockResponse> &response_res,
-        RequestCallback cb) const;
+        const RequestCallback &cb) const;
 
     /**
      * Process a BlockRequest
@@ -71,7 +71,7 @@ namespace kagome::consensus {
      * @return a response to the request
      */
     outcome::result<network::BlockResponse> processRequest(
-        network::BlockRequest request) const;
+        const network::BlockRequest &request) const;
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers_;
