@@ -5,6 +5,8 @@
 
 #include "blockchain/impl/level_db_block_tree.hpp"
 
+#include <algorithm>
+
 #include <boost/assert.hpp>
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/common.hpp"
@@ -256,10 +258,19 @@ namespace kagome::blockchain {
       return BlockTreeError::NO_SUCH_BLOCK;
     }
 
-    if (ascending) {
-      return getChainByBlocks(finish_block_hash.value(), block);
+    if (!ascending) {
+      return getChainByBlocks(block, finish_block_hash.value());
     }
-    return getChainByBlocks(block, finish_block_hash.value());
+
+    // the function returns the blocks in the chronological order, but we want a
+    // reverted one in this case
+    auto chain_res = getChainByBlocks(finish_block_hash.value(), block);
+    if (!chain_res) {
+      return chain_res;
+    }
+    auto chain = std::move(chain_res.value());
+    std::reverse(chain.begin(), chain.end());
+    return chain;
   }
 
   LevelDbBlockTree::BlockHashVecRes LevelDbBlockTree::getChainByBlocks(
@@ -286,6 +297,7 @@ namespace kagome::blockchain {
         }
       }
       result.push_back(top_block_node_ptr->block_hash_);
+      std::reverse(result.begin(), result.end());
       return result;
     }
 
@@ -301,6 +313,7 @@ namespace kagome::blockchain {
       current_hash = current_header_res.value().parent_hash;
     }
     result.push_back(current_hash);
+    std::reverse(result.begin(), result.end());
     return result;
   }
 

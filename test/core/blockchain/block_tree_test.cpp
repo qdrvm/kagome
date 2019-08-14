@@ -197,10 +197,39 @@ TEST_F(BlockTreeTest, Finalize) {
 
 /**
  * @given block tree with at least three blocks inside
- * @when asking for chain from the lowest block
+ * @when asking for chain from the lowest block to the closest finalized one
  * @then chain from that block to the last finalized one is returned
  */
-TEST_F(BlockTreeTest, GetChainByBlock) {
+TEST_F(BlockTreeTest, GetChainByBlockOnly) {
+  // GIVEN
+  BlockHeader header{.parent_hash = kFinalizedBlockHash,
+                     .number = 1,
+                     .digests = {{0x66, 0x44}}};
+  BlockBody body{{Buffer{0x55, 0x55}}};
+  Block new_block{header, body};
+  auto hash1 = addBlock(new_block);
+
+  header =
+      BlockHeader{.parent_hash = hash1, .number = 2, .digests = {{0x66, 0x55}}};
+  body = BlockBody{{Buffer{0x55, 0x55}}};
+  new_block = Block{header, body};
+  auto hash2 = addBlock(new_block);
+
+  std::vector<BlockHash> expected_chain{kFinalizedBlockHash, hash1, hash2};
+
+  // WHEN
+  EXPECT_OUTCOME_TRUE(chain, block_tree_->getChainByBlock(hash2))
+
+  // THEN
+  ASSERT_EQ(chain, expected_chain);
+}
+
+/**
+ * @given block tree with at least three blocks inside
+ * @when asking for chain from the given block to top
+ * @then expected chain is returned
+ */
+TEST_F(BlockTreeTest, GetChainByBlockAscending) {
   // GIVEN
   BlockHeader header{.parent_hash = kFinalizedBlockHash,
                      .number = 1,
@@ -217,8 +246,46 @@ TEST_F(BlockTreeTest, GetChainByBlock) {
 
   std::vector<BlockHash> expected_chain{hash2, hash1, kFinalizedBlockHash};
 
+  EXPECT_CALL(*header_repo_, getNumberByHash(hash2)).WillOnce(Return(2));
+  EXPECT_CALL(*header_repo_, getHashByNumber(0))
+      .WillOnce(Return(kFinalizedBlockHash));
+
   // WHEN
-  EXPECT_OUTCOME_TRUE(chain, block_tree_->getChainByBlock(hash2))
+  EXPECT_OUTCOME_TRUE(chain, block_tree_->getChainByBlock(hash2, true, 5));
+
+  // THEN
+  ASSERT_EQ(chain, expected_chain);
+}
+
+/**
+ * @given block tree with at least three blocks inside
+ * @when asking for chain from the given block to bottom
+ * @then expected chain is returned
+ */
+TEST_F(BlockTreeTest, GetChainByBlockDescending) {
+  // GIVEN
+  BlockHeader header{.parent_hash = kFinalizedBlockHash,
+                     .number = 1,
+                     .digests = {{0x66, 0x44}}};
+  BlockBody body{{Buffer{0x55, 0x55}}};
+  Block new_block{header, body};
+  auto hash1 = addBlock(new_block);
+
+  header =
+      BlockHeader{.parent_hash = hash1, .number = 2, .digests = {{0x66, 0x55}}};
+  body = BlockBody{{Buffer{0x55, 0x55}}};
+  new_block = Block{header, body};
+  auto hash2 = addBlock(new_block);
+
+  std::vector<BlockHash> expected_chain{kFinalizedBlockHash, hash1, hash2};
+
+  EXPECT_CALL(*header_repo_, getNumberByHash(kFinalizedBlockHash))
+      .WillOnce(Return(0));
+  EXPECT_CALL(*header_repo_, getHashByNumber(2)).WillOnce(Return(hash2));
+
+  // WHEN
+  EXPECT_OUTCOME_TRUE(
+      chain, block_tree_->getChainByBlock(kFinalizedBlockHash, false, 5));
 
   // THEN
   ASSERT_EQ(chain, expected_chain);

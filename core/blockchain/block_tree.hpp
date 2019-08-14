@@ -74,7 +74,8 @@ namespace kagome::blockchain {
      * Get a chain of blocks from the specified as a (\param block) up to the
      * closest finalized one
      * @param block to get a chain from
-     * @return chain of blocks or error
+     * @return chain of blocks in top-to-bottom order (from the last finalized
+     * block to the provided one) or error
      */
     virtual BlockHashVecRes getChainByBlock(
         const primitives::BlockHash &block) = 0;
@@ -95,7 +96,7 @@ namespace kagome::blockchain {
      * Get a chain of blocks
      * @param top_block - block, which is at the top of the chain
      * @param bottom_block - block, which is the bottim of the chain
-     * @return chain of blocks or error
+     * @return chain of blocks in top-to-bottom order or error
      */
     virtual BlockHashVecRes getChainByBlocks(
         const primitives::BlockHash &top_block,
