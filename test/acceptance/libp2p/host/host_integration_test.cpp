@@ -120,4 +120,4 @@ INSTANTIATE_TEST_CASE_P(AllTestCases,
                         ::testing::Values(
                             // ports are not freed, so new ports each time
                             Config{1u, 1u, 40510u, 2s, 2s},
-                            Config{5u, 500u, 40510u, 5s, 2s}));
+                            Config{5u, 50u, 40510u, 5s, 2s}));
