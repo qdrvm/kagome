@@ -25,6 +25,8 @@ namespace libp2p::protocol::kademlia {
   constexpr std::string_view protocolId = "/ipfs/kad/1.0.0";
 
   struct RandomWalk {
+
+
     bool enabled = true;
     size_t queries_per_period = 1;
     std::chrono::seconds interval = 5min;

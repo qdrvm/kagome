@@ -26,7 +26,7 @@ target_link_libraries(crypto_types
     )
 
 add_library(crypto_util
-    util.cpp
+    xor_distance_comparator.cpp
     util.hpp
     )
 target_link_libraries(crypto_util

@@ -70,6 +70,10 @@ namespace libp2p::peer {
     return hash_.toBuffer().toVector();
   }
 
+  std::string PeerId::toHex() const {
+    return hash_.toHex();
+  }
+
   const multi::Multihash &PeerId::toMultihash() const {
     return hash_;
   }
