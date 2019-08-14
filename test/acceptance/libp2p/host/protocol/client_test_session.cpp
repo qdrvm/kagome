@@ -4,13 +4,15 @@
  */
 #include "acceptance/libp2p/host/protocol/client_test_session.hpp"
 
+#include <gtest/gtest.h>
 #include <boost/assert.hpp>
 #include "libp2p/crypto/random_generator/boost_generator.hpp"
 
 namespace libp2p::protocol {
 
   ClientTestSession::ClientTestSession(
-      std::shared_ptr<connection::Stream> stream, size_t client_number,
+      std::shared_ptr<connection::Stream> stream,
+      size_t client_number,
       size_t ping_times)
       : stream_(std::move(stream)),
         client_number_{client_number},
@@ -31,13 +33,12 @@ namespace libp2p::protocol {
 
     --messages_left_;
 
-    if (stream_->isClosedForWrite()) {
-      return;
-    }
+    EXPECT_FALSE(stream_->isClosedForWrite()) << "stream is closed for write";
 
     write_buf_ = random_generator_->randomBytes(buffer_size_);
 
-    stream_->write(write_buf_, buffer_size_,
+    stream_->write(write_buf_,
+                   buffer_size_,
                    [self = shared_from_this(),
                     cb{std::move(cb)}](outcome::result<size_t> rw) mutable {
                      if (!rw) {
@@ -49,13 +50,12 @@ namespace libp2p::protocol {
   }
 
   void ClientTestSession::read(Callback cb) {
-    if (stream_->isClosedForRead()) {
-      return;
-    }
+    EXPECT_FALSE(stream_->isClosedForRead()) << "stream is closed for read";
 
     read_buf_ = std::vector<uint8_t>(buffer_size_);
 
-    stream_->read(read_buf_, buffer_size_,
+    stream_->read(read_buf_,
+                  buffer_size_,
                   [self = shared_from_this(),
                    cb{std::move(cb)}](outcome::result<size_t> rr) mutable {
                     if (!rr) {

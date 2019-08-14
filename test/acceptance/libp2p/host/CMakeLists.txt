@@ -17,13 +17,20 @@ addtest(host_integration_test
     host_integration_test.cpp
     )
 target_link_libraries(host_integration_test
+    client_test_session
     libp2p_default_network
     libp2p_basic_host
     libp2p_peer_repository
+    libp2p_identity_manager
     libp2p_inmem_address_repository
     libp2p_inmem_key_repository
     libp2p_inmem_protocol_repository
+    libp2p_plaintext
     libp2p_protocol_echo
-    client_test_session
+    libp2p_tcp
+    libp2p_yamux
+    marshaller
+    multiaddress
     test_peer
+    testutil
     )
