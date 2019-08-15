@@ -12,7 +12,7 @@
 #include "common/buffer.hpp"
 #include "storage/face/persistent_map.hpp"
 
-namespace test {
+namespace kagome::storage {
 
   using kagome::common::Buffer;
   

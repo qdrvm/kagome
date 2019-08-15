@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_PRINTER_HPP
 #define KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_PRINTER_HPP
 
-#include "storage/trie/polkadot_trie_db/polkadot_trie_db.hpp"
+#include "storage/trie/impl/polkadot_trie_db.hpp"
 
 /**
  * IMPORTANT: This module is meant only for test usage and is not exception-safe
@@ -28,7 +28,7 @@ namespace kagome::storage::trie {
 
   template <typename Stream>
   Stream &operator<<(Stream &s, const PolkadotTrieDb &trie) {
-    if (trie.root_.has_value()) {
+    if (not trie.empty()) {
       auto root = trie.retrieveNode(trie.getRootHash()).value();
       printNode(s, root, trie, 0);
     }
@@ -44,15 +44,18 @@ namespace kagome::storage::trie {
       case T::BranchWithValue:
       case T::BranchEmptyValue: {
         auto branch = std::dynamic_pointer_cast<BranchNode>(node);
-        s << indent << "(branch) key_nibbles: <"
-          << nibblesToStr(node->key_nibbles)
+        s << indent << "(branch) key: <"
+          << hex_lower(trie.codec_.nibblesToKey(node->key_nibbles))
           << "> value: " << node->value.toHex() << " children: ";
         for (size_t i = 0; i < branch->children.size(); i++) {
           if (branch->children[i]) {
-            s << std::hex << i;
+            s << std::hex << i << "|";
           }
         }
         s << "\n";
+        auto enc = trie.codec_.encodeNode(*node).value();
+        s << indent << "enc: " << enc << "\n";
+        s << indent << "hash: " << common::hex_upper(trie.codec_.merkleValue(enc)) << "\n";
         for (size_t i = 0; i < branch->children.size(); i++) {
           auto child = branch->children.at(i);
           if (child) {
@@ -66,12 +69,15 @@ namespace kagome::storage::trie {
         }
         break;
       }
-      case T::Leaf:
-        s << indent << "(leaf) key_nibbles: <"
-          << nibblesToStr(node->key_nibbles)
+      case T::Leaf: {
+        s << indent << "(leaf) key: <"
+          << hex_lower(trie.codec_.nibblesToKey(node->key_nibbles))
           << "> value: " << node->value.toHex() << "\n";
+        auto enc = trie.codec_.encodeNode(*node).value();
+        s << indent << "enc: " << enc << "\n";
+        s << indent << "hash: " << common::hex_upper(trie.codec_.merkleValue(enc)) << "\n";
         break;
-
+      }
       default:
         s << "(invalid node)\n";
     }
