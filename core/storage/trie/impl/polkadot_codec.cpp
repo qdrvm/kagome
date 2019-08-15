@@ -3,12 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/trie/polkadot_trie_db/polkadot_codec.hpp"
+#include "storage/trie/impl/polkadot_codec.hpp"
 
 #include "crypto/blake2/blake2b.h"
 #include "scale/scale.hpp"
 #include "scale/scale_decoder_stream.hpp"
-#include "storage/trie/polkadot_trie_db/polkadot_node.hpp"
+#include "storage/trie/impl/polkadot_node.hpp"
+#include "polkadot_codec.hpp"
+
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotCodec::Error, e) {
   using E = kagome::storage::trie::PolkadotCodec::Error;
@@ -28,17 +30,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotCodec::Error, e) {
 
 namespace kagome::storage::trie {
 
-  inline uint8_t lowNibble(uint8_t byte) {
-    return byte & 0xFu;
-  }
-
-  inline uint8_t highNibble(uint8_t byte) {
-    return (byte >> 4u) & 0xFu;
-  }
-
-  inline uint8_t collectByte(uint8_t low, uint8_t high) {
+  inline uint8_t byteFromNibbles(uint8_t high, uint8_t low) {
     // get low4 from nibbles to avoid check: if(low > 0xff) return error
-    return (lowNibble(high) << 4u) | lowNibble(low);
+    return (high << 4u) | (low & 0xfu);
   }
 
   inline common::Buffer ushortToBytes(uint16_t b) {
@@ -53,13 +47,13 @@ namespace kagome::storage::trie {
     if (nibbles.size() % 2 == 0) {
       res = Buffer(nibbles.size() / 2, 0);
       for (size_t i = 0; i < nibbles.size(); i += 2) {
-        res[i / 2] = (nibbles[i] << 4 & 0xf0) | (nibbles[i + 1] & 0xf);
+        res[i / 2] = byteFromNibbles(nibbles[i], nibbles[i + 1]);
       }
     } else {
       res = Buffer(nibbles.size() / 2 + 1, 0);
       res[0] = nibbles[0];
       for (size_t i = 2; i < nibbles.size(); i += 2) {
-        res[i / 2] = (nibbles[i - 1] << 4 & 0xf0) | (nibbles[i] & 0xf);
+        res[i / 2] = byteFromNibbles(nibbles[i - 1], nibbles[i]);
       }
     }
     return res;
@@ -76,8 +70,8 @@ namespace kagome::storage::trie {
     auto l = key.size() * 2;
     Buffer res(l, 0);
     for (size_t i = 0; i < key.size(); i++) {
-      res[2 * i] = key[i] / 16;
-      res[2 * i + 1] = key[i] % 16;
+      res[2 * i] = key[i] >> 4u;
+      res[2 * i + 1] = key[i] & 0xfu;
     }
 
     return res;

@@ -18,8 +18,6 @@ namespace kagome::storage::trie {
    * 5.3 The Trie structure
    */
 
-  constexpr int kMaxChildren = 16;
-
   struct PolkadotNode : public Node {
     PolkadotNode() = default;
     PolkadotNode(common::Buffer key_nibbles, common::Buffer value)
@@ -46,20 +44,10 @@ namespace kagome::storage::trie {
     common::Buffer value;
   };
 
-  struct LeafNode : public PolkadotNode {
-    LeafNode() = default;
-    LeafNode(common::Buffer key_nibbles, common::Buffer value)
-        : PolkadotNode{std::move(key_nibbles), std::move(value)} {}
-
-    ~LeafNode() override = default;
-
-    bool isDummy() const override {
-      return false;
-    }
-    int getType() const override;
-  };
-
   struct BranchNode : public PolkadotNode {
+
+    static constexpr int kMaxChildren = 16;
+
     BranchNode() = default;
     explicit BranchNode(common::Buffer key_nibbles,
                         common::Buffer value = common::Buffer{})
@@ -79,6 +67,20 @@ namespace kagome::storage::trie {
     // Stores their hashes to search for them in a storage and encode them more
     // easily.
     std::array<std::shared_ptr<PolkadotNode>, kMaxChildren> children;
+  };
+
+
+  struct LeafNode : public PolkadotNode {
+    LeafNode() = default;
+    LeafNode(common::Buffer key_nibbles, common::Buffer value)
+        : PolkadotNode{std::move(key_nibbles), std::move(value)} {}
+
+    ~LeafNode() override = default;
+
+    bool isDummy() const override {
+      return false;
+    }
+    int getType() const override;
   };
 
   /**

@@ -7,7 +7,7 @@
 
 #include <forward_list>
 
-#include "storage/trie/polkadot_trie_db/ordered_trie_hash.hpp"
+#include "storage/trie/impl/ordered_trie_hash.hpp"
 
 using kagome::common::Buffer;
 

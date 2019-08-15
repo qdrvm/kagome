@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/trie/polkadot_trie_db/polkadot_trie_db.hpp"
+#include "storage/trie/impl/polkadot_trie_db.hpp"
 
 #include <gtest/gtest.h>
 #include "storage/in_memory/in_memory_storage.hpp"

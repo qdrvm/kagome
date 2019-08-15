@@ -127,10 +127,31 @@ include(cmake/install.cmake)
 install_deps_headers()
 
 kagome_install(
-    TARGETS scale buffer hexutil blob polkadot_trie_db
-    polkadot_trie_db_codec polkadot_trie blake2 hasher
-    twox sha polkadot_trie_batch leveldb logger in_memory_storage
-    HEADER_DIRS core/common core/macro core/scale core/storage core/crypto)
+    TARGETS
+    scale
+    buffer
+    hexutil
+    blob
+    polkadot_trie_db
+    polkadot_trie_codec
+    polkadot_trie
+    polkadot_node
+    blake2
+    hasher
+    twox
+    sha
+    polkadot_trie_batch
+    leveldb
+    logger
+    in_memory_storage
+
+    HEADER_DIRS
+    core/common
+    core/macro
+    core/scale
+    core/storage
+    core/crypto
+    )
 
 include(CMakePackageConfigHelpers)
 

@@ -11,8 +11,8 @@
 #include <string>
 
 #include "storage/trie/codec.hpp"
-#include "storage/trie/polkadot_trie_db/buffer_stream.hpp"
-#include "storage/trie/polkadot_trie_db/polkadot_node.hpp"
+#include "storage/trie/impl/buffer_stream.hpp"
+#include "storage/trie/impl/polkadot_node.hpp"
 
 namespace kagome::storage::trie {
 

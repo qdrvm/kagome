@@ -9,8 +9,8 @@
 #include "common/buffer.hpp"
 #include "crypto/hasher.hpp"
 #include "scale/scale.hpp"
-#include "storage/trie/polkadot_trie_db/polkadot_codec.hpp"
-#include "storage/trie/polkadot_trie_db/polkadot_trie.hpp"
+#include "storage/trie/impl/polkadot_codec.hpp"
+#include "storage/trie/impl/polkadot_trie.hpp"
 
 namespace kagome::storage::trie {
 

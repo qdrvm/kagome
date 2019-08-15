@@ -6,7 +6,7 @@
 #include <memory>
 
 #include <gtest/gtest.h>
-#include "storage/trie/polkadot_trie_db/polkadot_codec.hpp"
+#include "storage/trie/impl/polkadot_codec.hpp"
 
 using namespace kagome;
 using namespace common;

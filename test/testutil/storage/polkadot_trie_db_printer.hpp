@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_PRINTER_HPP
 #define KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_PRINTER_HPP
 
-#include "storage/trie/polkadot_trie_db/polkadot_trie_db.hpp"
+#include "storage/trie/impl/polkadot_trie_db.hpp"
 
 /**
  * IMPORTANT: This module is meant only for test usage and is not exception-safe
