@@ -9,8 +9,6 @@
 #include "scale/scale.hpp"
 #include "scale/scale_decoder_stream.hpp"
 #include "storage/trie/impl/polkadot_node.hpp"
-#include "polkadot_codec.hpp"
-
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotCodec::Error, e) {
   using E = kagome::storage::trie::PolkadotCodec::Error;

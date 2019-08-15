@@ -38,16 +38,21 @@ namespace kagome::storage::trie {
 
     common::Hash256 hash256(const Buffer &buf) const override;
 
-    /// non-overriding helper methods
-
-    // definition 14 KeyEncode
+    /**
+     * Def. 14 KeyEncode
+     * Splits a key to an array of nibbles (a nibble is a half of a byte)
+     */
     static Buffer keyToNibbles(const Buffer &key);
 
-    // 7.2 Hex encoding
-    static Buffer nibblesToKey(const Buffer &key);
-    //static Buffer nibblesToKeyLE(const Buffer &key);
+    /**
+     * Collects an array of nibbles to a key
+     */
+    static Buffer nibblesToKey(const Buffer &nibbles);
 
-    // Algorithm 3: partial key length encoding
+    /**
+     * Encodes a node header accroding to the specification
+     * @see Algorithm 3: partial key length encoding
+     */
     outcome::result<Buffer> encodeHeader(const PolkadotNode &node) const;
 
    private:
@@ -61,7 +66,8 @@ namespace kagome::storage::trie {
                                              BufferStream &stream) const;
 
     outcome::result<std::shared_ptr<Node>> decodeBranch(
-        PolkadotNode::Type type, const Buffer &partial_key,
+        PolkadotNode::Type type,
+        const Buffer &partial_key,
         BufferStream &stream) const;
   };
 
