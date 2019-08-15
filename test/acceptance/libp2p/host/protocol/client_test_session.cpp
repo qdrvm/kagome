@@ -15,11 +15,11 @@ namespace libp2p::protocol {
       size_t client_number,
       size_t ping_times)
       : stream_(std::move(stream)),
+        random_generator_{
+            std::make_shared<crypto::random::BoostRandomGenerator>()},
         client_number_{client_number},
         messages_left_{ping_times} {
     BOOST_ASSERT(stream_ != nullptr);
-    random_generator_ =
-        std::make_shared<crypto::random::BoostRandomGenerator>();
   }
 
   void ClientTestSession::handle(Callback cb) {
