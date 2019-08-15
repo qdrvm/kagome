@@ -45,7 +45,6 @@ namespace kagome::storage::trie {
   };
 
   struct BranchNode : public PolkadotNode {
-
     static constexpr int kMaxChildren = 16;
 
     BranchNode() = default;
