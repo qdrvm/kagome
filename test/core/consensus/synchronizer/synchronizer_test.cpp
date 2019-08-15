@@ -18,6 +18,7 @@
 #include "primitives/block.hpp"
 #include "testutil/gmock_actions.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/outcome.hpp"
 
 using namespace kagome;
 using namespace blockchain;
@@ -45,6 +46,7 @@ class SynchronizerTest : public testing::Test {
 
     synchronizer_ =
         std::make_shared<SynchronizerImpl>(tree_, headers_, network_state_);
+    synchronizer_->start();
   }
 
   std::function<outcome::result<BlockResponse>(const BlockRequest &)>
@@ -66,7 +68,7 @@ class SynchronizerTest : public testing::Test {
 
   Block block1_{{{}, 2}, {{{0x11, 0x22}}, {{0x55, 0x66}}}},
       block2_{{{}, 3}, {{{0x13, 0x23}}, {{0x35, 0x63}}}};
-  Hash256 block1_hash_{}, block2_hash_;
+  Hash256 block1_hash_{}, block2_hash_{};
 };
 
 /**
@@ -170,11 +172,47 @@ TEST_F(SynchronizerTest, RequestWithHash) {
  */
 TEST_F(SynchronizerTest, ProcessRequest) {
   // GIVEN
-  BlockRequest received_request{};
+  BlockRequest received_request{1,
+                                BlockRequest::kBasicAttributes,
+                                block1_hash_,
+                                boost::none,
+                                Direction::DESCENDING,
+                                boost::none};
+
+  EXPECT_CALL(*tree_, getChainByBlock(block1_hash_, false, 128))
+      .WillOnce(Return(std::vector<BlockHash>{block1_hash_, block2_hash_}));
+
+  EXPECT_CALL(*headers_, getBlockHeader(BlockId{block1_hash_}))
+      .WillOnce(Return(block1_.header));
+  EXPECT_CALL(*headers_, getBlockHeader(BlockId{block2_hash_}))
+      .WillOnce(Return(block2_.header));
+
+  EXPECT_CALL(*tree_, getBlockBody(BlockId{block1_hash_}))
+      .WillOnce(Return(block1_.body));
+  EXPECT_CALL(*tree_, getBlockBody(BlockId{block2_hash_}))
+      .WillOnce(Return(block2_.body));
+
+  EXPECT_CALL(*tree_, getBlockJustification(BlockId{block1_hash_}))
+      .WillOnce(Return(outcome::failure(boost::system::error_code{})));
+  EXPECT_CALL(*tree_, getBlockJustification(BlockId{block2_hash_}))
+      .WillOnce(Return(outcome::failure(boost::system::error_code{})));
 
   // WHEN
-  auto request_res = on_blocks_request(received_request);
+  EXPECT_OUTCOME_TRUE(response, on_blocks_request(received_request));
 
   // THEN
-  ASSERT_TRUE(request_res);
+  ASSERT_EQ(response.id, 1);
+
+  const auto &received_blocks = response.blocks;
+  ASSERT_EQ(received_blocks.size(), 2);
+
+  ASSERT_EQ(received_blocks[0].hash, block1_hash_);
+  ASSERT_EQ(received_blocks[0].header, block1_.header);
+  ASSERT_EQ(received_blocks[0].body, block1_.body);
+  ASSERT_FALSE(received_blocks[0].justification);
+
+  ASSERT_EQ(received_blocks[1].hash, block2_hash_);
+  ASSERT_EQ(received_blocks[1].header, block2_.header);
+  ASSERT_EQ(received_blocks[1].body, block2_.body);
+  ASSERT_FALSE(received_blocks[1].justification);
 }

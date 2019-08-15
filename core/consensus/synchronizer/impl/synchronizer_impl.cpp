@@ -20,8 +20,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, SynchronizerImpl::Error, e) {
     case E::PEER_RETURNED_NOTHING:
       return "peer has not sent any blocks in response; either it does not "
              "have a required hash or it is in non-finalized fork";
-    case E::SYNCHRONIZER_DEAD:
-      return "instance of synchronizer, which is called, is dead";
     case E::NO_SUCH_PEER:
       return "no peer with such ID found";
   }
@@ -47,14 +45,13 @@ namespace kagome::consensus {
     BOOST_ASSERT(blocks_headers_);
     BOOST_ASSERT(network_state_);
     BOOST_ASSERT(log_);
+  }
 
+  void SynchronizerImpl::start() {
     network_state_->peer_server->onBlocksRequest(
-        [self{weak_from_this()}](
+        [self{shared_from_this()}](
             const BlockRequest &request) -> outcome::result<BlockResponse> {
-          if (self.expired()) {
-            return Error::SYNCHRONIZER_DEAD;
-          }
-          return self.lock()->processRequest(request);
+          return self->processRequest(request);
         });
   }
 

@@ -20,6 +20,11 @@ namespace kagome::consensus {
     virtual ~Synchronizer() = default;
 
     /**
+     * Start accepting requests for blocks
+     */
+    virtual void start() = 0;
+
+    /**
      * Announce the network about a new block
      * @param block_header to be announced
      */

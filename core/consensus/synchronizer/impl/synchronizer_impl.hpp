@@ -34,6 +34,8 @@ namespace kagome::consensus {
         SynchronizerConfig config = {},
         common::Logger log = common::createLogger("Synchronizer"));
 
+    void start() override;
+
     void announce(const primitives::BlockHeader &block_header) override;
 
     void requestBlocks(const libp2p::peer::PeerInfo &peer,
@@ -43,12 +45,7 @@ namespace kagome::consensus {
                        const primitives::BlockHash &hash,
                        RequestCallback cb) override;
 
-    enum class Error {
-      INVALID_BLOCK = 1,
-      PEER_RETURNED_NOTHING,
-      SYNCHRONIZER_DEAD,
-      NO_SUCH_PEER
-    };
+    enum class Error { INVALID_BLOCK = 1, PEER_RETURNED_NOTHING, NO_SUCH_PEER };
 
    private:
     /**
