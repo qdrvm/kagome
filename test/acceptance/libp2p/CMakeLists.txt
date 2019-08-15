@@ -8,8 +8,6 @@ target_link_libraries(all_muxers_acceptance_test
     multiaddress
     libp2p_plaintext
     libp2p_tcp
-    libp2p_default_network
-    libp2p_basic_host
     testutil
     marshaller
     libp2p_identity_manager

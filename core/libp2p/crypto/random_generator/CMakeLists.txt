@@ -11,5 +11,4 @@ add_library(random_generator
 target_link_libraries(random_generator
     buffer
     Boost::random
-    Boost::boost
     )

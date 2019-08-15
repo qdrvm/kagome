@@ -11,7 +11,6 @@
 #include <gtest/gtest.h>
 #include "acceptance/libp2p/host/peer/test_peer.hpp"
 #include "testutil/ma_generator.hpp"
-#include "testutil/outcome.hpp"
 
 using namespace libp2p;
 
@@ -21,6 +20,9 @@ using ::testing::Return;
 using std::chrono_literals::operator""s;
 using Duration = kagome::clock::SteadyClockImpl::Duration;
 
+/**
+ * @brief host integration test configuration
+ */
 struct HostIntegrationTestConfig {
   size_t peer_count;
   size_t ping_times;
@@ -29,6 +31,9 @@ struct HostIntegrationTestConfig {
   Duration future_timeout;
 };
 
+/*
+ * @brief host integration test fixture
+ */
 struct HostIntegrationTest
     : public ::testing::TestWithParam<HostIntegrationTestConfig> {
   template <class T>
@@ -52,8 +57,8 @@ struct HostIntegrationTest
 
 /**
  * @given a predefined number of peers each represents an echo server
- * @when each peer starts its server, obtains peerinfo
- * @and sets value to peerinfo promises
+ * @when each peer starts its server, obtains `peer info`
+ * @and sets value to `peer info` promises
  * @and initiates client sessions to all other servers
  * @then all clients interact with all servers predefined number of times
  */
@@ -63,7 +68,7 @@ TEST_P(HostIntegrationTest, InteractAllToAllSuccess) {
   const auto addr_prefix = "/ip4/127.0.0.1/tcp/";
   testutil::MultiaddressGenerator ma_generator(addr_prefix, start_port);
 
-  // initialize
+  // create peers
   peers.reserve(peer_count);
   for (size_t i = 0; i < peer_count; ++i) {
     peers.push_back(std::make_shared<Peer>(timeout));
@@ -73,7 +78,7 @@ TEST_P(HostIntegrationTest, InteractAllToAllSuccess) {
   peerinfo_promises.reserve(peer_count);
   peerinfo_futures.reserve(peer_count);
 
-  // initialize peerinfo promises and futures and addresses
+  // initialize `peer info` promises and futures and addresses
   for (size_t i = 0; i < peer_count; ++i) {
     auto ma = ma_generator.nextMultiaddress();
     addresses.push_back(std::move(ma));
@@ -91,7 +96,7 @@ TEST_P(HostIntegrationTest, InteractAllToAllSuccess) {
     peer->startServer(address, promise);
   }
 
-  // need to wait for peerinfo values before starting client sessions
+  // need to wait for `peer info` values before starting client sessions
   for (auto &f : peerinfo_futures) {
     f.wait_for(future_timeout);
   }
@@ -115,9 +120,11 @@ namespace {
   using Config = HostIntegrationTestConfig;
 }
 
-INSTANTIATE_TEST_CASE_P(AllTestCases,
-                        HostIntegrationTest,
-                        ::testing::Values(
-                            // ports are not freed, so new ports each time
-                            Config{1u, 1u, 40510u, 2s, 2s},
-                            Config{5u, 50u, 40510u, 5s, 2s}));
+INSTANTIATE_TEST_CASE_P(
+    AllTestCases,
+    HostIntegrationTest,
+    ::testing::Values(
+        // ports are not freed, so new ports each time
+        Config{1u, 1u, 40510u, 2s, 2s},  // 1 self connected peer, 1 message
+        Config{5u, 50u, 40510u, 5s, 2s}  // 5 fully connected peers, 50 messages
+        ));
