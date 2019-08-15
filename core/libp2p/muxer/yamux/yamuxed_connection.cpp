@@ -71,10 +71,10 @@ namespace libp2p::connection {
            if (!res) {
              return cb(res.error());
            }
-           auto created_stream = std::make_shared<YamuxStream>(
-               std::weak_ptr<YamuxedConnection>(self),
-               stream_id,
-               self->config_.maximum_window_size);
+           auto created_stream =
+               std::make_shared<YamuxStream>(self->weak_from_this(),
+                                             stream_id,
+                                             self->config_.maximum_window_size);
            self->streams_.insert({stream_id, created_stream});
            return cb(std::move(created_stream));
          }});
@@ -414,10 +414,10 @@ namespace libp2p::connection {
                                res.error().message());
              return cb(res.error());
            }
-           auto new_stream = std::make_shared<YamuxStream>(
-               std::weak_ptr<YamuxedConnection>(self),
-               stream_id,
-               self->config_.maximum_window_size);
+           auto new_stream =
+               std::make_shared<YamuxStream>(self->weak_from_this(),
+                                             stream_id,
+                                             self->config_.maximum_window_size);
            self->streams_.insert({stream_id, new_stream});
            self->new_stream_handler_(new_stream);
            return cb(std::move(new_stream));
