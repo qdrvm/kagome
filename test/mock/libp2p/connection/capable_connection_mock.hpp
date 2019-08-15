@@ -52,6 +52,8 @@ namespace libp2p::connection {
     explicit CapableConnBasedOnRawConnMock(std::shared_ptr<RawConnection> c)
         : real_(std::move(c)) {}
 
+    ~CapableConnBasedOnRawConnMock() override = default;
+
     MOCK_METHOD1(newStream, void(StreamHandlerFunc));
 
     MOCK_METHOD1(onStream, void(NewStreamHandlerFunc));

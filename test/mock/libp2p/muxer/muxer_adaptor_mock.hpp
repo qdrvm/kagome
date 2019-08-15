@@ -11,6 +11,8 @@
 
 namespace libp2p::muxer {
   struct MuxerAdaptorMock : public MuxerAdaptor {
+    ~MuxerAdaptorMock() override = default;
+
     MOCK_CONST_METHOD0(getProtocolId, peer::Protocol());
 
     MOCK_CONST_METHOD2(muxConnection,

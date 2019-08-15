@@ -44,7 +44,8 @@ struct UpgraderSemiMock : public Upgrader {
                    std::shared_ptr<MuxerAdaptor> m)
       : security(std::move(s)), mux(std::move(m)) {}
 
-  void upgradeToSecureOutbound(RawSPtr conn, const peer::PeerId &remoteId,
+  void upgradeToSecureOutbound(RawSPtr conn,
+                               const peer::PeerId &remoteId,
                                OnSecuredCallbackFunc cb) override {
     security->secureOutbound(conn, remoteId, std::move(cb));
   }
@@ -97,7 +98,8 @@ struct Server : public std::enable_shared_from_this<Server> {
 
           // echo back read data
           stream->write(
-              *buf, read,
+              *buf,
+              read,
               [buf, read, stream, this](outcome::result<size_t> rwrite) {
                 EXPECT_OUTCOME_TRUE(write, rwrite)
                 this->println("write ", write, " bytes");
@@ -138,8 +140,11 @@ struct Server : public std::enable_shared_from_this<Server> {
 };
 
 struct Client : public std::enable_shared_from_this<Client> {
-  Client(std::shared_ptr<TcpTransport> transport, size_t seed,
-         boost::asio::io_context &context, size_t streams, size_t rounds)
+  Client(std::shared_ptr<TcpTransport> transport,
+         size_t seed,
+         std::shared_ptr<boost::asio::io_context> context,
+         size_t streams,
+         size_t rounds)
       : context_(context),
         streams_(streams),
         rounds_(rounds),
@@ -150,7 +155,8 @@ struct Client : public std::enable_shared_from_this<Client> {
   void connect(const PeerId &p, const Multiaddress &server) {
     // create new stream
     transport_->dial(
-        p, server,
+        p,
+        server,
         [this](outcome::result<std::shared_ptr<CapableConnection>> rconn) {
           EXPECT_OUTCOME_TRUE(conn, rconn);
           this->println("connected");
@@ -160,7 +166,7 @@ struct Client : public std::enable_shared_from_this<Client> {
 
   void onConnection(const std::shared_ptr<CapableConnection> &conn) {
     for (size_t i = 0; i < streams_; i++) {
-      boost::asio::post(context_, [i, conn, this]() {
+      boost::asio::post(*context_, [i, conn, this]() {
         conn->newStream(
             [i, conn, this](outcome::result<std::shared_ptr<Stream>> rstream) {
               EXPECT_OUTCOME_TRUE(stream, rstream);
@@ -171,7 +177,8 @@ struct Client : public std::enable_shared_from_this<Client> {
     }
   }
 
-  void onStream(size_t streamId, size_t round,
+  void onStream(size_t streamId,
+                size_t round,
                 const std::shared_ptr<Stream> &stream) {
     this->println(streamId, " onStream round ", round);
     if (round <= 0) {
@@ -180,7 +187,8 @@ struct Client : public std::enable_shared_from_this<Client> {
 
     auto buf = randomBuffer();
     stream->write(
-        *buf, buf->size(),
+        *buf,
+        buf->size(),
         [round, streamId, buf, stream, this](outcome::result<size_t> rwrite) {
           EXPECT_OUTCOME_TRUE(write, rwrite);
           this->println(streamId, " write ", write, " bytes");
@@ -189,12 +197,13 @@ struct Client : public std::enable_shared_from_this<Client> {
           auto readbuf = std::make_shared<std::vector<uint8_t>>();
           readbuf->resize(write);
 
-          stream->readSome(*readbuf, readbuf->size(),
-                           [round, streamId, write, buf, readbuf, stream,
-                            this](outcome::result<size_t> rread) {
+          stream->readSome(*readbuf,
+                           readbuf->size(),
+                           [round, streamId, write, buf, readbuf, stream, this](
+                               outcome::result<size_t> rread) {
                              EXPECT_OUTCOME_TRUE(read, rread);
-                             this->println(streamId, " readSome ", read,
-                                           " bytes");
+                             this->println(
+                                 streamId, " readSome ", read, " bytes");
                              this->streamReads++;
 
                              ASSERT_EQ(write, read);
@@ -230,7 +239,7 @@ struct Client : public std::enable_shared_from_this<Client> {
     return buf;
   }
 
-  boost::asio::io_context &context_;
+  std::shared_ptr<boost::asio::io_context> context_;
 
   size_t streams_;
   size_t rounds_;
@@ -265,7 +274,8 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
   // number, which makes tests reproducible
   const int seed = 0;
 
-  boost::asio::io_context context(1);
+  std::shared_ptr<boost::asio::io_context> context =
+      std::make_shared<boost::asio::io_context>(1);
   std::default_random_engine randomEngine(seed);
 
   auto serverAddr = "/ip4/127.0.0.1/tcp/40312"_multiaddr;
@@ -293,7 +303,7 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
   for (int i = 0; i < totalClients; i++) {
     auto localSeed = randomEngine();
     clients.emplace_back([&, localSeed]() {
-      boost::asio::io_context context(1);
+      auto context = std::make_shared<boost::asio::io_context>(1);
 
       KeyPair clientKeyPair = {{{Key::Type ::ED25519, {3}}},
                                {{Key::Type ::ED25519, {4}}}};
@@ -304,20 +314,20 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
       auto plaintext = std::make_shared<Plaintext>(marshaller, idmgr);
       auto upgrader = std::make_shared<UpgraderSemiMock>(plaintext, muxer);
       auto transport = std::make_shared<TcpTransport>(context, upgrader);
-      auto client = std::make_shared<Client>(transport, localSeed, context,
-                                             streams, rounds);
+      auto client = std::make_shared<Client>(
+          transport, localSeed, context, streams, rounds);
 
       auto p = PeerId::fromPublicKey(serverKeyPair.publicKey);
       client->connect(p, serverAddr);
 
-      context.run_for(2000ms);
+      context->run_for(2000ms);
 
       EXPECT_EQ(client->streamWrites, rounds * streams);
       EXPECT_EQ(client->streamReads, rounds * streams);
     });
   }
 
-  context.run_for(3000ms);
+  context->run_for(3000ms);
 
   for (auto &c : clients) {
     if (c.joinable()) {
@@ -331,8 +341,10 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
   EXPECT_EQ(server->streamWrites, totalClients * streams * rounds);
 }
 
-INSTANTIATE_TEST_CASE_P(AllMuxers, MuxerAcceptanceTest,
-                        ::testing::Values(
-                            // list here all muxers
-                            std::make_shared<Yamux>()),
-                        MuxerAcceptanceTest::PrintToStringParamName());
+INSTANTIATE_TEST_CASE_P(
+    AllMuxers,
+    MuxerAcceptanceTest,
+    ::testing::Values(
+        // list here all muxers
+        std::make_shared<Yamux>(muxer::MuxedConnectionConfig{1048576, 1000})),
+    MuxerAcceptanceTest::PrintToStringParamName());

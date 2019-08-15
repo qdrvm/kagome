@@ -97,7 +97,7 @@ namespace libp2p::transport {
     protocol_muxer_->selectOneOf(
         security_protocols_, conn, conn->isInitiator(),
         [self{shared_from_this()}, cb = std::move(cb), conn,
-         &remoteId](outcome::result<peer::Protocol> proto_res) mutable {
+         remoteId](outcome::result<peer::Protocol> proto_res) mutable {
           if (!proto_res) {
             return cb(proto_res.error());
           }

@@ -21,6 +21,8 @@ namespace libp2p::muxer {
     using CapConnCallbackFunc = std::function<void(
         outcome::result<std::shared_ptr<connection::CapableConnection>>)>;
 
+    ~MuxerAdaptor() override = default;
+
     /**
      * Make a muxed connection from the secure one, using this adaptor
      * @param conn - connection to be upgraded
