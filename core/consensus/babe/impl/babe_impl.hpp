@@ -15,10 +15,10 @@
 #include "common/logger.hpp"
 #include "consensus/babe.hpp"
 #include "consensus/babe/babe_lottery.hpp"
-#include "consensus/consensus_network.hpp"
 #include "crypto/crypto_types.hpp"
 #include "crypto/hasher.hpp"
 #include "libp2p/event/bus.hpp"
+#include "network/network_state.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::consensus {
@@ -30,7 +30,7 @@ namespace kagome::consensus {
         libp2p::event::channel_decl<BabeError, std::error_code>;
   }  // namespace event
 
-  class BabeImpl : public Babe {
+  class BabeImpl : public Babe, public std::enable_shared_from_this<BabeImpl> {
     using Timer = boost::asio::basic_waitable_timer<std::chrono::system_clock>;
 
    public:
@@ -51,7 +51,7 @@ namespace kagome::consensus {
     BabeImpl(std::shared_ptr<BabeLottery> lottery,
              std::shared_ptr<authorship::Proposer> proposer,
              std::shared_ptr<blockchain::BlockTree> block_tree,
-             std::shared_ptr<ConsensusNetwork> network,
+             std::shared_ptr<network::NetworkState> network,
              crypto::SR25519Keypair keypair,
              primitives::AuthorityIndex authority_id,
              std::shared_ptr<clock::SystemClock> clock,
@@ -100,7 +100,7 @@ namespace kagome::consensus {
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<authorship::Proposer> proposer_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<ConsensusNetwork> network_;
+    std::shared_ptr<network::NetworkState> network_;
     crypto::SR25519Keypair keypair_;
     primitives::AuthorityIndex authority_id_;
     std::shared_ptr<clock::SystemClock> clock_;

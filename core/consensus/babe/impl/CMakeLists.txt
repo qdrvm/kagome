@@ -24,4 +24,5 @@ target_link_libraries(babe
     scale
     blob
     outcome
+    libp2p_peer_id
     )

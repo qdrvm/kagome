@@ -16,9 +16,12 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/clock/clock_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
-#include "mock/core/consensus/consensus_network_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
+#include "mock/core/network/peer_client_mock.hpp"
+#include "mock/core/network/peer_server_mock.hpp"
+#include "network/network_state.hpp"
 #include "primitives/block.hpp"
+#include "testutil/literals.hpp"
 #include "testutil/sr25519_utils.hpp"
 
 using namespace kagome;
@@ -29,6 +32,7 @@ using namespace crypto;
 using namespace primitives;
 using namespace clock;
 using namespace common;
+using namespace network;
 
 using testing::_;
 using testing::Ref;
@@ -51,15 +55,17 @@ class BabeTest : public testing::Test {
   std::shared_ptr<ProposerMock> proposer_ = std::make_shared<ProposerMock>();
   std::shared_ptr<BlockTreeMock> block_tree_ =
       std::make_shared<BlockTreeMock>();
-  std::shared_ptr<ConsensusNetworkMock> network_ =
-      std::make_shared<ConsensusNetworkMock>();
+  std::shared_ptr<PeerClientMock> client_ = std::make_shared<PeerClientMock>();
+  std::shared_ptr<PeerServerMock> server_ = std::make_shared<PeerServerMock>();
+  std::shared_ptr<NetworkState> network_ = std::make_shared<NetworkState>(
+      PeerClientsMap{{"foo"_peerid, client_}}, server_);
   SR25519Keypair keypair_{generateSR25519Keypair()};
   AuthorityIndex authority_id_ = 1;
   std::shared_ptr<SystemClockMock> clock_ = std::make_shared<SystemClockMock>();
   std::shared_ptr<HasherMock> hasher_ = std::make_shared<HasherMock>();
   libp2p::event::Bus event_bus_;
 
-  BabeImpl babe_{
+  std::shared_ptr<BabeImpl> babe_ = std::make_shared<BabeImpl>(
       lottery_,
       proposer_,
       block_tree_,
@@ -69,7 +75,7 @@ class BabeTest : public testing::Test {
       clock_,
       hasher_,
       boost::asio::basic_waitable_timer<std::chrono::system_clock>{io_context_},
-      event_bus_};
+      event_bus_);
 
   Epoch epoch_{0, 0, 2, 60ms, {{}}, 100, {}};
 
@@ -97,11 +103,12 @@ class BabeTest : public testing::Test {
       event_bus_.getChannel<event::BabeErrorChannel>()};
 };
 
-ACTION_P(CheckBlock, block) {
-  auto block_to_check = arg0;
-  ASSERT_EQ(block_to_check.header.digests.size(), 2);
-  block_to_check.header.digests.pop_back();
-  ASSERT_EQ(block_to_check, block);
+ACTION_P(CheckBlockHeader, expected_block_header) {
+  auto header_to_check = arg0.header;
+  ASSERT_EQ(header_to_check.digests.size(), 2);
+  header_to_check.digests.pop_back();
+  ASSERT_EQ(header_to_check, expected_block_header);
+  arg1(outcome::success());
 }
 
 /**
@@ -132,7 +139,9 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*proposer_, propose(BlockId{best_block_hash_}, _, _))
       .WillOnce(Return(created_block_));
   EXPECT_CALL(*hasher_, blake2b_256(_)).WillOnce(Return(created_block_hash_));
-  EXPECT_CALL(*network_, broadcast(_)).WillOnce(CheckBlock(created_block_));
+
+  EXPECT_CALL(*client_, blockAnnounce(_, _))
+      .WillOnce(CheckBlockHeader(created_block_.header));
 
   // finishEpoch
   auto new_epoch = epoch_;
@@ -146,7 +155,7 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*lottery_, slotsLeadership(new_epoch, keypair_))
       .WillOnce(Return(leadership_));
 
-  babe_.runEpoch(epoch_, test_begin + 60ms);
+  babe_->runEpoch(epoch_, test_begin + 60ms);
   io_context_.run_for(150ms);
 }
 
@@ -183,10 +192,10 @@ TEST_F(BabeTest, SyncSuccess) {
   auto expected_finish_slot_time =
       (delay_in_slots * epoch_.slot_duration) + slot_start_time;
 
-  babe_.runEpoch(epoch_, slot_start_time);
+  babe_->runEpoch(epoch_, slot_start_time);
   io_context_.run_for(100ms);
 
-  auto meta = babe_.getBabeMeta();
+  auto meta = babe_->getBabeMeta();
   ASSERT_EQ(meta.current_slot_, expected_current_slot);
   ASSERT_EQ(meta.last_slot_finish_time_, expected_finish_slot_time);
 }
@@ -223,7 +232,7 @@ TEST_F(BabeTest, BigDelay) {
     error_emitted = true;
   });
 
-  babe_.runEpoch(epoch_, slot_start_time);
+  babe_->runEpoch(epoch_, slot_start_time);
 
   ASSERT_TRUE(error_emitted);
 }

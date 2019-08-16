@@ -11,6 +11,8 @@
 #include <boost/assert.hpp>
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
+#include "libp2p/peer/peer_id.hpp"
+#include "network/types/block_announce.hpp"
 #include "scale/scale.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BabeImpl::Error, e) {
@@ -29,7 +31,7 @@ namespace kagome::consensus {
   BabeImpl::BabeImpl(std::shared_ptr<BabeLottery> lottery,
                      std::shared_ptr<authorship::Proposer> proposer,
                      std::shared_ptr<blockchain::BlockTree> block_tree,
-                     std::shared_ptr<ConsensusNetwork> network,
+                     std::shared_ptr<network::NetworkState> network,
                      crypto::SR25519Keypair keypair,
                      primitives::AuthorityIndex authority_id,
                      std::shared_ptr<clock::SystemClock> clock,
@@ -170,7 +172,17 @@ namespace kagome::consensus {
         common::Buffer{std::move(encoded_seal_res.value())});
 
     // finally, broadcast the sealed block
-    network_->broadcast(block);
+    for (const auto &id_peer_pair : network_->peer_clients) {
+      id_peer_pair.second->blockAnnounce(
+          network::BlockAnnounce{block.header},
+          [self{shared_from_this()}, id{id_peer_pair.first}](auto &&res) {
+            if (!res) {
+              self->log_->error("cannot announce block to peer {}: {}",
+                                id.toBase58(),
+                                res.error().message());
+            }
+          });
+    }
   }
 
   void BabeImpl::finishEpoch() {
