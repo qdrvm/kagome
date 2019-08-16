@@ -43,7 +43,6 @@ namespace kagome::network {
     DESCENDING = 1
   };
 
-  // TODO(akvinikym) PRE-279: add codec for this type
   /**
    * Request for blocks to another peer
    */
@@ -63,6 +62,32 @@ namespace kagome::network {
     /// used when unspecified
     boost::optional<uint32_t> max;
   };
+
+  /**
+   * @brief outputs object of type BlockRequest to stream
+   * @tparam Stream output stream type
+   * @param s stream reference
+   * @param v value to output
+   * @return reference to stream
+   */
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const BlockRequest &v) {
+    return s << v.id << v.fields << v.from << v.to << v.direction << v.max;
+  }
+
+  /**
+   * @brief decodes object of type BlockRequest from stream
+   * @tparam Stream input stream type
+   * @param s stream reference
+   * @param v value to decode
+   * @return reference to stream
+   */
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, BlockRequest &v) {
+    return s >> v.id >> v.fields >> v.from >> v.to >> v.direction >> v.max;
+  }
 }  // namespace kagome::network
 
 #endif  // KAGOME_BLOCK_REQUEST_HPP

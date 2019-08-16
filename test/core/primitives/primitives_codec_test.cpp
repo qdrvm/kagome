@@ -25,6 +25,7 @@
 #include "scale/scale_error.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/primitives/hash_creator.hpp"
 
 using kagome::common::Blob;
 using kagome::common::Buffer;
@@ -49,12 +50,7 @@ using kagome::scale::ScaleEncoderStream;
 using kagome::scale::decode;
 using kagome::scale::encode;
 
-Hash256 createHash(std::initializer_list<uint8_t> bytes) {
-  Hash256 h;
-  h.fill(0);
-  std::copy(bytes.begin(), bytes.end(), h.begin());
-  return h;
-}
+using testutil::createHash256;
 
 /**
  * @class Primitives is a test fixture which contains useful data
@@ -70,11 +66,11 @@ class Primitives : public testing::Test {
  protected:
   using array = std::array<uint8_t, 8u>;
   /// block header and corresponding scale representation
-  BlockHeader block_header_{createHash({0}),  // parent_hash
-                            2,                // number: number
-                            createHash({1}),  // state_root
-                            createHash({2}),  // extrinsic root
-                            {{5}}};             // buffer: digest;
+  BlockHeader block_header_{createHash256({0}),  // parent_hash
+                            2,                   // number: number
+                            createHash256({1}),  // state_root
+                            createHash256({2}),  // extrinsic root
+                            {{5}}};              // buffer: digest;
   ByteArray encoded_header_ = []() {
     Buffer h;
     // SCALE-encoded
@@ -84,7 +80,8 @@ class Primitives : public testing::Test {
         std::vector<uint8_t>(31, 0));  // state_root: hash256 with value 1
     h.putUint8(2).put(
         std::vector<uint8_t>(31, 0));  // extrinsic_root: hash256 with value 2
-//    h.putUint8(4).putUint8(5);         // digest: vector with buffer with element 5
+    //    h.putUint8(4).putUint8(5);         // digest: vector with buffer with
+    //    element 5
     h.putUint8(4).putUint8(4).put(std::vector<uint8_t>{5});
     return h.toVector();
   }();
@@ -96,7 +93,10 @@ class Primitives : public testing::Test {
   ByteArray encoded_block_ =
       Buffer(encoded_header_)
           .putBuffer({4,  // (1 << 2) number of extrinsics
-                      12, 1, 2, 3})
+                      12,
+                      1,
+                      2,
+                      3})
           .toVector();  // extrinsic itself {1, 2, 3}
   /// Version instance and corresponding scale representation
   Version version_{
@@ -134,21 +134,40 @@ class Primitives : public testing::Test {
                            {{4, 5}, {6, 7, 8}},  // provides
                            2};                   // longivity
   ByteArray encoded_valid_transaction_{
-      1,                       // variant type order
-      1, 0, 0, 0, 0, 0, 0, 0,  // priority
-      8,                       // compact-encoded collection size (2)
+      1,  // variant type order
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,  // priority
+      8,  // compact-encoded collection size (2)
       // collection of collections
-      8,     // compact-encoded collection size (2)
-      0, 1,  // collection items
-      8,     // compact-encoded collection size (2)
-      2, 3,  // collection items
-      8,     // compact-encoded collection size (2)
+      8,  // compact-encoded collection size (2)
+      0,
+      1,  // collection items
+      8,  // compact-encoded collection size (2)
+      2,
+      3,  // collection items
+      8,  // compact-encoded collection size (2)
       // collection of collections
-      8,                       // compact-encoded collection size (2)
-      4, 5,                    // collection items
-      12,                      // compact-encoded collection size (3)
-      6, 7, 8,                 // collection items
-      2, 0, 0, 0, 0, 0, 0, 0,  // longevity
+      8,  // compact-encoded collection size (2)
+      4,
+      5,   // collection items
+      12,  // compact-encoded collection size (3)
+      6,
+      7,
+      8,  // collection items
+      2,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,  // longevity
   };
 };
 
