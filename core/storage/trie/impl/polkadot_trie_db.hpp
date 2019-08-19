@@ -10,9 +10,9 @@
 #include <optional>
 
 #include "crypto/hasher.hpp"
-#include "storage/trie/polkadot_trie_db/polkadot_codec.hpp"
-#include "storage/trie/polkadot_trie_db/polkadot_node.hpp"
-#include "storage/trie/polkadot_trie_db/polkadot_trie.hpp"
+#include "storage/trie/impl/polkadot_codec.hpp"
+#include "storage/trie/impl/polkadot_node.hpp"
+#include "storage/trie/impl/polkadot_trie.hpp"
 #include "storage/trie/trie_db.hpp"
 
 namespace kagome::storage::trie {
@@ -33,8 +33,10 @@ namespace kagome::storage::trie {
     template <typename Stream>
     friend Stream &operator<<(Stream &s, const PolkadotTrieDb &trie);
     template <typename Stream>
-    friend Stream &printNode(Stream &s, const NodePtr &node,
-                             const PolkadotTrieDb &trie, size_t nest_level);
+    friend Stream &printNode(Stream &s,
+                             const NodePtr &node,
+                             const PolkadotTrieDb &trie,
+                             size_t nest_level);
 
    public:
     explicit PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db);
@@ -60,6 +62,13 @@ namespace kagome::storage::trie {
         const common::Buffer &key) const override;
 
     bool contains(const common::Buffer &key) const override;
+
+    /**
+     * @return the root hash of empty Trie
+     */
+    common::Buffer getEmptyRoot() const;
+
+    bool empty() const override;
 
     std::unique_ptr<MapCursor> cursor() override;
 
@@ -93,8 +102,8 @@ namespace kagome::storage::trie {
                                            uint8_t idx) const;
 
     std::unique_ptr<PersistentBufferMap> db_;
-    std::optional<common::Buffer> root_;
     PolkadotCodec codec_;
+    common::Buffer root_;
   };
 
 }  // namespace kagome::storage::trie

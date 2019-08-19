@@ -8,7 +8,7 @@
 
 #include "common/buffer.hpp"
 #include "storage/face/write_batch.hpp"
-#include "storage/trie/polkadot_trie_db/polkadot_trie_db.hpp"
+#include "storage/trie/impl/polkadot_trie_db.hpp"
 
 namespace kagome::storage::trie {
   class PolkadotTrieBatch
