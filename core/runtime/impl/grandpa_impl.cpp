@@ -17,15 +17,15 @@ namespace kagome::runtime {
                            std::shared_ptr<extensions::Extension> extension)
       : RuntimeApi(std::move(state_code), std::move(extension)) {}
 
-  outcome::result<std::optional<ScheduledChange>> GrandpaImpl::pending_change(
+  outcome::result<boost::optional<ScheduledChange>> GrandpaImpl::pending_change(
       const Digest &digest) {
-    return execute<std::optional<ScheduledChange>>(
+    return execute<boost::optional<ScheduledChange>>(
         "GrandpaApi_grandpa_pending_change", digest);
   }
 
-  outcome::result<std::optional<ForcedChange>> GrandpaImpl::forced_change(
+  outcome::result<boost::optional<ForcedChange>> GrandpaImpl::forced_change(
       const Digest &digest) {
-    return execute<std::optional<ForcedChange>>(
+    return execute<boost::optional<ForcedChange>>(
         "GrandpaApi_grandpa_forced_change", digest);
   }
 

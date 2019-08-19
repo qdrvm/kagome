@@ -80,8 +80,7 @@ class Primitives : public testing::Test {
         std::vector<uint8_t>(31, 0));  // state_root: hash256 with value 1
     h.putUint8(2).put(
         std::vector<uint8_t>(31, 0));  // extrinsic_root: hash256 with value 2
-    //    h.putUint8(4).putUint8(5);         // digest: vector with buffer with
-    //    element 5
+    // put vector of buffers, containing only 1 buffer, which has 1 item = 5
     h.putUint8(4).putUint8(4).put(std::vector<uint8_t>{5});
     return h.toVector();
   }();

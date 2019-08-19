@@ -14,8 +14,6 @@
 #include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
 
-using namespace kagome::common;
-
 namespace kagome::network {
   /**
    * Masks of bits, combination of which shows, which fields are to be presented
@@ -123,12 +121,12 @@ namespace kagome::network {
     primitives::BlockId from;
     /// end at this block; an implementation defined maximum is used when
     /// unspecified
-    std::optional<primitives::BlockHash> to;
+    boost::optional<primitives::BlockHash> to;
     /// sequence direction
     Direction direction;
     /// maximum number of blocks to return; an implementation defined maximum is
     /// used when unspecified
-    std::optional<uint32_t> max;
+    boost::optional<uint32_t> max;
   };
 
   /**

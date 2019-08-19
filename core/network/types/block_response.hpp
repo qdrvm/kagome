@@ -20,11 +20,11 @@ namespace kagome::network {
    */
   struct BlockData {
     primitives::BlockHash hash;
-    std::optional<primitives::BlockHeader> header;
-    std::optional<primitives::BlockBody> body;
-    std::optional<common::Buffer> receipt;
-    std::optional<common::Buffer> message_queue;
-    std::optional<primitives::Justification> justification;
+    boost::optional<primitives::BlockHeader> header;
+    boost::optional<primitives::BlockBody> body;
+    boost::optional<common::Buffer> receipt;
+    boost::optional<common::Buffer> message_queue;
+    boost::optional<primitives::Justification> justification;
   };
 
   /**

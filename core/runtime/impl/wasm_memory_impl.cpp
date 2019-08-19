@@ -64,10 +64,10 @@ namespace kagome::runtime {
     return freealloc(size);
   }
 
-  std::optional<SizeType> WasmMemoryImpl::deallocate(WasmPointer ptr) {
+  boost::optional<SizeType> WasmMemoryImpl::deallocate(WasmPointer ptr) {
     const auto it = allocated_.find(ptr);
     if (it == allocated_.end()) {
-      return std::nullopt;
+      return boost::none;
     }
     const auto size = it->second;
 
