@@ -15,7 +15,7 @@ target_link_libraries(block_request_test
 addtest(block_response_test
     block_response_test.cpp
     )
-target_link_libraries(block_request_test
+target_link_libraries(block_response_test
     buffer
     scale
     testutil_primitives_generator

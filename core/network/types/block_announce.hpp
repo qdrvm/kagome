@@ -17,6 +17,16 @@ namespace kagome::network {
   };
 
   /**
+   * @brief compares two BlockAnnounce instances
+   * @param lhs first instance
+   * @param rhs second instance
+   * @return true if equal false otherwise
+   */
+  inline bool operator==(const BlockAnnounce &lhs, const BlockAnnounce &rhs) {
+    return lhs.header == rhs.header;
+  }
+
+  /**
    * @brief outputs object of type BlockAnnounce to stream
    * @tparam Stream output stream type
    * @param s stream reference

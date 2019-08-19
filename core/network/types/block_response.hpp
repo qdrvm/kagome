@@ -20,12 +20,25 @@ namespace kagome::network {
    */
   struct BlockData {
     primitives::BlockHash hash;
-    boost::optional<primitives::BlockHeader> header;
-    boost::optional<primitives::BlockBody> body;
-    boost::optional<common::Buffer> receipt;
-    boost::optional<common::Buffer> message_queue;
-    boost::optional<primitives::Justification> justification;
+    std::optional<primitives::BlockHeader> header;
+    std::optional<primitives::BlockBody> body;
+    std::optional<common::Buffer> receipt;
+    std::optional<common::Buffer> message_queue;
+    std::optional<primitives::Justification> justification;
   };
+
+  /**
+   * @brief compares two BlockData instances
+   * @param lhs first instance
+   * @param rhs second instance
+   * @return true if equal false otherwise
+   */
+  inline bool operator==(const BlockData &lhs, const BlockData &rhs) {
+    return lhs.hash == rhs.hash && lhs.header == rhs.header
+           && lhs.body == rhs.body && lhs.receipt == rhs.receipt
+           && lhs.message_queue == rhs.message_queue
+           && lhs.justification == rhs.justification;
+  }
 
   /**
    * @brief outputs object of type BlockData to stream
@@ -37,7 +50,8 @@ namespace kagome::network {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const BlockData &v) {
-    return s << v.hash << v.header << v.body << v.receipt << v.message_queue << v.justification;
+    return s << v.hash << v.header << v.body << v.receipt << v.message_queue
+             << v.justification;
   }
 
   /**
@@ -50,7 +64,8 @@ namespace kagome::network {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, BlockData &v) {
-    return s >> v.hash >> v.header >> v.body >> v.receipt >> v.message_queue >> v.justification;
+    return s >> v.hash >> v.header >> v.body >> v.receipt >> v.message_queue
+           >> v.justification;
   }
 
   /**
@@ -60,6 +75,16 @@ namespace kagome::network {
     primitives::BlockRequestId id;
     std::vector<BlockData> blocks;
   };
+
+  /**
+   * @brief compares two BlockResponse instances
+   * @param lhs first instance
+   * @param rhs second instance
+   * @return true if equal false otherwise
+   */
+  inline bool operator==(const BlockResponse &lhs, const BlockResponse &rhs) {
+    return lhs.id == rhs.id && lhs.blocks == rhs.blocks;
+  }
 
   /**
    * @brief outputs object of type BlockResponse to stream

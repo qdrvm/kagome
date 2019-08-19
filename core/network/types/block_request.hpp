@@ -14,6 +14,8 @@
 #include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
 
+using namespace kagome::common;
+
 namespace kagome::network {
   /**
    * Masks of bits, combination of which shows, which fields are to be presented
@@ -33,15 +35,81 @@ namespace kagome::network {
   };
   using BlockAttributes = std::bitset<8>;
 
+  inline uint8_t operator|(BlockAttributesBits lhs, BlockAttributesBits rhs) {
+    return static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs);
+  }
+
+  inline uint8_t operator|(uint8_t lhs, BlockAttributesBits rhs) {
+    return lhs | static_cast<uint8_t>(rhs);
+  }
+
+  /**
+   * @brief outputs object of type BlockAttributes to stream
+   * @tparam Stream output stream type
+   * @param s stream reference
+   * @param v value to output
+   * @return reference to stream
+   */
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const BlockAttributes &v) {
+    return s << static_cast<uint8_t>(v.to_ulong());
+  }
+
+  /**
+   * decodes object of type BlockAttributes from stream
+   * @tparam Stream input stream type
+   * @param s stream reference
+   * @param v value to decode
+   * @return reference to stream
+   */
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, BlockAttributes &v) {
+    uint8_t value = 0u;
+    s >> value;
+    v = value;
+    return s;
+  }
+
   /**
    * Direction, in which to retrieve the blocks
    */
-  enum class Direction {
+  enum class Direction : uint8_t {
     /// from child to parent
     ASCENDING = 0,
     /// from parent to canonical child
     DESCENDING = 1
   };
+
+  /**
+   * @brief outputs object of type Direction to stream
+   * @tparam Stream output stream type
+   * @param s stream reference
+   * @param v value to output
+   * @return reference to stream
+   */
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const Direction &v) {
+    return s << static_cast<uint8_t>(v);
+  }
+
+  /**
+   * @brief decodes object of type Direction from stream
+   * @tparam Stream input stream type
+   * @param s stream reference
+   * @param v value to decode
+   * @return reference to stream
+   */
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, Direction &v) {
+    uint8_t value = 0u;
+    s >> value;
+    v = static_cast<Direction>(value);
+    return s;
+  }
 
   /**
    * Request for blocks to another peer
@@ -55,13 +123,25 @@ namespace kagome::network {
     primitives::BlockId from;
     /// end at this block; an implementation defined maximum is used when
     /// unspecified
-    boost::optional<primitives::BlockHash> to;
+    std::optional<primitives::BlockHash> to;
     /// sequence direction
     Direction direction;
     /// maximum number of blocks to return; an implementation defined maximum is
     /// used when unspecified
-    boost::optional<uint32_t> max;
+    std::optional<uint32_t> max;
   };
+
+  /**
+   * @brief compares two BlockRequest instances
+   * @param lhs first instance
+   * @param rhs second instance
+   * @return true if equal false otherwise
+   */
+  inline bool operator==(const BlockRequest &lhs, const BlockRequest &rhs) {
+    return lhs.id == rhs.id && lhs.fields == rhs.fields && lhs.from == rhs.from
+           && lhs.to == rhs.to && lhs.direction == rhs.direction
+           && lhs.max == rhs.max;
+  }
 
   /**
    * @brief outputs object of type BlockRequest to stream
