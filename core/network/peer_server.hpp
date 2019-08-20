@@ -19,18 +19,28 @@ namespace kagome::network {
    public:
     virtual ~PeerServer() = default;
 
+    using BlocksRequestHandler =
+        std::function<outcome::result<BlockResponse>(const BlockRequest &)>;
+
     /**
      * Subscribe for the block requests
+     * @param handler to be called, when a new block request arrives
+     *
+     * @note in case the method is called several times, only the last handler
+     * will be called
      */
-    virtual void onBlocksRequest(
-        std::function<outcome::result<BlockResponse>(const BlockRequest &)>)
-        const = 0;
+    virtual void onBlocksRequest(BlocksRequestHandler handler) const = 0;
+
+    using BlockAnnounceHandler = std::function<void(const BlockAnnounce &)>;
 
     /**
      * Process block announcement
+     * @param handler to be called, when a block announce arrives
+     *
+     * @note in case the method is called several times, only the last handler
+     * will be called
      */
-    virtual void onBlockAnnounce(
-        std::function<void(const BlockAnnounce &)>) const = 0;
+    virtual void onBlockAnnounce(BlockAnnounceHandler handler) const = 0;
   };
 
 }  // namespace kagome::network

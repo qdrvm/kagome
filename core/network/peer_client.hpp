@@ -6,6 +6,7 @@
 #ifndef KAGOME_CORE_NETWORK_PEER_CLIENT_HPP
 #define KAGOME_CORE_NETWORK_PEER_CLIENT_HPP
 
+#include <outcome/outcome.hpp>
 #include "network/types/block_announce.hpp"
 #include "network/types/block_request.hpp"
 #include "network/types/block_response.hpp"
@@ -18,16 +19,23 @@ namespace kagome::network {
   class PeerClient {
    public:
     virtual ~PeerClient() = default;
+
+    using BlockResponseHandler =
+        std::function<void(const outcome::result<BlockResponse> &)>;
+
     /**
      * Request block
+     * @param request - block request
+     * @param handler - function, which is called, when a corresponding response
+     * arrives
      */
-    virtual void blocksRequest(
-        BlockRequest request,
-        std::function<void(const outcome::result<BlockResponse> &)> handler)
-        const = 0;
+    virtual void blocksRequest(BlockRequest request,
+                               BlockResponseHandler handler) const = 0;
 
     /**
      * Send block announce
+     * @param block_announce - message with the block
+     * @param handler, which is called, when the message is delivered
      */
     virtual void blockAnnounce(
         BlockAnnounce block_announce,

@@ -21,7 +21,7 @@ namespace kagome::network {
 
   /// Stores network's peer information
   struct NetworkState {
-    PeerMap peerClients;
+    PeerClientsMap peer_clients;
     std::shared_ptr<PeerServer> peer_server;
   };
 
