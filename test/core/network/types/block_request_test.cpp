@@ -4,12 +4,12 @@
  */
 
 #include "network/types/block_request.hpp"
-
 #include <gmock/gmock.h>
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/primitives/hash_creator.hpp"
+#include "testutil/testparam.hpp"
 
 using kagome::common::Buffer;
 using kagome::network::BlockAttributes;
@@ -21,8 +21,6 @@ using testutil::createHash256;
 
 using kagome::scale::decode;
 using kagome::scale::encode;
-
-using kagome::network::operator|;
 
 struct BlockRequestTest : public ::testing::Test {
   using Bits = BlockAttributesBits;

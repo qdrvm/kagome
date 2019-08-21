@@ -29,3 +29,17 @@ target_link_libraries(block_announce_test
     scale
     testutil_primitives_generator
     )
+
+addtest(block_attributes_test
+    block_attributes_test.cpp
+    )
+target_link_libraries(block_attributes_test
+    scale
+    )
+
+addtest(block_direction_test
+    block_direction_test.cpp
+    )
+target_link_libraries(block_direction_test
+    scale
+    )
