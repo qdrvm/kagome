@@ -7,10 +7,10 @@
 #define KAGOME_INHERENT_DATA_HPP
 
 #include <map>
-#include <optional>
 #include <vector>
 
 #include <boost/iterator_adaptors.hpp>
+#include <boost/optional.hpp>
 #include <outcome/outcome.hpp>
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
@@ -51,15 +51,15 @@ namespace kagome::primitives {
     /**
      * @returns the data for the requested inherent.
      */
-    outcome::result<std::optional<common::Buffer>> getData(
+    outcome::result<boost::optional<common::Buffer>> getData(
         const InherentIdentifier &identifier) const;
 
     const std::map<InherentIdentifier, common::Buffer> &getDataCollection()
         const;
 
-    bool operator==(const InherentData& rhs) const;
+    bool operator==(const InherentData &rhs) const;
 
-    bool operator!=(const InherentData& rhs) const;
+    bool operator!=(const InherentData &rhs) const;
 
    private:
     std::map<InherentIdentifier, common::Buffer> data_;
@@ -72,7 +72,8 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream, typename = std::enable_if_t<Stream::is_encoder_stream>>
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const InherentData &v) {
     const auto &data = v.getDataCollection();
     // vectors

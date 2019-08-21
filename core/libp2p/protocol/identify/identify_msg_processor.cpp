@@ -170,7 +170,7 @@ namespace libp2p::protocol {
     consumeListenAddresses(addresses, peer_id);
   }
 
-  std::optional<peer::PeerId> IdentifyMessageProcessor::consumePublicKey(
+  boost::optional<peer::PeerId> IdentifyMessageProcessor::consumePublicKey(
       const StreamSPtr &stream, std::string_view pubkey_str) {
     auto stream_peer_id_res = stream->remotePeerId();
 
@@ -178,15 +178,15 @@ namespace libp2p::protocol {
     // return the already known peer id
     if (pubkey_str.empty()) {
       if (!stream_peer_id_res) {
-        return std::nullopt;
+        return boost::none;
       }
       return stream_peer_id_res.value();
     }
 
     // peer id can be set in stream, derived from the received public key or
     // both; handle all possible cases
-    std::optional<peer::PeerId> stream_peer_id;
-    std::optional<crypto::PublicKey> pubkey;
+    boost::optional<peer::PeerId> stream_peer_id;
+    boost::optional<crypto::PublicKey> pubkey;
 
     // retrieve a peer id from the stream
     if (stream_peer_id_res) {
@@ -225,7 +225,7 @@ namespace libp2p::protocol {
           "peer with id {} sent public key, which derives to id {}, but they "
           "must be equal",
           stream_peer_id->toBase58(), msg_peer_id.toBase58());
-      return std::nullopt;
+      return boost::none;
     }
 
     // insert the derived key into key repository

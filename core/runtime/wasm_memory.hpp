@@ -7,8 +7,8 @@
 #define KAGOME_MEMORY_HPP
 
 #include <array>
-#include <optional>
 
+#include <boost/optional.hpp>
 #include "common/buffer.hpp"
 #include "runtime/common.hpp"
 
@@ -52,7 +52,7 @@ namespace kagome::runtime {
      * @return size of deallocated memory or none if given address does not
      * point to any allocated pieces of memory
      */
-    virtual std::optional<SizeType> deallocate(WasmPointer ptr) = 0;
+    virtual boost::optional<SizeType> deallocate(WasmPointer ptr) = 0;
 
     /**
      * Load integers from provided address

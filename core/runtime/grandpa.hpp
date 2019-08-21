@@ -39,7 +39,7 @@ namespace kagome::runtime {
      * @return nullopt if there are no pending changes,
      * scheduled change item if exists or error if error occured
      */
-    virtual outcome::result<std::optional<ScheduledChange>> pending_change(
+    virtual outcome::result<boost::optional<ScheduledChange>> pending_change(
         const Digest &digest) = 0;
 
     /**
@@ -50,7 +50,7 @@ namespace kagome::runtime {
      * forced change item if exists or error if error occured
      *
      */
-    virtual outcome::result<std::optional<ForcedChange>> forced_change(
+    virtual outcome::result<boost::optional<ForcedChange>> forced_change(
         const Digest &digest) = 0;
 
     /**

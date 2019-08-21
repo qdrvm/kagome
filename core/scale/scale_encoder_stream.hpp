@@ -7,8 +7,8 @@
 #define KAGOME_CORE_SCALE_SCALE_ENCODER_STREAM_HPP
 
 #include <deque>
-#include <optional>
 
+#include <boost/optional.hpp>
 #include <gsl/span>
 #include "scale/detail/fixed_witdh_integer.hpp"
 #include "scale/detail/variant.hpp"
@@ -70,7 +70,7 @@ namespace kagome::scale {
      * @return reference to stream
      */
     template <class T>
-    ScaleEncoderStream &operator<<(const std::optional<T> &v) {
+    ScaleEncoderStream &operator<<(const boost::optional<T> &v) {
       // optional bool is a special case of optional values
       // it should be encoded using one byte instead of two
       // as described in specification
@@ -199,7 +199,7 @@ namespace kagome::scale {
     ScaleEncoderStream &putByte(uint8_t v);
 
    private:
-    ScaleEncoderStream &encodeOptionalBool(const std::optional<bool> &v);
+    ScaleEncoderStream &encodeOptionalBool(const boost::optional<bool> &v);
     std::deque<uint8_t> stream_;
   };
 
