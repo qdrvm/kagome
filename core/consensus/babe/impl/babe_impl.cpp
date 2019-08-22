@@ -9,17 +9,19 @@
 
 #include <sr25519/sr25519.h>
 #include <boost/assert.hpp>
+#include "common/buffer.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
-#include "libp2p/peer/peer_id.hpp"
 #include "network/types/block_announce.hpp"
+#include "primitives/inherent_data.hpp"
 #include "scale/scale.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BabeImpl::Error, e) {
   using E = kagome::consensus::BabeImpl::Error;
   switch (e) {
     case E::TIMER_ERROR:
-      return "error happened while using the timer";
+      return "some internal error happened while using the timer in BABE; "
+             "please, see logs";
     case E::NODE_FALL_BEHIND:
       return "local node has fallen too far behind the others, most likely it "
              "is in one of the previous epochs";
@@ -82,7 +84,7 @@ namespace kagome::consensus {
 
   void BabeImpl::runSlot() {
     using std::chrono::operator""ms;
-    static constexpr auto kMaxLatency = 5000ms;  // just a value
+    static constexpr auto kMaxLatency = 5000ms;
 
     if (current_slot_ == current_epoch_.epoch_duration) {
       // end of the epoch
@@ -96,7 +98,7 @@ namespace kagome::consensus {
     auto now = clock_->now();
     if (now > next_slot_finish_time_
         && (now - next_slot_finish_time_ > kMaxLatency)) {
-      // we are too far behind; after skipping some slots (or even epochs)
+      // we are too far behind; after skipping some slots (but not epochs)
       // control will be returned to this method
       return synchronizeSlots();
     }
@@ -124,21 +126,40 @@ namespace kagome::consensus {
     runSlot();
   }
 
-  void BabeImpl::processSlotLeadership(const crypto::VRFOutput &proof) {
+  void BabeImpl::processSlotLeadership(const crypto::VRFOutput &output) {
     // build a block to be announced
     const auto &best_block_hash = block_tree_->deepestLeaf();
 
-    BabeBlockHeader babe_header{current_slot_, proof, authority_id_};
+    BabeBlockHeader babe_header{current_slot_, output, authority_id_};
     auto encoded_header_res = scale::encode(babe_header);
     if (!encoded_header_res) {
       return log_->error("cannot encode BabeBlockHeader: {}",
                          encoded_header_res.error().message());
     }
 
-    // TODO(akvinikym): understand, where to take InherentData from
+    primitives::InherentData inherent_data;
+    auto epoch_secs = std::chrono::duration_cast<std::chrono::seconds>(
+                          clock_->now().time_since_epoch())
+                          .count();
+    // identifiers are guaranteed to be correct, so use .value() directly
+    auto put_res = inherent_data.putData(
+        primitives::InherentIdentifier::fromString("timstap0").value(),
+        common::Buffer{}.putUint64(epoch_secs));
+    if (!put_res) {
+      return log_->error("cannot put an inherent data: {}",
+                         put_res.error().message());
+    }
+    put_res = inherent_data.putData(
+        primitives::InherentIdentifier::fromString("babeslot").value(),
+        common::Buffer{}.putUint64(current_slot_));
+    if (!put_res) {
+      return log_->error("cannot put an inherent data: {}",
+                         put_res.error().message());
+    }
+
     auto pre_seal_block_res = proposer_->propose(
         best_block_hash,
-        {},
+        inherent_data,
         {common::Buffer{std::move(encoded_header_res.value())}});
     if (!pre_seal_block_res) {
       return log_->error("cannot propose a block: {}",
@@ -186,11 +207,13 @@ namespace kagome::consensus {
   }
 
   void BabeImpl::finishEpoch() {
-    // TODO(akvinikym): validator update - how is it done?
+    // TODO(akvinikym) PRE-291: validator update - how is it done?
 
-    // compute new epoch duration (BabeApi_slot_duration runtime entry)
+    // TODO(akvinikym) PRE-291: compute new epoch duration
+    // (BabeApi_slot_duration runtime entry)
 
-    // compute new threshold (BabeApi_slot_winning_threshold runtime entry)
+    // TODO(akvinikym) PRE-291: compute new threshold
+    // (BabeApi_slot_winning_threshold runtime entry)
 
     // compute new randomness
     current_epoch_.randomness = lottery_->computeRandomness(

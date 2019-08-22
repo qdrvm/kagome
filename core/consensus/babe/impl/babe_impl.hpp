@@ -82,9 +82,9 @@ namespace kagome::consensus {
 
     /**
      * Gather the block and broadcast it
-     * @param proof that we are the leader of this slot
+     * @param output that we are the leader of this slot
      */
-    void processSlotLeadership(const crypto::VRFOutput &proof);
+    void processSlotLeadership(const crypto::VRFOutput &output);
 
     /**
      * Finish the Babe epoch
