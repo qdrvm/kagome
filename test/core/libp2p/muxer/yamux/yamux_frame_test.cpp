@@ -24,7 +24,7 @@ class YamuxFrameTest : public ::testing::Test {
   /**
    * Check that all frame's fields are as expected
    */
-  void checkFrame(std::optional<YamuxFrame> frame_opt, uint8_t version,
+  void checkFrame(boost::optional<YamuxFrame> frame_opt, uint8_t version,
                   YamuxFrame::FrameType type, YamuxFrame::Flag flag,
                   YamuxedConnection::StreamId stream_id, uint32_t length,
                   const Buffer &frame_data) {

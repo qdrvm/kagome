@@ -12,6 +12,8 @@
 
 namespace libp2p::peer {
   struct PeerRepositoryMock : public PeerRepository {
+    ~PeerRepositoryMock() override = default;
+
     MOCK_METHOD0(getAddressRepository, AddressRepository &());
 
     MOCK_METHOD0(getKeyRepository, KeyRepository &());

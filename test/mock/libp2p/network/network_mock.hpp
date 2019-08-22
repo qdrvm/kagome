@@ -12,6 +12,8 @@
 
 namespace libp2p::network {
   struct NetworkMock : public Network {
+    ~NetworkMock() override = default;
+
     MOCK_METHOD1(closeConnections, void(const peer::PeerId &));
 
     MOCK_METHOD0(getDialer, Dialer &());

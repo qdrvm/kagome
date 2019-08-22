@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/trie/polkadot_trie_db/polkadot_trie_batch.hpp"
+#include "storage/trie/impl/polkadot_trie_batch.hpp"
 
 namespace kagome::storage::trie {
 
@@ -59,7 +59,7 @@ namespace kagome::storage::trie {
       }
     }
     if (trie.getRoot() == nullptr) {
-      storage_.root_ = std::nullopt;
+      storage_.root_ = storage_.getEmptyRoot();
     } else {
       OUTCOME_TRY(n, storage_.storeNode(*trie.getRoot()));
       storage_.root_ = n;

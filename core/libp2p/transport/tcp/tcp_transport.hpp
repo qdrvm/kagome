@@ -24,7 +24,7 @@ namespace libp2p::transport {
    public:
     ~TcpTransport() override = default;
 
-    TcpTransport(boost::asio::io_context &context,
+    TcpTransport(std::shared_ptr<boost::asio::io_context> context,
                  std::shared_ptr<Upgrader> upgrader);
 
     void dial(const peer::PeerId &remoteId, multi::Multiaddress address,
@@ -38,7 +38,7 @@ namespace libp2p::transport {
     peer::Protocol getProtocolId() const override;
 
    private:
-    boost::asio::io_context &context_;
+    std::shared_ptr<boost::asio::io_context> context_;
     std::shared_ptr<Upgrader> upgrader_;
   };  // namespace libp2p::transport
 

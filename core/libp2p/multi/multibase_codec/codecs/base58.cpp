@@ -7,6 +7,7 @@
 
 #include <cstring>
 
+#include <boost/optional.hpp>
 #include "libp2p/multi/multibase_codec/codecs/base_error.hpp"
 
 namespace {
@@ -44,7 +45,7 @@ namespace {
    */
   constexpr bool isSpace(char c) noexcept {
     return c == ' ' || c == '\f' || c == '\n' || c == '\r' || c == '\t'
-        || c == '\v';
+           || c == '\v';
   }
 }  // namespace
 
@@ -76,7 +77,8 @@ namespace libp2p::multi::detail {
       int i = 0;
       // Apply "b58 = b58 * 256 + ch".
       for (auto it = b58.rbegin();
-           (carry != 0 || i < length) && (it != b58.rend()); it++, i++) {
+           (carry != 0 || i < length) && (it != b58.rend());
+           it++, i++) {
         carry += 256 * (*it);
         *it = carry % 58;
         carry /= 58;
@@ -106,7 +108,7 @@ namespace libp2p::multi::detail {
    * @param psz - pointer to the string to be decoded
    * @return decoded bytes, if the process went successfully, none otherwise
    */
-  std::optional<std::vector<unsigned char>> decodeImpl(const char *psz) {
+  boost::optional<std::vector<unsigned char>> decodeImpl(const char *psz) {
     // Skip leading spaces.
     while ((*psz != '0') && isSpace(*psz)) {
       std::advance(psz, 1);
@@ -132,7 +134,8 @@ namespace libp2p::multi::detail {
       }
       int i = 0;
       for (auto it = b256.rbegin();
-           (carry != 0 || i < length) && (it != b256.rend()); ++it, ++i) {
+           (carry != 0 || i < length) && (it != b256.rend());
+           ++it, ++i) {
         carry += 58 * (*it);
         *it = carry % 256;
         carry /= 256;

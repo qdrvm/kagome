@@ -127,7 +127,7 @@ namespace libp2p::connection {
    * @param frame_bytes to be converted
    * @return frame object, if convertation is successful, none otherwise
    */
-  std::optional<YamuxFrame> parseFrame(gsl::span<const uint8_t> frame_bytes);
+  boost::optional<YamuxFrame> parseFrame(gsl::span<const uint8_t> frame_bytes);
 }  // namespace libp2p::connection
 
 #endif  // KAGOME_YAMUX_FRAME_HPP

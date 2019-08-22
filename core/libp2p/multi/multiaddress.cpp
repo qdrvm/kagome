@@ -110,16 +110,16 @@ namespace libp2p::multi {
     return decapsulateStringFromAddress(proto_str, proto_bytes.value());
   }
 
-  std::pair<Multiaddress, std::optional<Multiaddress>>
+  std::pair<Multiaddress, boost::optional<Multiaddress>>
   Multiaddress::splitFirst() const {
     auto second_slash = stringified_address_.find('/', 1);
     if (second_slash == std::string::npos) {
-      return {*this, std::nullopt};
+      return {*this, boost::none};
     }
 
     auto third_slash = stringified_address_.find('/', second_slash + 1);
     if (third_slash == std::string::npos) {
-      return {*this, std::nullopt};
+      return {*this, boost::none};
     }
 
     // it's safe to get values in-place, as parts of Multiaddress are guaranteed
@@ -154,7 +154,7 @@ namespace libp2p::multi {
     return bytes_;
   }
 
-  std::optional<std::string> Multiaddress::getPeerId() const {
+  boost::optional<std::string> Multiaddress::getPeerId() const {
     return peer_id_;
   }
 
@@ -230,7 +230,7 @@ namespace libp2p::multi {
         "/"s + std::string(ProtocolList::get(Protocol::Code::P2P)->name);
     auto ipfs_beginning = stringified_address_.find(ipfs_name);
     if (ipfs_beginning == std::string_view::npos) {
-      peer_id_ = std::nullopt;
+      peer_id_ = boost::none;
       return;
     }
 

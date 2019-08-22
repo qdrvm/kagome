@@ -35,6 +35,7 @@
 
 #include <regex>
 
+#include <boost/optional.hpp>
 #include "libp2p/multi/multibase_codec/codecs/base_error.hpp"
 
 namespace {
@@ -76,7 +77,7 @@ namespace {
    */
   bool isValidBase64(std::string_view string) {
     return string.size() % 4 == 0
-        && std::regex_match(string.data(), base64_regex);
+           && std::regex_match(string.data(), base64_regex);
   }
 }  // namespace
 
@@ -94,7 +95,7 @@ namespace libp2p::multi::detail {
     size_t bytes_pos = 0u;
     size_t decoded_size = 0u;
 
-    for (auto n = len / 3; n--;) { // NOLINT
+    for (auto n = len / 3; n--;) {  // NOLINT
       out += tab[(bytes[bytes_pos + 0] & 0xfc) >> 2];
       out += tab[((bytes[bytes_pos + 0] & 0x03) << 4)
                  + ((bytes[bytes_pos + 1] & 0xf0) >> 4)];
@@ -135,7 +136,7 @@ namespace libp2p::multi::detail {
    * @param src to be decoded
    * @return bytes, if decoding went successful, none otherwise
    */
-  std::optional<std::vector<uint8_t>> decodeImpl(std::string_view src) {
+  boost::optional<std::vector<uint8_t>> decodeImpl(std::string_view src) {
     std::vector<uint8_t> out(decodedSize(src.size()));
 
     std::vector<unsigned char> c3(3);
@@ -146,7 +147,7 @@ namespace libp2p::multi::detail {
     size_t len = src.size();
     size_t bytes_pos = 0;
 
-    while (len-- && src[in_pos] != '=') { // NOLINT
+    while (len-- && src[in_pos] != '=') {  // NOLINT
       auto const v = inverse_table.at(src[in_pos]);
       if (v == -1) {
         return {};
@@ -166,7 +167,7 @@ namespace libp2p::multi::detail {
       }
     }
 
-    if (i) { // NOLINT
+    if (i) {  // NOLINT
       c3[0] = (c4[0] << 2) + ((c4[1] & 0x30) >> 4);
       c3[1] = ((c4[1] & 0xf) << 4) + ((c4[2] & 0x3c) >> 2);
       c3[2] = ((c4[2] & 0x3) << 6) + c4[3];

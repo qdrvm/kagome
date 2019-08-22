@@ -9,8 +9,8 @@
 #include "common/buffer.hpp"
 #include "crypto/hasher.hpp"
 #include "scale/scale.hpp"
-#include "storage/trie/polkadot_trie_db/polkadot_codec.hpp"
-#include "storage/trie/polkadot_trie_db/polkadot_trie.hpp"
+#include "storage/trie/impl/polkadot_codec.hpp"
+#include "storage/trie/impl/polkadot_trie.hpp"
 
 namespace kagome::storage::trie {
 
@@ -38,7 +38,7 @@ namespace kagome::storage::trie {
     }
     PolkadotCodec codec;
     OUTCOME_TRY(enc, codec.encodeNode(*trie.getRoot()));
-    auto hash = codec.hash256(enc);
+    auto hash = codec.merkleValue(enc);
     return common::Buffer{hash};
   }
 

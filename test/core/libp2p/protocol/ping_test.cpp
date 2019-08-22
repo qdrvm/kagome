@@ -36,7 +36,7 @@ class PingTest : public testing::Test {
  public:
   static constexpr uint32_t kPingMsgSize = 32;
 
-  boost::asio::io_service io_service_;
+  boost::asio::io_context io_context_;
   libp2p::event::Bus bus_;
 
   HostMock host_;
@@ -44,7 +44,7 @@ class PingTest : public testing::Test {
       std::make_shared<RandomGeneratorMock>();
 
   std::shared_ptr<Ping> ping_ = std::make_shared<Ping>(
-      host_, bus_, io_service_, rand_gen_, PingConfig{1, kPingMsgSize});
+      host_, bus_, io_context_, rand_gen_, PingConfig{1, kPingMsgSize});
 
   std::shared_ptr<CapableConnectionMock> conn_ =
       std::make_shared<CapableConnectionMock>();
@@ -118,7 +118,7 @@ TEST_F(PingTest, PingClient) {
   ping_->startPinging(conn_,
                       [](auto &&session_res) { ASSERT_TRUE(session_res); });
 
-  io_service_.run_for(100ms);
+  io_context_.run_for(100ms);
 }
 
 /**
@@ -149,7 +149,7 @@ TEST_F(PingTest, PingClientTimeoutExpired) {
   ping_->startPinging(conn_,
                       [](auto &&session_res) { ASSERT_TRUE(session_res); });
 
-  io_service_.run_for(100ms);
+  io_context_.run_for(100ms);
 
   ASSERT_TRUE(dead_peer_id);
   ASSERT_EQ(*dead_peer_id, peer_id_);

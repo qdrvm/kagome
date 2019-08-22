@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/trie/polkadot_trie_db/polkadot_codec.hpp"
+#include "storage/trie/impl/polkadot_codec.hpp"
 
-#include "crypto/blake2/blake2s.h"
+#include "crypto/blake2/blake2b.h"
 #include "scale/scale.hpp"
 #include "scale/scale_decoder_stream.hpp"
-#include "storage/trie/polkadot_trie_db/polkadot_node.hpp"
+#include "storage/trie/impl/polkadot_node.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotCodec::Error, e) {
   using E = kagome::storage::trie::PolkadotCodec::Error;
@@ -28,93 +28,71 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotCodec::Error, e) {
 
 namespace kagome::storage::trie {
 
-  inline uint8_t lowNibble(uint8_t byte) {
-    return byte & 0xFu;
-  }
-
-  inline uint8_t highNibble(uint8_t byte) {
-    return (byte >> 4u) & 0xFu;
-  }
-
-  inline uint8_t collectByte(uint8_t low, uint8_t high) {
+  inline uint8_t byteFromNibbles(uint8_t high, uint8_t low) {
     // get low4 from nibbles to avoid check: if(low > 0xff) return error
-    return (lowNibble(high) << 4u) | lowNibble(low);
+    return (high << 4u) | (low & 0xfu);
   }
 
   inline common::Buffer ushortToBytes(uint16_t b) {
     common::Buffer out(2, 0);
-    out[0] = (b >> 8u) & 0xffu;
-    out[1] = b & 0xffu;
+    out[1] = (b >> 8u) & 0xffu;
+    out[0] = b & 0xffu;
     return out;
   }
 
   common::Buffer PolkadotCodec::nibblesToKey(const common::Buffer &nibbles) {
-    const auto nibbles_size = nibbles.size();
-    if (nibbles_size == 0) {
-      return {};
+    Buffer res;
+    if (nibbles.size() % 2 == 0) {
+      res = Buffer(nibbles.size() / 2, 0);
+      for (size_t i = 0; i < nibbles.size(); i += 2) {
+        res[i / 2] = byteFromNibbles(nibbles[i], nibbles[i + 1]);
+      }
+    } else {
+      res = Buffer(nibbles.size() / 2 + 1, 0);
+      res[0] = nibbles[0];
+      for (size_t i = 2; i < nibbles.size(); i += 2) {
+        res[i / 2] = byteFromNibbles(nibbles[i - 1], nibbles[i]);
+      }
     }
-
-    if (nibbles_size == 1 && nibbles[0] == 0) {
-      return {0};
-    }
-
-    // if nibbles_size is odd, then allocate one more item
-    const size_t size = (nibbles_size + 1) / 2;
-    common::Buffer out(size, 0);
-
-    size_t iterations = size;
-
-    // if number of nibbles is odd, then iterate even number of times
-    bool nimbles_size_odd = nibbles_size % 2 != 0;
-    if (nimbles_size_odd) {
-      --iterations;
-    }
-
-    for (size_t i = 0; i < iterations; ++i) {
-      out[i] = collectByte(nibbles[2 * i], nibbles[2 * i + 1]);
-    }
-
-    // if number of nibbles is odd, then implicitly add 0 as very last nibble
-    if (nimbles_size_odd) {
-      out[iterations] = collectByte(nibbles[2 * iterations], 0);
-    }
-
-    return out;
+    return res;
   }
 
   common::Buffer PolkadotCodec::keyToNibbles(const common::Buffer &key) {
-    auto nibbles = key.size() * 2;
-
-    // if last nibble in `key` is 0
-    bool last_nibble_0 = !key.empty() && (highNibble(key[key.size() - 1]) == 0);
-    if (last_nibble_0) {
-      --nibbles;
+    if (key.empty()) {
+      return {};
+    }
+    if (key.size() == 1 && key[0] == 0) {
+      return {0, 0};
     }
 
-    common::Buffer out(nibbles, 0);
-    for (size_t i = 0u, size = nibbles / 2; i < size; i++) {
-      out[2 * i] = lowNibble(key[i]);
-      out[2 * i + 1] = highNibble(key[i]);
+    auto l = key.size() * 2;
+    Buffer res(l, 0);
+    for (size_t i = 0; i < key.size(); i++) {
+      res[2 * i] = key[i] >> 4u;
+      res[2 * i + 1] = key[i] & 0xfu;
     }
 
-    if (last_nibble_0) {
-      out[nibbles - 1] = lowNibble(key[key.size() - 1]);
+    return res;
+  }
+
+  common::Buffer PolkadotCodec::merkleValue(const common::Buffer &buf) const {
+    // if a buffer size is less than the size of a would-be hash, just return
+    // this buffer to save space
+    if (buf.size() < common::Hash256::size()) {
+      return buf;
     }
 
-    return out;
+    return Buffer{hash256(buf)};
   }
 
   common::Hash256 PolkadotCodec::hash256(const common::Buffer &buf) const {
     common::Hash256 out;
 
-    // if a buffer size is less than the size of a would-be hash, just return
-    // this buffer to save space
-    if (buf.size() < common::Hash256::size()) {
-      std::copy(buf.begin(), buf.end(), out.begin());
-      return out;
-    }
-
-    blake2s(out.data(), common::Hash256::size(), nullptr, 0, buf.data(),
+    blake2b(out.data(),
+            common::Hash256::size(),
+            nullptr,
+            0,
+            buf.data(),
             buf.size());
     return out;
   }
@@ -190,22 +168,27 @@ namespace kagome::storage::trie {
     // children bitmap
     encoding += ushortToBytes(node.childrenBitmap());
 
+    if (node.getTrieType() == PolkadotNode::Type::BranchWithValue) {
+      // scale encoded value
+      OUTCOME_TRY(encNodeValue, scale::encode(node.value));
+      encoding += Buffer(std::move(encNodeValue));
+    }
+
     // encode each child
     for (auto &child : node.children) {
       if (child) {
         if (child->isDummy()) {
-          auto hash = std::dynamic_pointer_cast<DummyNode>(child)->db_key;
-          encoding.putBuffer(hash);
+          auto merkle_value =
+              std::dynamic_pointer_cast<DummyNode>(child)->db_key;
+          OUTCOME_TRY(scale_enc, scale::encode(std::move(merkle_value)));
+          encoding.put(scale_enc);
         } else {
           OUTCOME_TRY(enc, encodeNode(*child));
-          encoding.put(hash256(enc));
+          OUTCOME_TRY(scale_enc, scale::encode(merkleValue(enc)));
+          encoding.put(scale_enc);
         }
       }
     }
-
-    // scale encoded value
-    OUTCOME_TRY(encNodeValue, scale::encode(node.value));
-    encoding += Buffer(std::move(encNodeValue));
 
     return outcome::success(std::move(encoding));
   }
@@ -291,16 +274,15 @@ namespace kagome::storage::trie {
     // array of nibbles is much more convenient than array of bytes, though it
     // wastes some memory
     partial_key = keyToNibbles(partial_key);
-    // when the last nibble is zero, keyToNibbles throws it away, which may
-    // break the node key in this case, so restore this nibble if needed
-    if (nibbles_num != partial_key.size()) {
-      partial_key.putUint8(0);
+    if (nibbles_num % 2 == 1) {
+      partial_key = partial_key.subbuffer(1);
     }
     return partial_key;
   }
 
   outcome::result<std::shared_ptr<Node>> PolkadotCodec::decodeBranch(
-      PolkadotNode::Type type, const Buffer &partial_key,
+      PolkadotNode::Type type,
+      const Buffer &partial_key,
       BufferStream &stream) const {
     constexpr uint8_t kChildrenBitmapSize = 2;
 
@@ -310,8 +292,20 @@ namespace kagome::storage::trie {
     auto node = std::make_shared<BranchNode>(partial_key);
 
     uint16_t children_bitmap = stream.next();
-    children_bitmap <<= 8u;
-    children_bitmap += stream.next();
+    children_bitmap += stream.next() << 8u;
+
+    scale::ScaleDecoderStream ss(stream.leftBytes());
+
+    // decode the branch value if needed
+    common::Buffer value;
+    if (type == PolkadotNode::Type::BranchWithValue) {
+      try {
+        ss >> value;
+      } catch (std::system_error &e) {
+        return outcome::failure(e.code());
+      }
+      node->value = value;
+    }
 
     uint8_t i = 0;
     while (children_bitmap != 0) {
@@ -321,21 +315,15 @@ namespace kagome::storage::trie {
         children_bitmap &= ~(1u << i);
         // read the hash of the child and make a dummy node from it for this
         // child in the processed branch
-        if (not stream.hasMore(common::Hash256::size())) {
-          return Error::INPUT_TOO_SMALL;
-        }
-        common::Buffer child_hash(32, 0);
-        for (auto &b : child_hash) {
-          b = stream.next();
+        common::Buffer child_hash;
+        try {
+          ss >> child_hash;
+        } catch (std::system_error &e) {
+          return outcome::failure(e.code());
         }
         node->children.at(i) = std::make_shared<DummyNode>(child_hash);
       }
       i++;
-    }
-    // decode the branch value if needed
-    if (type == PolkadotNode::Type::BranchWithValue) {
-      OUTCOME_TRY(value, scale::decode<Buffer>(stream.leftBytes()));
-      node->value = value;
     }
     return node;
   }

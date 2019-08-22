@@ -7,10 +7,10 @@
 #define KAGOME_VARINT_HPP
 
 #include <cstdint>
-#include <optional>
 #include <string>
 #include <vector>
 
+#include <boost/optional.hpp>
 #include <gsl/span>
 
 namespace libp2p::multi {
@@ -44,7 +44,8 @@ namespace libp2p::multi {
      * @param varint_bytes an array of bytes, possibly representing an unsigned
      * varint
      */
-    static std::optional<UVarint> create(gsl::span<const uint8_t> varint_bytes);
+    static boost::optional<UVarint> create(
+        gsl::span<const uint8_t> varint_bytes);
 
     /**
      * Converts a varint back to a usual unsigned integer.
