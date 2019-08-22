@@ -6,24 +6,20 @@
 #include "network/impl/peer_client_libp2p.hpp"
 
 #include "common/buffer.hpp"
-#include "libp2p/basic/message_read_writer.hpp"
 #include "network/impl/common.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::network {
   using common::Buffer;
 
-  PeerClientLibp2p::PeerClientLibp2p(
-      std::shared_ptr<NetworkState> network_state,
-      libp2p::Host &host,
-      libp2p::peer::PeerInfo peer_info,
-      common::Logger logger)
-      : network_state_{std::move(network_state)},
-        host_{host},
+  PeerClientLibp2p::PeerClientLibp2p(libp2p::Host &host,
+                                     libp2p::peer::PeerInfo peer_info,
+                                     common::Logger logger)
+      : host_{host},
         peer_info_{std::move(peer_info)},
         log_{std::move(logger)} {}
 
-  void PeerClientLibp2p::blocksRequest(BlockRequest request,
+  void PeerClientLibp2p::blocksRequest(BlocksRequest request,
                                        BlockResponseHandler handler) const {
     // request-response model requires us to open "sync" channel
     host_.newStream(
@@ -49,8 +45,7 @@ namespace kagome::network {
           auto encoded_request =
               std::make_shared<Buffer>(std::move(encoded_request_res.value()));
 
-          auto read_writer = std::make_shared<libp2p::basic::MessageReadWriter>(
-              std::move(stream));
+          auto read_writer = std::make_shared<ReadWriter>(std::move(stream));
           read_writer->write(
               *encoded_request,
               [self{std::move(self)},
@@ -65,7 +60,7 @@ namespace kagome::network {
 
   void PeerClientLibp2p::onBlocksRequestWritten(
       outcome::result<size_t> write_res,
-      const std::shared_ptr<libp2p::basic::MessageReadWriter> &read_writer,
+      const std::shared_ptr<ReadWriter> &read_writer,
       BlockResponseHandler cb) const {
     if (!write_res) {
       log_->error("cannot write block request to stream");
@@ -81,7 +76,7 @@ namespace kagome::network {
           }
 
           auto decoded_response_res =
-              scale::decode<BlockResponse>(*read_res.value());
+              scale::decode<BlocksResponse>(*read_res.value());
           if (!decoded_response_res) {
             self->log_->error("cannot decode a block response message: {}",
                               decoded_response_res.error().message());
@@ -118,8 +113,7 @@ namespace kagome::network {
           auto encoded_announce =
               std::make_shared<Buffer>(std::move(encoded_announce_res.value()));
 
-          auto read_writer = std::make_shared<libp2p::basic::MessageReadWriter>(
-              std::move(stream));
+          auto read_writer = std::make_shared<ReadWriter>(std::move(stream));
           read_writer->write(
               *encoded_announce,
               [self{std::move(self)}, cb{std::move(cb)}, encoded_announce](

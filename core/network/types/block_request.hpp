@@ -47,7 +47,7 @@ namespace kagome::network {
   /**
    * Request for blocks to another peer
    */
-  struct BlockRequest {
+  struct BlocksRequest {
     /// unique request id
     primitives::BlockRequestId id;
     /// bits, showing, which parts of BlockData to return

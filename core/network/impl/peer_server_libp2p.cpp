@@ -54,7 +54,7 @@ namespace kagome::network {
       // several types of messages can arrive over Sync protocol (at least, in
       // the probable future)
       auto blocks_request_candidate =
-          scale::decode<BlockRequest>(read_res.value());
+          scale::decode<BlocksRequest>(read_res.value());
       if (blocks_request_candidate) {
         if (!handleBlocksRequest(blocks_request_candidate.value(),
                                  read_writer)) {
@@ -69,7 +69,7 @@ namespace kagome::network {
   }
 
   bool PeerServerLibp2p::handleBlocksRequest(
-      BlockRequest request,
+      BlocksRequest request,
       std::shared_ptr<libp2p::basic::MessageReadWriter> read_writer) const {
     auto response_res = blocks_request_handler_(request);
     if (!response_res) {
@@ -79,7 +79,7 @@ namespace kagome::network {
     }
 
     auto response =
-        std::make_shared<BlockResponse>(std::move(response_res.value()));
+        std::make_shared<BlocksResponse>(std::move(response_res.value()));
     read_writer->write(*response,
                        [self{shared_from_this()}, response](auto &&write_res) {
                          if (!write_res) {

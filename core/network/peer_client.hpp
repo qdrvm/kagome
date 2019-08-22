@@ -21,7 +21,7 @@ namespace kagome::network {
     virtual ~PeerClient() = default;
 
     using BlockResponseHandler =
-        std::function<void(const outcome::result<BlockResponse> &)>;
+        std::function<void(const outcome::result<BlocksResponse> &)>;
 
     /**
      * Request block
@@ -29,7 +29,7 @@ namespace kagome::network {
      * @param handler - function, which is called, when a corresponding response
      * arrives
      */
-    virtual void blocksRequest(BlockRequest request,
+    virtual void blocksRequest(BlocksRequest request,
                                BlockResponseHandler handler) const = 0;
 
     /**

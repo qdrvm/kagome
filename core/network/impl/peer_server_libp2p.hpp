@@ -49,7 +49,7 @@ namespace kagome::network {
         std::shared_ptr<libp2p::connection::Stream> stream) const;
 
     bool handleBlocksRequest(
-        BlockRequest request,
+        BlocksRequest request,
         std::shared_ptr<libp2p::basic::MessageReadWriter> read_writer) const;
 
     void handleGossipProto(

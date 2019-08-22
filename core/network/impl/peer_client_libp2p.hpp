@@ -15,34 +15,32 @@
 #include "network/network_state.hpp"
 #include "network/peer_client.hpp"
 
-namespace libp2p::basic {
-  class MessageReadWriter;
-}
-
 namespace kagome::network {
   /**
    * Implementation of PeerClient on top of Libp2p
+   * @tparam ReadWriter - type of reader/writer, which will be used to write
+   * messages to the stream; for instance, it can be
+   * libp2p::basic::MessageReadWriter
    */
+  template <typename ReadWriter>
   class PeerClientLibp2p
       : public PeerClient,
-        public std::enable_shared_from_this<PeerClientLibp2p> {
+        public std::enable_shared_from_this<PeerClientLibp2p<ReadWriter>> {
    public:
     /**
      * Create an instance of PeerClient on top of Libp2p
-     * @param network_state - current state of the Polkadot network
      * @param host - Libp2p host object
      * @param peer_info - this peer's information in Libp2p network
      * @param logger to write messages to
      */
     PeerClientLibp2p(
-        std::shared_ptr<NetworkState> network_state,
         libp2p::Host &host,
         libp2p::peer::PeerInfo peer_info,
         common::Logger logger = common::createLogger("PeerClientLibp2p"));
 
     enum class Error { SUCCESS = 0, LIBP2P_ERROR = 1 };
 
-    void blocksRequest(BlockRequest request,
+    void blocksRequest(BlocksRequest request,
                        BlockResponseHandler handler) const override;
 
     void blockAnnounce(BlockAnnounce block_announce,
@@ -50,12 +48,10 @@ namespace kagome::network {
                            handler) const override;
 
    private:
-    void onBlocksRequestWritten(
-        outcome::result<size_t> write_res,
-        const std::shared_ptr<libp2p::basic::MessageReadWriter> &read_writer,
-        BlockResponseHandler cb) const;
+    void onBlocksRequestWritten(outcome::result<size_t> write_res,
+                                const std::shared_ptr<ReadWriter> &read_writer,
+                                BlockResponseHandler cb) const;
 
-    std::shared_ptr<NetworkState> network_state_;
     libp2p::Host &host_;
     libp2p::peer::PeerInfo peer_info_;
     common::Logger log_;

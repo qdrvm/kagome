@@ -9,7 +9,6 @@ add_library(peer_client
     )
 target_link_libraries(peer_client
     outcome
-    message_read_writer
     buffer
     scale
     )
@@ -20,7 +19,6 @@ add_library(peer_server
     )
 target_link_libraries(peer_server
     outcome
-    message_read_writer
     buffer
     scale
     )

@@ -20,7 +20,7 @@ namespace kagome::network {
     virtual ~PeerServer() = default;
 
     using BlocksRequestHandler =
-        std::function<outcome::result<BlockResponse>(const BlockRequest &)>;
+        std::function<outcome::result<BlocksResponse>(const BlocksRequest &)>;
 
     /**
      * Subscribe for the block requests
