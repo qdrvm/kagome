@@ -21,7 +21,7 @@ namespace kagome::blockchain {
   /**
    * Block tree, which is located in LevelDB
    */
-  class LevelDbBlockTree : public BlockTree {
+  class BlockTreeImpl : public BlockTree {
     /**
      * In-memory light representation of the tree, used for efficiency and usage
      * convenience - we would only ask the database for some info, when directly
@@ -81,13 +81,13 @@ namespace kagome::blockchain {
      * @param hasher - pointer to the hasher
      * @return ptr to the created instance or error
      */
-    static outcome::result<std::unique_ptr<LevelDbBlockTree>> create(
+    static outcome::result<std::unique_ptr<BlockTreeImpl>> create(
         PersistentBufferMap &db,
         const primitives::BlockId &last_finalized_block,
         std::shared_ptr<crypto::Hasher> hasher,
         common::Logger log = common::createLogger("LevelDBBlockTree"));
 
-    ~LevelDbBlockTree() override = default;
+    ~BlockTreeImpl() override = default;
 
     outcome::result<primitives::BlockBody> getBlockBody(
         const primitives::BlockId &block) const override;
@@ -118,10 +118,10 @@ namespace kagome::blockchain {
      * Private ctor, so that instances are created only through the factory
      * method
      */
-    LevelDbBlockTree(PersistentBufferMap &db, std::shared_ptr<TreeNode> tree,
-                     std::shared_ptr<TreeMeta> meta,
-                     std::shared_ptr<crypto::Hasher> hasher,
-                     common::Logger log);
+    BlockTreeImpl(PersistentBufferMap &db, std::shared_ptr<TreeNode> tree,
+                  std::shared_ptr<TreeMeta> meta,
+                  std::shared_ptr<crypto::Hasher> hasher,
+                  common::Logger log);
 
     PersistentBufferMap &db_;
 
@@ -133,6 +133,6 @@ namespace kagome::blockchain {
   };
 }  // namespace kagome::blockchain
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, LevelDbBlockTree::Error)
+OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, BlockTreeImpl::Error)
 
 #endif  // KAGOME_LEVEL_DB_BLOCK_TREE_HPP

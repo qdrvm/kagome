@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "blockchain/impl/level_db_block_tree.hpp"
+#include "blockchain/impl/block_tree_impl.hpp"
 
 #include <boost/assert.hpp>
 #include "blockchain/impl/common.hpp"
@@ -13,8 +13,8 @@
 #include "scale/scale.hpp"
 #include "storage/leveldb/leveldb_error.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, LevelDbBlockTree::Error, e) {
-  using E = kagome::blockchain::LevelDbBlockTree::Error;
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, BlockTreeImpl::Error, e) {
+  using E = kagome::blockchain::BlockTreeImpl::Error;
   switch (e) {
     case E::INVALID_DB:
       return "genesis block is not provided, and the database is either empty "
@@ -36,17 +36,17 @@ namespace kagome::blockchain {
   using Prefix = prefix::Prefix;
   using LevelDBError = kagome::storage::LevelDBError;
 
-  LevelDbBlockTree::TreeNode::TreeNode(primitives::BlockHash hash,
-                                       primitives::BlockNumber depth,
-                                       const std::shared_ptr<TreeNode> &parent,
-                                       bool finalized)
+  BlockTreeImpl::TreeNode::TreeNode(primitives::BlockHash hash,
+                                    primitives::BlockNumber depth,
+                                    const std::shared_ptr<TreeNode> &parent,
+                                    bool finalized)
       : block_hash_{hash},
         depth_{depth},
         parent_{parent},
         finalized_{finalized} {}
 
-  std::shared_ptr<LevelDbBlockTree::TreeNode>
-  LevelDbBlockTree::TreeNode::getByHash(const primitives::BlockHash &hash) {
+  std::shared_ptr<BlockTreeImpl::TreeNode>
+  BlockTreeImpl::TreeNode::getByHash(const primitives::BlockHash &hash) {
     // standard BFS
     std::queue<std::shared_ptr<TreeNode>> nodes_to_scan;
     nodes_to_scan.push(shared_from_this());
@@ -63,7 +63,7 @@ namespace kagome::blockchain {
     return nullptr;
   }
 
-  bool LevelDbBlockTree::TreeNode::operator==(const TreeNode &other) const {
+  bool BlockTreeImpl::TreeNode::operator==(const TreeNode &other) const {
     const auto &other_parent = other.parent_;
     auto parents_equal = (parent_.expired() && other_parent.expired())
         || (!parent_.expired() && !other_parent.expired()
@@ -73,18 +73,18 @@ namespace kagome::blockchain {
         && depth_ == other.depth_;
   }
 
-  bool LevelDbBlockTree::TreeNode::operator!=(const TreeNode &other) const {
+  bool BlockTreeImpl::TreeNode::operator!=(const TreeNode &other) const {
     return !(*this == other);
   }
 
-  LevelDbBlockTree::TreeMeta::TreeMeta(
+  BlockTreeImpl::TreeMeta::TreeMeta(
       std::unordered_set<primitives::BlockHash> leaves, TreeNode &deepest_leaf,
       TreeNode &last_finalized)
       : leaves{std::move(leaves)},
         deepest_leaf{deepest_leaf},
         last_finalized{last_finalized} {}
 
-  outcome::result<std::unique_ptr<LevelDbBlockTree>> LevelDbBlockTree::create(
+  outcome::result<std::unique_ptr<BlockTreeImpl>> BlockTreeImpl::create(
       PersistentBufferMap &db, const primitives::BlockId &last_finalized_block,
       std::shared_ptr<crypto::Hasher> hasher,
       common::Logger log) {
@@ -117,23 +117,23 @@ namespace kagome::blockchain {
     auto meta = std::make_shared<TreeMeta>(
         decltype(TreeMeta::leaves){tree->block_hash_}, *tree, *tree);
 
-    LevelDbBlockTree block_tree{db, std::move(tree), std::move(meta),
-                                std::move(hasher), std::move(log)};
-    return std::make_unique<LevelDbBlockTree>(std::move(block_tree));
+    BlockTreeImpl block_tree{db, std::move(tree), std::move(meta),
+                             std::move(hasher), std::move(log)};
+    return std::make_unique<BlockTreeImpl>(std::move(block_tree));
   }
 
-  LevelDbBlockTree::LevelDbBlockTree(PersistentBufferMap &db,
-                                     std::shared_ptr<TreeNode> tree,
-                                     std::shared_ptr<TreeMeta> meta,
-                                     std::shared_ptr<crypto::Hasher> hasher,
-                                     common::Logger log)
+  BlockTreeImpl::BlockTreeImpl(PersistentBufferMap &db,
+                               std::shared_ptr<TreeNode> tree,
+                               std::shared_ptr<TreeMeta> meta,
+                               std::shared_ptr<crypto::Hasher> hasher,
+                               common::Logger log)
       : db_{db},
         tree_{std::move(tree)},
         tree_meta_{std::move(meta)},
         hasher_{std::move(hasher)},
         log_{std::move(log)} {}
 
-  outcome::result<primitives::BlockBody> LevelDbBlockTree::getBlockBody(
+  outcome::result<primitives::BlockBody> BlockTreeImpl::getBlockBody(
       const primitives::BlockId &block) const {
     auto body_res = getWithPrefix(db_, Prefix::BODY, block);
     if (!body_res) {
@@ -142,7 +142,7 @@ namespace kagome::blockchain {
     return scale::decode<primitives::BlockBody>(body_res.value());
   }
 
-  outcome::result<void> LevelDbBlockTree::addBlock(primitives::Block block) {
+  outcome::result<void> BlockTreeImpl::addBlock(primitives::Block block) {
     // first of all, check if we know parent of this block; if not, we cannot
     // insert it
     auto parent = tree_->getByHash(block.header.parent_hash);
@@ -176,7 +176,7 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
-  outcome::result<void> LevelDbBlockTree::finalize(
+  outcome::result<void> BlockTreeImpl::finalize(
       const primitives::BlockHash &block,
       const primitives::Justification &justification) {
     auto node = tree_->getByHash(block);
@@ -197,7 +197,7 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
-  LevelDbBlockTree::BlockHashVecRes LevelDbBlockTree::getChainByBlock(
+  BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlock(
       const primitives::BlockHash &block) {
     auto node = tree_->getByHash(block);
     if (!node) {
@@ -219,15 +219,15 @@ namespace kagome::blockchain {
     return result;
   }
 
-  LevelDbBlockTree::BlockHashVecRes LevelDbBlockTree::longestPath() {
+  BlockTreeImpl::BlockHashVecRes BlockTreeImpl::longestPath() {
     return getChainByBlock(deepestLeaf());
   }
 
-  const primitives::BlockHash &LevelDbBlockTree::deepestLeaf() const {
+  const primitives::BlockHash &BlockTreeImpl::deepestLeaf() const {
     return tree_meta_->deepest_leaf.get().block_hash_;
   }
 
-  std::vector<primitives::BlockHash> LevelDbBlockTree::getLeaves() const {
+  std::vector<primitives::BlockHash> BlockTreeImpl::getLeaves() const {
     std::vector<primitives::BlockHash> result;
     result.reserve(tree_meta_->leaves.size());
     std::transform(tree_meta_->leaves.begin(), tree_meta_->leaves.end(),
@@ -236,7 +236,7 @@ namespace kagome::blockchain {
     return result;
   }
 
-  LevelDbBlockTree::BlockHashVecRes LevelDbBlockTree::getChildren(
+  BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChildren(
       const primitives::BlockHash &block) {
     auto node = tree_->getByHash(block);
     if (!node) {
@@ -252,11 +252,11 @@ namespace kagome::blockchain {
     return result;
   }
 
-  primitives::BlockHash LevelDbBlockTree::getLastFinalized() const {
+  primitives::BlockHash BlockTreeImpl::getLastFinalized() const {
     return tree_meta_->last_finalized.get().block_hash_;
   }
 
-  void LevelDbBlockTree::prune() {
+  void BlockTreeImpl::prune() {
     if (tree_meta_->last_finalized.get().parent_.expired()) {
       // nothing to prune
       return;

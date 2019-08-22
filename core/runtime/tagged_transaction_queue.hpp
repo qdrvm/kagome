@@ -6,6 +6,7 @@
 #ifndef KAGOME_TAGGED_TRANSACTION_QUEUE_HPP
 #define KAGOME_TAGGED_TRANSACTION_QUEUE_HPP
 
+#include "primitives/common.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/transaction_validity.hpp"
 
@@ -21,6 +22,7 @@ namespace kagome::runtime {
     /**
      * Calls the TaggedTransactionQueue_validate_transaction function from wasm
      * code
+     * @param hash deepest leaf block hash
      * @param ext extrinsic containing transaction to be validated
      * @return structure with information about transaction validity
      */

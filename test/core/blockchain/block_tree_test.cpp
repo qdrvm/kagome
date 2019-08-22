@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "blockchain/impl/level_db_block_tree.hpp"
+#include "blockchain/impl/block_tree_impl.hpp"
 
 #include <gtest/gtest.h>
 #include "blockchain/impl/level_db_util.hpp"
@@ -34,7 +34,7 @@ struct BlockTreeTest : public testing::Test {
         .WillOnce(Return(Buffer{encoded_finalized_block_header_}));
 
     block_tree_ =
-        LevelDbBlockTree::create(db_, kLastFinalizedBlockId, hasher_).value();
+        BlockTreeImpl::create(db_, kLastFinalizedBlockId, hasher_).value();
   }
 
   /**
@@ -72,7 +72,7 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<crypto::Hasher> hasher_ =
       std::make_shared<crypto::HasherImpl>();
 
-  std::unique_ptr<LevelDbBlockTree> block_tree_;
+  std::unique_ptr<BlockTreeImpl> block_tree_;
 
   BlockHeader finalized_block_header_{.number = 0, .digests = {{0x11, 0x33}}};
   std::vector<uint8_t> encoded_finalized_block_header_ =
@@ -155,7 +155,7 @@ TEST_F(BlockTreeTest, AddBlockNoParent) {
   EXPECT_OUTCOME_FALSE(err, block_tree_->addBlock(new_block));
 
   // THEN
-  ASSERT_EQ(err, LevelDbBlockTree::Error::NO_PARENT);
+  ASSERT_EQ(err, BlockTreeImpl::Error::NO_PARENT);
 }
 
 /**

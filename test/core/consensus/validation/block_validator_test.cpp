@@ -14,6 +14,7 @@
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/primitives/hash_creator.hpp"
 
 using namespace kagome;
 using namespace blockchain;
@@ -25,6 +26,7 @@ using namespace crypto;
 
 using testing::_;
 using testing::Return;
+using testing::ReturnRef;
 
 class BlockValidatorTest : public testing::Test {
  public:

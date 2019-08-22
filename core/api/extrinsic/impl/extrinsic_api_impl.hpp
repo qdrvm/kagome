@@ -15,6 +15,7 @@
 #include <outcome/outcome.hpp>
 #include "api/extrinsic/error.hpp"
 #include "api/extrinsic/extrinsic_api.hpp"
+#include "blockchain/block_tree.hpp"
 #include "common/visitor.hpp"
 #include "crypto/hasher.hpp"
 

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "extrinsic_api_impl.hpp"
+#include "api/extrinsic/impl/extrinsic_api_impl.hpp"
 
 #include "primitives/transaction.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
@@ -22,8 +22,6 @@ namespace kagome::api {
       const primitives::Extrinsic &extrinsic) {
     // validate transaction
     OUTCOME_TRY(res, api_->validate_transaction(extrinsic));
-    // TODO(yuraz): PRE-242 correct transaction validation
-    // according to specification
 
     return kagome::visit_in_place(
         res,

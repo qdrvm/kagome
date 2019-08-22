@@ -17,8 +17,8 @@ target_link_libraries(blockchain_common
     )
 
 add_library(level_db_block_tree
-    level_db_block_tree.cpp
-    level_db_block_tree.hpp
+    block_tree_impl.cpp
+    block_tree_impl.hpp
     )
 target_link_libraries(level_db_block_tree
     blockchain_common
