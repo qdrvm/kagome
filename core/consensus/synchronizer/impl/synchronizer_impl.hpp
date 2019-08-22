@@ -38,10 +38,10 @@ namespace kagome::consensus {
 
     void announce(const primitives::BlockHeader &block_header) override;
 
-    void requestBlocks(const libp2p::peer::PeerInfo &peer,
+    void requestBlocks(const libp2p::peer::PeerId &peer,
                        RequestCallback cb) override;
 
-    void requestBlocks(const libp2p::peer::PeerInfo &peer,
+    void requestBlocks(const libp2p::peer::PeerId &peer,
                        const primitives::BlockHash &hash,
                        RequestCallback cb) override;
 
@@ -52,7 +52,7 @@ namespace kagome::consensus {
      * Internal method for requesting blocks
      */
     void requestBlocks(network::BlockRequest request,
-                       const libp2p::peer::PeerInfo &peer,
+                       const libp2p::peer::PeerId &peer,
                        RequestCallback cb) const;
 
     /**
@@ -69,6 +69,15 @@ namespace kagome::consensus {
      */
     outcome::result<network::BlockResponse> processRequest(
         const network::BlockRequest &request) const;
+
+    blockchain::BlockTree::BlockHashVecRes retrieveRequestedHashes(
+        const network::BlockRequest &request,
+        const primitives::BlockHash &from_hash) const;
+
+    void fillBlockResponse(
+        const network::BlockRequest &request,
+        network::BlockResponse &response,
+        const std::vector<primitives::BlockHash> &hash_chain) const;
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers_;

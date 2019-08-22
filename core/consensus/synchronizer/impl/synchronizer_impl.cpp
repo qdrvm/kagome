@@ -69,7 +69,7 @@ namespace kagome::consensus {
     }
   }
 
-  void SynchronizerImpl::requestBlocks(const libp2p::peer::PeerInfo &peer,
+  void SynchronizerImpl::requestBlocks(const libp2p::peer::PeerId &peer,
                                        RequestCallback cb) {
     auto request_id = last_request_id_++;
     BlockRequest request{request_id,
@@ -81,7 +81,7 @@ namespace kagome::consensus {
     requestBlocks(std::move(request), peer, std::move(cb));
   }
 
-  void SynchronizerImpl::requestBlocks(const libp2p::peer::PeerInfo &peer,
+  void SynchronizerImpl::requestBlocks(const libp2p::peer::PeerId &peer,
                                        const primitives::BlockHash &hash,
                                        RequestCallback cb) {
     auto request_id = last_request_id_++;
@@ -98,11 +98,11 @@ namespace kagome::consensus {
   }
 
   void SynchronizerImpl::requestBlocks(network::BlockRequest request,
-                                       const libp2p::peer::PeerInfo &peer,
+                                       const libp2p::peer::PeerId &peer,
                                        RequestCallback cb) const {
-    auto peer_client_it = network_state_->peer_clients.find(peer.id);
+    auto peer_client_it = network_state_->peer_clients.find(peer);
     if (peer_client_it == network_state_->peer_clients.end()) {
-      log_->info("no peer with id {}", peer.id.toBase58());
+      log_->info("no peer with id {}", peer.toBase58());
       return cb(Error::NO_SUCH_PEER);
     }
 
@@ -153,9 +153,25 @@ namespace kagome::consensus {
       log_->info("cannot find a requested block with id {}", request.from);
       return response;
     }
-    auto from_hash = from_hash_res.value();
 
     // secondly, retrieve hashes of blocks the other peer is interested in
+    auto chain_hash_res =
+        retrieveRequestedHashes(request, from_hash_res.value());
+    if (!chain_hash_res) {
+      log_->error("cannot retrieve a chain of blocks: {}",
+                  chain_hash_res.error().message());
+      return response;
+    }
+
+    // thirdly, fill the resulting response with data, which we were asked for
+    fillBlockResponse(request, response, chain_hash_res.value());
+    return response;
+  }
+
+  blockchain::BlockTree::BlockHashVecRes
+  SynchronizerImpl::retrieveRequestedHashes(
+      const network::BlockRequest &request,
+      const primitives::BlockHash &from_hash) const {
     auto ascending_direction =
         request.direction == network::Direction::ASCENDING;
     blockchain::BlockTree::BlockHashVecRes chain_hash_res{{}};
@@ -169,14 +185,13 @@ namespace kagome::consensus {
           ascending_direction ? *request.to : from_hash,
           ascending_direction ? from_hash : *request.to);
     }
-    if (!chain_hash_res) {
-      log_->error("cannot retrieve a chain of blocks: {}",
-                  chain_hash_res.error().message());
-      return response;
-    }
-    auto hash_chain = std::move(chain_hash_res.value());
+    return chain_hash_res;
+  }
 
-    // thirdly, fill the resulting response with data, which we were asked for
+  void SynchronizerImpl::fillBlockResponse(
+      const network::BlockRequest &request,
+      network::BlockResponse &response,
+      const std::vector<primitives::BlockHash> &hash_chain) const {
     // TODO(akvinikym): understand, where to take receipt and message_queue
     auto header_needed =
         request.attributeIsSet(network::BlockAttributesBits::HEADER);
@@ -190,8 +205,6 @@ namespace kagome::consensus {
       if (header_needed) {
         auto header_res = blocks_headers_->getBlockHeader(hash);
         if (header_res) {
-          // normal situation - we have got part of the blocks, for example,
-          // only header or body
           new_block.header = std::move(header_res.value());
         }
       }
@@ -208,7 +221,5 @@ namespace kagome::consensus {
         }
       }
     }
-
-    return response;
   }
 }  // namespace kagome::consensus

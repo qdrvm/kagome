@@ -264,13 +264,9 @@ namespace kagome::blockchain {
 
     // the function returns the blocks in the chronological order, but we want a
     // reverted one in this case
-    auto chain_res = getChainByBlocks(finish_block_hash.value(), block);
-    if (!chain_res) {
-      return chain_res;
-    }
-    auto chain = std::move(chain_res.value());
+    OUTCOME_TRY(chain, getChainByBlocks(finish_block_hash.value(), block));
     std::reverse(chain.begin(), chain.end());
-    return chain;
+    return std::move(chain);
   }
 
   LevelDbBlockTree::BlockHashVecRes LevelDbBlockTree::getChainByBlocks(

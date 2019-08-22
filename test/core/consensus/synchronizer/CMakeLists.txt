@@ -8,6 +8,4 @@ addtest(synchronizer_test
     )
 target_link_libraries(synchronizer_test
     synchronizer
-    buffer
-    libp2p_peer_id
     )

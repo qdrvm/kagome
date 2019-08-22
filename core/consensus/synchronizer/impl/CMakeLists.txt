@@ -12,4 +12,6 @@ target_link_libraries(synchronizer
     block_tree_error
     logger
     outcome
+    buffer
+    libp2p_peer_id
     )

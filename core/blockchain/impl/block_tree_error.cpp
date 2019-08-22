@@ -12,9 +12,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, BlockTreeError, e) {
       return "genesis block is not provided, and the database is either empty "
              "or does not contain valid block tree";
     case E::NO_PARENT:
-      return "block, which was tried to be added, has no known parent";
+      return "block, which should have been added, has no known parent";
     case E::BLOCK_EXISTS:
-      return "block, which was tried to be inserted, already exists in the "
+      return "block, which should have been inserted, already exists in the "
              "tree";
     case E::HASH_FAILED:
       return "attempt to hash block part has failed";

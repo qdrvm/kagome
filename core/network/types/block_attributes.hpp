@@ -44,7 +44,8 @@ namespace kagome::network {
    * @param rhs second BlockAttributes instance
    * @return true if equal false otherwise
    */
-  bool operator==(const BlockAttributes &lhs, const BlockAttributes &rhs) {
+  inline bool operator==(const BlockAttributes &lhs,
+                         const BlockAttributes &rhs) {
     return lhs.attributes == rhs.attributes;
   }
 

@@ -52,7 +52,7 @@ class SynchronizerTest : public testing::Test {
   std::function<outcome::result<BlockResponse>(const BlockRequest &)>
       on_blocks_request;
 
-  PeerInfo peer1_info_{"peer1"_peerid, {}}, peer2_info_{"peer2"_peerid, {}};
+  PeerId peer1_id_{"peer1"_peerid}, peer2_id_{"peer2"_peerid};
 
   std::shared_ptr<BlockTreeMock> tree_ = std::make_shared<BlockTreeMock>();
   std::shared_ptr<HeaderRepositoryMock> headers_ =
@@ -61,8 +61,7 @@ class SynchronizerTest : public testing::Test {
                                   peer2_ = std::make_shared<PeerClientMock>();
   std::shared_ptr<PeerServerMock> server_ = std::make_shared<PeerServerMock>();
   std::shared_ptr<NetworkState> network_state_ = std::make_shared<NetworkState>(
-      PeerClientsMap{{peer1_info_.id, peer1_}, {peer2_info_.id, peer2_}},
-      server_);
+      PeerClientsMap{{peer1_id_, peer1_}, {peer2_id_, peer2_}}, server_);
 
   std::shared_ptr<Synchronizer> synchronizer_;
 
@@ -118,7 +117,7 @@ TEST_F(SynchronizerTest, RequestWithoutHash) {
 
   // WHEN
   auto finished = false;
-  synchronizer_->requestBlocks(peer1_info_, [&finished](auto &&res) mutable {
+  synchronizer_->requestBlocks(peer1_id_, [&finished](auto &&res) mutable {
     ASSERT_TRUE(res);
     finished = true;
   });
@@ -156,7 +155,7 @@ TEST_F(SynchronizerTest, RequestWithHash) {
   // WHEN
   auto finished = false;
   synchronizer_->requestBlocks(
-      peer2_info_, block2_hash_, [&finished](auto &&res) mutable {
+      peer2_id_, block2_hash_, [&finished](auto &&res) mutable {
         ASSERT_TRUE(res);
         finished = true;
       });
