@@ -25,4 +25,5 @@ target_link_libraries(babe
     blob
     outcome
     libp2p_peer_id
+    primitives
     )
