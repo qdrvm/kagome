@@ -14,7 +14,6 @@
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/primitives/hash_creator.hpp"
 
 using namespace kagome;
 using namespace blockchain;
