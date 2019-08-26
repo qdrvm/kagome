@@ -7,6 +7,7 @@
 #define KAGOME_TEST_CORE_RUNTIME_MOCK_MEMORY_HPP_
 
 #include <gmock/gmock.h>
+#include <boost/optional.hpp>
 #include "runtime/wasm_memory.hpp"
 
 namespace kagome::runtime {
@@ -16,7 +17,7 @@ namespace kagome::runtime {
     MOCK_CONST_METHOD0(size, SizeType());
     MOCK_METHOD1(resize, void(SizeType));
     MOCK_METHOD1(allocate, WasmPointer(SizeType));
-    MOCK_METHOD1(deallocate, std::optional<SizeType>(WasmPointer));
+    MOCK_METHOD1(deallocate, boost::optional<SizeType>(WasmPointer));
 
     MOCK_CONST_METHOD1(load8s, int8_t(WasmPointer));
     MOCK_CONST_METHOD1(load8u, uint8_t(WasmPointer));

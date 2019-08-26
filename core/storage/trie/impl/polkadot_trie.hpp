@@ -7,8 +7,8 @@
 #define KAGOME_POLKADOT_TRIE_HPP
 
 #include "storage/face/generic_map.hpp"
-#include "storage/trie/polkadot_trie_db/polkadot_codec.hpp"
-#include "storage/trie/polkadot_trie_db/polkadot_node.hpp"
+#include "storage/trie/impl/polkadot_codec.hpp"
+#include "storage/trie/impl/polkadot_node.hpp"
 
 namespace kagome::storage::trie {
 

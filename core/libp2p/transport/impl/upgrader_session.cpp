@@ -13,7 +13,8 @@ namespace libp2p::transport {
       UpgraderSession::HandlerFunc handler)
       : upgrader_(std::move(upgrader)),
         raw_(std::move(raw)),
-        handler_(std::move(handler)) {}
+        handler_(std::move(handler)) {
+  }
 
   void UpgraderSession::secureOutbound(const peer::PeerId &remoteId) {
     auto self{shared_from_this()};

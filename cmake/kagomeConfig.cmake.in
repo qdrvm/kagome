@@ -11,7 +11,7 @@ find_package(Threads)
 include(GNUInstallDirs)
 
 set(kagome_INCLUDE_DIRS
-    ${CMAKE_INSTALL_FULL_INCLUDEDIR}/kagome
+    "@CONFIG_INCLUDE_DIRS@"
 )
 
 set(kagome_LIBRARIES
@@ -20,13 +20,14 @@ set(kagome_LIBRARIES
         kagome::hexutil
         kagome::blob
         kagome::polkadot_trie_db
-        kagome::polkadot_trie_db_codec
+        kagome::polkadot_trie_codec
         kagome::polkadot_trie
         kagome::blake2
         kagome::hasher
         kagome::twox
         kagome::sha
-        kagome::polkadot_trie_batch
         kagome::leveldb
+        kagome::polkadot_trie_batch
         kagome::logger
+        kagome::in_memory_storage
     )

@@ -18,10 +18,10 @@ namespace kagome::runtime {
 
     ~GrandpaImpl() override = default;
 
-    outcome::result<std::optional<ScheduledChange>> pending_change(
+    outcome::result<boost::optional<ScheduledChange>> pending_change(
         const Digest &digest) override;
 
-    outcome::result<std::optional<ForcedChange>> forced_change(
+    outcome::result<boost::optional<ForcedChange>> forced_change(
         const Digest &digest) override;
 
     outcome::result<std::vector<WeightedAuthority>> authorities() override;

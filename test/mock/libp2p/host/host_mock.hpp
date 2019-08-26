@@ -14,6 +14,8 @@
 namespace libp2p {
   class HostMock : public Host {
    public:
+    ~HostMock() override = default;
+
     MOCK_CONST_METHOD0(getLibp2pVersion, std::string_view());
     MOCK_CONST_METHOD0(getLibp2pClientVersion, std::string_view());
     MOCK_CONST_METHOD0(getId, peer::PeerId());

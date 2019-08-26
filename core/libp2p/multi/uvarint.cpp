@@ -34,7 +34,7 @@ namespace libp2p::multi {
   UVarint::UVarint(gsl::span<const uint8_t> varint_bytes, int64_t varint_size)
       : bytes_(varint_bytes.begin(), varint_bytes.begin() + varint_size) {}
 
-  std::optional<UVarint> UVarint::create(
+  boost::optional<UVarint> UVarint::create(
       gsl::span<const uint8_t> varint_bytes) {
     if (varint_bytes.empty()) {
       return {};

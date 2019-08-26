@@ -12,6 +12,8 @@
 
 namespace libp2p::peer {
   struct KeyRepositoryMock : public KeyRepository {
+    ~KeyRepositoryMock() override = default;
+
     MOCK_METHOD1(clear, void(const PeerId &));
 
     MOCK_METHOD1(getPublicKeys, outcome::result<PubVecPtr>(const PeerId &));

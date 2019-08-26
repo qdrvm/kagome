@@ -24,6 +24,8 @@ namespace libp2p::security {
     using SecConnCallbackFunc = std::function<void(
         outcome::result<std::shared_ptr<connection::SecureConnection>>)>;
 
+    ~SecurityAdaptor() override = default;
+
     /**
      * @brief Secure the connection, either locally or by communicating with
      * opposing node via inbound connection (receid in listener).

@@ -6,8 +6,8 @@
 #include <memory>
 
 #include <gtest/gtest.h>
-#include "storage/trie/polkadot_trie_db/polkadot_codec.hpp"
-#include "storage/trie/polkadot_trie_db/polkadot_node.hpp"
+#include "storage/trie/impl/polkadot_codec.hpp"
+#include "storage/trie/impl/polkadot_node.hpp"
 #include "testutil/outcome.hpp"
 
 using namespace kagome;
