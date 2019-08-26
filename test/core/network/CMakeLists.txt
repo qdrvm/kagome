@@ -8,6 +8,7 @@ addtest(peer_client_test
     )
 target_link_libraries(peer_client_test
     peer_client
+    testutil_read_writer_helper
     )
 
 addtest(peer_server_test
@@ -15,4 +16,5 @@ addtest(peer_server_test
     )
 target_link_libraries(peer_server_test
     peer_server
+    testutil_read_writer_helper
     )

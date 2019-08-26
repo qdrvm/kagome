@@ -15,6 +15,10 @@
 #include "network/network_state.hpp"
 #include "network/peer_client.hpp"
 
+namespace libp2p::basic {
+  class MessageReadWriter;
+}
+
 namespace kagome::network {
   /**
    * Implementation of PeerClient on top of Libp2p
@@ -22,10 +26,9 @@ namespace kagome::network {
    * messages to the stream; for instance, it can be
    * libp2p::basic::MessageReadWriter
    */
-  template <typename ReadWriter>
   class PeerClientLibp2p
       : public PeerClient,
-        public std::enable_shared_from_this<PeerClientLibp2p<ReadWriter>> {
+        public std::enable_shared_from_this<PeerClientLibp2p> {
    public:
     /**
      * Create an instance of PeerClient on top of Libp2p
@@ -48,9 +51,10 @@ namespace kagome::network {
                            handler) const override;
 
    private:
-    void onBlocksRequestWritten(outcome::result<size_t> write_res,
-                                const std::shared_ptr<ReadWriter> &read_writer,
-                                BlockResponseHandler cb) const;
+    void onBlocksRequestWritten(
+        outcome::result<size_t> write_res,
+        const std::shared_ptr<libp2p::basic::MessageReadWriter> &read_writer,
+        BlockResponseHandler cb) const;
 
     libp2p::Host &host_;
     libp2p::peer::PeerInfo peer_info_;

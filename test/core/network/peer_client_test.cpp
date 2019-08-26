@@ -11,11 +11,11 @@
 #include <boost/optional.hpp>
 #include "libp2p/multi/uvarint.hpp"
 #include "libp2p/peer/peer_info.hpp"
-#include "mock/libp2p/basic/message_read_writer_mock.hpp"
 #include "mock/libp2p/connection/stream_mock.hpp"
 #include "mock/libp2p/host/host_mock.hpp"
 #include "network/impl/common.hpp"
 #include "scale/scale.hpp"
+#include "testutil/libp2p/message_read_writer_helper.hpp"
 #include "testutil/literals.hpp"
 
 using namespace kagome;
@@ -43,12 +43,9 @@ class PeerClientTest : public testing::Test {
   PeerInfo peer_info_{"my_peer"_peerid, {}};
 
   std::shared_ptr<PeerClient> peer_client_ =
-      std::make_shared<PeerClientLibp2p<MessageReadWriterMock>>(host_,
-                                                                peer_info_);
+      std::make_shared<PeerClientLibp2p>(host_, peer_info_);
 
   std::shared_ptr<StreamMock> stream_ = std::make_shared<StreamMock>();
-  std::shared_ptr<MessageReadWriterMock> read_writer_ =
-      std::make_shared<MessageReadWriterMock>();
 
   BlocksRequest blocks_request_{
       42, 1, 2, boost::none, Direction::ASCENDING, 228};
@@ -71,9 +68,7 @@ TEST_F(PeerClientTest, BlocksRequest) {
   EXPECT_CALL(host_, newStream(peer_info_, kSyncProtocol, _))
       .WillOnce(InvokeArgument<2>(stream_));
 
-  EXPECT_CALL(*read_writer_,
-              write(encoded_blocks_request_, encoded_blocks_request_.size(), _))
-      .WillOnce(InvokeArgument<2>(outcome::success()));
+  setWriteExpectations(stream_, encoded_blocks_request_);
   EXPECT_CALL(*stream_, read(_, _, _))
       .WillOnce(InvokeArgument<2>(blocks_response_varint_.toBytes()))
       .WillOnce(InvokeArgument<2>(encoded_blocks_response_));
