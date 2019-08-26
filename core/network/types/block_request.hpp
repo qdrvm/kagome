@@ -32,6 +32,14 @@ namespace kagome::network {
     /// maximum number of blocks to return; an implementation defined maximum is
     /// used when unspecified
     boost::optional<uint32_t> max;
+
+    /// includes HEADER, BODY and JUSTIFICATION
+    static constexpr BlockAttributes kBasicAttributes{19};
+
+    bool attributeIsSet(BlockAttributesBits attribute) const {
+      return (fields.attributes.to_ulong() & static_cast<uint8_t>(attribute))
+             != 0;
+    }
   };
 
   /**

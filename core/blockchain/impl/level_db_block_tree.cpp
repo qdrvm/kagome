@@ -5,31 +5,16 @@
 
 #include "blockchain/impl/level_db_block_tree.hpp"
 
+#include <algorithm>
+
 #include <boost/assert.hpp>
+#include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/common.hpp"
 #include "blockchain/impl/level_db_util.hpp"
 #include "common/visitor.hpp"
 #include "crypto/blake2/blake2b.h"
 #include "scale/scale.hpp"
 #include "storage/leveldb/leveldb_error.hpp"
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, LevelDbBlockTree::Error, e) {
-  using E = kagome::blockchain::LevelDbBlockTree::Error;
-  switch (e) {
-    case E::INVALID_DB:
-      return "genesis block is not provided, and the database is either empty "
-             "or does not contain valid block tree";
-    case E::NO_PARENT:
-      return "block, which was tried to be added, has no known parent";
-    case E::HASH_FAILED:
-      return "attempt to hash block part has failed";
-    case E::NO_SUCH_BLOCK:
-      return "block with such hash cannot be found in the local storage";
-    case E::INTERNAL_ERROR:
-      return "internal error happened";
-  }
-  return "unknown error";
-}
 
 namespace kagome::blockchain {
   using Buffer = common::Buffer;
@@ -66,11 +51,11 @@ namespace kagome::blockchain {
   bool LevelDbBlockTree::TreeNode::operator==(const TreeNode &other) const {
     const auto &other_parent = other.parent_;
     auto parents_equal = (parent_.expired() && other_parent.expired())
-        || (!parent_.expired() && !other_parent.expired()
-            && parent_.lock() == other_parent.lock());
+                         || (!parent_.expired() && !other_parent.expired()
+                             && parent_.lock() == other_parent.lock());
 
     return parents_equal && block_hash_ == other.block_hash_
-        && depth_ == other.depth_;
+           && depth_ == other.depth_;
   }
 
   bool LevelDbBlockTree::TreeNode::operator!=(const TreeNode &other) const {
@@ -78,14 +63,17 @@ namespace kagome::blockchain {
   }
 
   LevelDbBlockTree::TreeMeta::TreeMeta(
-      std::unordered_set<primitives::BlockHash> leaves, TreeNode &deepest_leaf,
+      std::unordered_set<primitives::BlockHash> leaves,
+      TreeNode &deepest_leaf,
       TreeNode &last_finalized)
       : leaves{std::move(leaves)},
         deepest_leaf{deepest_leaf},
         last_finalized{last_finalized} {}
 
   outcome::result<std::unique_ptr<LevelDbBlockTree>> LevelDbBlockTree::create(
-      PersistentBufferMap &db, const primitives::BlockId &last_finalized_block,
+      std::shared_ptr<BlockHeaderRepository> header_repo,
+      PersistentBufferMap &db,
+      const primitives::BlockId &last_finalized_block,
       std::shared_ptr<crypto::Hasher> hasher,
       common::Logger log) {
     // retrieve the block's header: we need data from it
@@ -96,8 +84,8 @@ namespace kagome::blockchain {
     // create meta structures from the retrieved header
     auto hash_res = visit_in_place(
         last_finalized_block,
-        [&db, &last_finalized_block, &header,
-         &hasher](const primitives::BlockNumber &)
+        [&db, &last_finalized_block, &header, &hasher](
+            const primitives::BlockNumber &)
             -> outcome::result<common::Hash256> {
           // number is not enough for out meta: calculate the hash as well
           OUTCOME_TRY(encoded_body,
@@ -112,22 +100,29 @@ namespace kagome::blockchain {
       return hash_res.error();
     }
 
-    auto tree = std::make_shared<TreeNode>(hash_res.value(), header.number,
-                                           nullptr, true);
+    auto tree = std::make_shared<TreeNode>(
+        hash_res.value(), header.number, nullptr, true);
     auto meta = std::make_shared<TreeMeta>(
         decltype(TreeMeta::leaves){tree->block_hash_}, *tree, *tree);
 
-    LevelDbBlockTree block_tree{db, std::move(tree), std::move(meta),
-                                std::move(hasher), std::move(log)};
+    LevelDbBlockTree block_tree{std::move(header_repo),
+                                db,
+                                std::move(tree),
+                                std::move(meta),
+                                std::move(hasher),
+                                std::move(log)};
     return std::make_unique<LevelDbBlockTree>(std::move(block_tree));
   }
 
-  LevelDbBlockTree::LevelDbBlockTree(PersistentBufferMap &db,
-                                     std::shared_ptr<TreeNode> tree,
-                                     std::shared_ptr<TreeMeta> meta,
-                                     std::shared_ptr<crypto::Hasher> hasher,
-                                     common::Logger log)
-      : db_{db},
+  LevelDbBlockTree::LevelDbBlockTree(
+      std::shared_ptr<BlockHeaderRepository> header_repo,
+      PersistentBufferMap &db,
+      std::shared_ptr<TreeNode> tree,
+      std::shared_ptr<TreeMeta> meta,
+      std::shared_ptr<crypto::Hasher> hasher,
+      common::Logger log)
+      : header_repo_{std::move(header_repo)},
+        db_{db},
         tree_{std::move(tree)},
         tree_meta_{std::move(meta)},
         hasher_{std::move(hasher)},
@@ -142,25 +137,44 @@ namespace kagome::blockchain {
     return scale::decode<primitives::BlockBody>(body_res.value());
   }
 
+  outcome::result<primitives::Justification>
+  LevelDbBlockTree::getBlockJustification(
+      const primitives::BlockId &block) const {
+    auto justification_res = getWithPrefix(db_, Prefix::JUSTIFICATION, block);
+    if (!justification_res) {
+      return justification_res.error();
+    }
+    return scale::decode<primitives::Justification>(justification_res.value());
+  }
+
   outcome::result<void> LevelDbBlockTree::addBlock(primitives::Block block) {
     // first of all, check if we know parent of this block; if not, we cannot
     // insert it
     auto parent = tree_->getByHash(block.header.parent_hash);
     if (!parent) {
-      return Error::NO_PARENT;
+      return BlockTreeError::NO_PARENT;
     }
 
     OUTCOME_TRY(encoded_block, scale::encode(block));
     auto block_hash = hasher_->blake2b_256(encoded_block);
+    if (tree_->getByHash(block_hash)) {
+      return BlockTreeError::BLOCK_EXISTS;
+    }
 
     // insert our block's parts into the database
     OUTCOME_TRY(encoded_header, scale::encode(block.header));
-    OUTCOME_TRY(putWithPrefix(db_, Prefix::HEADER, block.header.number,
-                              block_hash, Buffer{encoded_header}));
+    OUTCOME_TRY(putWithPrefix(db_,
+                              Prefix::HEADER,
+                              block.header.number,
+                              block_hash,
+                              Buffer{encoded_header}));
 
     OUTCOME_TRY(encoded_body, scale::encode(block.body));
-    OUTCOME_TRY(putWithPrefix(db_, Prefix::BODY, block.header.number,
-                              block_hash, Buffer{encoded_body}));
+    OUTCOME_TRY(putWithPrefix(db_,
+                              Prefix::BODY,
+                              block.header.number,
+                              block_hash,
+                              Buffer{encoded_body}));
 
     // update local meta with the new block
     auto new_node =
@@ -181,12 +195,15 @@ namespace kagome::blockchain {
       const primitives::Justification &justification) {
     auto node = tree_->getByHash(block);
     if (!node) {
-      return Error::NO_SUCH_BLOCK;
+      return BlockTreeError::NO_SUCH_BLOCK;
     }
 
     // insert justification into the database
     OUTCOME_TRY(encoded_justification, scale::encode(justification));
-    OUTCOME_TRY(putWithPrefix(db_, Prefix::JUSTIFICATION, node->depth_, block,
+    OUTCOME_TRY(putWithPrefix(db_,
+                              Prefix::JUSTIFICATION,
+                              node->depth_,
+                              block,
                               Buffer{encoded_justification}));
 
     // update our local meta
@@ -199,23 +216,100 @@ namespace kagome::blockchain {
 
   LevelDbBlockTree::BlockHashVecRes LevelDbBlockTree::getChainByBlock(
       const primitives::BlockHash &block) {
-    auto node = tree_->getByHash(block);
-    if (!node) {
-      return Error::NO_SUCH_BLOCK;
-    }
+    return getChainByBlocks(tree_meta_->last_finalized.get().block_hash_,
+                            block);
+  }
 
-    std::vector<primitives::BlockHash> result;
-    result.push_back(node->block_hash_);
-    while (*node != tree_meta_->last_finalized) {
-      if (node->parent_.expired()) {
-        // should not be here: any node in our tree must be a descendant of the
-        // last finalized block
-        return Error::INTERNAL_ERROR;
+  LevelDbBlockTree::BlockHashVecRes LevelDbBlockTree::getChainByBlock(
+      const primitives::BlockHash &block, bool ascending, uint64_t maximum) {
+    auto block_number_res = header_repo_->getNumberByHash(block);
+    if (!block_number_res) {
+      log_->error("cannot retrieve block with hash {}: {}",
+                  block,
+                  block_number_res.error().message());
+      return BlockTreeError::NO_SUCH_BLOCK;
+    }
+    auto start_block_number = block_number_res.value();
+
+    primitives::BlockNumber finish_block_number;
+    if (ascending) {
+      if (start_block_number < maximum) {
+        // we want to finish at the root
+        finish_block_number = 0;
+      } else {
+        // some non-root block
+        finish_block_number = start_block_number - maximum;
       }
-      node = node->parent_.lock();
-      result.push_back(node->block_hash_);
+    } else {
+      auto finish_block_number_candidate = start_block_number + maximum;
+      auto current_depth = tree_meta_->deepest_leaf.get().depth_;
+      if (finish_block_number_candidate <= current_depth) {
+        finish_block_number = finish_block_number_candidate;
+      } else {
+        finish_block_number = current_depth;
+      }
     }
 
+    auto finish_block_hash = header_repo_->getHashByNumber(finish_block_number);
+    if (!finish_block_hash) {
+      log_->error("cannot retrieve block with number {}: {}",
+                  finish_block_number,
+                  finish_block_hash.error().message());
+      return BlockTreeError::NO_SUCH_BLOCK;
+    }
+
+    if (!ascending) {
+      return getChainByBlocks(block, finish_block_hash.value());
+    }
+
+    // the function returns the blocks in the chronological order, but we want a
+    // reverted one in this case
+    OUTCOME_TRY(chain, getChainByBlocks(finish_block_hash.value(), block));
+    std::reverse(chain.begin(), chain.end());
+    return std::move(chain);
+  }
+
+  LevelDbBlockTree::BlockHashVecRes LevelDbBlockTree::getChainByBlocks(
+      const primitives::BlockHash &top_block,
+      const primitives::BlockHash &bottom_block) {
+    static constexpr std::string_view kNotAncestorError =
+        "impossible to get chain by blocks: most probably, block {} is "
+        "not an ancestor of {}";
+    std::vector<primitives::BlockHash> result;
+
+    auto top_block_node_ptr = tree_->getByHash(top_block);
+    auto bottom_block_node_ptr = tree_->getByHash(bottom_block);
+
+    // if both nodes are in our light tree, we can use this representation only
+    if (top_block_node_ptr && bottom_block_node_ptr) {
+      auto current_node = bottom_block_node_ptr;
+      while (current_node != top_block_node_ptr) {
+        result.push_back(current_node->block_hash_);
+        if (auto parent = current_node->parent_; !parent.expired()) {
+          current_node = parent.lock();
+        } else {
+          log_->error(kNotAncestorError.data(), top_block, bottom_block);
+          return BlockTreeError::INCORRECT_ARGS;
+        }
+      }
+      result.push_back(top_block_node_ptr->block_hash_);
+      std::reverse(result.begin(), result.end());
+      return result;
+    }
+
+    // else, we need to use a database
+    auto current_hash = bottom_block;
+    while (current_hash != top_block) {
+      result.push_back(current_hash);
+      auto current_header_res = header_repo_->getBlockHeader(current_hash);
+      if (!current_header_res) {
+        log_->error(kNotAncestorError.data(), top_block, bottom_block);
+        return BlockTreeError::INCORRECT_ARGS;
+      }
+      current_hash = current_header_res.value().parent_hash;
+    }
+    result.push_back(current_hash);
+    std::reverse(result.begin(), result.end());
     return result;
   }
 
@@ -230,7 +324,8 @@ namespace kagome::blockchain {
   std::vector<primitives::BlockHash> LevelDbBlockTree::getLeaves() const {
     std::vector<primitives::BlockHash> result;
     result.reserve(tree_meta_->leaves.size());
-    std::transform(tree_meta_->leaves.begin(), tree_meta_->leaves.end(),
+    std::transform(tree_meta_->leaves.begin(),
+                   tree_meta_->leaves.end(),
                    std::back_inserter(result),
                    [](const auto &hash) { return hash; });
     return result;
@@ -240,7 +335,7 @@ namespace kagome::blockchain {
       const primitives::BlockHash &block) {
     auto node = tree_->getByHash(block);
     if (!node) {
-      return Error::NO_SUCH_BLOCK;
+      return BlockTreeError::NO_SUCH_BLOCK;
     }
 
     std::vector<primitives::BlockHash> result;
