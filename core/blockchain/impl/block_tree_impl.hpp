@@ -28,8 +28,10 @@ namespace kagome::blockchain {
      * requested
      */
     struct TreeNode : public std::enable_shared_from_this<TreeNode> {
-      TreeNode(primitives::BlockHash hash, primitives::BlockNumber depth,
-               const std::shared_ptr<TreeNode> &parent, bool finalized = false);
+      TreeNode(primitives::BlockHash hash,
+               primitives::BlockNumber depth,
+               const std::shared_ptr<TreeNode> &parent,
+               bool finalized = false);
 
       primitives::BlockHash block_hash_;
       primitives::BlockNumber depth_;
@@ -56,7 +58,8 @@ namespace kagome::blockchain {
      */
     struct TreeMeta {
       TreeMeta(std::unordered_set<primitives::BlockHash> leaves,
-               TreeNode &deepest_leaf, TreeNode &last_finalized);
+               TreeNode &deepest_leaf,
+               TreeNode &last_finalized);
 
       std::unordered_set<primitives::BlockHash> leaves;
       std::reference_wrapper<TreeNode> deepest_leaf;
@@ -103,7 +106,7 @@ namespace kagome::blockchain {
 
     BlockHashVecRes longestPath() override;
 
-    const primitives::BlockHash &deepestLeaf() const override;
+    BlockInfo deepestLeaf() const override;
 
     std::vector<primitives::BlockHash> getLeaves() const override;
 
@@ -118,7 +121,8 @@ namespace kagome::blockchain {
      * Private ctor, so that instances are created only through the factory
      * method
      */
-    BlockTreeImpl(PersistentBufferMap &db, std::shared_ptr<TreeNode> tree,
+    BlockTreeImpl(PersistentBufferMap &db,
+                  std::shared_ptr<TreeNode> tree,
                   std::shared_ptr<TreeMeta> meta,
                   std::shared_ptr<crypto::Hasher> hasher,
                   common::Logger log);

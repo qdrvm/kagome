@@ -108,7 +108,7 @@ TEST_F(BlockTreeTest, GetBody) {
  */
 TEST_F(BlockTreeTest, AddBlock) {
   // GIVEN
-  auto &&deepest_block_hash = block_tree_->deepestLeaf();
+  auto &&[_, deepest_block_hash] = block_tree_->deepestLeaf();
   ASSERT_EQ(deepest_block_hash, kFinalizedBlockHash);
 
   auto leaves = block_tree_->getLeaves();
@@ -128,7 +128,7 @@ TEST_F(BlockTreeTest, AddBlock) {
   auto hash = addBlock(new_block);
 
   // THEN
-  auto &&new_deepest_block_hash = block_tree_->deepestLeaf();
+  auto &&[__, new_deepest_block_hash] = block_tree_->deepestLeaf();
   ASSERT_EQ(new_deepest_block_hash, hash);
 
   leaves = block_tree_->getLeaves();

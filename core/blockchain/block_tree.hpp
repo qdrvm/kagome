@@ -79,13 +79,21 @@ namespace kagome::blockchain {
     virtual BlockHashVecRes longestPath() = 0;
 
     /**
+     * Represents block information, including block number and hash
+     */
+    struct BlockInfo {
+      primitives::BlockNumber block_number;
+      primitives::BlockHash block_hash;
+    };
+
+    /**
      * Get a deepest leaf of the tree
      * @return deepest leaf
      *
      * @note deepest leaf is also a result of "SelectBestChain": if we are the
      * leader, we connect a block, which we constructed, to that deepest leaf
      */
-    virtual const primitives::BlockHash &deepestLeaf() const = 0;
+    virtual BlockInfo deepestLeaf() const = 0;
 
     /**
      * Get all leaves of our tree

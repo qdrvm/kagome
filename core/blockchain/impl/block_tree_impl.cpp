@@ -45,8 +45,8 @@ namespace kagome::blockchain {
         parent_{parent},
         finalized_{finalized} {}
 
-  std::shared_ptr<BlockTreeImpl::TreeNode>
-  BlockTreeImpl::TreeNode::getByHash(const primitives::BlockHash &hash) {
+  std::shared_ptr<BlockTreeImpl::TreeNode> BlockTreeImpl::TreeNode::getByHash(
+      const primitives::BlockHash &hash) {
     // standard BFS
     std::queue<std::shared_ptr<TreeNode>> nodes_to_scan;
     nodes_to_scan.push(shared_from_this());
@@ -66,11 +66,11 @@ namespace kagome::blockchain {
   bool BlockTreeImpl::TreeNode::operator==(const TreeNode &other) const {
     const auto &other_parent = other.parent_;
     auto parents_equal = (parent_.expired() && other_parent.expired())
-        || (!parent_.expired() && !other_parent.expired()
-            && parent_.lock() == other_parent.lock());
+                         || (!parent_.expired() && !other_parent.expired()
+                             && parent_.lock() == other_parent.lock());
 
     return parents_equal && block_hash_ == other.block_hash_
-        && depth_ == other.depth_;
+           && depth_ == other.depth_;
   }
 
   bool BlockTreeImpl::TreeNode::operator!=(const TreeNode &other) const {
@@ -78,14 +78,16 @@ namespace kagome::blockchain {
   }
 
   BlockTreeImpl::TreeMeta::TreeMeta(
-      std::unordered_set<primitives::BlockHash> leaves, TreeNode &deepest_leaf,
+      std::unordered_set<primitives::BlockHash> leaves,
+      TreeNode &deepest_leaf,
       TreeNode &last_finalized)
       : leaves{std::move(leaves)},
         deepest_leaf{deepest_leaf},
         last_finalized{last_finalized} {}
 
   outcome::result<std::unique_ptr<BlockTreeImpl>> BlockTreeImpl::create(
-      PersistentBufferMap &db, const primitives::BlockId &last_finalized_block,
+      PersistentBufferMap &db,
+      const primitives::BlockId &last_finalized_block,
       std::shared_ptr<crypto::Hasher> hasher,
       common::Logger log) {
     // retrieve the block's header: we need data from it
@@ -96,8 +98,8 @@ namespace kagome::blockchain {
     // create meta structures from the retrieved header
     auto hash_res = visit_in_place(
         last_finalized_block,
-        [&db, &last_finalized_block, &header,
-         &hasher](const primitives::BlockNumber &)
+        [&db, &last_finalized_block, &header, &hasher](
+            const primitives::BlockNumber &)
             -> outcome::result<common::Hash256> {
           // number is not enough for out meta: calculate the hash as well
           OUTCOME_TRY(encoded_body,
@@ -112,13 +114,16 @@ namespace kagome::blockchain {
       return hash_res.error();
     }
 
-    auto tree = std::make_shared<TreeNode>(hash_res.value(), header.number,
-                                           nullptr, true);
+    auto tree = std::make_shared<TreeNode>(
+        hash_res.value(), header.number, nullptr, true);
     auto meta = std::make_shared<TreeMeta>(
         decltype(TreeMeta::leaves){tree->block_hash_}, *tree, *tree);
 
-    BlockTreeImpl block_tree{db, std::move(tree), std::move(meta),
-                             std::move(hasher), std::move(log)};
+    BlockTreeImpl block_tree{db,
+                             std::move(tree),
+                             std::move(meta),
+                             std::move(hasher),
+                             std::move(log)};
     return std::make_unique<BlockTreeImpl>(std::move(block_tree));
   }
 
@@ -155,12 +160,18 @@ namespace kagome::blockchain {
 
     // insert our block's parts into the database
     OUTCOME_TRY(encoded_header, scale::encode(block.header));
-    OUTCOME_TRY(putWithPrefix(db_, Prefix::HEADER, block.header.number,
-                              block_hash, Buffer{encoded_header}));
+    OUTCOME_TRY(putWithPrefix(db_,
+                              Prefix::HEADER,
+                              block.header.number,
+                              block_hash,
+                              Buffer{encoded_header}));
 
     OUTCOME_TRY(encoded_body, scale::encode(block.body));
-    OUTCOME_TRY(putWithPrefix(db_, Prefix::BODY, block.header.number,
-                              block_hash, Buffer{encoded_body}));
+    OUTCOME_TRY(putWithPrefix(db_,
+                              Prefix::BODY,
+                              block.header.number,
+                              block_hash,
+                              Buffer{encoded_body}));
 
     // update local meta with the new block
     auto new_node =
@@ -186,7 +197,10 @@ namespace kagome::blockchain {
 
     // insert justification into the database
     OUTCOME_TRY(encoded_justification, scale::encode(justification));
-    OUTCOME_TRY(putWithPrefix(db_, Prefix::JUSTIFICATION, node->depth_, block,
+    OUTCOME_TRY(putWithPrefix(db_,
+                              Prefix::JUSTIFICATION,
+                              node->depth_,
+                              block,
                               Buffer{encoded_justification}));
 
     // update our local meta
@@ -220,17 +234,20 @@ namespace kagome::blockchain {
   }
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::longestPath() {
-    return getChainByBlock(deepestLeaf());
+    auto &&[_, block_hash] = deepestLeaf();
+    return getChainByBlock(block_hash);
   }
 
-  const primitives::BlockHash &BlockTreeImpl::deepestLeaf() const {
-    return tree_meta_->deepest_leaf.get().block_hash_;
+  BlockTree::BlockInfo BlockTreeImpl::deepestLeaf() const {
+    auto &&leaf = tree_meta_->deepest_leaf.get();
+    return {leaf.depth_, leaf.block_hash_};
   }
 
   std::vector<primitives::BlockHash> BlockTreeImpl::getLeaves() const {
     std::vector<primitives::BlockHash> result;
     result.reserve(tree_meta_->leaves.size());
-    std::transform(tree_meta_->leaves.begin(), tree_meta_->leaves.end(),
+    std::transform(tree_meta_->leaves.begin(),
+                   tree_meta_->leaves.end(),
                    std::back_inserter(result),
                    [](const auto &hash) { return hash; });
     return result;
