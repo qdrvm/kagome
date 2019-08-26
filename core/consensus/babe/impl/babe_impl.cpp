@@ -196,7 +196,7 @@ namespace kagome::consensus {
     for (const auto &id_peer_pair : network_->peer_clients) {
       id_peer_pair.second->blockAnnounce(
           network::BlockAnnounce{block.header},
-          [self{shared_from_this()}, id{id_peer_pair.first}](auto &&res) {
+          [self{shared_from_this()}, id = id_peer_pair.first](auto &&res) {
             if (!res) {
               self->log_->error("cannot announce block to peer {}: {}",
                                 id.toBase58(),
