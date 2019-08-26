@@ -115,8 +115,8 @@ namespace kagome::blockchain {
      * Represents block information, including block number and hash
      */
     struct BlockInfo {
-      primitives::BlockNumber block_number;
-      primitives::BlockHash block_hash;
+      primitives::BlockNumber block_number{};
+      primitives::BlockHash block_hash{};
     };
 
     /**

@@ -68,8 +68,6 @@ class SynchronizerTest : public testing::Test {
   Block block1_{{{}, 2}, {{{0x11, 0x22}}, {{0x55, 0x66}}}},
       block2_{{{}, 3}, {{{0x13, 0x23}}, {{0x35, 0x63}}}};
   Hash256 block1_hash_{}, block2_hash_{};
-  BlockNumber block1_number_{1u};
-  BlockTree::BlockInfo block1_info_{block1_number_, block1_hash_};
 };
 
 /**
@@ -99,6 +97,7 @@ TEST_F(SynchronizerTest, Announce) {
  */
 TEST_F(SynchronizerTest, RequestWithoutHash) {
   // GIVEN
+  BlockTree::BlockInfo block1_info_{1u, block1_hash_};
   EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(block1_info_));
   BlockRequest expected_request{0,
                                 BlockRequest::kBasicAttributes,
