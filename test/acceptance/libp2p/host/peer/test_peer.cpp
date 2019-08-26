@@ -62,7 +62,7 @@ void Peer::startClient(size_t number,
                              size_t client_number) mutable {
             tester->tick(client_number);
             EXPECT_OUTCOME_TRUE(vec, res);
-            ASSERT_EQ(vec.size(), client->bufferSize());
+            ASSERT_EQ(vec.size(), client->bufferSize());  // NOLINT
           });
         });
   });

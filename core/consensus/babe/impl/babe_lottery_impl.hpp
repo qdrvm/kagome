@@ -19,7 +19,7 @@ namespace kagome::consensus {
     BabeLotteryImpl(std::shared_ptr<crypto::VRFProvider> vrf_provider,
                     std::shared_ptr<crypto::Hasher> hasher);
 
-    std::vector<boost::optional<crypto::VRFOutput>> slotsLeadership(
+    SlotsLeadership slotsLeadership(
         const Epoch &epoch, crypto::SR25519Keypair keypair) const override;
 
     Randomness computeRandomness(Randomness last_epoch_randomness,

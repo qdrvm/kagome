@@ -25,15 +25,13 @@ namespace kagome::authorship {
      * Creates block from provided parameters
      * @param parent_block_id hash or number of parent
      * @param inherent_data additional data on block from unsigned extrinsics
-     * @param inherent_digest chain-specific block auxilary date
-     * @param deadline time to create block
+     * @param inherent_digests - chain-specific block auxilary data
      * @return proposed block or error
      */
     virtual outcome::result<primitives::Block> propose(
         const primitives::BlockId &parent_block_id,
         const primitives::InherentData &inherent_data,
-        const primitives::Digest &inherent_digest,
-        clock::SystemClock::TimePoint deadline) = 0;
+        std::vector<primitives::Digest> inherent_digests) = 0;
   };
 
 }  // namespace kagome::authorship

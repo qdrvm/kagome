@@ -10,12 +10,9 @@
 #include <unordered_map>
 
 #include <boost/assert.hpp>
+#include "libp2p/peer/peer_id.hpp"
 #include "network/peer_client.hpp"
 #include "network/peer_server.hpp"
-
-namespace libp2p::peer {
-  class PeerId;
-}
 
 namespace kagome::network {
 
