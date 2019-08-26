@@ -15,7 +15,7 @@ namespace kagome::scale {
     CompactInteger decodeCompactInteger(ScaleDecoderStream &stream) {
       auto first_byte = stream.nextByte();
 
-      const uint8_t flag = (first_byte) & 0b00000011u;
+      const uint8_t flag = (first_byte)&0b00000011u;
 
       size_t number = 0u;
 
@@ -28,9 +28,9 @@ namespace kagome::scale {
         case 0b01u: {
           auto second_byte = stream.nextByte();
 
-          number = (static_cast<size_t>((first_byte) & 0b11111100u)
+          number = (static_cast<size_t>((first_byte)&0b11111100u)
                     + static_cast<size_t>(second_byte) * 256u)
-              >> 2u;
+                   >> 2u;
           break;
         }
 
@@ -82,11 +82,11 @@ namespace kagome::scale {
   ScaleDecoderStream::ScaleDecoderStream(gsl::span<const uint8_t> span)
       : span_{span}, current_iterator_{span_.begin()}, current_index_{0} {}
 
-  std::optional<bool> ScaleDecoderStream::decodeOptionalBool() {
+  boost::optional<bool> ScaleDecoderStream::decodeOptionalBool() {
     auto byte = nextByte();
     switch (byte) {
       case static_cast<uint8_t>(OptionalBool::NONE):
-        return std::nullopt;
+        return boost::none;
         break;
       case static_cast<uint8_t>(OptionalBool::FALSE):
         return false;

@@ -18,3 +18,5 @@ target_link_libraries(peer_server_test
     peer_server
     testutil_read_writer_helper
     )
+
+add_subdirectory(types)

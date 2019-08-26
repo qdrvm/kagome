@@ -9,11 +9,11 @@
 #include <functional>
 #include <list>
 #include <memory>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 
+#include <boost/optional.hpp>
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
 #include "libp2p/multi/multiaddress_protocol_list.hpp"
@@ -84,7 +84,7 @@ namespace libp2p::multi {
      * @return pair of addresses; if there's only one protocol in the provided
      * address, the second element will be none
      */
-    std::pair<Multiaddress, std::optional<Multiaddress>> splitFirst() const;
+    std::pair<Multiaddress, boost::optional<Multiaddress>> splitFirst() const;
 
     /**
      * @brief Tests if {@param code} exists in this multiaddr.
@@ -109,7 +109,7 @@ namespace libp2p::multi {
      * Get peer id of this Multiaddress
      * @return peer id if exists
      */
-    std::optional<std::string> getPeerId() const;
+    boost::optional<std::string> getPeerId() const;
 
     /**
      * Get all values, which are under that protocol in this multiaddress
@@ -186,7 +186,7 @@ namespace libp2p::multi {
     std::string stringified_address_;
     ByteBuffer bytes_;
 
-    std::optional<std::string> peer_id_;
+    boost::optional<std::string> peer_id_;
   };
 }  // namespace libp2p::multi
 

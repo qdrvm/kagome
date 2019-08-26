@@ -5,6 +5,7 @@
 
 #include "libp2p/protocol_muxer/multiselect/message_reader.hpp"
 
+#include <boost/optional.hpp>
 #include "libp2p/multi/uvarint.hpp"
 #include "libp2p/protocol_muxer/multiselect/message_manager.hpp"
 #include "libp2p/protocol_muxer/multiselect/multiselect.hpp"
@@ -12,7 +13,7 @@
 namespace {
   using libp2p::multi::UVarint;
 
-  std::optional<UVarint> getVarint(boost::asio::streambuf &buffer) {
+  boost::optional<UVarint> getVarint(boost::asio::streambuf &buffer) {
     return UVarint::create(gsl::make_span(
         static_cast<const uint8_t *>(buffer.data().data()), buffer.size()));
   }
@@ -55,7 +56,8 @@ namespace libp2p::protocol_muxer {
     connection_state->read_buffer->consume(varint_opt->size());
 
     auto bytes_to_read = varint_opt->toUInt64();
-    readNextBytes(std::move(connection_state), bytes_to_read,
+    readNextBytes(std::move(connection_state),
+                  bytes_to_read,
                   [bytes_to_read](auto &&state) {
                     onReadLineCompleted(std::forward<decltype(state)>(state),
                                         bytes_to_read);
@@ -63,7 +65,8 @@ namespace libp2p::protocol_muxer {
   }
 
   void MessageReader::readNextBytes(
-      std::shared_ptr<ConnectionState> connection_state, uint64_t bytes_to_read,
+      std::shared_ptr<ConnectionState> connection_state,
+      uint64_t bytes_to_read,
       std::function<void(std::shared_ptr<ConnectionState>)> final_callback) {
     const auto &state = connection_state;
     state->read(bytes_to_read,
@@ -103,7 +106,7 @@ namespace libp2p::protocol_muxer {
     }
     if (!const_msg_res
         && const_msg_res.error()
-            != MessageManager::ParseError::MSG_IS_ILL_FORMED) {
+               != MessageManager::ParseError::MSG_IS_ILL_FORMED) {
       // MSG_IS_ILL_FORMED allows us to continue parsing; otherwise, it's an
       // error
       multiselect->negotiationRoundFailed(connection_state,
@@ -119,10 +122,12 @@ namespace libp2p::protocol_muxer {
       auto proto_header_res = MessageManager::parseProtocolsHeader(msg_span);
       if (proto_header_res) {
         auto proto_header = proto_header_res.value();
-        readNextBytes(connection_state, proto_header.size_of_protocols,
+        readNextBytes(connection_state,
+                      proto_header.size_of_protocols,
                       [proto_header](std::shared_ptr<ConnectionState> state) {
                         onReadProtocolsCompleted(
-                            std::move(state), proto_header.size_of_protocols,
+                            std::move(state),
+                            proto_header.size_of_protocols,
                             proto_header.number_of_protocols);
                       });
       } else {
@@ -144,7 +149,8 @@ namespace libp2p::protocol_muxer {
 
   void MessageReader::onReadProtocolsCompleted(
       std::shared_ptr<ConnectionState> connection_state,
-      uint64_t expected_protocols_size, uint64_t expected_protocols_number) {
+      uint64_t expected_protocols_size,
+      uint64_t expected_protocols_number) {
     auto multiselect = connection_state->multiselect;
 
     auto msg_res = MessageManager::parseProtocols(

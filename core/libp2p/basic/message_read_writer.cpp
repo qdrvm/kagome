@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <boost/assert.hpp>
+#include <boost/optional.hpp>
 #include "libp2p/basic/message_read_writer_error.hpp"
 #include "libp2p/basic/varint_reader.hpp"
 #include "libp2p/multi/uvarint.hpp"
@@ -21,8 +22,8 @@ namespace libp2p::basic {
   void MessageReadWriter::read(ReadCallbackFunc cb) {
     VarintReader::readVarint(
         conn_,
-        [self{shared_from_this()},
-         cb = std::move(cb)](std::optional<multi::UVarint> varint_opt) mutable {
+        [self{shared_from_this()}, cb = std::move(cb)](
+            boost::optional<multi::UVarint> varint_opt) mutable {
           if (!varint_opt) {
             return cb(MessageReadWriterError::VARINT_EXPECTED);
           }
@@ -30,7 +31,8 @@ namespace libp2p::basic {
           auto msg_len = varint_opt->toUInt64();
           auto buffer = std::make_shared<std::vector<uint8_t>>(msg_len, 0);
           self->conn_->read(
-              *buffer, msg_len,
+              *buffer,
+              msg_len,
               [self, buffer, cb = std::move(cb)](auto &&res) mutable {
                 if (!res) {
                   return cb(res.error());
@@ -55,8 +57,10 @@ namespace libp2p::basic {
                       std::make_move_iterator(varint_len.toVector().end()));
     msg_bytes->insert(msg_bytes->end(), buffer.begin(), buffer.end());
 
-    conn_->write(*msg_bytes, msg_bytes->size(),
-                 [cb = std::move(cb), varint_size = varint_len.size(),
+    conn_->write(*msg_bytes,
+                 msg_bytes->size(),
+                 [cb = std::move(cb),
+                  varint_size = varint_len.size(),
                   msg_bytes](auto &&res) {
                    if (!res) {
                      return cb(res.error());

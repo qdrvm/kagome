@@ -55,7 +55,7 @@ TEST_F(MemoryExtensionsTest, MallocIsCalled) {
 TEST_F(MemoryExtensionsTest, FreeIsCalled) {
   int32_t ptr = 0;
   // result of deallocate method, could be basically anything
-  std::optional<uint32_t> deallocate_result{42};
+  boost::optional<uint32_t> deallocate_result{42};
   EXPECT_CALL(*memory_, deallocate(ptr)).WillOnce(Return(deallocate_result));
 
   memory_extension_.ext_free(ptr);

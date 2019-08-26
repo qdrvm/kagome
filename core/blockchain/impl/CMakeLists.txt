@@ -21,6 +21,7 @@ add_library(level_db_block_tree
     level_db_block_tree.hpp
     )
 target_link_libraries(level_db_block_tree
+    block_tree_error
     blockchain_common
     leveldb
     hasher

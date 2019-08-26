@@ -24,14 +24,14 @@ namespace kagome::runtime {
     return execute<std::vector<ParaId>>("ParachainHost_active_parachains");
   }
 
-  outcome::result<std::optional<Buffer>> ParachainHostImpl::parachain_head(
+  outcome::result<boost::optional<Buffer>> ParachainHostImpl::parachain_head(
       ParachainId id) {
-    return execute<std::optional<Buffer>>("ParachainHost_parachain_head", id);
+    return execute<boost::optional<Buffer>>("ParachainHost_parachain_head", id);
   }
 
-  outcome::result<std::optional<Buffer>> ParachainHostImpl::parachain_code(
+  outcome::result<boost::optional<Buffer>> ParachainHostImpl::parachain_code(
       ParachainId id) {
-    return execute<std::optional<Buffer>>("ParachainHost_parachain_code", id);
+    return execute<boost::optional<Buffer>>("ParachainHost_parachain_code", id);
   }
 
   outcome::result<std::vector<ValidatorId>> ParachainHostImpl::validators() {

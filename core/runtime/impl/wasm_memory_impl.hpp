@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <boost/optional.hpp>
 #include "runtime/wasm_memory.hpp"
 
 namespace kagome::runtime {
@@ -37,7 +38,7 @@ namespace kagome::runtime {
     void resize(SizeType newSize) override;
 
     WasmPointer allocate(SizeType size) override;
-    std::optional<SizeType> deallocate(WasmPointer ptr) override;
+    boost::optional<SizeType> deallocate(WasmPointer ptr) override;
 
     int8_t load8s(WasmPointer addr) const override;
     uint8_t load8u(WasmPointer addr) const override;

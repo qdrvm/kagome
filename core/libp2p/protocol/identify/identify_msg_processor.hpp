@@ -33,7 +33,8 @@ namespace libp2p::protocol {
 
    public:
     IdentifyMessageProcessor(
-        Host &host, network::ConnectionManager &conn_manager,
+        Host &host,
+        network::ConnectionManager &conn_manager,
         peer::IdentityManager &identity_manager,
         std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller);
 
@@ -92,8 +93,8 @@ namespace libp2p::protocol {
      * @return peer id, which was derived from the provided public key (if it
      * can be derived)
      */
-    std::optional<peer::PeerId> consumePublicKey(const StreamSPtr &stream,
-                                                 std::string_view pubkey_str);
+    boost::optional<peer::PeerId> consumePublicKey(const StreamSPtr &stream,
+                                                   std::string_view pubkey_str);
 
     /**
      * Process received address, which the other peer used to connect to us
