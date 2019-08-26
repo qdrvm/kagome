@@ -130,6 +130,7 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*clock_, now())
       .WillOnce(Return(test_begin))
       .WillOnce(Return(test_begin + 60ms))
+      .WillOnce(Return(test_begin + 100ms))
       .WillOnce(Return(test_begin + 120ms));
 
   // processSlotLeadership
