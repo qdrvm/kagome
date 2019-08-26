@@ -11,6 +11,10 @@ target_link_libraries(peer_client
     outcome
     buffer
     scale
+    logger
+    message_read_writer
+    libp2p_peer_id
+    multiaddress
     )
 
 add_library(peer_server
@@ -21,4 +25,8 @@ target_link_libraries(peer_server
     outcome
     buffer
     scale
+    logger
+    message_read_writer
+    libp2p_peer_id
+    multiaddress
     )

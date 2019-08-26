@@ -48,7 +48,7 @@ class PeerClientTest : public testing::Test {
   std::shared_ptr<StreamMock> stream_ = std::make_shared<StreamMock>();
 
   BlocksRequest blocks_request_{
-      42, 1, 2, boost::none, Direction::ASCENDING, 228};
+      42, {1}, 2, boost::none, Direction::ASCENDING, 228};
   std::vector<uint8_t> encoded_blocks_request_ =
       scale::encode(blocks_request_).value();
 
@@ -69,9 +69,7 @@ TEST_F(PeerClientTest, BlocksRequest) {
       .WillOnce(InvokeArgument<2>(stream_));
 
   setWriteExpectations(stream_, encoded_blocks_request_);
-  EXPECT_CALL(*stream_, read(_, _, _))
-      .WillOnce(InvokeArgument<2>(blocks_response_varint_.toBytes()))
-      .WillOnce(InvokeArgument<2>(encoded_blocks_response_));
+  setReadExpectations(stream_, encoded_blocks_response_);
 
   // WHEN
   peer_client_->blocksRequest(blocks_request_, [this](auto &&response_res) {

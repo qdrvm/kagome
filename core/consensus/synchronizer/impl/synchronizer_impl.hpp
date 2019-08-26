@@ -85,7 +85,7 @@ namespace kagome::consensus {
     SynchronizerConfig config_;
     common::Logger log_;
 
-    primitives::BlockRequestId last_request_id_ = 0;
+    primitives::BlocksRequestId last_request_id_ = 0;
   };
 }  // namespace kagome::consensus
 

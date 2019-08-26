@@ -7,8 +7,8 @@
 #define KAGOME_MESSAGE_READ_WRITER_HELPER_HPP
 
 #include <memory>
+#include <vector>
 
-#include "common/buffer.hpp"
 #include "mock/libp2p/connection/stream_mock.hpp"
 
 /**
@@ -23,7 +23,7 @@ namespace libp2p::basic {
    */
   void setReadExpectations(
       const std::shared_ptr<connection::StreamMock> &stream_mock,
-      const kagome::common::Buffer &msg);
+      const std::vector<uint8_t> &msg);
 
   /**
    * Set write expectations for the provided (\param stream_mock) to write
@@ -31,7 +31,7 @@ namespace libp2p::basic {
    */
   void setWriteExpectations(
       const std::shared_ptr<connection::StreamMock> &stream_mock,
-      const kagome::common::Buffer &msg);
+      const std::vector<uint8_t> &msg);
 }  // namespace libp2p::basic
 
 #endif  // KAGOME_MESSAGE_READ_WRITER_HELPER_HPP

@@ -85,22 +85,22 @@ namespace kagome::network {
    * Response to the BlockRequest
    */
   struct BlocksResponse {
-    primitives::BlockRequestId id;
+    primitives::BlocksRequestId id;
     std::vector<BlockData> blocks{};
   };
 
   /**
-   * @brief compares two BlockResponse instances
+   * @brief compares two BlocksResponse instances
    * @param lhs first instance
    * @param rhs second instance
    * @return true if equal false otherwise
    */
-  inline bool operator==(const BlockResponse &lhs, const BlockResponse &rhs) {
+  inline bool operator==(const BlocksResponse &lhs, const BlocksResponse &rhs) {
     return lhs.id == rhs.id && lhs.blocks == rhs.blocks;
   }
 
   /**
-   * @brief outputs object of type BlockResponse to stream
+   * @brief outputs object of type BlocksResponse to stream
    * @tparam Stream output stream type
    * @param s stream reference
    * @param v value to output
@@ -108,12 +108,12 @@ namespace kagome::network {
    */
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const BlockResponse &v) {
+  Stream &operator<<(Stream &s, const BlocksResponse &v) {
     return s << v.id << v.blocks;
   }
 
   /**
-   * @brief decodes object of type BlockResponse from stream
+   * @brief decodes object of type BlocksResponse from stream
    * @tparam Stream input stream type
    * @param s stream reference
    * @param v value to decode
@@ -121,7 +121,7 @@ namespace kagome::network {
    */
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, BlockResponse &v) {
+  Stream &operator>>(Stream &s, BlocksResponse &v) {
     return s >> v.id >> v.blocks;
   }
 }  // namespace kagome::network

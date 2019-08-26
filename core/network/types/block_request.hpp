@@ -19,7 +19,7 @@ namespace kagome::network {
    */
   struct BlocksRequest {
     /// unique request id
-    primitives::BlockRequestId id;
+    primitives::BlocksRequestId id;
     /// bits, showing, which parts of BlockData to return
     BlockAttributes fields;
     /// start from this block
@@ -43,19 +43,19 @@ namespace kagome::network {
   };
 
   /**
-   * @brief compares two BlockRequest instances
+   * @brief compares two BlocksRequest instances
    * @param lhs first instance
    * @param rhs second instance
    * @return true if equal false otherwise
    */
-  inline bool operator==(const BlockRequest &lhs, const BlockRequest &rhs) {
+  inline bool operator==(const BlocksRequest &lhs, const BlocksRequest &rhs) {
     return lhs.id == rhs.id && lhs.fields == rhs.fields && lhs.from == rhs.from
            && lhs.to == rhs.to && lhs.direction == rhs.direction
            && lhs.max == rhs.max;
   }
 
   /**
-   * @brief outputs object of type BlockRequest to stream
+   * @brief outputs object of type BlocksRequest to stream
    * @tparam Stream output stream type
    * @param s stream reference
    * @param v value to output
@@ -63,12 +63,12 @@ namespace kagome::network {
    */
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const BlockRequest &v) {
+  Stream &operator<<(Stream &s, const BlocksRequest &v) {
     return s << v.id << v.fields << v.from << v.to << v.direction << v.max;
   }
 
   /**
-   * @brief decodes object of type BlockRequest from stream
+   * @brief decodes object of type BlocksRequest from stream
    * @tparam Stream input stream type
    * @param s stream reference
    * @param v value to decode
@@ -76,7 +76,7 @@ namespace kagome::network {
    */
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, BlockRequest &v) {
+  Stream &operator>>(Stream &s, BlocksRequest &v) {
     return s >> v.id >> v.fields >> v.from >> v.to >> v.direction >> v.max;
   }
 }  // namespace kagome::network
