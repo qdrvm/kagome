@@ -14,13 +14,6 @@ namespace kagome::network {
    */
   struct BlockAnnounce {
     primitives::BlockHeader header;
-
-    bool operator==(const BlockAnnounce &other) const {
-      return header == other.header;
-    }
-    bool operator!=(const BlockAnnounce &other) const {
-      return !(*this == other);
-    }
   };
 
   /**
@@ -31,6 +24,9 @@ namespace kagome::network {
    */
   inline bool operator==(const BlockAnnounce &lhs, const BlockAnnounce &rhs) {
     return lhs.header == rhs.header;
+  }
+  inline bool operator!=(const BlockAnnounce &lhs, const BlockAnnounce &rhs) {
+    return !(lhs == rhs);
   }
 
   /**
