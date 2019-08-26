@@ -12,6 +12,7 @@
 #include <unordered_set>
 
 #include <boost/optional.hpp>
+#include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
 #include "blockchain/impl/common.hpp"
 #include "common/logger.hpp"
@@ -68,16 +69,9 @@ namespace kagome::blockchain {
     };
 
    public:
-    enum class Error {
-      INVALID_DB = 1,
-      NO_PARENT,
-      HASH_FAILED,
-      NO_SUCH_BLOCK,
-      INTERNAL_ERROR
-    };
-
     /**
      * Create an instance of block tree
+     * @param header_repo - block headers repository
      * @param db for the tree to be put in
      * @param last_finalized_block - last finalized block, from which the tree
      * is going to grow
@@ -85,14 +79,18 @@ namespace kagome::blockchain {
      * @return ptr to the created instance or error
      */
     static outcome::result<std::unique_ptr<BlockTreeImpl>> create(
+        std::shared_ptr<BlockHeaderRepository> header_repo,
         PersistentBufferMap &db,
         const primitives::BlockId &last_finalized_block,
         std::shared_ptr<crypto::Hasher> hasher,
-        common::Logger log = common::createLogger("LevelDBBlockTree"));
+        common::Logger log = common::createLogger("BlockTreeImpl"));
 
     ~BlockTreeImpl() override = default;
 
     outcome::result<primitives::BlockBody> getBlockBody(
+        const primitives::BlockId &block) const override;
+
+    outcome::result<primitives::Justification> getBlockJustification(
         const primitives::BlockId &block) const override;
 
     outcome::result<void> addBlock(primitives::Block block) override;
@@ -103,6 +101,13 @@ namespace kagome::blockchain {
 
     BlockHashVecRes getChainByBlock(
         const primitives::BlockHash &block) override;
+
+    BlockHashVecRes getChainByBlock(const primitives::BlockHash &block,
+                                    bool ascending,
+                                    uint64_t maximum) override;
+    BlockHashVecRes getChainByBlocks(
+        const primitives::BlockHash &top_block,
+        const primitives::BlockHash &bottom_block) override;
 
     BlockHashVecRes longestPath() override;
 
@@ -121,12 +126,14 @@ namespace kagome::blockchain {
      * Private ctor, so that instances are created only through the factory
      * method
      */
-    BlockTreeImpl(PersistentBufferMap &db,
-                  std::shared_ptr<TreeNode> tree,
-                  std::shared_ptr<TreeMeta> meta,
-                  std::shared_ptr<crypto::Hasher> hasher,
-                  common::Logger log);
+    BlockTreeImpl(std::shared_ptr<BlockHeaderRepository> header_repo,
+                     PersistentBufferMap &db,
+                     std::shared_ptr<TreeNode> tree,
+                     std::shared_ptr<TreeMeta> meta,
+                     std::shared_ptr<crypto::Hasher> hasher,
+                     common::Logger log);
 
+    std::shared_ptr<BlockHeaderRepository> header_repo_;
     PersistentBufferMap &db_;
 
     std::shared_ptr<TreeNode> tree_;
@@ -136,7 +143,5 @@ namespace kagome::blockchain {
     common::Logger log_;
   };
 }  // namespace kagome::blockchain
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, BlockTreeImpl::Error)
 
 #endif  // KAGOME_LEVEL_DB_BLOCK_TREE_HPP

@@ -16,6 +16,10 @@ namespace kagome::blockchain {
         getBlockBody,
         outcome::result<primitives::BlockBody>(const primitives::BlockId &));
 
+    MOCK_CONST_METHOD1(getBlockJustification,
+                       outcome::result<primitives::Justification>(
+                           const primitives::BlockId &));
+
     MOCK_METHOD1(addBlock, outcome::result<void>(primitives::Block));
 
     MOCK_METHOD2(finalize,
@@ -24,6 +28,15 @@ namespace kagome::blockchain {
 
     MOCK_METHOD1(getChainByBlock,
                  BlockHashVecRes(const primitives::BlockHash &));
+
+    MOCK_METHOD3(getChainByBlock,
+                 BlockHashVecRes(const primitives::BlockHash &,
+                                 bool,
+                                 uint64_t));
+
+    MOCK_METHOD2(getChainByBlocks,
+                 BlockHashVecRes(const primitives::BlockHash &,
+                                 const primitives::BlockHash &));
 
     MOCK_METHOD0(longestPath, BlockHashVecRes());
 

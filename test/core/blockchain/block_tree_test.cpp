@@ -6,10 +6,12 @@
 #include "blockchain/impl/block_tree_impl.hpp"
 
 #include <gtest/gtest.h>
+#include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/level_db_util.hpp"
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "mock/core/blockchain/header_backend_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
@@ -33,8 +35,9 @@ struct BlockTreeTest : public testing::Test {
         .WillOnce(Return(kFinalizedBlockLookupKey))
         .WillOnce(Return(Buffer{encoded_finalized_block_header_}));
 
-    block_tree_ =
-        BlockTreeImpl::create(db_, kLastFinalizedBlockId, hasher_).value();
+    block_tree_ = BlockTreeImpl::create(
+                      header_repo_, db_, kLastFinalizedBlockId, hasher_)
+                      .value();
   }
 
   /**
@@ -67,6 +70,8 @@ struct BlockTreeTest : public testing::Test {
   const BlockHash kFinalizedBlockHash =
       BlockHash::fromString("andj4kdn4odnfkslfn3k4jdnbmeodkv4").value();
 
+  std::shared_ptr<HeaderRepositoryMock> header_repo_ =
+      std::make_shared<HeaderRepositoryMock>();
   face::PersistentMapMock<Buffer, Buffer> db_;
   const BlockId kLastFinalizedBlockId = kFinalizedBlockHash;
   std::shared_ptr<crypto::Hasher> hasher_ =
@@ -155,7 +160,7 @@ TEST_F(BlockTreeTest, AddBlockNoParent) {
   EXPECT_OUTCOME_FALSE(err, block_tree_->addBlock(new_block));
 
   // THEN
-  ASSERT_EQ(err, BlockTreeImpl::Error::NO_PARENT);
+  ASSERT_EQ(err, BlockTreeError::NO_PARENT);
 }
 
 /**
@@ -192,10 +197,39 @@ TEST_F(BlockTreeTest, Finalize) {
 
 /**
  * @given block tree with at least three blocks inside
- * @when asking for chain from the lowest block
+ * @when asking for chain from the lowest block to the closest finalized one
  * @then chain from that block to the last finalized one is returned
  */
-TEST_F(BlockTreeTest, GetChainByBlock) {
+TEST_F(BlockTreeTest, GetChainByBlockOnly) {
+  // GIVEN
+  BlockHeader header{.parent_hash = kFinalizedBlockHash,
+                     .number = 1,
+                     .digests = {{0x66, 0x44}}};
+  BlockBody body{{Buffer{0x55, 0x55}}};
+  Block new_block{header, body};
+  auto hash1 = addBlock(new_block);
+
+  header =
+      BlockHeader{.parent_hash = hash1, .number = 2, .digests = {{0x66, 0x55}}};
+  body = BlockBody{{Buffer{0x55, 0x55}}};
+  new_block = Block{header, body};
+  auto hash2 = addBlock(new_block);
+
+  std::vector<BlockHash> expected_chain{kFinalizedBlockHash, hash1, hash2};
+
+  // WHEN
+  EXPECT_OUTCOME_TRUE(chain, block_tree_->getChainByBlock(hash2))
+
+  // THEN
+  ASSERT_EQ(chain, expected_chain);
+}
+
+/**
+ * @given block tree with at least three blocks inside
+ * @when asking for chain from the given block to top
+ * @then expected chain is returned
+ */
+TEST_F(BlockTreeTest, GetChainByBlockAscending) {
   // GIVEN
   BlockHeader header{.parent_hash = kFinalizedBlockHash,
                      .number = 1,
@@ -212,8 +246,46 @@ TEST_F(BlockTreeTest, GetChainByBlock) {
 
   std::vector<BlockHash> expected_chain{hash2, hash1, kFinalizedBlockHash};
 
+  EXPECT_CALL(*header_repo_, getNumberByHash(hash2)).WillOnce(Return(2));
+  EXPECT_CALL(*header_repo_, getHashByNumber(0))
+      .WillOnce(Return(kFinalizedBlockHash));
+
   // WHEN
-  EXPECT_OUTCOME_TRUE(chain, block_tree_->getChainByBlock(hash2))
+  EXPECT_OUTCOME_TRUE(chain, block_tree_->getChainByBlock(hash2, true, 5));
+
+  // THEN
+  ASSERT_EQ(chain, expected_chain);
+}
+
+/**
+ * @given block tree with at least three blocks inside
+ * @when asking for chain from the given block to bottom
+ * @then expected chain is returned
+ */
+TEST_F(BlockTreeTest, GetChainByBlockDescending) {
+  // GIVEN
+  BlockHeader header{.parent_hash = kFinalizedBlockHash,
+                     .number = 1,
+                     .digests = {{0x66, 0x44}}};
+  BlockBody body{{Buffer{0x55, 0x55}}};
+  Block new_block{header, body};
+  auto hash1 = addBlock(new_block);
+
+  header =
+      BlockHeader{.parent_hash = hash1, .number = 2, .digests = {{0x66, 0x55}}};
+  body = BlockBody{{Buffer{0x55, 0x55}}};
+  new_block = Block{header, body};
+  auto hash2 = addBlock(new_block);
+
+  std::vector<BlockHash> expected_chain{kFinalizedBlockHash, hash1, hash2};
+
+  EXPECT_CALL(*header_repo_, getNumberByHash(kFinalizedBlockHash))
+      .WillOnce(Return(0));
+  EXPECT_CALL(*header_repo_, getHashByNumber(2)).WillOnce(Return(hash2));
+
+  // WHEN
+  EXPECT_OUTCOME_TRUE(
+      chain, block_tree_->getChainByBlock(kFinalizedBlockHash, false, 5));
 
   // THEN
   ASSERT_EQ(chain, expected_chain);

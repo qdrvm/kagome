@@ -23,12 +23,6 @@ namespace kagome::primitives {
   /// @brief result type for grandpa forced_change function
   using ForcedChange = std::pair<BlockNumber, ScheduledChange>;
 
-  /// @brief authority weight
-  using Weight = uint64_t;
-
-  /// @brief item of collection returned by grandpa authorities function
-  using WeightedAuthority = std::pair<SessionKey, Weight>;
-
   /**
    * @brief outputs ScheduledChange instance to stream
    * @tparam Stream stream type

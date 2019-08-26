@@ -20,11 +20,24 @@ namespace kagome::network {
    */
   struct BlockData {
     primitives::BlockHash hash;
-    boost::optional<primitives::BlockHeader> header;
-    boost::optional<primitives::BlockBody> body;
-    boost::optional<common::Buffer> receipt;
-    boost::optional<common::Buffer> message_queue;
-    boost::optional<primitives::Justification> justification;
+    boost::optional<primitives::BlockHeader> header{};
+    boost::optional<primitives::BlockBody> body{};
+    boost::optional<common::Buffer> receipt{};
+    boost::optional<common::Buffer> message_queue{};
+    boost::optional<primitives::Justification> justification{};
+
+    /**
+     * Convert a block data into the block
+     * @return block, if at least header exists in this BlockData, nothing
+     * otherwise
+     */
+    boost::optional<primitives::Block> toBlock() const {
+      if (!header) {
+        return boost::none;
+      }
+      return body ? primitives::Block{*header, *body}
+                  : primitives::Block{*header};
+    }
   };
 
   /**
@@ -73,7 +86,7 @@ namespace kagome::network {
    */
   struct BlockResponse {
     primitives::BlockRequestId id;
-    std::vector<BlockData> blocks;
+    std::vector<BlockData> blocks{};
   };
 
   /**

@@ -25,6 +25,9 @@ namespace kagome::network {
   inline bool operator==(const BlockAnnounce &lhs, const BlockAnnounce &rhs) {
     return lhs.header == rhs.header;
   }
+  inline bool operator!=(const BlockAnnounce &lhs, const BlockAnnounce &rhs) {
+    return !(lhs == rhs);
+  }
 
   /**
    * @brief outputs object of type BlockAnnounce to stream
