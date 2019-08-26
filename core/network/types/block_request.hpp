@@ -36,7 +36,7 @@ namespace kagome::network {
     /// includes HEADER, BODY and JUSTIFICATION
     static constexpr BlockAttributes kBasicAttributes{19};
 
-    constexpr bool attributeIsSet(BlockAttributesBits attribute) const {
+    bool attributeIsSet(BlockAttributesBits attribute) const {
       return (fields.attributes.to_ulong() & static_cast<uint8_t>(attribute))
              != 0;
     }
