@@ -6,7 +6,10 @@
 #ifndef KAGOME_CORE_NETWORK_NETWORK_STATE_HPP
 #define KAGOME_CORE_NETWORK_NETWORK_STATE_HPP
 
+#include <algorithm>
 #include <unordered_map>
+
+#include <boost/assert.hpp>
 #include "network/peer_client.hpp"
 #include "network/peer_server.hpp"
 
@@ -21,8 +24,18 @@ namespace kagome::network {
 
   /// Stores network's peer information
   struct NetworkState {
-    PeerMap peerClients;
+    PeerClientsMap peer_clients;
     std::shared_ptr<PeerServer> peer_server;
+
+    NetworkState(PeerClientsMap _peer_clients,
+                 std::shared_ptr<PeerServer> _peer_server)
+        : peer_clients{std::move(_peer_clients)},
+          peer_server{std::move(_peer_server)} {
+      BOOST_ASSERT(std::all_of(peer_clients.begin(),
+                               peer_clients.end(),
+                               [](const auto &pair) { return pair.second; }));
+      BOOST_ASSERT(peer_server);
+    }
   };
 
 }  // namespace kagome::network
