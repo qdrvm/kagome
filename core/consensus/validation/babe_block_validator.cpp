@@ -127,7 +127,7 @@ namespace kagome::consensus {
       const BabeBlockHeader &babe_header,
       const Seal &seal,
       const PeerId &peer,
-      gsl::span<const Authority> authorities) const {
+      gsl::span<const primitives::Authority> authorities) const {
     // firstly, take hash of the block's header without Seal, which is the last
     // digest
     auto block_copy = block;
