@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "consensus/babe/common.hpp"
-#include "consensus/babe/types/authority.hpp"
+#include "primitives/authority.hpp"
 
 namespace kagome::consensus {
   /**
@@ -31,7 +31,7 @@ namespace kagome::consensus {
     std::chrono::milliseconds slot_duration{};
 
     /// authorities of the epoch with their weights
-    std::vector<Authority> authorities;
+    std::vector<primitives::Authority> authorities;
 
     /// threshold of the epoch
     Threshold threshold;

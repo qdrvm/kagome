@@ -6,14 +6,15 @@
 #ifndef KAGOME_AUTHORITY_HPP
 #define KAGOME_AUTHORITY_HPP
 
-#include "consensus/babe/common.hpp"
-#include "primitives/common.hpp"
+#include "../../../../../../Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/cstdint"
 
-namespace kagome::consensus {
+#include "common.hpp"
+
+namespace kagome::primitives {
   using AuthorityWeight = uint64_t;
 
   /**
-   * Authority, which participate in Babe production
+   * Authority, which participate in block production and finalization
    */
   struct Authority {
     primitives::AuthorityId id;
@@ -26,6 +27,6 @@ namespace kagome::consensus {
       return !(*this == other);
     }
   };
-}  // namespace kagome::consensus
+}  // namespace kagome::primitives
 
 #endif  // KAGOME_AUTHORITY_HPP

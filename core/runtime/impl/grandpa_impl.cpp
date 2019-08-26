@@ -5,13 +5,15 @@
 
 #include "runtime/impl/grandpa_impl.hpp"
 
+#include "primitives/authority.hpp"
+
 namespace kagome::runtime {
   using common::Buffer;
+  using primitives::Authority;
   using primitives::Digest;
   using primitives::ForcedChange;
   using primitives::ScheduledChange;
   using primitives::SessionKey;
-  using primitives::WeightedAuthority;
 
   GrandpaImpl::GrandpaImpl(common::Buffer state_code,
                            std::shared_ptr<extensions::Extension> extension)
@@ -29,8 +31,7 @@ namespace kagome::runtime {
         "GrandpaApi_grandpa_forced_change", digest);
   }
 
-  outcome::result<std::vector<WeightedAuthority>> GrandpaImpl::authorities() {
-    return execute<std::vector<WeightedAuthority>>(
-        "GrandpaApi_grandpa_authorities");
+  outcome::result<std::vector<Authority>> GrandpaImpl::authorities() {
+    return execute<std::vector<Authority>>("GrandpaApi_grandpa_authorities");
   }
 }  // namespace kagome::runtime
