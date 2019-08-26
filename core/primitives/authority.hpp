@@ -6,7 +6,7 @@
 #ifndef KAGOME_AUTHORITY_HPP
 #define KAGOME_AUTHORITY_HPP
 
-#include "../../../../../../Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/cstdint"
+#include <cstdint>
 
 #include "common.hpp"
 
