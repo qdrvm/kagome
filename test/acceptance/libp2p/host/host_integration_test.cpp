@@ -18,6 +18,7 @@ using ::testing::_;
 using ::testing::Return;
 
 using std::chrono_literals::operator""s;
+using std::chrono_literals::operator""ms;
 using Duration = kagome::clock::SteadyClockImpl::Duration;
 
 /**
@@ -101,6 +102,8 @@ TEST_P(HostIntegrationTest, InteractAllToAllSuccess) {
     f.wait_for(future_timeout);
   }
 
+  std::this_thread::sleep_for(200ms);
+
   // start client sessions from all peers to all other peers
   for (size_t i = 0; i < peer_count; ++i) {
     for (size_t j = 0; j < peer_count; ++j) {
@@ -126,5 +129,5 @@ INSTANTIATE_TEST_CASE_P(
     ::testing::Values(
         // ports are not freed, so new ports each time
         Config{1u, 1u, 40510u, 2s, 2s},  // 1 self connected peer, 1 message
-        Config{5u, 50u, 40510u, 5s, 2s}  // 5 fully connected peers, 50 messages
+        Config{5u, 40u, 40510u, 5s, 2s}  // 5 fully connected peers, 50 messages
         ));
