@@ -18,8 +18,8 @@
 #include "primitives/common.hpp"
 
 namespace kagome::network {
-  struct BlockResponse;
-  struct BlockRequest;
+  struct BlocksResponse;
+  struct BlocksRequest;
 }  // namespace kagome::network
 
 namespace kagome::consensus {
@@ -51,7 +51,7 @@ namespace kagome::consensus {
     /**
      * Internal method for requesting blocks
      */
-    void requestBlocks(network::BlockRequest request,
+    void requestBlocks(network::BlocksRequest request,
                        const libp2p::peer::PeerId &peer,
                        RequestCallback cb) const;
 
@@ -59,24 +59,24 @@ namespace kagome::consensus {
      * Handle a response for our request
      */
     void handleBlocksResponse(
-        const outcome::result<network::BlockResponse> &response_res,
+        const outcome::result<network::BlocksResponse> &response_res,
         const RequestCallback &cb) const;
 
     /**
-     * Process a BlockRequest
+     * Process a BlocksRequest
      * @param request to be processed
      * @return a response to the request
      */
-    outcome::result<network::BlockResponse> processRequest(
-        const network::BlockRequest &request) const;
+    outcome::result<network::BlocksResponse> processRequest(
+        const network::BlocksRequest &request) const;
 
     blockchain::BlockTree::BlockHashVecRes retrieveRequestedHashes(
-        const network::BlockRequest &request,
+        const network::BlocksRequest &request,
         const primitives::BlockHash &from_hash) const;
 
-    void fillBlockResponse(
-        const network::BlockRequest &request,
-        network::BlockResponse &response,
+    void fillBlocksResponse(
+        const network::BlocksRequest &request,
+        network::BlocksResponse &response,
         const std::vector<primitives::BlockHash> &hash_chain) const;
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;

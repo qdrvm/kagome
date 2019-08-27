@@ -27,8 +27,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, SynchronizerImpl::Error, e) {
 }
 
 namespace kagome::consensus {
-  using network::BlockRequest;
-  using network::BlockResponse;
+  using network::BlocksRequest;
+  using network::BlocksResponse;
 
   SynchronizerImpl::SynchronizerImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -50,7 +50,7 @@ namespace kagome::consensus {
   void SynchronizerImpl::start() {
     network_state_->peer_server->onBlocksRequest(
         [self{shared_from_this()}](
-            const BlockRequest &request) -> outcome::result<BlockResponse> {
+            const BlocksRequest &request) -> outcome::result<BlocksResponse> {
           return self->processRequest(request);
         });
   }
@@ -72,12 +72,12 @@ namespace kagome::consensus {
   void SynchronizerImpl::requestBlocks(const libp2p::peer::PeerId &peer,
                                        RequestCallback cb) {
     auto request_id = last_request_id_++;
-    BlockRequest request{request_id,
-                         BlockRequest::kBasicAttributes,
-                         block_tree_->deepestLeaf(),
-                         boost::none,
-                         network::Direction::DESCENDING,
-                         boost::none};
+    BlocksRequest request{request_id,
+                          BlocksRequest::kBasicAttributes,
+                          block_tree_->deepestLeaf(),
+                          boost::none,
+                          network::Direction::DESCENDING,
+                          boost::none};
     requestBlocks(std::move(request), peer, std::move(cb));
   }
 
@@ -88,16 +88,16 @@ namespace kagome::consensus {
     // using last_finalized, because if the block, which we want to get, is in
     // non-finalized fork, we are not interested in it; otherwise, it 100% will
     // be a descendant of the last_finalized
-    BlockRequest request{request_id,
-                         BlockRequest::kBasicAttributes,
-                         block_tree_->getLastFinalized(),
-                         hash,
-                         network::Direction::DESCENDING,
-                         boost::none};
+    BlocksRequest request{request_id,
+                          BlocksRequest::kBasicAttributes,
+                          block_tree_->getLastFinalized(),
+                          hash,
+                          network::Direction::DESCENDING,
+                          boost::none};
     requestBlocks(std::move(request), peer, std::move(cb));
   }
 
-  void SynchronizerImpl::requestBlocks(network::BlockRequest request,
+  void SynchronizerImpl::requestBlocks(network::BlocksRequest request,
                                        const libp2p::peer::PeerId &peer,
                                        RequestCallback cb) const {
     auto peer_client_it = network_state_->peer_clients.find(peer);
@@ -117,7 +117,7 @@ namespace kagome::consensus {
   }
 
   void SynchronizerImpl::handleBlocksResponse(
-      const outcome::result<network::BlockResponse> &response_res,
+      const outcome::result<network::BlocksResponse> &response_res,
       const RequestCallback &cb) const {
     if (!response_res) {
       return cb(response_res.error());
@@ -143,9 +143,9 @@ namespace kagome::consensus {
     cb(outcome::success());
   }
 
-  outcome::result<network::BlockResponse> SynchronizerImpl::processRequest(
-      const BlockRequest &request) const {
-    BlockResponse response{request.id};
+  outcome::result<network::BlocksResponse> SynchronizerImpl::processRequest(
+      const BlocksRequest &request) const {
+    BlocksResponse response{request.id};
 
     // firstly, check if we have both "from" & "to" blocks (if set)
     auto from_hash_res = blocks_headers_->getHashById(request.from);
@@ -164,13 +164,13 @@ namespace kagome::consensus {
     }
 
     // thirdly, fill the resulting response with data, which we were asked for
-    fillBlockResponse(request, response, chain_hash_res.value());
+    fillBlocksResponse(request, response, chain_hash_res.value());
     return response;
   }
 
   blockchain::BlockTree::BlockHashVecRes
   SynchronizerImpl::retrieveRequestedHashes(
-      const network::BlockRequest &request,
+      const network::BlocksRequest &request,
       const primitives::BlockHash &from_hash) const {
     auto ascending_direction =
         request.direction == network::Direction::ASCENDING;
@@ -188,9 +188,9 @@ namespace kagome::consensus {
     return chain_hash_res;
   }
 
-  void SynchronizerImpl::fillBlockResponse(
-      const network::BlockRequest &request,
-      network::BlockResponse &response,
+  void SynchronizerImpl::fillBlocksResponse(
+      const network::BlocksRequest &request,
+      network::BlocksResponse &response,
       const std::vector<primitives::BlockHash> &hash_chain) const {
     // TODO(akvinikym): understand, where to take receipt and message_queue
     auto header_needed =

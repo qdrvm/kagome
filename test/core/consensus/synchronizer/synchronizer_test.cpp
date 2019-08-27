@@ -49,7 +49,7 @@ class SynchronizerTest : public testing::Test {
     synchronizer_->start();
   }
 
-  std::function<outcome::result<BlockResponse>(const BlockRequest &)>
+  std::function<outcome::result<BlocksResponse>(const BlocksRequest &)>
       on_blocks_request;
 
   PeerId peer1_id_{"peer1"_peerid}, peer2_id_{"peer2"_peerid};
@@ -98,18 +98,18 @@ TEST_F(SynchronizerTest, Announce) {
 TEST_F(SynchronizerTest, RequestWithoutHash) {
   // GIVEN
   EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(ReturnRef(block1_hash_));
-  BlockRequest expected_request{0,
-                                BlockRequest::kBasicAttributes,
-                                block1_hash_,
-                                boost::none,
-                                Direction::DESCENDING,
-                                boost::none};
+  BlocksRequest expected_request{0,
+                                 BlocksRequest::kBasicAttributes,
+                                 block1_hash_,
+                                 boost::none,
+                                 Direction::DESCENDING,
+                                 boost::none};
 
   EXPECT_CALL(*peer1_, blocksRequest(expected_request, _))
       .WillOnce(Arg1CallbackWithArg(
-          BlockResponse{0,
-                        {{block1_hash_, block1_.header, block1_.body},
-                         {block2_hash_, block2_.header, block2_.body}}}));
+          BlocksResponse{0,
+                         {{block1_hash_, block1_.header, block1_.body},
+                          {block2_hash_, block2_.header, block2_.body}}}));
 
   EXPECT_CALL(*tree_, addBlock(block1_))
       .WillOnce(Return(BlockTreeError::BLOCK_EXISTS));
@@ -135,18 +135,18 @@ TEST_F(SynchronizerTest, RequestWithoutHash) {
 TEST_F(SynchronizerTest, RequestWithHash) {
   // GIVEN
   EXPECT_CALL(*tree_, getLastFinalized()).WillOnce(Return(block1_hash_));
-  BlockRequest expected_request{0,
-                                BlockRequest::kBasicAttributes,
-                                block1_hash_,
-                                block2_hash_,
-                                Direction::DESCENDING,
-                                boost::none};
+  BlocksRequest expected_request{0,
+                                 BlocksRequest::kBasicAttributes,
+                                 block1_hash_,
+                                 block2_hash_,
+                                 Direction::DESCENDING,
+                                 boost::none};
 
   EXPECT_CALL(*peer2_, blocksRequest(expected_request, _))
       .WillOnce(Arg1CallbackWithArg(
-          BlockResponse{0,
-                        {{block1_hash_, block1_.header, block1_.body},
-                         {block2_hash_, block2_.header, block2_.body}}}));
+          BlocksResponse{0,
+                         {{block1_hash_, block1_.header, block1_.body},
+                          {block2_hash_, block2_.header, block2_.body}}}));
 
   EXPECT_CALL(*tree_, addBlock(block1_))
       .WillOnce(Return(BlockTreeError::BLOCK_EXISTS));
@@ -171,12 +171,12 @@ TEST_F(SynchronizerTest, RequestWithHash) {
  */
 TEST_F(SynchronizerTest, ProcessRequest) {
   // GIVEN
-  BlockRequest received_request{1,
-                                BlockRequest::kBasicAttributes,
-                                block1_hash_,
-                                boost::none,
-                                Direction::DESCENDING,
-                                boost::none};
+  BlocksRequest received_request{1,
+                                 BlocksRequest::kBasicAttributes,
+                                 block1_hash_,
+                                 boost::none,
+                                 Direction::DESCENDING,
+                                 boost::none};
 
   EXPECT_CALL(*tree_, getChainByBlock(block1_hash_, false, 128))
       .WillOnce(Return(std::vector<BlockHash>{block1_hash_, block2_hash_}));
