@@ -102,6 +102,7 @@ TEST_P(HostIntegrationTest, InteractAllToAllSuccess) {
     f.wait_for(future_timeout);
   }
 
+  // wait for server socket(s) to start
   std::this_thread::sleep_for(200ms);
 
   // start client sessions from all peers to all other peers
@@ -129,5 +130,5 @@ INSTANTIATE_TEST_CASE_P(
     ::testing::Values(
         // ports are not freed, so new ports each time
         Config{1u, 1u, 40510u, 2s, 2s},  // 1 self connected peer, 1 message
-        Config{5u, 40u, 40510u, 5s, 2s}  // 5 fully connected peers, 50 messages
+        Config{5u, 40u, 40510u, 10s, 2s}  // 5 fully connected peers, 50 messages
         ));

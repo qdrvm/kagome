@@ -117,7 +117,7 @@ namespace kagome::blockchain {
      */
     struct BlockInfo {
       primitives::BlockNumber block_number{};
-      const primitives::BlockHash &block_hash;
+      primitives::BlockHash block_hash;
     };
 
     /**
