@@ -27,14 +27,15 @@ using namespace basic;
 
 using testing::_;
 using testing::InvokeArgument;
+using testing::NiceMock;
 
 class PeerServerTest : public testing::Test {
  public:
   void SetUp() override {
-    ON_CALL(host_, setProtocolHandler(kSyncProtocol, _))
-        .WillByDefault(testing::SaveArg<1>(&sync_proto_handler_));
-    ON_CALL(host_, setProtocolHandler(kGossipProtocol, _))
-        .WillByDefault(testing::SaveArg<1>(&gossip_proto_handler_));
+    EXPECT_CALL(host_, setProtocolHandler(kSyncProtocol, _))
+        .WillOnce(testing::SaveArg<1>(&sync_proto_handler_));
+    EXPECT_CALL(host_, setProtocolHandler(kGossipProtocol, _))
+        .WillOnce(testing::SaveArg<1>(&gossip_proto_handler_));
 
     peer_server_->start();
   }
@@ -45,7 +46,8 @@ class PeerServerTest : public testing::Test {
   std::shared_ptr<PeerServer> peer_server_ =
       std::make_shared<PeerServerLibp2p>(host_, peer_info_);
 
-  std::shared_ptr<StreamMock> stream_ = std::make_shared<StreamMock>();
+  std::shared_ptr<NiceMock<StreamMock>> stream_ =
+      std::make_shared<NiceMock<StreamMock>>();
 
   std::function<connection::Stream::Handler> sync_proto_handler_;
   std::function<connection::Stream::Handler> gossip_proto_handler_;
@@ -58,6 +60,9 @@ class PeerServerTest : public testing::Test {
   BlocksResponse blocks_response_{blocks_request_.id, {}};
   std::vector<uint8_t> encoded_blocks_response_ =
       scale::encode(blocks_response_).value();
+
+  BlockAnnounce announce{{{}, 42}};
+  std::vector<uint8_t> encoded_announce = scale::encode(announce).value();
 };
 
 /**
@@ -87,14 +92,38 @@ TEST_F(PeerServerTest, SyncProtoBlocksRequest) {
  * @then subscriber receives nothing, when an unknown message arrives to the
  * server
  */
-TEST_F(PeerServerTest, SyncProtoUnknownMessage) {}
+TEST_F(PeerServerTest, SyncProtoUnknownMessage) {
+  setReadExpectations(stream_, std::vector<uint8_t>{0x11, 0x22, 0x33});
+
+  auto received = false;
+  peer_server_->onBlocksRequest([this, &received](const BlocksRequest &) {
+    received = true;
+    return blocks_response_;
+  });
+
+  sync_proto_handler_(stream_);
+  ASSERT_FALSE(received);
+}
 
 /**
  * @given PeerServer
  * @when subscribing to new BlockAnnounces
  * @then subscriber receives a corresponding message, when it arrives
  */
-TEST_F(PeerServerTest, GossipProtoBlockAnnounce) {}
+TEST_F(PeerServerTest, GossipProtoBlockAnnounce) {
+  setReadExpectations(stream_, encoded_announce);  // first call
+
+  auto received = false;
+  peer_server_->onBlockAnnounce([this, &received](const BlockAnnounce &) {
+    EXPECT_CALL(*stream_, read(_, 1, _))  // second call
+        .WillOnce(
+            InvokeArgument<2>(outcome::failure(boost::system::error_code{})));
+    received = true;
+  });
+
+  gossip_proto_handler_(stream_);
+  ASSERT_TRUE(received);
+}
 
 /**
  * @given PeerServer
@@ -102,4 +131,13 @@ TEST_F(PeerServerTest, GossipProtoBlockAnnounce) {}
  * @then subscriber receives nothing, when an unknown message arrives to the
  * server
  */
-TEST_F(PeerServerTest, GossipProtoUknownMessage) {}
+TEST_F(PeerServerTest, GossipProtoUknownMessage) {
+  setReadExpectations(stream_, std::vector<uint8_t>{0x11, 0x22, 0x33});
+
+  auto received = false;
+  peer_server_->onBlockAnnounce(
+      [&received](const BlockAnnounce &) { received = true; });
+
+  gossip_proto_handler_(stream_);
+  ASSERT_FALSE(received);
+}

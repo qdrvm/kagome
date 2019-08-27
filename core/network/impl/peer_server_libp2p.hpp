@@ -54,13 +54,13 @@ namespace kagome::network {
         const;
 
     void handleGossipProto(
-        const std::shared_ptr<libp2p::basic::MessageReadWriter> &read_writer)
-        const;
+        const std::shared_ptr<libp2p::basic::MessageReadWriter> &read_writer,
+        std::shared_ptr<libp2p::connection::Stream> stream) const;
 
     void handleBlockAnnounce(
         const BlockAnnounce &announce,
-        const std::shared_ptr<libp2p::basic::MessageReadWriter> &read_writer)
-        const;
+        const std::shared_ptr<libp2p::basic::MessageReadWriter> &read_writer,
+        std::shared_ptr<libp2p::connection::Stream> stream) const;
 
     std::shared_ptr<NetworkState> network_state_;
     libp2p::Host &host_;
