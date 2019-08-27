@@ -32,13 +32,6 @@ using testing::InvokeArgument;
 
 class PeerClientTest : public testing::Test {
  public:
-  void SetUp() override {
-    UVarint blocks_request_varint{encoded_blocks_request_.size()};
-    encoded_blocks_request_.insert(encoded_blocks_request_.begin(),
-                                   blocks_request_varint.toVector().begin(),
-                                   blocks_request_varint.toVector().end());
-  }
-
   HostMock host_;
   PeerInfo peer_info_{"my_peer"_peerid, {}};
 

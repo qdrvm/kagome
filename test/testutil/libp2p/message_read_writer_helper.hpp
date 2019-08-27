@@ -31,7 +31,7 @@ namespace libp2p::basic {
    */
   void setWriteExpectations(
       const std::shared_ptr<connection::StreamMock> &stream_mock,
-      const std::vector<uint8_t> &msg);
+      std::vector<uint8_t> msg);
 }  // namespace libp2p::basic
 
 #endif  // KAGOME_MESSAGE_READ_WRITER_HELPER_HPP

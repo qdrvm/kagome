@@ -12,8 +12,8 @@ ACTION_P(PutBytes, bytes) {  // NOLINT
   arg2(bytes.size());
 }
 
-ACTION_P(CheckBytes, bytes) {  // NOLINT
-  ASSERT_EQ(arg0, bytes);      // NOLINT
+ACTION_P(CheckBytes, bytes) {                                          // NOLINT
+  ASSERT_EQ((std::vector<uint8_t>{arg0.begin(), arg0.end()}), bytes);  // NOLINT
   arg2(bytes.size());
 }
 
@@ -28,7 +28,8 @@ namespace libp2p::basic {
     UVarint varint_to_read{msg.size()};
     for (size_t i = 0; i < varint_to_read.size(); ++i) {
       EXPECT_CALL(*stream_mock, read(_, 1, _))
-          .WillOnce(PutBytes(varint_to_read.toBytes().subspan(i, 1)));
+          .WillOnce(
+              PutBytes(std::vector<uint8_t>{varint_to_read.toVector()[i]}));
     }
 
     // read message
@@ -37,16 +38,12 @@ namespace libp2p::basic {
 
   void setWriteExpectations(
       const std::shared_ptr<connection::StreamMock> &stream_mock,
-      const std::vector<uint8_t> &msg) {
-    // write varint
+      std::vector<uint8_t> msg) {
     UVarint varint_to_write{msg.size()};
-    for (size_t i = 0; i < varint_to_write.size(); ++i) {
-      EXPECT_CALL(*stream_mock, write(_, 1, _))  // NOLINT
-          .WillOnce(CheckBytes(varint_to_write.toBytes().subspan(i, 1)));
-    }
-
-    // write message
+    msg.insert(msg.begin(),
+               varint_to_write.toVector().begin(),
+               varint_to_write.toVector().end());
     EXPECT_CALL(*stream_mock, write(_, msg.size(), _))
-        .WillOnce(CheckBytes(gsl::make_span(msg)));
+        .WillOnce(CheckBytes(msg));
   }
 }  // namespace libp2p::basic
