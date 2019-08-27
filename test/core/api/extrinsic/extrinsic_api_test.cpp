@@ -56,6 +56,7 @@ struct ExtrinsicSubmissionApiTest : public ::testing::Test {
   sptr<ExtrinsicApiImpl> api;                  ///< api instance
   sptr<Extrinsic> extrinsic;                   ///< extrinsic instance
   sptr<Valid> valid_transaction;               ///< valid transaction instance
+  Hash256 deepest_hash;                        ///< hash of deepest leaf
   sptr<BlockTree::BlockInfo> deepest_leaf;     ///< deepest leaf block info
 
   void SetUp() override {
@@ -67,7 +68,8 @@ struct ExtrinsicSubmissionApiTest : public ::testing::Test {
         ttq, transaction_pool, hasher, block_tree);
     extrinsic.reset(new Extrinsic{"12"_hex2buf});
     valid_transaction.reset(new Valid{1, {{2}}, {{3}}, 4});
-    deepest_leaf.reset(new BlockTree::BlockInfo{1u, createHash256({1u})});
+    deepest_hash = createHash256({1u, 2u, 3u});
+    deepest_leaf.reset(new BlockTree::BlockInfo{1u, deepest_hash});
   }
 };
 

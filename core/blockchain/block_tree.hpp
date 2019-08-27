@@ -112,11 +112,12 @@ namespace kagome::blockchain {
     virtual BlockHashVecRes longestPath() = 0;
 
     /**
-     * Represents block information, including block number and hash
+     * Represents block information, including block number and hash.
+     * Don't keep hash reference, make a copy if you need it.
      */
     struct BlockInfo {
       primitives::BlockNumber block_number{};
-      primitives::BlockHash block_hash{};
+      const primitives::BlockHash &block_hash;
     };
 
     /**
