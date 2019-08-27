@@ -1,4 +1,4 @@
-/**
+f/**
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -12,30 +12,30 @@
 namespace kagome::network {
   using libp2p::basic::MessageReadWriter;
 
-  PeerServerLibp2p::PeerServerLibp2p(
-      std::shared_ptr<NetworkState> network_state,
-      libp2p::Host &host,
-      libp2p::peer::PeerInfo peer_info,
-      common::Logger logger)
-      : network_state_{std::move(network_state)},
-        host_{host},
+  PeerServerLibp2p::PeerServerLibp2p(libp2p::Host &host,
+                                     libp2p::peer::PeerInfo peer_info,
+                                     common::Logger logger)
+      : host_{host},
         peer_info_{std::move(peer_info)},
-        log_{std::move(logger)} {
+        log_{std::move(logger)} {}
+
+  void PeerServerLibp2p::start() {
     host_.setProtocolHandler(kSyncProtocol,
                              [self{shared_from_this()}](auto stream) mutable {
                                self->handleSyncProto(std::move(stream));
                              });
-    host_.setProtocolHandler(kGossipProtocol,
-                             [self{shared_from_this()}](auto stream) mutable {
-                               self->handleGossipProto(std::move(stream));
-                             });
+    host_.setProtocolHandler(
+        kGossipProtocol, [self{shared_from_this()}](auto stream) mutable {
+          self->handleGossipProto(
+              std::make_shared<MessageReadWriter>(std::move(stream)));
+        });
   }
 
-  void PeerServerLibp2p::onBlocksRequest(BlocksRequestHandler handler) const {
+  void PeerServerLibp2p::onBlocksRequest(BlocksRequestHandler handler) {
     blocks_request_handler_ = std::move(handler);
   }
 
-  void PeerServerLibp2p::onBlockAnnounce(BlockAnnounceHandler handler) const {
+  void PeerServerLibp2p::onBlockAnnounce(BlockAnnounceHandler handler) {
     block_announce_handler_ = std::move(handler);
   }
 
@@ -54,23 +54,24 @@ namespace kagome::network {
       // several types of messages can arrive over Sync protocol (at least, in
       // the probable future)
       auto blocks_request_candidate =
-          scale::decode<BlocksRequest>(read_res.value());
+          scale::decode<BlocksRequest>(*read_res.value());
       if (blocks_request_candidate) {
-        if (!handleBlocksRequest(blocks_request_candidate.value(),
-                                 read_writer)) {
+        if (!self->handleBlocksRequest(blocks_request_candidate.value(),
+                                       read_writer)) {
           stream->reset();
         }
         return;
       }
 
-      log_->error("some unknown message type was received");
+      self->log_->error("some unknown message type was received");
       return stream->reset();
     });
   }
 
   bool PeerServerLibp2p::handleBlocksRequest(
-      BlocksRequest request,
-      std::shared_ptr<libp2p::basic::MessageReadWriter> read_writer) const {
+      const BlocksRequest &request,
+      const std::shared_ptr<libp2p::basic::MessageReadWriter> &read_writer)
+      const {
     auto response_res = blocks_request_handler_(request);
     if (!response_res) {
       log_->error("cannot process blocks request: {}",
@@ -78,8 +79,15 @@ namespace kagome::network {
       return false;
     }
 
-    auto response =
-        std::make_shared<BlocksResponse>(std::move(response_res.value()));
+    auto encoded_response_res = scale::encode(std::move(response_res.value()));
+    if (!encoded_response_res) {
+      log_->error("cannot encode blocks response: {}",
+                  encoded_response_res.error().message());
+      return false;
+    }
+    auto response = std::make_shared<common::Buffer>(
+        std::move(encoded_response_res.value()));
+
     read_writer->write(*response,
                        [self{shared_from_this()}, response](auto &&write_res) {
                          if (!write_res) {
@@ -91,30 +99,32 @@ namespace kagome::network {
   }
 
   void PeerServerLibp2p::handleGossipProto(
-      std::shared_ptr<libp2p::basic::MessageReadWriter> read_writer) const {
+      const std::shared_ptr<libp2p::basic::MessageReadWriter> &read_writer)
+      const {
     read_writer->read([self{shared_from_this()},
-                          read_writer](auto &&read_res) mutable {
+                       read_writer](auto &&read_res) mutable {
       if (!read_res) {
         return self->log_->error("cannot read message from the stream: {}",
                                  read_res.error().message());
       }
 
-      auto announce_candidate = scale::decode<BlockAnnounce>(read_res.value());
+      auto announce_candidate = scale::decode<BlockAnnounce>(*read_res.value());
       if (announce_candidate) {
-        return handleBlockAnnounce(std::move(announce_candidate.value()),
-                                   std::move(read_writer));
+        return self->handleBlockAnnounce(announce_candidate.value(),
+                                         read_writer);
       }
 
       // no stream resets, as Gossip should not be closed; read next message
-      log_->error("some unknown message type was received");
-      self->handleGossipProto(std::move(read_writer));
-    }
+      self->log_->error("some unknown message type was received");
+      self->handleGossipProto(read_writer);
+    });
   }
 
   void PeerServerLibp2p::handleBlockAnnounce(
-      BlockAnnounce announce,
-      std::shared_ptr<libp2p::basic::MessageReadWriter> read_writer) const {
+      const BlockAnnounce &announce,
+      const std::shared_ptr<libp2p::basic::MessageReadWriter> &read_writer)
+      const {
     block_announce_handler_(announce);
-    handleGossipProto(std::move(read_writer));
+    handleGossipProto(read_writer);
   }
 }  // namespace kagome::network

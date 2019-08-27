@@ -9,7 +9,6 @@
 
 #include <gtest/gtest.h>
 #include <boost/optional.hpp>
-#include "libp2p/multi/uvarint.hpp"
 #include "libp2p/peer/peer_info.hpp"
 #include "mock/libp2p/connection/stream_mock.hpp"
 #include "mock/libp2p/host/host_mock.hpp"
@@ -48,7 +47,9 @@ class PeerClientTest : public testing::Test {
   BlocksResponse blocks_response_{blocks_request_.id, {}};
   std::vector<uint8_t> encoded_blocks_response_ =
       scale::encode(blocks_response_).value();
-  UVarint blocks_response_varint_{encoded_blocks_response_.size()};
+
+  BlockAnnounce announce{{{}, 42}};
+  std::vector<uint8_t> encoded_announce = scale::encode(announce).value();
 };
 
 /**
@@ -65,11 +66,15 @@ TEST_F(PeerClientTest, BlocksRequest) {
   setReadExpectations(stream_, encoded_blocks_response_);
 
   // WHEN
-  peer_client_->blocksRequest(blocks_request_, [this](auto &&response_res) {
-    // THEN
-    ASSERT_TRUE(response_res);
-    ASSERT_EQ(response_res.value(), blocks_response_);
-  });
+  auto finished = false;
+  peer_client_->blocksRequest(
+      blocks_request_, [this, &finished](auto &&response_res) mutable {
+        // THEN
+        ASSERT_TRUE(response_res);
+        ASSERT_EQ(response_res.value(), blocks_response_);
+        finished = true;
+      });
+  ASSERT_TRUE(finished);
 }
 
 /**
@@ -77,4 +82,19 @@ TEST_F(PeerClientTest, BlocksRequest) {
  * @when announcing a block
  * @then that announce is sent to the peer
  */
-TEST_F(PeerClientTest, BlockAnnounce) {}
+TEST_F(PeerClientTest, BlockAnnounce) {
+  // GIVEN
+  EXPECT_CALL(host_, newStream(peer_info_, kGossipProtocol, _))
+      .WillOnce(InvokeArgument<2>(stream_));
+
+  setWriteExpectations(stream_, encoded_announce);
+
+  // WHEN
+  auto finished = false;
+  peer_client_->blockAnnounce(announce,
+                              [&finished](auto &&response_res) mutable {
+                                ASSERT_TRUE(response_res);
+                                finished = true;
+                              });
+  ASSERT_TRUE(finished);
+}

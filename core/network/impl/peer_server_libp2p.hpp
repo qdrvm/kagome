@@ -29,35 +29,38 @@ namespace kagome::network {
    public:
     /**
      * Create an instance of PeerServer on top of Libp2p
-     * @param network_state - current state of the Polkadot network
      * @param host - Libp2p host object
      * @param peer_info - this peer's information in Libp2p network
      * @param logger to write messages to
      */
     PeerServerLibp2p(
-        std::shared_ptr<NetworkState> network_state,
         libp2p::Host &host,
         libp2p::peer::PeerInfo peer_info,
         common::Logger logger = common::createLogger("PeerServerLibp2p"));
 
-    void onBlocksRequest(BlocksRequestHandler handler) const override;
+    void start() override;
 
-    void onBlockAnnounce(BlockAnnounceHandler handler) const override;
+    void onBlocksRequest(BlocksRequestHandler handler) override;
+
+    void onBlockAnnounce(BlockAnnounceHandler handler) override;
 
    private:
     void handleSyncProto(
         std::shared_ptr<libp2p::connection::Stream> stream) const;
 
     bool handleBlocksRequest(
-        BlocksRequest request,
-        std::shared_ptr<libp2p::basic::MessageReadWriter> read_writer) const;
+        const BlocksRequest &request,
+        const std::shared_ptr<libp2p::basic::MessageReadWriter> &read_writer)
+        const;
 
     void handleGossipProto(
-        std::shared_ptr<libp2p::basic::MessageReadWriter> read_writer) const;
+        const std::shared_ptr<libp2p::basic::MessageReadWriter> &read_writer)
+        const;
 
     void handleBlockAnnounce(
-        BlockAnnounce announce,
-        std::shared_ptr<libp2p::basic::MessageReadWriter> read_writer) const;
+        const BlockAnnounce &announce,
+        const std::shared_ptr<libp2p::basic::MessageReadWriter> &read_writer)
+        const;
 
     std::shared_ptr<NetworkState> network_state_;
     libp2p::Host &host_;
