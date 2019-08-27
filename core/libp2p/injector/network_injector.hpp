@@ -129,9 +129,9 @@ namespace libp2p::injector {
    * );
    * @endcode
    */
-  inline auto useKeyPair(crypto::KeyPair keyPair) {
+  inline auto useKeyPair(const crypto::KeyPair &key_pair) {
     return boost::di::bind<crypto::KeyPair>().template to(
-        std::move(keyPair))[boost::di::override];
+        key_pair)[boost::di::override];
   }
 
   /**
@@ -181,7 +181,7 @@ namespace libp2p::injector {
    */
   template <typename... SecImpl>
   auto useSecurityAdaptors() {
-    return boost::di::bind<security::SecurityAdaptor *[]>()
+    return boost::di::bind<security::SecurityAdaptor *[]>()  // NOLINT
         .template to<SecImpl...>()[boost::di::override];
   }
 
@@ -194,7 +194,7 @@ namespace libp2p::injector {
    */
   template <typename... MuxerImpl>
   auto useMuxerAdaptors() {
-    return boost::di::bind<muxer::MuxerAdaptor *[]>()
+    return boost::di::bind<muxer::MuxerAdaptor *[]>()  // NOLINT
         .template to<MuxerImpl...>()[boost::di::override];
   }
 
@@ -207,7 +207,7 @@ namespace libp2p::injector {
    */
   template <typename... TransportImpl>
   auto useTransportAdaptors() {
-    return boost::di::bind<transport::TransportAdaptor *[]>()
+    return boost::di::bind<transport::TransportAdaptor *[]>()  // NOLINT
         .template to<TransportImpl...>()[boost::di::override];
   }
 
@@ -248,9 +248,9 @@ namespace libp2p::injector {
         di::bind<protocol_muxer::ProtocolMuxer>().template to<protocol_muxer::Multiselect>(),
 
         // default adaptors
-        di::bind<security::SecurityAdaptor *[]>().template to<security::Plaintext>(),
-        di::bind<muxer::MuxerAdaptor *[]>().template to<muxer::Yamux>(),
-        di::bind<transport::TransportAdaptor *[]>().template to<transport::TcpTransport>(),
+        di::bind<security::SecurityAdaptor *[]>().template to<security::Plaintext>(),  // NOLINT
+        di::bind<muxer::MuxerAdaptor *[]>().template to<muxer::Yamux>(),  // NOLINT
+        di::bind<transport::TransportAdaptor *[]>().template to<transport::TcpTransport>(),  // NOLINT
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...

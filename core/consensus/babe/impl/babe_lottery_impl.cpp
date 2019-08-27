@@ -22,11 +22,10 @@ namespace kagome::consensus {
     BOOST_ASSERT(hasher_);
   }
 
-  std::vector<boost::optional<crypto::VRFOutput>>
-  BabeLotteryImpl::slotsLeadership(const Epoch &epoch,
-                                   crypto::SR25519Keypair keypair) const {
+  BabeLottery::SlotsLeadership BabeLotteryImpl::slotsLeadership(
+      const Epoch &epoch, crypto::SR25519Keypair keypair) const {
     std::vector<boost::optional<crypto::VRFOutput>> result;
-    result.reserve(epoch.duration);
+    result.reserve(epoch.epoch_duration);
 
     // randomness || slot number
     Buffer vrf_input(SR25519_VRF_OUTPUT_SIZE + 8, 0);
@@ -37,7 +36,7 @@ namespace kagome::consensus {
         epoch.randomness.begin(), epoch.randomness.end(), vrf_input.begin());
 
     auto slot_number_begin = vrf_input.begin() + SR25519_VRF_OUTPUT_SIZE;
-    for (BabeSlotNumber i = 0; i < epoch.duration; ++i) {
+    for (BabeSlotNumber i = 0; i < epoch.epoch_duration; ++i) {
       auto slot_bytes = crypto::util::uint64_t_to_bytes(i);
       std::copy(slot_bytes.begin(), slot_bytes.end(), slot_number_begin);
       result.push_back(

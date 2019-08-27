@@ -7,7 +7,7 @@
 #define KAGOME_BLOCK_VALIDATOR_HPP
 
 #include <outcome/outcome.hpp>
-#include "consensus/babe/common.hpp"
+#include "consensus/babe/types/epoch.hpp"
 #include "libp2p/peer/peer_id.hpp"
 #include "primitives/block.hpp"
 

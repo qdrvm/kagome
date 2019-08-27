@@ -35,6 +35,7 @@ struct BabeLotteryTest : public testing::Test {
       1,
       0,
       3,
+      std::chrono::milliseconds(20),
       {},
       10,
       Randomness{
@@ -65,7 +66,7 @@ TEST_F(BabeLotteryTest, SlotsLeadership) {
   std::copy(current_epoch_.randomness.begin(),
             current_epoch_.randomness.end(),
             vrf_input.begin());
-  for (size_t i = 0; i < current_epoch_.duration; ++i) {
+  for (size_t i = 0; i < current_epoch_.epoch_duration; ++i) {
     auto slot_bytes = crypto::util::uint64_t_to_bytes(i);
     std::copy(slot_bytes.begin(),
               slot_bytes.end(),

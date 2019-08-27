@@ -30,7 +30,7 @@ class BlockBuilderFactoryTest : public ::testing::Test {
 
     expected_header_.parent_hash = expected_hash_;
     expected_header_.number = expected_number_;
-    expected_header_.digests = {inherent_digest_};
+    expected_header_.digests = inherent_digests_;
 
     EXPECT_CALL(*header_backend_, getNumberByHash(expected_hash_))
         .WillOnce(Return(expected_number_));
@@ -45,7 +45,7 @@ class BlockBuilderFactoryTest : public ::testing::Test {
   BlockNumber expected_number_{42};
   kagome::common::Hash256 expected_hash_;
   BlockId block_id_;
-  Digest inherent_digest_{0, 1, 2, 3};
+  std::vector<Digest> inherent_digests_{{0, 1, 2, 3}};
   BlockHeader expected_header_;
 };
 
@@ -63,7 +63,7 @@ TEST_F(BlockBuilderFactoryTest, CreateSuccessful) {
   BlockBuilderFactoryImpl factory(core_, block_builder_api_, header_backend_);
 
   // when
-  auto block_builder_res = factory.create(block_id_, inherent_digest_);
+  auto block_builder_res = factory.create(block_id_, inherent_digests_);
 
   // then
   ASSERT_TRUE(block_builder_res);
@@ -83,7 +83,7 @@ TEST_F(BlockBuilderFactoryTest, CreateFailed) {
   BlockBuilderFactoryImpl factory(core_, block_builder_api_, header_backend_);
 
   // when
-  auto block_builder_res = factory.create(block_id_, inherent_digest_);
+  auto block_builder_res = factory.create(block_id_, inherent_digests_);
 
   // then
   ASSERT_FALSE(block_builder_res);

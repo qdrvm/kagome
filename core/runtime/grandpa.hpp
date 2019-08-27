@@ -9,6 +9,7 @@
 #include <boost/optional.hpp>
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
+#include "primitives/authority.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/digest.hpp"
 #include "primitives/scheduled_change.hpp"
@@ -26,7 +27,7 @@ namespace kagome::runtime {
     using ScheduledChange = primitives::ScheduledChange;
     using BlockNumber = primitives::BlockNumber;
     using SessionKey = primitives::SessionKey;
-    using WeightedAuthority = primitives::WeightedAuthority;
+    using WeightedAuthority = primitives::Authority;
     using ForcedChange = primitives::ForcedChange;
     using BlockId = primitives::BlockId;
 
