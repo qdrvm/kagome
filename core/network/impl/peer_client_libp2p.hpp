@@ -7,17 +7,12 @@
 #define KAGOME_PEER_CLIENT_LIBP2P_HPP
 
 #include <memory>
-#include <string_view>
 
 #include "common/logger.hpp"
 #include "libp2p/host/host.hpp"
 #include "libp2p/peer/peer_info.hpp"
-#include "network/network_state.hpp"
+#include "network/impl/rpc_sender_libp2p.hpp"
 #include "network/peer_client.hpp"
-
-namespace libp2p::basic {
-  class MessageReadWriter;
-}
 
 namespace kagome::network {
   /**
@@ -34,30 +29,32 @@ namespace kagome::network {
      * Create an instance of PeerClient on top of Libp2p
      * @param host - Libp2p host object
      * @param peer_info - this peer's information in Libp2p network
+     * @param rpc_sender to send and accept messages
      * @param logger to write messages to
      */
     PeerClientLibp2p(
         libp2p::Host &host,
         libp2p::peer::PeerInfo peer_info,
+        std::shared_ptr<RPCSender<RPCInfoLibp2p>> rpc_sender,
         common::Logger logger = common::createLogger("PeerClientLibp2p"));
 
-    enum class Error { SUCCESS = 0, LIBP2P_ERROR = 1 };
+    ~PeerClientLibp2p() override = default;
 
     void blocksRequest(BlocksRequest request,
-                       BlockResponseHandler handler) const override;
+                       BlocksResponseHandler handler) const override;
 
     void blockAnnounce(BlockAnnounce block_announce,
                        std::function<void(const outcome::result<void> &)>
                            handler) const override;
 
    private:
-    void onBlocksRequestWritten(
-        outcome::result<size_t> write_res,
-        const std::shared_ptr<libp2p::basic::MessageReadWriter> &read_writer,
-        BlockResponseHandler cb) const;
+    void onBlocksResponseReceived(
+        outcome::result<std::shared_ptr<common::Buffer>> encoded_response_res,
+        const BlocksResponseHandler &cb) const;
 
     libp2p::Host &host_;
     libp2p::peer::PeerInfo peer_info_;
+    std::shared_ptr<RPCSender<RPCInfoLibp2p>> rpc_sender_;
     common::Logger log_;
   };
 }  // namespace kagome::network

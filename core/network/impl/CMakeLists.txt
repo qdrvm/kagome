@@ -12,9 +12,9 @@ target_link_libraries(peer_client
     buffer
     scale
     logger
-    message_read_writer
     libp2p_peer_id
     multiaddress
+    rpc_sender_libp2p
     )
 
 add_library(peer_server
@@ -29,4 +29,13 @@ target_link_libraries(peer_server
     message_read_writer
     libp2p_peer_id
     multiaddress
+    )
+
+add_library(rpc_sender_libp2p
+    rpc_sender_libp2p.cpp
+    rpc_sender_libp2p.hpp
+    )
+target_link_libraries(rpc_sender_libp2p
+    message_read_writer
+    outcome
     )
