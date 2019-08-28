@@ -128,7 +128,7 @@ namespace kagome::consensus {
 
   void BabeImpl::processSlotLeadership(const crypto::VRFOutput &output) {
     // build a block to be announced
-    const auto &best_block_hash = block_tree_->deepestLeaf();
+    auto &&[_, best_block_hash] = block_tree_->deepestLeaf();
 
     BabeBlockHeader babe_header{current_slot_, output, authority_id_};
     auto encoded_header_res = scale::encode(babe_header);

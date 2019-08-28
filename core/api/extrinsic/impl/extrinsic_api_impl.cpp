@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "extrinsic_api_impl.hpp"
+#include "api/extrinsic/impl/extrinsic_api_impl.hpp"
 
 #include "primitives/transaction.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
@@ -13,17 +13,23 @@ namespace kagome::api {
   ExtrinsicApiImpl::ExtrinsicApiImpl(
       sptr<runtime::TaggedTransactionQueue> api,
       sptr<transaction_pool::TransactionPool> pool,
-      sptr<crypto::Hasher> hasher)
+      sptr<crypto::Hasher> hasher,
+      sptr<blockchain::BlockTree> block_tree)
       : api_{std::move(api)},
         pool_{std::move(pool)},
-        hasher_{std::move(hasher)} {}
+        hasher_{std::move(hasher)},
+        block_tree_{std::move(block_tree)} {
+    BOOST_ASSERT_MSG(api_ != nullptr, "extrinsic api is nullptr");
+    BOOST_ASSERT_MSG(pool_ != nullptr, "transaction pool is nullptr");
+    BOOST_ASSERT_MSG(hasher_ != nullptr, "hasher is nullptr");
+    BOOST_ASSERT_MSG(block_tree_ != nullptr, "block tree is nullptr");
+  }
 
   outcome::result<common::Hash256> ExtrinsicApiImpl::submitExtrinsic(
       const primitives::Extrinsic &extrinsic) {
-    // validate transaction
-    OUTCOME_TRY(res, api_->validate_transaction(extrinsic));
-    // TODO(yuraz): PRE-242 correct transaction validation
-    // according to specification
+    auto &&[block_number, _] = block_tree_->deepestLeaf();
+
+    OUTCOME_TRY(res, api_->validate_transaction(block_number, extrinsic));
 
     return kagome::visit_in_place(
         res,

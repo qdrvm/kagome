@@ -97,7 +97,8 @@ TEST_F(SynchronizerTest, Announce) {
  */
 TEST_F(SynchronizerTest, RequestWithoutHash) {
   // GIVEN
-  EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(ReturnRef(block1_hash_));
+  BlockTree::BlockInfo block1_info_{1u, block1_hash_};
+  EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(block1_info_));
   BlockRequest expected_request{0,
                                 BlockRequest::kBasicAttributes,
                                 block1_hash_,

@@ -89,6 +89,9 @@ class BabeTest : public testing::Test {
                               0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x54,
                               0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44,
                               0x11, 0x22, 0x33, 0x44, 0x11, 0x24, 0x33, 0x44}};
+  BlockNumber best_block_number_ = 1u;
+
+  BlockTree::BlockInfo best_leaf{best_block_number_, best_block_hash_};
 
   BlockHeader block_header_{
       createHash(0), 2, createHash(1), createHash(2), {{5}}};
@@ -135,8 +138,7 @@ TEST_F(BabeTest, Success) {
 
   // processSlotLeadership
   // we are not leader of the first slot, but leader of the second
-  EXPECT_CALL(*block_tree_, deepestLeaf())
-      .WillOnce(ReturnRef(best_block_hash_));
+  EXPECT_CALL(*block_tree_, deepestLeaf()).WillOnce(Return(best_leaf));
   EXPECT_CALL(*proposer_, propose(BlockId{best_block_hash_}, _, _))
       .WillOnce(Return(created_block_));
   EXPECT_CALL(*hasher_, blake2b_256(_)).WillOnce(Return(created_block_hash_));

@@ -22,7 +22,7 @@ namespace kagome::blockchain {
   /**
    * Block tree, which is located in LevelDB
    */
-  class LevelDbBlockTree : public BlockTree {
+  class BlockTreeImpl : public BlockTree {
     /**
      * In-memory light representation of the tree, used for efficiency and usage
      * convenience - we would only ask the database for some info, when directly
@@ -78,14 +78,14 @@ namespace kagome::blockchain {
      * @param hasher - pointer to the hasher
      * @return ptr to the created instance or error
      */
-    static outcome::result<std::unique_ptr<LevelDbBlockTree>> create(
+    static outcome::result<std::unique_ptr<BlockTreeImpl>> create(
         std::shared_ptr<BlockHeaderRepository> header_repo,
         PersistentBufferMap &db,
         const primitives::BlockId &last_finalized_block,
         std::shared_ptr<crypto::Hasher> hasher,
-        common::Logger log = common::createLogger("LevelDBBlockTree"));
+        common::Logger log = common::createLogger("BlockTreeImpl"));
 
-    ~LevelDbBlockTree() override = default;
+    ~BlockTreeImpl() override = default;
 
     outcome::result<primitives::BlockBody> getBlockBody(
         const primitives::BlockId &block) const override;
@@ -111,7 +111,7 @@ namespace kagome::blockchain {
 
     BlockHashVecRes longestPath() override;
 
-    const primitives::BlockHash &deepestLeaf() const override;
+    BlockInfo deepestLeaf() const override;
 
     std::vector<primitives::BlockHash> getLeaves() const override;
 
@@ -126,7 +126,7 @@ namespace kagome::blockchain {
      * Private ctor, so that instances are created only through the factory
      * method
      */
-    LevelDbBlockTree(std::shared_ptr<BlockHeaderRepository> header_repo,
+    BlockTreeImpl(std::shared_ptr<BlockHeaderRepository> header_repo,
                      PersistentBufferMap &db,
                      std::shared_ptr<TreeNode> tree,
                      std::shared_ptr<TreeMeta> meta,

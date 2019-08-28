@@ -74,7 +74,7 @@ namespace kagome::consensus {
     auto request_id = last_request_id_++;
     BlockRequest request{request_id,
                          BlockRequest::kBasicAttributes,
-                         block_tree_->deepestLeaf(),
+                         block_tree_->deepestLeaf().block_hash,
                          boost::none,
                          network::Direction::DESCENDING,
                          boost::none};

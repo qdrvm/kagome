@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "blockchain/impl/level_db_block_tree.hpp"
+#include "blockchain/impl/block_tree_impl.hpp"
 
 #include <algorithm>
 
@@ -21,17 +21,17 @@ namespace kagome::blockchain {
   using Prefix = prefix::Prefix;
   using LevelDBError = kagome::storage::LevelDBError;
 
-  LevelDbBlockTree::TreeNode::TreeNode(primitives::BlockHash hash,
-                                       primitives::BlockNumber depth,
-                                       const std::shared_ptr<TreeNode> &parent,
-                                       bool finalized)
+  BlockTreeImpl::TreeNode::TreeNode(primitives::BlockHash hash,
+                                    primitives::BlockNumber depth,
+                                    const std::shared_ptr<TreeNode> &parent,
+                                    bool finalized)
       : block_hash_{hash},
         depth_{depth},
         parent_{parent},
         finalized_{finalized} {}
 
-  std::shared_ptr<LevelDbBlockTree::TreeNode>
-  LevelDbBlockTree::TreeNode::getByHash(const primitives::BlockHash &hash) {
+  std::shared_ptr<BlockTreeImpl::TreeNode> BlockTreeImpl::TreeNode::getByHash(
+      const primitives::BlockHash &hash) {
     // standard BFS
     std::queue<std::shared_ptr<TreeNode>> nodes_to_scan;
     nodes_to_scan.push(shared_from_this());
@@ -48,7 +48,7 @@ namespace kagome::blockchain {
     return nullptr;
   }
 
-  bool LevelDbBlockTree::TreeNode::operator==(const TreeNode &other) const {
+  bool BlockTreeImpl::TreeNode::operator==(const TreeNode &other) const {
     const auto &other_parent = other.parent_;
     auto parents_equal = (parent_.expired() && other_parent.expired())
                          || (!parent_.expired() && !other_parent.expired()
@@ -58,11 +58,11 @@ namespace kagome::blockchain {
            && depth_ == other.depth_;
   }
 
-  bool LevelDbBlockTree::TreeNode::operator!=(const TreeNode &other) const {
+  bool BlockTreeImpl::TreeNode::operator!=(const TreeNode &other) const {
     return !(*this == other);
   }
 
-  LevelDbBlockTree::TreeMeta::TreeMeta(
+  BlockTreeImpl::TreeMeta::TreeMeta(
       std::unordered_set<primitives::BlockHash> leaves,
       TreeNode &deepest_leaf,
       TreeNode &last_finalized)
@@ -70,7 +70,7 @@ namespace kagome::blockchain {
         deepest_leaf{deepest_leaf},
         last_finalized{last_finalized} {}
 
-  outcome::result<std::unique_ptr<LevelDbBlockTree>> LevelDbBlockTree::create(
+  outcome::result<std::unique_ptr<BlockTreeImpl>> BlockTreeImpl::create(
       std::shared_ptr<BlockHeaderRepository> header_repo,
       PersistentBufferMap &db,
       const primitives::BlockId &last_finalized_block,
@@ -105,16 +105,16 @@ namespace kagome::blockchain {
     auto meta = std::make_shared<TreeMeta>(
         decltype(TreeMeta::leaves){tree->block_hash_}, *tree, *tree);
 
-    LevelDbBlockTree block_tree{std::move(header_repo),
-                                db,
-                                std::move(tree),
-                                std::move(meta),
-                                std::move(hasher),
-                                std::move(log)};
-    return std::make_unique<LevelDbBlockTree>(std::move(block_tree));
+    BlockTreeImpl block_tree{std::move(header_repo),
+                             db,
+                             std::move(tree),
+                             std::move(meta),
+                             std::move(hasher),
+                             std::move(log)};
+    return std::make_unique<BlockTreeImpl>(std::move(block_tree));
   }
 
-  LevelDbBlockTree::LevelDbBlockTree(
+  BlockTreeImpl::BlockTreeImpl(
       std::shared_ptr<BlockHeaderRepository> header_repo,
       PersistentBufferMap &db,
       std::shared_ptr<TreeNode> tree,
@@ -128,7 +128,7 @@ namespace kagome::blockchain {
         hasher_{std::move(hasher)},
         log_{std::move(log)} {}
 
-  outcome::result<primitives::BlockBody> LevelDbBlockTree::getBlockBody(
+  outcome::result<primitives::BlockBody> BlockTreeImpl::getBlockBody(
       const primitives::BlockId &block) const {
     auto body_res = getWithPrefix(db_, Prefix::BODY, block);
     if (!body_res) {
@@ -138,8 +138,7 @@ namespace kagome::blockchain {
   }
 
   outcome::result<primitives::Justification>
-  LevelDbBlockTree::getBlockJustification(
-      const primitives::BlockId &block) const {
+  BlockTreeImpl::getBlockJustification(const primitives::BlockId &block) const {
     auto justification_res = getWithPrefix(db_, Prefix::JUSTIFICATION, block);
     if (!justification_res) {
       return justification_res.error();
@@ -147,7 +146,7 @@ namespace kagome::blockchain {
     return scale::decode<primitives::Justification>(justification_res.value());
   }
 
-  outcome::result<void> LevelDbBlockTree::addBlock(primitives::Block block) {
+  outcome::result<void> BlockTreeImpl::addBlock(primitives::Block block) {
     // first of all, check if we know parent of this block; if not, we cannot
     // insert it
     auto parent = tree_->getByHash(block.header.parent_hash);
@@ -190,7 +189,7 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
-  outcome::result<void> LevelDbBlockTree::finalize(
+  outcome::result<void> BlockTreeImpl::finalize(
       const primitives::BlockHash &block,
       const primitives::Justification &justification) {
     auto node = tree_->getByHash(block);
@@ -214,13 +213,13 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
-  LevelDbBlockTree::BlockHashVecRes LevelDbBlockTree::getChainByBlock(
+  BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlock(
       const primitives::BlockHash &block) {
     return getChainByBlocks(tree_meta_->last_finalized.get().block_hash_,
                             block);
   }
 
-  LevelDbBlockTree::BlockHashVecRes LevelDbBlockTree::getChainByBlock(
+  BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlock(
       const primitives::BlockHash &block, bool ascending, uint64_t maximum) {
     auto block_number_res = header_repo_->getNumberByHash(block);
     if (!block_number_res) {
@@ -269,7 +268,7 @@ namespace kagome::blockchain {
     return std::move(chain);
   }
 
-  LevelDbBlockTree::BlockHashVecRes LevelDbBlockTree::getChainByBlocks(
+  BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlocks(
       const primitives::BlockHash &top_block,
       const primitives::BlockHash &bottom_block) {
     static constexpr std::string_view kNotAncestorError =
@@ -313,15 +312,17 @@ namespace kagome::blockchain {
     return result;
   }
 
-  LevelDbBlockTree::BlockHashVecRes LevelDbBlockTree::longestPath() {
-    return getChainByBlock(deepestLeaf());
+  BlockTreeImpl::BlockHashVecRes BlockTreeImpl::longestPath() {
+    auto &&[_, block_hash] = deepestLeaf();
+    return getChainByBlock(block_hash);
   }
 
-  const primitives::BlockHash &LevelDbBlockTree::deepestLeaf() const {
-    return tree_meta_->deepest_leaf.get().block_hash_;
+  BlockTree::BlockInfo BlockTreeImpl::deepestLeaf() const {
+    auto &&leaf = tree_meta_->deepest_leaf.get();
+    return {leaf.depth_, leaf.block_hash_};
   }
 
-  std::vector<primitives::BlockHash> LevelDbBlockTree::getLeaves() const {
+  std::vector<primitives::BlockHash> BlockTreeImpl::getLeaves() const {
     std::vector<primitives::BlockHash> result;
     result.reserve(tree_meta_->leaves.size());
     std::transform(tree_meta_->leaves.begin(),
@@ -331,7 +332,7 @@ namespace kagome::blockchain {
     return result;
   }
 
-  LevelDbBlockTree::BlockHashVecRes LevelDbBlockTree::getChildren(
+  BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChildren(
       const primitives::BlockHash &block) {
     auto node = tree_->getByHash(block);
     if (!node) {
@@ -347,11 +348,11 @@ namespace kagome::blockchain {
     return result;
   }
 
-  primitives::BlockHash LevelDbBlockTree::getLastFinalized() const {
+  primitives::BlockHash BlockTreeImpl::getLastFinalized() const {
     return tree_meta_->last_finalized.get().block_hash_;
   }
 
-  void LevelDbBlockTree::prune() {
+  void BlockTreeImpl::prune() {
     if (tree_meta_->last_finalized.get().parent_.expired()) {
       // nothing to prune
       return;
