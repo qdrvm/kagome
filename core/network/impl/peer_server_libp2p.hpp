@@ -40,9 +40,9 @@ namespace kagome::network {
 
     void start() override;
 
-    void onBlocksRequest(BlocksRequestHandler handler) override;
+    void setBlocksRequestHandler(BlocksRequestHandler handler) override;
 
-    void onBlockAnnounce(BlockAnnounceHandler handler) override;
+    void setBlockAnnounceHandler(BlockAnnounceHandler handler) override;
 
    private:
     void handleSyncProto(

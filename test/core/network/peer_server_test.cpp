@@ -76,7 +76,7 @@ TEST_F(PeerServerTest, SyncProtoBlocksRequest) {
   setWriteExpectations(stream_, encoded_blocks_response_);
 
   auto received = false;
-  peer_server_->onBlocksRequest(
+  peer_server_->setBlocksRequestHandler(
       [this, &received](const BlocksRequest &request) {
         received = true;
         return blocks_response_;
@@ -96,10 +96,11 @@ TEST_F(PeerServerTest, SyncProtoUnknownMessage) {
   setReadExpectations(stream_, std::vector<uint8_t>{0x11, 0x22, 0x33});
 
   auto received = false;
-  peer_server_->onBlocksRequest([this, &received](const BlocksRequest &) {
-    received = true;
-    return blocks_response_;
-  });
+  peer_server_->setBlocksRequestHandler(
+      [this, &received](const BlocksRequest &) {
+        received = true;
+        return blocks_response_;
+      });
 
   sync_proto_handler_(stream_);
   ASSERT_FALSE(received);
@@ -114,7 +115,8 @@ TEST_F(PeerServerTest, GossipProtoBlockAnnounce) {
   setReadExpectations(stream_, encoded_announce);  // first call
 
   auto received = false;
-  peer_server_->onBlockAnnounce([this, &received](const BlockAnnounce &) {
+  peer_server_->setBlockAnnounceHandler([this,
+                                         &received](const BlockAnnounce &) {
     EXPECT_CALL(*stream_, read(_, 1, _))  // second call
         .WillOnce(
             InvokeArgument<2>(outcome::failure(boost::system::error_code{})));
@@ -135,7 +137,7 @@ TEST_F(PeerServerTest, GossipProtoUknownMessage) {
   setReadExpectations(stream_, std::vector<uint8_t>{0x11, 0x22, 0x33});
 
   auto received = false;
-  peer_server_->onBlockAnnounce(
+  peer_server_->setBlockAnnounceHandler(
       [&received](const BlockAnnounce &) { received = true; });
 
   gossip_proto_handler_(stream_);

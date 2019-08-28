@@ -39,9 +39,8 @@ namespace kagome::network {
 
           auto encoded_request_res = scale::encode(request);
           if (!encoded_request_res) {
-            self->log_->error(
-                "cannot open a encode a block request message: {}",
-                encoded_request_res.error().message());
+            self->log_->error("cannot encode a block request message: {}",
+                              encoded_request_res.error().message());
             return cb(encoded_request_res.error());
           }
           auto encoded_request =

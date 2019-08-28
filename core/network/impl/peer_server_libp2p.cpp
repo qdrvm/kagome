@@ -31,11 +31,11 @@ namespace kagome::network {
         });
   }
 
-  void PeerServerLibp2p::onBlocksRequest(BlocksRequestHandler handler) {
+  void PeerServerLibp2p::setBlocksRequestHandler(BlocksRequestHandler handler) {
     blocks_request_handler_ = std::move(handler);
   }
 
-  void PeerServerLibp2p::onBlockAnnounce(BlockAnnounceHandler handler) {
+  void PeerServerLibp2p::setBlockAnnounceHandler(BlockAnnounceHandler handler) {
     block_announce_handler_ = std::move(handler);
   }
 

@@ -55,7 +55,7 @@ class PeerClientTest : public testing::Test {
 /**
  * @given PeerClient on top of Libp2pq
  * @when requesting a block
- * @then that request is sent to the peer @and response is being waited
+ * @then that request is sent to the peer @and response handler is being invoked
  */
 TEST_F(PeerClientTest, BlocksRequest) {
   // GIVEN

@@ -130,8 +130,8 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*clock_, now())
       .WillOnce(Return(test_begin))
       .WillOnce(Return(test_begin + 60ms))
-      .WillOnce(Return(test_begin + 100ms))
-      .WillOnce(Return(test_begin + 120ms));
+      .WillOnce(Return(test_begin + 70ms))
+      .WillOnce(Return(test_begin + 80ms));
 
   // processSlotLeadership
   // we are not leader of the first slot, but leader of the second

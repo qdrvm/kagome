@@ -41,7 +41,7 @@ class SynchronizerTest : public testing::Test {
     block2_.header.parent_hash = block1_hash_;
     block2_hash_.fill(4);
 
-    EXPECT_CALL(*server_, onBlocksRequest(_))
+    EXPECT_CALL(*server_, setBlocksRequestHandler(_))
         .WillOnce(testing::SaveArg<0>(&on_blocks_request));
 
     synchronizer_ =

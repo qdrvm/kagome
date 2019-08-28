@@ -14,11 +14,11 @@ namespace kagome::network {
   struct PeerServerMock : public PeerServer {
     MOCK_METHOD0(start, void());
 
-    MOCK_METHOD1(onBlocksRequest,
+    MOCK_METHOD1(setBlocksRequestHandler,
                  void(std::function<
                       outcome::result<BlocksResponse>(const BlocksRequest &)>));
 
-    MOCK_METHOD1(onBlockAnnounce,
+    MOCK_METHOD1(setBlockAnnounceHandler,
                  void(std::function<void(const BlockAnnounce &)>));
   };
 }  // namespace kagome::network

@@ -34,7 +34,7 @@ namespace kagome::network {
      * @note in case the method is called several times, only the last handler
      * will be called
      */
-    virtual void onBlocksRequest(BlocksRequestHandler handler) = 0;
+    virtual void setBlocksRequestHandler(BlocksRequestHandler handler) = 0;
 
     using BlockAnnounceHandler = std::function<void(const BlockAnnounce &)>;
 
@@ -45,7 +45,7 @@ namespace kagome::network {
      * @note in case the method is called several times, only the last handler
      * will be called
      */
-    virtual void onBlockAnnounce(BlockAnnounceHandler handler) = 0;
+    virtual void setBlockAnnounceHandler(BlockAnnounceHandler handler) = 0;
   };
 
 }  // namespace kagome::network

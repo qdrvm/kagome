@@ -48,7 +48,7 @@ namespace kagome::consensus {
   }
 
   void SynchronizerImpl::start() {
-    network_state_->peer_server->onBlocksRequest(
+    network_state_->peer_server->setBlocksRequestHandler(
         [self{shared_from_this()}](
             const BlocksRequest &request) -> outcome::result<BlocksResponse> {
           return self->processRequest(request);
