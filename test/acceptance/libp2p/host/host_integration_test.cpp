@@ -10,25 +10,26 @@
 
 #include <gtest/gtest.h>
 #include "acceptance/libp2p/host/peer/test_peer.hpp"
+#include "acceptance/libp2p/host/peer/tick_counter.hpp"
 #include "testutil/ma_generator.hpp"
 
 using namespace libp2p;
 
-using ::testing::_;
-using ::testing::Return;
-
 using std::chrono_literals::operator""s;
+using std::chrono_literals::operator""ms;
 using Duration = kagome::clock::SteadyClockImpl::Duration;
 
 /**
  * @brief host integration test configuration
  */
 struct HostIntegrationTestConfig {
-  size_t peer_count;
-  size_t ping_times;
-  uint16_t start_port;
-  Duration operation_timeout;
-  Duration future_timeout;
+  size_t peer_count;           ///< how many peers to create
+  size_t ping_times;           ///< how many messages to send
+  uint16_t start_port;         ///< start port number for server addresses
+  Duration operation_timeout;  ///< how long to run io_context
+  Duration future_timeout;     ///< how long to wait to obtain peer info
+  Duration system_timeout;  ///< how long to wait before starting clients after
+                            ///< all peer info obtained
 };
 
 /*
@@ -63,8 +64,12 @@ struct HostIntegrationTest
  * @then all clients interact with all servers predefined number of times
  */
 TEST_P(HostIntegrationTest, InteractAllToAllSuccess) {
-  const auto [peer_count, ping_times, start_port, timeout, future_timeout] =
-      GetParam();
+  const auto [peer_count,
+              ping_times,
+              start_port,
+              timeout,
+              future_timeout,
+              system_timeout] = GetParam();
   const auto addr_prefix = "/ip4/127.0.0.1/tcp/";
   testutil::MultiaddressGenerator ma_generator(addr_prefix, start_port);
 
@@ -98,15 +103,24 @@ TEST_P(HostIntegrationTest, InteractAllToAllSuccess) {
 
   // need to wait for `peer info` values before starting client sessions
   for (auto &f : peerinfo_futures) {
-    f.wait_for(future_timeout);
+    auto status = f.wait_for(future_timeout);
+    ASSERT_EQ(status, std::future_status::ready);
   }
+
+  // wait for server sockets to start
+  std::this_thread::sleep_for(system_timeout);
+
+  // reserve vector of message counters
+  std::vector<std::shared_ptr<TickCounter>> counters;
+  counters.reserve(peer_count * peer_count);
 
   // start client sessions from all peers to all other peers
   for (size_t i = 0; i < peer_count; ++i) {
     for (size_t j = 0; j < peer_count; ++j) {
       const auto &pinfo = peerinfo_futures[j].get();
-      auto checker = std::make_shared<TickCounter>(ping_times);
-      peers[i]->startClient(j, pinfo, ping_times, std::move(checker));
+      auto counter = std::make_shared<TickCounter>(i, j, ping_times);
+
+      peers[i]->startClient(pinfo, ping_times, counter);
     }
   }
 
@@ -114,17 +128,21 @@ TEST_P(HostIntegrationTest, InteractAllToAllSuccess) {
   for (const auto &p : peers) {
     p->wait();
   }
+
+  // check that all messages have been sent
+  for (auto &counter : counters) {
+    counter->checkTicksCount();
+  }
 }
 
 namespace {
   using Config = HostIntegrationTestConfig;
 }
 
-INSTANTIATE_TEST_CASE_P(
-    AllTestCases,
-    HostIntegrationTest,
-    ::testing::Values(
-        // ports are not freed, so new ports each time
-        Config{1u, 1u, 40510u, 2s, 2s},  // 1 self connected peer, 1 message
-        Config{5u, 50u, 40510u, 5s, 2s}  // 5 fully connected peers, 50 messages
-        ));
+INSTANTIATE_TEST_CASE_P(AllTestCases,
+                        HostIntegrationTest,
+                        ::testing::Values(
+                            // ports are not freed, so new ports each time
+                            Config{1u, 1u, 40510u, 2s, 2s, 200ms},
+                            Config{2u, 1u, 40510u, 2s, 2s, 200ms},
+                            Config{5u, 5u, 40510u, 20s, 4s, 1000ms}));
