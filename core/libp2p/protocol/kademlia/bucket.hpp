@@ -13,6 +13,13 @@
 
 namespace libp2p::protocol::kademlia {
 
+  /**
+   * @class Bucket
+   *
+   * Single bucket which holds peers.
+   *
+   * @see https://sourcegraph.com/github.com/libp2p/go-libp2p-kbucket@HEAD/-/blob/bucket.go
+   */
   class Bucket {
    public:
     using storage = std::deque<peer::PeerId>;
@@ -49,11 +56,11 @@ namespace libp2p::protocol::kademlia {
       bucket_.insert(bucket_.end(), begin, end);
     }
 
-    [[nodiscard]] const storage &peers() const {
+    const storage &peers() const {
       return bucket_;
     }
 
-    [[nodiscard]] bool has(const peer::PeerId &p) const {
+    bool has(const peer::PeerId &p) const {
       auto it = std::find(bucket_.begin(), bucket_.end(), p);
       return it != bucket_.end();
     }
@@ -84,11 +91,11 @@ namespace libp2p::protocol::kademlia {
       return back;
     }
 
-    [[nodiscard]] size_t size() const {
+    size_t size() const {
       return bucket_.size();
     }
 
-    [[nodiscard]] bool empty() const {
+    bool empty() const {
       return bucket_.empty();
     }
 

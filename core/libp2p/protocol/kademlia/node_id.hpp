@@ -21,7 +21,7 @@ namespace libp2p::protocol::kademlia {
   /// count number of leading zeros in bin representation
   inline size_t leadingZerosInByte(uint8_t byte) {
     size_t ret = 0u;
-    const uint8_t msb = 1u << 7u;
+    static constexpr const uint8_t msb = 1u << 7u;
 
     // if most significant bit is set, terminate the loop
     while (!(byte & msb)) {
