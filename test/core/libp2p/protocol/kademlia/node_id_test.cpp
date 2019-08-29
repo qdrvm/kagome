@@ -62,8 +62,9 @@ TEST(KadDistance, SortsHashes) {
   std::generate_n(std::back_inserter(peers), peersTotal, []() {
     return testutil::randomPeerId();
   });
+  peers.push_back(us);
 
-  ASSERT_EQ(peers.size(), peersTotal);
+  ASSERT_EQ(peers.size(), peersTotal + 1);
   std::cout << "unsorted ";
   print(NodeId(us), peers);
 

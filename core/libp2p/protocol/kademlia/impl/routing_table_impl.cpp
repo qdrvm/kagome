@@ -64,7 +64,7 @@ namespace libp2p::protocol::kademlia {
     }
 
     // sort bucket in ascending order by XOR distance from local peer.
-    XorDistanceComparator cmp(local_);
+    XorDistanceComparator cmp(id);
     std::sort(bucket.begin(), bucket.end(), cmp);
 
     if (count < bucket.size()) {

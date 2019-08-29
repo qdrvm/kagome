@@ -33,6 +33,10 @@ namespace libp2p::protocol::kademlia {
 
     outcome::result<void> update(const peer::PeerId &pid) override;
 
+    auto& getBuckets() {
+      return buckets_;
+    }
+
     void remove(const peer::PeerId &id) override;
 
     PeerIdVec getAllPeers() const override;

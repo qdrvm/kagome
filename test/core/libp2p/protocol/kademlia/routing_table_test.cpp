@@ -159,16 +159,19 @@ TEST_F(RoutingTableFixture, TableUpdate) {
  * https://sourcegraph.com/github.com/libp2p/go-libp2p-kbucket@HEAD/-/blob/table_test.go#L121:1
  */
 TEST_F(RoutingTableFixture, TableFind) {
+  const auto nPeers = 5;
+
   rt = std::make_shared<RoutingTableImpl>(idmgr, bus, RoutingTable::Config{10});
   srand(0);  // to make test deterministic
 
   std::vector<PeerId> peers;
   std::generate_n(
-      std::back_inserter(peers), 5, []() { return testutil::randomPeerId(); });
+      std::back_inserter(peers), nPeers, []() { return testutil::randomPeerId(); });
 
   for (const auto &peer : peers) {
     EXPECT_OUTCOME_TRUE_1(rt->update(peer));
   }
+  ASSERT_EQ(rt->size(), nPeers);
 
   for (const auto &peer : peers) {
     auto found = rt->getNearestPeers(NodeId(peer), 1);

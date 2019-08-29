@@ -7,6 +7,7 @@
 #define KAGOME_KAD_BUCKET_HPP
 
 #include <deque>
+#include <iostream>
 
 #include "libp2p/peer/peer_id.hpp"
 #include "libp2p/protocol/kademlia/node_id.hpp"
