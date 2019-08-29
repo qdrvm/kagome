@@ -24,7 +24,7 @@ namespace libp2p::protocol::kademlia {
     static constexpr const uint8_t msb = 1u << 7u;
 
     // if most significant bit is set, terminate the loop
-    while (!(byte & msb)) {
+    while ((byte & msb) == 0) {
       ret++;
       byte <<= 1u;
     }

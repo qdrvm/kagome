@@ -22,8 +22,15 @@ namespace libp2p::protocol::kademlia {
   struct Kad
       : public PeerRouting /*, public ContentRouting, public ValueStore */ {
     ~Kad() override = default;
+
+    enum class Error {
+      SUCCESS = 0,
+      NO_PEERS = 1
+    };
   };
 
 }  // namespace libp2p::protocol::kademlia
+
+OUTCOME_HPP_DECLARE_ERROR(libp2p::protocol::kademlia, Kad::Error);
 
 #endif  // KAGOME_KADEMLIA_KAD_HPP

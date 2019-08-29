@@ -164,7 +164,7 @@ namespace libp2p::protocol::kademlia {
         bucket_size_(config.bucket_size) {
     BOOST_ASSERT(idmgr_ != nullptr);
     BOOST_ASSERT(bus_ != nullptr);
-    buckets_.push_back(Bucket{});
+    buckets_.emplace_back(); // create 1 bucket
   }
 
 }  // namespace libp2p::protocol::kademlia
