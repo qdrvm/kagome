@@ -6,27 +6,14 @@
 #ifndef KAGOME_GOSSIPER_CLIENT_HPP
 #define KAGOME_GOSSIPER_CLIENT_HPP
 
-#include <functional>
-
-#include <outcome/outcome.hpp>
-#include "network/types/block_announce.hpp"
+#include "network/gossiper.hpp"
 
 namespace kagome::network {
   /**
-   * "Active" part of consensus gossiping
+   * "Active" part of consensus gossiping, representing one client (or node, or
+   * peer in another words)
    */
-  struct GossiperClient {
-    virtual ~GossiperClient() = default;
-
-    /**
-     * Send block announce
-     * @param block_announce - message with the block
-     * @param cb, which is called, when the message is delivered
-     */
-    virtual void blockAnnounce(
-        BlockAnnounce block_announce,
-        std::function<void(const outcome::result<void> &)> cb) const = 0;
-  };
+  struct GossiperClient : public Gossiper {};
 }  // namespace kagome::network
 
 #endif  // KAGOME_GOSSIPER_CLIENT_HPP

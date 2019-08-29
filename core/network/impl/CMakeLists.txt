@@ -47,6 +47,14 @@ target_link_libraries(gossiper_server_libp2p
     logger
     )
 
+add_library(gossiper_libp2p
+    gossiper_libp2p.cpp
+    gossiper_libp2p.hpp
+    )
+target_link_libraries(gossiper_libp2p
+    gossiper_client_libp2p
+    )
+
 add_library(rpc_sender_libp2p
     rpc_sender_libp2p.cpp
     rpc_sender_libp2p.hpp

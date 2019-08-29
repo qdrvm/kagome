@@ -7,31 +7,46 @@
 #define KAGOME_CORE_NETWORK_NETWORK_STATE_HPP
 
 #include <algorithm>
-#include <unordered_map>
+#include <memory>
+#include <vector>
 
 #include <boost/assert.hpp>
-#include "libp2p/peer/peer_id.hpp"
-#include "network/peer_client.hpp"
-#include "network/peer_server.hpp"
+#include "network/consensus_client.hpp"
+#include "network/consensus_server.hpp"
+#include "network/gossiper_client.hpp"
+#include "network/gossiper_server.hpp"
 
 namespace kagome::network {
 
-  using PeerClientsMap =
-      std::unordered_map<libp2p::peer::PeerId, std::shared_ptr<PeerClient>>;
-
-  /// Stores network's peer information
+  /**
+   * All peers of the network, which actively participate in consensus or other
+   * events
+   */
   struct NetworkState {
-    PeerClientsMap peer_clients;
-    std::shared_ptr<PeerServer> peer_server;
+    std::shared_ptr<ConsensusServer> consensus_server;
+    std::vector<std::shared_ptr<ConsensusClient>> consensus_clients;
 
-    NetworkState(PeerClientsMap _peer_clients,
-                 std::shared_ptr<PeerServer> _peer_server)
-        : peer_clients{std::move(_peer_clients)},
-          peer_server{std::move(_peer_server)} {
-      BOOST_ASSERT(std::all_of(peer_clients.begin(),
-                               peer_clients.end(),
-                               [](const auto &pair) { return pair.second; }));
-      BOOST_ASSERT(peer_server);
+    std::shared_ptr<GossiperServer> gossiper_server;
+    std::vector<std::shared_ptr<GossiperClient>> gossiper_clients;
+
+    NetworkState(
+        std::shared_ptr<ConsensusServer> consensus_server,
+        std::vector<std::shared_ptr<ConsensusClient>> consensus_clients,
+        std::shared_ptr<GossiperServer> gossiper_server,
+        std::vector<std::shared_ptr<GossiperClient>> gossiper_clients)
+        : consensus_server{std::move(consensus_server)},
+          consensus_clients{std::move(consensus_clients)},
+          gossiper_server{std::move(gossiper_server)},
+          gossiper_clients{std::move(gossiper_clients)} {
+      BOOST_ASSERT(consensus_server);
+      BOOST_ASSERT(std::all_of(consensus_clients.begin(),
+                               consensus_clients.end(),
+                               [](const auto &client) { return client; }));
+
+      BOOST_ASSERT(gossiper_server);
+      BOOST_ASSERT(std::all_of(gossiper_clients.begin(),
+                               gossiper_clients.end(),
+                               [](const auto &client) { return client; }));
     }
   };
 
