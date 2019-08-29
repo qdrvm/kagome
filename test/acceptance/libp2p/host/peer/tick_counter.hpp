@@ -27,11 +27,6 @@ struct TickCounter {
 
   void checkTicksCount() const {
     auto actual_count = ticks_count.load();
-
-    if (required_count == actual_count) {
-      return;
-    }
-
     ASSERT_EQ(actual_count, required_count)
         << "sending messages from <" << ci << "> client to <" << si
         << "> server "
