@@ -3,32 +3,48 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(peer_client
-    peer_client_libp2p.cpp
-    peer_client_libp2p.hpp
+add_library(consensus_client_libp2p
+    consensus_client_libp2p.cpp
+    consensus_client_libp2p.hpp
     )
-target_link_libraries(peer_client
+target_link_libraries(consensus_client_libp2p
     outcome
     buffer
     scale
     logger
-    libp2p_peer_id
-    multiaddress
     rpc_sender_libp2p
     )
 
-add_library(peer_server
-    peer_server_libp2p.cpp
-    peer_server_libp2p.hpp
+add_library(consensus_server_libp2p
+    consensus_server_libp2p.cpp
+    consensus_server_libp2p.hpp
     )
-target_link_libraries(peer_server
+target_link_libraries(consensus_server_libp2p
+    outcome
+    scale
+    logger
+    )
+
+add_library(gossiper_client_libp2p
+    gossiper_client_libp2p.cpp
+    gossiper_client_libp2p.hpp
+    )
+target_link_libraries(gossiper_client_libp2p
     outcome
     buffer
     scale
     logger
-    message_read_writer
-    libp2p_peer_id
-    multiaddress
+    rpc_sender_libp2p
+    )
+
+add_library(gossiper_server_libp2p
+    gossiper_server_libp2p.cpp
+    gossiper_server_libp2p.hpp
+    )
+target_link_libraries(gossiper_server_libp2p
+    outcome
+    scale
+    logger
     )
 
 add_library(rpc_sender_libp2p
