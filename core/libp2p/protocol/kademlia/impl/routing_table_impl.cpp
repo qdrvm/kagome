@@ -163,7 +163,7 @@ namespace libp2p::protocol::kademlia {
         bus_(std::move(bus)),
         bucket_size_(config.bucket_size) {
     BOOST_ASSERT(idmgr_ != nullptr);
-    BOOST_ASSERT(idmgr_ != nullptr);
+    BOOST_ASSERT(bus_ != nullptr);
     buckets_.push_back(Bucket{});
   }
 
