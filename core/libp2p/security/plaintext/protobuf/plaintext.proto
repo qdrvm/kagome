@@ -1,0 +1,10 @@
+syntax = "proto2";
+
+package libp2p.security.plaintext.protobuf;
+
+import "libp2p/crypto/protobuf/keys.proto";
+
+message Exchange {
+    optional bytes id = 1;
+    optional libp2p.crypto.protobuf.PublicKey pubkey = 2;
+}

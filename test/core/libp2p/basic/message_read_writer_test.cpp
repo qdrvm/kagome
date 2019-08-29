@@ -81,3 +81,21 @@ TEST_F(MessageReadWriterTest, Write) {
 
   ASSERT_TRUE(operation_completed_);
 }
+
+class ProtobufMessageRWTest : public testing::Test {
+ public:
+
+  std::shared_ptr<RawConnectionMock> connection_ =
+      std::make_shared<RawConnectionMock>();
+
+  std::shared_ptr<ProtobufMessageReadWriter> msg_rw_ =
+      std::make_shared<ProtobufMessageReadWriter>(connection_);
+};
+
+TEST_F(ProtobufMessageRWTest, Write) {
+
+}
+
+TEST_F(ProtobufMessageRWTest, Read) {
+
+}

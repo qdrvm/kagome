@@ -10,7 +10,7 @@
 
 namespace libp2p::security {
 
-  enum SecurityError { SUCCESS = 0, AUTHENTICATION_ERROR };
+  enum class SecurityError { AUTHENTICATION_ERROR = 1};
 
 }
 

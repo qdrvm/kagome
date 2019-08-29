@@ -34,6 +34,6 @@ namespace libp2p::crypto::marshaller {
    private:
     std::shared_ptr<validator::KeyValidator> key_validator_;
   };
-}  // namespace libp2p::crypto::marshaller
+}  // namespace libp2p::crypto::key_marshaller
 
 #endif  // KAGOME_CORE_LIBP2P_CRYPTO_MARSHALER_KEY_MARSHALER_IMPL_HPP
