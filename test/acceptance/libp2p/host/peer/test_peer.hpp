@@ -9,8 +9,6 @@
 #include <future>
 #include <thread>
 
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
 #include "clock/impl/clock_impl.hpp"
 #include "libp2p/injector/host_injector.hpp"
 #include "libp2p/protocol/echo.hpp"
@@ -18,20 +16,7 @@
 
 using namespace libp2p;
 
-using ::testing::_;
-using ::testing::Return;
-
-/**
- * @class TickCounter helper class which ensures that
- * number of interactions is correct
- */
-class TickCounter {
- public:
-  explicit inline TickCounter(size_t times) {
-    EXPECT_CALL(*this, tick(_)).Times(times);
-  }
-  MOCK_METHOD1(tick, void(size_t));
-};
+struct TickCounter;
 
 /**
  * @class Peer implements test version of a peer
@@ -63,13 +48,11 @@ class Peer {
 
   /**
    * @brief schedules start of client session
-   * @param number client number for testing purposes
    * @param pinfo server peer info
    * @param message_count number of messages to send
    * @param tester object for testing purposes
    */
-  void startClient(size_t number,
-                   const peer::PeerInfo &pinfo,
+  void startClient(const peer::PeerInfo &pinfo,
                    size_t message_count,
                    sptr<TickCounter> tester);
 

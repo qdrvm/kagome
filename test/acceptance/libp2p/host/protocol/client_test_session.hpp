@@ -20,16 +20,13 @@ namespace libp2p::protocol {
   class ClientTestSession
       : public std::enable_shared_from_this<ClientTestSession> {
    public:
-    using Callback =
-        std::function<void(outcome::result<std::vector<uint8_t>>, size_t)>;
+    using Callback = std::function<void(outcome::result<std::vector<uint8_t>>)>;
 
     /**
      * @param stream data stream
-     * @param client_number number of client for using in tests
      * @param ping_times number of messages to be sent
      */
     ClientTestSession(std::shared_ptr<connection::Stream> stream,
-                      size_t client_number,
                       size_t ping_times);
 
     /**
@@ -52,7 +49,6 @@ namespace libp2p::protocol {
     std::shared_ptr<crypto::random::RandomGenerator> random_generator_;
     std::vector<uint8_t> write_buf_;
     std::vector<uint8_t> read_buf_;
-    size_t client_number_;
     size_t messages_left_;
   };
 
