@@ -34,21 +34,24 @@ namespace kagome::consensus {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
       std::shared_ptr<network::NetworkState> network_state,
+      std::shared_ptr<network::Gossiper> gossiper,
       SynchronizerConfig config,
       common::Logger log)
       : block_tree_{std::move(block_tree)},
         blocks_headers_{std::move(blocks_headers)},
         network_state_{std::move(network_state)},
+        gossiper_{std::move(gossiper)},
         config_{config},
         log_{std::move(log)} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(blocks_headers_);
     BOOST_ASSERT(network_state_);
+    BOOST_ASSERT(gossiper_);
     BOOST_ASSERT(log_);
   }
 
   void SynchronizerImpl::start() {
-    network_state_->peer_server->setBlocksRequestHandler(
+    network_state_->consensus_server->setBlocksRequestHandler(
         [self{shared_from_this()}](
             const BlocksRequest &request) -> outcome::result<BlocksResponse> {
           return self->processRequest(request);
@@ -56,17 +59,7 @@ namespace kagome::consensus {
   }
 
   void SynchronizerImpl::announce(const primitives::BlockHeader &block_header) {
-    auto announce = network::BlockAnnounce{block_header};
-    for (const auto &peer_client : network_state_->peer_clients) {
-      peer_client.second->blockAnnounce(
-          announce, [self{shared_from_this()}, peer_client](auto &&res) {
-            if (!res) {
-              self->log_->error("cannot send a block announce to peer {}: {}",
-                                peer_client.first.toBase58(),
-                                res.error().message());
-            }
-          });
-    }
+    gossiper_->blockAnnounce(network::BlockAnnounce{block_header});
   }
 
   void SynchronizerImpl::requestBlocks(const libp2p::peer::PeerId &peer,

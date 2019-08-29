@@ -48,8 +48,8 @@ target_link_libraries(gossiper_server_libp2p
     )
 
 add_library(gossiper_libp2p
-    gossiper_libp2p.cpp
-    gossiper_libp2p.hpp
+    gossiper_broadcast.cpp
+    gossiper_broadcast.hpp
     )
 target_link_libraries(gossiper_libp2p
     gossiper_client_libp2p

@@ -21,11 +21,8 @@ namespace kagome::network {
     /**
      * Send block announce
      * @param block_announce - message with the block
-     * @param cb, which is called, when the message is delivered
      */
-    virtual void blockAnnounce(
-        BlockAnnounce block_announce,
-        std::function<void(const outcome::result<void> &)> cb) const = 0;
+    virtual void blockAnnounce(BlockAnnounce block_announce) const = 0;
   };
 }  // namespace kagome::network
 

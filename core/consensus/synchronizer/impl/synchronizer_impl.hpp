@@ -14,6 +14,7 @@
 #include "common/logger.hpp"
 #include "consensus/synchronizer/synchronizer.hpp"
 #include "consensus/synchronizer/synchronizer_config.hpp"
+#include "network/gossiper.hpp"
 #include "network/network_state.hpp"
 #include "primitives/common.hpp"
 
@@ -31,6 +32,7 @@ namespace kagome::consensus {
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
         std::shared_ptr<network::NetworkState> network_state,
+        std::shared_ptr<network::Gossiper> gossiper,
         SynchronizerConfig config = {},
         common::Logger log = common::createLogger("Synchronizer"));
 
@@ -82,6 +84,7 @@ namespace kagome::consensus {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers_;
     std::shared_ptr<network::NetworkState> network_state_;
+    std::shared_ptr<network::Gossiper> gossiper_;
     SynchronizerConfig config_;
     common::Logger log_;
 
