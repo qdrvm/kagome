@@ -1,0 +1,9 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#ifndef KAGOME_EXCHANGEMESSAGEMARSHALLERMOCK_HPP
+#define KAGOME_EXCHANGEMESSAGEMARSHALLERMOCK_HPP
+
+#endif  // KAGOME_EXCHANGEMESSAGEMARSHALLERMOCK_HPP

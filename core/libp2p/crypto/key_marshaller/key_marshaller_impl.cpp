@@ -78,6 +78,7 @@ namespace libp2p::crypto::marshaller {
 
   outcome::result<KeyMarshallerImpl::ByteArray> KeyMarshallerImpl::marshal(
       const PrivateKey &key) const {
+    // TODO(Harrm): Check if it's a typo
     proto::PublicKey proto_key;
     OUTCOME_TRY(key_type, marshalKeyType(key.type));
     proto_key.set_key_type(key_type);
