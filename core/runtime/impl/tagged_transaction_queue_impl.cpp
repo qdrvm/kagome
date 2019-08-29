@@ -15,8 +15,8 @@ namespace kagome::runtime {
 
   outcome::result<primitives::TransactionValidity>
   TaggedTransactionQueueImpl::validate_transaction(
-      const primitives::Extrinsic &ext) {
+      primitives::BlockNumber number, const primitives::Extrinsic &ext) {
     return execute<TransactionValidity>(
-        "TaggedTransactionQueue_validate_transaction", ext);
+        "TaggedTransactionQueue_validate_transaction", number, ext);
   }
 }  // namespace kagome::runtime

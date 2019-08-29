@@ -6,6 +6,7 @@
 #ifndef KAGOME_TAGGED_TRANSACTION_QUEUE_HPP
 #define KAGOME_TAGGED_TRANSACTION_QUEUE_HPP
 
+#include "primitives/common.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/transaction_validity.hpp"
 
@@ -25,7 +26,8 @@ namespace kagome::runtime {
      * @return structure with information about transaction validity
      */
     virtual outcome::result<primitives::TransactionValidity>
-    validate_transaction(const primitives::Extrinsic &ext) = 0;
+    validate_transaction(primitives::BlockNumber number,
+                         const primitives::Extrinsic &ext) = 0;
   };
 
 }  // namespace kagome::runtime

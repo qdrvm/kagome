@@ -14,7 +14,7 @@ namespace libp2p::transport {
       : context_(ctx), socket_(std::move(socket)) {}
 
   TcpConnection::TcpConnection(boost::asio::io_context &ctx)
-      : context_(ctx), socket_(ctx) {}
+      : context_(ctx), socket_(context_) {}
 
   outcome::result<void> TcpConnection::close() {
     boost::system::error_code ec;
@@ -67,7 +67,8 @@ namespace libp2p::transport {
   void TcpConnection::connect(
       const TcpConnection::ResolverResultsType &iterator,
       TcpConnection::ConnectCallbackFunc cb) {
-    boost::asio::async_connect(socket_, iterator,
+    boost::asio::async_connect(socket_,
+                               iterator,
                                [self{shared_from_this()}, cb{std::move(cb)}](
                                    auto &&ec, auto &&endpoint) {
                                  self->initiator_ = true;
@@ -76,9 +77,11 @@ namespace libp2p::transport {
                                });
   }
 
-  void TcpConnection::read(gsl::span<uint8_t> out, size_t bytes,
+  void TcpConnection::read(gsl::span<uint8_t> out,
+                           size_t bytes,
                            TcpConnection::ReadCallbackFunc cb) {
-    boost::asio::async_read(socket_, detail::makeBuffer(out, bytes),
+    boost::asio::async_read(socket_,
+                            detail::makeBuffer(out, bytes),
                             [cb = std::move(cb)](auto &&ec, auto &&read) {
                               if (ec) {
                                 return cb(std::forward<decltype(ec)>(ec));
@@ -87,7 +90,8 @@ namespace libp2p::transport {
                             });
   }
 
-  void TcpConnection::readSome(gsl::span<uint8_t> out, size_t bytes,
+  void TcpConnection::readSome(gsl::span<uint8_t> out,
+                               size_t bytes,
                                TcpConnection::ReadCallbackFunc cb) {
     socket_.async_read_some(detail::makeBuffer(out, bytes),
                             [cb = std::move(cb)](auto &&ec, auto &&read) {
@@ -98,9 +102,11 @@ namespace libp2p::transport {
                             });
   }
 
-  void TcpConnection::write(gsl::span<const uint8_t> in, size_t bytes,
+  void TcpConnection::write(gsl::span<const uint8_t> in,
+                            size_t bytes,
                             TcpConnection::WriteCallbackFunc cb) {
-    boost::asio::async_write(socket_, detail::makeBuffer(in, bytes),
+    boost::asio::async_write(socket_,
+                             detail::makeBuffer(in, bytes),
                              [cb = std::move(cb)](auto &&ec, auto &&written) {
                                if (ec) {
                                  return cb(std::forward<decltype(ec)>(ec));
@@ -109,7 +115,8 @@ namespace libp2p::transport {
                              });
   }
 
-  void TcpConnection::writeSome(gsl::span<const uint8_t> in, size_t bytes,
+  void TcpConnection::writeSome(gsl::span<const uint8_t> in,
+                                size_t bytes,
                                 TcpConnection::WriteCallbackFunc cb) {
     socket_.async_write_some(detail::makeBuffer(in, bytes),
                              [cb = std::move(cb)](auto &&ec, auto &&written) {

@@ -19,6 +19,7 @@ target_link_libraries(extrinsic_api_test
     extrinsic_api_service
     blob
     hasher
+    testutil_primitives_generator
     )
 
 add_library(test_tcp_client

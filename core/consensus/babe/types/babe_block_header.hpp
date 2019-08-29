@@ -34,8 +34,7 @@ namespace kagome::consensus {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const BabeBlockHeader &bh) {
-    // TODO(akvinikym) PRE-284: order of encoding/decoding may be incorrect
-    return s << bh.slot_number << bh.vrf_output << bh.authority_index;
+    return s << bh.vrf_output << bh.authority_index << bh.slot_number;
   }
 
   /**
@@ -48,8 +47,7 @@ namespace kagome::consensus {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, BabeBlockHeader &bh) {
-    // TODO(akvinikym) PRE-284: order of encoding/decoding may be incorrect
-    return s >> bh.slot_number >> bh.vrf_output >> bh.authority_index;
+    return s >> bh.vrf_output >> bh.authority_index >> bh.slot_number;
   }
 }  // namespace kagome::consensus
 

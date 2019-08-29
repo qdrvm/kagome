@@ -13,7 +13,7 @@ namespace libp2p::transport {
                            std::shared_ptr<Upgrader> upgrader,
                            TransportListener::HandlerFunc handler)
       : context_(context),
-        acceptor_(context),
+        acceptor_(context_),
         upgrader_(std::move(upgrader)),
         handle_(std::move(handler)) {}
 

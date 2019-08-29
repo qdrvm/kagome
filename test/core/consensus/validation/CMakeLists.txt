@@ -9,4 +9,5 @@ addtest(block_validator_test
 target_link_libraries(block_validator_test
     block_validator
     libp2p_peer_id
+    testutil_primitives_generator
     )

@@ -1,3 +1,5 @@
+add_subdirectory(host)
+
 addtest(all_muxers_acceptance_test
     muxer.cpp
     )

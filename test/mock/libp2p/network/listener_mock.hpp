@@ -12,6 +12,8 @@
 
 namespace libp2p::network {
   struct ListenerMock : public ListenerManager {
+    ~ListenerMock() override = default;
+
     MOCK_CONST_METHOD0(isStarted, bool());
 
     MOCK_METHOD0(start, void());

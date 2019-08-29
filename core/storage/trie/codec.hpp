@@ -37,9 +37,16 @@ namespace kagome::storage::trie {
         const common::Buffer &encoded_data) const = 0;
 
     /**
-     * @brief Algorithm that is used for hashing of nodes.
-     * @param buf node's byte representation
-     * @return hash of the node.
+     * @brief Get the merkle value of a node
+     * @param buf byte representation of the node
+     * @return hash of \param buf or \param buf if it is shorter than the hash
+     */
+    virtual common::Buffer merkleValue(const common::Buffer &buf) const = 0;
+
+    /**
+     * @brief Get the hash of a node
+     * @param buf byte representation of the node
+     * @return hash of \param buf
      */
     virtual common::Hash256 hash256(const common::Buffer &buf) const = 0;
   };

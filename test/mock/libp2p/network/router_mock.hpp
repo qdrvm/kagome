@@ -12,6 +12,8 @@
 
 namespace libp2p::network {
   struct RouterMock : public Router {
+    ~RouterMock() override = default;
+
     MOCK_METHOD2(setProtocolHandler,
                  void(const peer::Protocol &, const ProtoHandler &));
 

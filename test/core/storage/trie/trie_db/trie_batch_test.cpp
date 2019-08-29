@@ -3,20 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/trie/polkadot_trie_db/polkadot_trie_batch.hpp"
+#include "storage/trie/impl/polkadot_trie_batch.hpp"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include "crypto/hasher/hasher_impl.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"
-#include "testutil/storage/polkadot_trie_db_printer.hpp"
 
 using namespace kagome::storage::trie;
 using kagome::common::Buffer;
-using kagome::crypto::HasherImpl;
 using kagome::storage::face::WriteBatch;
 using testing::_;
 using testing::Invoke;
@@ -56,7 +53,7 @@ class MockPolkadotTrieDb : public PolkadotTrieDb {
   MOCK_CONST_METHOD0(getRootHash, Buffer());
 };
 
-class MockDb : public test::InMemoryStorage {
+class MockDb : public kagome::storage::InMemoryStorage {
  public:
   MOCK_METHOD2(put, outcome::result<void>(const Buffer &, const Buffer &));
 

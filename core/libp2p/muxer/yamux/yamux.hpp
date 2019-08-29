@@ -18,8 +18,10 @@ namespace libp2p::muxer {
      * Create a muxer with Yamux protocol
      * @param config of muxers to be created over the connections
      */
-    explicit Yamux(MuxedConnectionConfig config = MuxedConnectionConfig{});
+    explicit Yamux(
+        MuxedConnectionConfig config);
 
+    // NOLINTNEXTLINE(modernize-use-nodiscard)
     peer::Protocol getProtocolId() const noexcept override;
 
     void muxConnection(std::shared_ptr<connection::SecureConnection> conn,

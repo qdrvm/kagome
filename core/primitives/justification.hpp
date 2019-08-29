@@ -17,6 +17,16 @@ namespace kagome::primitives {
   };
 
   /**
+   * @brief compares two Justification instances
+   * @param lhs first instance
+   * @param rhs second instance
+   * @return true if equal false otherwise
+   */
+  inline bool operator==(const Justification &lhs, const Justification &rhs) {
+    return lhs.data == rhs.data;
+  }
+
+  /**
    * @brief outputs object of type Justification to stream
    * @tparam Stream output stream type
    * @param s stream reference

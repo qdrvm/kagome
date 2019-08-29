@@ -11,7 +11,8 @@
 #include "runtime/tagged_transaction_queue.hpp"
 
 namespace kagome::runtime {
-  class TaggedTransactionQueueImpl : public RuntimeApi, public TaggedTransactionQueue {
+  class TaggedTransactionQueueImpl : public RuntimeApi,
+                                     public TaggedTransactionQueue {
    public:
     TaggedTransactionQueueImpl(
         common::Buffer state_code,
@@ -20,6 +21,7 @@ namespace kagome::runtime {
     ~TaggedTransactionQueueImpl() override = default;
 
     outcome::result<primitives::TransactionValidity> validate_transaction(
+        primitives::BlockNumber number,
         const primitives::Extrinsic &ext) override;
   };
 }  // namespace kagome::runtime

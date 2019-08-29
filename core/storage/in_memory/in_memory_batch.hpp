@@ -7,9 +7,9 @@
 #define KAGOME_IN_MEMORY_BATCH_HPP
 
 #include "common/buffer.hpp"
-#include "in_memory_storage.hpp"
+#include "storage/in_memory/in_memory_storage.hpp"
 
-namespace test {
+namespace kagome::storage {
   using kagome::common::Buffer;
 
   class InMemoryBatch
@@ -51,6 +51,6 @@ namespace test {
     std::map<std::string, Buffer> entries;
     InMemoryStorage &db;
   };
-}  // namespace test
+}  // namespace kagome::storage
 
 #endif  // KAGOME_IN_MEMORY_BATCH_HPP

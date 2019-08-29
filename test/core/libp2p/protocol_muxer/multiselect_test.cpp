@@ -15,6 +15,7 @@
 #include "testutil/gmock_actions.hpp"
 #include "testutil/libp2p/peer.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/ma_generator.hpp"
 #include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
@@ -31,19 +32,24 @@ using libp2p::protocol_muxer::Multiselect;
 using libp2p::transport::TcpTransport;
 using libp2p::transport::Upgrader;
 using libp2p::transport::UpgraderMock;
+using testutil::MultiaddressGenerator;
 
 using ::testing::_;
 
 class MultiselectTest : public ::testing::Test {
  public:
   void SetUp() override {
+    context_ = std::make_shared<boost::asio::io_context>();
+    upgrader = std::make_shared<UpgraderMock>();
     transport_ = std::make_shared<TcpTransport>(context_, upgrader);
+
     ASSERT_TRUE(transport_) << "cannot create transport";
 
     EXPECT_CALL(*upgrader, upgradeToSecureOutbound(_, _, _))
         .WillRepeatedly(UpgradeToSecureOutbound(
             [](auto &&raw) -> std::shared_ptr<SecureConnection> {
-              return std::make_shared<CapableConnBasedOnRawConnMock>(raw);
+              return std::make_shared<CapableConnBasedOnRawConnMock>(
+                  std::forward<decltype(raw)>(raw));
             }));
     EXPECT_CALL(*upgrader, upgradeToSecureInbound(_, _))
         .WillRepeatedly(UpgradeToSecureInbound(
@@ -55,16 +61,24 @@ class MultiselectTest : public ::testing::Test {
             [](auto &&sec) -> std::shared_ptr<CapableConnection> {
               return std::make_shared<CapableConnBasedOnRawConnMock>(sec);
             }));
-
-    auto ma = "/ip4/127.0.0.1/tcp/40009"_multiaddr;
-    multiaddress_ = std::make_shared<Multiaddress>(std::move(ma));
   }
 
-  boost::asio::io_context context_;
-  std::shared_ptr<libp2p::transport::TransportAdaptor> transport_;
-  std::shared_ptr<libp2p::multi::Multiaddress> multiaddress_;
+  void TearDown() override {
+    ::testing::Mock::VerifyAndClearExpectations(upgrader.get());
+    transport_.reset();
+    context_.reset();
+    upgrader.reset();
+  }
 
-  std::shared_ptr<UpgraderMock> upgrader = std::make_shared<UpgraderMock>();
+  static MultiaddressGenerator &getMaGenerator() {
+    static MultiaddressGenerator ma_generator_("/ip4/127.0.0.1/tcp/", 40009);
+    return ma_generator_;
+  }
+
+  std::shared_ptr<boost::asio::io_context> context_;
+  std::shared_ptr<libp2p::transport::TransportAdaptor> transport_;
+
+  std::shared_ptr<UpgraderMock> upgrader;
 
   const Protocol kDefaultEncryptionProtocol1 = "/plaintext/1.0.0";
   const Protocol kDefaultEncryptionProtocol2 = "/plaintext/2.0.0";
@@ -76,7 +90,7 @@ class MultiselectTest : public ::testing::Test {
 
   void launchContext() {
     using std::chrono_literals::operator""ms;
-    context_.run_for(200ms);
+    context_->run_for(200ms);
   }
 
   /**
@@ -89,9 +103,10 @@ class MultiselectTest : public ::testing::Test {
 
     auto read_msg = std::make_shared<Buffer>(expected_opening_msg.size(), 0);
 
-    conn->read(*read_msg, read_msg->size(),
-               [conn, read_msg, expected_opening_msg,
-                next_step](const outcome::result<size_t> &read_bytes) {
+    conn->read(*read_msg,
+               read_msg->size(),
+               [conn, read_msg, expected_opening_msg, next_step](
+                   const outcome::result<size_t> &read_bytes) {
                  EXPECT_TRUE(read_bytes) << read_bytes.error().message();
                  EXPECT_EQ(*read_msg, expected_opening_msg.toVector());
 
@@ -99,7 +114,8 @@ class MultiselectTest : public ::testing::Test {
                      std::make_shared<Buffer>(0, expected_opening_msg.size());
 
                  conn->write(
-                     expected_opening_msg, expected_opening_msg.size(),
+                     expected_opening_msg,
+                     expected_opening_msg.size(),
                      [conn, expected_opening_msg, next_step](
                          const outcome::result<size_t> &written_bytes_res) {
                        EXPECT_OUTCOME_TRUE(written_bytes, written_bytes_res)
@@ -119,16 +135,18 @@ class MultiselectTest : public ::testing::Test {
       const std::function<void()> &next_step) {
     auto expected_opening_msg = MessageManager::openingMsg();
 
-    conn->write(expected_opening_msg, expected_opening_msg.size(),
-                [conn, expected_opening_msg,
-                 next_step](const outcome::result<size_t> &written_bytes_res) {
+    conn->write(expected_opening_msg,
+                expected_opening_msg.size(),
+                [conn, expected_opening_msg, next_step](
+                    const outcome::result<size_t> &written_bytes_res) {
                   EXPECT_OUTCOME_TRUE(written_bytes, written_bytes_res)
                   ASSERT_EQ(written_bytes, expected_opening_msg.size());
 
                   auto read_msg =
                       std::make_shared<Buffer>(expected_opening_msg.size(), 0);
                   conn->read(
-                      *read_msg, expected_opening_msg.size(),
+                      *read_msg,
+                      expected_opening_msg.size(),
                       [read_msg, expected_opening_msg, next_step](
                           const outcome::result<size_t> &read_bytes_res) {
                         EXPECT_OUTCOME_TRUE(read_bytes, read_bytes_res);
@@ -152,16 +170,18 @@ class MultiselectTest : public ::testing::Test {
 
     auto read_msg = std::make_shared<Buffer>(expected_ls_msg.size(), 0);
     conn->read(
-        *read_msg, expected_ls_msg.size(),
-        [conn, read_msg, expected_ls_msg, protocols_msg,
-         next_step](const outcome::result<size_t> &read_bytes_res) {
+        *read_msg,
+        expected_ls_msg.size(),
+        [conn, read_msg, expected_ls_msg, protocols_msg, next_step](
+            const outcome::result<size_t> &read_bytes_res) {
           EXPECT_TRUE(read_bytes_res) << read_bytes_res.error().message();
           EXPECT_OUTCOME_TRUE(read_bytes, read_bytes_res)
           EXPECT_EQ(read_bytes, expected_ls_msg.size());
 
           EXPECT_EQ(*read_msg, expected_ls_msg);
 
-          conn->write(protocols_msg, protocols_msg.size(),
+          conn->write(protocols_msg,
+                      protocols_msg.size(),
                       [conn, protocols_msg, next_step](
                           const outcome::result<size_t> &written_bytes_res) {
                         EXPECT_OUTCOME_TRUE(written_bytes, written_bytes_res)
@@ -180,14 +200,16 @@ class MultiselectTest : public ::testing::Test {
     auto protocols_msg = MessageManager::protocolsMsg(protos_to_receive);
 
     conn->write(
-        ls_msg, ls_msg.size(),
-        [conn, ls_msg, protocols_msg,
-         next_step](const outcome::result<size_t> &written_bytes_res) {
+        ls_msg,
+        ls_msg.size(),
+        [conn, ls_msg, protocols_msg, next_step](
+            const outcome::result<size_t> &written_bytes_res) {
           EXPECT_OUTCOME_TRUE(written_bytes, written_bytes_res)
           EXPECT_EQ(written_bytes, ls_msg.size());
 
           auto read_msg = std::make_shared<Buffer>(protocols_msg.size(), 0);
-          conn->read(*read_msg, read_msg->size(),
+          conn->read(*read_msg,
+                     read_msg->size(),
                      [conn, read_msg, protocols_msg, next_step](
                          const outcome::result<size_t> &read_bytes_res) {
                        EXPECT_TRUE(read_bytes_res);
@@ -203,18 +225,21 @@ class MultiselectTest : public ::testing::Test {
    */
   static void negotiationProtocolNaListener(
       const std::shared_ptr<ReadWriteCloser> &conn,
-      const Protocol &proto_to_send, const std::function<void()> &next_step) {
+      const Protocol &proto_to_send,
+      const std::function<void()> &next_step) {
     auto na_msg = MessageManager::naMsg();
     auto protocol_msg = MessageManager::protocolMsg(proto_to_send);
 
-    conn->write(protocol_msg, protocol_msg.size(),
-                [conn, protocol_msg, na_msg,
-                 next_step](const outcome::result<size_t> written_bytes_res) {
+    conn->write(protocol_msg,
+                protocol_msg.size(),
+                [conn, protocol_msg, na_msg, next_step](
+                    const outcome::result<size_t> written_bytes_res) {
                   EXPECT_OUTCOME_TRUE(written_bytes, written_bytes_res)
                   EXPECT_EQ(written_bytes, protocol_msg.size());
 
                   auto read_msg = std::make_shared<Buffer>(na_msg.size(), 0);
-                  conn->read(*read_msg, read_msg->size(),
+                  conn->read(*read_msg,
+                             read_msg->size(),
                              [conn, read_msg, na_msg, next_step](
                                  const outcome::result<size_t> read_bytes_res) {
                                EXPECT_TRUE(read_bytes_res);
@@ -236,14 +261,16 @@ class MultiselectTest : public ::testing::Test {
 
     auto read_msg = std::make_shared<Buffer>(expected_proto_msg.size(), 0);
     conn->read(
-        *read_msg, expected_proto_msg.size(),
-        [conn, read_msg,
-         expected_proto_msg](const outcome::result<size_t> &read_bytes_res) {
+        *read_msg,
+        expected_proto_msg.size(),
+        [conn, read_msg, expected_proto_msg](
+            const outcome::result<size_t> &read_bytes_res) {
           EXPECT_TRUE(read_bytes_res);
           EXPECT_EQ(*read_msg, expected_proto_msg);
 
           conn->write(
-              *read_msg, read_msg->size(),
+              *read_msg,
+              read_msg->size(),
               [read_msg](const outcome::result<size_t> &written_bytes_res) {
                 EXPECT_OUTCOME_TRUE(written_bytes, written_bytes_res);
                 EXPECT_EQ(written_bytes, read_msg->size());
@@ -260,7 +287,8 @@ class MultiselectTest : public ::testing::Test {
     auto expected_proto_msg = MessageManager::protocolMsg(expected_protocol);
 
     conn->write(
-        expected_proto_msg, expected_proto_msg.size(),
+        expected_proto_msg,
+        expected_proto_msg.size(),
         [conn,
          expected_proto_msg](const outcome::result<size_t> &written_bytes_res) {
           EXPECT_OUTCOME_TRUE(written_bytes, written_bytes_res)
@@ -268,7 +296,8 @@ class MultiselectTest : public ::testing::Test {
 
           auto read_msg =
               std::make_shared<Buffer>(expected_proto_msg.size(), 0);
-          conn->read(*read_msg, read_msg->size(),
+          conn->read(*read_msg,
+                     read_msg->size(),
                      [conn, read_msg, expected_proto_msg](
                          const outcome::result<size_t> &read_bytes_res) {
                        EXPECT_TRUE(read_bytes_res)
@@ -287,7 +316,6 @@ class MultiselectTest : public ::testing::Test {
  */
 TEST_F(MultiselectTest, NegotiateAsInitiator) {
   auto negotiated = false;
-
   auto transport_listener = transport_->createListener(
       [this](outcome::result<std::shared_ptr<CapableConnection>> rconn) {
         ASSERT_TRUE(rconn) << rconn.error().message();
@@ -305,21 +333,25 @@ TEST_F(MultiselectTest, NegotiateAsInitiator) {
         });
       });
 
-  ASSERT_TRUE(transport_listener->listen(*multiaddress_))
-      << "is port 40009 busy?";
-  ASSERT_TRUE(transport_->canDial(*multiaddress_));
+  auto ma = getMaGenerator().nextMultiaddress();
+
+  ASSERT_TRUE(transport_listener->listen(ma)) << "is port busy?";
+  ASSERT_TRUE(transport_->canDial(ma));
 
   std::vector<Protocol> protocol_vec{kDefaultEncryptionProtocol2};
   transport_->dial(
-      testutil::randomPeerId(), *multiaddress_,
+      testutil::randomPeerId(),
+      ma,
       [this, &negotiated, &protocol_vec](
           outcome::result<std::shared_ptr<CapableConnection>> rconn) {
         EXPECT_OUTCOME_TRUE(conn, rconn);
 
         multiselect_->selectOneOf(
-            protocol_vec, conn, true,
-            [this, &negotiated,
-             conn](const outcome::result<Protocol> &protocol_res) {
+            protocol_vec,
+            conn,
+            true,
+            [this, &negotiated, conn](
+                const outcome::result<Protocol> &protocol_res) {
               EXPECT_OUTCOME_TRUE(protocol, protocol_res);
               EXPECT_EQ(protocol, kDefaultEncryptionProtocol2);
               negotiated = true;
@@ -339,7 +371,9 @@ TEST_F(MultiselectTest, NegotiateAsListener) {
           outcome::result<std::shared_ptr<CapableConnection>> rconn) mutable {
         EXPECT_OUTCOME_TRUE(conn, rconn);
         multiselect_->selectOneOf(
-            protocol_vec, conn, false,
+            protocol_vec,
+            conn,
+            false,
             [this, &negotiated](const outcome::result<Protocol> &protocol_res) {
               EXPECT_OUTCOME_TRUE(protocol, protocol_res);
               EXPECT_EQ(protocol, kDefaultEncryptionProtocol2);
@@ -347,12 +381,13 @@ TEST_F(MultiselectTest, NegotiateAsListener) {
             });
       });
 
-  ASSERT_TRUE(transport_listener->listen(*multiaddress_))
-      << "is port 40009 busy?";
-  ASSERT_TRUE(transport_->canDial(*multiaddress_));
+  auto ma = getMaGenerator().nextMultiaddress();
+  ASSERT_TRUE(transport_listener->listen(ma)) << "is port busy?";
+  ASSERT_TRUE(transport_->canDial(ma));
 
   transport_->dial(
-      testutil::randomPeerId(), *multiaddress_,
+      testutil::randomPeerId(),
+      ma,
       [this](outcome::result<std::shared_ptr<CapableConnection>> rconn) {
         EXPECT_OUTCOME_TRUE(conn, rconn);
         // first, we expect an exchange of opening messages
@@ -364,7 +399,8 @@ TEST_F(MultiselectTest, NegotiateAsListener) {
                 // third, send ls and receive protocols, supported by the other
                 // side
                 negotiationLsListener(
-                    conn, std::vector<Protocol>{kDefaultEncryptionProtocol2},
+                    conn,
+                    std::vector<Protocol>{kDefaultEncryptionProtocol2},
                     [this, conn] {
                       // fourth, send this protocol as our choice and receive an
                       // ack
@@ -395,19 +431,22 @@ TEST_F(MultiselectTest, NegotiateFailure) {
         EXPECT_OUTCOME_TRUE(conn, rconn);
 
         multiselect_->selectOneOf(
-            protocol_vec, conn, true,
+            protocol_vec,
+            conn,
+            true,
             [](const outcome::result<Protocol> &protocol_result) {
               EXPECT_FALSE(protocol_result);
             });
         negotiated = true;
       });
 
-  ASSERT_TRUE(transport_listener->listen(*multiaddress_))
-      << "is port 40009 busy?";
-  ASSERT_TRUE(transport_->canDial(*multiaddress_));
+  auto ma = getMaGenerator().nextMultiaddress();
+  ASSERT_TRUE(transport_listener->listen(ma)) << "is port busy?";
+  ASSERT_TRUE(transport_->canDial(ma));
 
   transport_->dial(
-      testutil::randomPeerId(), *multiaddress_,
+      testutil::randomPeerId(),
+      ma,
       [this](outcome::result<std::shared_ptr<CapableConnection>> rconn) {
         EXPECT_OUTCOME_TRUE(conn, rconn);
         negotiationOpeningsInitiator(conn, [this, conn] {
@@ -429,8 +468,8 @@ TEST_F(MultiselectTest, NegotiateFailure) {
 TEST_F(MultiselectTest, NoProtocols) {
   std::shared_ptr<RawConnection> conn = std::make_shared<RawConnectionMock>();
   std::vector<Protocol> empty_vec{};
-  multiselect_->selectOneOf(empty_vec, conn, true,
-                            [](const outcome::result<Protocol> &protocol_res) {
-                              EXPECT_FALSE(protocol_res);
-                            });
+  multiselect_->selectOneOf(
+      empty_vec, conn, true, [](const outcome::result<Protocol> &protocol_res) {
+        EXPECT_FALSE(protocol_res);
+      });
 }

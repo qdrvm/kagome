@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "in_memory_storage.hpp"
+#include "storage/in_memory/in_memory_storage.hpp"
 
-#include "in_memory_batch.hpp"
+#include "storage/in_memory/in_memory_batch.hpp"
 
 using kagome::common::Buffer;
 
-namespace test{
+namespace kagome::storage {
 
   outcome::result<Buffer> InMemoryStorage::get(const Buffer &key) const {
     if (storage.find(key.toHex()) != storage.end()) {

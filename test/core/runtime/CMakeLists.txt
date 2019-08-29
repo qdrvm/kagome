@@ -30,6 +30,7 @@ addtest(tagged_transaction_queue_test
     )
 target_link_libraries(tagged_transaction_queue_test
     tagged_transaction_queue
+    testutil_primitives_generator
     wasm_test
     )
 

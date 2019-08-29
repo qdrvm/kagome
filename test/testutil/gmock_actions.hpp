@@ -74,5 +74,4 @@ ACTION_P(UpgradeToMuxed, do_upgrade) {
   arg1(do_upgrade(arg0));
 }
 
-
 #endif  // KAGOME_GMOCK_ACTIONS_HPP

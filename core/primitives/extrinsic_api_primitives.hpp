@@ -32,7 +32,7 @@ namespace kagome::primitives {
   /**
    * @brief Metadata primitive
    */
-  using Metadata = std::optional<std::shared_ptr<Session>>;
+  using Metadata = boost::optional<std::shared_ptr<Session>>;
 
   /**
    * @brief Subscriber primitive
