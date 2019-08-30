@@ -11,7 +11,6 @@
 #include "libp2p/crypto/key_marshaller.hpp"
 #include "libp2p/security/plaintext/exchange_message.hpp"
 #include "libp2p/security/plaintext/exchange_message_marshaller.hpp"
-#include "libp2p/security/plaintext/protobuf/plaintext.pb.h"
 
 namespace libp2p::security::plaintext {
 

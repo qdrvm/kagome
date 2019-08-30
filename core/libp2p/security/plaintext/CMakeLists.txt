@@ -28,5 +28,4 @@ target_link_libraries(plaintext_exchange_message_marshaller
     outcome
     plaintext_protobuf
     key_marshaller
-    keys_proto
     )

@@ -74,12 +74,14 @@ namespace libp2p::security {
                               .peer_id = idmgr_->getId()}),
                           conn,
                           cb);
-    conn->write(out_msg.value(), out_msg.value().size(), [cb{std::move(cb)}, conn](auto &&res) {
-      if (res.has_error()) {
-        conn->close();
-        cb(Error::EXCHANGE_SEND_ERROR);
-      }
-    });
+    conn->write(out_msg.value(),
+                out_msg.value().size(),
+                [cb{std::move(cb)}, conn](auto &&res) {
+                  if (res.has_error()) {
+                    conn->close();
+                    cb(Error::EXCHANGE_SEND_ERROR);
+                  }
+                });
   }
 
   void Plaintext::receiveExchangeMsg(
@@ -89,12 +91,12 @@ namespace libp2p::security {
     auto read_bytes = std::make_shared<std::vector<uint8_t>>(kMaxMsgSize);
     conn->readSome(*read_bytes,
                    kMaxMsgSize,
-                   std::bind(&Plaintext::readCallback,
-                             shared_from_this(),
-                             conn,
-                             std::move(cb),
-                             read_bytes,
-                             std::placeholders::_1));
+                 [self{shared_from_this()},
+                       conn,
+                       cb{std::move(cb)},
+                       read_bytes](auto&& r) {
+      self->readCallback(conn, cb, read_bytes, r);
+    });
   }
 
   void Plaintext::readCallback(

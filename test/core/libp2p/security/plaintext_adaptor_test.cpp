@@ -93,13 +93,13 @@ TEST_F(PlaintextAdaptorTest, SecureInbound) {
       conn, [this](outcome::result<std::shared_ptr<SecureConnection>> rc) {
         EXPECT_OUTCOME_TRUE(sec, rc);
 
-        EXPECT_OUTCOME_TRUE(remotePubkey, sec->remotePublicKey());
-        EXPECT_EQ(remotePubkey, remote_pubkey);
+        EXPECT_OUTCOME_TRUE(sec_remote_pubkey, sec->remotePublicKey());
+        EXPECT_EQ(sec_remote_pubkey, remote_pubkey);
 
-        EXPECT_OUTCOME_TRUE(remoteId, sec->remotePeer());
+        EXPECT_OUTCOME_TRUE(remote_id, sec->remotePeer());
         auto calculated = PeerId::fromPublicKey(remote_pubkey);
 
-        EXPECT_EQ(remoteId, calculated);
+        EXPECT_EQ(remote_id, calculated);
       });
 }
 
@@ -125,13 +125,13 @@ TEST_F(PlaintextAdaptorTest, SecureOutbound) {
       [pid, this](outcome::result<std::shared_ptr<SecureConnection>> rc) {
         EXPECT_OUTCOME_TRUE(sec, rc);
 
-        EXPECT_OUTCOME_TRUE(remotePubkey, sec->remotePublicKey());
-        EXPECT_EQ(remotePubkey, remote_pubkey);
+        EXPECT_OUTCOME_TRUE(sec_remote_pubkey, sec->remotePublicKey());
+        EXPECT_EQ(sec_remote_pubkey, remote_pubkey);
 
-        EXPECT_OUTCOME_TRUE(remoteId, sec->remotePeer());
+        EXPECT_OUTCOME_TRUE(remote_id, sec->remotePeer());
         auto calculated = PeerId::fromPublicKey(remote_pubkey);
 
-        EXPECT_EQ(remoteId, calculated);
-        EXPECT_EQ(remoteId, pid);
+        EXPECT_EQ(remote_id, calculated);
+        EXPECT_EQ(remote_id, pid);
       });
 }

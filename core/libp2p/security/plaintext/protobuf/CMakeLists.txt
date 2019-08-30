@@ -6,6 +6,3 @@
 add_proto_library(plaintext_protobuf
     plaintext.proto
     )
-target_link_libraries(plaintext_protobuf
-    keys_proto
-    )

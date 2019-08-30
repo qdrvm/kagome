@@ -1,8 +1,8 @@
 syntax = "proto2";
 
-package libp2p.security.plaintext.protobuf;
-
 import "libp2p/crypto/protobuf/keys.proto";
+
+package libp2p.security.plaintext.protobuf;
 
 message Exchange {
     optional bytes id = 1;

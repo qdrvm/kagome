@@ -11,7 +11,7 @@
 #include "libp2p/multi/uvarint.hpp"
 #include "libp2p/network/connection_manager.hpp"
 #include "libp2p/network/network.hpp"
-#include "libp2p/protocol/identify/pb/identify.pb.h"
+#include "libp2p/protocol/identify/protobuf/identify.pb.h"
 #include "mock/libp2p/connection/capable_connection_mock.hpp"
 #include "mock/libp2p/connection/stream_mock.hpp"
 #include "mock/libp2p/crypto/key_marshaller_mock.hpp"

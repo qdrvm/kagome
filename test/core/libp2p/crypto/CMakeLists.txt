@@ -35,7 +35,7 @@ addtest(marshaller_test
     marshaller_test.cpp
     )
 target_link_libraries(marshaller_test
-    marshaller
+    key_marshaller
     )
 
 addtest(keygen_test

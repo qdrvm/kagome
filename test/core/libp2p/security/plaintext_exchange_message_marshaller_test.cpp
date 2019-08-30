@@ -6,16 +6,15 @@
 #include <gtest/gtest.h>
 
 #include "libp2p/crypto/key.hpp"
-#include "libp2p/crypto/protobuf/keys.pb.h"
 #include "libp2p/peer/peer_id.hpp"
 #include "libp2p/security/plaintext/exchange_message_marshaller_impl.hpp"
 #include "mock/libp2p/crypto/key_marshaller_mock.hpp"
 #include "testutil/outcome.hpp"
+#include "libp2p/security/plaintext/protobuf/plaintext.pb.h"
 
 using libp2p::crypto::Key;
 using libp2p::crypto::PublicKey;
 using libp2p::crypto::marshaller::KeyMarshallerMock;
-using ProbufPubKey = libp2p::crypto::protobuf::PublicKey;
 using libp2p::crypto::protobuf::KeyType;
 using libp2p::peer::PeerId;
 using libp2p::security::plaintext::ExchangeMessage;
@@ -23,6 +22,7 @@ using libp2p::security::plaintext::ExchangeMessageMarshaller;
 using libp2p::security::plaintext::ExchangeMessageMarshallerImpl;
 using testing::_;
 using testing::Return;
+using ProbufPubKey = libp2p::crypto::protobuf::PublicKey;
 
 class ExchangeMessageMarshallerTest : public testing::Test {
  public:

@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 #include "libp2p/multi/uvarint.hpp"
 #include "libp2p/protocol/identify/identify_push.hpp"
-#include "libp2p/protocol/identify/pb/identify.pb.h"
+#include "libp2p/protocol/identify/protobuf/identify.pb.h"
 #include "mock/libp2p/connection/capable_connection_mock.hpp"
 #include "mock/libp2p/connection/stream_mock.hpp"
 #include "mock/libp2p/host/host_mock.hpp"
