@@ -23,6 +23,7 @@ target_link_libraries(consensus_server_libp2p
     outcome
     scale
     logger
+    scale_rpc_receiver
     )
 
 add_library(gossiper_client_libp2p
@@ -45,6 +46,7 @@ target_link_libraries(gossiper_server_libp2p
     outcome
     scale
     logger
+    scale_rpc_receiver
     )
 
 add_library(gossiper_libp2p
@@ -62,4 +64,14 @@ add_library(rpc_sender_libp2p
 target_link_libraries(rpc_sender_libp2p
     message_read_writer
     outcome
+    )
+
+add_library(scale_rpc_receiver
+    scale_rpc_receiver.cpp
+    scale_rpc_receiver.hpp
+    )
+target_link_libraries(scale_rpc_receiver
+    message_read_writer
+    outcome
+    scale
     )

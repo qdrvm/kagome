@@ -8,10 +8,24 @@
 #include "libp2p/basic/message_read_writer.hpp"
 #include "libp2p/connection/stream.hpp"
 #include "network/impl/common.hpp"
+#include "network/impl/scale_rpc_receiver.hpp"
+#include "scale/scale.hpp"
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, ConsensusServerLibp2p::Error, e) {
+  using E = kagome::network::ConsensusServerLibp2p::Error;
+  switch (e) {
+    case E::UNEXPECTED_MESSAGE_TYPE:
+      return "unexpected message type arrived over the sync protocol";
+  }
+  return "unknown error";
+}
 
 namespace kagome::network {
-  ConsensusServerLibp2p::ConsensusServerLibp2p(libp2p::Host &host)
-      : host_{host} {}
+  using libp2p::basic::MessageReadWriter;
+
+  ConsensusServerLibp2p::ConsensusServerLibp2p(libp2p::Host &host,
+                                               common::Logger log)
+      : host_{host}, log_{std::move(log)} {}
 
   void ConsensusServerLibp2p::start() const {
     host_.setProtocolHandler(kSyncProtocol,
@@ -27,60 +41,54 @@ namespace kagome::network {
 
   void ConsensusServerLibp2p::handleSyncProto(
       std::shared_ptr<libp2p::connection::Stream> stream) const {
-    auto read_writer = std::make_shared<MessageReadWriter>(stream);
-    read_writer->read([self{shared_from_this()},
-                       read_writer,
-                       stream{std::move(stream)}](auto &&read_res) mutable {
-      if (!read_res) {
-        self->log_->error("cannot read message from the stream: {}",
-                          read_res.error().message());
-        return stream->reset();
-      }
-
-      // several types of messages can arrive over Sync protocol (at least, in
-      // the probable future)
-      auto blocks_request_candidate =
-          scale::decode<BlocksRequest>(*read_res.value());
-      if (blocks_request_candidate) {
-        if (!self->handleBlocksRequest(blocks_request_candidate.value(),
-                                       read_writer)) {
-          stream->reset();
-        }
-        return;
-      }
-
-      self->log_->error("some unknown message type was received");
-      return stream->reset();
-    });
+    ScaleRPCReceiver::receive<NetworkMessage, NetworkMessage>(
+        std::make_shared<MessageReadWriter>(stream),
+        [self{shared_from_this()},
+         stream](NetworkMessage msg) -> outcome::result<NetworkMessage> {
+          switch (msg.type) {
+            case NetworkMessage::Type::BLOCKS_REQUEST: {
+              auto request_res = scale::decode<BlocksRequest>(msg.body);
+              if (!request_res) {
+                self->log_->error("cannot decode blocks request: {}",
+                                  request_res.error().message());
+                stream->reset();
+                return request_res.error();
+              }
+              return self->handleBlocksRequest(request_res.value());
+            }
+            default:
+              self->log_->error(
+                  "unexpected message type arrived over the sync protocol");
+              stream->reset();
+              return Error::UNEXPECTED_MESSAGE_TYPE;
+          }
+        },
+        [self{shared_from_this()}, stream](auto err) {
+          self->log_->error(
+              "error while receiving a message over sync protocol: {}",
+              err.error().message());
+          return stream->reset();
+        });
   }
 
-  bool ConsensusServerLibp2p::handleBlocksRequest(
-      const BlocksRequest &request,
-      const std::shared_ptr<libp2p::basic::MessageReadWriter> &read_writer)
-      const {
+  outcome::result<NetworkMessage> ConsensusServerLibp2p::handleBlocksRequest(
+      const BlocksRequest &request) const {
     auto response_res = blocks_request_handler_(request);
     if (!response_res) {
       log_->error("cannot process blocks request: {}",
                   response_res.error().message());
-      return false;
+      return response_res.error();
     }
 
     auto encoded_response_res = scale::encode(std::move(response_res.value()));
     if (!encoded_response_res) {
       log_->error("cannot encode blocks response: {}",
                   encoded_response_res.error().message());
-      return false;
+      return encoded_response_res.error();
     }
-    auto response = std::make_shared<common::Buffer>(
-        std::move(encoded_response_res.value()));
 
-    read_writer->write(*response,
-                       [self{shared_from_this()}, response](auto &&write_res) {
-                         if (!write_res) {
-                           self->log_->error("cannot write blocks response: {}",
-                                             write_res.error().message());
-                         }
-                       });
-    return true;
+    return NetworkMessage{
+        NetworkMessage::Type::BLOCKS_RESPONSE,
+        common::Buffer{std::move(encoded_response_res.value())}};
   }
 }  // namespace kagome::network

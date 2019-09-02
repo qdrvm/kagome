@@ -25,7 +25,7 @@ namespace kagome::network {
     /**
      * Start accepting messages on this server
      */
-    virtual void start() const;
+    virtual void start() const = 0;
 
     /**
      * Subscribe for the block requests

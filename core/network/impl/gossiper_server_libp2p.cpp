@@ -8,6 +8,8 @@
 #include "libp2p/basic/message_read_writer.hpp"
 #include "libp2p/connection/stream.hpp"
 #include "network/impl/common.hpp"
+#include "network/impl/scale_rpc_receiver.hpp"
+#include "network/types/network_message.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::network {
@@ -18,11 +20,10 @@ namespace kagome::network {
       : host_{host}, log_{std::move(log)} {}
 
   void GossiperServerLibp2p::start() {
-    host_.setProtocolHandler(
-        kGossipProtocol, [self{shared_from_this()}](auto stream) {
-          self->handleGossipProtocol(
-              std::make_shared<MessageReadWriter>(stream), std::move(stream));
-        });
+    host_.setProtocolHandler(kGossipProtocol,
+                             [self{shared_from_this()}](auto stream) {
+                               self->handleGossipProtocol(std::move(stream));
+                             });
   }
 
   void GossiperServerLibp2p::setBlockAnnounceHandler(
@@ -31,35 +32,41 @@ namespace kagome::network {
   }
 
   void GossiperServerLibp2p::handleGossipProtocol(
-      const std::shared_ptr<libp2p::basic::MessageReadWriter> &read_writer,
       std::shared_ptr<libp2p::connection::Stream> stream) const {
-    read_writer->read([self{shared_from_this()},
-                       read_writer,
-                       stream = std::move(stream)](auto &&read_res) mutable {
-      if (!read_res) {
-        self->log_->error("cannot read message from the stream: {}",
-                          read_res.error().message());
-        return stream->reset();
-      }
+    ScaleRPCReceiver::receive<NetworkMessage>(
+        std::make_shared<MessageReadWriter>(stream),
+        [self{shared_from_this()}, stream](NetworkMessage msg) mutable {
+          switch (msg.type) {
+            case NetworkMessage::Type::BLOCK_ANNOUNCE: {
+              auto announce_res = scale::decode<BlockAnnounce>(msg.body);
+              if (!announce_res) {
+                self->log_->error("cannot decode block announce: {}",
+                                  announce_res.error().message());
+                return stream->reset();
+              }
 
-      auto announce_candidate = scale::decode<BlockAnnounce>(*read_res.value());
-      if (announce_candidate) {
-        return self->handleBlockAnnounce(
-            announce_candidate.value(), read_writer, std::move(stream));
-      }
-
-      self->log_->error("some unknown message type was received");
-      return stream->reset();
-    });
+              return self->handleBlockAnnounce(announce_res.value(),
+                                               std::move(stream));
+            }
+            default:
+              self->log_->error(
+                  "unexpected message type arrived over the gossiper protocol");
+              return stream->reset();
+          }
+        },
+        [self{shared_from_this()}, stream](auto &&err) {
+          self->log_->error("error while receiving block announce: {}",
+                            err.error().message());
+          stream->reset();
+        });
   }
 
   void GossiperServerLibp2p::handleBlockAnnounce(
       const BlockAnnounce &announce,
-      const std::shared_ptr<libp2p::basic::MessageReadWriter> &read_writer,
       std::shared_ptr<libp2p::connection::Stream> stream) const {
     block_announce_handler_(announce);
 
     // read next message from the same stream
-    handleGossipProtocol(read_writer, std::move(stream));
+    handleGossipProtocol(std::move(stream));
   }
 }  // namespace kagome::network
