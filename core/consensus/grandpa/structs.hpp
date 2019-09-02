@@ -6,9 +6,9 @@
 #ifndef KAGOME_CORE_CONSENSUS_GRANDPA_STRUCTS_HPP
 #define KAGOME_CORE_CONSENSUS_GRANDPA_STRUCTS_HPP
 
+#include <boost/asio/steady_timer.hpp>
 #include "common/blob.hpp"
 #include "common/wrapper.hpp"
-#include <boost/asio/steady_timer.hpp>
 
 namespace kagome::consensus::grandpa {
 
