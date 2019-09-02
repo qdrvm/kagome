@@ -3,20 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_CLIENT_HPP
-#define KAGOME_CORE_CONSENSUS_GRANDPA_CLIENT_HPP
+#ifndef KAGOME_CORE_CONSENSUS_GRANDPA_GOSSIPER_HPP
+#define KAGOME_CORE_CONSENSUS_GRANDPA_GOSSIPER_HPP
 
 #include "consensus/grandpa/structs.hpp"
 
 namespace kagome::consensus::grandpa {
 
   /**
-   * @class Client
-   * @brief Abstraction of a single (possibly remote) Grandpa Server (we are the
-   * client).
+   * @class Gossiper
+   * @brief Gossip messages to the network via this class
    */
-  struct Client {
-    virtual ~Client() = default;
+  struct Gossiper {
+    virtual ~Gossiper() = default;
 
     virtual void precommit(Precommit pc) = 0;
     virtual void prevote(Prevote pv) = 0;
@@ -25,4 +24,4 @@ namespace kagome::consensus::grandpa {
 
 }  // namespace kagome::consensus::grandpa
 
-#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_CLIENT_HPP
+#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_GOSSIPER_HPP

@@ -7,10 +7,10 @@
 #define KAGOME_CORE_CONSENSUS_GRANDPA_ROUND_HPP
 
 #include <boost/optional.hpp>
-#include "client.hpp"
-#include "consensus/grandpa/client.hpp"
+#include "consensus/grandpa/gossiper.hpp"
 #include "consensus/grandpa/observer.hpp"
 #include "consensus/grandpa/structs.hpp"
+#include "gossiper.hpp"
 #include "time/timer.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -20,7 +20,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<time::SteadyTimer> prevote_timer;
     std::shared_ptr<time::SteadyTimer> precommit_timer;
     std::shared_ptr<Observer> incoming;
-    std::shared_ptr<Client> outgoing;
+    std::shared_ptr<Gossiper> outgoing;
   };
 
   struct RoundState {
