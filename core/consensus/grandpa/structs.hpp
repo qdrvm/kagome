@@ -8,29 +8,47 @@
 
 #include "common/blob.hpp"
 #include "common/wrapper.hpp"
+#include <boost/asio/steady_timer.hpp>
 
 namespace kagome::consensus::grandpa {
+
+  using Timer = boost::asio::basic_waitable_timer<std::chrono::steady_clock>;
 
   using BlockHash = common::Wrapper<common::Hash256, struct BlockHashTag>;
   using BlockNumber = common::Wrapper<uint64_t, struct BlockNumberTag>;
   using RoundNumber = common::Wrapper<uint64_t, struct RoundNumberTag>;
-
-  template <typename Tag>
-  struct BlockInfoT {
-    BlockNumber number;
-    BlockHash hash;
-  };
-
-  using BlockInfo = BlockInfoT<struct BlockInfoTag>;
-  using Precommit = BlockInfoT<struct PrecommitTag>;
-  using Prevote = BlockInfoT<struct PrevoteTag>;
-  using PrimaryPropose = BlockInfoT<struct PrimaryProposeTag>;
 
   /// voter identifier
   using Id = common::Wrapper<common::Hash256, struct IdTag>;
 
   /// voter signature
   using Signature = common::Wrapper<std::vector<uint8_t>, struct SignatureTag>;
+
+  namespace detail {
+    template <typename Tag>
+    struct BlockInfoT {
+      BlockNumber number;
+      BlockHash hash;
+    };
+
+    /// Proof of an equivocation (double-vote) in a given round.
+    template <typename Message>
+    struct Equivocation {
+      /// The round number equivocated in.
+      RoundNumber round;
+      /// The identity of the equivocator.
+      Id id;
+      /// The first vote in the equivocation.
+      std::pair<Message, Signature> first;
+      /// The second vote in the equivocation.
+      std::pair<Message, Signature> second;
+    };
+  }  // namespace detail
+
+  using BlockInfo = detail::BlockInfoT<struct BlockInfoTag>;
+  using Precommit = detail::BlockInfoT<struct PrecommitTag>;
+  using Prevote = detail::BlockInfoT<struct PrevoteTag>;
+  using PrimaryPropose = detail::BlockInfoT<struct PrimaryProposeTag>;
 
   /// @tparam Message A protocol message or vote.
   template <typename Message>
@@ -50,21 +68,8 @@ namespace kagome::consensus::grandpa {
     std::vector<SignedPrecommit> precommits;
   };
 
-  /// Proof of an equivocation (double-vote) in a given round.
-  template <typename Message>
-  struct Equivocation {
-    /// The round number equivocated in.
-    RoundNumber round;
-    /// The identity of the equivocator.
-    Id id;
-    /// The first vote in the equivocation.
-    std::pair<Message, Signature> first;
-    /// The second vote in the equivocation.
-    std::pair<Message, Signature> second;
-  };
-
-  using PrevoteEquivocation = Equivocation<Prevote>;
-  using PrecommitEquivocation = Equivocation<Precommit>;
+  using PrevoteEquivocation = detail::Equivocation<Prevote>;
+  using PrecommitEquivocation = detail::Equivocation<Precommit>;
 
   struct HistoricalVotes {
     std::vector<SignedPrevote> prevotes_seen;

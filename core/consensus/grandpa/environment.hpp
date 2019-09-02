@@ -8,7 +8,6 @@
 
 #include "consensus/grandpa/round.hpp"
 #include "consensus/grandpa/structs.hpp"
-#include "time/timer.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -24,7 +23,7 @@ namespace kagome::consensus::grandpa {
     /// Return a timer that will be used to delay the broadcast of a commit
     /// message. This delay should not be static to minimize the amount of
     /// commit messages that are sent (e.g. random value in [0, 1] seconds).
-    virtual std::shared_ptr<time::SteadyTimer> roundCommitTimer() = 0;
+    virtual Timer roundCommitTimer() = 0;
 
     /// Note that we've done a primary proposal in the given round.
     virtual outcome::result<void> proposed(RoundNumber round,
