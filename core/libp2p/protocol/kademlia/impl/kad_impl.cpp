@@ -9,6 +9,17 @@
 #include "crypto/sha/sha256.hpp"
 #include "libp2p/protocol/kademlia/query.hpp"
 
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol::kademlia, Kad::Error, e) {
+  using E = libp2p::protocol::kademlia::Kad::Error;
+  switch (e) {
+    case E::SUCCESS:
+      return "success";
+    case E::NO_PEERS:
+      return "no peers found";
+  }
+  return "unknown error";
+}
+
 namespace {
 
   using kagome::common::Hash256;
@@ -38,56 +49,48 @@ namespace libp2p::protocol::kademlia {
         break;
     }
 
-    return table_->getNearestPeers(
-        hash(id),       /// NodeId
-        config_.ALPHA,  /// concurrency
-        [this, id, f{std::move(f)}](outcome::result<PeerIdVec> rpeers) mutable {
-          if (!rpeers) {
-            // lookup failure
-            return f(rpeers.error());
-          }
+    auto peers = table_->getNearestPeers(hash(id), config_.ALPHA);
+    if (peers.empty()) {
+      // can not find nearest peers...
+      return f(Error::NO_PEERS);
+    }
 
-          PeerIdVec &peers = rpeers.value();
-          for (peer::PeerId &p : peers) {
-            if (p == id) {
-              // found target peer in list of closest peers
-              return f(findLocal(id));
-            }
-          }
+    for (peer::PeerId &p : peers) {
+      if (p == id) {
+        // found target peer in list of closest peers
+        return f(findLocal(id));
+      }
+    }
 
-          // create query
-          Query query{
-              id.toVector(),  /// find this peer
-              [this, id](
-                  const Key &key,
-                  std::function<void(outcome::result<QueryResult>)> handle) {
-                mrw_->findPeerSingle(
-                    key,  /// ask this peer (serialized NodeId)
-                    id,   /// where peer 'id' is
-                    [id, handle{std::move(handle)}](
-                        outcome::result<PeerInfoVec> r) {
-                      if (!r) {
-                        return handle(r.error());
-                      }
+    // create query
+    Query query{
+        id.toVector(),  /// find this peer
+        [this, id](const Key &key,
+                   std::function<void(outcome::result<QueryResult>)> handle) {
+          mrw_->findPeerSingle(
+              key,  /// ask this peer (serialized NodeId)
+              id,   /// where peer 'id' is
+              [id, handle{std::move(handle)}](outcome::result<PeerInfoVec> r) {
+                if (!r) {
+                  return handle(r.error());
+                }
 
-                      // see if we got the peer here
-                      auto &&list = r.value();
-                      for (const auto &p : list) {
-                        if (p.id == id) {
-                          // yey!
-                          return handle(
-                              QueryResult{.peer = p, .success = true});
-                        }
-                      }
+                // see if we got the peer here
+                auto &&list = r.value();
+                for (const auto &p : list) {
+                  if (p.id == id) {
+                    // yey!
+                    return handle(QueryResult{.peer = p, .success = true});
+                  }
+                }
 
-                      return handle(QueryResult{.closerPeers = list});
-                    });
-              }};
+                return handle(QueryResult{.closerPeers = list});
+              });
+        }};
 
-          return runner_->run(std::move(query),
-                              std::move(peers),
-                              std::bind(f, std::placeholders::_1));
-        });
+    return runner_->run(std::move(query),
+                        std::move(peers),
+                        std::bind(f, std::placeholders::_1));
   }
 
   peer::PeerInfo KadImpl::findLocal(const peer::PeerId &id) {

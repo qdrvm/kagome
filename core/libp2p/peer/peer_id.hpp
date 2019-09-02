@@ -64,6 +64,11 @@ namespace libp2p::peer {
     std::string toBase58() const;
 
     /**
+     * @brief Get a hex representation of this PeerId.
+     */
+    std::string toHex() const;
+
+    /**
      * Creates a vector representation of PeerId.
      */
     std::vector<uint8_t> toVector() const;
