@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "network/rpc_libp2p.hpp"
+#include "network/rpc.hpp"
 
 #include <gtest/gtest.h>
-#include "libp2p/basic/scale_message_read_writer.hpp"
 #include "mock/libp2p/basic/read_writer_mock.hpp"
 #include "mock/libp2p/connection/stream_mock.hpp"
 #include "mock/libp2p/host/host_mock.hpp"
+#include "network/helpers/scale_message_read_writer.hpp"
 #include "network/types/block_response.hpp"
 #include "scale/scale.hpp"
 #include "testutil/libp2p/message_read_writer_helper.hpp"
@@ -25,7 +25,7 @@ using namespace connection;
 
 using testing::_;
 
-using ScaleRPC = RPCLibp2p<ScaleMessageReadWriter>;
+using ScaleRPC = RPC<ScaleMessageReadWriter>;
 
 class RpcLibp2pTest : public testing::Test {
  public:
@@ -96,12 +96,11 @@ TEST_F(RpcLibp2pTest, ReadWithoutResponse) {
 
   auto finished = false;
   ScaleRPC::read<BlockResponse>(
-      read_writer_,
-      [this, &finished](auto &&received_request) mutable {
-        EXPECT_EQ(received_request.id, request_.id);
+      read_writer_, [this, &finished](auto &&received_request) mutable {
+        EXPECT_TRUE(received_request);
+        EXPECT_EQ(received_request.value().id, request_.id);
         finished = true;
-      },
-      [](auto &&err) { FAIL() << err.error().message(); });
+      });
 
   ASSERT_TRUE(finished);
 }

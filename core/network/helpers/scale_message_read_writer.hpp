@@ -13,7 +13,7 @@
 #include "libp2p/basic/message_read_writer.hpp"
 #include "scale/scale.hpp"
 
-namespace libp2p::basic {
+namespace kagome::network {
   /**
    * Read and write messages, encoded into SCALE with a prepended varint
    */
@@ -24,9 +24,9 @@ namespace libp2p::basic {
 
    public:
     explicit ScaleMessageReadWriter(
-        std::shared_ptr<MessageReadWriter> read_writer);
+        std::shared_ptr<libp2p::basic::MessageReadWriter> read_writer);
     explicit ScaleMessageReadWriter(
-        const std::shared_ptr<ReadWriter> &read_writer);
+        const std::shared_ptr<libp2p::basic::ReadWriter> &read_writer);
 
     /**
      * Read a SCALE-encoded message from the channel
@@ -41,7 +41,7 @@ namespace libp2p::basic {
               return cb(read_res.error());
             }
 
-            auto msg_res = kagome::scale::decode<MsgType>(*read_res.value());
+            auto msg_res = scale::decode<MsgType>(*read_res.value());
             if (!msg_res) {
               return cb(msg_res.error());
             }
@@ -57,8 +57,9 @@ namespace libp2p::basic {
      * @param cb to be called, when the message is written, or error happens
      */
     template <typename MsgType>
-    void write(const MsgType &msg, Writer::WriteCallbackFunc cb) const {
-      auto encoded_msg_res = kagome::scale::encode(msg);
+    void write(const MsgType &msg,
+               libp2p::basic::Writer::WriteCallbackFunc cb) const {
+      auto encoded_msg_res = scale::encode(msg);
       if (!encoded_msg_res) {
         return cb(encoded_msg_res.error());
       }
@@ -77,8 +78,8 @@ namespace libp2p::basic {
     }
 
    private:
-    std::shared_ptr<MessageReadWriter> read_writer_;
+    std::shared_ptr<libp2p::basic::MessageReadWriter> read_writer_;
   };
-}  // namespace libp2p::basic
+}  // namespace kagome::network
 
 #endif  // KAGOME_SCALE_MESSAGE_READ_WRITER_HPP

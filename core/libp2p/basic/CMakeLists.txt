@@ -35,12 +35,3 @@ add_library(protobuf_message_read_writer
 target_link_libraries(protobuf_message_read_writer
     message_read_writer
     )
-
-add_library(scale_message_read_writer
-    scale_message_read_writer.hpp
-    scale_message_read_writer.cpp
-    )
-target_link_libraries(scale_message_read_writer
-    message_read_writer
-    scale
-    )

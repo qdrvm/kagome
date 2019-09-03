@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RPC_LIBP2P_HPP
-#define KAGOME_RPC_LIBP2P_HPP
+#ifndef KAGOME_RPC_HPP
+#define KAGOME_RPC_HPP
 
 #include <functional>
 #include <memory>
@@ -23,7 +23,7 @@ namespace kagome::network {
    * ScaleMessageReadWriter or ProtobufMessageReadWriter
    */
   template <typename MessageReadWriterT>
-  struct RPCLibp2p {
+  struct RPC {
     /**
      * Read an RPC request and answer with a response
      * @tparam Request - type of the request to be read
@@ -71,15 +71,13 @@ namespace kagome::network {
      */
     template <typename Request>
     static void read(std::shared_ptr<libp2p::basic::ReadWriter> read_writer,
-                     std::function<void(Request)> cb,
-                     std::function<void(outcome::result<void>)> error_cb) {
+                     std::function<void(outcome::result<Request>)> cb) {
       auto msg_read_writer =
           std::make_shared<MessageReadWriterT>(std::move(read_writer));
       msg_read_writer->template read<Request>(
-          [msg_read_writer, cb = std::move(cb), error_cb = std::move(error_cb)](
-              auto &&msg_res) mutable {
+          [msg_read_writer, cb = std::move(cb)](auto &&msg_res) mutable {
             if (!msg_res) {
-              return error_cb(msg_res.error());
+              return cb(msg_res.error());
             }
 
             cb(std::move(msg_res.value()));
@@ -180,4 +178,4 @@ namespace kagome::network {
   };
 }  // namespace kagome::network
 
-#endif  // KAGOME_RPC_LIBP2P_HPP
+#endif  // KAGOME_RPC_HPP
