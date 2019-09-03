@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "network/scale_rpc_reader_libp2p.hpp"
+#include "network/rpc_libp2p.hpp"
 
 #include <gtest/gtest.h>
+#include "libp2p/basic/scale_message_read_writer.hpp"
 #include "mock/libp2p/basic/read_writer_mock.hpp"
 #include "network/types/block_response.hpp"
 #include "scale/scale.hpp"
@@ -16,7 +17,9 @@ using namespace network;
 using namespace libp2p;
 using namespace basic;
 
-class ScaleRpcReaderLibp2pTest : public testing::Test {
+using ScaleRPC = RPCLibp2p<ScaleMessageReadWriter>;
+
+class RpcLibp2pTest : public testing::Test {
  public:
   std::shared_ptr<ReadWriterMock> read_writer_ =
       std::make_shared<ReadWriterMock>();
@@ -29,12 +32,12 @@ class ScaleRpcReaderLibp2pTest : public testing::Test {
 };
 
 /**
- * @given ScaleRPCReader
+ * @given RPCLibp2p
  * @when reading a message @and answering with a response
  * @then operation completes successfully
  */
-TEST_F(ScaleRpcReaderLibp2pTest, ReadWithResponse) {
-  ScaleRPCLibp2p::read<BlockResponse, BlockResponse>(
+TEST_F(RpcLibp2pTest, ReadWithResponse) {
+  ScaleRPC::read<BlockResponse, BlockResponse>(
       read_writer_,
       [this](auto &&received_request) {
         EXPECT_EQ(received_request.id, request.id);
@@ -44,15 +47,21 @@ TEST_F(ScaleRpcReaderLibp2pTest, ReadWithResponse) {
 }
 
 /**
- * @given ScaleRPCReader
+ * @given RPCLibp2p
  * @when reading a message @and answering with an error
  * @then that error is properly handled
  */
-TEST_F(ScaleRpcReaderLibp2pTest, ReadWithResponseErroredResponse) {}
+TEST_F(RpcLibp2pTest, ReadWithResponseErroredResponse) {}
 
 /**
- * @given ScaleRPCReader
+ * @given RPCLibp2p
  * @when reading a message without waiting for a response
  * @then operation completes successfully
  */
-TEST_F(ScaleRpcReaderLibp2pTest, ReadWithoutResponse) {}
+TEST_F(RpcLibp2pTest, ReadWithoutResponse) {}
+
+TEST_F(RpcLibp2pTest, WriteWithResponse) {}
+
+TEST_F(RpcLibp2pTest, WriteWithResponseErroredWrite) {}
+
+TEST_F(RpcLibp2pTest, WriteWithoutResponse) {}

@@ -5,20 +5,12 @@
 
 add_subdirectory(types)
 
-addtest(scale_rpc_reader_libp2p_test
-    scale_rpc_reader_libp2p_test.cpp
+addtest(rpc_libp2p_test
+    rpc_libp2p_test.cpp
     )
-target_link_libraries(scale_rpc_reader_libp2p_test
-    message_read_writer
+target_link_libraries(rpc_libp2p_test
+    scale_message_read_writer
     scale
     outcome
-    )
-
-addtest(scale_rpc_writer_libp2p_test
-    scale_rpc_writer_libp2p_test.cpp
-    )
-target_link_libraries(scale_rpc_writer_libp2p_test
-    message_read_writer
-    scale
-    outcome
+    blob
     )
