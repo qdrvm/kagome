@@ -20,20 +20,13 @@ namespace kagome::network {
    public:
     ~GossiperBroadcast() override = default;
 
-    void blockAnnounce(
-        const BlockAnnounce &announce,
-        std::function<void(outcome::result<void>)> cb) const override {}
+    void blockAnnounce(const BlockAnnounce &announce) const override {}
 
-    void precommit(Precommit pc, std::function<void(outcome::result<void>)> cb)
-        const override {}
+    void precommit(Precommit pc) const override {}
 
-    void prevote(Prevote pv,
-                 std::function<void(outcome::result<void>)> cb) const override {
-    }
+    void prevote(Prevote pv) const override {}
 
-    void primaryPropose(
-        PrimaryPropose pv,
-        std::function<void(outcome::result<void>)> cb) const override {}
+    void primaryPropose(PrimaryPropose pv) const override {}
   };
 }  // namespace kagome::network
 

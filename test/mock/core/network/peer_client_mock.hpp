@@ -14,7 +14,7 @@ namespace kagome::network {
   struct PeerClientMock : public PeerClient {
     MOCK_CONST_METHOD2(
         blocksRequest,
-        void(BlockRequest,
+        void(BlocksRequest,
              std::function<void(const outcome::result<BlocksResponse> &)>));
 
     MOCK_CONST_METHOD2(

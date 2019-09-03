@@ -55,7 +55,7 @@ namespace kagome::consensus {
     }
 
     // thirdly, fill the resulting response with data, which we were asked for
-    fillBlockResponse(request, response, chain_hash_res.value());
+    fillBlocksResponse(request, response, chain_hash_res.value());
     return response;
   }
 
@@ -79,7 +79,7 @@ namespace kagome::consensus {
     return chain_hash_res;
   }
 
-  void SynchronizerImpl::fillBlockResponse(
+  void SynchronizerImpl::fillBlocksResponse(
       const BlocksRequest &request,
       BlocksResponse &response,
       const std::vector<primitives::BlockHash> &hash_chain) const {

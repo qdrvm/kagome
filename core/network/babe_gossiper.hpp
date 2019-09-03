@@ -21,11 +21,8 @@ namespace kagome::network {
     /**
      * Send BlockAnnounce message
      * @param announce to be sent
-     * @param cb to be called, when announce is sent, or error happens
      */
-    virtual void blockAnnounce(
-        const BlockAnnounce &announce,
-        std::function<void(outcome::result<void>)> cb) const = 0;
+    virtual void blockAnnounce(const BlockAnnounce &announce) const = 0;
   };
 }  // namespace kagome::network
 

@@ -20,15 +20,11 @@ namespace kagome::consensus::grandpa {
   struct Gossiper {
     virtual ~Gossiper() = default;
 
-    virtual void precommit(
-        Precommit pc, std::function<void(outcome::result<void>)> cb) const = 0;
+    virtual void precommit(Precommit pc) const = 0;
 
-    virtual void prevote(
-        Prevote pv, std::function<void(outcome::result<void>)> cb) const = 0;
+    virtual void prevote(Prevote pv) const = 0;
 
-    virtual void primaryPropose(
-        PrimaryPropose pv,
-        std::function<void(outcome::result<void>)> cb) const = 0;
+    virtual void primaryPropose(PrimaryPropose pv) const = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

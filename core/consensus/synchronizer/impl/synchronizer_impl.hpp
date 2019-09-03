@@ -47,7 +47,7 @@ namespace kagome::consensus {
         const network::BlocksRequest &request,
         const primitives::BlockHash &from_hash) const;
 
-    void fillBlockResponse(
+    void fillBlocksResponse(
         const network::BlocksRequest &request,
         network::BlocksResponse &response,
         const std::vector<primitives::BlockHash> &hash_chain) const;

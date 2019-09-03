@@ -22,7 +22,7 @@ using testutil::createHash256;
 using kagome::scale::decode;
 using kagome::scale::encode;
 
-struct BlockRequestTest : public ::testing::Test {
+struct BlocksRequestTest : public ::testing::Test {
   using Bits = BlockAttributesBits;
 
   BlocksRequest block_request{1u,
@@ -43,7 +43,7 @@ struct BlockRequestTest : public ::testing::Test {
  * @when scale-encode `block request` instance
  * @then result of encoding matches predefined buffer
  */
-TEST_F(BlockRequestTest, EncodeSuccess) {
+TEST_F(BlocksRequestTest, EncodeSuccess) {
   EXPECT_OUTCOME_TRUE(buffer, encode(block_request));
   ASSERT_EQ(buffer, encoded_value);
 }
@@ -54,7 +54,7 @@ TEST_F(BlockRequestTest, EncodeSuccess) {
  * @when scale-decode that buffer
  * @then result of decoding matches predefined `block request` instance
  */
-TEST_F(BlockRequestTest, DecodeSuccess) {
+TEST_F(BlocksRequestTest, DecodeSuccess) {
   EXPECT_OUTCOME_TRUE(br, decode<BlocksRequest>(encoded_value));
   ASSERT_EQ(br, block_request);
 }
