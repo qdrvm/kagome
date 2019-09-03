@@ -5,8 +5,9 @@
 
 #include "api/transport/impl/session_impl.hpp"
 
-namespace kagome::server {
-  SessionImpl::SessionImpl(Session::Socket socket, Session::Context &context,
+namespace kagome::api {
+  SessionImpl::SessionImpl(Session::Socket socket,
+                           Session::Context &context,
                            Duration timeout)
       : socket_(std::move(socket)), heartbeat_(context), timeout_{timeout} {
     resetTimer();
@@ -26,13 +27,15 @@ namespace kagome::server {
 
   void SessionImpl::asyncRead() {
     boost::asio::async_read_until(
-        socket_, buffer_, '\n',
+        socket_,
+        buffer_,
+        '\n',
         [self = shared_from_this()](ErrorCode ec, std::size_t length) {
           self->stopTimer();
           if (!ec) {
             std::string data((std::istreambuf_iterator<char>(&self->buffer_)),
                              std::istreambuf_iterator<char>());
-            self->onRequest()(self, data);
+            self->onRequest()(data);
           } else {
             self->stop();
           }
@@ -47,16 +50,16 @@ namespace kagome::server {
   void SessionImpl::asyncWrite(const std::string &response) {
     auto r = std::make_shared<std::string>(response + '\n');
 
-    boost::asio::async_write(
-        socket_, boost::asio::const_buffer(r->data(), r->size()),
-        [self = shared_from_this(), r](
-            boost::system::error_code ec, std::size_t) {
-          if (!ec) {
-            self->asyncRead();
-          } else {
-            self->stop();
-          }
-        });
+    boost::asio::async_write(socket_,
+                             boost::asio::const_buffer(r->data(), r->size()),
+                             [self = shared_from_this(), r](
+                                 boost::system::error_code ec, std::size_t) {
+                               if (!ec) {
+                                 self->asyncRead();
+                               } else {
+                                 self->stop();
+                               }
+                             });
   }
 
   void SessionImpl::processHeartBeat() {
@@ -73,4 +76,4 @@ namespace kagome::server {
   void SessionImpl::stopTimer() {
     heartbeat_.cancel();
   }
-}  // namespace kagome::server
+}  // namespace kagome::api

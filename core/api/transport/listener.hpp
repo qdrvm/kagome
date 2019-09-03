@@ -14,7 +14,7 @@
 #include <outcome/outcome.hpp>
 #include "api/transport/session.hpp"
 
-namespace kagome::server {
+namespace kagome::api {
   /**
    * @brief server which listens for incoming connection,
    * accepts connections making session from socket

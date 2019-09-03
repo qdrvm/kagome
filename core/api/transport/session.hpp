@@ -14,7 +14,7 @@
 #include <boost/asio/write.hpp>
 #include <boost/signals2/signal.hpp>
 
-namespace kagome::server {
+namespace kagome::api {
   /**
    * @brief rpc session
    */
@@ -23,8 +23,7 @@ namespace kagome::server {
     using Signal = boost::signals2::signal<T>;
 
     using OnStopped = Signal<void(std::shared_ptr<Session>)>;
-    using OnRequest =
-        Signal<void(std::shared_ptr<Session>, const std::string &)>;
+    using OnRequest = Signal<void(std::string_view)>;
     using OnResponse = Signal<void(std::string)>;
 
    public:
@@ -74,6 +73,6 @@ namespace kagome::server {
     OnResponse on_response_;  ///< `on response` signal
   };
 
-}  // namespace kagome::server
+}  // namespace kagome::api
 
 #endif  // KAGOME_CORE_API_TRANSPORT_SESSION_HPP

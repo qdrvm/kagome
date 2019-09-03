@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "api/extrinsic/service.hpp"
+#include "api/extrinsic/extrinsic_api_service.hpp"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -23,14 +23,15 @@
 using namespace kagome::api;
 using namespace kagome::runtime;
 
+using kagome::api::ExtrinsicApiService;
+using kagome::api::Listener;
+using kagome::api::ListenerMock;
+using kagome::api::Session;
+using kagome::api::SessionMock;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::primitives::BlockId;
 using kagome::primitives::Extrinsic;
-using kagome::server::Listener;
-using kagome::server::ListenerMock;
-using kagome::server::Session;
-using kagome::server::SessionMock;
 
 using ::testing::_;
 using ::testing::DoAll;
@@ -46,16 +47,17 @@ class ExtrinsicSubmissionServiceTest : public ::testing::Test {
  protected:
   void SetUp() override {
     // imitate listener start
-    EXPECT_CALL(*listener, start(_)).WillRepeatedly(Invoke([this](auto &&on_new_session) {
-      listener->doAccept(on_new_session);
-    }));
+    EXPECT_CALL(*listener, start(_))
+        .WillRepeatedly(Invoke([this](auto &&on_new_session) {
+          listener->doAccept(on_new_session);
+        }));
     extrinsic.data.put("hello world");
     hash.fill(1);
 
     // imitate new session
-    EXPECT_CALL(*listener, doAccept(_)).WillOnce(Invoke([this](auto &&on_new_session) {
-      on_new_session(session);
-    }));
+    EXPECT_CALL(*listener, doAccept(_))
+        .WillOnce(
+            Invoke([this](auto &&on_new_session) { on_new_session(session); }));
   }
 
   sptr<ListenerMock> listener = std::make_shared<ListenerMock>();
@@ -74,8 +76,8 @@ class ExtrinsicSubmissionServiceTest : public ::testing::Test {
 };
 
 /**
- * @given extrinsic submission service configured with mock transport and mock
- * api
+ * @given extrinsic submission service configured with mock transport
+ * @and mock api
  * @when start method is called
  * @then start method of transport is called
  */
@@ -105,7 +107,7 @@ TEST_F(ExtrinsicSubmissionServiceTest, RequestSuccess) {
   ASSERT_NO_THROW(service->start());
 
   // imitate request received
-  session->onRequest()(session, request);
+  session->onRequest()(request);
 
   // ensure response received
   ASSERT_EQ(is_response_called, true);
@@ -135,7 +137,7 @@ TEST_F(ExtrinsicSubmissionServiceTest, RequestFail) {
   ASSERT_NO_THROW(service->start());
 
   // imitate request received
-  ASSERT_NO_THROW(session->onRequest()(session, request));
+  ASSERT_NO_THROW(session->onRequest()(request));
 
   // ensure response received
   ASSERT_EQ(is_response_called, true);

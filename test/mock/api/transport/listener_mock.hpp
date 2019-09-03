@@ -9,7 +9,7 @@
 #include <gmock/gmock.h>
 #include "api/transport/listener.hpp"
 
-namespace kagome::server {
+namespace kagome::api {
 
   class ListenerMock : public Listener {
    public:

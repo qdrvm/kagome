@@ -8,7 +8,7 @@
 
 #include "api/transport/session.hpp"
 
-namespace kagome::server {
+namespace kagome::api {
   class SessionImpl : public Session,
                       public std::enable_shared_from_this<SessionImpl> {
     using Duration = boost::asio::steady_timer::duration;
@@ -74,6 +74,6 @@ namespace kagome::server {
     Streambuf buffer_;  ///< request buffer
     Duration timeout_;  ///< operation timeout duration
   };
-}  // namespace kagome::server
+}  // namespace kagome::api
 
 #endif  // KAGOME_CORE_API_TRANSPORT_IMPL_SESSION_IMPL_HPP

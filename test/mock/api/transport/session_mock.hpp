@@ -8,7 +8,7 @@
 
 #include "api/transport/session.hpp"
 
-namespace kagome::server {
+namespace kagome::api {
   class SessionMock: public Session {
    public:
     ~SessionMock() override = default;

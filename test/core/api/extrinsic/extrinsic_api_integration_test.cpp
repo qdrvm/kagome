@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "api/extrinsic/service.hpp"
+#include "api/extrinsic/extrinsic_api_service.hpp"
 
 #include <chrono>
 #include <thread>
@@ -23,7 +23,7 @@ using namespace kagome::runtime;
 
 using kagome::common::Hash256;
 using kagome::primitives::Extrinsic;
-using kagome::server::ListenerImpl;
+using kagome::api::ListenerImpl;
 using test::SimpleClient;
 
 using ::testing::_;

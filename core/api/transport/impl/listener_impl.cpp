@@ -7,9 +7,7 @@
 
 #include "api/transport/impl/session_impl.hpp"
 
-namespace kagome::server {
-  using kagome::server::SessionImpl;
-
+namespace kagome::api {
   ListenerImpl::ListenerImpl(ListenerImpl::Context &context,
                              const ListenerImpl::Endpoint &endpoint,
                              Configuration config)
@@ -49,4 +47,4 @@ namespace kagome::server {
     state_ = State::STOPPED;
     acceptor_.cancel();
   }
-}  // namespace kagome::server
+}  // namespace kagome::api

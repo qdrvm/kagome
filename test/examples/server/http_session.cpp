@@ -12,10 +12,6 @@
 #include <iostream>
 #include "websocket_session.hpp"
 
-#define BOOST_NO_CXX14_GENERIC_LAMBDAS
-
-//------------------------------------------------------------------------------
-
 // Return a reasonable mime type based on the extension of a file.
 beast::string_view mime_type(beast::string_view path) {
   using beast::iequals;
@@ -111,18 +107,23 @@ void handle_request(beast::string_view doc_root,
     return res;
   };
 
+  auto req_method = req.method();
   // Make sure we can handle the method
-  if (req.method() != http::verb::get && req.method() != http::verb::head)
+  if (req_method != http::verb::get && req_method != http::verb::head) {
     return send(bad_request("Unknown HTTP-method"));
+  }
 
   // Request path must be absolute and not contain "..".
   if (req.target().empty() || req.target()[0] != '/'
-      || req.target().find("..") != beast::string_view::npos)
+      || req.target().find("..") != beast::string_view::npos) {
     return send(bad_request("Illegal request-target"));
+  }
 
   // Build the path to the requested file
   std::string path = path_cat(doc_root, req.target());
-  if (req.target().back() == '/') path.append("index.html");
+  if (req.target().back() == '/') {
+    path.append("index.html");
+  }
 
   // Attempt to open the file
   beast::error_code ec;
@@ -130,17 +131,20 @@ void handle_request(beast::string_view doc_root,
   body.open(path.c_str(), beast::file_mode::scan, ec);
 
   // Handle the case where the file doesn't exist
-  if (ec == boost::system::errc::no_such_file_or_directory)
+  if (ec == boost::system::errc::no_such_file_or_directory) {
     return send(not_found(req.target()));
+  }
 
   // Handle an unknown error
-  if (ec) return send(server_error(ec.message()));
+  if (ec) {
+    return send(server_error(ec.message()));
+  }
 
   // Cache the size since we need it after the move
   auto const size = body.size();
 
   // Respond to HEAD request
-  if (req.method() == http::verb::head) {
+  if (req_method == http::verb::head) {
     http::response<http::empty_body> res{http::status::ok, req.version()};
     res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
     res.set(http::field::content_type, mime_type(path));
@@ -161,33 +165,6 @@ void handle_request(beast::string_view doc_root,
   return send(std::move(res));
 }
 
-//------------------------------------------------------------------------------
-
-struct http_session::send_lambda {
-  http_session &self_;
-
-  explicit send_lambda(http_session &self) : self_(self) {}
-
-  template <bool isRequest, class Body, class Fields>
-  void operator()(http::message<isRequest, Body, Fields> &&msg) const {
-    // The lifetime of the message has to extend
-    // for the duration of the async operation so
-    // we use a shared_ptr to manage it.
-    auto sp = boost::make_shared<http::message<isRequest, Body, Fields>>(
-        std::move(msg));
-
-    // Write the response
-    auto self = self_.shared_from_this();
-    http::async_write(self_.stream_,
-                      *sp,
-                      [self, sp](beast::error_code ec, std::size_t bytes) {
-                        self->on_write(ec, bytes, sp->need_eof());
-                      });
-  }
-};
-
-//------------------------------------------------------------------------------
-
 http_session::http_session(tcp::socket &&socket,
                            boost::shared_ptr<shared_state> const &state)
     : stream_(std::move(socket)), state_(state) {}
@@ -199,7 +176,9 @@ void http_session::run() {
 // Report a failure
 void http_session::fail(beast::error_code ec, char const *what) {
   // Don't report on canceled operations
-  if (ec == net::error::operation_aborted) return;
+  if (ec == net::error::operation_aborted) {
+    return;
+  }
 
   std::cerr << what << ": " << ec.message() << "\n";
 }
@@ -216,11 +195,12 @@ void http_session::do_read() {
   stream_.expires_after(std::chrono::seconds(30));
 
   // Read a request
-  http::async_read(
-      stream_,
-      buffer_,
-      parser_->get(),
-      beast::bind_front_handler(&http_session::on_read, shared_from_this()));
+  http::async_read(stream_,
+                   buffer_,
+                   parser_->get(),
+                   [self = shared_from_this()](auto ec, auto count) {
+                     self->on_read(ec, count);
+                   });
 }
 
 void http_session::on_read(beast::error_code ec, std::size_t) {
@@ -231,7 +211,9 @@ void http_session::on_read(beast::error_code ec, std::size_t) {
   }
 
   // Handle the error, if any
-  if (ec) return fail(ec, "read");
+  if (ec) {
+    return fail(ec, "read");
+  }
 
   // See if it is a WebSocket Upgrade
   if (websocket::is_upgrade(parser_->get())) {
@@ -243,56 +225,29 @@ void http_session::on_read(beast::error_code ec, std::size_t) {
   }
 
   // Send the response
-#ifndef BOOST_NO_CXX14_GENERIC_LAMBDAS
-  //
-  // The following code requires generic
-  // lambdas, available in C++14 and later.
-  //
-  handle_request(state_->doc_root(), std::move(req_), [this](auto &&response) {
-    // The lifetime of the message has to extend
-    // for the duration of the async operation so
-    // we use a shared_ptr to manage it.
-    using response_type = typename std::decay<decltype(response)>::type;
-    auto sp = boost::make_shared<response_type>(
-        std::forward<decltype(response)>(response));
+  handle_request(
+      state_->doc_root(), parser_->release(), [this](auto &&response) {
+        using response_type = typename std::decay<decltype(response)>::type;
+        auto sp = boost::make_shared<response_type>(
+            std::forward<decltype(response)>(response));
 
-#if 0
-            // NOTE This causes an ICE in gcc 7.3
-            // Write the response
-            http::async_write(this->stream_, *sp,
-                [self = shared_from_this(), sp](
-                    beast::error_code ec, std::size_t bytes)
-                {
-                    self->on_write(ec, bytes, sp->need_eof()); 
-                });
-#else
-            // Write the response
-            auto self = shared_from_this();
-            http::async_write(stream_, *sp,
-                [self, sp](
-                    beast::error_code ec, std::size_t bytes)
-                {
-                    self->on_write(ec, bytes, sp->need_eof()); 
-                });
-#endif
-  });
-#else
-  //
-  // This code uses the function object type send_lambda in
-  // place of a generic lambda which is not available in C++11
-  //
-  handle_request(state_->doc_root(), parser_->release(), send_lambda(*this));
-
-#endif
+        // Write the response
+        http::async_write(stream_,
+                          *sp,
+                          [self = shared_from_this(), sp](beast::error_code ec,
+                                                          std::size_t bytes) {
+                            self->on_write(ec, bytes, sp->need_eof());
+                          });
+      });
 }
 
 void http_session::on_write(beast::error_code ec, std::size_t, bool close) {
   // Handle the error, if any
-  if (ec) return fail(ec, "write");
+  if (ec) {
+    return fail(ec, "write");
+  }
 
   if (close) {
-    // This means we should close the connection, usually because
-    // the response indicated the "Connection: close" semantic.
     stream_.socket().shutdown(tcp::socket::shutdown_send, ec);
     return;
   }
