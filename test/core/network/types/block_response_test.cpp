@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "network/types/block_response.hpp"
+#include "network/types/blocks_response.hpp"
 
 #include <iostream>
 
@@ -14,7 +14,7 @@
 #include "testutil/primitives/hash_creator.hpp"
 
 using kagome::network::BlockData;
-using kagome::network::BlockResponse;
+using kagome::network::BlocksResponse;
 using kagome::primitives::BlockBody;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::Justification;
@@ -51,7 +51,7 @@ namespace {
 }  // namespace
 
 struct BlockResponseTest : public ::testing::Test {
-  BlockResponse block_responce{1u, {createBlockData(), createBlockData()}};
+  BlocksResponse block_responce{1u, {createBlockData(), createBlockData()}};
   std::vector<uint8_t> encoded_value =
       "0100000000000000080102030000000000000000000000000000000000000000"
       "0000000000000000000101010100000000000000000000000000000000000000"
@@ -83,6 +83,6 @@ TEST_F(BlockResponseTest, EncodeSuccess) {
  * @then result of decoding matches predefined `block response` instance
  */
 TEST_F(BlockResponseTest, DecodeSuccess) {
-  EXPECT_OUTCOME_TRUE(br, decode<BlockResponse>(encoded_value));
+  EXPECT_OUTCOME_TRUE(br, decode<BlocksResponse>(encoded_value));
   ASSERT_EQ(br, block_responce);
 }

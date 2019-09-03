@@ -15,7 +15,7 @@ namespace kagome::network {
     MOCK_CONST_METHOD2(
         blocksRequest,
         void(BlockRequest,
-             std::function<void(const outcome::result<BlockResponse> &)>));
+             std::function<void(const outcome::result<BlocksResponse> &)>));
 
     MOCK_CONST_METHOD2(
         blockAnnounce,
