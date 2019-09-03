@@ -13,4 +13,7 @@ target_link_libraries(rpc_libp2p_test
     scale
     outcome
     blob
+    testutil_read_writer_helper
+    libp2p_peer_id
+    multiaddress
     )

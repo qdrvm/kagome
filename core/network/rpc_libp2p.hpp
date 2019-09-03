@@ -130,7 +130,7 @@ namespace kagome::network {
                           return cb(msg_res.error());
                         }
 
-                        stream->close();
+                        stream->close([](auto &&) {});
                         return cb(std::move(msg_res.value()));
                       });
                 });
@@ -172,7 +172,7 @@ namespace kagome::network {
                                return cb(write_res.error());
                              }
 
-                             stream->close();
+                             stream->close([](auto &&) {});
                              return cb(outcome::success());
                            });
                      });

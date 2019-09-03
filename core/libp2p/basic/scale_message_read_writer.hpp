@@ -72,6 +72,7 @@ namespace libp2p::basic {
                             if (!write_res) {
                               return cb(write_res.error());
                             }
+                            cb(outcome::success());
                           });
     }
 
