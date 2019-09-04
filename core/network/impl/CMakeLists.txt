@@ -19,3 +19,13 @@ target_link_libraries(gossiper_broadcast
     stream_manager_libp2p
     scale_message_read_writer
     )
+
+add_library(kagome_router
+    router_libp2p.cpp
+    router_libp2p.hpp
+    )
+target_link_libraries(kagome_router
+    logger
+    outcome
+    scale
+    )

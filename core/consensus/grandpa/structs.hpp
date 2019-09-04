@@ -26,9 +26,9 @@ namespace kagome::consensus::grandpa {
 
   namespace detail {
     template <typename Tag>
-    struct BlockInfoT {  // NOLINT
-      BlockNumber number;
-      BlockHash hash;
+    struct BlockInfoT {
+      BlockNumber number{0};
+      BlockHash hash{{}};
     };
 
     /// Proof of an equivocation (double-vote) in a given round.

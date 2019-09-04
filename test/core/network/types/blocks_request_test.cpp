@@ -25,8 +25,7 @@ using kagome::scale::encode;
 struct BlocksRequestTest : public ::testing::Test {
   using Bits = BlockAttributesBits;
 
-  BlocksRequest block_request{1u,
-                              {Bits::BODY | Bits::HEADER | Bits::RECEIPT},
+  BlocksRequest block_request{{Bits::BODY | Bits::HEADER | Bits::RECEIPT},
                               2u,
                               createHash256({3, 4, 5}),
                               Direction::DESCENDING,

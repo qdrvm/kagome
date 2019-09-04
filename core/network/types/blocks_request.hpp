@@ -6,9 +6,10 @@
 #ifndef KAGOME_BLOCKS_REQUEST_HPP
 #define KAGOME_BLOCKS_REQUEST_HPP
 
+#include <utility>
+
 #include <boost/optional.hpp>
 #include <gsl/span>
-#include <utility>
 #include "network/types/block_attributes.hpp"
 #include "network/types/block_direction.hpp"
 #include "primitives/block_id.hpp"
@@ -22,17 +23,17 @@ namespace kagome::network {
     /// unique request id
     primitives::BlocksRequestId id;
     /// bits, showing, which parts of BlockData to return
-    BlockAttributes fields;
+    BlockAttributes fields{};
     /// start from this block
-    primitives::BlockId from;
+    primitives::BlockId from{};
     /// end at this block; an implementation defined maximum is used when
     /// unspecified
-    boost::optional<primitives::BlockHash> to;
+    boost::optional<primitives::BlockHash> to{};
     /// sequence direction
-    Direction direction;
+    Direction direction{};
     /// maximum number of blocks to return; an implementation defined maximum is
     /// used when unspecified
-    boost::optional<uint32_t> max;
+    boost::optional<uint32_t> max{};
 
     /// we must keep track of the IDs, as they must be unique
     static primitives::BlocksRequestId last_issued_id;
@@ -45,6 +46,7 @@ namespace kagome::network {
              != 0;
     }
 
+    BlocksRequest() : id{last_issued_id++} {}
     BlocksRequest(BlockAttributes fields,
                   primitives::BlockId from,
                   boost::optional<primitives::BlockHash> to,

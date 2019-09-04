@@ -17,9 +17,6 @@
 #include "mock/core/clock/clock_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
-#include "mock/core/network/peer_client_mock.hpp"
-#include "mock/core/network/peer_server_mock.hpp"
-#include "network/network_state.hpp"
 #include "primitives/block.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/sr25519_utils.hpp"
@@ -55,10 +52,6 @@ class BabeTest : public testing::Test {
   std::shared_ptr<ProposerMock> proposer_ = std::make_shared<ProposerMock>();
   std::shared_ptr<BlockTreeMock> block_tree_ =
       std::make_shared<BlockTreeMock>();
-  std::shared_ptr<PeerClientMock> client_ = std::make_shared<PeerClientMock>();
-  std::shared_ptr<PeerServerMock> server_ = std::make_shared<PeerServerMock>();
-  std::shared_ptr<NetworkState> network_ = std::make_shared<NetworkState>(
-      PeerClientsMap{{"foo"_peerid, client_}}, server_);
   SR25519Keypair keypair_{generateSR25519Keypair()};
   AuthorityIndex authority_id_ = 1;
   std::shared_ptr<SystemClockMock> clock_ = std::make_shared<SystemClockMock>();
