@@ -12,6 +12,7 @@
 #include "consensus/grandpa/gossiper.hpp"
 #include "consensus/grandpa/observer.hpp"
 #include "consensus/grandpa/structs.hpp"
+#include "consensus/grandpa/vote_graph.hpp"
 #include "consensus/grandpa/vote_tracker.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -23,11 +24,11 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<Gossiper> outgoing;
   };
 
-  using VoteGraph = int;  // TODO(warchant): replace with the real one
   using VotersSet = std::unordered_set<Id>;
   using BitfieldContext = int;  // TODO(warchant): figure out what is that
 
   struct RoundState {
+    // TODO(warchant): complete
    private:
     std::shared_ptr<VoteGraph> graph_;
     std::shared_ptr<VotersSet> voters_;
