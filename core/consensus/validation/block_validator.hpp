@@ -8,7 +8,6 @@
 
 #include <outcome/outcome.hpp>
 #include "consensus/babe/types/epoch.hpp"
-#include "libp2p/peer/peer_id.hpp"
 #include "primitives/block.hpp"
 
 namespace kagome::consensus {
@@ -21,7 +20,6 @@ namespace kagome::consensus {
     /**
      * Validate the block
      * @param block to be validated
-     * @param peer, which has produced the block
      * @param epoch, in which the block arrived
      * @return nothing or validation error
      *
@@ -29,7 +27,6 @@ namespace kagome::consensus {
      * blockchain state (tree or anything else)
      */
     virtual outcome::result<void> validate(const primitives::Block &block,
-                                           const libp2p::peer::PeerId &peer,
                                            const Epoch &epoch) = 0;
   };
 }  // namespace kagome::consensus

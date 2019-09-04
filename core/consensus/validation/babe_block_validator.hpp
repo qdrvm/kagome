@@ -27,9 +27,6 @@ namespace kagome::consensus {
    * https://research.web3.foundation/en/latest/polkadot/BABE/Babe/#2-normal-phase
    */
   class BabeBlockValidator : public BlockValidator {
-   private:
-    using PeerId = libp2p::peer::PeerId;
-
    public:
     /**
      * Create an instance of BabeBlockValidator
@@ -58,7 +55,6 @@ namespace kagome::consensus {
     };
 
     outcome::result<void> validate(const primitives::Block &block,
-                                   const PeerId &peer,
                                    const Epoch &epoch) override;
 
    private:
@@ -77,7 +73,6 @@ namespace kagome::consensus {
         const primitives::Block &block,
         const BabeBlockHeader &babe_header,
         const Seal &seal,
-        const PeerId &peer,
         gsl::span<const primitives::Authority> authorities) const;
 
     /**
@@ -95,7 +90,8 @@ namespace kagome::consensus {
      * @return true, if the peer has not produced any blocks in this slot, false
      * otherwise
      */
-    bool verifyProducer(const PeerId &peer, BabeSlotNumber number);
+    bool verifyProducer(const BabeBlockHeader &babe_header,
+                        BabeSlotNumber number);
 
     /**
      * Check, if all transactions in the block are valid
@@ -105,7 +101,8 @@ namespace kagome::consensus {
     bool verifyTransactions(const primitives::BlockBody &block_body) const;
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::unordered_map<BabeSlotNumber, std::unordered_set<PeerId>>
+    std::unordered_map<BabeSlotNumber,
+                       std::unordered_set<primitives::AuthorityIndex>>
         blocks_producers_;
 
     std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue_;

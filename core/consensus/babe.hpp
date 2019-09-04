@@ -6,6 +6,7 @@
 #ifndef KAGOME_BABE_HPP
 #define KAGOME_BABE_HPP
 
+#include <boost/optional.hpp>
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/types/babe_meta.hpp"
 #include "consensus/babe/types/epoch.hpp"
@@ -41,6 +42,12 @@ namespace kagome::consensus {
      * @return reference to BabeMeta
      */
     virtual BabeMeta getBabeMeta() const = 0;
+
+    /**
+     * Get an epoch, in which block with (\param number) was produced
+     */
+    virtual boost::optional<Epoch> getEpochBy(
+        primitives::BlockNumber number) const = 0;
   };
 }  // namespace kagome::consensus
 

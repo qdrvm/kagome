@@ -31,9 +31,6 @@ namespace kagome::consensus {
     // use SCALE RPC
   }
 
-  void SynchronizerImpl::announce(const primitives::BlockHeader &block_header) {
-  }
-
   outcome::result<network::BlocksResponse> SynchronizerImpl::onBlocksRequest(
       const BlocksRequest &request) const {
     BlocksResponse response{request.id};

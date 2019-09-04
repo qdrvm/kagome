@@ -33,8 +33,6 @@ namespace kagome::consensus {
 
     ~SynchronizerImpl() override = default;
 
-    void announce(const primitives::BlockHeader &block_header) override;
-
     void blocksRequest(
         const BlocksRequest &request,
         std::function<void(outcome::result<BlocksResponse>)> cb) const override;
