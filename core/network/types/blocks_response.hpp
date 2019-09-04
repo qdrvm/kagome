@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCK_RESPONSE_HPP
-#define KAGOME_BLOCK_RESPONSE_HPP
+#ifndef KAGOME_BLOCKS_RESPONSE_HPP
+#define KAGOME_BLOCKS_RESPONSE_HPP
 
 #include <vector>
 
@@ -84,8 +84,8 @@ namespace kagome::network {
   /**
    * Response to the BlockRequest
    */
-  struct BlockResponse {
-    primitives::BlockRequestId id;
+  struct BlocksResponse {
+    primitives::BlocksRequestId id;
     std::vector<BlockData> blocks{};
   };
 
@@ -95,7 +95,7 @@ namespace kagome::network {
    * @param rhs second instance
    * @return true if equal false otherwise
    */
-  inline bool operator==(const BlockResponse &lhs, const BlockResponse &rhs) {
+  inline bool operator==(const BlocksResponse &lhs, const BlocksResponse &rhs) {
     return lhs.id == rhs.id && lhs.blocks == rhs.blocks;
   }
 
@@ -108,7 +108,7 @@ namespace kagome::network {
    */
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const BlockResponse &v) {
+  Stream &operator<<(Stream &s, const BlocksResponse &v) {
     return s << v.id << v.blocks;
   }
 
@@ -121,9 +121,9 @@ namespace kagome::network {
    */
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, BlockResponse &v) {
+  Stream &operator>>(Stream &s, BlocksResponse &v) {
     return s >> v.id >> v.blocks;
   }
 }  // namespace kagome::network
 
-#endif  // KAGOME_BLOCK_RESPONSE_HPP
+#endif  //KAGOME_BLOCKS_RESPONSE_HPP

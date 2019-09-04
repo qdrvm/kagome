@@ -10,7 +10,7 @@
 #include "mock/libp2p/connection/stream_mock.hpp"
 #include "mock/libp2p/host/host_mock.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
-#include "network/types/block_response.hpp"
+#include "network/types/blocks_response.hpp"
 #include "scale/scale.hpp"
 #include "testutil/libp2p/message_read_writer_helper.hpp"
 #include "testutil/literals.hpp"
@@ -37,9 +37,9 @@ class RpcLibp2pTest : public testing::Test {
   PeerInfo peer_info_{"my_peer"_peerid, {}};
   Protocol protocol_{"/test/2.2.8"};
 
-  // we are not interested in the exact semantics, so let BlockResponse be both
+  // we are not interested in the exact semantics, so let BlocksResponse be both
   // request and response
-  BlockResponse request_{1}, response_{2};
+  BlocksResponse request_{1}, response_{2};
   common::Buffer encoded_request_{scale::encode(request_).value()},
       encoded_response_{scale::encode(response_).value()};
 };
@@ -54,7 +54,7 @@ TEST_F(RpcLibp2pTest, ReadWithResponse) {
   setWriteExpectations(read_writer_, encoded_response_.toVector());
 
   auto finished = false;
-  ScaleRPC::read<BlockResponse, BlockResponse>(
+  ScaleRPC::read<BlocksResponse, BlocksResponse>(
       read_writer_,
       [this, &finished](auto &&received_request) mutable {
         EXPECT_EQ(received_request.id, request_.id);
@@ -75,7 +75,7 @@ TEST_F(RpcLibp2pTest, ReadWithResponseErroredResponse) {
   setReadExpectations(read_writer_, encoded_request_.toVector());
 
   auto finished = false;
-  ScaleRPC::read<BlockResponse, BlockResponse>(
+  ScaleRPC::read<BlocksResponse, BlocksResponse>(
       read_writer_,
       [this](auto &&received_request) {
         EXPECT_EQ(received_request.id, request_.id);
@@ -95,7 +95,7 @@ TEST_F(RpcLibp2pTest, ReadWithoutResponse) {
   setReadExpectations(read_writer_, encoded_request_.toVector());
 
   auto finished = false;
-  ScaleRPC::read<BlockResponse>(
+  ScaleRPC::read<BlocksResponse>(
       read_writer_, [this, &finished](auto &&received_request) mutable {
         EXPECT_TRUE(received_request);
         EXPECT_EQ(received_request.value().id, request_.id);
@@ -118,7 +118,7 @@ TEST_F(RpcLibp2pTest, WriteWithResponse) {
   setReadExpectations(stream_, encoded_response_.toVector());
 
   auto finished = false;
-  ScaleRPC::write<BlockResponse, BlockResponse>(
+  ScaleRPC::write<BlocksResponse, BlocksResponse>(
       host_,
       peer_info_,
       protocol_,
@@ -147,7 +147,7 @@ TEST_F(RpcLibp2pTest, WriteWithResponseErroredResponse) {
           outcome::failure(boost::system::error_code{})));
 
   auto finished = false;
-  ScaleRPC::write<BlockResponse, BlockResponse>(
+  ScaleRPC::write<BlocksResponse, BlocksResponse>(
       host_,
       peer_info_,
       protocol_,
@@ -172,14 +172,14 @@ TEST_F(RpcLibp2pTest, WriteWithoutResponse) {
   setWriteExpectations(stream_, encoded_request_.toVector());
 
   auto finished = false;
-  ScaleRPC::write<BlockResponse>(host_,
-                                 peer_info_,
-                                 protocol_,
-                                 request_,
-                                 [&finished](auto &&write_res) mutable {
-                                   ASSERT_TRUE(write_res);
-                                   finished = true;
-                                 });
+  ScaleRPC::write<BlocksResponse>(host_,
+                                  peer_info_,
+                                  protocol_,
+                                  request_,
+                                  [&finished](auto &&write_res) mutable {
+                                    ASSERT_TRUE(write_res);
+                                    finished = true;
+                                  });
 
   ASSERT_TRUE(finished);
 }

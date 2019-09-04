@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCK_REQUEST_HPP
-#define KAGOME_BLOCK_REQUEST_HPP
+#ifndef KAGOME_BLOCKS_REQUEST_HPP
+#define KAGOME_BLOCKS_REQUEST_HPP
 
 #include <boost/optional.hpp>
 #include <gsl/span>
@@ -17,9 +17,9 @@ namespace kagome::network {
   /**
    * Request for blocks to another peer
    */
-  struct BlockRequest {
+  struct BlocksRequest {
     /// unique request id
-    primitives::BlockRequestId id;
+    primitives::BlocksRequestId id;
     /// bits, showing, which parts of BlockData to return
     BlockAttributes fields;
     /// start from this block
@@ -48,7 +48,7 @@ namespace kagome::network {
    * @param rhs second instance
    * @return true if equal false otherwise
    */
-  inline bool operator==(const BlockRequest &lhs, const BlockRequest &rhs) {
+  inline bool operator==(const BlocksRequest &lhs, const BlocksRequest &rhs) {
     return lhs.id == rhs.id && lhs.fields == rhs.fields && lhs.from == rhs.from
            && lhs.to == rhs.to && lhs.direction == rhs.direction
            && lhs.max == rhs.max;
@@ -63,7 +63,7 @@ namespace kagome::network {
    */
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const BlockRequest &v) {
+  Stream &operator<<(Stream &s, const BlocksRequest &v) {
     return s << v.id << v.fields << v.from << v.to << v.direction << v.max;
   }
 
@@ -76,9 +76,9 @@ namespace kagome::network {
    */
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, BlockRequest &v) {
+  Stream &operator>>(Stream &s, BlocksRequest &v) {
     return s >> v.id >> v.fields >> v.from >> v.to >> v.direction >> v.max;
   }
 }  // namespace kagome::network
 
-#endif  // KAGOME_BLOCK_REQUEST_HPP
+#endif  //KAGOME_BLOCKS_REQUEST_HPP
