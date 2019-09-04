@@ -26,14 +26,14 @@ namespace kagome::consensus::grandpa {
 
   namespace detail {
     template <typename Tag>
-    struct BlockInfoT {
+    struct BlockInfoT {  // NOLINT
       BlockNumber number;
       BlockHash hash;
     };
 
     /// Proof of an equivocation (double-vote) in a given round.
     template <typename Message>
-    struct Equivocation {
+    struct Equivocation {  // NOLINT
       /// The round number equivocated in.
       RoundNumber round;
       /// The identity of the equivocator.
@@ -78,6 +78,40 @@ namespace kagome::consensus::grandpa {
     uint64_t prevote_idx;
     uint64_t precommit_idx;
   };
+
+  // TODO(akvinikym) 04.09.19: implement the SCALE codecs
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const Precommit &v) {
+    return s;
+  }
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, const Precommit &v) {
+    return s;
+  }
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const Prevote &v) {
+    return s;
+  }
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, const Prevote &v) {
+    return s;
+  }
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const PrimaryPropose &v) {
+    return s;
+  }
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, const PrimaryPropose &v) {
+    return s;
+  }
 }  // namespace kagome::consensus::grandpa
 
 #endif  // KAGOME_CORE_CONSENSUS_GRANDPA_STRUCTS_HPP
