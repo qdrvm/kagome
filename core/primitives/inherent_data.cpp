@@ -30,13 +30,13 @@ namespace kagome::primitives {
     data_[identifier] = std::move(inherent);
   }
 
-  outcome::result<std::optional<common::Buffer>> InherentData::getData(
+  outcome::result<boost::optional<common::Buffer>> InherentData::getData(
       const InherentIdentifier &identifier) const {
     auto inherent = data_.find(identifier);
     if (inherent != data_.end()) {
       return inherent->second;
     }
-    return std::nullopt;
+    return boost::none;
   }
 
   const std::map<InherentIdentifier, common::Buffer>

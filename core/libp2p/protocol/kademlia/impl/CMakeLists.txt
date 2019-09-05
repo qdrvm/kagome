@@ -8,3 +8,12 @@ target_link_libraries(libp2p_protocol_kademlia
     libp2p_peer_id
     Boost::boost
     )
+
+
+add_library(libp2p_kad_routing_table
+    routing_table_impl.cpp
+    )
+target_link_libraries(libp2p_kad_routing_table
+    Boost::boost
+    libp2p_peer_id
+    )

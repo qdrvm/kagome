@@ -29,10 +29,10 @@ namespace kagome::runtime {
 
     outcome::result<std::vector<ParachainId>> active_parachains() override;
 
-    outcome::result<std::optional<Buffer>> parachain_head(
+    outcome::result<boost::optional<Buffer>> parachain_head(
         ParachainId id) override;
 
-    outcome::result<std::optional<Buffer>> parachain_code(
+    outcome::result<boost::optional<Buffer>> parachain_code(
         ParachainId id) override;
 
     outcome::result<std::vector<ValidatorId>> validators() override;

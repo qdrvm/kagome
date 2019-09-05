@@ -14,6 +14,7 @@
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/primitives/hash_creator.hpp"
 
 using namespace kagome;
 using namespace blockchain;
@@ -25,6 +26,9 @@ using namespace crypto;
 
 using testing::_;
 using testing::Return;
+using testing::ReturnRef;
+
+using testutil::createHash256;
 
 class BlockValidatorTest : public testing::Test {
  public:
@@ -133,8 +137,12 @@ TEST_F(BlockValidatorTest, Success) {
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .WillOnce(Return(true));
 
+  BlockTree::BlockInfo deepest_leaf{1u, createHash256({1u})};
+  EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
+
   // verifyTransactions
-  EXPECT_CALL(*tx_queue_, validate_transaction(ext_)).WillOnce(Return(Valid{}));
+  EXPECT_CALL(*tx_queue_, validate_transaction(deepest_leaf.block_number, ext_))
+      .WillOnce(Return(Valid{}));
 
   // addBlock
   EXPECT_CALL(*tree_, addBlock(valid_block_))
@@ -358,7 +366,12 @@ TEST_F(BlockValidatorTest, TwoBlocksByOnePeer) {
       .Times(2)
       .WillRepeatedly(Return(true));
 
-  EXPECT_CALL(*tx_queue_, validate_transaction(ext_)).WillOnce(Return(Valid{}));
+  BlockTree::BlockInfo deepest_leaf{1u, createHash256({1u})};
+
+  EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
+
+  EXPECT_CALL(*tx_queue_, validate_transaction(deepest_leaf.block_number, ext_))
+      .WillOnce(Return(Valid{}));
 
   EXPECT_CALL(*tree_, addBlock(valid_block_))
       .WillOnce(Return(outcome::success()));
@@ -402,8 +415,11 @@ TEST_F(BlockValidatorTest, InvalidExtrinsic) {
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .WillOnce(Return(true));
 
+  BlockTree::BlockInfo deepest_leaf{1u, createHash256({1u})};
+  EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
+
   // WHEN
-  EXPECT_CALL(*tx_queue_, validate_transaction(ext_))
+  EXPECT_CALL(*tx_queue_, validate_transaction(deepest_leaf.block_number, ext_))
       .WillOnce(Return(Invalid{}));
 
   // THEN
@@ -442,7 +458,11 @@ TEST_F(BlockValidatorTest, BlockTreeFails) {
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .WillOnce(Return(true));
 
-  EXPECT_CALL(*tx_queue_, validate_transaction(ext_)).WillOnce(Return(Valid{}));
+  BlockTree::BlockInfo deepest_leaf{1u, createHash256({1u})};
+  EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
+
+  EXPECT_CALL(*tx_queue_, validate_transaction(deepest_leaf.block_number, ext_))
+      .WillOnce(Return(Valid{}));
 
   // WHEN
   EXPECT_CALL(*tree_, addBlock(valid_block_))

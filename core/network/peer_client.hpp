@@ -7,8 +7,8 @@
 #define KAGOME_CORE_NETWORK_PEER_CLIENT_HPP
 
 #include "network/types/block_announce.hpp"
-#include "network/types/block_request.hpp"
-#include "network/types/block_response.hpp"
+#include "network/types/blocks_request.hpp"
+#include "network/types/blocks_response.hpp"
 
 namespace kagome::network {
 
@@ -22,8 +22,8 @@ namespace kagome::network {
      * Request block
      */
     virtual void blocksRequest(
-        BlockRequest request,
-        std::function<void(const outcome::result<BlockResponse> &)> handler)
+        BlocksRequest request,
+        std::function<void(const outcome::result<BlocksResponse> &)> handler)
         const = 0;
 
     /**

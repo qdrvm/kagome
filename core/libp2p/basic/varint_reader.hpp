@@ -8,8 +8,8 @@
 
 #include <functional>
 #include <memory>
-#include <optional>
 
+#include <boost/optional.hpp>
 #include "libp2p/basic/readwriter.hpp"
 #include "libp2p/multi/uvarint.hpp"
 
@@ -24,12 +24,12 @@ namespace libp2p::basic {
      */
     static void readVarint(
         std::shared_ptr<ReadWriter> conn,
-        std::function<void(std::optional<multi::UVarint>)> cb);
+        std::function<void(boost::optional<multi::UVarint>)> cb);
 
    private:
     static void readVarint(
         std::shared_ptr<ReadWriter> conn,
-        std::function<void(std::optional<multi::UVarint>)> cb,
+        std::function<void(boost::optional<multi::UVarint>)> cb,
         uint8_t current_length,
         std::shared_ptr<std::vector<uint8_t>> varint_buf);
   };

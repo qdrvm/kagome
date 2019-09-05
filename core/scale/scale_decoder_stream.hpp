@@ -7,9 +7,9 @@
 #define KAGOME_CORE_SCALE_SCALE_DECODER_STREAM_HPP
 
 #include <array>
-#include <optional>
 
 #include <boost/multiprecision/cpp_int.hpp>
+#include <boost/optional.hpp>
 #include <gsl/span>
 #include "scale/detail/fixed_witdh_integer.hpp"
 #include "scale/detail/variant.hpp"
@@ -78,7 +78,7 @@ namespace kagome::scale {
      * @return reference to stream
      */
     template <class T>
-    ScaleDecoderStream &operator>>(std::optional<T> &v) {
+    ScaleDecoderStream &operator>>(boost::optional<T> &v) {
       // optional bool is special case of optional values
       // it is encoded as one byte instead of two
       // as described in specification
@@ -90,7 +90,7 @@ namespace kagome::scale {
       bool has_value = false;
       *this >> has_value;
       if (!has_value) {
-        v = std::nullopt;
+        v = boost::none;
         return *this;
       }
       // decode value
@@ -188,9 +188,9 @@ namespace kagome::scale {
     bool decodeBool();
     /**
      * @brief special case of optional values as described in specification
-     * @return std::optional<bool> value
+     * @return boost::optional<bool> value
      */
-    std::optional<bool> decodeOptionalBool();
+    boost::optional<bool> decodeOptionalBool();
 
     using ByteSpan = gsl::span<const uint8_t>;
     using SpanIterator = ByteSpan::const_iterator;

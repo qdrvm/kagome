@@ -9,7 +9,8 @@
 #include "common/blob.hpp"
 
 namespace kagome::primitives {
+  // TODO(akvinikym): must be a SR25519 key
   using SessionKey = common::Blob<32>;
-}
+}  // namespace kagome::primitives
 
-#endif //KAGOME_CORE_PRIMITIVES_SESSION_KEY_HPP
+#endif  // KAGOME_CORE_PRIMITIVES_SESSION_KEY_HPP

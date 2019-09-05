@@ -8,16 +8,15 @@
 
 #include <cstdint>
 
-#include "common/blob.hpp"
+#include "primitives/session_key.hpp"
 
 namespace kagome::primitives {
-  using BlockRequestId = uint64_t;
+  using BlocksRequestId = uint64_t;
 
   using BlockNumber = uint64_t;
   using BlockHash = common::Hash256;
 
-  // TODO(akvinikym): must be a SR25519 key
-  using AuthorityId = common::Blob<32>;
+  using AuthorityId = SessionKey;
   using AuthorityIndex = uint64_t;
 }  // namespace kagome::primitives
 

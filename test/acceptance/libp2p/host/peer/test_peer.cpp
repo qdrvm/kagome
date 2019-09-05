@@ -5,6 +5,8 @@
 
 #include "acceptance/libp2p/host/peer/test_peer.hpp"
 
+#include <gtest/gtest.h>
+#include "acceptance/libp2p/host/peer/tick_counter.hpp"
 #include "acceptance/libp2p/host/protocol/client_test_session.hpp"
 #include "libp2p/security/plaintext/exchange_message_marshaller_impl.hpp"
 
@@ -17,8 +19,10 @@ Peer::Peer(Peer::Duration timeout)
           std::make_shared<crypto::random::BoostRandomGenerator>()},
       key_generator_{
           std::make_shared<crypto::KeyGeneratorImpl>(*random_provider_)} {
-  EXPECT_OUTCOME_TRUE(keys,
-                      key_generator_->generateKeys(crypto::Key::Type::ED25519));
+  EXPECT_OUTCOME_TRUE_MSG(
+      keys,
+      key_generator_->generateKeys(crypto::Key::Type::ED25519),
+      "failed to generate keys");
 
   host_ = makeHost(std::move(keys));
 
@@ -31,7 +35,7 @@ Peer::Peer(Peer::Duration timeout)
 void Peer::startServer(const multi::Multiaddress &address,
                        std::promise<peer::PeerInfo> &pp) {
   context_->post([this, address, &pp] {
-    EXPECT_OUTCOME_TRUE_1(host_->listen(address));
+    EXPECT_OUTCOME_TRUE_MSG_1(host_->listen(address), "failed to start server");
     host_->start();
     pp.set_value(host_->getPeerInfo());
   });
@@ -39,32 +43,43 @@ void Peer::startServer(const multi::Multiaddress &address,
   thread_ = std::thread([this] { context_->run_for(timeout_); });
 }
 
-void Peer::startClient(size_t number,
-                       const peer::PeerInfo &pinfo,
+void Peer::startClient(const peer::PeerInfo &pinfo,
                        size_t message_count,
-                       Peer::sptr<TickCounter> tester) {
+                       Peer::sptr<TickCounter> counter) {
   context_->post([this,
+                  server_id = pinfo.id.toBase58(),
                   pinfo,
-                  number,
                   message_count,
-                  tester = std::move(tester)]() mutable {
+                  counter = std::move(counter)]() mutable {
     this->host_->newStream(
         pinfo,
         echo_->getProtocolId(),
-        [client_number = number,
+        [server_id = std::move(server_id),
          ping_times = message_count,
-         tester =
-             std::move(tester)](outcome::result<sptr<Stream>> rstream) mutable {
-          EXPECT_OUTCOME_TRUE(stream, rstream)
-          auto client = std::make_shared<protocol::ClientTestSession>(
-              stream, client_number, ping_times);
-          client->handle([client, tester = std::move(tester)](
-                             outcome::result<std::vector<uint8_t>> res,
-                             size_t client_number) mutable {
-            tester->tick(client_number);
-            EXPECT_OUTCOME_TRUE(vec, res);
-            ASSERT_EQ(vec.size(), client->bufferSize());
-          });
+         counter = std::move(counter)](
+            outcome::result<sptr<Stream>> rstream) mutable {
+          // get stream
+          EXPECT_OUTCOME_TRUE_MSG(
+              stream, rstream, "failed to connect to server: " + server_id);
+          // make client session
+          auto client =
+              std::make_shared<protocol::ClientTestSession>(stream, ping_times);
+          // handle session
+          client->handle(
+              [server_id = std::move(server_id),
+               client,
+               counter = std::move(counter)](
+                  outcome::result<std::vector<uint8_t>> res) mutable {
+                // count message exchange
+                counter->tick();
+                // ensure message returned
+                EXPECT_OUTCOME_TRUE_MSG(
+                    vec,
+                    res,
+                    "failed to receive response from server: " + server_id);
+                // ensure message is correct
+                ASSERT_EQ(vec.size(), client->bufferSize());  // NOLINT
+              });
         });
   });
 }

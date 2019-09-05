@@ -18,6 +18,7 @@
 #include "consensus/validation/block_validator.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/vrf_provider.hpp"
+#include "primitives/authority.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
 
 namespace kagome::consensus {
@@ -72,11 +73,12 @@ namespace kagome::consensus {
      * Verify that \param babe_header contains valid SR25519 signature
      * @return true, if signature is valid, false otherwise
      */
-    bool verifySignature(const primitives::Block &block,
-                         const BabeBlockHeader &babe_header,
-                         const Seal &seal,
-                         const PeerId &peer,
-                         gsl::span<const Authority> authorities) const;
+    bool verifySignature(
+        const primitives::Block &block,
+        const BabeBlockHeader &babe_header,
+        const Seal &seal,
+        const PeerId &peer,
+        gsl::span<const primitives::Authority> authorities) const;
 
     /**
      * Verify that \param babe_header contains valid VRF output

@@ -38,7 +38,7 @@ namespace kagome::runtime {
      * @param id parachain id
      * @return parachain head or error if fails
      */
-    virtual outcome::result<std::optional<Buffer>> parachain_head(
+    virtual outcome::result<boost::optional<Buffer>> parachain_head(
         ParachainId id) = 0;
 
     /**
@@ -46,7 +46,7 @@ namespace kagome::runtime {
      * @param id parachain id
      * @return parachain code or error if fails
      */
-    virtual outcome::result<std::optional<kagome::common::Buffer>>
+    virtual outcome::result<boost::optional<kagome::common::Buffer>>
     parachain_code(ParachainId id) = 0;
 
     /**

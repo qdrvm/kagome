@@ -7,7 +7,7 @@
 #define KAGOME_BABE_LOTTERY_HPP
 
 #include <boost/optional.hpp>
-#include "consensus/babe/common.hpp"
+#include "consensus/babe/types/epoch.hpp"
 #include "crypto/crypto_types.hpp"
 
 namespace kagome::consensus {
@@ -28,6 +28,8 @@ namespace kagome::consensus {
   struct BabeLottery {
     virtual ~BabeLottery() = default;
 
+    using SlotsLeadership = std::vector<boost::optional<crypto::VRFOutput>>;
+
     /**
      * Compute leadership for all slots in the given epoch
      * @param epoch structure; "epoch_index" MUST be set to the epoch, for which
@@ -36,7 +38,7 @@ namespace kagome::consensus {
      * @return vector of outputs; none means the peer was not chosen as a leader
      * for that slot, value contains VRF value and proof
      */
-    virtual std::vector<boost::optional<crypto::VRFOutput>> slotsLeadership(
+    virtual SlotsLeadership slotsLeadership(
         const Epoch &epoch, crypto::SR25519Keypair keypair) const = 0;
 
     /**

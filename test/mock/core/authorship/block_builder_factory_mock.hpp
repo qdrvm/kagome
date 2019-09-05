@@ -18,13 +18,14 @@ namespace kagome::authorship {
     // with returning unique_ptr from gmock
     outcome::result<std::unique_ptr<BlockBuilder>> create(
         const primitives::BlockId &block_id,
-        const primitives::Digest &digest) const override {
-      return std::unique_ptr<BlockBuilder>(createProxy(block_id, digest));
+        std::vector<primitives::Digest> digests) const override {
+      return std::unique_ptr<BlockBuilder>(
+          createProxy(block_id, std::move(digests)));
     }
 
     MOCK_CONST_METHOD2(createProxy,
                        BlockBuilder *(const primitives::BlockId &,
-                                      const primitives::Digest &));
+                                      std::vector<primitives::Digest>));
   };
 
 }  // namespace kagome::authorship

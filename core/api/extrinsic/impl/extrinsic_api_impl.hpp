@@ -15,6 +15,7 @@
 #include <outcome/outcome.hpp>
 #include "api/extrinsic/error.hpp"
 #include "api/extrinsic/extrinsic_api.hpp"
+#include "blockchain/block_tree.hpp"
 #include "common/visitor.hpp"
 #include "crypto/hasher.hpp"
 
@@ -37,10 +38,12 @@ namespace kagome::api {
      * @param api ttq instance shared ptr
      * @param pool transaction pool instance shared ptr
      * @param hasher hasher instance shared ptr
+     * @param block_tree block tree instance shared ptr
      */
     ExtrinsicApiImpl(std::shared_ptr<runtime::TaggedTransactionQueue> api,
                      std::shared_ptr<transaction_pool::TransactionPool> pool,
-                     std::shared_ptr<crypto::Hasher> hasher);
+                     std::shared_ptr<crypto::Hasher> hasher,
+                     std::shared_ptr<blockchain::BlockTree> block_tree);
 
     ~ExtrinsicApiImpl() override = default;
 
@@ -58,6 +61,7 @@ namespace kagome::api {
     sptr<runtime::TaggedTransactionQueue> api_;
     sptr<transaction_pool::TransactionPool> pool_;
     sptr<crypto::Hasher> hasher_;
+    sptr<blockchain::BlockTree> block_tree_;
   };
 }  // namespace kagome::api
 

@@ -11,13 +11,10 @@
 namespace libp2p::protocol {
 
   ClientTestSession::ClientTestSession(
-      std::shared_ptr<connection::Stream> stream,
-      size_t client_number,
-      size_t ping_times)
+      std::shared_ptr<connection::Stream> stream, size_t ping_times)
       : stream_(std::move(stream)),
         random_generator_{
             std::make_shared<crypto::random::BoostRandomGenerator>()},
-        client_number_{client_number},
         messages_left_{ping_times} {
     BOOST_ASSERT(stream_ != nullptr);
   }
@@ -42,7 +39,7 @@ namespace libp2p::protocol {
                    [self = shared_from_this(),
                     cb{std::move(cb)}](outcome::result<size_t> rw) mutable {
                      if (!rw) {
-                       return cb(rw.error(), self->client_number_);
+                       return cb(rw.error());
                      }
 
                      self->read(cb);
@@ -59,9 +56,9 @@ namespace libp2p::protocol {
                   [self = shared_from_this(),
                    cb{std::move(cb)}](outcome::result<size_t> rr) mutable {
                     if (!rr) {
-                      return cb(rr.error(), self->client_number_);
+                      return cb(rr.error());
                     }
-                    cb(std::move(self->read_buf_), self->client_number_);
+                    cb(std::move(self->read_buf_));
                     return self->write(std::move(cb));
                   });
   }

@@ -15,11 +15,11 @@ namespace libp2p::protocol::kademlia {
   struct RoutingTableMock : public RoutingTable {
     ~RoutingTableMock() override = default;
 
-    MOCK_METHOD1(update, outcome::result<peer::PeerId>(const peer::PeerId &));
-    MOCK_METHOD1(remove, void(const NodeId &id));
+    MOCK_METHOD1(update, outcome::result<void>(const peer::PeerId &));
+    MOCK_METHOD1(remove, void(const peer::PeerId &id));
     MOCK_CONST_METHOD0(getAllPeers, PeerIdVec());
-    MOCK_METHOD3(getNearestPeers,
-                 void(const NodeId &id, size_t count, PeerIdVecResultFunc f));
+    MOCK_METHOD2(getNearestPeers,
+                 PeerIdVec(const NodeId &id, size_t count));
     MOCK_CONST_METHOD0(size, size_t());
   };
 

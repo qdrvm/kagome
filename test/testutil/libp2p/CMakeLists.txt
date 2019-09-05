@@ -7,3 +7,11 @@ add_library(testutil_peer
 target_link_libraries(testutil_peer
     libp2p_peer_id
     )
+
+add_library(testutil_read_writer_helper
+    message_read_writer_helper.cpp
+    message_read_writer_helper.hpp
+    )
+target_link_libraries(testutil_read_writer_helper
+    uvarint
+    )
