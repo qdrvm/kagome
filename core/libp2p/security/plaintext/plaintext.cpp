@@ -53,15 +53,15 @@ namespace libp2p::security {
       std::shared_ptr<connection::RawConnection> inbound,
       SecConnCallbackFunc cb) {
     sendExchangeMsg(inbound, cb);
-    receiveExchangeMsg(inbound, cb);
+    receiveExchangeMsg(inbound, boost::none, cb);
   }
 
   void Plaintext::secureOutbound(
       std::shared_ptr<connection::RawConnection> outbound,
-      const peer::PeerId &p,
+      const peer::PeerId& p,
       SecConnCallbackFunc cb) {
     sendExchangeMsg(outbound, cb);
-    receiveExchangeMsg(outbound, cb);
+    receiveExchangeMsg(outbound, p, cb);
   }
 
   void Plaintext::sendExchangeMsg(
@@ -85,21 +85,20 @@ namespace libp2p::security {
 
   void Plaintext::receiveExchangeMsg(
       const std::shared_ptr<connection::RawConnection> &conn,
+      const MaybePeerId& p,
       SecConnCallbackFunc cb) const {
     constexpr size_t kMaxMsgSize = 10000;
     auto read_bytes = std::make_shared<std::vector<uint8_t>>(kMaxMsgSize);
-    conn->readSome(*read_bytes,
-                   kMaxMsgSize,
-                 [self{shared_from_this()},
-                       conn,
-                       cb{std::move(cb)},
-                       read_bytes](auto&& r) {
-      self->readCallback(conn, cb, read_bytes, r);
-    });
+    conn->readSome(
+        *read_bytes,
+        kMaxMsgSize,
+        [self{shared_from_this()}, conn, p, cb{std::move(cb)}, read_bytes](
+            auto &&r) { self->readCallback(conn, p, cb, read_bytes,r); });
   }
 
   void Plaintext::readCallback(
       std::shared_ptr<connection::RawConnection> conn,
+      const MaybePeerId& p,
       const SecConnCallbackFunc &cb,
       const std::shared_ptr<std::vector<uint8_t>> &read_bytes,
       outcome::result<size_t> read_call_res) const {
@@ -113,27 +112,13 @@ namespace libp2p::security {
       conn->close();
       cb(Error::INVALID_PEER_ID);
     }
-    /// TODO(Harrm) figure out how to obtain the peer's id from connection
-    /**if (auto maddr = conn->remoteMultiaddr(); conn->isInitiator()) {
-      if (maddr.has_error()) {
-        conn->close();
-        cb(maddr.error());
-      }
-      if (!maddr.value().getPeerId()) {
-        conn->close();
-        cb(Error::EMPTY_PEER_ID);
-      }
-      PLAINTEXT_OUTCOME_TRY(
-          real_peer_id,
-          peer::PeerId::fromBase58(maddr.value().getPeerId().value()),
-          conn,
-          cb);
-      if (received_pid != real_peer_id.value()) {
+    if (p.has_value()) {
+      if (received_pid != p.value()) {
         conn->close();
         cb(Error::INVALID_PEER_ID);
       }
     }
-    */
+
     cb(std::make_shared<connection::PlaintextConnection>(
         std::move(conn), idmgr_->getKeyPair().publicKey, std::move(pkey)));
   }

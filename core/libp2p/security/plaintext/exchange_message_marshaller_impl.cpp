@@ -36,16 +36,17 @@ namespace libp2p::security::plaintext {
     auto pubkey = msg.pubkey;
     OUTCOME_TRY(pub_key, marshaller_->marshal(pubkey));
     std::string str_pubkey(pub_key.begin(), pub_key.end());
-    auto pubkey_msg = new crypto::protobuf::PublicKey();
+    auto pubkey_msg = std::make_unique<crypto::protobuf::PublicKey>();
     if (!pubkey_msg->ParseFromString(str_pubkey)) {
       return Error::PUBLIC_KEY_SERIALIZING_ERROR;
     }
-    exchange_msg.set_allocated_pubkey(pubkey_msg);
+    exchange_msg.set_allocated_pubkey(pubkey_msg.get());
 
     std::vector<uint8_t> out_msg(exchange_msg.ByteSizeLong());
     if (!exchange_msg.SerializeToArray(out_msg.data(), out_msg.size())) {
       return Error::MESSAGE_SERIALIZING_ERROR;
     }
+    exchange_msg.release_pubkey();
     return out_msg;
   }
 
