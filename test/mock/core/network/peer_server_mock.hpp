@@ -13,8 +13,8 @@
 namespace kagome::network {
   struct PeerServerMock : public PeerServer {
     MOCK_CONST_METHOD1(onBlocksRequest,
-                       void(std::function<outcome::result<BlockResponse>(
-                                const BlockRequest &)>));
+                       void(std::function<outcome::result<BlocksResponse>(
+                                const BlocksRequest &)>));
 
     MOCK_CONST_METHOD1(onBlockAnnounce,
                        void(std::function<void(const BlockAnnounce &)>));

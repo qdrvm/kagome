@@ -100,7 +100,7 @@ TEST_F(KadTest, FindPeerExists) {
  * @then find correct PeerInfo
  */
 TEST_F(KadTest, FindPeerNoAddresses) {
-  // we don't know address of peer 1, soo lets try to find it out
+  // we don't know address of peer 1, so lets try to find it out
 
   EXPECT_CALL(*repo, getAddressRepository())
       .WillRepeatedly(ReturnRef(addrrepo));
@@ -114,8 +114,8 @@ TEST_F(KadTest, FindPeerNoAddresses) {
 
   // list of peers we observe (2,3,4)
   PeerIdVec weObserve{peer2.id, peer3.id, peer4.id};
-  EXPECT_CALL(*table, getNearestPeers(_, _, _))
-      .WillOnce(Arg2CallbackWithArg(weObserve));
+  EXPECT_CALL(*table, getNearestPeers(_, _))
+      .WillOnce(Return(weObserve));
 
   // run query... and get desired addr
   EXPECT_CALL(*runner, run(_, _, _)).WillOnce(Arg2CallbackWithArg(peer1));

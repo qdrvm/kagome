@@ -4,7 +4,7 @@
 #
 
 addtest(block_request_test
-    block_request_test.cpp
+    blocks_request_test.cpp
     )
 target_link_libraries(block_request_test
     buffer
@@ -13,7 +13,7 @@ target_link_libraries(block_request_test
     )
 
 addtest(block_response_test
-    block_response_test.cpp
+    blocks_response_test.cpp
     )
 target_link_libraries(block_response_test
     buffer
