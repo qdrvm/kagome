@@ -28,7 +28,7 @@ namespace kagome::api {
       Duration operation_timeout{kDefaultTimeout};
     };
 
-    static constexpr std::string_view kServerName = "Kagome extrinsic api";
+    ~HttpSession() override = default;
 
     /**
      * @brief constructor
@@ -80,6 +80,8 @@ namespace kagome::api {
 
     void onRead(boost::system::error_code ec, std::size_t);
     void onWrite(boost::system::error_code ec, std::size_t, bool close);
+
+    static constexpr std::string_view kServerName = "Kagome extrinsic api";
 
     Configuration config_;              ///< session configuration
     boost::beast::tcp_stream stream_;   ///< stream
