@@ -7,7 +7,6 @@
 
 #include <functional>
 
-#include "libp2p/crypto/protobuf/keys.pb.h"
 #include "libp2p/peer/peer_id.hpp"
 #include "libp2p/security/error.hpp"
 #include "libp2p/security/plaintext/plaintext_connection.hpp"
@@ -114,7 +113,8 @@ namespace libp2p::security {
       conn->close();
       cb(Error::INVALID_PEER_ID);
     }
-    if (auto maddr = conn->remoteMultiaddr(); conn->isInitiator()) {
+    /// TODO(Harrm) figure out how to obtain the peer's id from connection
+    /**if (auto maddr = conn->remoteMultiaddr(); conn->isInitiator()) {
       if (maddr.has_error()) {
         conn->close();
         cb(maddr.error());
@@ -133,6 +133,7 @@ namespace libp2p::security {
         cb(Error::INVALID_PEER_ID);
       }
     }
+    */
     cb(std::make_shared<connection::PlaintextConnection>(
         std::move(conn), idmgr_->getKeyPair().publicKey, std::move(pkey)));
   }

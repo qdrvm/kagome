@@ -12,6 +12,9 @@ target_link_libraries(plaintext_adaptor_test
     libp2p_peer_id
     multihash
     multiaddress
+    random_generator
+    key_generator
+    key_marshaller
     )
 
 addtest(plaintext_exchange_message_marshaller_test

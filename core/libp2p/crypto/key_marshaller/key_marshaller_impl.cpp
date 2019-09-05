@@ -79,7 +79,7 @@ namespace libp2p::crypto::marshaller {
   outcome::result<KeyMarshallerImpl::ByteArray> KeyMarshallerImpl::marshal(
       const PrivateKey &key) const {
     // TODO(Harrm): Check if it's a typo
-    protobuf::PublicKey protobuf_key;
+    protobuf::PrivateKey protobuf_key;
     OUTCOME_TRY(key_type, marshalKeyType(key.type));
     protobuf_key.set_key_type(key_type);
     protobuf_key.set_key_value(key.data.data(), key.data.size());

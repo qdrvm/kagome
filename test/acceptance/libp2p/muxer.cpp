@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <random>
 #include "libp2p/connection/stream.hpp"
-
 #include "libp2p/security/plaintext/exchange_message_marshaller_impl.hpp"
 #include "libp2p/crypto/key_marshaller/key_marshaller_impl.hpp"
 #include "libp2p/muxer/yamux.hpp"

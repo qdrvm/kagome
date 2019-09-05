@@ -10,8 +10,7 @@
 #include <boost/di/extension/providers/mocks_provider.hpp>
 #include <testutil/gmock_actions.hpp>
 #include <testutil/outcome.hpp>
-#include "libp2p/crypto/key_marshaller.hpp"
-#include "libp2p/crypto/key_marshaller/key_marshaller_impl.cpp"
+#include "common/hexutil.hpp"
 #include "libp2p/peer/peer_id.hpp"
 #include "mock/libp2p/connection/raw_connection_mock.hpp"
 #include "mock/libp2p/peer/identity_manager_mock.hpp"
@@ -22,7 +21,6 @@ using namespace connection;
 using namespace security;
 using namespace peer;
 using namespace crypto;
-using namespace marshaller;
 
 using libp2p::peer::PeerId;
 using testing::_;
@@ -36,9 +34,8 @@ class PlaintextAdaptorTest : public testing::Test {
   std::shared_ptr<NiceMock<IdentityManagerMock>> idmgr =
       std::make_shared<NiceMock<IdentityManagerMock>>();
 
-  std::shared_ptr<NiceMock<plaintext::ExchangeMessageMarshallerMock>>
-      marshaller = std::make_shared<
-          NiceMock<plaintext::ExchangeMessageMarshallerMock>>();
+  std::shared_ptr<plaintext::ExchangeMessageMarshallerMock> marshaller =
+      std::make_shared<plaintext::ExchangeMessageMarshallerMock>();
 
   std::shared_ptr<Plaintext> adaptor =
       std::make_shared<Plaintext>(marshaller, idmgr);
@@ -56,10 +53,12 @@ class PlaintextAdaptorTest : public testing::Test {
   std::shared_ptr<NiceMock<RawConnectionMock>> conn =
       std::make_shared<NiceMock<RawConnectionMock>>();
 
-  PublicKey remote_pubkey{{Key::Type::ED25519, {1}}};
+  constexpr static size_t ED25519_PUB_KEY_SIZE = 32;
+  PublicKey remote_pubkey{
+      {Key::Type::ED25519, std::vector<uint8_t>(ED25519_PUB_KEY_SIZE, 1)}};
   KeyPair local_keypair{
-      {{Key::Type::ED25519, {2}}},
-      {{Key::Type::ED25519, {3}}},
+      {{Key::Type::ED25519, std::vector<uint8_t>(ED25519_PUB_KEY_SIZE, 2)}},
+      {{Key::Type::ED25519, std::vector<uint8_t>(ED25519_PUB_KEY_SIZE, 3)}},
   };
   PeerId local_pid{PeerId::fromPublicKey(local_keypair.publicKey)};
   PeerId remote_pid{PeerId::fromPublicKey(remote_pubkey)};
@@ -85,8 +84,7 @@ TEST_F(PlaintextAdaptorTest, SecureInbound) {
       .WillByDefault(Return(libp2p::multi::Multiaddress::create(
           "/ip4/127.0.0.1/ipfs/"
           "QmcgpsyWgH8Y8ajJz1Cu72KnS5uo2Aa2LpzU7kinSupNKC/")));
-  plaintext::ExchangeMessage remote_msg{.pubkey = remote_pubkey,
-                                        .peer_id = remote_pid};
+  plaintext::ExchangeMessage remote_msg{remote_pubkey, remote_pid};
   EXPECT_CALL(*marshaller, unmarshal(_)).WillOnce(Return(remote_msg));
 
   adaptor->secureInbound(

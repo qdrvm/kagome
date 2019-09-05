@@ -142,7 +142,7 @@ namespace libp2p::crypto::validator {
   outcome::result<void> KeyValidatorImpl::validateEd25519(
       const PublicKey &key) const {
     if (key.data.size() != ED25519_PUBLIC_KEY_SIZE) {
-      return KeyValidatorError::WRONG_PRIVATE_KEY_SIZE;
+      return KeyValidatorError::WRONG_PUBLIC_KEY_SIZE;
     }
 
     return outcome::success();
