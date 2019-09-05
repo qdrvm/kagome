@@ -58,6 +58,7 @@ namespace kagome::api {
     virtual void acceptOnce(
         std::function<void(std::shared_ptr<Session>)> on_new_session) = 0;
 
+   private:
     OnError on_error_;  ///< emitted when error occurs
   };
 }  // namespace kagome::api

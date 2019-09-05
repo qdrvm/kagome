@@ -4,8 +4,6 @@
 #
 
 add_library(api_transport
-    beast/listener_impl.hpp
-    beast/listener_impl.cpp
     beast/http_session.hpp
     beast/http_session.cpp
     error.hpp

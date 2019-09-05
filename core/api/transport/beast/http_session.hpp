@@ -56,15 +56,10 @@ namespace kagome::api {
      * @param req request
      * @param send sender function
      */
-    template <class Body, class Allocator, class Send>
-    void handle_request(
-        boost::beast::http::request<Body,
-                                    boost::beast::http::basic_fields<Allocator>>
-            &&req,
-        Send &&send);
+    template <class Body, class Send>
+    void handleRequest(boost::beast::http::request<Body> &&req, Send &&send);
 
-//    void fail(boost::system::error_code ec, char const *what);
-    void doRead();
+    void acyncRead();
     void onRead(boost::system::error_code ec, std::size_t);
     void onWrite(boost::system::error_code ec, std::size_t, bool close);
 

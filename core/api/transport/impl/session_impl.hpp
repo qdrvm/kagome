@@ -11,8 +11,6 @@
 namespace kagome::api {
   class SessionImpl : public Session,
                       public std::enable_shared_from_this<SessionImpl> {
-    using Duration = boost::asio::steady_timer::duration;
-
    public:
     /**
      * @brief constructor

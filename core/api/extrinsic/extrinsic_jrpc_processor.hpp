@@ -26,7 +26,7 @@ namespace kagome::api {
     /**
      * @brief constructor
      */
-    ExtrinsicJRPCProcessor(std::shared_ptr<ExtrinsicApi> api);
+    explicit ExtrinsicJRPCProcessor(std::shared_ptr<ExtrinsicApi> api);
 
    private:
     std::shared_ptr<ExtrinsicApi> api_;  ///< api implementation

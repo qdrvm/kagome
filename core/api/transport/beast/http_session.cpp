@@ -18,12 +18,9 @@ namespace kagome::api {
    * @param req request
    * @param send sender function
    */
-  template <class Body, class Allocator, class Send>
-  void HttpSession::handle_request(
-      boost::beast::http::request<Body,
-                                  boost::beast::http::basic_fields<Allocator>>
-          &&req,
-      Send &&send) {
+  template <class Body, class Send>
+  void HttpSession::handleRequest(boost::beast::http::request<Body> &&req,
+                                  Send &&send) {
     // Returns a bad request response
     auto const bad_http_request = [&req](std::string_view message) {
       boost::beast::http::response<boost::beast::http::string_body> res{
@@ -36,21 +33,6 @@ namespace kagome::api {
       return res;
     };
 
-    //    // Returns a server error response
-    //    auto const server_error = [&req](std::string_view what,
-    //                                     std::string_view message) {
-    //      boost::beast::http::response<boost::beast::http::string_body> res{
-    //          boost::beast::http::status::internal_server_error,
-    //          req.version()};
-    //      res.set(boost::beast::http::field::server,
-    //      BOOST_BEAST_VERSION_STRING);
-    //      res.set(boost::beast::http::field::content_type, "text/html");
-    //      res.keep_alive(req.keep_alive());
-    //      res.body() = message;
-    //      res.prepare_payload();
-    //      return res;
-    //    };
-
     // process only POST method
     if (req.method() != boost::beast::http::verb::post) {
       return send(bad_http_request("Unsupported HTTP-method"));
@@ -59,15 +41,12 @@ namespace kagome::api {
     auto &&request_message = req.body();
     onRequest()(request_message);
 
-    // TODO: implement handle request here
-
     boost::beast::http::string_body::value_type body;
     //    body.assign(
-    //        R"({"jsonrpc":"2.0","id":0,"result":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]})");
 
     const auto size = body.size();
 
-    // Respond to GET request
+    // send response
     boost::beast::http::response<boost::beast::http::string_body> res{
         std::piecewise_construct,
         std::make_tuple(std::move(body)),
@@ -76,29 +55,29 @@ namespace kagome::api {
     res.set(boost::beast::http::field::content_type, "text/html");
     res.content_length(size);
     res.keep_alive(req.keep_alive());
+
     return send(std::move(res));
   }
 
   HttpSession::HttpSession(boost::asio::ip::tcp::socket socket,
                            HttpSession::Configuration config)
       : config_{config}, stream_(std::move(socket)) {
-        onError().connect([](auto ec, auto &&message) {
-          std::cerr << "http session error " << ec << ": " << message << std::endl;
-        });
-      }
+    onError().connect([](auto ec, auto &&message) {
+      std::cerr << "http session error " << ec << ": " << message << std::endl;
+    });
+  }
 
   void HttpSession::start() {
-    doRead();
+    acyncRead();
   }
 
   void HttpSession::stop() {
     boost::system::error_code ec;
     stream_.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
-    stream_.cancel();
     boost::ignore_unused(ec);
   }
 
-  void HttpSession::doRead() {
+  void HttpSession::acyncRead() {
     parser_.emplace();
     parser_->body_limit(config_.max_request_size);
     stream_.expires_after(config_.operation_timeout);
@@ -113,46 +92,45 @@ namespace kagome::api {
   }
 
   void HttpSession::onRead(boost::system::error_code ec, std::size_t) {
-    // This means they closed the connection
     if (ec == boost::beast::http::error::end_of_stream) {
       stream_.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_send,
                                 ec);
-      return;
+      return onError()(ec, "connection was closed");
     }
 
     if (ec) {
-
+      onError()(ec, "error occurred");
       return stop();
     }
 
     // Send the response
-    handle_request(parser_->release(), [this](auto &&response) {
-      using response_type = decltype(response);
-      auto r = std::make_shared<std::decay_t<response_type>>(
-          std::forward<response_type>(response));
+    handleRequest(
+        parser_->release(), [this](auto &&response) {  // writer lambda
+          using response_type = decltype(response);
+          auto r = std::make_shared<std::decay_t<response_type>>(
+              std::forward<response_type>(response));
 
-      // Write the response
-      boost::beast::http::async_write(
-          stream_, *r, [self = shared_from_this(), r](auto ec, auto bytes) {
-            self->onWrite(ec, bytes, r->need_eof());
-          });
-    });
+          // write response
+          boost::beast::http::async_write(
+              stream_, *r, [self = shared_from_this(), r](auto ec, auto size) {
+                self->onWrite(ec, size, r->need_eof());
+              });
+        });
   }
 
   void HttpSession::onWrite(boost::system::error_code ec,
                             std::size_t,
-                            bool close) {
+                            bool should_stop) {
     // Handle the error, if any
     if (ec) {
       return onError()(ec, "failed to write message");
     }
 
-    if (close) {
+    if (should_stop) {
       return stop();
     }
 
-    // Read another request
-    doRead();
+    // read next request
+    acyncRead();
   }
-
 }  // namespace kagome::api
