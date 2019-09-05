@@ -7,7 +7,6 @@
 
 #include <boost/config.hpp>
 #include <iostream>
-//#include "websocket_session.hpp"
 
 namespace kagome::api {
 
@@ -112,13 +111,6 @@ namespace kagome::api {
           self->onRead(ec, count);
         });
   }
-
-//  namespace {
-//    template <class T, typename D = std::decay_t<T>>
-//    std::shared_ptr<D> make_shared(T &&any) {
-//      return std::make_shared<D>(std::forward<T>(any));
-//    }
-//  }  // namespace
 
   void HttpSession::onRead(boost::system::error_code ec, std::size_t) {
     // This means they closed the connection
