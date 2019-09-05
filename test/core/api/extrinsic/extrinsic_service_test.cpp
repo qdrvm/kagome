@@ -48,7 +48,7 @@ class ExtrinsicSubmissionServiceTest : public ::testing::Test {
   void SetUp() override {
     // imitate listener start
     EXPECT_CALL(*listener, start(_))
-        .WillRepeatedly(Invoke([this](auto &&on_new_session) {
+        .WillRepeatedly(Invoke([this](auto &&on_new_session) mutable {
           listener->acceptOnce(on_new_session);
         }));
     extrinsic.data.put("hello world");
@@ -67,7 +67,7 @@ class ExtrinsicSubmissionServiceTest : public ::testing::Test {
   sptr<ExtrinsicApiService> service =
       std::make_shared<ExtrinsicApiService>(listener, api);
 
-  sptr<SessionMock> session = std::make_shared<SessionMock>();
+  sptr<Session> session = std::make_shared<SessionMock>();
 
   Extrinsic extrinsic{};
   std::string request =
