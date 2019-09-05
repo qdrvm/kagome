@@ -10,7 +10,7 @@
 #include <cstdint>
 
 #include "clock/clock.hpp"
-#include "crypto/crypto_types.hpp"
+#include "crypto/sr25519_types.hpp"
 
 namespace kagome::consensus {
   /// BABE uses system clock's time points

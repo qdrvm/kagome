@@ -16,11 +16,11 @@ target_link_libraries(hasher
     sha
     )
 
-add_library(crypto_types
-    crypto_types.cpp
-    crypto_types.hpp
+add_library(sr25519_types
+    sr25519_types.cpp
+    sr25519_types.hpp
     )
-target_link_libraries(crypto_types
+target_link_libraries(sr25519_types
     blob
     sr25519
     )
@@ -40,7 +40,7 @@ add_library(vrf_provider
     )
 target_link_libraries(vrf_provider
     crypto_util
-    crypto_types
+    sr25519_types
     buffer
     blob
     random_generator # generator from libp2p
