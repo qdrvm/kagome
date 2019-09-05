@@ -6,7 +6,6 @@
 #ifndef KAGOME_SR25519_UTILS_HPP
 #define KAGOME_SR25519_UTILS_HPP
 
-#include <sr25519/sr25519.h>
 #include "crypto/sr25519_types.hpp"
 
 /**
