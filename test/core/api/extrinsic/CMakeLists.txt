@@ -38,3 +38,12 @@ target_link_libraries(extrinsic_api_integration_test
     api_transport
     test_tcp_client
     )
+
+addtest(extrinsic_api_http_integration_test
+    extrinsic_api_http_integration_test.cpp
+    )
+target_link_libraries(extrinsic_api_http_integration_test
+    extrinsic_api_service
+    api_transport
+    test_tcp_client
+    )
