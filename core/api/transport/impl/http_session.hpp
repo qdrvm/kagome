@@ -56,10 +56,28 @@ namespace kagome::api {
      * @param req request
      * @param send sender function
      */
-    template <class Body, class Send>
-    void handleRequest(boost::beast::http::request<Body> &&req, Send &&send);
+    template <class Body>
+    void handleRequest(boost::beast::http::request<Body> &&req);
 
+    /**
+     * @brief asynchronously read http message
+     */
     void acyncRead();
+
+    /**
+     * @brief sends http message
+     * @tparam Message http message type
+     * @param message http message
+     */
+    template <class Message>
+    void asyncWrite(Message &&message);
+
+    /**
+     * @brief sends response wrapped by http message
+     * @param response message to send
+     */
+    void sendResponse(std::string_view response);
+
     void onRead(boost::system::error_code ec, std::size_t);
     void onWrite(boost::system::error_code ec, std::size_t, bool close);
 

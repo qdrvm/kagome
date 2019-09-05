@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "api/transport/beast/http_session.hpp"
+#include "http_session.hpp"
 
 #include <boost/config.hpp>
 #include <iostream>
@@ -14,13 +14,11 @@ namespace kagome::api {
    * @brief process http request, compose and execute response
    * @tparam Body request body type
    * @tparam Allocator allocator type
-   * @tparam Send sender lambda
    * @param req request
    * @param send sender function
    */
-  template <class Body, class Send>
-  void HttpSession::handleRequest(boost::beast::http::request<Body> &&req,
-                                  Send &&send) {
+  template <class Body>
+  void HttpSession::handleRequest(boost::beast::http::request<Body> &&req) {
     // Returns a bad request response
     auto const bad_http_request = [&req](std::string_view message) {
       boost::beast::http::response<boost::beast::http::string_body> res{
@@ -35,28 +33,10 @@ namespace kagome::api {
 
     // process only POST method
     if (req.method() != boost::beast::http::verb::post) {
-      return send(bad_http_request("Unsupported HTTP-method"));
+      return asyncWrite(bad_http_request("Unsupported HTTP-method"));
     }
 
-    auto &&request_message = req.body();
-    onRequest()(request_message);
-
-    boost::beast::http::string_body::value_type body;
-    //    body.assign(
-
-    const auto size = body.size();
-
-    // send response
-    boost::beast::http::response<boost::beast::http::string_body> res{
-        std::piecewise_construct,
-        std::make_tuple(std::move(body)),
-        std::make_tuple(boost::beast::http::status::ok, req.version())};
-    res.set(boost::beast::http::field::server, kServerName);
-    res.set(boost::beast::http::field::content_type, "text/html");
-    res.content_length(size);
-    res.keep_alive(req.keep_alive());
-
-    return send(std::move(res));
+    onRequest()(req.body());
   }
 
   HttpSession::HttpSession(boost::asio::ip::tcp::socket socket,
@@ -65,6 +45,9 @@ namespace kagome::api {
     onError().connect([](auto ec, auto &&message) {
       std::cerr << "http session error " << ec << ": " << message << std::endl;
     });
+
+    onResponse().connect(
+        [this](std::string_view message) { sendResponse(message); });
   }
 
   void HttpSession::start() {
@@ -91,6 +74,37 @@ namespace kagome::api {
         });
   }
 
+  template <class Message>
+  void HttpSession::asyncWrite(Message &&message) {
+    // we need to put message into a shared ptr for async operations
+    using message_type = decltype(message);
+    auto m = std::make_shared<std::decay_t<message_type>>(
+        std::forward<message_type>(message));
+
+    // write response
+    boost::beast::http::async_write(
+        stream_, *m, [self = shared_from_this(), m](auto ec, auto size) {
+          self->onWrite(ec, size, m->need_eof());
+        });
+  }
+
+  void HttpSession::sendResponse(std::string_view response) {
+    boost::beast::http::string_body::value_type body;
+    body.assign(response);
+
+    const auto size = body.size();
+
+    // send response
+    boost::beast::http::response<boost::beast::http::string_body> res(
+        std::piecewise_construct, std::make_tuple(std::move(body)));
+    res.set(boost::beast::http::field::server, kServerName);
+    res.set(boost::beast::http::field::content_type, "text/html");
+    res.content_length(size);
+    res.keep_alive(true);
+
+    return asyncWrite(std::move(res));
+  }
+
   void HttpSession::onRead(boost::system::error_code ec, std::size_t) {
     if (ec == boost::beast::http::error::end_of_stream) {
       stream_.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_send,
@@ -103,25 +117,12 @@ namespace kagome::api {
       return stop();
     }
 
-    // Send the response
-    handleRequest(
-        parser_->release(), [this](auto &&response) {  // writer lambda
-          using response_type = decltype(response);
-          auto r = std::make_shared<std::decay_t<response_type>>(
-              std::forward<response_type>(response));
-
-          // write response
-          boost::beast::http::async_write(
-              stream_, *r, [self = shared_from_this(), r](auto ec, auto size) {
-                self->onWrite(ec, size, r->need_eof());
-              });
-        });
+    handleRequest(parser_->release());
   }
 
   void HttpSession::onWrite(boost::system::error_code ec,
                             std::size_t,
                             bool should_stop) {
-    // Handle the error, if any
     if (ec) {
       return onError()(ec, "failed to write message");
     }

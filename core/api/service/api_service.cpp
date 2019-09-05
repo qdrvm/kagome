@@ -11,7 +11,6 @@ namespace kagome::api {
   ApiService::ApiService(std::shared_ptr<Listener> listener,
                          std::shared_ptr<JRPCProcessor> processor)
       : listener_(std::move(listener)), processor_(std::move(processor)) {
-    // TODO: add logging
     listener_->onError().connect([this](outcome::result<void> err) { stop(); });
   }
 
