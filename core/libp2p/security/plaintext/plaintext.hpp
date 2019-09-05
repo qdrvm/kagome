@@ -48,7 +48,7 @@ namespace libp2p::security {
    private:
     using MaybePeerId = boost::optional<peer::PeerId>;
 
-    void sendExchangeMsg(std::shared_ptr<connection::RawConnection> conn,
+    void sendExchangeMsg(const std::shared_ptr<connection::RawConnection>& conn,
                          SecConnCallbackFunc cb) const;
 
     void receiveExchangeMsg(const std::shared_ptr<connection::RawConnection>& conn,

@@ -65,7 +65,7 @@ namespace libp2p::security {
   }
 
   void Plaintext::sendExchangeMsg(
-      std::shared_ptr<connection::RawConnection> conn,
+      const std::shared_ptr<connection::RawConnection>& conn,
       SecConnCallbackFunc cb) const {
     PLAINTEXT_OUTCOME_TRY(out_msg,
                           marshaller_->marshal(plaintext::ExchangeMessage{
