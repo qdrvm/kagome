@@ -16,25 +16,21 @@
 #include "beast.hpp"
 #include "net.hpp"
 
-// Forward declaration
-class shared_state;
-
 // Accepts incoming connections and launches the sessions
-class listener : public boost::enable_shared_from_this<listener> {
-  net::io_context &ioc_;
-  tcp::acceptor acceptor_;
-  boost::shared_ptr<shared_state> state_;
-
-  void fail(beast::error_code ec, char const *what);
-  void on_accept(beast::error_code ec, tcp::socket socket);
-
+class BeastListener : public boost::enable_shared_from_this<BeastListener> {
  public:
-  listener(net::io_context &ioc,
-           tcp::endpoint const &endpoint,
-           boost::shared_ptr<shared_state> state);
+  BeastListener(net::io_context &ioc, const tcp::endpoint &endpoint);
 
   // Start accepting incoming connections
-  void run();
+  void start();
+
+ private:
+  boost::asio::io_context &ioc_;
+  boost::asio::ip::tcp::acceptor acceptor_;
+
+  void fail(beast::error_code ec, char const *what);
+  void acceptOnce();
+  void onAccept(beast::error_code ec, tcp::socket socket);
 };
 
 #endif

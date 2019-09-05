@@ -12,15 +12,11 @@
 
 #include "beast.hpp"
 #include "net.hpp"
-#include "shared_state.hpp"
 
 #include <cstdlib>
 #include <memory>
 #include <string>
 #include <vector>
-
-// Forward declaration
-class shared_state;
 
 /** Represents an active WebSocket connection to the server
  */
@@ -28,7 +24,6 @@ class websocket_session
     : public boost::enable_shared_from_this<websocket_session> {
   beast::flat_buffer buffer_;
   websocket::stream<beast::tcp_stream> ws_;
-  boost::shared_ptr<shared_state> state_;
   std::vector<boost::shared_ptr<std::string const>> queue_;
 
   void fail(beast::error_code ec, char const *what);
@@ -37,10 +32,7 @@ class websocket_session
   void on_write(beast::error_code ec, std::size_t bytes_transferred);
 
  public:
-  websocket_session(tcp::socket &&socket,
-                    boost::shared_ptr<shared_state> state);
-
-  ~websocket_session();
+  explicit websocket_session(tcp::socket socket);
 
   template <class Body, class Allocator>
   void run(http::request<Body, http::basic_fields<Allocator>> req);
@@ -68,9 +60,8 @@ void websocket_session::run(
       }));
 
   // Accept the websocket handshake
-  ws_.async_accept(req,
-                   beast::bind_front_handler(&websocket_session::on_accept,
-                                             shared_from_this()));
+  ws_.async_accept(
+      req, [self = shared_from_this()](auto ec) { self->on_accept(ec); });
 }
 
 #endif

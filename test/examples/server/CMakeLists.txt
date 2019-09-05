@@ -11,12 +11,10 @@ add_executable(multiserver
     beast.hpp
     http_session.cpp
     http_session.hpp
-    listener.cpp
-    listener.hpp
+    beast_listener.cpp
+    beast_listener.hpp
     main.cpp
     net.hpp
-    shared_state.cpp
-    shared_state.hpp
     websocket_session.cpp
     websocket_session.hpp
     )

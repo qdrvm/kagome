@@ -25,6 +25,7 @@ namespace kagome::api {
     using OnStopped = Signal<void(std::shared_ptr<Session>)>;
     using OnRequest = Signal<void(std::string_view)>;
     using OnResponse = Signal<void(std::string)>;
+    using OnError = Signal<void(boost::system::error_code, std::string_view)>;
 
    public:
     using Socket = boost::asio::ip::tcp::socket;
@@ -33,6 +34,7 @@ namespace kagome::api {
     using Streambuf = boost::asio::streambuf;
     using Timer = boost::asio::steady_timer;
     using Connection = boost::signals2::connection;
+    using Duration = Timer::duration;
 
     virtual ~Session() = default;
 
@@ -49,28 +51,36 @@ namespace kagome::api {
     /**
      * @return `on stopped` signal
      */
-    inline auto &onStopped() {
+    auto &onStopped() {
       return on_stopped_;
     }
 
     /**
      * @return `on request` signal
      */
-    inline auto &onRequest() {
+    auto &onRequest() {
       return on_request_;
     }
 
     /**
      * @return `on response` signal
      */
-    inline auto &onResponse() {
+    auto &onResponse() {
       return on_response_;
+    }
+
+    /**
+     * @return `on error` signal
+     */
+    auto &onError() {
+      return on_error_;
     }
 
    private:
     OnStopped on_stopped_;    ///< `on stopped` signal
     OnRequest on_request_;    ///< `on request` signal
     OnResponse on_response_;  ///< `on response` signal
+    OnError on_error_;        ///< `on error` signal
   };
 
 }  // namespace kagome::api

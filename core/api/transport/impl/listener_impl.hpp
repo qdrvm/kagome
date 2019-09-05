@@ -43,7 +43,7 @@ namespace kagome::api {
     /**
      * @brief accepts incoming connection
      */
-    void doAccept(std::function<void(std::shared_ptr<Session>)> on_new_session) override;
+    void acceptOnce(std::function<void(std::shared_ptr<Session>)> on_new_session) override;
 
     Context &context_;   ///< io context
     Acceptor acceptor_;  ///< connections acceptor

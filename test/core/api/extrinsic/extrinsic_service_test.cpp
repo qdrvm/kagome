@@ -49,13 +49,13 @@ class ExtrinsicSubmissionServiceTest : public ::testing::Test {
     // imitate listener start
     EXPECT_CALL(*listener, start(_))
         .WillRepeatedly(Invoke([this](auto &&on_new_session) {
-          listener->doAccept(on_new_session);
+          listener->acceptOnce(on_new_session);
         }));
     extrinsic.data.put("hello world");
     hash.fill(1);
 
     // imitate new session
-    EXPECT_CALL(*listener, doAccept(_))
+    EXPECT_CALL(*listener, acceptOnce(_))
         .WillOnce(
             Invoke([this](auto &&on_new_session) { on_new_session(session); }));
   }

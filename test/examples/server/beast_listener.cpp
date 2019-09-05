@@ -7,14 +7,13 @@
 // Official repository: https://github.com/vinniefalco/CppCon2018
 //
 
-#include "listener.hpp"
+#include "beast_listener.hpp"
 #include <iostream>
 #include "http_session.hpp"
 
-listener::listener(net::io_context &ioc,
-                   tcp::endpoint const &endpoint,
-                   boost::shared_ptr<shared_state> state)
-    : ioc_(ioc), acceptor_(ioc), state_(state) {
+BeastListener::BeastListener(net::io_context &ioc,
+                             const tcp::endpoint &endpoint)
+    : ioc_(ioc), acceptor_(ioc) {
   beast::error_code ec;
 
   // Open the acceptor
@@ -46,30 +45,33 @@ listener::listener(net::io_context &ioc,
   }
 }
 
-void listener::run() {
-  // The new connection gets its own strand
-  acceptor_.async_accept(
-      net::make_strand(ioc_),
-      beast::bind_front_handler(&listener::on_accept, shared_from_this()));
+void BeastListener::start() {
+  acceptOnce();
 }
 
 // Report a failure
-void listener::fail(beast::error_code ec, char const *what) {
+void BeastListener::fail(beast::error_code ec, char const *what) {
   // Don't report on canceled operations
   if (ec == net::error::operation_aborted) return;
   std::cerr << what << ": " << ec.message() << "\n";
 }
 
-// Handle a connection
-void listener::on_accept(beast::error_code ec, tcp::socket socket) {
-  if (ec)
-    return fail(ec, "accept");
-  else
-    // Launch a new session for this connection
-    boost::make_shared<http_session>(std::move(socket), state_)->run();
+void BeastListener::acceptOnce() {  // The new connection gets its own strand
+  acceptor_.async_accept(net::make_strand(ioc_),
+                         [self = shared_from_this()](auto &&ec, auto &&socket) {
+                           using socket_type = std::decay_t<decltype(socket)>;
+                           self->onAccept(ec,
+                                          std::forward<socket_type>(socket));
+                         });
+}
 
-  // The new connection gets its own strand
-  acceptor_.async_accept(
-      net::make_strand(ioc_),
-      beast::bind_front_handler(&listener::on_accept, shared_from_this()));
+// Handle a connection
+void BeastListener::onAccept(beast::error_code ec, tcp::socket socket) {
+  if (ec) {
+    return fail(ec, "accept");
+  }
+  // Launch a new session for this connection
+  boost::make_shared<HttpSession>(std::move(socket))->start();
+
+  acceptOnce();
 }

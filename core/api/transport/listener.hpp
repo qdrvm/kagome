@@ -51,15 +51,15 @@ namespace kagome::api {
      */
     virtual void stop() = 0;
 
-   private:
+   protected:
     /**
      * @brief accepts incoming connection
      */
-    virtual void doAccept(
+    virtual void acceptOnce(
         std::function<void(std::shared_ptr<Session>)> on_new_session) = 0;
 
     OnError on_error_;  ///< emitted when error occurs
   };
-}  // namespace kagome::server
+}  // namespace kagome::api
 
 #endif  // KAGOME_CORE_API_TRANSPORT_LISTENER_IMPL_HPP
