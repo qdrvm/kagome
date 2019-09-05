@@ -17,9 +17,10 @@ namespace kagome::api {
     dispatcher.AddMethod(name, std::move(method));
   }
 
-  void JRPCProcessor::processData(const std::string &request,
+  void JRPCProcessor::processData(std::string_view request,
                                   const ResponseHandler &cb) {
-    auto &&formatted_response = jsonrpc_handler_.HandleRequest(request);
+    auto &&formatted_response =
+        jsonrpc_handler_.HandleRequest(std::string(request));
     std::string response(formatted_response->GetData(),
                          formatted_response->GetSize());
     cb(response);

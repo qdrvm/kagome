@@ -31,7 +31,7 @@ namespace kagome::api {
      * @param request json request string
      * @param cb callback
      */
-    void processData(const std::string &request, const ResponseHandler &cb);
+    void processData(std::string_view request, const ResponseHandler &cb);
 
     jsonrpc::JsonFormatHandler format_handler_{};  ///< format handler instance
     jsonrpc::Server jsonrpc_handler_{};            ///< json rpc server instance

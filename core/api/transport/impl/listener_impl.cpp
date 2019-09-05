@@ -41,6 +41,9 @@ namespace kagome::api {
           std::move(socket), self->context_, self->config_.operation_timeout);
       on_new_session(session);
       session->start();
+
+      // stay ready for new connection
+      self->acceptOnce(std::move(on_new_session));
     });
   }
 

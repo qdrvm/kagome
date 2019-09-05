@@ -32,13 +32,12 @@ namespace kagome::api {
         '\n',
         [self = shared_from_this()](ErrorCode ec, std::size_t length) {
           self->stopTimer();
-          if (!ec) {
-            std::string data((std::istreambuf_iterator<char>(&self->buffer_)),
-                             std::istreambuf_iterator<char>());
-            self->onRequest()(data);
-          } else {
-            self->stop();
+          if (ec) {
+            return self->stop();
           }
+          std::string data((std::istreambuf_iterator<char>(&self->buffer_)),
+                           std::istreambuf_iterator<char>());
+          self->onRequest()(data);
         });
   }
 
@@ -54,11 +53,10 @@ namespace kagome::api {
                              boost::asio::const_buffer(r->data(), r->size()),
                              [self = shared_from_this(), r](
                                  boost::system::error_code ec, std::size_t) {
-                               if (!ec) {
-                                 self->asyncRead();
-                               } else {
-                                 self->stop();
+                               if (ec) {
+                                 return self->stop();
                                }
+                               self->asyncRead();
                              });
   }
 

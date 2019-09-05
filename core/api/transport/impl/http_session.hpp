@@ -85,10 +85,12 @@ namespace kagome::api {
 
     Configuration config_;              ///< session configuration
     boost::beast::tcp_stream stream_;   ///< stream
-    boost::beast::flat_buffer buffer_;  ///< read budder
-    boost::optional<
-        boost::beast::http::request_parser<boost::beast::http::string_body>>
-        parser_;  ///< http parser
+    boost::beast::flat_buffer buffer_;  ///< read buffer
+
+    using Parser =
+        boost::beast::http::request_parser<boost::beast::http::string_body>;
+
+    std::unique_ptr<Parser> parser_;  ///< http parser
   };
 
 }  // namespace kagome::api

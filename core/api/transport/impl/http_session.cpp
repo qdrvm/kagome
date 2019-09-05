@@ -31,7 +31,7 @@ namespace kagome::api {
       return res;
     };
 
-    // process only POST method
+    // allow only POST method
     if (req.method() != boost::beast::http::verb::post) {
       return asyncWrite(bad_http_request("Unsupported HTTP-method"));
     }
@@ -61,7 +61,7 @@ namespace kagome::api {
   }
 
   void HttpSession::acyncRead() {
-    parser_.emplace();
+    parser_ = std::make_unique<Parser>();
     parser_->body_limit(config_.max_request_size);
     stream_.expires_after(config_.operation_timeout);
 
@@ -106,17 +106,14 @@ namespace kagome::api {
   }
 
   void HttpSession::onRead(boost::system::error_code ec, std::size_t) {
-    if (ec == boost::beast::http::error::end_of_stream) {
-      stream_.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_send,
-                                ec);
-      return onError()(ec, "connection was closed");
-    }
-
     if (ec) {
-      onError()(ec, "error occurred");
-      return stop();
+      if (boost::beast::http::error::end_of_stream == ec) {
+        onError()(ec, "connection was closed");
+      } else {
+        onError()(ec, "unknown error occurred");
+      }
+      stop();
     }
-
     handleRequest(parser_->release());
   }
 
@@ -124,7 +121,8 @@ namespace kagome::api {
                             std::size_t,
                             bool should_stop) {
     if (ec) {
-      return onError()(ec, "failed to write message");
+      onError()(ec, "failed to write message");
+      return stop();
     }
 
     if (should_stop) {
