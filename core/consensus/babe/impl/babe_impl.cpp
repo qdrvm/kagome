@@ -82,6 +82,24 @@ namespace kagome::consensus {
                     next_slot_finish_time_};
   }
 
+  boost::optional<Epoch> BabeImpl::getEpochBy(
+      primitives::BlockNumber number) const {
+    // TODO(akvinikym) 05.09.19: implement this algorithm
+    /*
+     For example, if we know all epochs from the beginning until the current
+     one, we can start from the very first one (it has duration in the number
+     of slots) and see, if that block number was produced in that epoch; if
+     not, proceed to the next known one
+
+     We are using the fact that block number is derived from the epoch number
+     and its duration in slots
+
+     But, this algorithm won't work if we don't know ALL epochs from the very
+     beginning, so maybe something else should be considered
+     */
+    return boost::none;
+  }
+
   void BabeImpl::runSlot() {
     using std::chrono::operator""ms;
     static constexpr auto kMaxLatency = 5000ms;

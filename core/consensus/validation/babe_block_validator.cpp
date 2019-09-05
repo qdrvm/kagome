@@ -54,7 +54,7 @@ namespace kagome::consensus {
   }
 
   outcome::result<void> BabeBlockValidator::validate(
-      const primitives::Block &block, const PeerId &peer, const Epoch &epoch) {
+      const primitives::Block &block, const Epoch &epoch) {
     if (epoch.authorities.empty()) {
       return ValidationError::NO_AUTHORITIES;
     }
@@ -67,7 +67,7 @@ namespace kagome::consensus {
     auto [seal, babe_header] = digests_res.value();
 
     // signature in seal of the header must be valid
-    if (!verifySignature(block, babe_header, seal, peer, epoch.authorities)) {
+    if (!verifySignature(block, babe_header, seal, epoch.authorities)) {
       return ValidationError::INVALID_SIGNATURE;
     }
 
@@ -77,7 +77,7 @@ namespace kagome::consensus {
     }
 
     // peer must not send two blocks in one slot
-    if (!verifyProducer(peer, babe_header.slot_number)) {
+    if (!verifyProducer(babe_header)) {
       return ValidationError::TWO_BLOCKS_IN_SLOT;
     }
 
@@ -180,14 +180,13 @@ namespace kagome::consensus {
     return true;
   }
 
-  bool BabeBlockValidator::verifyProducer(const BabeBlockHeader &babe_header,
-                                          BabeSlotNumber number) {
+  bool BabeBlockValidator::verifyProducer(const BabeBlockHeader &babe_header) {
     auto peer = babe_header.authority_index;
 
-    auto slot_it = blocks_producers_.find(number);
+    auto slot_it = blocks_producers_.find(babe_header.slot_number);
     if (slot_it == blocks_producers_.end()) {
       // this peer is the first producer in this slot
-      blocks_producers_.insert({number, {peer}});
+      blocks_producers_.insert({babe_header.slot_number, {peer}});
       return true;
     }
 
@@ -196,7 +195,7 @@ namespace kagome::consensus {
     if (peer_in_slot != slot.end()) {
       log_->info("authority {} has already produced a block in the slot {}",
                  peer,
-                 number);
+                 babe_header.slot_number);
       return false;
     }
 

@@ -86,12 +86,10 @@ namespace kagome::consensus {
      * Check, if the peer has produced a block in this slot and memorize, if the
      * peer hasn't
      * @param peer to be checked
-     * @param number of the slot
      * @return true, if the peer has not produced any blocks in this slot, false
      * otherwise
      */
-    bool verifyProducer(const BabeBlockHeader &babe_header,
-                        BabeSlotNumber number);
+    bool verifyProducer(const BabeBlockHeader &babe_header);
 
     /**
      * Check, if all transactions in the block are valid

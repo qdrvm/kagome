@@ -14,4 +14,5 @@ target_link_libraries(synchronizer
     outcome
     buffer
     libp2p_peer_id
+    scale_message_read_writer
     )

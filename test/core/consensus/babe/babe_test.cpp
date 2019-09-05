@@ -17,6 +17,7 @@
 #include "mock/core/clock/clock_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
+#include "mock/core/network/babe_gossiper_mock.hpp"
 #include "primitives/block.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/sr25519_utils.hpp"
@@ -52,6 +53,8 @@ class BabeTest : public testing::Test {
   std::shared_ptr<ProposerMock> proposer_ = std::make_shared<ProposerMock>();
   std::shared_ptr<BlockTreeMock> block_tree_ =
       std::make_shared<BlockTreeMock>();
+  std::shared_ptr<BabeGossiperMock> gossiper_ =
+      std::make_shared<BabeGossiperMock>();
   SR25519Keypair keypair_{generateSR25519Keypair()};
   AuthorityIndex authority_id_ = 1;
   std::shared_ptr<SystemClockMock> clock_ = std::make_shared<SystemClockMock>();
@@ -62,7 +65,7 @@ class BabeTest : public testing::Test {
       lottery_,
       proposer_,
       block_tree_,
-      network_,
+      gossiper_,
       keypair_,
       authority_id_,
       clock_,
@@ -99,14 +102,6 @@ class BabeTest : public testing::Test {
       event_bus_.getChannel<event::BabeErrorChannel>()};
 };
 
-ACTION_P(CheckBlockHeader, expected_block_header) {
-  auto header_to_check = arg0.header;
-  ASSERT_EQ(header_to_check.digests.size(), 2);
-  header_to_check.digests.pop_back();
-  ASSERT_EQ(header_to_check, expected_block_header);
-  arg1(outcome::success());
-}
-
 /**
  * @given BABE production
  * @when running it in epoch with two slots @and out node is a leader in one of
@@ -136,8 +131,7 @@ TEST_F(BabeTest, Success) {
       .WillOnce(Return(created_block_));
   EXPECT_CALL(*hasher_, blake2b_256(_)).WillOnce(Return(created_block_hash_));
 
-  EXPECT_CALL(*client_, blockAnnounce(_, _))
-      .WillOnce(CheckBlockHeader(created_block_.header));
+  EXPECT_CALL(*gossiper_, blockAnnounce(BlockAnnounce{created_block_.header}));
 
   // finishEpoch
   auto new_epoch = epoch_;

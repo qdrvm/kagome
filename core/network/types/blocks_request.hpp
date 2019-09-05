@@ -59,7 +59,7 @@ namespace kagome::network {
           direction{direction},
           max{max} {}
   };
-  primitives::BlocksRequestId BlocksRequest::last_issued_id = 0;
+  inline primitives::BlocksRequestId BlocksRequest::last_issued_id = 0;
 
   /**
    * @brief compares two BlockRequest instances

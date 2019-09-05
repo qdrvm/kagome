@@ -11,6 +11,7 @@
 #include <boost/optional.hpp>
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/blockchain/header_backend_mock.hpp"
+#include "mock/libp2p/host/host_mock.hpp"
 #include "primitives/block.hpp"
 #include "testutil/gmock_actions.hpp"
 #include "testutil/literals.hpp"
@@ -22,7 +23,9 @@ using namespace network;
 using namespace consensus;
 using namespace primitives;
 using namespace common;
-using namespace libp2p::peer;
+
+using namespace libp2p;
+using namespace peer;
 
 using testing::_;
 using testing::Ref;
@@ -38,9 +41,10 @@ class SynchronizerTest : public testing::Test {
     block2_hash_.fill(4);
 
     synchronizer_ =
-        std::make_shared<SynchronizerImpl>(peer_info_, tree_, headers_);
+        std::make_shared<SynchronizerImpl>(*host_, peer_info_, tree_, headers_);
   }
 
+  std::shared_ptr<HostMock> host_ = std::make_shared<HostMock>();
   PeerInfo peer_info_{"my_peer"_peerid, {}};
 
   std::shared_ptr<BlockTreeMock> tree_ = std::make_shared<BlockTreeMock>();
@@ -61,8 +65,7 @@ class SynchronizerTest : public testing::Test {
  */
 TEST_F(SynchronizerTest, ProcessRequest) {
   // GIVEN
-  BlocksRequest received_request{1,
-                                 BlocksRequest::kBasicAttributes,
+  BlocksRequest received_request{BlocksRequest::kBasicAttributes,
                                  block1_hash_,
                                  boost::none,
                                  Direction::DESCENDING,
@@ -91,7 +94,7 @@ TEST_F(SynchronizerTest, ProcessRequest) {
                       synchronizer_->onBlocksRequest(received_request));
 
   // THEN
-  ASSERT_EQ(response.id, 1);
+  ASSERT_EQ(response.id, 0);
 
   const auto &received_blocks = response.blocks;
   ASSERT_EQ(received_blocks.size(), 2);
