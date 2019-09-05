@@ -43,13 +43,13 @@ namespace kagome::api {
      * @brief runs when responce is obtained
      * @param response json string response
      */
-    void processResponse(const std::string &response);
+    void processResponse(std::string_view response);
 
     /**
      * @brief sends response
      * @param response json result string
      */
-    void asyncWrite(const std::string &response);
+    void asyncWrite(std::string_view response);
 
     /**
      * @brief is called when no requests for too long time

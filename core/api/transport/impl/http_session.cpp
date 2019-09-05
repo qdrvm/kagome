@@ -36,17 +36,17 @@ namespace kagome::api {
       return asyncWrite(bad_http_request("Unsupported HTTP-method"));
     }
 
-    onRequest()(req.body());
+    processRequest(req.body());
   }
 
   HttpSession::HttpSession(boost::asio::ip::tcp::socket socket,
                            HttpSession::Configuration config)
       : config_{config}, stream_(std::move(socket)) {
-    onError().connect([](auto ec, auto &&message) {
+    connectOnError([](auto ec, auto &&message) {
       std::cerr << "http session error " << ec << ": " << message << std::endl;
     });
 
-    onResponse().connect(
+    connectOnResponse(
         [this](std::string_view message) { sendResponse(message); });
   }
 
@@ -107,13 +107,13 @@ namespace kagome::api {
 
   void HttpSession::onRead(boost::system::error_code ec, std::size_t) {
     if (ec) {
-      if (boost::beast::http::error::end_of_stream == ec) {
-        onError()(ec, "connection was closed");
-      } else {
-        onError()(ec, "unknown error occurred");
-      }
+      auto error_message = (boost::beast::http::error::end_of_stream == ec)
+                               ? "connection was closed"
+                               : "unknown error occurred";
+      reportError(ec, error_message);
       stop();
     }
+
     handleRequest(parser_->release());
   }
 
@@ -121,7 +121,7 @@ namespace kagome::api {
                             std::size_t,
                             bool should_stop) {
     if (ec) {
-      onError()(ec, "failed to write message");
+      reportError(ec, "failed to write message");
       return stop();
     }
 

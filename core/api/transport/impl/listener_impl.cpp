@@ -26,7 +26,7 @@ namespace kagome::api {
       std::function<void(std::shared_ptr<Session>)> on_new_session) {
     acceptor_.async_accept([self = shared_from_this(), on_new_session](
                                boost::system::error_code ec,
-                               Session::Socket socket) {
+                               Session::Socket socket) mutable {
       if (ec) {
         return self->onError()(ApiTransportError::FAILED_START_LISTENING);
       }

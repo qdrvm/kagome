@@ -98,7 +98,7 @@ TEST_F(ExtrinsicSubmissionServiceTest, RequestSuccess) {
 
   // ensure received response is correct
   bool is_response_called = false;
-  session->onResponse().connect([response, &is_response_called](auto r) {
+  session->connectOnResponse([response, &is_response_called](auto r) {
     ASSERT_EQ(r, response);
     // confirm responce received
     is_response_called = true;
@@ -107,7 +107,7 @@ TEST_F(ExtrinsicSubmissionServiceTest, RequestSuccess) {
   ASSERT_NO_THROW(service->start());
 
   // imitate request received
-  session->onRequest()(request);
+  session->processRequest(request);
 
   // ensure response received
   ASSERT_EQ(is_response_called, true);
@@ -128,7 +128,7 @@ TEST_F(ExtrinsicSubmissionServiceTest, RequestFail) {
 
   // ensure received response is correct
   bool is_response_called = false;
-  session->onResponse().connect([response, &is_response_called](auto r) {
+  session->connectOnResponse([response, &is_response_called](auto r) {
     ASSERT_EQ(r, response);
     // confirm responce received
     is_response_called = true;
@@ -137,7 +137,8 @@ TEST_F(ExtrinsicSubmissionServiceTest, RequestFail) {
   ASSERT_NO_THROW(service->start());
 
   // imitate request received
-  ASSERT_NO_THROW(session->onRequest()(request));
+
+  ASSERT_NO_THROW(session->processRequest(request));
 
   // ensure response received
   ASSERT_EQ(is_response_called, true);

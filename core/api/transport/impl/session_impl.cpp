@@ -11,8 +11,8 @@ namespace kagome::api {
                            Duration timeout)
       : socket_(std::move(socket)), heartbeat_(context), timeout_{timeout} {
     resetTimer();
-    onResponse().connect(
-        [this](const std::string &response) { processResponse(response); });
+    connectOnResponse(
+        [this](std::string_view response) { processResponse(response); });
   }
 
   void SessionImpl::start() {
@@ -22,7 +22,6 @@ namespace kagome::api {
   void SessionImpl::stop() {
     stopTimer();
     socket_.cancel();
-    onStopped()(shared_from_this());
   }
 
   void SessionImpl::asyncRead() {
@@ -37,17 +36,17 @@ namespace kagome::api {
           }
           std::string data((std::istreambuf_iterator<char>(&self->buffer_)),
                            std::istreambuf_iterator<char>());
-          self->onRequest()(data);
+          self->processRequest(data);
         });
   }
 
-  void SessionImpl::processResponse(const std::string &response) {
+  void SessionImpl::processResponse(std::string_view response) {
     resetTimer();
     asyncWrite(response);
   }
 
-  void SessionImpl::asyncWrite(const std::string &response) {
-    auto r = std::make_shared<std::string>(response + '\n');
+  void SessionImpl::asyncWrite(std::string_view response) {
+    auto r = std::make_shared<std::string>(std::string(response) + '\n');
 
     boost::asio::async_write(socket_,
                              boost::asio::const_buffer(r->data(), r->size()),

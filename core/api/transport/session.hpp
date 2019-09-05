@@ -22,10 +22,12 @@ namespace kagome::api {
     template <class T>
     using Signal = boost::signals2::signal<T>;
 
-    using OnStopped = Signal<void(std::shared_ptr<Session>)>;
-    using OnRequest = Signal<void(std::string_view)>;
-    using OnResponse = Signal<void(std::string)>;
-    using OnError = Signal<void(boost::system::error_code, std::string_view)>;
+    using OnRequestSignature = void(std::string_view);
+    using OnRequest = Signal<OnRequestSignature>;
+    using OnResponseSignature = void(std::string_view);
+    using OnResponse = Signal<OnResponseSignature>;
+    using OnErrorSignature = void(boost::system::error_code, std::string_view);
+    using OnError = Signal<OnErrorSignature>;
 
    public:
     using Socket = boost::asio::ip::tcp::socket;
@@ -49,38 +51,52 @@ namespace kagome::api {
     virtual void stop() = 0;
 
     /**
-     * @return `on stopped` signal
+     * @brief connects `on request` callback
+     * @param callback `on request` callback
      */
-    auto &onStopped() {
-      return on_stopped_;
+    void connectOnRequest(const std::function<OnRequestSignature> &callback) {
+      on_request_cnn_ = on_request_.connect(callback);
     }
 
     /**
-     * @return `on request` signal
+     * @brief process request message
+     * @param request message to process
      */
-    auto &onRequest() {
-      return on_request_;
+    void processRequest(std::string_view request) {
+      on_request_(request);
     }
 
     /**
-     * @return `on response` signal
+     * @brief connects `on response` callback
+     * @param callback `on response` callback
      */
-    auto &onResponse() {
-      return on_response_;
+    void connectOnResponse(const std::function<OnResponseSignature> &callback) {
+      on_response_cnn_ = on_response_.connect(callback);
+    }
+
+    void respond(std::string_view message) {
+      on_response_(message);
     }
 
     /**
-     * @return `on error` signal
+     * @brief connects `on error` callback
+     * @param callback `on error` callback
      */
-    auto &onError() {
-      return on_error_;
+    void connectOnError(const std::function<OnErrorSignature> &callback) {
+      on_error_cnn_ = on_error_.connect(callback);
+    }
+
+    void reportError(boost::system::error_code ec, std::string_view message) {
+      on_error_(ec, message);
     }
 
    private:
-    OnStopped on_stopped_;    ///< `on stopped` signal
-    OnRequest on_request_;    ///< `on request` signal
-    OnResponse on_response_;  ///< `on response` signal
-    OnError on_error_;        ///< `on error` signal
+    OnRequest on_request_;        ///< `on request` signal
+    Connection on_request_cnn_;   ///< `on request` cnn holder
+    OnResponse on_response_;      ///< `on response` signal
+    Connection on_response_cnn_;  ///< `on response` cnn holder
+    OnError on_error_;            ///< `on error` signal
+    Connection on_error_cnn_;     ///< `on error` cnn holder
   };
 
 }  // namespace kagome::api
