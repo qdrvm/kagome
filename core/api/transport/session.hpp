@@ -54,8 +54,8 @@ namespace kagome::api {
      * @brief connects `on request` callback
      * @param callback `on request` callback
      */
-    void connectOnRequest(const std::function<OnRequestSignature> &callback) {
-      on_request_cnn_ = on_request_.connect(callback);
+    void connectOnRequest(std::function<OnRequestSignature> callback) {
+      on_request_ = std::move(callback);
     }
 
     /**
@@ -70,10 +70,14 @@ namespace kagome::api {
      * @brief connects `on response` callback
      * @param callback `on response` callback
      */
-    void connectOnResponse(const std::function<OnResponseSignature> &callback) {
-      on_response_cnn_ = on_response_.connect(callback);
+    void connectOnResponse(std::function<OnResponseSignature> callback) {
+      on_response_ = std::move(callback);
     }
 
+    /**
+     * @brief send response message
+     * @param message response message
+     */
     void respond(std::string_view message) {
       on_response_(message);
     }
@@ -82,21 +86,23 @@ namespace kagome::api {
      * @brief connects `on error` callback
      * @param callback `on error` callback
      */
-    void connectOnError(const std::function<OnErrorSignature> &callback) {
-      on_error_cnn_ = on_error_.connect(callback);
+    void connectOnError(std::function<OnErrorSignature> callback) {
+      on_error_ = std::move(callback);
     }
 
+    /**
+     * @brief reports error code and message
+     * @param ec error code
+     * @param message error message
+     */
     void reportError(boost::system::error_code ec, std::string_view message) {
       on_error_(ec, message);
     }
 
    private:
-    OnRequest on_request_;        ///< `on request` signal
-    Connection on_request_cnn_;   ///< `on request` cnn holder
-    OnResponse on_response_;      ///< `on response` signal
-    Connection on_response_cnn_;  ///< `on response` cnn holder
-    OnError on_error_;            ///< `on error` signal
-    Connection on_error_cnn_;     ///< `on error` cnn holder
+    std::function<OnRequestSignature> on_request_;    ///< `on request` callback
+    std::function<OnResponseSignature> on_response_;  ///< `on response` signal
+    std::function<OnErrorSignature> on_error_;        ///< `on error` signal
   };
 
 }  // namespace kagome::api
