@@ -12,7 +12,6 @@
 #include "mock/core/crypto/vrf_provider_mock.hpp"
 #include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
 #include "scale/scale.hpp"
-#include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/primitives/hash_creator.hpp"
 
@@ -97,9 +96,6 @@ class BlockValidatorTest : public testing::Test {
   BlockBody block_body_{ext_};
   Block valid_block_{block_header_, block_body_};
 
-  // fields for validation
-  libp2p::peer::PeerId peer_id_ = "my_peer"_peerid;
-
   Epoch babe_epoch_{.threshold = 3820948573,
                     .randomness = util::uint256_t_to_bytes(475995757021)};
 };
@@ -148,7 +144,7 @@ TEST_F(BlockValidatorTest, Success) {
   EXPECT_CALL(*tree_, addBlock(valid_block_))
       .WillOnce(Return(outcome::success()));
 
-  ASSERT_TRUE(validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  ASSERT_TRUE(validator_.validate(valid_block_, babe_epoch_));
 }
 
 /**
@@ -160,8 +156,7 @@ TEST_F(BlockValidatorTest, LessDigestsThanNeeded) {
   babe_epoch_.authorities.emplace_back();
 
   // for this test we can just not seal the block - it's the second digest
-  EXPECT_OUTCOME_FALSE(
-      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_DIGESTS);
 }
 
@@ -188,8 +183,7 @@ TEST_F(BlockValidatorTest, NoBabeHeader) {
   babe_epoch_.authorities.emplace_back();
   babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
 
-  EXPECT_OUTCOME_FALSE(
-      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_DIGESTS);
 }
 
@@ -219,8 +213,7 @@ TEST_F(BlockValidatorTest, NoAuthority) {
   babe_epoch_.authorities.emplace_back();
 
   // THEN
-  EXPECT_OUTCOME_FALSE(
-      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_SIGNATURE);
 }
 
@@ -252,8 +245,7 @@ TEST_F(BlockValidatorTest, SignatureVerificationFail) {
   valid_block_.header.digests[1][10]++;
 
   // THEN
-  EXPECT_OUTCOME_FALSE(
-      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_SIGNATURE);
 }
 
@@ -289,8 +281,7 @@ TEST_F(BlockValidatorTest, VRFFail) {
       .WillOnce(Return(false));
 
   // THEN
-  EXPECT_OUTCOME_FALSE(
-      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_VRF);
 }
 
@@ -328,8 +319,7 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
       .WillOnce(Return(true));
 
   // THEN
-  EXPECT_OUTCOME_FALSE(
-      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_VRF);
 }
 
@@ -377,11 +367,10 @@ TEST_F(BlockValidatorTest, TwoBlocksByOnePeer) {
       .WillOnce(Return(outcome::success()));
 
   // WHEN
-  ASSERT_TRUE(validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  ASSERT_TRUE(validator_.validate(valid_block_, babe_epoch_));
 
   // THEN
-  EXPECT_OUTCOME_FALSE(
-      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::TWO_BLOCKS_IN_SLOT);
 }
 
@@ -423,8 +412,7 @@ TEST_F(BlockValidatorTest, InvalidExtrinsic) {
       .WillOnce(Return(Invalid{}));
 
   // THEN
-  EXPECT_OUTCOME_FALSE(
-      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_TRANSACTIONS);
 }
 
@@ -469,5 +457,5 @@ TEST_F(BlockValidatorTest, BlockTreeFails) {
       .WillOnce(Return(outcome::failure(boost::system::error_code{})));
 
   // THEN
-  ASSERT_FALSE(validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  ASSERT_FALSE(validator_.validate(valid_block_, babe_epoch_));
 }

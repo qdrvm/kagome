@@ -27,4 +27,13 @@ namespace libp2p::peer {
 
 }  // namespace libp2p::peer
 
+namespace std {
+  template <>
+  struct hash<libp2p::peer::PeerInfo> {
+    size_t operator()(const libp2p::peer::PeerInfo &peer_info) const {
+      return std::hash<libp2p::peer::PeerId>()(peer_info.id);
+    }
+  };
+}  // namespace std
+
 #endif  // KAGOME_PEER_INFO_HPP
