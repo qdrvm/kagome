@@ -154,7 +154,7 @@ TEST_F(BabeTest, Success) {
       .WillOnce(Return(leadership_));
 
   babe_->runEpoch(epoch_, test_begin + 60ms);
-  io_context_.run_for(150ms);
+  io_context_.run_for(120ms);
 }
 
 /**
