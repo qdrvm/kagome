@@ -11,17 +11,14 @@
 
 namespace kagome::consensus {
   BabeObserverImpl::BabeObserverImpl(
-      std::shared_ptr<Babe> babe,
       std::shared_ptr<BlockValidator> validator,
       std::shared_ptr<network::SyncClientsSet> sync_clients,
       std::shared_ptr<blockchain::BlockTree> tree,
       std::shared_ptr<EpochStorage> epoch_storage)
-      : babe_{std::move(babe)},
-        validator_{std::move(validator)},
+      : validator_{std::move(validator)},
         sync_clients_{std::move(sync_clients)},
         tree_{std::move(tree)},
         epoch_storage_{std::move(epoch_storage)} {
-    BOOST_ASSERT(babe_);
     BOOST_ASSERT(validator_);
     BOOST_ASSERT(sync_clients_);
     BOOST_ASSERT(tree_);

@@ -129,7 +129,7 @@ TEST_F(BabeTest, Success) {
       .WillOnce(Return(test_begin))
       .WillOnce(Return(test_begin + 60ms))
       .WillOnce(Return(test_begin + 100ms))
-      .WillOnce(Return(test_begin + 120ms));
+      .WillOnce(Return(test_begin));  // back in time for purpose
 
   // processSlotLeadership
   // we are not leader of the first slot, but leader of the second
@@ -154,7 +154,7 @@ TEST_F(BabeTest, Success) {
       .WillOnce(Return(leadership_));
 
   babe_->runEpoch(epoch_, test_begin + 60ms);
-  io_context_.run_for(120ms);
+  io_context_.run_for(140ms);
 }
 
 /**
