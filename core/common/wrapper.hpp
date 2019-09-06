@@ -36,7 +36,7 @@ namespace kagome::common {
       return data_;
     }
 
-    bool operator==(Wrapper<T, Tag> &other) {
+    bool operator==(const Wrapper<T, Tag> &other) const {
       return data_ == other.data_;
     }
 
@@ -46,11 +46,18 @@ namespace kagome::common {
 
   template <typename T,
             typename Tag,
-            typename = std::enable_if<std::is_arithmetic<T>::value>>
-  bool operator<(Wrapper<T, Tag> &a, Wrapper<T, Tag> &b) {
+            typename std::enable_if<std::is_arithmetic<T>::value>>
+  bool operator<(const Wrapper<T, Tag> &a, const Wrapper<T, Tag> &b) {
     return a.unwrap() < b.unwrap();
   }
 
 }  // namespace kagome::common
+
+template <typename T, typename Tag>
+struct ::std::hash<kagome::common::Wrapper<T, Tag>> {
+  std::size_t operator()(const kagome::common::Wrapper<T, Tag> &w) {
+    return std::hash<T>()(w.unwrap());
+  }
+};
 
 #endif  // KAGOME_CORE_COMMON_WRAPPER_HPP

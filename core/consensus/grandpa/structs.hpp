@@ -24,6 +24,20 @@ namespace kagome::consensus::grandpa {
   /// voter signature
   using Signature = common::Wrapper<std::vector<uint8_t>, struct SignatureTag>;
 
+  /// @tparam Message A protocol message or vote.
+  template <typename Message>
+  struct SignedMessage {
+    Message message;
+    Signature signature;
+    Id id;
+  };
+
+  template <typename Message>
+  struct Equivocated {
+    Message first;
+    Message second;
+  };
+
   namespace detail {
     template <typename Tag>
     struct BlockInfoT {
@@ -38,10 +52,7 @@ namespace kagome::consensus::grandpa {
       RoundNumber round;
       /// The identity of the equivocator.
       Id id;
-      /// The first vote in the equivocation.
-      std::pair<Message, Signature> first;
-      /// The second vote in the equivocation.
-      std::pair<Message, Signature> second;
+      Equivocated<Message> proof;
     };
   }  // namespace detail
 
@@ -49,14 +60,6 @@ namespace kagome::consensus::grandpa {
   using Precommit = detail::BlockInfoT<struct PrecommitTag>;
   using Prevote = detail::BlockInfoT<struct PrevoteTag>;
   using PrimaryPropose = detail::BlockInfoT<struct PrimaryProposeTag>;
-
-  /// @tparam Message A protocol message or vote.
-  template <typename Message>
-  struct SignedMessage {
-    Message message;
-    Signature signature;
-    Id id;
-  };
 
   using SignedPrevote = SignedMessage<Prevote>;
   using SignedPrecommit = SignedMessage<Precommit>;
