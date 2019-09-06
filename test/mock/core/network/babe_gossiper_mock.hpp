@@ -12,7 +12,7 @@
 
 namespace kagome::network {
   struct BabeGossiperMock : public BabeGossiper {
-    MOCK_CONST_METHOD1(blockAnnounce, void(const BlockAnnounce &));
+    MOCK_METHOD1(blockAnnounce, void(const BlockAnnounce &));
   };
 }  // namespace kagome::network
 

@@ -22,7 +22,7 @@ namespace kagome::network {
      * Send BlockAnnounce message
      * @param announce to be sent
      */
-    virtual void blockAnnounce(const BlockAnnounce &announce) const = 0;
+    virtual void blockAnnounce(const BlockAnnounce &announce) = 0;
   };
 }  // namespace kagome::network
 

@@ -6,7 +6,7 @@
 #ifndef KAGOME_BLOCKS_REQUEST_HPP
 #define KAGOME_BLOCKS_REQUEST_HPP
 
-#include <utility>
+#include <cstdint>
 
 #include <boost/optional.hpp>
 #include <gsl/span>

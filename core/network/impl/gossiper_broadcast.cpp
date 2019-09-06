@@ -5,49 +5,70 @@
 
 #include "network/impl/gossiper_broadcast.hpp"
 
+#include <boost/assert.hpp>
 #include "network/common.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 
 namespace kagome::network {
 
   GossiperBroadcast::GossiperBroadcast(
-      std::shared_ptr<Libp2pStreamManager> stream_manager,
-      std::unordered_set<libp2p::peer::PeerInfo> peer_infos)
-      : stream_manager_{std::move(stream_manager)},
-        peer_infos_{std::move(peer_infos)} {}
+      libp2p::Host &host, gsl::span<const libp2p::peer::PeerInfo> peer_infos)
+      : host_{host} {
+    BOOST_ASSERT(!peer_infos.empty());
 
-  void GossiperBroadcast::blockAnnounce(const BlockAnnounce &announce) const {
+    streams_.reserve(peer_infos.size());
+    for (const auto &info : peer_infos) {
+      streams_.insert({info, nullptr});
+    }
+  }
+
+  void GossiperBroadcast::blockAnnounce(const BlockAnnounce &announce) {
     broadcast(announce);
   }
 
-  void GossiperBroadcast::precommit(Precommit pc) const {
+  void GossiperBroadcast::precommit(Precommit pc) {
     broadcast(pc);
   }
 
-  void GossiperBroadcast::prevote(Prevote pv) const {
+  void GossiperBroadcast::prevote(Prevote pv) {
     broadcast(pv);
   }
 
-  void GossiperBroadcast::primaryPropose(PrimaryPropose pv) const {
+  void GossiperBroadcast::primaryPropose(PrimaryPropose pv) {
     broadcast(pv);
   }
 
   template <typename MsgType>
-  void GossiperBroadcast::broadcast(MsgType &&msg) const {
-    for (const auto &info : peer_infos_) {
-      stream_manager_->getStream(
-          info, kGossipProtocol, [msg](auto &&stream_res) {
-            if (!stream_res) {
-              return;
-            }
-
-            auto read_writer = std::make_shared<ScaleMessageReadWriter>(
-                std::move(stream_res.value()));
-            read_writer->write(
-                msg,
-                [](auto &&) {  // we have nowhere to report the error to
-                });
+  void GossiperBroadcast::broadcast(MsgType &&msg) {
+    auto msg_send_lambda = [msg](auto stream) {
+      auto read_writer =
+          std::make_shared<ScaleMessageReadWriter>(std::move(stream));
+      read_writer->write(
+          msg,
+          [](auto &&) {  // we have nowhere to report the error to
           });
+    };
+
+    for (const auto &[info, stream] : streams_) {
+      if (stream && !stream->isClosed()) {
+        msg_send_lambda(stream);
+        continue;
+      }
+      // if stream does not exist or expired, open a new one
+      host_.newStream(info,
+                      kGossipProtocol,
+                      [self{shared_from_this()}, info = info, msg_send_lambda](
+                          auto &&stream_res) mutable {
+                        if (!stream_res) {
+                          // we will try to open the stream again, when
+                          // another gossip message arrives later
+                          return;
+                        }
+
+                        // save the stream and send the message
+                        self->streams_[info] = stream_res.value();
+                        msg_send_lambda(std::move(stream_res.value()));
+                      });
     }
   }
 

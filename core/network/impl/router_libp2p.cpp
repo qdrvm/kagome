@@ -17,13 +17,11 @@
 namespace kagome::network {
   RouterLibp2p::RouterLibp2p(
       libp2p::Host &host,
-      std::shared_ptr<Libp2pStreamManager> stream_manager,
       std::shared_ptr<BabeObserver> babe_observer,
       std::shared_ptr<consensus::grandpa::Observer> grandpa_observer,
       std::shared_ptr<SyncProtocolObserver> sync_observer,
       common::Logger log)
       : host_{host},
-        stream_manager_{std::move(stream_manager)},
         babe_observer_{std::move(babe_observer)},
         grandpa_observer_{std::move(grandpa_observer)},
         sync_observer_{std::move(sync_observer)},
@@ -83,10 +81,6 @@ namespace kagome::network {
           }
           auto peer_info =
               self->host_.getPeerRepository().getPeerInfo(peer_id_res.value());
-
-          // save the stream for future use by other components
-          self->stream_manager_->submitStream(
-              peer_info, kGossipProtocol, std::move(stream));
         });
   }
 

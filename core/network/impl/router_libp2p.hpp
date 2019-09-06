@@ -16,7 +16,6 @@
 #include "libp2p/peer/protocol.hpp"
 #include "network/babe_observer.hpp"
 #include "network/router.hpp"
-#include "network/stream_manager.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "network/types/gossip_message.hpp"
 
@@ -24,12 +23,9 @@ namespace kagome::network {
   class RouterLibp2p : public Router,
                        public std::enable_shared_from_this<RouterLibp2p> {
     using Stream = libp2p::connection::Stream;
-    using Libp2pStreamManager =
-        StreamManager<libp2p::peer::PeerInfo, libp2p::peer::Protocol, Stream>;
 
    public:
     RouterLibp2p(libp2p::Host &host,
-                 std::shared_ptr<Libp2pStreamManager> stream_manager,
                  std::shared_ptr<BabeObserver> babe_observer,
                  std::shared_ptr<consensus::grandpa::Observer> grandpa_observer,
                  std::shared_ptr<SyncProtocolObserver> sync_observer,
@@ -58,7 +54,6 @@ namespace kagome::network {
     bool processGossipMessage(const GossipMessage &msg) const;
 
     libp2p::Host &host_;
-    std::shared_ptr<Libp2pStreamManager> stream_manager_;
     std::shared_ptr<BabeObserver> babe_observer_;
     std::shared_ptr<consensus::grandpa::Observer> grandpa_observer_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
