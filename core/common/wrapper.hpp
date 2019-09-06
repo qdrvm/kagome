@@ -46,7 +46,7 @@ namespace kagome::common {
 
   template <typename T,
             typename Tag,
-            typename std::enable_if<std::is_arithmetic<T>::value>>
+            typename = std::enable_if<std::is_arithmetic<T>::value>>
   bool operator<(const Wrapper<T, Tag> &a, const Wrapper<T, Tag> &b) {
     return a.unwrap() < b.unwrap();
   }
