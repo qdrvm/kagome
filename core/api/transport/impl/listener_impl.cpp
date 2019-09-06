@@ -22,8 +22,7 @@ namespace kagome::api {
     });
   }
 
-  void ListenerImpl::acceptOnce(
-      std::function<void(std::shared_ptr<Session>)> on_new_session) {
+  void ListenerImpl::acceptOnce(Listener::NewSessionHandler on_new_session) {
     acceptor_.async_accept([self = shared_from_this(), on_new_session](
                                boost::system::error_code ec,
                                Session::Socket socket) mutable {
@@ -47,8 +46,7 @@ namespace kagome::api {
     });
   }
 
-  void ListenerImpl::start(
-      std::function<void(std::shared_ptr<Session>)> on_new_session) {
+  void ListenerImpl::start(Listener::NewSessionHandler on_new_session) {
     // Allow address reuse
     boost::system::error_code ec;
     acceptor_.set_option(boost::asio::socket_base::reuse_address(true), ec);

@@ -28,7 +28,7 @@ namespace kagome::api {
     using Signal = boost::signals2::signal<T>;
     using OnError = Signal<void(const outcome::result<void> &)>;
 
-    using NewSessionHandler = std::function<void(sptr<Session>)>;
+    using NewSessionHandler = std::function<void(const sptr<Session> &)>;
 
    public:
     virtual ~Listener() = default;
@@ -55,8 +55,7 @@ namespace kagome::api {
     /**
      * @brief accepts incoming connection
      */
-    virtual void acceptOnce(
-        std::function<void(std::shared_ptr<Session>)> on_new_session) = 0;
+    virtual void acceptOnce(NewSessionHandler on_new_session) = 0;
 
    private:
     OnError on_error_;  ///< emitted when error occurs

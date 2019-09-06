@@ -36,7 +36,7 @@ namespace kagome::api {
           }
           std::string data((std::istreambuf_iterator<char>(&self->buffer_)),
                            std::istreambuf_iterator<char>());
-          self->processRequest(data);
+          self->processRequest(data, self);
         });
   }
 

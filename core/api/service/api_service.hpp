@@ -14,7 +14,7 @@ namespace kagome::api {
 
   class JRPCProcessor;
 
-  class ApiService {
+  class ApiService : public std::enable_shared_from_this<ApiService> {
    public:
     template <class T>
     using sptr = std::shared_ptr<T>;

@@ -16,17 +16,19 @@ namespace kagome::api {
 
   void ApiService::start() {
     // handle new session
-    listener_->start([this](sptr<Session> session) mutable {
-      session->connectOnRequest(
-          [this, session](std::string_view request) mutable {
-            // process new request
-            processor_->processData(std::string(request),
-                                    [session = std::move(session)](
-                                        const std::string &response) mutable {
-                                      // process response
-                                      session->respond(response);
-                                    });
-          });
+    listener_->start([self =
+                          shared_from_this()](sptr<Session> session) mutable {
+      session->connectOnRequest([self = std::move(self)](
+                                    std::string_view request,
+                                    std::shared_ptr<Session> session) mutable {
+        // process new request
+        self->processor_->processData(std::string(request),
+                                      [session = std::move(session)](
+                                          const std::string &response) mutable {
+                                        // process response
+                                        session->respond(response);
+                                      });
+      });
     });
   }
 

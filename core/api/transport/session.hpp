@@ -22,7 +22,7 @@ namespace kagome::api {
     template <class T>
     using Signal = boost::signals2::signal<T>;
 
-    using OnRequestSignature = void(std::string_view);
+    using OnRequestSignature = void(std::string_view, std::shared_ptr<Session> session);
     using OnRequest = Signal<OnRequestSignature>;
     using OnResponseSignature = void(std::string_view);
     using OnResponse = Signal<OnResponseSignature>;
@@ -62,8 +62,8 @@ namespace kagome::api {
      * @brief process request message
      * @param request message to process
      */
-    void processRequest(std::string_view request) {
-      on_request_(request);
+    void processRequest(std::string_view request, std::shared_ptr<Session> session) {
+      on_request_(request, std::move(session));
     }
 
     /**

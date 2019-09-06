@@ -36,7 +36,7 @@ namespace kagome::api {
       return asyncWrite(bad_http_request("Unsupported HTTP-method"));
     }
 
-    processRequest(req.body());
+    processRequest(req.body(), shared_from_this());
   }
 
   HttpSession::HttpSession(boost::asio::ip::tcp::socket socket,

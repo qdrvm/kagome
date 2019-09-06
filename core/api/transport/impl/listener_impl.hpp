@@ -30,12 +30,13 @@ namespace kagome::api {
      * @param context reference to boost::asio::io_context instance
      * @param endpoint loopback ip address to listen
      */
-    ListenerImpl(Context &context, const Endpoint &endpoint,
+    ListenerImpl(Context &context,
+                 const Endpoint &endpoint,
                  Configuration config);
 
     ~ListenerImpl() override = default;
 
-    void start(std::function<void(std::shared_ptr<Session>)> on_new_session) override;
+    void start(NewSessionHandler on_new_session) override;
 
     void stop() override;
 
@@ -43,7 +44,7 @@ namespace kagome::api {
     /**
      * @brief accepts incoming connection
      */
-    void acceptOnce(std::function<void(std::shared_ptr<Session>)> on_new_session) override;
+    void acceptOnce(NewSessionHandler on_new_session) override;
 
     Context &context_;   ///< io context
     Acceptor acceptor_;  ///< connections acceptor
@@ -52,6 +53,6 @@ namespace kagome::api {
     State state_{State::READY};  ///< working state
     Configuration config_;       ///< configuration
   };
-}  // namespace kagome::server
+}  // namespace kagome::api
 
 #endif  // KAGOME_CORE_API_TRANSPORT_IMPL_LISTENER_IMPL_HPP

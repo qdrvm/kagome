@@ -107,7 +107,7 @@ TEST_F(ExtrinsicSubmissionServiceTest, RequestSuccess) {
   ASSERT_NO_THROW(service->start());
 
   // imitate request received
-  session->processRequest(request);
+  session->processRequest(request, session);
 
   // ensure response received
   ASSERT_EQ(is_response_called, true);
@@ -138,7 +138,7 @@ TEST_F(ExtrinsicSubmissionServiceTest, RequestFail) {
 
   // imitate request received
 
-  ASSERT_NO_THROW(session->processRequest(request));
+  ASSERT_NO_THROW(session->processRequest(request, session));
 
   // ensure response received
   ASSERT_EQ(is_response_called, true);
