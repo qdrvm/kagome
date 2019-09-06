@@ -42,12 +42,6 @@ namespace kagome::consensus {
      * @return reference to BabeMeta
      */
     virtual BabeMeta getBabeMeta() const = 0;
-
-    /**
-     * Get an epoch, in which block with (\param number) was produced
-     */
-    virtual boost::optional<Epoch> getEpochBy(
-        primitives::BlockNumber number) const = 0;
   };
 }  // namespace kagome::consensus
 

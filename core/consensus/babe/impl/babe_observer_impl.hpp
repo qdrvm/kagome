@@ -10,6 +10,7 @@
 
 #include "blockchain/block_tree.hpp"
 #include "consensus/babe.hpp"
+#include "consensus/babe/epoch_storage.hpp"
 #include "consensus/validation/block_validator.hpp"
 #include "network/babe_observer.hpp"
 #include "network/types/sync_clients_set.hpp"
@@ -22,7 +23,8 @@ namespace kagome::consensus {
     BabeObserverImpl(std::shared_ptr<Babe> babe,
                      std::shared_ptr<BlockValidator> validator,
                      std::shared_ptr<network::SyncClientsSet> sync_clients,
-                     std::shared_ptr<blockchain::BlockTree> tree);
+                     std::shared_ptr<blockchain::BlockTree> tree,
+                     std::shared_ptr<EpochStorage> epoch_storage);
 
     ~BabeObserverImpl() override = default;
 
@@ -40,6 +42,7 @@ namespace kagome::consensus {
     std::shared_ptr<BlockValidator> validator_;
     std::shared_ptr<network::SyncClientsSet> sync_clients_;
     std::shared_ptr<blockchain::BlockTree> tree_;
+    std::shared_ptr<EpochStorage> epoch_storage_;
   };
 }  // namespace kagome::consensus
 

@@ -102,6 +102,13 @@ class BabeTest : public testing::Test {
       event_bus_.getChannel<event::BabeErrorChannel>()};
 };
 
+ACTION_P(CheckBlockHeader, expected_block_header) {
+  auto header_to_check = arg0.header;
+  ASSERT_EQ(header_to_check.digests.size(), 2);
+  header_to_check.digests.pop_back();
+  ASSERT_EQ(header_to_check, expected_block_header);
+}
+
 /**
  * @given BABE production
  * @when running it in epoch with two slots @and out node is a leader in one of
@@ -131,7 +138,8 @@ TEST_F(BabeTest, Success) {
       .WillOnce(Return(created_block_));
   EXPECT_CALL(*hasher_, blake2b_256(_)).WillOnce(Return(created_block_hash_));
 
-  EXPECT_CALL(*gossiper_, blockAnnounce(BlockAnnounce{created_block_.header}));
+  EXPECT_CALL(*gossiper_, blockAnnounce(_))
+      .WillOnce(CheckBlockHeader(created_block_.header));
 
   // finishEpoch
   auto new_epoch = epoch_;
@@ -183,7 +191,7 @@ TEST_F(BabeTest, SyncSuccess) {
       (delay_in_slots * epoch_.slot_duration) + slot_start_time;
 
   babe_->runEpoch(epoch_, slot_start_time);
-  io_context_.run_for(100ms);
+  io_context_.run_for(60ms);
 
   auto meta = babe_->getBabeMeta();
   ASSERT_EQ(meta.current_slot_, expected_current_slot);

@@ -14,11 +14,13 @@ namespace kagome::consensus {
       std::shared_ptr<Babe> babe,
       std::shared_ptr<BlockValidator> validator,
       std::shared_ptr<network::SyncClientsSet> sync_clients,
-      std::shared_ptr<blockchain::BlockTree> tree)
+      std::shared_ptr<blockchain::BlockTree> tree,
+      std::shared_ptr<EpochStorage> epoch_storage)
       : babe_{std::move(babe)},
         validator_{std::move(validator)},
         sync_clients_{std::move(sync_clients)},
-        tree_{std::move(tree)} {
+        tree_{std::move(tree)},
+        epoch_storage_{std::move(epoch_storage)} {
     BOOST_ASSERT(babe_);
     BOOST_ASSERT(validator_);
     BOOST_ASSERT(sync_clients_);
@@ -26,6 +28,7 @@ namespace kagome::consensus {
     BOOST_ASSERT(std::all_of(sync_clients_->clients.begin(),
                              sync_clients_->clients.end(),
                              [](const auto &client) { return client; }));
+    BOOST_ASSERT(epoch_storage_);
   }
 
   void BabeObserverImpl::onBlockAnnounce(
@@ -33,7 +36,7 @@ namespace kagome::consensus {
     // maybe later it will be consensus message with a body
     primitives::Block block{announce.header};
 
-    auto epoch_opt = babe_->getEpochBy(announce.header.number);
+    auto epoch_opt = epoch_storage_->getEpoch(announce.header.number);
     if (!epoch_opt) {
       // TODO(akvinikym) 04.09.19: probably some logic should be done here - we
       // cannot validate block without an epoch, but still it needs to be
@@ -125,7 +128,8 @@ namespace kagome::consensus {
               block.body = *block_data.body;
             }
 
-            auto epoch_opt = self->babe_->getEpochBy(block.header.number);
+            auto epoch_opt =
+                self->epoch_storage_->getEpoch(block.header.number);
             if (!epoch_opt) {
               // not clear, what to do, as in the upper method
               break;

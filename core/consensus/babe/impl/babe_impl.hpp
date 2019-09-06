@@ -67,9 +67,6 @@ namespace kagome::consensus {
 
     BabeMeta getBabeMeta() const override;
 
-    boost::optional<Epoch> getEpochBy(
-        primitives::BlockNumber number) const override;
-
     enum class Error { TIMER_ERROR = 1, NODE_FALL_BEHIND };
 
    private:
