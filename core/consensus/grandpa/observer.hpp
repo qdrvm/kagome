@@ -18,7 +18,9 @@ namespace kagome::consensus::grandpa {
     virtual ~Observer() = default;
 
     virtual void onPrecommit(Precommit pc) = 0;
+
     virtual void onPrevote(Prevote pv) = 0;
+
     virtual void onPrimaryPropose(PrimaryPropose pv) = 0;
   };
 

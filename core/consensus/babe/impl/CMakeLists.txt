@@ -27,3 +27,11 @@ target_link_libraries(babe
     libp2p_peer_id
     primitives
     )
+
+add_library(babe_observer
+    babe_observer_impl.cpp
+    babe_observer_impl.hpp
+    )
+target_link_libraries(babe_observer
+    babe
+    )
