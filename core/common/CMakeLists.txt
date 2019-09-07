@@ -4,6 +4,7 @@ add_library(hexutil
     )
 target_link_libraries(hexutil
     Boost::boost
+    outcome
     )
 
 add_library(buffer
