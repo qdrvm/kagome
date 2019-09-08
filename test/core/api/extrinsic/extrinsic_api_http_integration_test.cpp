@@ -10,10 +10,11 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+
+#include "api/transport/impl/http_session.hpp"
 #include "api/transport/impl/listener_impl.hpp"
-#include "api/transport/impl/session_impl.hpp"
 #include "common/blob.hpp"
-#include "core/api/extrinsic/simple_client.hpp"
+#include "core/api/client/api_client.hpp"
 #include "mock/api/extrinsic/extrinsic_api_mock.hpp"
 #include "primitives/extrinsic.hpp"
 #include "testutil/outcome.hpp"
@@ -24,53 +25,38 @@ using namespace kagome::runtime;
 using kagome::api::ListenerImpl;
 using kagome::common::Hash256;
 using kagome::primitives::Extrinsic;
-using test::SimpleClient;
 
 using ::testing::_;
 using ::testing::DoAll;
 using ::testing::Invoke;
 using ::testing::Return;
 
-namespace {
-  struct ClientTestHelper {
-    virtual ~ClientTestHelper() = default;
-
-    virtual void connectSuccess() = 0;
-    virtual void writeSuccess() = 0;
-    virtual void readSuccess(const std::string &response) = 0;
-    virtual void errorOccured() = 0;
-  };
-
-  struct ClientHelperMock : public ClientTestHelper {
-    ~ClientHelperMock() override = default;
-    MOCK_METHOD0(connectSuccess, void(void));
-    MOCK_METHOD0(writeSuccess, void(void));
-    MOCK_METHOD1(readSuccess, void(const std::string &));
-    MOCK_METHOD0(errorOccured, void(void));
-  };
-}  // namespace
-
 class ESSIntegrationTest : public ::testing::Test {
   template <class T>
   using sptr = std::shared_ptr<T>;
 
  protected:
-  using Context = SimpleClient::Context;
-  using ErrorCode = SimpleClient::ErrorCode;
+  using Endpoint = boost::asio::ip::tcp::endpoint;
+  using Context = boost::asio::io_context;
+  using Socket = boost::asio::ip::tcp::socket;
+  using Timer = boost::asio::steady_timer;
+  using Streambuf = boost::asio::streambuf;
+  using Duration = boost::asio::steady_timer::duration;
+  using ErrorCode = boost::system::error_code;
 
   void SetUp() override {
     extrinsic.data.put("hello world");
     hash.fill(1);
   }
 
-  SimpleClient::Context main_context{1};
-  SimpleClient::Context client_context{1};
+  Context main_context{1};
+  Context client_context{1};
 
-  SimpleClient::Endpoint endpoint = {
-      boost::asio::ip::address::from_string("127.0.0.1"), 12349};
-  ListenerImpl::Configuration listener_config{std::chrono::milliseconds(100)};
+  Endpoint endpoint = {boost::asio::ip::address::from_string("127.0.0.1"),
+                       12349};
+  HttpSession::Configuration http_config{};
   sptr<ListenerImpl> listener =
-      std::make_shared<ListenerImpl>(main_context, endpoint, listener_config);
+      std::make_shared<ListenerImpl>(main_context, endpoint, http_config);
 
   sptr<ExtrinsicApiMock> api = std::make_shared<ExtrinsicApiMock>();
 
@@ -82,8 +68,6 @@ class ESSIntegrationTest : public ::testing::Test {
       R"({"jsonrpc":"2.0","method":"author_submitExtrinsic","id":0,"params":["68656C6C6F20776F726C64"]})"
       + std::string("\n");
   Hash256 hash{};
-
-  sptr<ClientHelperMock> helper = std::make_shared<ClientHelperMock>();
 };
 
 namespace {
@@ -103,7 +87,7 @@ namespace {
 
 /**
  * @given extrinsic submission service
- * configured with real listener and mock api, and simple tcp client
+ * configured with real listener and mock api, and simple api client
  * @when a valid request is submitted by client
  * @then server receives request, processes it and sends response,
  * client receives response, which matches expectation
@@ -114,67 +98,61 @@ TEST_F(ESSIntegrationTest, ProcessSingleClientSuccess) {
   const std::string response =
       R"({"jsonrpc":"2.0","id":0,"result":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]})";
 
-  const SimpleClient::Duration timeout_duration =
-      std::chrono::milliseconds(200);
+  const Duration timeout_duration = std::chrono::milliseconds(200);
 
-  std::shared_ptr<SimpleClient> client;
+  std::shared_ptr<test::ApiClient> client;
 
   ASSERT_NO_THROW(service->start());
 
-  EXPECT_CALL(*helper, connectSuccess()).WillOnce(Return());
-  EXPECT_CALL(*helper, writeSuccess()).WillOnce(Return());
-  EXPECT_CALL(*helper, readSuccess(response)).WillOnce(Return());
-  EXPECT_CALL(*helper, errorOccured()).Times(0);
+  client = std::make_shared<test::ApiClient>(client_context);
 
-  auto on_error = [helper = this->helper]() { helper->errorOccured(); };
+  std::thread client_thread([this, client, &response]() {
+    ASSERT_TRUE(client->connect(endpoint));
+    client->query(request, [&response](outcome::result<std::string> res) {
+      ASSERT_TRUE(res);
+      ASSERT_EQ(res.value(), response);
+    });
+  });
 
-  client = std::make_shared<SimpleClient>(
-      client_context, timeout_duration, on_error);
+  main_context.run_for(timeout_duration);
+  client_thread.join();
+}
 
-  std::thread client_thread([this,
-                             client,
-                             timeout_duration,
-                             on_error,
-                             request = this->request,
-                             helper = this->helper]() {
-    // make client and start
-    auto on_read_success = [client, on_error, helper](const ErrorCode &error,
-                                                      std::size_t n) {
-      if (!error) {
-        auto resp = rtrim(client->data(), "\n");
-        helper->readSuccess(resp);
-      } else {
-        client->stop();
-        on_error();
-      }
-    };
+/**
+ * @given extrinsic submission service
+ * configured with real listener and mock api, and simple api client
+ * @when a valid request is submitted by client
+ * @then server receives request, processes it and sends response,
+ * client receives response, which matches expectation
+ * @and @when the same request is submitted again
+ * client receives response, which matches expectation again
+ */
+TEST_F(ESSIntegrationTest, ProcessTwoRequestsSuccess) {
+  EXPECT_CALL(*api, submitExtrinsic(extrinsic))
+      .Times(2)
+      .WillRepeatedly(Return(hash));
 
-    auto on_write_success = [client, helper, on_error, on_read_success](
-                                const ErrorCode &error, std::size_t n) {
-      if (!error) {
-        helper->writeSuccess();
-        client->asyncRead(on_read_success);
-      } else {
-        client->stop();
-        on_error();
-      }
-    };
+  const std::string response =
+      R"({"jsonrpc":"2.0","id":0,"result":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]})";
 
-    auto on_connect_success =
-        [client, helper, on_error, on_write_success, request](
-            const ErrorCode &error) {
-          if (!error) {
-            helper->connectSuccess();
-            client->asyncWrite(request, on_write_success);
-          } else {
-            client->stop();
-            on_error();
-          }
-        };
+  const Duration timeout_duration = std::chrono::milliseconds(200);
 
-    client->asyncConnect(endpoint, on_connect_success);
+  std::shared_ptr<test::ApiClient> client;
 
-    client->getContext().run_for(timeout_duration);
+  ASSERT_NO_THROW(service->start());
+
+  client = std::make_shared<test::ApiClient>(client_context);
+
+  std::thread client_thread([this, client, &response]() {
+    ASSERT_TRUE(client->connect(endpoint));
+    client->query(request, [&response](outcome::result<std::string> res) {
+      ASSERT_TRUE(res);
+      ASSERT_EQ(res.value(), response);
+    });
+    client->query(request, [&response](outcome::result<std::string> res) {
+      ASSERT_TRUE(res);
+      ASSERT_EQ(res.value(), response);
+    });
   });
 
   main_context.run_for(timeout_duration);

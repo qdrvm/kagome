@@ -11,19 +11,35 @@
 #include <memory>
 
 #include <boost/beast.hpp>
-#include <boost/optional.hpp>
 #include "api/transport/session.hpp"
 
 namespace kagome::api {
   /**
    * @brief HTTP session for api service
    */
-  class HttpSession : public std::enable_shared_from_this<HttpSession>,
-                      public Session {
+  class HttpSession : public Session {
+    using Socket = boost::asio::ip::tcp::socket;
+
+    template <typename Body>
+    using Request = boost::beast::http::request<Body>;
+
+    template <typename Body>
+    using Response = boost::beast::http::response<Body>;
+
+    using StringBody = boost::beast::http::string_body;
+
+    template <class Body>
+    using RequestParser = boost::beast::http::request_parser<Body>;
+
+    using HttpField = boost::beast::http::field;
+
+    using HttpError = boost::beast::http::error;
+
    public:
     struct Configuration {
       static constexpr size_t kDefaultRequestSize = 10000u;
       static constexpr Duration kDefaultTimeout = std::chrono::seconds(30);
+
       size_t max_request_size{kDefaultRequestSize};
       Duration operation_timeout{kDefaultTimeout};
     };
@@ -35,7 +51,7 @@ namespace kagome::api {
      * @param socket socket instance
      * @param config session configuration
      */
-    HttpSession(boost::asio::ip::tcp::socket socket, Configuration config);
+    HttpSession(Socket socket, Configuration config);
 
     /**
      * @brief starts session
@@ -51,13 +67,10 @@ namespace kagome::api {
     /**
      * @brief process http request, compose and execute response
      * @tparam Body request body type
-     * @tparam Allocator allocator type
-     * @tparam Send sender lambda
-     * @param req request
-     * @param send sender function
+     * @param request request
      */
     template <class Body>
-    void handleRequest(boost::beast::http::request<Body> &&req);
+    void handleRequest(Request<Body> &&request);
 
     /**
      * @brief asynchronously read http message
@@ -78,8 +91,27 @@ namespace kagome::api {
      */
     void sendResponse(std::string_view response);
 
-    void onRead(boost::system::error_code ec, std::size_t);
+    /**
+     * @brief read completion callback
+     */
+    void onRead(boost::system::error_code ec, std::size_t size);
+
+    /**
+     * @brief write completion callback
+     */
     void onWrite(boost::system::error_code ec, std::size_t, bool close);
+
+    /**
+     * @brief composes `bad request` message
+     * @param message text to send
+     * @param version protocol version
+     * @param keep_alive true if server should keep connection alive, false
+     * otherwise
+     * @return composed request
+     */
+    auto makeBadRequest(std::string_view message,
+                        unsigned version,
+                        bool keep_alive);
 
     static constexpr std::string_view kServerName = "Kagome extrinsic api";
 
@@ -87,8 +119,10 @@ namespace kagome::api {
     boost::beast::tcp_stream stream_;   ///< stream
     boost::beast::flat_buffer buffer_;  ///< read buffer
 
-    using Parser =
-        boost::beast::http::request_parser<boost::beast::http::string_body>;
+    /**
+     * @brief request parser type
+     */
+    using Parser = RequestParser<StringBody>;
 
     std::unique_ptr<Parser> parser_;  ///< http parser
   };

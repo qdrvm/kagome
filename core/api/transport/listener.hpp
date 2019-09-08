@@ -7,7 +7,6 @@
 #define KAGOME_CORE_API_TRANSPORT_LISTENER_HPP
 
 #include <memory>
-#include <unordered_map>
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>

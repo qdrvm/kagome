@@ -8,7 +8,6 @@
 #include "api/extrinsic/impl/extrinsic_api_impl.hpp"
 #include "api/extrinsic/request/submit_extrinsic.hpp"
 #include "api/jrpc/value_converter.hpp"
-#include "api/transport/session.hpp"
 
 namespace kagome::api {
 

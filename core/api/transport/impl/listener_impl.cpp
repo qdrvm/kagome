@@ -7,18 +7,17 @@
 
 #include <boost/asio.hpp>
 #include "api/transport/error.hpp"
-#include "api/transport/impl/session_impl.hpp"
+#include "api/transport/impl/http_session.hpp"
 
 namespace kagome::api {
   ListenerImpl::ListenerImpl(ListenerImpl::Context &context,
                              const ListenerImpl::Endpoint &endpoint,
-                             Configuration config)
+                             HttpSession::Configuration http_config)
       : context_(context),
         acceptor_(boost::asio::make_strand(context_), endpoint),
-        config_(config) {
-    onError().connect([this](auto &&...) {
+        http_config_{http_config} {
+    onError().connect([](auto &&...) {
       // TODO(yuraz): pre-249 log error
-      stop();
     });
   }
 
@@ -27,17 +26,21 @@ namespace kagome::api {
                                boost::system::error_code ec,
                                Session::Socket socket) mutable {
       if (ec) {
-        return self->onError()(ApiTransportError::FAILED_START_LISTENING);
+        self->onError()(ApiTransportError::FAILED_START_LISTENING);
+        self->stop();
+        return;
       }
 
       if (self->state_ != State::WORKING) {
         // TODO(yuraz): PRE-249 add log
-        return self->onError()(
-            ApiTransportError::CANNOT_ACCEPT_LISTENER_NOT_WORKING);
+        self->onError()(ApiTransportError::CANNOT_ACCEPT_LISTENER_NOT_WORKING);
+        self->stop();
+        return;
       }
 
-      auto session = std::make_shared<SessionImpl>(
-          std::move(socket), self->context_, self->config_.operation_timeout);
+      auto session =
+          std::make_shared<HttpSession>(std::move(socket), self->http_config_);
+
       on_new_session(session);
       session->start();
 
@@ -47,11 +50,16 @@ namespace kagome::api {
   }
 
   void ListenerImpl::start(Listener::NewSessionHandler on_new_session) {
+    if (state_ == State::WORKING) {
+      onError()(ApiTransportError::LISTENER_ALREADY_STARTED);
+      return;
+    }
     // Allow address reuse
     boost::system::error_code ec;
     acceptor_.set_option(boost::asio::socket_base::reuse_address(true), ec);
     if (ec) {
       onError()(ApiTransportError::FAILED_SET_OPTION);
+      stop();
       return;
     }
 

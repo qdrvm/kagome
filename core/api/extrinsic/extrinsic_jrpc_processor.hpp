@@ -6,22 +6,23 @@
 #ifndef KAGOME_CORE_SERVICE_EXTRINSICS_SUBMISSION_SERVICE_HPP
 #define KAGOME_CORE_SERVICE_EXTRINSICS_SUBMISSION_SERVICE_HPP
 
+#include <memory>
 #include <vector>
 
 #include <jsonrpc-lean/server.h>
 #include <boost/core/noncopyable.hpp>
-#include <boost/signals2/signal.hpp>
 #include "api/extrinsic/extrinsic_api.hpp"
 #include "api/jrpc/jrpc_processor.hpp"
-#include "api/transport/impl/listener_impl.hpp"
 
 namespace kagome::api {
 
   /**
    * @brief extrinsic submission service implementation
    */
-  class ExtrinsicJRPCProcessor : public JRPCProcessor,
-                                 private boost::noncopyable {
+  class ExtrinsicJRPCProcessor
+      : public JRPCProcessor,
+        public std::enable_shared_from_this<ExtrinsicJRPCProcessor>,
+        private boost::noncopyable {
    public:
     /**
      * @brief constructor
