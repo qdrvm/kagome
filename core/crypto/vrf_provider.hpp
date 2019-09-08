@@ -7,7 +7,7 @@
 #define KAGOME_CORE_CRYPTO_VRF_VRF_PROVIDER_HPP
 
 #include "common/buffer.hpp"
-#include "crypto/crypto_types.hpp"
+#include "crypto/sr25519_types.hpp"
 
 namespace kagome::crypto {
 

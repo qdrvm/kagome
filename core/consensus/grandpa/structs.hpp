@@ -9,20 +9,20 @@
 #include <boost/asio/steady_timer.hpp>
 #include "common/blob.hpp"
 #include "common/wrapper.hpp"
+#include "crypto/ed25519_types.hpp"
+#include "primitives/common.hpp"
 
 namespace kagome::consensus::grandpa {
 
   using Timer = boost::asio::basic_waitable_timer<std::chrono::steady_clock>;
 
-  using BlockHash = common::Wrapper<common::Hash256, struct BlockHashTag>;
-  using BlockNumber = common::Wrapper<uint64_t, struct BlockNumberTag>;
   using RoundNumber = common::Wrapper<uint64_t, struct RoundNumberTag>;
 
   /// voter identifier
-  using Id = common::Wrapper<common::Hash256, struct IdTag>;
+  using Id = primitives::AuthorityId;
 
   /// voter signature
-  using Signature = common::Wrapper<std::vector<uint8_t>, struct SignatureTag>;
+  using Signature = crypto::ED25519Signature;
 
   /// @tparam Message A protocol message or vote.
   template <typename Message>
@@ -41,8 +41,8 @@ namespace kagome::consensus::grandpa {
   namespace detail {
     template <typename Tag>
     struct BlockInfoT {
-      BlockNumber number{0};
-      BlockHash hash{{}};
+      primitives::BlockNumber number;
+      primitives::BlockHash hash;
     };
 
     /// Proof of an equivocation (double-vote) in a given round.

@@ -6,8 +6,7 @@
 #ifndef KAGOME_SR25519_UTILS_HPP
 #define KAGOME_SR25519_UTILS_HPP
 
-#include <sr25519/sr25519.h>
-#include "crypto/crypto_types.hpp"
+#include "crypto/sr25519_types.hpp"
 
 /**
  * Generate a SR25519 with some seed

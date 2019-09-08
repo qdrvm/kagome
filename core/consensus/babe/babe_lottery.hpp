@@ -8,7 +8,7 @@
 
 #include <boost/optional.hpp>
 #include "consensus/babe/types/epoch.hpp"
-#include "crypto/crypto_types.hpp"
+#include "crypto/sr25519_types.hpp"
 
 namespace kagome::consensus {
   /**
