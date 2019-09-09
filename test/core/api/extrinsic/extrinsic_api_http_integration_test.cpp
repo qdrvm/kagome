@@ -17,7 +17,6 @@
 #include "core/api/client/api_client.hpp"
 #include "mock/api/extrinsic/extrinsic_api_mock.hpp"
 #include "primitives/extrinsic.hpp"
-#include "testutil/outcome.hpp"
 
 using namespace kagome::api;
 using namespace kagome::runtime;
@@ -69,21 +68,6 @@ class ESSIntegrationTest : public ::testing::Test {
       + std::string("\n");
   Hash256 hash{};
 };
-
-namespace {
-  // inline trims string from right
-  inline std::string rtrim(std::string s, std::string_view characters) {
-    s.erase(std::find_if(s.rbegin(),
-                         s.rend(),
-                         [characters](int ch) {
-                           return characters.find_first_of(ch)
-                                  == std::string_view::npos;
-                         })
-                .base(),
-            s.end());
-    return s;
-  }
-}  // namespace
 
 /**
  * @given extrinsic submission service
