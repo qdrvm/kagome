@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_BLOCKCHAIN_IMPL_LEVEL_DB_BLOCK_HEADER_REPOSITORY_HPP
-#define KAGOME_CORE_BLOCKCHAIN_IMPL_LEVEL_DB_BLOCK_HEADER_REPOSITORY_HPP
+#ifndef KAGOME_CORE_BLOCKCHAIN_IMPL_KEY_VALUE_BLOCK_HEADER_REPOSITORY_HPP
+#define KAGOME_CORE_BLOCKCHAIN_IMPL_KEY_VALUE_BLOCK_HEADER_REPOSITORY_HPP
 
 #include "blockchain/block_header_repository.hpp"
 
@@ -13,12 +13,12 @@
 
 namespace kagome::blockchain {
 
-  class LevelDbBlockHeaderRepository : public BlockHeaderRepository {
+  class KeyValueBlockHeaderRepository : public BlockHeaderRepository {
    public:
-    LevelDbBlockHeaderRepository(PersistentBufferMap &db,
-                                 std::shared_ptr<crypto::Hasher> hasher);
+    KeyValueBlockHeaderRepository(PersistentBufferMap &map,
+                                  std::shared_ptr<crypto::Hasher> hasher);
 
-    ~LevelDbBlockHeaderRepository() override = default;
+    ~KeyValueBlockHeaderRepository() override = default;
 
     auto getNumberByHash(const common::Hash256 &hash) const
         -> outcome::result<primitives::BlockNumber> override;
@@ -33,10 +33,10 @@ namespace kagome::blockchain {
         -> outcome::result<blockchain::BlockStatus> override;
 
    private:
-    PersistentBufferMap &db_;
+    PersistentBufferMap &map_;
     std::shared_ptr<crypto::Hasher> hasher_;
   };
 
 }  // namespace kagome::blockchain
 
-#endif  // KAGOME_CORE_BLOCKCHAIN_IMPL_LEVEL_DB_BLOCK_HEADER_REPOSITORY_HPP
+#endif  // KAGOME_CORE_BLOCKCHAIN_IMPL_KEY_VALUE_BLOCK_HEADER_REPOSITORY_HPP
