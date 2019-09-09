@@ -33,14 +33,6 @@ namespace kagome::api {
     virtual ~Listener() = default;
 
     /**
-     * @return `on error` signal
-     * which is emitted when start listening fails
-     */
-    OnError &onError() {
-      return on_error_;
-    }
-
-    /**
      * @brief starts listening
      */
     virtual void start(NewSessionHandler on_new_session) = 0;
@@ -55,9 +47,6 @@ namespace kagome::api {
      * @brief accepts incoming connection
      */
     virtual void acceptOnce(NewSessionHandler on_new_session) = 0;
-
-   private:
-    OnError on_error_;  ///< emitted when error occurs
   };
 }  // namespace kagome::api
 

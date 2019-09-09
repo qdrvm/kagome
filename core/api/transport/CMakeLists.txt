@@ -15,4 +15,5 @@ add_library(api_transport
     )
 target_link_libraries(api_transport
     Boost::boost
+    logger
     )

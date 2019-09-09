@@ -12,6 +12,7 @@
 
 #include <boost/beast.hpp>
 #include "api/transport/session.hpp"
+#include "common/logger.hpp"
 
 namespace kagome::api {
   /**
@@ -34,6 +35,7 @@ namespace kagome::api {
     using HttpField = boost::beast::http::field;
 
     using HttpError = boost::beast::http::error;
+    using Logger = common::Logger;
 
    public:
     struct Configuration {
@@ -51,7 +53,9 @@ namespace kagome::api {
      * @param socket socket instance
      * @param config session configuration
      */
-    HttpSession(Socket socket, Configuration config);
+    HttpSession(Socket socket,
+                Configuration config,
+                Logger logger = common::createLogger("http session"));
 
     /**
      * @brief starts session
@@ -113,6 +117,13 @@ namespace kagome::api {
                         unsigned version,
                         bool keep_alive);
 
+    /**
+     * @brief reports error code and message
+     * @param ec error code
+     * @param message error message
+     */
+    void reportError(boost::system::error_code ec, std::string_view message);
+
     static constexpr std::string_view kServerName = "Kagome extrinsic api";
 
     Configuration config_;              ///< session configuration
@@ -125,6 +136,7 @@ namespace kagome::api {
     using Parser = RequestParser<StringBody>;
 
     std::unique_ptr<Parser> parser_;  ///< http parser
+    Logger logger_;                   ///< logger instance
   };
 
 }  // namespace kagome::api

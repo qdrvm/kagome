@@ -5,20 +5,15 @@
 
 #include "api/transport/impl/http_session.hpp"
 
-#include <iostream>
-
 #include <boost/config.hpp>
 #include <outcome/outcome.hpp>
 
 namespace kagome::api {
 
-  HttpSession::HttpSession(Socket socket, Configuration config)
-      : config_{config}, stream_(std::move(socket)) {
-    connectOnError([](auto ec, auto &&message) {
-      std::cerr << "http session error " << ec << ": " << message << " "
-                << outcome::failure(ec).error().message() << std::endl;
-    });
-  }
+  HttpSession::HttpSession(Socket socket, Configuration config, Logger logger)
+      : config_{config},
+        stream_(std::move(socket)),
+        logger_{std::move(logger)} {}
 
   void HttpSession::start() {
     acyncRead();
@@ -49,8 +44,6 @@ namespace kagome::api {
       return asyncWrite(makeBadRequest(
           "Unsupported HTTP-method", req.version(), req.keep_alive()));
     }
-
-    std::cout << "request received: " << std::endl << req << std::endl;
 
     processRequest(req.body(), shared_from_this());
   }
@@ -130,5 +123,10 @@ namespace kagome::api {
 
     // read next request
     acyncRead();
+  }
+
+  void HttpSession::reportError(boost::system::error_code ec,
+                                std::string_view message) {
+    logger_->error("error occured:{}, code: {}", message, ec);
   }
 }  // namespace kagome::api
