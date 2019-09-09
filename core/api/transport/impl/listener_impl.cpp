@@ -15,7 +15,7 @@ namespace kagome::api {
                              HttpSession::Configuration http_config,
                              Logger logger)
       : context_(context),
-        acceptor_(boost::asio::make_strand(context_), endpoint),
+        acceptor_(context_, endpoint),
         http_config_{http_config},
         logger_{std::move(logger)} {}
 

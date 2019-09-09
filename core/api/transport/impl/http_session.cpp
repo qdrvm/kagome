@@ -25,9 +25,9 @@ namespace kagome::api {
     boost::ignore_unused(ec);
   }
 
-  auto HttpSession::makeBadRequest(std::string_view message,
-                                   unsigned version,
-                                   bool keep_alive) {
+  auto HttpSession::makeBadResponse(std::string_view message,
+                                    unsigned version,
+                                    bool keep_alive) {
     Response<StringBody> res{boost::beast::http::status::bad_request, version};
     res.set(boost::beast::http::field::server, kServerName);
     res.set(boost::beast::http::field::content_type, "text/html");
@@ -41,7 +41,7 @@ namespace kagome::api {
   void HttpSession::handleRequest(boost::beast::http::request<Body> &&req) {
     // allow only POST method
     if (req.method() != boost::beast::http::verb::post) {
-      return asyncWrite(makeBadRequest(
+      return asyncWrite(makeBadResponse(
           "Unsupported HTTP-method", req.version(), req.keep_alive()));
     }
 
@@ -74,9 +74,7 @@ namespace kagome::api {
     // write response
     boost::beast::http::async_write(
         stream_, *m, [self = shared_from_this(), m](auto ec, auto size) {
-          auto *s = dynamic_cast<HttpSession *>(self.get());
-          BOOST_ASSERT_MSG(s != nullptr, "cannot cast to HttpSession");
-          s->onWrite(ec, size, m->need_eof());
+          self->onWrite(ec, size, m->need_eof());
         });
   }
 

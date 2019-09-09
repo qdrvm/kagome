@@ -18,7 +18,8 @@ namespace kagome::api {
   /**
    * @brief HTTP session for api service
    */
-  class HttpSession : public Session {
+  class HttpSession : public Session,
+                      public std::enable_shared_from_this<HttpSession> {
     using Socket = boost::asio::ip::tcp::socket;
 
     template <typename Body>
@@ -113,9 +114,9 @@ namespace kagome::api {
      * otherwise
      * @return composed request
      */
-    auto makeBadRequest(std::string_view message,
-                        unsigned version,
-                        bool keep_alive);
+    auto makeBadResponse(std::string_view message,
+                         unsigned version,
+                         bool keep_alive);
 
     /**
      * @brief reports error code and message

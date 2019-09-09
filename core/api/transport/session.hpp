@@ -18,7 +18,7 @@ namespace kagome::api {
   /**
    * @brief rpc session
    */
-  class Session : public std::enable_shared_from_this<Session> {
+  class Session {
     template <class T>
     using Signal = boost::signals2::signal<T>;
 
