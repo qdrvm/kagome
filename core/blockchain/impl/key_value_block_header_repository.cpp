@@ -8,7 +8,7 @@
 #include <string_view>
 
 #include <boost/optional.hpp>
-#include "blockchain/impl/persistant_map_util.hpp"
+#include "blockchain/impl/persistent_map_util.hpp"
 #include "common/hexutil.hpp"
 #include "scale/scale.hpp"
 

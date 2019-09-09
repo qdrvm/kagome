@@ -5,7 +5,7 @@
 
 #include "blockchain/impl/common.hpp"
 
-#include "blockchain/impl/persistant_map_util.hpp"
+#include "blockchain/impl/persistent_map_util.hpp"
 #include "common/visitor.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, Error, e) {

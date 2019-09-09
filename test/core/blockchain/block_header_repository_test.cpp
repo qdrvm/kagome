@@ -9,7 +9,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
 #include "blockchain/impl/key_value_block_header_repository.hpp"
-#include "blockchain/impl/persistant_map_util.hpp"
+#include "blockchain/impl/persistent_map_util.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"

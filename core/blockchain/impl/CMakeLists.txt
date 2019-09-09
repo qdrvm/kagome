@@ -6,8 +6,8 @@
 add_library(blockchain_common
     common.cpp
     common.hpp
-    persistant_map_util.cpp
-    persistant_map_util.hpp
+    persistent_map_util.cpp
+    persistent_map_util.hpp
     )
 target_link_libraries(blockchain_common
     Boost::boost

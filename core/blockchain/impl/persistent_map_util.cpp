@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "blockchain/impl/persistant_map_util.hpp"
+#include "blockchain/impl/persistent_map_util.hpp"
 
 #include "blockchain/impl/common.hpp"
 #include "storage/leveldb/leveldb_error.hpp"
@@ -14,8 +14,8 @@ using kagome::common::Hash256;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockNumber;
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, KeyLookupError, e) {
-  using E = kagome::blockchain::KeyLookupError;
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, KeyValueRepositoryError, e) {
+  using E = kagome::blockchain::KeyValueRepositoryError;
   switch (e) {
     case E::INVALID_KEY:
       return "Invalid storage key";
@@ -70,7 +70,7 @@ namespace kagome::blockchain {
   outcome::result<primitives::BlockNumber> lookupKeyToNumber(
       const common::Buffer &key) {
     if (key.size() < 4) {
-      return KeyLookupError::INVALID_KEY;
+      return KeyValueRepositoryError::INVALID_KEY;
     }
     return (uint64_t(key[0]) << 24u) | (uint64_t(key[1]) << 16u)
            | (uint64_t(key[2]) << 8u) | uint64_t(key[3]);

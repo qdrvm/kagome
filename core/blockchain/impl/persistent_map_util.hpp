@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTANT_MAP_UTIL_HPP
-#define KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTANT_MAP_UTIL_HPP
+#ifndef KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTENT_MAP_UTIL_HPP
+#define KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTENT_MAP_UTIL_HPP
 
 #include "common/buffer.hpp"
 #include "primitives/block_header.hpp"
@@ -40,7 +40,7 @@ namespace kagome::blockchain {
   /**
    * Errors that might occur during work with storage
    */
-  enum class KeyLookupError { INVALID_KEY = 1 };
+  enum class KeyValueRepositoryError { INVALID_KEY = 1 };
 
   /**
    * Concatenate \param key_column with \param key
@@ -108,6 +108,6 @@ namespace kagome::blockchain {
 
 }  // namespace kagome::blockchain
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, KeyLookupError);
+OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, KeyValueRepositoryError);
 
-#endif  // KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTANT_MAP_UTIL_HPP
+#endif  //KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTENT_MAP_UTIL_HPP
