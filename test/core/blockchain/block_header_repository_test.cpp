@@ -8,8 +8,8 @@
 #include <gmock/gmock-matchers.h>
 #include <gtest/gtest.h>
 #include <iostream>
-#include "blockchain/impl/level_db_block_header_repository.hpp"
-#include "blockchain/impl/level_db_util.hpp"
+#include "blockchain/impl/key_value_block_header_repository.hpp"
+#include "blockchain/impl/persistant_map_util.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
@@ -17,7 +17,7 @@
 #include "testutil/storage/base_leveldb_test.hpp"
 
 using kagome::blockchain::BlockHeaderRepository;
-using kagome::blockchain::LevelDbBlockHeaderRepository;
+using kagome::blockchain::KeyValueBlockHeaderRepository;
 using kagome::blockchain::numberAndHashToLookupKey;
 using kagome::blockchain::numberToIndexKey;
 using kagome::blockchain::prependPrefix;
@@ -39,7 +39,7 @@ class BlockHeaderRepository_Test : public test::BaseLevelDB_Test {
 
     hasher_ = std::make_shared<kagome::crypto::HasherImpl>();
     header_repo_ =
-        std::make_shared<LevelDbBlockHeaderRepository>(*db_, hasher_);
+        std::make_shared<KeyValueBlockHeaderRepository>(*db_, hasher_);
   }
 
   outcome::result<Hash256> storeHeader(BlockNumber num, BlockHeader h) {

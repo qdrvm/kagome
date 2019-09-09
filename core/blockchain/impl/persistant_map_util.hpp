@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_BLOCKCHAIN_IMPL_LEVEL_DB_UTIL_HPP
-#define KAGOME_CORE_BLOCKCHAIN_IMPL_LEVEL_DB_UTIL_HPP
+#ifndef KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTANT_MAP_UTIL_HPP
+#define KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTANT_MAP_UTIL_HPP
 
 #include "common/buffer.hpp"
 #include "primitives/block_header.hpp"
@@ -12,13 +12,14 @@
 #include "storage/face/persistent_map.hpp"
 
 /**
- * Auxiliary functions to simplify usage of LevelDb as a Blockchain storage
+ * Auxiliary functions to simplify usage of persistant map based storage
+ * as a Blockchain storage
  */
 
 namespace kagome::blockchain {
 
   /**
-   * As LevelDb storage has only one key space, prefixes are used to divide it
+   * Storage has only one key space, prefixes are used to divide it
    */
   namespace prefix {
     enum Prefix : uint8_t {
@@ -39,7 +40,7 @@ namespace kagome::blockchain {
   /**
    * Errors that might occur during work with storage
    */
-  enum class LevelDbRepositoryError { INVALID_KEY = 1 };
+  enum class KeyLookupError { INVALID_KEY = 1 };
 
   /**
    * Concatenate \param key_column with \param key
@@ -51,7 +52,7 @@ namespace kagome::blockchain {
   /**
    * Put an entry to key space \param prefix and corresponding lookup keys to
    * ID_TO_LOOKUP_KEY space
-   * @param db to put the entry to
+   * @param map to put the entry to
    * @param prefix keyspace for the entry value
    * @param num block number that could be used to retrieve the value
    * @param block_hash block hash that could be used to retrieve the value
@@ -59,20 +60,23 @@ namespace kagome::blockchain {
    * @return storage error if any
    */
   outcome::result<void> putWithPrefix(
-      storage::face::PersistentMap<common::Buffer, common::Buffer> &db,
-      prefix::Prefix prefix, primitives::BlockNumber num,
-      common::Hash256 block_hash, const common::Buffer &value);
+      storage::face::PersistentMap<common::Buffer, common::Buffer> &map,
+      prefix::Prefix prefix,
+      primitives::BlockNumber num,
+      common::Hash256 block_hash,
+      const common::Buffer &value);
 
   /**
    * Get an entry from the database
-   * @param db to get the entry from
+   * @param map to get the entry from
    * @param prefix, with which the entry was put into
    * @param block_id - id of the block to get entry for
    * @return encoded entry or error
    */
   outcome::result<common::Buffer> getWithPrefix(
-      storage::face::PersistentMap<common::Buffer, common::Buffer> &db,
-      prefix::Prefix prefix, const primitives::BlockId &block_id);
+      storage::face::PersistentMap<common::Buffer, common::Buffer> &map,
+      prefix::Prefix prefix,
+      const primitives::BlockId &block_id);
 
   /**
    * Convert block number into short lookup key (LE representation) for
@@ -96,8 +100,14 @@ namespace kagome::blockchain {
   outcome::result<primitives::BlockNumber> lookupKeyToNumber(
       const common::Buffer &key);
 
+  /**
+   * For a persistant map based storage checks
+   * whether result should be considered as `NOT FOUND` error
+   */
+  bool isNotFoundError(outcome::result<void> result);
+
 }  // namespace kagome::blockchain
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, LevelDbRepositoryError);
+OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, KeyLookupError);
 
-#endif  // KAGOME_CORE_BLOCKCHAIN_IMPL_LEVEL_DB_UTIL_HPP
+#endif  // KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTANT_MAP_UTIL_HPP
