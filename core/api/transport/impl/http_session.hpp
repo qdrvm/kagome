@@ -59,11 +59,17 @@ namespace kagome::api {
     void start() override;
 
     /**
-     * @brief stops session
+     * @brief sends response wrapped by http message
+     * @param response message to send
      */
-    void stop() override;
+    void respond(std::string_view response) override;
 
    private:
+    /**
+     * @brief stops session
+     */
+    void stop();
+
     /**
      * @brief process http request, compose and execute response
      * @tparam Body request body type
@@ -84,12 +90,6 @@ namespace kagome::api {
      */
     template <class Message>
     void asyncWrite(Message &&message);
-
-    /**
-     * @brief sends response wrapped by http message
-     * @param response message to send
-     */
-    void sendResponse(std::string_view response);
 
     /**
      * @brief read completion callback

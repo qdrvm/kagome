@@ -67,7 +67,7 @@ class ExtrinsicSubmissionServiceTest : public ::testing::Test {
   sptr<ExtrinsicApiService> service =
       std::make_shared<ExtrinsicApiService>(listener, api);
 
-  sptr<Session> session = std::make_shared<SessionMock>();
+  sptr<SessionMock> session = std::make_shared<SessionMock>();
 
   Extrinsic extrinsic{};
   std::string request =
@@ -93,24 +93,13 @@ TEST_F(ExtrinsicSubmissionServiceTest, StartSuccess) {
  */
 TEST_F(ExtrinsicSubmissionServiceTest, RequestSuccess) {
   EXPECT_CALL(*api, submitExtrinsic(extrinsic)).WillOnce(Return(hash));
-  std::string response =
+  std::string_view response =
       R"({"jsonrpc":"2.0","id":0,"result":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]})";
-
-  // ensure received response is correct
-  bool is_response_called = false;
-  session->connectOnResponse([response, &is_response_called](auto r) {
-    ASSERT_EQ(r, response);
-    // confirm responce received
-    is_response_called = true;
-  });
-
+  EXPECT_CALL(*session, respond(response)).Times(1);
   ASSERT_NO_THROW(service->start());
 
   // imitate request received
   session->processRequest(request, session);
-
-  // ensure response received
-  ASSERT_EQ(is_response_called, true);
 }
 
 /**
@@ -123,23 +112,9 @@ TEST_F(ExtrinsicSubmissionServiceTest, RequestFail) {
   EXPECT_CALL(*api, submitExtrinsic(extrinsic))
       .WillOnce(Return(
           outcome::failure(ExtrinsicApiError::INVALID_STATE_TRANSACTION)));
-  std::string response =
+  std::string_view response =
       R"({"jsonrpc":"2.0","id":0,"error":{"code":0,"message":"transaction is in invalid state"}})";
-
-  // ensure received response is correct
-  bool is_response_called = false;
-  session->connectOnResponse([response, &is_response_called](auto r) {
-    ASSERT_EQ(r, response);
-    // confirm responce received
-    is_response_called = true;
-  });
-
+  EXPECT_CALL(*session, respond(response)).Times(1);
   ASSERT_NO_THROW(service->start());
-
-  // imitate request received
-
   ASSERT_NO_THROW(session->processRequest(request, session));
-
-  // ensure response received
-  ASSERT_EQ(is_response_called, true);
 }

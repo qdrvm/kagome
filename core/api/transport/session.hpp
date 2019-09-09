@@ -25,8 +25,6 @@ namespace kagome::api {
     using OnRequestSignature = void(std::string_view,
                                     std::shared_ptr<Session> session);
     using OnRequest = Signal<OnRequestSignature>;
-    using OnResponseSignature = void(std::string_view);
-    using OnResponse = Signal<OnResponseSignature>;
     using OnErrorSignature = void(boost::system::error_code, std::string_view);
     using OnError = Signal<OnErrorSignature>;
 
@@ -47,11 +45,6 @@ namespace kagome::api {
     virtual void start() = 0;
 
     /**
-     * @brief closes connection and session
-     */
-    virtual void stop() = 0;
-
-    /**
      * @brief connects `on request` callback
      * @param callback `on request` callback
      */
@@ -69,20 +62,10 @@ namespace kagome::api {
     }
 
     /**
-     * @brief connects `on response` callback
-     * @param callback `on response` callback
-     */
-    void connectOnResponse(std::function<OnResponseSignature> callback) {
-      on_response_ = std::move(callback);
-    }
-
-    /**
      * @brief send response message
      * @param message response message
      */
-    void respond(std::string_view message) {
-      on_response_(message);
-    }
+    virtual void respond(std::string_view message) = 0;
 
     /**
      * @brief connects `on error` callback
@@ -102,9 +85,8 @@ namespace kagome::api {
     }
 
    private:
-    std::function<OnRequestSignature> on_request_;    ///< `on request` callback
-    std::function<OnResponseSignature> on_response_;  ///< `on response` signal
-    std::function<OnErrorSignature> on_error_;        ///< `on error` signal
+    std::function<OnRequestSignature> on_request_;  ///< `on request` callback
+    std::function<OnErrorSignature> on_error_;      ///< `on error` signal
   };
 
 }  // namespace kagome::api

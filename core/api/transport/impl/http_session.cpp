@@ -18,9 +18,6 @@ namespace kagome::api {
       std::cerr << "http session error " << ec << ": " << message << " "
                 << outcome::failure(ec).error().message() << std::endl;
     });
-    connectOnResponse([this](auto &&message) {
-      sendResponse(message);
-    });
   }
 
   void HttpSession::start() {
@@ -68,7 +65,7 @@ namespace kagome::api {
         buffer_,
         parser_->get(),
         [self = shared_from_this()](auto ec, auto count) {
-          auto* s = dynamic_cast<HttpSession*>(self.get());
+          auto *s = dynamic_cast<HttpSession *>(self.get());
           BOOST_ASSERT_MSG(s != nullptr, "cannot cast to HttpSession");
           s->onRead(ec, count);
         });
@@ -84,13 +81,13 @@ namespace kagome::api {
     // write response
     boost::beast::http::async_write(
         stream_, *m, [self = shared_from_this(), m](auto ec, auto size) {
-          auto* s = dynamic_cast<HttpSession*>(self.get());
+          auto *s = dynamic_cast<HttpSession *>(self.get());
           BOOST_ASSERT_MSG(s != nullptr, "cannot cast to HttpSession");
           s->onWrite(ec, size, m->need_eof());
         });
   }
 
-  void HttpSession::sendResponse(std::string_view response) {
+  void HttpSession::respond(std::string_view response) {
     StringBody::value_type body;
     body.assign(response);
 
