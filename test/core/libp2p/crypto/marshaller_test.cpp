@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "libp2p/crypto/marshaller/key_marshaller_impl.hpp"
+#include "libp2p/crypto/key_marshaller/key_marshaller_impl.hpp"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>

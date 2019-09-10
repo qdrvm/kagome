@@ -21,6 +21,8 @@ namespace libp2p::basic {
 
     /**
      * @brief Write exactly {@code} in.size() {@nocode} bytes.
+     * Won't call \param cb before all are successfully written.
+     * Returns immediately.
      * @param in data to write.
      * @param bytes number of bytes to write
      * @param cb callback with result of operation
@@ -35,6 +37,8 @@ namespace libp2p::basic {
 
     /**
      * @brief Write up to {@code} in.size() {@nocode} bytes.
+     * Calls \param cb after only some bytes has been successfully written,
+     * so doesn't guarantee that all will be. Returns immediately.
      * @param in data to write.
      * @param bytes number of bytes to write
      * @param cb callback with result of operation

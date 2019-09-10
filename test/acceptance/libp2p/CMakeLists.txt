@@ -9,6 +9,6 @@ target_link_libraries(all_muxers_acceptance_test
     libp2p_plaintext
     libp2p_tcp
     testutil
-    marshaller
+    key_marshaller
     libp2p_identity_manager
     )

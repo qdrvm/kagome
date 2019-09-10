@@ -8,6 +8,7 @@ addtest(message_read_writer_test
     )
 target_link_libraries(message_read_writer_test
     message_read_writer
+    protobuf_message_read_writer
     message_read_writer_error
     uvarint
     outcome

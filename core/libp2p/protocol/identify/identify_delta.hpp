@@ -16,7 +16,7 @@
 #include "libp2p/peer/peer_info.hpp"
 #include "libp2p/peer/protocol_repository.hpp"
 #include "libp2p/protocol/base_protocol.hpp"
-#include "libp2p/protocol/identify/pb/identify.pb.h"
+#include "libp2p/protocol/identify/protobuf/identify.pb.h"
 
 namespace libp2p::protocol {
   /**

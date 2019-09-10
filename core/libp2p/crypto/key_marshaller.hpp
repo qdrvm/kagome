@@ -51,6 +51,6 @@ class KeyMarshaller {
   virtual outcome::result<PrivateKey> unmarshalPrivateKey(
       const ByteArray &key_bytes) const = 0;
 };
-}  // namespace libp2p::crypto::marshaller
+}  // namespace libp2p::crypto::key_marshaller
 
 #endif  // KAGOME_CORE_LIBP2P_CRYPTO_MARSHALER_KEY_MARSHALER_HPP

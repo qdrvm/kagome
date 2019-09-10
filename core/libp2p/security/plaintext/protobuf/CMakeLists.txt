@@ -3,5 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(protobuf)
-add_subdirectory(impl)
+add_proto_library(plaintext_protobuf
+    plaintext.proto
+    )
