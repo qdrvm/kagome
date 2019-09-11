@@ -19,18 +19,12 @@ namespace kagome::api {
     // register all api methods
     registerHandler(
         "author_submitExtrinsic",
-        [w = weak_from_this()](
-            const jsonrpc::Request::Parameters &params) -> jsonrpc::Value {
+        [this](const jsonrpc::Request::Parameters &params) -> jsonrpc::Value {
           auto request = SubmitExtrinsicRequest::fromParams(params);
-          auto s = w.lock();
-          if (!s) {
-            throw jsonrpc::Fault("internal error");
-          }
 
-          std::lock_guard<std::mutex> lock(s->mutex_);
+          std::lock_guard<std::mutex> lock(mutex_);
 
-          auto &&api = s->api_;
-          auto &&res = api->submitExtrinsic(request.extrinsic);
+          auto &&res = api_->submitExtrinsic(request.extrinsic);
           if (!res) {
             throw jsonrpc::Fault(res.error().message());
           }
@@ -39,17 +33,12 @@ namespace kagome::api {
 
     registerHandler(
         "author_pendingExtrinsics",
-        [w = weak_from_this()](
-            const jsonrpc::Request::Parameters &params) -> jsonrpc::Value {
-          auto s = w.lock();
-          if (!s) {
-            throw jsonrpc::Fault("internal error");
-          }
+        [this](const jsonrpc::Request::Parameters &params) -> jsonrpc::Value {
+          // method has no params
 
-          std::lock_guard<std::mutex> lock(s->mutex_);
+          std::lock_guard<std::mutex> lock(mutex_);
 
-          auto &&api = s->api_;
-          auto &&res = api->pendingExtrinsics();
+          auto &&res = api_->pendingExtrinsics();
           if (!res) {
             throw jsonrpc::Fault(res.error().message());
           }

@@ -20,10 +20,8 @@ namespace kagome::api {
   /**
    * @brief extrinsic submission service implementation
    */
-  class ExtrinsicJRPCProcessor
-      : public JRPCProcessor,
-        public std::enable_shared_from_this<ExtrinsicJRPCProcessor>,
-        private boost::noncopyable {
+  class ExtrinsicJRPCProcessor : public JRPCProcessor,
+                                 private boost::noncopyable {
    public:
     /**
      * @brief constructor
