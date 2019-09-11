@@ -47,5 +47,7 @@ target_link_libraries(vrf_provider
     )
 
 add_subdirectory(blake2)
-add_subdirectory(twox)
+add_subdirectory(ed25519)
 add_subdirectory(sha)
+add_subdirectory(sr25519)
+add_subdirectory(twox)
