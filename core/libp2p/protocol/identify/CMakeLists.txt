@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(pb)
+add_subdirectory(protobuf)
 
 add_library(libp2p_identify
     identify.cpp

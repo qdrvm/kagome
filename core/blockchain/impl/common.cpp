@@ -5,9 +5,8 @@
 
 #include "blockchain/impl/common.hpp"
 
-#include "blockchain/impl/level_db_util.hpp"
+#include "blockchain/impl/persistent_map_util.hpp"
 #include "common/visitor.hpp"
-#include "storage/leveldb/leveldb_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, Error, e) {
   switch (e) {
@@ -20,20 +19,20 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, Error, e) {
 namespace kagome::blockchain {
   using kagome::common::Buffer;
 
-  outcome::result<common::Buffer> idToLookupKey(const ReadableBufferMap &db,
+  outcome::result<common::Buffer> idToLookupKey(const ReadableBufferMap &map,
                                                 const primitives::BlockId &id) {
     auto key = visit_in_place(
         id,
-        [&db](const primitives::BlockNumber &n) {
+        [&map](const primitives::BlockNumber &n) {
           auto key = prependPrefix(numberToIndexKey(n),
                                    prefix::Prefix::ID_TO_LOOKUP_KEY);
-          return db.get(key);
+          return map.get(key);
         },
-        [&db](const common::Hash256 &hash) {
-          return db.get(
+        [&map](const common::Hash256 &hash) {
+          return map.get(
               prependPrefix(Buffer{hash}, prefix::Prefix::ID_TO_LOOKUP_KEY));
         });
-    if (!key && key.error() == storage::LevelDBError::NOT_FOUND) {
+    if (!key && isNotFoundError(key.error())) {
       return Error::BLOCK_NOT_FOUND;
     }
     return key;

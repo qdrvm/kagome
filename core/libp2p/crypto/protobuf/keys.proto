@@ -4,7 +4,7 @@
  */
 
 syntax = "proto3";
-package libp2p.crypto.proto;
+package libp2p.crypto.protobuf;
 
 enum KeyType {
   UNSPECIFIED = 0;

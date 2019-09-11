@@ -29,6 +29,6 @@ namespace libp2p::crypto::marshaller {
         outcome::result<PrivateKey>(const KeyMarshaller::ByteArray &));
   };
 
-}  // namespace libp2p::crypto::marshaller
+}  // namespace libp2p::crypto::key_marshaller
 
 #endif  // KAGOME_KEY_MARSHALLER_MOCK_HPP

@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 #include "acceptance/libp2p/host/peer/tick_counter.hpp"
 #include "acceptance/libp2p/host/protocol/client_test_session.hpp"
+#include "libp2p/security/plaintext/exchange_message_marshaller_impl.hpp"
 
 Peer::Peer(Peer::Duration timeout)
     : muxed_config_{1024576, 1000},
@@ -102,11 +103,16 @@ Peer::sptr<host::BasicHost> Peer::makeHost(crypto::KeyPair keyPair) {
   auto key_validator = std::make_shared<crypto::validator::KeyValidatorImpl>(
       std::move(key_generator));
 
-  auto marshaller = std::make_shared<crypto::marshaller::KeyMarshallerImpl>(
+  auto key_marshaller = std::make_shared<crypto::marshaller::KeyMarshallerImpl>(
       std::move(key_validator));
 
+  auto exchange_msg_marshaller =
+      std::make_shared<security::plaintext::ExchangeMessageMarshallerImpl>(
+          std::move(key_marshaller));
+
   std::vector<std::shared_ptr<security::SecurityAdaptor>> security_adaptors = {
-      std::make_shared<security::Plaintext>(std::move(marshaller), idmgr)};
+      std::make_shared<security::Plaintext>(std::move(exchange_msg_marshaller),
+                                            idmgr)};
 
   std::vector<std::shared_ptr<muxer::MuxerAdaptor>> muxer_adaptors = {
       std::make_shared<muxer::Yamux>(muxed_config_)};

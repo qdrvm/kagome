@@ -17,14 +17,7 @@ namespace kagome::consensus {
    * if this node does not have some blocks
    */
   struct Synchronizer : public network::SyncProtocolClient,
-                        public network::SyncProtocolObserver {
-    // TODO(akvinikym) PRE-304: move it to BabeGossiper
-    /**
-     * Announce the network about a new block
-     * @param block_header to be announced
-     */
-    virtual void announce(const primitives::BlockHeader &block_header) = 0;
-  };
+                        public network::SyncProtocolObserver {};
 }  // namespace kagome::consensus
 
 #endif  // KAGOME_SYNCHRONIZER_HPP

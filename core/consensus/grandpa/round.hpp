@@ -31,11 +31,11 @@ namespace kagome::consensus::grandpa {
     // TODO(warchant): complete
    private:
     std::shared_ptr<VoteGraph> graph_;
-    std::shared_ptr<VotersSet> voters_;
+    std::shared_ptr<VotersSet> voters_{};
 
     VoteTracker<Prevote> prevotes_;
     VoteTracker<Precommit> precommits_;
-    HistoricalVotes historical_votes_;
+    HistoricalVotes historical_votes_{};
     RoundNumber round_number_;
     BitfieldContext bitfield_{0};
     boost::optional<BlockInfo> prevote_ghost_;

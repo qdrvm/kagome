@@ -10,7 +10,7 @@
 #include <boost/assert.hpp>
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/common.hpp"
-#include "blockchain/impl/level_db_util.hpp"
+#include "blockchain/impl/persistent_map_util.hpp"
 #include "common/visitor.hpp"
 #include "crypto/blake2/blake2b.h"
 #include "scale/scale.hpp"

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_LEVEL_DB_BLOCK_TREE_HPP
-#define KAGOME_LEVEL_DB_BLOCK_TREE_HPP
+#ifndef KAGOME_BLOCK_TREE_IMPL_HPP
+#define KAGOME_BLOCK_TREE_IMPL_HPP
 
 #include <functional>
 #include <memory>
@@ -20,7 +20,7 @@
 
 namespace kagome::blockchain {
   /**
-   * Block tree, which is located in LevelDB
+   * Block tree implementation
    */
   class BlockTreeImpl : public BlockTree {
     /**
@@ -127,11 +127,11 @@ namespace kagome::blockchain {
      * method
      */
     BlockTreeImpl(std::shared_ptr<BlockHeaderRepository> header_repo,
-                     PersistentBufferMap &db,
-                     std::shared_ptr<TreeNode> tree,
-                     std::shared_ptr<TreeMeta> meta,
-                     std::shared_ptr<crypto::Hasher> hasher,
-                     common::Logger log);
+                  PersistentBufferMap &db,
+                  std::shared_ptr<TreeNode> tree,
+                  std::shared_ptr<TreeMeta> meta,
+                  std::shared_ptr<crypto::Hasher> hasher,
+                  common::Logger log);
 
     std::shared_ptr<BlockHeaderRepository> header_repo_;
     PersistentBufferMap &db_;
@@ -144,4 +144,4 @@ namespace kagome::blockchain {
   };
 }  // namespace kagome::blockchain
 
-#endif  // KAGOME_LEVEL_DB_BLOCK_TREE_HPP
+#endif  // KAGOME_BLOCK_TREE_IMPL_HPP

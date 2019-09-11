@@ -6,9 +6,9 @@
 #include <gtest/gtest.h>
 #include <algorithm>
 #include <random>
-
 #include "libp2p/connection/stream.hpp"
-#include "libp2p/crypto/marshaller/key_marshaller_impl.hpp"
+#include "libp2p/security/plaintext/exchange_message_marshaller_impl.hpp"
+#include "libp2p/crypto/key_marshaller/key_marshaller_impl.hpp"
 #include "libp2p/muxer/yamux.hpp"
 #include "libp2p/peer/impl/identity_manager_impl.hpp"
 #include "libp2p/security/plaintext.hpp"
@@ -291,8 +291,11 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
   ON_CALL(*key_validator, validate(::testing::An<const PublicKey &>()))
       .WillByDefault(::testing::Return(outcome::success()));
 
-  auto marshaller = std::make_shared<KeyMarshallerImpl>(key_validator);
-  auto plaintext = std::make_shared<Plaintext>(marshaller, idmgr);
+  auto key_marshaller = std::make_shared<KeyMarshallerImpl>(key_validator);
+  auto msg_marshaller =
+      std::make_shared<plaintext::ExchangeMessageMarshallerImpl>(
+          key_marshaller);
+  auto plaintext = std::make_shared<Plaintext>(msg_marshaller, idmgr);
   auto upgrader = std::make_shared<UpgraderSemiMock>(plaintext, muxer);
   auto transport = std::make_shared<TcpTransport>(context, upgrader);
   auto server = std::make_shared<Server>(transport);
@@ -310,8 +313,9 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
 
       auto muxer = GetParam();
       auto idmgr = std::make_shared<IdentityManagerImpl>(clientKeyPair);
-      auto marshaller = std::make_shared<KeyMarshallerImpl>(key_validator);
-      auto plaintext = std::make_shared<Plaintext>(marshaller, idmgr);
+      auto key_marshaller = std::make_shared<KeyMarshallerImpl>(key_validator);
+      auto msg_marshaller = std::make_shared<plaintext::ExchangeMessageMarshallerImpl>(key_marshaller);
+      auto plaintext = std::make_shared<Plaintext>(msg_marshaller, idmgr);
       auto upgrader = std::make_shared<UpgraderSemiMock>(plaintext, muxer);
       auto transport = std::make_shared<TcpTransport>(context, upgrader);
       auto client = std::make_shared<Client>(

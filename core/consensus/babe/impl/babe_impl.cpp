@@ -33,7 +33,7 @@ namespace kagome::consensus {
   BabeImpl::BabeImpl(std::shared_ptr<BabeLottery> lottery,
                      std::shared_ptr<authorship::Proposer> proposer,
                      std::shared_ptr<blockchain::BlockTree> block_tree,
-                     std::shared_ptr<network::NetworkState> network,
+                     std::shared_ptr<network::BabeGossiper> gossiper,
                      crypto::SR25519Keypair keypair,
                      primitives::AuthorityIndex authority_id,
                      std::shared_ptr<clock::SystemClock> clock,
@@ -44,7 +44,7 @@ namespace kagome::consensus {
       : lottery_{std::move(lottery)},
         proposer_{std::move(proposer)},
         block_tree_{std::move(block_tree)},
-        network_{std::move(network)},
+        gossiper_{std::move(gossiper)},
         keypair_{keypair},
         authority_id_{authority_id},
         clock_{std::move(clock)},
@@ -56,7 +56,7 @@ namespace kagome::consensus {
     BOOST_ASSERT(lottery_);
     BOOST_ASSERT(proposer_);
     BOOST_ASSERT(block_tree_);
-    BOOST_ASSERT(network_);
+    BOOST_ASSERT(gossiper_);
     BOOST_ASSERT(clock_);
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(log_);
@@ -193,17 +193,7 @@ namespace kagome::consensus {
         common::Buffer{std::move(encoded_seal_res.value())});
 
     // finally, broadcast the sealed block
-    for (const auto &id_peer_pair : network_->peer_clients) {
-      id_peer_pair.second->blockAnnounce(
-          network::BlockAnnounce{block.header},
-          [self{shared_from_this()}, id = id_peer_pair.first](auto &&res) {
-            if (!res) {
-              self->log_->error("cannot announce block to peer {}: {}",
-                                id.toBase58(),
-                                res.error().message());
-            }
-          });
-    }
+    gossiper_->blockAnnounce(network::BlockAnnounce{block.header});
   }
 
   void BabeImpl::finishEpoch() {

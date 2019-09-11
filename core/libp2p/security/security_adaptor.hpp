@@ -28,7 +28,7 @@ namespace libp2p::security {
 
     /**
      * @brief Secure the connection, either locally or by communicating with
-     * opposing node via inbound connection (receid in listener).
+     * opposing node via inbound connection (received in listener).
      * @param inbound connection
      * @param cb with secured connection or error
      */

@@ -23,14 +23,18 @@ using kagome::scale::decode;
 using kagome::scale::encode;
 
 struct BlocksRequestTest : public ::testing::Test {
+  void SetUp() override {
+    BlocksRequest::last_issued_id = 1;
+    block_request = {{Bits::BODY | Bits::HEADER | Bits::RECEIPT},
+                     2u,
+                     createHash256({3, 4, 5}),
+                     Direction::DESCENDING,
+                     {5u}};
+  }
+
   using Bits = BlockAttributesBits;
 
-  BlocksRequest block_request{1u,
-                              {Bits::BODY | Bits::HEADER | Bits::RECEIPT},
-                              2u,
-                              createHash256({3, 4, 5}),
-                              Direction::DESCENDING,
-                              {5u}};
+  BlocksRequest block_request;
   std::vector<uint8_t> encoded_value =
       "010000000000000007010200000000000000"
       "010304050000000000000000000000000000"

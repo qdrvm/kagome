@@ -11,7 +11,7 @@
 // implementations
 #include "libp2p/crypto/key_generator/key_generator_impl.hpp"
 #include "libp2p/crypto/key_validator/key_validator_impl.hpp"
-#include "libp2p/crypto/marshaller/key_marshaller_impl.hpp"
+#include "libp2p/crypto/key_marshaller/key_marshaller_impl.hpp"
 #include "libp2p/crypto/random_generator/boost_generator.hpp"
 #include "libp2p/muxer/yamux.hpp"
 #include "libp2p/network/impl/connection_manager_impl.hpp"
@@ -23,6 +23,7 @@
 #include "libp2p/peer/impl/identity_manager_impl.hpp"
 #include "libp2p/protocol_muxer/multiselect.hpp"
 #include "libp2p/security/plaintext.hpp"
+#include "libp2p/security/plaintext/exchange_message_marshaller_impl.hpp"
 #include "libp2p/transport/impl/upgrader_impl.hpp"
 #include "libp2p/transport/tcp.hpp"
 
@@ -236,6 +237,7 @@ namespace libp2p::injector {
         di::bind<crypto::marshaller::KeyMarshaller>().template to<crypto::marshaller::KeyMarshallerImpl>(),
         di::bind<peer::IdentityManager>().template to<peer::IdentityManagerImpl>(),
         di::bind<crypto::validator::KeyValidator>().template to<crypto::validator::KeyValidatorImpl>(),
+        di::bind<security::plaintext::ExchangeMessageMarshaller>().template to<security::plaintext::ExchangeMessageMarshallerImpl>(),
 
         // internal
         di::bind<network::Router>().template to<network::RouterImpl>(),
