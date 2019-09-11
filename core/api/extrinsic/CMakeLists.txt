@@ -7,8 +7,10 @@ add_library(extrinsic_api_service
     error.cpp
     error.hpp
     extrinsic_api.hpp
-    service.hpp
-    service.cpp
+    extrinsic_jrpc_processor.hpp
+    extrinsic_jrpc_processor.cpp
+    extrinsic_api_service.hpp
+    extrinsic_api_service.cpp
     impl/extrinsic_api_impl.hpp
     impl/extrinsic_api_impl.cpp
     request/submit_extrinsic.hpp
@@ -16,6 +18,7 @@ add_library(extrinsic_api_service
     )
 target_link_libraries(extrinsic_api_service
     buffer
-    RapidJSON::rapidjson
+    api_jrpc_processor
+    api_service
     transaction_pool
     )
