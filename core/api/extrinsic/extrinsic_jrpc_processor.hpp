@@ -7,6 +7,7 @@
 #define KAGOME_CORE_SERVICE_EXTRINSICS_SUBMISSION_SERVICE_HPP
 
 #include <memory>
+#include <mutex>
 #include <vector>
 
 #include <jsonrpc-lean/server.h>
@@ -30,7 +31,10 @@ namespace kagome::api {
     explicit ExtrinsicJRPCProcessor(std::shared_ptr<ExtrinsicApi> api);
 
    private:
+    void registerHandlers() override;
+
     std::shared_ptr<ExtrinsicApi> api_;  ///< api implementation
+    std::mutex mutex_{};                 ///< mutex for synchronization
   };
 
 }  // namespace kagome::api

@@ -18,6 +18,8 @@ namespace kagome::api {
    public:
     JRPCProcessor();
 
+    virtual ~JRPCProcessor() = default;
+
     /**
      * @brief registers rpc request handler lambda
      * @param name rpc method name
@@ -36,6 +38,11 @@ namespace kagome::api {
      * @param cb callback
      */
     void processData(std::string_view request, const ResponseHandler &cb);
+
+    /**
+     * @brief registers callbacks for jrpc requests
+     */
+    virtual void registerHandlers() = 0;
 
    private:
     jsonrpc::JsonFormatHandler format_handler_{};  ///< format handler instance

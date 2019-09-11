@@ -11,7 +11,9 @@ namespace kagome::api {
 
   ApiService::ApiService(std::shared_ptr<Listener> listener,
                          std::shared_ptr<JRPCProcessor> processor)
-      : listener_(std::move(listener)), processor_(std::move(processor)) {}
+      : listener_(std::move(listener)), processor_(std::move(processor)) {
+    processor_->registerHandlers();
+  }
 
   void ApiService::start() {
     // handle new session
