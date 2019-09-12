@@ -113,6 +113,10 @@ namespace kagome::blockchain {
 
     BlockInfo deepestLeaf() const override;
 
+    outcome::result<BlockInfo> finalityTarget(
+        const primitives::BlockHash &,
+        const primitives::BlockNumber &target) override const;
+
     std::vector<primitives::BlockHash> getLeaves() const override;
 
     BlockHashVecRes getChildren(const primitives::BlockHash &block) override;

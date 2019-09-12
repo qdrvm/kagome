@@ -130,6 +130,13 @@ namespace kagome::blockchain {
     virtual BlockInfo deepestLeaf() const = 0;
 
     /**
+     * TODO(Harrm) document it
+     */
+    virtual BlockInfo finalityTarget(
+        const primitives::BlockHash &,
+        const primitives::BlockNumber &target) const = 0;
+
+    /**
      * Get all leaves of our tree
      * @return collection of the leaves
      */
