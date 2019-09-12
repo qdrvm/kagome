@@ -132,9 +132,9 @@ namespace kagome::blockchain {
     /**
      * TODO(Harrm) document it
      */
-    virtual BlockInfo finalityTarget(
-        const primitives::BlockHash &,
-        const primitives::BlockNumber &target) const = 0;
+    virtual outcome::result<BlockInfo> finalityTarget(
+        const primitives::BlockHash & target_hash,
+        const boost::optional<primitives::BlockNumber> &limit) const = 0;
 
     /**
      * Get all leaves of our tree
