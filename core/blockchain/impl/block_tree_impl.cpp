@@ -328,7 +328,7 @@ namespace kagome::blockchain {
     OUTCOME_TRY(target_header, header_repo_->getBlockHeader(target_hash));
     if(limit.has_value()) {
       if(target_header.number > limit.value()) {
-        return Error::TARGET_GREATER_THAN_LIMIT;
+        //return Error::TARGET_GREATER_THAN_LIMIT;
       }
     }
     OUTCOME_TRY(canon_hash, header_repo_->getHashByNumber(target_header.number));
