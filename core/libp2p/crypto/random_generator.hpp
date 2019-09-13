@@ -16,14 +16,13 @@ namespace libp2p::crypto::random {
    */
   class RandomGenerator {
    public:
-    using ByteArray = std::vector<uint8_t>;
     virtual ~RandomGenerator() = default;
     /**
      * @brief generators random bytes
      * @param len number of bytes
      * @return buffer containing random bytes
      */
-    virtual ByteArray randomBytes(size_t len) = 0;
+    virtual std::vector<uint8_t> randomBytes(size_t len) = 0;
   };
 
   /**
@@ -33,7 +32,7 @@ namespace libp2p::crypto::random {
    public:
     ~CSPRNG() override = default;
 
-    ByteArray randomBytes(size_t len) override = 0;
+    std::vector<uint8_t> randomBytes(size_t len) override = 0;
   };
 }  // namespace libp2p::crypto::random
 
