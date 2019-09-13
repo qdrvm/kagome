@@ -67,8 +67,8 @@ TEST_F(SR25519ProviderTest, SignVerifySuccess) {
 }
 
 /**
- * Don't ever try to sign a messagy using invalid key pair, this will lead to
- * uncaughtable panic, program will be terminated
+ * Don't try to sign a message using invalid key pair, this may lead to
+ * program termination
  *
  * @given sr25519 provider instance configured with boost random generator
  * @and a predefined message
@@ -101,6 +101,9 @@ TEST_F(SR25519ProviderTest, VerifyWrongKeyFail) {
 }
 
 /**
+ * Don't try to verify a message and signature against an invalid key, this may
+ * lead to program termination
+ *
  * @given sr25519 provider instance configured with boost random generator
  * @and and a predefined message
  * @when generate keypair @and sign message
@@ -108,7 +111,7 @@ TEST_F(SR25519ProviderTest, VerifyWrongKeyFail) {
  * @and verify signed message
  * @then verification fails
  */
-TEST_F(SR25519ProviderTest, VerifyInvalidKeyFail) {
+TEST_F(SR25519ProviderTest, DISABLED_VerifyInvalidKeyFail) {
   auto kp = sr25519_provider->generateKeypair();
   EXPECT_OUTCOME_TRUE(signature, sr25519_provider->sign(kp, message_span));
   // make public key invalid
