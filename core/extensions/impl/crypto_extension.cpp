@@ -87,7 +87,7 @@ namespace kagome::extensions {
 
     crypto::SR25519Signature signature{};
     std::copy_n(signature_buffer.begin(),
-                sr25519_constants::PUBLIC_SIZE,
+                sr25519_constants::SIGNATURE_SIZE,
                 signature.begin());
 
     return sr25519_provider_->verify(signature, msg, key) ? kVerifySuccess
