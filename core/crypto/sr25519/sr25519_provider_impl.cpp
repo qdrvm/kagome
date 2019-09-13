@@ -21,23 +21,45 @@ namespace kagome::crypto {
     return SR25519Keypair{kp};
   }
 
-  SR25519Signature SR25519ProviderImpl::sign(const SR25519Keypair &keypair,
-                                             gsl::span<uint8_t> message) const {
+  outcome::result<SR25519Signature> SR25519ProviderImpl::sign(
+      const SR25519Keypair &keypair, gsl::span<uint8_t> message) const {
     SR25519Signature signature{};
 
-    sr25519_sign(signature.data(),
-                 keypair.public_key.data(),
-                 keypair.secret_key.data(),
-                 message.data(),
-                 message.size());
+    try {
+      sr25519_sign(signature.data(),
+                   keypair.public_key.data(),
+                   keypair.secret_key.data(),
+                   message.data(),
+                   message.size());
+    } catch (...) {
+      return SR25519ProviderError::SIGN_UNKNOWN_ERROR;
+    }
 
     return signature;
   }
 
-  bool SR25519ProviderImpl::verify(const SR25519Signature &signature,
-                                   gsl::span<uint8_t> message,
-                                   const SR25519PublicKey &public_key) const {
-    return sr25519_verify(
-        signature.data(), message.data(), message.size(), public_key.data());
+  outcome::result<bool> SR25519ProviderImpl::verify(
+      const SR25519Signature &signature,
+      gsl::span<uint8_t> message,
+      const SR25519PublicKey &public_key) const {
+    bool result = false;
+    try {
+      result = sr25519_verify(
+          signature.data(), message.data(), message.size(), public_key.data());
+    } catch (...) {
+      return SR25519ProviderError::SIGN_UNKNOWN_ERROR;
+    }
+    return outcome::success(result);
   }
 }  // namespace kagome::crypto
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, SR25519ProviderError, e) {
+  using kagome::crypto::SR25519ProviderError;
+  switch (e) {
+    case SR25519ProviderError::SIGN_UNKNOWN_ERROR:
+      return "failed to sign message, unknown error occured";
+    case SR25519ProviderError::VERIFY_UNKNOWN_ERROR:
+      return "failed to verify message, unknown error occured";
+  }
+  return "unknown SR25519ProviderError";
+}

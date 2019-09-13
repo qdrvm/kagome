@@ -47,8 +47,8 @@ class BlockValidatorTest : public testing::Test {
                                               Hash256 block_hash) const {
     // generate a new keypair
     auto keypair = sr25519_provider_->generateKeypair();
-    SR25519Signature sr25519_signature =
-        sr25519_provider_->sign(keypair, block_hash);
+    EXPECT_OUTCOME_TRUE(sr25519_signature,
+                        sr25519_provider_->sign(keypair, block_hash));
 
     // seal the block
     Seal seal{sr25519_signature};

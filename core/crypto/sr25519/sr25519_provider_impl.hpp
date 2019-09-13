@@ -6,14 +6,19 @@
 #ifndef KAGOME_CORE_CRYPTO_SR25519_SR25519_PROVIDER_IMPL_HPP
 #define KAGOME_CORE_CRYPTO_SR25519_SR25519_PROVIDER_IMPL_HPP
 
-#include "crypto/sr25519_provider.hpp"
 #include "crypto/random_generator.hpp"
+#include "crypto/sr25519_provider.hpp"
 
 namespace libp2p::crypto::random {
   class CSPRNG;
 }
 
 namespace kagome::crypto {
+
+  enum class SR25519ProviderError {
+    SIGN_UNKNOWN_ERROR = 1,
+    VERIFY_UNKNOWN_ERROR
+  };
 
   class SR25519ProviderImpl : public SR25519Provider {
     using CSPRNG = libp2p::crypto::random::CSPRNG;
@@ -25,10 +30,11 @@ namespace kagome::crypto {
 
     SR25519Keypair generateKeypair() const override;
 
-    SR25519Signature sign(const SR25519Keypair &keypair,
-                          gsl::span<uint8_t> message) const override;
+    outcome::result<SR25519Signature> sign(
+        const SR25519Keypair &keypair,
+        gsl::span<uint8_t> message) const override;
 
-    bool verify(
+    outcome::result<bool> verify(
         const SR25519Signature &signature,
         gsl::span<uint8_t> message,
         const SR25519PublicKey &public_key) const override;
@@ -38,5 +44,7 @@ namespace kagome::crypto {
   };
 
 }  // namespace kagome::crypto
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, SR25519ProviderError)
 
 #endif  // KAGOME_CORE_CRYPTO_SR25519_SR25519_PROVIDER_IMPL_HPP

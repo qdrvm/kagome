@@ -44,7 +44,7 @@ class CryptoExtensionTest : public ::testing::Test {
     crypto_ext_ = std::make_shared<CryptoExtension>(memory_, sr25519_provider_);
 
     sr25519_keypair = sr25519_provider_->generateKeypair();
-    sr25519_signature = sr25519_provider_->sign(sr25519_keypair, input);
+    sr25519_signature = sr25519_provider_->sign(sr25519_keypair, input).value();
   }
 
  protected:

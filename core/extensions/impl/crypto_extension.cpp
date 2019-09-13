@@ -90,8 +90,10 @@ namespace kagome::extensions {
                 sr25519_constants::SIGNATURE_SIZE,
                 signature.begin());
 
-    return sr25519_provider_->verify(signature, msg, key) ? kVerifySuccess
-                                                          : kVerifyFail;
+    auto res = sr25519_provider_->verify(signature, msg, key);
+    bool is_succeeded = res && res.value();
+
+    return is_succeeded ? kVerifySuccess : kVerifyFail;
   }
 
   void CryptoExtension::ext_twox_128(runtime::WasmPointer data,

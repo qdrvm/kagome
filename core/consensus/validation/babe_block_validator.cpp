@@ -153,7 +153,8 @@ namespace kagome::consensus {
     const auto &key = authorities[babe_header.authority_index].id;
 
     // thirdly, use verify function to check the signature
-    return sr25519_provider_->verify(seal.signature, block_hash, key);
+    auto res = sr25519_provider_->verify(seal.signature, block_hash, key);
+    return res && res.value();
   }
 
   bool BabeBlockValidator::verifyVRF(const BabeBlockHeader &babe_header,
