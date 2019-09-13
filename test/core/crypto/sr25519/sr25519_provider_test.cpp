@@ -12,11 +12,8 @@
 
 using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::CSPRNG;
-using kagome::crypto::SR25519Keypair;
 using kagome::crypto::SR25519Provider;
 using kagome::crypto::SR25519ProviderImpl;
-using kagome::crypto::SR25519PublicKey;
-using kagome::crypto::SR25519SecretKey;
 
 struct SR25519ProviderTest : public ::testing::Test {
   void SetUp() override {
