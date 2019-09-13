@@ -6,6 +6,7 @@
 #ifndef KAGOME_CORE_LIBP2P_CRYPTO_RANDOM_RANDOM_GENERATOR_HPP
 #define KAGOME_CORE_LIBP2P_CRYPTO_RANDOM_RANDOM_GENERATOR_HPP
 
+#include <cstdint>
 #include <vector>
 
 namespace libp2p::crypto::random {
