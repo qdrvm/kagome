@@ -7,9 +7,11 @@ add_library(crypto_extension
     crypto_extension.cpp
     )
 target_link_libraries(crypto_extension
-    iroha::ed25519
-    sr25519
     blake2
+    iroha::ed25519
+    random_generator
+    sr25519_provider
+    sr25519_types
     twox
     )
 

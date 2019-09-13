@@ -21,6 +21,10 @@
 #include "primitives/authority.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
 
+namespace kagome::crypto {
+  class SR25519Provider;
+}
+
 namespace kagome::consensus {
   /**
    * Validation of blocks in BABE system. Based on the algorithm described here:
@@ -41,6 +45,7 @@ namespace kagome::consensus {
         std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::VRFProvider> vrf_provider,
+        std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
         common::Logger log = common::createLogger("BabeBlockValidator"));
 
     ~BabeBlockValidator() override = default;
@@ -108,6 +113,7 @@ namespace kagome::consensus {
     std::shared_ptr<crypto::Hasher> hasher_;
 
     std::shared_ptr<crypto::VRFProvider> vrf_provider_;
+    std::shared_ptr<crypto::SR25519Provider> sr25519_provider_;
 
     common::Logger log_;
   };

@@ -10,18 +10,24 @@
 
 #include "runtime/wasm_memory.hpp"
 
+namespace kagome::crypto {
+  class SR25519Provider;
+}
+
 namespace kagome::extensions {
   /**
    * Implements extension functions related to cryptography
    */
   class CryptoExtension {
    public:
-    explicit CryptoExtension(std::shared_ptr<runtime::WasmMemory> memory);
+    explicit CryptoExtension(std::shared_ptr<runtime::WasmMemory> memory,
+                             std::shared_ptr<crypto::SR25519Provider> sr25519_provider);
 
     /**
      * @see Extension::ext_blake2_256
      */
-    void ext_blake2_256(runtime::WasmPointer data, runtime::SizeType len,
+    void ext_blake2_256(runtime::WasmPointer data,
+                        runtime::SizeType len,
                         runtime::WasmPointer out_ptr);
 
     /**
@@ -42,17 +48,20 @@ namespace kagome::extensions {
     /**
      * @see Extension::ext_twox_128
      */
-    void ext_twox_128(runtime::WasmPointer data, runtime::SizeType len,
+    void ext_twox_128(runtime::WasmPointer data,
+                      runtime::SizeType len,
                       runtime::WasmPointer out);
 
     /**
      * @see Extension::ext_twox_256
      */
-    void ext_twox_256(runtime::WasmPointer data, runtime::SizeType len,
+    void ext_twox_256(runtime::WasmPointer data,
+                      runtime::SizeType len,
                       runtime::WasmPointer out);
 
    private:
     std::shared_ptr<runtime::WasmMemory> memory_;
+    std::shared_ptr<crypto::SR25519Provider> sr25519_provider_;
   };
 }  // namespace kagome::extensions
 

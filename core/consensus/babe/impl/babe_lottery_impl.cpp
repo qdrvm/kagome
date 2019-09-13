@@ -13,6 +13,7 @@
 
 namespace kagome::consensus {
   using common::Buffer;
+  namespace vrf_constants = crypto::constants::sr25519::vrf;
 
   BabeLotteryImpl::BabeLotteryImpl(
       std::shared_ptr<crypto::VRFProvider> vrf_provider,
@@ -28,14 +29,14 @@ namespace kagome::consensus {
     result.reserve(epoch.epoch_duration);
 
     // randomness || slot number
-    Buffer vrf_input(SR25519_VRF_OUTPUT_SIZE + 8, 0);
+    Buffer vrf_input(vrf_constants::OUTPUT_SIZE + 8, 0);
 
     // the first part - randomness - is always the same, while the slot number
     // obviously changes depending on the slot we are computing for
     std::copy(
         epoch.randomness.begin(), epoch.randomness.end(), vrf_input.begin());
 
-    auto slot_number_begin = vrf_input.begin() + SR25519_VRF_OUTPUT_SIZE;
+    auto slot_number_begin = vrf_input.begin() + vrf_constants::OUTPUT_SIZE;
     for (BabeSlotNumber i = 0; i < epoch.epoch_duration; ++i) {
       auto slot_bytes = crypto::util::uint64_t_to_bytes(i);
       std::copy(slot_bytes.begin(), slot_bytes.end(), slot_number_begin);
@@ -55,7 +56,7 @@ namespace kagome::consensus {
 
     // randomness || epoch_index || rho
     Buffer new_randomness(
-        SR25519_VRF_OUTPUT_SIZE + 8 + last_epoch_vrf_values_.size() * 32, 0);
+        vrf_constants::OUTPUT_SIZE + 8 + last_epoch_vrf_values_.size() * 32, 0);
 
     std::copy(last_epoch_randomness.begin(),
               last_epoch_randomness.end(),
@@ -64,10 +65,10 @@ namespace kagome::consensus {
     auto epoch_index_bytes = crypto::util::uint64_t_to_bytes(last_epoch_index);
     std::copy(epoch_index_bytes.begin(),
               epoch_index_bytes.end(),
-              new_randomness.begin() + SR25519_VRF_OUTPUT_SIZE);
+              new_randomness.begin() + vrf_constants::OUTPUT_SIZE);
 
     auto new_vrf_value_begin =
-        new_randomness.begin() + SR25519_VRF_OUTPUT_SIZE + 8;
+        new_randomness.begin() + vrf_constants::OUTPUT_SIZE + 8;
     // NOLINTNEXTLINE
     for (size_t i = 0; i < last_epoch_vrf_values_.size(); ++i) {
       auto value_bytes =

@@ -5,6 +5,9 @@
 
 #include "extensions/extension_impl.hpp"
 
+#include "crypto/random_generator/boost_generator.hpp"
+#include "crypto/sr25519/sr25519_provider_impl.hpp"
+
 namespace kagome::extensions {
 
   ExtensionImpl::ExtensionImpl(
@@ -12,7 +15,9 @@ namespace kagome::extensions {
       std::shared_ptr<storage::trie::TrieDb> db)
       : memory_(memory),
         db_(std::move(db)),
-        crypto_ext_(memory),
+        crypto_ext_(memory,
+                    std::make_shared<crypto::SR25519ProviderImpl>(
+                        std::make_shared<crypto::BoostRandomGenerator>())),
         io_ext_(memory),
         memory_ext_(memory),
         storage_ext_(db_, memory_) {}
@@ -39,38 +44,45 @@ namespace kagome::extensions {
   }
 
   runtime::WasmPointer ExtensionImpl::ext_get_allocated_storage(
-      runtime::WasmPointer key_data, runtime::SizeType key_length,
+      runtime::WasmPointer key_data,
+      runtime::SizeType key_length,
       runtime::WasmPointer written) {
-    return storage_ext_.ext_get_allocated_storage(key_data, key_length,
-                                                  written);
+    return storage_ext_.ext_get_allocated_storage(
+        key_data, key_length, written);
   }
 
   runtime::SizeType ExtensionImpl::ext_get_storage_into(
-      runtime::WasmPointer key_data, runtime::SizeType key_length,
-      runtime::WasmPointer value_data, runtime::SizeType value_length,
+      runtime::WasmPointer key_data,
+      runtime::SizeType key_length,
+      runtime::WasmPointer value_data,
+      runtime::SizeType value_length,
       runtime::SizeType value_offset) {
-    return storage_ext_.ext_get_storage_into(key_data, key_length, value_data,
-                                             value_length, value_offset);
+    return storage_ext_.ext_get_storage_into(
+        key_data, key_length, value_data, value_length, value_offset);
   }
 
   void ExtensionImpl::ext_set_storage(runtime::WasmPointer key_data,
                                       runtime::SizeType key_length,
                                       runtime::WasmPointer value_data,
                                       runtime::SizeType value_length) {
-    return storage_ext_.ext_set_storage(key_data, key_length, value_data,
-                                        value_length);
+    return storage_ext_.ext_set_storage(
+        key_data, key_length, value_data, value_length);
   }
 
   void ExtensionImpl::ext_blake2_256_enumerated_trie_root(
-      runtime::WasmPointer values_data, runtime::WasmPointer lens_data,
-      runtime::SizeType lens_length, runtime::WasmPointer result) {
+      runtime::WasmPointer values_data,
+      runtime::WasmPointer lens_data,
+      runtime::SizeType lens_length,
+      runtime::WasmPointer result) {
     return storage_ext_.ext_blake2_256_enumerated_trie_root(
         values_data, lens_data, lens_length, result);
   }
 
   runtime::SizeType ExtensionImpl::ext_storage_changes_root(
-      runtime::WasmPointer parent_hash_data, runtime::SizeType parent_hash_len,
-      runtime::SizeType parent_num, runtime::WasmPointer result) {
+      runtime::WasmPointer parent_hash_data,
+      runtime::SizeType parent_hash_len,
+      runtime::SizeType parent_num,
+      runtime::WasmPointer result) {
     return storage_ext_.ext_storage_changes_root(
         parent_hash_data, parent_hash_len, parent_num, result);
   }
@@ -112,17 +124,21 @@ namespace kagome::extensions {
   }
 
   runtime::SizeType ExtensionImpl::ext_ed25519_verify(
-      runtime::WasmPointer msg_data, runtime::SizeType msg_len,
-      runtime::WasmPointer sig_data, runtime::WasmPointer pubkey_data) {
-    return crypto_ext_.ext_ed25519_verify(msg_data, msg_len, sig_data,
-                                          pubkey_data);
+      runtime::WasmPointer msg_data,
+      runtime::SizeType msg_len,
+      runtime::WasmPointer sig_data,
+      runtime::WasmPointer pubkey_data) {
+    return crypto_ext_.ext_ed25519_verify(
+        msg_data, msg_len, sig_data, pubkey_data);
   }
 
   runtime::SizeType ExtensionImpl::ext_sr25519_verify(
-      runtime::WasmPointer msg_data, runtime::SizeType msg_len,
-      runtime::WasmPointer sig_data, runtime::WasmPointer pubkey_data) {
-    return crypto_ext_.ext_sr25519_verify(msg_data, msg_len, sig_data,
-                                          pubkey_data);
+      runtime::WasmPointer msg_data,
+      runtime::SizeType msg_len,
+      runtime::WasmPointer sig_data,
+      runtime::WasmPointer pubkey_data) {
+    return crypto_ext_.ext_sr25519_verify(
+        msg_data, msg_len, sig_data, pubkey_data);
   }
 
   void ExtensionImpl::ext_twox_128(runtime::WasmPointer data,

@@ -46,6 +46,17 @@ target_link_libraries(vrf_provider
     random_generator # generator from libp2p
     )
 
+add_library(sr25519_provider
+    sr25519_provider.hpp
+    sr25519/sr25519_provider_impl.hpp
+    sr25519/sr25519_provider_impl.cpp
+    )
+target_link_libraries(sr25519_provider
+    random_generator # generator from libp2p
+    sr25519
+    sr25519_types
+    )
+
 add_subdirectory(blake2)
-add_subdirectory(twox)
 add_subdirectory(sha)
+add_subdirectory(twox)
