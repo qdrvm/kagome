@@ -55,10 +55,7 @@ class CryptoExtensionTest : public ::testing::Test {
 
   Buffer input{"6920616d2064617461"_unhex};
 
-  //  std::array<uint8_t, sr25519_constants::SIGNATURE_SIZE>
-  //  sr25519_signature{};
   SR25519Signature sr25519_signature{};
-  //  std::array<uint8_t, sr25519_constants::KEYPAIR_SIZE> sr25519_keypair{};
   SR25519Keypair sr25519_keypair{};
 
   Buffer blake2b_result{
