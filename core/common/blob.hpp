@@ -92,12 +92,21 @@ namespace kagome::common {
      */
     static outcome::result<Blob<size_>> fromHex(std::string_view hex) {
       OUTCOME_TRY(res, unhex(hex));
-      if (res.size() != size_) {
+      return fromSpan(res);
+    }
+
+    /**
+     * Create Blob from span of uint8_t
+     * @param buffer
+     * @return
+     */
+    static outcome::result<Blob<size_>> fromSpan(const gsl::span<uint8_t> &span) {
+      if (span.size() != size_) {
         return BlobError::INCORRECT_LENGTH;
       }
 
       Blob<size_> blob;
-      std::copy(res.begin(), res.end(), blob.begin());
+      std::copy(span.begin(), span.end(), blob.begin());
       return blob;
     }
   };

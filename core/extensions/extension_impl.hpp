@@ -21,7 +21,7 @@ namespace kagome::extensions {
   class ExtensionImpl : public Extension {
    public:
     ExtensionImpl() = delete;
-    ExtensionImpl(const std::shared_ptr<runtime::WasmMemory>& memory,
+    ExtensionImpl(const std::shared_ptr<runtime::WasmMemory> &memory,
                   std::shared_ptr<storage::trie::TrieDb> db);
 
     ~ExtensionImpl() override = default;
@@ -41,12 +41,15 @@ namespace kagome::extensions {
         runtime::SizeType key_length) const override;
 
     runtime::WasmPointer ext_get_allocated_storage(
-        runtime::WasmPointer key_data, runtime::SizeType key_length,
+        runtime::WasmPointer key_data,
+        runtime::SizeType key_length,
         runtime::WasmPointer len_ptr) override;
 
     runtime::SizeType ext_get_storage_into(
-        runtime::WasmPointer key_data, runtime::SizeType key_length,
-        runtime::WasmPointer value_data, runtime::SizeType value_length,
+        runtime::WasmPointer key_data,
+        runtime::SizeType key_length,
+        runtime::WasmPointer value_data,
+        runtime::SizeType value_length,
         runtime::SizeType value_offset) override;
 
     void ext_set_storage(runtime::WasmPointer key_data,
@@ -55,12 +58,15 @@ namespace kagome::extensions {
                          runtime::SizeType value_length) override;
 
     void ext_blake2_256_enumerated_trie_root(
-        runtime::WasmPointer values_data, runtime::WasmPointer lens_data,
-        runtime::SizeType lens_length, runtime::WasmPointer result) override;
+        runtime::WasmPointer values_data,
+        runtime::WasmPointer lens_data,
+        runtime::SizeType lens_length,
+        runtime::WasmPointer result) override;
 
     runtime::SizeType ext_storage_changes_root(
         runtime::WasmPointer parent_hash_data,
-        runtime::SizeType parent_hash_len, runtime::SizeType parent_num,
+        runtime::SizeType parent_hash_len,
+        runtime::SizeType parent_num,
         runtime::WasmPointer result) override;
 
     void ext_storage_root(runtime::WasmPointer result) const override;
@@ -80,23 +86,28 @@ namespace kagome::extensions {
                         runtime::SizeType utf8_length) override;
 
     // -------------------------Cryptographic extensions----------------------
-    void ext_blake2_256(runtime::WasmPointer data, runtime::SizeType len,
+    void ext_blake2_256(runtime::WasmPointer data,
+                        runtime::SizeType len,
                         runtime::WasmPointer out) override;
 
     runtime::SizeType ext_ed25519_verify(
-        runtime::WasmPointer msg_data, runtime::SizeType msg_len,
+        runtime::WasmPointer msg_data,
+        runtime::SizeType msg_len,
         runtime::WasmPointer sig_data,
         runtime::WasmPointer pubkey_data) override;
 
     runtime::SizeType ext_sr25519_verify(
-        runtime::WasmPointer msg_data, runtime::SizeType msg_len,
+        runtime::WasmPointer msg_data,
+        runtime::SizeType msg_len,
         runtime::WasmPointer sig_data,
         runtime::WasmPointer pubkey_data) override;
 
-    void ext_twox_128(runtime::WasmPointer data, runtime::SizeType len,
+    void ext_twox_128(runtime::WasmPointer data,
+                      runtime::SizeType len,
                       runtime::WasmPointer out) override;
 
-    void ext_twox_256(runtime::WasmPointer data, runtime::SizeType len,
+    void ext_twox_256(runtime::WasmPointer data,
+                      runtime::SizeType len,
                       runtime::WasmPointer out) override;
     // -------------------------Misc extensions--------------------------
 

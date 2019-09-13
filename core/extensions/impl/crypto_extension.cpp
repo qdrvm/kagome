@@ -5,19 +5,23 @@
 
 #include "extensions/impl/crypto_extension.hpp"
 
+#include <algorithm>
 #include <exception>
 
-extern "C" {
-#include <sr25519/sr25519.h>
-}
 #include <ed25519/ed25519.h>
 #include <gsl/span>
 #include "crypto/blake2/blake2b.h"
+#include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/twox/twox.hpp"
 
 namespace kagome::extensions {
-  CryptoExtension::CryptoExtension(std::shared_ptr<runtime::WasmMemory> memory)
-      : memory_(std::move(memory)) {}
+  namespace sr25519_constants = crypto::constants::sr25519;
+
+  CryptoExtension::CryptoExtension(
+      std::shared_ptr<runtime::WasmMemory> memory,
+      std::shared_ptr<crypto::SR25519Provider> sr25519_provider)
+      : memory_(std::move(memory)),
+        sr25519_provider_(std::move(sr25519_provider)) {}
 
   void CryptoExtension::ext_blake2_256(runtime::WasmPointer data,
                                        runtime::SizeType len,
@@ -31,8 +35,10 @@ namespace kagome::extensions {
   }
 
   runtime::SizeType CryptoExtension::ext_ed25519_verify(
-      runtime::WasmPointer msg_data, runtime::SizeType msg_len,
-      runtime::WasmPointer sig_data, runtime::WasmPointer pubkey_data) {
+      runtime::WasmPointer msg_data,
+      runtime::SizeType msg_len,
+      runtime::WasmPointer sig_data,
+      runtime::WasmPointer pubkey_data) {
     // for some reason, 0 and 5 are used in the reference implementation, so
     // it's better to stick to them in ours, at least for now
     static constexpr uint32_t kVerifySuccess = 0;
@@ -52,29 +58,40 @@ namespace kagome::extensions {
     std::copy(pubkey_bytes.begin(), pubkey_bytes.end(), pubkey_span.begin());
 
     return ed25519_verify(&signature, msg.data(), msg_len, &pubkey)
-            == ED25519_SUCCESS
-        ? kVerifySuccess
-        : kVerifyFail;
+                   == ED25519_SUCCESS
+               ? kVerifySuccess
+               : kVerifyFail;
   }
 
   runtime::SizeType CryptoExtension::ext_sr25519_verify(
-      runtime::WasmPointer msg_data, runtime::SizeType msg_len,
-      runtime::WasmPointer sig_data, runtime::WasmPointer pubkey_data) {
+      runtime::WasmPointer msg_data,
+      runtime::SizeType msg_len,
+      runtime::WasmPointer sig_data,
+      runtime::WasmPointer pubkey_data) {
     // for some reason, 0 and 5 are used in the reference implementation, so
     // it's better to stick to them in ours, at least for now
     static constexpr uint32_t kVerifySuccess = 0;
     static constexpr uint32_t kVerifyFail = 5;
 
-    const auto &msg = memory_->loadN(msg_data, msg_len);
-    auto signature =
-        memory_->loadN(sig_data, SR25519_SIGNATURE_SIZE);
+    auto msg = memory_->loadN(msg_data, msg_len);
+    auto signature_buffer =
+        memory_->loadN(sig_data, sr25519_constants::SIGNATURE_SIZE);
 
-    auto pubkey =
-        memory_->loadN(pubkey_data, SR25519_PUBLIC_SIZE);
+    auto pubkey_buffer =
+        memory_->loadN(pubkey_data, sr25519_constants::PUBLIC_SIZE);
+    auto key_res = crypto::SR25519PublicKey::fromSpan(pubkey_buffer);
+    if (!key_res) {
+      BOOST_UNREACHABLE_RETURN(kVerifyFail);
+    }
+    auto &&key = key_res.value();
 
-    return sr25519_verify(signature.data(), msg.data(), msg_len, pubkey.data())
-        ? kVerifySuccess
-        : kVerifyFail;
+    crypto::SR25519Signature signature{};
+    std::copy_n(signature_buffer.begin(),
+                sr25519_constants::PUBLIC_SIZE,
+                signature.begin());
+
+    return sr25519_provider_->verify(signature, msg, key) ? kVerifySuccess
+                                                          : kVerifyFail;
   }
 
   void CryptoExtension::ext_twox_128(runtime::WasmPointer data,
