@@ -12,7 +12,8 @@
 
 namespace kagome::crypto {
   class SR25519Provider;
-}
+  class ED25519Provider;
+}  // namespace kagome::crypto
 
 namespace kagome::extensions {
   /**
@@ -20,8 +21,10 @@ namespace kagome::extensions {
    */
   class CryptoExtension {
    public:
-    explicit CryptoExtension(std::shared_ptr<runtime::WasmMemory> memory,
-                             std::shared_ptr<crypto::SR25519Provider> sr25519_provider);
+    explicit CryptoExtension(
+        std::shared_ptr<runtime::WasmMemory> memory,
+        std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
+        std::shared_ptr<crypto::ED25519Provider> ed25519_provider);
 
     /**
      * @see Extension::ext_blake2_256
@@ -62,6 +65,7 @@ namespace kagome::extensions {
    private:
     std::shared_ptr<runtime::WasmMemory> memory_;
     std::shared_ptr<crypto::SR25519Provider> sr25519_provider_;
+    std::shared_ptr<crypto::ED25519Provider> ed25519_provider_;
   };
 }  // namespace kagome::extensions
 

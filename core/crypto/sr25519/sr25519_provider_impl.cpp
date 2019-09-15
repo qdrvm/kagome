@@ -10,7 +10,9 @@
 
 namespace kagome::crypto {
   SR25519ProviderImpl::SR25519ProviderImpl(std::shared_ptr<CSPRNG> generator)
-      : generator_(std::move(generator)) {}
+      : generator_(std::move(generator)) {
+    BOOST_ASSERT(generator_ != nullptr);
+  }
 
   SR25519Keypair SR25519ProviderImpl::generateKeypair() const {
     auto seed = generator_->randomBytes(constants::sr25519::SEED_SIZE);
