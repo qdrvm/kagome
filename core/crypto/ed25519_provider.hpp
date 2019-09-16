@@ -14,8 +14,10 @@ namespace kagome::crypto {
 
   enum class ED25519ProviderError {
     FAILED_GENERATE_KEYPAIR = 1,
-    SIGN_UNKNOWN_ERROR,
-    VERIFY_UNKNOWN_ERROR
+    SIGN_UNKNOWN_ERROR,   // unknown error occurred during call to `sign` method
+                          // of bound function
+    VERIFY_UNKNOWN_ERROR  // unknown error occured during call to `verify`
+                          // method of bound function
   };
 
   class ED25519Provider {

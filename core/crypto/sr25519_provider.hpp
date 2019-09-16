@@ -12,9 +12,14 @@
 
 namespace kagome::crypto {
 
+  /**
+   * sr25519 provider error codes
+   */
   enum class SR25519ProviderError {
-    SIGN_UNKNOWN_ERROR = 1,
-    VERIFY_UNKNOWN_ERROR
+    SIGN_UNKNOWN_ERROR = 1,  // unknown error occured during call to `sign`
+                             // method of bound function
+    VERIFY_UNKNOWN_ERROR  // unknown error occured during call to `verify`
+                          // method of bound function
   };
 
   class SR25519Provider {
