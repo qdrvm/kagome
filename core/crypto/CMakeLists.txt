@@ -25,6 +25,15 @@ target_link_libraries(sr25519_types
     sr25519
     )
 
+add_library(ed25519_types
+    ed25519_types.cpp
+    ed25519_types.hpp
+    )
+target_link_libraries(ed25519_types
+    blob
+    iroha::ed25519
+    )
+
 add_library(crypto_util
     hash_creator.cpp
     util.hpp
@@ -53,8 +62,17 @@ add_library(sr25519_provider
     )
 target_link_libraries(sr25519_provider
     random_generator # generator from libp2p
-    sr25519
     sr25519_types
+    )
+
+add_library(ed25519_provider
+    ed25519_provider.hpp
+    ed25519/ed25519_provider_impl.hpp
+    ed25519/ed25519_provider_impl.cpp
+    )
+target_link_libraries(ed25519_provider
+    random_generator # generator from libp2p
+    ed25519_types
     )
 
 add_subdirectory(blake2)

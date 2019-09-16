@@ -15,11 +15,6 @@ namespace libp2p::crypto::random {
 
 namespace kagome::crypto {
 
-  enum class SR25519ProviderError {
-    SIGN_UNKNOWN_ERROR = 1,
-    VERIFY_UNKNOWN_ERROR
-  };
-
   class SR25519ProviderImpl : public SR25519Provider {
     using CSPRNG = libp2p::crypto::random::CSPRNG;
 
@@ -44,7 +39,5 @@ namespace kagome::crypto {
   };
 
 }  // namespace kagome::crypto
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, SR25519ProviderError)
 
 #endif  // KAGOME_CORE_CRYPTO_SR25519_SR25519_PROVIDER_IMPL_HPP

@@ -8,10 +8,9 @@ add_library(crypto_extension
     )
 target_link_libraries(crypto_extension
     blake2
-    iroha::ed25519
     random_generator
     sr25519_provider
-    sr25519_types
+    ed25519_provider
     twox
     )
 
