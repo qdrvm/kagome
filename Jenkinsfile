@@ -87,6 +87,7 @@ def makeSonarScanner(String name){
         sonar-scanner \
           -Dsonar.github.disableInlineComments=true \
           -Dsonar.github.repository='${repository}' \
+          -Dsonar.projectKey=kagome \
           -Dsonar.host.url=https://sonar.soramitsu.co.jp \
           -Dsonar.login=${SONAR_TOKEN} \
           -Dsonar.github.oauth=${sorabot_password} ${sonar_option}
