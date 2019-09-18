@@ -1,4 +1,4 @@
-dockerImage = 'soramitsu/kagome-dev:6'
+dockerImage = 'soramitsu/kagome-dev:7'
 workerLabel = 'd3-build-agent'
 buildDir = "/tmp/build"
 repository = "soramitsu/kagome"

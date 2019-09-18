@@ -42,6 +42,7 @@ RUN apt-get update && apt-get upgrade -y && \
         lcov \
         ninja-build \
         vim \
+        unzip\
     && rm -rf /var/lib/apt/lists/*
 
 # install sonar cli

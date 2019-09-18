@@ -2,7 +2,7 @@
 
 cd $(dirname $0)
 
-VERSION=6
+VERSION=7
 TAG=soramitsu/kagome-dev:$VERSION
 
 docker build -t $TAG .
