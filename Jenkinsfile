@@ -12,8 +12,9 @@ def makeBuild(String name, String clangFlags, Closure then) {
           sh(script: "git pull --recurse-submodules")
           sh(script: "git submodule update --init --recursive")
           withCredentials([
-            usernamePassword(credentialsId: 'sorabot-github-user', passwordVariable: 'sorabot_password', usernameVariable: 'sorabot_username')
             string(credentialsId: 'codecov-token', variable: 'codecov_token'),
+            usernamePassword(credentialsId: 'sorabot-github-user', passwordVariable: 'sorabot_password', usernameVariable: 'sorabot_username'),
+            string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')
           ]) {
             docker.image(dockerImage).inside('--cap-add SYS_PTRACE') {
 
