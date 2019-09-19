@@ -112,7 +112,6 @@ include_directories(
   deps/GSL/include
   deps/outcome
   deps/sml/include
-  deps/sr25519-crust/include
   deps/hat-trie/include
   deps/jsonrpc-lean/include
   deps/di/include
