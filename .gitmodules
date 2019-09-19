@@ -6,11 +6,6 @@
 	path = deps/sml
 	url = https://github.com/boost-experimental/sml
     shallow = true
-[submodule "deps/sr25519-crust"]
-	path = deps/sr25519-crust
-	branch = 1.0.0
-	url = https://github.com/Warchant/sr25519-crust.git
-    shallow = true
 [submodule "deps/hat-trie"]
 	path = deps/hat-trie
 	url = https://github.com/Tessil/hat-trie.git
