@@ -6,20 +6,16 @@ function(disable_clang_tidy target)
 endfunction()
 
 function(addtest test_name)
-  set(test_xml_output --gtest_output=xml:${CMAKE_BUILD_DIR}/xunit/xunit-${test_name}.xml)
   add_executable(${test_name} ${ARGN})
   addtest_part(${test_name} ${ARGN})
   target_link_libraries(${test_name}
       GTest::main
       GMock::main
       )
-  # add_test(
-  #     NAME ${test_name}
-  #     COMMAND $<TARGET_FILE:${test_name}>
-  # )
+  file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/xunit)
   add_test(
       NAME ${test_name}
-      COMMAND $<TARGET_FILE:${test_name}> ${test_xml_output}
+      COMMAND "$<TARGET_FILE:${test_name}> --gtest_output=xml:${CMAKE_BINARY_DIR}/xunit/xunit-${test_name}.xml"
   )
   set_target_properties(${test_name} PROPERTIES
       RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/test_bin
