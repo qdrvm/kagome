@@ -72,7 +72,8 @@ def makeCoverageBuild(String name){
           -Dsonar.host.url=https://sonar.soramitsu.co.jp \
           -Dsonar.login=${SONAR_TOKEN} \
           -Dsonar.github.oauth=${sorabot_password} ${sonar_option} \
-          -Dsonar.cxx.coverage.reportPath=${buildDir}/ctest_coverage.xml
+          -Dsonar.cxx.coverage.reportPath=${buildDir}/ctest_coverage.xml \
+          -Dsonar.cxx.xunit.reportPath=${buildDir}/xunit/xunit*.xml
       """
   })
 }
