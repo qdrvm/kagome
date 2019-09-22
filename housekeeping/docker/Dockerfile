@@ -42,7 +42,18 @@ RUN apt-get update && apt-get upgrade -y && \
         lcov \
         ninja-build \
         vim \
+        unzip\
     && rm -rf /var/lib/apt/lists/*
+
+# install sonar cli
+ENV SONAR_CLI_VERSION=4.1.0.1829
+RUN set -e; \
+    mkdir -p /opt/sonar; \
+    curl -L -o /tmp/sonar.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_CLI_VERSION}-linux.zip; \
+    unzip -o -d /tmp/sonar-scanner /tmp/sonar.zip; \
+    mv /tmp/sonar-scanner/sonar-scanner-${SONAR_CLI_VERSION}-linux /opt/sonar/scanner; \
+    ln -s -f /opt/sonar/scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner; \
+    rm -rf /tmp/sonar*
 
 # set env
 ENV LLVM_ROOT=/usr/lib/llvm-8

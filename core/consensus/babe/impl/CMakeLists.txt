@@ -18,7 +18,7 @@ add_library(babe
     )
 target_link_libraries(babe
     Boost::boost
-    sr25519
+    sr25519::sr25519
     buffer
     logger
     scale

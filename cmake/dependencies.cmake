@@ -47,3 +47,7 @@ find_package(RapidJSON CONFIG REQUIRED)
 # https://docs.hunter.sh/en/latest/packages/pkg/Microsoft.GSL.html
 hunter_add_package(Microsoft.GSL)
 find_package(Microsoft.GSL CONFIG REQUIRED)
+
+# not in hunter, added in cmake/Hunter/config.cmake
+hunter_add_package(sr25519)
+find_package(sr25519 REQUIRED)
