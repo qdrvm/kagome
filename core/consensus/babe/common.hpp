@@ -10,7 +10,7 @@
 #include <cstdint>
 
 #include "clock/clock.hpp"
-#include "crypto/crypto_types.hpp"
+#include "crypto/sr25519_types.hpp"
 
 namespace kagome::consensus {
   /// BABE uses system clock's time points
@@ -26,7 +26,8 @@ namespace kagome::consensus {
   using Threshold = crypto::VRFValue;
 
   /// random value, which serves as a seed for VRF slot leadership selection
-  using Randomness = std::array<uint8_t, SR25519_VRF_OUTPUT_SIZE>;
+  using Randomness =
+      std::array<uint8_t, crypto::constants::sr25519::vrf::OUTPUT_SIZE>;
 }  // namespace kagome::consensus
 
 #endif  // KAGOME_COMMON_HPP

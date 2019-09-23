@@ -6,7 +6,7 @@
 add_subdirectory(impl)
 
 add_library(block_header_repository
-    impl/level_db_block_header_repository.cpp
+    impl/key_value_block_header_repository.cpp
     impl/block_header_repository.cpp
     )
 target_link_libraries(block_header_repository

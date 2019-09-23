@@ -18,6 +18,8 @@ using namespace common;
 
 using testing::Return;
 
+namespace vrf_constants = kagome::crypto::constants::sr25519::vrf;
+
 struct BabeLotteryTest : public testing::Test {
   void SetUp() override {
     keypair_.public_key.fill(2);
@@ -62,7 +64,7 @@ TEST_F(BabeLotteryTest, SlotsLeadership) {
   vrf_outputs.push_back({3749373, {}});
   vrf_outputs.push_back({1057472095, {}});
 
-  Buffer vrf_input(SR25519_VRF_OUTPUT_SIZE + 8, 0);
+  Buffer vrf_input(vrf_constants::OUTPUT_SIZE + 8, 0);
   std::copy(current_epoch_.randomness.begin(),
             current_epoch_.randomness.end(),
             vrf_input.begin());
@@ -70,7 +72,7 @@ TEST_F(BabeLotteryTest, SlotsLeadership) {
     auto slot_bytes = crypto::util::uint64_t_to_bytes(i);
     std::copy(slot_bytes.begin(),
               slot_bytes.end(),
-              vrf_input.begin() + SR25519_VRF_OUTPUT_SIZE);
+              vrf_input.begin() + vrf_constants::OUTPUT_SIZE);
     if (i == 2) {
       // just random case for testing
       EXPECT_CALL(*vrf_provider_,

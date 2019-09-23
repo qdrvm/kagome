@@ -11,6 +11,7 @@
 namespace kagome::crypto {
 
   using BoostRandomGenerator = libp2p::crypto::random::BoostRandomGenerator;
+  using CSPRNG = libp2p::crypto::random::CSPRNG;
 
 }
 

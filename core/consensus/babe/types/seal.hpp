@@ -6,7 +6,7 @@
 #ifndef KAGOME_SEAL_HPP
 #define KAGOME_SEAL_HPP
 
-#include "crypto/crypto_types.hpp"
+#include "crypto/sr25519_types.hpp"
 
 namespace kagome::consensus {
   /**

@@ -6,13 +6,15 @@
 #include "consensus/validation/babe_block_validator.hpp"
 
 #include <gtest/gtest.h>
+#include "crypto/random_generator/boost_generator.hpp"
+#include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/util.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/vrf_provider_mock.hpp"
 #include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
+#include "mock/libp2p/crypto/random_generator_mock.hpp"
 #include "scale/scale.hpp"
-#include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/primitives/hash_creator.hpp"
 
@@ -23,12 +25,15 @@ using namespace runtime;
 using namespace primitives;
 using namespace common;
 using namespace crypto;
+using namespace libp2p::crypto::random;
 
 using testing::_;
 using testing::Return;
 using testing::ReturnRef;
 
 using testutil::createHash256;
+
+namespace sr25519_constants = kagome::crypto::constants::sr25519;
 
 class BlockValidatorTest : public testing::Test {
  public:
@@ -38,34 +43,18 @@ class BlockValidatorTest : public testing::Test {
    * @param block_hash - hash of the block to be sealed
    * @return seal, which was produced, @and public key, which was generated
    */
-  std::pair<Seal, Blob<SR25519_PUBLIC_SIZE>> sealBlock(
-      Block &block, Hash256 block_hash) const {
+  std::pair<Seal, SR25519PublicKey> sealBlock(Block &block,
+                                              Hash256 block_hash) const {
     // generate a new keypair
-    std::array<uint8_t, SR25519_SIGNATURE_SIZE> sr25519_signature{};
-
-    std::array<uint8_t, SR25519_KEYPAIR_SIZE> sr25519_keypair{};
-    std::array<uint8_t, SR25519_SEED_SIZE> seed{};
-    sr25519_keypair_from_seed(sr25519_keypair.data(), seed.data());
-
-    gsl::span<uint8_t, SR25519_KEYPAIR_SIZE> keypair_span(sr25519_keypair);
-    auto secret = keypair_span.subspan(0, SR25519_SECRET_SIZE);
-    auto pub_key =
-        keypair_span.subspan(SR25519_SECRET_SIZE, SR25519_PUBLIC_SIZE);
-
-    // create a signature
-    sr25519_sign(sr25519_signature.data(),
-                 pub_key.data(),
-                 secret.data(),
-                 block_hash.data(),
-                 Hash256::size());
+    auto keypair = sr25519_provider_->generateKeypair();
+    EXPECT_OUTCOME_TRUE(sr25519_signature,
+                        sr25519_provider_->sign(keypair, block_hash));
 
     // seal the block
     Seal seal{sr25519_signature};
     block.header.digests.emplace_back(scale::encode(seal).value());
 
-    Blob<SR25519_PUBLIC_SIZE> pubkey_blob{};
-    std::copy(pub_key.begin(), pub_key.end(), pubkey_blob.begin());
-    return {seal, pubkey_blob};
+    return {seal, keypair.public_key};
   }
 
   // fields for validator
@@ -75,8 +64,12 @@ class BlockValidatorTest : public testing::Test {
   std::shared_ptr<HasherMock> hasher_ = std::make_shared<HasherMock>();
   std::shared_ptr<VRFProviderMock> vrf_provider_ =
       std::make_shared<VRFProviderMock>();
+  std::shared_ptr<CSPRNG> generator_ = std::make_shared<BoostRandomGenerator>();
+  std::shared_ptr<SR25519Provider> sr25519_provider_ =
+      std::make_shared<SR25519ProviderImpl>(generator_);
 
-  BabeBlockValidator validator_{tree_, tx_queue_, hasher_, vrf_provider_};
+  BabeBlockValidator validator_{
+      tree_, tx_queue_, hasher_, vrf_provider_, sr25519_provider_};
 
   // fields for block
   Hash256 parent_hash_ =
@@ -96,9 +89,6 @@ class BlockValidatorTest : public testing::Test {
   Extrinsic ext_{Buffer{0x11, 0x22}};
   BlockBody block_body_{ext_};
   Block valid_block_{block_header_, block_body_};
-
-  // fields for validation
-  libp2p::peer::PeerId peer_id_ = "my_peer"_peerid;
 
   Epoch babe_epoch_{.threshold = 3820948573,
                     .randomness = util::uint256_t_to_bytes(475995757021)};
@@ -148,7 +138,7 @@ TEST_F(BlockValidatorTest, Success) {
   EXPECT_CALL(*tree_, addBlock(valid_block_))
       .WillOnce(Return(outcome::success()));
 
-  ASSERT_TRUE(validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  ASSERT_TRUE(validator_.validate(valid_block_, babe_epoch_));
 }
 
 /**
@@ -160,8 +150,7 @@ TEST_F(BlockValidatorTest, LessDigestsThanNeeded) {
   babe_epoch_.authorities.emplace_back();
 
   // for this test we can just not seal the block - it's the second digest
-  EXPECT_OUTCOME_FALSE(
-      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_DIGESTS);
 }
 
@@ -188,8 +177,7 @@ TEST_F(BlockValidatorTest, NoBabeHeader) {
   babe_epoch_.authorities.emplace_back();
   babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
 
-  EXPECT_OUTCOME_FALSE(
-      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_DIGESTS);
 }
 
@@ -219,8 +207,7 @@ TEST_F(BlockValidatorTest, NoAuthority) {
   babe_epoch_.authorities.emplace_back();
 
   // THEN
-  EXPECT_OUTCOME_FALSE(
-      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_SIGNATURE);
 }
 
@@ -252,8 +239,7 @@ TEST_F(BlockValidatorTest, SignatureVerificationFail) {
   valid_block_.header.digests[1][10]++;
 
   // THEN
-  EXPECT_OUTCOME_FALSE(
-      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_SIGNATURE);
 }
 
@@ -289,8 +275,7 @@ TEST_F(BlockValidatorTest, VRFFail) {
       .WillOnce(Return(false));
 
   // THEN
-  EXPECT_OUTCOME_FALSE(
-      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_VRF);
 }
 
@@ -328,8 +313,7 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
       .WillOnce(Return(true));
 
   // THEN
-  EXPECT_OUTCOME_FALSE(
-      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_VRF);
 }
 
@@ -377,11 +361,10 @@ TEST_F(BlockValidatorTest, TwoBlocksByOnePeer) {
       .WillOnce(Return(outcome::success()));
 
   // WHEN
-  ASSERT_TRUE(validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  ASSERT_TRUE(validator_.validate(valid_block_, babe_epoch_));
 
   // THEN
-  EXPECT_OUTCOME_FALSE(
-      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::TWO_BLOCKS_IN_SLOT);
 }
 
@@ -423,8 +406,7 @@ TEST_F(BlockValidatorTest, InvalidExtrinsic) {
       .WillOnce(Return(Invalid{}));
 
   // THEN
-  EXPECT_OUTCOME_FALSE(
-      err, validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_TRANSACTIONS);
 }
 
@@ -469,5 +451,5 @@ TEST_F(BlockValidatorTest, BlockTreeFails) {
       .WillOnce(Return(outcome::failure(boost::system::error_code{})));
 
   // THEN
-  ASSERT_FALSE(validator_.validate(valid_block_, peer_id_, babe_epoch_));
+  ASSERT_FALSE(validator_.validate(valid_block_, babe_epoch_));
 }

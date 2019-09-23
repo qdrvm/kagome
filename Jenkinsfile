@@ -1,7 +1,7 @@
-dockerImage = 'soramitsu/kagome-dev:6'
+dockerImage = 'soramitsu/kagome-dev:7'
 workerLabel = 'd3-build-agent'
 buildDir = "/tmp/build"
-
+repository = "soramitsu/kagome"
 
 def makeBuild(String name, String clangFlags, Closure then) {
   return {
@@ -13,7 +13,8 @@ def makeBuild(String name, String clangFlags, Closure then) {
           sh(script: "git submodule update --init --recursive")
           withCredentials([
             string(credentialsId: 'codecov-token', variable: 'codecov_token'),
-            usernamePassword(credentialsId: 'sorabot-github-user', passwordVariable: 'sorabot_password', usernameVariable: 'sorabot_username')
+            usernamePassword(credentialsId: 'sorabot-github-user', passwordVariable: 'sorabot_password', usernameVariable: 'sorabot_username'),
+            string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')
           ]) {
             docker.image(dockerImage).inside('--cap-add SYS_PTRACE') {
 
@@ -58,6 +59,22 @@ def makeCoverageBuild(String name){
     ]){
       sh(script: "./housekeeping/codecov.sh ${buildDir} ${codecov_token}")
     }
+    sonar_option = ""
+      if (env.CHANGE_ID != null) {
+        sonar_option = "-Dsonar.github.pullRequest=${env.CHANGE_ID}"
+      }
+      // do analysis by sorabot
+      sh """
+        sonar-scanner \
+          -Dsonar.github.disableInlineComments=true \
+          -Dsonar.github.repository='${repository}' \
+          -Dsonar.projectKey=kagome \
+          -Dsonar.host.url=https://sonar.soramitsu.co.jp \
+          -Dsonar.login=${SONAR_TOKEN} \
+          -Dsonar.github.oauth=${sorabot_password} ${sonar_option} \
+          -Dsonar.cxx.coverage.reportPath=${buildDir}/ctest_coverage.xml \
+          -Dsonar.cxx.xunit.reportPath=${buildDir}/xunit/xunit*.xml
+      """
   })
 }
 
@@ -75,6 +92,24 @@ def makeAsanBuild(String name){
   })
 }
 
+// def makeSonarScanner(String name){
+//   return makeBuild(name, "", {
+//       sonar_option = ""
+//       if (env.CHANGE_ID != null) {
+//         sonar_option = "-Dsonar.github.pullRequest=${env.CHANGE_ID}"
+//       }
+//       // do analysis by sorabot
+//       sh """
+//         sonar-scanner \
+//           -Dsonar.github.disableInlineComments=true \
+//           -Dsonar.github.repository='${repository}' \
+//           -Dsonar.projectKey=kagome \
+//           -Dsonar.host.url=https://sonar.soramitsu.co.jp \
+//           -Dsonar.login=${SONAR_TOKEN} \
+//           -Dsonar.github.oauth=${sorabot_password} ${sonar_option}
+//       """
+//   })
+// }
 
 node(workerLabel){
   try {
@@ -86,6 +121,7 @@ node(workerLabel){
       builds["clang-8 TSAN"] = makeToolchainBuild("clang-8 TSAN", "cmake/san/clang-8_cxx17_tsan.cmake")
       builds["clang-8 UBSAN"] = makeToolchainBuild("clang-8 UBSAN", "cmake/san/clang-8_cxx17_ubsan.cmake")
       builds["gcc-8 coverage"] = makeCoverageBuild("gcc-8 coverage")
+      // builds["sonar Scanner"] = makeSonarScanner("sonar Scanner")
 
       parallel(builds)
     }

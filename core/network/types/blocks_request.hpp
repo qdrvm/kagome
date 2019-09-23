@@ -6,6 +6,8 @@
 #ifndef KAGOME_BLOCKS_REQUEST_HPP
 #define KAGOME_BLOCKS_REQUEST_HPP
 
+#include <cstdint>
+
 #include <boost/optional.hpp>
 #include <gsl/span>
 #include "network/types/block_attributes.hpp"
@@ -21,17 +23,20 @@ namespace kagome::network {
     /// unique request id
     primitives::BlocksRequestId id;
     /// bits, showing, which parts of BlockData to return
-    BlockAttributes fields;
+    BlockAttributes fields{};
     /// start from this block
-    primitives::BlockId from;
+    primitives::BlockId from{};
     /// end at this block; an implementation defined maximum is used when
     /// unspecified
-    boost::optional<primitives::BlockHash> to;
+    boost::optional<primitives::BlockHash> to{};
     /// sequence direction
-    Direction direction;
+    Direction direction{};
     /// maximum number of blocks to return; an implementation defined maximum is
     /// used when unspecified
-    boost::optional<uint32_t> max;
+    boost::optional<uint32_t> max{};
+
+    /// we must keep track of the IDs, as they must be unique
+    static primitives::BlocksRequestId last_issued_id;
 
     /// includes HEADER, BODY and JUSTIFICATION
     static constexpr BlockAttributes kBasicAttributes{19};
@@ -40,7 +45,21 @@ namespace kagome::network {
       return (fields.attributes.to_ulong() & static_cast<uint8_t>(attribute))
              != 0;
     }
+
+    BlocksRequest() : id{last_issued_id++} {}
+    BlocksRequest(BlockAttributes fields,
+                  primitives::BlockId from,
+                  boost::optional<primitives::BlockHash> to,
+                  Direction direction,
+                  boost::optional<uint32_t> max)
+        : id{last_issued_id++},
+          fields{fields},
+          from{std::move(from)},
+          to{std::move(to)},
+          direction{direction},
+          max{max} {}
   };
+  inline primitives::BlocksRequestId BlocksRequest::last_issued_id = 0;
 
   /**
    * @brief compares two BlockRequest instances
@@ -81,4 +100,4 @@ namespace kagome::network {
   }
 }  // namespace kagome::network
 
-#endif  //KAGOME_BLOCKS_REQUEST_HPP
+#endif  // KAGOME_BLOCKS_REQUEST_HPP

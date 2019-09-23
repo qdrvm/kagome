@@ -5,8 +5,8 @@
 
 add_subdirectory(aes_provider)
 add_subdirectory(hmac_provider)
-add_subdirectory(marshaller)
-add_subdirectory(proto)
+add_subdirectory(key_marshaller)
+add_subdirectory(protobuf)
 add_subdirectory(random_generator)
 add_subdirectory(key_generator)
 add_subdirectory(key_validator)

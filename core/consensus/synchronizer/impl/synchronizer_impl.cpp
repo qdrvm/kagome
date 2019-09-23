@@ -6,16 +6,21 @@
 #include "consensus/synchronizer/impl/synchronizer_impl.hpp"
 
 #include <boost/assert.hpp>
+#include "network/common.hpp"
+#include "network/helpers/scale_message_read_writer.hpp"
+#include "network/rpc.hpp"
 #include "network/types/block_announce.hpp"
 
 namespace kagome::consensus {
   SynchronizerImpl::SynchronizerImpl(
+      libp2p::Host &host,
       libp2p::peer::PeerInfo peer_info,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
       SynchronizerConfig config,
       common::Logger log)
-      : peer_info_{std::move(peer_info)},
+      : host_{host},
+        peer_info_{std::move(peer_info)},
         block_tree_{std::move(block_tree)},
         blocks_headers_{std::move(blocks_headers)},
         config_{config},
@@ -28,10 +33,9 @@ namespace kagome::consensus {
   void SynchronizerImpl::blocksRequest(
       const BlocksRequest &request,
       std::function<void(outcome::result<BlocksResponse>)> cb) const {
-    // use SCALE RPC
-  }
-
-  void SynchronizerImpl::announce(const primitives::BlockHeader &block_header) {
+    network::RPC<network::ScaleMessageReadWriter>::write<BlocksRequest,
+                                                         BlocksResponse>(
+        host_, peer_info_, network::kSyncProtocol, request, std::move(cb));
   }
 
   outcome::result<network::BlocksResponse> SynchronizerImpl::onBlocksRequest(

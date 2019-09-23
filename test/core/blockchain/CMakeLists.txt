@@ -16,5 +16,5 @@ addtest(block_tree_test
     block_tree_test.cpp
     )
 target_link_libraries(block_tree_test
-    level_db_block_tree
+    block_tree
     )

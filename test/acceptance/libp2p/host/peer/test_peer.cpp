@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 #include "acceptance/libp2p/host/peer/tick_counter.hpp"
 #include "acceptance/libp2p/host/protocol/client_test_session.hpp"
+#include "libp2p/security/plaintext/exchange_message_marshaller_impl.hpp"
 
 Peer::Peer(Peer::Duration timeout)
     : muxed_config_{1024576, 1000},
@@ -32,11 +33,11 @@ Peer::Peer(Peer::Duration timeout)
 }
 
 void Peer::startServer(const multi::Multiaddress &address,
-                       std::promise<peer::PeerInfo> &pp) {
-  context_->post([this, address, &pp] {
+                       std::shared_ptr<std::promise<peer::PeerInfo>> promise) {
+  context_->post([this, address, p = std::move(promise)] {
     EXPECT_OUTCOME_TRUE_MSG_1(host_->listen(address), "failed to start server");
     host_->start();
-    pp.set_value(host_->getPeerInfo());
+    p->set_value(host_->getPeerInfo());
   });
 
   thread_ = std::thread([this] { context_->run_for(timeout_); });
@@ -102,11 +103,16 @@ Peer::sptr<host::BasicHost> Peer::makeHost(crypto::KeyPair keyPair) {
   auto key_validator = std::make_shared<crypto::validator::KeyValidatorImpl>(
       std::move(key_generator));
 
-  auto marshaller = std::make_shared<crypto::marshaller::KeyMarshallerImpl>(
+  auto key_marshaller = std::make_shared<crypto::marshaller::KeyMarshallerImpl>(
       std::move(key_validator));
 
+  auto exchange_msg_marshaller =
+      std::make_shared<security::plaintext::ExchangeMessageMarshallerImpl>(
+          std::move(key_marshaller));
+
   std::vector<std::shared_ptr<security::SecurityAdaptor>> security_adaptors = {
-      std::make_shared<security::Plaintext>(std::move(marshaller), idmgr)};
+      std::make_shared<security::Plaintext>(std::move(exchange_msg_marshaller),
+                                            idmgr)};
 
   std::vector<std::shared_ptr<muxer::MuxerAdaptor>> muxer_adaptors = {
       std::make_shared<muxer::Yamux>(muxed_config_)};

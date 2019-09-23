@@ -18,7 +18,7 @@ add_library(babe
     )
 target_link_libraries(babe
     Boost::boost
-    sr25519
+    sr25519::sr25519
     buffer
     logger
     scale
@@ -26,4 +26,12 @@ target_link_libraries(babe
     outcome
     libp2p_peer_id
     primitives
+    )
+
+add_library(babe_observer
+    babe_observer_impl.cpp
+    babe_observer_impl.hpp
+    )
+target_link_libraries(babe_observer
+    babe
     )

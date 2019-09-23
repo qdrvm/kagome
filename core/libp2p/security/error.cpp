@@ -8,8 +8,6 @@
 OUTCOME_CPP_DEFINE_CATEGORY(libp2p::security::SecurityError, e) {
   using E = libp2p::security::SecurityError;
   switch (e) {
-    case E::SUCCESS:
-      return "success";
     case E::AUTHENTICATION_ERROR:
       return "authentication error";
   }

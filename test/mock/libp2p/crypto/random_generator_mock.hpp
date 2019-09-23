@@ -14,13 +14,13 @@ namespace libp2p::crypto::random {
   struct RandomGeneratorMock : public RandomGenerator {
     ~RandomGeneratorMock() override = default;
 
-    MOCK_METHOD1(randomBytes, ByteArray(size_t));
+    MOCK_METHOD1(randomBytes, std::vector<uint8_t>(size_t));
   };
 
   struct CSPRNGMock : public CSPRNG {
     ~CSPRNGMock() override = default;
 
-    MOCK_METHOD1(randomBytes, ByteArray(size_t));
+    MOCK_METHOD1(randomBytes, std::vector<uint8_t>(size_t));
   };
 }  // namespace libp2p::crypto::random
 

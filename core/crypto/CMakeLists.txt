@@ -16,13 +16,22 @@ target_link_libraries(hasher
     sha
     )
 
-add_library(crypto_types
-    crypto_types.cpp
-    crypto_types.hpp
+add_library(sr25519_types
+    sr25519_types.cpp
+    sr25519_types.hpp
     )
-target_link_libraries(crypto_types
+target_link_libraries(sr25519_types
     blob
-    sr25519
+    sr25519::sr25519
+    )
+
+add_library(ed25519_types
+    ed25519_types.cpp
+    ed25519_types.hpp
+    )
+target_link_libraries(ed25519_types
+    blob
+    iroha::ed25519
     )
 
 add_library(crypto_util
@@ -40,12 +49,32 @@ add_library(vrf_provider
     )
 target_link_libraries(vrf_provider
     crypto_util
-    crypto_types
+    sr25519_types
     buffer
     blob
     random_generator # generator from libp2p
     )
 
+add_library(sr25519_provider
+    sr25519_provider.hpp
+    sr25519/sr25519_provider_impl.hpp
+    sr25519/sr25519_provider_impl.cpp
+    )
+target_link_libraries(sr25519_provider
+    random_generator # generator from libp2p
+    sr25519_types
+    )
+
+add_library(ed25519_provider
+    ed25519_provider.hpp
+    ed25519/ed25519_provider_impl.hpp
+    ed25519/ed25519_provider_impl.cpp
+    )
+target_link_libraries(ed25519_provider
+    random_generator # generator from libp2p
+    ed25519_types
+    )
+
 add_subdirectory(blake2)
-add_subdirectory(twox)
 add_subdirectory(sha)
+add_subdirectory(twox)
