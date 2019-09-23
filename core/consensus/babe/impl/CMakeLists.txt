@@ -17,6 +17,7 @@ add_library(babe
     babe_impl.hpp
     )
 target_link_libraries(babe
+    babe_error
     Boost::boost
     sr25519::sr25519
     buffer
