@@ -43,7 +43,8 @@ namespace kagome::consensus {
      * @param authority_id of this node
      * @param clock to measure time
      * @param hasher to take hashes
-     * @param timer to be used by the implementation
+     * @param timer to be used by the implementation; the recommended one is
+     * kagome::clock::BasicWaitableTimer
      * @param event_bus to deliver events over
      * @param log to write messages to
      */
