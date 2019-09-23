@@ -8,9 +8,9 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "common/blob.hpp"
-#include "mock/api/extrinsic/extrinsic_api_mock.hpp"
-#include "mock/api/transport/listener_mock.hpp"
-#include "mock/api/transport/session_mock.hpp"
+#include "mock/core/api/extrinsic/extrinsic_api_mock.hpp"
+#include "mock/core/api/transport/listener_mock.hpp"
+#include "mock/core/api/transport/session_mock.hpp"
 #include "primitives/extrinsic.hpp"
 
 using namespace kagome::api;

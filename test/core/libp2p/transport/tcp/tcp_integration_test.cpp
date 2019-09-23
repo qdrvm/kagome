@@ -12,8 +12,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "libp2p/transport/tcp.hpp"
-#include "mock/libp2p/connection/capable_connection_mock.hpp"
-#include "mock/libp2p/transport/upgrader_mock.hpp"
+#include "mock/core/libp2p/connection/capable_connection_mock.hpp"
+#include "mock/core/libp2p/transport/upgrader_mock.hpp"
 #include "testutil/gmock_actions.hpp"
 #include "testutil/libp2p/peer.hpp"
 #include "testutil/literals.hpp"

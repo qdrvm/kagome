@@ -7,13 +7,13 @@
 
 #include <gtest/gtest.h>
 
-#include "mock/libp2p/network/connection_manager_mock.hpp"
-#include "mock/libp2p/network/network_mock.hpp"
-#include "mock/libp2p/peer/address_repository_mock.hpp"
-#include "mock/libp2p/peer/peer_repository_mock.hpp"
-#include "mock/libp2p/protocol/kademlia/message_read_writer_mock.hpp"
-#include "mock/libp2p/protocol/kademlia/query_runner_mock.hpp"
-#include "mock/libp2p/protocol/kademlia/routing_table_mock.hpp"
+#include "mock/core/libp2p/network/connection_manager_mock.hpp"
+#include "mock/core/libp2p/network/network_mock.hpp"
+#include "mock/core/libp2p/peer/address_repository_mock.hpp"
+#include "mock/core/libp2p/peer/peer_repository_mock.hpp"
+#include "mock/core/libp2p/protocol/kademlia/message_read_writer_mock.hpp"
+#include "mock/core/libp2p/protocol/kademlia/query_runner_mock.hpp"
+#include "mock/core/libp2p/protocol/kademlia/routing_table_mock.hpp"
 
 #include "testutil/gmock_actions.hpp"
 #include "testutil/literals.hpp"

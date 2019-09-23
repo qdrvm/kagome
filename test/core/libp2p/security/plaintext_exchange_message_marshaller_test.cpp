@@ -8,7 +8,7 @@
 #include "libp2p/crypto/key.hpp"
 #include "libp2p/peer/peer_id.hpp"
 #include "libp2p/security/plaintext/exchange_message_marshaller_impl.hpp"
-#include "mock/libp2p/crypto/key_marshaller_mock.hpp"
+#include "mock/core/libp2p/crypto/key_marshaller_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "libp2p/security/plaintext/protobuf/plaintext.pb.h"
 

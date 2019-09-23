@@ -9,9 +9,9 @@
 #include "libp2p/network/impl/connection_manager_impl.hpp"
 #include "libp2p/peer/errors.hpp"
 #include "libp2p/peer/peer_id.hpp"
-#include "mock/libp2p/connection/capable_connection_mock.hpp"
-#include "mock/libp2p/network/transport_manager_mock.hpp"
-#include "mock/libp2p/transport/transport_mock.hpp"
+#include "mock/core/libp2p/connection/capable_connection_mock.hpp"
+#include "mock/core/libp2p/network/transport_manager_mock.hpp"
+#include "mock/core/libp2p/transport/transport_mock.hpp"
 #include "testutil/libp2p/peer.hpp"
 #include "testutil/literals.hpp"
 

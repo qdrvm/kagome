@@ -10,7 +10,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
-#include "mock/libp2p/transport/upgrader_mock.hpp"
+#include "mock/core/libp2p/transport/upgrader_mock.hpp"
 
 using namespace libp2p;
 using namespace transport;
