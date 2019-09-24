@@ -17,10 +17,9 @@ set(
 
 include("cmake/Hunter/init.cmake")
 HunterGate(
-    URL "https://github.com/ruslo/hunter/archive/v0.23.171.tar.gz"
-    SHA1 "5d68bcca78eee347239ca5f4d34f4b6c12683154"
+    URL "https://github.com/cpp-pm/hunter/archive/v0.23.216.tar.gz"
+    SHA1 "a492a1879bee60c29f7af17ef56b45f0d7766241"
     LOCAL
-#    FILEPATH ${CMAKE_SOURCE_DIR}/cmake/Hunter/config.cmake
 )
 
 PROJECT(kagome C CXX)

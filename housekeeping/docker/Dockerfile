@@ -34,6 +34,8 @@ RUN apt-get update && apt-get upgrade -y && \
         build-essential \
         gcc-8 \
         g++-8 \
+        gcc-9 \
+        g++-9 \
         llvm-8 \
         clang-8 \
         clang-tidy-8 \
@@ -59,8 +61,8 @@ RUN set -e; \
 # set env
 ENV LLVM_ROOT=/usr/lib/llvm-8
 ENV PATH=${LLVM_ROOT}/bin:${LLVM_ROOT}/share/clang:${PATH}
-ENV CC=gcc-9
-ENV CXX=g++-9
+ENV CC=gcc-8
+ENV CXX=g++-8
 
 # set default compilers and tools
 RUN update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-8               90 && \
