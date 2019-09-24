@@ -34,7 +34,7 @@ set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads)
 link_libraries(Threads::Threads)
 if(THREADS_HAVE_PTHREAD_ARG)
-  add_link_options(-lpthread)
+  link_libraries(pthread)
 endif()
 
 

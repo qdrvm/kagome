@@ -18,7 +18,8 @@ RUN apt-get update && \
     add-apt-repository -y ppa:ubuntu-toolchain-r/test
 
 # install cmake and dev dependencies
-RUN pip3 install --upgrade pip cmake requests gitpython gcovr pyyaml
+RUN python3 -m pip install --upgrade pip
+RUN pip3 install scikit-build cmake requests gitpython gcovr pyyaml
 
 # install rustc
 ENV RUST_VERSION=nightly-2019-07-07
@@ -31,8 +32,8 @@ RUN apt-get update && apt-get upgrade -y && \
     apt-get install --no-install-recommends -y \
         xz-utils \
         build-essential \
-        gcc-8 \
-        g++-8 \
+        gcc-9 \
+        g++-9 \
         llvm-8 \
         clang-8 \
         clang-tidy-8 \
@@ -58,14 +59,15 @@ RUN set -e; \
 # set env
 ENV LLVM_ROOT=/usr/lib/llvm-8
 ENV PATH=${LLVM_ROOT}/bin:${LLVM_ROOT}/share/clang:${PATH}
-ENV CC=gcc-8
-ENV CXX=g++-8
+ENV CC=gcc-9
+ENV CXX=g++-9
 
 # set default compilers and tools
-RUN update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-8               90 && \
-    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-8                90 && \
-    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-8                90 && \
+RUN update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-9               90 && \
+    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-9                90 && \
+    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-9                90 && \
     update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-8/bin/clang-8   90 && \
     update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-8            90 && \
     update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-8         90 && \
-    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-8       90
+    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-8       90 && \
+    update-alternatives --install /usr/bin/python       python       /usr/bin/python3              90
