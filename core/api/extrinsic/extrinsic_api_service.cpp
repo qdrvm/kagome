@@ -9,8 +9,10 @@
 #include "api/transport/impl/listener_impl.hpp"
 
 namespace kagome::api {
-  ExtrinsicApiService::ExtrinsicApiService(std::shared_ptr<Listener> listener,
-                                           std::shared_ptr<ExtrinsicApi> api)
+  ExtrinsicApiService::ExtrinsicApiService(
+      std::shared_ptr<Listener> listener,
+      std::shared_ptr<ExtrinsicApi>
+          api)  // NOLINT(performance-unnecessary-value-param)
       : ApiService(std::move(listener),
                    std::make_shared<ExtrinsicJRPCProcessor>(std::move(api))) {}
 
