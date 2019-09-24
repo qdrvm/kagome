@@ -49,6 +49,10 @@ namespace test {
      */
     explicit ApiClient(boost::asio::io_context &context) : stream_(context) {}
 
+    ApiClient(const ApiClient &other) = delete;
+    ApiClient &operator=(const ApiClient &other) = delete;
+    ApiClient(ApiClient &&other) noexcept = delete;
+    ApiClient &operator=(ApiClient &&other) noexcept = delete;
     ~ApiClient();
 
     /**

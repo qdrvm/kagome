@@ -22,7 +22,7 @@ namespace kagome::clock {
      * Set an expire time for this timer
      * @param at - timepoint, at which the timer expires
      */
-    virtual void expiresAt(kagome::clock::SystemClock::TimePoint at) = 0;
+    virtual void expiresAt(clock::SystemClock::TimePoint at) = 0;
 
     /**
      * Wait for the timer expiration

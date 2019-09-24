@@ -41,7 +41,7 @@ namespace kagome::consensus::grandpa {
   namespace detail {
     template <typename Tag>
     struct BlockInfoT {
-      primitives::BlockNumber number;
+      primitives::BlockNumber number{};
       primitives::BlockHash hash;
     };
 

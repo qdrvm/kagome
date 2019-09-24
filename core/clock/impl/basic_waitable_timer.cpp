@@ -10,7 +10,7 @@ namespace kagome::clock {
       : timer_{boost::asio::basic_waitable_timer<std::chrono::system_clock>{
           io_context}} {}
 
-  void BasicWaitableTimer::expiresAt(kagome::clock::SystemClock::TimePoint at) {
+  void BasicWaitableTimer::expiresAt(clock::SystemClock::TimePoint at) {
     timer_.expires_at(at);
   }
 

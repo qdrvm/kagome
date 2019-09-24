@@ -20,7 +20,7 @@ namespace kagome::clock {
 
     ~BasicWaitableTimer() override = default;
 
-    void expiresAt(kagome::clock::SystemClock::TimePoint at) override;
+    void expiresAt(clock::SystemClock::TimePoint at) override;
 
     void asyncWait(
         const std::function<void(const std::error_code &)> &h) override;
