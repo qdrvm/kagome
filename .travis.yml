@@ -111,7 +111,7 @@ install:
         pip3 install --user pyyaml
       fi
     sudo pip3 install --upgrade pip
-    pip3 install --user --upgrade requests gitpython cmake gcovr
+    pip3 install --user --upgrade scikit-build requests gitpython cmake gcovr
   - export PATH="$HOME/.cargo/bin:$PATH"
   - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2019-07-07
   - rustup default nightly-2019-07-07
