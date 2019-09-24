@@ -8,13 +8,13 @@ add_library(hasher
     hasher/hasher_impl.hpp
     hasher/hasher_impl.cpp
     )
-
 target_link_libraries(hasher
     blake2
     twox
     buffer
     sha
     )
+kagome_install(hasher)
 
 add_library(sr25519_types
     sr25519_types.cpp

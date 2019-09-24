@@ -32,8 +32,8 @@ RUN apt-get update && apt-get upgrade -y && \
     apt-get install --no-install-recommends -y \
         xz-utils \
         build-essential \
-        gcc-9 \
-        g++-9 \
+        gcc-8 \
+        g++-8 \
         llvm-8 \
         clang-8 \
         clang-tidy-8 \
@@ -63,9 +63,9 @@ ENV CC=gcc-9
 ENV CXX=g++-9
 
 # set default compilers and tools
-RUN update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-9               90 && \
-    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-9                90 && \
-    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-9                90 && \
+RUN update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gcov-8               90 && \
+    update-alternatives --install /usr/bin/gcc          gcc          /usr/bin/gcc-8                90 && \
+    update-alternatives --install /usr/bin/g++          g++          /usr/bin/g++-8                90 && \
     update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-8/bin/clang-8   90 && \
     update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-8            90 && \
     update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-8         90 && \

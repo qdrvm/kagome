@@ -98,6 +98,9 @@ if(CLANG_FORMAT)
   include(cmake/clang-format.cmake)
 endif()
 
+include(GNUInstallDirs)
+include(cmake/install.cmake)
+
 add_subdirectory(deps)
 
 include_directories(
@@ -120,38 +123,15 @@ include_directories(
 
 add_subdirectory(core)
 
-include(GNUInstallDirs)
-
-include(cmake/install.cmake)
-
 install_deps_headers()
-
-kagome_install(
-    TARGETS
-    scale
-    buffer
-    hexutil
-    blob
-    polkadot_trie_db
-    polkadot_trie_codec
-    polkadot_trie
-    polkadot_node
-    blake2
-    hasher
-    twox
-    sha
-    polkadot_trie_batch
-    leveldb
-    logger
-    in_memory_storage
-
+kagome_install_setup(
     HEADER_DIRS
     core/common
     core/macro
     core/scale
     core/storage
     core/crypto
-    )
+)
 
 include(CMakePackageConfigHelpers)
 
