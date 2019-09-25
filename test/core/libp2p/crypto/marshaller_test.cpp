@@ -8,7 +8,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "libp2p/crypto/common.hpp"
-#include "mock/libp2p/crypto/key_validator_mock.hpp"
+#include "mock/core/libp2p/crypto/key_validator_mock.hpp"
 
 using Buffer = std::vector<uint8_t>;
 using libp2p::crypto::Key;

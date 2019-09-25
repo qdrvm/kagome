@@ -11,7 +11,7 @@
 #include <boost/optional.hpp>
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/blockchain/header_backend_mock.hpp"
-#include "mock/libp2p/host/host_mock.hpp"
+#include "mock/core/libp2p/host/host_mock.hpp"
 #include "primitives/block.hpp"
 #include "testutil/gmock_actions.hpp"
 #include "testutil/literals.hpp"

@@ -6,9 +6,9 @@
 #include "libp2p/injector/host_injector.hpp"
 
 #include <gtest/gtest.h>
-#include "mock/libp2p/muxer/muxer_adaptor_mock.hpp"
-#include "mock/libp2p/security/security_adaptor_mock.hpp"
-#include "mock/libp2p/transport/transport_mock.hpp"
+#include "mock/core/libp2p/muxer/muxer_adaptor_mock.hpp"
+#include "mock/core/libp2p/security/security_adaptor_mock.hpp"
+#include "mock/core/libp2p/transport/transport_mock.hpp"
 
 using namespace libp2p;
 using namespace injector;

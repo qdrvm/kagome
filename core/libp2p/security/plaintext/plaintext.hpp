@@ -18,8 +18,8 @@ namespace libp2p::security {
    * 1. Initiator immediately sends his public key to the other peer.
    * 2. Responder receives public key, saves it
    * 3. Responder answers with his public key
-   * 4. Initiator calculates PeerId from responder's public key, and if it differs
-   * from the one supplied in dial, yields an error
+   * 4. Initiator calculates PeerId from responder's public key, and if it
+   * differs from the one supplied in dial, yields an error
    */
   class Plaintext : public SecurityAdaptor,
                     public std::enable_shared_from_this<Plaintext> {
@@ -27,8 +27,9 @@ namespace libp2p::security {
     enum class Error {
       EXCHANGE_SEND_ERROR = 1,
       EXCHANGE_RECEIVE_ERROR,
-      INVALID_PEER_ID, // peer id in an exchange message doesn't much actual peer id
-      EMPTY_PEER_ID // remote multiaddr doesn't contain a peer id
+      INVALID_PEER_ID,  // peer id in an exchange message doesn't much actual
+                        // peer id
+      EMPTY_PEER_ID     // remote multiaddr doesn't contain a peer id
     };
 
     ~Plaintext() override = default;
@@ -48,18 +49,19 @@ namespace libp2p::security {
    private:
     using MaybePeerId = boost::optional<peer::PeerId>;
 
-    void sendExchangeMsg(const std::shared_ptr<connection::RawConnection>& conn,
+    void sendExchangeMsg(const std::shared_ptr<connection::RawConnection> &conn,
                          SecConnCallbackFunc cb) const;
 
-    void receiveExchangeMsg(const std::shared_ptr<connection::RawConnection>& conn,
-                            const MaybePeerId& p,
-                            SecConnCallbackFunc cb) const;
+    void receiveExchangeMsg(
+        const std::shared_ptr<connection::RawConnection> &conn,
+        const MaybePeerId &p,
+        SecConnCallbackFunc cb) const;
 
     // the callback passed to an async read call in receiveExchangeMsg
     void readCallback(std::shared_ptr<connection::RawConnection> conn,
-                      const MaybePeerId& p,
-                      const SecConnCallbackFunc& cb,
-                      const std::shared_ptr<std::vector<uint8_t>>& read_bytes,
+                      const MaybePeerId &p,
+                      const SecConnCallbackFunc &cb,
+                      const std::shared_ptr<std::vector<uint8_t>> &read_bytes,
                       outcome::result<size_t> read_call_res) const;
 
     std::shared_ptr<plaintext::ExchangeMessageMarshaller> marshaller_;

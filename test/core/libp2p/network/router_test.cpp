@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 #include <gsl/span>
-#include "mock/libp2p/connection/stream_mock.hpp"
+#include "mock/core/libp2p/connection/stream_mock.hpp"
 
 using namespace libp2p::network;
 using namespace libp2p::peer;

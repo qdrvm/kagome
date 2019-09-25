@@ -10,24 +10,12 @@
 #include <sr25519/sr25519.h>
 #include <boost/assert.hpp>
 #include "common/buffer.hpp"
+#include "consensus/babe/babe_error.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/seal.hpp"
 #include "network/types/block_announce.hpp"
 #include "primitives/inherent_data.hpp"
 #include "scale/scale.hpp"
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, BabeImpl::Error, e) {
-  using E = kagome::consensus::BabeImpl::Error;
-  switch (e) {
-    case E::TIMER_ERROR:
-      return "some internal error happened while using the timer in BABE; "
-             "please, see logs";
-    case E::NODE_FALL_BEHIND:
-      return "local node has fallen too far behind the others, most likely it "
-             "is in one of the previous epochs";
-  }
-  return "unknown error";
-}
 
 namespace kagome::consensus {
   BabeImpl::BabeImpl(std::shared_ptr<BabeLottery> lottery,
@@ -38,7 +26,7 @@ namespace kagome::consensus {
                      primitives::AuthorityIndex authority_id,
                      std::shared_ptr<clock::SystemClock> clock,
                      std::shared_ptr<crypto::Hasher> hasher,
-                     Timer timer,
+                     std::shared_ptr<clock::Timer> timer,
                      libp2p::event::Bus &event_bus,
                      common::Logger log)
       : lottery_{std::move(lottery)},
@@ -104,12 +92,12 @@ namespace kagome::consensus {
     }
 
     // everything is OK: wait for the end of the slot
-    timer_.expires_at(next_slot_finish_time_);
-    timer_.async_wait([this](auto &&ec) {
+    timer_->expiresAt(next_slot_finish_time_);
+    timer_->asyncWait([this](auto &&ec) {
       if (ec) {
         log_->error("error happened while waiting on the timer: {}",
                     ec.message());
-        return error_channel_.publish(Error::TIMER_ERROR);
+        return error_channel_.publish(BabeError::TIMER_ERROR);
       }
       finishSlot();
     });
@@ -214,8 +202,8 @@ namespace kagome::consensus {
   }
 
   void BabeImpl::synchronizeSlots() {
-    // assuming we are too far behind other peers (now() > finishing time of the
-    // last known slot), we compute, how much slots we should skip; if this
+    // assuming we are too far behind other peers (now() >> finishing time of
+    // the last known slot), we compute, how much slots we should skip; if this
     // would require us to move through the epochs, it becomes problematic, as
     // many things are to be updated on the epochs' borders, and we don't have
     // enough information; give up in that case
@@ -232,7 +220,7 @@ namespace kagome::consensus {
 
     if (current_slot_ + delay_in_slots >= current_epoch_.epoch_duration) {
       log_->error("the node is too far behind");
-      return error_channel_.publish(Error::NODE_FALL_BEHIND);
+      return error_channel_.publish(BabeError::NODE_FALL_BEHIND);
     }
 
     // everything is OK: skip slots, set a new time and return control

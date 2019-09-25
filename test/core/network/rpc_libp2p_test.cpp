@@ -6,9 +6,9 @@
 #include "network/rpc.hpp"
 
 #include <gtest/gtest.h>
-#include "mock/libp2p/basic/read_writer_mock.hpp"
-#include "mock/libp2p/connection/stream_mock.hpp"
-#include "mock/libp2p/host/host_mock.hpp"
+#include "mock/core/libp2p/basic/read_writer_mock.hpp"
+#include "mock/core/libp2p/connection/stream_mock.hpp"
+#include "mock/core/libp2p/host/host_mock.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/types/blocks_response.hpp"
 #include "scale/scale.hpp"

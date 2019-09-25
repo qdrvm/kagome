@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 #include "libp2p/basic/protobuf_message_read_writer.hpp"
 #include "libp2p/multi/uvarint.hpp"
-#include "mock/libp2p/connection/raw_connection_mock.hpp"
+#include "mock/core/libp2p/connection/raw_connection_mock.hpp"
 #include "testutil/gmock_actions.hpp"
 
 using namespace libp2p;

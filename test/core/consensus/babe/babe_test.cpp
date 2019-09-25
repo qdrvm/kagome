@@ -9,17 +9,17 @@
 #include <memory>
 
 #include <gtest/gtest.h>
-#include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/asio/io_context.hpp>
 #include "clock/impl/clock_impl.hpp"
+#include "consensus/babe/babe_error.hpp"
 #include "mock/core/authorship/proposer_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/clock/clock_mock.hpp"
+#include "mock/core/clock/timer_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/babe_gossiper_mock.hpp"
 #include "primitives/block.hpp"
-#include "testutil/literals.hpp"
 #include "testutil/sr25519_utils.hpp"
 
 using namespace kagome;
@@ -46,8 +46,6 @@ Hash256 createHash(uint8_t byte) {
 
 class BabeTest : public testing::Test {
  public:
-  boost::asio::io_context io_context_;
-
   std::shared_ptr<BabeLotteryMock> lottery_ =
       std::make_shared<BabeLotteryMock>();
   std::shared_ptr<ProposerMock> proposer_ = std::make_shared<ProposerMock>();
@@ -59,19 +57,20 @@ class BabeTest : public testing::Test {
   AuthorityIndex authority_id_ = 1;
   std::shared_ptr<SystemClockMock> clock_ = std::make_shared<SystemClockMock>();
   std::shared_ptr<HasherMock> hasher_ = std::make_shared<HasherMock>();
+  std::shared_ptr<testutil::TimerMock> timer_ =
+      std::make_shared<testutil::TimerMock>();
   libp2p::event::Bus event_bus_;
 
-  std::shared_ptr<BabeImpl> babe_ = std::make_shared<BabeImpl>(
-      lottery_,
-      proposer_,
-      block_tree_,
-      gossiper_,
-      keypair_,
-      authority_id_,
-      clock_,
-      hasher_,
-      boost::asio::basic_waitable_timer<std::chrono::system_clock>{io_context_},
-      event_bus_);
+  std::shared_ptr<BabeImpl> babe_ = std::make_shared<BabeImpl>(lottery_,
+                                                               proposer_,
+                                                               block_tree_,
+                                                               gossiper_,
+                                                               keypair_,
+                                                               authority_id_,
+                                                               clock_,
+                                                               hasher_,
+                                                               timer_,
+                                                               event_bus_);
 
   Epoch epoch_{0, 0, 2, 60ms, {{}}, 100, {}};
 
@@ -128,8 +127,18 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*clock_, now())
       .WillOnce(Return(test_begin))
       .WillOnce(Return(test_begin + 60ms))
-      .WillOnce(Return(test_begin + 100ms))
-      .WillOnce(Return(test_begin));  // back in time for purpose
+      .WillOnce(Return(test_begin + 60ms))
+      .WillOnce(Return(test_begin + 120ms));
+
+  EXPECT_CALL(*timer_, expiresAt(test_begin + epoch_.slot_duration));
+  EXPECT_CALL(*timer_, expiresAt(test_begin + epoch_.slot_duration * 2));
+  EXPECT_CALL(*timer_, expiresAt(test_begin + epoch_.slot_duration * 3));
+
+  EXPECT_CALL(*timer_, asyncWait(_))
+      .WillOnce(testing::InvokeArgument<0>(boost::system::error_code{}))
+      .WillOnce(testing::InvokeArgument<0>(boost::system::error_code{}))
+      .WillOnce({})
+      .RetiresOnSaturation();
 
   // processSlotLeadership
   // we are not leader of the first slot, but leader of the second
@@ -153,8 +162,7 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*lottery_, slotsLeadership(new_epoch, keypair_))
       .WillOnce(Return(leadership_));
 
-  babe_->runEpoch(epoch_, test_begin + 60ms);
-  io_context_.run_for(150ms);
+  babe_->runEpoch(epoch_, test_begin + epoch_.slot_duration);
 }
 
 /**
@@ -190,8 +198,10 @@ TEST_F(BabeTest, SyncSuccess) {
   auto expected_finish_slot_time =
       (delay_in_slots * epoch_.slot_duration) + slot_start_time;
 
+  EXPECT_CALL(*timer_, expiresAt(slot_start_time + epoch_.slot_duration * 2));
+  EXPECT_CALL(*timer_, asyncWait(_)).WillOnce({});
+
   babe_->runEpoch(epoch_, slot_start_time);
-  io_context_.run_for(60ms);
 
   auto meta = babe_->getBabeMeta();
   ASSERT_EQ(meta.current_slot_, expected_current_slot);
@@ -226,7 +236,7 @@ TEST_F(BabeTest, BigDelay) {
 
   auto error_emitted = false;
   auto h = error_channel_.subscribe([&error_emitted](auto &&err) mutable {
-    ASSERT_EQ(err, BabeImpl::Error::NODE_FALL_BEHIND);
+    ASSERT_EQ(err, BabeError::NODE_FALL_BEHIND);
     error_emitted = true;
   });
 

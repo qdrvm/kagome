@@ -15,7 +15,7 @@
 #include "api/transport/impl/listener_impl.hpp"
 #include "common/blob.hpp"
 #include "core/api/client/api_client.hpp"
-#include "mock/api/extrinsic/extrinsic_api_mock.hpp"
+#include "mock/core/api/extrinsic/extrinsic_api_mock.hpp"
 #include "primitives/extrinsic.hpp"
 
 using namespace kagome::api;
