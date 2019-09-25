@@ -17,10 +17,9 @@ set(
 
 include("cmake/Hunter/init.cmake")
 HunterGate(
-    URL "https://github.com/ruslo/hunter/archive/v0.23.171.tar.gz"
-    SHA1 "5d68bcca78eee347239ca5f4d34f4b6c12683154"
+    URL "https://github.com/cpp-pm/hunter/archive/v0.23.216.tar.gz"
+    SHA1 "a492a1879bee60c29f7af17ef56b45f0d7766241"
     LOCAL
-#    FILEPATH ${CMAKE_SOURCE_DIR}/cmake/Hunter/config.cmake
 )
 
 PROJECT(kagome C CXX)
@@ -34,7 +33,7 @@ set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads)
 link_libraries(Threads::Threads)
 if(THREADS_HAVE_PTHREAD_ARG)
-  add_link_options(-lpthread)
+  link_libraries(pthread)
 endif()
 
 
@@ -98,6 +97,9 @@ if(CLANG_FORMAT)
   include(cmake/clang-format.cmake)
 endif()
 
+include(GNUInstallDirs)
+include(cmake/install.cmake)
+
 add_subdirectory(deps)
 
 include_directories(
@@ -120,38 +122,15 @@ include_directories(
 
 add_subdirectory(core)
 
-include(GNUInstallDirs)
-
-include(cmake/install.cmake)
-
 install_deps_headers()
-
-kagome_install(
-    TARGETS
-    scale
-    buffer
-    hexutil
-    blob
-    polkadot_trie_db
-    polkadot_trie_codec
-    polkadot_trie
-    polkadot_node
-    blake2
-    hasher
-    twox
-    sha
-    polkadot_trie_batch
-    leveldb
-    logger
-    in_memory_storage
-
+kagome_install_setup(
     HEADER_DIRS
     core/common
     core/macro
     core/scale
     core/storage
     core/crypto
-    )
+)
 
 include(CMakePackageConfigHelpers)
 

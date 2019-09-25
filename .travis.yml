@@ -51,26 +51,11 @@ cache:
 matrix:
   include:
     - os: osx
-      if: type = pull_request OR branch = master
-      name: "OSX gcc"
-      osx_image: xcode11
-      compiler: gcc
-      before_cache:
-        - brew cleanup
-      env:
-        - _CC=gcc
-        - _CXX=g++
-
-    - os: osx
-      name: "OSX clang"
+      name: "OSX AppleClang"
       if: type = pull_request OR branch = master
       osx_image: xcode11
-      compiler: clang
       before_cache:
         - brew cleanup
-      env:
-        - _CC=clang
-        - _CXX=clang++
 
     - os: linux
       name: "Linux gcc-8 clang-tidy"
@@ -90,12 +75,6 @@ matrix:
         - cmake --build build --target generated
         - housekeeping/clang-tidy.sh build
 
-    - os: linux
-      name: "git clone --recursive works"
-      if: type = pull_request OR branch = master
-      script:
-        - cd /tmp && git clone --recursive https://github.com/soramitsu/kagome
-
 install:
   - |
     # install python pip3 deps
@@ -110,8 +89,9 @@ install:
       elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
         pip3 install --user pyyaml
       fi
-    sudo pip3 install --upgrade pip
-    pip3 install --user --upgrade scikit-build requests gitpython cmake gcovr
+    sudo python3 -m pip install --upgrade pip
+    sudo python3 -m pip install scikit-build
+    sudo python3 -m pip install cmake requests gitpython gcovr
   - export PATH="$HOME/.cargo/bin:$PATH"
   - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly-2019-07-07
   - rustup default nightly-2019-07-07

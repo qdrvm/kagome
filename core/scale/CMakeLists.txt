@@ -20,3 +20,6 @@ target_link_libraries(scale
     Boost::boost
     buffer
     )
+
+
+kagome_install(scale)

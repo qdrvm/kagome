@@ -6,6 +6,7 @@ target_link_libraries(hexutil
     Boost::boost
     outcome
     )
+kagome_install(hexutil)
 
 add_library(buffer
     buffer.hpp
@@ -15,6 +16,7 @@ add_library(buffer
 target_link_libraries(buffer
     hexutil
     )
+kagome_install(buffer)
 
 add_library(blob
     blob.hpp
@@ -23,7 +25,10 @@ add_library(blob
 target_link_libraries(blob
     hexutil
     )
+kagome_install(blob)
+
 
 add_library(logger
     logger.cpp
     )
+kagome_install(logger)
