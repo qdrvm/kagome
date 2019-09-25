@@ -153,7 +153,7 @@ namespace libp2p::connection {
                          in,
                          bytes,
                          some]() mutable {
-      if (bytes > self->send_window_size_) {
+      if (bytes <= self->send_window_size_) {
         // we can write - window size on the other side allows us
         auto conn_wptr = self->yamuxed_connection_;
         if (conn_wptr.expired()) {
