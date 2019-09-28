@@ -7,6 +7,7 @@
 #define KAGOME_CORE_CONSENSUS_GRANDPA_STRUCTS_HPP
 
 #include <boost/asio/steady_timer.hpp>
+#include <boost/operators.hpp>
 #include "common/blob.hpp"
 #include "common/wrapper.hpp"
 #include "crypto/ed25519_types.hpp"
@@ -20,6 +21,9 @@ namespace kagome::consensus::grandpa {
 
   /// voter identifier
   using Id = primitives::AuthorityId;
+
+  using BlockHash = primitives::BlockHash;
+  using BlockNumber = primitives::BlockNumber;
 
   /// voter signature
   using Signature = crypto::ED25519Signature;
@@ -40,9 +44,18 @@ namespace kagome::consensus::grandpa {
 
   namespace detail {
     template <typename Tag>
-    struct BlockInfoT {
-      primitives::BlockNumber number{};
-      primitives::BlockHash hash;
+    struct BlockInfoT : public boost::equality_comparable<BlockInfoT<Tag>> {
+      BlockInfoT() = default;
+
+      BlockInfoT(const BlockNumber &n, const BlockHash &h)
+          : number(n), hash(h) {}
+
+      BlockNumber number{};
+      BlockHash hash{};
+
+      bool operator==(const BlockInfoT<Tag> &o) const {
+        return number == o.number && hash == o.hash;
+      }
     };
 
     /// Proof of an equivocation (double-vote) in a given round.
@@ -84,35 +97,16 @@ namespace kagome::consensus::grandpa {
 
   // TODO(akvinikym) 04.09.19: implement the SCALE codecs
   template <class Stream,
+            typename Tag,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const Precommit &v) {
-    return s;
-  }
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, const Precommit &v) {
+  Stream &operator<<(Stream &s, const detail::BlockInfoT<Tag> &msg) {
     return s;
   }
 
   template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const Prevote &v) {
-    return s;
-  }
-  template <class Stream,
+            typename Tag,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, const Prevote &v) {
-    return s;
-  }
-
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const PrimaryPropose &v) {
-    return s;
-  }
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, const PrimaryPropose &v) {
+  Stream &operator>>(Stream &s, const detail::BlockInfoT<Tag> &msg) {
     return s;
   }
 }  // namespace kagome::consensus::grandpa

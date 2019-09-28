@@ -6,3 +6,4 @@
 add_subdirectory(validation)
 add_subdirectory(babe)
 add_subdirectory(synchronizer)
+add_subdirectory(grandpa)

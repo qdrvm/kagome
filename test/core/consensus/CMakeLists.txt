@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(grandpa)
 add_subdirectory(validation)
 add_subdirectory(babe)
 add_subdirectory(synchronizer)
