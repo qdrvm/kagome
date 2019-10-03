@@ -26,7 +26,8 @@ namespace kagome::consensus::grandpa {
       return it != collection.end();
     }
 
-    inline bool inDirectAncestry(VoteGraph::Entry &entry,
+    // whether the given hash, number pair is a direct ancestor of this node.
+    inline bool inDirectAncestry(const VoteGraph::Entry &entry,
                                  const BlockHash &hash,
                                  const BlockNumber &number) {
       // in direct ancestry?
@@ -136,7 +137,7 @@ namespace kagome::consensus::grandpa {
     newEntry.number = block.number;
     newEntry.ancestors = ancestry;
 
-    entries_.insert({block.hash, std::move(newEntry)});
+    entries_[block.hash] = std::move(newEntry);
     heads_.erase(ancestorHash);
     heads_.insert(block.hash);
 
@@ -201,7 +202,7 @@ namespace kagome::consensus::grandpa {
       prev_ancestor_entry.descendents.push_back(ancestor.hash);
     }
 
-    entries_.insert({ancestor.hash, std::move(newEntry)});
+    entries_[ancestor.hash] = std::move(newEntry);
   }
 
   boost::optional<BlockInfo> VoteGraphImpl::findGhost(
@@ -458,5 +459,9 @@ namespace kagome::consensus::grandpa {
     entries_[base.hash] = std::move(entry);
 
     heads_.insert(base.hash);
+  }
+
+  const BlockInfo &VoteGraphImpl::getBase() const {
+    return base_;
   }
 }  // namespace kagome::consensus::grandpa

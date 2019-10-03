@@ -32,7 +32,7 @@ namespace kagome::consensus::grandpa {
 
       // Get ancestor block by number. Returns `None` if there is no block
       // by that number in the direct ancestry.
-      boost::optional<BlockHash> getAncestorBlockBy(BlockNumber n) {
+      boost::optional<BlockHash> getAncestorBlockBy(BlockNumber n) const {
         if (n >= number) {
           return boost::none;
         }
@@ -85,6 +85,9 @@ namespace kagome::consensus::grandpa {
     virtual boost::optional<BlockInfo> findGhost(
         const boost::optional<BlockInfo> &current_best,
         const Condition &condition) = 0;
+
+    /// getter for Base of the graph
+    virtual const BlockInfo& getBase() const = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

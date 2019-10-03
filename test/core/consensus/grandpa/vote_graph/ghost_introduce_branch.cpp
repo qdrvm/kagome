@@ -2,7 +2,7 @@
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
-#include "fixture.hpp"
+#include "core/consensus/grandpa/vote_graph/fixture.hpp"
 
 TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
   BlockInfo base{1, GENESIS_HASH};
@@ -11,7 +11,21 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
   {  // insert nodes
     AssertGraphCorrect(
         *graph,
-        R"({"entries":{"genesis":{"number":1,"ancestors":[],"descendents":[],"cumulative_vote":0}},"heads":["genesis"],"base":"genesis","base_number":1})");
+        R"({
+  "entries": {
+    "genesis": {
+      "number": 1,
+      "ancestors": [],
+      "descendents": [],
+      "cumulative_vote": 0
+    }
+  },
+  "heads": [
+    "genesis"
+  ],
+  "base": "genesis",
+  "base_number": 1
+})");
 
     expect_getAncestry(
         "FB"_H, "FA"_H, "F"_H, "E"_H, "D"_H, "C"_H, "B"_H, "A"_H);
@@ -19,7 +33,39 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
 
     AssertGraphCorrect(
         *graph,
-        R"({"entries":{"FC":{"number":10,"ancestors":["FB","FA","F","E","D","C","B","A","genesis"],"descendents":[],"cumulative_vote":5},"genesis":{"number":1,"ancestors":[],"descendents":["FC"],"cumulative_vote":5}},"heads":["FC"],"base":"genesis","base_number":1})");
+        R"({
+  "entries": {
+    "FC": {
+      "number": 10,
+      "ancestors": [
+        "FB",
+        "FA",
+        "F",
+        "E",
+        "D",
+        "C",
+        "B",
+        "A",
+        "genesis"
+      ],
+      "descendents": [],
+      "cumulative_vote": 5
+    },
+    "genesis": {
+      "number": 1,
+      "ancestors": [],
+      "descendents": [
+        "FC"
+      ],
+      "cumulative_vote": 5
+    }
+  },
+  "heads": [
+    "FC"
+  ],
+  "base": "genesis",
+  "base_number": 1
+})");
 
     expect_getAncestry(
         "EC"_H, "EB"_H, "EA"_H, "E"_H, "D"_H, "C"_H, "B"_H, "A"_H);
@@ -27,7 +73,57 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
 
     AssertGraphCorrect(
         *graph,
-        R"({"entries":{"ED":{"number":10,"ancestors":["EC","EB","EA","E","D","C","B","A","genesis"],"descendents":[],"cumulative_vote":7},"FC":{"number":10,"ancestors":["FB","FA","F","E","D","C","B","A","genesis"],"descendents":[],"cumulative_vote":5},"genesis":{"number":1,"ancestors":[],"descendents":["FC","ED"],"cumulative_vote":12}},"heads":["ED","FC"],"base":"genesis","base_number":1})");
+        R"({
+  "entries": {
+    "ED": {
+      "number": 10,
+      "ancestors": [
+        "EC",
+        "EB",
+        "EA",
+        "E",
+        "D",
+        "C",
+        "B",
+        "A",
+        "genesis"
+      ],
+      "descendents": [],
+      "cumulative_vote": 7
+    },
+    "FC": {
+      "number": 10,
+      "ancestors": [
+        "FB",
+        "FA",
+        "F",
+        "E",
+        "D",
+        "C",
+        "B",
+        "A",
+        "genesis"
+      ],
+      "descendents": [],
+      "cumulative_vote": 5
+    },
+    "genesis": {
+      "number": 1,
+      "ancestors": [],
+      "descendents": [
+        "FC",
+        "ED"
+      ],
+      "cumulative_vote": 12
+    }
+  },
+  "heads": [
+    "ED",
+    "FC"
+  ],
+  "base": "genesis",
+  "base_number": 1
+})");
   }
 
   {
@@ -43,7 +139,61 @@ TEST_F(VoteGraphFixture, GhostIntroduceBranch) {
 
     AssertGraphCorrect(
         *graph,
-        R"({"entries":{"genesis":{"number":1,"ancestors":[],"descendents":["E"],"cumulative_vote":15},"ED":{"number":10,"ancestors":["EC","EB","EA","E"],"descendents":[],"cumulative_vote":7},"FC":{"number":10,"ancestors":["FB","FA","F","E"],"descendents":[],"cumulative_vote":5},"E":{"number":6,"ancestors":["D","C","B","A","genesis"],"descendents":["ED","FC"],"cumulative_vote":15}},"heads":["ED","FC"],"base":"genesis","base_number":1})");
+        R"({
+  "entries": {
+    "genesis": {
+      "number": 1,
+      "ancestors": [],
+      "descendents": [
+        "E"
+      ],
+      "cumulative_vote": 15
+    },
+    "ED": {
+      "number": 10,
+      "ancestors": [
+        "EC",
+        "EB",
+        "EA",
+        "E"
+      ],
+      "descendents": [],
+      "cumulative_vote": 7
+    },
+    "FC": {
+      "number": 10,
+      "ancestors": [
+        "FB",
+        "FA",
+        "F",
+        "E"
+      ],
+      "descendents": [],
+      "cumulative_vote": 5
+    },
+    "E": {
+      "number": 6,
+      "ancestors": [
+        "D",
+        "C",
+        "B",
+        "A",
+        "genesis"
+      ],
+      "descendents": [
+        "ED",
+        "FC"
+      ],
+      "cumulative_vote": 15
+    }
+  },
+  "heads": [
+    "ED",
+    "FC"
+  ],
+  "base": "genesis",
+  "base_number": 1
+})");
   }
 
   auto check = [&](const boost::optional<BlockInfo> &block) {

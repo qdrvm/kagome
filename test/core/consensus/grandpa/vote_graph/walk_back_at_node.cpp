@@ -2,7 +2,7 @@
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
-#include "fixture.hpp"
+#include "core/consensus/grandpa/vote_graph/fixture.hpp"
 
 struct WalkBackAtNode : public VoteGraphFixture,
       public ::testing::WithParamInterface<BlockInfo> {
@@ -14,28 +14,156 @@ struct WalkBackAtNode : public VoteGraphFixture,
 
     AssertGraphCorrect(
         *graph,
-        R"({"entries":{"genesis":{"number":1,"ancestors":[],"descendents":[],"cumulative_vote":0}},"heads":["genesis"],"base":"genesis","base_number":1})");
+        R"({
+  "entries": {
+    "genesis": {
+      "number": 1,
+      "ancestors": [],
+      "descendents": [],
+      "cumulative_vote": 0
+    }
+  },
+  "heads": [
+    "genesis"
+  ],
+  "base": "genesis",
+  "base_number": 1
+})");
 
     expect_getAncestry("B"_H, "A"_H);
     EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{4, "C"_H}, "10"_W));
 
     AssertGraphCorrect(
         *graph,
-        R"({"entries":{"genesis":{"number":1,"ancestors":[],"descendents":["C"],"cumulative_vote":10},"C":{"number":4,"ancestors":["B","A","genesis"],"descendents":[],"cumulative_vote":10}},"heads":["C"],"base":"genesis","base_number":1})");
+        R"({
+  "entries": {
+    "genesis": {
+      "number": 1,
+      "ancestors": [],
+      "descendents": [
+        "C"
+      ],
+      "cumulative_vote": 10
+    },
+    "C": {
+      "number": 4,
+      "ancestors": [
+        "B",
+        "A",
+        "genesis"
+      ],
+      "descendents": [],
+      "cumulative_vote": 10
+    }
+  },
+  "heads": [
+    "C"
+  ],
+  "base": "genesis",
+  "base_number": 1
+})");
 
     expect_getAncestry("E1"_H, "D1"_H, "C"_H, "B"_H, "A"_H);
     EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{7, "F1"_H}, "5"_W));
 
     AssertGraphCorrect(
         *graph,
-        R"({"entries":{"C":{"number":4,"ancestors":["B","A","genesis"],"descendents":["F1"],"cumulative_vote":15},"genesis":{"number":1,"ancestors":[],"descendents":["C"],"cumulative_vote":15},"F1":{"number":7,"ancestors":["E1","D1","C"],"descendents":[],"cumulative_vote":5}},"heads":["F1"],"base":"genesis","base_number":1})");
+        R"({
+  "entries": {
+    "C": {
+      "number": 4,
+      "ancestors": [
+        "B",
+        "A",
+        "genesis"
+      ],
+      "descendents": [
+        "F1"
+      ],
+      "cumulative_vote": 15
+    },
+    "genesis": {
+      "number": 1,
+      "ancestors": [],
+      "descendents": [
+        "C"
+      ],
+      "cumulative_vote": 15
+    },
+    "F1": {
+      "number": 7,
+      "ancestors": [
+        "E1",
+        "D1",
+        "C"
+      ],
+      "descendents": [],
+      "cumulative_vote": 5
+    }
+  },
+  "heads": [
+    "F1"
+  ],
+  "base": "genesis",
+  "base_number": 1
+})");
 
     expect_getAncestry("E2"_H, "D2"_H, "C"_H, "B"_H, "A"_H);
     EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{7, "F2"_H}, "5"_W));
 
     AssertGraphCorrect(
         *graph,
-        R"({"entries":{"F1":{"number":7,"ancestors":["E1","D1","C"],"descendents":[],"cumulative_vote":5},"C":{"number":4,"ancestors":["B","A","genesis"],"descendents":["F1","F2"],"cumulative_vote":20},"F2":{"number":7,"ancestors":["E2","D2","C"],"descendents":[],"cumulative_vote":5},"genesis":{"number":1,"ancestors":[],"descendents":["C"],"cumulative_vote":20}},"heads":["F1","F2"],"base":"genesis","base_number":1})");
+        R"({
+  "entries": {
+    "F1": {
+      "number": 7,
+      "ancestors": [
+        "E1",
+        "D1",
+        "C"
+      ],
+      "descendents": [],
+      "cumulative_vote": 5
+    },
+    "C": {
+      "number": 4,
+      "ancestors": [
+        "B",
+        "A",
+        "genesis"
+      ],
+      "descendents": [
+        "F1",
+        "F2"
+      ],
+      "cumulative_vote": 20
+    },
+    "F2": {
+      "number": 7,
+      "ancestors": [
+        "E2",
+        "D2",
+        "C"
+      ],
+      "descendents": [],
+      "cumulative_vote": 5
+    },
+    "genesis": {
+      "number": 1,
+      "ancestors": [],
+      "descendents": [
+        "C"
+      ],
+      "cumulative_vote": 20
+    }
+  },
+  "heads": [
+    "F1",
+    "F2"
+  ],
+  "base": "genesis",
+  "base_number": 1
+})");
 
     expect_getAncestry(
         "H1"_H, "G1"_H, "F1"_H, "E1"_H, "D1"_H, "C"_H, "B"_H, "A"_H);
@@ -43,7 +171,69 @@ struct WalkBackAtNode : public VoteGraphFixture,
 
     AssertGraphCorrect(
         *graph,
-        R"({"entries":{"F1":{"number":7,"ancestors":["E1","D1","C"],"descendents":["I1"],"cumulative_vote":6},"C":{"number":4,"ancestors":["B","A","genesis"],"descendents":["F1","F2"],"cumulative_vote":21},"F2":{"number":7,"ancestors":["E2","D2","C"],"descendents":[],"cumulative_vote":5},"genesis":{"number":1,"ancestors":[],"descendents":["C"],"cumulative_vote":21},"I1":{"number":10,"ancestors":["H1","G1","F1"],"descendents":[],"cumulative_vote":1}},"heads":["I1","F2"],"base":"genesis","base_number":1})");
+        R"({
+  "entries": {
+    "F1": {
+      "number": 7,
+      "ancestors": [
+        "E1",
+        "D1",
+        "C"
+      ],
+      "descendents": [
+        "I1"
+      ],
+      "cumulative_vote": 6
+    },
+    "C": {
+      "number": 4,
+      "ancestors": [
+        "B",
+        "A",
+        "genesis"
+      ],
+      "descendents": [
+        "F1",
+        "F2"
+      ],
+      "cumulative_vote": 21
+    },
+    "F2": {
+      "number": 7,
+      "ancestors": [
+        "E2",
+        "D2",
+        "C"
+      ],
+      "descendents": [],
+      "cumulative_vote": 5
+    },
+    "genesis": {
+      "number": 1,
+      "ancestors": [],
+      "descendents": [
+        "C"
+      ],
+      "cumulative_vote": 21
+    },
+    "I1": {
+      "number": 10,
+      "ancestors": [
+        "H1",
+        "G1",
+        "F1"
+      ],
+      "descendents": [],
+      "cumulative_vote": 1
+    }
+  },
+  "heads": [
+    "I1",
+    "F2"
+  ],
+  "base": "genesis",
+  "base_number": 1
+})");
   }
 };
 
