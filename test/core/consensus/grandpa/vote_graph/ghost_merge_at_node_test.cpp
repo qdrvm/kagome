@@ -26,7 +26,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
   "base_number": 1
 })");
 
-    expect_getAncestry("A"_H);
+    expect_getAncestry(GENESIS_HASH, "B"_H, vec("A"_H));
     EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{3, "B"_H}, "0"_W));
 
     AssertGraphCorrect(*graph,
@@ -57,7 +57,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
   "base_number": 1
 })");
 
-    expect_getAncestry("B"_H, "A"_H);
+    expect_getAncestry(GENESIS_HASH, "C"_H, vec("B"_H, "A"_H));
     EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{4, "C"_H}, "100"_W));
 
     AssertGraphCorrect(*graph,
@@ -98,7 +98,7 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
   "base_number": 1
 })");
 
-    expect_getAncestry("D1"_H, "C"_H, "B"_H, "A"_H);
+    expect_getAncestry(GENESIS_HASH, "E1"_H, vec("D1"_H, "C"_H, "B"_H, "A"_H));
     EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{6, "E1"_H}, "100"_W));
 
     AssertGraphCorrect(*graph,
@@ -150,7 +150,8 @@ TEST_F(VoteGraphFixture, GhostMergeAtNodes) {
   "base_number": 1
 })");
 
-    expect_getAncestry("E2"_H, "D2"_H, "C"_H, "B"_H, "A"_H);
+    expect_getAncestry(
+        GENESIS_HASH, "F2"_H, vec("E2"_H, "D2"_H, "C"_H, "B"_H, "A"_H));
     EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{7, "F2"_H}, "100"_W));
 
     AssertGraphCorrect(*graph,

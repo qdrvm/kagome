@@ -64,8 +64,10 @@ struct VoteGraphFixture : public ::testing::Test {
   }
 
   template <typename... T>
-  void expect_getAncestry(T &&... t) {
-    EXPECT_CALL(*chain, getAncestry(_, _)).WillOnce(Return(vec(t...)));
+  void expect_getAncestry(const primitives::BlockHash &base,
+                          const primitives::BlockHash &block,
+                          const std::vector<BlockHash> &ancestry) {
+    EXPECT_CALL(*chain, getAncestry(base, block)).WillOnce(Return(ancestry));
   }
 };
 

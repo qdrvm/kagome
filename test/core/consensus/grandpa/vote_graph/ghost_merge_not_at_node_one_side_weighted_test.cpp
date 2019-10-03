@@ -9,9 +9,8 @@ TEST_F(VoteGraphFixture, GhostMergeNotAtNodeOneSideWeighted) {
   graph = std::make_shared<VoteGraphImpl>(base, chain);
 
   {  // insert nodes
-    AssertGraphCorrect(
-        *graph,
-        R"({
+    AssertGraphCorrect(*graph,
+                       R"({
   "entries": {
     "genesis": {
       "number": 1,
@@ -27,12 +26,11 @@ TEST_F(VoteGraphFixture, GhostMergeNotAtNodeOneSideWeighted) {
   "base_number": 1
 })");
 
-    expect_getAncestry("A"_H);
+    expect_getAncestry(GENESIS_HASH, "B"_H, vec("A"_H));
     EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{3, "B"_H}, "0"_W));
 
-    AssertGraphCorrect(
-        *graph,
-        R"({
+    AssertGraphCorrect(*graph,
+                       R"({
   "entries": {
     "genesis": {
       "number": 1,
@@ -59,12 +57,12 @@ TEST_F(VoteGraphFixture, GhostMergeNotAtNodeOneSideWeighted) {
   "base_number": 1
 })");
 
-    expect_getAncestry("F"_H, "E"_H, "D"_H, "C"_H, "B"_H, "A"_H);
+    expect_getAncestry(
+        GENESIS_HASH, "G1"_H, vec("F"_H, "E"_H, "D"_H, "C"_H, "B"_H, "A"_H));
     EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{8, "G1"_H}, "100"_W));
 
-    AssertGraphCorrect(
-        *graph,
-        R"({
+    AssertGraphCorrect(*graph,
+                       R"({
   "entries": {
     "G1": {
       "number": 8,
@@ -105,12 +103,13 @@ TEST_F(VoteGraphFixture, GhostMergeNotAtNodeOneSideWeighted) {
   "base_number": 1
 })");
 
-    expect_getAncestry("G2"_H, "F"_H, "E"_H, "D"_H, "C"_H, "B"_H, "A"_H);
+    expect_getAncestry(GENESIS_HASH,
+                       "H2"_H,
+                       vec("G2"_H, "F"_H, "E"_H, "D"_H, "C"_H, "B"_H, "A"_H));
     EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{9, "H2"_H}, "150"_W));
 
-    AssertGraphCorrect(
-        *graph,
-        R"({
+    AssertGraphCorrect(*graph,
+                       R"({
   "entries": {
     "H2": {
       "number": 9,

@@ -10,9 +10,8 @@ TEST_F(VoteGraphFixture, AdjustBase) {
   graph = std::make_shared<VoteGraphImpl>(base, chain);
   auto &entries = graph->getEntries();
 
-  AssertGraphCorrect(
-      *graph,
-      R"({
+  AssertGraphCorrect(*graph,
+                     R"({
   "entries": {
     "E": {
       "number": 6,
@@ -28,11 +27,10 @@ TEST_F(VoteGraphFixture, AdjustBase) {
   "base_number": 6
 })");
 
-  expect_getAncestry("FB"_H, "FA"_H, "F"_H);
+  expect_getAncestry("E"_H, "FC"_H, vec("FB"_H, "FA"_H, "F"_H));
   EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{10, "FC"_H}, "5"_W));
-  AssertGraphCorrect(
-      *graph,
-      R"({
+  AssertGraphCorrect(*graph,
+                     R"({
   "entries": {
     "E": {
       "number": 6,
@@ -61,11 +59,10 @@ TEST_F(VoteGraphFixture, AdjustBase) {
   "base_number": 6
 })");
 
-  expect_getAncestry("EC"_H, "EB"_H, "EA"_H);
+  expect_getAncestry("E"_H, "ED"_H, vec("EC"_H, "EB"_H, "EA"_H));
   EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{10, "ED"_H}, "7"_W));
-  AssertGraphCorrect(
-      *graph,
-      R"({
+  AssertGraphCorrect(*graph,
+                     R"({
   "entries": {
     "E": {
       "number": 6,
@@ -111,9 +108,8 @@ TEST_F(VoteGraphFixture, AdjustBase) {
 
   graph->adjustBase(vec("D"_H, "C"_H, "B"_H, "A"_H));
   ASSERT_EQ(graph->getBase(), BlockInfo(2, "A"_H));
-  AssertGraphCorrect(
-      *graph,
-      R"({
+  AssertGraphCorrect(*graph,
+                     R"({
   "entries": {
     "ED": {
       "number": 10,
@@ -171,9 +167,8 @@ TEST_F(VoteGraphFixture, AdjustBase) {
   graph->adjustBase(std::vector<BlockHash>{GENESIS_HASH});
   ASSERT_EQ(graph->getBase(), BlockInfo(1, GENESIS_HASH));
 
-  AssertGraphCorrect(
-      *graph,
-      R"({
+  AssertGraphCorrect(*graph,
+                     R"({
   "entries": {
     "ED": {
       "number": 10,
@@ -240,12 +235,11 @@ TEST_F(VoteGraphFixture, AdjustBase) {
 
   ASSERT_EQ(entries[GENESIS_HASH].cumulative_vote, "12"_W);
 
-  expect_getAncestry("4"_H, "3"_H, "A"_H);
+  expect_getAncestry(GENESIS_HASH, "5"_H, vec("4"_H, "3"_H, "A"_H));
   EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo(5, "5"_H), "3"_W));
 
-  AssertGraphCorrect(
-      *graph,
-      R"({
+  AssertGraphCorrect(*graph,
+                     R"({
   "entries": {
     "5": {
       "number": 5,

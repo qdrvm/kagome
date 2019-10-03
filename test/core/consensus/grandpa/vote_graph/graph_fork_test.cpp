@@ -8,9 +8,8 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
   BlockInfo base{1, GENESIS_HASH};
   graph = std::make_shared<VoteGraphImpl>(base, chain);
 
-  AssertGraphCorrect(
-      *graph,
-      R"({
+  AssertGraphCorrect(*graph,
+                     R"({
   "entries": {
     "genesis": {
       "number": 1,
@@ -26,12 +25,11 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
   "base_number": 1
 })");
 
-  expect_getAncestry("B"_H, "A"_H);
+  expect_getAncestry(GENESIS_HASH, "C"_H, vec("B"_H, "A"_H));
   EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{4, "C"_H}, "100"_W));
 
-  AssertGraphCorrect(
-      *graph,
-      R"({
+  AssertGraphCorrect(*graph,
+                     R"({
   "entries": {
     "C": {
       "number": 4,
@@ -59,12 +57,11 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
   "base_number": 1
 })");
 
-  expect_getAncestry("D1"_H, "C"_H, "B"_H, "A"_H);
+  expect_getAncestry(GENESIS_HASH, "E1"_H, vec("D1"_H, "C"_H, "B"_H, "A"_H));
   EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{6, "E1"_H}, "100"_W));
 
-  AssertGraphCorrect(
-      *graph,
-      R"({
+  AssertGraphCorrect(*graph,
+                     R"({
   "entries": {
     "C": {
       "number": 4,
@@ -103,12 +100,12 @@ TEST_F(VoteGraphFixture, GraphForkAtNode) {
   "base_number": 1
 })");
 
-  expect_getAncestry("E2"_H, "D2"_H, "C"_H, "B"_H, "A"_H);
+  expect_getAncestry(
+      GENESIS_HASH, "F2"_H, vec("E2"_H, "D2"_H, "C"_H, "B"_H, "A"_H));
   EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{7, "F2"_H}, "100"_W));
 
-  AssertGraphCorrect(
-      *graph,
-      R"({
+  AssertGraphCorrect(*graph,
+                     R"({
   "entries": {
     "C": {
       "number": 4,
@@ -164,9 +161,8 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
   BlockInfo base{1, GENESIS_HASH};
   graph = std::make_shared<VoteGraphImpl>(base, chain);
 
-  AssertGraphCorrect(
-      *graph,
-      R"({
+  AssertGraphCorrect(*graph,
+                     R"({
   "entries": {
     "genesis": {
       "number": 1,
@@ -182,12 +178,11 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
   "base_number": 1
 })");
 
-  expect_getAncestry(/* empty */);
+  expect_getAncestry(GENESIS_HASH, "A"_H, vec() /* empty */);
   EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{2, "A"_H}, "100"_W));
 
-  AssertGraphCorrect(
-      *graph,
-      R"({
+  AssertGraphCorrect(*graph,
+                     R"({
   "entries": {
     "A": {
       "number": 2,
@@ -213,12 +208,11 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
   "base_number": 1
 })");
 
-  expect_getAncestry("D1"_H, "C"_H, "B"_H, "A"_H);
+  expect_getAncestry(GENESIS_HASH, "E1"_H, vec("D1"_H, "C"_H, "B"_H, "A"_H));
   EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{6, "E1"_H}, "100"_W));
 
-  AssertGraphCorrect(
-      *graph,
-      R"({
+  AssertGraphCorrect(*graph,
+                     R"({
   "entries": {
     "E1": {
       "number": 6,
@@ -257,12 +251,12 @@ TEST_F(VoteGraphFixture, GraphForkNotAtNode) {
   "base_number": 1
 })");
 
-  expect_getAncestry("E2"_H, "D2"_H, "C"_H, "B"_H, "A"_H);
+  expect_getAncestry(
+      GENESIS_HASH, "F2"_H, vec("E2"_H, "D2"_H, "C"_H, "B"_H, "A"_H));
   EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{7, "F2"_H}, "100"_W));
 
-  AssertGraphCorrect(
-      *graph,
-      R"({
+  AssertGraphCorrect(*graph,
+                     R"({
   "entries": {
     "E1": {
       "number": 6,

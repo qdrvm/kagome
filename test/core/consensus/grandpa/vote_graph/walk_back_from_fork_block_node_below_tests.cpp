@@ -13,9 +13,8 @@ struct WalkBackFromBlockNodeBelow
     BlockInfo base{1, GENESIS_HASH};
     graph = std::make_shared<VoteGraphImpl>(base, chain);
 
-    AssertGraphCorrect(
-        *graph,
-        R"({
+    AssertGraphCorrect(*graph,
+                       R"({
   "entries": {
     "genesis": {
       "number": 1,
@@ -31,12 +30,11 @@ struct WalkBackFromBlockNodeBelow
   "base_number": 1
 })");
 
-    expect_getAncestry("A"_H);
+    expect_getAncestry(GENESIS_HASH, "B"_H, vec("A"_H));
     EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{3, "B"_H}, "10"_W));
 
-    AssertGraphCorrect(
-        *graph,
-        R"({
+    AssertGraphCorrect(*graph,
+                       R"({
   "entries": {
     "genesis": {
       "number": 1,
@@ -63,12 +61,12 @@ struct WalkBackFromBlockNodeBelow
   "base_number": 1
 })");
 
-    expect_getAncestry("E1"_H, "D"_H, "C"_H, "B"_H, "A"_H);
+    expect_getAncestry(
+        GENESIS_HASH, "F1"_H, vec("E1"_H, "D"_H, "C"_H, "B"_H, "A"_H));
     EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{7, "F1"_H}, "5"_W));
 
-    AssertGraphCorrect(
-        *graph,
-        R"({
+    AssertGraphCorrect(*graph,
+                       R"({
   "entries": {
     "genesis": {
       "number": 1,
@@ -108,12 +106,12 @@ struct WalkBackFromBlockNodeBelow
   "base_number": 1
 })");
 
-    expect_getAncestry("F2"_H, "E2"_H, "D"_H, "C"_H, "B"_H, "A"_H);
+    expect_getAncestry(
+        GENESIS_HASH, "G2"_H, vec("F2"_H, "E2"_H, "D"_H, "C"_H, "B"_H, "A"_H));
     EXPECT_OUTCOME_TRUE_1(graph->insert(BlockInfo{8, "G2"_H}, "5"_W));
 
-    AssertGraphCorrect(
-        *graph,
-        R"({
+    AssertGraphCorrect(*graph,
+                       R"({
   "entries": {
     "genesis": {
       "number": 1,
