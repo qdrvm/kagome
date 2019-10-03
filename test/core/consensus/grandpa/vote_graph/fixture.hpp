@@ -155,6 +155,9 @@ inline BlockInfo jsonToBlockInfo(rapidjson::Document &document) {
   return BlockInfo(number, hash);
 }
 
+/**
+ * Assert that \param graph and \param json are equal
+ */
 inline void AssertGraphCorrect(VoteGraphImpl &graph, std::string json) {
   rapidjson::Document document;
   document.Parse(json.c_str(), json.size());
