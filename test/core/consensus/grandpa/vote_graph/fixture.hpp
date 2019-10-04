@@ -63,7 +63,6 @@ struct VoteGraphFixture : public ::testing::Test {
     return std::vector<BlockHash>{t...};
   }
 
-  template <typename... T>
   void expect_getAncestry(const primitives::BlockHash &base,
                           const primitives::BlockHash &block,
                           const std::vector<BlockHash> &ancestry) {
