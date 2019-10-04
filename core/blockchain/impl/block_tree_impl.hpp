@@ -69,6 +69,14 @@ namespace kagome::blockchain {
     };
 
    public:
+    enum class Error {
+      TARGET_IS_PAST_MAX =
+          1,  // target block number is past the given maximum number
+      BLOCK_ON_DEAD_END,  // block resides on a dead fork
+      BLOCK_NOT_FOUND  // block exists in chain but not found when following all
+                       // leaves backwards.
+    };
+
     /**
      * Create an instance of block tree
      * @param header_repo - block headers repository
@@ -113,9 +121,10 @@ namespace kagome::blockchain {
 
     BlockInfo deepestLeaf() const override;
 
-    outcome::result<BlockInfo> finalityTarget(
-        const primitives::BlockHash & target_hash,
-        const boost::optional<primitives::BlockNumber> &limit) const override;
+    outcome::result<BlockInfo> getBestContaining(
+        const primitives::BlockHash &target_hash,
+        const boost::optional<primitives::BlockNumber> &max_number)
+        const override;
 
     std::vector<primitives::BlockHash> getLeaves() const override;
 
@@ -131,11 +140,13 @@ namespace kagome::blockchain {
      * method
      */
     BlockTreeImpl(std::shared_ptr<BlockHeaderRepository> header_repo,
-                     PersistentBufferMap &db,
-                     std::shared_ptr<TreeNode> tree,
-                     std::shared_ptr<TreeMeta> meta,
-                     std::shared_ptr<crypto::Hasher> hasher,
-                     common::Logger log);
+                  PersistentBufferMap &db,
+                  std::shared_ptr<TreeNode> tree,
+                  std::shared_ptr<TreeMeta> meta,
+                  std::shared_ptr<crypto::Hasher> hasher,
+                  common::Logger log);
+
+    std::vector<primitives::BlockHash> getLeavesSorted() const;
 
     std::shared_ptr<BlockHeaderRepository> header_repo_;
     PersistentBufferMap &db_;
@@ -147,5 +158,7 @@ namespace kagome::blockchain {
     common::Logger log_;
   };
 }  // namespace kagome::blockchain
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, BlockTreeImpl::Error);
 
 #endif  // KAGOME_LEVEL_DB_BLOCK_TREE_HPP

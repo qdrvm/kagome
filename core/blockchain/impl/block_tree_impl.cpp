@@ -16,6 +16,19 @@
 #include "scale/scale.hpp"
 #include "storage/leveldb/leveldb_error.hpp"
 
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, BlockTreeImpl::Error, e) {
+  using E = kagome::blockchain::BlockTreeImpl::Error;
+  switch (e) {
+    case E::TARGET_IS_PAST_MAX:
+      return "target block number is past the given maximum number";
+    case E::BLOCK_ON_DEAD_END:
+      return "block resides on a dead fork";
+    case E::BLOCK_NOT_FOUND:
+      return "block exists in chain but not found when following all leaves "
+             "backwards.";
+  }
+}
+
 namespace kagome::blockchain {
   using Buffer = common::Buffer;
   using Prefix = prefix::Prefix;
@@ -322,27 +335,66 @@ namespace kagome::blockchain {
     return {leaf.depth_, leaf.block_hash_};
   }
 
-  outcome::result<BlockTree::BlockInfo> BlockTreeImpl::finalityTarget(
+  outcome::result<BlockTree::BlockInfo> BlockTreeImpl::getBestContaining(
       const primitives::BlockHash &target_hash,
-      const boost::optional<primitives::BlockNumber> &limit) const {
+      const boost::optional<primitives::BlockNumber> &max_number) const {
     OUTCOME_TRY(target_header, header_repo_->getBlockHeader(target_hash));
-    if(limit.has_value()) {
-      if(target_header.number > limit.value()) {
-        //return Error::TARGET_GREATER_THAN_LIMIT;
-      }
+    if (max_number.has_value() && target_header.number > max_number.value()) {
+      return Error::TARGET_IS_PAST_MAX;
     }
-    OUTCOME_TRY(canon_hash, header_repo_->getHashByNumber(target_header.number));
-    // if a `max_number` is given we try to fetch the block at the
+    OUTCOME_TRY(canon_hash,
+                header_repo_->getHashByNumber(target_header.number));
+    // if a max number is given we try to fetch the block at the
     // given depth, if it doesn't exist or `max_number` is not
     // provided, we continue to search from all leaves below.
-    if (canon_hash == target_hash && limit.has_value()) {
-      auto header = header_repo_->getBlockHeader(limit.value());
-      if(header) {
-        OUTCOME_TRY(hash, header_repo_->getHashByNumber(header.value().number));
-        return BlockInfo {header.value().number, hash};
+    if (canon_hash == target_hash) {
+      if (max_number.has_value()) {
+        auto header = header_repo_->getBlockHeader(max_number.value());
+        if (header) {
+          OUTCOME_TRY(hash,
+                      header_repo_->getHashByNumber(header.value().number));
+          return BlockInfo{header.value().number, hash};
+        }
+      }
+    } else {
+      OUTCOME_TRY(last_finalized,
+                  header_repo_->getNumberByHash(getLastFinalized()));
+      if (last_finalized >= target_header.number) {
+        return Error::BLOCK_ON_DEAD_END;
+      }
+    }
+    for (auto &leaf_hash : getLeavesSorted()) {
+      auto current_hash = leaf_hash;
+      auto best_hash = current_hash;
+      if (max_number.has_value()) {
+        while (true) {
+          OUTCOME_TRY(current_header,
+                      header_repo_->getBlockHeader(current_hash));
+          if (current_header.number <= max_number.value()) {
+            best_hash = current_hash;
+            break;
+          }
+          current_hash = current_header.parent_hash;
+        }
+      }
+      while (true) {
+        OUTCOME_TRY(current_header, header_repo_->getBlockHeader(current_hash));
+        if (current_hash == target_hash) {
+          return BlockInfo{current_header.number, best_hash};
+        }
+        if (current_header.number < target_header.number) {
+          break;
+        }
+        current_hash = current_header.parent_hash;
       }
     }
 
+    log_->warn(
+        "Block {:?} exists in chain but not found when following all \
+			leaves backwards. Max block number = {:?}",
+        target_hash,
+        max_number.has_value() ? max_number.value() : -1);
+    return Error::BLOCK_NOT_FOUND;
   }
 
   std::vector<primitives::BlockHash> BlockTreeImpl::getLeaves() const {
@@ -428,6 +480,26 @@ namespace kagome::blockchain {
                     rm_res.error().message());
       }
     }
+  }
+
+  std::vector<primitives::BlockHash> BlockTreeImpl::getLeavesSorted() const {
+    std::vector<std::pair<uint64_t, primitives::BlockHash>> leaf_depths;
+    auto leaves = getLeaves();
+    leaf_depths.reserve(leaves.size());
+    for (auto &leaf : leaves) {
+      auto leaf_node = tree_->getByHash(leaf);
+      leaf_depths.emplace_back(leaf_node->depth_, leaf);
+    }
+    std::sort(leaf_depths.begin(), leaf_depths.end(), [](auto p1, auto p2) {
+      return p1.first < p2.first;
+    });
+    std::vector<primitives::BlockHash> leaf_hashes;
+    leaf_hashes.reserve(leaf_depths.size());
+    std::transform(leaf_depths.begin(),
+                   leaf_depths.end(),
+                   std::back_inserter(leaf_hashes),
+                   [](auto &p) { return p.second; });
+    return leaf_hashes;
   }
 
 }  // namespace kagome::blockchain

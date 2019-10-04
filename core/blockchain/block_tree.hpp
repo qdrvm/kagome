@@ -129,12 +129,17 @@ namespace kagome::blockchain {
      */
     virtual BlockInfo deepestLeaf() const = 0;
 
-    /**
-     * TODO(Harrm) document it
+    /*
+     * @brief Get the most recent block of the best (longest) chain among those
+     * that contain a block with \param target_hash
+     * @param target_hash is a hash of a block that the chosen chain must
+     * contain
+     * @param max_number is the max block number that the resulting block (and
+     * the target one) may possess
      */
-    virtual outcome::result<BlockInfo> finalityTarget(
-        const primitives::BlockHash & target_hash,
-        const boost::optional<primitives::BlockNumber> &limit) const = 0;
+    virtual outcome::result<BlockInfo> getBestContaining(
+        const primitives::BlockHash &target_hash,
+        const boost::optional<primitives::BlockNumber> &max_number) const = 0;
 
     /**
      * Get all leaves of our tree
