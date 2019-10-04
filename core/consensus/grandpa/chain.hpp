@@ -23,7 +23,7 @@ namespace kagome::consensus::grandpa {
      * {@param base} hash. Should be in reverse order from block's parent.
      * @return If the block is not a descendent of base, returns an error.
      */
-    virtual outcome::result<std::vector<primitives::BlockHash>> ancestry(
+    virtual outcome::result<std::vector<primitives::BlockHash>> getAncestry(
         primitives::BlockHash base, primitives::BlockHash block) = 0;
 
     /**
@@ -40,7 +40,7 @@ namespace kagome::consensus::grandpa {
      */
     bool isEqualOrDescendOf(primitives::BlockHash base,
                             primitives::BlockHash block) {
-      return base == block ? true : ancestry(base, block).has_value();
+      return base == block ? true : getAncestry(base, block).has_value();
     }
   };
 
