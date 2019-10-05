@@ -14,7 +14,7 @@
 #include <boost/asio/write.hpp>
 #include <boost/signals2/signal.hpp>
 
-namespace kagome::server {
+namespace kagome::api {
   /**
    * @brief rpc session
    */
@@ -22,10 +22,9 @@ namespace kagome::server {
     template <class T>
     using Signal = boost::signals2::signal<T>;
 
-    using OnStopped = Signal<void(std::shared_ptr<Session>)>;
-    using OnRequest =
-        Signal<void(std::shared_ptr<Session>, const std::string &)>;
-    using OnResponse = Signal<void(std::string)>;
+    using OnRequestSignature = void(std::string_view,
+                                    std::shared_ptr<Session> session);
+    using OnRequest = Signal<OnRequestSignature>;
 
    public:
     using Socket = boost::asio::ip::tcp::socket;
@@ -34,6 +33,7 @@ namespace kagome::server {
     using Streambuf = boost::asio::streambuf;
     using Timer = boost::asio::steady_timer;
     using Connection = boost::signals2::connection;
+    using Duration = Timer::duration;
 
     virtual ~Session() = default;
 
@@ -43,37 +43,32 @@ namespace kagome::server {
     virtual void start() = 0;
 
     /**
-     * @brief closes connection and session
+     * @brief connects `on request` callback
+     * @param callback `on request` callback
      */
-    virtual void stop() = 0;
-
-    /**
-     * @return `on stopped` signal
-     */
-    inline auto &onStopped() {
-      return on_stopped_;
+    void connectOnRequest(std::function<OnRequestSignature> callback) {
+      on_request_ = std::move(callback);
     }
 
     /**
-     * @return `on request` signal
+     * @brief process request message
+     * @param request message to process
      */
-    inline auto &onRequest() {
-      return on_request_;
+    void processRequest(std::string_view request,
+                        std::shared_ptr<Session> session) {
+      on_request_(request, std::move(session));
     }
 
     /**
-     * @return `on response` signal
+     * @brief send response message
+     * @param message response message
      */
-    inline auto &onResponse() {
-      return on_response_;
-    }
+    virtual void respond(std::string_view message) = 0;
 
    private:
-    OnStopped on_stopped_;    ///< `on stopped` signal
-    OnRequest on_request_;    ///< `on request` signal
-    OnResponse on_response_;  ///< `on response` signal
+    std::function<OnRequestSignature> on_request_;  ///< `on request` callback
   };
 
-}  // namespace kagome::server
+}  // namespace kagome::api
 
 #endif  // KAGOME_CORE_API_TRANSPORT_SESSION_HPP

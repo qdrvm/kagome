@@ -8,3 +8,4 @@ target_link_libraries(twox
   xxhash
   buffer
   )
+kagome_install(twox)

@@ -12,11 +12,12 @@
 #include <outcome/outcome.hpp>
 #include "authorship/proposer.hpp"
 #include "blockchain/block_tree.hpp"
+#include "clock/timer.hpp"
 #include "common/logger.hpp"
 #include "consensus/babe.hpp"
 #include "consensus/babe/babe_lottery.hpp"
-#include "crypto/crypto_types.hpp"
 #include "crypto/hasher.hpp"
+#include "crypto/sr25519_types.hpp"
 #include "libp2p/event/bus.hpp"
 #include "network/babe_gossiper.hpp"
 #include "primitives/common.hpp"
@@ -31,8 +32,6 @@ namespace kagome::consensus {
   }  // namespace event
 
   class BabeImpl : public Babe, public std::enable_shared_from_this<BabeImpl> {
-    using Timer = boost::asio::basic_waitable_timer<std::chrono::system_clock>;
-
    public:
     /**
      * Create an instance of Babe implementation
@@ -44,7 +43,8 @@ namespace kagome::consensus {
      * @param authority_id of this node
      * @param clock to measure time
      * @param hasher to take hashes
-     * @param timer to be used by the implementation
+     * @param timer to be used by the implementation; the recommended one is
+     * kagome::clock::BasicWaitableTimer
      * @param event_bus to deliver events over
      * @param log to write messages to
      */
@@ -56,7 +56,7 @@ namespace kagome::consensus {
              primitives::AuthorityIndex authority_id,
              std::shared_ptr<clock::SystemClock> clock,
              std::shared_ptr<crypto::Hasher> hasher,
-             Timer timer,
+             std::shared_ptr<clock::Timer> timer,
              libp2p::event::Bus &event_bus,
              common::Logger log = common::createLogger("BABE"));
 
@@ -66,8 +66,6 @@ namespace kagome::consensus {
                   BabeTimePoint starting_slot_finish_time) override;
 
     BabeMeta getBabeMeta() const override;
-
-    enum class Error { TIMER_ERROR = 1, NODE_FALL_BEHIND };
 
    private:
     /**
@@ -105,7 +103,7 @@ namespace kagome::consensus {
     primitives::AuthorityIndex authority_id_;
     std::shared_ptr<clock::SystemClock> clock_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    Timer timer_;
+    std::shared_ptr<clock::Timer> timer_;
     libp2p::event::Bus &event_bus_;
     common::Logger log_;
 
@@ -118,7 +116,5 @@ namespace kagome::consensus {
     decltype(event_bus_.getChannel<event::BabeErrorChannel>()) &error_channel_;
   };
 }  // namespace kagome::consensus
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::consensus, BabeImpl::Error)
 
 #endif  // KAGOME_BABE_IMPL_HPP

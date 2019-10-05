@@ -14,15 +14,15 @@ namespace kagome::consensus::grandpa {
   struct VoteGraph {
     // graph entry
     struct Entry {
-      BlockNumber number;
-      std::vector<BlockHash> ancestors;
-      std::vector<BlockHash> descendents;
+      primitives::BlockNumber number;
+      std::vector<primitives::BlockHash> ancestors;
+      std::vector<primitives::BlockHash> descendents;
       // cumulative vote?
     };
 
     struct Subchain {
-      std::vector<BlockHash> hashes;
-      BlockNumber best_number;
+      std::vector<primitives::BlockHash> hashes;
+      primitives::BlockNumber best_number;
     };
 
     virtual ~VoteGraph() = default;
@@ -40,7 +40,8 @@ namespace kagome::consensus::grandpa {
     ///
     /// Provide an ancestry proof from the old base to the new. The proof
     /// should be in reverse order from the old base's parent.
-    virtual void adjustBase(std::vector<BlockHash> ancestry_proof) = 0;
+    virtual void adjustBase(
+        std::vector<primitives::BlockHash> ancestry_proof) = 0;
 
     /// Insert a vote with given value into the graph at given hash and number.
     virtual outcome::result<void> insert(
@@ -72,7 +73,7 @@ namespace kagome::consensus::grandpa {
     // fulfills the condition, this function will find the highest point at
     // which its descendents merge, which may be the node itself.
     virtual Subchain ghostFindMergePoint(
-        const BlockHash &nodeKey,
+        const primitives::BlockHash &nodeKey,
         Entry &activeNode,
         /* force constrain?*/ Condition cond) = 0;
 
@@ -81,8 +82,8 @@ namespace kagome::consensus::grandpa {
     // returns `None` if there is a node by that key already, and a vector
     // (potentially empty) of nodes with the given block in its ancestor-edge
     // otherwise.
-    virtual boost::optional<std::vector<BlockHash>> findContainingNodes(
-        const BlockInfo &block) = 0;
+    virtual boost::optional<std::vector<primitives::BlockHash>>
+    findContainingNodes(const BlockInfo &block) = 0;
 
     // introduce a branch to given vote-nodes.
     //
@@ -92,16 +93,17 @@ namespace kagome::consensus::grandpa {
     // This function panics if any member of `descendents` is not a vote-node
     // or does not have ancestor with given hash and number OR if
     // `ancestor_hash` is already a known entry.
-    virtual void introduceBranch(const std::vector<BlockHash> &descendents,
-                                 BlockHash ancestor,
-                                 BlockNumber ancestor_number) = 0;
+    virtual void introduceBranch(
+        const std::vector<primitives::BlockHash> &descendents,
+        primitives::BlockHash ancestor,
+        primitives::BlockNumber ancestor_number) = 0;
 
     // append a vote-node onto the chain-tree. This should only be called if
     // no node in the tree keeps the target anyway.
     virtual outcome::result<void> append(const BlockInfo &block,
                                          std::shared_ptr<Chain> chain) = 0;
 
-   protected:
+   private:
     BlockInfo base_;
   };
 

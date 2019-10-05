@@ -1,0 +1,9 @@
+
+add_library(grandpa_chain
+    impl/chain_impl.cpp
+    )
+
+target_link_libraries(grandpa_chain
+    block_tree
+    block_header_repository
+    )

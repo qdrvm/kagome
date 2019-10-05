@@ -11,11 +11,11 @@
 #include "libp2p/event/bus.hpp"
 #include "libp2p/peer/peer_id.hpp"
 #include "libp2p/protocol/ping/common.hpp"
-#include "mock/libp2p/connection/capable_connection_mock.hpp"
-#include "mock/libp2p/connection/stream_mock.hpp"
-#include "mock/libp2p/crypto/random_generator_mock.hpp"
-#include "mock/libp2p/host/host_mock.hpp"
-#include "mock/libp2p/peer/peer_repository_mock.hpp"
+#include "mock/core/libp2p/connection/capable_connection_mock.hpp"
+#include "mock/core/libp2p/connection/stream_mock.hpp"
+#include "mock/core/libp2p/crypto/random_generator_mock.hpp"
+#include "mock/core/libp2p/host/host_mock.hpp"
+#include "mock/core/libp2p/peer/peer_repository_mock.hpp"
 #include "testutil/literals.hpp"
 
 using namespace libp2p;

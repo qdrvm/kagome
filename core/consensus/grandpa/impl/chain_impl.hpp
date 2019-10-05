@@ -6,30 +6,36 @@
 #ifndef KAGOME_CHAIN_IMPL_HPP
 #define KAGOME_CHAIN_IMPL_HPP
 
-#include "consensus/grandpa/chain.hpp"
-#include "blockchain/block_tree.hpp"
 #include "blockchain/block_header_repository.hpp"
+#include "blockchain/block_tree.hpp"
+#include "common/logger.hpp"
+#include "consensus/grandpa/chain.hpp"
 
 namespace kagome::consensus::grandpa {
 
   class ChainImpl : public Chain {
    public:
-    enum class Error {
-      BLOCK_AFTER_LIMIT = 1
-    };
+    enum class Error { BLOCK_AFTER_LIMIT = 1 };
 
+    ChainImpl(std::shared_ptr<blockchain::BlockTree> block_tree,
+              std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
+              common::Logger logger = common::createLogger("Chain API:"));
     ~ChainImpl() override = default;
 
-    outcome::result<std::vector<BlockHash>> ancestry(BlockHash base,
-                                                     BlockHash block) override;
+    outcome::result<std::vector<primitives::BlockHash>> ancestry(
+        primitives::BlockHash base, primitives::BlockHash block) override;
 
-    outcome::result<BlockInfo> bestChainContaining(BlockHash base) override;
+    outcome::result<BlockInfo> bestChainContaining(
+        primitives::BlockHash base) override;
 
    private:
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repository_;
+    common::Logger logger_;
   };
 
 }  // namespace kagome::consensus::grandpa
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::grandpa, ChainImpl::Error);
 
 #endif  // KAGOME_CHAIN_IMPL_HPP

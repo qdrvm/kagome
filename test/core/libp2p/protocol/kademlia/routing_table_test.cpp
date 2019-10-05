@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 #include <unordered_set>
 
-#include "mock/libp2p/peer/identity_manager_mock.hpp"
+#include "mock/core/libp2p/peer/identity_manager_mock.hpp"
 #include "testutil/libp2p/peer.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"

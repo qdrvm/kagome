@@ -9,14 +9,15 @@
 #include "crypto/util.hpp"
 
 namespace kagome::crypto {
+  namespace vrf_constants = constants::sr25519::vrf;
 
   VRFProviderImpl::VRFProviderImpl(std::shared_ptr<CSPRNG> generator)
       : generator_{std::move(generator)} {}
 
   SR25519Keypair VRFProviderImpl::generateKeypair() const {
-    auto seed = generator_->randomBytes(SR25519_SEED_SIZE);
+    auto seed = generator_->randomBytes(constants::sr25519::SEED_SIZE);
 
-    std::vector<uint8_t> kp(SR25519_KEYPAIR_SIZE, 0);
+    std::vector<uint8_t> kp(constants::sr25519::KEYPAIR_SIZE, 0);
     sr25519_keypair_from_seed(kp.data(), seed.data());
 
     return SR25519Keypair{kp};
@@ -29,7 +30,7 @@ namespace kagome::crypto {
     common::Buffer keypair_buf{};
     keypair_buf.put(keypair.secret_key).put(keypair.public_key);
 
-    std::array<uint8_t, SR25519_VRF_OUTPUT_SIZE + SR25519_VRF_PROOF_SIZE>
+    std::array<uint8_t, vrf_constants::OUTPUT_SIZE + vrf_constants::PROOF_SIZE>
         out_proof{};
 
     auto sign_res =
@@ -45,8 +46,8 @@ namespace kagome::crypto {
     VRFOutput res;
     auto out_proof_span = gsl::make_span(out_proof);
     res.value = util::bytes_to_uint256_t(
-        out_proof_span.subspan(0, SR25519_VRF_OUTPUT_SIZE));
-    std::copy(out_proof.begin() + SR25519_VRF_OUTPUT_SIZE,
+        out_proof_span.subspan(0, vrf_constants::OUTPUT_SIZE));
+    std::copy(out_proof.begin() + vrf_constants::OUTPUT_SIZE,
               out_proof.end(),
               res.proof.begin());
 
@@ -56,7 +57,7 @@ namespace kagome::crypto {
   bool VRFProviderImpl::verify(const common::Buffer &msg,
                                const VRFOutput &output,
                                const SR25519PublicKey &public_key) const {
-    std::array<uint8_t, SR25519_VRF_OUTPUT_SIZE> out_array =
+    std::array<uint8_t, vrf_constants::OUTPUT_SIZE> out_array =
         util::uint256_t_to_bytes(output.value);
 
     auto res = sr25519_vrf_verify(public_key.data(),

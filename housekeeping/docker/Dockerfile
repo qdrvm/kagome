@@ -18,7 +18,8 @@ RUN apt-get update && \
     add-apt-repository -y ppa:ubuntu-toolchain-r/test
 
 # install cmake and dev dependencies
-RUN pip3 install --upgrade pip cmake requests gitpython gcovr pyyaml
+RUN python3 -m pip install --upgrade pip
+RUN pip3 install scikit-build cmake requests gitpython gcovr pyyaml
 
 # install rustc
 ENV RUST_VERSION=nightly-2019-07-07
@@ -33,6 +34,8 @@ RUN apt-get update && apt-get upgrade -y && \
         build-essential \
         gcc-8 \
         g++-8 \
+        gcc-9 \
+        g++-9 \
         llvm-8 \
         clang-8 \
         clang-tidy-8 \
@@ -42,7 +45,18 @@ RUN apt-get update && apt-get upgrade -y && \
         lcov \
         ninja-build \
         vim \
+        unzip\
     && rm -rf /var/lib/apt/lists/*
+
+# install sonar cli
+ENV SONAR_CLI_VERSION=4.1.0.1829
+RUN set -e; \
+    mkdir -p /opt/sonar; \
+    curl -L -o /tmp/sonar.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_CLI_VERSION}-linux.zip; \
+    unzip -o -d /tmp/sonar-scanner /tmp/sonar.zip; \
+    mv /tmp/sonar-scanner/sonar-scanner-${SONAR_CLI_VERSION}-linux /opt/sonar/scanner; \
+    ln -s -f /opt/sonar/scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner; \
+    rm -rf /tmp/sonar*
 
 # set env
 ENV LLVM_ROOT=/usr/lib/llvm-8
@@ -57,4 +71,5 @@ RUN update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gc
     update-alternatives --install /usr/bin/clang        clang        /usr/lib/llvm-8/bin/clang-8   90 && \
     update-alternatives --install /usr/bin/clang++      clang++      /usr/bin/clang++-8            90 && \
     update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-8         90 && \
-    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-8       90
+    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-8       90 && \
+    update-alternatives --install /usr/bin/python       python       /usr/bin/python3              90

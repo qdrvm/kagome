@@ -4,5 +4,6 @@
 #
 
 add_subdirectory(extrinsic)
+add_subdirectory(jrpc)
 add_subdirectory(transport)
-
+add_subdirectory(service)

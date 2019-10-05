@@ -12,9 +12,9 @@
 #include <testutil/outcome.hpp>
 #include "common/hexutil.hpp"
 #include "libp2p/peer/peer_id.hpp"
-#include "mock/libp2p/connection/raw_connection_mock.hpp"
-#include "mock/libp2p/peer/identity_manager_mock.hpp"
-#include "mock/libp2p/security/exchange_message_marshaller_mock.hpp"
+#include "mock/core/libp2p/connection/raw_connection_mock.hpp"
+#include "mock/core/libp2p/peer/identity_manager_mock.hpp"
+#include "mock/core/libp2p/security/exchange_message_marshaller_mock.hpp"
 
 using namespace libp2p;
 using namespace connection;

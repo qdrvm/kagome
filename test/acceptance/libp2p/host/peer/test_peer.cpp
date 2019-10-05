@@ -33,11 +33,11 @@ Peer::Peer(Peer::Duration timeout)
 }
 
 void Peer::startServer(const multi::Multiaddress &address,
-                       std::promise<peer::PeerInfo> &pp) {
-  context_->post([this, address, &pp] {
+                       std::shared_ptr<std::promise<peer::PeerInfo>> promise) {
+  context_->post([this, address, p = std::move(promise)] {
     EXPECT_OUTCOME_TRUE_MSG_1(host_->listen(address), "failed to start server");
     host_->start();
-    pp.set_value(host_->getPeerInfo());
+    p->set_value(host_->getPeerInfo());
   });
 
   thread_ = std::thread([this] { context_->run_for(timeout_); });

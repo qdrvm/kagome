@@ -6,7 +6,7 @@
 #include "authorship/impl/block_builder_factory_impl.hpp"
 
 #include <gtest/gtest.h>
-#include "mock/core/blockchain/header_backend_mock.hpp"
+#include "mock/core/blockchain/header_repository_mock.hpp"
 #include "mock/core/runtime/block_builder_api_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "testutil/outcome.hpp"

@@ -7,7 +7,7 @@
 #define KAGOME_BABE_BLOCK_HEADER_HPP
 
 #include "consensus/babe/common.hpp"
-#include "crypto/crypto_types.hpp"
+#include "crypto/sr25519_types.hpp"
 #include "primitives/common.hpp"
 #include "primitives/digest.hpp"
 

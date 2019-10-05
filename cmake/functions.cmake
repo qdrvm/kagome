@@ -12,9 +12,11 @@ function(addtest test_name)
       GTest::main
       GMock::main
       )
+  file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/xunit)
+  set(xml_output "--gtest_output=xml:${CMAKE_BINARY_DIR}/xunit/xunit-${test_name}.xml")
   add_test(
       NAME ${test_name}
-      COMMAND $<TARGET_FILE:${test_name}>
+      COMMAND $<TARGET_FILE:${test_name}> ${xml_output}
   )
   set_target_properties(${test_name} PROPERTIES
       RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/test_bin
@@ -82,7 +84,6 @@ endfunction()
 
 add_custom_target(generated
     COMMENT "Building generated files..."
-    DEPENDS sr25519
     )
 
 function(add_proto_library NAME)

@@ -10,7 +10,7 @@
 #include <boost/assert.hpp>
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/common.hpp"
-#include "blockchain/impl/level_db_util.hpp"
+#include "blockchain/impl/persistent_map_util.hpp"
 #include "common/visitor.hpp"
 #include "crypto/blake2/blake2b.h"
 #include "scale/scale.hpp"
@@ -491,7 +491,7 @@ namespace kagome::blockchain {
       leaf_depths.emplace_back(leaf_node->depth_, leaf);
     }
     std::sort(leaf_depths.begin(), leaf_depths.end(), [](auto p1, auto p2) {
-      return p1.first < p2.first;
+      return p1.first > p2.first;
     });
     std::vector<primitives::BlockHash> leaf_hashes;
     leaf_hashes.reserve(leaf_depths.size());

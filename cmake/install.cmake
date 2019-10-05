@@ -7,21 +7,24 @@ function(install_deps_headers)
 
 endfunction()
 
-function(kagome_install)
+### kagome_install should be called right after add_library(target)
+function(kagome_install target)
+    install(TARGETS ${target} EXPORT kagomeTargets
+        LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE       DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME       DESTINATION ${CMAKE_INSTALL_BINDIR}
+        INCLUDES      DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        FRAMEWORK     DESTINATION ${CMAKE_INSTALL_PREFIX}
+        )
+endfunction()
+
+function(kagome_install_setup)
     set(options)
     set(oneValueArgs)
-    set(multiValueArgs TARGETS HEADER_DIRS)
+    set(multiValueArgs HEADER_DIRS)
     cmake_parse_arguments(arg "${options}" "${oneValueArgs}"
         "${multiValueArgs}" ${ARGN})
-
-    install(TARGETS ${arg_TARGETS} EXPORT kagomeTargets
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-        FRAMEWORK DESTINATION ${CMAKE_INSTALL_PREFIX}
-        )
 
     foreach (DIR IN ITEMS ${arg_HEADER_DIRS})
         get_filename_component(FULL_PATH ${DIR} ABSOLUTE)

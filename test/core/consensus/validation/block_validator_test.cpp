@@ -6,11 +6,14 @@
 #include "consensus/validation/babe_block_validator.hpp"
 
 #include <gtest/gtest.h>
+#include "crypto/random_generator/boost_generator.hpp"
+#include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/util.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/vrf_provider_mock.hpp"
 #include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
+#include "mock/core/libp2p/crypto/random_generator_mock.hpp"
 #include "scale/scale.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/primitives/hash_creator.hpp"
@@ -22,12 +25,15 @@ using namespace runtime;
 using namespace primitives;
 using namespace common;
 using namespace crypto;
+using namespace libp2p::crypto::random;
 
 using testing::_;
 using testing::Return;
 using testing::ReturnRef;
 
 using testutil::createHash256;
+
+namespace sr25519_constants = kagome::crypto::constants::sr25519;
 
 class BlockValidatorTest : public testing::Test {
  public:
@@ -37,34 +43,18 @@ class BlockValidatorTest : public testing::Test {
    * @param block_hash - hash of the block to be sealed
    * @return seal, which was produced, @and public key, which was generated
    */
-  std::pair<Seal, Blob<SR25519_PUBLIC_SIZE>> sealBlock(
-      Block &block, Hash256 block_hash) const {
+  std::pair<Seal, SR25519PublicKey> sealBlock(Block &block,
+                                              Hash256 block_hash) const {
     // generate a new keypair
-    std::array<uint8_t, SR25519_SIGNATURE_SIZE> sr25519_signature{};
-
-    std::array<uint8_t, SR25519_KEYPAIR_SIZE> sr25519_keypair{};
-    std::array<uint8_t, SR25519_SEED_SIZE> seed{};
-    sr25519_keypair_from_seed(sr25519_keypair.data(), seed.data());
-
-    gsl::span<uint8_t, SR25519_KEYPAIR_SIZE> keypair_span(sr25519_keypair);
-    auto secret = keypair_span.subspan(0, SR25519_SECRET_SIZE);
-    auto pub_key =
-        keypair_span.subspan(SR25519_SECRET_SIZE, SR25519_PUBLIC_SIZE);
-
-    // create a signature
-    sr25519_sign(sr25519_signature.data(),
-                 pub_key.data(),
-                 secret.data(),
-                 block_hash.data(),
-                 Hash256::size());
+    auto keypair = sr25519_provider_->generateKeypair();
+    EXPECT_OUTCOME_TRUE(sr25519_signature,
+                        sr25519_provider_->sign(keypair, block_hash));
 
     // seal the block
     Seal seal{sr25519_signature};
     block.header.digests.emplace_back(scale::encode(seal).value());
 
-    Blob<SR25519_PUBLIC_SIZE> pubkey_blob{};
-    std::copy(pub_key.begin(), pub_key.end(), pubkey_blob.begin());
-    return {seal, pubkey_blob};
+    return {seal, keypair.public_key};
   }
 
   // fields for validator
@@ -74,8 +64,12 @@ class BlockValidatorTest : public testing::Test {
   std::shared_ptr<HasherMock> hasher_ = std::make_shared<HasherMock>();
   std::shared_ptr<VRFProviderMock> vrf_provider_ =
       std::make_shared<VRFProviderMock>();
+  std::shared_ptr<CSPRNG> generator_ = std::make_shared<BoostRandomGenerator>();
+  std::shared_ptr<SR25519Provider> sr25519_provider_ =
+      std::make_shared<SR25519ProviderImpl>(generator_);
 
-  BabeBlockValidator validator_{tree_, tx_queue_, hasher_, vrf_provider_};
+  BabeBlockValidator validator_{
+      tree_, tx_queue_, hasher_, vrf_provider_, sr25519_provider_};
 
   // fields for block
   Hash256 parent_hash_ =

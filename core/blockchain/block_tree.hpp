@@ -95,7 +95,7 @@ namespace kagome::blockchain {
     /**
      * Get a chain of blocks
      * @param top_block - block, which is at the top of the chain
-     * @param bottom_block - block, which is the bottim of the chain
+     * @param bottom_block - block, which is the bottom of the chain
      * @return chain of blocks in top-to-bottom order or error
      */
     virtual BlockHashVecRes getChainByBlocks(

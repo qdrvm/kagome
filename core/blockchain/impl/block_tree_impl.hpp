@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_LEVEL_DB_BLOCK_TREE_HPP
-#define KAGOME_LEVEL_DB_BLOCK_TREE_HPP
+#ifndef KAGOME_BLOCK_TREE_IMPL_HPP
+#define KAGOME_BLOCK_TREE_IMPL_HPP
 
 #include <functional>
 #include <memory>
@@ -20,7 +20,7 @@
 
 namespace kagome::blockchain {
   /**
-   * Block tree, which is located in LevelDB
+   * Block tree implementation
    */
   class BlockTreeImpl : public BlockTree {
     /**
@@ -161,4 +161,4 @@ namespace kagome::blockchain {
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, BlockTreeImpl::Error);
 
-#endif  // KAGOME_LEVEL_DB_BLOCK_TREE_HPP
+#endif  // KAGOME_BLOCK_TREE_IMPL_HPP

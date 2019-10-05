@@ -7,8 +7,8 @@
 
 #include <algorithm>
 
-#include <sr25519/sr25519.h>
 #include <boost/assert.hpp>
+#include "crypto/sr25519_provider.hpp"
 #include "crypto/util.hpp"
 #include "scale/scale.hpp"
 
@@ -41,15 +41,18 @@ namespace kagome::consensus {
       std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::VRFProvider> vrf_provider,
+      std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
       common::Logger log)
       : block_tree_{std::move(block_tree)},
         tx_queue_{std::move(tx_queue)},
         hasher_{std::move(hasher)},
         vrf_provider_{std::move(vrf_provider)},
+        sr25519_provider_{std::move(sr25519_provider)},
         log_{std::move(log)} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(tx_queue_);
     BOOST_ASSERT(vrf_provider_);
+    BOOST_ASSERT(sr25519_provider_);
     BOOST_ASSERT(log_);
   }
 
@@ -150,10 +153,8 @@ namespace kagome::consensus {
     const auto &key = authorities[babe_header.authority_index].id;
 
     // thirdly, use verify function to check the signature
-    return sr25519_verify(seal.signature.data(),
-                          block_hash.data(),
-                          decltype(block_hash)::size(),
-                          key.data());
+    auto res = sr25519_provider_->verify(seal.signature, block_hash, key);
+    return res && res.value();
   }
 
   bool BabeBlockValidator::verifyVRF(const BabeBlockHeader &babe_header,

@@ -8,7 +8,7 @@
 
 #include <cstdint>
 
-#include "common.hpp"
+#include "primitives/common.hpp"
 
 namespace kagome::primitives {
   using AuthorityWeight = uint64_t;

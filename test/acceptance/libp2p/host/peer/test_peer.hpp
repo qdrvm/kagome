@@ -44,7 +44,7 @@ class Peer {
    * @param pp promise to set when peer info is obtained
    */
   void startServer(const multi::Multiaddress &address,
-                   std::promise<peer::PeerInfo> &pp);
+                   std::shared_ptr<std::promise<peer::PeerInfo>> promise);
 
   /**
    * @brief schedules start of client session

@@ -40,18 +40,22 @@ namespace libp2p::connection {
         stream_id_{stream_id},
         maximum_window_size_{maximum_window_size} {}
 
-  void YamuxStream::read(gsl::span<uint8_t> out, size_t bytes,
+  void YamuxStream::read(gsl::span<uint8_t> out,
+                         size_t bytes,
                          ReadCallbackFunc cb) {
     return read(out, bytes, std::move(cb), false);
   }
 
-  void YamuxStream::readSome(gsl::span<uint8_t> out, size_t bytes,
+  void YamuxStream::readSome(gsl::span<uint8_t> out,
+                             size_t bytes,
                              ReadCallbackFunc cb) {
     return read(out, bytes, std::move(cb), true);
   }
 
-  void YamuxStream::read(gsl::span<uint8_t> out, size_t bytes,
-                         ReadCallbackFunc cb, bool some) {
+  void YamuxStream::read(gsl::span<uint8_t> out,
+                         size_t bytes,
+                         ReadCallbackFunc cb,
+                         bool some) {
     if (bytes == 0 || out.empty() || static_cast<size_t>(out.size()) < bytes) {
       return cb(Error::INVALID_ARGUMENT);
     }
@@ -64,8 +68,11 @@ namespace libp2p::connection {
 
     is_reading_ = true;
 
-    auto read_lambda = [self{shared_from_this()}, cb = std::move(cb), out,
-                        bytes, some]() mutable {
+    auto read_lambda = [self{shared_from_this()},
+                        cb = std::move(cb),
+                        out,
+                        bytes,
+                        some]() mutable {
       // if there is enough data in our buffer (depending if we want to read
       // some or all bytes), read it
       if ((some && self->read_buffer_.size() != 0)
@@ -73,7 +80,8 @@ namespace libp2p::connection {
         auto to_read =
             some ? std::min(self->read_buffer_.size(), bytes) : bytes;
         if (boost::asio::buffer_copy(boost::asio::buffer(out.data(), to_read),
-                                     self->read_buffer_.data(), to_read)
+                                     self->read_buffer_.data(),
+                                     to_read)
             != to_read) {
           cb(Error::INTERNAL_ERROR);
         } else {
@@ -82,7 +90,8 @@ namespace libp2p::connection {
             cb(Error::CONNECTION_IS_DEAD);
           } else {
             conn_wptr.lock()->streamAckBytes(
-                self->stream_id_, to_read,
+                self->stream_id_,
+                to_read,
                 [self, cb = std::move(cb), to_read](auto &&res) {
                   self->is_reading_ = false;
                   if (!res) {
@@ -114,18 +123,22 @@ namespace libp2p::connection {
         });
   }
 
-  void YamuxStream::write(gsl::span<const uint8_t> in, size_t bytes,
+  void YamuxStream::write(gsl::span<const uint8_t> in,
+                          size_t bytes,
                           WriteCallbackFunc cb) {
     return write(in, bytes, std::move(cb), false);
   }
 
-  void YamuxStream::writeSome(gsl::span<const uint8_t> in, size_t bytes,
+  void YamuxStream::writeSome(gsl::span<const uint8_t> in,
+                              size_t bytes,
                               WriteCallbackFunc cb) {
     return write(in, bytes, std::move(cb), true);
   }
 
-  void YamuxStream::write(gsl::span<const uint8_t> in, size_t bytes,
-                          WriteCallbackFunc cb, bool some) {
+  void YamuxStream::write(gsl::span<const uint8_t> in,
+                          size_t bytes,
+                          WriteCallbackFunc cb,
+                          bool some) {
     if (!is_writable_) {
       return cb(Error::NOT_WRITABLE);
     }
@@ -135,16 +148,22 @@ namespace libp2p::connection {
 
     is_writing_ = true;
 
-    auto write_lambda = [self{shared_from_this()}, cb = std::move(cb), in,
-                         bytes, some]() mutable {
-      if (self->send_window_size_ - bytes >= 0) {
+    auto write_lambda = [self{shared_from_this()},
+                         cb = std::move(cb),
+                         in,
+                         bytes,
+                         some]() mutable {
+      if (bytes <= self->send_window_size_) {
         // we can write - window size on the other side allows us
         auto conn_wptr = self->yamuxed_connection_;
         if (conn_wptr.expired()) {
           cb(Error::CONNECTION_IS_DEAD);
         } else {
           conn_wptr.lock()->streamWrite(
-              self->stream_id_, in, bytes, some,
+              self->stream_id_,
+              in,
+              bytes,
+              some,
               [self, cb = std::move(cb)](auto &&res) {
                 self->is_writing_ = false;
                 if (res) {
@@ -233,7 +252,8 @@ namespace libp2p::connection {
       return cb(Error::CONNECTION_IS_DEAD);
     }
     yamuxed_connection_.lock()->streamAckBytes(
-        stream_id_, new_size - receive_window_size_,
+        stream_id_,
+        new_size - receive_window_size_,
         [self{shared_from_this()}, cb = std::move(cb), new_size](auto &&res) {
           self->is_writing_ = false;
           if (!res) {

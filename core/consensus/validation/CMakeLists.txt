@@ -13,5 +13,5 @@ target_link_libraries(block_validator
     vrf_provider
     hasher
     tagged_transaction_queue
-    level_db_block_tree
+    block_tree
     )

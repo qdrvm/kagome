@@ -45,14 +45,10 @@ struct HostIntegrationTest
 
   void TearDown() override {
     peers.clear();
-    addresses.clear();
-    peerinfo_promises.clear();
     peerinfo_futures.clear();
   }
 
   std::vector<sptr<Peer>> peers;
-  std::vector<multi::Multiaddress> addresses;
-  std::vector<PeerPromise> peerinfo_promises;
   std::vector<PeerFuture> peerinfo_futures;
 };
 
@@ -76,29 +72,19 @@ TEST_P(HostIntegrationTest, InteractAllToAllSuccess) {
   // create peers
   peers.reserve(peer_count);
   for (size_t i = 0; i < peer_count; ++i) {
-    peers.push_back(std::make_shared<Peer>(timeout));
   }
 
-  addresses.reserve(peer_count);
-  peerinfo_promises.reserve(peer_count);
   peerinfo_futures.reserve(peer_count);
 
   // initialize `peer info` promises and futures and addresses
   for (size_t i = 0; i < peer_count; ++i) {
-    auto ma = ma_generator.nextMultiaddress();
-    addresses.push_back(std::move(ma));
-    PeerPromise promise{};
-    PeerFuture future = promise.get_future();
-    peerinfo_promises.push_back(std::move(promise));
-    peerinfo_futures.push_back(std::move(future));
-  }
+    auto promise = std::make_shared<PeerPromise>();
+    peerinfo_futures.push_back(promise->get_future());
 
-  // start servers
-  for (size_t i = 0; i < peer_count; ++i) {
-    auto &peer = peers[i];
-    auto &address = addresses[i];
-    auto &promise = peerinfo_promises[i];
-    peer->startServer(address, promise);
+    auto peer = std::make_shared<Peer>(timeout);
+    auto ma = ma_generator.nextMultiaddress();
+    peer->startServer(std::move(ma), std::move(promise));
+    peers.push_back(std::move(peer));
   }
 
   // need to wait for `peer info` values before starting client sessions
@@ -119,7 +105,6 @@ TEST_P(HostIntegrationTest, InteractAllToAllSuccess) {
     for (size_t j = 0; j < peer_count; ++j) {
       const auto &pinfo = peerinfo_futures[j].get();
       auto counter = std::make_shared<TickCounter>(i, j, ping_times);
-
       peers[i]->startClient(pinfo, ping_times, counter);
     }
   }
@@ -144,5 +129,4 @@ INSTANTIATE_TEST_CASE_P(AllTestCases,
                         ::testing::Values(
                             // ports are not freed, so new ports each time
                             Config{1u, 1u, 40510u, 2s, 2s, 200ms},
-                            Config{2u, 1u, 40510u, 2s, 2s, 200ms},
-                            Config{5u, 5u, 40510u, 20s, 4s, 1000ms}));
+                            Config{2u, 1u, 40510u, 2s, 2s, 200ms}));

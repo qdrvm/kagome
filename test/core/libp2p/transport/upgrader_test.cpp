@@ -12,12 +12,12 @@
 #include <testutil/gmock_actions.hpp>
 #include <testutil/outcome.hpp>
 #include "libp2p/multi/multihash.hpp"
-#include "mock/libp2p/connection/capable_connection_mock.hpp"
-#include "mock/libp2p/connection/raw_connection_mock.hpp"
-#include "mock/libp2p/connection/secure_connection_mock.hpp"
-#include "mock/libp2p/muxer/muxer_adaptor_mock.hpp"
-#include "mock/libp2p/protocol_muxer/protocol_muxer_mock.hpp"
-#include "mock/libp2p/security/security_adaptor_mock.hpp"
+#include "mock/core/libp2p/connection/capable_connection_mock.hpp"
+#include "mock/core/libp2p/connection/raw_connection_mock.hpp"
+#include "mock/core/libp2p/connection/secure_connection_mock.hpp"
+#include "mock/core/libp2p/muxer/muxer_adaptor_mock.hpp"
+#include "mock/core/libp2p/protocol_muxer/protocol_muxer_mock.hpp"
+#include "mock/core/libp2p/security/security_adaptor_mock.hpp"
 #include "testutil/libp2p/peer.hpp"
 
 using namespace libp2p::transport;

@@ -7,14 +7,13 @@
 #define KAGOME_CORE_API_TRANSPORT_LISTENER_HPP
 
 #include <memory>
-#include <unordered_map>
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <outcome/outcome.hpp>
 #include "api/transport/session.hpp"
 
-namespace kagome::server {
+namespace kagome::api {
   /**
    * @brief server which listens for incoming connection,
    * accepts connections making session from socket
@@ -28,18 +27,10 @@ namespace kagome::server {
     using Signal = boost::signals2::signal<T>;
     using OnError = Signal<void(const outcome::result<void> &)>;
 
-    using NewSessionHandler = std::function<void(sptr<Session>)>;
+    using NewSessionHandler = std::function<void(const sptr<Session> &)>;
 
    public:
     virtual ~Listener() = default;
-
-    /**
-     * @return `on error` signal
-     * which is emitted when start listening fails
-     */
-    OnError &onError() {
-      return on_error_;
-    }
 
     /**
      * @brief starts listening
@@ -51,15 +42,12 @@ namespace kagome::server {
      */
     virtual void stop() = 0;
 
-   private:
+   protected:
     /**
      * @brief accepts incoming connection
      */
-    virtual void doAccept(
-        std::function<void(std::shared_ptr<Session>)> on_new_session) = 0;
-
-    OnError on_error_;  ///< emitted when error occurs
+    virtual void acceptOnce(NewSessionHandler on_new_session) = 0;
   };
-}  // namespace kagome::server
+}  // namespace kagome::api
 
 #endif  // KAGOME_CORE_API_TRANSPORT_LISTENER_IMPL_HPP

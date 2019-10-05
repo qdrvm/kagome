@@ -6,7 +6,7 @@
 #include "libp2p/network/impl/transport_manager_impl.hpp"
 
 #include <gtest/gtest.h>
-#include "mock/libp2p/transport/transport_mock.hpp"
+#include "mock/core/libp2p/transport/transport_mock.hpp"
 #include "testutil/literals.hpp"
 
 using namespace libp2p::network;

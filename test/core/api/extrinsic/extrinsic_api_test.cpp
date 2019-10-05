@@ -11,7 +11,7 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
-#include "mock/transaction_pool/transaction_pool_mock.hpp"
+#include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/transaction.hpp"
 #include "testutil/literals.hpp"

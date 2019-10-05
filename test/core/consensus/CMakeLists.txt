@@ -6,6 +6,7 @@
 add_subdirectory(validation)
 add_subdirectory(babe)
 add_subdirectory(synchronizer)
+add_subdirectory(grandpa)
 
 addtest(babe_lottery_test
     babe_lottery_test.cpp

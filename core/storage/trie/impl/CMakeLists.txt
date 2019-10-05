@@ -10,6 +10,7 @@ target_link_libraries(polkadot_trie_codec
     blob
     scale
     )
+kagome_install(polkadot_trie_codec)
 
 add_library(polkadot_node
     polkadot_node.cpp
@@ -17,6 +18,7 @@ add_library(polkadot_node
 target_link_libraries(polkadot_node
     buffer
     )
+kagome_install(polkadot_node)
 
 add_library(polkadot_trie_db
     polkadot_trie_db.cpp
@@ -25,6 +27,7 @@ target_link_libraries(polkadot_trie_db
     polkadot_trie_codec
     polkadot_trie
     )
+kagome_install(polkadot_trie_db)
 
 add_library(polkadot_trie
     polkadot_trie.cpp
@@ -34,6 +37,7 @@ target_link_libraries(polkadot_trie
     polkadot_trie_batch
     polkadot_node
     )
+kagome_install(polkadot_trie)
 
 add_library(polkadot_trie_batch
     polkadot_trie_batch.cpp
@@ -41,6 +45,7 @@ add_library(polkadot_trie_batch
 target_link_libraries(polkadot_trie_batch
     polkadot_trie_db
     )
+kagome_install(polkadot_trie_batch)
 
 add_library(ordered_trie_hash INTERFACE)
 
