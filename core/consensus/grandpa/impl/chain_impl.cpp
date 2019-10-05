@@ -34,33 +34,34 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(header_repository_ != nullptr);
   }
 
-  outcome::result<std::vector<BlockHash>> ChainImpl::ancestry(BlockHash base,
-                                                              BlockHash block) {
+  outcome::result<std::vector<BlockHash>> ChainImpl::getAncestry(
+      BlockHash base, BlockHash block) const {
     OUTCOME_TRY(chain, block_tree_->getChainByBlocks(base, block));
     std::vector<BlockHash> result_chain(chain.size() - 2);
     std::copy(chain.rbegin() + 1, chain.rend() - 1, result_chain.begin());
     return result_chain;
   }
 
-    outcome::result<BlockInfo> ChainImpl::bestChainContaining(BlockHash base) {
-      boost::optional<uint64_t> limit =
-          boost::none;  // TODO(Harrm) authority_set.current_limit
-      // find out how to obtain it and whether it is needed
+  outcome::result<BlockInfo> ChainImpl::bestChainContaining(
+      BlockHash base) const {
+    boost::optional<uint64_t> limit =
+        boost::none;  // TODO(Harrm) authority_set.current_limit
+    // find out how to obtain it and whether it is needed
 
-      logger_->info("Finding best chain containing block {} with number limit {}",
-                    base.toHex(),
-                    limit);
-      OUTCOME_TRY(best_info, block_tree_->getBestContaining(base, boost::none));
-      auto best_hash = best_info.block_hash;
+    logger_->info("Finding best chain containing block {} with number limit {}",
+                  base.toHex(),
+                  limit);
+    OUTCOME_TRY(best_info, block_tree_->getBestContaining(base, boost::none));
+    auto best_hash = best_info.block_hash;
 
-      if (limit.has_value() && best_info.block_number > limit) {
-        logger_->error(
-            "Encountered error finding best chain containing {} with limit {}: "
-            "target block is after limit",
-            best_hash.toHex(),
-            limit);
-        return Error::BLOCK_AFTER_LIMIT;
-      }
+    if (limit.has_value() && best_info.block_number > limit) {
+      logger_->error(
+          "Encountered error finding best chain containing {} with limit {}: "
+          "target block is after limit",
+          best_hash.toHex(),
+          limit);
+      return Error::BLOCK_AFTER_LIMIT;
+    }
 
     OUTCOME_TRY(base_header, header_repository_->getBlockHeader(base));
     auto diff = best_info.block_number - base_header.number;

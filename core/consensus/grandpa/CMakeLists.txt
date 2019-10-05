@@ -1,3 +1,9 @@
+#
+# Copyright Soramitsu Co., Ltd. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+
+add_subdirectory(vote_graph)
 
 add_library(grandpa_chain
     impl/chain_impl.cpp

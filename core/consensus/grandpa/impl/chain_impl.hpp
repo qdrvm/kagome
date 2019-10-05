@@ -22,11 +22,11 @@ namespace kagome::consensus::grandpa {
               common::Logger logger = common::createLogger("Chain API:"));
     ~ChainImpl() override = default;
 
-    outcome::result<std::vector<primitives::BlockHash>> ancestry(
-        primitives::BlockHash base, primitives::BlockHash block) override;
+    outcome::result<std::vector<primitives::BlockHash>> getAncestry(
+        primitives::BlockHash base, primitives::BlockHash block) const override;
 
     outcome::result<BlockInfo> bestChainContaining(
-        primitives::BlockHash base) override;
+        primitives::BlockHash base) const override;
 
    private:
     std::shared_ptr<blockchain::BlockTree> block_tree_;

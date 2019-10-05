@@ -48,7 +48,7 @@ TEST_F(ChainTest, Ancestry) {
   auto h4 = "040404"_hash256;
   EXPECT_CALL(*tree, getChainByBlocks(_, _))
       .WillOnce(Return(std::vector<Hash256>{h1, h2, h3, h4}));
-  EXPECT_OUTCOME_TRUE(blocks, chain->ancestry(h1, h4));
+  EXPECT_OUTCOME_TRUE(blocks, chain->getAncestry(h1, h4));
   std::vector<Hash256> expected{h3, h2};
   ASSERT_EQ(blocks, expected);
 }

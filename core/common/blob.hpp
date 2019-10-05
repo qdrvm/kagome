@@ -155,6 +155,12 @@ namespace kagome::common {
     }
     return s;
   }
+
+  template <size_t N>
+  inline std::ostream& operator<<(std::ostream& os, const Blob<N>& blob) {
+    return os << blob.toHex();
+  }
+
 }  // namespace kagome::common
 
 template <size_t N>
