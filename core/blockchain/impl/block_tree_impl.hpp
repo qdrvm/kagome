@@ -146,6 +146,9 @@ namespace kagome::blockchain {
                   std::shared_ptr<crypto::Hasher> hasher,
                   common::Logger log);
 
+    outcome::result<primitives::BlockHash> walkBackUntilLess(
+        const primitives::BlockHash &start,
+        const primitives::BlockNumber &limit) const;
     std::vector<primitives::BlockHash> getLeavesSorted() const;
 
     std::shared_ptr<BlockHeaderRepository> header_repo_;

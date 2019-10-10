@@ -367,15 +367,9 @@ namespace kagome::blockchain {
       auto current_hash = leaf_hash;
       auto best_hash = current_hash;
       if (max_number.has_value()) {
-        while (true) {
-          OUTCOME_TRY(current_header,
-                      header_repo_->getBlockHeader(current_hash));
-          if (current_header.number <= max_number.value()) {
-            best_hash = current_hash;
-            break;
-          }
-          current_hash = current_header.parent_hash;
-        }
+        OUTCOME_TRY(hash, walkBackUntilLess(current_hash, max_number.value()));
+        best_hash = hash;
+        current_hash = hash;
       }
       while (true) {
         OUTCOME_TRY(current_header, header_repo_->getBlockHeader(current_hash));
@@ -500,6 +494,20 @@ namespace kagome::blockchain {
                    std::back_inserter(leaf_hashes),
                    [](auto &p) { return p.second; });
     return leaf_hashes;
+  }
+
+  outcome::result<primitives::BlockHash> BlockTreeImpl::walkBackUntilLess(
+      const primitives::BlockHash &start,
+      const primitives::BlockNumber &limit) const {
+    auto current_hash = start;
+    while (true) {
+      OUTCOME_TRY(current_header,
+                  header_repo_->getBlockHeader(current_hash));
+      if (current_header.number <= limit) {
+        return current_hash;
+      }
+      current_hash = current_header.parent_hash;
+    }
   }
 
 }  // namespace kagome::blockchain
