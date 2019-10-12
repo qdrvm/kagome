@@ -477,14 +477,15 @@ namespace kagome::blockchain {
   }
 
   std::vector<primitives::BlockHash> BlockTreeImpl::getLeavesSorted() const {
-    std::vector<std::pair<uint64_t, primitives::BlockHash>> leaf_depths;
+    std::vector<std::pair<primitives::BlockNumber, primitives::BlockHash>>
+        leaf_depths;
     auto leaves = getLeaves();
     leaf_depths.reserve(leaves.size());
     for (auto &leaf : leaves) {
       auto leaf_node = tree_->getByHash(leaf);
       leaf_depths.emplace_back(leaf_node->depth_, leaf);
     }
-    std::sort(leaf_depths.begin(), leaf_depths.end(), [](auto p1, auto p2) {
+    std::sort(leaf_depths.begin(), leaf_depths.end(), [](auto const& p1, auto const& p2) {
       return p1.first > p2.first;
     });
     std::vector<primitives::BlockHash> leaf_hashes;
@@ -501,8 +502,7 @@ namespace kagome::blockchain {
       const primitives::BlockNumber &limit) const {
     auto current_hash = start;
     while (true) {
-      OUTCOME_TRY(current_header,
-                  header_repo_->getBlockHeader(current_hash));
+      OUTCOME_TRY(current_header, header_repo_->getBlockHeader(current_hash));
       if (current_header.number <= limit) {
         return current_hash;
       }

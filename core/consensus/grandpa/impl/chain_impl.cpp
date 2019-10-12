@@ -35,7 +35,7 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<std::vector<BlockHash>> ChainImpl::getAncestry(
-      BlockHash base, BlockHash block) const {
+      const BlockHash &base, const BlockHash &block) const {
     OUTCOME_TRY(chain, block_tree_->getChainByBlocks(base, block));
     std::vector<BlockHash> result_chain(chain.size() - 2);
     std::copy(chain.rbegin() + 1, chain.rend() - 1, result_chain.begin());
@@ -43,7 +43,7 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<BlockInfo> ChainImpl::bestChainContaining(
-      BlockHash base) const {
+      const BlockHash &base) const {
     boost::optional<uint64_t> limit =
         boost::none;  // TODO(Harrm) authority_set.current_limit
     // find out how to obtain it and whether it is needed

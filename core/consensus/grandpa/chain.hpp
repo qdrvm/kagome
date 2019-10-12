@@ -26,7 +26,8 @@ namespace kagome::consensus::grandpa {
      * @return If the block is not a descendent of base, returns an error.
      */
     virtual outcome::result<std::vector<primitives::BlockHash>> getAncestry(
-        primitives::BlockHash base, primitives::BlockHash block) const = 0;
+        const primitives::BlockHash &base,
+        const primitives::BlockHash &block) const = 0;
 
     /**
      * @returns the hash of the best block whose chain contains the given
@@ -34,7 +35,7 @@ namespace kagome::consensus::grandpa {
      * unknown, return None.
      */
     virtual outcome::result<BlockInfo> bestChainContaining(
-        primitives::BlockHash base) const = 0;
+        const primitives::BlockHash &base) const = 0;
 
     /**
      * @returns true if {@param block} is a descendent of or equal to the

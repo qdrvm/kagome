@@ -17,16 +17,18 @@ namespace kagome::consensus::grandpa {
    public:
     enum class Error { BLOCK_AFTER_LIMIT = 1 };
 
-    ChainImpl(std::shared_ptr<blockchain::BlockTree> block_tree,
-              std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
-              common::Logger logger = common::createLogger("Chain API:"));
+    ChainImpl(
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
+        common::Logger logger = common::createLogger("Chain API:"));
     ~ChainImpl() override = default;
 
     outcome::result<std::vector<primitives::BlockHash>> getAncestry(
-        primitives::BlockHash base, primitives::BlockHash block) const override;
+        const primitives::BlockHash &base,
+        const primitives::BlockHash &block) const override;
 
     outcome::result<BlockInfo> bestChainContaining(
-        primitives::BlockHash base) const override;
+        const primitives::BlockHash &base) const override;
 
    private:
     std::shared_ptr<blockchain::BlockTree> block_tree_;
