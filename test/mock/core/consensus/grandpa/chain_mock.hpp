@@ -15,11 +15,12 @@ namespace kagome::consensus::grandpa {
     ~ChainMock() override = default;
 
     MOCK_CONST_METHOD2(getAncestry,
-                 outcome::result<std::vector<primitives::BlockHash>>(
-                     primitives::BlockHash base, BlockHash block));
+                       outcome::result<std::vector<primitives::BlockHash>>(
+                           const primitives::BlockHash &base,
+                           const BlockHash &block));
 
     MOCK_CONST_METHOD1(bestChainContaining,
-                 outcome::result<BlockInfo>(BlockHash base));
+                       outcome::result<BlockInfo>(const BlockHash &base));
   };
 
 }  // namespace kagome::consensus::grandpa
