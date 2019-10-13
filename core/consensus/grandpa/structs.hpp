@@ -7,26 +7,16 @@
 #define KAGOME_CORE_CONSENSUS_GRANDPA_STRUCTS_HPP
 
 #include <boost/asio/steady_timer.hpp>
-#include <boost/operators.hpp>
+#include <boost/variant.hpp>
 #include "common/blob.hpp"
 #include "common/wrapper.hpp"
+#include "consensus/grandpa/common.hpp"
 #include "crypto/ed25519_types.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::consensus::grandpa {
 
   using Timer = boost::asio::basic_waitable_timer<std::chrono::steady_clock>;
-
-  using RoundNumber = common::Wrapper<uint64_t, struct RoundNumberTag>;
-
-  /// voter identifier
-  using Id = primitives::AuthorityId;
-
-  using BlockHash = primitives::BlockHash;
-  using BlockNumber = primitives::BlockNumber;
-
-  /// voter signature
-  using Signature = crypto::ED25519Signature;
 
   /// @tparam Message A protocol message or vote.
   template <typename Message>
@@ -37,27 +27,19 @@ namespace kagome::consensus::grandpa {
   };
 
   template <typename Message>
+  bool operator==(const SignedMessage<Message> &lhs,
+                  const SignedMessage<Message> &rhs) {
+    return lhs.message == rhs.message && lhs.signature == rhs.signature
+           && lhs.id == rhs.id;
+  }
+
+  template <typename Message>
   struct Equivocated {
     Message first;
     Message second;
   };
 
   namespace detail {
-    template <typename Tag>
-    struct BlockInfoT : public boost::equality_comparable<BlockInfoT<Tag>> {
-      BlockInfoT() = default;
-
-      BlockInfoT(const BlockNumber &n, const BlockHash &h)
-          : number(n), hash(h) {}
-
-      BlockNumber number{};
-      BlockHash hash{};
-
-      bool operator==(const BlockInfoT<Tag> &o) const {
-        return number == o.number && hash == o.hash;
-      }
-    };
-
     /// Proof of an equivocation (double-vote) in a given round.
     template <typename Message>
     struct Equivocation {  // NOLINT
@@ -69,20 +51,76 @@ namespace kagome::consensus::grandpa {
     };
   }  // namespace detail
 
-  using BlockInfo = detail::BlockInfoT<struct BlockInfoTag>;
-  using Precommit = detail::BlockInfoT<struct PrecommitTag>;
-  using Prevote = detail::BlockInfoT<struct PrevoteTag>;
-  using PrimaryPropose = detail::BlockInfoT<struct PrimaryProposeTag>;
+  using BlockInfo = primitives::BlockInfo;
+  using Precommit = primitives::detail::BlockInfoT<struct PrecommitTag>;
+  using Prevote = primitives::detail::BlockInfoT<struct PrevoteTag>;
+  using PrimaryPropose =
+      primitives::detail::BlockInfoT<struct PrimaryProposeTag>;
+
+  using Vote = boost::variant<Prevote, Precommit>;
 
   using SignedPrevote = SignedMessage<Prevote>;
   using SignedPrecommit = SignedMessage<Precommit>;
   using SignedPrimaryPropose = SignedMessage<PrimaryPropose>;
+
+  // justification for block B in round r
+  struct Justification {
+    std::vector<SignedPrecommit> items;
+  };
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const Justification &v) {
+    // TODO (kamilsa): implement
+    return s;
+  }
 
   /// A commit message which is an aggregate of precommits.
   struct Commit {
     BlockInfo info;
     std::vector<SignedPrecommit> precommits;
   };
+
+  // either prevote, precommit or primary propose
+  struct VoteMessage {
+    RoundNumber round_number{0};
+    MembershipCounter counter{0};
+    Id id;
+    boost::variant<SignedPrevote, SignedPrecommit, SignedPrimaryPropose> vote;
+  };
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const VoteMessage &v) {
+    // TODO (kamilsa): implement
+    return s;
+  }
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, const VoteMessage &v) {
+    // TODO (kamilsa): implement
+    return s;
+  }
+
+  // finalizing message or block B in round r
+  struct Fin {
+    RoundNumber round_number{0};
+    BlockInfo vote;
+    Justification justification;
+  };
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const Fin &v) {
+    // TODO (kamilsa): implement
+    return s;
+  }
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator>>(Stream &s, const Fin &v) {
+    // TODO (kamilsa): implement
+    return s;
+  }
 
   using PrevoteEquivocation = detail::Equivocation<Prevote>;
   using PrecommitEquivocation = detail::Equivocation<Precommit>;
@@ -95,20 +133,10 @@ namespace kagome::consensus::grandpa {
     uint64_t precommit_idx;
   };
 
-  // TODO(akvinikym) 04.09.19: implement the SCALE codecs
-  template <class Stream,
-            typename Tag,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const detail::BlockInfoT<Tag> &msg) {
-    return s;
-  }
-
-  template <class Stream,
-            typename Tag,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, const detail::BlockInfoT<Tag> &msg) {
-    return s;
-  }
+  struct TotalWeight {
+    uint64_t prevote;
+    uint64_t precommit;
+  };
 }  // namespace kagome::consensus::grandpa
 
 #endif  // KAGOME_CORE_CONSENSUS_GRANDPA_STRUCTS_HPP

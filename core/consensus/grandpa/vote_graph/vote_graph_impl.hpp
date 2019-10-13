@@ -51,6 +51,21 @@ namespace kagome::consensus::grandpa {
         const boost::optional<BlockInfo> &current_best,
         const Condition &condition) override;
 
+    // introduce a branch to given vote-nodes.
+    //
+    // `descendents` is a list of nodes with ancestor-edges containing the given
+    // ancestor.
+    //
+    // This function panics if any member of `descendents` is not a vote-node
+    // or does not have ancestor with given hash and number OR if
+    // `ancestor_hash` is already a known entry.
+    void introduceBranch(const std::vector<primitives::BlockHash> &descendents,
+                         const BlockInfo &ancestor);
+
+    // append a vote-node onto the chain-tree. This should only be called if
+    // no node in the tree keeps the target anyway.
+    outcome::result<void> append(const BlockInfo &block);
+
     // given a key, node pair (which must correspond), assuming this node
     // fulfills the condition, this function will find the highest point at
     // which its descendents merge, which may be the node itself.
@@ -68,7 +83,9 @@ namespace kagome::consensus::grandpa {
     boost::optional<std::vector<primitives::BlockHash>> findContainingNodes(
         const BlockInfo &block);
 
-    const BlockInfo& getBase() const override;;
+    const BlockInfo &getBase() const override {
+      return base_;
+    }
 
     // should be mutable, otherwise operator[] is not defined for const map
     auto &getEntries() {
@@ -84,21 +101,6 @@ namespace kagome::consensus::grandpa {
     BlockInfo base_;
     std::unordered_map<BlockHash, Entry> entries_;
     std::unordered_set<BlockHash> heads_;
-
-    // append a vote-node onto the chain-tree. This should only be called if
-    // no node in the tree keeps the target anyway.
-    outcome::result<void> append(const BlockInfo &block);
-
-    // introduce a branch to given vote-nodes.
-    //
-    // `descendents` is a list of nodes with ancestor-edges containing the given
-    // ancestor.
-    //
-    // This function panics if any member of `descendents` is not a vote-node
-    // or does not have ancestor with given hash and number OR if
-    // `ancestor_hash` is already a known entry.
-    void introduceBranch(const std::vector<primitives::BlockHash> &descendents,
-                         const BlockInfo &ancestor);
   };
 
 }  // namespace kagome::consensus::grandpa

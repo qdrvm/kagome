@@ -26,16 +26,12 @@ namespace kagome::network {
     broadcast(announce);
   }
 
-  void GossiperBroadcast::precommit(Precommit pc) {
-    broadcast(pc);
+  void GossiperBroadcast::vote(const consensus::grandpa::VoteMessage &msg) {
+    broadcast(msg);
   }
 
-  void GossiperBroadcast::prevote(Prevote pv) {
-    broadcast(pv);
-  }
-
-  void GossiperBroadcast::primaryPropose(PrimaryPropose pv) {
-    broadcast(pv);
+  void GossiperBroadcast::fin(const consensus::grandpa::Fin &msg) {
+    broadcast(msg);
   }
 
   template <typename MsgType>

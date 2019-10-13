@@ -15,9 +15,7 @@ namespace kagome::network {
   struct GossipMessage {
     enum class Type : uint8_t {
       BLOCK_ANNOUNCE = 1,
-      PRECOMMIT,
-      PREVOTE,
-      PRIMARY_PROPOSE,
+      VOTE,
 
       UNKNOWN = 0
     };

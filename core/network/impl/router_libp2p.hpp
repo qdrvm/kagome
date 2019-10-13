@@ -9,7 +9,7 @@
 #include <memory>
 
 #include "common/logger.hpp"
-#include "consensus/grandpa/observer.hpp"
+#include "consensus/grandpa/round_observer.hpp"
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/host/host.hpp"
 #include "libp2p/peer/peer_info.hpp"
@@ -27,8 +27,8 @@ namespace kagome::network {
    public:
     RouterLibp2p(libp2p::Host &host,
                  std::shared_ptr<BabeObserver> babe_observer,
-                 std::shared_ptr<consensus::grandpa::Observer> grandpa_observer,
-                 std::shared_ptr<SyncProtocolObserver> sync_observer,
+        std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer,
+        std::shared_ptr<SyncProtocolObserver> sync_observer,
                  common::Logger log = common::createLogger("RouterLibp2p"));
 
     ~RouterLibp2p() override = default;
@@ -55,7 +55,7 @@ namespace kagome::network {
 
     libp2p::Host &host_;
     std::shared_ptr<BabeObserver> babe_observer_;
-    std::shared_ptr<consensus::grandpa::Observer> grandpa_observer_;
+    std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
     common::Logger log_;
   };

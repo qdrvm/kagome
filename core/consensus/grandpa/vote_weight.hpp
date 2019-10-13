@@ -8,12 +8,25 @@
 
 #include <boost/dynamic_bitset.hpp>
 #include <boost/operators.hpp>
+#include "consensus/grandpa/structs.hpp"
 
 namespace kagome::consensus::grandpa {
 
   struct VoteWeight : public boost::equality_comparable<VoteWeight>,
                       public boost::less_than_comparable<VoteWeight> {
-    // TODO(warchant): change size_t to something else, but preserve all operators 
+    explicit VoteWeight(size_t bits_size = 256)
+        : prevotes(bits_size), precommits(bits_size) {}
+
+    boost::dynamic_bitset<> prevotes;
+    boost::dynamic_bitset<> precommits;
+
+    TotalWeight totalWeight() const {
+      return TotalWeight{.prevote = prevotes.count(),
+                         .precommit = precommits.count()};
+    }
+
+    // TODO(warchant): change size_t to something else, but preserve all
+    // operators
     size_t weight = 0;
 
     auto &operator+=(const VoteWeight &vote) {
@@ -25,12 +38,12 @@ namespace kagome::consensus::grandpa {
       return weight == other.weight;
     }
 
-    bool operator<(const VoteWeight other) const {
+    bool operator<(const VoteWeight &other) const {
       return weight < other.weight;
     }
   };
 
-  inline std::ostream& operator << (std::ostream& os, const VoteWeight& v)  {
+  inline std::ostream &operator<<(std::ostream &os, const VoteWeight &v) {
     // TODO(warchant): implement
     return os << v.weight;
   }

@@ -29,6 +29,7 @@ using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::primitives::BlockId;
+using kagome::primitives::BlockInfo;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::Invalid;
 using kagome::primitives::Transaction;
@@ -57,7 +58,7 @@ struct ExtrinsicSubmissionApiTest : public ::testing::Test {
   sptr<Extrinsic> extrinsic;                   ///< extrinsic instance
   sptr<Valid> valid_transaction;               ///< valid transaction instance
   Hash256 deepest_hash;                        ///< hash of deepest leaf
-  sptr<BlockTree::BlockInfo> deepest_leaf;     ///< deepest leaf block info
+  sptr<BlockInfo> deepest_leaf;                ///< deepest leaf block info
 
   void SetUp() override {
     hasher = std::make_shared<HasherMock>();
@@ -69,7 +70,7 @@ struct ExtrinsicSubmissionApiTest : public ::testing::Test {
     extrinsic.reset(new Extrinsic{"12"_hex2buf});
     valid_transaction.reset(new Valid{1, {{2}}, {{3}}, 4});
     deepest_hash = createHash256({1u, 2u, 3u});
-    deepest_leaf.reset(new BlockTree::BlockInfo{1u, deepest_hash});
+    deepest_leaf.reset(new BlockInfo{1u, deepest_hash});
   }
 };
 

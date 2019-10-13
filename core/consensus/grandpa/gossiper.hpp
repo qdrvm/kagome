@@ -20,11 +20,9 @@ namespace kagome::consensus::grandpa {
   struct Gossiper {
     virtual ~Gossiper() = default;
 
-    virtual void precommit(Precommit pc) = 0;
+    virtual void vote(const VoteMessage &msg) = 0;
 
-    virtual void prevote(Prevote pv) = 0;
-
-    virtual void primaryPropose(PrimaryPropose pv) = 0;
+    virtual void fin(const Fin &fin) = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

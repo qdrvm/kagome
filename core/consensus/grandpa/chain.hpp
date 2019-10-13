@@ -10,6 +10,7 @@
 
 #include <boost/optional.hpp>
 #include <outcome/outcome.hpp>
+#include "consensus/grandpa/common.hpp"
 #include "consensus/grandpa/structs.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -41,7 +42,7 @@ namespace kagome::consensus::grandpa {
      * @returns true if {@param block} is a descendent of or equal to the
      * given {@param base}.
      */
-    bool isEqualOrDescendOf(const primitives::BlockHash &base,
+    inline bool isEqualOrDescendOf(const primitives::BlockHash &base,
                             const primitives::BlockHash &block) const {
       return base == block ? true : getAncestry(base, block).has_value();
     }

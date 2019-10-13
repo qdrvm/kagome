@@ -18,7 +18,7 @@ namespace kagome::network {
   RouterLibp2p::RouterLibp2p(
       libp2p::Host &host,
       std::shared_ptr<BabeObserver> babe_observer,
-      std::shared_ptr<consensus::grandpa::Observer> grandpa_observer,
+      std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer,
       std::shared_ptr<SyncProtocolObserver> sync_observer,
       common::Logger log)
       : host_{host},
@@ -98,35 +98,14 @@ namespace kagome::network {
         babe_observer_->onBlockAnnounce(msg_res.value());
         return true;
       }
-      case MsgType::PRECOMMIT: {
-        auto msg_res = scale::decode<consensus::grandpa::Precommit>(msg.data);
+      case MsgType::VOTE: {
+        auto msg_res = scale::decode<consensus::grandpa::VoteMessage>(msg.data);
         if (!msg_res) {
-          log_->error("error while decoding a precommit message: {}",
+          log_->error("error while decoding a vote message: {}",
                       msg_res.error().message());
           return false;
         }
-        grandpa_observer_->onPrecommit(msg_res.value());
-        return true;
-      }
-      case MsgType::PREVOTE: {
-        auto msg_res = scale::decode<consensus::grandpa::Prevote>(msg.data);
-        if (!msg_res) {
-          log_->error("error while decoding a prevote message: {}",
-                      msg_res.error().message());
-          return false;
-        }
-        grandpa_observer_->onPrevote(msg_res.value());
-        return true;
-      }
-      case MsgType::PRIMARY_PROPOSE: {
-        auto msg_res =
-            scale::decode<consensus::grandpa::PrimaryPropose>(msg.data);
-        if (!msg_res) {
-          log_->error("error while decoding a primary propose message: {}",
-                      msg_res.error().message());
-          return false;
-        }
-        grandpa_observer_->onPrimaryPropose(msg_res.value());
+        grandpa_observer_->onVoteMessage(msg_res.value());
         return true;
       }
       case MsgType::UNKNOWN:

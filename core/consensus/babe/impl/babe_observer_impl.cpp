@@ -64,7 +64,7 @@ namespace kagome::consensus {
     // non-finalized fork, we are not interested in it; otherwise, it 100% will
     // be a descendant of the last_finalized
     network::BlocksRequest request{network::BlocksRequest::kBasicAttributes,
-                                   tree_->getLastFinalized(),
+                                   tree_->getLastFinalized().block_hash,
                                    announce.header.parent_hash,
                                    network::Direction::DESCENDING,
                                    boost::none};

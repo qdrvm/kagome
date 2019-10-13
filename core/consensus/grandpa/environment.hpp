@@ -6,8 +6,8 @@
 #ifndef KAGOME_CORE_CONSENSUS_GRANDPA_ENVIRONMENT_HPP
 #define KAGOME_CORE_CONSENSUS_GRANDPA_ENVIRONMENT_HPP
 
+#include "consensus/grandpa/message.hpp"
 #include "consensus/grandpa/round.hpp"
-#include "consensus/grandpa/structs.hpp"
 
 namespace kagome::consensus::grandpa {
 

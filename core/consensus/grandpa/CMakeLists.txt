@@ -20,3 +20,15 @@ add_library(vote_tracker
 target_link_libraries(vote_tracker
     blob
     )
+
+add_library(voting_round
+    impl/voting_round_impl.cpp
+    )
+
+target_link_libraries(voting_round
+    vote_tracker
+    vote_graph
+    scale
+    logger
+    blob
+    )

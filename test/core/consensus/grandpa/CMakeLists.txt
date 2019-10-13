@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 add_subdirectory(vote_graph)
+add_subdirectory(voting_round)
 
 addtest(chain_test
     chain_test.cpp

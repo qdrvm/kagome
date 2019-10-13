@@ -78,6 +78,8 @@ struct BlockTreeTest : public testing::Test {
   const BlockHash kFinalizedBlockHash =
       BlockHash::fromString("andj4kdn4odnfkslfn3k4jdnbmeodkv4").value();
 
+  const BlockInfo kFinalizedBlockInfo{42ul, kFinalizedBlockHash};
+
   std::shared_ptr<HeaderRepositoryMock> header_repo_ =
       std::make_shared<HeaderRepositoryMock>();
 
@@ -181,7 +183,7 @@ TEST_F(BlockTreeTest, AddBlockNoParent) {
  */
 TEST_F(BlockTreeTest, Finalize) {
   // GIVEN
-  auto &&last_finalized_hash = block_tree_->getLastFinalized();
+  auto &&last_finalized_hash = block_tree_->getLastFinalized().block_hash;
   ASSERT_EQ(last_finalized_hash, kFinalizedBlockHash);
 
   BlockHeader header{.parent_hash = kFinalizedBlockHash,
@@ -200,7 +202,7 @@ TEST_F(BlockTreeTest, Finalize) {
   ASSERT_TRUE(block_tree_->finalize(hash, justification));
 
   // THEN
-  ASSERT_EQ(block_tree_->getLastFinalized(), hash);
+  ASSERT_EQ(block_tree_->getLastFinalized().block_hash, hash);
 }
 
 /**

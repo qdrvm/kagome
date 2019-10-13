@@ -12,8 +12,8 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/vrf_provider_mock.hpp"
-#include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
 #include "mock/core/libp2p/crypto/random_generator_mock.hpp"
+#include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
 #include "scale/scale.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/primitives/hash_creator.hpp"
@@ -127,7 +127,7 @@ TEST_F(BlockValidatorTest, Success) {
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .WillOnce(Return(true));
 
-  BlockTree::BlockInfo deepest_leaf{1u, createHash256({1u})};
+  BlockInfo deepest_leaf{1u, createHash256({1u})};
   EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
 
   // verifyTransactions
@@ -350,7 +350,7 @@ TEST_F(BlockValidatorTest, TwoBlocksByOnePeer) {
       .Times(2)
       .WillRepeatedly(Return(true));
 
-  BlockTree::BlockInfo deepest_leaf{1u, createHash256({1u})};
+  BlockInfo deepest_leaf{1u, createHash256({1u})};
 
   EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
 
@@ -398,7 +398,7 @@ TEST_F(BlockValidatorTest, InvalidExtrinsic) {
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .WillOnce(Return(true));
 
-  BlockTree::BlockInfo deepest_leaf{1u, createHash256({1u})};
+  BlockInfo deepest_leaf{1u, createHash256({1u})};
   EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
 
   // WHEN
@@ -440,7 +440,7 @@ TEST_F(BlockValidatorTest, BlockTreeFails) {
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .WillOnce(Return(true));
 
-  BlockTree::BlockInfo deepest_leaf{1u, createHash256({1u})};
+  BlockInfo deepest_leaf{1u, createHash256({1u})};
   EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
 
   EXPECT_CALL(*tx_queue_, validate_transaction(deepest_leaf.block_number, ext_))
