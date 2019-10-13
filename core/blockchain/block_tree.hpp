@@ -129,7 +129,7 @@ namespace kagome::blockchain {
      * @param max_number is the max block number that the resulting block (and
      * the target one) may possess
      */
-    virtual outcome::result<BlockInfo> getBestContaining(
+    virtual outcome::result<primitives::BlockInfo> getBestContaining(
         const primitives::BlockHash &target_hash,
         const boost::optional<primitives::BlockNumber> &max_number) const = 0;
 

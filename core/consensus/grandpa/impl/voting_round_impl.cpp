@@ -368,18 +368,18 @@ namespace kagome::consensus::grandpa {
             .value_or_eval(
                 [last_round_estimate] { return last_round_estimate; });
 
-    auto best_chain =
+    auto rbest_chain =
         chain_->bestChainContaining(find_descendent_of.block_hash);
 
-    if (not best_chain) {
+    if (not rbest_chain) {
       logger_->error(
           "Could not cast prevote: previousle known block {} has disappeared",
           find_descendent_of.block_hash.toHex());
       return outcome::failure(boost::system::error_code());
     }
+    const auto &best_chain = rbest_chain.value();
 
-    return signPrevote(
-        Prevote{best_chain->block_number, best_chain->block_hash});
+    return signPrevote(Prevote{best_chain.block_number, best_chain.block_hash});
   }
 
   outcome::result<SignedPrecommit> VotingRoundImpl::constructPrecommit(

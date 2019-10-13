@@ -124,7 +124,7 @@ namespace kagome::blockchain {
 
     primitives::BlockInfo deepestLeaf() const override;
 
-    outcome::result<BlockInfo> getBestContaining(
+    outcome::result<primitives::BlockInfo> getBestContaining(
         const primitives::BlockHash &target_hash,
         const boost::optional<primitives::BlockNumber> &max_number)
         const override;
