@@ -27,6 +27,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, BlockTreeImpl::Error, e) {
       return "block exists in chain but not found when following all leaves "
              "backwards.";
   }
+  return "unknown error";
 }
 
 namespace kagome::blockchain {
@@ -38,10 +39,8 @@ namespace kagome::blockchain {
                                     primitives::BlockNumber depth,
                                     const std::shared_ptr<TreeNode> &parent,
                                     bool finalized)
-      : block_hash_{hash},
-        depth_{depth},
-        parent_{parent},
-        finalized_{finalized} {}
+      : block_hash{hash},
+        depth{depth}, parent{parent}, finalized{finalized} {}
 
   std::shared_ptr<BlockTreeImpl::TreeNode> BlockTreeImpl::TreeNode::getByHash(
       const primitives::BlockHash &hash) {
@@ -50,10 +49,10 @@ namespace kagome::blockchain {
     nodes_to_scan.push(shared_from_this());
     while (!nodes_to_scan.empty()) {
       const auto &node = nodes_to_scan.front();
-      if (node->block_hash_ == hash) {
+      if (node->block_hash == hash) {
         return node;
       }
-      for (const auto &child : node->children_) {
+      for (const auto &child : node->children) {
         nodes_to_scan.push(child);
       }
       nodes_to_scan.pop();
@@ -62,13 +61,13 @@ namespace kagome::blockchain {
   }
 
   bool BlockTreeImpl::TreeNode::operator==(const TreeNode &other) const {
-    const auto &other_parent = other.parent_;
-    auto parents_equal = (parent_.expired() && other_parent.expired())
-                         || (!parent_.expired() && !other_parent.expired()
-                             && parent_.lock() == other_parent.lock());
+    const auto &other_parent = other.parent;
+    auto parents_equal = (parent.expired() && other_parent.expired())
+                         || (!parent.expired() && !other_parent.expired()
+                             && parent.lock() == other_parent.lock());
 
-    return parents_equal && block_hash_ == other.block_hash_
-           && depth_ == other.depth_;
+    return parents_equal && block_hash == other.block_hash
+           && depth == other.depth;
   }
 
   bool BlockTreeImpl::TreeNode::operator!=(const TreeNode &other) const {
@@ -116,7 +115,7 @@ namespace kagome::blockchain {
     auto tree = std::make_shared<TreeNode>(
         hash_res.value(), header.number, nullptr, true);
     auto meta = std::make_shared<TreeMeta>(
-        decltype(TreeMeta::leaves){tree->block_hash_}, *tree, *tree);
+        decltype(TreeMeta::leaves){tree->block_hash}, *tree, *tree);
 
     BlockTreeImpl block_tree{std::move(header_repo),
                              db,
@@ -191,11 +190,11 @@ namespace kagome::blockchain {
     // update local meta with the new block
     auto new_node =
         std::make_shared<TreeNode>(block_hash, block.header.number, parent);
-    parent->children_.push_back(new_node);
+    parent->children.push_back(new_node);
 
-    tree_meta_->leaves.insert(new_node->block_hash_);
-    tree_meta_->leaves.erase(parent->block_hash_);
-    if (new_node->depth_ > tree_meta_->deepest_leaf.get().depth_) {
+    tree_meta_->leaves.insert(new_node->block_hash);
+    tree_meta_->leaves.erase(parent->block_hash);
+    if (new_node->depth > tree_meta_->deepest_leaf.get().depth) {
       tree_meta_->deepest_leaf = *new_node;
     }
 
@@ -214,13 +213,13 @@ namespace kagome::blockchain {
     OUTCOME_TRY(encoded_justification, scale::encode(justification));
     OUTCOME_TRY(putWithPrefix(db_,
                               Prefix::JUSTIFICATION,
-                              node->depth_,
+                              node->depth,
                               block,
                               Buffer{encoded_justification}));
 
     // update our local meta
     tree_meta_->last_finalized = *node;
-    node->finalized_ = true;
+    node->finalized = true;
     prune();
 
     return outcome::success();
@@ -228,7 +227,7 @@ namespace kagome::blockchain {
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlock(
       const primitives::BlockHash &block) {
-    return getChainByBlocks(tree_meta_->last_finalized.get().block_hash_,
+    return getChainByBlocks(tree_meta_->last_finalized.get().block_hash,
                             block);
   }
 
@@ -254,7 +253,7 @@ namespace kagome::blockchain {
       }
     } else {
       auto finish_block_number_candidate = start_block_number + maximum;
-      auto current_depth = tree_meta_->deepest_leaf.get().depth_;
+      auto current_depth = tree_meta_->deepest_leaf.get().depth;
       if (finish_block_number_candidate <= current_depth) {
         finish_block_number = finish_block_number_candidate;
       } else {
@@ -296,15 +295,15 @@ namespace kagome::blockchain {
     if (top_block_node_ptr && bottom_block_node_ptr) {
       auto current_node = bottom_block_node_ptr;
       while (current_node != top_block_node_ptr) {
-        result.push_back(current_node->block_hash_);
-        if (auto parent = current_node->parent_; !parent.expired()) {
+        result.push_back(current_node->block_hash);
+        if (auto parent = current_node->parent; !parent.expired()) {
           current_node = parent.lock();
         } else {
           log_->error(kNotAncestorError.data(), top_block, bottom_block);
           return BlockTreeError::INCORRECT_ARGS;
         }
       }
-      result.push_back(top_block_node_ptr->block_hash_);
+      result.push_back(top_block_node_ptr->block_hash);
       std::reverse(result.begin(), result.end());
       return result;
     }
@@ -332,7 +331,7 @@ namespace kagome::blockchain {
 
   BlockTree::BlockInfo BlockTreeImpl::deepestLeaf() const {
     auto &&leaf = tree_meta_->deepest_leaf.get();
-    return {leaf.depth_, leaf.block_hash_};
+    return {leaf.depth, leaf.block_hash};
   }
 
   outcome::result<BlockTree::BlockInfo> BlockTreeImpl::getBestContaining(
@@ -409,20 +408,20 @@ namespace kagome::blockchain {
     }
 
     std::vector<primitives::BlockHash> result;
-    result.reserve(node->children_.size());
-    for (const auto &child : node->children_) {
-      result.push_back(child->block_hash_);
+    result.reserve(node->children.size());
+    for (const auto &child : node->children) {
+      result.push_back(child->block_hash);
     }
 
     return result;
   }
 
   primitives::BlockHash BlockTreeImpl::getLastFinalized() const {
-    return tree_meta_->last_finalized.get().block_hash_;
+    return tree_meta_->last_finalized.get().block_hash;
   }
 
   void BlockTreeImpl::prune() {
-    if (tree_meta_->last_finalized.get().parent_.expired()) {
+    if (tree_meta_->last_finalized.get().parent.expired()) {
       // nothing to prune
       return;
     }
@@ -431,32 +430,32 @@ namespace kagome::blockchain {
     std::vector<std::pair<primitives::BlockHash, primitives::BlockNumber>>
         to_remove;
 
-    auto last_node_hash = tree_meta_->last_finalized.get().block_hash_;
-    auto current_node = tree_meta_->last_finalized.get().parent_.lock();
+    auto last_node_hash = tree_meta_->last_finalized.get().block_hash;
+    auto current_node = tree_meta_->last_finalized.get().parent.lock();
     do {
-      const auto &node_children = current_node->children_;
+      const auto &node_children = current_node->children;
 
       // memorize the hashes and numbers of block to be removed
       for (const auto &child : node_children) {
-        if (child->block_hash_ != last_node_hash) {
-          to_remove.emplace_back(child->block_hash_, child->depth_);
+        if (child->block_hash != last_node_hash) {
+          to_remove.emplace_back(child->block_hash, child->depth);
         }
       }
 
       // go up to the next node
-      last_node_hash = current_node->block_hash_;
-      if (current_node->parent_.expired()) {
+      last_node_hash = current_node->block_hash;
+      if (current_node->parent.expired()) {
         break;
       }
-      current_node = current_node->parent_.lock();
-    } while (!current_node->finalized_);
+      current_node = current_node->parent.lock();
+    } while (!current_node->finalized);
 
     // leave only the last finalized block in memory, as we don't need anything
     // else
     tree_ = std::make_shared<TreeNode>(tree_meta_->last_finalized);
-    tree_->parent_.reset();
+    tree_->parent.reset();
     tree_meta_ = std::make_shared<TreeMeta>(
-        decltype(TreeMeta::leaves){tree_->block_hash_}, *tree_, *tree_);
+        decltype(TreeMeta::leaves){tree_->block_hash}, *tree_, *tree_);
 
     // now, remove the blocks we remembered from the database
     for (const auto &[hash, number] : to_remove) {
@@ -477,23 +476,23 @@ namespace kagome::blockchain {
   }
 
   std::vector<primitives::BlockHash> BlockTreeImpl::getLeavesSorted() const {
-    std::vector<std::pair<primitives::BlockNumber, primitives::BlockHash>>
+    std::vector<BlockInfo>
         leaf_depths;
     auto leaves = getLeaves();
     leaf_depths.reserve(leaves.size());
     for (auto &leaf : leaves) {
       auto leaf_node = tree_->getByHash(leaf);
-      leaf_depths.emplace_back(leaf_node->depth_, leaf);
+      leaf_depths.emplace_back(BlockInfo{leaf_node->depth, leaf_node->block_hash});
     }
     std::sort(leaf_depths.begin(), leaf_depths.end(), [](auto const& p1, auto const& p2) {
-      return p1.first > p2.first;
+      return p1.block_number > p2.block_number;
     });
     std::vector<primitives::BlockHash> leaf_hashes;
     leaf_hashes.reserve(leaf_depths.size());
     std::transform(leaf_depths.begin(),
                    leaf_depths.end(),
                    std::back_inserter(leaf_hashes),
-                   [](auto &p) { return p.second; });
+                   [](auto &p) { return p.block_hash; });
     return leaf_hashes;
   }
 

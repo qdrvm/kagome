@@ -41,8 +41,8 @@ namespace kagome::consensus::grandpa {
      * @returns true if {@param block} is a descendent of or equal to the
      * given {@param base}.
      */
-    bool isEqualOrDescendOf(primitives::BlockHash base,
-                            primitives::BlockHash block) const {
+    bool isEqualOrDescendOf(const primitives::BlockHash &base,
+                            const primitives::BlockHash &block) const {
       return base == block ? true : getAncestry(base, block).has_value();
     }
   };

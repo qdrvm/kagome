@@ -34,14 +34,14 @@ namespace kagome::blockchain {
                const std::shared_ptr<TreeNode> &parent,
                bool finalized = false);
 
-      primitives::BlockHash block_hash_;
-      primitives::BlockNumber depth_;
+      primitives::BlockHash block_hash;
+      primitives::BlockNumber depth;
 
-      std::weak_ptr<TreeNode> parent_;
+      std::weak_ptr<TreeNode> parent;
 
-      bool finalized_;
+      bool finalized;
 
-      std::vector<std::shared_ptr<TreeNode>> children_{};
+      std::vector<std::shared_ptr<TreeNode>> children{};
 
       /**
        * Get a node of the tree, containing block with the specified hash, if it
@@ -70,11 +70,13 @@ namespace kagome::blockchain {
 
    public:
     enum class Error {
-      TARGET_IS_PAST_MAX =
-          1,  // target block number is past the given maximum number
-      BLOCK_ON_DEAD_END,  // block resides on a dead fork
-      BLOCK_NOT_FOUND  // block exists in chain but not found when following all
-                       // leaves backwards.
+      // target block number is past the given maximum number
+      TARGET_IS_PAST_MAX = 1,
+      // block resides on a dead fork
+      BLOCK_ON_DEAD_END,
+      // block exists in chain but not found when following all
+      // leaves backwards.
+      BLOCK_NOT_FOUND
     };
 
     /**
