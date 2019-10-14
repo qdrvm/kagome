@@ -25,11 +25,10 @@ namespace kagome::consensus::grandpa {
 
   ChainImpl::ChainImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
-      common::Logger logger)
+      std::shared_ptr<blockchain::BlockHeaderRepository> header_repository)
       : block_tree_{std::move(block_tree)},
         header_repository_{std::move(header_repository)},
-        logger_{std::move(logger)} {
+        logger_ {common::createLogger("Chain API:")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(header_repository_ != nullptr);
   }

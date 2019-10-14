@@ -19,8 +19,7 @@ namespace kagome::consensus::grandpa {
 
     ChainImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
-        std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
-        common::Logger logger = common::createLogger("Chain API:"));
+        std::shared_ptr<blockchain::BlockHeaderRepository> header_repository);
     ~ChainImpl() override = default;
 
     outcome::result<std::vector<primitives::BlockHash>> getAncestry(
