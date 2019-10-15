@@ -34,14 +34,14 @@ namespace kagome::blockchain {
                const std::shared_ptr<TreeNode> &parent,
                bool finalized = false);
 
-      primitives::BlockHash block_hash_;
-      primitives::BlockNumber depth_;
+      primitives::BlockHash block_hash;
+      primitives::BlockNumber depth;
 
-      std::weak_ptr<TreeNode> parent_;
+      std::weak_ptr<TreeNode> parent;
 
-      bool finalized_;
+      bool finalized;
 
-      std::vector<std::shared_ptr<TreeNode>> children_{};
+      std::vector<std::shared_ptr<TreeNode>> children{};
 
       /**
        * Get a node of the tree, containing block with the specified hash, if it
@@ -69,6 +69,16 @@ namespace kagome::blockchain {
     };
 
    public:
+    enum class Error {
+      // target block number is past the given maximum number
+      TARGET_IS_PAST_MAX = 1,
+      // block resides on a dead fork
+      BLOCK_ON_DEAD_END,
+      // block exists in chain but not found when following all
+      // leaves backwards.
+      BLOCK_NOT_FOUND
+    };
+
     /**
      * Create an instance of block tree
      * @param header_repo - block headers repository
@@ -113,6 +123,11 @@ namespace kagome::blockchain {
 
     BlockInfo deepestLeaf() const override;
 
+    outcome::result<BlockInfo> getBestContaining(
+        const primitives::BlockHash &target_hash,
+        const boost::optional<primitives::BlockNumber> &max_number)
+        const override;
+
     std::vector<primitives::BlockHash> getLeaves() const override;
 
     BlockHashVecRes getChildren(const primitives::BlockHash &block) override;
@@ -133,6 +148,19 @@ namespace kagome::blockchain {
                   std::shared_ptr<crypto::Hasher> hasher,
                   common::Logger log);
 
+    /**
+     * Walks the chain backwards starting from \param start until the current
+     * block number is less or equal than \param limit
+     */
+    outcome::result<primitives::BlockHash> walkBackUntilLess(
+        const primitives::BlockHash &start,
+        const primitives::BlockNumber &limit) const;
+
+    /**
+     * @returns the tree leaves sorted by their depth
+     */
+    std::vector<primitives::BlockHash> getLeavesSorted() const;
+
     std::shared_ptr<BlockHeaderRepository> header_repo_;
     PersistentBufferMap &db_;
 
@@ -143,5 +171,7 @@ namespace kagome::blockchain {
     common::Logger log_;
   };
 }  // namespace kagome::blockchain
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, BlockTreeImpl::Error);
 
 #endif  // KAGOME_BLOCK_TREE_IMPL_HPP

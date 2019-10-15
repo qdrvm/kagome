@@ -38,6 +38,11 @@ namespace kagome::blockchain {
                  BlockHashVecRes(const primitives::BlockHash &,
                                  const primitives::BlockHash &));
 
+    MOCK_CONST_METHOD2(getBestContaining,
+                 outcome::result<BlockInfo>(
+                     const primitives::BlockHash &,
+                     const boost::optional<primitives::BlockNumber> &));
+
     MOCK_METHOD0(longestPath, BlockHashVecRes());
 
     MOCK_CONST_METHOD0(deepestLeaf, blockchain::BlockTree::BlockInfo());

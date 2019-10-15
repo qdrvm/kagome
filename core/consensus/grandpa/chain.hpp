@@ -14,7 +14,9 @@
 
 namespace kagome::consensus::grandpa {
 
-  /// Chain context necessary for implementation of the finality gadget.
+  /**
+   * Chain context necessary for implementation of the finality gadget.
+   */
   struct Chain {
     virtual ~Chain() = default;
 
@@ -24,22 +26,23 @@ namespace kagome::consensus::grandpa {
      * @return If the block is not a descendent of base, returns an error.
      */
     virtual outcome::result<std::vector<primitives::BlockHash>> getAncestry(
-        primitives::BlockHash base, primitives::BlockHash block) = 0;
+        const primitives::BlockHash &base,
+        const primitives::BlockHash &block) const = 0;
 
     /**
      * @returns the hash of the best block whose chain contains the given
      * block hash, even if that block is {@param base} itself. If base is
      * unknown, return None.
      */
-    virtual boost::optional<BlockInfo> bestChainContaining(
-        primitives::BlockHash base) = 0;
+    virtual outcome::result<BlockInfo> bestChainContaining(
+        const primitives::BlockHash &base) const = 0;
 
     /**
      * @returns true if {@param block} is a descendent of or equal to the
      * given {@param base}.
      */
-    bool isEqualOrDescendOf(primitives::BlockHash base,
-                            primitives::BlockHash block) {
+    bool isEqualOrDescendOf(const primitives::BlockHash &base,
+                            const primitives::BlockHash &block) const {
       return base == block ? true : getAncestry(base, block).has_value();
     }
   };

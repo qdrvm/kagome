@@ -95,7 +95,7 @@ namespace kagome::blockchain {
     /**
      * Get a chain of blocks
      * @param top_block - block, which is at the top of the chain
-     * @param bottom_block - block, which is the bottim of the chain
+     * @param bottom_block - block, which is the bottom of the chain
      * @return chain of blocks in top-to-bottom order or error
      */
     virtual BlockHashVecRes getChainByBlocks(
@@ -128,6 +128,18 @@ namespace kagome::blockchain {
      * leader, we connect a block, which we constructed, to that deepest leaf
      */
     virtual BlockInfo deepestLeaf() const = 0;
+
+    /*
+     * @brief Get the most recent block of the best (longest) chain among those
+     * that contain a block with \param target_hash
+     * @param target_hash is a hash of a block that the chosen chain must
+     * contain
+     * @param max_number is the max block number that the resulting block (and
+     * the target one) may possess
+     */
+    virtual outcome::result<BlockInfo> getBestContaining(
+        const primitives::BlockHash &target_hash,
+        const boost::optional<primitives::BlockNumber> &max_number) const = 0;
 
     /**
      * Get all leaves of our tree

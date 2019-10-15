@@ -7,7 +7,7 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include "mock/core/blockchain/header_backend_mock.hpp"
+#include "mock/core/blockchain/header_repository_mock.hpp"
 #include "mock/core/transaction_pool/pool_moderator_mock.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
