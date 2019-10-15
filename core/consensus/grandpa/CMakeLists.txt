@@ -13,3 +13,8 @@ target_link_libraries(chain
     block_tree
     block_header_repository
     )
+
+add_library(vote_tracker INTERFACE)
+target_link_libraries(vote_tracker INTERFACE
+    blob
+    )

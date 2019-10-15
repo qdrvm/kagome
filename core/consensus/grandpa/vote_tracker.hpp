@@ -6,52 +6,44 @@
 #ifndef KAGOME_CORE_CONSENSUS_GRANDPA_VOTE_TRACKER_HPP
 #define KAGOME_CORE_CONSENSUS_GRANDPA_VOTE_TRACKER_HPP
 
-#include <unordered_map>
-
 #include "consensus/grandpa/structs.hpp"
 
 namespace kagome::consensus::grandpa {
 
-  template <typename Vote>
-  struct VoteTracker {
-    enum class AddVoteResult { SUCCESS, DUPLICATED, VOTED_TWICE };
+  /**
+   * Stores voting messages (such as prevotes and precommits) during a round,
+   * reports if a messages that is being put into it is a duplicate or an
+   * equivote (which is the case when a node votes for two different blocks
+   * during a round)
+   * @tparam MessageType is the type of a message stored in the tracker. Note
+   * that it is wrapped into a SignedMessage
+   */
+  template <typename MessageType>
+  class VoteTracker {
+   public:
+    enum class PushResult { SUCCESS, DUPLICATED, EQUIVOCATED };
+    using VotingMessage = SignedMessage<MessageType>;
 
     /**
-     * @brief Adds a vote to a storage.
-     * @param id peer id
-     * @param n vote
-     * @return SUCCESS if peer voted once, DUPLICATED if we received duplicated
-     * vote, VOTED_TWICE if peer created two different votes
+     * Attempts to push a vote to a tracker
+     * @param vote the voting message being pushed
+     * @param weight weight of this vote
+     * @returns SUCCESS if it is the first pushed vote of the voter, EQUIVOCATED
+     * if the voting peer already voted for a different block, DUPLICATE if the
+     * peer already voted for another block more than once or voted for the same
+     * block
      */
-    AddVoteResult addVote(Id id, const Vote &n) {
-      auto it = votes_.find(id);
-      if (it == votes_.end()) {
-        votes_.insert({id, n});
-        return outcome::success();
-      }
+    virtual PushResult push(const VotingMessage &vote, size_t weight) = 0;
 
-      Vote &v = it->second;
-      if (v == n) {
-        return AddVoteResult::DUPLICATED;
-      }
+    /**
+     * @returns all accepted (non-duplicate) messages
+     */
+    virtual std::vector<VotingMessage> getMessages() const = 0;
 
-      // peer voted twice for the same round...
-      eq_votes_.insert({id, {n, v}});
-      return AddVoteResult::VOTED_TWICE;
-    }
-
-    const auto &getVotes() const {
-      return votes_;
-    }
-
-    const auto &getEquivocatedVotes() const {
-      return eq_votes_;
-    }
-
-   private:
-    std::unordered_map<Id, SignedMessage<Vote>> votes_;
-    std::unordered_map<Id, std::pair<SignedMessage<Vote>, SignedMessage<Vote>>>
-        eq_votes_;
+    /**
+     * @returns total weight of all accepted (non-duplicate) messages
+     */
+    virtual size_t getTotalWeight() const = 0;
   };
 
 }  // namespace kagome::consensus::grandpa
