@@ -24,6 +24,7 @@ namespace kagome::consensus::grandpa {
     enum class PushResult { SUCCESS, DUPLICATED, EQUIVOCATED };
     using VotingMessage = SignedMessage<MessageType>;
 
+    virtual ~VoteTracker() = default;
     /**
      * Attempts to push a vote to a tracker
      * @param vote the voting message being pushed

@@ -16,6 +16,8 @@ namespace kagome::consensus::grandpa {
     using PushResult = typename VoteTracker<MessageType>::PushResult;
     using VotingMessage = typename VoteTracker<MessageType>::VotingMessage;
 
+    virtual ~VoteTrackerImpl() = default;
+
     PushResult push(const VotingMessage &vote, size_t weight) override {
       auto vote_it = messages_.find(vote.id);
       if (vote_it == messages_.end()) {
