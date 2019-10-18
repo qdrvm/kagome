@@ -42,7 +42,7 @@ namespace kagome::consensus::grandpa {
     }
 
     std::vector<VotingMessage> getMessages() const override {
-      std::vector<SignedPrevote> prevotes;
+      std::vector<VotingMessage> prevotes;
       // the actual number may be bigger, but it's a good guess
       prevotes.reserve(messages_.size());
       for (auto const &[_, equivotes] : messages_) {

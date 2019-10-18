@@ -14,7 +14,9 @@ target_link_libraries(chain
     block_header_repository
     )
 
-add_library(vote_tracker INTERFACE)
-target_link_libraries(vote_tracker INTERFACE
+add_library(vote_tracker
+    impl/vote_tracker_impl.cpp)
+
+target_link_libraries(vote_tracker
     blob
     )
