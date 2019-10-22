@@ -13,6 +13,17 @@ target_link_libraries(block_header_repository
     blockchain_common
     )
 
+
+add_library(block_storage
+    impl/key_value_block_storage.cpp
+    )
+target_link_libraries(block_storage
+    blockchain_common
+    hasher
+    scale
+    leveldb
+    )
+
 add_library(block_tree_error
     block_tree_error.hpp
     impl/block_tree_error.cpp

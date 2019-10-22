@@ -18,3 +18,11 @@ addtest(block_tree_test
 target_link_libraries(block_tree_test
     block_tree
     )
+
+addtest(block_storage_test
+    block_storage_test.cpp
+    )
+target_link_libraries(block_storage_test
+    block_storage
+
+    )
