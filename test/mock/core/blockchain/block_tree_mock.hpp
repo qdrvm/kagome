@@ -39,9 +39,9 @@ namespace kagome::blockchain {
                                  const primitives::BlockHash &));
 
     MOCK_CONST_METHOD2(getBestContaining,
-                 outcome::result<BlockInfo>(
-                     const primitives::BlockHash &,
-                     const boost::optional<primitives::BlockNumber> &));
+                       outcome::result<BlockInfo>(
+                           const primitives::BlockHash &,
+                           const boost::optional<primitives::BlockNumber> &));
 
     MOCK_METHOD0(longestPath, BlockHashVecRes());
 
@@ -53,7 +53,7 @@ namespace kagome::blockchain {
 
     MOCK_CONST_METHOD0(getLastFinalized, primitives::BlockHash());
 
-    MOCK_METHOD0(prune, void());
+    MOCK_METHOD0(prune, outcome::result<void>());
   };
 }  // namespace kagome::blockchain
 

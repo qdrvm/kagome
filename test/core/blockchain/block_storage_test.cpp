@@ -85,7 +85,7 @@ TEST_F(BlockStorageTest, PutBlock) {
   EXPECT_CALL(*hasher, blake2b_256(_)).WillOnce(Return(genesis_hash));
   EXPECT_CALL(storage, get(_))
       .WillOnce(Return(kagome::blockchain::Error::BLOCK_NOT_FOUND));
-  EXPECT_OUTCOME_TRUE(res, block_storage->putBlock(genesis));
+  EXPECT_OUTCOME_TRUE_1(block_storage->putBlock(genesis));
 }
 
 /**

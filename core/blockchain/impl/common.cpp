@@ -35,7 +35,6 @@ namespace kagome::blockchain {
     if (!key && isNotFoundError(key.error())) {
       return Error::BLOCK_NOT_FOUND;
     }
-    auto a = key.has_value();
     return key;
   }
 }  // namespace kagome::blockchain

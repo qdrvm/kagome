@@ -135,7 +135,7 @@ namespace kagome::blockchain {
 
     primitives::BlockHash getLastFinalized() const override;
 
-    void prune() override;
+    outcome::result<void> prune() override;
 
    private:
     /**

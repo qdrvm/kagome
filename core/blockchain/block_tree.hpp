@@ -167,7 +167,7 @@ namespace kagome::blockchain {
      * @note this function is called automatically when needed, but there's no
      * harm in calling it more often, than needed
      */
-    virtual void prune() = 0;
+    virtual outcome::result<void> prune() = 0;
   };
 }  // namespace kagome::blockchain
 

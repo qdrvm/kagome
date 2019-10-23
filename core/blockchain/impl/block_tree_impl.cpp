@@ -381,10 +381,10 @@ namespace kagome::blockchain {
     return tree_meta_->last_finalized.get().block_hash;
   }
 
-  void BlockTreeImpl::prune() {
+  outcome::result<void> BlockTreeImpl::prune() {
     if (tree_meta_->last_finalized.get().parent.expired()) {
       // nothing to prune
-      return;
+      return outcome::success();
     }
 
     // remove all non-finalized blocks from both database and meta
@@ -420,8 +420,9 @@ namespace kagome::blockchain {
 
     // now, remove the blocks we remembered from the database
     for (const auto &[hash, number] : to_remove) {
-     storage_->removeBlock(hash, number);
+     OUTCOME_TRY(storage_->removeBlock(hash, number));
     }
+    outcome::success();
   }
 
   std::vector<primitives::BlockHash> BlockTreeImpl::getLeavesSorted() const {
