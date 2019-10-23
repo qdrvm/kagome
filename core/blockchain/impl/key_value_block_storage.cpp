@@ -38,11 +38,10 @@ namespace kagome::blockchain {
       const primitives::Block &genesis,
       PersistentBufferMap &storage,
       std::shared_ptr<crypto::Hasher> hasher) {
-    auto kv_storage = std::unique_ptr<KeyValueBlockStorage>(
-        new KeyValueBlockStorage(storage, std::move(hasher)));
+    KeyValueBlockStorage kv_storage(storage, std::move(hasher));
     // TODO(Harrm) check that storage is actually empty
-    OUTCOME_TRY(kv_storage->putBlock(genesis));
-    return kv_storage;
+    OUTCOME_TRY(kv_storage.putBlock(genesis));
+    return std::make_unique<KeyValueBlockStorage>(std::move(kv_storage));
   }
 
   outcome::result<primitives::BlockHeader> KeyValueBlockStorage::getBlockHeader(
