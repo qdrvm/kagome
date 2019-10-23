@@ -420,7 +420,7 @@ namespace kagome::blockchain {
 
     // now, remove the blocks we remembered from the database
     for (const auto &[hash, number] : to_remove) {
-     // remove
+     storage_->removeBlock(hash, number);
     }
   }
 
