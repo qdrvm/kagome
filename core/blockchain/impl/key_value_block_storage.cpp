@@ -41,7 +41,7 @@ namespace kagome::blockchain {
     KeyValueBlockStorage kv_storage(storage, std::move(hasher));
     // TODO(Harrm) check that storage is actually empty
     OUTCOME_TRY(kv_storage.putBlock(genesis));
-    return std::make_unique<KeyValueBlockStorage>(std::move(kv_storage));
+    return std::make_shared<KeyValueBlockStorage>(std::move(kv_storage));
   }
 
   outcome::result<primitives::BlockHeader> KeyValueBlockStorage::getBlockHeader(
