@@ -18,42 +18,11 @@ namespace kagome::consensus::grandpa {
 
     virtual ~VoteTrackerImpl() = default;
 
-    PushResult push(const VotingMessage &vote, size_t weight) override {
-      auto vote_it = messages_.find(vote.id);
-      if (vote_it == messages_.end()) {
-        messages_[vote.id] = {vote};
-        total_weight_ += weight;
-        return PushResult::SUCCESS;
-      }
-      auto &equivotes = vote_it->second;
-      bool isDuplicate =
-          std::find_if(equivotes.begin(),
-                       equivotes.end(),
-                       [&vote](auto const &prevote) {
-                         return prevote.message.hash == vote.message.hash;
-                       })
-          != equivotes.end();
-      if (not isDuplicate && equivotes.size() < 2) {
-        equivotes.push_back(vote);
-        total_weight_ += weight;
-        return PushResult::EQUIVOCATED;
-      }
-      return PushResult::DUPLICATED;
-    }
+    PushResult push(const VotingMessage &vote, size_t weight) override;
 
-    std::vector<VotingMessage> getMessages() const override {
-      std::vector<VotingMessage> prevotes;
-      // the actual number may be bigger, but it's a good guess
-      prevotes.reserve(messages_.size());
-      for (auto const &[_, equivotes] : messages_) {
-        prevotes.insert(prevotes.begin(), equivotes.begin(), equivotes.end());
-      }
-      return prevotes;
-    }
+    std::vector<VotingMessage> getMessages() const override;
 
-    size_t getTotalWeight() const override {
-      return total_weight_;
-    }
+    size_t getTotalWeight() const override;
 
    private:
     std::map<Id, std::list<VotingMessage>> messages_;
