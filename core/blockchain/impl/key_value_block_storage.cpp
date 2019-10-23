@@ -108,6 +108,7 @@ namespace kagome::blockchain {
                               number,
                               hash,
                               Buffer{encoded_justification}));
+    return outcome::success();
   }
 
   outcome::result<void> KeyValueBlockStorage::removeBlock(
@@ -127,6 +128,7 @@ namespace kagome::blockchain {
                      rm_res.error().message());
       return rm_res;
     }
+    return outcome::success();
   }
 
 }  // namespace kagome::blockchain

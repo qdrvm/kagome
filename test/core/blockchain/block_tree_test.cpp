@@ -30,7 +30,6 @@ using testing::_;
 using testing::Return;
 
 struct BlockTreeTest : public testing::Test {
-
   void SetUp() override {
     // for LevelDbBlockTree::create(..)
     EXPECT_CALL(*storage_, getBlockHeader(kLastFinalizedBlockId))
