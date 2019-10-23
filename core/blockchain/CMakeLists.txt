@@ -13,7 +13,6 @@ target_link_libraries(block_header_repository
     blockchain_common
     )
 
-
 add_library(block_storage
     impl/key_value_block_storage.cpp
     )

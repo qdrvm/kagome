@@ -39,7 +39,7 @@ namespace kagome::blockchain {
       PersistentBufferMap &storage,
       std::shared_ptr<crypto::Hasher> hasher) {
     auto kv_storage = std::unique_ptr<KeyValueBlockStorage>(
-        new KeyValueBlockStorage(storage, hasher));
+        new KeyValueBlockStorage(storage, std::move(hasher)));
     // TODO(Harrm) check that storage is actually empty
     OUTCOME_TRY(kv_storage->putBlock(genesis));
     return kv_storage;
@@ -76,7 +76,8 @@ namespace kagome::blockchain {
         getWithPrefix(storage_, Prefix::HEADER, block.header.number);
     if (block_in_storage.has_value()) {
       return Error::BLOCK_EXISTS;
-    } else if (block_in_storage.error() != blockchain::Error::BLOCK_NOT_FOUND) {
+    }
+    if (block_in_storage.error() != blockchain::Error::BLOCK_NOT_FOUND) {
       return block_in_storage.error();
     }
 
