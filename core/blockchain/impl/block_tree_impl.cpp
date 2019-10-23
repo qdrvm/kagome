@@ -170,7 +170,7 @@ namespace kagome::blockchain {
     // update our local meta
     tree_meta_->last_finalized = *node;
     node->finalized = true;
-    prune();
+    OUTCOME_TRY(prune());
 
     return outcome::success();
   }
@@ -422,7 +422,7 @@ namespace kagome::blockchain {
     for (const auto &[hash, number] : to_remove) {
      OUTCOME_TRY(storage_->removeBlock(hash, number));
     }
-    outcome::success();
+    return outcome::success();
   }
 
   std::vector<primitives::BlockHash> BlockTreeImpl::getLeavesSorted() const {
