@@ -11,6 +11,7 @@
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/blockchain/header_repository_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "primitives/block_id.hpp"
@@ -31,13 +32,12 @@ using testing::Return;
 struct BlockTreeTest : public testing::Test {
   void SetUp() override {
     // for LevelDbBlockTree::create(..)
-    EXPECT_CALL(db_, get(_))
-        .WillOnce(Return(kFinalizedBlockLookupKey))
-        .WillOnce(Return(Buffer{encoded_finalized_block_header_}));
+    EXPECT_CALL(*storage_, getBlockHeader(kLastFinalizedBlockId))
+        .WillOnce(Return(finalized_block_header_));
 
-    block_tree_ =
-        BlockTreeImpl::create(header_repo_, db_, kLastFinalizedBlockId, hasher_)
-            .value();
+    block_tree_ = BlockTreeImpl::create(
+                      header_repo_, storage_, kLastFinalizedBlockId, hasher_)
+                      .value();
   }
 
   /**
@@ -45,18 +45,11 @@ struct BlockTreeTest : public testing::Test {
    * @return block, which was added, along with its hash
    */
   BlockHash addBlock(const Block &block) {
-    EXPECT_CALL(db_, put(_, _))
-        .Times(4)
-        .WillRepeatedly(Return(outcome::success()));
-    EXPECT_CALL(db_, put(_, Buffer{scale::encode(block.header).value()}))
-        .WillOnce(Return(outcome::success()));
-    EXPECT_CALL(db_, put(_, Buffer{scale::encode(block.body).value()}))
-        .WillOnce(Return(outcome::success()));
-
-    EXPECT_TRUE(block_tree_->addBlock(block));
-
     auto encoded_block = scale::encode(block).value();
     auto hash = hasher_->blake2b_256(encoded_block);
+
+    EXPECT_CALL(*storage_, putBlock(block)).WillRepeatedly(Return(hash));
+    EXPECT_TRUE(block_tree_->addBlock(block));
 
     EXPECT_CALL(*header_repo_, getBlockHeader(primitives::BlockId(hash)))
         .WillRepeatedly(Return(block.header));
@@ -87,12 +80,16 @@ struct BlockTreeTest : public testing::Test {
 
   std::shared_ptr<HeaderRepositoryMock> header_repo_ =
       std::make_shared<HeaderRepositoryMock>();
-  face::PersistentMapMock<Buffer, Buffer> db_;
-  const BlockId kLastFinalizedBlockId = kFinalizedBlockHash;
+
+  std::shared_ptr<BlockStorageMock> storage_ =
+      std::make_shared<BlockStorageMock>();
+
   std::shared_ptr<crypto::Hasher> hasher_ =
       std::make_shared<crypto::HasherImpl>();
 
   std::unique_ptr<BlockTreeImpl> block_tree_;
+
+  const BlockId kLastFinalizedBlockId = kFinalizedBlockHash;
 
   BlockHeader finalized_block_header_{.number = 0, .digests = {{0x11, 0x33}}};
   std::vector<uint8_t> encoded_finalized_block_header_ =
@@ -112,9 +109,8 @@ TEST_F(BlockTreeTest, GetBody) {
   // GIVEN
 
   // WHEN
-  EXPECT_CALL(db_, get(_))
-      .WillOnce(Return(kFinalizedBlockLookupKey))
-      .WillOnce(Return(Buffer{encoded_finalized_block_body_}));
+  EXPECT_CALL(*storage_, getBlockBody(_))
+      .WillOnce(Return(finalized_block_body_));
 
   // THEN
   EXPECT_OUTCOME_TRUE(body, block_tree_->getBlockBody(kLastFinalizedBlockId))
@@ -197,11 +193,8 @@ TEST_F(BlockTreeTest, Finalize) {
 
   Justification justification{{0x45, 0xF4}};
   auto encoded_justification = scale::encode(justification).value();
-  EXPECT_CALL(db_, put(_, _))
-      .Times(2)
+  EXPECT_CALL(*storage_, putJustification(justification, hash, header.number))
       .WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(db_, put(_, Buffer{encoded_justification}))
-      .WillOnce(Return(outcome::success()));
 
   // WHEN
   ASSERT_TRUE(block_tree_->finalize(hash, justification));

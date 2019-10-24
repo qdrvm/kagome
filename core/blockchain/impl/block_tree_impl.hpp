@@ -13,6 +13,7 @@
 
 #include <boost/optional.hpp>
 #include "blockchain/block_header_repository.hpp"
+#include "blockchain/block_storage.hpp"
 #include "blockchain/block_tree.hpp"
 #include "blockchain/impl/common.hpp"
 #include "common/logger.hpp"
@@ -82,7 +83,7 @@ namespace kagome::blockchain {
     /**
      * Create an instance of block tree
      * @param header_repo - block headers repository
-     * @param db for the tree to be put in
+     * @param storage - block storage for the tree to be put in
      * @param last_finalized_block - last finalized block, from which the tree
      * is going to grow
      * @param hasher - pointer to the hasher
@@ -90,7 +91,7 @@ namespace kagome::blockchain {
      */
     static outcome::result<std::unique_ptr<BlockTreeImpl>> create(
         std::shared_ptr<BlockHeaderRepository> header_repo,
-        PersistentBufferMap &db,
+        std::shared_ptr<BlockStorage> storage,
         const primitives::BlockId &last_finalized_block,
         std::shared_ptr<crypto::Hasher> hasher,
         common::Logger log = common::createLogger("BlockTreeImpl"));
@@ -134,15 +135,15 @@ namespace kagome::blockchain {
 
     primitives::BlockHash getLastFinalized() const override;
 
-    void prune() override;
+    outcome::result<void> prune() override;
 
    private:
     /**
-     * Private ctor, so that instances are created only through the factory
+     * Private constructor, so that instances are created only through the factory
      * method
      */
     BlockTreeImpl(std::shared_ptr<BlockHeaderRepository> header_repo,
-                  PersistentBufferMap &db,
+                  std::shared_ptr<BlockStorage> storage,
                   std::shared_ptr<TreeNode> tree,
                   std::shared_ptr<TreeMeta> meta,
                   std::shared_ptr<crypto::Hasher> hasher,
@@ -162,7 +163,7 @@ namespace kagome::blockchain {
     std::vector<primitives::BlockHash> getLeavesSorted() const;
 
     std::shared_ptr<BlockHeaderRepository> header_repo_;
-    PersistentBufferMap &db_;
+    std::shared_ptr<BlockStorage> storage_;
 
     std::shared_ptr<TreeNode> tree_;
     std::shared_ptr<TreeMeta> tree_meta_;
