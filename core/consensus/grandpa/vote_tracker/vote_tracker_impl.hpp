@@ -27,7 +27,7 @@ namespace kagome::consensus::grandpa {
     PushResult push(const SignedPrecommit &vote, size_t weight) override {
       return push(vote,
                   weight,
-                  total_prevotes_,
+                  total_precommits_,
                   single_precommits_,
                   equivocated_precommits_);
     }

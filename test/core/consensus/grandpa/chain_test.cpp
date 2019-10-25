@@ -23,6 +23,7 @@ using kagome::consensus::grandpa::Chain;
 using kagome::consensus::grandpa::ChainImpl;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
+using kagome::primitives::BlockInfo;
 using kagome::primitives::BlockNumber;
 using testing::_;
 using testing::Return;

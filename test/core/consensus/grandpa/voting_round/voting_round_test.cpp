@@ -8,21 +8,34 @@
 #include <gtest/gtest.h>
 #include "core/consensus/grandpa/literals.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+//#include "blockchain/impl/block_tree_impl.hpp"
+#include "mock/core/blockchain/header_repository_mock.hpp"
+//#include "blockchain/impl/key_value_block_header_repository.hpp"
+//#include "storage/in_memory/in_memory_storage.hpp"
 #include "mock/core/clock/clock_mock.hpp"
-#include "mock/core/consensus/grandpa/chain_mock.hpp"
+//#include "mock/core/consensus/grandpa/chain_mock.hpp"
+#include "consensus/grandpa/impl/chain_impl.hpp"
 #include "mock/core/consensus/grandpa/gossiper_mock.hpp"
-#include "mock/core/consensus/grandpa/vote_graph_mock.hpp"
-#include "mock/core/consensus/grandpa/vote_tracker_mock.hpp"
+//#include "mock/core/consensus/grandpa/vote_graph_mock.hpp"
+#include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
+//#include "mock/core/consensus/grandpa/vote_tracker_mock.hpp"
+#include "consensus/grandpa/vote_tracker/vote_tracker_impl.hpp"
 #include "mock/core/crypto/ed25519_provider_mock.hpp"
+#include "mock/core/crypto/hasher_mock.hpp"
 
 using namespace kagome::consensus::grandpa;
 using namespace std::chrono_literals;
 
 using kagome::blockchain::BlockTreeMock;
+using kagome::blockchain::HeaderRepositoryMock;
+// using kagome::blockchain::KeyValueBlockHeaderRepository;
+// using kagome::storage::InMemoryStorage;
+// using kagome::blockchain::BlockTreeImpl;
 using kagome::clock::SteadyClockMock;
 using kagome::crypto::ED25519Keypair;
 using kagome::crypto::ED25519ProviderMock;
 using kagome::crypto::ED25519Signature;
+using kagome::crypto::HasherMock;
 
 using ::testing::Return;
 
@@ -34,6 +47,13 @@ class VotingRoundTest : public ::testing::Test {
     voters_->insert(kEve, kEveWeight);
 
     keypair_.public_key = kAlice;
+
+    EXPECT_CALL(*header_repository_,
+                getBlockHeader(kagome::primitives::BlockId(GENESIS_HASH)))
+        .WillRepeatedly(Return(kagome::primitives::BlockHeader{.number = 1}));
+    chain_ = std::make_shared<ChainImpl>(tree_, header_repository_);
+
+    vote_graph_ = std::make_shared<VoteGraphImpl>(BlockInfo{4, "C"_H}, chain_);
 
     voting_round_ = std::make_shared<VotingRoundImpl>(voters_,
                                                       round_number_,
@@ -57,6 +77,12 @@ class VotingRoundTest : public ::testing::Test {
     return SignedPrevote{.id = id, .signature = sig, .message = prevote};
   }
 
+  SignedPrecommit preparePrecommit(const Id &id,
+                                   const ED25519Signature &sig,
+                                   const Precommit &precommit) {
+    return SignedPrecommit{.id = id, .signature = sig, .message = precommit};
+  }
+
   VoteWeight preparePrevoteWeight(const Id &id) {
     VoteWeight v(voters_->size());
     auto index = voters_->voterIndex(id);
@@ -64,7 +90,42 @@ class VotingRoundTest : public ::testing::Test {
     return v;
   }
 
+  void addBlock(BlockHash parent, BlockHash hash, BlockNumber number) {
+    kagome::primitives::BlockHeader hh;
+    hh.number = number;
+    hh.parent_hash = parent;
+    EXPECT_CALL(*header_repository_,
+                getBlockHeader(kagome::primitives::BlockId(hash)))
+        .WillRepeatedly(Return(hh));
+  };
+
+  void addBlocks(BlockHash parent_hash,
+                 const std::vector<BlockHash> &blocks_hashes) {
+    auto parent_number =
+        header_repository_
+            ->getBlockHeader(kagome::primitives::BlockId(parent_hash))
+            .value()
+            .number;
+
+    auto new_blocks_parent_hash = parent_hash;
+
+    for (const auto &block_hash : blocks_hashes) {
+      //      kagome::primitives::BlockHeader hh;
+      //      hh.number = parent_number + 1;
+      //      hh.parent_hash = parent_hash;
+      //      EXPECT_CALL(*header_repository_,
+      //                  getBlockHeader(kagome::primitives::BlockId(block_hash)))
+      //          .WillRepeatedly(Return(hh));
+      //      parent_hash = block_hash;
+      addBlock(new_blocks_parent_hash, block_hash, ++parent_number);
+
+      new_blocks_parent_hash = block_hash;
+    }
+  }
+
  protected:
+  const BlockHash GENESIS_HASH = "genesis"_H;
+
   const Id kAlice = "Alice"_ID;
   const size_t kAliceWeight = 4;
   const ED25519Signature kAliceSignature = "Alice"_SIG;
@@ -85,15 +146,20 @@ class VotingRoundTest : public ::testing::Test {
 
   RoundState last_round_state_;
   ED25519Keypair keypair_;
-  std::shared_ptr<VoteTrackerMock> vote_tracker_ =
-      std::make_shared<VoteTrackerMock>();
-  std::shared_ptr<VoteGraphMock> vote_graph_ =
-      std::make_shared<VoteGraphMock>();
+
+  std::shared_ptr<HasherMock> hasher_ = std::make_shared<HasherMock>();
+  std::shared_ptr<HeaderRepositoryMock> header_repository_ =
+      std::make_shared<HeaderRepositoryMock>();
+  std::shared_ptr<BlockTreeMock> tree_ = std::make_shared<BlockTreeMock>();
+
+  std::shared_ptr<VoteTrackerImpl> vote_tracker_ =
+      std::make_shared<VoteTrackerImpl>();
+  std::shared_ptr<ChainImpl> chain_;
+  std::shared_ptr<VoteGraphImpl> vote_graph_;
   std::shared_ptr<GossiperMock> gossiper_ = std::make_shared<GossiperMock>();
   std::shared_ptr<ED25519ProviderMock> ed_provider_ =
       std::make_shared<ED25519ProviderMock>();
   std::shared_ptr<SteadyClockMock> clock_ = std::make_shared<SteadyClockMock>();
-  std::shared_ptr<BlockTreeMock> tree_ = std::make_shared<BlockTreeMock>();
 
   boost::asio::io_context io_context_;
 
@@ -108,18 +174,20 @@ ACTION_P(Push, vote_weight) {
 }
 
 TEST_F(VotingRoundTest, EstimateIsValid) {
+  addBlocks(GENESIS_HASH, {"A"_H, "B"_H, "C"_H, "D"_H, "E"_H, "F"_H});
+  addBlocks("E"_H, {"EA"_H, "EB"_H, "EC"_H, "ED"_H});
+  addBlocks("F"_H, {"FA"_H, "FB"_H, "FC"_H});
+
+  //  vote_graph_ = std::make_shared<VoteGraphImpl>(BlockInfo{4, "C"_H},
+  //  chain_);
+
   // Alice votes
   SignedPrevote alice_vote =
       preparePrevote(kAlice, kAliceSignature, Prevote{10, "FC"_H});
 
-  EXPECT_CALL(*vote_tracker_, push(alice_vote, kAliceWeight))
-      .WillOnce(Push(kAliceWeight));
-
-  VoteWeight v_alice = preparePrevoteWeight(kAlice);
-
-  EXPECT_CALL(*vote_graph_, insert(alice_vote.message, v_alice))
-      .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(*vote_tracker_, prevoteWeight()).WillOnce(Return(total_weight));
+  EXPECT_CALL(*tree_, getChainByBlocks("C"_H, "FC"_H))
+      .WillOnce(Return(std::vector<kagome::primitives::BlockHash>{
+          "C"_H, "D"_H, "E"_H, "F"_H, "FA"_H, "FB"_H, "FC"_H}));
 
   voting_round_->onPrevote(alice_vote);
 
@@ -127,29 +195,83 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
   SignedPrevote bob_vote =
       preparePrevote(kBob, kBobSignature, Prevote{10, "ED"_H});
 
-  EXPECT_CALL(*vote_tracker_, push(bob_vote, kBobWeight))
-      .WillOnce(Push(kBobWeight));
-
-  VoteWeight v_bob = preparePrevoteWeight(kBob);
-
-  EXPECT_CALL(*vote_graph_, insert(bob_vote.message, v_bob))
-      .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(*vote_tracker_, prevoteWeight()).WillOnce(Return(total_weight));
+  EXPECT_CALL(*tree_, getChainByBlocks("C"_H, "ED"_H))
+      .WillOnce(Return(std::vector<kagome::primitives::BlockHash>{
+          "C"_H, "D"_H, "E"_H, "EA"_H, "EB"_H, "EC"_H, "ED"_H}));
 
   voting_round_->onPrevote(bob_vote);
 
-  // Eve votes
+  ASSERT_EQ(voting_round_->getCurrentState().prevote_ghost.value(),
+            Prevote(6, "E"_H));
+  ASSERT_EQ(voting_round_->getCurrentState().estimate.value(),
+            BlockInfo(6, "E"_H));
+  ASSERT_FALSE(voting_round_->completable());
+
+  //  // Eve votes
   SignedPrevote eve_vote =
       preparePrevote(kEve, kEveSignature, Prevote{7, "F"_H});
 
-  EXPECT_CALL(*vote_tracker_, push(eve_vote, kEveWeight))
-      .WillOnce(Push(kEveWeight));
-
-  VoteWeight v_eve = preparePrevoteWeight(kEve);
-
-  EXPECT_CALL(*vote_graph_, insert(eve_vote.message, v_eve))
-      .WillOnce(Return(outcome::success()));
-  EXPECT_CALL(*vote_tracker_, prevoteWeight()).WillOnce(Return(total_weight));
-
   voting_round_->onPrevote(eve_vote);
+  ASSERT_EQ(voting_round_->getCurrentState().prevote_ghost.value(),
+            Prevote(6, "E"_H));
+  ASSERT_EQ(voting_round_->getCurrentState().estimate.value(),
+            BlockInfo(6, "E"_H));
+}
+
+TEST_F(VotingRoundTest, Finalization) {
+  addBlocks(GENESIS_HASH, {"A"_H, "B"_H, "C"_H, "D"_H, "E"_H, "F"_H});
+  addBlocks("E"_H, {"EA"_H, "EB"_H, "EC"_H, "ED"_H});
+  addBlocks("F"_H, {"FA"_H, "FB"_H, "FC"_H});
+
+  // Alice precommits
+  EXPECT_CALL(*tree_, getChainByBlocks("C"_H, "FC"_H))
+      .WillRepeatedly(Return(std::vector<kagome::primitives::BlockHash>{
+          "C"_H, "D"_H, "E"_H, "F"_H, "FA"_H, "FB"_H, "FC"_H}));
+
+  voting_round_->onPrecommit(
+      preparePrecommit(kAlice, kAliceSignature, {10, "FC"_H}));
+
+  // Bob precommits
+  EXPECT_CALL(*tree_, getChainByBlocks("C"_H, "ED"_H))
+      .WillRepeatedly(Return(std::vector<kagome::primitives::BlockHash>{
+          "C"_H, "D"_H, "E"_H, "EA"_H, "EB"_H, "EC"_H, "ED"_H}));
+
+  voting_round_->onPrecommit(
+      preparePrecommit(kBob, kBobSignature, {10, "ED"_H}));
+
+  ASSERT_FALSE(voting_round_->getCurrentState().finalized.has_value());
+
+  // import some prevotes.
+  // Alice Prevotes
+  voting_round_->onPrevote(
+      preparePrevote(kAlice, kAliceSignature, {10, "FC"_H}));
+
+  // Bob prevotes
+  voting_round_->onPrevote(preparePrevote(kBob, kBobSignature, {10, "ED"_H}));
+
+  EXPECT_CALL(*tree_, getChainByBlocks("C"_H, "EA"_H))
+      .WillRepeatedly(Return(std::vector<kagome::primitives::BlockHash>{
+          "C"_H, "D"_H, "E"_H, "EA"_H}));
+
+  // Eve prevotes
+  voting_round_->onPrevote(preparePrevote(kEve, kEveSignature, {7, "EA"_H}));
+
+  ASSERT_EQ(voting_round_->getCurrentState().finalized, BlockInfo(6, "E"_H));
+//  ASSERT_EQ(voting_round_->getCurrentState().finalized.value(),
+//            );
+
+  // Eve precommits
+  voting_round_->onPrecommit(
+      preparePrecommit(kEve, kEveSignature, {7, "EA"_H}));
+
+  ASSERT_EQ(voting_round_->getCurrentState().finalized, BlockInfo(7, "EA"_H));
+}
+
+TEST_F(VotingRoundTest, EquivocateDoesNotDoubleCount) {
+  addBlocks(GENESIS_HASH, {"A"_H, "B"_H, "C"_H, "D"_H, "E"_H, "F"_H});
+  addBlocks("E"_H, {"EA"_H, "EB"_H, "EC"_H, "ED"_H});
+  addBlocks("F"_H, {"FA"_H, "FB"_H, "FC"_H});
+
+  // first prevote by eve
+
 }

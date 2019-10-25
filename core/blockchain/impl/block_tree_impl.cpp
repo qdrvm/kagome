@@ -295,7 +295,7 @@ namespace kagome::blockchain {
     return {leaf.depth, leaf.block_hash};
   }
 
-  outcome::result<BlockTree::BlockInfo> BlockTreeImpl::getBestContaining(
+  outcome::result<primitives::BlockInfo> BlockTreeImpl::getBestContaining(
       const primitives::BlockHash &target_hash,
       const boost::optional<primitives::BlockNumber> &max_number) const {
     OUTCOME_TRY(target_header, header_repo_->getBlockHeader(target_hash));
@@ -313,12 +313,12 @@ namespace kagome::blockchain {
         if (header) {
           OUTCOME_TRY(hash,
                       header_repo_->getHashByNumber(header.value().number));
-          return BlockInfo{header.value().number, hash};
+          return primitives::BlockInfo{header.value().number, hash};
         }
       }
     } else {
       OUTCOME_TRY(last_finalized,
-                  header_repo_->getNumberByHash(getLastFinalized()));
+                  header_repo_->getNumberByHash(getLastFinalized().block_hash));
       if (last_finalized >= target_header.number) {
         return Error::BLOCK_ON_DEAD_END;
       }
@@ -334,7 +334,7 @@ namespace kagome::blockchain {
       while (true) {
         OUTCOME_TRY(current_header, header_repo_->getBlockHeader(current_hash));
         if (current_hash == target_hash) {
-          return BlockInfo{current_header.number, best_hash};
+          return primitives::BlockInfo{current_header.number, best_hash};
         }
         if (current_header.number < target_header.number) {
           break;

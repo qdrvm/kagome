@@ -57,7 +57,14 @@ namespace kagome::consensus::grandpa {
 
     void precommit(const RoundState &last_round_state) override;
 
+    inline const RoundState &getCurrentState() const {
+      return cur_round_state_;
+    }
+
+    bool completable() const;
+
    private:
+    bool isPrimary(const Id &id) const;
     bool isPrimary() const;
 
     size_t getThreshold(const std::shared_ptr<VoterSet> &voters);
@@ -73,13 +80,13 @@ namespace kagome::consensus::grandpa {
 
     void update();
 
-    bool completable() const;
-
     outcome::result<SignedPrevote> constructPrevote(
         const RoundState &last_round_state) const;
 
     outcome::result<SignedPrecommit> constructPrecommit(
         const RoundState &last_round_state) const;
+
+    void gossipPrimaryPropose(const SignedPrimaryPropose &primary_propose);
 
     void gossipPrevote(const SignedPrevote &prevote);
 
@@ -89,13 +96,12 @@ namespace kagome::consensus::grandpa {
     crypto::ED25519Signature voteSignature(uint8_t stage,
                                            const VoteType &vote_type) const;
 
+    SignedPrimaryPropose signPrimaryPropose(
+        const PrimaryPropose &primary_propose) const;
+
     SignedPrevote signPrevote(const Prevote &prevote) const;
 
     SignedPrecommit signPrecommit(const Precommit &precommit) const;
-
-    inline auto &getCurrentState() const {
-      return cur_round_state_;
-    }
 
    private:
     std::shared_ptr<VoterSet> voter_set_;
@@ -123,7 +129,7 @@ namespace kagome::consensus::grandpa {
 
     common::Logger logger_;
 
-    boost::optional<BlockInfo> primaty_vote_;
+    boost::optional<PrimaryPropose> primaty_vote_;
     bool completable_{false};
   };
 }  // namespace kagome::consensus::grandpa

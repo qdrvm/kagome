@@ -174,8 +174,12 @@ TEST_F(VoteGraphFixture, GhostMergeNotAtNodeOneSideWeighted) {
     ASSERT_EQ(*ghostOpt, EXPECTED);
   };
 
+  SCOPED_TRACE("None");
   check(boost::none);
-  check(BlockInfo(7, "B"_H));
+  SCOPED_TRACE("F");
+  check(BlockInfo(7, "F"_H));
+  SCOPED_TRACE("C");
   check(BlockInfo(4, "C"_H));
+  SCOPED_TRACE("B");
   check(BlockInfo(3, "B"_H));
 }

@@ -55,9 +55,13 @@ namespace kagome::consensus::grandpa {
     threshold_ = getThreshold(voter_set_);
   }
 
-  bool VotingRoundImpl::isPrimary() const {
+  bool VotingRoundImpl::isPrimary(const Id &id) const {
     auto index = round_number_ % voter_set_->size();
-    return voter_set_->voters().at(index) == keypair_.public_key;
+    return voter_set_->voters().at(index) == id;
+  }
+
+  bool VotingRoundImpl::isPrimary() const {
+    return isPrimary(id_);
   }
 
   size_t VotingRoundImpl::getThreshold(
@@ -109,7 +113,11 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::onPrimaryPropose(
-      const SignedPrimaryPropose &primary_propose) {}
+      const SignedPrimaryPropose &primary_propose) {
+    if (isPrimary(primary_propose.id)) {
+      primaty_vote_ = primary_propose.message;
+    }
+  }
 
   void VotingRoundImpl::onPrevote(const SignedPrevote &prevote) {
     onVote<SignedPrevote>(prevote);
@@ -141,10 +149,11 @@ namespace kagome::consensus::grandpa {
         }
 
         if constexpr (std::is_same_v<VoteType, SignedPrevote>) {
-          v.prevotes[index.value()] = true;
+          v.prevotes[index.value()] = voter_set_->voterWeight(vote.id).value();
         }
         if constexpr (std::is_same_v<VoteType, SignedPrecommit>) {
-          v.precommits[index.value()] = true;
+          v.precommits[index.value()] =
+              voter_set_->voterWeight(vote.id).value();
         }
 
         if (auto inserted = graph_->insert(vote.message, v); not inserted) {
@@ -174,17 +183,19 @@ namespace kagome::consensus::grandpa {
 
   void VotingRoundImpl::updatePrevoteGhost() {
     if (tracker_->prevoteWeight() >= threshold_) {
-      const auto &prevote_ghost = cur_round_state_.prevote_ghost;
+      const auto &ghost_block_info =
+          cur_round_state_.prevote_ghost.map([](const Prevote &prevote) {
+            return BlockInfo{prevote.block_number, prevote.block_hash};
+          });
       cur_round_state_.prevote_ghost =
           graph_
-              ->findGhost(BlockInfo{prevote_ghost->block_number,
-                                    prevote_ghost->block_hash},
+              ->findGhost(ghost_block_info,
                           [this](const VoteWeight &vote_weight) {
                             return vote_weight.totalWeight().prevote
                                    >= threshold_;
                           })
               // convert block info to prevote
-              .map([](BlockInfo &&ghost) {
+              .map([](const BlockInfo &ghost) {
                 return Prevote{ghost.block_number, ghost.block_hash};
               });
     }
@@ -215,12 +226,12 @@ namespace kagome::consensus::grandpa {
           if (should_send_primary) {
             logger_->debug("Sending primary block hint for round {}",
                            round_number_);
-            primaty_vote_ = maybe_estimate;
+            primaty_vote_ = maybe_estimate.map([](const auto &estimate) {
+              return PrimaryPropose{estimate.block_number, estimate.block_hash};
+            });
 
-            gossiper_->fin(Fin{.vote = primaty_vote_.value(),
-                               .round_number = round_number_ - 1,
-                               .justification = tracker_->getJustification(
-                                   maybe_estimate.value())});
+            gossipPrimaryPropose(signPrimaryPropose(primaty_vote_.value()));
+
             state_ = State::PROPOSED;
           }
         } else {
@@ -242,8 +253,7 @@ namespace kagome::consensus::grandpa {
     auto handle_prevote = [this, last_round_state](auto &&ec) {
       // Return if error is not caused by timer cancellation
       if (ec and ec != boost::asio::error::operation_aborted) {
-        logger_->error("Error happened during precommit timer: {}",
-                       ec.message());
+        logger_->error("Error happened during prevote timer: {}", ec.message());
         return;
       }
       switch (state_) {
@@ -328,6 +338,10 @@ namespace kagome::consensus::grandpa {
     // find the block that we should take descendent from
     auto find_descendent_of =
         primaty_vote_
+            .map([](const PrimaryPropose &primary_propose) {
+              return BlockInfo(primary_propose.block_number,
+                               primary_propose.block_hash);
+            })
             .map([&](const BlockInfo &primary) {
               // if we have primary_vote then:
               // if last prevote is the same as primary vote, then return it
@@ -409,14 +423,14 @@ namespace kagome::consensus::grandpa {
     // 2/3+ prevote and precommit weight.
     auto current_precommits = tracker_->precommitWeight();
 
-    if (current_precommits > threshold_) {
+    if (current_precommits >= threshold_) {
       cur_round_state_.finalized = graph_->findAncestor(
           BlockInfo{
               prevote_ghost.block_number,
               prevote_ghost.block_hash,
           },
           [this](const VoteWeight &vote_weight) {
-            return vote_weight.totalWeight().precommit > threshold_;
+            return vote_weight.totalWeight().precommit >= threshold_;
           });
     }
 
@@ -443,6 +457,15 @@ namespace kagome::consensus::grandpa {
             .value_or(false);
   }
 
+  void VotingRoundImpl::gossipPrimaryPropose(
+      const SignedPrimaryPropose &primary_propose) {
+    VoteMessage message{.vote = primary_propose,
+                        .round_number = round_number_,
+                        .counter = counter_,
+                        .id = id_};
+    gossiper_->vote(message);
+  }
+
   void VotingRoundImpl::gossipPrevote(const SignedPrevote &prevote) {
     VoteMessage message{.vote = prevote,
                         .round_number = round_number_,
@@ -467,10 +490,23 @@ namespace kagome::consensus::grandpa {
     return ed_provider_->sign(keypair_, payload).value();
   }
 
+  template crypto::ED25519Signature
+  VotingRoundImpl::voteSignature<PrimaryPropose>(uint8_t,
+                                                 const PrimaryPropose &) const;
   template crypto::ED25519Signature VotingRoundImpl::voteSignature<Prevote>(
       uint8_t, const Prevote &) const;
   template crypto::ED25519Signature VotingRoundImpl::voteSignature<Precommit>(
       uint8_t, const Precommit &) const;
+
+  SignedPrimaryPropose VotingRoundImpl::signPrimaryPropose(
+      const PrimaryPropose &primary_propose) const {
+    const static uint8_t primary_propose_stage = 2;
+
+    return SignedPrimaryPropose{
+        .message = primary_propose,
+        .id = id_,
+        .signature = voteSignature(primary_propose_stage, primary_propose)};
+  }
 
   SignedPrevote VotingRoundImpl::signPrevote(const Prevote &prevote) const {
     const static uint8_t prevote_stage = 0;

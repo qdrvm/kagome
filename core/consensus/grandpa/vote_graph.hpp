@@ -79,7 +79,7 @@ namespace kagome::consensus::grandpa {
     /// Find the highest block which is either an ancestor of or equal to the
     /// given, which fulfills a condition.
     virtual boost::optional<BlockInfo> findAncestor(
-        const BlockInfo &block, const Condition &condition) = 0;
+        const BlockInfo &block, const Condition &condition) const = 0;
 
     /// Find the best GHOST descendent of the given block.
     /// Pass a closure used to evaluate the cumulative vote value.
@@ -96,7 +96,7 @@ namespace kagome::consensus::grandpa {
     /// condition.
     virtual boost::optional<BlockInfo> findGhost(
         const boost::optional<BlockInfo> &current_best,
-        const Condition &condition) = 0;
+        const Condition &condition) const = 0;
   };
 
 }  // namespace kagome::consensus::grandpa
