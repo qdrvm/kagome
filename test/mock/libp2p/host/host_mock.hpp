@@ -6,7 +6,7 @@
 #ifndef LIBP2P_HOST_MOCK_HPP
 #define LIBP2P_HOST_MOCK_HPP
 
-#include "../../../../../../../../../Library/Developer/CommandLineTools/usr/include/c++/v1/vector"
+#include <vector>
 
 #include <gmock/gmock.h>
 #include <libp2p/host/host.hpp>
