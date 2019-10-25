@@ -16,6 +16,6 @@ hunter_config(sr25519
     )
 
 hunter_config(libp2p
-    URL https://github.com/soramitsu/libp2p/archive/feature/hide-outcome.zip
-    SHA1 fe3d81e35442d9d21ae7afc752dd5d999886499b
+    URL https://github.com/soramitsu/libp2p/archive/master.zip
+    SHA1 bc5b3484995db525f21ef202acc33f38bf83e674
     )
