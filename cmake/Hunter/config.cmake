@@ -15,6 +15,12 @@ hunter_config(sr25519
     SHA1 3005d79b23b92ff27848c24a7751543a03a2dd13
     )
 
+hunter_config(
+    spdlog
+    URL https://github.com/gabime/spdlog/archive/v1.x.zip
+    SHA1 086e9f8e3708024d5765fa5f94695819b223be23
+)
+
 hunter_config(libp2p
     URL https://github.com/soramitsu/libp2p/archive/master.zip
     SHA1 bc5b3484995db525f21ef202acc33f38bf83e674

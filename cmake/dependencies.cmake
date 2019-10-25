@@ -52,5 +52,9 @@ find_package(Microsoft.GSL CONFIG REQUIRED)
 hunter_add_package(sr25519)
 find_package(sr25519 REQUIRED)
 
+# https://docs.hunter.sh/en/latest/packages/pkg/spdlog.html
+hunter_add_package(spdlog)
+find_package(spdlog CONFIG REQUIRED)
+
 hunter_add_package(libp2p)
 find_package(libp2p REQUIRED)
