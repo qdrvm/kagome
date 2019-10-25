@@ -13,6 +13,6 @@ target_link_libraries(synchronizer
     logger
     outcome
     buffer
-    libp2p_peer_id
+    p2p::p2p_peer_id
     scale_message_read_writer
     )

@@ -6,9 +6,9 @@
 #include "network/rpc.hpp"
 
 #include <gtest/gtest.h>
-#include "mock/core/libp2p/basic/read_writer_mock.hpp"
-#include "mock/core/libp2p/connection/stream_mock.hpp"
-#include "mock/core/libp2p/host/host_mock.hpp"
+#include "mock/libp2p/basic/read_writer_mock.hpp"
+#include "mock/libp2p/connection/stream_mock.hpp"
+#include "mock/libp2p/host/host_mock.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/types/blocks_response.hpp"
 #include "scale/scale.hpp"
@@ -40,7 +40,7 @@ class RpcLibp2pTest : public testing::Test {
   // we are not interested in the exact semantics, so let BlocksResponse be both
   // request and response
   BlocksResponse request_{1}, response_{2};
-  common::Buffer encoded_request_{scale::encode(request_).value()},
+  kagome::common::Buffer encoded_request_{scale::encode(request_).value()},
       encoded_response_{scale::encode(response_).value()};
 };
 
@@ -79,7 +79,7 @@ TEST_F(RpcLibp2pTest, ReadWithResponseErroredResponse) {
       read_writer_,
       [this](auto &&received_request) {
         EXPECT_EQ(received_request.id, request_.id);
-        return outcome::failure(boost::system::error_code{});
+        return ::outcome::failure(boost::system::error_code{});
       },
       [&finished](auto &&err) mutable { finished = true; });
 
@@ -144,7 +144,7 @@ TEST_F(RpcLibp2pTest, WriteWithResponseErroredResponse) {
   setWriteExpectations(stream_, encoded_request_.toVector());
   EXPECT_CALL(*stream_, read(_, _, _))
       .WillOnce(testing::InvokeArgument<2>(
-          outcome::failure(boost::system::error_code{})));
+          ::outcome::failure(boost::system::error_code{})));
 
   auto finished = false;
   ScaleRPC::write<BlocksResponse, BlocksResponse>(

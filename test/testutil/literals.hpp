@@ -6,12 +6,12 @@
 #ifndef KAGOME_TEST_TESTUTIL_LITERALS_HPP_
 #define KAGOME_TEST_TESTUTIL_LITERALS_HPP_
 
+#include <libp2p/multi/multiaddress.hpp>
+#include <libp2p/multi/multihash.hpp>
+#include <libp2p/peer/peer_id.hpp>
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "common/hexutil.hpp"
-#include "libp2p/multi/multiaddress.hpp"
-#include "libp2p/multi/multihash.hpp"
-#include "libp2p/peer/peer_id.hpp"
 
 /// creates a buffer filled with characters from the original string
 /// mind that it does not perform unhexing, there is ""_unhex for it
@@ -51,9 +51,13 @@ inline libp2p::multi::Multihash operator""_multihash(const char *c, size_t s) {
 }
 
 inline libp2p::peer::PeerId operator""_peerid(const char *c, size_t s) {
-  libp2p::crypto::PublicKey p;
-  p.data = std::vector<uint8_t>(c, c + s);
-  return libp2p::peer::PeerId::fromPublicKey(p);
+  //  libp2p::crypto::PublicKey p;
+  auto data = std::vector<uint8_t>(c, c + s);
+  libp2p::crypto::ProtobufKey pb_key(std::move(data));
+
+  using libp2p::peer::PeerId;
+
+  return PeerId::fromPublicKey(pb_key).value();
 }
 
 #endif  // KAGOME_TEST_TESTUTIL_LITERALS_HPP_

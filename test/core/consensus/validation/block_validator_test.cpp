@@ -13,7 +13,7 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/vrf_provider_mock.hpp"
 #include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
-#include "mock/core/libp2p/crypto/random_generator_mock.hpp"
+#include "mock/libp2p/crypto/random_generator_mock.hpp"
 #include "scale/scale.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/primitives/hash_creator.hpp"

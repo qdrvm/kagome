@@ -51,3 +51,6 @@ find_package(Microsoft.GSL CONFIG REQUIRED)
 # not in hunter, added in cmake/Hunter/config.cmake
 hunter_add_package(sr25519)
 find_package(sr25519 REQUIRED)
+
+hunter_add_package(libp2p)
+find_package(libp2p REQUIRED)

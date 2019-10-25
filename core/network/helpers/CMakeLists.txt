@@ -8,6 +8,6 @@ add_library(scale_message_read_writer
     scale_message_read_writer.cpp
     )
 target_link_libraries(scale_message_read_writer
-    message_read_writer
+    p2p::p2p_message_read_writer
     scale
     )

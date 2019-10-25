@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_MESSAGE_READ_WRITER_HELPER_HPP
-#define KAGOME_MESSAGE_READ_WRITER_HELPER_HPP
+#ifndef LIBP2P_MESSAGE_READ_WRITER_HELPER_HPP
+#define LIBP2P_MESSAGE_READ_WRITER_HELPER_HPP
 
 #include <memory>
 #include <vector>
 
-#include "mock/core/libp2p/basic/read_writer_mock.hpp"
-#include "mock/core/libp2p/connection/stream_mock.hpp"
+#include "mock/libp2p/basic/read_writer_mock.hpp"
+#include "mock/libp2p/connection/stream_mock.hpp"
 
 /**
  * Basically, methods in this file do the same thing as
@@ -41,4 +41,4 @@ namespace libp2p::basic {
       std::vector<uint8_t> msg);
 }  // namespace libp2p::basic
 
-#endif  // KAGOME_MESSAGE_READ_WRITER_HELPER_HPP
+#endif  // LIBP2P_MESSAGE_READ_WRITER_HELPER_HPP

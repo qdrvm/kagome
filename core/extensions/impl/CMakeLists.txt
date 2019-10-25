@@ -8,7 +8,7 @@ add_library(crypto_extension
     )
 target_link_libraries(crypto_extension
     blake2
-    random_generator
+    p2p::p2p_random_generator
     sr25519_provider
     ed25519_provider
     twox
