@@ -9,7 +9,7 @@ addtest(voting_round_test
 
 target_link_libraries(voting_round_test
     voting_round
-    grandpa_chain
+    chain
     vote_graph
     vote_tracker
     blob

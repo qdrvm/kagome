@@ -54,9 +54,6 @@ namespace kagome::blockchain {
     MOCK_CONST_METHOD0(getLastFinalized, primitives::BlockInfo());
 
     MOCK_METHOD0(prune, outcome::result<void>());
-
-    MOCK_CONST_METHOD1(finalityTarget,
-                       primitives::BlockInfo(const primitives::BlockHash &));
   };
 }  // namespace kagome::blockchain
 

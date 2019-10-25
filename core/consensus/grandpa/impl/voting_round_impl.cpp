@@ -19,7 +19,8 @@ namespace kagome::consensus::grandpa {
       MembershipCounter counter,
       RoundState last_round_state,
       crypto::ED25519Keypair keypair,
-      std::shared_ptr<VoteTracker> tracker,
+      std::shared_ptr<VoteTracker<Prevote>> prevotes,
+      std::shared_ptr<VoteTracker<Precommit>> precommits,
       std::shared_ptr<VoteGraph> graph,
       std::shared_ptr<Gossiper> gossiper,
       std::shared_ptr<crypto::ED25519Provider> ed_provider,
@@ -36,7 +37,8 @@ namespace kagome::consensus::grandpa {
         keypair_{keypair},
         id_{keypair_.public_key},
         state_{State::START},
-        tracker_{std::move(tracker)},
+        prevotes_{std::move(prevotes)},
+        precommits_{std::move(precommits)},
         graph_{std::move(graph)},
         gossiper_{std::move(gossiper)},
         ed_provider_{std::move(ed_provider)},
@@ -45,7 +47,8 @@ namespace kagome::consensus::grandpa {
         timer_{std::move(timer)},
         logger_{std::move(logger)} {
     BOOST_ASSERT(voter_set_ != nullptr);
-    BOOST_ASSERT(tracker_ != nullptr);
+    BOOST_ASSERT(prevotes_ != nullptr);
+    BOOST_ASSERT(precommits_ != nullptr);
     BOOST_ASSERT(graph_ != nullptr);
     BOOST_ASSERT(gossiper_ != nullptr);
     BOOST_ASSERT(ed_provider_ != nullptr);
@@ -83,6 +86,21 @@ namespace kagome::consensus::grandpa {
     }
   }
 
+  /// This voter also implements the commit protocol.
+  /// The commit protocol allows a node to broadcast a message that finalizes a
+  /// given block and includes a set of precommits as proof.
+  ///
+  /// - When a round is completable and we precommitted we start a commit timer
+  /// and start accepting commit messages;
+  /// - When we receive a commit message if it targets a block higher than what
+  /// we've finalized we validate it and import its precommits if valid;
+  /// - When our commit timer triggers we check if we've received any commit
+  /// message for a block equal to what we've finalized, if we haven't then we
+  /// broadcast a commit.
+  ///
+  /// Additionally, we also listen to commit messages from rounds that aren't
+  /// currently running, we validate the commit and dispatch a finalization
+  /// notification (if any) to the environment.
   void VotingRoundImpl::tryFinalize() {
     auto l = block_tree_->getLastFinalized();
 
@@ -93,7 +111,14 @@ namespace kagome::consensus::grandpa {
     }
 
     if (e->block_number > l.block_number) {
-      auto justification = tracker_->getJustification(*e);
+      const auto &opt_justification = finalizingPrecommits(e.value());
+      if (not opt_justification) {
+        logger_->warn("No justification for block  <{}, {}>",
+                      e->block_number,
+                      e->block_hash.toHex());
+      }
+
+      auto justification = opt_justification.value();
 
       primitives::Justification kagome_just{
           .data = common::Buffer{scale::encode(justification).value()}};
@@ -120,24 +145,23 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::onPrevote(const SignedPrevote &prevote) {
-    onVote<SignedPrevote>(prevote);
+    onSignedPrevote(prevote);
     updatePrevoteGhost();
     update();
   }
 
   void VotingRoundImpl::onPrecommit(const SignedPrecommit &precommit) {
-    onVote<SignedPrecommit>(precommit);
+    onSignedPrecommit(precommit);
     update();
   }
 
-  template <typename VoteType>
-  void VotingRoundImpl::onVote(const VoteType &vote) {
+  void VotingRoundImpl::onSignedPrevote(const SignedPrevote &vote) {
     auto weight = voter_set_->voterWeight(vote.id);
     if (not weight) {
       return;
     }
-    switch (tracker_->push(vote, weight.value())) {
-      case VoteTracker::PushResult::SUCCESS: {
+    switch (prevotes_->push(vote, weight.value())) {
+      case VoteTracker<Prevote>::PushResult::SUCCESS: {
         const auto &voters = voter_set_->voters();
 
         // prepare VoteWeight which contains index of who has voted and what
@@ -148,13 +172,7 @@ namespace kagome::consensus::grandpa {
           return;
         }
 
-        if constexpr (std::is_same_v<VoteType, SignedPrevote>) {
-          v.prevotes[index.value()] = voter_set_->voterWeight(vote.id).value();
-        }
-        if constexpr (std::is_same_v<VoteType, SignedPrecommit>) {
-          v.precommits[index.value()] =
-              voter_set_->voterWeight(vote.id).value();
-        }
+        v.prevotes[index.value()] = voter_set_->voterWeight(vote.id).value();
 
         if (auto inserted = graph_->insert(vote.message, v); not inserted) {
           logger_->warn("Vote {} was not inserted with error: {}",
@@ -163,26 +181,66 @@ namespace kagome::consensus::grandpa {
         }
         break;
       }
-      case VoteTracker::PushResult::DUPLICATE: {
+      case VoteTracker<Prevote>::PushResult::DUPLICATED: {
         break;
       }
-      case VoteTracker::PushResult::EQUIVOCATED: {
+      case VoteTracker<Prevote>::PushResult::EQUIVOCATED: {
         // TODO (kamilsa): handle equivocated case
         break;
       }
     }
 
+    // TODO: we use same timer in prevote and precommit. Might be trouble take a
+    // look on that
     if (completable() and clock_->now() < timer_.expires_at()) {
       timer_.cancel();
     }
   }
 
-  template void VotingRoundImpl::onVote<SignedPrevote>(const SignedPrevote &);
-  template void VotingRoundImpl::onVote<SignedPrecommit>(
-      const SignedPrecommit &);
+  void VotingRoundImpl::onSignedPrecommit(const SignedPrecommit &vote) {
+    auto weight = voter_set_->voterWeight(vote.id);
+    if (not weight) {
+      return;
+    }
+    switch (precommits_->push(vote, weight.value())) {
+      case VoteTracker<Precommit>::PushResult::SUCCESS: {
+        const auto &voters = voter_set_->voters();
+
+        // prepare VoteWeight which contains index of who has voted and what
+        // kind of vote it was
+        VoteWeight v{voters.size()};
+        auto index = voter_set_->voterIndex(vote.id);
+        if (not index) {
+          return;
+        }
+
+        v.precommits[index.value()] = voter_set_->voterWeight(vote.id).value();
+
+        if (auto inserted = graph_->insert(vote.message, v); not inserted) {
+          logger_->warn("Vote {} was not inserted with error: {}",
+                        vote.message.block_hash.toHex(),
+                        inserted.error().message());
+        }
+        break;
+      }
+      case VoteTracker<Precommit>::PushResult::DUPLICATED: {
+        break;
+      }
+      case VoteTracker<Precommit>::PushResult::EQUIVOCATED: {
+        // TODO (kamilsa): handle equivocated case
+        break;
+      }
+    }
+
+    // TODO: we use same timer in precommit and precommit. Might be trouble take
+    // a look on that
+    if (completable() and clock_->now() < timer_.expires_at()) {
+      timer_.cancel();
+    }
+  }
 
   void VotingRoundImpl::updatePrevoteGhost() {
-    if (tracker_->prevoteWeight() >= threshold_) {
+    if (prevotes_->getTotalWeight() >= threshold_) {
       const auto &ghost_block_info =
           cur_round_state_.prevote_ghost.map([](const Prevote &prevote) {
             return BlockInfo{prevote.block_number, prevote.block_hash};
@@ -409,7 +467,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::update() {
-    if (tracker_->prevoteWeight() < threshold_) {
+    if (prevotes_->getTotalWeight() < threshold_) {
       return;
     }
 
@@ -421,7 +479,7 @@ namespace kagome::consensus::grandpa {
 
     // anything new finalized? finalized blocks are those which have both
     // 2/3+ prevote and precommit weight.
-    auto current_precommits = tracker_->precommitWeight();
+    auto current_precommits = precommits_->getTotalWeight();
 
     if (current_precommits >= threshold_) {
       cur_round_state_.finalized = graph_->findAncestor(
@@ -434,7 +492,7 @@ namespace kagome::consensus::grandpa {
           });
     }
 
-    if (tracker_->precommitWeight() >= threshold_) {
+    if (precommits_->getTotalWeight() >= threshold_) {
       cur_round_state_.estimate = graph_->findAncestor(
           BlockInfo{prevote_ghost.block_number, prevote_ghost.block_hash},
           [this](const VoteWeight &v) {
@@ -455,6 +513,12 @@ namespace kagome::consensus::grandpa {
                          });
             })
             .value_or(false);
+  }
+
+  boost::optional<Justification> VotingRoundImpl::finalizingPrecommits(
+      const BlockInfo &estimate) const {
+    // TODO: implement
+    return Justification();
   }
 
   void VotingRoundImpl::gossipPrimaryPropose(

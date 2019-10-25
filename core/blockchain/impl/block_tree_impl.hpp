@@ -135,9 +135,6 @@ namespace kagome::blockchain {
 
     primitives::BlockInfo getLastFinalized() const override;
 
-    primitives::BlockInfo finalityTarget(
-        const primitives::BlockHash &target_hash) const override;
-
     outcome::result<void> prune() override;
 
    private:

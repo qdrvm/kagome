@@ -153,13 +153,6 @@ namespace kagome::blockchain {
     virtual primitives::BlockInfo getLastFinalized() const = 0;
 
     /**
-     * Get the best descendant of \param target_hash that we should attempt to
-     * finalize next
-     */
-    virtual primitives::BlockInfo finalityTarget(
-        const primitives::BlockHash &target_hash) const = 0;
-
-    /**
      * Prune the tree in both memory and storage, removing all blocks, which are
      * not descendants of the finalized blocks
      *

@@ -23,13 +23,13 @@ namespace kagome::consensus::grandpa {
       return PushResult::SUCCESS;
     }
     auto &equivotes = vote_it->second;
-    bool isDuplicate =
-        std::find_if(equivotes.begin(),
-                     equivotes.end(),
-                     [&vote](auto const &prevote) {
-                       return prevote.message.hash == vote.message.hash;
-                     })
-        != equivotes.end();
+    bool isDuplicate = std::find_if(equivotes.begin(),
+                                    equivotes.end(),
+                                    [&vote](auto const &prevote) {
+                                      return prevote.message.block_hash
+                                             == vote.message.block_hash;
+                                    })
+                       != equivotes.end();
     if (not isDuplicate && equivotes.size() < 2) {
       equivotes.push_back(vote);
       total_weight_ += weight;

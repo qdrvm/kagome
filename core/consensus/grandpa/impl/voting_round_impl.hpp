@@ -30,7 +30,8 @@ namespace kagome::consensus::grandpa {
                     MembershipCounter counter,
                     RoundState last_round_state,
                     crypto::ED25519Keypair keypair,
-                    std::shared_ptr<VoteTracker> tracker,
+                    std::shared_ptr<VoteTracker<Prevote>> prevotes,
+                    std::shared_ptr<VoteTracker<Precommit>> precommits,
                     std::shared_ptr<VoteGraph> graph,
                     std::shared_ptr<Gossiper> gossiper,
                     std::shared_ptr<crypto::ED25519Provider> ed_provider,
@@ -76,9 +77,16 @@ namespace kagome::consensus::grandpa {
     template <typename VoteType>
     void onVote(const VoteType &vote);
 
+    void onSignedPrevote(const SignedPrevote& vote);
+
+    void onSignedPrecommit(const SignedPrecommit& vote);
+
     void updatePrevoteGhost();
 
     void update();
+
+    boost::optional<Justification> finalizingPrecommits(
+        const BlockInfo &estimate) const;
 
     outcome::result<SignedPrevote> constructPrevote(
         const RoundState &last_round_state) const;
@@ -116,7 +124,8 @@ namespace kagome::consensus::grandpa {
     State state_;
     size_t threshold_;
 
-    std::shared_ptr<VoteTracker> tracker_;
+    std::shared_ptr<VoteTracker<Prevote>> prevotes_;
+    std::shared_ptr<VoteTracker<Precommit>> precommits_;
     std::shared_ptr<VoteGraph> graph_;
 
     std::shared_ptr<Gossiper> gossiper_;

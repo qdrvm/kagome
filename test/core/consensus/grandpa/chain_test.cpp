@@ -103,10 +103,10 @@ TEST_F(ChainTest, Ancestry) {
 TEST_F(ChainTest, BestChainContaining) {
   auto h = mockTree();
   EXPECT_CALL(*tree, getBestContaining(_, _))
-      .WillOnce(Return(BlockTree::BlockInfo{42, h[3]}));
+      .WillOnce(Return(BlockInfo{42, h[3]}));
   EXPECT_OUTCOME_TRUE(r, chain->bestChainContaining(h[2]));
 
-  ASSERT_EQ(h[3], r.hash);
+  ASSERT_EQ(h[3], r.block_hash);
 }
 
 /**

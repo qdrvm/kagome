@@ -19,7 +19,7 @@
 //#include "mock/core/consensus/grandpa/vote_graph_mock.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 //#include "mock/core/consensus/grandpa/vote_tracker_mock.hpp"
-#include "consensus/grandpa/vote_tracker/vote_tracker_impl.hpp"
+#include "consensus/grandpa/impl/vote_tracker_impl.hpp"
 #include "mock/core/crypto/ed25519_provider_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 
@@ -62,7 +62,8 @@ class VotingRoundTest : public ::testing::Test {
                                                       counter_,
                                                       last_round_state_,
                                                       keypair_,
-                                                      vote_tracker_,
+                                                      prevotes_,
+                                                      precommits_,
                                                       vote_graph_,
                                                       gossiper_,
                                                       ed_provider_,
@@ -152,8 +153,11 @@ class VotingRoundTest : public ::testing::Test {
       std::make_shared<HeaderRepositoryMock>();
   std::shared_ptr<BlockTreeMock> tree_ = std::make_shared<BlockTreeMock>();
 
-  std::shared_ptr<VoteTrackerImpl> vote_tracker_ =
-      std::make_shared<VoteTrackerImpl>();
+  std::shared_ptr<VoteTrackerImpl<Prevote>> prevotes_ =
+      std::make_shared<VoteTrackerImpl<Prevote>>();
+  std::shared_ptr<VoteTrackerImpl<Precommit>> precommits_ =
+      std::make_shared<VoteTrackerImpl<Precommit>>();
+
   std::shared_ptr<ChainImpl> chain_;
   std::shared_ptr<VoteGraphImpl> vote_graph_;
   std::shared_ptr<GossiperMock> gossiper_ = std::make_shared<GossiperMock>();
@@ -167,11 +171,6 @@ class VotingRoundTest : public ::testing::Test {
 };
 
 size_t total_weight = 0;
-
-ACTION_P(Push, vote_weight) {
-  total_weight += vote_weight;
-  return VoteTracker::PushResult::SUCCESS;
-}
 
 TEST_F(VotingRoundTest, EstimateIsValid) {
   addBlocks(GENESIS_HASH, {"A"_H, "B"_H, "C"_H, "D"_H, "E"_H, "F"_H});

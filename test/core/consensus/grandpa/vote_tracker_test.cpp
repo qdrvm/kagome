@@ -33,7 +33,7 @@ class VoteTrackerTest : public testing::Test {
   SignedMessage<Message> createMessage(const Id &id, const Hash256 &hash) {
     SignedMessage<Message> m;
     m.id = id;
-    m.message.hash = hash;
+    m.message.block_hash = hash;
     return m;
   }
 
@@ -98,7 +98,8 @@ TYPED_TEST_P(VoteTrackerTest, GetMessages) {
                              messages.end(),
                              [&m](auto &v) {
                                return m.id == v.id
-                                      && m.message.hash == v.message.hash;
+                                      && m.message.block_hash
+                                             == v.message.block_hash;
                              })
                 != messages.end());
   }
