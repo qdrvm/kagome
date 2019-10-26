@@ -52,7 +52,7 @@ target_link_libraries(vrf_provider
     sr25519_types
     buffer
     blob
-    random_generator # generator from libp2p
+    p2p::p2p_random_generator # generator from libp2p
     )
 
 add_library(sr25519_provider
@@ -61,7 +61,7 @@ add_library(sr25519_provider
     sr25519/sr25519_provider_impl.cpp
     )
 target_link_libraries(sr25519_provider
-    random_generator # generator from libp2p
+    p2p::p2p_random_generator # generator from libp2p
     sr25519_types
     )
 
@@ -71,7 +71,7 @@ add_library(ed25519_provider
     ed25519/ed25519_provider_impl.cpp
     )
 target_link_libraries(ed25519_provider
-    random_generator # generator from libp2p
+    p2p::p2p_random_generator # generator from libp2p
     ed25519_types
     )
 

@@ -110,7 +110,6 @@ include_directories(
 include_directories(
   SYSTEM
   # system includes
-  deps/spdlog/include
   deps/GSL/include
   deps/outcome
   deps/sml/include

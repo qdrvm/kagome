@@ -11,7 +11,7 @@
 #include <boost/optional.hpp>
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/blockchain/header_repository_mock.hpp"
-#include "mock/core/libp2p/host/host_mock.hpp"
+#include "mock/libp2p/host/host_mock.hpp"
 #include "primitives/block.hpp"
 #include "testutil/gmock_actions.hpp"
 #include "testutil/literals.hpp"
@@ -85,9 +85,9 @@ TEST_F(SynchronizerTest, ProcessRequest) {
       .WillOnce(Return(block2_.body));
 
   EXPECT_CALL(*tree_, getBlockJustification(BlockId{block1_hash_}))
-      .WillOnce(Return(outcome::failure(boost::system::error_code{})));
+      .WillOnce(Return(::outcome::failure(boost::system::error_code{})));
   EXPECT_CALL(*tree_, getBlockJustification(BlockId{block2_hash_}))
-      .WillOnce(Return(outcome::failure(boost::system::error_code{})));
+      .WillOnce(Return(::outcome::failure(boost::system::error_code{})));
 
   // WHEN
   EXPECT_OUTCOME_TRUE(response,
