@@ -17,11 +17,11 @@ hunter_config(sr25519
 
 hunter_config(
     spdlog
-    URL https://github.com/gabime/spdlog/archive/v1.x.zip
-    SHA1 086e9f8e3708024d5765fa5f94695819b223be23
+    URL https://github.com/gabime/spdlog/archive/v1.4.2.zip
+    SHA1 4b10e9aa17f7d568e24f464b48358ab46cb6f39c
 )
 
 hunter_config(libp2p
-    URL https://github.com/soramitsu/libp2p/archive/master.zip
-    SHA1 bc5b3484995db525f21ef202acc33f38bf83e674
+    URL https://github.com/soramitsu/libp2p/archive/dad84a03a9651c7c2bb8a8f17d0e5ea67bd10b4f.zip
+    SHA1 860742c6e3e9736d68b392513d795e09572780aa
     )
