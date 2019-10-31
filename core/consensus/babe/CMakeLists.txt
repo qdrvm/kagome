@@ -10,5 +10,5 @@ add_library(babe_error
     babe_error.hpp
     )
 target_link_libraries(babe_error
-    outcome
+    Boost::boost
     )

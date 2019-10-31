@@ -4,7 +4,6 @@ add_library(hexutil
     )
 target_link_libraries(hexutil
     Boost::boost
-    outcome
     )
 kagome_install(hexutil)
 

@@ -15,13 +15,12 @@ add_library(transaction_pool_error
     transaction_pool_error.cpp
     )
 target_link_libraries(transaction_pool_error
-    outcome
+    Boost::boost
     )
 
 add_library(transaction_pool
     impl/transaction_pool_impl.cpp)
 target_link_libraries(transaction_pool
-    outcome
     pool_moderator
     logger
     blob

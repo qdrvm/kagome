@@ -28,5 +28,5 @@ add_library(block_tree_error
     impl/block_tree_error.cpp
     )
 target_link_libraries(block_tree_error
-    outcome
+    Boost::boost
     )

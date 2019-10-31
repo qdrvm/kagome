@@ -24,7 +24,6 @@ target_link_libraries(babe
     logger
     scale
     blob
-    outcome
     p2p::p2p_peer_id
     primitives
     )

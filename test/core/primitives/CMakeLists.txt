@@ -9,7 +9,6 @@ addtest(primitives_test
 
 target_link_libraries(primitives_test
     buffer
-    outcome
     primitives
     scale
     testutil_primitives_generator

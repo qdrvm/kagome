@@ -9,7 +9,6 @@ add_library(block_validator
     babe_block_validator.hpp
     )
 target_link_libraries(block_validator
-    outcome
     vrf_provider
     hasher
     tagged_transaction_queue
