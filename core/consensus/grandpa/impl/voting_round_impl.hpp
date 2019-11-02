@@ -32,6 +32,7 @@ namespace kagome::consensus::grandpa {
                     crypto::ED25519Keypair keypair,
                     std::shared_ptr<VoteTracker<Prevote>> prevotes,
                     std::shared_ptr<VoteTracker<Precommit>> precommits,
+                    std::shared_ptr<Chain> chain,
                     std::shared_ptr<VoteGraph> graph,
                     std::shared_ptr<Gossiper> gossiper,
                     std::shared_ptr<crypto::ED25519Provider> ed_provider,
@@ -40,7 +41,7 @@ namespace kagome::consensus::grandpa {
                     Timer timer,
                     common::Logger logger = common::createLogger("Grandpa"));
 
-    void onFin(const Fin &f);
+    void onFin(const Fin &f) override;
 
     void onPrimaryPropose(const SignedPrimaryPropose &primary_propose) override;
 
@@ -77,9 +78,9 @@ namespace kagome::consensus::grandpa {
     template <typename VoteType>
     void onVote(const VoteType &vote);
 
-    void onSignedPrevote(const SignedPrevote& vote);
+    void onSignedPrevote(const SignedPrevote &vote);
 
-    void onSignedPrecommit(const SignedPrecommit& vote);
+    void onSignedPrecommit(const SignedPrecommit &vote);
 
     void updatePrevoteGhost();
 
@@ -126,17 +127,21 @@ namespace kagome::consensus::grandpa {
 
     std::shared_ptr<VoteTracker<Prevote>> prevotes_;
     std::shared_ptr<VoteTracker<Precommit>> precommits_;
+    std::shared_ptr<Chain> chain_;
     std::shared_ptr<VoteGraph> graph_;
 
     std::shared_ptr<Gossiper> gossiper_;
     std::shared_ptr<crypto::ED25519Provider> ed_provider_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<Chain> chain_;
 
     Timer timer_;
 
     common::Logger logger_;
+    // equivocators arrays. Index in vector corresponds to the index of voter in
+    // voterset, value corresponds to the weight of the voter
+    std::vector<bool> prevote_equivocators_;
+    std::vector<bool> precommit_equivocators_;
 
     boost::optional<PrimaryPropose> primaty_vote_;
     bool completable_{false};

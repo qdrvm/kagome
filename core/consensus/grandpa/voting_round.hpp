@@ -14,7 +14,7 @@ namespace kagome::consensus::grandpa {
   struct VotingRound {
     virtual ~VotingRound() = default;
 
-    void onFin(const Fin &f);
+    virtual void onFin(const Fin &f) = 0;
 
     virtual void onPrimaryPropose(
         const SignedPrimaryPropose &primary_propose) = 0;

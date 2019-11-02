@@ -4,9 +4,10 @@
  */
 
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
-#include "consensus/grandpa/structs.hpp"
 
 #include <gtest/gtest.h>
+#include "common/visitor.hpp"
+#include "consensus/grandpa/structs.hpp"
 #include "testutil/literals.hpp"
 
 using namespace kagome::consensus::grandpa;
@@ -75,7 +76,7 @@ TYPED_TEST_P(VoteTrackerTest, Weight) {
       expected_weight += w;
     }
   }
-  ASSERT_EQ(this->tracker.getTotalWeight(), expected_weight);
+  ASSERT_EQ(this->tracker.totalWeight(), expected_weight);
 }
 
 /**
@@ -92,16 +93,38 @@ TYPED_TEST_P(VoteTrackerTest, GetMessages) {
     }
   }
   auto messages = this->tracker.getMessages();
-  ASSERT_EQ(messages.size(), expected.size());
+
   for (auto &m : expected) {
-    ASSERT_TRUE(std::find_if(messages.begin(),
-                             messages.end(),
-                             [&m](auto &v) {
-                               return m.id == v.id
-                                      && m.message.block_hash
-                                             == v.message.block_hash;
-                             })
-                != messages.end());
+    ASSERT_TRUE(
+        std::find_if(
+            messages.begin(),
+            messages.end(),
+            [&m](auto &v) {
+              return kagome::visit_in_place(
+                  v,
+                  [&](const typename decltype(
+                      this->tracker)::VotingMessage &voting_message) {
+                    return m.id == voting_message.id
+                           && m.message.block_hash
+                                  == voting_message.message.block_hash;
+                  },
+                  [&](const typename decltype(
+                      this->tracker)::EquivocatoryVotingMessage
+                          &equivocatory_voting_message) {
+                    auto first_id = equivocatory_voting_message.first.id;
+                    auto first_block_hash =
+                        equivocatory_voting_message.first.message.block_hash;
+
+                    auto second_id = equivocatory_voting_message.second.id;
+                    auto second_block_hash =
+                        equivocatory_voting_message.second.message.block_hash;
+                    return (m.id == first_id
+                            && m.message.block_hash == first_block_hash)
+                           || (m.id == second_id
+                               && m.message.block_hash == second_block_hash);
+                  });
+            })
+        != messages.end());
   }
 }
 
@@ -113,7 +136,7 @@ TYPED_TEST_P(VoteTrackerTest, GetMessages) {
  * does not affect total weight)
  */
 TYPED_TEST_P(VoteTrackerTest, Equivocated) {
-  using PushResult  = typename VoteTrackerTest<TypeParam>::PushResult;
+  using PushResult = typename VoteTrackerTest<TypeParam>::PushResult;
   ASSERT_EQ(
       this->tracker.push(this->createMessage(this->ids[0], this->hashes[0]), 3),
       PushResult::SUCCESS);
@@ -123,7 +146,7 @@ TYPED_TEST_P(VoteTrackerTest, Equivocated) {
   ASSERT_EQ(
       this->tracker.push(this->createMessage(this->ids[0], this->hashes[2]), 5),
       PushResult::DUPLICATED);
-  ASSERT_EQ(this->tracker.getTotalWeight(), 4);
+  ASSERT_EQ(this->tracker.totalWeight(), 4);
 }
 
 REGISTER_TYPED_TEST_CASE_P(

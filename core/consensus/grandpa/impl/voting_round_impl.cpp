@@ -5,7 +5,9 @@
 
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 
+#include <boost/range/adaptors.hpp>
 #include <boost/range/algorithm/find_if.hpp>
+#include <boost/range/numeric.hpp>
 #include "common/visitor.hpp"
 #include "scale/scale.hpp"
 
@@ -21,6 +23,7 @@ namespace kagome::consensus::grandpa {
       crypto::ED25519Keypair keypair,
       std::shared_ptr<VoteTracker<Prevote>> prevotes,
       std::shared_ptr<VoteTracker<Precommit>> precommits,
+      std::shared_ptr<Chain> chain,
       std::shared_ptr<VoteGraph> graph,
       std::shared_ptr<Gossiper> gossiper,
       std::shared_ptr<crypto::ED25519Provider> ed_provider,
@@ -39,16 +42,20 @@ namespace kagome::consensus::grandpa {
         state_{State::START},
         prevotes_{std::move(prevotes)},
         precommits_{std::move(precommits)},
+        chain_{std::move(chain)},
         graph_{std::move(graph)},
         gossiper_{std::move(gossiper)},
         ed_provider_{std::move(ed_provider)},
         clock_{std::move(clock)},
         block_tree_{std::move(block_tree)},
         timer_{std::move(timer)},
-        logger_{std::move(logger)} {
+        logger_{std::move(logger)},
+        prevote_equivocators_(voter_set_->size(), false),
+        precommit_equivocators_(voter_set_->size(), false) {
     BOOST_ASSERT(voter_set_ != nullptr);
     BOOST_ASSERT(prevotes_ != nullptr);
     BOOST_ASSERT(precommits_ != nullptr);
+    BOOST_ASSERT(chain_ != nullptr);
     BOOST_ASSERT(graph_ != nullptr);
     BOOST_ASSERT(gossiper_ != nullptr);
     BOOST_ASSERT(ed_provider_ != nullptr);
@@ -102,6 +109,9 @@ namespace kagome::consensus::grandpa {
   /// currently running, we validate the commit and dispatch a finalization
   /// notification (if any) to the environment.
   void VotingRoundImpl::tryFinalize() {
+    if (not cur_round_state_.finalized or not completable_) {
+      return;
+    }
     auto l = block_tree_->getLastFinalized();
 
     auto e = cur_round_state_.estimate;
@@ -148,11 +158,13 @@ namespace kagome::consensus::grandpa {
     onSignedPrevote(prevote);
     updatePrevoteGhost();
     update();
+    tryFinalize();
   }
 
   void VotingRoundImpl::onPrecommit(const SignedPrecommit &precommit) {
     onSignedPrecommit(precommit);
     update();
+    tryFinalize();
   }
 
   void VotingRoundImpl::onSignedPrevote(const SignedPrevote &vote) {
@@ -186,6 +198,11 @@ namespace kagome::consensus::grandpa {
       }
       case VoteTracker<Prevote>::PushResult::EQUIVOCATED: {
         // TODO (kamilsa): handle equivocated case
+        auto index = voter_set_->voterIndex(vote.id);
+        if (not index) {
+          return;
+        }
+        prevote_equivocators_[index.value()] = true;
         break;
       }
     }
@@ -228,6 +245,11 @@ namespace kagome::consensus::grandpa {
       }
       case VoteTracker<Precommit>::PushResult::EQUIVOCATED: {
         // TODO (kamilsa): handle equivocated case
+        auto index = voter_set_->voterIndex(vote.id);
+        if (not index) {
+          return;
+        }
+        precommit_equivocators_[index.value()] = true;
         break;
       }
     }
@@ -240,7 +262,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::updatePrevoteGhost() {
-    if (prevotes_->getTotalWeight() >= threshold_) {
+    if (prevotes_->totalWeight() >= threshold_) {
       const auto &ghost_block_info =
           cur_round_state_.prevote_ghost.map([](const Prevote &prevote) {
             return BlockInfo{prevote.block_number, prevote.block_hash};
@@ -249,7 +271,11 @@ namespace kagome::consensus::grandpa {
           graph_
               ->findGhost(ghost_block_info,
                           [this](const VoteWeight &vote_weight) {
-                            return vote_weight.totalWeight().prevote
+                            return vote_weight
+                                       .totalWeight(prevote_equivocators_,
+                                                    precommit_equivocators_,
+                                                    voter_set_)
+                                       .prevote
                                    >= threshold_;
                           })
               // convert block info to prevote
@@ -454,7 +480,7 @@ namespace kagome::consensus::grandpa {
     return signPrevote(Prevote{best_chain.block_number, best_chain.block_hash});
   }
 
-  outcome::result<SignedPrecommit> VotingRoundImpl::constructPrecommit(
+  outcome::result<SignedPrecommit> Vot1ingRoundImpl::constructPrecommit(
       const RoundState &last_round_state) const {
     const auto &base = graph_->getBase();
     const auto &target = cur_round_state_.prevote_ghost.value_or(
@@ -467,7 +493,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::update() {
-    if (prevotes_->getTotalWeight() < threshold_) {
+    if (prevotes_->totalWeight() < threshold_) {
       return;
     }
 
@@ -479,7 +505,7 @@ namespace kagome::consensus::grandpa {
 
     // anything new finalized? finalized blocks are those which have both
     // 2/3+ prevote and precommit weight.
-    auto current_precommits = precommits_->getTotalWeight();
+    auto current_precommits = precommits_->totalWeight();
 
     if (current_precommits >= threshold_) {
       cur_round_state_.finalized = graph_->findAncestor(
@@ -488,16 +514,77 @@ namespace kagome::consensus::grandpa {
               prevote_ghost.block_hash,
           },
           [this](const VoteWeight &vote_weight) {
-            return vote_weight.totalWeight().precommit >= threshold_;
+            return vote_weight
+                       .totalWeight(prevote_equivocators_,
+                                    precommit_equivocators_,
+                                    voter_set_)
+                       .precommit
+                   >= threshold_;
           });
     }
 
-    if (precommits_->getTotalWeight() >= threshold_) {
+    // figuring out whether a block can still be committed for is
+    // not straightforward because we have to account for all possible future
+    // equivocations and thus cannot discount weight from validators who
+    // have already voted.
+    auto tolerated_equivocations = voter_set_->totalWeight() - threshold_;
+
+    // find how many more equivocations we could still get.
+    //
+    // it is only important to consider the voters whose votes
+    // we have already seen, because we are assuming any votes we
+    // haven't seen will target this block.
+
+    // get total weight of all equivocators
+    using namespace boost::adaptors;
+    auto current_equivocations = boost::accumulate(
+        voter_set_->voters() | indexed(0)
+            | transformed([this](const auto &element) {
+                return precommit_equivocators_[element.index()]
+                           ? voter_set_->voterWeight(element.index()).value()
+                           : 0UL;
+              }),
+        0UL);
+
+    auto additional_equiv = tolerated_equivocations - current_equivocations;
+    auto possible_to_precommit = [&](const VoteWeight &weight) {
+      // total precommits for this block, including equivocations.
+      auto precommited_for =
+          weight
+              .totalWeight(
+                  prevote_equivocators_, precommit_equivocators_, voter_set_)
+              .precommit;
+
+      // equivocations we could still get are out of those who
+      // have already voted, but not on this block.
+      auto possible_equivocations = std::min<size_t>(
+          current_precommits - precommited_for, additional_equiv);
+
+      auto remaining_commit_votes =
+          voter_set_->totalWeight() - precommits_->totalWeight();
+
+      // all the votes already applied on this block,
+      // assuming all remaining actors commit to this block,
+      // and that we get further equivocations
+      auto full_possible_weight =
+          precommited_for + remaining_commit_votes + possible_equivocations;
+      return full_possible_weight >= threshold_;
+    };
+
+    // until we have threshold precommits, any new block could get supermajority
+    // precommits because there are at least f + 1 precommits remaining and then
+    // f equivocations.
+    //
+    // once it's at least that level, we only need to consider blocks
+    // already referenced in the graph, because no new leaf nodes
+    // could ever have enough precommits.
+    //
+    // the round-estimate is the highest block in the chain with head
+    // `prevote_ghost` that could have supermajority-commits.
+    if (precommits_->totalWeight() >= threshold_) {
       cur_round_state_.estimate = graph_->findAncestor(
           BlockInfo{prevote_ghost.block_number, prevote_ghost.block_hash},
-          [this](const VoteWeight &v) {
-            return v.totalWeight().precommit >= threshold_;
-          });
+          possible_to_precommit);
     } else {
       cur_round_state_.estimate =
           BlockInfo{prevote_ghost.block_number, prevote_ghost.block_hash};
@@ -506,19 +593,46 @@ namespace kagome::consensus::grandpa {
 
     completable_ =
         cur_round_state_.estimate
-            .map([&prevote_ghost, this](const BlockInfo &block) -> bool {
-              return block.block_hash == prevote_ghost.block_hash
-                     and graph_->findGhost(block, [this](const VoteWeight &v) {
-                           return v.totalWeight().precommit >= threshold_;
-                         });
+            .map([&prevote_ghost, &possible_to_precommit, this](
+                     const BlockInfo &block) -> bool {
+              return block.block_hash != prevote_ghost.block_hash
+                     || graph_->findGhost(block, possible_to_precommit)
+                            .map([&prevote_ghost](const BlockInfo &block_info) {
+                              return std::tie(block_info.block_hash,
+                                              block_info.block_number)
+                                     == std::tie(prevote_ghost.block_hash,
+                                                 prevote_ghost.block_number);
+                            })
+                            .value_or(true);
             })
             .value_or(false);
   }
 
   boost::optional<Justification> VotingRoundImpl::finalizingPrecommits(
       const BlockInfo &estimate) const {
-    // TODO: implement
-    return Justification();
+    const auto &precommits = precommits_->getMessages();
+    Justification justification = std::accumulate(
+        precommits.begin(),
+        precommits.end(),
+        Justification{},
+        [this](Justification &j, const auto &precommit_variant) {
+          visit_in_place(
+              precommit_variant,
+              [&j, this](const SignedPrecommit &voting_message) {
+                if (chain_->isEqualOrDescendOf(
+                        cur_round_state_.finalized->block_hash,
+                        voting_message.message.block_hash)) {
+                  j.items.push_back(voting_message);
+                }
+              },
+              [&](const VoteTracker<Precommit>::EquivocatoryVotingMessage
+                      &equivocatory_voting_message) {
+                j.items.push_back(equivocatory_voting_message.first);
+                j.items.push_back(equivocatory_voting_message.second);
+              });
+          return j;
+        });
+    return justification;
   }
 
   void VotingRoundImpl::gossipPrimaryPropose(

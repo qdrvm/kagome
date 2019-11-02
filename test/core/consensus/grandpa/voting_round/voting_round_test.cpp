@@ -37,6 +37,7 @@ using kagome::crypto::ED25519ProviderMock;
 using kagome::crypto::ED25519Signature;
 using kagome::crypto::HasherMock;
 
+using ::testing::_;
 using ::testing::Return;
 
 class VotingRoundTest : public ::testing::Test {
@@ -51,9 +52,12 @@ class VotingRoundTest : public ::testing::Test {
     EXPECT_CALL(*header_repository_,
                 getBlockHeader(kagome::primitives::BlockId(GENESIS_HASH)))
         .WillRepeatedly(Return(kagome::primitives::BlockHeader{.number = 1}));
-    chain_ = std::make_shared<ChainImpl>(tree_, header_repository_);
 
-    vote_graph_ = std::make_shared<VoteGraphImpl>(BlockInfo{4, "C"_H}, chain_);
+    BlockInfo base{4, "C"_H};
+    EXPECT_CALL(*tree_, getLastFinalized()).WillRepeatedly(Return(base));
+
+    chain_ = std::make_shared<ChainImpl>(tree_, header_repository_);
+    vote_graph_ = std::make_shared<VoteGraphImpl>(base, chain_);
 
     voting_round_ = std::make_shared<VotingRoundImpl>(voters_,
                                                       round_number_,
@@ -64,6 +68,7 @@ class VotingRoundTest : public ::testing::Test {
                                                       keypair_,
                                                       prevotes_,
                                                       precommits_,
+                                                      chain_,
                                                       vote_graph_,
                                                       gossiper_,
                                                       ed_provider_,
@@ -82,13 +87,6 @@ class VotingRoundTest : public ::testing::Test {
                                    const ED25519Signature &sig,
                                    const Precommit &precommit) {
     return SignedPrecommit{.id = id, .signature = sig, .message = precommit};
-  }
-
-  VoteWeight preparePrevoteWeight(const Id &id) {
-    VoteWeight v(voters_->size());
-    auto index = voters_->voterIndex(id);
-    v.prevotes[index.value()] = true;
-    return v;
   }
 
   void addBlock(BlockHash parent, BlockHash hash, BlockNumber number) {
@@ -122,6 +120,19 @@ class VotingRoundTest : public ::testing::Test {
 
       new_blocks_parent_hash = block_hash;
     }
+
+    //    for (int64_t block_index = blocks_hashes.size() - 1; block_index >= 0;
+    //         block_index--) {
+    //      for (int64_t base_block_index = block_index; base_block_index >= 0;
+    //           base_block_index--) {
+    //        EXPECT_CALL(*tree_,
+    //                    getChainByBlocks(blocks_hashes[base_block_index],
+    //                                     blocks_hashes[block_index]))
+    //            .WillRepeatedly(Return(std::vector<BlockHash>(
+    //                blocks_hashes.begin() + base_block_index,
+    //                blocks_hashes.begin() + block_index + 1)));
+    //      }
+    //    }
   }
 
  protected:
@@ -169,8 +180,6 @@ class VotingRoundTest : public ::testing::Test {
 
   std::shared_ptr<VotingRoundImpl> voting_round_;
 };
-
-size_t total_weight = 0;
 
 TEST_F(VotingRoundTest, EstimateIsValid) {
   addBlocks(GENESIS_HASH, {"A"_H, "B"_H, "C"_H, "D"_H, "E"_H, "F"_H});
@@ -222,7 +231,7 @@ TEST_F(VotingRoundTest, Finalization) {
   addBlocks("E"_H, {"EA"_H, "EB"_H, "EC"_H, "ED"_H});
   addBlocks("F"_H, {"FA"_H, "FB"_H, "FC"_H});
 
-  // Alice precommits
+  // Alice precommits FC
   EXPECT_CALL(*tree_, getChainByBlocks("C"_H, "FC"_H))
       .WillRepeatedly(Return(std::vector<kagome::primitives::BlockHash>{
           "C"_H, "D"_H, "E"_H, "F"_H, "FA"_H, "FB"_H, "FC"_H}));
@@ -230,7 +239,7 @@ TEST_F(VotingRoundTest, Finalization) {
   voting_round_->onPrecommit(
       preparePrecommit(kAlice, kAliceSignature, {10, "FC"_H}));
 
-  // Bob precommits
+  // Bob precommits ED
   EXPECT_CALL(*tree_, getChainByBlocks("C"_H, "ED"_H))
       .WillRepeatedly(Return(std::vector<kagome::primitives::BlockHash>{
           "C"_H, "D"_H, "E"_H, "EA"_H, "EB"_H, "EC"_H, "ED"_H}));
@@ -256,8 +265,6 @@ TEST_F(VotingRoundTest, Finalization) {
   voting_round_->onPrevote(preparePrevote(kEve, kEveSignature, {7, "EA"_H}));
 
   ASSERT_EQ(voting_round_->getCurrentState().finalized, BlockInfo(6, "E"_H));
-//  ASSERT_EQ(voting_round_->getCurrentState().finalized.value(),
-//            );
 
   // Eve precommits
   voting_round_->onPrecommit(
@@ -270,7 +277,4 @@ TEST_F(VotingRoundTest, EquivocateDoesNotDoubleCount) {
   addBlocks(GENESIS_HASH, {"A"_H, "B"_H, "C"_H, "D"_H, "E"_H, "F"_H});
   addBlocks("E"_H, {"EA"_H, "EB"_H, "EC"_H, "ED"_H});
   addBlocks("F"_H, {"FA"_H, "FB"_H, "FC"_H});
-
-  // first prevote by eve
-
 }

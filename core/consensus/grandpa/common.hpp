@@ -54,6 +54,13 @@ namespace kagome::consensus::grandpa {
       return it->second;
     }
 
+    boost::optional<size_t> voterWeight(size_t voter_index) const {
+      if (voter_index >= voters_.size()) {
+        return boost::none;
+      }
+      return weight_map_.at(voters_[voter_index]);
+    }
+
     size_t size() const {
       return voters_.size();
     }
