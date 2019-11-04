@@ -111,7 +111,6 @@ include_directories(
   SYSTEM
   # system includes
   deps/GSL/include
-  deps/outcome
   deps/sml/include
   deps/hat-trie/include
   deps/jsonrpc-lean/include
@@ -129,6 +128,7 @@ kagome_install_setup(
     core/scale
     core/storage
     core/crypto
+    core/outcome
 )
 
 include(CMakePackageConfigHelpers)

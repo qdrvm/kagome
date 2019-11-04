@@ -11,7 +11,7 @@
 
 #include <gsl/span>
 
-#include <outcome/outcome.hpp>
+#include "outcome/outcome.hpp"
 
 namespace kagome::common {
 

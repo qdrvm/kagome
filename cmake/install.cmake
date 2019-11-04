@@ -2,9 +2,6 @@ function(install_deps_headers)
     install(DIRECTORY ${MICROSOFT.GSL_ROOT}/include/gsl
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-    install(DIRECTORY deps/outcome/outcome
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
 endfunction()
 
 ### kagome_install should be called right after add_library(target)
