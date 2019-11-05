@@ -54,3 +54,4 @@ target_link_libraries(ordered_trie_hash INTERFACE
     polkadot_trie_codec
     scale
     )
+kagome_install(ordered_trie_hash)

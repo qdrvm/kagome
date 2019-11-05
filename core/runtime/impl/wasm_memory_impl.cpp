@@ -184,8 +184,8 @@ namespace kagome::runtime {
     // TODO (kamilsa) PRE-98: check if we do not go outside of memory
     // boundaries, 04.04.2019
     const auto &value_vector = value.toVector();
-    memory_.insert(memory_.begin() + addr, value_vector.begin(),
-                   value_vector.end());
+    memory_.insert(
+        memory_.begin() + addr, value_vector.begin(), value_vector.end());
   }
 
 }  // namespace kagome::runtime
