@@ -129,6 +129,8 @@ kagome_install_setup(
     core/storage
     core/crypto
     core/outcome
+    core/runtime
+    core/extensions
 )
 
 include(CMakePackageConfigHelpers)

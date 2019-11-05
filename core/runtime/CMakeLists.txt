@@ -15,6 +15,7 @@ add_library(memory
 target_link_libraries(memory
     buffer
     )
+kagome_install(memory)
 
 add_library(core
     core.hpp

@@ -7,6 +7,8 @@
 
 namespace kagome::runtime {
 
+  const uint32_t WasmMemory::kMaxMemorySize = std::numeric_limits<uint32_t>::max();
+
   WasmMemoryImpl::WasmMemoryImpl()
       : offset_{1}  // We should allocate very first byte to prohibit allocating
                     // memory at 0 in future, as returning 0 from allocate

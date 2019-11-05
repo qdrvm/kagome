@@ -15,3 +15,4 @@ target_link_libraries(extensions
     misc_extension
     storage_extension
     )
+kagome_install(extensions)

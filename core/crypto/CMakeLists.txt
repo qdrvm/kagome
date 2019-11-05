@@ -24,6 +24,7 @@ target_link_libraries(sr25519_types
     blob
     sr25519::sr25519
     )
+kagome_install(sr25519_types)
 
 add_library(ed25519_types
     ed25519_types.cpp
@@ -33,6 +34,7 @@ target_link_libraries(ed25519_types
     blob
     iroha::ed25519
     )
+kagome_install(ed25519_types)
 
 add_library(crypto_util
     hash_creator.cpp
@@ -64,6 +66,7 @@ target_link_libraries(sr25519_provider
     p2p::p2p_random_generator # generator from libp2p
     sr25519_types
     )
+kagome_install(sr25519_provider)
 
 add_library(ed25519_provider
     ed25519_provider.hpp
@@ -74,6 +77,7 @@ target_link_libraries(ed25519_provider
     p2p::p2p_random_generator # generator from libp2p
     ed25519_types
     )
+kagome_install(ed25519_provider)
 
 add_subdirectory(blake2)
 add_subdirectory(sha)
