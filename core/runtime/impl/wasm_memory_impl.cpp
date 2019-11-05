@@ -7,8 +7,6 @@
 
 namespace kagome::runtime {
 
-  const uint32_t WasmMemory::kMaxMemorySize = std::numeric_limits<uint32_t>::max();
-
   WasmMemoryImpl::WasmMemoryImpl()
       : offset_{1}  // We should allocate very first byte to prohibit allocating
                     // memory at 0 in future, as returning 0 from allocate
@@ -186,8 +184,8 @@ namespace kagome::runtime {
     // TODO (kamilsa) PRE-98: check if we do not go outside of memory
     // boundaries, 04.04.2019
     const auto &value_vector = value.toVector();
-    memory_.insert(memory_.begin() + addr, value_vector.begin(),
-                   value_vector.end());
+    memory_.insert(
+        memory_.begin() + addr, value_vector.begin(), value_vector.end());
   }
 
 }  // namespace kagome::runtime
