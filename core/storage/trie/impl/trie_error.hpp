@@ -14,7 +14,7 @@ namespace kagome::storage::trie {
    */
   enum class TrieError {
     SUCCESS = 0,   // 0 should not represent an error
-    NO_VALUE = 1,  // 1 not value in db
+    NO_VALUE = 1,  // no stored value found by the given key
   };
 }  // namespace kagome::storage::trie
 

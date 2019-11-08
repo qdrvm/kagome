@@ -175,14 +175,14 @@ namespace kagome::storage::trie {
   outcome::result<common::Buffer> PolkadotTrie::get(
       const common::Buffer &key) const {
     if (not root_) {
-      return outcome::failure(TrieError::NO_VALUE);
+      return TrieError::NO_VALUE;
     }
     auto nibbles = PolkadotCodec::keyToNibbles(key);
     OUTCOME_TRY(node, getNode(root_, nibbles));
-    if (node) {
+    if (node && not node->value.empty()) {
       return node->value;
     }
-    return outcome::failure(TrieError::NO_VALUE);
+    return TrieError::NO_VALUE;
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrie::getNode(

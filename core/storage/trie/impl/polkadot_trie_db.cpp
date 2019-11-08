@@ -73,7 +73,7 @@ namespace kagome::storage::trie {
   outcome::result<common::Buffer> PolkadotTrieDb::get(
       const common::Buffer &key) const {
     if (empty()) {
-      return outcome::failure(TrieError::NO_VALUE);
+      return TrieError::NO_VALUE;
     }
     OUTCOME_TRY(trie, initTrie());
     return trie.get(key);
@@ -81,7 +81,7 @@ namespace kagome::storage::trie {
 
   bool PolkadotTrieDb::contains(const common::Buffer &key) const {
     auto res = get(key);
-    return res.has_value() && not res.value().empty();
+    return res.has_value();
   }
 
   outcome::result<void> PolkadotTrieDb::remove(const common::Buffer &key) {
