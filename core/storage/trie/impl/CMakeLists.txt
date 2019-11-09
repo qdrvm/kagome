@@ -31,6 +31,7 @@ kagome_install(polkadot_trie_db)
 
 add_library(polkadot_trie
     polkadot_trie.cpp
+    trie_error.cpp
     )
 target_link_libraries(polkadot_trie
     buffer
