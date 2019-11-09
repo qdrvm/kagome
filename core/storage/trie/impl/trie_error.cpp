@@ -8,8 +8,6 @@
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, TrieError, e) {
   using kagome::storage::trie::TrieError;
   switch (e) {
-    case TrieError::SUCCESS:
-      return "success";
     case TrieError::NO_VALUE:
       return "no stored value found by the given key";
   }

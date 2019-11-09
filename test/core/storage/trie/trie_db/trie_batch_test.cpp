@@ -7,8 +7,8 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <storage/trie/impl/trie_error.hpp>
 #include "storage/in_memory/in_memory_storage.hpp"
+#include "storage/trie/impl/trie_error.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"
