@@ -68,24 +68,17 @@ TEST_P(TrieTest, RunCommand) {
   for (auto &command : GetParam()) {
     switch (command.command) {
       case Command::CONTAINS:
-        if (trie->contains(command.key)) {
-          EXPECT_OUTCOME_TRUE(val, trie->get(command.key));
-          ASSERT_EQ(val, command.value);
-        } else {
+        ASSERT_TRUE(trie->contains(command.key));
+        break;
+      case Command::GET: {
+        if (command.value.empty()) {
           EXPECT_OUTCOME_FALSE(err, trie->get(command.key));
           ASSERT_EQ(
               err.value(),
               static_cast<int>(kagome::storage::trie::TrieError::NO_VALUE));
-        }
-        break;
-      case Command::GET: {
-        auto val = trie->get(command.key);
-        if (val.has_value()) {
-          ASSERT_EQ(val.value(), command.value);
         } else {
-          ASSERT_EQ(
-              val.error().value(),
-              static_cast<int>(kagome::storage::trie::TrieError::NO_VALUE));
+          EXPECT_OUTCOME_TRUE(val, trie->get(command.key));
+          ASSERT_EQ(val, command.value);
         }
         break;
       }
