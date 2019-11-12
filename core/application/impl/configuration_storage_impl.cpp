@@ -11,7 +11,7 @@ namespace kagome::application {
   ConfigurationStorageImpl::ConfigurationStorageImpl(KagomeConfig config)
       : config_{std::move(config)} {}
 
-  primitives::Block ConfigurationStorageImpl::getGenesis() const {
+  const primitives::Block &ConfigurationStorageImpl::getGenesis() const {
     return config_.genesis;
   }
 

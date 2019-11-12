@@ -21,7 +21,7 @@ namespace kagome::application {
     /**
      * @return genesis block of the chain
      */
-    virtual primitives::Block getGenesis() const = 0;
+    virtual const primitives::Block &getGenesis() const = 0;
   };
 
 }  // namespace kagome::application

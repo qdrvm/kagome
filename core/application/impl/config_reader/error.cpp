@@ -12,8 +12,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::application,
   switch (e) {
     case E::MISSING_ENTRY:
       return "A required entry is missing in the provided config file";
-    case E::FILE_NOT_FOUND:
-      return "Config file not found";
+    case E::PARSER_ERROR:
+      return "Internal parser error";
   }
   return "Unknown error";
 }

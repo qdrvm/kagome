@@ -10,7 +10,10 @@
 
 namespace kagome::application {
 
-  enum class ConfigReaderError { MISSING_ENTRY = 1, FILE_NOT_FOUND };
+  /**
+   * Codes for errors that originate in configuration readers
+   */
+  enum class ConfigReaderError { MISSING_ENTRY = 1, PARSER_ERROR };
 
 }
 
