@@ -13,6 +13,7 @@ target_link_libraries(crypto_extension
     ed25519_provider
     twox
     )
+kagome_install(crypto_extension)
 
 add_library(io_extension
     io_extension.cpp
@@ -22,6 +23,7 @@ target_link_libraries(io_extension
     logger
     buffer
     )
+kagome_install(io_extension)
 
 add_library(memory_extension
     memory_extension.cpp
@@ -30,10 +32,12 @@ target_link_libraries(memory_extension
     memory
     logger
 )
+kagome_install(memory_extension)
 
 add_library(misc_extension
     misc_extension.cpp
     )
+kagome_install(misc_extension)
 
 add_library(storage_extension
     storage_extension.cpp
@@ -44,3 +48,4 @@ target_link_libraries(storage_extension
     logger
     ordered_trie_hash
     )
+kagome_install(storage_extension)

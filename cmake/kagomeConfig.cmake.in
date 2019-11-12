@@ -30,4 +30,16 @@ set(kagome_LIBRARIES
         kagome::polkadot_trie_batch
         kagome::logger
         kagome::in_memory_storage
+        kagome::extensions
+        kagome::memory
+        kagome::ordered_trie_hash
+        kagome::crypto_extension
+        kagome::io_extension
+        kagome::memory_extension
+        kagome::misc_extension
+        kagome::storage_extension
+        kagome::sr25519_types
+        kagome::ed25519_types
+        kagome::sr25519_provider
+        kagome::ed25519_provider
     )

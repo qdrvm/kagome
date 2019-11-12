@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "storage/in_memory/in_memory_storage.hpp"
+#include "storage/trie/impl/trie_error.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"
@@ -37,7 +38,7 @@ class TrieTest
   void SetUp() override {
     open();
 
-    //auto db_ = std::make_unique<test::InMemoryStorage>();
+    // auto db_ = std::make_unique<test::InMemoryStorage>();
     trie = std::make_unique<PolkadotTrieDb>(std::move(db_));
   }
 
@@ -70,8 +71,15 @@ TEST_P(TrieTest, RunCommand) {
         ASSERT_TRUE(trie->contains(command.key));
         break;
       case Command::GET: {
-        EXPECT_OUTCOME_TRUE(val, trie->get(command.key));
-        ASSERT_EQ(val, command.value);
+        if (command.value.empty()) {
+          EXPECT_OUTCOME_FALSE(err, trie->get(command.key));
+          ASSERT_EQ(
+              err.value(),
+              static_cast<int>(kagome::storage::trie::TrieError::NO_VALUE));
+        } else {
+          EXPECT_OUTCOME_TRUE(val, trie->get(command.key));
+          ASSERT_EQ(val, command.value);
+        }
         break;
       }
       case Command::PUT: {
@@ -82,8 +90,9 @@ TEST_P(TrieTest, RunCommand) {
       }
       case Command::REMOVE: {
         EXPECT_OUTCOME_TRUE_1(trie->remove(command.key));
-        EXPECT_OUTCOME_TRUE(val, trie->get(command.key));
-        ASSERT_NE(val, command.value);
+        EXPECT_OUTCOME_FALSE(err, trie->get(command.key));
+        ASSERT_EQ(err.value(),
+                  static_cast<int>(kagome::storage::trie::TrieError::NO_VALUE));
         break;
       }
     }
@@ -227,12 +236,15 @@ std::vector<TrieCommand> DeleteOddKeyLengths = {
     {"4f4d"_hex2buf, "stuff"_buf, Command::GET},
     {"43c1"_hex2buf, "noot"_buf, Command::GET}};
 
-INSTANTIATE_TEST_CASE_P(
-    GolkadotSuite, TrieTest,
-    testing::ValuesIn({PutAndGetBranch, PutAndGetOddKeyLengths,
-                       concat(BuildSmallTrie, DeleteSmall),
-                       concat(BuildSmallTrie, DeleteCombineBranch),
-                       DeleteFromBranch, DeleteOddKeyLengths}));
+INSTANTIATE_TEST_CASE_P(GolkadotSuite,
+                        TrieTest,
+                        testing::ValuesIn({PutAndGetBranch,
+                                           PutAndGetOddKeyLengths,
+                                           concat(BuildSmallTrie, DeleteSmall),
+                                           concat(BuildSmallTrie,
+                                                  DeleteCombineBranch),
+                                           DeleteFromBranch,
+                                           DeleteOddKeyLengths}));
 
 /**
  * @given an empty trie

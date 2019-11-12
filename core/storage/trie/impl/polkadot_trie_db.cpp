@@ -11,6 +11,7 @@
 #include "storage/trie/impl/polkadot_node.hpp"
 #include "storage/trie/impl/polkadot_trie.hpp"
 #include "storage/trie/impl/polkadot_trie_batch.hpp"
+#include "storage/trie/impl/trie_error.hpp"
 
 using kagome::common::Buffer;
 
@@ -72,7 +73,7 @@ namespace kagome::storage::trie {
   outcome::result<common::Buffer> PolkadotTrieDb::get(
       const common::Buffer &key) const {
     if (empty()) {
-      return common::Buffer{};
+      return TrieError::NO_VALUE;
     }
     OUTCOME_TRY(trie, initTrie());
     return trie.get(key);
@@ -80,7 +81,7 @@ namespace kagome::storage::trie {
 
   bool PolkadotTrieDb::contains(const common::Buffer &key) const {
     auto res = get(key);
-    return res.has_value() && not res.value().empty();
+    return res.has_value();
   }
 
   outcome::result<void> PolkadotTrieDb::remove(const common::Buffer &key) {
