@@ -4,6 +4,7 @@
 #
 
 add_subdirectory(authorship)
+add_subdirectory(application)
 add_subdirectory(clock)
 add_subdirectory(common)
 add_subdirectory(consensus)
