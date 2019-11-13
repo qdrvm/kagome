@@ -5,6 +5,7 @@
 
 add_subdirectory(api)
 add_subdirectory(authorship)
+add_subdirectory(application)
 add_subdirectory(blockchain)
 add_subdirectory(common)
 add_subdirectory(consensus)
