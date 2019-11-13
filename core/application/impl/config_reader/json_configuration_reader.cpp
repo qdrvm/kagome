@@ -17,13 +17,13 @@ namespace kagome::application {
   outcome::result<KagomeConfig> JsonConfigurationReader::initConfig(
       std::istream &config_file_data) {
     OUTCOME_TRY(tree, readPropertyTree(config_file_data));
-    return initConfigFromProperyTree(tree);
+    return initConfigFromPropertyTree(tree);
   }
 
   outcome::result<void> JsonConfigurationReader::updateConfig(
       KagomeConfig &config, std::istream &config_file_data) {
     OUTCOME_TRY(tree, readPropertyTree(config_file_data));
-    OUTCOME_TRY(updateConfigFromProperyTree(config, tree));
+    OUTCOME_TRY(updateConfigFromPropertyTree(config, tree));
     return outcome::success();
   }
 

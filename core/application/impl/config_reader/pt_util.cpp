@@ -10,7 +10,7 @@
 
 namespace kagome::application {
 
-  outcome::result<KagomeConfig> initConfigFromProperyTree(
+  outcome::result<KagomeConfig> initConfigFromPropertyTree(
       const boost::property_tree::ptree &tree) {
     auto genesis_opt = tree.get_optional<std::string>("genesis");
     if (!genesis_opt) {
@@ -25,7 +25,7 @@ namespace kagome::application {
     return config;
   }
 
-  outcome::result<void> updateConfigFromProperyTree(
+  outcome::result<void> updateConfigFromPropertyTree(
       KagomeConfig &config, const boost::property_tree::ptree &tree) {
     auto genesis_opt = tree.get_optional<std::string>("genesis");
     if (genesis_opt) {

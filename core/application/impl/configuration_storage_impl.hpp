@@ -6,8 +6,6 @@
 #ifndef KAGOME_CONFIGURATION_STORAGE_IMPL_HPP
 #define KAGOME_CONFIGURATION_STORAGE_IMPL_HPP
 
-#include <filesystem>
-
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include "application/configuration_storage.hpp"
