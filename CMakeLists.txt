@@ -114,8 +114,8 @@ include_directories(
   deps/sml/include
   deps/hat-trie/include
   deps/jsonrpc-lean/include
-  deps/di/include
-  deps/di/extension/include
+#  deps/di/include
+#  deps/di/extension/include
 )
 
 add_subdirectory(core)

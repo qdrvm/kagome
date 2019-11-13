@@ -56,5 +56,9 @@ find_package(sr25519 REQUIRED)
 hunter_add_package(spdlog)
 find_package(spdlog CONFIG REQUIRED)
 
+# https://github.com/masterjedy/di
+hunter_add_package(Boost.DI)
+find_package(Boost.DI CONFIG REQUIRED)
+
 hunter_add_package(libp2p)
-find_package(libp2p REQUIRED)
+find_package(libp2p CONFIG REQUIRED)

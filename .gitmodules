@@ -9,7 +9,3 @@
 [submodule "jsonrpc-lean"]
 	path = deps/jsonrpc-lean
 	url = https://github.com/uskr/jsonrpc-lean
-[submodule "di"]
-	path = deps/di
-	url = https://github.com/boost-experimental/di
-    shallow = true
