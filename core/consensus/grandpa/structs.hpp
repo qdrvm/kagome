@@ -9,6 +9,7 @@
 #include <boost/asio/steady_timer.hpp>
 #include <boost/variant.hpp>
 #include "common/blob.hpp"
+#include "common/visitor.hpp"
 #include "common/wrapper.hpp"
 #include "consensus/grandpa/common.hpp"
 #include "crypto/ed25519_types.hpp"
@@ -18,6 +19,16 @@ namespace kagome::consensus::grandpa {
 
   using Timer = boost::asio::basic_waitable_timer<std::chrono::steady_clock>;
 
+  using BlockInfo = primitives::BlockInfo;
+  using Precommit = primitives::detail::BlockInfoT<struct PrecommitTag>;
+  using Prevote = primitives::detail::BlockInfoT<struct PrevoteTag>;
+  using PrimaryPropose =
+      primitives::detail::BlockInfoT<struct PrimaryProposeTag>;
+
+  const static uint8_t kPrevoteStage = 0;
+  const static uint8_t kPrecommitStage = 1;
+  const static uint8_t kPrimaryProposeStage = 2;
+
   /// @tparam Message A protocol message or vote.
   template <typename Message>
   struct SignedMessage {
@@ -26,12 +37,30 @@ namespace kagome::consensus::grandpa {
     Id id;
   };
 
+  template <class Stream,
+            typename Message,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const SignedMessage<Message> &signed_msg) {
+    return s << signed_msg.message << signed_msg.signature << signed_msg.id;
+  }
+
+  template <class Stream,
+            typename Message,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, SignedMessage<Message> &signed_msg) {
+    return s >> signed_msg.message >> signed_msg.signature >> signed_msg.id;
+  }
+
   template <typename Message>
   bool operator==(const SignedMessage<Message> &lhs,
                   const SignedMessage<Message> &rhs) {
     return lhs.message == rhs.message && lhs.signature == rhs.signature
            && lhs.id == rhs.id;
   }
+
+  using SignedPrevote = SignedMessage<Prevote>;
+  using SignedPrecommit = SignedMessage<Precommit>;
+  using SignedPrimaryPropose = SignedMessage<PrimaryPropose>;
 
   template <typename Message>
   struct Equivocated {
@@ -51,27 +80,21 @@ namespace kagome::consensus::grandpa {
     };
   }  // namespace detail
 
-  using BlockInfo = primitives::BlockInfo;
-  using Precommit = primitives::detail::BlockInfoT<struct PrecommitTag>;
-  using Prevote = primitives::detail::BlockInfoT<struct PrevoteTag>;
-  using PrimaryPropose =
-      primitives::detail::BlockInfoT<struct PrimaryProposeTag>;
-
-  using Vote = boost::variant<Prevote, Precommit>;
-
-  using SignedPrevote = SignedMessage<Prevote>;
-  using SignedPrecommit = SignedMessage<Precommit>;
-  using SignedPrimaryPropose = SignedMessage<PrimaryPropose>;
-
   // justification for block B in round r
   struct Justification {
     std::vector<SignedPrecommit> items;
   };
+
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Justification &v) {
-    // TODO (kamilsa): implement
-    return s;
+    return s << v.items;
+  }
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, Justification &v) {
+    return s >> v.items;
   }
 
   /// A commit message which is an aggregate of precommits.
@@ -80,25 +103,36 @@ namespace kagome::consensus::grandpa {
     std::vector<SignedPrecommit> precommits;
   };
 
+  using Vote =
+      boost::variant<SignedPrevote,
+                     SignedPrecommit,
+                     SignedPrimaryPropose>;  // order is important and should
+                                             // correspond stage constants
+                                             // (kPrevoteStage, kPrecommitStage,
+                                             // kPrimaryPropose)
+
   // either prevote, precommit or primary propose
   struct VoteMessage {
     RoundNumber round_number{0};
     MembershipCounter counter{0};
-    Id id;
-    boost::variant<SignedPrevote, SignedPrecommit, SignedPrimaryPropose> vote;
+    Vote vote;
+
+    Id id() const {
+      return visit_in_place(
+          vote, [](const auto &signed_message) { return signed_message.id; });
+    }
   };
+
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const VoteMessage &v) {
-    // TODO (kamilsa): implement
-    return s;
+    return s << v.round_number << v.counter << v.vote;
   }
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, const VoteMessage &v) {
-    // TODO (kamilsa): implement
-    return s;
+  Stream &operator>>(Stream &s, VoteMessage &v) {
+    return s >> v.round_number >> v.counter >> v.vote;
   }
 
   // finalizing message or block B in round r
@@ -110,28 +144,18 @@ namespace kagome::consensus::grandpa {
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const Fin &v) {
-    // TODO (kamilsa): implement
-    return s;
+  Stream &operator<<(Stream &s, const Fin &f) {
+    return s << f.round_number << f.vote << f.justification;
   }
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator>>(Stream &s, const Fin &v) {
-    // TODO (kamilsa): implement
-    return s;
+  Stream &operator>>(Stream &s, const Fin &f) {
+    return s >> f.round_number >> f.vote >> f.justification;
   }
 
   using PrevoteEquivocation = detail::Equivocation<Prevote>;
   using PrecommitEquivocation = detail::Equivocation<Precommit>;
-
-  struct HistoricalVotes {
-    std::vector<SignedPrevote> prevotes_seen;
-    std::vector<SignedPrecommit> precommits_seen;
-    std::vector<SignedPrimaryPropose> proposes_seen;
-    uint64_t prevote_idx;
-    uint64_t precommit_idx;
-  };
 
   struct TotalWeight {
     uint64_t prevote;

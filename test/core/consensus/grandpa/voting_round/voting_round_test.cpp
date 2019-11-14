@@ -62,9 +62,6 @@ class VotingRoundTest : public ::testing::Test {
     voting_round_ = std::make_shared<VotingRoundImpl>(voters_,
                                                       round_number_,
                                                       duration_,
-                                                      start_time_,
-                                                      counter_,
-                                                      last_round_state_,
                                                       keypair_,
                                                       prevotes_,
                                                       precommits_,
@@ -74,7 +71,8 @@ class VotingRoundTest : public ::testing::Test {
                                                       ed_provider_,
                                                       clock_,
                                                       tree_,
-                                                      Timer(io_context_));
+                                                      io_context_,
+                                                      [](const auto &) {});
   }
 
   SignedPrevote preparePrevote(const Id &id,
@@ -176,7 +174,8 @@ class VotingRoundTest : public ::testing::Test {
       std::make_shared<ED25519ProviderMock>();
   std::shared_ptr<SteadyClockMock> clock_ = std::make_shared<SteadyClockMock>();
 
-  boost::asio::io_context io_context_;
+  std::shared_ptr<boost::asio::io_context> io_context_ =
+      std::make_shared<boost::asio::io_context>();
 
   std::shared_ptr<VotingRoundImpl> voting_round_;
 };

@@ -31,6 +31,9 @@ namespace kagome::consensus::grandpa {
     size_t total_weight_ = 0;
   };
 
+  using PrevoteTrackerImpl = VoteTrackerImpl<Prevote>;
+  using PrecommitTrackerImpl = VoteTrackerImpl<Precommit>;
+
 }  // namespace kagome::consensus::grandpa
 
 #endif  // KAGOME_VOTE_TRACKER_IMPL_HPP

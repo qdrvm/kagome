@@ -32,3 +32,10 @@ target_link_libraries(voting_round
     logger
     blob
     )
+
+add_library(launcher
+    impl/launcher_impl.cpp
+    )
+target_link_libraries(launcher
+    voting_round
+    )

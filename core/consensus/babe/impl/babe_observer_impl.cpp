@@ -68,6 +68,8 @@ namespace kagome::consensus {
                                    announce.header.parent_hash,
                                    network::Direction::DESCENDING,
                                    boost::none};
+
+    pollClients(block, request, polled_clients);
   }
 
   void BabeObserverImpl::pollClients(

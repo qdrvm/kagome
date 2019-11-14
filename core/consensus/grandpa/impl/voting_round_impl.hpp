@@ -9,9 +9,11 @@
 #include "consensus/grandpa/voting_round.hpp"
 
 #include <boost/asio/basic_waitable_timer.hpp>
+#include <boost/signals2.hpp>
 #include "blockchain/block_tree.hpp"
 #include "common/logger.hpp"
 #include "consensus/grandpa/chain.hpp"
+#include "consensus/grandpa/completed_round.hpp"
 #include "consensus/grandpa/gossiper.hpp"
 #include "consensus/grandpa/vote_graph.hpp"
 #include "consensus/grandpa/vote_tracker.hpp"
@@ -20,15 +22,15 @@
 namespace kagome::consensus::grandpa {
 
   class VotingRoundImpl : public VotingRound {
+    using OnCompleted = boost::signals2::signal<void(const CompletedRound &)>;
+    using OnCompletedSlotType = OnCompleted::slot_type;
+
    public:
     ~VotingRoundImpl() override = default;
 
     VotingRoundImpl(std::shared_ptr<VoterSet> voters,
                     RoundNumber round_number,
                     Duration duration,
-                    TimePoint start_time,
-                    MembershipCounter counter,
-                    RoundState last_round_state,
                     crypto::ED25519Keypair keypair,
                     std::shared_ptr<VoteTracker<Prevote>> prevotes,
                     std::shared_ptr<VoteTracker<Precommit>> precommits,
@@ -38,7 +40,8 @@ namespace kagome::consensus::grandpa {
                     std::shared_ptr<crypto::ED25519Provider> ed_provider,
                     std::shared_ptr<Clock> clock,
                     std::shared_ptr<blockchain::BlockTree> block_tree,
-                    Timer timer,
+                    std::shared_ptr<boost::asio::io_context> io_context,
+                    OnCompletedSlotType on_completed_slot,
                     common::Logger logger = common::createLogger("Grandpa"));
 
     void onFin(const Fin &f) override;
@@ -49,9 +52,9 @@ namespace kagome::consensus::grandpa {
 
     void onPrecommit(const SignedPrecommit &precommit) override;
 
-    void onVoteMessage(const VoteMessage &vote_message);
+    void tryFinalize(const RoundState &last_round_state) override;
 
-    void tryFinalize() override;
+    RoundNumber roundNumber() const override;
 
     void primaryPropose(const RoundState &last_round_state) override;
 
@@ -70,13 +73,6 @@ namespace kagome::consensus::grandpa {
     bool isPrimary() const;
 
     size_t getThreshold(const std::shared_ptr<VoterSet> &voters);
-    /**
-     * @tparam VoteType – either SignedPrevote or SignedPrecommit
-     * @param vote – vote is pushed to tracker if it is not equivocated vote and
-     * it was not pushed into the tracker before
-     */
-    template <typename VoteType>
-    void onVote(const VoteType &vote);
 
     void onSignedPrevote(const SignedPrevote &vote);
 
@@ -85,6 +81,8 @@ namespace kagome::consensus::grandpa {
     void updatePrevoteGhost();
 
     void update();
+
+    void notify(const RoundState &last_round_state);
 
     boost::optional<Justification> finalizingPrecommits(
         const BlockInfo &estimate) const;
@@ -112,13 +110,14 @@ namespace kagome::consensus::grandpa {
 
     SignedPrecommit signPrecommit(const Precommit &precommit) const;
 
+    bool validate(const BlockInfo &vote,
+                  const Justification &justification) const;
+
    private:
     std::shared_ptr<VoterSet> voter_set_;
     const RoundNumber round_number_;
     const Duration duration_;  // length of round (T in spec)
-    const TimePoint start_time_;
-    const MembershipCounter counter_;
-    RoundState last_round_state_;
+    TimePoint start_time_;
     RoundState cur_round_state_;
     const crypto::ED25519Keypair keypair_;
     const Id id_;  // id of current peer
@@ -135,7 +134,9 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
 
-    Timer timer_;
+    std::shared_ptr<boost::asio::io_context> io_context_;
+    Timer prevote_timer_;
+    Timer precommit_timer_;
 
     common::Logger logger_;
     // equivocators arrays. Index in vector corresponds to the index of voter in
@@ -143,8 +144,10 @@ namespace kagome::consensus::grandpa {
     std::vector<bool> prevote_equivocators_;
     std::vector<bool> precommit_equivocators_;
 
-    boost::optional<PrimaryPropose> primaty_vote_;
+    boost::optional<PrimaryPropose> primary_vote_;
     bool completable_{false};
+
+    OnCompleted on_completed_;
   };
 }  // namespace kagome::consensus::grandpa
 

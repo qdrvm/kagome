@@ -36,19 +36,18 @@ namespace kagome::primitives {
       }
     };
 
-    // TODO(akvinikym) 04.09.19: implement the SCALE codecs
     template <class Stream,
               typename Tag,
               typename = std::enable_if_t<Stream::is_encoder_stream>>
     Stream &operator<<(Stream &s, const BlockInfoT<Tag> &msg) {
-      return s;
+      return s << msg.block_hash << msg.block_number;
     }
 
     template <class Stream,
               typename Tag,
               typename = std::enable_if_t<Stream::is_decoder_stream>>
-    Stream &operator>>(Stream &s, const BlockInfoT<Tag> &msg) {
-      return s;
+    Stream &operator>>(Stream &s, BlockInfoT<Tag> &msg) {
+      return s >> msg.block_hash >> msg.block_number;
     }
   }  // namespace detail
 

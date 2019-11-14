@@ -24,10 +24,11 @@ namespace kagome::consensus::grandpa {
   using RoundNumber = uint64_t;
   using MembershipCounter = uint64_t;
 
-  //  using VoterSet = std::vector<Id>;
-
-  class VoterSet {
+  struct VoterSet {
    public:
+    VoterSet() : voters_{} {};
+    VoterSet(std::vector<Id> authorities) : voters_{std::move(authorities)} {}
+
     void insert(Id voter, size_t weight) {
       voters_.push_back(voter);
       weight_map_.insert({voter, weight});
@@ -36,6 +37,10 @@ namespace kagome::consensus::grandpa {
 
     const std::vector<Id> &voters() const {
       return voters_;
+    }
+
+    size_t setId() const {
+      return set_id_;
     }
 
     boost::optional<size_t> voterIndex(const Id &voter) const {
@@ -71,9 +76,24 @@ namespace kagome::consensus::grandpa {
 
    private:
     std::vector<Id> voters_;
+    size_t set_id_;
     std::unordered_map<Id, size_t> weight_map_;
     size_t total_weight_{0};
   };
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
+  Stream &operator<<(Stream &s, const VoterSet &voters) {
+    // TODO implement
+    return s;
+  }
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, const VoterSet &voters) {
+    // TODO implement
+    return s >> voters;
+  }
 
   using Clock = clock::SteadyClock;
   using Duration = Clock::Duration;
