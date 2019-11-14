@@ -25,7 +25,8 @@ namespace kagome::runtime {
    public:
     virtual ~WasmMemory() = default;
 
-    const static auto kMaxMemorySize = std::numeric_limits<uint32_t>::max();
+    constexpr static uint32_t kMaxMemorySize =
+        std::numeric_limits<uint32_t>::max();
 
     /**
      * @brief Return the size of the memory

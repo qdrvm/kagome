@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <utility>
+#include "storage/trie/impl/trie_error.hpp"
 
 using kagome::common::Buffer;
 
@@ -48,7 +49,8 @@ namespace kagome::storage::trie {
       // these nodes are processed in memory, so any changes applied to them
       // will be written back to the storage only on storeNode call
       OUTCOME_TRY(n,
-                  insert(root, k_enc,
+                  insert(root,
+                         k_enc,
                          std::make_shared<LeafNode>(k_enc, std::move(value))));
       root_ = n;
     }
@@ -133,7 +135,8 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrie::updateBranch(
-      BranchPtr parent, const common::Buffer &key_nibbles,
+      BranchPtr parent,
+      const common::Buffer &key_nibbles,
       const NodePtr &node) {
     auto length = getCommonPrefixLength(key_nibbles, parent->key_nibbles);
 
@@ -172,14 +175,14 @@ namespace kagome::storage::trie {
   outcome::result<common::Buffer> PolkadotTrie::get(
       const common::Buffer &key) const {
     if (not root_) {
-      return common::Buffer{};
+      return TrieError::NO_VALUE;
     }
     auto nibbles = PolkadotCodec::keyToNibbles(key);
     OUTCOME_TRY(node, getNode(root_, nibbles));
-    if (node) {
+    if (node && not node->value.empty()) {
       return node->value;
     }
-    return common::Buffer{};
+    return TrieError::NO_VALUE;
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrie::getNode(
@@ -274,7 +277,8 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<PolkadotTrie::NodePtr> PolkadotTrie::handleDeletion(
-      const BranchPtr &parent, NodePtr node,
+      const BranchPtr &parent,
+      NodePtr node,
       const common::Buffer &key_nibbles) {
     auto newRoot = std::move(node);
     auto length = getCommonPrefixLength(key_nibbles, parent->key_nibbles);

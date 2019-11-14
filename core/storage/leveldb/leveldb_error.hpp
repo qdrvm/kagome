@@ -6,7 +6,7 @@
 #ifndef KAGOME_LEVELDB_ERROR_HPP
 #define KAGOME_LEVELDB_ERROR_HPP
 
-#include <outcome/outcome-register.hpp>
+#include <outcome/outcome.hpp>
 
 namespace kagome::storage {
 

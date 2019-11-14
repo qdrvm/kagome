@@ -14,6 +14,6 @@ target_link_libraries(rpc_libp2p_test
     outcome
     blob
     testutil_read_writer_helper
-    libp2p_peer_id
-    multiaddress
+    p2p::p2p_peer_id
+    p2p::p2p_multiaddress
     )

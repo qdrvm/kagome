@@ -5,12 +5,12 @@
 
 add_subdirectory(api)
 add_subdirectory(authorship)
+add_subdirectory(application)
 add_subdirectory(blockchain)
 add_subdirectory(common)
 add_subdirectory(consensus)
 add_subdirectory(crypto)
 add_subdirectory(extensions)
-add_subdirectory(libp2p)
 add_subdirectory(network)
 add_subdirectory(primitives)
 add_subdirectory(runtime)

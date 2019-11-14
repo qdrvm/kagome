@@ -8,6 +8,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "storage/in_memory/in_memory_storage.hpp"
+#include "storage/trie/impl/trie_error.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"
@@ -74,8 +75,9 @@ TEST_F(TrieBatchTest, Put) {
   FillSmallTrieWithBatch(*batch);
 
   for (auto &entry : data) {
-    EXPECT_OUTCOME_TRUE(res, trie->get(entry.first));
-    ASSERT_TRUE(res.empty());
+    EXPECT_OUTCOME_FALSE(err, trie->get(entry.first));
+    ASSERT_EQ(err.value(),
+              static_cast<int>(kagome::storage::trie::TrieError::NO_VALUE));
   }
   EXPECT_OUTCOME_TRUE_void(r, batch->commit());
   for (auto &entry : data) {
