@@ -28,7 +28,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repository)
       : block_tree_{std::move(block_tree)},
         header_repository_{std::move(header_repository)},
-        logger_ {common::createLogger("Chain API:")} {
+        logger_{common::createLogger("Chain API:")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(header_repository_ != nullptr);
   }
@@ -47,9 +47,7 @@ namespace kagome::consensus::grandpa {
         boost::none;  // TODO(Harrm) authority_set.current_limit
     // find out how to obtain it and whether it is needed
 
-    logger_->info("Finding best chain containing block {} with number limit {}",
-                  base.toHex(),
-                  limit);
+    logger_->debug("Finding best chain containing block {}", base.toHex());
     OUTCOME_TRY(best_info, block_tree_->getBestContaining(base, boost::none));
     auto best_hash = best_info.block_hash;
 
@@ -62,9 +60,10 @@ namespace kagome::consensus::grandpa {
       return Error::BLOCK_AFTER_LIMIT;
     }
 
-    OUTCOME_TRY(base_header, header_repository_->getBlockHeader(base));
-    auto diff = best_info.block_number - base_header.number;
-    auto target = base_header.number + (diff * 3 + 2) / 4;
+    // OUTCOME_TRY(base_header, header_repository_->getBlockHeader(base));
+    // auto diff = best_info.block_number - base_header.number;
+    // auto target = base_header.number + (diff * 3 + 2) / 4;
+    auto target = best_info.block_number;
     target = limit.has_value() ? std::min(limit.value(), target) : target;
 
     OUTCOME_TRY(best_header, header_repository_->getBlockHeader(best_hash));

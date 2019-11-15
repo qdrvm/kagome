@@ -15,6 +15,7 @@
 #include "consensus/grandpa/chain.hpp"
 #include "consensus/grandpa/completed_round.hpp"
 #include "consensus/grandpa/gossiper.hpp"
+#include "consensus/grandpa/vote_crypto_provider.hpp"
 #include "consensus/grandpa/vote_graph.hpp"
 #include "consensus/grandpa/vote_tracker.hpp"
 #include "crypto/ed25519_provider.hpp"
@@ -31,7 +32,8 @@ namespace kagome::consensus::grandpa {
     VotingRoundImpl(std::shared_ptr<VoterSet> voters,
                     RoundNumber round_number,
                     Duration duration,
-                    crypto::ED25519Keypair keypair,
+                    Id id,
+                    std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
                     std::shared_ptr<VoteTracker<Prevote>> prevotes,
                     std::shared_ptr<VoteTracker<Precommit>> precommits,
                     std::shared_ptr<Chain> chain,
@@ -99,17 +101,6 @@ namespace kagome::consensus::grandpa {
 
     void gossipPrecommit(const SignedPrecommit &precommit);
 
-    template <typename VoteType>
-    crypto::ED25519Signature voteSignature(uint8_t stage,
-                                           const VoteType &vote_type) const;
-
-    SignedPrimaryPropose signPrimaryPropose(
-        const PrimaryPropose &primary_propose) const;
-
-    SignedPrevote signPrevote(const Prevote &prevote) const;
-
-    SignedPrecommit signPrecommit(const Precommit &precommit) const;
-
     bool validate(const BlockInfo &vote,
                   const Justification &justification) const;
 
@@ -121,6 +112,7 @@ namespace kagome::consensus::grandpa {
     RoundState cur_round_state_;
     const crypto::ED25519Keypair keypair_;
     const Id id_;  // id of current peer
+    std::shared_ptr<VoteCryptoProvider> vote_crypto_provider_;
     State state_;
     size_t threshold_;
 

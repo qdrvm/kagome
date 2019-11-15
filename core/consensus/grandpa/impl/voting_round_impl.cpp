@@ -29,7 +29,8 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<VoterSet> voters,
       RoundNumber round_number,
       Duration duration,
-      crypto::ED25519Keypair keypair,
+      Id id,
+      std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
       std::shared_ptr<VoteTracker<Prevote>> prevotes,
       std::shared_ptr<VoteTracker<Precommit>> precommits,
       std::shared_ptr<Chain> chain,
@@ -44,8 +45,8 @@ namespace kagome::consensus::grandpa {
       : voter_set_{std::move(voters)},
         round_number_{round_number},
         duration_{duration},
-        keypair_{keypair},
-        id_{keypair_.public_key},
+        id_{id},
+        vote_crypto_provider_{std::move(vote_crypto_provider)},
         state_{State::START},
         prevotes_{std::move(prevotes)},
         precommits_{std::move(precommits)},
@@ -303,33 +304,37 @@ namespace kagome::consensus::grandpa {
       case State::START: {
         auto maybe_estimate = last_round_state.estimate;
 
-        if (maybe_estimate and isPrimary()) {
-          auto maybe_finalized = last_round_state.finalized;
-
-          // we should send primary if last round's state contains finalized
-          // block and last round estimate is better than finalized block
-          bool should_send_primary =
-              maybe_finalized
-                  .map([&maybe_estimate](const BlockInfo &finalized) {
-                    return maybe_estimate->block_number
-                           > finalized.block_number;
-                  })
-                  .value_or(false);
-
-          if (should_send_primary) {
-            logger_->debug("Sending primary block hint for round {}",
-                           round_number_);
-            primary_vote_ = maybe_estimate.map(convertToPrimaryPropose);
-
-            gossipPrimaryPropose(signPrimaryPropose(primary_vote_.value()));
-
-            state_ = State::PROPOSED;
-          }
-        } else {
+        if (not maybe_estimate) {
           logger_->debug(
               "Last round estimate does not exist, not sending primary block "
               "hint during round {}",
               round_number_);
+          break;
+        }
+        if (not isPrimary()) {
+          break;
+        }
+
+        auto maybe_finalized = last_round_state.finalized;
+
+        // we should send primary if last round's state contains finalized
+        // block and last round estimate is better than finalized block
+        bool should_send_primary =
+            maybe_finalized
+                .map([&maybe_estimate](const BlockInfo &finalized) {
+                  return maybe_estimate->block_number > finalized.block_number;
+                })
+                .value_or(false);
+
+        if (should_send_primary) {
+          logger_->debug("Sending primary block hint for round {}",
+                         round_number_);
+          primary_vote_ = maybe_estimate.map(convertToPrimaryPropose);
+
+          gossipPrimaryPropose(
+              vote_crypto_provider_->signPrimaryPropose(primary_vote_.value()));
+
+          state_ = State::PROPOSED;
         }
         break;
       }
@@ -483,7 +488,8 @@ namespace kagome::consensus::grandpa {
     }
     const auto &best_chain = rbest_chain.value();
 
-    return signPrevote({best_chain.block_number, best_chain.block_hash});
+    return vote_crypto_provider_->signPrevote(
+        {best_chain.block_number, best_chain.block_hash});
   }
 
   outcome::result<SignedPrecommit> VotingRoundImpl::constructPrecommit(
@@ -492,7 +498,7 @@ namespace kagome::consensus::grandpa {
     const auto &target = cur_round_state_.prevote_ghost.value_or(
         Prevote{base.block_number, base.block_hash});
 
-    return signPrecommit({
+    return vote_crypto_provider_->signPrecommit({
         target.block_number,
         target.block_hash,
     });
@@ -661,45 +667,6 @@ namespace kagome::consensus::grandpa {
                         .round_number = round_number_,
                         .counter = voter_set_->setId()};
     gossiper_->vote(message);
-  }
-
-  template <typename VoteType>
-  crypto::ED25519Signature VotingRoundImpl::voteSignature(
-      uint8_t stage, const VoteType &vote_type) const {
-    auto payload =
-        scale::encode(stage, vote_type, round_number_, voter_set_->setId())
-            .value();
-    return ed_provider_->sign(keypair_, payload).value();
-  }
-
-  template crypto::ED25519Signature
-  VotingRoundImpl::voteSignature<PrimaryPropose>(uint8_t,
-                                                 const PrimaryPropose &) const;
-  template crypto::ED25519Signature VotingRoundImpl::voteSignature<Prevote>(
-      uint8_t, const Prevote &) const;
-  template crypto::ED25519Signature VotingRoundImpl::voteSignature<Precommit>(
-      uint8_t, const Precommit &) const;
-
-  SignedPrimaryPropose VotingRoundImpl::signPrimaryPropose(
-      const PrimaryPropose &primary_propose) const {
-    return SignedPrimaryPropose{
-        .message = primary_propose,
-        .id = id_,
-        .signature = voteSignature(kPrimaryProposeStage, primary_propose)};
-  }
-
-  SignedPrevote VotingRoundImpl::signPrevote(const Prevote &prevote) const {
-    return SignedPrevote{.message = prevote,
-                         .id = id_,
-                         .signature = voteSignature(kPrevoteStage, prevote)};
-  }
-
-  SignedPrecommit VotingRoundImpl::signPrecommit(
-      const Precommit &precommit) const {
-    return SignedPrecommit{
-        .message = precommit,
-        .id = id_,
-        .signature = voteSignature(kPrecommitStage, precommit)};
   }
 
 }  // namespace kagome::consensus::grandpa

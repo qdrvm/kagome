@@ -13,4 +13,5 @@ target_link_libraries(voting_round_test
     vote_graph
     vote_tracker
     blob
+    clock
     )

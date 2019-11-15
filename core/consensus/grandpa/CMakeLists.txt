@@ -21,6 +21,13 @@ target_link_libraries(vote_tracker
     blob
     )
 
+add_library(vote_crypto_provider
+    impl/vote_crypto_provider_impl.cpp
+    )
+target_link_libraries(vote_crypto_provider
+    scale
+    )
+
 add_library(voting_round
     impl/voting_round_impl.cpp
     )

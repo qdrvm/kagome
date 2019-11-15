@@ -6,20 +6,16 @@
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 
 #include <gtest/gtest.h>
+#include <boost/range/algorithm/find.hpp>
+#include "clock/impl/clock_impl.hpp"
+#include "consensus/grandpa/impl/chain_impl.hpp"
+#include "consensus/grandpa/impl/vote_tracker_impl.hpp"
+#include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "core/consensus/grandpa/literals.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
-//#include "blockchain/impl/block_tree_impl.hpp"
 #include "mock/core/blockchain/header_repository_mock.hpp"
-//#include "blockchain/impl/key_value_block_header_repository.hpp"
-//#include "storage/in_memory/in_memory_storage.hpp"
-#include "mock/core/clock/clock_mock.hpp"
-//#include "mock/core/consensus/grandpa/chain_mock.hpp"
-#include "consensus/grandpa/impl/chain_impl.hpp"
 #include "mock/core/consensus/grandpa/gossiper_mock.hpp"
-//#include "mock/core/consensus/grandpa/vote_graph_mock.hpp"
-#include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
-//#include "mock/core/consensus/grandpa/vote_tracker_mock.hpp"
-#include "consensus/grandpa/impl/vote_tracker_impl.hpp"
+#include "mock/core/consensus/grandpa/vote_crypto_provider_mock.hpp"
 #include "mock/core/crypto/ed25519_provider_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 
@@ -28,17 +24,43 @@ using namespace std::chrono_literals;
 
 using kagome::blockchain::BlockTreeMock;
 using kagome::blockchain::HeaderRepositoryMock;
-// using kagome::blockchain::KeyValueBlockHeaderRepository;
-// using kagome::storage::InMemoryStorage;
-// using kagome::blockchain::BlockTreeImpl;
-using kagome::clock::SteadyClockMock;
+using kagome::clock::SteadyClockImpl;
+using kagome::consensus::grandpa::VoteCryptoProviderMock;
 using kagome::crypto::ED25519Keypair;
 using kagome::crypto::ED25519ProviderMock;
 using kagome::crypto::ED25519Signature;
 using kagome::crypto::HasherMock;
 
 using ::testing::_;
+using ::testing::Invoke;
 using ::testing::Return;
+using ::testing::Truly;
+
+ACTION_P(onVerify, fixture) {
+  if (arg0.id == fixture->kAlice) {
+    return arg0.signature == fixture->kAliceSignature;
+  }
+  if (arg0.id == fixture->kBob) {
+    return arg0.signature == fixture->kBobSignature;
+  }
+  if (arg0.id == fixture->kEve) {
+    return arg0.signature == fixture->kEveSignature;
+  }
+  return false;
+}
+
+ACTION_P(onSignPrimaryPropose, fixture) {
+  return fixture->preparePrimaryPropose(
+      fixture->kAlice, fixture->kAliceSignature, arg0);
+}
+ACTION_P(onSignPrevote, fixture) {
+  return fixture->preparePrevote(
+      fixture->kAlice, fixture->kAliceSignature, arg0);
+}
+ACTION_P(onSignPrecommit, fixture) {
+  return fixture->preparePrecommit(
+      fixture->kAlice, fixture->kAliceSignature, arg0);
+}
 
 class VotingRoundTest : public ::testing::Test {
  public:
@@ -48,6 +70,30 @@ class VotingRoundTest : public ::testing::Test {
     voters_->insert(kEve, kEveWeight);
 
     keypair_.public_key = kAlice;
+
+    // prepare lambda checking that id is known
+    auto is_known_id = [this](const auto &signed_vote) {
+      auto id = signed_vote.id;
+      if (id == kAlice or id == kBob or id == kEve) {
+        return true;
+      }
+      return false;
+    };
+    // prepare vote crypto provider
+    EXPECT_CALL(*vote_crypto_provider_,
+                verifyPrimaryPropose(Truly(is_known_id)))
+        .WillRepeatedly(onVerify(this));
+    EXPECT_CALL(*vote_crypto_provider_, verifyPrevote(Truly(is_known_id)))
+        .WillRepeatedly(onVerify(this));
+    EXPECT_CALL(*vote_crypto_provider_, verifyPrecommit(Truly(is_known_id)))
+        .WillRepeatedly(onVerify(this));
+
+    EXPECT_CALL(*vote_crypto_provider_, signPrimaryPropose(_))
+        .WillRepeatedly(onSignPrimaryPropose(this));
+    EXPECT_CALL(*vote_crypto_provider_, signPrevote(_))
+        .WillRepeatedly(onSignPrevote(this));
+    EXPECT_CALL(*vote_crypto_provider_, signPrecommit(_))
+        .WillRepeatedly(onSignPrecommit(this));
 
     EXPECT_CALL(*header_repository_,
                 getBlockHeader(kagome::primitives::BlockId(GENESIS_HASH)))
@@ -59,20 +105,30 @@ class VotingRoundTest : public ::testing::Test {
     chain_ = std::make_shared<ChainImpl>(tree_, header_repository_);
     vote_graph_ = std::make_shared<VoteGraphImpl>(base, chain_);
 
-    voting_round_ = std::make_shared<VotingRoundImpl>(voters_,
-                                                      round_number_,
-                                                      duration_,
-                                                      keypair_,
-                                                      prevotes_,
-                                                      precommits_,
-                                                      chain_,
-                                                      vote_graph_,
-                                                      gossiper_,
-                                                      ed_provider_,
-                                                      clock_,
-                                                      tree_,
-                                                      io_context_,
-                                                      [](const auto &) {});
+    voting_round_ = std::make_shared<VotingRoundImpl>(
+        voters_,
+        round_number_,
+        duration_,
+        kAlice,
+        vote_crypto_provider_,
+        prevotes_,
+        precommits_,
+        chain_,
+        vote_graph_,
+        gossiper_,
+        ed_provider_,
+        clock_,
+        tree_,
+        io_context_,
+        [](const auto &) { std::cout << "Completed" << std::endl; });
+  }
+
+  SignedPrimaryPropose preparePrimaryPropose(
+      const Id &id,
+      const ED25519Signature &sig,
+      const PrimaryPropose &primary_propose) {
+    return SignedPrimaryPropose{
+        .id = id, .signature = sig, .message = primary_propose};
   }
 
   SignedPrevote preparePrevote(const Id &id,
@@ -133,7 +189,7 @@ class VotingRoundTest : public ::testing::Test {
     //    }
   }
 
- protected:
+ public:
   const BlockHash GENESIS_HASH = "genesis"_H;
 
   const Id kAlice = "Alice"_ID;
@@ -149,13 +205,14 @@ class VotingRoundTest : public ::testing::Test {
   const ED25519Signature kEveSignature = "Eve"_SIG;
 
   std::shared_ptr<VoterSet> voters_ = std::make_shared<VoterSet>();
-  RoundNumber round_number_{1};
-  Duration duration_{1000ms};
+  RoundNumber round_number_{0};
+  Duration duration_{5000ms};
   TimePoint start_time_{42h};
   MembershipCounter counter_{0};
 
-  RoundState last_round_state_;
   ED25519Keypair keypair_;
+  std::shared_ptr<VoteCryptoProviderMock> vote_crypto_provider_ =
+      std::make_shared<VoteCryptoProviderMock>();
 
   std::shared_ptr<HasherMock> hasher_ = std::make_shared<HasherMock>();
   std::shared_ptr<HeaderRepositoryMock> header_repository_ =
@@ -172,7 +229,7 @@ class VotingRoundTest : public ::testing::Test {
   std::shared_ptr<GossiperMock> gossiper_ = std::make_shared<GossiperMock>();
   std::shared_ptr<ED25519ProviderMock> ed_provider_ =
       std::make_shared<ED25519ProviderMock>();
-  std::shared_ptr<SteadyClockMock> clock_ = std::make_shared<SteadyClockMock>();
+  std::shared_ptr<SteadyClockImpl> clock_ = std::make_shared<SteadyClockImpl>();
 
   std::shared_ptr<boost::asio::io_context> io_context_ =
       std::make_shared<boost::asio::io_context>();
@@ -272,8 +329,132 @@ TEST_F(VotingRoundTest, Finalization) {
   ASSERT_EQ(voting_round_->getCurrentState().finalized, BlockInfo(7, "EA"_H));
 }
 
-TEST_F(VotingRoundTest, EquivocateDoesNotDoubleCount) {
+ACTION_P(onVote, test_fixture) {
+  Vote vote = arg0.vote;
+  kagome::visit_in_place(
+      vote,
+      [=](const SignedPrimaryPropose &signed_primary_propose) {
+        test_fixture->voting_round_->onPrimaryPropose(signed_primary_propose);
+      },
+      [=](const SignedPrevote &signed_prevote) {
+        // immitate receiving prevotes from other peers
+
+        // send Alice's prevote
+        test_fixture->voting_round_->onPrevote(signed_prevote);
+        // send Bob's prevote
+        test_fixture->voting_round_->onPrevote(
+            test_fixture->preparePrevote(test_fixture->kBob,
+                                         test_fixture->kBobSignature,
+                                         signed_prevote.message));
+        // send Eve's prevote
+        test_fixture->voting_round_->onPrevote(
+            test_fixture->preparePrevote(test_fixture->kEve,
+                                         test_fixture->kEveSignature,
+                                         signed_prevote.message));
+      },
+      [=](const SignedPrecommit &signed_precommit) {
+        // immitate receiving precommit from other peers
+
+        // send Alice's precommit
+        test_fixture->voting_round_->onPrecommit(signed_precommit);
+        // send Bob's precommit
+        test_fixture->voting_round_->onPrecommit(
+            test_fixture->preparePrecommit(test_fixture->kBob,
+                                           test_fixture->kBobSignature,
+                                           signed_precommit.message));
+        // send Eve's precommit
+        test_fixture->voting_round_->onPrecommit(
+            test_fixture->preparePrecommit(test_fixture->kEve,
+                                           test_fixture->kEveSignature,
+                                           signed_precommit.message));
+      });
+}
+
+ACTION_P(onFin, test_fixture) {
+  test_fixture->voting_round_->onFin(arg0);
+}
+
+TEST_F(VotingRoundTest, SunnyDayScenario) {
   addBlocks(GENESIS_HASH, {"A"_H, "B"_H, "C"_H, "D"_H, "E"_H, "F"_H});
   addBlocks("E"_H, {"EA"_H, "EB"_H, "EC"_H, "ED"_H});
   addBlocks("F"_H, {"FA"_H, "FB"_H, "FC"_H});
+  auto base_block_hash = "C"_H;
+  auto base_block_number = 4;
+  auto best_block_hash = "FC"_H;
+  auto best_block_number = 10;
+  EXPECT_CALL(*tree_, getBestContaining(base_block_hash, _))
+      .WillRepeatedly(Return(BlockInfo{best_block_number, best_block_hash}));
+
+  EXPECT_CALL(*tree_, getChainByBlocks(base_block_hash, best_block_hash))
+      .WillRepeatedly(Return(std::vector<kagome::primitives::BlockHash>{
+          "C"_H, "D"_H, "E"_H, "F"_H, "FA"_H, "FB"_H, "FC"_H}));
+
+  RoundState last_round_state;
+  last_round_state.prevote_ghost.emplace(3, "B"_H);
+  last_round_state.estimate.emplace(base_block_number, base_block_hash);
+  last_round_state.finalized.emplace(3, "B"_H);
+
+  // voting round is executed by Alice. She is also Primary as round number is 0
+  // and she is the first in voters set
+  EXPECT_CALL(*gossiper_, vote(Truly([&](const VoteMessage &vote_message) {
+    // if vote message contains primary propose with last round estimate then
+    // true, false otherwise
+    return kagome::visit_in_place(
+        vote_message.vote,
+        [&](const SignedPrimaryPropose &primary_propose) {
+          return primary_propose.message.block_hash
+                     == last_round_state.estimate->block_hash
+                 and primary_propose.id == kAlice;
+        },
+        [&](const SignedPrevote &prevote) {
+          std::cout << "Prevoted: " << prevote.message.block_hash.data()
+                    << std::endl;
+          return prevote.message.block_hash == best_block_hash
+                 and prevote.id == kAlice;
+        },
+        [&](const SignedPrecommit &precommit) {
+          std::cout << "Precommited: " << precommit.message.block_hash.data()
+                    << std::endl;
+          return precommit.message.block_hash == best_block_hash
+                 and precommit.id == kAlice;
+        });
+  })))
+      .WillOnce(onVote(this))   // primary propose
+      .WillOnce(onVote(this))   // prevote;
+      .WillOnce(onVote(this));  // precommit;
+
+  // check that expected fin message was sent
+  EXPECT_CALL(*gossiper_, fin(Truly([&](const Fin &fin_message) {
+    std::cout << "Finalized: " << fin_message.vote.block_hash.data()
+              << std::endl;
+    auto has_all_justifications = [&](Justification just) {
+      Precommit precommit{best_block_number, best_block_hash};
+      SignedPrecommit alice_precommit =
+          preparePrecommit(kAlice, kAliceSignature, precommit);
+      SignedPrecommit bob_precommit =
+          preparePrecommit(kBob, kBobSignature, precommit);
+      SignedPrecommit eve_precommit =
+          preparePrecommit(kEve, kEveSignature, precommit);
+      bool has_alice_precommit =
+          boost::find(just.items, alice_precommit) != just.items.end();
+      bool has_bob_precommit =
+          boost::find(just.items, bob_precommit) != just.items.end();
+      bool has_eve_precommit =
+          boost::find(just.items, eve_precommit) != just.items.end();
+
+      return has_alice_precommit and has_bob_precommit and has_eve_precommit;
+    };
+    return fin_message.round_number == round_number_
+           and fin_message.vote == BlockInfo{best_block_number, best_block_hash}
+           and has_all_justifications(fin_message.justification);
+  }))).WillOnce(onFin(this));
+
+  EXPECT_CALL(*tree_, finalize(best_block_hash, _))
+      .WillOnce(Return(outcome::success()));
+
+  voting_round_->primaryPropose(last_round_state);
+  voting_round_->prevote(last_round_state);
+  voting_round_->precommit(last_round_state);
+
+  io_context_->run_for(duration_ * 6);
 }
