@@ -7,19 +7,41 @@
 
 #include <gtest/gtest.h>
 
+#include <libp2p/multi/multibase_codec/codecs/base58.hpp>
 #include "application/impl/config_reader/error.hpp"
-#include "scale/scale.hpp"
 #include "primitives/block.hpp"
+#include "scale/scale.hpp"
 #include "testutil/outcome.hpp"
 
+using kagome::application::ConfigReaderError;
 using kagome::application::JsonConfigurationReader;
 using kagome::application::KagomeConfig;
-using kagome::application::ConfigReaderError;
+using libp2p::multi::detail::encodeBase58;
 
-static std::stringstream createJSONConfig(const KagomeConfig& conf) {
+static std::stringstream createJSONConfig(const KagomeConfig &conf) {
   std::stringstream config_data;
+  using libp2p::peer::PeerId;
+  using namespace libp2p::crypto;
+  auto example_pubkey1 = ProtobufKey{std::vector<uint8_t>(32, 1)};
+  auto example_pubkey2 = ProtobufKey{std::vector<uint8_t>(32, 2)};
   config_data << "{\n";
-  config_data << "\t\"genesis\":\"" << kagome::common::hex_lower(kagome::scale::encode(conf.genesis).value()) << "\"\n";
+  config_data << "\t\"genesis\":\""
+              << kagome::common::hex_lower(
+                     kagome::scale::encode(conf.genesis).value())
+              << "\",\n";
+  config_data << "\t\"peer_ids\":[\""
+              << PeerId::fromPublicKey(example_pubkey1).value().toBase58() << "\", \""
+              << PeerId::fromPublicKey(example_pubkey2).value().toBase58() << "\"],\n";
+  config_data << "\t\"authorities\":[\""
+              << kagome::common::hex_lower(example_pubkey1.key)
+              << "\", \""
+              << kagome::common::hex_lower(example_pubkey2.key)
+              << "\"],\n";
+  config_data << "\t\"session_keys\":[\""
+              << kagome::common::hex_lower(example_pubkey1.key)
+              << "\", \""
+              << kagome::common::hex_lower(example_pubkey2.key)
+              << "\"]\n";
   config_data << "}\n";
   return config_data;
 }
