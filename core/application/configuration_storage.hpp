@@ -40,7 +40,6 @@ namespace kagome::application {
      * Return public keys of authority nodes
      */
     virtual std::vector<crypto::ED25519PublicKey> getAuthorities() const = 0;
-
   };
 
 }  // namespace kagome::application
