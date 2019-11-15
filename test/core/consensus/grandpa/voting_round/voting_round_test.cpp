@@ -163,30 +163,10 @@ class VotingRoundTest : public ::testing::Test {
     auto new_blocks_parent_hash = parent_hash;
 
     for (const auto &block_hash : blocks_hashes) {
-      //      kagome::primitives::BlockHeader hh;
-      //      hh.number = parent_number + 1;
-      //      hh.parent_hash = parent_hash;
-      //      EXPECT_CALL(*header_repository_,
-      //                  getBlockHeader(kagome::primitives::BlockId(block_hash)))
-      //          .WillRepeatedly(Return(hh));
-      //      parent_hash = block_hash;
       addBlock(new_blocks_parent_hash, block_hash, ++parent_number);
 
       new_blocks_parent_hash = block_hash;
     }
-
-    //    for (int64_t block_index = blocks_hashes.size() - 1; block_index >= 0;
-    //         block_index--) {
-    //      for (int64_t base_block_index = block_index; base_block_index >= 0;
-    //           base_block_index--) {
-    //        EXPECT_CALL(*tree_,
-    //                    getChainByBlocks(blocks_hashes[base_block_index],
-    //                                     blocks_hashes[block_index]))
-    //            .WillRepeatedly(Return(std::vector<BlockHash>(
-    //                blocks_hashes.begin() + base_block_index,
-    //                blocks_hashes.begin() + block_index + 1)));
-    //      }
-    //    }
   }
 
  public:
