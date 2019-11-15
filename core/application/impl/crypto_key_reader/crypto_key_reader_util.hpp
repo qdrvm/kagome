@@ -30,9 +30,9 @@ namespace kagome::application {
       const boost::filesystem::path &file);
 
   /**
- * Reads a HEX encoded private key from a file.
- * @warning temporary solution, meant to be replaced by PEM file format
- */
+   * Reads a HEX encoded private key from a file.
+   * @warning temporary solution, meant to be replaced by PEM file format
+   */
   outcome::result<common::Buffer> readPrivKeyFromHexFile(
       const boost::filesystem::path &file);
 

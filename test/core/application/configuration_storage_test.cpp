@@ -19,6 +19,7 @@ using kagome::primitives::Block;
 TEST(ConfigurationStorageTest, MatchesConfig) {
   KagomeConfig c;
   c.genesis.header.number = 42;
+  //TODO(Harrm) add new parameters here
   ConfigurationStorageImpl s(c);
   ASSERT_EQ(s.getGenesis().header.number, c.genesis.header.number);
 }
