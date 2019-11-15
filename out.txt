@@ -1,0 +1,908 @@
+-- [kagome] C flags: 
+-- [kagome] CXX flags: 
+-- [kagome] Using CMAKE_TOOLCHAIN_FILE=/home/harrm/Projects/kagome/cmake/toolchain/cxx17.cmake
+-- [hunter] Calculating Toolchain-SHA1
+-- [hunter] Calculating Config-SHA1
+-- [hunter] HUNTER_ROOT: /home/harrm/.hunter
+-- [hunter] [ Hunter-ID: a492a18 | Toolchain-ID: 366fb64 | Config-ID: 1c7f17f ]
+-- [hunter] GTEST_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 1.8.0-hunter-p11)
+-- [hunter] BOOST_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 1.70.0-p0)
+-- [hunter] BOOST_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 1.70.0-p0)
+-- [hunter] BOOST_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 1.70.0-p0)
+-- Boost version: 1.70.0
+-- Found the following Boost libraries:
+--   random
+--   filesystem
+-- [hunter] LEVELDB_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 1.22)
+-- [hunter] XXHASH_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 0.6.5-p0)
+-- [hunter] IROHA-ED25519_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 2.0.0)
+-- [hunter] BINARYEN_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 1.38.28-p1)
+-- [hunter] OPENSSL_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 1.1.1c)
+-- [hunter] PROTOBUF_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 3.7.1-p0)
+-- [hunter] RAPIDJSON_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 1.1.0-66eb606-p0)
+-- [hunter] MICROSOFT.GSL_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 2.0.0-p0)
+-- [hunter] SR25519_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 3005d79b23b92ff27848c24a7751543a03a2dd13)
+-- [hunter] SPDLOG_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 4b10e9aa17f7d568e24f464b48358ab46cb6f39c)
+-- [hunter] LIBP2P_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 860742c6e3e9736d68b392513d795e09572780aa)
+-- [hunter] Building libp2p
+loading initial cache file /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/cache.cmake
+loading initial cache file /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Build/libp2p/args.cmake
+-- The C compiler identification is GNU 8.3.0
+-- The CXX compiler identification is GNU 8.3.0
+-- Check for working C compiler: /usr/bin/cc
+-- Check for working C compiler: /usr/bin/cc -- works
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Check for working CXX compiler: /usr/bin/c++
+-- Check for working CXX compiler: /usr/bin/c++ -- works
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Build/libp2p/Build
+Scanning dependencies of target libp2p-Release
+[  6%] Creating directories for 'libp2p-Release'
+[ 12%] Performing download step (download, verify and extract) for 'libp2p-Release'
+-- verifying file...
+       file='/home/harrm/.hunter/_Base/Download/libp2p/860742c6e3e9736d68b392513d795e09572780aa/860742c/dad84a03a9651c7c2bb8a8f17d0e5ea67bd10b4f.zip'
+-- File already exists and hash match (skip download):
+  file='/home/harrm/.hunter/_Base/Download/libp2p/860742c6e3e9736d68b392513d795e09572780aa/860742c/dad84a03a9651c7c2bb8a8f17d0e5ea67bd10b4f.zip'
+  SHA1='860742c6e3e9736d68b392513d795e09572780aa'
+-- extracting...
+     src='/home/harrm/.hunter/_Base/Download/libp2p/860742c6e3e9736d68b392513d795e09572780aa/860742c/dad84a03a9651c7c2bb8a8f17d0e5ea67bd10b4f.zip'
+     dst='/home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Build/libp2p/Source'
+-- extracting... [tar xfz]
+-- extracting... [analysis]
+-- extracting... [rename]
+-- extracting... [clean up]
+-- extracting... done
+[ 18%] No patch step for 'libp2p-Release'
+[ 25%] No update step for 'libp2p-Release'
+[ 31%] Performing configure step for 'libp2p-Release'
+loading initial cache file /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/cache.cmake
+loading initial cache file /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Build/libp2p/args.cmake
+-- The C compiler identification is GNU 8.3.0
+-- The CXX compiler identification is GNU 8.3.0
+-- Check for working C compiler: /usr/bin/cc
+-- Check for working C compiler: /usr/bin/cc -- works
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Check for working CXX compiler: /usr/bin/c++
+-- Check for working CXX compiler: /usr/bin/c++ -- works
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- [libp2p] C flags: 
+-- [libp2p] CXX flags: 
+-- [libp2p] Using CMAKE_TOOLCHAIN_FILE=/home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Build/libp2p/toolchain.cmake
+-- [hunter] HUNTER_ROOT: /home/harrm/.hunter
+-- [hunter] [ Hunter-ID: a492a18 | Toolchain-ID: 366fb64 | Config-ID: 1c7f17f ]
+-- [hunter] GTEST_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 1.8.0-hunter-p11)
+-- [hunter] BOOST_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 1.70.0-p0)
+-- [hunter] BOOST_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 1.70.0-p0)
+-- [hunter] BOOST_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 1.70.0-p0)
+-- Boost version: 1.70.0
+-- Found the following Boost libraries:
+--   random
+--   filesystem
+-- [hunter] GSL_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 2.1.0-p2)
+-- [hunter] OPENSSL_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 1.1.1c)
+-- Found OpenSSL: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install/lib/libssl.a;/home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install/lib/libcrypto.a;dl (found version "1.1.1c") 
+-- Looking for pthread.h
+-- Looking for pthread.h - found
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Failed
+-- Looking for pthread_create in pthreads
+-- Looking for pthread_create in pthreads - not found
+-- Looking for pthread_create in pthread
+-- Looking for pthread_create in pthread - found
+-- Found Threads: TRUE  
+-- [hunter] PROTOBUF_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 3.7.1-p0)
+-- Found ZLIB: ZLIB::zlib  
+-- [hunter] SPDLOG_ROOT: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Install (ver.: 4b10e9aa17f7d568e24f464b48358ab46cb6f39c)
+-- Performing Test FLAG_-Wall
+-- Performing Test FLAG_-Wall - Success
+-- Performing Test FLAG_-Wextra
+-- Performing Test FLAG_-Wextra - Success
+-- Performing Test FLAG_-Woverloaded-virtual
+-- Performing Test FLAG_-Woverloaded-virtual - Success
+-- Performing Test FLAG_-Wformat=2
+-- Performing Test FLAG_-Wformat=2 - Success
+-- Performing Test FLAG_-Wmisleading-indentation
+-- Performing Test FLAG_-Wmisleading-indentation - Success
+-- Performing Test FLAG_-Wduplicated-cond
+-- Performing Test FLAG_-Wduplicated-cond - Success
+-- Performing Test FLAG_-Wduplicated-branches
+-- Performing Test FLAG_-Wduplicated-branches - Success
+-- Performing Test FLAG_-Wnull-dereference
+-- Performing Test FLAG_-Wnull-dereference - Success
+-- Performing Test FLAG_-Wdouble-promotion
+-- Performing Test FLAG_-Wdouble-promotion - Success
+-- Performing Test FLAG_-Wsign-compare
+-- Performing Test FLAG_-Wsign-compare - Success
+-- Performing Test FLAG_-Wtype-limits
+-- Performing Test FLAG_-Wtype-limits - Success
+-- Performing Test FLAG_-Wno-unused-command-line-argument
+-- Performing Test FLAG_-Wno-unused-command-line-argument - Failed
+-- Performing Test FLAG_-Wno-unused-parameter
+-- Performing Test FLAG_-Wno-unused-parameter - Success
+-- Performing Test FLAG_-Wno-format-nonliteral
+-- Performing Test FLAG_-Wno-format-nonliteral - Success
+-- Performing Test FLAG_-Wno-gnu-zero-variadic-macro-arguments
+-- Performing Test FLAG_-Wno-gnu-zero-variadic-macro-arguments - Failed
+-- Performing Test FLAG_-Werror-unused-lambda-capture
+-- Performing Test FLAG_-Werror-unused-lambda-capture - Failed
+-- Performing Test FLAG_-Werror-return-type
+-- Performing Test FLAG_-Werror-return-type - Failed
+-- Performing Test FLAG_-Werror-non-virtual-dtor
+-- Performing Test FLAG_-Werror-non-virtual-dtor - Failed
+-- Performing Test FLAG_-Werror-sign-compare
+-- Performing Test FLAG_-Werror-sign-compare - Failed
+-- Performing Test FLAG_-Werror-reorder
+-- Performing Test FLAG_-Werror-reorder - Failed
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Build/libp2p/Build/libp2p-Release-prefix/src/libp2p-Release-build
+[ 37%] Performing build step for 'libp2p-Release'
+Scanning dependencies of target boost_di
+Scanning dependencies of target hat-trie-imp
+Scanning dependencies of target p2p
+Scanning dependencies of target p2p_byteutil
+[  1%] Generating ../../../pb/p2p_keys_proto/generated/crypto/protobuf/keys.pb.h, ../../../pb/p2p_keys_proto/generated/crypto/protobuf/keys.pb.cc
+Scanning dependencies of target p2p_sha
+[  1%] Creating directories for 'boost_di'
+[  1%] Creating directories for 'hat-trie-imp'
+[  1%] Building CXX object src/CMakeFiles/p2p.dir/libp2p.cpp.o
+[  1%] Building CXX object src/common/CMakeFiles/p2p_byteutil.dir/byteutil.cpp.o
+[  1%] Building CXX object src/crypto/sha/CMakeFiles/p2p_sha.dir/sha256.cpp.o
+Scanning dependencies of target p2p_message_read_writer_error
+Scanning dependencies of target p2p_logger
+Scanning dependencies of target p2p_crypto_error
+[  1%] Building CXX object src/common/CMakeFiles/p2p_logger.dir/logger.cpp.o
+[  1%] Building CXX object src/crypto/CMakeFiles/p2p_crypto_error.dir/error.cpp.o
+Scanning dependencies of target p2p_crypto_key
+[  1%] Building CXX object src/basic/CMakeFiles/p2p_message_read_writer_error.dir/message_read_writer_error.cpp.o
+Scanning dependencies of target p2p_random_generator
+[  2%] Performing download step (git clone) for 'hat-trie-imp'
+[  2%] Building CXX object src/crypto/CMakeFiles/p2p_crypto_key.dir/key.cpp.o
+[  2%] Performing download step (git clone) for 'boost_di'
+Scanning dependencies of target p2p_keys_proto
+[  2%] Building CXX object src/crypto/protobuf/CMakeFiles/p2p_keys_proto.dir/__/__/__/pb/p2p_keys_proto/generated/crypto/protobuf/keys.pb.cc.o
+[  2%] Building CXX object src/crypto/random_generator/CMakeFiles/p2p_random_generator.dir/boost_generator.cpp.o
+[  3%] Linking CXX static library libp2p.a
+Scanning dependencies of target p2p_hexutil
+[  3%] Built target p2p
+[  3%] Building CXX object src/common/CMakeFiles/p2p_hexutil.dir/hexutil.cpp.o
+Scanning dependencies of target p2p_upgrader
+[  3%] Building CXX object src/transport/impl/CMakeFiles/p2p_upgrader.dir/upgrader_impl.cpp.o
+[  3%] Linking CXX static library libp2p_byteutil.a
+[  3%] Built target p2p_byteutil
+[  4%] Linking CXX static library libp2p_message_read_writer_error.a
+[  4%] Built target p2p_message_read_writer_error
+Scanning dependencies of target p2p_network
+Scanning dependencies of target p2p_connection_manager
+[  4%] Building CXX object src/network/impl/CMakeFiles/p2p_network.dir/network_impl.cpp.o
+[  5%] Linking CXX static library libp2p_sha.a
+[  5%] Built target p2p_sha
+[  5%] Building CXX object src/network/impl/CMakeFiles/p2p_connection_manager.dir/connection_manager_impl.cpp.o
+[  6%] Linking CXX static library libp2p_random_generator.a
+Scanning dependencies of target p2p_security_error
+[  7%] Building CXX object src/security/CMakeFiles/p2p_security_error.dir/error.cpp.o
+[  7%] Built target p2p_random_generator
+[  8%] Linking CXX static library libp2p_crypto_error.a
+[  8%] Built target p2p_crypto_error
+Scanning dependencies of target p2p_peer_errors
+[  9%] Building CXX object src/peer/CMakeFiles/p2p_peer_errors.dir/errors.cpp.o
+Scanning dependencies of target p2p_address_repository
+[  9%] Building CXX object src/peer/CMakeFiles/p2p_address_repository.dir/address_repository.cpp.o
+[  9%] Linking CXX static library libp2p_security_error.a
+[  9%] Built target p2p_security_error
+[ 10%] Generating ../../../../pb/p2p_identify_proto/generated/protocol/identify/protobuf/identify.pb.h, ../../../../pb/p2p_identify_proto/generated/protocol/identify/protobuf/identify.pb.cc
+Scanning dependencies of target p2p_identify_proto
+[ 10%] Linking CXX static library libp2p_crypto_key.a
+[ 10%] Building CXX object src/protocol/identify/protobuf/CMakeFiles/p2p_identify_proto.dir/__/__/__/__/pb/p2p_identify_proto/generated/protocol/identify/protobuf/identify.pb.cc.o
+[ 10%] Built target p2p_crypto_key
+[ 10%] Linking CXX static library libp2p_peer_errors.a
+[ 10%] Built target p2p_peer_errors
+[ 10%] Generating ../../../../pb/p2p_kad_proto/generated/protocol/kademlia/protobuf/kad.pb.h, ../../../../pb/p2p_kad_proto/generated/protocol/kademlia/protobuf/kad.pb.cc
+Scanning dependencies of target p2p_kad_proto
+[ 10%] Building CXX object src/protocol/kademlia/protobuf/CMakeFiles/p2p_kad_proto.dir/__/__/__/__/pb/p2p_kad_proto/generated/protocol/kademlia/protobuf/kad.pb.cc.o
+Scanning dependencies of target p2p_ping
+[ 11%] Building CXX object src/protocol/ping/CMakeFiles/p2p_ping.dir/ping.cpp.o
+[ 11%] Linking CXX static library libp2p_logger.a
+[ 11%] Built target p2p_logger
+[ 11%] Building CXX object src/protocol/ping/CMakeFiles/p2p_ping.dir/ping_server_session.cpp.o
+[ 11%] Linking CXX static library libp2p_keys_proto.a
+[ 11%] Built target p2p_keys_proto
+Scanning dependencies of target p2p_clock
+[ 11%] Building CXX object test/testutil/clock/CMakeFiles/p2p_clock.dir/impl/clock_impl.cpp.o
+[ 12%] Linking CXX static library libp2p_clock.a
+[ 12%] Built target p2p_clock
+Scanning dependencies of target p2p_client_test_session
+[ 13%] Building CXX object test/acceptance/p2p/host/protocol/CMakeFiles/p2p_client_test_session.dir/client_test_session.cpp.o
+[ 13%] No patch step for 'hat-trie-imp'
+[ 13%] Performing update step for 'hat-trie-imp'
+[ 14%] Performing configure step for 'hat-trie-imp'
+-- The C compiler identification is GNU 8.3.0
+[ 14%] Linking CXX static library libp2p_hexutil.a
+[ 14%] Built target p2p_hexutil
+[ 14%] Building CXX object src/protocol/ping/CMakeFiles/p2p_ping.dir/ping_client_session.cpp.o
+-- The CXX compiler identification is GNU 8.3.0
+-- Check for working C compiler: /usr/bin/cc
+-- Check for working C compiler: /usr/bin/cc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Check for working CXX compiler: /usr/bin/c++
+-- Check for working CXX compiler: /usr/bin/c++ -- works
+[ 14%] Linking CXX static library libp2p_identify_proto.a
+-- Detecting CXX compiler ABI info
+[ 14%] Built target p2p_identify_proto
+Scanning dependencies of target outcome_test
+[ 15%] Building CXX object test/deps/CMakeFiles/outcome_test.dir/outcome_test.cpp.o
+[ 16%] Linking CXX static library libp2p_upgrader.a
+[ 16%] Built target p2p_upgrader
+-- Detecting CXX compiler ABI info - done
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Build/libp2p/Build/libp2p-Release-prefix/src/libp2p-Release-build/hat-trie-imp-prefix/src/hat-trie-imp-build
+Scanning dependencies of target random_test
+[ 16%] Performing build step for 'hat-trie-imp'
+[ 17%] Building CXX object test/libp2p/crypto/CMakeFiles/random_test.dir/random_test.cpp.o
+[ 17%] No install step for 'hat-trie-imp'
+[ 18%] Completed 'hat-trie-imp'
+[ 18%] Built target hat-trie-imp
+Scanning dependencies of target keys_test
+[ 18%] Building CXX object test/libp2p/crypto/CMakeFiles/keys_test.dir/keys_test.cpp.o
+[ 19%] Linking CXX static library libp2p_kad_proto.a
+[ 19%] Built target p2p_kad_proto
+Scanning dependencies of target event_emitter_test
+[ 19%] Building CXX object test/libp2p/event/CMakeFiles/event_emitter_test.dir/event_emitter_test.cpp.o
+[ 19%] Linking CXX static library libp2p_client_test_session.a
+[ 19%] Built target p2p_client_test_session
+[ 19%] Linking CXX executable ../../../test_bin/random_test
+Scanning dependencies of target event_bus_test
+[ 19%] Linking CXX executable ../../../test_bin/keys_test
+[ 19%] Building CXX object test/libp2p/event/CMakeFiles/event_bus_test.dir/event_bus_test.cpp.o
+[ 19%] Built target random_test
+Scanning dependencies of target protocol_list_test
+[ 19%] Building CXX object test/libp2p/multi/utils/CMakeFiles/protocol_list_test.dir/protocol_list_test.cpp.o
+[ 19%] Built target keys_test
+Scanning dependencies of target p2p_uvarint
+[ 19%] Linking CXX static library libp2p_address_repository.a
+[ 20%] Building CXX object src/multi/CMakeFiles/p2p_uvarint.dir/uvarint.cpp.o
+[ 20%] Built target p2p_address_repository
+Scanning dependencies of target p2p_multibase_codec
+[ 21%] Building CXX object src/multi/multibase_codec/CMakeFiles/p2p_multibase_codec.dir/multibase_codec_impl.cpp.o
+[ 21%] Linking CXX executable ../../test_bin/outcome_test
+[ 21%] Built target outcome_test
+[ 21%] Building CXX object src/multi/multibase_codec/CMakeFiles/p2p_multibase_codec.dir/codecs/base16.cpp.o
+[ 21%] Linking CXX static library libp2p_uvarint.a
+[ 21%] Built target p2p_uvarint
+[ 21%] Building CXX object src/multi/multibase_codec/CMakeFiles/p2p_multibase_codec.dir/codecs/base58.cpp.o
+[ 22%] Building CXX object src/multi/multibase_codec/CMakeFiles/p2p_multibase_codec.dir/codecs/base64.cpp.o
+[ 23%] Linking CXX static library libp2p_network.a
+[ 23%] Built target p2p_network
+Scanning dependencies of target p2p_aes_provider
+[ 23%] Building CXX object src/multi/multibase_codec/CMakeFiles/p2p_multibase_codec.dir/codecs/base_error.cpp.o
+[ 24%] Building CXX object src/crypto/aes_provider/CMakeFiles/p2p_aes_provider.dir/aes_provider_impl.cpp.o
+[ 24%] Linking CXX executable ../../../../test_bin/protocol_list_test
+[ 24%] Built target protocol_list_test
+Scanning dependencies of target p2p_hmac_provider
+[ 25%] Building CXX object src/crypto/hmac_provider/CMakeFiles/p2p_hmac_provider.dir/hmac_provider_impl.cpp.o
+Scanning dependencies of target p2p_key_generator
+[ 26%] Building CXX object src/crypto/key_generator/CMakeFiles/p2p_key_generator.dir/key_generator_impl.cpp.o
+[ 26%] Linking CXX static library libp2p_connection_manager.a
+[ 26%] Built target p2p_connection_manager
+Scanning dependencies of target p2p_key_marshaller
+[ 26%] Building CXX object src/crypto/key_marshaller/CMakeFiles/p2p_key_marshaller.dir/key_marshaller_impl.cpp.o
+Scanning dependencies of target p2p_upgrader_session
+[ 26%] Building CXX object src/transport/impl/CMakeFiles/p2p_upgrader_session.dir/upgrader_session.cpp.o
+[ 26%] Linking CXX static library libp2p_aes_provider.a
+[ 26%] Built target p2p_aes_provider
+[ 26%] Generating ../../../../pb/p2p_plaintext_protobuf/generated/security/plaintext/protobuf/plaintext.pb.h, ../../../../pb/p2p_plaintext_protobuf/generated/security/plaintext/protobuf/plaintext.pb.cc
+Scanning dependencies of target p2p_plaintext_protobuf
+[ 26%] Building CXX object src/security/plaintext/protobuf/CMakeFiles/p2p_plaintext_protobuf.dir/__/__/__/__/pb/p2p_plaintext_protobuf/generated/security/plaintext/protobuf/plaintext.pb.cc.o
+[ 26%] Linking CXX static library libp2p_hmac_provider.a
+[ 26%] Built target p2p_hmac_provider
+Scanning dependencies of target p2p_protocol_echo
+[ 27%] Building CXX object src/protocol/echo/CMakeFiles/p2p_protocol_echo.dir/echo.cpp.o
+[ 27%] Building CXX object src/protocol/echo/CMakeFiles/p2p_protocol_echo.dir/server_echo_session.cpp.o
+[ 28%] Linking CXX static library libp2p_plaintext_protobuf.a
+[ 28%] Built target p2p_plaintext_protobuf
+Scanning dependencies of target uvarint_test
+[ 28%] Building CXX object test/libp2p/multi/utils/CMakeFiles/uvarint_test.dir/uvarint_test.cpp.o
+Scanning dependencies of target p2p_testutil_read_writer_helper
+[ 28%] Building CXX object test/testutil/libp2p/CMakeFiles/p2p_testutil_read_writer_helper.dir/message_read_writer_helper.cpp.o
+[ 28%] Linking CXX static library libp2p_upgrader_session.a
+[ 28%] Linking CXX static library libp2p_key_generator.a
+[ 28%] Built target p2p_upgrader_session
+[ 28%] Building CXX object src/protocol/echo/CMakeFiles/p2p_protocol_echo.dir/client_echo_session.cpp.o
+[ 28%] Built target p2p_key_generator
+Scanning dependencies of target p2p_varint_reader
+[ 28%] Building CXX object src/basic/CMakeFiles/p2p_varint_reader.dir/varint_reader.cpp.o
+[ 29%] Linking CXX static library libp2p_key_marshaller.a
+[ 29%] Built target p2p_key_marshaller
+Scanning dependencies of target p2p_multihash
+[ 30%] Building CXX object src/multi/CMakeFiles/p2p_multihash.dir/multihash.cpp.o
+[ 31%] Linking CXX executable ../../../../test_bin/uvarint_test
+[ 32%] Linking CXX static library libp2p_varint_reader.a
+[ 32%] Built target p2p_varint_reader
+[ 33%] Linking CXX static library libp2p_ping.a
+[ 33%] Built target uvarint_test
+Your branch is up to date with 'origin/cpp14'.
+Scanning dependencies of target p2p_key_validator
+[ 33%] Built target p2p_ping
+[ 33%] Building CXX object src/crypto/key_validator/CMakeFiles/p2p_key_validator.dir/key_validator_impl.cpp.o
+Scanning dependencies of target p2p_plaintext_exchange_message_marshaller
+[ 33%] No patch step for 'boost_di'
+[ 33%] Building CXX object src/security/plaintext/CMakeFiles/p2p_plaintext_exchange_message_marshaller.dir/exchange_message_marshaller_impl.cpp.o
+[ 34%] Performing update step for 'boost_di'
+[ 34%] Linking CXX static library libp2p_multibase_codec.a
+Scanning dependencies of target p2p_mplexed_connection
+[ 35%] Building CXX object src/muxer/mplex/CMakeFiles/p2p_mplexed_connection.dir/mplexed_connection.cpp.o
+[ 35%] Built target p2p_multibase_codec
+[ 35%] Building CXX object src/muxer/mplex/CMakeFiles/p2p_mplexed_connection.dir/mplex_frame.cpp.o
+[ 35%] Building CXX object src/muxer/mplex/CMakeFiles/p2p_mplexed_connection.dir/mplex_stream.cpp.o
+[ 35%] Linking CXX static library libp2p_multihash.a
+[ 35%] Built target p2p_multihash
+Scanning dependencies of target marshaller_test
+[ 35%] Building CXX object test/libp2p/crypto/CMakeFiles/marshaller_test.dir/marshaller_test.cpp.o
+Scanning dependencies of target keygen_test
+[ 35%] Building CXX object test/libp2p/crypto/CMakeFiles/keygen_test.dir/key_generator_test.cpp.o
+Current branch cpp14 is up to date.
+[ 35%] Performing configure step for 'boost_di'
+[ 35%] Linking CXX executable ../../../test_bin/event_emitter_test
+[ 35%] Built target event_emitter_test
+-- The CXX compiler identification is GNU 9.1.0
+[ 36%] Linking CXX static library libp2p_protocol_echo.a
+Scanning dependencies of target p2p_message_read_writer
+[ 37%] Building CXX object src/basic/CMakeFiles/p2p_message_read_writer.dir/message_read_writer.cpp.o
+[ 37%] Built target p2p_protocol_echo
+Scanning dependencies of target p2p_peer_id
+-- Check for working CXX compiler: /usr/local/bin/c++
+[ 37%] Building CXX object src/peer/CMakeFiles/p2p_peer_id.dir/peer_id.cpp.o
+[ 38%] Linking CXX static library libp2p_plaintext_exchange_message_marshaller.a
+[ 38%] Built target p2p_plaintext_exchange_message_marshaller
+[ 38%] Linking CXX static library libp2p_key_validator.a
+[ 39%] Linking CXX static library libp2p_testutil_read_writer_helper.a
+[ 39%] Built target p2p_key_validator
+[ 39%] Built target p2p_testutil_read_writer_helper
+[ 40%] Linking CXX executable ../../../test_bin/event_bus_test
+-- Check for working CXX compiler: /usr/local/bin/c++ -- works
+-- Detecting CXX compiler ABI info
+Scanning dependencies of target p2p_converters
+Scanning dependencies of target p2p_cid
+[ 41%] Building CXX object src/multi/CMakeFiles/p2p_cid.dir/content_identifier.cpp.o
+[ 42%] Building CXX object src/multi/converters/CMakeFiles/p2p_converters.dir/converter_utils.cpp.o
+Scanning dependencies of target p2p_multiselect
+[ 42%] Built target event_bus_test
+-- Detecting CXX compiler ABI info - done
+[ 42%] Building CXX object src/multi/CMakeFiles/p2p_cid.dir/content_identifier_codec.cpp.o
+[ 42%] Building CXX object src/protocol_muxer/multiselect/CMakeFiles/p2p_multiselect.dir/multiselect.cpp.o
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/harrm/.hunter/_Base/a492a18/366fb64/1c7f17f/Build/libp2p/Build/libp2p-Release-prefix/src/libp2p-Release-build/boost_di-prefix/src/boost_di-build
+[ 43%] Performing build step for 'boost_di'
+Scanning dependencies of target test.scopes_session
+[  0%] Building CXX object extension/test/CMakeFiles/test.scopes_session.dir/scopes/session.cpp.o
+[ 44%] Building CXX object src/protocol_muxer/multiselect/CMakeFiles/p2p_multiselect.dir/message_manager.cpp.o
+[ 45%] Linking CXX static library libp2p_peer_id.a
+[ 45%] Built target p2p_peer_id
+[ 45%] Building CXX object src/multi/converters/CMakeFiles/p2p_converters.dir/conversion_error.cpp.o
+[ 45%] Building CXX object src/multi/converters/CMakeFiles/p2p_converters.dir/ip_v4_converter.cpp.o
+[  0%] Linking CXX executable test.scopes_session
+[  0%] Built target test.scopes_session
+Scanning dependencies of target test.providers_runtime_provider
+[  0%] Building CXX object extension/test/CMakeFiles/test.providers_runtime_provider.dir/providers/runtime_provider.cpp.o
+[ 46%] Building CXX object src/multi/converters/CMakeFiles/p2p_converters.dir/ip_v6_converter.cpp.o
+[ 46%] Linking CXX static library libp2p_message_read_writer.a
+[ 46%] Built target p2p_message_read_writer
+Scanning dependencies of target p2p_plaintext
+[ 46%] Building CXX object src/security/plaintext/CMakeFiles/p2p_plaintext.dir/plaintext.cpp.o
+[ 46%] Building CXX object src/multi/converters/CMakeFiles/p2p_converters.dir/tcp_converter.cpp.o
+[ 46%] Linking CXX static library libp2p_cid.a
+[ 46%] Built target p2p_cid
+Scanning dependencies of target p2p_inmem_key_repository
+[ 46%] Building CXX object src/peer/key_repository/CMakeFiles/p2p_inmem_key_repository.dir/inmem_key_repository.cpp.o
+[ 46%] Building CXX object src/multi/converters/CMakeFiles/p2p_converters.dir/udp_converter.cpp.o
+[ 47%] Building CXX object src/multi/converters/CMakeFiles/p2p_converters.dir/ipfs_converter.cpp.o
+[ 47%] Building CXX object src/protocol_muxer/multiselect/CMakeFiles/p2p_multiselect.dir/message_reader.cpp.o
+[  1%] Linking CXX executable test.providers_runtime_provider
+[ 47%] Building CXX object src/protocol_muxer/multiselect/CMakeFiles/p2p_multiselect.dir/message_writer.cpp.o
+[ 48%] Building CXX object src/protocol_muxer/multiselect/CMakeFiles/p2p_multiselect.dir/multiselect_error.cpp.o
+[  1%] Built target test.providers_runtime_provider
+Scanning dependencies of target test.policies_uml_dumper
+[  2%] Building CXX object extension/test/CMakeFiles/test.policies_uml_dumper.dir/policies/uml_dumper.cpp.o
+[ 49%] Linking CXX executable ../../../test_bin/marshaller_test
+[ 50%] Linking CXX executable ../../../test_bin/keygen_test
+[ 51%] Linking CXX static library libp2p_mplexed_connection.a
+[ 51%] Building CXX object src/security/plaintext/CMakeFiles/p2p_plaintext.dir/plaintext_connection.cpp.o
+Scanning dependencies of target p2p_inmem_protocol_repository
+[ 52%] Building CXX object src/peer/protocol_repository/CMakeFiles/p2p_inmem_protocol_repository.dir/inmem_protocol_repository.cpp.o
+[ 52%] Built target p2p_mplexed_connection
+[ 52%] Built target marshaller_test
+Scanning dependencies of target p2p_peer_repository
+[ 52%] Building CXX object src/peer/impl/CMakeFiles/p2p_peer_repository.dir/peer_repository_impl.cpp.o
+Scanning dependencies of target p2p_kad_routing_table
+Scanning dependencies of target p2p_protocol_kademlia
+[ 52%] Built target keygen_test
+Scanning dependencies of target p2p_testutil_peer
+[ 53%] Building CXX object test/testutil/libp2p/CMakeFiles/p2p_testutil_peer.dir/peer.cpp.o
+[ 53%] Building CXX object src/protocol/kademlia/impl/CMakeFiles/p2p_protocol_kademlia.dir/kad_impl.cpp.o
+[ 53%] Building CXX object src/protocol/kademlia/impl/CMakeFiles/p2p_kad_routing_table.dir/routing_table_impl.cpp.o
+[ 53%] Linking CXX static library libp2p_inmem_key_repository.a
+[ 53%] Built target p2p_inmem_key_repository
+Scanning dependencies of target key_validator_test
+[ 54%] Building CXX object test/libp2p/crypto/CMakeFiles/key_validator_test.dir/key_validator_test.cpp.o
+[ 54%] Linking CXX static library libp2p_converters.a
+[ 54%] Built target p2p_converters
+Scanning dependencies of target peer_id_test
+[ 55%] Building CXX object test/libp2p/peer/CMakeFiles/peer_id_test.dir/peer_id_test.cpp.o
+[  2%] Linking CXX executable test.policies_uml_dumper
+[  2%] Built target test.policies_uml_dumper
+Scanning dependencies of target test.policies_types_dumper
+[  2%] Building CXX object extension/test/CMakeFiles/test.policies_types_dumper.dir/policies/types_dumper.cpp.o
+[ 55%] Linking CXX static library libp2p_testutil_peer.a
+[ 55%] Built target p2p_testutil_peer
+Scanning dependencies of target inmem_key_repository_test
+[ 55%] Building CXX object test/libp2p/peer/key_book/CMakeFiles/inmem_key_repository_test.dir/inmem_key_repository_test.cpp.o
+[ 55%] Linking CXX static library libp2p_inmem_protocol_repository.a
+[ 55%] Built target p2p_inmem_protocol_repository
+[  2%] Linking CXX executable test.policies_types_dumper
+Scanning dependencies of target libp2p_upgrader_test
+[ 56%] Building CXX object src/security/plaintext/CMakeFiles/p2p_plaintext.dir/plaintext_session.cpp.o
+[ 56%] Building CXX object test/libp2p/transport/CMakeFiles/libp2p_upgrader_test.dir/upgrader_test.cpp.o
+[  2%] Built target test.policies_types_dumper
+Scanning dependencies of target test.providers_mocks_provider
+[  3%] Building CXX object extension/test/CMakeFiles/test.providers_mocks_provider.dir/providers/mocks_provider.cpp.o
+Scanning dependencies of target test.injections_assisted_injection
+[  3%] Building CXX object extension/test/CMakeFiles/test.injections_assisted_injection.dir/injections/assisted_injection.cpp.o
+[ 56%] Linking CXX static library libp2p_multiselect.a
+[ 56%] Built target p2p_multiselect
+Scanning dependencies of target p2p_protobuf_message_read_writer
+[ 56%] Building CXX object src/basic/CMakeFiles/p2p_protobuf_message_read_writer.dir/protobuf_message_read_writer.cpp.o
+[ 56%] Linking CXX executable ../../../test_bin/peer_id_test
+[  3%] Linking CXX executable test.injections_assisted_injection
+[ 56%] Built target peer_id_test
+Scanning dependencies of target p2p_multiaddress
+[  3%] Linking CXX executable test.providers_mocks_provider
+[  3%] Built target test.injections_assisted_injection
+Scanning dependencies of target test.bindings_contextual_bindings
+[  4%] Building CXX object extension/test/CMakeFiles/test.bindings_contextual_bindings.dir/bindings/contextual_bindings.cpp.o
+[ 56%] Building CXX object src/multi/CMakeFiles/p2p_multiaddress.dir/multiaddress.cpp.o
+[ 56%] Linking CXX static library libp2p_peer_repository.a
+[  4%] Built target test.providers_mocks_provider
+Scanning dependencies of target test.injections_shared_factory
+[  4%] Building CXX object extension/test/CMakeFiles/test.injections_shared_factory.dir/injections/shared_factory.cpp.o
+[ 56%] Built target p2p_peer_repository
+Scanning dependencies of target p2p_yamuxed_connection
+[ 57%] Building CXX object src/muxer/yamux/CMakeFiles/p2p_yamuxed_connection.dir/yamuxed_connection.cpp.o
+[ 57%] Linking CXX static library libp2p_protobuf_message_read_writer.a
+[ 57%] Built target p2p_protobuf_message_read_writer
+Scanning dependencies of target p2p_mplex
+[ 57%] Building CXX object src/muxer/mplex/CMakeFiles/p2p_mplex.dir/mplex.cpp.o
+Scanning dependencies of target p2p_router
+[  4%] Linking CXX executable test.bindings_contextual_bindings
+[ 57%] Building CXX object src/network/impl/CMakeFiles/p2p_router.dir/router_impl.cpp.o
+[  5%] Linking CXX executable test.injections_shared_factory
+[ 58%] Linking CXX executable ../../../../test_bin/inmem_key_repository_test
+[  5%] Built target test.bindings_contextual_bindings
+Scanning dependencies of target test.bindings_constructor_bindings
+[  5%] Building CXX object extension/test/CMakeFiles/test.bindings_constructor_bindings.dir/bindings/constructor_bindings.cpp.o
+[  5%] Built target test.injections_shared_factory
+Scanning dependencies of target test.scopes_scoped
+[  5%] Building CXX object extension/test/CMakeFiles/test.scopes_scoped.dir/scopes/scoped.cpp.o
+[ 58%] Built target inmem_key_repository_test
+Scanning dependencies of target p2p_identity_manager
+[ 59%] Building CXX object src/peer/impl/CMakeFiles/p2p_identity_manager.dir/identity_manager_impl.cpp.o
+[  6%] Linking CXX executable test.scopes_scoped
+[ 59%] Linking CXX executable ../../../test_bin/key_validator_test
+[  6%] Linking CXX executable test.bindings_constructor_bindings
+[  6%] Built target test.scopes_scoped
+Scanning dependencies of target test.policies_serialize
+[  6%] Building CXX object extension/test/CMakeFiles/test.policies_serialize.dir/policies/serialize.cpp.o
+[  6%] Built target test.bindings_constructor_bindings
+Scanning dependencies of target test.providers_heap
+[  6%] Building CXX object extension/test/CMakeFiles/test.providers_heap.dir/providers/heap.cpp.o
+[ 59%] Built target key_validator_test
+Scanning dependencies of target message_read_writer_test
+[ 59%] Building CXX object test/libp2p/basic/CMakeFiles/message_read_writer_test.dir/message_read_writer_test.cpp.o
+[  6%] Linking CXX executable test.providers_heap
+[  6%] Built target test.providers_heap
+Scanning dependencies of target test.injections_factory
+[  6%] Building CXX object extension/test/CMakeFiles/test.injections_factory.dir/injections/factory.cpp.o
+[ 59%] Linking CXX static library libp2p_mplex.a
+[ 59%] Built target p2p_mplex
+Scanning dependencies of target address_converter_test
+[ 59%] Building CXX object test/libp2p/multi/utils/CMakeFiles/address_converter_test.dir/address_converter_test.cpp.o
+[  7%] Linking CXX executable test.policies_serialize
+[  7%] Built target test.policies_serialize
+Scanning dependencies of target test.injector
+[  8%] Building CXX object extension/test/CMakeFiles/test.injector.dir/injector.cpp.o
+[ 59%] Linking CXX static library libp2p_multiaddress.a
+[ 59%] Built target p2p_multiaddress
+Scanning dependencies of target string_to_bytes_test
+[ 60%] Building CXX object test/libp2p/multi/utils/CMakeFiles/string_to_bytes_test.dir/string_from_to_bytes_test.cpp.o
+[ 60%] Linking CXX static library libp2p_protocol_kademlia.a
+[ 60%] Built target p2p_protocol_kademlia
+Scanning dependencies of target message_manager_test
+[ 60%] Building CXX object test/libp2p/protocol_muxer/CMakeFiles/message_manager_test.dir/message_manager_test.cpp.o
+[  9%] Linking CXX executable test.injections_factory
+[  9%] Built target test.injections_factory
+Scanning dependencies of target test.injections_lazy
+[  9%] Building CXX object extension/test/CMakeFiles/test.injections_lazy.dir/injections/lazy.cpp.o
+[ 60%] Linking CXX static library libp2p_plaintext.a
+[ 60%] Built target p2p_plaintext
+Scanning dependencies of target plaintext_exchange_message_marshaller_test
+[ 60%] Building CXX object test/libp2p/security/CMakeFiles/plaintext_exchange_message_marshaller_test.dir/plaintext_exchange_message_marshaller_test.cpp.o
+[  9%] Linking CXX executable test.injector
+[  9%] Linking CXX executable test.injections_lazy
+[  9%] Built target test.injector
+[  9%] Built target test.injections_lazy
+Scanning dependencies of target test.injections_named_parameters
+Scanning dependencies of target test.scopes_shared
+[ 10%] Building CXX object extension/test/CMakeFiles/test.injections_named_parameters.dir/injections/named_parameters.cpp.o
+[ 11%] Building CXX object extension/test/CMakeFiles/test.scopes_shared.dir/scopes/shared.cpp.o
+[ 60%] Linking CXX static library libp2p_kad_routing_table.a
+[ 60%] Built target p2p_kad_routing_table
+Scanning dependencies of target p2p_literals
+[ 60%] Building CXX object src/common/CMakeFiles/p2p_literals.dir/literals.cpp.o
+[ 60%] Linking CXX executable ../../../../test_bin/address_converter_test
+[ 60%] Built target address_converter_test
+Scanning dependencies of target p2p_basic_host
+[ 60%] Building CXX object src/host/basic_host/CMakeFiles/p2p_basic_host.dir/basic_host.cpp.o
+[ 11%] Linking CXX executable test.injections_named_parameters
+[ 11%] Built target test.injections_named_parameters
+Scanning dependencies of target test.injections_extensible_injector
+[ 12%] Building CXX object extension/test/CMakeFiles/test.injections_extensible_injector.dir/injections/extensible_injector.cpp.o
+[ 60%] Building CXX object src/muxer/yamux/CMakeFiles/p2p_yamuxed_connection.dir/yamux_frame.cpp.o
+[ 12%] Linking CXX executable test.scopes_shared
+[ 12%] Built target test.scopes_shared
+Scanning dependencies of target test.injections_xml_injection
+[ 12%] Building CXX object extension/test/CMakeFiles/test.injections_xml_injection.dir/injections/xml_injection.cpp.o
+[ 61%] Linking CXX static library libp2p_literals.a
+[ 61%] Built target p2p_literals
+Scanning dependencies of target p2p_tcp_connection
+[ 62%] Building CXX object src/transport/tcp/CMakeFiles/p2p_tcp_connection.dir/tcp_connection.cpp.o
+[ 12%] Linking CXX executable test.injections_extensible_injector
+[ 62%] Linking CXX executable ../../../test_bin/message_manager_test
+[ 12%] Built target test.injections_extensible_injector
+Scanning dependencies of target test.pt_di_run_time
+[ 13%] Building CXX object test/CMakeFiles/test.pt_di_run_time.dir/pt/di_run_time.cpp.o
+[ 62%] Built target message_manager_test
+Scanning dependencies of target test.pt_di_compile_time
+[ 13%] Building CXX object test/CMakeFiles/test.pt_di_compile_time.dir/pt/di_compile_time.cpp.o
+[ 13%] Linking CXX executable test.injections_xml_injection
+[ 63%] Linking CXX executable ../../../test_bin/message_read_writer_test
+[ 13%] Built target test.injections_xml_injection
+Scanning dependencies of target test.ft_di_no_std_inc
+[ 14%] Building CXX object test/CMakeFiles/test.ft_di_no_std_inc.dir/ft/di_no_std_inc.cpp.o
+[ 63%] Linking CXX static library libp2p_identity_manager.a
+[ 63%] Built target p2p_identity_manager
+[ 63%] Built target message_read_writer_test
+[ 63%] Linking CXX executable ../../../../test_bin/string_to_bytes_test
+Scanning dependencies of target p2p_dialer
+Scanning dependencies of target p2p_listener_manager
+[ 63%] Building CXX object src/network/impl/CMakeFiles/p2p_dialer.dir/dialer_impl.cpp.o
+[ 64%] Building CXX object src/network/impl/CMakeFiles/p2p_listener_manager.dir/listener_manager_impl.cpp.o
+[ 64%] Built target string_to_bytes_test
+Scanning dependencies of target p2p_transport_manager
+[ 64%] Building CXX object src/network/impl/CMakeFiles/p2p_transport_manager.dir/transport_manager_impl.cpp.o
+[ 14%] Linking CXX executable test.ft_di_no_std_inc
+[ 14%] Built target test.ft_di_no_std_inc
+Scanning dependencies of target test.ft_di_no_memory_inc
+[ 14%] Building CXX object test/CMakeFiles/test.ft_di_no_memory_inc.dir/ft/di_no_memory_inc.cpp.o
+[ 64%] Building CXX object src/muxer/yamux/CMakeFiles/p2p_yamuxed_connection.dir/yamux_stream.cpp.o
+[ 64%] Linking CXX executable ../../../test_bin/libp2p_upgrader_test
+[ 64%] Linking CXX static library libp2p_router.a
+[ 64%] Built target p2p_router
+Scanning dependencies of target p2p_peer_address
+[ 64%] Building CXX object src/peer/CMakeFiles/p2p_peer_address.dir/peer_address.cpp.o
+[ 64%] Built target libp2p_upgrader_test
+Scanning dependencies of target p2p_inmem_address_repository
+[ 14%] Linking CXX executable test.ft_di_no_memory_inc
+[ 64%] Building CXX object src/peer/address_repository/CMakeFiles/p2p_inmem_address_repository.dir/inmem_address_repository.cpp.o
+[ 14%] Built target test.ft_di_no_memory_inc
+Scanning dependencies of target test.ut_core_bindings
+[ 65%] Linking CXX executable ../../../test_bin/plaintext_exchange_message_marshaller_test
+[ 14%] Building CXX object test/CMakeFiles/test.ut_core_bindings.dir/ut/core/bindings.cpp.o
+[ 65%] Built target plaintext_exchange_message_marshaller_test
+Scanning dependencies of target p2p_transport_parser
+[ 66%] Building CXX object src/transport/impl/CMakeFiles/p2p_transport_parser.dir/multiaddress_parser.cpp.o
+[ 14%] Linking CXX executable test.ut_core_bindings
+[ 14%] Built target test.ut_core_bindings
+Scanning dependencies of target test.ut_core_wrapper
+[ 14%] Building CXX object test/CMakeFiles/test.ut_core_wrapper.dir/ut/core/wrapper.cpp.o
+[ 66%] Linking CXX static library libp2p_peer_address.a
+[ 66%] Built target p2p_peer_address
+Scanning dependencies of target hexutil_test
+[ 66%] Building CXX object test/libp2p/common/CMakeFiles/hexutil_test.dir/hexutil_test.cpp.o
+[ 14%] Linking CXX executable test.ut_core_wrapper
+[ 14%] Built target test.ut_core_wrapper
+Scanning dependencies of target test.ut_type_traits_named_traits
+[ 15%] Building CXX object test/CMakeFiles/test.ut_type_traits_named_traits.dir/ut/type_traits/named_traits.cpp.o
+[ 66%] Linking CXX static library libp2p_transport_manager.a
+[ 66%] Built target p2p_transport_manager
+[ 15%] Linking CXX executable test.ut_type_traits_named_traits
+Scanning dependencies of target plaintext_connection_test
+[ 67%] Building CXX object test/libp2p/connection/security_conn/CMakeFiles/plaintext_connection_test.dir/plaintext_connection_test.cpp.o
+[ 15%] Built target test.ut_type_traits_named_traits
+Scanning dependencies of target test.ut_core_dependency
+[ 16%] Building CXX object test/CMakeFiles/test.ut_core_dependency.dir/ut/core/dependency.cpp.o
+[ 16%] Linking CXX executable test.ut_core_dependency
+[ 16%] Built target test.ut_core_dependency
+Scanning dependencies of target test.ut_core_provider
+[ 16%] Building CXX object test/CMakeFiles/test.ut_core_provider.dir/ut/core/provider.cpp.o
+[ 68%] Linking CXX executable ../../../test_bin/hexutil_test
+[ 69%] Linking CXX static library libp2p_yamuxed_connection.a
+[ 69%] Built target p2p_yamuxed_connection
+Scanning dependencies of target hmac_test
+[ 69%] Building CXX object test/libp2p/crypto/CMakeFiles/hmac_test.dir/hmac_test.cpp.o
+[ 69%] Built target hexutil_test
+Scanning dependencies of target aes_test
+[ 69%] Building CXX object test/libp2p/crypto/CMakeFiles/aes_test.dir/aes_test.cpp.o
+[ 70%] Linking CXX static library libp2p_basic_host.a
+[ 70%] Built target p2p_basic_host
+Scanning dependencies of target cid_test
+[ 70%] Building CXX object test/libp2p/multi/CMakeFiles/cid_test.dir/cid_test.cpp.o
+[ 17%] Linking CXX executable test.ut_core_provider
+[ 17%] Built target test.ut_core_provider
+Scanning dependencies of target test.ut_type_traits_memory_traits
+[ 17%] Building CXX object test/CMakeFiles/test.ut_type_traits_memory_traits.dir/ut/type_traits/memory_traits.cpp.o
+[ 17%] Linking CXX executable test.pt_di_run_time
+[ 17%] Linking CXX executable test.pt_di_compile_time
+[ 17%] Built target test.pt_di_run_time
+Scanning dependencies of target test.ut_core_binder
+[ 18%] Building CXX object test/CMakeFiles/test.ut_core_binder.dir/ut/core/binder.cpp.o
+[ 18%] Built target test.pt_di_compile_time
+Scanning dependencies of target test.ut_make_injector
+[ 18%] Building CXX object test/CMakeFiles/test.ut_make_injector.dir/ut/make_injector.cpp.o
+[ 18%] Linking CXX executable test.ut_type_traits_memory_traits
+[ 18%] Built target test.ut_type_traits_memory_traits
+Scanning dependencies of target test.ut_concepts_callable
+[ 18%] Building CXX object test/CMakeFiles/test.ut_concepts_callable.dir/ut/concepts/callable.cpp.o
+[ 70%] Linking CXX static library libp2p_transport_parser.a
+[ 70%] Built target p2p_transport_parser
+[ 18%] Linking CXX executable test.ut_core_binder
+Scanning dependencies of target multihash_test
+[ 70%] Building CXX object test/libp2p/multi/CMakeFiles/multihash_test.dir/multihash_test.cpp.o
+[ 18%] Linking CXX executable test.ut_make_injector
+[ 18%] Built target test.ut_core_binder
+Scanning dependencies of target test.ut_core_any_type
+[ 18%] Building CXX object test/CMakeFiles/test.ut_core_any_type.dir/ut/core/any_type.cpp.o
+[ 18%] Built target test.ut_make_injector
+Scanning dependencies of target test.ut_core_array
+[ 18%] Building CXX object test/CMakeFiles/test.ut_core_array.dir/ut/core/array.cpp.o
+[ 70%] Linking CXX static library libp2p_tcp_connection.a
+[ 70%] Built target p2p_tcp_connection
+[ 71%] Linking CXX static library libp2p_inmem_address_repository.a
+[ 19%] Linking CXX executable test.ut_concepts_callable
+[ 71%] Built target p2p_inmem_address_repository
+Scanning dependencies of target multiaddress_test
+[ 71%] Building CXX object test/libp2p/multi/CMakeFiles/multiaddress_test.dir/multiaddress_test.cpp.o
+Scanning dependencies of target multibase_codec_test
+[ 72%] Building CXX object test/libp2p/multi/CMakeFiles/multibase_codec_test.dir/multibase_codec_test.cpp.o
+[ 19%] Built target test.ut_concepts_callable
+Scanning dependencies of target test.ut_policies_constructible
+[ 73%] Linking CXX executable ../../../test_bin/aes_test
+[ 20%] Building CXX object test/CMakeFiles/test.ut_policies_constructible.dir/ut/policies/constructible.cpp.o
+[ 73%] Linking CXX executable ../../../test_bin/hmac_test
+[ 21%] Linking CXX executable test.ut_core_any_type
+[ 21%] Built target test.ut_core_any_type
+Scanning dependencies of target test.ut_concepts_scopable
+[ 21%] Building CXX object test/CMakeFiles/test.ut_concepts_scopable.dir/ut/concepts/scopable.cpp.o
+[ 21%] Linking CXX executable test.ut_core_array
+[ 73%] Built target aes_test
+Scanning dependencies of target test.ut_core_injector
+[ 21%] Building CXX object test/CMakeFiles/test.ut_core_injector.dir/ut/core/injector.cpp.o
+[ 73%] Built target hmac_test
+[ 21%] Built target test.ut_core_array
+[ 74%] Linking CXX static library libp2p_dialer.a
+Scanning dependencies of target test.ut_injector
+[ 21%] Building CXX object test/CMakeFiles/test.ut_injector.dir/ut/injector.cpp.o
+[ 74%] Built target p2p_dialer
+Scanning dependencies of target yamux_frame_test
+[ 75%] Building CXX object test/libp2p/muxer/yamux/CMakeFiles/yamux_frame_test.dir/yamux_frame_test.cpp.o
+[ 21%] Linking CXX executable test.ut_policies_constructible
+[ 21%] Built target test.ut_policies_constructible
+Scanning dependencies of target test.ut_core_policy
+Scanning dependencies of target connection_manager_test
+[ 21%] Building CXX object test/CMakeFiles/test.ut_core_policy.dir/ut/core/policy.cpp.o
+[ 76%] Building CXX object test/libp2p/network/CMakeFiles/connection_manager_test.dir/connection_manager_test.cpp.o
+[ 21%] Linking CXX executable test.ut_concepts_scopable
+[ 76%] Linking CXX static library libp2p_listener_manager.a
+[ 76%] Built target p2p_listener_manager
+[ 22%] Linking CXX executable test.ut_core_injector
+[ 22%] Built target test.ut_concepts_scopable
+Scanning dependencies of target test.ft_di_config_global_policies
+[ 22%] Building CXX object test/CMakeFiles/test.ft_di_config_global_policies.dir/ft/di_config_global_policies.cpp.o
+[ 23%] Linking CXX executable test.ut_injector
+Scanning dependencies of target transport_manager_test
+[ 23%] Built target test.ut_core_injector
+Scanning dependencies of target test.ut_aux__preprocessor
+[ 23%] Building CXX object test/CMakeFiles/test.ut_aux__preprocessor.dir/ut/aux_/preprocessor.cpp.o
+[ 77%] Building CXX object test/libp2p/network/CMakeFiles/transport_manager_test.dir/transport_manager_test.cpp.o
+[ 23%] Built target test.ut_injector
+Scanning dependencies of target test.ut_inject
+[ 24%] Building CXX object test/CMakeFiles/test.ut_inject.dir/ut/inject.cpp.o
+[ 24%] Linking CXX executable test.ut_core_policy
+[ 24%] Built target test.ut_core_policy
+Scanning dependencies of target test.ut_providers_stack_over_heap
+[ 24%] Building CXX object test/CMakeFiles/test.ut_providers_stack_over_heap.dir/ut/providers/stack_over_heap.cpp.o
+[ 25%] Linking CXX executable test.ut_aux__preprocessor
+[ 25%] Built target test.ut_aux__preprocessor
+Scanning dependencies of target test.ut_concepts_creatable
+[ 26%] Building CXX object test/CMakeFiles/test.ut_concepts_creatable.dir/ut/concepts/creatable.cpp.o
+[ 27%] Linking CXX executable test.ft_di_config_global_policies
+[ 27%] Linking CXX executable test.ut_inject
+[ 27%] Built target test.ft_di_config_global_policies
+Scanning dependencies of target test.ut_scopes_instance
+[ 27%] Building CXX object test/CMakeFiles/test.ut_scopes_instance.dir/ut/scopes/instance.cpp.o
+[ 27%] Built target test.ut_inject
+Scanning dependencies of target test.ut_aux__type_traits
+[ 27%] Building CXX object test/CMakeFiles/test.ut_aux__type_traits.dir/ut/aux_/type_traits.cpp.o
+[ 27%] Linking CXX executable test.ut_concepts_creatable
+[ 27%] Linking CXX executable test.ut_providers_stack_over_heap
+[ 78%] Linking CXX executable ../../../test_bin/multihash_test
+[ 27%] Built target test.ut_providers_stack_over_heap
+[ 27%] Built target test.ut_concepts_creatable
+Scanning dependencies of target test.ft_di_glibcxx_debug
+[ 27%] Building CXX object test/CMakeFiles/test.ft_di_glibcxx_debug.dir/ft/di_glibcxx_debug.cpp.o
+[ 78%] Built target multihash_test
+Scanning dependencies of target peer_address_test
+[ 78%] Building CXX object test/libp2p/peer/CMakeFiles/peer_address_test.dir/peer_address_test.cpp.o
+Scanning dependencies of target router_test
+[ 27%] Linking CXX executable test.ut_aux__type_traits
+[ 78%] Building CXX object test/libp2p/network/CMakeFiles/router_test.dir/router_test.cpp.o
+[ 27%] Built target test.ut_aux__type_traits
+Scanning dependencies of target test.ut_concepts_boundable
+[ 28%] Building CXX object test/CMakeFiles/test.ut_concepts_boundable.dir/ut/concepts/boundable.cpp.o
+[ 78%] Linking CXX executable ../../../test_bin/cid_test
+[ 29%] Linking CXX executable test.ut_scopes_instance
+[ 78%] Built target cid_test
+[ 78%] Linking CXX executable ../../../test_bin/multibase_codec_test
+[ 29%] Built target test.ut_scopes_instance
+Scanning dependencies of target test.ft_di_injector_except
+[ 29%] Building CXX object test/CMakeFiles/test.ft_di_injector_except.dir/ft/di_injector_except.cpp.o
+Scanning dependencies of target libp2p_inmem_address_repository_test
+[ 78%] Building CXX object test/libp2p/peer/address_repository/CMakeFiles/libp2p_inmem_address_repository_test.dir/inmem_address_repository_test.cpp.o
+[ 78%] Built target multibase_codec_test
+Scanning dependencies of target inmem_protocol_repository_test
+[ 78%] Building CXX object test/libp2p/peer/protocol_repository/CMakeFiles/inmem_protocol_repository_test.dir/inmem_protocol_repository_test.cpp.o
+[ 30%] Linking CXX executable test.ft_di_glibcxx_debug
+[ 30%] Linking CXX executable test.ut_concepts_boundable
+[ 30%] Built target test.ft_di_glibcxx_debug
+Scanning dependencies of target test.ut_aux__utility
+[ 31%] Building CXX object test/CMakeFiles/test.ut_aux__utility.dir/ut/aux_/utility.cpp.o
+[ 31%] Linking CXX executable test.ut_aux__utility
+[ 31%] Built target test.ut_concepts_boundable
+[ 31%] Built target test.ut_aux__utility
+Scanning dependencies of target echo_test
+[ 79%] Building CXX object test/libp2p/protocol/CMakeFiles/echo_test.dir/echo_test.cpp.o
+Scanning dependencies of target ping_test
+[ 79%] Building CXX object test/libp2p/protocol/CMakeFiles/ping_test.dir/ping_test.cpp.o
+[ 32%] Linking CXX executable test.ft_di_injector_except
+[ 32%] Built target test.ft_di_injector_except
+Scanning dependencies of target test.ft_di_config_global_provider
+[ 32%] Building CXX object test/CMakeFiles/test.ft_di_config_global_provider.dir/ft/di_config_global_provider.cpp.o
+[ 79%] Linking CXX executable ../../../../test_bin/yamux_frame_test
+[ 79%] Built target yamux_frame_test
+Scanning dependencies of target libp2p_protocol_kademlia_test
+[ 80%] Building CXX object test/libp2p/protocol/kademlia/CMakeFiles/libp2p_protocol_kademlia_test.dir/libp2p_protocol_kademlia_test.cpp.o
+[ 32%] Linking CXX executable test.ft_di_config_global_provider
+[ 80%] Linking CXX executable ../../../test_bin/multiaddress_test
+[ 32%] Built target test.ft_di_config_global_provider
+[ 80%] Built target multiaddress_test
+Scanning dependencies of target test.ut_concepts_configurable
+[ 32%] Building CXX object test/CMakeFiles/test.ut_concepts_configurable.dir/ut/concepts/configurable.cpp.o
+Scanning dependencies of target test.ut_scopes_deduce
+[ 33%] Building CXX object test/CMakeFiles/test.ut_scopes_deduce.dir/ut/scopes/deduce.cpp.o
+[ 80%] Linking CXX executable ../../../../test_bin/plaintext_connection_test
+[ 80%] Built target plaintext_connection_test
+[ 33%] Linking CXX executable test.ut_concepts_configurable
+[ 33%] Linking CXX executable test.ut_scopes_deduce
+[ 33%] Built target test.ut_concepts_configurable
+Scanning dependencies of target test.ut_scopes_singleton
+[ 33%] Building CXX object test/CMakeFiles/test.ut_scopes_singleton.dir/ut/scopes/singleton.cpp.o
+[ 80%] Linking CXX executable ../../../test_bin/peer_address_test
+Scanning dependencies of target routing_table_test
+[ 33%] Built target test.ut_scopes_deduce
+Scanning dependencies of target test.ut_scopes_unique
+[ 34%] Building CXX object test/CMakeFiles/test.ut_scopes_unique.dir/ut/scopes/unique.cpp.o
+[ 80%] Building CXX object test/libp2p/protocol/kademlia/CMakeFiles/routing_table_test.dir/routing_table_test.cpp.o
+[ 80%] Built target peer_address_test
+Scanning dependencies of target node_id
+[ 80%] Building CXX object test/libp2p/protocol/kademlia/CMakeFiles/node_id.dir/node_id_test.cpp.o
+[ 34%] Linking CXX executable test.ut_scopes_singleton
+[ 34%] Linking CXX executable test.ut_scopes_unique
+[ 34%] Built target test.ut_scopes_singleton
+Scanning dependencies of target test.ut_wrappers_unique
+[ 34%] Building CXX object test/CMakeFiles/test.ut_wrappers_unique.dir/ut/wrappers/unique.cpp.o
+[ 34%] Built target test.ut_scopes_unique
+Scanning dependencies of target test.ut_type_traits_rebind_traits
+[ 34%] Building CXX object test/CMakeFiles/test.ut_type_traits_rebind_traits.dir/ut/type_traits/rebind_traits.cpp.o
+[ 80%] Linking CXX executable ../../../../test_bin/inmem_protocol_repository_test
+[ 80%] Built target inmem_protocol_repository_test
+[ 35%] Linking CXX executable test.ut_type_traits_rebind_traits
+Scanning dependencies of target libp2p_transport_parser_test
+[ 35%] Built target test.ut_type_traits_rebind_traits
+[ 36%] Linking CXX executable test.ut_wrappers_unique
+Scanning dependencies of target test.ut_core_pool
+[ 37%] Building CXX object test/CMakeFiles/test.ut_core_pool.dir/ut/core/pool.cpp.o
+[ 80%] Building CXX object test/libp2p/transport/CMakeFiles/libp2p_transport_parser_test.dir/multiaddress_parser_test.cpp.o
+[ 37%] Built target test.ut_wrappers_unique
+Scanning dependencies of target test.ut_type_traits_scope_traits
+[ 37%] Building CXX object test/CMakeFiles/test.ut_type_traits_scope_traits.dir/ut/type_traits/scope_traits.cpp.o
+[ 37%] Linking CXX executable test.ut_type_traits_scope_traits
+[ 80%] Linking CXX executable ../../../test_bin/transport_manager_test
+[ 37%] Linking CXX executable test.ut_core_pool
+[ 37%] Built target test.ut_type_traits_scope_traits
+Scanning dependencies of target test.ut_concepts_providable
+[ 37%] Building CXX object test/CMakeFiles/test.ut_concepts_providable.dir/ut/concepts/providable.cpp.o
+[ 81%] Linking CXX executable ../../../../test_bin/node_id
+[ 37%] Built target test.ut_core_pool
+Scanning dependencies of target test.ft_di_config
+[ 38%] Building CXX object test/CMakeFiles/test.ft_di_config.dir/ft/di_config.cpp.o
+[ 81%] Built target transport_manager_test
+[ 81%] Built target node_id
+Scanning dependencies of target p2p_yamux
+[ 81%] Building CXX object src/muxer/yamux/CMakeFiles/p2p_yamux.dir/yamux.cpp.o
+Scanning dependencies of target p2p_tcp_listener
+[ 81%] Building CXX object src/transport/tcp/CMakeFiles/p2p_tcp_listener.dir/tcp_listener.cpp.o
+[ 39%] Linking CXX executable test.ut_concepts_providable
+[ 39%] Built target test.ut_concepts_providable
+Scanning dependencies of target test.ut_wrappers_shared
+[ 40%] Building CXX object test/CMakeFiles/test.ut_wrappers_shared.dir/ut/wrappers/shared.cpp.o
+[ 81%] Linking CXX executable ../../../../test_bin/libp2p_inmem_address_repository_test
+[ 40%] Linking CXX executable test.ut_wrappers_shared
+[ 40%] Built target test.ut_wrappers_shared
+Scanning dependencies of target test.ut_bindings
+[ 40%] Building CXX object test/CMakeFiles/test.ut_bindings.dir/ut/bindings.cpp.o
+[ 81%] Built target libp2p_inmem_address_repository_test
+Scanning dependencies of target basic_host_test
+[ 82%] Building CXX object test/acceptance/p2p/host/CMakeFiles/basic_host_test.dir/basic_host_test.cpp.o
+[ 40%] Linking CXX executable test.ft_di_config
+[ 40%] Built target test.ft_di_config
+Scanning dependencies of target test.ft_di_bind
+[ 40%] Building CXX object test/CMakeFiles/test.ft_di_bind.dir/ft/di_bind.cpp.o
+[ 40%] Linking CXX executable test.ut_bindings
+[ 40%] Built target test.ut_bindings
+Scanning dependencies of target test.ut_type_traits_ctor_traits
+[ 40%] Building CXX object test/CMakeFiles/test.ut_type_traits_ctor_traits.dir/ut/type_traits/ctor_traits.cpp.o
+[ 82%] Linking CXX static library libp2p_yamux.a
+[ 82%] Built target p2p_yamux
+Scanning dependencies of target listener_manager_test
+Scanning dependencies of target dialer_test
+[ 82%] Linking CXX executable ../../../test_bin/echo_test
+[ 83%] Building CXX object test/libp2p/network/CMakeFiles/listener_manager_test.dir/listener_manager_test.cpp.o
+[ 83%] Building CXX object test/libp2p/network/CMakeFiles/dialer_test.dir/dialer_test.cpp.o
+[ 84%] Linking CXX executable ../../../test_bin/libp2p_transport_parser_test
+[ 84%] Built target libp2p_transport_parser_test
+[ 85%] Linking CXX executable ../../../test_bin/router_test
+[ 85%] Built target router_test
+[ 85%] Linking CXX executable ../../../test_bin/connection_manager_test
+[ 85%] Linking CXX executable ../../../../test_bin/routing_table_test
+[ 85%] Built target connection_manager_test
+[ 85%] Built target routing_table_test
+[ 86%] Linking CXX static library libp2p_tcp_listener.a
+[ 86%] Built target p2p_tcp_listener
+[ 86%] Linking CXX executable ../../../../test_bin/libp2p_protocol_kademlia_test
+[ 40%] Linking CXX executable test.ft_di_bind
+[ 86%] Built target libp2p_protocol_kademlia_test
+[ 40%] Built target test.ft_di_bind
+[ 87%] Linking CXX executable ../../../test_bin/ping_test
+[ 87%] Built target ping_test
+[ 87%] Linking CXX executable ../../../../test_bin/basic_host_test
+[ 87%] Built target basic_host_test
+[ 87%] Linking CXX executable ../../../test_bin/dialer_test
+[ 87%] Built target dialer_test
+[ 87%] Linking CXX executable ../../../test_bin/listener_manager_test
+[ 87%] Built target listener_manager_test
+-- Configuring incomplete, errors occurred!
+See also "/home/harrm/Projects/kagome/cmake-build-debug/CMakeFiles/CMakeOutput.log".
+See also "/home/harrm/Projects/kagome/cmake-build-debug/CMakeFiles/CMakeError.log".

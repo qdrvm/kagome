@@ -15,4 +15,21 @@ namespace kagome::application {
     return config_.genesis;
   }
 
+  std::vector<libp2p::peer::PeerId> ConfigurationStorageImpl::getPeerIds()
+      const {
+    return config_.peer_ids;
+  }
+
+  std::vector<crypto::SR25519PublicKey>
+  ConfigurationStorageImpl::getSessionKeys()
+      const {
+    return config_.session_keys;
+  }
+
+  std::vector<crypto::ED25519PublicKey>
+  ConfigurationStorageImpl::getAuthorities()
+      const {
+    return config_.authorities;
+  }
+
 }  // namespace kagome::application

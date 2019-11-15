@@ -13,6 +13,7 @@ add_library(pt_util
 target_link_libraries(pt_util
     Boost::boost
     config_reader_error
+    p2p::p2p_peer_id
     )
 
 add_library(json_configuration_reader
@@ -22,4 +23,20 @@ add_library(json_configuration_reader
 target_link_libraries(json_configuration_reader
     pt_util
     config_reader_error
+    )
+
+add_library(key_storage_error
+    key_storage_error.cpp
+    key_storage_error.hpp
+    )
+target_link_libraries(key_storage_error
+    outcome
+    )
+add_library(crypto_key_reader
+    crypto_key_reader/crypto_key_reader_util.cpp
+    crypto_key_reader/crypto_key_reader_util.hpp
+    )
+target_link_libraries(crypto_key_reader
+    OpenSSL::Crypto
+    key_storage_error
     )
