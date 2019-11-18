@@ -90,6 +90,10 @@ namespace kagome::extensions {
                         runtime::SizeType len,
                         runtime::WasmPointer out) override;
 
+    void ext_keccak_256(runtime::WasmPointer data,
+                        runtime::SizeType len,
+                        runtime::WasmPointer out) override;
+
     runtime::SizeType ext_ed25519_verify(
         runtime::WasmPointer msg_data,
         runtime::SizeType msg_len,

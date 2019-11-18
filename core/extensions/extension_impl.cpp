@@ -125,6 +125,12 @@ namespace kagome::extensions {
     crypto_ext_.ext_blake2_256(data, len, out);
   }
 
+  void ExtensionImpl::ext_keccak_256(runtime::WasmPointer data,
+                                     runtime::SizeType len,
+                                     runtime::WasmPointer out) {
+    crypto_ext_.ext_keccak_256(data, len, out);
+  }
+
   runtime::SizeType ExtensionImpl::ext_ed25519_verify(
       runtime::WasmPointer msg_data,
       runtime::SizeType msg_len,

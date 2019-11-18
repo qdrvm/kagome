@@ -11,6 +11,7 @@
 #include <gsl/span>
 #include "crypto/blake2/blake2b.h"
 #include "crypto/ed25519_provider.hpp"
+#include "crypto/keccak/keccak.h"
 #include "crypto/sr25519_provider.hpp"
 #include "crypto/twox/twox.hpp"
 
@@ -37,6 +38,21 @@ namespace kagome::extensions {
 
     std::array<uint8_t, 32> hash{};
     blake2b(hash.data(), hash.size(), nullptr, 0, buf.data(), buf.size());
+
+    memory_->storeBuffer(out_ptr, common::Buffer(hash));
+  }
+
+  void CryptoExtension::ext_keccak_256(runtime::WasmPointer data,
+                                       runtime::SizeType len,
+                                       runtime::WasmPointer out_ptr) {
+    const auto &buf = memory_->loadN(data, len);
+    std::array<uint8_t, 32> hash{};
+    sha3_HashBuffer(256,
+                    SHA3_FLAGS::SHA3_FLAGS_KECCAK,
+                    buf.data(),
+                    buf.size(),
+                    hash.data(),
+                    hash.size());
 
     memory_->storeBuffer(out_ptr, common::Buffer(hash));
   }

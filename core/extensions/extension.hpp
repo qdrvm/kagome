@@ -189,6 +189,16 @@ namespace kagome::extensions {
                                 runtime::WasmPointer out) = 0;
 
     /**
+     * Hash the data using keccak hash
+     * @param data to be hashed
+     * @param len of the data
+     * @param out buffer to store the hash
+     */
+    virtual void ext_keccak_256(runtime::WasmPointer data,
+                                runtime::SizeType len,
+                                runtime::WasmPointer out) = 0;
+
+    /**
      * Verify the signature over the ed25519 message
      * @param msg_data - msg to be verified
      * @param msg_len - length of the msg

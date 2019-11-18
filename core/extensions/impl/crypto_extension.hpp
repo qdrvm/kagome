@@ -34,6 +34,13 @@ namespace kagome::extensions {
                         runtime::WasmPointer out_ptr);
 
     /**
+     * @see Extension::ext_keccak_256
+     */
+    void ext_keccak_256(runtime::WasmPointer data,
+                        runtime::SizeType len,
+                        runtime::WasmPointer out_ptr);
+
+    /**
      * @see Extension::ext_ed25519_verify
      */
     runtime::SizeType ext_ed25519_verify(runtime::WasmPointer msg_data,

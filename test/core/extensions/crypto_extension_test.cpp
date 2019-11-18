@@ -69,6 +69,9 @@ class CryptoExtensionTest : public ::testing::Test {
   Buffer blake2b_result{
       "ba67336efd6a3df3a70eeb757860763036785c182ff4cf587541a0068d09f5b2"_unhex};
 
+  Buffer keccak_result{
+      "65aac3ad8b88cb79396da4c8b6a8cb6b5b74b0f6534a3e4e5e8ad68658feccf4"_unhex};
+
   Buffer twox_input{"414243444546"_unhex};
 
   Buffer twox128_result{
@@ -93,6 +96,22 @@ TEST_F(CryptoExtensionTest, Blake2Valid) {
   EXPECT_CALL(*memory_, storeBuffer(out_ptr, blake2b_result)).Times(1);
 
   crypto_ext_->ext_blake2_256(data, size, out_ptr);
+}
+
+/**
+ * @given initialized crypto extension @and data, which can be keccak-hashed
+ * @when hashing that data
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, KeccakValid) {
+  WasmPointer data = 0;
+  SizeType size = input.size();
+  WasmPointer out_ptr = 42;
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, storeBuffer(out_ptr, keccak_result)).Times(1);
+
+  crypto_ext_->ext_keccak_256(data, size, out_ptr);
 }
 
 /**

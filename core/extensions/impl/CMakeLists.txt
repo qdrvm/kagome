@@ -12,6 +12,7 @@ target_link_libraries(crypto_extension
     sr25519_provider
     ed25519_provider
     twox
+    keccak
     )
 kagome_install(crypto_extension)
 
