@@ -7,12 +7,10 @@ add_library(crypto_extension
     crypto_extension.cpp
     )
 target_link_libraries(crypto_extension
-    blake2
+    hasher
     p2p::p2p_random_generator
     sr25519_provider
     ed25519_provider
-    twox
-    keccak
     )
 kagome_install(crypto_extension)
 

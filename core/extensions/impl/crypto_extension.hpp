@@ -13,6 +13,7 @@
 namespace kagome::crypto {
   class SR25519Provider;
   class ED25519Provider;
+  class Hasher;
 }  // namespace kagome::crypto
 
 namespace kagome::extensions {
@@ -24,7 +25,8 @@ namespace kagome::extensions {
     explicit CryptoExtension(
         std::shared_ptr<runtime::WasmMemory> memory,
         std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
-        std::shared_ptr<crypto::ED25519Provider> ed25519_provider);
+        std::shared_ptr<crypto::ED25519Provider> ed25519_provider,
+        std::shared_ptr<crypto::Hasher> hasher);
 
     /**
      * @see Extension::ext_blake2_256
@@ -73,6 +75,7 @@ namespace kagome::extensions {
     std::shared_ptr<runtime::WasmMemory> memory_;
     std::shared_ptr<crypto::SR25519Provider> sr25519_provider_;
     std::shared_ptr<crypto::ED25519Provider> ed25519_provider_;
+    std::shared_ptr<crypto::Hasher> hasher_;
   };
 }  // namespace kagome::extensions
 

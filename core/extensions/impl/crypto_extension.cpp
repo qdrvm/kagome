@@ -9,11 +9,9 @@
 #include <exception>
 
 #include <gsl/span>
-#include "crypto/blake2/blake2b.h"
 #include "crypto/ed25519_provider.hpp"
-#include "crypto/keccak/keccak.h"
+#include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
-#include "crypto/twox/twox.hpp"
 
 namespace kagome::extensions {
   namespace sr25519_constants = crypto::constants::sr25519;
@@ -22,13 +20,16 @@ namespace kagome::extensions {
   CryptoExtension::CryptoExtension(
       std::shared_ptr<runtime::WasmMemory> memory,
       std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
-      std::shared_ptr<crypto::ED25519Provider> ed25519_provider)
+      std::shared_ptr<crypto::ED25519Provider> ed25519_provider,
+      std::shared_ptr<crypto::Hasher> hasher)
       : memory_(std::move(memory)),
         sr25519_provider_(std::move(sr25519_provider)),
-        ed25519_provider_(std::move(ed25519_provider)) {
+        ed25519_provider_(std::move(ed25519_provider)),
+        hasher_(hasher) {
     BOOST_ASSERT(memory_ != nullptr);
     BOOST_ASSERT(sr25519_provider_ != nullptr);
     BOOST_ASSERT(ed25519_provider_ != nullptr);
+    BOOST_ASSERT(hasher_ != nullptr);
   }
 
   void CryptoExtension::ext_blake2_256(runtime::WasmPointer data,
@@ -36,8 +37,7 @@ namespace kagome::extensions {
                                        runtime::WasmPointer out_ptr) {
     const auto &buf = memory_->loadN(data, len);
 
-    std::array<uint8_t, 32> hash{};
-    blake2b(hash.data(), hash.size(), nullptr, 0, buf.data(), buf.size());
+    auto hash = hasher_->blake2b_256(buf);
 
     memory_->storeBuffer(out_ptr, common::Buffer(hash));
   }
@@ -46,13 +46,8 @@ namespace kagome::extensions {
                                        runtime::SizeType len,
                                        runtime::WasmPointer out_ptr) {
     const auto &buf = memory_->loadN(data, len);
-    std::array<uint8_t, 32> hash{};
-    sha3_HashBuffer(256,
-                    SHA3_FLAGS::SHA3_FLAGS_KECCAK,
-                    buf.data(),
-                    buf.size(),
-                    hash.data(),
-                    hash.size());
+
+    auto hash = hasher_->keccak_256(buf);
 
     memory_->storeBuffer(out_ptr, common::Buffer(hash));
   }
@@ -129,8 +124,9 @@ namespace kagome::extensions {
                                      runtime::WasmPointer out_ptr) {
     const auto &buf = memory_->loadN(data, len);
 
-    auto twox128 = kagome::crypto::make_twox128(buf);
-    memory_->storeBuffer(out_ptr, common::Buffer(twox128.data));
+    auto hash = hasher_->twox_128(buf);
+
+    memory_->storeBuffer(out_ptr, common::Buffer(hash));
   }
 
   void CryptoExtension::ext_twox_256(runtime::WasmPointer data,
@@ -138,7 +134,8 @@ namespace kagome::extensions {
                                      runtime::WasmPointer out_ptr) {
     const auto &buf = memory_->loadN(data, len);
 
-    auto twox256 = kagome::crypto::make_twox256(buf);
-    memory_->storeBuffer(out_ptr, common::Buffer(twox256.data));
+    auto hash = hasher_->twox_256(buf);
+
+    memory_->storeBuffer(out_ptr, common::Buffer(hash));
   }
 }  // namespace kagome::extensions
