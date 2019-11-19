@@ -25,7 +25,7 @@ namespace kagome::extensions {
       : memory_(std::move(memory)),
         sr25519_provider_(std::move(sr25519_provider)),
         ed25519_provider_(std::move(ed25519_provider)),
-        hasher_(hasher) {
+        hasher_(std::move(hasher)) {
     BOOST_ASSERT(memory_ != nullptr);
     BOOST_ASSERT(sr25519_provider_ != nullptr);
     BOOST_ASSERT(ed25519_provider_ != nullptr);

@@ -9,10 +9,13 @@ TEST(Keccak, Correctness) {
 
   std::string str = "some";
   kagome::common::Hash256 out;
-  EXPECT_EQ(
-      sha3_HashBuffer(
-          256, SHA3_FLAGS ::SHA3_FLAGS_KECCAK, str.c_str(), 4, out.data(), 32),
-      0)
+  EXPECT_EQ(sha3_HashBuffer(256,
+                            SHA3_FLAGS ::SHA3_FLAGS_KECCAK,
+                            str.c_str(),
+                            str.size(),
+                            out.data(),
+                            32),
+            0)
       << "having problems while hashing";
   EXPECT_EQ(kagome::common::hex_lower(out), keccak_res)
       << "hashes are different";

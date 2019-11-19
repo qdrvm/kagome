@@ -44,7 +44,7 @@ namespace kagome::crypto {
                     buffer.data(),
                     buffer.size(),
                     out.data(),
-                    out.size());
+                    32);
     return out;
   }
 
