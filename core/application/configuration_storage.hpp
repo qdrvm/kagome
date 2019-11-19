@@ -29,7 +29,7 @@ namespace kagome::application {
     /**
      * Return ids of peer nodes of the current node
      */
-    virtual std::vector<libp2p::peer::PeerId> getPeerIds() const = 0;
+    virtual std::vector<libp2p::peer::PeerInfo> getPeersInfo() const = 0;
 
     /**
      * Return peers' session keys used in BABE
@@ -40,6 +40,8 @@ namespace kagome::application {
      * Return public keys of authority nodes
      */
     virtual std::vector<crypto::ED25519PublicKey> getAuthorities() const = 0;
+
+    virtual uint32_t getExtrinsicApiPort() const = 0;
   };
 
 }  // namespace kagome::application

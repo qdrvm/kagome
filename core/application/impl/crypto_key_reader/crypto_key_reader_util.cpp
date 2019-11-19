@@ -23,6 +23,7 @@ namespace kagome::application {
       EVP_PKEY *key = nullptr;
       EVP_PKEY *result =
           PEM_read_PrivateKey(f, &key, nullptr, (void *)"kagome");
+      fclose(f);
       auto free_pkey = gsl::finally([key] { EVP_PKEY_free(key); });
       if (result == nullptr) {
         return KeyStorageError::PRIVATE_KEY_READ_ERROR;
@@ -49,6 +50,7 @@ namespace kagome::application {
 
       RSA *key = nullptr;
       RSA *result = PEM_read_RSAPrivateKey(f, &key, nullptr, (void *)"kagome");
+      fclose(f);
       auto free_pkey = gsl::finally([key] { RSA_free(key); });
       if (result == nullptr) {
         return KeyStorageError::PRIVATE_KEY_READ_ERROR;

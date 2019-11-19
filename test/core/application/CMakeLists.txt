@@ -4,6 +4,7 @@ addtest(json_configuration_reader_test
     )
 target_link_libraries(json_configuration_reader_test
     json_configuration_reader
+    Boost::filesystem
     scale
     primitives
     )

@@ -7,7 +7,9 @@
 
 #include <gtest/gtest.h>
 
+#include <boost/filesystem.hpp>
 #include <libp2p/multi/multibase_codec/codecs/base58.hpp>
+
 #include "application/impl/config_reader/error.hpp"
 #include "primitives/block.hpp"
 #include "scale/scale.hpp"
@@ -17,33 +19,62 @@ using kagome::application::ConfigReaderError;
 using kagome::application::JsonConfigurationReader;
 using kagome::application::KagomeConfig;
 using libp2p::multi::detail::encodeBase58;
+using libp2p::peer::PeerInfo;
+using libp2p::peer::PeerId;
+using libp2p::multi::Multiaddress;
+using kagome::crypto::SR25519PublicKey;
+using kagome::crypto::ED25519PublicKey;
+using kagome::common::unhex;
 
-static std::stringstream createJSONConfig(const KagomeConfig &conf) {
-  std::stringstream config_data;
-  using libp2p::peer::PeerId;
-  using namespace libp2p::crypto;
-  auto example_pubkey1 = ProtobufKey{std::vector<uint8_t>(32, 1)};
-  auto example_pubkey2 = ProtobufKey{std::vector<uint8_t>(32, 2)};
-  config_data << "{\n";
-  config_data << "\t\"genesis\":\""
-              << kagome::common::hex_lower(
-                     kagome::scale::encode(conf.genesis).value())
-              << "\",\n";
-  config_data << "\t\"peer_ids\":[\""
-              << PeerId::fromPublicKey(example_pubkey1).value().toBase58() << "\", \""
-              << PeerId::fromPublicKey(example_pubkey2).value().toBase58() << "\"],\n";
-  config_data << "\t\"authorities\":[\""
-              << kagome::common::hex_lower(example_pubkey1.key)
-              << "\", \""
-              << kagome::common::hex_lower(example_pubkey2.key)
-              << "\"],\n";
-  config_data << "\t\"session_keys\":[\""
-              << kagome::common::hex_lower(example_pubkey1.key)
-              << "\", \""
-              << kagome::common::hex_lower(example_pubkey2.key)
-              << "\"]\n";
-  config_data << "}\n";
-  return config_data;
+const KagomeConfig& getExampleConfig() {
+  static bool init = true;
+  static KagomeConfig c;
+  if (init) {
+    c.genesis.header.number = 42;
+    c.api_ports.extrinsic_api_port = 4224;
+    c.peers_info = {
+        PeerInfo{
+            PeerId::fromBase58("1AWR4A2YXCzotpPjJshv1QUwSTExoYWiwr33C4briAGpCY")
+                .value(),
+            {Multiaddress::create("/ip4/127.0.0.1/udp/1234").value(),
+             Multiaddress::create("/ipfs/mypeer").value()}},
+        PeerInfo{
+            PeerId::fromBase58("1AWUyTAqzDb7C3XpZP9DLKmpDDV81kBndfbSrifEkm29XF")
+                .value(),
+            {Multiaddress::create("/ip4/127.0.0.1/tcp/1020").value(),
+             Multiaddress::create("/ipfs/mypeer").value()}}};
+    c.session_keys = {
+        SR25519PublicKey::fromHex(
+            "0101010101010101010101010101010101010101010101010101010101010101")
+            .value(),
+        SR25519PublicKey::fromHex(
+            "0202020202020202020202020202020202020202020202020202020202020202")
+            .value()};
+    c.authorities = {
+        ED25519PublicKey::fromHex(
+            "0101010101010101010101010101010101010101010101010101010101010101")
+            .value(),
+        ED25519PublicKey::fromHex(
+            "0202020202020202020202020202020202020202020202020202020202020202")
+            .value()};
+    init = false;
+  }
+  return c;
+}
+
+std::stringstream readJSONConfig() {
+  std::ifstream f(boost::filesystem::path(__FILE__).parent_path().string()
+                  + "/example_config.json");
+  if (!f) {
+    throw std::runtime_error("config file not found");
+  }
+  std::stringstream ss;
+  while (f) {
+    std::string s;
+    f >> s;
+    ss << s;
+  }
+  return ss;
 }
 
 /**
@@ -52,12 +83,12 @@ static std::stringstream createJSONConfig(const KagomeConfig &conf) {
  * @then the content of the storage matches the content of the file
  */
 TEST(JsonConfigReader, LoadConfig) {
-  KagomeConfig c;
-  c.genesis = kagome::primitives::Block();
-  c.genesis.header.number = 42;
-  auto ss = createJSONConfig(c);
+  auto& c = getExampleConfig();
+  auto ss = readJSONConfig();
   EXPECT_OUTCOME_TRUE(config, JsonConfigurationReader::initConfig(ss));
   ASSERT_EQ(config.genesis, c.genesis);
+  ASSERT_EQ(config.api_ports.extrinsic_api_port,
+            c.api_ports.extrinsic_api_port);
 }
 
 /**
@@ -66,17 +97,14 @@ TEST(JsonConfigReader, LoadConfig) {
  * @then the content of the storage matches the content of the file
  */
 TEST(JsonConfigReader, UpdateConfig) {
-  constexpr int INIT_NUMBER = 34;
-  constexpr int NEW_NUMBER = 42;
-  KagomeConfig config;
-  config.genesis = kagome::primitives::Block();
-  config.genesis.header.number = INIT_NUMBER;
-  auto ss = createJSONConfig(config);
-  // overwrite number in the config, but it is unchanged in the json
-  config.genesis.header.number = NEW_NUMBER;
+  KagomeConfig config = getExampleConfig();
+  config.genesis.header.number = 34;        // 42 in the config
+  config.api_ports.extrinsic_api_port = 0;  // 4224 in the config
+  auto ss = readJSONConfig();
   // read INIT_NUMBER back from JSON
   EXPECT_OUTCOME_TRUE_1(JsonConfigurationReader::updateConfig(config, ss));
-  ASSERT_EQ(config.genesis.header.number, INIT_NUMBER);
+  ASSERT_EQ(config.genesis.header.number, 42);
+  ASSERT_EQ(config.api_ports.extrinsic_api_port, 4224);
 }
 
 /**

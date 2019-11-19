@@ -19,9 +19,12 @@ namespace kagome::application {
    */
   struct KagomeConfig {
     primitives::Block genesis;
-    std::vector<libp2p::peer::PeerId> peer_ids;
+    std::vector<libp2p::peer::PeerInfo> peers_info;
     std::vector<crypto::SR25519PublicKey> session_keys;
     std::vector<crypto::ED25519PublicKey> authorities;
+    struct ApiPorts {
+      uint32_t extrinsic_api_port;
+    } api_ports;
   };
 
 };  // namespace kagome::application
