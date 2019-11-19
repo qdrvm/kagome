@@ -110,9 +110,11 @@ class REITest : public ::testing::Test {
       "  (type (;25;) (func (param i32 i64 i64 i32)))\n"
       "  (type (;26;) (func (param i32 i64 i64 i64 i64 i32)))\n"
       "  (type (;27;) (func (result i64)))\n"
+      "  (type (;28;) (func (param i32 i32 i32)))\n"
       "  (import \"env\" \"ext_get_storage_into\" (func $ext_get_storage_into (type 4)))\n"
       "  (import \"env\" \"ext_get_allocated_storage\" (func $ext_get_allocated_storage (type 2)))\n"
       "  (import \"env\" \"ext_blake2_256\" (func $ext_blake2_256 (type 5)))\n"
+      "  (import \"env\" \"ext_keccak_256\" (func $ext_keccak_256 (type 28)))\n"
       "  (import \"env\" \"ext_blake2_256_enumerated_trie_root\" (func $ext_blake2_256_enumerated_trie_root (type 6)))\n"
       "  (import \"env\" \"ext_print_utf8\" (func $ext_print_utf8 (type 0)))\n"
       "  (import \"env\" \"ext_print_num\" (func $ext_print_num (type 7)))\n"
@@ -423,6 +425,23 @@ TEST_F(REITest, ext_blake2_256_Test) {
                                      "    )\n")
                        % data_ptr % data_size % out_ptr)
                           .str();
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_keccak_256_Test) {
+  WasmPointer data_ptr = 12;
+  SizeType data_size = 12;
+  WasmPointer out_ptr = 43;
+
+  EXPECT_CALL(*extension_, ext_keccak_256(data_ptr, data_size, out_ptr))
+      .Times(1);
+  auto execute_code = (boost::format("    (call $ext_keccak_256\n"
+                                     "      (i32.const %d)\n"
+                                     "      (i32.const %d)\n"
+                                     "      (i32.const %d)\n"
+                                     "    )\n")
+                       % data_ptr % data_size % out_ptr)
+      .str();
   executeWasm(execute_code);
 }
 

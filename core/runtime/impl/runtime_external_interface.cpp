@@ -38,6 +38,7 @@ namespace kagome::runtime {
   const static wasm::Name ext_print_utf8 = "ext_print_utf8";
 
   const static wasm::Name ext_blake2_256 = "ext_blake2_256";
+  const static wasm::Name ext_keccak_256 = "ext_keccak_256";
   const static wasm::Name ext_ed25519_verify = "ext_ed25519_verify";
   const static wasm::Name ext_sr25519_verify = "ext_sr25519_verify";
   const static wasm::Name ext_twox_128 = "ext_twox_128";
@@ -214,6 +215,16 @@ namespace kagome::runtime {
                                    arguments.at(2).geti32());
         return wasm::Literal();
       }
+
+      /// ext_keccak_256
+      if (import->base == ext_keccak_256) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
+        extension_->ext_keccak_256(arguments.at(0).geti32(),
+                                   arguments.at(1).geti32(),
+                                   arguments.at(2).geti32());
+        return wasm::Literal();
+      }
+
       /// ext_ed25519_verify
       if (import->base == ext_ed25519_verify) {
         checkArguments(import->base.c_str(), 4, arguments.size());

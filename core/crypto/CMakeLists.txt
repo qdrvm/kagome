@@ -13,6 +13,7 @@ target_link_libraries(hasher
     twox
     buffer
     sha
+    keccak
     )
 kagome_install(hasher)
 
@@ -80,5 +81,6 @@ target_link_libraries(ed25519_provider
 kagome_install(ed25519_provider)
 
 add_subdirectory(blake2)
+add_subdirectory(keccak)
 add_subdirectory(sha)
 add_subdirectory(twox)

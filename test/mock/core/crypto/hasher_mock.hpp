@@ -23,6 +23,8 @@ namespace kagome::crypto {
 
     MOCK_CONST_METHOD1(blake2s_256, Hash256(gsl::span<const uint8_t>));
 
+    MOCK_CONST_METHOD1(keccak_256, Hash256(gsl::span<const uint8_t>));
+
     MOCK_CONST_METHOD1(sha2_256, Hash256(gsl::span<const uint8_t>));
   };
 }  // namespace kagome::crypto
