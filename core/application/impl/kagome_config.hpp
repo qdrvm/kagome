@@ -20,18 +20,9 @@ namespace kagome::application {
   struct KagomeConfig {
     bool operator==(const KagomeConfig &rhs) const {
       return genesis == rhs.genesis
-             and std::equal(peers_info.begin(),
-                            peers_info.end(),
-                            rhs.peers_info.begin(),
-                            rhs.peers_info.end())
-             and std::equal(session_keys.begin(),
-                            session_keys.end(),
-                            rhs.session_keys.begin(),
-                            rhs.session_keys.end())
-             and std::equal(authorities.begin(),
-                            authorities.end(),
-                            rhs.authorities.begin(),
-                            rhs.authorities.end())
+             and peers_info == rhs.peers_info
+             and session_keys == rhs.session_keys
+             and authorities == rhs.authorities
              and api_ports.extrinsic_api_port
                      == rhs.api_ports.extrinsic_api_port;
     }

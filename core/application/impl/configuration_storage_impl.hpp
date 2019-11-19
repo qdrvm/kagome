@@ -23,6 +23,8 @@ namespace kagome::application {
     std::vector<crypto::SR25519PublicKey> getSessionKeys() const override;
     std::vector<crypto::ED25519PublicKey> getAuthorities() const override;
 
+    uint32_t getExtrinsicApiPort() const override;
+
    private:
     KagomeConfig config_;
   };

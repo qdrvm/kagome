@@ -30,4 +30,8 @@ namespace kagome::application {
     return config_.authorities;
   }
 
+  uint32_t ConfigurationStorageImpl::getExtrinsicApiPort() const {
+    return config_.api_ports.extrinsic_api_port;
+  }
+
 }  // namespace kagome::application
