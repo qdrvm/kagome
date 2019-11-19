@@ -19,7 +19,6 @@ using kagome::primitives::Block;
  */
 TEST(ConfigurationStorageTest, MatchesConfig) {
   KagomeConfig conf = test::application::getExampleConfig();
-  //TODO(Harrm) add new parameters here
   ConfigurationStorageImpl s(conf);
   ASSERT_EQ(s.getGenesis(), conf.genesis);
   ASSERT_EQ(s.getExtrinsicApiPort(), conf.api_ports.extrinsic_api_port);
