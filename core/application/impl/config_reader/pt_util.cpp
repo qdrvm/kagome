@@ -24,13 +24,14 @@ namespace kagome::application {
     } else if (!update) {
       return ConfigReaderError::MISSING_ENTRY;
     }
+    return outcome::success();
   }
 
   outcome::result<void> pt_foreach(
       const pt::ptree &node,
       const std::function<outcome::result<void>(const pt::ptree &)> &cb) {
     for (auto &[_, child] : node) {
-      return cb(child);
+      OUTCOME_TRY(cb(child));
     }
     return outcome::success();
   }

@@ -83,12 +83,9 @@ std::stringstream readJSONConfig() {
  * @then the content of the storage matches the content of the file
  */
 TEST(JsonConfigReader, LoadConfig) {
-  auto& c = getExampleConfig();
   auto ss = readJSONConfig();
   EXPECT_OUTCOME_TRUE(config, JsonConfigurationReader::initConfig(ss));
-  ASSERT_EQ(config.genesis, c.genesis);
-  ASSERT_EQ(config.api_ports.extrinsic_api_port,
-            c.api_ports.extrinsic_api_port);
+  ASSERT_EQ(config, getExampleConfig());
 }
 
 /**
@@ -100,11 +97,13 @@ TEST(JsonConfigReader, UpdateConfig) {
   KagomeConfig config = getExampleConfig();
   config.genesis.header.number = 34;        // 42 in the config
   config.api_ports.extrinsic_api_port = 0;  // 4224 in the config
+  config.peers_info.clear();
+  config.authorities.clear();
+  config.session_keys.clear();
   auto ss = readJSONConfig();
   // read INIT_NUMBER back from JSON
   EXPECT_OUTCOME_TRUE_1(JsonConfigurationReader::updateConfig(config, ss));
-  ASSERT_EQ(config.genesis.header.number, 42);
-  ASSERT_EQ(config.api_ports.extrinsic_api_port, 4224);
+  ASSERT_EQ(config, getExampleConfig());
 }
 
 /**
