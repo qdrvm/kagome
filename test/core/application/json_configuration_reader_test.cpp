@@ -8,21 +8,14 @@
 #include <gtest/gtest.h>
 
 #include "application/impl/config_reader/error.hpp"
-#include "scale/scale.hpp"
-#include "primitives/block.hpp"
+#include "core/application/example_config.hpp"
 #include "testutil/outcome.hpp"
 
+using kagome::application::ConfigReaderError;
 using kagome::application::JsonConfigurationReader;
 using kagome::application::KagomeConfig;
-using kagome::application::ConfigReaderError;
-
-static std::stringstream createJSONConfig(const KagomeConfig& conf) {
-  std::stringstream config_data;
-  config_data << "{\n";
-  config_data << "\t\"genesis\":\"" << kagome::common::hex_lower(kagome::scale::encode(conf.genesis).value()) << "\"\n";
-  config_data << "}\n";
-  return config_data;
-}
+using test::application::readJSONConfig;
+using test::application::getExampleConfig;
 
 /**
  * @given a json file with configuration
@@ -30,12 +23,9 @@ static std::stringstream createJSONConfig(const KagomeConfig& conf) {
  * @then the content of the storage matches the content of the file
  */
 TEST(JsonConfigReader, LoadConfig) {
-  KagomeConfig c;
-  c.genesis = kagome::primitives::Block();
-  c.genesis.header.number = 42;
-  auto ss = createJSONConfig(c);
+  auto ss = readJSONConfig();
   EXPECT_OUTCOME_TRUE(config, JsonConfigurationReader::initConfig(ss));
-  ASSERT_EQ(config.genesis, c.genesis);
+  ASSERT_EQ(config, getExampleConfig());
 }
 
 /**
@@ -44,17 +34,16 @@ TEST(JsonConfigReader, LoadConfig) {
  * @then the content of the storage matches the content of the file
  */
 TEST(JsonConfigReader, UpdateConfig) {
-  constexpr int INIT_NUMBER = 34;
-  constexpr int NEW_NUMBER = 42;
-  KagomeConfig config;
-  config.genesis = kagome::primitives::Block();
-  config.genesis.header.number = INIT_NUMBER;
-  auto ss = createJSONConfig(config);
-  // overwrite number in the config, but it is unchanged in the json
-  config.genesis.header.number = NEW_NUMBER;
+  KagomeConfig config = getExampleConfig();
+  config.genesis.header.number = 34;        // 42 in the config
+  config.api_ports.extrinsic_api_port = 0;  // 4224 in the config
+  config.peers_info.clear();
+  config.authorities.clear();
+  config.session_keys.clear();
+  auto ss = readJSONConfig();
   // read INIT_NUMBER back from JSON
   EXPECT_OUTCOME_TRUE_1(JsonConfigurationReader::updateConfig(config, ss));
-  ASSERT_EQ(config.genesis.header.number, INIT_NUMBER);
+  ASSERT_EQ(config, getExampleConfig());
 }
 
 /**

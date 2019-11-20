@@ -19,11 +19,16 @@ namespace kagome::application {
     ~ConfigurationStorageImpl() override = default;
 
     const primitives::Block &getGenesis() const override;
+    std::vector<libp2p::peer::PeerInfo> getPeersInfo() const override;
+    std::vector<crypto::SR25519PublicKey> getSessionKeys() const override;
+    std::vector<crypto::ED25519PublicKey> getAuthorities() const override;
+
+    uint16_t getExtrinsicApiPort() const override;
 
    private:
     KagomeConfig config_;
   };
 
-}  // namespace kagome::application
+} // namespace kagome::application
 
 #endif  // KAGOME_CONFIGURATION_STORAGE_IMPL_HPP
