@@ -48,7 +48,7 @@ namespace kagome::application {
       OUTCOME_TRY(genesis_bytes, common::unhex(genesis_opt.value()));
       OUTCOME_TRY(genesis, scale::decode<primitives::Block>(genesis_bytes));
       config.genesis = std::move(genesis);
-    } if (!update) {
+    } else if (!update) {
       return ConfigReaderError::MISSING_ENTRY;
     }
 
