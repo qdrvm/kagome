@@ -21,7 +21,8 @@ namespace kagome::application {
       const std::function<outcome::result<void>(const pt::ptree &)> &cb) {
     if (tree_opt.has_value()) {
       return cb(tree_opt.value());
-    } else if (!update) {
+    }
+    if (!update) {
       return ConfigReaderError::MISSING_ENTRY;
     }
     return outcome::success();
@@ -47,7 +48,7 @@ namespace kagome::application {
       OUTCOME_TRY(genesis_bytes, common::unhex(genesis_opt.value()));
       OUTCOME_TRY(genesis, scale::decode<primitives::Block>(genesis_bytes));
       config.genesis = std::move(genesis);
-    } else if (!update) {
+    } if (!update) {
       return ConfigReaderError::MISSING_ENTRY;
     }
 

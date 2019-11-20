@@ -62,8 +62,8 @@ namespace kagome::application {
         return KeyStorageError::MALFORMED_KEY;
       }
       common::Buffer bytes(RSA_size(key), 0);
-      // NOLINT
-      std::copy(raw_bytes, raw_bytes + bytes.size(), bytes.begin());
+      gsl::span<uint8_t> span_bytes(raw_bytes, bytes.size());
+      std::copy(span_bytes.begin(), span_bytes.end(), bytes.begin());
       return bytes;
     }
   }  // namespace detail
