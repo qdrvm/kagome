@@ -8,22 +8,22 @@
 #include <openssl/pem.h>
 
 #include "application/impl/key_storage_error.hpp"
-#include "crypto/ed25519_types.hpp"
 #include "common/hexutil.hpp"
+#include "crypto/ed25519_types.hpp"
 
 namespace kagome::application {
 
   namespace detail {
     outcome::result<common::Buffer> readEd25519PrivKeyFromPEM(
         const boost::filesystem::path &file) {
-      FILE *f = fopen(file.string().c_str(), "r");
-      if (!f) {
+      std::unique_ptr<FILE, std::function<void(FILE *)>> f(
+          fopen(file.string().c_str(), "r"), fclose);
+      if (f == nullptr) {
         return KeyStorageError::FILE_READ_ERROR;
       }
       EVP_PKEY *key = nullptr;
       EVP_PKEY *result =
-          PEM_read_PrivateKey(f, &key, nullptr, (void *)"kagome");
-      fclose(f);
+          PEM_read_PrivateKey(f.get(), &key, nullptr, nullptr);
       auto free_pkey = gsl::finally([key] { EVP_PKEY_free(key); });
       if (result == nullptr) {
         return KeyStorageError::PRIVATE_KEY_READ_ERROR;
@@ -32,25 +32,25 @@ namespace kagome::application {
       common::Buffer bytes(len, 0);
       if (EVP_PKEY_get_raw_private_key(key, bytes.data(), &len) != 1) {
         return KeyStorageError::MALFORMED_KEY;
-      } else {
-        if (len != bytes.size()) {
-          return KeyStorageError::MALFORMED_KEY;
-        }
       }
+      if (len != bytes.size()) {
+        return KeyStorageError::MALFORMED_KEY;
+      }
+
       return bytes;
     }
 
     outcome::result<common::Buffer> readRsaPrivKeyFromPEM(
         const boost::filesystem::path &file) {
       // TODO(Harrm): make it work, yields an error on public key validation
-      FILE *f = fopen(file.string().c_str(), "r");
+      std::unique_ptr<FILE, std::function<void(FILE *)>> f(
+          fopen(file.string().c_str(), "r"), fclose);
       if (!f) {
         return KeyStorageError::FILE_READ_ERROR;
       }
 
       RSA *key = nullptr;
-      RSA *result = PEM_read_RSAPrivateKey(f, &key, nullptr, (void *)"kagome");
-      fclose(f);
+      RSA *result = PEM_read_RSAPrivateKey(f.get(), &key, nullptr, nullptr);
       auto free_pkey = gsl::finally([key] { RSA_free(key); });
       if (result == nullptr) {
         return KeyStorageError::PRIVATE_KEY_READ_ERROR;
@@ -62,6 +62,7 @@ namespace kagome::application {
         return KeyStorageError::MALFORMED_KEY;
       }
       common::Buffer bytes(RSA_size(key), 0);
+      // NOLINT
       std::copy(raw_bytes, raw_bytes + bytes.size(), bytes.begin());
       return bytes;
     }
@@ -69,7 +70,7 @@ namespace kagome::application {
 
   outcome::result<common::Buffer> readKeypairFromHexFile(
       const boost::filesystem::path &filepath) {
-    std::ifstream file(filepath);
+    std::ifstream file(filepath.string());
     if (!file) {
       return KeyStorageError::FILE_READ_ERROR;
     }
@@ -81,7 +82,7 @@ namespace kagome::application {
 
   outcome::result<common::Buffer> readPrivKeyFromHexFile(
       const boost::filesystem::path &filepath) {
-    std::ifstream file(filepath);
+    std::ifstream file(filepath.string());
     if (!file) {
       return KeyStorageError::FILE_READ_ERROR;
     }

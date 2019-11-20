@@ -16,7 +16,7 @@ namespace kagome::application {
   namespace pt = boost::property_tree;
 
   outcome::result<void> pt_unwrap(
-      boost::optional<const pt::ptree &> tree_opt,
+      const boost::optional<const pt::ptree &>& tree_opt,
       bool update,
       const std::function<outcome::result<void>(const pt::ptree &)> &cb) {
     if (tree_opt.has_value()) {
@@ -37,7 +37,7 @@ namespace kagome::application {
   }
 
   outcome::result<KagomeConfig> processConfigFromPropertyTree(
-      const pt::ptree &tree, boost::optional<KagomeConfig &> conf) {
+      const pt::ptree &tree, const boost::optional<KagomeConfig &>& conf) {
     bool update = conf.has_value();
     KagomeConfig config;
     if (update) config = conf.value();
@@ -110,7 +110,7 @@ namespace kagome::application {
                 return outcome::success();
               });
         }));
-    if(update) {
+    if (update) {
       conf.value() = config;
     }
     return config;
@@ -126,9 +126,8 @@ namespace kagome::application {
     auto res = processConfigFromPropertyTree(tree, config);
     if (res) {
       return outcome::success();
-    } else {
-      return res.error();
     }
+    return res.error();
   }
 
 }  // namespace kagome::application

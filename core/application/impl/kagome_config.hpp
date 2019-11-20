@@ -32,7 +32,7 @@ namespace kagome::application {
     std::vector<crypto::SR25519PublicKey> session_keys;
     std::vector<crypto::ED25519PublicKey> authorities;
     struct ApiPorts {
-      uint32_t extrinsic_api_port;
+      uint16_t extrinsic_api_port = 4224;
     } api_ports;
   };
 

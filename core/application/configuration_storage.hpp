@@ -41,7 +41,10 @@ namespace kagome::application {
      */
     virtual std::vector<crypto::ED25519PublicKey> getAuthorities() const = 0;
 
-    virtual uint32_t getExtrinsicApiPort() const = 0;
+    /**
+     * Return port to which extrinsic API RPC binds
+     */
+    virtual uint16_t getExtrinsicApiPort() const = 0;
   };
 
 }  // namespace kagome::application

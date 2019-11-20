@@ -79,7 +79,9 @@ namespace kagome::application {
 
   outcome::result<crypto::SR25519Keypair> LocalKeyStorage::loadSr25519(
       const boost::filesystem::path &file) const {
-    using namespace crypto::constants::sr25519;
+    using crypto::constants::sr25519::KEYPAIR_SIZE;
+    using crypto::constants::sr25519::PUBLIC_SIZE;
+    using crypto::constants::sr25519::SECRET_SIZE;
     OUTCOME_TRY(bytes, readKeypairFromHexFile(file));
     crypto::SR25519Keypair keypair;
     BOOST_ASSERT(KEYPAIR_SIZE == bytes.size());
