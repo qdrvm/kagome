@@ -170,7 +170,7 @@ namespace kagome::storage::trie {
 
     if (node.getTrieType() == PolkadotNode::Type::BranchWithValue) {
       // scale encoded value
-      OUTCOME_TRY(encNodeValue, scale::encode(node.value));
+      OUTCOME_TRY(encNodeValue, scale::encode(node.value.get()));
       encoding += Buffer(std::move(encNodeValue));
     }
 
@@ -201,7 +201,7 @@ namespace kagome::storage::trie {
     encoding += nibblesToKey(node.key_nibbles);
 
     // scale encoded value
-    OUTCOME_TRY(encNodeValue, scale::encode(node.value));
+    OUTCOME_TRY(encNodeValue, scale::encode(node.value.get()));
     encoding += Buffer(std::move(encNodeValue));
 
     return outcome::success(std::move(encoding));
