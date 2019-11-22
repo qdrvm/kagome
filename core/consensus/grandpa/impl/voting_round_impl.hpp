@@ -18,7 +18,6 @@
 #include "consensus/grandpa/vote_crypto_provider.hpp"
 #include "consensus/grandpa/vote_graph.hpp"
 #include "consensus/grandpa/vote_tracker.hpp"
-#include "crypto/ed25519_provider.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -39,7 +38,6 @@ namespace kagome::consensus::grandpa {
                     std::shared_ptr<Chain> chain,
                     std::shared_ptr<VoteGraph> graph,
                     std::shared_ptr<Gossiper> gossiper,
-                    std::shared_ptr<crypto::ED25519Provider> ed_provider,
                     std::shared_ptr<Clock> clock,
                     std::shared_ptr<blockchain::BlockTree> block_tree,
                     std::shared_ptr<boost::asio::io_context> io_context,
@@ -125,7 +123,6 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<VoteGraph> graph_;
 
     std::shared_ptr<Gossiper> gossiper_;
-    std::shared_ptr<crypto::ED25519Provider> ed_provider_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
 

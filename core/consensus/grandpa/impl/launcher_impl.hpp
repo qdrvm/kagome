@@ -6,8 +6,8 @@
 #ifndef KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_LAUNCHERIMPL_HPP
 #define KAGOME_CORE_CONSENSUS_GRANDPA_IMPL_LAUNCHERIMPL_HPP
 
-#include <boost/smart_ptr/atomic_shared_ptr.hpp>
 #include "blockchain/block_tree.hpp"
+#include "common/logger.hpp"
 #include "consensus/grandpa/chain.hpp"
 #include "consensus/grandpa/completed_round.hpp"
 #include "consensus/grandpa/gossiper.hpp"
@@ -15,7 +15,6 @@
 #include "consensus/grandpa/vote_crypto_provider.hpp"
 #include "consensus/grandpa/voter_set.hpp"
 #include "consensus/grandpa/voting_round.hpp"
-#include "crypto/ed25519_provider.hpp"
 #include "storage/trie/trie_db.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -32,8 +31,8 @@ namespace kagome::consensus::grandpa {
     void executeNextRound();
 
    private:
-    std::shared_ptr<VoterSet> getVoters() const;
-    CompletedRound getLastRoundNumber() const;
+    outcome::result<std::shared_ptr<VoterSet>> getVoters() const;
+    outcome::result<CompletedRound> getLastRoundNumber() const;
 
     std::shared_ptr<VotingRound> current_round_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
@@ -42,9 +41,10 @@ namespace kagome::consensus::grandpa {
     crypto::ED25519Keypair keypair_;
     std::shared_ptr<Chain> chain_;
     std::shared_ptr<Gossiper> gossiper_;
-    std::shared_ptr<crypto::ED25519Provider> ed_provider_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<boost::asio::io_context> io_context_;
+
+    common::Logger logger_ = common::createLogger("Grandpa launcher");
   };
 
 }  // namespace kagome::consensus::grandpa

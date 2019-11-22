@@ -36,7 +36,6 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<Chain> chain,
       std::shared_ptr<VoteGraph> graph,
       std::shared_ptr<Gossiper> gossiper,
-      std::shared_ptr<crypto::ED25519Provider> ed_provider,
       std::shared_ptr<Clock> clock,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<boost::asio::io_context> io_context,
@@ -53,7 +52,6 @@ namespace kagome::consensus::grandpa {
         chain_{std::move(chain)},
         graph_{std::move(graph)},
         gossiper_{std::move(gossiper)},
-        ed_provider_{std::move(ed_provider)},
         clock_{std::move(clock)},
         block_tree_{std::move(block_tree)},
         io_context_{std::move(io_context)},
@@ -63,12 +61,12 @@ namespace kagome::consensus::grandpa {
         prevote_equivocators_(voter_set_->size(), false),
         precommit_equivocators_(voter_set_->size(), false) {
     BOOST_ASSERT(voter_set_ != nullptr);
+    BOOST_ASSERT(vote_crypto_provider_ != nullptr);
     BOOST_ASSERT(prevotes_ != nullptr);
     BOOST_ASSERT(precommits_ != nullptr);
     BOOST_ASSERT(chain_ != nullptr);
     BOOST_ASSERT(graph_ != nullptr);
     BOOST_ASSERT(gossiper_ != nullptr);
-    BOOST_ASSERT(ed_provider_ != nullptr);
     BOOST_ASSERT(clock_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
 

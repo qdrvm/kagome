@@ -22,19 +22,13 @@ namespace kagome::consensus::grandpa {
   const static auto kSetStateKey =
       common::Buffer().put("grandpa_completed_round");
 
-  std::shared_ptr<VoterSet> LauncherImpl::getVoters() const {
-    auto voters_encoded_res = storage_->get(kAuthoritySetKey);
-    if (not voters_encoded_res) {
-      // handle error
-    }
-    auto voter_set_res = scale::decode<VoterSet>(voters_encoded_res.value());
-    if (not voter_set_res) {
-      // handle error
-    }
-    return std::make_shared<VoterSet>(voter_set_res.value());
+  outcome::result<std::shared_ptr<VoterSet>> LauncherImpl::getVoters() const {
+    OUTCOME_TRY(voters_encoded, storage_->get(kAuthoritySetKey));
+    OUTCOME_TRY(voter_set, scale::decode<VoterSet>(voters_encoded));
+    return std::make_shared<VoterSet>(voter_set);
   }
 
-  CompletedRound LauncherImpl::getLastRoundNumber() const {
+  outcome::result<CompletedRound> LauncherImpl::getLastRoundNumber() const {
     auto last_round_encoded_res = storage_->get(kSetStateKey);
     if (not last_round_encoded_res) {
       // handle error
@@ -49,8 +43,20 @@ namespace kagome::consensus::grandpa {
   }
 
   void LauncherImpl::executeNextRound() {
-    auto voters = getVoters();
-    auto [round_number, last_round_state] = getLastRoundNumber();
+    auto voters_res = getVoters();
+    if (not voters_res.has_value()) {
+      logger_->error(
+          "Voters does not exist in storage. Stopping grandpa execution");
+      return;
+    }
+    const auto &voters = voters_res.value();
+    auto last_round_res = getLastRoundNumber();
+    if (not last_round_res.has_value()) {
+      logger_->error(
+          "Last round does not exist in storage. Stopping grandpa execution");
+      return;
+    }
+    auto [round_number, last_round_state] = last_round_res.value();
     round_number++;
 
     auto duration = Duration(333);
@@ -61,13 +67,16 @@ namespace kagome::consensus::grandpa {
     auto vote_graph = std::make_shared<VoteGraphImpl>(
         last_round_state.finalized.value(), chain_);
 
+    // lambda which is executed when voting round is completed. This lambda
+    // executes next round
     auto handle_completed_round = [this](
                                       const CompletedRound &completed_round) {
       auto &&encoded_round_state = scale::encode(completed_round).value();
       if (auto put_res =
               storage_->put(kSetStateKey, common::Buffer(encoded_round_state));
           not put_res) {
-        // handle error
+        logger_->error("New round state was not added to the storage");
+        return;
       }
 
       boost::asio::post(*io_context_,
@@ -84,7 +93,6 @@ namespace kagome::consensus::grandpa {
                                           chain_,
                                           vote_graph,
                                           gossiper_,
-                                          ed_provider_,
                                           clock_,
                                           block_tree_,
                                           io_context_,

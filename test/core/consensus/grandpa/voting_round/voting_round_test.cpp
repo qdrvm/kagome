@@ -16,7 +16,6 @@
 #include "mock/core/blockchain/header_repository_mock.hpp"
 #include "mock/core/consensus/grandpa/gossiper_mock.hpp"
 #include "mock/core/consensus/grandpa/vote_crypto_provider_mock.hpp"
-#include "mock/core/crypto/ed25519_provider_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 
 using namespace kagome::consensus::grandpa;
@@ -27,7 +26,6 @@ using kagome::blockchain::HeaderRepositoryMock;
 using kagome::clock::SteadyClockImpl;
 using kagome::consensus::grandpa::VoteCryptoProviderMock;
 using kagome::crypto::ED25519Keypair;
-using kagome::crypto::ED25519ProviderMock;
 using kagome::crypto::ED25519Signature;
 using kagome::crypto::HasherMock;
 
@@ -116,7 +114,6 @@ class VotingRoundTest : public ::testing::Test {
         chain_,
         vote_graph_,
         gossiper_,
-        ed_provider_,
         clock_,
         tree_,
         io_context_,
@@ -207,8 +204,6 @@ class VotingRoundTest : public ::testing::Test {
   std::shared_ptr<ChainImpl> chain_;
   std::shared_ptr<VoteGraphImpl> vote_graph_;
   std::shared_ptr<GossiperMock> gossiper_ = std::make_shared<GossiperMock>();
-  std::shared_ptr<ED25519ProviderMock> ed_provider_ =
-      std::make_shared<ED25519ProviderMock>();
   std::shared_ptr<SteadyClockImpl> clock_ = std::make_shared<SteadyClockImpl>();
 
   std::shared_ptr<boost::asio::io_context> io_context_ =

@@ -16,7 +16,7 @@ namespace kagome::network {
     enum class Type : uint8_t {
       BLOCK_ANNOUNCE = 1,
       VOTE,
-
+      FIN,
       UNKNOWN = 0
     };
 
