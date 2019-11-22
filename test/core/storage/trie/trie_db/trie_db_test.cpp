@@ -25,7 +25,7 @@ enum class Command { PUT, REMOVE, GET, CONTAINS };
 
 struct TrieCommand {
   Buffer key;
-  Buffer value;
+  boost::optional<Buffer> value;
   Command command;
 };
 
@@ -71,28 +71,23 @@ TEST_P(TrieTest, RunCommand) {
         ASSERT_TRUE(trie->contains(command.key));
         break;
       case Command::GET: {
-        if (command.value.empty()) {
+        if (command.value) {
+          EXPECT_OUTCOME_TRUE(val, trie->get(command.key));
+          ASSERT_EQ(val, command.value.get());
+        } else {
           EXPECT_OUTCOME_FALSE(err, trie->get(command.key));
           ASSERT_EQ(
               err.value(),
               static_cast<int>(kagome::storage::trie::TrieError::NO_VALUE));
-        } else {
-          EXPECT_OUTCOME_TRUE(val, trie->get(command.key));
-          ASSERT_EQ(val, command.value);
         }
         break;
       }
       case Command::PUT: {
-        EXPECT_OUTCOME_TRUE_1(trie->put(command.key, command.value));
-        EXPECT_OUTCOME_TRUE(val, trie->get(command.key));
-        ASSERT_EQ(val, command.value);
+        EXPECT_OUTCOME_TRUE_1(trie->put(command.key, command.value.get()));
         break;
       }
       case Command::REMOVE: {
         EXPECT_OUTCOME_TRUE_1(trie->remove(command.key));
-        EXPECT_OUTCOME_FALSE(err, trie->get(command.key));
-        ASSERT_EQ(err.value(),
-                  static_cast<int>(kagome::storage::trie::TrieError::NO_VALUE));
         break;
       }
     }
@@ -125,8 +120,8 @@ std::vector<TrieCommand> PutAndGetBranch = {
     {"013579"_hex2buf, ("gnocchi"_buf), Command::PUT},
     {"07"_hex2buf, ("ramen"_buf), Command::PUT},
     {"f2"_hex2buf, ("pho"_buf), Command::PUT},
-    {"noot"_buf, Buffer{}, Command::GET},
-    {"00"_hex2buf, Buffer{}, Command::GET},
+    {"noot"_buf, boost::none, Command::GET},
+    {"00"_hex2buf, boost::none, Command::GET},
     {"0135"_hex2buf, ("spaghetti"_buf), Command::GET},
     {"013579"_hex2buf, ("gnocchi"_buf), Command::GET},
     {"07"_hex2buf, ("ramen"_buf), Command::GET},
@@ -151,34 +146,34 @@ std::vector<TrieCommand> PutAndGetOddKeyLengths = {
  */
 std::vector<TrieCommand> DeleteSmall = {
     {{}, "floof"_buf, Command::REMOVE},
-    {{}, Buffer{}, Command::GET},
+    {{}, boost::none, Command::GET},
     {{}, "floof"_buf, Command::PUT},
 
     {"09d3"_hex2buf, "noot"_buf, Command::REMOVE},
-    {"09d3"_hex2buf, Buffer{}, Command::GET},
+    {"09d3"_hex2buf, boost::none, Command::GET},
     {"0135"_hex2buf, "pen"_buf, Command::GET},
     {"013579"_hex2buf, "penguin"_buf, Command::GET},
     {"09d3"_hex2buf, "noot"_buf, Command::PUT},
 
     {"f2"_hex2buf, "feather"_buf, Command::REMOVE},
-    {"f2"_hex2buf, Buffer{}, Command::GET},
+    {"f2"_hex2buf, boost::none, Command::GET},
     {"f2"_hex2buf, "feather"_buf, Command::PUT},
 
     {{}, "floof"_buf, Command::REMOVE},
     {"f2"_hex2buf, "feather"_buf, Command::REMOVE},
-    {{}, Buffer{}, Command::GET},
+    {{}, boost::none, Command::GET},
     {"0135"_hex2buf, "pen"_buf, Command::GET},
     {"013579"_hex2buf, "penguin"_buf, Command::GET},
     {{}, "floof"_buf, Command::PUT},
     {"f2"_hex2buf, "feather"_buf, Command::PUT},
 
     {"013579"_hex2buf, "penguin"_buf, Command::REMOVE},
-    {"013579"_hex2buf, Buffer{}, Command::GET},
+    {"013579"_hex2buf, boost::none, Command::GET},
     {"0135"_hex2buf, "pen"_buf, Command::GET},
     {"013579"_hex2buf, "penguin"_buf, Command::PUT},
 
     {"0135"_hex2buf, "pen"_buf, Command::REMOVE},
-    {"0135"_hex2buf, Buffer{}, Command::GET},
+    {"0135"_hex2buf, boost::none, Command::GET},
     {"013579"_hex2buf, "penguin"_buf, Command::GET},
     {"0135"_hex2buf, "pen"_buf, Command::PUT},
 
@@ -194,7 +189,7 @@ std::vector<TrieCommand> DeleteCombineBranch = {
     {"013546"_hex2buf, "raccoon"_buf, Command::PUT},
     {"01354677"_hex2buf, "rat"_buf, Command::PUT},
     {"09d3"_hex2buf, "noot"_buf, Command::REMOVE},
-    {"09d3"_hex2buf, Buffer{}, Command::GET},
+    {"09d3"_hex2buf, boost::none, Command::GET},
 };
 /**
  * Deletion from a branch
@@ -208,7 +203,7 @@ std::vector<TrieCommand> DeleteFromBranch = {
     {"0615fc"_hex2buf, "noot"_buf, Command::GET},
     {"062ba9"_hex2buf, "nootagain"_buf, Command::GET},
     {"0615fc"_hex2buf, "noot"_buf, Command::REMOVE},
-    {"0615fc"_hex2buf, Buffer{}, Command::GET},
+    {"0615fc"_hex2buf, boost::none, Command::GET},
     {"062ba9"_hex2buf, "nootagain"_buf, Command::GET},
     {"06afb1"_hex2buf, "odd"_buf, Command::GET},
     {"06afb1"_hex2buf, "odd"_buf, Command::REMOVE},
@@ -230,7 +225,7 @@ std::vector<TrieCommand> DeleteOddKeyLengths = {
     {"4f4d"_hex2buf, "stuff"_buf, Command::PUT},
     {"4f4d"_hex2buf, "stuff"_buf, Command::GET},
     {"430c"_hex2buf, "odd"_buf, Command::REMOVE},
-    {"430c"_hex2buf, Buffer{}, Command::GET},
+    {"430c"_hex2buf, boost::none, Command::GET},
     {"f4bc"_hex2buf, "spaghetti"_buf, Command::PUT},
     {"f4bc"_hex2buf, "spaghetti"_buf, Command::GET},
     {"4f4d"_hex2buf, "stuff"_buf, Command::GET},
@@ -264,6 +259,9 @@ TEST_F(TrieTest, Put) {
   ASSERT_EQ(v1, "010203"_hex2buf);
   EXPECT_OUTCOME_TRUE(v2, trie->get("104050"_hex2buf));
   ASSERT_EQ(v2, "0a0b0c"_hex2buf);
+  EXPECT_OUTCOME_TRUE_1(trie->put("1332"_hex2buf, ""_buf));
+  EXPECT_OUTCOME_TRUE(v3, trie->get("1332"_hex2buf));
+  ASSERT_EQ(v3, ""_buf);
 }
 
 /**

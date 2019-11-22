@@ -8,9 +8,8 @@
 namespace kagome::storage::trie {
 
   int BranchNode::getType() const {
-    return static_cast<int>(!value.empty()
-                            ? PolkadotNode::Type::BranchWithValue
-                            : PolkadotNode::Type::BranchEmptyValue);
+    return static_cast<int>(value ? PolkadotNode::Type::BranchWithValue
+                                  : PolkadotNode::Type::BranchEmptyValue);
   }
 
   uint16_t BranchNode::childrenBitmap() const {
@@ -24,7 +23,10 @@ namespace kagome::storage::trie {
   }
 
   uint8_t BranchNode::childrenNum() const {
-    return std::count_if(children.begin(), children.end(), [](auto const& child) { return child; });;
+    return std::count_if(children.begin(),
+                         children.end(),
+                         [](auto const &child) { return child; });
+    ;
   }
 
   int LeafNode::getType() const {
