@@ -15,10 +15,11 @@ namespace kagome::consensus::grandpa {
    public:
     using PushResult = typename VoteTracker<MessageType>::PushResult;
     using VotingMessage = typename VoteTracker<MessageType>::VotingMessage;
-    using EquivocatoryVotingMessage = typename VoteTracker<MessageType>::EquivocatoryVotingMessage ;
-    using VoteVariant = typename VoteTracker<MessageType>::VoteVariant ;
+    using EquivocatoryVotingMessage =
+        typename VoteTracker<MessageType>::EquivocatoryVotingMessage;
+    using VoteVariant = typename VoteTracker<MessageType>::VoteVariant;
 
-    virtual ~VoteTrackerImpl() = default;
+    ~VoteTrackerImpl() override = default;
 
     PushResult push(const VotingMessage &vote, size_t weight) override;
 

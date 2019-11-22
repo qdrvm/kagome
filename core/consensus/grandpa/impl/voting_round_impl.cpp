@@ -40,7 +40,7 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<Clock> clock,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<boost::asio::io_context> io_context,
-      OnCompletedSlotType on_completed_slot,
+      const OnCompletedSlotType &on_completed_slot,
       common::Logger logger)
       : voter_set_{std::move(voters)},
         round_number_{round_number},
@@ -120,25 +120,30 @@ namespace kagome::consensus::grandpa {
 
   bool VotingRoundImpl::validate(const BlockInfo &vote,
                                  const Justification &justification) const {
-    // TODO: implement. Vote should be checked for enough signatures in
+    // TODO(kamilsa): implement. Vote should be checked for enough signatures in
     // justification
     return true;
   }
 
-  void VotingRoundImpl::tryFinalize(const RoundState &last_round_state) {
+  bool VotingRoundImpl::tryFinalize() {
     if (not completable()) {
-      return;
+      return false;
+    }
+    if (not last_round_state_) {
+      logger_->error("Last round state is empty during finalization");
+      return false;
     }
     // check if new state differs with the old one and broadcast new state
-    notify(last_round_state);
+    notify(*last_round_state_);
 
     on_completed_(CompletedRound{.round_number = round_number_,
                                  .state = cur_round_state_});
+    return true;
   }
 
-  void VotingRoundImpl::notify(const RoundState &last_round_state) {
+  bool VotingRoundImpl::notify(const RoundState &last_round_state) {
     if (last_round_state == cur_round_state_) {
-      return;
+      return false;
     }
 
     if (last_round_state.finalized != cur_round_state_.finalized
@@ -161,8 +166,10 @@ namespace kagome::consensus::grandpa {
         gossiper_->fin(Fin{.vote = finalized,
                            .round_number = round_number_,
                            .justification = justification});
+        return true;
       }
     }
+    return false;
   }
 
   RoundNumber VotingRoundImpl::roundNumber() const {
@@ -185,6 +192,7 @@ namespace kagome::consensus::grandpa {
   void VotingRoundImpl::onPrecommit(const SignedPrecommit &precommit) {
     onSignedPrecommit(precommit);
     update();
+    tryFinalize();
   }
 
   void VotingRoundImpl::onSignedPrevote(const SignedPrevote &vote) {
@@ -300,6 +308,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::primaryPropose(const RoundState &last_round_state) {
+    last_round_state_ = last_round_state;
     switch (state_) {
       case State::START: {
         auto maybe_estimate = last_round_state.estimate;
@@ -346,6 +355,8 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::prevote(const RoundState &last_round_state) {
+    last_round_state_ = last_round_state;
+
     auto handle_prevote = [this, last_round_state](auto &&ec) {
       // Return if error is not caused by timer cancellation
       if (ec and ec != boost::asio::error::operation_aborted) {
@@ -373,6 +384,8 @@ namespace kagome::consensus::grandpa {
   };
 
   void VotingRoundImpl::precommit(const RoundState &last_round_state) {
+    last_round_state_ = last_round_state;
+
     auto handle_precommit = [this, last_round_state](
                                 const boost::system::error_code &ec) {
       // Return if error is not caused by timer cancellation
@@ -409,7 +422,7 @@ namespace kagome::consensus::grandpa {
             if (precommit) {
               gossipPrecommit(precommit.value());
               state_ = State::PRECOMMITTED;
-              tryFinalize(last_round_state);
+              tryFinalize();
             } else {
               // not possible
             }
@@ -548,7 +561,7 @@ namespace kagome::consensus::grandpa {
     // haven't seen will target this block.
 
     // get total weight of all equivocators
-    using namespace boost::adaptors;
+    using namespace boost::adaptors;  // NOLINT
     auto current_equivocations = boost::accumulate(
         voter_set_->voters() | indexed(0)
             | transformed([this](const auto &element) {

@@ -30,7 +30,7 @@ namespace kagome::consensus::grandpa {
     virtual void precommit(const RoundState &last_round_state) = 0;
 
     // executes algorithm 4.9 Attempt-To-Finalize-Round(r)
-    virtual void tryFinalize(const RoundState &last_round_state) = 0;
+    virtual bool tryFinalize() = 0;
 
     virtual RoundNumber roundNumber() const = 0;
   };

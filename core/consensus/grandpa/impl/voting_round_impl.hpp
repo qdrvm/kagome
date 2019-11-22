@@ -43,7 +43,7 @@ namespace kagome::consensus::grandpa {
                     std::shared_ptr<Clock> clock,
                     std::shared_ptr<blockchain::BlockTree> block_tree,
                     std::shared_ptr<boost::asio::io_context> io_context,
-                    OnCompletedSlotType on_completed_slot,
+                    const OnCompletedSlotType &on_completed_slot,
                     common::Logger logger = common::createLogger("Grandpa"));
 
     void onFin(const Fin &f) override;
@@ -54,7 +54,7 @@ namespace kagome::consensus::grandpa {
 
     void onPrecommit(const SignedPrecommit &precommit) override;
 
-    void tryFinalize(const RoundState &last_round_state) override;
+    bool tryFinalize() override;
 
     RoundNumber roundNumber() const override;
 
@@ -84,7 +84,9 @@ namespace kagome::consensus::grandpa {
 
     void update();
 
-    void notify(const RoundState &last_round_state);
+    // notify about new finalized round. False if new state does not differ from
+    // old one
+    bool notify(const RoundState &last_round_state);
 
     boost::optional<Justification> finalizingPrecommits(
         const BlockInfo &estimate) const;
@@ -110,6 +112,7 @@ namespace kagome::consensus::grandpa {
     const Duration duration_;  // length of round (T in spec)
     TimePoint start_time_;
     RoundState cur_round_state_;
+    boost::optional<RoundState> last_round_state_;
     const crypto::ED25519Keypair keypair_;
     const Id id_;  // id of current peer
     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider_;

@@ -12,7 +12,7 @@ namespace kagome::consensus::grandpa {
 
   class Launcher : public RoundObserver {
    public:
-    virtual ~Launcher() = default;
+    ~Launcher() override = default;
     virtual void start() = 0;
   };
 

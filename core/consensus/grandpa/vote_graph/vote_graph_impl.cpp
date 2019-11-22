@@ -246,32 +246,7 @@ namespace kagome::consensus::grandpa {
     // breadth-first search starting from this node.
     bool loop = true;
     while (loop) {
-      //            for (const BlockHash &descendent : active_node->descendents)
-      //            {
-      //              Entry &entry = entries_.at(descendent);
-      //
-      //              // take only descendents with our block in the ancestry.
-      //              // a-la filter for given descendants vector
-      //              if (force_constrain && current_best) {
-      //                auto &best = *current_best;
-      //                if (!inDirectAncestry(entry, best.block_hash,
-      //                best.block_number)) {
-      //                  continue;
-      //                }
-      //              }
-      //
-      //              if (condition(entry.cumulative_vote)) {
-      //                force_constrain = false;
-      //                node_key = descendent;  // hash for given entry
-      //                active_node = &entry;
-      //                break;
-      //              } else {
-      //                loop = false;
-      //                break;
-      //              }
-      //            }
-
-      using namespace boost::adaptors;
+      using namespace boost::adaptors;  // NOLINT
       auto filtered_entries =
           active_node.descendents | transformed([this](const BlockHash &d) {
             return std::make_pair(d, entries_.at(d));

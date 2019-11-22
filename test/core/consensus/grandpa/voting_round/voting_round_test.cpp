@@ -184,11 +184,11 @@ class VotingRoundTest : public ::testing::Test {
   const size_t kEveWeight = 3;
   const ED25519Signature kEveSignature = "Eve"_SIG;
 
-  std::shared_ptr<VoterSet> voters_ = std::make_shared<VoterSet>();
   RoundNumber round_number_{0};
-  Duration duration_{5000ms};
+  Duration duration_{1000ms};
   TimePoint start_time_{42h};
   MembershipCounter counter_{0};
+  std::shared_ptr<VoterSet> voters_ = std::make_shared<VoterSet>(counter_);
 
   ED25519Keypair keypair_;
   std::shared_ptr<VoteCryptoProviderMock> vote_crypto_provider_ =

@@ -12,9 +12,10 @@
 #include "consensus/grandpa/completed_round.hpp"
 #include "consensus/grandpa/gossiper.hpp"
 #include "consensus/grandpa/launcher.hpp"
+#include "consensus/grandpa/vote_crypto_provider.hpp"
+#include "consensus/grandpa/voter_set.hpp"
 #include "consensus/grandpa/voting_round.hpp"
 #include "crypto/ed25519_provider.hpp"
-#include "runtime/core.hpp"
 #include "storage/trie/trie_db.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -37,7 +38,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<VotingRound> current_round_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::PersistentBufferMap> storage_;
-    std::shared_ptr<runtime::Core> core_;
+    std::shared_ptr<VoteCryptoProvider> vote_crypto_provider_;
     crypto::ED25519Keypair keypair_;
     std::shared_ptr<Chain> chain_;
     std::shared_ptr<Gossiper> gossiper_;

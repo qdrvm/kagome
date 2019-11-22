@@ -15,8 +15,8 @@ target_link_libraries(chain
     )
 
 add_library(vote_tracker
-    impl/vote_tracker_impl.cpp)
-
+    impl/vote_tracker_impl.cpp
+    )
 target_link_libraries(vote_tracker
     blob
     )
@@ -28,6 +28,13 @@ target_link_libraries(vote_crypto_provider
     scale
     )
 
+add_library(voter_set
+    voter_set.cpp
+    )
+target_link_libraries(voter_set
+    ed25519_types
+    )
+
 add_library(voting_round
     impl/voting_round_impl.cpp
     )
@@ -35,6 +42,7 @@ add_library(voting_round
 target_link_libraries(voting_round
     vote_tracker
     vote_graph
+    voter_set
     scale
     logger
     blob
