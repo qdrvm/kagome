@@ -40,20 +40,15 @@ namespace kagome::storage::trie {
   outcome::result<void> PolkadotTrie::put(const Buffer &key, Buffer &&value) {
     auto k_enc = PolkadotCodec::keyToNibbles(key);
 
-    if (value.empty()) {
-      OUTCOME_TRY(remove(key));
-    } else {
-      NodePtr root = root_;
+    NodePtr root = root_;
 
-      // insert fetches a sequence of nodes (a path) from the storage and
-      // these nodes are processed in memory, so any changes applied to them
-      // will be written back to the storage only on storeNode call
-      OUTCOME_TRY(n,
-                  insert(root,
-                         k_enc,
-                         std::make_shared<LeafNode>(k_enc, std::move(value))));
-      root_ = n;
-    }
+    // insert fetches a sequence of nodes (a path) from the storage and
+    // these nodes are processed in memory, so any changes applied to them
+    // will be written back to the storage only on storeNode call
+    OUTCOME_TRY(n,
+                insert(root, k_enc, std::make_shared<LeafNode>(k_enc, value)));
+    root_ = n;
+
     return outcome::success();
   }
 
@@ -179,8 +174,8 @@ namespace kagome::storage::trie {
     }
     auto nibbles = PolkadotCodec::keyToNibbles(key);
     OUTCOME_TRY(node, getNode(root_, nibbles));
-    if (node && not node->value.empty()) {
-      return node->value;
+    if (node && node->value) {
+      return node->value.get();
     }
     return TrieError::NO_VALUE;
   }
@@ -225,7 +220,8 @@ namespace kagome::storage::trie {
     }
 
     auto node = getNode(root_, PolkadotCodec::keyToNibbles(key));
-    return node.has_value() && (node.value() != nullptr);
+    return node.has_value() && (node.value() != nullptr)
+           && (node.value()->value);
   }
 
   outcome::result<void> PolkadotTrie::remove(const common::Buffer &key) {
@@ -254,7 +250,7 @@ namespace kagome::storage::trie {
         auto length = getCommonPrefixLength(parent->key_nibbles, key_nibbles);
         auto parent_as_branch = std::dynamic_pointer_cast<BranchNode>(parent);
         if (parent->key_nibbles == key_nibbles || key_nibbles.empty()) {
-          parent->value.clear();
+          parent->value = boost::none;
           newRoot = parent;
         } else {
           OUTCOME_TRY(child,
@@ -284,10 +280,10 @@ namespace kagome::storage::trie {
     auto length = getCommonPrefixLength(key_nibbles, parent->key_nibbles);
     auto bitmap = parent->childrenBitmap();
     // turn branch node left with no children to a leaf node
-    if (bitmap == 0 && !parent->value.empty()) {
+    if (bitmap == 0 && parent->value) {
       newRoot = std::make_shared<LeafNode>(key_nibbles.subbuffer(0, length),
                                            parent->value);
-    } else if (parent->childrenNum() == 1 && parent->value.empty()) {
+    } else if (parent->childrenNum() == 1 && !parent->value) {
       size_t idx = 0;
       for (idx = 0; idx < 16; idx++) {
         bitmap >>= 1u;

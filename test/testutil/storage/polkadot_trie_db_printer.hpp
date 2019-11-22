@@ -46,7 +46,7 @@ namespace kagome::storage::trie {
         auto branch = std::dynamic_pointer_cast<BranchNode>(node);
         s << indent << "(branch) key: <"
           << hex_lower(trie.codec_.nibblesToKey(node->key_nibbles))
-          << "> value: " << node->value.toHex() << " children: ";
+          << "> value: " << (node->value ? "\"" + node->value.get().toHex() + "\"" : "No value") << " children: ";
         for (size_t i = 0; i < branch->children.size(); i++) {
           if (branch->children[i]) {
             s << std::hex << i << "|";
@@ -72,7 +72,7 @@ namespace kagome::storage::trie {
       case T::Leaf: {
         s << indent << "(leaf) key: <"
           << hex_lower(trie.codec_.nibblesToKey(node->key_nibbles))
-          << "> value: " << node->value.toHex() << "\n";
+          << "> value: " << node->value.get().toHex() << "\n";
         auto enc = trie.codec_.encodeNode(*node).value();
         s << indent << "enc: " << enc << "\n";
         s << indent << "hash: " << common::hex_upper(trie.codec_.merkleValue(enc)) << "\n";
