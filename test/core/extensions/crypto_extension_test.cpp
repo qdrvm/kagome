@@ -13,6 +13,7 @@
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
+#include "crypto/hasher/hasher_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -20,6 +21,8 @@ using namespace kagome::extensions;
 using kagome::common::Buffer;
 using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::CSPRNG;
+using kagome::crypto::Hasher;
+using kagome::crypto::HasherImpl;
 using kagome::crypto::ED25519Provider;
 using kagome::crypto::ED25519ProviderImpl;
 using kagome::crypto::ED25519Signature;
@@ -47,8 +50,9 @@ class CryptoExtensionTest : public ::testing::Test {
     sr25519_provider_ =
         std::make_shared<SR25519ProviderImpl>(random_generator_);
     ed25519_provider_ = std::make_shared<ED25519ProviderImpl>();
+    hasher_ = std::make_shared<HasherImpl>();
     crypto_ext_ = std::make_shared<CryptoExtension>(
-        memory_, sr25519_provider_, ed25519_provider_);
+        memory_, sr25519_provider_, ed25519_provider_, hasher_);
 
     sr25519_keypair = sr25519_provider_->generateKeypair();
     sr25519_signature = sr25519_provider_->sign(sr25519_keypair, input).value();
@@ -59,6 +63,7 @@ class CryptoExtensionTest : public ::testing::Test {
   std::shared_ptr<CSPRNG> random_generator_;
   std::shared_ptr<SR25519Provider> sr25519_provider_;
   std::shared_ptr<ED25519Provider> ed25519_provider_;
+  std::shared_ptr<Hasher> hasher_;
   std::shared_ptr<CryptoExtension> crypto_ext_;
 
   Buffer input{"6920616d2064617461"_unhex};
@@ -68,6 +73,9 @@ class CryptoExtensionTest : public ::testing::Test {
 
   Buffer blake2b_result{
       "ba67336efd6a3df3a70eeb757860763036785c182ff4cf587541a0068d09f5b2"_unhex};
+
+  Buffer keccak_result{
+      "65aac3ad8b88cb79396da4c8b6a8cb6b5b74b0f6534a3e4e5e8ad68658feccf4"_unhex};
 
   Buffer twox_input{"414243444546"_unhex};
 
@@ -93,6 +101,22 @@ TEST_F(CryptoExtensionTest, Blake2Valid) {
   EXPECT_CALL(*memory_, storeBuffer(out_ptr, blake2b_result)).Times(1);
 
   crypto_ext_->ext_blake2_256(data, size, out_ptr);
+}
+
+/**
+ * @given initialized crypto extension @and data, which can be keccak-hashed
+ * @when hashing that data
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, KeccakValid) {
+  WasmPointer data = 0;
+  SizeType size = input.size();
+  WasmPointer out_ptr = 42;
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, storeBuffer(out_ptr, keccak_result)).Times(1);
+
+  crypto_ext_->ext_keccak_256(data, size, out_ptr);
 }
 
 /**

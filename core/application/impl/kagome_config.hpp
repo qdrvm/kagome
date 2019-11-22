@@ -6,6 +6,9 @@
 #ifndef KAGOME_KAGOME_CONFIG_HPP
 #define KAGOME_KAGOME_CONFIG_HPP
 
+#include <libp2p/peer/peer_info.hpp>
+#include "crypto/ed25519_types.hpp"
+#include "crypto/sr25519_types.hpp"
 #include "primitives/block.hpp"
 
 namespace kagome::application {
@@ -15,7 +18,22 @@ namespace kagome::application {
    * authority keys
    */
   struct KagomeConfig {
+    bool operator==(const KagomeConfig &rhs) const {
+      return genesis == rhs.genesis
+             and peers_info == rhs.peers_info
+             and session_keys == rhs.session_keys
+             and authorities == rhs.authorities
+             and api_ports.extrinsic_api_port
+                     == rhs.api_ports.extrinsic_api_port;
+    }
+
     primitives::Block genesis;
+    std::vector<libp2p::peer::PeerInfo> peers_info;
+    std::vector<crypto::SR25519PublicKey> session_keys;
+    std::vector<crypto::ED25519PublicKey> authorities;
+    struct ApiPorts {
+      uint16_t extrinsic_api_port = 4224;
+    } api_ports;
   };
 
 };  // namespace kagome::application

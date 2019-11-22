@@ -9,6 +9,7 @@
 
 #include "crypto/blake2/blake2b.h"
 #include "crypto/blake2/blake2s.h"
+#include "crypto/keccak/keccak.h"
 #include "crypto/sha/sha256.hpp"
 #include "crypto/twox/twox.hpp"
 
@@ -35,6 +36,18 @@ namespace kagome::crypto {
     return out;
   }
 
+  HasherImpl::Hash256 HasherImpl::keccak_256(
+      gsl::span<const uint8_t> buffer) const {
+    Hash256 out;
+    sha3_HashBuffer(256,
+                    SHA3_FLAGS::SHA3_FLAGS_KECCAK,
+                    buffer.data(),
+                    buffer.size(),
+                    out.data(),
+                    32);
+    return out;
+  }
+
   HasherImpl::Hash256 HasherImpl::blake2s_256(
       gsl::span<const uint8_t> buffer) const {
     Hash256 out;
@@ -46,4 +59,4 @@ namespace kagome::crypto {
       gsl::span<const uint8_t> buffer) const {
     return crypto::sha256(buffer);
   }
-}  // namespace kagome::hash
+}  // namespace kagome::crypto

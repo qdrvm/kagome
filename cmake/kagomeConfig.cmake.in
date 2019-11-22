@@ -23,6 +23,7 @@ set(kagome_LIBRARIES
         kagome::polkadot_trie_codec
         kagome::polkadot_trie
         kagome::blake2
+        kagome::keccak
         kagome::hasher
         kagome::twox
         kagome::sha

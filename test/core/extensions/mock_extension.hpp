@@ -60,6 +60,9 @@ namespace kagome::extensions {
     MOCK_METHOD3(ext_blake2_256,
                  void(runtime::WasmPointer data, runtime::SizeType len,
                       runtime::WasmPointer out));
+    MOCK_METHOD3(ext_keccak_256,
+                 void(runtime::WasmPointer data, runtime::SizeType len,
+                      runtime::WasmPointer out));
     MOCK_METHOD4(ext_ed25519_verify,
                  runtime::SizeType(runtime::WasmPointer msg_data,
                                    runtime::SizeType msg_len,

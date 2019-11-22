@@ -6,6 +6,9 @@
 #ifndef KAGOME_CONFIGURATION_STORAGE_HPP
 #define KAGOME_CONFIGURATION_STORAGE_HPP
 
+#include <libp2p/peer/peer_info.hpp>
+#include "crypto/ed25519_types.hpp"
+#include "crypto/sr25519_types.hpp"
 #include "primitives/block.hpp"
 
 namespace kagome::application {
@@ -22,6 +25,26 @@ namespace kagome::application {
      * @return genesis block of the chain
      */
     virtual const primitives::Block &getGenesis() const = 0;
+
+    /**
+     * Return ids of peer nodes of the current node
+     */
+    virtual std::vector<libp2p::peer::PeerInfo> getPeersInfo() const = 0;
+
+    /**
+     * Return peers' session keys used in BABE
+     */
+    virtual std::vector<crypto::SR25519PublicKey> getSessionKeys() const = 0;
+
+    /**
+     * Return public keys of authority nodes
+     */
+    virtual std::vector<crypto::ED25519PublicKey> getAuthorities() const = 0;
+
+    /**
+     * Return port to which extrinsic API RPC binds
+     */
+    virtual uint16_t getExtrinsicApiPort() const = 0;
   };
 
 }  // namespace kagome::application
