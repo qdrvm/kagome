@@ -21,6 +21,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotCodec::Error, e) {
       return "unknown polkadot node type";
     case E::INPUT_TOO_SMALL:
       return "not enough bytes in the input to decode a node";
+    case E::NO_NODE_VALUE:
+      return "no value in leaf node";
   }
 
   return "unknown";
@@ -200,6 +202,7 @@ namespace kagome::storage::trie {
     // key
     encoding += nibblesToKey(node.key_nibbles);
 
+    if (!node.value) return Error::NO_NODE_VALUE;
     // scale encoded value
     OUTCOME_TRY(encNodeValue, scale::encode(node.value.get()));
     encoding += Buffer(std::move(encNodeValue));
