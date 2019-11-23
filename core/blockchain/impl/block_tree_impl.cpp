@@ -166,6 +166,7 @@ namespace kagome::blockchain {
     }
 
     // insert justification into the database
+    OUTCOME_TRY(storage_->putJustification(justification, block, node->depth));
 
     // update our local meta
     tree_meta_->last_finalized = *node;

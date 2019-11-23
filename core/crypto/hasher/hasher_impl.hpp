@@ -20,6 +20,8 @@ namespace kagome::crypto {
 
     Hash256 blake2b_256(gsl::span<const uint8_t> buffer) const override;
 
+    Hash256 keccak_256(gsl::span<const uint8_t> buffer) const override;
+
     Hash256 blake2s_256(gsl::span<const uint8_t> buffer) const override;
 
     Hash256 sha2_256(gsl::span<const uint8_t> buffer) const override;

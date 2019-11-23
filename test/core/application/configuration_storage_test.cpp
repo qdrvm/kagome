@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 #include "application/impl/configuration_storage_impl.hpp"
+#include "core/application/example_config.hpp"
 
 using kagome::application::ConfigurationStorageImpl;
 using kagome::application::KagomeConfig;
@@ -17,8 +18,11 @@ using kagome::primitives::Block;
  * @then the content of the storage matches the original config
  */
 TEST(ConfigurationStorageTest, MatchesConfig) {
-  KagomeConfig c;
-  c.genesis.header.number = 42;
-  ConfigurationStorageImpl s(c);
-  ASSERT_EQ(s.getGenesis().header.number, c.genesis.header.number);
+  KagomeConfig conf = test::application::getExampleConfig();
+  ConfigurationStorageImpl s(conf);
+  ASSERT_EQ(s.getGenesis(), conf.genesis);
+  ASSERT_EQ(s.getExtrinsicApiPort(), conf.api_ports.extrinsic_api_port);
+  ASSERT_EQ(s.getAuthorities(), conf.authorities);
+  ASSERT_EQ(s.getPeersInfo(), conf.peers_info);
+  ASSERT_EQ(s.getSessionKeys(), conf.session_keys);
 }

@@ -16,14 +16,14 @@ namespace kagome::application {
   /**
    * Initialise kagome config parameters from a boost property tree
    */
-  outcome::result<KagomeConfig> initConfigFromProperyTree(
+  outcome::result<KagomeConfig> initConfigFromPropertyTree(
       const boost::property_tree::ptree &tree);
 
   /**
    * Update kagome config parameters from ones present in the provided boost
    * property tree
    */
-  outcome::result<void> updateConfigFromProperyTree(
+  outcome::result<void> updateConfigFromPropertyTree(
       KagomeConfig &config, const boost::property_tree::ptree &tree);
 
 }  // namespace kagome::application
