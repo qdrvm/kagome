@@ -10,6 +10,8 @@
 
 namespace kagome::consensus::grandpa {
 
+  // Structure containing state and number of completed round. Used to start new
+  // round
   struct CompletedRound {
     RoundNumber round_number{};
     RoundState state;

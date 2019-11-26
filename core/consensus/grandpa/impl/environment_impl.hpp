@@ -27,8 +27,8 @@ namespace kagome::consensus::grandpa {
     EnvironmentImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
-        std::shared_ptr<Gossiper> gossiper,
-        const OnCompletedSlotType &on_completed_slot);
+        std::shared_ptr<Gossiper> gossiper);
+
     ~EnvironmentImpl() override = default;
 
     // Chain methods
@@ -60,6 +60,8 @@ namespace kagome::consensus::grandpa {
         RoundNumber round,
         const BlockInfo &vote,
         const GrandpaJustification &justification) override;
+
+    void onCompleted(std::function<void(const CompletedRound &)>) override;
 
     void completed(CompletedRound round) override;
 

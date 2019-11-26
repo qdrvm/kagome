@@ -75,8 +75,8 @@ class ChainTest : public testing::Test {
 
   std::shared_ptr<GossiperMock> gossiper = std::make_shared<GossiperMock>();
 
-  std::shared_ptr<Chain> chain = std::make_shared<EnvironmentImpl>(
-      tree, header_repo, gossiper, [](auto &) {});
+  std::shared_ptr<Chain> chain =
+      std::make_shared<EnvironmentImpl>(tree, header_repo, gossiper);
 };
 
 /**

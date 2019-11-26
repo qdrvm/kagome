@@ -29,8 +29,7 @@ namespace kagome::consensus::grandpa {
   EnvironmentImpl::EnvironmentImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
-      std::shared_ptr<Gossiper> gossiper,
-      const OnCompletedSlotType &on_completed_slot)
+      std::shared_ptr<Gossiper> gossiper)
       : block_tree_{std::move(block_tree)},
         header_repository_{std::move(header_repository)},
         gossiper_{std::move(gossiper)},
@@ -38,7 +37,6 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(header_repository_ != nullptr);
     BOOST_ASSERT(gossiper_ != nullptr);
-    on_completed_.connect(on_completed_slot);
   }
 
   outcome::result<std::vector<BlockHash>> EnvironmentImpl::getAncestry(
@@ -126,6 +124,11 @@ namespace kagome::consensus::grandpa {
     gossiper_->fin(Fin{
         .round_number = round, .vote = vote, .justification = justification});
     return outcome::success();
+  }
+
+  void EnvironmentImpl::onCompleted(
+      std::function<void(const CompletedRound &)> on_completed_slot) {
+    on_completed_.connect(on_completed_slot);
   }
 
   void EnvironmentImpl::completed(CompletedRound round) {

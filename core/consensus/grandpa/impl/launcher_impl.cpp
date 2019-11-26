@@ -6,6 +6,7 @@
 #include "consensus/grandpa/impl/launcher_impl.hpp"
 
 #include <boost/asio/post.hpp>
+#include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
@@ -21,6 +22,37 @@ namespace kagome::consensus::grandpa {
   const static auto kAuthoritySetKey = common::Buffer().put("grandpa_voters");
   const static auto kSetStateKey =
       common::Buffer().put("grandpa_completed_round");
+
+  LauncherImpl::LauncherImpl(
+      std::shared_ptr<Environment> environment,
+      std::shared_ptr<storage::trie::TrieDb> storage,
+      std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
+      Id id,
+      std::shared_ptr<Clock> clock,
+      std::shared_ptr<boost::asio::io_context> io_context)
+      : environment_{std::move(environment)},
+        storage_{std::move(storage)},
+        vote_crypto_provider_{std::move(vote_crypto_provider)},
+        id_{id},
+        clock_{std::move(clock)},
+        io_context_{std::move(io_context)} {
+    // lambda which is executed when voting round is completed. This lambda
+    // executes next round
+    auto handle_completed_round = [this](
+                                      const CompletedRound &completed_round) {
+      auto &&encoded_round_state = scale::encode(completed_round).value();
+      if (auto put_res =
+              storage_->put(kSetStateKey, common::Buffer(encoded_round_state));
+          not put_res) {
+        logger_->error("New round state was not added to the storage");
+        return;
+      }
+
+      boost::asio::post(*io_context_,
+                        boost::bind(&LauncherImpl::executeNextRound, this));
+    };
+    environment_->onCompleted(handle_completed_round);
+  }
 
   outcome::result<std::shared_ptr<VoterSet>> LauncherImpl::getVoters() const {
     OUTCOME_TRY(voters_encoded, storage_->get(kAuthoritySetKey));
@@ -65,46 +97,25 @@ namespace kagome::consensus::grandpa {
     auto precommit_tracker = std::make_shared<PrecommitTrackerImpl>();
 
     auto vote_graph = std::make_shared<VoteGraphImpl>(
-        last_round_state.finalized.value(), chain_);
-
-    // lambda which is executed when voting round is completed. This lambda
-    // executes next round
-    auto handle_completed_round = [this](
-                                      const CompletedRound &completed_round) {
-      auto &&encoded_round_state = scale::encode(completed_round).value();
-      if (auto put_res =
-              storage_->put(kSetStateKey, common::Buffer(encoded_round_state));
-          not put_res) {
-        logger_->error("New round state was not added to the storage");
-        return;
-      }
-
-      boost::asio::post(*io_context_,
-                        boost::bind(&LauncherImpl::executeNextRound, this));
-    };
+        last_round_state.finalized.value(), environment_);
 
     GrandpaConfig config{.voters = voters,
                          .round_number = round_number,
                          .duration = duration,
-                         .peer_id = keypair_.public_key};
+                         .peer_id = id_};
 
     current_round_ = std::make_shared<VotingRoundImpl>(config,
+                                                       environment_,
                                                        vote_crypto_provider_,
-                                          prevote_tracker,
-                                          precommit_tracker,
-                                          chain_,
-                                          vote_graph,
-                                          gossiper_,
-                                          clock_,
-                                          block_tree_,
-                                          io_context_,
-                                          handle_completed_round);
+                                                       prevote_tracker,
+                                                       precommit_tracker,
+                                                       vote_graph,
+                                                       clock_,
+                                                       io_context_);
 
-    current_round_ = round;
-
-    round->primaryPropose(last_round_state);
-    round->prevote(last_round_state);
-    round->precommit(last_round_state);
+    current_round_->primaryPropose(last_round_state);
+    current_round_->prevote(last_round_state);
+    current_round_->precommit(last_round_state);
   }
 
   void LauncherImpl::start() {

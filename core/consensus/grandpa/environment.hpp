@@ -19,7 +19,7 @@ namespace kagome::consensus::grandpa {
   struct Environment : public Chain {
     ~Environment() override = default;
 
-    // TODO(kamilsa): move timer to environment
+    // TODO(kamilsa): PRE-335 move timer to environment
     /// Return a timer that will be used to delay the broadcast of a commit
     /// message. This delay should not be static to minimize the amount of
     /// commit messages that are sent (e.g. random value in [0, 1] seconds).
@@ -60,6 +60,8 @@ namespace kagome::consensus::grandpa {
         RoundNumber round,
         const BlockInfo &vote,
         const GrandpaJustification &justification) = 0;
+
+    virtual void onCompleted(std::function<void(const CompletedRound &)>) = 0;
 
     /**
      * Triggered when round \param round is completed

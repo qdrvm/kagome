@@ -10,13 +10,15 @@
 
 namespace kagome::consensus::grandpa {
 
-struct GrandpaConfig {
-  std::shared_ptr<VoterSet> voters;
-  RoundNumber round_number;
-  Duration duration;
-  Id peer_id;
-};
+  // Structure containing necessary information for running grandpa voting round
+  struct GrandpaConfig {
+    std::shared_ptr<VoterSet> voters;
+    RoundNumber round_number;
+    Duration duration;
+    Id peer_id;  // ed25519 public key of the peer, do not confuse with libp2p
+                 // peerid
+  };
 
-}
+}  // namespace kagome::consensus::grandpa
 
-#endif //KAGOME_CORE_CONSENSUS_GRANDPA_GRANDPA_CONFIG_HPP
+#endif  // KAGOME_CORE_CONSENSUS_GRANDPA_GRANDPA_CONFIG_HPP

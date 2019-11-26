@@ -12,7 +12,7 @@
 
 namespace kagome::consensus::grandpa {
 
-  class EnvironmentMock : public Environment{
+  class EnvironmentMock : public Environment {
    public:
     MOCK_CONST_METHOD2(getAncestry,
                        outcome::result<std::vector<primitives::BlockHash>>(
@@ -39,7 +39,12 @@ namespace kagome::consensus::grandpa {
         outcome::result<void>(RoundNumber round,
                               const BlockInfo &vote,
                               const GrandpaJustification &justification));
+
+    MOCK_METHOD1(onCompleted,
+                 void(std::function<void(const CompletedRound &)>));
+
     MOCK_METHOD1(completed, void(CompletedRound round));
+
     MOCK_METHOD2(
         finalize,
         outcome::result<void>(const primitives::BlockHash &block,

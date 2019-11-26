@@ -142,32 +142,6 @@ class VotingRoundTest : public ::testing::Test {
     return SignedPrecommit{.id = id, .signature = sig, .message = precommit};
   }
 
-  void addBlock(BlockHash parent, BlockHash hash, BlockNumber number) {
-    kagome::primitives::BlockHeader hh;
-    hh.number = number;
-    hh.parent_hash = parent;
-    //    EXPECT_CALL(*header_repository_,
-    //                getBlockHeader(kagome::primitives::BlockId(hash)))
-    //        .WillRepeatedly(Return(hh));
-  };
-
-  void addBlocks(BlockHash parent_hash,
-                 const std::vector<BlockHash> &blocks_hashes) {
-    //    auto parent_number =
-    //        header_repository_
-    //            ->getBlockHeader(kagome::primitives::BlockId(parent_hash))
-    //            .value()
-    //            .number;
-    //
-    //    auto new_blocks_parent_hash = parent_hash;
-    //
-    //    for (const auto &block_hash : blocks_hashes) {
-    //      addBlock(new_blocks_parent_hash, block_hash, ++parent_number);
-    //
-    //      new_blocks_parent_hash = block_hash;
-    //    }
-  }
-
  public:
   const BlockHash GENESIS_HASH = "genesis"_H;
 
@@ -211,13 +185,6 @@ class VotingRoundTest : public ::testing::Test {
 };
 
 TEST_F(VotingRoundTest, EstimateIsValid) {
-  addBlocks(GENESIS_HASH, {"A"_H, "B"_H, "C"_H, "D"_H, "E"_H, "F"_H});
-  addBlocks("E"_H, {"EA"_H, "EB"_H, "EC"_H, "ED"_H});
-  addBlocks("F"_H, {"FA"_H, "FB"_H, "FC"_H});
-
-  //  vote_graph_ = std::make_shared<VoteGraphImpl>(BlockInfo{4, "C"_H},
-  //  chain_);
-
   // Alice votes
   SignedPrevote alice_vote =
       preparePrevote(kAlice, kAliceSignature, Prevote{10, "FC"_H});
@@ -256,10 +223,6 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
 }
 
 TEST_F(VotingRoundTest, Finalization) {
-  addBlocks(GENESIS_HASH, {"A"_H, "B"_H, "C"_H, "D"_H, "E"_H, "F"_H});
-  addBlocks("E"_H, {"EA"_H, "EB"_H, "EC"_H, "ED"_H});
-  addBlocks("F"_H, {"FA"_H, "FB"_H, "FC"_H});
-
   // Alice precommits FC
   EXPECT_CALL(*env_, getAncestry("C"_H, "FC"_H))
       .WillRepeatedly(Return(std::vector<kagome::primitives::BlockHash>{
@@ -346,9 +309,6 @@ ACTION_P(onFin, test_fixture) {
 }
 
 TEST_F(VotingRoundTest, SunnyDayScenario) {
-  addBlocks(GENESIS_HASH, {"A"_H, "B"_H, "C"_H, "D"_H, "E"_H, "F"_H});
-  addBlocks("E"_H, {"EA"_H, "EB"_H, "EC"_H, "ED"_H});
-  addBlocks("F"_H, {"FA"_H, "FB"_H, "FC"_H});
   auto base_block_hash = "C"_H;
   auto base_block_number = 4;
   auto best_block_hash = "FC"_H;
