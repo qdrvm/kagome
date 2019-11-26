@@ -11,8 +11,15 @@
 namespace kagome::consensus::grandpa {
 
   struct CompletedRound {
-    RoundNumber round_number;
+    RoundNumber round_number{};
     RoundState state;
+
+    bool operator==(const CompletedRound &rhs) const {
+      return round_number == rhs.round_number and state == rhs.state;
+    }
+    bool operator!=(const CompletedRound &rhs) const {
+      return !operator==(rhs);
+    }
   };
 
   template <class Stream,

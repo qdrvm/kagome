@@ -81,26 +81,26 @@ namespace kagome::consensus::grandpa {
   }  // namespace detail
 
   // justification for block B in round r
-  struct Justification {
+  struct GrandpaJustification {
     std::vector<SignedPrecommit> items;
   };
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const Justification &v) {
+  Stream &operator<<(Stream &s, const GrandpaJustification &v) {
     return s << v.items;
   }
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, Justification &v) {
+  Stream &operator>>(Stream &s, GrandpaJustification &v) {
     return s >> v.items;
   }
 
   /// A commit message which is an aggregate of precommits.
   struct Commit {
-    BlockInfo info;
-    std::vector<SignedPrecommit> precommits;
+    BlockInfo vote;
+    GrandpaJustification justification;
   };
 
   using Vote =
@@ -139,7 +139,7 @@ namespace kagome::consensus::grandpa {
   struct Fin {
     RoundNumber round_number{0};
     BlockInfo vote;
-    Justification justification;
+    GrandpaJustification justification;
   };
 
   template <class Stream,

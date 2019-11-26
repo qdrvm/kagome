@@ -6,54 +6,73 @@
 #ifndef KAGOME_CORE_CONSENSUS_GRANDPA_ENVIRONMENT_HPP
 #define KAGOME_CORE_CONSENSUS_GRANDPA_ENVIRONMENT_HPP
 
-#include "consensus/grandpa/message.hpp"
-#include "consensus/grandpa/round.hpp"
+#include "consensus/grandpa/chain.hpp"
+#include "consensus/grandpa/common.hpp"
+#include "consensus/grandpa/completed_round.hpp"
+#include "consensus/grandpa/structs.hpp"
 
 namespace kagome::consensus::grandpa {
 
   /// Necessary environment for a voter.
   ///
   /// This encapsulates the database and networking layers of the chain.
-  struct Environment {
-    virtual ~Environment() = default;
+  struct Environment : public Chain {
+    ~Environment() override = default;
 
-    /// Produce data necessary to start a round of voting.
-    virtual RoundData roundData(RoundNumber round) = 0;
-
+    // TODO(kamilsa): move timer to environment
     /// Return a timer that will be used to delay the broadcast of a commit
     /// message. This delay should not be static to minimize the amount of
     /// commit messages that are sent (e.g. random value in [0, 1] seconds).
-    virtual Timer roundCommitTimer() = 0;
+    // virtual Timer roundCommitTimer() = 0;
 
     /// Note that we've done a primary proposal in the given round.
-    virtual outcome::result<void> proposed(RoundNumber round,
-                                           PrimaryPropose propose) = 0;
+    /**
+     * Triggered when current peer appeared in round \param round and having
+     * \param set_id has \param propose ready to be gossiped.
+     */
+    virtual outcome::result<void> proposed(
+        RoundNumber round,
+        MembershipCounter set_id,
+        const SignedPrimaryPropose &propose) = 0;
 
-    /// Note that we have prevoted in the given round.
+    /**
+     * Triggered when current peer appeared in round \param round and having
+     * \param set_id has \param prevote ready to be gossiped.
+     */
     virtual outcome::result<void> prevoted(RoundNumber round,
-                                           Prevote prevote) = 0;
+                                           MembershipCounter set_id,
+                                           const SignedPrevote &prevote) = 0;
 
-    /// Note that we have precommitted in the given round.
-    virtual outcome::result<void> precommitted(RoundNumber round,
-                                               Precommit precommit) = 0;
+    /**
+     * Triggered when current peer appeared in round \param round and having
+     * \param set_id has \param precommit ready to be gossiped.
+     */
+    virtual outcome::result<void> precommitted(
+        RoundNumber round,
+        MembershipCounter set_id,
+        const SignedPrecommit &precommit) = 0;
 
-    /// Note that a round was completed. This is called when a round has been
-    /// voted in. Should return an error when something fatal occurs.
-    virtual outcome::result<void> completed(RoundNumber round,
-                                            RoundState state,
-                                            BlockInfo base,
-                                            HistoricalVotes &votes) = 0;
+    /**
+     * Triggered when current peer appeared in round \param round intends to
+     * gossip committed \param vote justified by \param justification
+     */
+    virtual outcome::result<void> commit(
+        RoundNumber round,
+        const BlockInfo &vote,
+        const GrandpaJustification &justification) = 0;
 
-    /// Called when a block should be finalized.
-    virtual outcome::result<void> finalizeBlock(RoundNumber round,
-                                                BlockInfo block,
-                                                Commit commit) = 0;
+    /**
+     * Triggered when round \param round is completed
+     */
+    virtual void completed(CompletedRound round) = 0;
 
-    virtual void prevoteEquivocation(RoundNumber round,
-                                     PrevoteEquivocation eq) = 0;
-
-    virtual void precommitEquivocation(RoundNumber round,
-                                       PrecommitEquivocation eq) = 0;
+    /**
+     * Triggered when blovk \param block justified by \param justification
+     * should be applied to the storage
+     */
+    virtual outcome::result<void> finalize(
+        const primitives::BlockHash &block,
+        const GrandpaJustification &justification) = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

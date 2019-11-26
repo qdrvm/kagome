@@ -86,7 +86,7 @@ keccakf(uint64_t s[25])
     /* Rho Pi */
     t = s[1];
     for(i = 0; i < 24; i++) {
-      j = keccakf_piln[i];
+      j = keccakf_piln[i];  // NOLINT
       bc[0] = s[j];
       s[j] = SHA3_ROTL64(t, keccakf_rotc[i]);
       t = bc[0];

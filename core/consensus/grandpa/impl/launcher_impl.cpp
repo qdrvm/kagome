@@ -82,12 +82,14 @@ namespace kagome::consensus::grandpa {
       boost::asio::post(*io_context_,
                         boost::bind(&LauncherImpl::executeNextRound, this));
     };
-    std::shared_ptr<VotingRound> round =
-        std::make_shared<VotingRoundImpl>(voters,
-                                          round_number,
-                                          duration,
-                                          keypair_.public_key,
-                                          vote_crypto_provider_,
+
+    GrandpaConfig config{.voters = voters,
+                         .round_number = round_number,
+                         .duration = duration,
+                         .peer_id = keypair_.public_key};
+
+    current_round_ = std::make_shared<VotingRoundImpl>(config,
+                                                       vote_crypto_provider_,
                                           prevote_tracker,
                                           precommit_tracker,
                                           chain_,

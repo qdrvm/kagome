@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/grandpa/impl/chain_impl.cpp"
+#include "consensus/grandpa/impl/environment_impl.cpp"
 
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>

@@ -5,13 +5,12 @@
 
 add_subdirectory(vote_graph)
 
-add_library(chain
-    impl/chain_impl.cpp
+add_library(environment
+    impl/environment_impl.cpp
     )
 
-target_link_libraries(chain
-    block_tree
-    block_header_repository
+target_link_libraries(environment
+    scale
     )
 
 add_library(vote_tracker
@@ -40,12 +39,8 @@ add_library(voting_round
     )
 
 target_link_libraries(voting_round
-    vote_tracker
-    vote_graph
-    voter_set
-    scale
     logger
-    blob
+    voter_set
     )
 
 add_library(launcher
