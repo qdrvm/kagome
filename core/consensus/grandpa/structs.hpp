@@ -149,8 +149,8 @@ namespace kagome::consensus::grandpa {
   }
 
   template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator>>(Stream &s, const Fin &f) {
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
+  Stream &operator>>(Stream &s, Fin &f) {
     return s >> f.round_number >> f.vote >> f.justification;
   }
 

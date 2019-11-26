@@ -7,9 +7,9 @@
 
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
-#include "blockchain/block_tree_error.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/blockchain/header_repository_mock.hpp"
+#include "mock/core/consensus/grandpa/gossiper_mock.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -20,7 +20,8 @@ using kagome::blockchain::HeaderRepositoryMock;
 using kagome::common::Blob;
 using kagome::common::Hash256;
 using kagome::consensus::grandpa::Chain;
-using kagome::consensus::grandpa::ChainImpl;
+using kagome::consensus::grandpa::EnvironmentImpl;
+using kagome::consensus::grandpa::GossiperMock;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
@@ -72,7 +73,10 @@ class ChainTest : public testing::Test {
   std::shared_ptr<HeaderRepositoryMock> header_repo =
       std::make_shared<HeaderRepositoryMock>();
 
-  std::shared_ptr<Chain> chain = std::make_shared<ChainImpl>(tree, header_repo);
+  std::shared_ptr<GossiperMock> gossiper = std::make_shared<GossiperMock>();
+
+  std::shared_ptr<Chain> chain = std::make_shared<EnvironmentImpl>(
+      tree, header_repo, gossiper, [](auto &) {});
 };
 
 /**
@@ -121,7 +125,7 @@ TEST_F(ChainTest, IsEqualOrDescendantOf) {
   auto h2 = "020202"_hash256;
   auto h3 = "030303"_hash256;
   EXPECT_CALL(*tree, getChainByBlocks(h3, h2))
-      .WillOnce(Return(kagome::blockchain::BlockTreeError::INCORRECT_ARGS));
+      .WillOnce(Return(outcome::failure(boost::system::error_code())));
   EXPECT_CALL(*tree, getChainByBlocks(h1, h3))
       .WillOnce(Return(std::vector<BlockHash>{h1, h2, h3}));
 

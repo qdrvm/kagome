@@ -9,7 +9,7 @@ addtest(chain_test
     chain_test.cpp
     )
 target_link_libraries(chain_test
-    chain
+    environment
     )
 
 addtest(vote_tracker_test

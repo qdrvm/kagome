@@ -11,6 +11,8 @@ add_library(environment
 
 target_link_libraries(environment
     scale
+    logger
+    blob
     )
 
 add_library(vote_tracker
