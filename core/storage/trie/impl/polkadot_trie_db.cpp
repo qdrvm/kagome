@@ -40,7 +40,9 @@ namespace kagome::storage::trie {
   }
 
   common::Buffer PolkadotTrieDb::getRootHash() const {
-    return Buffer{codec_.hash256(root_)};
+    // if the length of the encoded root is less than 32, it is not hashed,
+    // so hash it in this case
+    return root_.size() < 32 ? Buffer{codec_.hash256(root_)} : root_;
   }
 
   outcome::result<void> PolkadotTrieDb::clearPrefix(
