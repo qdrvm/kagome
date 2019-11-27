@@ -41,6 +41,8 @@ namespace kagome::blockchain {
     KeyValueBlockStorage kv_storage(storage, std::move(hasher));
     // TODO(Harrm) check that storage is actually empty
     OUTCOME_TRY(kv_storage.putBlock(genesis));
+    // TODO(kamilsa): get CompletedRound from genesis and put into the storage
+    // using kSetStateKey
     return std::make_shared<KeyValueBlockStorage>(std::move(kv_storage));
   }
 

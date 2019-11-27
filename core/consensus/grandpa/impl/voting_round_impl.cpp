@@ -97,7 +97,6 @@ namespace kagome::consensus::grandpa {
                 finalized.error().message());
             return;
           }
-          // TODO(kamilsa): update state
         }
       }
     }
@@ -105,8 +104,8 @@ namespace kagome::consensus::grandpa {
 
   bool VotingRoundImpl::validate(
       const BlockInfo &vote, const GrandpaJustification &justification) const {
-    // TODO(kamilsa): implement. Vote should be checked for enough signatures in
-    // justification
+    // TODO(kamilsa): PRE-337 implement. Vote should be checked for enough
+    // signatures in justification
     return true;
   }
 
@@ -170,7 +169,7 @@ namespace kagome::consensus::grandpa {
   void VotingRoundImpl::onPrevote(const SignedPrevote &prevote) {
     onSignedPrevote(prevote);
     updatePrevoteGhost();
-    update();
+    );
   }
 
   void VotingRoundImpl::onPrecommit(const SignedPrecommit &precommit) {
@@ -518,7 +517,7 @@ namespace kagome::consensus::grandpa {
     });
   }
 
-  void VotingRoundImpl::update() {
+  void update(VotingRoundImpl::update() {
     if (prevotes_->totalWeight() < threshold_) {
       return;
     }

@@ -11,9 +11,13 @@
 namespace kagome::consensus::grandpa {
 
   struct RoundState {
-    boost::optional<Prevote> prevote_ghost;
-    boost::optional<BlockInfo> estimate;
-    boost::optional<BlockInfo> finalized;
+    boost::optional<Prevote>
+        prevote_ghost;  // prevote that was broadcasted by current peer, which
+                        // is calculated as ghost function on the last finalized
+                        // block
+    boost::optional<BlockInfo>
+        estimate;  // best possible block that could be finalized in this round
+    boost::optional<BlockInfo> finalized;  // block finalized in this round
 
     inline bool operator==(const RoundState &round_state) const {
       return std::tie(prevote_ghost, estimate, finalized)

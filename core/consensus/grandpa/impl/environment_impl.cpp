@@ -132,6 +132,9 @@ namespace kagome::consensus::grandpa {
   }
 
   void EnvironmentImpl::completed(CompletedRound round) {
+    BOOST_ASSERT_MSG(
+        not on_completed_.empty(),
+        "Completed signal in environment cannot be empty when it is invoked");
     on_completed_(round);
   }
 
@@ -146,6 +149,7 @@ namespace kagome::consensus::grandpa {
                      block.toHex(),
                      finalized.error().message());
     }
+    // TODO(kamilsa): PRE-336 Perform state update
     return finalized;
   }
 

@@ -11,17 +11,9 @@
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "scale/scale.hpp"
+#include "storage/predefined_keys.hpp"
 
 namespace kagome::consensus::grandpa {
-
-  //  const VERSION_KEY: &[u8] = b"grandpa_schema_version";
-  //  const SET_STATE_KEY: &[u8] = b"grandpa_completed_round";
-  //  const AUTHORITY_SET_KEY: &[u8] = b"grandpa_voters";
-  //  const CONSENSUS_CHANGES_KEY: &[u8] = b"grandpa_consensus_changes";
-
-  const static auto kAuthoritySetKey = common::Buffer().put("grandpa_voters");
-  const static auto kSetStateKey =
-      common::Buffer().put("grandpa_completed_round");
 
   LauncherImpl::LauncherImpl(
       std::shared_ptr<Environment> environment,
@@ -41,8 +33,8 @@ namespace kagome::consensus::grandpa {
     auto handle_completed_round = [this](
                                       const CompletedRound &completed_round) {
       auto &&encoded_round_state = scale::encode(completed_round).value();
-      if (auto put_res =
-              storage_->put(kSetStateKey, common::Buffer(encoded_round_state));
+      if (auto put_res = storage_->put(storage::kSetStateKey,
+                                       common::Buffer(encoded_round_state));
           not put_res) {
         logger_->error("New round state was not added to the storage");
         return;
@@ -55,13 +47,13 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<std::shared_ptr<VoterSet>> LauncherImpl::getVoters() const {
-    OUTCOME_TRY(voters_encoded, storage_->get(kAuthoritySetKey));
+    OUTCOME_TRY(voters_encoded, storage_->get(storage::kAuthoritySetKey));
     OUTCOME_TRY(voter_set, scale::decode<VoterSet>(voters_encoded));
     return std::make_shared<VoterSet>(voter_set);
   }
 
   outcome::result<CompletedRound> LauncherImpl::getLastRoundNumber() const {
-    auto last_round_encoded_res = storage_->get(kSetStateKey);
+    auto last_round_encoded_res = storage_->get(storage::kSetStateKey);
     if (not last_round_encoded_res) {
       // handle error
     }

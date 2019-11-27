@@ -31,7 +31,8 @@ namespace kagome::consensus::grandpa {
 
     /// Find the highest block which is either an ancestor of or equal to the
     /// given, which fulfills a condition.
-    boost::optional<BlockInfo> findAncestor(const BlockInfo &block, const Condition &cond) const override;
+    boost::optional<BlockInfo> findAncestor(
+        const BlockInfo &block, const Condition &cond) const override;
 
     /// Find the best GHOST descendent of the given block.
     /// Pass a closure used to evaluate the cumulative vote value.
