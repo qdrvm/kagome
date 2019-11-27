@@ -49,7 +49,7 @@ def makeToolchainBuild(String name, String toolchain) {
 
 
 def makeCoverageBuild(String name){
-  return makeBuild(name, "-DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-8_cxx17.cmake -DCOVERAGE=ON", {
+  return makeBuild(name, "-DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-9_cxx17.cmake -DCOVERAGE=ON", {
     sh(script: "cmake --build ${buildDir} -- -j4")
 
     // submit coverage
@@ -86,7 +86,7 @@ def makeClangTidyBuild(String name){
 }
 
 def makeAsanBuild(String name){
-  return makeBuild(name, "-DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-8_cxx17.cmake -DASAN=ON", {
+  return makeBuild(name, "-DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-9_cxx17.cmake -DASAN=ON", {
     sh(script: "cmake --build ${buildDir} -- -j4")
     sh(script: "cmake --build ${buildDir} --target test")
   })
