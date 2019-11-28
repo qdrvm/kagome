@@ -27,7 +27,7 @@ class VRFProviderTest : public testing::Test {
   std::shared_ptr<VRFProviderImpl> vrf_provider_;
   SR25519Keypair keypair1_;
   SR25519Keypair keypair2_;
-  Buffer msg_{{1, 2, 3}};
+  Buffer msg_{1, 2, 3};
 };
 
 /**
