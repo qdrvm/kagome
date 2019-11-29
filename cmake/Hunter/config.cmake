@@ -21,7 +21,21 @@ hunter_config(
     SHA1 4b10e9aa17f7d568e24f464b48358ab46cb6f39c
 )
 
+hunter_config(
+    tsl_hat_trie
+    URL https://github.com/masterjedy/hat-trie/archive/343e0dac54fc8491065e8a059a02db9a2b1248ab.zip
+    SHA1 7b0051e9388d629f382752dd6a12aa8918cdc022
+)
+
+hunter_config(
+    Boost.DI
+    URL https://github.com/masterjedy/di/archive/c5287ee710ad90f5286d0cc2b9e49b72d89267a6.zip
+    SHA1 802b64a6242be45771f3d4c86257eac0a3c7b289
+    # disable building examples and tests, disable testing
+    CMAKE_ARGS BOOST_DI_OPT_BUILD_TESTS=OFF BOOST_DI_OPT_BUILD_EXAMPLES=OFF
+)
+
 hunter_config(libp2p
-    URL https://github.com/soramitsu/libp2p/archive/dad84a03a9651c7c2bb8a8f17d0e5ea67bd10b4f.zip
-    SHA1 860742c6e3e9736d68b392513d795e09572780aa
+    URL https://github.com/soramitsu/libp2p/archive/b36fff4d01a6ea356f70025488ffc7a40b15188e.zip
+    SHA1 fca819de867f49dbc6898545d5946a4b6fdd91fa
     )
