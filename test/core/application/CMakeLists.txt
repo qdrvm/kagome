@@ -33,6 +33,6 @@ target_link_libraries(local_key_storage_test
     key_storage
     Boost::filesystem
     Boost::random
-    p2p::p2p_key_generator
+    p2p::p2p_crypto_provider
     p2p::p2p_key_validator
     )

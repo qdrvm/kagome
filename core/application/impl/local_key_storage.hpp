@@ -9,7 +9,7 @@
 #include "application/key_storage.hpp"
 
 #include <boost/filesystem.hpp>
-#include <libp2p/crypto/key_generator.hpp>
+#include <libp2p/crypto/crypto_provider.hpp>
 #include <libp2p/crypto/key_validator.hpp>
 
 #include "common/buffer.hpp"
@@ -27,7 +27,7 @@ namespace kagome::application {
 
     static outcome::result<std::shared_ptr<LocalKeyStorage>> create(
         const Config &c,
-        std::shared_ptr<libp2p::crypto::KeyGenerator> generator,
+        std::shared_ptr<libp2p::crypto::CryptoProvider> crypto_provider,
         std::shared_ptr<libp2p::crypto::validator::KeyValidator> validator);
 
     ~LocalKeyStorage() override = default;
@@ -38,7 +38,7 @@ namespace kagome::application {
 
    private:
     LocalKeyStorage(
-        std::shared_ptr<libp2p::crypto::KeyGenerator> generator,
+        std::shared_ptr<libp2p::crypto::CryptoProvider> crypto_provider,
         std::shared_ptr<libp2p::crypto::validator::KeyValidator> validator);
 
     /**
@@ -62,7 +62,7 @@ namespace kagome::application {
     outcome::result<libp2p::crypto::KeyPair> loadRSA(
         const boost::filesystem::path &file) const;
 
-    std::shared_ptr<libp2p::crypto::KeyGenerator> generator_;
+    std::shared_ptr<libp2p::crypto::CryptoProvider> crypto_provider_;
     std::shared_ptr<libp2p::crypto::validator::KeyValidator> validator_;
     crypto::SR25519Keypair sr_25519_keypair_;
     crypto::ED25519Keypair ed_25519_keypair_;
