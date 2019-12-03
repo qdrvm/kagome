@@ -6,9 +6,7 @@
 #ifndef KAGOME_APPLICATION_UTIL_HPP
 #define KAGOME_APPLICATION_UTIL_HPP
 
-#include <boost/property_tree/ptree.hpp>
-#include <outcome/outcome.hpp>
-
+#include "application/impl/config_reader/error.hpp"
 #include "application/impl/kagome_config.hpp"
 
 namespace kagome::application {
@@ -20,6 +18,8 @@ namespace kagome::application {
     }
     return opt_entry.value();
   }
+
+  outcome::result<std::vector<uint8_t>> unhexWith0x(std::string_view hex);
 
 }  // namespace kagome::application
 

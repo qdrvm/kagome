@@ -56,8 +56,14 @@ namespace kagome::application {
     OUTCOME_TRY(sr_privkey_str,
                 res(sr_tree.get_optional<std::string>("private")));
 
-    OUTCOME_TRY(sr_pubkey, crypto::SR25519PublicKey::fromHex(sr_pubkey_str));
-    OUTCOME_TRY(sr_privkey, crypto::SR25519SecretKey::fromHex(sr_privkey_str));
+    // get rid of 0x from beginning
+    OUTCOME_TRY(sr_pubkey_buffer, unhexWith0x(sr_pubkey_str));
+    OUTCOME_TRY(sr_privkey_buffer, unhexWith0x(sr_privkey_str));
+
+    OUTCOME_TRY(sr_pubkey,
+                crypto::SR25519PublicKey::fromSpan(sr_pubkey_buffer));
+    OUTCOME_TRY(sr_privkey,
+                crypto::SR25519SecretKey::fromSpan(sr_privkey_buffer));
 
     sr_25519_keypair_.public_key = sr_pubkey;
     sr_25519_keypair_.secret_key = sr_privkey;
@@ -75,8 +81,14 @@ namespace kagome::application {
     OUTCOME_TRY(ed_privkey_str,
                 res(ed_tree.get_optional<std::string>("private")));
 
-    OUTCOME_TRY(ed_pubkey, crypto::ED25519PublicKey::fromHex(ed_pubkey_str));
-    OUTCOME_TRY(ed_privkey, crypto::ED25519PrivateKey::fromHex(ed_privkey_str));
+    // get rid of 0x from beginning
+    OUTCOME_TRY(ed_pubkey_buffer, unhexWith0x(ed_pubkey_str));
+    OUTCOME_TRY(ed_privkey_buffer, unhexWith0x(ed_privkey_str));
+
+    OUTCOME_TRY(ed_pubkey,
+                crypto::ED25519PublicKey::fromSpan(ed_pubkey_buffer));
+    OUTCOME_TRY(ed_privkey,
+                crypto::ED25519PrivateKey::fromSpan(ed_privkey_buffer));
 
     ed_25519_keypair_.public_key = ed_pubkey;
     ed_25519_keypair_.private_key = ed_privkey;
@@ -116,8 +128,9 @@ namespace kagome::application {
     OUTCOME_TRY(p2p_private_key_str,
                 res(p2p_keypair_tree.get_optional<std::string>("private")));
 
-    OUTCOME_TRY(p2p_public_key, common::unhex(p2p_public_key_str));
-    OUTCOME_TRY(p2p_private_key, common::unhex(p2p_private_key_str));
+    // get rid of 0x from beginning
+    OUTCOME_TRY(p2p_public_key, unhexWith0x(p2p_public_key_str));
+    OUTCOME_TRY(p2p_private_key, unhexWith0x(p2p_private_key_str));
 
     p2p_keypair_.publicKey.data = p2p_public_key;
     p2p_keypair_.privateKey.data = p2p_private_key;

@@ -63,17 +63,10 @@ namespace kagome::application {
     OUTCOME_TRY(genesis_raw_tree, res(genesis_tree.get_child_optional("raw")));
 
     for (const auto &[key, value] : genesis_raw_tree) {
-      const static std::string leading_chrs = "0x";
-      // get rid of leading 0x for key anv value
-      auto key_processed = key.substr(
-          key.find(leading_chrs) + leading_chrs.length(), key.length() - 1);
-      const auto &value_data = value.data();
-      auto value_processed = value_data.substr(
-          value_data.find(leading_chrs) + leading_chrs.length(),
-          value_data.length() - 1);
-      OUTCOME_TRY(key_buf, common::Buffer::fromHex(key_processed));
-      OUTCOME_TRY(val_buf, common::Buffer::fromHex(value_processed));
-      config_.genesis.emplace_back(key_buf, val_buf);
+      // get rid of leading 0x for key and value and unhex
+      OUTCOME_TRY(key_processed, unhexWith0x(key));
+      OUTCOME_TRY(value_processed, unhexWith0x(value.data()));
+      config_.genesis.emplace_back(key_processed, value_processed);
     }
     return outcome::success();
   }
