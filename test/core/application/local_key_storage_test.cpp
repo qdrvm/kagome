@@ -42,8 +42,8 @@ class LocalKeyStorageTest : public testing::Test {
             "e968852cf33994c02e4c81377acb9ce328fc25cb25dc6a7323c742b0e94d830dae"
             "97e44e79872c67fd8a4c29ce6a386fec71e46bc4b2f2f7e9887d770af3ed15")
             .value();
-    expected_sr_keypair_ = SR25519Keypair{.public_key = expected_srpubkey,
-                                          .secret_key = expected_srprivkey};
+    expected_sr_keypair_.public_key = expected_srpubkey;
+    expected_sr_keypair_.secret_key = expected_srprivkey;
   }
 
   // initialise expected ed25519 keys
@@ -56,8 +56,6 @@ class LocalKeyStorageTest : public testing::Test {
         ED25519PrivateKey::fromHex(
             "62f4174222f712edc938fa7fbdd06928967e91354e22f6c2aa097451aa5b03e4")
             .value();
-    expected_ed_keypair_ = ED25519Keypair{.public_key = expected_edpubkey,
-                                          .private_key = expected_edprivkey};
     expected_ed_keypair_.private_key = expected_edprivkey;
     expected_ed_keypair_.public_key = expected_edpubkey;
   }
