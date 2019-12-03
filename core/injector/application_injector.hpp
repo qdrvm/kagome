@@ -83,7 +83,9 @@ namespace kagome::injector {
   using uptr = std::unique_ptr<T>;
 
   template <typename... Ts>
-  auto makeApplicationInjector(Ts &&... args) {
+  auto makeApplicationInjector(const std::string &genesis_path,
+                               const std::string &keystore_path,
+                               Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     // default values for configurations
@@ -141,34 +143,20 @@ namespace kagome::injector {
         // find and bind authority id
         di::bind<primitives::AuthorityIndex>.template to(
             [&](const auto &injector) -> sptr<primitives::AuthorityIndex> {
-              // get configuration storage
-              auto &cfg =
-                  injector
-                      .template create<application::ConfigurationStorage &>();
+              auto core = injector.template create<sptr<runtime::Core>>();
               auto &keys =
                   injector.template create<application::KeyStorage &>();
-              auto &&local_pair = keys.getP2PKeypair();
-              auto &public_key = local_pair.publicKey;
-              auto &&authorities = cfg.getAuthorities();
-
-              // lambda for comparing key with auth
-              auto is_equal = [](const auto &key, const auto &auth) -> bool {
-                if (key.data.size() != auth.size()) {
-                  return false;
-                }
-                auto it_auth = auth.begin();
-                for (auto it_key = key.data.begin(); it_key != key.data.end();
-                     ++it_key, ++it_auth) {
-                  if (*it_key != *it_auth) {
-                    return false;
-                  }
-                }
-                return true;
-              };
+              auto &&local_pair = keys.getLocalEd25519Keypair();
+              auto &public_key = local_pair.public_key;
+              auto &&authorities_res = core->authorities();
+              if (authorities_res.has_error()) {
+                common::raise(authorities_res.error());
+              }
+              auto&& authorities = authorities_res.value();
 
               uint64_t index = 0;
               for (auto &auth : authorities) {
-                if (is_equal(public_key, auth)) {
+                if (public_key == auth.id) {
                   break;
                 }
                 ++index;
@@ -222,7 +210,8 @@ namespace kagome::injector {
             [&](const auto &injector) -> sptr<storage::PersistentBufferMap> {
               // TODO (yuraz) get path from config (KagomeConfig or Genesis)
               std::string path = "/tmp/kagome/persistence/";
-//              auto options = injector.template create<leveldb::Options>();
+              //              auto options = injector.template
+              //              create<leveldb::Options>();
               auto options = leveldb::Options{};
               options.create_if_missing = true;
               auto db = storage::LevelDB::create(path, options);
@@ -230,15 +219,17 @@ namespace kagome::injector {
                 common::raise(db.error());
               }
               return sptr<storage::PersistentBufferMap>(
-                  dynamic_cast<storage::PersistentBufferMap *>(db.value().release()));
+                  dynamic_cast<storage::PersistentBufferMap *>(
+                      db.value().release()));
             }),
         // create block storage
         di::bind<blockchain::BlockStorage>.to(
             [&](const auto &injector)
                 -> std::shared_ptr<blockchain::BlockStorage> {
-              auto &&configuration_storage = injector.template create<
-                  std::shared_ptr<application::ConfigurationStorage>>();
-              const auto &genesis = configuration_storage->getGenesis();
+              // uncomment when todo below is implemented
+              // auto &&configuration_storage = injector.template create<
+              //    std::shared_ptr<application::ConfigurationStorage>>();
+              //const auto &genesis = configuration_storage->getGenesis();
 
               auto &&hasher =
                   injector.template create<std::shared_ptr<crypto::Hasher>>();
@@ -248,7 +239,12 @@ namespace kagome::injector {
 
               auto storage =
                   blockchain::KeyValueBlockStorage::createWithGenesis(
-                      genesis, db, hasher);
+                      // TODO(kamilsa): create genesis block from genesis
+                      // configs tha should be inserted into the storage. Then
+                      // remove empty genesis with the proper one
+                      primitives::Block{},
+                      db,
+                      hasher);
               if (storage.has_error()) {
                 common::raise(storage.error());
               }
@@ -318,22 +314,24 @@ namespace kagome::injector {
         di::bind<application::ConfigurationStorage>.to(
             [&](const auto &injector)
                 -> std::shared_ptr<application::ConfigurationStorage> {
-              return std::make_shared<application::ConfigurationStorageImpl>(
-                  injector.template create<application::KagomeConfig &>());
+              auto config_storage_res =
+                  application::ConfigurationStorageImpl::create(genesis_path);
+              if (config_storage_res.has_error()) {
+                common::raise(config_storage_res.error());
+              }
+              return config_storage_res.value();
             }),
         // create key storage shared value
-        di::bind<application::KeyStorage>.to([&](const auto &injector)
-                                                 -> std::shared_ptr<
-                                                     application::KeyStorage> {
-          auto &config =
-              injector
-                  .template create<application::LocalKeyStorage::Config &>();
-              auto &&result = application::LocalKeyStorage::create(config);
+        di::bind<application::KeyStorage>.to(
+            [&](const auto &injector)
+                -> std::shared_ptr<application::KeyStorage> {
+              auto &&result =
+                  application::LocalKeyStorage::create(keystore_path);
               if (!result) {
-            common::raise(result.error());
-          }
-          return result.value();
-        }),
+                common::raise(result.error());
+              }
+              return result.value();
+            }),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

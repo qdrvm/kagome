@@ -10,7 +10,7 @@
 #include "outcome/outcome.hpp"
 
 int main(int argc, char **argv) {
-  auto logger = kagome::common::createLogger("KagomeApplication");
+  auto logger = kagome::common::createLogger("Kagome full node");
 
   kagome::options::KagomeOptions options_parser;
   auto &&result = options_parser.parseOptions(argc, argv);
@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  auto &&kagome_config = options_parser.getKagomeConfig();
+  auto &&kagome_config = options_parser.getKagomeConfigPath();
   auto &&keys_config = options_parser.getKeysConfig();
 
   try {

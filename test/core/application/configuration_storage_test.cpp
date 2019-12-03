@@ -7,7 +7,6 @@
 
 #include <boost/filesystem/path.hpp>
 #include "application/impl/configuration_storage_impl.hpp"
-#include "kagome_configuration/example_config.hpp"
 #include "testutil/outcome.hpp"
 
 using kagome::application::ConfigurationStorageImpl;

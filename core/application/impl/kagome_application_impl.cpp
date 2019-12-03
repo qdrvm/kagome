@@ -11,10 +11,10 @@ namespace kagome::application {
   using consensus::Randomness;
   using consensus::Threshold;
 
-  KagomeApplicationImpl::KagomeApplicationImpl(
-      KagomeConfig kagome_config, LocalKeyStorage::Config keys_config) {
-    auto &&injector = injector::makeApplicationInjector(
-        injector::useConfig(kagome_config), injector::useConfig(keys_config));
+  KagomeApplicationImpl::KagomeApplicationImpl(std::string config_path,
+                                               std::string keystore_path) {
+    auto &&injector =
+        injector::makeApplicationInjector(config_path, keystore_path);
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied

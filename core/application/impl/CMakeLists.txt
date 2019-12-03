@@ -1,3 +1,8 @@
+#
+# Copyright Soramitsu Co., Ltd. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+
 add_library(config_reader_error
     config_reader/error.cpp
     config_reader/error.hpp

@@ -17,12 +17,8 @@ namespace kagome::application {
 
   class LocalKeyStorage : public KeyStorage {
    public:
-    struct Config {
-      std::string keystore_path;
-    };
-
     static outcome::result<std::shared_ptr<LocalKeyStorage>> create(
-        const Config &c);
+        const std::string &keystore_path);
 
     ~LocalKeyStorage() override = default;
 

@@ -12,9 +12,9 @@
 namespace kagome::application {
 
   outcome::result<std::shared_ptr<LocalKeyStorage>> LocalKeyStorage::create(
-      const Config &c) {
+      const std::string &keystore_path) {
     auto storage = LocalKeyStorage();
-    OUTCOME_TRY(storage.loadFromJson(c.keystore_path));
+    OUTCOME_TRY(storage.loadFromJson(keystore_path));
     return std::make_shared<LocalKeyStorage>(std::move(storage));
   }
 
@@ -49,9 +49,6 @@ namespace kagome::application {
 
   outcome::result<void> LocalKeyStorage::loadSR25519Keys(
       const boost::property_tree::ptree &tree) {
-//    auto sr_tree_opt = tree.get_child_optional("sr25519keypair");
-//    if (not sr_tree_opt) return ConfigReaderError::MISSING_ENTRY;
-//    const auto &sr_tree = sr_tree_opt.value();
     OUTCOME_TRY(sr_tree, res(tree.get_child_optional("sr25519keypair")));
 
     OUTCOME_TRY(sr_pubkey_str,

@@ -18,4 +18,8 @@ add_library(local_key_storage
 target_link_libraries(local_key_storage
     primitives
     config_reader_error
+    Boost::filesystem
+    sr25519_types
+    ed25519_types
+    p2p::p2p_crypto_key
     )

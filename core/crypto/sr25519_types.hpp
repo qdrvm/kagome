@@ -60,9 +60,6 @@ namespace kagome::crypto {
 
     SR25519Keypair() = default;
 
-    explicit SR25519Keypair(
-        gsl::span<uint8_t, constants::sr25519::KEYPAIR_SIZE> kp);
-
     bool operator==(const SR25519Keypair &other) const;
     bool operator!=(const SR25519Keypair &other) const;
   };
