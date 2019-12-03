@@ -16,9 +16,17 @@ namespace sr25519_constants = kagome::crypto::constants::sr25519;
 kagome::crypto::SR25519Keypair generateSR25519Keypair() {
   std::array<uint8_t, sr25519_constants::SEED_SIZE> seed{};
   seed.fill(1);
-  std::vector<uint8_t> kp(sr25519_constants::KEYPAIR_SIZE, 0);
+  std::array<uint8_t, sr25519_constants::KEYPAIR_SIZE> kp;
   sr25519_keypair_from_seed(kp.data(), seed.data());
-  return kagome::crypto::SR25519Keypair{kp};
+  kagome::crypto::SR25519Keypair keypair;
+  std::copy(kp.begin(),
+            kp.begin() + sr25519_constants::SECRET_SIZE,
+            keypair.secret_key.begin());
+  std::copy(kp.begin() + sr25519_constants::SECRET_SIZE,
+            kp.begin() + sr25519_constants::SECRET_SIZE
+                + sr25519_constants::PUBLIC_SIZE,
+            keypair.public_key.begin());
+  return keypair;
 }
 
 #endif  // KAGOME_SR25519_UTILS_HPP
