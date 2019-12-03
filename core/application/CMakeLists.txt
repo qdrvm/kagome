@@ -1,20 +1,21 @@
 add_subdirectory(impl)
 
 add_library(configuration_storage
-    configuration_storage.hpp
-    impl/configuration_storage_impl.hpp
     impl/configuration_storage_impl.cpp
     )
 target_link_libraries(configuration_storage
-    primitives
+    Boost::filesystem
+    config_reader_error
+    p2p::p2p_multiaddress
+    p2p::p2p_peer_id
+    buffer
+    sr25519_types
     )
 
-add_library(key_storage
-    key_storage.hpp
+add_library(local_key_storage
     impl/local_key_storage.cpp
-    impl/local_key_storage.hpp
     )
-target_link_libraries(key_storage
+target_link_libraries(local_key_storage
     primitives
-    crypto_key_reader
+    config_reader_error
     )

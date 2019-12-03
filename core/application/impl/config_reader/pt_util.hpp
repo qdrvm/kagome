@@ -13,18 +13,13 @@
 
 namespace kagome::application {
 
-  /**
-   * Initialise kagome config parameters from a boost property tree
-   */
-  outcome::result<KagomeConfig> initConfigFromPropertyTree(
-      const boost::property_tree::ptree &tree);
-
-  /**
-   * Update kagome config parameters from ones present in the provided boost
-   * property tree
-   */
-  outcome::result<void> updateConfigFromPropertyTree(
-      KagomeConfig &config, const boost::property_tree::ptree &tree);
+  template <typename T>
+  outcome::result<std::decay_t<T>> res(boost::optional<T> opt_entry) {
+    if (not opt_entry) {
+      return ConfigReaderError::MISSING_ENTRY;
+    }
+    return opt_entry.value();
+  }
 
 }  // namespace kagome::application
 

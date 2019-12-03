@@ -328,13 +328,8 @@ namespace kagome::injector {
           auto &config =
               injector
                   .template create<application::LocalKeyStorage::Config &>();
-          auto &&crypto_provider =
-              injector.template create<sptr<libp2p::crypto::CryptoProvider>>();
-          auto &&validator = injector.template create<
-              sptr<libp2p::crypto::validator::KeyValidator>>();
-          auto &&result = application::LocalKeyStorage::create(
-              config, std::move(crypto_provider), std::move(validator));
-          if (!result) {
+              auto &&result = application::LocalKeyStorage::create(config);
+              if (!result) {
             common::raise(result.error());
           }
           return result.value();

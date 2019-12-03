@@ -22,6 +22,6 @@ target_link_libraries(kagome-launch
     block_storage
     kagome_application
     kagome_options
-    key_storage
+    local_key_storage
     primitives
     )
