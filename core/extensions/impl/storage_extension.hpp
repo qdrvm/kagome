@@ -18,10 +18,8 @@ namespace kagome::extensions {
    */
   class StorageExtension {
    public:
-    StorageExtension(
-        std::shared_ptr<storage::trie::TrieDb> db,
-        std::shared_ptr<runtime::WasmMemory> memory,
-        common::Logger logger = common::createLogger(kDefaultLoggerTag));
+    StorageExtension(std::shared_ptr<storage::trie::TrieDb> db,
+                     std::shared_ptr<runtime::WasmMemory> memory);
 
     // -------------------------Data storage--------------------------
 
@@ -47,7 +45,8 @@ namespace kagome::extensions {
      * @see Extension::ext_get_allocated_storage
      */
     runtime::WasmPointer ext_get_allocated_storage(
-        runtime::WasmPointer key_data, runtime::SizeType key_length,
+        runtime::WasmPointer key_data,
+        runtime::SizeType key_length,
         runtime::WasmPointer len_ptr);
 
     /**
@@ -82,7 +81,8 @@ namespace kagome::extensions {
      */
     runtime::SizeType ext_storage_changes_root(
         runtime::WasmPointer parent_hash_data,
-        runtime::SizeType parent_hash_len, runtime::SizeType parent_num,
+        runtime::SizeType parent_hash_len,
+        runtime::SizeType parent_num,
         runtime::WasmPointer result);
 
     /**
@@ -108,7 +108,7 @@ namespace kagome::extensions {
 
     std::shared_ptr<storage::trie::TrieDb> db_;
     std::shared_ptr<runtime::WasmMemory> memory_;
-    common::Logger logger_;
+    common::Logger logger_ = common::createLogger(kDefaultLoggerTag);
 
     constexpr static auto kDefaultLoggerTag = "WASM Runtime [StorageExtension]";
   };

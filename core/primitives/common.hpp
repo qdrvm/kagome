@@ -15,9 +15,6 @@ namespace kagome::primitives {
 
   using BlockNumber = uint64_t;
   using BlockHash = common::Hash256;
-
-  using AuthorityId = SessionKey;
-  using AuthorityIndex = uint64_t;
 }  // namespace kagome::primitives
 
 #endif  // KAGOME_CORE_PRIMITIVES_COMMON_HPP

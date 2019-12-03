@@ -8,12 +8,10 @@
 
 #include "application/impl/kagome_config.hpp"
 
-using kagome::application::KagomeConfig;
+namespace kagome::application {
 
-namespace test::application {
-
-  const KagomeConfig &getExampleConfig();
+  const kagome::application::KagomeConfig &getExampleConfig();
   std::stringstream readJSONConfig();
-}  // namespace test
+}  // namespace kagome::application
 
 #endif  // KAGOME_APPLICATION_EXAMPLE_CONFIG_HPP

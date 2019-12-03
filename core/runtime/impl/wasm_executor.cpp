@@ -25,12 +25,14 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, WasmExecutor::Error, e) {
 
 namespace kagome::runtime {
 
-  WasmExecutor::WasmExecutor(std::shared_ptr<extensions::Extension> extension,
-                             common::Logger logger)
-      : extension_(std::move(extension)), logger_{std::move(logger)} {}
+  WasmExecutor::WasmExecutor(std::shared_ptr<extensions::Extension> extension)
+      : extension_(std::move(extension)) {
+    BOOST_ASSERT_MSG(extension_ != nullptr, "extension is nullptr");
+  }
 
   outcome::result<wasm::Literal> WasmExecutor::call(
-      const common::Buffer &state_code, wasm::Name method_name,
+      const common::Buffer &state_code,
+      wasm::Name method_name,
       const wasm::LiteralList &args) {
     // that nolint supresses false positive in a library function
     // NOLINTNEXTLINE(clang-analyzer-core.NonNullParamChecker)

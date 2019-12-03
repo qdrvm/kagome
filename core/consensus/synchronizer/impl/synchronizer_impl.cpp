@@ -17,17 +17,14 @@ namespace kagome::consensus {
       libp2p::peer::PeerInfo peer_info,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
-      SynchronizerConfig config,
-      common::Logger log)
+      SynchronizerConfig config)
       : host_{host},
         peer_info_{std::move(peer_info)},
         block_tree_{std::move(block_tree)},
         blocks_headers_{std::move(blocks_headers)},
-        config_{config},
-        log_{std::move(log)} {
+        config_{config} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(blocks_headers_);
-    BOOST_ASSERT(log_);
   }
 
   void SynchronizerImpl::blocksRequest(

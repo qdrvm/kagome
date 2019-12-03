@@ -10,7 +10,6 @@
 #include "extensions/extension_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/runtime/wasm_test.hpp"
 
 using kagome::common::Buffer;
 using kagome::extensions::ExtensionImpl;
@@ -28,7 +27,7 @@ class GrandpaTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    api_ = std::make_shared<GrandpaImpl>(state_code_, extension_);
+    api_ = std::make_shared<GrandpaImpl>(wasm_provider_, extension_);
   }
 
   Digest createDigest() const {

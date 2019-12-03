@@ -17,8 +17,8 @@ using kagome::common::Buffer;
 
 namespace kagome::storage::trie {
 
-  PolkadotTrieDb::PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db)
-      : db_{std::move(db)}, codec_{}, root_{getEmptyRoot()} {}
+  PolkadotTrieDb::PolkadotTrieDb(std::shared_ptr<PersistentBufferMap> db)
+      : db_{std::move(db)}, root_{getEmptyRoot()} {}
 
   outcome::result<void> PolkadotTrieDb::put(const Buffer &key,
                                             const Buffer &value) {

@@ -9,12 +9,14 @@
 #include "extensions/extension.hpp"
 #include "runtime/impl/runtime_api.hpp"
 #include "runtime/offchain_worker.hpp"
+#include "runtime/wasm_provider.hpp"
 
 namespace kagome::runtime {
   class OffchainWorkerImpl : public RuntimeApi, public OffchainWorker {
    public:
-    OffchainWorkerImpl(common::Buffer state_code,
-                       std::shared_ptr<extensions::Extension> extension);
+    OffchainWorkerImpl(
+        const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
+        std::shared_ptr<extensions::Extension> extension);
 
     ~OffchainWorkerImpl() override = default;
 

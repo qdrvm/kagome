@@ -10,7 +10,6 @@
 #include "extensions/extension_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/runtime/wasm_test.hpp"
 
 using kagome::common::Buffer;
 using kagome::extensions::ExtensionImpl;
@@ -33,7 +32,7 @@ class ParachainHostTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    api_ = std::make_shared<ParachainHostImpl>(state_code_, extension_);
+    api_ = std::make_shared<ParachainHostImpl>(wasm_provider_, extension_);
   }
 
   ParaId createParachainId() const {

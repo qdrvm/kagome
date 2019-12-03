@@ -28,7 +28,6 @@ namespace kagome::api {
 
    public:
     using Socket = boost::asio::ip::tcp::socket;
-    using Context = boost::asio::io_context;
     using ErrorCode = boost::system::error_code;
     using Streambuf = boost::asio::streambuf;
     using Timer = boost::asio::steady_timer;

@@ -19,10 +19,8 @@ namespace kagome::authorship {
    public:
     ~BlockBuilderImpl() override = default;
 
-    BlockBuilderImpl(
-        primitives::BlockHeader block_header,
-        std::shared_ptr<runtime::BlockBuilderApi> r_block_builder,
-        common::Logger logger = common::createLogger("BlockBuilder"));
+    BlockBuilderImpl(primitives::BlockHeader block_header,
+                     std::shared_ptr<runtime::BlockBuilderApi> r_block_builder);
 
     outcome::result<void> pushExtrinsic(
         const primitives::Extrinsic &extrinsic) override;
@@ -32,7 +30,7 @@ namespace kagome::authorship {
    private:
     primitives::BlockHeader block_header_;
     std::shared_ptr<runtime::BlockBuilderApi> r_block_builder_;
-    common::Logger logger_;
+    common::Logger logger_ = common::createLogger("BlockBuilder");
 
     std::vector<primitives::Extrinsic> extrinsics_{};
   };

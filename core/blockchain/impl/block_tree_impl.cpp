@@ -82,12 +82,11 @@ namespace kagome::blockchain {
         deepest_leaf{deepest_leaf},
         last_finalized{last_finalized} {}
 
-  outcome::result<std::unique_ptr<BlockTreeImpl>> BlockTreeImpl::create(
+  outcome::result<std::shared_ptr<BlockTreeImpl>> BlockTreeImpl::create(
       std::shared_ptr<BlockHeaderRepository> header_repo,
       std::shared_ptr<BlockStorage> storage,
       const primitives::BlockId &last_finalized_block,
-      std::shared_ptr<crypto::Hasher> hasher,
-      common::Logger log) {
+      std::shared_ptr<crypto::Hasher> hasher) {
     // retrieve the block's header: we need data from it
     OUTCOME_TRY(header, storage->getBlockHeader(last_finalized_block));
     // create meta structures from the retrieved header
@@ -116,8 +115,7 @@ namespace kagome::blockchain {
                              std::move(storage),
                              std::move(tree),
                              std::move(meta),
-                             std::move(hasher),
-                             std::move(log)};
+                             std::move(hasher)};
     return std::make_unique<BlockTreeImpl>(std::move(block_tree));
   }
 
@@ -126,14 +124,12 @@ namespace kagome::blockchain {
       std::shared_ptr<BlockStorage> storage,
       std::shared_ptr<TreeNode> tree,
       std::shared_ptr<TreeMeta> meta,
-      std::shared_ptr<crypto::Hasher> hasher,
-      common::Logger log)
+      std::shared_ptr<crypto::Hasher> hasher)
       : header_repo_{std::move(header_repo)},
         storage_{std::move(storage)},
         tree_{std::move(tree)},
         tree_meta_{std::move(meta)},
-        hasher_{std::move(hasher)},
-        log_{std::move(log)} {}
+        hasher_{std::move(hasher)} {}
 
   outcome::result<void> BlockTreeImpl::addBlock(primitives::Block block) {
     // first of all, check if we know parent of this block; if not, we cannot

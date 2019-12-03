@@ -89,12 +89,11 @@ namespace kagome::blockchain {
      * @param hasher - pointer to the hasher
      * @return ptr to the created instance or error
      */
-    static outcome::result<std::unique_ptr<BlockTreeImpl>> create(
+    static outcome::result<std::shared_ptr<BlockTreeImpl>> create(
         std::shared_ptr<BlockHeaderRepository> header_repo,
         std::shared_ptr<BlockStorage> storage,
         const primitives::BlockId &last_finalized_block,
-        std::shared_ptr<crypto::Hasher> hasher,
-        common::Logger log = common::createLogger("BlockTreeImpl"));
+        std::shared_ptr<crypto::Hasher> hasher);
 
     ~BlockTreeImpl() override = default;
 
@@ -146,8 +145,7 @@ namespace kagome::blockchain {
                   std::shared_ptr<BlockStorage> storage,
                   std::shared_ptr<TreeNode> tree,
                   std::shared_ptr<TreeMeta> meta,
-                  std::shared_ptr<crypto::Hasher> hasher,
-                  common::Logger log);
+                  std::shared_ptr<crypto::Hasher> hasher);
 
     /**
      * Walks the chain backwards starting from \param start until the current
@@ -169,7 +167,7 @@ namespace kagome::blockchain {
     std::shared_ptr<TreeMeta> tree_meta_;
 
     std::shared_ptr<crypto::Hasher> hasher_;
-    common::Logger log_;
+    common::Logger log_ = common::createLogger("BlockTreeImpl");
   };
 }  // namespace kagome::blockchain
 

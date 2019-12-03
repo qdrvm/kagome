@@ -11,9 +11,9 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/optional.hpp>
 #include <gsl/span>
+#include "common/outcome_throw.hpp"
 #include "scale/detail/fixed_witdh_integer.hpp"
 #include "scale/detail/variant.hpp"
-#include "scale/outcome_throw.hpp"
 
 namespace kagome::scale {
   class ScaleDecoderStream {

@@ -3,9 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <utility>
-
 #include "storage/leveldb/leveldb.hpp"
+
+#include <boost/filesystem.hpp>
+#include <utility>
+#include <iostream>
+
 #include "storage/leveldb/leveldb_batch.hpp"
 #include "storage/leveldb/leveldb_cursor.hpp"
 #include "storage/leveldb/leveldb_util.hpp"
@@ -13,17 +16,16 @@
 namespace kagome::storage {
 
   outcome::result<std::unique_ptr<LevelDB>> LevelDB::create(
-      std::string_view path, leveldb::Options options, common::Logger logger) {
+      std::string_view path, leveldb::Options options) {
     leveldb::DB *db = nullptr;
-    auto status = leveldb::DB::Open(options, path.data(), &db);
+    auto status = leveldb::DB::Open(options, std::string(path), &db);
     if (status.ok()) {
       auto l = std::make_unique<LevelDB>();
       l->db_ = std::unique_ptr<leveldb::DB>(db);
-      l->logger_ = std::move(logger);
       return l;
     }
 
-    return error_as_result<std::unique_ptr<LevelDB>>(status, logger);
+    return error_as_result<std::unique_ptr<LevelDB>>(status);
   }
 
   std::unique_ptr<BufferMapCursor> LevelDB::cursor() {

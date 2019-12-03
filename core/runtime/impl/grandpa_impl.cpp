@@ -15,9 +15,10 @@ namespace kagome::runtime {
   using primitives::ScheduledChange;
   using primitives::SessionKey;
 
-  GrandpaImpl::GrandpaImpl(common::Buffer state_code,
-                           std::shared_ptr<extensions::Extension> extension)
-      : RuntimeApi(std::move(state_code), std::move(extension)) {}
+  GrandpaImpl::GrandpaImpl(
+      const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
+      std::shared_ptr<extensions::Extension> extension)
+      : RuntimeApi(wasm_provider->getStateCode(), std::move(extension)) {}
 
   outcome::result<boost::optional<ScheduledChange>> GrandpaImpl::pending_change(
       const Digest &digest) {

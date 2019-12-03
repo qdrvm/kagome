@@ -87,7 +87,7 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<crypto::Hasher> hasher_ =
       std::make_shared<crypto::HasherImpl>();
 
-  std::unique_ptr<BlockTreeImpl> block_tree_;
+  std::shared_ptr<BlockTreeImpl> block_tree_;
 
   const BlockId kLastFinalizedBlockId = kFinalizedBlockHash;
 

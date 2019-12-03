@@ -18,7 +18,7 @@ class VoteTrackerTest : public testing::Test {
   using PushResult = typename VoteTracker<Message>::PushResult;
 
   VoteTrackerImpl<Message> tracker;
-  std::vector<Id> ids = {"01"_hash256, "02"_hash256, "03"_hash256};
+  std::vector<Id> ids = {{"01"_hash256}, {"02"_hash256}, {"03"_hash256}};
   std::vector<Hash256> hashes = {
       "010203"_hash256, "040506"_hash256, "070809"_hash256};
 
@@ -112,7 +112,7 @@ TYPED_TEST_P(VoteTrackerTest, GetMessages) {
  * does not affect total weight)
  */
 TYPED_TEST_P(VoteTrackerTest, Equivocated) {
-  using PushResult  = typename VoteTrackerTest<TypeParam>::PushResult;
+  using PushResult = typename VoteTrackerTest<TypeParam>::PushResult;
   ASSERT_EQ(
       this->tracker.push(this->createMessage(this->ids[0], this->hashes[0]), 3),
       PushResult::SUCCESS);

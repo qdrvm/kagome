@@ -22,7 +22,7 @@ addtest(core_integration_test
     )
 target_link_libraries(core_integration_test
     core
-    wasm_test
+    basic_wasm_provider
     )
 
 addtest(tagged_transaction_queue_test
@@ -31,7 +31,7 @@ addtest(tagged_transaction_queue_test
 target_link_libraries(tagged_transaction_queue_test
     tagged_transaction_queue
     testutil_primitives_generator
-    wasm_test
+    basic_wasm_provider
     )
 
 addtest(block_builder_api_test
@@ -39,7 +39,7 @@ addtest(block_builder_api_test
     )
 target_link_libraries(block_builder_api_test
     block_builder_api
-    wasm_test
+    basic_wasm_provider
     )
 
 addtest(wasm_executor_test
@@ -47,7 +47,7 @@ addtest(wasm_executor_test
     )
 target_link_libraries(wasm_executor_test
     wasm_executor
-    wasm_test
+    basic_wasm_provider
     )
 
 addtest(parachain_test
@@ -55,7 +55,7 @@ addtest(parachain_test
     )
 target_link_libraries(parachain_test
     parachain_host_api
-    wasm_test
+    basic_wasm_provider
     )
 
 addtest(grandpa_test
@@ -63,7 +63,7 @@ addtest(grandpa_test
     )
 target_link_libraries(grandpa_test
     grandpa_api
-    wasm_test
+    basic_wasm_provider
     )
 
 addtest(metadata_test
@@ -71,7 +71,7 @@ addtest(metadata_test
     )
 target_link_libraries(metadata_test
     metadata_api
-    wasm_test
+    basic_wasm_provider
     )
 
 addtest(offchain_worker_test
@@ -79,7 +79,7 @@ addtest(offchain_worker_test
     )
 target_link_libraries(offchain_worker_test
     offchain_worker_api
-    wasm_test
+    basic_wasm_provider
     )
 
 addtest(wasm_result_test

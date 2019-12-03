@@ -3,34 +3,33 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "core/application/example_config.hpp"
-
+#include "example_config.hpp"
 
 #include <boost/filesystem.hpp>
 
-using kagome::common::unhex;
-using kagome::crypto::ED25519PublicKey;
-using kagome::crypto::SR25519PublicKey;
-using libp2p::multi::Multiaddress;
-using libp2p::peer::PeerId;
-using libp2p::peer::PeerInfo;
+namespace kagome::application {
 
-namespace test::application {
+  using common::unhex;
+  using crypto::ED25519PublicKey;
+  using crypto::SR25519PublicKey;
+  using libp2p::multi::Multiaddress;
+  using libp2p::peer::PeerId;
+  using libp2p::peer::PeerInfo;
 
   const KagomeConfig &getExampleConfig() {
-    static bool init = true;
+    static bool is_initialized = false;
     static KagomeConfig c;
-    if (init) {
+    if (!is_initialized) {
       c.genesis.header.number = 42;
       c.api_ports.extrinsic_api_port = 4224;
       c.peers_info = {
           PeerInfo{PeerId::fromBase58(
-              "1AWR4A2YXCzotpPjJshv1QUwSTExoYWiwr33C4briAGpCY")
+                       "1AWR4A2YXCzotpPjJshv1QUwSTExoYWiwr33C4briAGpCY")
                        .value(),
                    {Multiaddress::create("/ip4/127.0.0.1/udp/1234").value(),
                     Multiaddress::create("/ipfs/mypeer").value()}},
           PeerInfo{PeerId::fromBase58(
-              "1AWUyTAqzDb7C3XpZP9DLKmpDDV81kBndfbSrifEkm29XF")
+                       "1AWUyTAqzDb7C3XpZP9DLKmpDDV81kBndfbSrifEkm29XF")
                        .value(),
                    {Multiaddress::create("/ip4/127.0.0.1/tcp/1020").value(),
                     Multiaddress::create("/ipfs/mypeer").value()}}};
@@ -48,14 +47,15 @@ namespace test::application {
           ED25519PublicKey::fromHex("020202020202020202020202020202020202020202"
                                     "0202020202020202020202")
               .value()};
-      init = false;
+      is_initialized = true;
     }
     return c;
   }
 
   std::stringstream readJSONConfig() {
-    std::ifstream f(boost::filesystem::path(__FILE__).parent_path().string()
-                    + "/example_config.json");
+    auto path = boost::filesystem::path(__FILE__).parent_path().string()
+                + "/example_config.json";
+    std::ifstream f(path);
     if (!f) {
       throw std::runtime_error("config file not found");
     }
@@ -67,4 +67,4 @@ namespace test::application {
     }
     return ss;
   }
-}  // namespace test
+}  // namespace kagome::application

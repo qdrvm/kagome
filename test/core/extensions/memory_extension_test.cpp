@@ -12,10 +12,10 @@
 using namespace kagome::extensions;
 
 using kagome::common::Buffer;
+using kagome::runtime::MockMemory;
 using kagome::runtime::SizeType;
 using kagome::runtime::WasmMemory;
 using kagome::runtime::WasmPointer;
-using kagome::runtime::MockMemory;
 
 using ::testing::Return;
 
@@ -23,12 +23,12 @@ class MemoryExtensionsTest : public ::testing::Test {
  public:
   void SetUp() override {
     memory_ = std::make_shared<MockMemory>();
-    memory_extension_ = MemoryExtension(memory_);
+    memory_extension_ = std::make_shared<MemoryExtension>(memory_);
   }
 
  protected:
   std::shared_ptr<MockMemory> memory_;
-  MemoryExtension memory_extension_;
+  std::shared_ptr<MemoryExtension> memory_extension_;
 };
 
 /**
@@ -43,7 +43,7 @@ TEST_F(MemoryExtensionsTest, MallocIsCalled) {
   EXPECT_CALL(*memory_, allocate(allocated_size))
       .WillOnce(Return(expected_address));
 
-  auto ptr = memory_extension_.ext_malloc(allocated_size);
+  auto ptr = memory_extension_->ext_malloc(allocated_size);
   ASSERT_EQ(ptr, expected_address);
 }
 
@@ -58,5 +58,5 @@ TEST_F(MemoryExtensionsTest, FreeIsCalled) {
   boost::optional<uint32_t> deallocate_result{42};
   EXPECT_CALL(*memory_, deallocate(ptr)).WillOnce(Return(deallocate_result));
 
-  memory_extension_.ext_free(ptr);
+  memory_extension_->ext_free(ptr);
 }

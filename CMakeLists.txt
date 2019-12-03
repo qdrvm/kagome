@@ -112,10 +112,7 @@ include_directories(
   # system includes
   deps/GSL/include
   deps/sml/include
-  deps/hat-trie/include
   deps/jsonrpc-lean/include
-  deps/di/include
-  deps/di/extension/include
 )
 
 add_subdirectory(core)
@@ -150,3 +147,5 @@ export(PACKAGE kagome)
 
 enable_testing()
 add_subdirectory(test)
+
+add_subdirectory(examples)

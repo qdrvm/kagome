@@ -6,12 +6,13 @@
 #ifndef KAGOME_APPLICATION_LOCAL_KEY_STORAGE_HPP
 #define KAGOME_APPLICATION_LOCAL_KEY_STORAGE_HPP
 
-#include "application/key_storage.hpp"
-
+#include <memory>
+//
 #include <boost/filesystem.hpp>
 #include <libp2p/crypto/crypto_provider.hpp>
 #include <libp2p/crypto/key_validator.hpp>
-
+//
+#include "application/key_storage.hpp"
 #include "common/buffer.hpp"
 
 namespace kagome::application {
@@ -19,10 +20,11 @@ namespace kagome::application {
   class LocalKeyStorage : public KeyStorage {
    public:
     struct Config {
-      boost::filesystem::path sr25519_keypair_location;
-      boost::filesystem::path ed25519_keypair_location;
-      boost::filesystem::path p2p_keypair_location;
-      libp2p::crypto::Key::Type p2p_keypair_type;
+      boost::filesystem::path sr25519_keypair_location{};
+      boost::filesystem::path ed25519_keypair_location{};
+      boost::filesystem::path p2p_keypair_location{};
+      libp2p::crypto::Key::Type p2p_keypair_type =
+          libp2p::crypto::Key::Type::Ed25519;
     };
 
     static outcome::result<std::shared_ptr<LocalKeyStorage>> create(

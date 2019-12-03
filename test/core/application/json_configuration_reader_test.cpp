@@ -8,14 +8,14 @@
 #include <gtest/gtest.h>
 
 #include "application/impl/config_reader/error.hpp"
-#include "core/application/example_config.hpp"
+#include "kagome_configuration/example_config.hpp"
 #include "testutil/outcome.hpp"
 
 using kagome::application::ConfigReaderError;
+using kagome::application::getExampleConfig;
 using kagome::application::JsonConfigurationReader;
 using kagome::application::KagomeConfig;
-using test::application::readJSONConfig;
-using test::application::getExampleConfig;
+using kagome::application::readJSONConfig;
 
 /**
  * @given a json file with configuration
