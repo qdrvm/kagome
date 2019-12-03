@@ -15,7 +15,7 @@ namespace kagome::application {
 
   class ConfigurationStorageImpl : public ConfigurationStorage {
    public:
-    ConfigurationStorageImpl(KagomeConfig config);
+    explicit ConfigurationStorageImpl(KagomeConfig config);
     ~ConfigurationStorageImpl() override = default;
 
     const primitives::Block &getGenesis() const override;

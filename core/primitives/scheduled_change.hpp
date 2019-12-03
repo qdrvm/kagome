@@ -7,6 +7,7 @@
 #define KAGOME_CORE_PRIMITIVES_SCHEDULED_CHANGE_HPP
 
 #include <boost/optional.hpp>
+#include "primitives/authority.hpp"
 #include "primitives/common.hpp"
 #include "primitives/session_key.hpp"
 

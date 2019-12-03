@@ -42,3 +42,11 @@ target_link_libraries(crypto_key_reader
     OpenSSL::Crypto
     key_storage_error
     )
+
+add_library(kagome_application
+    kagome_application_impl.cpp
+    )
+target_link_libraries(kagome_application
+    application_injector
+    blob
+    )

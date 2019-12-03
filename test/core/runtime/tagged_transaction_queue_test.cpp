@@ -9,6 +9,7 @@
 #include "core/runtime/runtime_test.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "runtime/impl/basic_wasm_provider.hpp"
 
 using namespace testing;
 
@@ -21,9 +22,8 @@ class TTQTest : public RuntimeTest {
  public:
   void SetUp() override {
     RuntimeTest::SetUp();
-
-    ttq_ =
-        std::make_unique<TaggedTransactionQueueImpl>(state_code_, extension_);
+    ttq_ = std::make_unique<TaggedTransactionQueueImpl>(wasm_provider_,
+                                                        extension_);
   }
 
  protected:

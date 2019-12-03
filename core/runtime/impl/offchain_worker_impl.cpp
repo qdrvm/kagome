@@ -7,9 +7,9 @@
 
 namespace kagome::runtime {
   OffchainWorkerImpl::OffchainWorkerImpl(
-      common::Buffer state_code,
+      const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
       std::shared_ptr<extensions::Extension> extension)
-      : RuntimeApi(std::move(state_code), std::move(extension)) {}
+      : RuntimeApi(wasm_provider->getStateCode(), std::move(extension)) {}
 
   outcome::result<void> OffchainWorkerImpl::offchain_worker(BlockNumber bn) {
     return execute<void>("OffchainWorkerApi_offchain_worker", bn);

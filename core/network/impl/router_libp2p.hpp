@@ -28,8 +28,7 @@ namespace kagome::network {
     RouterLibp2p(libp2p::Host &host,
                  std::shared_ptr<BabeObserver> babe_observer,
                  std::shared_ptr<consensus::grandpa::Observer> grandpa_observer,
-                 std::shared_ptr<SyncProtocolObserver> sync_observer,
-                 common::Logger log = common::createLogger("RouterLibp2p"));
+                 std::shared_ptr<SyncProtocolObserver> sync_observer);
 
     ~RouterLibp2p() override = default;
 
@@ -57,7 +56,7 @@ namespace kagome::network {
     std::shared_ptr<BabeObserver> babe_observer_;
     std::shared_ptr<consensus::grandpa::Observer> grandpa_observer_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
-    common::Logger log_;
+    common::Logger log_ = common::createLogger("RouterLibp2p");
   };
 }  // namespace kagome::network
 

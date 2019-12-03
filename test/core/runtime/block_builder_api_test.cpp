@@ -11,7 +11,6 @@
 #include "extensions/extension_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/runtime/wasm_test.hpp"
 
 using namespace testing;
 using kagome::common::Buffer;
@@ -28,7 +27,8 @@ class BlockBuilderApiTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    builder_ = std::make_unique<BlockBuilderApiImpl>(state_code_, extension_);
+    builder_ =
+        std::make_unique<BlockBuilderApiImpl>(wasm_provider_, extension_);
   }
 
  protected:

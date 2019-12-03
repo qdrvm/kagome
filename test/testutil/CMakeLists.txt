@@ -3,7 +3,6 @@
 
 add_subdirectory(libp2p)
 add_subdirectory(primitives)
-add_subdirectory(runtime)
 add_subdirectory(storage)
 
 

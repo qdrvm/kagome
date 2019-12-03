@@ -40,25 +40,23 @@ namespace kagome::consensus {
      * @param block_tree - tree of the blocks
      * @param gossiper of this consensus
      * @param keypair - SR25519 keypair of this node
-     * @param authority_id of this node
+     * @param authority_index of this node
      * @param clock to measure time
      * @param hasher to take hashes
      * @param timer to be used by the implementation; the recommended one is
      * kagome::clock::BasicWaitableTimer
      * @param event_bus to deliver events over
-     * @param log to write messages to
      */
     BabeImpl(std::shared_ptr<BabeLottery> lottery,
              std::shared_ptr<authorship::Proposer> proposer,
              std::shared_ptr<blockchain::BlockTree> block_tree,
              std::shared_ptr<network::BabeGossiper> gossiper,
              crypto::SR25519Keypair keypair,
-             primitives::AuthorityIndex authority_id,
+             primitives::AuthorityIndex authority_index,
              std::shared_ptr<clock::SystemClock> clock,
              std::shared_ptr<crypto::Hasher> hasher,
-             std::shared_ptr<clock::Timer> timer,
-             libp2p::event::Bus &event_bus,
-             common::Logger log = common::createLogger("BABE"));
+             std::unique_ptr<clock::Timer> timer,
+             libp2p::event::Bus &event_bus);
 
     ~BabeImpl() override = default;
 
@@ -100,12 +98,12 @@ namespace kagome::consensus {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<network::BabeGossiper> gossiper_;
     crypto::SR25519Keypair keypair_;
-    primitives::AuthorityIndex authority_id_;
+    primitives::AuthorityIndex authority_index_;
     std::shared_ptr<clock::SystemClock> clock_;
     std::shared_ptr<crypto::Hasher> hasher_;
-    std::shared_ptr<clock::Timer> timer_;
+    std::unique_ptr<clock::Timer> timer_;
     libp2p::event::Bus &event_bus_;
-    common::Logger log_;
+    common::Logger log_ = common::createLogger("BABE");
 
     Epoch current_epoch_;
 

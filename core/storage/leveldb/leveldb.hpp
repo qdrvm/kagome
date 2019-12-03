@@ -28,12 +28,10 @@ namespace kagome::storage {
      * @brief Factory method to create an instance of LevelDB class.
      * @param path filesystem path where database is going to be
      * @param options leveldb options, such as caching, logging, etc.
-     * @param logger default database logger
      * @return instance of LevelDB
      */
     static outcome::result<std::unique_ptr<LevelDB>> create(
-        std::string_view path, leveldb::Options options = leveldb::Options(),
-        common::Logger logger = common::createLogger("leveldb"));
+        std::string_view path, leveldb::Options options = leveldb::Options());
 
     /**
      * @brief Set read options, which are used in @see LevelDB#get
@@ -66,7 +64,7 @@ namespace kagome::storage {
     std::unique_ptr<leveldb::DB> db_;
     leveldb::ReadOptions ro_;
     leveldb::WriteOptions wo_;
-    common::Logger logger_;
+    common::Logger logger_ = common::createLogger("leveldb");
   };
 
 }  // namespace kagome::storage

@@ -10,16 +10,13 @@ namespace kagome::authorship {
   ProposerImpl::ProposerImpl(
       std::shared_ptr<BlockBuilderFactory> block_builder_factory,
       std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
-      std::shared_ptr<runtime::BlockBuilderApi> r_block_builder,
-      common::Logger logger)
+      std::shared_ptr<runtime::BlockBuilderApi> r_block_builder)
       : block_builder_factory_{std::move(block_builder_factory)},
         transaction_pool_{std::move(transaction_pool)},
-        r_block_builder_{std::move(r_block_builder)},
-        logger_{std::move(logger)} {
+        r_block_builder_{std::move(r_block_builder)} {
     BOOST_ASSERT(block_builder_factory_);
     BOOST_ASSERT(transaction_pool_);
     BOOST_ASSERT(r_block_builder_);
-    BOOST_ASSERT(logger_);
   }
 
   outcome::result<primitives::Block> ProposerImpl::propose(

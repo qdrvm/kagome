@@ -12,12 +12,10 @@
 #include "extensions/impl/memory_extension.hpp"
 
 namespace kagome::extensions {
-  MemoryExtension::MemoryExtension(common::Logger logger)
-      : logger_(std::move(logger)) {}
-
-  MemoryExtension::MemoryExtension(std::shared_ptr<runtime::WasmMemory> memory,
-                                   common::Logger logger)
-      : memory_(std::move(memory)), logger_(std::move(logger)) {}
+  MemoryExtension::MemoryExtension(std::shared_ptr<runtime::WasmMemory> memory)
+      : memory_(std::move(memory)) {
+    BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
+  }
 
   runtime::WasmPointer MemoryExtension::ext_malloc(runtime::SizeType size) {
     return memory_->allocate(size);

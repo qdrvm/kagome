@@ -30,8 +30,7 @@ namespace kagome::consensus {
         libp2p::peer::PeerInfo peer_info,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
-        SynchronizerConfig config = {},
-        common::Logger log = common::createLogger("Synchronizer"));
+        SynchronizerConfig config = {});
 
     ~SynchronizerImpl() override = default;
 
@@ -57,7 +56,7 @@ namespace kagome::consensus {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers_;
     SynchronizerConfig config_;
-    common::Logger log_;
+    common::Logger log_ = common::createLogger("Synchronizer");
   };
 }  // namespace kagome::consensus
 

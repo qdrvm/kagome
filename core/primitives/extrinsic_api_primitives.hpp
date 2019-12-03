@@ -7,8 +7,8 @@
 #define KAGOME_CORE_PRIMITIVES_EXTRINSIC_API_PRIMITIVES_HPP
 
 #include <memory>
-#include <optional>
 
+#include <boost/optional.hpp>
 #include <boost/variant.hpp>
 
 /**

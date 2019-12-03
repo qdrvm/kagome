@@ -54,11 +54,12 @@ class BabeTest : public testing::Test {
   std::shared_ptr<BabeGossiperMock> gossiper_ =
       std::make_shared<BabeGossiperMock>();
   SR25519Keypair keypair_{generateSR25519Keypair()};
-  AuthorityIndex authority_id_ = 1;
+  AuthorityIndex authority_id_ = {1};
   std::shared_ptr<SystemClockMock> clock_ = std::make_shared<SystemClockMock>();
   std::shared_ptr<HasherMock> hasher_ = std::make_shared<HasherMock>();
-  std::shared_ptr<testutil::TimerMock> timer_ =
-      std::make_shared<testutil::TimerMock>();
+  std::unique_ptr<testutil::TimerMock> timer_mock_ =
+      std::make_unique<testutil::TimerMock>();
+  testutil::TimerMock *timer_ = timer_mock_.get();
   libp2p::event::Bus event_bus_;
 
   std::shared_ptr<BabeImpl> babe_ = std::make_shared<BabeImpl>(lottery_,
@@ -69,7 +70,7 @@ class BabeTest : public testing::Test {
                                                                authority_id_,
                                                                clock_,
                                                                hasher_,
-                                                               timer_,
+                                                               std::move(timer_mock_),
                                                                event_bus_);
 
   Epoch epoch_{0, 0, 2, 60ms, {{}}, 100, {}};

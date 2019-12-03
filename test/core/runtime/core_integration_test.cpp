@@ -9,12 +9,11 @@
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
+#include "core/runtime/runtime_test.hpp"
 #include "core/storage/trie/mock_trie_db.hpp"
 #include "extensions/extension_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/runtime/wasm_test.hpp"
-#include "core/runtime/runtime_test.hpp"
 
 using kagome::common::Buffer;
 using kagome::extensions::ExtensionImpl;
@@ -33,12 +32,12 @@ using ::testing::Return;
 
 namespace fs = boost::filesystem;
 
- class CoreTest: public RuntimeTest {
+class CoreTest : public RuntimeTest {
  public:
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    core_ = std::make_shared<CoreImpl>(state_code_, extension_);
+    core_ = std::make_shared<CoreImpl>(wasm_provider_, extension_);
   }
 
  protected:
