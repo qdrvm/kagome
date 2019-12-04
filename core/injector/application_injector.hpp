@@ -128,8 +128,8 @@ namespace kagome::injector {
               libp2p::peer::PeerId peer_id =
                   libp2p::peer::PeerId::fromPublicKey(public_key.data);
               // TODO (yuraz): specify port
-              auto multiaddress =
-                  libp2p::multi::Multiaddress::create("/ip4/127.0.0.1/tcp/228");
+              auto multiaddress = libp2p::multi::Multiaddress::create(
+                  "/ip4/127.0.0.1/tcp/30363");
               if (!multiaddress) {
                 common::raise(multiaddress.error());  // exception
               }
@@ -208,7 +208,8 @@ namespace kagome::injector {
         di::bind<authorship::BlockBuilderFactory>.template to<authorship::BlockBuilderFactoryImpl>(),
         di::bind<storage::PersistentBufferMap>.template to(
             [&](const auto &injector) -> sptr<storage::PersistentBufferMap> {
-              // TODO (yuraz) get path from config (KagomeConfig or Genesis)
+              // TODO (kamilsa): PRE-339 get path from config (KagomeConfig or
+              // Genesis)
               std::string path = "/tmp/kagome/persistence/";
               //              auto options = injector.template
               //              create<leveldb::Options>();
@@ -239,8 +240,8 @@ namespace kagome::injector {
 
               auto storage =
                   blockchain::KeyValueBlockStorage::createWithGenesis(
-                      // TODO(kamilsa): create genesis block from genesis
-                      // configs tha should be inserted into the storage. Then
+                      // TODO(kamilsa): PRE-340 create genesis block from
+                      // genesis// configs tha should be inserted into the storage. Then
                       // remove empty genesis with the proper one
                       primitives::Block{},
                       db,
