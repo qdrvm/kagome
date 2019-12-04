@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "keccak.h"
+#include "crypto/keccak/keccak.h"
 
 #define SHA3_ASSERT(x)
 #if defined(_MSC_VER)
