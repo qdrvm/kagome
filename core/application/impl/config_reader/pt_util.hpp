@@ -12,7 +12,7 @@
 namespace kagome::application {
 
   template <typename T>
-  outcome::result<std::decay_t<T>> res(boost::optional<T> opt_entry) {
+  outcome::result<std::decay_t<T>> ensure(boost::optional<T> opt_entry) {
     if (not opt_entry) {
       return ConfigReaderError::MISSING_ENTRY;
     }

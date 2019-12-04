@@ -31,7 +31,7 @@ namespace kagome::options {
 
     // clang-format off
   desc_.add_options()
-      ("help", "show help message")(
+      ("help,h", "show help message")(
       "config,c", po::value<std::string>(&configuration_path),
       "path to configuration file")
       ("keystore,k", po::value<std::string>(&keystore_path),

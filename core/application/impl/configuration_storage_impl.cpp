@@ -59,8 +59,9 @@ namespace kagome::application {
 
   outcome::result<void> ConfigurationStorageImpl::loadGenesis(
       const boost::property_tree::ptree &tree) {
-    OUTCOME_TRY(genesis_tree, res(tree.get_child_optional("genesis")));
-    OUTCOME_TRY(genesis_raw_tree, res(genesis_tree.get_child_optional("raw")));
+    OUTCOME_TRY(genesis_tree, ensure(tree.get_child_optional("genesis")));
+    OUTCOME_TRY(genesis_raw_tree,
+                ensure(genesis_tree.get_child_optional("raw")));
 
     for (const auto &[key, value] : genesis_raw_tree) {
       // get rid of leading 0x for key and value and unhex
@@ -73,11 +74,11 @@ namespace kagome::application {
 
   outcome::result<void> ConfigurationStorageImpl::loadBootNodes(
       const boost::property_tree::ptree &tree) {
-    OUTCOME_TRY(boot_nodes, res(tree.get_child_optional("bootNodes")));
+    OUTCOME_TRY(boot_nodes, ensure(tree.get_child_optional("bootNodes")));
     for (auto &v : boot_nodes) {
       OUTCOME_TRY(multiaddr,
                   libp2p::multi::Multiaddress::create(v.second.data()));
-      OUTCOME_TRY(peer_id_base58, res(multiaddr.getPeerId()));
+      OUTCOME_TRY(peer_id_base58, ensure(multiaddr.getPeerId()));
 
       OUTCOME_TRY(peer_id, libp2p::peer::PeerId::fromBase58(peer_id_base58));
       libp2p::peer::PeerInfo info{.id = peer_id, .addresses = {multiaddr}};
@@ -88,7 +89,7 @@ namespace kagome::application {
 
   outcome::result<void> ConfigurationStorageImpl::loadSessionKeys(
       const boost::property_tree::ptree &tree) {
-    OUTCOME_TRY(session_keys, res(tree.get_child_optional("sessionKeys")));
+    OUTCOME_TRY(session_keys, ensure(tree.get_child_optional("sessionKeys")));
     for (auto &v : session_keys) {
       std::string_view key_hex = v.second.data();
       OUTCOME_TRY(key, crypto::SR25519PublicKey::fromHex(key_hex.substr(2)));

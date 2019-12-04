@@ -49,12 +49,12 @@ namespace kagome::application {
 
   outcome::result<void> LocalKeyStorage::loadSR25519Keys(
       const boost::property_tree::ptree &tree) {
-    OUTCOME_TRY(sr_tree, res(tree.get_child_optional("sr25519keypair")));
+    OUTCOME_TRY(sr_tree, ensure(tree.get_child_optional("sr25519keypair")));
 
     OUTCOME_TRY(sr_pubkey_str,
-                res(sr_tree.get_optional<std::string>("public")));
+                ensure(sr_tree.get_optional<std::string>("public")));
     OUTCOME_TRY(sr_privkey_str,
-                res(sr_tree.get_optional<std::string>("private")));
+                ensure(sr_tree.get_optional<std::string>("private")));
 
     // get rid of 0x from beginning
     OUTCOME_TRY(sr_pubkey_buffer, unhexWith0x(sr_pubkey_str));
@@ -77,9 +77,9 @@ namespace kagome::application {
     const auto &ed_tree = ed_tree_opt.value();
 
     OUTCOME_TRY(ed_pubkey_str,
-                res(ed_tree.get_optional<std::string>("public")));
+                ensure(ed_tree.get_optional<std::string>("public")));
     OUTCOME_TRY(ed_privkey_str,
-                res(ed_tree.get_optional<std::string>("private")));
+                ensure(ed_tree.get_optional<std::string>("private")));
 
     // get rid of 0x from beginning
     OUTCOME_TRY(ed_pubkey_buffer, unhexWith0x(ed_pubkey_str));
@@ -101,7 +101,8 @@ namespace kagome::application {
     if (not p2p_tree_opt) return ConfigReaderError::MISSING_ENTRY;
     const auto &p2p_tree = p2p_tree_opt.value();
 
-    OUTCOME_TRY(p2p_type, res(p2p_tree.get_optional<std::string>("p2p_type")));
+    OUTCOME_TRY(p2p_type,
+                ensure(p2p_tree.get_optional<std::string>("p2p_type")));
     if (p2p_type == "ed25519") {
       p2p_keypair_.publicKey.type = libp2p::crypto::Key::Type::Ed25519;
       p2p_keypair_.privateKey.type = libp2p::crypto::Key::Type::Ed25519;
@@ -124,9 +125,9 @@ namespace kagome::application {
     const auto &p2p_keypair_tree = p2p_keypair_tree_opt.value();
 
     OUTCOME_TRY(p2p_public_key_str,
-                res(p2p_keypair_tree.get_optional<std::string>("public")));
+                ensure(p2p_keypair_tree.get_optional<std::string>("public")));
     OUTCOME_TRY(p2p_private_key_str,
-                res(p2p_keypair_tree.get_optional<std::string>("private")));
+                ensure(p2p_keypair_tree.get_optional<std::string>("private")));
 
     // get rid of 0x from beginning
     OUTCOME_TRY(p2p_public_key, unhexWith0x(p2p_public_key_str));
