@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
 
   try {
     auto &&app = std::make_shared<kagome::application::KagomeApplicationImpl>(
-        std::move(kagome_config), std::move(keys_config));
+        kagome_config, keys_config);
     app->run();
   } catch (std::system_error &err) {
     std::cerr << err.what() << std::endl;

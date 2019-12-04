@@ -11,8 +11,8 @@ namespace kagome::application {
   using consensus::Randomness;
   using consensus::Threshold;
 
-  KagomeApplicationImpl::KagomeApplicationImpl(std::string config_path,
-                                               std::string keystore_path) {
+  KagomeApplicationImpl::KagomeApplicationImpl(
+      const std::string &config_path, const std::string &keystore_path) {
     auto &&injector =
         injector::makeApplicationInjector(config_path, keystore_path);
 

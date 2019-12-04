@@ -17,7 +17,7 @@ namespace kagome::crypto {
   SR25519Keypair SR25519ProviderImpl::generateKeypair() const {
     auto seed = generator_->randomBytes(constants::sr25519::SEED_SIZE);
 
-    std::array<uint8_t, constants::sr25519::KEYPAIR_SIZE> kp;
+    std::array<uint8_t, constants::sr25519::KEYPAIR_SIZE> kp{};
     sr25519_keypair_from_seed(kp.data(), seed.data());
 
     SR25519Keypair keypair;

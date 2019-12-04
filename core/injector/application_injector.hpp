@@ -189,7 +189,7 @@ namespace kagome::injector {
           // in this case listener should be bound
 
           auto &context = injector.template create<boost::asio::io_context &>();
-          application::ConfigurationStorage &cfg =
+          auto &cfg =
               injector.template create<application::ConfigurationStorage &>();
           auto extrinsic_tcp_version = boost::asio::ip::tcp::v4();
           uint16_t extrinsic_api_port = cfg.getExtrinsicApiPort();
