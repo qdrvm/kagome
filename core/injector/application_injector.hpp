@@ -85,6 +85,7 @@ namespace kagome::injector {
   template <typename... Ts>
   auto makeApplicationInjector(const std::string &genesis_path,
                                const std::string &keystore_path,
+                               const std::string &leveldb_path,
                                Ts &&... args) {
     using namespace boost;  // NOLINT;
 
@@ -208,14 +209,11 @@ namespace kagome::injector {
         di::bind<authorship::BlockBuilderFactory>.template to<authorship::BlockBuilderFactoryImpl>(),
         di::bind<storage::PersistentBufferMap>.template to(
             [&](const auto &injector) -> sptr<storage::PersistentBufferMap> {
-              // TODO (kamilsa): PRE-339 get path from config (KagomeConfig or
-              // Genesis)
-              std::string path = "/tmp/kagome/persistence/";
               //              auto options = injector.template
               //              create<leveldb::Options>();
               auto options = leveldb::Options{};
               options.create_if_missing = true;
-              auto db = storage::LevelDB::create(path, options);
+              auto db = storage::LevelDB::create(leveldb_path, options);
               if (!db) {
                 common::raise(db.error());
               }
