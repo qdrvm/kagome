@@ -9,19 +9,17 @@ add_library(kagome_options
 target_link_libraries(kagome_options
     Boost::boost
     Boost::program_options
-    example_config
-    json_configuration_reader
     )
 
-add_executable(kagome-launch
+add_executable(kagome_full
     main.cpp
     )
-target_link_libraries(kagome-launch
+target_link_libraries(kagome_full
     Boost::boost
     application_injector
     block_storage
     kagome_application
     kagome_options
-    key_storage
+    local_key_storage
     primitives
     )

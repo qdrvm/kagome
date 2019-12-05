@@ -8,11 +8,10 @@
 
 #include <boost/program_options.hpp>
 #include <libp2p/crypto/key.hpp>
-
+#include <outcome/outcome.hpp>
 #include "application/impl/kagome_config.hpp"
 #include "application/impl/local_key_storage.hpp"
 #include "common/logger.hpp"
-#include "outcome/outcome.hpp"
 
 namespace kagome::options {
   /*
@@ -35,9 +34,6 @@ namespace kagome::options {
    * options
    */
   class KagomeOptions {
-    using KagomeConfig = application::KagomeConfig;
-    using KeysConfig = application::LocalKeyStorage::Config;
-
    public:
     KagomeOptions();
 
@@ -62,21 +58,14 @@ namespace kagome::options {
     /**
      * @return  kagome config
      */
-    const KagomeConfig &getKagomeConfig() const;
+    const std::string &getKagomeConfigPath() const;
 
     /**
      * @return  keys config
      */
-    const KeysConfig &getKeysConfig() const;
+    const std::string &getKeysConfig() const;
 
    private:
-    /**
-     * @brief parse p2p type cmd line option
-     * @param type type string value
-     * @return type option
-     */
-    outcome::result<libp2p::crypto::Key::Type> parse_p2pType(
-        std::string_view type);
     /**
      * @brief ensures that file path exists
      * @param path file path
@@ -85,9 +74,9 @@ namespace kagome::options {
     outcome::result<void> ensurePathExists(const boost::filesystem::path &path);
 
     boost::program_options::options_description desc_;  ///< options description
-    bool has_help_ = false;         ///< flag whether cmd line has help option
-    KagomeConfig kagome_config_{};  ///< kagome configuration
-    KeysConfig keys_config_{};      ///< paths to keys
+    bool has_help_ = false;  ///< flag whether cmd line has help option
+    std::string key_storage_path_;
+    std::string config_storage_path_;
     common::Logger logger_ = common::createLogger("KagomeApplication");
   };
 }  // namespace kagome::options

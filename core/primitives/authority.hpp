@@ -18,6 +18,7 @@ namespace kagome::primitives {
    * Authority id
    */
   struct AuthorityId {
+    // TODO(kamilsa): id types should be different for Babe and Grandpa Authority Ids
     SessionKey id;
 
     bool operator==(const AuthorityId &other) const {
