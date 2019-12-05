@@ -5,10 +5,11 @@
 
 #include "kagome_options.hpp"
 
-#include <boost/filesystem.hpp>
-#include <boost/program_options.hpp>
 #include <fstream>
 #include <string>
+
+#include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
 
 namespace kagome::options {
   using kagome::application::KagomeConfig;
