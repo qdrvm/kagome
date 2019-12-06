@@ -4,13 +4,12 @@
  */
 
 #include "application/impl/kagome_application_impl.hpp"
-#include "application/impl/local_key_storage.hpp"
 #include "common/logger.hpp"
 #include "kagome_options.hpp"
 #include "outcome/outcome.hpp"
 
 int main(int argc, char **argv) {
-  auto logger = kagome::common::createLogger("Kagome full node");
+  auto logger = kagome::common::createLogger("Kagome full node: ");
 
   kagome::options::KagomeOptions options_parser;
   auto &&result = options_parser.parseOptions(argc, argv);
@@ -27,19 +26,20 @@ int main(int argc, char **argv) {
 
   auto &&kagome_config = options_parser.getKagomeConfigPath();
   auto &&keys_config = options_parser.getKeysConfig();
+  auto &&level_db_config = options_parser.getLevelDbPath();
 
   try {
     auto &&app = std::make_shared<kagome::application::KagomeApplicationImpl>(
-        kagome_config, keys_config);
+        kagome_config, keys_config, level_db_config);
     app->run();
   } catch (std::system_error &err) {
-    std::cerr << err.what() << std::endl;
+    logger->error(err.what());
     return 1;
   } catch (std::exception &e) {
-    std::cerr << e.what() << std::endl;
+    logger->error(e.what());
     return 1;
   } catch (...) {
-    std::cerr << "unknown error" << std::endl;
+    logger->error("unknown error");
     return 1;
   }
 

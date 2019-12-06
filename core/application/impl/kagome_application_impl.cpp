@@ -12,9 +12,11 @@ namespace kagome::application {
   using consensus::Threshold;
 
   KagomeApplicationImpl::KagomeApplicationImpl(
-      const std::string &config_path, const std::string &keystore_path) {
-    auto &&injector =
-        injector::makeApplicationInjector(config_path, keystore_path);
+      const std::string &config_path,
+      const std::string &keystore_path,
+      const std::string &leveldb_path) {
+    auto &&injector = injector::makeApplicationInjector(
+        config_path, keystore_path, leveldb_path);
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied

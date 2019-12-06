@@ -21,21 +21,22 @@ namespace kagome::options {
 
   outcome::result<CmdLineOptionError> KagomeOptions::parseOptions(int argc,
                                                                   char **argv) {
-    logger_->info("start parse options");
-
     // PARSE OPTIONS
-    std::string configuration_path;  // configuration path
-    std::string keystore_path;       // path to keystore
+    std::string configuration_path;  // configuration file path
+    std::string keystore_path;       // keystore file path
+    std::string leveldb_path;        // leveldb directory path
 
     namespace po = boost::program_options;
 
     // clang-format off
   desc_.add_options()
-      ("help,h", "show help message")(
-      "config,c", po::value<std::string>(&configuration_path),
-      "path to configuration file")
-      ("keystore,k", po::value<std::string>(&keystore_path),
-       "mandatory, path to keystore");
+      ("help,h", "show this help message")(
+      "genesis,g", po::value<std::string>(&configuration_path)->required(),
+      "mandatory, configuration file path")
+      ("keystore,k", po::value<std::string>(&keystore_path)->required(),
+       "mandatory, keystore file path")
+      ("leveldb,l", po::value<std::string>(&leveldb_path)->required(),
+          "mandatory, leveldb directory path");
     // clang-format on
 
     po::variables_map vm;
@@ -52,21 +53,37 @@ namespace kagome::options {
     }
 
     // ENSURE THAT PATHS EXIST
-    OUTCOME_TRY(ensurePathExists(configuration_path));
-    OUTCOME_TRY(ensurePathExists(keystore_path));
+    OUTCOME_TRY(ensureFilePathExists(configuration_path));
+    OUTCOME_TRY(ensureFilePathExists(keystore_path));
+    OUTCOME_TRY(ensureDirPathExists(leveldb_path));
 
     key_storage_path_ = keystore_path;
     config_storage_path_ = configuration_path;
+    leveldb_path_ = leveldb_path;
 
     return outcome::success();
   }
 
-  outcome::result<void> KagomeOptions::ensurePathExists(
+  outcome::result<void> KagomeOptions::ensureFilePathExists(
       const boost::filesystem::path &path) {
     if (!boost::filesystem::exists(path)) {
-      logger_->error("file path <%s> doesn't exist", path.string());
+      logger_->error("file path '{}' doesn't exist", path.string());
       return outcome::failure(CmdLineOptionError::CONFIG_FILE_NOT_EXIST);
     }
+    return outcome::success();
+  }
+
+  outcome::result<void> KagomeOptions::ensureDirPathExists(
+      const boost::filesystem::path &path) {
+    if (!boost::filesystem::exists(path)) {
+      logger_->error("directory path '{}' doesn't exist", path.string());
+      return outcome::failure(CmdLineOptionError::CONFIG_FILE_NOT_EXIST);
+    }
+    if (!boost::filesystem::is_directory(path)) {
+      logger_->error("path '{}' is not directory", path.string());
+      return CmdLineOptionError::PATH_IS_NOT_DIR;
+    }
+
     return outcome::success();
   }
 
@@ -78,6 +95,10 @@ namespace kagome::options {
     return key_storage_path_;
   }
 
+  const std::string &KagomeOptions::getLevelDbPath() const {
+    return leveldb_path_;
+  }
+
   bool KagomeOptions::hasHelpOption() {
     return has_help_;
   }
@@ -85,7 +106,6 @@ namespace kagome::options {
   void KagomeOptions::showHelp() {
     std::cout << desc_ << std::endl;
   }
-
 }  // namespace kagome::options
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::options, CmdLineOptionError, e) {
@@ -101,6 +121,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::options, CmdLineOptionError, e) {
       return "invalid configuration file";
     case CmdLineOptionError::CANNOT_OPEN_FILE:
       return "failed to open configuration file";
+    case CmdLineOptionError::PATH_IS_NOT_DIR:
+      return "path is not a directory";
   }
   return "unknown CmdLineOptionError";
 }
