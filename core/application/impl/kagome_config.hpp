@@ -7,7 +7,7 @@
 #define KAGOME_KAGOME_CONFIG_HPP
 
 #include <libp2p/peer/peer_info.hpp>
-#include "application/genesis_raw_config.hpp"
+#include "blockchain/genesis_raw_config.hpp"
 #include "crypto/ed25519_types.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "primitives/block.hpp"

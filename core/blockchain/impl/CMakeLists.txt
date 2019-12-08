@@ -14,6 +14,8 @@ target_link_libraries(blockchain_common
     buffer
     primitives
     blob
+    polkadot_trie_db
+    in_memory_storage
     )
 
 add_library(block_tree
