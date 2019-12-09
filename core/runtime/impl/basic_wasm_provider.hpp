@@ -16,7 +16,7 @@ namespace test {
 
     ~BasicWasmProvider() override = default;
 
-    const kagome::common::Buffer &getStateCode() override;
+    const kagome::common::Buffer &getStateCode() const override;
 
    private:
     void initialize(std::string_view path);
