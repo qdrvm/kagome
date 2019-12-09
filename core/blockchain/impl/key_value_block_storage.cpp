@@ -62,7 +62,7 @@ namespace kagome::blockchain {
     // the rest of the fields have default value
 
     OUTCOME_TRY(kv_storage.putBlock(genesis_block));
-    return std::make_shared<KeyValueBlockStorage>(std::move(kv_storage));
+    return std::make_shared<KeyValueBlockStorage>(kv_storage);
   }
 
   outcome::result<primitives::BlockHeader> KeyValueBlockStorage::getBlockHeader(
