@@ -227,9 +227,8 @@ namespace kagome::injector {
         di::bind<blockchain::BlockStorage>.to(
             [&](const auto &injector)
                 -> std::shared_ptr<blockchain::BlockStorage> {
-              std::shared_ptr<application::ConfigurationStorage>
-                  configuration_storage = injector.template create<
-                      std::shared_ptr<application::ConfigurationStorage>>();
+              auto configuration_storage = injector.template create<
+                  std::shared_ptr<application::ConfigurationStorage>>();
 
               auto &&hasher =
                   injector.template create<std::shared_ptr<crypto::Hasher>>();
@@ -242,8 +241,7 @@ namespace kagome::injector {
 
               auto storage =
                   blockchain::KeyValueBlockStorage::createWithGenesis(
-                      genesis_raw_configs, db,
-                      hasher);
+                      genesis_raw_configs, db, hasher);
               if (storage.has_error()) {
                 common::raise(storage.error());
               }
