@@ -13,7 +13,7 @@ namespace kagome::network {
 
   GossiperBroadcast::GossiperBroadcast(
       libp2p::Host &host, gsl::span<const libp2p::peer::PeerInfo> peer_infos)
-      : host_{host} {
+      : host_{host}, logger_{common::createLogger("GossiperBroadcast")} {
     BOOST_ASSERT(!peer_infos.empty());
 
     streams_.reserve(peer_infos.size());
@@ -23,18 +23,23 @@ namespace kagome::network {
   }
 
   void GossiperBroadcast::blockAnnounce(const BlockAnnounce &announce) {
+    logger_->debug("Gossip block announce: block number {}",
+                   announce.header.number);
     broadcast(announce);
   }
 
   void GossiperBroadcast::precommit(Precommit pc) {
+    logger_->debug("Gossip precommit: vote for {}", pc.hash.toHex());
     broadcast(pc);
   }
 
   void GossiperBroadcast::prevote(Prevote pv) {
+    logger_->debug("Gossip prevote: vote for {}", pv.hash.toHex());
     broadcast(pv);
   }
 
   void GossiperBroadcast::primaryPropose(PrimaryPropose pv) {
+    logger_->debug("Gossip primary propose: vote for {}", pv.hash.toHex());
     broadcast(pv);
   }
 

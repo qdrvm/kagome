@@ -9,6 +9,7 @@
 #include <unordered_map>
 
 #include <gsl/span>
+#include "common/logger.hpp"
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/host/host.hpp"
 #include "libp2p/peer/peer_info.hpp"
@@ -47,6 +48,7 @@ namespace kagome::network {
     std::unordered_map<libp2p::peer::PeerInfo,
                        std::shared_ptr<libp2p::connection::Stream>>
         streams_;
+    common::Logger logger_;
   };
 }  // namespace kagome::network
 

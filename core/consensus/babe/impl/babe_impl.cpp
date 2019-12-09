@@ -104,11 +104,15 @@ namespace kagome::consensus {
   void BabeImpl::finishSlot() {
     auto slot_leadership = slots_leadership_[current_slot_];
     if (slot_leadership) {
+      log_->debug("Peer {} is leader", authority_index_.index);
       processSlotLeadership(*slot_leadership);
     }
 
     ++current_slot_;
     next_slot_finish_time_ += current_epoch_.slot_duration;
+    log_->debug("Slot {} in epoch {} has finished",
+                current_slot_,
+                current_epoch_.epoch_index);
     runSlot();
   }
 
@@ -196,6 +200,7 @@ namespace kagome::consensus {
         current_epoch_.randomness, ++current_epoch_.epoch_index);
     current_epoch_.start_slot = 0;
 
+    log_->debug("Epoch {} has finished", current_epoch_.epoch_index);
     runEpoch(current_epoch_, next_slot_finish_time_);
   }
 

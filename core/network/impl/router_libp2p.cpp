@@ -99,6 +99,8 @@ namespace kagome::network {
                       msg_res.error().message());
           return false;
         }
+        log_->debug("Received block announce: block number {}",
+                    msg_res.value().header.number);
         babe_observer_->onBlockAnnounce(msg_res.value());
         return true;
       }
@@ -109,6 +111,8 @@ namespace kagome::network {
                       msg_res.error().message());
           return false;
         }
+        log_->debug("Received precommit: vote for {}",
+                    msg_res.value().hash.toHex());
         grandpa_observer_->onPrecommit(msg_res.value());
         return true;
       }
@@ -119,6 +123,8 @@ namespace kagome::network {
                       msg_res.error().message());
           return false;
         }
+        log_->debug("Received prevote: vote for {}",
+                    msg_res.value().hash.toHex());
         grandpa_observer_->onPrevote(msg_res.value());
         return true;
       }
@@ -130,6 +136,8 @@ namespace kagome::network {
                       msg_res.error().message());
           return false;
         }
+        log_->debug("Received primary propose: vote for {}",
+                    msg_res.value().hash.toHex());
         grandpa_observer_->onPrimaryPropose(msg_res.value());
         return true;
       }

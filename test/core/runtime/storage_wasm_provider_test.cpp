@@ -31,7 +31,7 @@ TEST_F(StorageWasmProviderTest, GetCodeWhenNoStorageUpdates) {
 
   // given
   EXPECT_CALL(*trie_db, getRootHash()).WillOnce(Return(first_state_root));
-  EXPECT_CALL(*trie_db, get(runtime::runtime_key))
+  EXPECT_CALL(*trie_db, get(runtime::kRuntimeKey))
       .WillOnce(Return(state_code_));
   auto wasm_provider = std::make_shared<runtime::StorageWasmProvider>(trie_db);
 
@@ -58,13 +58,13 @@ TEST_F(StorageWasmProviderTest, GetCodeWhenStorageUpdates) {
 
   // given
   EXPECT_CALL(*trie_db, getRootHash()).WillOnce(Return(first_state_root));
-  EXPECT_CALL(*trie_db, get(runtime::runtime_key))
+  EXPECT_CALL(*trie_db, get(runtime::kRuntimeKey))
       .WillOnce(Return(state_code_));
   auto wasm_provider = std::make_shared<runtime::StorageWasmProvider>(trie_db);
 
   common::Buffer new_state_code{1, 3, 3, 8};
   EXPECT_CALL(*trie_db, getRootHash()).WillOnce(Return(second_state_root));
-  EXPECT_CALL(*trie_db, get(runtime::runtime_key))
+  EXPECT_CALL(*trie_db, get(runtime::kRuntimeKey))
       .WillOnce(Return(new_state_code));
 
   // when
