@@ -24,7 +24,7 @@ namespace kagome::options {
     CONFIG_FILE_NOT_EXIST,         // configuration file doesn't exist
     INVALID_CONFIG_FILE,           // failed to open configuration file
     CANNOT_OPEN_FILE,              // cannot open file
-    PATH_IS_NOT_DIR,       // leveldb path must be directory
+    PATH_IS_NOT_DIR,               // leveldb path must be directory
   };
 }  // namespace kagome::options
 
@@ -78,14 +78,16 @@ namespace kagome::options {
      * @param path file path
      * @return success if exists, error otherwise
      */
-    outcome::result<void> ensureFilePathExists(const boost::filesystem::path &path);
+    outcome::result<void> ensureFilePathExists(
+        const boost::filesystem::path &path);
 
     /**
      * @brief ensures that directory path exists
      * @param path file path
      * @return success if exists, error otherwise
      */
-    outcome::result<void> ensureDirPathExists(const boost::filesystem::path &path);
+    outcome::result<void> ensureDirPathExists(
+        const boost::filesystem::path &path);
 
     boost::program_options::options_description desc_;  ///< options description
     bool has_help_ = false;  ///< flag whether cmd line has help option

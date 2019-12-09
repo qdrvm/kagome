@@ -11,25 +11,26 @@ namespace kagome::application {
   using consensus::Randomness;
   using consensus::Threshold;
 
-  KagomeApplicationImpl::KagomeApplicationImpl(const std::string &config_path,
-                                               const std::string &keystore_path,
-                                               const std::string &leveldb_path)
-      : logger_(common::createLogger("Application")) {
-    auto &&injector = injector::makeApplicationInjector(
-        config_path, keystore_path, leveldb_path);
+  KagomeApplicationImpl::KagomeApplicationImpl(
+      const std::string &config_path,
+      const std::string &keystore_path,
+      const std::string &leveldb_path):
+      injector_{injector::makeApplicationInjector(
+          config_path, keystore_path, leveldb_path)},
+          logger_(common::createLogger("Application")){
     spdlog::set_level(spdlog::level::debug);
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
-    io_context_ = injector.create<sptr<boost::asio::io_context>>();
-    config_storage_ = injector.create<sptr<ConfigurationStorage>>();
-    key_storage_ = injector.create<sptr<KeyStorage>>();
-    clock_ = injector.create<sptr<clock::SystemClock>>();
-    extrinsic_api_service_ = injector.create<sptr<ExtrinsicApiService>>();
-    babe_ = injector.create<uptr<Babe>>();
+    io_context_ = injector_.create<sptr<boost::asio::io_context>>();
+    config_storage_ = injector_.create<sptr<ConfigurationStorage>>();
+    key_storage_ = injector_.create<sptr<KeyStorage>>();
+    clock_ = injector_.create<sptr<clock::SystemClock>>();
+    extrinsic_api_service_ = injector_.create<sptr<ExtrinsicApiService>>();
+    babe_ = injector_.create<uptr<Babe>>();
   }
 
-  // TODO (yuraz) rewrite when there will be mor info
+  // TODO (yuraz) rewrite when there will be more info
   Epoch KagomeApplicationImpl::makeInitialEpoch() {
     std::vector<primitives::Authority> authorities;
     auto &&session_keys = config_storage_->getSessionKeys();
