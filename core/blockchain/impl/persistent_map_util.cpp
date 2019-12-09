@@ -43,7 +43,7 @@ namespace kagome::blockchain {
   }
 
   outcome::result<common::Buffer> getWithPrefix(
-      storage::face::PersistentMap<common::Buffer, common::Buffer> &map,
+      const storage::face::PersistentMap<common::Buffer, common::Buffer> &map,
       prefix::Prefix prefix,
       const primitives::BlockId &block_id) {
     OUTCOME_TRY(key, idToLookupKey(map, block_id));

@@ -8,7 +8,7 @@
 
 #include "common/buffer.hpp"
 
-namespace kagome::application {
+namespace kagome::blockchain {
 
   // configurations from genesis.json lying under "genesis"->"raw" key
   using GenesisRawConfig = std::vector<std::pair<common::Buffer, common::Buffer>>;

@@ -24,5 +24,4 @@ addtest(block_storage_test
     )
 target_link_libraries(block_storage_test
     block_storage
-
     )

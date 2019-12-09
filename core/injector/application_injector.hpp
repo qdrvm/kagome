@@ -153,7 +153,7 @@ namespace kagome::injector {
               if (authorities_res.has_error()) {
                 common::raise(authorities_res.error());
               }
-              auto&& authorities = authorities_res.value();
+              auto &&authorities = authorities_res.value();
 
               uint64_t index = 0;
               for (auto &auth : authorities) {
@@ -225,25 +225,21 @@ namespace kagome::injector {
         di::bind<blockchain::BlockStorage>.to(
             [&](const auto &injector)
                 -> std::shared_ptr<blockchain::BlockStorage> {
-              // uncomment when todo below is implemented
-              // auto &&configuration_storage = injector.template create<
-              //    std::shared_ptr<application::ConfigurationStorage>>();
-              //const auto &genesis = configuration_storage->getGenesis();
+              auto configuration_storage = injector.template create<
+                  std::shared_ptr<application::ConfigurationStorage>>();
 
               auto &&hasher =
                   injector.template create<std::shared_ptr<crypto::Hasher>>();
 
-              auto &&db =
-                  injector.template create<storage::PersistentBufferMap &>();
+              const auto &db = injector.template create<
+                  std::shared_ptr<storage::trie::TrieDb>>();
+
+              const auto &genesis_raw_configs =
+                  configuration_storage->getGenesis();
 
               auto storage =
                   blockchain::KeyValueBlockStorage::createWithGenesis(
-                      // TODO(kamilsa): PRE-340 create genesis block from
-                      // genesis// configs tha should be inserted into the storage. Then
-                      // remove empty genesis with the proper one
-                      primitives::Block{},
-                      db,
-                      hasher);
+                      genesis_raw_configs, db, hasher);
               if (storage.has_error()) {
                 common::raise(storage.error());
               }

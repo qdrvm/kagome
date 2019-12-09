@@ -7,9 +7,12 @@
 #define KAGOME_KEY_VALUE_BLOCK_STORAGE_HPP
 
 #include "blockchain/block_storage.hpp"
+
+#include "blockchain/genesis_raw_config.hpp"
 #include "blockchain/impl/common.hpp"
 #include "common/logger.hpp"
 #include "crypto/hasher.hpp"
+#include "storage/trie/trie_db.hpp"
 
 namespace kagome::blockchain {
 
@@ -26,8 +29,8 @@ namespace kagome::blockchain {
      * @param hasher a hasher instance
      */
     static outcome::result<std::shared_ptr<KeyValueBlockStorage>>
-    createWithGenesis(const primitives::Block &genesis,
-                      PersistentBufferMap &storage,
+    createWithGenesis(const GenesisRawConfig &genesis,
+                      const std::shared_ptr<storage::trie::TrieDb> &storage,
                       std::shared_ptr<crypto::Hasher> hasher);
 
     outcome::result<primitives::BlockHeader> getBlockHeader(
@@ -50,10 +53,10 @@ namespace kagome::blockchain {
         const primitives::BlockNumber &number) override;
 
    private:
-    KeyValueBlockStorage(PersistentBufferMap &storage,
+    KeyValueBlockStorage(std::shared_ptr<storage::trie::TrieDb> storage,
                          std::shared_ptr<crypto::Hasher> hasher);
 
-    PersistentBufferMap &storage_;
+    std::shared_ptr<storage::trie::TrieDb> storage_;
     std::shared_ptr<crypto::Hasher> hasher_;
     common::Logger logger_;
   };

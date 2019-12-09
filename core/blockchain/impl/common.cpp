@@ -7,6 +7,8 @@
 
 #include "blockchain/impl/persistent_map_util.hpp"
 #include "common/visitor.hpp"
+#include "storage/in_memory/in_memory_storage.hpp"
+#include "storage/trie/impl/polkadot_trie_db.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, Error, e) {
   switch (e) {
@@ -17,7 +19,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, Error, e) {
 }
 
 namespace kagome::blockchain {
-  using kagome::common::Buffer;
 
   outcome::result<common::Buffer> idToLookupKey(const ReadableBufferMap &map,
                                                 const primitives::BlockId &id) {
@@ -29,12 +30,23 @@ namespace kagome::blockchain {
           return map.get(key);
         },
         [&map](const common::Hash256 &hash) {
-          return map.get(
-              prependPrefix(Buffer{hash}, prefix::Prefix::ID_TO_LOOKUP_KEY));
+          return map.get(prependPrefix(common::Buffer{hash},
+                                       prefix::Prefix::ID_TO_LOOKUP_KEY));
         });
     if (!key && isNotFoundError(key.error())) {
       return Error::BLOCK_NOT_FOUND;
     }
     return key;
+  }
+
+  common::Buffer trieRoot(
+      const std::vector<std::pair<common::Buffer, common::Buffer>> &key_vals) {
+    storage::trie::PolkadotTrieDb trie_db{
+        std::make_shared<storage::InMemoryStorage>()};
+
+    for (const auto &[key, val] : key_vals) {
+      trie_db.put(key, val);
+    }
+    return trie_db.getRootHash();
   }
 }  // namespace kagome::blockchain

@@ -74,7 +74,7 @@ namespace kagome::blockchain {
    * @return encoded entry or error
    */
   outcome::result<common::Buffer> getWithPrefix(
-      storage::face::PersistentMap<common::Buffer, common::Buffer> &map,
+      const storage::face::PersistentMap<common::Buffer, common::Buffer> &map,
       prefix::Prefix prefix,
       const primitives::BlockId &block_id);
 
@@ -110,4 +110,4 @@ namespace kagome::blockchain {
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, KeyValueRepositoryError);
 
-#endif  //KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTENT_MAP_UTIL_HPP
+#endif  // KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTENT_MAP_UTIL_HPP
