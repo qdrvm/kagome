@@ -46,7 +46,8 @@ namespace kagome::application {
      * @param keys_config keys parameters
      */
     KagomeApplicationImpl(const std::string &config_path,
-                          const std::string &keystore_path);
+                          const std::string &keystore_path,
+                          const std::string &leveldb_path);
 
     void run() override;
 
