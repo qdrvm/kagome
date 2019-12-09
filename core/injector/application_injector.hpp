@@ -239,11 +239,6 @@ namespace kagome::injector {
 
               const auto &genesis_raw_configs =
                   configuration_storage->getGenesis();
-              for (const auto &[key, val] : genesis_raw_configs) {
-                if (auto res = db.put(key, val); res.has_error()) {
-                  common::raise(res.error());
-                }
-              }
 
               auto storage =
                   blockchain::KeyValueBlockStorage::createWithGenesis(
