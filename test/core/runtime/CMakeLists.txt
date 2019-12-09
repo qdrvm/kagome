@@ -86,3 +86,9 @@ addtest(wasm_result_test
     wasm_result_test.cpp
     )
 
+addtest(storage_wasm_provider_test
+    storage_wasm_provider_test.cpp
+    )
+target_link_libraries(storage_wasm_provider_test
+    storage_wasm_provider
+    )

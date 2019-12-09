@@ -12,7 +12,6 @@ target_link_libraries(application_injector INTERFACE
     babe
     babe_lottery
     babe_observer
-    basic_wasm_provider
     block_header_repository
     block_storage
     block_tree
@@ -21,7 +20,7 @@ target_link_libraries(application_injector INTERFACE
     configuration_storage
     core
     extrinsic_api_service
-    fake_wasm_provider
+    storage_wasm_provider
     gossiper_broadcast
     in_memory_storage
     kagome_router
