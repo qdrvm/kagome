@@ -43,7 +43,6 @@ class BlockStorageTest : public testing::Test {
   Block genesis;
   GenesisRawConfig genesis_raw_config_{{Buffer(10ul, 0), Buffer(10ul, 9)}};
   BlockHash genesis_hash{{1, 2, 3, 4}};
-  BlockNumber genesis_number{0};
   Buffer root_hash;
 };
 
