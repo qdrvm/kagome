@@ -22,7 +22,8 @@ namespace kagome::consensus {
         peer_info_{std::move(peer_info)},
         block_tree_{std::move(block_tree)},
         blocks_headers_{std::move(blocks_headers)},
-        config_{config} {
+        config_{config},
+        log_(common::createLogger("Synchronizer")) {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(blocks_headers_);
   }

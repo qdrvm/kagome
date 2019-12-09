@@ -38,7 +38,7 @@ namespace kagome::extensions {
    private:
     constexpr static auto kDefaultLoggerTag = "WASM Runtime [IOExtension]";
     std::shared_ptr<runtime::WasmMemory> memory_;
-    common::Logger logger_ = common::createLogger(kDefaultLoggerTag);
+    common::Logger logger_;
   };
 }  // namespace kagome::extensions
 

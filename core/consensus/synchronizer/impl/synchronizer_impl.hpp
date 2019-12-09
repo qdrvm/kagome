@@ -56,7 +56,7 @@ namespace kagome::consensus {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers_;
     SynchronizerConfig config_;
-    common::Logger log_ = common::createLogger("Synchronizer");
+    common::Logger log_;
   };
 }  // namespace kagome::consensus
 

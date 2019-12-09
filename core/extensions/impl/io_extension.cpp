@@ -7,7 +7,8 @@
 
 namespace kagome::extensions {
   IOExtension::IOExtension(std::shared_ptr<runtime::WasmMemory> memory)
-      : memory_(std::move(memory)) {
+      : memory_(std::move(memory)),
+        logger_{common::createLogger(kDefaultLoggerTag)} {
     BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
   }
 
