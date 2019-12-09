@@ -10,7 +10,7 @@
 #include "testutil/outcome.hpp"
 
 using kagome::application::ConfigurationStorageImpl;
-using kagome::application::GenesisRawConfig;
+using kagome::blockchain::GenesisRawConfig;
 using kagome::common::Buffer;
 using kagome::crypto::SR25519PublicKey;
 using libp2p::multi::Multiaddress;
