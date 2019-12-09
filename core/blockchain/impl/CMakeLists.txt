@@ -10,12 +10,12 @@ add_library(blockchain_common
     persistent_map_util.hpp
     )
 target_link_libraries(blockchain_common
+    blob
     Boost::boost
     buffer
-    primitives
-    blob
-    polkadot_trie_db
     in_memory_storage
+    polkadot_trie_db
+    primitives
     )
 
 add_library(block_tree

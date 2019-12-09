@@ -4,7 +4,7 @@
  */
 
 #include "blockchain/impl/key_value_block_storage.hpp"
-#include <utility>
+
 #include "blockchain/impl/persistent_map_util.hpp"
 #include "scale/scale.hpp"
 
