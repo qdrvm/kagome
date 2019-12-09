@@ -15,7 +15,7 @@ namespace kagome::runtime {
 
     ~FakeWasmProvider() override = default;
 
-    common::Buffer getStateCode() override {
+    const common::Buffer &getStateCode() override {
       return state_code_;
     }
 

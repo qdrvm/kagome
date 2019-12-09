@@ -14,7 +14,7 @@ namespace test {
     initialize(path);
   }
 
-  Buffer BasicWasmProvider::getStateCode() {
+  const Buffer &BasicWasmProvider::getStateCode() {
     return buffer_;
   }
 

@@ -38,7 +38,8 @@ namespace kagome::consensus {
         hasher_{std::move(hasher)},
         timer_{std::move(timer)},
         event_bus_{event_bus},
-        error_channel_{event_bus_.getChannel<event::BabeErrorChannel>()} {
+        error_channel_{event_bus_.getChannel<event::BabeErrorChannel>()},
+        log_{common::createLogger("BABE")} {
     BOOST_ASSERT(lottery_);
     BOOST_ASSERT(proposer_);
     BOOST_ASSERT(block_tree_);
