@@ -234,7 +234,7 @@ namespace kagome::injector {
               auto &&hasher =
                   injector.template create<std::shared_ptr<crypto::Hasher>>();
 
-              auto &db = injector.template create<
+              const auto &db = injector.template create<
                   std::shared_ptr<storage::trie::TrieDb>>();
 
               const auto &genesis_raw_configs =
