@@ -16,7 +16,7 @@ namespace kagome::runtime {
    public:
     BlockBuilderApiImpl(
         const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-        std::shared_ptr<extensions::Extension> extension);
+        const std::shared_ptr<extensions::Extension> &extension);
 
     ~BlockBuilderApiImpl() override = default;
 

@@ -10,8 +10,8 @@ namespace kagome::runtime {
 
   TaggedTransactionQueueImpl::TaggedTransactionQueueImpl(
       const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-      std::shared_ptr<extensions::Extension> extension)
-      : RuntimeApi(wasm_provider->getStateCode(), std::move(extension)) {}
+      const std::shared_ptr<extensions::Extension> &extension)
+      : RuntimeApi(wasm_provider, extension) {}
 
   outcome::result<primitives::TransactionValidity>
   TaggedTransactionQueueImpl::validate_transaction(

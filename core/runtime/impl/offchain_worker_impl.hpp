@@ -16,7 +16,7 @@ namespace kagome::runtime {
    public:
     OffchainWorkerImpl(
         const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-        std::shared_ptr<extensions::Extension> extension);
+        const std::shared_ptr<extensions::Extension> &extension);
 
     ~OffchainWorkerImpl() override = default;
 

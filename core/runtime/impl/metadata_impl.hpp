@@ -15,7 +15,7 @@ namespace kagome::runtime {
   class MetadataImpl : public RuntimeApi, public Metadata {
    public:
     MetadataImpl(const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-                 std::shared_ptr<extensions::Extension> extension);
+                 const std::shared_ptr<extensions::Extension> &extension);
 
     ~MetadataImpl() override = default;
 

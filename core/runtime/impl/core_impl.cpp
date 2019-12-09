@@ -15,8 +15,8 @@ namespace kagome::runtime {
 
   CoreImpl::CoreImpl(
       const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-      std::shared_ptr<Extension> extension)
-      : RuntimeApi(wasm_provider->getStateCode(), std::move(extension)) {}
+      const std::shared_ptr<Extension> &extension)
+      : RuntimeApi(wasm_provider, extension) {}
 
   outcome::result<Version> CoreImpl::version() {
     return execute<Version>("Core_version");
