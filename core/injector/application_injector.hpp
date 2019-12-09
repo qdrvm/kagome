@@ -24,7 +24,7 @@
 #include "blockchain/impl/key_value_block_header_repository.hpp"
 #include "blockchain/impl/key_value_block_storage.hpp"
 #include "boost/di/extension/injections/extensible_injector.hpp"
-#include "clock/impl/basic_waSitable_timer.hpp"
+#include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
 #include "common/outcome_throw.hpp"
 #include "consensus/babe/babe_lottery.hpp"

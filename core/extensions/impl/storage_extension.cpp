@@ -15,7 +15,9 @@ namespace kagome::extensions {
   StorageExtension::StorageExtension(
       std::shared_ptr<storage::trie::TrieDb> db,
       std::shared_ptr<runtime::WasmMemory> memory)
-      : db_(std::move(db)), memory_(std::move(memory)) {
+      : db_(std::move(db)),
+        memory_(std::move(memory)),
+        logger_{common::createLogger(kDefaultLoggerTag)} {
     BOOST_ASSERT_MSG(db_ != nullptr, "db is nullptr");
     BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
   }

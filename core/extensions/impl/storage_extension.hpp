@@ -108,7 +108,7 @@ namespace kagome::extensions {
 
     std::shared_ptr<storage::trie::TrieDb> db_;
     std::shared_ptr<runtime::WasmMemory> memory_;
-    common::Logger logger_ = common::createLogger(kDefaultLoggerTag);
+    common::Logger logger_;
 
     constexpr static auto kDefaultLoggerTag = "WASM Runtime [StorageExtension]";
   };

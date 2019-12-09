@@ -23,7 +23,8 @@ namespace kagome::network {
       : host_{host},
         babe_observer_{std::move(babe_observer)},
         grandpa_observer_{std::move(grandpa_observer)},
-        sync_observer_{std::move(sync_observer)} {
+        sync_observer_{std::move(sync_observer)},
+        log_{common::createLogger("RouterLibp2p")} {
     BOOST_ASSERT_MSG(babe_observer_ != nullptr, "babe observer is nullptr");
     BOOST_ASSERT_MSG(grandpa_observer_ != nullptr,
                      "grandpa observer is nullptr");

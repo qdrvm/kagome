@@ -47,7 +47,7 @@ namespace kagome::runtime {
     constexpr static auto kDefaultLoggerTag = "Wasm executor";
 
     std::shared_ptr<extensions::Extension> extension_;
-    common::Logger logger_ = common::createLogger(kDefaultLoggerTag);
+    common::Logger logger_;
   };
 
 }  // namespace kagome::runtime
