@@ -23,13 +23,6 @@ target_link_libraries(wasm_executor
     runtime_external_interface
     )
 
-add_library(fake_wasm_provider
-    fake_wasm_provider.cpp
-    )
-target_link_libraries(fake_wasm_provider
-    buffer
-    )
-
 add_library(storage_wasm_provider
     storage_wasm_provider.cpp
     )
