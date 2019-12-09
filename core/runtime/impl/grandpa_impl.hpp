@@ -15,7 +15,7 @@ namespace kagome::runtime {
   class GrandpaImpl : public RuntimeApi, public Grandpa {
    public:
     GrandpaImpl(const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-                std::shared_ptr<extensions::Extension> extension);
+                const std::shared_ptr<extensions::Extension> &extension);
 
     ~GrandpaImpl() override = default;
 

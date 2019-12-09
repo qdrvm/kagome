@@ -93,6 +93,7 @@ namespace kagome::consensus {
      */
     void synchronizeSlots();
 
+   private:
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<authorship::Proposer> proposer_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
@@ -103,7 +104,6 @@ namespace kagome::consensus {
     std::shared_ptr<crypto::Hasher> hasher_;
     std::unique_ptr<clock::Timer> timer_;
     libp2p::event::Bus &event_bus_;
-    common::Logger log_ = common::createLogger("BABE");
 
     Epoch current_epoch_;
 
@@ -112,6 +112,7 @@ namespace kagome::consensus {
     BabeTimePoint next_slot_finish_time_;
 
     decltype(event_bus_.getChannel<event::BabeErrorChannel>()) &error_channel_;
+    common::Logger log_;
   };
 }  // namespace kagome::consensus
 

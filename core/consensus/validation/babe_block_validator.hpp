@@ -113,7 +113,7 @@ namespace kagome::consensus {
     std::shared_ptr<crypto::VRFProvider> vrf_provider_;
     std::shared_ptr<crypto::SR25519Provider> sr25519_provider_;
 
-    common::Logger log_ = common::createLogger("BabeBlockValidator");
+    common::Logger log_;
   };
 }  // namespace kagome::consensus
 

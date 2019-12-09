@@ -53,11 +53,11 @@
 #include "network/sync_protocol_observer.hpp"
 #include "runtime/impl/block_builder_api_impl.hpp"
 #include "runtime/impl/core_impl.hpp"
-#include "runtime/impl/fake_wasm_provider.hpp"
 #include "runtime/impl/grandpa_impl.hpp"
 #include "runtime/impl/metadata_impl.hpp"
 #include "runtime/impl/offchain_worker_impl.hpp"
 #include "runtime/impl/parachain_host_impl.hpp"
+#include "runtime/impl/storage_wasm_provider.hpp"
 #include "runtime/impl/tagged_transaction_queue_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "storage/leveldb/leveldb.hpp"
@@ -303,7 +303,7 @@ namespace kagome::injector {
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
         di::bind<storage::trie::TrieDb>.template to<storage::trie::PolkadotTrieDb>(),
         di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
-        di::bind<runtime::WasmProvider>.template to<runtime::FakeWasmProvider>().in(
+        di::bind<runtime::WasmProvider>.template to<runtime::StorageWasmProvider>().in(
             di::extension::shared),
         // create configuration storage shared value
         di::bind<application::ConfigurationStorage>.to(

@@ -64,7 +64,7 @@ namespace kagome::storage {
     std::unique_ptr<leveldb::DB> db_;
     leveldb::ReadOptions ro_;
     leveldb::WriteOptions wo_;
-    common::Logger logger_ = common::createLogger("leveldb");
+    common::Logger logger_;
   };
 
 }  // namespace kagome::storage

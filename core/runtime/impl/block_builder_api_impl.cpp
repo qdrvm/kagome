@@ -18,8 +18,8 @@ namespace kagome::runtime {
 
   BlockBuilderApiImpl::BlockBuilderApiImpl(
       const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-      std::shared_ptr<Extension> extension)
-      : RuntimeApi(wasm_provider->getStateCode(), std::move(extension)) {}
+      const std::shared_ptr<Extension> &extension)
+      : RuntimeApi(wasm_provider, extension) {}
 
   outcome::result<bool> BlockBuilderApiImpl::apply_extrinsic(
       const Extrinsic &extrinsic) {

@@ -26,7 +26,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, WasmExecutor::Error, e) {
 namespace kagome::runtime {
 
   WasmExecutor::WasmExecutor(std::shared_ptr<extensions::Extension> extension)
-      : extension_(std::move(extension)) {
+      : extension_(std::move(extension)),
+        logger_{common::createLogger(kDefaultLoggerTag)} {
     BOOST_ASSERT_MSG(extension_ != nullptr, "extension is nullptr");
   }
 

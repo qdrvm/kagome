@@ -55,7 +55,6 @@ namespace kagome::options {
     // ENSURE THAT PATHS EXIST
     OUTCOME_TRY(ensureFilePathExists(configuration_path));
     OUTCOME_TRY(ensureFilePathExists(keystore_path));
-    OUTCOME_TRY(ensureDirPathExists(leveldb_path));
 
     key_storage_path_ = keystore_path;
     config_storage_path_ = configuration_path;

@@ -19,7 +19,7 @@ namespace kagome::runtime {
     /**
      * @return wasm runtime code
      */
-    virtual common::Buffer getStateCode() = 0;
+    virtual const common::Buffer &getStateCode() const = 0;
   };
 }  // namespace kagome::runtime
 

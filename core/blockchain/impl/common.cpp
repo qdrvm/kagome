@@ -45,7 +45,8 @@ namespace kagome::blockchain {
         std::make_shared<storage::InMemoryStorage>()};
 
     for (const auto &[key, val] : key_vals) {
-      trie_db.put(key, val);
+      auto res = trie_db.put(key, val);
+      BOOST_ASSERT_MSG(res.has_value(), "Insertion into trie db failed");
     }
     return trie_db.getRootHash();
   }

@@ -56,7 +56,7 @@ namespace kagome::network {
     std::shared_ptr<BabeObserver> babe_observer_;
     std::shared_ptr<consensus::grandpa::Observer> grandpa_observer_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
-    common::Logger log_ = common::createLogger("RouterLibp2p");
+    common::Logger log_;
   };
 }  // namespace kagome::network
 

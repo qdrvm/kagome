@@ -11,7 +11,9 @@ namespace kagome::api {
 
   ApiService::ApiService(std::shared_ptr<Listener> listener,
                          std::shared_ptr<JRPCProcessor> processor)
-      : listener_(std::move(listener)), processor_(std::move(processor)) {
+      : listener_(std::move(listener)),
+        processor_(std::move(processor)),
+        logger_{common::createLogger("Api service")} {
     processor_->registerHandlers();
   }
 
@@ -31,6 +33,7 @@ namespace kagome::api {
                                       });
       });
     });
+    logger_->debug("Service started");
   }
 
   void ApiService::stop() {

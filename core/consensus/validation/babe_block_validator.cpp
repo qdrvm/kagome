@@ -46,7 +46,8 @@ namespace kagome::consensus {
         tx_queue_{std::move(tx_queue)},
         hasher_{std::move(hasher)},
         vrf_provider_{std::move(vrf_provider)},
-        sr25519_provider_{std::move(sr25519_provider)} {
+        sr25519_provider_{std::move(sr25519_provider)},
+        log_{common::createLogger("BabeBlockValidator")} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(tx_queue_);
     BOOST_ASSERT(vrf_provider_);
@@ -214,11 +215,10 @@ namespace kagome::consensus {
                        validation_res.error());
             return false;
           }
-          return visit_in_place(
-              validation_res.value(),
-              [](const primitives::Valid &) { return true; },
-              [](primitives::Invalid) { return false; },
-              [](primitives::Unknown) { return false; });
+          return visit_in_place(validation_res.value(),
+                                [](const primitives::Valid &) { return true; },
+                                [](primitives::Invalid) { return false; },
+                                [](primitives::Unknown) { return false; });
         });
   }
 }  // namespace kagome::consensus

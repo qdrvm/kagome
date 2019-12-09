@@ -22,6 +22,7 @@ namespace kagome::storage {
     if (status.ok()) {
       auto l = std::make_unique<LevelDB>();
       l->db_ = std::unique_ptr<leveldb::DB>(db);
+      l->logger_ = common::createLogger("leveldb");
       return l;
     }
 
