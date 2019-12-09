@@ -38,8 +38,11 @@ namespace kagome::storage::trie {
     }
     PolkadotCodec codec;
     OUTCOME_TRY(enc, codec.encodeNode(*trie.getRoot()));
-    auto hash = codec.merkleValue(enc);
-    return common::Buffer{hash};
+    auto merkleValue = codec.merkleValue(enc);
+    auto merkleHash = merkleValue.size() > 32
+                          ? merkleValue
+                          : common::Buffer{codec.hash256(merkleValue)};
+    return merkleHash;
   }
 
 }  // namespace kagome::storage::trie

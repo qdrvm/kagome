@@ -11,9 +11,9 @@ namespace kagome::application {
 
   outcome::result<std::shared_ptr<LocalKeyStorage>> LocalKeyStorage::create(
       const Config &c,
-      std::shared_ptr<libp2p::crypto::KeyGenerator> generator,
+      std::shared_ptr<libp2p::crypto::CryptoProvider> crypto_provider,
       std::shared_ptr<libp2p::crypto::validator::KeyValidator> validator) {
-    auto storage = LocalKeyStorage(std::move(generator), std::move(validator));
+    auto storage = LocalKeyStorage(std::move(crypto_provider), std::move(validator));
     OUTCOME_TRY(
         p2p_pair,
         storage.loadP2PKeypair(c.p2p_keypair_location, c.p2p_keypair_type));
@@ -26,10 +26,11 @@ namespace kagome::application {
   }
 
   LocalKeyStorage::LocalKeyStorage(
-      std::shared_ptr<libp2p::crypto::KeyGenerator> generator,
+      std::shared_ptr<libp2p::crypto::CryptoProvider> crypto_provider,
       std::shared_ptr<libp2p::crypto::validator::KeyValidator> validator)
-      : generator_{std::move(generator)}, validator_{std::move(validator)} {
-    BOOST_ASSERT(generator_ != nullptr);
+      : crypto_provider_{std::move(crypto_provider)},
+        validator_{std::move(validator)} {
+    BOOST_ASSERT(crypto_provider_ != nullptr);
     BOOST_ASSERT(validator_ != nullptr);
   }
 
@@ -56,7 +57,7 @@ namespace kagome::application {
     private_key.data.resize(bytes.size());
     std::copy(bytes.begin(), bytes.end(), private_key.data.begin());
 
-    OUTCOME_TRY(public_key, generator_->derivePublicKey(private_key));
+    OUTCOME_TRY(public_key, crypto_provider_->derivePublicKey(private_key));
     OUTCOME_TRY(validator_->validate(public_key));
 
     return libp2p::crypto::KeyPair{std::move(public_key),

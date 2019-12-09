@@ -24,7 +24,8 @@ namespace kagome::storage::trie {
       SUCCESS = 0,
       TOO_MANY_NIBBLES,   ///< number of nibbles in key is >= 2**16
       UNKNOWN_NODE_TYPE,  ///< node type is unknown
-      INPUT_TOO_SMALL     ///< cannot decode a node, not enough bytes on input
+      INPUT_TOO_SMALL,    ///< cannot decode a node, not enough bytes on input
+      NO_NODE_VALUE       ///< leaf node without value
     };
 
     ~PolkadotCodec() override = default;
