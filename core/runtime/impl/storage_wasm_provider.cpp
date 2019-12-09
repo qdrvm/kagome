@@ -8,7 +8,7 @@
 namespace kagome::runtime {
 
   StorageWasmProvider::StorageWasmProvider(
-      std::shared_ptr<kagome::storage::trie::TrieDb> storage)
+      std::shared_ptr<storage::trie::TrieDb> storage)
       : storage_{std::move(storage)} {
     BOOST_ASSERT(storage_ != nullptr);
 
