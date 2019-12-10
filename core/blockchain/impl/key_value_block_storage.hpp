@@ -22,8 +22,8 @@ namespace kagome::blockchain {
     ~KeyValueBlockStorage() override = default;
 
     /**
-     * Initialise block storage with a genesis block
-     * @param genesis the genesis block
+     * Initialise block storage with a genesis block which is created inside
+     * from merkle trie root
      * @param storage underlying storage (must be empty)
      * @param hasher a hasher instance
      */
