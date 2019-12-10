@@ -17,6 +17,7 @@
 #include "api/transport/impl/http_session.hpp"
 #include "api/transport/impl/listener_impl.hpp"
 #include "application/impl/configuration_storage_impl.hpp"
+#include "application/impl/local_key_storage.hpp"
 #include "authorship/impl/block_builder_factory_impl.hpp"
 #include "authorship/impl/block_builder_impl.hpp"
 #include "authorship/impl/proposer_impl.hpp"
@@ -68,6 +69,14 @@
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
 
 namespace kagome::injector {
+  enum class InjectorError {
+    INDEX_OUT_OF_BOUND = 1,  // index out of bound
+  };
+}
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::injector, InjectorError);
+
+namespace kagome::injector {
   namespace di = boost::di;
 
   template <typename C>
@@ -81,6 +90,11 @@ namespace kagome::injector {
 
   template <class T>
   using uptr = std::unique_ptr<T>;
+
+  template <class T>
+  struct Wrapper {
+    sptr<T> value;
+  };
 
   template <typename... Ts>
   auto makeApplicationInjector(const std::string &genesis_path,
@@ -98,76 +112,102 @@ namespace kagome::injector {
         transaction_pool::TransactionPoolImpl::kDefaultMaxWaitingNum};
     auto leveldb_options = leveldb::Options();
 
+    auto get_sr25519_keypair =
+        [](const auto &injector) -> sptr<crypto::SR25519Keypair> {
+      auto &key_storage = injector.template create<application::KeyStorage &>();
+      auto &&sr25519_kp = key_storage.getLocalSr25519Keypair();
+      return std::make_shared<crypto::SR25519Keypair>(sr25519_kp);
+    };
+
+    auto get_ed25519_keypair =
+        [](const auto &injector) -> sptr<crypto::ED25519Keypair> {
+      auto &key_storage = injector.template create<application::KeyStorage &>();
+      auto &&ed25519_kp = key_storage.getLocalEd25519Keypair();
+      return std::make_shared<crypto::ED25519Keypair>(ed25519_kp);
+    };
+
+    auto get_peer_info =
+        [](const auto &injector) -> sptr<libp2p::peer::PeerInfo> {
+      // get key storage
+      auto &keys = injector.template create<application::KeyStorage &>();
+      auto &&local_pair = keys.getP2PKeypair();
+      auto &public_key = local_pair.publicKey;
+      libp2p::peer::PeerId peer_id =
+          libp2p::peer::PeerId::fromPublicKey(public_key.data);
+      // TODO (yuraz): specify port
+      auto multiaddress =
+          libp2p::multi::Multiaddress::create("/ip4/127.0.0.1/tcp/30363");
+      if (!multiaddress) {
+        common::raise(multiaddress.error());  // exception
+      }
+      std::vector<libp2p::multi::Multiaddress> addresses;
+      addresses.push_back(std::move(multiaddress.value()));
+      libp2p::peer::PeerInfo peer_info{peer_id, std::move(addresses)};
+
+      return std::make_shared<libp2p::peer::PeerInfo>(std::move(peer_info));
+    };
+
+    auto get_authority_index =
+        [](const auto &injector) -> sptr<primitives::AuthorityIndex> {
+      auto core = injector.template create<sptr<runtime::Core>>();
+      auto &keys = injector.template create<application::KeyStorage &>();
+      auto &&local_pair = keys.getLocalEd25519Keypair();
+      auto &public_key = local_pair.public_key;
+      auto &&authorities_res = core->authorities();
+      if (authorities_res.has_error()) {
+        common::raise(authorities_res.error());
+      }
+      auto &&authorities = authorities_res.value();
+
+      uint64_t index = 0;
+      for (auto &auth : authorities) {
+        if (public_key == auth.id) {
+          break;
+        }
+        ++index;
+      }
+      if (index >= authorities.size()) {
+        common::raise(InjectorError::INDEX_OUT_OF_BOUND);
+      }
+      return std::make_shared<primitives::AuthorityIndex>(
+          primitives::AuthorityIndex{index});
+    };
+
+    auto get_extrinsic_api_listener =
+        [](const auto &injector) -> sptr<api::Listener> {
+      // listener is used currently only for extrinsic api
+      // if other apis are required, need to
+      // implement lambda creating corresponding api service
+      // where listener is initialized manually
+      // in this case listener should be bound
+
+      auto &context = injector.template create<boost::asio::io_context &>();
+      auto &cfg =
+          injector.template create<application::ConfigurationStorage &>();
+      auto extrinsic_tcp_version = boost::asio::ip::tcp::v4();
+      uint16_t extrinsic_api_port = cfg.getExtrinsicApiPort();
+      api::ListenerImpl::Configuration listener_config{
+          boost::asio::ip::tcp::endpoint{extrinsic_tcp_version,
+                                         extrinsic_api_port}};
+      auto &&http_session_config =
+          injector.template create<api::HttpSession::Configuration>();
+
+      return std::make_shared<api::ListenerImpl>(
+          context, listener_config, http_session_config);
+    };
+
     // make injector
     return di::make_injector(
         // inherit host injector
         libp2p::injector::makeHostInjector(),
         // bind sr25519 keypair
-        di::bind<crypto::SR25519Keypair>.template to(
-            [&](const auto &injector) -> sptr<crypto::SR25519Keypair> {
-              auto &key_storage =
-                  injector.template create<application::KeyStorage &>();
-              auto &&sr25519_kp = key_storage.getLocalSr25519Keypair();
-              return std::make_shared<crypto::SR25519Keypair>(sr25519_kp);
-            }),
+        di::bind<crypto::SR25519Keypair>.template to(std::move(get_sr25519_keypair)),
         // bind ed25519 keypair
-        di::bind<crypto::ED25519Keypair>.template to(
-            [&](const auto &injector) -> sptr<crypto::ED25519Keypair> {
-              auto &key_storage =
-                  injector.template create<application::KeyStorage &>();
-              auto &&ed25519_kp = key_storage.getLocalEd25519Keypair();
-              return std::make_shared<crypto::ED25519Keypair>(ed25519_kp);
-            }),
+        di::bind<crypto::ED25519Keypair>.template to(std::move(get_ed25519_keypair)),
         // compose peer info
-        di::bind<libp2p::peer::PeerInfo>.template to(
-            [&](const auto &injector) -> sptr<libp2p::peer::PeerInfo> {
-              // get key storage
-              auto &keys =
-                  injector.template create<application::KeyStorage &>();
-              auto &&local_pair = keys.getP2PKeypair();
-              auto &public_key = local_pair.publicKey;
-              libp2p::peer::PeerId peer_id =
-                  libp2p::peer::PeerId::fromPublicKey(public_key.data);
-              // TODO (yuraz): specify port
-              auto multiaddress = libp2p::multi::Multiaddress::create(
-                  "/ip4/127.0.0.1/tcp/30363");
-              if (!multiaddress) {
-                common::raise(multiaddress.error());  // exception
-              }
-              std::vector<libp2p::multi::Multiaddress> addresses;
-              addresses.push_back(std::move(multiaddress.value()));
-              libp2p::peer::PeerInfo peer_info{peer_id, std::move(addresses)};
-
-              return std::make_shared<libp2p::peer::PeerInfo>(
-                  std::move(peer_info));
-            }),
+        di::bind<libp2p::peer::PeerInfo>.template to(std::move(get_peer_info)),
         // find and bind authority id
-        di::bind<primitives::AuthorityIndex>.template to(
-            [&](const auto &injector) -> sptr<primitives::AuthorityIndex> {
-              auto core = injector.template create<sptr<runtime::Core>>();
-              auto &keys =
-                  injector.template create<application::KeyStorage &>();
-              auto &&local_pair = keys.getLocalEd25519Keypair();
-              auto &public_key = local_pair.public_key;
-              auto &&authorities_res = core->authorities();
-              if (authorities_res.has_error()) {
-                common::raise(authorities_res.error());
-              }
-              auto &&authorities = authorities_res.value();
-
-              uint64_t index = 0;
-              for (auto &auth : authorities) {
-                if (public_key == auth.id) {
-                  break;
-                }
-                ++index;
-              }
-              if (index >= authorities.size()) {
-                // TODO (yuraz) throw exception
-              }
-              return std::make_shared<primitives::AuthorityIndex>(
-                  primitives::AuthorityIndex{index});
-            }),
+        di::bind<primitives::AuthorityIndex>.template to(std::move(get_authority_index)),
 
         // bind io_context: 1 per injector
         di::bind<::boost::asio::io_context>.in(
@@ -181,45 +221,32 @@ namespace kagome::injector {
         injector::useConfig(leveldb_options),
 
         // bind interfaces
-        di::bind<api::Listener>.to([&](const auto &injector)
-                                       -> sptr<api::Listener> {
-          // listener is used currently only for extrinsic api
-          // if other apis are required, need to
-          // implement lambda creating corresponding api service
-          // where listener is initialized manually
-          // in this case listener should be bound
-
-          auto &context = injector.template create<boost::asio::io_context &>();
-          auto &cfg =
-              injector.template create<application::ConfigurationStorage &>();
-          auto extrinsic_tcp_version = boost::asio::ip::tcp::v4();
-          uint16_t extrinsic_api_port = cfg.getExtrinsicApiPort();
-          api::ListenerImpl::Configuration listener_config{
-              boost::asio::ip::tcp::endpoint{extrinsic_tcp_version,
-                                             extrinsic_api_port}};
-          auto &&http_session_config =
-              injector.template create<api::HttpSession::Configuration>();
-
-          return std::make_shared<api::ListenerImpl>(
-              context, listener_config, http_session_config);
-        }),
+        di::bind<api::Listener>.to(std::move(get_extrinsic_api_listener)),
         di::bind<api::ExtrinsicApi>.template to<api::ExtrinsicApiImpl>(),
         di::bind<authorship::Proposer>.template to<authorship::ProposerImpl>(),
         di::bind<authorship::BlockBuilder>.template to<authorship::BlockBuilderImpl>(),
         di::bind<authorship::BlockBuilderFactory>.template to<authorship::BlockBuilderFactoryImpl>(),
+        di::bind<Wrapper<storage::PersistentBufferMap>>.template to(
+            [obj = std::make_shared<Wrapper<storage::PersistentBufferMap>>()]
+            (const auto &injector) mutable ->std::shared_ptr<Wrapper<storage::PersistentBufferMap>> {
+          return obj;
+        }),
         di::bind<storage::PersistentBufferMap>.template to(
             [&](const auto &injector) -> sptr<storage::PersistentBufferMap> {
-              //              auto options = injector.template
-              //              create<leveldb::Options>();
-              auto options = leveldb::Options{};
-              options.create_if_missing = true;
-              auto db = storage::LevelDB::create(leveldb_path, options);
-              if (!db) {
-                common::raise(db.error());
+              auto &wrapper = injector.template create<Wrapper<storage::PersistentBufferMap>&>();
+              if (nullptr == wrapper.value) {
+                auto options = leveldb::Options{};
+                options.create_if_missing = true;
+                auto db = storage::LevelDB::create(leveldb_path, options);
+                if (!db) {
+                  common::raise(db.error());
+                }
+                wrapper.value = sptr<storage::PersistentBufferMap>(
+                    dynamic_cast<storage::PersistentBufferMap *>(
+                        db.value().release()));
               }
-              return sptr<storage::PersistentBufferMap>(
-                  dynamic_cast<storage::PersistentBufferMap *>(
-                      db.value().release()));
+
+              return wrapper.value;
             }),
         // create block storage
         di::bind<blockchain::BlockStorage>.to(

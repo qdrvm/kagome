@@ -3,8 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(application_injector INTERFACE)
-target_link_libraries(application_injector INTERFACE
+add_library(application_injector
+    application_injector.cpp
+    )
+target_link_libraries(application_injector
     p2p::p2p
     tsl::tsl_hat_trie
     Boost::Boost.DI
@@ -20,13 +22,14 @@ target_link_libraries(application_injector INTERFACE
     configuration_storage
     core
     extrinsic_api_service
-    storage_wasm_provider
     gossiper_broadcast
     in_memory_storage
     kagome_router
     leveldb
+    local_key_storage
     outcome
     proposer
+    storage_wasm_provider
     synchronizer
     tagged_transaction_queue
     vrf_provider
