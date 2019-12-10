@@ -7,7 +7,7 @@
 #define KAGOME_KAGOME_CONFIG_HPP
 
 #include <libp2p/peer/peer_info.hpp>
-#include "blockchain/genesis_raw_config.hpp"
+#include "application/genesis_raw_config.hpp"
 #include "crypto/ed25519_types.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "primitives/block.hpp"
@@ -26,7 +26,7 @@ namespace kagome::application {
                      == rhs.api_ports.extrinsic_api_port;
     }
 
-    blockchain::GenesisRawConfig genesis;
+    application::GenesisRawConfig genesis;
     std::vector<libp2p::peer::PeerInfo> boot_nodes;
     std::vector<crypto::SR25519PublicKey> session_keys;
     struct ApiPorts {

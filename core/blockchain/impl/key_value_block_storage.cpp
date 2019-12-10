@@ -36,15 +36,11 @@ namespace kagome::blockchain {
 
   outcome::result<std::shared_ptr<KeyValueBlockStorage>>
   KeyValueBlockStorage::createWithGenesis(
-      const GenesisRawConfig &genesis,
       const std::shared_ptr<storage::trie::TrieDb> &storage,
       std::shared_ptr<crypto::Hasher> hasher) {
     KeyValueBlockStorage kv_storage(storage, std::move(hasher));
     // TODO(Harrm) check that storage is actually empty
-    for (const auto &[key, val] : genesis) {
-      kv_storage.logger_->debug("Key: {} \nVal: {}", key.toHex(), val.toHex());
-      OUTCOME_TRY(storage->put(key, val));
-    }
+
     // state root type is Hash256, however for consistency with spec root hash
     // returns buffer. So we need this conversion
     OUTCOME_TRY(state_root,

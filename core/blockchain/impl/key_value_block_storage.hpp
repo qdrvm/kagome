@@ -8,7 +8,6 @@
 
 #include "blockchain/block_storage.hpp"
 
-#include "blockchain/genesis_raw_config.hpp"
 #include "blockchain/impl/common.hpp"
 #include "common/logger.hpp"
 #include "crypto/hasher.hpp"
@@ -29,8 +28,7 @@ namespace kagome::blockchain {
      * @param hasher a hasher instance
      */
     static outcome::result<std::shared_ptr<KeyValueBlockStorage>>
-    createWithGenesis(const GenesisRawConfig &genesis,
-                      const std::shared_ptr<storage::trie::TrieDb> &storage,
+    createWithGenesis(const std::shared_ptr<storage::trie::TrieDb> &storage,
                       std::shared_ptr<crypto::Hasher> hasher);
 
     outcome::result<primitives::BlockHeader> getBlockHeader(

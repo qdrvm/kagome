@@ -20,7 +20,7 @@ namespace kagome::application {
 
     ~ConfigurationStorageImpl() override = default;
 
-    blockchain::GenesisRawConfig getGenesis() const override;
+    application::GenesisRawConfig getGenesis() const override;
     std::vector<libp2p::peer::PeerInfo> getBootNodes() const override;
     std::vector<crypto::SR25519PublicKey> getSessionKeys() const override;
 

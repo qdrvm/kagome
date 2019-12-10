@@ -7,9 +7,9 @@
 #define KAGOME_CONFIGURATION_STORAGE_HPP
 
 #include <libp2p/peer/peer_info.hpp>
-#include "blockchain/genesis_raw_config.hpp"
 #include "crypto/ed25519_types.hpp"
 #include "crypto/sr25519_types.hpp"
+#include "genesis_raw_config.hpp"
 #include "primitives/block.hpp"
 
 namespace kagome::application {
@@ -25,7 +25,7 @@ namespace kagome::application {
     /**
      * @return genesis block of the chain
      */
-    virtual blockchain::GenesisRawConfig getGenesis() const = 0;
+    virtual application::GenesisRawConfig getGenesis() const = 0;
 
     /**
      * Return ids of peer nodes of the current node

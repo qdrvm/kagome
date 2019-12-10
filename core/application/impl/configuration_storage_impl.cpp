@@ -13,7 +13,7 @@
 
 namespace kagome::application {
 
-  blockchain::GenesisRawConfig ConfigurationStorageImpl::getGenesis() const {
+  application::GenesisRawConfig ConfigurationStorageImpl::getGenesis() const {
     return config_.genesis;
   }
 
