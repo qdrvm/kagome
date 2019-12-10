@@ -225,21 +225,15 @@ namespace kagome::injector {
         di::bind<blockchain::BlockStorage>.to(
             [&](const auto &injector)
                 -> std::shared_ptr<blockchain::BlockStorage> {
-              auto configuration_storage = injector.template create<
-                  std::shared_ptr<application::ConfigurationStorage>>();
-
               auto &&hasher =
                   injector.template create<std::shared_ptr<crypto::Hasher>>();
 
               const auto &db = injector.template create<
                   std::shared_ptr<storage::trie::TrieDb>>();
 
-              const auto &genesis_raw_configs =
-                  configuration_storage->getGenesis();
-
               auto storage =
-                  blockchain::KeyValueBlockStorage::createWithGenesis(
-                      genesis_raw_configs, db, hasher);
+                  blockchain::KeyValueBlockStorage::createWithGenesis(db,
+                                                                      hasher);
               if (storage.has_error()) {
                 common::raise(storage.error());
               }
@@ -301,7 +295,21 @@ namespace kagome::injector {
         di::bind<runtime::BlockBuilderApi>.template to<runtime::BlockBuilderApiImpl>(),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
-        di::bind<storage::trie::TrieDb>.template to<storage::trie::PolkadotTrieDb>(),
+        di::bind<storage::trie::TrieDb>.template to([&](const auto& injector){
+          auto configuration_storage = injector.template create<
+              std::shared_ptr<application::ConfigurationStorage>>();
+          const auto &genesis_raw_configs =
+              configuration_storage->getGenesis();
+
+          auto persistent_storage = injector.template create<sptr<storage::PersistentBufferMap>>();
+          auto trie_db = std::make_shared<storage::trie::PolkadotTrieDb>(persistent_storage);
+          for (const auto &[key, val] : genesis_raw_configs) {
+            if (auto res = trie_db->put(key, val); not res) {
+              common::raise(res.error());
+            }
+          }
+          return trie_db;
+        }),
         di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
         di::bind<runtime::WasmProvider>.template to<runtime::StorageWasmProvider>().in(
             di::extension::shared),

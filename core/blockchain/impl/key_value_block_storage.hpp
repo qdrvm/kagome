@@ -8,7 +8,6 @@
 
 #include "blockchain/block_storage.hpp"
 
-#include "blockchain/genesis_raw_config.hpp"
 #include "blockchain/impl/common.hpp"
 #include "common/logger.hpp"
 #include "crypto/hasher.hpp"
@@ -23,14 +22,13 @@ namespace kagome::blockchain {
     ~KeyValueBlockStorage() override = default;
 
     /**
-     * Initialise block storage with a genesis block
-     * @param genesis the genesis block
+     * Initialise block storage with a genesis block which is created inside
+     * from merkle trie root
      * @param storage underlying storage (must be empty)
      * @param hasher a hasher instance
      */
     static outcome::result<std::shared_ptr<KeyValueBlockStorage>>
-    createWithGenesis(const GenesisRawConfig &genesis,
-                      const std::shared_ptr<storage::trie::TrieDb> &storage,
+    createWithGenesis(const std::shared_ptr<storage::trie::TrieDb> &storage,
                       std::shared_ptr<crypto::Hasher> hasher);
 
     outcome::result<primitives::BlockHeader> getBlockHeader(

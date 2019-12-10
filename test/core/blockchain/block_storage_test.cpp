@@ -12,7 +12,6 @@
 #include "storage/leveldb/leveldb_error.hpp"
 #include "testutil/outcome.hpp"
 
-using kagome::blockchain::GenesisRawConfig;
 using kagome::blockchain::KeyValueBlockStorage;
 using kagome::common::Buffer;
 using kagome::crypto::HasherMock;
@@ -33,15 +32,13 @@ class BlockStorageTest : public testing::Test {
     root_hash.put(std::vector<uint8_t>(32ul, 1));
     EXPECT_CALL(*storage, getRootHash()).WillOnce(Return(root_hash));
     EXPECT_CALL(*storage, put(_, _)).WillRepeatedly(Return(outcome::success()));
-    block_storage = KeyValueBlockStorage::createWithGenesis(
-                        genesis_raw_config_, storage, hasher)
-                        .value();
+    block_storage =
+        KeyValueBlockStorage::createWithGenesis(storage, hasher).value();
   }
   std::shared_ptr<KeyValueBlockStorage> block_storage;
   std::shared_ptr<HasherMock> hasher = std::make_shared<HasherMock>();
   std::shared_ptr<TrieDbMock> storage = std::make_shared<TrieDbMock>();
   Block genesis;
-  GenesisRawConfig genesis_raw_config_{{Buffer(10ul, 0), Buffer(10ul, 9)}};
   BlockHash genesis_hash{{1, 2, 3, 4}};
   Buffer root_hash;
 };
@@ -59,9 +56,8 @@ TEST_F(BlockStorageTest, CreateWithExistingGenesis) {
       .WillOnce(Return(Buffer{1, 1, 1, 1}))
       .WillOnce(Return(Buffer{1, 1, 1, 1}));
   EXPECT_CALL(*storage, getRootHash()).WillOnce(Return(root_hash));
-  EXPECT_OUTCOME_FALSE(res,
-                       KeyValueBlockStorage::createWithGenesis(
-                           genesis_raw_config_, storage, hasher));
+  EXPECT_OUTCOME_FALSE(
+      res, KeyValueBlockStorage::createWithGenesis(storage, hasher));
   ASSERT_EQ(res, KeyValueBlockStorage::Error::BLOCK_EXISTS);
 }
 
@@ -77,9 +73,8 @@ TEST_F(BlockStorageTest, CreateWithStorageError) {
       .WillOnce(Return(Buffer{1, 1, 1, 1}))
       .WillOnce(Return(kagome::storage::LevelDBError::IO_ERROR));
   EXPECT_CALL(*storage, getRootHash()).WillOnce(Return(root_hash));
-  EXPECT_OUTCOME_FALSE(res,
-                       KeyValueBlockStorage::createWithGenesis(
-                           genesis_raw_config_, storage, hasher));
+  EXPECT_OUTCOME_FALSE(
+      res, KeyValueBlockStorage::createWithGenesis(storage, hasher));
   ASSERT_EQ(res, kagome::storage::LevelDBError::IO_ERROR);
 }
 
