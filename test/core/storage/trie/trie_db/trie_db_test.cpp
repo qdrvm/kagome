@@ -326,10 +326,42 @@ TEST_F(TrieTest, ClearPrefix) {
 
 /**
  * @given an empty trie
- * @when
+ * @when putting something into the trie
+ * @then the trie is empty no more
  */
 TEST_F(TrieTest, EmptyTrie) {
   ASSERT_TRUE(trie->empty());
   EXPECT_OUTCOME_TRUE_1(trie->put({0}, "asdasd"_buf));
   ASSERT_FALSE(trie->empty());
+}
+
+/**
+ * @given an empty persistent trie with LevelDb backend
+ * @when putting a value into it @and its intance is destroyed @and a new
+ * instance initialsed with the same DB
+ * @then the new instance contains the same data
+ */
+TEST(TriePersistencyTest, CreateDestroyCreate) {
+  Buffer root;
+  {
+    leveldb::Options options;
+    options.create_if_missing = true;  // intentionally
+    EXPECT_OUTCOME_TRUE(
+        level_db,
+        LevelDB::create("/tmp/kagome_leveldb_persistency_test", options));
+    auto db = std::make_unique<PolkadotTrieDb>(std::move(level_db));
+    EXPECT_OUTCOME_TRUE_1(db->put("123"_buf, "abc"_buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("345"_buf, "def"_buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("678"_buf, "xyz"_buf));
+    root = db->getRootHash();
+  }
+  EXPECT_OUTCOME_TRUE(
+      new_level_db, LevelDB::create("/tmp/kagome_leveldb_persistency_test"));
+  auto db = std::make_unique<PolkadotTrieDb>(std::move(new_level_db), root);
+  EXPECT_OUTCOME_TRUE(v1, db->get("123"_buf));
+  ASSERT_EQ(v1, "abc"_buf);
+  EXPECT_OUTCOME_TRUE(v2, db->get("345"_buf));
+  ASSERT_EQ(v2, "def"_buf);
+  EXPECT_OUTCOME_TRUE(v3, db->get("678"_buf));
+  ASSERT_EQ(v3, "xyz"_buf);
 }

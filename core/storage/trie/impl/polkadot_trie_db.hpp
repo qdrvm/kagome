@@ -41,6 +41,9 @@ namespace kagome::storage::trie {
    public:
     explicit PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db);
 
+    explicit PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db,
+                            common::Buffer root_hash);
+
     ~PolkadotTrieDb() override = default;
 
     common::Buffer getRootHash() const override;

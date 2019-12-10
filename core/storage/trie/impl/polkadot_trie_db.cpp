@@ -20,6 +20,10 @@ namespace kagome::storage::trie {
   PolkadotTrieDb::PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db)
       : db_{std::move(db)}, codec_{}, root_{getEmptyRoot()} {}
 
+  PolkadotTrieDb::PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db,
+                                 common::Buffer root_hash)
+      : db_{std::move(db)}, codec_{}, root_{std::move(root_hash)} {}
+
   outcome::result<void> PolkadotTrieDb::put(const Buffer &key,
                                             const Buffer &value) {
     auto value_copy = value;
@@ -139,7 +143,7 @@ namespace kagome::storage::trie {
     }
 
     OUTCOME_TRY(enc, codec_.encodeNode(node));
-    auto key = Buffer{codec_.merkleValue(enc)};
+    auto key = Buffer{codec_.hash256(enc)};
     OUTCOME_TRY(db_->put(key, enc));
     return key;
   }
