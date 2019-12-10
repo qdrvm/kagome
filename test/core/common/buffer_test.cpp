@@ -48,7 +48,7 @@ TEST(Common, BufferPut) {
   }
   ASSERT_EQ(i, b.size());
 
-  ASSERT_EQ(b.toHex(), "68656C6C6F010000000100000000000000010102030405");
+  ASSERT_EQ(b.toHex(), "68656c6c6f010000000100000000000000010102030405");
 }
 
 /**
@@ -57,11 +57,11 @@ TEST(Common, BufferPut) {
  * @then content of current buffer changes to {1,2,3,4,5,6}
  */
 TEST(Common, putBuffer) {
-  Buffer current_buffer = {1,2,3};
-  Buffer another_buffer = {4,5,6};
-  auto & buffer = current_buffer.putBuffer(another_buffer);
-  ASSERT_EQ(&buffer, &current_buffer); // line to the same buffer is returned
-  Buffer result = {1,2,3,4,5,6};
+  Buffer current_buffer = {1, 2, 3};
+  Buffer another_buffer = {4, 5, 6};
+  auto &buffer = current_buffer.putBuffer(another_buffer);
+  ASSERT_EQ(&buffer, &current_buffer);  // line to the same buffer is returned
+  Buffer result = {1, 2, 3, 4, 5, 6};
   ASSERT_EQ(buffer, result);
 }
 
@@ -79,7 +79,7 @@ TEST(Common, BufferInit) {
   ASSERT_EQ(a.size(), b.size());
 
   ASSERT_NO_THROW({
-    Buffer c {"0102030405"_unhex};
+    Buffer c{"0102030405"_unhex};
     ASSERT_EQ(c, a);
 
     Buffer d = c;
