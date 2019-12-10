@@ -304,7 +304,6 @@ namespace kagome::injector {
           auto persistent_storage = injector.template create<sptr<storage::PersistentBufferMap>>();
           auto trie_db = std::make_shared<storage::trie::PolkadotTrieDb>(persistent_storage);
           for (const auto &[key, val] : genesis_raw_configs) {
-            spdlog::debug("Key: {}", key.toHex());
             if (auto res = trie_db->put(key, val); not res) {
               common::raise(res.error());
             }
