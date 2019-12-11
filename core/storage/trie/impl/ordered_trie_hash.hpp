@@ -6,7 +6,6 @@
 #ifndef KAGOME_ORDERED_TRIE_HASH_HPP
 #define KAGOME_ORDERED_TRIE_HASH_HPP
 
-#include <boost/endian/conversion.hpp>
 #include "common/buffer.hpp"
 #include "crypto/hasher.hpp"
 #include "scale/scale.hpp"
