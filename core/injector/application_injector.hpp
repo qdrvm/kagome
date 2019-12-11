@@ -112,6 +112,7 @@ namespace kagome::injector {
         transaction_pool::TransactionPoolImpl::kDefaultMaxWaitingNum};
     auto leveldb_options = leveldb::Options();
 
+    // sr25519 kp getter
     auto get_sr25519_keypair =
         [](const auto &injector) -> sptr<crypto::SR25519Keypair> {
       auto &key_storage = injector.template create<application::KeyStorage &>();
@@ -119,6 +120,7 @@ namespace kagome::injector {
       return std::make_shared<crypto::SR25519Keypair>(sr25519_kp);
     };
 
+    // ed25519 kp getter
     auto get_ed25519_keypair =
         [](const auto &injector) -> sptr<crypto::ED25519Keypair> {
       auto &key_storage = injector.template create<application::KeyStorage &>();
@@ -126,6 +128,7 @@ namespace kagome::injector {
       return std::make_shared<crypto::ED25519Keypair>(ed25519_kp);
     };
 
+    // peer info getter
     auto get_peer_info =
         [](const auto &injector) -> sptr<libp2p::peer::PeerInfo> {
       // get key storage
@@ -147,6 +150,8 @@ namespace kagome::injector {
       return std::make_shared<libp2p::peer::PeerInfo>(std::move(peer_info));
     };
 
+    // authority index getter
+    // TODO(yuraz) ask Kamil if he changed the logic behind index
     auto get_authority_index =
         [](const auto &injector) -> sptr<primitives::AuthorityIndex> {
       auto core = injector.template create<sptr<runtime::Core>>();
@@ -173,6 +178,7 @@ namespace kagome::injector {
           primitives::AuthorityIndex{index});
     };
 
+    // extrinsic api listener getter
     auto get_extrinsic_api_listener =
         [](const auto &injector) -> sptr<api::Listener> {
       // listener is used currently only for extrinsic api
@@ -194,6 +200,112 @@ namespace kagome::injector {
 
       return std::make_shared<api::ListenerImpl>(
           context, listener_config, http_session_config);
+    };
+
+    // level db getter
+    auto get_level_db =
+        [leveldb_path](
+            const auto &injector) -> sptr<storage::PersistentBufferMap> {
+      auto &wrapper =
+          injector.template create<Wrapper<storage::PersistentBufferMap> &>();
+      if (nullptr == wrapper.value) {
+        auto options = leveldb::Options{};
+        options.create_if_missing = true;
+        auto db = storage::LevelDB::create(leveldb_path, options);
+        if (!db) {
+          common::raise(db.error());
+        }
+        wrapper.value = sptr<storage::PersistentBufferMap>(
+            dynamic_cast<storage::PersistentBufferMap *>(db.value().release()));
+      }
+
+      return wrapper.value;
+    };
+
+    // block storage getter
+    auto get_block_storage =
+        [](const auto &injector) -> std::shared_ptr<blockchain::BlockStorage> {
+      auto &&hasher =
+          injector.template create<std::shared_ptr<crypto::Hasher>>();
+
+      const auto &db =
+          injector.template create<std::shared_ptr<storage::trie::TrieDb>>();
+
+      auto storage =
+          blockchain::KeyValueBlockStorage::createWithGenesis(db, hasher);
+      if (storage.has_error()) {
+        common::raise(storage.error());
+      }
+      return storage.value();
+    };
+
+    // block tree getter
+    auto get_block_tree =
+        [](const auto &injector) -> std::shared_ptr<blockchain::BlockTree> {
+      auto header_repo = injector.template create<
+          std::shared_ptr<blockchain::BlockHeaderRepository>>();
+
+      auto &&storage =
+          injector.template create<std::shared_ptr<blockchain::BlockStorage>>();
+
+      // block id is zero for first time
+      const primitives::BlockId block_id = common::Hash256{};
+
+      auto &&hasher =
+          injector.template create<std::shared_ptr<crypto::Hasher>>();
+
+      auto &&tree = blockchain::BlockTreeImpl::create(
+          std::move(header_repo), storage, block_id, std::move(hasher));
+      if (!tree) {
+        common::raise(tree.error());
+      }
+      return tree.value();
+    };
+
+    // trie db getter
+    auto get_trie_db = [](const auto &injector) {
+      auto configuration_storage = injector.template create<
+          std::shared_ptr<application::ConfigurationStorage>>();
+      const auto &genesis_raw_configs = configuration_storage->getGenesis();
+
+      auto persistent_storage =
+          injector.template create<sptr<storage::PersistentBufferMap>>();
+      auto trie_db =
+          std::make_shared<storage::trie::PolkadotTrieDb>(persistent_storage);
+      for (const auto &[key, val] : genesis_raw_configs) {
+        if (auto res = trie_db->put(key, val); not res) {
+          common::raise(res.error());
+        }
+      }
+      return trie_db;
+    };
+
+    // configuration storage getter
+    auto get_configuration_storage = [genesis_path](const auto &injector)
+        -> std::shared_ptr<application::ConfigurationStorage> {
+      auto &wrapper =
+          injector
+              .template create<Wrapper<application::ConfigurationStorage> &>();
+      if (nullptr == wrapper.value) {
+        auto config_storage_res =
+            application::ConfigurationStorageImpl::create(genesis_path);
+        if (config_storage_res.has_error()) {
+          common::raise(config_storage_res.error());
+        }
+        wrapper.value = std::move(config_storage_res.value());
+      }
+      return wrapper.value;
+    };
+
+    // key storage getter
+    auto get_key_storage =
+        [keystore_path](
+            const auto &injector) -> std::shared_ptr<application::KeyStorage> {
+      auto &&result = application::LocalKeyStorage::create(keystore_path);
+      if (!result) {
+        common::raise(result.error());
+      }
+      return result.value();
     };
 
     // make injector
@@ -231,65 +343,9 @@ namespace kagome::injector {
             (const auto &injector) mutable ->std::shared_ptr<Wrapper<storage::PersistentBufferMap>> {
           return obj;
         }),
-        di::bind<storage::PersistentBufferMap>.template to(
-            [&](const auto &injector) -> sptr<storage::PersistentBufferMap> {
-              auto &wrapper = injector.template create<Wrapper<storage::PersistentBufferMap>&>();
-              if (nullptr == wrapper.value) {
-                auto options = leveldb::Options{};
-                options.create_if_missing = true;
-                auto db = storage::LevelDB::create(leveldb_path, options);
-                if (!db) {
-                  common::raise(db.error());
-                }
-                wrapper.value = sptr<storage::PersistentBufferMap>(
-                    dynamic_cast<storage::PersistentBufferMap *>(
-                        db.value().release()));
-              }
-
-              return wrapper.value;
-            }),
-        // create block storage
-        di::bind<blockchain::BlockStorage>.to(
-            [&](const auto &injector)
-                -> std::shared_ptr<blockchain::BlockStorage> {
-              auto &&hasher =
-                  injector.template create<std::shared_ptr<crypto::Hasher>>();
-
-              const auto &db = injector.template create<
-                  std::shared_ptr<storage::trie::TrieDb>>();
-
-              auto storage =
-                  blockchain::KeyValueBlockStorage::createWithGenesis(db,
-                                                                      hasher);
-              if (storage.has_error()) {
-                common::raise(storage.error());
-              }
-              return storage.value();
-            }),
-        // create block tree
-        di::bind<blockchain::BlockTree>.to(
-            [&](const auto &injector)
-                -> std::shared_ptr<blockchain::BlockTree> {
-              auto header_repo = injector.template create<
-                  std::shared_ptr<blockchain::BlockHeaderRepository>>();
-
-              auto &&storage = injector.template create<
-                  std::shared_ptr<blockchain::BlockStorage>>();
-
-              // block id is zero for first time
-              const primitives::BlockId block_id = common::Hash256{};
-
-              auto &&hasher =
-                  injector.template create<std::shared_ptr<crypto::Hasher>>();
-
-              auto &&tree = blockchain::BlockTreeImpl::create(
-                  std::move(header_repo), storage, block_id, std::move(hasher));
-              if (!tree) {
-                common::raise(tree.error());
-              }
-
-              return tree.value();
-            }),
+        di::bind<storage::PersistentBufferMap>.template to(std::move(get_level_db)),
+        di::bind<blockchain::BlockStorage>.to(std::move(get_block_storage)), // create block storage
+        di::bind<blockchain::BlockTree>.to(std::move(get_block_tree)), // create block tree
         di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::KeyValueBlockHeaderRepository>(),
         di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
         di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
@@ -322,46 +378,20 @@ namespace kagome::injector {
         di::bind<runtime::BlockBuilderApi>.template to<runtime::BlockBuilderApiImpl>(),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
-        di::bind<storage::trie::TrieDb>.template to([&](const auto& injector){
-          auto configuration_storage = injector.template create<
-              std::shared_ptr<application::ConfigurationStorage>>();
-          const auto &genesis_raw_configs =
-              configuration_storage->getGenesis();
-
-          auto persistent_storage = injector.template create<sptr<storage::PersistentBufferMap>>();
-          auto trie_db = std::make_shared<storage::trie::PolkadotTrieDb>(persistent_storage);
-          for (const auto &[key, val] : genesis_raw_configs) {
-            if (auto res = trie_db->put(key, val); not res) {
-              common::raise(res.error());
-            }
-          }
-          return trie_db;
-        }),
+            // find out should it be shared or unique
+        di::bind<storage::trie::TrieDb>.template to(std::move(get_trie_db)),
         di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
         di::bind<runtime::WasmProvider>.template to<runtime::StorageWasmProvider>().in(
             di::extension::shared),
         // create configuration storage shared value
-        di::bind<application::ConfigurationStorage>.to(
-            [&](const auto &injector)
-                -> std::shared_ptr<application::ConfigurationStorage> {
-              auto config_storage_res =
-                  application::ConfigurationStorageImpl::create(genesis_path);
-              if (config_storage_res.has_error()) {
-                common::raise(config_storage_res.error());
-              }
-              return config_storage_res.value();
+        di::bind<Wrapper<application::ConfigurationStorage>>.template to(
+            [obj = std::make_shared<Wrapper<application::ConfigurationStorage>>()]
+                (const auto &injector) mutable ->std::shared_ptr<Wrapper<application::ConfigurationStorage>> {
+              return obj;
             }),
+        di::bind<application::ConfigurationStorage>.to(std::move(get_configuration_storage)),
         // create key storage shared value
-        di::bind<application::KeyStorage>.to(
-            [&](const auto &injector)
-                -> std::shared_ptr<application::KeyStorage> {
-              auto &&result =
-                  application::LocalKeyStorage::create(keystore_path);
-              if (!result) {
-                common::raise(result.error());
-              }
-              return result.value();
-            }),
+        di::bind<application::KeyStorage>.to(std::move(get_key_storage)),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

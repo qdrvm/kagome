@@ -24,7 +24,7 @@ namespace kagome::options {
     CONFIG_FILE_NOT_EXIST,         // configuration file doesn't exist
     INVALID_CONFIG_FILE,           // failed to open configuration file
     CANNOT_OPEN_FILE,              // cannot open file
-    PATH_IS_NOT_DIR,               // leveldb path must be directory
+    LEVELDB_PATH_IS_NOT_DIR,       // leveldb path must be directory
   };
 }  // namespace kagome::options
 

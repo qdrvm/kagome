@@ -79,8 +79,8 @@ namespace kagome::options {
       return outcome::failure(CmdLineOptionError::CONFIG_FILE_NOT_EXIST);
     }
     if (!boost::filesystem::is_directory(path)) {
-      logger_->error("path '{}' is not directory", path.string());
-      return CmdLineOptionError::PATH_IS_NOT_DIR;
+      logger_->error("leveldb path '{}' is not directory", path.string());
+      return CmdLineOptionError::LEVELDB_PATH_IS_NOT_DIR;
     }
 
     return outcome::success();
@@ -120,8 +120,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::options, CmdLineOptionError, e) {
       return "invalid configuration file";
     case CmdLineOptionError::CANNOT_OPEN_FILE:
       return "failed to open configuration file";
-    case CmdLineOptionError::PATH_IS_NOT_DIR:
-      return "path is not a directory";
+    case CmdLineOptionError::LEVELDB_PATH_IS_NOT_DIR:
+      return "leveldb path is not a directory";
   }
   return "unknown CmdLineOptionError";
 }
