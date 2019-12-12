@@ -17,6 +17,7 @@ addtest(block_tree_test
     )
 target_link_libraries(block_tree_test
     block_tree
+    block_header_repository
     )
 
 addtest(block_storage_test

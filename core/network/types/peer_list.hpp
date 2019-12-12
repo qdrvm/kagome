@@ -12,6 +12,10 @@ namespace kagome::network {
 
   struct PeerList {
     std::vector<libp2p::peer::PeerInfo> peers;
+
+    bool operator==(const PeerList &rhs) const {
+      return peers == rhs.peers;
+    }
   };
 
 }  // namespace kagome::network

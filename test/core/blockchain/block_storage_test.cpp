@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 #include "blockchain/impl/common.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
-#include "mock/core/storage/trie/trie_db_mock.hpp"
+#include "mock/core/storage/persistent_map_mock.hpp"
 #include "storage/leveldb/leveldb_error.hpp"
 #include "testutil/outcome.hpp"
 
@@ -18,7 +18,7 @@ using kagome::crypto::HasherMock;
 using kagome::primitives::Block;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockNumber;
-using kagome::storage::trie::TrieDbMock;
+using kagome::storage::face::PersistentMapMock;
 using testing::_;
 using testing::Return;
 
@@ -30,14 +30,15 @@ class BlockStorageTest : public testing::Test {
         .WillOnce(Return(kagome::blockchain::Error::BLOCK_NOT_FOUND));
 
     root_hash.put(std::vector<uint8_t>(32ul, 1));
-    EXPECT_CALL(*storage, getRootHash()).WillOnce(Return(root_hash));
     EXPECT_CALL(*storage, put(_, _)).WillRepeatedly(Return(outcome::success()));
     block_storage =
-        KeyValueBlockStorage::createWithGenesis(storage, hasher).value();
+        KeyValueBlockStorage::createWithGenesis(root_hash, storage, hasher)
+            .value();
   }
   std::shared_ptr<KeyValueBlockStorage> block_storage;
   std::shared_ptr<HasherMock> hasher = std::make_shared<HasherMock>();
-  std::shared_ptr<TrieDbMock> storage = std::make_shared<TrieDbMock>();
+  std::shared_ptr<PersistentMapMock<Buffer, Buffer>> storage =
+      std::make_shared<PersistentMapMock<Buffer, Buffer>>();
   Block genesis;
   BlockHash genesis_hash{{1, 2, 3, 4}};
   Buffer root_hash;
@@ -55,9 +56,8 @@ TEST_F(BlockStorageTest, CreateWithExistingGenesis) {
   EXPECT_CALL(*storage, get(_))
       .WillOnce(Return(Buffer{1, 1, 1, 1}))
       .WillOnce(Return(Buffer{1, 1, 1, 1}));
-  EXPECT_CALL(*storage, getRootHash()).WillOnce(Return(root_hash));
   EXPECT_OUTCOME_FALSE(
-      res, KeyValueBlockStorage::createWithGenesis(storage, hasher));
+      res, KeyValueBlockStorage::createWithGenesis(root_hash, storage, hasher));
   ASSERT_EQ(res, KeyValueBlockStorage::Error::BLOCK_EXISTS);
 }
 
@@ -72,9 +72,8 @@ TEST_F(BlockStorageTest, CreateWithStorageError) {
   EXPECT_CALL(*storage, get(_))
       .WillOnce(Return(Buffer{1, 1, 1, 1}))
       .WillOnce(Return(kagome::storage::LevelDBError::IO_ERROR));
-  EXPECT_CALL(*storage, getRootHash()).WillOnce(Return(root_hash));
   EXPECT_OUTCOME_FALSE(
-      res, KeyValueBlockStorage::createWithGenesis(storage, hasher));
+      res, KeyValueBlockStorage::createWithGenesis(root_hash, storage, hasher));
   ASSERT_EQ(res, kagome::storage::LevelDBError::IO_ERROR);
 }
 

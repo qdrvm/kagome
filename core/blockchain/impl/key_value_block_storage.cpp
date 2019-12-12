@@ -95,9 +95,9 @@ namespace kagome::blockchain {
     if (block_in_storage.has_value()) {
       return Error::BLOCK_EXISTS;
     }
-    //    if (block_in_storage.error() != blockchain::Error::BLOCK_NOT_FOUND) {
-    //      return block_in_storage.error();
-    //    }
+    if (block_in_storage.error() != blockchain::Error::BLOCK_NOT_FOUND) {
+      return block_in_storage.error();
+    }
 
     // insert our block's parts into the database-
     OUTCOME_TRY(encoded_header, scale::encode(block.header));
