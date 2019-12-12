@@ -16,6 +16,9 @@ namespace kagome::network {
     bool operator==(const PeerList &rhs) const {
       return peers == rhs.peers;
     }
+    bool operator!=(const PeerList &rhs) const {
+      return not operator==(rhs);
+    }
   };
 
 }  // namespace kagome::network

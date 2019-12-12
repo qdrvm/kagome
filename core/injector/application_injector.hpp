@@ -257,7 +257,6 @@ namespace kagome::injector {
       if (initialized) {
         return initialized.value();
       }
-      //      auto options = injector.template create<leveldb::Options>();
       auto options = leveldb::Options{};
       options.create_if_missing = true;
       auto db = storage::LevelDB::create(leveldb_path, options);
@@ -407,7 +406,6 @@ namespace kagome::injector {
         injector::useConfig(pool_moderator_config),
         injector::useConfig(synchronizer_config),
         injector::useConfig(tp_pool_limits),
-        // injector::useConfig(leveldb_options),
 
         // bind interfaces
         di::bind<api::Listener>.to(std::move(get_extrinsic_api_listener)),
@@ -416,10 +414,8 @@ namespace kagome::injector {
         di::bind<authorship::BlockBuilder>.template to<authorship::BlockBuilderImpl>(),
         di::bind<authorship::BlockBuilderFactory>.template to<authorship::BlockBuilderFactoryImpl>(),
         di::bind<storage::PersistentBufferMap>.to(std::move(get_level_db)),
-        di::bind<blockchain::BlockStorage>.to(
-            std::move(get_block_storage)),  // create block storage
-        di::bind<blockchain::BlockTree>.to(
-            std::move(get_block_tree)),  // create block tree
+        di::bind<blockchain::BlockStorage>.to(std::move(get_block_storage)),
+        di::bind<blockchain::BlockTree>.to(std::move(get_block_tree)),
         di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::KeyValueBlockHeaderRepository>(),
         di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
         di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
@@ -454,10 +450,8 @@ namespace kagome::injector {
         di::bind<storage::trie::TrieDb>.to(std::move(get_trie_db)),
         di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
         di::bind<runtime::WasmProvider>.template to<runtime::StorageWasmProvider>(),
-        // create configuration storage shared value
         di::bind<application::ConfigurationStorage>.to(
             std::move(get_configuration_storage)),
-        // create key storage shared value
         di::bind<application::KeyStorage>.to(std::move(get_key_storage)),
 
         // user-defined overrides...
