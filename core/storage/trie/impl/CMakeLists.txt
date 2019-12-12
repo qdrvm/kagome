@@ -20,11 +20,21 @@ target_link_libraries(polkadot_node
     )
 kagome_install(polkadot_node)
 
+add_library(polkadot_trie_db_backend
+    polkadot_trie_db_backend.cpp
+    polkadot_trie_db_backend_batch.cpp
+    )
+target_link_libraries(polkadot_trie_db_backend
+    buffer
+    polkadot_node
+    )
+
 add_library(polkadot_trie_db
     polkadot_trie_db.cpp
     )
 target_link_libraries(polkadot_trie_db
     polkadot_trie_codec
+    polkadot_trie_db_backend
     polkadot_trie
     )
 kagome_install(polkadot_trie_db)

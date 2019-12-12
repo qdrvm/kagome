@@ -7,7 +7,6 @@
 
 #include <algorithm>
 
-#include <boost/assert.hpp>
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/common.hpp"
 #include "blockchain/impl/persistent_map_util.hpp"
@@ -39,8 +38,7 @@ namespace kagome::blockchain {
                                     primitives::BlockNumber depth,
                                     const std::shared_ptr<TreeNode> &parent,
                                     bool finalized)
-      : block_hash{hash},
-        depth{depth}, parent{parent}, finalized{finalized} {}
+      : block_hash{hash}, depth{depth}, parent{parent}, finalized{finalized} {}
 
   std::shared_ptr<BlockTreeImpl::TreeNode> BlockTreeImpl::TreeNode::getByHash(
       const primitives::BlockHash &hash) {
@@ -181,16 +179,14 @@ namespace kagome::blockchain {
     return storage_->getBlockBody(block);
   }
 
-  outcome::result<primitives::Justification> BlockTreeImpl::getBlockJustification(
-      const primitives::BlockId &block) const {
+  outcome::result<primitives::Justification>
+  BlockTreeImpl::getBlockJustification(const primitives::BlockId &block) const {
     return storage_->getJustification(block);
   }
 
-
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlock(
       const primitives::BlockHash &block) {
-    return getChainByBlocks(tree_meta_->last_finalized.get().block_hash,
-                            block);
+    return getChainByBlocks(tree_meta_->last_finalized.get().block_hash, block);
   }
 
   BlockTreeImpl::BlockHashVecRes BlockTreeImpl::getChainByBlock(
@@ -421,23 +417,25 @@ namespace kagome::blockchain {
 
     // now, remove the blocks we remembered from the database
     for (const auto &[hash, number] : to_remove) {
-     OUTCOME_TRY(storage_->removeBlock(hash, number));
+      OUTCOME_TRY(storage_->removeBlock(hash, number));
     }
     return outcome::success();
   }
 
   std::vector<primitives::BlockHash> BlockTreeImpl::getLeavesSorted() const {
-    std::vector<BlockInfo>
-        leaf_depths;
+    std::vector<BlockInfo> leaf_depths;
     auto leaves = getLeaves();
     leaf_depths.reserve(leaves.size());
     for (auto &leaf : leaves) {
       auto leaf_node = tree_->getByHash(leaf);
-      leaf_depths.emplace_back(BlockInfo{leaf_node->depth, leaf_node->block_hash});
+      leaf_depths.emplace_back(
+          BlockInfo{leaf_node->depth, leaf_node->block_hash});
     }
-    std::sort(leaf_depths.begin(), leaf_depths.end(), [](auto const& p1, auto const& p2) {
-      return p1.block_number > p2.block_number;
-    });
+    std::sort(leaf_depths.begin(),
+              leaf_depths.end(),
+              [](auto const &p1, auto const &p2) {
+                return p1.block_number > p2.block_number;
+              });
     std::vector<primitives::BlockHash> leaf_hashes;
     leaf_hashes.reserve(leaf_depths.size());
     std::transform(leaf_depths.begin(),
