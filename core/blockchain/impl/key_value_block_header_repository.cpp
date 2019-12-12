@@ -22,7 +22,7 @@ namespace kagome::blockchain {
   KeyValueBlockHeaderRepository::KeyValueBlockHeaderRepository(
       std::shared_ptr<PersistentBufferMap> map,
       std::shared_ptr<crypto::Hasher> hasher)
-      : map_{map}, hasher_{std::move(hasher)} {
+      : map_{std::move(map)}, hasher_{std::move(hasher)} {
     BOOST_ASSERT(hasher_);
   }
 
