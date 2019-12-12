@@ -48,8 +48,8 @@ namespace kagome::runtime {
      * Get current authorities
      * @return collection of authorities
      */
-    virtual outcome::result<std::vector<primitives::AuthorityId>>
-    authorities() = 0;
+    virtual outcome::result<std::vector<primitives::AuthorityId>> authorities(
+        const primitives::BlockId &block_id) = 0;
   };
 
 }  // namespace kagome::runtime

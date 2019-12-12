@@ -90,24 +90,10 @@ namespace kagome::blockchain {
     // retrieve the block's header: we need data from it
     OUTCOME_TRY(header, storage->getBlockHeader(last_finalized_block));
     // create meta structures from the retrieved header
-    auto hash_res = visit_in_place(
-        last_finalized_block,
-        [&storage, &last_finalized_block, &header, &hasher](
-            const primitives::BlockNumber &)
-            -> outcome::result<common::Hash256> {
-          // number is not enough for out meta: calculate the hash as well
-          OUTCOME_TRY(body, storage->getBlockBody(last_finalized_block));
-          OUTCOME_TRY(encoded_block,
-                      scale::encode(primitives::Block{header, body}));
-          return hasher->blake2b_256(encoded_block);
-        },
-        [](const common::Hash256 &hash) { return hash; });
-    if (!hash_res) {
-      return hash_res.error();
-    }
+    OUTCOME_TRY(hash_res, header_repo->getHashById(last_finalized_block));
 
     auto tree = std::make_shared<TreeNode>(
-        hash_res.value(), header.number, nullptr, true);
+        hash_res, header.number, nullptr, true);
     auto meta = std::make_shared<TreeMeta>(
         decltype(TreeMeta::leaves){tree->block_hash}, *tree, *tree);
 

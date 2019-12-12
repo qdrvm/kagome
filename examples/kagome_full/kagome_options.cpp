@@ -12,7 +12,6 @@
 #include <boost/program_options.hpp>
 
 namespace kagome::options {
-  using kagome::application::KagomeConfig;
   using kagome::application::KeyStorage;
   using kagome::application::LocalKeyStorage;
 

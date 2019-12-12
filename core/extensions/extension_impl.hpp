@@ -22,7 +22,7 @@ namespace kagome::extensions {
    public:
     ExtensionImpl() = delete;
     ExtensionImpl(const std::shared_ptr<runtime::WasmMemory> &memory,
-                  std::shared_ptr<storage::trie::TrieDb> db);
+                    std::shared_ptr<storage::trie::TrieDb> db);
 
     ~ExtensionImpl() override = default;
 

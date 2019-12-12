@@ -56,6 +56,8 @@ namespace kagome::application {
    private:
     Epoch makeInitialEpoch();
 
+    outcome::result<void> initIoContext();
+
     // need to keep all of these instances, since injector itself is destroyed
     InjectorType injector_;
     sptr<boost::asio::io_context> io_context_;

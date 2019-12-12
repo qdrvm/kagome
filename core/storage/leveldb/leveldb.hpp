@@ -30,7 +30,7 @@ namespace kagome::storage {
      * @param options leveldb options, such as caching, logging, etc.
      * @return instance of LevelDB
      */
-    static outcome::result<std::unique_ptr<LevelDB>> create(
+    static outcome::result<std::shared_ptr<LevelDB>> create(
         std::string_view path, leveldb::Options options = leveldb::Options());
 
     /**

@@ -10,7 +10,6 @@
 #include <libp2p/crypto/key.hpp>
 #include <outcome/outcome.hpp>
 
-#include "application/impl/kagome_config.hpp"
 #include "application/impl/local_key_storage.hpp"
 #include "common/logger.hpp"
 

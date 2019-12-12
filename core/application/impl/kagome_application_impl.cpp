@@ -11,13 +11,12 @@ namespace kagome::application {
   using consensus::Randomness;
   using consensus::Threshold;
 
-  KagomeApplicationImpl::KagomeApplicationImpl(
-      const std::string &config_path,
-      const std::string &keystore_path,
-      const std::string &leveldb_path):
-      injector_{injector::makeApplicationInjector(
+  KagomeApplicationImpl::KagomeApplicationImpl(const std::string &config_path,
+                                               const std::string &keystore_path,
+                                               const std::string &leveldb_path)
+      : injector_{injector::makeApplicationInjector(
           config_path, keystore_path, leveldb_path)},
-          logger_(common::createLogger("Application")){
+        logger_(common::createLogger("Application")) {
     spdlog::set_level(spdlog::level::debug);
 
     // keep important instances, the must exist when injector destroyed
@@ -27,7 +26,7 @@ namespace kagome::application {
     key_storage_ = injector_.create<sptr<KeyStorage>>();
     clock_ = injector_.create<sptr<clock::SystemClock>>();
     extrinsic_api_service_ = injector_.create<sptr<ExtrinsicApiService>>();
-    babe_ = injector_.create<uptr<Babe>>();
+    babe_ = injector_.create<sptr<Babe>>();
   }
 
   // TODO (yuraz) rewrite when there will be more info

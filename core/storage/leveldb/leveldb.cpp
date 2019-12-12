@@ -15,7 +15,7 @@
 
 namespace kagome::storage {
 
-  outcome::result<std::unique_ptr<LevelDB>> LevelDB::create(
+  outcome::result<std::shared_ptr<LevelDB>> LevelDB::create(
       std::string_view path, leveldb::Options options) {
     leveldb::DB *db = nullptr;
     auto status = leveldb::DB::Open(options, std::string(path), &db);
@@ -26,7 +26,7 @@ namespace kagome::storage {
       return l;
     }
 
-    return error_as_result<std::unique_ptr<LevelDB>>(status);
+    return error_as_result<std::shared_ptr<LevelDB>>(status);
   }
 
   std::unique_ptr<BufferMapCursor> LevelDB::cursor() {

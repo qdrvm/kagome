@@ -28,7 +28,7 @@ namespace kagome::blockchain {
   using Prefix = prefix::Prefix;
 
   KeyValueBlockStorage::KeyValueBlockStorage(
-      std::shared_ptr<storage::trie::TrieDb> storage,
+      std::shared_ptr<storage::PersistentBufferMap> storage,
       std::shared_ptr<crypto::Hasher> hasher)
       : storage_{std::move(storage)},
         hasher_{std::move(hasher)},
@@ -36,15 +36,16 @@ namespace kagome::blockchain {
 
   outcome::result<std::shared_ptr<KeyValueBlockStorage>>
   KeyValueBlockStorage::createWithGenesis(
-      const std::shared_ptr<storage::trie::TrieDb> &storage,
+      common::Buffer state_root,
+      const std::shared_ptr<storage::PersistentBufferMap> &storage,
       std::shared_ptr<crypto::Hasher> hasher) {
     KeyValueBlockStorage kv_storage(storage, std::move(hasher));
     // TODO(Harrm) check that storage is actually empty
 
     // state root type is Hash256, however for consistency with spec root hash
     // returns buffer. So we need this conversion
-    OUTCOME_TRY(state_root,
-                common::Hash256::fromSpan(storage->getRootHash().toVector()));
+    OUTCOME_TRY(state_root_blob,
+                common::Hash256::fromSpan(state_root.toVector()));
 
     auto extrinsics_root_buf = trieRoot({});
     // same reason for conversion as few lines above
@@ -55,7 +56,7 @@ namespace kagome::blockchain {
     primitives::Block genesis_block;
     genesis_block.header.number = 0;
     genesis_block.header.extrinsics_root = extrinsics_root;
-    genesis_block.header.state_root = state_root;
+    genesis_block.header.state_root = state_root_blob;
     // the rest of the fields have default value
 
     OUTCOME_TRY(kv_storage.putBlock(genesis_block));
@@ -94,9 +95,9 @@ namespace kagome::blockchain {
     if (block_in_storage.has_value()) {
       return Error::BLOCK_EXISTS;
     }
-    if (block_in_storage.error() != blockchain::Error::BLOCK_NOT_FOUND) {
-      return block_in_storage.error();
-    }
+    //    if (block_in_storage.error() != blockchain::Error::BLOCK_NOT_FOUND) {
+    //      return block_in_storage.error();
+    //    }
 
     // insert our block's parts into the database-
     OUTCOME_TRY(encoded_header, scale::encode(block.header));
