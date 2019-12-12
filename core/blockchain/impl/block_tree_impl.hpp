@@ -138,8 +138,8 @@ namespace kagome::blockchain {
 
    private:
     /**
-     * Private constructor, so that instances are created only through the factory
-     * method
+     * Private constructor, so that instances are created only through the
+     * factory method
      */
     BlockTreeImpl(std::shared_ptr<BlockHeaderRepository> header_repo,
                   std::shared_ptr<BlockStorage> storage,
