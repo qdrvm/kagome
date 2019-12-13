@@ -27,7 +27,7 @@ class TrieBatchTest : public test::BaseLevelDB_Test {
   void SetUp() override {
     open();
     trie = PolkadotTrieDb::createEmpty(std::make_shared<PolkadotTrieDbBackend>(
-        std::move(db_), kNodePrefix, kRootHash));
+        std::move(db_), kNodePrefix, kRootHashKey));
   }
 
   static const std::vector<std::pair<Buffer, Buffer>> data;
@@ -35,12 +35,12 @@ class TrieBatchTest : public test::BaseLevelDB_Test {
   std::unique_ptr<PolkadotTrieDb> trie;
 
   static const Buffer kNodePrefix;
-  static const Buffer kRootHash;
+  static const Buffer kRootHashKey;
 };
 
 const Buffer TrieBatchTest::kNodePrefix{1};
 
-const Buffer TrieBatchTest::kRootHash{0};
+const Buffer TrieBatchTest::kRootHashKey{0};
 
 const std::vector<std::pair<Buffer, Buffer>> TrieBatchTest::data = {
     {"123456"_hex2buf, "42"_hex2buf},
@@ -183,7 +183,7 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
 
   PolkadotTrieDb trie =
       *PolkadotTrieDb::createEmpty(std::make_shared<PolkadotTrieDbBackend>(
-          std::move(db), kNodePrefix, kRootHash));
+          std::move(db), kNodePrefix, kRootHashKey));
   PolkadotTrieBatch batch{trie};
 
   EXPECT_OUTCOME_TRUE_1(batch.put("123"_buf, "111"_buf));

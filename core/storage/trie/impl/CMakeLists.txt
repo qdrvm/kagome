@@ -28,6 +28,7 @@ target_link_libraries(polkadot_trie_db_backend
     buffer
     polkadot_node
     )
+kagome_install(polkadot_trie_db_backend)
 
 add_library(polkadot_trie_db
     polkadot_trie_db.cpp

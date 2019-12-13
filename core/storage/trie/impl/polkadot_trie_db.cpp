@@ -19,6 +19,7 @@ namespace kagome::storage::trie {
 
   outcome::result<std::unique_ptr<PolkadotTrieDb>>
   PolkadotTrieDb::createFromStorage(std::shared_ptr<PolkadotTrieDbBackend> db) {
+    BOOST_ASSERT(db != nullptr);
     OUTCOME_TRY(root, db->getRootHash());
     PolkadotTrieDb trie_db{db, std::move(root)};
     return std::make_unique<PolkadotTrieDb>(std::move(trie_db));
@@ -26,6 +27,7 @@ namespace kagome::storage::trie {
 
   std::unique_ptr<PolkadotTrieDb> PolkadotTrieDb::createEmpty(
       std::shared_ptr<PolkadotTrieDbBackend> db) {
+    BOOST_ASSERT(db != nullptr);
     PolkadotTrieDb trie_db{db, boost::none};
     return std::make_unique<PolkadotTrieDb>(std::move(trie_db));
   }
@@ -35,7 +37,6 @@ namespace kagome::storage::trie {
       : db_{std::move(db)},
         codec_{},
         root_{root_hash ? std::move(root_hash.value()) : getEmptyRoot()} {
-    BOOST_ASSERT(db_ != nullptr);
   }
 
   outcome::result<void> PolkadotTrieDb::put(const Buffer &key,
@@ -161,7 +162,7 @@ namespace kagome::storage::trie {
 
     OUTCOME_TRY(enc, codec_.encodeNode(node));
     auto key = Buffer{codec_.hash256(enc)};
-    OUTCOME_TRY(db_->put(key, enc));
+    OUTCOME_TRY(batch.put(key, enc));
     return key;
   }
 
