@@ -176,9 +176,6 @@ namespace kagome::injector {
       }
       auto &cfg =
           injector.template create<application::ConfigurationStorage &>();
-      for (const libp2p::peer::PeerInfo &peer : cfg.getBootNodes().peers) {
-        spdlog::debug("Peer ids: {}", peer.id.toBase58());
-      }
 
       initialized = std::make_shared<network::PeerList>(cfg.getBootNodes());
       return initialized.value();
