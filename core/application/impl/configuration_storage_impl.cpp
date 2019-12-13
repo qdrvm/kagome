@@ -14,21 +14,20 @@
 namespace kagome::application {
 
   GenesisRawConfig ConfigurationStorageImpl::getGenesis() const {
-    return config_.genesis;
+    return genesis_;
   }
 
-  std::vector<libp2p::peer::PeerInfo> ConfigurationStorageImpl::getBootNodes()
-      const {
-    return config_.boot_nodes;
+  network::PeerList ConfigurationStorageImpl::getBootNodes() const {
+    return boot_nodes_;
   }
 
   std::vector<crypto::SR25519PublicKey>
   ConfigurationStorageImpl::getSessionKeys() const {
-    return config_.session_keys;
+    return session_keys_;
   }
 
   uint16_t ConfigurationStorageImpl::getExtrinsicApiPort() const {
-    return config_.api_ports.extrinsic_api_port;
+    return api_ports_.extrinsic_api_port;
   }
 
   outcome::result<std::shared_ptr<ConfigurationStorageImpl>>
@@ -67,7 +66,7 @@ namespace kagome::application {
       // get rid of leading 0x for key and value and unhex
       OUTCOME_TRY(key_processed, unhexWith0x(key));
       OUTCOME_TRY(value_processed, unhexWith0x(value.data()));
-      config_.genesis.emplace_back(key_processed, value_processed);
+      genesis_.emplace_back(key_processed, value_processed);
     }
     return outcome::success();
   }
@@ -82,7 +81,7 @@ namespace kagome::application {
 
       OUTCOME_TRY(peer_id, libp2p::peer::PeerId::fromBase58(peer_id_base58));
       libp2p::peer::PeerInfo info{.id = peer_id, .addresses = {multiaddr}};
-      config_.boot_nodes.push_back(info);
+      boot_nodes_.peers.push_back(info);
     }
     return outcome::success();
   }
@@ -93,7 +92,7 @@ namespace kagome::application {
     for (auto &v : session_keys) {
       std::string_view key_hex = v.second.data();
       OUTCOME_TRY(key, crypto::SR25519PublicKey::fromHex(key_hex.substr(2)));
-      config_.session_keys.push_back(key);
+      session_keys_.push_back(key);
     }
     return outcome::success();
   }

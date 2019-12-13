@@ -9,7 +9,6 @@
 #include "application/configuration_storage.hpp"
 
 #include <boost/property_tree/ptree.hpp>
-#include "application/impl/kagome_config.hpp"
 
 namespace kagome::application {
 
@@ -21,7 +20,7 @@ namespace kagome::application {
     ~ConfigurationStorageImpl() override = default;
 
     GenesisRawConfig getGenesis() const override;
-    std::vector<libp2p::peer::PeerInfo> getBootNodes() const override;
+    network::PeerList getBootNodes() const override;
     std::vector<crypto::SR25519PublicKey> getSessionKeys() const override;
 
     uint16_t getExtrinsicApiPort() const override;
@@ -35,7 +34,13 @@ namespace kagome::application {
         const boost::property_tree::ptree &tree);
 
     ConfigurationStorageImpl() = default;
-    KagomeConfig config_;
+
+    GenesisRawConfig genesis_;
+    network::PeerList boot_nodes_;
+    std::vector<crypto::SR25519PublicKey> session_keys_;
+    struct ApiPorts {
+      uint16_t extrinsic_api_port = 4224;
+    } api_ports_;
   };
 
 }  // namespace kagome::application

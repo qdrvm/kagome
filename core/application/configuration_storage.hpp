@@ -10,6 +10,7 @@
 #include "application/genesis_raw_config.hpp"
 #include "crypto/ed25519_types.hpp"
 #include "crypto/sr25519_types.hpp"
+#include "network/types/peer_list.hpp"
 #include "primitives/block.hpp"
 
 namespace kagome::application {
@@ -30,7 +31,7 @@ namespace kagome::application {
     /**
      * Return ids of peer nodes of the current node
      */
-    virtual std::vector<libp2p::peer::PeerInfo> getBootNodes() const = 0;
+    virtual network::PeerList getBootNodes() const = 0;
 
     /**
      * Return peers' session keys used in BABE

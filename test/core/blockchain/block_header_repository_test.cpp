@@ -39,7 +39,7 @@ class BlockHeaderRepository_Test : public test::BaseLevelDB_Test {
 
     hasher_ = std::make_shared<kagome::crypto::HasherImpl>();
     header_repo_ =
-        std::make_shared<KeyValueBlockHeaderRepository>(*db_, hasher_);
+        std::make_shared<KeyValueBlockHeaderRepository>(db_, hasher_);
   }
 
   outcome::result<Hash256> storeHeader(BlockNumber num, BlockHeader h) {

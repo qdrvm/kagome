@@ -30,7 +30,8 @@ namespace kagome::runtime {
     return execute<void>("Core_initialise_block", header);
   }
 
-  outcome::result<std::vector<AuthorityId>> CoreImpl::authorities() {
-    return execute<std::vector<AuthorityId>>("Core_authorities");
+  outcome::result<std::vector<AuthorityId>> CoreImpl::authorities(
+      const primitives::BlockId &block_id) {
+    return execute<std::vector<AuthorityId>>("Core_authorities", block_id);
   }
 }  // namespace kagome::runtime

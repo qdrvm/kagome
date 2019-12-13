@@ -13,6 +13,7 @@ using kagome::application::ConfigurationStorageImpl;
 using kagome::application::GenesisRawConfig;
 using kagome::common::Buffer;
 using kagome::crypto::SR25519PublicKey;
+using kagome::network::PeerList;
 using libp2p::multi::Multiaddress;
 using libp2p::peer::PeerId;
 using libp2p::peer::PeerInfo;
@@ -30,7 +31,7 @@ class ConfigurationStorageTest : public ::testing::Test {
                           "/ip4/127.0.0.1/tcp/30363/ipfs/"
                           "QmWfTgC2DEt9FhPoccnh5vT5xM5wqWy37EnAPZFQgqheZ6")
                           .value()}};
-    expected_boot_nodes_.push_back(peer_info);
+    expected_boot_nodes_.peers.push_back(peer_info);
 
     std::vector<std::pair<std::string, std::string>> genesis_raw_configs = {
         std::make_pair("01", "aa"), std::make_pair("02", "bb")};
@@ -51,7 +52,7 @@ class ConfigurationStorageTest : public ::testing::Test {
   std::string path_ =
       boost::filesystem::path(__FILE__).parent_path().string()
       + "/genesis.json";  // < Path to file containing the following configs:
-  std::vector<libp2p::peer::PeerInfo> expected_boot_nodes_;
+  PeerList expected_boot_nodes_;
   GenesisRawConfig expected_genesis_config_;
   std::vector<SR25519PublicKey> expected_session_keys_;
 };

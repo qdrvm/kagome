@@ -11,13 +11,13 @@
 
 namespace kagome::network {
 
-  GossiperBroadcast::GossiperBroadcast(
-      libp2p::Host &host, gsl::span<const libp2p::peer::PeerInfo> peer_infos)
+  GossiperBroadcast::GossiperBroadcast(libp2p::Host &host,
+                                       const PeerList &peer_infos)
       : host_{host}, logger_{common::createLogger("GossiperBroadcast")} {
-    BOOST_ASSERT(!peer_infos.empty());
+    BOOST_ASSERT(!peer_infos.peers.empty());
 
-    streams_.reserve(peer_infos.size());
-    for (const auto &info : peer_infos) {
+    streams_.reserve(peer_infos.peers.size());
+    for (const auto &info : peer_infos.peers) {
       streams_.insert({info, nullptr});
     }
   }

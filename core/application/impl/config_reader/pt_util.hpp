@@ -6,8 +6,8 @@
 #ifndef KAGOME_APPLICATION_UTIL_HPP
 #define KAGOME_APPLICATION_UTIL_HPP
 
+#include <boost/optional.hpp>
 #include "application/impl/config_reader/error.hpp"
-#include "application/impl/kagome_config.hpp"
 
 namespace kagome::application {
 

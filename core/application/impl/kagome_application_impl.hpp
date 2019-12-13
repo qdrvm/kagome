@@ -31,6 +31,8 @@ namespace kagome::application {
     using Synchronizer = consensus::Synchronizer;
     using SystemClock = clock::SystemClock;
     using Timer = clock::Timer;
+    using InjectorType = decltype(injector::makeApplicationInjector(
+        std::string{}, std::string{}, std::string{}));
 
     template <class T>
     using sptr = std::shared_ptr<T>;
@@ -54,7 +56,10 @@ namespace kagome::application {
    private:
     Epoch makeInitialEpoch();
 
+    outcome::result<void> initIoContext();
+
     // need to keep all of these instances, since injector itself is destroyed
+    InjectorType injector_;
     sptr<boost::asio::io_context> io_context_;
     sptr<ConfigurationStorage> config_storage_;
     sptr<KeyStorage> key_storage_;
