@@ -30,7 +30,7 @@ namespace kagome::authorship {
    private:
     primitives::BlockHeader block_header_;
     std::shared_ptr<runtime::BlockBuilderApi> r_block_builder_;
-    common::Logger logger_ = common::createLogger("BlockBuilder");
+    common::Logger logger_;
 
     std::vector<primitives::Extrinsic> extrinsics_{};
   };

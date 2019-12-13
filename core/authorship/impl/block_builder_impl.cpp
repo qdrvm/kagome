@@ -13,7 +13,8 @@ namespace kagome::authorship {
       primitives::BlockHeader block_header,
       std::shared_ptr<runtime::BlockBuilderApi> r_block_builder)
       : block_header_(std::move(block_header)),
-        r_block_builder_(std::move(r_block_builder)) {
+        r_block_builder_(std::move(r_block_builder)),
+        logger_{common::createLogger("BlockBuilder")} {
     BOOST_ASSERT(r_block_builder_ != nullptr);
   }
 
