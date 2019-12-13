@@ -103,21 +103,23 @@ namespace kagome::application {
 
     OUTCOME_TRY(p2p_type,
                 ensure(p2p_tree.get_optional<std::string>("p2p_type")));
+
+    using KeyType = libp2p::crypto::Key::Type;
     if (p2p_type == "ed25519") {
-      p2p_keypair_.publicKey.type = libp2p::crypto::Key::Type::Ed25519;
-      p2p_keypair_.privateKey.type = libp2p::crypto::Key::Type::Ed25519;
+      p2p_keypair_.publicKey.type = KeyType::Ed25519;
+      p2p_keypair_.privateKey.type = KeyType::Ed25519;
     } else if (p2p_type == "rsa") {
-      p2p_keypair_.publicKey.type = libp2p::crypto::Key::Type::RSA;
-      p2p_keypair_.privateKey.type = libp2p::crypto::Key::Type::RSA;
+      p2p_keypair_.publicKey.type = KeyType::RSA;
+      p2p_keypair_.privateKey.type = KeyType::RSA;
     } else if (p2p_type == "secp256k1") {
-      p2p_keypair_.publicKey.type = libp2p::crypto::Key::Type::Secp256k1;
-      p2p_keypair_.privateKey.type = libp2p::crypto::Key::Type::Secp256k1;
+      p2p_keypair_.publicKey.type = KeyType::Secp256k1;
+      p2p_keypair_.privateKey.type = KeyType::Secp256k1;
     } else if (p2p_type == "ecdsa") {
-      p2p_keypair_.publicKey.type = libp2p::crypto::Key::Type::ECDSA;
-      p2p_keypair_.privateKey.type = libp2p::crypto::Key::Type::ECDSA;
+      p2p_keypair_.publicKey.type = KeyType::ECDSA;
+      p2p_keypair_.privateKey.type = KeyType::ECDSA;
     } else {
-      p2p_keypair_.publicKey.type = libp2p::crypto::Key::Type::UNSPECIFIED;
-      p2p_keypair_.privateKey.type = libp2p::crypto::Key::Type::UNSPECIFIED;
+      p2p_keypair_.publicKey.type = KeyType::UNSPECIFIED;
+      p2p_keypair_.privateKey.type = KeyType::UNSPECIFIED;
     }
 
     auto p2p_keypair_tree_opt = p2p_tree.get_child_optional("keypair");

@@ -18,7 +18,8 @@ namespace kagome::primitives {
    * Authority id
    */
   struct AuthorityId {
-    // TODO(kamilsa): id types should be different for Babe and Grandpa Authority Ids
+    // TODO(kamilsa): id types should be different for Babe and Grandpa
+    // Authority Ids
     SessionKey id;
 
     bool operator==(const AuthorityId &other) const {
@@ -26,7 +27,7 @@ namespace kagome::primitives {
     }
     bool operator!=(const AuthorityId &other) const {
       return !(*this == other);
-    };
+    }
   };
 
   inline bool operator<(const AuthorityId &lhs, const AuthorityId &rhs) {
@@ -99,7 +100,6 @@ namespace kagome::primitives {
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const AuthorityIndex &a) {
     return s << a.index;
-    ;
   }
 
   /**
