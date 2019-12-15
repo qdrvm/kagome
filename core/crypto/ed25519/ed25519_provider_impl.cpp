@@ -12,7 +12,7 @@ namespace kagome::crypto {
     public_key_t public_key_low{};
 
     auto res = ed25519_create_keypair(&private_key_low, &public_key_low);
-    if (!res) {
+    if (res == 0) {
       return ED25519ProviderError::FAILED_GENERATE_KEYPAIR;
     }
 

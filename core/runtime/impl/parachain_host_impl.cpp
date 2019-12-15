@@ -12,9 +12,9 @@ namespace kagome::runtime {
   using primitives::parachain::ValidatorId;
 
   ParachainHostImpl::ParachainHostImpl(
-      common::Buffer state_code,
-      std::shared_ptr<extensions::Extension> extension)
-      : RuntimeApi(std::move(state_code), std::move(extension)) {}
+      const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
+      const std::shared_ptr<extensions::Extension> &extension)
+      : RuntimeApi(wasm_provider, extension) {}
 
   outcome::result<DutyRoster> ParachainHostImpl::duty_roster() {
     return execute<DutyRoster>("ParachainHost_duty_roster");

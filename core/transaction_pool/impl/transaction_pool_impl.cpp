@@ -16,11 +16,13 @@ namespace kagome::transaction_pool {
   TransactionPoolImpl::TransactionPoolImpl(
       std::unique_ptr<PoolModerator> moderator,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
-      Limits limits, common::Logger logger)
+      Limits limits)
       : header_repo_{std::move(header_repo)},
-        logger_{std::move(logger)},
         moderator_{std::move(moderator)},
-        limits_{limits} {}
+        limits_{limits} {
+    BOOST_ASSERT_MSG(header_repo_ != nullptr, "header repo is nullptr");
+    BOOST_ASSERT_MSG(moderator_ != nullptr, "moderator is nullptr");
+  }
 
   outcome::result<void> TransactionPoolImpl::submitOne(Transaction t) {
     return submit({t});
@@ -49,8 +51,10 @@ namespace kagome::transaction_pool {
 
   std::vector<Transaction> TransactionPoolImpl::getReadyTransactions() {
     std::vector<Transaction> ready(ready_queue_.size());
-    std::transform(ready_queue_.begin(), ready_queue_.end(), ready.begin(),
-                   [](auto &rtx) { return rtx.second; });
+    std::transform(
+        ready_queue_.begin(), ready_queue_.end(), ready.begin(), [](auto &rtx) {
+          return rtx.second;
+        });
     return ready;
   }
 
@@ -61,7 +65,8 @@ namespace kagome::transaction_pool {
     std::vector<Transaction> removed;
 
     auto w_border =
-        std::stable_partition(waiting_queue_.begin(), waiting_queue_.end(),
+        std::stable_partition(waiting_queue_.begin(),
+                              waiting_queue_.end(),
                               [this, number](auto &&tx) {
                                 return moderator_->banIfStale(number, tx);
                               });
@@ -139,7 +144,8 @@ namespace kagome::transaction_pool {
   }
 
   std::vector<Transaction> TransactionPoolImpl::pruneTag(
-      const primitives::BlockId &at, const primitives::TransactionTag &tag,
+      const primitives::BlockId &at,
+      const primitives::TransactionTag &tag,
       const std::vector<common::Hash256> &known_imported_hashes) {
     provided_tags_by_.insert({tag, {}});
     updateReady();
@@ -201,7 +207,8 @@ namespace kagome::transaction_pool {
     }
 
     if (auto stale = removeStale(at); stale) {
-      removed.insert(removed.end(), std::move_iterator(stale.value().begin()),
+      removed.insert(removed.end(),
+                     std::move_iterator(stale.value().begin()),
                      std::move_iterator(stale.value().end()));
     }
     return removed;

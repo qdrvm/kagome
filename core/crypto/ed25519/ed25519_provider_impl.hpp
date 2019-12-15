@@ -29,3 +29,4 @@ namespace kagome::crypto {
 }  // namespace kagome::crypto
 
 #endif  //KAGOME_CORE_CRYPTO_ED25519_ED25519_PROVIDER_IMPL_HPP
+

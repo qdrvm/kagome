@@ -11,13 +11,11 @@
 
 namespace kagome::api {
   ListenerImpl::ListenerImpl(ListenerImpl::Context &context,
-                             const ListenerImpl::Endpoint &endpoint,
-                             HttpSession::Configuration http_config,
-                             Logger logger)
+                             const Configuration &configuration,
+                             HttpSession::Configuration http_config)
       : context_(context),
-        acceptor_(context_, endpoint),
-        http_config_{http_config},
-        logger_{std::move(logger)} {}
+        acceptor_(context_, configuration.endpoint),
+        http_config_{http_config} {}
 
   void ListenerImpl::acceptOnce(Listener::NewSessionHandler on_new_session) {
     acceptor_.async_accept([self = shared_from_this(), on_new_session](

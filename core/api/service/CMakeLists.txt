@@ -9,4 +9,5 @@ add_library(api_service
     )
 target_link_libraries(api_service
     Boost::boost
+    logger
     )

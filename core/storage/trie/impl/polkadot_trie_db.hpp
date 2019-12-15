@@ -39,7 +39,7 @@ namespace kagome::storage::trie {
                              size_t nest_level);
 
    public:
-    explicit PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db);
+    explicit PolkadotTrieDb(std::shared_ptr<PersistentBufferMap> db);
 
     ~PolkadotTrieDb() override = default;
 
@@ -101,7 +101,7 @@ namespace kagome::storage::trie {
     outcome::result<NodePtr> retrieveChild(const BranchPtr &parent,
                                            uint8_t idx) const;
 
-    std::unique_ptr<PersistentBufferMap> db_;
+    std::shared_ptr<PersistentBufferMap> db_;
     PolkadotCodec codec_;
     common::Buffer root_;
   };

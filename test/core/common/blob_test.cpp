@@ -103,7 +103,7 @@ TEST(BlobTest, CreateFromInvalidString) {
  */
 TEST(BlobTest, ToHexTest) {
   std::string str = "hello";
-  std::string expected_hex = "68656C6C6F";
+  std::string expected_hex = "68656c6c6f";
 
   auto blob_res = Blob<5>::fromString(str);
   ASSERT_NO_THROW({

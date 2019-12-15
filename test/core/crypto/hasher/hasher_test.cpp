@@ -79,7 +79,7 @@ TEST_F(HasherFixture, sha2_256) {
   auto hash = hasher->sha2_256(string2buffer(
       "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"));
   std::string_view match =
-      "248D6A61D20638B8E5C026930C3E6039A33CE45964FF2167F6ECEDD419DB06C1";
+      "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1";
   ASSERT_EQ(hash.toHex(), match);
 }
 

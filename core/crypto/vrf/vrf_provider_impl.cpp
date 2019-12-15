@@ -17,10 +17,18 @@ namespace kagome::crypto {
   SR25519Keypair VRFProviderImpl::generateKeypair() const {
     auto seed = generator_->randomBytes(constants::sr25519::SEED_SIZE);
 
-    std::vector<uint8_t> kp(constants::sr25519::KEYPAIR_SIZE, 0);
+    std::array<uint8_t, constants::sr25519::KEYPAIR_SIZE> kp{};
     sr25519_keypair_from_seed(kp.data(), seed.data());
 
-    return SR25519Keypair{kp};
+    SR25519Keypair keypair;
+    std::copy(kp.begin(),
+              kp.begin() + constants::sr25519::SECRET_SIZE,
+              keypair.secret_key.begin());
+    std::copy(kp.begin() + constants::sr25519::SECRET_SIZE,
+              kp.begin() + constants::sr25519::SECRET_SIZE
+                  + constants::sr25519::PUBLIC_SIZE,
+              keypair.public_key.begin());
+    return keypair;
   }
 
   boost::optional<VRFOutput> VRFProviderImpl::sign(

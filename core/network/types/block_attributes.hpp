@@ -9,7 +9,7 @@
 #include <bitset>
 #include <cstdint>
 
-#include "scale/outcome_throw.hpp"
+#include "common/outcome_throw.hpp"
 #include "scale/scale_error.hpp"
 
 namespace kagome::network {
@@ -106,7 +106,7 @@ namespace kagome::network {
     s >> value;
     constexpr uint8_t unused_bits = 0b11100000;
     if ((value & unused_bits) != 0u) {
-      scale::common::raise(scale::DecodeError::UNEXPECTED_VALUE);
+      common::raise(scale::DecodeError::UNEXPECTED_VALUE);
     }
     v = BlockAttributes{value};
     return s;

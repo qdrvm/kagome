@@ -9,12 +9,13 @@
 #include "extensions/extension.hpp"
 #include "runtime/grandpa.hpp"
 #include "runtime/impl/runtime_api.hpp"
+#include "runtime/wasm_provider.hpp"
 
 namespace kagome::runtime {
   class GrandpaImpl : public RuntimeApi, public Grandpa {
    public:
-    GrandpaImpl(common::Buffer state_code,
-                std::shared_ptr<extensions::Extension> extension);
+    GrandpaImpl(const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
+                const std::shared_ptr<extensions::Extension> &extension);
 
     ~GrandpaImpl() override = default;
 

@@ -2,14 +2,6 @@
 	path = deps/sml
 	url = https://github.com/boost-experimental/sml
     shallow = true
-[submodule "deps/hat-trie"]
-	path = deps/hat-trie
-	url = https://github.com/Tessil/hat-trie.git
-    shallow = true
 [submodule "jsonrpc-lean"]
 	path = deps/jsonrpc-lean
 	url = https://github.com/uskr/jsonrpc-lean
-[submodule "di"]
-	path = deps/di
-	url = https://github.com/boost-experimental/di
-    shallow = true

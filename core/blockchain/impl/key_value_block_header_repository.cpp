@@ -20,14 +20,15 @@ using kagome::primitives::BlockNumber;
 namespace kagome::blockchain {
 
   KeyValueBlockHeaderRepository::KeyValueBlockHeaderRepository(
-      PersistentBufferMap &map, std::shared_ptr<crypto::Hasher> hasher)
-      : map_{map}, hasher_{std::move(hasher)} {
+      std::shared_ptr<PersistentBufferMap> map,
+      std::shared_ptr<crypto::Hasher> hasher)
+      : map_{std::move(map)}, hasher_{std::move(hasher)} {
     BOOST_ASSERT(hasher_);
   }
 
   outcome::result<BlockNumber> KeyValueBlockHeaderRepository::getNumberByHash(
       const Hash256 &hash) const {
-    OUTCOME_TRY(key, idToLookupKey(map_, hash));
+    OUTCOME_TRY(key, idToLookupKey(*map_, hash));
 
     auto maybe_number = lookupKeyToNumber(key);
 
@@ -44,7 +45,7 @@ namespace kagome::blockchain {
 
   outcome::result<primitives::BlockHeader>
   KeyValueBlockHeaderRepository::getBlockHeader(const BlockId &id) const {
-    auto header_res = getWithPrefix(map_, Prefix::HEADER, id);
+    auto header_res = getWithPrefix(*map_, Prefix::HEADER, id);
     if (!header_res) {
       return (isNotFoundError(header_res.error())) ? Error::BLOCK_NOT_FOUND
                                                    : header_res.error();

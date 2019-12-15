@@ -8,8 +8,8 @@
 
 #include <boost/variant.hpp>
 #include <outcome/outcome.hpp>
+#include "common/outcome_throw.hpp"
 #include "common/visitor.hpp"
-#include "scale/outcome_throw.hpp"
 #include "scale/scale_error.hpp"
 
 namespace kagome::scale::detail {

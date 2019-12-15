@@ -6,9 +6,11 @@
 #include "extensions/impl/io_extension.hpp"
 
 namespace kagome::extensions {
-  IOExtension::IOExtension(std::shared_ptr<runtime::WasmMemory> memory,
-                           common::Logger logger)
-      : memory_(std::move(memory)), logger_{std::move(logger)} {}
+  IOExtension::IOExtension(std::shared_ptr<runtime::WasmMemory> memory)
+      : memory_(std::move(memory)),
+        logger_{common::createLogger(kDefaultLoggerTag)} {
+    BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
+  }
 
   void IOExtension::ext_print_hex(runtime::WasmPointer data,
                                   runtime::SizeType length) {

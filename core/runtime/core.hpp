@@ -9,6 +9,7 @@
 #include <outcome/outcome.hpp>
 #include <vector>
 
+#include "primitives/authority.hpp"
 #include "primitives/block.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
@@ -47,8 +48,8 @@ namespace kagome::runtime {
      * Get current authorities
      * @return collection of authorities
      */
-    virtual outcome::result<std::vector<primitives::AuthorityId>>
-    authorities() = 0;
+    virtual outcome::result<std::vector<primitives::AuthorityId>> authorities(
+        const primitives::BlockId &block_id) = 0;
   };
 
 }  // namespace kagome::runtime
