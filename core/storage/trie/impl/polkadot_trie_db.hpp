@@ -38,6 +38,7 @@ namespace kagome::storage::trie {
                              const NodePtr &node,
                              const PolkadotTrieDb &trie,
                              size_t nest_level);
+
    public:
     /**
      * initializes the trie from the provided storage (and will use the storage

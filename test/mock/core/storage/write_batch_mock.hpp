@@ -19,7 +19,7 @@ namespace kagome::storage::face {
     MOCK_METHOD0(clear, void ());
     MOCK_METHOD2_T(put, outcome::result<void>(const K &key, const V &value));
     outcome::result<void> put(const K &key, V &&value) {
-      put_rvalue(key, std::move(value));
+      return put_rvalue(key, std::move(value));
     }
     MOCK_METHOD2_T(put_rvalue, outcome::result<void>(const K &key, V value));
 
