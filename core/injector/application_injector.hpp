@@ -6,6 +6,7 @@
 #ifndef KAGOME_CORE_INJECTOR_APPLICATION_INJECTOR_HPP
 #define KAGOME_CORE_INJECTOR_APPLICATION_INJECTOR_HPP
 
+#include <blockchain/impl/persistent_map_util.hpp>
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
@@ -319,6 +320,28 @@ namespace kagome::injector {
       return initialized.value();
     };
 
+    // polkadot trie db getter
+    auto get_polkadot_trie_db =
+        [initialized =
+             boost::optional<std::shared_ptr<storage::trie::PolkadotTrieDb>>(
+                 boost::none)](const auto &injector) mutable
+        -> std::shared_ptr<storage::trie::PolkadotTrieDb> {
+      if (initialized) {
+        return initialized.value();
+      }
+      auto storage =
+          injector.template create<std::shared_ptr<storage::LevelDB>>();
+      auto backend = std::make_shared<storage::trie::PolkadotTrieDbBackend>(
+          storage,
+          common::Buffer{blockchain::prefix::TRIE_NODE},
+          common::Buffer{0});
+      std::shared_ptr<storage::trie::PolkadotTrieDb> polkadot_trie_db =
+          storage::trie::PolkadotTrieDb::createEmpty(backend);
+      initialized = polkadot_trie_db;
+      return polkadot_trie_db;
+    };
+
+    // trie db getter
     auto get_trie_db =
         [initialized = boost::optional<std::shared_ptr<storage::trie::TrieDb>>(
              boost::none)](const auto &injector) mutable
@@ -444,6 +467,8 @@ namespace kagome::injector {
         di::bind<runtime::BlockBuilderApi>.template to<runtime::BlockBuilderApiImpl>(),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
+        di::bind<storage::trie::PolkadotTrieDb>.to(
+            std::move(get_polkadot_trie_db)),
         di::bind<storage::trie::TrieDb>.to(std::move(get_trie_db)),
         di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
         di::bind<runtime::WasmProvider>.template to<runtime::StorageWasmProvider>(),

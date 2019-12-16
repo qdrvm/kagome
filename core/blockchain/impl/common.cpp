@@ -41,8 +41,12 @@ namespace kagome::blockchain {
 
   common::Buffer trieRoot(
       const std::vector<std::pair<common::Buffer, common::Buffer>> &key_vals) {
-    storage::trie::PolkadotTrieDb trie_db{
-        std::make_shared<storage::InMemoryStorage>()};
+    auto trie_db = *storage::trie::PolkadotTrieDb::createEmpty(
+                        std::make_shared<storage::trie::PolkadotTrieDbBackend>(
+                            std::make_shared<storage::InMemoryStorage>(),
+                            common::Buffer{},
+                            common::Buffer{{0}}))
+                        .release();
 
     for (const auto &[key, val] : key_vals) {
       auto res = trie_db.put(key, val);
