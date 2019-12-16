@@ -52,10 +52,12 @@ namespace kagome::runtime {
    */
 
   RuntimeExternalInterface::RuntimeExternalInterface(
-      std::shared_ptr<extensions::Extension> extension, common::Logger logger)
+      std::shared_ptr<extensions::Extension> extension)
       : extension_(std::move(extension)),
-        memory_(extension_->memory()),
-        logger_(std::move(logger)) {}
+        memory_(extension_->memory()) {
+    BOOST_ASSERT_MSG(extension_ != nullptr, "extension is nullptr");
+    BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
+  }
 
   void RuntimeExternalInterface::init(wasm::Module &wasm,
                                       wasm::ModuleInstance &instance) {

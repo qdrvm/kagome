@@ -18,8 +18,9 @@ namespace kagome::runtime {
                  outcome::result<void>(const primitives::Block &));
     MOCK_METHOD1(initialise_block,
                  outcome::result<void>(const primitives::BlockHeader &));
-    MOCK_METHOD0(authorities,
-                 outcome::result<std::vector<primitives::AuthorityId>>());
+    MOCK_METHOD1(authorities,
+                 outcome::result<std::vector<primitives::AuthorityId>>(
+                     const primitives::BlockId &));
   };
 }  // namespace kagome::runtime
 

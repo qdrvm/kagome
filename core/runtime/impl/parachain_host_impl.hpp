@@ -7,9 +7,10 @@
 #define KAGOME_CORE_RUNTIME_IMPL_PARACHAIN_HOST_IMPL_HPP
 
 #include "extensions/extension.hpp"
+#include "runtime/impl/runtime_api.hpp"
 #include "runtime/parachain_host.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
-#include "runtime/impl/runtime_api.hpp"
+#include "runtime/wasm_provider.hpp"
 
 namespace kagome::runtime {
   class ParachainHostImpl : public RuntimeApi, public ParachainHost {
@@ -20,8 +21,9 @@ namespace kagome::runtime {
      * @param extension extension instance
      * @param codec scale codec instance
      */
-    ParachainHostImpl(common::Buffer state_code,
-                      std::shared_ptr<extensions::Extension> extension);
+    ParachainHostImpl(
+        const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
+        const std::shared_ptr<extensions::Extension> &extension);
 
     ~ParachainHostImpl() override = default;
 

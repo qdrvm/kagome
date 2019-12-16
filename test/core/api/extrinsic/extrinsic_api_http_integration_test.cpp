@@ -48,14 +48,15 @@ class ESSIntegrationTest : public ::testing::Test {
     hash.fill(1);
   }
 
-  Context main_context{1};
-  Context client_context{1};
+  std::shared_ptr<Context> main_context = std::make_shared<Context>(1);
+  std::shared_ptr<Context> client_context = std::make_shared<Context>(1);
 
   Endpoint endpoint = {boost::asio::ip::address::from_string("127.0.0.1"),
                        12349};
   HttpSession::Configuration http_config{};
-  sptr<ListenerImpl> listener =
-      std::make_shared<ListenerImpl>(main_context, endpoint, http_config);
+
+  sptr<ListenerImpl> listener = std::make_shared<ListenerImpl>(
+      *main_context, ListenerImpl::Configuration{endpoint}, http_config);
 
   sptr<ExtrinsicApiMock> api = std::make_shared<ExtrinsicApiMock>();
 
@@ -88,7 +89,7 @@ TEST_F(ESSIntegrationTest, ProcessSingleClientSuccess) {
 
   ASSERT_NO_THROW(service->start());
 
-  client = std::make_shared<test::ApiClient>(client_context);
+  client = std::make_shared<test::ApiClient>(*client_context);
 
   std::thread client_thread([this, client, &response]() {
     ASSERT_TRUE(client->connect(endpoint));
@@ -98,7 +99,7 @@ TEST_F(ESSIntegrationTest, ProcessSingleClientSuccess) {
     });
   });
 
-  main_context.run_for(timeout_duration);
+  main_context->run_for(timeout_duration);
   client_thread.join();
 }
 
@@ -125,7 +126,7 @@ TEST_F(ESSIntegrationTest, ProcessTwoRequestsSuccess) {
 
   ASSERT_NO_THROW(service->start());
 
-  client = std::make_shared<test::ApiClient>(client_context);
+  client = std::make_shared<test::ApiClient>(*client_context);
 
   std::thread client_thread([this, client, &response]() {
     ASSERT_TRUE(client->connect(endpoint));
@@ -139,6 +140,6 @@ TEST_F(ESSIntegrationTest, ProcessTwoRequestsSuccess) {
     });
   });
 
-  main_context.run_for(timeout_duration);
+  main_context->run_for(timeout_duration);
   client_thread.join();
 }

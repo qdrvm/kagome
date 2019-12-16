@@ -8,7 +8,6 @@
 
 #include <array>
 
-#include <boost/format.hpp>
 #include <boost/functional/hash.hpp>
 #include "common/hexutil.hpp"
 
@@ -65,7 +64,7 @@ namespace kagome::common {
      * Converts current blob to hex string.
      */
     std::string toHex() const noexcept {
-      return hex_upper({this->begin(), this->end()});
+      return hex_lower({this->begin(), this->end()});
     }
 
     /**
@@ -100,7 +99,8 @@ namespace kagome::common {
      * @param buffer
      * @return
      */
-    static outcome::result<Blob<size_>> fromSpan(const gsl::span<uint8_t> &span) {
+    static outcome::result<Blob<size_>> fromSpan(
+        const gsl::span<uint8_t> &span) {
       if (span.size() != size_) {
         return BlobError::INCORRECT_LENGTH;
       }
@@ -157,7 +157,7 @@ namespace kagome::common {
   }
 
   template <size_t N>
-  inline std::ostream& operator<<(std::ostream& os, const Blob<N>& blob) {
+  inline std::ostream &operator<<(std::ostream &os, const Blob<N> &blob) {
     return os << blob.toHex();
   }
 

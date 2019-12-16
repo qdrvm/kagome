@@ -11,6 +11,7 @@
 #include "common/buffer.hpp"
 #include "runtime/impl/wasm_executor.hpp"
 #include "runtime/wasm_memory.hpp"
+#include "runtime/wasm_provider.hpp"
 #include "runtime/wasm_result.hpp"
 #include "scale/scale.hpp"
 
@@ -20,9 +21,9 @@ namespace kagome::runtime {
    */
   class RuntimeApi {
    public:
-    RuntimeApi(common::Buffer state_code,
+    RuntimeApi(std::shared_ptr<runtime::WasmProvider> wasm_provider,
                std::shared_ptr<extensions::Extension> extension)
-        : state_code_(std::move(state_code)),
+        : wasm_provider_(std::move(wasm_provider)),
           memory_(extension->memory()),
           executor_(std::move(extension)) {}
 
@@ -49,7 +50,8 @@ namespace kagome::runtime {
 
       wasm::LiteralList ll{wasm::Literal(ptr), wasm::Literal(len)};
       wasm::Name wasm_name = std::string(name);
-      OUTCOME_TRY(res, executor_.call(state_code_, wasm_name, ll));
+      const auto &state_code = wasm_provider_->getStateCode();
+      OUTCOME_TRY(res, executor_.call(state_code, wasm_name, ll));
 
       if constexpr (!std::is_same_v<void, R>) {
         WasmResult r{res.geti64()};
@@ -63,7 +65,7 @@ namespace kagome::runtime {
     }
 
    private:
-    common::Buffer state_code_;
+    std::shared_ptr<runtime::WasmProvider> wasm_provider_;
     std::shared_ptr<WasmMemory> memory_;
     WasmExecutor executor_;
   };

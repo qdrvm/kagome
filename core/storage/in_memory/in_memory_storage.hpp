@@ -13,8 +13,6 @@
 #include "storage/face/persistent_map.hpp"
 
 namespace kagome::storage {
-
-  using kagome::common::Buffer;
   
   /**
    * Simple storage that conforms PersistentMap interface
@@ -22,33 +20,33 @@ namespace kagome::storage {
    * LevelDB
    */
   class InMemoryStorage
- : public kagome::storage::face::PersistentMap<Buffer, Buffer> {
+ : public face::PersistentMap<common::Buffer, common::Buffer> {
    public:
     ~InMemoryStorage() override = default;
 
-    outcome::result<Buffer> get(
-        const Buffer &key) const override;
+    outcome::result<common::Buffer> get(
+        const common::Buffer &key) const override;
 
-    outcome::result<void> put(const Buffer &key,
-                              const Buffer &value) override;
+    outcome::result<void> put(const common::Buffer &key,
+                              const common::Buffer &value) override;
 
-    outcome::result<void> put(const Buffer &key,
-                              Buffer &&value) override;
+    outcome::result<void> put(const common::Buffer &key,
+                              common::Buffer &&value) override;
 
-    bool contains(const Buffer &key) const override;
+    bool contains(const common::Buffer &key) const override;
 
-    outcome::result<void> remove(const Buffer &key) override;
+    outcome::result<void> remove(const common::Buffer &key) override;
 
     std::unique_ptr<
-        kagome::storage::face::WriteBatch<Buffer, Buffer>>
+        kagome::storage::face::WriteBatch<common::Buffer, common::Buffer>>
     batch() override;
 
     std::unique_ptr<
-        kagome::storage::face::MapCursor<Buffer, Buffer>>
+        kagome::storage::face::MapCursor<common::Buffer, common::Buffer>>
     cursor() override;
 
    private:
-    std::map<std::string, Buffer> storage;
+    std::map<std::string, common::Buffer> storage;
   };
 
 }  // namespace kagome::storage

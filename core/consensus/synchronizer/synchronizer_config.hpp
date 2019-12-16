@@ -11,7 +11,7 @@
 namespace kagome::consensus {
   struct SynchronizerConfig {
     /// how much blocks we can send at once
-    uint32_t max_request_blocks = 128;
+    uint32_t max_request_blocks = 128u;
   };
 }  // namespace kagome::consensus
 

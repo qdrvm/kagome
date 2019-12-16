@@ -12,8 +12,8 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/vrf_provider_mock.hpp"
-#include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
 #include "mock/libp2p/crypto/random_generator_mock.hpp"
+#include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
 #include "scale/scale.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/primitives/hash_creator.hpp"
@@ -78,7 +78,7 @@ class BlockValidatorTest : public testing::Test {
   BabeSlotNumber slot_number_ = 2;
   VRFValue vrf_value_ = 1488228;
   VRFProof vrf_proof_{};
-  AuthorityIndex authority_index_ = 1;
+  AuthorityIndex authority_index_ = {1};
   BabeBlockHeader babe_header_{
       slot_number_, {vrf_value_, vrf_proof_}, authority_index_};
   Buffer encoded_babe_header_{scale::encode(babe_header_).value()};
@@ -117,7 +117,7 @@ TEST_F(BlockValidatorTest, Success) {
       .WillOnce(Return(encoded_block_copy_hash));
 
   babe_epoch_.authorities.emplace_back();
-  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+  babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
 
   // verifyVRF
   auto randomness_with_slot =
@@ -175,7 +175,7 @@ TEST_F(BlockValidatorTest, NoBabeHeader) {
   auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
 
   babe_epoch_.authorities.emplace_back();
-  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+  babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
 
   EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_DIGESTS);
@@ -232,7 +232,7 @@ TEST_F(BlockValidatorTest, SignatureVerificationFail) {
       .WillOnce(Return(encoded_block_copy_hash));
 
   babe_epoch_.authorities.emplace_back();
-  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+  babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
 
   // WHEN
   // mutate seal of the block to make signature invalid
@@ -264,7 +264,7 @@ TEST_F(BlockValidatorTest, VRFFail) {
       .WillOnce(Return(encoded_block_copy_hash));
 
   babe_epoch_.authorities.emplace_back();
-  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+  babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
 
   // WHEN
   auto randomness_with_slot =
@@ -300,7 +300,7 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
       .WillOnce(Return(encoded_block_copy_hash));
 
   babe_epoch_.authorities.emplace_back();
-  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+  babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
 
   // WHEN
   babe_epoch_.threshold = 0;
@@ -340,7 +340,7 @@ TEST_F(BlockValidatorTest, TwoBlocksByOnePeer) {
       .WillRepeatedly(Return(encoded_block_copy_hash));
 
   babe_epoch_.authorities.emplace_back();
-  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+  babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
 
   auto randomness_with_slot =
       Buffer{}
@@ -389,7 +389,7 @@ TEST_F(BlockValidatorTest, InvalidExtrinsic) {
       .WillOnce(Return(encoded_block_copy_hash));
 
   babe_epoch_.authorities.emplace_back();
-  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+  babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
 
   auto randomness_with_slot =
       Buffer{}
@@ -431,7 +431,7 @@ TEST_F(BlockValidatorTest, BlockTreeFails) {
       .WillOnce(Return(encoded_block_copy_hash));
 
   babe_epoch_.authorities.emplace_back();
-  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+  babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
 
   auto randomness_with_slot =
       Buffer{}

@@ -6,6 +6,7 @@
 #ifndef KAGOME_PRIMITIVES_BLOCK_HEADER_HPP
 #define KAGOME_PRIMITIVES_BLOCK_HEADER_HPP
 
+#include <type_traits>
 #include <vector>
 
 #include "common/blob.hpp"

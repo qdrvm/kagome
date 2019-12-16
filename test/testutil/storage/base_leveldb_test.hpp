@@ -23,7 +23,7 @@ namespace test {
 
     void TearDown() override;
 
-    std::unique_ptr<LevelDB> db_;
+    std::shared_ptr<LevelDB> db_;
   };
 
 }  // namespace test

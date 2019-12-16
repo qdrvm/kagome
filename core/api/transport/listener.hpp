@@ -21,7 +21,7 @@ namespace kagome::api {
   class Listener {
    protected:
     template <class T>
-    using sptr = std::shared_ptr<Session>;
+    using sptr = std::shared_ptr<T>;
 
     template <class T>
     using Signal = boost::signals2::signal<T>;

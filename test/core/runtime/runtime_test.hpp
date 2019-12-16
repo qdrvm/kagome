@@ -18,9 +18,9 @@
 #include "primitives/block_id.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/runtime/wasm_test.hpp"
+#include "runtime/impl/basic_wasm_provider.hpp"
 
-class RuntimeTest : public test::WasmTest {
+class RuntimeTest : public ::testing::Test {
  public:
   using Buffer = kagome::common::Buffer;
   using Block = kagome::primitives::Block;
@@ -29,17 +29,15 @@ class RuntimeTest : public test::WasmTest {
   using Extrinsic = kagome::primitives::Extrinsic;
   using Digest = kagome::primitives::Digest;
 
-  RuntimeTest()
-      // path to a file with polkadot runtime wasm code located in wasm/
-      // subfolder
-      : WasmTest(boost::filesystem::path(__FILE__).parent_path().string()
-                 + "/wasm/polkadot_runtime.compact.wasm") {}
-
   void SetUp() override {
     trie_db_ = std::make_shared<kagome::storage::trie::MockTrieDb>();
     memory_ = std::make_shared<kagome::runtime::WasmMemoryImpl>();
     extension_ =
         std::make_shared<kagome::extensions::ExtensionImpl>(memory_, trie_db_);
+    std::string wasm_path =
+        boost::filesystem::path(__FILE__).parent_path().string()
+        + "/wasm/polkadot_runtime.compact.wasm";
+    wasm_provider_ = std::make_shared<test::BasicWasmProvider>(wasm_path);
   }
 
   kagome::primitives::BlockHeader createBlockHeader() {
@@ -80,6 +78,7 @@ class RuntimeTest : public test::WasmTest {
   std::shared_ptr<kagome::storage::trie::MockTrieDb> trie_db_;
   std::shared_ptr<kagome::runtime::WasmMemory> memory_;
   std::shared_ptr<kagome::extensions::ExtensionImpl> extension_;
+  std::shared_ptr<test::BasicWasmProvider> wasm_provider_;
 };
 
 #endif  // KAGOME_RUNTIME_TEST_HPP

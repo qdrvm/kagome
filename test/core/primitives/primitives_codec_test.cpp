@@ -413,8 +413,8 @@ TEST_F(Primitives, DecodeTransactionValidityValidSuccess) {
  */
 TEST_F(Primitives, EncodeDecodeAuthorityIdsSuccess) {
   AuthorityId id1, id2;
-  id1.fill(1u);
-  id2.fill(2u);
+  id1.id.fill(1u);
+  id2.id.fill(2u);
   std::vector<AuthorityId> original{id1, id2};
   EXPECT_OUTCOME_TRUE(res, encode(original))
 

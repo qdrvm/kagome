@@ -14,7 +14,7 @@
 #include <outcome/outcome.hpp>
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
-#include "scale/outcome_throw.hpp"
+#include "common/outcome_throw.hpp"
 #include "scale/scale_error.hpp"
 
 namespace kagome::primitives {
@@ -105,13 +105,13 @@ namespace kagome::primitives {
     std::vector<common::Buffer> vals;
     s >> ids >> vals;
     if (ids.size() != vals.size()) {
-      scale::common::raise(kagome::scale::DecodeError::INVALID_DATA);
+      common::raise(kagome::scale::DecodeError::INVALID_DATA);
     }
 
     for (size_t i = 0u; i < ids.size(); ++i) {
       auto &&res = v.putData(ids[i], vals[i]);
       if (!res) {
-        scale::common::raise(InherentDataError::IDENTIFIER_ALREADY_EXISTS);
+        common::raise(InherentDataError::IDENTIFIER_ALREADY_EXISTS);
       }
     }
 

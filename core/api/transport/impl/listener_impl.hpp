@@ -26,15 +26,21 @@ namespace kagome::api {
     using Logger = common::Logger;
 
    public:
+    /***
+     * Listener configuration
+     */
+    struct Configuration {
+      Endpoint endpoint{};  ///< listener endpoint
+    };
+
     /**
      * @param context reference to boost::asio::io_context instance
      * @param endpoint loopback ip address to listen
      * @param http_config http session configuration
      */
     ListenerImpl(Context &context,
-                 const Endpoint &endpoint,
-                 HttpSession::Configuration http_config,
-                 Logger logger = common::createLogger("api listener"));
+                 const Configuration &configuration,
+                 HttpSession::Configuration http_config);
 
     ~ListenerImpl() override = default;
 
@@ -59,7 +65,7 @@ namespace kagome::api {
     Acceptor acceptor_;                       ///< connections acceptor
     State state_{State::READY};               ///< working state
     HttpSession::Configuration http_config_;  /// http session configuration
-    Logger logger_;                           ///< logger instance
+    Logger logger_ = common::createLogger("api listener");  ///< logger instance
   };
 }  // namespace kagome::api
 

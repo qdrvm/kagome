@@ -6,7 +6,6 @@
 #ifndef KAGOME_PRIMITIVES_BLOCK_HPP
 #define KAGOME_PRIMITIVES_BLOCK_HPP
 
-#include "common/buffer.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/extrinsic.hpp"
 
