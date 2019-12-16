@@ -21,14 +21,14 @@ namespace kagome::storage::trie {
   PolkadotTrieDb::createFromStorage(std::shared_ptr<PolkadotTrieDbBackend> db) {
     BOOST_ASSERT(db != nullptr);
     OUTCOME_TRY(root, db->getRootHash());
-    PolkadotTrieDb trie_db{db, std::move(root)};
+    PolkadotTrieDb trie_db{std::move(db), std::move(root)};
     return std::make_unique<PolkadotTrieDb>(std::move(trie_db));
   }
 
   std::unique_ptr<PolkadotTrieDb> PolkadotTrieDb::createEmpty(
       std::shared_ptr<PolkadotTrieDbBackend> db) {
     BOOST_ASSERT(db != nullptr);
-    PolkadotTrieDb trie_db{db, boost::none};
+    PolkadotTrieDb trie_db{std::move(db), boost::none};
     return std::make_unique<PolkadotTrieDb>(std::move(trie_db));
   }
 
