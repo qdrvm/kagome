@@ -26,8 +26,6 @@ static const Buffer kRootHashKey{0};
 
 class TrieDbBackendTest : public testing::Test {
  public:
-  void SetUp() {}
-
   std::shared_ptr<PersistentMapMock<Buffer, Buffer>> storage =
       std::make_shared<PersistentMapMock<Buffer, Buffer>>();
   PolkadotTrieDbBackend backend{storage, kNodePrefix, kRootHashKey};
@@ -56,16 +54,6 @@ TEST_F(TrieDbBackendTest, Get) {
   prefixed.put("abc"_buf);
   EXPECT_CALL(*storage, get(prefixed)).WillOnce(Return("123"_buf));
   EXPECT_OUTCOME_TRUE_1(backend.get("abc"_buf));
-}
-
-/**
- * @given trie backend
- * @when use a batch to put values to storage
- * @then batch processes prefixes as the backend itself would
- */
-void deleter(WriteBatchMock<Buffer, Buffer> *p) {
-  std::cout << "delete\n";
-  delete p;
 }
 
 /**

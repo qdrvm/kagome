@@ -85,8 +85,8 @@ namespace kagome::storage::trie {
     std::unique_ptr<MapCursor> cursor() override;
 
    protected:
-    explicit PolkadotTrieDb(std::shared_ptr<PolkadotTrieDbBackend> db,
-                            boost::optional<common::Buffer> root_hash);
+    PolkadotTrieDb(std::shared_ptr<PolkadotTrieDbBackend> db,
+                   boost::optional<common::Buffer> root_hash);
 
    private:
     /**
