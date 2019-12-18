@@ -16,8 +16,7 @@ namespace kagome::runtime {
   class RuntimeExternalInterface : public wasm::ShellExternalInterface {
    public:
     explicit RuntimeExternalInterface(
-        std::shared_ptr<extensions::Extension> extension,
-        common::Logger logger = common::createLogger(kDefaultLoggerTag));
+        std::shared_ptr<extensions::Extension> extension);
 
     /**
      * Initializes the the external interface with memory from module and
@@ -62,12 +61,13 @@ namespace kagome::runtime {
      * Checks that the number of arguments is as expected and terminates the
      * program if it is not
      */
-    void checkArguments(std::string_view extern_name, size_t expected,
+    void checkArguments(std::string_view extern_name,
+                        size_t expected,
                         size_t actual);
 
     std::shared_ptr<extensions::Extension> extension_;
     std::shared_ptr<WasmMemory> memory_;
-    common::Logger logger_;
+    common::Logger logger_ = common::createLogger(kDefaultLoggerTag);
 
     constexpr static auto kDefaultLoggerTag = "Runtime external interface";
   };

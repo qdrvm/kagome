@@ -6,6 +6,7 @@
 #ifndef KAGOME_CORE_CRYPTO_VRF_VRF_PROVIDER_HPP
 #define KAGOME_CORE_CRYPTO_VRF_VRF_PROVIDER_HPP
 
+#include <boost/optional.hpp>
 #include "common/buffer.hpp"
 #include "crypto/sr25519_types.hpp"
 

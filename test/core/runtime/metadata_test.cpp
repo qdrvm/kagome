@@ -11,7 +11,6 @@
 #include "runtime/impl/metadata_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/runtime/wasm_test.hpp"
 
 using ::testing::_;
 using ::testing::Return;
@@ -26,7 +25,7 @@ class MetadataTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    api_ = std::make_shared<MetadataImpl>(state_code_, extension_);
+    api_ = std::make_shared<MetadataImpl>(wasm_provider_, extension_);
   }
 
  protected:

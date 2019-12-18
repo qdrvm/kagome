@@ -16,9 +16,10 @@ namespace kagome::runtime {
   using primitives::Extrinsic;
   using primitives::InherentData;
 
-  BlockBuilderApiImpl::BlockBuilderApiImpl(Buffer state_code,
-                                     std::shared_ptr<Extension> extension)
-      : RuntimeApi(std::move(state_code), std::move(extension)) {}
+  BlockBuilderApiImpl::BlockBuilderApiImpl(
+      const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
+      const std::shared_ptr<Extension> &extension)
+      : RuntimeApi(wasm_provider, extension) {}
 
   outcome::result<bool> BlockBuilderApiImpl::apply_extrinsic(
       const Extrinsic &extrinsic) {
@@ -31,16 +32,16 @@ namespace kagome::runtime {
     return execute<BlockHeader>("BlockBuilder_finalize_block");
   }
 
-  outcome::result<std::vector<Extrinsic>> BlockBuilderApiImpl::inherent_extrinsics(
-      const InherentData &data) {
+  outcome::result<std::vector<Extrinsic>>
+  BlockBuilderApiImpl::inherent_extrinsics(const InherentData &data) {
     return execute<std::vector<Extrinsic>>("BlockBuilder_inherent_extrinsics",
                                            data);
   }
 
   outcome::result<CheckInherentsResult> BlockBuilderApiImpl::check_inherents(
       const Block &block, const InherentData &data) {
-    return execute<CheckInherentsResult>("BlockBuilder_check_inherents", block,
-                                         data);
+    return execute<CheckInherentsResult>(
+        "BlockBuilder_check_inherents", block, data);
   }
 
   outcome::result<common::Hash256> BlockBuilderApiImpl::random_seed() {

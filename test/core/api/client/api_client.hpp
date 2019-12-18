@@ -31,6 +31,7 @@ namespace test {
     using StringBody = boost::beast::http::string_body;
     using DynamicBody = boost::beast::http::dynamic_body;
     using QueryCallback = void(outcome::result<std::string>);
+    using Context = boost::asio::io_context;
 
     template <typename Body>
     using HttpRequest = boost::beast::http::request<Body>;
@@ -47,7 +48,8 @@ namespace test {
     /**
      * @param context reference to io context instance
      */
-    explicit ApiClient(boost::asio::io_context &context) : stream_(context) {}
+    explicit ApiClient(Context &context)
+        : stream_(context) {}
 
     ApiClient(const ApiClient &other) = delete;
     ApiClient &operator=(const ApiClient &other) = delete;

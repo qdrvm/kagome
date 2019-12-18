@@ -5,8 +5,8 @@
 
 #include "scale/scale_decoder_stream.hpp"
 
+#include "common/outcome_throw.hpp"
 #include "macro/unreachable.hpp"
-#include "scale/outcome_throw.hpp"
 #include "scale/scale_error.hpp"
 #include "scale/types.hpp"
 

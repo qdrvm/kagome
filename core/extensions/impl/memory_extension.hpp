@@ -16,11 +16,7 @@ namespace kagome::extensions {
    */
   class MemoryExtension {
    public:
-    explicit MemoryExtension(
-        common::Logger logger = common::createLogger(kDefaultLoggerTag));
-    explicit MemoryExtension(
-        std::shared_ptr<runtime::WasmMemory> memory,
-        common::Logger logger = common::createLogger(kDefaultLoggerTag));
+    explicit MemoryExtension(std::shared_ptr<runtime::WasmMemory> memory);
 
     /**
      * @see Extension::ext_malloc

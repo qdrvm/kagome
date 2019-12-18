@@ -22,15 +22,15 @@ namespace kagome::transaction_pool {
 
   class TransactionPoolImpl : public TransactionPool {
     static constexpr auto kDefaultLoggerTag = "Transaction Pool";
+
+   public:
     static constexpr size_t kDefaultMaxReadyNum = 512;
     static constexpr size_t kDefaultMaxWaitingNum = 128;
 
-   public:
     explicit TransactionPoolImpl(
         std::unique_ptr<PoolModerator> moderator,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
-        Limits limits = Limits{kDefaultMaxReadyNum, kDefaultMaxWaitingNum},
-        common::Logger logger = common::createLogger(kDefaultLoggerTag));
+        Limits limits = Limits{kDefaultMaxReadyNum, kDefaultMaxWaitingNum});
 
     TransactionPoolImpl(TransactionPoolImpl &&) = default;
     TransactionPoolImpl(const TransactionPoolImpl &) = delete;
@@ -53,7 +53,8 @@ namespace kagome::transaction_pool {
     Status getStatus() const override;
 
     std::vector<primitives::Transaction> pruneTag(
-        const primitives::BlockId &at, const primitives::TransactionTag &tag,
+        const primitives::BlockId &at,
+        const primitives::TransactionTag &tag,
         const std::vector<common::Hash256> &known_imported_hashes) override;
 
     std::vector<primitives::Transaction> pruneTag(
@@ -78,7 +79,7 @@ namespace kagome::transaction_pool {
 
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
 
-    common::Logger logger_;
+    common::Logger logger_ = common::createLogger(kDefaultLoggerTag);
 
     // bans stale and invalid transactions for some amount of time
     std::unique_ptr<PoolModerator> moderator_;

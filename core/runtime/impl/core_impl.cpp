@@ -13,8 +13,10 @@ namespace kagome::runtime {
   using primitives::BlockHeader;
   using primitives::Version;
 
-  CoreImpl::CoreImpl(Buffer state_code, std::shared_ptr<Extension> extension)
-      : RuntimeApi(std::move(state_code), std::move(extension)) {}
+  CoreImpl::CoreImpl(
+      const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
+      const std::shared_ptr<Extension> &extension)
+      : RuntimeApi(wasm_provider, extension) {}
 
   outcome::result<Version> CoreImpl::version() {
     return execute<Version>("Core_version");
@@ -28,7 +30,8 @@ namespace kagome::runtime {
     return execute<void>("Core_initialise_block", header);
   }
 
-  outcome::result<std::vector<AuthorityId>> CoreImpl::authorities() {
-    return execute<std::vector<AuthorityId>>("Core_authorities");
+  outcome::result<std::vector<AuthorityId>> CoreImpl::authorities(
+      const primitives::BlockId &block_id) {
+    return execute<std::vector<AuthorityId>>("Core_authorities", block_id);
   }
 }  // namespace kagome::runtime

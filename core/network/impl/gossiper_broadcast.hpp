@@ -9,10 +9,12 @@
 #include <unordered_map>
 
 #include <gsl/span>
+#include "common/logger.hpp"
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/host/host.hpp"
 #include "libp2p/peer/peer_info.hpp"
 #include "network/gossiper.hpp"
+#include "network/types/peer_list.hpp"
 
 namespace kagome::network {
   /**
@@ -26,8 +28,7 @@ namespace kagome::network {
     using PrimaryPropose = consensus::grandpa::PrimaryPropose;
 
    public:
-    GossiperBroadcast(libp2p::Host &host,
-                      gsl::span<const libp2p::peer::PeerInfo> peer_infos);
+    GossiperBroadcast(libp2p::Host &host, const PeerList &peer_infos);
 
     ~GossiperBroadcast() override = default;
 
@@ -47,6 +48,7 @@ namespace kagome::network {
     std::unordered_map<libp2p::peer::PeerInfo,
                        std::shared_ptr<libp2p::connection::Stream>>
         streams_;
+    common::Logger logger_;
   };
 }  // namespace kagome::network
 

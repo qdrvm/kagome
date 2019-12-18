@@ -38,15 +38,13 @@ namespace kagome::consensus {
      * @param tx_queue to validate the extrinsics
      * @param hasher to take hashes
      * @param vrf_provider for VRF-specific operations
-     * @param log to write info to
      */
     BabeBlockValidator(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<crypto::VRFProvider> vrf_provider,
-        std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
-        common::Logger log = common::createLogger("BabeBlockValidator"));
+        std::shared_ptr<crypto::SR25519Provider> sr25519_provider);
 
     ~BabeBlockValidator() override = default;
 

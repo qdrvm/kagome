@@ -8,6 +8,7 @@
 
 #include "consensus/babe/common.hpp"
 #include "crypto/sr25519_types.hpp"
+#include "primitives/authority.hpp"
 #include "primitives/common.hpp"
 #include "primitives/digest.hpp"
 

@@ -17,22 +17,27 @@ namespace kagome::consensus {
       libp2p::peer::PeerInfo peer_info,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
-      SynchronizerConfig config,
-      common::Logger log)
+      SynchronizerConfig config)
       : host_{host},
         peer_info_{std::move(peer_info)},
         block_tree_{std::move(block_tree)},
         blocks_headers_{std::move(blocks_headers)},
         config_{config},
-        log_{std::move(log)} {
+        log_(common::createLogger("Synchronizer")) {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(blocks_headers_);
-    BOOST_ASSERT(log_);
   }
 
   void SynchronizerImpl::blocksRequest(
       const BlocksRequest &request,
       std::function<void(outcome::result<BlocksResponse>)> cb) const {
+    visit_in_place(request.from,
+                   [this](primitives::BlockNumber from) {
+                     log_->debug("Requesting blocks: from {}", from);
+                   },
+                   [this](const primitives::BlockHash &from) {
+                     log_->debug("Requesting blocks: from {}", from.toHex());
+                   });
     network::RPC<network::ScaleMessageReadWriter>::write<BlocksRequest,
                                                          BlocksResponse>(
         host_, peer_info_, network::kSyncProtocol, request, std::move(cb));
@@ -45,7 +50,7 @@ namespace kagome::consensus {
     // firstly, check if we have both "from" & "to" blocks (if set)
     auto from_hash_res = blocks_headers_->getHashById(request.from);
     if (!from_hash_res) {
-      log_->info("cannot find a requested block with id {}", request.from);
+      log_->warn("cannot find a requested block with id {}", request.from);
       return response;
     }
 
@@ -60,6 +65,9 @@ namespace kagome::consensus {
 
     // thirdly, fill the resulting response with data, which we were asked for
     fillBlocksResponse(request, response, chain_hash_res.value());
+    if (not response.blocks.empty()) {
+      log_->debug("Return response: {}", response.blocks[0].hash.toHex());
+    }
     return response;
   }
 

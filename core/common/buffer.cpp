@@ -36,7 +36,7 @@ namespace kagome::common {
   }
 
   std::string Buffer::toHex() const {
-    return hex_upper(data_);
+    return hex_lower(data_);
   }
 
   bool Buffer::empty() const {

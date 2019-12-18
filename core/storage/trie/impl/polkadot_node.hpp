@@ -6,6 +6,8 @@
 #ifndef KAGOME_NODE_IMPL_HPP
 #define KAGOME_NODE_IMPL_HPP
 
+#include <boost/optional.hpp>
+
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "storage/trie/node.hpp"

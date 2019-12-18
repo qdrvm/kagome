@@ -27,9 +27,7 @@ namespace kagome::runtime {
       EXECUTION_ERROR
     };
 
-    explicit WasmExecutor(
-        std::shared_ptr<extensions::Extension> extension,
-        common::Logger logger = common::createLogger(kDefaultLoggerTag));
+    explicit WasmExecutor(std::shared_ptr<extensions::Extension> extension);
 
     /**
      * Executes export method from provided wasm code and returns result
@@ -41,7 +39,8 @@ namespace kagome::runtime {
     /**
      * Executes export method from provided module and returns result
      */
-    wasm::Literal callInModule(wasm::Module &module, wasm::Name method_name,
+    wasm::Literal callInModule(wasm::Module &module,
+                               wasm::Name method_name,
                                const wasm::LiteralList &args);
 
    private:

@@ -9,7 +9,8 @@
 #include <cstdint>
 #include <type_traits>
 
-#include "scale/outcome_throw.hpp"
+#include "common/outcome_throw.hpp"
+#include "scale/scale_error.hpp"
 
 namespace kagome::network {
   /**
@@ -55,7 +56,7 @@ namespace kagome::network {
         v = Direction::DESCENDING;
         break;
       default:
-        scale::common::raise(scale::DecodeError::UNEXPECTED_VALUE);
+        common::raise(scale::DecodeError::UNEXPECTED_VALUE);
     }
     v = static_cast<Direction>(value);
     return s;

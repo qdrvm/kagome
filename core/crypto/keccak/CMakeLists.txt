@@ -12,4 +12,5 @@ target_link_libraries(keccak
         buffer
         blob
         )
+disable_clang_tidy(keccak)
 kagome_install(keccak)

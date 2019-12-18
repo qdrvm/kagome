@@ -12,9 +12,9 @@
 #include <vector>
 
 #include <boost/endian/arithmetic.hpp>
-#include "scale/outcome_throw.hpp"
-#include "scale/scale_error.hpp"
+#include "common/outcome_throw.hpp"
 #include "macro/unreachable.hpp"
+#include "scale/scale_error.hpp"
 
 namespace kagome::scale::detail {
   /**
@@ -24,7 +24,9 @@ namespace kagome::scale::detail {
    * @param value integer value
    * @return byte array representation of value
    */
-  template <class T, class S, typename I = std::decay_t<T>,
+  template <class T,
+            class S,
+            typename I = std::decay_t<T>,
             typename = std::enable_if_t<std::is_integral<I>::value>>
   void encodeInteger(T value, S &out) {  // no need to take integers by &&
     constexpr size_t size = sizeof(T);
@@ -43,7 +45,9 @@ namespace kagome::scale::detail {
    * @param stream source stream
    * @return decoded value or error
    */
-  template <class T, class S, typename I = std::decay_t<T>,
+  template <class T,
+            class S,
+            typename I = std::decay_t<T>,
             typename = std::enable_if_t<std::is_integral_v<I>>>
   I decodeInteger(S &stream) {
     constexpr size_t size = sizeof(I);

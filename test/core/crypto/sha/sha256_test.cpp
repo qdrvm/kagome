@@ -17,16 +17,16 @@ class Sha256Test : public ::testing::Test {
  public:
   /// NIST test vectors https://www.di-mgt.com.au/sha_testvectors.html
   const std::vector<std::pair<std::string, std::string>> test_vectors{
-      {"", "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"},
+      {"", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
       {"abc",
-       "BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD"},
+       "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"},
       {"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",
-       "248D6A61D20638B8E5C026930C3E6039A33CE45964FF2167F6ECEDD419DB06C1"},
+       "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"},
       {"abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmno"
        "pjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu",
-       "CF5B16A778AF8380036CE59E7B0492370B249B11E8F07A51AFAC45037AFEE9D1"},
+       "cf5b16a778af8380036ce59e7b0492370b249b11e8f07a51afac45037afee9d1"},
       {std::string(1000000, 'a'),
-       "CDC76E5C9914FB9281A1C7E284D73E67F1809A48A497200E046D39CCC7112CD0"}};
+       "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0"}};
 };
 
 TEST_F(Sha256Test, Valid) {

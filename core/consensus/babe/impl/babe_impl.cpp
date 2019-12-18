@@ -23,31 +23,29 @@ namespace kagome::consensus {
                      std::shared_ptr<blockchain::BlockTree> block_tree,
                      std::shared_ptr<network::BabeGossiper> gossiper,
                      crypto::SR25519Keypair keypair,
-                     primitives::AuthorityIndex authority_id,
+                     primitives::AuthorityIndex authority_index,
                      std::shared_ptr<clock::SystemClock> clock,
                      std::shared_ptr<crypto::Hasher> hasher,
-                     std::shared_ptr<clock::Timer> timer,
-                     libp2p::event::Bus &event_bus,
-                     common::Logger log)
+                     std::unique_ptr<clock::Timer> timer,
+                     libp2p::event::Bus &event_bus)
       : lottery_{std::move(lottery)},
         proposer_{std::move(proposer)},
         block_tree_{std::move(block_tree)},
         gossiper_{std::move(gossiper)},
         keypair_{keypair},
-        authority_id_{authority_id},
+        authority_index_{authority_index},
         clock_{std::move(clock)},
         hasher_{std::move(hasher)},
         timer_{std::move(timer)},
         event_bus_{event_bus},
-        log_{std::move(log)},
-        error_channel_{event_bus_.getChannel<event::BabeErrorChannel>()} {
+        error_channel_{event_bus_.getChannel<event::BabeErrorChannel>()},
+        log_{common::createLogger("BABE")} {
     BOOST_ASSERT(lottery_);
     BOOST_ASSERT(proposer_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(gossiper_);
     BOOST_ASSERT(clock_);
     BOOST_ASSERT(hasher_);
-    BOOST_ASSERT(log_);
   }
 
   void BabeImpl::runEpoch(Epoch epoch,
@@ -106,11 +104,15 @@ namespace kagome::consensus {
   void BabeImpl::finishSlot() {
     auto slot_leadership = slots_leadership_[current_slot_];
     if (slot_leadership) {
+      log_->debug("Peer {} is leader", authority_index_.index);
       processSlotLeadership(*slot_leadership);
     }
 
     ++current_slot_;
     next_slot_finish_time_ += current_epoch_.slot_duration;
+    log_->debug("Slot {} in epoch {} has finished",
+                current_slot_,
+                current_epoch_.epoch_index);
     runSlot();
   }
 
@@ -118,7 +120,7 @@ namespace kagome::consensus {
     // build a block to be announced
     auto &&[_, best_block_hash] = block_tree_->deepestLeaf();
 
-    BabeBlockHeader babe_header{current_slot_, output, authority_id_};
+    BabeBlockHeader babe_header{current_slot_, output, authority_index_};
     auto encoded_header_res = scale::encode(babe_header);
     if (!encoded_header_res) {
       return log_->error("cannot encode BabeBlockHeader: {}",
@@ -198,6 +200,7 @@ namespace kagome::consensus {
         current_epoch_.randomness, ++current_epoch_.epoch_index);
     current_epoch_.start_slot = 0;
 
+    log_->debug("Epoch {} has finished", current_epoch_.epoch_index);
     runEpoch(current_epoch_, next_slot_finish_time_);
   }
 

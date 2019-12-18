@@ -9,6 +9,7 @@
 #include <functional>
 
 #include "api/transport/listener.hpp"
+#include "common/logger.hpp"
 
 namespace kagome::api {
 
@@ -42,6 +43,7 @@ namespace kagome::api {
    private:
     sptr<Listener> listener_;        ///< endpoint listener
     sptr<JRPCProcessor> processor_;  ///< json-rpc processor
+    common::Logger logger_;
   };
 }  // namespace kagome::api
 

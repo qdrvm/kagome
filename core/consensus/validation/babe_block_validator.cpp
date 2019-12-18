@@ -41,19 +41,17 @@ namespace kagome::consensus {
       std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::VRFProvider> vrf_provider,
-      std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
-      common::Logger log)
+      std::shared_ptr<crypto::SR25519Provider> sr25519_provider)
       : block_tree_{std::move(block_tree)},
         tx_queue_{std::move(tx_queue)},
         hasher_{std::move(hasher)},
         vrf_provider_{std::move(vrf_provider)},
         sr25519_provider_{std::move(sr25519_provider)},
-        log_{std::move(log)} {
+        log_{common::createLogger("BabeBlockValidator")} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(tx_queue_);
     BOOST_ASSERT(vrf_provider_);
     BOOST_ASSERT(sr25519_provider_);
-    BOOST_ASSERT(log_);
   }
 
   outcome::result<void> BabeBlockValidator::validate(
@@ -145,15 +143,15 @@ namespace kagome::consensus {
 
     // secondly, retrieve public key of the peer by its authority id
     if (static_cast<uint64_t>(authorities.size())
-        <= babe_header.authority_index) {
+        <= babe_header.authority_index.index) {
       log_->info("don't know about authority with index {}",
-                 babe_header.authority_index);
+                 babe_header.authority_index.index);
       return false;
     }
-    const auto &key = authorities[babe_header.authority_index].id;
+    const auto &key = authorities[babe_header.authority_index.index].id;
 
     // thirdly, use verify function to check the signature
-    auto res = sr25519_provider_->verify(seal.signature, block_hash, key);
+    auto res = sr25519_provider_->verify(seal.signature, block_hash, key.id);
     return res && res.value();
   }
 
@@ -167,7 +165,7 @@ namespace kagome::consensus {
     if (!vrf_provider_->verify(
             randomness_with_slot,
             babe_header.vrf_output,
-            epoch.authorities[babe_header.authority_index].id)) {
+            epoch.authorities[babe_header.authority_index.index].id.id)) {
       log_->info("VRF proof in block is not valid");
       return false;
     }
@@ -195,7 +193,7 @@ namespace kagome::consensus {
     auto peer_in_slot = slot.find(peer);
     if (peer_in_slot != slot.end()) {
       log_->info("authority {} has already produced a block in the slot {}",
-                 peer,
+                 peer.index,
                  babe_header.slot_number);
       return false;
     }
@@ -217,11 +215,10 @@ namespace kagome::consensus {
                        validation_res.error());
             return false;
           }
-          return visit_in_place(
-              validation_res.value(),
-              [](const primitives::Valid &) { return true; },
-              [](primitives::Invalid) { return false; },
-              [](primitives::Unknown) { return false; });
+          return visit_in_place(validation_res.value(),
+                                [](const primitives::Valid &) { return true; },
+                                [](primitives::Invalid) { return false; },
+                                [](primitives::Unknown) { return false; });
         });
   }
 }  // namespace kagome::consensus
