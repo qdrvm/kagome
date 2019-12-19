@@ -54,7 +54,8 @@ namespace kagome::storage {
       return Buffer{}.put(value);
     }
 
-    if (status.IsNotFound()) { // not always an actual error so don't log it
+    // not always an actual error so don't log it
+    if(status.IsNotFound()) {
       return error_as_result<Buffer>(status);
     }
 
