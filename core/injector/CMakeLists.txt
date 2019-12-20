@@ -21,6 +21,7 @@ target_link_libraries(application_injector
     clock
     configuration_storage
     core
+    grandpa_api
     extrinsic_api_service
     gossiper_broadcast
     in_memory_storage

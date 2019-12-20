@@ -11,11 +11,13 @@ namespace kagome::runtime {
       : offset_{1}  // We should allocate very first byte to prohibit allocating
                     // memory at 0 in future, as returning 0 from allocate
                     // method means that wasm memory was exhausted
-  {}
-
-  WasmMemoryImpl::WasmMemoryImpl(SizeType size) : WasmMemoryImpl() {
-    resizeInternal(size);
+  {
+    resizeInternal(kMaxMemorySize / 2);
   }
+
+//  WasmMemoryImpl::WasmMemoryImpl(SizeType size) : WasmMemoryImpl() {
+//    resizeInternal(size);
+//  }
 
   SizeType WasmMemoryImpl::size() const {
     return memory_.size();

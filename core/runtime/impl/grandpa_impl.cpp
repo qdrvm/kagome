@@ -32,7 +32,9 @@ namespace kagome::runtime {
         "GrandpaApi_grandpa_forced_change", digest);
   }
 
-  outcome::result<std::vector<Authority>> GrandpaImpl::authorities() {
-    return execute<std::vector<Authority>>("GrandpaApi_grandpa_authorities");
+  outcome::result<std::vector<Authority>> GrandpaImpl::authorities(
+      const primitives::BlockId &block_id) {
+    return execute<std::vector<Authority>>("GrandpaApi_grandpa_authorities",
+                                           block_id);
   }
 }  // namespace kagome::runtime

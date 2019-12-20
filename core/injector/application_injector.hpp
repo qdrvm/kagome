@@ -190,11 +190,21 @@ namespace kagome::injector {
       }
 
       auto core = injector.template create<sptr<runtime::Core>>();
+      if (auto version_res = core->version(); version_res) {
+        auto version = version_res.value();
+        spdlog::debug("Spec name: {}. Implementation name: {}",
+                      version.spec_name,
+                      version.impl_name);
+      } else {
+        common::raise(version_res.error());
+      }
+
+      auto grandpa_api = injector.template create<sptr<runtime::Grandpa>>();
       auto &keys = injector.template create<application::KeyStorage &>();
       auto &&local_pair = keys.getLocalEd25519Keypair();
       auto &public_key = local_pair.public_key;
-      auto &&authorities_res =
-          core->authorities(primitives::BlockId(primitives::BlockNumber{0}));
+      auto &&authorities_res = grandpa_api->authorities(
+          primitives::BlockId(primitives::BlockNumber{0}));
       if (authorities_res.has_error()) {
         common::raise(authorities_res.error());
       }
@@ -202,7 +212,7 @@ namespace kagome::injector {
 
       uint64_t index = 0;
       for (auto &auth : authorities) {
-        if (public_key == auth.id) {
+        if (public_key == auth.id.id) {
           break;
         }
         ++index;
@@ -333,7 +343,10 @@ namespace kagome::injector {
       auto trie_db = injector.template create<
           std::shared_ptr<storage::trie::PolkadotTrieDb>>();
       for (const auto &[key, val] : genesis_raw_configs) {
-        spdlog::debug("Key: {}", key.toHex());
+        spdlog::debug("Key: {} ({}), Val: {}",
+                      key.toHex(),
+                      key.data(),
+                      val.toHex().substr(0, 200));
         if (auto res = trie_db->put(key, val); not res) {
           common::raise(res.error());
         }
