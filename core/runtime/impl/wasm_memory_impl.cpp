@@ -15,9 +15,9 @@ namespace kagome::runtime {
     resizeInternal(kMaxMemorySize / 2);
   }
 
-//  WasmMemoryImpl::WasmMemoryImpl(SizeType size) : WasmMemoryImpl() {
-//    resizeInternal(size);
-//  }
+  WasmMemoryImpl::WasmMemoryImpl(SizeType size) : WasmMemoryImpl() {
+    resizeInternal(size);
+  }
 
   SizeType WasmMemoryImpl::size() const {
     return memory_.size();

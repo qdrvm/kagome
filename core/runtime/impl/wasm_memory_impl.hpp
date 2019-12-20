@@ -27,7 +27,7 @@ namespace kagome::runtime {
   class WasmMemoryImpl : public WasmMemory {
    public:
     WasmMemoryImpl();
-    //    explicit WasmMemoryImpl(SizeType size);
+    explicit WasmMemoryImpl(SizeType size);
     WasmMemoryImpl(const WasmMemoryImpl &copy) = delete;
     WasmMemoryImpl &operator=(const WasmMemoryImpl &copy) = delete;
     WasmMemoryImpl(WasmMemoryImpl &&move) = delete;
