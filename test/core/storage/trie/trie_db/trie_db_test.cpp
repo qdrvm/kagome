@@ -374,4 +374,6 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
   ASSERT_EQ(v2, "def"_buf);
   EXPECT_OUTCOME_TRUE(v3, db->get("678"_buf));
   ASSERT_EQ(v3, "xyz"_buf);
+
+  fs::remove_all("/tmp/kagome_leveldb_persistency_test");
 }
