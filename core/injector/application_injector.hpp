@@ -489,7 +489,8 @@ namespace kagome::injector {
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
         di::bind<storage::trie::PolkadotTrieDbBackend>.to(
             std::move(get_polkadot_trie_db_backend)),
-        di::bind<storage::trie::PolkadotTrieDb>.to(std::move(get_polkadot_trie_db)),
+        di::bind<storage::trie::PolkadotTrieDb>.to(
+            std::move(get_polkadot_trie_db)),
         di::bind<storage::trie::TrieDb>.to(std::move(get_trie_db)),
         di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
         di::bind<runtime::WasmProvider>.template to<runtime::StorageWasmProvider>(),
@@ -504,7 +505,7 @@ namespace kagome::injector {
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
-  }  // namespace kagome::injector
+  }
 }  // namespace kagome::injector
 
 #endif  // KAGOME_CORE_INJECTOR_APPLICATION_INJECTOR_HPP
