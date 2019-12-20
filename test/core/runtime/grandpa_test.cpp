@@ -13,6 +13,8 @@
 
 using kagome::common::Buffer;
 using kagome::extensions::ExtensionImpl;
+using kagome::primitives::BlockId;
+using kagome::primitives::BlockNumber;
 using kagome::primitives::Digest;
 using kagome::runtime::Grandpa;
 using kagome::runtime::GrandpaImpl;
@@ -32,6 +34,10 @@ class GrandpaTest : public RuntimeTest {
 
   Digest createDigest() const {
     return Buffer{1, 2, 3};
+  }
+
+  BlockId createBlockId() const {
+    return BlockId(BlockNumber{0});
   }
 
  protected:
@@ -66,5 +72,6 @@ TEST_F(GrandpaTest, DISABLED_ForcedChange) {
  * @brief writes "Uninteresting mock function call - returning default value"
  */
 TEST_F(GrandpaTest, DISABLED_Authorities) {
-  ASSERT_TRUE(api_->authorities());
+  auto block_id = createBlockId();
+  ASSERT_TRUE(api_->authorities(block_id));
 }
