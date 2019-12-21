@@ -117,44 +117,44 @@ TEST_F(BlockTreeTest, GetBody) {
   ASSERT_EQ(body, finalized_block_body_);
 }
 
-///**
-// * @given block tree with at least one block inside
-// * @when adding a new block, which is a child of that block
-// * @then block is added
-// */
-//TEST_F(BlockTreeTest, AddBlock) {
-//  // GIVEN
-//  /*auto &&[_, deepest_block_hash] = block_tree_->deepestLeaf();
-//  ASSERT_EQ(deepest_block_hash, kFinalizedBlockHash);
-//
-//  auto leaves = block_tree_->getLeaves();
-//  ASSERT_EQ(leaves.size(), 1);
-//  ASSERT_EQ(leaves[0], kFinalizedBlockHash);
-//
-//  auto children_res = block_tree_->getChildren(kFinalizedBlockHash);
-//  ASSERT_TRUE(children_res);
-//  ASSERT_TRUE(children_res.value().empty());
-//
-//  // WHEN
-//  BlockHeader header{.parent_hash = kFinalizedBlockHash,
-//                     .number = 1,
-//                     .digests = {{0x66, 0x44}}};
-//  BlockBody body{{Buffer{0x55, 0x55}}};
-//  Block new_block{header, body};
-//  auto hash = addBlock(new_block);
-//
-//  // THEN
-//  auto &&[__, new_deepest_block_hash] = block_tree_->deepestLeaf();
-//  ASSERT_EQ(new_deepest_block_hash, hash);
-//
-//  leaves = block_tree_->getLeaves();
-//  ASSERT_EQ(leaves.size(), 1);
-//  ASSERT_EQ(leaves[0], hash);
-//
-//  children_res = block_tree_->getChildren(hash);
-//  ASSERT_TRUE(children_res);
-//  ASSERT_TRUE(children_res.value().empty());*/
-//}
+/**
+ * @given block tree with at least one block inside
+ * @when adding a new block, which is a child of that block
+ * @then block is added
+ */
+TEST_F(BlockTreeTest, AddBlock) {
+  // GIVEN
+  /*auto &&[_, deepest_block_hash] = block_tree_->deepestLeaf();
+  ASSERT_EQ(deepest_block_hash, kFinalizedBlockHash);
+
+  auto leaves = block_tree_->getLeaves();
+  ASSERT_EQ(leaves.size(), 1);
+  ASSERT_EQ(leaves[0], kFinalizedBlockHash);
+
+  auto children_res = block_tree_->getChildren(kFinalizedBlockHash);
+  ASSERT_TRUE(children_res);
+  ASSERT_TRUE(children_res.value().empty());
+
+  // WHEN
+  BlockHeader header{.parent_hash = kFinalizedBlockHash,
+                     .number = 1,
+                     .digests = {{0x66, 0x44}}};
+  BlockBody body{{Buffer{0x55, 0x55}}};
+  Block new_block{header, body};
+  auto hash = addBlock(new_block);
+
+  // THEN
+  auto &&[__, new_deepest_block_hash] = block_tree_->deepestLeaf();
+  ASSERT_EQ(new_deepest_block_hash, hash);
+
+  leaves = block_tree_->getLeaves();
+  ASSERT_EQ(leaves.size(), 1);
+  ASSERT_EQ(leaves[0], hash);
+
+  children_res = block_tree_->getChildren(hash);
+  ASSERT_TRUE(children_res);
+  ASSERT_TRUE(children_res.value().empty());*/
+}
 //
 ///**
 // * @given block tree with at least one block inside
