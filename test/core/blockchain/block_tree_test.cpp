@@ -99,24 +99,24 @@ struct BlockTreeTest : public testing::Test {
   std::vector<uint8_t> encoded_finalized_block_body_ =
       scale::encode(finalized_block_body_).value();
 };
-//
-///**
-// * @given block tree with at least one block inside
-// * @when requesting body of that block
-// * @then body is returned
-// */
-//TEST_F(BlockTreeTest, GetBody) {
-//  // GIVEN
-//
-//  // WHEN
-//  EXPECT_CALL(*storage_, getBlockBody(_))
-//      .WillOnce(Return(finalized_block_body_));
-//
-//  // THEN
-//  EXPECT_OUTCOME_TRUE(body, block_tree_->getBlockBody(kLastFinalizedBlockId))
-//  ASSERT_EQ(body, finalized_block_body_);
-//}
-//
+
+/**
+ * @given block tree with at least one block inside
+ * @when requesting body of that block
+ * @then body is returned
+ */
+TEST_F(BlockTreeTest, GetBody) {
+  /*// GIVEN
+
+  // WHEN
+  EXPECT_CALL(*storage_, getBlockBody(_))
+      .WillOnce(Return(finalized_block_body_));
+
+  // THEN
+  EXPECT_OUTCOME_TRUE(body, block_tree_->getBlockBody(kLastFinalizedBlockId))
+  ASSERT_EQ(body, finalized_block_body_);*/
+}
+
 ///**
 // * @given block tree with at least one block inside
 // * @when adding a new block, which is a child of that block
