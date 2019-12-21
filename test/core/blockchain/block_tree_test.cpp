@@ -106,7 +106,7 @@ struct BlockTreeTest : public testing::Test {
  * @then body is returned
  */
 TEST_F(BlockTreeTest, GetBody) {
-  /*// GIVEN
+  // GIVEN
 
   // WHEN
   EXPECT_CALL(*storage_, getBlockBody(_))
@@ -114,7 +114,7 @@ TEST_F(BlockTreeTest, GetBody) {
 
   // THEN
   EXPECT_OUTCOME_TRUE(body, block_tree_->getBlockBody(kLastFinalizedBlockId))
-  ASSERT_EQ(body, finalized_block_body_);*/
+  ASSERT_EQ(body, finalized_block_body_);
 }
 
 ///**
