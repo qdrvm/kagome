@@ -122,7 +122,7 @@ TEST_F(BlockTreeTest, AddBlock) {
   ASSERT_TRUE(children_res);
   ASSERT_TRUE(children_res.value().empty());
 
-  /*// WHEN
+  // WHEN
   BlockHeader header{.parent_hash = kFinalizedBlockHash,
                      .number = 1,
                      .digests = {{0x66, 0x44}}};
@@ -130,7 +130,7 @@ TEST_F(BlockTreeTest, AddBlock) {
   Block new_block{header, body};
   auto hash = addBlock(new_block);
 
-  // THEN
+  /*// THEN
   auto &&[__, new_deepest_block_hash] = block_tree_->deepestLeaf();
   ASSERT_EQ(new_deepest_block_hash, hash);
 
