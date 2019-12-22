@@ -22,7 +22,6 @@ class VRFProviderTest : public testing::Test {
     keypair1_ = vrf_provider_->generateKeypair();
     keypair2_ = vrf_provider_->generateKeypair();
     msg_ = Buffer{1, 2, 3};
-
   }
 
  protected:

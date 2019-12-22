@@ -17,7 +17,6 @@ class StorageWasmProviderTest : public ::testing::Test {
  public:
   void SetUp() {
     state_code_ = common::Buffer{1, 3, 3, 7};
-
   }
 
  protected:
