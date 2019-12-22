@@ -130,7 +130,7 @@ TEST_F(BlockTreeTest, AddBlock) {
   Block new_block{header, body};
   auto hash = addBlock(new_block);
 
-  /*// THEN
+  // THEN
   auto &&[__, new_deepest_block_hash] = block_tree_->deepestLeaf();
   ASSERT_EQ(new_deepest_block_hash, hash);
 
@@ -138,7 +138,7 @@ TEST_F(BlockTreeTest, AddBlock) {
   ASSERT_EQ(leaves.size(), 1);
   ASSERT_EQ(leaves[0], hash);
 
-  children_res = block_tree_->getChildren(hash);
+  /*children_res = block_tree_->getChildren(hash);
   ASSERT_TRUE(children_res);
   ASSERT_TRUE(children_res.value().empty());*/
 }
