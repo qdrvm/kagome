@@ -138,9 +138,9 @@ TEST_F(BlockTreeTest, AddBlock) {
   ASSERT_EQ(leaves.size(), 1);
   ASSERT_EQ(leaves[0], hash);
 
-  /*children_res = block_tree_->getChildren(hash);
+  children_res = block_tree_->getChildren(hash);
   ASSERT_TRUE(children_res);
-  ASSERT_TRUE(children_res.value().empty());*/
+  ASSERT_TRUE(children_res.value().empty());
 }
 
 /**
