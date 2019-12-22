@@ -12,7 +12,7 @@ namespace kagome::runtime {
   /**
    * @brief type of wasm memory is 32 bit integer
    */
-  using WasmPointer = int32_t;
+  using WasmPointer = uint32_t;
   /**
    * @brief Size type is uint32_t because we are working in 32 bit address space
    */

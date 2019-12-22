@@ -68,7 +68,7 @@ namespace kagome::extensions {
 
     auto data_ptr = memory_->allocate(length);
 
-    if (data_ptr != -1) {
+    if (data_ptr != 0) {
       memory_->storeBuffer(data_ptr, data.value());
     } else {
       logger_->error(

@@ -58,7 +58,8 @@ namespace kagome::runtime {
      * @brief calls Grandpa_authorities runtime api function
      * @return collection of current grandpa authorities with their weights
      */
-    virtual outcome::result<std::vector<WeightedAuthority>> authorities() = 0;
+    virtual outcome::result<std::vector<WeightedAuthority>> authorities(
+        const primitives::BlockId &block_id) = 0;
   };
 
 }  // namespace kagome::runtime
