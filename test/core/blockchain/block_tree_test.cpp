@@ -68,12 +68,6 @@ struct BlockTreeTest : public testing::Test {
   }
 
     const Buffer kFinalizedBlockLookupKey{0x12, 0x85};
-  const Buffer kFinalizedBlockHashWithKey =
-      Buffer{}.putUint8(Prefix::ID_TO_LOOKUP_KEY).put(kFinalizedBlockHash);
-  const Buffer kFinalizedBlockHashWithKeyAndHeader =
-      Buffer{}.putUint8(Prefix::HEADER).putBuffer(kFinalizedBlockLookupKey);
-  const Buffer kFinalizedBlockHashWithKeyAndBody =
-      Buffer{}.putUint8(Prefix::BODY).putBuffer(kFinalizedBlockLookupKey);
 
   const BlockHash kFinalizedBlockHash =
       BlockHash::fromString("andj4kdn4odnfkslfn3k4jdnbmeodkv4").value();
