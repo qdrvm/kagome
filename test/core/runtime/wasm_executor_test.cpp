@@ -51,27 +51,6 @@ TEST_F(WasmExecutorTest, ExecuteCode) {
 
 /**
  * @given wasm executor
- * @when call is invoked with wasm module with initialised with code with
- * addTwo function
- * @then proper result is returned
- */
-TEST_F(WasmExecutorTest, ExecuteModule) {
-  wasm::Module module{};
-  auto &&state_code = wasm_provider_->getStateCode();
-  std::vector<char> data(state_code.begin(), state_code.end());
-  wasm::WasmBinaryBuilder parser(module, data, false);
-  parser.read();
-
-  auto res = executor_->callInModule(
-      module,
-      external_interface_,
-      "addTwo",
-      wasm::LiteralList{wasm::Literal(12), wasm::Literal(34)});
-  ASSERT_EQ(res.geti32(), 46);
-}
-
-/**
- * @given wasm executor
  * @when call is invoked with invalid or empty state code
  * @then proper error is returned
  */

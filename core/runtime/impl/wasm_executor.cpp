@@ -29,20 +29,17 @@ namespace kagome::runtime {
   WasmExecutor::WasmExecutor()
       : logger_{common::createLogger("Wasm executor")} {}
 
-  outcome::result<wasm::Literal> WasmExecutor::call(
-      const common::Buffer &state_code,
-      wasm::ModuleInstance::ExternalInterface &external_interface,
-      wasm::Name method_name,
-      const wasm::LiteralList &args) {
+  outcome::result<std::shared_ptr<wasm::Module>> WasmExecutor::prepareModule(
+      const common::Buffer &state_code) {
     // that nolint supresses false positive in a library function
     // NOLINTNEXTLINE(clang-analyzer-core.NonNullParamChecker)
     if (state_code.empty()) {
       return Error::EMPTY_STATE_CODE;
     }
 
-    wasm::Module module{};
+    auto module = std::make_shared<wasm::Module>();
     wasm::WasmBinaryBuilder parser(
-        module,
+        *module,
         reinterpret_cast<std::vector<char> const &>(  // NOLINT
             state_code.toVector()),
         false);
@@ -54,24 +51,36 @@ namespace kagome::runtime {
       logger_->error(msg.str());
       return Error::INVALID_STATE_CODE;
     }
+    return module;
+  }
+
+  wasm::ModuleInstance WasmExecutor::prepareModuleInstance(
+      const std::shared_ptr<wasm::Module> &module,
+      wasm::ModuleInstance::ExternalInterface &external_interface) {
+    return wasm::ModuleInstance(*module, &external_interface);
+  }
+
+  outcome::result<wasm::Literal> WasmExecutor::call(
+      const common::Buffer &state_code,
+      wasm::ModuleInstance::ExternalInterface &external_interface,
+      wasm::Name method_name,
+      const wasm::LiteralList &args) {
+    OUTCOME_TRY(module, prepareModule(state_code));
+    auto module_instance = prepareModuleInstance(module, external_interface);
+    return call(module_instance, method_name, args);
+  }
+
+  outcome::result<wasm::Literal> WasmExecutor::call(
+      wasm::ModuleInstance &module_instance,
+      wasm::Name method_name,
+      const wasm::LiteralList &args) {
     try {
-      return callInModule(module, external_interface, method_name, args);
+      return module_instance.callExport(wasm::Name(method_name), args);
     } catch (wasm::ExitException &e) {
       return Error::EXECUTION_ERROR;
     } catch (wasm::TrapException &e) {
       return Error::EXECUTION_ERROR;
     }
-  }
-
-  wasm::Literal WasmExecutor::callInModule(
-      wasm::Module &module,
-      wasm::ModuleInstance::ExternalInterface &external_interface,
-      wasm::Name method_name,
-      const wasm::LiteralList &args) {
-    // interpret module
-    wasm::ModuleInstance module_instance(module, &external_interface);
-
-    return module_instance.callExport(wasm::Name(method_name), args);
   }
 
 }  // namespace kagome::runtime

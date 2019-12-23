@@ -7,7 +7,19 @@
 
 namespace kagome::runtime {
   WasmMemoryImpl::WasmMemoryImpl(wasm::ShellExternalInterface::Memory *memory)
-      : memory_(memory), offset_(1) {}
+      : memory_(memory),
+        offset_(1)  // We should allocate very first byte to prohibit allocating
+                    // memory at 0 in future, as returning 0 from allocate
+                    // method means that wasm memory was exhausted
+  {}
+
+  //  WasmMemoryImpl::WasmMemoryImpl(SizeType size) {
+  //    resize(size);
+  //  }
+
+  SizeType WasmMemoryImpl::size() const {
+    return 42;
+  }
 
   void WasmMemoryImpl::resize(runtime::SizeType new_size) {
     return memory_->resize(new_size);
@@ -130,10 +142,6 @@ namespace kagome::runtime {
   common::Buffer WasmMemoryImpl::loadN(kagome::runtime::WasmPointer addr,
                                        kagome::runtime::SizeType n) const {
     // TODO (kamilsa) PRE-98: check if we do not go outside of memory
-    // boundaries, 04.04.2019
-    //    auto first = memory_->begin() + addr;
-    //    auto last = first + n;
-    //    return common::Buffer(std::vector<uint8_t>(first, last));
     common::Buffer res;
     for (auto i = addr; i < addr + n; i++) {
       res.putUint8(memory_->get<uint8_t>(i));

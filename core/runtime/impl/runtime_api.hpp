@@ -47,6 +47,11 @@ namespace kagome::runtime {
       runtime::SizeType len = 0u;
 
       RuntimeExternalInterface rei{extension_factory_};
+
+      wasm::Name wasm_name = std::string(name);
+      const auto &state_code = wasm_provider_->getStateCode();
+      OUTCOME_TRY(module, executor_.prepareModule(state_code));
+      auto module_instance = executor_.prepareModuleInstance(module, rei);
       auto memory = rei.memory();
 
       if constexpr (sizeof...(args) > 0) {
@@ -57,9 +62,8 @@ namespace kagome::runtime {
       }
 
       wasm::LiteralList ll{wasm::Literal(ptr), wasm::Literal(len)};
-      wasm::Name wasm_name = std::string(name);
-      const auto &state_code = wasm_provider_->getStateCode();
-      OUTCOME_TRY(res, executor_.call(state_code, rei, wasm_name, ll));
+
+      OUTCOME_TRY(res, executor_.call(module_instance, wasm_name, ll));
 
       if constexpr (!std::is_same_v<void, R>) {
         WasmResult r{res.geti64()};
