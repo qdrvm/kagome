@@ -24,6 +24,7 @@
 #include "blockchain/impl/block_tree_impl.hpp"
 #include "blockchain/impl/key_value_block_header_repository.hpp"
 #include "blockchain/impl/key_value_block_storage.hpp"
+#include "blockchain/impl/persistent_map_util.hpp"
 #include "boost/di/extension/injections/extensible_injector.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
@@ -91,28 +92,13 @@ namespace kagome::injector {
   template <class T>
   using uptr = std::unique_ptr<T>;
 
-  template <typename... Ts>
-  auto makeApplicationInjector(const std::string &genesis_path,
-                               const std::string &keystore_path,
-                               const std::string &leveldb_path,
-                               Ts &&... args) {
-    using namespace boost;  // NOLINT;
-
-    // default values for configurations
-    auto http_config = api::HttpSession::Configuration{};
-    auto pool_moderator_config = transaction_pool::PoolModeratorImpl::Params{};
-    auto synchronizer_config = consensus::SynchronizerConfig{};
-    auto tp_pool_limits = transaction_pool::TransactionPool::Limits{
-        transaction_pool::TransactionPoolImpl::kDefaultMaxReadyNum,
-        transaction_pool::TransactionPoolImpl::kDefaultMaxWaitingNum};
-    auto leveldb_options = leveldb::Options();
-    leveldb_options.create_if_missing = true;
+  namespace {
 
     // sr25519 kp getter
     auto get_sr25519_keypair =
-        [initialized =
-             boost::optional<sptr<crypto::SR25519Keypair>>(boost::none)](
-            const auto &injector) mutable -> sptr<crypto::SR25519Keypair> {
+        [](const auto &injector) -> sptr<crypto::SR25519Keypair> {
+      static auto initialized =
+          boost::optional<sptr<crypto::SR25519Keypair>>(boost::none);
       if (initialized) {
         return initialized.value();
       }
@@ -125,9 +111,9 @@ namespace kagome::injector {
 
     // ed25519 kp getter
     auto get_ed25519_keypair =
-        [initialized =
-             boost::optional<sptr<crypto::ED25519Keypair>>(boost::none)](
-            const auto &injector) mutable -> sptr<crypto::ED25519Keypair> {
+        [](const auto &injector) -> sptr<crypto::ED25519Keypair> {
+      static auto initialized =
+          boost::optional<sptr<crypto::ED25519Keypair>>(boost::none);
       if (initialized) {
         return initialized.value();
       }
@@ -140,9 +126,9 @@ namespace kagome::injector {
 
     // peer info getter
     auto get_peer_info =
-        [initialized =
-             boost::optional<sptr<libp2p::peer::PeerInfo>>(boost::none)](
-            const auto &injector) mutable -> sptr<libp2p::peer::PeerInfo> {
+        [](const auto &injector) -> sptr<libp2p::peer::PeerInfo> {
+      static auto initialized =
+          boost::optional<sptr<libp2p::peer::PeerInfo>>(boost::none);
       if (initialized) {
         return initialized.value();
       }
@@ -168,9 +154,9 @@ namespace kagome::injector {
       return initialized.value();
     };
 
-    auto get_boot_nodes =
-        [initialized = boost::optional<sptr<network::PeerList>>(boost::none)](
-            const auto &injector) mutable -> sptr<network::PeerList> {
+    auto get_boot_nodes = [](const auto &injector) -> sptr<network::PeerList> {
+      static auto initialized =
+          boost::optional<sptr<network::PeerList>>(boost::none);
       if (initialized) {
         return initialized.value();
       }
@@ -182,9 +168,9 @@ namespace kagome::injector {
     };
 
     auto get_authority_index =
-        [initialized =
-             boost::optional<sptr<primitives::AuthorityIndex>>(boost::none)](
-            const auto &injector) mutable -> sptr<primitives::AuthorityIndex> {
+        [](const auto &injector) -> sptr<primitives::AuthorityIndex> {
+      static auto initialized =
+          boost::optional<sptr<primitives::AuthorityIndex>>(boost::none);
       if (initialized) {
         return initialized.value();
       }
@@ -228,8 +214,9 @@ namespace kagome::injector {
 
     // extrinsic api listener getter
     auto get_extrinsic_api_listener =
-        [initialized = boost::optional<sptr<api::Listener>>(boost::none)](
-            const auto &injector) mutable -> sptr<api::Listener> {
+        [](const auto &injector) -> sptr<api::Listener> {
+      static auto initialized =
+          boost::optional<sptr<api::Listener>>(boost::none);
       // listener is used currently only for extrinsic api
       // if other apis are required, need to
       // implement lambda creating corresponding api service
@@ -255,39 +242,19 @@ namespace kagome::injector {
       return initialized.value();
     };
 
-    // level db getter
-    auto get_level_db =
-        [leveldb_path,
-         initialized = boost::optional<sptr<storage::PersistentBufferMap>>(
-             boost::none)](const auto &injector) mutable
-        -> sptr<storage::PersistentBufferMap> {
-      if (initialized) {
-        return initialized.value();
-      }
-      auto options = leveldb::Options{};
-      options.create_if_missing = true;
-      auto db = storage::LevelDB::create(leveldb_path, options);
-      if (!db) {
-        common::raise(db.error());
-      }
-      initialized = db.value();
-      return initialized.value();
-    };
-
     // block storage getter
     auto get_block_storage =
-        [initialized =
-             boost::optional<sptr<blockchain::BlockStorage>>(boost::none)](
-            const auto &injector) mutable -> sptr<blockchain::BlockStorage> {
+        [](const auto &injector) -> sptr<blockchain::BlockStorage> {
+      static auto initialized =
+          boost::optional<sptr<blockchain::BlockStorage>>(boost::none);
+
       if (initialized) {
         return initialized.value();
       }
-      auto &&hasher =
-          injector.template create<std::shared_ptr<crypto::Hasher>>();
+      auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
 
       const auto &db =
-          injector
-              .template create<std::shared_ptr<storage::PersistentBufferMap>>();
+          injector.template create<sptr<storage::PersistentBufferMap>>();
 
       const auto &trie_db = injector.template create<storage::trie::TrieDb &>();
 
@@ -302,23 +269,23 @@ namespace kagome::injector {
 
     // block tree getter
     auto get_block_tree =
-        [initialized = boost::optional<std::shared_ptr<blockchain::BlockTree>>(
-             boost::none)](const auto &injector) mutable
-        -> std::shared_ptr<blockchain::BlockTree> {
+        [](const auto &injector) -> sptr<blockchain::BlockTree> {
+      static auto initialized =
+          boost::optional<sptr<blockchain::BlockTree>>(boost::none);
+
       if (initialized) {
         return initialized.value();
       }
-      auto header_repo = injector.template create<
-          std::shared_ptr<blockchain::BlockHeaderRepository>>();
+      auto header_repo =
+          injector.template create<sptr<blockchain::BlockHeaderRepository>>();
 
       auto &&storage =
-          injector.template create<std::shared_ptr<blockchain::BlockStorage>>();
+          injector.template create<sptr<blockchain::BlockStorage>>();
 
       // block id is zero for genesis launch
       const primitives::BlockId block_id = 0;
 
-      auto &&hasher =
-          injector.template create<std::shared_ptr<crypto::Hasher>>();
+      auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
 
       auto &&tree = blockchain::BlockTreeImpl::create(
           std::move(header_repo), storage, block_id, std::move(hasher));
@@ -329,19 +296,54 @@ namespace kagome::injector {
       return initialized.value();
     };
 
-    auto get_trie_db =
-        [initialized = boost::optional<std::shared_ptr<storage::trie::TrieDb>>(
-             boost::none)](const auto &injector) mutable
-        -> std::shared_ptr<storage::trie::TrieDb> {
+    // polkadot trie db getter
+    auto get_polkadot_trie_db_backend =
+        [](const auto &injector) -> sptr<storage::trie::PolkadotTrieDbBackend> {
+      static auto initialized =
+          boost::optional<sptr<storage::trie::PolkadotTrieDbBackend>>(
+              boost::none);
+
       if (initialized) {
         return initialized.value();
       }
-      auto configuration_storage = injector.template create<
-          std::shared_ptr<application::ConfigurationStorage>>();
+      auto storage = injector.template create<sptr<storage::LevelDB>>();
+      using blockchain::prefix::TRIE_NODE;
+      auto backend = std::make_shared<storage::trie::PolkadotTrieDbBackend>(
+          storage, common::Buffer{TRIE_NODE}, common::Buffer{0});
+      initialized = backend;
+      return backend;
+    };
+
+    auto get_polkadot_trie_db =
+        [](const auto &injector) -> sptr<storage::trie::PolkadotTrieDb> {
+      static auto initialized =
+          boost::optional<sptr<storage::trie::PolkadotTrieDb>>(boost::none);
+
+      if (initialized) {
+        return initialized.value();
+      }
+      auto backend =
+          injector
+              .template create<sptr<storage::trie::PolkadotTrieDbBackend>>();
+      sptr<storage::trie::PolkadotTrieDb> polkadot_trie_db =
+          storage::trie::PolkadotTrieDb::createEmpty(backend);
+      initialized = polkadot_trie_db;
+      return polkadot_trie_db;
+    };
+
+    // trie db getter
+    auto get_trie_db = [](const auto &injector) -> sptr<storage::trie::TrieDb> {
+      static auto initialized =
+          boost::optional<sptr<storage::trie::TrieDb>>(boost::none);
+      if (initialized) {
+        return initialized.value();
+      }
+      auto configuration_storage =
+          injector.template create<sptr<application::ConfigurationStorage>>();
       const auto &genesis_raw_configs = configuration_storage->getGenesis();
 
-      auto trie_db = injector.template create<
-          std::shared_ptr<storage::trie::PolkadotTrieDb>>();
+      auto trie_db =
+          injector.template create<sptr<storage::trie::PolkadotTrieDb>>();
       for (const auto &[key, val] : genesis_raw_configs) {
         spdlog::debug("Key: {} ({}), Val: {}",
                       key.toHex(),
@@ -355,18 +357,37 @@ namespace kagome::injector {
       return trie_db;
     };
 
-    // configuration storage getter
-    auto get_configuration_storage =
-        [genesis_path,
-         initialized = boost::optional<
-             std::shared_ptr<application::ConfigurationStorage>>(boost::none)](
-            const auto &injector) mutable
-        -> std::shared_ptr<application::ConfigurationStorage> {
+    // level db getter
+    template <typename Injector>
+    sptr<storage::PersistentBufferMap> get_level_db(
+        std::string_view leveldb_path, const Injector &injector) {
+      static auto initialized =
+          boost::optional<sptr<storage::PersistentBufferMap>>(boost::none);
       if (initialized) {
         return initialized.value();
       }
-      auto config_storage_res =
-          application::ConfigurationStorageImpl::create(genesis_path);
+      auto options = leveldb::Options{};
+      options.create_if_missing = true;
+      auto db = storage::LevelDB::create(leveldb_path, options);
+      if (!db) {
+        common::raise(db.error());
+      }
+      initialized = db.value();
+      return initialized.value();
+    };
+
+    // configuration storage getter
+    template <typename Injector>
+    std::shared_ptr<application::ConfigurationStorage>
+    get_configuration_storage(std::string_view genesis_path,
+                              const Injector &injector) {
+      static auto initialized =
+          boost::optional<sptr<application::ConfigurationStorage>>(boost::none);
+      if (initialized) {
+        return initialized.value();
+      }
+      auto config_storage_res = application::ConfigurationStorageImpl::create(
+          std::string(genesis_path));
       if (config_storage_res.has_error()) {
         common::raise(config_storage_res.error());
       }
@@ -375,22 +396,41 @@ namespace kagome::injector {
     };
 
     // key storage getter
-    auto get_key_storage =
-        [keystore_path,
-         initialized =
-             boost::optional<std::shared_ptr<application::KeyStorage>>(
-                 boost::none)](const auto &injector) mutable
-        -> std::shared_ptr<application::KeyStorage> {
+    template <typename Injector>
+    sptr<application::KeyStorage> get_key_storage(
+        std::string_view keystore_path, const Injector &injector) {
+      static auto initialized =
+          boost::optional<sptr<application::KeyStorage>>(boost::none);
       if (initialized) {
         return initialized.value();
       }
-      auto &&result = application::LocalKeyStorage::create(keystore_path);
+      auto &&result =
+          application::LocalKeyStorage::create(std::string(keystore_path));
       if (!result) {
         common::raise(result.error());
       }
       initialized = result.value();
       return result.value();
     };
+
+  }  // namespace
+
+  template <typename... Ts>
+  auto makeApplicationInjector(const std::string &genesis_path,
+                               const std::string &keystore_path,
+                               const std::string &leveldb_path,
+                               Ts &&... args) {
+    using namespace boost;  // NOLINT;
+
+    // default values for configurations
+    auto http_config = api::HttpSession::Configuration{};
+    auto pool_moderator_config = transaction_pool::PoolModeratorImpl::Params{};
+    auto synchronizer_config = consensus::SynchronizerConfig{};
+    auto tp_pool_limits = transaction_pool::TransactionPool::Limits{
+        transaction_pool::TransactionPoolImpl::kDefaultMaxReadyNum,
+        transaction_pool::TransactionPoolImpl::kDefaultMaxWaitingNum};
+    auto leveldb_options = leveldb::Options();
+    leveldb_options.create_if_missing = true;
 
     // make injector
     return di::make_injector(
@@ -423,7 +463,10 @@ namespace kagome::injector {
         di::bind<authorship::Proposer>.template to<authorship::ProposerImpl>(),
         di::bind<authorship::BlockBuilder>.template to<authorship::BlockBuilderImpl>(),
         di::bind<authorship::BlockBuilderFactory>.template to<authorship::BlockBuilderFactoryImpl>(),
-        di::bind<storage::PersistentBufferMap>.to(std::move(get_level_db)),
+        di::bind<storage::PersistentBufferMap>.to(
+            [leveldb_path](const auto &injector) {
+              return get_level_db(leveldb_path, injector);
+            }),
         di::bind<blockchain::BlockStorage>.to(std::move(get_block_storage)),
         di::bind<blockchain::BlockTree>.to(std::move(get_block_tree)),
         di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::KeyValueBlockHeaderRepository>(),
@@ -457,12 +500,21 @@ namespace kagome::injector {
         di::bind<runtime::BlockBuilderApi>.template to<runtime::BlockBuilderApiImpl>(),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
+        di::bind<storage::trie::PolkadotTrieDbBackend>.to(
+            std::move(get_polkadot_trie_db_backend)),
+        di::bind<storage::trie::PolkadotTrieDb>.to(
+            std::move(get_polkadot_trie_db)),
         di::bind<storage::trie::TrieDb>.to(std::move(get_trie_db)),
         di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
         di::bind<runtime::WasmProvider>.template to<runtime::StorageWasmProvider>(),
         di::bind<application::ConfigurationStorage>.to(
-            std::move(get_configuration_storage)),
-        di::bind<application::KeyStorage>.to(std::move(get_key_storage)),
+            [genesis_path](const auto &injector) {
+              return get_configuration_storage(genesis_path, injector);
+            }),
+        di::bind<application::KeyStorage>.to(
+            [keystore_path](const auto &injector) {
+              return get_key_storage(keystore_path, injector);
+            }),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

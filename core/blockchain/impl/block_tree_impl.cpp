@@ -7,7 +7,6 @@
 
 #include <algorithm>
 
-#include <boost/assert.hpp>
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/common.hpp"
 #include "blockchain/impl/persistent_map_util.hpp"

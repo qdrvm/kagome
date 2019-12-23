@@ -16,7 +16,11 @@
 using kagome::common::Buffer;
 using kagome::storage::LevelDB;
 using kagome::storage::trie::PolkadotTrieDb;
+using kagome::storage::trie::PolkadotTrieDbBackend;
 using kagome::storage::trie::operator<<;
+
+static const Buffer kNodePrefix{1};
+static const Buffer kRootHashKey{0};
 
 /**
  * Automation of operations over a trie
@@ -37,9 +41,8 @@ class TrieTest
 
   void SetUp() override {
     open();
-
-    // auto db_ = std::make_unique<test::InMemoryStorage>();
-    trie = std::make_unique<PolkadotTrieDb>(std::move(db_));
+    trie = PolkadotTrieDb::createEmpty(std::make_shared<PolkadotTrieDbBackend>(
+        std::move(db_), kNodePrefix, kRootHashKey));
   }
 
   static const std::vector<std::pair<Buffer, Buffer>> data;
@@ -113,7 +116,8 @@ std::vector<TrieCommand> BuildSmallTrie = {
     {Buffer{}, "floof"_buf, Command::PUT},
     {"013507"_hex2buf, "odd"_buf, Command::PUT}};
 /**
- * Create a tree with a branch and check that every inserted value is accessible
+ * Create a tree with a branch and check that every inserted value is
+ * accessible
  */
 std::vector<TrieCommand> PutAndGetBranch = {
     {"0135"_hex2buf, ("spaghetti"_buf), Command::PUT},
@@ -127,8 +131,8 @@ std::vector<TrieCommand> PutAndGetBranch = {
     {"07"_hex2buf, ("ramen"_buf), Command::GET},
     {"f2"_hex2buf, ("pho"_buf), Command::GET}};
 /**
- * As key is decomposed to nibbles (4 bit pieces), odd length might be processed
- * incorrectly, which is checked here
+ * As key is decomposed to nibbles (4 bit pieces), odd length might be
+ * processed incorrectly, which is checked here
  */
 std::vector<TrieCommand> PutAndGetOddKeyLengths = {
     {"43c1"_hex2buf, "noot"_buf, Command::PUT},
@@ -267,7 +271,8 @@ TEST_F(TrieTest, Put) {
 /**
  * @given a small trie
  * @when removing some entries from it
- * @then removed entries are no longer in the trie, while the rest of them stays
+ * @then removed entries are no longer in the trie, while the rest of them
+ * stays
  */
 TEST_F(TrieTest, Remove) {
   FillSmallTree(*trie);
@@ -326,10 +331,49 @@ TEST_F(TrieTest, ClearPrefix) {
 
 /**
  * @given an empty trie
- * @when
+ * @when putting something into the trie
+ * @then the trie is empty no more
  */
 TEST_F(TrieTest, EmptyTrie) {
   ASSERT_TRUE(trie->empty());
   EXPECT_OUTCOME_TRUE_1(trie->put({0}, "asdasd"_buf));
   ASSERT_FALSE(trie->empty());
+}
+
+/**
+ * @given an empty persistent trie with LevelDb backend
+ * @when putting a value into it @and its intance is destroyed @and a new
+ * instance initialsed with the same DB
+ * @then the new instance contains the same data
+ */
+TEST(TriePersistencyTest, CreateDestroyCreate) {
+  Buffer root;
+  {
+    leveldb::Options options;
+    options.create_if_missing = true;  // intentionally
+    EXPECT_OUTCOME_TRUE(
+        level_db,
+        LevelDB::create("/tmp/kagome_leveldb_persistency_test", options));
+    auto db =
+        PolkadotTrieDb::createEmpty(std::make_shared<PolkadotTrieDbBackend>(
+            std::move(level_db), kNodePrefix, kRootHashKey));
+    EXPECT_OUTCOME_TRUE_1(db->put("123"_buf, "abc"_buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("345"_buf, "def"_buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("678"_buf, "xyz"_buf));
+    root = db->getRootHash();
+  }
+  EXPECT_OUTCOME_TRUE(new_level_db,
+                      LevelDB::create("/tmp/kagome_leveldb_persistency_test"));
+  EXPECT_OUTCOME_TRUE(
+      db,
+      PolkadotTrieDb::createFromStorage(std::make_shared<PolkadotTrieDbBackend>(
+          std::move(new_level_db), kNodePrefix, kRootHashKey)));
+  EXPECT_OUTCOME_TRUE(v1, db->get("123"_buf));
+  ASSERT_EQ(v1, "abc"_buf);
+  EXPECT_OUTCOME_TRUE(v2, db->get("345"_buf));
+  ASSERT_EQ(v2, "def"_buf);
+  EXPECT_OUTCOME_TRUE(v3, db->get("678"_buf));
+  ASSERT_EQ(v3, "xyz"_buf);
+
+  fs::remove_all("/tmp/kagome_leveldb_persistency_test");
 }

@@ -17,8 +17,27 @@ using kagome::common::Buffer;
 
 namespace kagome::storage::trie {
 
-  PolkadotTrieDb::PolkadotTrieDb(std::shared_ptr<PersistentBufferMap> db)
-      : db_{std::move(db)}, root_{getEmptyRoot()} {}
+  outcome::result<std::unique_ptr<PolkadotTrieDb>>
+  PolkadotTrieDb::createFromStorage(std::shared_ptr<PolkadotTrieDbBackend> db) {
+    BOOST_ASSERT(db != nullptr);
+    OUTCOME_TRY(root, db->getRootHash());
+    PolkadotTrieDb trie_db{std::move(db), std::move(root)};
+    return std::make_unique<PolkadotTrieDb>(std::move(trie_db));
+  }
+
+  std::unique_ptr<PolkadotTrieDb> PolkadotTrieDb::createEmpty(
+      std::shared_ptr<PolkadotTrieDbBackend> db) {
+    BOOST_ASSERT(db != nullptr);
+    PolkadotTrieDb trie_db{std::move(db), boost::none};
+    return std::make_unique<PolkadotTrieDb>(std::move(trie_db));
+  }
+
+  PolkadotTrieDb::PolkadotTrieDb(std::shared_ptr<PolkadotTrieDbBackend> db,
+                                 boost::optional<common::Buffer> root_hash)
+      : db_{std::move(db)},
+        codec_{},
+        root_{root_hash ? std::move(root_hash.value()) : getEmptyRoot()} {
+  }
 
   outcome::result<void> PolkadotTrieDb::put(const Buffer &key,
                                             const Buffer &value) {
@@ -36,6 +55,7 @@ namespace kagome::storage::trie {
     // key in the storage
     OUTCOME_TRY(root_hash, storeNode(*trie.getRoot()));
     root_ = root_hash;
+    OUTCOME_TRY(db_->saveRootHash(root_));
     return outcome::success();
   }
 
@@ -58,6 +78,7 @@ namespace kagome::storage::trie {
       OUTCOME_TRY(hash, storeNode(*trie.getRoot()));
       root_ = hash;
     }
+    OUTCOME_TRY(db_->saveRootHash(root_));
     return outcome::success();
   }
 
@@ -99,6 +120,7 @@ namespace kagome::storage::trie {
       OUTCOME_TRY(root_hash, storeNode(*trie.getRoot()));
       root_ = root_hash;
     }
+    OUTCOME_TRY(db_->saveRootHash(root_));
     return outcome::success();
   }
 
@@ -139,8 +161,8 @@ namespace kagome::storage::trie {
     }
 
     OUTCOME_TRY(enc, codec_.encodeNode(node));
-    auto key = Buffer{codec_.merkleValue(enc)};
-    OUTCOME_TRY(db_->put(key, enc));
+    auto key = Buffer{codec_.hash256(enc)};
+    OUTCOME_TRY(batch.put(key, enc));
     return key;
   }
 

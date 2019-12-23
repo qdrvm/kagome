@@ -33,7 +33,10 @@ namespace kagome::blockchain {
       BODY = 5,
 
       // justification of the finalized block
-      JUSTIFICATION = 6
+      JUSTIFICATION = 6,
+
+      // node of a trie db
+      TRIE_NODE = 7
     };
   }
 

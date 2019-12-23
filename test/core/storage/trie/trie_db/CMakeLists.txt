@@ -21,3 +21,13 @@ target_link_libraries(polkadot_trie_db_test
     in_memory_storage
     ordered_trie_hash
     )
+
+addtest(trie_db_backend_test
+    trie_db_backend_test.cpp
+    )
+target_link_libraries(trie_db_backend_test
+    polkadot_trie_db_backend
+    leveldb
+    buffer
+    in_memory_storage
+    )
