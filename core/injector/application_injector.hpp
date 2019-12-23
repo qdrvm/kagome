@@ -47,7 +47,7 @@
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/vrf/vrf_provider_impl.hpp"
-#include "extensions/extension_impl.hpp"
+#include "extensions/impl/extension_factory_impl.hpp"
 #include "network/impl/gossiper_broadcast.hpp"
 #include "network/impl/router_libp2p.hpp"
 #include "network/sync_protocol_client.hpp"
@@ -440,7 +440,7 @@ namespace kagome::injector {
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
         di::bind<crypto::SR25519Provider>.template to<crypto::SR25519ProviderImpl>(),
         di::bind<crypto::VRFProvider>.template to<crypto::VRFProviderImpl>(),
-        di::bind<extensions::Extension>.template to<extensions::ExtensionImpl>(),
+        di::bind<extensions::ExtensionFactory>.template to<extensions::ExtensionFactoryImpl>(),
         di::bind<network::BabeGossiper>.template to<network::GossiperBroadcast>(),
         di::bind<consensus::grandpa::Gossiper>.template to<network::GossiperBroadcast>(),
         di::bind<network::Gossiper>.template to<network::GossiperBroadcast>(),

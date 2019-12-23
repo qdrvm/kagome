@@ -51,7 +51,7 @@ namespace kagome::consensus {
   void BabeImpl::runEpoch(Epoch epoch,
                           BabeTimePoint starting_slot_finish_time) {
     BOOST_ASSERT(!epoch.authorities.empty());
-    log_->info("starting an epoch with index {}", epoch.epoch_index);
+    log_->debug("starting an epoch with index {}", epoch.epoch_index);
 
     current_epoch_ = std::move(epoch);
     current_slot_ = current_epoch_.start_slot;
@@ -76,7 +76,7 @@ namespace kagome::consensus {
       // end of the epoch
       return finishEpoch();
     }
-    log_->info("starting a slot with number {}", current_slot_);
+    log_->debug("starting a slot with number {}", current_slot_);
 
     // check that we are really in the middle of the slot, as expected; we can
     // cooperate with a relatively little (kMaxLatency) latency, as our node

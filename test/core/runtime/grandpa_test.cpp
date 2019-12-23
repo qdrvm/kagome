@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/grandpa_impl.hpp"
-
 #include <gtest/gtest.h>
+
 #include "core/runtime/runtime_test.hpp"
-#include "extensions/extension_impl.hpp"
+#include "extensions/impl/extension_impl.hpp"
+#include "runtime/impl/grandpa_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 

@@ -23,6 +23,7 @@ addtest(core_integration_test
 target_link_libraries(core_integration_test
     core
     basic_wasm_provider
+    extension_factory
     )
 
 addtest(tagged_transaction_queue_test

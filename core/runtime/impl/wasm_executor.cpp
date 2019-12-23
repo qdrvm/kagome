@@ -5,9 +5,10 @@
 
 #include "runtime/impl/wasm_executor.hpp"
 
+#include <binaryen/wasm-binary.h>
+
 #include <utility>
 
-#include <binaryen/wasm-binary.h>
 #include "runtime/impl/runtime_external_interface.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, WasmExecutor::Error, e) {
@@ -25,14 +26,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, WasmExecutor::Error, e) {
 
 namespace kagome::runtime {
 
-  WasmExecutor::WasmExecutor(std::shared_ptr<extensions::Extension> extension)
-      : extension_(std::move(extension)),
-        logger_{common::createLogger(kDefaultLoggerTag)} {
-    BOOST_ASSERT_MSG(extension_ != nullptr, "extension is nullptr");
-  }
+  WasmExecutor::WasmExecutor()
+      : logger_{common::createLogger("Wasm executor")} {}
 
   outcome::result<wasm::Literal> WasmExecutor::call(
       const common::Buffer &state_code,
+      wasm::ModuleInstance::ExternalInterface &external_interface,
       wasm::Name method_name,
       const wasm::LiteralList &args) {
     // that nolint supresses false positive in a library function
@@ -56,7 +55,7 @@ namespace kagome::runtime {
       return Error::INVALID_STATE_CODE;
     }
     try {
-      return callInModule(module, method_name, args);
+      return callInModule(module, external_interface, method_name, args);
     } catch (wasm::ExitException &e) {
       return Error::EXECUTION_ERROR;
     } catch (wasm::TrapException &e) {
@@ -64,14 +63,13 @@ namespace kagome::runtime {
     }
   }
 
-  wasm::Literal WasmExecutor::callInModule(wasm::Module &module,
-                                           wasm::Name method_name,
-                                           const wasm::LiteralList &args) {
-    // prepare external interface with extern methods
-    RuntimeExternalInterface rei(extension_);
-
+  wasm::Literal WasmExecutor::callInModule(
+      wasm::Module &module,
+      wasm::ModuleInstance::ExternalInterface &external_interface,
+      wasm::Name method_name,
+      const wasm::LiteralList &args) {
     // interpret module
-    wasm::ModuleInstance module_instance(module, &rei);
+    wasm::ModuleInstance module_instance(module, &external_interface);
 
     return module_instance.callExport(wasm::Name(method_name), args);
   }

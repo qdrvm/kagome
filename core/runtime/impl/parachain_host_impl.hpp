@@ -6,7 +6,6 @@
 #ifndef KAGOME_CORE_RUNTIME_IMPL_PARACHAIN_HOST_IMPL_HPP
 #define KAGOME_CORE_RUNTIME_IMPL_PARACHAIN_HOST_IMPL_HPP
 
-#include "extensions/extension.hpp"
 #include "runtime/impl/runtime_api.hpp"
 #include "runtime/parachain_host.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
@@ -23,7 +22,7 @@ namespace kagome::runtime {
      */
     ParachainHostImpl(
         const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-        const std::shared_ptr<extensions::Extension> &extension);
+        const std::shared_ptr<extensions::ExtensionFactory> &extension_factory);
 
     ~ParachainHostImpl() override = default;
 

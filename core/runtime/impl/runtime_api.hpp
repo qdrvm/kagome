@@ -6,9 +6,14 @@
 #ifndef KAGOME_CORE_RUNTIME_RUNTIME_API_HPP
 #define KAGOME_CORE_RUNTIME_RUNTIME_API_HPP
 
+#include <binaryen/wasm-binary.h>
+#include <binaryen/wasm-interpreter.h>
+
 #include <utility>
 
 #include "common/buffer.hpp"
+#include "extensions/extension_factory.hpp"
+#include "runtime/impl/runtime_external_interface.hpp"
 #include "runtime/impl/wasm_executor.hpp"
 #include "runtime/wasm_memory.hpp"
 #include "runtime/wasm_provider.hpp"
@@ -22,10 +27,10 @@ namespace kagome::runtime {
   class RuntimeApi {
    public:
     RuntimeApi(std::shared_ptr<runtime::WasmProvider> wasm_provider,
-               std::shared_ptr<extensions::Extension> extension)
+               std::shared_ptr<extensions::ExtensionFactory> extension_factory)
         : wasm_provider_(std::move(wasm_provider)),
-          memory_(extension->memory()),
-          executor_(std::move(extension)) {}
+          extension_factory_(std::move(extension_factory)),
+          executor_{} {}
 
    protected:
     /**
@@ -41,21 +46,24 @@ namespace kagome::runtime {
       runtime::WasmPointer ptr = 0u;
       runtime::SizeType len = 0u;
 
+      RuntimeExternalInterface rei{extension_factory_};
+      auto memory = rei.memory();
+
       if constexpr (sizeof...(args) > 0) {
         OUTCOME_TRY(buffer, scale::encode(std::forward<Args>(args)...));
         len = buffer.size();
-        ptr = memory_->allocate(len);
-        memory_->storeBuffer(ptr, common::Buffer(std::move(buffer)));
+        ptr = memory->allocate(len);
+        memory->storeBuffer(ptr, common::Buffer(std::move(buffer)));
       }
 
       wasm::LiteralList ll{wasm::Literal(ptr), wasm::Literal(len)};
       wasm::Name wasm_name = std::string(name);
       const auto &state_code = wasm_provider_->getStateCode();
-      OUTCOME_TRY(res, executor_.call(state_code, wasm_name, ll));
+      OUTCOME_TRY(res, executor_.call(state_code, rei, wasm_name, ll));
 
       if constexpr (!std::is_same_v<void, R>) {
         WasmResult r{res.geti64()};
-        auto buffer = memory_->loadN(r.address, r.length);
+        auto buffer = memory->loadN(r.address, r.length);
         // TODO (yuraz) PRE-98: after check for memory overflow is done,
         //  refactor it
         return scale::decode<R>(buffer);
@@ -66,9 +74,8 @@ namespace kagome::runtime {
 
    private:
     std::shared_ptr<runtime::WasmProvider> wasm_provider_;
-    std::shared_ptr<WasmMemory> memory_;
+    std::shared_ptr<extensions::ExtensionFactory> extension_factory_;
     WasmExecutor executor_;
   };
 }  // namespace kagome::runtime
-
 #endif  // KAGOME_CORE_RUNTIME_RUNTIME_API_HPP

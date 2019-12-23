@@ -14,6 +14,7 @@ add_library(memory
     )
 target_link_libraries(memory
     buffer
+    binaryen::binaryen
     )
 kagome_install(memory)
 
@@ -24,7 +25,7 @@ add_library(core
     )
 target_link_libraries(core
     scale
-    wasm_executor
+    runtime_external_interface
     )
 
 add_library(tagged_transaction_queue
@@ -34,7 +35,7 @@ add_library(tagged_transaction_queue
     )
 target_link_libraries(tagged_transaction_queue
     scale
-    wasm_executor
+    runtime_external_interface
     )
 
 add_library(block_builder_api
@@ -45,7 +46,7 @@ add_library(block_builder_api
 target_link_libraries(block_builder_api
     scale
     primitives
-    wasm_executor
+    runtime_external_interface
     )
 
 add_library(parachain_host_api
@@ -55,7 +56,7 @@ add_library(parachain_host_api
     )
 target_link_libraries(parachain_host_api
     scale
-    wasm_executor
+    runtime_external_interface
     )
 
 add_library(grandpa_api
@@ -65,7 +66,7 @@ add_library(grandpa_api
     )
 target_link_libraries(grandpa_api
     scale
-    wasm_executor
+    runtime_external_interface
     )
 
 add_library(metadata_api
@@ -75,7 +76,7 @@ add_library(metadata_api
     )
 target_link_libraries(metadata_api
     scale
-    wasm_executor
+    runtime_external_interface
     )
 
 add_library(offchain_worker_api

@@ -13,8 +13,8 @@ namespace kagome::runtime {
 
   ParachainHostImpl::ParachainHostImpl(
       const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-      const std::shared_ptr<extensions::Extension> &extension)
-      : RuntimeApi(wasm_provider, extension) {}
+      const std::shared_ptr<extensions::ExtensionFactory> &extension_factory)
+      : RuntimeApi(wasm_provider, extension_factory) {}
 
   outcome::result<DutyRoster> ParachainHostImpl::duty_roster() {
     return execute<DutyRoster>("ParachainHost_duty_roster");

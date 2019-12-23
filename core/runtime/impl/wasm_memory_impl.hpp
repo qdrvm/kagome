@@ -6,13 +6,15 @@
 #ifndef KAGOME_WASM_MEMORY_IMPL_HPP
 #define KAGOME_WASM_MEMORY_IMPL_HPP
 
+#include <binaryen/shell-interface.h>
+
 #include <array>
+#include <boost/optional.hpp>
 #include <cstring>  // for std::memset in gcc
 #include <memory>
 #include <unordered_map>
 #include <vector>
 
-#include <boost/optional.hpp>
 #include "runtime/wasm_memory.hpp"
 
 namespace kagome::runtime {
@@ -26,15 +28,13 @@ namespace kagome::runtime {
    */
   class WasmMemoryImpl : public WasmMemory {
    public:
-    WasmMemoryImpl();
-    explicit WasmMemoryImpl(SizeType size);
+    explicit WasmMemoryImpl(wasm::ShellExternalInterface::Memory *memory);
     WasmMemoryImpl(const WasmMemoryImpl &copy) = delete;
     WasmMemoryImpl &operator=(const WasmMemoryImpl &copy) = delete;
     WasmMemoryImpl(WasmMemoryImpl &&move) = delete;
     WasmMemoryImpl &operator=(WasmMemoryImpl &&move) = delete;
     ~WasmMemoryImpl() override = default;
 
-    SizeType size() const override;
     void resize(SizeType newSize) override;
 
     WasmPointer allocate(SizeType size) override;
@@ -63,7 +63,7 @@ namespace kagome::runtime {
 
    private:
     // Use char because it doesn't run afoul of aliasing rules.
-    std::vector<char> memory_;
+    wasm::ShellExternalInterface::Memory *memory_;
 
     // Offset on the tail of the last allocated MemoryImpl chunk
     WasmPointer offset_;
@@ -79,28 +79,6 @@ namespace kagome::runtime {
       static_assert(!(sizeof(T) & (sizeof(T) - 1)), "must be a power of 2");
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       return 0 == (reinterpret_cast<uintptr_t>(address) & (sizeof(T) - 1));
-    }
-
-    template <typename T>
-    void set(WasmPointer address, T value) {
-      if (aligned<T>(&memory_[address])) {
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-        *reinterpret_cast<T *>(&memory_[address]) = value;
-      } else {
-        std::memcpy(&memory_[address], &value, sizeof(T));
-      }
-    }
-
-    template <typename T>
-    T get(WasmPointer address) const {
-      if (aligned<T>(&memory_[address])) {
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-        return *reinterpret_cast<const T *>(&memory_[address]);
-      }
-
-      T loaded{};
-      std::memcpy(&loaded, &memory_[address], sizeof(T));
-      return loaded;
     }
 
     /**

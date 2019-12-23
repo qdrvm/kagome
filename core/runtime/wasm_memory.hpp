@@ -31,7 +31,7 @@ namespace kagome::runtime {
     /**
      * @brief Return the size of the memory
      */
-    virtual SizeType size() const = 0;
+    // virtual SizeType size() const = 0;
 
     /**
      * Resizes memory to the given size
