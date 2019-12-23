@@ -25,16 +25,26 @@ using kagome::scale::decode;
 using kagome::scale::encode;
 
 struct BlockAnnounceTest : public ::testing::Test {
-  BlockHeader block_header{
-      createHash256({1, 1, 1}),  // parent_hash
-      2u,                        // block number
-      createHash256({3, 3, 3}),  // state_root
-      createHash256({4, 4, 4}),  // extrinsic root
-      {{5, 6, 7}}                // digest list
-  };
+  void SetUp() {
+    auto h1 = createHash256({1, 1, 1});
+    auto h2 = createHash256({3, 3, 3});
+    auto h3 = createHash256({4, 4, 4});
+
+    block_header = BlockHeader{
+        h1,          // parent_hash
+        2u,          // block number
+        h2,          // state_root
+        h3,          // extrinsic root
+        {{5, 6, 7}}  // digest list
+    };
+
+    block_announce = BlockAnnounce{block_header};
+  }
+
+  BlockHeader block_header;
 
   /// `block announce` instance
-  BlockAnnounce block_announce{block_header};
+  BlockAnnounce block_announce;
 
   /// scale-encoded `block announce` buffer
   std::vector<uint8_t> encoded_value =
