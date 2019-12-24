@@ -6,7 +6,6 @@
 #ifndef CORE_RUNTIME_CORE_IMPL_HPP
 #define CORE_RUNTIME_CORE_IMPL_HPP
 
-#include "extensions/extension.hpp"
 #include "runtime/core.hpp"
 #include "runtime/impl/runtime_api.hpp"
 #include "runtime/wasm_provider.hpp"
@@ -14,8 +13,9 @@
 namespace kagome::runtime {
   class CoreImpl : public RuntimeApi, public Core {
    public:
-    CoreImpl(const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-             const std::shared_ptr<extensions::Extension> &extension);
+    CoreImpl(
+        const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
+        const std::shared_ptr<extensions::ExtensionFactory> &extension_factory);
 
     ~CoreImpl() override = default;
 

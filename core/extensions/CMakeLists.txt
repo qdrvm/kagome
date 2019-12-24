@@ -6,7 +6,7 @@
 add_subdirectory(impl)
 
 add_library(extensions
-    extension_impl.cpp
+    impl/extension_impl.cpp
     )
 target_link_libraries(extensions
     crypto_extension
@@ -16,3 +16,10 @@ target_link_libraries(extensions
     storage_extension
     )
 kagome_install(extensions)
+
+add_library(extension_factory
+    impl/extension_factory_impl.cpp
+    )
+target_link_libraries(extension_factory
+    extensions
+    )

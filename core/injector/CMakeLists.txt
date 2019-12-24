@@ -23,6 +23,7 @@ target_link_libraries(application_injector
     core
     grandpa_api
     extrinsic_api_service
+    extension_factory
     gossiper_broadcast
     in_memory_storage
     kagome_router
@@ -35,5 +36,4 @@ target_link_libraries(application_injector
     tagged_transaction_queue
     vrf_provider
     waitable_timer
-    wasm_executor
     )

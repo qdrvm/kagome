@@ -6,7 +6,6 @@
 #ifndef KAGOME_TAGGED_TRANSACTION_QUEUE_IMPL_HPP
 #define KAGOME_TAGGED_TRANSACTION_QUEUE_IMPL_HPP
 
-#include "extensions/extension.hpp"
 #include "runtime/impl/runtime_api.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
 #include "runtime/wasm_provider.hpp"
@@ -17,7 +16,7 @@ namespace kagome::runtime {
    public:
     TaggedTransactionQueueImpl(
         const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-        const std::shared_ptr<extensions::Extension> &extension);
+        const std::shared_ptr<extensions::ExtensionFactory> &extension_factory);
 
     ~TaggedTransactionQueueImpl() override = default;
 

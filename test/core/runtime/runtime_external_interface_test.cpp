@@ -8,11 +8,14 @@
 #include <binaryen/wasm-s-parser.h>
 #include <boost/format.hpp>
 #include "core/extensions/mock_extension.hpp"
+#include "core/extensions/mock_extension_factory.hpp"
 #include "core/runtime/mock_memory.hpp"
 
+using ::testing::_;
 using ::testing::Return;
 
 using kagome::extensions::MockExtension;
+using kagome::extensions::MockExtensionFactory;
 using kagome::runtime::MockMemory;
 using kagome::runtime::RuntimeExternalInterface;
 using kagome::runtime::SizeType;
@@ -51,6 +54,9 @@ class REITest : public ::testing::Test {
   void SetUp() override {
     memory_ = std::make_shared<MockMemory>();
     extension_ = std::make_shared<MockExtension>();
+    extension_factory_ = std::make_shared<MockExtensionFactory>();
+    EXPECT_CALL(*extension_factory_, createExtension(_))
+        .WillRepeatedly(Return(extension_));
   }
 
   void executeWasm(std::string call_code) {
@@ -65,11 +71,9 @@ class REITest : public ::testing::Test {
     SExpressionParser parser(data);
     Element &root = *parser.root;
     SExpressionWasmBuilder builder(wasm, *root[0]);
-    // prepare external interface with imported function's implementation
-    EXPECT_CALL(*memory_, resize(0))
-        .Times(1);  // !< resize happens during initialization of rei
     EXPECT_CALL(*extension_, memory()).WillRepeatedly(Return(memory_));
-    TestableExternalInterface rei(extension_);
+
+    TestableExternalInterface rei(extension_factory_);
 
     // interpret module
     ModuleInstance instance(wasm, &rei);
@@ -78,6 +82,7 @@ class REITest : public ::testing::Test {
  protected:
   std::shared_ptr<MockMemory> memory_;
   std::shared_ptr<MockExtension> extension_;
+  std::shared_ptr<MockExtensionFactory> extension_factory_;
 
   // clang-format off
   const std::string wasm_template_ =
@@ -266,8 +271,8 @@ TEST_F(REITest, ext_get_storage_into_Test) {
   SizeType res = 1;
 
   EXPECT_CALL(*extension_,
-              ext_get_storage_into(key_ptr, key_size, value_ptr, value_length,
-                                   value_offset))
+              ext_get_storage_into(
+                  key_ptr, key_size, value_ptr, value_length, value_offset))
       .WillOnce(Return(res));
 
   auto execute_code =
@@ -315,8 +320,8 @@ TEST_F(REITest, ext_blake2_256_enumerated_trie_root_Test) {
   WasmPointer result = 321;
 
   EXPECT_CALL(*extension_,
-              ext_blake2_256_enumerated_trie_root(values_data, lens_data,
-                                                  lens_length, result))
+              ext_blake2_256_enumerated_trie_root(
+                  values_data, lens_data, lens_length, result))
       .Times(1);
   auto execute_code =
       (boost::format("    (call $ext_blake2_256_enumerated_trie_root\n"
@@ -339,8 +344,8 @@ TEST_F(REITest, ext_storage_changes_root_Test) {
   SizeType res = 1;
 
   EXPECT_CALL(*extension_,
-              ext_storage_changes_root(parent_hash_data, parent_hash_len,
-                                       parent_num, result))
+              ext_storage_changes_root(
+                  parent_hash_data, parent_hash_len, parent_num, result))
       .WillOnce(Return(res));
 
   auto execute_code =
@@ -441,7 +446,7 @@ TEST_F(REITest, ext_keccak_256_Test) {
                                      "      (i32.const %d)\n"
                                      "    )\n")
                        % data_ptr % data_size % out_ptr)
-      .str();
+                          .str();
   executeWasm(execute_code);
 }
 
@@ -493,8 +498,8 @@ TEST_F(REITest, ext_sr25519_verify_Test) {
                                      "      )\n"
                                      "      (i32.const %d)\n"
                                      "    )\n")
-      % msg_data % msg_len % sig_data % pubkey_data % res)
-      .str();
+                       % msg_data % msg_len % sig_data % pubkey_data % res)
+                          .str();
   SCOPED_TRACE("ext_sr25519_verify_Test");
   executeWasm(execute_code);
 }

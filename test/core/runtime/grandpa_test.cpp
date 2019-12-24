@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/grandpa_impl.hpp"
-
 #include <gtest/gtest.h>
+
 #include "core/runtime/runtime_test.hpp"
-#include "extensions/extension_impl.hpp"
+#include "extensions/impl/extension_impl.hpp"
+#include "runtime/impl/grandpa_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 
@@ -29,7 +29,7 @@ class GrandpaTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    api_ = std::make_shared<GrandpaImpl>(wasm_provider_, extension_);
+    api_ = std::make_shared<GrandpaImpl>(wasm_provider_, extension_factory_);
   }
 
   Digest createDigest() const {

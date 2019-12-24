@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/offchain_worker_impl.hpp"
-
 #include <gtest/gtest.h>
+
 #include "core/runtime/runtime_test.hpp"
-#include "extensions/extension_impl.hpp"
+#include "extensions/impl/extension_impl.hpp"
 #include "primitives/common.hpp"
+#include "runtime/impl/offchain_worker_impl.hpp"
 #include "runtime/impl/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 
@@ -26,7 +26,8 @@ class OffchainWorkerTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    api_ = std::make_shared<OffchainWorkerImpl>(wasm_provider_, extension_);
+    api_ = std::make_shared<OffchainWorkerImpl>(wasm_provider_,
+                                                extension_factory_);
   }
 
   BlockNumber createBlockNumber() const {

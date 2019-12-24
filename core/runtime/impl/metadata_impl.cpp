@@ -10,8 +10,8 @@ namespace kagome::runtime {
 
   kagome::runtime::MetadataImpl::MetadataImpl(
       const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-      const std::shared_ptr<extensions::Extension> &extension)
-      : RuntimeApi(wasm_provider, extension) {}
+      const std::shared_ptr<extensions::ExtensionFactory> &extension_factory)
+      : RuntimeApi(wasm_provider, extension_factory) {}
 
   outcome::result<OpaqueMetadata> MetadataImpl::metadata() {
     return execute<OpaqueMetadata>("Metadata_metadata");

@@ -28,8 +28,8 @@ add_library(memory_extension
     memory_extension.cpp
     )
 target_link_libraries(memory_extension
-    memory
     logger
+    buffer
 )
 kagome_install(memory_extension)
 
