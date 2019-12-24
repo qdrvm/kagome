@@ -5,11 +5,10 @@
 
 #include "runtime/impl/wasm_executor.hpp"
 
+#include <binaryen/shell-interface.h>
 #include <binaryen/wasm-binary.h>
 
 #include <utility>
-
-#include "runtime/impl/runtime_external_interface.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, WasmExecutor::Error, e) {
   using kagome::runtime::WasmExecutor;

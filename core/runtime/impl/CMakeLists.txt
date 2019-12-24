@@ -19,6 +19,7 @@ add_library(runtime_external_interface
     )
 target_link_libraries(runtime_external_interface
     wasm_executor
+    wasm_memory
     )
 
 add_library(storage_wasm_provider

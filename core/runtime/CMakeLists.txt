@@ -5,18 +5,18 @@
 
 add_subdirectory(impl)
 
-add_library(memory
+add_library(wasm_memory
     common.hpp
     wasm_result.hpp
     wasm_memory.hpp
     impl/wasm_memory_impl.hpp
     impl/wasm_memory_impl.cpp
     )
-target_link_libraries(memory
+target_link_libraries(wasm_memory
     buffer
     binaryen::binaryen
     )
-kagome_install(memory)
+kagome_install(wasm_memory)
 
 add_library(core
     core.hpp

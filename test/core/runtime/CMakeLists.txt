@@ -7,7 +7,7 @@ addtest(wasm_memory_test
     wasm_memory_test.cpp
     )
 target_link_libraries(wasm_memory_test
-    memory
+    wasm_memory
     )
 
 addtest(runtime_external_interface_test
@@ -15,7 +15,7 @@ addtest(runtime_external_interface_test
     )
 target_link_libraries(runtime_external_interface_test
     runtime_external_interface
-    memory
+    wasm_memory
     )
 
 addtest(core_integration_test
