@@ -28,7 +28,10 @@ namespace kagome::runtime {
    */
   class WasmMemoryImpl : public WasmMemory {
    public:
-    explicit WasmMemoryImpl(wasm::ShellExternalInterface::Memory *memory);
+    explicit WasmMemoryImpl(
+        wasm::ShellExternalInterface::Memory *memory,
+        SizeType size =
+            1114112);  // default value for binaryen's shell interface
     WasmMemoryImpl(const WasmMemoryImpl &copy) = delete;
     WasmMemoryImpl &operator=(const WasmMemoryImpl &copy) = delete;
     WasmMemoryImpl(WasmMemoryImpl &&move) = delete;
@@ -65,6 +68,7 @@ namespace kagome::runtime {
    private:
     // Use char because it doesn't run afoul of aliasing rules.
     wasm::ShellExternalInterface::Memory *memory_;
+    SizeType size_;
 
     // Offset on the tail of the last allocated MemoryImpl chunk
     WasmPointer offset_;

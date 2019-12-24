@@ -6,22 +6,23 @@
 #include "runtime/impl/wasm_memory_impl.hpp"
 
 namespace kagome::runtime {
-  WasmMemoryImpl::WasmMemoryImpl(wasm::ShellExternalInterface::Memory *memory)
+  WasmMemoryImpl::WasmMemoryImpl(wasm::ShellExternalInterface::Memory *memory,
+                                 SizeType size)
       : memory_(memory),
+        size_(size),
         offset_(1)  // We should allocate very first byte to prohibit allocating
                     // memory at 0 in future, as returning 0 from allocate
                     // method means that wasm memory was exhausted
-  {}
-
-  //  WasmMemoryImpl::WasmMemoryImpl(SizeType size) {
-  //    resize(size);
-  //  }
+  {
+    resize(size_);
+  }
 
   SizeType WasmMemoryImpl::size() const {
-    return 42;
+    return size_;
   }
 
   void WasmMemoryImpl::resize(runtime::SizeType new_size) {
+    size_ = new_size;
     return memory_->resize(new_size);
   }
 
@@ -40,13 +41,13 @@ namespace kagome::runtime {
     if (new_offset < static_cast<const uint32_t>(ptr)) {  // overflow
       return 0;
     }
-    //    if (new_offset <= memory_->size()) {
-    offset_ = new_offset;
-    allocated_[ptr] = size;
-    return ptr;
-    //    }
+    if (new_offset <= size_) {
+      offset_ = new_offset;
+      allocated_[ptr] = size;
+      return ptr;
+    }
 
-    //    return freealloc(size);
+    return freealloc(size);
   }
 
   boost::optional<SizeType> WasmMemoryImpl::deallocate(WasmPointer ptr) {
@@ -98,15 +99,15 @@ namespace kagome::runtime {
     if (static_cast<uint32_t>(offset_) > kMaxMemorySize - size) {
       return 0;
     }
-    // try to increase memory size up to offset + size * 4 (we multiply by 4 to
-    // have more memory than currently needed to avoid resizing every time when
-    // we exceed current memory)
+    // try to increase memory size up to offset + size * 4 (we multiply by 4
+    // to have more memory than currently needed to avoid resizing every time
+    // when we exceed current memory)
     if (static_cast<uint32_t>(offset_) < kMaxMemorySize - size * 4) {
-      memory_->resize(offset_ + size * 4);
+      resize(offset_ + size * 4);
     } else {
-      // if we can't increase by size * 4 then increase memory size by provided
-      // size
-      memory_->resize(offset_ + size);
+      // if we can't increase by size * 4 then increase memory size by
+      // provided size
+      resize(offset_ + size);
     }
     return allocate(size);
   }
@@ -170,8 +171,8 @@ namespace kagome::runtime {
     // TODO (kamilsa) PRE-98: check if we do not go outside of memory
     // boundaries, 04.04.2019
     const auto &value_vector = value.toVector();
-    for (auto i = addr; i < addr + value.size(); i++) {
-      memory_->set(i, value_vector[i]);
+    for (size_t i = addr, j = 0; i < addr + value.size(); i++, j++) {
+      memory_->set(i, value_vector[j]);
     }
   }
 
