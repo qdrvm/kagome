@@ -75,7 +75,7 @@ class RuntimeTest : public ::testing::Test {
 
  protected:
   std::shared_ptr<kagome::storage::trie::MockTrieDb> trie_db_;
-  std::shared_ptr<kagome::extensions::ExtensionFactoryImpl> extension_factory_;
+  std::shared_ptr<kagome::extensions::ExtensionFactory> extension_factory_;
   std::shared_ptr<test::BasicWasmProvider> wasm_provider_;
 };
 

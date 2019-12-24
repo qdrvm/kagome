@@ -29,7 +29,7 @@ class GrandpaTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    api_ = std::make_shared<GrandpaImpl>(wasm_provider_, extension_);
+    api_ = std::make_shared<GrandpaImpl>(wasm_provider_, extension_factory_);
   }
 
   Digest createDigest() const {

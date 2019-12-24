@@ -9,12 +9,11 @@
 #include <binaryen/shell-interface.h>
 
 #include <array>
-#include <boost/optional.hpp>
 #include <cstring>  // for std::memset in gcc
 #include <memory>
 #include <unordered_map>
-#include <vector>
 
+#include <boost/optional.hpp>
 #include "runtime/wasm_memory.hpp"
 
 namespace kagome::runtime {
@@ -66,7 +65,6 @@ namespace kagome::runtime {
                      const kagome::common::Buffer &value) override;
 
    private:
-    // Use char because it doesn't run afoul of aliasing rules.
     wasm::ShellExternalInterface::Memory *memory_;
     SizeType size_;
 

@@ -10,7 +10,7 @@ namespace kagome::runtime {
                                  SizeType size)
       : memory_(memory),
         size_(size),
-        offset_(1)  // We should allocate very first byte to prohibit allocating
+        offset_{1}  // We should allocate very first byte to prohibit allocating
                     // memory at 0 in future, as returning 0 from allocate
                     // method means that wasm memory was exhausted
   {

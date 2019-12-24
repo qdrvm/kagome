@@ -10,10 +10,14 @@
 
 namespace kagome::extensions {
 
+  // Creates extension containing provided wasm memory
   class ExtensionFactory {
    public:
     virtual ~ExtensionFactory() = default;
 
+    /**
+     * Takes \param memory and creates \return extension using this memory
+     */
     virtual std::shared_ptr<Extension> createExtension(
         std::shared_ptr<runtime::WasmMemory> memory) const = 0;
   };

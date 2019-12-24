@@ -15,6 +15,7 @@ addtest(runtime_external_interface_test
     )
 target_link_libraries(runtime_external_interface_test
     runtime_external_interface
+    memory
     )
 
 addtest(core_integration_test

@@ -28,7 +28,7 @@ class BlockBuilderApiTest : public RuntimeTest {
     RuntimeTest::SetUp();
 
     builder_ =
-        std::make_unique<BlockBuilderApiImpl>(wasm_provider_, extension_);
+        std::make_unique<BlockBuilderApiImpl>(wasm_provider_, extension_factory_);
   }
 
  protected:
