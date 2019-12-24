@@ -54,6 +54,7 @@ class REITest : public ::testing::Test {
   void SetUp() override {
     memory_ = std::make_shared<MockMemory>();
     extension_ = std::make_shared<MockExtension>();
+    extension_factory_ = std::make_shared<MockExtensionFactory>();
     EXPECT_CALL(*extension_factory_, createExtension(_))
         .WillRepeatedly(Return(extension_));
   }
@@ -70,9 +71,6 @@ class REITest : public ::testing::Test {
     SExpressionParser parser(data);
     Element &root = *parser.root;
     SExpressionWasmBuilder builder(wasm, *root[0]);
-    // prepare external interface with imported function's implementation
-    EXPECT_CALL(*memory_, resize(0))
-        .Times(1);  // !< resize happens during initialization of rei
     EXPECT_CALL(*extension_, memory()).WillRepeatedly(Return(memory_));
 
     TestableExternalInterface rei(extension_factory_);
