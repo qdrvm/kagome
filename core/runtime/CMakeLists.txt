@@ -87,4 +87,5 @@ add_library(offchain_worker_api
 target_link_libraries(offchain_worker_api
     scale
     wasm_executor
+    runtime_external_interface
     )
