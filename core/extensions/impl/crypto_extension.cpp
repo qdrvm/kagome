@@ -25,11 +25,13 @@ namespace kagome::extensions {
       : memory_(std::move(memory)),
         sr25519_provider_(std::move(sr25519_provider)),
         ed25519_provider_(std::move(ed25519_provider)),
-        hasher_(std::move(hasher)) {
+        hasher_(std::move(hasher)),
+        logger_{common::createLogger("CryptoExtension")} {
     BOOST_ASSERT(memory_ != nullptr);
     BOOST_ASSERT(sr25519_provider_ != nullptr);
     BOOST_ASSERT(ed25519_provider_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(logger_ != nullptr);
   }
 
   void CryptoExtension::ext_blake2_256(runtime::WasmPointer data,
@@ -125,6 +127,10 @@ namespace kagome::extensions {
     const auto &buf = memory_->loadN(data, len);
 
     auto hash = hasher_->twox_128(buf);
+    logger_->debug("twox128. Data: {}, Data hex: {}, hash: {}",
+                   buf.data(),
+                   buf.toHex(),
+                   hash.toHex());
 
     memory_->storeBuffer(out_ptr, common::Buffer(hash));
   }
