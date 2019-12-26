@@ -30,6 +30,7 @@ namespace kagome::authorship {
 
     OUTCOME_TRY(parent_hash, header_backend_->getHashById(parent_id));
     OUTCOME_TRY(parent_number, header_backend_->getNumberById(parent_id));
+
     auto number = parent_number + 1;
     primitives::BlockHeader header;
     header.number = number;

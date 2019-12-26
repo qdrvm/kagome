@@ -12,6 +12,7 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include "common/blob.hpp"
 #include "primitives/common.hpp"
+#include "primitives/compact_integer.hpp"
 #include "primitives/digest.hpp"
 
 namespace kagome::primitives {
@@ -49,8 +50,8 @@ namespace kagome::primitives {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const BlockHeader &bh) {
-    return s << bh.parent_hash << boost::multiprecision::cpp_int(bh.number)
-             << bh.state_root << bh.extrinsics_root << bh.digests;
+    return s << bh.parent_hash << CompactInteger(bh.number) << bh.state_root
+             << bh.extrinsics_root << bh.digests;
   }
 
   /**
@@ -63,7 +64,7 @@ namespace kagome::primitives {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, BlockHeader &bh) {
-    boost::multiprecision::cpp_int number_compact;
+    CompactInteger number_compact;
     s >> bh.parent_hash >> number_compact >> bh.state_root >> bh.extrinsics_root
         >> bh.digests;
     bh.number = number_compact.convert_to<BlockNumber>();

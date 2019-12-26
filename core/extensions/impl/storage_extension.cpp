@@ -68,8 +68,7 @@ namespace kagome::extensions {
     if (data.value().size() > 0)
       logger_->debug(
           "ext_get_allocated_storage. Key: {}, Key hex: {} Value: {}, Value "
-          "hex "
-          "{}",
+          "hex {}",
           key.data(),
           key.toHex(),
           data.value().data(),
