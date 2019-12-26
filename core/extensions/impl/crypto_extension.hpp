@@ -8,6 +8,7 @@
 
 #include <cstdint>
 
+#include "common/logger.hpp"
 #include "runtime/wasm_memory.hpp"
 
 namespace kagome::crypto {
@@ -76,6 +77,7 @@ namespace kagome::extensions {
     std::shared_ptr<crypto::SR25519Provider> sr25519_provider_;
     std::shared_ptr<crypto::ED25519Provider> ed25519_provider_;
     std::shared_ptr<crypto::Hasher> hasher_;
+    common::Logger logger_;
   };
 }  // namespace kagome::extensions
 

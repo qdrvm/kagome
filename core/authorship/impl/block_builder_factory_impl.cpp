@@ -31,14 +31,14 @@ namespace kagome::authorship {
     OUTCOME_TRY(parent_hash, header_backend_->getHashById(parent_id));
     OUTCOME_TRY(parent_number, header_backend_->getNumberById(parent_id));
 
-    primitives::BlockHeader parent_header;
-    parent_header.number = parent_number;
-    parent_header.parent_hash = parent_hash;
-    parent_header.digests = std::move(inherent_digests);
+    auto number = parent_number + 1;
+    primitives::BlockHeader header;
+    header.number = number;
+    header.parent_hash = parent_hash;
+    header.digests = std::move(inherent_digests);
 
-    OUTCOME_TRY(r_core_->initialise_block(parent_header));
-
-    return std::make_unique<BlockBuilderImpl>(std::move(parent_header),
+    OUTCOME_TRY(r_core_->initialise_block(header));
+    return std::make_unique<BlockBuilderImpl>(std::move(header),
                                               r_block_builder_);
   }
 

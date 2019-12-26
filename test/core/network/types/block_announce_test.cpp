@@ -45,32 +45,15 @@ struct BlockAnnounceTest : public ::testing::Test {
 
   /// `block announce` instance
   BlockAnnounce block_announce;
-
-  /// scale-encoded `block announce` buffer
-  std::vector<uint8_t> encoded_value =
-      "0101010000000000000000000000000000000000000000000000000000"
-      "0000000200000000000000030303000000000000000000000000000000"
-      "0000000000000000000000000000040404000000000000000000000000"
-      "0000000000000000000000000000000000040C050607"_unhex;
 };
 
 /**
  * @given sample `block announce` instance @and encoded value buffer
- * @when scale-encode `block announce` instance
- * @then result of encoding matches predefined buffer
+ * @when scale-encode `block announce` instance and decode back
+ * @then decoded block announce matches initial one
  */
 TEST_F(BlockAnnounceTest, EncodeSuccess) {
   EXPECT_OUTCOME_TRUE(buffer, encode(block_announce));
-  ASSERT_EQ(buffer, encoded_value);
-}
-
-/**
- * @given buffer containing encoded `block announce` instance
- * @and predefined `block announce` instance
- * @when scale-decode that buffer
- * @then result of decoding matches predefined `block announce` instance
- */
-TEST_F(BlockAnnounceTest, DecodeSuccess) {
-  EXPECT_OUTCOME_TRUE(ba, decode<BlockAnnounce>(encoded_value));
-  ASSERT_EQ(ba, block_announce);
+  EXPECT_OUTCOME_TRUE(ba, decode<BlockAnnounce>(buffer));
+  ASSERT_EQ(block_announce, ba);
 }

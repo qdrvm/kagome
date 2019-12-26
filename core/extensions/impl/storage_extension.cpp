@@ -65,6 +65,14 @@ namespace kagome::extensions {
     if (not data) {
       return 0;
     }
+    if (data.value().size() > 0)
+      logger_->debug(
+          "ext_get_allocated_storage. Key: {}, Key hex: {} Value: {}, Value "
+          "hex {}",
+          key.data(),
+          key.toHex(),
+          data.value().data(),
+          data.value().toHex());
 
     auto data_ptr = memory_->allocate(length);
 
@@ -89,6 +97,13 @@ namespace kagome::extensions {
     if (not data) {
       return runtime::WasmMemory::kMaxMemorySize;
     }
+    if (data.value().size() > 0)
+      logger_->debug(
+          "ext_get_storage_into. Key: {}, Key hex: {} Value: {}, Value hex {}",
+          key.data(),
+          key.toHex(),
+          data.value().data(),
+          data.value().toHex());
     memory_->storeBuffer(value_data, data.value());
     return data.value().size();
   }
@@ -99,6 +114,21 @@ namespace kagome::extensions {
                                          runtime::SizeType value_length) {
     auto key = memory_->loadN(key_data, key_length);
     auto value = memory_->loadN(value_data, value_length);
+
+    if (value.toHex().size() < 500) {
+      logger_->debug(
+          "Set storage. Key: {}, Key hex: {} Value: {}, Value hex {}",
+          key.data(),
+          key.toHex(),
+          value.data(),
+          value.toHex());
+    } else {
+      logger_->debug(
+          "Set storage. Key: {}, Key hex: {} Value is too big to display",
+          key.data(),
+          key.toHex());
+    }
+
     auto put_result = db_->put(key, value);
     if (not put_result) {
       logger_->error(
