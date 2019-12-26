@@ -3,20 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/tagged_transaction_queue_impl.hpp"
+#include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
 
 #include <gtest/gtest.h>
 #include "core/runtime/runtime_test.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "runtime/impl/basic_wasm_provider.hpp"
 
 using namespace testing;
 
 using kagome::primitives::BlockNumber;
 using kagome::primitives::Extrinsic;
 using kagome::runtime::TaggedTransactionQueue;
-using kagome::runtime::TaggedTransactionQueueImpl;
+using kagome::runtime::binaryen::TaggedTransactionQueueImpl;
 
 class TTQTest : public RuntimeTest {
  public:

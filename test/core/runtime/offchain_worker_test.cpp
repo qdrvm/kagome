@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/offchain_worker_impl.hpp"
+#include "runtime/binaryen/runtime_api/offchain_worker_impl.hpp"
 
 #include <gtest/gtest.h>
 #include "core/runtime/runtime_test.hpp"
 #include "extensions/extension_impl.hpp"
 #include "primitives/common.hpp"
-#include "runtime/impl/wasm_memory_impl.hpp"
+#include "runtime/common/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 
 using ::testing::_;
@@ -19,7 +19,7 @@ namespace fs = boost::filesystem;
 
 class OffchainWorkerTest : public RuntimeTest {
   using OffchainWorker = kagome::runtime::OffchainWorker;
-  using OffchainWorkerImpl = kagome::runtime::OffchainWorkerImpl;
+  using OffchainWorkerImpl = kagome::runtime::binaryen::OffchainWorkerImpl;
   using BlockNumber = kagome::primitives::BlockNumber;
 
  public:

@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/grandpa_impl.hpp"
+#include "runtime/binaryen/runtime_api/grandpa_impl.hpp"
 
 #include <gtest/gtest.h>
 #include "core/runtime/runtime_test.hpp"
 #include "extensions/extension_impl.hpp"
-#include "runtime/impl/wasm_memory_impl.hpp"
+#include "runtime/common/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
@@ -17,7 +17,7 @@ using kagome::primitives::BlockId;
 using kagome::primitives::BlockNumber;
 using kagome::primitives::Digest;
 using kagome::runtime::Grandpa;
-using kagome::runtime::GrandpaImpl;
+using kagome::runtime::binaryen::GrandpaImpl;
 
 using ::testing::_;
 using ::testing::Return;

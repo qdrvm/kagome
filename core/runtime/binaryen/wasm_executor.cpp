@@ -8,10 +8,10 @@
 #include <utility>
 
 #include <binaryen/wasm-binary.h>
-#include "runtime/impl/runtime_external_interface.hpp"
+#include "runtime/binaryen/runtime_external_interface.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen, WasmExecutor::Error, e) {
-  using kagome::runtime::WasmExecutor;
+  using kagome::runtime::binaryen::WasmExecutor;
   switch (e) {
     case WasmExecutor::Error::EMPTY_STATE_CODE:
       return "Provided state code is empty, calling a function is impossible";

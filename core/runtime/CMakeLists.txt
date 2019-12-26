@@ -6,14 +6,14 @@
 add_subdirectory(common)
 add_subdirectory(binaryen)
 
-add_library(memory
+add_library(wasm_memory
     common.hpp
     wasm_result.hpp
     wasm_memory.hpp
     common/wasm_memory_impl.hpp
     common/wasm_memory_impl.cpp
     )
-target_link_libraries(memory
+target_link_libraries(wasm_memory
     buffer
     )
-kagome_install(memory)
+kagome_install(wasm_memory)

@@ -5,7 +5,7 @@
 
 #include <gtest/gtest.h>
 
-#include "runtime/impl/wasm_memory_impl.hpp"
+#include "runtime/common/wasm_memory_impl.hpp"
 
 using kagome::runtime::WasmMemoryImpl;
 

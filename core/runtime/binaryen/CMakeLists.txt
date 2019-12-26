@@ -79,4 +79,3 @@ target_link_libraries(binaryen_offchain_worker_api
     scale
     binaryen_wasm_executor
     )
-

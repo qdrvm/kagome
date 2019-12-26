@@ -5,7 +5,7 @@
 
 #include "runtime/binaryen/runtime_external_interface.hpp"
 
-namespace kagome::runtimebinaryen {
+namespace kagome::runtime::binaryen {
 
   const static wasm::Name env = "env";
 
@@ -348,4 +348,4 @@ namespace kagome::runtimebinaryen {
     }
   }
 
-}  // namespace kagome::runtimebinaryen
+}  // namespace kagome::runtime::binaryen

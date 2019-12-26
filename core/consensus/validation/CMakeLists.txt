@@ -12,6 +12,6 @@ target_link_libraries(block_validator
     outcome
     vrf_provider
     hasher
-    tagged_transaction_queue
+    binaryen_tagged_transaction_queue_api
     block_tree
     )

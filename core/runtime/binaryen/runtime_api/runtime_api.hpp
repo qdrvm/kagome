@@ -9,7 +9,7 @@
 #include <utility>
 
 #include "common/buffer.hpp"
-#include "runtime/impl/wasm_executor.hpp"
+#include "runtime/binaryen/wasm_executor.hpp"
 #include "runtime/wasm_memory.hpp"
 #include "runtime/wasm_provider.hpp"
 #include "runtime/wasm_result.hpp"

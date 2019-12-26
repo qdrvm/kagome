@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/wasm_executor.hpp"
+#include "runtime/binaryen/wasm_executor.hpp"
 
 #include <fstream>
 
@@ -11,12 +11,12 @@
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
 #include "core/extensions/mock_extension.hpp"
-#include "runtime/impl/basic_wasm_provider.hpp"
-#include "runtime/impl/wasm_memory_impl.hpp"
+#include "runtime/common/basic_wasm_provider.hpp"
+#include "runtime/common/wasm_memory_impl.hpp"
 
 using kagome::common::Buffer;
 using kagome::extensions::MockExtension;
-using kagome::runtime::WasmExecutor;
+using kagome::runtime::binaryen::WasmExecutor;
 using kagome::runtime::WasmMemoryImpl;
 
 using ::testing::Return;
