@@ -3,15 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TAGGED_TRANSACTION_QUEUE_IMPL_HPP
-#define KAGOME_TAGGED_TRANSACTION_QUEUE_IMPL_HPP
+#ifndef KAGOME_RUNTIME_BINARYEN_TAGGED_TRANSACTION_QUEUE_IMPL_HPP
+#define KAGOME_RUNTIME_BINARYEN_TAGGED_TRANSACTION_QUEUE_IMPL_HPP
 
 #include "extensions/extension.hpp"
-#include "runtime/impl/runtime_api.hpp"
+#include "runtime/binaryen/runtime_api/runtime_api.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
 #include "runtime/wasm_provider.hpp"
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
+
   class TaggedTransactionQueueImpl : public RuntimeApi,
                                      public TaggedTransactionQueue {
    public:
@@ -25,6 +26,6 @@ namespace kagome::runtime {
         primitives::BlockNumber number,
         const primitives::Extrinsic &ext) override;
   };
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen
 
-#endif  // KAGOME_TAGGED_TRANSACTION_QUEUE_IMPL_HPP
+#endif  // KAGOME_RUNTIME_BINARYEN_TAGGED_TRANSACTION_QUEUE_IMPL_HPP

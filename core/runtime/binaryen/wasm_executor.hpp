@@ -11,7 +11,7 @@
 #include "common/logger.hpp"
 #include "extensions/extension.hpp"
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
 
   /**
    * @brief WasmExecutor is the helper to execute export functions from wasm
@@ -50,8 +50,8 @@ namespace kagome::runtime {
     common::Logger logger_;
   };
 
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, WasmExecutor::Error);
+OUTCOME_HPP_DECLARE_ERROR(kagome::runtime::binaryen, WasmExecutor::Error);
 
 #endif  // KAGOME_CORE_RUNTIME_WASM_EXECUTOR_IMPL_HPP

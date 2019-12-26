@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/wasm_memory_impl.hpp"
+#include "runtime/common/wasm_memory_impl.hpp"
 
 namespace kagome::runtime {
 

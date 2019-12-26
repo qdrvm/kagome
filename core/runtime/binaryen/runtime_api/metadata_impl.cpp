@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/metadata_impl.hpp"
+#include "runtime/binaryen/runtime_api/metadata_impl.hpp"
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
   using primitives::OpaqueMetadata;
 
   kagome::runtime::MetadataImpl::MetadataImpl(
@@ -16,4 +16,4 @@ namespace kagome::runtime {
   outcome::result<OpaqueMetadata> MetadataImpl::metadata() {
     return execute<OpaqueMetadata>("Metadata_metadata");
   }
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen

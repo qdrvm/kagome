@@ -497,7 +497,7 @@ namespace kagome::injector {
         di::bind<runtime::Metadata>.template to<runtime::MetadataImpl>(),
         di::bind<runtime::Grandpa>.template to<runtime::GrandpaImpl>(),
         di::bind<runtime::Core>.template to<runtime::CoreImpl>(),
-        di::bind<runtime::BlockBuilderApi>.template to<runtime::BlockBuilderApiImpl>(),
+        di::bind<runtime::BlockBuilder>.template to<runtime::BlockBuilderApiImpl>(),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
         di::bind<storage::trie::PolkadotTrieDbBackend>.to(

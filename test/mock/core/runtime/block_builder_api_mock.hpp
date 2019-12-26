@@ -7,11 +7,11 @@
 #define KAGOME_TEST_MOCK_CORE_RUNTIME_BLOCK_BUILDER_API_MOCK_HPP
 
 #include <gmock/gmock.h>
-#include "runtime/block_builder_api.hpp"
+#include "runtime/block_builder.hpp"
 
 namespace kagome::runtime {
 
-  class BlockBuilderApiMock : public BlockBuilderApi {
+  class BlockBuilderApiMock : public BlockBuilder {
    public:
     MOCK_METHOD1(apply_extrinsic,
                  outcome::result<bool>(const primitives::Extrinsic &));

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_RUNTIME_API_HPP
-#define KAGOME_CORE_RUNTIME_RUNTIME_API_HPP
+#ifndef KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_API_HPP
+#define KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_API_HPP
 
 #include <utility>
 
@@ -15,7 +15,8 @@
 #include "runtime/wasm_result.hpp"
 #include "scale/scale.hpp"
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
+
   /**
    * @brief base class for all runtime apis
    */
@@ -69,6 +70,6 @@ namespace kagome::runtime {
     std::shared_ptr<WasmMemory> memory_;
     WasmExecutor executor_;
   };
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen
 
-#endif  // KAGOME_CORE_RUNTIME_RUNTIME_API_HPP
+#endif  // KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_API_HPP

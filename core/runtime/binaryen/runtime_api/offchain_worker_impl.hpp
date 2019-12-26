@@ -3,15 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_IMPL_OFFCHAIN_WORKER_IMPL_HPP
-#define KAGOME_CORE_RUNTIME_IMPL_OFFCHAIN_WORKER_IMPL_HPP
+#ifndef KAGOME_CORE_RUNTIME_BINARYEN_OFFCHAIN_WORKER_IMPL_HPP
+#define KAGOME_CORE_RUNTIME_BINARYEN_OFFCHAIN_WORKER_IMPL_HPP
 
 #include "extensions/extension.hpp"
-#include "runtime/impl/runtime_api.hpp"
+#include "runtime/binaryen/runtime_api/runtime_api.hpp"
 #include "runtime/offchain_worker.hpp"
 #include "runtime/wasm_provider.hpp"
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
+
   class OffchainWorkerImpl : public RuntimeApi, public OffchainWorker {
    public:
     OffchainWorkerImpl(
@@ -22,6 +23,6 @@ namespace kagome::runtime {
 
     outcome::result<void> offchain_worker(BlockNumber bn) override;
   };
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen
 
 #endif  // KAGOME_CORE_RUNTIME_IMPL_OFFCHAIN_WORKER_IMPL_HPP

@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/core_impl.hpp"
+#include "runtime/binaryen/runtime_api/core_impl.hpp"
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
   using common::Buffer;
   using extensions::Extension;
   using primitives::AuthorityId;
@@ -34,4 +34,4 @@ namespace kagome::runtime {
       const primitives::BlockId &block_id) {
     return execute<std::vector<AuthorityId>>("Core_authorities", block_id);
   }
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen

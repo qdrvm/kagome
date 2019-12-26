@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/offchain_worker_impl.hpp"
+#include "runtime/binaryen/runtime_api/offchain_worker_impl.hpp"
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
   OffchainWorkerImpl::OffchainWorkerImpl(
       const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
       const std::shared_ptr<extensions::Extension> &extension)
@@ -14,4 +14,4 @@ namespace kagome::runtime {
   outcome::result<void> OffchainWorkerImpl::offchain_worker(BlockNumber bn) {
     return execute<void>("OffchainWorkerApi_offchain_worker", bn);
   }
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen

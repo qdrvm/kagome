@@ -11,7 +11,7 @@ namespace kagome::authorship {
 
   BlockBuilderFactoryImpl::BlockBuilderFactoryImpl(
       std::shared_ptr<runtime::Core> r_core,
-      std::shared_ptr<runtime::BlockBuilderApi> r_block_builder,
+      std::shared_ptr<runtime::BlockBuilder> r_block_builder,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_backend)
       : r_core_(std::move(r_core)),
         r_block_builder_(std::move(r_block_builder)),

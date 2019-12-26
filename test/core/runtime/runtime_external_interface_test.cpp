@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/runtime_external_interface.hpp"
+#include "runtime/binaryen/runtime_external_interface.hpp"
 
 #include <binaryen/wasm-s-parser.h>
 #include <boost/format.hpp>
@@ -14,7 +14,7 @@ using ::testing::Return;
 
 using kagome::extensions::MockExtension;
 using kagome::runtime::MockMemory;
-using kagome::runtime::RuntimeExternalInterface;
+using kagome::runtime::binaryen::RuntimeExternalInterface;
 using kagome::runtime::SizeType;
 using kagome::runtime::WasmPointer;
 using wasm::Element;

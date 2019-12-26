@@ -12,7 +12,7 @@ add_library(block_builder
     )
 
 target_link_libraries(block_builder
-    block_builder_api
+    binaryen_block_builder
     )
 
 add_library(block_builder_factory

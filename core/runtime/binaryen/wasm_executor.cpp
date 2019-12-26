@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/wasm_executor.hpp"
+#include "runtime/binaryen/wasm_executor.hpp"
 
 #include <utility>
 
 #include <binaryen/wasm-binary.h>
 #include "runtime/impl/runtime_external_interface.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, WasmExecutor::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen, WasmExecutor::Error, e) {
   using kagome::runtime::WasmExecutor;
   switch (e) {
     case WasmExecutor::Error::EMPTY_STATE_CODE:
@@ -23,7 +23,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, WasmExecutor::Error, e) {
   return "Unknown error";
 }
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
 
   WasmExecutor::WasmExecutor(std::shared_ptr<extensions::Extension> extension)
       : extension_(std::move(extension)),
@@ -76,4 +76,4 @@ namespace kagome::runtime {
     return module_instance.callExport(wasm::Name(method_name), args);
   }
 
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen

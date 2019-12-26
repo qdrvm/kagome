@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_IMPL_RUNTIME_EXTERNAL_INTERFACE_HPP
-#define KAGOME_CORE_RUNTIME_IMPL_RUNTIME_EXTERNAL_INTERFACE_HPP
+#ifndef KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_EXTERNAL_INTERFACE_HPP
+#define KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_EXTERNAL_INTERFACE_HPP
 
 #include <binaryen/shell-interface.h>
 #include "common/logger.hpp"
 #include "extensions/extension.hpp"
 #include "runtime/wasm_memory.hpp"
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
 
   class RuntimeExternalInterface : public wasm::ShellExternalInterface {
    public:
@@ -72,6 +72,6 @@ namespace kagome::runtime {
     constexpr static auto kDefaultLoggerTag = "Runtime external interface";
   };
 
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen
 
-#endif  // KAGOME_CORE_RUNTIME_IMPL_RUNTIME_EXTERNAL_INTERFACE_HPP
+#endif  // KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_EXTERNAL_INTERFACE_HPP
