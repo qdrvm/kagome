@@ -52,16 +52,39 @@ namespace kagome::primitives {
      * revalidated.
      */
     TransactionLongevity longevity;
+
+    bool operator==(const Valid &rhs) const {
+      return priority == rhs.priority and requires == rhs.requires
+             and provides == rhs.provides and longevity == rhs.longevity;
+    }
+
+    bool operator!=(const Valid &rhs) const {
+      return !operator==(rhs);
+    }
   };
 
   /// Transaction is invalid. Details are described by the error code.
   struct Invalid {
     uint8_t error;
+
+    bool operator==(const Invalid &rhs) const {
+      return error == rhs.error;
+    }
+    bool operator!=(const Invalid &rhs) const {
+      return error != rhs.error;
+    }
   };
 
   /// Transaction validity can't be determined.
   struct Unknown {
     uint8_t error;
+
+    bool operator==(const Unknown &rhs) const {
+      return error == rhs.error;
+    }
+    bool operator!=(const Unknown &rhs) const {
+      return error != rhs.error;
+    }
   };
 
   /**
@@ -77,7 +100,8 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream, typename = std::enable_if_t<Stream::is_encoder_stream>>
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Invalid &v) {
     return s << v.error;
   }
@@ -89,7 +113,8 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream, typename = std::enable_if_t<Stream::is_encoder_stream>>
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Valid &v) {
     return s << v.priority << v.requires << v.provides << v.longevity;
   }
@@ -101,7 +126,8 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream, typename = std::enable_if_t<Stream::is_encoder_stream>>
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Unknown &v) {
     return s << v.error;
   }
