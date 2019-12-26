@@ -5,6 +5,8 @@
 
 #include "runtime/binaryen/runtime_external_interface.hpp"
 
+#include "runtime/common/wasm_memory_impl.hpp"
+
 namespace kagome::runtime::binaryen {
 
   const static wasm::Name env = "env";
@@ -52,47 +54,14 @@ namespace kagome::runtime::binaryen {
    */
 
   RuntimeExternalInterface::RuntimeExternalInterface(
-      std::shared_ptr<extensions::Extension> extension)
-      : extension_(std::move(extension)), memory_(extension_->memory()) {
-    BOOST_ASSERT_MSG(extension_ != nullptr, "extension is nullptr");
-    BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
-  }
-
-  void RuntimeExternalInterface::init(wasm::Module &wasm,
-                                      wasm::ModuleInstance &instance) {
-    using wasm::Address;
-    using wasm::ConstantExpressionRunner;
-    using wasm::TrivialGlobalManager;
-
-    memory_->resize(wasm.memory.initial * wasm::Memory::kPageSize);
-    // apply memory segments
-    for (const auto &segment : wasm.memory.segments) {
-      Address offset = static_cast<uint32_t>(
-          ConstantExpressionRunner<TrivialGlobalManager>(instance.globals)
-              .visit(segment.offset)
-              .value.geti32());
-      if (offset + segment.data.size()
-          > wasm.memory.initial * wasm::Memory::kPageSize) {
-        trap("invalid offset when initializing memory");
-      }
-      for (size_t i = 0; i != segment.data.size(); ++i) {
-        memory_->store8(offset + i, segment.data[i]);
-      }
-    }
-
-    table.resize(wasm.table.initial);
-    for (const auto &segment : wasm.table.segments) {
-      Address offset = static_cast<uint32_t>(
-          ConstantExpressionRunner<TrivialGlobalManager>(instance.globals)
-              .visit(segment.offset)
-              .value.geti32());
-      if (offset + segment.data.size() > wasm.table.initial) {
-        trap("invalid offset when initializing table");
-      }
-      for (size_t i = 0; i != segment.data.size(); ++i) {
-        table[offset + i] = segment.data[i];
-      }
-    }
+      std::shared_ptr<extensions::ExtensionFactory> extension_factory)
+      : ShellExternalInterface(),
+        extension_factory_(std::move(extension_factory)) {
+    BOOST_ASSERT_MSG(extension_factory_ != nullptr,
+                     "extension factory is nullptr");
+    auto memory_impl =
+        std::make_shared<WasmMemoryImpl>(&(ShellExternalInterface::memory));
+    extension_ = extension_factory_->createExtension(memory_impl);
   }
 
   wasm::Literal RuntimeExternalInterface::callImport(
@@ -276,63 +245,6 @@ namespace kagome::runtime::binaryen {
     }
     wasm::Fatal() << "callImport: unknown import: " << import->module.str << "."
                   << import->name.str;
-  }
-
-  /**
-   * Load integers from provided address
-   */
-  int8_t RuntimeExternalInterface::load8s(wasm::Address addr) {
-    return memory_->load8s(addr);
-  }
-  uint8_t RuntimeExternalInterface::load8u(wasm::Address addr) {
-    return memory_->load8u(addr);
-  }
-  int16_t RuntimeExternalInterface::load16s(wasm::Address addr) {
-    return memory_->load16s(addr);
-  }
-  uint16_t RuntimeExternalInterface::load16u(wasm::Address addr) {
-    return memory_->load16u(addr);
-  }
-  int32_t RuntimeExternalInterface::load32s(wasm::Address addr) {
-    return memory_->load32s(addr);
-  }
-  uint32_t RuntimeExternalInterface::load32u(wasm::Address addr) {
-    return memory_->load32u(addr);
-  }
-  int64_t RuntimeExternalInterface::load64s(wasm::Address addr) {
-    return memory_->load64s(addr);
-  }
-  uint64_t RuntimeExternalInterface::load64u(wasm::Address addr) {
-    return memory_->load64u(addr);
-  }
-  std::array<uint8_t, 16> RuntimeExternalInterface::load128(
-      wasm::Address addr) {
-    return memory_->load128(addr);
-  }
-
-  /**
-   * Store integers at given address of the wasm memory
-   */
-  void RuntimeExternalInterface::store8(wasm::Address addr, int8_t value) {
-    memory_->store8(addr, value);
-  }
-  void RuntimeExternalInterface::store16(wasm::Address addr, int16_t value) {
-    memory_->store16(addr, value);
-  }
-  void RuntimeExternalInterface::store32(wasm::Address addr, int32_t value) {
-    memory_->store32(addr, value);
-  }
-  void RuntimeExternalInterface::store64(wasm::Address addr, int64_t value) {
-    memory_->store64(addr, value);
-  }
-  void RuntimeExternalInterface::store128(
-      wasm::Address addr, const std::array<uint8_t, 16> &value) {
-    memory_->store128(addr, value);
-  }
-
-  void RuntimeExternalInterface::growMemory(wasm::Address address,
-                                            wasm::Address newSize) {
-    memory_->resize(newSize);
   }
 
   void RuntimeExternalInterface::checkArguments(std::string_view extern_name,

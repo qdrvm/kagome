@@ -8,15 +8,18 @@
 #include <fstream>
 
 #include <gtest/gtest.h>
+
 #include <boost/filesystem.hpp>
+#include <fstream>
+
 #include "core/runtime/runtime_test.hpp"
 #include "core/storage/trie/mock_trie_db.hpp"
-#include "extensions/extension_impl.hpp"
+#include "extensions/impl/extension_factory_impl.hpp"
 #include "runtime/common/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
-using kagome::extensions::ExtensionImpl;
+using kagome::extensions::ExtensionFactoryImpl;
 using kagome::primitives::Block;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
@@ -37,7 +40,7 @@ class CoreTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    core_ = std::make_shared<CoreImpl>(wasm_provider_, extension_);
+    core_ = std::make_shared<CoreImpl>(wasm_provider_, extension_factory_);
   }
 
  protected:

@@ -15,5 +15,6 @@ add_library(wasm_memory
     )
 target_link_libraries(wasm_memory
     buffer
+    binaryen::binaryen
     )
 kagome_install(wasm_memory)

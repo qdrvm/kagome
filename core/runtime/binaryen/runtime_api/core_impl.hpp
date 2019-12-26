@@ -15,8 +15,9 @@ namespace kagome::runtime::binaryen {
 
   class CoreImpl : public RuntimeApi, public Core {
    public:
-    CoreImpl(const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-             const std::shared_ptr<extensions::Extension> &extension);
+    CoreImpl(
+        const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
+        const std::shared_ptr<extensions::ExtensionFactory> &extension_factory);
 
     ~CoreImpl() override = default;
 

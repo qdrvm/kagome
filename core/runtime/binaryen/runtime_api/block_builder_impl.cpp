@@ -16,8 +16,8 @@ namespace kagome::runtime::binaryen {
 
   BlockBuilderImpl::BlockBuilderImpl(
       const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-      const std::shared_ptr<Extension> &extension)
-      : RuntimeApi(wasm_provider, extension) {}
+      const std::shared_ptr<extensions::ExtensionFactory> &extension_factory)
+      : RuntimeApi(wasm_provider, extension_factory) {}
 
   outcome::result<bool> BlockBuilderImpl::apply_extrinsic(
       const Extrinsic &extrinsic) {

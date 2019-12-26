@@ -30,6 +30,7 @@ add_library(memory_extension
 target_link_libraries(memory_extension
     wasm_memory
     logger
+    buffer
 )
 kagome_install(memory_extension)
 

@@ -6,9 +6,10 @@
 #include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
 
 #include <gtest/gtest.h>
+
 #include "core/runtime/runtime_test.hpp"
 #include "core/storage/trie/mock_trie_db.hpp"
-#include "extensions/extension_impl.hpp"
+#include "extensions/impl/extension_impl.hpp"
 #include "runtime/common/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 
@@ -28,7 +29,7 @@ class BlockBuilderApiTest : public RuntimeTest {
     RuntimeTest::SetUp();
 
     builder_ =
-        std::make_unique<BlockBuilderImpl>(wasm_provider_, extension_);
+        std::make_unique<BlockBuilderImpl>(wasm_provider_, extension_factory_);
   }
 
  protected:

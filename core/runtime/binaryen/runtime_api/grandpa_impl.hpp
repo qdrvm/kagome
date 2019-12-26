@@ -15,8 +15,9 @@ namespace kagome::runtime::binaryen {
 
   class GrandpaImpl : public RuntimeApi, public Grandpa {
    public:
-    GrandpaImpl(const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-                const std::shared_ptr<extensions::Extension> &extension);
+    GrandpaImpl(
+        const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
+        const std::shared_ptr<extensions::ExtensionFactory> &extension_factory);
 
     ~GrandpaImpl() override = default;
 

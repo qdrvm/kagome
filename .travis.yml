@@ -31,7 +31,7 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - llvm-8
-      - g++-8
+      - g++-9
       - clang-8
       - git
       - python3
@@ -58,11 +58,11 @@ matrix:
         - brew cleanup
 
     - os: linux
-      name: "Linux gcc-8 clang-tidy"
+      name: "Linux gcc-9 clang-tidy"
       if: type = pull_request OR branch = master
       env:
-        - _CC=gcc-8
-        - _CXX=g++-8
+        - _CC=gcc-9
+        - _CXX=g++-9
       script:
         - export CC=${_CC}
         - export CXX=${_CXX}

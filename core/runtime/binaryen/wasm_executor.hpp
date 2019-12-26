@@ -7,9 +7,9 @@
 #define KAGOME_CORE_RUNTIME_WASM_EXECUTOR_IMPL_HPP
 
 #include <binaryen/wasm-interpreter.h>
+
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
-#include "extensions/extension.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -27,26 +27,29 @@ namespace kagome::runtime::binaryen {
       EXECUTION_ERROR
     };
 
-    explicit WasmExecutor(std::shared_ptr<extensions::Extension> extension);
+    WasmExecutor();
+
+    outcome::result<std::shared_ptr<wasm::Module>> prepareModule(
+        const common::Buffer &state_code);
+
+    wasm::ModuleInstance prepareModuleInstance(
+        const std::shared_ptr<wasm::Module> &module,
+        wasm::ModuleInstance::ExternalInterface &external_interface);
 
     /**
      * Executes export method from provided wasm code and returns result
      */
-    outcome::result<wasm::Literal> call(const common::Buffer &state_code,
+    outcome::result<wasm::Literal> call(
+        const common::Buffer &state_code,
+        wasm::ModuleInstance::ExternalInterface &external_interface,
+        wasm::Name method_name,
+        const wasm::LiteralList &args);
+
+    outcome::result<wasm::Literal> call(wasm::ModuleInstance &module_instance,
                                         wasm::Name method_name,
                                         const wasm::LiteralList &args);
 
-    /**
-     * Executes export method from provided module and returns result
-     */
-    wasm::Literal callInModule(wasm::Module &module,
-                               wasm::Name method_name,
-                               const wasm::LiteralList &args);
-
    private:
-    constexpr static auto kDefaultLoggerTag = "Wasm executor";
-
-    std::shared_ptr<extensions::Extension> extension_;
     common::Logger logger_;
   };
 

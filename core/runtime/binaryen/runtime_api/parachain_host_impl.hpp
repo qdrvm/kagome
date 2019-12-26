@@ -24,7 +24,7 @@ namespace kagome::runtime::binaryen {
      */
     ParachainHostImpl(
         const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-        const std::shared_ptr<extensions::Extension> &extension);
+        const std::shared_ptr<extensions::ExtensionFactory> &extension_factory);
 
     ~ParachainHostImpl() override = default;
 

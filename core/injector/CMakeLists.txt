@@ -23,6 +23,7 @@ target_link_libraries(application_injector
     binaryen_core_api
     binaryen_grandpa_api
     extrinsic_api_service
+    extension_factory
     gossiper_broadcast
     in_memory_storage
     kagome_router
