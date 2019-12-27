@@ -12,7 +12,7 @@
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
 
-#include "runtime/common/basic_wasm_provider.hpp"
+#include "testutil/runtime/common/basic_wasm_provider.hpp"
 
 using kagome::common::Buffer;
 using kagome::runtime::binaryen::WasmExecutor;
@@ -25,7 +25,7 @@ class WasmExecutorTest : public ::testing::Test {
     // path to a file with wasm code in wasm/ subfolder
     std::string wasm_path =
         fs::path(__FILE__).parent_path().string() + "/wasm/sumtwo.wasm";
-    wasm_provider_ = std::make_shared<test::BasicWasmProvider>(wasm_path);
+    wasm_provider_ = std::make_shared<kagome::runtime::BasicWasmProvider>(wasm_path);
     executor_ = std::make_shared<WasmExecutor>();
   }
 

@@ -19,7 +19,7 @@
 #include "primitives/block_id.hpp"
 #include "runtime/common/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
-#include "runtime/common/basic_wasm_provider.hpp"
+#include "testutil/runtime/common/basic_wasm_provider.hpp"
 
 class RuntimeTest : public ::testing::Test {
  public:
@@ -37,7 +37,7 @@ class RuntimeTest : public ::testing::Test {
     std::string wasm_path =
         boost::filesystem::path(__FILE__).parent_path().string()
         + "/wasm/polkadot_runtime.compact.wasm";
-    wasm_provider_ = std::make_shared<test::BasicWasmProvider>(wasm_path);
+    wasm_provider_ = std::make_shared<kagome::runtime::BasicWasmProvider>(wasm_path);
   }
 
   kagome::primitives::BlockHeader createBlockHeader() {
@@ -77,7 +77,7 @@ class RuntimeTest : public ::testing::Test {
  protected:
   std::shared_ptr<kagome::storage::trie::MockTrieDb> trie_db_;
   std::shared_ptr<kagome::extensions::ExtensionFactory> extension_factory_;
-  std::shared_ptr<test::BasicWasmProvider> wasm_provider_;
+  std::shared_ptr<kagome::runtime::BasicWasmProvider> wasm_provider_;
 };
 
 #endif  // KAGOME_RUNTIME_TEST_HPP
