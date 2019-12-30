@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-
 add_library(binaryen_wasm_memory
     wasm_memory_impl.hpp
     wasm_memory_impl.cpp
@@ -17,7 +16,6 @@ add_library(binaryen_runtime_external_interface
     runtime_external_interface.hpp
     runtime_external_interface.cpp
     )
-
 target_link_libraries(binaryen_runtime_external_interface
     binaryen::binaryen
     binaryen_wasm_memory

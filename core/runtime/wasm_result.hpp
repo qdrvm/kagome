@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_RUNTIME_WASM_RESULT_HPP
 #define KAGOME_CORE_RUNTIME_WASM_RESULT_HPP
 
-#include "runtime/common.hpp"
+#include "runtime/types.hpp"
 
 namespace kagome::runtime {
   /**
