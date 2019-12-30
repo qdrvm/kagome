@@ -5,8 +5,6 @@
 
 #include "runtime/binaryen/runtime_api/core_impl.hpp"
 
-#include <fstream>
-
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
@@ -15,7 +13,7 @@
 #include "core/runtime/runtime_test.hpp"
 #include "core/storage/trie/mock_trie_db.hpp"
 #include "extensions/impl/extension_factory_impl.hpp"
-#include "runtime/common/wasm_memory_impl.hpp"
+#include "runtime/binaryen/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
@@ -27,7 +25,7 @@ using kagome::primitives::BlockNumber;
 using kagome::primitives::Extrinsic;
 using kagome::runtime::binaryen::CoreImpl;
 using kagome::runtime::WasmMemory;
-using kagome::runtime::WasmMemoryImpl;
+using kagome::runtime::binaryen::WasmMemoryImpl;
 using kagome::storage::trie::MockTrieDb;
 
 using ::testing::_;

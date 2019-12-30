@@ -12,8 +12,9 @@ add_library(block_builder
     )
 
 target_link_libraries(block_builder
-    binaryen_block_builder_api
     outcome
+    buffer
+    logger
     )
 
 add_library(block_builder_factory

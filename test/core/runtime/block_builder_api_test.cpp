@@ -10,7 +10,7 @@
 #include "core/runtime/runtime_test.hpp"
 #include "core/storage/trie/mock_trie_db.hpp"
 #include "extensions/impl/extension_impl.hpp"
-#include "runtime/common/wasm_memory_impl.hpp"
+#include "runtime/binaryen/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 
 using namespace testing;
@@ -20,7 +20,7 @@ using kagome::primitives::Extrinsic;
 using kagome::primitives::InherentData;
 using kagome::runtime::BlockBuilder;
 using kagome::runtime::binaryen::BlockBuilderImpl;
-using kagome::runtime::WasmMemoryImpl;
+using kagome::runtime::binaryen::WasmMemoryImpl;
 using kagome::storage::trie::MockTrieDb;
 
 class BlockBuilderApiTest : public RuntimeTest {

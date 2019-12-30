@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_WASM_MEMORY_IMPL_HPP
-#define KAGOME_WASM_MEMORY_IMPL_HPP
+#ifndef KAGOME_RUNTIME_BINARYEN_WASM_MEMORY_IMPL_HPP
+#define KAGOME_RUNTIME_BINARYEN_WASM_MEMORY_IMPL_HPP
 
 #include <binaryen/shell-interface.h>
 
@@ -16,7 +16,7 @@
 #include <boost/optional.hpp>
 #include "runtime/wasm_memory.hpp"
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
 
   /**
    * Memory implementation for wasm environment
@@ -112,6 +112,6 @@ namespace kagome::runtime {
     void resizeInternal(SizeType newSize);
   };
 
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen
 
-#endif  // KAGOME_WASM_MEMORY_IMPL_HPP
+#endif  // KAGOME_RUNTIME_BINARYEN_WASM_MEMORY_IMPL_HPP

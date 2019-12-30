@@ -28,7 +28,6 @@ add_library(memory_extension
     memory_extension.cpp
     )
 target_link_libraries(memory_extension
-    wasm_memory
     logger
     buffer
 )

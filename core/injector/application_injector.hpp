@@ -59,9 +59,9 @@
 #include "runtime/binaryen/runtime_api/metadata_impl.hpp"
 #include "runtime/binaryen/runtime_api/offchain_worker_impl.hpp"
 #include "runtime/binaryen/runtime_api/parachain_host_impl.hpp"
-#include "runtime/common/storage_wasm_provider.hpp"
 #include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
-#include "runtime/common/wasm_memory_impl.hpp"
+#include "runtime/binaryen/wasm_memory_impl.hpp"
+#include "runtime/common/storage_wasm_provider.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/trie/impl/polkadot_codec.hpp"
 #include "storage/trie/impl/polkadot_node.hpp"
@@ -490,7 +490,7 @@ namespace kagome::injector {
         di::bind<network::Router>.template to<network::RouterLibp2p>(),
         di::bind<network::SyncProtocolClient>.template to<consensus::SynchronizerImpl>(),
         di::bind<network::SyncProtocolObserver>.template to<consensus::SynchronizerImpl>(),
-        di::bind<runtime::WasmMemory>.template to<runtime::WasmMemoryImpl>(),
+        di::bind<runtime::WasmMemory>.template to<runtime::binaryen::WasmMemoryImpl>(),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::binaryen::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::binaryen::ParachainHostImpl>(),
         di::bind<runtime::OffchainWorker>.template to<runtime::binaryen::OffchainWorkerImpl>(),

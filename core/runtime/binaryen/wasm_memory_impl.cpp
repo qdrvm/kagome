@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/common/wasm_memory_impl.hpp"
+#include "runtime/binaryen/wasm_memory_impl.hpp"
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
   WasmMemoryImpl::WasmMemoryImpl(wasm::ShellExternalInterface::Memory *memory,
                                  SizeType size)
       : memory_(memory),
@@ -176,4 +176,4 @@ namespace kagome::runtime {
     }
   }
 
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen

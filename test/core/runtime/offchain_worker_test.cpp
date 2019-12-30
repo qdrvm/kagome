@@ -11,7 +11,7 @@
 #include "extensions/impl/extension_impl.hpp"
 #include "primitives/common.hpp"
 #include "runtime/binaryen/runtime_api/offchain_worker_impl.hpp"
-#include "runtime/common/wasm_memory_impl.hpp"
+#include "runtime/binaryen/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 
 using ::testing::_;
