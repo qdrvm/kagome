@@ -5,7 +5,7 @@
 
 #include "runtime/binaryen/runtime_external_interface.hpp"
 
-#include "wasm_memory_impl.hpp"
+#include "runtime/binaryen/wasm_memory_impl.hpp"
 
 namespace kagome::runtime::binaryen {
 

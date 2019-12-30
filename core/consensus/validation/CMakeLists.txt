@@ -10,6 +10,5 @@ add_library(block_validator
     )
 target_link_libraries(block_validator
     outcome
-    binaryen_tagged_transaction_queue_api
     block_tree
     )

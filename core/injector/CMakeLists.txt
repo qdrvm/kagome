@@ -23,8 +23,6 @@ target_link_libraries(application_injector
     binaryen_core_api
     binaryen_grandpa_api
     binaryen_block_builder_api
-    binaryen_wasm_memory
-    binaryen_runtime_external_interface
     extrinsic_api_service
     extension_factory
     gossiper_broadcast
