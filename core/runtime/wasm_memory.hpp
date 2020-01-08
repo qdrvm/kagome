@@ -10,7 +10,7 @@
 
 #include <boost/optional.hpp>
 #include "common/buffer.hpp"
-#include "runtime/common.hpp"
+#include "runtime/types.hpp"
 
 namespace kagome::runtime {
 

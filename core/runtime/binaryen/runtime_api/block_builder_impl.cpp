@@ -3,11 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/block_builder_api_impl.hpp"
+#include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
 
-#include "runtime/impl/runtime_api.hpp"
-
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
   using common::Buffer;
   using extensions::Extension;
   using primitives::Block;
@@ -16,35 +14,35 @@ namespace kagome::runtime {
   using primitives::Extrinsic;
   using primitives::InherentData;
 
-  BlockBuilderApiImpl::BlockBuilderApiImpl(
+  BlockBuilderImpl::BlockBuilderImpl(
       const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
       const std::shared_ptr<extensions::ExtensionFactory> &extension_factory)
       : RuntimeApi(wasm_provider, extension_factory) {}
 
-  outcome::result<bool> BlockBuilderApiImpl::apply_extrinsic(
+  outcome::result<bool> BlockBuilderImpl::apply_extrinsic(
       const Extrinsic &extrinsic) {
     // TODO(Harrm) PRE-154 figure out what wasm function returns
     return execute<bool>("BlockBuilder_apply_extrinsic", extrinsic);
   }
 
-  outcome::result<BlockHeader> BlockBuilderApiImpl::finalise_block() {
+  outcome::result<BlockHeader> BlockBuilderImpl::finalise_block() {
     // TODO(Harrm) PRE-154 figure out what wasm function returns
     return execute<BlockHeader>("BlockBuilder_finalize_block");
   }
 
   outcome::result<std::vector<Extrinsic>>
-  BlockBuilderApiImpl::inherent_extrinsics(const InherentData &data) {
+  BlockBuilderImpl::inherent_extrinsics(const InherentData &data) {
     return execute<std::vector<Extrinsic>>("BlockBuilder_inherent_extrinsics",
                                            data);
   }
 
-  outcome::result<CheckInherentsResult> BlockBuilderApiImpl::check_inherents(
+  outcome::result<CheckInherentsResult> BlockBuilderImpl::check_inherents(
       const Block &block, const InherentData &data) {
     return execute<CheckInherentsResult>(
         "BlockBuilder_check_inherents", block, data);
   }
 
-  outcome::result<common::Hash256> BlockBuilderApiImpl::random_seed() {
+  outcome::result<common::Hash256> BlockBuilderImpl::random_seed() {
     // TODO(Harrm) PRE-154 Figure out what it requires
     return execute<common::Hash256>("BlockBuilder_random_seed");
   }

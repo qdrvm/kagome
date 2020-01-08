@@ -10,8 +10,5 @@ add_library(block_validator
     )
 target_link_libraries(block_validator
     outcome
-    vrf_provider
-    hasher
-    tagged_transaction_queue
     block_tree
     )

@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/runtime_external_interface.hpp"
+#include "runtime/binaryen/runtime_external_interface.hpp"
 
-#include "runtime/impl/wasm_memory_impl.hpp"
+#include "runtime/binaryen/wasm_memory_impl.hpp"
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
 
   const static wasm::Name env = "env";
 
@@ -260,4 +260,4 @@ namespace kagome::runtime {
     }
   }
 
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen

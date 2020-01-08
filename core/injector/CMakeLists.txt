@@ -20,8 +20,9 @@ target_link_libraries(application_injector
     buffer
     clock
     configuration_storage
-    core
-    grandpa_api
+    binaryen_core_api
+    binaryen_grandpa_api
+    binaryen_block_builder_api
     extrinsic_api_service
     extension_factory
     gossiper_broadcast
@@ -33,7 +34,8 @@ target_link_libraries(application_injector
     proposer
     storage_wasm_provider
     synchronizer
-    tagged_transaction_queue
+    binaryen_tagged_transaction_queue_api
     vrf_provider
     waitable_timer
+    binaryen_wasm_executor
     )

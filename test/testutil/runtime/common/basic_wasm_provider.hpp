@@ -8,7 +8,7 @@
 
 #include "runtime/wasm_provider.hpp"
 
-namespace test {
+namespace kagome::runtime {
 
   class BasicWasmProvider : public kagome::runtime::WasmProvider {
    public:
@@ -24,6 +24,6 @@ namespace test {
     kagome::common::Buffer buffer_;
   };
 
-}  // namespace test
+}  // namespace kagome::runtime
 
 #endif  // KAGOME_TEST_TESTUTIL_RUNTIME_BASIC_WASM_PROVIDER_HPP

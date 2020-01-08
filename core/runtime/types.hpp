@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_RUNTIME_COMMON_HPP
-#define KAGOME_RUNTIME_COMMON_HPP
+#ifndef KAGOME_RUNTIME_TYPES_HPP
+#define KAGOME_RUNTIME_TYPES_HPP
 
 #include <cstdint>
 
@@ -19,4 +19,4 @@ namespace kagome::runtime {
   using SizeType = uint32_t;
 }  // namespace kagome::runtime
 
-#endif  // KAGOME_RUNTIME_COMMON_HPP
+#endif  // KAGOME_RUNTIME_TYPES_HPP

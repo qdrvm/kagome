@@ -5,9 +5,9 @@
 
 #include <gtest/gtest.h>
 
-#include "runtime/impl/wasm_memory_impl.hpp"
+#include "runtime/binaryen/wasm_memory_impl.hpp"
 
-using kagome::runtime::WasmMemoryImpl;
+using kagome::runtime::binaryen::WasmMemoryImpl;
 
 class MemoryHeapTest : public ::testing::Test {
  protected:

@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/tagged_transaction_queue_impl.hpp"
+#include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
   using primitives::TransactionValidity;
 
   TaggedTransactionQueueImpl::TaggedTransactionQueueImpl(
@@ -19,4 +19,4 @@ namespace kagome::runtime {
     return execute<TransactionValidity>(
         "TaggedTransactionQueue_validate_transaction", number, ext);
   }
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen

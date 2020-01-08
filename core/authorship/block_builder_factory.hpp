@@ -10,7 +10,7 @@
 
 #include "authorship/block_builder.hpp"
 #include "primitives/block_id.hpp"
-#include "runtime/block_builder_api.hpp"
+#include "runtime/block_builder.hpp"
 #include "runtime/core.hpp"
 
 namespace kagome::authorship {

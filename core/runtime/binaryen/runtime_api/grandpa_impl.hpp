@@ -3,14 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_IMPL_GRANDPA_IMPL_HPP
-#define KAGOME_CORE_RUNTIME_IMPL_GRANDPA_IMPL_HPP
+#ifndef KAGOME_CORE_RUNTIME_BINARYEN_GRANDPA_IMPL_HPP
+#define KAGOME_CORE_RUNTIME_BINARYEN_GRANDPA_IMPL_HPP
 
+#include "extensions/extension.hpp"
+#include "runtime/binaryen/runtime_api/runtime_api.hpp"
 #include "runtime/grandpa.hpp"
-#include "runtime/impl/runtime_api.hpp"
 #include "runtime/wasm_provider.hpp"
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
+
   class GrandpaImpl : public RuntimeApi, public Grandpa {
    public:
     GrandpaImpl(
@@ -28,6 +30,6 @@ namespace kagome::runtime {
     outcome::result<std::vector<WeightedAuthority>> authorities(
         const primitives::BlockId &block_id) override;
   };
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen
 
-#endif  // KAGOME_CORE_RUNTIME_IMPL_GRANDPA_IMPL_HPP
+#endif  // KAGOME_CORE_RUNTIME_BINARYEN_GRANDPA_IMPL_HPP
