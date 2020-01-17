@@ -10,43 +10,40 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, InherentDataError, e) {
   switch (e) {
     case E::IDENTIFIER_ALREADY_EXISTS:
       return "This identifier already exists";
+    case E::IDENTIFIER_DOES_NOT_EXIST:
+      return "This identifier does not exist";
   }
   return "Unknow error";
 }
 
 namespace kagome::primitives {
 
-  outcome::result<void> InherentData::putData(InherentIdentifier identifier,
-                                              common::Buffer inherent) {
-    if (data_.find(identifier) == data_.end()) {
-      data_[identifier] = std::move(inherent);
-      return outcome::success();
-    }
-    return InherentDataError::IDENTIFIER_ALREADY_EXISTS;
-  }
+  //  outcome::result<void> InherentData::putData(InherentIdentifier identifier,
+  //                                              common::Buffer inherent) {
+  //    if (data_.find(identifier) == data_.end()) {
+  //      data_[identifier] = std::move(inherent);
+  //      return outcome::success();
+  //    }
+  //    return InherentDataError::IDENTIFIER_ALREADY_EXISTS;
+  //  }
 
-  void InherentData::replaceData(InherentIdentifier identifier,
-                                 common::Buffer inherent) {
-    data_[identifier] = std::move(inherent);
-  }
+  //  void InherentData::replaceData(InherentIdentifier identifier,
+  //                                 common::Buffer inherent) {
+  //    data_[identifier] = std::move(inherent);
+  //  }
 
-  outcome::result<boost::optional<common::Buffer>> InherentData::getData(
-      const InherentIdentifier &identifier) const {
-    auto inherent = data_.find(identifier);
-    if (inherent != data_.end()) {
-      return inherent->second;
-    }
-    return boost::none;
-  }
-
-  const std::map<InherentIdentifier, common::Buffer>
-      &InherentData::getDataCollection() const {
-    return data_;
-  }
+  //  outcome::result<boost::optional<common::Buffer>> InherentData::getData(
+  //      const InherentIdentifier &identifier) const {
+  //    auto inherent = data_.find(identifier);
+  //    if (inherent != data_.end()) {
+  //      return inherent->second;
+  //    }
+  //    return boost::none;
+  //  }
 
   bool InherentData::operator==(
       const kagome::primitives::InherentData &rhs) const {
-    return data_ == rhs.data_;
+    return data == rhs.data;
   }
 
   bool InherentData::operator!=(

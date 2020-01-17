@@ -6,7 +6,7 @@
 #include "crypto/vrf/vrf_provider_impl.hpp"
 
 #include <gsl/span>
-#include "crypto/util.hpp"
+#include "common/mp_utils.hpp"
 
 namespace kagome::crypto {
   namespace vrf_constants = constants::sr25519::vrf;
@@ -46,14 +46,14 @@ namespace kagome::crypto {
                                  keypair_buf.data(),
                                  msg.data(),
                                  msg.size(),
-                                 util::uint256_t_to_bytes(threshold).data());
+                                 common::uint256_t_to_bytes(threshold).data());
     if (not sign_res.is_less) {
       return boost::none;
     }
 
     VRFOutput res;
     auto out_proof_span = gsl::make_span(out_proof);
-    res.value = util::bytes_to_uint256_t(
+    res.value = common::bytes_to_uint256_t(
         out_proof_span.subspan(0, vrf_constants::OUTPUT_SIZE));
     std::copy(out_proof.begin() + vrf_constants::OUTPUT_SIZE,
               out_proof.end(),
@@ -66,7 +66,7 @@ namespace kagome::crypto {
                                const VRFOutput &output,
                                const SR25519PublicKey &public_key) const {
     std::array<uint8_t, vrf_constants::OUTPUT_SIZE> out_array =
-        util::uint256_t_to_bytes(output.value);
+        common::uint256_t_to_bytes(output.value);
 
     auto res = sr25519_vrf_verify(public_key.data(),
                                   msg.data(),

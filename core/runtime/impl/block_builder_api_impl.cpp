@@ -21,10 +21,10 @@ namespace kagome::runtime {
       const std::shared_ptr<extensions::ExtensionFactory> &extension_factory)
       : RuntimeApi(wasm_provider, extension_factory) {}
 
-  outcome::result<bool> BlockBuilderApiImpl::apply_extrinsic(
+  outcome::result<primitives::ApplyResult> BlockBuilderApiImpl::apply_extrinsic(
       const Extrinsic &extrinsic) {
-    // TODO(Harrm) PRE-154 figure out what wasm function returns
-    return execute<bool>("BlockBuilder_apply_extrinsic", extrinsic);
+    return execute<primitives::ApplyResult>("BlockBuilder_apply_extrinsic",
+                                            extrinsic);
   }
 
   outcome::result<BlockHeader> BlockBuilderApiImpl::finalise_block() {

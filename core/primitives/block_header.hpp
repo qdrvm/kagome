@@ -24,15 +24,15 @@ namespace kagome::primitives {
     BlockNumber number = 0u;       ///< index of current block in the chain
     common::Hash256 state_root{};  ///< root of the Merkle tree
     common::Hash256 extrinsics_root{};  ///< field for validation integrity
-    std::vector<Digest> digests{};      ///< chain-specific auxiliary data
+    Digest digest{};                    ///< chain-specific auxiliary data
 
     bool operator==(const BlockHeader &rhs) const {
-      return std::tie(parent_hash, number, state_root, extrinsics_root, digests)
+      return std::tie(parent_hash, number, state_root, extrinsics_root, digest)
              == std::tie(rhs.parent_hash,
                          rhs.number,
                          rhs.state_root,
                          rhs.extrinsics_root,
-                         rhs.digests);
+                         rhs.digest);
     }
 
     bool operator!=(const BlockHeader &rhs) const {
@@ -51,7 +51,7 @@ namespace kagome::primitives {
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const BlockHeader &bh) {
     return s << bh.parent_hash << CompactInteger(bh.number) << bh.state_root
-             << bh.extrinsics_root << bh.digests;
+             << bh.extrinsics_root << bh.digest;
   }
 
   /**
@@ -66,7 +66,7 @@ namespace kagome::primitives {
   Stream &operator>>(Stream &s, BlockHeader &bh) {
     CompactInteger number_compact;
     s >> bh.parent_hash >> number_compact >> bh.state_root >> bh.extrinsics_root
-        >> bh.digests;
+        >> bh.digest;
     bh.number = number_compact.convert_to<BlockNumber>();
     return s;
   }

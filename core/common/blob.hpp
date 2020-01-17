@@ -132,7 +132,9 @@ namespace kagome::common {
    * @param blob value to encode
    * @return reference to stream
    */
-  template <class Stream, size_t size>
+  template <class Stream,
+            size_t size,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Blob<size> &blob) {
     for (auto &&it = blob.begin(), end = blob.end(); it != end; ++it) {
       s << *it;
@@ -148,7 +150,9 @@ namespace kagome::common {
    * @param blob value to encode
    * @return reference to stream
    */
-  template <class Stream, size_t size>
+  template <class Stream,
+            size_t size,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, Blob<size> &blob) {
     for (auto &&it = blob.begin(), end = blob.end(); it != end; ++it) {
       s >> *it;

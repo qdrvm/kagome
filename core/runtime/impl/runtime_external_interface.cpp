@@ -67,8 +67,9 @@ namespace kagome::runtime {
   wasm::Literal RuntimeExternalInterface::callImport(
       wasm::Function *import, wasm::LiteralList &arguments) {
     if (import->module == env) {
-      /// memory externals
+      logger_->debug("call import: {}", import->base);
 
+      /// memory externals
       /// ext_malloc
       if (import->base == ext_malloc) {
         checkArguments(import->base.c_str(), 1, arguments.size());
@@ -144,12 +145,11 @@ namespace kagome::runtime {
       }
       /// ext_storage_changes_root
       if (import->base == ext_storage_changes_root) {
-        checkArguments(import->base.c_str(), 4, arguments.size());
+        checkArguments(import->base.c_str(), 3, arguments.size());
         auto res =
             extension_->ext_storage_changes_root(arguments.at(0).geti32(),
                                                  arguments.at(1).geti32(),
-                                                 arguments.at(2).geti32(),
-                                                 arguments.at(3).geti32());
+                                                 arguments.at(2).geti32());
         return wasm::Literal(res);
       }
       /// ext_storage_root

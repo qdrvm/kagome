@@ -19,6 +19,7 @@ target_link_libraries(application_injector
     block_tree
     buffer
     clock
+    sr25519_provider
     configuration_storage
     core
     grandpa_api

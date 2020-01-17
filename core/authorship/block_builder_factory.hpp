@@ -29,7 +29,7 @@ namespace kagome::authorship {
      */
     virtual outcome::result<std::unique_ptr<BlockBuilder>> create(
         const primitives::BlockId &parent_id,
-        std::vector<primitives::Digest> inherent_digests) const = 0;
+        primitives::Digest inherent_digest) const = 0;
   };
 
 }  // namespace kagome::authorship

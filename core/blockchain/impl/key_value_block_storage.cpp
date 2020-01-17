@@ -88,8 +88,8 @@ namespace kagome::blockchain {
 
   outcome::result<primitives::BlockHash> KeyValueBlockStorage::putBlock(
       const primitives::Block &block) {
-    OUTCOME_TRY(encoded_block, scale::encode(block));
-    auto block_hash = hasher_->blake2b_256(encoded_block);
+    OUTCOME_TRY(encoded_block_header, scale::encode(block.header));
+    auto block_hash = hasher_->blake2b_256(encoded_block_header);
     auto block_in_storage =
         getWithPrefix(*storage_, Prefix::HEADER, block.header.number);
     if (block_in_storage.has_value()) {
@@ -113,6 +113,9 @@ namespace kagome::blockchain {
                               block.header.number,
                               block_hash,
                               Buffer{encoded_body}));
+    logger_->debug("Put block. Number: {}. Hash: {}",
+                   block.header.number,
+                   block_hash.toHex());
     return block_hash;
   }
 

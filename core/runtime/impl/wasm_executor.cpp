@@ -18,7 +18,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, WasmExecutor::Error, e) {
     case WasmExecutor::Error::INVALID_STATE_CODE:
       return "Invalid state code, calling a function is impossible";
     case WasmExecutor::Error::EXECUTION_ERROR:
-      return "An error occured during call execution";
+      return "An error occured during exports call execution";
   }
   return "Unknown error";
 }

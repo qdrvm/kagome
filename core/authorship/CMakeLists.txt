@@ -10,7 +10,6 @@ add_library(block_builder
     impl/block_builder_error.cpp
     impl/block_builder_error.hpp
     )
-
 target_link_libraries(block_builder
     block_builder_api
     )

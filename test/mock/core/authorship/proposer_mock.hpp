@@ -11,12 +11,13 @@
 #include <gmock/gmock.h>
 
 namespace kagome::authorship {
-  struct ProposerMock : public Proposer {
+  class ProposerMock : public Proposer {
+   public:
     MOCK_METHOD3(
         propose,
         outcome::result<primitives::Block>(const primitives::BlockId &,
                                            const primitives::InherentData &,
-                                           std::vector<primitives::Digest>));
+                                           const primitives::Digest &));
   };
 }  // namespace kagome::authorship
 

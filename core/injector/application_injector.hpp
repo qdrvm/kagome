@@ -175,15 +175,15 @@ namespace kagome::injector {
         return initialized.value();
       }
 
-      auto core = injector.template create<sptr<runtime::Core>>();
-      if (auto version_res = core->version(); version_res) {
-        auto version = version_res.value();
-        spdlog::debug("Spec name: {}. Implementation name: {}",
-                      version.spec_name,
-                      version.impl_name);
-      } else {
-        common::raise(version_res.error());
-      }
+      //      auto core = injector.template create<sptr<runtime::Core>>();
+      //      if (auto version_res = core->version(); version_res) {
+      //        auto version = version_res.value();
+      //        spdlog::debug("Spec name: {}. Implementation name: {}",
+      //                      version.spec_name,
+      //                      version.impl_name);
+      //      } else {
+      //        common::raise(version_res.error());
+      //      }
 
       auto grandpa_api = injector.template create<sptr<runtime::Grandpa>>();
       auto &keys = injector.template create<application::KeyStorage &>();
@@ -306,7 +306,8 @@ namespace kagome::injector {
       if (initialized) {
         return initialized.value();
       }
-      auto storage = injector.template create<sptr<storage::LevelDB>>();
+      auto storage =
+          injector.template create<sptr<storage::PersistentBufferMap>>();
       using blockchain::prefix::TRIE_NODE;
       auto backend = std::make_shared<storage::trie::PolkadotTrieDbBackend>(
           storage, common::Buffer{TRIE_NODE}, common::Buffer{0});

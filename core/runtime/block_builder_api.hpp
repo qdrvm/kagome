@@ -9,6 +9,7 @@
 #include <list>
 
 #include <outcome/outcome.hpp>
+#include "primitives/apply_result.hpp"
 #include "primitives/block.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/check_inherents_result.hpp"
@@ -24,7 +25,7 @@ namespace kagome::runtime {
     virtual ~BlockBuilderApi() = default;
 
     /// Apply the given extrinsics.
-    virtual outcome::result<bool> apply_extrinsic(
+    virtual outcome::result<primitives::ApplyResult> apply_extrinsic(
         const primitives::Extrinsic &extrinsic) = 0;
 
     /// Finish the current block.

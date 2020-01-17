@@ -20,25 +20,39 @@ namespace kagome::authorship {
 
   outcome::result<void> BlockBuilderImpl::pushExtrinsic(
       const primitives::Extrinsic &extrinsic) {
-    auto ok_res = r_block_builder_->apply_extrinsic(extrinsic);
-    if (not ok_res) {
+    auto apply_res = r_block_builder_->apply_extrinsic(extrinsic);
+    if (not apply_res) {
       logger_->warn(
           "Extrinsic {} was not pushed to block. Error during xt application: "
           "{}",
           extrinsic.data.toHex(),
-          ok_res.error().message());
-      return ok_res.error();
+          apply_res.error().message());
+      return apply_res.error();
     }
 
-    bool ok = ok_res.value();
-    if (ok) {
-      extrinsics_.push_back(extrinsic);
-      return outcome::success();
-    }
-    logger_->warn(
-        "Extrinsic {} was not pushed to block. Extrinsic cannot be applied",
-        extrinsic.data.toHex());
-    return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
+    return visit_in_place(
+        apply_res.value(),
+        [this, &extrinsic](
+            primitives::ApplyOutcome apply_outcome) -> outcome::result<void> {
+          switch (apply_outcome) {
+            case primitives::ApplyOutcome::SUCCESS:
+              extrinsics_.push_back(extrinsic);
+              return outcome::success();
+            case primitives::ApplyOutcome::FAIL:
+              logger_->warn(
+                  "Extrinsic {} was not pushed to block. Extrinsic cannot be "
+                  "applied",
+                  extrinsic.data.toHex());
+              return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
+          }
+        },
+        [this, &extrinsic](primitives::ApplyError) -> outcome::result<void> {
+          logger_->warn(
+              "Extrinsic {} was not pushed to block. Extrinsic cannot be "
+              "applied",
+              extrinsic.data.toHex());
+          return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
+        });
   }
 
   outcome::result<primitives::Block> BlockBuilderImpl::bake() const {
