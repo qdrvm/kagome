@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/basic_wasm_provider.hpp"
+#include "testutil/runtime/common/basic_wasm_provider.hpp"
 
 #include <fstream>
 
-namespace test {
+namespace kagome::runtime {
   using kagome::common::Buffer;
 
   BasicWasmProvider::BasicWasmProvider(std::string_view path) {
@@ -30,4 +30,4 @@ namespace test {
     ifd.read((char *)buffer.data(), size);  // NOLINT
     buffer_ = std::move(buffer);
   }
-}  // namespace test
+}  // namespace kagome::runtime

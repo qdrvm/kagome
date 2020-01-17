@@ -3,14 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_IMPL_METADATA_IMPL_HPP
-#define KAGOME_CORE_RUNTIME_IMPL_METADATA_IMPL_HPP
+#ifndef KAGOME_CORE_RUNTIME_BINARYEN_METADATA_IMPL_HPP
+#define KAGOME_CORE_RUNTIME_BINARYEN_METADATA_IMPL_HPP
 
-#include "runtime/impl/runtime_api.hpp"
+#include "extensions/extension.hpp"
+#include "runtime/binaryen/runtime_api/runtime_api.hpp"
 #include "runtime/metadata.hpp"
 #include "runtime/wasm_provider.hpp"
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
+
   class MetadataImpl : public RuntimeApi, public Metadata {
    public:
     MetadataImpl(
@@ -21,6 +23,6 @@ namespace kagome::runtime {
 
     outcome::result<OpaqueMetadata> metadata() override;
   };
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen
 
-#endif  // KAGOME_CORE_RUNTIME_IMPL_METADATA_IMPL_HPP
+#endif  // KAGOME_CORE_RUNTIME_BINARYEN_METADATA_IMPL_HPP

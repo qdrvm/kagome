@@ -11,7 +11,9 @@ add_library(block_builder
     impl/block_builder_error.hpp
     )
 target_link_libraries(block_builder
-    block_builder_api
+    outcome
+    buffer
+    logger
     )
 
 add_library(block_builder_factory

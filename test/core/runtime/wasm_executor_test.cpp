@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/wasm_executor.hpp"
+#include "runtime/binaryen/wasm_executor.hpp"
 
 #include <fstream>
 
@@ -11,10 +11,11 @@
 #include <binaryen/wasm-binary.h>
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
-#include "runtime/impl/basic_wasm_provider.hpp"
+
+#include "testutil/runtime/common/basic_wasm_provider.hpp"
 
 using kagome::common::Buffer;
-using kagome::runtime::WasmExecutor;
+using kagome::runtime::binaryen::WasmExecutor;
 
 namespace fs = boost::filesystem;
 
@@ -24,7 +25,7 @@ class WasmExecutorTest : public ::testing::Test {
     // path to a file with wasm code in wasm/ subfolder
     std::string wasm_path =
         fs::path(__FILE__).parent_path().string() + "/wasm/sumtwo.wasm";
-    wasm_provider_ = std::make_shared<test::BasicWasmProvider>(wasm_path);
+    wasm_provider_ = std::make_shared<kagome::runtime::BasicWasmProvider>(wasm_path);
     executor_ = std::make_shared<WasmExecutor>();
   }
 

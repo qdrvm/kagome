@@ -3,14 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CORE_RUNTIME_CORE_IMPL_HPP
-#define CORE_RUNTIME_CORE_IMPL_HPP
+#ifndef CORE_RUNTIME_BINARYEN_CORE_IMPL_HPP
+#define CORE_RUNTIME_BINARYEN_CORE_IMPL_HPP
 
+#include "extensions/extension.hpp"
+#include "runtime/binaryen/runtime_api/runtime_api.hpp"
 #include "runtime/core.hpp"
-#include "runtime/impl/runtime_api.hpp"
 #include "runtime/wasm_provider.hpp"
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
+
   class CoreImpl : public RuntimeApi, public Core {
    public:
     CoreImpl(
@@ -30,6 +32,6 @@ namespace kagome::runtime {
     outcome::result<std::vector<primitives::AuthorityId>> authorities(
         const primitives::BlockId &block_id) override;
   };
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen
 
-#endif  // CORE_RUNTIME_CORE_IMPL_HPP
+#endif  // CORE_RUNTIME_BINARYEN_CORE_IMPL_HPP

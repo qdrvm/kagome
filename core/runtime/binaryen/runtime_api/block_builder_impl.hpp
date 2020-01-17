@@ -3,21 +3,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCK_BUILDER_API_IMPL_HPP
-#define KAGOME_BLOCK_BUILDER_API_IMPL_HPP
+#ifndef KAGOME_RUNTIME_BINARYEN_BLOCK_BUILDER_IMPL_HPP
+#define KAGOME_RUNTIME_BINARYEN_BLOCK_BUILDER_IMPL_HPP
 
-#include "runtime/block_builder_api.hpp"
-#include "runtime/impl/runtime_api.hpp"
+#include "runtime/binaryen/runtime_api/runtime_api.hpp"
+#include "runtime/block_builder.hpp"
 #include "runtime/wasm_provider.hpp"
 
-namespace kagome::runtime {
-  class BlockBuilderApiImpl : public RuntimeApi, public BlockBuilderApi {
+namespace kagome::runtime::binaryen {
+
+  class BlockBuilderImpl : public RuntimeApi, public BlockBuilder {
    public:
-    BlockBuilderApiImpl(
+    BlockBuilderImpl(
         const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
         const std::shared_ptr<extensions::ExtensionFactory> &extension_factory);
 
-    ~BlockBuilderApiImpl() override = default;
+    ~BlockBuilderImpl() override = default;
 
     outcome::result<primitives::ApplyResult> apply_extrinsic(
         const primitives::Extrinsic &extrinsic) override;
@@ -33,6 +34,6 @@ namespace kagome::runtime {
 
     outcome::result<common::Hash256> random_seed() override;
   };
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen
 
-#endif  // KAGOME_BLOCK_BUILDER_API_IMPL_HPP
+#endif  // KAGOME_RUNTIME_BINARYEN_BLOCK_BUILDER_IMPL_HPP

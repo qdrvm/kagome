@@ -4,7 +4,7 @@
 #
 
 add_library(blockchain_common
-    common.cpp
+    types.cpp
     common.hpp
     persistent_map_util.cpp
     persistent_map_util.hpp

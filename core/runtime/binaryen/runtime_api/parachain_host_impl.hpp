@@ -3,15 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_IMPL_PARACHAIN_HOST_IMPL_HPP
-#define KAGOME_CORE_RUNTIME_IMPL_PARACHAIN_HOST_IMPL_HPP
+#ifndef KAGOME_CORE_RUNTIME_BINARYEN_PARACHAIN_HOST_IMPL_HPP
+#define KAGOME_CORE_RUNTIME_BINARYEN_PARACHAIN_HOST_IMPL_HPP
 
-#include "runtime/impl/runtime_api.hpp"
+#include "extensions/extension.hpp"
+#include "runtime/binaryen/runtime_api/runtime_api.hpp"
 #include "runtime/parachain_host.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
 #include "runtime/wasm_provider.hpp"
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
+
   class ParachainHostImpl : public RuntimeApi, public ParachainHost {
    public:
     /**
@@ -38,6 +40,6 @@ namespace kagome::runtime {
 
     outcome::result<std::vector<ValidatorId>> validators() override;
   };
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen
 
-#endif  // KAGOME_CORE_RUNTIME_IMPL_PARACHAIN_HOST_IMPL_HPP
+#endif  // KAGOME_CORE_RUNTIME_BINARYEN_PARACHAIN_HOST_IMPL_HPP

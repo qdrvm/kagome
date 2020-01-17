@@ -3,20 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "runtime/binaryen/runtime_api/grandpa_impl.hpp"
+
 #include <gtest/gtest.h>
 
 #include "core/runtime/runtime_test.hpp"
 #include "extensions/impl/extension_impl.hpp"
-#include "runtime/impl/grandpa_impl.hpp"
-#include "runtime/impl/metadata_impl.hpp"
-#include "runtime/impl/wasm_memory_impl.hpp"
+#include "runtime/binaryen/runtime_api/metadata_impl.hpp"
+#include "runtime/binaryen/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 
 using ::testing::_;
 using ::testing::Return;
 
 using kagome::runtime::Metadata;
-using kagome::runtime::MetadataImpl;
+using kagome::runtime::binaryen::MetadataImpl;
 
 namespace fs = boost::filesystem;
 

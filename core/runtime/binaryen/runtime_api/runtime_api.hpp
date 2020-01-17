@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_RUNTIME_RUNTIME_API_HPP
-#define KAGOME_CORE_RUNTIME_RUNTIME_API_HPP
+#ifndef KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_API_HPP
+#define KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_API_HPP
 
 #include <binaryen/wasm-binary.h>
 #include <binaryen/wasm-interpreter.h>
@@ -14,14 +14,15 @@
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
 #include "extensions/extension_factory.hpp"
-#include "runtime/impl/runtime_external_interface.hpp"
-#include "runtime/impl/wasm_executor.hpp"
+#include "runtime/binaryen/wasm_executor.hpp"
+#include "runtime/binaryen/runtime_external_interface.hpp"
 #include "runtime/wasm_memory.hpp"
 #include "runtime/wasm_provider.hpp"
 #include "runtime/wasm_result.hpp"
 #include "scale/scale.hpp"
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
+
   /**
    * @brief base class for all runtime apis
    */
@@ -84,5 +85,6 @@ namespace kagome::runtime {
     WasmExecutor executor_;
     common::Logger logger_ = common::createLogger("Runtime api");
   };
-}  // namespace kagome::runtime
-#endif  // KAGOME_CORE_RUNTIME_RUNTIME_API_HPP
+}  // namespace kagome::runtime::binaryen
+
+#endif  // KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_API_HPP

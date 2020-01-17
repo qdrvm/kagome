@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/wasm_executor.hpp"
+#include "runtime/binaryen/wasm_executor.hpp"
+
+#include <utility>
 
 #include <binaryen/shell-interface.h>
 #include <binaryen/wasm-binary.h>
 
-#include <utility>
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, WasmExecutor::Error, e) {
-  using kagome::runtime::WasmExecutor;
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen, WasmExecutor::Error, e) {
+  using kagome::runtime::binaryen::WasmExecutor;
   switch (e) {
     case WasmExecutor::Error::EMPTY_STATE_CODE:
       return "Provided state code is empty, calling a function is impossible";
@@ -23,7 +23,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, WasmExecutor::Error, e) {
   return "Unknown error";
 }
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
 
   WasmExecutor::WasmExecutor()
       : logger_{common::createLogger("Wasm executor")} {}
@@ -82,4 +82,4 @@ namespace kagome::runtime {
     }
   }
 
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen

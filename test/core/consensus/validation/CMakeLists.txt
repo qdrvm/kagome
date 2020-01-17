@@ -11,4 +11,5 @@ target_link_libraries(block_validator_test
     p2p::p2p_peer_id
     testutil_primitives_generator
     sr25519_provider
+    crypto_util
     )

@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <functional>
 
-#include "runtime/common.hpp"
+#include "runtime/types.hpp"
 #include "runtime/wasm_memory.hpp"
 
 namespace kagome::extensions {

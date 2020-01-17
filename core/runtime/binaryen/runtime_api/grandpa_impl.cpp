@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/grandpa_impl.hpp"
+#include "runtime/binaryen/runtime_api/grandpa_impl.hpp"
 
 #include "primitives/authority.hpp"
 
-namespace kagome::runtime {
+namespace kagome::runtime::binaryen {
   using common::Buffer;
   using primitives::Authority;
   using primitives::Digest;
@@ -37,4 +37,4 @@ namespace kagome::runtime {
     return execute<std::vector<Authority>>("GrandpaApi_grandpa_authorities",
                                            block_id);
   }
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen

@@ -53,15 +53,14 @@
 #include "network/impl/router_libp2p.hpp"
 #include "network/sync_protocol_client.hpp"
 #include "network/sync_protocol_observer.hpp"
-#include "runtime/impl/block_builder_api_impl.hpp"
-#include "runtime/impl/core_impl.hpp"
-#include "runtime/impl/grandpa_impl.hpp"
-#include "runtime/impl/metadata_impl.hpp"
-#include "runtime/impl/offchain_worker_impl.hpp"
-#include "runtime/impl/parachain_host_impl.hpp"
-#include "runtime/impl/storage_wasm_provider.hpp"
-#include "runtime/impl/tagged_transaction_queue_impl.hpp"
-#include "runtime/impl/wasm_memory_impl.hpp"
+#include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
+#include "runtime/binaryen/runtime_api/core_impl.hpp"
+#include "runtime/binaryen/runtime_api/grandpa_impl.hpp"
+#include "runtime/binaryen/runtime_api/metadata_impl.hpp"
+#include "runtime/binaryen/runtime_api/offchain_worker_impl.hpp"
+#include "runtime/binaryen/runtime_api/parachain_host_impl.hpp"
+#include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
+#include "runtime/common/storage_wasm_provider.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/trie/impl/polkadot_codec.hpp"
 #include "storage/trie/impl/polkadot_node.hpp"
@@ -491,14 +490,13 @@ namespace kagome::injector {
         di::bind<network::Router>.template to<network::RouterLibp2p>(),
         di::bind<network::SyncProtocolClient>.template to<consensus::SynchronizerImpl>(),
         di::bind<network::SyncProtocolObserver>.template to<consensus::SynchronizerImpl>(),
-        di::bind<runtime::WasmMemory>.template to<runtime::WasmMemoryImpl>(),
-        di::bind<runtime::TaggedTransactionQueue>.template to<runtime::TaggedTransactionQueueImpl>(),
-        di::bind<runtime::ParachainHost>.template to<runtime::ParachainHostImpl>(),
-        di::bind<runtime::OffchainWorker>.template to<runtime::OffchainWorkerImpl>(),
-        di::bind<runtime::Metadata>.template to<runtime::MetadataImpl>(),
-        di::bind<runtime::Grandpa>.template to<runtime::GrandpaImpl>(),
-        di::bind<runtime::Core>.template to<runtime::CoreImpl>(),
-        di::bind<runtime::BlockBuilderApi>.template to<runtime::BlockBuilderApiImpl>(),
+        di::bind<runtime::TaggedTransactionQueue>.template to<runtime::binaryen::TaggedTransactionQueueImpl>(),
+        di::bind<runtime::ParachainHost>.template to<runtime::binaryen::ParachainHostImpl>(),
+        di::bind<runtime::OffchainWorker>.template to<runtime::binaryen::OffchainWorkerImpl>(),
+        di::bind<runtime::Metadata>.template to<runtime::binaryen::MetadataImpl>(),
+        di::bind<runtime::Grandpa>.template to<runtime::binaryen::GrandpaImpl>(),
+        di::bind<runtime::Core>.template to<runtime::binaryen::CoreImpl>(),
+        di::bind<runtime::BlockBuilder>.template to<runtime::binaryen::BlockBuilderImpl>(),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
         di::bind<storage::trie::PolkadotTrieDbBackend>.to(

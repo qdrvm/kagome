@@ -9,6 +9,7 @@ addtest(block_builder_test
 
 target_link_libraries(block_builder_test
     block_builder
+    blob
     )
 
 addtest(block_builder_factory_test

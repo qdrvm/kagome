@@ -3,12 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "runtime/binaryen/runtime_api/parachain_host_impl.hpp"
+
 #include <gtest/gtest.h>
 
 #include "core/runtime/runtime_test.hpp"
 #include "extensions/impl/extension_impl.hpp"
-#include "runtime/impl/parachain_host_impl.hpp"
-#include "runtime/impl/wasm_memory_impl.hpp"
+#include "runtime/binaryen/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
@@ -20,7 +21,7 @@ using kagome::primitives::parachain::ParaId;
 using kagome::primitives::parachain::Relay;
 using kagome::primitives::parachain::ValidatorId;
 using kagome::runtime::ParachainHost;
-using kagome::runtime::ParachainHostImpl;
+using kagome::runtime::binaryen::ParachainHostImpl;
 
 using ::testing::_;
 using ::testing::Return;
