@@ -175,9 +175,6 @@ namespace kagome::consensus {
       return log_->error("cannot encoded seal: {}",
                          encoded_seal_res.error().message());
     }
-//    // add Pre-Runtime digest item
-//    block.header.digest.emplace_back(
-//        primitives::PreRuntime{{kBabeEngineId, encoded_header}});
 
     // add seal digest item
     block.header.digest.emplace_back(primitives::Seal{
