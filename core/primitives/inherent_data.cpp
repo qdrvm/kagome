@@ -18,29 +18,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, InherentDataError, e) {
 
 namespace kagome::primitives {
 
-  //  outcome::result<void> InherentData::putData(InherentIdentifier identifier,
-  //                                              common::Buffer inherent) {
-  //    if (data_.find(identifier) == data_.end()) {
-  //      data_[identifier] = std::move(inherent);
-  //      return outcome::success();
-  //    }
-  //    return InherentDataError::IDENTIFIER_ALREADY_EXISTS;
-  //  }
-
-  //  void InherentData::replaceData(InherentIdentifier identifier,
-  //                                 common::Buffer inherent) {
-  //    data_[identifier] = std::move(inherent);
-  //  }
-
-  //  outcome::result<boost::optional<common::Buffer>> InherentData::getData(
-  //      const InherentIdentifier &identifier) const {
-  //    auto inherent = data_.find(identifier);
-  //    if (inherent != data_.end()) {
-  //      return inherent->second;
-  //    }
-  //    return boost::none;
-  //  }
-
   bool InherentData::operator==(
       const kagome::primitives::InherentData &rhs) const {
     return data == rhs.data;
