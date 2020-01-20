@@ -113,9 +113,10 @@ namespace kagome::blockchain {
                               block.header.number,
                               block_hash,
                               Buffer{encoded_body}));
-    logger_->debug("Put block. Number: {}. Hash: {}",
+    logger_->debug("Put block. Number: {}. Hash: {}. State root: {}",
                    block.header.number,
-                   block_hash.toHex());
+                   block_hash.toHex(),
+                   block.header.state_root.toHex());
     return block_hash;
   }
 

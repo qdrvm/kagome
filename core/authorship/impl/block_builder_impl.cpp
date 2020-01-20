@@ -30,6 +30,9 @@ namespace kagome::authorship {
       return apply_res.error();
     }
 
+    const static std::string logger_error_template =
+        "Extrinsic {} was not pushed to block. Extrinsic cannot be "
+        "applied";
     return visit_in_place(
         apply_res.value(),
         [this, &extrinsic](
@@ -39,18 +42,12 @@ namespace kagome::authorship {
               extrinsics_.push_back(extrinsic);
               return outcome::success();
             case primitives::ApplyOutcome::FAIL:
-              logger_->warn(
-                  "Extrinsic {} was not pushed to block. Extrinsic cannot be "
-                  "applied",
-                  extrinsic.data.toHex());
+              logger_->warn(logger_error_template, extrinsic.data.toHex());
               return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
           }
         },
         [this, &extrinsic](primitives::ApplyError) -> outcome::result<void> {
-          logger_->warn(
-              "Extrinsic {} was not pushed to block. Extrinsic cannot be "
-              "applied",
-              extrinsic.data.toHex());
+          logger_->warn(logger_error_template, extrinsic.data.toHex());
           return BlockBuilderError::EXTRINSIC_APPLICATION_FAILED;
         });
   }
