@@ -17,13 +17,6 @@ namespace kagome::extensions {
    * Extensions for WASM; API, which is called by the runtime to control RE
    */
   class Extension {
-   protected:
-    using SandoxDispatchFuncType =
-        std::function<uint64_t(const uint8_t *serialized_args,
-                               size_t serialized_args_length,
-                               size_t state,
-                               size_t func_index)>;
-
    public:
     virtual ~Extension() = default;
 

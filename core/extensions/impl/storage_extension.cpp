@@ -6,8 +6,8 @@
 #include "extensions/impl/storage_extension.hpp"
 
 #include <forward_list>
-#include <primitives/block_id.hpp>
 
+#include "primitives/block_id.hpp"
 #include "storage/trie/impl/ordered_trie_hash.hpp"
 
 using kagome::common::Buffer;
