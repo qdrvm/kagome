@@ -66,7 +66,7 @@ namespace kagome::extensions {
     if (not data) {
       return 0;
     }
-    if (data.value().size() > 0)
+    if (not data.value().empty())
       logger_->debug("ext_get_allocated_storage. Key hex: {} Value hex {}",
                      key.toHex(),
                      data.value().toHex());
@@ -96,7 +96,7 @@ namespace kagome::extensions {
                      key.toHex());
       return runtime::WasmMemory::kMaxMemorySize;
     }
-    if (data.value().size() > 0) {
+    if (not data.value().empty()) {
       logger_->debug("ext_get_storage_into. Key hex: {} , Value hex {}",
                      key.toHex(),
                      data.value().toHex());

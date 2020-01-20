@@ -95,8 +95,9 @@ namespace kagome::primitives {
   Stream &operator<<(Stream &s, const InherentData &v) {
     const auto &data = v.data;
     std::vector<std::pair<InherentIdentifier, common::Buffer>> vec;
+    vec.reserve(data.size());
     for (auto &pair : data) {
-      vec.push_back(pair);
+      vec.emplace_back(pair);
     }
     s << vec;
     return s;

@@ -92,7 +92,7 @@ namespace kagome::crypto {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, VRFOutput &o) {
-    std::array<uint8_t, 32> value_bytes;
+    std::array<uint8_t, 32> value_bytes{};
     s >> value_bytes >> o.proof;
     o.value = common::bytes_to_uint256_t(value_bytes);
     return s;

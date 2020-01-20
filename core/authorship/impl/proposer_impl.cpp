@@ -23,9 +23,9 @@ namespace kagome::authorship {
       const primitives::BlockId &parent_block_id,
       const primitives::InherentData &inherent_data,
       const primitives::Digest &inherent_digest) {
-    OUTCOME_TRY(block_builder,
-                block_builder_factory_->create(parent_block_id,
-                                               std::move(inherent_digest)));
+    OUTCOME_TRY(
+        block_builder,
+        block_builder_factory_->create(parent_block_id, inherent_digest));
 
     auto inherent_xts_res =
         r_block_builder_->inherent_extrinsics(inherent_data);
