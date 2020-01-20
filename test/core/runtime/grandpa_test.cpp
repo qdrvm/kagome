@@ -15,6 +15,7 @@
 using kagome::common::Buffer;
 using kagome::extensions::ExtensionImpl;
 using kagome::primitives::BlockId;
+using kagome::primitives::PreRuntime;
 using kagome::primitives::BlockNumber;
 using kagome::primitives::Digest;
 using kagome::runtime::Grandpa;
@@ -34,7 +35,7 @@ class GrandpaTest : public RuntimeTest {
   }
 
   Digest createDigest() const {
-    return Buffer{1, 2, 3};
+    return Digest{PreRuntime{}};
   }
 
   BlockId createBlockId() const {

@@ -15,16 +15,16 @@ namespace kagome::authorship {
       std::shared_ptr<blockchain::BlockHeaderRepository> header_backend)
       : r_core_(std::move(r_core)),
         r_block_builder_(std::move(r_block_builder)),
-        header_backend_(std::move(header_backend)) {
+        header_backend_(std::move(header_backend)),
+        logger_{common::createLogger("BlockBuilderFactory")} {
     BOOST_ASSERT(r_core_ != nullptr);
     BOOST_ASSERT(r_block_builder_ != nullptr);
     BOOST_ASSERT(header_backend_ != nullptr);
   }
 
   outcome::result<std::unique_ptr<BlockBuilder>>
-  BlockBuilderFactoryImpl::create(
-      const kagome::primitives::BlockId &parent_id,
-      std::vector<primitives::Digest> inherent_digests) const {
+  BlockBuilderFactoryImpl::create(const kagome::primitives::BlockId &parent_id,
+                                  primitives::Digest inherent_digest) const {
     // based on
     // https://github.com/paritytech/substrate/blob/dbf322620948935d2bbae214504e6c668c3073ed/core/basic-authorship/src/basic_authorship.rs#L94
 
@@ -35,11 +35,14 @@ namespace kagome::authorship {
     primitives::BlockHeader header;
     header.number = number;
     header.parent_hash = parent_hash;
-    header.digests = std::move(inherent_digests);
+    header.digest = std::move(inherent_digest);
 
-    OUTCOME_TRY(r_core_->initialise_block(header));
-    return std::make_unique<BlockBuilderImpl>(std::move(header),
-                                              r_block_builder_);
+    if (auto res = r_core_->initialise_block(header); not res) {
+      logger_->error("Core->initialise_block failed: {}",
+                     res.error().message());
+      return res.error();
+    }
+    return std::make_unique<BlockBuilderImpl>(header, r_block_builder_);
   }
 
 }  // namespace kagome::authorship

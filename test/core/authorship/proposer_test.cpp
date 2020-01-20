@@ -28,9 +28,18 @@ using kagome::primitives::Digest;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::InherentData;
 using kagome::primitives::InherentIdentifier;
+using kagome::primitives::PreRuntime;
 using kagome::primitives::Transaction;
 using kagome::runtime::BlockBuilderApiMock;
 using kagome::transaction_pool::TransactionPoolMock;
+
+// TODO (kamilsa): workaround unless we bump gtest version to 1.8.1+
+namespace kagome::primitives {
+  std::ostream &operator<<(std::ostream &s,
+                           const detail::DigestItemCommon &dic) {
+    return s;
+  }
+}  // namespace kagome::primitives
 
 class ProposerTest : public ::testing::Test {
  public:
@@ -67,7 +76,7 @@ class ProposerTest : public ::testing::Test {
   BlockNumber expected_number_{42};
   BlockId expected_block_id_{expected_number_};
 
-  std::vector<Digest> inherent_digests_{{0, 1, 2, 3}};
+  Digest inherent_digests_{PreRuntime{}};
 
   InherentData inherent_data_;
   std::vector<Extrinsic> inherent_xts{Extrinsic{{3, 4, 5}}};

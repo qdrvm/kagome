@@ -26,7 +26,7 @@ namespace kagome::runtime::binaryen {
   }
 
   outcome::result<void> CoreImpl::initialise_block(const BlockHeader &header) {
-    return execute<void>("Core_initialise_block", header);
+    return execute<void>("Core_initialize_block", header);
   }
 
   outcome::result<std::vector<AuthorityId>> CoreImpl::authorities(

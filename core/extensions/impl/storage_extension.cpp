@@ -7,6 +7,7 @@
 
 #include <forward_list>
 
+#include "primitives/block_id.hpp"
 #include "storage/trie/impl/ordered_trie_hash.hpp"
 
 using kagome::common::Buffer;
@@ -65,14 +66,10 @@ namespace kagome::extensions {
     if (not data) {
       return 0;
     }
-    if (data.value().size() > 0)
-      logger_->debug(
-          "ext_get_allocated_storage. Key: {}, Key hex: {} Value: {}, Value "
-          "hex {}",
-          key.data(),
-          key.toHex(),
-          data.value().data(),
-          data.value().toHex());
+    if (not data.value().empty())
+      logger_->debug("ext_get_allocated_storage. Key hex: {} Value hex {}",
+                     key.toHex(),
+                     data.value().toHex());
 
     auto data_ptr = memory_->allocate(length);
 
@@ -95,15 +92,18 @@ namespace kagome::extensions {
     auto key = memory_->loadN(key_data, key_length);
     auto data = get(key, value_offset, value_length);
     if (not data) {
+      logger_->debug("ext_get_storage_into. Val by key {} not found",
+                     key.toHex());
       return runtime::WasmMemory::kMaxMemorySize;
     }
-    if (data.value().size() > 0)
-      logger_->debug(
-          "ext_get_storage_into. Key: {}, Key hex: {} Value: {}, Value hex {}",
-          key.data(),
-          key.toHex(),
-          data.value().data(),
-          data.value().toHex());
+    if (not data.value().empty()) {
+      logger_->debug("ext_get_storage_into. Key hex: {} , Value hex {}",
+                     key.toHex(),
+                     data.value().toHex());
+    } else {
+      logger_->debug("ext_get_storage_into. Key hex: {} Value: empty",
+                     key.toHex());
+    }
     memory_->storeBuffer(value_data, data.value());
     return data.value().size();
   }
@@ -172,11 +172,15 @@ namespace kagome::extensions {
   runtime::SizeType StorageExtension::ext_storage_changes_root(
       runtime::WasmPointer parent_hash_data,
       runtime::SizeType parent_hash_len,
-      runtime::SizeType parent_num,
       runtime::WasmPointer result) {
     // TODO (kamilsa): PRE-95 Implement ext_storage_changes_root, 03.04.2019.
+    //    auto parent_hash = memory_->loadN(parent_hash_data, parent_hash_len);
+    primitives::BlockHash result_hash;
+    result_hash[primitives::BlockHash::size() - 1] = 1;
+    common::Buffer result_buf(result_hash);
+    memory_->storeBuffer(result, result_buf);
     logger_->error("Unimplemented, assume no changes");
-    return 0;
+    return 1;
   }
 
   void StorageExtension::ext_storage_root(runtime::WasmPointer result) const {

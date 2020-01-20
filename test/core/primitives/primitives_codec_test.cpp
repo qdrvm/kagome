@@ -25,7 +25,7 @@
 #include "scale/scale_error.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/primitives/hash_creator.hpp"
+#include "testutil/primitives/mp_utils.hpp"
 
 using kagome::common::Blob;
 using kagome::common::Buffer;
@@ -35,10 +35,12 @@ using kagome::primitives::AuthorityId;
 using kagome::primitives::Block;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
+using kagome::primitives::Digest;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::InherentData;
 using kagome::primitives::InherentIdentifier;
 using kagome::primitives::Invalid;
+using kagome::primitives::PreRuntime;
 using kagome::primitives::TransactionValidity;
 using kagome::primitives::Unknown;
 using kagome::primitives::Valid;
@@ -66,11 +68,11 @@ class Primitives : public testing::Test {
  protected:
   using array = std::array<uint8_t, 8u>;
   /// block header and corresponding scale representation
-  BlockHeader block_header_{createHash256({0}),  // parent_hash
-                            2,                   // number: number
-                            createHash256({1}),  // state_root
-                            createHash256({2}),  // extrinsic root
-                            {{5}}};              // buffer: digest;
+  BlockHeader block_header_{createHash256({0}),     // parent_hash
+                            2,                      // number: number
+                            createHash256({1}),     // state_root
+                            createHash256({2}),     // extrinsic root
+                            Digest{PreRuntime{}}};  // buffer: digest;
   /// Extrinsic instance and corresponding scale representation
   Extrinsic extrinsic_{{1, 2, 3}};
   /// block instance and corresponding scale representation
@@ -80,6 +82,7 @@ class Primitives : public testing::Test {
       "qwe",  // spec name
       "asd",  // impl_name
       1,      // auth version
+      42,     // spec version
       2,      // impl version
       {{Blob{array{'1', '2', '3', '4', '5', '6', '7', '8'}}, 1},  // ApiId_1
        {Blob{array{'8', '7', '6', '5', '4', '3', '2', '1'}}, 2}}  // ApiId_2
@@ -221,6 +224,29 @@ TEST_F(Primitives, EncodeDecodeAuthorityIdsSuccess) {
   ASSERT_EQ(original, decoded);
 }
 
+TEST_F(Primitives, EncodeInherentSampleFromSubstrate) {
+  std::string encoded_str = {'\b', 't',  'e',  's',    't',  'i',  'n',  'h',
+                             '0',  '4',  '\f', '\x01', '\0', '\0', '\0', '\x02',
+                             '\0', '\0', '\0', '\x03', '\0', '\0', '\0', 't',
+                             'e',  's',  't',  'i',    'n',  'h',  '1',  '\x10',
+                             '\a', '\0', '\0', '\0'};
+
+  EXPECT_OUTCOME_TRUE(test_id1, InherentIdentifier::fromString("testinh0"));
+  std::vector<uint32_t> data1{1, 2, 3};
+
+  EXPECT_OUTCOME_TRUE(test_id2, InherentIdentifier::fromString("testinh1"));
+  uint32_t data2 = 7;
+
+  auto encoded_buf = Buffer().put(encoded_str);
+  EXPECT_OUTCOME_TRUE(dec_data, decode<InherentData>(encoded_buf));
+
+  EXPECT_OUTCOME_TRUE(dec_data1, dec_data.getData<decltype(data1)>(test_id1));
+  EXPECT_EQ(data1, dec_data1);
+
+  EXPECT_OUTCOME_TRUE(dec_data2, dec_data.getData<decltype(data2)>(test_id2));
+  EXPECT_EQ(data2, dec_data2);
+}
+
 /**
  * @given inherent data
  * @when  encode and decode it
@@ -229,27 +255,29 @@ TEST_F(Primitives, EncodeDecodeAuthorityIdsSuccess) {
 TEST_F(Primitives, EncodeInherentDataSuccess) {
   using array = std::array<uint8_t, 8u>;
   InherentData data;
-  InherentIdentifier id1{array{1}};
-  InherentIdentifier id2{array{2}};
+  EXPECT_OUTCOME_TRUE(id1, InherentIdentifier::fromString("testinh0"));
+  EXPECT_OUTCOME_TRUE(id2, InherentIdentifier::fromString("testinh1"));
   InherentIdentifier id3{array{3}};
-  Buffer b1{1, 2, 3, 4};
-  Buffer b2{5, 6, 7, 8};
-  Buffer b3{1, 2, 3, 4};
-  EXPECT_OUTCOME_TRUE_void(r1, data.putData(id1, b1));
-  EXPECT_OUTCOME_TRUE_void(r2, data.putData(id2, b2));
-  EXPECT_OUTCOME_TRUE_void(r3, data.putData(id3, b3));
-  EXPECT_OUTCOME_FALSE_void(_, data.putData(id1, b2));
+  std::vector<uint32_t> data1{1, 2, 3};
+  uint32_t data2 = 7;
+  Buffer data3{1, 2, 3, 4};
+  EXPECT_OUTCOME_TRUE_void(r1, data.putData(id1, data1));
+  EXPECT_OUTCOME_TRUE_void(r2, data.putData(id2, data2));
+  EXPECT_OUTCOME_TRUE_void(r3, data.putData(id3, data3));
+  EXPECT_OUTCOME_FALSE_void(_, data.putData(id1, data2));
 
-  ASSERT_EQ(data.getData(id1).value(), b1);
-  ASSERT_EQ(data.getData(id2).value(), b2);
-  ASSERT_EQ(data.getData(id3).value(), b3);
+  ASSERT_EQ(data.getData<decltype(data1)>(id1).value(), data1);
+  ASSERT_EQ(data.getData<decltype(data2)>(id2).value(), data2);
+  ASSERT_EQ(data.getData<decltype(data3)>(id3).value(), data3);
 
-  Buffer b4{1, 3, 5, 7};
-  data.replaceData(id3, b4);
-  ASSERT_EQ(data.getData(id3).value(), b4);
+  Buffer data4{1, 3, 5, 7};
+  data.replaceData(id3, data4);
+  ASSERT_EQ(data.getData<decltype(data4)>(id3).value(), data4);
 
   EXPECT_OUTCOME_TRUE(enc_data, encode(data))
   EXPECT_OUTCOME_TRUE(dec_data, decode<InherentData>(enc_data))
 
-  EXPECT_EQ(data.getDataCollection(), dec_data.getDataCollection());
+  ASSERT_EQ(dec_data.getData<decltype(data1)>(id1).value(), data1);
+
+  EXPECT_EQ(data, dec_data);
 }

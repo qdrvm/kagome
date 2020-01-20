@@ -9,7 +9,7 @@
 
 #include <boost/assert.hpp>
 #include "common/buffer.hpp"
-#include "crypto/util.hpp"
+#include "common/mp_utils.hpp"
 
 namespace kagome::consensus {
   using common::Buffer;
@@ -38,7 +38,7 @@ namespace kagome::consensus {
 
     auto slot_number_begin = vrf_input.begin() + vrf_constants::OUTPUT_SIZE;
     for (BabeSlotNumber i = 0; i < epoch.epoch_duration; ++i) {
-      auto slot_bytes = crypto::util::uint64_t_to_bytes(i);
+      auto slot_bytes = common::uint64_t_to_bytes(i);
       std::copy(slot_bytes.begin(), slot_bytes.end(), slot_number_begin);
       result.push_back(
           vrf_provider_->sign(vrf_input, keypair, epoch.threshold));
@@ -62,7 +62,7 @@ namespace kagome::consensus {
               last_epoch_randomness.end(),
               new_randomness.begin());
 
-    auto epoch_index_bytes = crypto::util::uint64_t_to_bytes(last_epoch_index);
+    auto epoch_index_bytes = common::uint64_t_to_bytes(last_epoch_index);
     std::copy(epoch_index_bytes.begin(),
               epoch_index_bytes.end(),
               new_randomness.begin() + vrf_constants::OUTPUT_SIZE);
@@ -71,8 +71,7 @@ namespace kagome::consensus {
         new_randomness.begin() + vrf_constants::OUTPUT_SIZE + 8;
     // NOLINTNEXTLINE
     for (size_t i = 0; i < last_epoch_vrf_values_.size(); ++i) {
-      auto value_bytes =
-          crypto::util::uint256_t_to_bytes(last_epoch_vrf_values_[i]);
+      auto value_bytes = common::uint256_t_to_bytes(last_epoch_vrf_values_[i]);
       std::copy(value_bytes.begin(), value_bytes.end(), new_vrf_value_begin);
       new_vrf_value_begin += 32;
     }

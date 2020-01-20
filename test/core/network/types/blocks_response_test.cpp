@@ -11,13 +11,15 @@
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/primitives/hash_creator.hpp"
+#include "testutil/primitives/mp_utils.hpp"
 
 using kagome::network::BlockData;
 using kagome::network::BlocksResponse;
 using kagome::primitives::BlockBody;
 using kagome::primitives::BlockHeader;
+using kagome::primitives::Digest;
 using kagome::primitives::Justification;
+using kagome::primitives::PreRuntime;
 
 using testutil::createHash256;
 
@@ -31,7 +33,7 @@ namespace {
         2u,                        // block number
         createHash256({3, 3, 3}),  // state_root
         createHash256({4, 4, 4}),  // extrinsic root
-        {{5, 6, 7}}                // digest list
+        Digest{PreRuntime{}}       // digest list
     };
   }
 

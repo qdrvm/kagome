@@ -22,7 +22,7 @@ namespace kagome::extensions {
    public:
     ExtensionImpl() = delete;
     ExtensionImpl(const std::shared_ptr<runtime::WasmMemory> &memory,
-                    std::shared_ptr<storage::trie::TrieDb> db);
+                  std::shared_ptr<storage::trie::TrieDb> db);
 
     ~ExtensionImpl() override = default;
 
@@ -66,7 +66,6 @@ namespace kagome::extensions {
     runtime::SizeType ext_storage_changes_root(
         runtime::WasmPointer parent_hash_data,
         runtime::SizeType parent_hash_len,
-        runtime::SizeType parent_num,
         runtime::WasmPointer result) override;
 
     void ext_storage_root(runtime::WasmPointer result) const override;

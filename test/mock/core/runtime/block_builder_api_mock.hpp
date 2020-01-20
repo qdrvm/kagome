@@ -14,7 +14,8 @@ namespace kagome::runtime {
   class BlockBuilderApiMock : public BlockBuilder {
    public:
     MOCK_METHOD1(apply_extrinsic,
-                 outcome::result<bool>(const primitives::Extrinsic &));
+                 outcome::result<primitives::ApplyResult>(
+                     const primitives::Extrinsic &));
     MOCK_METHOD0(finalise_block, outcome::result<primitives::BlockHeader>());
     MOCK_METHOD1(inherent_extrinsics,
                  outcome::result<std::vector<primitives::Extrinsic>>(

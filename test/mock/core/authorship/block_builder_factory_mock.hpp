@@ -17,15 +17,15 @@ namespace kagome::authorship {
     // Dirty hack from https://stackoverflow.com/a/11548191 to overcome issue
     // with returning unique_ptr from gmock
     outcome::result<std::unique_ptr<BlockBuilder>> create(
-        const primitives::BlockId &block_id,
-        std::vector<primitives::Digest> digests) const override {
+        const primitives::BlockId &parent_id,
+        primitives::Digest inherent_digest) const override {
       return std::unique_ptr<BlockBuilder>(
-          createProxy(block_id, std::move(digests)));
+          createProxy(parent_id, std::move(inherent_digest)));
     }
 
     MOCK_CONST_METHOD2(createProxy,
                        BlockBuilder *(const primitives::BlockId &,
-                                      std::vector<primitives::Digest>));
+                                      primitives::Digest));
   };
 
 }  // namespace kagome::authorship
