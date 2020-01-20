@@ -35,7 +35,6 @@ using kagome::primitives::AuthorityId;
 using kagome::primitives::Block;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
-using kagome::primitives::ConsensusEngineId;
 using kagome::primitives::Digest;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::InherentData;
@@ -69,13 +68,11 @@ class Primitives : public testing::Test {
  protected:
   using array = std::array<uint8_t, 8u>;
   /// block header and corresponding scale representation
-  BlockHeader block_header_{
-      createHash256({0}),  // parent_hash
-      2,                   // number: number
-      createHash256({1}),  // state_root
-      createHash256({2}),  // extrinsic root
-      Digest{PreRuntime{{ConsensusEngineId{{1, 2, 3, 4}},
-                         Buffer{{1, 3}}}}}};  // buffer: digest;
+  BlockHeader block_header_{createHash256({0}),     // parent_hash
+                            2,                      // number: number
+                            createHash256({1}),     // state_root
+                            createHash256({2}),     // extrinsic root
+                            Digest{PreRuntime{}}};  // buffer: digest;
   /// Extrinsic instance and corresponding scale representation
   Extrinsic extrinsic_{{1, 2, 3}};
   /// block instance and corresponding scale representation
