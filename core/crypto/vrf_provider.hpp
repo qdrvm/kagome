@@ -7,6 +7,7 @@
 #define KAGOME_CORE_CRYPTO_VRF_VRF_PROVIDER_HPP
 
 #include <boost/optional.hpp>
+
 #include "common/buffer.hpp"
 #include "crypto/sr25519_types.hpp"
 
@@ -33,6 +34,17 @@ namespace kagome::crypto {
         const common::Buffer &msg,
         const SR25519Keypair &keypair,
         const VRFValue &threshold) const = 0;
+
+    /**
+     * Compares the provided value with the threshold.
+     * Required because there is a need in internal transformations of VRF
+     * output to compare.
+     * @param output - output of a VRF function
+     * @param threshold - a value to compare against
+     * @return true if the value is less than the threshold, false otherwise
+     */
+    virtual bool checkIfLessThanThreshold(const VRFRawOutput &output,
+                                          const VRFRawOutput &threshold) = 0;
 
     /**
      * Verifies that \param output was derived using \param public_key on \param

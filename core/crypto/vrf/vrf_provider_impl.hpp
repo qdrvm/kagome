@@ -26,6 +26,9 @@ namespace kagome::crypto {
                                     const SR25519Keypair &keypair,
                                     const VRFValue &threshold) const override;
 
+    bool checkIfLessThanThreshold(const VRFRawOutput &output,
+                                  const VRFRawOutput &threshold) override;
+
     bool verify(const common::Buffer &msg,
                 const VRFOutput &output,
                 const SR25519PublicKey &public_key) const override;

@@ -32,18 +32,21 @@ namespace kagome::crypto {
        */
       enum {
         PROOF_SIZE = SR25519_VRF_PROOF_SIZE,
-        OUTPUT_SIZE = SR25519_VRF_OUTPUT_SIZE
+        OUTPUT_SIZE = SR25519_VRF_OUTPUT_SIZE,
+        RAW_OUTPUT_SIZE = SR25519_VRF_RAW_OUTPUT_SIZE
       };
     }  // namespace vrf
 
   }  // namespace constants::sr25519
 
   using VRFValue = boost::multiprecision::uint256_t;
+  using VRFRawOutput = boost::multiprecision::uint128_t;
 
   using VRFProof = std::array<uint8_t, constants::sr25519::vrf::PROOF_SIZE>;
 
   struct VRFOutput {
-    VRFValue value;
+    VRFValue output;
+    VRFRawOutput raw_output;
     VRFProof proof{};
 
     bool operator==(const VRFOutput &other) const;
@@ -77,7 +80,7 @@ namespace kagome::crypto {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const VRFOutput &o) {
-    return s << o.value << o.proof;
+    return s << o.output << o.proof;
   }
 
   /**
@@ -90,7 +93,7 @@ namespace kagome::crypto {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, VRFOutput &o) {
-    return s >> o.value >> o.proof;
+    return s >> o.output >> o.proof;
   }
 
 }  // namespace kagome::crypto
