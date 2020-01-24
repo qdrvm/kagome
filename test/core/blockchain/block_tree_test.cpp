@@ -83,7 +83,7 @@ struct BlockTreeTest : public testing::Test {
 
   const BlockId kLastFinalizedBlockId = kFinalizedBlockHash;
 
-  BlockHeader finalized_block_header_{.number = 0, .digests = {{0x11, 0x33}}};
+  BlockHeader finalized_block_header_{.number = 0, .digest = {{PreRuntime{}}}};
 
   BlockBody finalized_block_body_{{Buffer{0x22, 0x44}}, {Buffer{0x55, 0x66}}};
 };
@@ -125,7 +125,7 @@ TEST_F(BlockTreeTest, AddBlock) {
   // WHEN
   BlockHeader header{.parent_hash = kFinalizedBlockHash,
                      .number = 1,
-                     .digests = {{0x66, 0x44}}};
+                     .digest = {PreRuntime{}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash = addBlock(new_block);
@@ -148,9 +148,9 @@ TEST_F(BlockTreeTest, AddBlock) {
  * @when adding a new block, which is not a child of any block inside
  * @then corresponding error is returned
  */
- TEST_F(BlockTreeTest, AddBlockNoParent) {
+TEST_F(BlockTreeTest, AddBlockNoParent) {
   // GIVEN
-  BlockHeader header{.digests = {{0x66, 0x44}}};
+  BlockHeader header{.digest = {PreRuntime{}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
 
@@ -166,14 +166,14 @@ TEST_F(BlockTreeTest, AddBlock) {
  * @when finalizing a non-finalized block
  * @then finalization completes successfully
  */
- TEST_F(BlockTreeTest, Finalize) {
+TEST_F(BlockTreeTest, Finalize) {
   // GIVEN
   auto &&last_finalized_hash = block_tree_->getLastFinalized();
   ASSERT_EQ(last_finalized_hash, kFinalizedBlockHash);
 
   BlockHeader header{.parent_hash = kFinalizedBlockHash,
                      .number = 1,
-                     .digests = {{0x66, 0x44}}};
+                     .digest = {PreRuntime{}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash = addBlock(new_block);
@@ -195,18 +195,17 @@ TEST_F(BlockTreeTest, AddBlock) {
  * @when asking for chain from the lowest block to the closest finalized one
  * @then chain from that block to the last finalized one is returned
  */
- TEST_F(BlockTreeTest, GetChainByBlockOnly) {
+TEST_F(BlockTreeTest, GetChainByBlockOnly) {
   // GIVEN
   BlockHeader header{.parent_hash = kFinalizedBlockHash,
                      .number = 1,
-                     .digests = {{0x66, 0x44}}};
+                     .digest = {PreRuntime{}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash1 = addBlock(new_block);
 
   header =
-      BlockHeader{.parent_hash = hash1, .number = 2, .digests = {{0x66,
-      0x55}}};
+      BlockHeader{.parent_hash = hash1, .number = 2, .digest = {Consensus{}}};
   body = BlockBody{{Buffer{0x55, 0x55}}};
   new_block = Block{header, body};
   auto hash2 = addBlock(new_block);
@@ -225,18 +224,17 @@ TEST_F(BlockTreeTest, AddBlock) {
  * @when asking for chain from the given block to top
  * @then expected chain is returned
  */
- TEST_F(BlockTreeTest, GetChainByBlockAscending) {
+TEST_F(BlockTreeTest, GetChainByBlockAscending) {
   // GIVEN
   BlockHeader header{.parent_hash = kFinalizedBlockHash,
                      .number = 1,
-                     .digests = {{0x66, 0x44}}};
+                     .digest = {PreRuntime{}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash1 = addBlock(new_block);
 
   header =
-      BlockHeader{.parent_hash = hash1, .number = 2, .digests = {{0x66,
-      0x55}}};
+      BlockHeader{.parent_hash = hash1, .number = 2, .digest = {Consensus{}}};
   body = BlockBody{{Buffer{0x55, 0x55}}};
   new_block = Block{header, body};
   auto hash2 = addBlock(new_block);
@@ -259,18 +257,17 @@ TEST_F(BlockTreeTest, AddBlock) {
  * @when asking for chain from the given block to bottom
  * @then expected chain is returned
  */
- TEST_F(BlockTreeTest, GetChainByBlockDescending) {
+TEST_F(BlockTreeTest, GetChainByBlockDescending) {
   // GIVEN
   BlockHeader header{.parent_hash = kFinalizedBlockHash,
                      .number = 1,
-                     .digests = {{0x66, 0x44}}};
+                     .digest = {PreRuntime{}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash1 = addBlock(new_block);
 
   header =
-      BlockHeader{.parent_hash = hash1, .number = 2, .digests = {{0x66,
-      0x55}}};
+      BlockHeader{.parent_hash = hash1, .number = 2, .digest = {Consensus{}}};
   body = BlockBody{{Buffer{0x55, 0x55}}};
   new_block = Block{header, body};
   auto hash2 = addBlock(new_block);
@@ -296,7 +293,7 @@ TEST_F(BlockTreeTest, AddBlock) {
  * in the storage, but is not connected to the base block in the tree
  * @then BLOCK_NOT_FOUND error is returned
  */
- TEST_F(BlockTreeTest, GetBestChain_BlockNotFound) {
+TEST_F(BlockTreeTest, GetBestChain_BlockNotFound) {
   EXPECT_CALL(*header_repo_, getBlockHeader(kLastFinalizedBlockId))
       .WillRepeatedly(Return(finalized_block_header_));
 
@@ -318,15 +315,14 @@ TEST_F(BlockTreeTest, AddBlock) {
  * @when trying to obtain the best chain with the second block
  * @then the second block hash is returned
  */
- TEST_F(BlockTreeTest, GetBestChain_ShortChain) {
+TEST_F(BlockTreeTest, GetBestChain_ShortChain) {
   EXPECT_CALL(*header_repo_, getBlockHeader(kLastFinalizedBlockId))
       .WillRepeatedly(Return(finalized_block_header_));
 
   auto target_hash = addHeaderToRepository(kLastFinalizedBlockId, 1337);
 
   EXPECT_OUTCOME_TRUE(best_info,
-                      block_tree_->getBestContaining(target_hash,
-                      boost::none));
+                      block_tree_->getBestContaining(target_hash, boost::none));
   ASSERT_EQ(best_info.block_hash, target_hash);
 }
 
@@ -337,7 +333,7 @@ TEST_F(BlockTreeTest, AddBlock) {
  * chains
  * @then the longest chain with is returned
  */
- TEST_F(BlockTreeTest, GetBestChain_TwoChains) {
+TEST_F(BlockTreeTest, GetBestChain_TwoChains) {
   EXPECT_CALL(*header_repo_, getBlockHeader(kLastFinalizedBlockId))
       .WillRepeatedly(Return(finalized_block_header_));
 
@@ -349,8 +345,7 @@ TEST_F(BlockTreeTest, AddBlock) {
   auto header12_hash = addHeaderToRepository(header11_hash, 1341);
 
   EXPECT_OUTCOME_TRUE(best_info,
-                      block_tree_->getBestContaining(target_hash,
-                      boost::none));
+                      block_tree_->getBestContaining(target_hash, boost::none));
   ASSERT_EQ(best_info.block_hash, header12_hash);
 }
 
@@ -361,7 +356,7 @@ TEST_F(BlockTreeTest, AddBlock) {
  * specified limit
  * @then TARGET_IS_PAST_MAX error is returned
  */
- TEST_F(BlockTreeTest, GetBestChain_TargetPastMax) {
+TEST_F(BlockTreeTest, GetBestChain_TargetPastMax) {
   EXPECT_CALL(*header_repo_, getBlockHeader(kLastFinalizedBlockId))
       .WillRepeatedly(Return(finalized_block_header_));
 

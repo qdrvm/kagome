@@ -17,11 +17,6 @@ namespace kagome::extensions {
    * Extensions for WASM; API, which is called by the runtime to control RE
    */
   class Extension {
-   protected:
-    using SandoxDispatchFuncType = std::function<uint64_t(
-        const uint8_t *serialized_args, size_t serialized_args_length,
-        size_t state, size_t func_index)>;
-
    public:
     virtual ~Extension() = default;
 
@@ -67,7 +62,8 @@ namespace kagome::extensions {
      * <li>there is no enough memory to allocate a value => -1
      */
     virtual runtime::WasmPointer ext_get_allocated_storage(
-        runtime::WasmPointer key_data, runtime::SizeType key_length,
+        runtime::WasmPointer key_data,
+        runtime::SizeType key_length,
         runtime::WasmPointer len_ptr) = 0;
 
     /**
@@ -87,8 +83,10 @@ namespace kagome::extensions {
      * <li>value is not found => u32::max_value()
      */
     virtual runtime::SizeType ext_get_storage_into(
-        runtime::WasmPointer key_data, runtime::SizeType key_length,
-        runtime::WasmPointer value_data, runtime::SizeType value_length,
+        runtime::WasmPointer key_data,
+        runtime::SizeType key_length,
+        runtime::WasmPointer value_data,
+        runtime::SizeType value_length,
         runtime::SizeType value_offset) = 0;
 
     /**
@@ -111,8 +109,10 @@ namespace kagome::extensions {
      * @param result pointer to store trie root
      */
     virtual void ext_blake2_256_enumerated_trie_root(
-        runtime::WasmPointer values_data, runtime::WasmPointer lens_data,
-        runtime::SizeType lens_length, runtime::WasmPointer result) = 0;
+        runtime::WasmPointer values_data,
+        runtime::WasmPointer lens_data,
+        runtime::SizeType lens_length,
+        runtime::WasmPointer result) = 0;
 
     /**
      * @brief Get the change trie root of the current storage overlay at a block
@@ -120,13 +120,12 @@ namespace kagome::extensions {
      *
      * @param parent_hash_data pointer to the hash of parent block
      * @param parent_hash_len length of parent block
-     * @param parent_num number of parent block
      * @param result pointer to place change trie root
      * @return 1 if change trie root was found, 0 otherwise
      */
     virtual runtime::SizeType ext_storage_changes_root(
         runtime::WasmPointer parent_hash_data,
-        runtime::SizeType parent_hash_len, runtime::SizeType parent_num,
+        runtime::SizeType parent_hash_len,
         runtime::WasmPointer result) = 0;
 
     /**
@@ -207,8 +206,10 @@ namespace kagome::extensions {
      * @return 0, if key is successfully verified, 5 otherwise
      */
     virtual runtime::SizeType ext_ed25519_verify(
-        runtime::WasmPointer msg_data, runtime::SizeType msg_len,
-        runtime::WasmPointer sig_data, runtime::WasmPointer pubkey_data) = 0;
+        runtime::WasmPointer msg_data,
+        runtime::SizeType msg_len,
+        runtime::WasmPointer sig_data,
+        runtime::WasmPointer pubkey_data) = 0;
 
     /**
      * Verify the signature over the sr25519 message
@@ -219,8 +220,10 @@ namespace kagome::extensions {
      * @return 0, if key is successfully verified, 5 otherwise
      */
     virtual runtime::SizeType ext_sr25519_verify(
-        runtime::WasmPointer msg_data, runtime::SizeType msg_len,
-        runtime::WasmPointer sig_data, runtime::WasmPointer pubkey_data) = 0;
+        runtime::WasmPointer msg_data,
+        runtime::SizeType msg_len,
+        runtime::WasmPointer sig_data,
+        runtime::WasmPointer pubkey_data) = 0;
 
     /**
      * Hash the data using XX128 hash
@@ -228,7 +231,8 @@ namespace kagome::extensions {
      * @param len of the data
      * @param out buffer to store the hash
      */
-    virtual void ext_twox_128(runtime::WasmPointer data, runtime::SizeType len,
+    virtual void ext_twox_128(runtime::WasmPointer data,
+                              runtime::SizeType len,
                               runtime::WasmPointer out) = 0;
 
     /**
@@ -237,7 +241,8 @@ namespace kagome::extensions {
      * @param len of the data
      * @param out buffer to store the hash
      */
-    virtual void ext_twox_256(runtime::WasmPointer data, runtime::SizeType len,
+    virtual void ext_twox_256(runtime::WasmPointer data,
+                              runtime::SizeType len,
                               runtime::WasmPointer out) = 0;
 
     // -------------------------Misc extensions--------------------------

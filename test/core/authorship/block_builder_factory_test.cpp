@@ -19,6 +19,7 @@ using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockNumber;
 using kagome::primitives::Digest;
+using kagome::primitives::PreRuntime;
 using kagome::runtime::BlockBuilderApiMock;
 using kagome::runtime::CoreMock;
 
@@ -30,7 +31,7 @@ class BlockBuilderFactoryTest : public ::testing::Test {
 
     expected_header_.parent_hash = parent_hash_;
     expected_header_.number = expected_number_;
-    expected_header_.digests = inherent_digests_;
+    expected_header_.digest = inherent_digests_;
 
     EXPECT_CALL(*header_backend_, getNumberByHash(parent_hash_))
         .WillOnce(Return(parent_number_));
@@ -46,7 +47,7 @@ class BlockBuilderFactoryTest : public ::testing::Test {
   BlockNumber expected_number_{parent_number_ + 1};
   kagome::common::Hash256 parent_hash_;
   BlockId parent_id_;
-  std::vector<Digest> inherent_digests_{{0, 1, 2, 3}};
+  Digest inherent_digests_{{PreRuntime{}}};
   BlockHeader expected_header_;
 };
 

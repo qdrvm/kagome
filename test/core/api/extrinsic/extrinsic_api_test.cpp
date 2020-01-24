@@ -16,7 +16,7 @@
 #include "primitives/transaction.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/primitives/hash_creator.hpp"
+#include "testutil/primitives/mp_utils.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
 using namespace kagome::api;

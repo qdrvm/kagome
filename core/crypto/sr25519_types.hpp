@@ -12,6 +12,7 @@ extern "C" {
 #include <boost/multiprecision/cpp_int.hpp>
 #include <gsl/span>
 #include "common/blob.hpp"
+#include "common/mp_utils.hpp"
 
 namespace kagome::crypto {
   namespace constants::sr25519 {

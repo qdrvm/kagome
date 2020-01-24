@@ -12,6 +12,7 @@
 #include <utility>
 
 #include "common/buffer.hpp"
+#include "common/logger.hpp"
 #include "extensions/extension_factory.hpp"
 #include "runtime/binaryen/wasm_executor.hpp"
 #include "runtime/binaryen/runtime_external_interface.hpp"
@@ -44,6 +45,7 @@ namespace kagome::runtime::binaryen {
      */
     template <typename R, typename... Args>
     outcome::result<R> execute(std::string_view name, Args &&... args) {
+      logger_->debug("Executing export function: {}", name);
       runtime::WasmPointer ptr = 0u;
       runtime::SizeType len = 0u;
 
@@ -81,6 +83,7 @@ namespace kagome::runtime::binaryen {
     std::shared_ptr<runtime::WasmProvider> wasm_provider_;
     std::shared_ptr<extensions::ExtensionFactory> extension_factory_;
     WasmExecutor executor_;
+    common::Logger logger_ = common::createLogger("Runtime api");
   };
 }  // namespace kagome::runtime::binaryen
 

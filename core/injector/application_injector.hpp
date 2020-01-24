@@ -305,7 +305,8 @@ namespace kagome::injector {
       if (initialized) {
         return initialized.value();
       }
-      auto storage = injector.template create<sptr<storage::LevelDB>>();
+      auto storage =
+          injector.template create<sptr<storage::PersistentBufferMap>>();
       using blockchain::prefix::TRIE_NODE;
       auto backend = std::make_shared<storage::trie::PolkadotTrieDbBackend>(
           storage, common::Buffer{TRIE_NODE}, common::Buffer{0});

@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "common/buffer.hpp"
-#include "crypto/util.hpp"
+#include "common/mp_utils.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/vrf_provider_mock.hpp"
 
@@ -69,7 +69,7 @@ TEST_F(BabeLotteryTest, SlotsLeadership) {
             current_epoch_.randomness.end(),
             vrf_input.begin());
   for (size_t i = 0; i < current_epoch_.epoch_duration; ++i) {
-    auto slot_bytes = crypto::util::uint64_t_to_bytes(i);
+    auto slot_bytes = uint64_t_to_bytes(i);
     std::copy(slot_bytes.begin(),
               slot_bytes.end(),
               vrf_input.begin() + vrf_constants::OUTPUT_SIZE);
@@ -110,10 +110,9 @@ TEST_F(BabeLotteryTest, ComputeRandomness) {
   // WHEN
   Buffer concat_values{};
   concat_values.put(current_epoch_.randomness);
-  concat_values.put(
-      crypto::util::uint64_t_to_bytes(current_epoch_.epoch_index));
+  concat_values.put(uint64_t_to_bytes(current_epoch_.epoch_index));
   for (const auto &value : submitted_vrf_values_) {
-    concat_values.put(crypto::util::uint256_t_to_bytes(value));
+    concat_values.put(uint256_t_to_bytes(value));
   }
 
   Hash256 new_randomness{};

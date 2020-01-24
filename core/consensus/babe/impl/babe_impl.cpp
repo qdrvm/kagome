@@ -126,22 +126,19 @@ namespace kagome::consensus {
       return log_->error("cannot encode BabeBlockHeader: {}",
                          encoded_header_res.error().message());
     }
+    common::Buffer encoded_header{encoded_header_res.value()};
 
     primitives::InherentData inherent_data;
     auto epoch_secs = std::chrono::duration_cast<std::chrono::seconds>(
                           clock_->now().time_since_epoch())
                           .count();
     // identifiers are guaranteed to be correct, so use .value() directly
-    auto put_res = inherent_data.putData(
-        primitives::InherentIdentifier::fromString("timstap0").value(),
-        common::Buffer{}.putUint64(epoch_secs));
+    auto put_res = inherent_data.putData<uint64_t>(kTimestampId, epoch_secs);
     if (!put_res) {
       return log_->error("cannot put an inherent data: {}",
                          put_res.error().message());
     }
-    put_res = inherent_data.putData(
-        primitives::InherentIdentifier::fromString("babeslot").value(),
-        common::Buffer{}.putUint64(current_slot_));
+    put_res = inherent_data.putData(kBabeSlotId, current_slot_);
     if (!put_res) {
       return log_->error("cannot put an inherent data: {}",
                          put_res.error().message());
@@ -150,7 +147,7 @@ namespace kagome::consensus {
     auto pre_seal_block_res = proposer_->propose(
         best_block_hash,
         inherent_data,
-        {common::Buffer{std::move(encoded_header_res.value())}});
+        {primitives::PreRuntime{{kBabeEngineId, encoded_header}}});
     if (!pre_seal_block_res) {
       return log_->error("cannot propose a block: {}",
                          pre_seal_block_res.error().message());
@@ -158,7 +155,7 @@ namespace kagome::consensus {
 
     // seal the block
     auto block = std::move(pre_seal_block_res.value());
-    auto pre_seal_encoded_block_res = scale::encode(block);
+    auto pre_seal_encoded_block_res = scale::encode(block.header);
     if (!pre_seal_encoded_block_res) {
       return log_->error("cannot encode pre-seal block: {}",
                          pre_seal_encoded_block_res.error().message());
@@ -179,8 +176,9 @@ namespace kagome::consensus {
                          encoded_seal_res.error().message());
     }
 
-    block.header.digests.emplace_back(
-        common::Buffer{std::move(encoded_seal_res.value())});
+    // add seal digest item
+    block.header.digest.emplace_back(primitives::Seal{
+        {kBabeEngineId, common::Buffer{std::move(encoded_seal_res.value())}}});
 
     // finally, broadcast the sealed block
     gossiper_->blockAnnounce(network::BlockAnnounce{block.header});

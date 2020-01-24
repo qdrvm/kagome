@@ -23,6 +23,13 @@
 #include "primitives/common.hpp"
 
 namespace kagome::consensus {
+  inline const auto kBabeEngineId =
+      primitives::ConsensusEngineId::fromString("BABE").value();
+  inline const auto kTimestampId =
+      primitives::InherentIdentifier::fromString("timstap0").value();
+  inline const auto kBabeSlotId =
+      primitives::InherentIdentifier::fromString("babeslot").value();
+
   namespace event {
     /// channel, over which critical errors from BABE are emitted; after such
     /// errors block production stops

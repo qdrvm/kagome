@@ -85,10 +85,9 @@ namespace kagome::extensions {
   runtime::SizeType ExtensionImpl::ext_storage_changes_root(
       runtime::WasmPointer parent_hash_data,
       runtime::SizeType parent_hash_len,
-      runtime::SizeType parent_num,
       runtime::WasmPointer result) {
     return storage_ext_.ext_storage_changes_root(
-        parent_hash_data, parent_hash_len, parent_num, result);
+        parent_hash_data, parent_hash_len, result);
   }
 
   void ExtensionImpl::ext_storage_root(runtime::WasmPointer result) const {

@@ -22,6 +22,7 @@ add_library(sr25519_types
     sr25519_types.hpp
     )
 target_link_libraries(sr25519_types
+    mp_utils
     blob
     sr25519::sr25519
     )
@@ -37,21 +38,13 @@ target_link_libraries(ed25519_types
     )
 kagome_install(ed25519_types)
 
-add_library(crypto_util
-    hash_creator.cpp
-    util.hpp
-    )
-target_link_libraries(crypto_util
-    Boost::boost
-    )
-
 add_library(vrf_provider
     vrf_provider.hpp
     vrf/vrf_provider_impl.cpp
     vrf/vrf_provider_impl.hpp
     )
 target_link_libraries(vrf_provider
-    crypto_util
+    mp_utils
     sr25519_types
     buffer
     blob

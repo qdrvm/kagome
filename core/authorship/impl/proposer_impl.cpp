@@ -22,13 +22,19 @@ namespace kagome::authorship {
   outcome::result<primitives::Block> ProposerImpl::propose(
       const primitives::BlockId &parent_block_id,
       const primitives::InherentData &inherent_data,
-      std::vector<primitives::Digest> inherent_digests) {
-    OUTCOME_TRY(block_builder,
-                block_builder_factory_->create(parent_block_id,
-                                               std::move(inherent_digests)));
+      const primitives::Digest &inherent_digest) {
+    OUTCOME_TRY(
+        block_builder,
+        block_builder_factory_->create(parent_block_id, inherent_digest));
 
-    OUTCOME_TRY(inherent_xts,
-                r_block_builder_->inherent_extrinsics(inherent_data));
+    auto inherent_xts_res =
+        r_block_builder_->inherent_extrinsics(inherent_data);
+    if (not inherent_xts_res) {
+      logger_->error("BlockBuilder->inherent_extrinsics failed with error: {}",
+                     inherent_xts_res.error().message());
+      return inherent_xts_res.error();
+    }
+    auto inherent_xts = inherent_xts_res.value();
 
     auto log_push_error = [this](const primitives::Extrinsic &xt,
                                  std::string_view message) {

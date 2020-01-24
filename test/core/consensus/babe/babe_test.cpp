@@ -10,8 +10,10 @@
 
 #include <gtest/gtest.h>
 #include <boost/asio/io_context.hpp>
+#include <libp2p/crypto/random_generator/boost_generator.hpp>
 #include "clock/impl/clock_impl.hpp"
 #include "consensus/babe/babe_error.hpp"
+#include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "mock/core/authorship/proposer_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/clock/clock_mock.hpp"
@@ -44,6 +46,14 @@ Hash256 createHash(uint8_t byte) {
   return h;
 }
 
+// TODO (kamilsa): workaround unless we bump gtest version to 1.8.1+
+namespace kagome::primitives {
+  std::ostream &operator<<(std::ostream &s,
+                           const detail::DigestItemCommon &dic) {
+    return s;
+  }
+}  // namespace kagome::primitives
+
 class BabeTest : public testing::Test {
  public:
   std::shared_ptr<BabeLotteryMock> lottery_ =
@@ -62,16 +72,17 @@ class BabeTest : public testing::Test {
   testutil::TimerMock *timer_ = timer_mock_.get();
   libp2p::event::Bus event_bus_;
 
-  std::shared_ptr<BabeImpl> babe_ = std::make_shared<BabeImpl>(lottery_,
-                                                               proposer_,
-                                                               block_tree_,
-                                                               gossiper_,
-                                                               keypair_,
-                                                               authority_id_,
-                                                               clock_,
-                                                               hasher_,
-                                                               std::move(timer_mock_),
-                                                               event_bus_);
+  std::shared_ptr<BabeImpl> babe_ =
+      std::make_shared<BabeImpl>(lottery_,
+                                 proposer_,
+                                 block_tree_,
+                                 gossiper_,
+                                 keypair_,
+                                 authority_id_,
+                                 clock_,
+                                 hasher_,
+                                 std::move(timer_mock_),
+                                 event_bus_);
 
   Epoch epoch_{0, 0, 2, 60ms, {{}}, 100, {}};
 
@@ -90,7 +101,7 @@ class BabeTest : public testing::Test {
   BlockTree::BlockInfo best_leaf{best_block_number_, best_block_hash_};
 
   BlockHeader block_header_{
-      createHash(0), 2, createHash(1), createHash(2), {{5}}};
+      createHash(0), 2, createHash(1), createHash(2), {PreRuntime{}}};
   Extrinsic extrinsic_{{1, 2, 3}};
   Block created_block_{block_header_, {extrinsic_}};
 
@@ -104,8 +115,8 @@ class BabeTest : public testing::Test {
 
 ACTION_P(CheckBlockHeader, expected_block_header) {
   auto header_to_check = arg0.header;
-  ASSERT_EQ(header_to_check.digests.size(), 2);
-  header_to_check.digests.pop_back();
+  ASSERT_EQ(header_to_check.digest.size(), 2);
+  header_to_check.digest.pop_back();
   ASSERT_EQ(header_to_check, expected_block_header);
 }
 
