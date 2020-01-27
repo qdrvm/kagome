@@ -13,6 +13,7 @@ using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::SR25519Keypair;
 using kagome::crypto::VRFProviderImpl;
 using kagome::crypto::VRFValue;
+using kagome::crypto::VRFRawOutput;
 
 class VRFProviderTest : public testing::Test {
  public:
@@ -39,7 +40,7 @@ class VRFProviderTest : public testing::Test {
  */
 TEST_F(VRFProviderTest, SignAndVerifySuccess) {
   // given
-  VRFValue threshold{std::numeric_limits<VRFValue>::max() - 1};
+  VRFRawOutput threshold{std::numeric_limits<VRFValue>::max() - 1};
 
   // when
   auto out_opt = vrf_provider_->sign(msg_, keypair1_, threshold);
@@ -47,7 +48,8 @@ TEST_F(VRFProviderTest, SignAndVerifySuccess) {
   auto out = out_opt.value();
 
   // then
-  ASSERT_TRUE(out.value < threshold);
+  EXPECT_TRUE(vrf_provider_->checkIfLessThanThreshold(out.raw_output, threshold));
+  ASSERT_TRUE(out.raw_output < threshold);
   ASSERT_TRUE(vrf_provider_->verify(msg_, out, keypair1_.public_key));
 }
 
@@ -59,7 +61,7 @@ TEST_F(VRFProviderTest, SignAndVerifySuccess) {
  */
 TEST_F(VRFProviderTest, VerifyFailed) {
   // given
-  VRFValue threshold{std::numeric_limits<VRFValue>::max() - 1};
+  VRFRawOutput threshold{std::numeric_limits<VRFValue>::max() - 1};
 
   // when
   auto out_opt = vrf_provider_->sign(msg_, keypair1_, threshold);
@@ -67,7 +69,7 @@ TEST_F(VRFProviderTest, VerifyFailed) {
   auto out = out_opt.value();
 
   // then
-  ASSERT_TRUE(out.value < threshold);
+  ASSERT_TRUE(out.raw_output < threshold);
   ASSERT_FALSE(vrf_provider_->verify(msg_, out, keypair2_.public_key));
 }
 
@@ -78,7 +80,7 @@ TEST_F(VRFProviderTest, VerifyFailed) {
  */
 TEST_F(VRFProviderTest, SignFailed) {
   // given
-  VRFValue threshold{std::numeric_limits<VRFValue>::min()};
+  VRFRawOutput threshold{std::numeric_limits<VRFValue>::min()};
 
   // when
   auto out_opt = vrf_provider_->sign(msg_, keypair1_, threshold);

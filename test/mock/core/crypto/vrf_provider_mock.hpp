@@ -6,9 +6,9 @@
 #ifndef KAGOME_VRF_PROVIDER_MOCK_HPP
 #define KAGOME_VRF_PROVIDER_MOCK_HPP
 
-#include "crypto/vrf_provider.hpp"
-
 #include <gmock/gmock.h>
+
+#include "crypto/vrf_provider.hpp"
 
 namespace kagome::crypto {
   struct VRFProviderMock : public VRFProvider {
@@ -17,7 +17,9 @@ namespace kagome::crypto {
     MOCK_CONST_METHOD3(sign,
                        boost::optional<VRFOutput>(const common::Buffer &,
                                                   const SR25519Keypair &,
-                                                  const VRFValue &));
+                                                  const VRFRawOutput &));
+    MOCK_CONST_METHOD2(checkIfLessThanThreshold,
+                       bool(const VRFRawOutput &, const VRFRawOutput &));
 
     MOCK_CONST_METHOD3(verify,
                        bool(const common::Buffer &,

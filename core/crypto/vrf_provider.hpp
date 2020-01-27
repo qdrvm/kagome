@@ -33,7 +33,7 @@ namespace kagome::crypto {
     virtual boost::optional<VRFOutput> sign(
         const common::Buffer &msg,
         const SR25519Keypair &keypair,
-        const VRFValue &threshold) const = 0;
+        const VRFRawOutput &threshold) const = 0;
 
     /**
      * Compares the provided value with the threshold.
@@ -44,7 +44,7 @@ namespace kagome::crypto {
      * @return true if the value is less than the threshold, false otherwise
      */
     virtual bool checkIfLessThanThreshold(const VRFRawOutput &output,
-                                          const VRFRawOutput &threshold) = 0;
+                                          const VRFRawOutput &threshold) const = 0;
 
     /**
      * Verifies that \param output was derived using \param public_key on \param

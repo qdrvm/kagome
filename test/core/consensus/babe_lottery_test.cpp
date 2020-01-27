@@ -90,9 +90,9 @@ TEST_F(BabeLotteryTest, SlotsLeadership) {
 
   // THEN
   ASSERT_TRUE(leadership[0]);
-  ASSERT_EQ(leadership[0]->value, 3749373);
+  ASSERT_EQ(leadership[0]->output, 3749373);
   ASSERT_TRUE(leadership[1]);
-  ASSERT_EQ(leadership[1]->value, 1057472095);
+  ASSERT_EQ(leadership[1]->output, 1057472095);
   ASSERT_FALSE(leadership[2]);
 }
 

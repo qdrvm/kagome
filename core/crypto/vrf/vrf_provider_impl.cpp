@@ -35,7 +35,7 @@ namespace kagome::crypto {
   boost::optional<VRFOutput> VRFProviderImpl::sign(
       const common::Buffer &msg,
       const SR25519Keypair &keypair,
-      const VRFValue &threshold) const {
+      const VRFRawOutput &threshold) const {
     common::Buffer keypair_buf{};
     keypair_buf.put(keypair.secret_key).put(keypair.public_key);
 
@@ -67,7 +67,7 @@ namespace kagome::crypto {
   }
 
   bool VRFProviderImpl::checkIfLessThanThreshold(
-      const VRFRawOutput &output, const VRFRawOutput &threshold) {
+      const VRFRawOutput &output, const VRFRawOutput &threshold) const {
     return sr25519_vrf_check_if_less(
         common::uint128_t_to_bytes(output).data(),
         common::uint128_t_to_bytes(threshold).data());

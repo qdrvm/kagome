@@ -24,10 +24,10 @@ namespace kagome::crypto {
 
     boost::optional<VRFOutput> sign(const common::Buffer &msg,
                                     const SR25519Keypair &keypair,
-                                    const VRFValue &threshold) const override;
+                                    const VRFRawOutput &threshold) const override;
 
     bool checkIfLessThanThreshold(const VRFRawOutput &output,
-                                  const VRFRawOutput &threshold) override;
+                                  const VRFRawOutput &threshold) const override;
 
     bool verify(const common::Buffer &msg,
                 const VRFOutput &output,

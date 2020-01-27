@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/babe/impl/babe_impl.hpp"
+#include <gtest/gtest.h>
 
+#include <boost/asio/io_context.hpp>
 #include <chrono>
+#include <libp2p/crypto/random_generator/boost_generator.hpp>
 #include <memory>
 
-#include <gtest/gtest.h>
-#include <boost/asio/io_context.hpp>
-#include <libp2p/crypto/random_generator/boost_generator.hpp>
 #include "clock/impl/clock_impl.hpp"
 #include "consensus/babe/babe_error.hpp"
+#include "consensus/babe/impl/babe_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "mock/core/authorship/proposer_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
@@ -87,9 +87,9 @@ class BabeTest : public testing::Test {
   Epoch epoch_{0, 0, 2, 60ms, {{}}, 100, {}};
 
   VRFOutput leader_vrf_output_{
-      50, {0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33,
-           0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22,
-           0x33, 0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44}};
+      50, 50, {0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33,
+               0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22,
+               0x33, 0x44, 0x11, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44}};
   BabeLottery::SlotsLeadership leadership_{boost::none, leader_vrf_output_};
 
   BlockHash best_block_hash_{{0x41, 0x22, 0x33, 0x44, 0x11, 0x22, 0x33, 0x44,

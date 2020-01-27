@@ -6,8 +6,8 @@
 #include "consensus/validation/babe_block_validator.hpp"
 
 #include <algorithm>
-
 #include <boost/assert.hpp>
+
 #include "common/mp_utils.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "scale/scale.hpp"
@@ -187,7 +187,8 @@ namespace kagome::consensus {
     }
 
     // verify threshold
-    if (babe_header.vrf_output.value >= epoch.threshold) {
+    if (not vrf_provider_->checkIfLessThanThreshold(
+            babe_header.vrf_output.raw_output, epoch.threshold)) {
       log_->info("VRF value is not less than the threshold");
       return false;
     }
@@ -231,10 +232,11 @@ namespace kagome::consensus {
                        validation_res.error());
             return false;
           }
-          return visit_in_place(validation_res.value(),
-                                [](const primitives::Valid &) { return true; },
-                                [](primitives::Invalid) { return false; },
-                                [](primitives::Unknown) { return false; });
+          return visit_in_place(
+              validation_res.value(),
+              [](const primitives::Valid &) { return true; },
+              [](primitives::Invalid) { return false; },
+              [](primitives::Unknown) { return false; });
         });
   }
 }  // namespace kagome::consensus
