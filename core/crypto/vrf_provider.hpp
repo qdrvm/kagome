@@ -36,23 +36,13 @@ namespace kagome::crypto {
         const VRFRawOutput &threshold) const = 0;
 
     /**
-     * Compares the provided value with the threshold.
-     * Required because there is a need in internal transformations of VRF
-     * output to compare.
-     * @param output - output of a VRF function
-     * @param threshold - a value to compare against
-     * @return true if the value is less than the threshold, false otherwise
-     */
-    virtual bool checkIfLessThanThreshold(const VRFRawOutput &output,
-                                          const VRFRawOutput &threshold) const = 0;
-
-    /**
      * Verifies that \param output was derived using \param public_key on \param
      * msg
      */
-    virtual bool verify(const common::Buffer &msg,
+    virtual VRFVerifyOutput verify(const common::Buffer &msg,
                         const VRFOutput &output,
-                        const SR25519PublicKey &public_key) const = 0;
+                        const SR25519PublicKey &public_key,
+                        const VRFRawOutput &threshold) const = 0;
   };
 }  // namespace kagome::crypto
 

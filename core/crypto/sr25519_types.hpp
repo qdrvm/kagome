@@ -54,6 +54,11 @@ namespace kagome::crypto {
     bool operator!=(const VRFOutput &other) const;
   };
 
+  struct VRFVerifyOutput {
+    bool is_valid;
+    bool is_less;
+  };
+
   using SR25519SecretKey = common::Blob<constants::sr25519::SECRET_SIZE>;
 
   using SR25519PublicKey = common::Blob<constants::sr25519::PUBLIC_SIZE>;

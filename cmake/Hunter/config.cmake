@@ -11,8 +11,8 @@ hunter_config(
 )
 
 hunter_config(sr25519
-    URL https://github.com/Warchant/sr25519-crust/archive/1.0.2.tar.gz
-    SHA1 c91675c544100d7728331f77b3a2c3d35f16baf6
+    URL https://github.com/Warchant/sr25519-crust/archive/79a405682bf49844a253cdc0c8d7ce1dfe286372.zip
+    SHA1 6b0a51ed651d64b55bcbde7f59033a4d74fba907
 )
 
 hunter_config(

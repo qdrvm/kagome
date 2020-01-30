@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "crypto/random_generator/boost_generator.hpp"
+#include "common/mp_utils.hpp"
 
 using kagome::common::Buffer;
 using kagome::crypto::BoostRandomGenerator;
@@ -48,9 +49,10 @@ TEST_F(VRFProviderTest, SignAndVerifySuccess) {
   auto out = out_opt.value();
 
   // then
-  EXPECT_TRUE(vrf_provider_->checkIfLessThanThreshold(out.raw_output, threshold));
   ASSERT_TRUE(out.raw_output < threshold);
-  ASSERT_TRUE(vrf_provider_->verify(msg_, out, keypair1_.public_key));
+  auto verify_res = vrf_provider_->verify(msg_, out, keypair1_.public_key, threshold);
+  ASSERT_TRUE(verify_res.is_valid);
+  ASSERT_TRUE(verify_res.is_less);
 }
 
 /**
@@ -70,7 +72,7 @@ TEST_F(VRFProviderTest, VerifyFailed) {
 
   // then
   ASSERT_TRUE(out.raw_output < threshold);
-  ASSERT_FALSE(vrf_provider_->verify(msg_, out, keypair2_.public_key));
+  ASSERT_FALSE(vrf_provider_->verify(msg_, out, keypair2_.public_key, threshold).is_valid);
 }
 
 /**
@@ -79,6 +81,13 @@ TEST_F(VRFProviderTest, VerifyFailed) {
  * @then output is not created as value is bigger than threshold
  */
 TEST_F(VRFProviderTest, SignFailed) {
+  boost::multiprecision::uint128_t i ("102084710076281554150585127412395147264");
+  std::cout << i << "\n";
+  auto bytes = kagome::common::uint128_t_to_bytes(i);
+  for(uint8_t c: bytes) {
+    std::cout << static_cast<int>(c) << ", ";
+  }
+
   // given
   VRFRawOutput threshold{std::numeric_limits<VRFValue>::min()};
 

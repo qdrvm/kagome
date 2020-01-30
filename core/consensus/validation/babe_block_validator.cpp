@@ -178,17 +178,18 @@ namespace kagome::consensus {
         Buffer{}
             .put(epoch.randomness)
             .put(common::uint256_t_to_bytes(epoch.threshold));
-    if (!vrf_provider_->verify(
-            randomness_with_slot,
-            babe_header.vrf_output,
-            epoch.authorities[babe_header.authority_index.index].id.id)) {
+    auto verify_res =vrf_provider_->verify(
+        randomness_with_slot,
+        babe_header.vrf_output,
+        epoch.authorities[babe_header.authority_index.index].id.id,
+        epoch.threshold);
+    if (not verify_res.is_valid) {
       log_->info("VRF proof in block is not valid");
       return false;
     }
 
     // verify threshold
-    if (not vrf_provider_->checkIfLessThanThreshold(
-            babe_header.vrf_output.raw_output, epoch.threshold)) {
+    if (not verify_res.is_less) {
       log_->info("VRF value is not less than the threshold");
       return false;
     }

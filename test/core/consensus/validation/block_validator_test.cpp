@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/validation/babe_block_validator.hpp"
-
 #include <gtest/gtest.h>
+
 #include "common/mp_utils.hpp"
+#include "consensus/validation/babe_block_validator.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
@@ -140,10 +140,8 @@ TEST_F(BlockValidatorTest, Success) {
       Buffer{}
           .put(babe_epoch_.randomness)
           .put(uint256_t_to_bytes(babe_epoch_.threshold));
-  EXPECT_CALL(*vrf_provider_, checkIfLessThanThreshold(_, _))
-      .WillOnce(Return(true));
-  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
-      .WillOnce(Return(true));
+  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey, _))
+      .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
 
   BlockTree::BlockInfo deepest_leaf{1u, createHash256({1u})};
   EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
@@ -290,8 +288,8 @@ TEST_F(BlockValidatorTest, VRFFail) {
       Buffer{}
           .put(babe_epoch_.randomness)
           .put(uint256_t_to_bytes(babe_epoch_.threshold));
-  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
-      .WillOnce(Return(false));
+  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey, _))
+      .WillOnce(Return(VRFVerifyOutput{.is_valid = false, .is_less = true}));
 
   // THEN
   EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
@@ -328,8 +326,8 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
       Buffer{}
           .put(babe_epoch_.randomness)
           .put(uint256_t_to_bytes(babe_epoch_.threshold));
-  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
-      .WillOnce(Return(true));
+  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey, _))
+      .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = false}));
 
   // THEN
   EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
@@ -365,9 +363,10 @@ TEST_F(BlockValidatorTest, TwoBlocksByOnePeer) {
       Buffer{}
           .put(babe_epoch_.randomness)
           .put(uint256_t_to_bytes(babe_epoch_.threshold));
-  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
+  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey, _))
       .Times(2)
-      .WillRepeatedly(Return(true));
+      .WillRepeatedly(
+          Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
 
   BlockTree::BlockInfo deepest_leaf{1u, createHash256({1u})};
 
@@ -379,15 +378,10 @@ TEST_F(BlockValidatorTest, TwoBlocksByOnePeer) {
   EXPECT_CALL(*tree_, addBlock(valid_block_))
       .WillOnce(Return(outcome::success()));
 
-  EXPECT_CALL(*vrf_provider_, checkIfLessThanThreshold(_, babe_epoch_.threshold))
-      .WillOnce(Return(true));
-
   // WHEN
   ASSERT_TRUE(validator_.validate(valid_block_, babe_epoch_));
 
   // THEN
-  EXPECT_CALL(*vrf_provider_, checkIfLessThanThreshold(_, babe_epoch_.threshold))
-      .WillOnce(Return(true));
   EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::TWO_BLOCKS_IN_SLOT);
 }
@@ -419,14 +413,12 @@ TEST_F(BlockValidatorTest, InvalidExtrinsic) {
       Buffer{}
           .put(babe_epoch_.randomness)
           .put(uint256_t_to_bytes(babe_epoch_.threshold));
-  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
-      .WillOnce(Return(true));
+  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey, _))
+      .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
+
 
   BlockTree::BlockInfo deepest_leaf{1u, createHash256({1u})};
   EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
-
-  EXPECT_CALL(*vrf_provider_, checkIfLessThanThreshold(_, babe_epoch_.threshold))
-      .WillOnce(Return(true));
 
   // WHEN
   EXPECT_CALL(*tx_queue_, validate_transaction(deepest_leaf.block_number, ext_))
@@ -464,11 +456,8 @@ TEST_F(BlockValidatorTest, BlockTreeFails) {
       Buffer{}
           .put(babe_epoch_.randomness)
           .put(uint256_t_to_bytes(babe_epoch_.threshold));
-  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
-      .WillOnce(Return(true));
-
-  EXPECT_CALL(*vrf_provider_, checkIfLessThanThreshold(_, babe_epoch_.threshold))
-      .WillOnce(Return(true));
+  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey, _))
+      .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
 
   BlockTree::BlockInfo deepest_leaf{1u, createHash256({1u})};
   EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));

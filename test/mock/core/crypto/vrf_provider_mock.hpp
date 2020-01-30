@@ -18,13 +18,11 @@ namespace kagome::crypto {
                        boost::optional<VRFOutput>(const common::Buffer &,
                                                   const SR25519Keypair &,
                                                   const VRFRawOutput &));
-    MOCK_CONST_METHOD2(checkIfLessThanThreshold,
-                       bool(const VRFRawOutput &, const VRFRawOutput &));
-
-    MOCK_CONST_METHOD3(verify,
-                       bool(const common::Buffer &,
+    MOCK_CONST_METHOD4(verify,
+                       VRFVerifyOutput(const common::Buffer &,
                             const VRFOutput &,
-                            const SR25519PublicKey &));
+                            const SR25519PublicKey &,
+                            const VRFRawOutput &));
   };
 }  // namespace kagome::crypto
 

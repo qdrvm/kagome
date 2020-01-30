@@ -45,7 +45,6 @@ namespace kagome::crypto {
 
     auto sign_res =
         sr25519_vrf_sign_if_less(out_proof.data(),
-                                 out_raw.data(),
                                  keypair_buf.data(),
                                  msg.data(),
                                  msg.size(),
@@ -66,16 +65,10 @@ namespace kagome::crypto {
     return res;
   }
 
-  bool VRFProviderImpl::checkIfLessThanThreshold(
-      const VRFRawOutput &output, const VRFRawOutput &threshold) const {
-    return sr25519_vrf_check_if_less(
-        common::uint128_t_to_bytes(output).data(),
-        common::uint128_t_to_bytes(threshold).data());
-  }
-
-  bool VRFProviderImpl::verify(const common::Buffer &msg,
+  VRFVerifyOutput VRFProviderImpl::verify(const common::Buffer &msg,
                                const VRFOutput &output,
-                               const SR25519PublicKey &public_key) const {
+                               const SR25519PublicKey &public_key,
+                               const VRFRawOutput &threshold) const {
     std::array<uint8_t, vrf_constants::OUTPUT_SIZE> out_array =
         common::uint256_t_to_bytes(output.output);
 
@@ -83,8 +76,10 @@ namespace kagome::crypto {
                                   msg.data(),
                                   msg.size(),
                                   out_array.data(),
-                                  output.proof.data());
-    return res == Sr25519SignatureResult::Ok;
+                                  output.proof.data(),
+                                  common::uint256_t_to_bytes(threshold).data()
+                                  );
+    return VRFVerifyOutput {.is_valid = res.result == Sr25519SignatureResult::Ok, .is_less = res.is_less};
   }
 
 }  // namespace kagome::crypto

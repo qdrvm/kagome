@@ -26,12 +26,10 @@ namespace kagome::crypto {
                                     const SR25519Keypair &keypair,
                                     const VRFRawOutput &threshold) const override;
 
-    bool checkIfLessThanThreshold(const VRFRawOutput &output,
-                                  const VRFRawOutput &threshold) const override;
-
-    bool verify(const common::Buffer &msg,
+    VRFVerifyOutput verify(const common::Buffer &msg,
                 const VRFOutput &output,
-                const SR25519PublicKey &public_key) const override;
+                const SR25519PublicKey &public_key,
+                const VRFRawOutput &threshold) const override;
 
    private:
     std::shared_ptr<CSPRNG> generator_;
