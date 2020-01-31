@@ -11,6 +11,7 @@ extern "C" {
 }
 #include <boost/multiprecision/cpp_int.hpp>
 #include <gsl/span>
+
 #include "common/blob.hpp"
 #include "common/mp_utils.hpp"
 
@@ -44,16 +45,29 @@ namespace kagome::crypto {
   using VRFThreshold = boost::multiprecision::uint128_t;
   using VRFProof = std::array<uint8_t, constants::sr25519::vrf::PROOF_SIZE>;
 
+  /**
+   * Output of a verifiable random function.
+   * Consists of pre-output, which is an internal representation of the
+   * generated random value, and the proof to this value that servers as the
+   * verification of its randomness.
+   */
   struct VRFOutput {
+    // an internal representation of the generated random value
     VRFPreOutput output;
+    // the proof to the output, serves as the verification of its randomness
     VRFProof proof{};
 
     bool operator==(const VRFOutput &other) const;
     bool operator!=(const VRFOutput &other) const;
   };
 
+  /**
+   * Output of a verifiable random function verification.
+   */
   struct VRFVerifyOutput {
+    // indicates if the proof is valid
     bool is_valid;
+    // indicates if the value is less than the provided threshold
     bool is_less;
   };
 
