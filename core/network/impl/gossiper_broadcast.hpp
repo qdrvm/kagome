@@ -14,6 +14,7 @@
 #include "libp2p/host/host.hpp"
 #include "libp2p/peer/peer_info.hpp"
 #include "network/gossiper.hpp"
+#include "network/types/gossip_message.hpp"
 #include "network/types/peer_list.hpp"
 
 namespace kagome::network {
@@ -41,8 +42,7 @@ namespace kagome::network {
     void primaryPropose(PrimaryPropose pv) override;
 
    private:
-    template <typename MsgType>
-    void broadcast(MsgType &&msg);
+    void broadcast(GossipMessage &&msg);
 
     libp2p::Host &host_;
     std::unordered_map<libp2p::peer::PeerInfo,

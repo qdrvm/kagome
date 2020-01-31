@@ -17,6 +17,7 @@ target_link_libraries(application_injector
     block_header_repository
     block_storage
     block_tree
+    block_validator
     buffer
     clock
     sr25519_provider
@@ -26,12 +27,14 @@ target_link_libraries(application_injector
     binaryen_block_builder_api
     extrinsic_api_service
     extension_factory
+    epoch_storage
     gossiper_broadcast
     in_memory_storage
     kagome_router
     leveldb
     local_key_storage
     outcome
+    observer_dummy
     proposer
     storage_wasm_provider
     synchronizer

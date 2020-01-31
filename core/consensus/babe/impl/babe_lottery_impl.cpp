@@ -18,14 +18,17 @@ namespace kagome::consensus {
   BabeLotteryImpl::BabeLotteryImpl(
       std::shared_ptr<crypto::VRFProvider> vrf_provider,
       std::shared_ptr<crypto::Hasher> hasher)
-      : vrf_provider_{std::move(vrf_provider)}, hasher_{std::move(hasher)} {
+      : vrf_provider_{std::move(vrf_provider)},
+        hasher_{std::move(hasher)},
+        logger_{common::createLogger("BabeLottery")} {
     BOOST_ASSERT(vrf_provider_);
     BOOST_ASSERT(hasher_);
+    BOOST_ASSERT(logger_);
   }
 
   BabeLottery::SlotsLeadership BabeLotteryImpl::slotsLeadership(
       const Epoch &epoch, crypto::SR25519Keypair keypair) const {
-    std::vector<boost::optional<crypto::VRFOutput>> result;
+    BabeLottery::SlotsLeadership result;
     result.reserve(epoch.epoch_duration);
 
     // randomness || slot number
@@ -40,8 +43,14 @@ namespace kagome::consensus {
     for (BabeSlotNumber i = 0; i < epoch.epoch_duration; ++i) {
       auto slot_bytes = common::uint64_t_to_bytes(i);
       std::copy(slot_bytes.begin(), slot_bytes.end(), slot_number_begin);
-      result.push_back(
-          vrf_provider_->sign(vrf_input, keypair, epoch.threshold));
+      auto sign_opt = vrf_provider_->sign(vrf_input, keypair, epoch.threshold);
+      result.push_back(sign_opt);
+      // uncomment when VRF is fixed
+      //      if (sign_opt) {
+      //        BOOST_ASSERT_MSG(sign_opt->value < epoch.threshold,
+      //                         "Provided VRF value is not less than
+      //                         threshold");
+      //      }
     }
 
     return result;

@@ -40,6 +40,12 @@ namespace kagome::network {
         kGossipProtocol, [self{shared_from_this()}](auto &&stream) {
           self->handleGossipProtocol(std::forward<decltype(stream)>(stream));
         });
+    host_.start();
+    const auto &host_addresses = host_.getAddresses();
+    BOOST_ASSERT_MSG(not host_addresses.empty(), "Host addresses empty");
+    log_->info("Started listening with peer id: {} on address: {}",
+               host_.getId().toBase58(),
+               host_addresses.front().getStringAddress());
   }
 
   void RouterLibp2p::handleSyncProtocol(

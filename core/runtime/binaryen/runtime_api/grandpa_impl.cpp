@@ -34,7 +34,6 @@ namespace kagome::runtime::binaryen {
 
   outcome::result<std::vector<Authority>> GrandpaImpl::authorities(
       const primitives::BlockId &block_id) {
-    return execute<std::vector<Authority>>("GrandpaApi_grandpa_authorities",
-                                           block_id);
+    return execute<std::vector<Authority>>("AuraApi_authorities", block_id);
   }
 }  // namespace kagome::runtime::binaryen

@@ -37,6 +37,7 @@
 #include "consensus/babe/impl/epoch_storage_dumb.hpp"
 #include "consensus/grandpa/chain.hpp"
 #include "consensus/grandpa/gossiper.hpp"
+#include "consensus/grandpa/impl/observer_dummy.hpp"
 #include "consensus/grandpa/observer.hpp"
 #include "consensus/grandpa/structs.hpp"
 #include "consensus/grandpa/vote_graph.hpp"
@@ -135,10 +136,16 @@ namespace kagome::injector {
       // get key storage
       auto &keys = injector.template create<application::KeyStorage &>();
       auto &&local_pair = keys.getP2PKeypair();
-      auto &public_key = local_pair.publicKey;
+      libp2p::crypto::PublicKey &public_key = local_pair.publicKey;
+      auto &key_marshaller =
+          injector
+              .template create<libp2p::crypto::marshaller::KeyMarshaller &>();
+
       libp2p::peer::PeerId peer_id =
-          libp2p::peer::PeerId::fromPublicKey(public_key.data);
-      // TODO (yuraz): specify port
+          libp2p::peer::PeerId::fromPublicKey(
+              key_marshaller.marshal(public_key).value())
+              .value();
+      spdlog::debug("Received peer id: {}", peer_id.toBase58());
       auto multiaddress =
           libp2p::multi::Multiaddress::create("/ip4/127.0.0.1/tcp/30363");
       if (!multiaddress) {
@@ -150,6 +157,22 @@ namespace kagome::injector {
 
       initialized =
           std::make_shared<libp2p::peer::PeerInfo>(std::move(peer_info));
+      return initialized.value();
+    };
+
+    auto get_peer_keypair =
+        [](const auto &injector) -> sptr<libp2p::crypto::KeyPair> {
+      static auto initialized =
+          boost::optional<sptr<libp2p::crypto::KeyPair>>(boost::none);
+
+      if (initialized) {
+        return initialized.value();
+      }
+
+      // get key storage
+      auto &keys = injector.template create<application::KeyStorage &>();
+      auto &&local_pair = keys.getP2PKeypair();
+      initialized = std::make_shared<libp2p::crypto::KeyPair>(local_pair);
       return initialized.value();
     };
 
@@ -184,27 +207,29 @@ namespace kagome::injector {
         common::raise(version_res.error());
       }
 
-      auto grandpa_api = injector.template create<sptr<runtime::Grandpa>>();
-      auto &keys = injector.template create<application::KeyStorage &>();
-      auto &&local_pair = keys.getLocalEd25519Keypair();
-      auto &public_key = local_pair.public_key;
-      auto &&authorities_res = grandpa_api->authorities(
-          primitives::BlockId(primitives::BlockNumber{0}));
-      if (authorities_res.has_error()) {
-        common::raise(authorities_res.error());
-      }
-      auto &&authorities = authorities_res.value();
-
+      //      auto grandpa_api = injector.template
+      //      create<sptr<runtime::Grandpa>>(); auto &keys = injector.template
+      //      create<application::KeyStorage &>(); auto &&local_pair =
+      //      keys.getLocalEd25519Keypair();
+      //      auto &public_key = local_pair.public_key;
+      //      auto &&authorities_res = grandpa_api->authorities(
+      //          primitives::BlockId(primitives::BlockNumber{0}));
+      //      if (authorities_res.has_error()) {
+      //        common::raise(authorities_res.error());
+      //      }
+      //      auto &&authorities = authorities_res.value();
+      //
+      //      uint64_t index = 0;
+      //      for (auto &auth : authorities) {
+      //        if (public_key == auth.id.id) {
+      //          break;
+      //        }
+      //        ++index;
+      //      }
+      //      if (index >= authorities.size()) {
+      //        common::raise(InjectorError::INDEX_OUT_OF_BOUND);
+      //      }
       uint64_t index = 0;
-      for (auto &auth : authorities) {
-        if (public_key == auth.id.id) {
-          break;
-        }
-        ++index;
-      }
-      if (index >= authorities.size()) {
-        common::raise(InjectorError::INDEX_OUT_OF_BOUND);
-      }
 
       initialized = std::make_shared<primitives::AuthorityIndex>(
           primitives::AuthorityIndex{index});
@@ -413,6 +438,25 @@ namespace kagome::injector {
       return result.value();
     };
 
+    auto get_sync_clients_set =
+        [](const auto &injector) -> sptr<network::SyncClientsSet> {
+      auto configuration_storage =
+          injector.template create<sptr<application::ConfigurationStorage>>();
+      auto peer_infos = configuration_storage->getBootNodes().peers;
+
+      auto host = injector.template create<sptr<libp2p::Host>>();
+      auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
+      auto block_header_repository =
+          injector.template create<sptr<blockchain::BlockHeaderRepository>>();
+
+      auto res = std::make_shared<network::SyncClientsSet>();
+      for (const auto &peer_info : peer_infos) {
+        res->clients.insert(std::make_shared<consensus::SynchronizerImpl>(
+            *host, peer_info, block_tree, block_header_repository));
+      }
+      return res;
+    };
+
   }  // namespace
 
   template <typename... Ts>
@@ -442,6 +486,9 @@ namespace kagome::injector {
         di::bind<crypto::ED25519Keypair>.to(std::move(get_ed25519_keypair)),
         // compose peer info
         di::bind<libp2p::peer::PeerInfo>.to(std::move(get_peer_info)),
+        // compose peer keypair
+        di::bind<libp2p::crypto::KeyPair>.to(
+            std::move(get_peer_keypair))[boost::di::override],
         // bind boot nodes
         di::bind<network::PeerList>.to(std::move(get_boot_nodes)),
         // find and bind authority id
@@ -476,6 +523,7 @@ namespace kagome::injector {
         di::bind<consensus::Babe>.template to<consensus::BabeImpl>(),
         di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
         di::bind<network::BabeObserver>.template to<consensus::BabeObserverImpl>(),
+        di::bind<consensus::grandpa::Observer>.template to<consensus::grandpa::ObserverDummy>(),
         di::bind<consensus::EpochStorage>.template to<consensus::EpochStorageDumb>(),
         di::bind<consensus::Synchronizer>.template to<consensus::SynchronizerImpl>(),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
@@ -488,6 +536,7 @@ namespace kagome::injector {
         di::bind<consensus::grandpa::Gossiper>.template to<network::GossiperBroadcast>(),
         di::bind<network::Gossiper>.template to<network::GossiperBroadcast>(),
         di::bind<network::Router>.template to<network::RouterLibp2p>(),
+        di::bind<network::SyncClientsSet>.to(std::move(get_sync_clients_set)),
         di::bind<network::SyncProtocolClient>.template to<consensus::SynchronizerImpl>(),
         di::bind<network::SyncProtocolObserver>.template to<consensus::SynchronizerImpl>(),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::binaryen::TaggedTransactionQueueImpl>(),

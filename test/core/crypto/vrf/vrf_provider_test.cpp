@@ -39,7 +39,7 @@ class VRFProviderTest : public testing::Test {
  */
 TEST_F(VRFProviderTest, SignAndVerifySuccess) {
   // given
-  VRFValue threshold{std::numeric_limits<VRFValue>::max() - 1};
+  VRFValue threshold{"102084710076281554150585127412395147264"};
 
   // when
   auto out_opt = vrf_provider_->sign(msg_, keypair1_, threshold);

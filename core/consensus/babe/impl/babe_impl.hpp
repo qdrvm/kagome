@@ -101,6 +101,11 @@ namespace kagome::consensus {
     void synchronizeSlots();
 
    private:
+    outcome::result<primitives::PreRuntime> babePreDigest(
+        const crypto::VRFOutput &output) const;
+
+    primitives::Seal sealBlock(const primitives::Block &block) const;
+
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<authorship::Proposer> proposer_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;

@@ -17,7 +17,7 @@ namespace kagome::application {
       : injector_{injector::makeApplicationInjector(
           config_path, keystore_path, leveldb_path)},
         logger_(common::createLogger("Application")) {
-    spdlog::set_level(spdlog::level::debug);
+    spdlog::set_level(spdlog::level::info);
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
@@ -27,6 +27,7 @@ namespace kagome::application {
     clock_ = injector_.create<sptr<clock::SystemClock>>();
     extrinsic_api_service_ = injector_.create<sptr<ExtrinsicApiService>>();
     babe_ = injector_.create<sptr<Babe>>();
+    router_ = injector_.create<sptr<network::Router>>();
   }
 
   // TODO (yuraz) rewrite when there will be more info
@@ -40,7 +41,7 @@ namespace kagome::application {
     }
 
     Threshold threshold =
-        boost::multiprecision::uint256_t(0.58 * 1e77) / authorities.size();
+        boost::multiprecision::uint256_t(0.58 * 1e77) / authorities.size() / 6;
 
     Randomness rnd{};
     rnd.fill(0u);
@@ -60,6 +61,17 @@ namespace kagome::application {
     extrinsic_api_service_->start();
     auto epoch = makeInitialEpoch();
     babe_->runEpoch(std::move(epoch), clock_->now());
+
+    io_context_->post([this] {
+      const auto &current_peer_info =
+          injector_.template create<libp2p::peer::PeerInfo>();
+      auto &host = injector_.template create<libp2p::Host &>();
+      for (const auto &ma : current_peer_info.addresses) {
+        BOOST_ASSERT_MSG(host.listen(ma), "cannot listen");
+      }
+      this->router_->init();
+    });
+
     io_context_->run();
   }
 }  // namespace kagome::application

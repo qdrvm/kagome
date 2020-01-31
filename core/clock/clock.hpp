@@ -32,6 +32,8 @@ namespace kagome::clock {
      * @return a time point representing the current time
      */
     virtual TimePoint now() const = 0;
+
+    virtual uint64_t nowUint64() const = 0;
   };
 
   /**

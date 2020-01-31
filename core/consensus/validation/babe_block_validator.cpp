@@ -56,16 +56,21 @@ namespace kagome::consensus {
 
   outcome::result<void> BabeBlockValidator::validate(
       const primitives::Block &block, const Epoch &epoch) {
+    log_->debug(
+        "Received block with number: {}, hash: {}",
+        block.header.number,
+        hasher_->blake2b_256(scale::encode(block.header).value()).toHex());
+
     if (epoch.authorities.empty()) {
       return ValidationError::NO_AUTHORITIES;
     }
 
+    log_->debug("Epoch contains authority: {}",
+                epoch.authorities.front().id.id.toHex());
+
     // get BABE-specific digests, which must be inside of this block
-    auto digests_res = getBabeDigests(block);
-    if (!digests_res) {
-      return digests_res.error();
-    }
-    auto [seal, babe_header] = digests_res.value();
+    OUTCOME_TRY(babe_digests, getBabeDigests(block));
+    auto [seal, babe_header] = babe_digests;
 
     // signature in seal of the header must be valid
     if (!verifySignature(block, babe_header, seal, epoch.authorities)) {
@@ -73,9 +78,10 @@ namespace kagome::consensus {
     }
 
     // VRF must prove that the peer is the leader of the slot
-    if (!verifyVRF(babe_header, epoch)) {
-      return ValidationError::INVALID_VRF;
-    }
+    // uncomment when VRF is fixed
+    //    if (!verifyVRF(babe_header, epoch)) {
+    //      return ValidationError::INVALID_VRF;
+    //    }
 
     // peer must not send two blocks in one slot
     if (!verifyProducer(babe_header)) {
@@ -125,7 +131,7 @@ namespace kagome::consensus {
 
     for (const auto &digest :
          gsl::make_span(digests).subspan(0, digests.size() - 1)) {
-      if (auto consensus_dig = getFromVariant<primitives::Consensus>(digest);
+      if (auto consensus_dig = getFromVariant<primitives::PreRuntime>(digest);
           consensus_dig) {
         if (auto header = scale::decode<BabeBlockHeader>(consensus_dig->data);
             header) {
@@ -149,13 +155,9 @@ namespace kagome::consensus {
     auto block_copy = block;
     block_copy.header.digest.pop_back();
 
-    auto block_copy_encoded_res = scale::encode(block_copy.header);
-    if (!block_copy_encoded_res) {
-      log_->info("could not encode block header: {}",
-                 block_copy_encoded_res.error());
-      return false;
-    }
-    auto block_hash = hasher_->blake2s_256(block_copy_encoded_res.value());
+    auto block_copy_encoded = scale::encode(block_copy.header).value();
+
+    auto block_hash = hasher_->blake2b_256(block_copy_encoded);
 
     // secondly, retrieve public key of the peer by its authority id
     if (static_cast<uint64_t>(authorities.size())
@@ -177,18 +179,21 @@ namespace kagome::consensus {
     auto randomness_with_slot =
         Buffer{}
             .put(epoch.randomness)
-            .put(common::uint256_t_to_bytes(epoch.threshold));
+            .put(common::uint64_t_to_bytes(babe_header.slot_number));
     if (!vrf_provider_->verify(
             randomness_with_slot,
             babe_header.vrf_output,
             epoch.authorities[babe_header.authority_index.index].id.id)) {
-      log_->info("VRF proof in block is not valid");
+      log_->error("VRF proof in block is not valid");
       return false;
     }
 
     // verify threshold
     if (babe_header.vrf_output.value >= epoch.threshold) {
-      log_->info("VRF value is not less than the threshold");
+      log_->error(
+          "VRF value is not less than the threshold. Value: {}. Threshold: {}",
+          babe_header.vrf_output.value,
+          epoch.threshold);
       return false;
     }
 

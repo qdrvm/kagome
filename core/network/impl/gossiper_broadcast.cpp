@@ -25,26 +25,37 @@ namespace kagome::network {
   void GossiperBroadcast::blockAnnounce(const BlockAnnounce &announce) {
     logger_->debug("Gossip block announce: block number {}",
                    announce.header.number);
-    broadcast(announce);
+    GossipMessage message;
+    message.type = GossipMessage::Type::BLOCK_ANNOUNCE;
+    message.data.put(scale::encode(announce).value());
+    broadcast(std::move(message));
   }
 
   void GossiperBroadcast::precommit(Precommit pc) {
     logger_->debug("Gossip precommit: vote for {}", pc.hash.toHex());
-    broadcast(pc);
+    GossipMessage message;
+    message.type = GossipMessage::Type::PRECOMMIT;
+    message.data.put(scale::encode(pc).value());
+    broadcast(std::move(message));
   }
 
   void GossiperBroadcast::prevote(Prevote pv) {
     logger_->debug("Gossip prevote: vote for {}", pv.hash.toHex());
-    broadcast(pv);
+    GossipMessage message;
+    message.type = GossipMessage::Type::PREVOTE;
+    message.data.put(scale::encode(pv).value());
+    broadcast(std::move(message));
   }
 
   void GossiperBroadcast::primaryPropose(PrimaryPropose pv) {
     logger_->debug("Gossip primary propose: vote for {}", pv.hash.toHex());
-    broadcast(pv);
+    GossipMessage message;
+    message.type = GossipMessage::Type::PRIMARY_PROPOSE;
+    message.data.put(scale::encode(pv).value());
+    broadcast(std::move(message));
   }
 
-  template <typename MsgType>
-  void GossiperBroadcast::broadcast(MsgType &&msg) {
+  void GossiperBroadcast::broadcast(GossipMessage &&msg) {
     auto msg_send_lambda = [msg](auto stream) {
       auto read_writer =
           std::make_shared<ScaleMessageReadWriter>(std::move(stream));
@@ -67,6 +78,10 @@ namespace kagome::network {
                         if (!stream_res) {
                           // we will try to open the stream again, when
                           // another gossip message arrives later
+                          self->logger_->error(
+                              "Could not send message to {} Error: {}",
+                              info.id.toBase58(),
+                              stream_res.error().message());
                           return;
                         }
 
