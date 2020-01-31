@@ -80,7 +80,7 @@ namespace kagome::consensus {
     return hasher_->blake2b_256(new_randomness);
   }
 
-  void BabeLotteryImpl::submitVRFValue(const crypto::VRFValue &value) {
+  void BabeLotteryImpl::submitVRFValue(const crypto::VRFPreOutput &value) {
     last_epoch_vrf_values_.push_back(value);
   }
 }  // namespace kagome::consensus

@@ -40,14 +40,12 @@ namespace kagome::crypto {
 
   }  // namespace constants::sr25519
 
-  using VRFValue = boost::multiprecision::uint256_t;
-  using VRFRawOutput = boost::multiprecision::uint128_t;
-
+  using VRFPreOutput = boost::multiprecision::uint256_t;
+  using VRFThreshold = boost::multiprecision::uint128_t;
   using VRFProof = std::array<uint8_t, constants::sr25519::vrf::PROOF_SIZE>;
 
   struct VRFOutput {
-    VRFValue output;
-    VRFRawOutput raw_output;
+    VRFPreOutput output;
     VRFProof proof{};
 
     bool operator==(const VRFOutput &other) const;

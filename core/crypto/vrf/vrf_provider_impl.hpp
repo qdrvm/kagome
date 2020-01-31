@@ -24,12 +24,12 @@ namespace kagome::crypto {
 
     boost::optional<VRFOutput> sign(const common::Buffer &msg,
                                     const SR25519Keypair &keypair,
-                                    const VRFRawOutput &threshold) const override;
+                                    const VRFThreshold &threshold) const override;
 
     VRFVerifyOutput verify(const common::Buffer &msg,
                 const VRFOutput &output,
                 const SR25519PublicKey &public_key,
-                const VRFRawOutput &threshold) const override;
+                const VRFThreshold &threshold) const override;
 
    private:
     std::shared_ptr<CSPRNG> generator_;

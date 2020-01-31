@@ -91,12 +91,11 @@ class BlockValidatorTest : public testing::Test {
       Hash256::fromString("c30ojfn4983u4093jv3894j3f034ojs3").value();
 
   BabeSlotNumber slot_number_ = 2;
-  VRFValue vrf_value_ = 1488228;
-  VRFRawOutput vrf_raw_value_ = 1488228;
+  VRFPreOutput vrf_value_ = 1488228;
   VRFProof vrf_proof_{};
   AuthorityIndex authority_index_ = {1};
   BabeBlockHeader babe_header_{
-      slot_number_, {vrf_value_, vrf_raw_value_, vrf_proof_}, authority_index_};
+      slot_number_, {vrf_value_, vrf_proof_}, authority_index_};
   Buffer encoded_babe_header_{scale::encode(babe_header_).value()};
 
   BlockHeader block_header_{

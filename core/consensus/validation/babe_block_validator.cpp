@@ -178,7 +178,7 @@ namespace kagome::consensus {
         Buffer{}
             .put(epoch.randomness)
             .put(common::uint256_t_to_bytes(epoch.threshold));
-    auto verify_res =vrf_provider_->verify(
+    auto verify_res = vrf_provider_->verify(
         randomness_with_slot,
         babe_header.vrf_output,
         epoch.authorities[babe_header.authority_index.index].id.id,

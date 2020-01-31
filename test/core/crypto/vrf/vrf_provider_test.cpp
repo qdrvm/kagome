@@ -13,8 +13,8 @@ using kagome::common::Buffer;
 using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::SR25519Keypair;
 using kagome::crypto::VRFProviderImpl;
-using kagome::crypto::VRFValue;
-using kagome::crypto::VRFRawOutput;
+using kagome::crypto::VRFPreOutput;
+using kagome::crypto::VRFThreshold;
 
 class VRFProviderTest : public testing::Test {
  public:
@@ -41,7 +41,7 @@ class VRFProviderTest : public testing::Test {
  */
 TEST_F(VRFProviderTest, SignAndVerifySuccess) {
   // given
-  VRFRawOutput threshold{std::numeric_limits<VRFValue>::max() - 1};
+  VRFThreshold threshold{std::numeric_limits<VRFPreOutput>::max() - 1};
 
   // when
   auto out_opt = vrf_provider_->sign(msg_, keypair1_, threshold);
@@ -49,7 +49,6 @@ TEST_F(VRFProviderTest, SignAndVerifySuccess) {
   auto out = out_opt.value();
 
   // then
-  ASSERT_TRUE(out.raw_output < threshold);
   auto verify_res = vrf_provider_->verify(msg_, out, keypair1_.public_key, threshold);
   ASSERT_TRUE(verify_res.is_valid);
   ASSERT_TRUE(verify_res.is_less);
@@ -63,7 +62,7 @@ TEST_F(VRFProviderTest, SignAndVerifySuccess) {
  */
 TEST_F(VRFProviderTest, VerifyFailed) {
   // given
-  VRFRawOutput threshold{std::numeric_limits<VRFValue>::max() - 1};
+  VRFThreshold threshold{std::numeric_limits<VRFPreOutput>::max() - 1};
 
   // when
   auto out_opt = vrf_provider_->sign(msg_, keypair1_, threshold);
@@ -71,7 +70,6 @@ TEST_F(VRFProviderTest, VerifyFailed) {
   auto out = out_opt.value();
 
   // then
-  ASSERT_TRUE(out.raw_output < threshold);
   ASSERT_FALSE(vrf_provider_->verify(msg_, out, keypair2_.public_key, threshold).is_valid);
 }
 
@@ -82,14 +80,9 @@ TEST_F(VRFProviderTest, VerifyFailed) {
  */
 TEST_F(VRFProviderTest, SignFailed) {
   boost::multiprecision::uint128_t i ("102084710076281554150585127412395147264");
-  std::cout << i << "\n";
-  auto bytes = kagome::common::uint128_t_to_bytes(i);
-  for(uint8_t c: bytes) {
-    std::cout << static_cast<int>(c) << ", ";
-  }
 
   // given
-  VRFRawOutput threshold{std::numeric_limits<VRFValue>::min()};
+  VRFThreshold threshold{std::numeric_limits<VRFPreOutput>::min()};
 
   // when
   auto out_opt = vrf_provider_->sign(msg_, keypair1_, threshold);

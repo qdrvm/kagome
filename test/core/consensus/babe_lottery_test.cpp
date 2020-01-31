@@ -32,7 +32,7 @@ struct BabeLotteryTest : public testing::Test {
 
   BabeLotteryImpl lottery_{vrf_provider_, hasher_};
 
-  std::vector<VRFValue> submitted_vrf_values_{28482, 57302840, 8405};
+  std::vector<VRFPreOutput> submitted_vrf_values_{28482, 57302840, 8405};
   Epoch current_epoch_{
       1,
       0,

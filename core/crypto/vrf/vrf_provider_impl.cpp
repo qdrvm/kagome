@@ -35,13 +35,12 @@ namespace kagome::crypto {
   boost::optional<VRFOutput> VRFProviderImpl::sign(
       const common::Buffer &msg,
       const SR25519Keypair &keypair,
-      const VRFRawOutput &threshold) const {
+      const VRFThreshold &threshold) const {
     common::Buffer keypair_buf{};
     keypair_buf.put(keypair.secret_key).put(keypair.public_key);
 
     std::array<uint8_t, vrf_constants::OUTPUT_SIZE + vrf_constants::PROOF_SIZE>
         out_proof{};
-    std::array<uint8_t, vrf_constants::RAW_OUTPUT_SIZE> out_raw{};
 
     auto sign_res =
         sr25519_vrf_sign_if_less(out_proof.data(),
@@ -57,7 +56,6 @@ namespace kagome::crypto {
     auto out_proof_span = gsl::make_span(out_proof);
     res.output = common::bytes_to_uint256_t(
         out_proof_span.subspan(0, vrf_constants::OUTPUT_SIZE));
-    res.raw_output = common::bytes_to_uint128_t(out_raw);
     std::copy(out_proof.begin() + vrf_constants::OUTPUT_SIZE,
               out_proof.end(),
               res.proof.begin());
@@ -68,7 +66,7 @@ namespace kagome::crypto {
   VRFVerifyOutput VRFProviderImpl::verify(const common::Buffer &msg,
                                const VRFOutput &output,
                                const SR25519PublicKey &public_key,
-                               const VRFRawOutput &threshold) const {
+                               const VRFThreshold &threshold) const {
     std::array<uint8_t, vrf_constants::OUTPUT_SIZE> out_array =
         common::uint256_t_to_bytes(output.output);
 

@@ -40,7 +40,7 @@ namespace kagome::application {
     }
 
     Threshold threshold =
-        boost::multiprecision::uint128_t(0.58 * 1e77) / authorities.size();
+        boost::multiprecision::uint128_t("102084710076281554150585127412395147264") / authorities.size();
 
     Randomness rnd{};
     rnd.fill(0u);
