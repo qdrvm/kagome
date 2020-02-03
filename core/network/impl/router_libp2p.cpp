@@ -7,7 +7,6 @@
 
 #include "consensus/grandpa/structs.hpp"
 #include "network/common.hpp"
-#include "network/helpers/scale_message_read_writer.hpp"
 #include "network/rpc.hpp"
 #include "network/types/block_announce.hpp"
 #include "network/types/blocks_request.hpp"
@@ -68,6 +67,10 @@ namespace kagome::network {
 
   void RouterLibp2p::handleGossipProtocol(
       std::shared_ptr<Stream> stream) const {
+    return readGossipMessage(stream);
+  }
+
+  void RouterLibp2p::readGossipMessage(std::shared_ptr<Stream> stream) const {
     auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
     read_writer->read<GossipMessage>(
         [self{shared_from_this()},
@@ -82,15 +85,15 @@ namespace kagome::network {
             stream->reset();
             return;
           }
-
-          auto peer_id_res = stream->remotePeerId();
-          if (!peer_id_res) {
-            self->log_->error("cannot get a peer id from the stream: {}",
-                              peer_id_res.error().message());
-            return stream->reset();
-          }
-          auto peer_info =
-              self->host_.getPeerRepository().getPeerInfo(peer_id_res.value());
+          self->readGossipMessage(stream);
+//          auto peer_id_res = stream->remotePeerId();
+//          if (!peer_id_res) {
+//            self->log_->error("cannot get a peer id from the stream: {}",
+//                              peer_id_res.error().message());
+//            return stream->reset();
+//          }
+//          auto peer_info =
+//              self->host_.getPeerRepository().getPeerInfo(peer_id_res.value());
         });
   }
 

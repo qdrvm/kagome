@@ -96,7 +96,7 @@ namespace kagome::consensus {
     // there must exist a chain with the block in our storage, which is
     // specified as a parent of the block we are validating; BlockTree takes
     // care of this check and returns a specific error, if it fails
-    return block_tree_->addBlock(block);
+    return outcome::success();
   }
 
   template <typename T, typename VarT>
