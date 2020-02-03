@@ -11,6 +11,7 @@
 
 namespace kagome::consensus::grandpa {
 
+  // Will be replaced with real implementation when grandpa is merged
   class ObserverDummy : public Observer {
    public:
     ~ObserverDummy() override = default;

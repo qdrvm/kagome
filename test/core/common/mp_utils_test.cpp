@@ -10,6 +10,11 @@
 
 using namespace kagome::common;
 
+/**
+ * @given bigint value and known serialized representation of it
+ * @when serialize bigint to bytes
+ * @then expected serialized bytes are returned
+ */
 TEST(MPUtilsTest, UInt256ConvertTest) {
   boost::multiprecision::uint128_t a{"4961875008018162238211470133173564236"};
 

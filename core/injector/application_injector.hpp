@@ -207,6 +207,7 @@ namespace kagome::injector {
         common::raise(version_res.error());
       }
 
+      // TODO(kamilsa): uncomment when execute with real runtime
       //      auto grandpa_api = injector.template
       //      create<sptr<runtime::Grandpa>>(); auto &keys = injector.template
       //      create<application::KeyStorage &>(); auto &&local_pair =

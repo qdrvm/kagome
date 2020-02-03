@@ -86,14 +86,6 @@ namespace kagome::network {
             return;
           }
           self->readGossipMessage(stream);
-//          auto peer_id_res = stream->remotePeerId();
-//          if (!peer_id_res) {
-//            self->log_->error("cannot get a peer id from the stream: {}",
-//                              peer_id_res.error().message());
-//            return stream->reset();
-//          }
-//          auto peer_info =
-//              self->host_.getPeerRepository().getPeerInfo(peer_id_res.value());
         });
   }
 
