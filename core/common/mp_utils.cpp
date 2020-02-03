@@ -5,7 +5,6 @@
 
 #include "common/mp_utils.hpp"
 
-#include <boost/endian.hpp>
 #include <gsl/gsl_util>
 
 namespace kagome::common {
