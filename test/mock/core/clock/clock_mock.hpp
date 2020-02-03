@@ -15,11 +15,13 @@ namespace kagome::clock {
   class SystemClockMock : public SystemClock {
    public:
     MOCK_CONST_METHOD0(now, SystemClock::TimePoint());
+    MOCK_CONST_METHOD0(nowUint64, uint64_t());
   };
 
   class SteadyClockMock : public SteadyClock {
    public:
     MOCK_CONST_METHOD0(now, SteadyClock::TimePoint());
+    MOCK_CONST_METHOD0(nowUint64, uint64_t());
   };
 
 }  // namespace kagome::clock
