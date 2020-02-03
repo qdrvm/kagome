@@ -15,7 +15,7 @@ using namespace kagome::common;
  * @when serialize bigint to bytes
  * @then expected serialized bytes are returned
  */
-TEST(MPUtilsTest, UInt256ConvertTest) {
+TEST(MPUtilsTest, UInt128ConvertTest) {
   boost::multiprecision::uint128_t a{"4961875008018162238211470133173564236"};
 
   std::array<uint8_t, 16> encoded;
