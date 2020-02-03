@@ -35,20 +35,6 @@ namespace kagome::common {
   boost::multiprecision::uint256_t bytes_to_uint256_t(
       gsl::span<uint8_t, 32> bytes);
 
-  template <size_t size, typename uint>
-  inline std::array<uint8_t, size> encode256BE(const uint &value) {
-    auto bytes = detail::uint_to_bytes<size>(value);
-    decltype(bytes) buff;
-
-    for (int i = 0; i < (int)bytes.size(); ++i) {
-      int start = (int)buff.size() - (int)bytes.size() + i;
-      if (start >= 0) {
-        buff[start] = bytes[i];
-      }
-    }
-    return buff;
-  }
-
-}  // namespace kagome::crypto::util
+}  // namespace kagome::common
 
 #endif  // KAGOME_CORE_CRYPTO_MP_UTILS_HPP
