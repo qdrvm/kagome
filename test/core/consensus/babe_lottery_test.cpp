@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/babe/impl/babe_lottery_impl.hpp"
-
 #include <gtest/gtest.h>
+
 #include "common/buffer.hpp"
 #include "common/mp_utils.hpp"
+#include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/vrf_provider_mock.hpp"
 
@@ -32,7 +32,9 @@ struct BabeLotteryTest : public testing::Test {
 
   BabeLotteryImpl lottery_{vrf_provider_, hasher_};
 
-  std::vector<VRFPreOutput> submitted_vrf_values_{28482, 57302840, 8405};
+  std::vector<VRFPreOutput> submitted_vrf_values_{uint256_t_to_bytes(28482),
+                                                  uint256_t_to_bytes(57302840),
+                                                  uint256_t_to_bytes(8405)};
   Epoch current_epoch_{
       1,
       0,
@@ -61,8 +63,8 @@ TEST_F(BabeLotteryTest, SlotsLeadership) {
 
   std::vector<VRFOutput> vrf_outputs;
   vrf_outputs.reserve(2);
-  vrf_outputs.push_back({3749373, {}});
-  vrf_outputs.push_back({1057472095, {}});
+  vrf_outputs.push_back({uint256_t_to_bytes(3749373), {}});
+  vrf_outputs.push_back({uint256_t_to_bytes(1057472095), {}});
 
   Buffer vrf_input(vrf_constants::OUTPUT_SIZE + 8, 0);
   std::copy(current_epoch_.randomness.begin(),
@@ -90,9 +92,9 @@ TEST_F(BabeLotteryTest, SlotsLeadership) {
 
   // THEN
   ASSERT_TRUE(leadership[0]);
-  ASSERT_EQ(leadership[0]->output, 3749373);
+  ASSERT_EQ(leadership[0]->output, uint256_t_to_bytes(3749373));
   ASSERT_TRUE(leadership[1]);
-  ASSERT_EQ(leadership[1]->output, 1057472095);
+  ASSERT_EQ(leadership[1]->output, uint256_t_to_bytes(1057472095));
   ASSERT_FALSE(leadership[2]);
 }
 
@@ -112,7 +114,7 @@ TEST_F(BabeLotteryTest, ComputeRandomness) {
   concat_values.put(current_epoch_.randomness);
   concat_values.put(uint64_t_to_bytes(current_epoch_.epoch_index));
   for (const auto &value : submitted_vrf_values_) {
-    concat_values.put(uint256_t_to_bytes(value));
+    concat_values.put(value);
   }
 
   Hash256 new_randomness{};

@@ -41,8 +41,7 @@ class VRFProviderTest : public testing::Test {
  */
 TEST_F(VRFProviderTest, SignAndVerifySuccess) {
   // given
-  VRFThreshold threshold{std::numeric_limits<VRFPreOutput>::max() - 1};
-
+  VRFThreshold threshold{std::numeric_limits<VRFThreshold>::max() - 1};
   // when
   auto out_opt = vrf_provider_->sign(msg_, keypair1_, threshold);
   ASSERT_TRUE(out_opt);
@@ -62,7 +61,7 @@ TEST_F(VRFProviderTest, SignAndVerifySuccess) {
  */
 TEST_F(VRFProviderTest, VerifyFailed) {
   // given
-  VRFThreshold threshold{std::numeric_limits<VRFPreOutput>::max() - 1};
+  VRFThreshold threshold{std::numeric_limits<VRFThreshold>::max() - 1};
 
   // when
   auto out_opt = vrf_provider_->sign(msg_, keypair1_, threshold);
@@ -79,8 +78,6 @@ TEST_F(VRFProviderTest, VerifyFailed) {
  * @then output is not created as value is bigger than threshold
  */
 TEST_F(VRFProviderTest, SignFailed) {
-  boost::multiprecision::uint128_t i ("102084710076281554150585127412395147264");
-
   // given
   VRFThreshold threshold{std::numeric_limits<VRFPreOutput>::min()};
 

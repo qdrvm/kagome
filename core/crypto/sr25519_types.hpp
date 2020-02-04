@@ -34,14 +34,13 @@ namespace kagome::crypto {
        */
       enum {
         PROOF_SIZE = SR25519_VRF_PROOF_SIZE,
-        OUTPUT_SIZE = SR25519_VRF_OUTPUT_SIZE,
-        RAW_OUTPUT_SIZE = SR25519_VRF_RAW_OUTPUT_SIZE
+        OUTPUT_SIZE = SR25519_VRF_OUTPUT_SIZE
       };
     }  // namespace vrf
 
   }  // namespace constants::sr25519
 
-  using VRFPreOutput = boost::multiprecision::uint256_t;
+  using VRFPreOutput = std::array<uint8_t, constants::sr25519::vrf::OUTPUT_SIZE>;
   using VRFThreshold = boost::multiprecision::uint128_t;
   using VRFProof = std::array<uint8_t, constants::sr25519::vrf::PROOF_SIZE>;
 
@@ -53,7 +52,7 @@ namespace kagome::crypto {
    */
   struct VRFOutput {
     // an internal representation of the generated random value
-    VRFPreOutput output;
+    VRFPreOutput output{};
     // the proof to the output, serves as the verification of its randomness
     VRFProof proof{};
 
