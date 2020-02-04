@@ -10,28 +10,31 @@ namespace kagome::authorship {
   ProposerImpl::ProposerImpl(
       std::shared_ptr<BlockBuilderFactory> block_builder_factory,
       std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
-      std::shared_ptr<runtime::BlockBuilderApi> r_block_builder,
-      common::Logger logger)
+      std::shared_ptr<runtime::BlockBuilder> r_block_builder)
       : block_builder_factory_{std::move(block_builder_factory)},
         transaction_pool_{std::move(transaction_pool)},
-        r_block_builder_{std::move(r_block_builder)},
-        logger_{std::move(logger)} {
+        r_block_builder_{std::move(r_block_builder)} {
     BOOST_ASSERT(block_builder_factory_);
     BOOST_ASSERT(transaction_pool_);
     BOOST_ASSERT(r_block_builder_);
-    BOOST_ASSERT(logger_);
   }
 
   outcome::result<primitives::Block> ProposerImpl::propose(
       const primitives::BlockId &parent_block_id,
       const primitives::InherentData &inherent_data,
-      std::vector<primitives::Digest> inherent_digests) {
-    OUTCOME_TRY(block_builder,
-                block_builder_factory_->create(parent_block_id,
-                                               std::move(inherent_digests)));
+      const primitives::Digest &inherent_digest) {
+    OUTCOME_TRY(
+        block_builder,
+        block_builder_factory_->create(parent_block_id, inherent_digest));
 
-    OUTCOME_TRY(inherent_xts,
-                r_block_builder_->inherent_extrinsics(inherent_data));
+    auto inherent_xts_res =
+        r_block_builder_->inherent_extrinsics(inherent_data);
+    if (not inherent_xts_res) {
+      logger_->error("BlockBuilder->inherent_extrinsics failed with error: {}",
+                     inherent_xts_res.error().message());
+      return inherent_xts_res.error();
+    }
+    auto inherent_xts = inherent_xts_res.value();
 
     auto log_push_error = [this](const primitives::Extrinsic &xt,
                                  std::string_view message) {

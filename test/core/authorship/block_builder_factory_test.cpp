@@ -19,21 +19,22 @@ using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockNumber;
 using kagome::primitives::Digest;
+using kagome::primitives::PreRuntime;
 using kagome::runtime::BlockBuilderApiMock;
 using kagome::runtime::CoreMock;
 
 class BlockBuilderFactoryTest : public ::testing::Test {
  public:
   void SetUp() override {
-    expected_hash_.fill(0);
-    block_id_ = expected_hash_;
+    parent_hash_.fill(0);
+    parent_id_ = parent_hash_;
 
-    expected_header_.parent_hash = expected_hash_;
+    expected_header_.parent_hash = parent_hash_;
     expected_header_.number = expected_number_;
-    expected_header_.digests = inherent_digests_;
+    expected_header_.digest = inherent_digests_;
 
-    EXPECT_CALL(*header_backend_, getNumberByHash(expected_hash_))
-        .WillOnce(Return(expected_number_));
+    EXPECT_CALL(*header_backend_, getNumberByHash(parent_hash_))
+        .WillOnce(Return(parent_number_));
   }
 
   std::shared_ptr<CoreMock> core_ = std::make_shared<CoreMock>();
@@ -42,10 +43,11 @@ class BlockBuilderFactoryTest : public ::testing::Test {
   std::shared_ptr<HeaderRepositoryMock> header_backend_ =
       std::make_shared<HeaderRepositoryMock>();
 
-  BlockNumber expected_number_{42};
-  kagome::common::Hash256 expected_hash_;
-  BlockId block_id_;
-  std::vector<Digest> inherent_digests_{{0, 1, 2, 3}};
+  BlockNumber parent_number_{41};
+  BlockNumber expected_number_{parent_number_ + 1};
+  kagome::common::Hash256 parent_hash_;
+  BlockId parent_id_;
+  Digest inherent_digests_{{PreRuntime{}}};
   BlockHeader expected_header_;
 };
 
@@ -63,7 +65,7 @@ TEST_F(BlockBuilderFactoryTest, CreateSuccessful) {
   BlockBuilderFactoryImpl factory(core_, block_builder_api_, header_backend_);
 
   // when
-  auto block_builder_res = factory.create(block_id_, inherent_digests_);
+  auto block_builder_res = factory.create(parent_id_, inherent_digests_);
 
   // then
   ASSERT_TRUE(block_builder_res);
@@ -83,7 +85,7 @@ TEST_F(BlockBuilderFactoryTest, CreateFailed) {
   BlockBuilderFactoryImpl factory(core_, block_builder_api_, header_backend_);
 
   // when
-  auto block_builder_res = factory.create(block_id_, inherent_digests_);
+  auto block_builder_res = factory.create(parent_id_, inherent_digests_);
 
   // then
   ASSERT_FALSE(block_builder_res);

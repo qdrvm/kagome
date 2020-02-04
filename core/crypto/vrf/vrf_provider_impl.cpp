@@ -6,7 +6,7 @@
 #include "crypto/vrf/vrf_provider_impl.hpp"
 
 #include <gsl/span>
-#include "crypto/util.hpp"
+#include "common/mp_utils.hpp"
 
 namespace kagome::crypto {
   namespace vrf_constants = constants::sr25519::vrf;
@@ -17,10 +17,18 @@ namespace kagome::crypto {
   SR25519Keypair VRFProviderImpl::generateKeypair() const {
     auto seed = generator_->randomBytes(constants::sr25519::SEED_SIZE);
 
-    std::vector<uint8_t> kp(constants::sr25519::KEYPAIR_SIZE, 0);
+    std::array<uint8_t, constants::sr25519::KEYPAIR_SIZE> kp{};
     sr25519_keypair_from_seed(kp.data(), seed.data());
 
-    return SR25519Keypair{kp};
+    SR25519Keypair keypair;
+    std::copy(kp.begin(),
+              kp.begin() + constants::sr25519::SECRET_SIZE,
+              keypair.secret_key.begin());
+    std::copy(kp.begin() + constants::sr25519::SECRET_SIZE,
+              kp.begin() + constants::sr25519::SECRET_SIZE
+                  + constants::sr25519::PUBLIC_SIZE,
+              keypair.public_key.begin());
+    return keypair;
   }
 
   boost::optional<VRFOutput> VRFProviderImpl::sign(
@@ -38,14 +46,14 @@ namespace kagome::crypto {
                                  keypair_buf.data(),
                                  msg.data(),
                                  msg.size(),
-                                 util::uint256_t_to_bytes(threshold).data());
+                                 common::uint256_t_to_bytes(threshold).data());
     if (not sign_res.is_less) {
       return boost::none;
     }
 
     VRFOutput res;
     auto out_proof_span = gsl::make_span(out_proof);
-    res.value = util::bytes_to_uint256_t(
+    res.value = common::bytes_to_uint256_t(
         out_proof_span.subspan(0, vrf_constants::OUTPUT_SIZE));
     std::copy(out_proof.begin() + vrf_constants::OUTPUT_SIZE,
               out_proof.end(),
@@ -58,7 +66,7 @@ namespace kagome::crypto {
                                const VRFOutput &output,
                                const SR25519PublicKey &public_key) const {
     std::array<uint8_t, vrf_constants::OUTPUT_SIZE> out_array =
-        util::uint256_t_to_bytes(output.value);
+        common::uint256_t_to_bytes(output.value);
 
     auto res = sr25519_vrf_verify(public_key.data(),
                                   msg.data(),

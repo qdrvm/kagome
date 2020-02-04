@@ -6,29 +6,43 @@
 #ifndef KAGOME_CONFIGURATION_STORAGE_IMPL_HPP
 #define KAGOME_CONFIGURATION_STORAGE_IMPL_HPP
 
-#include <boost/property_tree/json_parser.hpp>
-#include <boost/property_tree/ptree.hpp>
 #include "application/configuration_storage.hpp"
-#include "application/impl/kagome_config.hpp"
+
+#include <boost/property_tree/ptree.hpp>
 
 namespace kagome::application {
 
   class ConfigurationStorageImpl : public ConfigurationStorage {
    public:
-    explicit ConfigurationStorageImpl(KagomeConfig config);
+    static outcome::result<std::shared_ptr<ConfigurationStorageImpl>> create(
+        const std::string &config_path);
+
     ~ConfigurationStorageImpl() override = default;
 
-    const primitives::Block &getGenesis() const override;
-    std::vector<libp2p::peer::PeerInfo> getPeersInfo() const override;
+    GenesisRawConfig getGenesis() const override;
+    network::PeerList getBootNodes() const override;
     std::vector<crypto::SR25519PublicKey> getSessionKeys() const override;
-    std::vector<crypto::ED25519PublicKey> getAuthorities() const override;
 
     uint16_t getExtrinsicApiPort() const override;
 
    private:
-    KagomeConfig config_;
+    outcome::result<void> loadFromJson(const std::string &file_path);
+    outcome::result<void> loadGenesis(const boost::property_tree::ptree &tree);
+    outcome::result<void> loadBootNodes(
+        const boost::property_tree::ptree &tree);
+    outcome::result<void> loadSessionKeys(
+        const boost::property_tree::ptree &tree);
+
+    ConfigurationStorageImpl() = default;
+
+    GenesisRawConfig genesis_;
+    network::PeerList boot_nodes_;
+    std::vector<crypto::SR25519PublicKey> session_keys_;
+    struct ApiPorts {
+      uint16_t extrinsic_api_port = 4224;
+    } api_ports_;
   };
 
-} // namespace kagome::application
+}  // namespace kagome::application
 
 #endif  // KAGOME_CONFIGURATION_STORAGE_IMPL_HPP

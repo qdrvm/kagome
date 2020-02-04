@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <vector>
 
+#include <boost/optional.hpp>
 #include <outcome/outcome.hpp>
 #include "primitives/block.hpp"
 #include "primitives/block_id.hpp"

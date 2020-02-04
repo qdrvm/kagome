@@ -3,24 +3,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/block_builder_api_impl.hpp"
+#include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
 
 #include <gtest/gtest.h>
+
 #include "core/runtime/runtime_test.hpp"
 #include "core/storage/trie/mock_trie_db.hpp"
-#include "extensions/extension_impl.hpp"
-#include "runtime/impl/wasm_memory_impl.hpp"
+#include "extensions/impl/extension_impl.hpp"
+#include "runtime/binaryen/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/runtime/wasm_test.hpp"
 
 using namespace testing;
 using kagome::common::Buffer;
 using kagome::extensions::ExtensionImpl;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::InherentData;
-using kagome::runtime::BlockBuilderApi;
-using kagome::runtime::BlockBuilderApiImpl;
-using kagome::runtime::WasmMemoryImpl;
+using kagome::runtime::BlockBuilder;
+using kagome::runtime::binaryen::BlockBuilderImpl;
+using kagome::runtime::binaryen::WasmMemoryImpl;
 using kagome::storage::trie::MockTrieDb;
 
 class BlockBuilderApiTest : public RuntimeTest {
@@ -28,11 +28,12 @@ class BlockBuilderApiTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    builder_ = std::make_unique<BlockBuilderApiImpl>(state_code_, extension_);
+    builder_ =
+        std::make_unique<BlockBuilderImpl>(wasm_provider_, extension_factory_);
   }
 
  protected:
-  std::unique_ptr<BlockBuilderApi> builder_;
+  std::unique_ptr<BlockBuilder> builder_;
 };
 
 /**

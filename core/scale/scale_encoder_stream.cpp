@@ -5,7 +5,7 @@
 
 #include "scale/scale_encoder_stream.hpp"
 
-#include "scale/outcome_throw.hpp"
+#include "common/outcome_throw.hpp"
 #include "scale/scale_error.hpp"
 #include "scale/types.hpp"
 

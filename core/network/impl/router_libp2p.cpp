@@ -19,13 +19,17 @@ namespace kagome::network {
       libp2p::Host &host,
       std::shared_ptr<BabeObserver> babe_observer,
       std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer,
-      std::shared_ptr<SyncProtocolObserver> sync_observer,
-      common::Logger log)
+      std::shared_ptr<SyncProtocolObserver> sync_observer)
       : host_{host},
         babe_observer_{std::move(babe_observer)},
         grandpa_observer_{std::move(grandpa_observer)},
         sync_observer_{std::move(sync_observer)},
-        log_{std::move(log)} {}
+        log_{common::createLogger("RouterLibp2p")} {
+    BOOST_ASSERT_MSG(babe_observer_ != nullptr, "babe observer is nullptr");
+    BOOST_ASSERT_MSG(grandpa_observer_ != nullptr,
+                     "grandpa observer is nullptr");
+    BOOST_ASSERT_MSG(sync_observer_ != nullptr, "sync observer is nullptr");
+  }
 
   void RouterLibp2p::init() {
     host_.setProtocolHandler(
@@ -95,6 +99,8 @@ namespace kagome::network {
                       msg_res.error().message());
           return false;
         }
+        log_->debug("Received block announce: block number {}",
+                    msg_res.value().header.number);
         babe_observer_->onBlockAnnounce(msg_res.value());
         return true;
       }

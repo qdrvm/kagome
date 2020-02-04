@@ -7,6 +7,7 @@
 
 #include <forward_list>
 
+#include "primitives/block_id.hpp"
 #include "storage/trie/impl/ordered_trie_hash.hpp"
 
 using kagome::common::Buffer;
@@ -14,10 +15,13 @@ using kagome::common::Buffer;
 namespace kagome::extensions {
   StorageExtension::StorageExtension(
       std::shared_ptr<storage::trie::TrieDb> db,
-      std::shared_ptr<runtime::WasmMemory> memory, common::Logger logger)
+      std::shared_ptr<runtime::WasmMemory> memory)
       : db_(std::move(db)),
         memory_(std::move(memory)),
-        logger_(std::move(logger)) {}
+        logger_{common::createLogger(kDefaultLoggerTag)} {
+    BOOST_ASSERT_MSG(db_ != nullptr, "db is nullptr");
+    BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
+  }
 
   // -------------------------Data storage--------------------------
 
@@ -38,7 +42,8 @@ namespace kagome::extensions {
       logger_->warn(
           "ext_clear_storage did not delete key {} from trie db with reason: "
           "{}",
-          key_data, del_result.error().message());
+          key_data,
+          del_result.error().message());
     }
   }
 
@@ -49,7 +54,8 @@ namespace kagome::extensions {
   }
 
   runtime::WasmPointer StorageExtension::ext_get_allocated_storage(
-      runtime::WasmPointer key_data, runtime::SizeType key_length,
+      runtime::WasmPointer key_data,
+      runtime::SizeType key_length,
       runtime::WasmPointer len_ptr) {
     auto key = memory_->loadN(key_data, key_length);
     auto data = db_->get(key);
@@ -60,10 +66,14 @@ namespace kagome::extensions {
     if (not data) {
       return 0;
     }
+    if (not data.value().empty())
+      logger_->debug("ext_get_allocated_storage. Key hex: {} Value hex {}",
+                     key.toHex(),
+                     data.value().toHex());
 
     auto data_ptr = memory_->allocate(length);
 
-    if (data_ptr != -1) {
+    if (data_ptr != 0) {
       memory_->storeBuffer(data_ptr, data.value());
     } else {
       logger_->error(
@@ -74,13 +84,25 @@ namespace kagome::extensions {
   }
 
   runtime::SizeType StorageExtension::ext_get_storage_into(
-      runtime::WasmPointer key_data, runtime::SizeType key_length,
-      runtime::WasmPointer value_data, runtime::SizeType value_length,
+      runtime::WasmPointer key_data,
+      runtime::SizeType key_length,
+      runtime::WasmPointer value_data,
+      runtime::SizeType value_length,
       runtime::SizeType value_offset) {
     auto key = memory_->loadN(key_data, key_length);
     auto data = get(key, value_offset, value_length);
     if (not data) {
+      logger_->debug("ext_get_storage_into. Val by key {} not found",
+                     key.toHex());
       return runtime::WasmMemory::kMaxMemorySize;
+    }
+    if (not data.value().empty()) {
+      logger_->debug("ext_get_storage_into. Key hex: {} , Value hex {}",
+                     key.toHex(),
+                     data.value().toHex());
+    } else {
+      logger_->debug("ext_get_storage_into. Key hex: {} Value: empty",
+                     key.toHex());
     }
     memory_->storeBuffer(value_data, data.value());
     return data.value().size();
@@ -92,6 +114,21 @@ namespace kagome::extensions {
                                          runtime::SizeType value_length) {
     auto key = memory_->loadN(key_data, key_length);
     auto value = memory_->loadN(value_data, value_length);
+
+    if (value.toHex().size() < 500) {
+      logger_->debug(
+          "Set storage. Key: {}, Key hex: {} Value: {}, Value hex {}",
+          key.data(),
+          key.toHex(),
+          value.data(),
+          value.toHex());
+    } else {
+      logger_->debug(
+          "Set storage. Key: {}, Key hex: {} Value is too big to display",
+          key.data(),
+          key.toHex());
+    }
+
     auto put_result = db_->put(key, value);
     if (not put_result) {
       logger_->error(
@@ -103,8 +140,10 @@ namespace kagome::extensions {
   // -------------------------Trie operations--------------------------
 
   void StorageExtension::ext_blake2_256_enumerated_trie_root(
-      runtime::WasmPointer values_data, runtime::WasmPointer lengths_data,
-      runtime::SizeType values_num, runtime::WasmPointer result) {
+      runtime::WasmPointer values_data,
+      runtime::WasmPointer lengths_data,
+      runtime::SizeType values_num,
+      runtime::WasmPointer result) {
     if (values_num == 0) {
       return;
     }
@@ -131,11 +170,17 @@ namespace kagome::extensions {
   }
 
   runtime::SizeType StorageExtension::ext_storage_changes_root(
-      runtime::WasmPointer parent_hash_data, runtime::SizeType parent_hash_len,
-      runtime::SizeType parent_num, runtime::WasmPointer result) {
+      runtime::WasmPointer parent_hash_data,
+      runtime::SizeType parent_hash_len,
+      runtime::WasmPointer result) {
     // TODO (kamilsa): PRE-95 Implement ext_storage_changes_root, 03.04.2019.
+    //    auto parent_hash = memory_->loadN(parent_hash_data, parent_hash_len);
+    primitives::BlockHash result_hash;
+    result_hash[primitives::BlockHash::size() - 1] = 1;
+    common::Buffer result_buf(result_hash);
+    memory_->storeBuffer(result, result_buf);
     logger_->error("Unimplemented, assume no changes");
-    return 0;
+    return 1;
   }
 
   void StorageExtension::ext_storage_root(runtime::WasmPointer result) const {
@@ -144,7 +189,8 @@ namespace kagome::extensions {
   }
 
   outcome::result<common::Buffer> StorageExtension::get(
-      const common::Buffer &key, runtime::SizeType offset,
+      const common::Buffer &key,
+      runtime::SizeType offset,
       runtime::SizeType max_length) const {
     OUTCOME_TRY(data, db_->get(key));
 

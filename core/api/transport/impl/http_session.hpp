@@ -54,9 +54,7 @@ namespace kagome::api {
      * @param socket socket instance
      * @param config session configuration
      */
-    HttpSession(Socket socket,
-                Configuration config,
-                Logger logger = common::createLogger("http session"));
+    HttpSession(Socket socket, Configuration config);
 
     /**
      * @brief starts session
@@ -136,8 +134,8 @@ namespace kagome::api {
      */
     using Parser = RequestParser<StringBody>;
 
-    std::unique_ptr<Parser> parser_;  ///< http parser
-    Logger logger_;                   ///< logger instance
+    std::unique_ptr<Parser> parser_;                        ///< http parser
+    Logger logger_ = common::createLogger("http session");  ///< logger instance
   };
 
 }  // namespace kagome::api

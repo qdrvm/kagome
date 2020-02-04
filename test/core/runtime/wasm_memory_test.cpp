@@ -5,14 +5,15 @@
 
 #include <gtest/gtest.h>
 
-#include "runtime/impl/wasm_memory_impl.hpp"
+#include "runtime/binaryen/wasm_memory_impl.hpp"
 
-using kagome::runtime::WasmMemoryImpl;
+using kagome::runtime::binaryen::WasmMemoryImpl;
 
 class MemoryHeapTest : public ::testing::Test {
- public:
+ protected:
+  wasm::ShellExternalInterface interface_;
   const static uint32_t memory_size_ = 4096;  // one page size
-  WasmMemoryImpl memory_{memory_size_};
+  WasmMemoryImpl memory_{&interface_.memory, memory_size_};
 };
 
 /**

@@ -6,9 +6,9 @@
 #include "consensus/validation/babe_block_validator.hpp"
 
 #include <gtest/gtest.h>
+#include "common/mp_utils.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
-#include "crypto/util.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/crypto/vrf_provider_mock.hpp"
@@ -16,16 +16,27 @@
 #include "mock/libp2p/crypto/random_generator_mock.hpp"
 #include "scale/scale.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/primitives/hash_creator.hpp"
+#include "testutil/primitives/mp_utils.hpp"
 
 using namespace kagome;
 using namespace blockchain;
 using namespace consensus;
 using namespace runtime;
-using namespace primitives;
 using namespace common;
 using namespace crypto;
 using namespace libp2p::crypto::random;
+
+using kagome::primitives::Authority;
+using kagome::primitives::AuthorityIndex;
+using kagome::primitives::Block;
+using kagome::primitives::BlockBody;
+using kagome::primitives::BlockHeader;
+using kagome::primitives::Consensus;
+using kagome::primitives::ConsensusEngineId;
+using kagome::primitives::Digest;
+using kagome::primitives::Extrinsic;
+using kagome::primitives::Invalid;
+using kagome::primitives::Valid;
 
 using testing::_;
 using testing::Return;
@@ -37,6 +48,8 @@ namespace sr25519_constants = kagome::crypto::constants::sr25519;
 
 class BlockValidatorTest : public testing::Test {
  public:
+  const ConsensusEngineId kEngineId =
+      primitives::ConsensusEngineId::fromString("BABE").value();
   /**
    * Add a signature to the block
    * @param block to seal
@@ -52,7 +65,9 @@ class BlockValidatorTest : public testing::Test {
 
     // seal the block
     Seal seal{sr25519_signature};
-    block.header.digests.emplace_back(scale::encode(seal).value());
+    common::Buffer encoded_seal{scale::encode(seal).value()};
+    block.header.digest.push_back(
+        kagome::primitives::Seal{{kEngineId, encoded_seal}});
 
     return {seal, keypair.public_key};
   }
@@ -78,20 +93,20 @@ class BlockValidatorTest : public testing::Test {
   BabeSlotNumber slot_number_ = 2;
   VRFValue vrf_value_ = 1488228;
   VRFProof vrf_proof_{};
-  AuthorityIndex authority_index_ = 1;
+  AuthorityIndex authority_index_ = {1};
   BabeBlockHeader babe_header_{
       slot_number_, {vrf_value_, vrf_proof_}, authority_index_};
   Buffer encoded_babe_header_{scale::encode(babe_header_).value()};
 
   BlockHeader block_header_{
       .parent_hash = parent_hash_,
-      .digests = std::vector<Digest>{encoded_babe_header_}};
+      .digest = {Consensus{{kEngineId, encoded_babe_header_}}}};
   Extrinsic ext_{Buffer{0x11, 0x22}};
   BlockBody block_body_{ext_};
   Block valid_block_{block_header_, block_body_};
 
   Epoch babe_epoch_{.threshold = 3820948573,
-                    .randomness = util::uint256_t_to_bytes(475995757021)};
+                    .randomness = uint256_t_to_bytes(475995757021)};
 };
 
 /**
@@ -103,7 +118,7 @@ TEST_F(BlockValidatorTest, Success) {
   // verifySignature
   // get an encoded pre-seal part of the block's header
   auto block_copy = valid_block_;
-  block_copy.header.digests.pop_back();
+  block_copy.header.digest.pop_back();
   auto encoded_block_copy = scale::encode(block_copy.header).value();
   Hash256 encoded_block_copy_hash{};  // not a real hash, but don't want to
                                       // actually take it
@@ -117,13 +132,13 @@ TEST_F(BlockValidatorTest, Success) {
       .WillOnce(Return(encoded_block_copy_hash));
 
   babe_epoch_.authorities.emplace_back();
-  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+  babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
 
   // verifyVRF
   auto randomness_with_slot =
       Buffer{}
           .put(babe_epoch_.randomness)
-          .put(util::uint256_t_to_bytes(babe_epoch_.threshold));
+          .put(uint256_t_to_bytes(babe_epoch_.threshold));
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .WillOnce(Return(true));
 
@@ -161,7 +176,7 @@ TEST_F(BlockValidatorTest, LessDigestsThanNeeded) {
  */
 TEST_F(BlockValidatorTest, NoBabeHeader) {
   auto block_copy = valid_block_;
-  block_copy.header.digests.pop_back();
+  block_copy.header.digest.pop_back();
   auto encoded_block_copy = scale::encode(block_copy.header).value();
   Hash256 encoded_block_copy_hash{};  // not a real hash, but don't want to
                                       // actually take it
@@ -170,12 +185,12 @@ TEST_F(BlockValidatorTest, NoBabeHeader) {
             encoded_block_copy_hash.begin());
 
   // take BabeHeader out before sealing the block
-  valid_block_.header.digests.pop_back();
+  valid_block_.header.digest.pop_back();
 
   auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
 
   babe_epoch_.authorities.emplace_back();
-  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+  babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
 
   EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_DIGESTS);
@@ -190,7 +205,7 @@ TEST_F(BlockValidatorTest, NoBabeHeader) {
 TEST_F(BlockValidatorTest, NoAuthority) {
   // GIVEN
   auto block_copy = valid_block_;
-  block_copy.header.digests.pop_back();
+  block_copy.header.digest.pop_back();
   auto encoded_block_copy = scale::encode(block_copy.header).value();
   Hash256 encoded_block_copy_hash{};
   std::copy(encoded_block_copy.begin(),
@@ -219,7 +234,7 @@ TEST_F(BlockValidatorTest, NoAuthority) {
 TEST_F(BlockValidatorTest, SignatureVerificationFail) {
   // GIVEN
   auto block_copy = valid_block_;
-  block_copy.header.digests.pop_back();
+  block_copy.header.digest.pop_back();
   auto encoded_block_copy = scale::encode(block_copy.header).value();
   Hash256 encoded_block_copy_hash{};
   std::copy(encoded_block_copy.begin(),
@@ -232,11 +247,12 @@ TEST_F(BlockValidatorTest, SignatureVerificationFail) {
       .WillOnce(Return(encoded_block_copy_hash));
 
   babe_epoch_.authorities.emplace_back();
-  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+  babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
 
   // WHEN
   // mutate seal of the block to make signature invalid
-  valid_block_.header.digests[1][10]++;
+  boost::get<kagome::primitives::Seal>(valid_block_.header.digest[1])
+      .data[10]++;
 
   // THEN
   EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
@@ -251,7 +267,7 @@ TEST_F(BlockValidatorTest, SignatureVerificationFail) {
 TEST_F(BlockValidatorTest, VRFFail) {
   // GIVEN
   auto block_copy = valid_block_;
-  block_copy.header.digests.pop_back();
+  block_copy.header.digest.pop_back();
   auto encoded_block_copy = scale::encode(block_copy.header).value();
   Hash256 encoded_block_copy_hash{};
   std::copy(encoded_block_copy.begin(),
@@ -264,13 +280,13 @@ TEST_F(BlockValidatorTest, VRFFail) {
       .WillOnce(Return(encoded_block_copy_hash));
 
   babe_epoch_.authorities.emplace_back();
-  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+  babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
 
   // WHEN
   auto randomness_with_slot =
       Buffer{}
           .put(babe_epoch_.randomness)
-          .put(util::uint256_t_to_bytes(babe_epoch_.threshold));
+          .put(uint256_t_to_bytes(babe_epoch_.threshold));
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .WillOnce(Return(false));
 
@@ -287,7 +303,7 @@ TEST_F(BlockValidatorTest, VRFFail) {
 TEST_F(BlockValidatorTest, ThresholdGreater) {
   // GIVEN
   auto block_copy = valid_block_;
-  block_copy.header.digests.pop_back();
+  block_copy.header.digest.pop_back();
   auto encoded_block_copy = scale::encode(block_copy.header).value();
   Hash256 encoded_block_copy_hash{};
   std::copy(encoded_block_copy.begin(),
@@ -300,7 +316,7 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
       .WillOnce(Return(encoded_block_copy_hash));
 
   babe_epoch_.authorities.emplace_back();
-  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+  babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
 
   // WHEN
   babe_epoch_.threshold = 0;
@@ -308,7 +324,7 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
   auto randomness_with_slot =
       Buffer{}
           .put(babe_epoch_.randomness)
-          .put(util::uint256_t_to_bytes(babe_epoch_.threshold));
+          .put(uint256_t_to_bytes(babe_epoch_.threshold));
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .WillOnce(Return(true));
 
@@ -326,7 +342,7 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
 TEST_F(BlockValidatorTest, TwoBlocksByOnePeer) {
   // GIVEN
   auto block_copy = valid_block_;
-  block_copy.header.digests.pop_back();
+  block_copy.header.digest.pop_back();
   auto encoded_block_copy = scale::encode(block_copy.header).value();
   Hash256 encoded_block_copy_hash{};
   std::copy(encoded_block_copy.begin(),
@@ -340,12 +356,12 @@ TEST_F(BlockValidatorTest, TwoBlocksByOnePeer) {
       .WillRepeatedly(Return(encoded_block_copy_hash));
 
   babe_epoch_.authorities.emplace_back();
-  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+  babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
 
   auto randomness_with_slot =
       Buffer{}
           .put(babe_epoch_.randomness)
-          .put(util::uint256_t_to_bytes(babe_epoch_.threshold));
+          .put(uint256_t_to_bytes(babe_epoch_.threshold));
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .Times(2)
       .WillRepeatedly(Return(true));
@@ -376,7 +392,7 @@ TEST_F(BlockValidatorTest, TwoBlocksByOnePeer) {
 TEST_F(BlockValidatorTest, InvalidExtrinsic) {
   // GIVEN
   auto block_copy = valid_block_;
-  block_copy.header.digests.pop_back();
+  block_copy.header.digest.pop_back();
   auto encoded_block_copy = scale::encode(block_copy.header).value();
   Hash256 encoded_block_copy_hash{};
   std::copy(encoded_block_copy.begin(),
@@ -389,12 +405,12 @@ TEST_F(BlockValidatorTest, InvalidExtrinsic) {
       .WillOnce(Return(encoded_block_copy_hash));
 
   babe_epoch_.authorities.emplace_back();
-  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+  babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
 
   auto randomness_with_slot =
       Buffer{}
           .put(babe_epoch_.randomness)
-          .put(util::uint256_t_to_bytes(babe_epoch_.threshold));
+          .put(uint256_t_to_bytes(babe_epoch_.threshold));
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .WillOnce(Return(true));
 
@@ -418,7 +434,7 @@ TEST_F(BlockValidatorTest, InvalidExtrinsic) {
 TEST_F(BlockValidatorTest, BlockTreeFails) {
   // GIVEN
   auto block_copy = valid_block_;
-  block_copy.header.digests.pop_back();
+  block_copy.header.digest.pop_back();
   auto encoded_block_copy = scale::encode(block_copy.header).value();
   Hash256 encoded_block_copy_hash{};
   std::copy(encoded_block_copy.begin(),
@@ -431,12 +447,12 @@ TEST_F(BlockValidatorTest, BlockTreeFails) {
       .WillOnce(Return(encoded_block_copy_hash));
 
   babe_epoch_.authorities.emplace_back();
-  babe_epoch_.authorities.emplace_back(Authority{pubkey, 42});
+  babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
 
   auto randomness_with_slot =
       Buffer{}
           .put(babe_epoch_.randomness)
-          .put(util::uint256_t_to_bytes(babe_epoch_.threshold));
+          .put(uint256_t_to_bytes(babe_epoch_.threshold));
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .WillOnce(Return(true));
 

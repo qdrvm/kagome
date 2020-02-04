@@ -7,8 +7,8 @@ find_package(GTest CONFIG REQUIRED)
 find_package(GMock CONFIG REQUIRED)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
-hunter_add_package(Boost COMPONENTS random filesystem)
-find_package(Boost CONFIG REQUIRED  random filesystem)
+hunter_add_package(Boost COMPONENTS random filesystem program_options)
+find_package(Boost CONFIG REQUIRED  random filesystem program_options)
 
 ## TODO: uncomment when it is really needed
 ## https://docs.hunter.sh/en/latest/packages/pkg/libjson-rpc-cpp.html
@@ -56,5 +56,14 @@ find_package(sr25519 REQUIRED)
 hunter_add_package(spdlog)
 find_package(spdlog CONFIG REQUIRED)
 
+# https://github.com/masterjedy/hat-trie
+hunter_add_package(tsl_hat_trie)
+find_package(tsl_hat_trie CONFIG REQUIRED)
+
+# https://github.com/masterjedy/di
+hunter_add_package(Boost.DI)
+find_package(Boost.DI CONFIG REQUIRED)
+
+# https://github.com/soramitsu/libp2p
 hunter_add_package(libp2p)
-find_package(libp2p REQUIRED)
+find_package(libp2p CONFIG REQUIRED)

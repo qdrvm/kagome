@@ -11,13 +11,15 @@
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/primitives/hash_creator.hpp"
+#include "testutil/primitives/mp_utils.hpp"
 
 using kagome::network::BlockData;
 using kagome::network::BlocksResponse;
 using kagome::primitives::BlockBody;
 using kagome::primitives::BlockHeader;
+using kagome::primitives::Digest;
 using kagome::primitives::Justification;
+using kagome::primitives::PreRuntime;
 
 using testutil::createHash256;
 
@@ -31,7 +33,7 @@ namespace {
         2u,                        // block number
         createHash256({3, 3, 3}),  // state_root
         createHash256({4, 4, 4}),  // extrinsic root
-        {{5, 6, 7}}                // digest list
+        Digest{PreRuntime{}}       // digest list
     };
   }
 
@@ -52,37 +54,15 @@ namespace {
 
 struct BlocksResponseTest : public ::testing::Test {
   BlocksResponse block_responce{1u, {createBlockData(), createBlockData()}};
-  std::vector<uint8_t> encoded_value =
-      "0100000000000000080102030000000000000000000000000000000000000000"
-      "0000000000000000000101010100000000000000000000000000000000000000"
-      "0000000000000000000002000000000000000303030000000000000000000000"
-      "0000000000000000000000000000000000000404040000000000000000000000"
-      "000000000000000000000000000000000000040C050607010C0C0102030C0405"
-      "060C070809010C112233010C445566010C778899010203000000000000000000"
-      "0000000000000000000000000000000000000000010101010000000000000000"
-      "0000000000000000000000000000000000000000000200000000000000030303"
-      "0000000000000000000000000000000000000000000000000000000000040404"
-      "0000000000000000000000000000000000000000000000000000000000040C05"
-      "0607010C0C0102030C0405060C070809010C112233010C445566010C778899"_unhex;
 };
 
 /**
  * @given sample `block response` instance @and encoded value buffer
- * @when scale-encode `block response` instance
- * @then result of encoding matches predefined buffer
+ * @when scale-encode `block response` instance and decode back
+ * @then decoded block_response matches encoded block response
  */
 TEST_F(BlocksResponseTest, EncodeSuccess) {
   EXPECT_OUTCOME_TRUE(buffer, encode(block_responce));
-  ASSERT_EQ(buffer, encoded_value);
-}
-
-/**
- * @given buffer containing encoded `block response` instance
- * @and predefined `block response` instance
- * @when scale-decode that buffer
- * @then result of decoding matches predefined `block response` instance
- */
-TEST_F(BlocksResponseTest, DecodeSuccess) {
-  EXPECT_OUTCOME_TRUE(br, decode<BlocksResponse>(encoded_value));
-  ASSERT_EQ(br, block_responce);
+  EXPECT_OUTCOME_TRUE(decoded_block_response, decode<BlocksResponse>(buffer));
+  ASSERT_EQ(block_responce, decoded_block_response);
 }

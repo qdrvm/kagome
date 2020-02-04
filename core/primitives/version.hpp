@@ -64,9 +64,27 @@ namespace kagome::primitives {
      * Non-consensus-breaking optimizations are about the only changes that
      * could be made which would result in only the impl_version changing.
      */
+
+    /// Version of the runtime specification. A full-node will not attempt to
+    /// use its native runtime in substitute for the on-chain Wasm runtime
+    /// unless all of `spec_name`, `spec_version` and `authoring_version` are
+    /// the same between Wasm and native.
+    uint32_t spec_version = 0u;
+
     uint32_t impl_version = 0u;
     /// List of supported API "features" along with their versions.
     ApisVec apis;
+
+    bool operator==(const Version &rhs) const {
+      return spec_name == rhs.spec_name and impl_name == rhs.impl_name
+             and authoring_version == rhs.authoring_version
+             and impl_version == rhs.impl_version and apis == rhs.apis
+             and spec_version == rhs.spec_version;
+    }
+
+    bool operator!=(const Version &rhs) const {
+      return !operator==(rhs);
+    }
   };
 
   /**
@@ -76,10 +94,11 @@ namespace kagome::primitives {
    * @param v value to output
    * @return reference to stream
    */
-  template <class Stream, typename = std::enable_if_t<Stream::is_encoder_stream>>
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Version &v) {
     return s << v.spec_name << v.impl_name << v.authoring_version
-             << v.impl_version << v.apis;
+             << v.spec_version << v.impl_version << v.apis;
   }
 
   /**
@@ -93,7 +112,7 @@ namespace kagome::primitives {
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, Version &v) {
     return s >> v.spec_name >> v.impl_name >> v.authoring_version
-        >> v.impl_version >> v.apis;
+           >> v.spec_version >> v.impl_version >> v.apis;
   }
 }  // namespace kagome::primitives
 

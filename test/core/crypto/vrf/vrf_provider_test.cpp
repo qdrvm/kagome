@@ -21,13 +21,14 @@ class VRFProviderTest : public testing::Test {
         std::make_shared<BoostRandomGenerator>());
     keypair1_ = vrf_provider_->generateKeypair();
     keypair2_ = vrf_provider_->generateKeypair();
+    msg_ = Buffer{1, 2, 3};
   }
 
  protected:
   std::shared_ptr<VRFProviderImpl> vrf_provider_;
   SR25519Keypair keypair1_;
   SR25519Keypair keypair2_;
-  Buffer msg_{{1, 2, 3}};
+  Buffer msg_;
 };
 
 /**

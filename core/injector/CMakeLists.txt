@@ -1,0 +1,42 @@
+#
+# Copyright Soramitsu Co., Ltd. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+
+add_library(application_injector
+    application_injector.cpp
+    )
+target_link_libraries(application_injector
+    p2p::p2p
+    tsl::tsl_hat_trie
+    Boost::Boost.DI
+    api_transport
+    babe
+    babe_lottery
+    babe_observer
+    block_header_repository
+    block_storage
+    block_tree
+    buffer
+    clock
+    sr25519_provider
+    configuration_storage
+    binaryen_core_api
+    binaryen_grandpa_api
+    binaryen_block_builder_api
+    extrinsic_api_service
+    extension_factory
+    gossiper_broadcast
+    in_memory_storage
+    kagome_router
+    leveldb
+    local_key_storage
+    outcome
+    proposer
+    storage_wasm_provider
+    synchronizer
+    binaryen_tagged_transaction_queue_api
+    vrf_provider
+    waitable_timer
+    binaryen_wasm_executor
+    )

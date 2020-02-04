@@ -8,8 +8,8 @@
 #include <algorithm>
 
 #include <boost/assert.hpp>
+#include "common/mp_utils.hpp"
 #include "crypto/sr25519_provider.hpp"
-#include "crypto/util.hpp"
 #include "scale/scale.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus,
@@ -41,19 +41,17 @@ namespace kagome::consensus {
       std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<crypto::VRFProvider> vrf_provider,
-      std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
-      common::Logger log)
+      std::shared_ptr<crypto::SR25519Provider> sr25519_provider)
       : block_tree_{std::move(block_tree)},
         tx_queue_{std::move(tx_queue)},
         hasher_{std::move(hasher)},
         vrf_provider_{std::move(vrf_provider)},
         sr25519_provider_{std::move(sr25519_provider)},
-        log_{std::move(log)} {
+        log_{common::createLogger("BabeBlockValidator")} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(tx_queue_);
     BOOST_ASSERT(vrf_provider_);
     BOOST_ASSERT(sr25519_provider_);
-    BOOST_ASSERT(log_);
   }
 
   outcome::result<void> BabeBlockValidator::validate(
@@ -95,29 +93,45 @@ namespace kagome::consensus {
     return block_tree_->addBlock(block);
   }
 
+  template <typename T, typename VarT>
+  boost::optional<T> getFromVariant(VarT &&v) {
+    return visit_in_place(
+        v,
+        [](const T &expected_val) -> boost::optional<T> {
+          return boost::get<T>(expected_val);
+        },
+        [](const auto &) -> boost::optional<T> { return boost::none; });
+  }
+
   outcome::result<std::pair<Seal, BabeBlockHeader>>
   BabeBlockValidator::getBabeDigests(const primitives::Block &block) const {
     // valid BABE block has at least two digests: BabeHeader and a seal
-    if (block.header.digests.size() < 2) {
+    if (block.header.digest.size() < 2) {
       log_->info(
           "valid BABE block must have at least 2 digests, this one have {}",
-          block.header.digests.size());
+          block.header.digest.size());
       return ValidationError::INVALID_DIGESTS;
     }
-    const auto &digests = block.header.digests;
+    const auto &digests = block.header.digest;
 
     // last digest of the block must be a seal - signature
-    auto seal_res = scale::decode<Seal>(digests.back());
+    auto seal_res = getFromVariant<primitives::Seal>(digests.back());
     if (!seal_res) {
       log_->info("last digest of the block is not a Seal");
       return ValidationError::INVALID_DIGESTS;
     }
 
+    OUTCOME_TRY(babe_seal_res, scale::decode<Seal>(seal_res.value().data));
+
     for (const auto &digest :
          gsl::make_span(digests).subspan(0, digests.size() - 1)) {
-      if (auto header = scale::decode<BabeBlockHeader>(digest)) {
-        // found the BabeBlockHeader digest; return
-        return {seal_res.value(), std::move(header.value())};
+      if (auto consensus_dig = getFromVariant<primitives::Consensus>(digest);
+          consensus_dig) {
+        if (auto header = scale::decode<BabeBlockHeader>(consensus_dig->data);
+            header) {
+          // found the BabeBlockHeader digest; return
+          return {babe_seal_res, std::move(header.value())};
+        }
       }
     }
 
@@ -133,7 +147,7 @@ namespace kagome::consensus {
     // firstly, take hash of the block's header without Seal, which is the last
     // digest
     auto block_copy = block;
-    block_copy.header.digests.pop_back();
+    block_copy.header.digest.pop_back();
 
     auto block_copy_encoded_res = scale::encode(block_copy.header);
     if (!block_copy_encoded_res) {
@@ -145,15 +159,15 @@ namespace kagome::consensus {
 
     // secondly, retrieve public key of the peer by its authority id
     if (static_cast<uint64_t>(authorities.size())
-        <= babe_header.authority_index) {
+        <= babe_header.authority_index.index) {
       log_->info("don't know about authority with index {}",
-                 babe_header.authority_index);
+                 babe_header.authority_index.index);
       return false;
     }
-    const auto &key = authorities[babe_header.authority_index].id;
+    const auto &key = authorities[babe_header.authority_index.index].id;
 
     // thirdly, use verify function to check the signature
-    auto res = sr25519_provider_->verify(seal.signature, block_hash, key);
+    auto res = sr25519_provider_->verify(seal.signature, block_hash, key.id);
     return res && res.value();
   }
 
@@ -163,11 +177,11 @@ namespace kagome::consensus {
     auto randomness_with_slot =
         Buffer{}
             .put(epoch.randomness)
-            .put(crypto::util::uint256_t_to_bytes(epoch.threshold));
+            .put(common::uint256_t_to_bytes(epoch.threshold));
     if (!vrf_provider_->verify(
             randomness_with_slot,
             babe_header.vrf_output,
-            epoch.authorities[babe_header.authority_index].id)) {
+            epoch.authorities[babe_header.authority_index.index].id.id)) {
       log_->info("VRF proof in block is not valid");
       return false;
     }
@@ -195,7 +209,7 @@ namespace kagome::consensus {
     auto peer_in_slot = slot.find(peer);
     if (peer_in_slot != slot.end()) {
       log_->info("authority {} has already produced a block in the slot {}",
-                 peer,
+                 peer.index,
                  babe_header.slot_number);
       return false;
     }
@@ -217,11 +231,10 @@ namespace kagome::consensus {
                        validation_res.error());
             return false;
           }
-          return visit_in_place(
-              validation_res.value(),
-              [](const primitives::Valid &) { return true; },
-              [](primitives::Invalid) { return false; },
-              [](primitives::Unknown) { return false; });
+          return visit_in_place(validation_res.value(),
+                                [](const primitives::Valid &) { return true; },
+                                [](primitives::Invalid) { return false; },
+                                [](primitives::Unknown) { return false; });
         });
   }
 }  // namespace kagome::consensus

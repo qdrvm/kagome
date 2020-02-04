@@ -6,25 +6,20 @@
 #ifndef KAGOME_APPLICATION_UTIL_HPP
 #define KAGOME_APPLICATION_UTIL_HPP
 
-#include <boost/property_tree/ptree.hpp>
-#include <outcome/outcome.hpp>
-
-#include "application/impl/kagome_config.hpp"
+#include <boost/optional.hpp>
+#include "application/impl/config_reader/error.hpp"
 
 namespace kagome::application {
 
-  /**
-   * Initialise kagome config parameters from a boost property tree
-   */
-  outcome::result<KagomeConfig> initConfigFromPropertyTree(
-      const boost::property_tree::ptree &tree);
+  template <typename T>
+  outcome::result<std::decay_t<T>> ensure(boost::optional<T> opt_entry) {
+    if (not opt_entry) {
+      return ConfigReaderError::MISSING_ENTRY;
+    }
+    return opt_entry.value();
+  }
 
-  /**
-   * Update kagome config parameters from ones present in the provided boost
-   * property tree
-   */
-  outcome::result<void> updateConfigFromPropertyTree(
-      KagomeConfig &config, const boost::property_tree::ptree &tree);
+  outcome::result<std::vector<uint8_t>> unhexWith0x(std::string_view hex);
 
 }  // namespace kagome::application
 

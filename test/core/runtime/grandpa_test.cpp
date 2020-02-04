@@ -3,20 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/grandpa_impl.hpp"
+#include "runtime/binaryen/runtime_api/grandpa_impl.hpp"
 
 #include <gtest/gtest.h>
+
 #include "core/runtime/runtime_test.hpp"
-#include "extensions/extension_impl.hpp"
-#include "runtime/impl/wasm_memory_impl.hpp"
+#include "extensions/impl/extension_impl.hpp"
+#include "runtime/binaryen/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/runtime/wasm_test.hpp"
 
 using kagome::common::Buffer;
 using kagome::extensions::ExtensionImpl;
+using kagome::primitives::BlockId;
+using kagome::primitives::PreRuntime;
+using kagome::primitives::BlockNumber;
 using kagome::primitives::Digest;
 using kagome::runtime::Grandpa;
-using kagome::runtime::GrandpaImpl;
+using kagome::runtime::binaryen::GrandpaImpl;
 
 using ::testing::_;
 using ::testing::Return;
@@ -28,11 +31,15 @@ class GrandpaTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    api_ = std::make_shared<GrandpaImpl>(state_code_, extension_);
+    api_ = std::make_shared<GrandpaImpl>(wasm_provider_, extension_factory_);
   }
 
   Digest createDigest() const {
-    return Buffer{1, 2, 3};
+    return Digest{PreRuntime{}};
+  }
+
+  BlockId createBlockId() const {
+    return BlockId(BlockNumber{0});
   }
 
  protected:
@@ -67,5 +74,6 @@ TEST_F(GrandpaTest, DISABLED_ForcedChange) {
  * @brief writes "Uninteresting mock function call - returning default value"
  */
 TEST_F(GrandpaTest, DISABLED_Authorities) {
-  ASSERT_TRUE(api_->authorities());
+  auto block_id = createBlockId();
+  ASSERT_TRUE(api_->authorities(block_id));
 }

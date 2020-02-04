@@ -11,6 +11,7 @@ target_link_libraries(crypto_extension
     p2p::p2p_random_generator
     sr25519_provider
     ed25519_provider
+    logger
     )
 kagome_install(crypto_extension)
 
@@ -28,8 +29,8 @@ add_library(memory_extension
     memory_extension.cpp
     )
 target_link_libraries(memory_extension
-    memory
     logger
+    buffer
 )
 kagome_install(memory_extension)
 

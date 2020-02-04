@@ -67,14 +67,6 @@ struct BlockTreeTest : public testing::Test {
     return addBlock(Block{header, {}});
   }
 
-  const Buffer kFinalizedBlockLookupKey{0x12, 0x85};
-  const Buffer kFinalizedBlockHashWithKey =
-      Buffer{}.putUint8(Prefix::ID_TO_LOOKUP_KEY).put(kFinalizedBlockHash);
-  const Buffer kFinalizedBlockHashWithKeyAndHeader =
-      Buffer{}.putUint8(Prefix::HEADER).putBuffer(kFinalizedBlockLookupKey);
-  const Buffer kFinalizedBlockHashWithKeyAndBody =
-      Buffer{}.putUint8(Prefix::BODY).putBuffer(kFinalizedBlockLookupKey);
-
   const BlockHash kFinalizedBlockHash =
       BlockHash::fromString("andj4kdn4odnfkslfn3k4jdnbmeodkv4").value();
 
@@ -89,17 +81,13 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<crypto::Hasher> hasher_ =
       std::make_shared<crypto::HasherImpl>();
 
-  std::unique_ptr<BlockTreeImpl> block_tree_;
+  std::shared_ptr<BlockTreeImpl> block_tree_;
 
   const BlockId kLastFinalizedBlockId = kFinalizedBlockHash;
 
-  BlockHeader finalized_block_header_{.number = 0, .digests = {{0x11, 0x33}}};
-  std::vector<uint8_t> encoded_finalized_block_header_ =
-      scale::encode(finalized_block_header_).value();
+  BlockHeader finalized_block_header_{.number = 0, .digest = {{PreRuntime{}}}};
 
   BlockBody finalized_block_body_{{Buffer{0x22, 0x44}}, {Buffer{0x55, 0x66}}};
-  std::vector<uint8_t> encoded_finalized_block_body_ =
-      scale::encode(finalized_block_body_).value();
 };
 
 /**
@@ -109,7 +97,6 @@ struct BlockTreeTest : public testing::Test {
  */
 TEST_F(BlockTreeTest, GetBody) {
   // GIVEN
-
   // WHEN
   EXPECT_CALL(*storage_, getBlockBody(_))
       .WillOnce(Return(finalized_block_body_));
@@ -140,7 +127,7 @@ TEST_F(BlockTreeTest, AddBlock) {
   // WHEN
   BlockHeader header{.parent_hash = kFinalizedBlockHash,
                      .number = 1,
-                     .digests = {{0x66, 0x44}}};
+                     .digest = {PreRuntime{}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash = addBlock(new_block);
@@ -165,7 +152,7 @@ TEST_F(BlockTreeTest, AddBlock) {
  */
 TEST_F(BlockTreeTest, AddBlockNoParent) {
   // GIVEN
-  BlockHeader header{.digests = {{0x66, 0x44}}};
+  BlockHeader header{.digest = {PreRuntime{}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
 
@@ -188,7 +175,7 @@ TEST_F(BlockTreeTest, Finalize) {
 
   BlockHeader header{.parent_hash = kFinalizedBlockHash,
                      .number = 1,
-                     .digests = {{0x66, 0x44}}};
+                     .digest = {PreRuntime{}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash = addBlock(new_block);
@@ -214,13 +201,13 @@ TEST_F(BlockTreeTest, GetChainByBlockOnly) {
   // GIVEN
   BlockHeader header{.parent_hash = kFinalizedBlockHash,
                      .number = 1,
-                     .digests = {{0x66, 0x44}}};
+                     .digest = {PreRuntime{}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash1 = addBlock(new_block);
 
   header =
-      BlockHeader{.parent_hash = hash1, .number = 2, .digests = {{0x66, 0x55}}};
+      BlockHeader{.parent_hash = hash1, .number = 2, .digest = {Consensus{}}};
   body = BlockBody{{Buffer{0x55, 0x55}}};
   new_block = Block{header, body};
   auto hash2 = addBlock(new_block);
@@ -243,13 +230,13 @@ TEST_F(BlockTreeTest, GetChainByBlockAscending) {
   // GIVEN
   BlockHeader header{.parent_hash = kFinalizedBlockHash,
                      .number = 1,
-                     .digests = {{0x66, 0x44}}};
+                     .digest = {PreRuntime{}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash1 = addBlock(new_block);
 
   header =
-      BlockHeader{.parent_hash = hash1, .number = 2, .digests = {{0x66, 0x55}}};
+      BlockHeader{.parent_hash = hash1, .number = 2, .digest = {Consensus{}}};
   body = BlockBody{{Buffer{0x55, 0x55}}};
   new_block = Block{header, body};
   auto hash2 = addBlock(new_block);
@@ -276,13 +263,13 @@ TEST_F(BlockTreeTest, GetChainByBlockDescending) {
   // GIVEN
   BlockHeader header{.parent_hash = kFinalizedBlockHash,
                      .number = 1,
-                     .digests = {{0x66, 0x44}}};
+                     .digest = {PreRuntime{}}};
   BlockBody body{{Buffer{0x55, 0x55}}};
   Block new_block{header, body};
   auto hash1 = addBlock(new_block);
 
   header =
-      BlockHeader{.parent_hash = hash1, .number = 2, .digests = {{0x66, 0x55}}};
+      BlockHeader{.parent_hash = hash1, .number = 2, .digest = {Consensus{}}};
   body = BlockBody{{Buffer{0x55, 0x55}}};
   new_block = Block{header, body};
   auto hash2 = addBlock(new_block);
@@ -303,7 +290,8 @@ TEST_F(BlockTreeTest, GetChainByBlockDescending) {
 
 /**
  * @given a block tree with one block in it
- * @when trying to obtain the best chain that contais a block, which is present
+ * @when trying to obtain the best chain that contais a block, which is
+ present
  * in the storage, but is not connected to the base block in the tree
  * @then BLOCK_NOT_FOUND error is returned
  */
@@ -342,7 +330,8 @@ TEST_F(BlockTreeTest, GetBestChain_ShortChain) {
 
 /**
  * @given a block tree with two branches-chains
- * @when trying to obtain the best chain containing the root of the split on two
+ * @when trying to obtain the best chain containing the root of the split on
+ two
  * chains
  * @then the longest chain with is returned
  */
@@ -364,7 +353,8 @@ TEST_F(BlockTreeTest, GetBestChain_TwoChains) {
 
 /**
  * @given a non-empty block tree
- * @when trying to obtain the best chain with a block, which number is past the
+ * @when trying to obtain the best chain with a block, which number is past
+ the
  * specified limit
  * @then TARGET_IS_PAST_MAX error is returned
  */

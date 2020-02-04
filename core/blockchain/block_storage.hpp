@@ -9,7 +9,6 @@
 #include "primitives/block.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
-#include "storage/face/persistent_map.hpp"
 
 namespace kagome::blockchain {
 

@@ -201,7 +201,8 @@ TEST_P(Int32Test, DecodeSuccess) {
 INSTANTIATE_TEST_CASE_P(
     Int32TestCases, Int32Test,
     ::testing::Values(Int32Test::make_pair(2147483647l, {255, 255, 255, 127}),
-                      Int32Test::make_pair(-1, {255, 255, 255, 255})));
+                      Int32Test::make_pair(-1, {255, 255, 255, 255}),
+                      Int32Test::make_pair(1, {1, 0, 0, 0})));
 
 /**
  * @brief class for testing uint32_t encode and decode

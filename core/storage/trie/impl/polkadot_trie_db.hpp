@@ -13,6 +13,7 @@
 #include "storage/trie/impl/polkadot_codec.hpp"
 #include "storage/trie/impl/polkadot_node.hpp"
 #include "storage/trie/impl/polkadot_trie.hpp"
+#include "storage/trie/impl/polkadot_trie_db_backend.hpp"
 #include "storage/trie/trie_db.hpp"
 
 namespace kagome::storage::trie {
@@ -39,7 +40,18 @@ namespace kagome::storage::trie {
                              size_t nest_level);
 
    public:
-    explicit PolkadotTrieDb(std::unique_ptr<PersistentBufferMap> db);
+    /**
+     * initializes the trie from the provided storage (and will use the storage
+     * further)
+     */
+    static outcome::result<std::unique_ptr<PolkadotTrieDb>> createFromStorage(
+        std::shared_ptr<PolkadotTrieDbBackend> db);
+
+    /**
+     * creates an empty trie on the provided storage
+     */
+    static std::unique_ptr<PolkadotTrieDb> createEmpty(
+        std::shared_ptr<PolkadotTrieDbBackend> db);
 
     ~PolkadotTrieDb() override = default;
 
@@ -72,6 +84,10 @@ namespace kagome::storage::trie {
 
     std::unique_ptr<MapCursor> cursor() override;
 
+   protected:
+    PolkadotTrieDb(std::shared_ptr<PolkadotTrieDbBackend> db,
+                   boost::optional<common::Buffer> root_hash);
+
    private:
     /**
      * Creates an in-memory trie, which will fetch from the storage only the
@@ -101,7 +117,7 @@ namespace kagome::storage::trie {
     outcome::result<NodePtr> retrieveChild(const BranchPtr &parent,
                                            uint8_t idx) const;
 
-    std::unique_ptr<PersistentBufferMap> db_;
+    std::shared_ptr<PolkadotTrieDbBackend> db_;
     PolkadotCodec codec_;
     common::Buffer root_;
   };

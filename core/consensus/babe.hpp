@@ -17,7 +17,8 @@ namespace kagome::consensus {
    * the two parts in that consensus; the other is Grandpa finality
    * Read more: https://research.web3.foundation/en/latest/polkadot/BABE/Babe/
    */
-  struct Babe {
+  class Babe {
+   public:
     virtual ~Babe() = default;
 
     /**

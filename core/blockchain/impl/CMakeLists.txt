@@ -4,16 +4,18 @@
 #
 
 add_library(blockchain_common
-    common.cpp
+    types.cpp
     common.hpp
     persistent_map_util.cpp
     persistent_map_util.hpp
     )
 target_link_libraries(blockchain_common
+    blob
     Boost::boost
     buffer
+    in_memory_storage
+    polkadot_trie_db
     primitives
-    blob
     )
 
 add_library(block_tree

@@ -9,6 +9,7 @@
 #include "authorship/block_builder_factory.hpp"
 
 #include "blockchain/block_header_repository.hpp"
+#include "common/logger.hpp"
 
 namespace kagome::authorship {
 
@@ -18,17 +19,18 @@ namespace kagome::authorship {
 
     BlockBuilderFactoryImpl(
         std::shared_ptr<runtime::Core> r_core,
-        std::shared_ptr<runtime::BlockBuilderApi> r_block_builder,
+        std::shared_ptr<runtime::BlockBuilder> r_block_builder,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_backend);
 
     outcome::result<std::unique_ptr<BlockBuilder>> create(
         const kagome::primitives::BlockId &parent_id,
-        std::vector<primitives::Digest> inherent_digests) const override;
+        primitives::Digest inherent_digest) const override;
 
    private:
     std::shared_ptr<runtime::Core> r_core_;
-    std::shared_ptr<runtime::BlockBuilderApi> r_block_builder_;
+    std::shared_ptr<runtime::BlockBuilder> r_block_builder_;
     std::shared_ptr<blockchain::BlockHeaderRepository> header_backend_;
+    common::Logger logger_;
   };
 
 }  // namespace kagome::authorship

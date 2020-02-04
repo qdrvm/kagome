@@ -24,22 +24,28 @@ namespace kagome::storage::trie {
   template <typename It>
   outcome::result<common::Buffer> calculateOrderedTrieHash(const It &begin,
                                                            const It &end) {
+    PolkadotTrie trie;
+    PolkadotCodec codec;
+    // empty root
+    if (begin == end) return common::Buffer{}.put(codec.hash256({0}));
+
     // clang-format off
     static_assert(
         std::is_same_v<std::decay_t<decltype(*begin)>, common::Buffer>);
     // clang-format on
-    PolkadotTrie trie;
     It it = begin;
-    uint32_t key = 0;
+    scale::CompactInteger key = 0;
     while (it != end) {
       OUTCOME_TRY(enc, scale::encode(key++));
       OUTCOME_TRY(trie.put(common::Buffer{enc}, *it));
       it++;
     }
-    PolkadotCodec codec;
     OUTCOME_TRY(enc, codec.encodeNode(*trie.getRoot()));
-    auto merkleHash = codec.hash256(codec.merkleValue(enc));
-    return common::Buffer{merkleHash};
+    auto merkleValue = codec.merkleValue(enc);
+    auto merkleHash = merkleValue.size() < 32
+                          ? common::Buffer{codec.hash256(merkleValue)}
+                          : merkleValue;
+    return merkleHash;
   }
 
 }  // namespace kagome::storage::trie

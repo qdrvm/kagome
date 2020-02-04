@@ -9,6 +9,7 @@ add_library(gossiper_broadcast
     )
 target_link_libraries(gossiper_broadcast
     scale_message_read_writer
+    logger
     )
 
 add_library(kagome_router

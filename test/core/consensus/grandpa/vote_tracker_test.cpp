@@ -19,7 +19,7 @@ class VoteTrackerTest : public testing::Test {
   using PushResult = typename VoteTracker<Message>::PushResult;
 
   VoteTrackerImpl<Message> tracker;
-  std::vector<Id> ids = {"01"_hash256, "02"_hash256, "03"_hash256};
+  std::vector<Id> ids = {{"01"_hash256}, {"02"_hash256}, {"03"_hash256}};
   std::vector<Hash256> hashes = {
       "010203"_hash256, "040506"_hash256, "070809"_hash256};
 

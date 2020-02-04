@@ -1,13 +1,10 @@
 # Copyright Soramitsu Co., Ltd. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-add_library(wasm_test
-    wasm_test.hpp
-    wasm_test.cpp
+add_library(basic_wasm_provider
+        common/basic_wasm_provider.cpp
     )
-target_link_libraries(
-    wasm_test
-    Boost::filesystem
+target_link_libraries(basic_wasm_provider
     buffer
-    wasm_executor
-)
+    Boost::filesystem
+    )

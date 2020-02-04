@@ -29,6 +29,13 @@ namespace kagome::blockchain {
    */
   outcome::result<common::Buffer> idToLookupKey(const ReadableBufferMap &map,
                                                 const primitives::BlockId &id);
+
+  /**
+   * Instantiate empty merkle trie, insert \param key_vals pairs and \return
+   * Buffer containing merkle root of resulting trie
+   */
+  common::Buffer trieRoot(
+      const std::vector<std::pair<common::Buffer, common::Buffer>> &key_vals);
 }  // namespace kagome::blockchain
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, Error)

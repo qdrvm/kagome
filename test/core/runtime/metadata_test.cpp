@@ -3,21 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/impl/grandpa_impl.hpp"
+#include "runtime/binaryen/runtime_api/grandpa_impl.hpp"
 
 #include <gtest/gtest.h>
+
 #include "core/runtime/runtime_test.hpp"
-#include "extensions/extension_impl.hpp"
-#include "runtime/impl/metadata_impl.hpp"
-#include "runtime/impl/wasm_memory_impl.hpp"
+#include "extensions/impl/extension_impl.hpp"
+#include "runtime/binaryen/runtime_api/metadata_impl.hpp"
+#include "runtime/binaryen/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/runtime/wasm_test.hpp"
 
 using ::testing::_;
 using ::testing::Return;
 
 using kagome::runtime::Metadata;
-using kagome::runtime::MetadataImpl;
+using kagome::runtime::binaryen::MetadataImpl;
 
 namespace fs = boost::filesystem;
 
@@ -26,7 +26,7 @@ class MetadataTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    api_ = std::make_shared<MetadataImpl>(state_code_, extension_);
+    api_ = std::make_shared<MetadataImpl>(wasm_provider_, extension_factory_);
   }
 
  protected:

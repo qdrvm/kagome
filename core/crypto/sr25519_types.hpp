@@ -12,6 +12,7 @@ extern "C" {
 #include <boost/multiprecision/cpp_int.hpp>
 #include <gsl/span>
 #include "common/blob.hpp"
+#include "common/mp_utils.hpp"
 
 namespace kagome::crypto {
   namespace constants::sr25519 {
@@ -60,9 +61,6 @@ namespace kagome::crypto {
 
     SR25519Keypair() = default;
 
-    explicit SR25519Keypair(
-        gsl::span<uint8_t, constants::sr25519::KEYPAIR_SIZE> kp);
-
     bool operator==(const SR25519Keypair &other) const;
     bool operator!=(const SR25519Keypair &other) const;
   };
@@ -80,7 +78,8 @@ namespace kagome::crypto {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const VRFOutput &o) {
-    return s << o.value << o.proof;
+    auto value_bytes = common::uint256_t_to_bytes(o.value);
+    return s << value_bytes << o.proof;
   }
 
   /**
@@ -93,7 +92,10 @@ namespace kagome::crypto {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, VRFOutput &o) {
-    return s >> o.value >> o.proof;
+    std::array<uint8_t, 32> value_bytes{};
+    s >> value_bytes >> o.proof;
+    o.value = common::bytes_to_uint256_t(value_bytes);
+    return s;
   }
 
 }  // namespace kagome::crypto

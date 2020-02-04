@@ -13,6 +13,7 @@
 #include "common/wrapper.hpp"
 #include "consensus/grandpa/common.hpp"
 #include "crypto/ed25519_types.hpp"
+#include "primitives/authority.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::consensus::grandpa {

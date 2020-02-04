@@ -23,37 +23,35 @@ namespace kagome::consensus {
                      std::shared_ptr<blockchain::BlockTree> block_tree,
                      std::shared_ptr<network::BabeGossiper> gossiper,
                      crypto::SR25519Keypair keypair,
-                     primitives::AuthorityIndex authority_id,
+                     primitives::AuthorityIndex authority_index,
                      std::shared_ptr<clock::SystemClock> clock,
                      std::shared_ptr<crypto::Hasher> hasher,
-                     std::shared_ptr<clock::Timer> timer,
-                     libp2p::event::Bus &event_bus,
-                     common::Logger log)
+                     std::unique_ptr<clock::Timer> timer,
+                     libp2p::event::Bus &event_bus)
       : lottery_{std::move(lottery)},
         proposer_{std::move(proposer)},
         block_tree_{std::move(block_tree)},
         gossiper_{std::move(gossiper)},
         keypair_{keypair},
-        authority_id_{authority_id},
+        authority_index_{authority_index},
         clock_{std::move(clock)},
         hasher_{std::move(hasher)},
         timer_{std::move(timer)},
         event_bus_{event_bus},
-        log_{std::move(log)},
-        error_channel_{event_bus_.getChannel<event::BabeErrorChannel>()} {
+        error_channel_{event_bus_.getChannel<event::BabeErrorChannel>()},
+        log_{common::createLogger("BABE")} {
     BOOST_ASSERT(lottery_);
     BOOST_ASSERT(proposer_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(gossiper_);
     BOOST_ASSERT(clock_);
     BOOST_ASSERT(hasher_);
-    BOOST_ASSERT(log_);
   }
 
   void BabeImpl::runEpoch(Epoch epoch,
                           BabeTimePoint starting_slot_finish_time) {
     BOOST_ASSERT(!epoch.authorities.empty());
-    log_->info("starting an epoch with index {}", epoch.epoch_index);
+    log_->debug("starting an epoch with index {}", epoch.epoch_index);
 
     current_epoch_ = std::move(epoch);
     current_slot_ = current_epoch_.start_slot;
@@ -78,7 +76,7 @@ namespace kagome::consensus {
       // end of the epoch
       return finishEpoch();
     }
-    log_->info("starting a slot with number {}", current_slot_);
+    log_->debug("starting a slot with number {}", current_slot_);
 
     // check that we are really in the middle of the slot, as expected; we can
     // cooperate with a relatively little (kMaxLatency) latency, as our node
@@ -106,11 +104,15 @@ namespace kagome::consensus {
   void BabeImpl::finishSlot() {
     auto slot_leadership = slots_leadership_[current_slot_];
     if (slot_leadership) {
+      log_->debug("Peer {} is leader", authority_index_.index);
       processSlotLeadership(*slot_leadership);
     }
 
     ++current_slot_;
     next_slot_finish_time_ += current_epoch_.slot_duration;
+    log_->debug("Slot {} in epoch {} has finished",
+                current_slot_,
+                current_epoch_.epoch_index);
     runSlot();
   }
 
@@ -118,28 +120,25 @@ namespace kagome::consensus {
     // build a block to be announced
     auto &&[_, best_block_hash] = block_tree_->deepestLeaf();
 
-    BabeBlockHeader babe_header{current_slot_, output, authority_id_};
+    BabeBlockHeader babe_header{current_slot_, output, authority_index_};
     auto encoded_header_res = scale::encode(babe_header);
     if (!encoded_header_res) {
       return log_->error("cannot encode BabeBlockHeader: {}",
                          encoded_header_res.error().message());
     }
+    common::Buffer encoded_header{encoded_header_res.value()};
 
     primitives::InherentData inherent_data;
     auto epoch_secs = std::chrono::duration_cast<std::chrono::seconds>(
                           clock_->now().time_since_epoch())
                           .count();
     // identifiers are guaranteed to be correct, so use .value() directly
-    auto put_res = inherent_data.putData(
-        primitives::InherentIdentifier::fromString("timstap0").value(),
-        common::Buffer{}.putUint64(epoch_secs));
+    auto put_res = inherent_data.putData<uint64_t>(kTimestampId, epoch_secs);
     if (!put_res) {
       return log_->error("cannot put an inherent data: {}",
                          put_res.error().message());
     }
-    put_res = inherent_data.putData(
-        primitives::InherentIdentifier::fromString("babeslot").value(),
-        common::Buffer{}.putUint64(current_slot_));
+    put_res = inherent_data.putData(kBabeSlotId, current_slot_);
     if (!put_res) {
       return log_->error("cannot put an inherent data: {}",
                          put_res.error().message());
@@ -148,7 +147,7 @@ namespace kagome::consensus {
     auto pre_seal_block_res = proposer_->propose(
         best_block_hash,
         inherent_data,
-        {common::Buffer{std::move(encoded_header_res.value())}});
+        {primitives::PreRuntime{{kBabeEngineId, encoded_header}}});
     if (!pre_seal_block_res) {
       return log_->error("cannot propose a block: {}",
                          pre_seal_block_res.error().message());
@@ -156,7 +155,7 @@ namespace kagome::consensus {
 
     // seal the block
     auto block = std::move(pre_seal_block_res.value());
-    auto pre_seal_encoded_block_res = scale::encode(block);
+    auto pre_seal_encoded_block_res = scale::encode(block.header);
     if (!pre_seal_encoded_block_res) {
       return log_->error("cannot encode pre-seal block: {}",
                          pre_seal_encoded_block_res.error().message());
@@ -177,8 +176,9 @@ namespace kagome::consensus {
                          encoded_seal_res.error().message());
     }
 
-    block.header.digests.emplace_back(
-        common::Buffer{std::move(encoded_seal_res.value())});
+    // add seal digest item
+    block.header.digest.emplace_back(primitives::Seal{
+        {kBabeEngineId, common::Buffer{std::move(encoded_seal_res.value())}}});
 
     // finally, broadcast the sealed block
     gossiper_->blockAnnounce(network::BlockAnnounce{block.header});
@@ -198,6 +198,7 @@ namespace kagome::consensus {
         current_epoch_.randomness, ++current_epoch_.epoch_index);
     current_epoch_.start_slot = 0;
 
+    log_->debug("Epoch {} has finished", current_epoch_.epoch_index);
     runEpoch(current_epoch_, next_slot_finish_time_);
   }
 

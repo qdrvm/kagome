@@ -6,8 +6,9 @@
 #ifndef KAGOME_TEST_CORE_RUNTIME_MOCK_EXTENSION_HPP_
 #define KAGOME_TEST_CORE_RUNTIME_MOCK_EXTENSION_HPP_
 
-#include <gmock/gmock.h>
 #include "extensions/extension.hpp"
+
+#include <gmock/gmock.h>
 
 namespace kagome::extensions {
 
@@ -43,10 +44,9 @@ namespace kagome::extensions {
                       runtime::WasmPointer lens_data,
                       runtime::SizeType lens_length,
                       runtime::WasmPointer result));
-    MOCK_METHOD4(ext_storage_changes_root,
+    MOCK_METHOD3(ext_storage_changes_root,
                  runtime::SizeType(runtime::WasmPointer parent_hash_data,
                                    runtime::SizeType parent_hash_len,
-                                   runtime::SizeType parent_num,
                                    runtime::WasmPointer result));
     MOCK_CONST_METHOD1(ext_storage_root, void(runtime::WasmPointer result));
     MOCK_METHOD1(ext_malloc, runtime::WasmPointer(runtime::SizeType size));
@@ -58,10 +58,12 @@ namespace kagome::extensions {
                  void(runtime::WasmPointer utf8_data,
                       runtime::SizeType utf8_length));
     MOCK_METHOD3(ext_blake2_256,
-                 void(runtime::WasmPointer data, runtime::SizeType len,
+                 void(runtime::WasmPointer data,
+                      runtime::SizeType len,
                       runtime::WasmPointer out));
     MOCK_METHOD3(ext_keccak_256,
-                 void(runtime::WasmPointer data, runtime::SizeType len,
+                 void(runtime::WasmPointer data,
+                      runtime::SizeType len,
                       runtime::WasmPointer out));
     MOCK_METHOD4(ext_ed25519_verify,
                  runtime::SizeType(runtime::WasmPointer msg_data,
@@ -74,10 +76,12 @@ namespace kagome::extensions {
                                    runtime::WasmPointer sig_data,
                                    runtime::WasmPointer pubkey_data));
     MOCK_METHOD3(ext_twox_128,
-                 void(runtime::WasmPointer data, runtime::SizeType len,
+                 void(runtime::WasmPointer data,
+                      runtime::SizeType len,
                       runtime::WasmPointer out));
     MOCK_METHOD3(ext_twox_256,
-                 void(runtime::WasmPointer data, runtime::SizeType len,
+                 void(runtime::WasmPointer data,
+                      runtime::SizeType len,
                       runtime::WasmPointer out));
     MOCK_CONST_METHOD0(ext_chain_id, uint64_t());
   };
