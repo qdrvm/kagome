@@ -40,6 +40,8 @@ namespace kagome::application {
       authorities.push_back(primitives::Authority{{item}, 1u});
     }
 
+    // some threshold value resulting in producing block in every slot. In
+    // future will be calculated using runtime
     Threshold threshold =
         boost::multiprecision::uint256_t(0.58 * 1e77) / authorities.size() / 6;
 

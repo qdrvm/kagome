@@ -33,6 +33,10 @@ namespace kagome::clock {
      */
     virtual TimePoint now() const = 0;
 
+    /**
+     * @return uint64_t representing number of seconds since the beginning of
+     * epoch (Jan 1, 1970)
+     */
     virtual uint64_t nowUint64() const = 0;
   };
 
