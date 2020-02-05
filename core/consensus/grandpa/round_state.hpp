@@ -6,6 +6,8 @@
 #ifndef KAGOME_CORE_CONSENSUS_GRANDPA_ROUND_STATE_HPP
 #define KAGOME_CORE_CONSENSUS_GRANDPA_ROUND_STATE_HPP
 
+#include <boost/optional.hpp>
+
 #include "consensus/grandpa/structs.hpp"
 
 namespace kagome::consensus::grandpa {

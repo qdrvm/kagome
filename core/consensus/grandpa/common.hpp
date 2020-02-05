@@ -11,11 +11,12 @@
 #include "clock/clock.hpp"
 #include "common/wrapper.hpp"
 #include "crypto/ed25519_types.hpp"
+#include "primitives/authority.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::consensus::grandpa {
 
-  using Id = primitives::AuthorityId;
+  using Id = crypto::ED25519PublicKey;
 
   // vote signature
   using Signature = crypto::ED25519Signature;

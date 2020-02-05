@@ -207,6 +207,7 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
 
   ASSERT_EQ(voting_round_->getCurrentState().prevote_ghost.value(),
             Prevote(6, "E"_H));
+  ASSERT_TRUE(voting_round_->getCurrentState().estimate);
   ASSERT_EQ(voting_round_->getCurrentState().estimate.value(),
             BlockInfo(6, "E"_H));
   ASSERT_FALSE(voting_round_->completable());

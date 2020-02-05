@@ -142,7 +142,7 @@ TEST_F(BlockValidatorTest, Success) {
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .WillOnce(Return(true));
 
-  BlockInfo deepest_leaf{1u, createHash256({1u})};
+  primitives::BlockInfo deepest_leaf{1u, createHash256({1u})};
   EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
 
   // verifyTransactions
@@ -366,7 +366,7 @@ TEST_F(BlockValidatorTest, TwoBlocksByOnePeer) {
       .Times(2)
       .WillRepeatedly(Return(true));
 
-  BlockInfo deepest_leaf{1u, createHash256({1u})};
+  primitives::BlockInfo deepest_leaf{1u, createHash256({1u})};
 
   EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
 
@@ -414,7 +414,7 @@ TEST_F(BlockValidatorTest, InvalidExtrinsic) {
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .WillOnce(Return(true));
 
-  BlockInfo deepest_leaf{1u, createHash256({1u})};
+  primitives::BlockInfo deepest_leaf{1u, createHash256({1u})};
   EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
 
   // WHEN
@@ -456,7 +456,7 @@ TEST_F(BlockValidatorTest, BlockTreeFails) {
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
       .WillOnce(Return(true));
 
-  BlockInfo deepest_leaf{1u, createHash256({1u})};
+  primitives::BlockInfo deepest_leaf{1u, createHash256({1u})};
   EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
 
   EXPECT_CALL(*tx_queue_, validate_transaction(deepest_leaf.block_number, ext_))

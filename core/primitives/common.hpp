@@ -17,9 +17,6 @@ namespace kagome::primitives {
   using BlockNumber = uint64_t;
   using BlockHash = common::Hash256;
 
-  using AuthorityId = SessionKey;
-  using AuthorityIndex = uint64_t;
-
   namespace detail {
     template <typename Tag>
     struct BlockInfoT : public boost::equality_comparable<BlockInfoT<Tag>> {

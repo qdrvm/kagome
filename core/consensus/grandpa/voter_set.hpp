@@ -6,13 +6,15 @@
 #ifndef KAGOME_CORE_CONSENSUS_GRANDPA_VOTER_SET_HPP
 #define KAGOME_CORE_CONSENSUS_GRANDPA_VOTER_SET_HPP
 
+#include <boost/optional.hpp>
+
 #include "consensus/grandpa/common.hpp"
 
 namespace kagome::consensus::grandpa {
 
   struct VoterSet {
    public:
-    VoterSet() = default; // for scale codec (in decode)
+    VoterSet() = default;  // for scale codec (in decode)
     VoterSet(std::vector<Id> authorities, MembershipCounter set_id);
 
     explicit VoterSet(MembershipCounter set_id);

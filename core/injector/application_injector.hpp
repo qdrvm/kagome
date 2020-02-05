@@ -37,7 +37,7 @@
 #include "consensus/babe/impl/epoch_storage_dumb.hpp"
 #include "consensus/grandpa/chain.hpp"
 #include "consensus/grandpa/gossiper.hpp"
-#include "consensus/grandpa/observer.hpp"
+#include "consensus/grandpa/round_observer.hpp"
 #include "consensus/grandpa/structs.hpp"
 #include "consensus/grandpa/vote_graph.hpp"
 #include "consensus/grandpa/vote_tracker.hpp"

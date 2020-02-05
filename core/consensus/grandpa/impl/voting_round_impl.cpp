@@ -169,7 +169,7 @@ namespace kagome::consensus::grandpa {
   void VotingRoundImpl::onPrevote(const SignedPrevote &prevote) {
     onSignedPrevote(prevote);
     updatePrevoteGhost();
-    );
+    update();
   }
 
   void VotingRoundImpl::onPrecommit(const SignedPrecommit &precommit) {
@@ -517,7 +517,7 @@ namespace kagome::consensus::grandpa {
     });
   }
 
-  void update(VotingRoundImpl::update() {
+  void VotingRoundImpl::update() {
     if (prevotes_->totalWeight() < threshold_) {
       return;
     }
