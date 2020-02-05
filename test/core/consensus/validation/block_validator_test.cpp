@@ -91,7 +91,7 @@ class BlockValidatorTest : public testing::Test {
       Hash256::fromString("c30ojfn4983u4093jv3894j3f034ojs3").value();
 
   BabeSlotNumber slot_number_ = 2;
-  VRFPreOutput vrf_value_ = uint256_t_to_bytes(1488228);
+  VRFPreOutput vrf_value_ = {1, 2, 3, 4, 5};
   VRFProof vrf_proof_{};
   AuthorityIndex authority_index_ = {1};
   BabeBlockHeader babe_header_{
