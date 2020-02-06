@@ -5,6 +5,7 @@
 
 #include "common/mp_utils.hpp"
 
+#include <boost/endian/conversion.hpp>
 #include <gsl/gsl_util>
 
 namespace kagome::common {
@@ -13,29 +14,24 @@ namespace kagome::common {
     template <size_t size, typename uint>
     std::array<uint8_t, size> uint_to_bytes(uint &&i) {
       using boost::multiprecision::cpp_int;
-      std::vector<uint8_t> bytes;
-      bytes.reserve(size);
-      export_bits(i, std::back_inserter(bytes), 8);
-
+      using boost::endian::native_to_little_inplace;
       std::array<uint8_t, size> res {};
       res.fill(0);
-      std::copy(bytes.begin(), bytes.end(), res.begin());
-      std::reverse(res.begin(), res.end());
+      export_bits(i, res.begin(), 8, false);
+      native_to_little_inplace(res);
       return res;
     }
 
     template <size_t size, typename uint>
     uint bytes_to_uint(gsl::span<uint8_t, size> bytes) {
       using boost::multiprecision::cpp_int;
+      using boost::endian::little_to_native;
       if (bytes.empty()) {
         return uint(0);
       }
-      std::array<uint8_t, size> bytes_copy {};
-      std::copy(bytes.begin(), bytes.end(), bytes_copy.begin());
-      std::reverse(bytes_copy.begin(), bytes_copy.end());
-
+      auto le = little_to_native(bytes);
       uint result;
-      import_bits(result, bytes_copy.begin(), bytes_copy.end());
+      import_bits(result, le.begin(), le.end(), 8, false);
       return result;
     }
   }  // namespace detail

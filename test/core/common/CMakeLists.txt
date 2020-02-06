@@ -23,3 +23,10 @@ addtest(blob_test
 target_link_libraries(blob_test
   blob
   )
+
+addtest(mp_utils_test
+    mp_utils_test.cpp
+    )
+target_link_libraries(mp_utils_test
+    mp_utils
+    )
