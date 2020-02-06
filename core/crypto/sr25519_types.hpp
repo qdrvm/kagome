@@ -11,6 +11,7 @@ extern "C" {
 }
 #include <boost/multiprecision/cpp_int.hpp>
 #include <gsl/span>
+
 #include "common/blob.hpp"
 #include "common/mp_utils.hpp"
 
@@ -39,16 +40,34 @@ namespace kagome::crypto {
 
   }  // namespace constants::sr25519
 
-  using VRFValue = boost::multiprecision::uint256_t;
-
+  using VRFPreOutput = std::array<uint8_t, constants::sr25519::vrf::OUTPUT_SIZE>;
+  using VRFThreshold = boost::multiprecision::uint128_t;
   using VRFProof = std::array<uint8_t, constants::sr25519::vrf::PROOF_SIZE>;
 
+  /**
+   * Output of a verifiable random function.
+   * Consists of pre-output, which is an internal representation of the
+   * generated random value, and the proof to this value that servers as the
+   * verification of its randomness.
+   */
   struct VRFOutput {
-    VRFValue value;
+    // an internal representation of the generated random value
+    VRFPreOutput output{};
+    // the proof to the output, serves as the verification of its randomness
     VRFProof proof{};
 
     bool operator==(const VRFOutput &other) const;
     bool operator!=(const VRFOutput &other) const;
+  };
+
+  /**
+   * Output of a verifiable random function verification.
+   */
+  struct VRFVerifyOutput {
+    // indicates if the proof is valid
+    bool is_valid;
+    // indicates if the value is less than the provided threshold
+    bool is_less;
   };
 
   using SR25519SecretKey = common::Blob<constants::sr25519::SECRET_SIZE>;
@@ -78,8 +97,7 @@ namespace kagome::crypto {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const VRFOutput &o) {
-    auto value_bytes = common::uint256_t_to_bytes(o.value);
-    return s << value_bytes << o.proof;
+    return s << o.output << o.proof;
   }
 
   /**
@@ -92,10 +110,7 @@ namespace kagome::crypto {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, VRFOutput &o) {
-    std::array<uint8_t, 32> value_bytes{};
-    s >> value_bytes >> o.proof;
-    o.value = common::bytes_to_uint256_t(value_bytes);
-    return s;
+    return s >> o.output >> o.proof;
   }
 
 }  // namespace kagome::crypto

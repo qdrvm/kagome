@@ -71,7 +71,7 @@ namespace kagome::consensus {
         new_randomness.begin() + vrf_constants::OUTPUT_SIZE + 8;
     // NOLINTNEXTLINE
     for (size_t i = 0; i < last_epoch_vrf_values_.size(); ++i) {
-      auto value_bytes = common::uint256_t_to_bytes(last_epoch_vrf_values_[i]);
+      auto const& value_bytes = last_epoch_vrf_values_[i];
       std::copy(value_bytes.begin(), value_bytes.end(), new_vrf_value_begin);
       new_vrf_value_begin += 32;
     }
@@ -80,7 +80,7 @@ namespace kagome::consensus {
     return hasher_->blake2b_256(new_randomness);
   }
 
-  void BabeLotteryImpl::submitVRFValue(const crypto::VRFValue &value) {
+  void BabeLotteryImpl::submitVRFValue(const crypto::VRFPreOutput &value) {
     last_epoch_vrf_values_.push_back(value);
   }
 }  // namespace kagome::consensus

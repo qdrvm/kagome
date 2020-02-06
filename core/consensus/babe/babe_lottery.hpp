@@ -59,7 +59,7 @@ namespace kagome::consensus {
      * @note concatenation of those values is participating in computation of
      * the randomness for the next epoch
      */
-    virtual void submitVRFValue(const crypto::VRFValue &value) = 0;
+    virtual void submitVRFValue(const crypto::VRFPreOutput &value) = 0;
   };
 }  // namespace kagome::consensus
 

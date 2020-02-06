@@ -6,6 +6,7 @@
 #include "crypto/vrf/vrf_provider_impl.hpp"
 
 #include <gsl/span>
+
 #include "common/mp_utils.hpp"
 
 namespace kagome::crypto {
@@ -34,46 +35,45 @@ namespace kagome::crypto {
   boost::optional<VRFOutput> VRFProviderImpl::sign(
       const common::Buffer &msg,
       const SR25519Keypair &keypair,
-      const VRFValue &threshold) const {
+      const VRFThreshold &threshold) const {
     common::Buffer keypair_buf{};
     keypair_buf.put(keypair.secret_key).put(keypair.public_key);
 
     std::array<uint8_t, vrf_constants::OUTPUT_SIZE + vrf_constants::PROOF_SIZE>
         out_proof{};
-
+    auto threshold_bytes = common::uint128_t_to_bytes(threshold);
     auto sign_res =
         sr25519_vrf_sign_if_less(out_proof.data(),
                                  keypair_buf.data(),
                                  msg.data(),
                                  msg.size(),
-                                 common::uint256_t_to_bytes(threshold).data());
-    if (not sign_res.is_less) {
+                                 threshold_bytes.data());
+    if (not sign_res.is_less or not (sign_res.result == Sr25519SignatureResult::Ok)) {
       return boost::none;
     }
 
     VRFOutput res;
-    auto out_proof_span = gsl::make_span(out_proof);
-    res.value = common::bytes_to_uint256_t(
-        out_proof_span.subspan(0, vrf_constants::OUTPUT_SIZE));
-    std::copy(out_proof.begin() + vrf_constants::OUTPUT_SIZE,
-              out_proof.end(),
-              res.proof.begin());
+    std::copy_n(
+        out_proof.begin(), vrf_constants::OUTPUT_SIZE, res.output.begin());
+    std::copy_n(out_proof.begin() + vrf_constants::OUTPUT_SIZE,
+                vrf_constants::PROOF_SIZE,
+                res.proof.begin());
 
     return res;
   }
 
-  bool VRFProviderImpl::verify(const common::Buffer &msg,
-                               const VRFOutput &output,
-                               const SR25519PublicKey &public_key) const {
-    std::array<uint8_t, vrf_constants::OUTPUT_SIZE> out_array =
-        common::uint256_t_to_bytes(output.value);
-
+  VRFVerifyOutput VRFProviderImpl::verify(const common::Buffer &msg,
+                                          const VRFOutput &output,
+                                          const SR25519PublicKey &public_key,
+                                          const VRFThreshold &threshold) const {
     auto res = sr25519_vrf_verify(public_key.data(),
                                   msg.data(),
                                   msg.size(),
-                                  out_array.data(),
-                                  output.proof.data());
-    return res == Sr25519SignatureResult::Ok;
+                                  output.output.data(),
+                                  output.proof.data(),
+                                  common::uint128_t_to_bytes(threshold).data());
+    return VRFVerifyOutput{.is_valid = res.result == Sr25519SignatureResult::Ok,
+                           .is_less = res.is_less};
   }
 
 }  // namespace kagome::crypto

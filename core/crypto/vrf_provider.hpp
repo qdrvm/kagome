@@ -7,6 +7,7 @@
 #define KAGOME_CORE_CRYPTO_VRF_VRF_PROVIDER_HPP
 
 #include <boost/optional.hpp>
+
 #include "common/buffer.hpp"
 #include "crypto/sr25519_types.hpp"
 
@@ -32,15 +33,16 @@ namespace kagome::crypto {
     virtual boost::optional<VRFOutput> sign(
         const common::Buffer &msg,
         const SR25519Keypair &keypair,
-        const VRFValue &threshold) const = 0;
+        const VRFThreshold &threshold) const = 0;
 
     /**
      * Verifies that \param output was derived using \param public_key on \param
      * msg
      */
-    virtual bool verify(const common::Buffer &msg,
+    virtual VRFVerifyOutput verify(const common::Buffer &msg,
                         const VRFOutput &output,
-                        const SR25519PublicKey &public_key) const = 0;
+                        const SR25519PublicKey &public_key,
+                        const VRFThreshold &threshold) const = 0;
   };
 }  // namespace kagome::crypto
 
