@@ -8,7 +8,7 @@
 namespace kagome::crypto {
 
   bool VRFOutput::operator==(const VRFOutput &other) const {
-    return value == other.value && proof == other.proof;
+    return output == other.output && proof == other.proof;
   }
   bool VRFOutput::operator!=(const VRFOutput &other) const {
     return !(*this == other);

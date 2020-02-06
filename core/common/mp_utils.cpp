@@ -17,7 +17,7 @@ namespace kagome::common {
       bytes.reserve(size);
       export_bits(i, std::back_inserter(bytes), 8);
 
-      std::array<uint8_t, size> res;
+      std::array<uint8_t, size> res {};
       res.fill(0);
       std::copy(bytes.begin(), bytes.end(), res.begin());
       std::reverse(res.begin(), res.end());
@@ -30,7 +30,7 @@ namespace kagome::common {
       if (bytes.empty()) {
         return uint(0);
       }
-      std::array<uint8_t, size> bytes_copy;
+      std::array<uint8_t, size> bytes_copy {};
       std::copy(bytes.begin(), bytes.end(), bytes_copy.begin());
       std::reverse(bytes_copy.begin(), bytes_copy.end());
 

@@ -23,7 +23,7 @@ namespace kagome::consensus {
   using EpochIndex = uint64_t;
 
   /// threshold, which must not be exceeded for the party to be a slot leader
-  using Threshold = crypto::VRFValue;
+  using Threshold = crypto::VRFThreshold;
 
   /// random value, which serves as a seed for VRF slot leadership selection
   using Randomness =
