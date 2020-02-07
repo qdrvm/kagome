@@ -5,7 +5,6 @@
 
 #include "common/mp_utils.hpp"
 
-#include <boost/endian/conversion.hpp>
 #include <gsl/gsl_util>
 
 namespace kagome::common {
@@ -13,25 +12,19 @@ namespace kagome::common {
   namespace detail {
     template <size_t size, typename uint>
     std::array<uint8_t, size> uint_to_bytes(uint &&i) {
-      using boost::multiprecision::cpp_int;
-      using boost::endian::native_to_little_inplace;
       std::array<uint8_t, size> res {};
       res.fill(0);
       export_bits(i, res.begin(), 8, false);
-      native_to_little_inplace(res);
       return res;
     }
 
     template <size_t size, typename uint>
     uint bytes_to_uint(gsl::span<uint8_t, size> bytes) {
-      using boost::multiprecision::cpp_int;
-      using boost::endian::little_to_native;
       if (bytes.empty()) {
         return uint(0);
       }
-      auto le = little_to_native(bytes);
       uint result;
-      import_bits(result, le.begin(), le.end(), 8, false);
+      import_bits(result, bytes.begin(), bytes.end(), 8, false);
       return result;
     }
   }  // namespace detail
