@@ -23,6 +23,11 @@ using kagome::common::uint256_t_to_bytes;
     ASSERT_EQ(bytes_to_uint##integer_size##_t(v_bytes), v); \
   }
 
+/**
+ * @given a uint128
+ * @when converting it to and then from bytes
+ * @then the result matches with the original one
+ */
 TEST(MpUtilsTest, Uint128) {
   ASSERT_TO_FROM_BYTES_EQUAL(std::numeric_limits<uint128_t>::max(), 128);
   ASSERT_TO_FROM_BYTES_EQUAL(std::numeric_limits<uint128_t>::min(), 128);
@@ -30,14 +35,16 @@ TEST(MpUtilsTest, Uint128) {
   ASSERT_TO_FROM_BYTES_EQUAL(1337, 128);
 }
 
+/**
+ * @given a uint256
+ * @when converting it to and then from bytes
+ * @then the result matches with the original one
+ */
 TEST(MpUtilsTest, Uint256) {
-  auto max = std::numeric_limits<uint256_t>::max();
-  auto max_bytes = uint256_t_to_bytes(max);
-  ASSERT_EQ(bytes_to_uint256_t(max_bytes), max);
-
-  auto min = std::numeric_limits<uint256_t>::min();
-  auto min_bytes = uint256_t_to_bytes(min);
-  ASSERT_EQ(bytes_to_uint256_t(min_bytes), min);
+  ASSERT_TO_FROM_BYTES_EQUAL(std::numeric_limits<uint256_t>::max(), 256);
+  ASSERT_TO_FROM_BYTES_EQUAL(std::numeric_limits<uint256_t>::min(), 256);
+  ASSERT_TO_FROM_BYTES_EQUAL(static_cast<uint256_t>(std::numeric_limits<uint128_t>::max())*4+1, 256);
+  ASSERT_TO_FROM_BYTES_EQUAL(1337, 256);
 }
 
 /**
