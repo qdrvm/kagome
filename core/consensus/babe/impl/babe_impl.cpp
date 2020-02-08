@@ -150,12 +150,12 @@ namespace kagome::consensus {
 
   void BabeImpl::processSlotLeadership(const crypto::VRFOutput &output) {
     // build a block to be announced
-    log_->debug("Obtained slot leadership. Value: {} Threshold: {}",
-                output.value,
-                current_epoch_.threshold);
+    log_->info("Obtained slot leadership");
 
     primitives::InherentData inherent_data;
-    auto epoch_secs = clock_->nowUint64();
+    auto epoch_secs = std::chrono::duration_cast<std::chrono::seconds>(
+                          clock_->now().time_since_epoch())
+                          .count();
     // identifiers are guaranteed to be correct, so use .value() directly
     auto put_res = inherent_data.putData<uint64_t>(kTimestampId, epoch_secs);
     if (!put_res) {
@@ -194,11 +194,6 @@ namespace kagome::consensus {
     block.header.digest.emplace_back(seal);
 
     // finally, broadcast the sealed block
-    log_->info(
-        "Broadcasting block with number: {}, hash: {}",
-        block.header.number,
-        hasher_->blake2b_256(scale::encode(block.header).value()).toHex());
-
     gossiper_->blockAnnounce(network::BlockAnnounce{block.header});
   }
 

@@ -55,12 +55,7 @@ namespace kagome::consensus {
   }
 
   outcome::result<void> BabeBlockValidator::validate(
-      const primitives::Block &block, const Epoch &epoch) {
-    log_->debug(
-        "Received block with number: {}, hash: {}",
-        block.header.number,
-        hasher_->blake2b_256(scale::encode(block.header).value()).toHex());
-
+      const primitives::Block &block, const Epoch &epoch) const {
     if (epoch.authorities.empty()) {
       return ValidationError::NO_AUTHORITIES;
     }
@@ -140,7 +135,7 @@ namespace kagome::consensus {
       }
     }
 
-    log_->info("there is no BabeBlockHeader digest in the block");
+    log_->warn("there is no BabeBlockHeader digest in the block");
     return ValidationError::INVALID_DIGESTS;
   }
 
@@ -178,7 +173,7 @@ namespace kagome::consensus {
     auto randomness_with_slot =
         Buffer{}
             .put(epoch.randomness)
-            .put(common::uint256_t_to_bytes(babe_header.slot_number));
+            .put(common::uint64_t_to_bytes(babe_header.slot_number));
     auto verify_res = vrf_provider_->verify(
         randomness_with_slot,
         babe_header.vrf_output,
@@ -191,15 +186,15 @@ namespace kagome::consensus {
 
     // verify threshold
     if (not verify_res.is_less) {
-      log_->error(
-          "VRF value is not less than the threshold");
+      log_->error("VRF value is not less than the threshold");
       return false;
     }
 
     return true;
   }
 
-  bool BabeBlockValidator::verifyProducer(const BabeBlockHeader &babe_header) {
+  bool BabeBlockValidator::verifyProducer(
+      const BabeBlockHeader &babe_header) const {
     auto peer = babe_header.authority_index;
 
     auto slot_it = blocks_producers_.find(babe_header.slot_number);
@@ -235,11 +230,10 @@ namespace kagome::consensus {
                        validation_res.error());
             return false;
           }
-          return visit_in_place(
-              validation_res.value(),
-              [](const primitives::Valid &) { return true; },
-              [](primitives::Invalid) { return false; },
-              [](primitives::Unknown) { return false; });
+          return visit_in_place(validation_res.value(),
+                                [](const primitives::Valid &) { return true; },
+                                [](primitives::Invalid) { return false; },
+                                [](primitives::Unknown) { return false; });
         });
   }
 }  // namespace kagome::consensus
