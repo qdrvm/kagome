@@ -45,13 +45,6 @@ namespace kagome::consensus {
       std::copy(slot_bytes.begin(), slot_bytes.end(), slot_number_begin);
       auto sign_opt = vrf_provider_->sign(vrf_input, keypair, epoch.threshold);
       result.push_back(sign_opt);
-      if (sign_opt) {
-        auto res = vrf_provider_->verify(
-            vrf_input, sign_opt.value(), keypair.public_key, epoch.threshold);
-        BOOST_ASSERT_MSG(res.is_valid, "Provided VRF value is not valid");
-        BOOST_ASSERT_MSG(res.is_less,
-                         "Provided VRF value is not less than threshold");
-      }
     }
 
     return result;
