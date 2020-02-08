@@ -20,3 +20,10 @@ add_library(vote_tracker
 target_link_libraries(vote_tracker
     blob
     )
+
+add_library(observer_dummy
+    impl/observer_dummy.cpp
+    )
+target_link_libraries(observer_dummy
+    logger
+    )

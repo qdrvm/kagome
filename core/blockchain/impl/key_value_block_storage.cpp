@@ -39,7 +39,7 @@ namespace kagome::blockchain {
       common::Buffer state_root,
       const std::shared_ptr<storage::PersistentBufferMap> &storage,
       std::shared_ptr<crypto::Hasher> hasher) {
-    KeyValueBlockStorage kv_storage(storage, std::move(hasher));
+    KeyValueBlockStorage block_storage(storage, std::move(hasher));
     // TODO(Harrm) check that storage is actually empty
 
     // state root type is Hash256, however for consistency with spec root hash
@@ -59,8 +59,8 @@ namespace kagome::blockchain {
     genesis_block.header.state_root = state_root_blob;
     // the rest of the fields have default value
 
-    OUTCOME_TRY(kv_storage.putBlock(genesis_block));
-    return std::make_shared<KeyValueBlockStorage>(kv_storage);
+    OUTCOME_TRY(block_storage.putBlock(genesis_block));
+    return std::make_shared<KeyValueBlockStorage>(block_storage);
   }
 
   outcome::result<primitives::BlockHeader> KeyValueBlockStorage::getBlockHeader(
@@ -113,10 +113,10 @@ namespace kagome::blockchain {
                               block.header.number,
                               block_hash,
                               Buffer{encoded_body}));
-    logger_->debug("Put block. Number: {}. Hash: {}. State root: {}",
-                   block.header.number,
-                   block_hash.toHex(),
-                   block.header.state_root.toHex());
+    logger_->info("Added block. Number: {}. Hash: {}. State root: {}",
+                  block.header.number,
+                  block_hash.toHex(),
+                  block.header.state_root.toHex());
     return block_hash;
   }
 

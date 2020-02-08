@@ -58,7 +58,7 @@ namespace kagome::consensus {
     };
 
     outcome::result<void> validate(const primitives::Block &block,
-                                   const Epoch &epoch) override;
+                                   const Epoch &epoch) const override;
 
    private:
     /**
@@ -92,7 +92,7 @@ namespace kagome::consensus {
      * @return true, if the peer has not produced any blocks in this slot, false
      * otherwise
      */
-    bool verifyProducer(const BabeBlockHeader &babe_header);
+    bool verifyProducer(const BabeBlockHeader &babe_header) const;
 
     /**
      * Check, if all transactions in the block are valid
@@ -102,8 +102,8 @@ namespace kagome::consensus {
     bool verifyTransactions(const primitives::BlockBody &block_body) const;
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::unordered_map<BabeSlotNumber,
-                       std::unordered_set<primitives::AuthorityIndex>>
+    mutable std::unordered_map<BabeSlotNumber,
+                               std::unordered_set<primitives::AuthorityIndex>>
         blocks_producers_;
 
     std::shared_ptr<runtime::TaggedTransactionQueue> tx_queue_;

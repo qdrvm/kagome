@@ -9,6 +9,7 @@
 #include <memory>
 
 #include "blockchain/block_tree.hpp"
+#include "common/logger.hpp"
 #include "consensus/babe/epoch_storage.hpp"
 #include "consensus/validation/block_validator.hpp"
 #include "network/babe_observer.hpp"
@@ -40,6 +41,7 @@ namespace kagome::consensus {
     std::shared_ptr<network::SyncClientsSet> sync_clients_;
     std::shared_ptr<blockchain::BlockTree> tree_;
     std::shared_ptr<EpochStorage> epoch_storage_;
+    common::Logger logger_;
   };
 }  // namespace kagome::consensus
 

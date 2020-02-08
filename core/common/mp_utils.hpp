@@ -35,6 +35,6 @@ namespace kagome::common {
   boost::multiprecision::uint256_t bytes_to_uint256_t(
       gsl::span<uint8_t, 32> bytes);
 
-}  // namespace kagome::crypto::util
+}  // namespace kagome::common
 
 #endif  // KAGOME_CORE_CRYPTO_MP_UTILS_HPP
