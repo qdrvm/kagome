@@ -14,13 +14,13 @@ namespace kagome::crypto {
     MOCK_CONST_METHOD0(generateKeypair, SR25519Keypair());
 
     MOCK_CONST_METHOD2(sign,
-                       SR25519Signature(const SR25519Keypair &,
-                                        gsl::span<uint8_t>));
+                       outcome::result<SR25519Signature>(const SR25519Keypair &,
+                                                         gsl::span<uint8_t>));
 
     MOCK_CONST_METHOD3(verify,
-                       bool(const SR25519Signature &,
-                            gsl::span<uint8_t>,
-                            const SR25519PublicKey &));
+                       outcome::result<bool>(const SR25519Signature &,
+                                             gsl::span<uint8_t>,
+                                             const SR25519PublicKey &));
   };
 }  // namespace kagome::crypto
 

@@ -23,9 +23,12 @@ namespace kagome::network {
   }
 
   void GossiperBroadcast::blockAnnounce(const BlockAnnounce &announce) {
-    logger_->debug("Gossip block announce: block number {}",
-                   announce.header.number);
-    broadcast(announce);
+    logger_->info("Gossip block announce: block number {}",
+                  announce.header.number);
+    GossipMessage message;
+    message.type = GossipMessage::Type::BLOCK_ANNOUNCE;
+    message.data.put(scale::encode(announce).value());
+    broadcast(std::move(message));
   }
 
   void GossiperBroadcast::vote(const consensus::grandpa::VoteMessage &msg) {
@@ -36,8 +39,7 @@ namespace kagome::network {
     broadcast(msg);
   }
 
-  template <typename MsgType>
-  void GossiperBroadcast::broadcast(MsgType &&msg) {
+  void GossiperBroadcast::broadcast(GossipMessage &&msg) {
     auto msg_send_lambda = [msg](auto stream) {
       auto read_writer =
           std::make_shared<ScaleMessageReadWriter>(std::move(stream));
@@ -60,6 +62,10 @@ namespace kagome::network {
                         if (!stream_res) {
                           // we will try to open the stream again, when
                           // another gossip message arrives later
+                          self->logger_->error(
+                              "Could not send message to {} Error: {}",
+                              info.id.toBase58(),
+                              stream_res.error().message());
                           return;
                         }
 

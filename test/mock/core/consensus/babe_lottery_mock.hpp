@@ -17,7 +17,7 @@ namespace kagome::consensus {
 
     MOCK_METHOD2(computeRandomness, Randomness(Randomness, EpochIndex));
 
-    MOCK_METHOD1(submitVRFValue, void(const crypto::VRFValue &));
+    MOCK_METHOD1(submitVRFValue, void(const crypto::VRFPreOutput &));
   };
 }  // namespace kagome::consensus
 

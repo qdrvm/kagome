@@ -15,6 +15,7 @@
 #include "libp2p/peer/peer_info.hpp"
 #include "libp2p/peer/protocol.hpp"
 #include "network/babe_observer.hpp"
+#include "network/helpers/scale_message_read_writer.hpp"
 #include "network/router.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "network/types/gossip_message.hpp"
@@ -46,6 +47,7 @@ namespace kagome::network {
      * @param stream to be handled
      */
     void handleGossipProtocol(std::shared_ptr<Stream> stream) const;
+    void readGossipMessage(std::shared_ptr<Stream> stream) const;
 
     /**
      * Process a received gossip message

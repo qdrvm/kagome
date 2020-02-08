@@ -27,6 +27,7 @@ namespace kagome::application {
     clock_ = injector_.create<sptr<clock::SystemClock>>();
     extrinsic_api_service_ = injector_.create<sptr<ExtrinsicApiService>>();
     babe_ = injector_.create<sptr<Babe>>();
+    router_ = injector_.create<sptr<network::Router>>();
   }
 
   // TODO (yuraz) rewrite when there will be more info
@@ -39,15 +40,17 @@ namespace kagome::application {
       authorities.push_back(primitives::Authority{{item}, 1u});
     }
 
-    Threshold threshold =
-        boost::multiprecision::uint256_t(0.58 * 1e77) / authorities.size();
+    // some threshold value resulting in producing block in every slot. In
+    // future will be calculated using runtime
+    Threshold threshold = boost::multiprecision::uint128_t(
+        "102084710076281554150585127412395147264");
 
     Randomness rnd{};
     rnd.fill(0u);
 
     Epoch value{.epoch_index = 0u,
                 .start_slot = 0u,
-                .epoch_duration = 10,
+                .epoch_duration = 100,
                 .slot_duration = 1000ms,
                 .authorities = authorities,
                 .threshold = threshold,
@@ -60,6 +63,17 @@ namespace kagome::application {
     extrinsic_api_service_->start();
     auto epoch = makeInitialEpoch();
     babe_->runEpoch(std::move(epoch), clock_->now());
+
+    io_context_->post([this] {
+      const auto &current_peer_info =
+          injector_.template create<libp2p::peer::PeerInfo>();
+      auto &host = injector_.template create<libp2p::Host &>();
+      for (const auto &ma : current_peer_info.addresses) {
+        BOOST_ASSERT_MSG(host.listen(ma), "cannot listen");
+      }
+      this->router_->init();
+    });
+
     io_context_->run();
   }
 }  // namespace kagome::application

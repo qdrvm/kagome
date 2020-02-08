@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/validation/babe_block_validator.hpp"
-
 #include <gtest/gtest.h>
+
 #include "common/mp_utils.hpp"
+#include "consensus/validation/babe_block_validator.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
-#include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
+#include "mock/core/crypto/sr25519_provider_mock.hpp"
 #include "mock/core/crypto/vrf_provider_mock.hpp"
 #include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
 #include "mock/libp2p/crypto/random_generator_mock.hpp"
@@ -31,11 +31,11 @@ using kagome::primitives::AuthorityIndex;
 using kagome::primitives::Block;
 using kagome::primitives::BlockBody;
 using kagome::primitives::BlockHeader;
-using kagome::primitives::Consensus;
 using kagome::primitives::ConsensusEngineId;
 using kagome::primitives::Digest;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::Invalid;
+using kagome::primitives::PreRuntime;
 using kagome::primitives::Valid;
 
 using testing::_;
@@ -59,9 +59,11 @@ class BlockValidatorTest : public testing::Test {
   std::pair<Seal, SR25519PublicKey> sealBlock(Block &block,
                                               Hash256 block_hash) const {
     // generate a new keypair
-    auto keypair = sr25519_provider_->generateKeypair();
-    EXPECT_OUTCOME_TRUE(sr25519_signature,
-                        sr25519_provider_->sign(keypair, block_hash));
+    SR25519PublicKey public_key{};
+    public_key.fill(8);
+
+    SR25519Signature sr25519_signature{};
+    sr25519_signature.fill(0);
 
     // seal the block
     Seal seal{sr25519_signature};
@@ -69,7 +71,7 @@ class BlockValidatorTest : public testing::Test {
     block.header.digest.push_back(
         kagome::primitives::Seal{{kEngineId, encoded_seal}});
 
-    return {seal, keypair.public_key};
+    return {seal, public_key};
   }
 
   // fields for validator
@@ -80,8 +82,8 @@ class BlockValidatorTest : public testing::Test {
   std::shared_ptr<VRFProviderMock> vrf_provider_ =
       std::make_shared<VRFProviderMock>();
   std::shared_ptr<CSPRNG> generator_ = std::make_shared<BoostRandomGenerator>();
-  std::shared_ptr<SR25519Provider> sr25519_provider_ =
-      std::make_shared<SR25519ProviderImpl>(generator_);
+  std::shared_ptr<SR25519ProviderMock> sr25519_provider_ =
+      std::make_shared<SR25519ProviderMock>();
 
   BabeBlockValidator validator_{
       tree_, tx_queue_, hasher_, vrf_provider_, sr25519_provider_};
@@ -91,7 +93,7 @@ class BlockValidatorTest : public testing::Test {
       Hash256::fromString("c30ojfn4983u4093jv3894j3f034ojs3").value();
 
   BabeSlotNumber slot_number_ = 2;
-  VRFValue vrf_value_ = 1488228;
+  VRFPreOutput vrf_value_ = {1, 2, 3, 4, 5};
   VRFProof vrf_proof_{};
   AuthorityIndex authority_index_ = {1};
   BabeBlockHeader babe_header_{
@@ -100,7 +102,7 @@ class BlockValidatorTest : public testing::Test {
 
   BlockHeader block_header_{
       .parent_hash = parent_hash_,
-      .digest = {Consensus{{kEngineId, encoded_babe_header_}}}};
+      .digest = {PreRuntime{{kEngineId, encoded_babe_header_}}}};
   Extrinsic ext_{Buffer{0x11, 0x22}};
   BlockBody block_body_{ext_};
   Block valid_block_{block_header_, block_body_};
@@ -128,19 +130,19 @@ TEST_F(BlockValidatorTest, Success) {
 
   auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
 
-  EXPECT_CALL(*hasher_, blake2s_256(_))
+  EXPECT_CALL(*hasher_, blake2b_256(_))
       .WillOnce(Return(encoded_block_copy_hash));
 
   babe_epoch_.authorities.emplace_back();
   babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
 
+  EXPECT_CALL(*sr25519_provider_, verify(_, _, pubkey))
+      .WillOnce(Return(outcome::result<bool>(true)));
   // verifyVRF
   auto randomness_with_slot =
-      Buffer{}
-          .put(babe_epoch_.randomness)
-          .put(uint256_t_to_bytes(babe_epoch_.threshold));
-  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
-      .WillOnce(Return(true));
+      Buffer{}.put(babe_epoch_.randomness).put(uint64_t_to_bytes(slot_number_));
+  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey, _))
+      .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
 
   primitives::BlockInfo deepest_leaf{1u, createHash256({1u})};
   EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
@@ -149,11 +151,8 @@ TEST_F(BlockValidatorTest, Success) {
   EXPECT_CALL(*tx_queue_, validate_transaction(deepest_leaf.block_number, ext_))
       .WillOnce(Return(Valid{}));
 
-  // addBlock
-  EXPECT_CALL(*tree_, addBlock(valid_block_))
-      .WillOnce(Return(outcome::success()));
-
-  ASSERT_TRUE(validator_.validate(valid_block_, babe_epoch_));
+  auto validate_res = validator_.validate(valid_block_, babe_epoch_);
+  ASSERT_TRUE(validate_res) << validate_res.error().message();
 }
 
 /**
@@ -214,7 +213,7 @@ TEST_F(BlockValidatorTest, NoAuthority) {
 
   sealBlock(valid_block_, encoded_block_copy_hash);
 
-  EXPECT_CALL(*hasher_, blake2s_256(_))
+  EXPECT_CALL(*hasher_, blake2b_256(_))
       .WillOnce(Return(encoded_block_copy_hash));
 
   // WHEN
@@ -243,8 +242,11 @@ TEST_F(BlockValidatorTest, SignatureVerificationFail) {
 
   auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
 
-  EXPECT_CALL(*hasher_, blake2s_256(_))
+  EXPECT_CALL(*hasher_, blake2b_256(_))
       .WillOnce(Return(encoded_block_copy_hash));
+
+  EXPECT_CALL(*sr25519_provider_, verify(_, _, pubkey))
+      .WillOnce(Return(outcome::result<bool>(false)));
 
   babe_epoch_.authorities.emplace_back();
   babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
@@ -276,19 +278,20 @@ TEST_F(BlockValidatorTest, VRFFail) {
 
   auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
 
-  EXPECT_CALL(*hasher_, blake2s_256(_))
+  EXPECT_CALL(*hasher_, blake2b_256(_))
       .WillOnce(Return(encoded_block_copy_hash));
+
+  EXPECT_CALL(*sr25519_provider_, verify(_, _, pubkey))
+      .WillOnce(Return(outcome::result<bool>(true)));
 
   babe_epoch_.authorities.emplace_back();
   babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
 
   // WHEN
   auto randomness_with_slot =
-      Buffer{}
-          .put(babe_epoch_.randomness)
-          .put(uint256_t_to_bytes(babe_epoch_.threshold));
-  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
-      .WillOnce(Return(false));
+      Buffer{}.put(babe_epoch_.randomness).put(uint64_t_to_bytes(slot_number_));
+  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey, _))
+      .WillOnce(Return(VRFVerifyOutput{.is_valid = false, .is_less = true}));
 
   // THEN
   EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
@@ -312,8 +315,11 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
 
   auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
 
-  EXPECT_CALL(*hasher_, blake2s_256(_))
+  EXPECT_CALL(*hasher_, blake2b_256(_))
       .WillOnce(Return(encoded_block_copy_hash));
+
+  EXPECT_CALL(*sr25519_provider_, verify(_, _, pubkey))
+      .WillOnce(Return(outcome::result<bool>(true)));
 
   babe_epoch_.authorities.emplace_back();
   babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
@@ -322,11 +328,9 @@ TEST_F(BlockValidatorTest, ThresholdGreater) {
   babe_epoch_.threshold = 0;
 
   auto randomness_with_slot =
-      Buffer{}
-          .put(babe_epoch_.randomness)
-          .put(uint256_t_to_bytes(babe_epoch_.threshold));
-  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
-      .WillOnce(Return(true));
+      Buffer{}.put(babe_epoch_.randomness).put(uint64_t_to_bytes(slot_number_));
+  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey, _))
+      .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = false}));
 
   // THEN
   EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
@@ -351,20 +355,23 @@ TEST_F(BlockValidatorTest, TwoBlocksByOnePeer) {
 
   auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
 
-  EXPECT_CALL(*hasher_, blake2s_256(_))
+  EXPECT_CALL(*hasher_, blake2b_256(_))
       .Times(2)
       .WillRepeatedly(Return(encoded_block_copy_hash));
+
+  EXPECT_CALL(*sr25519_provider_, verify(_, _, pubkey))
+      .Times(2)
+      .WillRepeatedly(Return(outcome::result<bool>(true)));
 
   babe_epoch_.authorities.emplace_back();
   babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
 
   auto randomness_with_slot =
-      Buffer{}
-          .put(babe_epoch_.randomness)
-          .put(uint256_t_to_bytes(babe_epoch_.threshold));
-  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
+      Buffer{}.put(babe_epoch_.randomness).put(uint64_t_to_bytes(slot_number_));
+  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey, _))
       .Times(2)
-      .WillRepeatedly(Return(true));
+      .WillRepeatedly(
+          Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
 
   primitives::BlockInfo deepest_leaf{1u, createHash256({1u})};
 
@@ -373,11 +380,9 @@ TEST_F(BlockValidatorTest, TwoBlocksByOnePeer) {
   EXPECT_CALL(*tx_queue_, validate_transaction(deepest_leaf.block_number, ext_))
       .WillOnce(Return(Valid{}));
 
-  EXPECT_CALL(*tree_, addBlock(valid_block_))
-      .WillOnce(Return(outcome::success()));
-
   // WHEN
-  ASSERT_TRUE(validator_.validate(valid_block_, babe_epoch_));
+  auto validate_res = validator_.validate(valid_block_, babe_epoch_);
+  ASSERT_TRUE(validate_res) << validate_res.error().message();
 
   // THEN
   EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
@@ -401,18 +406,19 @@ TEST_F(BlockValidatorTest, InvalidExtrinsic) {
 
   auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
 
-  EXPECT_CALL(*hasher_, blake2s_256(_))
+  EXPECT_CALL(*hasher_, blake2b_256(_))
       .WillOnce(Return(encoded_block_copy_hash));
+
+  EXPECT_CALL(*sr25519_provider_, verify(_, _, pubkey))
+      .WillOnce(Return(outcome::result<bool>(true)));
 
   babe_epoch_.authorities.emplace_back();
   babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
 
   auto randomness_with_slot =
-      Buffer{}
-          .put(babe_epoch_.randomness)
-          .put(uint256_t_to_bytes(babe_epoch_.threshold));
-  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
-      .WillOnce(Return(true));
+      Buffer{}.put(babe_epoch_.randomness).put(uint64_t_to_bytes(slot_number_));
+  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey, _))
+      .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
 
   primitives::BlockInfo deepest_leaf{1u, createHash256({1u})};
   EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
@@ -424,48 +430,4 @@ TEST_F(BlockValidatorTest, InvalidExtrinsic) {
   // THEN
   EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));
   ASSERT_EQ(err, BabeBlockValidator::ValidationError::INVALID_TRANSACTIONS);
-}
-
-/**
- * @given block validator
- * @when validating block, which cannot be inserted into a block tree
- * @then validation fails
- */
-TEST_F(BlockValidatorTest, BlockTreeFails) {
-  // GIVEN
-  auto block_copy = valid_block_;
-  block_copy.header.digest.pop_back();
-  auto encoded_block_copy = scale::encode(block_copy.header).value();
-  Hash256 encoded_block_copy_hash{};
-  std::copy(encoded_block_copy.begin(),
-            encoded_block_copy.begin() + Hash256::size(),
-            encoded_block_copy_hash.begin());
-
-  auto [seal, pubkey] = sealBlock(valid_block_, encoded_block_copy_hash);
-
-  EXPECT_CALL(*hasher_, blake2s_256(_))
-      .WillOnce(Return(encoded_block_copy_hash));
-
-  babe_epoch_.authorities.emplace_back();
-  babe_epoch_.authorities.emplace_back(Authority{{pubkey}, 42});
-
-  auto randomness_with_slot =
-      Buffer{}
-          .put(babe_epoch_.randomness)
-          .put(uint256_t_to_bytes(babe_epoch_.threshold));
-  EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey))
-      .WillOnce(Return(true));
-
-  primitives::BlockInfo deepest_leaf{1u, createHash256({1u})};
-  EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
-
-  EXPECT_CALL(*tx_queue_, validate_transaction(deepest_leaf.block_number, ext_))
-      .WillOnce(Return(Valid{}));
-
-  // WHEN
-  EXPECT_CALL(*tree_, addBlock(valid_block_))
-      .WillOnce(Return(outcome::failure(boost::system::error_code{})));
-
-  // THEN
-  ASSERT_FALSE(validator_.validate(valid_block_, babe_epoch_));
 }

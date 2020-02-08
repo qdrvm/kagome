@@ -7,12 +7,14 @@
 
 #include <gtest/gtest.h>
 #include "crypto/random_generator/boost_generator.hpp"
+#include "common/mp_utils.hpp"
 
 using kagome::common::Buffer;
 using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::SR25519Keypair;
 using kagome::crypto::VRFProviderImpl;
-using kagome::crypto::VRFValue;
+using kagome::crypto::VRFPreOutput;
+using kagome::crypto::VRFThreshold;
 
 class VRFProviderTest : public testing::Test {
  public:
@@ -39,16 +41,16 @@ class VRFProviderTest : public testing::Test {
  */
 TEST_F(VRFProviderTest, SignAndVerifySuccess) {
   // given
-  VRFValue threshold{std::numeric_limits<VRFValue>::max() - 1};
-
+  VRFThreshold threshold{std::numeric_limits<VRFThreshold>::max() - 1};
   // when
   auto out_opt = vrf_provider_->sign(msg_, keypair1_, threshold);
   ASSERT_TRUE(out_opt);
   auto out = out_opt.value();
 
   // then
-  ASSERT_TRUE(out.value < threshold);
-  ASSERT_TRUE(vrf_provider_->verify(msg_, out, keypair1_.public_key));
+  auto verify_res = vrf_provider_->verify(msg_, out, keypair1_.public_key, threshold);
+  ASSERT_TRUE(verify_res.is_valid);
+  ASSERT_TRUE(verify_res.is_less);
 }
 
 /**
@@ -59,7 +61,7 @@ TEST_F(VRFProviderTest, SignAndVerifySuccess) {
  */
 TEST_F(VRFProviderTest, VerifyFailed) {
   // given
-  VRFValue threshold{std::numeric_limits<VRFValue>::max() - 1};
+  VRFThreshold threshold{std::numeric_limits<VRFThreshold>::max() - 1};
 
   // when
   auto out_opt = vrf_provider_->sign(msg_, keypair1_, threshold);
@@ -67,8 +69,7 @@ TEST_F(VRFProviderTest, VerifyFailed) {
   auto out = out_opt.value();
 
   // then
-  ASSERT_TRUE(out.value < threshold);
-  ASSERT_FALSE(vrf_provider_->verify(msg_, out, keypair2_.public_key));
+  ASSERT_FALSE(vrf_provider_->verify(msg_, out, keypair2_.public_key, threshold).is_valid);
 }
 
 /**
@@ -78,7 +79,7 @@ TEST_F(VRFProviderTest, VerifyFailed) {
  */
 TEST_F(VRFProviderTest, SignFailed) {
   // given
-  VRFValue threshold{std::numeric_limits<VRFValue>::min()};
+  VRFThreshold threshold{std::numeric_limits<VRFPreOutput>::min()};
 
   // when
   auto out_opt = vrf_provider_->sign(msg_, keypair1_, threshold);

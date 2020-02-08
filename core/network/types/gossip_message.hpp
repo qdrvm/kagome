@@ -20,7 +20,7 @@ namespace kagome::network {
       UNKNOWN = 0
     };
 
-    Type type;
+    Type type{};
     common::Buffer data;
   };
 

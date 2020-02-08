@@ -7,7 +7,6 @@
 
 #include "consensus/grandpa/structs.hpp"
 #include "network/common.hpp"
-#include "network/helpers/scale_message_read_writer.hpp"
 #include "network/rpc.hpp"
 #include "network/types/block_announce.hpp"
 #include "network/types/blocks_request.hpp"
@@ -40,6 +39,12 @@ namespace kagome::network {
         kGossipProtocol, [self{shared_from_this()}](auto &&stream) {
           self->handleGossipProtocol(std::forward<decltype(stream)>(stream));
         });
+    host_.start();
+    const auto &host_addresses = host_.getAddresses();
+    BOOST_ASSERT_MSG(not host_addresses.empty(), "Host addresses empty");
+    log_->info("Started listening with peer id: {} on address: {}",
+               host_.getId().toBase58(),
+               host_addresses.front().getStringAddress());
   }
 
   void RouterLibp2p::handleSyncProtocol(
@@ -62,6 +67,10 @@ namespace kagome::network {
 
   void RouterLibp2p::handleGossipProtocol(
       std::shared_ptr<Stream> stream) const {
+    return readGossipMessage(std::move(stream));
+  }
+
+  void RouterLibp2p::readGossipMessage(std::shared_ptr<Stream> stream) const {
     auto read_writer = std::make_shared<ScaleMessageReadWriter>(stream);
     read_writer->read<GossipMessage>(
         [self{shared_from_this()},
@@ -76,15 +85,7 @@ namespace kagome::network {
             stream->reset();
             return;
           }
-
-          auto peer_id_res = stream->remotePeerId();
-          if (!peer_id_res) {
-            self->log_->error("cannot get a peer id from the stream: {}",
-                              peer_id_res.error().message());
-            return stream->reset();
-          }
-          auto peer_info =
-              self->host_.getPeerRepository().getPeerInfo(peer_id_res.value());
+          self->readGossipMessage(stream);
         });
   }
 
@@ -99,8 +100,8 @@ namespace kagome::network {
                       msg_res.error().message());
           return false;
         }
-        log_->debug("Received block announce: block number {}",
-                    msg_res.value().header.number);
+        log_->info("Received block announce: block number {}",
+                   msg_res.value().header.number);
         babe_observer_->onBlockAnnounce(msg_res.value());
         return true;
       }
