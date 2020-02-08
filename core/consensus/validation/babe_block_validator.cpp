@@ -130,7 +130,7 @@ namespace kagome::consensus {
         if (auto header = scale::decode<BabeBlockHeader>(consensus_dig->data);
             header) {
           // found the BabeBlockHeader digest; return
-          return {babe_seal_res, std::move(header.value())};
+          return {babe_seal_res, header.value()};
         }
       }
     }

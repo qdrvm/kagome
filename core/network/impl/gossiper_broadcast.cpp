@@ -23,8 +23,8 @@ namespace kagome::network {
   }
 
   void GossiperBroadcast::blockAnnounce(const BlockAnnounce &announce) {
-    logger_->debug("Gossip block announce: block number {}",
-                   announce.header.number);
+    logger_->info("Gossip block announce: block number {}",
+                  announce.header.number);
     GossipMessage message;
     message.type = GossipMessage::Type::BLOCK_ANNOUNCE;
     message.data.put(scale::encode(announce).value());
@@ -32,7 +32,7 @@ namespace kagome::network {
   }
 
   void GossiperBroadcast::precommit(Precommit pc) {
-    logger_->debug("Gossip precommit: vote for {}", pc.hash.toHex());
+    logger_->info("Gossip precommit: vote for {}", pc.hash.toHex());
     GossipMessage message;
     message.type = GossipMessage::Type::PRECOMMIT;
     message.data.put(scale::encode(pc).value());
@@ -40,7 +40,7 @@ namespace kagome::network {
   }
 
   void GossiperBroadcast::prevote(Prevote pv) {
-    logger_->debug("Gossip prevote: vote for {}", pv.hash.toHex());
+    logger_->info("Gossip prevote: vote for {}", pv.hash.toHex());
     GossipMessage message;
     message.type = GossipMessage::Type::PREVOTE;
     message.data.put(scale::encode(pv).value());
@@ -48,7 +48,7 @@ namespace kagome::network {
   }
 
   void GossiperBroadcast::primaryPropose(PrimaryPropose pv) {
-    logger_->debug("Gossip primary propose: vote for {}", pv.hash.toHex());
+    logger_->info("Gossip primary propose: vote for {}", pv.hash.toHex());
     GossipMessage message;
     message.type = GossipMessage::Type::PRIMARY_PROPOSE;
     message.data.put(scale::encode(pv).value());

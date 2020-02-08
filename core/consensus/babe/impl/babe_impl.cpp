@@ -78,7 +78,9 @@ namespace kagome::consensus {
       // end of the epoch
       return finishEpoch();
     }
-    log_->info("starting a slot with number {}", current_slot_);
+    log_->info("starting a slot {} in epoch {}",
+               current_slot_,
+               current_epoch_.epoch_index);
 
     // check that we are really in the middle of the slot, as expected; we can
     // cooperate with a relatively little (kMaxLatency) latency, as our node

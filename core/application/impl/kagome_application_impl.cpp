@@ -42,15 +42,15 @@ namespace kagome::application {
 
     // some threshold value resulting in producing block in every slot. In
     // future will be calculated using runtime
-    Threshold threshold =
-        boost::multiprecision::uint128_t("102084710076281554150585127412395147264") / authorities.size();
+    Threshold threshold = boost::multiprecision::uint128_t(
+        "102084710076281554150585127412395147264");
 
     Randomness rnd{};
     rnd.fill(0u);
 
     Epoch value{.epoch_index = 0u,
                 .start_slot = 0u,
-                .epoch_duration = 10,
+                .epoch_duration = 100,
                 .slot_duration = 1000ms,
                 .authorities = authorities,
                 .threshold = threshold,

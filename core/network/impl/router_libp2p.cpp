@@ -67,7 +67,7 @@ namespace kagome::network {
 
   void RouterLibp2p::handleGossipProtocol(
       std::shared_ptr<Stream> stream) const {
-    return readGossipMessage(stream);
+    return readGossipMessage(std::move(stream));
   }
 
   void RouterLibp2p::readGossipMessage(std::shared_ptr<Stream> stream) const {
@@ -100,8 +100,8 @@ namespace kagome::network {
                       msg_res.error().message());
           return false;
         }
-        log_->debug("Received block announce: block number {}",
-                    msg_res.value().header.number);
+        log_->info("Received block announce: block number {}",
+                   msg_res.value().header.number);
         babe_observer_->onBlockAnnounce(msg_res.value());
         return true;
       }
