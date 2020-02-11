@@ -87,6 +87,7 @@ namespace kagome::storage::trie {
 
         if (parent->key_nibbles == key_nibbles
             && key_nibbles.size() == length) {
+          node->key_nibbles = key_nibbles;
           return node;
         }
 
