@@ -310,10 +310,11 @@ namespace kagome::blockchain {
         best_hash = hash;
         current_hash = hash;
       }
+      OUTCOME_TRY(best_header, header_repo_->getBlockHeader(best_hash));
       while (true) {
         OUTCOME_TRY(current_header, header_repo_->getBlockHeader(current_hash));
         if (current_hash == target_hash) {
-          return BlockInfo{current_header.number, best_hash};
+          return BlockInfo{best_header.number, best_hash};
         }
         if (current_header.number < target_header.number) {
           break;
