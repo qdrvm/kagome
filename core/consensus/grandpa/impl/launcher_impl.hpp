@@ -12,21 +12,22 @@
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/gossiper.hpp"
 #include "consensus/grandpa/launcher.hpp"
-#include "consensus/grandpa/vote_crypto_provider.hpp"
 #include "consensus/grandpa/voter_set.hpp"
 #include "consensus/grandpa/voting_round.hpp"
+#include "crypto/ed25519_provider.hpp"
 #include "storage/trie/trie_db.hpp"
 
 namespace kagome::consensus::grandpa {
 
-  class LauncherImpl : public Launcher {
+  class LauncherImpl : public Launcher,
+                       public std::enable_shared_from_this<LauncherImpl> {
    public:
     ~LauncherImpl() override = default;
 
     LauncherImpl(std::shared_ptr<Environment> environment,
                  std::shared_ptr<storage::trie::TrieDb> storage,
-                 std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
-                 Id id,
+                 std::shared_ptr<crypto::ED25519Provider> crypto_provider,
+                 const crypto::ED25519Keypair &keypair,
                  std::shared_ptr<Clock> clock,
                  std::shared_ptr<boost::asio::io_context> io_context);
 
@@ -34,17 +35,20 @@ namespace kagome::consensus::grandpa {
 
     void onVoteMessage(const VoteMessage &msg) override;
 
-    void executeNextRound();
+    void onFin(const Fin &f) override;
+
+    void executeNextRound(const CompletedRound &last_round);
 
    private:
     outcome::result<std::shared_ptr<VoterSet>> getVoters() const;
     outcome::result<CompletedRound> getLastRoundNumber() const;
 
     std::shared_ptr<VotingRound> current_round_;
+
     std::shared_ptr<Environment> environment_;
     std::shared_ptr<storage::trie::TrieDb> storage_;
-    std::shared_ptr<VoteCryptoProvider> vote_crypto_provider_;
-    Id id_;
+    std::shared_ptr<crypto::ED25519Provider> crypto_provider_;
+    crypto::ED25519Keypair keypair_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<boost::asio::io_context> io_context_;
 

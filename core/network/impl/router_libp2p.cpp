@@ -105,25 +105,22 @@ namespace kagome::network {
         babe_observer_->onBlockAnnounce(msg_res.value());
         return true;
       }
-      case MsgType::VOTE: {
-        auto msg_res = scale::decode<consensus::grandpa::VoteMessage>(msg.data);
-        if (!msg_res) {
-          log_->error("error while decoding a vote message: {}",
-                      msg_res.error().message());
-          return false;
+      case MsgType::CONSENSUS: {
+        auto vote_msg_res =
+            scale::decode<consensus::grandpa::VoteMessage>(msg.data);
+        if (vote_msg_res) {
+          grandpa_observer_->onVoteMessage(vote_msg_res.value());
+          return true;
         }
-        grandpa_observer_->onVoteMessage(msg_res.value());
-        return true;
-      }
-      case MsgType::FIN: {
-        auto msg_res = scale::decode<consensus::grandpa::Fin>(msg.data);
-        if (!msg_res) {
-          log_->error("error while decoding a finalization message: {}",
-                      msg_res.error().message());
-          return false;
+
+        auto fin_msg_res = scale::decode<consensus::grandpa::Fin>(msg.data);
+        if (fin_msg_res) {
+          grandpa_observer_->onFin(fin_msg_res.value());
+          return true;
         }
-        grandpa_observer_->onFin(msg_res.value());
-        return true;
+
+        log_->error("error while decoding a consensus message");
+        return false;
       }
       case MsgType::UNKNOWN:
         log_->error("unknown message type is set");

@@ -31,12 +31,24 @@ namespace kagome::network {
     broadcast(std::move(message));
   }
 
-  void GossiperBroadcast::vote(const consensus::grandpa::VoteMessage &msg) {
-    broadcast(msg);
+  void GossiperBroadcast::vote(
+      const consensus::grandpa::VoteMessage &vote_message) {
+    logger_->info("Gossip vote message: round number {}",
+                  vote_message.round_number);
+    GossipMessage message;
+    message.type = GossipMessage::Type::CONSENSUS;
+    message.data.put(scale::encode(vote_message).value());
+
+    broadcast(std::move(message));
   }
 
-  void GossiperBroadcast::fin(const consensus::grandpa::Fin &msg) {
-    broadcast(msg);
+  void GossiperBroadcast::fin(const consensus::grandpa::Fin &fin) {
+    logger_->info("Gossip fin message: round number {}", fin.round_number);
+    GossipMessage message;
+    message.type = GossipMessage::Type::CONSENSUS;
+    message.data.put(scale::encode(fin).value());
+
+    broadcast(std::move(message));
   }
 
   void GossiperBroadcast::broadcast(GossipMessage &&msg) {

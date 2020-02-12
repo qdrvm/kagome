@@ -15,7 +15,6 @@ namespace kagome::consensus::grandpa {
   struct VoterSet {
    public:
     VoterSet() = default;  // for scale codec (in decode)
-    VoterSet(std::vector<Id> authorities, MembershipCounter set_id);
 
     explicit VoterSet(MembershipCounter set_id);
 
@@ -59,9 +58,9 @@ namespace kagome::consensus::grandpa {
   Stream &operator<<(Stream &s, const VoterSet &voters) {
     std::vector<std::pair<Id, size_t>> key_val_vector;
     key_val_vector.reserve(voters.weightMap().size());
-    std::copy(voters.weightMap().begin(),
-              voters.weightMap().end(),
-              key_val_vector.begin());
+    for (const auto &[id, weight] : voters.weightMap()) {
+      key_val_vector.emplace_back(id, weight);
+    }
     return s << key_val_vector << voters.setId();
   }
 

@@ -291,8 +291,7 @@ TEST_F(BlockTreeTest, GetChainByBlockDescending) {
 /**
  * @given a block tree with one block in it
  * @when trying to obtain the best chain that contais a block, which is
- present
- * in the storage, but is not connected to the base block in the tree
+ * present in the storage, but is not connected to the base block in the tree
  * @then BLOCK_NOT_FOUND error is returned
  */
 TEST_F(BlockTreeTest, GetBestChain_BlockNotFound) {

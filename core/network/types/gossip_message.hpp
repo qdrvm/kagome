@@ -14,10 +14,12 @@ namespace kagome::network {
    */
   struct GossipMessage {
     enum class Type : uint8_t {
-      BLOCK_ANNOUNCE = 1,
-      VOTE,
-      FIN,
-      UNKNOWN = 0
+      STATUS = 0,
+      BLOCK_REQUEST,
+      BLOCK_ANNOUNCE,
+      TRANSACTIONS,
+      CONSENSUS,
+      UNKNOWN = 99
     };
 
     Type type{};
@@ -41,7 +43,7 @@ namespace kagome::network {
   Stream &operator>>(Stream &s, GossipMessage::Type &t) {
     uint8_t type{};
     s >> type;
-    if (type > 4) {
+    if (type > 80) {
       t = GossipMessage::Type::UNKNOWN;
     } else {
       t = static_cast<GossipMessage::Type>(type);

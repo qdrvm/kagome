@@ -18,7 +18,7 @@
 
 namespace kagome::consensus::grandpa {
 
-  using Timer = boost::asio::basic_waitable_timer<std::chrono::steady_clock>;
+  using Timer = boost::asio::basic_waitable_timer<std::chrono::system_clock>;
 
   using BlockInfo = primitives::BlockInfo;
   using Precommit = primitives::detail::BlockInfoT<struct PrecommitTag>;

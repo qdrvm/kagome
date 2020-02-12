@@ -26,7 +26,7 @@ namespace kagome::consensus::grandpa {
   };
 
   VotingRoundImpl::VotingRoundImpl(
-      const GrandpaConfig &config,
+      GrandpaConfig config,
       std::shared_ptr<Environment> env,
       std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
       std::shared_ptr<VoteTracker<Prevote>> prevotes,
@@ -97,6 +97,8 @@ namespace kagome::consensus::grandpa {
                 finalized.error().message());
             return;
           }
+          env_->completed(CompletedRound{.round_number = round_number_,
+                                         .state = cur_round_state_});
         }
       }
     }
@@ -120,8 +122,6 @@ namespace kagome::consensus::grandpa {
     // check if new state differs with the old one and broadcast new state
     notify(*last_round_state_);
 
-    env_->completed(CompletedRound{.round_number = round_number_,
-                                   .state = cur_round_state_});
     return true;
   }
 
@@ -294,7 +294,7 @@ namespace kagome::consensus::grandpa {
     last_round_state_ = last_round_state;
     switch (state_) {
       case State::START: {
-        auto maybe_estimate = last_round_state.estimate;
+        const auto &maybe_estimate = last_round_state.estimate;
 
         if (not maybe_estimate) {
           logger_->debug(
@@ -332,7 +332,6 @@ namespace kagome::consensus::grandpa {
                            proposed.error().message());
             break;
           }
-
           state_ = State::PROPOSED;
         }
         break;

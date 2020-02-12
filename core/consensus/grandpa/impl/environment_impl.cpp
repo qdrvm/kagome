@@ -77,6 +77,9 @@ namespace kagome::consensus::grandpa {
     // walk backwards until we find the target block
     while (true) {
       if (best_header.number == target) {
+        logger_->debug("found best chain: number {}, hash {}",
+                       best_header.number,
+                       best_hash.toHex());
         return BlockInfo{primitives::BlockNumber{best_header.number},
                          best_hash};
       }
@@ -94,6 +97,9 @@ namespace kagome::consensus::grandpa {
     VoteMessage message{
         .vote = propose, .round_number = round, .counter = set_id};
     gossiper_->vote(message);
+    logger_->info("Primary proposed block with hash {} in grandpa round {}",
+                  propose.message.block_hash.toHex(),
+                  round);
     return outcome::success();
   }
 
@@ -104,6 +110,9 @@ namespace kagome::consensus::grandpa {
     VoteMessage message{
         .vote = prevote, .round_number = round, .counter = set_id};
     gossiper_->vote(message);
+    logger_->info("Prevoted block with hash {} in grandpa round {}",
+                  prevote.message.block_hash.toHex(),
+                  round);
     return outcome::success();
   }
 
@@ -114,6 +123,9 @@ namespace kagome::consensus::grandpa {
     VoteMessage message{
         .vote = precommit, .round_number = round, .counter = set_id};
     gossiper_->vote(message);
+    logger_->info("Precommitted block with hash {} in grandpa round {}",
+                  precommit.message.block_hash.toHex(),
+                  round);
     return outcome::success();
   }
 
@@ -121,6 +133,9 @@ namespace kagome::consensus::grandpa {
       RoundNumber round,
       const BlockInfo &vote,
       const GrandpaJustification &justification) {
+    logger_->info("Committed block with hash: {} with number: {}",
+                  vote.block_hash,
+                  vote.block_number);
     gossiper_->fin(Fin{
         .round_number = round, .vote = vote, .justification = justification});
     return outcome::success();
@@ -149,7 +164,9 @@ namespace kagome::consensus::grandpa {
                      block.toHex(),
                      finalized.error().message());
     }
+    logger_->info("Finalized block with hash: {}", block.toHex());
     // TODO(kamilsa): PRE-336 Perform state update
+
     return finalized;
   }
 

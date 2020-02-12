@@ -7,6 +7,7 @@
 
 #include <boost/asio/post.hpp>
 #include "consensus/grandpa/impl/environment_impl.hpp"
+#include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
@@ -18,31 +19,35 @@ namespace kagome::consensus::grandpa {
   LauncherImpl::LauncherImpl(
       std::shared_ptr<Environment> environment,
       std::shared_ptr<storage::trie::TrieDb> storage,
-      std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
-      Id id,
+      std::shared_ptr<crypto::ED25519Provider> crypto_provider,
+      const crypto::ED25519Keypair &keypair,
       std::shared_ptr<Clock> clock,
       std::shared_ptr<boost::asio::io_context> io_context)
       : environment_{std::move(environment)},
         storage_{std::move(storage)},
-        vote_crypto_provider_{std::move(vote_crypto_provider)},
-        id_{id},
+        crypto_provider_{std::move(crypto_provider)},
+        keypair_{keypair},
         clock_{std::move(clock)},
         io_context_{std::move(io_context)} {
     // lambda which is executed when voting round is completed. This lambda
     // executes next round
-    auto handle_completed_round = [this](
-                                      const CompletedRound &completed_round) {
-      auto &&encoded_round_state = scale::encode(completed_round).value();
-      if (auto put_res = storage_->put(storage::kSetStateKey,
-                                       common::Buffer(encoded_round_state));
-          not put_res) {
-        logger_->error("New round state was not added to the storage");
-        return;
-      }
-
-      boost::asio::post(*io_context_,
-                        boost::bind(&LauncherImpl::executeNextRound, this));
-    };
+    auto handle_completed_round =
+        [this](const CompletedRound &completed_round) {
+          // TODO: uncomment when fix TrieDB. Current issue: after writing with
+          // the same key, value disappears
+          //          if (auto put_res = storage_->put(
+          //                  storage::kSetStateKey,
+          //                  common::Buffer(scale::encode(completed_round).value()));
+          //              not put_res) {
+          //            logger_->error("New round state was not added to the
+          //            storage"); return;
+          //          }
+          //          BOOST_ASSERT(storage_->get(storage::kSetStateKey));
+          boost::asio::post(*io_context_,
+                            [self{shared_from_this()}, completed_round] {
+                              self->executeNextRound(completed_round);
+                            });
+        };
     environment_->onCompleted(handle_completed_round);
   }
 
@@ -53,37 +58,30 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<CompletedRound> LauncherImpl::getLastRoundNumber() const {
-    auto last_round_encoded_res = storage_->get(storage::kSetStateKey);
-    if (not last_round_encoded_res) {
-      // handle error
-    }
+    OUTCOME_TRY(last_round_encoded, storage_->get(storage::kSetStateKey));
 
-    auto last_round_res =
-        scale::decode<CompletedRound>(last_round_encoded_res.value());
-    if (not last_round_res) {
-      // handle
-    }
-    return last_round_res.value();
+    return scale::decode<CompletedRound>(last_round_encoded);
   }
 
-  void LauncherImpl::executeNextRound() {
+  void LauncherImpl::executeNextRound(const CompletedRound &last_round) {
     auto voters_res = getVoters();
-    if (not voters_res.has_value()) {
-      logger_->error(
-          "Voters does not exist in storage. Stopping grandpa execution");
-      return;
-    }
+    BOOST_ASSERT_MSG(
+        voters_res.has_value(),
+        "Voters does not exist in storage. Stopping grandpa execution");
     const auto &voters = voters_res.value();
-    auto last_round_res = getLastRoundNumber();
-    if (not last_round_res.has_value()) {
-      logger_->error(
-          "Last round does not exist in storage. Stopping grandpa execution");
-      return;
-    }
-    auto [round_number, last_round_state] = last_round_res.value();
+    BOOST_ASSERT_MSG(voters->size() != 0,
+                     "Voters are empty. Stopping grandpa execution");
+    //    auto last_round_res = getLastRoundNumber();
+    //    if (not last_round_res.has_value()) {
+    //      logger_->error(
+    //          "Last round does not exist in storage. Stopping grandpa
+    //          execution. " "Error: {}", last_round_res.error().message());
+    //      return;
+    //    }
+    auto [round_number, last_round_state] = last_round;
     round_number++;
-
-    auto duration = Duration(333);
+    using std::chrono_literals::operator""ms;
+    auto duration = Duration(3333ms);
 
     auto prevote_tracker = std::make_shared<PrevoteTrackerImpl>();
     auto precommit_tracker = std::make_shared<PrecommitTrackerImpl>();
@@ -94,16 +92,20 @@ namespace kagome::consensus::grandpa {
     GrandpaConfig config{.voters = voters,
                          .round_number = round_number,
                          .duration = duration,
-                         .peer_id = id_};
+                         .peer_id = keypair_.public_key};
+    auto &&vote_crypto_provider = std::make_shared<VoteCryptoProviderImpl>(
+        keypair_, crypto_provider_, round_number, voters);
 
-    current_round_ = std::make_shared<VotingRoundImpl>(config,
-                                                       environment_,
-                                                       vote_crypto_provider_,
-                                                       prevote_tracker,
-                                                       precommit_tracker,
-                                                       vote_graph,
-                                                       clock_,
-                                                       io_context_);
+    current_round_ =
+        std::make_shared<VotingRoundImpl>(config,
+                                          environment_,
+                                          std::move(vote_crypto_provider),
+                                          prevote_tracker,
+                                          precommit_tracker,
+                                          vote_graph,
+                                          clock_,
+                                          io_context_);
+    logger_->info("Starting grandpa round: {}", round_number);
 
     current_round_->primaryPropose(last_round_state);
     current_round_->prevote(last_round_state);
@@ -111,8 +113,12 @@ namespace kagome::consensus::grandpa {
   }
 
   void LauncherImpl::start() {
-    boost::asio::post(*io_context_,
-                      boost::bind(&LauncherImpl::executeNextRound, this));
+    auto last_round_res = getLastRoundNumber();
+    BOOST_ASSERT_MSG(last_round_res, "Last round does not exist");
+    const auto &last_round = last_round_res.value();
+    boost::asio::post(*io_context_, [self{shared_from_this()}, last_round] {
+      self->executeNextRound(last_round);
+    });
   }
 
   void LauncherImpl::onVoteMessage(const VoteMessage &msg) {
@@ -130,6 +136,12 @@ namespace kagome::consensus::grandpa {
           [&current_round](const SignedPrecommit &precommit) {
             current_round->onPrecommit(precommit);
           });
+    }
+  }
+
+  void LauncherImpl::onFin(const Fin &f) {
+    if (f.round_number == current_round_->roundNumber()) {
+      current_round_->onFin(f);
     }
   }
 

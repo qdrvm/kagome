@@ -50,4 +50,7 @@ add_library(launcher
     )
 target_link_libraries(launcher
     voting_round
+    vote_crypto_provider
+    vote_graph
+    vote_tracker
     )

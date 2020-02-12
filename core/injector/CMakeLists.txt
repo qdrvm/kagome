@@ -23,7 +23,8 @@ target_link_libraries(application_injector
     sr25519_provider
     configuration_storage
     binaryen_core_api
-    binaryen_grandpa_api
+    #    binaryen_grandpa_api
+    grandpa_dummy
     binaryen_block_builder_api
     extrinsic_api_service
     extension_factory
@@ -34,7 +35,8 @@ target_link_libraries(application_injector
     leveldb
     local_key_storage
     outcome
-    observer_dummy
+    launcher
+    environment
     proposer
     storage_wasm_provider
     synchronizer

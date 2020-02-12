@@ -30,7 +30,8 @@ namespace kagome::blockchain {
     createWithGenesis(
         common::Buffer state_root,
         const std::shared_ptr<storage::PersistentBufferMap> &storage,
-        std::shared_ptr<crypto::Hasher> hasher);
+        std::shared_ptr<crypto::Hasher> hasher,
+        std::function<void(const primitives::Block &)> on_genesis_created);
 
     outcome::result<primitives::BlockHeader> getBlockHeader(
         const primitives::BlockId &id) const override;

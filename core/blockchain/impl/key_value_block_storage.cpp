@@ -38,7 +38,8 @@ namespace kagome::blockchain {
   KeyValueBlockStorage::createWithGenesis(
       common::Buffer state_root,
       const std::shared_ptr<storage::PersistentBufferMap> &storage,
-      std::shared_ptr<crypto::Hasher> hasher) {
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::function<void(const primitives::Block &)> on_genesis_created) {
     KeyValueBlockStorage block_storage(storage, std::move(hasher));
     // TODO(Harrm) check that storage is actually empty
 
@@ -62,6 +63,7 @@ namespace kagome::blockchain {
     OUTCOME_TRY(block_storage.putBlock(genesis_block));
     // TODO(kamilsa): get CompletedRound from genesis and put into the storage
     // using kSetStateKey
+    on_genesis_created(genesis_block);
     return std::make_shared<KeyValueBlockStorage>(block_storage);
   }
 

@@ -30,6 +30,7 @@ namespace kagome::application {
     using SR25519Keypair = crypto::SR25519Keypair;
     using Synchronizer = consensus::Synchronizer;
     using SystemClock = clock::SystemClock;
+    using GrandpaLauncher = consensus::grandpa::Launcher;
     using Timer = clock::Timer;
     using InjectorType = decltype(injector::makeApplicationInjector(
         std::string{}, std::string{}, std::string{}));
@@ -66,6 +67,7 @@ namespace kagome::application {
     sptr<clock::SystemClock> clock_;
     sptr<ExtrinsicApiService> extrinsic_api_service_;
     sptr<Babe> babe_;
+    sptr<GrandpaLauncher> grandpa_launcher_;
     sptr<network::Router> router_;
 
     common::Logger logger_;

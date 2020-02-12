@@ -24,7 +24,7 @@ using namespace std::chrono_literals;
 
 using kagome::blockchain::BlockTreeMock;
 using kagome::blockchain::HeaderRepositoryMock;
-using kagome::clock::SteadyClockImpl;
+using kagome::clock::SystemClockImpl;
 using kagome::consensus::grandpa::EnvironmentMock;
 using kagome::consensus::grandpa::GrandpaConfig;
 using kagome::consensus::grandpa::VoteCryptoProviderMock;
@@ -176,7 +176,7 @@ class VotingRoundTest : public ::testing::Test {
 
   std::shared_ptr<EnvironmentMock> env_;
   std::shared_ptr<VoteGraphImpl> vote_graph_;
-  std::shared_ptr<SteadyClockImpl> clock_ = std::make_shared<SteadyClockImpl>();
+  std::shared_ptr<SystemClockImpl> clock_ = std::make_shared<SystemClockImpl>();
 
   std::shared_ptr<boost::asio::io_context> io_context_ =
       std::make_shared<boost::asio::io_context>();
