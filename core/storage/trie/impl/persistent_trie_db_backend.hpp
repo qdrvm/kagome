@@ -17,13 +17,13 @@ namespace kagome::storage::trie {
    * Adapter for key-value storages that allows to hide keyspace separation
    * along with root hash storing logic from the trie db component
    */
-  class PolkadotTrieDbBackend : public PersistentBufferMap {
+  class PersistentTrieDbBackend : public PersistentBufferMap {
    public:
-    PolkadotTrieDbBackend(std::shared_ptr<PersistentBufferMap> storage,
+    PersistentTrieDbBackend(std::shared_ptr<PersistentBufferMap> storage,
                           common::Buffer node_prefix,
                           common::Buffer root_hash_key);
 
-    ~PolkadotTrieDbBackend() override = default;
+    ~PersistentTrieDbBackend() override = default;
 
     outcome::result<void> saveRootHash(const common::Buffer &h);
     outcome::result<common::Buffer> getRootHash() const;
