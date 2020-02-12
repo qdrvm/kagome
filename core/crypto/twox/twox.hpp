@@ -12,6 +12,10 @@
 
 namespace kagome::crypto {
 
+  struct Twox64Hash {
+    std::array<uint8_t, 8> data;
+  };
+
   struct Twox128Hash {
     std::array<uint8_t, 16> data;
   };
@@ -20,6 +24,11 @@ namespace kagome::crypto {
   };
 
   // TODO(warchant): refactor to span
+
+  Twox64Hash make_twox64(const common::Buffer &buf);
+  Twox64Hash make_twox64(const uint8_t *buf, size_t len);
+  void make_twox64(const common::Buffer &in, common::Buffer &out);
+  void make_twox64(const uint8_t *in, uint32_t len, uint8_t *out);
 
   Twox128Hash make_twox128(const common::Buffer &buf);
   Twox128Hash make_twox128(const uint8_t *buf, size_t len);

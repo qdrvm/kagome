@@ -43,6 +43,7 @@ namespace kagome::runtime::binaryen {
   const static wasm::Name ext_keccak_256 = "ext_keccak_256";
   const static wasm::Name ext_ed25519_verify = "ext_ed25519_verify";
   const static wasm::Name ext_sr25519_verify = "ext_sr25519_verify";
+  const static wasm::Name ext_twox_64 = "ext_twox_64";
   const static wasm::Name ext_twox_128 = "ext_twox_128";
   const static wasm::Name ext_twox_256 = "ext_twox_256";
 
@@ -80,6 +81,7 @@ namespace kagome::runtime::binaryen {
       if (import->base == ext_free) {
         checkArguments(import->base.c_str(), 1, arguments.size());
         extension_->ext_free(arguments.at(0).geti32());
+        logger_->debug("ext_free finished");
         return wasm::Literal();
       }
       /// storage externals
@@ -219,6 +221,14 @@ namespace kagome::runtime::binaryen {
                                                   arguments.at(2).geti32(),
                                                   arguments.at(3).geti32());
         return wasm::Literal(res);
+      }
+      /// ext_twox_64
+      if (import->base == ext_twox_64) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
+        extension_->ext_twox_64(arguments.at(0).geti32(),
+                                arguments.at(1).geti32(),
+                                arguments.at(2).geti32());
+        return wasm::Literal();
       }
       /// ext_twox_128
       if (import->base == ext_twox_128) {

@@ -9,6 +9,28 @@
 
 namespace kagome::crypto {
 
+  void make_twox64(const uint8_t *in, uint32_t len, uint8_t *out) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    auto *ptr = reinterpret_cast<uint64_t *>(out);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    ptr[0] = XXH64(in, len, 0);
+  }
+
+  Twox64Hash make_twox64(const common::Buffer &buf) {
+    return make_twox64(buf.data(), buf.size());
+  }
+
+  Twox64Hash make_twox64(const uint8_t *buf, size_t len) {
+    Twox64Hash hash{};
+    make_twox64(buf, len, hash.data.begin());
+    return hash;
+  }
+
+  void make_twox64(const common::Buffer &in, common::Buffer &out) {
+    auto hash = make_twox64(in);
+    out.putBytes(hash.data.begin(), hash.data.end());
+  }
+
   Twox128Hash make_twox128(const common::Buffer &buf) {
     return make_twox128(buf.data(), buf.size());
   }

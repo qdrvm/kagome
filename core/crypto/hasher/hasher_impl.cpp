@@ -15,6 +15,13 @@
 
 namespace kagome::crypto {
 
+  HasherImpl::Hash64 HasherImpl::twox_64(
+      gsl::span<const uint8_t> buffer) const {
+    Hash64 out;
+    crypto::make_twox64(buffer.data(), buffer.size(), out.data());
+    return out;
+  }
+
   HasherImpl::Hash128 HasherImpl::twox_128(
       gsl::span<const uint8_t> buffer) const {
     Hash128 out;

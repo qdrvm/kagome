@@ -75,6 +75,10 @@ namespace kagome::extensions {
                                    runtime::SizeType msg_len,
                                    runtime::WasmPointer sig_data,
                                    runtime::WasmPointer pubkey_data));
+    MOCK_METHOD3(ext_twox_64,
+                 void(runtime::WasmPointer data,
+                      runtime::SizeType len,
+                      runtime::WasmPointer out));
     MOCK_METHOD3(ext_twox_128,
                  void(runtime::WasmPointer data,
                       runtime::SizeType len,

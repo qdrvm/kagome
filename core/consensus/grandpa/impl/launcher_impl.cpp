@@ -35,14 +35,14 @@ namespace kagome::consensus::grandpa {
         [this](const CompletedRound &completed_round) {
           // TODO: uncomment when fix TrieDB. Current issue: after writing with
           // the same key, value disappears
-          //          if (auto put_res = storage_->put(
-          //                  storage::kSetStateKey,
-          //                  common::Buffer(scale::encode(completed_round).value()));
-          //              not put_res) {
-          //            logger_->error("New round state was not added to the
-          //            storage"); return;
-          //          }
-          //          BOOST_ASSERT(storage_->get(storage::kSetStateKey));
+          if (auto put_res = storage_->put(
+                  storage::kSetStateKey,
+                  common::Buffer(scale::encode(completed_round).value()));
+              not put_res) {
+            logger_->error("New round state was not added to the storage");
+            return;
+          }
+          BOOST_ASSERT(storage_->get(storage::kSetStateKey));
           boost::asio::post(*io_context_,
                             [self{shared_from_this()}, completed_round] {
                               self->executeNextRound(completed_round);

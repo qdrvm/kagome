@@ -59,6 +59,13 @@ namespace kagome::extensions {
                                          runtime::WasmPointer pubkey_data);
 
     /**
+     * @see Extension::ext_twox_64
+     */
+    void ext_twox_64(runtime::WasmPointer data,
+                      runtime::SizeType len,
+                      runtime::WasmPointer out);
+    
+    /**
      * @see Extension::ext_twox_128
      */
     void ext_twox_128(runtime::WasmPointer data,

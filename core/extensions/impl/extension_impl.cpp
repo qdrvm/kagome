@@ -150,6 +150,12 @@ namespace kagome::extensions {
         msg_data, msg_len, sig_data, pubkey_data);
   }
 
+  void ExtensionImpl::ext_twox_64(runtime::WasmPointer data,
+                                  runtime::SizeType len,
+                                  runtime::WasmPointer out) {
+    crypto_ext_.ext_twox_64(data, len, out);
+  }
+
   void ExtensionImpl::ext_twox_128(runtime::WasmPointer data,
                                    runtime::SizeType len,
                                    runtime::WasmPointer out) {
