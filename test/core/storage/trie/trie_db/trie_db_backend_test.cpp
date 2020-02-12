@@ -17,7 +17,7 @@ using kagome::common::Buffer;
 using kagome::storage::face::PersistentMapMock;
 using kagome::storage::face::WriteBatchMock;
 using kagome::storage::trie::PolkadotTrieDb;
-using kagome::storage::trie::PolkadotTrieDbBackend;
+using kagome::storage::trie::PolkadotTrieDb;
 using testing::Invoke;
 using testing::Return;
 
@@ -28,7 +28,7 @@ class TrieDbBackendTest : public testing::Test {
  public:
   std::shared_ptr<PersistentMapMock<Buffer, Buffer>> storage =
       std::make_shared<PersistentMapMock<Buffer, Buffer>>();
-  PolkadotTrieDbBackend backend{storage, kNodePrefix, kRootHashKey};
+  PersistentTrieDbBackend backend{storage, kNodePrefix, kRootHashKey};
 };
 
 /**

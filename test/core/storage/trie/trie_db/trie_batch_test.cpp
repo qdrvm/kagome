@@ -26,7 +26,7 @@ class TrieBatchTest : public test::BaseLevelDB_Test {
 
   void SetUp() override {
     open();
-    trie = PolkadotTrieDb::createEmpty(std::make_shared<PolkadotTrieDbBackend>(
+    trie = PolkadotTrieDb::createEmpty(std::make_shared<PersistentTrieDbBackend>(
         std::move(db_), kNodePrefix, kRootHashKey));
   }
 
@@ -182,7 +182,7 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
       .WillOnce(Return(PolkadotCodec::Error::UNKNOWN_NODE_TYPE));
 
   PolkadotTrieDb trie =
-      *PolkadotTrieDb::createEmpty(std::make_shared<PolkadotTrieDbBackend>(
+      *PolkadotTrieDb::createEmpty(std::make_shared<PersistentTrieDbBackend>(
           std::move(db), kNodePrefix, kRootHashKey));
   PolkadotTrieBatch batch{trie};
 

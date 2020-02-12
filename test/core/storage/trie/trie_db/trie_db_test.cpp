@@ -16,7 +16,7 @@
 using kagome::common::Buffer;
 using kagome::storage::LevelDB;
 using kagome::storage::trie::PolkadotTrieDb;
-using kagome::storage::trie::PolkadotTrieDbBackend;
+using kagome::storage::trie::PolkadotTrieDb;
 using kagome::storage::trie::operator<<;
 
 static const Buffer kNodePrefix{1};
@@ -41,7 +41,7 @@ class TrieTest
 
   void SetUp() override {
     open();
-    trie = PolkadotTrieDb::createEmpty(std::make_shared<PolkadotTrieDbBackend>(
+    trie = PolkadotTrieDb::createEmpty(std::make_shared<PersistentTrieDbBackend>(
         std::move(db_), kNodePrefix, kRootHashKey));
   }
 
@@ -355,7 +355,7 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
         level_db,
         LevelDB::create("/tmp/kagome_leveldb_persistency_test", options));
     auto db =
-        PolkadotTrieDb::createEmpty(std::make_shared<PolkadotTrieDbBackend>(
+        PolkadotTrieDb::createEmpty(std::make_shared<PersistentTrieDbBackend>(
             std::move(level_db), kNodePrefix, kRootHashKey));
     EXPECT_OUTCOME_TRUE_1(db->put("123"_buf, "abc"_buf));
     EXPECT_OUTCOME_TRUE_1(db->put("345"_buf, "def"_buf));
@@ -366,7 +366,7 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
                       LevelDB::create("/tmp/kagome_leveldb_persistency_test"));
   EXPECT_OUTCOME_TRUE(
       db,
-      PolkadotTrieDb::createFromStorage(std::make_shared<PolkadotTrieDbBackend>(
+      PolkadotTrieDb::createFromStorage(std::make_shared<PersistentTrieDbBackend>(
           std::move(new_level_db), kNodePrefix, kRootHashKey)));
   EXPECT_OUTCOME_TRUE(v1, db->get("123"_buf));
   ASSERT_EQ(v1, "abc"_buf);

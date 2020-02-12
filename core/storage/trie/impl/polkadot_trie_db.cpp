@@ -18,7 +18,7 @@ using kagome::common::Buffer;
 namespace kagome::storage::trie {
 
   outcome::result<std::unique_ptr<PolkadotTrieDb>>
-  PolkadotTrieDb::createFromStorage(std::shared_ptr<PolkadotTrieDbBackend> db) {
+  PolkadotTrieDb::createFromStorage(std::shared_ptr<PersistentTrieDbBackend> db) {
     BOOST_ASSERT(db != nullptr);
     OUTCOME_TRY(root, db->getRootHash());
     PolkadotTrieDb trie_db{std::move(db), std::move(root)};
@@ -26,13 +26,13 @@ namespace kagome::storage::trie {
   }
 
   std::unique_ptr<PolkadotTrieDb> PolkadotTrieDb::createEmpty(
-      std::shared_ptr<PolkadotTrieDbBackend> db) {
+      std::shared_ptr<PersistentTrieDbBackend> db) {
     BOOST_ASSERT(db != nullptr);
     PolkadotTrieDb trie_db{std::move(db), boost::none};
     return std::make_unique<PolkadotTrieDb>(std::move(trie_db));
   }
 
-  PolkadotTrieDb::PolkadotTrieDb(std::shared_ptr<PolkadotTrieDbBackend> db,
+  PolkadotTrieDb::PolkadotTrieDb(std::shared_ptr<PersistentTrieDbBackend> db,
                                  boost::optional<common::Buffer> root_hash)
       : db_{std::move(db)},
         codec_{},

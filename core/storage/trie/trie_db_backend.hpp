@@ -6,4 +6,25 @@
 #ifndef KAGOME_TRIE_DB_BACKEND_HPP
 #define KAGOME_TRIE_DB_BACKEND_HPP
 
-#endif //KAGOME_TRIE_DB_BACKEND_HPP
+#include <outcome/outcome.hpp>
+#include "common/buffer.hpp"
+#include "storage/buffer_map.hpp"
+#include "storage/trie/impl/polkadot_node.hpp"
+
+namespace kagome::storage::trie {
+
+  /**
+   * Adapter for key-value storages that allows to hide keyspace separation
+   * along with root hash storing logic from the trie db component
+   */
+  class TrieDbBackend : public PersistentBufferMap {
+   public:
+    ~TrieDbBackend() override = default;
+
+    virtual outcome::result<void> saveRootHash(const common::Buffer &h) = 0;
+    virtual outcome::result<common::Buffer> getRootHash() const = 0;
+  };
+
+}  // namespace kagome::storage::trie
+
+#endif  // KAGOME_TRIE_DB_BACKEND_HPP
