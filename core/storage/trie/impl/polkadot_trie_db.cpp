@@ -190,8 +190,7 @@ namespace kagome::storage::trie {
   }
 
   common::Buffer PolkadotTrieDb::getEmptyRoot() const {
-    static const auto empty_root = Buffer{}.put(codec_.hash256({0}));
-    return empty_root;
+    return Buffer(codec_.hash256({0}));
   }
 
   bool PolkadotTrieDb::empty() const {
