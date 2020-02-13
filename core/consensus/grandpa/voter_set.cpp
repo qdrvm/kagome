@@ -7,7 +7,7 @@
 
 namespace kagome::consensus::grandpa {
 
-  VoterSet::VoterSet(MembershipCounter set_id) : voters_{}, set_id_{set_id} {}
+  VoterSet::VoterSet(MembershipCounter set_id) : set_id_{set_id} {}
 
   void VoterSet::insert(Id voter, size_t weight) {
     voters_.push_back(voter);

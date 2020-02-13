@@ -26,7 +26,7 @@ namespace kagome::consensus::grandpa {
    public:
     ~VotingRoundImpl() override = default;
 
-    VotingRoundImpl(GrandpaConfig config,
+    VotingRoundImpl(const GrandpaConfig& config,
                     std::shared_ptr<Environment> env,
                     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
                     std::shared_ptr<VoteTracker<Prevote>> prevotes,

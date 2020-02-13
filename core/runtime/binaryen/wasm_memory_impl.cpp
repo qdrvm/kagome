@@ -14,7 +14,7 @@ namespace kagome::runtime::binaryen {
                     // memory at 0 in future, as returning 0 from allocate
                     // method means that wasm memory was exhausted
   {
-    resize(size_);
+    WasmMemoryImpl::resize(size_);
   }
 
   SizeType WasmMemoryImpl::size() const {

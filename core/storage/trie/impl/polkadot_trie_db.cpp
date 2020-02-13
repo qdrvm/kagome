@@ -35,8 +35,8 @@ namespace kagome::storage::trie {
   PolkadotTrieDb::PolkadotTrieDb(std::shared_ptr<PolkadotTrieDbBackend> db,
                                  boost::optional<common::Buffer> root_hash)
       : db_{std::move(db)},
-        codec_{},
-        root_{root_hash ? std::move(root_hash.value()) : getEmptyRoot()} {}
+        root_{root_hash ? std::move(root_hash.value())
+                        : PolkadotTrieDb::getEmptyRoot()} {}
 
   outcome::result<void> PolkadotTrieDb::put(const Buffer &key,
                                             const Buffer &value) {

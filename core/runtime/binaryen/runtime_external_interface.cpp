@@ -56,8 +56,7 @@ namespace kagome::runtime::binaryen {
 
   RuntimeExternalInterface::RuntimeExternalInterface(
       std::shared_ptr<extensions::ExtensionFactory> extension_factory)
-      : ShellExternalInterface(),
-        extension_factory_(std::move(extension_factory)) {
+      : extension_factory_(std::move(extension_factory)) {
     BOOST_ASSERT_MSG(extension_factory_ != nullptr,
                      "extension factory is nullptr");
     auto memory_impl =
