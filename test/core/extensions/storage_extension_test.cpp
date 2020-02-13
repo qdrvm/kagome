@@ -9,8 +9,10 @@
 #include "core/runtime/mock_memory.hpp"
 #include "core/storage/trie/mock_trie_db.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
+using kagome::common::Hash256;
 using kagome::extensions::StorageExtension;
 using kagome::runtime::MockMemory;
 using kagome::runtime::SizeType;
@@ -42,10 +44,15 @@ class OutcomeParameterizedTest
     : public StorageExtensionTest,
       public ::testing::WithParamInterface<outcome::result<void>> {};
 
+struct EnumeratedTrieRootTestCase {
+  std::list<Buffer> values;
+  Buffer trie_root_buf;
+};
+
 /// For tests that operate over a collection of buffers
 class BuffersParametrizedTest
     : public StorageExtensionTest,
-      public testing::WithParamInterface<std::list<Buffer>> {};
+      public testing::WithParamInterface<EnumeratedTrieRootTestCase> {};
 
 /**
  * @given prefix_pointer with prefix_length
@@ -125,8 +132,8 @@ TEST_F(StorageExtensionTest, GetAllocatedStorageKeyNotExistsTest) {
 
   EXPECT_CALL(*memory_, store32(len_ptr, kU32Max));
   ASSERT_EQ(0,
-            storage_extension_->ext_get_allocated_storage(key_pointer, key_size,
-                                                          len_ptr));
+            storage_extension_->ext_get_allocated_storage(
+                key_pointer, key_size, len_ptr));
 }
 
 /**
@@ -164,8 +171,8 @@ TEST_F(StorageExtensionTest, GetAllocatedStorageKeyExistTest) {
 
   // ptr for the allocated value is returned
   ASSERT_EQ(allocated_value_ptr,
-            storage_extension_->ext_get_allocated_storage(key_pointer, key_size,
-                                                          len_ptr));
+            storage_extension_->ext_get_allocated_storage(
+                key_pointer, key_size, len_ptr));
 }
 
 /**
@@ -259,7 +266,8 @@ TEST_P(OutcomeParameterizedTest, SetStorageTest) {
                                       value_size);
 }
 
-INSTANTIATE_TEST_CASE_P(Instance, OutcomeParameterizedTest,
+INSTANTIATE_TEST_CASE_P(Instance,
+                        OutcomeParameterizedTest,
                         ::testing::Values<outcome::result<void>>(
                             /// success case
                             outcome::success(),
@@ -276,7 +284,7 @@ INSTANTIATE_TEST_CASE_P(Instance, OutcomeParameterizedTest,
  * result in the wasm memory
  */
 TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
-  auto values = GetParam();
+  auto &[values, hash_array] = GetParam();
 
   using testing::_;
   WasmPointer values_ptr = 42;
@@ -292,16 +300,22 @@ TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
     len_offset += 4;
   }
   WasmPointer result = 1984;
-  EXPECT_CALL(*memory_, storeBuffer(result, _)).Times(1);
+  EXPECT_CALL(*memory_, storeBuffer(result, hash_array)).Times(1);
 
   storage_extension_->ext_blake2_256_enumerated_trie_root(
       values_ptr, lens_ptr, values.size(), result);
 }
 
-// TODO(Harrm): Find tests from other PolkaDot implementations and test against
-// their input/output, as it must match
-INSTANTIATE_TEST_CASE_P(Instance, BuffersParametrizedTest,
-                        testing::Values<std::list<Buffer>>(
-                            std::list<Buffer>{"aardvark"_buf, "beguine"_buf,
-                                              "concussion"_buf, "dwelling"_buf},
-                            std::list<Buffer>{"doe"_buf, "reindeer"_buf}));
+INSTANTIATE_TEST_CASE_P(
+    Instance,
+    BuffersParametrizedTest,
+    testing::Values(
+        // test from substrate:
+        // https://github.com/paritytech/substrate/blob/f311d14f6fb76161950f0eca0b3f71a353824d46/core/executor/src/wasm_executor.rs#L1769
+        EnumeratedTrieRootTestCase{
+            std::list<Buffer>{"zero"_buf, "one"_buf, "two"_buf},
+            "9243f4bb6fa633dce97247652479ed7e2e2995a5ea641fd9d1e1a046f7601da6"_hex2buf},
+        // empty list case, hash also obtained from substrate
+        EnumeratedTrieRootTestCase{
+            std::list<Buffer>{},
+            "03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314"_hex2buf}));
