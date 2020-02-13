@@ -11,7 +11,6 @@
 
 #include "primitives/authority.hpp"
 #include "primitives/block.hpp"
-#include "primitives/block_data.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/common.hpp"
 #include "primitives/transaction_validity.hpp"
@@ -36,7 +35,7 @@ namespace kagome::runtime {
      * @param block block to execute
      */
     virtual outcome::result<void> execute_block(
-        const primitives::BlockData &block_data) = 0;
+        const primitives::Block &block) = 0;
 
     /**
      * @brief Initialize a block with the given header.

@@ -29,17 +29,14 @@ namespace kagome::consensus::grandpa {
   EnvironmentImpl::EnvironmentImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
-      std::shared_ptr<Gossiper> gossiper,
-      std::shared_ptr<runtime::Core> core)
+      std::shared_ptr<Gossiper> gossiper)
       : block_tree_{std::move(block_tree)},
         header_repository_{std::move(header_repository)},
         gossiper_{std::move(gossiper)},
-        core_{std::move(core)},
         logger_{common::createLogger("Grandpa environment:")} {
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(header_repository_ != nullptr);
     BOOST_ASSERT(gossiper_ != nullptr);
-    BOOST_ASSERT(core_ != nullptr);
   }
 
   outcome::result<std::vector<BlockHash>> EnvironmentImpl::getAncestry(
@@ -163,26 +160,10 @@ namespace kagome::consensus::grandpa {
     justification.data.put(scale::encode(grandpa_jusitification).value());
     auto finalized = block_tree_->finalize(block_hash, justification);
     if (not finalized) {
-      logger_->error("Could not finalize block {} from round {} with error: {}",
+      logger_->error("Could not finalize block {} with error: {}",
                      block_hash.toHex(),
                      finalized.error().message());
     }
-    OUTCOME_TRY(block_header, header_repository_->getBlockHeader(block_hash));
-    OUTCOME_TRY(block_body, block_tree_->getBlockBody(block_hash));
-    primitives::BlockData block_data;
-    block_data.hash = block_hash;
-    block_data.header = block_header;
-    block_data.body = block_body;
-    block_data.justification = justification;
-
-    if (auto execute_res = core_->execute_block(block_data); not execute_res) {
-      logger_->error("Runtime could not execute block. Reason: {}",
-                     execute_res.error().message());
-      return execute_res.error();
-    }
-
-    logger_->info("Finalized block with hash: {}", block_hash.toHex());
-    // TODO(kamilsa): PRE-336 Perform state update
 
     return finalized;
   }

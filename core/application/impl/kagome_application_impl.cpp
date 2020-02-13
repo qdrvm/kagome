@@ -17,7 +17,7 @@ namespace kagome::application {
       : injector_{injector::makeApplicationInjector(
           config_path, keystore_path, leveldb_path)},
         logger_(common::createLogger("Application")) {
-    spdlog::set_level(spdlog::level::debug);
+    spdlog::set_level(spdlog::level::info);
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied

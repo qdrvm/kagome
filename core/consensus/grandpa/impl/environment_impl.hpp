@@ -14,7 +14,6 @@
 #include "common/logger.hpp"
 #include "consensus/grandpa/chain.hpp"
 #include "consensus/grandpa/gossiper.hpp"
-#include "runtime/core.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -28,8 +27,7 @@ namespace kagome::consensus::grandpa {
     EnvironmentImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
-        std::shared_ptr<Gossiper> gossiper,
-        std::shared_ptr<runtime::Core> core);
+        std::shared_ptr<Gossiper> gossiper);
 
     ~EnvironmentImpl() override = default;
 
@@ -75,7 +73,6 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repository_;
     std::shared_ptr<Gossiper> gossiper_;
-    std::shared_ptr<runtime::Core> core_;
 
     OnCompleted on_completed_;
     common::Logger logger_;

@@ -33,7 +33,7 @@ namespace kagome::network {
 
   void GossiperBroadcast::vote(
       const consensus::grandpa::VoteMessage &vote_message) {
-    logger_->info("Gossip vote message: round number {}",
+    logger_->info("Gossip vote message: grandpa round number {}",
                   vote_message.round_number);
     GossipMessage message;
     message.type = GossipMessage::Type::CONSENSUS;
@@ -43,7 +43,8 @@ namespace kagome::network {
   }
 
   void GossiperBroadcast::fin(const consensus::grandpa::Fin &fin) {
-    logger_->info("Gossip fin message: round number {}", fin.round_number);
+    logger_->info("Gossip fin message: grandpa round number {}",
+                  fin.round_number);
     GossipMessage message;
     message.type = GossipMessage::Type::CONSENSUS;
     message.data.put(scale::encode(fin).value());

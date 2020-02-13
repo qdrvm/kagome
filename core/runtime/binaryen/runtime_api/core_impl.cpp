@@ -22,8 +22,8 @@ namespace kagome::runtime::binaryen {
   }
 
   outcome::result<void> CoreImpl::execute_block(
-      const primitives::BlockData &block_data) {
-    return execute<void>("Core_execute_block", block_data);
+      const primitives::Block &block) {
+    return execute<void>("Core_execute_block", block);
   }
 
   outcome::result<void> CoreImpl::initialise_block(const BlockHeader &header) {

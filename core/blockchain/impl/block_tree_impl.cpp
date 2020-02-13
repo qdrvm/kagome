@@ -151,7 +151,13 @@ namespace kagome::blockchain {
     // update our local meta
     tree_meta_->last_finalized = *node;
     node->finalized = true;
-    OUTCOME_TRY(prune());
+    // TODO(kamilsa) PRE-355: Fix prune. Now prune removes all blocks that are
+    // higher than last finalized block. Instead we should remove only blocks
+    // that are not descendants of the last finalized block
+    // OUTCOME_TRY(prune());
+    log_->info("Finalized block with hash: {}, number: {}",
+               block.toHex(),
+               node->depth);
 
     return outcome::success();
   }

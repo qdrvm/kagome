@@ -200,6 +200,7 @@ namespace kagome::consensus {
 
     // finally, broadcast the sealed block
     gossiper_->blockAnnounce(network::BlockAnnounce{block.header});
+    log_->debug("Announced block in slot: {}", current_slot_);
   }
 
   void BabeImpl::finishEpoch() {
