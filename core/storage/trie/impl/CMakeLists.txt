@@ -45,7 +45,6 @@ add_library(polkadot_trie_db
     )
 target_link_libraries(polkadot_trie_db
     polkadot_trie_codec
-    polkadot_trie_db_backend
     polkadot_trie
     )
 kagome_install(polkadot_trie_db)

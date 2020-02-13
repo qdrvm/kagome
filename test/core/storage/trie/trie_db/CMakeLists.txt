@@ -15,6 +15,7 @@ target_link_libraries(polkadot_trie_db_test
     polkadot_trie_db
     polkadot_trie_batch
     polkadot_trie_codec
+    persistent_trie_db_backend
     base_leveldb_test
     scale
     buffer

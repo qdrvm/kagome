@@ -7,6 +7,7 @@
 #define KAGOME_STORAGE_TRIE_IMPL_POLKADOT_TRIE_DB_BACKEND_HPP
 
 #include <outcome/outcome.hpp>
+#include <boost/serialization/strong_typedef.hpp>
 
 #include "common/buffer.hpp"
 #include "storage/buffer_map.hpp"
@@ -21,7 +22,7 @@ namespace kagome::storage::trie {
   class PersistentTrieDbBackend : public TrieDbBackend {
    public:
     PersistentTrieDbBackend(std::shared_ptr<PersistentBufferMap> storage,
-                            common::Hash256 root_hash_key,
+                            common::Buffer root_hash_key,
                             common::Buffer node_prefix);
 
     ~PersistentTrieDbBackend() override = default;

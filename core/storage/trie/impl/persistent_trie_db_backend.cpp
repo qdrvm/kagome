@@ -5,17 +5,19 @@
 
 #include "storage/trie/impl/persistent_trie_db_backend.hpp"
 
+#include <utility>
+
 #include "storage/trie/impl/polkadot_trie_db_backend_batch.hpp"
 
 namespace kagome::storage::trie {
 
   PersistentTrieDbBackend::PersistentTrieDbBackend(
       std::shared_ptr<PersistentBufferMap> storage,
-      common::Hash256 root_hash_key,
+      common::Buffer root_hash_key,
       common::Buffer node_prefix)
       : TrieDbBackend{std::move(node_prefix)},
         storage_{std::move(storage)},
-        root_hash_key_{root_hash_key} {
+        root_hash_key_{std::move(root_hash_key)} {
     BOOST_ASSERT(storage_ != nullptr);
   }
 

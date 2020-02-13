@@ -25,7 +25,7 @@ using testing::Invoke;
 using testing::Return;
 
 static const Buffer kNodePrefix{1};
-static const Hash256 kRootHashKey{};
+static const Buffer kRootHashKey{0};
 
 template <typename Backend>
 class TrieDbBackendTest : public testing::Test {
@@ -112,10 +112,10 @@ TYPED_TEST(TrieDbBackendTest, Batch) {
 TYPED_TEST(TrieDbBackendTest, Root) {
   Buffer root_hash{"12345"_buf};
   if constexpr (std::is_same_v<TypeParam, PersistentTrieDbBackend>) {
-    EXPECT_CALL(*this->storage, put(Buffer{kRootHashKey}, root_hash))
+    EXPECT_CALL(*this->storage, put(kRootHashKey, root_hash))
         .WillOnce(Return(outcome::success()));
     EXPECT_OUTCOME_TRUE_1(this->backend->saveRootHash(root_hash));
-    EXPECT_CALL(*this->storage, get(Buffer{kRootHashKey})).WillOnce(Return(root_hash));
+    EXPECT_CALL(*this->storage, get(kRootHashKey)).WillOnce(Return(root_hash));
     EXPECT_OUTCOME_TRUE(hash, this->backend->getRootHash());
     ASSERT_EQ(hash, root_hash);
   } else if constexpr (std::is_same_v<TypeParam, ReadonlyTrieDbBackend>) {

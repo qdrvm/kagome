@@ -9,12 +9,14 @@
 #include <gtest/gtest.h>
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/trie_error.hpp"
+#include "storage/trie/impl/persistent_trie_db_backend.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"
 
 using namespace kagome::storage::trie;
 using kagome::common::Buffer;
+using kagome::common::Hash256;
 using kagome::storage::face::WriteBatch;
 using testing::_;
 using testing::Invoke;
@@ -27,7 +29,7 @@ class TrieBatchTest : public test::BaseLevelDB_Test {
   void SetUp() override {
     open();
     trie = PolkadotTrieDb::createEmpty(std::make_shared<PersistentTrieDbBackend>(
-        std::move(db_), kNodePrefix, kRootHashKey));
+        std::move(db_), kRootHashKey, kNodePrefix));
   }
 
   static const std::vector<std::pair<Buffer, Buffer>> data;
@@ -183,7 +185,7 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
 
   PolkadotTrieDb trie =
       *PolkadotTrieDb::createEmpty(std::make_shared<PersistentTrieDbBackend>(
-          std::move(db), kNodePrefix, kRootHashKey));
+          std::move(db), kRootHashKey, kNodePrefix));
   PolkadotTrieBatch batch{trie};
 
   EXPECT_OUTCOME_TRUE_1(batch.put("123"_buf, "111"_buf));

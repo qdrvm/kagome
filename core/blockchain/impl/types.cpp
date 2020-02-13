@@ -9,6 +9,7 @@
 #include "common/visitor.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/polkadot_trie_db.hpp"
+#include "storage/trie/impl/persistent_trie_db_backend.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, Error, e) {
   switch (e) {

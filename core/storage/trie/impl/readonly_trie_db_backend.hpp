@@ -24,7 +24,7 @@ namespace kagome::storage::trie {
     };
 
     ReadonlyTrieDbBackend(std::shared_ptr<PersistentBufferMap> storage,
-                          common::Hash256 root_hash,
+                          common::Buffer root_hash,
                           common::Buffer node_prefix);
     ~ReadonlyTrieDbBackend() override = default;
 

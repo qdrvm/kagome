@@ -5,6 +5,8 @@
 
 #include "storage/trie/impl/readonly_trie_db_backend.hpp"
 
+#include <utility>
+
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, ReadonlyTrieDbBackend::Error, e) {
   using E = kagome::storage::trie::ReadonlyTrieDbBackend::Error;
   switch (e) {
@@ -20,11 +22,11 @@ namespace kagome::storage::trie {
 
   ReadonlyTrieDbBackend::ReadonlyTrieDbBackend(
       std::shared_ptr<PersistentBufferMap> storage,
-      common::Hash256 root_hash,
+      common::Buffer root_hash,
       common::Buffer node_prefix)
       : TrieDbBackend{std::move(node_prefix)},
         storage_{std::move(storage)},
-        root_hash_{root_hash} {
+        root_hash_{std::move(root_hash)} {
     BOOST_ASSERT(storage_ != nullptr);
   }
 

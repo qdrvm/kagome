@@ -8,16 +8,16 @@
 #include <gtest/gtest.h>
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/trie_error.hpp"
+#include "storage/trie/impl/persistent_trie_db_backend.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"
-#include "testutil/storage/polkadot_trie_db_printer.hpp"
 
 using kagome::common::Buffer;
+using kagome::common::Hash256;
 using kagome::storage::LevelDB;
 using kagome::storage::trie::PolkadotTrieDb;
-using kagome::storage::trie::PolkadotTrieDb;
-using kagome::storage::trie::operator<<;
+using kagome::storage::trie::PersistentTrieDbBackend;
 
 static const Buffer kNodePrefix{1};
 static const Buffer kRootHashKey{0};
