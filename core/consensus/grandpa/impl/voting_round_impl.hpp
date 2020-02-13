@@ -60,32 +60,49 @@ namespace kagome::consensus::grandpa {
     bool completable() const;
 
    private:
+    /// Check if peer \param id is primary
     bool isPrimary(const Id &id) const;
+
+    /// Check if current peer is primary
     bool isPrimary() const;
 
+    /// Calculate threshold from the total weights of voters
     size_t getThreshold(const std::shared_ptr<VoterSet> &voters);
 
-    void onSignedPrevote(const SignedPrevote &vote);
+    /// Triggered when we receive \param signed_prevote for the current peer
+    void onSignedPrevote(const SignedPrevote &signed_prevote);
 
-    void onSignedPrecommit(const SignedPrecommit &vote);
+    /// Triggered when we receive \param signed_precommit for the current peer
+    void onSignedPrecommit(const SignedPrecommit &signed_precommit);
 
+    /// Updates current round's prevote ghost. Invoked after each
+    /// onSingedPrevote
     void updatePrevoteGhost();
 
+    /// Update current state of the round. In particular we update:
+    /// 1. If round is completable
+    /// 2. If round has something ready to finalize
+    /// 3. New best rounds estimate
     void update();
 
     // notify about new finalized round. False if new state does not differ from
     // old one
     bool notify(const RoundState &last_round_state);
 
+    /// prepare justification for the provided \param estimate
     boost::optional<GrandpaJustification> finalizingPrecommits(
         const BlockInfo &estimate) const;
 
+    /// Construct \return SignedPrevote with provided \param last_round_state
     outcome::result<SignedPrevote> constructPrevote(
         const RoundState &last_round_state) const;
 
+    /// Construct \return SignedPrecommit with provided \param last_round_state
     outcome::result<SignedPrecommit> constructPrecommit(
         const RoundState &last_round_state) const;
 
+    /// Check if received \param vote has valid \param justification. If so
+    /// \return true, false otherwise
     bool validate(const BlockInfo &vote,
                   const GrandpaJustification &justification) const;
 

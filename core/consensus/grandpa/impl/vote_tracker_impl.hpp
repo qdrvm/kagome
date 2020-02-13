@@ -25,7 +25,7 @@ namespace kagome::consensus::grandpa {
 
     std::vector<VoteVariant> getMessages() const override;
 
-    size_t totalWeight() const override;
+    size_t getTotalWeight() const override;
 
    private:
     std::map<Id, VoteVariant> messages_;

@@ -4,6 +4,7 @@
  */
 
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
+
 #include "common/visitor.hpp"
 #include "consensus/grandpa/structs.hpp"
 
@@ -69,7 +70,7 @@ namespace kagome::consensus::grandpa {
   }
 
   template <typename M>
-  size_t VoteTrackerImpl<M>::totalWeight() const {
+  size_t VoteTrackerImpl<M>::getTotalWeight() const {
     return total_weight_;
   }
 

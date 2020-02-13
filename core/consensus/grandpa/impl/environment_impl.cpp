@@ -66,6 +66,9 @@ namespace kagome::consensus::grandpa {
       return Error::BLOCK_AFTER_LIMIT;
     }
 
+    // commented part is copied from rust implementation. However, I don't
+    // understand these magic numbers, so I implemented the same thing easier in
+    // C++
     // OUTCOME_TRY(base_header, header_repository_->getBlockHeader(base));
     // auto diff = best_info.block_number - base_header.number;
     // auto target = base_header.number + (diff * 3 + 2) / 4;
@@ -90,7 +93,7 @@ namespace kagome::consensus::grandpa {
     }
   }
 
-  outcome::result<void> EnvironmentImpl::proposed(
+  outcome::result<void> EnvironmentImpl::onProposed(
       RoundNumber round,
       MembershipCounter set_id,
       const SignedPrimaryPropose &propose) {
@@ -103,7 +106,7 @@ namespace kagome::consensus::grandpa {
     return outcome::success();
   }
 
-  outcome::result<void> EnvironmentImpl::prevoted(
+  outcome::result<void> EnvironmentImpl::onPrevoted(
       RoundNumber round,
       MembershipCounter set_id,
       const SignedPrevote &prevote) {
@@ -116,7 +119,7 @@ namespace kagome::consensus::grandpa {
     return outcome::success();
   }
 
-  outcome::result<void> EnvironmentImpl::precommitted(
+  outcome::result<void> EnvironmentImpl::onPrecommitted(
       RoundNumber round,
       MembershipCounter set_id,
       const SignedPrecommit &precommit) {
@@ -129,24 +132,24 @@ namespace kagome::consensus::grandpa {
     return outcome::success();
   }
 
-  outcome::result<void> EnvironmentImpl::commit(
+  outcome::result<void> EnvironmentImpl::onCommitted(
       RoundNumber round,
       const BlockInfo &vote,
       const GrandpaJustification &justification) {
     logger_->info("Committed block with hash: {} with number: {}",
                   vote.block_hash,
                   vote.block_number);
-    gossiper_->fin(Fin{
+    gossiper_->finalize(Fin{
         .round_number = round, .vote = vote, .justification = justification});
     return outcome::success();
   }
 
-  void EnvironmentImpl::onCompleted(
+  void EnvironmentImpl::doOnCompleted(
       std::function<void(const CompletedRound &)> on_completed_slot) {
     on_completed_.connect(on_completed_slot);
   }
 
-  void EnvironmentImpl::completed(CompletedRound round) {
+  void EnvironmentImpl::onCompleted(CompletedRound round) {
     BOOST_ASSERT_MSG(
         not on_completed_.empty(),
         "Completed signal in environment cannot be empty when it is invoked");

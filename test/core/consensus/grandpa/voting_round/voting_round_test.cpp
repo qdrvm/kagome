@@ -330,64 +330,65 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
   // is 0 and she is the first in voters set
   EXPECT_CALL(
       *env_,
-      proposed(_, _, Truly([&](const SignedPrimaryPropose &primary_propose) {
-                 std::cout << "Proposed: "
-                           << primary_propose.message.block_hash.data()
-                           << std::endl;
-                 return primary_propose.message.block_hash
-                            == last_round_state.estimate->block_hash
-                        and primary_propose.id == kAlice;
-               })))
+      onProposed(_, _, Truly([&](const SignedPrimaryPropose &primary_propose) {
+                   std::cout << "Proposed: "
+                             << primary_propose.message.block_hash.data()
+                             << std::endl;
+                   return primary_propose.message.block_hash
+                              == last_round_state.estimate->block_hash
+                          and primary_propose.id == kAlice;
+                 })))
       .WillOnce(onProposed(this));  // propose;
 
-  EXPECT_CALL(
-      *env_, prevoted(_, _, Truly([&](const SignedPrevote &prevote) {
-                        std::cout
-                            << "Prevoted: " << prevote.message.block_hash.data()
-                            << std::endl;
-                        return prevote.message.block_hash == best_block_hash
-                               and prevote.id == kAlice;
-                      })))
+  EXPECT_CALL(*env_, onPrevoted(_, _, Truly([&](const SignedPrevote &prevote) {
+                                  std::cout << "Prevoted: "
+                                            << prevote.message.block_hash.data()
+                                            << std::endl;
+                                  return prevote.message.block_hash
+                                             == best_block_hash
+                                         and prevote.id == kAlice;
+                                })))
       .WillOnce(onPrevoted(this));  // prevote;
 
   EXPECT_CALL(*env_,
-              precommitted(_, _, Truly([&](const SignedPrecommit &precommit) {
-                             std::cout << "Precommited: "
-                                       << precommit.message.block_hash.data()
-                                       << std::endl;
-                             return precommit.message.block_hash
-                                        == best_block_hash
-                                    and precommit.id == kAlice;
-                           })))
+              onPrecommitted(_, _, Truly([&](const SignedPrecommit &precommit) {
+                               std::cout << "Precommited: "
+                                         << precommit.message.block_hash.data()
+                                         << std::endl;
+                               return precommit.message.block_hash
+                                          == best_block_hash
+                                      and precommit.id == kAlice;
+                             })))
       .WillOnce(onPrecommitted(this));  // precommit;
 
   // check that expected fin message was sent
   EXPECT_CALL(
       *env_,
-      commit(round_number_,
-             Truly([&](const BlockInfo &compared) {
-               std::cout << "Finalized: " << compared.block_hash.data()
-                         << std::endl;
-               return compared == BlockInfo{best_block_number, best_block_hash};
-             }),
-             Truly([&](GrandpaJustification just) {
-               Precommit precommit{best_block_number, best_block_hash};
-               SignedPrecommit alice_precommit =
-                   preparePrecommit(kAlice, kAliceSignature, precommit);
-               SignedPrecommit bob_precommit =
-                   preparePrecommit(kBob, kBobSignature, precommit);
-               SignedPrecommit eve_precommit =
-                   preparePrecommit(kEve, kEveSignature, precommit);
-               bool has_alice_precommit =
-                   boost::find(just.items, alice_precommit) != just.items.end();
-               bool has_bob_precommit =
-                   boost::find(just.items, bob_precommit) != just.items.end();
-               bool has_eve_precommit =
-                   boost::find(just.items, eve_precommit) != just.items.end();
+      onCommitted(
+          round_number_,
+          Truly([&](const BlockInfo &compared) {
+            std::cout << "Finalized: " << compared.block_hash.data()
+                      << std::endl;
+            return compared == BlockInfo{best_block_number, best_block_hash};
+          }),
+          Truly([&](GrandpaJustification just) {
+            Precommit precommit{best_block_number, best_block_hash};
+            SignedPrecommit alice_precommit =
+                preparePrecommit(kAlice, kAliceSignature, precommit);
+            SignedPrecommit bob_precommit =
+                preparePrecommit(kBob, kBobSignature, precommit);
+            SignedPrecommit eve_precommit =
+                preparePrecommit(kEve, kEveSignature, precommit);
+            bool has_alice_precommit =
+                boost::find(just.items, alice_precommit) != just.items.end();
+            bool has_bob_precommit =
+                boost::find(just.items, bob_precommit) != just.items.end();
+            bool has_eve_precommit =
+                boost::find(just.items, eve_precommit) != just.items.end();
 
-               return has_alice_precommit and has_bob_precommit
-                      and has_eve_precommit;
-             })))
+            return has_alice_precommit and has_bob_precommit
+                   and has_eve_precommit;
+          })))
       .WillOnce(onFin(this));
 
   EXPECT_CALL(*env_, finalize(best_block_hash, _))
@@ -401,7 +402,7 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
                             .finalized = expected_final_estimate};
   CompletedRound expected_completed_round{.round_number = round_number_,
                                           .state = expected_state};
-  EXPECT_CALL(*env_, completed(expected_completed_round))
+  EXPECT_CALL(*env_, onCompleted(expected_completed_round))
       .WillRepeatedly(Return());
 
   voting_round_->primaryPropose(last_round_state);

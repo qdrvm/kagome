@@ -76,7 +76,7 @@ TYPED_TEST_P(VoteTrackerTest, Weight) {
       expected_weight += w;
     }
   }
-  ASSERT_EQ(this->tracker.totalWeight(), expected_weight);
+  ASSERT_EQ(this->tracker.getTotalWeight(), expected_weight);
 }
 
 /**
@@ -146,7 +146,7 @@ TYPED_TEST_P(VoteTrackerTest, Equivocated) {
   ASSERT_EQ(
       this->tracker.push(this->createMessage(this->ids[0], this->hashes[2]), 5),
       PushResult::DUPLICATED);
-  ASSERT_EQ(this->tracker.totalWeight(), 4);
+  ASSERT_EQ(this->tracker.getTotalWeight(), 4);
 }
 
 REGISTER_TYPED_TEST_CASE_P(

@@ -33,8 +33,6 @@ namespace kagome::consensus::grandpa {
     // executes next round
     auto handle_completed_round =
         [this](const CompletedRound &completed_round) {
-          // TODO: uncomment when fix TrieDB. Current issue: after writing with
-          // the same key, value disappears
           if (auto put_res = storage_->put(
                   storage::kSetStateKey,
                   common::Buffer(scale::encode(completed_round).value()));
@@ -48,7 +46,7 @@ namespace kagome::consensus::grandpa {
                               self->executeNextRound(completed_round);
                             });
         };
-    environment_->onCompleted(handle_completed_round);
+    environment_->doOnCompleted(handle_completed_round);
   }
 
   outcome::result<std::shared_ptr<VoterSet>> LauncherImpl::getVoters() const {
@@ -71,13 +69,6 @@ namespace kagome::consensus::grandpa {
     const auto &voters = voters_res.value();
     BOOST_ASSERT_MSG(voters->size() != 0,
                      "Voters are empty. Stopping grandpa execution");
-    //    auto last_round_res = getLastRoundNumber();
-    //    if (not last_round_res.has_value()) {
-    //      logger_->error(
-    //          "Last round does not exist in storage. Stopping grandpa
-    //          execution. " "Error: {}", last_round_res.error().message());
-    //      return;
-    //    }
     auto [round_number, last_round_state] = last_round;
     round_number++;
     using std::chrono_literals::operator""ms;

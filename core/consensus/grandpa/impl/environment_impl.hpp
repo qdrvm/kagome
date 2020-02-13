@@ -42,28 +42,28 @@ namespace kagome::consensus::grandpa {
 
     // Environment methods
 
-    outcome::result<void> proposed(
+    outcome::result<void> onProposed(
         RoundNumber round,
         MembershipCounter set_id,
         const SignedPrimaryPropose &propose) override;
 
-    outcome::result<void> prevoted(RoundNumber round,
-                                   MembershipCounter set_id,
-                                   const SignedPrevote &prevote) override;
+    outcome::result<void> onPrevoted(RoundNumber round,
+                                     MembershipCounter set_id,
+                                     const SignedPrevote &prevote) override;
 
-    outcome::result<void> precommitted(
+    outcome::result<void> onPrecommitted(
         RoundNumber round,
         MembershipCounter set_id,
         const SignedPrecommit &precommit) override;
 
-    outcome::result<void> commit(
+    outcome::result<void> onCommitted(
         RoundNumber round,
         const BlockInfo &vote,
         const GrandpaJustification &justification) override;
 
-    void onCompleted(std::function<void(const CompletedRound &)>) override;
+    void doOnCompleted(std::function<void(const CompletedRound &)>) override;
 
-    void completed(CompletedRound round) override;
+    void onCompleted(CompletedRound round) override;
 
     outcome::result<void> finalize(
         const primitives::BlockHash &block_hash,

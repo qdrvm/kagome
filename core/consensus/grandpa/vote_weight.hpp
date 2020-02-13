@@ -15,49 +15,32 @@
 
 namespace kagome::consensus::grandpa {
 
+  inline const size_t kMaxNumberOfVoters = 256;
+
+  /**
+   * Vote weight is a structure that keeps track of who voted for the vote and
+   * with which weight
+   */
   class VoteWeight : public boost::equality_comparable<VoteWeight>,
                      public boost::less_than_comparable<VoteWeight> {
    public:
-    explicit VoteWeight(size_t voters_size = 256)
-        : prevotes(voters_size, 0UL), precommits(voters_size, 0UL) {}
+    explicit VoteWeight(size_t voters_size = kMaxNumberOfVoters);
 
+    /**
+     * Get total weight of current vote's weight
+     * @param prevotes_equivocators describes peers which equivocated (voted
+     * twice for different block) during prevote. Index in vector corresponds to
+     * the authority index of the peer. Bool is true if peer equivocated, false
+     * otherwise
+     * @param precommits_equivocators same for precommits
+     * @param voter_set list of peers with their weight
+     * @return totol weight of current vote's weight
+     */
     TotalWeight totalWeight(const std::vector<bool> &prevotes_equivocators,
                             const std::vector<bool> &precommits_equivocators,
-                            const std::shared_ptr<VoterSet> &voter_set) const {
-      std::vector<size_t> prevotes_weight_with_equivocators(prevotes);
-      std::vector<size_t> precommits_weight_with_equivocators(precommits);
+                            const std::shared_ptr<VoterSet> &voter_set) const;
 
-      for (size_t i = 0; i < voter_set->size(); i++) {
-        if (prevotes[i] == 0 and prevotes_equivocators[i]) {
-          prevotes_weight_with_equivocators[i] +=
-              voter_set->voterWeight(i).value();
-        }
-        if (precommits[i] == 0 and precommits_equivocators[i]) {
-          precommits_weight_with_equivocators[i] +=
-              voter_set->voterWeight(i).value();
-        }
-      }
-
-      TotalWeight weight{
-          .prevote = std::accumulate(prevotes_weight_with_equivocators.begin(),
-                                     prevotes_weight_with_equivocators.end(),
-                                     0UL),
-          .precommit =
-              std::accumulate(precommits_weight_with_equivocators.begin(),
-                              precommits_weight_with_equivocators.end(),
-                              0UL)};
-      return weight;
-    }
-
-    auto &operator+=(const VoteWeight &vote) {
-      for (size_t i = 0; i < prevotes.size() and i < vote.prevotes.size();
-           i++) {
-        prevotes[i] += vote.prevotes[i];
-        precommits[i] += vote.precommits[i];
-      }
-      weight += vote.weight;
-      return *this;
-    }
+    VoteWeight &operator+=(const VoteWeight &vote);
 
     bool operator==(const VoteWeight &other) const {
       return prevotes == other.prevotes and precommits == other.precommits;
@@ -66,10 +49,8 @@ namespace kagome::consensus::grandpa {
       return weight < other.weight;
     }
     size_t weight = 0;
-    std::vector<size_t> prevotes{256, 0UL};
-    std::vector<size_t> precommits{256, 0UL};
-
-   private:
+    std::vector<size_t> prevotes{kMaxNumberOfVoters, 0UL};
+    std::vector<size_t> precommits{kMaxNumberOfVoters, 0UL};
   };
 
   inline std::ostream &operator<<(std::ostream &os, const VoteWeight &v) {

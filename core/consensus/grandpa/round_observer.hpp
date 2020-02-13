@@ -17,8 +17,16 @@ namespace kagome::consensus::grandpa {
   struct RoundObserver {
     virtual ~RoundObserver() = default;
 
-    virtual void onFin(const Fin& f) = 0;
+    /**
+     * Handler of grandpa finalization messages
+     * @param f finalization message
+     */
+    virtual void onFin(const Fin &f) = 0;
 
+    /**
+     * Handler of grandpa vote messages
+     * @param msg vote message
+     */
     virtual void onVoteMessage(const VoteMessage &msg) = 0;
   };
 

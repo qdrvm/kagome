@@ -37,7 +37,7 @@ namespace kagome::network {
 
     void vote(const consensus::grandpa::VoteMessage &msg) override;
 
-    void fin(const consensus::grandpa::Fin &fin) override;
+    void finalize(const consensus::grandpa::Fin &fin) override;
 
    private:
     void broadcast(GossipMessage &&msg);

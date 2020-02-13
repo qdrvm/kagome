@@ -20,9 +20,15 @@ namespace kagome::consensus::grandpa {
   struct Gossiper {
     virtual ~Gossiper() = default;
 
-    virtual void vote(const VoteMessage &msg) = 0;
+    /**
+     * Broadcast grandpa's \param vote_message
+     */
+    virtual void vote(const VoteMessage &vote_message) = 0;
 
-    virtual void fin(const Fin &fin) = 0;
+    /**
+     * Broadcast grandpa's \param fin_message
+     */
+    virtual void finalize(const Fin &fin_message) = 0;
   };
 
 }  // namespace kagome::consensus::grandpa

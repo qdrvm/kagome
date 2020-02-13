@@ -22,28 +22,28 @@ namespace kagome::consensus::grandpa {
     MOCK_CONST_METHOD1(bestChainContaining,
                        outcome::result<BlockInfo>(const BlockHash &base));
 
-    MOCK_METHOD3(proposed,
+    MOCK_METHOD3(onProposed,
                  outcome::result<void>(RoundNumber round,
                                        MembershipCounter set_id,
                                        const SignedPrimaryPropose &propose));
-    MOCK_METHOD3(prevoted,
+    MOCK_METHOD3(onPrevoted,
                  outcome::result<void>(RoundNumber round,
                                        MembershipCounter set_id,
                                        const SignedPrevote &prevote));
-    MOCK_METHOD3(precommitted,
+    MOCK_METHOD3(onPrecommitted,
                  outcome::result<void>(RoundNumber round,
                                        MembershipCounter set_id,
                                        const SignedPrecommit &precommit));
     MOCK_METHOD3(
-        commit,
+        onCommitted,
         outcome::result<void>(RoundNumber round,
                               const BlockInfo &vote,
                               const GrandpaJustification &justification));
 
-    MOCK_METHOD1(onCompleted,
+    MOCK_METHOD1(doOnCompleted,
                  void(std::function<void(const CompletedRound &)>));
 
-    MOCK_METHOD1(completed, void(CompletedRound round));
+    MOCK_METHOD1(onCompleted, void(CompletedRound round));
 
     MOCK_METHOD2(
         finalize,

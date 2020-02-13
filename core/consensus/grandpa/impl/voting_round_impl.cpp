@@ -97,8 +97,8 @@ namespace kagome::consensus::grandpa {
                 finalized.error().message());
             return;
           }
-          env_->completed(CompletedRound{.round_number = round_number_,
-                                         .state = cur_round_state_});
+          env_->onCompleted(CompletedRound{.round_number = round_number_,
+                                           .state = cur_round_state_});
         }
       }
     }
@@ -143,7 +143,8 @@ namespace kagome::consensus::grandpa {
 
         auto justification = opt_justification.value();
 
-        auto committed = env_->commit(round_number_, finalized, justification);
+        auto committed =
+            env_->onCommitted(round_number_, finalized, justification);
         if (not committed) {
           logger_->error("Commit was not sent: {}",
                          committed.error().message());
@@ -267,7 +268,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::updatePrevoteGhost() {
-    if (prevotes_->totalWeight() >= threshold_) {
+    if (prevotes_->getTotalWeight() >= threshold_) {
       const auto &ghost_block_info =
           cur_round_state_.prevote_ghost.map(convertToBlockInfo);
       cur_round_state_.prevote_ghost =
@@ -323,7 +324,7 @@ namespace kagome::consensus::grandpa {
                          round_number_);
           primary_vote_ = maybe_estimate.map(convertToPrimaryPropose);
 
-          auto proposed = env_->proposed(
+          auto proposed = env_->onProposed(
               round_number_,
               voter_set_->setId(),
               vote_crypto_provider_->signPrimaryPropose(primary_vote_.value()));
@@ -357,7 +358,7 @@ namespace kagome::consensus::grandpa {
         case State::PROPOSED: {
           auto prevote = constructPrevote(last_round_state);
           if (prevote) {
-            auto prevoted = env_->prevoted(
+            auto prevoted = env_->onPrevoted(
                 round_number_, voter_set_->setId(), prevote.value());
             if (not prevoted) {
               logger_->error("Prevote was not sent: {}",
@@ -414,7 +415,7 @@ namespace kagome::consensus::grandpa {
             auto precommit = constructPrecommit(last_round_state);
 
             if (precommit) {
-              auto precommitted = env_->precommitted(
+              auto precommitted = env_->onPrecommitted(
                   round_number_, voter_set_->setId(), precommit.value());
               if (not precommitted) {
                 logger_->error("Precommit was not sent: {}",
@@ -424,7 +425,7 @@ namespace kagome::consensus::grandpa {
               state_ = State::PRECOMMITTED;
               tryFinalize();
             } else {
-              // not possible
+              BOOST_ASSERT_MSG(false, "Not possible. Shouldn't get here");
             }
           }
           break;
@@ -517,7 +518,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::update() {
-    if (prevotes_->totalWeight() < threshold_) {
+    if (prevotes_->getTotalWeight() < threshold_) {
       return;
     }
 
@@ -529,7 +530,7 @@ namespace kagome::consensus::grandpa {
 
     // anything new finalized? finalized blocks are those which have both
     // 2/3+ prevote and precommit weight.
-    auto current_precommits = precommits_->totalWeight();
+    auto current_precommits = precommits_->getTotalWeight();
 
     if (current_precommits >= threshold_) {
       cur_round_state_.finalized = graph_->findAncestor(
@@ -585,7 +586,7 @@ namespace kagome::consensus::grandpa {
           current_precommits - precommited_for, additional_equiv);
 
       auto remaining_commit_votes =
-          voter_set_->totalWeight() - precommits_->totalWeight();
+          voter_set_->totalWeight() - precommits_->getTotalWeight();
 
       // all the votes already applied on this block,
       // assuming all remaining actors commit to this block,
@@ -605,7 +606,7 @@ namespace kagome::consensus::grandpa {
     //
     // the round-estimate is the highest block in the chain with head
     // `prevote_ghost` that could have supermajority-commits.
-    if (precommits_->totalWeight() >= threshold_) {
+    if (precommits_->getTotalWeight() >= threshold_) {
       cur_round_state_.estimate = graph_->findAncestor(
           BlockInfo{prevote_ghost.block_number, prevote_ghost.block_hash},
           possible_to_precommit);

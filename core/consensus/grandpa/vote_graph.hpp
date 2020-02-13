@@ -7,11 +7,16 @@
 #define KAGOME_CORE_CONSENSUS_GRANDPA_VOTE_GRAPH_HPP
 
 #include <boost/operators.hpp>
+
 #include "consensus/grandpa/chain.hpp"
 #include "consensus/grandpa/vote_weight.hpp"
 
 namespace kagome::consensus::grandpa {
 
+  /**
+   * Keeps track of obtained votes. Provides convenient interfaces for getting
+   * ancestry of the votes and calculating ghost vote
+   */
   struct VoteGraph {
     // graph entry
     struct Entry : public boost::equality_comparable<Entry> {

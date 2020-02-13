@@ -42,7 +42,7 @@ namespace kagome::network {
     broadcast(std::move(message));
   }
 
-  void GossiperBroadcast::fin(const consensus::grandpa::Fin &fin) {
+  void GossiperBroadcast::finalize(const consensus::grandpa::Fin &fin) {
     logger_->info("Gossip fin message: grandpa round number {}",
                   fin.round_number);
     GossipMessage message;
