@@ -27,8 +27,10 @@ namespace kagome::storage::trie {
     PolkadotTrie trie;
     PolkadotCodec codec;
     // empty root
-    if (begin == end) return common::Buffer{}.put(codec.hash256({0}));
-
+    if (begin == end) {
+      static const auto empty_root = common::Buffer{}.put(codec.hash256({0}));
+      return empty_root;
+    }
     // clang-format off
     static_assert(
         std::is_same_v<std::decay_t<decltype(*begin)>, common::Buffer>);

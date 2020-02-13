@@ -144,9 +144,6 @@ namespace kagome::extensions {
       runtime::WasmPointer lengths_data,
       runtime::SizeType values_num,
       runtime::WasmPointer result) {
-    if (values_num == 0) {
-      return;
-    }
     std::vector<uint32_t> lengths(values_num);
     for (size_t i = 0; i < values_num; i++) {
       lengths.at(i) = memory_->load32u(lengths_data + i * 4);
