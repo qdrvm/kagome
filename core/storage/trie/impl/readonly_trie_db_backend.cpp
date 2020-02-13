@@ -5,8 +5,6 @@
 
 #include "storage/trie/impl/readonly_trie_db_backend.hpp"
 
-#include <utility>
-
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, ReadonlyTrieDbBackend::Error, e) {
   using E = kagome::storage::trie::ReadonlyTrieDbBackend::Error;
   switch (e) {
