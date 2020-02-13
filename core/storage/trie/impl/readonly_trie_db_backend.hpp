@@ -20,10 +20,12 @@ namespace kagome::storage::trie {
    public:
     enum Error {
       WRITE_TO_READONLY_TRIE = 1,
-      CHANGE_ROOT_OF_READONLY_TRIE,
-      WRITE_BATCH_OF_READONLY_TRIE
+      CHANGE_ROOT_OF_READONLY_TRIE
     };
 
+    ReadonlyTrieDbBackend(std::shared_ptr<PersistentBufferMap> storage,
+                          common::Hash256 root_hash,
+                          common::Buffer node_prefix);
     ~ReadonlyTrieDbBackend() override = default;
 
     std::unique_ptr<face::MapCursor<Buffer, Buffer>> cursor() override;
@@ -40,10 +42,12 @@ namespace kagome::storage::trie {
     outcome::result<void> remove(const Buffer &key) final;
     std::unique_ptr<face::WriteBatch<Buffer, Buffer>> batch() final;
 
+    std::shared_ptr<PersistentBufferMap> storage_;
+    common::Buffer root_hash_;
   };
 
 }  // namespace kagome::storage::trie
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie, ReadonlyTrieDbBackend);
+OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie, ReadonlyTrieDbBackend::Error);
 
 #endif  // KAGOME_READONLY_TRIE_DB_BACKEND_HPP

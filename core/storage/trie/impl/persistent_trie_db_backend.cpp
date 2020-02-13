@@ -11,11 +11,11 @@ namespace kagome::storage::trie {
 
   PersistentTrieDbBackend::PersistentTrieDbBackend(
       std::shared_ptr<PersistentBufferMap> storage,
-      common::Buffer node_prefix,
-      common::Buffer root_hash_key)
-      : storage_{std::move(storage)},
-        node_prefix_{std::move(node_prefix)},
-        root_hash_key_{std::move(root_hash_key)} {
+      common::Hash256 root_hash_key,
+      common::Buffer node_prefix)
+      : TrieDbBackend{std::move(node_prefix)},
+        storage_{std::move(storage)},
+        root_hash_key_{root_hash_key} {
     BOOST_ASSERT(storage_ != nullptr);
   }
 
@@ -36,10 +36,11 @@ namespace kagome::storage::trie {
   std::unique_ptr<face::WriteBatch<Buffer, Buffer>>
   PersistentTrieDbBackend::batch() {
     return std::make_unique<PolkadotTrieDbBackendBatch>(storage_->batch(),
-                                                        node_prefix_);
+                                                        getNodePrefix());
   }
 
-  outcome::result<Buffer> PersistentTrieDbBackend::get(const Buffer &key) const {
+  outcome::result<Buffer> PersistentTrieDbBackend::get(
+      const Buffer &key) const {
     return storage_->get(prefixKey(key));
   }
 
@@ -48,24 +49,17 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> PersistentTrieDbBackend::put(const Buffer &key,
-                                                   const Buffer &value) {
+                                                     const Buffer &value) {
     return storage_->put(prefixKey(key), value);
   }
 
   outcome::result<void> PersistentTrieDbBackend::put(const Buffer &key,
-                                                   Buffer &&value) {
+                                                     Buffer &&value) {
     return storage_->put(prefixKey(key), std::move(value));
   }
 
   outcome::result<void> PersistentTrieDbBackend::remove(const Buffer &key) {
     return storage_->remove(prefixKey(key));
-  }
-
-  common::Buffer PersistentTrieDbBackend::prefixKey(
-      const common::Buffer &key) const {
-    auto prefixed_key = node_prefix_;
-    prefixed_key.put(key);
-    return prefixed_key;
   }
 
 }  // namespace kagome::storage::trie
