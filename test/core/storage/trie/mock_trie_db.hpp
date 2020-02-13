@@ -33,6 +33,7 @@ namespace kagome::storage::trie {
     MOCK_CONST_METHOD1(contains, bool(const common::Buffer &));
 
     MOCK_CONST_METHOD0(empty, bool(void));
+    MOCK_CONST_METHOD0(getEmptyRoot, common::Buffer());
 
     MOCK_METHOD0(cursor, std::unique_ptr<BufferMapCursor>());
     MOCK_METHOD0(batch, std::unique_ptr<BufferBatch>());

@@ -28,6 +28,8 @@ namespace kagome::storage::trie {
      */
     virtual outcome::result<void> clearPrefix(const common::Buffer &buf) = 0;
 
+    virtual common::Buffer getEmptyRoot() const = 0;
+
     /**
      * @returns true if the trie is empty, false otherwise
      */

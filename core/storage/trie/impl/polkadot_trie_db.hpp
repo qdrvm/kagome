@@ -78,7 +78,7 @@ namespace kagome::storage::trie {
     /**
      * @return the root hash of empty Trie
      */
-    common::Buffer getEmptyRoot() const;
+    common::Buffer getEmptyRoot() const override;
 
     bool empty() const override;
 
