@@ -144,9 +144,6 @@ namespace kagome::extensions {
       runtime::WasmPointer lengths_data,
       runtime::SizeType values_num,
       runtime::WasmPointer result) {
-    if (values_num == 0) {
-      return;
-    }
     std::vector<uint32_t> lengths(values_num);
     for (size_t i = 0; i < values_num; i++) {
       lengths.at(i) = memory_->load32u(lengths_data + i * 4);
@@ -179,7 +176,7 @@ namespace kagome::extensions {
     result_hash[primitives::BlockHash::size() - 1] = 1;
     common::Buffer result_buf(result_hash);
     memory_->storeBuffer(result, result_buf);
-    logger_->error("Unimplemented, assume no changes");
+    logger_->error("ext_storage_changes_root unimplemented, assume no changes");
     return 1;
   }
 

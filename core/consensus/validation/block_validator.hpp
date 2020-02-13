@@ -27,7 +27,7 @@ namespace kagome::consensus {
      * blockchain state (tree or anything else)
      */
     virtual outcome::result<void> validate(const primitives::Block &block,
-                                           const Epoch &epoch) = 0;
+                                           const Epoch &epoch) const = 0;
   };
 }  // namespace kagome::consensus
 

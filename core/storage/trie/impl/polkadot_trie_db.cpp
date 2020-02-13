@@ -36,8 +36,7 @@ namespace kagome::storage::trie {
                                  boost::optional<common::Buffer> root_hash)
       : db_{std::move(db)},
         codec_{},
-        root_{root_hash ? std::move(root_hash.value()) : getEmptyRoot()} {
-  }
+        root_{root_hash ? std::move(root_hash.value()) : getEmptyRoot()} {}
 
   outcome::result<void> PolkadotTrieDb::put(const Buffer &key,
                                             const Buffer &value) {
@@ -191,7 +190,7 @@ namespace kagome::storage::trie {
   }
 
   common::Buffer PolkadotTrieDb::getEmptyRoot() const {
-    return Buffer{}.put(codec_.hash256({0}));
+    return Buffer(codec_.hash256({0}));
   }
 
   bool PolkadotTrieDb::empty() const {

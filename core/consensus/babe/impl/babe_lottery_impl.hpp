@@ -9,6 +9,7 @@
 #include <memory>
 #include <vector>
 
+#include "common/logger.hpp"
 #include "consensus/babe/babe_lottery.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/vrf_provider.hpp"
@@ -33,6 +34,7 @@ namespace kagome::consensus {
 
     /// also known as "rho" (greek letter) in the spec
     std::vector<crypto::VRFPreOutput> last_epoch_vrf_values_;
+    common::Logger logger_;
   };
 }  // namespace kagome::consensus
 

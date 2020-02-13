@@ -6,16 +6,16 @@
 #ifndef KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_API_HPP
 #define KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_API_HPP
 
+#include <utility>
+
 #include <binaryen/wasm-binary.h>
 #include <binaryen/wasm-interpreter.h>
-
-#include <utility>
 
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
 #include "extensions/extension_factory.hpp"
-#include "runtime/binaryen/wasm_executor.hpp"
 #include "runtime/binaryen/runtime_external_interface.hpp"
+#include "runtime/binaryen/wasm_executor.hpp"
 #include "runtime/wasm_memory.hpp"
 #include "runtime/wasm_provider.hpp"
 #include "runtime/wasm_result.hpp"
@@ -31,8 +31,7 @@ namespace kagome::runtime::binaryen {
     RuntimeApi(std::shared_ptr<runtime::WasmProvider> wasm_provider,
                std::shared_ptr<extensions::ExtensionFactory> extension_factory)
         : wasm_provider_(std::move(wasm_provider)),
-          extension_factory_(std::move(extension_factory)),
-          executor_{} {}
+          extension_factory_(std::move(extension_factory)) {}
 
    protected:
     /**

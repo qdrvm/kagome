@@ -55,17 +55,17 @@ namespace kagome::consensus {
   }
 
   outcome::result<void> BabeBlockValidator::validate(
-      const primitives::Block &block, const Epoch &epoch) {
+      const primitives::Block &block, const Epoch &epoch) const {
     if (epoch.authorities.empty()) {
       return ValidationError::NO_AUTHORITIES;
     }
 
+    log_->debug("Epoch contains authority: {}",
+                epoch.authorities.front().id.id.toHex());
+
     // get BABE-specific digests, which must be inside of this block
-    auto digests_res = getBabeDigests(block);
-    if (!digests_res) {
-      return digests_res.error();
-    }
-    auto [seal, babe_header] = digests_res.value();
+    OUTCOME_TRY(babe_digests, getBabeDigests(block));
+    auto [seal, babe_header] = babe_digests;
 
     // signature in seal of the header must be valid
     if (!verifySignature(block, babe_header, seal, epoch.authorities)) {
@@ -90,7 +90,7 @@ namespace kagome::consensus {
     // there must exist a chain with the block in our storage, which is
     // specified as a parent of the block we are validating; BlockTree takes
     // care of this check and returns a specific error, if it fails
-    return block_tree_->addBlock(block);
+    return outcome::success();
   }
 
   template <typename T, typename VarT>
@@ -125,17 +125,17 @@ namespace kagome::consensus {
 
     for (const auto &digest :
          gsl::make_span(digests).subspan(0, digests.size() - 1)) {
-      if (auto consensus_dig = getFromVariant<primitives::Consensus>(digest);
+      if (auto consensus_dig = getFromVariant<primitives::PreRuntime>(digest);
           consensus_dig) {
         if (auto header = scale::decode<BabeBlockHeader>(consensus_dig->data);
             header) {
           // found the BabeBlockHeader digest; return
-          return {babe_seal_res, std::move(header.value())};
+          return {babe_seal_res, header.value()};
         }
       }
     }
 
-    log_->info("there is no BabeBlockHeader digest in the block");
+    log_->warn("there is no BabeBlockHeader digest in the block");
     return ValidationError::INVALID_DIGESTS;
   }
 
@@ -149,13 +149,9 @@ namespace kagome::consensus {
     auto block_copy = block;
     block_copy.header.digest.pop_back();
 
-    auto block_copy_encoded_res = scale::encode(block_copy.header);
-    if (!block_copy_encoded_res) {
-      log_->info("could not encode block header: {}",
-                 block_copy_encoded_res.error());
-      return false;
-    }
-    auto block_hash = hasher_->blake2s_256(block_copy_encoded_res.value());
+    auto block_copy_encoded = scale::encode(block_copy.header).value();
+
+    auto block_hash = hasher_->blake2b_256(block_copy_encoded);
 
     // secondly, retrieve public key of the peer by its authority id
     if (static_cast<uint64_t>(authorities.size())
@@ -177,27 +173,28 @@ namespace kagome::consensus {
     auto randomness_with_slot =
         Buffer{}
             .put(epoch.randomness)
-            .put(common::uint256_t_to_bytes(epoch.threshold));
+            .put(common::uint64_t_to_bytes(babe_header.slot_number));
     auto verify_res = vrf_provider_->verify(
         randomness_with_slot,
         babe_header.vrf_output,
         epoch.authorities[babe_header.authority_index.index].id.id,
         epoch.threshold);
     if (not verify_res.is_valid) {
-      log_->info("VRF proof in block is not valid");
+      log_->error("VRF proof in block is not valid");
       return false;
     }
 
     // verify threshold
     if (not verify_res.is_less) {
-      log_->info("VRF value is not less than the threshold");
+      log_->error("VRF value is not less than the threshold");
       return false;
     }
 
     return true;
   }
 
-  bool BabeBlockValidator::verifyProducer(const BabeBlockHeader &babe_header) {
+  bool BabeBlockValidator::verifyProducer(
+      const BabeBlockHeader &babe_header) const {
     auto peer = babe_header.authority_index;
 
     auto slot_it = blocks_producers_.find(babe_header.slot_number);
@@ -233,11 +230,10 @@ namespace kagome::consensus {
                        validation_res.error());
             return false;
           }
-          return visit_in_place(
-              validation_res.value(),
-              [](const primitives::Valid &) { return true; },
-              [](primitives::Invalid) { return false; },
-              [](primitives::Unknown) { return false; });
+          return visit_in_place(validation_res.value(),
+                                [](const primitives::Valid &) { return true; },
+                                [](primitives::Invalid) { return false; },
+                                [](primitives::Unknown) { return false; });
         });
   }
 }  // namespace kagome::consensus

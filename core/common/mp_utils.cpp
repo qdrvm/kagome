@@ -65,4 +65,4 @@ namespace kagome::common {
     return detail::bytes_to_uint<32, boost::multiprecision::uint256_t>(bytes);
   }
 
-}  // namespace kagome::crypto::util
+}  // namespace kagome::common

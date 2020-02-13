@@ -4,22 +4,22 @@
 ##
 
 addtest(buffer_test
-  buffer_test.cpp
-  )
+    buffer_test.cpp
+    )
 target_link_libraries(buffer_test
-  buffer
-  )
+    buffer
+    )
 
 addtest(hexutil_test
-  hexutil_test.cpp
-  )
+    hexutil_test.cpp
+    )
 target_link_libraries(hexutil_test
-  hexutil
-  )
+    hexutil
+    )
 
 addtest(blob_test
-  blob_test.cpp
-  )
+    blob_test.cpp
+    )
 target_link_libraries(blob_test
   blob
   )
@@ -29,4 +29,5 @@ addtest(mp_utils_test
     )
 target_link_libraries(mp_utils_test
     mp_utils
+    blob
     )

@@ -18,14 +18,17 @@ namespace kagome::consensus {
   BabeLotteryImpl::BabeLotteryImpl(
       std::shared_ptr<crypto::VRFProvider> vrf_provider,
       std::shared_ptr<crypto::Hasher> hasher)
-      : vrf_provider_{std::move(vrf_provider)}, hasher_{std::move(hasher)} {
+      : vrf_provider_{std::move(vrf_provider)},
+        hasher_{std::move(hasher)},
+        logger_{common::createLogger("BabeLottery")} {
     BOOST_ASSERT(vrf_provider_);
     BOOST_ASSERT(hasher_);
+    BOOST_ASSERT(logger_);
   }
 
   BabeLottery::SlotsLeadership BabeLotteryImpl::slotsLeadership(
       const Epoch &epoch, crypto::SR25519Keypair keypair) const {
-    std::vector<boost::optional<crypto::VRFOutput>> result;
+    BabeLottery::SlotsLeadership result;
     result.reserve(epoch.epoch_duration);
 
     // randomness || slot number
@@ -40,8 +43,8 @@ namespace kagome::consensus {
     for (BabeSlotNumber i = 0; i < epoch.epoch_duration; ++i) {
       auto slot_bytes = common::uint64_t_to_bytes(i);
       std::copy(slot_bytes.begin(), slot_bytes.end(), slot_number_begin);
-      result.push_back(
-          vrf_provider_->sign(vrf_input, keypair, epoch.threshold));
+      auto sign_opt = vrf_provider_->sign(vrf_input, keypair, epoch.threshold);
+      result.push_back(sign_opt);
     }
 
     return result;
@@ -71,7 +74,7 @@ namespace kagome::consensus {
         new_randomness.begin() + vrf_constants::OUTPUT_SIZE + 8;
     // NOLINTNEXTLINE
     for (size_t i = 0; i < last_epoch_vrf_values_.size(); ++i) {
-      auto const& value_bytes = last_epoch_vrf_values_[i];
+      auto const &value_bytes = last_epoch_vrf_values_[i];
       std::copy(value_bytes.begin(), value_bytes.end(), new_vrf_value_begin);
       new_vrf_value_begin += 32;
     }

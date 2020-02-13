@@ -66,6 +66,7 @@ namespace kagome::application {
     sptr<clock::SystemClock> clock_;
     sptr<ExtrinsicApiService> extrinsic_api_service_;
     sptr<Babe> babe_;
+    sptr<network::Router> router_;
 
     common::Logger logger_;
   };

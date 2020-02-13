@@ -51,7 +51,9 @@ namespace kagome::consensus {
   void BabeImpl::runEpoch(Epoch epoch,
                           BabeTimePoint starting_slot_finish_time) {
     BOOST_ASSERT(!epoch.authorities.empty());
-    log_->debug("starting an epoch with index {}", epoch.epoch_index);
+    log_->debug("starting an epoch with index {}. Session key: {}",
+                epoch.epoch_index,
+                keypair_.public_key.toHex());
 
     current_epoch_ = std::move(epoch);
     current_slot_ = current_epoch_.start_slot;
@@ -76,7 +78,9 @@ namespace kagome::consensus {
       // end of the epoch
       return finishEpoch();
     }
-    log_->debug("starting a slot with number {}", current_slot_);
+    log_->info("starting a slot {} in epoch {}",
+               current_slot_,
+               current_epoch_.epoch_index);
 
     // check that we are really in the middle of the slot, as expected; we can
     // cooperate with a relatively little (kMaxLatency) latency, as our node
@@ -116,17 +120,39 @@ namespace kagome::consensus {
     runSlot();
   }
 
-  void BabeImpl::processSlotLeadership(const crypto::VRFOutput &output) {
-    // build a block to be announced
-    auto &&[_, best_block_hash] = block_tree_->deepestLeaf();
-
+  outcome::result<primitives::PreRuntime> BabeImpl::babePreDigest(
+      const crypto::VRFOutput &output) const {
     BabeBlockHeader babe_header{current_slot_, output, authority_index_};
     auto encoded_header_res = scale::encode(babe_header);
     if (!encoded_header_res) {
-      return log_->error("cannot encode BabeBlockHeader: {}",
-                         encoded_header_res.error().message());
+      log_->error("cannot encode BabeBlockHeader: {}",
+                  encoded_header_res.error().message());
+      return encoded_header_res.error();
     }
     common::Buffer encoded_header{encoded_header_res.value()};
+
+    return primitives::PreRuntime{{kBabeEngineId, encoded_header}};
+  }
+
+  primitives::Seal BabeImpl::sealBlock(const primitives::Block &block) const {
+    auto pre_seal_encoded_block = scale::encode(block.header).value();
+
+    auto pre_seal_hash = hasher_->blake2b_256(pre_seal_encoded_block);
+
+    Seal seal{};
+    seal.signature.fill(0);
+    sr25519_sign(seal.signature.data(),
+                 keypair_.public_key.data(),
+                 keypair_.secret_key.data(),
+                 pre_seal_hash.data(),
+                 decltype(pre_seal_hash)::size());
+    auto encoded_seal = common::Buffer(scale::encode(seal).value());
+    return primitives::Seal{{kBabeEngineId, encoded_seal}};
+  }
+
+  void BabeImpl::processSlotLeadership(const crypto::VRFOutput &output) {
+    // build a block to be announced
+    log_->info("Obtained slot leadership");
 
     primitives::InherentData inherent_data;
     auto epoch_secs = std::chrono::duration_cast<std::chrono::seconds>(
@@ -144,41 +170,30 @@ namespace kagome::consensus {
                          put_res.error().message());
     }
 
-    auto pre_seal_block_res = proposer_->propose(
-        best_block_hash,
-        inherent_data,
-        {primitives::PreRuntime{{kBabeEngineId, encoded_header}}});
+    auto &&[_, best_block_hash] = block_tree_->deepestLeaf();
+
+    // calculate babe_pre_digest
+    auto babe_pre_digest_res = babePreDigest(output);
+    if (not babe_pre_digest_res) {
+      return log_->error("cannot propose a block: {}",
+                         babe_pre_digest_res.error().message());
+    }
+    auto babe_pre_digest = babe_pre_digest_res.value();
+
+    // create new block
+    auto pre_seal_block_res =
+        proposer_->propose(best_block_hash, inherent_data, {babe_pre_digest});
     if (!pre_seal_block_res) {
       return log_->error("cannot propose a block: {}",
                          pre_seal_block_res.error().message());
     }
 
+    auto block = pre_seal_block_res.value();
     // seal the block
-    auto block = std::move(pre_seal_block_res.value());
-    auto pre_seal_encoded_block_res = scale::encode(block.header);
-    if (!pre_seal_encoded_block_res) {
-      return log_->error("cannot encode pre-seal block: {}",
-                         pre_seal_encoded_block_res.error().message());
-    }
-    auto pre_seal_hash =
-        hasher_->blake2b_256(pre_seal_encoded_block_res.value());
-
-    Seal seal{};
-    seal.signature.fill(0);
-    sr25519_sign(seal.signature.data(),
-                 keypair_.public_key.data(),
-                 keypair_.secret_key.data(),
-                 pre_seal_hash.data(),
-                 decltype(pre_seal_hash)::size());
-    auto encoded_seal_res = scale::encode(seal);
-    if (!encoded_seal_res) {
-      return log_->error("cannot encoded seal: {}",
-                         encoded_seal_res.error().message());
-    }
+    auto seal = sealBlock(block);
 
     // add seal digest item
-    block.header.digest.emplace_back(primitives::Seal{
-        {kBabeEngineId, common::Buffer{std::move(encoded_seal_res.value())}}});
+    block.header.digest.emplace_back(seal);
 
     // finally, broadcast the sealed block
     gossiper_->blockAnnounce(network::BlockAnnounce{block.header});

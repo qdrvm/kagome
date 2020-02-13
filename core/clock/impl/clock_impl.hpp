@@ -14,6 +14,7 @@ namespace kagome::clock {
   class ClockImpl : public Clock<ClockType> {
    public:
     typename Clock<ClockType>::TimePoint now() const override;
+    uint64_t nowUint64() const override;
   };
 
   // aliases for implementations

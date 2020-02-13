@@ -10,6 +10,7 @@ add_library(babe_lottery
 target_link_libraries(babe_lottery
     hasher
     vrf_provider
+    logger
     )
 
 add_library(babe
@@ -35,4 +36,5 @@ add_library(babe_observer
     )
 target_link_libraries(babe_observer
     babe
+    logger
     )
