@@ -12,30 +12,19 @@ namespace kagome::common {
   namespace detail {
     template <size_t size, typename uint>
     std::array<uint8_t, size> uint_to_bytes(uint &&i) {
-      using boost::multiprecision::cpp_int;
-      std::vector<uint8_t> bytes;
-      bytes.reserve(size);
-      export_bits(i, std::back_inserter(bytes), 8);
-
       std::array<uint8_t, size> res {};
       res.fill(0);
-      std::copy(bytes.begin(), bytes.end(), res.begin());
-      std::reverse(res.begin(), res.end());
+      export_bits(i, res.begin(), 8, false);
       return res;
     }
 
     template <size_t size, typename uint>
     uint bytes_to_uint(gsl::span<uint8_t, size> bytes) {
-      using boost::multiprecision::cpp_int;
       if (bytes.empty()) {
         return uint(0);
       }
-      std::array<uint8_t, size> bytes_copy {};
-      std::copy(bytes.begin(), bytes.end(), bytes_copy.begin());
-      std::reverse(bytes_copy.begin(), bytes_copy.end());
-
       uint result;
-      import_bits(result, bytes_copy.begin(), bytes_copy.end());
+      import_bits(result, bytes.begin(), bytes.end(), 8, false);
       return result;
     }
   }  // namespace detail
