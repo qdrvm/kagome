@@ -4,11 +4,48 @@
  */
 
 #include "common/mp_utils.hpp"
-#include "common/blob.hpp"
 
 #include <gtest/gtest.h>
 
-using namespace kagome::common;
+#include <boost/multiprecision/cpp_int.hpp>
+
+using boost::multiprecision::uint128_t;
+using boost::multiprecision::uint256_t;
+using kagome::common::bytes_to_uint128_t;
+using kagome::common::bytes_to_uint256_t;
+using kagome::common::uint128_t_to_bytes;
+using kagome::common::uint256_t_to_bytes;
+
+#define ASSERT_TO_FROM_BYTES_EQUAL(value, integer_size)    \
+  {                                                        \
+    auto v = value;                                        \
+    auto v_bytes = uint##integer_size##_t_to_bytes(v);     \
+    ASSERT_EQ(bytes_to_uint##integer_size##_t(v_bytes), v); \
+  }
+
+/**
+ * @given a uint128
+ * @when converting it to and then from bytes
+ * @then the result matches with the original one
+ */
+TEST(MpUtilsTest, Uint128) {
+  ASSERT_TO_FROM_BYTES_EQUAL(std::numeric_limits<uint128_t>::max(), 128);
+  ASSERT_TO_FROM_BYTES_EQUAL(std::numeric_limits<uint128_t>::min(), 128);
+  ASSERT_TO_FROM_BYTES_EQUAL(static_cast<uint128_t>(std::numeric_limits<uint64_t>::max())*4+1, 128);
+  ASSERT_TO_FROM_BYTES_EQUAL(1337, 128);
+}
+
+/**
+ * @given a uint256
+ * @when converting it to and then from bytes
+ * @then the result matches with the original one
+ */
+TEST(MpUtilsTest, Uint256) {
+  ASSERT_TO_FROM_BYTES_EQUAL(std::numeric_limits<uint256_t>::max(), 256);
+  ASSERT_TO_FROM_BYTES_EQUAL(std::numeric_limits<uint256_t>::min(), 256);
+  ASSERT_TO_FROM_BYTES_EQUAL(static_cast<uint256_t>(std::numeric_limits<uint128_t>::max())*4+1, 256);
+  ASSERT_TO_FROM_BYTES_EQUAL(1337, 256);
+}
 
 /**
  * @given bigint value and known serialized representation of it
