@@ -130,7 +130,7 @@ namespace kagome::consensus::grandpa {
     }
   }
 
-  void LauncherImpl::onFin(const Fin &f) {
+  void LauncherImpl::onFinalize(const Fin &f) {
     if (f.round_number == current_round_->roundNumber()) {
       current_round_->onFinalize(f);
     }

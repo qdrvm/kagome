@@ -115,7 +115,7 @@ namespace kagome::network {
 
         auto fin_msg_res = scale::decode<consensus::grandpa::Fin>(msg.data);
         if (fin_msg_res) {
-          grandpa_observer_->onFin(fin_msg_res.value());
+          grandpa_observer_->onFinalize(fin_msg_res.value());
           return true;
         }
 

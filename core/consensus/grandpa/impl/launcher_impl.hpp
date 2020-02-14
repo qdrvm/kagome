@@ -35,7 +35,7 @@ namespace kagome::consensus::grandpa {
 
     void onVoteMessage(const VoteMessage &msg) override;
 
-    void onFin(const Fin &f) override;
+    void onFinalize(const Fin &f) override;
 
     void executeNextRound(const CompletedRound &last_round);
 

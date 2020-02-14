@@ -21,7 +21,7 @@ namespace kagome::consensus::grandpa {
      * Handler of grandpa finalization messages
      * @param f finalization message
      */
-    virtual void onFin(const Fin &f) = 0;
+    virtual void onFinalize(const Fin &f) = 0;
 
     /**
      * Handler of grandpa vote messages
