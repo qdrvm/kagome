@@ -15,7 +15,7 @@ target_link_libraries(polkadot_trie_db_test
     polkadot_trie_db
     polkadot_trie_batch
     polkadot_trie_codec
-    persistent_trie_db_backend
+    trie_db_backend
     base_leveldb_test
     scale
     buffer
@@ -27,7 +27,7 @@ addtest(trie_db_backend_test
     trie_db_backend_test.cpp
     )
 target_link_libraries(trie_db_backend_test
-    persistent_trie_db_backend
+    trie_db_backend
     readonly_trie_db_backend
     blob
     buffer

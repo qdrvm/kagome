@@ -15,7 +15,7 @@ target_link_libraries(blockchain_common
     buffer
     in_memory_storage
     polkadot_trie_db
-    persistent_trie_db_backend
+    trie_db_backend
     primitives
     )
 
