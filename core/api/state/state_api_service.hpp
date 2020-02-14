@@ -3,9 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STATE_API_SERVICE_HPP
-#define KAGOME_STATE_API_SERVICE_HPP
+#ifndef KAGOME_API_STATE_API_SERVICE_HPP
+#define KAGOME_API_STATE_API_SERVICE_HPP
 
-class state_api_service {};
+#include "api/service/api_service.hpp"
 
-#endif  // KAGOME_STATE_API_SERVICE_HPP
+namespace kagome::api {
+
+  class StateApiService : public ApiService {
+
+  };
+
+}
+
+#endif  // KAGOME_API_STATE_API_SERVICE_HPP
