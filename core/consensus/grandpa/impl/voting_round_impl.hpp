@@ -125,7 +125,9 @@ namespace kagome::consensus::grandpa {
     void onSignedPrecommit(const SignedPrecommit &signed_precommit);
 
     /**
-     * Updates current round's prevote ghost. Invoked after each onSingedPrevote
+     * Invoked during each onSingedPrevote.
+     * Updates current round's prevote ghost. New prevote-ghost is the highest
+     * block with supermajority of prevotes
      */
     void updatePrevoteGhost();
 

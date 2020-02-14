@@ -98,7 +98,7 @@ namespace kagome::consensus::grandpa {
       MembershipCounter set_id,
       const SignedPrimaryPropose &propose) {
     VoteMessage message{
-        .vote = propose, .round_number = round, .counter = set_id};
+        .round_number = round, .counter = set_id, .vote = propose};
     gossiper_->vote(message);
     logger_->info("Primary proposed block with hash {} in grandpa round {}",
                   propose.message.block_hash.toHex(),
@@ -111,7 +111,7 @@ namespace kagome::consensus::grandpa {
       MembershipCounter set_id,
       const SignedPrevote &prevote) {
     VoteMessage message{
-        .vote = prevote, .round_number = round, .counter = set_id};
+        .round_number = round, .counter = set_id, .vote = prevote};
     gossiper_->vote(message);
     logger_->info("Prevoted block with hash {} in grandpa round {}",
                   prevote.message.block_hash.toHex(),
@@ -124,7 +124,7 @@ namespace kagome::consensus::grandpa {
       MembershipCounter set_id,
       const SignedPrecommit &precommit) {
     VoteMessage message{
-        .vote = precommit, .round_number = round, .counter = set_id};
+        .round_number = round, .counter = set_id, .vote = precommit};
     gossiper_->vote(message);
     logger_->info("Precommitted block with hash {} in grandpa round {}",
                   precommit.message.block_hash.toHex(),
