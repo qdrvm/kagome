@@ -49,7 +49,7 @@ def makeToolchainBuild(String name, String toolchain) {
 
 
 def makeCoverageBuild(String name){
-  return makeBuild(name, "-DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-9_cxx17.cmake -DCOVERAGE=ON", {
+  return makeBuild(name, "-DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-8_cxx17.cmake -DCOVERAGE=ON", {
     sh(script: "cmake --build ${buildDir} -- -j4")
 
     // submit coverage
@@ -101,7 +101,7 @@ node(workerLabel){
       builds["gcc-9 ASAN No Toolchain"] = makeAsanBuild("gcc-9 ASAN No Toolchain")
       builds["clang-8 TSAN"] = makeToolchainBuild("clang-8 TSAN", "cmake/san/clang-8_cxx17_tsan.cmake")
       builds["clang-8 UBSAN"] = makeToolchainBuild("clang-8 UBSAN", "cmake/san/clang-8_cxx17_ubsan.cmake")
-      builds["gcc-9 coverage/sonar"] = makeCoverageBuild("gcc-9 coverage/sonar")
+      builds["gcc-8 coverage/sonar"] = makeCoverageBuild("gcc-8 coverage/sonar")
 
       parallel(builds)
     }
