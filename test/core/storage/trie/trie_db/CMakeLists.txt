@@ -28,7 +28,6 @@ addtest(trie_db_backend_test
     )
 target_link_libraries(trie_db_backend_test
     trie_db_backend
-    readonly_trie_db_backend
     blob
     buffer
     in_memory_storage
