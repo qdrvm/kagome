@@ -5,8 +5,9 @@
 
 #include "blockchain/impl/key_value_block_header_repository.hpp"
 
-#include <boost/optional.hpp>
 #include <string_view>
+
+#include <boost/optional.hpp>
 
 #include "blockchain/impl/storage_util.hpp"
 #include "common/hexutil.hpp"
