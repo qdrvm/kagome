@@ -6,6 +6,6 @@
 #ifndef KAGOME_STATE_JRPC_PROCESSOR_HPP
 #define KAGOME_STATE_JRPC_PROCESSOR_HPP
 
-class state_jrpc_processor {};
+class StateJrpcProcessor {};
 
 #endif  // KAGOME_STATE_JRPC_PROCESSOR_HPP

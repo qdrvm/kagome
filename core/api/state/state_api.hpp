@@ -8,14 +8,17 @@
 
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
+#include "primitives/common.hpp"
 
 namespace kagome::api {
 
   class StateApi {
    public:
-    outcome::result<common::Buffer> getStorage(const common::Buffer &key);
-    outcome::result<common::Buffer> getStorage(const common::Buffer &key,
-                                               const primitives::BlockHash &at);
+    virtual ~StateApi() = default;
+    virtual outcome::result<common::Buffer> getStorage(
+        const common::Buffer &key) = 0;
+    virtual outcome::result<common::Buffer> getStorage(
+        const common::Buffer &key, const primitives::BlockHash &at) = 0;
   };
 
 }  // namespace kagome::api

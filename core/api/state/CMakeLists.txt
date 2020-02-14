@@ -6,6 +6,7 @@
 add_library(state_api_service
     state_api_service.cpp
     state_jrpc_processor.cpp
+    impl/state_api_impl.cpp
     )
 target_link_libraries(state_api_service
     buffer

@@ -23,9 +23,6 @@ namespace kagome::api {
   class ExtrinsicJRPCProcessor : public JRPCProcessor,
                                  private boost::noncopyable {
    public:
-    /**
-     * @brief constructor
-     */
     explicit ExtrinsicJRPCProcessor(std::shared_ptr<ExtrinsicApi> api);
 
    private:

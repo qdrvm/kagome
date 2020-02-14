@@ -4,3 +4,14 @@
  */
 
 #include "state_api_service.hpp"
+
+namespace kagome::api {
+
+  void StateApiService::start() {
+    ApiService::start();
+  }
+  void StateApiService::stop() {
+    ApiService::stop();
+  }
+
+}
