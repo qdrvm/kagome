@@ -12,7 +12,7 @@
 #include <fstream>
 #include <memory>
 
-#include "core/storage/trie/mock_trie_db.hpp"
+#include "mock/core/storage/trie/trie_db_mock.hpp"
 #include "extensions/impl/extension_factory_impl.hpp"
 #include "primitives/block.hpp"
 #include "primitives/block_header.hpp"
@@ -31,7 +31,7 @@ class RuntimeTest : public ::testing::Test {
   using Digest = kagome::primitives::Digest;
 
   void SetUp() override {
-    trie_db_ = std::make_shared<kagome::storage::trie::MockTrieDb>();
+    trie_db_ = std::make_shared<kagome::storage::trie::TrieDbMock>();
     extension_factory_ =
         std::make_shared<kagome::extensions::ExtensionFactoryImpl>(trie_db_);
     std::string wasm_path =
@@ -75,7 +75,7 @@ class RuntimeTest : public ::testing::Test {
   }
 
  protected:
-  std::shared_ptr<kagome::storage::trie::MockTrieDb> trie_db_;
+  std::shared_ptr<kagome::storage::trie::TrieDbMock> trie_db_;
   std::shared_ptr<kagome::extensions::ExtensionFactory> extension_factory_;
   std::shared_ptr<kagome::runtime::BasicWasmProvider> wasm_provider_;
 };

@@ -66,7 +66,7 @@
 #include "storage/trie/impl/polkadot_codec.hpp"
 #include "storage/trie/impl/polkadot_node.hpp"
 #include "storage/trie/impl/polkadot_trie_db.hpp"
-#include "storage/trie/impl/persistent_trie_db_backend.hpp"
+#include "storage/trie/impl/trie_db_backend_impl.hpp"
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
 
@@ -324,9 +324,9 @@ namespace kagome::injector {
 
     // polkadot trie db getter
     auto get_polkadot_trie_db_backend =
-        [](const auto &injector) -> sptr<storage::trie::PersistentTrieDbBackend> {
+        [](const auto &injector) -> sptr<storage::trie::TrieDbBackendImpl> {
       static auto initialized =
-          boost::optional<sptr<storage::trie::PersistentTrieDbBackend>>(
+          boost::optional<sptr<storage::trie::TrieDbBackendImpl>>(
               boost::none);
 
       if (initialized) {
@@ -335,8 +335,8 @@ namespace kagome::injector {
       auto storage =
           injector.template create<sptr<storage::PersistentBufferMap>>();
       using blockchain::prefix::TRIE_NODE;
-      auto backend = std::make_shared<storage::trie::PersistentTrieDbBackend>(
-          storage, common::Buffer{TRIE_NODE}, common::Buffer{0});
+      auto backend = std::make_shared<storage::trie::TrieDbBackendImpl>(
+          storage, common::Buffer{TRIE_NODE});
       initialized = backend;
       return backend;
     };
@@ -351,7 +351,7 @@ namespace kagome::injector {
       }
       auto backend =
           injector
-              .template create<sptr<storage::trie::PersistentTrieDbBackend>>();
+              .template create<sptr<storage::trie::TrieDbBackendImpl>>();
       sptr<storage::trie::PolkadotTrieDb> polkadot_trie_db =
           storage::trie::PolkadotTrieDb::createEmpty(backend);
       initialized = polkadot_trie_db;
@@ -550,7 +550,7 @@ namespace kagome::injector {
         di::bind<runtime::BlockBuilder>.template to<runtime::binaryen::BlockBuilderImpl>(),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
-        di::bind<storage::trie::PersistentTrieDbBackend>.to(
+        di::bind<storage::trie::TrieDbBackendImpl>.to(
             std::move(get_polkadot_trie_db_backend)),
         di::bind<storage::trie::PolkadotTrieDb>.to(
             std::move(get_polkadot_trie_db)),

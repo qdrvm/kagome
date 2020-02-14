@@ -18,9 +18,9 @@ namespace kagome::storage::face {
    * @tparam V value type
    */
   template <typename K, typename V>
-  struct GenericMap : public IterableMap<K, V>,
-                      public ReadableMap<K, V>,
-                      public WriteableMap<K, V> {};
+  struct GenericMap : virtual public IterableMap<K, V>,
+                      virtual public ReadableMap<K, V>,
+                      virtual public WriteableMap<K, V> {};
 }  // namespace kagome::storage::face
 
 #endif  // KAGOME_GENERIC_MAP_HPP
