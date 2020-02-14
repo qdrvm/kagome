@@ -14,7 +14,7 @@
 #include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
-using kagome::storage::face::PersistentMapMock;
+using kagome::storage::face::GenericStorageMock;
 using kagome::storage::face::WriteBatchMock;
 using kagome::storage::trie::TrieDbBackendImpl;
 using testing::Invoke;
@@ -24,8 +24,8 @@ static const Buffer kNodePrefix{1};
 
 class TrieDbBackendTest : public testing::Test {
  public:
-  std::shared_ptr<PersistentMapMock<Buffer, Buffer>> storage =
-      std::make_shared<PersistentMapMock<Buffer, Buffer>>();
+  std::shared_ptr<GenericStorageMock<Buffer, Buffer>> storage =
+      std::make_shared<GenericStorageMock<Buffer, Buffer>>();
   TrieDbBackendImpl backend{storage, kNodePrefix};
 };
 

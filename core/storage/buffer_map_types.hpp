@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BUFFER_MAP_HPP
-#define KAGOME_BUFFER_MAP_HPP
+#ifndef KAGOME_BUFFER_MAP_TYPES_HPP
+#define KAGOME_BUFFER_MAP_TYPES_HPP
 
 /**
  * This file contains:
@@ -17,7 +17,7 @@
 
 #include "common/buffer.hpp"
 #include "storage/face/batchable.hpp"
-#include "storage/face/generic_map.hpp"
+#include "storage/face/generic_storage.hpp"
 #include "storage/face/write_batch.hpp"
 
 namespace kagome::storage {
@@ -28,10 +28,13 @@ namespace kagome::storage {
 
   using BufferBatch = face::WriteBatch<Buffer, Buffer>;
 
-  using BufferBatchMap = face::Batchable<Buffer, Buffer>;
+  using ReadOnlyBufferMap = face::ReadOnlyMap<Buffer, Buffer>;
+  using BatchWriteBufferMap = face::BatchWriteMap<Buffer, Buffer>;
+
+  using BufferStorage = face::GenericStorage<Buffer, Buffer>;
 
   using BufferMapCursor = face::MapCursor<Buffer, Buffer>;
 
 }  // namespace kagome::storage
 
-#endif  // KAGOME_BUFFER_MAP_HPP
+#endif  // KAGOME_BUFFER_MAP_TYPES_HPP

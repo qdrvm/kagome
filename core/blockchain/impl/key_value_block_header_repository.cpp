@@ -5,10 +5,10 @@
 
 #include "blockchain/impl/key_value_block_header_repository.hpp"
 
+#include <boost/optional.hpp>
 #include <string_view>
 
-#include <boost/optional.hpp>
-#include "blockchain/impl/persistent_map_util.hpp"
+#include "blockchain/impl/storage_util.hpp"
 #include "common/hexutil.hpp"
 #include "scale/scale.hpp"
 
@@ -20,7 +20,7 @@ using kagome::primitives::BlockNumber;
 namespace kagome::blockchain {
 
   KeyValueBlockHeaderRepository::KeyValueBlockHeaderRepository(
-      std::shared_ptr<PersistentBufferMap> map,
+      std::shared_ptr<storage::BufferStorage> map,
       std::shared_ptr<crypto::Hasher> hasher)
       : map_{std::move(map)}, hasher_{std::move(hasher)} {
     BOOST_ASSERT(hasher_);

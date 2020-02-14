@@ -7,7 +7,7 @@
 #define KAGOME_TRIE_TRIE_DB_HPP
 
 #include "common/buffer.hpp"
-#include "storage/buffer_map.hpp"
+#include "storage/buffer_map_types.hpp"
 #include "storage/trie/trie_db_reader.hpp"
 
 namespace kagome::storage::trie {
@@ -16,7 +16,7 @@ namespace kagome::storage::trie {
    * @brief Represents a cryptographically authenticated key-value
    * storage - Trie DB, backed by a key-value database.
    */
-  class TrieDb : public TrieDbReader, public PersistentBufferMap {
+  class TrieDb : public TrieDbReader, public BatchWriteBufferMap {
    public:
     /**
      * remove storage entries which keys start with given prefix

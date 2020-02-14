@@ -4,7 +4,7 @@
  */
 
 #include "blockchain/impl/common.hpp"
-#include "blockchain/impl/persistent_map_util.hpp"
+#include "blockchain/impl/storage_util.hpp"
 #include "common/visitor.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/polkadot_trie_db.hpp"

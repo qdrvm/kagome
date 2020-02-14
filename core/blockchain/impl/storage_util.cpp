@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "blockchain/impl/persistent_map_util.hpp"
+#include "blockchain/impl/storage_util.hpp"
 
 #include "blockchain/impl/common.hpp"
 #include "storage/leveldb/leveldb_error.hpp"

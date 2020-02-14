@@ -7,20 +7,22 @@
 #define KAGOME_TRIE_DB_READER_HPP
 
 #include "common/buffer.hpp"
-#include "storage/face/readable_map.hpp"
+#include "storage/face/readable.hpp"
 
 namespace kagome::storage::trie {
 
-  class TrieDbReader
-      : virtual public face::ReadableMap<common::Buffer, common::Buffer>,
-        virtual public face::IterableMap<common::Buffer, common::Buffer> {
+  /**
+   * Provides read access for Trie DB - cryptographically authenticated
+   * key-value storage
+   */
+  class TrieDbReader : public face::ReadOnlyMap<Buffer, Buffer> {
    public:
     /**
      * @brief Calculate and return trie root.
      * @return byte buffer of any size (different hashing algorithms may be
      * used)
      */
-    virtual common::Buffer getRootHash() const = 0;
+    virtual Buffer getRootHash() const = 0;
 
     /**
      * @returns true if the trie is empty, false otherwise

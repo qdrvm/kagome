@@ -6,22 +6,16 @@
 #ifndef KAGOME_STORAGE_TRIE_IMPL_POLKADOT_TRIE_DB_BACKEND_HPP
 #define KAGOME_STORAGE_TRIE_IMPL_POLKADOT_TRIE_DB_BACKEND_HPP
 
-#include <boost/serialization/strong_typedef.hpp>
 #include <outcome/outcome.hpp>
 
 #include "common/buffer.hpp"
-#include "storage/buffer_map.hpp"
-#include "storage/trie/impl/polkadot_node.hpp"
 #include "storage/trie/trie_db_backend.hpp"
 
 namespace kagome::storage::trie {
 
-  /**
-   * Stores root hash in the underlying key-value storage
-   */
   class TrieDbBackendImpl : public TrieDbBackend {
    public:
-    TrieDbBackendImpl(std::shared_ptr<PersistentBufferMap> storage,
+    TrieDbBackendImpl(std::shared_ptr<BufferStorage> storage,
                       common::Buffer node_prefix);
 
     ~TrieDbBackendImpl() override = default;
@@ -39,7 +33,7 @@ namespace kagome::storage::trie {
    private:
     common::Buffer prefixKey(const common::Buffer &key) const;
 
-    std::shared_ptr<PersistentBufferMap> storage_;
+    std::shared_ptr<BufferStorage> storage_;
     common::Buffer node_prefix_;
   };
 

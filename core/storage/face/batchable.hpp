@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BATCH_MAP_HPP
-#define KAGOME_BATCH_MAP_HPP
+#ifndef KAGOME_BATCHABLE_HPP
+#define KAGOME_BATCHABLE_HPP
 
 #include "storage/face/write_batch.hpp"
 #include "storage/face/writeable.hpp"
@@ -12,12 +12,12 @@
 namespace kagome::storage::face {
 
   /**
-   * @brief An abstraction over a map that supports batching for efficiency of modifications.
+   * @brief A mixin for a map that supports batching for efficiency of modifications.
    * @tparam K key type
    * @tparam V value type
    */
   template <typename K, typename V>
-  struct BatchMap {
+  struct Batchable {
     /**
      * @brief Creates new Write Batch - an object, which can be used to
      * efficiently write bulk data.
@@ -27,4 +27,4 @@ namespace kagome::storage::face {
 
 }  // namespace kagome::storage::face
 
-#endif  // KAGOME_BATCH_MAP_HPP
+#endif  // KAGOME_BATCHABLE_HPP

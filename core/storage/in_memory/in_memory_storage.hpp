@@ -7,10 +7,10 @@
 #define KAGOME_STORAGE_IN_MEMORY_IN_MEMORY_STORAGE_HPP
 
 #include <memory>
-
 #include <outcome/outcome.hpp>
+
 #include "common/buffer.hpp"
-#include "storage/face/persistent_map.hpp"
+#include "storage/buffer_map_types.hpp"
 
 namespace kagome::storage {
   
@@ -20,7 +20,7 @@ namespace kagome::storage {
    * LevelDB
    */
   class InMemoryStorage
- : public face::PersistentMap<common::Buffer, common::Buffer> {
+ : public storage::BufferStorage {
    public:
     ~InMemoryStorage() override = default;
 

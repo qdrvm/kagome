@@ -18,7 +18,7 @@ using kagome::crypto::HasherMock;
 using kagome::primitives::Block;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockNumber;
-using kagome::storage::face::PersistentMapMock;
+using kagome::storage::face::GenericStorageMock;
 using testing::_;
 using testing::Return;
 
@@ -37,8 +37,8 @@ class BlockStorageTest : public testing::Test {
   }
   std::shared_ptr<KeyValueBlockStorage> block_storage;
   std::shared_ptr<HasherMock> hasher = std::make_shared<HasherMock>();
-  std::shared_ptr<PersistentMapMock<Buffer, Buffer>> storage =
-      std::make_shared<PersistentMapMock<Buffer, Buffer>>();
+  std::shared_ptr<GenericStorageMock<Buffer, Buffer>> storage =
+      std::make_shared<GenericStorageMock<Buffer, Buffer>>();
   Block genesis;
   BlockHash genesis_hash{{1, 2, 3, 4}};
   Buffer root_hash;

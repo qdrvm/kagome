@@ -24,7 +24,7 @@
 #include "blockchain/impl/block_tree_impl.hpp"
 #include "blockchain/impl/key_value_block_header_repository.hpp"
 #include "blockchain/impl/key_value_block_storage.hpp"
-#include "blockchain/impl/persistent_map_util.hpp"
+#include "blockchain/impl/storage_util.hpp"
 #include "boost/di/extension/injections/extensible_injector.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
@@ -280,7 +280,7 @@ namespace kagome::injector {
       auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
 
       const auto &db =
-          injector.template create<sptr<storage::PersistentBufferMap>>();
+          injector.template create<sptr<storage::BufferStorage>>();
 
       const auto &trie_db = injector.template create<storage::trie::TrieDb &>();
 
@@ -333,7 +333,7 @@ namespace kagome::injector {
         return initialized.value();
       }
       auto storage =
-          injector.template create<sptr<storage::PersistentBufferMap>>();
+          injector.template create<sptr<storage::BufferStorage>>();
       using blockchain::prefix::TRIE_NODE;
       auto backend = std::make_shared<storage::trie::TrieDbBackendImpl>(
           storage, common::Buffer{TRIE_NODE});
@@ -386,10 +386,10 @@ namespace kagome::injector {
 
     // level db getter
     template <typename Injector>
-    sptr<storage::PersistentBufferMap> get_level_db(
+    sptr<storage::BufferStorage> get_level_db(
         std::string_view leveldb_path, const Injector &injector) {
       static auto initialized =
-          boost::optional<sptr<storage::PersistentBufferMap>>(boost::none);
+          boost::optional<sptr<storage::BufferStorage>>(boost::none);
       if (initialized) {
         return initialized.value();
       }
@@ -512,7 +512,7 @@ namespace kagome::injector {
         di::bind<authorship::Proposer>.template to<authorship::ProposerImpl>(),
         di::bind<authorship::BlockBuilder>.template to<authorship::BlockBuilderImpl>(),
         di::bind<authorship::BlockBuilderFactory>.template to<authorship::BlockBuilderFactoryImpl>(),
-        di::bind<storage::PersistentBufferMap>.to(
+        di::bind<storage::BufferStorage>.to(
             [leveldb_path](const auto &injector) {
               return get_level_db(leveldb_path, injector);
             }),

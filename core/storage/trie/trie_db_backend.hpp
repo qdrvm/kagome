@@ -9,7 +9,7 @@
 #include <outcome/outcome.hpp>
 
 #include "common/buffer.hpp"
-#include "storage/buffer_map.hpp"
+#include "storage/buffer_map_types.hpp"
 #include "storage/trie/impl/polkadot_node.hpp"
 
 namespace kagome::storage::trie {
@@ -18,7 +18,7 @@ namespace kagome::storage::trie {
    * Adapter for key-value storages that allows to hide keyspace separation
    * along with root hash storing logic from the trie db component
    */
-  class TrieDbBackend : public PersistentBufferMap {
+  class TrieDbBackend : public BufferStorage {
    public:
     ~TrieDbBackend() override = default;
   };

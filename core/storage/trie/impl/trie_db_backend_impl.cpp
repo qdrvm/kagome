@@ -12,7 +12,7 @@
 namespace kagome::storage::trie {
 
   TrieDbBackendImpl::TrieDbBackendImpl(
-      std::shared_ptr<PersistentBufferMap> storage, common::Buffer node_prefix)
+      std::shared_ptr<BufferStorage> storage, common::Buffer node_prefix)
       : storage_{std::move(storage)}, node_prefix_{std::move(node_prefix)} {
     BOOST_ASSERT(storage_ != nullptr);
   }
