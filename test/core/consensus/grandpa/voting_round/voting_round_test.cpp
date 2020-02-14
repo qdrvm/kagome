@@ -302,10 +302,10 @@ ACTION_P(onPrecommitted, test_fixture) {
   return outcome::success();
 }
 
-ACTION_P(onFin, test_fixture) {
+ACTION_P(onFinalize, test_fixture) {
   kagome::consensus::grandpa::Fin fin{
       .round_number = arg0, .vote = arg1, .justification = arg2};
-  test_fixture->voting_round_->onFin(fin);
+  test_fixture->voting_round_->onFinalize(fin);
   return outcome::success();
 }
 
@@ -389,7 +389,7 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
             return has_alice_precommit and has_bob_precommit
                    and has_eve_precommit;
           })))
-      .WillOnce(onFin(this));
+      .WillOnce(onFinalize(this));
 
   EXPECT_CALL(*env_, finalize(best_block_hash, _))
       .WillOnce(Return(outcome::success()));
