@@ -26,7 +26,7 @@ namespace kagome::consensus::grandpa {
    public:
     ~VotingRoundImpl() override = default;
 
-    VotingRoundImpl(const GrandpaConfig& config,
+    VotingRoundImpl(const GrandpaConfig &config,
                     std::shared_ptr<Environment> env,
                     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
                     std::shared_ptr<VoteTracker<Prevote>> prevotes,
@@ -37,26 +37,72 @@ namespace kagome::consensus::grandpa {
 
     void onFin(const Fin &f) override;
 
+    /**
+     * Invoked when we received a primary propose for the current round
+     * Basically method just checks if received propose was produced by the
+     * primary and if so, it is stored in primary_vote_ field
+     */
     void onPrimaryPropose(const SignedPrimaryPropose &primary_propose) override;
 
-    void onPrevote(const SignedPrevote &prevore) override;
+    /**
+     * Triggered when we receive prevote for current round
+     * \param prevote is stored in prevote tracker and vote graph
+     * Then we try to update prevote ghost (\see updatePrevoteGhost) and round
+     * state (\see update)
+     */
+    void onPrevote(const SignedPrevote &prevote) override;
 
+    /**
+     * Triggered when we receive precommit for the current round
+     * \param precommit is stored in precommit tracker and vote graph
+     * Then we try to update round state and finalize
+     */
     void onPrecommit(const SignedPrecommit &precommit) override;
 
+    /**
+     * Checks if current round is completable and finalized block differs from
+     * the last round's finalized block. If so fin message is broadcasted to the
+     * network
+     * @return true if fin message was sent, false otherwise
+     */
     bool tryFinalize() override;
 
     RoundNumber roundNumber() const override;
 
+    /**
+     * During the primary propose we :
+     * 1. Check if we are the primary for the current round. If not execution of
+     * the method is finished
+     * 2. We can send primary propose only if the estimate from \param
+     * last_round_state is greater than finalized from \param last_round_state.
+     * If we cannot send propose, method is finished
+     * 3. Primary propose is the last rounds estimate.
+     * 4. After all steps above are done we broadcast propose
+     * 5. We store what we have broadcasted in primary_vote_ field
+     */
     void primaryPropose(const RoundState &last_round_state) override;
 
+    /**
+     * 1. Waits until start_time_ + duration * 2 or round is completable
+     * 2. Constructs prevote (\see constructPrevote) and broadcasts it
+     */
     void prevote(const RoundState &last_round_state) override;
 
+    /**
+     * 1. Waits until start_time_ + duration * 4 or round is completable
+     * 2. Constructs precommit (\see constructPrecommit) and broadcasts it
+     */
     void precommit(const RoundState &last_round_state) override;
 
     inline const RoundState &getCurrentState() const {
       return cur_round_state_;
     }
 
+    /**
+     * Round is completable when we have block (stored in
+     * current_state_.finalized) for which we have supermajority on both
+     * prevotes and precommits
+     */
     bool completable() const;
 
    private:
@@ -75,8 +121,9 @@ namespace kagome::consensus::grandpa {
     /// Triggered when we receive \param signed_precommit for the current peer
     void onSignedPrecommit(const SignedPrecommit &signed_precommit);
 
-    /// Updates current round's prevote ghost. Invoked after each
-    /// onSingedPrevote
+    /**
+     * Updates current round's prevote ghost. Invoked after each onSingedPrevote
+     */
     void updatePrevoteGhost();
 
     /// Update current state of the round. In particular we update:
@@ -93,11 +140,21 @@ namespace kagome::consensus::grandpa {
     boost::optional<GrandpaJustification> finalizingPrecommits(
         const BlockInfo &estimate) const;
 
-    /// Construct \return SignedPrevote with provided \param last_round_state
+    /**
+     * We will vote for the best chain containing primary_vote_ iff
+     * the last round's prevote-GHOST included that block and
+     * that block is a strict descendent of the last round-estimate that we are
+     * aware of.
+     * Otherwise we will vote for the best chain containing last round estimate
+     */
     outcome::result<SignedPrevote> constructPrevote(
         const RoundState &last_round_state) const;
 
-    /// Construct \return SignedPrecommit with provided \param last_round_state
+    /**
+     * Constructs precommit as following:
+     * 1. If we have prevote ghost, then vote for it
+     * 2. Otherwise vote for the last finalized block (base of the graph)
+     */
     outcome::result<SignedPrecommit> constructPrecommit(
         const RoundState &last_round_state) const;
 

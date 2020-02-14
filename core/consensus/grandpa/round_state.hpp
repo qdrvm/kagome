@@ -12,14 +12,20 @@
 
 namespace kagome::consensus::grandpa {
 
+  /// Stores the current state of the round
   struct RoundState {
     boost::optional<Prevote>
-        prevote_ghost;  // prevote that was broadcasted by current peer, which
-                        // is calculated as ghost function on the last finalized
-                        // block
+        prevote_ghost;  //  is calculated as ghost function on graph composed
+                        //  from received prevotes. Note: prevote_ghost is not
+                        //  necessary the prevote that created by the current
+                        //  peer
     boost::optional<BlockInfo>
-        estimate;  // best possible block that could be finalized in this round
-    boost::optional<BlockInfo> finalized;  // block finalized in this round
+        estimate;  // is the best possible block that could be finalized in
+                   // current round. Always ancestor of `prevote_ghost` or equal
+                   // to `prevote_ghost`
+    boost::optional<BlockInfo>
+        finalized;  // is the block that received supermajority on both prevotes
+                    // and precommits
 
     inline bool operator==(const RoundState &round_state) const {
       return std::tie(prevote_ghost, estimate, finalized)

@@ -120,9 +120,7 @@ namespace kagome::consensus::grandpa {
       return false;
     }
     // check if new state differs with the old one and broadcast new state
-    notify(*last_round_state_);
-
-    return true;
+    return notify(*last_round_state_);
   }
 
   bool VotingRoundImpl::notify(const RoundState &last_round_state) {
@@ -171,11 +169,21 @@ namespace kagome::consensus::grandpa {
     onSignedPrevote(prevote);
     updatePrevoteGhost();
     update();
+
+    // stop prevote timer if round is completable
+    if (completable() and clock_->now() < prevote_timer_.expires_at()) {
+      prevote_timer_.cancel();
+    }
   }
 
   void VotingRoundImpl::onPrecommit(const SignedPrecommit &precommit) {
     onSignedPrecommit(precommit);
     update();
+
+    // stop precommit timer if round is completable
+    if (completable() and clock_->now() < precommit_timer_.expires_at()) {
+      precommit_timer_.cancel();
+    }
     tryFinalize();
   }
 
@@ -217,10 +225,6 @@ namespace kagome::consensus::grandpa {
         break;
       }
     }
-
-    if (completable() or clock_->now() < prevote_timer_.expires_at()) {
-      prevote_timer_.cancel();
-    }
   }
 
   void VotingRoundImpl::onSignedPrecommit(const SignedPrecommit &vote) {
@@ -261,10 +265,6 @@ namespace kagome::consensus::grandpa {
         break;
       }
     }
-
-    if (completable() and clock_->now() < precommit_timer_.expires_at()) {
-      precommit_timer_.cancel();
-    }
   }
 
   void VotingRoundImpl::updatePrevoteGhost() {
@@ -295,6 +295,10 @@ namespace kagome::consensus::grandpa {
     last_round_state_ = last_round_state;
     switch (state_) {
       case State::START: {
+        if (not isPrimary()) {
+          break;
+        }
+
         const auto &maybe_estimate = last_round_state.estimate;
 
         if (not maybe_estimate) {
@@ -302,9 +306,6 @@ namespace kagome::consensus::grandpa {
               "Last round estimate does not exist, not sending primary block "
               "hint during round {}",
               round_number_);
-          break;
-        }
-        if (not isPrimary()) {
           break;
         }
 
@@ -455,7 +456,8 @@ namespace kagome::consensus::grandpa {
             .map([&](const BlockInfo &primary) {
               // if we have primary_vote then:
               // if last prevote is the same as primary vote, then return it
-              // else if primary vote is better than last prevote return
+              // else if primary vote is better than last prevote return last
+              // round estimate
               auto last_prevote_g = last_round_state.prevote_ghost.value();
 
               if (std::tie(primary.block_number, primary.block_hash)

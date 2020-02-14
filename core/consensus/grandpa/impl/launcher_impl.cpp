@@ -18,7 +18,7 @@ namespace kagome::consensus::grandpa {
 
   LauncherImpl::LauncherImpl(
       std::shared_ptr<Environment> environment,
-      std::shared_ptr<storage::trie::TrieDb> storage,
+      std::shared_ptr<storage::PersistentBufferMap> storage,
       std::shared_ptr<crypto::ED25519Provider> crypto_provider,
       const crypto::ED25519Keypair &keypair,
       std::shared_ptr<Clock> clock,
