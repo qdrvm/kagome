@@ -11,6 +11,9 @@
 
 namespace kagome::consensus::grandpa {
 
+  /**
+   * Handles execution of one grandpa round. For details @see VotingRoundImpl
+   */
   struct VotingRound {
     virtual ~VotingRound() = default;
 

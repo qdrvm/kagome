@@ -78,7 +78,7 @@ namespace kagome::consensus::grandpa {
     return voters->totalWeight() - faulty;
   }
 
-  void VotingRoundImpl::onFin alize(const Fin &f) {
+  void VotingRoundImpl::onFinalize(const Fin &f) {
     // validate message
     switch (state_) {
       case State::PROPOSED:
