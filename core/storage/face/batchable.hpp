@@ -6,18 +6,23 @@
 #ifndef KAGOME_BATCHABLE_HPP
 #define KAGOME_BATCHABLE_HPP
 
+#include <memory>
+
 #include "storage/face/write_batch.hpp"
 #include "storage/face/writeable.hpp"
 
 namespace kagome::storage::face {
 
   /**
-   * @brief A mixin for a map that supports batching for efficiency of modifications.
+   * @brief A mixin for a map that supports batching for efficiency of
+   * modifications.
    * @tparam K key type
    * @tparam V value type
    */
   template <typename K, typename V>
   struct Batchable {
+    virtual ~Batchable() = default;
+
     /**
      * @brief Creates new Write Batch - an object, which can be used to
      * efficiently write bulk data.

@@ -15,7 +15,7 @@ namespace kagome::storage::trie {
    * Provides read access for Trie DB - cryptographically authenticated
    * key-value storage
    */
-  class TrieDbReader : public face::ReadOnlyMap<Buffer, Buffer> {
+  class TrieDbReader : public virtual face::ReadOnlyMap<Buffer, Buffer> {
    public:
     /**
      * @brief Calculate and return trie root.

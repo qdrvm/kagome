@@ -7,10 +7,8 @@
 #define KAGOME_BUFFER_MAP_TYPES_HPP
 
 /**
- * This file contains:
- *  - BufferMap - contains key-value bindings of Buffers
- *  - PersistentBufferMap - stores key-value bindings on filesystem or remote
- * connection.
+ * This file contains convenience typedefs for interfaces from face/, as they
+ * are mostly used with Buffer key and value types
  */
 
 #include <gsl/span>

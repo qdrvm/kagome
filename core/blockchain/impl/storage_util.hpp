@@ -6,12 +6,11 @@
 #ifndef KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTENT_MAP_UTIL_HPP
 #define KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTENT_MAP_UTIL_HPP
 
-#include <storage/buffer_map_types.hpp>
 
 #include "common/buffer.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
-#include "storage/face/batchable.hpp"
+#include "storage/buffer_map_types.hpp"
 
 /**
  * Auxiliary functions to simplify usage of persistant map based storage

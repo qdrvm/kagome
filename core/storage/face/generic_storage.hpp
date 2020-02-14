@@ -11,7 +11,8 @@
 namespace kagome::storage::face {
 
   /**
-   * @brief An abstraction over readable, writeable, iterable key-value map.
+   * @brief An abstraction over readable, writeable, iterable key-value storage
+   * that supports write batches
    * @tparam K key type
    * @tparam V value type
    */
@@ -19,6 +20,6 @@ namespace kagome::storage::face {
   struct GenericStorage : public ReadOnlyMap<K, V>,
                           public BatchWriteMap<K, V> {};
 
-}  // namespace kagome::face
+}  // namespace kagome::storage::face
 
 #endif  // KAGOME_GENERIC_STORAGE_HPP
