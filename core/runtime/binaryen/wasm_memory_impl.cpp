@@ -33,11 +33,6 @@ namespace kagome::runtime::binaryen {
     const auto ptr = offset_;
     const auto new_offset = ptr + size;
 
-    if (ptr < 0) {
-      // very bad state, which should be possible, but the check must be done
-      // before the cast
-      return 0;
-    }
     if (new_offset < static_cast<const uint32_t>(ptr)) {  // overflow
       return 0;
     }

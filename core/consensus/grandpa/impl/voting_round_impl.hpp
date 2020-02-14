@@ -35,7 +35,10 @@ namespace kagome::consensus::grandpa {
                     std::shared_ptr<Clock> clock,
                     std::shared_ptr<boost::asio::io_context> io_context);
 
-    void onFin(const Fin &f) override;
+    /**
+     * Triggered when we receiv finalization message
+     */
+    void onFinalize(const Fin &f) override;
 
     /**
      * Invoked when we received a primary propose for the current round

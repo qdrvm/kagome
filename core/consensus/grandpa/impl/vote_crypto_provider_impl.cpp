@@ -76,22 +76,22 @@ namespace kagome::consensus::grandpa {
       const PrimaryPropose &primary_propose) const {
     return SignedPrimaryPropose{
         .message = primary_propose,
-        .id = keypair_.public_key,
-        .signature = voteSignature(kPrimaryProposeStage, primary_propose)};
+        .signature = voteSignature(kPrimaryProposeStage, primary_propose),
+        .id = keypair_.public_key};
   }
 
   SignedPrevote VoteCryptoProviderImpl::signPrevote(
       const Prevote &prevote) const {
     return SignedPrevote{.message = prevote,
-                         .id = keypair_.public_key,
-                         .signature = voteSignature(kPrevoteStage, prevote)};
+                         .signature = voteSignature(kPrevoteStage, prevote),
+                         .id = keypair_.public_key};
   }
 
   SignedPrecommit VoteCryptoProviderImpl::signPrecommit(
       const Precommit &precommit) const {
     return SignedPrecommit{
         .message = precommit,
-        .id = keypair_.public_key,
-        .signature = voteSignature(kPrecommitStage, precommit)};
+        .signature = voteSignature(kPrecommitStage, precommit),
+        .id = keypair_.public_key};
   }
 }  // namespace kagome::consensus::grandpa
