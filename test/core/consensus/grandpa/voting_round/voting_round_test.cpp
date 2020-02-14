@@ -428,6 +428,9 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
   EXPECT_CALL(*env_, getAncestry(base_block_hash, best_block_hash))
       .WillRepeatedly(Return(std::vector<kagome::primitives::BlockHash>{
           "FB"_H, "FA"_H, "F"_H, "E"_H, "D"_H}));
+  EXPECT_CALL(*env_, getAncestry(best_block_hash, best_block_hash))
+      .WillRepeatedly(
+          Return(std::vector<kagome::primitives::BlockHash>{best_block_hash}));
 
   RoundState last_round_state;
   last_round_state.prevote_ghost.emplace(3, "B"_H);
