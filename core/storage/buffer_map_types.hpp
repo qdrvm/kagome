@@ -14,9 +14,10 @@
  */
 
 #include <gsl/span>
+
 #include "common/buffer.hpp"
+#include "storage/face/batchable.hpp"
 #include "storage/face/generic_map.hpp"
-#include "storage/face/persistent_map.hpp"
 #include "storage/face/write_batch.hpp"
 
 namespace kagome::storage {
@@ -27,7 +28,7 @@ namespace kagome::storage {
 
   using BufferBatch = face::WriteBatch<Buffer, Buffer>;
 
-  using PersistentBufferMap = face::PersistentMap<Buffer, Buffer>;
+  using BufferBatchMap = face::Batchable<Buffer, Buffer>;
 
   using BufferMapCursor = face::MapCursor<Buffer, Buffer>;
 

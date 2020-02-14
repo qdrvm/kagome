@@ -3,22 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_PERSISTENT_MAP_HPP
-#define KAGOME_PERSISTENT_MAP_HPP
+#ifndef KAGOME_BATCH_MAP_HPP
+#define KAGOME_BATCH_MAP_HPP
 
-#include "storage/face/generic_map.hpp"
 #include "storage/face/write_batch.hpp"
+#include "storage/face/writeable.hpp"
 
 namespace kagome::storage::face {
 
   /**
-   * @brief An abstraction over a map accessible via filesystem or remove
-   * connection. It supports batching for efficiency of modifications.
+   * @brief An abstraction over a map that supports batching for efficiency of modifications.
    * @tparam K key type
    * @tparam V value type
    */
   template <typename K, typename V>
-  struct PersistentMap : public GenericMap<K, V> {
+  struct BatchMap {
     /**
      * @brief Creates new Write Batch - an object, which can be used to
      * efficiently write bulk data.
@@ -28,4 +27,4 @@ namespace kagome::storage::face {
 
 }  // namespace kagome::storage::face
 
-#endif  // KAGOME_PERSISTENT_MAP_HPP
+#endif  // KAGOME_BATCH_MAP_HPP

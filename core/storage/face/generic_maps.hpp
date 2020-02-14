@@ -6,9 +6,9 @@
 #ifndef KAGOME_GENERIC_MAP_HPP
 #define KAGOME_GENERIC_MAP_HPP
 
-#include "storage/face/iterable_map.hpp"
-#include "storage/face/readable_map.hpp"
-#include "storage/face/writeable_map.hpp"
+#include "storage/face/iterable.hpp"
+#include "storage/face/readable.hpp"
+#include "storage/face/writeable.hpp"
 
 namespace kagome::storage::face {
 
@@ -18,9 +18,9 @@ namespace kagome::storage::face {
    * @tparam V value type
    */
   template <typename K, typename V>
-  struct GenericMap : virtual public IterableMap<K, V>,
-                      virtual public ReadableMap<K, V>,
-                      virtual public WriteableMap<K, V> {};
+  struct GenericMap : public Iterable<K, V>,
+                      public Readable<K, V>,
+                      public Writeable<K, V> {};
 }  // namespace kagome::storage::face
 
 #endif  // KAGOME_GENERIC_MAP_HPP

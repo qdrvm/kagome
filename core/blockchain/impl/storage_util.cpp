@@ -26,7 +26,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, KeyValueRepositoryError, e) {
 namespace kagome::blockchain {
 
   outcome::result<void> putWithPrefix(
-      storage::face::PersistentMap<common::Buffer, common::Buffer> &map,
+      storage::BufferStorage &map,
       prefix::Prefix prefix,
       BlockNumber num,
       Hash256 block_hash,
@@ -43,7 +43,7 @@ namespace kagome::blockchain {
   }
 
   outcome::result<common::Buffer> getWithPrefix(
-      const storage::face::PersistentMap<common::Buffer, common::Buffer> &map,
+      const storage::BufferStorage &map,
       prefix::Prefix prefix,
       const primitives::BlockId &block_id) {
     OUTCOME_TRY(key, idToLookupKey(map, block_id));
