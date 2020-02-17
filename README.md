@@ -57,14 +57,21 @@ Kagome is a [Polkadot Runtime Environment](https://github.com/w3f/polkadot-spec/
 
 ## Trying out Kagome node
 
-As of now there is not much things you can do with Kagome node. However, you can already execute a block production node.
+As of now there is not much things you can do with Kagome node. However, you can already execute a block production process.
+
+### Clone
+    
+To clone repository execute: 
+1. `git clone https://github.com/soramitsu/kagome`
+2. `cd kagome`
+
 
 ### Build kagome node
 
 To build kagome node binary go to your build folder and assemble `kagome_full` binary using cmake:
 ```cmake
 cd build
-cmake -DCLANG_TIDY=ON ..
+cmake ..
 make kagome_full -j 
 ```
 
@@ -92,12 +99,6 @@ Before contributing to Kagome make sure to read these development guides:
 3. [Development guide](./docs/dev-guide.md)
 4. [`outcome::result<T>` docs](./docs/result.md)
 5. [Tooling](./docs/tooling.md)
-
-### Clone
-
-To clone repository execute: 
-1. `git clone https://github.com/soramitsu/kagome`
-2. `cd kagome`
 
 ### Build Kagome
 
@@ -130,3 +131,7 @@ We follow [CppCoreGuidelines](https://github.com/isocpp/CppCoreGuidelines).
 
 Please use provided [.clang-format](.clang-format) file to autoformat the code.  
 
+## Kagome in media
+
+* Press-release: [Soramitsu to implement Polkadot Runtime Environment in C++](https://medium.com/web3foundation/w3f-grants-soramitsu-to-implement-polkadot-runtime-environment-in-c-cf3baa08cbe6)
+* Kagome and consensus in Polkadot talk (in Russian): [Innopolis blockchain meetup (28.10.19)](https://www.youtube.com/watch?v=5OrevTjaiPA)
