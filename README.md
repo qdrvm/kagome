@@ -37,7 +37,7 @@ Kagome is a [Polkadot Runtime Environment](https://github.com/w3f/polkadot-spec/
     * Implements SCALE codec for data types serialization according to [spec](https://substrate.dev/docs/en/conceptual/core/codec).
 * Storage  
     * Contains of key-value storage interfaces with LevelDB- and inmemory-based implementations
-    * Merkle patricia trie implementation, described in spec
+    * Merkle-Patricia trie implementation, described in spec
 * Clock
     * Gets current time for the peer
 * Consensus
