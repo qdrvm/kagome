@@ -18,6 +18,8 @@ namespace kagome::primitives {
   using BlockHash = common::Hash256;
 
   namespace detail {
+    // base data structure for the types describing block information
+    // (BlockInfo, Prevote, Precommit, PrimaryPropose)
     template <typename Tag>
     struct BlockInfoT : public boost::equality_comparable<BlockInfoT<Tag>> {
       BlockInfoT() = default;

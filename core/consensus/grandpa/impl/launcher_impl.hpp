@@ -41,7 +41,7 @@ namespace kagome::consensus::grandpa {
 
    private:
     outcome::result<std::shared_ptr<VoterSet>> getVoters() const;
-    outcome::result<CompletedRound> getLastRoundNumber() const;
+    outcome::result<CompletedRound> getLastCompletedRound() const;
 
     std::shared_ptr<VotingRound> current_round_;
 

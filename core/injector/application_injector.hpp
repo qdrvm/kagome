@@ -289,10 +289,10 @@ namespace kagome::injector {
           trie_db->getRootHash(),
           db,
           hasher,
-          [trie_db, &injector](const primitives::Block &genesis_block) {
+          [&db, &injector](const primitives::Block &genesis_block) {
             // handle genesis initialization, which happens when there is not
             // authorities and last completed round in the storage
-            if (not trie_db->get(storage::kAuthoritySetKey)) {
+            if (not db->get(storage::kAuthoritySetKey)) {
               // insert authorities
               auto grandpa_api =
                   injector.template create<sptr<runtime::Grandpa>>();
@@ -310,17 +310,18 @@ namespace kagome::injector {
               }
               BOOST_ASSERT_MSG(voters.size() != 0, "Grandpa voters are empty");
               BOOST_ASSERT_MSG(
-                  trie_db->put(storage::kAuthoritySetKey,
-                               common::Buffer(scale::encode(voters).value())),
+                  db->put(storage::kAuthoritySetKey,
+                          common::Buffer(scale::encode(voters).value())),
                   "Could not insert authorities");
 
               // insert last completed round
               consensus::grandpa::CompletedRound zero_round;
               zero_round.round_number = 0;
               const auto &hasher = injector.template create<crypto::Hasher &>();
-              auto genesis_hash =
-                  hasher.blake2b_256(scale::encode(genesis_block.header).value());
-              spdlog::debug("Genesis hash in injector: {}", genesis_hash.toHex());
+              auto genesis_hash = hasher.blake2b_256(
+                  scale::encode(genesis_block.header).value());
+              spdlog::debug("Genesis hash in injector: {}",
+                            genesis_hash.toHex());
               zero_round.state.prevote_ghost =
                   consensus::grandpa::Prevote(0, genesis_hash);
               zero_round.state.estimate =
@@ -328,9 +329,8 @@ namespace kagome::injector {
               zero_round.state.finalized =
                   primitives::BlockInfo(0, genesis_hash);
               BOOST_ASSERT_MSG(
-                  trie_db->put(
-                      storage::kSetStateKey,
-                      common::Buffer(scale::encode(zero_round).value())),
+                  db->put(storage::kSetStateKey,
+                          common::Buffer(scale::encode(zero_round).value())),
                   "Could not insert completed round");
             }
           });

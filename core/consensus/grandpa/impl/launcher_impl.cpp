@@ -29,6 +29,11 @@ namespace kagome::consensus::grandpa {
         keypair_{keypair},
         clock_{std::move(clock)},
         io_context_{std::move(io_context)} {
+    BOOST_ASSERT(environment_ != nullptr);
+    BOOST_ASSERT(storage_ != nullptr);
+    BOOST_ASSERT(crypto_provider_ != nullptr);
+    BOOST_ASSERT(clock_ != nullptr);
+    BOOST_ASSERT(io_context_ != nullptr);
     // lambda which is executed when voting round is completed. This lambda
     // executes next round
     auto handle_completed_round =
@@ -50,12 +55,20 @@ namespace kagome::consensus::grandpa {
   }
 
   outcome::result<std::shared_ptr<VoterSet>> LauncherImpl::getVoters() const {
+    /*
+     * TODO(kamilsa): PRE-356 Check if voters were updated:
+     * We should check if voters received from runtime (through
+     * grandpa->grandpa_authorities() runtime entry call) differ from the ones
+     * that we obtained from the storage. If so, we should return voter set with
+     * incremented voter set and consisting of new voters. Also round number
+     * should be reset to 0
+     */
     OUTCOME_TRY(voters_encoded, storage_->get(storage::kAuthoritySetKey));
     OUTCOME_TRY(voter_set, scale::decode<VoterSet>(voters_encoded));
     return std::make_shared<VoterSet>(voter_set);
   }
 
-  outcome::result<CompletedRound> LauncherImpl::getLastRoundNumber() const {
+  outcome::result<CompletedRound> LauncherImpl::getLastCompletedRound() const {
     OUTCOME_TRY(last_round_encoded, storage_->get(storage::kSetStateKey));
 
     return scale::decode<CompletedRound>(last_round_encoded);
@@ -104,7 +117,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void LauncherImpl::start() {
-    auto last_round_res = getLastRoundNumber();
+    auto last_round_res = getLastCompletedRound();
     BOOST_ASSERT_MSG(last_round_res, "Last round does not exist");
     const auto &last_round = last_round_res.value();
     boost::asio::post(*io_context_, [self{shared_from_this()}, last_round] {

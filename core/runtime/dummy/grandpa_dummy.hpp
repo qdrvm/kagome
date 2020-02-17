@@ -10,6 +10,10 @@
 
 namespace kagome::runtime::dummy {
 
+  /**
+   * Dummy implementation of Grandpa runtime entries
+   * Accepts the list of weighted authorities and returns it when requested
+   */
   class GrandpaDummy : public Grandpa {
    public:
     explicit GrandpaDummy(std::vector<WeightedAuthority> authorities);
