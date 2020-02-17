@@ -134,4 +134,5 @@ Please use provided [.clang-format](.clang-format) file to autoformat the code.
 ## Kagome in media
 
 * Press-release: [Soramitsu to implement Polkadot Runtime Environment in C++](https://medium.com/web3foundation/w3f-grants-soramitsu-to-implement-polkadot-runtime-environment-in-c-cf3baa08cbe6)
-* Kagome and consensus in Polkadot talk (in Russian): [Innopolis blockchain meetup (28.10.19)](https://www.youtube.com/watch?v=5OrevTjaiPA)
+* [Kagome: C++ implementation of PRE](https://www.youtube.com/watch?v=181mk2xvBZ4&t=) presentation at DOTCon
+* [Kagome and consensus in Polkadot](https://www.youtube.com/watch?v=5OrevTjaiPA) presentation (in Russian) during Innopolis blockchain meetup (28.10.19)
