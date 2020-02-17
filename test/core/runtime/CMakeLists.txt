@@ -67,6 +67,7 @@ addtest(grandpa_test
     )
 target_link_libraries(grandpa_test
     binaryen_grandpa_api
+    trie_db_backend
     basic_wasm_provider
     extension_factory
     )
@@ -86,6 +87,7 @@ addtest(offchain_worker_test
 target_link_libraries(offchain_worker_test
     binaryen_offchain_worker_api
     basic_wasm_provider
+    trie_db_backend
     extension_factory
     )
 

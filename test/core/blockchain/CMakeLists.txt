@@ -10,6 +10,7 @@ target_link_libraries(block_header_repository_test
     block_header_repository
     base_leveldb_test
     hasher
+    blockchain_common
     )
 
 addtest(block_tree_test

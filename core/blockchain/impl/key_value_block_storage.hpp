@@ -29,7 +29,7 @@ namespace kagome::blockchain {
     static outcome::result<std::shared_ptr<KeyValueBlockStorage>>
     createWithGenesis(
         common::Buffer state_root,
-        const std::shared_ptr<storage::PersistentBufferMap> &storage,
+        const std::shared_ptr<storage::BufferStorage> &storage,
         std::shared_ptr<crypto::Hasher> hasher);
 
     outcome::result<primitives::BlockHeader> getBlockHeader(
@@ -52,10 +52,10 @@ namespace kagome::blockchain {
         const primitives::BlockNumber &number) override;
 
    private:
-    KeyValueBlockStorage(std::shared_ptr<storage::PersistentBufferMap> storage,
+    KeyValueBlockStorage(std::shared_ptr<storage::BufferStorage> storage,
                          std::shared_ptr<crypto::Hasher> hasher);
 
-    std::shared_ptr<storage::PersistentBufferMap> storage_;
+    std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::Hasher> hasher_;
     common::Logger logger_;
   };

@@ -13,8 +13,8 @@
 #include "storage/trie/impl/polkadot_codec.hpp"
 #include "storage/trie/impl/polkadot_node.hpp"
 #include "storage/trie/impl/polkadot_trie.hpp"
-#include "storage/trie/impl/polkadot_trie_db_backend.hpp"
 #include "storage/trie/trie_db.hpp"
+#include "storage/trie/trie_db_backend.hpp"
 
 namespace kagome::storage::trie {
 
@@ -41,17 +41,25 @@ namespace kagome::storage::trie {
 
    public:
     /**
-     * initializes the trie from the provided storage (and will use the storage
+     * Initializes the trie from the provided storage (and will use the storage
      * further)
      */
-    static outcome::result<std::unique_ptr<PolkadotTrieDb>> createFromStorage(
-        std::shared_ptr<PolkadotTrieDbBackend> db);
+    static std::unique_ptr<PolkadotTrieDb> createFromStorage(
+        common::Buffer root, std::shared_ptr<TrieDbBackend> backend);
 
     /**
-     * creates an empty trie on the provided storage
+     * Creates an empty trie on the provided storage
      */
     static std::unique_ptr<PolkadotTrieDb> createEmpty(
-        std::shared_ptr<PolkadotTrieDbBackend> db);
+        std::shared_ptr<TrieDbBackend> backend);
+
+    /**
+     * Initializes the trie from the provided storage in read-only mode
+     * Mostly required to restore the trie state at a specific moment in time on
+     * the blockchain
+     */
+    static std::unique_ptr<TrieDbReader> initReadOnlyFromStorage(
+        common::Buffer root, std::shared_ptr<TrieDbBackend> backend);
 
     ~PolkadotTrieDb() override = default;
 
@@ -78,14 +86,14 @@ namespace kagome::storage::trie {
     /**
      * @return the root hash of empty Trie
      */
-    common::Buffer getEmptyRoot() const override;
+    common::Buffer getEmptyRoot() const;
 
     bool empty() const override;
 
     std::unique_ptr<MapCursor> cursor() override;
 
    protected:
-    PolkadotTrieDb(std::shared_ptr<PolkadotTrieDbBackend> db,
+    PolkadotTrieDb(std::shared_ptr<TrieDbBackend> db,
                    boost::optional<common::Buffer> root_hash);
 
    private:
@@ -117,7 +125,7 @@ namespace kagome::storage::trie {
     outcome::result<NodePtr> retrieveChild(const BranchPtr &parent,
                                            uint8_t idx) const;
 
-    std::shared_ptr<PolkadotTrieDbBackend> db_;
+    std::shared_ptr<TrieDbBackend> db_;
     PolkadotCodec codec_;
     common::Buffer root_;
   };

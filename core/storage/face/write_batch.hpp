@@ -6,7 +6,7 @@
 #ifndef KAGOME_WRITE_BATCH_HPP
 #define KAGOME_WRITE_BATCH_HPP
 
-#include "storage/face/writeable_map.hpp"
+#include "storage/face/writeable.hpp"
 
 namespace kagome::storage::face {
 
@@ -16,7 +16,7 @@ namespace kagome::storage::face {
    * @tparam V value type
    */
   template <typename K, typename V>
-  struct WriteBatch : public WriteableMap<K, V> {
+  struct WriteBatch : public Writeable<K, V> {
     /**
      * @brief Writes batch.
      * @return error code in case of error.

@@ -24,7 +24,7 @@
 #include "blockchain/impl/block_tree_impl.hpp"
 #include "blockchain/impl/key_value_block_header_repository.hpp"
 #include "blockchain/impl/key_value_block_storage.hpp"
-#include "blockchain/impl/persistent_map_util.hpp"
+#include "blockchain/impl/storage_util.hpp"
 #include "boost/di/extension/injections/extensible_injector.hpp"
 #include "clock/impl/basic_waitable_timer.hpp"
 #include "clock/impl/clock_impl.hpp"
@@ -66,6 +66,7 @@
 #include "storage/trie/impl/polkadot_codec.hpp"
 #include "storage/trie/impl/polkadot_node.hpp"
 #include "storage/trie/impl/polkadot_trie_db.hpp"
+#include "storage/trie/impl/trie_db_backend_impl.hpp"
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
 
@@ -279,7 +280,7 @@ namespace kagome::injector {
       auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
 
       const auto &db =
-          injector.template create<sptr<storage::PersistentBufferMap>>();
+          injector.template create<sptr<storage::BufferStorage>>();
 
       const auto &trie_db = injector.template create<storage::trie::TrieDb &>();
 
@@ -323,19 +324,19 @@ namespace kagome::injector {
 
     // polkadot trie db getter
     auto get_polkadot_trie_db_backend =
-        [](const auto &injector) -> sptr<storage::trie::PolkadotTrieDbBackend> {
+        [](const auto &injector) -> sptr<storage::trie::TrieDbBackendImpl> {
       static auto initialized =
-          boost::optional<sptr<storage::trie::PolkadotTrieDbBackend>>(
+          boost::optional<sptr<storage::trie::TrieDbBackendImpl>>(
               boost::none);
 
       if (initialized) {
         return initialized.value();
       }
       auto storage =
-          injector.template create<sptr<storage::PersistentBufferMap>>();
+          injector.template create<sptr<storage::BufferStorage>>();
       using blockchain::prefix::TRIE_NODE;
-      auto backend = std::make_shared<storage::trie::PolkadotTrieDbBackend>(
-          storage, common::Buffer{TRIE_NODE}, common::Buffer{0});
+      auto backend = std::make_shared<storage::trie::TrieDbBackendImpl>(
+          storage, common::Buffer{TRIE_NODE});
       initialized = backend;
       return backend;
     };
@@ -350,7 +351,7 @@ namespace kagome::injector {
       }
       auto backend =
           injector
-              .template create<sptr<storage::trie::PolkadotTrieDbBackend>>();
+              .template create<sptr<storage::trie::TrieDbBackendImpl>>();
       sptr<storage::trie::PolkadotTrieDb> polkadot_trie_db =
           storage::trie::PolkadotTrieDb::createEmpty(backend);
       initialized = polkadot_trie_db;
@@ -385,10 +386,10 @@ namespace kagome::injector {
 
     // level db getter
     template <typename Injector>
-    sptr<storage::PersistentBufferMap> get_level_db(
+    sptr<storage::BufferStorage> get_level_db(
         std::string_view leveldb_path, const Injector &injector) {
       static auto initialized =
-          boost::optional<sptr<storage::PersistentBufferMap>>(boost::none);
+          boost::optional<sptr<storage::BufferStorage>>(boost::none);
       if (initialized) {
         return initialized.value();
       }
@@ -511,7 +512,7 @@ namespace kagome::injector {
         di::bind<authorship::Proposer>.template to<authorship::ProposerImpl>(),
         di::bind<authorship::BlockBuilder>.template to<authorship::BlockBuilderImpl>(),
         di::bind<authorship::BlockBuilderFactory>.template to<authorship::BlockBuilderFactoryImpl>(),
-        di::bind<storage::PersistentBufferMap>.to(
+        di::bind<storage::BufferStorage>.to(
             [leveldb_path](const auto &injector) {
               return get_level_db(leveldb_path, injector);
             }),
@@ -549,7 +550,7 @@ namespace kagome::injector {
         di::bind<runtime::BlockBuilder>.template to<runtime::binaryen::BlockBuilderImpl>(),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
-        di::bind<storage::trie::PolkadotTrieDbBackend>.to(
+        di::bind<storage::trie::TrieDbBackendImpl>.to(
             std::move(get_polkadot_trie_db_backend)),
         di::bind<storage::trie::PolkadotTrieDb>.to(
             std::move(get_polkadot_trie_db)),

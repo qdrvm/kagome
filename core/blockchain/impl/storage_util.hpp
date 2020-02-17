@@ -6,10 +6,11 @@
 #ifndef KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTENT_MAP_UTIL_HPP
 #define KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTENT_MAP_UTIL_HPP
 
+
 #include "common/buffer.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
-#include "storage/face/persistent_map.hpp"
+#include "storage/buffer_map_types.hpp"
 
 /**
  * Auxiliary functions to simplify usage of persistant map based storage
@@ -63,7 +64,7 @@ namespace kagome::blockchain {
    * @return storage error if any
    */
   outcome::result<void> putWithPrefix(
-      storage::face::PersistentMap<common::Buffer, common::Buffer> &map,
+      storage::BufferStorage &map,
       prefix::Prefix prefix,
       primitives::BlockNumber num,
       common::Hash256 block_hash,
@@ -77,7 +78,7 @@ namespace kagome::blockchain {
    * @return encoded entry or error
    */
   outcome::result<common::Buffer> getWithPrefix(
-      const storage::face::PersistentMap<common::Buffer, common::Buffer> &map,
+      const storage::BufferStorage &map,
       prefix::Prefix prefix,
       const primitives::BlockId &block_id);
 

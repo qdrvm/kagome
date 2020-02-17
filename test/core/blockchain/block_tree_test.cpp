@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "blockchain/impl/block_tree_impl.hpp"
-
 #include <gtest/gtest.h>
+
 #include "blockchain/block_tree_error.hpp"
-#include "blockchain/impl/persistent_map_util.hpp"
+#include "blockchain/impl/block_tree_impl.hpp"
+#include "blockchain/impl/storage_util.hpp"
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "crypto/hasher/hasher_impl.hpp"

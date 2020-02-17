@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "core/runtime/mock_memory.hpp"
-#include "core/storage/trie/mock_trie_db.hpp"
+#include "mock/core/storage/trie/trie_db_mock.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -17,7 +17,7 @@ using kagome::extensions::StorageExtension;
 using kagome::runtime::MockMemory;
 using kagome::runtime::SizeType;
 using kagome::runtime::WasmPointer;
-using kagome::storage::trie::MockTrieDb;
+using kagome::storage::trie::TrieDbMock;
 
 using ::testing::_;
 using ::testing::Return;
@@ -25,13 +25,13 @@ using ::testing::Return;
 class StorageExtensionTest : public ::testing::Test {
  public:
   void SetUp() override {
-    db_ = std::make_shared<MockTrieDb>();
+    db_ = std::make_shared<TrieDbMock>();
     memory_ = std::make_shared<MockMemory>();
     storage_extension_ = std::make_shared<StorageExtension>(db_, memory_);
   }
 
  protected:
-  std::shared_ptr<MockTrieDb> db_;
+  std::shared_ptr<TrieDbMock> db_;
   std::shared_ptr<MockMemory> memory_;
   std::shared_ptr<StorageExtension> storage_extension_;
 
