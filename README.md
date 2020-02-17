@@ -54,6 +54,8 @@ Kagome is a [Polkadot Runtime Environment](https://github.com/w3f/polkadot-spec/
     * Kagome uses [cpp-libp2p](https://github.com/soramitsu/libp2p) for peer-to-peer interactions
     * Gossiper and Gossiper observer
     * SyncClient and SyncServer 
+    
+You can find more information about the components by checking [reference documentation](https://kagome.netlify.com). 
 
 ## Trying out Kagome node
 
