@@ -1,6 +1,5 @@
 ![logo](/docs/image_assets/logo.png)
 
-# Kagome
 [![Build Status](https://travis-ci.org/soramitsu/kagome.svg?branch=master)](https://travis-ci.org/soramitsu/kagome)
 [![code inspector](https://www.code-inspector.com/project/74/status/svg)](https://www.code-inspector.com/public/project/74/kagome/dashboard)
 [![CodeFactor](https://www.codefactor.io/repository/github/soramitsu/kagome/badge)](https://www.codefactor.io/repository/github/soramitsu/kagome)
@@ -56,17 +55,78 @@ Kagome is a [Polkadot Runtime Environment](https://github.com/w3f/polkadot-spec/
     * Gossiper and Gossiper observer
     * SyncClient and SyncServer 
 
+## Trying out Kagome node
 
-## Dev Guides
+As of now there is not much things you can do with Kagome node. However, you can already execute a block production node.
 
+### Build kagome node
+
+To build kagome node binary go to your build folder and assemble `kagome_full` binary using cmake:
+```cmake
+cd build
+cmake -DCLANG_TIDY=ON ..
+make kagome_full -j 
+```
+
+### Get necessary configurations for the node
+* Executable binary could be found in `build/examples/kagome_full/`
+* To execute kagome node you need to provide it with genesis config, keys and leveldb files
+* Example genesis config file can be found in `examples/kagome_full/config/genesis_custom.json`
+* Example keys file can be found in `examples/kagome_full/config/keystore.json`
+* To create leveldb storage file just provide any path into `kagome_full` executable.
+
+### Execute kagome node
+To launch kagome node execute:
+```cmake
+cd examples/kagome_full
+kagome_full --genesis config/genesis_custom.json --keystore config/keystore.json -l ldb
+```
+
+This command executes kagome node which can receive extrinsics locally on port: `4224` (currently hardcoded) 
+
+## Contributing guides
+
+Before contributing to Kagome make sure to read these development guides:
 1. [Terms](./docs/terms.md)
 2. [Rules](./docs/rules.md)
 3. [Development guide](./docs/dev-guide.md)
 4. [`outcome::result<T>` docs](./docs/result.md)
 5. [Tooling](./docs/tooling.md)
 
-## Dev Environment
+### Clone
 
-1. `git clone https://github.com/soramitsu/polkadot`
-2. `cd polkadot`
-3. `git submodule update --init --recursive`
+To clone repository execute: 
+1. `git clone https://github.com/soramitsu/kagome`
+2. `cd kagome`
+
+### Build Kagome
+
+First build will likely take long time. However, you can cache binaries to [hunter-binary-cache](https://github.com/soramitsu/hunter-binary-cache) or even download binaries from the cache in case someone has already compiled project with the same compiler. To this end, you need to set up two environment variables:
+```
+GITHUB_HUNTER_USERNAME=<github account name>
+GITHUB_HUNTER_TOKEN=<github token>
+```
+To generate github token follow the [instructions](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line). Make sure `read:packages` and `write:packages` permissions are granted (step 7 in instructions).
+
+This project is can be built with
+
+```cmake
+mkdir build && cd build
+cmake -DCLANG_TIDY=ON ..
+make -j
+```
+
+It is suggested to build project with clang-tidy checks, however if you wish to omit clang-tidy step, you can use `cmake ..` instead.
+
+Tests can be run with: 
+```cmake
+cd build
+ctest
+```
+
+### CodeStyle
+
+We follow [CppCoreGuidelines](https://github.com/isocpp/CppCoreGuidelines).
+
+Please use provided [.clang-format](.clang-format) file to autoformat the code.  
+
