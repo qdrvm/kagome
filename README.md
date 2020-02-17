@@ -71,8 +71,8 @@ To clone repository execute:
 ### Build kagome node
 
 To build kagome node binary go to your build folder and assemble `kagome_full` binary using cmake:
-```cmake
-cd build
+```
+mkdir build && cd build
 cmake ..
 make kagome_full -j 
 ```
@@ -86,7 +86,7 @@ make kagome_full -j
 
 ### Execute kagome node
 To launch kagome node execute:
-```cmake
+```
 cd examples/kagome_full
 kagome_full --genesis config/genesis_custom.json --keystore config/keystore.json -l ldb
 ```
@@ -113,8 +113,8 @@ To generate github token follow the [instructions](https://help.github.com/en/gi
 
 This project is can be built with
 
-```cmake
-mkdir build && cd build
+```
+cd build
 cmake -DCLANG_TIDY=ON ..
 make -j
 ```
@@ -122,7 +122,7 @@ make -j
 It is suggested to build project with clang-tidy checks, however if you wish to omit clang-tidy step, you can use `cmake ..` instead.
 
 Tests can be run with: 
-```cmake
+```
 cd build
 ctest
 ```
