@@ -1,10 +1,13 @@
+![logo](/docs/image_assets/logo.png)
+
+# Kagome
 [![Build Status](https://travis-ci.org/soramitsu/kagome.svg?branch=master)](https://travis-ci.org/soramitsu/kagome)
 [![code inspector](https://www.code-inspector.com/project/74/status/svg)](https://www.code-inspector.com/public/project/74/kagome/dashboard)
 [![CodeFactor](https://www.codefactor.io/repository/github/soramitsu/kagome/badge)](https://www.codefactor.io/repository/github/soramitsu/kagome)
 [![codecov](https://codecov.io/gh/soramitsu/kagome/branch/master/graph/badge.svg)](https://codecov.io/gh/soramitsu/kagome)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/ad6fa504-99d6-48fb-9a05-869ba1d9a7c3/deploy-status)](https://app.netlify.com/sites/kagome/deploys)
 
-# polkadot
+Polkadot Runtime Environment described in [spec](https://github.com/w3f/polkadot-spec/tree/master/runtime-environment-spec)
 
 ## Dev Guides
 
