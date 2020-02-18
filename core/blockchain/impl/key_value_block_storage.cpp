@@ -62,8 +62,6 @@ namespace kagome::blockchain {
     // the rest of the fields have default value
 
     OUTCOME_TRY(block_storage.putBlock(genesis_block));
-    // TODO(kamilsa): get CompletedRound from genesis and put into the storage
-    // using kSetStateKey
     on_genesis_created(genesis_block);
     return std::make_shared<KeyValueBlockStorage>(block_storage);
   }
