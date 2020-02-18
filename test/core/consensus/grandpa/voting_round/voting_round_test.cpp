@@ -199,7 +199,7 @@ class VotingRoundTest : public ::testing::Test {
  * @when
  * 1. Alice prevotes Prevote{10, "FC"_h}
  * 2. Bob prevotes Prevote{10, "ED"_h}
- * 3. Eve prevotes Prevote {6 , "F"_h}
+ * 3. Eve prevotes Prevote{6 , "F"_h}
  * @then
  * 1. After Bob prevoted, prevote_ghost will be Prevote{6, "E"_h} (as this is
  * the best ancestor of "FC"_h and "ED"_h with supermajority)

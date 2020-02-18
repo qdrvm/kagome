@@ -41,6 +41,10 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<std::vector<BlockHash>> EnvironmentImpl::getAncestry(
       const BlockHash &base, const BlockHash &block) const {
+    // if base equal to block, then return empty list
+    if (base == block) {
+      return std::vector<BlockHash>{};
+    }
     OUTCOME_TRY(chain, block_tree_->getChainByBlocks(base, block));
     std::vector<BlockHash> result_chain(chain.size() - 2);
     std::copy(chain.rbegin() + 1, chain.rend() - 1, result_chain.begin());

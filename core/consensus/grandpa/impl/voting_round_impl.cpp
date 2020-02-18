@@ -129,7 +129,7 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    return total_weight > threshold_;
+    return total_weight >= threshold_;
   }
 
   bool VotingRoundImpl::tryFinalize() {

@@ -90,10 +90,23 @@ TEST_F(ChainTest, Ancestry) {
   auto h2 = "020202"_hash256;
   auto h3 = "030303"_hash256;
   auto h4 = "040404"_hash256;
-  EXPECT_CALL(*tree, getChainByBlocks(_, _))
+  EXPECT_CALL(*tree, getChainByBlocks(h1, h4))
       .WillOnce(Return(std::vector<Hash256>{h1, h2, h3, h4}));
   EXPECT_OUTCOME_TRUE(blocks, chain->getAncestry(h1, h4));
   std::vector<Hash256> expected{h3, h2};
+  ASSERT_EQ(blocks, expected);
+}
+
+/**
+ * @given chain api instance referring to a block tree with 4 blocks in its
+ * chain
+ * @when obtaining the ancestry from h1 to itself
+ * @then empty list is returned
+ */
+TEST_F(ChainTest, AncestryOfItself) {
+  auto h1 = "010101"_hash256;
+  EXPECT_OUTCOME_TRUE(blocks, chain->getAncestry(h1, h1));
+  std::vector<Hash256> expected{};
   ASSERT_EQ(blocks, expected);
 }
 
