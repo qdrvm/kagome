@@ -63,12 +63,13 @@ namespace kagome::consensus::grandpa {
         const BlockInfo &vote,
         const GrandpaJustification &justification) = 0;
 
-    virtual void doOnCompleted(std::function<void(const CompletedRound &)>) = 0;
+    virtual void doOnCompleted(
+        std::function<void(outcome::result<CompletedRound>)>) = 0;
 
     /**
      * Triggered when round \param round is completed
      */
-    virtual void onCompleted(CompletedRound round) = 0;
+    virtual void onCompleted(outcome::result<CompletedRound> round) = 0;
 
     /**
      * Triggered when blovk \param block justified by \param justification

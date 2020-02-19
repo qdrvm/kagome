@@ -57,13 +57,13 @@
 #include "network/sync_protocol_observer.hpp"
 #include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
 #include "runtime/binaryen/runtime_api/core_impl.hpp"
-//#include "runtime/binaryen/runtime_api/grandpa_impl.hpp"
+#include "runtime/binaryen/runtime_api/grandpa_impl.hpp"
 #include "runtime/binaryen/runtime_api/metadata_impl.hpp"
 #include "runtime/binaryen/runtime_api/offchain_worker_impl.hpp"
 #include "runtime/binaryen/runtime_api/parachain_host_impl.hpp"
 #include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
 #include "runtime/common/storage_wasm_provider.hpp"
-#include "runtime/dummy/grandpa_dummy.hpp"
+//#include "runtime/dummy/grandpa_dummy.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/trie/impl/polkadot_codec.hpp"
 #include "storage/trie/impl/polkadot_node.hpp"
@@ -280,8 +280,7 @@ namespace kagome::injector {
       }
       auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
 
-      const auto &db =
-          injector.template create<sptr<storage::BufferStorage>>();
+      const auto &db = injector.template create<sptr<storage::BufferStorage>>();
 
       const auto &trie_db =
           injector.template create<sptr<storage::trie::TrieDb>>();
@@ -375,14 +374,12 @@ namespace kagome::injector {
     auto get_polkadot_trie_db_backend =
         [](const auto &injector) -> sptr<storage::trie::TrieDbBackendImpl> {
       static auto initialized =
-          boost::optional<sptr<storage::trie::TrieDbBackendImpl>>(
-              boost::none);
+          boost::optional<sptr<storage::trie::TrieDbBackendImpl>>(boost::none);
 
       if (initialized) {
         return initialized.value();
       }
-      auto storage =
-          injector.template create<sptr<storage::BufferStorage>>();
+      auto storage = injector.template create<sptr<storage::BufferStorage>>();
       using blockchain::prefix::TRIE_NODE;
       auto backend = std::make_shared<storage::trie::TrieDbBackendImpl>(
           storage, common::Buffer{TRIE_NODE});
@@ -399,8 +396,7 @@ namespace kagome::injector {
         return initialized.value();
       }
       auto backend =
-          injector
-              .template create<sptr<storage::trie::TrieDbBackendImpl>>();
+          injector.template create<sptr<storage::trie::TrieDbBackendImpl>>();
       sptr<storage::trie::PolkadotTrieDb> polkadot_trie_db =
           storage::trie::PolkadotTrieDb::createEmpty(backend);
       initialized = polkadot_trie_db;
@@ -435,8 +431,8 @@ namespace kagome::injector {
 
     // level db getter
     template <typename Injector>
-    sptr<storage::BufferStorage> get_level_db(
-        std::string_view leveldb_path, const Injector &injector) {
+    sptr<storage::BufferStorage> get_level_db(std::string_view leveldb_path,
+                                              const Injector &injector) {
       static auto initialized =
           boost::optional<sptr<storage::BufferStorage>>(boost::none);
       if (initialized) {
@@ -596,28 +592,29 @@ namespace kagome::injector {
         di::bind<runtime::ParachainHost>.template to<runtime::binaryen::ParachainHostImpl>(),
         di::bind<runtime::OffchainWorker>.template to<runtime::binaryen::OffchainWorkerImpl>(),
         di::bind<runtime::Metadata>.template to<runtime::binaryen::MetadataImpl>(),
-        //        di::bind<runtime::Grandpa>.template
-        //        to<runtime::binaryen::GrandpaImpl>(),
-        di::bind<runtime::Grandpa>.to([](const auto &injector) {
-          // single peer authorities list
-          static auto initialized =
-              boost::optional<sptr<runtime::Grandpa>>(boost::none);
-          if (initialized) {
-            return initialized.value();
-          }
-
-          const auto &keys =
-              injector.template create<application::KeyStorage &>();
-          auto &&local_pair = keys.getLocalEd25519Keypair();
-          primitives::Authority w_a;
-          w_a.id.id = local_pair.public_key;
-          w_a.babe_weight =
-              1;  // naming is wrong, this is the weight for the grandpa
-
-          initialized = std::make_shared<runtime::dummy::GrandpaDummy>(
-              std::vector<primitives::Authority>{w_a});
-          return initialized.value();
-        }),
+        di::bind<runtime::Grandpa>.template to<runtime::binaryen::GrandpaImpl>(),
+        //        di::bind<runtime::Grandpa>.to([](const auto &injector) {
+        //          // single peer authorities list
+        //          static auto initialized =
+        //              boost::optional<sptr<runtime::Grandpa>>(boost::none);
+        //          if (initialized) {
+        //            return initialized.value();
+        //          }
+        //
+        //          const auto &keys =
+        //              injector.template create<application::KeyStorage &>();
+        //          auto &&local_pair = keys.getLocalEd25519Keypair();
+        //          primitives::Authority w_a;
+        //          w_a.id.id = local_pair.public_key;
+        //          w_a.babe_weight =
+        //              1;  // naming is wrong, this is the weight for the
+        //              grandpa
+        //
+        //          initialized =
+        //          std::make_shared<runtime::dummy::GrandpaDummy>(
+        //              std::vector<primitives::Authority>{w_a});
+        //          return initialized.value();
+        //        }),
         di::bind<runtime::Core>.template to<runtime::binaryen::CoreImpl>(),
         di::bind<runtime::BlockBuilder>.template to<runtime::binaryen::BlockBuilderImpl>(),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),

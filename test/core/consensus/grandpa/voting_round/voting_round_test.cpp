@@ -365,11 +365,11 @@ ACTION_P(onPrecommitted, test_fixture) {
       test_fixture->preparePrecommit(test_fixture->kBob,
                                      test_fixture->kBobSignature,
                                      signed_precommit.message));
-  // send Eve's precommit
-  test_fixture->voting_round_->onPrecommit(
-      test_fixture->preparePrecommit(test_fixture->kEve,
-                                     test_fixture->kEveSignature,
-                                     signed_precommit.message));
+  //  // send Eve's precommit
+  //  test_fixture->voting_round_->onPrecommit(
+  //      test_fixture->preparePrecommit(test_fixture->kEve,
+  //                                     test_fixture->kEveSignature,
+  //                                     signed_precommit.message));
   return outcome::success();
 }
 
@@ -488,17 +488,12 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
                 preparePrecommit(kAlice, kAliceSignature, precommit);
             SignedPrecommit bob_precommit =
                 preparePrecommit(kBob, kBobSignature, precommit);
-            SignedPrecommit eve_precommit =
-                preparePrecommit(kEve, kEveSignature, precommit);
             bool has_alice_precommit =
                 boost::find(just.items, alice_precommit) != just.items.end();
             bool has_bob_precommit =
                 boost::find(just.items, bob_precommit) != just.items.end();
-            bool has_eve_precommit =
-                boost::find(just.items, eve_precommit) != just.items.end();
 
-            return has_alice_precommit and has_bob_precommit
-                   and has_eve_precommit;
+            return has_alice_precommit and has_bob_precommit;
           })))
       .WillOnce(onFinalize(this));
 
@@ -513,7 +508,9 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
                             .finalized = expected_final_estimate};
   CompletedRound expected_completed_round{.round_number = round_number_,
                                           .state = expected_state};
-  EXPECT_CALL(*env_, onCompleted(expected_completed_round))
+  EXPECT_CALL(
+      *env_,
+      onCompleted(outcome::result<CompletedRound>(expected_completed_round)))
       .WillRepeatedly(Return());
 
   voting_round_->primaryPropose(last_round_state);

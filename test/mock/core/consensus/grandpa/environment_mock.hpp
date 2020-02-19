@@ -41,9 +41,9 @@ namespace kagome::consensus::grandpa {
                               const GrandpaJustification &justification));
 
     MOCK_METHOD1(doOnCompleted,
-                 void(std::function<void(const CompletedRound &)>));
+                 void(std::function<void(outcome::result<CompletedRound>)>));
 
-    MOCK_METHOD1(onCompleted, void(CompletedRound round));
+    MOCK_METHOD1(onCompleted, void(outcome::result<CompletedRound> round));
 
     MOCK_METHOD2(
         finalize,

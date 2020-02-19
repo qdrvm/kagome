@@ -9,6 +9,7 @@
 #include <boost/range/algorithm/find_if.hpp>
 #include <boost/range/numeric.hpp>
 #include "common/visitor.hpp"
+#include "consensus/grandpa/impl/voting_round_error.hpp"
 #include "primitives/justification.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -80,27 +81,21 @@ namespace kagome::consensus::grandpa {
 
   void VotingRoundImpl::onFinalize(const Fin &f) {
     // validate message
-    switch (state_) {
-      case State::PROPOSED:
-      case State::START:
-      case State::PREVOTED:
-        break;
-      case State::PRECOMMITTED: {
-        if (validate(f.vote, f.justification)) {
-          // finalize to state
-          auto finalized = env_->finalize(f.vote.block_hash, f.justification);
-          if (not finalized) {
-            logger_->error(
-                "Could not finalize block {} from round {} with error: {}",
-                f.vote.block_hash.toHex(),
-                f.round_number,
-                finalized.error().message());
-            return;
-          }
-          env_->onCompleted(CompletedRound{.round_number = round_number_,
-                                           .state = cur_round_state_});
-        }
+    if (validate(f.vote, f.justification)) {
+      // finalize to state
+      auto finalized = env_->finalize(f.vote.block_hash, f.justification);
+      if (not finalized) {
+        logger_->error(
+            "Could not finalize block {} from round {} with error: {}",
+            f.vote.block_hash.toHex(),
+            f.round_number,
+            finalized.error().message());
+        return;
       }
+      env_->onCompleted(CompletedRound{.round_number = round_number_,
+                                       .state = cur_round_state_});
+    } else {
+      env_->onCompleted(VotingRoundError::FIN_VALIDATION_FAILED);
     }
   }
 
@@ -141,38 +136,37 @@ namespace kagome::consensus::grandpa {
       return false;
     }
     // check if new state differs with the old one and broadcast new state
-    return notify(*last_round_state_);
+    if (auto notify_res = notify(*last_round_state_); not notify_res) {
+      logger_->warn("Did not notify. Reason: {}", notify_res.error().message());
+      // Round is completable but we cannot notify others. Finish the round
+      env_->onCompleted(notify_res.error());
+      return false;
+    }
+    return true;
   }
 
-  bool VotingRoundImpl::notify(const RoundState &last_round_state) {
+  outcome::result<void> VotingRoundImpl::notify(
+      const RoundState &last_round_state) {
     if (last_round_state == cur_round_state_) {
-      return false;
+      return VotingRoundError::NEW_STATE_EQUAL_TO_OLD;
     }
 
     if (last_round_state.finalized != cur_round_state_.finalized
         && completable_) {
-      if (state_ == State::PRECOMMITTED) {
-        auto finalized = cur_round_state_.finalized.value();
-        const auto &opt_justification = finalizingPrecommits(finalized);
-        if (not opt_justification) {
-          logger_->warn("No justification for block  <{}, {}>",
-                        finalized.block_number,
-                        finalized.block_hash.toHex());
-        }
-
-        auto justification = opt_justification.value();
-
-        auto committed =
-            env_->onCommitted(round_number_, finalized, justification);
-        if (not committed) {
-          logger_->error("Commit was not sent: {}",
-                         committed.error().message());
-          return false;
-        }
-        return true;
+      auto finalized = cur_round_state_.finalized.value();
+      const auto &opt_justification = finalizingPrecommits(finalized);
+      if (not opt_justification) {
+        logger_->warn("No justification for block  <{}, {}>",
+                      finalized.block_number,
+                      finalized.block_hash.toHex());
       }
+
+      auto justification = opt_justification.value();
+
+      OUTCOME_TRY(env_->onCommitted(round_number_, finalized, justification));
+      return outcome::success();
     }
-    return false;
+    return VotingRoundError::NEW_STATE_EQUAL_TO_OLD;
   }
 
   RoundNumber VotingRoundImpl::roundNumber() const {
@@ -446,11 +440,12 @@ namespace kagome::consensus::grandpa {
                 break;
               }
               state_ = State::PRECOMMITTED;
-              tryFinalize();
+              break;
             } else {
               BOOST_ASSERT_MSG(false, "Not possible. Shouldn't get here");
             }
           }
+          env_->onCompleted(VotingRoundError::SHOULD_NOT_PRECOMMIT);
           break;
         }
         case State::START:

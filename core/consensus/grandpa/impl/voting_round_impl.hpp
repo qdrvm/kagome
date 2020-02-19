@@ -139,7 +139,7 @@ namespace kagome::consensus::grandpa {
 
     // notify about new finalized round. False if new state does not differ from
     // old one
-    bool notify(const RoundState &last_round_state);
+    outcome::result<void> notify(const RoundState &last_round_state);
 
     /// prepare justification for the provided \param estimate
     boost::optional<GrandpaJustification> finalizingPrecommits(

@@ -149,11 +149,11 @@ namespace kagome::consensus::grandpa {
   }
 
   void EnvironmentImpl::doOnCompleted(
-      std::function<void(const CompletedRound &)> on_completed_slot) {
+      std::function<void(outcome::result<CompletedRound>)> on_completed_slot) {
     on_completed_.connect(on_completed_slot);
   }
 
-  void EnvironmentImpl::onCompleted(CompletedRound round) {
+  void EnvironmentImpl::onCompleted(outcome::result<CompletedRound> round) {
     BOOST_ASSERT_MSG(
         not on_completed_.empty(),
         "Completed signal in environment cannot be empty when it is invoked");

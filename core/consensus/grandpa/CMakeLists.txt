@@ -43,6 +43,13 @@ target_link_libraries(vote_weight
     voter_set
     )
 
+add_library(voting_round_error
+    impl/voting_round_error.cpp
+    )
+target_link_libraries(voting_round_error
+    outcome
+    )
+
 add_library(voting_round
     impl/voting_round_impl.cpp
     )
@@ -50,6 +57,7 @@ add_library(voting_round
 target_link_libraries(voting_round
     logger
     voter_set
+    voting_round_error
     )
 
 add_library(launcher

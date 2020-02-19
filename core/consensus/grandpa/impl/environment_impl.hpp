@@ -18,7 +18,8 @@
 namespace kagome::consensus::grandpa {
 
   class EnvironmentImpl : public Environment {
-    using OnCompleted = boost::signals2::signal<void(const CompletedRound &)>;
+    using OnCompleted =
+        boost::signals2::signal<void(outcome::result<CompletedRound>)>;
     using OnCompletedSlotType = OnCompleted::slot_type;
 
    public:
@@ -61,9 +62,10 @@ namespace kagome::consensus::grandpa {
         const BlockInfo &vote,
         const GrandpaJustification &justification) override;
 
-    void doOnCompleted(std::function<void(const CompletedRound &)>) override;
+    void doOnCompleted(
+        std::function<void(outcome::result<CompletedRound>)>) override;
 
-    void onCompleted(CompletedRound round) override;
+    void onCompleted(outcome::result<CompletedRound> round) override;
 
     outcome::result<void> finalize(
         const primitives::BlockHash &block_hash,

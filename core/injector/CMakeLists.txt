@@ -23,14 +23,13 @@ target_link_libraries(application_injector
     sr25519_provider
     configuration_storage
     binaryen_core_api
-    #    binaryen_grandpa_api
-    grandpa_dummy
+    binaryen_grandpa_api
+    // grandpa_dummy
     binaryen_block_builder_api
     extrinsic_api_service
     extension_factory
     epoch_storage
     gossiper_broadcast
-    in_memory_storage
     kagome_router
     leveldb
     local_key_storage

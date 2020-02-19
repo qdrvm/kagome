@@ -37,7 +37,7 @@ namespace kagome::consensus::grandpa {
 
     void onFinalize(const Fin &f) override;
 
-    void executeNextRound(const CompletedRound &last_round);
+    void executeNextRound();
 
    private:
     outcome::result<std::shared_ptr<VoterSet>> getVoters() const;

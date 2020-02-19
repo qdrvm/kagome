@@ -36,31 +36,38 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(io_context_ != nullptr);
     // lambda which is executed when voting round is completed. This lambda
     // executes next round
-    auto handle_completed_round = [this](
-                                      const CompletedRound &completed_round) {
-      // update last completed round if it is greater than previous last
-      // completed round
-      const auto &last_completed_round_res = getLastCompletedRound();
-      if (not last_completed_round_res) {
-        logger_->warn(last_completed_round_res.error().message());
-        return;
-      }
-      const auto &last_completed_round = last_completed_round_res.value();
-      if (completed_round.round_number > last_completed_round.round_number) {
-        if (auto put_res = storage_->put(
-                storage::kSetStateKey,
-                common::Buffer(scale::encode(completed_round).value()));
-            not put_res) {
-          logger_->error("New round state was not added to the storage");
-          return;
-        }
-        BOOST_ASSERT(storage_->get(storage::kSetStateKey));
-      }
-      boost::asio::post(*io_context_,
-                        [self{shared_from_this()}, completed_round] {
-                          self->executeNextRound(completed_round);
-                        });
-    };
+    auto handle_completed_round =
+        [this](outcome::result<CompletedRound> completed_round_res) {
+          if (not completed_round_res) {
+            current_round_.reset();
+            logger_->warn("Grandpa round was not finalized: {}",
+                          completed_round_res.error().message());
+          } else {
+            const auto &completed_round = completed_round_res.value();
+            // update last completed round if it is greater than previous last
+            // completed round
+            const auto &last_completed_round_res = getLastCompletedRound();
+            if (not last_completed_round_res) {
+              logger_->warn(last_completed_round_res.error().message());
+              return;
+            }
+            const auto &last_completed_round = last_completed_round_res.value();
+            if (completed_round.round_number
+                > last_completed_round.round_number) {
+              if (auto put_res = storage_->put(
+                      storage::kSetStateKey,
+                      common::Buffer(scale::encode(completed_round).value()));
+                  not put_res) {
+                logger_->error("New round state was not added to the storage");
+                return;
+              }
+              BOOST_ASSERT(storage_->get(storage::kSetStateKey));
+            }
+          }
+          boost::asio::post(*io_context_, [self{shared_from_this()}] {
+            self->executeNextRound();
+          });
+        };
     environment_->doOnCompleted(handle_completed_round);
   }
 
@@ -84,7 +91,8 @@ namespace kagome::consensus::grandpa {
     return scale::decode<CompletedRound>(last_round_encoded);
   }
 
-  void LauncherImpl::executeNextRound(const CompletedRound &last_round) {
+  void LauncherImpl::executeNextRound() {
+    // obtain grandpa voters
     auto voters_res = getVoters();
     BOOST_ASSERT_MSG(
         voters_res.has_value(),
@@ -92,6 +100,11 @@ namespace kagome::consensus::grandpa {
     const auto &voters = voters_res.value();
     BOOST_ASSERT_MSG(voters->size() != 0,
                      "Voters are empty. Stopping grandpa execution");
+
+    // obtain last completed round
+    auto last_round_res = getLastCompletedRound();
+    BOOST_ASSERT_MSG(last_round_res, "Last round does not exist");
+    const auto &last_round = last_round_res.value();
     auto [round_number, last_round_state] = last_round;
     round_number++;
     using std::chrono_literals::operator""ms;
@@ -127,12 +140,8 @@ namespace kagome::consensus::grandpa {
   }
 
   void LauncherImpl::start() {
-    auto last_round_res = getLastCompletedRound();
-    BOOST_ASSERT_MSG(last_round_res, "Last round does not exist");
-    const auto &last_round = last_round_res.value();
-    boost::asio::post(*io_context_, [self{shared_from_this()}, last_round] {
-      self->executeNextRound(last_round);
-    });
+    boost::asio::post(*io_context_,
+                      [self{shared_from_this()}] { self->executeNextRound(); });
   }
 
   void LauncherImpl::onVoteMessage(const VoteMessage &msg) {
