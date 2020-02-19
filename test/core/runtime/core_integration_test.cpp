@@ -11,7 +11,7 @@
 #include <fstream>
 
 #include "core/runtime/runtime_test.hpp"
-#include "core/storage/trie/mock_trie_db.hpp"
+#include "mock/core/storage/trie/trie_db_mock.hpp"
 #include "extensions/impl/extension_factory_impl.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
@@ -26,7 +26,6 @@ using kagome::primitives::Extrinsic;
 using kagome::runtime::binaryen::CoreImpl;
 using kagome::runtime::WasmMemory;
 using kagome::runtime::binaryen::WasmMemoryImpl;
-using kagome::storage::trie::MockTrieDb;
 
 using ::testing::_;
 using ::testing::Return;

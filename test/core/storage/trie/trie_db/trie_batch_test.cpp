@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/trie/impl/polkadot_trie_batch.hpp"
-
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+
 #include "storage/in_memory/in_memory_storage.hpp"
+#include "storage/trie/impl/polkadot_trie_batch.hpp"
+#include "storage/trie/impl/trie_db_backend_impl.hpp"
 #include "storage/trie/impl/trie_error.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -15,6 +16,7 @@
 
 using namespace kagome::storage::trie;
 using kagome::common::Buffer;
+using kagome::common::Hash256;
 using kagome::storage::face::WriteBatch;
 using testing::_;
 using testing::Invoke;
@@ -26,8 +28,8 @@ class TrieBatchTest : public test::BaseLevelDB_Test {
 
   void SetUp() override {
     open();
-    trie = PolkadotTrieDb::createEmpty(std::make_shared<PolkadotTrieDbBackend>(
-        std::move(db_), kNodePrefix, kRootHashKey));
+    trie = PolkadotTrieDb::createEmpty(std::make_shared<TrieDbBackendImpl>(
+        std::move(db_), kNodePrefix));
   }
 
   static const std::vector<std::pair<Buffer, Buffer>> data;
@@ -35,12 +37,9 @@ class TrieBatchTest : public test::BaseLevelDB_Test {
   std::unique_ptr<PolkadotTrieDb> trie;
 
   static const Buffer kNodePrefix;
-  static const Buffer kRootHashKey;
 };
 
 const Buffer TrieBatchTest::kNodePrefix{1};
-
-const Buffer TrieBatchTest::kRootHashKey{0};
 
 const std::vector<std::pair<Buffer, Buffer>> TrieBatchTest::data = {
     {"123456"_hex2buf, "42"_hex2buf},
@@ -182,8 +181,8 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
       .WillOnce(Return(PolkadotCodec::Error::UNKNOWN_NODE_TYPE));
 
   PolkadotTrieDb trie =
-      *PolkadotTrieDb::createEmpty(std::make_shared<PolkadotTrieDbBackend>(
-          std::move(db), kNodePrefix, kRootHashKey));
+      *PolkadotTrieDb::createEmpty(std::make_shared<TrieDbBackendImpl>(
+          std::move(db), kNodePrefix));
   PolkadotTrieBatch batch{trie};
 
   EXPECT_OUTCOME_TRUE_1(batch.put("123"_buf, "111"_buf));

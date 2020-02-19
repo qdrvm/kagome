@@ -3,21 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_WRITEABLE_MAP_HPP
-#define KAGOME_WRITEABLE_MAP_HPP
+#ifndef KAGOME_WRITEABLE_HPP
+#define KAGOME_WRITEABLE_HPP
 
 #include <outcome/outcome.hpp>
 
 namespace kagome::storage::face {
 
   /**
-   * @brief An abstraction over modifiable map.
+   * @brief An mixin for modifiable map.
    * @tparam K key type
    * @tparam V value type
    */
   template <typename K, typename V>
-  struct WriteableMap {
-    virtual ~WriteableMap() = default;
+  struct Writeable {
+    virtual ~Writeable() = default;
 
     /**
      * @brief Store value by key
@@ -38,4 +38,4 @@ namespace kagome::storage::face {
 
 }  // namespace kagome::storage::face
 
-#endif  // KAGOME_WRITEABLE_MAP_HPP
+#endif  // KAGOME_WRITEABLE_HPP

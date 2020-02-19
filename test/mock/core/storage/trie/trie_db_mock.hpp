@@ -7,6 +7,7 @@
 #define KAGOME_TEST_MOCK_CORE_STORAGE_TRIE_TRIE_DB_MOCK_HPP
 
 #include <gmock/gmock.h>
+
 #include "storage/trie/trie_db.hpp"
 
 namespace kagome::storage::trie {

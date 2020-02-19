@@ -6,20 +6,19 @@
 #ifndef KAGOME_POLKADOT_TRIE_HPP
 #define KAGOME_POLKADOT_TRIE_HPP
 
-#include "storage/face/generic_map.hpp"
+#include "storage/face/generic_maps.hpp"
 #include "storage/trie/impl/polkadot_codec.hpp"
 #include "storage/trie/impl/polkadot_node.hpp"
 
 namespace kagome::storage::trie {
 
   /**
-   * For specification see
-   * https://github.com/w3f/polkadot-re-spec/blob/master/polkadot_re_spec.pdf
-   * 5.2 The General Tree Structure and further
+   * For specification see Polkadot Runtime Environment Protocol Specification
+   * '2.1.2 The General Tree Structure' and further
    */
   class PolkadotTrie
-      : public face::ReadableMap<common::Buffer, common::Buffer>,
-        public face::WriteableMap<common::Buffer, common::Buffer> {
+      : public face::Readable<common::Buffer, common::Buffer>,
+        public face::Writeable<common::Buffer, common::Buffer> {
     using NodePtr = std::shared_ptr<PolkadotNode>;
     using BranchPtr = std::shared_ptr<BranchNode>;
     using ChildRetrieveFunctor =

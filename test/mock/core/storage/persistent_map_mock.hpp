@@ -6,13 +6,13 @@
 #ifndef KAGOME_PERSISTENT_MAP_MOCK_HPP
 #define KAGOME_PERSISTENT_MAP_MOCK_HPP
 
-#include "storage/face/persistent_map.hpp"
-
 #include <gmock/gmock.h>
+
+#include "storage/face/batchable.hpp"
 
 namespace kagome::storage::face {
   template <typename K, typename V>
-  struct PersistentMapMock : public PersistentMap<K, V> {
+  struct GenericStorageMock : public face::GenericStorage<K, V> {
     MOCK_METHOD0_T(batch, std::unique_ptr<WriteBatch<K, V>>());
 
     MOCK_METHOD0_T(cursor, std::unique_ptr<MapCursor<K, V>>());

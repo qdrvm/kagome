@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/trie/impl/polkadot_trie_db.hpp"
+#include "storage/trie/impl/trie_db_backend_impl.hpp"
 
 #include <memory>
 
@@ -14,21 +14,19 @@
 #include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
-using kagome::storage::face::PersistentMapMock;
+using kagome::storage::face::GenericStorageMock;
 using kagome::storage::face::WriteBatchMock;
-using kagome::storage::trie::PolkadotTrieDb;
-using kagome::storage::trie::PolkadotTrieDbBackend;
+using kagome::storage::trie::TrieDbBackendImpl;
 using testing::Invoke;
 using testing::Return;
 
 static const Buffer kNodePrefix{1};
-static const Buffer kRootHashKey{0};
 
 class TrieDbBackendTest : public testing::Test {
  public:
-  std::shared_ptr<PersistentMapMock<Buffer, Buffer>> storage =
-      std::make_shared<PersistentMapMock<Buffer, Buffer>>();
-  PolkadotTrieDbBackend backend{storage, kNodePrefix, kRootHashKey};
+  std::shared_ptr<GenericStorageMock<Buffer, Buffer>> storage =
+      std::make_shared<GenericStorageMock<Buffer, Buffer>>();
+  TrieDbBackendImpl backend{storage, kNodePrefix};
 };
 
 /**
@@ -81,20 +79,4 @@ TEST_F(TrieDbBackendTest, Batch) {
   EXPECT_OUTCOME_TRUE_1(batch->put("def"_buf, "123"_buf));
   EXPECT_OUTCOME_TRUE_1(batch->remove("abc"_buf));
   EXPECT_OUTCOME_TRUE_1(batch->commit());
-}
-
-/**
- * @given trie backend
- * @when saving and fetching the root hash
- * @then it is saved by the key specified during construction of backend and is
- * correctly fetched
- */
-TEST_F(TrieDbBackendTest, Root) {
-  Buffer root_hash{"12345"_buf};
-  EXPECT_CALL(*storage, put(kRootHashKey, root_hash))
-      .WillOnce(Return(outcome::success()));
-  EXPECT_OUTCOME_TRUE_1(backend.saveRootHash(root_hash));
-  EXPECT_CALL(*storage, get(kRootHashKey)).WillOnce(Return(root_hash));
-  EXPECT_OUTCOME_TRUE(hash, backend.getRootHash());
-  ASSERT_EQ(hash, root_hash);
 }

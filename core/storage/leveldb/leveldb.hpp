@@ -8,8 +8,9 @@
 
 #include <leveldb/db.h>
 #include <leveldb/write_batch.h>
+
 #include "common/logger.hpp"
-#include "storage/buffer_map.hpp"
+#include "storage/buffer_map_types.hpp"
 
 namespace kagome::storage {
 
@@ -17,7 +18,7 @@ namespace kagome::storage {
    * @brief An implementation of PersistentBufferMap interface, which uses
    * LevelDB as underlying storage.
    */
-  class LevelDB : public PersistentBufferMap {
+  class LevelDB : public BufferStorage {
    public:
     class Batch;
     class Cursor;

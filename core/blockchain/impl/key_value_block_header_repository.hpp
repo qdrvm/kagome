@@ -15,7 +15,7 @@ namespace kagome::blockchain {
 
   class KeyValueBlockHeaderRepository : public BlockHeaderRepository {
    public:
-    KeyValueBlockHeaderRepository(std::shared_ptr<PersistentBufferMap> map,
+    KeyValueBlockHeaderRepository(std::shared_ptr<storage::BufferStorage> map,
                                   std::shared_ptr<crypto::Hasher> hasher);
 
     ~KeyValueBlockHeaderRepository() override = default;
@@ -33,7 +33,7 @@ namespace kagome::blockchain {
         -> outcome::result<blockchain::BlockStatus> override;
 
    private:
-    std::shared_ptr<PersistentBufferMap> map_;
+    std::shared_ptr<storage::BufferStorage> map_;
     std::shared_ptr<crypto::Hasher> hasher_;
   };
 
