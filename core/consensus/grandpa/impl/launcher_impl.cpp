@@ -36,21 +36,31 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(io_context_ != nullptr);
     // lambda which is executed when voting round is completed. This lambda
     // executes next round
-    auto handle_completed_round =
-        [this](const CompletedRound &completed_round) {
-          if (auto put_res = storage_->put(
-                  storage::kSetStateKey,
-                  common::Buffer(scale::encode(completed_round).value()));
-              not put_res) {
-            logger_->error("New round state was not added to the storage");
-            return;
-          }
-          BOOST_ASSERT(storage_->get(storage::kSetStateKey));
-          boost::asio::post(*io_context_,
-                            [self{shared_from_this()}, completed_round] {
-                              self->executeNextRound(completed_round);
-                            });
-        };
+    auto handle_completed_round = [this](
+                                      const CompletedRound &completed_round) {
+      // update last completed round if it is greater than previous last
+      // completed round
+      const auto &last_completed_round_res = getLastCompletedRound();
+      if (not last_completed_round_res) {
+        logger_->warn(last_completed_round_res.error().message());
+        return;
+      }
+      const auto &last_completed_round = last_completed_round_res.value();
+      if (completed_round.round_number > last_completed_round.round_number) {
+        if (auto put_res = storage_->put(
+                storage::kSetStateKey,
+                common::Buffer(scale::encode(completed_round).value()));
+            not put_res) {
+          logger_->error("New round state was not added to the storage");
+          return;
+        }
+        BOOST_ASSERT(storage_->get(storage::kSetStateKey));
+      }
+      boost::asio::post(*io_context_,
+                        [self{shared_from_this()}, completed_round] {
+                          self->executeNextRound(completed_round);
+                        });
+    };
     environment_->doOnCompleted(handle_completed_round);
   }
 
