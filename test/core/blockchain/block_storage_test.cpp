@@ -9,7 +9,7 @@
 #include "blockchain/impl/key_value_block_storage.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
-#include "storage/database_error/database_error.hpp"
+#include "storage/database_error.hpp"
 #include "testutil/outcome.hpp"
 
 using kagome::blockchain::KeyValueBlockStorage;

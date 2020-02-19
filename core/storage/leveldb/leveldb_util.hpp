@@ -11,7 +11,7 @@
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
-#include "storage/database_error/database_error.hpp"
+#include "storage/database_error.hpp"
 
 namespace kagome::storage {
 

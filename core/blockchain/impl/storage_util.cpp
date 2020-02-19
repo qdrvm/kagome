@@ -6,7 +6,7 @@
 #include "blockchain/impl/storage_util.hpp"
 
 #include "blockchain/impl/common.hpp"
-#include "storage/database_error/database_error.hpp"
+#include "storage/database_error.hpp"
 
 using kagome::blockchain::prefix::Prefix;
 using kagome::common::Buffer;

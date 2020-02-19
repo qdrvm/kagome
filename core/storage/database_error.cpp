@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/database_error/database_error.hpp"
+#include "database_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage, DatabaseError, e) {
   using E = kagome::storage::DatabaseError;

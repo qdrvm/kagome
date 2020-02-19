@@ -5,7 +5,7 @@
 
 #include "storage/in_memory/in_memory_storage.hpp"
 
-#include "storage/database_error/database_error.hpp"
+#include "storage/database_error.hpp"
 #include "storage/in_memory/in_memory_batch.hpp"
 
 using kagome::common::Buffer;

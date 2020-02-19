@@ -13,7 +13,7 @@
 #include "common/visitor.hpp"
 #include "crypto/blake2/blake2b.h"
 #include "scale/scale.hpp"
-#include "storage/database_error/database_error.hpp"
+#include "storage/database_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, BlockTreeImpl::Error, e) {
   using E = kagome::blockchain::BlockTreeImpl::Error;
