@@ -11,33 +11,33 @@
 #include <outcome/outcome.hpp>
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
-#include "storage/leveldb/leveldb_error.hpp"
+#include "storage/database_error.hpp"
 
 namespace kagome::storage {
 
   template <typename T>
   inline outcome::result<T> error_as_result(const leveldb::Status &s) {
     if (s.IsNotFound()) {
-      return LevelDBError::NOT_FOUND;
+      return DatabaseError::NOT_FOUND;
     }
 
     if (s.IsIOError()) {
-      return LevelDBError::IO_ERROR;
+      return DatabaseError::IO_ERROR;
     }
 
     if (s.IsInvalidArgument()) {
-      return LevelDBError::INVALID_ARGUMENT;
+      return DatabaseError::INVALID_ARGUMENT;
     }
 
     if (s.IsCorruption()) {
-      return LevelDBError::CORRUPTION;
+      return DatabaseError::CORRUPTION;
     }
 
     if (s.IsNotSupportedError()) {
-      return LevelDBError::NOT_SUPPORTED;
+      return DatabaseError::NOT_SUPPORTED;
     }
 
-    return LevelDBError::UNKNOWN;
+    return DatabaseError::UNKNOWN;
   }
 
   template <typename T>

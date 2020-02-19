@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "blockchain/impl/key_value_block_storage.hpp"
-
 #include <gtest/gtest.h>
+
 #include "blockchain/impl/common.hpp"
+#include "blockchain/impl/key_value_block_storage.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
-#include "storage/leveldb/leveldb_error.hpp"
+#include "storage/database_error.hpp"
 #include "testutil/outcome.hpp"
 
 using kagome::blockchain::KeyValueBlockStorage;
@@ -71,10 +71,10 @@ TEST_F(BlockStorageTest, CreateWithStorageError) {
   EXPECT_CALL(*hasher, blake2b_256(_)).WillOnce(Return(genesis_hash));
   EXPECT_CALL(*storage, get(_))
       .WillOnce(Return(Buffer{1, 1, 1, 1}))
-      .WillOnce(Return(kagome::storage::LevelDBError::IO_ERROR));
+      .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
   EXPECT_OUTCOME_FALSE(
       res, KeyValueBlockStorage::createWithGenesis(root_hash, storage, hasher));
-  ASSERT_EQ(res, kagome::storage::LevelDBError::IO_ERROR);
+  ASSERT_EQ(res, kagome::storage::DatabaseError::IO_ERROR);
 }
 
 /**
@@ -112,9 +112,9 @@ TEST_F(BlockStorageTest, PutWithStorageError) {
   EXPECT_CALL(*hasher, blake2b_256(_)).WillOnce(Return(genesis_hash));
   EXPECT_CALL(*storage, get(_))
       .WillOnce(Return(Buffer{1, 1, 1, 1}))
-      .WillOnce(Return(kagome::storage::LevelDBError::IO_ERROR));
+      .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
   EXPECT_OUTCOME_FALSE(res, block_storage->putBlock(genesis));
-  ASSERT_EQ(res, kagome::storage::LevelDBError::IO_ERROR);
+  ASSERT_EQ(res, kagome::storage::DatabaseError::IO_ERROR);
 }
 
 /**
@@ -130,11 +130,11 @@ TEST_F(BlockStorageTest, Remove) {
   EXPECT_OUTCOME_TRUE_1(block_storage->removeBlock(genesis_hash, 0));
 
   EXPECT_CALL(*storage, remove(_))
-      .WillOnce(Return(kagome::storage::LevelDBError::IO_ERROR));
+      .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
   EXPECT_OUTCOME_FALSE_1(block_storage->removeBlock(genesis_hash, 0));
 
   EXPECT_CALL(*storage, remove(_))
       .WillOnce(Return(outcome::success()))
-      .WillOnce(Return(kagome::storage::LevelDBError::IO_ERROR));
+      .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
   EXPECT_OUTCOME_FALSE_1(block_storage->removeBlock(genesis_hash, 0));
 }
