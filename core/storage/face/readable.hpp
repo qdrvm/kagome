@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_READABLE_MAP_HPP
-#define KAGOME_READABLE_MAP_HPP
+#ifndef KAGOME_READABLE_HPP
+#define KAGOME_READABLE_HPP
 
 #include <outcome/outcome.hpp>
 #include "storage/face/map_cursor.hpp"
@@ -12,13 +12,13 @@
 namespace kagome::storage::face {
 
   /**
-   * @brief An abstraction over read-only MAP.
+   * @brief A mixin for read-only map.
    * @tparam K key type
    * @tparam V value type
    */
   template <typename K, typename V>
-  struct ReadableMap {
-    virtual ~ReadableMap() = default;
+  struct Readable {
+    virtual ~Readable() = default;
 
     /**
      * @brief Get value by key

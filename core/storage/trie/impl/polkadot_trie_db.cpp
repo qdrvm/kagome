@@ -17,22 +17,26 @@ using kagome::common::Buffer;
 
 namespace kagome::storage::trie {
 
-  outcome::result<std::unique_ptr<PolkadotTrieDb>>
-  PolkadotTrieDb::createFromStorage(std::shared_ptr<PolkadotTrieDbBackend> db) {
-    BOOST_ASSERT(db != nullptr);
-    OUTCOME_TRY(root, db->getRootHash());
-    PolkadotTrieDb trie_db{std::move(db), std::move(root)};
+  std::unique_ptr<PolkadotTrieDb> PolkadotTrieDb::createFromStorage(common::Buffer root,
+                                    std::shared_ptr<TrieDbBackend> backend) {
+    BOOST_ASSERT(backend != nullptr);
+    PolkadotTrieDb trie_db{std::move(backend), std::move(root)};
     return std::make_unique<PolkadotTrieDb>(std::move(trie_db));
   }
 
   std::unique_ptr<PolkadotTrieDb> PolkadotTrieDb::createEmpty(
-      std::shared_ptr<PolkadotTrieDbBackend> db) {
-    BOOST_ASSERT(db != nullptr);
-    PolkadotTrieDb trie_db{std::move(db), boost::none};
+      std::shared_ptr<TrieDbBackend> backend) {
+    BOOST_ASSERT(backend != nullptr);
+    PolkadotTrieDb trie_db{std::move(backend), boost::none};
     return std::make_unique<PolkadotTrieDb>(std::move(trie_db));
   }
 
-  PolkadotTrieDb::PolkadotTrieDb(std::shared_ptr<PolkadotTrieDbBackend> db,
+  static std::unique_ptr<TrieDbReader> initReadOnlyFromStorage(
+      common::Buffer root, std::shared_ptr<TrieDbBackend> backend) {
+    return PolkadotTrieDb::createFromStorage(std::move(root), std::move(backend));
+  }
+
+  PolkadotTrieDb::PolkadotTrieDb(std::shared_ptr<TrieDbBackend> db,
                                  boost::optional<common::Buffer> root_hash)
       : db_{std::move(db)},
         root_{root_hash ? std::move(root_hash.value())
@@ -54,7 +58,6 @@ namespace kagome::storage::trie {
     // key in the storage
     OUTCOME_TRY(root_hash, storeNode(*trie.getRoot()));
     root_ = root_hash;
-    OUTCOME_TRY(db_->saveRootHash(root_));
     return outcome::success();
   }
 
@@ -77,7 +80,6 @@ namespace kagome::storage::trie {
       OUTCOME_TRY(hash, storeNode(*trie.getRoot()));
       root_ = hash;
     }
-    OUTCOME_TRY(db_->saveRootHash(root_));
     return outcome::success();
   }
 
@@ -119,7 +121,6 @@ namespace kagome::storage::trie {
       OUTCOME_TRY(root_hash, storeNode(*trie.getRoot()));
       root_ = root_hash;
     }
-    OUTCOME_TRY(db_->saveRootHash(root_));
     return outcome::success();
   }
 

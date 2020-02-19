@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/leveldb/leveldb_error.hpp"
+#include "storage/database_error.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage, LevelDBError, e) {
-  using E = kagome::storage::LevelDBError;
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage, DatabaseError, e) {
+  using E = kagome::storage::DatabaseError;
   switch (e) {
     case E::OK:
       return "success";

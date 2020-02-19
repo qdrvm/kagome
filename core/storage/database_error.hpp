@@ -3,18 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_LEVELDB_ERROR_HPP
-#define KAGOME_LEVELDB_ERROR_HPP
+#ifndef KAGOME_CORE_STORAGE_DATABASE_ERROR_DATABASE_ERROR_HPP
+#define KAGOME_CORE_STORAGE_DATABASE_ERROR_DATABASE_ERROR_HPP
 
 #include <outcome/outcome.hpp>
 
 namespace kagome::storage {
 
   /**
-   * @brief LevelDB returns those type of errors, as described in
-   * <leveldb/status.h>, Status::Code (it is private)
+   * @brief universal database interface error
    */
-  enum class LevelDBError {
+  enum class DatabaseError : int {
     OK = 0,
     NOT_FOUND = 1,
     CORRUPTION = 2,
@@ -24,9 +23,8 @@ namespace kagome::storage {
 
     UNKNOWN = 1000
   };
-
 }  // namespace kagome::storage
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::storage, LevelDBError);
+OUTCOME_HPP_DECLARE_ERROR(kagome::storage, DatabaseError);
 
-#endif  // KAGOME_LEVELDB_ERROR_HPP
+#endif  // KAGOME_CORE_STORAGE_DATABASE_ERROR_DATABASE_ERROR_HPP

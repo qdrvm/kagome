@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-#include "core/storage/trie/mock_trie_db.hpp"
+#include "mock/core/storage/trie/trie_db_mock.hpp"
 
 using namespace kagome;  // NOLINT
 
@@ -30,7 +30,7 @@ class StorageWasmProviderTest : public ::testing::Test {
  * @then obtained state code and "state_code" are equal
  */
 TEST_F(StorageWasmProviderTest, GetCodeWhenNoStorageUpdates) {
-  auto trie_db = std::make_shared<storage::trie::MockTrieDb>();
+  auto trie_db = std::make_shared<storage::trie::TrieDbMock>();
   common::Buffer first_state_root{1, 1, 1, 1};
 
   // given
@@ -56,7 +56,7 @@ TEST_F(StorageWasmProviderTest, GetCodeWhenNoStorageUpdates) {
  * @then obtained state code and "new_state_code" are equal
  */
 TEST_F(StorageWasmProviderTest, GetCodeWhenStorageUpdates) {
-  auto trie_db = std::make_shared<storage::trie::MockTrieDb>();
+  auto trie_db = std::make_shared<storage::trie::TrieDbMock>();
   common::Buffer first_state_root{1, 1, 1, 1};
   common::Buffer second_state_root{2, 2, 2, 2};
 

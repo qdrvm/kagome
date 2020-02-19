@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ITERABLE_MAP_HPP
-#define KAGOME_ITERABLE_MAP_HPP
+#ifndef KAGOME_ITERABLE_HPP
+#define KAGOME_ITERABLE_HPP
 
 #include <memory>
 
@@ -13,13 +13,13 @@
 namespace kagome::storage::face {
 
   /**
-   * @brief An abstraction of a key-value map, that is iterable.
+   * @brief A mixin for an iterable map.
    * @tparam K key type
    * @tparam V value type
    */
   template <typename K, typename V>
-  struct IterableMap {
-    virtual ~IterableMap() = default;
+  struct Iterable {
+    virtual ~Iterable() = default;
 
     /**
      * @brief Returns new key-value iterator.
@@ -30,4 +30,4 @@ namespace kagome::storage::face {
 
 }  // namespace kagome::storage::face
 
-#endif  // KAGOME_ITERABLE_MAP_HPP
+#endif  // KAGOME_ITERABLE_HPP

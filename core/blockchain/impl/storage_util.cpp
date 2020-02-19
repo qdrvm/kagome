@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "blockchain/impl/persistent_map_util.hpp"
+#include "blockchain/impl/storage_util.hpp"
 
 #include "blockchain/impl/common.hpp"
-#include "storage/leveldb/leveldb_error.hpp"
+#include "storage/database_error.hpp"
 
 using kagome::blockchain::prefix::Prefix;
 using kagome::common::Buffer;
@@ -25,12 +25,11 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, KeyValueRepositoryError, e) {
 
 namespace kagome::blockchain {
 
-  outcome::result<void> putWithPrefix(
-      storage::face::PersistentMap<common::Buffer, common::Buffer> &map,
-      prefix::Prefix prefix,
-      BlockNumber num,
-      Hash256 block_hash,
-      const common::Buffer &value) {
+  outcome::result<void> putWithPrefix(storage::BufferStorage &map,
+                                      prefix::Prefix prefix,
+                                      BlockNumber num,
+                                      Hash256 block_hash,
+                                      const common::Buffer &value) {
     auto block_lookup_key = numberAndHashToLookupKey(num, block_hash);
     auto value_lookup_key = prependPrefix(block_lookup_key, prefix);
     auto num_to_idx_key =
@@ -43,7 +42,7 @@ namespace kagome::blockchain {
   }
 
   outcome::result<common::Buffer> getWithPrefix(
-      const storage::face::PersistentMap<common::Buffer, common::Buffer> &map,
+      const storage::BufferStorage &map,
       prefix::Prefix prefix,
       const primitives::BlockId &block_id) {
     OUTCOME_TRY(key, idToLookupKey(map, block_id));
@@ -88,8 +87,9 @@ namespace kagome::blockchain {
     if (result) {
       return false;
     }
+
     auto &&error = result.error();
-    return (error == storage::LevelDBError::NOT_FOUND);
+    return (error == storage::DatabaseError::NOT_FOUND);
   }
 
 }  // namespace kagome::blockchain

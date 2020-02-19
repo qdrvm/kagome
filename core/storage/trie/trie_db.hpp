@@ -7,33 +7,21 @@
 #define KAGOME_TRIE_TRIE_DB_HPP
 
 #include "common/buffer.hpp"
-#include "storage/buffer_map.hpp"
+#include "storage/buffer_map_types.hpp"
+#include "storage/trie/trie_db_reader.hpp"
 
 namespace kagome::storage::trie {
 
   /**
-   * @brief This class represents a cryptographically authenticated key-value
-   * storage - Trie DB backed by Key-Value database.
+   * @brief Represents a cryptographically authenticated key-value
+   * storage - Trie DB, backed by a key-value database.
    */
-  class TrieDb : public PersistentBufferMap {
+  class TrieDb : public TrieDbReader, public BatchWriteBufferMap {
    public:
-    /**
-     * @brief Calculate and return trie root.
-     * @return byte buffer of any size (different hashing algorithms may be used)
-     */
-    virtual common::Buffer getRootHash() const = 0;
-
     /**
      * remove storage entries which keys start with given prefix
      */
     virtual outcome::result<void> clearPrefix(const common::Buffer &buf) = 0;
-
-    virtual common::Buffer getEmptyRoot() const = 0;
-
-    /**
-     * @returns true if the trie is empty, false otherwise
-     */
-    virtual bool empty() const = 0;
   };
 
 }  // namespace kagome::storage::trie

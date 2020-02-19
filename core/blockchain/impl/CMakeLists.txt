@@ -6,15 +6,17 @@
 add_library(blockchain_common
     types.cpp
     common.hpp
-    persistent_map_util.cpp
-    persistent_map_util.hpp
+    storage_util.cpp
+    storage_util.hpp
     )
 target_link_libraries(blockchain_common
     blob
     Boost::boost
     buffer
+    database_error
     in_memory_storage
     polkadot_trie_db
+    trie_db_backend
     primitives
     )
 

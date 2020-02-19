@@ -7,14 +7,14 @@
 #define KAGOME_BLOCKCHAIN_COMMON_HPP
 
 #include <outcome/outcome.hpp>
+
 #include "common/buffer.hpp"
 #include "primitives/block_id.hpp"
-#include "storage/buffer_map.hpp"
+#include "storage/buffer_map_types.hpp"
 
 namespace kagome::blockchain {
-  using PersistentBufferMap = storage::PersistentBufferMap;
   using ReadableBufferMap =
-      storage::face::ReadableMap<common::Buffer, common::Buffer>;
+      storage::face::Readable<common::Buffer, common::Buffer>;
 
   enum class Error {
     // it's important to convert storage errors of this type to this one to

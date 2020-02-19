@@ -7,20 +7,19 @@
 #define KAGOME_STORAGE_IN_MEMORY_IN_MEMORY_STORAGE_HPP
 
 #include <memory>
-
 #include <outcome/outcome.hpp>
+
 #include "common/buffer.hpp"
-#include "storage/face/persistent_map.hpp"
+#include "storage/buffer_map_types.hpp"
 
 namespace kagome::storage {
-  
+
   /**
    * Simple storage that conforms PersistentMap interface
    * Mostly needed to have an in-memory trie in tests to avoid integration with
    * LevelDB
    */
-  class InMemoryStorage
- : public face::PersistentMap<common::Buffer, common::Buffer> {
+  class InMemoryStorage : public storage::BufferStorage {
    public:
     ~InMemoryStorage() override = default;
 

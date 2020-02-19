@@ -9,11 +9,11 @@
 
 #include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/common.hpp"
-#include "blockchain/impl/persistent_map_util.hpp"
+#include "blockchain/impl/storage_util.hpp"
 #include "common/visitor.hpp"
 #include "crypto/blake2/blake2b.h"
 #include "scale/scale.hpp"
-#include "storage/leveldb/leveldb_error.hpp"
+#include "storage/database_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, BlockTreeImpl::Error, e) {
   using E = kagome::blockchain::BlockTreeImpl::Error;
@@ -32,7 +32,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, BlockTreeImpl::Error, e) {
 namespace kagome::blockchain {
   using Buffer = common::Buffer;
   using Prefix = prefix::Prefix;
-  using LevelDBError = kagome::storage::LevelDBError;
+  using DatabaseError = kagome::storage::DatabaseError;
 
   BlockTreeImpl::TreeNode::TreeNode(primitives::BlockHash hash,
                                     primitives::BlockNumber depth,

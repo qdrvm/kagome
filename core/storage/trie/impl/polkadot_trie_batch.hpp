@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_BATCH_HPP
-#define KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_BATCH_HPP
+#ifndef KAGOME_CORE_STORAGE_TRIE_IMPL_POLKADOT_TRIE_BATCH_HPP
+#define KAGOME_CORE_STORAGE_TRIE_IMPL_POLKADOT_TRIE_BATCH_HPP
 
 #include "common/buffer.hpp"
 #include "storage/face/write_batch.hpp"
@@ -51,4 +51,4 @@ namespace kagome::storage::trie {
   };
 }  // namespace kagome::storage::trie
 
-#endif  // KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_BATCH_HPP
+#endif  // KAGOME_CORE_STORAGE_TRIE_IMPL_POLKADOT_TRIE_BATCH_HPP
