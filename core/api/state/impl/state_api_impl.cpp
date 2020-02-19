@@ -9,11 +9,15 @@ namespace kagome::api {
 
   outcome::result<common::Buffer> StateApiImpl::getStorage(
       const common::Buffer &key) {
-    return outcome::result<common::Buffer>();
+    auto last_finalized = block_tree_->getLastFinalized();
+    return getStorage(key, last_finalized);
   }
 
   outcome::result<common::Buffer> StateApiImpl::getStorage(
       const common::Buffer &key, const primitives::BlockHash &at) {
-    return outcome::result<common::Buffer>();
+    OUTCOME_TRY(header, block_repo_->getBlockHeader(at));
+    auto trie_reader = storage::trie::PolkadotTrieDb::initReadOnlyFromStorage(
+        common::Buffer{header.state_root}, trie_backend_);
+    return trie_reader->get(key);
   }
 }  // namespace kagome::api

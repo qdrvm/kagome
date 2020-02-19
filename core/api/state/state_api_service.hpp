@@ -13,9 +13,6 @@ namespace kagome::api {
   class StateApiService : public ApiService {
    public:
     ~StateApiService() override = default;
-
-    void start() override;
-    void stop() override;
   };
 
 }
