@@ -5,8 +5,8 @@
 
 #include "storage/in_memory/in_memory_storage.hpp"
 
+#include "storage/database_error/database_error.hpp"
 #include "storage/in_memory/in_memory_batch.hpp"
-#include "storage/in_memory/in_memory_error.hpp"
 
 using kagome::common::Buffer;
 
@@ -17,7 +17,7 @@ namespace kagome::storage {
       return storage.at(key.toHex());
     }
 
-    return InMemoryStorageError::NOT_FOUND;
+    return DatabaseError::NOT_FOUND;
   }
 
   outcome::result<void> InMemoryStorage::put(const Buffer &key,
@@ -51,4 +51,3 @@ namespace kagome::storage {
     return nullptr;
   }
 }  // namespace kagome::storage
-

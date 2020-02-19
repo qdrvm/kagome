@@ -13,7 +13,7 @@ target_link_libraries(blockchain_common
     blob
     Boost::boost
     buffer
-    db_error_translator
+    database_error
     in_memory_storage
     polkadot_trie_db
     trie_db_backend

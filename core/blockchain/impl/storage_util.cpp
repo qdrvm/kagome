@@ -6,7 +6,7 @@
 #include "blockchain/impl/storage_util.hpp"
 
 #include "blockchain/impl/common.hpp"
-#include "storage/db_error_translator/db_error_translator.hpp"
+#include "storage/database_error/database_error.hpp"
 
 using kagome::blockchain::prefix::Prefix;
 using kagome::common::Buffer;
@@ -87,9 +87,9 @@ namespace kagome::blockchain {
     if (result) {
       return false;
     }
-    storage::DbErrorTranslator translator{};
-    auto &&error = translator.translateError(result.error());
-    return (error.error() == storage::DbUnifiedError::KEY_NOT_FOUND);
+
+    auto &&error = result.error();
+    return (error == storage::DatabaseError::NOT_FOUND);
   }
 
 }  // namespace kagome::blockchain

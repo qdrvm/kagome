@@ -11,7 +11,7 @@
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
 #include "storage/leveldb/leveldb.hpp"
-#include "storage/leveldb/leveldb_error.hpp"
+#include "storage/database_error/database_error.hpp"
 #include "testutil/outcome.hpp"
 
 using namespace kagome::storage;
@@ -47,7 +47,7 @@ TEST_F(LevelDB_Integration_Test, Get_NonExistent) {
   EXPECT_OUTCOME_TRUE_1(db_->remove(key_));
   auto r = db_->get(key_);
   EXPECT_FALSE(r);
-  EXPECT_EQ(r.error().value(), (int)LevelDBError::NOT_FOUND);
+  EXPECT_EQ(r.error().value(), (int)DatabaseError::NOT_FOUND);
 }
 
 /**

@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
 #include "storage/leveldb/leveldb.hpp"
-#include "storage/leveldb/leveldb_error.hpp"
+#include "storage/database_error/database_error.hpp"
 #include "testutil/outcome.hpp"
 
 using namespace kagome::storage;
@@ -29,7 +29,7 @@ TEST_F(LevelDB_Open, OpenNonExistingDB) {
 
   auto r = LevelDB::create(getPathString(), options);
   EXPECT_FALSE(r);
-  EXPECT_EQ(r.error(), LevelDBError::INVALID_ARGUMENT);
+  EXPECT_EQ(r.error(), DatabaseError::INVALID_ARGUMENT);
 }
 
 /**
