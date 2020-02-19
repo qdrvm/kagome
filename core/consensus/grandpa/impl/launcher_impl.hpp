@@ -15,7 +15,7 @@
 #include "consensus/grandpa/voter_set.hpp"
 #include "consensus/grandpa/voting_round.hpp"
 #include "crypto/ed25519_provider.hpp"
-#include "storage/buffer_map.hpp"
+#include "storage/buffer_map_types.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -25,7 +25,7 @@ namespace kagome::consensus::grandpa {
     ~LauncherImpl() override = default;
 
     LauncherImpl(std::shared_ptr<Environment> environment,
-                 std::shared_ptr<storage::PersistentBufferMap> storage,
+                 std::shared_ptr<storage::BufferStorage> storage,
                  std::shared_ptr<crypto::ED25519Provider> crypto_provider,
                  const crypto::ED25519Keypair &keypair,
                  std::shared_ptr<Clock> clock,
@@ -46,7 +46,7 @@ namespace kagome::consensus::grandpa {
     std::shared_ptr<VotingRound> current_round_;
 
     std::shared_ptr<Environment> environment_;
-    std::shared_ptr<storage::PersistentBufferMap> storage_;
+    std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::ED25519Provider> crypto_provider_;
     crypto::ED25519Keypair keypair_;
     std::shared_ptr<Clock> clock_;
