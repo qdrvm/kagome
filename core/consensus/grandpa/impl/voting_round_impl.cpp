@@ -450,7 +450,8 @@ namespace kagome::consensus::grandpa {
             }
             BOOST_ASSERT_MSG(false, "Not possible. Shouldn't get here");
           }
-          env_->onCompleted(VotingRoundError::SHOULD_NOT_PRECOMMIT);
+          env_->onCompleted(
+              VotingRoundError::LAST_ESTIMATE_BETTER_THAN_PREVOTE);
           break;
         }
         case State::START:

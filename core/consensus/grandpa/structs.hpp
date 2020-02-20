@@ -83,7 +83,8 @@ namespace kagome::consensus::grandpa {
     };
   }  // namespace detail
 
-  // justification for block B in round r
+  // justification that contains a list of signed precommits justifying the
+  // validity of the block
   struct GrandpaJustification {
     std::vector<SignedPrecommit> items;
   };

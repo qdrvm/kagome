@@ -62,9 +62,8 @@
 #include "runtime/binaryen/runtime_api/parachain_host_impl.hpp"
 #include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
 #include "runtime/common/storage_wasm_provider.hpp"
-#include "storage/predefined_keys.hpp"
-//#include "runtime/dummy/grandpa_dummy.hpp"
 #include "storage/leveldb/leveldb.hpp"
+#include "storage/predefined_keys.hpp"
 #include "storage/trie/impl/polkadot_codec.hpp"
 #include "storage/trie/impl/polkadot_node.hpp"
 #include "storage/trie/impl/polkadot_trie_db.hpp"
@@ -593,28 +592,6 @@ namespace kagome::injector {
         di::bind<runtime::OffchainWorker>.template to<runtime::binaryen::OffchainWorkerImpl>(),
         di::bind<runtime::Metadata>.template to<runtime::binaryen::MetadataImpl>(),
         di::bind<runtime::Grandpa>.template to<runtime::binaryen::GrandpaImpl>(),
-        //        di::bind<runtime::Grandpa>.to([](const auto &injector) {
-        //          // single peer authorities list
-        //          static auto initialized =
-        //              boost::optional<sptr<runtime::Grandpa>>(boost::none);
-        //          if (initialized) {
-        //            return initialized.value();
-        //          }
-        //
-        //          const auto &keys =
-        //              injector.template create<application::KeyStorage &>();
-        //          auto &&local_pair = keys.getLocalEd25519Keypair();
-        //          primitives::Authority w_a;
-        //          w_a.id.id = local_pair.public_key;
-        //          w_a.babe_weight =
-        //              1;  // naming is wrong, this is the weight for the
-        //              grandpa
-        //
-        //          initialized =
-        //          std::make_shared<runtime::dummy::GrandpaDummy>(
-        //              std::vector<primitives::Authority>{w_a});
-        //          return initialized.value();
-        //        }),
         di::bind<runtime::Core>.template to<runtime::binaryen::CoreImpl>(),
         di::bind<runtime::BlockBuilder>.template to<runtime::binaryen::BlockBuilderImpl>(),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
