@@ -28,20 +28,9 @@ int main(int argc, char **argv) {
   auto &&keys_config = options_parser.getKeysConfig();
   auto &&level_db_config = options_parser.getLevelDbPath();
 
-//  try {
-    auto &&app = std::make_shared<kagome::application::KagomeApplicationImpl>(
-        kagome_config, keys_config, level_db_config);
-    app->run();
-//  } catch (std::system_error &err) {
-//    logger->error(err.what());
-//    return 1;
-//  } catch (std::exception &e) {
-//    logger->error(e.what());
-//    return 1;
-//  } catch (...) {
-//    logger->error("unknown error");
-//    return 1;
-//  }
+  auto &&app = std::make_shared<kagome::application::KagomeApplicationImpl>(
+      kagome_config, keys_config, level_db_config);
+  app->run();
 
   return 0;
 }
