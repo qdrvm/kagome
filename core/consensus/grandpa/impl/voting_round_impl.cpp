@@ -510,7 +510,6 @@ namespace kagome::consensus::grandpa {
                 if (ancestry.value().at(offset) == primary.block_hash) {
                   return primary;
                 }
-                return last_round_estimate;
               }
               return last_round_estimate;
             })

@@ -60,8 +60,7 @@ namespace kagome::consensus::grandpa {
         const BlockInfo &vote,
         const GrandpaJustification &justification) override;
 
-    void doOnCompleted(
-        std::function<void(outcome::result<CompletedRound>)>) override;
+    void doOnCompleted(const CompleteHandler &) override;
 
     void onCompleted(outcome::result<CompletedRound> round) override;
 

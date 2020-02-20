@@ -16,34 +16,10 @@ namespace kagome::crypto {
     ptr[0] = XXH64(in, len, 0);
   }
 
-  Twox64Hash make_twox64(const common::Buffer &buf) {
-    return make_twox64(buf.data(), buf.size());
-  }
-
-  Twox64Hash make_twox64(const uint8_t *buf, size_t len) {
-    Twox64Hash hash{};
-    make_twox64(buf, len, hash.data.begin());
+  common::Hash64 make_twox64(gsl::span<const uint8_t> buf) {
+    common::Hash64 hash{};
+    make_twox64(buf.data(), buf.size(), hash.data());
     return hash;
-  }
-
-  void make_twox64(const common::Buffer &in, common::Buffer &out) {
-    auto hash = make_twox64(in);
-    out.putBytes(hash.data.begin(), hash.data.end());
-  }
-
-  Twox128Hash make_twox128(const common::Buffer &buf) {
-    return make_twox128(buf.data(), buf.size());
-  }
-
-  Twox128Hash make_twox128(const uint8_t *buf, size_t len) {
-    Twox128Hash hash{};
-    make_twox128(buf, len, hash.data.begin());
-    return hash;
-  }
-
-  void make_twox128(const common::Buffer &in, common::Buffer &out) {
-    auto hash = make_twox128(in);
-    out.putBytes(hash.data.begin(), hash.data.end());
   }
 
   void make_twox128(const uint8_t *in, uint32_t len, uint8_t *out) {
@@ -55,19 +31,10 @@ namespace kagome::crypto {
     ptr[1] = XXH64(in, len, 1);
   }
 
-  Twox256Hash make_twox256(const common::Buffer &buf) {
-    return make_twox256(buf.data(), buf.size());
-  }
-
-  Twox256Hash make_twox256(const uint8_t *buf, size_t len) {
-    Twox256Hash hash{};
-    make_twox256(buf, len, hash.data.begin());
+  common::Hash128 make_twox128(gsl::span<const uint8_t> buf) {
+    common::Hash128 hash{};
+    make_twox128(buf.data(), buf.size(), hash.data());
     return hash;
-  }
-
-  void make_twox256(const common::Buffer &in, common::Buffer &out) {
-    auto hash = make_twox256(in);
-    out.putBytes(hash.data.begin(), hash.data.end());
   }
 
   void make_twox256(const uint8_t *in, uint32_t len, uint8_t *out) {
@@ -81,6 +48,12 @@ namespace kagome::crypto {
     ptr[2] = XXH64(in, len, 2);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     ptr[3] = XXH64(in, len, 3);
+  }
+
+  common::Hash256 make_twox256(gsl::span<const uint8_t> buf) {
+    common::Hash256 hash{};
+    make_twox256(buf.data(), buf.size(), hash.data());
+    return hash;
   }
 
 }  // namespace kagome::crypto

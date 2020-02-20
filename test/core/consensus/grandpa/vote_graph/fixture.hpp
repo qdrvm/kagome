@@ -160,7 +160,7 @@ namespace std {
       *os << a << ", ";
     }
     *os << "], ";
-    *os << "cumulative_vote=" << e.cumulative_vote << "}";
+    *os << "cumulative_vote=" << e.cumulative_vote.weight << "}";
   }
 }  // namespace std
 #endif  // KAGOME_TEST_CORE_CONSENSUS_GRANDPA_VOTE_GRAPH_FIXTURE_HPP

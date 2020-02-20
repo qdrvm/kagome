@@ -9,14 +9,12 @@
 #include "consensus/grandpa/vote_weight.hpp"
 
 inline kagome::consensus::grandpa::VoteWeight makeVoteWeight(uint64_t s) {
-  // TODO(warchant): update this when VoteWeight is updated
   kagome::consensus::grandpa::VoteWeight v;
   v.weight = s;
   return v;
 }
 
 inline kagome::consensus::grandpa::VoteWeight makeVoteWeight(std::string s) {
-  // TODO(warchant): update this when VoteWeight is updated
   size_t weight = 0;
   std::stringstream ss(s);
   ss >> weight;

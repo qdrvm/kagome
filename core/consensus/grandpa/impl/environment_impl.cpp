@@ -118,7 +118,8 @@ namespace kagome::consensus::grandpa {
   }
 
   void EnvironmentImpl::doOnCompleted(
-      std::function<void(outcome::result<CompletedRound>)> on_completed_slot) {
+      const CompleteHandler &on_completed_slot) {
+    on_completed_.disconnect_all_slots();
     on_completed_.connect(on_completed_slot);
   }
 

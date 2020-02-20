@@ -48,15 +48,11 @@ namespace kagome::consensus::grandpa {
     bool operator<(const VoteWeight &other) const {
       return weight < other.weight;
     }
+    // TODO(kamilsa) PRE-358: remove weight
     size_t weight = 0;
     std::vector<size_t> prevotes{kMaxNumberOfVoters, 0UL};
     std::vector<size_t> precommits{kMaxNumberOfVoters, 0UL};
   };
-
-  inline std::ostream &operator<<(std::ostream &os, const VoteWeight &v) {
-    // TODO(warchant): implement
-    return os;
-  }
 
 }  // namespace kagome::consensus::grandpa
 

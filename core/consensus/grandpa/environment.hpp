@@ -18,6 +18,9 @@ namespace kagome::consensus::grandpa {
    * This encapsulates the database and networking layers of the chain.
    */
   struct Environment : public Chain {
+    using CompleteHandler =
+        std::function<void(outcome::result<CompletedRound>)>;
+
     ~Environment() override = default;
 
     // TODO(kamilsa): PRE-335 move timer to environment
@@ -66,8 +69,7 @@ namespace kagome::consensus::grandpa {
     /**
      * Provides a handler for completed round
      */
-    virtual void doOnCompleted(
-        std::function<void(outcome::result<CompletedRound>)>) = 0;
+    virtual void doOnCompleted(const CompleteHandler &) = 0;
 
     /**
      * Triggered when round \param round is completed
