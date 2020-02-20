@@ -43,7 +43,7 @@ namespace kagome::application {
 
     // some threshold value resulting in producing block in every slot. In
     // future will be calculated using runtime
-    auto threshold = boost::multiprecision::uint128_t(
+    boost::multiprecision::uint128_t threshold(
         "102084710076281554150585127412395147264");
 
     Randomness rnd{};

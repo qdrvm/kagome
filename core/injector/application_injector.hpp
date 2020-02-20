@@ -11,7 +11,6 @@
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/peer/peer_info.hpp>
 #include <outcome/outcome.hpp>
-#include <storage/predefined_keys.hpp>
 
 #include "api/extrinsic/extrinsic_api_service.hpp"
 #include "api/extrinsic/impl/extrinsic_api_impl.hpp"
@@ -63,6 +62,7 @@
 #include "runtime/binaryen/runtime_api/parachain_host_impl.hpp"
 #include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
 #include "runtime/common/storage_wasm_provider.hpp"
+#include "storage/predefined_keys.hpp"
 //#include "runtime/dummy/grandpa_dummy.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/trie/impl/polkadot_codec.hpp"

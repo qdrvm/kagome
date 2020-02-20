@@ -10,6 +10,7 @@
 
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/signals2.hpp>
+
 #include "common/logger.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/grandpa_config.hpp"
@@ -36,7 +37,7 @@ namespace kagome::consensus::grandpa {
                     std::shared_ptr<boost::asio::io_context> io_context);
 
     /**
-     * Triggered when we receiv finalization message
+     * Triggered when we receive finalization message
      */
     void onFinalize(const Fin &f) override;
 

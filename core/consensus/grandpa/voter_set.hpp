@@ -12,44 +12,71 @@
 
 namespace kagome::consensus::grandpa {
 
+  /**
+   * Stores voters with their correspondend weights
+   */
   struct VoterSet {
    public:
     VoterSet() = default;  // for scale codec (in decode)
 
     explicit VoterSet(MembershipCounter set_id);
 
+    /**
+     * Insert voter \param voter with \param weight
+     */
     void insert(Id voter, size_t weight);
 
+    /**
+     * \return voters
+     */
     inline const std::vector<Id> &voters() const {
       return voters_;
     }
 
+    /**
+     * \return uniqie voter set membership
+     */
     inline MembershipCounter setId() const {
       return set_id_;
     }
 
+    /**
+     * \return index of \param voter
+     */
     boost::optional<size_t> voterIndex(const Id &voter) const;
 
+    /**
+     * \return weight of \param voter
+     */
     boost::optional<size_t> voterWeight(const Id &voter) const;
 
+    /**
+     * \return weight of voter by index \param voter_index
+     */
     boost::optional<size_t> voterWeight(size_t voter_index) const;
 
     inline size_t size() const {
       return voters_.size();
     }
 
+    /**
+     * \return total weight of all voters
+     */
     inline size_t totalWeight() const {
       return total_weight_;
     }
 
+    /**
+     * \return map of pairs <id, weight>
+     */
     inline const std::unordered_map<Id, size_t> &weightMap() const {
       return weight_map_;
     }
 
    private:
-    std::vector<Id> voters_{};
+    std::vector<Id> voters_;
     MembershipCounter set_id_{};
-    std::unordered_map<Id, size_t> weight_map_{};
+    std::unordered_map<Id, size_t> weight_map_;
     size_t total_weight_{0};
   };
 

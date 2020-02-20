@@ -25,7 +25,7 @@ namespace kagome::consensus::grandpa {
   using RoundNumber = uint64_t;
   using MembershipCounter = uint64_t;
 
-  using Clock = clock::SystemClock;
+  using Clock = clock::SteadyClock;
   using Duration = Clock::Duration;
   using TimePoint = Clock::TimePoint;
 

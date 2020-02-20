@@ -29,8 +29,8 @@ namespace kagome::consensus::grandpa {
 
     /**
      * Note that we've done a primary proposal in the given round.
-     * Triggered when current peer appeared in round \param round and having
-     * \param set_id has \param propose ready to be gossiped.
+     * Triggered when current peer appears in round \param round with
+     * \param set_id and \param propose is ready to be gossiped.
      */
     virtual outcome::result<void> onProposed(
         RoundNumber round,
@@ -38,16 +38,16 @@ namespace kagome::consensus::grandpa {
         const SignedPrimaryPropose &propose) = 0;
 
     /**
-     * Triggered when current peer appeared in round \param round and having
-     * \param set_id has \param prevote ready to be gossiped.
+     * Triggered when current peer appears in round \param round with
+     * \param set_id and \param prevote is ready to be gossiped.
      */
     virtual outcome::result<void> onPrevoted(RoundNumber round,
                                              MembershipCounter set_id,
                                              const SignedPrevote &prevote) = 0;
 
     /**
-     * Triggered when current peer appeared in round \param round and having
-     * \param set_id has \param precommit ready to be gossiped.
+     * Triggered when current peer appears in round \param round with
+     * \param set_id and \param precommit is ready to be gossiped.
      */
     virtual outcome::result<void> onPrecommitted(
         RoundNumber round,
@@ -55,7 +55,7 @@ namespace kagome::consensus::grandpa {
         const SignedPrecommit &precommit) = 0;
 
     /**
-     * Triggered when current peer appeared in round \param round intends to
+     * Triggered when current peer appears in round \param round intends to
      * gossip committed \param vote justified by \param justification
      */
     virtual outcome::result<void> onCommitted(
@@ -63,6 +63,9 @@ namespace kagome::consensus::grandpa {
         const BlockInfo &vote,
         const GrandpaJustification &justification) = 0;
 
+    /**
+     * Provides a handler for completed round
+     */
     virtual void doOnCompleted(
         std::function<void(outcome::result<CompletedRound>)>) = 0;
 

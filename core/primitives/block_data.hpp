@@ -12,7 +12,8 @@
 namespace kagome::primitives {
 
   /**
-   * Data, describing the requested block
+   * Data, describing the block. Used for example in BlockRequest, where we need
+   * to get certain information about the block
    */
   struct BlockData {
     primitives::BlockHash hash;

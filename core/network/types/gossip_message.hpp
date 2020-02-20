@@ -9,6 +9,9 @@
 #include "common/buffer.hpp"
 
 namespace kagome::network {
+
+  inline const size_t kMaxMessageTypes = 80;
+
   /**
    * Message, which is passed over the Gossip protocol
    */
@@ -43,7 +46,8 @@ namespace kagome::network {
   Stream &operator>>(Stream &s, GossipMessage::Type &t) {
     uint8_t type{};
     s >> type;
-    if (type > 80) {
+
+    if (type > kMaxMessageTypes) {
       t = GossipMessage::Type::UNKNOWN;
     } else {
       t = static_cast<GossipMessage::Type>(type);

@@ -75,6 +75,7 @@ namespace kagome::consensus::grandpa {
 
   size_t VotingRoundImpl::getThreshold(
       const std::shared_ptr<VoterSet> &voters) {
+    // calculate supermajority
     auto faulty = (voters->totalWeight() - 1) / 3;
     return voters->totalWeight() - faulty;
   }
@@ -216,6 +217,7 @@ namespace kagome::consensus::grandpa {
         VoteWeight v{voters.size()};
         auto index = voter_set_->voterIndex(vote.id);
         if (not index) {
+          logger_->warn("Voter {} is not known: {}", vote.id.toHex());
           return;
         }
 
@@ -234,6 +236,7 @@ namespace kagome::consensus::grandpa {
       case VoteTracker<Prevote>::PushResult::EQUIVOCATED: {
         auto index = voter_set_->voterIndex(vote.id);
         if (not index) {
+          logger_->warn("Voter {} is not known: {}", vote.id.toHex());
           return;
         }
         prevote_equivocators_[index.value()] = true;
@@ -256,6 +259,7 @@ namespace kagome::consensus::grandpa {
         VoteWeight v{voters.size()};
         auto index = voter_set_->voterIndex(vote.id);
         if (not index) {
+          logger_->warn("Voter {} is not known: {}", vote.id.toHex());
           return;
         }
 
@@ -274,6 +278,7 @@ namespace kagome::consensus::grandpa {
       case VoteTracker<Precommit>::PushResult::EQUIVOCATED: {
         auto index = voter_set_->voterIndex(vote.id);
         if (not index) {
+          logger_->warn("Voter {} is not known: {}", vote.id.toHex());
           return;
         }
         precommit_equivocators_[index.value()] = true;
@@ -390,6 +395,7 @@ namespace kagome::consensus::grandpa {
         }
       }
     };
+    // wait as spec suggests
     prevote_timer_.expires_at(start_time_ + duration_ * 2);
     prevote_timer_.async_wait(handle_prevote);
   };
@@ -441,9 +447,8 @@ namespace kagome::consensus::grandpa {
               }
               state_ = State::PRECOMMITTED;
               break;
-            } else {
-              BOOST_ASSERT_MSG(false, "Not possible. Shouldn't get here");
             }
+            BOOST_ASSERT_MSG(false, "Not possible. Shouldn't get here");
           }
           env_->onCompleted(VotingRoundError::SHOULD_NOT_PRECOMMIT);
           break;
@@ -454,6 +459,7 @@ namespace kagome::consensus::grandpa {
           break;
       }
     };
+    // wait as spec suggests
     precommit_timer_.expires_at(start_time_ + duration_ * 4);
     precommit_timer_.async_wait(handle_precommit);
   }
@@ -485,17 +491,17 @@ namespace kagome::consensus::grandpa {
                 return last_round_estimate;
               }
 
-              // from this point onwards, the number of the primary-broadcasted
-              // block is less than the last prevote-GHOST's number.
-              // if the primary block is in the ancestry of p-G we vote for the
-              // best chain containing it.
+              // from this point onwards, the number of the
+              // primary-broadcasted block is less than the last
+              // prevote-GHOST's number. if the primary block is in the
+              // ancestry of p-G we vote for the best chain containing it.
               if (auto ancestry =
                       env_->getAncestry(last_round_estimate.block_hash,
                                         last_prevote_g.block_hash);
                   ancestry) {
                 auto to_sub = primary.block_number + 1;
 
-                auto offset = 0;
+                size_t offset = 0;
                 if (last_prevote_g.block_number >= to_sub) {
                   offset = last_prevote_g.block_number - to_sub;
                 }
@@ -615,9 +621,9 @@ namespace kagome::consensus::grandpa {
       return full_possible_weight >= threshold_;
     };
 
-    // until we have threshold precommits, any new block could get supermajority
-    // precommits because there are at least f + 1 precommits remaining and then
-    // f equivocations.
+    // until we have threshold precommits, any new block could get
+    // supermajority precommits because there are at least f + 1 precommits
+    // remaining and then f equivocations.
     //
     // once it's at least that level, we only need to consider blocks
     // already referenced in the graph, because no new leaf nodes

@@ -11,7 +11,7 @@
 namespace kagome::consensus::grandpa {
 
   /**
-   * @class Observer
+   * @class RoundObserver
    * @brief observes incoming messages. Abstraction of a network.
    */
   struct RoundObserver {

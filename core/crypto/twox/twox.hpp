@@ -23,7 +23,7 @@ namespace kagome::crypto {
     std::array<uint8_t, 32> data;
   };
 
-  // TODO(warchant): refactor to span
+  // TODO(warchant): PRE-357 refactor to span
 
   Twox64Hash make_twox64(const common::Buffer &buf);
   Twox64Hash make_twox64(const uint8_t *buf, size_t len);

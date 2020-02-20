@@ -364,7 +364,7 @@ namespace kagome::blockchain {
   }
 
   primitives::BlockInfo BlockTreeImpl::getLastFinalized() const {
-    auto last = tree_meta_->last_finalized.get();
+    const auto &last = tree_meta_->last_finalized.get();
     return primitives::BlockInfo{last.depth, last.block_hash};
   }
 

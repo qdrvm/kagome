@@ -124,12 +124,12 @@ namespace kagome::consensus::grandpa {
         keypair_, crypto_provider_, round_number, voters);
 
     current_round_ =
-        std::make_shared<VotingRoundImpl>(config,
+        std::make_shared<VotingRoundImpl>(std::move(config),
                                           environment_,
                                           std::move(vote_crypto_provider),
-                                          prevote_tracker,
-                                          precommit_tracker,
-                                          vote_graph,
+                                          std::move(prevote_tracker),
+                                          std::move(precommit_tracker),
+                                          std::move(vote_graph),
                                           clock_,
                                           io_context_);
     logger_->info("Starting grandpa round: {}", round_number);

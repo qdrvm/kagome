@@ -8,6 +8,7 @@
 
 #include <boost/asio/steady_timer.hpp>
 #include <boost/variant.hpp>
+
 #include "common/blob.hpp"
 #include "common/visitor.hpp"
 #include "common/wrapper.hpp"
@@ -18,7 +19,7 @@
 
 namespace kagome::consensus::grandpa {
 
-  using Timer = boost::asio::basic_waitable_timer<std::chrono::system_clock>;
+  using Timer = boost::asio::basic_waitable_timer<std::chrono::steady_clock>;
 
   using BlockInfo = primitives::BlockInfo;
   using Precommit = primitives::detail::BlockInfoT<struct PrecommitTag>;
@@ -26,6 +27,7 @@ namespace kagome::consensus::grandpa {
   using PrimaryPropose =
       primitives::detail::BlockInfoT<struct PrimaryProposeTag>;
 
+  // Identifiers for the vote type. Needed for serialization and signing
   const static uint8_t kPrevoteStage = 0;
   const static uint8_t kPrecommitStage = 1;
   const static uint8_t kPrimaryProposeStage = 2;
@@ -136,7 +138,7 @@ namespace kagome::consensus::grandpa {
     return s >> v.round_number >> v.counter >> v.vote;
   }
 
-  // finalizing message or block B in round r
+  // finalizing message
   struct Fin {
     RoundNumber round_number{0};
     BlockInfo vote;
