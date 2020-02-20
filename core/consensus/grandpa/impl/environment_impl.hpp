@@ -23,8 +23,6 @@ namespace kagome::consensus::grandpa {
     using OnCompletedSlotType = OnCompleted::slot_type;
 
    public:
-    enum class Error { BLOCK_AFTER_LIMIT = 1 };
-
     EnvironmentImpl(
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
@@ -81,7 +79,5 @@ namespace kagome::consensus::grandpa {
   };
 
 }  // namespace kagome::consensus::grandpa
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::consensus::grandpa, EnvironmentImpl::Error);
 
 #endif  // KAGOME_CHAIN_IMPL_HPP

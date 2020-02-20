@@ -10,17 +10,6 @@
 #include <boost/optional/optional_io.hpp>
 #include "scale/scale.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa,
-                            EnvironmentImpl::Error,
-                            e) {
-  using E = kagome::consensus::grandpa::EnvironmentImpl::Error;
-  switch (e) {
-    case E::BLOCK_AFTER_LIMIT:
-      return "target block is after limit";
-  }
-  return "Unknown error";
-}
-
 namespace kagome::consensus::grandpa {
 
   using primitives::BlockHash;
@@ -53,25 +42,11 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<BlockInfo> EnvironmentImpl::bestChainContaining(
       const BlockHash &base) const {
-    boost::optional<uint64_t> limit =
-        boost::none;  // TODO(Harrm) authority_set.current_limit
-    // find out how to obtain it and whether it is needed
-
     logger_->debug("Finding best chain containing block {}", base.toHex());
     OUTCOME_TRY(best_info, block_tree_->getBestContaining(base, boost::none));
     auto best_hash = best_info.block_hash;
 
-    if (limit.has_value() && best_info.block_number > limit) {
-      logger_->error(
-          "Encountered error finding best chain containing {} with limit {}: "
-          "target block is after limit",
-          best_hash.toHex(),
-          limit);
-      return Error::BLOCK_AFTER_LIMIT;
-    }
-
     auto target = best_info.block_number;
-    target = limit.has_value() ? std::min(limit.value(), target) : target;
 
     OUTCOME_TRY(best_header, header_repository_->getBlockHeader(best_hash));
 
