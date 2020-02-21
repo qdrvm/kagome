@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 #include <rapidjson/document.h>
+#include "core/consensus/grandpa/literals.hpp"
 #include "mock/core/consensus/grandpa/chain_mock.hpp"
 #include "testutil/outcome.hpp"
 
@@ -19,38 +20,6 @@ using namespace grandpa;
 
 using ::testing::_;
 using ::testing::Return;
-
-inline VoteWeight makeVoteWeight(uint64_t s) {
-  // TODO(warchant): update this when VoteWeight is updated
-  VoteWeight v{};
-  v.weight = s;
-  return v;
-}
-
-inline VoteWeight makeVoteWeight(std::string s) {
-  // TODO(warchant): update this when VoteWeight is updated
-  size_t weight = 0;
-  std::stringstream ss(s);
-  ss >> weight;
-  assert(!ss.fail());
-
-  return makeVoteWeight(weight);
-}
-
-inline VoteWeight operator"" _W(const char *c, size_t s) {
-  return makeVoteWeight(std::string{c, c + s});
-}
-
-inline BlockHash makeBlockHash(std::string s) {
-  assert(s.size() <= BlockHash::size());
-  BlockHash hash{};
-  std::copy(s.begin(), s.end(), hash.begin());
-  return hash;
-}
-
-inline BlockHash operator"" _H(const char *c, size_t s) {
-  return makeBlockHash(std::string{c, c + s});
-}
 
 struct VoteGraphFixture : public ::testing::Test {
   const BlockHash GENESIS_HASH = "genesis"_H;
@@ -94,7 +63,7 @@ inline std::vector<BlockHash> jsonToHashArray(Array &&array) {
 
 template <typename Object>
 inline VoteGraph::Entry jsonToEntry(Object &&document) {
-  VoteGraph::Entry e{};
+  VoteGraph::Entry e;
 
   assert(document.IsObject());
   assert(document.HasMember("number"));
@@ -175,7 +144,7 @@ namespace std {
   }
 
   inline void PrintTo(const BlockInfo &e, ostream *os) {
-    *os << "BlockInfo{n=" << e.number << ", h=" << e.hash << "}";
+    *os << "BlockInfo{n=" << e.block_number << ", h=" << e.block_hash << "}";
   }
 
   inline void PrintTo(const VoteGraph::Entry &e, ostream *os) {
@@ -191,7 +160,7 @@ namespace std {
       *os << a << ", ";
     }
     *os << "], ";
-    *os << "cumulative_vote=" << e.cumulative_vote << "}";
+    *os << "cumulative_vote=" << e.cumulative_vote.weight << "}";
   }
 }  // namespace std
 #endif  // KAGOME_TEST_CORE_CONSENSUS_GRANDPA_VOTE_GRAPH_FIXTURE_HPP

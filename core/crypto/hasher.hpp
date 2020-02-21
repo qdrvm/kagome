@@ -12,11 +12,19 @@
 namespace kagome::crypto {
   class Hasher {
    protected:
+    using Hash64 = common::Hash64;
     using Hash128 = common::Hash128;
     using Hash256 = common::Hash256;
 
    public:
     virtual ~Hasher() = default;
+
+    /**
+     * @brief twox_128 calculates 16-byte twox hash
+     * @param buffer source buffer
+     * @return 128-bit hash value
+     */
+    virtual Hash64 twox_64(gsl::span<const uint8_t> buffer) const = 0;
 
     /**
      * @brief twox_128 calculates 16-byte twox hash

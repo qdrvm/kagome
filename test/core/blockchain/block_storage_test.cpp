@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <gtest/gtest.h>
-
-#include "blockchain/impl/common.hpp"
 #include "blockchain/impl/key_value_block_storage.hpp"
+
+#include <gtest/gtest.h>
+#include "blockchain/impl/common.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "storage/database_error.hpp"
@@ -31,9 +31,9 @@ class BlockStorageTest : public testing::Test {
 
     root_hash.put(std::vector<uint8_t>(32ul, 1));
     EXPECT_CALL(*storage, put(_, _)).WillRepeatedly(Return(outcome::success()));
-    block_storage =
-        KeyValueBlockStorage::createWithGenesis(root_hash, storage, hasher)
-            .value();
+    block_storage = KeyValueBlockStorage::createWithGenesis(
+                        root_hash, storage, hasher, [](auto &) {})
+                        .value();
   }
   std::shared_ptr<KeyValueBlockStorage> block_storage;
   std::shared_ptr<HasherMock> hasher = std::make_shared<HasherMock>();
@@ -56,8 +56,9 @@ TEST_F(BlockStorageTest, CreateWithExistingGenesis) {
   EXPECT_CALL(*storage, get(_))
       .WillOnce(Return(Buffer{1, 1, 1, 1}))
       .WillOnce(Return(Buffer{1, 1, 1, 1}));
-  EXPECT_OUTCOME_FALSE(
-      res, KeyValueBlockStorage::createWithGenesis(root_hash, storage, hasher));
+  EXPECT_OUTCOME_FALSE(res,
+                       KeyValueBlockStorage::createWithGenesis(
+                           root_hash, storage, hasher, [](auto &) {}));
   ASSERT_EQ(res, KeyValueBlockStorage::Error::BLOCK_EXISTS);
 }
 
@@ -72,8 +73,9 @@ TEST_F(BlockStorageTest, CreateWithStorageError) {
   EXPECT_CALL(*storage, get(_))
       .WillOnce(Return(Buffer{1, 1, 1, 1}))
       .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
-  EXPECT_OUTCOME_FALSE(
-      res, KeyValueBlockStorage::createWithGenesis(root_hash, storage, hasher));
+  EXPECT_OUTCOME_FALSE(res,
+                       KeyValueBlockStorage::createWithGenesis(
+                           root_hash, storage, hasher, [](auto &) {}));
   ASSERT_EQ(res, kagome::storage::DatabaseError::IO_ERROR);
 }
 

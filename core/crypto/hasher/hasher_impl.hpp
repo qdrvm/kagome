@@ -14,6 +14,8 @@ namespace kagome::crypto {
    public:
     ~HasherImpl() override = default;
 
+    Hash64 twox_64(gsl::span<const uint8_t> buffer) const override;
+
     Hash128 twox_128(gsl::span<const uint8_t> buffer) const override;
 
     Hash256 twox_256(gsl::span<const uint8_t> buffer) const override;

@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/grandpa/impl/chain_impl.cpp"
+#include "consensus/grandpa/impl/environment_impl.cpp"
 
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
-#include "blockchain/block_tree_error.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/blockchain/header_repository_mock.hpp"
+#include "mock/core/consensus/grandpa/gossiper_mock.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -20,9 +20,11 @@ using kagome::blockchain::HeaderRepositoryMock;
 using kagome::common::Blob;
 using kagome::common::Hash256;
 using kagome::consensus::grandpa::Chain;
-using kagome::consensus::grandpa::ChainImpl;
+using kagome::consensus::grandpa::EnvironmentImpl;
+using kagome::consensus::grandpa::GossiperMock;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
+using kagome::primitives::BlockInfo;
 using kagome::primitives::BlockNumber;
 using testing::_;
 using testing::Return;
@@ -71,7 +73,10 @@ class ChainTest : public testing::Test {
   std::shared_ptr<HeaderRepositoryMock> header_repo =
       std::make_shared<HeaderRepositoryMock>();
 
-  std::shared_ptr<Chain> chain = std::make_shared<ChainImpl>(tree, header_repo);
+  std::shared_ptr<GossiperMock> gossiper = std::make_shared<GossiperMock>();
+
+  std::shared_ptr<Chain> chain =
+      std::make_shared<EnvironmentImpl>(tree, header_repo, gossiper);
 };
 
 /**
@@ -85,10 +90,23 @@ TEST_F(ChainTest, Ancestry) {
   auto h2 = "020202"_hash256;
   auto h3 = "030303"_hash256;
   auto h4 = "040404"_hash256;
-  EXPECT_CALL(*tree, getChainByBlocks(_, _))
+  EXPECT_CALL(*tree, getChainByBlocks(h1, h4))
       .WillOnce(Return(std::vector<Hash256>{h1, h2, h3, h4}));
   EXPECT_OUTCOME_TRUE(blocks, chain->getAncestry(h1, h4));
   std::vector<Hash256> expected{h3, h2};
+  ASSERT_EQ(blocks, expected);
+}
+
+/**
+ * @given chain api instance referring to a block tree with 4 blocks in its
+ * chain
+ * @when obtaining the ancestry from h1 to itself
+ * @then empty list is returned
+ */
+TEST_F(ChainTest, AncestryOfItself) {
+  auto h1 = "010101"_hash256;
+  EXPECT_OUTCOME_TRUE(blocks, chain->getAncestry(h1, h1));
+  std::vector<Hash256> expected{};
   ASSERT_EQ(blocks, expected);
 }
 
@@ -102,10 +120,10 @@ TEST_F(ChainTest, Ancestry) {
 TEST_F(ChainTest, BestChainContaining) {
   auto h = mockTree();
   EXPECT_CALL(*tree, getBestContaining(_, _))
-      .WillOnce(Return(BlockTree::BlockInfo{42, h[3]}));
+      .WillOnce(Return(BlockInfo{42, h[3]}));
   EXPECT_OUTCOME_TRUE(r, chain->bestChainContaining(h[2]));
 
-  ASSERT_EQ(h[3], r.hash);
+  ASSERT_EQ(h[3], r.block_hash);
 }
 
 /**
@@ -120,7 +138,7 @@ TEST_F(ChainTest, IsEqualOrDescendantOf) {
   auto h2 = "020202"_hash256;
   auto h3 = "030303"_hash256;
   EXPECT_CALL(*tree, getChainByBlocks(h3, h2))
-      .WillOnce(Return(kagome::blockchain::BlockTreeError::INCORRECT_ARGS));
+      .WillOnce(Return(outcome::failure(boost::system::error_code())));
   EXPECT_CALL(*tree, getChainByBlocks(h1, h3))
       .WillOnce(Return(std::vector<BlockHash>{h1, h2, h3}));
 

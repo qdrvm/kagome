@@ -103,7 +103,8 @@ namespace kagome::consensus {
     auto justification_needed =
         request.attributeIsSet(network::BlockAttributesBits::JUSTIFICATION);
     for (const auto &hash : hash_chain) {
-      auto &new_block = response.blocks.emplace_back(network::BlockData{hash});
+      auto &new_block =
+          response.blocks.emplace_back(primitives::BlockData{hash});
 
       if (header_needed) {
         auto header_res = blocks_headers_->getBlockHeader(hash);

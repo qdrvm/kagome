@@ -99,7 +99,7 @@ class BabeTest : public testing::Test {
                               0x11, 0x22, 0x33, 0x44, 0x11, 0x24, 0x33, 0x44}};
   BlockNumber best_block_number_ = 1u;
 
-  BlockTree::BlockInfo best_leaf{best_block_number_, best_block_hash_};
+  primitives::BlockInfo best_leaf{best_block_number_, best_block_hash_};
 
   BlockHeader block_header_{
       createHash(0), 2, createHash(1), createHash(2), {PreRuntime{}}};

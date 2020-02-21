@@ -151,7 +151,13 @@ namespace kagome::blockchain {
     // update our local meta
     tree_meta_->last_finalized = *node;
     node->finalized = true;
-    OUTCOME_TRY(prune());
+    // TODO(kamilsa) PRE-355: Fix prune. Now prune removes all blocks that are
+    // higher than last finalized block. Instead we should remove only blocks
+    // that are not descendants of the last finalized block
+    // OUTCOME_TRY(prune());
+    log_->info("Finalized block with hash: {}, number: {}",
+               block.toHex(),
+               node->depth);
 
     return outcome::success();
   }
@@ -269,12 +275,12 @@ namespace kagome::blockchain {
     return getChainByBlock(block_hash);
   }
 
-  BlockTree::BlockInfo BlockTreeImpl::deepestLeaf() const {
+  primitives::BlockInfo BlockTreeImpl::deepestLeaf() const {
     auto &&leaf = tree_meta_->deepest_leaf.get();
     return {leaf.depth, leaf.block_hash};
   }
 
-  outcome::result<BlockTree::BlockInfo> BlockTreeImpl::getBestContaining(
+  outcome::result<primitives::BlockInfo> BlockTreeImpl::getBestContaining(
       const primitives::BlockHash &target_hash,
       const boost::optional<primitives::BlockNumber> &max_number) const {
     OUTCOME_TRY(target_header, header_repo_->getBlockHeader(target_hash));
@@ -292,12 +298,12 @@ namespace kagome::blockchain {
         if (header) {
           OUTCOME_TRY(hash,
                       header_repo_->getHashByNumber(header.value().number));
-          return BlockInfo{header.value().number, hash};
+          return primitives::BlockInfo{header.value().number, hash};
         }
       }
     } else {
       OUTCOME_TRY(last_finalized,
-                  header_repo_->getNumberByHash(getLastFinalized()));
+                  header_repo_->getNumberByHash(getLastFinalized().block_hash));
       if (last_finalized >= target_header.number) {
         return Error::BLOCK_ON_DEAD_END;
       }
@@ -314,7 +320,7 @@ namespace kagome::blockchain {
       while (true) {
         OUTCOME_TRY(current_header, header_repo_->getBlockHeader(current_hash));
         if (current_hash == target_hash) {
-          return BlockInfo{best_header.number, best_hash};
+          return primitives::BlockInfo{best_header.number, best_hash};
         }
         if (current_header.number < target_header.number) {
           break;
@@ -357,8 +363,9 @@ namespace kagome::blockchain {
     return result;
   }
 
-  primitives::BlockHash BlockTreeImpl::getLastFinalized() const {
-    return tree_meta_->last_finalized.get().block_hash;
+  primitives::BlockInfo BlockTreeImpl::getLastFinalized() const {
+    const auto &last = tree_meta_->last_finalized.get();
+    return primitives::BlockInfo{last.depth, last.block_hash};
   }
 
   outcome::result<void> BlockTreeImpl::prune() {
@@ -406,13 +413,13 @@ namespace kagome::blockchain {
   }
 
   std::vector<primitives::BlockHash> BlockTreeImpl::getLeavesSorted() const {
-    std::vector<BlockInfo> leaf_depths;
+    std::vector<primitives::BlockInfo> leaf_depths;
     auto leaves = getLeaves();
     leaf_depths.reserve(leaves.size());
     for (auto &leaf : leaves) {
       auto leaf_node = tree_->getByHash(leaf);
       leaf_depths.emplace_back(
-          BlockInfo{leaf_node->depth, leaf_node->block_hash});
+          primitives::BlockInfo{leaf_node->depth, leaf_node->block_hash});
     }
     std::sort(leaf_depths.begin(),
               leaf_depths.end(),

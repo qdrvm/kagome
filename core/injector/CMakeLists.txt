@@ -29,12 +29,12 @@ target_link_libraries(application_injector
     extension_factory
     epoch_storage
     gossiper_broadcast
-    in_memory_storage
     kagome_router
     leveldb
     local_key_storage
     outcome
-    observer_dummy
+    launcher
+    environment
     proposer
     storage_wasm_provider
     synchronizer

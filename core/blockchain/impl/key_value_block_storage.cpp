@@ -38,7 +38,8 @@ namespace kagome::blockchain {
   KeyValueBlockStorage::createWithGenesis(
       common::Buffer state_root,
       const std::shared_ptr<storage::BufferStorage> &storage,
-      std::shared_ptr<crypto::Hasher> hasher) {
+      std::shared_ptr<crypto::Hasher> hasher,
+      const GenesisHandler &on_genesis_created) {
     KeyValueBlockStorage block_storage(storage, std::move(hasher));
     // TODO(Harrm) check that storage is actually empty
 
@@ -60,6 +61,7 @@ namespace kagome::blockchain {
     // the rest of the fields have default value
 
     OUTCOME_TRY(block_storage.putBlock(genesis_block));
+    on_genesis_created(genesis_block);
     return std::make_shared<KeyValueBlockStorage>(block_storage);
   }
 

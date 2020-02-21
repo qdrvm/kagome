@@ -121,9 +121,9 @@ namespace kagome::blockchain {
 
     BlockHashVecRes longestPath() override;
 
-    BlockInfo deepestLeaf() const override;
+    primitives::BlockInfo deepestLeaf() const override;
 
-    outcome::result<BlockInfo> getBestContaining(
+    outcome::result<primitives::BlockInfo> getBestContaining(
         const primitives::BlockHash &target_hash,
         const boost::optional<primitives::BlockNumber> &max_number)
         const override;
@@ -132,7 +132,7 @@ namespace kagome::blockchain {
 
     BlockHashVecRes getChildren(const primitives::BlockHash &block) override;
 
-    primitives::BlockHash getLastFinalized() const override;
+    primitives::BlockInfo getLastFinalized() const override;
 
     outcome::result<void> prune() override;
 

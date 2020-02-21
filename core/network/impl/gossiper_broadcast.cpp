@@ -31,27 +31,24 @@ namespace kagome::network {
     broadcast(std::move(message));
   }
 
-  void GossiperBroadcast::precommit(Precommit pc) {
-    logger_->info("Gossip precommit: vote for {}", pc.hash.toHex());
+  void GossiperBroadcast::vote(
+      const consensus::grandpa::VoteMessage &vote_message) {
+    logger_->info("Gossip vote message: grandpa round number {}",
+                  vote_message.round_number);
     GossipMessage message;
-    message.type = GossipMessage::Type::PRECOMMIT;
-    message.data.put(scale::encode(pc).value());
+    message.type = GossipMessage::Type::CONSENSUS;
+    message.data.put(scale::encode(vote_message).value());
+
     broadcast(std::move(message));
   }
 
-  void GossiperBroadcast::prevote(Prevote pv) {
-    logger_->info("Gossip prevote: vote for {}", pv.hash.toHex());
+  void GossiperBroadcast::finalize(const consensus::grandpa::Fin &fin) {
+    logger_->info("Gossip fin message: grandpa round number {}",
+                  fin.round_number);
     GossipMessage message;
-    message.type = GossipMessage::Type::PREVOTE;
-    message.data.put(scale::encode(pv).value());
-    broadcast(std::move(message));
-  }
+    message.type = GossipMessage::Type::CONSENSUS;
+    message.data.put(scale::encode(fin).value());
 
-  void GossiperBroadcast::primaryPropose(PrimaryPropose pv) {
-    logger_->info("Gossip primary propose: vote for {}", pv.hash.toHex());
-    GossipMessage message;
-    message.type = GossipMessage::Type::PRIMARY_PROPOSE;
-    message.data.put(scale::encode(pv).value());
     broadcast(std::move(message));
   }
 

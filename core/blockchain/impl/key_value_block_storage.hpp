@@ -15,6 +15,8 @@
 namespace kagome::blockchain {
 
   class KeyValueBlockStorage : public BlockStorage {
+    using GenesisHandler = std::function<void(const primitives::Block &)>;
+
    public:
     enum class Error { BLOCK_EXISTS = 1 };
 
@@ -27,10 +29,10 @@ namespace kagome::blockchain {
      * @param hasher a hasher instance
      */
     static outcome::result<std::shared_ptr<KeyValueBlockStorage>>
-    createWithGenesis(
-        common::Buffer state_root,
-        const std::shared_ptr<storage::BufferStorage> &storage,
-        std::shared_ptr<crypto::Hasher> hasher);
+    createWithGenesis(common::Buffer state_root,
+                      const std::shared_ptr<storage::BufferStorage> &storage,
+                      std::shared_ptr<crypto::Hasher> hasher,
+                      const GenesisHandler &on_genesis_created);
 
     outcome::result<primitives::BlockHeader> getBlockHeader(
         const primitives::BlockId &id) const override;
