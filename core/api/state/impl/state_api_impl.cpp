@@ -24,7 +24,7 @@ namespace kagome::api {
   outcome::result<common::Buffer> StateApiImpl::getStorage(
       const common::Buffer &key) const {
     auto last_finalized = block_tree_->getLastFinalized();
-    return getStorage(key, last_finalized);
+    return getStorage(key, last_finalized.block_hash);
   }
 
   outcome::result<common::Buffer> StateApiImpl::getStorage(
