@@ -64,11 +64,16 @@ As of now there is not much things you can do with Kagome node. However, you can
 ### Clone
     
 To clone repository execute: 
-1. `git clone https://github.com/soramitsu/kagome`
+1. `git clone --recurse-submodules https://github.com/soramitsu/kagome`
 2. `cd kagome`
 
 
 ### Build kagome node
+
+If you have not initialized submodules when cloning the repo with `--recurse-submodules`, initialize and update them:
+```
+git submodule update --init --recursive
+```
 
 To build kagome node binary go to your build folder and assemble `kagome_full` binary using cmake:
 ```
