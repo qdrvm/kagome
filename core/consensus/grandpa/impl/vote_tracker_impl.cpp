@@ -4,6 +4,8 @@
  */
 
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
+
+#include "common/visitor.hpp"
 #include "consensus/grandpa/structs.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -23,28 +25,46 @@ namespace kagome::consensus::grandpa {
       return PushResult::SUCCESS;
     }
     auto &equivotes = vote_it->second;
-    bool isDuplicate =
-        std::find_if(equivotes.begin(),
-                     equivotes.end(),
-                     [&vote](auto const &prevote) {
-                       return prevote.message.hash == vote.message.hash;
-                     })
-        != equivotes.end();
-    if (not isDuplicate && equivotes.size() < 2) {
-      equivotes.push_back(vote);
-      total_weight_ += weight;
-      return PushResult::EQUIVOCATED;
+    bool isDuplicate = visit_in_place(
+        equivotes,
+        [&vote](const VotingMessage &voting_message) {
+          return voting_message.message.block_hash == vote.message.block_hash;
+        },
+        [&vote](const EquivocatoryVotingMessage &equivocatory_vote) {
+          return equivocatory_vote.first.message.block_hash
+                     == vote.message.block_hash
+                 or equivocatory_vote.second.message.block_hash
+                        == vote.message.block_hash;
+        });
+    if (not isDuplicate) {
+      return visit_in_place(
+          equivotes,
+          // if there is only single vote for that id, make it equivocatory vote
+          [&](const VotingMessage &voting_message) {
+            EquivocatoryVotingMessage v;
+            v.first = boost::get<VotingMessage>(equivotes);
+            v.second = vote;
+
+            messages_[vote.id] = v;
+            total_weight_ += weight;
+            return PushResult::EQUIVOCATED;
+          },
+          // otherwise return duplicated
+          [&](const EquivocatoryVotingMessage &) {
+            return PushResult::DUPLICATED;
+          });
     }
     return PushResult::DUPLICATED;
   }
 
   template <typename M>
-  std::vector<VotingMessageT<M>> VoteTrackerImpl<M>::getMessages() const {
-    std::vector<VotingMessageT<M>> prevotes;
+  std::vector<typename VoteTracker<M>::VoteVariant>
+  VoteTrackerImpl<M>::getMessages() const {
+    std::vector<typename VoteTracker<M>::VoteVariant> prevotes;
     // the actual number may be bigger, but it's a good guess
     prevotes.reserve(messages_.size());
-    for (auto const &[_, equivotes] : messages_) {
-      prevotes.insert(prevotes.begin(), equivotes.begin(), equivotes.end());
+    for (const auto &[key, value] : messages_) {
+      prevotes.push_back(value);
     }
     return prevotes;
   }

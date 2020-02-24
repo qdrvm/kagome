@@ -37,8 +37,8 @@
 #include "consensus/babe/impl/epoch_storage_dumb.hpp"
 #include "consensus/grandpa/chain.hpp"
 #include "consensus/grandpa/gossiper.hpp"
-#include "consensus/grandpa/impl/observer_dummy.hpp"
-#include "consensus/grandpa/observer.hpp"
+#include "consensus/grandpa/impl/environment_impl.hpp"
+#include "consensus/grandpa/impl/launcher_impl.hpp"
 #include "consensus/grandpa/structs.hpp"
 #include "consensus/grandpa/vote_graph.hpp"
 #include "consensus/grandpa/vote_tracker.hpp"
@@ -63,6 +63,7 @@
 #include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
 #include "runtime/common/storage_wasm_provider.hpp"
 #include "storage/leveldb/leveldb.hpp"
+#include "storage/predefined_keys.hpp"
 #include "storage/trie/impl/polkadot_codec.hpp"
 #include "storage/trie/impl/polkadot_node.hpp"
 #include "storage/trie/impl/polkadot_trie_db.hpp"
@@ -209,29 +210,28 @@ namespace kagome::injector {
       }
 
       // TODO(kamilsa): uncomment when execute with real runtime
-      //      auto grandpa_api = injector.template
-      //      create<sptr<runtime::Grandpa>>(); auto &keys = injector.template
-      //      create<application::KeyStorage &>(); auto &&local_pair =
-      //      keys.getLocalEd25519Keypair();
-      //      auto &public_key = local_pair.public_key;
-      //      auto &&authorities_res = grandpa_api->authorities(
-      //          primitives::BlockId(primitives::BlockNumber{0}));
-      //      if (authorities_res.has_error()) {
-      //        common::raise(authorities_res.error());
-      //      }
-      //      auto &&authorities = authorities_res.value();
-      //
-      //      uint64_t index = 0;
-      //      for (auto &auth : authorities) {
-      //        if (public_key == auth.id.id) {
-      //          break;
-      //        }
-      //        ++index;
-      //      }
-      //      if (index >= authorities.size()) {
-      //        common::raise(InjectorError::INDEX_OUT_OF_BOUND);
-      //      }
+      auto grandpa_api = injector.template create<sptr<runtime::Grandpa>>();
+      auto &keys = injector.template create<application::KeyStorage &>();
+      auto &&local_pair = keys.getLocalEd25519Keypair();
+      auto &public_key = local_pair.public_key;
+      auto &&authorities_res = grandpa_api->authorities(
+          primitives::BlockId(primitives::BlockNumber{0}));
+      if (authorities_res.has_error()) {
+        common::raise(authorities_res.error());
+      }
+      auto &&authorities = authorities_res.value();
+
       uint64_t index = 0;
+      for (auto &auth : authorities) {
+        if (public_key == auth.id.id) {
+          break;
+        }
+        ++index;
+      }
+      if (index >= authorities.size()) {
+        common::raise(InjectorError::INDEX_OUT_OF_BOUND);
+      }
+      //      uint64_t index = 0;
 
       initialized = std::make_shared<primitives::AuthorityIndex>(
           primitives::AuthorityIndex{index});
@@ -279,13 +279,60 @@ namespace kagome::injector {
       }
       auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
 
-      const auto &db =
-          injector.template create<sptr<storage::BufferStorage>>();
+      const auto &db = injector.template create<sptr<storage::BufferStorage>>();
 
-      const auto &trie_db = injector.template create<storage::trie::TrieDb &>();
+      const auto &trie_db =
+          injector.template create<sptr<storage::trie::TrieDb>>();
 
       auto storage = blockchain::KeyValueBlockStorage::createWithGenesis(
-          trie_db.getRootHash(), db, hasher);
+          trie_db->getRootHash(),
+          db,
+          hasher,
+          [&db, &injector](const primitives::Block &genesis_block) {
+            // handle genesis initialization, which happens when there is not
+            // authorities and last completed round in the storage
+            if (not db->get(storage::kAuthoritySetKey)) {
+              // insert authorities
+              auto grandpa_api =
+                  injector.template create<sptr<runtime::Grandpa>>();
+              const auto &weighted_authorities_res = grandpa_api->authorities(
+                  primitives::BlockId(primitives::BlockNumber{0}));
+              BOOST_ASSERT_MSG(weighted_authorities_res,
+                               "grandpa_api_->authorities failed");
+              const auto &weighted_authorities =
+                  weighted_authorities_res.value();
+              consensus::grandpa::VoterSet voters{0};
+              for (const auto &weighted_authority : weighted_authorities) {
+                voters.insert(weighted_authority.id.id, 1);
+                spdlog::debug("Added to grandpa authorities: {}",
+                              weighted_authority.id.id.toHex());
+              }
+              BOOST_ASSERT_MSG(voters.size() != 0, "Grandpa voters are empty");
+              BOOST_ASSERT_MSG(
+                  db->put(storage::kAuthoritySetKey,
+                          common::Buffer(scale::encode(voters).value())),
+                  "Could not insert authorities");
+
+              // insert last completed round
+              consensus::grandpa::CompletedRound zero_round;
+              zero_round.round_number = 0;
+              const auto &hasher = injector.template create<crypto::Hasher &>();
+              auto genesis_hash = hasher.blake2b_256(
+                  scale::encode(genesis_block.header).value());
+              spdlog::debug("Genesis hash in injector: {}",
+                            genesis_hash.toHex());
+              zero_round.state.prevote_ghost =
+                  consensus::grandpa::Prevote(0, genesis_hash);
+              zero_round.state.estimate =
+                  primitives::BlockInfo(0, genesis_hash);
+              zero_round.state.finalized =
+                  primitives::BlockInfo(0, genesis_hash);
+              BOOST_ASSERT_MSG(
+                  db->put(storage::kSetStateKey,
+                          common::Buffer(scale::encode(zero_round).value())),
+                  "Could not insert completed round");
+            }
+          });
       if (storage.has_error()) {
         common::raise(storage.error());
       }
@@ -326,14 +373,12 @@ namespace kagome::injector {
     auto get_polkadot_trie_db_backend =
         [](const auto &injector) -> sptr<storage::trie::TrieDbBackendImpl> {
       static auto initialized =
-          boost::optional<sptr<storage::trie::TrieDbBackendImpl>>(
-              boost::none);
+          boost::optional<sptr<storage::trie::TrieDbBackendImpl>>(boost::none);
 
       if (initialized) {
         return initialized.value();
       }
-      auto storage =
-          injector.template create<sptr<storage::BufferStorage>>();
+      auto storage = injector.template create<sptr<storage::BufferStorage>>();
       using blockchain::prefix::TRIE_NODE;
       auto backend = std::make_shared<storage::trie::TrieDbBackendImpl>(
           storage, common::Buffer{TRIE_NODE});
@@ -350,8 +395,7 @@ namespace kagome::injector {
         return initialized.value();
       }
       auto backend =
-          injector
-              .template create<sptr<storage::trie::TrieDbBackendImpl>>();
+          injector.template create<sptr<storage::trie::TrieDbBackendImpl>>();
       sptr<storage::trie::PolkadotTrieDb> polkadot_trie_db =
           storage::trie::PolkadotTrieDb::createEmpty(backend);
       initialized = polkadot_trie_db;
@@ -386,8 +430,8 @@ namespace kagome::injector {
 
     // level db getter
     template <typename Injector>
-    sptr<storage::BufferStorage> get_level_db(
-        std::string_view leveldb_path, const Injector &injector) {
+    sptr<storage::BufferStorage> get_level_db(std::string_view leveldb_path,
+                                              const Injector &injector) {
       static auto initialized =
           boost::optional<sptr<storage::BufferStorage>>(boost::none);
       if (initialized) {
@@ -525,7 +569,9 @@ namespace kagome::injector {
         di::bind<consensus::Babe>.template to<consensus::BabeImpl>(),
         di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
         di::bind<network::BabeObserver>.template to<consensus::BabeObserverImpl>(),
-        di::bind<consensus::grandpa::Observer>.template to<consensus::grandpa::ObserverDummy>(),
+        di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::LauncherImpl>(),
+        di::bind<consensus::grandpa::Launcher>.template to<consensus::grandpa::LauncherImpl>(),
+        di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
         di::bind<consensus::EpochStorage>.template to<consensus::EpochStorageDumb>(),
         di::bind<consensus::Synchronizer>.template to<consensus::SynchronizerImpl>(),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),

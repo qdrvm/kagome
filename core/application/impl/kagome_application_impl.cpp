@@ -17,7 +17,7 @@ namespace kagome::application {
       : injector_{injector::makeApplicationInjector(
           config_path, keystore_path, leveldb_path)},
         logger_(common::createLogger("Application")) {
-    spdlog::set_level(spdlog::level::debug);
+    spdlog::set_level(spdlog::level::info);
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
@@ -27,6 +27,7 @@ namespace kagome::application {
     clock_ = injector_.create<sptr<clock::SystemClock>>();
     extrinsic_api_service_ = injector_.create<sptr<ExtrinsicApiService>>();
     babe_ = injector_.create<sptr<Babe>>();
+    grandpa_launcher_ = injector_.create<sptr<GrandpaLauncher>>();
     router_ = injector_.create<sptr<network::Router>>();
   }
 
@@ -42,7 +43,7 @@ namespace kagome::application {
 
     // some threshold value resulting in producing block in every slot. In
     // future will be calculated using runtime
-    Threshold threshold = boost::multiprecision::uint128_t(
+    boost::multiprecision::uint128_t threshold(
         "102084710076281554150585127412395147264");
 
     Randomness rnd{};
@@ -64,6 +65,7 @@ namespace kagome::application {
     auto epoch = makeInitialEpoch();
     babe_->runEpoch(std::move(epoch), clock_->now());
 
+    grandpa_launcher_->start();
     io_context_->post([this] {
       const auto &current_peer_info =
           injector_.template create<libp2p::peer::PeerInfo>();

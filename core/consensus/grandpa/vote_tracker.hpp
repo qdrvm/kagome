@@ -23,6 +23,9 @@ namespace kagome::consensus::grandpa {
    public:
     enum class PushResult { SUCCESS, DUPLICATED, EQUIVOCATED };
     using VotingMessage = SignedMessage<MessageType>;
+    using EquivocatoryVotingMessage = std::pair<VotingMessage, VotingMessage>;
+    using VoteVariant =
+        boost::variant<VotingMessage, EquivocatoryVotingMessage>;
 
     virtual ~VoteTracker() = default;
     /**
@@ -39,7 +42,7 @@ namespace kagome::consensus::grandpa {
     /**
      * @returns all accepted (non-duplicate) messages
      */
-    virtual std::vector<VotingMessage> getMessages() const = 0;
+    virtual std::vector<VoteVariant> getMessages() const = 0;
 
     /**
      * @returns total weight of all accepted (non-duplicate) messages

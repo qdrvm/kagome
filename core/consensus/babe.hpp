@@ -25,7 +25,7 @@ namespace kagome::consensus {
      * Start a Babe production
      * @param epoch - epoch, which is going to be run
      * @param starting_slot_finish_time - when the slot, from which the BABE
-     * starts, ends; MUST be less than Clock::now(); for example, we start from
+     * starts, ends; for example, we start from
      * 5th slot of the some epoch. Then, we need to set time when 5th slot
      * finishes; most probably, that time will be calculated using Median
      * algorithm

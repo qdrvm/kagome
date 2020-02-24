@@ -5,9 +5,9 @@
 
 #include <gtest/gtest.h>
 
-#include "testutil/literals.hpp"
 #include "common/blob.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "testutil/literals.hpp"
 
 using kagome::common::Buffer;
 
@@ -43,14 +43,36 @@ class HasherFixture : public testing::Test {
 };
 
 /**
+ * @given pre-known source value
+ * @when Hasher::twox_64 method is applied
+ * @then expected result obtained
+ */
+TEST_F(HasherFixture, twox_64) {
+  auto hash = hasher->twox_64(Buffer().put("foo"));
+
+  // match is output obtained from substrate
+  kagome::common::Blob<8> match;
+  match[0] = '?';
+  match[1] = '\xba';
+  match[2] = '\xc4';
+  match[3] = 'Y';
+  match[4] = '\xa8';
+  match[5] = '\0';
+  match[6] = '\xbf';
+  match[7] = '3';
+
+  ASSERT_EQ(hash, match);
+}
+
+/**
  * @given some common source value
  * @when Hasher::twox_128 method is applied
  * @then expected result obtained
  */
 TEST_F(HasherFixture, twox_128) {
-  auto hash = hasher->twox_128(Buffer {"414243444546"_unhex});
-  std::vector<uint8_t> match = {184, 65, 176, 250, 243, 129, 181, 3,
-                                77,  82, 63,  150, 129, 221, 191, 251};
+  auto hash = hasher->twox_128(Buffer{"414243444546"_unhex});
+  std::vector<uint8_t> match = {
+      184, 65, 176, 250, 243, 129, 181, 3, 77, 82, 63, 150, 129, 221, 191, 251};
   ASSERT_EQ(blob2buffer<16>(hash).toVector(), match);
 }
 
@@ -89,8 +111,9 @@ TEST_F(HasherFixture, sha2_256) {
  * @then expected result obtained
  */
 TEST_F(HasherFixture, blake2_256) {
-  Buffer buffer {"6920616d2064617461"_unhex};
-  std::vector<uint8_t> match = "ba67336efd6a3df3a70eeb757860763036785c182ff4cf587541a0068d09f5b2"_unhex;
+  Buffer buffer{"6920616d2064617461"_unhex};
+  std::vector<uint8_t> match =
+      "ba67336efd6a3df3a70eeb757860763036785c182ff4cf587541a0068d09f5b2"_unhex;
 
   auto hash = hasher->blake2b_256(buffer);
   ASSERT_EQ(blob2buffer<32>(hash).toVector(), match);

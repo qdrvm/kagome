@@ -5,17 +5,18 @@
 
 #include "network/types/blocks_response.hpp"
 
+#include <gmock/gmock.h>
+
 #include <iostream>
 
-#include <gmock/gmock.h>
 #include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/primitives/mp_utils.hpp"
 
-using kagome::network::BlockData;
 using kagome::network::BlocksResponse;
 using kagome::primitives::BlockBody;
+using kagome::primitives::BlockData;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::Digest;
 using kagome::primitives::Justification;

@@ -17,7 +17,7 @@ namespace kagome::network {
   RouterLibp2p::RouterLibp2p(
       libp2p::Host &host,
       std::shared_ptr<BabeObserver> babe_observer,
-      std::shared_ptr<consensus::grandpa::Observer> grandpa_observer,
+      std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer,
       std::shared_ptr<SyncProtocolObserver> sync_observer)
       : host_{host},
         babe_observer_{std::move(babe_observer)},
@@ -105,42 +105,22 @@ namespace kagome::network {
         babe_observer_->onBlockAnnounce(msg_res.value());
         return true;
       }
-      case MsgType::PRECOMMIT: {
-        auto msg_res = scale::decode<consensus::grandpa::Precommit>(msg.data);
-        if (!msg_res) {
-          log_->error("error while decoding a precommit message: {}",
-                      msg_res.error().message());
-          return false;
+      case MsgType::CONSENSUS: {
+        auto vote_msg_res =
+            scale::decode<consensus::grandpa::VoteMessage>(msg.data);
+        if (vote_msg_res) {
+          grandpa_observer_->onVoteMessage(vote_msg_res.value());
+          return true;
         }
-        log_->debug("Received precommit: vote for {}",
-                    msg_res.value().hash.toHex());
-        grandpa_observer_->onPrecommit(msg_res.value());
-        return true;
-      }
-      case MsgType::PREVOTE: {
-        auto msg_res = scale::decode<consensus::grandpa::Prevote>(msg.data);
-        if (!msg_res) {
-          log_->error("error while decoding a prevote message: {}",
-                      msg_res.error().message());
-          return false;
+
+        auto fin_msg_res = scale::decode<consensus::grandpa::Fin>(msg.data);
+        if (fin_msg_res) {
+          grandpa_observer_->onFinalize(fin_msg_res.value());
+          return true;
         }
-        log_->debug("Received prevote: vote for {}",
-                    msg_res.value().hash.toHex());
-        grandpa_observer_->onPrevote(msg_res.value());
-        return true;
-      }
-      case MsgType::PRIMARY_PROPOSE: {
-        auto msg_res =
-            scale::decode<consensus::grandpa::PrimaryPropose>(msg.data);
-        if (!msg_res) {
-          log_->error("error while decoding a primary propose message: {}",
-                      msg_res.error().message());
-          return false;
-        }
-        log_->debug("Received primary propose: vote for {}",
-                    msg_res.value().hash.toHex());
-        grandpa_observer_->onPrimaryPropose(msg_res.value());
-        return true;
+
+        log_->error("error while decoding a consensus message");
+        return false;
       }
       case MsgType::UNKNOWN:
         log_->error("unknown message type is set");

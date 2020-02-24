@@ -21,7 +21,8 @@ namespace kagome::runtime::binaryen {
     return execute<Version>("Core_version");
   }
 
-  outcome::result<void> CoreImpl::execute_block(const Block &block) {
+  outcome::result<void> CoreImpl::execute_block(
+      const primitives::Block &block) {
     return execute<void>("Core_execute_block", block);
   }
 

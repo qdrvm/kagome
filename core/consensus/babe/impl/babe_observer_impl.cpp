@@ -48,8 +48,8 @@ namespace kagome::consensus {
       // the block was inserted to the tree by a validator
       auto add_block_res = tree_->addBlock(block);
       if (add_block_res) {
-        logger_->info("Block with number {} was inserted into the storage",
-                      block.header.number);
+        logger_->debug("Block with number {} was inserted into the storage",
+                       block.header.number);
       } else if (add_block_res.error()
                  == blockchain::BlockTreeError::BLOCK_EXISTS) {
         logger_->warn(
@@ -88,10 +88,12 @@ namespace kagome::consensus {
     // non-finalized fork, we are not interested in it; otherwise, it 100% will
     // be a descendant of the last_finalized
     network::BlocksRequest request{network::BlocksRequest::kBasicAttributes,
-                                   tree_->getLastFinalized(),
+                                   tree_->getLastFinalized().block_hash,
                                    announce.header.parent_hash,
                                    network::Direction::DESCENDING,
                                    boost::none};
+
+    pollClients(block, request, polled_clients);
   }
 
   void BabeObserverImpl::pollClients(

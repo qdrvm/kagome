@@ -35,11 +35,9 @@ namespace kagome::network {
 
     void blockAnnounce(const BlockAnnounce &announce) override;
 
-    void precommit(Precommit pc) override;
+    void vote(const consensus::grandpa::VoteMessage &msg) override;
 
-    void prevote(Prevote pv) override;
-
-    void primaryPropose(PrimaryPropose pv) override;
+    void finalize(const consensus::grandpa::Fin &fin) override;
 
    private:
     void broadcast(GossipMessage &&msg);

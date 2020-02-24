@@ -24,7 +24,7 @@ namespace kagome::runtime::binaryen {
     outcome::result<primitives::Version> version() override;
 
     outcome::result<void> execute_block(
-        const kagome::primitives::Block &block) override;
+        const primitives::Block &block) override;
 
     outcome::result<void> initialise_block(
         const kagome::primitives::BlockHeader &header) override;

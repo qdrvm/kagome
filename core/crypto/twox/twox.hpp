@@ -6,30 +6,17 @@
 #ifndef KAGOME_CRYPTO_TWOX_HPP
 #define KAGOME_CRYPTO_TWOX_HPP
 
-#include <array>
-
-#include "common/buffer.hpp"
+#include "common/blob.hpp"
 
 namespace kagome::crypto {
 
-  struct Twox128Hash {
-    std::array<uint8_t, 16> data;
-  };
-  struct Twox256Hash {
-    std::array<uint8_t, 32> data;
-  };
+  // TODO(warchant): PRE-357 refactor to span
 
-  // TODO(warchant): refactor to span
+  common::Hash64 make_twox64(gsl::span<const uint8_t> buf);
 
-  Twox128Hash make_twox128(const common::Buffer &buf);
-  Twox128Hash make_twox128(const uint8_t *buf, size_t len);
-  void make_twox128(const common::Buffer &in, common::Buffer &out);
-  void make_twox128(const uint8_t *in, uint32_t len, uint8_t *out);
+  common::Hash128 make_twox128(gsl::span<const uint8_t> buf);
 
-  Twox256Hash make_twox256(const common::Buffer &buf);
-  Twox256Hash make_twox256(const uint8_t *buf, size_t len);
-  void make_twox256(const common::Buffer &in, common::Buffer &out);
-  void make_twox256(const uint8_t *in, uint32_t len, uint8_t *out);
+  common::Hash256 make_twox256(gsl::span<const uint8_t> buf);
 
 }  // namespace kagome::crypto
 

@@ -9,17 +9,20 @@
 #include "common/buffer.hpp"
 
 namespace kagome::network {
+
+  inline const size_t kMaxMessageTypes = 80;
+
   /**
    * Message, which is passed over the Gossip protocol
    */
   struct GossipMessage {
     enum class Type : uint8_t {
-      BLOCK_ANNOUNCE = 1,
-      PRECOMMIT,
-      PREVOTE,
-      PRIMARY_PROPOSE,
-
-      UNKNOWN = 0
+      STATUS = 0,
+      BLOCK_REQUEST,
+      BLOCK_ANNOUNCE,
+      TRANSACTIONS,
+      CONSENSUS,
+      UNKNOWN = 99
     };
 
     Type type{};
@@ -43,7 +46,8 @@ namespace kagome::network {
   Stream &operator>>(Stream &s, GossipMessage::Type &t) {
     uint8_t type{};
     s >> type;
-    if (type > 4) {
+
+    if (type > kMaxMessageTypes) {
       t = GossipMessage::Type::UNKNOWN;
     } else {
       t = static_cast<GossipMessage::Type>(type);

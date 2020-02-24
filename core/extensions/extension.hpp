@@ -226,6 +226,16 @@ namespace kagome::extensions {
         runtime::WasmPointer pubkey_data) = 0;
 
     /**
+     * Hash the data using XX64 hash
+     * @param data to be hashed
+     * @param len of the data
+     * @param out buffer to store the hash
+     */
+    virtual void ext_twox_64(runtime::WasmPointer data,
+                             runtime::SizeType len,
+                             runtime::WasmPointer out) = 0;
+
+    /**
      * Hash the data using XX128 hash
      * @param data to be hashed
      * @param len of the data

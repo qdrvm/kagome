@@ -14,5 +14,7 @@ addtest(vote_graph_test
     )
 target_link_libraries(vote_graph_test
     vote_graph
+    vote_tracker
     blob
+    block_tree
     )

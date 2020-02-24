@@ -170,7 +170,10 @@ namespace kagome::consensus {
                          put_res.error().message());
     }
 
-    auto &&[_, best_block_hash] = block_tree_->deepestLeaf();
+    auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
+    log_->debug("Babe builds block on top of block with number {} and hash {}",
+                best_block_number,
+                best_block_hash);
 
     // calculate babe_pre_digest
     auto babe_pre_digest_res = babePreDigest(output);
@@ -197,6 +200,7 @@ namespace kagome::consensus {
 
     // finally, broadcast the sealed block
     gossiper_->blockAnnounce(network::BlockAnnounce{block.header});
+    log_->debug("Announced block in slot: {}", current_slot_);
   }
 
   void BabeImpl::finishEpoch() {

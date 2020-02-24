@@ -64,11 +64,16 @@ As of now there is not much things you can do with Kagome node. However, you can
 ### Clone
     
 To clone repository execute: 
-1. `git clone https://github.com/soramitsu/kagome`
+1. `git clone --recurse-submodules https://github.com/soramitsu/kagome`
 2. `cd kagome`
 
 
 ### Build kagome node
+
+If you have not initialized submodules when cloning the repo with `--recurse-submodules`, initialize and update them:
+```
+git submodule update --init --recursive
+```
 
 To build kagome node binary go to your build folder and assemble `kagome_full` binary using cmake:
 ```
@@ -80,7 +85,7 @@ make kagome_full -j
 ### Get necessary configurations for the node
 * Executable binary could be found in `build/examples/kagome_full/`
 * To execute kagome node you need to provide it with genesis config, keys and leveldb files
-* Example genesis config file can be found in `examples/kagome_full/config/genesis_custom.json`
+* Example genesis config file can be found in `examples/kagome_full/config/polkadot-v06.json`
 * Example keys file can be found in `examples/kagome_full/config/keystore.json`
 * To create leveldb storage file just provide any path into `kagome_full` executable.
 
@@ -88,7 +93,7 @@ make kagome_full -j
 To launch kagome node execute:
 ```
 cd examples/kagome_full
-kagome_full --genesis config/genesis_custom.json --keystore config/keystore.json -l ldb
+kagome_full --genesis config/polkadot-v06.json --keystore config/keystore.json -l ldb
 ```
 
 This command executes kagome node which can receive extrinsics locally on port: `4224` (currently hardcoded) 

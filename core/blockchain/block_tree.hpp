@@ -13,6 +13,7 @@
 #include <outcome/outcome.hpp>
 #include "primitives/block.hpp"
 #include "primitives/block_id.hpp"
+#include "primitives/common.hpp"
 #include "primitives/justification.hpp"
 
 namespace kagome::blockchain {
@@ -113,22 +114,13 @@ namespace kagome::blockchain {
     virtual BlockHashVecRes longestPath() = 0;
 
     /**
-     * Represents block information, including block number and hash.
-     * Don't keep hash reference, make a copy if you need it.
-     */
-    struct BlockInfo {
-      primitives::BlockNumber block_number{};
-      primitives::BlockHash block_hash;
-    };
-
-    /**
      * Get a deepest leaf of the tree
      * @return deepest leaf
      *
      * @note deepest leaf is also a result of "SelectBestChain": if we are the
      * leader, we connect a block, which we constructed, to that deepest leaf
      */
-    virtual BlockInfo deepestLeaf() const = 0;
+    virtual primitives::BlockInfo deepestLeaf() const = 0;
 
     /*
      * @brief Get the most recent block of the best (longest) chain among those
@@ -138,7 +130,7 @@ namespace kagome::blockchain {
      * @param max_number is the max block number that the resulting block (and
      * the target one) may possess
      */
-    virtual outcome::result<BlockInfo> getBestContaining(
+    virtual outcome::result<primitives::BlockInfo> getBestContaining(
         const primitives::BlockHash &target_hash,
         const boost::optional<primitives::BlockNumber> &max_number) const = 0;
 
@@ -159,7 +151,7 @@ namespace kagome::blockchain {
      * Get the last finalized block
      * @return hash of the block
      */
-    virtual primitives::BlockHash getLastFinalized() const = 0;
+    virtual primitives::BlockInfo getLastFinalized() const = 0;
 
     /**
      * Prune the tree in both memory and storage, removing all blocks, which are

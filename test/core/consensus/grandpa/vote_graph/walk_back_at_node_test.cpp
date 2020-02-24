@@ -241,8 +241,8 @@ TEST_P(WalkBackAtNode, FindAncestor) {
   auto ancestorOpt =
       graph->findAncestor(block, [](auto &&x) { return x >= "20"_W; });
 
-  ASSERT_TRUE(ancestorOpt) << "number: " << block.number << " "
-                           << "hash: " << block.hash.toHex();
+  ASSERT_TRUE(ancestorOpt) << "number: " << block.block_number << " "
+                           << "hash: " << block.block_hash.toHex();
   ASSERT_EQ(*ancestorOpt, EXPECTED);
 }
 

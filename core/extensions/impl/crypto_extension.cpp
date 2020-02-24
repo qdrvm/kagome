@@ -121,6 +121,20 @@ namespace kagome::extensions {
     return is_succeeded ? kVerifySuccess : kVerifyFail;
   }
 
+  void CryptoExtension::ext_twox_64(runtime::WasmPointer data,
+                                    runtime::SizeType len,
+                                    runtime::WasmPointer out_ptr) {
+    const auto &buf = memory_->loadN(data, len);
+
+    auto hash = hasher_->twox_64(buf);
+    logger_->debug("twox64. Data: {}, Data hex: {}, hash: {}",
+                   buf.data(),
+                   buf.toHex(),
+                   hash.toHex());
+
+    memory_->storeBuffer(out_ptr, common::Buffer(hash));
+  }
+
   void CryptoExtension::ext_twox_128(runtime::WasmPointer data,
                                      runtime::SizeType len,
                                      runtime::WasmPointer out_ptr) {

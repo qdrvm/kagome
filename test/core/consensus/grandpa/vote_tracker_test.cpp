@@ -4,9 +4,10 @@
  */
 
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
-#include "consensus/grandpa/structs.hpp"
 
 #include <gtest/gtest.h>
+#include "common/visitor.hpp"
+#include "consensus/grandpa/structs.hpp"
 #include "testutil/literals.hpp"
 
 using namespace kagome::consensus::grandpa;
@@ -33,7 +34,7 @@ class VoteTrackerTest : public testing::Test {
   SignedMessage<Message> createMessage(const Id &id, const Hash256 &hash) {
     SignedMessage<Message> m;
     m.id = id;
-    m.message.hash = hash;
+    m.message.block_hash = hash;
     return m;
   }
 
@@ -92,15 +93,38 @@ TYPED_TEST_P(VoteTrackerTest, GetMessages) {
     }
   }
   auto messages = this->tracker.getMessages();
-  ASSERT_EQ(messages.size(), expected.size());
+
   for (auto &m : expected) {
-    ASSERT_TRUE(std::find_if(messages.begin(),
-                             messages.end(),
-                             [&m](auto &v) {
-                               return m.id == v.id
-                                      && m.message.hash == v.message.hash;
-                             })
-                != messages.end());
+    ASSERT_TRUE(
+        std::find_if(
+            messages.begin(),
+            messages.end(),
+            [&m](auto &v) {
+              return kagome::visit_in_place(
+                  v,
+                  [&](const typename decltype(
+                      this->tracker)::VotingMessage &voting_message) {
+                    return m.id == voting_message.id
+                           && m.message.block_hash
+                                  == voting_message.message.block_hash;
+                  },
+                  [&](const typename decltype(
+                      this->tracker)::EquivocatoryVotingMessage
+                          &equivocatory_voting_message) {
+                    auto first_id = equivocatory_voting_message.first.id;
+                    auto first_block_hash =
+                        equivocatory_voting_message.first.message.block_hash;
+
+                    auto second_id = equivocatory_voting_message.second.id;
+                    auto second_block_hash =
+                        equivocatory_voting_message.second.message.block_hash;
+                    return (m.id == first_id
+                            && m.message.block_hash == first_block_hash)
+                           || (m.id == second_id
+                               && m.message.block_hash == second_block_hash);
+                  });
+            })
+        != messages.end());
   }
 }
 
