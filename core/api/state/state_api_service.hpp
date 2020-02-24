@@ -11,6 +11,10 @@
 
 namespace kagome::api {
 
+  /**
+   * A service that listens for incoming RPC requests and sends them to the
+   * state API JSON RPC processor
+   */
   class StateApiService : public ApiService {
    public:
     StateApiService(std::shared_ptr<Listener> listener,
@@ -18,6 +22,6 @@ namespace kagome::api {
     ~StateApiService() override = default;
   };
 
-}
+}  // namespace kagome::api
 
 #endif  // KAGOME_API_STATE_API_SERVICE_HPP
