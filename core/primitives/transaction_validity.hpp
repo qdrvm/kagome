@@ -74,7 +74,7 @@ namespace kagome::primitives {
   };
 
   /// Transaction is invalid. Details are described by the error code.
-  enum class InvalidTransaction {
+  enum class InvalidTransaction : uint8_t {
     /// The call of the transaction is not expected.
     Call,
     /// General error to do with the inability to pay some fees (e.g. account
@@ -119,7 +119,7 @@ namespace kagome::primitives {
   }
 
   /// An unknown transaction validity.
-  enum class UnknownTransaction {
+  enum class UnknownTransaction : uint8_t {
     /// Could not lookup some information that is required to validate the
     /// transaction.
     CannotLookup,

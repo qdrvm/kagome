@@ -39,7 +39,7 @@ using kagome::primitives::Digest;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::InherentData;
 using kagome::primitives::InherentIdentifier;
-using kagome::primitives::Invalid;
+using kagome::primitives::InvalidTransaction;
 using kagome::primitives::PreRuntime;
 using kagome::primitives::TransactionValidity;
 using kagome::primitives::UnknownTransaction;
@@ -94,10 +94,11 @@ class Primitives : public testing::Test {
 
   /// TransactionValidity variant instance as Valid alternative and
   /// corresponding scale representation
-  ValidTransaction valid_transaction_{1,                    // priority
-                                      {{0, 1}, {2, 3}},     // requires
-                           {{4, 5}, {6, 7, 8}},  // provides
-                           2};                   // longivity
+  ValidTransaction valid_transaction_{.priority = 1,
+                                      .requires = {{0, 1}, {2, 3}},
+                                      .provides = {{4, 5}, {6, 7, 8}},
+                                      .longevity = 2,
+                                      .propagate = true};
 };
 
 /**
@@ -178,9 +179,9 @@ TEST_F(Primitives, EncodeBlockIdBlockNumberSuccess) {
  * @then obtained result matches predefined value
  */
 TEST_F(Primitives, EncodeTransactionValidityInvalidSuccess) {
-  Invalid invalid{1};
+  InvalidTransaction invalid{1};
   EXPECT_OUTCOME_TRUE(val, encode(invalid))
-  EXPECT_OUTCOME_TRUE(decoded_validity, decode<Invalid>(val));
+  EXPECT_OUTCOME_TRUE(decoded_validity, decode<InvalidTransaction>(val));
   ASSERT_EQ(decoded_validity, invalid);
 }
 
