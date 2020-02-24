@@ -5,3 +5,4 @@
 
 add_subdirectory(client)
 add_subdirectory(extrinsic)
+add_subdirectory(state)

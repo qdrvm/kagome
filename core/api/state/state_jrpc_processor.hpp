@@ -15,6 +15,9 @@ namespace kagome::api {
 
   class StateJrpcProcessor : public JRPCProcessor {
    public:
+    StateJrpcProcessor(std::shared_ptr<StateApi> api);
+    ~StateJrpcProcessor() override = default;
+
     void registerHandlers() override;
 
    private:

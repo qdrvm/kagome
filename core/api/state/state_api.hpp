@@ -16,9 +16,9 @@ namespace kagome::api {
    public:
     virtual ~StateApi() = default;
     virtual outcome::result<common::Buffer> getStorage(
-        const common::Buffer &key) = 0;
+        const common::Buffer &key) const = 0;
     virtual outcome::result<common::Buffer> getStorage(
-        const common::Buffer &key, const primitives::BlockHash &at) = 0;
+        const common::Buffer &key, const primitives::BlockHash &at) const = 0;
   };
 
 }  // namespace kagome::api

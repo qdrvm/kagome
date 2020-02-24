@@ -16,6 +16,7 @@
 namespace kagome::api {
 
   class StateJrpcParamParser {
+   public:
     std::tuple<common::Buffer, boost::optional<primitives::BlockHash>>
     parseGetStorageParams(const jsonrpc::Request::Parameters &params) const;
   };

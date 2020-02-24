@@ -31,7 +31,7 @@ namespace kagome::storage::trie {
     return std::make_unique<PolkadotTrieDb>(std::move(trie_db));
   }
 
-  static std::unique_ptr<TrieDbReader> initReadOnlyFromStorage(
+  std::unique_ptr<TrieDbReader> PolkadotTrieDb::initReadOnlyFromStorage(
       common::Buffer root, std::shared_ptr<TrieDbBackend> backend) {
     return PolkadotTrieDb::createFromStorage(std::move(root), std::move(backend));
   }

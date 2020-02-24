@@ -17,6 +17,10 @@ namespace kagome::api {
     return std::vector<uint8_t>{v.begin(), v.end()};
   }
 
+  inline jsonrpc::Value makeValue(const common::Buffer &v) {
+    return v.toVector();
+  }
+
   inline jsonrpc::Value makeValue(const primitives::Extrinsic &v) {
     return v.data.toHex();
   }

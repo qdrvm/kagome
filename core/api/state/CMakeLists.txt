@@ -13,5 +13,5 @@ target_link_libraries(state_api_service
     buffer
     api_jrpc_processor
     api_service
-    trie_db
+    polkadot_trie_db
     )

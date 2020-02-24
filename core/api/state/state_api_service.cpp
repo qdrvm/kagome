@@ -7,4 +7,9 @@
 
 namespace kagome::api {
 
-}
+  StateApiService::StateApiService(
+      std::shared_ptr<Listener> listener,
+      std::shared_ptr<StateJrpcProcessor> processor)
+      : ApiService(std::move(listener), std::move(processor)) {}
+
+}  // namespace kagome::api
