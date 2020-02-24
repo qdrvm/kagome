@@ -7,8 +7,8 @@
 #define KAGOME_STORAGE_IN_MEMORY_IN_MEMORY_STORAGE_HPP
 
 #include <memory>
-#include <outcome/outcome.hpp>
 
+#include "outcome/outcome.hpp"
 #include "common/buffer.hpp"
 #include "storage/buffer_map_types.hpp"
 
