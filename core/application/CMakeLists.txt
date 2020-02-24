@@ -6,14 +6,6 @@ target_link_libraries(config_reader_error
     outcome
     )
 
-add_library(pt_util
-    impl/config_reader/pt_util.cpp
-    )
-target_link_libraries(pt_util
-    hexutil
-    config_reader_error
-    )
-
 add_library(kagome_application
     impl/kagome_application_impl.cpp
     )
@@ -31,7 +23,7 @@ target_link_libraries(configuration_storage
     p2p::p2p_peer_id
     buffer
     sr25519_types
-    pt_util
+    config_reader_error
     )
 
 add_library(local_key_storage
@@ -39,7 +31,7 @@ add_library(local_key_storage
     )
 target_link_libraries(local_key_storage
     primitives
-    pt_util
+    config_reader_error
     Boost::filesystem
     sr25519_types
     ed25519_types

@@ -22,7 +22,6 @@ namespace kagome::runtime::binaryen {
     ~TaggedTransactionQueueImpl() override = default;
 
     outcome::result<primitives::TransactionValidity> validate_transaction(
-        primitives::BlockNumber number,
         const primitives::Extrinsic &ext) override;
   };
 }  // namespace kagome::runtime::binaryen

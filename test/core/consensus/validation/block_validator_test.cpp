@@ -36,7 +36,7 @@ using kagome::primitives::Digest;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::Invalid;
 using kagome::primitives::PreRuntime;
-using kagome::primitives::Valid;
+using kagome::primitives::ValidTransaction;
 
 using testing::_;
 using testing::Return;
@@ -149,7 +149,7 @@ TEST_F(BlockValidatorTest, Success) {
 
   // verifyTransactions
   EXPECT_CALL(*tx_queue_, validate_transaction(deepest_leaf.block_number, ext_))
-      .WillOnce(Return(Valid{}));
+      .WillOnce(Return(ValidTransaction{}));
 
   auto validate_res = validator_.validate(valid_block_, babe_epoch_);
   ASSERT_TRUE(validate_res) << validate_res.error().message();
@@ -378,7 +378,7 @@ TEST_F(BlockValidatorTest, TwoBlocksByOnePeer) {
   EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
 
   EXPECT_CALL(*tx_queue_, validate_transaction(deepest_leaf.block_number, ext_))
-      .WillOnce(Return(Valid{}));
+      .WillOnce(Return(ValidTransaction{}));
 
   // WHEN
   auto validate_res = validator_.validate(valid_block_, babe_epoch_);

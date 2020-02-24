@@ -35,8 +35,8 @@ using kagome::primitives::Invalid;
 using kagome::primitives::Transaction;
 using kagome::primitives::TransactionTag;
 using kagome::primitives::TransactionValidity;
-using kagome::primitives::Unknown;
-using kagome::primitives::Valid;
+using kagome::primitives::UnknownTransaction;
+using kagome::primitives::ValidTransaction;
 
 using ::testing::_;
 using ::testing::ByRef;
@@ -56,7 +56,7 @@ struct ExtrinsicSubmissionApiTest : public ::testing::Test {
   sptr<BlockTreeMock> block_tree;              ///< block tree mock instance
   sptr<ExtrinsicApiImpl> api;                  ///< api instance
   sptr<Extrinsic> extrinsic;                   ///< extrinsic instance
-  sptr<Valid> valid_transaction;               ///< valid transaction instance
+  sptr<ValidTransaction> valid_transaction;    ///< valid transaction instance
   Hash256 deepest_hash;                        ///< hash of deepest leaf
   sptr<BlockInfo> deepest_leaf;                ///< deepest leaf block info
 
@@ -68,7 +68,7 @@ struct ExtrinsicSubmissionApiTest : public ::testing::Test {
     api = std::make_shared<ExtrinsicApiImpl>(
         ttq, transaction_pool, hasher, block_tree);
     extrinsic.reset(new Extrinsic{"12"_hex2buf});
-    valid_transaction.reset(new Valid{1, {{2}}, {{3}}, 4});
+    valid_transaction.reset(new ValidTransaction{1, {{2}}, {{3}}, 4});
     deepest_hash = createHash256({1u, 2u, 3u});
     deepest_leaf.reset(new BlockInfo{1u, deepest_hash});
   }
