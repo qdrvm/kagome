@@ -16,18 +16,18 @@
 namespace kagome::primitives {
 
   /**
+   * @brief Information concerning a valid transaction.
+   *
    * This is the same structure as in
-   * https://github.com/paritytech/substrate/blob/master/core/sr-primitives/src/transaction_validity.rs
+   * https://github.com/paritytech/substrate/blob/a31c01b398d958ccf0a24d8c1c11fb073df66212/core/sr-primitives/src/transaction_validity.rs#L178
    */
-
-  /// Transaction is valid
   struct ValidTransaction {
     /**
      * @brief Priority of the transaction.
      * Priority determines the ordering of two transactions that have all
      * their dependencies (required tags) satisfied.
      */
-    TransactionPriority priority;
+    TransactionPriority priority{};
 
     /**
      * @brief Transaction dependencies
@@ -52,7 +52,7 @@ namespace kagome::primitives {
      * After this period transaction should be removed from the pool or
      * revalidated.
      */
-    TransactionLongevity longevity;
+    TransactionLongevity longevity{};
 
     /**
      * @brief A flag indicating if the transaction should be propagated to other
@@ -60,7 +60,7 @@ namespace kagome::primitives {
      * for including in blocks that are authored on the current node, but will
      * never be sent to other peers.
      */
-    bool propagate;
+    bool propagate{};
 
     bool operator==(const ValidTransaction &rhs) const {
       return priority == rhs.priority and requires == rhs.requires
