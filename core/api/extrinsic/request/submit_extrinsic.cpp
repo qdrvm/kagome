@@ -13,12 +13,12 @@ namespace kagome::api {
   SubmitExtrinsicRequest SubmitExtrinsicRequest::fromParams(
       const jsonrpc::Request::Parameters &params) {
     if (params.size() != 1) {
-      throw jsonrpc::Fault("incorrect number of arguments");
+      throw jsonrpc::InvalidParametersFault("incorrect number of arguments");
     }
 
     const auto &arg0 = params[0];
     if (!arg0.IsString()) {
-      throw jsonrpc::Fault("invalid argument");
+      throw jsonrpc::InvalidParametersFault("invalid argument");
     }
 
     auto &&hexified_extrinsic = arg0.AsString();
