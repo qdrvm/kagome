@@ -19,8 +19,6 @@ namespace kagome::application {
     return opt_entry.value();
   }
 
-  outcome::result<std::vector<uint8_t>> unhexWith0x(std::string_view hex);
-
 }  // namespace kagome::application
 
 #endif  // KAGOME_APPLICATION_UTIL_HPP

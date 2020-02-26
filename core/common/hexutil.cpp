@@ -23,7 +23,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::common, UnhexError, e) {
 
 namespace kagome::common {
 
-  std::string int_to_hex(uint64_t n,size_t fixed_width) noexcept {
+  std::string int_to_hex(uint64_t n, size_t fixed_width) noexcept {
     std::stringstream result;
     result.width(fixed_width);
     result.fill('0');
@@ -68,5 +68,15 @@ namespace kagome::common {
     } catch (const std::exception &e) {
       return UnhexError::UNKNOWN;
     }
+  }
+
+  outcome::result<std::vector<uint8_t>> unhexWith0x(
+      std::string_view hex_with_prefix) {
+    const static std::string leading_chrs = "0x";
+
+    auto without_prefix = hex_with_prefix.substr(
+        hex_with_prefix.find(leading_chrs) + leading_chrs.length(),
+        hex_with_prefix.length() - 1);
+    return common::unhex(without_prefix);
   }
 }  // namespace kagome::common

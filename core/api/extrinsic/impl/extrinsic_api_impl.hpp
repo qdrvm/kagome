@@ -13,9 +13,11 @@
 
 #include <boost/variant.hpp>
 #include <outcome/outcome.hpp>
+
 #include "api/extrinsic/error.hpp"
 #include "api/extrinsic/extrinsic_api.hpp"
 #include "blockchain/block_tree.hpp"
+#include "common/logger.hpp"
 #include "common/visitor.hpp"
 #include "crypto/hasher.hpp"
 
@@ -62,6 +64,7 @@ namespace kagome::api {
     sptr<transaction_pool::TransactionPool> pool_;
     sptr<crypto::Hasher> hasher_;
     sptr<blockchain::BlockTree> block_tree_;
+    common::Logger logger_;
   };
 }  // namespace kagome::api
 
