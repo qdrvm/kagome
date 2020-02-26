@@ -102,8 +102,10 @@ namespace kagome::primitives {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const InvalidTransaction &v) {
-    return s << static_cast<uint8_t>(v)
-                    - 1;  // -1 is needed for compatibility with Rust
+    // -1 is needed for compatibility with Rust; indices of error codes start
+    // from 0 there, while in kagome they must start from 1 because of
+    // std::error_code policy
+    return s << static_cast<uint8_t>(v) - 1;
   }
 
   template <class Stream,
@@ -111,7 +113,11 @@ namespace kagome::primitives {
   Stream &operator>>(Stream &s, InvalidTransaction &v) {
     uint8_t value = 0u;
     s >> value;
-    value++;  // +1 is needed for compatibility with Rust
+
+    // increment is needed for compatibility with Rust; indices of error codes
+    // start from 0 there, while in kagome they must start from 1 because of
+    // std::error_code policy
+    value++;
     if (value > static_cast<uint8_t>(InvalidTransaction::ExhaustsResources)) {
       v = InvalidTransaction::Custom;
     } else {
@@ -134,7 +140,10 @@ namespace kagome::primitives {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const UnknownTransaction &v) {
-    return s << static_cast<uint8_t>(v);
+    // -1 is needed for compatibility with Rust; indices of error codes start
+    // from 0 there, while in kagome they must start from 1 because of
+    // std::error_code policy
+    return s << static_cast<uint8_t>(v) - 1;
   }
 
   template <class Stream,
@@ -142,6 +151,11 @@ namespace kagome::primitives {
   Stream &operator>>(Stream &s, UnknownTransaction &v) {
     uint8_t value = 0u;
     s >> value;
+
+    // increment is needed for compatibility with Rust; indices of error codes
+    // start from 0 there, while in kagome they must start from 1 because of
+    // std::error_code policy
+    value++;
     if (value > static_cast<uint8_t>(UnknownTransaction::NoUnsignedValidator)) {
       v = UnknownTransaction::Custom;
     } else {
