@@ -33,7 +33,7 @@ namespace kagome::application {
     using GrandpaLauncher = consensus::grandpa::Launcher;
     using Timer = clock::Timer;
     using InjectorType = decltype(injector::makeApplicationInjector(
-        std::string{}, std::string{}, std::string{}));
+        std::string{}, std::string{}, std::string{}, uint16_t{}, uint16_t{}));
 
     template <class T>
     using sptr = std::shared_ptr<T>;
@@ -50,7 +50,10 @@ namespace kagome::application {
      */
     KagomeApplicationImpl(const std::string &config_path,
                           const std::string &keystore_path,
-                          const std::string &leveldb_path);
+                          const std::string &leveldb_path,
+                          uint16_t p2p_port,
+                          uint16_t rpc_port,
+                          uint8_t verbosity);
 
     void run() override;
 

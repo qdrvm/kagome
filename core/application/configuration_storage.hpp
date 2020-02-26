@@ -37,11 +37,6 @@ namespace kagome::application {
      * Return peers' session keys used in BABE
      */
     virtual std::vector<crypto::SR25519PublicKey> getSessionKeys() const = 0;
-
-    /**
-     * Return port to which extrinsic API RPC binds
-     */
-    virtual uint16_t getExtrinsicApiPort() const = 0;
   };
 
 }  // namespace kagome::application

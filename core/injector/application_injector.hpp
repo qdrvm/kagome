@@ -127,8 +127,8 @@ namespace kagome::injector {
     };
 
     // peer info getter
-    auto get_peer_info =
-        [](const auto &injector) -> sptr<libp2p::peer::PeerInfo> {
+    auto get_peer_info = [](const auto &injector,
+                            uint16_t p2p_port) -> sptr<libp2p::peer::PeerInfo> {
       static auto initialized =
           boost::optional<sptr<libp2p::peer::PeerInfo>>(boost::none);
       if (initialized) {
@@ -148,8 +148,10 @@ namespace kagome::injector {
               key_marshaller.marshal(public_key).value())
               .value();
       spdlog::debug("Received peer id: {}", peer_id.toBase58());
-      auto multiaddress =
-          libp2p::multi::Multiaddress::create("/ip4/127.0.0.1/tcp/30363");
+      std::string multiaddress_str =
+          "/ip4/127.0.0.1/tcp/" + std::to_string(p2p_port);
+      spdlog::debug("Received multiaddr: {}", multiaddress_str);
+      auto multiaddress = libp2p::multi::Multiaddress::create(multiaddress_str);
       if (!multiaddress) {
         common::raise(multiaddress.error());  // exception
       }
@@ -240,7 +242,7 @@ namespace kagome::injector {
 
     // extrinsic api listener getter
     auto get_extrinsic_api_listener =
-        [](const auto &injector) -> sptr<api::Listener> {
+        [](const auto &injector, uint16_t rpc_port) -> sptr<api::Listener> {
       static auto initialized =
           boost::optional<sptr<api::Listener>>(boost::none);
       // listener is used currently only for extrinsic api
@@ -253,13 +255,9 @@ namespace kagome::injector {
       }
 
       auto &context = injector.template create<boost::asio::io_context &>();
-      auto &cfg =
-          injector.template create<application::ConfigurationStorage &>();
       auto extrinsic_tcp_version = boost::asio::ip::tcp::v4();
-      uint16_t extrinsic_api_port = cfg.getExtrinsicApiPort();
       api::ListenerImpl::Configuration listener_config{
-          boost::asio::ip::tcp::endpoint{extrinsic_tcp_version,
-                                         extrinsic_api_port}};
+          boost::asio::ip::tcp::endpoint{extrinsic_tcp_version, rpc_port}};
       auto &&http_session_config =
           injector.template create<api::HttpSession::Configuration>();
 
@@ -509,6 +507,8 @@ namespace kagome::injector {
   auto makeApplicationInjector(const std::string &genesis_path,
                                const std::string &keystore_path,
                                const std::string &leveldb_path,
+                               uint16_t p2p_port,
+                               uint16_t rpc_port,
                                Ts &&... args) {
     using namespace boost;  // NOLINT;
 
@@ -531,7 +531,9 @@ namespace kagome::injector {
         // bind ed25519 keypair
         di::bind<crypto::ED25519Keypair>.to(std::move(get_ed25519_keypair)),
         // compose peer info
-        di::bind<libp2p::peer::PeerInfo>.to(std::move(get_peer_info)),
+        di::bind<libp2p::peer::PeerInfo>.to([p2p_port](const auto &injector) {
+          return get_peer_info(injector, p2p_port);
+        }),
         // compose peer keypair
         di::bind<libp2p::crypto::KeyPair>.to(
             std::move(get_peer_keypair))[boost::di::override],
@@ -551,7 +553,9 @@ namespace kagome::injector {
         injector::useConfig(tp_pool_limits),
 
         // bind interfaces
-        di::bind<api::Listener>.to(std::move(get_extrinsic_api_listener)),
+        di::bind<api::Listener>.to([rpc_port](const auto &injector) {
+          return get_extrinsic_api_listener(injector, rpc_port);
+        }),
         di::bind<api::ExtrinsicApi>.template to<api::ExtrinsicApiImpl>(),
         di::bind<authorship::Proposer>.template to<authorship::ProposerImpl>(),
         di::bind<authorship::BlockBuilder>.template to<authorship::BlockBuilderImpl>(),

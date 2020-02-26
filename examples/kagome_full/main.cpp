@@ -27,9 +27,17 @@ int main(int argc, char **argv) {
   auto &&kagome_config = options_parser.getKagomeConfigPath();
   auto &&keys_config = options_parser.getKeysConfig();
   auto &&level_db_config = options_parser.getLevelDbPath();
+  auto p2p_port = options_parser.getP2PPort();
+  auto rpc_port = options_parser.getRPCPort();
+  auto verbosity = options_parser.getVerbosity();
 
   auto &&app = std::make_shared<kagome::application::KagomeApplicationImpl>(
-      kagome_config, keys_config, level_db_config);
+      kagome_config,
+      keys_config,
+      level_db_config,
+      p2p_port,
+      rpc_port,
+      verbosity);
   app->run();
 
   return 0;

@@ -23,8 +23,6 @@ namespace kagome::application {
     network::PeerList getBootNodes() const override;
     std::vector<crypto::SR25519PublicKey> getSessionKeys() const override;
 
-    uint16_t getExtrinsicApiPort() const override;
-
    private:
     outcome::result<void> loadFromJson(const std::string &file_path);
     outcome::result<void> loadGenesis(const boost::property_tree::ptree &tree);
@@ -38,9 +36,6 @@ namespace kagome::application {
     GenesisRawConfig genesis_;
     network::PeerList boot_nodes_;
     std::vector<crypto::SR25519PublicKey> session_keys_;
-    struct ApiPorts {
-      uint16_t extrinsic_api_port = 4224;
-    } api_ports_;
   };
 
 }  // namespace kagome::application
