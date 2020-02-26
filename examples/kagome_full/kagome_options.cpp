@@ -113,7 +113,7 @@ namespace kagome::options {
     return p2p_port_;
   }
 
-  uint16_t KagomeOptions::getRPCPort() const {
+  uint16_t KagomeOptions::getRpcPort() const {
     return rpc_port_;
   }
 
