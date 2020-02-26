@@ -26,10 +26,6 @@ namespace kagome::application {
     return session_keys_;
   }
 
-  uint16_t ConfigurationStorageImpl::getExtrinsicApiPort() const {
-    return api_ports_.extrinsic_api_port;
-  }
-
   outcome::result<std::shared_ptr<ConfigurationStorageImpl>>
   ConfigurationStorageImpl::create(const std::string &path) {
     auto config_storage =
