@@ -76,7 +76,7 @@ namespace kagome::primitives {
   /// Transaction is invalid. Details are described by the error code.
   enum class InvalidTransaction : uint8_t {
     /// The call of the transaction is not expected.
-    Call,
+    Call = 1,
     /// General error to do with the inability to pay some fees (e.g. account
     /// balance too low).
     Payment,
@@ -102,7 +102,8 @@ namespace kagome::primitives {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const InvalidTransaction &v) {
-    return s << static_cast<uint8_t>(v);
+    return s << static_cast<uint8_t>(v)
+                    - 1;  // -1 is needed for compatibility with Rust
   }
 
   template <class Stream,
@@ -110,6 +111,7 @@ namespace kagome::primitives {
   Stream &operator>>(Stream &s, InvalidTransaction &v) {
     uint8_t value = 0u;
     s >> value;
+    value++;  // +1 is needed for compatibility with Rust
     if (value > static_cast<uint8_t>(InvalidTransaction::ExhaustsResources)) {
       v = InvalidTransaction::Custom;
     } else {
@@ -122,7 +124,7 @@ namespace kagome::primitives {
   enum class UnknownTransaction : uint8_t {
     /// Could not lookup some information that is required to validate the
     /// transaction.
-    CannotLookup,
+    CannotLookup = 1,
     /// No validator found for the given unsigned transaction.
     NoUnsignedValidator,
     /// Any other custom unknown validity that is not covered by this enum.
