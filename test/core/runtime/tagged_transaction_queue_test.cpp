@@ -37,10 +37,9 @@ class TTQTest : public RuntimeTest {
  * otherwise an outcome error
  */
 TEST_F(TTQTest, DISABLED_ValidateTransactionSuccess) {
-  BlockNumber number = 1u;
   Extrinsic ext{"01020304AABB"_hex2buf};
 
   // we test now that the functions above are called sequentially
   // unfortunately, we don't have valid data for validate_transaction to succeed
-  EXPECT_OUTCOME_TRUE_1(ttq_->validate_transaction(number, ext));
+  EXPECT_OUTCOME_TRUE_1(ttq_->validate_transaction(ext));
 }

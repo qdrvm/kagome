@@ -18,11 +18,7 @@ namespace kagome::common {
   /**
    * @brief error codes for exceptions that may occur during unhexing
    */
-  enum class UnhexError {
-    NOT_ENOUGH_INPUT = 1,
-    NON_HEX_INPUT,
-    UNKNOWN
-  };
+  enum class UnhexError { NOT_ENOUGH_INPUT = 1, NON_HEX_INPUT, UNKNOWN };
 
   /**
    * @brief Converts an integer to an uppercase hex representation
@@ -58,6 +54,13 @@ namespace kagome::common {
    * https://www.boost.org/doc/libs/1_51_0/libs/algorithm/doc/html/the_boost_algorithm_library/Misc/hex.html
    */
   outcome::result<std::vector<uint8_t>> unhex(std::string_view hex);
+
+  /**
+   * @brief Unhex hex-string with 0x in the begining
+   * @param hex hex string with 0x in the beginning
+   * @return unhexed buffer
+   */
+  outcome::result<std::vector<uint8_t>> unhexWith0x(std::string_view hex);
 
 }  // namespace kagome::common
 

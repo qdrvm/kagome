@@ -17,6 +17,7 @@ add_library(primitives
     parachain_host.hpp
     scheduled_change.hpp
     transaction_validity.hpp
+    transaction_validity.cpp
     version.hpp
     )
 target_link_libraries(primitives

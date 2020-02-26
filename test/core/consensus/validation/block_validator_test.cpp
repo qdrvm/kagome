@@ -34,9 +34,10 @@ using kagome::primitives::BlockHeader;
 using kagome::primitives::ConsensusEngineId;
 using kagome::primitives::Digest;
 using kagome::primitives::Extrinsic;
-using kagome::primitives::Invalid;
+using kagome::primitives::InvalidTransaction;
 using kagome::primitives::PreRuntime;
-using kagome::primitives::Valid;
+using kagome::primitives::TransactionValidity;
+using kagome::primitives::ValidTransaction;
 
 using testing::_;
 using testing::Return;
@@ -144,12 +145,9 @@ TEST_F(BlockValidatorTest, Success) {
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey, _))
       .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
 
-  primitives::BlockInfo deepest_leaf{1u, createHash256({1u})};
-  EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
-
   // verifyTransactions
-  EXPECT_CALL(*tx_queue_, validate_transaction(deepest_leaf.block_number, ext_))
-      .WillOnce(Return(Valid{}));
+  EXPECT_CALL(*tx_queue_, validate_transaction(ext_))
+      .WillOnce(Return(ValidTransaction{}));
 
   auto validate_res = validator_.validate(valid_block_, babe_epoch_);
   ASSERT_TRUE(validate_res) << validate_res.error().message();
@@ -373,12 +371,8 @@ TEST_F(BlockValidatorTest, TwoBlocksByOnePeer) {
       .WillRepeatedly(
           Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
 
-  primitives::BlockInfo deepest_leaf{1u, createHash256({1u})};
-
-  EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
-
-  EXPECT_CALL(*tx_queue_, validate_transaction(deepest_leaf.block_number, ext_))
-      .WillOnce(Return(Valid{}));
+  EXPECT_CALL(*tx_queue_, validate_transaction(ext_))
+      .WillOnce(Return(ValidTransaction{}));
 
   // WHEN
   auto validate_res = validator_.validate(valid_block_, babe_epoch_);
@@ -420,12 +414,9 @@ TEST_F(BlockValidatorTest, InvalidExtrinsic) {
   EXPECT_CALL(*vrf_provider_, verify(randomness_with_slot, _, pubkey, _))
       .WillOnce(Return(VRFVerifyOutput{.is_valid = true, .is_less = true}));
 
-  primitives::BlockInfo deepest_leaf{1u, createHash256({1u})};
-  EXPECT_CALL(*tree_, deepestLeaf()).WillOnce(Return(deepest_leaf));
-
   // WHEN
-  EXPECT_CALL(*tx_queue_, validate_transaction(deepest_leaf.block_number, ext_))
-      .WillOnce(Return(Invalid{}));
+  EXPECT_CALL(*tx_queue_, validate_transaction(ext_))
+      .WillOnce(Return(TransactionValidity{InvalidTransaction{}}));
 
   // THEN
   EXPECT_OUTCOME_FALSE(err, validator_.validate(valid_block_, babe_epoch_));

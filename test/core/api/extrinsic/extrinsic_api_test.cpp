@@ -31,12 +31,12 @@ using kagome::common::Hash256;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockInfo;
 using kagome::primitives::Extrinsic;
-using kagome::primitives::Invalid;
+using kagome::primitives::InvalidTransaction;
 using kagome::primitives::Transaction;
 using kagome::primitives::TransactionTag;
 using kagome::primitives::TransactionValidity;
-using kagome::primitives::Unknown;
-using kagome::primitives::Valid;
+using kagome::primitives::UnknownTransaction;
+using kagome::primitives::ValidTransaction;
 
 using ::testing::_;
 using ::testing::ByRef;
@@ -56,7 +56,7 @@ struct ExtrinsicSubmissionApiTest : public ::testing::Test {
   sptr<BlockTreeMock> block_tree;              ///< block tree mock instance
   sptr<ExtrinsicApiImpl> api;                  ///< api instance
   sptr<Extrinsic> extrinsic;                   ///< extrinsic instance
-  sptr<Valid> valid_transaction;               ///< valid transaction instance
+  sptr<ValidTransaction> valid_transaction;    ///< valid transaction instance
   Hash256 deepest_hash;                        ///< hash of deepest leaf
   sptr<BlockInfo> deepest_leaf;                ///< deepest leaf block info
 
@@ -68,7 +68,7 @@ struct ExtrinsicSubmissionApiTest : public ::testing::Test {
     api = std::make_shared<ExtrinsicApiImpl>(
         ttq, transaction_pool, hasher, block_tree);
     extrinsic.reset(new Extrinsic{"12"_hex2buf});
-    valid_transaction.reset(new Valid{1, {{2}}, {{3}}, 4});
+    valid_transaction.reset(new ValidTransaction{1, {{2}}, {{3}}, 4, true});
     deepest_hash = createHash256({1u, 2u, 3u});
     deepest_leaf.reset(new BlockInfo{1u, deepest_hash});
   }
@@ -83,10 +83,7 @@ TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicSuccess) {
   TransactionValidity tv = *valid_transaction;
   gsl::span<const uint8_t> span = gsl::make_span(extrinsic->data);
   EXPECT_CALL(*hasher, blake2b_256(span)).WillOnce(Return(Hash256{}));
-  EXPECT_CALL(*block_tree, deepestLeaf()).WillOnce(Return(*deepest_leaf));
-  EXPECT_CALL(*ttq,
-              validate_transaction(deepest_leaf->block_number, *extrinsic))
-      .WillOnce(Return(tv));
+  EXPECT_CALL(*ttq, validate_transaction(*extrinsic)).WillOnce(Return(tv));
   Transaction tr{*extrinsic,
                  extrinsic->data.size(),
                  Hash256{},
@@ -110,10 +107,8 @@ TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicSuccess) {
  * to transaction pool
  */
 TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicInvalidFail) {
-  TransactionValidity tv = Invalid{1u};
-  EXPECT_CALL(*block_tree, deepestLeaf()).WillOnce(Return(*deepest_leaf));
-  EXPECT_CALL(*ttq,
-              validate_transaction(deepest_leaf->block_number, *extrinsic))
+  TransactionValidity tv = InvalidTransaction{1u};
+  EXPECT_CALL(*ttq, validate_transaction(*extrinsic))
       .WillOnce(Return(
           outcome::failure(ExtrinsicApiError::INVALID_STATE_TRANSACTION)));
   EXPECT_CALL(*hasher, blake2b_256(_)).Times(0);
@@ -131,10 +126,8 @@ TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicInvalidFail) {
  * to transaction pool
  */
 TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicUnknownFail) {
-  TransactionValidity tv = Unknown{1u};
-  EXPECT_CALL(*block_tree, deepestLeaf()).WillOnce(Return(*deepest_leaf));
-  EXPECT_CALL(*ttq,
-              validate_transaction(deepest_leaf->block_number, *extrinsic))
+  TransactionValidity tv = UnknownTransaction{1u};
+  EXPECT_CALL(*ttq, validate_transaction(*extrinsic))
       .WillOnce(Return(
           outcome::failure(ExtrinsicApiError::UNKNOWN_STATE_TRANSACTION)));
   EXPECT_CALL(*hasher, blake2b_256(_)).Times(0);
@@ -154,10 +147,7 @@ TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicSubmitFail) {
   TransactionValidity tv = *valid_transaction;
   gsl::span<const uint8_t> span = gsl::make_span(extrinsic->data);
   EXPECT_CALL(*hasher, blake2b_256(span)).WillOnce(Return(Hash256{}));
-  EXPECT_CALL(*block_tree, deepestLeaf()).WillOnce(Return(*deepest_leaf));
-  EXPECT_CALL(*ttq,
-              validate_transaction(deepest_leaf->block_number, *extrinsic))
-      .WillOnce(Return(tv));
+  EXPECT_CALL(*ttq, validate_transaction(*extrinsic)).WillOnce(Return(tv));
   Transaction tr{*extrinsic,
                  extrinsic->data.size(),
                  Hash256{},

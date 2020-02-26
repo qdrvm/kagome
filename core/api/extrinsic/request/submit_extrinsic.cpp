@@ -5,8 +5,9 @@
 
 #include "api/extrinsic/request/submit_extrinsic.hpp"
 
-#include "common/buffer.hpp"
+#include "common/hexutil.hpp"
 #include "primitives/extrinsic.hpp"
+#include "scale/scale.hpp"
 
 namespace kagome::api {
   SubmitExtrinsicRequest SubmitExtrinsicRequest::fromParams(
@@ -22,12 +23,15 @@ namespace kagome::api {
 
     auto &&hexified_extrinsic = arg0.AsString();
 
-    auto &&buffer = common::Buffer::fromHex(hexified_extrinsic);
+    auto &&buffer = common::unhexWith0x(hexified_extrinsic);
     if (!buffer) {
       throw jsonrpc::Fault(buffer.error().message());
     }
 
-    auto &&extrinsic = primitives::Extrinsic{std::move(buffer.value())};
-    return SubmitExtrinsicRequest{std::move(extrinsic)};
+    auto &&extrinsic = scale::decode<primitives::Extrinsic>(buffer.value());
+    if (!extrinsic) {
+      throw jsonrpc::Fault(extrinsic.error().message());
+    }
+    return SubmitExtrinsicRequest{std::move(extrinsic.value())};
   }
 }  // namespace kagome::api
