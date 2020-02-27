@@ -14,11 +14,13 @@ namespace kagome::consensus {
       std::shared_ptr<BlockValidator> validator,
       std::shared_ptr<network::SyncClientsSet> sync_clients,
       std::shared_ptr<blockchain::BlockTree> tree,
-      std::shared_ptr<EpochStorage> epoch_storage)
+      std::shared_ptr<EpochStorage> epoch_storage,
+      std::shared_ptr<runtime::Core> core)
       : validator_{std::move(validator)},
         sync_clients_{std::move(sync_clients)},
         tree_{std::move(tree)},
         epoch_storage_{std::move(epoch_storage)},
+        core_{std::move(core)},
         logger_{common::createLogger("BabeObserver")} {
     BOOST_ASSERT(validator_);
     BOOST_ASSERT(sync_clients_);
@@ -26,6 +28,7 @@ namespace kagome::consensus {
     BOOST_ASSERT(std::all_of(sync_clients_->clients.begin(),
                              sync_clients_->clients.end(),
                              [](const auto &client) { return client; }));
+    BOOST_ASSERT(core_);
     BOOST_ASSERT(epoch_storage_);
   }
 
@@ -48,6 +51,11 @@ namespace kagome::consensus {
       // the block was inserted to the tree by a validator
       auto add_block_res = tree_->addBlock(block);
       if (add_block_res) {
+        if (auto execute_res = core_->execute_block(block); not execute_res) {
+          logger_->error("Block could not be applied: {}",
+                         execute_res.error().message());
+          return;
+        }
         logger_->debug("Block with number {} was inserted into the storage",
                        block.header.number);
       } else if (add_block_res.error()
@@ -82,8 +90,6 @@ namespace kagome::consensus {
       return;
     }
 
-    auto polled_clients = std::make_shared<decltype(sync_clients_->clients)>();
-
     // using last_finalized, because if the block, which we want to get, is in
     // non-finalized fork, we are not interested in it; otherwise, it 100% will
     // be a descendant of the last_finalized
@@ -93,30 +99,31 @@ namespace kagome::consensus {
                                    network::Direction::DESCENDING,
                                    boost::none};
 
-    pollClients(block, request, polled_clients);
+    pollClients(block, request, decltype(sync_clients_->clients)());
   }
 
   void BabeObserverImpl::pollClients(
       primitives::Block block_to_insert,
       network::BlocksRequest request,
-      std::shared_ptr<
-          std::unordered_set<std::shared_ptr<network::SyncProtocolClient>>>
-          polled_clients) const {
+      std::unordered_set<std::shared_ptr<network::SyncProtocolClient>>
+          &&polled_clients) const {
     // we want to ask each client until we get the blocks we lack, but the
     // sync_clients_ set can change between the requests, so we need to keep
     // track of the clients we already asked
     std::shared_ptr<network::SyncProtocolClient> next_client;
     for (const auto &client : sync_clients_->clients) {
-      if (polled_clients->find(client) == polled_clients->end()) {
+      if (polled_clients.find(client) == polled_clients.end()) {
         next_client = client;
-        polled_clients->insert(client);
+        polled_clients.insert(client);
         break;
       }
     }
 
     if (!next_client) {
-      // we asked all clients we could, so nothing can be done
-      return;
+      // we asked all clients we could, so start over
+      polled_clients.clear();
+      next_client = *sync_clients_->clients.begin();
+      polled_clients.insert(next_client);
     }
 
     next_client->blocksRequest(
@@ -137,12 +144,13 @@ namespace kagome::consensus {
           // now we need to validate each block from the response, which will
           // also add them to the tree; if any of them fails, we should proceed
           // to the next client
-          auto success = false;
+          auto success = true;
           for (const auto &block_data : response.blocks) {
             primitives::Block block;
             if (!block_data.header) {
               // that's bad, we can't insert a block, which does not have at
               // least a header
+              success = false;
               break;
             }
             block.header = *block_data.header;
@@ -155,11 +163,25 @@ namespace kagome::consensus {
                 self->epoch_storage_->getEpoch(block.header.number);
             if (!epoch_opt) {
               // not clear, what to do, as in the upper method
+              success = false;
               break;
             }
 
             if (!self->validator_->validate(block, *epoch_opt)) {
               // validation failed, so we cannot proceed
+              success = false;
+              break;
+            }
+
+            // block is good to be added
+            if (auto insert_res = self->tree_->addBlock(block);
+                not insert_res) {
+              success = false;
+              break;
+            }
+            if (auto execute_res = self->core_->execute_block(block);
+                not execute_res) {
+              success = false;
               break;
             }
           }
@@ -176,6 +198,11 @@ namespace kagome::consensus {
           auto insert_res = self->tree_->addBlock(block_to_insert);
           if (!insert_res) {
             // something very bad happened
+            return;
+          }
+          if (auto execute_res = self->core_->execute_block(block_to_insert);
+              not execute_res) {
+            // handle error
             return;
           }
         });

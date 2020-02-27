@@ -14,6 +14,7 @@
 #include "consensus/validation/block_validator.hpp"
 #include "network/babe_observer.hpp"
 #include "network/types/sync_clients_set.hpp"
+#include "runtime/core.hpp"
 
 namespace kagome::consensus {
   class BabeObserverImpl
@@ -23,7 +24,8 @@ namespace kagome::consensus {
     BabeObserverImpl(std::shared_ptr<BlockValidator> validator,
                      std::shared_ptr<network::SyncClientsSet> sync_clients,
                      std::shared_ptr<blockchain::BlockTree> tree,
-                     std::shared_ptr<EpochStorage> epoch_storage);
+                     std::shared_ptr<EpochStorage> epoch_storage,
+                     std::shared_ptr<runtime::Core> core);
 
     ~BabeObserverImpl() override = default;
 
@@ -33,14 +35,14 @@ namespace kagome::consensus {
     void pollClients(
         primitives::Block block_to_insert,
         network::BlocksRequest request,
-        std::shared_ptr<
-            std::unordered_set<std::shared_ptr<network::SyncProtocolClient>>>
-            polled_clients) const;
+        std::unordered_set<std::shared_ptr<network::SyncProtocolClient>>
+            &&polled_clients) const;
 
     std::shared_ptr<BlockValidator> validator_;
     std::shared_ptr<network::SyncClientsSet> sync_clients_;
     std::shared_ptr<blockchain::BlockTree> tree_;
     std::shared_ptr<EpochStorage> epoch_storage_;
+    std::shared_ptr<runtime::Core> core_;
     common::Logger logger_;
   };
 }  // namespace kagome::consensus

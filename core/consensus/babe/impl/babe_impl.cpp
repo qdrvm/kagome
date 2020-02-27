@@ -198,6 +198,9 @@ namespace kagome::consensus {
     // add seal digest item
     block.header.digest.emplace_back(seal);
 
+    // add block to the block tree
+    block_tree_->addBlock(block);
+
     // finally, broadcast the sealed block
     gossiper_->blockAnnounce(network::BlockAnnounce{block.header});
     log_->debug("Announced block in slot: {}", current_slot_);
