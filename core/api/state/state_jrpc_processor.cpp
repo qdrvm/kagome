@@ -10,13 +10,15 @@
 
 namespace kagome::api {
 
-  StateJrpcProcessor::StateJrpcProcessor(std::shared_ptr<StateApi> api)
-      : api_{std::move(api)} {
+  StateJrpcProcessor::StateJrpcProcessor(
+      std::shared_ptr<JRpcServer> server, std::shared_ptr<StateApi> api)
+      : api_{std::move(api)}, server_{std::move(server)} {
     BOOST_ASSERT(api_ != nullptr);
+    BOOST_ASSERT(server_ != nullptr);
   }
 
   void StateJrpcProcessor::registerHandlers() {
-    registerHandler(
+    server_->registerHandler(
         "state_getStorage",
         [this](const jsonrpc::Request::Parameters &params) -> jsonrpc::Value {
           StateJrpcParamParser parser;

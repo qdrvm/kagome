@@ -24,6 +24,34 @@ using kagome::storage::trie::TrieDbMock;
 using kagome::storage::trie::TrieDbReader;
 using testing::Return;
 
+enum class E {
+  A = 0, B = 1
+};
+
+OUTCOME_HPP_DECLARE_ERROR(E);
+OUTCOME_CPP_DEFINE_CATEGORY(E, e) {
+  switch (e) {
+    case E::A:
+      return "a";
+    case E::B:
+      return "b";
+  }
+}
+
+outcome::result<int> foo() {
+  return 11;
+}
+
+TEST(A, AA) {
+  ASSERT_TRUE(foo().has_value());
+  ASSERT_FALSE(foo().has_error());
+  EXPECT_OUTCOME_TRUE(e, foo());
+  ASSERT_EQ(e, 11);
+  if(!foo()) {
+    ASSERT_TRUE(false);
+  }
+}
+
 /**
  * Builds mock trees.
  * Because buildAt must return a unique_ptr, be careful,
