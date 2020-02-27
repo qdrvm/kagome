@@ -8,6 +8,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include "application/impl/config_reader/error.hpp"
 #include "application/impl/config_reader/pt_util.hpp"
+#include "common/hexutil.hpp"
 
 namespace kagome::application {
 
@@ -57,8 +58,8 @@ namespace kagome::application {
                 ensure(sr_tree.get_optional<std::string>("private")));
 
     // get rid of 0x from beginning
-    OUTCOME_TRY(sr_pubkey_buffer, unhexWith0x(sr_pubkey_str));
-    OUTCOME_TRY(sr_privkey_buffer, unhexWith0x(sr_privkey_str));
+    OUTCOME_TRY(sr_pubkey_buffer, common::unhexWith0x(sr_pubkey_str));
+    OUTCOME_TRY(sr_privkey_buffer, common::unhexWith0x(sr_privkey_str));
 
     OUTCOME_TRY(sr_pubkey,
                 crypto::SR25519PublicKey::fromSpan(sr_pubkey_buffer));
@@ -82,8 +83,8 @@ namespace kagome::application {
                 ensure(ed_tree.get_optional<std::string>("private")));
 
     // get rid of 0x from beginning
-    OUTCOME_TRY(ed_pubkey_buffer, unhexWith0x(ed_pubkey_str));
-    OUTCOME_TRY(ed_privkey_buffer, unhexWith0x(ed_privkey_str));
+    OUTCOME_TRY(ed_pubkey_buffer, common::unhexWith0x(ed_pubkey_str));
+    OUTCOME_TRY(ed_privkey_buffer, common::unhexWith0x(ed_privkey_str));
 
     OUTCOME_TRY(ed_pubkey,
                 crypto::ED25519PublicKey::fromSpan(ed_pubkey_buffer));
@@ -132,8 +133,8 @@ namespace kagome::application {
                 ensure(p2p_keypair_tree.get_optional<std::string>("private")));
 
     // get rid of 0x from beginning
-    OUTCOME_TRY(p2p_public_key, unhexWith0x(p2p_public_key_str));
-    OUTCOME_TRY(p2p_private_key, unhexWith0x(p2p_private_key_str));
+    OUTCOME_TRY(p2p_public_key, common::unhexWith0x(p2p_public_key_str));
+    OUTCOME_TRY(p2p_private_key, common::unhexWith0x(p2p_private_key_str));
 
     p2p_keypair_.publicKey.data = p2p_public_key;
     p2p_keypair_.privateKey.data = p2p_private_key;

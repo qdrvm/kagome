@@ -26,10 +26,6 @@ namespace kagome::application {
     return session_keys_;
   }
 
-  uint16_t ConfigurationStorageImpl::getExtrinsicApiPort() const {
-    return api_ports_.extrinsic_api_port;
-  }
-
   outcome::result<std::shared_ptr<ConfigurationStorageImpl>>
   ConfigurationStorageImpl::create(const std::string &path) {
     auto config_storage =
@@ -64,8 +60,8 @@ namespace kagome::application {
 
     for (const auto &[key, value] : genesis_raw_tree) {
       // get rid of leading 0x for key and value and unhex
-      OUTCOME_TRY(key_processed, unhexWith0x(key));
-      OUTCOME_TRY(value_processed, unhexWith0x(value.data()));
+      OUTCOME_TRY(key_processed, common::unhexWith0x(key));
+      OUTCOME_TRY(value_processed, common::unhexWith0x(value.data()));
       genesis_.emplace_back(key_processed, value_processed);
     }
     return outcome::success();

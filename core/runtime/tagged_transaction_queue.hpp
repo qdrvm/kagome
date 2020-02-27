@@ -26,8 +26,7 @@ namespace kagome::runtime {
      * @return structure with information about transaction validity
      */
     virtual outcome::result<primitives::TransactionValidity>
-    validate_transaction(primitives::BlockNumber number,
-                         const primitives::Extrinsic &ext) = 0;
+    validate_transaction(const primitives::Extrinsic &ext) = 0;
   };
 
 }  // namespace kagome::runtime

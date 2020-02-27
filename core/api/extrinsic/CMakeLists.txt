@@ -19,4 +19,6 @@ target_link_libraries(extrinsic_api_service
     api_jrpc_processor
     api_service
     transaction_pool
+    scale
+    logger
     )

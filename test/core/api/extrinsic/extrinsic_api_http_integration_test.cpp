@@ -65,7 +65,7 @@ class ESSIntegrationTest : public ::testing::Test {
 
   Extrinsic extrinsic{};
   const std::string request =
-      R"({"jsonrpc":"2.0","method":"author_submitExtrinsic","id":0,"params":["68656C6C6F20776F726C64"]})"
+      R"({"jsonrpc":"2.0","method":"author_submitExtrinsic","id":0,"params":["0x2c68656c6c6f20776f726c64"]})"
       + std::string("\n");
   Hash256 hash{};
 };

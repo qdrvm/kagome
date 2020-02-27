@@ -71,6 +71,15 @@ namespace kagome::options {
      */
     const std::string &getLevelDbPath() const;
 
+    uint16_t getP2PPort() const;
+
+    uint16_t getRpcPort() const;
+
+    /**
+     * @return log level
+     */
+    uint8_t getVerbosity() const;
+
    private:
     /**
      * @brief ensures that file path exists
@@ -93,6 +102,9 @@ namespace kagome::options {
     std::string key_storage_path_;
     std::string config_storage_path_;
     std::string leveldb_path_;
+    uint16_t p2p_port_{};
+    uint16_t rpc_port_{};
+    uint8_t verbosity_{};
     common::Logger logger_ = common::createLogger("Kagome options parser: ");
   };
 }  // namespace kagome::options

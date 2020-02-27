@@ -13,11 +13,14 @@ namespace kagome::application {
 
   KagomeApplicationImpl::KagomeApplicationImpl(const std::string &config_path,
                                                const std::string &keystore_path,
-                                               const std::string &leveldb_path)
+                                               const std::string &leveldb_path,
+                                               uint16_t p2p_port,
+                                               uint16_t rpc_port,
+                                               uint8_t verbosity)
       : injector_{injector::makeApplicationInjector(
-          config_path, keystore_path, leveldb_path)},
+          config_path, keystore_path, leveldb_path, p2p_port, rpc_port)},
         logger_(common::createLogger("Application")) {
-    spdlog::set_level(spdlog::level::info);
+    spdlog::set_level(static_cast<spdlog::level::level_enum>(verbosity));
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
