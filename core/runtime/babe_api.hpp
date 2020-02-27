@@ -9,6 +9,7 @@
 #include <outcome/outcome.hpp>
 
 #include "primitives/babe_configuration.hpp"
+#include "primitives/block_id.hpp"
 
 namespace kagome::runtime {
 
@@ -16,7 +17,8 @@ namespace kagome::runtime {
    public:
     virtual ~BabeApi() = default;
 
-    virtual outcome::result<primitives::BabeConfiguration> configuration() = 0;
+    virtual outcome::result<primitives::BabeConfiguration> configuration(
+        const primitives::BlockId &block_id) = 0;
   };
 
 }  // namespace kagome::runtime

@@ -47,6 +47,8 @@ namespace kagome::primitives {
              << config.genesis_authorities << config.randomness;
   }
 
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, BabeConfiguration &config) {
     return s >> config.slot_duration >> config.epoch_length >> config.c
            >> config.genesis_authorities >> config.randomness;
