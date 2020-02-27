@@ -17,8 +17,7 @@ namespace kagome::runtime {
    public:
     virtual ~BabeApi() = default;
 
-    virtual outcome::result<primitives::BabeConfiguration> configuration(
-        const primitives::BlockId &block_id) = 0;
+    virtual outcome::result<primitives::BabeConfiguration> configuration() = 0;
   };
 
 }  // namespace kagome::runtime

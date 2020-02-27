@@ -22,8 +22,7 @@ namespace kagome::runtime::binaryen {
         const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
         const std::shared_ptr<extensions::ExtensionFactory> &extension_factory);
 
-    outcome::result<primitives::BabeConfiguration> configuration(
-        const primitives::BlockId &block_id) override;
+    outcome::result<primitives::BabeConfiguration> configuration() override;
   };
 
 }  // namespace kagome::runtime::binaryen

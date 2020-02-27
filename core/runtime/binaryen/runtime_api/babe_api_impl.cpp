@@ -12,10 +12,8 @@ namespace kagome::runtime::binaryen {
       const std::shared_ptr<extensions::ExtensionFactory> &extension_factory)
       : RuntimeApi(wasm_provider, extension_factory) {}
 
-  outcome::result<primitives::BabeConfiguration> BabeApiImpl::configuration(
-      const primitives::BlockId &block_id) {
-    return execute<primitives::BabeConfiguration>("BabeApi_configuration",
-                                                  block_id);
+  outcome::result<primitives::BabeConfiguration> BabeApiImpl::configuration() {
+    return execute<primitives::BabeConfiguration>("BabeApi_configuration");
   }
 
 }  // namespace kagome::runtime::binaryen
