@@ -5,9 +5,6 @@
 
 #include "consensus/babe/impl/threshold_util.hpp"
 
-#include <cmath>
-
-#include <boost/multiprecision/cpp_bin_float.hpp>
 #include <boost/range/adaptors.hpp>
 #include <boost/range/numeric.hpp>
 
