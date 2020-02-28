@@ -13,6 +13,13 @@ target_link_libraries(babe_lottery
     logger
     )
 
+add_library(threshold_util
+    threshold_util.cpp
+    )
+target_link_libraries(threshold_util
+    primitives
+    )
+
 add_library(babe
     babe_impl.cpp
     babe_impl.hpp
@@ -27,7 +34,7 @@ target_link_libraries(babe
     blob
     outcome
     p2p::p2p_peer_id
-    primitives
+    threshold_util
     )
 
 add_library(babe_observer
