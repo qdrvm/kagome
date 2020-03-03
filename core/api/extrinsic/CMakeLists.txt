@@ -16,7 +16,6 @@ add_library(extrinsic_api_service
     )
 target_link_libraries(extrinsic_api_service
     buffer
-    api_jrpc_processor
     api_service
     transaction_pool
     scale

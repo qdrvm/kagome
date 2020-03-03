@@ -6,15 +6,15 @@
 #ifndef KAGOME_API_JRPC_SERVER_HPP
 #define KAGOME_API_JRPC_SERVER_HPP
 
-#include <jsonrpc-lean/server.h>
+#include <functional>
+
+#include <jsonrpc-lean/dispatcher.h>
 
 namespace kagome::api {
 
   class JRpcServer {
    public:
     using Method = jsonrpc::MethodWrapper::Method;
-
-    JRpcServer();
 
     virtual ~JRpcServer() = default;
 
@@ -23,7 +23,7 @@ namespace kagome::api {
      * @param name rpc method name
      * @param method handler functor
      */
-    void registerHandler(const std::string &name, Method method);
+    virtual void registerHandler(const std::string &name, Method method) = 0;
 
     /**
      * Response callback type
@@ -35,11 +35,7 @@ namespace kagome::api {
      * @param request json request string
      * @param cb callback
      */
-    void processData(std::string_view request, const ResponseHandler &cb);
-
-   private:
-    std::shared_ptr<jsonrpc::Server> jsonrpc_handler_ {};            ///< json rpc server instance
-    jsonrpc::JsonFormatHandler format_handler_{};  ///< format handler instance
+    virtual void processData(std::string_view request, const ResponseHandler &cb) = 0;
   };
 
 }  // namespace kagome::api

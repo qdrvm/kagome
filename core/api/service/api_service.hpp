@@ -7,8 +7,9 @@
 #define KAGOME_CORE_API_SERVICE_HPP
 
 #include <functional>
+#include <gsl/span>
 
-#include "api/jrpc/jrpc_server.hpp"
+#include "api/jrpc/jrpc_server_impl.hpp"
 #include "api/transport/listener.hpp"
 #include "common/logger.hpp"
 
@@ -31,7 +32,8 @@ namespace kagome::api {
      * @param processors - shared ptrs to JSON processor instances
      */
     ApiService(std::shared_ptr<Listener> listener,
-               std::shared_ptr<JRpcServer> server);
+               std::shared_ptr<JRpcServer> server,
+               gsl::span<std::shared_ptr<JRpcProcessor>> processors);
 
     virtual ~ApiService() = default;
     /**

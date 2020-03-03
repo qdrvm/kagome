@@ -6,16 +6,16 @@
 #ifndef KAGOME_CORE_SERVICE_EXTRINSICS_SUBMISSION_SERVICE_HPP
 #define KAGOME_CORE_SERVICE_EXTRINSICS_SUBMISSION_SERVICE_HPP
 
+#include <jsonrpc-lean/server.h>
+
+#include <boost/core/noncopyable.hpp>
 #include <memory>
 #include <mutex>
 #include <vector>
 
-#include <jsonrpc-lean/server.h>
-#include <boost/core/noncopyable.hpp>
-
 #include "api/extrinsic/extrinsic_api.hpp"
 #include "api/jrpc/jrpc_processor.hpp"
-#include "api/jrpc/jrpc_server.hpp"
+#include "api/jrpc/jrpc_server_impl.hpp"
 
 namespace kagome::api {
 

@@ -12,8 +12,8 @@
 #include <libp2p/peer/peer_info.hpp>
 #include <outcome/outcome.hpp>
 
-#include "api/extrinsic/extrinsic_api_service.hpp"
 #include "api/extrinsic/impl/extrinsic_api_impl.hpp"
+#include "api/state/impl/state_api_impl.hpp"
 #include "api/transport/impl/http_session.hpp"
 #include "api/transport/impl/listener_impl.hpp"
 #include "application/impl/configuration_storage_impl.hpp"
@@ -241,8 +241,8 @@ namespace kagome::injector {
     };
 
     // extrinsic api listener getter
-    auto get_extrinsic_api_listener =
-        [](const auto &injector, uint16_t rpc_port) -> sptr<api::Listener> {
+    auto get_jrpc_api_listener = [](const auto &injector,
+                                    uint16_t rpc_port) -> sptr<api::Listener> {
       static auto initialized =
           boost::optional<sptr<api::Listener>>(boost::none);
       // listener is used currently only for extrinsic api
@@ -557,6 +557,7 @@ namespace kagome::injector {
           return get_extrinsic_api_listener(injector, rpc_port);
         }),
         di::bind<api::ExtrinsicApi>.template to<api::ExtrinsicApiImpl>(),
+        di::bind<api::StateApi>.template to<api::StateApiImpl>(),
         di::bind<authorship::Proposer>.template to<authorship::ProposerImpl>(),
         di::bind<authorship::BlockBuilder>.template to<authorship::BlockBuilderImpl>(),
         di::bind<authorship::BlockBuilderFactory>.template to<authorship::BlockBuilderFactoryImpl>(),

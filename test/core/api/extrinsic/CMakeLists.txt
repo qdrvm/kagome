@@ -8,6 +8,7 @@ addtest(extrinsic_service_test
     )
 target_link_libraries(extrinsic_service_test
     extrinsic_api_service
+    api_jrpc_server
     api_transport
     blob
     )
@@ -28,5 +29,6 @@ addtest(extrinsic_api_http_integration_test
 target_link_libraries(extrinsic_api_http_integration_test
     extrinsic_api_service
     api_transport
+    api_jrpc_server
     test_api_client
     )

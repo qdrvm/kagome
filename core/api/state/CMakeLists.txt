@@ -10,7 +10,6 @@ add_library(state_api_service
     )
 target_link_libraries(state_api_service
     buffer
-    api_jrpc_processor
     api_service
     polkadot_trie_db
     )

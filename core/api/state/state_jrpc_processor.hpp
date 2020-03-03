@@ -6,12 +6,11 @@
 #ifndef KAGOME_STATE_JRPC_PROCESSOR_HPP
 #define KAGOME_STATE_JRPC_PROCESSOR_HPP
 
+#include <boost/noncopyable.hpp>
 #include <mutex>
 
-#include <boost/noncopyable.hpp>
-
 #include "api/jrpc/jrpc_processor.hpp"
-#include "api/jrpc/jrpc_server.hpp"
+#include "api/jrpc/jrpc_server_impl.hpp"
 #include "api/state/state_api.hpp"
 
 namespace kagome::api {

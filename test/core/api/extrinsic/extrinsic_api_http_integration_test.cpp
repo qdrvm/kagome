@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "api/extrinsic/extrinsic_api_service.hpp"
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
 #include <chrono>
 #include <thread>
 
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
-
+#include "api/extrinsic/extrinsic_jrpc_processor.hpp"
+#include "api/service/api_service.hpp"
 #include "api/transport/impl/http_session.hpp"
 #include "api/transport/impl/listener_impl.hpp"
 #include "common/blob.hpp"
@@ -21,6 +21,7 @@
 using namespace kagome::api;
 using namespace kagome::runtime;
 
+using kagome::api::ApiService;
 using kagome::api::ListenerImpl;
 using kagome::common::Hash256;
 using kagome::primitives::Extrinsic;
@@ -60,8 +61,12 @@ class ESSIntegrationTest : public ::testing::Test {
 
   sptr<ExtrinsicApiMock> api = std::make_shared<ExtrinsicApiMock>();
 
-  sptr<ExtrinsicApiService> service =
-      std::make_shared<ExtrinsicApiService>(listener, api);
+  sptr<JRpcServer> server = std::make_shared<JRpcServerImpl>();
+
+  std::vector<std::shared_ptr<JRpcProcessor>> processors{
+      std::make_shared<ExtrinsicJRpcProcessor>(server, api)};
+  sptr<ApiService> service =
+      std::make_shared<ApiService>(listener, server, processors);
 
   Extrinsic extrinsic{};
   const std::string request =

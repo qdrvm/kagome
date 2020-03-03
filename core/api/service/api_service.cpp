@@ -11,11 +11,16 @@ namespace kagome::api {
 
   ApiService::ApiService(
       std::shared_ptr<Listener> listener,
-      std::shared_ptr<JRpcServer> server)
+      std::shared_ptr<JRpcServer> server,
+      gsl::span<std::shared_ptr<JRpcProcessor>> processors)
       : listener_(std::move(listener)),
         server_(std::move(server)),
         logger_{common::createLogger("Api service")} {
     BOOST_ASSERT(listener_ != nullptr);
+    for(auto& processor: processors) {
+      BOOST_ASSERT(processor != nullptr);
+      processor->registerHandlers();
+    }
   }
 
   void ApiService::start() {
