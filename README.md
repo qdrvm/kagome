@@ -7,40 +7,40 @@
 [![Netlify Status](https://api.netlify.com/api/v1/badges/ad6fa504-99d6-48fb-9a05-869ba1d9a7c3/deploy-status)](https://app.netlify.com/sites/kagome/deploys)
 [![](https://img.shields.io/twitter/follow/Soramitsu_co?label=Follow&style=social)](https://twitter.com/Soramitsu_co)
 
+## Intro
+
 Kagome is a [Polkadot Runtime Environment](https://github.com/w3f/polkadot-spec/tree/master/runtime-environment-spec) developed by [Soramitsu](https://soramitsu.co.jp/) add funded by Web3 Foundation [grant](https://github.com/w3f/Web3-collaboration/blob/master/grants/grants.md). 
 
 
-## Trying out Kagome node
+## Status
 
-As of now there is not much things you can do with Kagome node. However, you can already execute a block production process.
+Kagome is early-stage software, you can already execute a block production process.
 
-### Clone
-    
-To clone repository execute: 
-1. `git clone --recurse-submodules https://github.com/soramitsu/kagome`
-2. `cd kagome`
+A simple status-report can be found within section [supported features](./README.md/#supported-features).
 
 
-### Build kagome node
 
-If you have not initialized submodules when cloning the repo with `--recurse-submodules`, initialize and update them:
-```
+## Getting Started
+
+### Prerequisites
+
+For now, please refer to the [Dockerfile](./housekeeping/docker/Dockerfile) to get a picture of what you need for a local build-environment.
+
+### Build
+
+```sh
+git clone --recurse-submodules https://github.com/soramitsu/kagome
+cd kagome
+
+# Only needed if you forgot `--recurse-submodules` above
 git submodule update --init --recursive
-```
 
-To build kagome node binary go to your build folder and assemble `kagome_full` binary using cmake:
-```
 mkdir build && cd build
 cmake ..
 make kagome_full -j 
 ```
 
-### Get necessary configurations for the node
-* Executable binary could be found in `build/examples/kagome_full/`
-* To execute kagome node you need to provide it with genesis config, keys and leveldb files
-* Example genesis config file can be found in `examples/kagome_full/config/polkadot-v06.json`
-* Example keys file can be found in `examples/kagome_full/config/keystore.json`
-* To create leveldb storage file just provide any path into `kagome_full` executable.
+
 
 ### Execute kagome node
 To launch kagome node execute:
@@ -51,6 +51,12 @@ kagome_full --genesis config/polkadot-v06.json --keystore config/keystore.json -
 
 This command executes kagome node which can receive extrinsics locally on port: `4224` (currently hardcoded) 
 
+### Configuration Details
+* Executable binary could be found in `build/examples/kagome_full/`
+* To execute kagome node you need to provide it with genesis config, keys and leveldb files
+* Example genesis config file can be found in `examples/kagome_full/config/polkadot-v06.json`
+* Example keys file can be found in `examples/kagome_full/config/keystore.json`
+* To create leveldb storage file just provide any path into `kagome_full` executable.
 
 
 ### Build Kagome
@@ -82,11 +88,6 @@ ctest
 
 Please refer to the [Contributor Documentation](./docs/README.md).
 
-### CodeStyle
-
-We follow [CppCoreGuidelines](https://github.com/isocpp/CppCoreGuidelines).
-
-Please use provided [.clang-format](.clang-format) file to autoformat the code.  
 
 ## Kagome in media
 
