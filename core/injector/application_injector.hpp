@@ -254,12 +254,6 @@ namespace kagome::injector {
       }
       auto listener =
           injector.template create<std::shared_ptr<api::Listener>>();
-      /*auto backend = injector.template create<std::shared_ptr<storage::trie::TrieDbBackend>>();
-      auto trie_builder = std::make_shared<api::ReadonlyTrieBuilderImpl>(backend);
-      auto repo = injector.template create<std::shared_ptr<blockchain::BlockHeaderRepository>>();
-      auto tree = injector.template create<std::shared_ptr<blockchain::BlockTree>>();
-      auto state_api = std::make_shared<api::StateApiImpl>(repo, trie_builder, tree);
-      auto extrinsic_api = injector.template create<api::ExtrinsicApi>>();*/
       auto server =
           injector.template create<std::shared_ptr<api::JRpcServer>>();
       std::vector<std::shared_ptr<api::JRpcProcessor>> processors{
