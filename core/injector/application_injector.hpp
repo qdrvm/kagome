@@ -12,8 +12,12 @@
 #include <libp2p/peer/peer_info.hpp>
 #include <outcome/outcome.hpp>
 
+#include "api/extrinsic/extrinsic_jrpc_processor.hpp"
 #include "api/extrinsic/impl/extrinsic_api_impl.hpp"
+#include "api/service/api_service.hpp"
 #include "api/state/impl/state_api_impl.hpp"
+#include "api/state/state_jrpc_processor.hpp"
+#include "api/state/impl/readonly_trie_builder_impl.hpp"
 #include "api/transport/impl/http_session.hpp"
 #include "api/transport/impl/listener_impl.hpp"
 #include "application/impl/configuration_storage_impl.hpp"
@@ -68,6 +72,7 @@
 #include "storage/trie/impl/polkadot_node.hpp"
 #include "storage/trie/impl/polkadot_trie_db.hpp"
 #include "storage/trie/impl/trie_db_backend_impl.hpp"
+#include "storage/trie/trie_db_reader.hpp"
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
 
@@ -240,7 +245,31 @@ namespace kagome::injector {
       return initialized.value();
     };
 
-    // extrinsic api listener getter
+    auto get_jrpc_api_service =
+        [](const auto &injector) -> sptr<api::ApiService> {
+      static auto initialized =
+          boost::optional<sptr<api::ApiService>>(boost::none);
+      if (initialized) {
+        return initialized.value();
+      }
+      auto listener =
+          injector.template create<std::shared_ptr<api::Listener>>();
+      auto trie_builder = injector.template create<std::shared_ptr<api::ReadonlyTrieBuilder>>();
+      auto repo = injector.template create<std::shared_ptr<blockchain::BlockHeaderRepository>>();
+      auto tree = injector.template create<std::shared_ptr<blockchain::BlockTree>>();
+      auto state_api = std::make_shared<api::StateApiImpl>(repo, trie_builder, tree);
+      auto extrinsic_api = injector.template create<std::shared_ptr<api::ExtrinsicApi>>();
+      auto server =
+          injector.template create<std::shared_ptr<api::JRpcServer>>();
+      std::vector<std::shared_ptr<api::JRpcProcessor>> processors{
+          std::make_shared<api::StateJrpcProcessor>(server, state_api),
+          std::make_shared<api::ExtrinsicJRpcProcessor>(server, extrinsic_api)};
+      initialized =
+          std::make_shared<api::ApiService>(listener, server, processors);
+      return initialized.value();
+    };
+
+    // jrpc api listener getter
     auto get_jrpc_api_listener = [](const auto &injector,
                                     uint16_t rpc_port) -> sptr<api::Listener> {
       static auto initialized =
@@ -519,10 +548,6 @@ namespace kagome::injector {
     auto tp_pool_limits = transaction_pool::TransactionPool::Limits{
         transaction_pool::TransactionPoolImpl::kDefaultMaxReadyNum,
         transaction_pool::TransactionPoolImpl::kDefaultMaxWaitingNum};
-    auto leveldb_options = leveldb::Options();
-    leveldb_options.create_if_missing = true;
-
-    // make injector
     return di::make_injector(
         // inherit host injector
         libp2p::injector::makeHostInjector(),
@@ -554,10 +579,15 @@ namespace kagome::injector {
 
         // bind interfaces
         di::bind<api::Listener>.to([rpc_port](const auto &injector) {
-          return get_extrinsic_api_listener(injector, rpc_port);
+          return get_jrpc_api_listener(injector, rpc_port);
         }),
+        di::bind<api::ReadonlyTrieBuilder>.template to<api::ReadonlyTrieBuilderImpl>(),
         di::bind<api::ExtrinsicApi>.template to<api::ExtrinsicApiImpl>(),
         di::bind<api::StateApi>.template to<api::StateApiImpl>(),
+        di::bind<api::ApiService>.template to([](const auto &injector) {
+          return get_jrpc_api_service(injector);
+        }),
+        di::bind<api::JRpcServer>.template to<api::JRpcServerImpl>(),
         di::bind<authorship::Proposer>.template to<authorship::ProposerImpl>(),
         di::bind<authorship::BlockBuilder>.template to<authorship::BlockBuilderImpl>(),
         di::bind<authorship::BlockBuilderFactory>.template to<authorship::BlockBuilderFactoryImpl>(),
@@ -606,6 +636,7 @@ namespace kagome::injector {
         di::bind<storage::trie::PolkadotTrieDb>.to(
             std::move(get_polkadot_trie_db)),
         di::bind<storage::trie::TrieDb>.to(std::move(get_trie_db)),
+        di::bind<storage::trie::TrieDbReader>.to(std::move(get_trie_db)),
         di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
         di::bind<runtime::WasmProvider>.template to<runtime::StorageWasmProvider>(),
         di::bind<application::ConfigurationStorage>.to(
@@ -619,6 +650,10 @@ namespace kagome::injector {
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
+    auto leveldb_options = leveldb::Options();
+    leveldb_options.create_if_missing = true;
+
+    // make injector
   }
 }  // namespace kagome::injector
 

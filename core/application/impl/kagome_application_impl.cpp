@@ -31,6 +31,7 @@ namespace kagome::application {
     babe_ = injector_.create<sptr<Babe>>();
     grandpa_launcher_ = injector_.create<sptr<GrandpaLauncher>>();
     router_ = injector_.create<sptr<network::Router>>();
+    jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 
   // TODO (yuraz) rewrite when there will be more info
