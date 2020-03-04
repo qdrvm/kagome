@@ -254,16 +254,17 @@ namespace kagome::injector {
       }
       auto listener =
           injector.template create<std::shared_ptr<api::Listener>>();
-      auto trie_builder = injector.template create<std::shared_ptr<api::ReadonlyTrieBuilder>>();
+      /*auto backend = injector.template create<std::shared_ptr<storage::trie::TrieDbBackend>>();
+      auto trie_builder = std::make_shared<api::ReadonlyTrieBuilderImpl>(backend);
       auto repo = injector.template create<std::shared_ptr<blockchain::BlockHeaderRepository>>();
       auto tree = injector.template create<std::shared_ptr<blockchain::BlockTree>>();
       auto state_api = std::make_shared<api::StateApiImpl>(repo, trie_builder, tree);
-      auto extrinsic_api = injector.template create<std::shared_ptr<api::ExtrinsicApi>>();
+      auto extrinsic_api = injector.template create<api::ExtrinsicApi>>();*/
       auto server =
           injector.template create<std::shared_ptr<api::JRpcServer>>();
       std::vector<std::shared_ptr<api::JRpcProcessor>> processors{
-          std::make_shared<api::StateJrpcProcessor>(server, state_api),
-          std::make_shared<api::ExtrinsicJRpcProcessor>(server, extrinsic_api)};
+          injector.template create<std::shared_ptr<api::StateJrpcProcessor>>(),
+          injector.template create<std::shared_ptr<api::ExtrinsicJRpcProcessor>>()};
       initialized =
           std::make_shared<api::ApiService>(listener, server, processors);
       return initialized.value();
@@ -422,7 +423,7 @@ namespace kagome::injector {
         return initialized.value();
       }
       auto backend =
-          injector.template create<sptr<storage::trie::TrieDbBackendImpl>>();
+          injector.template create<sptr<storage::trie::TrieDbBackend>>();
       sptr<storage::trie::PolkadotTrieDb> polkadot_trie_db =
           storage::trie::PolkadotTrieDb::createEmpty(backend);
       initialized = polkadot_trie_db;
@@ -631,7 +632,7 @@ namespace kagome::injector {
         di::bind<runtime::BlockBuilder>.template to<runtime::binaryen::BlockBuilderImpl>(),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
-        di::bind<storage::trie::TrieDbBackendImpl>.to(
+        di::bind<storage::trie::TrieDbBackend>.to(
             std::move(get_polkadot_trie_db_backend)),
         di::bind<storage::trie::PolkadotTrieDb>.to(
             std::move(get_polkadot_trie_db)),
