@@ -26,10 +26,6 @@ namespace kagome::api {
     void registerHandler(const std::string &name, Method method) override;
 
     /**
-     * Response callback type
-     */
-
-    /**
      * @brief handles decoded network message
      * @param request json request string
      * @param cb callback
