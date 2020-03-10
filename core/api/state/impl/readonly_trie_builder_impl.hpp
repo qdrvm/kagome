@@ -13,7 +13,7 @@ namespace kagome::api {
 
   class ReadonlyTrieBuilderImpl : public ReadonlyTrieBuilder {
    public:
-    ReadonlyTrieBuilderImpl(
+    explicit ReadonlyTrieBuilderImpl(
         std::shared_ptr<storage::trie::TrieDbBackend> backend);
     ~ReadonlyTrieBuilderImpl() override = default;
 

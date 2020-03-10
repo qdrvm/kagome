@@ -7,14 +7,19 @@
 #define KAGOME_CORE_API_SERVICE_HPP
 
 #include <functional>
+#include <gsl/span>
 
+#include "api/jrpc/jrpc_server_impl.hpp"
 #include "api/transport/listener.hpp"
 #include "common/logger.hpp"
 
 namespace kagome::api {
 
-  class JRPCProcessor;
+  class JRpcProcessor;
 
+  /**
+   * Service listening for incoming JSON RPC requests
+   */
   class ApiService : public std::enable_shared_from_this<ApiService> {
    public:
     template <class T>
@@ -22,12 +27,13 @@ namespace kagome::api {
 
     /**
      * @brief constructor
-     * @param context reference to io context
-     * @param listener sptr to listener instance
-     * @param processor sptr to json-rpc processor instance
+     * @param context - reference to the io context
+     * @param listener - a shared ptr to the endpoint listener instance
+     * @param processors - shared ptrs to JSON processor instances
      */
     ApiService(std::shared_ptr<Listener> listener,
-               std::shared_ptr<JRPCProcessor> processor);
+               std::shared_ptr<JRpcServer> server,
+               gsl::span<std::shared_ptr<JRpcProcessor>> processors);
 
     virtual ~ApiService() = default;
     /**
@@ -41,8 +47,8 @@ namespace kagome::api {
     virtual void stop();
 
    private:
-    sptr<Listener> listener_;        ///< endpoint listener
-    sptr<JRPCProcessor> processor_;  ///< json-rpc processor
+    sptr<Listener> listener_;
+    std::shared_ptr<JRpcServer> server_;
     common::Logger logger_;
   };
 }  // namespace kagome::api

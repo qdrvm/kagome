@@ -6,23 +6,26 @@
 #ifndef KAGOME_STATE_JRPC_PROCESSOR_HPP
 #define KAGOME_STATE_JRPC_PROCESSOR_HPP
 
+#include <boost/noncopyable.hpp>
 #include <mutex>
 
 #include "api/jrpc/jrpc_processor.hpp"
+#include "api/jrpc/jrpc_server_impl.hpp"
 #include "api/state/state_api.hpp"
 
 namespace kagome::api {
 
-  class StateJrpcProcessor : public JRPCProcessor {
+  class StateJrpcProcessor : public JRpcProcessor, private boost::noncopyable {
    public:
-    StateJrpcProcessor(std::shared_ptr<StateApi> api);
+    StateJrpcProcessor(std::shared_ptr<JRpcServer> server,
+                       std::shared_ptr<StateApi> api);
     ~StateJrpcProcessor() override = default;
 
     void registerHandlers() override;
 
    private:
     std::shared_ptr<StateApi> api_;
-    std::mutex storage_mutex_;
+    std::shared_ptr<JRpcServer> server_;
   };
 
 }  // namespace kagome::api

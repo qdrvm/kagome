@@ -10,13 +10,17 @@
 
 namespace kagome::api {
 
-  ExtrinsicJRPCProcessor::ExtrinsicJRPCProcessor(
+  ExtrinsicJRpcProcessor::ExtrinsicJRpcProcessor(
+      std::shared_ptr<JRpcServer> server,
       std::shared_ptr<ExtrinsicApi> api)
-      : api_(std::move(api)) {}
+      : api_{std::move(api)}, server_ {std::move(server)} {
+    BOOST_ASSERT(api_ != nullptr);
+    BOOST_ASSERT(server_ != nullptr);
+  }
 
-  void ExtrinsicJRPCProcessor::registerHandlers() {
+  void ExtrinsicJRpcProcessor::registerHandlers() {
     // register all api methods
-    registerHandler(
+    server_->registerHandler(
         "author_submitExtrinsic",
         [this](const jsonrpc::Request::Parameters &params) -> jsonrpc::Value {
           auto request = SubmitExtrinsicRequest::fromParams(params);
@@ -30,7 +34,7 @@ namespace kagome::api {
           return makeValue(res.value());
         });
 
-    registerHandler(
+    server_->registerHandler(
         "author_pendingExtrinsics",
         [this](const jsonrpc::Request::Parameters &params) -> jsonrpc::Value {
           // method has no params

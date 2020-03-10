@@ -7,21 +7,33 @@
 
 #include <gtest/gtest.h>
 
+#include "mock/core/api/jrpc/jrpc_server_mock.hpp"
 #include "mock/core/api/state/state_api_mock.hpp"
 #include "testutil/literals.hpp"
 
+using kagome::api::JRpcServer;
+using kagome::api::JRpcServerMock;
 using kagome::api::StateApiMock;
 using kagome::api::StateJrpcProcessor;
 using kagome::common::Buffer;
+using testing::_;
 
 class StateJrpcProcessorTest : public testing::Test {
  public:
-  void SetUp() override {
+  void SetUp() override {}
+
+  auto registerHandlers() {
+    JRpcServer::Method action;
+    EXPECT_CALL(*server, registerHandler("state_getStorage", _))
+        .WillOnce(
+            testing::Invoke([&action](auto &name, auto &&f) { action = f; }));
     processor.registerHandlers();
+    return action;
   }
 
   std::shared_ptr<StateApiMock> state_api = std::make_shared<StateApiMock>();
-  StateJrpcProcessor processor{state_api};
+  std::shared_ptr<JRpcServerMock> server = std::make_shared<JRpcServerMock>();
+  StateJrpcProcessor processor{server, state_api};
 };
 
 /**
@@ -33,39 +45,51 @@ TEST_F(StateJrpcProcessorTest, ProcessRequest) {
   EXPECT_CALL(*state_api, getStorage(Buffer::fromHex("01234567").value()))
       .WillOnce(testing::Return(Buffer::fromHex("ABCDEF").value()));
 
-  processor.processData(
-      R"({"jsonrpc":"2.0", "method": "state_getStorage", "id" : 0, "params":["01234567"]})",
-      [](auto &&response) {
-        ASSERT_STREQ(R"({"jsonrpc":"2.0","id":0,"result":[171,205,239]})",
-                     response.data());
-      });
+  auto action = registerHandlers();
+
+  jsonrpc::Request::Parameters params {"01234567"};
+  auto result = action(params).AsArray();
+  std::vector<uint8_t> vec_result(result.size());
+  std::transform(result.begin(), result.end(), vec_result.begin(), [](jsonrpc::Value& v) {
+    return v.AsInteger32();
+  });
+  std::vector<uint8_t> expected_result {171,205,239};
+  ASSERT_THAT(expected_result, testing::ContainerEq(vec_result));
 }
 
 /**
- * @given a request of state_getStorage with two valid params
- * @when processing it
- * @then the request is successfully processed and the response is valid
- */
+* @given a request of state_getStorage with two valid params
+* @when processing it
+* @then the request is successfully processed and the response is valid
+*/
 TEST_F(StateJrpcProcessorTest, ProcessAnotherRequest) {
   EXPECT_CALL(*state_api,
               getStorage(Buffer::fromHex("01234567").value(), "010203"_hash256))
       .WillOnce(testing::Return(Buffer::fromHex("ABCDEF").value()));
 
-  processor.processData(
-      R"({"jsonrpc":"2.0", "method": "state_getStorage", "id" : 0, "params":["01234567", ")"
-          + ("010203"_hash256).toHex() + "\"]}",
-      [](auto &&response) {
-        ASSERT_STREQ(R"({"jsonrpc":"2.0","id":0,"result":[171,205,239]})",
-                     response.data());
-      });
+  auto action = registerHandlers();
+
+  jsonrpc::Request::Parameters params {"01234567", ("010203"_hash256).toHex()};
+  auto result = action(params).AsArray();
+  std::vector<uint8_t> vec_result(result.size());
+  std::transform(result.begin(), result.end(), vec_result.begin(), [](jsonrpc::Value& v) {
+    return v.AsInteger32();
+  });
+  std::vector<uint8_t> expected_result {171,205,239};
+  ASSERT_THAT(expected_result, testing::ContainerEq(vec_result));
 }
 
+/**
+ * @given a request of state_getStorage with invalid params
+ * @when processing it
+ * @then InvalidParametersFault exception is thrown
+ */
+
 TEST_F(StateJrpcProcessorTest, InvalidParams) {
-  processor.processData(
-      R"({"jsonrpc":"2.0", "method": "state_getStorage", "id" : 0, "params":[0, 0]})",
-      [](auto &&response) {
-        ASSERT_STREQ(
-            R"({"jsonrpc":"2.0","id":0,"error":{"code":-32602,"message":"Parameter 'key' must be a hex string"}})",
-            response.data());
-      });
+  auto action = registerHandlers();
+
+  jsonrpc::Request::Parameters params;
+  params.push_back(jsonrpc::Value{0});
+  params.push_back(0);
+  ASSERT_THROW(action(params).AsArray(), jsonrpc::InvalidParametersFault);
 }

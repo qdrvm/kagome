@@ -15,4 +15,5 @@ addtest(state_jrpc_processor_test
     )
 target_link_libraries(state_jrpc_processor_test
     state_api_service
+    api_jrpc_server
     )

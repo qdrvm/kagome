@@ -28,10 +28,10 @@ namespace kagome::application {
     config_storage_ = injector_.create<sptr<ConfigurationStorage>>();
     key_storage_ = injector_.create<sptr<KeyStorage>>();
     clock_ = injector_.create<sptr<clock::SystemClock>>();
-    extrinsic_api_service_ = injector_.create<sptr<ExtrinsicApiService>>();
     babe_ = injector_.create<sptr<Babe>>();
     grandpa_launcher_ = injector_.create<sptr<GrandpaLauncher>>();
     router_ = injector_.create<sptr<network::Router>>();
+    jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 
   // TODO (yuraz) rewrite when there will be more info
@@ -64,7 +64,7 @@ namespace kagome::application {
   }
 
   void KagomeApplicationImpl::run() {
-    extrinsic_api_service_->start();
+    jrpc_api_service_->start();
     auto epoch = makeInitialEpoch();
     babe_->runEpoch(std::move(epoch), clock_->now());
 

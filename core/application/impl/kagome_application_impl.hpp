@@ -8,6 +8,7 @@
 
 #include "application/configuration_storage.hpp"
 #include "application/impl/local_key_storage.hpp"
+#include "api/service/api_service.hpp"
 #include "application/kagome_application.hpp"
 
 namespace kagome::application {
@@ -23,7 +24,6 @@ namespace kagome::application {
     using BlockBuilderFactory = authorship::BlockBuilderFactory;
     using BlockTree = blockchain::BlockTree;
     using Epoch = consensus::Epoch;
-    using ExtrinsicApiService = api::ExtrinsicApiService;
     using Hasher = crypto::Hasher;
     using ListenerImpl = api::ListenerImpl;
     using Proposer = authorship::Proposer;
@@ -66,7 +66,7 @@ namespace kagome::application {
     sptr<ConfigurationStorage> config_storage_;
     sptr<KeyStorage> key_storage_;
     sptr<clock::SystemClock> clock_;
-    sptr<ExtrinsicApiService> extrinsic_api_service_;
+    sptr<api::ApiService> jrpc_api_service_;
     sptr<Babe> babe_;
     sptr<GrandpaLauncher> grandpa_launcher_;
     sptr<network::Router> router_;
