@@ -59,6 +59,8 @@ namespace kagome::blockchain {
      * the operations faster
      */
     struct TreeMeta {
+      TreeMeta(TreeNode &subtree_root_node);
+
       TreeMeta(std::unordered_set<primitives::BlockHash> leaves,
                TreeNode &deepest_leaf,
                TreeNode &last_finalized);
@@ -133,8 +135,6 @@ namespace kagome::blockchain {
     BlockHashVecRes getChildren(const primitives::BlockHash &block) override;
 
     primitives::BlockInfo getLastFinalized() const override;
-
-    outcome::result<void> prune() override;
 
    private:
     /**
