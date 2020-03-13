@@ -59,7 +59,7 @@ namespace kagome::blockchain {
      * the operations faster
      */
     struct TreeMeta {
-      TreeMeta(TreeNode &subtree_root_node);
+      explicit TreeMeta(TreeNode &subtree_root_node);
 
       TreeMeta(std::unordered_set<primitives::BlockHash> leaves,
                TreeNode &deepest_leaf,
