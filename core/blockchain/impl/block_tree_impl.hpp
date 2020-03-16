@@ -160,6 +160,14 @@ namespace kagome::blockchain {
      */
     std::vector<primitives::BlockHash> getLeavesSorted() const;
 
+    static void collectDescendants(
+        std::shared_ptr<TreeNode> node,
+        std::vector<std::pair<primitives::BlockHash, primitives::BlockNumber>>
+            &container);
+
+    outcome::result<void> prune(
+        const std::shared_ptr<TreeNode> &lastFinalizedNode);
+
     std::shared_ptr<BlockHeaderRepository> header_repo_;
     std::shared_ptr<BlockStorage> storage_;
 
