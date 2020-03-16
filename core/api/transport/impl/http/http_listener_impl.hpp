@@ -8,7 +8,7 @@
 
 #include "api/transport/listener.hpp"
 
-#include "api/transport/impl/http_session.hpp"
+#include "http_session.hpp"
 #include "common/logger.hpp"
 
 namespace kagome::api {
@@ -16,8 +16,8 @@ namespace kagome::api {
    * @brief server which listens for incoming connection,
    * accepts connections making session from socket
    */
-  class ListenerImpl : public Listener,
-                       public std::enable_shared_from_this<ListenerImpl> {
+  class HttpListenerImpl : public Listener,
+						   public std::enable_shared_from_this<HttpListenerImpl> {
     enum class State { READY, WORKING, STOPPED = READY };
     using Context = boost::asio::io_context;
     using Acceptor = boost::asio::ip::tcp::acceptor;
@@ -38,11 +38,11 @@ namespace kagome::api {
      * @param endpoint loopback ip address to listen
      * @param http_config http session configuration
      */
-    ListenerImpl(Context &context,
-                 const Configuration &configuration,
-                 HttpSession::Configuration http_config);
+    HttpListenerImpl(Context &context,
+					 const Configuration &configuration,
+					 HttpSession::Configuration http_config);
 
-    ~ListenerImpl() override = default;
+    ~HttpListenerImpl() override = default;
 
     /**
      * @brief starts listener

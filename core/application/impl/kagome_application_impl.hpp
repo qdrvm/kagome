@@ -25,7 +25,7 @@ namespace kagome::application {
     using BlockTree = blockchain::BlockTree;
     using Epoch = consensus::Epoch;
     using Hasher = crypto::Hasher;
-    using ListenerImpl = api::ListenerImpl;
+    using ListenerImpl = api::WsListenerImpl;
     using Proposer = authorship::Proposer;
     using SR25519Keypair = crypto::SR25519Keypair;
     using Synchronizer = consensus::Synchronizer;

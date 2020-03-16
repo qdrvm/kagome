@@ -5,7 +5,14 @@
 
 #include "api/transport/error.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, ApiTransportError, e) {
+namespace kagome::api
+{
+extern std::error_code make_error_code(ApiTransportError e)
+{ return {static_cast<int>(e), __libp2p::Category<ApiTransportError>::get()}; }
+};
+
+template<>
+std::string __libp2p::Category<kagome::api::ApiTransportError>::toString(kagome::api::ApiTransportError e) {
   using kagome::api::ApiTransportError;
   switch (e) {
     case ApiTransportError::FAILED_SET_OPTION:

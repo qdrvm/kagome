@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "api/transport/impl/http_session.hpp"
+#include "http_session.hpp"
 
 #include <boost/config.hpp>
 #include <outcome/outcome.hpp>

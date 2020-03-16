@@ -11,8 +11,8 @@
 
 #include "api/extrinsic/extrinsic_jrpc_processor.hpp"
 #include "api/service/api_service.hpp"
-#include "api/transport/impl/http_session.hpp"
-#include "api/transport/impl/listener_impl.hpp"
+#include "api/transport/impl/http/http_session.hpp"
+#include "api/transport/impl/http/http_listener_impl.hpp"
 #include "common/blob.hpp"
 #include "core/api/client/api_client.hpp"
 #include "mock/core/api/extrinsic/extrinsic_api_mock.hpp"
@@ -22,7 +22,7 @@ using namespace kagome::api;
 using namespace kagome::runtime;
 
 using kagome::api::ApiService;
-using kagome::api::ListenerImpl;
+using kagome::api::HttpListenerImpl;
 using kagome::common::Hash256;
 using kagome::primitives::Extrinsic;
 
@@ -56,8 +56,8 @@ class ESSIntegrationTest : public ::testing::Test {
                        12349};
   HttpSession::Configuration http_config{};
 
-  sptr<ListenerImpl> listener = std::make_shared<ListenerImpl>(
-      *main_context, ListenerImpl::Configuration{endpoint}, http_config);
+  sptr<HttpListenerImpl> listener = std::make_shared<HttpListenerImpl>(
+	  *main_context, HttpListenerImpl::Configuration{endpoint}, http_config);
 
   sptr<ExtrinsicApiMock> api = std::make_shared<ExtrinsicApiMock>();
 

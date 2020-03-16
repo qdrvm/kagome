@@ -3,21 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "api/transport/impl/listener_impl.hpp"
+#include "http_listener_impl.hpp"
 
 #include <boost/asio.hpp>
 #include "api/transport/error.hpp"
-#include "api/transport/impl/http_session.hpp"
+#include "http_session.hpp"
 
 namespace kagome::api {
-  ListenerImpl::ListenerImpl(ListenerImpl::Context &context,
-                             const Configuration &configuration,
-                             HttpSession::Configuration http_config)
+  HttpListenerImpl::HttpListenerImpl(HttpListenerImpl::Context &context,
+									 const Configuration &configuration,
+									 HttpSession::Configuration http_config)
       : context_(context),
         acceptor_(context_, configuration.endpoint),
         http_config_{http_config} {}
 
-  void ListenerImpl::acceptOnce(Listener::NewSessionHandler on_new_session) {
+  void HttpListenerImpl::acceptOnce(Listener::NewSessionHandler on_new_session) {
     acceptor_.async_accept([self = shared_from_this(), on_new_session](
                                boost::system::error_code ec,
                                Session::Socket socket) mutable {
@@ -49,7 +49,7 @@ namespace kagome::api {
     });
   }
 
-  void ListenerImpl::start(Listener::NewSessionHandler on_new_session) {
+  void HttpListenerImpl::start(Listener::NewSessionHandler on_new_session) {
     if (state_ == State::WORKING) {
       logger_->error(
           "error: listener already started, cannot start twice, code: {}",
@@ -71,7 +71,7 @@ namespace kagome::api {
     acceptOnce(on_new_session);
   }
 
-  void ListenerImpl::stop() {
+  void HttpListenerImpl::stop() {
     state_ = State::STOPPED;
     acceptor_.cancel();
   }

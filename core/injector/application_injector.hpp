@@ -11,6 +11,8 @@
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/peer/peer_info.hpp>
 #include <outcome/outcome.hpp>
+#include <api/transport/impl/ws/ws_listener_impl.hpp>
+#include <api/transport/impl/ws/ws_session.hpp>
 
 #include "api/extrinsic/extrinsic_jrpc_processor.hpp"
 #include "api/extrinsic/impl/extrinsic_api_impl.hpp"
@@ -18,8 +20,8 @@
 #include "api/state/impl/state_api_impl.hpp"
 #include "api/state/state_jrpc_processor.hpp"
 #include "api/state/impl/readonly_trie_builder_impl.hpp"
-#include "api/transport/impl/http_session.hpp"
-#include "api/transport/impl/listener_impl.hpp"
+#include "api/transport/impl/http/http_session.hpp"
+#include "api/transport/impl/http/http_listener_impl.hpp"
 #include "application/impl/configuration_storage_impl.hpp"
 #include "application/impl/local_key_storage.hpp"
 #include "authorship/impl/block_builder_factory_impl.hpp"
@@ -280,13 +282,13 @@ namespace kagome::injector {
 
       auto &context = injector.template create<boost::asio::io_context &>();
       auto extrinsic_tcp_version = boost::asio::ip::tcp::v4();
-      api::ListenerImpl::Configuration listener_config{
+      api::WsListenerImpl::Configuration listener_config{
           boost::asio::ip::tcp::endpoint{extrinsic_tcp_version, rpc_port}};
-      auto &&http_session_config =
-          injector.template create<api::HttpSession::Configuration>();
+      auto &&ws_session_config =
+          injector.template create<api::WsSession::Configuration>();
 
-      initialized = std::make_shared<api::ListenerImpl>(
-          context, listener_config, http_session_config);
+      initialized = std::make_shared<api::WsListenerImpl>(
+		  context, listener_config, ws_session_config);
       return initialized.value();
     };
 
