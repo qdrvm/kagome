@@ -31,7 +31,7 @@ namespace kagome::api {
      * @param listener - a shared ptr to the endpoint listener instance
      * @param processors - shared ptrs to JSON processor instances
      */
-    ApiService(std::shared_ptr<Listener> listener,
+    ApiService(std::vector<std::shared_ptr<Listener>> listeners,
                std::shared_ptr<JRpcServer> server,
                gsl::span<std::shared_ptr<JRpcProcessor>> processors);
 
@@ -47,7 +47,7 @@ namespace kagome::api {
     virtual void stop();
 
    private:
-    sptr<Listener> listener_;
+    std::vector<sptr<Listener>> listeners_;
     std::shared_ptr<JRpcServer> server_;
     common::Logger logger_;
   };

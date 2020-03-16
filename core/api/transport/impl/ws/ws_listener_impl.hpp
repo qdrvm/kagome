@@ -1,10 +1,7 @@
-// Copyright © 2018 Webgames. All rights reserved.
-//
-// Author: Dmitriy Khaustov aka xDimon
-// Contacts: d.khaustov@corpwebgames.com
-// File created on: 2020.03.13 13:45
-
-// ws_listener_impl.hpp
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 #pragma once
 
@@ -38,11 +35,11 @@ namespace kagome::api {
     /**
      * @param context reference to boost::asio::io_context instance
      * @param endpoint loopback ip address to listen
-     * @param http_config http session configuration
+     * @param ws_config http session configuration
      */
     WsListenerImpl(Context &context,
                    const Configuration &configuration,
-                   WsSession::Configuration http_config);
+                   WsSession::Configuration ws_config);
 
     ~WsListenerImpl() override = default;
 

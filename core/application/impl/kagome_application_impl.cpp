@@ -15,10 +15,11 @@ namespace kagome::application {
                                                const std::string &keystore_path,
                                                const std::string &leveldb_path,
                                                uint16_t p2p_port,
-                                               uint16_t rpc_port,
+                                               uint16_t rpc_http_port,
+                                               uint16_t rpc_ws_port,
                                                uint8_t verbosity)
       : injector_{injector::makeApplicationInjector(
-          config_path, keystore_path, leveldb_path, p2p_port, rpc_port)},
+	  config_path, keystore_path, leveldb_path, p2p_port, rpc_http_port, rpc_ws_port)},
         logger_(common::createLogger("Application")) {
     spdlog::set_level(static_cast<spdlog::level::level_enum>(verbosity));
 

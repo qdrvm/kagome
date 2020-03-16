@@ -1,3 +1,8 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include "ws_listener_impl.hpp"
 
 #include <boost/asio.hpp>
@@ -7,10 +12,10 @@
 namespace kagome::api {
   WsListenerImpl::WsListenerImpl(WsListenerImpl::Context &context,
                                  const Configuration &configuration,
-                                 WsSession::Configuration http_config)
+                                 WsSession::Configuration ws_config)
       : context_(context),
         acceptor_(context_, configuration.endpoint),
-        http_config_{http_config} {}
+        http_config_{ws_config} {}
 
   void WsListenerImpl::acceptOnce(Listener::NewSessionHandler on_new_session) {
     acceptor_.async_accept([self = shared_from_this(), on_new_session](

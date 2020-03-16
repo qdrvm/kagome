@@ -1,10 +1,7 @@
-// Copyright © 2018 Webgames. All rights reserved.
-//
-// Author: Dmitriy Khaustov aka xDimon
-// Contacts: d.khaustov@corpwebgames.com
-// File created on: 2020.03.13 13:14
-
-// ws_session.cpp
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 #include "ws_session.hpp"
 

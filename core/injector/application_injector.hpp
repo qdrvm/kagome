@@ -254,23 +254,51 @@ namespace kagome::injector {
       if (initialized) {
         return initialized.value();
       }
-      auto listener =
-          injector.template create<std::shared_ptr<api::Listener>>();
+      std::vector<std::shared_ptr<api::Listener>> listeners{
+		  injector.template create<std::shared_ptr<api::HttpListenerImpl>>(),
+		  injector.template create<std::shared_ptr<api::WsListenerImpl>>(),
+      };
       auto server =
           injector.template create<std::shared_ptr<api::JRpcServer>>();
       std::vector<std::shared_ptr<api::JRpcProcessor>> processors{
           injector.template create<std::shared_ptr<api::StateJrpcProcessor>>(),
           injector.template create<std::shared_ptr<api::ExtrinsicJRpcProcessor>>()};
       initialized =
-          std::make_shared<api::ApiService>(listener, server, processors);
+          std::make_shared<api::ApiService>(listeners, server, processors);
       return initialized.value();
     };
 
-    // jrpc api listener getter
-    auto get_jrpc_api_listener = [](const auto &injector,
-                                    uint16_t rpc_port) -> sptr<api::Listener> {
+    // jrpc api listener (over HTTP) getter
+    auto get_jrpc_api_http_listener = [](const auto &injector,
+                                    uint16_t rpc_port) -> sptr<api::HttpListenerImpl> {
       static auto initialized =
-          boost::optional<sptr<api::Listener>>(boost::none);
+          boost::optional<sptr<api::HttpListenerImpl>>(boost::none);
+      // listener is used currently only for extrinsic api
+      // if other apis are required, need to
+      // implement lambda creating corresponding api service
+      // where listener is initialized manually
+      // in this case listener should be bound
+      if (initialized) {
+        return initialized.value();
+      }
+
+      auto &context = injector.template create<boost::asio::io_context &>();
+      auto extrinsic_tcp_version = boost::asio::ip::tcp::v4();
+      api::HttpListenerImpl::Configuration listener_config{
+          boost::asio::ip::tcp::endpoint{extrinsic_tcp_version, rpc_port}};
+      auto &&http_session_config =
+          injector.template create<api::HttpSession::Configuration>();
+
+      initialized = std::make_shared<api::HttpListenerImpl>(
+		  context, listener_config, http_session_config);
+      return initialized.value();
+    };
+
+    // jrpc api listener (over Websockets) getter
+    auto get_jrpc_api_ws_listener = [](const auto &injector,
+                                    uint16_t rpc_port) -> sptr<api::WsListenerImpl> {
+      static auto initialized =
+          boost::optional<sptr<api::WsListenerImpl>>(boost::none);
       // listener is used currently only for extrinsic api
       // if other apis are required, need to
       // implement lambda creating corresponding api service
@@ -534,7 +562,8 @@ namespace kagome::injector {
                                const std::string &keystore_path,
                                const std::string &leveldb_path,
                                uint16_t p2p_port,
-                               uint16_t rpc_port,
+                               uint16_t rpc_http_port,
+                               uint16_t rpc_ws_port,
                                Ts &&... args) {
     using namespace boost;  // NOLINT;
 
@@ -575,8 +604,11 @@ namespace kagome::injector {
         injector::useConfig(tp_pool_limits),
 
         // bind interfaces
-        di::bind<api::Listener>.to([rpc_port](const auto &injector) {
-          return get_jrpc_api_listener(injector, rpc_port);
+        di::bind<api::HttpListenerImpl>.to([rpc_http_port](const auto &injector) {
+          return get_jrpc_api_http_listener(injector, rpc_http_port);
+        }),
+        di::bind<api::WsListenerImpl>.to([rpc_ws_port](const auto &injector) {
+          return get_jrpc_api_ws_listener(injector, rpc_ws_port);
         }),
         di::bind<api::ReadonlyTrieBuilder>.template to<api::ReadonlyTrieBuilderImpl>(),
         di::bind<api::ExtrinsicApi>.template to<api::ExtrinsicApiImpl>(),
