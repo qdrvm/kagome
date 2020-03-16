@@ -178,7 +178,7 @@ namespace kagome::blockchain {
     // update our local meta
     node->finalized = true;
 
-    prune(node);
+    OUTCOME_TRY(prune(node));
 
     tree_ = node;
 
@@ -467,6 +467,8 @@ namespace kagome::blockchain {
     for (const auto &[hash, number] : to_remove) {
       OUTCOME_TRY(storage_->removeBlock(hash, number));
     }
+
+    return outcome::success();
   }
 
   void BlockTreeImpl::collectDescendants(
