@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "http_listener_impl.hpp"
+#include "api/transport/impl/http/http_listener_impl.hpp"
 
 #include <boost/asio.hpp>
 #include "api/transport/error.hpp"
-#include "http_session.hpp"
+#include "api/transport/impl/http/http_session.hpp"
 
 namespace kagome::api {
   HttpListenerImpl::HttpListenerImpl(HttpListenerImpl::Context &context,

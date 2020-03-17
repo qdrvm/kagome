@@ -8,7 +8,7 @@
 
 #include "api/transport/listener.hpp"
 
-#include "http_session.hpp"
+#include "api/transport/impl/http/http_session.hpp"
 #include "common/logger.hpp"
 
 namespace kagome::api {

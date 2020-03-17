@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "ws_session.hpp"
+#include "api/transport/impl/ws/ws_session.hpp"
 
 #include <cstring>
 

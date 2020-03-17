@@ -6,8 +6,9 @@
 #include "api/transport/impl/ws/ws_listener_impl.hpp"
 
 #include <boost/asio.hpp>
+
 #include "api/transport/error.hpp"
-#include "ws_session.hpp"
+#include "api/transport/impl/ws/ws_session.hpp"
 
 namespace kagome::api {
   WsListenerImpl::WsListenerImpl(WsListenerImpl::Context &context,
