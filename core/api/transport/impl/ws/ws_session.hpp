@@ -25,9 +25,6 @@ namespace kagome::api {
     template <typename Body>
     using Request = boost::beast::http::request<Body>;
 
-    //	template<typename Body>
-    //	using Request = boost::beast::websocket::
-
     template <typename Body>
     using Response = boost::beast::http::response<Body>;
 
