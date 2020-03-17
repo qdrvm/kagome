@@ -46,7 +46,7 @@ namespace kagome::api {
 
   void WsSession::respond(std::string_view response) {
     auto x = wbuffer_.prepare(response.size());
-    std::copy(response.data(), response.data() + response.size(), reinterpret_cast<char*>(x.data()));
+    std::copy(response.data(), response.data() + response.size(), reinterpret_cast<char*>(x.data())); // NOLINT
     wbuffer_.commit(response.size());
     ws_.text(true);
     asyncWrite();
