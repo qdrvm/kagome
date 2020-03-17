@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "ws_listener_impl.hpp"
+#include "api/transport/impl/ws/ws_listener_impl.hpp"
 
 #include <boost/asio.hpp>
 #include "api/transport/error.hpp"
