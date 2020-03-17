@@ -16,8 +16,9 @@ namespace kagome::api {
    * @brief server which listens for incoming connection,
    * accepts connections making session from socket
    */
-  class HttpListenerImpl : public Listener,
-						   public std::enable_shared_from_this<HttpListenerImpl> {
+  class HttpListenerImpl
+      : public Listener,
+        public std::enable_shared_from_this<HttpListenerImpl> {
     enum class State { READY, WORKING, STOPPED = READY };
     using Context = boost::asio::io_context;
     using Acceptor = boost::asio::ip::tcp::acceptor;
@@ -39,8 +40,8 @@ namespace kagome::api {
      * @param http_config http session configuration
      */
     HttpListenerImpl(Context &context,
-					 const Configuration &configuration,
-					 HttpSession::Configuration http_config);
+                     const Configuration &configuration,
+                     HttpSession::Configuration http_config);
 
     ~HttpListenerImpl() override = default;
 

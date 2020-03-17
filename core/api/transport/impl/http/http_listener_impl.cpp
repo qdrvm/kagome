@@ -11,13 +11,14 @@
 
 namespace kagome::api {
   HttpListenerImpl::HttpListenerImpl(HttpListenerImpl::Context &context,
-									 const Configuration &configuration,
-									 HttpSession::Configuration http_config)
+                                     const Configuration &configuration,
+                                     HttpSession::Configuration http_config)
       : context_(context),
         acceptor_(context_, configuration.endpoint),
         http_config_{http_config} {}
 
-  void HttpListenerImpl::acceptOnce(Listener::NewSessionHandler on_new_session) {
+  void HttpListenerImpl::acceptOnce(
+      Listener::NewSessionHandler on_new_session) {
     acceptor_.async_accept([self = shared_from_this(), on_new_session](
                                boost::system::error_code ec,
                                Session::Socket socket) mutable {

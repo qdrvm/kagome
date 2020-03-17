@@ -3,12 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#pragma once
+#ifndef KAGOME_CORE_API_TRANSPORT_IMPL_WS_LISTENER_IMPL_HPP
+#define KAGOME_CORE_API_TRANSPORT_IMPL_WS_LISTENER_IMPL_HPP
 
 #include "api/transport/listener.hpp"
 
-#include "common/logger.hpp"
 #include "api/transport/impl/ws/ws_session.hpp"
+#include "common/logger.hpp"
 
 namespace kagome::api {
   /**
@@ -68,3 +69,5 @@ namespace kagome::api {
   };
 
 }  // namespace kagome::api
+
+#endif  // KAGOME_CORE_API_TRANSPORT_IMPL_WS_LISTENER_IMPL_HPP

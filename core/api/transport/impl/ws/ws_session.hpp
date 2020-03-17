@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#pragma once
+#ifndef KAGOME_CORE_API_TRANSPORT_IMPL_WS_SESSION_HPP
+#define KAGOME_CORE_API_TRANSPORT_IMPL_WS_SESSION_HPP
 
 #include <chrono>
 #include <cstdlib>
@@ -132,3 +133,5 @@ namespace kagome::api {
   };
 
 }  // namespace kagome::api
+
+#endif  // KAGOME_CORE_API_TRANSPORT_BEAST_HTTP_SESSION_HPP
