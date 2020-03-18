@@ -22,20 +22,6 @@ namespace kagome::api {
                     public std::enable_shared_from_this<WsSession> {
     using Socket = boost::asio::ip::tcp::socket;
 
-    template <typename Body>
-    using Request = boost::beast::http::request<Body>;
-
-    template <typename Body>
-    using Response = boost::beast::http::response<Body>;
-
-    using StringBody = boost::beast::http::string_body;
-
-    template <class Body>
-    using RequestParser = boost::beast::http::request_parser<Body>;
-
-    using HttpField = boost::beast::http::field;
-
-    using HttpError = boost::beast::http::error;
     using WsError = boost::beast::websocket::error;
     using Logger = common::Logger;
 
@@ -63,7 +49,7 @@ namespace kagome::api {
     void start() override;
 
     /**
-     * @brief sends response wrapped by http message
+     * @brief sends response wrapped by websocket frame
      * @param response message to send
      */
     void respond(std::string_view response) override;
@@ -75,7 +61,7 @@ namespace kagome::api {
     void stop();
 
     /**
-     * @brief process http request, compose and execute response
+     * @brief process received websocket frame, compose and execute response
      * @tparam Body request body type
      * @param request request
      */

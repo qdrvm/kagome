@@ -16,7 +16,7 @@ namespace kagome::api {
                                  WsSession::Configuration ws_config)
       : context_(context),
         acceptor_(context_, configuration.endpoint),
-        http_config_{ws_config} {}
+        ws_config_{ws_config} {}
 
   void WsListenerImpl::acceptOnce(Listener::NewSessionHandler on_new_session) {
     acceptor_.async_accept([self = shared_from_this(), on_new_session](
@@ -40,7 +40,7 @@ namespace kagome::api {
       }
 
       auto session =
-          std::make_shared<WsSession>(std::move(socket), self->http_config_);
+          std::make_shared<WsSession>(std::move(socket), self->ws_config_);
 
       on_new_session(session);
       session->start();

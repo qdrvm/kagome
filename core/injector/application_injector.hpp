@@ -6,22 +6,22 @@
 #ifndef KAGOME_CORE_INJECTOR_APPLICATION_INJECTOR_HPP
 #define KAGOME_CORE_INJECTOR_APPLICATION_INJECTOR_HPP
 
+#include <api/transport/impl/ws/ws_listener_impl.hpp>
+#include <api/transport/impl/ws/ws_session.hpp>
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/peer/peer_info.hpp>
 #include <outcome/outcome.hpp>
-#include <api/transport/impl/ws/ws_listener_impl.hpp>
-#include <api/transport/impl/ws/ws_session.hpp>
 
 #include "api/extrinsic/extrinsic_jrpc_processor.hpp"
 #include "api/extrinsic/impl/extrinsic_api_impl.hpp"
 #include "api/service/api_service.hpp"
+#include "api/state/impl/readonly_trie_builder_impl.hpp"
 #include "api/state/impl/state_api_impl.hpp"
 #include "api/state/state_jrpc_processor.hpp"
-#include "api/state/impl/readonly_trie_builder_impl.hpp"
-#include "api/transport/impl/http/http_session.hpp"
 #include "api/transport/impl/http/http_listener_impl.hpp"
+#include "api/transport/impl/http/http_session.hpp"
 #include "application/impl/configuration_storage_impl.hpp"
 #include "application/impl/local_key_storage.hpp"
 #include "authorship/impl/block_builder_factory_impl.hpp"
@@ -255,29 +255,26 @@ namespace kagome::injector {
         return initialized.value();
       }
       std::vector<std::shared_ptr<api::Listener>> listeners{
-		  injector.template create<std::shared_ptr<api::HttpListenerImpl>>(),
-		  injector.template create<std::shared_ptr<api::WsListenerImpl>>(),
+          injector.template create<std::shared_ptr<api::HttpListenerImpl>>(),
+          injector.template create<std::shared_ptr<api::WsListenerImpl>>(),
       };
       auto server =
           injector.template create<std::shared_ptr<api::JRpcServer>>();
       std::vector<std::shared_ptr<api::JRpcProcessor>> processors{
           injector.template create<std::shared_ptr<api::StateJrpcProcessor>>(),
-          injector.template create<std::shared_ptr<api::ExtrinsicJRpcProcessor>>()};
+          injector
+              .template create<std::shared_ptr<api::ExtrinsicJRpcProcessor>>()};
       initialized =
           std::make_shared<api::ApiService>(listeners, server, processors);
       return initialized.value();
     };
 
     // jrpc api listener (over HTTP) getter
-    auto get_jrpc_api_http_listener = [](const auto &injector,
-                                    uint16_t rpc_port) -> sptr<api::HttpListenerImpl> {
+    auto get_jrpc_api_http_listener =
+        [](const auto &injector,
+           uint16_t rpc_port) -> sptr<api::HttpListenerImpl> {
       static auto initialized =
           boost::optional<sptr<api::HttpListenerImpl>>(boost::none);
-      // listener is used currently only for extrinsic api
-      // if other apis are required, need to
-      // implement lambda creating corresponding api service
-      // where listener is initialized manually
-      // in this case listener should be bound
       if (initialized) {
         return initialized.value();
       }
@@ -290,20 +287,16 @@ namespace kagome::injector {
           injector.template create<api::HttpSession::Configuration>();
 
       initialized = std::make_shared<api::HttpListenerImpl>(
-		  context, listener_config, http_session_config);
+          context, listener_config, http_session_config);
       return initialized.value();
     };
 
     // jrpc api listener (over Websockets) getter
-    auto get_jrpc_api_ws_listener = [](const auto &injector,
-                                    uint16_t rpc_port) -> sptr<api::WsListenerImpl> {
+    auto get_jrpc_api_ws_listener =
+        [](const auto &injector,
+           uint16_t rpc_port) -> sptr<api::WsListenerImpl> {
       static auto initialized =
           boost::optional<sptr<api::WsListenerImpl>>(boost::none);
-      // listener is used currently only for extrinsic api
-      // if other apis are required, need to
-      // implement lambda creating corresponding api service
-      // where listener is initialized manually
-      // in this case listener should be bound
       if (initialized) {
         return initialized.value();
       }
@@ -316,7 +309,7 @@ namespace kagome::injector {
           injector.template create<api::WsSession::Configuration>();
 
       initialized = std::make_shared<api::WsListenerImpl>(
-		  context, listener_config, ws_session_config);
+          context, listener_config, ws_session_config);
       return initialized.value();
     };
 
@@ -604,9 +597,10 @@ namespace kagome::injector {
         injector::useConfig(tp_pool_limits),
 
         // bind interfaces
-        di::bind<api::HttpListenerImpl>.to([rpc_http_port](const auto &injector) {
-          return get_jrpc_api_http_listener(injector, rpc_http_port);
-        }),
+        di::bind<api::HttpListenerImpl>.to(
+            [rpc_http_port](const auto &injector) {
+              return get_jrpc_api_http_listener(injector, rpc_http_port);
+            }),
         di::bind<api::WsListenerImpl>.to([rpc_ws_port](const auto &injector) {
           return get_jrpc_api_ws_listener(injector, rpc_ws_port);
         }),

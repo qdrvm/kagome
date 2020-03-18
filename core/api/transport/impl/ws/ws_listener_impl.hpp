@@ -36,7 +36,7 @@ namespace kagome::api {
     /**
      * @param context reference to boost::asio::io_context instance
      * @param endpoint loopback ip address to listen
-     * @param ws_config http session configuration
+     * @param ws_config websocket session configuration
      */
     WsListenerImpl(Context &context,
                    const Configuration &configuration,
@@ -61,10 +61,10 @@ namespace kagome::api {
      */
     void acceptOnce(NewSessionHandler on_new_session) override;
 
-    Context &context_;                      ///< io context
-    Acceptor acceptor_;                     ///< connections acceptor
-    State state_{State::READY};             ///< working state
-    WsSession::Configuration http_config_;  /// http session configuration
+    Context &context_;                    ///< io context
+    Acceptor acceptor_;                   ///< connections acceptor
+    State state_{State::READY};           ///< working state
+    WsSession::Configuration ws_config_;  ///< websocket session configuration
     Logger logger_ = common::createLogger("api listener");  ///< logger instance
   };
 
