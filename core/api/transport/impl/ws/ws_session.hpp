@@ -20,12 +20,12 @@ namespace kagome::api {
 
   class WsSession : public Session,
                     public std::enable_shared_from_this<WsSession> {
-    using Socket = boost::asio::ip::tcp::socket;
-
     using WsError = boost::beast::websocket::error;
     using Logger = common::Logger;
 
    public:
+    using Socket = boost::asio::ip::tcp::socket;
+
     struct Configuration {
       static constexpr size_t kDefaultRequestSize = 10000u;
       static constexpr Duration kDefaultTimeout = std::chrono::seconds(30);

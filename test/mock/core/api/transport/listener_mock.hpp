@@ -19,6 +19,6 @@ namespace kagome::api {
     MOCK_METHOD1(acceptOnce, void(NewSessionHandler));
   };
 
-}  // namespace kagome::server
+}  // namespace kagome::api
 
 #endif  // KAGOME_TEST_MOCK_API_TRANSPORT_LISTENER_MOCK_HPP

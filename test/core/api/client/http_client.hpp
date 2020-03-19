@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_CORE_API_CLIENT_API_CLIENT_HPP
-#define KAGOME_TEST_CORE_API_CLIENT_API_CLIENT_HPP
+#ifndef KAGOME_TEST_CORE_API_CLIENT_HTTP_CLIENT_HPP
+#define KAGOME_TEST_CORE_API_CLIENT_HTTP_CLIENT_HPP
 
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
@@ -12,7 +12,7 @@
 
 namespace test {
 
-  enum class ApiClientError {
+  enum class HttpClientError {
     CONNECTION_FAILED = 1,
     HTTP_ERROR,
     NETWORK_ERROR
@@ -22,7 +22,7 @@ namespace test {
    * Simple synchronous client for api service
    * it allows making synchronous http queries to api service
    */
-  class ApiClient {
+  class HttpClient {
     using Socket = boost::asio::ip::tcp::socket;
     using FlatBuffer = boost::beast::flat_buffer;
     using HttpField = boost::beast::http::field;
@@ -48,14 +48,13 @@ namespace test {
     /**
      * @param context reference to io context instance
      */
-    explicit ApiClient(Context &context)
-        : stream_(context) {}
+    explicit HttpClient(Context &context) : stream_(context) {}
 
-    ApiClient(const ApiClient &other) = delete;
-    ApiClient &operator=(const ApiClient &other) = delete;
-    ApiClient(ApiClient &&other) noexcept = delete;
-    ApiClient &operator=(ApiClient &&other) noexcept = delete;
-    ~ApiClient();
+    HttpClient(const HttpClient &other) = delete;
+    HttpClient &operator=(const HttpClient &other) = delete;
+    HttpClient(HttpClient &&other) noexcept = delete;
+    HttpClient &operator=(HttpClient &&other) noexcept = delete;
+    ~HttpClient();
 
     /**
      * @brief connects to endpoint
@@ -83,6 +82,6 @@ namespace test {
   };
 }  // namespace test
 
-OUTCOME_HPP_DECLARE_ERROR(test, ApiClientError)
+OUTCOME_HPP_DECLARE_ERROR(test, HttpClientError)
 
-#endif  // KAGOME_TEST_CORE_API_CLIENT_API_CLIENT_HPP
+#endif  // KAGOME_TEST_CORE_API_CLIENT_HTTP_CLIENT_HPP

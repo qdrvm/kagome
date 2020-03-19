@@ -30,5 +30,5 @@ target_link_libraries(extrinsic_api_http_integration_test
     extrinsic_api_service
     api_transport
     api_jrpc_server
-    test_api_client
+    test_http_client
     )

@@ -27,6 +27,8 @@ namespace kagome::api {
     using Logger = common::Logger;
 
    public:
+    using Session = HttpSession;
+
     /***
      * Listener configuration
      */

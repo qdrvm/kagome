@@ -14,7 +14,7 @@
 #include "api/transport/impl/http/http_session.hpp"
 #include "api/transport/impl/http/http_listener_impl.hpp"
 #include "common/blob.hpp"
-#include "core/api/client/api_client.hpp"
+#include "core/api/client/http_client.hpp"
 #include "mock/core/api/extrinsic/extrinsic_api_mock.hpp"
 #include "primitives/extrinsic.hpp"
 
@@ -56,7 +56,7 @@ class ESSIntegrationTest : public ::testing::Test {
                        12349};
   HttpSession::Configuration http_config{};
 
-  sptr<HttpListenerImpl> listener = std::make_shared<HttpListenerImpl>(
+  sptr<Listener> listener = std::make_shared<HttpListenerImpl>(
 	  *main_context, HttpListenerImpl::Configuration{endpoint}, http_config);
 
   sptr<ExtrinsicApiMock> api = std::make_shared<ExtrinsicApiMock>();
@@ -66,7 +66,7 @@ class ESSIntegrationTest : public ::testing::Test {
   std::vector<std::shared_ptr<JRpcProcessor>> processors{
       std::make_shared<ExtrinsicJRpcProcessor>(server, api)};
   sptr<ApiService> service =
-      std::make_shared<ApiService>(listener, server, processors);
+      std::make_shared<ApiService>(std::vector<std::shared_ptr<Listener>>({listener}), server, processors);
 
   Extrinsic extrinsic{};
   const std::string request =
@@ -90,11 +90,11 @@ TEST_F(ESSIntegrationTest, ProcessSingleClientSuccess) {
 
   const Duration timeout_duration = std::chrono::milliseconds(200);
 
-  std::shared_ptr<test::ApiClient> client;
+  std::shared_ptr<test::HttpClient> client;
 
   ASSERT_NO_THROW(service->start());
 
-  client = std::make_shared<test::ApiClient>(*client_context);
+  client = std::make_shared<test::HttpClient>(*client_context);
 
   std::thread client_thread([this, client, &response]() {
     ASSERT_TRUE(client->connect(endpoint));
@@ -127,11 +127,11 @@ TEST_F(ESSIntegrationTest, ProcessTwoRequestsSuccess) {
 
   const Duration timeout_duration = std::chrono::milliseconds(200);
 
-  std::shared_ptr<test::ApiClient> client;
+  std::shared_ptr<test::HttpClient> client;
 
   ASSERT_NO_THROW(service->start());
 
-  client = std::make_shared<test::ApiClient>(*client_context);
+  client = std::make_shared<test::HttpClient>(*client_context);
 
   std::thread client_thread([this, client, &response]() {
     ASSERT_TRUE(client->connect(endpoint));
