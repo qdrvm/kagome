@@ -9,7 +9,7 @@
 #include "api/transport/listener.hpp"
 
 #include <gtest/gtest.h>
-#include <api/jrpc/jrpc_processor.hpp>
+#include "api/jrpc/jrpc_processor.hpp"
 #include "api/jrpc/jrpc_server.hpp"
 #include <api/service/api_service.hpp>
 #include <core/api/client/http_client.hpp>
