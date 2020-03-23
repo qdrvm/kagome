@@ -32,7 +32,7 @@ namespace kagome::api {
     processRequest(data, shared_from_this());
   }
 
-  void WsSession::acyncRead() {
+  void WsSession::asyncRead() {
     ws_.async_read(rbuffer_,
                    boost::beast::bind_front_handler(&WsSession::onRead,
                                                     shared_from_this()));
@@ -80,7 +80,7 @@ namespace kagome::api {
       return;
     }
 
-    acyncRead();
+	  asyncRead();
   };
 
   void WsSession::onRead(boost::system::error_code ec,
@@ -108,7 +108,7 @@ namespace kagome::api {
 
     wbuffer_.consume(bytes_transferred);
 
-    acyncRead();
+	  asyncRead();
   }
 
   void WsSession::reportError(boost::system::error_code ec,

@@ -84,7 +84,7 @@ namespace kagome::api {
     /**
      * @brief asynchronously read http message
      */
-    void acyncRead();
+    void asyncRead();
 
     /**
      * @brief sends http message

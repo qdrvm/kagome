@@ -14,7 +14,7 @@ namespace kagome::api {
       : config_{config}, stream_(std::move(socket)) {}
 
   void HttpSession::start() {
-    acyncRead();
+	  asyncRead();
   }
 
   void HttpSession::stop() {
@@ -46,7 +46,7 @@ namespace kagome::api {
     processRequest(req.body(), shared_from_this());
   }
 
-  void HttpSession::acyncRead() {
+  void HttpSession::asyncRead() {
     parser_ = std::make_unique<Parser>();
     parser_->body_limit(config_.max_request_size);
     stream_.expires_after(config_.operation_timeout);
@@ -118,7 +118,7 @@ namespace kagome::api {
     }
 
     // read next request
-    acyncRead();
+	  asyncRead();
   }
 
   void HttpSession::reportError(boost::system::error_code ec,

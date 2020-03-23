@@ -70,7 +70,7 @@ namespace kagome::api {
     /**
      * @brief asynchronously read
      */
-    void acyncRead();
+    void asyncRead();
 
     /**
      * @brief asynchronously write
