@@ -10,5 +10,7 @@
 namespace trie = kagome::storage::trie;
 
 TEST(PolkadotTrieCursorTest, TODO) {
-  trie::PolkadotTrieCursor cursor {};
+
+  auto trie = std::make_shared<trie::PolkadotTrie>([](auto b, uint8_t idx) { return b->children[idx]; });
+  trie::PolkadotTrieCursor cursor {trie};
 }

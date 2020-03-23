@@ -52,13 +52,13 @@ namespace kagome::storage::face {
      * @brief Getter for key.
      * @return key
      */
-    virtual K key() const = 0;
+    virtual outcome::result<K> key() const = 0;
 
     /**
      * @brief Getter for value.
      * @return value
      */
-    virtual V value() const = 0;
+    virtual outcome::result<V> value() const = 0;
   };
 
 }  // namespace kagome::storage::face

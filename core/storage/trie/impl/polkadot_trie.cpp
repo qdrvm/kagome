@@ -376,4 +376,9 @@ namespace kagome::storage::trie {
     return length;
   }
 
+  auto PolkadotTrie::cursor() -> std::unique_ptr<
+      face::MapCursor<common::Buffer, common::Buffer>> {
+
+  }
+
 }  // namespace kagome::storage::trie

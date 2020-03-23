@@ -6,6 +6,7 @@ addtest(polkadot_trie_db_test
     polkadot_codec_hash256_test.cpp
     polkadot_codec_node_encoding_test.cpp
     polkadot_codec_node_decoding_test.cpp
+    polkadot_trie_cursor_test.cpp
     trie_db_test.cpp
     trie_batch_test.cpp
     ordered_trie_hash_test.cpp
@@ -15,6 +16,7 @@ target_link_libraries(polkadot_trie_db_test
     polkadot_trie_db
     polkadot_trie_batch
     polkadot_trie_codec
+    polkadot_trie_cursor
     trie_db_backend
     base_leveldb_test
     scale

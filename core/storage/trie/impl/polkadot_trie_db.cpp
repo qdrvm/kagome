@@ -5,8 +5,10 @@
 
 #include "storage/trie/impl/polkadot_trie_db.hpp"
 
+#include <stack>
 #include <utility>
 
+#include "storage/trie/impl/polkadot_trie_cursor.hpp"
 #include "storage/trie/impl/polkadot_codec.hpp"
 #include "storage/trie/impl/polkadot_node.hpp"
 #include "storage/trie/impl/polkadot_trie.hpp"
@@ -89,7 +91,9 @@ namespace kagome::storage::trie {
   }
 
   std::unique_ptr<PolkadotTrieDb::MapCursor> PolkadotTrieDb::cursor() {
-    return db_->cursor();  // perhaps should iterate over nodes in the trie
+    auto trie = initTrie();
+    if(trie.has_error()) return nullptr;
+    return trie.value().cursor();  // perhaps should iterate over nodes in the trie
   }
 
   outcome::result<common::Buffer> PolkadotTrieDb::get(

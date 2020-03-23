@@ -36,11 +36,11 @@ namespace kagome::storage {
     i_->Prev();
   }
 
-  Buffer LevelDB::Cursor::key() const {
+  outcome::result<Buffer> LevelDB::Cursor::key() const {
     return make_buffer(i_->key());
   }
 
-  Buffer LevelDB::Cursor::value() const {
+  outcome::result<Buffer> LevelDB::Cursor::value() const {
     return make_buffer(i_->value());
   }
 

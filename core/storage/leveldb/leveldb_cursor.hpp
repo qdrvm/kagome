@@ -33,9 +33,9 @@ namespace kagome::storage {
 
     void prev() override;
 
-    Buffer key() const override;
+    outcome::result<Buffer> key() const override;
 
-    Buffer value() const override;
+    outcome::result<Buffer> value() const override;
 
    private:
     std::shared_ptr<leveldb::Iterator> i_;

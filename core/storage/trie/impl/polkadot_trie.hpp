@@ -16,13 +16,13 @@ namespace kagome::storage::trie {
    * For specification see Polkadot Runtime Environment Protocol Specification
    * '2.1.2 The General Tree Structure' and further
    */
-  class PolkadotTrie
-      : public face::Readable<common::Buffer, common::Buffer>,
-        public face::Writeable<common::Buffer, common::Buffer> {
+  class PolkadotTrie : public face::GenericMap<common::Buffer, common::Buffer> {
     using NodePtr = std::shared_ptr<PolkadotNode>;
     using BranchPtr = std::shared_ptr<BranchNode>;
     using ChildRetrieveFunctor =
         std::function<outcome::result<NodePtr>(BranchPtr, uint8_t)>;
+
+    friend class PolkadotTrieCursor;
 
     // a child is obtained from the branch list of children as-is.
     // should be used when the trie is completely in memory
@@ -40,11 +40,10 @@ namespace kagome::storage::trie {
      * by its index. Most useful if Trie grows too big to occupy main memory and
      * is stored on an external storage
      */
-    explicit PolkadotTrie(
-        ChildRetrieveFunctor f = defaultChildRetrieveFunctor);
+    explicit PolkadotTrie(ChildRetrieveFunctor f = defaultChildRetrieveFunctor);
 
-    explicit PolkadotTrie(
-        NodePtr root, ChildRetrieveFunctor f = defaultChildRetrieveFunctor);
+    explicit PolkadotTrie(NodePtr root,
+                          ChildRetrieveFunctor f = defaultChildRetrieveFunctor);
 
     /**
      * @return the root node of the trie
@@ -69,6 +68,9 @@ namespace kagome::storage::trie {
         const common::Buffer &key) const override;
 
     bool contains(const common::Buffer &key) const override;
+
+    auto cursor() -> std::unique_ptr<
+        face::MapCursor<common::Buffer, common::Buffer>> override;
 
    private:
     outcome::result<NodePtr> insert(const NodePtr &parent,
