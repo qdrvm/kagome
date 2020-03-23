@@ -11,9 +11,15 @@
 using kagome::api::HttpListenerImpl;
 using test::HttpClient;
 
-using WsListenerTest = ListenerTest<HttpListenerImpl>;
+using HttpListenerTest = ListenerTest<HttpListenerImpl>;
 
-TEST_F(WsListenerTest, EchoSuccess) {
+/**
+ * @given runing HTTP transport based RPC service
+ * @when do simple request to RPC
+ * @then response contains expected value
+ */
+
+TEST_F(HttpListenerTest, EchoSuccess) {
   const Duration timeout_duration = std::chrono::milliseconds(200);
 
   std::shared_ptr<HttpClient> client;

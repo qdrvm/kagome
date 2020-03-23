@@ -13,6 +13,11 @@ using test::WsClient;
 
 using WsListenerTest = ListenerTest<WsListenerImpl>;
 
+/**
+ * @given runing websocket transport based RPC service
+ * @when do simple request to RPC
+ * @then response contains expected value
+ */
 TEST_F(WsListenerTest, EchoSuccess) {
   const Duration timeout_duration = std::chrono::milliseconds(200);
 
