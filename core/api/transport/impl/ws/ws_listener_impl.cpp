@@ -12,16 +12,16 @@
 
 namespace kagome::api {
   WsListenerImpl::WsListenerImpl(WsListenerImpl::Context &context,
-                                 const Configuration &configuration,
-                                 WsSession::Configuration ws_config)
+								 const Configuration &configuration,
+								 SessionImpl::Configuration session_config)
       : context_(context),
         acceptor_(context_, configuration.endpoint),
-        ws_config_{ws_config} {}
+	    session_config_{session_config} {}
 
   void WsListenerImpl::acceptOnce(Listener::NewSessionHandler on_new_session) {
     acceptor_.async_accept([self = shared_from_this(), on_new_session](
-                               boost::system::error_code ec,
-                               Session::Socket socket) mutable {
+		boost::system::error_code ec,
+		SessionImpl::Socket socket) mutable {
       if (ec) {
         self->logger_->error("error: failed to start listening, code: {}",
                              ApiTransportError::FAILED_START_LISTENING);
@@ -40,7 +40,7 @@ namespace kagome::api {
       }
 
       auto session =
-          std::make_shared<WsSession>(std::move(socket), self->ws_config_);
+          std::make_shared<SessionImpl>(std::move(socket), self->session_config_);
 
       on_new_session(session);
       session->start();

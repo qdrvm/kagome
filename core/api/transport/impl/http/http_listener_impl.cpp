@@ -11,17 +11,17 @@
 
 namespace kagome::api {
   HttpListenerImpl::HttpListenerImpl(HttpListenerImpl::Context &context,
-                                     const Configuration &configuration,
-                                     HttpSession::Configuration http_config)
+									 const Configuration &configuration,
+									 SessionImpl::Configuration session_config)
       : context_(context),
         acceptor_(context_, configuration.endpoint),
-        http_config_{http_config} {}
+	    session_config_{session_config} {}
 
   void HttpListenerImpl::acceptOnce(
       Listener::NewSessionHandler on_new_session) {
     acceptor_.async_accept([self = shared_from_this(), on_new_session](
-                               boost::system::error_code ec,
-                               Session::Socket socket) mutable {
+		boost::system::error_code ec,
+		SessionImpl::Socket socket) mutable {
       if (ec) {
         self->logger_->error("error: failed to start listening, code: {}",
                              ApiTransportError::FAILED_START_LISTENING);
@@ -40,7 +40,7 @@ namespace kagome::api {
       }
 
       auto session =
-          std::make_shared<HttpSession>(std::move(socket), self->http_config_);
+          std::make_shared<SessionImpl>(std::move(socket), self->session_config_);
 
       on_new_session(session);
       session->start();

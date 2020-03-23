@@ -27,7 +27,7 @@ namespace kagome::api {
     using Logger = common::Logger;
 
    public:
-    using Session = HttpSession;
+    using SessionImpl = HttpSession;
 
     /***
      * Listener configuration
@@ -42,8 +42,8 @@ namespace kagome::api {
      * @param http_config http session configuration
      */
     HttpListenerImpl(Context &context,
-                     const Configuration &configuration,
-                     HttpSession::Configuration http_config);
+					 const Configuration &configuration,
+					 SessionImpl::Configuration session_config);
 
     ~HttpListenerImpl() override = default;
 
@@ -67,7 +67,7 @@ namespace kagome::api {
     Context &context_;                        ///< io context
     Acceptor acceptor_;                       ///< connections acceptor
     State state_{State::READY};               ///< working state
-    HttpSession::Configuration http_config_;  /// http session configuration
+	SessionImpl::Configuration session_config_;  /// http session configuration
     Logger logger_ = common::createLogger("api listener");  ///< logger instance
   };
 }  // namespace kagome::api

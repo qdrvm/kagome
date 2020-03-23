@@ -67,7 +67,7 @@ struct ListenerTest : public ::testing::Test {
 
   Endpoint endpoint = {boost::asio::ip::address::from_string("127.0.0.1"),
                        4321};
-  typename ListenerImpl::Session::Configuration config{};
+  typename ListenerImpl::SessionImpl::Configuration config{};
 
   sptr<ApiStub> api = std::make_shared<ApiStub>();
 

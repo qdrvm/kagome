@@ -26,7 +26,7 @@ namespace kagome::api {
     using Logger = common::Logger;
 
    public:
-    using Session = WsSession;
+    using SessionImpl = WsSession;
 
     /***
      * Listener configuration
@@ -41,8 +41,8 @@ namespace kagome::api {
      * @param ws_config websocket session configuration
      */
     WsListenerImpl(Context &context,
-                   const Configuration &configuration,
-                   WsSession::Configuration ws_config);
+				   const Configuration &configuration,
+				   SessionImpl::Configuration session_config);
 
     ~WsListenerImpl() override = default;
 
@@ -66,7 +66,7 @@ namespace kagome::api {
     Context &context_;                    ///< io context
     Acceptor acceptor_;                   ///< connections acceptor
     State state_{State::READY};           ///< working state
-    WsSession::Configuration ws_config_;  ///< websocket session configuration
+	  SessionImpl::Configuration session_config_;  ///< websocket session configuration
     Logger logger_ = common::createLogger("api listener");  ///< logger instance
   };
 
