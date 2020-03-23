@@ -6,8 +6,6 @@
 #ifndef KAGOME_CORE_INJECTOR_APPLICATION_INJECTOR_HPP
 #define KAGOME_CORE_INJECTOR_APPLICATION_INJECTOR_HPP
 
-#include "api/transport/impl/ws/ws_listener_impl.hpp"
-#include "api/transport/impl/ws/ws_session.hpp"
 #include <boost/di.hpp>
 #include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
@@ -22,6 +20,8 @@
 #include "api/state/state_jrpc_processor.hpp"
 #include "api/transport/impl/http/http_listener_impl.hpp"
 #include "api/transport/impl/http/http_session.hpp"
+#include "api/transport/impl/ws/ws_listener_impl.hpp"
+#include "api/transport/impl/ws/ws_session.hpp"
 #include "application/impl/configuration_storage_impl.hpp"
 #include "application/impl/local_key_storage.hpp"
 #include "authorship/impl/block_builder_factory_impl.hpp"
