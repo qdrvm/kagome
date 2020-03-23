@@ -562,6 +562,7 @@ namespace kagome::injector {
 
     // default values for configurations
     auto http_config = api::HttpSession::Configuration{};
+    auto ws_config = api::WsSession::Configuration{};
     auto pool_moderator_config = transaction_pool::PoolModeratorImpl::Params{};
     auto synchronizer_config = consensus::SynchronizerConfig{};
     auto tp_pool_limits = transaction_pool::TransactionPool::Limits{
@@ -592,6 +593,7 @@ namespace kagome::injector {
 
         // bind configs
         injector::useConfig(http_config),
+        injector::useConfig(ws_config),
         injector::useConfig(pool_moderator_config),
         injector::useConfig(synchronizer_config),
         injector::useConfig(tp_pool_limits),
@@ -607,9 +609,7 @@ namespace kagome::injector {
         di::bind<api::ReadonlyTrieBuilder>.template to<api::ReadonlyTrieBuilderImpl>(),
         di::bind<api::ExtrinsicApi>.template to<api::ExtrinsicApiImpl>(),
         di::bind<api::StateApi>.template to<api::StateApiImpl>(),
-        di::bind<api::ApiService>.template to([](const auto &injector) {
-          return get_jrpc_api_service(injector);
-        }),
+        di::bind<api::ApiService>.to(std::move(get_jrpc_api_service)),
         di::bind<api::JRpcServer>.template to<api::JRpcServerImpl>(),
         di::bind<authorship::Proposer>.template to<authorship::ProposerImpl>(),
         di::bind<authorship::BlockBuilder>.template to<authorship::BlockBuilderImpl>(),
