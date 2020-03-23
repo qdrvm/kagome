@@ -49,8 +49,6 @@ struct ListenerTest : public ::testing::Test {
   std::string response;
 
   void SetUp() override {
-    //		main_context = std::make_shared<Context>(1);
-    //		client_context = std::make_shared<Context>(1);
     payload = 0xABCDEF;
 
     request = R"({"jsonrpc":"2.0","method":"echo","id":0,"params":[)"
