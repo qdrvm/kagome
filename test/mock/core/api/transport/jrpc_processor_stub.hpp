@@ -6,7 +6,7 @@
 #ifndef KAGOME_JRPC_PROCESSOR_STUB_HPP
 #define KAGOME_JRPC_PROCESSOR_STUB_HPP
 
-#include <api/jrpc/value_converter.hpp>
+#include "api/jrpc/value_converter.hpp"
 #include <boost/noncopyable.hpp>
 #include <mutex>
 
