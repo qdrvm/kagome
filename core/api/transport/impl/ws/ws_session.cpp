@@ -9,7 +9,7 @@
 
 #include <boost/asio/dispatch.hpp>
 #include <boost/config.hpp>
-#include <outcome/outcome.hpp>
+#include "outcome/outcome.hpp"
 
 namespace kagome::api {
 
