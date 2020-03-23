@@ -16,6 +16,9 @@
 
 namespace kagome::api {
 
+/**
+ * @brief Lightweit implementation of API stub
+ */
   class JrpcProcessorStub : public JRpcProcessor, private boost::noncopyable {
    public:
     JrpcProcessorStub(std::shared_ptr<JRpcServer> server,
