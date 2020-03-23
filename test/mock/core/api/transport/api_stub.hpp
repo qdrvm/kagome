@@ -8,7 +8,7 @@
 
 #include <gmock/gmock.h>
 
-#include <outcome/outcome.hpp>
+#include "outcome/outcome.hpp"
 
 namespace kagome::api {
 
