@@ -82,7 +82,6 @@ namespace kagome::storage::trie {
       }
       case T::Leaf: {
         // need to convert this leaf into a branch
-        auto br = std::make_shared<BranchNode>();
         auto length = getCommonPrefixLength(key_nibbles, parent->key_nibbles);
 
         if (parent->key_nibbles == key_nibbles
@@ -91,6 +90,7 @@ namespace kagome::storage::trie {
           return node;
         }
 
+        auto br = std::make_shared<BranchNode>();
         br->key_nibbles = key_nibbles.subbuffer(0, length);
         auto parentKey = parent->key_nibbles;
 
@@ -102,7 +102,7 @@ namespace kagome::storage::trie {
           // child to the new branch
           if (parent->key_nibbles.size() > key_nibbles.size()) {
             parent->key_nibbles = parent->key_nibbles.subbuffer(length + 1);
-            br->children.at(parentKey[length]) = parent;
+            br->setChild(parentKey[length], parent);
           }
 
           return br;
@@ -114,13 +114,16 @@ namespace kagome::storage::trie {
           // if leaf's key is covered by this branch, then make the leaf's
           // value the value at this branch
           br->value = parent->value;
-          br->children.at(key_nibbles[length]) = node;
+          br->setChild(key_nibbles[length], node);
+          node->parent = br;
         } else {
           // otherwise, make the leaf a child of the branch and update its
           // partial key
           parent->key_nibbles = parent->key_nibbles.subbuffer(length + 1);
-          br->children.at(parentKey[length]) = parent;
-          br->children.at(key_nibbles[length]) = node;
+          br->setChild(parentKey[length], parent);
+          parent->parent = br;
+          br->setChild(key_nibbles[length], node);
+          node->parent = br;
         }
 
         return br;
@@ -145,11 +148,13 @@ namespace kagome::storage::trie {
       OUTCOME_TRY(child, retrieveChild(parent, key_nibbles[length]));
       if (child) {
         OUTCOME_TRY(n, insert(child, key_nibbles.subbuffer(length + 1), node));
-        parent->children.at(key_nibbles[length]) = n;
+        parent->setChild(key_nibbles[length], n);
+        n->parent = parent;
         return parent;
       }
       node->key_nibbles = key_nibbles.subbuffer(length + 1);
-      parent->children.at(key_nibbles[length]) = node;
+      parent->setChild(key_nibbles[length], node);
+      node->parent = parent;
       return parent;
     }
     auto br = std::make_shared<BranchNode>(key_nibbles.subbuffer(0, length));
@@ -157,13 +162,15 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(
         new_branch,
         insert(nullptr, parent->key_nibbles.subbuffer(length + 1), parent));
-    br->children.at(parentIdx) = new_branch;
+    br->setChild(parentIdx, new_branch);
+    new_branch->parent = br;
     if (key_nibbles.size() <= length) {
       br->value = node->value;
     } else {
       OUTCOME_TRY(new_child,
                   insert(nullptr, key_nibbles.subbuffer(length + 1), node));
-      br->children.at(key_nibbles[length]) = new_child;
+      br->setChild(key_nibbles[length], new_child);
+      new_child->parent = br;
     }
     return br;
   }
@@ -258,7 +265,8 @@ namespace kagome::storage::trie {
                       retrieveChild(parent_as_branch, key_nibbles[length]));
           OUTCOME_TRY(n, deleteNode(child, key_nibbles.subbuffer(length + 1)));
           newRoot = parent;
-          parent_as_branch->children.at(key_nibbles[length]) = n;
+          parent_as_branch->setChild(key_nibbles[length], n);
+          n->parent = parent;
         }
         OUTCOME_TRY(n, handleDeletion(parent_as_branch, newRoot, key_nibbles));
         return std::move(n);
@@ -279,12 +287,12 @@ namespace kagome::storage::trie {
       const common::Buffer &key_nibbles) {
     auto newRoot = std::move(node);
     auto length = getCommonPrefixLength(key_nibbles, parent->key_nibbles);
-    auto bitmap = parent->childrenBitmap();
+    auto bitmap = parent->getChildrenBitmap();
     // turn branch node left with no children to a leaf node
     if (bitmap == 0 && parent->value) {
       newRoot = std::make_shared<LeafNode>(key_nibbles.subbuffer(0, length),
                                            parent->value);
-    } else if (parent->childrenNum() == 1 && !parent->value) {
+    } else if (parent->getChildrenNum() == 1 && !parent->value) {
       size_t idx = 0;
       for (idx = 0; idx < 16; idx++) {
         bitmap >>= 1u;
@@ -306,9 +314,9 @@ namespace kagome::storage::trie {
             .putUint8(idx)
             .putBuffer(child->key_nibbles);
         auto child_as_branch = std::dynamic_pointer_cast<BranchNode>(child);
-        for (size_t i = 0; i < child_as_branch->children.size(); i++) {
-          if (child_as_branch->children.at(i)) {
-            branch->children.at(i) = child_as_branch->children.at(i);
+        for (size_t i = 0; i < child_as_branch->getChildrenNum(); i++) {
+          if (child_as_branch->getChild(i)) {
+            branch->setChild(i, child_as_branch->getChild(i));
           }
         }
         branch->value = child->value;
@@ -347,7 +355,8 @@ namespace kagome::storage::trie {
         return parent;
       }
       OUTCOME_TRY(n, detachNode(child, prefix_nibbles.subbuffer(length + 1)));
-      branch->children.at(prefix_nibbles[length]) = n;
+      branch->setChild(prefix_nibbles[length], n);
+      n->parent = branch;
       return branch;
     }
     return parent;

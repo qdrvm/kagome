@@ -35,16 +35,20 @@ namespace kagome::storage::trie {
     outcome::result<common::Buffer> value() const override;
 
    private:
-    static int8_t getChildIdx(const BranchPtr &parent, const NodePtr &child);
     static int8_t getNextChildIdx(const BranchPtr &parent, uint8_t child_idx);
     static int8_t hasNextChild(const BranchPtr &parent, uint8_t child_idx);
+
+    static int8_t getPrevChildIdx(const BranchPtr &parent, uint8_t child_idx);
+    static int8_t hasPrevChild(const BranchPtr &parent, uint8_t child_idx);
 
     // will either put a new entry or update the top entry (in case that parent
     // in the top entry is the same as \param parent
     void updateLastVisitedChild(const BranchPtr &parent, uint8_t child_idx);
 
+    PolkadotCodec codec_;
     std::shared_ptr<PolkadotTrie> trie_;
     NodePtr current_;
+    bool visited_root_ = false;
     std::list<std::pair<BranchPtr, int8_t>> last_visited_child_;
   };
 

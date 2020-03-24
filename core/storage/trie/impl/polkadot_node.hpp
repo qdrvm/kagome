@@ -43,11 +43,14 @@ namespace kagome::storage::trie {
       return static_cast<Type>(getType());
     }
 
+    std::shared_ptr<const PolkadotNode> parent;
     common::Buffer key_nibbles;
     boost::optional<common::Buffer> value;
   };
 
-  struct BranchNode : public PolkadotNode {
+  struct BranchNode : public PolkadotNode,
+                      std::enable_shared_from_this<BranchNode> {
+   public:
     static constexpr int kMaxChildren = 16;
 
     BranchNode() = default;
@@ -62,13 +65,23 @@ namespace kagome::storage::trie {
     }
     int getType() const override;
 
-    uint16_t childrenBitmap() const;
-    uint8_t childrenNum() const;
+    uint16_t getChildrenBitmap() const;
+    uint8_t getChildrenNum() const;
+    const std::array<std::shared_ptr<PolkadotNode>, kMaxChildren> &getChildren()
+        const;
 
+    int8_t getChildIdx(const std::shared_ptr<const PolkadotNode> &child) const;
+
+      void setChild(uint8_t idx, std::shared_ptr<PolkadotNode> child);
+
+    std::shared_ptr<PolkadotNode> getChild(uint8_t idx);
+    std::shared_ptr<const PolkadotNode> getChild(uint8_t idx) const;
+
+   private:
     // Has 1..16 children.
     // Stores their hashes to search for them in a storage and encode them more
     // easily.
-    std::array<std::shared_ptr<PolkadotNode>, kMaxChildren> children;
+    std::array<std::shared_ptr<PolkadotNode>, kMaxChildren> children_;
   };
 
   struct LeafNode : public PolkadotNode {

@@ -20,8 +20,6 @@ namespace kagome::api {
    */
   class HttpSession : public Session,
                       public std::enable_shared_from_this<HttpSession> {
-    using Socket = boost::asio::ip::tcp::socket;
-
     template <typename Body>
     using Request = boost::beast::http::request<Body>;
 
@@ -39,6 +37,8 @@ namespace kagome::api {
     using Logger = common::Logger;
 
    public:
+    using Socket = boost::asio::ip::tcp::socket;
+
     struct Configuration {
       static constexpr size_t kDefaultRequestSize = 10000u;
       static constexpr Duration kDefaultTimeout = std::chrono::seconds(30);
@@ -84,7 +84,7 @@ namespace kagome::api {
     /**
      * @brief asynchronously read http message
      */
-    void acyncRead();
+    void asyncRead();
 
     /**
      * @brief sends http message

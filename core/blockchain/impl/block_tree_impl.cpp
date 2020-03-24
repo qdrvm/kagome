@@ -72,6 +72,33 @@ namespace kagome::blockchain {
     return !(*this == other);
   }
 
+  BlockTreeImpl::TreeMeta::TreeMeta(TreeNode &subtree_root_node)
+      : deepest_leaf{subtree_root_node}, last_finalized{subtree_root_node} {
+    std::function<void(std::shared_ptr<TreeNode>)> handle =
+        [&](std::shared_ptr<TreeNode> node) {
+          // avoid of deep recurse
+          while (node->children.size() == 1) {
+            node = node->children.front();
+          }
+
+          // is leaf
+          if (node->children.empty()) {
+            leaves.emplace(node->block_hash);
+
+            if (node->depth > deepest_leaf.get().depth) {
+              deepest_leaf = *node;
+            }
+          } else {
+            // follow descendants recursively
+            for (const auto &child : node->children) {
+              handle(child);
+            }
+          }
+        };
+
+    handle(subtree_root_node.shared_from_this());
+  }
+
   BlockTreeImpl::TreeMeta::TreeMeta(
       std::unordered_set<primitives::BlockHash> leaves,
       TreeNode &deepest_leaf,
@@ -149,12 +176,16 @@ namespace kagome::blockchain {
     OUTCOME_TRY(storage_->putJustification(justification, block, node->depth));
 
     // update our local meta
-    tree_meta_->last_finalized = *node;
     node->finalized = true;
-    // TODO(kamilsa) PRE-355: Fix prune. Now prune removes all blocks that are
-    // higher than last finalized block. Instead we should remove only blocks
-    // that are not descendants of the last finalized block
-    // OUTCOME_TRY(prune());
+
+    OUTCOME_TRY(prune(node));
+
+    tree_ = node;
+
+    tree_meta_ = std::make_shared<TreeMeta>(*tree_);
+
+    tree_->parent.reset();
+
     log_->info("Finalized block with hash: {}, number: {}",
                block.toHex(),
                node->depth);
@@ -368,50 +399,6 @@ namespace kagome::blockchain {
     return primitives::BlockInfo{last.depth, last.block_hash};
   }
 
-  outcome::result<void> BlockTreeImpl::prune() {
-    if (tree_meta_->last_finalized.get().parent.expired()) {
-      // nothing to prune
-      return outcome::success();
-    }
-
-    // remove all non-finalized blocks from both database and meta
-    std::vector<std::pair<primitives::BlockHash, primitives::BlockNumber>>
-        to_remove;
-
-    auto last_node_hash = tree_meta_->last_finalized.get().block_hash;
-    auto current_node = tree_meta_->last_finalized.get().parent.lock();
-    do {
-      const auto &node_children = current_node->children;
-
-      // memorize the hashes and numbers of block to be removed
-      for (const auto &child : node_children) {
-        if (child->block_hash != last_node_hash) {
-          to_remove.emplace_back(child->block_hash, child->depth);
-        }
-      }
-
-      // go up to the next node
-      last_node_hash = current_node->block_hash;
-      if (current_node->parent.expired()) {
-        break;
-      }
-      current_node = current_node->parent.lock();
-    } while (!current_node->finalized);
-
-    // leave only the last finalized block in memory, as we don't need anything
-    // else
-    tree_ = std::make_shared<TreeNode>(tree_meta_->last_finalized);
-    tree_->parent.reset();
-    tree_meta_ = std::make_shared<TreeMeta>(
-        decltype(TreeMeta::leaves){tree_->block_hash}, *tree_, *tree_);
-
-    // now, remove the blocks we remembered from the database
-    for (const auto &[hash, number] : to_remove) {
-      OUTCOME_TRY(storage_->removeBlock(hash, number));
-    }
-    return outcome::success();
-  }
-
   std::vector<primitives::BlockHash> BlockTreeImpl::getLeavesSorted() const {
     std::vector<primitives::BlockInfo> leaf_depths;
     auto leaves = getLeaves();
@@ -445,6 +432,59 @@ namespace kagome::blockchain {
         return current_hash;
       }
       current_hash = current_header.parent_hash;
+    }
+  }
+
+  outcome::result<void> BlockTreeImpl::prune(
+      const std::shared_ptr<TreeNode> &lastFinalizedNode) {
+    std::vector<std::pair<primitives::BlockHash, primitives::BlockNumber>>
+        to_remove;
+
+    auto current_node = lastFinalizedNode;
+
+    for (;;) {
+      auto parent_node = current_node->parent.lock();
+      if (!parent_node || parent_node->finalized) {
+        break;
+      }
+
+      auto main_chain_node = current_node;
+      current_node = parent_node;
+
+      // collect hashes for removing (except main chain block)
+      for (const auto &child : current_node->children) {
+        if (child->block_hash != main_chain_node->block_hash) {
+          collectDescendants(child, to_remove);
+          to_remove.emplace_back(child->block_hash, child->depth);
+        }
+      }
+
+      // remove (im memory) all child, except main chain block
+      current_node->children = {main_chain_node};
+    }
+
+    // remove from storage
+    for (const auto &[hash, number] : to_remove) {
+      OUTCOME_TRY(storage_->removeBlock(hash, number));
+    }
+
+    return outcome::success();
+  }
+
+  void BlockTreeImpl::collectDescendants(
+      std::shared_ptr<TreeNode> node,
+      std::vector<std::pair<primitives::BlockHash, primitives::BlockNumber>>
+          &container) {
+    // avoid deep recursion
+    while (node->children.size() == 1) {
+      container.emplace_back(node->block_hash, node->depth);
+      node = node->children.front();
+    }
+
+    // collect descendants' hashes recursively
+    for (const auto &child : node->children) {
+      collectDescendants(child, container);
+      container.emplace_back(child->block_hash, child->depth);
     }
   }
 

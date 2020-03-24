@@ -10,11 +10,12 @@
 namespace kagome::storage::trie {
 
   PolkadotTrieCursor::PolkadotTrieCursor(std::shared_ptr<PolkadotTrie> trie)
-      : trie_{std::move(trie)}, current_{trie->getRoot()} {
+      : trie_{std::move(trie)}, current_{trie_->getRoot()} {
     BOOST_ASSERT(trie_ != nullptr);
   }
 
   void PolkadotTrieCursor::seekToFirst() {
+    visited_root_ = false;
     current_ = trie_->root_;
     next();
   }
@@ -49,11 +50,9 @@ namespace kagome::storage::trie {
           or type == NodeType::BranchWithValue) {
         auto branch = std::dynamic_pointer_cast<BranchNode>(current);
         // find the rightmost child
-        for (int8_t i = branch->children.size() - 1; i >= 0; i--) {
-          if (branch->children[i]) {
-            current = branch->children[i];
-            last_visited_child_.emplace_back(std::make_pair(branch, i));
-            continue;
+        for (int8_t i = branch->kMaxChildren - 1; i >= 0; i--) {
+          if (branch->getChild(i) != nullptr) {
+            current = branch->getChild(i);
           }
         }
 
@@ -70,17 +69,29 @@ namespace kagome::storage::trie {
   }
 
   void PolkadotTrieCursor::next() {
-    // assert self.current != None
+    if (current_ == nullptr) return;
+    if (not visited_root_ and trie_->getRoot()->value.has_value()) {
+      current_ = trie_->getRoot();
+      visited_root_ = true;
+    }
     do {
       if (current_->getTrieType() == NodeType::Leaf) {
-        // assert self.S[-1] == self.current.parent
+        if (last_visited_child_.empty()) {
+          current_ = nullptr;
+          return;
+        }
+        // assert last_visited_child_.back() == current.parent
         auto p = last_visited_child_.back().first;  // self.current.parent
         while (not hasNextChild(p, last_visited_child_.back().second)) {
           last_visited_child_.pop_back();
+          if (last_visited_child_.empty()) {
+            current_ = nullptr;
+            return;
+          }
           p = last_visited_child_.back().first;  // p.parent
         }
         auto i = getNextChildIdx(p, last_visited_child_.back().second);
-        current_ = p->children[i];
+        current_ = p->getChild(i);
         updateLastVisitedChild(p, i);
 
       } else if (current_->getTrieType() == NodeType::BranchEmptyValue
@@ -95,17 +106,19 @@ namespace kagome::storage::trie {
           p = last_visited_child_.back().first;  // p.parent
         }
         auto i = getNextChildIdx(p, last_visited_child_.back().second);
-        current_ = p->children[i];
+        current_ = p->getChild(i);
         updateLastVisitedChild(p, i);
       }
-    } while(not current_->value.has_value());
+    } while (not current_->value.has_value());
   }
 
-  void PolkadotTrieCursor::prev() {}
+  void PolkadotTrieCursor::prev() {
+    BOOST_ASSERT_MSG(false, "Not implemented");
+  }
 
   outcome::result<common::Buffer> PolkadotTrieCursor::key() const {
     if (current_ != nullptr) {
-      return current_->key_nibbles; // obtain the full key
+      return codec_.collectKey(current_);
     }
   }
 
@@ -113,20 +126,10 @@ namespace kagome::storage::trie {
     return current_->value.value();
   }
 
-  int8_t PolkadotTrieCursor::getChildIdx(const BranchPtr &parent,
-                                         const NodePtr &child) {
-    for (uint8_t i = 0; i < parent->children.size(); i++) {
-      if (parent->children[i] == child) {
-        return i;
-      }
-    }
-    return -1;
-  }
-
   int8_t PolkadotTrieCursor::getNextChildIdx(const BranchPtr &parent,
                                              uint8_t child_idx) {
-    for (uint8_t i = child_idx + 1; i < parent->children.size(); i++) {
-      if (parent->children[i] != nullptr) {
+    for (uint8_t i = child_idx + 1; i < parent->kMaxChildren; i++) {
+      if (parent->getChild(i) != nullptr) {
         return i;
       }
     }
@@ -134,7 +137,22 @@ namespace kagome::storage::trie {
   }
 
   int8_t PolkadotTrieCursor::hasNextChild(const BranchPtr &parent,
-                                                 uint8_t child_idx) {
+                                          uint8_t child_idx) {
+    return getNextChildIdx(parent, child_idx) != -1;
+  }
+
+  int8_t PolkadotTrieCursor::getPrevChildIdx(const BranchPtr &parent,
+                                             uint8_t child_idx) {
+    for (int8_t i = child_idx - 1; i >= 0; i--) {
+      if (parent->getChild(i) != nullptr) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  int8_t PolkadotTrieCursor::hasPrevChild(const BranchPtr &parent,
+                                          uint8_t child_idx) {
     return getNextChildIdx(parent, child_idx) != -1;
   }
 

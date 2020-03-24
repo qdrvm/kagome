@@ -40,6 +40,11 @@ namespace kagome::storage::trie {
     common::Hash256 hash256(const Buffer &buf) const override;
 
     /**
+     * @returns the full key leading to the node
+     */
+    common::Buffer collectKey(std::shared_ptr<const PolkadotNode> n) const;
+
+    /**
      * Def. 14 KeyEncode
      * Splits a key to an array of nibbles (a nibble is a half of a byte)
      */

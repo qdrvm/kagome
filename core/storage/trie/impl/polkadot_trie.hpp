@@ -28,7 +28,7 @@ namespace kagome::storage::trie {
     // should be used when the trie is completely in memory
     inline static outcome::result<NodePtr> defaultChildRetrieveFunctor(
         const BranchPtr &parent, uint8_t idx) {
-      return parent->children.at(idx);
+      return parent->getChild(idx);
     }
 
    public:

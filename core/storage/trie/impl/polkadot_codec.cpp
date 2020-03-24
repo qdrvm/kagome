@@ -42,6 +42,36 @@ namespace kagome::storage::trie {
     return out;
   }
 
+  common::Buffer PolkadotCodec::collectKey(
+      std::shared_ptr<const PolkadotNode> n) const {
+    std::list<common::Buffer> key_parts;
+    auto p = n->parent;
+
+    while (n != nullptr) {
+      if(p == nullptr) {
+        key_parts.push_front(n->key_nibbles);
+        break;
+      }
+      auto p_branch = std::dynamic_pointer_cast<const BranchNode>(p);
+      Buffer nibbles(p_branch->key_nibbles.size() + 1, 0);
+      nibbles.putUint8(p_branch->getChildIdx(n));
+      nibbles.put(p->key_nibbles);
+      key_parts.push_front(nibbles);
+      n = p;
+      p = n->parent;
+    }
+    size_t key_size = 0;
+    for (auto &part : key_parts) {
+      key_size += part.size();
+    }
+    common::Buffer key_nibbles;
+    key_nibbles.reserve(key_size);
+    for (auto &part : key_parts) {
+      key_nibbles.put(part);
+    }
+    return nibblesToKey(key_nibbles);
+  }
+
   common::Buffer PolkadotCodec::nibblesToKey(const common::Buffer &nibbles) {
     Buffer res;
     if (nibbles.size() % 2 == 0) {
@@ -168,7 +198,7 @@ namespace kagome::storage::trie {
     encoding += nibblesToKey(node.key_nibbles);
 
     // children bitmap
-    encoding += ushortToBytes(node.childrenBitmap());
+    encoding += ushortToBytes(node.getChildrenBitmap());
 
     if (node.getTrieType() == PolkadotNode::Type::BranchWithValue) {
       // scale encoded value
@@ -177,7 +207,7 @@ namespace kagome::storage::trie {
     }
 
     // encode each child
-    for (auto &child : node.children) {
+    for (auto &child : node.getChildren()) {
       if (child) {
         if (child->isDummy()) {
           auto merkle_value =
@@ -324,7 +354,7 @@ namespace kagome::storage::trie {
         } catch (std::system_error &e) {
           return outcome::failure(e.code());
         }
-        node->children.at(i) = std::make_shared<DummyNode>(child_hash);
+        node->setChild(i, std::make_shared<DummyNode>(child_hash));
       }
       i++;
     }

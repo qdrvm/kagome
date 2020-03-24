@@ -47,8 +47,8 @@ std::shared_ptr<PolkadotNode> branch_with_2_children = []() {
   auto node = std::make_shared<BranchNode>("010203"_hex2buf, "0a"_hex2buf);
   auto child1 = std::make_shared<LeafNode>("01"_hex2buf, "0b"_hex2buf);
   auto child2 = std::make_shared<LeafNode>("02"_hex2buf, "0c"_hex2buf);
-  node->children[0] = child1;
-  node->children[1] = child2;
+  node->setChild(0, child1);
+  node->setChild(1, child2);
   return node;
 }();
 

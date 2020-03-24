@@ -25,7 +25,8 @@ namespace kagome::options {
     std::string keystore_path;       // keystore file path
     std::string leveldb_path;        // leveldb directory path
     uint16_t p2p_port;               // port for peer to peer interactions
-    uint16_t rpc_port;               // port for rpcs
+    uint16_t rpc_http_port;          // port for rpcs over HTTP
+    uint16_t rpc_ws_port;            // port for rpcs over Websockets
     int verbosity;  // log level (0-trace, 5-only critical, 6-no logs)
 
     namespace po = boost::program_options;
@@ -41,8 +42,10 @@ namespace kagome::options {
           "mandatory, leveldb directory path")
       ("p2p_port,p", po::value<uint16_t>(&p2p_port)->default_value(30363),
        "port for peer to peer interactions")
-      ("rpc_port,r", po::value<uint16_t>(&rpc_port)->default_value(40363),
-       "port for RPCs")
+      ("rpc_http_port", po::value<uint16_t>(&rpc_http_port)->default_value(40363),
+       "port for RPCs over HTTP")
+      ("rpc_ws_port", po::value<uint16_t>(&rpc_ws_port)->default_value(40364),
+       "port for RPCs over Websockets")
       ("verbosity,v", po::value<int>(&verbosity)->default_value(2),
        "Log level. 0 - trace, 1 - debug, 2 - info, 3 - warn, 4 - error, 5 - critical, 6 - no logs. Default: info");
     // clang-format on
@@ -68,7 +71,8 @@ namespace kagome::options {
     config_storage_path_ = configuration_path;
     leveldb_path_ = leveldb_path;
     p2p_port_ = p2p_port;
-    rpc_port_ = rpc_port;
+  rpc_http_port_ = rpc_http_port;
+  rpc_ws_port_ = rpc_ws_port;
     verbosity_ = verbosity;
 
     return outcome::success();
@@ -113,8 +117,12 @@ namespace kagome::options {
     return p2p_port_;
   }
 
-  uint16_t KagomeOptions::getRpcPort() const {
-    return rpc_port_;
+  uint16_t KagomeOptions::getRpcHttpPort() const {
+    return rpc_http_port_;
+  }
+
+  uint16_t KagomeOptions::getRpcWsPort() const {
+    return rpc_ws_port_;
   }
 
   uint8_t KagomeOptions::getVerbosity() const {

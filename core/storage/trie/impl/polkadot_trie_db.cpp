@@ -154,12 +154,13 @@ namespace kagome::storage::trie {
     if (node.getTrieType() == T::BranchEmptyValue
         || node.getTrieType() == T::BranchWithValue) {
       auto &branch = dynamic_cast<BranchNode &>(node);
-      for (auto &child : branch.children) {
+      for (uint8_t idx = 0; idx < branch.kMaxChildren; idx++) {
+        auto child = branch.getChild(idx);
         if (child and not child->isDummy()) {
           OUTCOME_TRY(hash, storeNode(*child));
           // when a node is written to the storage, it is replaced with a dummy
           // node to avoid memory waste
-          child = std::make_shared<DummyNode>(hash);
+          branch.setChild(idx, std::make_shared<DummyNode>(hash));
         }
       }
     }
@@ -172,16 +173,16 @@ namespace kagome::storage::trie {
 
   outcome::result<PolkadotTrieDb::NodePtr> PolkadotTrieDb::retrieveChild(
       const BranchPtr &parent, uint8_t idx) const {
-    if (parent->children.at(idx) == nullptr) {
+    if (parent->getChild(idx) == nullptr) {
       return nullptr;
     }
-    if (parent->children.at(idx)->isDummy()) {
+    if (parent->getChild(idx)->isDummy()) {
       auto dummy =
-          std::dynamic_pointer_cast<DummyNode>(parent->children.at(idx));
+          std::dynamic_pointer_cast<DummyNode>(parent->getChild(idx));
       OUTCOME_TRY(n, retrieveNode(dummy->db_key));
-      parent->children.at(idx) = n;
+      parent->setChild(idx, n);
     }
-    return parent->children.at(idx);
+    return parent->getChild(idx);
   }
 
   outcome::result<PolkadotTrieDb::NodePtr> PolkadotTrieDb::retrieveNode(

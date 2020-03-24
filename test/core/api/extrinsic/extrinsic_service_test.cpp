@@ -57,6 +57,7 @@ class ExtrinsicSubmissionServiceTest : public ::testing::Test {
   }
 
   sptr<ListenerMock> listener = std::make_shared<ListenerMock>();
+  std::vector<sptr<Listener>> listeners = { listener };
 
   sptr<ExtrinsicApiMock> api = std::make_shared<ExtrinsicApiMock>();
 
@@ -65,7 +66,7 @@ class ExtrinsicSubmissionServiceTest : public ::testing::Test {
   std::vector<std::shared_ptr<JRpcProcessor>> processors{
       std::make_shared<ExtrinsicJRpcProcessor>(server, api)};
   sptr<ApiService> service =
-      std::make_shared<ApiService>(listener, server, processors);
+      std::make_shared<ApiService>(listeners, server, processors);
 
   sptr<SessionMock> session = std::make_shared<SessionMock>();
 

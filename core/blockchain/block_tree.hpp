@@ -122,7 +122,7 @@ namespace kagome::blockchain {
      */
     virtual primitives::BlockInfo deepestLeaf() const = 0;
 
-    /*
+    /**
      * @brief Get the most recent block of the best (longest) chain among those
      * that contain a block with \param target_hash
      * @param target_hash is a hash of a block that the chosen chain must
@@ -152,15 +152,6 @@ namespace kagome::blockchain {
      * @return hash of the block
      */
     virtual primitives::BlockInfo getLastFinalized() const = 0;
-
-    /**
-     * Prune the tree in both memory and storage, removing all blocks, which are
-     * not descendants of the finalized blocks
-     *
-     * @note this function is called automatically when needed, but there's no
-     * harm in calling it more often, than needed
-     */
-    virtual outcome::result<void> prune() = 0;
   };
 }  // namespace kagome::blockchain
 
