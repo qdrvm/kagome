@@ -17,5 +17,5 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, ApiTransportError, e) {
     case ApiTransportError::CANNOT_ACCEPT_LISTENER_NOT_WORKING:
       return " cannot accept new connection, state mismatch";
   }
-  return "unknown extrinsic submission error";
+  return "unknown author submission error";
 }

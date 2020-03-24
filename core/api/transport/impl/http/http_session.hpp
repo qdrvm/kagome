@@ -123,7 +123,7 @@ namespace kagome::api {
      */
     void reportError(boost::system::error_code ec, std::string_view message);
 
-    static constexpr std::string_view kServerName = "Kagome extrinsic api";
+    static constexpr std::string_view kServerName = "Kagome";
 
     Configuration config_;              ///< session configuration
     boost::beast::tcp_stream stream_;   ///< stream

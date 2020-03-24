@@ -12,12 +12,12 @@
 #include <libp2p/peer/peer_info.hpp>
 #include <outcome/outcome.hpp>
 
-#include "api/extrinsic/extrinsic_jrpc_processor.hpp"
-#include "api/extrinsic/impl/extrinsic_api_impl.hpp"
+#include "api/service/author/author_jrpc_processor.hpp"
+#include "api/service/author/impl/author_api_impl.hpp"
 #include "api/service/api_service.hpp"
-#include "api/state/impl/readonly_trie_builder_impl.hpp"
-#include "api/state/impl/state_api_impl.hpp"
-#include "api/state/state_jrpc_processor.hpp"
+#include "api/service/state/impl/readonly_trie_builder_impl.hpp"
+#include "api/service/state/impl/state_api_impl.hpp"
+#include "api/service/state/state_jrpc_processor.hpp"
 #include "api/transport/impl/http/http_listener_impl.hpp"
 #include "api/transport/impl/http/http_session.hpp"
 #include "api/transport/impl/ws/ws_listener_impl.hpp"
@@ -123,9 +123,9 @@ namespace kagome::injector {
     };
     auto server = injector.template create<std::shared_ptr<api::JRpcServer>>();
     std::vector<std::shared_ptr<api::JRpcProcessor>> processors{
-        injector.template create<std::shared_ptr<api::StateJrpcProcessor>>(),
+        injector.template create<std::shared_ptr<api::state::StateJrpcProcessor>>(),
         injector
-            .template create<std::shared_ptr<api::ExtrinsicJRpcProcessor>>()};
+            .template create<std::shared_ptr<api::author::AuthorJRpcProcessor>>()};
     initialized =
         std::make_shared<api::ApiService>(listeners, server, processors);
     return initialized.value();
@@ -472,7 +472,7 @@ namespace kagome::injector {
           return get_jrpc_api_ws_listener(injector, rpc_ws_port);
         }),
         di::bind<api::ReadonlyTrieBuilder>.template to<api::ReadonlyTrieBuilderImpl>(),
-        di::bind<api::ExtrinsicApi>.template to<api::ExtrinsicApiImpl>(),
+        di::bind<api::AuthorApi>.template to<api::AuthorApiImpl>(),
         di::bind<api::StateApi>.template to<api::StateApiImpl>(),
         di::bind<api::ApiService>.to(std::move(get_jrpc_api_service)),
         di::bind<api::JRpcServer>.template to<api::JRpcServerImpl>(),

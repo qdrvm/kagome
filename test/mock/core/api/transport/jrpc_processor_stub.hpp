@@ -12,14 +12,14 @@
 
 #include "api/jrpc/jrpc_processor.hpp"
 #include "api/jrpc/jrpc_server_impl.hpp"
-#include "api/state/state_api.hpp"
+#include "api/service/state/state_api.hpp"
 
 namespace kagome::api {
 
 /**
  * @brief Lightweit implementation of API stub
  */
-  class JrpcProcessorStub : public JRpcProcessor, private boost::noncopyable {
+  class JrpcProcessorStub : public JRpcProcessor {
    public:
     JrpcProcessorStub(std::shared_ptr<JRpcServer> server,
                       std::shared_ptr<ApiStub> api)
