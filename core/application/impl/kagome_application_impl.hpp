@@ -25,7 +25,7 @@ namespace kagome::application {
     using BlockTree = blockchain::BlockTree;
     using Epoch = consensus::Epoch;
     using Hasher = crypto::Hasher;
-    using ListenerImpl = api::ListenerImpl;
+    using ListenerImpl = api::WsListenerImpl;
     using Proposer = authorship::Proposer;
     using SR25519Keypair = crypto::SR25519Keypair;
     using Synchronizer = consensus::Synchronizer;
@@ -33,7 +33,7 @@ namespace kagome::application {
     using GrandpaLauncher = consensus::grandpa::Launcher;
     using Timer = clock::Timer;
     using InjectorType = decltype(injector::makeApplicationInjector(
-        std::string{}, std::string{}, std::string{}, uint16_t{}, uint16_t{}));
+        std::string{}, std::string{}, std::string{}, uint16_t{}, uint16_t{}, uint16_t{}));
 
     template <class T>
     using sptr = std::shared_ptr<T>;
@@ -52,7 +52,8 @@ namespace kagome::application {
                           const std::string &keystore_path,
                           const std::string &leveldb_path,
                           uint16_t p2p_port,
-                          uint16_t rpc_port,
+                          uint16_t rpc_http_port,
+                          uint16_t rpc_ws_port,
                           uint8_t verbosity);
 
     void run() override;

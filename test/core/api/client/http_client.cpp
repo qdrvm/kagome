@@ -3,24 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "core/api/client/api_client.hpp"
+#include "core/api/client/http_client.hpp"
 
 #include <boost/beast/http/status.hpp>
 
-enum class BeastClientError {
-  CONNECTION_FAILED = 1,
-  NOT_CONNECTED,
-  HTTP_ERROR
-};
-
-OUTCOME_CPP_DEFINE_CATEGORY(test, ApiClientError, e) {
-  using test::ApiClientError;
+OUTCOME_CPP_DEFINE_CATEGORY(test, HttpClientError, e) {
+  using test::HttpClientError;
   switch (e) {
-    case ApiClientError::CONNECTION_FAILED:
+    case HttpClientError::CONNECTION_FAILED:
       return "connection failed";
-    case ApiClientError::HTTP_ERROR:
+    case HttpClientError::HTTP_ERROR:
       return "http error occurred";
-    case ApiClientError::NETWORK_ERROR:
+    case HttpClientError::NETWORK_ERROR:
       return "network error occurred";
   }
   return "unknown BeastClientError";
@@ -29,7 +23,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(test, ApiClientError, e) {
 namespace test {
   using HttpStatus = boost::beast::http::status;
 
-  outcome::result<void> test::ApiClient::connect(
+  outcome::result<void> HttpClient::connect(
       boost::asio::ip::tcp::endpoint endpoint) {
     endpoint_ = std::move(endpoint);
     boost::system::error_code ec;
@@ -37,17 +31,17 @@ namespace test {
     // TODO (yuraz): ignore error code, log message
     boost::ignore_unused(ec);
     if (ec) {
-      return ApiClientError::CONNECTION_FAILED;
+      return HttpClientError::CONNECTION_FAILED;
     }
     return outcome::success();
   }
 
-  ApiClient::~ApiClient() {
+  HttpClient::~HttpClient() {
     disconnect();
   }
 
-  void test::ApiClient::query(std::string_view message,
-                              std::function<QueryCallback> &&callback) {
+  void HttpClient::query(std::string_view message,
+                         std::function<QueryCallback> &&callback) {
     // send request
     HttpRequest<StringBody> req(HttpMethods::post, "/", 11);
     auto host = endpoint_.address().to_string() + ":"
@@ -63,7 +57,7 @@ namespace test {
     // Send the HTTP request to the remote host
     boost::beast::http::write(stream_, req, ec);
     if (ec) {
-      return callback(ApiClientError::NETWORK_ERROR);
+      return callback(HttpClientError::NETWORK_ERROR);
     }
 
     FlatBuffer buffer{};
@@ -72,17 +66,17 @@ namespace test {
     // receive response
     boost::beast::http::read(stream_, buffer, res, ec);
     if (ec) {
-      return callback(ApiClientError::NETWORK_ERROR);
+      return callback(HttpClientError::NETWORK_ERROR);
     }
 
     if (res.result() != HttpStatus::ok) {
-      return callback(ApiClientError::HTTP_ERROR);
+      return callback(HttpClientError::HTTP_ERROR);
     }
 
     return callback(res.body());
   }
 
-  void ApiClient::disconnect() {
+  void HttpClient::disconnect() {
     boost::system::error_code ec{};
     stream_.socket().shutdown(Socket::shutdown_both, ec);
     // TODO (yuraz): log message, ignore error

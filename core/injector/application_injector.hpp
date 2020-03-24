@@ -15,11 +15,13 @@
 #include "api/extrinsic/extrinsic_jrpc_processor.hpp"
 #include "api/extrinsic/impl/extrinsic_api_impl.hpp"
 #include "api/service/api_service.hpp"
+#include "api/state/impl/readonly_trie_builder_impl.hpp"
 #include "api/state/impl/state_api_impl.hpp"
 #include "api/state/state_jrpc_processor.hpp"
-#include "api/state/impl/readonly_trie_builder_impl.hpp"
-#include "api/transport/impl/http_session.hpp"
-#include "api/transport/impl/listener_impl.hpp"
+#include "api/transport/impl/http/http_listener_impl.hpp"
+#include "api/transport/impl/http/http_session.hpp"
+#include "api/transport/impl/ws/ws_listener_impl.hpp"
+#include "api/transport/impl/ws/ws_session.hpp"
 #include "application/impl/configuration_storage_impl.hpp"
 #include "application/impl/local_key_storage.hpp"
 #include "authorship/impl/block_builder_factory_impl.hpp"
@@ -252,41 +254,62 @@ namespace kagome::injector {
       if (initialized) {
         return initialized.value();
       }
-      auto listener =
-          injector.template create<std::shared_ptr<api::Listener>>();
+      std::vector<std::shared_ptr<api::Listener>> listeners{
+          injector.template create<std::shared_ptr<api::HttpListenerImpl>>(),
+          injector.template create<std::shared_ptr<api::WsListenerImpl>>(),
+      };
       auto server =
           injector.template create<std::shared_ptr<api::JRpcServer>>();
       std::vector<std::shared_ptr<api::JRpcProcessor>> processors{
           injector.template create<std::shared_ptr<api::StateJrpcProcessor>>(),
-          injector.template create<std::shared_ptr<api::ExtrinsicJRpcProcessor>>()};
+          injector
+              .template create<std::shared_ptr<api::ExtrinsicJRpcProcessor>>()};
       initialized =
-          std::make_shared<api::ApiService>(listener, server, processors);
+          std::make_shared<api::ApiService>(listeners, server, processors);
       return initialized.value();
     };
 
-    // jrpc api listener getter
-    auto get_jrpc_api_listener = [](const auto &injector,
-                                    uint16_t rpc_port) -> sptr<api::Listener> {
+    // jrpc api listener (over HTTP) getter
+    auto get_jrpc_api_http_listener =
+        [](const auto &injector,
+           uint16_t rpc_port) -> sptr<api::HttpListenerImpl> {
       static auto initialized =
-          boost::optional<sptr<api::Listener>>(boost::none);
-      // listener is used currently only for extrinsic api
-      // if other apis are required, need to
-      // implement lambda creating corresponding api service
-      // where listener is initialized manually
-      // in this case listener should be bound
+          boost::optional<sptr<api::HttpListenerImpl>>(boost::none);
       if (initialized) {
         return initialized.value();
       }
 
       auto &context = injector.template create<boost::asio::io_context &>();
       auto extrinsic_tcp_version = boost::asio::ip::tcp::v4();
-      api::ListenerImpl::Configuration listener_config{
+      api::HttpListenerImpl::Configuration listener_config{
           boost::asio::ip::tcp::endpoint{extrinsic_tcp_version, rpc_port}};
       auto &&http_session_config =
           injector.template create<api::HttpSession::Configuration>();
 
-      initialized = std::make_shared<api::ListenerImpl>(
+      initialized = std::make_shared<api::HttpListenerImpl>(
           context, listener_config, http_session_config);
+      return initialized.value();
+    };
+
+    // jrpc api listener (over Websockets) getter
+    auto get_jrpc_api_ws_listener =
+        [](const auto &injector,
+           uint16_t rpc_port) -> sptr<api::WsListenerImpl> {
+      static auto initialized =
+          boost::optional<sptr<api::WsListenerImpl>>(boost::none);
+      if (initialized) {
+        return initialized.value();
+      }
+
+      auto &context = injector.template create<boost::asio::io_context &>();
+      auto extrinsic_tcp_version = boost::asio::ip::tcp::v4();
+      api::WsListenerImpl::Configuration listener_config{
+          boost::asio::ip::tcp::endpoint{extrinsic_tcp_version, rpc_port}};
+      auto &&ws_session_config =
+          injector.template create<api::WsSession::Configuration>();
+
+      initialized = std::make_shared<api::WsListenerImpl>(
+          context, listener_config, ws_session_config);
       return initialized.value();
     };
 
@@ -532,12 +555,14 @@ namespace kagome::injector {
                                const std::string &keystore_path,
                                const std::string &leveldb_path,
                                uint16_t p2p_port,
-                               uint16_t rpc_port,
+                               uint16_t rpc_http_port,
+                               uint16_t rpc_ws_port,
                                Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     // default values for configurations
     auto http_config = api::HttpSession::Configuration{};
+    auto ws_config = api::WsSession::Configuration{};
     auto pool_moderator_config = transaction_pool::PoolModeratorImpl::Params{};
     auto synchronizer_config = consensus::SynchronizerConfig{};
     auto tp_pool_limits = transaction_pool::TransactionPool::Limits{
@@ -568,20 +593,23 @@ namespace kagome::injector {
 
         // bind configs
         injector::useConfig(http_config),
+        injector::useConfig(ws_config),
         injector::useConfig(pool_moderator_config),
         injector::useConfig(synchronizer_config),
         injector::useConfig(tp_pool_limits),
 
         // bind interfaces
-        di::bind<api::Listener>.to([rpc_port](const auto &injector) {
-          return get_jrpc_api_listener(injector, rpc_port);
+        di::bind<api::HttpListenerImpl>.to(
+            [rpc_http_port](const auto &injector) {
+              return get_jrpc_api_http_listener(injector, rpc_http_port);
+            }),
+        di::bind<api::WsListenerImpl>.to([rpc_ws_port](const auto &injector) {
+          return get_jrpc_api_ws_listener(injector, rpc_ws_port);
         }),
         di::bind<api::ReadonlyTrieBuilder>.template to<api::ReadonlyTrieBuilderImpl>(),
         di::bind<api::ExtrinsicApi>.template to<api::ExtrinsicApiImpl>(),
         di::bind<api::StateApi>.template to<api::StateApiImpl>(),
-        di::bind<api::ApiService>.template to([](const auto &injector) {
-          return get_jrpc_api_service(injector);
-        }),
+        di::bind<api::ApiService>.to(std::move(get_jrpc_api_service)),
         di::bind<api::JRpcServer>.template to<api::JRpcServerImpl>(),
         di::bind<authorship::Proposer>.template to<authorship::ProposerImpl>(),
         di::bind<authorship::BlockBuilder>.template to<authorship::BlockBuilderImpl>(),
