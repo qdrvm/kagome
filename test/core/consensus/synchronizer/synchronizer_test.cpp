@@ -40,8 +40,8 @@ class SynchronizerTest : public testing::Test {
     block2_.header.parent_hash = block1_hash_;
     block2_hash_.fill(4);
 
-    synchronizer_ =
-        std::make_shared<SynchronizerImpl>(*host_, peer_info_, tree_, headers_);
+    synchronizer_ = std::make_shared<SynchronizerImpl>(
+        *host_, peer_info_, tree_, headers_, SynchronizerConfig{});
   }
 
   std::shared_ptr<HostMock> host_ = std::make_shared<HostMock>();
