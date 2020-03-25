@@ -87,8 +87,8 @@ namespace kagome::transaction_pool {
   };
 
   struct TransactionPool::Limits {
-    static constexpr size_t kDefaultMaxReadyNum = 512;
-    static constexpr size_t kDefaultMaxWaitingNum = 128;
+    static constexpr size_t kDefaultMaxReadyNum = 128;
+    static constexpr size_t kDefaultMaxWaitingNum = 512;
 
     size_t max_ready_num = kDefaultMaxReadyNum;
     size_t max_waiting_num = kDefaultMaxWaitingNum;

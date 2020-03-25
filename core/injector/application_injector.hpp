@@ -569,8 +569,7 @@ namespace kagome::injector {
     api::WsSession::Configuration ws_config{};
     transaction_pool::PoolModeratorImpl::Params pool_moderator_config{};
     consensus::SynchronizerConfig synchronizer_config{};
-    transaction_pool::TransactionPool::Limits tp_pool_limits{
-        .max_ready_num = 128, .max_waiting_num = 512};
+    transaction_pool::TransactionPool::Limits tp_pool_limits{};
     return di::make_injector(
         // bind configs
         injector::useConfig(http_config),
