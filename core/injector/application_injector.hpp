@@ -90,9 +90,9 @@ namespace kagome::injector {
   namespace di = boost::di;
 
   template <typename C>
-  auto useConfig(C &&c) {
+  auto useConfig(C c) {
     return boost::di::bind<std::decay_t<C>>().template to(
-        std::forward<C>(c))[boost::di::override];
+        std::move(c))[boost::di::override];
   }
 
   template <class T>
@@ -561,14 +561,20 @@ namespace kagome::injector {
     using namespace boost;  // NOLINT;
 
     // default values for configurations
-    auto http_config = api::HttpSession::Configuration{};
-    auto ws_config = api::WsSession::Configuration{};
-    auto pool_moderator_config = transaction_pool::PoolModeratorImpl::Params{};
-    auto synchronizer_config = consensus::SynchronizerConfig{};
-    auto tp_pool_limits = transaction_pool::TransactionPool::Limits{
-        transaction_pool::TransactionPoolImpl::kDefaultMaxReadyNum,
-        transaction_pool::TransactionPoolImpl::kDefaultMaxWaitingNum};
+    api::HttpSession::Configuration http_config{};
+    api::WsSession::Configuration ws_config{};
+    transaction_pool::PoolModeratorImpl::Params pool_moderator_config{};
+    consensus::SynchronizerConfig synchronizer_config{};
+    transaction_pool::TransactionPool::Limits tp_pool_limits{
+        .max_ready_num = 128, .max_waiting_num = 512};
     return di::make_injector(
+        // bind configs
+        injector::useConfig(http_config),
+        injector::useConfig(ws_config),
+        injector::useConfig(pool_moderator_config),
+        injector::useConfig(synchronizer_config),
+        injector::useConfig(tp_pool_limits),
+
         // inherit host injector
         libp2p::injector::makeHostInjector(),
         // bind sr25519 keypair
@@ -590,13 +596,6 @@ namespace kagome::injector {
         // bind io_context: 1 per injector
         di::bind<::boost::asio::io_context>.in(
             di::extension::shared)[boost::di::override],
-
-        // bind configs
-        injector::useConfig(http_config),
-        injector::useConfig(ws_config),
-        injector::useConfig(pool_moderator_config),
-        injector::useConfig(synchronizer_config),
-        injector::useConfig(tp_pool_limits),
 
         // bind interfaces
         di::bind<api::HttpListenerImpl>.to(

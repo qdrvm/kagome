@@ -24,13 +24,10 @@ namespace kagome::transaction_pool {
     static constexpr auto kDefaultLoggerTag = "Transaction Pool";
 
    public:
-    static constexpr size_t kDefaultMaxReadyNum = 512;
-    static constexpr size_t kDefaultMaxWaitingNum = 128;
-
-    explicit TransactionPoolImpl(
+    TransactionPoolImpl(
         std::unique_ptr<PoolModerator> moderator,
         std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
-        Limits limits = Limits{kDefaultMaxReadyNum, kDefaultMaxWaitingNum});
+        Limits limits);
 
     TransactionPoolImpl(TransactionPoolImpl &&) = default;
     TransactionPoolImpl(const TransactionPoolImpl &) = delete;
