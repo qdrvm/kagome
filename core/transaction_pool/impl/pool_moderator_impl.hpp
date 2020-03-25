@@ -45,8 +45,7 @@ namespace kagome::transaction_pool {
      * transaction
      */
     PoolModeratorImpl(std::shared_ptr<clock::SystemClock> clock,
-                               Params parameters = Params{
-                                   kDefaultBanFor, kDefaultExpectedSize});
+                               Params parameters);
 
     ~PoolModeratorImpl() override = default;
 

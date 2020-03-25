@@ -11,8 +11,7 @@
 namespace kagome::api {
 
   HttpSession::HttpSession(Socket socket, Configuration config)
-      : config_{config}, stream_(std::move(socket)) {
-  }
+      : config_{config}, stream_(std::move(socket)) {}
 
   void HttpSession::start() {
 	  asyncRead();

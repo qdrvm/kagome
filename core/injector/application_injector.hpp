@@ -543,7 +543,11 @@ namespace kagome::injector {
       auto res = std::make_shared<network::SyncClientsSet>();
       for (const auto &peer_info : peer_infos) {
         res->clients.insert(std::make_shared<consensus::SynchronizerImpl>(
-            *host, peer_info, block_tree, block_header_repository));
+            *host,
+            peer_info,
+            block_tree,
+            block_header_repository,
+            injector.template create<consensus::SynchronizerConfig>()));
       }
       return res;
     };
