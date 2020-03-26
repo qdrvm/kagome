@@ -30,7 +30,7 @@ namespace kagome::consensus {
         libp2p::peer::PeerInfo peer_info,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
-        SynchronizerConfig config = {});
+        SynchronizerConfig config);
 
     ~SynchronizerImpl() override = default;
 

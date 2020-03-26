@@ -39,7 +39,7 @@ class TransactionPoolTest : public testing::Test {
     auto moderator = std::make_unique<NiceMock<PoolModeratorMock>>();
     auto header_repo = std::make_unique<HeaderRepositoryMock>();
     pool_ = std::make_shared<TransactionPoolImpl>(std::move(moderator),
-                                                  std::move(header_repo));
+                                                  std::move(header_repo), TransactionPoolImpl::Limits{});
   }
 
  protected:
