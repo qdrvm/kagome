@@ -16,21 +16,30 @@ namespace kagome::storage::trie {
   /**
    * @note Assumes no concurrent access to the trie!
    */
-  class PolkadotTrieCursor : face::MapCursor<common::Buffer, common::Buffer> {
+  class PolkadotTrieCursor
+      : public face::MapCursor<common::Buffer, common::Buffer> {
    public:
+    enum class Error {
+      INVALID_CURSOR_POSITION =
+          1,  // operation cannot be performed for cursor position is not valid
+             // due to an error, reaching the end or not calling next() after
+             // initialization
+      NULL_ROOT // the root of the supplied trie is null
+    };
+
     using NodePtr = std::shared_ptr<PolkadotNode>;
     using BranchPtr = std::shared_ptr<BranchNode>;
     using NodeType = PolkadotNode::Type;
 
-    explicit PolkadotTrieCursor(std::shared_ptr<PolkadotTrie> trie);
+    explicit PolkadotTrieCursor(const PolkadotTrie &trie);
     ~PolkadotTrieCursor() override = default;
 
-    void seekToFirst() override;
-    void seek(const common::Buffer &key) override;
-    void seekToLast() override;
+    outcome::result<void> seekToFirst() override;
+    outcome::result<void> seek(const common::Buffer &key) override;
+    outcome::result<void> seekToLast() override;
     bool isValid() const override;
-    void next() override;
-    void prev() override;
+    outcome::result<void> next() override;
+    outcome::result<void> prev() override;
     outcome::result<common::Buffer> key() const override;
     outcome::result<common::Buffer> value() const override;
 
@@ -46,12 +55,14 @@ namespace kagome::storage::trie {
     void updateLastVisitedChild(const BranchPtr &parent, uint8_t child_idx);
 
     PolkadotCodec codec_;
-    std::shared_ptr<PolkadotTrie> trie_;
+    const PolkadotTrie &trie_;
     NodePtr current_;
     bool visited_root_ = false;
     std::list<std::pair<BranchPtr, int8_t>> last_visited_child_;
   };
 
 }  // namespace kagome::storage::trie
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie, PolkadotTrieCursor::Error);
 
 #endif  // KAGOME_POLKADOT_TRIE_CURSOR_HPP

@@ -23,14 +23,18 @@ std::shared_ptr<trie::PolkadotTrie> makeTrie(const std::vector<std::pair<Buffer,
 }
 
 TEST(PolkadotTrieCursorTest, NextOnRootOnlyTrie) {
-  trie::PolkadotTrieCursor cursor {makeTrie({{"a"_buf, Buffer{1}}})};
+  auto trie = makeTrie({{"a"_buf, Buffer{1}}});
+  trie::PolkadotTrieCursor cursor {*trie};
+  ASSERT_FALSE(cursor.isValid());
+  cursor.next();
   ASSERT_TRUE(cursor.isValid());
   cursor.next();
   ASSERT_FALSE(cursor.isValid());
 }
 
 TEST(PolkadotTrieCursorTest, NextOnEmptyTrie) {
-  trie::PolkadotTrieCursor cursor {makeTrie({})};
+  auto trie = makeTrie({});
+  trie::PolkadotTrieCursor cursor {*trie};
   ASSERT_FALSE(cursor.isValid());
   cursor.next();
   ASSERT_FALSE(cursor.isValid());
@@ -47,14 +51,14 @@ TEST(PolkadotTrieCursorTest, NextOnSmallTrie) {
       {"fh"_buf, Buffer{5}},
       {"fhi"_buf, Buffer{6}}
   };
-
-  trie::PolkadotTrieCursor cursor {makeTrie(vals)};
+  auto trie = makeTrie(vals);
+  trie::PolkadotTrieCursor cursor {*trie};
   for (auto& p: vals) {
     cursor.next();
     EXPECT_OUTCOME_TRUE(v, cursor.value());
     EXPECT_OUTCOME_TRUE(k, cursor.key());
     ASSERT_EQ(v, p.second);
-    //ASSERT_EQ(k, p.first);
+    ASSERT_EQ(k, p.first);
   }
   cursor.next();
   ASSERT_FALSE(cursor.isValid());

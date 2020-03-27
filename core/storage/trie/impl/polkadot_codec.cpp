@@ -43,33 +43,27 @@ namespace kagome::storage::trie {
   }
 
   common::Buffer PolkadotCodec::collectKey(
-      std::shared_ptr<const PolkadotNode> n) const {
+      const std::shared_ptr<const PolkadotNode>& n) const {
     std::list<common::Buffer> key_parts;
-    auto p = n->parent;
+    auto parent = n->parent;
+    auto current = n;
 
-    while (n != nullptr) {
-      if(p == nullptr) {
-        key_parts.push_front(n->key_nibbles);
+    while (current != nullptr) {
+      if(parent == nullptr) {
+        key_parts.push_front(current->key_nibbles);
         break;
       }
-      auto p_branch = std::dynamic_pointer_cast<const BranchNode>(p);
-      Buffer nibbles(p_branch->key_nibbles.size() + 1, 0);
-      nibbles.putUint8(p_branch->getChildIdx(n));
-      nibbles.put(p->key_nibbles);
-      key_parts.push_front(nibbles);
-      n = p;
-      p = n->parent;
+      auto p_branch = std::dynamic_pointer_cast<const BranchNode>(parent);
+      key_parts.push_front(current->key_nibbles);
+      key_parts.push_front(Buffer {}.putUint8(p_branch->getChildIdx(current)));
+      current = parent;
+      parent = current->parent;
     }
-    size_t key_size = 0;
+    Buffer nibbles;
     for (auto &part : key_parts) {
-      key_size += part.size();
+      nibbles.put(part);
     }
-    common::Buffer key_nibbles;
-    key_nibbles.reserve(key_size);
-    for (auto &part : key_parts) {
-      key_nibbles.put(part);
-    }
-    return nibblesToKey(key_nibbles);
+    return nibblesToKey(nibbles);
   }
 
   common::Buffer PolkadotCodec::nibblesToKey(const common::Buffer &nibbles) {

@@ -276,7 +276,12 @@ TEST_F(TrieTest, Put) {
  */
 TEST_F(TrieTest, Remove) {
   FillSmallTree(*trie);
-
+  auto c = trie->cursor();
+  while(c->isValid()) {
+    std::cout << c->key().value().toHex() << "\n";
+    std::cout << c->value().value().toHex() << "\n";
+    c->next();
+  }
   for (auto i : {2, 3, 4}) {
     EXPECT_OUTCOME_TRUE_1(trie->remove(data[i].first));
   }

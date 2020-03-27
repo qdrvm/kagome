@@ -7,6 +7,8 @@
 
 #include <functional>
 #include <utility>
+
+#include "storage/trie/impl/polkadot_trie_cursor.hpp"
 #include "storage/trie/impl/trie_error.hpp"
 
 using kagome::common::Buffer;
@@ -33,7 +35,7 @@ namespace kagome::storage::trie {
     return put(key, std::move(value_copy));
   }
 
-  PolkadotTrie::NodePtr PolkadotTrie::getRoot() {
+  PolkadotTrie::NodePtr PolkadotTrie::getRoot() const {
     return root_;
   }
 
@@ -115,15 +117,12 @@ namespace kagome::storage::trie {
           // value the value at this branch
           br->value = parent->value;
           br->setChild(key_nibbles[length], node);
-          node->parent = br;
         } else {
           // otherwise, make the leaf a child of the branch and update its
           // partial key
           parent->key_nibbles = parent->key_nibbles.subbuffer(length + 1);
           br->setChild(parentKey[length], parent);
-          parent->parent = br;
           br->setChild(key_nibbles[length], node);
-          node->parent = br;
         }
 
         return br;
@@ -149,12 +148,10 @@ namespace kagome::storage::trie {
       if (child) {
         OUTCOME_TRY(n, insert(child, key_nibbles.subbuffer(length + 1), node));
         parent->setChild(key_nibbles[length], n);
-        n->parent = parent;
         return parent;
       }
       node->key_nibbles = key_nibbles.subbuffer(length + 1);
       parent->setChild(key_nibbles[length], node);
-      node->parent = parent;
       return parent;
     }
     auto br = std::make_shared<BranchNode>(key_nibbles.subbuffer(0, length));
@@ -163,14 +160,12 @@ namespace kagome::storage::trie {
         new_branch,
         insert(nullptr, parent->key_nibbles.subbuffer(length + 1), parent));
     br->setChild(parentIdx, new_branch);
-    new_branch->parent = br;
     if (key_nibbles.size() <= length) {
       br->value = node->value;
     } else {
       OUTCOME_TRY(new_child,
                   insert(nullptr, key_nibbles.subbuffer(length + 1), node));
       br->setChild(key_nibbles[length], new_child);
-      new_child->parent = br;
     }
     return br;
   }
@@ -266,7 +261,6 @@ namespace kagome::storage::trie {
           OUTCOME_TRY(n, deleteNode(child, key_nibbles.subbuffer(length + 1)));
           newRoot = parent;
           parent_as_branch->setChild(key_nibbles[length], n);
-          n->parent = parent;
         }
         OUTCOME_TRY(n, handleDeletion(parent_as_branch, newRoot, key_nibbles));
         return std::move(n);
@@ -356,7 +350,6 @@ namespace kagome::storage::trie {
       }
       OUTCOME_TRY(n, detachNode(child, prefix_nibbles.subbuffer(length + 1)));
       branch->setChild(prefix_nibbles[length], n);
-      n->parent = branch;
       return branch;
     }
     return parent;
@@ -385,9 +378,11 @@ namespace kagome::storage::trie {
     return length;
   }
 
-  auto PolkadotTrie::cursor() -> std::unique_ptr<
-      face::MapCursor<common::Buffer, common::Buffer>> {
-
+  auto PolkadotTrie::cursor()
+      -> std::unique_ptr<face::MapCursor<common::Buffer, common::Buffer>> {
+    std::unique_ptr<face::MapCursor<common::Buffer, common::Buffer>> r =
+        std::make_unique<PolkadotTrieCursor>(*this);
+    return r;
   }
 
 }  // namespace kagome::storage::trie

@@ -14,23 +14,24 @@ namespace kagome::storage::face {
    * @tparam V value type
    */
   template <typename K, typename V>
-  struct MapCursor {
+  class MapCursor {
+   public:
     virtual ~MapCursor() = default;
 
     /**
      * @brief Same as std::begin(...);
      */
-    virtual void seekToFirst() = 0;
+    virtual outcome::result<void> seekToFirst() = 0;
 
     /**
      * @brief Find given key and seek iterator to this key.
      */
-    virtual void seek(const K &key) = 0;
+    virtual outcome::result<void> seek(const K &key) = 0;
 
     /**
      * @brief Same as std::rbegin(...);, e.g. points to the last valid element
      */
-    virtual void seekToLast() = 0;
+    virtual outcome::result<void> seekToLast() = 0;
 
     /**
      * @brief Is iterator valid?
@@ -41,12 +42,12 @@ namespace kagome::storage::face {
     /**
      * @brief Make step forward.
      */
-    virtual void next() = 0;
+    virtual outcome::result<void> next() = 0;
 
     /**
      * @brief Make step backwards.
      */
-    virtual void prev() = 0;
+    virtual outcome::result<void> prev() = 0;
 
     /**
      * @brief Getter for key.

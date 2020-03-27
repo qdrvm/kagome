@@ -42,7 +42,7 @@ namespace kagome::storage::trie {
     /**
      * @returns the full key leading to the node
      */
-    common::Buffer collectKey(std::shared_ptr<const PolkadotNode> n) const;
+    common::Buffer collectKey(const std::shared_ptr<const PolkadotNode>& n) const;
 
     /**
      * Def. 14 KeyEncode

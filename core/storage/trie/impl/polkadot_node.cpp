@@ -34,7 +34,9 @@ namespace kagome::storage::trie {
   }
 
   void BranchNode::setChild(uint8_t idx, std::shared_ptr<PolkadotNode> child) {
-    child->parent = shared_from_this();
+    if(child != nullptr) {
+      child->parent = shared_from_this();
+    }
     children_.at(idx) = std::move(child);
   }
 
