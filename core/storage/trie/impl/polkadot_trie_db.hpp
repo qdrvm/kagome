@@ -96,7 +96,6 @@ namespace kagome::storage::trie {
     PolkadotTrieDb(std::shared_ptr<TrieDbBackend> db,
                    boost::optional<common::Buffer> root_hash);
 
-   private:
     /**
      * Creates an in-memory trie, which will fetch from the storage only the
      * nodes that are required to complete operations applied to the trie.
@@ -125,6 +124,7 @@ namespace kagome::storage::trie {
     outcome::result<NodePtr> retrieveChild(const BranchPtr &parent,
                                            uint8_t idx) const;
 
+   private:
     std::shared_ptr<TrieDbBackend> db_;
     PolkadotCodec codec_;
     common::Buffer root_;

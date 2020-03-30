@@ -4,6 +4,7 @@
 add_subdirectory(leveldb)
 add_subdirectory(trie)
 add_subdirectory(in_memory)
+add_subdirectory(trie_db_overlay)
 
 add_library(database_error
     database_error.cpp
