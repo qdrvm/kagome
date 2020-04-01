@@ -68,7 +68,6 @@ namespace kagome::runtime::binaryen {
       wasm::Function *import, wasm::LiteralList &arguments) {
     // TODO(kamilsa): PRE-359 Replace ifs with switch case
     if (import->module == env) {
-
       /// memory externals
       /// ext_malloc
       if (import->base == ext_malloc) {
