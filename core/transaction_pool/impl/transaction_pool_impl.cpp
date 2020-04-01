@@ -90,7 +90,7 @@ namespace kagome::transaction_pool {
         tx.requires.begin(), tx.requires.end(), [this](auto &&tag) {
           return provided_tags_by_.find(tag) != provided_tags_by_.end();
         });
-  };
+  }
 
   void TransactionPoolImpl::updateReady() {
     for (auto it = waiting_queue_.begin(); it != waiting_queue_.end();) {

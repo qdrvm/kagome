@@ -61,7 +61,7 @@ namespace kagome::storage::trie {
     return outcome::success();
   }
 
-  common::Buffer PolkadotTrieDb::getRootHash() const {
+  common::Buffer PolkadotTrieDb::getRootHash() {
     // if the length of the encoded root is less than 32, it is not hashed,
     // so hash it in this case
     return root_.size() < 32 ? Buffer{codec_.hash256(root_)} : root_;

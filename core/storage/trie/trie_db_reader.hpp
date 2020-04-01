@@ -22,7 +22,7 @@ namespace kagome::storage::trie {
      * @return byte buffer of any size (different hashing algorithms may be
      * used)
      */
-    virtual Buffer getRootHash() const = 0;
+    virtual Buffer getRootHash() = 0;
 
     /**
      * @returns true if the trie is empty, false otherwise

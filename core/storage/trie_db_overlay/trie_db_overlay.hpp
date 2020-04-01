@@ -7,13 +7,18 @@
 #define KAGOME_STORAGE_TRIE_DB_OVERLAY_HPP
 
 #include "storage/trie/trie_db.hpp"
+#include "blockchain/changes_trie.hpp"
 
 namespace kagome::storage::trie_db_overlay {
 
   class TrieDbOverlay : public trie::TrieDb {
    public:
-    virtual void commitAndSinkTo(ChangesTrie& changes_trie) = 0;
 
+    // commit all operations pending in memory to the main storage
+    // insert all accumulated changes to the provided changes trie
+    // clear the accumulated changes set
+    virtual outcome::result<void> commitAndInsertChanges(
+        blockchain::ChangesTrie &changes_trie) = 0;
   };
 
 }  // namespace kagome::storage::trie_db_overlay

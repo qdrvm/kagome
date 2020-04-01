@@ -9,12 +9,13 @@
 
 #include "primitives/block_id.hpp"
 #include "storage/trie/impl/ordered_trie_hash.hpp"
+#include "blockchain/impl/changes_trie_impl.hpp"
 
 using kagome::common::Buffer;
 
 namespace kagome::extensions {
   StorageExtension::StorageExtension(
-      std::shared_ptr<storage::trie::TrieDb> db,
+      std::shared_ptr<storage::trie_db_overlay::TrieDbOverlay> db,
       std::shared_ptr<runtime::WasmMemory> memory)
       : db_(std::move(db)),
         memory_(std::move(memory)),
@@ -171,7 +172,10 @@ namespace kagome::extensions {
       runtime::SizeType parent_hash_len,
       runtime::WasmPointer result) {
     // TODO (kamilsa): PRE-95 Implement ext_storage_changes_root, 03.04.2019.
-    //    auto parent_hash = memory_->loadN(parent_hash_data, parent_hash_len);
+    auto parent_hash = memory_->loadN(parent_hash_data, parent_hash_len);
+
+    blockchain::ChangesTrieImpl changes_trie (parent_hash, config, );
+    db_->commitAndInsertChanges();
     primitives::BlockHash result_hash;
     result_hash[primitives::BlockHash::size() - 1] = 1;
     common::Buffer result_buf(result_hash);

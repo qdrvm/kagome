@@ -8,6 +8,7 @@
 
 #include <boost/optional.hpp>
 
+#include "primitives/extrinsic.hpp"
 #include "storage/trie_db_overlay/trie_db_overlay.hpp"
 
 namespace kagome::storage::trie_db_overlay {
@@ -17,7 +18,8 @@ namespace kagome::storage::trie_db_overlay {
     explicit TrieDbOverlayImpl(std::shared_ptr<trie::TrieDb> main_db);
     ~TrieDbOverlayImpl() override = default;
 
-    outcome::result<void> commitAndInsertChanges(trie::TrieDb &changes_trie) override;
+    outcome::result<void> commitAndInsertChanges(
+        blockchain::ChangesTrie &changes_trie) override;
 
     std::unique_ptr<face::WriteBatch<Buffer, Buffer>> batch() override;
     std::unique_ptr<face::MapCursor<Buffer, Buffer>> cursor() override;
@@ -33,14 +35,13 @@ namespace kagome::storage::trie_db_overlay {
    private:
     static const common::Buffer EXTRINSIC_INDEX_KEY;
 
-    using ExtrinsicIndex = uint32_t;
     static constexpr uint32_t NO_EXTRINSIC_INDEX = 0xffffffff;
 
-    ExtrinsicIndex getExtrinsicIndex() const;
+    primitives::ExtrinsicIndex getExtrinsicIndex() const;
 
     struct ChangedValue {
       boost::optional<common::Buffer> value;
-      std::vector<ExtrinsicIndex> changers;
+      std::vector<primitives::ExtrinsicIndex> changers;
     };
     std::map<common::Buffer, ChangedValue> changes_;
     std::shared_ptr<trie::TrieDb> storage_;

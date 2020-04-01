@@ -3,34 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/trie_db_overlay/impl/polkadot_trie_db_overlay_impl.hpp"
+#include "storage/trie_db_overlay/impl/trie_db_overlay_impl.hpp"
 
 #include "scale/scale.hpp"
 #include "storage/trie/impl/trie_error.hpp"
 
 namespace kagome::storage::trie_db_overlay {
-
-  TrieDbOverlayImpl::TrieDbOverlayImpl(std::shared_ptr<trie::TrieDb> main_db) {
-
-  }
-
-  outcome::result<void> TrieDbOverlayImpl::commit() {
-    for (auto& change: changes_) {
-      if(change.second.value.has_value()) {
-        OUTCOME_TRY(storage_->put(change.first, change.second.value.value()));
-      } else {
-        OUTCOME_TRY(storage_->remove(change.first));
-      }
-    }
-  }
-
-  void TrieDbOverlayImpl::insertChangesToTrie(trie::TrieDb &changes_trie) const {
-
-  }
-
-  void TrieDbOverlayImpl::clearChanges() {
-
-  }
 
   const common::Buffer TrieDbOverlayImpl::EXTRINSIC_INDEX_KEY{[]() {
     constexpr auto s = ":extrinsic_index";
@@ -38,6 +16,26 @@ namespace kagome::storage::trie_db_overlay {
     std::copy(s, s + strlen(s), v.begin());
     return v;
   }()};
+
+  TrieDbOverlayImpl::TrieDbOverlayImpl(std::shared_ptr<trie::TrieDb> main_db)
+      : storage_{std::move(main_db)} {
+    BOOST_ASSERT(storage_ != nullptr);
+  }
+
+  outcome::result<void> TrieDbOverlayImpl::commitAndInsertChanges(
+      blockchain::ChangesTrie &changes_trie) {
+    for (auto &change : changes_) {
+      if (change.second.value.has_value()) {
+        OUTCOME_TRY(storage_->put(change.first, change.second.value.value()));
+      } else {
+        OUTCOME_TRY(storage_->remove(change.first));
+      }
+
+      /// TODO(Harrm): insert every change that is not temporary to changes trie
+    }
+    changes_.clear();
+    return outcome::success();
+  }
 
   std::unique_ptr<face::WriteBatch<Buffer, Buffer>> TrieDbOverlayImpl::batch() {
     return nullptr;
@@ -90,6 +88,8 @@ namespace kagome::storage::trie_db_overlay {
   }
 
   Buffer TrieDbOverlayImpl::getRootHash() {
+    /// TODO(Harrm): process commit resuly; maybe not inherit overlay from trie
+    /// db after all?
     commit();
     return storage_->getRootHash();
   }
@@ -106,12 +106,11 @@ namespace kagome::storage::trie_db_overlay {
     return any_nondeleted_change or not storage_->empty();
   }
 
-  TrieDbOverlayImpl::ExtrinsicIndex TrieDbOverlayImpl::getExtrinsicIndex()
-      const {
+  primitives::ExtrinsicIndex TrieDbOverlayImpl::getExtrinsicIndex() const {
     auto ext_idx_bytes_res = get(EXTRINSIC_INDEX_KEY);
     if (ext_idx_bytes_res.has_value()) {
       auto ext_idx_res =
-          scale::decode<ExtrinsicIndex>(ext_idx_bytes_res.value());
+          scale::decode<primitives::ExtrinsicIndex>(ext_idx_bytes_res.value());
       BOOST_ASSERT_MSG(ext_idx_res.has_value(),
                        "Extrinsic index decoding must not fail");
       return ext_idx_res.value();

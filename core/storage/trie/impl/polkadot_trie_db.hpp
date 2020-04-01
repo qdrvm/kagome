@@ -63,7 +63,7 @@ namespace kagome::storage::trie {
 
     ~PolkadotTrieDb() override = default;
 
-    common::Buffer getRootHash() const override;
+    common::Buffer getRootHash() override;
 
     outcome::result<void> clearPrefix(const common::Buffer &prefix) override;
 
