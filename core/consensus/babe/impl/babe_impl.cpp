@@ -315,7 +315,9 @@ namespace kagome::consensus {
     // check that we are still in the middle of the
     if (clock_->now()
         > next_slot_finish_time_ + genesis_configuration_.slot_duration) {
-      log_->warn("Block was not built in time. Slot has finished");
+      log_->warn(
+          "Block was not built in time. Slot has finished. If you are "
+          "executing in debug mode, consider to rebuild in release");
       return;
     }
     // add block to the block tree
@@ -373,14 +375,8 @@ namespace kagome::consensus {
       const auto &[best_number, best_hash] =
           block_tree_->getLastFinalized();  // ?? or getDeepestLeaf
 
-      //      if (best_number < header.number) {
-      //      auto prev_state = current_state_;
-      //      current_state_ = BabeState::CATCHING_UP;
       // we should request block
-      synchronizeBlocks(best_hash, block_hash, [self{shared_from_this()}] {
-        //            self->current_state_ = prev_state;
-      });
-      //      }
+      synchronizeBlocks(best_hash, block_hash, [self{shared_from_this()}] {});
     }
   }
 
