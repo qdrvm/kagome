@@ -6,20 +6,18 @@
 #ifndef KAGOME_STORAGE_TRIE_DB_OVERLAY_IMPL_HPP
 #define KAGOME_STORAGE_TRIE_DB_OVERLAY_IMPL_HPP
 
-#include "storage/trie/impl/polkadot_trie_db.hpp"
+#include <boost/optional.hpp>
+
 #include "storage/trie_db_overlay/trie_db_overlay.hpp"
 
 namespace kagome::storage::trie_db_overlay {
 
-  class PolkadotTrieDbOverlayImpl : public TrieDbOverlay,
-                                    public trie::PolkadotTrieDb {
+  class TrieDbOverlayImpl : public TrieDbOverlay {
    public:
-    PolkadotTrieDbOverlayImpl(ExtrinsicIdAccessor ext_id_accessor,
-                              std::shared_ptr<trie::TrieDbBackend> db,
-                              boost::optional<common::Buffer> root_hash);
-    ~PolkadotTrieDbOverlayImpl() override;
+    explicit TrieDbOverlayImpl(std::shared_ptr<trie::TrieDb> main_db);
+    ~TrieDbOverlayImpl() override = default;
 
-    virtual void commitAndSinkTo(ChangesTrie &changes_trie) = 0;
+    outcome::result<void> commitAndInsertChanges(trie::TrieDb &changes_trie) override;
 
     std::unique_ptr<face::WriteBatch<Buffer, Buffer>> batch() override;
     std::unique_ptr<face::MapCursor<Buffer, Buffer>> cursor() override;
@@ -29,15 +27,23 @@ namespace kagome::storage::trie_db_overlay {
     outcome::result<void> put(const Buffer &key, Buffer &&value) override;
     outcome::result<void> remove(const Buffer &key) override;
     outcome::result<void> clearPrefix(const common::Buffer &buf) override;
-    Buffer getRootHash() const override;
+    Buffer getRootHash() override;
     bool empty() const override;
 
    private:
-    using ExtrinsicIndex = uint32_t;
+    static const common::Buffer EXTRINSIC_INDEX_KEY;
 
-    std::vector<std::tuple<ExtrinsicIndex, common::Buffer, common::Buffer>>
-        changes_;
-    trie::PolkadotTrie cache_;
+    using ExtrinsicIndex = uint32_t;
+    static constexpr uint32_t NO_EXTRINSIC_INDEX = 0xffffffff;
+
+    ExtrinsicIndex getExtrinsicIndex() const;
+
+    struct ChangedValue {
+      boost::optional<common::Buffer> value;
+      std::vector<ExtrinsicIndex> changers;
+    };
+    std::map<common::Buffer, ChangedValue> changes_;
+    std::shared_ptr<trie::TrieDb> storage_;
   };
 
 }  // namespace kagome::storage::trie_db_overlay
