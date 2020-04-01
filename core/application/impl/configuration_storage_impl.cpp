@@ -21,11 +21,6 @@ namespace kagome::application {
     return boot_nodes_;
   }
 
-  std::vector<crypto::SR25519PublicKey>
-  ConfigurationStorageImpl::getSessionKeys() const {
-    return session_keys_;
-  }
-
   outcome::result<std::shared_ptr<ConfigurationStorageImpl>>
   ConfigurationStorageImpl::create(const std::string &path) {
     auto config_storage =
@@ -48,7 +43,6 @@ namespace kagome::application {
 
     OUTCOME_TRY(loadGenesis(tree));
     OUTCOME_TRY(loadBootNodes(tree));
-    OUTCOME_TRY(loadSessionKeys(tree));
     return outcome::success();
   }
 
@@ -78,17 +72,6 @@ namespace kagome::application {
       OUTCOME_TRY(peer_id, libp2p::peer::PeerId::fromBase58(peer_id_base58));
       libp2p::peer::PeerInfo info{.id = peer_id, .addresses = {multiaddr}};
       boot_nodes_.peers.push_back(info);
-    }
-    return outcome::success();
-  }
-
-  outcome::result<void> ConfigurationStorageImpl::loadSessionKeys(
-      const boost::property_tree::ptree &tree) {
-    OUTCOME_TRY(session_keys, ensure(tree.get_child_optional("sessionKeys")));
-    for (auto &v : session_keys) {
-      std::string_view key_hex = v.second.data();
-      OUTCOME_TRY(key, crypto::SR25519PublicKey::fromHex(key_hex.substr(2)));
-      session_keys_.push_back(key);
     }
     return outcome::success();
   }
