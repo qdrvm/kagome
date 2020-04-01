@@ -308,10 +308,13 @@ namespace kagome::injector {
                               weighted_authority.id.id.toHex());
               }
               BOOST_ASSERT_MSG(voters.size() != 0, "Grandpa voters are empty");
-              BOOST_ASSERT_MSG(
+              auto authorities_put_res =
                   db->put(storage::kAuthoritySetKey,
-                          common::Buffer(scale::encode(voters).value())),
-                  "Could not insert authorities");
+                          common::Buffer(scale::encode(voters).value()));
+              if (not authorities_put_res) {
+                BOOST_ASSERT_MSG(false, "Could not insert authorities");
+                std::exit(1);
+              }
 
               // insert last completed round
               consensus::grandpa::CompletedRound zero_round;
@@ -327,10 +330,13 @@ namespace kagome::injector {
                   primitives::BlockInfo(0, genesis_hash);
               zero_round.state.finalized =
                   primitives::BlockInfo(0, genesis_hash);
-              BOOST_ASSERT_MSG(
+              auto completed_round_put_res =
                   db->put(storage::kSetStateKey,
-                          common::Buffer(scale::encode(zero_round).value())),
-                  "Could not insert completed round");
+                          common::Buffer(scale::encode(zero_round).value()));
+              if (not completed_round_put_res) {
+                BOOST_ASSERT_MSG(false, "Could not insert completed round");
+                std::exit(1);
+              }
             }
           });
       if (storage.has_error()) {
@@ -511,10 +517,10 @@ namespace kagome::injector {
         if (peer_info.id != current_peer_info.id) {
           res->clients.insert(std::make_shared<consensus::SynchronizerImpl>(
               *host,
-            peer_info,
-            block_tree,
-            block_header_repository,
-            injector.template create<consensus::SynchronizerConfig>()));
+              peer_info,
+              block_tree,
+              block_header_repository,
+              injector.template create<consensus::SynchronizerConfig>()));
         }
       }
       initialized = res;
