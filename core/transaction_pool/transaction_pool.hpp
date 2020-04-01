@@ -67,7 +67,8 @@ namespace kagome::transaction_pool {
      * prevent importing them in the (near) future.
      */
     virtual std::vector<primitives::Transaction> pruneTag(
-        const primitives::BlockId &at, const primitives::TransactionTag &tag,
+        const primitives::BlockId &at,
+        const primitives::TransactionTag &tag,
         const std::vector<common::Hash256> &known_imported_hashes) = 0;
 
     /**
@@ -86,8 +87,11 @@ namespace kagome::transaction_pool {
   };
 
   struct TransactionPool::Limits {
-    size_t max_ready_num;
-    size_t max_waiting_num;
+    static constexpr size_t kDefaultMaxReadyNum = 128;
+    static constexpr size_t kDefaultMaxWaitingNum = 512;
+
+    size_t max_ready_num = kDefaultMaxReadyNum;
+    size_t max_waiting_num = kDefaultMaxWaitingNum;
   };
 
 }  // namespace kagome::transaction_pool

@@ -3,26 +3,27 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "api/jrpc/jrpc_processor.hpp"
+#include "api/jrpc/jrpc_server_impl.hpp"
 
 namespace kagome::api {
 
-  JRPCProcessor::JRPCProcessor() {
+  JRpcServerImpl::JRpcServerImpl() {
     // register json format handler
     jsonrpc_handler_.RegisterFormatHandler(format_handler_);
   }
 
-  void JRPCProcessor::registerHandler(const std::string &name, Method method) {
+  void JRpcServerImpl::registerHandler(const std::string &name, Method method) {
     auto &dispatcher = jsonrpc_handler_.GetDispatcher();
     dispatcher.AddMethod(name, std::move(method));
   }
 
-  void JRPCProcessor::processData(std::string_view request,
-                                  const ResponseHandler &cb) {
+  void JRpcServerImpl::processData(std::string_view request,
+                               const ResponseHandler &cb) {
     auto &&formatted_response =
         jsonrpc_handler_.HandleRequest(std::string(request));
     std::string response(formatted_response->GetData(),
                          formatted_response->GetSize());
     cb(response);
   }
+
 }  // namespace kagome::api

@@ -3,10 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "api/extrinsic/extrinsic_api_service.hpp"
+#include "api/service/api_service.hpp"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+
+#include "api/extrinsic/extrinsic_jrpc_processor.hpp"
 #include "common/blob.hpp"
 #include "mock/core/api/extrinsic/extrinsic_api_mock.hpp"
 #include "mock/core/api/transport/listener_mock.hpp"
@@ -16,7 +18,8 @@
 using namespace kagome::api;
 using namespace kagome::runtime;
 
-using kagome::api::ExtrinsicApiService;
+using kagome::api::ApiService;
+using kagome::api::ExtrinsicJRpcProcessor;
 using kagome::api::Listener;
 using kagome::api::ListenerMock;
 using kagome::api::Session;
@@ -54,11 +57,16 @@ class ExtrinsicSubmissionServiceTest : public ::testing::Test {
   }
 
   sptr<ListenerMock> listener = std::make_shared<ListenerMock>();
+  std::vector<sptr<Listener>> listeners = { listener };
 
   sptr<ExtrinsicApiMock> api = std::make_shared<ExtrinsicApiMock>();
 
-  sptr<ExtrinsicApiService> service =
-      std::make_shared<ExtrinsicApiService>(listener, api);
+  sptr<JRpcServer> server = std::make_shared<JRpcServerImpl>();
+
+  std::vector<std::shared_ptr<JRpcProcessor>> processors{
+      std::make_shared<ExtrinsicJRpcProcessor>(server, api)};
+  sptr<ApiService> service =
+      std::make_shared<ApiService>(listeners, server, processors);
 
   sptr<SessionMock> session = std::make_shared<SessionMock>();
 

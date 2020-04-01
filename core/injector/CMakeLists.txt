@@ -11,6 +11,9 @@ target_link_libraries(application_injector
     tsl::tsl_hat_trie
     Boost::Boost.DI
     api_transport
+    api_jrpc_server
+    state_api_service
+    readonly_trie_builder
     babe
     babe_lottery
     block_header_repository

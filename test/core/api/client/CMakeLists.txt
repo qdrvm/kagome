@@ -3,10 +3,16 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(test_api_client
-    api_client.hpp
-    api_client.cpp
+add_library(test_http_client
+    http_client.cpp
     )
-target_link_libraries(test_api_client
+target_link_libraries(test_http_client
+    Boost::boost
+    )
+
+add_library(test_ws_client
+    ws_client.cpp
+    )
+target_link_libraries(test_ws_client
     Boost::boost
     )

@@ -28,7 +28,8 @@ int main(int argc, char **argv) {
   auto &&keys_config = options_parser.getKeysConfig();
   auto &&level_db_config = options_parser.getLevelDbPath();
   auto p2p_port = options_parser.getP2PPort();
-  auto rpc_port = options_parser.getRpcPort();
+  auto rpc_http_port = options_parser.getRpcHttpPort();
+  auto rpc_ws_port = options_parser.getRpcWsPort();
   auto verbosity = options_parser.getVerbosity();
   bool is_genesis_epoch = options_parser.isGenesisEpoch();
 
@@ -37,7 +38,8 @@ int main(int argc, char **argv) {
       keys_config,
       level_db_config,
       p2p_port,
-      rpc_port,
+      rpc_http_port,
+      rpc_ws_port,
       is_genesis_epoch,
       verbosity);
   app->run();

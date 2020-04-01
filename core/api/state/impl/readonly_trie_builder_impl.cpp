@@ -4,6 +4,7 @@
  */
 
 #include "api/state/impl/readonly_trie_builder_impl.hpp"
+
 #include "storage/trie/impl/polkadot_trie_db.hpp"
 
 namespace kagome::api {

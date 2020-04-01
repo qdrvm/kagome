@@ -15,11 +15,12 @@ namespace kagome::application {
                                                const std::string &keystore_path,
                                                const std::string &leveldb_path,
                                                uint16_t p2p_port,
-                                               uint16_t rpc_port,
+                                               uint16_t rpc_http_port,
+                                               uint16_t rpc_ws_port,
                                                bool is_genesis_epoch,
                                                uint8_t verbosity)
       : injector_{injector::makeApplicationInjector(
-            config_path, keystore_path, leveldb_path, p2p_port, rpc_port)},
+            config_path, keystore_path, leveldb_path, p2p_port, rpc_http_port, rpc_ws_port)},
         is_genesis_epoch_{is_genesis_epoch},
         logger_(common::createLogger("Application")) {
     spdlog::set_level(static_cast<spdlog::level::level_enum>(verbosity));
@@ -30,14 +31,14 @@ namespace kagome::application {
     config_storage_ = injector_.create<sptr<ConfigurationStorage>>();
     key_storage_ = injector_.create<sptr<KeyStorage>>();
     clock_ = injector_.create<sptr<clock::SystemClock>>();
-    extrinsic_api_service_ = injector_.create<sptr<ExtrinsicApiService>>();
     babe_ = injector_.create<sptr<Babe>>();
     grandpa_launcher_ = injector_.create<sptr<GrandpaLauncher>>();
     router_ = injector_.create<sptr<network::Router>>();
+    jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 
   void KagomeApplicationImpl::run() {
-    extrinsic_api_service_->start();
+    jrpc_api_service_->start();
     if (is_genesis_epoch_) {
       babe_->runGenesisEpoch();
     }

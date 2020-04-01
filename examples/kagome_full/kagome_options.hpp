@@ -73,7 +73,9 @@ namespace kagome::options {
 
     uint16_t getP2PPort() const;
 
-    uint16_t getRpcPort() const;
+    uint16_t getRpcHttpPort() const;
+
+    uint16_t getRpcWsPort() const;
 
     /**
      * @return log level
@@ -105,7 +107,8 @@ namespace kagome::options {
     std::string config_storage_path_;
     std::string leveldb_path_;
     uint16_t p2p_port_{};
-    uint16_t rpc_port_{};
+    uint16_t rpc_http_port_{};
+    uint16_t rpc_ws_port_{};
     uint8_t verbosity_{};
     bool is_genesis_epoch_{};
     common::Logger logger_ = common::createLogger("Kagome options parser: ");

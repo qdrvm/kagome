@@ -44,9 +44,8 @@ namespace kagome::transaction_pool {
      * @param clock a clock used to determine when it is time to unban a
      * transaction
      */
-    explicit PoolModeratorImpl(std::shared_ptr<clock::SystemClock> clock,
-                               Params parameters = Params{
-                                   kDefaultBanFor, kDefaultExpectedSize});
+    PoolModeratorImpl(std::shared_ptr<clock::SystemClock> clock,
+                               Params parameters);
 
     ~PoolModeratorImpl() override = default;
 
