@@ -26,7 +26,7 @@ namespace kagome::network {
      */
     virtual void blocksRequest(
         const BlocksRequest &request,
-        std::function<void(outcome::result<BlocksResponse>)> cb) const = 0;
+        std::function<void(outcome::result<BlocksResponse>)> cb) = 0;
   };
 }  // namespace kagome::network
 

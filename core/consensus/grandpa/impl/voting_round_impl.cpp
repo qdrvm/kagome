@@ -190,6 +190,7 @@ namespace kagome::consensus::grandpa {
     if (completable() and clock_->now() < prevote_timer_.expires_at()) {
       prevote_timer_.cancel();
     }
+    tryFinalize();
   }
 
   void VotingRoundImpl::onPrecommit(const SignedPrecommit &precommit) {
@@ -502,7 +503,7 @@ namespace kagome::consensus::grandpa {
                   ancestry) {
                 auto to_sub = primary.block_number + 1;
 
-                size_t offset = 0;
+                primitives::BlockNumber offset = 0;
                 if (last_prevote_g.block_number >= to_sub) {
                   offset = last_prevote_g.block_number - to_sub;
                 }

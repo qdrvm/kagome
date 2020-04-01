@@ -6,6 +6,7 @@
 #ifndef KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTENT_MAP_UTIL_HPP
 #define KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTENT_MAP_UTIL_HPP
 
+#include <boost/optional.hpp>
 
 #include "common/buffer.hpp"
 #include "primitives/block_header.hpp"
@@ -31,7 +32,7 @@ namespace kagome::blockchain {
       HEADER = 4,
 
       // body of the block (extrinsics)
-      BODY = 5,
+      BLOCK_DATA = 5,
 
       // justification of the finalized block
       JUSTIFICATION = 6,

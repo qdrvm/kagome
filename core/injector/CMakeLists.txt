@@ -13,9 +13,9 @@ target_link_libraries(application_injector
     api_transport
     babe
     babe_lottery
-    babe_observer
     block_header_repository
     block_storage
+    babe_synchronizer
     block_tree
     block_validator
     buffer
@@ -23,6 +23,7 @@ target_link_libraries(application_injector
     sr25519_provider
     configuration_storage
     binaryen_core_api
+    binaryen_babe_api
     binaryen_grandpa_api
     binaryen_block_builder_api
     extrinsic_api_service

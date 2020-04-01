@@ -15,6 +15,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain,
   switch (e) {
     case E::BLOCK_EXISTS:
       return "Block already exists on the chain";
+    case E::BODY_DOES_NOT_EXIST:
+      return "Block body was not found";
+    case E::JUSTIFICATION_DOES_NOT_EXIST:
+      return "Justification was not found";
   }
   return "Unknown error";
 }
@@ -74,24 +78,76 @@ namespace kagome::blockchain {
 
   outcome::result<primitives::BlockBody> KeyValueBlockStorage::getBlockBody(
       const primitives::BlockId &id) const {
-    OUTCOME_TRY(encoded_body, getWithPrefix(*storage_, Prefix::BODY, id));
-    OUTCOME_TRY(body, scale::decode<primitives::BlockBody>(encoded_body));
-    return std::move(body);
+    OUTCOME_TRY(block_data, getBlockData(id));
+    if (block_data.body) {
+      return block_data.body.value();
+    }
+    return Error::BODY_DOES_NOT_EXIST;
+  }
+
+  outcome::result<primitives::BlockData> KeyValueBlockStorage::getBlockData(
+      const primitives::BlockId &id) const {
+    OUTCOME_TRY(encoded_block_data,
+                getWithPrefix(*storage_, Prefix::BLOCK_DATA, id));
+    OUTCOME_TRY(block_data,
+                scale::decode<primitives::BlockData>(encoded_block_data));
+    return std::move(block_data);
   }
 
   outcome::result<primitives::Justification>
   KeyValueBlockStorage::getJustification(
       const primitives::BlockId &block) const {
-    OUTCOME_TRY(encoded_just,
-                getWithPrefix(*storage_, Prefix::JUSTIFICATION, block));
-    OUTCOME_TRY(just, scale::decode<primitives::Justification>(encoded_just));
-    return std::move(just);
+    OUTCOME_TRY(block_data, getBlockData(block));
+    if (block_data.justification) {
+      return block_data.justification.value();
+    }
+    return Error::JUSTIFICATION_DOES_NOT_EXIST;
+  }
+
+  outcome::result<primitives::BlockHash> KeyValueBlockStorage::putBlockHeader(
+      const primitives::BlockHeader &header) {
+    OUTCOME_TRY(encoded_header, scale::encode(header));
+    auto block_hash = hasher_->blake2b_256(encoded_header);
+    OUTCOME_TRY(putWithPrefix(*storage_,
+                              Prefix::HEADER,
+                              header.number,
+                              block_hash,
+                              Buffer{encoded_header}));
+    return block_hash;
+  }
+
+  outcome::result<void> KeyValueBlockStorage::putBlockData(
+      primitives::BlockNumber block_number,
+      const primitives::BlockData &block_data) {
+    primitives::BlockData to_insert;
+
+    // if block data does not exist, put a new one. Otherwise get the old one
+    // and merge with the new one
+    auto existing_block_data_res = getBlockData(block_data.hash);
+    if (not existing_block_data_res) {
+      to_insert = block_data;
+    } else {
+      to_insert = existing_block_data_res.value();
+
+      // add all the fields from the new block_data
+      to_insert.header = block_data.header;
+      to_insert.body = block_data.body;
+      to_insert.justification = block_data.justification;
+      to_insert.message_queue = block_data.message_queue;
+      to_insert.receipt = block_data.receipt;
+    }
+
+    OUTCOME_TRY(encoded_block_data, scale::encode(to_insert));
+    OUTCOME_TRY(putWithPrefix(*storage_,
+                              Prefix::BLOCK_DATA,
+                              block_number,
+                              block_data.hash,
+                              Buffer{encoded_block_data}));
+    return outcome::success();
   }
 
   outcome::result<primitives::BlockHash> KeyValueBlockStorage::putBlock(
       const primitives::Block &block) {
-    OUTCOME_TRY(encoded_block_header, scale::encode(block.header));
-    auto block_hash = hasher_->blake2b_256(encoded_block_header);
     auto block_in_storage =
         getWithPrefix(*storage_, Prefix::HEADER, block.header.number);
     if (block_in_storage.has_value()) {
@@ -102,19 +158,14 @@ namespace kagome::blockchain {
     }
 
     // insert our block's parts into the database-
-    OUTCOME_TRY(encoded_header, scale::encode(block.header));
-    OUTCOME_TRY(putWithPrefix(*storage_,
-                              Prefix::HEADER,
-                              block.header.number,
-                              block_hash,
-                              Buffer{encoded_header}));
+    OUTCOME_TRY(block_hash, putBlockHeader(block.header));
 
-    OUTCOME_TRY(encoded_body, scale::encode(block.body));
-    OUTCOME_TRY(putWithPrefix(*storage_,
-                              Prefix::BODY,
-                              block.header.number,
-                              block_hash,
-                              Buffer{encoded_body}));
+    primitives::BlockData block_data;
+    block_data.hash = block_hash;
+    block_data.header = block.header;
+    block_data.body = block.body;
+
+    OUTCOME_TRY(putBlockData(block.header.number, block_data));
     logger_->info("Added block. Number: {}. Hash: {}. State root: {}",
                   block.header.number,
                   block_hash.toHex(),
@@ -125,14 +176,10 @@ namespace kagome::blockchain {
   outcome::result<void> KeyValueBlockStorage::putJustification(
       const primitives::Justification &j,
       const primitives::BlockHash &hash,
-      const primitives::BlockNumber &number) {
-    // insert justification into the database
-    OUTCOME_TRY(encoded_justification, scale::encode(j));
-    OUTCOME_TRY(putWithPrefix(*storage_,
-                              Prefix::JUSTIFICATION,
-                              number,
-                              hash,
-                              Buffer{encoded_justification}));
+      const primitives::BlockNumber &block_number) {
+    // insert justification into the database as a part of BlockData
+    primitives::BlockData block_data{.justification = j, .hash = hash};
+    OUTCOME_TRY(putBlockData(block_number, block_data));
     return outcome::success();
   }
 
@@ -147,7 +194,7 @@ namespace kagome::blockchain {
       return rm_res;
     }
 
-    auto body_lookup_key = prependPrefix(block_lookup_key, Prefix::BODY);
+    auto body_lookup_key = prependPrefix(block_lookup_key, Prefix::BLOCK_DATA);
     if (auto rm_res = storage_->remove(body_lookup_key); !rm_res) {
       logger_->error("could not remove body from the storage: {}",
                      rm_res.error().message());

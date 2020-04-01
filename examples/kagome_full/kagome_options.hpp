@@ -80,6 +80,8 @@ namespace kagome::options {
      */
     uint8_t getVerbosity() const;
 
+    bool isGenesisEpoch() const;
+
    private:
     /**
      * @brief ensures that file path exists
@@ -105,6 +107,7 @@ namespace kagome::options {
     uint16_t p2p_port_{};
     uint16_t rpc_port_{};
     uint8_t verbosity_{};
+    bool is_genesis_epoch_{};
     common::Logger logger_ = common::createLogger("Kagome options parser: ");
   };
 }  // namespace kagome::options

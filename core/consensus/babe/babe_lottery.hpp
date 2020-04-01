@@ -7,6 +7,7 @@
 #define KAGOME_BABE_LOTTERY_HPP
 
 #include <boost/optional.hpp>
+
 #include "consensus/babe/types/epoch.hpp"
 #include "crypto/sr25519_types.hpp"
 
@@ -32,14 +33,18 @@ namespace kagome::consensus {
 
     /**
      * Compute leadership for all slots in the given epoch
-     * @param epoch structure; "epoch_index" MUST be set to the epoch, for which
-     * the randomness is to be computed
-     * @param keypair of this node
+     * @param randomness is a seed to compute leadership
+     * @param threshold is a maximum value that is considered valid by vrf
+     * @param epoch_length is the length of resulting array (each element
+     * corresponds to randomness in a slot)
      * @return vector of outputs; none means the peer was not chosen as a leader
      * for that slot, value contains VRF value and proof
      */
     virtual SlotsLeadership slotsLeadership(
-        const Epoch &epoch, crypto::SR25519Keypair keypair) const = 0;
+        const Randomness &randomness,
+        const Threshold threshold,
+        EpochIndex epoch_length,
+        crypto::SR25519Keypair keypair) const = 0;
 
     /**
      * Compute randomness for the next epoch

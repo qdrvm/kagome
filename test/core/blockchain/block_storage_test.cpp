@@ -9,6 +9,7 @@
 #include "blockchain/impl/common.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
+#include "scale/scale.hpp"
 #include "storage/database_error.hpp"
 #include "testutil/outcome.hpp"
 
@@ -16,8 +17,12 @@ using kagome::blockchain::KeyValueBlockStorage;
 using kagome::common::Buffer;
 using kagome::crypto::HasherMock;
 using kagome::primitives::Block;
+using kagome::primitives::BlockBody;
+using kagome::primitives::BlockData;
 using kagome::primitives::BlockHash;
+using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockNumber;
+using kagome::scale::encode;
 using kagome::storage::face::GenericStorageMock;
 using testing::_;
 using testing::Return;
@@ -27,7 +32,12 @@ class BlockStorageTest : public testing::Test {
   void SetUp() override {
     EXPECT_CALL(*hasher, blake2b_256(_)).WillOnce(Return(genesis_hash));
     EXPECT_CALL(*storage, get(_))
-        .WillOnce(Return(kagome::blockchain::Error::BLOCK_NOT_FOUND));
+        .WillOnce(Return(
+            kagome::blockchain::Error::BLOCK_NOT_FOUND))  // to check that block
+                                                          // does not exist
+        .WillRepeatedly(Return(
+            kagome::storage::DatabaseError::
+                NOT_FOUND));  // check of block data during block insertion
 
     root_hash.put(std::vector<uint8_t>(32ul, 1));
     EXPECT_CALL(*storage, put(_, _)).WillRepeatedly(Return(outcome::success()));
@@ -41,6 +51,7 @@ class BlockStorageTest : public testing::Test {
       std::make_shared<GenericStorageMock<Buffer, Buffer>>();
   Block genesis;
   BlockHash genesis_hash{{1, 2, 3, 4}};
+  BlockHash block_hash{{4, 3, 2, 1}};
   Buffer root_hash;
 };
 
@@ -52,7 +63,6 @@ class BlockStorageTest : public testing::Test {
  * underlying storage (which is actually supposed to be empty)
  */
 TEST_F(BlockStorageTest, CreateWithExistingGenesis) {
-  EXPECT_CALL(*hasher, blake2b_256(_)).WillOnce(Return(genesis_hash));
   EXPECT_CALL(*storage, get(_))
       .WillOnce(Return(Buffer{1, 1, 1, 1}))
       .WillOnce(Return(Buffer{1, 1, 1, 1}));
@@ -69,7 +79,6 @@ TEST_F(BlockStorageTest, CreateWithExistingGenesis) {
  * @then initialisation will fail
  */
 TEST_F(BlockStorageTest, CreateWithStorageError) {
-  EXPECT_CALL(*hasher, blake2b_256(_)).WillOnce(Return(genesis_hash));
   EXPECT_CALL(*storage, get(_))
       .WillOnce(Return(Buffer{1, 1, 1, 1}))
       .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
@@ -86,8 +95,6 @@ TEST_F(BlockStorageTest, CreateWithStorageError) {
  */
 TEST_F(BlockStorageTest, PutBlock) {
   EXPECT_CALL(*hasher, blake2b_256(_)).WillOnce(Return(genesis_hash));
-  EXPECT_CALL(*storage, get(_))
-      .WillOnce(Return(kagome::blockchain::Error::BLOCK_NOT_FOUND));
   EXPECT_OUTCOME_TRUE_1(block_storage->putBlock(genesis));
 }
 
@@ -97,7 +104,6 @@ TEST_F(BlockStorageTest, PutBlock) {
  * @then block is not put and an error is returned
  */
 TEST_F(BlockStorageTest, PutExistingBlock) {
-  EXPECT_CALL(*hasher, blake2b_256(_)).WillOnce(Return(genesis_hash));
   EXPECT_CALL(*storage, get(_))
       .WillOnce(Return(Buffer{1, 1, 1, 1}))
       .WillOnce(Return(Buffer{1, 1, 1, 1}));
@@ -111,7 +117,6 @@ TEST_F(BlockStorageTest, PutExistingBlock) {
  * @then block is not put and error is returned
  */
 TEST_F(BlockStorageTest, PutWithStorageError) {
-  EXPECT_CALL(*hasher, blake2b_256(_)).WillOnce(Return(genesis_hash));
   EXPECT_CALL(*storage, get(_))
       .WillOnce(Return(Buffer{1, 1, 1, 1}))
       .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));

@@ -21,7 +21,10 @@ namespace kagome::consensus {
                     std::shared_ptr<crypto::Hasher> hasher);
 
     SlotsLeadership slotsLeadership(
-        const Epoch &epoch, crypto::SR25519Keypair keypair) const override;
+        const Randomness &randomness,
+        const Threshold threshold,
+        EpochIndex epoch_length,
+        crypto::SR25519Keypair keypair) const override;
 
     Randomness computeRandomness(Randomness last_epoch_randomness,
                                  EpochIndex last_epoch_index) override;

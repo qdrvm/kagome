@@ -7,12 +7,15 @@
 #define KAGOME_CORE_PRIMITIVES_BABE_CONFIGURATION_HPP
 
 #include "common/blob.hpp"
+#include "consensus/babe/common.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "primitives/authority.hpp"
 
 namespace kagome::primitives {
 
   using BabeSlotNumber = uint64_t;
+  using BabeClock = clock::SystemClock;
+  using BabeDuration = BabeClock::Duration;
   using Randomness = common::Blob<crypto::constants::sr25519::vrf::OUTPUT_SIZE>;
 
   /// Configuration data used by the BABE consensus engine.
@@ -21,7 +24,7 @@ namespace kagome::primitives {
     /// the value provided by this type at genesis will be used.
     ///
     /// Dynamic slot duration may be supported in the future.
-    uint64_t slot_duration;
+    BabeDuration slot_duration;
 
     BabeSlotNumber epoch_length;
 
@@ -43,15 +46,22 @@ namespace kagome::primitives {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const BabeConfiguration &config) {
-    return s << config.slot_duration << config.epoch_length << config.c
+    size_t slot_duration_u64 =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            config.slot_duration)
+            .count();
+    return s << slot_duration_u64 << config.epoch_length << config.c
              << config.genesis_authorities << config.randomness;
   }
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, BabeConfiguration &config) {
-    return s >> config.slot_duration >> config.epoch_length >> config.c
-           >> config.genesis_authorities >> config.randomness;
+    size_t slot_duration_u64{};
+    s >> slot_duration_u64 >> config.epoch_length >> config.c
+        >> config.genesis_authorities >> config.randomness;
+    config.slot_duration = std::chrono::milliseconds(slot_duration_u64);
+    return s;
   }
 }  // namespace kagome::primitives
 

@@ -33,8 +33,8 @@
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
-#include "consensus/babe/impl/babe_observer_impl.hpp"
-#include "consensus/babe/impl/epoch_storage_dumb.hpp"
+#include "consensus/babe/impl/babe_synchronizer_impl.hpp"
+#include "consensus/babe/impl/epoch_storage_impl.hpp"
 #include "consensus/grandpa/chain.hpp"
 #include "consensus/grandpa/gossiper.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
@@ -54,6 +54,8 @@
 #include "network/impl/router_libp2p.hpp"
 #include "network/sync_protocol_client.hpp"
 #include "network/sync_protocol_observer.hpp"
+#include "network/types/sync_clients_set.hpp"
+#include "runtime/binaryen/runtime_api/babe_api_impl.hpp"
 #include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
 #include "runtime/binaryen/runtime_api/core_impl.hpp"
 #include "runtime/binaryen/runtime_api/grandpa_impl.hpp"
@@ -190,52 +192,6 @@ namespace kagome::injector {
           injector.template create<application::ConfigurationStorage &>();
 
       initialized = std::make_shared<network::PeerList>(cfg.getBootNodes());
-      return initialized.value();
-    };
-
-    auto get_authority_index =
-        [](const auto &injector) -> sptr<primitives::AuthorityIndex> {
-      static auto initialized =
-          boost::optional<sptr<primitives::AuthorityIndex>>(boost::none);
-      if (initialized) {
-        return initialized.value();
-      }
-
-      auto core = injector.template create<sptr<runtime::Core>>();
-      if (auto version_res = core->version(); version_res) {
-        auto version = version_res.value();
-        spdlog::debug("Spec name: {}. Implementation name: {}",
-                      version.spec_name,
-                      version.impl_name);
-      } else {
-        common::raise(version_res.error());
-      }
-
-      auto grandpa_api = injector.template create<sptr<runtime::Grandpa>>();
-      auto &keys = injector.template create<application::KeyStorage &>();
-      auto &&local_pair = keys.getLocalEd25519Keypair();
-      auto &public_key = local_pair.public_key;
-      auto &&authorities_res = grandpa_api->authorities(
-          primitives::BlockId(primitives::BlockNumber{0}));
-      if (authorities_res.has_error()) {
-        common::raise(authorities_res.error());
-      }
-      auto &&authorities = authorities_res.value();
-
-      uint64_t index = 0;
-      for (auto &auth : authorities) {
-        if (public_key == auth.id.id) {
-          break;
-        }
-        ++index;
-      }
-      if (index >= authorities.size()) {
-        common::raise(InjectorError::INDEX_OUT_OF_BOUND);
-      }
-      //      uint64_t index = 0;
-
-      initialized = std::make_shared<primitives::AuthorityIndex>(
-          primitives::AuthorityIndex{index});
       return initialized.value();
     };
 
@@ -483,6 +439,11 @@ namespace kagome::injector {
 
     auto get_sync_clients_set =
         [](const auto &injector) -> sptr<network::SyncClientsSet> {
+      static auto initialized =
+          boost::optional<sptr<network::SyncClientsSet>>(boost::none);
+      if (initialized) {
+        return initialized.value();
+      }
       auto configuration_storage =
           injector.template create<sptr<application::ConfigurationStorage>>();
       auto peer_infos = configuration_storage->getBootNodes().peers;
@@ -493,12 +454,47 @@ namespace kagome::injector {
           injector.template create<sptr<blockchain::BlockHeaderRepository>>();
 
       auto res = std::make_shared<network::SyncClientsSet>();
+      auto current_peer_synchronizer =
+          injector.template create<sptr<consensus::Synchronizer>>();
+      res->clients.insert(current_peer_synchronizer);
+
+      auto current_peer_info =
+          injector.template create<libp2p::peer::PeerInfo>();
       for (const auto &peer_info : peer_infos) {
-        res->clients.insert(std::make_shared<consensus::SynchronizerImpl>(
-            *host, peer_info, block_tree, block_header_repository));
+        if (peer_info.id != current_peer_info.id) {
+          res->clients.insert(std::make_shared<consensus::SynchronizerImpl>(
+              *host, peer_info, block_tree, block_header_repository));
+        }
       }
+      initialized = res;
       return res;
     };
+
+    auto get_babe = [](const auto &injector) -> sptr<consensus::Babe> {
+      static auto initialized =
+          boost::optional<sptr<consensus::BabeImpl>>(boost::none);
+      if (initialized) {
+        return *initialized;
+      }
+
+      initialized = std::make_shared<consensus::BabeImpl>(
+          injector.template create<sptr<consensus::BabeLottery>>(),
+          injector.template create<sptr<consensus::BabeSynchronizer>>(),
+          injector.template create<sptr<consensus::BabeBlockValidator>>(),
+          injector.template create<sptr<consensus::EpochStorage>>(),
+          injector.template create<sptr<runtime::BabeApi>>(),
+          injector.template create<sptr<runtime::Core>>(),
+          injector.template create<sptr<authorship::Proposer>>(),
+          injector.template create<sptr<blockchain::BlockTree>>(),
+          injector.template create<sptr<network::BabeGossiper>>(),
+          injector.template create<crypto::SR25519Keypair>(),
+          injector.template create<sptr<clock::SystemClock>>(),
+          injector.template create<sptr<crypto::Hasher>>(),
+          injector.template create<uptr<clock::Timer>>());
+      return *initialized;
+    };
+
+    auto get_babe_observer = get_babe;
 
   }  // namespace
 
@@ -538,8 +534,6 @@ namespace kagome::injector {
             std::move(get_peer_keypair))[boost::di::override],
         // bind boot nodes
         di::bind<network::PeerList>.to(std::move(get_boot_nodes)),
-        // find and bind authority id
-        di::bind<primitives::AuthorityIndex>.to(std::move(get_authority_index)),
 
         // bind io_context: 1 per injector
         di::bind<::boost::asio::io_context>.in(
@@ -569,13 +563,14 @@ namespace kagome::injector {
         di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
         di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
         di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
-        di::bind<consensus::Babe>.template to<consensus::BabeImpl>(),
+        di::bind<consensus::Babe>.to(std::move(get_babe)),
+        di::bind<consensus::BabeSynchronizer>.template to<consensus::BabeSynchronizerImpl>(),
         di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
-        di::bind<network::BabeObserver>.template to<consensus::BabeObserverImpl>(),
+        di::bind<network::BabeObserver>.to(std::move(get_babe_observer)),
         di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::LauncherImpl>(),
         di::bind<consensus::grandpa::Launcher>.template to<consensus::grandpa::LauncherImpl>(),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
-        di::bind<consensus::EpochStorage>.template to<consensus::EpochStorageDumb>(),
+        di::bind<consensus::EpochStorage>.template to<consensus::EpochStorageImpl>(),
         di::bind<consensus::Synchronizer>.template to<consensus::SynchronizerImpl>(),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
         di::bind<crypto::ED25519Provider>.template to<crypto::ED25519ProviderImpl>(),
@@ -596,6 +591,7 @@ namespace kagome::injector {
         di::bind<runtime::Metadata>.template to<runtime::binaryen::MetadataImpl>(),
         di::bind<runtime::Grandpa>.template to<runtime::binaryen::GrandpaImpl>(),
         di::bind<runtime::Core>.template to<runtime::binaryen::CoreImpl>(),
+        di::bind<runtime::BabeApi>.template to<runtime::binaryen::BabeApiImpl>(),
         di::bind<runtime::BlockBuilder>.template to<runtime::binaryen::BlockBuilderImpl>(),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),

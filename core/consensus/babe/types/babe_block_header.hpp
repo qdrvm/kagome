@@ -8,7 +8,6 @@
 
 #include "consensus/babe/common.hpp"
 #include "crypto/sr25519_types.hpp"
-#include "primitives/authority.hpp"
 #include "primitives/common.hpp"
 #include "primitives/digest.hpp"
 
@@ -22,7 +21,7 @@ namespace kagome::consensus {
     /// output of VRF function
     crypto::VRFOutput vrf_output;
     /// authority index of the producer
-    primitives::AuthorityIndex authority_index{};
+    size_t authority_index{};
   };
 
   /**

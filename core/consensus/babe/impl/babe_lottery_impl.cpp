@@ -27,23 +27,25 @@ namespace kagome::consensus {
   }
 
   BabeLottery::SlotsLeadership BabeLotteryImpl::slotsLeadership(
-      const Epoch &epoch, crypto::SR25519Keypair keypair) const {
+      const Randomness &randomness,
+      const Threshold threshold,
+      BabeSlotNumber epoch_length,
+      crypto::SR25519Keypair keypair) const {
     BabeLottery::SlotsLeadership result;
-    result.reserve(epoch.epoch_duration);
+    result.reserve(epoch_length);
 
     // randomness || slot number
     Buffer vrf_input(vrf_constants::OUTPUT_SIZE + 8, 0);
 
     // the first part - randomness - is always the same, while the slot number
     // obviously changes depending on the slot we are computing for
-    std::copy(
-        epoch.randomness.begin(), epoch.randomness.end(), vrf_input.begin());
+    std::copy(randomness.begin(), randomness.end(), vrf_input.begin());
 
     auto slot_number_begin = vrf_input.begin() + vrf_constants::OUTPUT_SIZE;
-    for (BabeSlotNumber i = 0; i < epoch.epoch_duration; ++i) {
+    for (BabeSlotNumber i = 0; i < epoch_length; ++i) {
       auto slot_bytes = common::uint64_t_to_bytes(i);
       std::copy(slot_bytes.begin(), slot_bytes.end(), slot_number_begin);
-      auto sign_opt = vrf_provider_->sign(vrf_input, keypair, epoch.threshold);
+      auto sign_opt = vrf_provider_->sign(vrf_input, keypair, threshold);
       result.push_back(sign_opt);
     }
 

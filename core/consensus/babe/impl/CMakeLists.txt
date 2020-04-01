@@ -20,6 +20,14 @@ target_link_libraries(threshold_util
     primitives
     )
 
+add_library(babe_digests_util
+    babe_digests_util.cpp
+    )
+target_link_libraries(babe_digests_util
+    primitives
+    scale
+    )
+
 add_library(babe
     babe_impl.cpp
     babe_impl.hpp
@@ -34,14 +42,15 @@ target_link_libraries(babe
     blob
     outcome
     p2p::p2p_peer_id
+    babe_digests_util
     threshold_util
+    block_tree_error
     )
 
-add_library(babe_observer
-    babe_observer_impl.cpp
-    babe_observer_impl.hpp
+add_library(babe_synchronizer
+    babe_synchronizer_impl.cpp
     )
-target_link_libraries(babe_observer
-    babe
+target_link_libraries(babe_synchronizer
     logger
+    primitives
     )

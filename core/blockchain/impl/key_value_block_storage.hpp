@@ -18,7 +18,11 @@ namespace kagome::blockchain {
     using GenesisHandler = std::function<void(const primitives::Block &)>;
 
    public:
-    enum class Error { BLOCK_EXISTS = 1 };
+    enum class Error {
+      BLOCK_EXISTS = 1,
+      BODY_DOES_NOT_EXIST,
+      JUSTIFICATION_DOES_NOT_EXIST
+    };
 
     ~KeyValueBlockStorage() override = default;
 
@@ -38,9 +42,16 @@ namespace kagome::blockchain {
         const primitives::BlockId &id) const override;
     outcome::result<primitives::BlockBody> getBlockBody(
         const primitives::BlockId &id) const override;
+    outcome::result<primitives::BlockData> getBlockData(
+        const primitives::BlockId &id) const override;
     outcome::result<primitives::Justification> getJustification(
         const primitives::BlockId &block) const override;
 
+    outcome::result<primitives::BlockHash> putBlockHeader(
+        const primitives::BlockHeader &header) override;
+    outcome::result<void> putBlockData(
+        primitives::BlockNumber block_number,
+        const primitives::BlockData &block_data) override;
     outcome::result<primitives::BlockHash> putBlock(
         const primitives::Block &block) override;
 

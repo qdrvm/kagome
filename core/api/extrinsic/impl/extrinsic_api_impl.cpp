@@ -5,6 +5,7 @@
 
 #include "api/extrinsic/impl/extrinsic_api_impl.hpp"
 
+#include <boost/system/error_code.hpp>
 #include "primitives/transaction.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
 #include "transaction_pool/transaction_pool.hpp"
@@ -31,10 +32,10 @@ namespace kagome::api {
       const primitives::Extrinsic &extrinsic) {
     OUTCOME_TRY(res, api_->validate_transaction(extrinsic));
 
-    return kagome::visit_in_place(
+    return visit_in_place(
         res,
         [&](const primitives::TransactionValidityError &e) {
-          return kagome::visit_in_place(
+          return visit_in_place(
               e,
               // return either invalid or unknown validity error
               [](const auto &validity_error)
@@ -67,12 +68,14 @@ namespace kagome::api {
   outcome::result<std::vector<primitives::Extrinsic>>
   ExtrinsicApiImpl::pendingExtrinsics() {
     BOOST_ASSERT_MSG(false, "not implemented");  // NOLINT
+    return outcome::failure(boost::system::error_code{});
   }
 
   outcome::result<std::vector<common::Hash256>>
   ExtrinsicApiImpl::removeExtrinsic(
       const std::vector<primitives::ExtrinsicKey> &keys) {
     BOOST_ASSERT_MSG(false, "not implemented");  // NOLINT
+    return outcome::failure(boost::system::error_code{});
   }
 
 }  // namespace kagome::api

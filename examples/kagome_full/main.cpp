@@ -30,6 +30,7 @@ int main(int argc, char **argv) {
   auto p2p_port = options_parser.getP2PPort();
   auto rpc_port = options_parser.getRpcPort();
   auto verbosity = options_parser.getVerbosity();
+  bool is_genesis_epoch = options_parser.isGenesisEpoch();
 
   auto &&app = std::make_shared<kagome::application::KagomeApplicationImpl>(
       kagome_config,
@@ -37,6 +38,7 @@ int main(int argc, char **argv) {
       level_db_config,
       p2p_port,
       rpc_port,
+      is_genesis_epoch,
       verbosity);
   app->run();
 

@@ -16,9 +16,11 @@ namespace kagome::application {
                                                const std::string &leveldb_path,
                                                uint16_t p2p_port,
                                                uint16_t rpc_port,
+                                               bool is_genesis_epoch,
                                                uint8_t verbosity)
       : injector_{injector::makeApplicationInjector(
-          config_path, keystore_path, leveldb_path, p2p_port, rpc_port)},
+            config_path, keystore_path, leveldb_path, p2p_port, rpc_port)},
+        is_genesis_epoch_{is_genesis_epoch},
         logger_(common::createLogger("Application")) {
     spdlog::set_level(static_cast<spdlog::level::level_enum>(verbosity));
 
@@ -34,47 +36,21 @@ namespace kagome::application {
     router_ = injector_.create<sptr<network::Router>>();
   }
 
-  // TODO (yuraz) rewrite when there will be more info
-  Epoch KagomeApplicationImpl::makeInitialEpoch() {
-    std::vector<primitives::Authority> authorities;
-    auto &&session_keys = config_storage_->getSessionKeys();
-    authorities.reserve(session_keys.size());
-
-    for (auto &item : session_keys) {
-      authorities.push_back(primitives::Authority{{item}, 1u});
-    }
-
-    // some threshold value resulting in producing block in every slot. In
-    // future will be calculated using runtime
-    boost::multiprecision::uint128_t threshold(
-        "102084710076281554150585127412395147264");
-
-    Randomness rnd{};
-    rnd.fill(0u);
-
-    Epoch value{.epoch_index = 0u,
-                .start_slot = 0u,
-                .epoch_duration = 100,
-                .slot_duration = 1000ms,
-                .authorities = authorities,
-                .threshold = threshold,
-                .randomness = rnd};
-
-    return value;
-  }
-
   void KagomeApplicationImpl::run() {
     extrinsic_api_service_->start();
-    auto epoch = makeInitialEpoch();
-    babe_->runEpoch(std::move(epoch), clock_->now());
-
+    if (is_genesis_epoch_) {
+      babe_->runGenesisEpoch();
+    }
     grandpa_launcher_->start();
     io_context_->post([this] {
       const auto &current_peer_info =
           injector_.template create<libp2p::peer::PeerInfo>();
       auto &host = injector_.template create<libp2p::Host &>();
       for (const auto &ma : current_peer_info.addresses) {
-        BOOST_ASSERT_MSG(host.listen(ma), "cannot listen");
+        bool listen = host.listen(ma).has_value();
+        if (not listen) {
+          BOOST_ASSERT(false);
+        }
       }
       this->router_->init();
     });

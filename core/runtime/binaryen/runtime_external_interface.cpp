@@ -66,8 +66,8 @@ namespace kagome::runtime::binaryen {
 
   wasm::Literal RuntimeExternalInterface::callImport(
       wasm::Function *import, wasm::LiteralList &arguments) {
+    // TODO(kamilsa): PRE-359 Replace ifs with switch case
     if (import->module == env) {
-      logger_->debug("call import: {}", import->base);
 
       /// memory externals
       /// ext_malloc
@@ -80,7 +80,6 @@ namespace kagome::runtime::binaryen {
       if (import->base == ext_free) {
         checkArguments(import->base.c_str(), 1, arguments.size());
         extension_->ext_free(arguments.at(0).geti32());
-        logger_->debug("ext_free finished");
         return wasm::Literal();
       }
       /// storage externals

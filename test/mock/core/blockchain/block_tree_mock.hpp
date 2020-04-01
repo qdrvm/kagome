@@ -16,9 +16,22 @@ namespace kagome::blockchain {
         getBlockBody,
         outcome::result<primitives::BlockBody>(const primitives::BlockId &));
 
+    MOCK_CONST_METHOD1(
+        getBlockHeader,
+        outcome::result<primitives::BlockHeader>(const primitives::BlockId &));
+
     MOCK_CONST_METHOD1(getBlockJustification,
                        outcome::result<primitives::Justification>(
                            const primitives::BlockId &));
+
+    MOCK_METHOD1(addBlockHeader,
+                 outcome::result<void>(primitives::BlockHeader header));
+
+    MOCK_METHOD3(
+        addBlockBody,
+        outcome::result<void>(primitives::BlockNumber block_number,
+                              const primitives::BlockHash &block_hash,
+                              const primitives::BlockBody &block_body));
 
     MOCK_METHOD1(addBlock, outcome::result<void>(primitives::Block));
 

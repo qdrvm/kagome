@@ -53,13 +53,12 @@ namespace kagome::application {
                           const std::string &leveldb_path,
                           uint16_t p2p_port,
                           uint16_t rpc_port,
+                          bool is_genesis_epoch,
                           uint8_t verbosity);
 
     void run() override;
 
    private:
-    Epoch makeInitialEpoch();
-
     // need to keep all of these instances, since injector itself is destroyed
     InjectorType injector_;
     sptr<boost::asio::io_context> io_context_;
@@ -71,6 +70,7 @@ namespace kagome::application {
     sptr<GrandpaLauncher> grandpa_launcher_;
     sptr<network::Router> router_;
 
+    bool is_genesis_epoch_;
     common::Logger logger_;
   };
 

@@ -7,9 +7,11 @@
 #define KAGOME_BABE_HPP
 
 #include <boost/optional.hpp>
+
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/types/babe_meta.hpp"
 #include "consensus/babe/types/epoch.hpp"
+#include "network/babe_observer.hpp"
 
 namespace kagome::consensus {
   /**
@@ -17,9 +19,14 @@ namespace kagome::consensus {
    * the two parts in that consensus; the other is Grandpa finality
    * Read more: https://research.web3.foundation/en/latest/polkadot/BABE/Babe/
    */
-  class Babe {
+  class Babe : public network::BabeObserver {
    public:
-    virtual ~Babe() = default;
+    ~Babe() override = default;
+
+    /**
+     * Creates and executes genesis epoch
+     */
+    virtual void runGenesisEpoch() = 0;
 
     /**
      * Start a Babe production
@@ -37,12 +44,6 @@ namespace kagome::consensus {
      */
     virtual void runEpoch(Epoch epoch,
                           BabeTimePoint starting_slot_finish_time) = 0;
-
-    /**
-     * Get a metainformation about current BABE's state
-     * @return reference to BabeMeta
-     */
-    virtual BabeMeta getBabeMeta() const = 0;
   };
 }  // namespace kagome::consensus
 

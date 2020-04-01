@@ -115,6 +115,27 @@ namespace kagome::blockchain {
         tree_meta_{std::move(meta)},
         hasher_{std::move(hasher)} {}
 
+  outcome::result<void> BlockTreeImpl::addBlockHeader(
+      primitives::BlockHeader header) {
+    auto parent = tree_->getByHash(header.parent_hash);
+    if (!parent) {
+      return BlockTreeError::NO_PARENT;
+    }
+    OUTCOME_TRY(block_hash, storage_->putBlockHeader(header));
+    // update local meta with the new block
+    auto new_node =
+        std::make_shared<TreeNode>(block_hash, header.number, parent);
+    parent->children.push_back(new_node);
+
+    tree_meta_->leaves.insert(new_node->block_hash);
+    tree_meta_->leaves.erase(parent->block_hash);
+    if (new_node->depth > tree_meta_->deepest_leaf.get().depth) {
+      tree_meta_->deepest_leaf = *new_node;
+    }
+
+    return outcome::success();
+  }
+
   outcome::result<void> BlockTreeImpl::addBlock(primitives::Block block) {
     // first of all, check if we know parent of this block; if not, we cannot
     // insert it
@@ -134,6 +155,15 @@ namespace kagome::blockchain {
       tree_meta_->deepest_leaf = *new_node;
     }
 
+    return outcome::success();
+  }
+
+  outcome::result<void> BlockTreeImpl::addBlockBody(
+      primitives::BlockNumber block_number,
+      const primitives::BlockHash &block_hash,
+      const primitives::BlockBody &body) {
+    primitives::BlockData block_data{.hash = block_hash, .body = body};
+    OUTCOME_TRY(storage_->putBlockData(block_number, block_data));
     return outcome::success();
   }
 
@@ -160,6 +190,11 @@ namespace kagome::blockchain {
                node->depth);
 
     return outcome::success();
+  }
+
+  outcome::result<primitives::BlockHeader> BlockTreeImpl::getBlockHeader(
+      const primitives::BlockId &block) const {
+    return storage_->getBlockHeader(block);
   }
 
   outcome::result<primitives::BlockBody> BlockTreeImpl::getBlockBody(
