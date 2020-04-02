@@ -184,8 +184,7 @@ TEST_F(BabeTest, Success) {
   epoch_.randomness.fill(0);
   EXPECT_CALL(
       *lottery_,
-      slotsLeadership(
-          epoch_.randomness, A<Threshold>(), epoch_.epoch_duration, keypair_))
+      slotsLeadership(epoch_.randomness, _, epoch_.epoch_duration, keypair_))
       .Times(2)
       .WillRepeatedly(Return(leadership_));
 
