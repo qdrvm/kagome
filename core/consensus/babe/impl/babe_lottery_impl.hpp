@@ -22,11 +22,11 @@ namespace kagome::consensus {
 
     SlotsLeadership slotsLeadership(
         const Randomness &randomness,
-        const Threshold threshold,
+        const Threshold &threshold,
         EpochIndex epoch_length,
-        crypto::SR25519Keypair keypair) const override;
+        const crypto::SR25519Keypair &keypair) const override;
 
-    Randomness computeRandomness(Randomness last_epoch_randomness,
+    Randomness computeRandomness(const Randomness &last_epoch_randomness,
                                  EpochIndex last_epoch_index) override;
 
     void submitVRFValue(const crypto::VRFPreOutput &value) override;

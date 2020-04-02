@@ -23,7 +23,8 @@ namespace kagome::consensus {
    public:
     ~BabeSynchronizerImpl() override = default;
 
-    BabeSynchronizerImpl(std::shared_ptr<network::SyncClientsSet> sync_clients);
+    explicit BabeSynchronizerImpl(
+        std::shared_ptr<network::SyncClientsSet> sync_clients);
 
     void request(const primitives::BlockId &from,
                  const primitives::BlockHash &to,

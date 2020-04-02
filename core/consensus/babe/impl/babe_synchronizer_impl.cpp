@@ -41,7 +41,7 @@ namespace kagome::consensus {
                                    network::Direction::DESCENDING,
                                    boost::none};
 
-    return pollClients(request, {}, std::move(block_list_handler));
+    return pollClients(request, {}, block_list_handler);
   }
 
   void BabeSynchronizerImpl::pollClients(
@@ -79,7 +79,7 @@ namespace kagome::consensus {
             // proceed to the next client
             return self->pollClients(std::move(request),
                                      std::move(polled_clients),
-                                     std::move(requested_blocks_handler));
+                                     requested_blocks_handler);
           }
           auto response = std::move(response_res.value());
 

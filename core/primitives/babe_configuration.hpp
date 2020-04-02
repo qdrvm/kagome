@@ -24,9 +24,9 @@ namespace kagome::primitives {
     /// the value provided by this type at genesis will be used.
     ///
     /// Dynamic slot duration may be supported in the future.
-    BabeDuration slot_duration;
+    BabeDuration slot_duration{};
 
-    BabeSlotNumber epoch_length;
+    BabeSlotNumber epoch_length{};
 
     /// A constant value that is used in the threshold calculation formula.
     /// Expressed as a rational where the first member of the tuple is the

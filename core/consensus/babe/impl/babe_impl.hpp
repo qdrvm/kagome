@@ -110,7 +110,8 @@ namespace kagome::consensus {
      */
     void processNextBlock(
         const primitives::BlockHeader &header,
-        std::function<void(const primitives::BlockHeader &)> new_block_handler);
+        const std::function<void(const primitives::BlockHeader &)>
+            &new_block_handler);
 
     outcome::result<primitives::PreRuntime> babePreDigest(
         const crypto::VRFOutput &output,

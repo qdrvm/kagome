@@ -28,9 +28,9 @@ namespace kagome::consensus {
 
   BabeLottery::SlotsLeadership BabeLotteryImpl::slotsLeadership(
       const Randomness &randomness,
-      const Threshold threshold,
+      const Threshold &threshold,
       BabeSlotNumber epoch_length,
-      crypto::SR25519Keypair keypair) const {
+      const crypto::SR25519Keypair &keypair) const {
     BabeLottery::SlotsLeadership result;
     result.reserve(epoch_length);
 
@@ -53,7 +53,7 @@ namespace kagome::consensus {
   }
 
   Randomness BabeLotteryImpl::computeRandomness(
-      Randomness last_epoch_randomness, EpochIndex last_epoch_index) {
+      const Randomness &last_epoch_randomness, EpochIndex last_epoch_index) {
     static std::unordered_set<EpochIndex> computed_epochs_randomnesses{};
 
     // the function must never be called twice for the same epoch

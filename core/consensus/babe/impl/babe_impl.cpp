@@ -351,10 +351,9 @@ namespace kagome::consensus {
 
   void BabeImpl::processNextBlock(
       const primitives::BlockHeader &header,
-      std::function<void(const primitives::BlockHeader &)> new_block_handler) {
+      const std::function<void(const primitives::BlockHeader &)>
+          &new_block_handler) {
     auto block_hash = hasher_->blake2b_256(scale::encode(header).value());
-
-    // TODO: check that error is about missing block
 
     // insert block_header if it is missing
     if (not block_tree_->getBlockHeader(block_hash)) {

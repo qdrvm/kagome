@@ -42,9 +42,9 @@ namespace kagome::consensus {
      */
     virtual SlotsLeadership slotsLeadership(
         const Randomness &randomness,
-        const Threshold threshold,
+        const Threshold &threshold,
         EpochIndex epoch_length,
-        crypto::SR25519Keypair keypair) const = 0;
+        const crypto::SR25519Keypair &keypair) const = 0;
 
     /**
      * Compute randomness for the next epoch
@@ -54,8 +54,9 @@ namespace kagome::consensus {
      *
      * @note must be called exactly ONCE per epoch, when it gets changed
      */
-    virtual Randomness computeRandomness(Randomness last_epoch_randomness,
-                                         EpochIndex new_epoch_index) = 0;
+    virtual Randomness computeRandomness(
+        const Randomness &last_epoch_randomness,
+        EpochIndex new_epoch_index) = 0;
 
     /**
      * Submit a VRF value for this epoch
