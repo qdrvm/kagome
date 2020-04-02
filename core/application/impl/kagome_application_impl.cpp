@@ -19,8 +19,12 @@ namespace kagome::application {
                                                uint16_t rpc_ws_port,
                                                bool is_genesis_epoch,
                                                uint8_t verbosity)
-      : injector_{injector::makeApplicationInjector(
-            config_path, keystore_path, leveldb_path, p2p_port, rpc_http_port, rpc_ws_port)},
+      : injector_{injector::makeApplicationInjector(config_path,
+                                                    keystore_path,
+                                                    leveldb_path,
+                                                    p2p_port,
+                                                    rpc_http_port,
+                                                    rpc_ws_port)},
         is_genesis_epoch_{is_genesis_epoch},
         logger_(common::createLogger("Application")) {
     spdlog::set_level(static_cast<spdlog::level::level_enum>(verbosity));

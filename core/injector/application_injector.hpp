@@ -540,129 +540,131 @@ namespace kagome::injector {
 
   auto get_babe_observer = get_babe;
 
-}  // namespace kagome::injector
+  template <typename... Ts>
+  auto makeApplicationInjector(const std::string &genesis_path,
+                               const std::string &keystore_path,
+                               const std::string &leveldb_path,
+                               uint16_t p2p_port,
+                               uint16_t rpc_http_port,
+                               uint16_t rpc_ws_port,
+                               Ts &&... args) {
+    using namespace boost;  // NOLINT;
 
-template <typename... Ts>
-auto makeApplicationInjector(const std::string &genesis_path,
-                             const std::string &keystore_path,
-                             const std::string &leveldb_path,
-                             uint16_t p2p_port,
-                             uint16_t rpc_http_port,
-                             uint16_t rpc_ws_port,
-                             Ts &&... args) {
-  using namespace boost;  // NOLINT;
+    // default values for configurations
+    api::HttpSession::Configuration http_config{};
+    api::WsSession::Configuration ws_config{};
+    transaction_pool::PoolModeratorImpl::Params pool_moderator_config{};
+    consensus::SynchronizerConfig synchronizer_config{};
+    transaction_pool::TransactionPool::Limits tp_pool_limits{};
+    return di::make_injector(
+        // bind configs
+        injector::useConfig(http_config),
+        injector::useConfig(ws_config),
+        injector::useConfig(pool_moderator_config),
+        injector::useConfig(synchronizer_config),
+        injector::useConfig(tp_pool_limits),
 
-  // default values for configurations
-  api::HttpSession::Configuration http_config{};
-  api::WsSession::Configuration ws_config{};
-  transaction_pool::PoolModeratorImpl::Params pool_moderator_config{};
-  consensus::SynchronizerConfig synchronizer_config{};
-  transaction_pool::TransactionPool::Limits tp_pool_limits{};
-  return di::make_injector(
-      // bind configs
-      injector::useConfig(http_config),
-      injector::useConfig(ws_config),
-      injector::useConfig(pool_moderator_config),
-      injector::useConfig(synchronizer_config),
-      injector::useConfig(tp_pool_limits),
+        // inherit host injector
+        libp2p::injector::makeHostInjector(),
+        // bind sr25519 keypair
+        di::bind<crypto::SR25519Keypair>.to(std::move(get_sr25519_keypair)),
+        // bind ed25519 keypair
+        di::bind<crypto::ED25519Keypair>.to(std::move(get_ed25519_keypair)),
+        // compose peer info
+        di::bind<libp2p::peer::PeerInfo>.to([p2p_port](const auto &injector) {
+          return get_peer_info(injector, p2p_port);
+        }),
+        // compose peer keypair
+        di::bind<libp2p::crypto::KeyPair>.to(
+            std::move(get_peer_keypair))[boost::di::override],
+        // bind boot nodes
+        di::bind<network::PeerList>.to(std::move(get_boot_nodes)),
 
-      // inherit host injector
-      libp2p::injector::makeHostInjector(),
-      // bind sr25519 keypair
-      di::bind<crypto::SR25519Keypair>.to(std::move(get_sr25519_keypair)),
-      // bind ed25519 keypair
-      di::bind<crypto::ED25519Keypair>.to(std::move(get_ed25519_keypair)),
-      // compose peer info
-      di::bind<libp2p::peer::PeerInfo>.to([p2p_port](const auto &injector) {
-        return get_peer_info(injector, p2p_port);
-      }),
-      // compose peer keypair
-      di::bind<libp2p::crypto::KeyPair>.to(
-          std::move(get_peer_keypair))[boost::di::override],
-      // bind boot nodes
-      di::bind<network::PeerList>.to(std::move(get_boot_nodes)),
+        // bind io_context: 1 per injector
+        di::bind<::boost::asio::io_context>.in(
+            di::extension::shared)[boost::di::override],
 
-      // bind io_context: 1 per injector
-      di::bind<::boost::asio::io_context>.in(
-          di::extension::shared)[boost::di::override],
+        // bind interfaces
+        di::bind<api::HttpListenerImpl>.to(
+            [rpc_http_port](const auto &injector) {
+              return get_jrpc_api_http_listener(injector, rpc_http_port);
+            }),
+        di::bind<api::WsListenerImpl>.to([rpc_ws_port](const auto &injector) {
+          return get_jrpc_api_ws_listener(injector, rpc_ws_port);
+        }),
+        di::bind<api::ReadonlyTrieBuilder>.template to<api::ReadonlyTrieBuilderImpl>(),
+        di::bind<api::ExtrinsicApi>.template to<api::ExtrinsicApiImpl>(),
+        di::bind<api::StateApi>.template to<api::StateApiImpl>(),
+        di::bind<api::ApiService>.to(std::move(get_jrpc_api_service)),
+        di::bind<api::JRpcServer>.template to<api::JRpcServerImpl>(),
+        di::bind<authorship::Proposer>.template to<authorship::ProposerImpl>(),
+        di::bind<authorship::BlockBuilder>.template to<authorship::BlockBuilderImpl>(),
+        di::bind<authorship::BlockBuilderFactory>.template to<authorship::BlockBuilderFactoryImpl>(),
+        di::bind<storage::BufferStorage>.to(
+            [leveldb_path](const auto &injector) {
+              return get_level_db(leveldb_path, injector);
+            }),
+        di::bind<blockchain::BlockStorage>.to(std::move(get_block_storage)),
+        di::bind<blockchain::BlockTree>.to(std::move(get_block_tree)),
+        di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::KeyValueBlockHeaderRepository>(),
+        di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
+        di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
+        di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
+        di::bind<consensus::Babe>.to(std::move(get_babe)),
+        di::bind<consensus::BabeSynchronizer>.template to<consensus::BabeSynchronizerImpl>(),
+        di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
+        di::bind<network::BabeObserver>.to(std::move(get_babe_observer)),
+        di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::LauncherImpl>(),
+        di::bind<consensus::grandpa::Launcher>.template to<consensus::grandpa::LauncherImpl>(),
+        di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
+        di::bind<consensus::EpochStorage>.template to<consensus::EpochStorageImpl>(),
+        di::bind<consensus::Synchronizer>.template to<consensus::SynchronizerImpl>(),
+        di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
+        di::bind<crypto::ED25519Provider>.template to<crypto::ED25519ProviderImpl>(),
+        di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
+        di::bind<crypto::SR25519Provider>.template to<crypto::SR25519ProviderImpl>(),
+        di::bind<crypto::VRFProvider>.template to<crypto::VRFProviderImpl>(),
+        di::bind<extensions::ExtensionFactory>.template to<extensions::ExtensionFactoryImpl>(),
+        di::bind<network::BabeGossiper>.template to<network::GossiperBroadcast>(),
+        di::bind<consensus::grandpa::Gossiper>.template to<network::GossiperBroadcast>(),
+        di::bind<network::Gossiper>.template to<network::GossiperBroadcast>(),
+        di::bind<network::Router>.template to<network::RouterLibp2p>(),
+        di::bind<network::SyncClientsSet>.to(std::move(get_sync_clients_set)),
+        di::bind<network::SyncProtocolClient>.template to<consensus::SynchronizerImpl>(),
+        di::bind<network::SyncProtocolObserver>.template to<consensus::SynchronizerImpl>(),
+        di::bind<runtime::TaggedTransactionQueue>.template to<runtime::binaryen::TaggedTransactionQueueImpl>(),
+        di::bind<runtime::ParachainHost>.template to<runtime::binaryen::ParachainHostImpl>(),
+        di::bind<runtime::OffchainWorker>.template to<runtime::binaryen::OffchainWorkerImpl>(),
+        di::bind<runtime::Metadata>.template to<runtime::binaryen::MetadataImpl>(),
+        di::bind<runtime::Grandpa>.template to<runtime::binaryen::GrandpaImpl>(),
+        di::bind<runtime::Core>.template to<runtime::binaryen::CoreImpl>(),
+        di::bind<runtime::BabeApi>.template to<runtime::binaryen::BabeApiImpl>(),
+        di::bind<runtime::BlockBuilder>.template to<runtime::binaryen::BlockBuilderImpl>(),
+        di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
+        di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
+        di::bind<storage::trie::TrieDbBackend>.to(
+            std::move(get_polkadot_trie_db_backend)),
+        di::bind<storage::trie::PolkadotTrieDb>.to(
+            std::move(get_polkadot_trie_db)),
+        di::bind<storage::trie::TrieDb>.to(std::move(get_trie_db)),
+        di::bind<storage::trie::TrieDbReader>.to(std::move(get_trie_db)),
+        di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
+        di::bind<runtime::WasmProvider>.template to<runtime::StorageWasmProvider>(),
+        di::bind<application::ConfigurationStorage>.to(
+            [genesis_path](const auto &injector) {
+              return get_configuration_storage(genesis_path, injector);
+            }),
+        di::bind<application::KeyStorage>.to(
+            [keystore_path](const auto &injector) {
+              return get_key_storage(keystore_path, injector);
+            }),
 
-      // bind interfaces
-      di::bind<api::HttpListenerImpl>.to([rpc_http_port](const auto &injector) {
-        return get_jrpc_api_http_listener(injector, rpc_http_port);
-      }),
-      di::bind<api::WsListenerImpl>.to([rpc_ws_port](const auto &injector) {
-        return get_jrpc_api_ws_listener(injector, rpc_ws_port);
-      }),
-      di::bind<api::ReadonlyTrieBuilder>.template to<api::ReadonlyTrieBuilderImpl>(),
-      di::bind<api::ExtrinsicApi>.template to<api::ExtrinsicApiImpl>(),
-      di::bind<api::StateApi>.template to<api::StateApiImpl>(),
-      di::bind<api::ApiService>.to(std::move(get_jrpc_api_service)),
-      di::bind<api::JRpcServer>.template to<api::JRpcServerImpl>(),
-      di::bind<authorship::Proposer>.template to<authorship::ProposerImpl>(),
-      di::bind<authorship::BlockBuilder>.template to<authorship::BlockBuilderImpl>(),
-      di::bind<authorship::BlockBuilderFactory>.template to<authorship::BlockBuilderFactoryImpl>(),
-      di::bind<storage::BufferStorage>.to([leveldb_path](const auto &injector) {
-        return get_level_db(leveldb_path, injector);
-      }),
-      di::bind<blockchain::BlockStorage>.to(std::move(get_block_storage)),
-      di::bind<blockchain::BlockTree>.to(std::move(get_block_tree)),
-      di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::KeyValueBlockHeaderRepository>(),
-      di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
-      di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
-      di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
-      di::bind<consensus::Babe>.to(std::move(get_babe)),
-      di::bind<consensus::BabeSynchronizer>.template to<consensus::BabeSynchronizerImpl>(),
-      di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
-      di::bind<network::BabeObserver>.to(std::move(get_babe_observer)),
-      di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::LauncherImpl>(),
-      di::bind<consensus::grandpa::Launcher>.template to<consensus::grandpa::LauncherImpl>(),
-      di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
-      di::bind<consensus::EpochStorage>.template to<consensus::EpochStorageImpl>(),
-      di::bind<consensus::Synchronizer>.template to<consensus::SynchronizerImpl>(),
-      di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
-      di::bind<crypto::ED25519Provider>.template to<crypto::ED25519ProviderImpl>(),
-      di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
-      di::bind<crypto::SR25519Provider>.template to<crypto::SR25519ProviderImpl>(),
-      di::bind<crypto::VRFProvider>.template to<crypto::VRFProviderImpl>(),
-      di::bind<extensions::ExtensionFactory>.template to<extensions::ExtensionFactoryImpl>(),
-      di::bind<network::BabeGossiper>.template to<network::GossiperBroadcast>(),
-      di::bind<consensus::grandpa::Gossiper>.template to<network::GossiperBroadcast>(),
-      di::bind<network::Gossiper>.template to<network::GossiperBroadcast>(),
-      di::bind<network::Router>.template to<network::RouterLibp2p>(),
-      di::bind<network::SyncClientsSet>.to(std::move(get_sync_clients_set)),
-      di::bind<network::SyncProtocolClient>.template to<consensus::SynchronizerImpl>(),
-      di::bind<network::SyncProtocolObserver>.template to<consensus::SynchronizerImpl>(),
-      di::bind<runtime::TaggedTransactionQueue>.template to<runtime::binaryen::TaggedTransactionQueueImpl>(),
-      di::bind<runtime::ParachainHost>.template to<runtime::binaryen::ParachainHostImpl>(),
-      di::bind<runtime::OffchainWorker>.template to<runtime::binaryen::OffchainWorkerImpl>(),
-      di::bind<runtime::Metadata>.template to<runtime::binaryen::MetadataImpl>(),
-      di::bind<runtime::Grandpa>.template to<runtime::binaryen::GrandpaImpl>(),
-      di::bind<runtime::Core>.template to<runtime::binaryen::CoreImpl>(),
-      di::bind<runtime::BabeApi>.template to<runtime::binaryen::BabeApiImpl>(),
-      di::bind<runtime::BlockBuilder>.template to<runtime::binaryen::BlockBuilderImpl>(),
-      di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
-      di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
-      di::bind<storage::trie::TrieDbBackend>.to(
-          std::move(get_polkadot_trie_db_backend)),
-      di::bind<storage::trie::PolkadotTrieDb>.to(
-          std::move(get_polkadot_trie_db)),
-      di::bind<storage::trie::TrieDb>.to(std::move(get_trie_db)),
-      di::bind<storage::trie::TrieDbReader>.to(std::move(get_trie_db)),
-      di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
-      di::bind<runtime::WasmProvider>.template to<runtime::StorageWasmProvider>(),
-      di::bind<application::ConfigurationStorage>.to(
-          [genesis_path](const auto &injector) {
-            return get_configuration_storage(genesis_path, injector);
-          }),
-      di::bind<application::KeyStorage>.to(
-          [keystore_path](const auto &injector) {
-            return get_key_storage(keystore_path, injector);
-          }),
+        // user-defined overrides...
+        std::forward<decltype(args)>(args)...);
+    auto leveldb_options = leveldb::Options();
+    leveldb_options.create_if_missing = true;
+  }
 
-      // user-defined overrides...
-      std::forward<decltype(args)>(args)...);
-  auto leveldb_options = leveldb::Options();
-  leveldb_options.create_if_missing = true;
 }  // namespace kagome::injector
 
 #endif  // KAGOME_CORE_INJECTOR_APPLICATION_INJECTOR_HPP
