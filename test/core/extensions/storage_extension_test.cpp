@@ -6,8 +6,9 @@
 #include "extensions/impl/storage_extension.hpp"
 
 #include <gtest/gtest.h>
+
 #include "core/runtime/mock_memory.hpp"
-#include "mock/core/storage/trie/trie_db_mock.hpp"
+#include "mock/core/storage/trie_db_overlay/trie_db_overlay_mock.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -17,7 +18,7 @@ using kagome::extensions::StorageExtension;
 using kagome::runtime::MockMemory;
 using kagome::runtime::SizeType;
 using kagome::runtime::WasmPointer;
-using kagome::storage::trie::TrieDbMock;
+using kagome::storage::trie_db_overlay::TrieDbOverlayMock;
 
 using ::testing::_;
 using ::testing::Return;
@@ -25,13 +26,14 @@ using ::testing::Return;
 class StorageExtensionTest : public ::testing::Test {
  public:
   void SetUp() override {
-    db_ = std::make_shared<TrieDbMock>();
+    db_ = std::make_shared<TrieDbOverlayMock>();
     memory_ = std::make_shared<MockMemory>();
-    storage_extension_ = std::make_shared<StorageExtension>(db_, memory_);
+    storage_extension_ =
+        std::make_shared<StorageExtension>(db_, memory_, nullptr);
   }
 
  protected:
-  std::shared_ptr<TrieDbMock> db_;
+  std::shared_ptr<TrieDbOverlayMock> db_;
   std::shared_ptr<MockMemory> memory_;
   std::shared_ptr<StorageExtension> storage_extension_;
 
@@ -262,8 +264,8 @@ TEST_P(OutcomeParameterizedTest, SetStorageTest) {
   // expect key-value pair was put to db
   EXPECT_CALL(*db_, put(key, value)).WillOnce(Return(GetParam()));
 
-  storage_extension_->ext_set_storage(key_pointer, key_size, value_pointer,
-                                      value_size);
+  storage_extension_->ext_set_storage(
+      key_pointer, key_size, value_pointer, value_size);
 }
 
 INSTANTIATE_TEST_CASE_P(Instance,

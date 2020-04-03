@@ -14,7 +14,8 @@ namespace kagome::extensions {
 
   ExtensionImpl::ExtensionImpl(
       const std::shared_ptr<runtime::WasmMemory> &memory,
-      std::shared_ptr<storage::trie_db_overlay::TrieDbOverlay> db)
+      std::shared_ptr<storage::trie_db_overlay::TrieDbOverlay> db,
+      std::shared_ptr<blockchain::ChangesTrieBuilder> builder)
       : memory_(memory),
         db_(std::move(db)),
         crypto_ext_(memory,
@@ -24,7 +25,7 @@ namespace kagome::extensions {
                     std::make_shared<crypto::HasherImpl>()),
         io_ext_(memory),
         memory_ext_(memory),
-        storage_ext_(db_, memory_) {}
+        storage_ext_(db_, memory_, std::move(builder)) {}
 
   std::shared_ptr<runtime::WasmMemory> ExtensionImpl::memory() const {
     return memory_;

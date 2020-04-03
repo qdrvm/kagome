@@ -17,8 +17,6 @@ namespace kagome::storage::trie {
 
     std::unique_ptr<TrieDb> makeTrieDb() const override;
 
-   private:
-
   };
 
 }

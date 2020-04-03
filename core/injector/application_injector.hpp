@@ -608,7 +608,7 @@ namespace kagome::injector {
         di::bind<api::WsListenerImpl>.to([rpc_ws_port](const auto &injector) {
           return get_jrpc_api_ws_listener(injector, rpc_ws_port);
         }),
-        di::bind<api::ReadonlyTrieBuilder>.template to<api::ReadonlyTrieBuilderImpl>(),
+        di::bind<storage::trie::ReadonlyTrieFactory>.template to<storage::trie::ReadonlyTrieFactoryImpl>(),
         di::bind<api::ExtrinsicApi>.template to<api::ExtrinsicApiImpl>(),
         di::bind<api::StateApi>.template to<api::StateApiImpl>(),
         di::bind<api::ApiService>.to(std::move(get_jrpc_api_service)),

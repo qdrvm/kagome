@@ -22,7 +22,8 @@ namespace kagome::extensions {
    public:
     ExtensionImpl() = delete;
     ExtensionImpl(const std::shared_ptr<runtime::WasmMemory> &memory,
-                  std::shared_ptr<storage::trie_db_overlay::TrieDbOverlay> db);
+                  std::shared_ptr<storage::trie_db_overlay::TrieDbOverlay> db,
+                  std::shared_ptr<blockchain::ChangesTrieBuilder> builder);
 
     ~ExtensionImpl() override = default;
 

@@ -6,16 +6,16 @@
 #include <gtest/gtest.h>
 
 #include "api/state/impl/state_api_impl.hpp"
+#include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
-#include "mock/core/blockchain/header_repository_mock.hpp"
 #include "mock/core/storage/trie/trie_db_mock.hpp"
 #include "primitives/block_header.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
-using kagome::api::ReadonlyTrieBuilder;
+using kagome::storage::trie::ReadonlyTrieFactory;
 using kagome::blockchain::BlockTreeMock;
-using kagome::blockchain::HeaderRepositoryMock;
+using kagome::common::Buffer;
 using kagome::common::Buffer;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
@@ -29,7 +29,7 @@ using testing::Return;
  * Because buildAt must return a unique_ptr, be careful,
  * next_trie is updated to a new instance after every buildAt call
  */
-class TrieMockBuilder : public ReadonlyTrieBuilder {
+class TrieMockBuilder : public ReadonlyTrieFactory {
  public:
   TrieMockBuilder() {
     next_trie = std::make_unique<TrieDbMock>();
@@ -52,7 +52,7 @@ class TrieMockBuilder : public ReadonlyTrieBuilder {
  */
 TEST(StateApiTest, GetStorage) {
   auto builder = std::make_shared<TrieMockBuilder>();
-  auto block_header_repo = std::make_shared<HeaderRepositoryMock>();
+  auto block_header_repo = std::make_shared<BlockHeaderRepositoryMock>();
   auto block_tree = std::make_shared<BlockTreeMock>();
 
   kagome::api::StateApiImpl api{block_header_repo, builder, block_tree};

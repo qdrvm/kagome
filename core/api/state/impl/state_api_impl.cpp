@@ -11,13 +11,13 @@ namespace kagome::api {
 
   StateApiImpl::StateApiImpl(
       std::shared_ptr<blockchain::BlockHeaderRepository> block_repo,
-      std::shared_ptr<ReadonlyTrieBuilder> trie_builder,
+      std::shared_ptr<storage::trie::ReadonlyTrieFactory> trie_factory,
       std::shared_ptr<blockchain::BlockTree> block_tree)
       : block_repo_{std::move(block_repo)},
-        trie_builder_{std::move(trie_builder)},
+        trie_factory_{std::move(trie_factory)},
         block_tree_{std::move(block_tree)} {
     BOOST_ASSERT(block_repo_ != nullptr);
-    BOOST_ASSERT(trie_builder_ != nullptr);
+    BOOST_ASSERT(trie_factory_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
   }
 
@@ -31,7 +31,7 @@ namespace kagome::api {
       const common::Buffer &key, const primitives::BlockHash &at) const {
     OUTCOME_TRY(header, block_repo_->getBlockHeader(at));
     auto trie_reader =
-        trie_builder_->buildAt(header.state_root);
+        trie_factory_->buildAt(header.state_root);
     return trie_reader->get(key);
   }
 }  // namespace kagome::api

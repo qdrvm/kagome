@@ -7,19 +7,18 @@
 #define KAGOME_BLOCKCHAIN_CHANGES_TRIE_HPP
 
 #include <boost/optional.hpp>
-#include <primitives/common.hpp>
 
 #include "blockchain/changes_trie_config.hpp"
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/extrinsic.hpp"
+#include "primitives/common.hpp"
 
 namespace kagome::blockchain {
 
   class ChangesTrieBuilder {
    public:
-
     virtual ChangesTrieBuilder &startNewTrie(primitives::BlockHash parent,
                                      boost::optional<ChangesTrieConfig> config) = 0;
 

@@ -12,7 +12,7 @@
 #include <fstream>
 #include <memory>
 
-#include "mock/core/storage/trie/trie_db_mock.hpp"
+#include "mock/core/storage/trie_db_overlay/trie_db_overlay_mock.hpp"
 #include "extensions/impl/extension_factory_impl.hpp"
 #include "primitives/block.hpp"
 #include "primitives/block_header.hpp"
@@ -31,9 +31,9 @@ class RuntimeTest : public ::testing::Test {
   using Digest = kagome::primitives::Digest;
 
   void SetUp() override {
-    trie_db_ = std::make_shared<kagome::storage::trie::TrieDbMock>();
+    trie_db_ = std::make_shared<kagome::storage::trie_db_overlay::TrieDbOverlayMock>();
     extension_factory_ =
-        std::make_shared<kagome::extensions::ExtensionFactoryImpl>(trie_db_);
+        std::make_shared<kagome::extensions::ExtensionFactoryImpl>(trie_db_, nullptr);
     std::string wasm_path =
         boost::filesystem::path(__FILE__).parent_path().string()
         + "/wasm/polkadot_runtime.compact.wasm";
@@ -75,7 +75,7 @@ class RuntimeTest : public ::testing::Test {
   }
 
  protected:
-  std::shared_ptr<kagome::storage::trie::TrieDbMock> trie_db_;
+  std::shared_ptr<kagome::storage::trie_db_overlay::TrieDbOverlayMock> trie_db_;
   std::shared_ptr<kagome::extensions::ExtensionFactory> extension_factory_;
   std::shared_ptr<kagome::runtime::BasicWasmProvider> wasm_provider_;
 };

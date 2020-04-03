@@ -3,18 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "transaction_pool/impl/transaction_pool_impl.hpp"
-
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include "mock/core/blockchain/header_repository_mock.hpp"
+
+#include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/transaction_pool/pool_moderator_mock.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/std_list_adapter.hpp"
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
+#include "transaction_pool/impl/transaction_pool_impl.hpp"
 
-using kagome::blockchain::HeaderRepositoryMock;
+using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::face::ForwardIterator;
@@ -37,7 +37,7 @@ class TransactionPoolTest : public testing::Test {
  public:
   void SetUp() override {
     auto moderator = std::make_unique<NiceMock<PoolModeratorMock>>();
-    auto header_repo = std::make_unique<HeaderRepositoryMock>();
+    auto header_repo = std::make_unique<BlockHeaderRepositoryMock>();
     pool_ = std::make_shared<TransactionPoolImpl>(std::move(moderator),
                                                   std::move(header_repo), TransactionPoolImpl::Limits{});
   }

@@ -12,11 +12,14 @@ namespace kagome::blockchain {
   ChangesTrieBuilderImpl::ChangesTrieBuilderImpl(
       common::Hash256 parent,
       ChangesTrieConfig config,
-      std::shared_ptr<storage::trie::TrieDbFactory> changes_storage_factory)
-      : parent_{std::move(parent)},
-        config_{std::move(config)},
-        changes_storage_factory_{std::move(changes_storage_factory)} {
+      std::shared_ptr<storage::trie::TrieDbFactory> changes_storage_factory,
+      std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo)
+      : parent_{parent},
+        config_{config},
+        changes_storage_factory_{std::move(changes_storage_factory)},
+        block_header_repo_{std::move(block_header_repo)} {
     BOOST_ASSERT(changes_storage_factory_ != nullptr);
+    BOOST_ASSERT(block_header_repo_ != nullptr);
     changes_storage_ = changes_storage_factory_->makeTrieDb();
   }
 
@@ -33,11 +36,14 @@ namespace kagome::blockchain {
   outcome::result<void> ChangesTrieBuilderImpl::insertExtrinsicsChange(
       const common::Buffer &key,
       const std::vector<primitives::ExtrinsicIndex> &changers) {
-    common::Buffer keyIndex;
-    keyIndex.put(parent_);
-    keyIndex.put(key);
+    OUTCOME_TRY(parent_number, block_header_repo_->getNumberByHash(parent_));
+    auto current_number = parent_number + 1;
+    KeyIndexVariant keyIndex{
+        ExtrinsicsChangesKey{{current_number, key}}};
+    OUTCOME_TRY(key_enc, scale::encode(keyIndex));
     OUTCOME_TRY(value, scale::encode(changers));
-    OUTCOME_TRY(changes_storage_->put(key, common::Buffer{std::move(value)}));
+    OUTCOME_TRY(changes_storage_->put(common::Buffer{std::move(key_enc)},
+                                      common::Buffer{std::move(value)}));
     return outcome::success();
   }
 

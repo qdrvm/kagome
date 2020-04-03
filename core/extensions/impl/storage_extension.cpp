@@ -178,7 +178,7 @@ namespace kagome::extensions {
     auto parent_hash_bytes = memory_->loadN(parent_hash_data, parent_hash_len);
     common::Hash256 parent_hash;
     std::copy_n(
-        parent_hash_bytes, common::Hash256::size(), parent_hash.begin());
+        parent_hash_bytes.begin(), common::Hash256::size(), parent_hash.begin());
 
     builder_->startNewTrie(common::Hash256{parent_hash}, boost::none);
 

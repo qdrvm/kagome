@@ -16,7 +16,7 @@ namespace kagome::api {
   class StateApiImpl : public StateApi {
    public:
     StateApiImpl(std::shared_ptr<blockchain::BlockHeaderRepository> block_repo,
-                 std::shared_ptr<ReadonlyTrieBuilder> trie_builder,
+                 std::shared_ptr<storage::trie::ReadonlyTrieFactory> trie_factory,
                  std::shared_ptr<blockchain::BlockTree> block_tree);
 
     outcome::result<common::Buffer> getStorage(
@@ -26,7 +26,7 @@ namespace kagome::api {
 
    private:
     std::shared_ptr<blockchain::BlockHeaderRepository> block_repo_;
-    std::shared_ptr<ReadonlyTrieBuilder> trie_builder_;
+    std::shared_ptr<storage::trie::ReadonlyTrieFactory> trie_factory_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
   };
 

@@ -12,7 +12,7 @@
 
 namespace kagome::blockchain {
 
-  class HeaderRepositoryMock : public BlockHeaderRepository {
+  class BlockHeaderRepositoryMock : public BlockHeaderRepository {
    public:
     MOCK_CONST_METHOD1(getNumberByHash, outcome::result<primitives::BlockNumber> (
         const common::Hash256 &hash));
