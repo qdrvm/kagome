@@ -13,10 +13,3 @@ target_link_libraries(state_api_service
     api_service
     polkadot_trie_db
     )
-
-add_library(readonly_trie_builder
-    impl/readonly_trie_builder_impl.cpp
-    )
-target_link_libraries(readonly_trie_builder
-    buffer
-    )

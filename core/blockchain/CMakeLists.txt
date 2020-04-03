@@ -5,10 +5,10 @@
 
 add_subdirectory(impl)
 
-add_library(changes_trie
-    impl/changes_trie_impl.cpp
+add_library(changes_trie_builder
+    impl/changes_trie_builder_impl.cpp
     )
-target_link_libraries(changes_trie
+target_link_libraries(changes_trie_builder
     buffer
     )
 

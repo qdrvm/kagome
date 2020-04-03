@@ -6,6 +6,8 @@
 #ifndef KAGOME_BLOCKCHAIN_CHANGES_TRIE_CONFIG_HPP
 #define KAGOME_BLOCKCHAIN_CHANGES_TRIE_CONFIG_HPP
 
+#include <cstdint>
+
 namespace kagome::blockchain {
 
   struct ChangesTrieConfig {

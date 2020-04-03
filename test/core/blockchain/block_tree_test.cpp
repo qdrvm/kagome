@@ -9,7 +9,6 @@
 #include "blockchain/impl/block_tree_impl.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "common/blob.hpp"
-#include "common/buffer.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/blockchain/header_repository_mock.hpp"

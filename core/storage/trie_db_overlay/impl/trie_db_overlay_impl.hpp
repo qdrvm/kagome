@@ -18,8 +18,10 @@ namespace kagome::storage::trie_db_overlay {
     explicit TrieDbOverlayImpl(std::shared_ptr<trie::TrieDb> main_db);
     ~TrieDbOverlayImpl() override = default;
 
-    outcome::result<void> commitAndInsertChanges(
-        blockchain::ChangesTrie &changes_trie) override;
+    outcome::result<void> commit() override;
+
+    outcome::result<void> sinkChangesTo(
+        blockchain::ChangesTrieBuilder &changes_trie) override;
 
     std::unique_ptr<face::WriteBatch<Buffer, Buffer>> batch() override;
     std::unique_ptr<face::MapCursor<Buffer, Buffer>> cursor() override;
@@ -42,7 +44,9 @@ namespace kagome::storage::trie_db_overlay {
     struct ChangedValue {
       boost::optional<common::Buffer> value;
       std::vector<primitives::ExtrinsicIndex> changers;
+      bool dirty;
     };
+
     std::map<common::Buffer, ChangedValue> changes_;
     std::shared_ptr<trie::TrieDb> storage_;
   };

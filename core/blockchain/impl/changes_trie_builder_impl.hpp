@@ -6,20 +6,23 @@
 #ifndef KAGOME_BLOCKCHAIN_CHANGES_TRIE_IMPL_HPP
 #define KAGOME_BLOCKCHAIN_CHANGES_TRIE_IMPL_HPP
 
-#include <common/blob.hpp>
-
-#include "blockchain/changes_trie.hpp"
-#include "blockchain/changes_trie_config.hpp"
+#include "blockchain/changes_trie_builder.hpp"
+#include "common/blob.hpp"
 #include "primitives/extrinsic.hpp"
-#include "storage/trie/trie_db.hpp"
+#include "storage/trie/trie_db_factory.hpp"
 
 namespace kagome::blockchain {
 
-  class ChangesTrieImpl : public ChangesTrie {
+  class ChangesTrieBuilderImpl : public ChangesTrieBuilder {
    public:
-    ChangesTrieImpl(common::Hash256 parent,
-                    ChangesTrieConfig config,
-                    std::unique_ptr<storage::trie::TrieDb> changes_storage);
+    explicit ChangesTrieBuilderImpl(
+        common::Hash256 parent,
+        ChangesTrieConfig config,
+        std::shared_ptr<storage::trie::TrieDbFactory> changes_storage_factory);
+
+    ChangesTrieBuilder &startNewTrie(
+        primitives::BlockHash parent,
+        boost::optional<ChangesTrieConfig> config) override;
 
     outcome::result<void> insertExtrinsicsChange(
         const common::Buffer &key,
@@ -27,13 +30,12 @@ namespace kagome::blockchain {
 
     // outcome::result<void> insertBlocksChange() override;
 
-    common::Buffer getRootHash() const override;
-
-    void clean();
+    common::Hash256 finishAndGetHash() override;
 
    private:
-    common::Hash256 parent_;
+    primitives::BlockHash parent_;
     ChangesTrieConfig config_;
+    std::shared_ptr<storage::trie::TrieDbFactory> changes_storage_factory_;
     std::unique_ptr<storage::trie::TrieDb> changes_storage_;
   };
 

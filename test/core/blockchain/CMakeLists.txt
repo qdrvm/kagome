@@ -27,3 +27,12 @@ addtest(block_storage_test
 target_link_libraries(block_storage_test
     block_storage
     )
+
+addtest(changes_trie_test
+    changes_trie_test.cpp
+    )
+target_link_libraries(changes_trie_test
+    changes_trie_builder
+    trie_db_overlay
+    in_memory_trie_db_factory
+    )

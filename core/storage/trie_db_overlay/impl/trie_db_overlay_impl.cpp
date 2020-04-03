@@ -22,16 +22,34 @@ namespace kagome::storage::trie_db_overlay {
     BOOST_ASSERT(storage_ != nullptr);
   }
 
-  outcome::result<void> TrieDbOverlayImpl::commitAndInsertChanges(
-      blockchain::ChangesTrie &changes_trie) {
+  outcome::result<void> TrieDbOverlayImpl::commit() {
     for (auto &change : changes_) {
-      if (change.second.value.has_value()) {
-        OUTCOME_TRY(storage_->put(change.first, change.second.value.value()));
-      } else {
-        OUTCOME_TRY(storage_->remove(change.first));
+      auto &key = change.first;
+      auto &value_opt = change.second.value;
+      // temporary value (existed only during block execution)
+      bool is_temporary =
+          (not value_opt.has_value() and not storage_->contains(key));
+      if (not change.second.dirty or is_temporary) {
+        continue;
       }
 
-      /// TODO(Harrm): insert every change that is not temporary to changes trie
+      if (value_opt.has_value()) {
+        OUTCOME_TRY(storage_->put(key, value_opt.value()));
+      } else {
+        OUTCOME_TRY(storage_->remove(key));
+      }
+      change.second.dirty = false;
+    }
+    return outcome::success();
+  }
+
+  outcome::result<void> TrieDbOverlayImpl::sinkChangesTo(
+      blockchain::ChangesTrieBuilder &changes_trie) {
+    OUTCOME_TRY(commit());
+    for (auto &change : changes_) {
+      auto &key = change.first;
+      OUTCOME_TRY(
+          changes_trie.insertExtrinsicsChange(key, change.second.changers));
     }
     changes_.clear();
     return outcome::success();
@@ -47,7 +65,12 @@ namespace kagome::storage::trie_db_overlay {
 
   outcome::result<Buffer> TrieDbOverlayImpl::get(const Buffer &key) const {
     if (auto it = changes_.find(key); it != changes_.end()) {
-      return it->second.value.value_or(trie::TrieError::NO_VALUE);
+      auto v_opt = it->second.value;
+      if (v_opt.has_value()) {
+        return v_opt.value();
+      } else {
+        return trie::TrieError::NO_VALUE;
+      }
     }
     return storage_->get(key);
   }
@@ -69,26 +92,40 @@ namespace kagome::storage::trie_db_overlay {
                                                Buffer &&value) {
     auto extrinsic_id = getExtrinsicIndex();
     auto it = changes_.find(key);
-    it->second.value = std::move(value);
-    it->second.changers.emplace_back(extrinsic_id);
+    if (it != changes_.end()) {
+      it->second.value = std::move(value);
+      it->second.changers.emplace_back(extrinsic_id);
+      it->second.dirty = true;
+    } else {
+      changes_[key] = ChangedValue{
+          .value = std::move(value), .changers = {extrinsic_id}, .dirty = true};
+    }
+
     return outcome::success();
   }
 
   outcome::result<void> TrieDbOverlayImpl::remove(const Buffer &key) {
     auto extrinsic_id = getExtrinsicIndex();
     auto it = changes_.find(key);
-    it->second.value = boost::none;
-    it->second.changers.emplace_back(extrinsic_id);
+    if (it != changes_.end()) {
+      it->second.value = boost::none;
+      it->second.dirty = true;
+      it->second.changers.emplace_back(extrinsic_id);
+    } else {
+      changes_[key] = ChangedValue{
+          .value = boost::none, .changers = {extrinsic_id}, .dirty = true};
+    }
+
     return outcome::success();
   }
 
   outcome::result<void> TrieDbOverlayImpl::clearPrefix(
       const common::Buffer &buf) {
-    return outcome::result<void>();
+    // return outcome::result<void>();
   }
 
   Buffer TrieDbOverlayImpl::getRootHash() {
-    /// TODO(Harrm): process commit resuly; maybe not inherit overlay from trie
+    /// TODO(Harrm): process commit result; maybe not inherit overlay from trie
     /// db after all?
     commit();
     return storage_->getRootHash();

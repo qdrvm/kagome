@@ -7,9 +7,9 @@
 #define KAGOME_STATE_API_IMPL_HPP
 
 #include "api/state/state_api.hpp"
-#include "api/state/readonly_trie_builder.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
+#include "storage/trie/readonly_trie_factory.hpp"
 
 namespace kagome::api {
 

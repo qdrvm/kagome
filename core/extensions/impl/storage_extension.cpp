@@ -7,21 +7,25 @@
 
 #include <forward_list>
 
+#include "blockchain/impl/changes_trie_builder_impl.hpp"
 #include "primitives/block_id.hpp"
 #include "storage/trie/impl/ordered_trie_hash.hpp"
-#include "blockchain/impl/changes_trie_impl.hpp"
+#include "storage/trie/impl/polkadot_trie_db.hpp"
 
 using kagome::common::Buffer;
 
 namespace kagome::extensions {
   StorageExtension::StorageExtension(
       std::shared_ptr<storage::trie_db_overlay::TrieDbOverlay> db,
-      std::shared_ptr<runtime::WasmMemory> memory)
+      std::shared_ptr<runtime::WasmMemory> memory,
+      std::shared_ptr<blockchain::ChangesTrieBuilder> builder)
       : db_(std::move(db)),
         memory_(std::move(memory)),
+        builder_(std::move(builder)),
         logger_{common::createLogger(kDefaultLoggerTag)} {
     BOOST_ASSERT_MSG(db_ != nullptr, "db is nullptr");
     BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
+    BOOST_ASSERT_MSG(builder_ != nullptr, "changes trie builder is nullptr");
   }
 
   // -------------------------Data storage--------------------------
@@ -171,20 +175,32 @@ namespace kagome::extensions {
       runtime::WasmPointer parent_hash_data,
       runtime::SizeType parent_hash_len,
       runtime::WasmPointer result) {
-    // TODO (kamilsa): PRE-95 Implement ext_storage_changes_root, 03.04.2019.
-    auto parent_hash = memory_->loadN(parent_hash_data, parent_hash_len);
+    auto parent_hash_bytes = memory_->loadN(parent_hash_data, parent_hash_len);
+    common::Hash256 parent_hash;
+    std::copy_n(
+        parent_hash_bytes, common::Hash256::size(), parent_hash.begin());
 
-    blockchain::ChangesTrieImpl changes_trie (parent_hash, config, );
-    db_->commitAndInsertChanges();
-    primitives::BlockHash result_hash;
-    result_hash[primitives::BlockHash::size() - 1] = 1;
+    builder_->startNewTrie(common::Hash256{parent_hash}, boost::none);
+
+    auto res = db_->sinkChangesTo(*builder_);
+    if (res.has_error()) {
+      logger_->error("ext_storage_changes_root resulted with an error: {}",
+                     res.error().message());
+      return 0;
+    }
+
+    primitives::BlockHash result_hash = builder_->finishAndGetHash();
     common::Buffer result_buf(result_hash);
     memory_->storeBuffer(result, result_buf);
-    logger_->error("ext_storage_changes_root unimplemented, assume no changes");
     return 1;
   }
 
   void StorageExtension::ext_storage_root(runtime::WasmPointer result) const {
+    auto res = db_->commit();
+    if (res.has_error()) {
+      logger_->error("ext_storage_root resulted with an error: {}",
+                     res.error().message());
+    }
     const auto &root = db_->getRootHash();
     memory_->storeBuffer(result, root);
   }

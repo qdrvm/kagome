@@ -19,7 +19,8 @@ namespace kagome::extensions {
   class StorageExtension {
    public:
     StorageExtension(std::shared_ptr<storage::trie_db_overlay::TrieDbOverlay> db,
-                     std::shared_ptr<runtime::WasmMemory> memory);
+                     std::shared_ptr<runtime::WasmMemory> memory,
+                     std::shared_ptr<blockchain::ChangesTrieBuilder> builder);
 
     // -------------------------Data storage--------------------------
 
@@ -107,6 +108,7 @@ namespace kagome::extensions {
 
     std::shared_ptr<storage::trie_db_overlay::TrieDbOverlay> db_;
     std::shared_ptr<runtime::WasmMemory> memory_;
+    std::shared_ptr<blockchain::ChangesTrieBuilder> builder_;
     common::Logger logger_;
 
     constexpr static auto kDefaultLoggerTag = "WASM Runtime [StorageExtension]";
