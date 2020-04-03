@@ -6,10 +6,11 @@
 #ifndef KAGOME_CORE_APPLICATION_IMPL_KAGOME_APPLICATION_IMPL_HPP
 #define KAGOME_CORE_APPLICATION_IMPL_KAGOME_APPLICATION_IMPL_HPP
 
+#include "application/kagome_application.hpp"
+
 #include "application/configuration_storage.hpp"
 #include "application/impl/local_key_storage.hpp"
 #include "api/service/api_service.hpp"
-#include "application/kagome_application.hpp"
 
 namespace kagome::application {
 

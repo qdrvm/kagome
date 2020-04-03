@@ -10,7 +10,7 @@
 
 namespace kagome::consensus {
 
-  /// Information about the next epoch. This is broadcast in the first block
+  /// Information about the next epoch
   struct NextEpochDescriptor {
     /// The authorities.
     std::vector<primitives::Authority> authorities;

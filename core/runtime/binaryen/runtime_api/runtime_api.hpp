@@ -31,7 +31,10 @@ namespace kagome::runtime::binaryen {
     RuntimeApi(std::shared_ptr<runtime::WasmProvider> wasm_provider,
                std::shared_ptr<extensions::ExtensionFactory> extension_factory)
         : wasm_provider_(std::move(wasm_provider)),
-          extension_factory_(std::move(extension_factory)) {}
+          extension_factory_(std::move(extension_factory)) {
+      BOOST_ASSERT(wasm_provider_);
+      BOOST_ASSERT(extension_factory_);
+    }
 
    protected:
     /**

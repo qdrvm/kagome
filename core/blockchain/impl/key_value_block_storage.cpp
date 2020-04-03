@@ -122,19 +122,26 @@ namespace kagome::blockchain {
     primitives::BlockData to_insert;
 
     // if block data does not exist, put a new one. Otherwise get the old one
-    // and merge with the new one
+    // and merge with the new one. During the merge new block data fields have
+    // higher priority over the old ones (old ones should be rewritten)
     auto existing_block_data_res = getBlockData(block_data.hash);
     if (not existing_block_data_res) {
       to_insert = block_data;
     } else {
-      to_insert = existing_block_data_res.value();
+      auto existing_data = existing_block_data_res.value();
 
       // add all the fields from the new block_data
-      to_insert.header = block_data.header;
-      to_insert.body = block_data.body;
-      to_insert.justification = block_data.justification;
-      to_insert.message_queue = block_data.message_queue;
-      to_insert.receipt = block_data.receipt;
+      to_insert.header =
+          block_data.header ? block_data.header : existing_data.header;
+      to_insert.body = block_data.body ? block_data.body : existing_data.body;
+      to_insert.justification = block_data.justification
+                                    ? block_data.justification
+                                    : existing_data.justification;
+      to_insert.message_queue = block_data.message_queue
+                                    ? block_data.message_queue
+                                    : existing_data.message_queue;
+      to_insert.receipt =
+          block_data.receipt ? block_data.receipt : existing_data.receipt;
     }
 
     OUTCOME_TRY(encoded_block_data, scale::encode(to_insert));

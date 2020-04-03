@@ -7,12 +7,12 @@
 #define KAGOME_CORE_CONSENSUS_BABE_IMPL_BABE_DIGESTS_UTIL_HPP
 
 #include <boost/optional.hpp>
-#include <outcome/outcome.hpp>
 
 #include "common/visitor.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/babe/types/next_epoch_descriptor.hpp"
 #include "consensus/babe/types/seal.hpp"
+#include "outcome/outcome.hpp"
 #include "primitives/block.hpp"
 
 namespace kagome::consensus {

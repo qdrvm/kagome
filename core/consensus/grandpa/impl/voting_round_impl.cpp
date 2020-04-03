@@ -81,6 +81,8 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::onFinalize(const Fin &f) {
+    logger_->info("Received fin message for vote: {}",
+                  f.vote.block_hash.toHex());
     // validate message
     if (validate(f.vote, f.justification)) {
       // finalize to state
@@ -96,6 +98,7 @@ namespace kagome::consensus::grandpa {
       env_->onCompleted(CompletedRound{.round_number = round_number_,
                                        .state = cur_round_state_});
     } else {
+      logger_->error("Validation of vote {} failed", f.vote.block_hash.toHex());
       env_->onCompleted(VotingRoundError::FIN_VALIDATION_FAILED);
     }
   }

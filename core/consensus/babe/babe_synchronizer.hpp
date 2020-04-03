@@ -12,7 +12,8 @@
 namespace kagome::consensus {
 
   /**
-   * @brief Requests blocks
+   * @brief Iterates over the list of accessible peers and tries to fetch
+   * missing blocks from them
    */
   class BabeSynchronizer {
    public:

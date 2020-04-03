@@ -13,10 +13,17 @@
 
 namespace kagome::runtime {
 
+  /**
+   * Api to invoke runtime entries related for Babe algorithm
+   */
   class BabeApi {
    public:
     virtual ~BabeApi() = default;
 
+    /**
+     * Get configuration for the babe
+     * @return Babe configuration
+     */
     virtual outcome::result<primitives::BabeConfiguration> configuration() = 0;
   };
 

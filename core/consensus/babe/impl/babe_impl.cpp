@@ -65,7 +65,7 @@ namespace kagome::consensus {
     if (not genesis_config_res) {
       log_->error("Could not get genesis config: {}",
                   genesis_config_res.error().message());
-      BOOST_ASSERT_MSG(false, "Could not genesis config");
+      BOOST_ASSERT_MSG(false, "Could not get genesis config");
     }
 
     genesis_configuration_ = genesis_config_res.value();
@@ -191,8 +191,8 @@ namespace kagome::consensus {
     // will be able to retrieve
     auto now = clock_->now();
     if (now > next_slot_finish_time_
-        && (now - next_slot_finish_time_)
-               > genesis_configuration_.slot_duration) {
+        and (now - next_slot_finish_time_)
+                > genesis_configuration_.slot_duration) {
       // we are too far behind; after skipping some slots (but not epochs)
       // control will be returned to this method
 
@@ -323,6 +323,15 @@ namespace kagome::consensus {
     // add block to the block tree
     if (auto add_res = block_tree_->addBlock(block); not add_res) {
       log_->error("Could not add block: {}", add_res.error().message());
+      return;
+    }
+
+    auto next_epoch_digest_res = getNextEpochDigest(block.header);
+    if (next_epoch_digest_res) {
+      log_->info("Got next epoch digest for epoch: {}",
+                 current_epoch_.epoch_index);
+      epoch_storage_->addEpochDescriptor(current_epoch_.epoch_index,
+                                         next_epoch_digest_res.value());
     }
 
     // finally, broadcast the sealed block
@@ -335,13 +344,21 @@ namespace kagome::consensus {
 
   void BabeImpl::finishEpoch() {
     // compute new randomness
-    const auto &next_epoch_digest_res =
+    auto next_epoch_digest_res =
         epoch_storage_->getEpochDescriptor(++current_epoch_.epoch_index);
     if (not next_epoch_digest_res) {
-      log_->error("Next epoch digest does not exist");
-      return;
+      log_->error("Next epoch digest does not exist for epoch {}",
+                  current_epoch_.epoch_index);
+      // TODO (kamilsa): uncomment `return;` and remove next line when
+      // PRE-364 is done. For now assume no changes after epoch
+      //
+      // return.
+      next_epoch_digest_res =
+          NextEpochDescriptor{.authorities = current_epoch_.authorities,
+                              .randomness = current_epoch_.randomness};
     }
 
+    current_epoch_.start_slot = ++current_slot_;
     current_epoch_.authorities = next_epoch_digest_res.value().authorities;
     current_epoch_.randomness = next_epoch_digest_res.value().randomness;
 
@@ -512,6 +529,7 @@ namespace kagome::consensus {
     // update authorities and randomnesss
     auto next_epoch_digest_res = getNextEpochDigest(block.header);
     if (next_epoch_digest_res) {
+      log_->info("Got next epoch digest for epoch: {}", epoch_index);
       epoch_storage_->addEpochDescriptor(epoch_index,
                                          next_epoch_digest_res.value());
     }

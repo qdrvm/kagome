@@ -19,7 +19,7 @@ namespace kagome::consensus {
     virtual ~EpochStorage() = default;
 
     /**
-     * Stores epoch's information by it number
+     * Stores epoch's information by its number
      * @param epoch_number number of stored epoch
      * @param epoch_descriptor epochs information
      */

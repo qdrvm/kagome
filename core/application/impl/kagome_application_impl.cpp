@@ -43,18 +43,28 @@ namespace kagome::application {
 
   void KagomeApplicationImpl::run() {
     jrpc_api_service_->start();
+
+    // if we are the first peer in the network, then we get genesis epoch info
+    // and start block production
     if (is_genesis_epoch_) {
+      // starts block production event loop
       babe_->runGenesisEpoch();
     }
+    // starts finalization event loop
     grandpa_launcher_->start();
+
+    // execute listeners
     io_context_->post([this] {
       const auto &current_peer_info =
           injector_.template create<libp2p::peer::PeerInfo>();
       auto &host = injector_.template create<libp2p::Host &>();
       for (const auto &ma : current_peer_info.addresses) {
-        bool listen = host.listen(ma).has_value();
+        auto listen = host.listen(ma);
         if (not listen) {
-          BOOST_ASSERT(false);
+          logger_->error("Cannot listen address {}. Error: {}",
+                         ma.getStringAddress(),
+                         listen.error().message());
+          std::exit(1);
         }
       }
       this->router_->init();

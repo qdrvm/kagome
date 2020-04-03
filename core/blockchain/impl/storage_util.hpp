@@ -6,8 +6,6 @@
 #ifndef KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTENT_MAP_UTIL_HPP
 #define KAGOME_CORE_BLOCKCHAIN_IMPL_PERSISTENT_MAP_UTIL_HPP
 
-#include <boost/optional.hpp>
-
 #include "common/buffer.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
@@ -64,12 +62,11 @@ namespace kagome::blockchain {
    * @param value data to be put to the storage
    * @return storage error if any
    */
-  outcome::result<void> putWithPrefix(
-      storage::BufferStorage &map,
-      prefix::Prefix prefix,
-      primitives::BlockNumber num,
-      common::Hash256 block_hash,
-      const common::Buffer &value);
+  outcome::result<void> putWithPrefix(storage::BufferStorage &map,
+                                      prefix::Prefix prefix,
+                                      primitives::BlockNumber num,
+                                      common::Hash256 block_hash,
+                                      const common::Buffer &value);
 
   /**
    * Get an entry from the database
