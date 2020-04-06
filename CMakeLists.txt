@@ -116,6 +116,8 @@ install_deps_headers()
 kagome_install_setup(
     HEADER_DIRS
     core/common
+    core/blockchain
+    core/primitives
     core/macro
     core/scale
     core/storage
