@@ -55,6 +55,7 @@ namespace kagome::transaction_pool {
         ready_queue_.begin(), ready_queue_.end(), ready.begin(), [](auto &rtx) {
           return rtx.second;
         });
+    ready_queue_.clear();  // TODO: make sure transactions are removed here
     return ready;
   }
 

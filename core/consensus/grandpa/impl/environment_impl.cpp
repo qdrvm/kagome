@@ -18,7 +18,7 @@ namespace kagome::consensus::grandpa {
   EnvironmentImpl::EnvironmentImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repository,
-      std::shared_ptr<Gossiper> gossiper)
+      std::shared_ptr<network::Gossiper> gossiper)
       : block_tree_{std::move(block_tree)},
         header_repository_{std::move(header_repository)},
         gossiper_{std::move(gossiper)},

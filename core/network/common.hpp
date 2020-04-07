@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_COMMON_HPP
-#define KAGOME_COMMON_HPP
+#ifndef KAGOME_NETWORK_COMMON_HPP
+#define KAGOME_NETWORK_COMMON_HPP
 
 #include "libp2p/peer/protocol.hpp"
 
@@ -13,4 +13,4 @@ namespace kagome::network {
   const libp2p::peer::Protocol kGossipProtocol = "/polkadot-gossip/1.0.0";
 }  // namespace kagome::network
 
-#endif  // KAGOME_COMMON_HPP
+#endif  // KAGOME_NETWORK_COMMON_HPP

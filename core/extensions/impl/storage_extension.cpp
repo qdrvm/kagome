@@ -28,22 +28,26 @@ namespace kagome::extensions {
   void StorageExtension::ext_clear_prefix(runtime::WasmPointer prefix_data,
                                           runtime::SizeType prefix_length) {
     auto prefix = memory_->loadN(prefix_data, prefix_length);
+    logger_->debug("Clear prefix: {}", prefix.toHex());
     auto res = db_->clearPrefix(prefix);
     if (not res) {
-      logger_->error("ext_clear_prefix failed: {}", res.error().message());
+      //      logger_->error("ext_clear_prefix failed: {}",
+      //      res.error().message());
     }
   }
 
   void StorageExtension::ext_clear_storage(runtime::WasmPointer key_data,
                                            runtime::SizeType key_length) {
     auto key = memory_->loadN(key_data, key_length);
+    logger_->debug("Clear storage: {}", key.toHex());
     auto del_result = db_->remove(key);
     if (not del_result) {
-      logger_->warn(
-          "ext_clear_storage did not delete key {} from trie db with reason: "
-          "{}",
-          key_data,
-          del_result.error().message());
+      //      logger_->warn(
+      //          "ext_clear_storage did not delete key {} from trie db with
+      //          reason: "
+      //          "{}",
+      //          key_data,
+      //          del_result.error().message());
     }
   }
 
@@ -66,19 +70,20 @@ namespace kagome::extensions {
     if (not data) {
       return 0;
     }
-    if (not data.value().empty())
-      logger_->debug("ext_get_allocated_storage. Key hex: {} Value hex {}",
-                     key.toHex(),
-                     data.value().toHex());
+    //    if (not data.value().empty())
+    //      logger_->debug("ext_get_allocated_storage. Key hex: {} Value hex
+    //      {}",
+    //                     key.toHex(),
+    //                     data.value().toHex());
 
     auto data_ptr = memory_->allocate(length);
 
     if (data_ptr != 0) {
       memory_->storeBuffer(data_ptr, data.value());
     } else {
-      logger_->error(
-          "ext_get_allocated_storage failed: memory could not allocate enough "
-          "memory");
+      //      logger_->error(
+      //          "ext_get_allocated_storage failed: memory could not allocate
+      //          enough " "memory");
     }
     return data_ptr;
   }
@@ -92,17 +97,17 @@ namespace kagome::extensions {
     auto key = memory_->loadN(key_data, key_length);
     auto data = get(key, value_offset, value_length);
     if (not data) {
-      logger_->debug("ext_get_storage_into. Val by key {} not found",
-                     key.toHex());
+      //      logger_->debug("ext_get_storage_into. Val by key {} not found",
+      //                     key.toHex());
       return runtime::WasmMemory::kMaxMemorySize;
     }
     if (not data.value().empty()) {
-      logger_->debug("ext_get_storage_into. Key hex: {} , Value hex {}",
-                     key.toHex(),
-                     data.value().toHex());
+      //      logger_->debug("ext_get_storage_into. Key hex: {} , Value hex {}",
+      //                     key.toHex(),
+      //                     data.value().toHex());
     } else {
-      logger_->debug("ext_get_storage_into. Key hex: {} Value: empty",
-                     key.toHex());
+      //      logger_->debug("ext_get_storage_into. Key hex: {} Value: empty",
+      //                     key.toHex());
     }
     memory_->storeBuffer(value_data, data.value());
     return data.value().size();
@@ -116,24 +121,22 @@ namespace kagome::extensions {
     auto value = memory_->loadN(value_data, value_length);
 
     if (value.toHex().size() < 500) {
-      logger_->debug(
-          "Set storage. Key: {}, Key hex: {} Value: {}, Value hex {}",
-          key.data(),
-          key.toHex(),
-          value.data(),
-          value.toHex());
+      logger_->debug("Set storage.  Key hex: {} Value hex {}",
+                     //          key.data(),
+                     key.toHex(),
+                     //          value.data(),
+                     value.toHex());
     } else {
-      logger_->debug(
-          "Set storage. Key: {}, Key hex: {} Value is too big to display",
-          key.data(),
-          key.toHex());
+      logger_->debug("Set storage. Key hex: {} Value is too big to display",
+                     //          key.data(),
+                     key.toHex());
     }
 
     auto put_result = db_->put(key, value);
     if (not put_result) {
-      logger_->error(
-          "ext_set_storage failed, due to fail in trie db with reason: {}",
-          put_result.error().message());
+      //      logger_->error(
+      //          "ext_set_storage failed, due to fail in trie db with reason:
+      //          {}", put_result.error().message());
     }
   }
 
@@ -159,6 +162,8 @@ namespace kagome::extensions {
         storage::trie::calculateOrderedTrieHash(values.begin(), values.end());
     if (ordered_hash.has_value()) {
       memory_->storeBuffer(result, ordered_hash.value());
+      logger_->warn("sssssssssssssssssssssssss Enumerated Root is: {}",
+                    ordered_hash.value().toHex());
     } else {
       logger_->error(
           "ext_blake2_256_enumerated_trie_root resulted with an error: {}",
@@ -182,6 +187,7 @@ namespace kagome::extensions {
 
   void StorageExtension::ext_storage_root(runtime::WasmPointer result) const {
     const auto &root = db_->getRootHash();
+    logger_->warn("sssssssssssssssssssssssss Root is: {}", root.toHex());
     memory_->storeBuffer(result, root);
   }
 
