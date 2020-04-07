@@ -20,25 +20,22 @@
 #include "scale/scale.hpp"
 
 namespace kagome::consensus {
-  BabeImpl::BabeImpl(std::shared_ptr<BabeLottery> lottery,
-                     std::shared_ptr<BabeSynchronizer> babe_synchronizer,
-                     std::shared_ptr<BlockValidator> block_validator,
-                     std::shared_ptr<EpochStorage> epoch_storage,
-                     std::shared_ptr<runtime::BabeApi> babe_api,
-                     std::shared_ptr<runtime::Core> core,
-                     std::shared_ptr<authorship::Proposer> proposer,
-                     std::shared_ptr<blockchain::BlockTree> block_tree,
-                     std::shared_ptr<network::BabeGossiper> gossiper,
-                     crypto::SR25519Keypair keypair,
-                     std::shared_ptr<clock::SystemClock> clock,
-                     std::shared_ptr<crypto::Hasher> hasher,
-                     std::unique_ptr<clock::Timer> timer)
+  BabeImpl::BabeImpl(
+      std::shared_ptr<BabeLottery> lottery,
+      std::shared_ptr<BlockExecutor> block_executor,
+      std::shared_ptr<EpochStorage> epoch_storage,
+      std::shared_ptr<primitives::BabeConfiguration> configuration,
+      std::shared_ptr<authorship::Proposer> proposer,
+      std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<network::Gossiper> gossiper,
+      crypto::SR25519Keypair keypair,
+      std::shared_ptr<clock::SystemClock> clock,
+      std::shared_ptr<crypto::Hasher> hasher,
+      std::unique_ptr<clock::Timer> timer)
       : lottery_{std::move(lottery)},
-        babe_synchronizer_{std::move(babe_synchronizer)},
-        block_validator_{std::move(block_validator)},
+        block_executor_{std::move(block_executor)},
         epoch_storage_{std::move(epoch_storage)},
-        babe_api_{std::move(babe_api)},
-        core_{std::move(core)},
+        genesis_configuration_{std::move(configuration)},
         proposer_{std::move(proposer)},
         block_tree_{std::move(block_tree)},
         gossiper_{std::move(gossiper)},
@@ -48,11 +45,7 @@ namespace kagome::consensus {
         timer_{std::move(timer)},
         log_{common::createLogger("BABE")} {
     BOOST_ASSERT(lottery_);
-    BOOST_ASSERT(babe_synchronizer_);
-    BOOST_ASSERT(block_validator_);
     BOOST_ASSERT(epoch_storage_);
-    BOOST_ASSERT(babe_api_);
-    BOOST_ASSERT(core_);
     BOOST_ASSERT(proposer_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(gossiper_);
@@ -60,19 +53,10 @@ namespace kagome::consensus {
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(log_);
 
-    auto genesis_config_res = babe_api_->configuration();
-    if (not genesis_config_res) {
-      log_->error("Could not get genesis config: {}",
-                  genesis_config_res.error().message());
-      BOOST_ASSERT_MSG(false, "Could not get genesis config");
-    }
-
-    genesis_configuration_ = genesis_config_res.value();
-
     NextEpochDescriptor epoch_0_and_1_digest;
-    epoch_0_and_1_digest.randomness = genesis_configuration_.randomness;
+    epoch_0_and_1_digest.randomness = genesis_configuration_->randomness;
     epoch_0_and_1_digest.authorities =
-        genesis_configuration_.genesis_authorities;
+        genesis_configuration_->genesis_authorities;
     epoch_storage_->addEpochDescriptor(0, epoch_0_and_1_digest);
     epoch_storage_->addEpochDescriptor(1, epoch_0_and_1_digest);
   }
@@ -80,13 +64,13 @@ namespace kagome::consensus {
   void BabeImpl::runGenesisEpoch() {
     Epoch genesis_epoch;
     genesis_epoch.epoch_index = 0;
-    genesis_epoch.authorities = genesis_configuration_.genesis_authorities;
-    genesis_epoch.randomness = genesis_configuration_.randomness;
-    genesis_epoch.epoch_duration = genesis_configuration_.epoch_length;
+    genesis_epoch.authorities = genesis_configuration_->genesis_authorities;
+    genesis_epoch.randomness = genesis_configuration_->randomness;
+    genesis_epoch.epoch_duration = genesis_configuration_->epoch_length;
     genesis_epoch.start_slot = 0;
 
     next_slot_finish_time_ =
-        clock_->now() + genesis_configuration_.slot_duration;
+        clock_->now() + genesis_configuration_->slot_duration;
 
     current_state_ = BabeState::SYNCHRONIZED;
     runEpoch(genesis_epoch, next_slot_finish_time_);
@@ -126,7 +110,7 @@ namespace kagome::consensus {
     auto authority_index_res =
         getAuthorityIndex(current_epoch_.authorities, keypair_.public_key);
     BOOST_ASSERT_MSG(authority_index_res.has_value(), "Authority is not known");
-    auto threshold = calculateThreshold(genesis_configuration_.leadership_rate,
+    auto threshold = calculateThreshold(genesis_configuration_->leadership_rate,
                                         current_epoch_.authorities,
                                         authority_index_res.value());
     slots_leadership_ =
@@ -153,27 +137,24 @@ namespace kagome::consensus {
         }
         log_->info("Catching up to block number: {}", announce.header.number);
         current_state_ = BabeState::CATCHING_UP;
-        requestBlocks(announce.header, [self_wp = weak_from_this()] {
-          auto self = self_wp.lock();
-          if (not self) {
-            return;
-          }
-          self->log_->info("Catching up is done, getting slot time");
-          // all blocks were successfully applied, now we need to get slot
-          // time
-          self->current_state_ = BabeState::NEED_SLOT_TIME;
-        });
+        block_executor_->synchronizeBlocks(
+              announce.header, [self{shared_from_this()}] {
+                self->log_->info("Catching up is done, getting slot time");
+                // all blocks were successfully applied, now we need to get slot
+                // time
+                self->current_state_ = BabeState::NEED_SLOT_TIME;
+              });
         break;
       case BabeState::NEED_SLOT_TIME:
         // if block is new add it to the storage and sync missing blocks. Then
         // calculate slot time and execute babe
-        processNextBlock(announce.header, [this](const auto &header) {
-          synchronizeSlots(header);
-        });
+        block_executor_->processNextBlock(
+            announce.header,
+            [this](const auto &header) { synchronizeSlots(header); });
         break;
       case BabeState::CATCHING_UP:
       case BabeState::SYNCHRONIZED:
-        processNextBlock(announce.header, [](auto &) {});
+        block_executor_->processNextBlock(announce.header, [](auto &) {});
         break;
     }
   }
@@ -187,7 +168,7 @@ namespace kagome::consensus {
 
   void BabeImpl::runSlot() {
     if (current_slot_ != 0
-        and current_slot_ % genesis_configuration_.epoch_length == 0) {
+        and current_slot_ % genesis_configuration_->epoch_length == 0) {
       // end of the epoch
       finishEpoch();
     }
@@ -201,12 +182,12 @@ namespace kagome::consensus {
     auto now = clock_->now();
     if (now > next_slot_finish_time_
         and (now - next_slot_finish_time_)
-                > genesis_configuration_.slot_duration) {
+                > genesis_configuration_->slot_duration) {
       // we are too far behind; after skipping some slots (but not epochs)
       // control will be returned to this method
 
       current_slot_++;
-      next_slot_finish_time_ += genesis_configuration_.slot_duration;
+      next_slot_finish_time_ += genesis_configuration_->slot_duration;
       return runSlot();
     }
 
@@ -231,7 +212,7 @@ namespace kagome::consensus {
     }
 
     ++current_slot_;
-    next_slot_finish_time_ += genesis_configuration_.slot_duration;
+    next_slot_finish_time_ += genesis_configuration_->slot_duration;
     log_->debug("Slot {} in epoch {} has finished",
                 current_slot_,
                 current_epoch_.epoch_index);
@@ -323,7 +304,7 @@ namespace kagome::consensus {
 
     // check that we are still in the middle of the
     if (clock_->now()
-        > next_slot_finish_time_ + genesis_configuration_.slot_duration) {
+        > next_slot_finish_time_ + genesis_configuration_->slot_duration) {
       log_->warn(
           "Block was not built in time. Slot has finished. If you are "
           "executing in debug mode, consider to rebuild in release");
@@ -378,35 +359,6 @@ namespace kagome::consensus {
     log_->debug("Epoch {} has finished", current_epoch_.epoch_index);
   }
 
-  void BabeImpl::processNextBlock(
-      const primitives::BlockHeader &header,
-      const std::function<void(const primitives::BlockHeader &)>
-          &new_block_handler) {
-    auto block_hash = hasher_->blake2b_256(scale::encode(header).value());
-
-    // insert block_header if it is missing
-    if (not block_tree_->getBlockHeader(block_hash)) {
-      if (auto add_res = block_tree_->addBlockHeader(header); not add_res) {
-        log_->warn(
-            "Could not add block header during import. Number: {}, Hash: {}, "
-            "Reason: {}",
-            header.number,
-            block_hash.toHex(),
-            add_res.error().message());
-        // handle if block exists
-      } else {
-        new_block_handler(header);
-        log_->info("Added block header. Number: {}, Hash: {}",
-                   header.number,
-                   block_hash.toHex());
-      }
-      const auto &[best_number, best_hash] = block_tree_->getLastFinalized();
-
-      // we should request block
-      requestBlocks(best_hash, block_hash, [] {});
-    }
-  }
-
   void BabeImpl::synchronizeSlots(const primitives::BlockHeader &new_header) {
     static boost::optional<BabeSlotNumber> first_production_slot = boost::none;
 
@@ -430,7 +382,7 @@ namespace kagome::consensus {
     auto diff = *first_production_slot - observed_slot;
 
     first_slot_times_.emplace_back(
-        clock_->now() + diff * genesis_configuration_.slot_duration);
+        clock_->now() + diff * genesis_configuration_->slot_duration);
     if (observed_slot >= first_production_slot.value()) {
       current_state_ = BabeState::SYNCHRONIZED;
       log_->info("Slot time obtained. Peer is synchronized");
@@ -445,9 +397,9 @@ namespace kagome::consensus {
 
       Epoch epoch;
       epoch.epoch_index =
-          *first_production_slot / genesis_configuration_.epoch_length;
+          *first_production_slot / genesis_configuration_->epoch_length;
       epoch.start_slot = *first_production_slot;
-      epoch.epoch_duration = genesis_configuration_.epoch_length;
+      epoch.epoch_duration = genesis_configuration_->epoch_length;
       auto next_epoch_digest_res =
           epoch_storage_->getEpochDescriptor(epoch.epoch_index);
       if (not next_epoch_digest_res) {
@@ -461,112 +413,5 @@ namespace kagome::consensus {
 
       runEpoch(epoch, first_slot_ending_time);
     }
-  }
-
-  void BabeImpl::requestBlocks(const primitives::BlockHeader &new_header,
-                               std::function<void()> next) {
-    const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
-    auto new_block_hash =
-        hasher_->blake2b_256(scale::encode(new_header).value());
-    BOOST_ASSERT(new_header.number >= last_number);
-    return requestBlocks(last_hash, new_block_hash, std::move(next));
-  }
-
-  void BabeImpl::requestBlocks(const primitives::BlockId &from,
-                               const primitives::BlockHash &to,
-                               std::function<void()> next) {
-    babe_synchronizer_->request(
-        from,
-        to,
-        [self{shared_from_this()},
-         next(std::move(next))](const std::vector<primitives::Block> &blocks) {
-          if (blocks.empty()) {
-            self->log_->error("Received empty list of blocks");
-          } else {
-            auto front_block_hex =
-                self->hasher_
-                    ->blake2b_256(scale::encode(blocks.front().header).value())
-                    .toHex();
-            auto back_block_hex =
-                self->hasher_
-                    ->blake2b_256(scale::encode(blocks.back().header).value())
-                    .toHex();
-            self->log_->info("Received blocks from: {}, to {}",
-                             front_block_hex,
-                             back_block_hex);
-          }
-          for (const auto &block : blocks) {
-            if (auto apply_res = self->applyBlock(block); not apply_res) {
-              if (apply_res
-                  == outcome::failure(
-                      blockchain::BlockTreeError::BLOCK_EXISTS)) {
-                continue;
-              }
-              self->log_->error(
-                  "Could not apply block during synchronizing slots.Error: {}",
-                  apply_res.error().message());
-            }
-          }
-          next();
-        });
-  }
-
-  outcome::result<void> BabeImpl::applyBlock(const primitives::Block &block) {
-    auto block_hash = hasher_->blake2b_256(scale::encode(block.header).value());
-
-    // check if block body already exists. If so, do not apply
-    if (block_tree_->getBlockBody(block_hash)) {
-      return blockchain::BlockTreeError::BLOCK_EXISTS;
-    }
-    log_->info(
-        "Applying block number: {}, hash: {}",
-        block.header.number,
-        hasher_->blake2b_256(scale::encode(block.header).value()).toHex());
-
-    OUTCOME_TRY(babe_digests, getBabeDigests(block.header));
-
-    auto [seal, babe_header] = babe_digests;
-
-    auto epoch_index =
-        babe_header.slot_number / genesis_configuration_.epoch_length;
-
-    OUTCOME_TRY(this_block_epoch_descriptor,
-                epoch_storage_->getEpochDescriptor(epoch_index));
-
-    auto threshold = calculateThreshold(genesis_configuration_.leadership_rate,
-                                        this_block_epoch_descriptor.authorities,
-                                        babe_header.authority_index);
-
-    // update authorities and randomnesss
-    auto next_epoch_digest_res = getNextEpochDigest(block.header);
-    if (next_epoch_digest_res) {
-      log_->info("Got next epoch digest for epoch: {}", epoch_index);
-      epoch_storage_->addEpochDescriptor(epoch_index + 2,
-                                         next_epoch_digest_res.value());
-    }
-
-    OUTCOME_TRY(block_validator_->validateHeader(
-        block.header,
-        this_block_epoch_descriptor.authorities[babe_header.authority_index].id,
-        threshold,
-        this_block_epoch_descriptor.randomness));
-
-    auto block_without_digest = block;
-
-    // block should be applied without last digest which contains the seal
-    block_without_digest.header.digest.pop_back();
-    // apply block
-    OUTCOME_TRY(core_->execute_block(block_without_digest));
-
-    // block header already exists, so only body should be added
-    BOOST_ASSERT_MSG(block_tree_->getBlockHeader(block_hash).has_value(),
-                     "Block header does not exist, although it should");
-    OUTCOME_TRY(
-        block_tree_->addBlockBody(block.header.number, block_hash, block.body));
-
-    log_->info("Imported block with number: {}, hash: {}",
-               block.header.number,
-               block_hash.toHex());
-    return outcome::success();
   }
 }  // namespace kagome::consensus

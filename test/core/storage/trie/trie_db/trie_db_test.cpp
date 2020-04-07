@@ -358,9 +358,12 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
         PolkadotTrieDb::createEmpty(std::make_shared<TrieDbBackendImpl>(
             std::move(level_db), kNodePrefix));
     EXPECT_OUTCOME_TRUE_1(db->put("123"_buf, "abc"_buf));
+    EXPECT_OUTCOME_TRUE_1(db->remove("123"_buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("123"_buf, "abc"_buf));
     EXPECT_OUTCOME_TRUE_1(db->put("345"_buf, "def"_buf));
     EXPECT_OUTCOME_TRUE_1(db->put("678"_buf, "xyz"_buf));
     root = db->getRootHash();
+    FAIL() << root.toHex();
   }
   EXPECT_OUTCOME_TRUE(new_level_db,
                       LevelDB::create("/tmp/kagome_leveldb_persistency_test"));

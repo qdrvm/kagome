@@ -6,8 +6,6 @@
 #ifndef KAGOME_CORE_APPLICATION_KAGOME_APPLICATION_HPP
 #define KAGOME_CORE_APPLICATION_KAGOME_APPLICATION_HPP
 
-#include "injector/application_injector.hpp"
-
 namespace kagome::application {
 
   /**

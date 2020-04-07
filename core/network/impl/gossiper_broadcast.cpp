@@ -6,6 +6,8 @@
 #include "network/impl/gossiper_broadcast.hpp"
 
 #include <boost/assert.hpp>
+#include <boost/range/adaptors.hpp>
+#include <boost/range/join.hpp>
 #include "network/common.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 
@@ -52,6 +54,11 @@ namespace kagome::network {
     broadcast(std::move(message));
   }
 
+  void GossiperBroadcast::addStream(
+      std::shared_ptr<libp2p::connection::Stream> stream) {
+    syncing_streams_.push_back(stream);
+  }
+
   void GossiperBroadcast::broadcast(GossipMessage &&msg) {
     auto msg_send_lambda = [msg](auto stream) {
       auto read_writer =
@@ -62,6 +69,17 @@ namespace kagome::network {
           });
     };
 
+    for (const auto &stream : syncing_streams_) {
+      if (stream && !stream->isClosed()) {
+        msg_send_lambda(stream);
+      } else {
+        // remove this stream
+        syncing_streams_.erase(
+            std::remove(
+                syncing_streams_.begin(), syncing_streams_.end(), stream),
+            syncing_streams_.end());
+      }
+    }
     for (const auto &[info, stream] : streams_) {
       if (stream && !stream->isClosed()) {
         msg_send_lambda(stream);

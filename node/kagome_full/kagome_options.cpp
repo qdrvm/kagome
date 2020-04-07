@@ -9,7 +9,6 @@
 #include <string>
 
 #include <boost/filesystem.hpp>
-#include <boost/program_options.hpp>
 
 namespace kagome::options {
   using kagome::application::KeyStorage;
@@ -77,8 +76,8 @@ namespace kagome::options {
     config_storage_path_ = configuration_path;
     leveldb_path_ = leveldb_path;
     p2p_port_ = p2p_port;
-  rpc_http_port_ = rpc_http_port;
-  rpc_ws_port_ = rpc_ws_port;
+    rpc_http_port_ = rpc_http_port;
+    rpc_ws_port_ = rpc_ws_port;
     verbosity_ = verbosity;
 
     return outcome::success();

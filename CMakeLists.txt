@@ -148,4 +148,4 @@ export(PACKAGE kagome)
 enable_testing()
 add_subdirectory(test)
 
-add_subdirectory(examples)
+add_subdirectory(node)
