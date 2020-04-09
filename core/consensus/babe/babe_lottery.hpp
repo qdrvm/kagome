@@ -56,7 +56,7 @@ namespace kagome::consensus {
      */
     virtual Randomness computeRandomness(
         const Randomness &last_epoch_randomness,
-        EpochIndex new_epoch_index) = 0;
+        EpochLength new_epoch_index) = 0;
 
     /**
      * Submit a VRF value for this epoch

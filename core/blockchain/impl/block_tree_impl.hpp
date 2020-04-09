@@ -109,9 +109,9 @@ namespace kagome::blockchain {
         const primitives::BlockId &block) const override;
 
     outcome::result<void> addBlockHeader(
-        primitives::BlockHeader header) override;
+        const primitives::BlockHeader &header) override;
 
-    outcome::result<void> addBlock(primitives::Block block) override;
+    outcome::result<void> addBlock(const primitives::Block &block) override;
 
     outcome::result<void> addBlockBody(
         primitives::BlockNumber block_number,

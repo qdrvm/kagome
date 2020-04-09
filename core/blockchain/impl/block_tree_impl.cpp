@@ -143,7 +143,7 @@ namespace kagome::blockchain {
         hasher_{std::move(hasher)} {}
 
   outcome::result<void> BlockTreeImpl::addBlockHeader(
-      primitives::BlockHeader header) {
+      const primitives::BlockHeader &header) {
     auto parent = tree_->getByHash(header.parent_hash);
     if (!parent) {
       return BlockTreeError::NO_PARENT;
@@ -163,7 +163,8 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
-  outcome::result<void> BlockTreeImpl::addBlock(primitives::Block block) {
+  outcome::result<void> BlockTreeImpl::addBlock(
+      const primitives::Block &block) {
     // first of all, check if we know parent of this block; if not, we cannot
     // insert it
     auto parent = tree_->getByHash(block.header.parent_hash);
@@ -190,8 +191,7 @@ namespace kagome::blockchain {
       const primitives::BlockHash &block_hash,
       const primitives::BlockBody &body) {
     primitives::BlockData block_data{.hash = block_hash, .body = body};
-    OUTCOME_TRY(storage_->putBlockData(block_number, block_data));
-    return outcome::success();
+    return storage_->putBlockData(block_number, block_data);
   }
 
   outcome::result<void> BlockTreeImpl::finalize(
@@ -201,6 +201,9 @@ namespace kagome::blockchain {
     if (!node) {
       return BlockTreeError::NO_SUCH_BLOCK;
     }
+
+    // TODO: clean redundant blocks (headers and bodies that didn't end up in
+    // finalized chain)
 
     // insert justification into the database
     OUTCOME_TRY(storage_->putJustification(justification, block, node->depth));

@@ -14,12 +14,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, EpochStorageError, e) {
     case E::EPOCH_DOES_NOT_EXIST:
       return "Requested epoch does not exist";
   }
+  return "Unknown error";
 }
 
 namespace kagome::consensus {
 
-  const static auto EPOCH_PREFIX =
-      common::Blob<8>::fromString("epchdcr0").value();
+  const auto EPOCH_PREFIX = common::Blob<8>::fromString("epchdcr0").value();
 
   EpochStorageImpl::EpochStorageImpl(
       std::shared_ptr<kagome::storage::BufferStorage> storage)

@@ -127,7 +127,7 @@ namespace kagome::consensus {
     auto authority_index_res =
         getAuthorityIndex(current_epoch_.authorities, keypair_.public_key);
     BOOST_ASSERT_MSG(authority_index_res.has_value(), "Authority is not known");
-    auto threshold = calculateThreshold(genesis_configuration_.c,
+    auto threshold = calculateThreshold(genesis_configuration_.leadership_rate,
                                         current_epoch_.authorities,
                                         authority_index_res.value());
     slots_leadership_ = lottery_->slotsLeadership(current_epoch_.randomness,
@@ -141,19 +141,31 @@ namespace kagome::consensus {
 
   void BabeImpl::onBlockAnnounce(const network::BlockAnnounce &announce) {
     switch (current_state_) {
-      case BabeState::START:
+      case BabeState::WAIT_BLOCK:
+        // TODO(kamilsa): PRE-366 validate block. Now it is problematic as we
+        // need t know VRF threshold for validation. To calculate that we need
+        // to have weights of the authorities and to get it we need to have the
+        // latest state of a blockchain
+
         // add new block header and synchronize missing blocks with their bodies
-        if (block_tree_->addBlockHeader(announce.header)) {
-          log_->info("Catching up from block number: {}",
-                     announce.header.number);
-          current_state_ = BabeState::CATCHING_UP;
-          synchronizeBlocks(announce.header, [self{shared_from_this()}] {
-            self->log_->info("Catching up is done, getting slot time");
-            // all blocks were successfully applied, now we need to get slot
-            // time
-            self->current_state_ = BabeState::NEED_SLOT_TIME;
-          });
+        if (auto add_res = block_tree_->addBlockHeader(announce.header);
+            not add_res) {
+          log_->info("Could not apply block number {}, reason {}",
+                     announce.header.number,
+                     add_res.error().message());
         }
+        log_->info("Catching up to block number: {}", announce.header.number);
+        current_state_ = BabeState::CATCHING_UP;
+        requestBlocks(announce.header, [self_wp = weak_from_this()] {
+          auto self = self_wp.lock();
+          if (not self) {
+            return;
+          }
+          self->log_->info("Catching up is done, getting slot time");
+          // all blocks were successfully applied, now we need to get slot
+          // time
+          self->current_state_ = BabeState::NEED_SLOT_TIME;
+        });
         break;
       case BabeState::NEED_SLOT_TIME:
         // if block is new add it to the storage and sync missing blocks. Then
@@ -388,11 +400,10 @@ namespace kagome::consensus {
                    header.number,
                    block_hash.toHex());
       }
-      const auto &[best_number, best_hash] =
-          block_tree_->getLastFinalized();  // ?? or getDeepestLeaf
+      const auto &[best_number, best_hash] = block_tree_->getLastFinalized();
 
       // we should request block
-      synchronizeBlocks(best_hash, block_hash, [self{shared_from_this()}] {});
+      requestBlocks(best_hash, block_hash, [] {});
     }
   }
 
@@ -452,18 +463,18 @@ namespace kagome::consensus {
     }
   }
 
-  void BabeImpl::synchronizeBlocks(const primitives::BlockHeader &new_header,
-                                   std::function<void()> next) {
+  void BabeImpl::requestBlocks(const primitives::BlockHeader &new_header,
+                               std::function<void()> next) {
     const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
     auto new_block_hash =
         hasher_->blake2b_256(scale::encode(new_header).value());
     BOOST_ASSERT(new_header.number >= last_number);
-    return synchronizeBlocks(last_hash, new_block_hash, std::move(next));
+    return requestBlocks(last_hash, new_block_hash, std::move(next));
   }
 
-  void BabeImpl::synchronizeBlocks(const primitives::BlockId &from,
-                                   const primitives::BlockHash &to,
-                                   std::function<void()> next) {
+  void BabeImpl::requestBlocks(const primitives::BlockId &from,
+                               const primitives::BlockHash &to,
+                               std::function<void()> next) {
     babe_synchronizer_->request(
         from,
         to,
@@ -522,7 +533,7 @@ namespace kagome::consensus {
     OUTCOME_TRY(this_block_epoch_descriptor,
                 epoch_storage_->getEpochDescriptor(epoch_index));
 
-    auto threshold = calculateThreshold(genesis_configuration_.c,
+    auto threshold = calculateThreshold(genesis_configuration_.leadership_rate,
                                         this_block_epoch_descriptor.authorities,
                                         babe_header.authority_index);
 
@@ -530,7 +541,7 @@ namespace kagome::consensus {
     auto next_epoch_digest_res = getNextEpochDigest(block.header);
     if (next_epoch_digest_res) {
       log_->info("Got next epoch digest for epoch: {}", epoch_index);
-      epoch_storage_->addEpochDescriptor(epoch_index,
+      epoch_storage_->addEpochDescriptor(epoch_index + 2,
                                          next_epoch_digest_res.value());
     }
 

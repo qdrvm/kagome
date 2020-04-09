@@ -44,11 +44,10 @@ namespace kagome::consensus {
     return pollClients(request, {}, block_list_handler);
   }
 
-  void BabeSynchronizerImpl::pollClients(
-      network::BlocksRequest request,
+  std::shared_ptr<network::SyncProtocolClient>
+  BabeSynchronizerImpl::selectNextClient(
       std::unordered_set<std::shared_ptr<network::SyncProtocolClient>>
-          &&polled_clients,
-      const BlocksHandler &requested_blocks_handler) const {
+          &polled_clients) const {
     // we want to ask each client until we get the blocks we lack, but the
     // sync_clients_ set can change between the requests, so we need to keep
     // track of the clients we already asked
@@ -67,52 +66,65 @@ namespace kagome::consensus {
       next_client = *sync_clients_->clients.begin();
       polled_clients.insert(next_client);
     }
+    return next_client;
+  }
+
+  /**
+   * Get blocks from resposne
+   * @param response containing block data for blocks
+   * @return blocks from block data
+   */
+  boost::optional<std::vector<primitives::Block>> getBlocks(
+      const network::BlocksResponse &response) {
+    // now we need to check if every block data from response contains header;
+    // if any of them does not contain block header, we should proceed to the
+    // next client
+    std::vector<primitives::Block> blocks;
+    for (const auto &block_data : response.blocks) {
+      primitives::Block block;
+      if (!block_data.header) {
+        // that's bad, we can't insert a block, which does not have at
+        // least a header
+        return boost::none;
+      }
+      block.header = *block_data.header;
+
+      if (block_data.body) {
+        block.body = *block_data.body;
+      }
+
+      blocks.push_back(block);
+    }
+    return blocks;
+  }
+
+  void BabeSynchronizerImpl::pollClients(
+      network::BlocksRequest request,
+      std::unordered_set<std::shared_ptr<network::SyncProtocolClient>>
+          &&polled_clients,
+      const BlocksHandler &requested_blocks_handler) const {
+    auto next_client = selectNextClient(polled_clients);
 
     next_client->blocksRequest(
         request,
-        [self{shared_from_this()},
+        [self_wp{weak_from_this()},
          request{std::move(request)},
          polled_clients{std::move(polled_clients)},
-         requested_blocks_handler{std::move(requested_blocks_handler)}](
+         requested_blocks_handler{requested_blocks_handler}](
             auto &&response_res) mutable {
-          if (!response_res or response_res.value().blocks.empty()) {
+          if (auto self = self_wp.lock()) {
+            // if response exists then get blocks and send them to handle
+            if (response_res and not response_res.value().blocks.empty()) {
+              auto blocks_opt = getBlocks(response_res.value());
+              if (blocks_opt) {
+                return requested_blocks_handler(blocks_opt.value());
+              }
+            }
             // proceed to the next client
             return self->pollClients(std::move(request),
                                      std::move(polled_clients),
                                      requested_blocks_handler);
           }
-          auto response = std::move(response_res.value());
-
-          // now we need to validate each block from the response, which will
-          // also add them to the tree; if any of them fails, we should proceed
-          // to the next client
-          auto success = true;
-          std::vector<primitives::Block> blocks;
-          for (const auto &block_data : response.blocks) {
-            primitives::Block block;
-            if (!block_data.header) {
-              // that's bad, we can't insert a block, which does not have at
-              // least a header
-              success = false;
-              break;
-            }
-            block.header = *block_data.header;
-
-            if (block_data.body) {
-              block.body = *block_data.body;
-            }
-
-            blocks.push_back(block);
-          }
-
-          if (!success) {
-            // proceed to the next client
-            return self->pollClients(std::move(request),
-                                     std::move(polled_clients),
-                                     std::move(requested_blocks_handler));
-          }
-
-          requested_blocks_handler(blocks);
         });
   }
 }  // namespace kagome::consensus

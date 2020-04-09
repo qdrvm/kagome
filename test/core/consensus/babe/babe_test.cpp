@@ -83,7 +83,7 @@ class BabeTest : public testing::Test {
     expected_config.randomness.fill(0);
     expected_config.genesis_authorities = {
         primitives::Authority{{keypair_.public_key}, 1}};
-    expected_config.c = {1, 4};
+    expected_config.leadership_rate = {1, 4};
     expected_config.epoch_length = 2;
     EXPECT_CALL(*babe_api_, configuration()).WillOnce(Return(expected_config));
 

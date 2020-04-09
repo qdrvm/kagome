@@ -30,7 +30,16 @@
 
 namespace kagome::consensus {
 
-  enum class BabeState { START, CATCHING_UP, NEED_SLOT_TIME, SYNCHRONIZED };
+  enum class BabeState {
+    WAIT_BLOCK,   // Node is just executed and waits for the new block to sync
+                  // missing blocks
+    CATCHING_UP,  // Node received first block announce and started fetching
+                  // blocks between announced one and the latest finalized one
+    NEED_SLOT_TIME,  // Missing blocks were received, now slot time should be
+                     // calculated
+    SYNCHRONIZED  // All missing blocks were received and applied, slot time was
+                  // calculated, current peer can start block production
+  };
 
   inline const auto kTimestampId =
       primitives::InherentIdentifier::fromString("timstap0").value();
@@ -130,8 +139,8 @@ namespace kagome::consensus {
      * @param new_header header defining new block
      * @param next action after the sync is done
      */
-    void synchronizeBlocks(const primitives::BlockHeader &new_header,
-                           std::function<void()> next);
+    void requestBlocks(const primitives::BlockHeader &new_header,
+                       std::function<void()> next);
 
     /**
      * Synchronize all missing blocks between provided blocks (from and to)
@@ -139,9 +148,9 @@ namespace kagome::consensus {
      * @param to last block of syncing block
      * @param next action after the sync is done
      */
-    void synchronizeBlocks(const primitives::BlockId &from,
-                           const primitives::BlockHash &to,
-                           std::function<void()> next);
+    void requestBlocks(const primitives::BlockId &from,
+                       const primitives::BlockHash &to,
+                       std::function<void()> next);
 
     // should only be invoked when parent of block exists
     outcome::result<void> applyBlock(const primitives::Block &block);
@@ -163,7 +172,7 @@ namespace kagome::consensus {
 
     primitives::BabeConfiguration genesis_configuration_;
 
-    BabeState current_state_{BabeState::START};
+    BabeState current_state_{BabeState::WAIT_BLOCK};
 
     Epoch current_epoch_;
 

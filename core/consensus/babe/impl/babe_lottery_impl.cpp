@@ -29,7 +29,7 @@ namespace kagome::consensus {
   BabeLottery::SlotsLeadership BabeLotteryImpl::slotsLeadership(
       const Randomness &randomness,
       const Threshold &threshold,
-      BabeSlotNumber epoch_length,
+      EpochLength epoch_length,
       const crypto::SR25519Keypair &keypair) const {
     BabeLottery::SlotsLeadership result;
     result.reserve(epoch_length);

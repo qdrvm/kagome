@@ -17,6 +17,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, SynchronizerError, e) {
     case E::REQUEST_ID_EXIST:
       return "Either peer requests himself, or request was already processed";
   }
+  return "unknown error";
 }
 
 namespace kagome::consensus {

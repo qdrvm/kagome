@@ -95,9 +95,9 @@ namespace kagome::consensus {
     }
 
     // peer must not send two blocks in one slot
-    //    if (!verifyProducer(babe_header)) {
-    //      return ValidationError::TWO_BLOCKS_IN_SLOT;
-    //    }
+    if (!verifyProducer(babe_header)) {
+      return ValidationError::TWO_BLOCKS_IN_SLOT;
+    }
     return outcome::success();
   }
 
@@ -108,10 +108,10 @@ namespace kagome::consensus {
       const primitives::SessionKey &public_key) const {
     // firstly, take hash of the block's header without Seal, which is the last
     // digest
-    auto header_copy = header;
-    header_copy.digest.pop_back();
+    auto unsealed_header = header;
+    unsealed_header.digest.pop_back();
 
-    auto header_copy_encoded = scale::encode(header_copy).value();
+    auto header_copy_encoded = scale::encode(unsealed_header).value();
 
     auto block_hash = hasher_->blake2b_256(header_copy_encoded);
 

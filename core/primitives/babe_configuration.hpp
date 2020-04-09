@@ -32,9 +32,10 @@ namespace kagome::primitives {
     /// Expressed as a rational where the first member of the tuple is the
     /// numerator and the second is the denominator. The rational should
     /// represent a value between 0 and 1.
-    /// In the threshold formula calculation, `1 - c` represents the probability
-    /// of a slot being empty.
-    std::pair<uint64_t, uint64_t> c;
+    /// In substrate it is called `c`
+    /// In the threshold formula calculation, `1 - leadership_rate` represents
+    /// the probability of a slot being empty.
+    std::pair<uint64_t, uint64_t> leadership_rate;
 
     /// The authorities for the genesis epoch.
     std::vector<Authority> genesis_authorities;
@@ -50,15 +51,16 @@ namespace kagome::primitives {
         std::chrono::duration_cast<std::chrono::milliseconds>(
             config.slot_duration)
             .count();
-    return s << slot_duration_u64 << config.epoch_length << config.c
-             << config.genesis_authorities << config.randomness;
+    return s << slot_duration_u64 << config.epoch_length
+             << config.leadership_rate << config.genesis_authorities
+             << config.randomness;
   }
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, BabeConfiguration &config) {
     size_t slot_duration_u64{};
-    s >> slot_duration_u64 >> config.epoch_length >> config.c
+    s >> slot_duration_u64 >> config.epoch_length >> config.leadership_rate
         >> config.genesis_authorities >> config.randomness;
     config.slot_duration = std::chrono::milliseconds(slot_duration_u64);
     return s;

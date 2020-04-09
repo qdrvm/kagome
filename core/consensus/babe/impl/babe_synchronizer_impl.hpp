@@ -32,9 +32,17 @@ namespace kagome::consensus {
 
    private:
     /**
+     * Select next client to be polled
+     * @param polled_clients clients that we already polled
+     * @return next clint to be polled
+     */
+    std::shared_ptr<network::SyncProtocolClient> selectNextClient(
+        std::unordered_set<std::shared_ptr<network::SyncProtocolClient>>
+            &polled_clients) const;
+    /**
      * Request blocks from provided peers
      * @param request block request message
-     * @param polled_clients peers that were alread requested
+     * @param polled_clients peers that were already requested
      * @param requested_blocks_handler handler of received blocks
      */
     void pollClients(

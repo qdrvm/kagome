@@ -31,7 +31,7 @@ namespace kagome::blockchain {
     virtual ~BlockTree() = default;
 
     /**
-     * Get blocks header by provided block id
+     * Get block header by provided block id
      * @param block id of the block header we are looking for
      * @return result containing block header if it exists, error otherwise
      */
@@ -63,7 +63,7 @@ namespace kagome::blockchain {
      * header was added. Error otherwise
      */
     virtual outcome::result<void> addBlockHeader(
-        primitives::BlockHeader header) = 0;
+        const primitives::BlockHeader &header) = 0;
 
     /**
      * Adds block body to the storage
@@ -90,7 +90,7 @@ namespace kagome::blockchain {
      * peer for the parent block and try to insert it; this operation is to be
      * repeated until a successful insertion happens
      */
-    virtual outcome::result<void> addBlock(primitives::Block block) = 0;
+    virtual outcome::result<void> addBlock(const primitives::Block &block) = 0;
 
     /**
      * Mark the block as finalized and store a finalization justification

@@ -25,7 +25,7 @@ namespace kagome::blockchain {
                            const primitives::BlockId &));
 
     MOCK_METHOD1(addBlockHeader,
-                 outcome::result<void>(primitives::BlockHeader header));
+                 outcome::result<void>(const primitives::BlockHeader &));
 
     MOCK_METHOD3(
         addBlockBody,
@@ -33,7 +33,7 @@ namespace kagome::blockchain {
                               const primitives::BlockHash &block_hash,
                               const primitives::BlockBody &block_body));
 
-    MOCK_METHOD1(addBlock, outcome::result<void>(primitives::Block));
+    MOCK_METHOD1(addBlock, outcome::result<void>(const primitives::Block &));
 
     MOCK_METHOD2(finalize,
                  outcome::result<void>(const primitives::BlockHash &,

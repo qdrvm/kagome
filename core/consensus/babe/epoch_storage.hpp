@@ -13,7 +13,7 @@
 
 namespace kagome::consensus {
   /**
-   * Allows to store get epochs
+   * Allows to store epochs
    */
   struct EpochStorage {
     virtual ~EpochStorage() = default;

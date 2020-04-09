@@ -112,7 +112,7 @@ namespace kagome::blockchain {
                               Prefix::HEADER,
                               header.number,
                               block_hash,
-                              Buffer{encoded_header}));
+                              Buffer{std::move(encoded_header)}));
     return block_hash;
   }
 

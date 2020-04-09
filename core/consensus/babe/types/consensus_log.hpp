@@ -13,7 +13,11 @@
 
 namespace kagome::consensus {
 
-  /// An consensus log item for BABE.
+  /**
+   * A consensus log item for BABE.
+   * The usage of AuthorityIndex option is yet unclear.
+   * Name and implementation are taken from substrate.
+   */
   using ConsensusLog =
       boost::variant<uint32_t,  // = 0 fake type, should never be used
 
@@ -25,7 +29,9 @@ namespace kagome::consensus {
                      NextEpochDescriptor,  // = 1
 
                      /// Disable the authority with given index.
-                     primitives::AuthorityIndex>  // = 2
+                     primitives::AuthorityIndex>  // = 2 Don't know why this
+                                                  // type is in this variant,
+                                                  // but in substrate we have it
       ;
 
 }  // namespace kagome::consensus

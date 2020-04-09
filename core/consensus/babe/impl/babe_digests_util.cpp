@@ -18,6 +18,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, DigestError, e) {
     case E::NEXT_EPOCH_DIGEST_DOES_NOT_EXIST:
       return "next epoch digest does not exist";
   }
+  return "unknown error";
 }
 
 namespace kagome::consensus {
