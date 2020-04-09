@@ -277,11 +277,11 @@ namespace kagome::consensus {
     log_->info("Obtained slot leadership");
 
     primitives::InherentData inherent_data;
-    auto epoch_secs = std::chrono::duration_cast<std::chrono::milliseconds>(
-                          clock_->now().time_since_epoch())
-                          .count();
+    auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                   clock_->now().time_since_epoch())
+                   .count();
     // identifiers are guaranteed to be correct, so use .value() directly
-    auto put_res = inherent_data.putData<uint64_t>(kTimestampId, epoch_secs);
+    auto put_res = inherent_data.putData<uint64_t>(kTimestampId, now);
     if (!put_res) {
       return log_->error("cannot put an inherent data: {}",
                          put_res.error().message());
@@ -355,7 +355,7 @@ namespace kagome::consensus {
     log_->debug("Announced block number {} in slot {} with timestamp {}",
                 block.header.number,
                 current_slot_,
-                epoch_secs);
+                now);
   }
 
   void BabeImpl::finishEpoch() {
