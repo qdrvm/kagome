@@ -10,6 +10,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::transaction_pool, TransactionPoolError, e) {
   switch (e) {
     case E::ALREADY_IMPORTED:
       return "Transaction has already been imported to the pool";
+    case E::NOT_FOUND:
+      return "Transaction not found in the pool";
   }
-  return "Unknown error";
 }

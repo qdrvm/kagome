@@ -9,7 +9,10 @@
 #include <outcome/outcome.hpp>
 
 namespace kagome::transaction_pool {
-  enum class TransactionPoolError { ALREADY_IMPORTED = 1 };
+  enum class TransactionPoolError {
+  	ALREADY_IMPORTED = 1,
+  	NOT_FOUND,
+  };
 }
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::transaction_pool, TransactionPoolError);
