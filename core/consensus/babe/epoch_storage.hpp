@@ -22,9 +22,10 @@ namespace kagome::consensus {
      * Stores epoch's information by its number
      * @param epoch_number number of stored epoch
      * @param epoch_descriptor epochs information
+     * @return result with success if epoch was added, error otherwise
      */
-    virtual void addEpochDescriptor(EpochIndex epoch_number,
-                                    NextEpochDescriptor epoch_descriptor) = 0;
+    virtual outcome::result<void> addEpochDescriptor(
+        EpochIndex epoch_number, NextEpochDescriptor epoch_descriptor) = 0;
 
     /**
      * Get an epoch by a (\param block_id)

@@ -91,9 +91,9 @@ class BabeTest : public testing::Test {
         .authorities = expected_config.genesis_authorities,
         .randomness = expected_config.randomness};
     EXPECT_CALL(*epoch_storage_, addEpochDescriptor(0, expected_epoch_digest))
-        .WillOnce(Return());
+        .WillOnce(Return(outcome::success()));
     EXPECT_CALL(*epoch_storage_, addEpochDescriptor(1, expected_epoch_digest))
-        .WillOnce(Return());
+        .WillOnce(Return(outcome::success()));
     EXPECT_CALL(*epoch_storage_, getEpochDescriptor(1))
         .WillOnce(Return(expected_epoch_digest));
 

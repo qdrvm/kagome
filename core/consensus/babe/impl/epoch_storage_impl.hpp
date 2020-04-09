@@ -25,8 +25,8 @@ namespace kagome::consensus {
 
     explicit EpochStorageImpl(std::shared_ptr<storage::BufferStorage> storage);
 
-    void addEpochDescriptor(EpochIndex epoch_number,
-                            NextEpochDescriptor epoch_descriptor) override;
+    outcome::result<void> addEpochDescriptor(
+        EpochIndex epoch_number, NextEpochDescriptor epoch_descriptor) override;
 
     outcome::result<NextEpochDescriptor> getEpochDescriptor(
         EpochIndex epoch_number) const override;

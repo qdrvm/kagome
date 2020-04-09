@@ -100,7 +100,7 @@ namespace kagome::consensus {
    * @param authority_key authority
    * @return index of authority in list of authorities
    */
-  outcome::result<uint64_t> getAuthorityIndex(
+  boost::optional<uint64_t> getAuthorityIndex(
       const std::vector<primitives::Authority> &authorities,
       const primitives::SessionKey &authority_key) {
     auto it = std::find_if(authorities.begin(),
@@ -109,7 +109,7 @@ namespace kagome::consensus {
                              return authority.id.id == authority_key;
                            });
     if (it == authorities.end()) {
-      return boost::system::error_code();
+      return boost::none;
     }
     return std::distance(authorities.begin(), it);
   }
@@ -341,9 +341,13 @@ namespace kagome::consensus {
     auto next_epoch_digest_res = getNextEpochDigest(block.header);
     if (next_epoch_digest_res) {
       log_->info("Got next epoch digest for epoch: {}",
-                 current_epoch_.epoch_index);
-      epoch_storage_->addEpochDescriptor(current_epoch_.epoch_index,
-                                         next_epoch_digest_res.value());
+                 current_epoch_.epoch_index + 2);
+      if (auto add_epoch_res = epoch_storage_->addEpochDescriptor(
+              current_epoch_.epoch_index + 2, next_epoch_digest_res.value());
+          not add_epoch_res) {
+        log_->error("Could not add next epoch digest. Reason: {}",
+                    add_epoch_res.error().message());
+      }
     }
 
     // finally, broadcast the sealed block
