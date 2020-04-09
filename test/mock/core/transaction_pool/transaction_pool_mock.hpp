@@ -14,24 +14,22 @@ namespace kagome::transaction_pool {
 
   class TransactionPoolMock : public TransactionPool {
    public:
-    MOCK_METHOD1(submitOne, outcome::result<void>(primitives::Transaction));
-    MOCK_METHOD1(submit,
-                 outcome::result<void>(std::vector<primitives::Transaction>));
-    MOCK_METHOD0(getReadyTransactions, std::vector<primitives::Transaction>());
+    MOCK_METHOD1(submitOne, outcome::result<void>(Transaction));
+    MOCK_METHOD1(submit, outcome::result<void>(std::vector<Transaction>));
+    MOCK_METHOD0(getReadyTransactions, std::vector<Transaction>());
 
-    MOCK_METHOD1(removeStale,
-                 outcome::result<std::vector<primitives::Transaction>>(
-                     const primitives::BlockId &));
+    MOCK_METHOD1(
+        removeStale,
+        outcome::result<std::vector<Transaction>>(const primitives::BlockId &));
 
-    MOCK_METHOD3(pruneTag,
-                 std::vector<primitives::Transaction>(
-                     const primitives::BlockId &at,
-                     const primitives::TransactionTag &,
-                     const std::vector<common::Hash256> &));
+    MOCK_METHOD3(
+        pruneTag,
+        std::vector<Transaction>(const primitives::BlockId &at,
+                                 const Transaction::Tag &,
+                                 const std::vector<common::Hash256> &));
     MOCK_METHOD2(pruneTag,
-                 std::vector<primitives::Transaction>(
-                     const primitives::BlockId &at,
-                     const primitives::TransactionTag &));
+                 std::vector<Transaction>(const primitives::BlockId &at,
+                                          const Transaction::Tag &));
 
     MOCK_CONST_METHOD0(getStatus, Status());
   };

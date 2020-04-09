@@ -12,6 +12,8 @@
 
 namespace kagome::transaction_pool {
 
+  using primitives::Transaction;
+
   class TransactionPool {
    public:
     struct Status;
@@ -27,20 +29,19 @@ namespace kagome::transaction_pool {
      * pool for some amount of time as its longevity is reached or the pool is
      * overflown
      */
-    virtual outcome::result<void> submitOne(primitives::Transaction t) = 0;
+    virtual outcome::result<void> submitOne(Transaction tx) = 0;
 
     /**
      * Import several transactions to the pool
      * @see submitOne()
      */
-    virtual outcome::result<void> submit(
-        std::vector<primitives::Transaction> ts) = 0;
+    virtual outcome::result<void> submit(std::vector<Transaction> txs) = 0;
 
     /**
      * @return transactions ready to included in the next block, sorted by their
      * priority
      */
-    virtual std::vector<primitives::Transaction> getReadyTransactions() = 0;
+    virtual std::vector<Transaction> getReadyTransactions() = 0;
 
     /**
      * Remove from the pool and temporarily ban transactions which longevity is
@@ -50,7 +51,7 @@ namespace kagome::transaction_pool {
      * 'block number when t got to pool' + 't.longevity' <= block number of at)
      * @return removed transactions
      */
-    virtual outcome::result<std::vector<primitives::Transaction>> removeStale(
+    virtual outcome::result<std::vector<Transaction>> removeStale(
         const primitives::BlockId &at) = 0;
 
     /* Prunes ready transactions that provide given list of tags.
@@ -66,17 +67,16 @@ namespace kagome::transaction_pool {
      * (if pruned) are not revalidated and become temporarily banned to
      * prevent importing them in the (near) future.
      */
-    virtual std::vector<primitives::Transaction> pruneTag(
+    virtual std::vector<Transaction> pruneTag(
         const primitives::BlockId &at,
-        const primitives::TransactionTag &tag,
-        const std::vector<common::Hash256> &known_imported_hashes) = 0;
+        const Transaction::Tag &tag,
+        const std::vector<Transaction::Hash> &known_imported_hashes) = 0;
 
     /**
      * Same as above, but known imported hashes are empty
      */
     virtual std::vector<primitives::Transaction> pruneTag(
-        const primitives::BlockId &at,
-        const primitives::TransactionTag &tag) = 0;
+        const primitives::BlockId &at, const Transaction::Tag &tag) = 0;
 
     virtual Status getStatus() const = 0;
   };

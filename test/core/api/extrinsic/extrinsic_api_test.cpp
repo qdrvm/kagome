@@ -33,7 +33,6 @@ using kagome::primitives::BlockInfo;
 using kagome::primitives::Extrinsic;
 using kagome::primitives::InvalidTransaction;
 using kagome::primitives::Transaction;
-using kagome::primitives::TransactionTag;
 using kagome::primitives::TransactionValidity;
 using kagome::primitives::UnknownTransaction;
 using kagome::primitives::ValidTransaction;

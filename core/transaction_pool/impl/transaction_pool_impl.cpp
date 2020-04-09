@@ -58,8 +58,8 @@ namespace kagome::transaction_pool {
     return ready;
   }
 
-  outcome::result<std::vector<kagome::primitives::Transaction>>
-  TransactionPoolImpl::removeStale(const primitives::BlockId &at) {
+  outcome::result<std::vector<Transaction>> TransactionPoolImpl::removeStale(
+      const primitives::BlockId &at) {
     OUTCOME_TRY(number, header_repo_->getNumberById(at));
 
     std::vector<Transaction> removed;
@@ -120,7 +120,7 @@ namespace kagome::transaction_pool {
     }
   }
 
-  std::vector<primitives::Transaction> TransactionPoolImpl::enforceLimits() {
+  std::vector<Transaction> TransactionPoolImpl::enforceLimits() {
     auto [ready_num, waiting_num] = getStatus();
     int64_t dr = ready_num - limits_.max_ready_num;
     int64_t dw = waiting_num - limits_.max_waiting_num;
@@ -145,12 +145,12 @@ namespace kagome::transaction_pool {
 
   std::vector<Transaction> TransactionPoolImpl::pruneTag(
       const primitives::BlockId &at,
-      const primitives::TransactionTag &tag,
-      const std::vector<common::Hash256> &known_imported_hashes) {
+      const Transaction::Tag &tag,
+      const std::vector<Transaction::Hash> &known_imported_hashes) {
     provided_tags_by_.insert({tag, {}});
     updateReady();
 
-    std::list<primitives::TransactionTag> to_remove{tag};
+    std::list<Transaction::Tag> to_remove{tag};
     std::vector<Transaction> removed;
 
     while (not to_remove.empty()) {
@@ -164,8 +164,8 @@ namespace kagome::transaction_pool {
       auto tx = ready_queue_.at(hash_opt.value());
       ready_queue_.erase(hash_opt.value());
 
-      auto find_previous = [this, &tx](primitives::TransactionTag const &tag)
-          -> boost::optional<std::vector<primitives::TransactionTag>> {
+      auto find_previous = [this, &tx](Transaction::Tag const &tag)
+          -> boost::optional<std::vector<Transaction::Tag>> {
         if (provided_tags_by_.find(tag) == provided_tags_by_.end()) {
           return boost::none;
         }
@@ -214,9 +214,8 @@ namespace kagome::transaction_pool {
     return removed;
   }
 
-  std::vector<primitives::Transaction> TransactionPoolImpl::pruneTag(
-      const kagome::primitives::BlockId &at,
-      const kagome::primitives::TransactionTag &tag) {
+  std::vector<Transaction> TransactionPoolImpl::pruneTag(
+      const primitives::BlockId &at, const Transaction::Tag &tag) {
     return pruneTag(at, tag, {});
   }
 

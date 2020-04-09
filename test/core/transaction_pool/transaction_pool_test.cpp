@@ -21,15 +21,13 @@ using kagome::face::ForwardIterator;
 using kagome::face::GenericIterator;
 using kagome::face::GenericList;
 using kagome::primitives::Transaction;
-using kagome::primitives::TransactionLongevity;
-using kagome::primitives::TransactionTag;
 using kagome::transaction_pool::PoolModerator;
 using kagome::transaction_pool::PoolModeratorMock;
 using kagome::transaction_pool::TransactionPoolImpl;
 
 using test::StdListAdapter;
-using testing::Return;
 using testing::NiceMock;
+using testing::Return;
 
 using namespace std::chrono_literals;
 
@@ -38,17 +36,20 @@ class TransactionPoolTest : public testing::Test {
   void SetUp() override {
     auto moderator = std::make_unique<NiceMock<PoolModeratorMock>>();
     auto header_repo = std::make_unique<HeaderRepositoryMock>();
-    pool_ = std::make_shared<TransactionPoolImpl>(std::move(moderator),
-                                                  std::move(header_repo), TransactionPoolImpl::Limits{});
+    pool_ =
+        std::make_shared<TransactionPoolImpl>(std::move(moderator),
+                                              std::move(header_repo),
+                                              TransactionPoolImpl::Limits{});
   }
 
  protected:
   std::shared_ptr<TransactionPoolImpl> pool_;
 };
 
-Transaction makeTx(Hash256 hash, std::initializer_list<TransactionTag> provides,
-                   std::initializer_list<TransactionTag> requires,
-                   TransactionLongevity valid_till = 10000) {
+Transaction makeTx(Hash256 hash,
+                   std::initializer_list<Transaction::Tag> provides,
+                   std::initializer_list<Transaction::Tag> requires,
+                   Transaction::Longevity valid_till = 10000) {
   Transaction tx;
   tx.hash = std::move(hash);
   tx.provides = std::vector(provides);
@@ -101,7 +102,10 @@ TEST_F(TransactionPoolTest, PruneAllTags) {
 
   auto pruned = pool_->pruneTag(42, "05"_unhex);
   ASSERT_TRUE(std::is_permutation(
-      pruned.begin(), pruned.end(), txs.begin(), txs.end(),
+      pruned.begin(),
+      pruned.end(),
+      txs.begin(),
+      txs.end(),
       [](auto &tx1, auto &tx2) { return tx1.hash == tx2.hash; }));
   ASSERT_EQ(pool_->getStatus().ready_num, 0);
   ASSERT_EQ(pool_->getStatus().waiting_num, 0);
@@ -114,7 +118,8 @@ TEST_F(TransactionPoolTest, PruneAllTags) {
  */
 TEST_F(TransactionPoolTest, PruneWrongTags) {
   std::vector<Transaction> txs{
-      makeTx("01"_hash256, {{1}}, {}), makeTx("02"_hash256, {{2}}, {{4}}),
+      makeTx("01"_hash256, {{1}}, {}),
+      makeTx("02"_hash256, {{2}}, {{4}}),
       makeTx("03"_hash256, {{3}}, {{4}}),
       // 6 will be passed to pruneTag in the last argument
       makeTx("04"_hash256, {{4}}, {{3}, {6}}),
@@ -137,7 +142,8 @@ TEST_F(TransactionPoolTest, PruneWrongTags) {
  */
 TEST_F(TransactionPoolTest, PruneSomeTags) {
   std::vector<Transaction> txs{
-      makeTx("01"_hash256, {{1}}, {}), makeTx("02"_hash256, {{2}}, {{4}}),
+      makeTx("01"_hash256, {{1}}, {}),
+      makeTx("02"_hash256, {{2}}, {{4}}),
       makeTx("03"_hash256, {{3}}, {{4}}),
       // 6 will be passed to pruneTag in the last argument
       makeTx("04"_hash256, {{4}}, {{3}, {6}}),
@@ -154,15 +160,19 @@ TEST_F(TransactionPoolTest, PruneSomeTags) {
   ASSERT_EQ(pool_->getStatus().ready_num, 2);
   ASSERT_EQ(pool_->getStatus().waiting_num, 0);
   ASSERT_TRUE(std::is_permutation(
-      pruned.begin(), pruned.end(), txs.begin() + 2, txs.end(),
+      pruned.begin(),
+      pruned.end(),
+      txs.begin() + 2,
+      txs.end(),
       [](auto &tx1, auto &tx2) { return tx1.hash == tx2.hash; }));
 }
 
 TEST_F(TransactionPoolTest, PruneInSeveralSteps) {
-  std::vector<Transaction> txs{
-      makeTx("01"_hash256, {{1}}, {}), makeTx("02"_hash256, {{2}}, {{1}}),
-      makeTx("03"_hash256, {{3}}, {{1}}), makeTx("04"_hash256, {{4}}, {{3}}),
-      makeTx("05"_hash256, {{5}}, {{4}, {3}})};
+  std::vector<Transaction> txs{makeTx("01"_hash256, {{1}}, {}),
+                               makeTx("02"_hash256, {{2}}, {{1}}),
+                               makeTx("03"_hash256, {{3}}, {{1}}),
+                               makeTx("04"_hash256, {{4}}, {{3}}),
+                               makeTx("05"_hash256, {{5}}, {{4}, {3}})};
   EXPECT_OUTCOME_TRUE_1(pool_->submit(txs));
   ASSERT_EQ(pool_->getStatus().ready_num, 5);
   pool_->pruneTag(42, {3});

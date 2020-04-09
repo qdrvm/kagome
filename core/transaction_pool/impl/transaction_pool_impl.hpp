@@ -14,11 +14,11 @@
 
 namespace kagome::transaction_pool {
 
-  struct ReadyTransaction : public primitives::Transaction {
-    std::list<common::Hash256> unlocks;
+  struct ReadyTransaction : public Transaction {
+    std::list<Hash> unlocks;
   };
 
-  struct WaitingTransaction : public primitives::Transaction {};
+  struct WaitingTransaction : public Transaction {};
 
   class TransactionPoolImpl : public TransactionPool {
     static constexpr auto kDefaultLoggerTag = "Transaction Pool";
@@ -37,26 +37,25 @@ namespace kagome::transaction_pool {
     TransactionPoolImpl &operator=(TransactionPoolImpl &&) = delete;
     TransactionPoolImpl &operator=(const TransactionPoolImpl &) = delete;
 
-    outcome::result<void> submitOne(primitives::Transaction t) override;
+    outcome::result<void> submitOne(Transaction tx) override;
 
-    outcome::result<void> submit(
-        std::vector<primitives::Transaction> ts) override;
+    outcome::result<void> submit(std::vector<Transaction> txs) override;
 
-    std::vector<primitives::Transaction> getReadyTransactions() override;
 
-    outcome::result<std::vector<primitives::Transaction>> removeStale(
+    std::vector<Transaction> getReadyTransactions() override;
+
+    outcome::result<std::vector<Transaction>> removeStale(
         const primitives::BlockId &at) override;
 
     Status getStatus() const override;
 
-    std::vector<primitives::Transaction> pruneTag(
+    std::vector<Transaction> pruneTag(
         const primitives::BlockId &at,
-        const primitives::TransactionTag &tag,
+        const Transaction::Tag &tag,
         const std::vector<common::Hash256> &known_imported_hashes) override;
 
-    std::vector<primitives::Transaction> pruneTag(
-        const primitives::BlockId &at,
-        const primitives::TransactionTag &tag) override;
+    std::vector<Transaction> pruneTag(const primitives::BlockId &at,
+                                      const Transaction::Tag &tag) override;
 
    private:
     /**
@@ -64,6 +63,7 @@ namespace kagome::transaction_pool {
      * them to ready queue
      */
     void updateReady();
+
     bool isReady(const WaitingTransaction &tx) const;
 
     /**
@@ -72,7 +72,7 @@ namespace kagome::transaction_pool {
      */
     void updateUnlockingTransactions(const ReadyTransaction &rtx);
 
-    std::vector<primitives::Transaction> enforceLimits();
+    std::vector<Transaction> enforceLimits();
 
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
 
@@ -88,7 +88,7 @@ namespace kagome::transaction_pool {
     std::list<WaitingTransaction> waiting_queue_;
 
     // tags provided by imported transactions
-    std::map<primitives::TransactionTag, boost::optional<common::Hash256>>
+    std::map<Transaction::Tag, boost::optional<common::Hash256>>
         provided_tags_by_;
 
     // hexadecimal representations of imported transactions hashes
