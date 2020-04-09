@@ -64,6 +64,12 @@ namespace kagome::transaction_pool {
      */
     void updateReady();
 
+    /**
+     * Remove tx from ready list with satisfied tag requirements
+     * @param tx - Tx that will become unready
+     */
+    void unReady(const Transaction::Hash &txHash);
+
     bool isReady(const WaitingTransaction &tx) const;
 
     /**

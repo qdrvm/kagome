@@ -106,6 +106,23 @@ namespace kagome::transaction_pool {
     }
   }
 
+  void TransactionPoolImpl::unReady(const Transaction::Hash &txHash) {
+    auto ready_queue_node = ready_queue_.extract(txHash);
+
+    if (ready_queue_node.empty()) {
+      return;
+    }
+
+    auto &tx = ready_queue_node.mapped();
+
+    auto unlocks = std::move(tx.unlocks);
+
+    waiting_queue_.push_back(WaitingTransaction{std::move(tx)});
+
+    std::for_each(
+        unlocks.begin(), unlocks.end(), [this](auto &i) { unReady(i); });
+  }
+
   void TransactionPoolImpl::updateUnlockingTransactions(
       const ReadyTransaction &rtx) {
     for (auto &tag : rtx.requires) {
