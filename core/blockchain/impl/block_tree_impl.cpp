@@ -202,8 +202,8 @@ namespace kagome::blockchain {
       return BlockTreeError::NO_SUCH_BLOCK;
     }
 
-    // TODO: clean redundant blocks (headers and bodies that didn't end up in
-    // finalized chain)
+    // TODO (kamilsa): PRE-367 clean redundant blocks (headers and bodies that
+    // didn't end up in finalized chain)
 
     // insert justification into the database
     OUTCOME_TRY(storage_->putJustification(justification, block, node->depth));
