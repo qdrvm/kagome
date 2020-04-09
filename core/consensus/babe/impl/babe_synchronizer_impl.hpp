@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BABE_OBSERVER_IMPL_HPP
-#define KAGOME_BABE_OBSERVER_IMPL_HPP
+#ifndef KAGOME_BABE_SYNCHRONIZER_IMPL_HPP
+#define KAGOME_BABE_SYNCHRONIZER_IMPL_HPP
 
 #include "consensus/babe/babe_synchronizer.hpp"
 
@@ -56,4 +56,4 @@ namespace kagome::consensus {
   };
 }  // namespace kagome::consensus
 
-#endif  // KAGOME_BABE_OBSERVER_IMPL_HPP
+#endif  // KAGOME_BABE_SYNCHRONIZER_IMPL_HPP

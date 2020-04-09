@@ -28,7 +28,7 @@ namespace kagome::consensus {
   }
 
   outcome::result<void> EpochStorageImpl::addEpochDescriptor(
-      EpochIndex epoch_number, NextEpochDescriptor epoch_descriptor) {
+      EpochIndex epoch_number, const NextEpochDescriptor &epoch_descriptor) {
     auto key = common::Buffer{EPOCH_PREFIX}.putUint64(epoch_number);
     auto val = common::Buffer{scale::encode(epoch_descriptor).value()};
     return storage_->put(key, val);

@@ -25,7 +25,8 @@ namespace kagome::consensus {
      * @return result with success if epoch was added, error otherwise
      */
     virtual outcome::result<void> addEpochDescriptor(
-        EpochIndex epoch_number, NextEpochDescriptor epoch_descriptor) = 0;
+        EpochIndex epoch_number,
+        const NextEpochDescriptor &epoch_descriptor) = 0;
 
     /**
      * Get an epoch by a (\param block_id)
