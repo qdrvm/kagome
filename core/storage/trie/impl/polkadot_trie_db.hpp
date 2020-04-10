@@ -127,7 +127,7 @@ namespace kagome::storage::trie {
 
     std::shared_ptr<TrieDbBackend> db_;
     PolkadotCodec codec_;
-    common::Buffer root_;
+    common::Buffer root_merkle_value_;
   };
 
 }  // namespace kagome::storage::trie

@@ -39,7 +39,7 @@ namespace kagome::storage::trie {
   PolkadotTrieDb::PolkadotTrieDb(std::shared_ptr<TrieDbBackend> db,
                                  boost::optional<common::Buffer> root_hash)
       : db_{std::move(db)},
-        root_{root_hash ? std::move(root_hash.value())
+        root_merkle_value_{root_hash ? std::move(root_hash.value())
                         : PolkadotTrieDb::getEmptyRoot()} {}
 
   outcome::result<void> PolkadotTrieDb::put(const Buffer &key,
@@ -57,14 +57,16 @@ namespace kagome::storage::trie {
     // the storage and return the hash of the root node, which is used as a
     // key in the storage
     OUTCOME_TRY(root_hash, storeNode(*trie.getRoot()));
-    root_ = root_hash;
+    root_merkle_value_ = root_hash;
     return outcome::success();
   }
 
   common::Buffer PolkadotTrieDb::getRootHash() const {
-    // if the length of the encoded root is less than 32, it is not hashed,
-    // so hash it in this case
-    return root_.size() < 32 ? Buffer{codec_.hash256(root_)} : root_;
+    // merkle value is not hashed when shorter than 32 bytes
+    if (root_merkle_value_.size() < 32) {
+      return Buffer{codec_.hash256(root_merkle_value_)};
+    }
+    return root_merkle_value_;
   }
 
   outcome::result<void> PolkadotTrieDb::clearPrefix(
@@ -75,10 +77,10 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(trie, initTrie());
     OUTCOME_TRY(trie.clearPrefix(prefix));
     if (trie.getRoot() == nullptr) {
-      root_ = getEmptyRoot();
+      root_merkle_value_ = getEmptyRoot();
     } else {
       OUTCOME_TRY(hash, storeNode(*trie.getRoot()));
-      root_ = hash;
+      root_merkle_value_ = hash;
     }
     return outcome::success();
   }
@@ -116,16 +118,16 @@ namespace kagome::storage::trie {
     // after this, the nodes are written back to the storage and the new trie
     // root hash is obtained
     if (trie.getRoot() == nullptr) {
-      root_ = getEmptyRoot();
+      root_merkle_value_ = getEmptyRoot();
     } else {
       OUTCOME_TRY(root_hash, storeNode(*trie.getRoot()));
-      root_ = root_hash;
+      root_merkle_value_ = root_hash;
     }
     return outcome::success();
   }
 
   outcome::result<PolkadotTrie> PolkadotTrieDb::initTrie() const {
-    OUTCOME_TRY(root, retrieveNode(root_));
+    OUTCOME_TRY(root, retrieveNode(root_merkle_value_));
     return PolkadotTrie{std::move(root),
                         [this](const BranchPtr &parent, uint8_t idx) {
                           return retrieveChild(parent, idx);
@@ -135,9 +137,9 @@ namespace kagome::storage::trie {
   outcome::result<common::Buffer> PolkadotTrieDb::storeNode(
       PolkadotNode &node) {
     auto batch = db_->batch();
-    OUTCOME_TRY(hash, storeNode(node, *batch));
+    OUTCOME_TRY(merkleValue, storeNode(node, *batch));
     OUTCOME_TRY(batch->commit());
-    return std::move(hash);
+    return std::move(merkleValue);
   }
 
   outcome::result<common::Buffer> PolkadotTrieDb::storeNode(PolkadotNode &node,
@@ -161,7 +163,7 @@ namespace kagome::storage::trie {
     }
 
     OUTCOME_TRY(enc, codec_.encodeNode(node));
-    auto key = Buffer{codec_.hash256(enc)};
+    auto key = Buffer{codec_.merkleValue(enc)};
     OUTCOME_TRY(batch.put(key, enc));
     return key;
   }
@@ -195,7 +197,7 @@ namespace kagome::storage::trie {
   }
 
   bool PolkadotTrieDb::empty() const {
-    return root_ == getEmptyRoot();
+    return root_merkle_value_ == getEmptyRoot();
   }
 
 }  // namespace kagome::storage::trie
