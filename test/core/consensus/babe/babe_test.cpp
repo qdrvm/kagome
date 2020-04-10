@@ -182,19 +182,17 @@ TEST_F(BabeTest, Success) {
 
   // runEpoch
   epoch_.randomness.fill(0);
-  EXPECT_CALL(
-      *lottery_,
-      slotsLeadership(epoch_.randomness, _, epoch_.epoch_duration, keypair_))
-      .Times(2)
+  EXPECT_CALL(*lottery_, slotsLeadership(epoch_, _, keypair_))
+      .Times(1)
       .WillRepeatedly(Return(leadership_));
 
   // runSlot (3 times)
   EXPECT_CALL(*clock_, now())
       .WillOnce(Return(test_begin))
-      .WillOnce(Return(test_begin + 60ms))
-      .WillOnce(Return(test_begin + 60ms))
-      .WillOnce(Return(test_begin + 120ms))
-      .WillOnce(Return(test_begin + 120ms));
+      .WillOnce(Return(test_begin + slot_duration_))
+      .WillOnce(Return(test_begin + slot_duration_))
+      .WillOnce(Return(test_begin + slot_duration_ * 2))
+      .WillOnce(Return(test_begin + slot_duration_ * 2));
 
   EXPECT_CALL(*timer_, expiresAt(test_begin + slot_duration_));
   EXPECT_CALL(*timer_, expiresAt(test_begin + slot_duration_ * 2));

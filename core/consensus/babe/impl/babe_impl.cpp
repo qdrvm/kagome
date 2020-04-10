@@ -189,7 +189,7 @@ namespace kagome::consensus {
     if (current_slot_ != 0
         and current_slot_ % genesis_configuration_.epoch_length == 0) {
       // end of the epoch
-      return finishEpoch();
+      finishEpoch();
     }
     log_->info("starting a slot {} in epoch {}",
                current_slot_,
@@ -376,7 +376,6 @@ namespace kagome::consensus {
     current_epoch_.randomness = next_epoch_digest_res.value().randomness;
 
     log_->debug("Epoch {} has finished", current_epoch_.epoch_index);
-    runEpoch(current_epoch_, next_slot_finish_time_);
   }
 
   void BabeImpl::processNextBlock(
