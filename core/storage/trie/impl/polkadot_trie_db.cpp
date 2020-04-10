@@ -17,8 +17,8 @@ using kagome::common::Buffer;
 
 namespace kagome::storage::trie {
 
-  std::unique_ptr<PolkadotTrieDb> PolkadotTrieDb::createFromStorage(common::Buffer root,
-                                    std::shared_ptr<TrieDbBackend> backend) {
+  std::unique_ptr<PolkadotTrieDb> PolkadotTrieDb::createFromStorage(
+      common::Buffer root, std::shared_ptr<TrieDbBackend> backend) {
     BOOST_ASSERT(backend != nullptr);
     PolkadotTrieDb trie_db{std::move(backend), std::move(root)};
     return std::make_unique<PolkadotTrieDb>(std::move(trie_db));
@@ -33,14 +33,15 @@ namespace kagome::storage::trie {
 
   std::unique_ptr<TrieDbReader> PolkadotTrieDb::initReadOnlyFromStorage(
       common::Buffer root, std::shared_ptr<TrieDbBackend> backend) {
-    return PolkadotTrieDb::createFromStorage(std::move(root), std::move(backend));
+    return PolkadotTrieDb::createFromStorage(std::move(root),
+                                             std::move(backend));
   }
 
   PolkadotTrieDb::PolkadotTrieDb(std::shared_ptr<TrieDbBackend> db,
                                  boost::optional<common::Buffer> root_hash)
       : db_{std::move(db)},
-        root_merkle_value_{root_hash ? std::move(root_hash.value())
-                        : PolkadotTrieDb::getEmptyRoot()} {}
+        merkle_hash_{root_hash ? std::move(root_hash.value())
+                                     : PolkadotTrieDb::getEmptyRoot()} {}
 
   outcome::result<void> PolkadotTrieDb::put(const Buffer &key,
                                             const Buffer &value) {
@@ -56,17 +57,12 @@ namespace kagome::storage::trie {
     // after this storeNode will recursively write all changed nodes back to
     // the storage and return the hash of the root node, which is used as a
     // key in the storage
-    OUTCOME_TRY(root_hash, storeNode(*trie.getRoot()));
-    root_merkle_value_ = root_hash;
+    OUTCOME_TRY(storeRootNode(*trie.getRoot()));
     return outcome::success();
   }
 
   common::Buffer PolkadotTrieDb::getRootHash() const {
-    // merkle value is not hashed when shorter than 32 bytes
-    if (root_merkle_value_.size() < 32) {
-      return Buffer{codec_.hash256(root_merkle_value_)};
-    }
-    return root_merkle_value_;
+    return merkle_hash_;
   }
 
   outcome::result<void> PolkadotTrieDb::clearPrefix(
@@ -77,10 +73,9 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(trie, initTrie());
     OUTCOME_TRY(trie.clearPrefix(prefix));
     if (trie.getRoot() == nullptr) {
-      root_merkle_value_ = getEmptyRoot();
+      merkle_hash_ = getEmptyRoot();
     } else {
-      OUTCOME_TRY(hash, storeNode(*trie.getRoot()));
-      root_merkle_value_ = hash;
+      OUTCOME_TRY(storeRootNode(*trie.getRoot()));
     }
     return outcome::success();
   }
@@ -118,28 +113,42 @@ namespace kagome::storage::trie {
     // after this, the nodes are written back to the storage and the new trie
     // root hash is obtained
     if (trie.getRoot() == nullptr) {
-      root_merkle_value_ = getEmptyRoot();
+      merkle_hash_ = getEmptyRoot();
     } else {
-      OUTCOME_TRY(root_hash, storeNode(*trie.getRoot()));
-      root_merkle_value_ = root_hash;
+      OUTCOME_TRY(storeRootNode(*trie.getRoot()));
     }
     return outcome::success();
   }
 
   outcome::result<PolkadotTrie> PolkadotTrieDb::initTrie() const {
-    OUTCOME_TRY(root, retrieveNode(root_merkle_value_));
+    OUTCOME_TRY(root, retrieveNode(merkle_hash_));
     return PolkadotTrie{std::move(root),
                         [this](const BranchPtr &parent, uint8_t idx) {
                           return retrieveChild(parent, idx);
                         }};
   }
 
-  outcome::result<common::Buffer> PolkadotTrieDb::storeNode(
+  outcome::result<void> PolkadotTrieDb::storeRootNode(
       PolkadotNode &node) {
     auto batch = db_->batch();
-    OUTCOME_TRY(merkleValue, storeNode(node, *batch));
+    using T = PolkadotNode::Type;
+
+    // if node is a branch node, its children must be stored to the storage
+    // before it, as their hashes, which are used as database keys, are a part
+    // of its encoded representation required to save it to the storage
+    if (node.getTrieType() == T::BranchEmptyValue
+        || node.getTrieType() == T::BranchWithValue) {
+      auto& branch = dynamic_cast<BranchNode&>(node);
+      OUTCOME_TRY(storeChildren(branch, *batch));
+    }
+ 
+    OUTCOME_TRY(enc, codec_.encodeNode(node));
+    auto key = Buffer{codec_.hash256(enc)};
+    OUTCOME_TRY(batch->put(key, enc));
     OUTCOME_TRY(batch->commit());
-    return std::move(merkleValue);
+    
+    merkle_hash_ = key;
+    return outcome::success();
   }
 
   outcome::result<common::Buffer> PolkadotTrieDb::storeNode(PolkadotNode &node,
@@ -151,21 +160,26 @@ namespace kagome::storage::trie {
     // of its encoded representation required to save it to the storage
     if (node.getTrieType() == T::BranchEmptyValue
         || node.getTrieType() == T::BranchWithValue) {
-      auto &branch = dynamic_cast<BranchNode &>(node);
-      for (auto &child : branch.children) {
-        if (child and not child->isDummy()) {
-          OUTCOME_TRY(hash, storeNode(*child));
-          // when a node is written to the storage, it is replaced with a dummy
-          // node to avoid memory waste
-          child = std::make_shared<DummyNode>(hash);
-        }
-      }
+      auto& branch = dynamic_cast<BranchNode&>(node);
+      OUTCOME_TRY(storeChildren(branch, batch));
     }
-
     OUTCOME_TRY(enc, codec_.encodeNode(node));
     auto key = Buffer{codec_.merkleValue(enc)};
     OUTCOME_TRY(batch.put(key, enc));
     return key;
+  }
+
+  outcome::result<void> PolkadotTrieDb::storeChildren(BranchNode &branch,
+                                                      WriteBatch &batch) {
+    for (auto &child : branch.children) {
+      if (child and not child->isDummy()) {
+        OUTCOME_TRY(hash, storeNode(*child, batch));
+        // when a node is written to the storage, it is replaced with a dummy
+        // node to avoid memory waste
+        child = std::make_shared<DummyNode>(hash);
+      }
+    }
+    return outcome::success();
   }
 
   outcome::result<PolkadotTrieDb::NodePtr> PolkadotTrieDb::retrieveChild(
@@ -197,7 +211,7 @@ namespace kagome::storage::trie {
   }
 
   bool PolkadotTrieDb::empty() const {
-    return root_merkle_value_ == getEmptyRoot();
+    return merkle_hash_ == getEmptyRoot();
   }
 
 }  // namespace kagome::storage::trie

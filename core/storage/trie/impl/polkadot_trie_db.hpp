@@ -109,8 +109,10 @@ namespace kagome::storage::trie {
      * descendants as well. Then replaces the node children to dummy nodes to
      * avoid memory waste
      */
-    outcome::result<common::Buffer> storeNode(PolkadotNode &node);
+    outcome::result<void> storeRootNode(PolkadotNode &node);
     outcome::result<common::Buffer> storeNode(PolkadotNode &node,
+                                              WriteBatch &batch);
+    outcome::result<void> storeChildren(BranchNode &branch,
                                               WriteBatch &batch);
     /**
      * Fetches a node from the storage. A nullptr is returned in case that there
@@ -127,7 +129,7 @@ namespace kagome::storage::trie {
 
     std::shared_ptr<TrieDbBackend> db_;
     PolkadotCodec codec_;
-    common::Buffer root_merkle_value_;
+    common::Buffer merkle_hash_; // hash of the encoded root node
   };
 
 }  // namespace kagome::storage::trie
