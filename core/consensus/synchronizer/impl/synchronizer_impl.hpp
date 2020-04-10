@@ -37,7 +37,7 @@ namespace kagome::consensus {
 
     ~SynchronizerImpl() override = default;
 
-    void blocksRequest(
+    void requestBlocks(
         const BlocksRequest &request,
         std::function<void(outcome::result<BlocksResponse>)> cb) override;
 

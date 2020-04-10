@@ -111,9 +111,9 @@ namespace kagome::consensus {
     auto unsealed_header = header;
     unsealed_header.digest.pop_back();
 
-    auto header_copy_encoded = scale::encode(unsealed_header).value();
+    auto unsealed_header_encoded = scale::encode(unsealed_header).value();
 
-    auto block_hash = hasher_->blake2b_256(header_copy_encoded);
+    auto block_hash = hasher_->blake2b_256(unsealed_header_encoded);
 
     // secondly, use verify function to check the signature
     auto res =

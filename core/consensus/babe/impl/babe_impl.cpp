@@ -7,8 +7,7 @@
 
 #include <sr25519/sr25519.h>
 #include <boost/assert.hpp>
-#include <boost/range/join.hpp>
-#include <utility>
+
 #include "blockchain/block_tree_error.hpp"
 #include "common/buffer.hpp"
 #include "consensus/babe/babe_error.hpp"

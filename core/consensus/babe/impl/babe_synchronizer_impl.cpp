@@ -105,7 +105,7 @@ namespace kagome::consensus {
       const BlocksHandler &requested_blocks_handler) const {
     auto next_client = selectNextClient(polled_clients);
 
-    next_client->blocksRequest(
+    next_client->requestBlocks(
         request,
         [self_wp{weak_from_this()},
          request{std::move(request)},

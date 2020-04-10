@@ -37,7 +37,7 @@ namespace kagome::consensus {
     BOOST_ASSERT(blocks_headers_);
   }
 
-  void SynchronizerImpl::blocksRequest(
+  void SynchronizerImpl::requestBlocks(
       const BlocksRequest &request,
       std::function<void(outcome::result<BlocksResponse>)> cb) {
     visit_in_place(request.from,
