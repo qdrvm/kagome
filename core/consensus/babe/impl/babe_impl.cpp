@@ -371,7 +371,7 @@ namespace kagome::consensus {
                               .randomness = current_epoch_.randomness};
     }
 
-    current_epoch_.start_slot = ++current_slot_;
+    current_epoch_.start_slot = current_slot_;
     current_epoch_.authorities = next_epoch_digest_res.value().authorities;
     current_epoch_.randomness = next_epoch_digest_res.value().randomness;
 
