@@ -33,17 +33,14 @@ namespace kagome::consensus {
 
     /**
      * Compute leadership for all slots in the given epoch
-     * @param randomness is a seed to compute leadership
+     * @param epoch is an information about epoch where we calculate leadership
      * @param threshold is a maximum value that is considered valid by vrf
-     * @param epoch_length is the length of resulting array (each element
-     * corresponds to randomness in a slot)
      * @return vector of outputs; none means the peer was not chosen as a leader
      * for that slot, value contains VRF value and proof
      */
     virtual SlotsLeadership slotsLeadership(
-        const Randomness &randomness,
+        const Epoch &epoch,
         const Threshold &threshold,
-        EpochLength epoch_length,
         const crypto::SR25519Keypair &keypair) const = 0;
 
     /**

@@ -129,10 +129,8 @@ namespace kagome::consensus {
     auto threshold = calculateThreshold(genesis_configuration_.leadership_rate,
                                         current_epoch_.authorities,
                                         authority_index_res.value());
-    slots_leadership_ = lottery_->slotsLeadership(current_epoch_.randomness,
-                                                  threshold,
-                                                  current_epoch_.epoch_duration,
-                                                  keypair_);
+    slots_leadership_ =
+        lottery_->slotsLeadership(current_epoch_, threshold, keypair_);
     next_slot_finish_time_ = starting_slot_finish_time;
 
     runSlot();

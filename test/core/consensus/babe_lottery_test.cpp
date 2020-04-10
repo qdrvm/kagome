@@ -36,7 +36,7 @@ struct BabeLotteryTest : public testing::Test {
                                                   uint256_t_to_bytes(57302840),
                                                   uint256_t_to_bytes(8405)};
   Epoch current_epoch_{
-      1,
+      0,
       0,
       3,
       {},
@@ -86,16 +86,14 @@ TEST_F(BabeLotteryTest, SlotsLeadership) {
   }
 
   // WHEN
-  auto leadership = lottery_.slotsLeadership(current_epoch_.randomness,
-                                             threshold_,
-                                             current_epoch_.epoch_duration,
-                                             keypair_);
+  auto leadership =
+      lottery_.slotsLeadership(current_epoch_, threshold_, keypair_);
 
   // THEN
   ASSERT_TRUE(leadership[0]);
-  ASSERT_EQ(leadership[0]->output, uint256_t_to_bytes(3749373));
+  EXPECT_EQ(leadership[0]->output, uint256_t_to_bytes(3749373));
   ASSERT_TRUE(leadership[1]);
-  ASSERT_EQ(leadership[1]->output, uint256_t_to_bytes(1057472095));
+  EXPECT_EQ(leadership[1]->output, uint256_t_to_bytes(1057472095));
   ASSERT_FALSE(leadership[2]);
 }
 
