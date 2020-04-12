@@ -33,7 +33,7 @@ namespace kagome::storage::trie {
     return put(key, std::move(value_copy));
   }
 
-  PolkadotTrie::NodePtr PolkadotTrie::getRoot() {
+  PolkadotTrie::NodePtr PolkadotTrie::getRoot() const {
     return root_;
   }
 
