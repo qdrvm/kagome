@@ -24,8 +24,8 @@ using kagome::face::GenericList;
 using kagome::primitives::Transaction;
 using kagome::transaction_pool::PoolModerator;
 using kagome::transaction_pool::PoolModeratorMock;
-using kagome::transaction_pool::TransactionPoolImpl;
 using kagome::transaction_pool::TransactionPoolError;
+using kagome::transaction_pool::TransactionPoolImpl;
 
 using test::StdListAdapter;
 using testing::NiceMock;
@@ -38,10 +38,10 @@ class TransactionPoolTest : public testing::Test {
   void SetUp() override {
     auto moderator = std::make_unique<NiceMock<PoolModeratorMock>>();
     auto header_repo = std::make_unique<HeaderRepositoryMock>();
-    pool_ =
-        std::make_shared<TransactionPoolImpl>(std::move(moderator),
-                                              std::move(header_repo),
-                                              TransactionPoolImpl::Limits{3, 3});
+    pool_ = std::make_shared<TransactionPoolImpl>(
+        std::move(moderator),
+        std::move(header_repo),
+        TransactionPoolImpl::Limits{3, 3});
   }
 
  protected:
@@ -77,32 +77,31 @@ TEST_F(TransactionPoolTest, CorrectImportToReady) {
                                makeTx("06"_hash256, {{6}}, {{5}}),
                                makeTx("07"_hash256, {{7}}, {{6}})};
 
-	EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[0], txs[2]}));
-	EXPECT_EQ(pool_->getStatus().waiting_num, 1);
-	ASSERT_EQ(pool_->getStatus().ready_num, 1);
+  EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[0], txs[2]}));
+  EXPECT_EQ(pool_->getStatus().waiting_num, 1);
+  ASSERT_EQ(pool_->getStatus().ready_num, 1);
 
+  EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[1]}));
+  EXPECT_EQ(pool_->getStatus().waiting_num, 0);
+  ASSERT_EQ(pool_->getStatus().ready_num, 3);
 
-	EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[1]}));
-	EXPECT_EQ(pool_->getStatus().waiting_num, 0);
-	ASSERT_EQ(pool_->getStatus().ready_num, 3);
+  EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[3], txs[4], txs[5]}));
+  EXPECT_EQ(pool_->getStatus().waiting_num, 3);
+  ASSERT_EQ(pool_->getStatus().ready_num, 3);
 
-	EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[3], txs[4], txs[5]}));
-	EXPECT_EQ(pool_->getStatus().waiting_num, 3);
-	ASSERT_EQ(pool_->getStatus().ready_num, 3);
+  // already imported
+  {
+    auto outcome = pool_->submit({txs[0]});
+    ASSERT_TRUE(outcome.has_error());
+    EXPECT_EQ(outcome.error(), TransactionPoolError::TX_ALREADY_IMPORTED);
+  }
 
-	// already imported
-	{
-		auto outcome = pool_->submit({txs[0]});
-		ASSERT_TRUE(outcome.has_error());
-		EXPECT_EQ(outcome.error(), TransactionPoolError::ALREADY_IMPORTED);
-	}
-
-	// pool is full
-	{
-		auto outcome = pool_->submit({txs[6]});
-		ASSERT_TRUE(outcome.has_error());
-		EXPECT_EQ(outcome.error(), TransactionPoolError::POOL_OVERFLOW);
-	}
+  // pool is full
+  {
+    auto outcome = pool_->submit({txs[6]});
+    ASSERT_TRUE(outcome.has_error());
+    EXPECT_EQ(outcome.error(), TransactionPoolError::POOL_IS_FULL);
+  }
 }
 
 /**
@@ -118,22 +117,22 @@ TEST_F(TransactionPoolTest, CorrectRemoveTx) {
                                makeTx("02"_hash256, {{2}}, {{1}}),
                                makeTx("03"_hash256, {{3}}, {{2}})};
 
-	EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[0], txs[2]}));
-	EXPECT_EQ(pool_->getStatus().waiting_num, 1);
-	ASSERT_EQ(pool_->getStatus().ready_num, 1);
+  EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[0], txs[2]}));
+  EXPECT_EQ(pool_->getStatus().waiting_num, 1);
+  ASSERT_EQ(pool_->getStatus().ready_num, 1);
 
-	EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[1]}));
-	EXPECT_EQ(pool_->getStatus().waiting_num, 0);
-	ASSERT_EQ(pool_->getStatus().ready_num, 3);
+  EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[1]}));
+  EXPECT_EQ(pool_->getStatus().waiting_num, 0);
+  ASSERT_EQ(pool_->getStatus().ready_num, 3);
 
-	EXPECT_OUTCOME_TRUE_1(pool_->removeOne("02"_hash256));
-	EXPECT_EQ(pool_->getStatus().waiting_num, 1);
-	ASSERT_EQ(pool_->getStatus().ready_num, 1);
+  EXPECT_OUTCOME_TRUE_1(pool_->removeOne("02"_hash256));
+  EXPECT_EQ(pool_->getStatus().waiting_num, 1);
+  ASSERT_EQ(pool_->getStatus().ready_num, 1);
 
-	// tx unexists in pool
-	{
-		auto outcome = pool_->removeOne("02"_hash256);
-		ASSERT_TRUE(outcome.has_error());
-		EXPECT_EQ(outcome.error(), TransactionPoolError::NOT_FOUND);
-	}
+  // tx unexists in pool
+  {
+    auto outcome = pool_->removeOne("02"_hash256);
+    ASSERT_TRUE(outcome.has_error());
+    EXPECT_EQ(outcome.error(), TransactionPoolError::TX_NOT_FOUND);
+  }
 }

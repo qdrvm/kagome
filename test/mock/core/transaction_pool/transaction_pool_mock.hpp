@@ -14,12 +14,15 @@ namespace kagome::transaction_pool {
 
   class TransactionPoolMock : public TransactionPool {
    public:
-	outcome::result<void> submitOne(Transaction&& tx){return submitOne(tx);}
+    outcome::result<void> submitOne(Transaction &&tx) {
+      return submitOne(tx);
+    }
     MOCK_METHOD1(submitOne, outcome::result<void>(Transaction));
     MOCK_METHOD1(submit, outcome::result<void>(std::vector<Transaction>));
 
-    MOCK_METHOD1(removeOne, outcome::result<void>(const Transaction::Hash&));
-    MOCK_METHOD1(remove, outcome::result<void>(const std::vector<Transaction::Hash>&));
+    MOCK_METHOD1(removeOne, outcome::result<void>(const Transaction::Hash &));
+    MOCK_METHOD1(remove,
+                 outcome::result<void>(const std::vector<Transaction::Hash> &));
 
     MOCK_METHOD0(getReadyTransactions, std::vector<Transaction>());
 

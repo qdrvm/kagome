@@ -10,9 +10,9 @@
 
 namespace kagome::transaction_pool {
   enum class TransactionPoolError {
-  	ALREADY_IMPORTED = 1,
-  	NOT_FOUND,
-  	POOL_OVERFLOW,
+    TX_ALREADY_IMPORTED = 1,
+    TX_NOT_FOUND,
+    POOL_IS_FULL,
   };
 }
 

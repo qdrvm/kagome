@@ -157,9 +157,9 @@ TEST_F(ExtrinsicSubmissionApiTest, SubmitExtrinsicSubmitFail) {
                  true};
   EXPECT_CALL(*transaction_pool, submitOne(tr))
       .WillOnce(
-          Return(outcome::failure(TransactionPoolError::ALREADY_IMPORTED)));
+          Return(outcome::failure(TransactionPoolError::TX_ALREADY_IMPORTED)));
 
   EXPECT_OUTCOME_FALSE_2(err, api->submitExtrinsic(*extrinsic))
   ASSERT_EQ(err.value(),
-            static_cast<int>(TransactionPoolError::ALREADY_IMPORTED));
+            static_cast<int>(TransactionPoolError::TX_ALREADY_IMPORTED));
 }

@@ -29,7 +29,7 @@ namespace kagome::transaction_pool {
      * pool for some amount of time as its longevity is reached or the pool is
      * overflown
      */
-    virtual outcome::result<void> submitOne(Transaction&& tx) = 0;
+    virtual outcome::result<void> submitOne(Transaction &&tx) = 0;
 
     /**
      * Import several transactions to the pool
@@ -41,13 +41,15 @@ namespace kagome::transaction_pool {
      * Remove transaction from the pool
      * @param txHash - hash of the removed transaction
      */
-    virtual outcome::result<void> removeOne(const Transaction::Hash& txHash) = 0;
+    virtual outcome::result<void> removeOne(
+        const Transaction::Hash &txHash) = 0;
 
-	/**
-	 * Remove several transactions from the pool
-	 * @see removeOne()
-	 */
-	virtual outcome::result<void> remove(const std::vector<Transaction::Hash>& txHashes) = 0;
+    /**
+     * Remove several transactions from the pool
+     * @see removeOne()
+     */
+    virtual outcome::result<void> remove(
+        const std::vector<Transaction::Hash> &txHashes) = 0;
 
     /**
      * @return transactions ready to included in the next block, sorted by their
