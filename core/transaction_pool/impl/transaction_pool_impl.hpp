@@ -12,97 +12,101 @@
 #include "transaction_pool/pool_moderator.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
-namespace kagome::transaction_pool {
+namespace kagome::transaction_pool
+{
 
-  struct ReadyTransaction : public Transaction {
-    std::list<Hash> unlocks;
-  };
+class TransactionPoolImpl : public TransactionPool
+{
+	static constexpr auto kDefaultLoggerTag = "Transaction Pool";
 
-  struct WaitingTransaction : public Transaction {};
+public:
+	TransactionPoolImpl(
+		std::unique_ptr<PoolModerator> moderator,
+		std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
+		Limits limits
+	);
 
-  class TransactionPoolImpl : public TransactionPool {
-    static constexpr auto kDefaultLoggerTag = "Transaction Pool";
+	TransactionPoolImpl(TransactionPoolImpl&&) = default;
+	TransactionPoolImpl(const TransactionPoolImpl&) = delete;
 
-   public:
-    TransactionPoolImpl(
-        std::unique_ptr<PoolModerator> moderator,
-        std::shared_ptr<blockchain::BlockHeaderRepository> header_repo,
-        Limits limits);
+	~TransactionPoolImpl() override = default;
 
-    TransactionPoolImpl(TransactionPoolImpl &&) = default;
-    TransactionPoolImpl(const TransactionPoolImpl &) = delete;
+	TransactionPoolImpl& operator=(TransactionPoolImpl&&) = delete;
+	TransactionPoolImpl& operator=(const TransactionPoolImpl&) = delete;
 
-    ~TransactionPoolImpl() override = default;
+	outcome::result<void> submitOne(Transaction&& tx) override;
+	outcome::result<void> submit(std::vector<Transaction> txs) override;
 
-    TransactionPoolImpl &operator=(TransactionPoolImpl &&) = delete;
-    TransactionPoolImpl &operator=(const TransactionPoolImpl &) = delete;
+	outcome::result<void> removeOne(const Transaction::Hash& txHash) override;
+	outcome::result<void> remove(const std::vector<Transaction::Hash>& txHashes) override;
 
-    outcome::result<void> submitOne(Transaction tx) override;
+	std::vector<Transaction> getReadyTransactions() override;
 
-    outcome::result<void> submit(std::vector<Transaction> txs) override;
+	outcome::result<std::vector<Transaction>> removeStale(const primitives::BlockId& at) override;
+
+	Status getStatus() const override;
+
+private:
+	outcome::result<void> submitOne(const std::shared_ptr<Transaction>& tx);
+
+	outcome::result<void> processTx(const std::shared_ptr<Transaction>& tx);
+
+	outcome::result<void> processTxAsReady(const std::shared_ptr<Transaction>& tx);
+
+	outcome::result<void> processTxAsWaiting(const std::shared_ptr<Transaction>& tx);
+
+	bool hasSpaceInReady() const;
+
+	outcome::result<void> ensureSpaceInWaiting() const;
+
+	void addTxAsWaiting(const std::shared_ptr<Transaction>& tx);
+
+	void delTxAsWaiting(const std::shared_ptr<Transaction>& tx);
+
+	void postponeTx(const std::shared_ptr<Transaction>& tx);
+
+	void processPostponedTxs();
+
+	void provideTag(const Transaction::Tag& tag);
+
+	void unprovideTag(const Transaction::Tag& tag);
+
+	void commitRequires(const std::shared_ptr<Transaction>& tx);
+
+	void commitProvides(const std::shared_ptr<Transaction>& tx);
+
+	void rollbackRequires(const std::shared_ptr<Transaction>& tx);
+
+	void rollbackProvides(const std::shared_ptr<Transaction>& tx);
+
+	bool checkForReady(const std::shared_ptr<const Transaction>& tx) const;
+
+	void setReady(const std::shared_ptr<Transaction>& tx);
+
+	void unsetReady(const std::shared_ptr<Transaction>& tx);
+
+	bool isReady(const std::shared_ptr<const Transaction>& tx) const;
+
+	std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
+
+	common::Logger logger_ = common::createLogger(kDefaultLoggerTag);
+
+	// bans stale and invalid transactions for some amount of time
+	std::unique_ptr<PoolModerator> moderator_;
+
+	std::unordered_map<Transaction::Hash, std::shared_ptr<Transaction>> _importedTxs{};
+
+	std::unordered_map<Transaction::Hash, std::weak_ptr<Transaction>> _readyTxs{};
+	std::list<std::weak_ptr<Transaction>> _postponedTxs{};
+
+	std::multimap<Transaction::Tag, std::weak_ptr<Transaction>> _txProvideTag{};
+
+	std::multimap<Transaction::Tag, std::weak_ptr<Transaction>> _txDependentTag{};
+	std::multimap<Transaction::Tag, std::weak_ptr<Transaction>> _txWaitsTag{};
 
 
-    std::vector<Transaction> getReadyTransactions() override;
-
-    outcome::result<std::vector<Transaction>> removeStale(
-        const primitives::BlockId &at) override;
-
-    Status getStatus() const override;
-
-    std::vector<Transaction> pruneTag(
-        const primitives::BlockId &at,
-        const Transaction::Tag &tag,
-        const std::vector<common::Hash256> &known_imported_hashes) override;
-
-    std::vector<Transaction> pruneTag(const primitives::BlockId &at,
-                                      const Transaction::Tag &tag) override;
-
-   private:
-    /**
-     * If there are waiting transactions with satisfied tag requirements, move
-     * them to ready queue
-     */
-    void updateReady();
-
-    /**
-     * Remove tx from ready list with satisfied tag requirements
-     * @param tx - Tx that will become unready
-     */
-    void unReady(const Transaction::Hash &txHash);
-
-    bool isReady(const WaitingTransaction &tx) const;
-
-    /**
-     * When a transaction becomes ready, add it to 'unlocks' list of
-     * corresponding transactions
-     */
-    void updateUnlockingTransactions(const ReadyTransaction &rtx);
-
-    std::vector<Transaction> enforceLimits();
-
-    std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
-
-    common::Logger logger_ = common::createLogger(kDefaultLoggerTag);
-
-    // bans stale and invalid transactions for some amount of time
-    std::unique_ptr<PoolModerator> moderator_;
-
-    // transactions with satisfied dependencies ready to leave the pool
-    std::map<common::Hash256, ReadyTransaction> ready_queue_;
-
-    // transactions waiting for their dependencies to resolve
-    std::list<WaitingTransaction> waiting_queue_;
-
-    // tags provided by imported transactions
-    std::map<Transaction::Tag, boost::optional<common::Hash256>>
-        provided_tags_by_;
-
-    // hexadecimal representations of imported transactions hashes
-    // optimization of searching for already inserted transactions
-    std::set<std::string> imported_hashes_;
-
-    Limits limits_;
-  };
+	Limits limits_;
+};
 
 }  // namespace kagome::transaction_pool
 

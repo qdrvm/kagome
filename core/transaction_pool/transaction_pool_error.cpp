@@ -12,5 +12,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::transaction_pool, TransactionPoolError, e) {
       return "Transaction has already been imported to the pool";
     case E::NOT_FOUND:
       return "Transaction not found in the pool";
+    case E::POOL_OVERFLOW:
+      return "Transaction pool is overflow";
   }
 }
