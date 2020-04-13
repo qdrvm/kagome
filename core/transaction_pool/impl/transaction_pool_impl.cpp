@@ -56,10 +56,11 @@ namespace kagome::transaction_pool {
   outcome::result<void> TransactionPoolImpl::processTx(
       const std::shared_ptr<Transaction> &tx) {
     if (checkForReady(tx)) {
-      return processTxAsReady(tx);
+      OUTCOME_TRY(processTxAsReady(tx));
     } else {
-      return processTxAsWaiting(tx);
+      OUTCOME_TRY(processTxAsWaiting(tx));
     }
+    return outcome::success();
   }
 
   outcome::result<void> TransactionPoolImpl::processTxAsReady(
