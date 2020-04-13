@@ -59,10 +59,9 @@ namespace kagome::storage::trie {
       }
     }
     if (trie.getRoot() == nullptr) {
-      storage_.root_ = storage_.getEmptyRoot();
+      storage_.merkle_hash_ = storage_.getEmptyRoot();
     } else {
-      OUTCOME_TRY(n, storage_.storeNode(*trie.getRoot()));
-      storage_.root_ = n;
+      OUTCOME_TRY(storage_.storeRootNode(*trie.getRoot()));
     }
     return outcome::success();
   }
