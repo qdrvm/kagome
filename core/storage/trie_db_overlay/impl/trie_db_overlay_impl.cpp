@@ -23,7 +23,7 @@ namespace kagome::storage::trie_db_overlay {
   }
 
   outcome::result<void> TrieDbOverlayImpl::commit() {
-    for (auto &change : changes_) {
+    for (auto &change : extrinsics_changes_) {
       auto &key = change.first;
       auto &value_opt = change.second.value;
       // temporary value (existed only during block execution)
@@ -46,12 +46,12 @@ namespace kagome::storage::trie_db_overlay {
   outcome::result<void> TrieDbOverlayImpl::sinkChangesTo(
       blockchain::ChangesTrieBuilder &changes_trie) {
     OUTCOME_TRY(commit());
-    for (auto &change : changes_) {
+    for (auto &change : extrinsics_changes_) {
       auto &key = change.first;
       OUTCOME_TRY(
           changes_trie.insertExtrinsicsChange(key, change.second.changers));
     }
-    changes_.clear();
+    extrinsics_changes_.clear();
     return outcome::success();
   }
 
@@ -64,7 +64,7 @@ namespace kagome::storage::trie_db_overlay {
   }
 
   outcome::result<Buffer> TrieDbOverlayImpl::get(const Buffer &key) const {
-    if (auto it = changes_.find(key); it != changes_.end()) {
+    if (auto it = extrinsics_changes_.find(key); it != extrinsics_changes_.end()) {
       auto v_opt = it->second.value;
       if (v_opt.has_value()) {
         return v_opt.value();
@@ -76,8 +76,8 @@ namespace kagome::storage::trie_db_overlay {
   }
 
   bool TrieDbOverlayImpl::contains(const Buffer &key) const {
-    auto it = changes_.find(key);
-    if (it != changes_.end()) {
+    auto it = extrinsics_changes_.find(key);
+    if (it != extrinsics_changes_.end()) {
       return it->second.value.has_value();
     }
     return storage_->contains(key);
@@ -91,13 +91,13 @@ namespace kagome::storage::trie_db_overlay {
   outcome::result<void> TrieDbOverlayImpl::put(const Buffer &key,
                                                Buffer &&value) {
     auto extrinsic_id = getExtrinsicIndex();
-    auto it = changes_.find(key);
-    if (it != changes_.end()) {
+    auto it = extrinsics_changes_.find(key);
+    if (it != extrinsics_changes_.end()) {
       it->second.value = std::move(value);
       it->second.changers.emplace_back(extrinsic_id);
       it->second.dirty = true;
     } else {
-      changes_[key] = ChangedValue{
+      extrinsics_changes_[key] = ChangedValue{
           .value = std::move(value), .changers = {extrinsic_id}, .dirty = true};
     }
 
@@ -106,13 +106,13 @@ namespace kagome::storage::trie_db_overlay {
 
   outcome::result<void> TrieDbOverlayImpl::remove(const Buffer &key) {
     auto extrinsic_id = getExtrinsicIndex();
-    auto it = changes_.find(key);
-    if (it != changes_.end()) {
+    auto it = extrinsics_changes_.find(key);
+    if (it != extrinsics_changes_.end()) {
       it->second.value = boost::none;
       it->second.dirty = true;
       it->second.changers.emplace_back(extrinsic_id);
     } else {
-      changes_[key] = ChangedValue{
+      extrinsics_changes_[key] = ChangedValue{
           .value = boost::none, .changers = {extrinsic_id}, .dirty = true};
     }
 
@@ -135,7 +135,9 @@ namespace kagome::storage::trie_db_overlay {
     // gets a bit complex because some of the entries in changes are actually
     // deleted entries
     bool any_nondeleted_change =
-        std::any_of(changes_.begin(), changes_.end(), [](auto &change) {
+        std::any_of(
+        extrinsics_changes_.begin(),
+        extrinsics_changes_.end(), [](auto &change) {
           return change.second.value.has_value();
         });
     /// TODO(harrm): check storage not cleared completely in cached chages

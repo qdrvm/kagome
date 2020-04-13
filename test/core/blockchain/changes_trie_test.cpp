@@ -32,22 +32,6 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
 
   auto changes_trie_builder = ChangesTrieBuilderImpl({}, {}, factory, repo);
   EXPECT_OUTCOME_TRUE_1(overlay.sinkChangesTo(changes_trie_builder));
-  auto hash = changes_trie_builder.finishAndGetHash();
-  ASSERT_EQ(
-      hash,
-      kagome::common::Hash256::fromHex(
-          "44cb1f5b9a98567dad54fca3a11444aa6f4d191c5dba8f2efba98dd9944da67f")
-          .value());
-}
-
-TEST(ChangesTrieTest, TrieCompat) {
-    auto factory = std::make_shared<InMemoryTrieDbFactory>();
-    auto trie = factory->makeTrieDb();
-    EXPECT_EQ(trie->getRootHash().toHex(), "a");
-    trie->put(Buffer{1}, Buffer{2});
-    EXPECT_EQ(trie->getRootHash().toHex(), "a");
-    trie->put(Buffer{5, 7}, Buffer{8, 6});
-    EXPECT_EQ(trie->getRootHash().toHex(), "a");
 }
 
 TEST(ChangesTrieTest, SubstrateCompatibility) {

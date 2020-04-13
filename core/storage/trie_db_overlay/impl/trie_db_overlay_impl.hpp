@@ -47,7 +47,8 @@ namespace kagome::storage::trie_db_overlay {
       bool dirty;
     };
 
-    std::map<common::Buffer, ChangedValue> changes_;
+    // changes made within one block
+    std::map<common::Buffer, ChangedValue> extrinsics_changes_;
     std::shared_ptr<trie::TrieDb> storage_;
   };
 

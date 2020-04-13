@@ -14,10 +14,10 @@ namespace kagome::storage::trie_db_overlay {
   class TrieDbOverlay : public trie::TrieDb {
    public:
     // commit all operations pending in memory to the main storage
-    // insert all accumulated changes to the provided changes trie
-    // clear the accumulated changes set
     virtual outcome::result<void> commit() = 0;
 
+    // insert all accumulated changes to the provided changes trie
+    // clear the accumulated changes set
     virtual outcome::result<void> sinkChangesTo(
         blockchain::ChangesTrieBuilder &changes_trie) = 0;
   };

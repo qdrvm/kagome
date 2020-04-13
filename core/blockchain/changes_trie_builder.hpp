@@ -12,15 +12,16 @@
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
-#include "primitives/extrinsic.hpp"
 #include "primitives/common.hpp"
+#include "primitives/extrinsic.hpp"
 
 namespace kagome::blockchain {
 
   class ChangesTrieBuilder {
    public:
-    virtual ChangesTrieBuilder &startNewTrie(primitives::BlockHash parent,
-                                     boost::optional<ChangesTrieConfig> config) = 0;
+    virtual ChangesTrieBuilder &startNewTrie(
+        primitives::BlockHash parent,
+        boost::optional<ChangesTrieConfig> config) = 0;
 
     /**
      * @param key - key which value was changed
@@ -30,7 +31,11 @@ namespace kagome::blockchain {
         const common::Buffer &key,
         const std::vector<primitives::ExtrinsicIndex> &changers) = 0;
 
-    // virtual outcome::result<void> insertBlocksChange() = 0;
+    /*
+     * Not supported before clarified in the spec
+     * virtual outcome::result<void> insertBlocksChange(
+        const common::Buffer &key,
+        const std::vector<primitives::BlockNumber> &changers) = 0;*/
 
     /**
      * Completes construction of ChangesTrie and returns its root hash

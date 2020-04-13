@@ -32,8 +32,6 @@ namespace kagome::blockchain {
         const common::Buffer &key,
         const std::vector<primitives::ExtrinsicIndex> &changers) override;
 
-    // outcome::result<void> insertBlocksChange() override;
-
     common::Hash256 finishAndGetHash() override;
 
    private:
