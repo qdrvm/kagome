@@ -16,11 +16,6 @@ set(
 )
 
 include("cmake/Hunter/init.cmake")
-HunterGate(
-    URL "https://github.com/cpp-pm/hunter/archive/v0.23.216.tar.gz"
-    SHA1 "a492a1879bee60c29f7af17ef56b45f0d7766241"
-    LOCAL
-)
 
 PROJECT(kagome C CXX)
 
@@ -121,6 +116,8 @@ install_deps_headers()
 kagome_install_setup(
     HEADER_DIRS
     core/common
+    core/blockchain
+    core/primitives
     core/macro
     core/scale
     core/storage
