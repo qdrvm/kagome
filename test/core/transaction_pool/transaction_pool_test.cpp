@@ -41,7 +41,7 @@ class TransactionPoolTest : public testing::Test {
     pool_ = std::make_shared<TransactionPoolImpl>(
         std::move(moderator),
         std::move(header_repo),
-        TransactionPoolImpl::Limits{3, 3});
+        TransactionPoolImpl::Limits{3, 4});
   }
 
  protected:
@@ -73,9 +73,7 @@ TEST_F(TransactionPoolTest, CorrectImportToReady) {
                                makeTx("02"_hash256, {{2}}, {{1}}),
                                makeTx("03"_hash256, {{3}}, {{2}}),
                                makeTx("04"_hash256, {{4}}, {{3}}),
-                               makeTx("05"_hash256, {{5}}, {{4}}),
-                               makeTx("06"_hash256, {{6}}, {{5}}),
-                               makeTx("07"_hash256, {{7}}, {{6}})};
+                               makeTx("05"_hash256, {{5}}, {{4}})};
 
   EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[0], txs[2]}));
   EXPECT_EQ(pool_->getStatus().waiting_num, 1);
@@ -85,8 +83,8 @@ TEST_F(TransactionPoolTest, CorrectImportToReady) {
   EXPECT_EQ(pool_->getStatus().waiting_num, 0);
   ASSERT_EQ(pool_->getStatus().ready_num, 3);
 
-  EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[3], txs[4], txs[5]}));
-  EXPECT_EQ(pool_->getStatus().waiting_num, 3);
+  EXPECT_OUTCOME_TRUE_1(pool_->submit({txs[3]}));
+  EXPECT_EQ(pool_->getStatus().waiting_num, 1);
   ASSERT_EQ(pool_->getStatus().ready_num, 3);
 
   // already imported
@@ -98,7 +96,7 @@ TEST_F(TransactionPoolTest, CorrectImportToReady) {
 
   // pool is full
   {
-    auto outcome = pool_->submit({txs[6]});
+    auto outcome = pool_->submit({txs[4]});
     ASSERT_TRUE(outcome.has_error());
     EXPECT_EQ(outcome.error(), TransactionPoolError::POOL_IS_FULL);
   }

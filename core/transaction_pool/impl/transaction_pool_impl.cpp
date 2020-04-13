@@ -40,86 +40,86 @@ namespace kagome::transaction_pool {
 
   outcome::result<void> TransactionPoolImpl::submitOne(
       const std::shared_ptr<Transaction> &tx) {
-    if (auto [_, ok] = _importedTxs.emplace(tx->hash, tx); !ok) {
+    if (auto [_, ok] = imported_txs_.emplace(tx->hash, tx); !ok) {
       return TransactionPoolError::TX_ALREADY_IMPORTED;
     }
 
-    auto processResult = processTx(tx);
+    auto processResult = processTransaction(tx);
     if (processResult.has_error()
         && processResult.error() == TransactionPoolError::POOL_IS_FULL) {
-      _importedTxs.erase(tx->hash);
+      imported_txs_.erase(tx->hash);
     }
 
     return processResult;
   }
 
-  outcome::result<void> TransactionPoolImpl::processTx(
+  outcome::result<void> TransactionPoolImpl::processTransaction(
       const std::shared_ptr<Transaction> &tx) {
+    OUTCOME_TRY(ensureSpace());
     if (checkForReady(tx)) {
-      OUTCOME_TRY(processTxAsReady(tx));
+      OUTCOME_TRY(processTransactionAsReady(tx));
     } else {
-      OUTCOME_TRY(processTxAsWaiting(tx));
+      OUTCOME_TRY(processTransactionAsWaiting(tx));
     }
     return outcome::success();
   }
 
-  outcome::result<void> TransactionPoolImpl::processTxAsReady(
+  outcome::result<void> TransactionPoolImpl::processTransactionAsReady(
       const std::shared_ptr<Transaction> &tx) {
     if (hasSpaceInReady()) {
       setReady(tx);
     } else {
-      OUTCOME_TRY(ensureSpaceInWaiting());
-
-      postponeTx(tx);
+      postponeTransaction(tx);
     }
 
     return outcome::success();
   }
 
   bool TransactionPoolImpl::hasSpaceInReady() const {
-    return _readyTxs.size() < limits_.max_ready_num;
+    return ready_txs_.size() < limits_.max_ready_num;
   }
 
-  void TransactionPoolImpl::postponeTx(const std::shared_ptr<Transaction> &tx) {
-    _postponedTxs.push_back(tx);
-  }
-
-  outcome::result<void> TransactionPoolImpl::processTxAsWaiting(
+  void TransactionPoolImpl::postponeTransaction(
       const std::shared_ptr<Transaction> &tx) {
-    OUTCOME_TRY(ensureSpaceInWaiting());
+    postponed_txs.push_back(tx);
+  }
 
-    addTxAsWaiting(tx);
+  outcome::result<void> TransactionPoolImpl::processTransactionAsWaiting(
+      const std::shared_ptr<Transaction> &tx) {
+    OUTCOME_TRY(ensureSpace());
+
+    addTransactionAsWaiting(tx);
 
     return outcome::success();
   }
 
-  outcome::result<void> TransactionPoolImpl::ensureSpaceInWaiting() const {
-    if (_importedTxs.size() - _readyTxs.size() > limits_.max_waiting_num) {
+  outcome::result<void> TransactionPoolImpl::ensureSpace() const {
+    if (imported_txs_.size() > limits_.capacity) {
       return TransactionPoolError::POOL_IS_FULL;
     }
 
     return outcome::success();
   }
 
-  void TransactionPoolImpl::addTxAsWaiting(
+  void TransactionPoolImpl::addTransactionAsWaiting(
       const std::shared_ptr<Transaction> &tx) {
     for (auto &tag : tx->requires) {
-      _txWaitsTag.emplace(tag, tx);
+      tx_waits_tag_.emplace(tag, tx);
     }
   }
 
   outcome::result<void> TransactionPoolImpl::removeOne(
       const Transaction::Hash &txHash) {
-    auto tx_node = _importedTxs.extract(txHash);
+    auto tx_node = imported_txs_.extract(txHash);
     if (tx_node.empty()) {
       return TransactionPoolError::TX_NOT_FOUND;
     }
     auto &tx = tx_node.mapped();
 
     unsetReady(tx);
-    delTxAsWaiting(tx);
+    delTransactionAsWaiting(tx);
 
-    processPostponedTxs();
+    processPostponedTransactions();
 
     return outcome::success();
   }
@@ -133,16 +133,17 @@ namespace kagome::transaction_pool {
     return outcome::success();
   }
 
-  void TransactionPoolImpl::processPostponedTxs() {
-    auto postponedTxs = std::move(_postponedTxs);
+  void TransactionPoolImpl::processPostponedTransactions() {
+    // Move to local for avoid endless cycle at possible coming back tx
+    auto postponedTxs = std::move(postponed_txs);
     while (!postponedTxs.empty()) {
       auto tx = postponedTxs.front().lock();
       postponedTxs.pop_front();
 
-      auto result = processTx(tx);
+      auto result = processTransaction(tx);
       if (result.has_error()
           && result.error() == TransactionPoolError::POOL_IS_FULL) {
-        _postponedTxs.insert(_postponedTxs.end(),
+        postponed_txs.insert(postponed_txs.end(),
                              std::make_move_iterator(postponedTxs.begin()),
                              std::make_move_iterator(postponedTxs.end()));
         return;
@@ -150,13 +151,13 @@ namespace kagome::transaction_pool {
     }
   }
 
-  void TransactionPoolImpl::delTxAsWaiting(
+  void TransactionPoolImpl::delTransactionAsWaiting(
       const std::shared_ptr<Transaction> &tx) {
     for (auto &tag : tx->requires) {
-      auto range = _txWaitsTag.equal_range(tag);
+      auto range = tx_waits_tag_.equal_range(tag);
       for (auto i = range.first; i != range.second;) {
         if (i->second.lock() == tx) {
-          _txWaitsTag.erase(i);
+          tx_waits_tag_.erase(i);
           break;
         }
       }
@@ -164,9 +165,9 @@ namespace kagome::transaction_pool {
   }
 
   std::vector<Transaction> TransactionPoolImpl::getReadyTransactions() {
-    std::vector<Transaction> ready(_readyTxs.size());
+    std::vector<Transaction> ready(ready_txs_.size());
     std::transform(
-        _readyTxs.begin(), _readyTxs.end(), ready.begin(), [](auto &rtx) {
+        ready_txs_.begin(), ready_txs_.end(), ready.begin(), [](auto &rtx) {
           return *rtx.second.lock();
         });
     return ready;
@@ -178,7 +179,7 @@ namespace kagome::transaction_pool {
 
     std::vector<Transaction::Hash> remove_to;
 
-    for (auto &[txHash, tx] : _importedTxs) {
+    for (auto &[txHash, tx] : imported_txs_) {
       if (moderator_->banIfStale(number, *tx)) {
         remove_to.emplace_back(txHash);
       }
@@ -193,87 +194,87 @@ namespace kagome::transaction_pool {
     return outcome::success();
   }
 
-  bool TransactionPoolImpl::isReady(
+  bool TransactionPoolImpl::isInReady(
       const std::shared_ptr<const Transaction> &tx) const {
-    auto i = _readyTxs.find(tx->hash);
-    return i != _readyTxs.end() && !i->second.expired();
+    auto i = ready_txs_.find(tx->hash);
+    return i != ready_txs_.end() && !i->second.expired();
   }
 
   bool TransactionPoolImpl::checkForReady(
       const std::shared_ptr<const Transaction> &tx) const {
     return std::all_of(
         tx->requires.begin(), tx->requires.end(), [this](auto &&tag) {
-          auto range = _txProvideTag.equal_range(tag);
+          auto range = tx_provides_tag_.equal_range(tag);
           return range.first != range.second;
         });
   }
 
   void TransactionPoolImpl::setReady(const std::shared_ptr<Transaction> &tx) {
-    if (auto [_, ok] = _readyTxs.emplace(tx->hash, tx); ok) {
-      commitRequires(tx);
-      commitProvides(tx);
+    if (auto [_, ok] = ready_txs_.emplace(tx->hash, tx); ok) {
+      commitRequiredTags(tx);
+      commitProvidedTags(tx);
     }
   }
 
-  void TransactionPoolImpl::commitRequires(
+  void TransactionPoolImpl::commitRequiredTags(
       const std::shared_ptr<Transaction> &tx) {
     for (auto &tag : tx->requires) {
-      auto range = _txWaitsTag.equal_range(tag);
+      auto range = tx_waits_tag_.equal_range(tag);
       for (auto i = range.first; i != range.second;) {
         auto ci = i++;
         if (ci->second.lock() == tx) {
-          auto node = _txWaitsTag.extract(ci);
-          _txDependentTag.emplace(std::move(node.key()),
-                                  std::move(node.mapped()));
+          auto node = tx_waits_tag_.extract(ci);
+          tx_depends_on_tag_.emplace(std::move(node.key()),
+                                     std::move(node.mapped()));
         }
       }
     }
   }
 
-  void TransactionPoolImpl::commitProvides(
+  void TransactionPoolImpl::commitProvidedTags(
       const std::shared_ptr<Transaction> &tx) {
     for (auto &tag : tx->provides) {
-      _txProvideTag.emplace(tag, tx);
+      tx_provides_tag_.emplace(tag, tx);
 
       provideTag(tag);
     }
   }
 
   void TransactionPoolImpl::provideTag(const Transaction::Tag &tag) {
-    auto range = _txWaitsTag.equal_range(tag);
+    auto range = tx_waits_tag_.equal_range(tag);
     for (auto it = range.first; it != range.second;) {
       auto tx = (it++)->second.lock();
       if (checkForReady(tx)) {
         if (hasSpaceInReady()) {
           setReady(tx);
         } else {
-          postponeTx(tx);
+          postponeTransaction(tx);
         }
       }
     }
   }
 
   void TransactionPoolImpl::unsetReady(const std::shared_ptr<Transaction> &tx) {
-    if (auto tx_node = _readyTxs.extract(tx->hash); !tx_node.empty()) {
-      rollbackRequires(tx);
-      rollbackProvides(tx);
+    if (auto tx_node = ready_txs_.extract(tx->hash); !tx_node.empty()) {
+      rollbackRequiredTags(tx);
+      rollbackProvidedTags(tx);
     }
   }
 
-  void TransactionPoolImpl::rollbackRequires(
+  void TransactionPoolImpl::rollbackRequiredTags(
       const std::shared_ptr<Transaction> &tx) {
     for (auto &tag : tx->requires) {
-      _txWaitsTag.emplace(tag, tx);
+      tx_waits_tag_.emplace(tag, tx);
     }
   }
 
-  void TransactionPoolImpl::rollbackProvides(
+  void TransactionPoolImpl::rollbackProvidedTags(
       const std::shared_ptr<Transaction> &tx) {
     for (auto &tag : tx->provides) {
-      auto range = _txProvideTag.equal_range(tag);
+      auto range = tx_provides_tag_.equal_range(tag);
       for (auto i = range.first; i != range.second;) {
         if (i->second.lock() == tx) {
-          _txProvideTag.erase(i);
+          tx_provides_tag_.erase(i);
           break;
         }
       }
@@ -283,19 +284,20 @@ namespace kagome::transaction_pool {
   }
 
   void TransactionPoolImpl::unprovideTag(const Transaction::Tag &tag) {
-    if (_txProvideTag.find(tag) == _txProvideTag.end()) {
-      for (auto it = _txDependentTag.find(tag); it != _txDependentTag.end();
-           it = _txDependentTag.find(tag)) {
+    if (tx_provides_tag_.find(tag) == tx_provides_tag_.end()) {
+      for (auto it = tx_depends_on_tag_.find(tag);
+           it != tx_depends_on_tag_.end();
+           it = tx_depends_on_tag_.find(tag)) {
         if (auto tx = it->second.lock()) {
           unsetReady(tx);
         }
-        _txDependentTag.erase(it);
+        tx_depends_on_tag_.erase(it);
       }
     }
   }
 
   TransactionPoolImpl::Status TransactionPoolImpl::getStatus() const {
-    return Status{_readyTxs.size(), _importedTxs.size() - _readyTxs.size()};
+    return Status{ready_txs_.size(), imported_txs_.size() - ready_txs_.size()};
   }
 
 }  // namespace kagome::transaction_pool

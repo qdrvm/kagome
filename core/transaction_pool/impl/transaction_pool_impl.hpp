@@ -48,37 +48,40 @@ namespace kagome::transaction_pool {
    private:
     outcome::result<void> submitOne(const std::shared_ptr<Transaction> &tx);
 
-    outcome::result<void> processTx(const std::shared_ptr<Transaction> &tx);
-
-    outcome::result<void> processTxAsReady(
+    outcome::result<void> processTransaction(
         const std::shared_ptr<Transaction> &tx);
 
-    outcome::result<void> processTxAsWaiting(
+    outcome::result<void> processTransactionAsReady(
         const std::shared_ptr<Transaction> &tx);
+
+    outcome::result<void> processTransactionAsWaiting(
+        const std::shared_ptr<Transaction> &tx);
+
+    outcome::result<void> ensureSpace() const;
 
     bool hasSpaceInReady() const;
 
-    outcome::result<void> ensureSpaceInWaiting() const;
+    void addTransactionAsWaiting(const std::shared_ptr<Transaction> &tx);
 
-    void addTxAsWaiting(const std::shared_ptr<Transaction> &tx);
+    void delTransactionAsWaiting(const std::shared_ptr<Transaction> &tx);
 
-    void delTxAsWaiting(const std::shared_ptr<Transaction> &tx);
+    /// Postpone ready transaction (in case ready limit was enreach before)
+    void postponeTransaction(const std::shared_ptr<Transaction> &tx);
 
-    void postponeTx(const std::shared_ptr<Transaction> &tx);
-
-    void processPostponedTxs();
+    /// Process postponed transactions (in case appearing space for them)
+    void processPostponedTransactions();
 
     void provideTag(const Transaction::Tag &tag);
 
     void unprovideTag(const Transaction::Tag &tag);
 
-    void commitRequires(const std::shared_ptr<Transaction> &tx);
+    void commitRequiredTags(const std::shared_ptr<Transaction> &tx);
 
-    void commitProvides(const std::shared_ptr<Transaction> &tx);
+    void commitProvidedTags(const std::shared_ptr<Transaction> &tx);
 
-    void rollbackRequires(const std::shared_ptr<Transaction> &tx);
+    void rollbackRequiredTags(const std::shared_ptr<Transaction> &tx);
 
-    void rollbackProvides(const std::shared_ptr<Transaction> &tx);
+    void rollbackProvidedTags(const std::shared_ptr<Transaction> &tx);
 
     bool checkForReady(const std::shared_ptr<const Transaction> &tx) const;
 
@@ -86,7 +89,7 @@ namespace kagome::transaction_pool {
 
     void unsetReady(const std::shared_ptr<Transaction> &tx);
 
-    bool isReady(const std::shared_ptr<const Transaction> &tx) const;
+    bool isInReady(const std::shared_ptr<const Transaction> &tx) const;
 
     std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
 
@@ -95,18 +98,27 @@ namespace kagome::transaction_pool {
     // bans stale and invalid transactions for some amount of time
     std::unique_ptr<PoolModerator> moderator_;
 
+    /// All of imported transaction, contained in the pool
     std::unordered_map<Transaction::Hash, std::shared_ptr<Transaction>>
-        _importedTxs{};
+        imported_txs_;
 
+    /// Collection transaction with full-satisfied dependensies
     std::unordered_map<Transaction::Hash, std::weak_ptr<Transaction>>
-        _readyTxs{};
-    std::list<std::weak_ptr<Transaction>> _postponedTxs{};
+        ready_txs_;
 
-    std::multimap<Transaction::Tag, std::weak_ptr<Transaction>> _txProvideTag{};
+    /// List of ready transaction over limit. It will be process first of all
+    std::list<std::weak_ptr<Transaction>> postponed_txs;
 
+    /// Transactions which provides specific tags
     std::multimap<Transaction::Tag, std::weak_ptr<Transaction>>
-        _txDependentTag{};
-    std::multimap<Transaction::Tag, std::weak_ptr<Transaction>> _txWaitsTag{};
+        tx_provides_tag_;
+
+    /// Transactions with resolved require of specific tags
+    std::multimap<Transaction::Tag, std::weak_ptr<Transaction>>
+        tx_depends_on_tag_;
+
+    /// Transactions with unresolved require of specific tags
+    std::multimap<Transaction::Tag, std::weak_ptr<Transaction>> tx_waits_tag_;
 
     Limits limits_;
   };
