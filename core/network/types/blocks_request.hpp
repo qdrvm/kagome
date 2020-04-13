@@ -35,9 +35,6 @@ namespace kagome::network {
     /// used when unspecified
     boost::optional<uint32_t> max{};
 
-    /// we must keep track of the IDs, as they must be unique
-    static primitives::BlocksRequestId last_issued_id;
-
     /// includes HEADER, BODY and JUSTIFICATION
     static constexpr BlockAttributes kBasicAttributes{19};
 
@@ -45,21 +42,7 @@ namespace kagome::network {
       return (fields.attributes.to_ulong() & static_cast<uint8_t>(attribute))
              != 0;
     }
-
-    BlocksRequest() : id{last_issued_id++} {}
-    BlocksRequest(BlockAttributes fields,
-                  primitives::BlockId from,
-                  boost::optional<primitives::BlockHash> to,
-                  Direction direction,
-                  boost::optional<uint32_t> max)
-        : id{last_issued_id++},
-          fields{fields},
-          from{std::move(from)},
-          to{std::move(to)},
-          direction{direction},
-          max{max} {}
   };
-  inline primitives::BlocksRequestId BlocksRequest::last_issued_id = 0;
 
   /**
    * @brief compares two BlockRequest instances

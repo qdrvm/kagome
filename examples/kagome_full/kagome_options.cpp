@@ -28,6 +28,7 @@ namespace kagome::options {
     uint16_t rpc_http_port;          // port for rpcs over HTTP
     uint16_t rpc_ws_port;            // port for rpcs over Websockets
     int verbosity;  // log level (0-trace, 5-only critical, 6-no logs)
+    is_genesis_epoch_ = false;  // if we need to execute genesis epoch
 
     namespace po = boost::program_options;
 
@@ -46,6 +47,7 @@ namespace kagome::options {
        "port for RPCs over HTTP")
       ("rpc_ws_port", po::value<uint16_t>(&rpc_ws_port)->default_value(40364),
        "port for RPCs over Websockets")
+      ("genesis_epoch,e", "if we need to execute genesis epoch")
       ("verbosity,v", po::value<int>(&verbosity)->default_value(2),
        "Log level. 0 - trace, 1 - debug, 2 - info, 3 - warn, 4 - error, 5 - critical, 6 - no logs. Default: info");
     // clang-format on
@@ -61,6 +63,10 @@ namespace kagome::options {
 
     if (vm.count("help") > 0) {
       has_help_ = true;
+    }
+
+    if (vm.count("genesis_epoch")) {
+      is_genesis_epoch_ = true;
     }
 
     // ENSURE THAT PATHS EXIST
@@ -127,6 +133,10 @@ namespace kagome::options {
 
   uint8_t KagomeOptions::getVerbosity() const {
     return verbosity_;
+  }
+
+  bool KagomeOptions::isGenesisEpoch() const {
+    return is_genesis_epoch_;
   }
 
   bool KagomeOptions::hasHelpOption() {

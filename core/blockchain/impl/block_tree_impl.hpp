@@ -99,13 +99,24 @@ namespace kagome::blockchain {
 
     ~BlockTreeImpl() override = default;
 
+    outcome::result<primitives::BlockHeader> getBlockHeader(
+        const primitives::BlockId &block) const override;
+
     outcome::result<primitives::BlockBody> getBlockBody(
         const primitives::BlockId &block) const override;
 
     outcome::result<primitives::Justification> getBlockJustification(
         const primitives::BlockId &block) const override;
 
-    outcome::result<void> addBlock(primitives::Block block) override;
+    outcome::result<void> addBlockHeader(
+        const primitives::BlockHeader &header) override;
+
+    outcome::result<void> addBlock(const primitives::Block &block) override;
+
+    outcome::result<void> addBlockBody(
+        primitives::BlockNumber block_number,
+        const primitives::BlockHash &block_hash,
+        const primitives::BlockBody &body) override;
 
     outcome::result<void> finalize(
         const primitives::BlockHash &block,

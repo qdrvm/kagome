@@ -9,8 +9,9 @@
 #include <functional>
 #include <memory>
 
+#include <libp2p/basic/message_read_writer_uvarint.hpp>
 #include <outcome/outcome.hpp>
-#include "libp2p/basic/message_read_writer.hpp"
+
 #include "scale/scale.hpp"
 
 namespace kagome::network {

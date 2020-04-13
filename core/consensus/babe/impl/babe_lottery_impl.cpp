@@ -27,7 +27,9 @@ namespace kagome::consensus {
   }
 
   BabeLottery::SlotsLeadership BabeLotteryImpl::slotsLeadership(
-      const Epoch &epoch, crypto::SR25519Keypair keypair) const {
+      const Epoch &epoch,
+      const Threshold &threshold,
+      const crypto::SR25519Keypair &keypair) const {
     BabeLottery::SlotsLeadership result;
     result.reserve(epoch.epoch_duration);
 
@@ -40,10 +42,12 @@ namespace kagome::consensus {
         epoch.randomness.begin(), epoch.randomness.end(), vrf_input.begin());
 
     auto slot_number_begin = vrf_input.begin() + vrf_constants::OUTPUT_SIZE;
-    for (BabeSlotNumber i = 0; i < epoch.epoch_duration; ++i) {
+    for (BabeSlotNumber i = epoch.epoch_index * epoch.epoch_duration;
+         i < (epoch.epoch_index + 1) * epoch.epoch_duration;
+         ++i) {
       auto slot_bytes = common::uint64_t_to_bytes(i);
       std::copy(slot_bytes.begin(), slot_bytes.end(), slot_number_begin);
-      auto sign_opt = vrf_provider_->sign(vrf_input, keypair, epoch.threshold);
+      auto sign_opt = vrf_provider_->sign(vrf_input, keypair, threshold);
       result.push_back(sign_opt);
     }
 
@@ -51,7 +55,7 @@ namespace kagome::consensus {
   }
 
   Randomness BabeLotteryImpl::computeRandomness(
-      Randomness last_epoch_randomness, EpochIndex last_epoch_index) {
+      const Randomness &last_epoch_randomness, EpochIndex last_epoch_index) {
     static std::unordered_set<EpochIndex> computed_epochs_randomnesses{};
 
     // the function must never be called twice for the same epoch

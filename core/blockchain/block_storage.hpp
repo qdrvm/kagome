@@ -7,6 +7,7 @@
 #define KAGOME_BLOCK_STORAGE_HPP
 
 #include "primitives/block.hpp"
+#include "primitives/block_data.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
 
@@ -24,8 +25,16 @@ namespace kagome::blockchain {
         const primitives::BlockId &id) const = 0;
     virtual outcome::result<primitives::BlockBody> getBlockBody(
         const primitives::BlockId &id) const = 0;
+    virtual outcome::result<primitives::BlockData> getBlockData(
+        const primitives::BlockId &id) const = 0;
     virtual outcome::result<primitives::Justification> getJustification(
         const primitives::BlockId &block) const = 0;
+
+    virtual outcome::result<primitives::BlockHash> putBlockHeader(
+        const primitives::BlockHeader &header) = 0;
+
+    virtual outcome::result<void> putBlockData(
+        primitives::BlockNumber, const primitives::BlockData &block_data) = 0;
 
     virtual outcome::result<primitives::BlockHash> putBlock(
         const primitives::Block &block) = 0;

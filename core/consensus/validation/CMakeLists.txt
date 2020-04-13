@@ -4,11 +4,11 @@
 #
 
 add_library(block_validator
-    block_validator.hpp
     babe_block_validator.cpp
-    babe_block_validator.hpp
     )
 target_link_libraries(block_validator
     outcome
-    block_tree
+    babe_digests_util
+    mp_utils
+    logger
     )

@@ -27,14 +27,8 @@ namespace kagome::consensus {
     /// duration of the epoch (number of slots it takes)
     BabeSlotNumber epoch_duration{};
 
-    /// duration of the slot
-    std::chrono::milliseconds slot_duration{};
-
     /// authorities of the epoch with their weights
     std::vector<primitives::Authority> authorities;
-
-    /// threshold of the epoch
-    Threshold threshold;
 
     /// randomness of the epoch
     Randomness randomness{};
@@ -42,8 +36,7 @@ namespace kagome::consensus {
     bool operator==(const Epoch &other) const {
       return epoch_index == other.epoch_index && start_slot == other.start_slot
              && epoch_duration == other.epoch_duration
-             && slot_duration == other.slot_duration
-             && authorities == other.authorities && threshold == other.threshold
+             && authorities == other.authorities
              && randomness == other.randomness;
     }
     bool operator!=(const Epoch &other) const {

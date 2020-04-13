@@ -14,7 +14,7 @@ target_link_libraries(babe_error
     )
 
 add_library(epoch_storage
-    impl/epoch_storage_dumb.cpp
+    impl/epoch_storage_impl.cpp
     )
 target_link_libraries(epoch_storage
     sr25519_types

@@ -46,7 +46,7 @@ make kagome_full -j
 To launch kagome node execute:
 ```
 cd examples/kagome_full
-kagome_full --genesis config/polkadot-v06.json --keystore config/keystore.json -l ldb
+kagome_full --genesis config/polkadot-v06.json --keystore config/keystore.json -l ldb -e
 ```
 
 This command executes kagome node which can receive extrinsics locally on port: `4224` (currently hardcoded) 

@@ -142,7 +142,29 @@ namespace kagome::blockchain {
         tree_meta_{std::move(meta)},
         hasher_{std::move(hasher)} {}
 
-  outcome::result<void> BlockTreeImpl::addBlock(primitives::Block block) {
+  outcome::result<void> BlockTreeImpl::addBlockHeader(
+      const primitives::BlockHeader &header) {
+    auto parent = tree_->getByHash(header.parent_hash);
+    if (!parent) {
+      return BlockTreeError::NO_PARENT;
+    }
+    OUTCOME_TRY(block_hash, storage_->putBlockHeader(header));
+    // update local meta with the new block
+    auto new_node =
+        std::make_shared<TreeNode>(block_hash, header.number, parent);
+    parent->children.push_back(new_node);
+
+    tree_meta_->leaves.insert(new_node->block_hash);
+    tree_meta_->leaves.erase(parent->block_hash);
+    if (new_node->depth > tree_meta_->deepest_leaf.get().depth) {
+      tree_meta_->deepest_leaf = *new_node;
+    }
+
+    return outcome::success();
+  }
+
+  outcome::result<void> BlockTreeImpl::addBlock(
+      const primitives::Block &block) {
     // first of all, check if we know parent of this block; if not, we cannot
     // insert it
     auto parent = tree_->getByHash(block.header.parent_hash);
@@ -164,6 +186,14 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
+  outcome::result<void> BlockTreeImpl::addBlockBody(
+      primitives::BlockNumber block_number,
+      const primitives::BlockHash &block_hash,
+      const primitives::BlockBody &body) {
+    primitives::BlockData block_data{.hash = block_hash, .body = body};
+    return storage_->putBlockData(block_number, block_data);
+  }
+
   outcome::result<void> BlockTreeImpl::finalize(
       const primitives::BlockHash &block,
       const primitives::Justification &justification) {
@@ -171,6 +201,9 @@ namespace kagome::blockchain {
     if (!node) {
       return BlockTreeError::NO_SUCH_BLOCK;
     }
+
+    // TODO (kamilsa): PRE-367 clean redundant blocks (headers and bodies that
+    // didn't end up in finalized chain)
 
     // insert justification into the database
     OUTCOME_TRY(storage_->putJustification(justification, block, node->depth));
@@ -191,6 +224,11 @@ namespace kagome::blockchain {
                node->depth);
 
     return outcome::success();
+  }
+
+  outcome::result<primitives::BlockHeader> BlockTreeImpl::getBlockHeader(
+      const primitives::BlockId &block) const {
+    return storage_->getBlockHeader(block);
   }
 
   outcome::result<primitives::BlockBody> BlockTreeImpl::getBlockBody(

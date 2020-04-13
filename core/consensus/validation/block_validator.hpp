@@ -14,20 +14,37 @@ namespace kagome::consensus {
   /**
    * Validator of the blocks
    */
-  struct BlockValidator {
+  class BlockValidator {
+   public:
     virtual ~BlockValidator() = default;
 
     /**
      * Validate the block
      * @param block to be validated
-     * @param epoch, in which the block arrived
+     * @param authority_id authority that sent this block
+     * @param threshold is vrf threshold for this epoch
+     * @param randomness is randomness used in this epoch
      * @return nothing or validation error
-     *
-     * @note in case of success validation, the block is inserted into the local
-     * blockchain state (tree or anything else)
      */
-    virtual outcome::result<void> validate(const primitives::Block &block,
-                                           const Epoch &epoch) const = 0;
+    virtual outcome::result<void> validateBlock(
+        const primitives::Block &block,
+        const primitives::AuthorityId &authority_id,
+        const Threshold &threshold,
+        const Randomness &randomness) const = 0;
+
+    /**
+     * Validate the block header
+     * @param block to be validated
+     * @param authority_id authority that sent this block
+     * @param threshold is vrf threshold for this epoch
+     * @param randomness is randomness used in this epoch
+     * @return nothing or validation error
+     */
+    virtual outcome::result<void> validateHeader(
+        const primitives::BlockHeader &block_header,
+        const primitives::AuthorityId &authority_id,
+        const Threshold &threshold,
+        const Randomness &randomness) const = 0;
   };
 }  // namespace kagome::consensus
 

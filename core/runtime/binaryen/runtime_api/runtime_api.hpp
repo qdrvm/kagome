@@ -31,7 +31,10 @@ namespace kagome::runtime::binaryen {
     RuntimeApi(std::shared_ptr<runtime::WasmProvider> wasm_provider,
                std::shared_ptr<extensions::ExtensionFactory> extension_factory)
         : wasm_provider_(std::move(wasm_provider)),
-          extension_factory_(std::move(extension_factory)) {}
+          extension_factory_(std::move(extension_factory)) {
+      BOOST_ASSERT(wasm_provider_);
+      BOOST_ASSERT(extension_factory_);
+    }
 
    protected:
     /**
@@ -72,7 +75,7 @@ namespace kagome::runtime::binaryen {
         auto buffer = memory->loadN(r.address, r.length);
         // TODO (yuraz) PRE-98: after check for memory overflow is done,
         //  refactor it
-        return scale::decode<R>(buffer);
+        return scale::decode<R>(std::move(buffer));
       }
 
       return outcome::success();

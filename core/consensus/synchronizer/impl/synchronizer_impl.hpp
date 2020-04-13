@@ -18,6 +18,9 @@
 #include "primitives/common.hpp"
 
 namespace kagome::consensus {
+
+  enum class SynchronizerError { REQUEST_ID_EXIST = 1 };
+
   class SynchronizerImpl
       : public Synchronizer,
         public std::enable_shared_from_this<SynchronizerImpl> {
@@ -34,9 +37,9 @@ namespace kagome::consensus {
 
     ~SynchronizerImpl() override = default;
 
-    void blocksRequest(
+    void requestBlocks(
         const BlocksRequest &request,
-        std::function<void(outcome::result<BlocksResponse>)> cb) const override;
+        std::function<void(outcome::result<BlocksResponse>)> cb) override;
 
     outcome::result<BlocksResponse> onBlocksRequest(
         const BlocksRequest &request) const override;
@@ -56,8 +59,13 @@ namespace kagome::consensus {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers_;
     SynchronizerConfig config_;
+    std::unordered_set<primitives::BlocksRequestId>
+        requested_ids_{};  // requested ids from current peer. TODO: clean after
+                           // some period
     common::Logger log_;
   };
 }  // namespace kagome::consensus
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::consensus, SynchronizerError);
 
 #endif  // KAGOME_SYNCHRONIZER_IMPL_HPP

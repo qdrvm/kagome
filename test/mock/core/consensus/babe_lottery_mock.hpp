@@ -12,10 +12,12 @@
 
 namespace kagome::consensus {
   struct BabeLotteryMock : public BabeLottery {
-    MOCK_CONST_METHOD2(slotsLeadership,
-                       SlotsLeadership(const Epoch &, crypto::SR25519Keypair));
+    MOCK_CONST_METHOD3(slotsLeadership,
+                       SlotsLeadership(const Epoch &,
+                                       const Threshold &,
+                                       const crypto::SR25519Keypair &));
 
-    MOCK_METHOD2(computeRandomness, Randomness(Randomness, EpochIndex));
+    MOCK_METHOD2(computeRandomness, Randomness(const Randomness &, EpochIndex));
 
     MOCK_METHOD1(submitVRFValue, void(const crypto::VRFPreOutput &));
   };

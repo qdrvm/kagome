@@ -39,8 +39,8 @@
 #include "consensus/babe/common.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
-#include "consensus/babe/impl/babe_observer_impl.hpp"
-#include "consensus/babe/impl/epoch_storage_dumb.hpp"
+#include "consensus/babe/impl/babe_synchronizer_impl.hpp"
+#include "consensus/babe/impl/epoch_storage_impl.hpp"
 #include "consensus/grandpa/chain.hpp"
 #include "consensus/grandpa/gossiper.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
@@ -60,6 +60,8 @@
 #include "network/impl/router_libp2p.hpp"
 #include "network/sync_protocol_client.hpp"
 #include "network/sync_protocol_observer.hpp"
+#include "network/types/sync_clients_set.hpp"
+#include "runtime/binaryen/runtime_api/babe_api_impl.hpp"
 #include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
 #include "runtime/binaryen/runtime_api/core_impl.hpp"
 #include "runtime/binaryen/runtime_api/grandpa_impl.hpp"
@@ -101,447 +103,405 @@ namespace kagome::injector {
   template <class T>
   using uptr = std::unique_ptr<T>;
 
-  namespace {
-
-    // sr25519 kp getter
-    auto get_sr25519_keypair =
-        [](const auto &injector) -> sptr<crypto::SR25519Keypair> {
-      static auto initialized =
-          boost::optional<sptr<crypto::SR25519Keypair>>(boost::none);
-      if (initialized) {
-        return initialized.value();
-      }
-      auto &key_storage = injector.template create<application::KeyStorage &>();
-      auto &&sr25519_kp = key_storage.getLocalSr25519Keypair();
-
-      initialized = std::make_shared<crypto::SR25519Keypair>(sr25519_kp);
+  // sr25519 kp getter
+  auto get_sr25519_keypair =
+      [](const auto &injector) -> sptr<crypto::SR25519Keypair> {
+    static auto initialized =
+        boost::optional<sptr<crypto::SR25519Keypair>>(boost::none);
+    if (initialized) {
       return initialized.value();
-    };
+    }
+    auto &key_storage = injector.template create<application::KeyStorage &>();
+    auto &&sr25519_kp = key_storage.getLocalSr25519Keypair();
 
-    // ed25519 kp getter
-    auto get_ed25519_keypair =
-        [](const auto &injector) -> sptr<crypto::ED25519Keypair> {
-      static auto initialized =
-          boost::optional<sptr<crypto::ED25519Keypair>>(boost::none);
-      if (initialized) {
-        return initialized.value();
-      }
-      auto &key_storage = injector.template create<application::KeyStorage &>();
-      auto &&ed25519_kp = key_storage.getLocalEd25519Keypair();
+    initialized = std::make_shared<crypto::SR25519Keypair>(sr25519_kp);
+    return initialized.value();
+  };
 
-      initialized = std::make_shared<crypto::ED25519Keypair>(ed25519_kp);
+  // ed25519 kp getter
+  auto get_ed25519_keypair =
+      [](const auto &injector) -> sptr<crypto::ED25519Keypair> {
+    static auto initialized =
+        boost::optional<sptr<crypto::ED25519Keypair>>(boost::none);
+    if (initialized) {
       return initialized.value();
-    };
+    }
+    auto &key_storage = injector.template create<application::KeyStorage &>();
+    auto &&ed25519_kp = key_storage.getLocalEd25519Keypair();
 
-    // peer info getter
-    auto get_peer_info = [](const auto &injector,
-                            uint16_t p2p_port) -> sptr<libp2p::peer::PeerInfo> {
-      static auto initialized =
-          boost::optional<sptr<libp2p::peer::PeerInfo>>(boost::none);
-      if (initialized) {
-        return initialized.value();
-      }
+    initialized = std::make_shared<crypto::ED25519Keypair>(ed25519_kp);
+    return initialized.value();
+  };
 
-      // get key storage
-      auto &keys = injector.template create<application::KeyStorage &>();
-      auto &&local_pair = keys.getP2PKeypair();
-      libp2p::crypto::PublicKey &public_key = local_pair.publicKey;
-      auto &key_marshaller =
-          injector
-              .template create<libp2p::crypto::marshaller::KeyMarshaller &>();
-
-      libp2p::peer::PeerId peer_id =
-          libp2p::peer::PeerId::fromPublicKey(
-              key_marshaller.marshal(public_key).value())
-              .value();
-      spdlog::debug("Received peer id: {}", peer_id.toBase58());
-      std::string multiaddress_str =
-          "/ip4/127.0.0.1/tcp/" + std::to_string(p2p_port);
-      spdlog::debug("Received multiaddr: {}", multiaddress_str);
-      auto multiaddress = libp2p::multi::Multiaddress::create(multiaddress_str);
-      if (!multiaddress) {
-        common::raise(multiaddress.error());  // exception
-      }
-      std::vector<libp2p::multi::Multiaddress> addresses;
-      addresses.push_back(std::move(multiaddress.value()));
-      libp2p::peer::PeerInfo peer_info{peer_id, std::move(addresses)};
-
-      initialized =
-          std::make_shared<libp2p::peer::PeerInfo>(std::move(peer_info));
+  // peer info getter
+  auto get_peer_info = [](const auto &injector,
+                          uint16_t p2p_port) -> sptr<libp2p::peer::PeerInfo> {
+    static auto initialized =
+        boost::optional<sptr<libp2p::peer::PeerInfo>>(boost::none);
+    if (initialized) {
       return initialized.value();
-    };
+    }
 
-    auto get_peer_keypair =
-        [](const auto &injector) -> sptr<libp2p::crypto::KeyPair> {
-      static auto initialized =
-          boost::optional<sptr<libp2p::crypto::KeyPair>>(boost::none);
+    // get key storage
+    auto &keys = injector.template create<application::KeyStorage &>();
+    auto &&local_pair = keys.getP2PKeypair();
+    libp2p::crypto::PublicKey &public_key = local_pair.publicKey;
+    auto &key_marshaller =
+        injector.template create<libp2p::crypto::marshaller::KeyMarshaller &>();
 
-      if (initialized) {
-        return initialized.value();
-      }
+    libp2p::peer::PeerId peer_id =
+        libp2p::peer::PeerId::fromPublicKey(
+            key_marshaller.marshal(public_key).value())
+            .value();
+    spdlog::debug("Received peer id: {}", peer_id.toBase58());
+    std::string multiaddress_str =
+        "/ip4/127.0.0.1/tcp/" + std::to_string(p2p_port);
+    spdlog::debug("Received multiaddr: {}", multiaddress_str);
+    auto multiaddress = libp2p::multi::Multiaddress::create(multiaddress_str);
+    if (!multiaddress) {
+      common::raise(multiaddress.error());  // exception
+    }
+    std::vector<libp2p::multi::Multiaddress> addresses;
+    addresses.push_back(std::move(multiaddress.value()));
+    libp2p::peer::PeerInfo peer_info{peer_id, std::move(addresses)};
 
-      // get key storage
-      auto &keys = injector.template create<application::KeyStorage &>();
-      auto &&local_pair = keys.getP2PKeypair();
-      initialized = std::make_shared<libp2p::crypto::KeyPair>(local_pair);
+    initialized =
+        std::make_shared<libp2p::peer::PeerInfo>(std::move(peer_info));
+    return initialized.value();
+  };
+
+  auto get_peer_keypair =
+      [](const auto &injector) -> sptr<libp2p::crypto::KeyPair> {
+    static auto initialized =
+        boost::optional<sptr<libp2p::crypto::KeyPair>>(boost::none);
+
+    if (initialized) {
       return initialized.value();
-    };
+    }
 
-    auto get_boot_nodes = [](const auto &injector) -> sptr<network::PeerList> {
-      static auto initialized =
-          boost::optional<sptr<network::PeerList>>(boost::none);
-      if (initialized) {
-        return initialized.value();
-      }
-      auto &cfg =
-          injector.template create<application::ConfigurationStorage &>();
+    // get key storage
+    auto &keys = injector.template create<application::KeyStorage &>();
+    auto &&local_pair = keys.getP2PKeypair();
+    initialized = std::make_shared<libp2p::crypto::KeyPair>(local_pair);
+    return initialized.value();
+  };
 
-      initialized = std::make_shared<network::PeerList>(cfg.getBootNodes());
+  auto get_boot_nodes = [](const auto &injector) -> sptr<network::PeerList> {
+    static auto initialized =
+        boost::optional<sptr<network::PeerList>>(boost::none);
+    if (initialized) {
       return initialized.value();
-    };
+    }
+    auto &cfg = injector.template create<application::ConfigurationStorage &>();
 
-    auto get_authority_index =
-        [](const auto &injector) -> sptr<primitives::AuthorityIndex> {
-      static auto initialized =
-          boost::optional<sptr<primitives::AuthorityIndex>>(boost::none);
-      if (initialized) {
-        return initialized.value();
-      }
+    initialized = std::make_shared<network::PeerList>(cfg.getBootNodes());
+    return initialized.value();
+  };
 
-      auto core = injector.template create<sptr<runtime::Core>>();
-      if (auto version_res = core->version(); version_res) {
-        auto version = version_res.value();
-        spdlog::debug("Spec name: {}. Implementation name: {}",
-                      version.spec_name,
-                      version.impl_name);
-      } else {
-        common::raise(version_res.error());
-      }
-
-      // TODO(kamilsa): uncomment when execute with real runtime
-      auto grandpa_api = injector.template create<sptr<runtime::Grandpa>>();
-      auto &keys = injector.template create<application::KeyStorage &>();
-      auto &&local_pair = keys.getLocalEd25519Keypair();
-      auto &public_key = local_pair.public_key;
-      auto &&authorities_res = grandpa_api->authorities(
-          primitives::BlockId(primitives::BlockNumber{0}));
-      if (authorities_res.has_error()) {
-        common::raise(authorities_res.error());
-      }
-      auto &&authorities = authorities_res.value();
-
-      uint64_t index = 0;
-      for (auto &auth : authorities) {
-        if (public_key == auth.id.id) {
-          break;
-        }
-        ++index;
-      }
-      if (index >= authorities.size()) {
-        common::raise(InjectorError::INDEX_OUT_OF_BOUND);
-      }
-      //      uint64_t index = 0;
-
-      initialized = std::make_shared<primitives::AuthorityIndex>(
-          primitives::AuthorityIndex{index});
+  auto get_jrpc_api_service =
+      [](const auto &injector) -> sptr<api::ApiService> {
+    static auto initialized =
+        boost::optional<sptr<api::ApiService>>(boost::none);
+    if (initialized) {
       return initialized.value();
+    }
+    std::vector<std::shared_ptr<api::Listener>> listeners{
+        injector.template create<std::shared_ptr<api::HttpListenerImpl>>(),
+        injector.template create<std::shared_ptr<api::WsListenerImpl>>(),
     };
+    auto server = injector.template create<std::shared_ptr<api::JRpcServer>>();
+    std::vector<std::shared_ptr<api::JRpcProcessor>> processors{
+        injector.template create<std::shared_ptr<api::StateJrpcProcessor>>(),
+        injector
+            .template create<std::shared_ptr<api::ExtrinsicJRpcProcessor>>()};
+    initialized =
+        std::make_shared<api::ApiService>(listeners, server, processors);
+    return initialized.value();
+  };
 
-    auto get_jrpc_api_service =
-        [](const auto &injector) -> sptr<api::ApiService> {
-      static auto initialized =
-          boost::optional<sptr<api::ApiService>>(boost::none);
-      if (initialized) {
-        return initialized.value();
-      }
-      std::vector<std::shared_ptr<api::Listener>> listeners{
-          injector.template create<std::shared_ptr<api::HttpListenerImpl>>(),
-          injector.template create<std::shared_ptr<api::WsListenerImpl>>(),
-      };
-      auto server =
-          injector.template create<std::shared_ptr<api::JRpcServer>>();
-      std::vector<std::shared_ptr<api::JRpcProcessor>> processors{
-          injector.template create<std::shared_ptr<api::StateJrpcProcessor>>(),
-          injector
-              .template create<std::shared_ptr<api::ExtrinsicJRpcProcessor>>()};
-      initialized =
-          std::make_shared<api::ApiService>(listeners, server, processors);
+  // jrpc api listener (over HTTP) getter
+  auto get_jrpc_api_http_listener =
+      [](const auto &injector,
+         uint16_t rpc_port) -> sptr<api::HttpListenerImpl> {
+    static auto initialized =
+        boost::optional<sptr<api::HttpListenerImpl>>(boost::none);
+    if (initialized) {
       return initialized.value();
-    };
+    }
 
-    // jrpc api listener (over HTTP) getter
-    auto get_jrpc_api_http_listener =
-        [](const auto &injector,
-           uint16_t rpc_port) -> sptr<api::HttpListenerImpl> {
-      static auto initialized =
-          boost::optional<sptr<api::HttpListenerImpl>>(boost::none);
-      if (initialized) {
-        return initialized.value();
-      }
+    auto &context = injector.template create<boost::asio::io_context &>();
+    auto extrinsic_tcp_version = boost::asio::ip::tcp::v4();
+    api::HttpListenerImpl::Configuration listener_config{
+        boost::asio::ip::tcp::endpoint{extrinsic_tcp_version, rpc_port}};
+    auto &&http_session_config =
+        injector.template create<api::HttpSession::Configuration>();
 
-      auto &context = injector.template create<boost::asio::io_context &>();
-      auto extrinsic_tcp_version = boost::asio::ip::tcp::v4();
-      api::HttpListenerImpl::Configuration listener_config{
-          boost::asio::ip::tcp::endpoint{extrinsic_tcp_version, rpc_port}};
-      auto &&http_session_config =
-          injector.template create<api::HttpSession::Configuration>();
+    initialized = std::make_shared<api::HttpListenerImpl>(
+        context, listener_config, http_session_config);
+    return initialized.value();
+  };
 
-      initialized = std::make_shared<api::HttpListenerImpl>(
-          context, listener_config, http_session_config);
+  // jrpc api listener (over Websockets) getter
+  auto get_jrpc_api_ws_listener =
+      [](const auto &injector, uint16_t rpc_port) -> sptr<api::WsListenerImpl> {
+    static auto initialized =
+        boost::optional<sptr<api::WsListenerImpl>>(boost::none);
+    if (initialized) {
       return initialized.value();
-    };
+    }
 
-    // jrpc api listener (over Websockets) getter
-    auto get_jrpc_api_ws_listener =
-        [](const auto &injector,
-           uint16_t rpc_port) -> sptr<api::WsListenerImpl> {
-      static auto initialized =
-          boost::optional<sptr<api::WsListenerImpl>>(boost::none);
-      if (initialized) {
-        return initialized.value();
-      }
+    auto &context = injector.template create<boost::asio::io_context &>();
+    auto extrinsic_tcp_version = boost::asio::ip::tcp::v4();
+    api::WsListenerImpl::Configuration listener_config{
+        boost::asio::ip::tcp::endpoint{extrinsic_tcp_version, rpc_port}};
+    auto &&ws_session_config =
+        injector.template create<api::WsSession::Configuration>();
 
-      auto &context = injector.template create<boost::asio::io_context &>();
-      auto extrinsic_tcp_version = boost::asio::ip::tcp::v4();
-      api::WsListenerImpl::Configuration listener_config{
-          boost::asio::ip::tcp::endpoint{extrinsic_tcp_version, rpc_port}};
-      auto &&ws_session_config =
-          injector.template create<api::WsSession::Configuration>();
+    initialized = std::make_shared<api::WsListenerImpl>(
+        context, listener_config, ws_session_config);
+    return initialized.value();
+  };
 
-      initialized = std::make_shared<api::WsListenerImpl>(
-          context, listener_config, ws_session_config);
+  // block storage getter
+  auto get_block_storage =
+      [](const auto &injector) -> sptr<blockchain::BlockStorage> {
+    static auto initialized =
+        boost::optional<sptr<blockchain::BlockStorage>>(boost::none);
+
+    if (initialized) {
       return initialized.value();
-    };
+    }
+    auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
 
-    // block storage getter
-    auto get_block_storage =
-        [](const auto &injector) -> sptr<blockchain::BlockStorage> {
-      static auto initialized =
-          boost::optional<sptr<blockchain::BlockStorage>>(boost::none);
+    const auto &db = injector.template create<sptr<storage::BufferStorage>>();
 
-      if (initialized) {
-        return initialized.value();
-      }
-      auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
+    const auto &trie_db =
+        injector.template create<sptr<storage::trie::TrieDb>>();
 
-      const auto &db = injector.template create<sptr<storage::BufferStorage>>();
-
-      const auto &trie_db =
-          injector.template create<sptr<storage::trie::TrieDb>>();
-
-      auto storage = blockchain::KeyValueBlockStorage::createWithGenesis(
-          trie_db->getRootHash(),
-          db,
-          hasher,
-          [&db, &injector](const primitives::Block &genesis_block) {
-            // handle genesis initialization, which happens when there is not
-            // authorities and last completed round in the storage
-            if (not db->get(storage::kAuthoritySetKey)) {
-              // insert authorities
-              auto grandpa_api =
-                  injector.template create<sptr<runtime::Grandpa>>();
-              const auto &weighted_authorities_res = grandpa_api->authorities(
-                  primitives::BlockId(primitives::BlockNumber{0}));
-              BOOST_ASSERT_MSG(weighted_authorities_res,
-                               "grandpa_api_->authorities failed");
-              const auto &weighted_authorities =
-                  weighted_authorities_res.value();
-              consensus::grandpa::VoterSet voters{0};
-              for (const auto &weighted_authority : weighted_authorities) {
-                voters.insert(weighted_authority.id.id, 1);
-                spdlog::debug("Added to grandpa authorities: {}",
-                              weighted_authority.id.id.toHex());
-              }
-              BOOST_ASSERT_MSG(voters.size() != 0, "Grandpa voters are empty");
-              BOOST_ASSERT_MSG(
-                  db->put(storage::kAuthoritySetKey,
-                          common::Buffer(scale::encode(voters).value())),
-                  "Could not insert authorities");
-
-              // insert last completed round
-              consensus::grandpa::CompletedRound zero_round;
-              zero_round.round_number = 0;
-              const auto &hasher = injector.template create<crypto::Hasher &>();
-              auto genesis_hash = hasher.blake2b_256(
-                  scale::encode(genesis_block.header).value());
-              spdlog::debug("Genesis hash in injector: {}",
-                            genesis_hash.toHex());
-              zero_round.state.prevote_ghost =
-                  consensus::grandpa::Prevote(0, genesis_hash);
-              zero_round.state.estimate =
-                  primitives::BlockInfo(0, genesis_hash);
-              zero_round.state.finalized =
-                  primitives::BlockInfo(0, genesis_hash);
-              BOOST_ASSERT_MSG(
-                  db->put(storage::kSetStateKey,
-                          common::Buffer(scale::encode(zero_round).value())),
-                  "Could not insert completed round");
+    auto storage = blockchain::KeyValueBlockStorage::createWithGenesis(
+        trie_db->getRootHash(),
+        db,
+        hasher,
+        [&db, &injector](const primitives::Block &genesis_block) {
+          // handle genesis initialization, which happens when there is not
+          // authorities and last completed round in the storage
+          if (not db->get(storage::kAuthoritySetKey)) {
+            // insert authorities
+            auto grandpa_api =
+                injector.template create<sptr<runtime::Grandpa>>();
+            const auto &weighted_authorities_res = grandpa_api->authorities(
+                primitives::BlockId(primitives::BlockNumber{0}));
+            BOOST_ASSERT_MSG(weighted_authorities_res,
+                             "grandpa_api_->authorities failed");
+            const auto &weighted_authorities = weighted_authorities_res.value();
+            consensus::grandpa::VoterSet voters{0};
+            for (const auto &weighted_authority : weighted_authorities) {
+              voters.insert(weighted_authority.id.id, 1);
+              spdlog::debug("Added to grandpa authorities: {}",
+                            weighted_authority.id.id.toHex());
             }
-          });
-      if (storage.has_error()) {
-        common::raise(storage.error());
-      }
-      initialized = storage.value();
+            BOOST_ASSERT_MSG(voters.size() != 0, "Grandpa voters are empty");
+            auto authorities_put_res =
+                db->put(storage::kAuthoritySetKey,
+                        common::Buffer(scale::encode(voters).value()));
+            if (not authorities_put_res) {
+              BOOST_ASSERT_MSG(false, "Could not insert authorities");
+              std::exit(1);
+            }
+
+            // insert last completed round
+            consensus::grandpa::CompletedRound zero_round;
+            zero_round.round_number = 0;
+            const auto &hasher = injector.template create<crypto::Hasher &>();
+            auto genesis_hash =
+                hasher.blake2b_256(scale::encode(genesis_block.header).value());
+            spdlog::debug("Genesis hash in injector: {}", genesis_hash.toHex());
+            zero_round.state.prevote_ghost =
+                consensus::grandpa::Prevote(0, genesis_hash);
+            zero_round.state.estimate = primitives::BlockInfo(0, genesis_hash);
+            zero_round.state.finalized = primitives::BlockInfo(0, genesis_hash);
+            auto completed_round_put_res =
+                db->put(storage::kSetStateKey,
+                        common::Buffer(scale::encode(zero_round).value()));
+            if (not completed_round_put_res) {
+              BOOST_ASSERT_MSG(false, "Could not insert completed round");
+              std::exit(1);
+            }
+          }
+        });
+    if (storage.has_error()) {
+      common::raise(storage.error());
+    }
+    initialized = storage.value();
+    return initialized.value();
+  };
+
+  // block tree getter
+  auto get_block_tree =
+      [](const auto &injector) -> sptr<blockchain::BlockTree> {
+    static auto initialized =
+        boost::optional<sptr<blockchain::BlockTree>>(boost::none);
+
+    if (initialized) {
       return initialized.value();
-    };
+    }
+    auto header_repo =
+        injector.template create<sptr<blockchain::BlockHeaderRepository>>();
 
-    // block tree getter
-    auto get_block_tree =
-        [](const auto &injector) -> sptr<blockchain::BlockTree> {
-      static auto initialized =
-          boost::optional<sptr<blockchain::BlockTree>>(boost::none);
+    auto &&storage = injector.template create<sptr<blockchain::BlockStorage>>();
 
-      if (initialized) {
-        return initialized.value();
-      }
-      auto header_repo =
-          injector.template create<sptr<blockchain::BlockHeaderRepository>>();
+    // block id is zero for genesis launch
+    const primitives::BlockId block_id = 0;
 
-      auto &&storage =
-          injector.template create<sptr<blockchain::BlockStorage>>();
+    auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
 
-      // block id is zero for genesis launch
-      const primitives::BlockId block_id = 0;
+    auto &&tree = blockchain::BlockTreeImpl::create(
+        std::move(header_repo), storage, block_id, std::move(hasher));
+    if (!tree) {
+      common::raise(tree.error());
+    }
+    initialized = tree.value();
+    return initialized.value();
+  };
 
-      auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
+  // polkadot trie db getter
+  auto get_polkadot_trie_db_backend =
+      [](const auto &injector) -> sptr<storage::trie::TrieDbBackendImpl> {
+    static auto initialized =
+        boost::optional<sptr<storage::trie::TrieDbBackendImpl>>(boost::none);
 
-      auto &&tree = blockchain::BlockTreeImpl::create(
-          std::move(header_repo), storage, block_id, std::move(hasher));
-      if (!tree) {
-        common::raise(tree.error());
-      }
-      initialized = tree.value();
+    if (initialized) {
       return initialized.value();
-    };
+    }
+    auto storage = injector.template create<sptr<storage::BufferStorage>>();
+    using blockchain::prefix::TRIE_NODE;
+    auto backend = std::make_shared<storage::trie::TrieDbBackendImpl>(
+        storage, common::Buffer{TRIE_NODE});
+    initialized = backend;
+    return backend;
+  };
 
-    // polkadot trie db getter
-    auto get_polkadot_trie_db_backend =
-        [](const auto &injector) -> sptr<storage::trie::TrieDbBackendImpl> {
-      static auto initialized =
-          boost::optional<sptr<storage::trie::TrieDbBackendImpl>>(boost::none);
+  auto get_polkadot_trie_db =
+      [](const auto &injector) -> sptr<storage::trie::PolkadotTrieDb> {
+    static auto initialized =
+        boost::optional<sptr<storage::trie::PolkadotTrieDb>>(boost::none);
 
-      if (initialized) {
-        return initialized.value();
-      }
-      auto storage = injector.template create<sptr<storage::BufferStorage>>();
-      using blockchain::prefix::TRIE_NODE;
-      auto backend = std::make_shared<storage::trie::TrieDbBackendImpl>(
-          storage, common::Buffer{TRIE_NODE});
-      initialized = backend;
-      return backend;
-    };
-
-    auto get_polkadot_trie_db =
-        [](const auto &injector) -> sptr<storage::trie::PolkadotTrieDb> {
-      static auto initialized =
-          boost::optional<sptr<storage::trie::PolkadotTrieDb>>(boost::none);
-
-      if (initialized) {
-        return initialized.value();
-      }
-      auto backend =
-          injector.template create<sptr<storage::trie::TrieDbBackend>>();
-      sptr<storage::trie::PolkadotTrieDb> polkadot_trie_db =
-          storage::trie::PolkadotTrieDb::createEmpty(backend);
-      initialized = polkadot_trie_db;
-      return polkadot_trie_db;
-    };
-
-    // trie db getter
-    auto get_trie_db = [](const auto &injector) -> sptr<storage::trie::TrieDb> {
-      static auto initialized =
-          boost::optional<sptr<storage::trie::TrieDb>>(boost::none);
-      if (initialized) {
-        return initialized.value();
-      }
-      auto configuration_storage =
-          injector.template create<sptr<application::ConfigurationStorage>>();
-      const auto &genesis_raw_configs = configuration_storage->getGenesis();
-
-      auto trie_db =
-          injector.template create<sptr<storage::trie::PolkadotTrieDb>>();
-      for (const auto &[key, val] : genesis_raw_configs) {
-        spdlog::debug("Key: {} ({}), Val: {}",
-                      key.toHex(),
-                      key.data(),
-                      val.toHex().substr(0, 200));
-        if (auto res = trie_db->put(key, val); not res) {
-          common::raise(res.error());
-        }
-      }
-      initialized = trie_db;
-      return trie_db;
-    };
-
-    // level db getter
-    template <typename Injector>
-    sptr<storage::BufferStorage> get_level_db(std::string_view leveldb_path,
-                                              const Injector &injector) {
-      static auto initialized =
-          boost::optional<sptr<storage::BufferStorage>>(boost::none);
-      if (initialized) {
-        return initialized.value();
-      }
-      auto options = leveldb::Options{};
-      options.create_if_missing = true;
-      auto db = storage::LevelDB::create(leveldb_path, options);
-      if (!db) {
-        common::raise(db.error());
-      }
-      initialized = db.value();
+    if (initialized) {
       return initialized.value();
-    };
+    }
+    auto backend =
+        injector.template create<sptr<storage::trie::TrieDbBackend>>();
+    sptr<storage::trie::PolkadotTrieDb> polkadot_trie_db =
+        storage::trie::PolkadotTrieDb::createEmpty(backend);
+    initialized = polkadot_trie_db;
+    return polkadot_trie_db;
+  };
 
-    // configuration storage getter
-    template <typename Injector>
-    std::shared_ptr<application::ConfigurationStorage>
-    get_configuration_storage(std::string_view genesis_path,
-                              const Injector &injector) {
-      static auto initialized =
-          boost::optional<sptr<application::ConfigurationStorage>>(boost::none);
-      if (initialized) {
-        return initialized.value();
+  // trie db getter
+  auto get_trie_db = [](const auto &injector) -> sptr<storage::trie::TrieDb> {
+    static auto initialized =
+        boost::optional<sptr<storage::trie::TrieDb>>(boost::none);
+    if (initialized) {
+      return initialized.value();
+    }
+    auto configuration_storage =
+        injector.template create<sptr<application::ConfigurationStorage>>();
+    const auto &genesis_raw_configs = configuration_storage->getGenesis();
+
+    auto trie_db =
+        injector.template create<sptr<storage::trie::PolkadotTrieDb>>();
+    for (const auto &[key, val] : genesis_raw_configs) {
+      spdlog::debug("Key: {} ({}), Val: {}",
+                    key.toHex(),
+                    key.data(),
+                    val.toHex().substr(0, 200));
+      if (auto res = trie_db->put(key, val); not res) {
+        common::raise(res.error());
       }
-      auto config_storage_res = application::ConfigurationStorageImpl::create(
-          std::string(genesis_path));
-      if (config_storage_res.has_error()) {
-        common::raise(config_storage_res.error());
-      }
-      initialized = config_storage_res.value();
-      return config_storage_res.value();
-    };
+    }
+    initialized = trie_db;
+    return trie_db;
+  };
 
-    // key storage getter
-    template <typename Injector>
-    sptr<application::KeyStorage> get_key_storage(
-        std::string_view keystore_path, const Injector &injector) {
-      static auto initialized =
-          boost::optional<sptr<application::KeyStorage>>(boost::none);
-      if (initialized) {
-        return initialized.value();
-      }
-      auto &&result =
-          application::LocalKeyStorage::create(std::string(keystore_path));
-      if (!result) {
-        common::raise(result.error());
-      }
-      initialized = result.value();
-      return result.value();
-    };
+  // level db getter
+  template <typename Injector>
+  sptr<storage::BufferStorage> get_level_db(std::string_view leveldb_path,
+                                            const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<storage::BufferStorage>>(boost::none);
+    if (initialized) {
+      return initialized.value();
+    }
+    auto options = leveldb::Options{};
+    options.create_if_missing = true;
+    auto db = storage::LevelDB::create(leveldb_path, options);
+    if (!db) {
+      common::raise(db.error());
+    }
+    initialized = db.value();
+    return initialized.value();
+  };
 
-    auto get_sync_clients_set =
-        [](const auto &injector) -> sptr<network::SyncClientsSet> {
-      auto configuration_storage =
-          injector.template create<sptr<application::ConfigurationStorage>>();
-      auto peer_infos = configuration_storage->getBootNodes().peers;
+  // configuration storage getter
+  template <typename Injector>
+  std::shared_ptr<application::ConfigurationStorage> get_configuration_storage(
+      std::string_view genesis_path, const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<application::ConfigurationStorage>>(boost::none);
+    if (initialized) {
+      return initialized.value();
+    }
+    auto config_storage_res = application::ConfigurationStorageImpl::create(
+        std::string(genesis_path));
+    if (config_storage_res.has_error()) {
+      common::raise(config_storage_res.error());
+    }
+    initialized = config_storage_res.value();
+    return config_storage_res.value();
+  };
 
-      auto host = injector.template create<sptr<libp2p::Host>>();
-      auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
-      auto block_header_repository =
-          injector.template create<sptr<blockchain::BlockHeaderRepository>>();
+  // key storage getter
+  template <typename Injector>
+  sptr<application::KeyStorage> get_key_storage(std::string_view keystore_path,
+                                                const Injector &injector) {
+    static auto initialized =
+        boost::optional<sptr<application::KeyStorage>>(boost::none);
+    if (initialized) {
+      return initialized.value();
+    }
+    auto &&result =
+        application::LocalKeyStorage::create(std::string(keystore_path));
+    if (!result) {
+      common::raise(result.error());
+    }
+    initialized = result.value();
+    return result.value();
+  };
 
-      auto res = std::make_shared<network::SyncClientsSet>();
-      for (const auto &peer_info : peer_infos) {
+  auto get_sync_clients_set =
+      [](const auto &injector) -> sptr<network::SyncClientsSet> {
+    static auto initialized =
+        boost::optional<sptr<network::SyncClientsSet>>(boost::none);
+    if (initialized) {
+      return initialized.value();
+    }
+    auto configuration_storage =
+        injector.template create<sptr<application::ConfigurationStorage>>();
+    auto peer_infos = configuration_storage->getBootNodes().peers;
+
+    auto host = injector.template create<sptr<libp2p::Host>>();
+    auto block_tree = injector.template create<sptr<blockchain::BlockTree>>();
+    auto block_header_repository =
+        injector.template create<sptr<blockchain::BlockHeaderRepository>>();
+
+    auto res = std::make_shared<network::SyncClientsSet>();
+    auto current_peer_synchronizer =
+        injector.template create<sptr<consensus::Synchronizer>>();
+    res->clients.insert(current_peer_synchronizer);
+
+    auto current_peer_info = injector.template create<libp2p::peer::PeerInfo>();
+    for (const auto &peer_info : peer_infos) {
+      if (peer_info.id != current_peer_info.id) {
         res->clients.insert(std::make_shared<consensus::SynchronizerImpl>(
             *host,
             peer_info,
@@ -549,10 +509,36 @@ namespace kagome::injector {
             block_header_repository,
             injector.template create<consensus::SynchronizerConfig>()));
       }
-      return res;
-    };
+    }
+    initialized = res;
+    return res;
+  };
 
-  }  // namespace
+  auto get_babe = [](const auto &injector) -> sptr<consensus::Babe> {
+    static auto initialized =
+        boost::optional<sptr<consensus::BabeImpl>>(boost::none);
+    if (initialized) {
+      return *initialized;
+    }
+
+    initialized = std::make_shared<consensus::BabeImpl>(
+        injector.template create<sptr<consensus::BabeLottery>>(),
+        injector.template create<sptr<consensus::BabeSynchronizer>>(),
+        injector.template create<sptr<consensus::BabeBlockValidator>>(),
+        injector.template create<sptr<consensus::EpochStorage>>(),
+        injector.template create<sptr<runtime::BabeApi>>(),
+        injector.template create<sptr<runtime::Core>>(),
+        injector.template create<sptr<authorship::Proposer>>(),
+        injector.template create<sptr<blockchain::BlockTree>>(),
+        injector.template create<sptr<network::BabeGossiper>>(),
+        injector.template create<crypto::SR25519Keypair>(),
+        injector.template create<sptr<clock::SystemClock>>(),
+        injector.template create<sptr<crypto::Hasher>>(),
+        injector.template create<uptr<clock::Timer>>());
+    return *initialized;
+  };
+
+  auto get_babe_observer = get_babe;
 
   template <typename... Ts>
   auto makeApplicationInjector(const std::string &genesis_path,
@@ -593,8 +579,6 @@ namespace kagome::injector {
             std::move(get_peer_keypair))[boost::di::override],
         // bind boot nodes
         di::bind<network::PeerList>.to(std::move(get_boot_nodes)),
-        // find and bind authority id
-        di::bind<primitives::AuthorityIndex>.to(std::move(get_authority_index)),
 
         // bind io_context: 1 per injector
         di::bind<::boost::asio::io_context>.in(
@@ -626,13 +610,14 @@ namespace kagome::injector {
         di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
         di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
         di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
-        di::bind<consensus::Babe>.template to<consensus::BabeImpl>(),
+        di::bind<consensus::Babe>.to(std::move(get_babe)),
+        di::bind<consensus::BabeSynchronizer>.template to<consensus::BabeSynchronizerImpl>(),
         di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
-        di::bind<network::BabeObserver>.template to<consensus::BabeObserverImpl>(),
+        di::bind<network::BabeObserver>.to(std::move(get_babe_observer)),
         di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::LauncherImpl>(),
         di::bind<consensus::grandpa::Launcher>.template to<consensus::grandpa::LauncherImpl>(),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
-        di::bind<consensus::EpochStorage>.template to<consensus::EpochStorageDumb>(),
+        di::bind<consensus::EpochStorage>.template to<consensus::EpochStorageImpl>(),
         di::bind<consensus::Synchronizer>.template to<consensus::SynchronizerImpl>(),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
         di::bind<crypto::ED25519Provider>.template to<crypto::ED25519ProviderImpl>(),
@@ -653,6 +638,7 @@ namespace kagome::injector {
         di::bind<runtime::Metadata>.template to<runtime::binaryen::MetadataImpl>(),
         di::bind<runtime::Grandpa>.template to<runtime::binaryen::GrandpaImpl>(),
         di::bind<runtime::Core>.template to<runtime::binaryen::CoreImpl>(),
+        di::bind<runtime::BabeApi>.template to<runtime::binaryen::BabeApiImpl>(),
         di::bind<runtime::BlockBuilder>.template to<runtime::binaryen::BlockBuilderImpl>(),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
@@ -677,9 +663,8 @@ namespace kagome::injector {
         std::forward<decltype(args)>(args)...);
     auto leveldb_options = leveldb::Options();
     leveldb_options.create_if_missing = true;
-
-    // make injector
   }
+
 }  // namespace kagome::injector
 
 #endif  // KAGOME_CORE_INJECTOR_APPLICATION_INJECTOR_HPP

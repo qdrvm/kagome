@@ -21,7 +21,6 @@ namespace kagome::application {
 
     GenesisRawConfig getGenesis() const override;
     network::PeerList getBootNodes() const override;
-    std::vector<crypto::SR25519PublicKey> getSessionKeys() const override;
 
    private:
     outcome::result<void> loadFromJson(const std::string &file_path);
