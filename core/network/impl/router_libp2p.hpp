@@ -26,8 +26,9 @@ namespace kagome::network {
     using Stream = libp2p::connection::Stream;
 
    public:
-    RouterLibp2p(libp2p::Host &host,
-                 std::shared_ptr<BabeObserver> babe_observer,
+    RouterLibp2p(
+        libp2p::Host &host,
+        std::shared_ptr<BabeObserver> babe_observer,
         std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer,
         std::shared_ptr<SyncProtocolObserver> sync_observer);
 

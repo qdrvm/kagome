@@ -6,6 +6,8 @@
 #ifndef KAGOME_CORE_PRIMITIVES_BLOCK_DATA_HPP
 #define KAGOME_CORE_PRIMITIVES_BLOCK_DATA_HPP
 
+#include <boost/optional.hpp>
+
 #include "primitives/block.hpp"
 #include "primitives/justification.hpp"
 

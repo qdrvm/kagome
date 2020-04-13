@@ -32,11 +32,6 @@ namespace kagome::application {
      * Return ids of peer nodes of the current node
      */
     virtual network::PeerList getBootNodes() const = 0;
-
-    /**
-     * Return peers' session keys used in BABE
-     */
-    virtual std::vector<crypto::SR25519PublicKey> getSessionKeys() const = 0;
   };
 
 }  // namespace kagome::application

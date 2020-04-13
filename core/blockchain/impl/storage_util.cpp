@@ -69,7 +69,7 @@ namespace kagome::blockchain {
   outcome::result<primitives::BlockNumber> lookupKeyToNumber(
       const common::Buffer &key) {
     if (key.size() < 4) {
-      return KeyValueRepositoryError::INVALID_KEY;
+      return outcome::failure(KeyValueRepositoryError::INVALID_KEY);
     }
     return (uint64_t(key[0]) << 24u) | (uint64_t(key[1]) << 16u)
            | (uint64_t(key[2]) << 8u) | uint64_t(key[3]);

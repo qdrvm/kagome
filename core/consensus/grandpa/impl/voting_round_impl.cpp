@@ -81,6 +81,8 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::onFinalize(const Fin &f) {
+    logger_->info("Received fin message for vote: {}",
+                  f.vote.block_hash.toHex());
     // validate message
     if (validate(f.vote, f.justification)) {
       // finalize to state
@@ -96,6 +98,7 @@ namespace kagome::consensus::grandpa {
       env_->onCompleted(CompletedRound{.round_number = round_number_,
                                        .state = cur_round_state_});
     } else {
+      logger_->error("Validation of vote {} failed", f.vote.block_hash.toHex());
       env_->onCompleted(VotingRoundError::FIN_VALIDATION_FAILED);
     }
   }
@@ -190,6 +193,7 @@ namespace kagome::consensus::grandpa {
     if (completable() and clock_->now() < prevote_timer_.expires_at()) {
       prevote_timer_.cancel();
     }
+    tryFinalize();
   }
 
   void VotingRoundImpl::onPrecommit(const SignedPrecommit &precommit) {
@@ -502,7 +506,7 @@ namespace kagome::consensus::grandpa {
                   ancestry) {
                 auto to_sub = primary.block_number + 1;
 
-                size_t offset = 0;
+                primitives::BlockNumber offset = 0;
                 if (last_prevote_g.block_number >= to_sub) {
                   offset = last_prevote_g.block_number - to_sub;
                 }

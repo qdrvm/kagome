@@ -11,6 +11,15 @@
 #include "network/rpc.hpp"
 #include "network/types/block_announce.hpp"
 
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, SynchronizerError, e) {
+  using E = kagome::consensus::SynchronizerError;
+  switch (e) {
+    case E::REQUEST_ID_EXIST:
+      return "Either peer requests himself, or request was already processed";
+  }
+  return "unknown error";
+}
+
 namespace kagome::consensus {
   SynchronizerImpl::SynchronizerImpl(
       libp2p::Host &host,
@@ -28,16 +37,23 @@ namespace kagome::consensus {
     BOOST_ASSERT(blocks_headers_);
   }
 
-  void SynchronizerImpl::blocksRequest(
+  void SynchronizerImpl::requestBlocks(
       const BlocksRequest &request,
-      std::function<void(outcome::result<BlocksResponse>)> cb) const {
+      std::function<void(outcome::result<BlocksResponse>)> cb) {
     visit_in_place(request.from,
                    [this](primitives::BlockNumber from) {
                      log_->debug("Requesting blocks: from {}", from);
                    },
-                   [this](const primitives::BlockHash &from) {
-                     log_->debug("Requesting blocks: from {}", from.toHex());
+                   [this, &request](const primitives::BlockHash &from) {
+                     if (not request.to) {
+                       log_->debug("Requesting blocks: from {}", from.toHex());
+                     } else {
+                       log_->debug("Requesting blocks: from {}, to {}",
+                                   from.toHex(),
+                                   request.to->toHex());
+                     }
                    });
+    requested_ids_.insert(request.id);
     network::RPC<network::ScaleMessageReadWriter>::write<BlocksRequest,
                                                          BlocksResponse>(
         host_, peer_info_, network::kSyncProtocol, request, std::move(cb));
@@ -45,6 +61,9 @@ namespace kagome::consensus {
 
   outcome::result<network::BlocksResponse> SynchronizerImpl::onBlocksRequest(
       const BlocksRequest &request) const {
+    if (requested_ids_.find(request.id) != requested_ids_.end()) {
+      return SynchronizerError::REQUEST_ID_EXIST;
+    }
     BlocksResponse response{request.id};
 
     // firstly, check if we have both "from" & "to" blocks (if set)
@@ -84,9 +103,12 @@ namespace kagome::consensus {
           from_hash, ascending_direction, config_.max_request_blocks);
     } else {
       // else, both blocks are specified
-      chain_hash_res = block_tree_->getChainByBlocks(
-          ascending_direction ? *request.to : from_hash,
-          ascending_direction ? from_hash : *request.to);
+      OUTCOME_TRY(chain_hash,
+                  block_tree_->getChainByBlocks(from_hash, *request.to));
+      if (ascending_direction) {
+        std::reverse(chain_hash.begin(), chain_hash.end());
+      }
+      chain_hash_res = chain_hash;
     }
     return chain_hash_res;
   }

@@ -39,14 +39,6 @@ class ConfigurationStorageTest : public ::testing::Test {
       expected_genesis_config_.emplace_back(Buffer::fromHex(key_hex).value(),
                                             Buffer::fromHex(val_hex).value());
     }
-
-    std::vector<std::string> srkeys{
-        "7ad7336e38e0ddd6635fb4cc88e65ddc0c9fdaa65ecf3d131c9db9c391834450",
-        "0c9fdaa65ecf3d131c9db9c3918344507ad7336e38e0ddd6635fb4cc88e65ddc"};
-    for (auto &srkey_hex : srkeys) {
-      expected_session_keys_.push_back(
-          SR25519PublicKey::fromHex(srkey_hex).value());
-    }
   }
 
   std::string path_ =
@@ -54,7 +46,6 @@ class ConfigurationStorageTest : public ::testing::Test {
       + "/genesis.json";  // < Path to file containing the following configs:
   PeerList expected_boot_nodes_;
   GenesisRawConfig expected_genesis_config_;
-  std::vector<SR25519PublicKey> expected_session_keys_;
 };
 
 /**
@@ -70,5 +61,4 @@ TEST_F(ConfigurationStorageTest, MatchesConfig) {
   // then
   ASSERT_EQ(config_storage->getGenesis(), expected_genesis_config_);
   ASSERT_EQ(config_storage->getBootNodes(), expected_boot_nodes_);
-  ASSERT_EQ(config_storage->getSessionKeys(), expected_session_keys_);
 }

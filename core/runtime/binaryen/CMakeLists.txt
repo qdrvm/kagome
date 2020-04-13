@@ -92,3 +92,11 @@ target_link_libraries(binaryen_offchain_worker_api
     binaryen_wasm_executor
     binaryen_runtime_api
     )
+
+add_library(binaryen_babe_api
+    runtime_api/babe_api_impl.cpp
+    )
+target_link_libraries(binaryen_babe_api
+    binaryen_wasm_executor
+    binaryen_runtime_api
+    )

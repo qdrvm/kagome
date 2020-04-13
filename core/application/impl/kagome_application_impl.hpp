@@ -6,10 +6,11 @@
 #ifndef KAGOME_CORE_APPLICATION_IMPL_KAGOME_APPLICATION_IMPL_HPP
 #define KAGOME_CORE_APPLICATION_IMPL_KAGOME_APPLICATION_IMPL_HPP
 
+#include "application/kagome_application.hpp"
+
 #include "application/configuration_storage.hpp"
 #include "application/impl/local_key_storage.hpp"
 #include "api/service/api_service.hpp"
-#include "application/kagome_application.hpp"
 
 namespace kagome::application {
 
@@ -54,13 +55,12 @@ namespace kagome::application {
                           uint16_t p2p_port,
                           uint16_t rpc_http_port,
                           uint16_t rpc_ws_port,
+                          bool is_genesis_epoch,
                           uint8_t verbosity);
 
     void run() override;
 
    private:
-    Epoch makeInitialEpoch();
-
     // need to keep all of these instances, since injector itself is destroyed
     InjectorType injector_;
     sptr<boost::asio::io_context> io_context_;
@@ -72,6 +72,7 @@ namespace kagome::application {
     sptr<GrandpaLauncher> grandpa_launcher_;
     sptr<network::Router> router_;
 
+    bool is_genesis_epoch_;
     common::Logger logger_;
   };
 

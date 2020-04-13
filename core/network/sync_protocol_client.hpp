@@ -24,9 +24,9 @@ namespace kagome::network {
      * @param request to be made
      * @param cb to be called, when a response or error arrives
      */
-    virtual void blocksRequest(
+    virtual void requestBlocks(
         const BlocksRequest &request,
-        std::function<void(outcome::result<BlocksResponse>)> cb) const = 0;
+        std::function<void(outcome::result<BlocksResponse>)> cb) = 0;
   };
 }  // namespace kagome::network
 
