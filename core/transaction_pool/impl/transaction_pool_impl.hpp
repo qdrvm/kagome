@@ -113,7 +113,7 @@ namespace kagome::transaction_pool {
     std::multimap<Transaction::Tag, std::weak_ptr<Transaction>>
         tx_provides_tag_;
 
-    /// Transactions with resolved require of specific tags
+    /// Transactions with resolved requirement of a specific tag
     std::multimap<Transaction::Tag, std::weak_ptr<Transaction>>
         tx_depends_on_tag_;
 
