@@ -40,8 +40,7 @@ class TrieTest
 
   void SetUp() override {
     open();
-    trie = PolkadotTrieDb::createEmpty(std::make_shared<TrieDbBackendImpl>(
-        std::move(db_), kNodePrefix));
+    trie = PolkadotTrieDb::createEmpty(std::make_shared<TrieDbBackendImpl>(db_, kNodePrefix));
   }
 
   static const std::vector<std::pair<Buffer, Buffer>> data;
@@ -346,7 +345,7 @@ TEST_F(TrieTest, EmptyTrie) {
  * instance initialsed with the same DB
  * @then the new instance contains the same data
  */
-TEST(TriePersistencyTest, CreateDestroyCreate) {
+TEST_F(TrieTest, CreateDestroyCreate) {
   Buffer root;
   {
     leveldb::Options options;
@@ -354,21 +353,287 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
     EXPECT_OUTCOME_TRUE(
         level_db,
         LevelDB::create("/tmp/kagome_leveldb_persistency_test", options));
-    auto db =
-        PolkadotTrieDb::createEmpty(std::make_shared<TrieDbBackendImpl>(
-            std::move(level_db), kNodePrefix));
-    EXPECT_OUTCOME_TRUE_1(db->put("123"_buf, "abc"_buf));
-    EXPECT_OUTCOME_TRUE_1(db->remove("123"_buf));
-    EXPECT_OUTCOME_TRUE_1(db->put("123"_buf, "abc"_buf));
-    EXPECT_OUTCOME_TRUE_1(db->put("345"_buf, "def"_buf));
-    EXPECT_OUTCOME_TRUE_1(db->put("678"_buf, "xyz"_buf));
-    root = db->getRootHash();
+    auto db = PolkadotTrieDb::createEmpty(
+        std::make_shared<TrieDbBackendImpl>(std::move(level_db), kNodePrefix));
+
+    // case 1
+    EXPECT_OUTCOME_TRUE_1(db->put("3a65787472696e7369635f696e646578"_hex2buf,
+                                  "00000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("8cb577756012d928f17362e0741f9f2c"_hex2buf,
+                                  "03000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "f7787e54bb33faaf40a7f3bf438458ee"_hex2buf,
+        "040642414245e1010000000000000000001400000000000000010000008076f2a08296f25d55febf7acbd962ee5c70bd94d5f7a71679a939a59c44b027150101668336e93123a070b9bfa139bcf3a82882321383cdb347f74e21ee7c9ed5690fbd03cfa00da52ed3800bcb91b396b06d68065748911d12c7ddcdf0bd95de8603"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "3ae31af9a378162eb2736f26855c9ad8"_hex2buf,
+        "ebd7c27da1aa712f1ff449e04f8975cc2358beba8513da6d581e66d858424960"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "224bd05121db69c8dcf92845e276ccc44350c1a65a3f9aca9fd0734370b5870a"_hex2buf,
+        "ebd7c27da1aa712f1ff449e04f8975cc2358beba8513da6d581e66d858424960"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "e1856c2284210a998e3257b3d8a315db"_hex2buf,
+        "0000000000000000000000000000000000000000000000000000000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("cc956bdb7605e3547539f321ac2bc95c"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("2e37ecea13014576b46e0b7a6139cbd2"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->remove(
+        "3007c9ff7027f65900abcdfca4fdb107ead47e2a9e3558e01b691b0f4a5f8518"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->put("e0410aa8e1aff5af1147fe2f9b33ce62"_hex2buf, "00"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->put("234b134360b60e7713043dc1ea9a752e"_hex2buf, "00"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("9ef8d3fecf9615ad693470693c7fb7dd"_hex2buf,
+                                  "0000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "306489973b594fdfe42d5055b60b70134f81d3291fed263236bc07b94fc6d3ea89eb0d6a8a691dae2cd15ed0369931ce0a949ecafa5c3f93f8121833646e15c3"_hex2buf,
+        "03000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "ca263a1d57613bec1f68af5eb50a2d31"_hex2buf,
+        "0cb5ebfaf1fb6560d20e30a772c5482affeb5955602062a550b326b2e7135bb7a486b7543c1945f4e0856263d8ec56ef3b3ef22e3bef8ac71e6caa962b3b4705b5ebd7c27da1aa712f1ff449e04f8975cc2358beba8513da6d581e66d858424960"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "4fbfbfa5fc2e8c0a7265bcb04f86338f004320a0c2ed9d66fcee8e68b7595b7b"_hex2buf,
+        "2c280403000b60a270747101"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("0e4944cfd98d6f4cc374d16f5a4e3f9c"_hex2buf,
+                                  "60a2707471010000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->put("052cfee4ed51fa512e9fed56a4185f26"_hex2buf, "01"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("2e37ecea13014576b46e0b7a6139cbd2"_hex2buf,
+                                  "01000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("cc956bdb7605e3547539f321ac2bc95c"_hex2buf,
+                                  "040000000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("3a65787472696e7369635f696e646578"_hex2buf,
+                                  "01000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "bfcf5ee1dae60fc10ebd79b603ced5d0546b9143f775294c18cd14e2cc2fcc34"_hex2buf,
+        "3102290284ffdc3488acc1a6b90aa92cea0cfbe2b00754a74084970b08d968e948d4d3bf161a01e2f2be0a634faeb8401ed2392731df803877dcb2422bb396d48ca24f18661059e3dde41d14b87eb929ec41ab36e6d63be5a1f5c3c5c092c79646a453f4b392890000000600ff488f6d1b0114674dcd81fd29642bc3bcec8c8366f6af0665860f9d4e8c8a972404"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "6dc6083a34f64d6836b8deff5623799f03bb1a4d5e60d73680c1f68297a69c3b"_hex2buf,
+        "01000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("94310e87b78915dd7e2656ce42bda477"_hex2buf,
+                                  "8c000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("6301b8a945c24ad6ef0fd5d063c34f19"_hex2buf,
+                                  "40420f00"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "8cf1a75ecd7e045ad962dc579b2aeb09efd5ca7d8f654eed7c45f9c85d031a58"_hex2buf,
+        "4060d8d667a9c9353600000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "ba627d728bc02c61b22a8ee2fb84dc3c7edf5a61b45ee13e8802329c8e9d4acc"_hex2buf,
+        "00f3197d715e00000000000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("78f4ad73d6b7279f8d06f359e363c829"_hex2buf,
+                                  "a04947913b8fed353600000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("2e37ecea13014576b46e0b7a6139cbd2"_hex2buf,
+                                  "02000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "cc956bdb7605e3547539f321ac2bc95c"_hex2buf,
+        "08000000000000000000010000000c0580d94f36bf010000000000000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("78f4ad73d6b7279f8d06f359e363c829"_hex2buf,
+                                  "4053b3c3cb8eed353600000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "8cf1a75ecd7e045ad962dc579b2aeb09efd5ca7d8f654eed7c45f9c85d031a58"_hex2buf,
+        "3f5033027fa8c9353600000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "b9c63c80ee65dceb452dc1d3d1ba07108e2cca06b0d914af112a6c34c41d8d10"_hex2buf,
+        "0100c16ff28623000000000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("78f4ad73d6b7279f8d06f359e363c829"_hex2buf,
+                                  "40430eefe28ded353600000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("2e37ecea13014576b46e0b7a6139cbd2"_hex2buf,
+                                  "03000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "cc956bdb7605e3547539f321ac2bc95c"_hex2buf,
+        "0c000000000000000000010000000c0580d94f36bf01000000000000000000000000010000000302dc3488acc1a6b90aa92cea0cfbe2b00754a74084970b08d968e948d4d3bf161a488f6d1b0114674dcd81fd29642bc3bcec8c8366f6af0665860f9d4e8c8a9724010000000000000000000000000000000010a5d4e8000000000000000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("2e37ecea13014576b46e0b7a6139cbd2"_hex2buf,
+                                  "04000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "cc956bdb7605e3547539f321ac2bc95c"_hex2buf,
+        "10000000000000000000010000000c0580d94f36bf01000000000000000000000000010000000302dc3488acc1a6b90aa92cea0cfbe2b00754a74084970b08d968e948d4d3bf161a488f6d1b0114674dcd81fd29642bc3bcec8c8366f6af0665860f9d4e8c8a9724010000000000000000000000000000000010a5d4e80000000000000000000000000001000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("3a65787472696e7369635f696e646578"_hex2buf,
+                                  "02000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("3a65787472696e7369635f696e646578"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("77f9812b2b420bfcce4391ad7ae9451b"_hex2buf,
+                                  "02000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("e0410aa8e1aff5af1147fe2f9b33ce62"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("052cfee4ed51fa512e9fed56a4185f26"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("a85394678161136a273c54d7fe328306"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("234b134360b60e7713043dc1ea9a752e"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("9bebe08756f425a9502ee26032757a6a"_hex2buf,
+                                  "f88affffffffffff"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->put("9091b72da6974ffc45483e63e74b74fd"_hex2buf,
+                "1000000000000000000000000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->put("0e348355f6bfaf32d8e947e896fe3536"_hex2buf,
+                "1000000000000000000000000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("0deef7973bb5154589f1438f1f21d3a1"_hex2buf,
+                                  "00000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("1c9f2b74227c8236327fe66693641e42"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->remove(
+        "4fbfbfa5fc2e8c0a7265bcb04f86338f004320a0c2ed9d66fcee8e68b7595b7b"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->remove(
+        "bfcf5ee1dae60fc10ebd79b603ced5d0546b9143f775294c18cd14e2cc2fcc34"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "e1856c2284210a998e3257b3d8a315db"_hex2buf,
+        "03bfaeedc1512007f92ef10b0345bc0a1c253efa9855ee95953fee296163a283"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("77f9812b2b420bfcce4391ad7ae9451b"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("6301b8a945c24ad6ef0fd5d063c34f19"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("94310e87b78915dd7e2656ce42bda477"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("8cb577756012d928f17362e0741f9f2c"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("3ae31af9a378162eb2736f26855c9ad8"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("f7787e54bb33faaf40a7f3bf438458ee"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("e1856c2284210a998e3257b3d8a315db"_hex2buf));
+
+    auto root1 = db->getRootHash();
+
+    // case 2
+    db = PolkadotTrieDb::createEmpty(
+        std::make_shared<TrieDbBackendImpl>(std::move(db_), kNodePrefix));
+
+    EXPECT_OUTCOME_TRUE_1(db->put("3a65787472696e7369635f696e646578"_hex2buf,
+                                  "00000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("8cb577756012d928f17362e0741f9f2c"_hex2buf,
+                                  "03000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "f7787e54bb33faaf40a7f3bf438458ee"_hex2buf,
+        "040642414245e1010000000000000000001400000000000000010000008076f2a08296f25d55febf7acbd962ee5c70bd94d5f7a71679a939a59c44b027150101668336e93123a070b9bfa139bcf3a82882321383cdb347f74e21ee7c9ed5690fbd03cfa00da52ed3800bcb91b396b06d68065748911d12c7ddcdf0bd95de8603"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "3ae31af9a378162eb2736f26855c9ad8"_hex2buf,
+        "ebd7c27da1aa712f1ff449e04f8975cc2358beba8513da6d581e66d858424960"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "224bd05121db69c8dcf92845e276ccc44350c1a65a3f9aca9fd0734370b5870a"_hex2buf,
+        "ebd7c27da1aa712f1ff449e04f8975cc2358beba8513da6d581e66d858424960"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "e1856c2284210a998e3257b3d8a315db"_hex2buf,
+        "03bfaeedc1512007f92ef10b0345bc0a1c253efa9855ee95953fee296163a283"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("cc956bdb7605e3547539f321ac2bc95c"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("2e37ecea13014576b46e0b7a6139cbd2"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->put("e0410aa8e1aff5af1147fe2f9b33ce62"_hex2buf, "00"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->put("234b134360b60e7713043dc1ea9a752e"_hex2buf, "00"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("9ef8d3fecf9615ad693470693c7fb7dd"_hex2buf,
+                                  "0000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "306489973b594fdfe42d5055b60b70134f81d3291fed263236bc07b94fc6d3ea89eb0d6a8a691dae2cd15ed0369931ce0a949ecafa5c3f93f8121833646e15c3"_hex2buf,
+        "03000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "ca263a1d57613bec1f68af5eb50a2d31"_hex2buf,
+        "0cb5ebfaf1fb6560d20e30a772c5482affeb5955602062a550b326b2e7135bb7a486b7543c1945f4e0856263d8ec56ef3b3ef22e3bef8ac71e6caa962b3b4705b5ebd7c27da1aa712f1ff449e04f8975cc2358beba8513da6d581e66d858424960"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("0e4944cfd98d6f4cc374d16f5a4e3f9c"_hex2buf,
+                                  "60a2707471010000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->put("052cfee4ed51fa512e9fed56a4185f26"_hex2buf, "01"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("2e37ecea13014576b46e0b7a6139cbd2"_hex2buf,
+                                  "01000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("cc956bdb7605e3547539f321ac2bc95c"_hex2buf,
+                                  "040000000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("3a65787472696e7369635f696e646578"_hex2buf,
+                                  "01000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "6dc6083a34f64d6836b8deff5623799f03bb1a4d5e60d73680c1f68297a69c3b"_hex2buf,
+        "01000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("94310e87b78915dd7e2656ce42bda477"_hex2buf,
+                                  "8c000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("6301b8a945c24ad6ef0fd5d063c34f19"_hex2buf,
+                                  "40420f00"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "8cf1a75ecd7e045ad962dc579b2aeb09efd5ca7d8f654eed7c45f9c85d031a58"_hex2buf,
+        "2030bcda96abc9353600000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "ba627d728bc02c61b22a8ee2fb84dc3c7edf5a61b45ee13e8802329c8e9d4acc"_hex2buf,
+        "8019ca46b25c00000000000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("78f4ad73d6b7279f8d06f359e363c829"_hex2buf,
+                                  "0040db5eab8fed353600000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("2e37ecea13014576b46e0b7a6139cbd2"_hex2buf,
+                                  "02000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "cc956bdb7605e3547539f321ac2bc95c"_hex2buf,
+        "08000000000000000000010000000c0580d94f36bf010000000000000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("78f4ad73d6b7279f8d06f359e363c829"_hex2buf,
+                                  "a04947913b8fed353600000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "8cf1a75ecd7e045ad962dc579b2aeb09efd5ca7d8f654eed7c45f9c85d031a58"_hex2buf,
+        "1f201706aeaac9353600000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "b9c63c80ee65dceb452dc1d3d1ba07108e2cca06b0d914af112a6c34c41d8d10"_hex2buf,
+        "0100c16ff28623000000000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("78f4ad73d6b7279f8d06f359e363c829"_hex2buf,
+                                  "a039a2bc528eed353600000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("2e37ecea13014576b46e0b7a6139cbd2"_hex2buf,
+                                  "03000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "cc956bdb7605e3547539f321ac2bc95c"_hex2buf,
+        "0c000000000000000000010000000c0580d94f36bf01000000000000000000000000010000000302dc3488acc1a6b90aa92cea0cfbe2b00754a74084970b08d968e948d4d3bf161a488f6d1b0114674dcd81fd29642bc3bcec8c8366f6af0665860f9d4e8c8a9724010000000000000000000000000000000010a5d4e8000000000000000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("2e37ecea13014576b46e0b7a6139cbd2"_hex2buf,
+                                  "04000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put(
+        "cc956bdb7605e3547539f321ac2bc95c"_hex2buf,
+        "10000000000000000000010000000c0580d94f36bf01000000000000000000000000010000000302dc3488acc1a6b90aa92cea0cfbe2b00754a74084970b08d968e948d4d3bf161a488f6d1b0114674dcd81fd29642bc3bcec8c8366f6af0665860f9d4e8c8a9724010000000000000000000000000000000010a5d4e80000000000000000000000000001000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("3a65787472696e7369635f696e646578"_hex2buf,
+                                  "02000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("3a65787472696e7369635f696e646578"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("77f9812b2b420bfcce4391ad7ae9451b"_hex2buf,
+                                  "02000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("e0410aa8e1aff5af1147fe2f9b33ce62"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("052cfee4ed51fa512e9fed56a4185f26"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("a85394678161136a273c54d7fe328306"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("234b134360b60e7713043dc1ea9a752e"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("9bebe08756f425a9502ee26032757a6a"_hex2buf,
+                                  "f88affffffffffff"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->put("9091b72da6974ffc45483e63e74b74fd"_hex2buf,
+                "1000000000000000000000000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->put("0e348355f6bfaf32d8e947e896fe3536"_hex2buf,
+                "1000000000000000000000000000000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(db->put("0deef7973bb5154589f1438f1f21d3a1"_hex2buf,
+                                  "00000000"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("1c9f2b74227c8236327fe66693641e42"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("77f9812b2b420bfcce4391ad7ae9451b"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("6301b8a945c24ad6ef0fd5d063c34f19"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("94310e87b78915dd7e2656ce42bda477"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("8cb577756012d928f17362e0741f9f2c"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("3ae31af9a378162eb2736f26855c9ad8"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("f7787e54bb33faaf40a7f3bf438458ee"_hex2buf));
+    EXPECT_OUTCOME_TRUE_1(
+        db->remove("e1856c2284210a998e3257b3d8a315db"_hex2buf));
+    auto root2 = db->getRootHash();
+
+    ASSERT_EQ(root1, root2);
     FAIL() << root.toHex();
   }
   EXPECT_OUTCOME_TRUE(new_level_db,
                       LevelDB::create("/tmp/kagome_leveldb_persistency_test"));
-  auto db = PolkadotTrieDb::createFromStorage(root, std::make_shared<TrieDbBackendImpl>(
-          std::move(new_level_db), kNodePrefix));
+  auto db = PolkadotTrieDb::createFromStorage(
+      root,
+      std::make_shared<TrieDbBackendImpl>(std::move(new_level_db),
+                                          kNodePrefix));
   EXPECT_OUTCOME_TRUE(v1, db->get("123"_buf));
   ASSERT_EQ(v1, "abc"_buf);
   EXPECT_OUTCOME_TRUE(v2, db->get("345"_buf));

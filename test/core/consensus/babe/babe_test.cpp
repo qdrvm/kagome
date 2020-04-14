@@ -18,12 +18,12 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/clock/clock_mock.hpp"
 #include "mock/core/clock/timer_mock.hpp"
+#include "mock/core/consensus/babe/babe_gossiper_mock.hpp"
 #include "mock/core/consensus/babe/babe_synchronizer_mock.hpp"
 #include "mock/core/consensus/babe/epoch_storage_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
 #include "mock/core/consensus/validation/block_validator_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
-#include "mock/core/network/babe_gossiper_mock.hpp"
 #include "mock/core/runtime/babe_api_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "primitives/block.hpp"
@@ -78,18 +78,17 @@ class BabeTest : public testing::Test {
     timer_ = timer_mock_.get();
 
     // add initialization logic
-    primitives::BabeConfiguration expected_config;
-    expected_config.slot_duration = slot_duration_;
-    expected_config.randomness.fill(0);
-    expected_config.genesis_authorities = {
+    auto expected_config = std::make_shared<primitives::BabeConfiguration>();
+    expected_config->slot_duration = slot_duration_;
+    expected_config->randomness.fill(0);
+    expected_config->genesis_authorities = {
         primitives::Authority{{keypair_.public_key}, 1}};
-    expected_config.leadership_rate = {1, 4};
-    expected_config.epoch_length = 2;
-    EXPECT_CALL(*babe_api_, configuration()).WillOnce(Return(expected_config));
+    expected_config->leadership_rate = {1, 4};
+    expected_config->epoch_length = 2;
 
     consensus::NextEpochDescriptor expected_epoch_digest{
-        .authorities = expected_config.genesis_authorities,
-        .randomness = expected_config.randomness};
+        .authorities = expected_config->genesis_authorities,
+        .randomness = expected_config->randomness};
     EXPECT_CALL(*epoch_storage_, addEpochDescriptor(0, expected_epoch_digest))
         .WillOnce(Return(outcome::success()));
     EXPECT_CALL(*epoch_storage_, addEpochDescriptor(1, expected_epoch_digest))
@@ -97,12 +96,18 @@ class BabeTest : public testing::Test {
     EXPECT_CALL(*epoch_storage_, getEpochDescriptor(1))
         .WillOnce(Return(expected_epoch_digest));
 
+    auto block_executor = std::make_shared<BlockExecutor>(block_tree_,
+                                                          core_,
+                                                          expected_config,
+                                                          babe_synchronizer_,
+                                                          babe_block_validator_,
+                                                          epoch_storage_,
+                                                          hasher_);
+
     babe_ = std::make_shared<BabeImpl>(lottery_,
-                                       babe_synchronizer_,
-                                       babe_block_validator_,
+                                       block_executor,
                                        epoch_storage_,
-                                       babe_api_,
-                                       core_,
+                                       expected_config,
                                        proposer_,
                                        block_tree_,
                                        gossiper_,
@@ -111,9 +116,9 @@ class BabeTest : public testing::Test {
                                        hasher_,
                                        std::move(timer_mock_));
 
-    epoch_.randomness = expected_config.randomness;
-    epoch_.epoch_duration = expected_config.epoch_length;
-    epoch_.authorities = expected_config.genesis_authorities;
+    epoch_.randomness = expected_config->randomness;
+    epoch_.epoch_duration = expected_config->epoch_length;
+    epoch_.authorities = expected_config->genesis_authorities;
     epoch_.start_slot = 0;
     epoch_.epoch_index = 0;
   }

@@ -27,7 +27,7 @@ namespace kagome::consensus {
       std::shared_ptr<primitives::BabeConfiguration> configuration,
       std::shared_ptr<authorship::Proposer> proposer,
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<network::Gossiper> gossiper,
+      std::shared_ptr<BabeGossiper> gossiper,
       crypto::SR25519Keypair keypair,
       std::shared_ptr<clock::SystemClock> clock,
       std::shared_ptr<crypto::Hasher> hasher,
@@ -137,13 +137,13 @@ namespace kagome::consensus {
         }
         log_->info("Catching up to block number: {}", announce.header.number);
         current_state_ = BabeState::CATCHING_UP;
-        block_executor_->synchronizeBlocks(
-              announce.header, [self{shared_from_this()}] {
-                self->log_->info("Catching up is done, getting slot time");
-                // all blocks were successfully applied, now we need to get slot
-                // time
-                self->current_state_ = BabeState::NEED_SLOT_TIME;
-              });
+        block_executor_->requestBlocks(
+            announce.header, [self{shared_from_this()}] {
+              self->log_->info("Catching up is done, getting slot time");
+              // all blocks were successfully applied, now we need to get slot
+              // time
+              self->current_state_ = BabeState::NEED_SLOT_TIME;
+            });
         break;
       case BabeState::NEED_SLOT_TIME:
         // if block is new add it to the storage and sync missing blocks. Then

@@ -56,22 +56,22 @@ namespace kagome::consensus {
           block_tree_->getLastFinalized();  // ?? or getDeepestLeaf
 
       // we should request block
-      synchronizeBlocks(best_hash, block_hash, [] {});
+      requestBlocks(best_hash, block_hash, [] {});
     }
   }
 
-  void BlockExecutor::synchronizeBlocks(
-      const primitives::BlockHeader &new_header, std::function<void()> next) {
+  void BlockExecutor::requestBlocks(const primitives::BlockHeader &new_header,
+                                    std::function<void()> next) {
     const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
     auto new_block_hash =
         hasher_->blake2b_256(scale::encode(new_header).value());
     BOOST_ASSERT(new_header.number >= last_number);
-    return synchronizeBlocks(last_hash, new_block_hash, std::move(next));
+    return requestBlocks(last_hash, new_block_hash, std::move(next));
   }
 
-  void BlockExecutor::synchronizeBlocks(const primitives::BlockId &from,
-                                        const primitives::BlockHash &to,
-                                        std::function<void()> next) {
+  void BlockExecutor::requestBlocks(const primitives::BlockId &from,
+                                    const primitives::BlockHash &to,
+                                    std::function<void()> next) {
     babe_synchronizer_->request(
         from,
         to,
@@ -143,7 +143,7 @@ namespace kagome::consensus {
     }
     auto this_block_epoch_descriptor = this_block_epoch_descriptor_res.value();
 
-    auto threshold = calculateThreshold(genesis_configuration_->c,
+    auto threshold = calculateThreshold(genesis_configuration_->leadership_rate,
                                         this_block_epoch_descriptor.authorities,
                                         babe_header.authority_index);
 
@@ -151,8 +151,8 @@ namespace kagome::consensus {
     auto next_epoch_digest_res = getNextEpochDigest(block.header);
     if (next_epoch_digest_res) {
       logger_->info("Got next epoch digest for epoch: {}", epoch_index);
-      epoch_storage_->addEpochDescriptor(epoch_index,
-                                         next_epoch_digest_res.value());
+      OUTCOME_TRY(epoch_storage_->addEpochDescriptor(
+          epoch_index + 2, next_epoch_digest_res.value()));
     }
 
     OUTCOME_TRY(block_validator_->validateHeader(

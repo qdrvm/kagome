@@ -16,12 +16,12 @@
 #include "blockchain/block_tree.hpp"
 #include "clock/timer.hpp"
 #include "common/logger.hpp"
+#include "consensus/babe/babe_gossiper.hpp"
 #include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/epoch_storage.hpp"
 #include "consensus/babe/impl/block_executor.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_types.hpp"
-#include "network/gossiper.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/common.hpp"
 
@@ -65,7 +65,7 @@ namespace kagome::consensus {
              std::shared_ptr<primitives::BabeConfiguration> configuration,
              std::shared_ptr<authorship::Proposer> proposer,
              std::shared_ptr<blockchain::BlockTree> block_tree,
-             std::shared_ptr<network::Gossiper> gossiper,
+             std::shared_ptr<BabeGossiper> gossiper,
              crypto::SR25519Keypair keypair,
              std::shared_ptr<clock::SystemClock> clock,
              std::shared_ptr<crypto::Hasher> hasher,
@@ -123,7 +123,7 @@ namespace kagome::consensus {
     std::shared_ptr<primitives::BabeConfiguration> genesis_configuration_;
     std::shared_ptr<authorship::Proposer> proposer_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<network::Gossiper> gossiper_;
+    std::shared_ptr<BabeGossiper> gossiper_;
     crypto::SR25519Keypair keypair_;
     std::shared_ptr<clock::SystemClock> clock_;
     std::shared_ptr<crypto::Hasher> hasher_;

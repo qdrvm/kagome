@@ -513,10 +513,8 @@ namespace kagome::injector {
               injector.template create<sptr<network::Gossiper>>());
           return *initialized;
         }),
-        //        di::bind<network::BabeGossiper>.template
-        //        to<network::GossiperBroadcast>(),
-        //        di::bind<consensus::grandpa::Gossiper>.template
-        //        to<network::GossiperBroadcast>(),
+        di::bind<consensus::BabeGossiper>.template to<network::GossiperBroadcast>(),
+        di::bind<consensus::grandpa::Gossiper>.template to<network::GossiperBroadcast>(),
         di::bind<network::Gossiper>.template to<network::GossiperBroadcast>(),
         di::bind<network::SyncClientsSet>.to(std::move(get_sync_clients_set)),
         di::bind<network::SyncProtocolClient>.template to<consensus::SynchronizerImpl>(),
