@@ -55,13 +55,6 @@ PATH=$PATH:../build/node/kagome_full/
 kagome_full --genesis config/polkadot-v06.json --keystore config/keystore.json -l ldb -e
 ```
 
-**Note**
-
-At the moment launch from existing db is not implemented, so you should clean up previous db before every launch using the following command from the node folder:
-```
-rm -rf ldb
-```
-
 This command executes kagome full node which can receive extrinsics locally on port using http: `40363`. Simple transfer transaction can be sent as follows:
 ```
 curl -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "author_submitExtrinsic", "params": ["0x290284ffdc3488acc1a6b90aa92cea0cfbe2b00754a74084970b08d968e948d4d3bf161a01e2f2be0a634faeb8401ed2392731df803877dcb2422bb396d48ca24f18661059e3dde41d14b87eb929ec41ab36e6d63be5a1f5c3c5c092c79646a453f4b392890000000600ff488f6d1b0114674dcd81fd29642bc3bcec8c8366f6af0665860f9d4e8c8a972404"]}' http://localhost:40363/
@@ -70,6 +63,15 @@ If transaction was successfully applied we should see the following output:
 ```
 {"jsonrpc":"2.0","id":1,"result":[194,108,28,60,223,55,48,163,134,182,201,23,144,126,167,123,33,119,187,164,61,50,203,175,230,189,71,245,120,104,18,38]}% 
 ```
+---
+**Note**
+
+At the moment launch from existing db is not implemented, so you should clean up previous db before every launch using the following command from the node folder:
+```
+rm -rf ldb
+```
+---
+
 
 ### Execute kagome syncing node
 To launch kagome syncing node execute:
@@ -81,12 +83,14 @@ kagome_syncing --genesis config/polkadot-v06.json -l ldb_syncing -v 1 --p2p_port
 
 After this command syncing node will connect with the full node and start importing blocks.
 
+---
 **Note**
 
 Same note as for full node. At the moment launch from existing db is not implemented, so you should clean up previous db before every launch using the following command from the node folder:
 ```
 rm -rf ldb_syncing
 ```
+---
 
 ### Configuration Details
 * To execute kagome node you need to provide it with genesis config, keys and leveldb files
