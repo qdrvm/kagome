@@ -147,11 +147,26 @@ outcome::result<Block> BlockProduceConsume::produceBlock(
   _initialState = _trieDb->getRootHash();
 
   if (!extrinsics.empty()) {
+    auto api =
+        getInjector()
+            .template create<
+                std::shared_ptr<kagome::runtime::TaggedTransactionQueue>>();
+
     for (auto &extrinsic : extrinsics) {
       auto size = extrinsic.data.size();
       auto hash = kagome::crypto::HasherImpl().blake2b_256(extrinsic.data);
 
-      Transaction tx{std::move(extrinsic), size, hash, {}, {}, {}, {}, {}};
+      OUTCOME_TRY(validity, api->validate_transaction(extrinsic));
+      auto v = boost::get<kagome::primitives::ValidTransaction>(validity);
+
+      Transaction tx{std::move(extrinsic),
+                     size,
+                     hash,
+                     v.priority,
+                     v.longevity,
+                     v.requires,
+                     v.provides,
+                     v.propagate};
 
       OUTCOME_TRY(getTxPool()->submitOne(std::move(tx)));
     }
