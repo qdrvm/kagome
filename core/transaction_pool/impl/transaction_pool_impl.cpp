@@ -25,8 +25,7 @@ namespace kagome::transaction_pool {
   }
 
   outcome::result<void> TransactionPoolImpl::submitOne(Transaction &&tx) {
-    return submitOne(
-        std::make_shared<Transaction>(std::move(tx)));
+    return submitOne(std::make_shared<Transaction>(std::move(tx)));
   }
 
   outcome::result<void> TransactionPoolImpl::submit(
@@ -164,12 +163,14 @@ namespace kagome::transaction_pool {
     }
   }
 
-  std::vector<Transaction> TransactionPoolImpl::getReadyTransactions() {
-    std::vector<Transaction> ready(ready_txs_.size());
-    std::transform(
-        ready_txs_.begin(), ready_txs_.end(), ready.begin(), [](auto &rtx) {
-          return *rtx.second.lock();
-        });
+  std::map<Transaction::Hash, std::shared_ptr<Transaction>>
+  TransactionPoolImpl::getReadyTransactions() {
+    std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready;
+    std::for_each(ready_txs_.begin(), ready_txs_.end(), [&ready](auto it) {
+      if (auto tx = it.second.lock()) {
+        ready.emplace(it.first, std::move(tx));
+      }
+    });
     return ready;
   }
 
@@ -185,8 +186,8 @@ namespace kagome::transaction_pool {
       }
     }
 
-    for (auto txHash : remove_to) {
-      OUTCOME_TRY(removeOne(txHash));
+    for (auto &tx_hash : remove_to) {
+      OUTCOME_TRY(removeOne(tx_hash));
     }
 
     moderator_->updateBan();

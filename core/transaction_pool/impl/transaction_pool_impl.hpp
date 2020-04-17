@@ -7,6 +7,7 @@
 #define KAGOME_TRANSACTION_POOL_IMPL_HPP
 
 #include <outcome/outcome.hpp>
+
 #include "blockchain/block_header_repository.hpp"
 #include "common/logger.hpp"
 #include "transaction_pool/pool_moderator.hpp"
@@ -38,7 +39,8 @@ namespace kagome::transaction_pool {
     outcome::result<void> remove(
         const std::vector<Transaction::Hash> &tx_hashes) override;
 
-    std::vector<Transaction> getReadyTransactions() override;
+    std::map<Transaction::Hash, std::shared_ptr<Transaction>>
+    getReadyTransactions() override;
 
     outcome::result<std::vector<Transaction>> removeStale(
         const primitives::BlockId &at) override;

@@ -7,6 +7,7 @@
 #define KAGOME_TRANSACTION_POOL_HPP
 
 #include <outcome/outcome.hpp>
+
 #include "primitives/block_id.hpp"
 #include "primitives/transaction.hpp"
 
@@ -55,7 +56,8 @@ namespace kagome::transaction_pool {
      * @return transactions ready to included in the next block, sorted by their
      * priority
      */
-    virtual std::vector<Transaction> getReadyTransactions() = 0;
+    virtual std::map<Transaction::Hash, std::shared_ptr<Transaction>>
+    getReadyTransactions() = 0;
 
     /**
      * Remove from the pool and temporarily ban transactions which longevity is

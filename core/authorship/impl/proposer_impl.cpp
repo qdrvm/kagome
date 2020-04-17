@@ -52,15 +52,29 @@ namespace kagome::authorship {
     }
 
     const auto &ready_txs = transaction_pool_->getReadyTransactions();
-    for (const auto &tx : ready_txs) {
-      auto inserted_res = block_builder->pushExtrinsic(tx.ext);
+
+    for (const auto &[hash, tx] : ready_txs) {
+      auto inserted_res = block_builder->pushExtrinsic(tx->ext);
       if (not inserted_res) {
-        log_push_error(tx.ext, inserted_res.error().message());
+        log_push_error(tx->ext, inserted_res.error().message());
         return inserted_res.error();
       }
     }
 
-    return block_builder->bake();
+    auto block = block_builder->bake();
+
+    for (const auto &[hash, tx] : ready_txs) {
+      auto removed_res = transaction_pool_->removeOne(hash);
+      if (not removed_res) {
+        logger_->error(
+            "Can't remove extrinsic (hash={}) after adding to the block. "
+            "Reason: {}",
+            hash,
+            removed_res.error().message());
+      }
+    }
+
+    return block;
   }
 
 }  // namespace kagome::authorship
