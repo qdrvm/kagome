@@ -69,7 +69,7 @@ namespace kagome::authorship {
         logger_->error(
             "Can't remove extrinsic (hash={}) after adding to the block. "
             "Reason: {}",
-            hash,
+            hash.toHex(),
             removed_res.error().message());
       }
     }
