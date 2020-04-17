@@ -10,8 +10,6 @@ Welcome to Kagome's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-    getting_started/index.rst
-
 
 Indices and tables
 ==================
