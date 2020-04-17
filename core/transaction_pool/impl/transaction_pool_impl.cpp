@@ -164,7 +164,7 @@ namespace kagome::transaction_pool {
   }
 
   std::map<Transaction::Hash, std::shared_ptr<Transaction>>
-  TransactionPoolImpl::getReadyTransactions() {
+  TransactionPoolImpl::getReadyTransactions() const {
     std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready;
     std::for_each(ready_txs_.begin(), ready_txs_.end(), [&ready](auto it) {
       if (auto tx = it.second.lock()) {

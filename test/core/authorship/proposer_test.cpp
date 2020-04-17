@@ -98,7 +98,8 @@ TEST_F(ProposerTest, CreateBlockSuccess) {
       .WillOnce(Return(outcome::success()));
 
   // getReadyTransaction will return vector with single transaction
-  std::vector<Transaction> ready_transactions{{}};
+  std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_transactions{
+      {}};
   EXPECT_CALL(*transaction_pool_, getReadyTransactions())
       .WillOnce(Return(ready_transactions));
 
@@ -151,7 +152,8 @@ TEST_F(ProposerTest, PushFailed) {
 
   // getReadyTransaction will return vector with one transaction
   EXPECT_CALL(*transaction_pool_, getReadyTransactions())
-      .WillOnce(Return(std::vector<Transaction>{{}}));
+      .WillOnce(Return(
+          std::map<Transaction::Hash, std::shared_ptr<Transaction>>{{}, {}}));
 
   // when
   auto block_res =

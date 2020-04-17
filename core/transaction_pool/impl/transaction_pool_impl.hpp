@@ -40,7 +40,7 @@ namespace kagome::transaction_pool {
         const std::vector<Transaction::Hash> &tx_hashes) override;
 
     std::map<Transaction::Hash, std::shared_ptr<Transaction>>
-    getReadyTransactions() override;
+    getReadyTransactions() const override;
 
     outcome::result<std::vector<Transaction>> removeStale(
         const primitives::BlockId &at) override;

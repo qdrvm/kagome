@@ -24,7 +24,9 @@ namespace kagome::transaction_pool {
     MOCK_METHOD1(remove,
                  outcome::result<void>(const std::vector<Transaction::Hash> &));
 
-    MOCK_METHOD0(getReadyTransactions, std::vector<Transaction>());
+    MOCK_CONST_METHOD0(
+        getReadyTransactions,
+        std::map<Transaction::Hash, std::shared_ptr<Transaction>>());
 
     MOCK_METHOD1(
         removeStale,

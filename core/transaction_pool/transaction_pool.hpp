@@ -57,7 +57,7 @@ namespace kagome::transaction_pool {
      * priority
      */
     virtual std::map<Transaction::Hash, std::shared_ptr<Transaction>>
-    getReadyTransactions() = 0;
+    getReadyTransactions() const = 0;
 
     /**
      * Remove from the pool and temporarily ban transactions which longevity is
