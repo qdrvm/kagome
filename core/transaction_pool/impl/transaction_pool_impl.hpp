@@ -34,9 +34,9 @@ namespace kagome::transaction_pool {
     outcome::result<void> submitOne(Transaction &&tx) override;
     outcome::result<void> submit(std::vector<Transaction> txs) override;
 
-    outcome::result<void> removeOne(const Transaction::Hash &txHash) override;
+    outcome::result<void> removeOne(const Transaction::Hash &tx_hash) override;
     outcome::result<void> remove(
-        const std::vector<Transaction::Hash> &txHashes) override;
+        const std::vector<Transaction::Hash> &tx_hashes) override;
 
     std::vector<Transaction> getReadyTransactions() override;
 
@@ -107,7 +107,7 @@ namespace kagome::transaction_pool {
         ready_txs_;
 
     /// List of ready transaction over limit. It will be process first of all
-    std::list<std::weak_ptr<Transaction>> postponed_txs;
+    std::list<std::weak_ptr<Transaction>> postponed_txs_;
 
     /// Transactions which provides specific tags
     std::multimap<Transaction::Tag, std::weak_ptr<Transaction>>

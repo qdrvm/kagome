@@ -26,7 +26,7 @@ namespace kagome::transaction_pool {
 
   outcome::result<void> TransactionPoolImpl::submitOne(Transaction &&tx) {
     return submitOne(
-        std::make_shared<Transaction>(std::forward<Transaction>(tx)));
+        std::make_shared<Transaction>(std::move(tx)));
   }
 
   outcome::result<void> TransactionPoolImpl::submit(
@@ -81,7 +81,7 @@ namespace kagome::transaction_pool {
 
   void TransactionPoolImpl::postponeTransaction(
       const std::shared_ptr<Transaction> &tx) {
-    postponed_txs.push_back(tx);
+    postponed_txs_.push_back(tx);
   }
 
   outcome::result<void> TransactionPoolImpl::processTransactionAsWaiting(
@@ -109,8 +109,8 @@ namespace kagome::transaction_pool {
   }
 
   outcome::result<void> TransactionPoolImpl::removeOne(
-      const Transaction::Hash &txHash) {
-    auto tx_node = imported_txs_.extract(txHash);
+      const Transaction::Hash &tx_hash) {
+    auto tx_node = imported_txs_.extract(tx_hash);
     if (tx_node.empty()) {
       return TransactionPoolError::TX_NOT_FOUND;
     }
@@ -125,9 +125,9 @@ namespace kagome::transaction_pool {
   }
 
   outcome::result<void> TransactionPoolImpl::remove(
-      const std::vector<Transaction::Hash> &txHashes) {
-    for (auto &txHash : txHashes) {
-      OUTCOME_TRY(removeOne(txHash));
+      const std::vector<Transaction::Hash> &tx_hashes) {
+    for (auto &tx_hash : tx_hashes) {
+      OUTCOME_TRY(removeOne(tx_hash));
     }
 
     return outcome::success();
@@ -135,17 +135,17 @@ namespace kagome::transaction_pool {
 
   void TransactionPoolImpl::processPostponedTransactions() {
     // Move to local for avoid endless cycle at possible coming back tx
-    auto postponedTxs = std::move(postponed_txs);
-    while (!postponedTxs.empty()) {
-      auto tx = postponedTxs.front().lock();
-      postponedTxs.pop_front();
+    auto postponed_txs = std::move(postponed_txs_);
+    while (!postponed_txs.empty()) {
+      auto tx = postponed_txs.front().lock();
+      postponed_txs.pop_front();
 
       auto result = processTransaction(tx);
       if (result.has_error()
           && result.error() == TransactionPoolError::POOL_IS_FULL) {
-        postponed_txs.insert(postponed_txs.end(),
-                             std::make_move_iterator(postponedTxs.begin()),
-                             std::make_move_iterator(postponedTxs.end()));
+        postponed_txs_.insert(postponed_txs_.end(),
+                              std::make_move_iterator(postponed_txs.begin()),
+                              std::make_move_iterator(postponed_txs.end()));
         return;
       }
     }
@@ -272,7 +272,7 @@ namespace kagome::transaction_pool {
       const std::shared_ptr<Transaction> &tx) {
     for (auto &tag : tx->provides) {
       auto range = tx_provides_tag_.equal_range(tag);
-      for (auto i = range.first; i != range.second;) {
+      for (auto i = range.first; i != range.second; ++i) {
         if (i->second.lock() == tx) {
           tx_provides_tag_.erase(i);
           break;
