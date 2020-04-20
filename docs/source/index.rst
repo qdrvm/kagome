@@ -3,7 +3,8 @@ Welcome to Kagome's documentation!
 
 .. toctree::
    :maxdepth: 2
-   license
+   :caption: Contents:
+    license
 
 
 
