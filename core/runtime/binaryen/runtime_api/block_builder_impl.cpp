@@ -15,9 +15,8 @@ namespace kagome::runtime::binaryen {
   using primitives::InherentData;
 
   BlockBuilderImpl::BlockBuilderImpl(
-      const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-      const std::shared_ptr<extensions::ExtensionFactory> &extension_factory)
-      : RuntimeApi(wasm_provider, extension_factory) {}
+      const std::shared_ptr<RuntimeManager> &runtime_manager)
+      : RuntimeApi(runtime_manager) {}
 
   outcome::result<primitives::ApplyResult> BlockBuilderImpl::apply_extrinsic(
       const Extrinsic &extrinsic) {
@@ -30,8 +29,8 @@ namespace kagome::runtime::binaryen {
     return execute<BlockHeader>("BlockBuilder_finalize_block");
   }
 
-  outcome::result<std::vector<Extrinsic>>
-  BlockBuilderImpl::inherent_extrinsics(const InherentData &data) {
+  outcome::result<std::vector<Extrinsic>> BlockBuilderImpl::inherent_extrinsics(
+      const InherentData &data) {
     return execute<std::vector<Extrinsic>>("BlockBuilder_inherent_extrinsics",
                                            data);
   }
@@ -46,4 +45,4 @@ namespace kagome::runtime::binaryen {
     // TODO(Harrm) PRE-154 Figure out what it requires
     return execute<common::Hash256>("BlockBuilder_random_seed");
   }
-}  // namespace kagome::runtime
+}  // namespace kagome::runtime::binaryen

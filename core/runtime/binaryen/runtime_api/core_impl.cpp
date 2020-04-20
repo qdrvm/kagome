@@ -12,10 +12,8 @@ namespace kagome::runtime::binaryen {
   using primitives::BlockHeader;
   using primitives::Version;
 
-  CoreImpl::CoreImpl(
-      const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-      const std::shared_ptr<extensions::ExtensionFactory> &extension_factory)
-      : RuntimeApi(wasm_provider, extension_factory) {}
+  CoreImpl::CoreImpl(const std::shared_ptr<RuntimeManager> &runtime_manager)
+      : RuntimeApi(runtime_manager) {}
 
   outcome::result<Version> CoreImpl::version() {
     return execute<Version>("Core_version");

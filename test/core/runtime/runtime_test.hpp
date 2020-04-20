@@ -17,6 +17,7 @@
 #include "primitives/block.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
+#include "runtime/binaryen/runtime_manager.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/common/basic_wasm_provider.hpp"
@@ -31,13 +32,17 @@ class RuntimeTest : public ::testing::Test {
   using Digest = kagome::primitives::Digest;
 
   void SetUp() override {
-    trie_db_ = std::make_shared<kagome::storage::trie::TrieDbMock>();
-    extension_factory_ =
-        std::make_shared<kagome::extensions::ExtensionFactoryImpl>(trie_db_);
-    std::string wasm_path =
+	  auto trie_db = std::make_shared<kagome::storage::trie::TrieDbMock>();
+    auto extension_factory =
+        std::make_shared<kagome::extensions::ExtensionFactoryImpl>(trie_db);
+    auto wasm_path =
         boost::filesystem::path(__FILE__).parent_path().string()
         + "/wasm/polkadot_runtime.compact.wasm";
-    wasm_provider_ = std::make_shared<kagome::runtime::BasicWasmProvider>(wasm_path);
+    auto wasm_provider =
+        std::make_shared<kagome::runtime::BasicWasmProvider>(wasm_path);
+    runtime_manager_ =
+        std::make_shared<kagome::runtime::binaryen::RuntimeManager>(
+            wasm_provider, extension_factory);
   }
 
   kagome::primitives::BlockHeader createBlockHeader() {
@@ -75,9 +80,7 @@ class RuntimeTest : public ::testing::Test {
   }
 
  protected:
-  std::shared_ptr<kagome::storage::trie::TrieDbMock> trie_db_;
-  std::shared_ptr<kagome::extensions::ExtensionFactory> extension_factory_;
-  std::shared_ptr<kagome::runtime::BasicWasmProvider> wasm_provider_;
+  std::shared_ptr<kagome::runtime::binaryen::RuntimeManager> runtime_manager_;
 };
 
 #endif  // KAGOME_RUNTIME_TEST_HPP

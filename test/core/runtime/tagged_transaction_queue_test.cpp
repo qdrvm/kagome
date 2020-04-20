@@ -22,8 +22,7 @@ class TTQTest : public RuntimeTest {
  public:
   void SetUp() override {
     RuntimeTest::SetUp();
-    ttq_ = std::make_unique<TaggedTransactionQueueImpl>(wasm_provider_,
-                                                        extension_factory_);
+    ttq_ = std::make_unique<TaggedTransactionQueueImpl>(runtime_manager_);
   }
 
  protected:

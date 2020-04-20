@@ -21,29 +21,9 @@ namespace kagome::runtime::binaryen {
    */
   class WasmExecutor {
    public:
-    enum class Error {
-      EMPTY_STATE_CODE = 1,
-      INVALID_STATE_CODE,
-      EXECUTION_ERROR
-    };
+    enum class Error { EXECUTION_ERROR = 1 };
 
     WasmExecutor();
-
-    outcome::result<std::shared_ptr<wasm::Module>> prepareModule(
-        const common::Buffer &state_code);
-
-    wasm::ModuleInstance prepareModuleInstance(
-        const std::shared_ptr<wasm::Module> &module,
-        wasm::ModuleInstance::ExternalInterface &external_interface);
-
-    /**
-     * Executes export method from provided wasm code and returns result
-     */
-    outcome::result<wasm::Literal> call(
-        const common::Buffer &state_code,
-        wasm::ModuleInstance::ExternalInterface &external_interface,
-        wasm::Name method_name,
-        const wasm::LiteralList &args);
 
     outcome::result<wasm::Literal> call(wasm::ModuleInstance &module_instance,
                                         wasm::Name method_name,
