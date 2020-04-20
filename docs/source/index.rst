@@ -12,3 +12,4 @@ Some describing test
     :caption: Table of contents
 
     license.rst
+    development/README.md

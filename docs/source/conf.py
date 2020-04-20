@@ -85,3 +85,5 @@ html_static_path = ['_static']
 #
 # html_sidebars = {}
 html_theme = 'classic'
+
+extensions = ['recommonmark']
