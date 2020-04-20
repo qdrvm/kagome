@@ -84,6 +84,6 @@ html_static_path = ['_static']
 # 'searchbox.html']``.
 #
 # html_sidebars = {}
-html_theme = 'classic'
+html_theme = 'sphinx_rtd_theme'
 
 extensions = ['recommonmark']
