@@ -166,7 +166,6 @@ namespace kagome::injector {
         di::bind<consensus::Babe>.to(std::move(get_babe)),
         di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
         di::bind<network::BabeObserver>.to(std::move(get_babe_observer)),
-        // di::bind<network::BabeObserver>.template to<consensus::BabeImpl>(),
         di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::LauncherImpl>(),
         di::bind<consensus::grandpa::Launcher>.template to<consensus::grandpa::LauncherImpl>(),
         di::bind<application::KeyStorage>.to(
