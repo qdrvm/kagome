@@ -13,7 +13,7 @@ namespace kagome::consensus::grandpa {
         logger_{common::createLogger("SyncingRoundObserver")} {}
 
   void SyncingRoundObserver::onVoteMessage(const VoteMessage &msg) {
-    // do nothing
+    // do nothing as syncing node does not care about vote messages
   }
 
   void SyncingRoundObserver::onFinalize(const Fin &f) {

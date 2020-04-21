@@ -24,7 +24,6 @@
 namespace kagome::network {
   class RouterLibp2p : public Router,
                        public std::enable_shared_from_this<RouterLibp2p> {
-
    public:
     RouterLibp2p(
         libp2p::Host &host,

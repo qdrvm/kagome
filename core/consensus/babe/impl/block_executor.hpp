@@ -47,7 +47,7 @@ namespace kagome::consensus {
      * @param next action after the sync is done
      */
     void requestBlocks(const primitives::BlockHeader &new_header,
-                       std::function<void()> next);
+                       std::function<void()> &&next);
 
     /**
      * Synchronize all missing blocks between provided blocks (from and to)
@@ -57,7 +57,7 @@ namespace kagome::consensus {
      */
     void requestBlocks(const primitives::BlockId &from,
                        const primitives::BlockHash &to,
-                       std::function<void()> next);
+                       std::function<void()> &&next);
 
    private:
     // should only be invoked when parent of block exists

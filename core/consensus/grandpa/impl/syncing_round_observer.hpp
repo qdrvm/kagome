@@ -8,15 +8,18 @@
 
 #include "consensus/grandpa/round_observer.hpp"
 
-#include "consensus/grandpa/environment.hpp"
 #include "common/logger.hpp"
+#include "consensus/grandpa/environment.hpp"
 
 namespace kagome::consensus::grandpa {
 
+  /**
+   * Observer of grandpa messages for syncing nodes
+   */
   class SyncingRoundObserver : public RoundObserver {
    public:
     ~SyncingRoundObserver() override = default;
-    explicit SyncingRoundObserver(std::shared_ptr<Environment> environment);
+    SyncingRoundObserver(std::shared_ptr<Environment> environment);
 
     void onFinalize(const Fin &f) override;
 

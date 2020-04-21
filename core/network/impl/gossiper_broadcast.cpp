@@ -6,8 +6,6 @@
 #include "network/impl/gossiper_broadcast.hpp"
 
 #include <boost/assert.hpp>
-#include <boost/range/adaptors.hpp>
-#include <boost/range/join.hpp>
 #include "network/common.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 

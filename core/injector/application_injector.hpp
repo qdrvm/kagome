@@ -496,23 +496,7 @@ namespace kagome::injector {
         di::bind<crypto::SR25519Provider>.template to<crypto::SR25519ProviderImpl>(),
         di::bind<crypto::VRFProvider>.template to<crypto::VRFProviderImpl>(),
         di::bind<extensions::ExtensionFactory>.template to<extensions::ExtensionFactoryImpl>(),
-        // di::bind<network::Router>.template to<network::RouterLibp2p>(),
-        di::bind<network::Router>.to([](const auto &injector)
-                                         -> sptr<network::Router> {
-          boost::optional<sptr<network::Router>> initialized{boost::none};
-          if (initialized) {
-            return *initialized;
-          }
-
-          initialized = std::make_shared<network::RouterLibp2p>(
-              injector.template create<libp2p::Host &>(),
-              injector.template create<sptr<network::BabeObserver>>(),
-              injector
-                  .template create<sptr<consensus::grandpa::RoundObserver>>(),
-              injector.template create<sptr<network::SyncProtocolObserver>>(),
-              injector.template create<sptr<network::Gossiper>>());
-          return *initialized;
-        }),
+        di::bind<network::Router>.template to<network::RouterLibp2p>(),
         di::bind<consensus::BabeGossiper>.template to<network::GossiperBroadcast>(),
         di::bind<consensus::grandpa::Gossiper>.template to<network::GossiperBroadcast>(),
         di::bind<network::Gossiper>.template to<network::GossiperBroadcast>(),

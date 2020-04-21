@@ -138,11 +138,13 @@ namespace kagome::consensus {
         log_->info("Catching up to block number: {}", announce.header.number);
         current_state_ = BabeState::CATCHING_UP;
         block_executor_->requestBlocks(
-            announce.header, [self{shared_from_this()}] {
-              self->log_->info("Catching up is done, getting slot time");
-              // all blocks were successfully applied, now we need to get slot
-              // time
-              self->current_state_ = BabeState::NEED_SLOT_TIME;
+            announce.header, [self_weak{weak_from_this()}] {
+              if (auto self = self_weak.lock()) {
+                self->log_->info("Catching up is done, getting slot time");
+                // all blocks were successfully applied, now we need to get slot
+                // time
+                self->current_state_ = BabeState::NEED_SLOT_TIME;
+              }
             });
         break;
       case BabeState::NEED_SLOT_TIME:

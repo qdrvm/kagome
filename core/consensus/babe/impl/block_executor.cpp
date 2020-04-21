@@ -13,13 +13,13 @@
 namespace kagome::consensus {
 
   BlockExecutor::BlockExecutor(
-      std::shared_ptr<kagome::blockchain::BlockTree> block_tree,
-      std::shared_ptr<kagome::runtime::Core> core,
+      std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<runtime::Core> core,
       std::shared_ptr<primitives::BabeConfiguration> configuration,
-      std::shared_ptr<kagome::consensus::BabeSynchronizer> babe_synchronizer,
-      std::shared_ptr<kagome::consensus::BlockValidator> block_validator,
-      std::shared_ptr<kagome::consensus::EpochStorage> epoch_storage,
-      std::shared_ptr<kagome::crypto::Hasher> hasher)
+      std::shared_ptr<consensus::BabeSynchronizer> babe_synchronizer,
+      std::shared_ptr<consensus::BlockValidator> block_validator,
+      std::shared_ptr<consensus::EpochStorage> epoch_storage,
+      std::shared_ptr<crypto::Hasher> hasher)
       : block_tree_{std::move(block_tree)},
         core_{std::move(core)},
         genesis_configuration_{std::move(configuration)},
@@ -27,7 +27,16 @@ namespace kagome::consensus {
         block_validator_{std::move(block_validator)},
         epoch_storage_{std::move(epoch_storage)},
         hasher_{std::move(hasher)},
-        logger_{common::createLogger("BlockExecutor")} {}
+        logger_{common::createLogger("BlockExecutor")} {
+    BOOST_ASSERT(block_tree_ != nullptr);
+    BOOST_ASSERT(core_ != nullptr);
+    BOOST_ASSERT(genesis_configuration_ != nullptr);
+    BOOST_ASSERT(babe_synchronizer_ != nullptr);
+    BOOST_ASSERT(block_validator_ != nullptr);
+    BOOST_ASSERT(epoch_storage_ != nullptr);
+    BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT(logger_ != nullptr);
+  }
 
   void BlockExecutor::processNextBlock(
       const primitives::BlockHeader &header,
@@ -52,16 +61,15 @@ namespace kagome::consensus {
                       header.number,
                       block_hash.toHex());
       }
-      const auto &[best_number, best_hash] =
-          block_tree_->getLastFinalized();  // ?? or getDeepestLeaf
+      const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
 
-      // we should request block
-      requestBlocks(best_hash, block_hash, [] {});
+      // we should request blocks between last finalized one and received block
+      requestBlocks(last_hash, last_hash, [] {});
     }
   }
 
   void BlockExecutor::requestBlocks(const primitives::BlockHeader &new_header,
-                                    std::function<void()> next) {
+                                    std::function<void()> &&next) {
     const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
     auto new_block_hash =
         hasher_->blake2b_256(scale::encode(new_header).value());
@@ -71,12 +79,15 @@ namespace kagome::consensus {
 
   void BlockExecutor::requestBlocks(const primitives::BlockId &from,
                                     const primitives::BlockHash &to,
-                                    std::function<void()> next) {
+                                    std::function<void()> &&next) {
     babe_synchronizer_->request(
         from,
         to,
-        [self{shared_from_this()},
+        [self_wp{weak_from_this()},
          next(std::move(next))](const std::vector<primitives::Block> &blocks) {
+          auto self = self_wp.lock();
+          if (not self) return;
+
           if (blocks.empty()) {
             self->logger_->error("Received empty list of blocks");
           } else {
@@ -96,7 +107,7 @@ namespace kagome::consensus {
             if (auto apply_res = self->applyBlock(block); not apply_res) {
               if (apply_res
                   == outcome::failure(
-                      blockchain::BlockTreeError::BLOCK_EXISTS)) {
+                         blockchain::BlockTreeError::BLOCK_EXISTS)) {
                 continue;
               }
               self->logger_->error(
@@ -161,12 +172,12 @@ namespace kagome::consensus {
         threshold,
         this_block_epoch_descriptor.randomness));
 
-    auto block_without_digest = block;
+    auto block_without_seal_digest = block;
 
     // block should be applied without last digest which contains the seal
-    block_without_digest.header.digest.pop_back();
+    block_without_seal_digest.header.digest.pop_back();
     // apply block
-    OUTCOME_TRY(core_->execute_block(block_without_digest));
+    OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
 
     // add block header if it does not exist
     if (not block_tree_->getBlockHeader(block_hash).has_value()) {

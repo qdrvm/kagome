@@ -12,11 +12,12 @@
 
 namespace kagome::consensus {
 
+  // Babe observer for syncing node
   class SyncingBabeObserver : public network::BabeObserver {
    public:
     ~SyncingBabeObserver() override = default;
 
-    explicit SyncingBabeObserver(
+    SyncingBabeObserver(
         std::shared_ptr<consensus::BlockExecutor> block_executor);
 
     void onBlockAnnounce(const network::BlockAnnounce &announce) override;
