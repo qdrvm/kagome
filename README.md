@@ -94,7 +94,7 @@ rm -rf ldb_syncing
 
 ### Configuration Details
 * To execute kagome node you need to provide it with genesis config, keys and leveldb files
-* Example genesis config file can be found in `examples/config/polkadot-v06.json`
+* Example genesis config file can be found in `node/config/polkadot-v06.json`
 * Example keys file can be found in `node/config/keystore.json`
 * To create leveldb storage file just provide any path into `kagome_full` executable.
 
