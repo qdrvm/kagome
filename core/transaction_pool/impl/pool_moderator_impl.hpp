@@ -45,14 +45,14 @@ namespace kagome::transaction_pool {
      * transaction
      */
     PoolModeratorImpl(std::shared_ptr<clock::SystemClock> clock,
-                               Params parameters);
+                      Params parameters);
 
     ~PoolModeratorImpl() override = default;
 
     void ban(const common::Hash256 &tx_hash) override;
 
     bool banIfStale(primitives::BlockNumber current_block,
-                    const primitives::Transaction &tx) override;
+                    const Transaction &tx) override;
 
     bool isBanned(const common::Hash256 &tx_hash) const override;
 
