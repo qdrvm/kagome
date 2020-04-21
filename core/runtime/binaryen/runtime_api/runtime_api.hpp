@@ -47,8 +47,8 @@ namespace kagome::runtime::binaryen {
     outcome::result<R> execute(std::string_view name, Args &&... args) {
       logger_->debug("Executing export function: {}", name);
 
-      OUTCOME_TRY(module_and_memory, runtime_manager_->getModuleInstance());
-      auto &&[module, memory] = std::move(module_and_memory);
+      OUTCOME_TRY(environment, runtime_manager_->getRuntimeEvironment());
+      auto &&[module, memory] = std::move(environment);
 
       runtime::WasmPointer ptr = 0u;
       runtime::SizeType len = 0u;

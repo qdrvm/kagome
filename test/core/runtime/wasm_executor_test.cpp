@@ -9,9 +9,10 @@
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
-#include <extensions/impl/extension_factory_impl.hpp>
 #include <fstream>
 
+#include "crypto/hasher/hasher_impl.hpp"
+#include "extensions/impl/extension_factory_impl.hpp"
 #include "runtime/binaryen/runtime_manager.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/polkadot_trie_db.hpp"
@@ -38,14 +39,16 @@ class WasmExecutorTest : public ::testing::Test {
         std::make_shared<kagome::storage::trie::TrieDbBackendImpl>(
             std::make_shared<kagome::storage::InMemoryStorage>(),
             kagome::common::Buffer{}));
-
     auto extencion_factory =
         std::make_shared<kagome::extensions::ExtensionFactoryImpl>(
             std::shared_ptr<kagome::storage::trie::TrieDb>(trieDb.release()));
 
+    auto hasher =
+        std::make_shared<kagome::crypto::HasherImpl>();
+
     runtime_manager_ = std::make_shared<RuntimeManager>(
-        std::move(wasm_provider), std::move(extencion_factory));
-    
+        std::move(wasm_provider), std::move(extencion_factory), std::move(hasher));
+
     executor_ = std::make_shared<WasmExecutor>();
   }
 
@@ -60,8 +63,8 @@ class WasmExecutorTest : public ::testing::Test {
  * @then proper result is returned
  */
 TEST_F(WasmExecutorTest, ExecuteCode) {
-  EXPECT_OUTCOME_TRUE(module_and_memory, runtime_manager_->getModuleInstance());
-  auto &&[module, memory] = std::move(module_and_memory);
+  EXPECT_OUTCOME_TRUE(environment, runtime_manager_->getRuntimeEvironment());
+  auto &&[module, memory] = std::move(environment);
 
   auto res = executor_->call(
       *module, "addTwo", wasm::LiteralList{wasm::Literal(1), wasm::Literal(2)});

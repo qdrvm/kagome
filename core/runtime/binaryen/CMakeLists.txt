@@ -28,7 +28,6 @@ add_library(binaryen_runtime_manager
     )
 target_link_libraries(binaryen_runtime_manager
     binaryen_runtime_external_interface
-    hasher
     )
 
 add_library(binaryen_wasm_executor

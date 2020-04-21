@@ -10,6 +10,7 @@
 
 #include "common/blob.hpp"
 #include "common/logger.hpp"
+#include "crypto/hasher.hpp"
 #include "extensions/extension_factory.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/wasm_provider.hpp"
@@ -23,25 +24,29 @@ namespace kagome::runtime::binaryen {
 
     RuntimeManager(
         std::shared_ptr<runtime::WasmProvider> wasm_provider,
-        std::shared_ptr<extensions::ExtensionFactory> extension_factory)
+        std::shared_ptr<extensions::ExtensionFactory> extension_factory,
+        std::shared_ptr<crypto::Hasher> hasher)
         : wasm_provider_(std::move(wasm_provider)),
-          extension_factory_(std::move(extension_factory)) {
+          extension_factory_(std::move(extension_factory)),
+          hasher_(std::move(hasher)) {
       BOOST_ASSERT(wasm_provider_);
       BOOST_ASSERT(extension_factory_);
     }
 
     outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
                                std::shared_ptr<WasmMemory>>>
-    getModuleInstance();
+    getRuntimeEvironment();
 
    private:
-    auto prepareModule(const common::Buffer &state_code)
-        -> outcome::result<std::shared_ptr<wasm::Module>>;
+    outcome::result<std::shared_ptr<wasm::Module>> prepareModule(
+        const common::Buffer &state_code);
 
+    common::Logger logger_ = common::createLogger("Runtime manager");
     std::shared_ptr<runtime::WasmProvider> wasm_provider_;
     std::shared_ptr<extensions::ExtensionFactory> extension_factory_;
-    common::Logger logger_ = common::createLogger("Runtime manager");
-    kagome::common::Hash256 state_code_hash_{};
+
+    std::shared_ptr<crypto::Hasher> hasher_;
+    common::Hash256 state_code_hash_{};
 
     // TODO (xDimon): Separate it by state_code_hash for multiruntime case
     std::shared_ptr<wasm::Module> module_{};

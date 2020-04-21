@@ -3,22 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime_manager.hpp"
+#include "runtime/binaryen/runtime_manager.hpp"
 
 #include <binaryen/wasm-binary.h>
 
-#include <crypto/hasher/hasher_impl.hpp>
-
-#include "runtime_external_interface.hpp"
+#include "crypto/hasher/hasher_impl.hpp"
+#include "runtime/binaryen/runtime_external_interface.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
                             RuntimeManager::Error,
                             e) {
-  using kagome::runtime::binaryen::RuntimeManager;
+  using Error = kagome::runtime::binaryen::RuntimeManager::Error;
   switch (e) {
-    case RuntimeManager::Error::EMPTY_STATE_CODE:
+    case Error::EMPTY_STATE_CODE:
       return "Provided state code is empty, calling a function is impossible";
-    case RuntimeManager::Error::INVALID_STATE_CODE:
+    case Error::INVALID_STATE_CODE:
       return "Invalid state code, calling a function is impossible";
   }
 }
@@ -27,14 +26,14 @@ namespace kagome::runtime::binaryen {
 
   outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
                              std::shared_ptr<WasmMemory>>>
-  RuntimeManager::getModuleInstance() {
+  RuntimeManager::getRuntimeEvironment() {
     const auto &state_code = wasm_provider_->getStateCode();
 
     if (state_code.empty()) {
       return Error::EMPTY_STATE_CODE;
     }
 
-    auto hash = kagome::crypto::HasherImpl().sha2_256(state_code);
+    auto hash = hasher_->twox_256(state_code);
 
     if (hash != state_code_hash_) {
       OUTCOME_TRY(module, prepareModule(state_code));
