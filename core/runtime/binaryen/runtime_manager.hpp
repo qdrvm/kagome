@@ -14,7 +14,7 @@
 #include "extensions/extension_factory.hpp"
 #include "outcome/outcome.hpp"
 #include "runtime/wasm_provider.hpp"
-#include "runtime_external_interface.hpp"
+#include "runtime/binaryen/runtime_external_interface.hpp"
 
 namespace kagome::runtime::binaryen {
 
