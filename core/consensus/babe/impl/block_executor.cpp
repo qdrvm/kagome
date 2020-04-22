@@ -64,7 +64,7 @@ namespace kagome::consensus {
       const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
 
       // we should request blocks between last finalized one and received block
-      requestBlocks(last_hash, last_hash, [] {});
+      requestBlocks(last_hash, block_hash, [] {});
     }
   }
 
@@ -89,7 +89,7 @@ namespace kagome::consensus {
           if (not self) return;
 
           if (blocks.empty()) {
-            self->logger_->error("Received empty list of blocks");
+            self->logger_->warn("Received empty list of blocks");
           } else {
             auto front_block_hex =
                 self->hasher_

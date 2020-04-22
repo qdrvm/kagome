@@ -67,15 +67,17 @@ namespace kagome::network {
           });
     };
 
-    for (const auto &stream : syncing_streams_) {
+    // iterate over the existing streams and send them the msg. If stream is
+    // closed it is removed
+    auto stream_it = syncing_streams_.begin();
+    while (stream_it != syncing_streams_.end()) {
+      auto stream = *stream_it;
       if (stream && !stream->isClosed()) {
         msg_send_lambda(stream);
+        stream_it++;
       } else {
         // remove this stream
-        syncing_streams_.erase(
-            std::remove(
-                syncing_streams_.begin(), syncing_streams_.end(), stream),
-            syncing_streams_.end());
+        syncing_streams_.erase(stream_it);
       }
     }
     for (const auto &[info, stream] : streams_) {
