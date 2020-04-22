@@ -77,7 +77,7 @@ namespace kagome::network {
         stream_it++;
       } else {
         // remove this stream
-        syncing_streams_.erase(stream_it);
+        stream_it = syncing_streams_.erase(stream_it);
       }
     }
     for (const auto &[info, stream] : streams_) {
