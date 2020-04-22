@@ -36,6 +36,7 @@ target_link_libraries(block_executor
     primitives
     scale
     block_tree_error
+    threshold_util
     )
 
 add_library(babe
