@@ -194,7 +194,7 @@ namespace kagome::consensus::grandpa {
     if (completable() and clock_->now() < prevote_timer_.expires_at()) {
       prevote_timer_.cancel();
     }
-    tryFinalize();
+    // tryFinalize();
   }
 
   void VotingRoundImpl::onPrecommit(const SignedPrecommit &precommit) {
@@ -419,6 +419,7 @@ namespace kagome::consensus::grandpa {
 
       switch (state_) {
         case State::PREVOTED: {
+          state_ = State::PRECOMMITTED;
           if (not last_round_state.estimate) {
             logger_->warn("Rounds only started when prior round completable");
             return;
