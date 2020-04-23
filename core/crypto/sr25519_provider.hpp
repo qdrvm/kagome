@@ -31,6 +31,8 @@ namespace kagome::crypto {
      */
     virtual SR25519Keypair generateKeypair() const = 0;
 
+    virtual SR25519Keypair generateKeypair(common::Blob<32> seed) const = 0;
+
     /**
      * Sign message \param msg using \param keypair. If computed value is less
      * than \param threshold then return optional containing this value and

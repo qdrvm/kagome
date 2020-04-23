@@ -206,6 +206,11 @@ namespace kagome::injector {
             BOOST_ASSERT_MSG(weighted_authorities_res,
                              "grandpa_api_->authorities failed");
             const auto &weighted_authorities = weighted_authorities_res.value();
+
+            for (const auto authority : weighted_authorities) {
+              spdlog::info("Grandpa authority: {}", authority.id.id.toHex());
+            }
+
             consensus::grandpa::VoterSet voters{0};
             for (const auto &weighted_authority : weighted_authorities) {
               voters.insert(weighted_authority.id.id, 1);
