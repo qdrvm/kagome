@@ -12,7 +12,7 @@ For now, please refer to the [Dockerfile](./housekeeping/docker/Dockerfile) to g
 git clone --recurse-submodules https://github.com/soramitsu/kagome
 cd kagome
 
-# Only needed if you forgot `--recurse-submodules` above
+# Only needed if you did not use `--recurse-submodules` above
 git submodule update --init --recursive
 
 ```

@@ -48,6 +48,16 @@ make kagome_syncing -j
 
 
 ### Execute kagome full node
+
+---
+**Note**
+
+At the moment launch from the existing db is not implemented, so you should clean up previous db before every launch using the following command from the node folder:
+```
+rm -rf ldb
+```
+---
+
 To launch kagome full node execute:
 ```
 cd node/
@@ -63,25 +73,9 @@ If transaction was successfully applied we should see the following output:
 ```
 {"jsonrpc":"2.0","id":1,"result":[194,108,28,60,223,55,48,163,134,182,201,23,144,126,167,123,33,119,187,164,61,50,203,175,230,189,71,245,120,104,18,38]}% 
 ```
----
-**Note**
-
-At the moment launch from existing db is not implemented, so you should clean up previous db before every launch using the following command from the node folder:
-```
-rm -rf ldb
-```
----
 
 
 ### Execute kagome syncing node
-To launch kagome syncing node execute:
-```
-cd node/
-PATH=$PATH:../build/node/kagome_syncing/
-kagome_syncing --genesis config/polkadot-v06.json -l ldb_syncing -v 1 --p2p_port 50541 --rpc_http_port 50542 --rpc_ws_port 50543
-```
-
-After this command syncing node will connect with the full node and start importing blocks.
 
 ---
 **Note**
@@ -91,6 +85,15 @@ Same note as for full node. At the moment launch from existing db is not impleme
 rm -rf ldb_syncing
 ```
 ---
+
+To launch kagome syncing node execute:
+```
+cd node/
+PATH=$PATH:../build/node/kagome_syncing/
+kagome_syncing --genesis config/polkadot-v06.json -l ldb_syncing -v 1 --p2p_port 50541 --rpc_http_port 50542 --rpc_ws_port 50543
+```
+
+After this command syncing node will connect with the full node and start importing blocks.
 
 ### Configuration Details
 * To execute kagome node you need to provide it with genesis config, keys and leveldb files
