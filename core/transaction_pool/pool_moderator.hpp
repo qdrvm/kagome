@@ -11,6 +11,8 @@
 
 namespace kagome::transaction_pool {
 
+  using primitives::Transaction;
+
   /**
    * PoolModerator is responsible for banning transaction for a fixed amount of
    * time to prevent them from returning to the transaction pool when it is
@@ -32,12 +34,12 @@ namespace kagome::transaction_pool {
      * @return true if the transaction has been banned, false otherwise
      */
     virtual bool banIfStale(primitives::BlockNumber current_block,
-                            const primitives::Transaction &tx) = 0;
+                            const Transaction &tx) = 0;
 
     /**
      * @return true if \param tx_hash is banned, false otherwise
      */
-    virtual bool isBanned(const common::Hash256 &tx_hash) const = 0;
+    virtual bool isBanned(const Transaction::Hash &tx_hash) const = 0;
 
     /**
      * Unbans transaction which ban time is exceeded

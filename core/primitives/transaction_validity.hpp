@@ -27,14 +27,14 @@ namespace kagome::primitives {
      * Priority determines the ordering of two transactions that have all
      * their dependencies (required tags) satisfied.
      */
-    TransactionPriority priority{};
+    Transaction::Priority priority{};
 
     /**
      * @brief Transaction dependencies
      * A non-empty list signifies that some other transactions which provide
      * given tags are required to be included before that one.
      */
-    std::vector<TransactionTag> requires;
+    std::vector<Transaction::Tag> requires;
 
     /**
      * @brief Provided tags
@@ -44,7 +44,7 @@ namespace kagome::primitives {
      * Substrate to build a dependency graph of transactions and import them
      * in the right (linear) order.
      */
-    std::vector<TransactionTag> provides;
+    std::vector<Transaction::Tag> provides;
 
     /**
      * @brief Transaction longevity
@@ -52,7 +52,7 @@ namespace kagome::primitives {
      * After this period transaction should be removed from the pool or
      * revalidated.
      */
-    TransactionLongevity longevity{};
+    Transaction::Longevity longevity{};
 
     /**
      * @brief A flag indicating if the transaction should be propagated to other

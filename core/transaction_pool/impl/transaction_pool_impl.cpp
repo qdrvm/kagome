@@ -24,200 +24,281 @@ namespace kagome::transaction_pool {
     BOOST_ASSERT_MSG(moderator_ != nullptr, "moderator is nullptr");
   }
 
-  outcome::result<void> TransactionPoolImpl::submitOne(Transaction t) {
-    return submit({t});
+  outcome::result<void> TransactionPoolImpl::submitOne(Transaction &&tx) {
+    return submitOne(std::make_shared<Transaction>(std::move(tx)));
   }
 
   outcome::result<void> TransactionPoolImpl::submit(
-      std::vector<Transaction> ts) {
-    for (auto &t : ts) {
-      auto hash = t.hash.toHex();
-      if (imported_hashes_.find(hash) != imported_hashes_.end()) {
-        return TransactionPoolError::ALREADY_IMPORTED;
-      }
-      for (auto &tag : t.provides) {
-        provided_tags_by_.insert({tag, t.hash});
-      }
-      imported_hashes_.insert(hash);
-      waiting_queue_.push_back(WaitingTransaction{std::move(t)});
+      std::vector<Transaction> txs) {
+    for (auto &tx : txs) {
+      OUTCOME_TRY(submitOne(std::make_shared<Transaction>(std::move(tx))));
     }
-
-    updateReady();
-
-    enforceLimits();
 
     return outcome::success();
   }
 
-  std::vector<Transaction> TransactionPoolImpl::getReadyTransactions() {
-    std::vector<Transaction> ready(ready_queue_.size());
-    std::transform(
-        ready_queue_.begin(), ready_queue_.end(), ready.begin(), [](auto &rtx) {
-          return rtx.second;
-        });
+  outcome::result<void> TransactionPoolImpl::submitOne(
+      const std::shared_ptr<Transaction> &tx) {
+    if (auto [_, ok] = imported_txs_.emplace(tx->hash, tx); !ok) {
+      return TransactionPoolError::TX_ALREADY_IMPORTED;
+    }
+
+    auto processResult = processTransaction(tx);
+    if (processResult.has_error()
+        && processResult.error() == TransactionPoolError::POOL_IS_FULL) {
+      imported_txs_.erase(tx->hash);
+    }
+
+    return processResult;
+  }
+
+  outcome::result<void> TransactionPoolImpl::processTransaction(
+      const std::shared_ptr<Transaction> &tx) {
+    OUTCOME_TRY(ensureSpace());
+    if (checkForReady(tx)) {
+      OUTCOME_TRY(processTransactionAsReady(tx));
+    } else {
+      OUTCOME_TRY(processTransactionAsWaiting(tx));
+    }
+    return outcome::success();
+  }
+
+  outcome::result<void> TransactionPoolImpl::processTransactionAsReady(
+      const std::shared_ptr<Transaction> &tx) {
+    if (hasSpaceInReady()) {
+      setReady(tx);
+    } else {
+      postponeTransaction(tx);
+    }
+
+    return outcome::success();
+  }
+
+  bool TransactionPoolImpl::hasSpaceInReady() const {
+    return ready_txs_.size() < limits_.max_ready_num;
+  }
+
+  void TransactionPoolImpl::postponeTransaction(
+      const std::shared_ptr<Transaction> &tx) {
+    postponed_txs_.push_back(tx);
+  }
+
+  outcome::result<void> TransactionPoolImpl::processTransactionAsWaiting(
+      const std::shared_ptr<Transaction> &tx) {
+    OUTCOME_TRY(ensureSpace());
+
+    addTransactionAsWaiting(tx);
+
+    return outcome::success();
+  }
+
+  outcome::result<void> TransactionPoolImpl::ensureSpace() const {
+    if (imported_txs_.size() > limits_.capacity) {
+      return TransactionPoolError::POOL_IS_FULL;
+    }
+
+    return outcome::success();
+  }
+
+  void TransactionPoolImpl::addTransactionAsWaiting(
+      const std::shared_ptr<Transaction> &tx) {
+    for (auto &tag : tx->requires) {
+      tx_waits_tag_.emplace(tag, tx);
+    }
+  }
+
+  outcome::result<void> TransactionPoolImpl::removeOne(
+      const Transaction::Hash &tx_hash) {
+    auto tx_node = imported_txs_.extract(tx_hash);
+    if (tx_node.empty()) {
+      return TransactionPoolError::TX_NOT_FOUND;
+    }
+    auto &tx = tx_node.mapped();
+
+    unsetReady(tx);
+    delTransactionAsWaiting(tx);
+
+    processPostponedTransactions();
+
+    return outcome::success();
+  }
+
+  outcome::result<void> TransactionPoolImpl::remove(
+      const std::vector<Transaction::Hash> &tx_hashes) {
+    for (auto &tx_hash : tx_hashes) {
+      OUTCOME_TRY(removeOne(tx_hash));
+    }
+
+    return outcome::success();
+  }
+
+  void TransactionPoolImpl::processPostponedTransactions() {
+    // Move to local for avoid endless cycle at possible coming back tx
+    auto postponed_txs = std::move(postponed_txs_);
+    while (!postponed_txs.empty()) {
+      auto tx = postponed_txs.front().lock();
+      postponed_txs.pop_front();
+
+      auto result = processTransaction(tx);
+      if (result.has_error()
+          && result.error() == TransactionPoolError::POOL_IS_FULL) {
+        postponed_txs_.insert(postponed_txs_.end(),
+                              std::make_move_iterator(postponed_txs.begin()),
+                              std::make_move_iterator(postponed_txs.end()));
+        return;
+      }
+    }
+  }
+
+  void TransactionPoolImpl::delTransactionAsWaiting(
+      const std::shared_ptr<Transaction> &tx) {
+    for (auto &tag : tx->requires) {
+      auto range = tx_waits_tag_.equal_range(tag);
+      for (auto i = range.first; i != range.second;) {
+        if (i->second.lock() == tx) {
+          tx_waits_tag_.erase(i);
+          break;
+        }
+      }
+    }
+  }
+
+  std::map<Transaction::Hash, std::shared_ptr<Transaction>>
+  TransactionPoolImpl::getReadyTransactions() const {
+    std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready;
+    std::for_each(ready_txs_.begin(), ready_txs_.end(), [&ready](auto it) {
+      if (auto tx = it.second.lock()) {
+        ready.emplace(it.first, std::move(tx));
+      }
+    });
     return ready;
   }
 
-  outcome::result<std::vector<kagome::primitives::Transaction>>
-  TransactionPoolImpl::removeStale(const primitives::BlockId &at) {
+  outcome::result<std::vector<Transaction>> TransactionPoolImpl::removeStale(
+      const primitives::BlockId &at) {
     OUTCOME_TRY(number, header_repo_->getNumberById(at));
 
-    std::vector<Transaction> removed;
+    std::vector<Transaction::Hash> remove_to;
 
-    auto w_border =
-        std::stable_partition(waiting_queue_.begin(),
-                              waiting_queue_.end(),
-                              [this, number](auto &&tx) {
-                                return moderator_->banIfStale(number, tx);
-                              });
-    std::move(waiting_queue_.begin(), w_border, std::back_inserter(removed));
-    waiting_queue_.erase(waiting_queue_.begin(), w_border);
-
-    for (auto &[hash, ready_tx] : ready_queue_) {
-      if (moderator_->banIfStale(number, ready_tx)) {
-        removed.push_back(ready_tx);
-        ready_queue_.erase(hash);
+    for (auto &[txHash, tx] : imported_txs_) {
+      if (moderator_->banIfStale(number, *tx)) {
+        remove_to.emplace_back(txHash);
       }
+    }
+
+    for (auto &tx_hash : remove_to) {
+      OUTCOME_TRY(removeOne(tx_hash));
     }
 
     moderator_->updateBan();
 
-    return removed;
+    return outcome::success();
   }
 
-  bool TransactionPoolImpl::isReady(const WaitingTransaction &tx) const {
-    return std::all_of(
-        tx.requires.begin(), tx.requires.end(), [this](auto &&tag) {
-          return provided_tags_by_.find(tag) != provided_tags_by_.end();
-        });
-  };
+  bool TransactionPoolImpl::isInReady(
+      const std::shared_ptr<const Transaction> &tx) const {
+    auto i = ready_txs_.find(tx->hash);
+    return i != ready_txs_.end() && !i->second.expired();
+  }
 
-  void TransactionPoolImpl::updateReady() {
-    for (auto it = waiting_queue_.begin(); it != waiting_queue_.end();) {
-      if (isReady(*it)) {
-        Transaction tx = *it;
-        ReadyTransaction rtx{tx, {}};
-        updateUnlockingTransactions(rtx);
-        ready_queue_.emplace(rtx.hash, rtx);
-        it = waiting_queue_.erase(it);
-      } else {
-        it++;
-      }
+  bool TransactionPoolImpl::checkForReady(
+      const std::shared_ptr<const Transaction> &tx) const {
+    return std::all_of(
+        tx->requires.begin(), tx->requires.end(), [this](auto &&tag) {
+          auto range = tx_provides_tag_.equal_range(tag);
+          return range.first != range.second;
+        });
+  }
+
+  void TransactionPoolImpl::setReady(const std::shared_ptr<Transaction> &tx) {
+    if (auto [_, ok] = ready_txs_.emplace(tx->hash, tx); ok) {
+      commitRequiredTags(tx);
+      commitProvidedTags(tx);
     }
   }
 
-  void TransactionPoolImpl::updateUnlockingTransactions(
-      const ReadyTransaction &rtx) {
-    for (auto &tag : rtx.requires) {
-      if (auto it = provided_tags_by_.find(tag);
-          it != provided_tags_by_.end() && it->second.has_value()) {
-        if (auto ready_it = ready_queue_.find(it->second.value());
-            ready_it != ready_queue_.end()) {
-          auto &unlocking_transaction = ready_it->second;
-          unlocking_transaction.unlocks.push_back(rtx.hash);
+  void TransactionPoolImpl::commitRequiredTags(
+      const std::shared_ptr<Transaction> &tx) {
+    for (auto &tag : tx->requires) {
+      auto range = tx_waits_tag_.equal_range(tag);
+      for (auto i = range.first; i != range.second;) {
+        auto ci = i++;
+        if (ci->second.lock() == tx) {
+          auto node = tx_waits_tag_.extract(ci);
+          tx_depends_on_tag_.emplace(std::move(node.key()),
+                                     std::move(node.mapped()));
         }
       }
     }
   }
 
-  std::vector<primitives::Transaction> TransactionPoolImpl::enforceLimits() {
-    auto [ready_num, waiting_num] = getStatus();
-    int64_t dr = ready_num - limits_.max_ready_num;
-    int64_t dw = waiting_num - limits_.max_waiting_num;
-    std::vector<Transaction> removed;
-    removed.reserve((dr > 0 ? dr : 0) + (dw > 0 ? dw : 0));
-    while (ready_num > limits_.max_ready_num) {
-      removed.push_back(ready_queue_.begin()->second);
-      ready_queue_.erase(ready_queue_.begin());
-      ready_num--;
+  void TransactionPoolImpl::commitProvidedTags(
+      const std::shared_ptr<Transaction> &tx) {
+    for (auto &tag : tx->provides) {
+      tx_provides_tag_.emplace(tag, tx);
+
+      provideTag(tag);
     }
-    while (waiting_num > limits_.max_waiting_num) {
-      removed.push_back(waiting_queue_.front());
-      waiting_queue_.pop_front();
-      waiting_num--;
+  }
+
+  void TransactionPoolImpl::provideTag(const Transaction::Tag &tag) {
+    auto range = tx_waits_tag_.equal_range(tag);
+    for (auto it = range.first; it != range.second;) {
+      auto tx = (it++)->second.lock();
+      if (checkForReady(tx)) {
+        if (hasSpaceInReady()) {
+          setReady(tx);
+        } else {
+          postponeTransaction(tx);
+        }
+      }
     }
-    return removed;
+  }
+
+  void TransactionPoolImpl::unsetReady(const std::shared_ptr<Transaction> &tx) {
+    if (auto tx_node = ready_txs_.extract(tx->hash); !tx_node.empty()) {
+      rollbackRequiredTags(tx);
+      rollbackProvidedTags(tx);
+    }
+  }
+
+  void TransactionPoolImpl::rollbackRequiredTags(
+      const std::shared_ptr<Transaction> &tx) {
+    for (auto &tag : tx->requires) {
+      tx_waits_tag_.emplace(tag, tx);
+    }
+  }
+
+  void TransactionPoolImpl::rollbackProvidedTags(
+      const std::shared_ptr<Transaction> &tx) {
+    for (auto &tag : tx->provides) {
+      auto range = tx_provides_tag_.equal_range(tag);
+      for (auto i = range.first; i != range.second; ++i) {
+        if (i->second.lock() == tx) {
+          tx_provides_tag_.erase(i);
+          break;
+        }
+      }
+
+      unprovideTag(tag);
+    }
+  }
+
+  void TransactionPoolImpl::unprovideTag(const Transaction::Tag &tag) {
+    if (tx_provides_tag_.find(tag) == tx_provides_tag_.end()) {
+      for (auto it = tx_depends_on_tag_.find(tag);
+           it != tx_depends_on_tag_.end();
+           it = tx_depends_on_tag_.find(tag)) {
+        if (auto tx = it->second.lock()) {
+          unsetReady(tx);
+        }
+        tx_depends_on_tag_.erase(it);
+      }
+    }
   }
 
   TransactionPoolImpl::Status TransactionPoolImpl::getStatus() const {
-    return Status{ready_queue_.size(), waiting_queue_.size()};
-  }
-
-  std::vector<Transaction> TransactionPoolImpl::pruneTag(
-      const primitives::BlockId &at,
-      const primitives::TransactionTag &tag,
-      const std::vector<common::Hash256> &known_imported_hashes) {
-    provided_tags_by_.insert({tag, {}});
-    updateReady();
-
-    std::list<primitives::TransactionTag> to_remove{tag};
-    std::vector<Transaction> removed;
-
-    while (not to_remove.empty()) {
-      auto tag_to_remove = to_remove.front();
-      to_remove.pop_front();
-      auto hash_opt = provided_tags_by_.at(tag_to_remove);
-      provided_tags_by_.erase(tag_to_remove);
-      if (not hash_opt) {
-        continue;
-      }
-      auto tx = ready_queue_.at(hash_opt.value());
-      ready_queue_.erase(hash_opt.value());
-
-      auto find_previous = [this, &tx](primitives::TransactionTag const &tag)
-          -> boost::optional<std::vector<primitives::TransactionTag>> {
-        if (provided_tags_by_.find(tag) == provided_tags_by_.end()) {
-          return boost::none;
-        }
-        auto prev_hash_opt = provided_tags_by_.at(tag);
-        if (!prev_hash_opt) {
-          return boost::none;
-        }
-        auto &tx2 = ready_queue_[prev_hash_opt.value()];
-        tx2.unlocks.remove_if([&tx](auto &t) { return t == tx.hash; });
-        // We eagerly prune previous transactions as well.
-        // But it might not always be good.
-        // Possible edge case:
-        // - tx provides two tags
-        // - the second tag enables some subgraph we don't know of yet
-        // - we will prune the transaction
-        // - when we learn about the subgraph it will go to future
-        // - we will have to wait for re-propagation of that transaction
-        // Alternatively the caller may attempt to re-import these transactions.
-        if (tx2.unlocks.empty()) {
-          return boost::make_optional(tx2.provides);
-        }
-        return boost::none;
-      };
-      for (auto &required_tag : tx.requires) {
-        if (auto tags_to_remove = find_previous(required_tag); tags_to_remove) {
-          std::copy(tags_to_remove.value().begin(),
-                    tags_to_remove.value().end(),
-                    std::back_inserter(to_remove));
-        }
-      }
-      removed.push_back(tx);
-    }
-    // make sure that we don't revalidate extrinsics that were part of the
-    // recently imported block. This is especially important for UTXO-like
-    // chains cause the inputs are pruned so such transaction would go to future
-    // again.
-    for (auto &hash : known_imported_hashes) {
-      moderator_->ban(hash);
-    }
-
-    if (auto stale = removeStale(at); stale) {
-      removed.insert(removed.end(),
-                     std::move_iterator(stale.value().begin()),
-                     std::move_iterator(stale.value().end()));
-    }
-    return removed;
-  }
-
-  std::vector<primitives::Transaction> TransactionPoolImpl::pruneTag(
-      const kagome::primitives::BlockId &at,
-      const kagome::primitives::TransactionTag &tag) {
-    return pruneTag(at, tag, {});
+    return Status{ready_txs_.size(), imported_txs_.size() - ready_txs_.size()};
   }
 
 }  // namespace kagome::transaction_pool

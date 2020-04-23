@@ -52,6 +52,11 @@ namespace kagome::network {
     broadcast(std::move(message));
   }
 
+  void GossiperBroadcast::addStream(
+      std::shared_ptr<libp2p::connection::Stream> stream) {
+    syncing_streams_.push_back(stream);
+  }
+
   void GossiperBroadcast::broadcast(GossipMessage &&msg) {
     auto msg_send_lambda = [msg](auto stream) {
       auto read_writer =
@@ -62,6 +67,19 @@ namespace kagome::network {
           });
     };
 
+    // iterate over the existing streams and send them the msg. If stream is
+    // closed it is removed
+    auto stream_it = syncing_streams_.begin();
+    while (stream_it != syncing_streams_.end()) {
+      auto stream = *stream_it;
+      if (stream && !stream->isClosed()) {
+        msg_send_lambda(stream);
+        stream_it++;
+      } else {
+        // remove this stream
+        stream_it = syncing_streams_.erase(stream_it);
+      }
+    }
     for (const auto &[info, stream] : streams_) {
       if (stream && !stream->isClosed()) {
         msg_send_lambda(stream);
