@@ -26,6 +26,8 @@ GITHUB_HUNTER_TOKEN=<github token>
 ```
 To generate github token follow the [instructions](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line). Make sure `read:packages` and `write:packages` permissions are granted (step 7 in instructions).
 
+#### Build all
+
 This project is can be built with
 
 ```
@@ -40,5 +42,14 @@ cd build
 ctest
 ```
 
+#### Build full validating node
+
+If you'd like to build only full validating node use the following instruction
+
+```
+mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+make -j
+```
 
 
