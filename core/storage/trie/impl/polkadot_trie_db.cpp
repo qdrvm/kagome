@@ -41,7 +41,7 @@ namespace kagome::storage::trie {
                                  boost::optional<common::Buffer> root_hash)
       : db_{std::move(db)},
         merkle_hash_{root_hash ? std::move(root_hash.value())
-                                     : PolkadotTrieDb::getEmptyRoot()} {}
+                               : PolkadotTrieDb::getEmptyRoot()} {}
 
   outcome::result<void> PolkadotTrieDb::put(const Buffer &key,
                                             const Buffer &value) {
@@ -78,6 +78,10 @@ namespace kagome::storage::trie {
       OUTCOME_TRY(storeRootNode(*trie.getRoot()));
     }
     return outcome::success();
+  }
+
+  void PolkadotTrieDb::recreateOnState(const common::Buffer &merkle_hash) {
+    merkle_hash_ = merkle_hash;
   }
 
   std::unique_ptr<PolkadotTrieDb::WriteBatch> PolkadotTrieDb::batch() {
@@ -128,8 +132,7 @@ namespace kagome::storage::trie {
                         }};
   }
 
-  outcome::result<void> PolkadotTrieDb::storeRootNode(
-      PolkadotNode &node) {
+  outcome::result<void> PolkadotTrieDb::storeRootNode(PolkadotNode &node) {
     auto batch = db_->batch();
     using T = PolkadotNode::Type;
 
@@ -138,15 +141,15 @@ namespace kagome::storage::trie {
     // of its encoded representation required to save it to the storage
     if (node.getTrieType() == T::BranchEmptyValue
         || node.getTrieType() == T::BranchWithValue) {
-      auto& branch = dynamic_cast<BranchNode&>(node);
+      auto &branch = dynamic_cast<BranchNode &>(node);
       OUTCOME_TRY(storeChildren(branch, *batch));
     }
- 
+
     OUTCOME_TRY(enc, codec_.encodeNode(node));
     auto key = Buffer{codec_.hash256(enc)};
     OUTCOME_TRY(batch->put(key, enc));
     OUTCOME_TRY(batch->commit());
-    
+
     merkle_hash_ = key;
     return outcome::success();
   }
@@ -160,7 +163,7 @@ namespace kagome::storage::trie {
     // of its encoded representation required to save it to the storage
     if (node.getTrieType() == T::BranchEmptyValue
         || node.getTrieType() == T::BranchWithValue) {
-      auto& branch = dynamic_cast<BranchNode&>(node);
+      auto &branch = dynamic_cast<BranchNode &>(node);
       OUTCOME_TRY(storeChildren(branch, batch));
     }
     OUTCOME_TRY(enc, codec_.encodeNode(node));

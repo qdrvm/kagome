@@ -9,7 +9,7 @@
 
 namespace {
   void setGlobalPattern(spdlog::logger &logger) {
-    logger.set_pattern("[%Y-%m-%d %H:%M:%S.%F] %n %v");
+    logger.set_pattern("[%Y-%m-%d %H:%M:%S][%l] %n %v");
   }
 
   void setDebugPattern(spdlog::logger &logger) {
@@ -17,7 +17,7 @@ namespace {
   }
 
   std::shared_ptr<spdlog::logger> createLogger(const std::string &tag,
-                                               bool debug_mode = true) {
+                                               bool debug_mode = false) {
     auto logger = spdlog::stdout_color_mt(tag);
     if (debug_mode) {
       setDebugPattern(*logger);

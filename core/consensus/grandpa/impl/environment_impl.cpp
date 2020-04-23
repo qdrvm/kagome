@@ -73,8 +73,8 @@ namespace kagome::consensus::grandpa {
     VoteMessage message{
         .round_number = round, .counter = set_id, .vote = propose};
     gossiper_->vote(message);
-    logger_->info("Primary proposed block with hash {} in grandpa round {}",
-                  propose.message.block_hash.toHex(),
+    logger_->debug("Primary proposed block with hash {} in grandpa round {}",
+                   propose.message.block_hash.toHex(),
                   round);
     return outcome::success();
   }
@@ -86,8 +86,8 @@ namespace kagome::consensus::grandpa {
     VoteMessage message{
         .round_number = round, .counter = set_id, .vote = prevote};
     gossiper_->vote(message);
-    logger_->info("Prevoted block with hash {} in grandpa round {}",
-                  prevote.message.block_hash.toHex(),
+    logger_->debug("Prevoted block with hash {} in grandpa round {}",
+                   prevote.message.block_hash.toHex(),
                   round);
     return outcome::success();
   }
@@ -99,8 +99,8 @@ namespace kagome::consensus::grandpa {
     VoteMessage message{
         .round_number = round, .counter = set_id, .vote = precommit};
     gossiper_->vote(message);
-    logger_->info("Precommitted block with hash {} in grandpa round {}",
-                  precommit.message.block_hash.toHex(),
+    logger_->debug("Precommitted block with hash {} in grandpa round {}",
+                   precommit.message.block_hash.toHex(),
                   round);
     return outcome::success();
   }
@@ -109,8 +109,8 @@ namespace kagome::consensus::grandpa {
       RoundNumber round,
       const BlockInfo &vote,
       const GrandpaJustification &justification) {
-    logger_->info("Committed block with hash: {} with number: {}",
-                  vote.block_hash,
+    logger_->debug("Committed block with hash: {} with number: {}",
+                   vote.block_hash,
                   vote.block_number);
     gossiper_->finalize(Fin{
         .round_number = round, .vote = vote, .justification = justification});

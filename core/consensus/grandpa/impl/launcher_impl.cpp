@@ -40,8 +40,8 @@ namespace kagome::consensus::grandpa {
         [this](outcome::result<CompletedRound> completed_round_res) {
           if (not completed_round_res) {
             current_round_.reset();
-            logger_->warn("Grandpa round was not finalized: {}",
-                          completed_round_res.error().message());
+            logger_->debug("Grandpa round was not finalized: {}",
+                           completed_round_res.error().message());
           } else {
             const auto &completed_round = completed_round_res.value();
             // update last completed round if it is greater than previous last
@@ -132,7 +132,7 @@ namespace kagome::consensus::grandpa {
                                           std::move(vote_graph),
                                           clock_,
                                           io_context_);
-    logger_->info("Starting grandpa round: {}", round_number);
+    logger_->debug("Starting grandpa round: {}", round_number);
 
     current_round_->primaryPropose(last_round_state);
     current_round_->prevote(last_round_state);

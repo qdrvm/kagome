@@ -23,6 +23,7 @@ namespace kagome::consensus {
   BabeImpl::BabeImpl(
       std::shared_ptr<BabeLottery> lottery,
       std::shared_ptr<BlockExecutor> block_executor,
+      std::shared_ptr<storage::trie::TrieDb> trie_db,
       std::shared_ptr<EpochStorage> epoch_storage,
       std::shared_ptr<primitives::BabeConfiguration> configuration,
       std::shared_ptr<authorship::Proposer> proposer,
@@ -34,6 +35,7 @@ namespace kagome::consensus {
       std::unique_ptr<clock::Timer> timer)
       : lottery_{std::move(lottery)},
         block_executor_{std::move(block_executor)},
+        trie_db_{std::move(trie_db)},
         epoch_storage_{std::move(epoch_storage)},
         genesis_configuration_{std::move(configuration)},
         proposer_{std::move(proposer)},
@@ -46,6 +48,7 @@ namespace kagome::consensus {
         log_{common::createLogger("BABE")} {
     BOOST_ASSERT(lottery_);
     BOOST_ASSERT(epoch_storage_);
+    BOOST_ASSERT(trie_db_);
     BOOST_ASSERT(proposer_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(gossiper_);
@@ -256,6 +259,8 @@ namespace kagome::consensus {
     // build a block to be announced
     log_->info("Obtained slot leadership");
 
+    auto state_before_new_block = trie_db_->getRootHash();
+
     primitives::InherentData inherent_data;
     auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
                    clock_->now().time_since_epoch())
@@ -310,6 +315,8 @@ namespace kagome::consensus {
       log_->warn(
           "Block was not built in time. Slot has finished. If you are "
           "executing in debug mode, consider to rebuild in release");
+      // rollback to the previous state
+      trie_db_->recreateOnState(state_before_new_block);
       return;
     }
     // add block to the block tree

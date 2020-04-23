@@ -81,8 +81,8 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::onFinalize(const Fin &f) {
-    logger_->info("Received fin message for vote: {}",
-                  f.vote.block_hash.toHex());
+    logger_->debug("Received fin message for vote: {}",
+                   f.vote.block_hash.toHex());
     // validate message
     if (validate(f.vote, f.justification)) {
       // finalize to state
@@ -141,7 +141,8 @@ namespace kagome::consensus::grandpa {
     }
     // check if new state differs with the old one and broadcast new state
     if (auto notify_res = notify(*last_round_state_); not notify_res) {
-      logger_->warn("Did not notify. Reason: {}", notify_res.error().message());
+      logger_->debug("Did not notify. Reason: {}",
+                     notify_res.error().message());
       // Round is completable but we cannot notify others. Finish the round
       env_->onCompleted(notify_res.error());
       return false;

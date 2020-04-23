@@ -20,6 +20,7 @@
 #include "common/logger.hpp"
 #include "common/visitor.hpp"
 #include "crypto/hasher.hpp"
+#include "storage/trie/trie_db.hpp"
 
 namespace kagome::transaction_pool {
   class TransactionPool;
@@ -45,7 +46,8 @@ namespace kagome::api {
     ExtrinsicApiImpl(std::shared_ptr<runtime::TaggedTransactionQueue> api,
                      std::shared_ptr<transaction_pool::TransactionPool> pool,
                      std::shared_ptr<crypto::Hasher> hasher,
-                     std::shared_ptr<blockchain::BlockTree> block_tree);
+                     std::shared_ptr<blockchain::BlockTree> block_tree,
+                     std::shared_ptr<storage::trie::TrieDb> trie_db);
 
     ~ExtrinsicApiImpl() override = default;
 
@@ -64,6 +66,7 @@ namespace kagome::api {
     sptr<transaction_pool::TransactionPool> pool_;
     sptr<crypto::Hasher> hasher_;
     sptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<storage::trie::TrieDb> trie_db_;
     common::Logger logger_;
   };
 }  // namespace kagome::api
