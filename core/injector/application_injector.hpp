@@ -23,7 +23,6 @@
 #include "api/transport/impl/ws/ws_listener_impl.hpp"
 #include "api/transport/impl/ws/ws_session.hpp"
 #include "application/impl/configuration_storage_impl.hpp"
-#include "application/impl/local_key_storage.hpp"
 #include "authorship/impl/block_builder_factory_impl.hpp"
 #include "authorship/impl/block_builder_impl.hpp"
 #include "authorship/impl/proposer_impl.hpp"
@@ -37,14 +36,10 @@
 #include "common/outcome_throw.hpp"
 #include "consensus/babe/babe_lottery.hpp"
 #include "consensus/babe/common.hpp"
-#include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/babe/impl/babe_lottery_impl.hpp"
 #include "consensus/babe/impl/babe_synchronizer_impl.hpp"
 #include "consensus/babe/impl/epoch_storage_impl.hpp"
-#include "consensus/grandpa/chain.hpp"
-#include "consensus/grandpa/gossiper.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
-#include "consensus/grandpa/impl/launcher_impl.hpp"
 #include "consensus/grandpa/structs.hpp"
 #include "consensus/grandpa/vote_graph.hpp"
 #include "consensus/grandpa/vote_tracker.hpp"
@@ -102,89 +97,6 @@ namespace kagome::injector {
 
   template <class T>
   using uptr = std::unique_ptr<T>;
-
-  // sr25519 kp getter
-  auto get_sr25519_keypair =
-      [](const auto &injector) -> sptr<crypto::SR25519Keypair> {
-    static auto initialized =
-        boost::optional<sptr<crypto::SR25519Keypair>>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-    auto &key_storage = injector.template create<application::KeyStorage &>();
-    auto &&sr25519_kp = key_storage.getLocalSr25519Keypair();
-
-    initialized = std::make_shared<crypto::SR25519Keypair>(sr25519_kp);
-    return initialized.value();
-  };
-
-  // ed25519 kp getter
-  auto get_ed25519_keypair =
-      [](const auto &injector) -> sptr<crypto::ED25519Keypair> {
-    static auto initialized =
-        boost::optional<sptr<crypto::ED25519Keypair>>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-    auto &key_storage = injector.template create<application::KeyStorage &>();
-    auto &&ed25519_kp = key_storage.getLocalEd25519Keypair();
-
-    initialized = std::make_shared<crypto::ED25519Keypair>(ed25519_kp);
-    return initialized.value();
-  };
-
-  // peer info getter
-  auto get_peer_info = [](const auto &injector,
-                          uint16_t p2p_port) -> sptr<libp2p::peer::PeerInfo> {
-    static auto initialized =
-        boost::optional<sptr<libp2p::peer::PeerInfo>>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-
-    // get key storage
-    auto &keys = injector.template create<application::KeyStorage &>();
-    auto &&local_pair = keys.getP2PKeypair();
-    libp2p::crypto::PublicKey &public_key = local_pair.publicKey;
-    auto &key_marshaller =
-        injector.template create<libp2p::crypto::marshaller::KeyMarshaller &>();
-
-    libp2p::peer::PeerId peer_id =
-        libp2p::peer::PeerId::fromPublicKey(
-            key_marshaller.marshal(public_key).value())
-            .value();
-    spdlog::debug("Received peer id: {}", peer_id.toBase58());
-    std::string multiaddress_str =
-        "/ip4/127.0.0.1/tcp/" + std::to_string(p2p_port);
-    spdlog::debug("Received multiaddr: {}", multiaddress_str);
-    auto multiaddress = libp2p::multi::Multiaddress::create(multiaddress_str);
-    if (!multiaddress) {
-      common::raise(multiaddress.error());  // exception
-    }
-    std::vector<libp2p::multi::Multiaddress> addresses;
-    addresses.push_back(std::move(multiaddress.value()));
-    libp2p::peer::PeerInfo peer_info{peer_id, std::move(addresses)};
-
-    initialized =
-        std::make_shared<libp2p::peer::PeerInfo>(std::move(peer_info));
-    return initialized.value();
-  };
-
-  auto get_peer_keypair =
-      [](const auto &injector) -> sptr<libp2p::crypto::KeyPair> {
-    static auto initialized =
-        boost::optional<sptr<libp2p::crypto::KeyPair>>(boost::none);
-
-    if (initialized) {
-      return initialized.value();
-    }
-
-    // get key storage
-    auto &keys = injector.template create<application::KeyStorage &>();
-    auto &&local_pair = keys.getP2PKeypair();
-    initialized = std::make_shared<libp2p::crypto::KeyPair>(local_pair);
-    return initialized.value();
-  };
 
   auto get_boot_nodes = [](const auto &injector) -> sptr<network::PeerList> {
     static auto initialized =
@@ -460,24 +372,6 @@ namespace kagome::injector {
     return config_storage_res.value();
   };
 
-  // key storage getter
-  template <typename Injector>
-  sptr<application::KeyStorage> get_key_storage(std::string_view keystore_path,
-                                                const Injector &injector) {
-    static auto initialized =
-        boost::optional<sptr<application::KeyStorage>>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-    auto &&result =
-        application::LocalKeyStorage::create(std::string(keystore_path));
-    if (!result) {
-      common::raise(result.error());
-    }
-    initialized = result.value();
-    return result.value();
-  };
-
   auto get_sync_clients_set =
       [](const auto &injector) -> sptr<network::SyncClientsSet> {
     static auto initialized =
@@ -514,37 +408,28 @@ namespace kagome::injector {
     return res;
   };
 
-  auto get_babe = [](const auto &injector) -> sptr<consensus::Babe> {
+  auto get_babe_configuration =
+      [](const auto &injector) -> sptr<primitives::BabeConfiguration> {
     static auto initialized =
-        boost::optional<sptr<consensus::BabeImpl>>(boost::none);
+        boost::optional<sptr<primitives::BabeConfiguration>>(boost::none);
     if (initialized) {
       return *initialized;
     }
 
-    initialized = std::make_shared<consensus::BabeImpl>(
-        injector.template create<sptr<consensus::BabeLottery>>(),
-        injector.template create<sptr<consensus::BabeSynchronizer>>(),
-        injector.template create<sptr<consensus::BabeBlockValidator>>(),
-        injector.template create<sptr<consensus::EpochStorage>>(),
-        injector.template create<sptr<runtime::BabeApi>>(),
-        injector.template create<sptr<runtime::Core>>(),
-        injector.template create<sptr<authorship::Proposer>>(),
-        injector.template create<sptr<blockchain::BlockTree>>(),
-        injector.template create<sptr<network::BabeGossiper>>(),
-        injector.template create<crypto::SR25519Keypair>(),
-        injector.template create<sptr<clock::SystemClock>>(),
-        injector.template create<sptr<crypto::Hasher>>(),
-        injector.template create<uptr<clock::Timer>>());
+    sptr<runtime::BabeApi> babe_api =
+        injector.template create<sptr<runtime::BabeApi>>();
+    auto configuration_res = babe_api->configuration();
+    if (not configuration_res) {
+      common::raise(configuration_res.error());
+    }
+    initialized = std::make_shared<primitives::BabeConfiguration>(
+        configuration_res.value());
     return *initialized;
   };
 
-  auto get_babe_observer = get_babe;
-
   template <typename... Ts>
   auto makeApplicationInjector(const std::string &genesis_path,
-                               const std::string &keystore_path,
                                const std::string &leveldb_path,
-                               uint16_t p2p_port,
                                uint16_t rpc_http_port,
                                uint16_t rpc_ws_port,
                                Ts &&... args) {
@@ -566,17 +451,6 @@ namespace kagome::injector {
 
         // inherit host injector
         libp2p::injector::makeHostInjector(),
-        // bind sr25519 keypair
-        di::bind<crypto::SR25519Keypair>.to(std::move(get_sr25519_keypair)),
-        // bind ed25519 keypair
-        di::bind<crypto::ED25519Keypair>.to(std::move(get_ed25519_keypair)),
-        // compose peer info
-        di::bind<libp2p::peer::PeerInfo>.to([p2p_port](const auto &injector) {
-          return get_peer_info(injector, p2p_port);
-        }),
-        // compose peer keypair
-        di::bind<libp2p::crypto::KeyPair>.to(
-            std::move(get_peer_keypair))[boost::di::override],
         // bind boot nodes
         di::bind<network::PeerList>.to(std::move(get_boot_nodes)),
 
@@ -610,12 +484,9 @@ namespace kagome::injector {
         di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
         di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
         di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
-        di::bind<consensus::Babe>.to(std::move(get_babe)),
+        di::bind<primitives::BabeConfiguration>.to(
+            std::move(get_babe_configuration)),
         di::bind<consensus::BabeSynchronizer>.template to<consensus::BabeSynchronizerImpl>(),
-        di::bind<consensus::BabeLottery>.template to<consensus::BabeLotteryImpl>(),
-        di::bind<network::BabeObserver>.to(std::move(get_babe_observer)),
-        di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::LauncherImpl>(),
-        di::bind<consensus::grandpa::Launcher>.template to<consensus::grandpa::LauncherImpl>(),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
         di::bind<consensus::EpochStorage>.template to<consensus::EpochStorageImpl>(),
         di::bind<consensus::Synchronizer>.template to<consensus::SynchronizerImpl>(),
@@ -625,10 +496,10 @@ namespace kagome::injector {
         di::bind<crypto::SR25519Provider>.template to<crypto::SR25519ProviderImpl>(),
         di::bind<crypto::VRFProvider>.template to<crypto::VRFProviderImpl>(),
         di::bind<extensions::ExtensionFactory>.template to<extensions::ExtensionFactoryImpl>(),
-        di::bind<network::BabeGossiper>.template to<network::GossiperBroadcast>(),
+        di::bind<network::Router>.template to<network::RouterLibp2p>(),
+        di::bind<consensus::BabeGossiper>.template to<network::GossiperBroadcast>(),
         di::bind<consensus::grandpa::Gossiper>.template to<network::GossiperBroadcast>(),
         di::bind<network::Gossiper>.template to<network::GossiperBroadcast>(),
-        di::bind<network::Router>.template to<network::RouterLibp2p>(),
         di::bind<network::SyncClientsSet>.to(std::move(get_sync_clients_set)),
         di::bind<network::SyncProtocolClient>.template to<consensus::SynchronizerImpl>(),
         di::bind<network::SyncProtocolObserver>.template to<consensus::SynchronizerImpl>(),
@@ -653,10 +524,6 @@ namespace kagome::injector {
         di::bind<application::ConfigurationStorage>.to(
             [genesis_path](const auto &injector) {
               return get_configuration_storage(genesis_path, injector);
-            }),
-        di::bind<application::KeyStorage>.to(
-            [keystore_path](const auto &injector) {
-              return get_key_storage(keystore_path, injector);
             }),
 
         // user-defined overrides...

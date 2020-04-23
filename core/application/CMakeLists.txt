@@ -10,7 +10,15 @@ add_library(kagome_application
     impl/kagome_application_impl.cpp
     )
 target_link_libraries(kagome_application
-    application_injector
+    full_node_injector
+    blob
+    )
+
+add_library(syncing_node_application
+    impl/syncing_node_application.cpp
+    )
+target_link_libraries(syncing_node_application
+    syncing_node_injector
     blob
     )
 
