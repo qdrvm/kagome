@@ -19,7 +19,6 @@ If you would like to understand how different components of Kagome are implement
 
     development/README.md
     overview/getting_started.md
-    overview
 
 Kagome in media
 ^^^^^^^^^^^^^^^
