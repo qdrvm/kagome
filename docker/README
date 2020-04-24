@@ -1,0 +1,14 @@
+Use kagome.sh script for control you kagome's docker-containers
+
+Just call this with one of follow arguments
+
+First of all, you should create build environment
+ kagome.sh build_env   - create docker container image with packages for configure and compile
+ kagome.sh publish_env - publish this to dockerhub for using in autockeck pipelines, continuous integration, etc.
+
+Build binaries of kagome
+ kagome.sh build       - pull required images and repo, build binaries and make kagome docker-image
+
+Distribution:
+ kagome.sh publish     - push docker on dockerhub
+

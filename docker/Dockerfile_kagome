@@ -1,0 +1,10 @@
+FROM alpine AS kagomed
+
+MAINTAINER Dmitriy Khaustov aka xDimon (khaustov.dm@gmail.com)
+
+RUN apk add libgcc libstdc++
+
+COPY . /root/
+
+CMD ["/bin/echo", "This is dummy sript. Use special script for use kagome applications"]
+

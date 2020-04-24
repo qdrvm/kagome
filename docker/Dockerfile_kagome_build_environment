@@ -1,0 +1,12 @@
+FROM alpine AS kagome_build_environment
+
+MAINTAINER Dmitriy Khaustov aka xDimon (khaustov.dm@gmail.com)
+
+RUN apk add openssh-client python perl rust cargo git cmake make g++ ccache linux-headers
+
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
+RUN ln -s /usr/local/bin/docker-entrypoint.sh /
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+

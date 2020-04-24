@@ -1,0 +1,10 @@
+FROM kagome_build_environment:latest AS kagome_build
+
+MAINTAINER Dmitriy Khaustov aka xDimon (khaustov.dm@gmail.com)
+
+COPY .ssh /root/.ssh/
+
+RUN cd /root && git clone https://github.com/soramitsu/kagome.git
+
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
