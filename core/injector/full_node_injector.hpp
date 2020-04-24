@@ -82,7 +82,7 @@ namespace kagome::injector {
             .value();
     spdlog::debug("Received peer id: {}", peer_id.toBase58());
     std::string multiaddress_str =
-        "/ip4/127.0.0.1/tcp/" + std::to_string(p2p_port);
+        "/ip4/0.0.0.0/tcp/" + std::to_string(p2p_port);
     spdlog::debug("Received multiaddr: {}", multiaddress_str);
     auto multiaddress = libp2p::multi::Multiaddress::create(multiaddress_str);
     if (!multiaddress) {
