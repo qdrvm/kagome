@@ -194,11 +194,14 @@ namespace kagome::consensus::grandpa {
     if (completable() and clock_->now() < prevote_timer_.expires_at()) {
       prevote_timer_.cancel();
     }
-    // tryFinalize();
+    tryFinalize();
   }
 
   void VotingRoundImpl::onPrecommit(const SignedPrecommit &precommit) {
-    onSignedPrecommit(precommit);
+    if (not onSignedPrecommit(precommit)) {
+      env_->onCompleted(VotingRoundError::LAST_ESTIMATE_BETTER_THAN_PREVOTE);
+      return;
+    }
     update();
 
     // stop precommit timer if round is completable
@@ -250,10 +253,10 @@ namespace kagome::consensus::grandpa {
     }
   }
 
-  void VotingRoundImpl::onSignedPrecommit(const SignedPrecommit &vote) {
+  bool VotingRoundImpl::onSignedPrecommit(const SignedPrecommit &vote) {
     auto weight = voter_set_->voterWeight(vote.id);
     if (not weight) {
-      return;
+      return false;
     }
     switch (precommits_->push(vote, weight.value())) {
       case VoteTracker<Precommit>::PushResult::SUCCESS: {
@@ -265,7 +268,7 @@ namespace kagome::consensus::grandpa {
         auto index = voter_set_->voterIndex(vote.id);
         if (not index) {
           logger_->warn("Voter {} is not known: {}", vote.id.toHex());
-          return;
+          return false;
         }
 
         v.precommits[index.value()] = voter_set_->voterWeight(vote.id).value();
@@ -274,22 +277,24 @@ namespace kagome::consensus::grandpa {
           logger_->warn("Vote {} was not inserted with error: {}",
                         vote.message.block_hash.toHex(),
                         inserted.error().message());
+          return false;
         }
         break;
       }
       case VoteTracker<Precommit>::PushResult::DUPLICATED: {
-        break;
+        return false;
       }
       case VoteTracker<Precommit>::PushResult::EQUIVOCATED: {
         auto index = voter_set_->voterIndex(vote.id);
         if (not index) {
           logger_->warn("Voter {} is not known: {}", vote.id.toHex());
-          return;
+          return false;
         }
         precommit_equivocators_[index.value()] = true;
         break;
       }
     }
+    return true;
   }
 
   void VotingRoundImpl::updatePrevoteGhost() {

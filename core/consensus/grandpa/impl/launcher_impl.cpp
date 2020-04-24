@@ -16,6 +16,8 @@
 
 namespace kagome::consensus::grandpa {
 
+  static size_t round_id = 0;
+
   LauncherImpl::LauncherImpl(
       std::shared_ptr<Environment> environment,
       std::shared_ptr<storage::BufferStorage> storage,
@@ -28,7 +30,8 @@ namespace kagome::consensus::grandpa {
         crypto_provider_{std::move(crypto_provider)},
         keypair_{keypair},
         clock_{std::move(clock)},
-        io_context_{std::move(io_context)} {
+        io_context_{std::move(io_context)},
+        liveness_checker_{*io_context_} {
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(crypto_provider_ != nullptr);
@@ -38,6 +41,8 @@ namespace kagome::consensus::grandpa {
     // executes next round
     auto handle_completed_round =
         [this](outcome::result<CompletedRound> completed_round_res) {
+          round_id++;
+
           if (not completed_round_res) {
             current_round_.reset();
             logger_->debug("Grandpa round was not finalized: {}",
@@ -142,6 +147,31 @@ namespace kagome::consensus::grandpa {
   void LauncherImpl::start() {
     boost::asio::post(*io_context_,
                       [self{shared_from_this()}] { self->executeNextRound(); });
+    startLivenessChecker();
+  }
+
+  void LauncherImpl::startLivenessChecker() {
+    // check if round id was updated. If it was not, that means that grandpa is
+    // not working
+    auto current_round_id = round_id;
+
+    using std::chrono_literals::operator""ms;
+    liveness_checker_.expires_after(20000ms);
+
+    liveness_checker_.async_wait([this, current_round_id](const auto &ec) {
+      if (ec and ec != boost::asio::error::operation_aborted) {
+        this->logger_->error("Error happened during liveness timer: {}",
+                             ec.message());
+        return;
+      }
+      // if round id was not updated, that means execution of round was
+      // completed properly, execute again
+      if (current_round_id == round_id) {
+        this->logger_->warn("Round was not completed properly");
+        return start();
+      }
+      return this->startLivenessChecker();
+    });
   }
 
   void LauncherImpl::onVoteMessage(const VoteMessage &msg) {

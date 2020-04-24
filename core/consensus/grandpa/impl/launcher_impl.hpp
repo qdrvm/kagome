@@ -33,6 +33,8 @@ namespace kagome::consensus::grandpa {
 
     void start() override;
 
+    void startLivenessChecker();
+
     void onVoteMessage(const VoteMessage &msg) override;
 
     void onFinalize(const Fin &f) override;
@@ -51,6 +53,7 @@ namespace kagome::consensus::grandpa {
     crypto::ED25519Keypair keypair_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<boost::asio::io_context> io_context_;
+    Timer liveness_checker_;
 
     common::Logger logger_ = common::createLogger("Grandpa launcher");
   };
