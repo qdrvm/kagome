@@ -6,8 +6,8 @@
 #ifndef KAGOME_STORAGE_TRIE_READONLY_TRIE_FACTORY_HPP
 #define KAGOME_STORAGE_TRIE_READONLY_TRIE_FACTORY_HPP
 
-#include "../../primitives/common.hpp"
-#include "trie_db_reader.hpp"
+#include "primitives/common.hpp"
+#include "storage/trie/readonly_trie_factory.hpp"
 
 namespace kagome::storage::trie {
 

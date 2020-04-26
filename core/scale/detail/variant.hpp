@@ -79,7 +79,7 @@ namespace kagome::scale::detail {
     void for_each_apply(F &f) {
       impl::for_each_apply_impl<0, F, T...>(f);
     }
-  }  // namespace impl
+  }  // namespace db
 
   /**
    * @brief encodes boost::variant value

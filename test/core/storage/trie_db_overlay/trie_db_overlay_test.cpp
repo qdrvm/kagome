@@ -39,15 +39,30 @@ class TrieDbOverlayTest : public Test {
   TrieDbOverlayImpl overlay;
 };
 
+/**
+ * @given storage overlay
+ * @when put changes into it and then commit
+ * @then the changes are put to the main storage
+ */
 TEST_F(TrieDbOverlayTest, CommitsToTrie) {
+  // WHEN
   EXPECT_OUTCOME_TRUE_1(overlay.put("a"_buf, "1"_buf));
   EXPECT_OUTCOME_TRUE_1(overlay.put("b"_buf, "2"_buf));
   EXPECT_OUTCOME_TRUE_1(overlay.put("c"_buf, "3"_buf));
+
+  // THEN
   EXPECT_CALL(*trie, put(AnyOf("a"_buf, "b"_buf, "c"_buf), _))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_OUTCOME_TRUE_1(overlay.commit());
 }
 
+/**
+ * @given storage overlay
+ * @when getting an element from it which exists only in the main storage @and
+ * getting an element which is cached
+ * @then overlay retrieves the non-cached element from the main storage and
+ * returns @and does not ask the main storage for the cached element
+ */
 TEST_F(TrieDbOverlayTest, AsksCacheMissesFromTrie) {
   EXPECT_CALL(*trie, get("a"_buf)).WillOnce(Return("1"_buf));
   EXPECT_OUTCOME_TRUE(res, overlay.get("a"_buf));
@@ -58,6 +73,12 @@ TEST_F(TrieDbOverlayTest, AsksCacheMissesFromTrie) {
   ASSERT_EQ(res1, "2"_buf);
 }
 
+/**
+ * @given storage overlay
+ * @when put entries into it
+ * @then these entries are tracked as changes and can be passed to a changes
+ * trie
+ */
 TEST_F(TrieDbOverlayTest, TracksChanges) {
   EXPECT_OUTCOME_TRUE_1(overlay.put("a"_buf, "1"_buf));
   EXPECT_OUTCOME_TRUE_1(overlay.put("b"_buf, "2"_buf));

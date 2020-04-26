@@ -3,20 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/trie/impl/trie_db_backend_impl.hpp"
+#include <gtest/gtest.h>
 
 #include <memory>
 
-#include <gtest/gtest.h>
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "mock/core/storage/write_batch_mock.hpp"
+#include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
 using kagome::storage::face::GenericStorageMock;
 using kagome::storage::face::WriteBatchMock;
-using kagome::storage::trie::TrieDbBackendImpl;
+using kagome::storage::trie::TrieStorageBackendImpl;
 using testing::Invoke;
 using testing::Return;
 
@@ -26,7 +26,7 @@ class TrieDbBackendTest : public testing::Test {
  public:
   std::shared_ptr<GenericStorageMock<Buffer, Buffer>> storage =
       std::make_shared<GenericStorageMock<Buffer, Buffer>>();
-  TrieDbBackendImpl backend{storage, kNodePrefix};
+  TrieStorageBackendImpl backend{storage, kNodePrefix};
 };
 
 /**

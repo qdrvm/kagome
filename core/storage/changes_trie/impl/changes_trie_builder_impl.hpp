@@ -18,15 +18,23 @@ namespace kagome::blockchain {
 
   class ChangesTrieBuilderImpl : public ChangesTrieBuilder {
    public:
-    explicit ChangesTrieBuilderImpl(
-        common::Hash256 parent,
-        ChangesTrieConfig config,
+    enum class Error { TRIE_NOT_INITIALIZED = 1 };
+
+    /**
+     * @param storage - the node main storage
+     * @param changes_storage_factory - trie db factory to make storage for the
+     * generated changes trie
+     * @param block_header_repo - the node block header repository
+     */
+    ChangesTrieBuilderImpl(
+        std::shared_ptr<storage::trie::TrieDb> storage,
         std::shared_ptr<storage::trie::TrieDbFactory> changes_storage_factory,
         std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo);
 
-    ChangesTrieBuilder &startNewTrie(
-        primitives::BlockHash parent,
-        boost::optional<ChangesTrieConfig> config) override;
+    outcome::result<OptChangesTrieConfig> getConfig() const override;
+
+    outcome::result<std::reference_wrapper<ChangesTrieBuilder>> startNewTrie(
+        const common::Hash256 &parent) override;
 
     outcome::result<void> insertExtrinsicsChange(
         const common::Buffer &key,
@@ -66,13 +74,18 @@ namespace kagome::blockchain {
       return s >> b.block >> b.key;
     }
 
-    primitives::BlockHash parent_;
-    ChangesTrieConfig config_;
+    static const common::Buffer CHANGES_CONFIG_KEY;
+
+    primitives::BlockHash parent_hash_;
+    primitives::BlockNumber parent_number_;
+    std::shared_ptr<storage::trie::TrieDb> storage_;
     std::shared_ptr<storage::trie::TrieDbFactory> changes_storage_factory_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
     std::unique_ptr<storage::trie::TrieDb> changes_storage_;
   };
 
 }  // namespace kagome::blockchain
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, ChangesTrieBuilderImpl::Error);
 
 #endif  // KAGOME_BLOCKCHAIN_CHANGES_TRIE_IMPL_HPP

@@ -9,13 +9,15 @@
 #include <boost/optional.hpp>
 
 #include "primitives/extrinsic.hpp"
+#include "storage/trie/trie_db_factory.hpp"
 #include "storage/trie_db_overlay/trie_db_overlay.hpp"
 
 namespace kagome::storage::trie_db_overlay {
 
   class TrieDbOverlayImpl : public TrieDbOverlay {
    public:
-    explicit TrieDbOverlayImpl(std::shared_ptr<trie::TrieDb> main_db);
+    explicit TrieDbOverlayImpl(
+        std::shared_ptr<trie::TrieDb> main_db, std::shared_ptr<trie::TrieDbFactory> cache_storage_factory);
     ~TrieDbOverlayImpl() override = default;
 
     outcome::result<void> commit() override;
@@ -42,14 +44,16 @@ namespace kagome::storage::trie_db_overlay {
     primitives::ExtrinsicIndex getExtrinsicIndex() const;
 
     struct ChangedValue {
-      boost::optional<common::Buffer> value;
       std::vector<primitives::ExtrinsicIndex> changers;
       bool dirty;
     };
 
     // changes made within one block
     std::map<common::Buffer, ChangedValue> extrinsics_changes_;
+    std::shared_ptr<trie::TrieDbFactory> cache_factory_;
+    std::unique_ptr<trie::TrieDb> cache_;
     std::shared_ptr<trie::TrieDb> storage_;
+    common::Logger logger_;
   };
 
 }  // namespace kagome::storage::trie_db_overlay

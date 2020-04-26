@@ -8,8 +8,8 @@
 
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/polkadot_trie_batch.hpp"
-#include "storage/trie/impl/trie_db_backend_impl.hpp"
 #include "storage/trie/impl/trie_error.hpp"
+#include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"
@@ -28,7 +28,7 @@ class TrieBatchTest : public test::BaseLevelDB_Test {
 
   void SetUp() override {
     open();
-    trie = PolkadotTrieDb::createEmpty(std::make_shared<TrieDbBackendImpl>(
+    trie = PolkadotTrieDb::createEmpty(std::make_shared<TrieStorageBackendImpl>(
         std::move(db_), kNodePrefix));
   }
 
@@ -181,7 +181,7 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
       .WillOnce(Return(PolkadotCodec::Error::UNKNOWN_NODE_TYPE));
 
   PolkadotTrieDb trie =
-      *PolkadotTrieDb::createEmpty(std::make_shared<TrieDbBackendImpl>(
+      *PolkadotTrieDb::createEmpty(std::make_shared<TrieStorageBackendImpl>(
           std::move(db), kNodePrefix));
   PolkadotTrieBatch batch{trie};
 

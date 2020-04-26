@@ -3,12 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "consensus/synchronizer/impl/synchronizer_impl.hpp"
+
 #include <gtest/gtest.h>
 
 #include <boost/optional.hpp>
 #include <functional>
 
-#include "consensus/synchronizer/impl/synchronizer_impl.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/libp2p/host/host_mock.hpp"

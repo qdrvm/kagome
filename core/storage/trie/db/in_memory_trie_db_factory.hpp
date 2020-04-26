@@ -18,7 +18,6 @@ namespace kagome::storage::trie {
     std::unique_ptr<TrieDb> makeTrieDb() const override;
 
   };
-
 }
 
 #endif  // KAGOME_IN_MEMORY_TRIE_DB_FACTORY_HPP

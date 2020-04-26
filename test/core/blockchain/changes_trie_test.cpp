@@ -21,31 +21,42 @@ using kagome::storage::trie_db_overlay::TrieDbOverlayImpl;
 using testing::_;
 using testing::Return;
 
+/**
+ * @given storage overlay with pending changes
+ * @when initialize a changes trie with the changes
+ * @then changes are passed to the trie successfully
+ */
 TEST(ChangesTrieTest, IntegrationWithOverlay) {
+  // GIVEN
   auto factory = std::make_shared<InMemoryTrieDbFactory>();
-  TrieDbOverlayImpl overlay(factory->makeTrieDb());
-  EXPECT_OUTCOME_TRUE_1(overlay.put("abc"_buf, "123"_buf));
-  EXPECT_OUTCOME_TRUE_1(overlay.put("cde"_buf, "345"_buf));
+  auto overlay = std::make_shared<TrieDbOverlayImpl>(factory->makeTrieDb());
+  EXPECT_OUTCOME_TRUE_1(overlay->put("abc"_buf, "123"_buf));
+  EXPECT_OUTCOME_TRUE_1(overlay->put("cde"_buf, "345"_buf));
 
   auto repo = std::make_shared<BlockHeaderRepositoryMock>();
   EXPECT_CALL(*repo, getNumberByHash(_)).WillRepeatedly(Return(42));
 
-  auto changes_trie_builder = ChangesTrieBuilderImpl({}, {}, factory, repo);
-  EXPECT_OUTCOME_TRUE_1(overlay.sinkChangesTo(changes_trie_builder));
+  // WHEN
+  auto changes_trie_builder = ChangesTrieBuilderImpl(overlay, factory, repo);
+  EXPECT_OUTCOME_TRUE_1(overlay->sinkChangesTo(changes_trie_builder));
+  // THEN SUCCESS
 }
 
+/**
+ * @given a changes trie with congifuration identical to a one in a substrate test
+ * @when calculationg its hash
+ * @then it matches the hash from substrate
+ */
 TEST(ChangesTrieTest, SubstrateCompatibility) {
   auto factory = std::make_shared<InMemoryTrieDbFactory>();
+  auto overlay = std::make_shared<TrieDbOverlayImpl>(factory->makeTrieDb());
   auto repo = std::make_shared<BlockHeaderRepositoryMock>();
   EXPECT_CALL(*repo, getNumberByHash(_)).WillRepeatedly(Return(99));
-  auto changes_trie_builder = ChangesTrieBuilderImpl({}, {}, factory, repo);
+  auto changes_trie_builder = ChangesTrieBuilderImpl(overlay, factory, repo);
 
   std::vector<
       std::pair<Buffer, std::vector<kagome::primitives::ExtrinsicIndex>>>
-      changes {
-          {Buffer{1}, {1}},
-          {":extrinsic_index"_buf, {1}}
-  };
+      changes{{Buffer{1}, {1}}, {":extrinsic_index"_buf, {1}}};
   for (auto &change : changes) {
     auto &key = change.first;
     EXPECT_OUTCOME_TRUE_1(

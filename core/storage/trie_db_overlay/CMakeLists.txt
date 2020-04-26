@@ -4,5 +4,4 @@ add_library(trie_db_overlay
     )
 target_link_libraries(trie_db_overlay
     buffer
-
     )

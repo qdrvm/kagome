@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
-#include "consensus/grandpa/impl/environment_impl.cpp"
+#include "consensus/grandpa/impl/environment_impl.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/consensus/grandpa/gossiper_mock.hpp"
@@ -14,6 +14,7 @@
 #include "testutil/outcome.hpp"
 
 using kagome::blockchain::BlockHeaderRepository;
+using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeMock;
 using kagome::blockchain::BlockTreeMock;

@@ -119,14 +119,11 @@ namespace kagome::extensions {
      * with given parent.
      *
      * @param parent_hash_data pointer to the hash of parent block
-     * @param parent_hash_len length of parent block
      * @param result pointer to place change trie root
      * @return 1 if change trie root was found, 0 otherwise
      */
     virtual runtime::SizeType ext_storage_changes_root(
-        runtime::WasmPointer parent_hash_data,
-        runtime::SizeType parent_hash_len,
-        runtime::WasmPointer result) = 0;
+        runtime::WasmPointer parent_hash, runtime::WasmPointer result) = 0;
 
     /**
      * @brief Gets the trie root of the storage

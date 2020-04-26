@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BLOCKCHAIN_CHANGES_TRIE_CONFIG_HPP
-#define KAGOME_BLOCKCHAIN_CHANGES_TRIE_CONFIG_HPP
+#ifndef KAGOME_STORAGE_CHANGES_TRIE_CHANGES_TRIE_CONFIG
+#define KAGOME_STORAGE_CHANGES_TRIE_CHANGES_TRIE_CONFIG
 
 #include <cstdint>
 
-namespace kagome::blockchain {
+namespace kagome::storage::changes_trie {
 
   struct ChangesTrieConfig {
     /**
@@ -17,6 +17,7 @@ namespace kagome::blockchain {
      * less or equal to 1.
      */
     uint32_t digest_interval;
+    
     /**
      * Maximal number of levels in the
      * hierarchy. 0 means that block mappings are not created at
@@ -57,6 +58,6 @@ namespace kagome::blockchain {
     s >> config.digest_interval >> config.digest_levels;
     return s;
   }
-}  // namespace kagome::blockchain
+}  // namespace kagome::storage::changes_trie
 
-#endif  // KAGOME_BLOCKCHAIN_CHANGES_TRIE_CONFIG_HPP
+#endif  // KAGOME_STORAGE_CHANGES_TRIE_CHANGES_TRIE_CONFIG

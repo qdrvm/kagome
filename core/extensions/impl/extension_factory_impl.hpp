@@ -6,8 +6,9 @@
 #ifndef KAGOME_CORE_EXTENSIONS_IMPL_EXTENSION_FACTORY_IMPL_HPP
 #define KAGOME_CORE_EXTENSIONS_IMPL_EXTENSION_FACTORY_IMPL_HPP
 
-#include "blockchain/changes_trie_builder.hpp"
 #include "extensions/extension_factory.hpp"
+
+#include "blockchain/changes_trie_builder.hpp"
 #include "storage/trie_db_overlay/trie_db_overlay.hpp"
 
 namespace kagome::extensions {
@@ -15,7 +16,7 @@ namespace kagome::extensions {
   class ExtensionFactoryImpl : public ExtensionFactory {
    public:
     ~ExtensionFactoryImpl() override = default;
-    explicit ExtensionFactoryImpl(
+    ExtensionFactoryImpl(
         std::shared_ptr<storage::trie_db_overlay::TrieDbOverlay> db,
         std::shared_ptr<blockchain::ChangesTrieBuilder> builder);
 

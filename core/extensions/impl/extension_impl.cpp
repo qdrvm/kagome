@@ -25,7 +25,14 @@ namespace kagome::extensions {
                     std::make_shared<crypto::HasherImpl>()),
         io_ext_(memory),
         memory_ext_(memory),
-        storage_ext_(db_, memory_, std::move(builder)) {}
+        storage_ext_(db_, memory_, std::move(builder)) {
+    BOOST_ASSERT(io_ext_ != nullptr);
+    BOOST_ASSERT(db_ != nullptr);
+    BOOST_ASSERT(memory_ext_ != nullptr);
+    BOOST_ASSERT(crypto_ext_ != nullptr);
+    BOOST_ASSERT(storage_ext_ != nullptr);
+    BOOST_ASSERT(memory_ != nullptr);
+  }
 
   std::shared_ptr<runtime::WasmMemory> ExtensionImpl::memory() const {
     return memory_;

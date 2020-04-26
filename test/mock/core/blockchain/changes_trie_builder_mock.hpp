@@ -14,10 +14,12 @@ namespace kagome::blockchain {
 
   class ChangesTrieBuilderMock : public ChangesTrieBuilder {
    public:
-    MOCK_METHOD2(
+    MOCK_METHOD1(
         startNewTrie,
-        ChangesTrieBuilder &(primitives::BlockHash parent,
-                             boost::optional<ChangesTrieConfig> config));
+        outcome::result<std::reference_wrapper<ChangesTrieBuilder>> 
+        (primitives::BlockHash parent));
+
+  MOCK_CONST_METHOD0(getConfig, outcome::result<OptChangesTrieConfig>());
 
     MOCK_METHOD2(insertExtrinsicsChange,
                  outcome::result<void>(

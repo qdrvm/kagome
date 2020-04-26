@@ -15,6 +15,7 @@
 
 using kagome::storage::trie::ReadonlyTrieFactory;
 using kagome::blockchain::BlockTreeMock;
+using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::common::Buffer;
 using kagome::common::Buffer;
 using kagome::primitives::BlockHash;

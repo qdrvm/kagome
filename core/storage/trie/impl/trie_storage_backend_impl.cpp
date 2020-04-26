@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/trie/impl/trie_db_backend_impl.hpp"
+#include "storage/trie/impl/trie_storage_backend_impl.hpp"
 
 #include <utility>
 
-#include "storage/trie/impl/polkadot_trie_db_backend_batch.hpp"
+#include "storage/trie/impl/trie_storage_backend_batch.hpp"
 
 namespace kagome::storage::trie {
 
-  TrieDbBackendImpl::TrieDbBackendImpl(
-      std::shared_ptr<BufferStorage> storage, common::Buffer node_prefix)
+  TrieDbBackendImpl::TrieDbBackendImpl(std::shared_ptr<BufferStorage> storage,
+                                       common::Buffer node_prefix)
       : storage_{std::move(storage)}, node_prefix_{std::move(node_prefix)} {
     BOOST_ASSERT(storage_ != nullptr);
   }

@@ -172,15 +172,13 @@ namespace kagome::extensions {
   }
 
   runtime::SizeType StorageExtension::ext_storage_changes_root(
-      runtime::WasmPointer parent_hash_data,
-      runtime::SizeType parent_hash_len,
-      runtime::WasmPointer result) {
+      runtime::WasmPointer parent_hash, runtime::WasmPointer result) {
     auto parent_hash_bytes = memory_->loadN(parent_hash_data, parent_hash_len);
     common::Hash256 parent_hash;
-    std::copy_n(
-        parent_hash_bytes.begin(), common::Hash256::size(), parent_hash.begin());
-
-    builder_->startNewTrie(common::Hash256{parent_hash}, boost::none);
+    std::copy_n(parent_hash_bytes.begin(),
+                common::Hash256::size(),
+                parent_hash.begin());
+    builder_->startNewTrie(parent_hash);
 
     auto res = db_->sinkChangesTo(*builder_);
     if (res.has_error()) {
@@ -188,7 +186,6 @@ namespace kagome::extensions {
                      res.error().message());
       return 0;
     }
-
     primitives::BlockHash result_hash = builder_->finishAndGetHash();
     common::Buffer result_buf(result_hash);
     memory_->storeBuffer(result, result_buf);

@@ -3,22 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STORAGE_TRIE_IMPL_POLKADOT_TRIE_DB_BACKEND_HPP
-#define KAGOME_STORAGE_TRIE_IMPL_POLKADOT_TRIE_DB_BACKEND_HPP
-
-#include <outcome/outcome.hpp>
+#ifndef KAGOME_STORAGE_TRIE_IMPL_TRIE_STORAGE_BACKEND
+#define KAGOME_STORAGE_TRIE_IMPL_TRIE_STORAGE_BACKEND
 
 #include "common/buffer.hpp"
-#include "storage/trie/trie_db_backend.hpp"
+#include "outcome/outcome.hpp"
+#include "storage/trie/trie_storage_backend.hpp"
 
 namespace kagome::storage::trie {
 
-  class TrieDbBackendImpl : public TrieDbBackend {
+  class TrieStorageBackendImpl : public TrieStorageBackend {
    public:
-    TrieDbBackendImpl(std::shared_ptr<BufferStorage> storage,
+    TrieStorageBackendImpl(std::shared_ptr<BufferStorage> storage,
                       common::Buffer node_prefix);
 
-    ~TrieDbBackendImpl() override = default;
+    ~TrieStorageBackendImpl() override = default;
 
     std::unique_ptr<face::MapCursor<Buffer, Buffer>> cursor() override;
     std::unique_ptr<face::WriteBatch<Buffer, Buffer>> batch() override;
@@ -39,4 +38,4 @@ namespace kagome::storage::trie {
 
 }  // namespace kagome::storage::trie
 
-#endif  // KAGOME_STORAGE_TRIE_IMPL_POLKADOT_TRIE_DB_BACKEND_HPP
+#endif  // KAGOME_STORAGE_TRIE_IMPL_TRIE_STORAGE_BACKEND

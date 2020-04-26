@@ -7,7 +7,7 @@
 #define KAGOME_STORAGE_TRIE_READONLY_TRIE_FACTORY_IMPL_HPP
 
 #include "storage/trie/readonly_trie_factory.hpp"
-#include "storage/trie/trie_db_backend.hpp"
+#include "storage/trie/trie_storage_backend.hpp"
 
 namespace kagome::storage::trie {
 

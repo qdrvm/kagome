@@ -5,13 +5,6 @@
 
 add_subdirectory(impl)
 
-add_library(changes_trie_builder
-    impl/changes_trie_builder_impl.cpp
-    )
-target_link_libraries(changes_trie_builder
-    buffer
-    )
-
 add_library(block_header_repository
     impl/key_value_block_header_repository.cpp
     impl/block_header_repository.cpp

@@ -8,7 +8,7 @@
 #include "common/visitor.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/polkadot_trie_db.hpp"
-#include "storage/trie/impl/trie_db_backend_impl.hpp"
+#include "storage/trie/impl/trie_storage_backend_impl.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain, Error, e) {
   switch (e) {
@@ -42,7 +42,7 @@ namespace kagome::blockchain {
   common::Buffer trieRoot(
       const std::vector<std::pair<common::Buffer, common::Buffer>> &key_vals) {
     auto trie_db = storage::trie::PolkadotTrieDb::createEmpty(
-        std::make_shared<storage::trie::TrieDbBackendImpl>(
+        std::make_shared<storage::trie::TrieStorageBackendImpl>(
             std::make_shared<storage::InMemoryStorage>(),
             common::Buffer{}));
 

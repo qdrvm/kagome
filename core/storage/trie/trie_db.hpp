@@ -22,6 +22,7 @@ namespace kagome::storage::trie {
      * remove storage entries which keys start with given prefix
      */
     virtual outcome::result<void> clearPrefix(const common::Buffer &buf) = 0;
+
   };
 
 }  // namespace kagome::storage::trie

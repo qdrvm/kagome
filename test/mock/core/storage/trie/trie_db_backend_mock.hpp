@@ -8,7 +8,7 @@
 
 #include <gmock/gmock.h>
 
-#include "storage/trie/trie_db_backend.hpp"
+#include "storage/trie/trie_storage_backend.hpp"
 
 namespace kagome::storage::trie {
 

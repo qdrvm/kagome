@@ -14,7 +14,7 @@
 #include "storage/trie/impl/polkadot_node.hpp"
 #include "storage/trie/impl/polkadot_trie.hpp"
 #include "storage/trie/trie_db.hpp"
-#include "storage/trie/trie_db_backend.hpp"
+#include "storage/trie/trie_storage_backend.hpp"
 
 namespace kagome::storage::trie {
 
@@ -102,29 +102,6 @@ namespace kagome::storage::trie {
      * Usually it's the path from the root to the place of insertion/deletion
      */
     outcome::result<PolkadotTrie> initTrie() const;
-
-    /**
-     * Writes a node to a persistent storage, recursively storing its
-     * descendants as well. Then replaces the node children to dummy nodes to
-     * avoid memory waste
-     */
-    outcome::result<void> storeRootNode(PolkadotNode &node);
-    outcome::result<common::Buffer> storeNode(PolkadotNode &node,
-                                              WriteBatch &batch);
-    outcome::result<void> storeChildren(BranchNode &branch,
-                                              WriteBatch &batch);
-    /**
-     * Fetches a node from the storage. A nullptr is returned in case that there
-     * is no entry for provided key. Mind that a branch node will have dummy
-     * nodes as its children
-     */
-    outcome::result<NodePtr> retrieveNode(const common::Buffer &db_key) const;
-    /**
-     * Retrieves a node child, replacing a dummy node to an actual node if
-     * needed
-     */
-    outcome::result<NodePtr> retrieveChild(const BranchPtr &parent,
-                                           uint8_t idx) const;
 
    private:
     std::shared_ptr<TrieDbBackend> db_;

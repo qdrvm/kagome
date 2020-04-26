@@ -83,7 +83,7 @@ class Primitives : public testing::Test {
       "asd",  // impl_name
       1,      // auth version
       42,     // spec version
-      2,      // impl version
+      2,      // db version
       {{Blob{array{'1', '2', '3', '4', '5', '6', '7', '8'}}, 1},  // ApiId_1
        {Blob{array{'8', '7', '6', '5', '4', '3', '2', '1'}}, 2}}  // ApiId_2
   };
