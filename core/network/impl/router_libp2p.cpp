@@ -18,16 +18,19 @@ namespace kagome::network {
       libp2p::Host &host,
       std::shared_ptr<BabeObserver> babe_observer,
       std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer,
-      std::shared_ptr<SyncProtocolObserver> sync_observer)
+      std::shared_ptr<SyncProtocolObserver> sync_observer,
+      const std::shared_ptr<Gossiper>& gossiper)
       : host_{host},
         babe_observer_{std::move(babe_observer)},
         grandpa_observer_{std::move(grandpa_observer)},
         sync_observer_{std::move(sync_observer)},
+        gossiper_{gossiper},
         log_{common::createLogger("RouterLibp2p")} {
     BOOST_ASSERT_MSG(babe_observer_ != nullptr, "babe observer is nullptr");
     BOOST_ASSERT_MSG(grandpa_observer_ != nullptr,
                      "grandpa observer is nullptr");
     BOOST_ASSERT_MSG(sync_observer_ != nullptr, "sync observer is nullptr");
+    BOOST_ASSERT_MSG(gossiper != nullptr, "gossiper is nullptr");
   }
 
   void RouterLibp2p::init() {
@@ -67,6 +70,7 @@ namespace kagome::network {
 
   void RouterLibp2p::handleGossipProtocol(
       std::shared_ptr<Stream> stream) const {
+    gossiper_->addStream(stream);
     return readGossipMessage(std::move(stream));
   }
 

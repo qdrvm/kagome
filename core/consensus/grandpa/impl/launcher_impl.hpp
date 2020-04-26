@@ -10,11 +10,11 @@
 #include "common/logger.hpp"
 #include "consensus/grandpa/completed_round.hpp"
 #include "consensus/grandpa/environment.hpp"
-#include "consensus/grandpa/gossiper.hpp"
 #include "consensus/grandpa/launcher.hpp"
 #include "consensus/grandpa/voter_set.hpp"
 #include "consensus/grandpa/voting_round.hpp"
 #include "crypto/ed25519_provider.hpp"
+#include "network/gossiper.hpp"
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome::consensus::grandpa {

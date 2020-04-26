@@ -8,9 +8,10 @@
 
 #include "application/kagome_application.hpp"
 
+#include "api/service/api_service.hpp"
 #include "application/configuration_storage.hpp"
 #include "application/impl/local_key_storage.hpp"
-#include "api/service/api_service.hpp"
+#include "injector/full_node_injector.hpp"
 
 namespace kagome::application {
 
@@ -20,7 +21,7 @@ namespace kagome::application {
   class KagomeApplicationImpl : public KagomeApplication {
     using AuthorityIndex = primitives::AuthorityIndex;
     using Babe = consensus::Babe;
-    using BabeGossiper = network::BabeGossiper;
+    using BabeGossiper = network::Gossiper;
     using BabeLottery = consensus::BabeLottery;
     using BlockBuilderFactory = authorship::BlockBuilderFactory;
     using BlockTree = blockchain::BlockTree;
@@ -33,8 +34,12 @@ namespace kagome::application {
     using SystemClock = clock::SystemClock;
     using GrandpaLauncher = consensus::grandpa::Launcher;
     using Timer = clock::Timer;
-    using InjectorType = decltype(injector::makeApplicationInjector(
-        std::string{}, std::string{}, std::string{}, uint16_t{}, uint16_t{}, uint16_t{}));
+    using InjectorType = decltype(injector::makeFullNodeInjector(std::string{},
+                                                                 std::string{},
+                                                                 std::string{},
+                                                                 uint16_t{},
+                                                                 uint16_t{},
+                                                                 uint16_t{}));
 
     template <class T>
     using sptr = std::shared_ptr<T>;

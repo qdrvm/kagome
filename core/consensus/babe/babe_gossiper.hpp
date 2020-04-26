@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_BABE_GOSSIPER_HPP
-#define KAGOME_BABE_GOSSIPER_HPP
+#ifndef KAGOME_CONSENSUS_BABE_GOSSIPER_HPP
+#define KAGOME_CONSENSUS_BABE_GOSSIPER_HPP
 
 #include <functional>
 
 #include <outcome/outcome.hpp>
 #include "network/types/block_announce.hpp"
 
-namespace kagome::network {
+namespace kagome::consensus {
   /**
    * Sends messages, related to BABE, over the Gossip protocol
    */
@@ -22,8 +22,8 @@ namespace kagome::network {
      * Send BlockAnnounce message
      * @param announce to be sent
      */
-    virtual void blockAnnounce(const BlockAnnounce &announce) = 0;
+    virtual void blockAnnounce(const network::BlockAnnounce &announce) = 0;
   };
-}  // namespace kagome::network
+}  // namespace kagome::consensus
 
-#endif  // KAGOME_BABE_GOSSIPER_HPP
+#endif  // KAGOME_CONSENSUS_BABE_GOSSIPER_HPP

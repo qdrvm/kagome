@@ -10,6 +10,7 @@
 #include "mock/core/authorship/block_builder_mock.hpp"
 #include "mock/core/runtime/block_builder_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
+#include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
 using ::testing::_;
@@ -98,9 +99,14 @@ TEST_F(ProposerTest, CreateBlockSuccess) {
       .WillOnce(Return(outcome::success()));
 
   // getReadyTransaction will return vector with single transaction
-  std::vector<Transaction> ready_transactions{{}};
+  std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_transactions{
+      std::make_pair("fakeHash"_hash256, std::make_shared<Transaction>())};
+
   EXPECT_CALL(*transaction_pool_, getReadyTransactions())
       .WillOnce(Return(ready_transactions));
+
+  EXPECT_CALL(*transaction_pool_, removeOne("fakeHash"_hash256))
+      .WillOnce(Return(outcome::success()));
 
   EXPECT_CALL(*block_builder_, bake()).WillOnce(Return(expected_block));
 
@@ -149,9 +155,11 @@ TEST_F(ProposerTest, PushFailed) {
       .WillOnce(Return(outcome::failure(
           boost::system::error_code{})));  // for xt from tx pool
 
-  // getReadyTransaction will return vector with one transaction
+  std::map<Transaction::Hash, std::shared_ptr<Transaction>> ready_transactions{
+      std::make_pair("fakeHash"_hash256, std::make_shared<Transaction>())};
+
   EXPECT_CALL(*transaction_pool_, getReadyTransactions())
-      .WillOnce(Return(std::vector<Transaction>{{}}));
+      .WillOnce(Return(ready_transactions));
 
   // when
   auto block_res =

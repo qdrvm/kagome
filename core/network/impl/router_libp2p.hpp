@@ -15,6 +15,7 @@
 #include "libp2p/peer/peer_info.hpp"
 #include "libp2p/peer/protocol.hpp"
 #include "network/babe_observer.hpp"
+#include "network/gossiper.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/router.hpp"
 #include "network/sync_protocol_observer.hpp"
@@ -23,31 +24,23 @@
 namespace kagome::network {
   class RouterLibp2p : public Router,
                        public std::enable_shared_from_this<RouterLibp2p> {
-    using Stream = libp2p::connection::Stream;
-
    public:
     RouterLibp2p(
         libp2p::Host &host,
         std::shared_ptr<BabeObserver> babe_observer,
         std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer,
-        std::shared_ptr<SyncProtocolObserver> sync_observer);
+        std::shared_ptr<SyncProtocolObserver> sync_observer,
+        const std::shared_ptr<Gossiper>& gossiper);
 
     ~RouterLibp2p() override = default;
 
     void init() override;
 
-   private:
-    /**
-     * Handle stream, which is opened over a Sync protocol
-     * @param stream to be handled
-     */
-    void handleSyncProtocol(const std::shared_ptr<Stream> &stream) const;
+    void handleSyncProtocol(const std::shared_ptr<Stream> &stream) const override;
 
-    /**
-     * Handle stream, which is opened over a Gossip protocol
-     * @param stream to be handled
-     */
-    void handleGossipProtocol(std::shared_ptr<Stream> stream) const;
+    void handleGossipProtocol(std::shared_ptr<Stream> stream) const override;
+
+   private:
     void readGossipMessage(std::shared_ptr<Stream> stream) const;
 
     /**
@@ -59,6 +52,7 @@ namespace kagome::network {
     std::shared_ptr<BabeObserver> babe_observer_;
     std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
+    std::shared_ptr<Gossiper> gossiper_;
     common::Logger log_;
   };
 }  // namespace kagome::network

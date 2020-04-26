@@ -1,0 +1,44 @@
+# Overview
+
+## Getting started
+
+### Prerequisites
+
+For now, please refer to the [Dockerfile](./housekeeping/docker/Dockerfile) to get a picture of what you need for a local build-environment.
+
+### Clone
+
+```sh
+git clone --recurse-submodules https://github.com/soramitsu/kagome
+cd kagome
+
+# Only needed if you did not use `--recurse-submodules` above
+git submodule update --init --recursive
+
+```
+
+### Build
+
+First build will likely take long time. However, you can cache binaries to [hunter-binary-cache](https://github.com/soramitsu/hunter-binary-cache) or even download binaries from the cache in case someone has already compiled project with the same compiler. To this end, you need to set up two environment variables:
+```
+GITHUB_HUNTER_USERNAME=<github account name>
+GITHUB_HUNTER_TOKEN=<github token>
+```
+To generate github token follow the [instructions](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line). Make sure `read:packages` and `write:packages` permissions are granted (step 7 in instructions).
+
+This project is can be built with
+
+```
+mkdir build && cd build
+cmake ..
+make -j 
+```
+
+Tests can be run with: 
+```
+cd build
+ctest
+```
+
+
+

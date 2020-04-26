@@ -17,6 +17,7 @@ target_link_libraries(application_injector
     babe
     babe_lottery
     block_header_repository
+    block_executor
     block_storage
     babe_synchronizer
     block_tree
@@ -46,4 +47,20 @@ target_link_libraries(application_injector
     vrf_provider
     waitable_timer
     binaryen_wasm_executor
+    )
+
+add_library(syncing_node_injector
+    syncing_node_injector.cpp
+    )
+target_link_libraries(syncing_node_injector
+    application_injector
+    syncing_round_observer
+    syncing_babe_observer
+    )
+
+add_library(full_node_injector
+    full_node_injector.cpp
+    )
+target_link_libraries(full_node_injector
+    application_injector
     )

@@ -32,7 +32,6 @@ set(kagome_LIBRARIES
         kagome::logger
         kagome::in_memory_storage
         kagome::extensions
-        kagome::memory
         kagome::ordered_trie_hash
         kagome::crypto_extension
         kagome::io_extension
@@ -43,4 +42,5 @@ set(kagome_LIBRARIES
         kagome::ed25519_types
         kagome::sr25519_provider
         kagome::ed25519_provider
+        kagome::trie_db_backend
     )
