@@ -1,4 +1,4 @@
-FROM alpine AS kagomed
+FROM alpine AS kagome
 
 MAINTAINER Dmitriy Khaustov aka xDimon (khaustov.dm@gmail.com)
 

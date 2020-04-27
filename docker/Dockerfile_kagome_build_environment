@@ -1,12 +1,29 @@
 FROM alpine AS kagome_build_environment
-
 MAINTAINER Dmitriy Khaustov aka xDimon (khaustov.dm@gmail.com)
 
-RUN apk add openssh-client python perl rust cargo git cmake make g++ ccache linux-headers
+# Install dependesciee
+RUN apk add bash openssh-client python3 perl rust cargo git cmake make g++ ccache linux-headers
 
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+# Setup python
+RUN \
+    if [[ ! -e /usr/bin/pip ]]; then ln -s /usr/bin/pip3 /usr/bin/pip; fi && \
+    if [[ ! -e /usr/bin/python ]]; then ln -sf /usr/bin/python3 /usr/bin/python; fi && \
+	python -m ensurepip && \
+    rm -r /usr/lib/python*/ensurepip && \
+    pip install --upgrade pip setuptools && \
+	pip install requests && \
+	pip install gitpython && \
+    rm -r /root/.cache
 
-RUN ln -s /usr/local/bin/docker-entrypoint.sh /
+# Install custom ssh config
+COPY .ssh /root/.ssh/
 
-ENTRYPOINT ["docker-entrypoint.sh"]
+# Initial fetching kagome repo
+RUN cd /root && \
+	git clone https://github.com/soramitsu/kagome.git && \
+	cd /root/kagome && \
+	git submodule update --init --recursive
+
+# Dummy for entrypoint
+CMD ["/bin/echo", "This is dummy sript. Use kagome.sh for build kagome within this container"]
 

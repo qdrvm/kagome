@@ -1,10 +1,26 @@
 FROM kagome_build_environment:latest AS kagome_build
-
 MAINTAINER Dmitriy Khaustov aka xDimon (khaustov.dm@gmail.com)
 
-COPY .ssh /root/.ssh/
+# Prepare for build
+RUN cd /root/kagome && git fetch && mkdir -p /root/kagome/build
 
-RUN cd /root && git clone https://github.com/soramitsu/kagome.git
+# Environment variables for activate Hunter uploading
+ARG GITHUB_HUNTER_USERNAME
+ENV GITHUB_HUNTER_USERNAME ${GITHUB_HUNTER_USERNAME}
+ARG GITHUB_HUNTER_TOKEN
+ENV GITHUB_HUNTER_TOKEN ${GITHUB_HUNTER_TOKEN}
 
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+# Fix sr25519
+RUN mkdir -p /root/.hunter/_Base/a345345/e513020/900f15b/Install/lib && \
+	ln -s /root/.hunter/_Base/a345345/e513020/900f15b/Install/lib64/libsr25519crust.a /root/.hunter/_Base/a345345/e513020/900f15b/Install/lib/libsr25519crust.a
 
+# Initial cmake configure for initialize Hunter content
+RUN cd /root/kagome/build && \
+	cmake \
+		-G "Unix Makefiles" \
+		-DCMAKE_BUILD_TYPE=Release \
+        -j \
+        ..
+
+# Cleanup C-cache after Hunter manipulation on prev step
+RUN ccache -C

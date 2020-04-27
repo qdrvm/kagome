@@ -43,7 +43,6 @@ else
 	cd /root/kagome >/dev/null
 fi
 git reset --hard origin/master >> ${LOGILE} 2>&1
-#git reset --hard feature/demo-preparation >> ${LOGILE} 2>&1
 if [ ! $? ]
 then
   echo "- FAIL" &&

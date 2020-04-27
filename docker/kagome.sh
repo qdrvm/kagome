@@ -2,25 +2,19 @@
 
 cd `dirname $0`
 
-KAGOME_PREFIX=/opt/docker/kagome
+CODE=kagome
 
 DOCKERHUB_PUBLISH=0 # Set '1' for ability to publish containers
-DOCKERHUB_USERNAME=kagome
+DOCKERHUB_USERNAME=soramitsu
 DOCKERHUB_PASSWORD="******"
-DOCKERHUB_IMAGE=${DOCKERHUB_USERNAME}/kagome
+DOCKERHUB_IMAGE=${DOCKERHUB_USERNAME}/${CODE}
 
-CODE=kagome
 
 BUILD_ENVIRONMENT_IMAGE=${CODE}_build_environment
 BUILD_IMAGE=${CODE}_build
 BUILD_CONTAINER=${CODE}_build
 
 BINARIES_IMAGE=${CODE}
-BINARIES_CONTAINER=${CODE}
-
-DATABASE_CONTAINER=${CODE}_db
-
-NETWORK=${CODE}_net
 
 _build_env()
 {
@@ -54,8 +48,10 @@ _build_env()
 	rm -Rf context
 	mkdir -p context
 
-	cp -a kagome_build-entrypoint.sh context/docker-entrypoint.sh
-	chmod u=rwx,g=rx,o=rx context/docker-entrypoint.sh
+	echo "Host *" > context/.ssh/config
+	echo "  StrictHostKeyChecking no" >> context/.ssh/config
+	echo "  UserKnownHostsFile=/dev/null" >> context/.ssh/config
+	chmod -R u+rw,g-w,o-w context/.ssh
 
 	docker image build \
 		${NOCACHE} \
@@ -74,7 +70,7 @@ _publish_env()
 
   if [ "${DOCKERHUB_PUBLISH}" -ne "1" ]
   then
-  	echo "Not enabled!" > 1>&2
+  	echo "Not enabled!" >&2
   	echo "Set DOCKERHUB_PUBLISH to '1' and setup passwors in DOCKERHUB_PASSWORD before"
   	exit 1
   fi
@@ -85,7 +81,7 @@ _publish_env()
 		exit 1
 	fi
 
-	if [ $(docker-credential-secretservice list | grep ":\"${DOCKERHUB_USERNAME}\"" | wc -l) = "0" ]
+	if [ "$(docker-credential-secretservice list | grep ":\"${DOCKERHUB_USERNAME}\"" | wc -l)" = "0" ]
 	then
 		echo "Check and save credentials"
 		echo ${DOCKERHUB_PASSWORD} | \
@@ -130,18 +126,11 @@ _prepare()
 		return 0
 	fi
 
-	rm -Rf context
-	mkdir -p context
-
-	cp -a kagome_build-_ssh context/.ssh
-	chmod -R u+rw,g-w,o-w context/.ssh
-#	chmod g=,o= context/.ssh/id_rsa
-	cp -a kagome_build-entrypoint.sh context/docker-entrypoint.sh
-	chmod u=rwx,g=rx,o=rx context/docker-entrypoint.sh
-
 	docker image build \
 		${NOCACHE} \
 		--tag ${BUILD_CONTAINER} \
+		--build-arg GITHUB_HUNTER_USERNAME \
+		--build-arg GITHUB_HUNTER_TOKEN \
 		--file Dockerfile_kagome_build \
 		context
 
@@ -152,18 +141,30 @@ _build()
 {
 	_prepare "$@"
 
+BATCH=<<END
+  git fetch
+  git reset --hard feature/demo-preparation
+  git submodule sync --recursive
+  cmake -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=Release -j ..
+  cmake --build . --target kagome_full kagome_syncing -- -j | egrep "\[\s*[0-9]+%\]" | sed -e 's/^\[[ ]*\([0-9]+\)%\].*/\1/'
+  strip /root/kagome/build/node/kagome_full/kagome_full > /dev/null
+  strip /root/kagome/build/node/kagome_syncing/kagome_syncing > /dev/null
+END
+
 	if [ -z "`docker inspect -f '{{.State.Running}}' ${BUILD_CONTAINER} 2>/dev/null`" ]
 	then
 		echo "Create and start '${BUILD_CONTAINER}' container"
-		docker container run \
+		echo ${BATCH} \
+		| docker container run \
 			--name ${BUILD_CONTAINER} \
-			--tty \
 			--interactive \
-			${BUILD_CONTAINER}
+			${BUILD_CONTAINER} \
+			ash -c
 	elif [ "`docker inspect -f '{{.State.Running}}' ${BUILD_CONTAINER} 2>/dev/null`" = "false" ]
 	then
 		echo "Start '${BUILD_CONTAINER}' container"
-		docker container start \
+		echo ${BATCH} \
+		| docker container start \
 			--attach \
 			--interactive \
 			${BUILD_CONTAINER}
@@ -175,7 +176,8 @@ _build()
 		do
 			sleep 1
 		done
-		docker container start \
+		echo ${BATCH} \
+		| docker container start \
 			--attach \
 			--interactive \
 			${BUILD_CONTAINER}
@@ -219,12 +221,12 @@ _publish()
 
   if [ "${DOCKERHUB_PUBLISH}" -ne "1" ]
   then
-  	echo "Not enabled!" > 1>&2
+  	echo "Not enabled!" >&2
   	echo "Set DOCKERHUB_PUBLISH to '1' and setup passwors in DOCKERHUB_PASSWORD before"
   	exit 1
   fi
 
-	if [ $(docker-credential-secretservice list | grep ":\"${DOCKERHUB_USERNAME}\"" | wc -l) = "0" ]
+	if [ "$(docker-credential-secretservice list | grep ":\"${DOCKERHUB_USERNAME}\"" | wc -l)" = "0" ]
 	then
 		echo "Check and save credentials"
 		echo ${DOCKERHUB_PASSWORD} | \
@@ -247,7 +249,6 @@ _usage()
 	echo "	$0 publish_env          - publish prev docker image on dockerhub"
 	echo "	$0 build [OPTIONS]      - build binaries and docker image"
 	echo "	$0 publish              - publish prev docker image on dockerhub"
-#	echo "	$0 makedeb     - make debian package"
   echo "OPTIONS is one of follow"
   echo "  rebuild - for force rebuild docker container"
   echo "  nocache - for avoid using of docker cache"
