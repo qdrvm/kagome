@@ -8,9 +8,8 @@
 namespace kagome::runtime::binaryen {
 
   BabeApiImpl::BabeApiImpl(
-      const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-      const std::shared_ptr<extensions::ExtensionFactory> &extension_factory)
-      : RuntimeApi(wasm_provider, extension_factory) {}
+      const std::shared_ptr<RuntimeManager> &runtime_manager)
+      : RuntimeApi(runtime_manager) {}
 
   outcome::result<primitives::BabeConfiguration> BabeApiImpl::configuration() {
     return execute<primitives::BabeConfiguration>("BabeApi_configuration");

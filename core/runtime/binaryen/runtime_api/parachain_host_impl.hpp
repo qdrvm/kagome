@@ -6,11 +6,8 @@
 #ifndef KAGOME_CORE_RUNTIME_BINARYEN_PARACHAIN_HOST_IMPL_HPP
 #define KAGOME_CORE_RUNTIME_BINARYEN_PARACHAIN_HOST_IMPL_HPP
 
-#include "extensions/extension.hpp"
 #include "runtime/binaryen/runtime_api/runtime_api.hpp"
 #include "runtime/parachain_host.hpp"
-#include "runtime/tagged_transaction_queue.hpp"
-#include "runtime/wasm_provider.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -22,9 +19,7 @@ namespace kagome::runtime::binaryen {
      * @param extension extension instance
      * @param codec scale codec instance
      */
-    ParachainHostImpl(
-        const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-        const std::shared_ptr<extensions::ExtensionFactory> &extension_factory);
+    explicit ParachainHostImpl(const std::shared_ptr<RuntimeManager> &runtime_manager);
 
     ~ParachainHostImpl() override = default;
 

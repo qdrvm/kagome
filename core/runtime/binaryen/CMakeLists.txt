@@ -22,12 +22,21 @@ target_link_libraries(binaryen_runtime_external_interface
     logger
     )
 
+add_library(binaryen_runtime_manager
+    runtime_manager.hpp
+    runtime_manager.cpp
+    )
+target_link_libraries(binaryen_runtime_manager
+    binaryen_runtime_external_interface
+    )
+
 add_library(binaryen_wasm_executor
     wasm_executor.hpp
     wasm_executor.cpp
     )
 target_link_libraries(binaryen_wasm_executor
     binaryen::binaryen
+    binaryen_runtime_manager
     logger
     )
 
