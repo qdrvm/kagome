@@ -26,7 +26,7 @@ namespace kagome::runtime::binaryen {
 
   outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
                              std::shared_ptr<WasmMemory>>>
-  RuntimeManager::getRuntimeEvironment() {
+  RuntimeManager::getRuntimeEnvironment() {
     const auto &state_code = wasm_provider_->getStateCode();
 
     if (state_code.empty()) {

@@ -13,11 +13,16 @@
 #include "crypto/hasher.hpp"
 #include "extensions/extension_factory.hpp"
 #include "outcome/outcome.hpp"
-#include "runtime/wasm_provider.hpp"
 #include "runtime/binaryen/runtime_external_interface.hpp"
+#include "runtime/wasm_provider.hpp"
 
 namespace kagome::runtime::binaryen {
 
+  /**
+   * @brief RuntimeManager is mechanic of prepare environment for launch execute
+   *  function of runtime APIs, and supports in-memory cache for reuse existed
+   *  environments, avoid hi-load operations.
+   */
   class RuntimeManager {
    public:
     enum class Error { EMPTY_STATE_CODE = 1, INVALID_STATE_CODE };
@@ -31,11 +36,12 @@ namespace kagome::runtime::binaryen {
           hasher_(std::move(hasher)) {
       BOOST_ASSERT(wasm_provider_);
       BOOST_ASSERT(extension_factory_);
+      BOOST_ASSERT(hasher_);
     }
 
     outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
                                std::shared_ptr<WasmMemory>>>
-    getRuntimeEvironment();
+    getRuntimeEnvironment();
 
    private:
     outcome::result<std::shared_ptr<wasm::Module>> prepareModule(

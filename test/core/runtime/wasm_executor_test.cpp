@@ -63,7 +63,7 @@ class WasmExecutorTest : public ::testing::Test {
  * @then proper result is returned
  */
 TEST_F(WasmExecutorTest, ExecuteCode) {
-  EXPECT_OUTCOME_TRUE(environment, runtime_manager_->getRuntimeEvironment());
+  EXPECT_OUTCOME_TRUE(environment, runtime_manager_->getRuntimeEnvironment());
   auto &&[module, memory] = std::move(environment);
 
   auto res = executor_->call(
