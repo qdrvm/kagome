@@ -37,7 +37,7 @@ class CoreTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    core_ = std::make_shared<CoreImpl>(wasm_provider_, extension_factory_);
+    core_ = std::make_shared<CoreImpl>(runtime_manager_);
   }
 
  protected:

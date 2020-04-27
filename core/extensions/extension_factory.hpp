@@ -10,7 +10,9 @@
 
 namespace kagome::extensions {
 
-  // Creates extension containing provided wasm memory
+  /**
+   * Creates extension containing provided wasm memory
+   */
   class ExtensionFactory {
    public:
     virtual ~ExtensionFactory() = default;

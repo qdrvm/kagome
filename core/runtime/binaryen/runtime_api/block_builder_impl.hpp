@@ -8,15 +8,13 @@
 
 #include "runtime/binaryen/runtime_api/runtime_api.hpp"
 #include "runtime/block_builder.hpp"
-#include "runtime/wasm_provider.hpp"
 
 namespace kagome::runtime::binaryen {
 
   class BlockBuilderImpl : public RuntimeApi, public BlockBuilder {
    public:
-    BlockBuilderImpl(
-        const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-        const std::shared_ptr<extensions::ExtensionFactory> &extension_factory);
+    explicit BlockBuilderImpl(
+        const std::shared_ptr<RuntimeManager> &runtime_manager);
 
     ~BlockBuilderImpl() override = default;
 

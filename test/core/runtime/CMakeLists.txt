@@ -51,6 +51,10 @@ addtest(wasm_executor_test
 target_link_libraries(wasm_executor_test
     binaryen_wasm_executor
     basic_wasm_provider
+    polkadot_trie_db
+    trie_db_backend
+    in_memory_storage
+    extension_factory
     )
 
 addtest(parachain_test

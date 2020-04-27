@@ -8,16 +8,14 @@
 
 #include "runtime/binaryen/runtime_api/runtime_api.hpp"
 #include "runtime/tagged_transaction_queue.hpp"
-#include "runtime/wasm_provider.hpp"
 
 namespace kagome::runtime::binaryen {
 
   class TaggedTransactionQueueImpl : public RuntimeApi,
                                      public TaggedTransactionQueue {
    public:
-    TaggedTransactionQueueImpl(
-        const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-        const std::shared_ptr<extensions::ExtensionFactory> &extension_factory);
+    explicit TaggedTransactionQueueImpl(
+        const std::shared_ptr<RuntimeManager> &runtime_manager);
 
     ~TaggedTransactionQueueImpl() override = default;
 
