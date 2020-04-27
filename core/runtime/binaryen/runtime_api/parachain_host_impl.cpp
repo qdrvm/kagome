@@ -11,7 +11,7 @@ namespace kagome::runtime::binaryen {
   using primitives::parachain::ParaId;
   using primitives::parachain::ValidatorId;
 
-  explicit ParachainHostImpl::ParachainHostImpl(
+  ParachainHostImpl::ParachainHostImpl(
       const std::shared_ptr<RuntimeManager> &runtime_manager)
       : RuntimeApi(runtime_manager) {}
 

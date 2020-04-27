@@ -6,8 +6,8 @@
 #ifndef KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_API_BABE_API_IMPL_HPP
 #define KAGOME_CORE_RUNTIME_BINARYEN_RUNTIME_API_BABE_API_IMPL_HPP
 
-#include "runtime/binaryen/runtime_api/runtime_api.hpp"
 #include "runtime/babe_api.hpp"
+#include "runtime/binaryen/runtime_api/runtime_api.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -15,7 +15,8 @@ namespace kagome::runtime::binaryen {
    public:
     ~BabeApiImpl() override = default;
 
-    explicit BabeApiImpl(const std::shared_ptr<RuntimeManager> &runtime_manager);
+    explicit BabeApiImpl(
+        const std::shared_ptr<RuntimeManager> &runtime_manager);
 
     outcome::result<primitives::BabeConfiguration> configuration() override;
   };

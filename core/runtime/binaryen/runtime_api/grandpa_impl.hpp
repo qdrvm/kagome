@@ -13,7 +13,8 @@ namespace kagome::runtime::binaryen {
 
   class GrandpaImpl : public RuntimeApi, public Grandpa {
    public:
-    GrandpaImpl(const std::shared_ptr<RuntimeManager> &runtime_manager);
+    explicit GrandpaImpl(
+        const std::shared_ptr<RuntimeManager> &runtime_manager);
 
     ~GrandpaImpl() override = default;
 

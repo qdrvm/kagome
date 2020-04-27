@@ -13,7 +13,8 @@ namespace kagome::runtime::binaryen {
 
   class BlockBuilderImpl : public RuntimeApi, public BlockBuilder {
    public:
-    explicit BlockBuilderImpl(const std::shared_ptr<RuntimeManager> &runtime_manager);
+    explicit BlockBuilderImpl(
+        const std::shared_ptr<RuntimeManager> &runtime_manager);
 
     ~BlockBuilderImpl() override = default;
 

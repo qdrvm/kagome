@@ -24,6 +24,18 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
 
 namespace kagome::runtime::binaryen {
 
+  RuntimeManager::RuntimeManager(
+      std::shared_ptr<runtime::WasmProvider> wasm_provider,
+      std::shared_ptr<extensions::ExtensionFactory> extension_factory,
+      std::shared_ptr<crypto::Hasher> hasher)
+      : wasm_provider_(std::move(wasm_provider)),
+        extension_factory_(std::move(extension_factory)),
+        hasher_(std::move(hasher)) {
+    BOOST_ASSERT(wasm_provider_);
+    BOOST_ASSERT(extension_factory_);
+    BOOST_ASSERT(hasher_);
+  }
+
   outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
                              std::shared_ptr<WasmMemory>>>
   RuntimeManager::getRuntimeEnvironment() {
