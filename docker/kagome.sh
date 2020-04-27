@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd `dirname $0`
+cd $(dirname $0)
 
 CODE=kagome
 
@@ -9,15 +9,13 @@ DOCKERHUB_USERNAME=soramitsu
 DOCKERHUB_PASSWORD="******"
 DOCKERHUB_IMAGE=${DOCKERHUB_USERNAME}/${CODE}
 
-
 BUILD_ENVIRONMENT_IMAGE=${CODE}_build_environment
 BUILD_IMAGE=${CODE}_build
 BUILD_CONTAINER=${CODE}_build
 
 BINARIES_IMAGE=${CODE}
 
-_build_env()
-{
+_build_env() {
   local REBUILD
   local NOCACHE
 
@@ -29,76 +27,69 @@ _build_env()
     fi
   done
 
-  OLD_IMG=`docker images --quiet ${BUILD_ENVIRONMENT_IMAGE} 2>/dev/null`
-	if [ -z "$OLD_IMG" ]
-	then
-		echo "Build new '${BUILD_ENVIRONMENT_IMAGE}' image"
-	elif [ "$REBUILD" = "1" ]
-	then
-	  if [ -z "$NOCACHE" ]; then
-  		echo "Partial rebuild '${BUILD_ENVIRONMENT_IMAGE}' image"
-	  else
-  		echo "Total rebuild '${BUILD_ENVIRONMENT_IMAGE}' image"
-	  fi
-	else
-		echo "Image '${BUILD_ENVIRONMENT_IMAGE}' already exists"
-		return 0
-	fi
-
-	rm -Rf context
-	mkdir -p context
-
-	echo "Host *" > context/.ssh/config
-	echo "  StrictHostKeyChecking no" >> context/.ssh/config
-	echo "  UserKnownHostsFile=/dev/null" >> context/.ssh/config
-	chmod -R u+rw,g-w,o-w context/.ssh
-
-	docker image build \
-		${NOCACHE} \
-		--rm \
-		--tag ${BUILD_ENVIRONMENT_IMAGE} \
-		--file Dockerfile_${BUILD_ENVIRONMENT_IMAGE} \
-		context
-
-	rm -Rf context
-}
-
-_publish_env()
-{
-	echo
-	echo "Publish '${BUILD_ENVIRONMENT_IMAGE}' image"
-
-  if [ "${DOCKERHUB_PUBLISH}" -ne "1" ]
-  then
-  	echo "Not enabled!" >&2
-  	echo "Set DOCKERHUB_PUBLISH to '1' and setup passwors in DOCKERHUB_PASSWORD before"
-  	exit 1
+  OLD_IMG=$(docker images --quiet ${BUILD_ENVIRONMENT_IMAGE} 2>/dev/null)
+  if [ -z "$OLD_IMG" ]; then
+    echo "Build new '${BUILD_ENVIRONMENT_IMAGE}' image"
+  elif [ "$REBUILD" = "1" ]; then
+    if [ -z "$NOCACHE" ]; then
+      echo "Partial rebuild '${BUILD_ENVIRONMENT_IMAGE}' image"
+    else
+      echo "Total rebuild '${BUILD_ENVIRONMENT_IMAGE}' image"
+    fi
+  else
+    echo "Image '${BUILD_ENVIRONMENT_IMAGE}' already exists"
+    return 0
   fi
 
-	if [ -z "`docker images --quiet ${BUILD_ENVIRONMENT_IMAGE} 2>/dev/null`" ]
-	then
-		echo "Image ${BUILD_ENVIRONMENT_IMAGE} not found. Make it by command 'build_env'" >&2
-		exit 1
-	fi
+  rm -Rf context
+  mkdir -p context
 
-	if [ "$(docker-credential-secretservice list | grep ":\"${DOCKERHUB_USERNAME}\"" | wc -l)" = "0" ]
-	then
-		echo "Check and save credentials"
-		echo ${DOCKERHUB_PASSWORD} | \
-		docker login \
-			--username ${DOCKERHUB_USERNAME} \
-			--password-stdin
-	fi
+  echo "Host *" >context/.ssh/config
+  echo "  StrictHostKeyChecking no" >>context/.ssh/config
+  echo "  UserKnownHostsFile=/dev/null" >>context/.ssh/config
+  chmod -R u+rw,g-w,o-w context/.ssh
 
-	echo "Set tag ${DOCKERHUB_IMAGE}:build_environment for ${BUILD_CONTAINER}_environment"
-	docker tag ${BUILD_CONTAINER}_environment ${DOCKERHUB_IMAGE}:build_environment
+  docker image build \
+    ${NOCACHE} \
+    --rm \
+    --tag ${BUILD_ENVIRONMENT_IMAGE} \
+    --file Dockerfile_${BUILD_ENVIRONMENT_IMAGE} \
+    context
 
-	echo "Push ${DOCKERHUB_IMAGE}:build_environment"
-	docker push ${DOCKERHUB_IMAGE}:build_environment
+  rm -Rf context
 }
 
-_prepare()
-{
+_publish_env() {
+  echo
+  echo "Publish '${BUILD_ENVIRONMENT_IMAGE}' image"
+
+  if [ "${DOCKERHUB_PUBLISH}" -ne "1" ]; then
+    echo "Not enabled!" >&2
+    echo "Set DOCKERHUB_PUBLISH to '1' and setup passwors in DOCKERHUB_PASSWORD before"
+    exit 1
+  fi
+
+  if [ -z "$(docker images --quiet ${BUILD_ENVIRONMENT_IMAGE} 2>/dev/null)" ]; then
+    echo "Image ${BUILD_ENVIRONMENT_IMAGE} not found. Make it by command 'build_env'" >&2
+    exit 1
+  fi
+
+  if [ "$(docker-credential-secretservice list | grep ":\"${DOCKERHUB_USERNAME}\"" | wc -l)" = "0" ]; then
+    echo "Check and save credentials"
+    echo ${DOCKERHUB_PASSWORD} |
+      docker login \
+        --username ${DOCKERHUB_USERNAME} \
+        --password-stdin
+  fi
+
+  echo "Set tag ${DOCKERHUB_IMAGE}:build_environment for ${BUILD_CONTAINER}_environment"
+  docker tag ${BUILD_CONTAINER}_environment ${DOCKERHUB_IMAGE}:build_environment
+
+  echo "Push ${DOCKERHUB_IMAGE}:build_environment"
+  docker push ${DOCKERHUB_IMAGE}:build_environment
+}
+
+_prepare() {
   local REBUILD
   local NOCACHE
 
@@ -110,38 +101,35 @@ _prepare()
     fi
   done
 
-	if [ -z "`docker images --quiet ${BUILD_IMAGE} 2>/dev/null`" ]
-	then
-		echo "Build new '${BUILD_IMAGE}' image"
-		NOCACHE=
-	elif [ "$1" = "rebuild" ]
-	then
-	  if [ -z "$NOCACHE" ]; then
-  		echo "Partial rebuild '${BUILD_IMAGE}' image"
-	  else
-	  	echo "Total rebuild '${BUILD_IMAGE}' image"
-	  fi
-	else
-		echo "Image '${BUILD_IMAGE}' is ready"
-		return 0
-	fi
+  if [ -z "$(docker images --quiet ${BUILD_IMAGE} 2>/dev/null)" ]; then
+    echo "Build new '${BUILD_IMAGE}' image"
+    NOCACHE=
+  elif [ "$1" = "rebuild" ]; then
+    if [ -z "$NOCACHE" ]; then
+      echo "Partial rebuild '${BUILD_IMAGE}' image"
+    else
+      echo "Total rebuild '${BUILD_IMAGE}' image"
+    fi
+  else
+    echo "Image '${BUILD_IMAGE}' is ready"
+    return 0
+  fi
 
-	docker image build \
-		${NOCACHE} \
-		--tag ${BUILD_CONTAINER} \
-		--build-arg GITHUB_HUNTER_USERNAME \
-		--build-arg GITHUB_HUNTER_TOKEN \
-		--file Dockerfile_kagome_build \
-		context
+  docker image build \
+    ${NOCACHE} \
+    --tag ${BUILD_CONTAINER} \
+    --build-arg GITHUB_HUNTER_USERNAME \
+    --build-arg GITHUB_HUNTER_TOKEN \
+    --file Dockerfile_kagome_build \
+    context
 
-	rm -Rf context
+  rm -Rf context
 }
 
-_build()
-{
-	_prepare "$@"
+_build() {
+  _prepare "$@"
 
-BATCH=<<END
+  BATCH= <<END
   git fetch
   git reset --hard feature/demo-preparation
   git submodule sync --recursive
@@ -151,119 +139,123 @@ BATCH=<<END
   strip /root/kagome/build/node/kagome_syncing/kagome_syncing > /dev/null
 END
 
-	if [ -z "`docker inspect -f '{{.State.Running}}' ${BUILD_CONTAINER} 2>/dev/null`" ]
-	then
-		echo "Create and start '${BUILD_CONTAINER}' container"
-		echo ${BATCH} \
-		| docker container run \
-			--name ${BUILD_CONTAINER} \
-			--interactive \
-			${BUILD_CONTAINER} \
-			ash -c
-	elif [ "`docker inspect -f '{{.State.Running}}' ${BUILD_CONTAINER} 2>/dev/null`" = "false" ]
-	then
-		echo "Start '${BUILD_CONTAINER}' container"
-		echo ${BATCH} \
-		| docker container start \
-			--attach \
-			--interactive \
-			${BUILD_CONTAINER}
-	elif [ "`docker inspect -f '{{.State.Running}}' ${BUILD_CONTAINER} 2>/dev/null`" = "true" ]
-	then
-		echo "Restart '${BUILD_CONTAINER}' container"
-		docker container stop ${BUILD_CONTAINER}
-		while [ "`docker inspect -f '{{.State.Running}}' ${BUILD_CONTAINER}`" = "true" ]
-		do
-			sleep 1
-		done
-		echo ${BATCH} \
-		| docker container start \
-			--attach \
-			--interactive \
-			${BUILD_CONTAINER}
-	fi
-
-	echo "Make context for 'kagome' image"
-
-	rm -Rf context
-	mkdir -p context
-
-  docker cp ${BUILD_CONTAINER}:/root/kagome/build/node/kagome_full/kagome_full context/kagome_full 2>/dev/null \
-		|| (echo "Can't fetch kagome_full. Terminate." >&2 && false) || exit 1
-  docker cp ${BUILD_CONTAINER}:/root/kagome/build/node/kagome_syncing/kagome_syncing context/kagome_syncing 2>/dev/null \
-		|| (echo "Can't fetch kagome_syncing. Terminate." >&2 && false) || exit 1
-	docker cp -a ${BUILD_CONTAINER}:/root/kagome/node/config context/config 2>/dev/null \
-		|| (echo "Can't fetch config. Terminate." >&2 && false) || exit 1
-
-	echo
-	echo "Stop '${BUILD_CONTAINER}' container"
-
-	docker container stop ${BUILD_CONTAINER}
-
-	echo
-	echo "Make '${BINARIES_IMAGE}_local' image"
-	docker image build \
-		${NOCACHE} \
-		--rm \
-		--tag ${BINARIES_IMAGE}_local \
-		--file Dockerfile_kagome \
-		context
-
-	docker tag ${BINARIES_IMAGE}_local ${BINARIES_IMAGE}
-
-	rm -Rf context
-}
-
-_publish()
-{
-	echo
-	echo "Publish '${BINARIES_IMAGE}' image"
-
-  if [ "${DOCKERHUB_PUBLISH}" -ne "1" ]
-  then
-  	echo "Not enabled!" >&2
-  	echo "Set DOCKERHUB_PUBLISH to '1' and setup passwors in DOCKERHUB_PASSWORD before"
-  	exit 1
+  if [ -z "$(docker inspect -f '{{.State.Running}}' ${BUILD_CONTAINER} 2>/dev/null)" ]; then
+    echo "Create and start '${BUILD_CONTAINER}' container"
+    echo ${BATCH} |
+      docker container run \
+        --name ${BUILD_CONTAINER} \
+        --interactive \
+        ${BUILD_CONTAINER} \
+        ash -c
+  elif [ "$(docker inspect -f '{{.State.Running}}' ${BUILD_CONTAINER} 2>/dev/null)" = "false" ]; then
+    echo "Start '${BUILD_CONTAINER}' container"
+    echo ${BATCH} |
+      docker container start \
+        --attach \
+        --interactive \
+        ${BUILD_CONTAINER}
+  elif [ "$(docker inspect -f '{{.State.Running}}' ${BUILD_CONTAINER} 2>/dev/null)" = "true" ]; then
+    echo "Restart '${BUILD_CONTAINER}' container"
+    docker container stop ${BUILD_CONTAINER}
+    while [ "$(docker inspect -f '{{.State.Running}}' ${BUILD_CONTAINER})" = "true" ]; do
+      sleep 1
+    done
+    echo ${BATCH} |
+      docker container start \
+        --attach \
+        --interactive \
+        ${BUILD_CONTAINER}
   fi
 
-	if [ "$(docker-credential-secretservice list | grep ":\"${DOCKERHUB_USERNAME}\"" | wc -l)" = "0" ]
-	then
-		echo "Check and save credentials"
-		echo ${DOCKERHUB_PASSWORD} | \
-		docker login \
-			--username ${DOCKERHUB_USERNAME} \
-			--password-stdin
-	fi
+  echo "Make context for 'kagome' image"
 
-	echo "Set tag ${DOCKERHUB_IMAGE}:$1 for ${BINARIES_IMAGE}_local"
-	docker tag ${BINARIES_IMAGE}_local ${DOCKERHUB_IMAGE}:$1
+  rm -Rf context
+  mkdir -p context
 
-	echo "Push ${DOCKERHUB_IMAGE}:$1"
-	docker push ${DOCKERHUB_IMAGE}:$1
+  docker cp ${BUILD_CONTAINER}:/root/kagome/build/node/kagome_full/kagome_full context/kagome_full 2>/dev/null ||
+    (echo "Can't fetch kagome_full. Terminate." >&2 && false) || exit 1
+  docker cp ${BUILD_CONTAINER}:/root/kagome/build/node/kagome_syncing/kagome_syncing context/kagome_syncing 2>/dev/null ||
+    (echo "Can't fetch kagome_syncing. Terminate." >&2 && false) || exit 1
+  docker cp -a ${BUILD_CONTAINER}:/root/kagome/node/config context/config 2>/dev/null ||
+    (echo "Can't fetch config. Terminate." >&2 && false) || exit 1
+
+  echo
+  echo "Stop '${BUILD_CONTAINER}' container"
+
+  docker container stop ${BUILD_CONTAINER}
+
+  echo
+  echo "Make '${BINARIES_IMAGE}_local' image"
+  docker image build \
+    ${NOCACHE} \
+    --rm \
+    --tag ${BINARIES_IMAGE}_local \
+    --file Dockerfile_kagome \
+    context
+
+  docker tag ${BINARIES_IMAGE}_local ${BINARIES_IMAGE}
+
+  rm -Rf context
 }
 
-_usage()
-{
-	echo "Usage:"
-	echo "	$0 build_env [OPTIONS]  - build container with evironment for build kagome binaries"
-	echo "	$0 publish_env          - publish prev docker image on dockerhub"
-	echo "	$0 build [OPTIONS]      - build binaries and docker image"
-	echo "	$0 publish              - publish prev docker image on dockerhub"
+_publish() {
+  echo
+  echo "Publish '${BINARIES_IMAGE}' image"
+
+  if [ "${DOCKERHUB_PUBLISH}" -ne "1" ]; then
+    echo "Not enabled!" >&2
+    echo "Set DOCKERHUB_PUBLISH to '1' and setup passwors in DOCKERHUB_PASSWORD before"
+    exit 1
+  fi
+
+  if [ "$(docker-credential-secretservice list | grep ":\"${DOCKERHUB_USERNAME}\"" | wc -l)" = "0" ]; then
+    echo "Check and save credentials"
+    echo ${DOCKERHUB_PASSWORD} |
+      docker login \
+        --username ${DOCKERHUB_USERNAME} \
+        --password-stdin
+  fi
+
+  echo "Set tag ${DOCKERHUB_IMAGE}:$1 for ${BINARIES_IMAGE}_local"
+  docker tag ${BINARIES_IMAGE}_local ${DOCKERHUB_IMAGE}:$1
+
+  echo "Push ${DOCKERHUB_IMAGE}:$1"
+  docker push ${DOCKERHUB_IMAGE}:$1
+}
+
+_usage() {
+  echo "Usage:"
+  echo "	$0 build_env [OPTIONS]  - build container with evironment for build kagome binaries"
+  echo "	$0 publish_env          - publish prev docker image on dockerhub"
+  echo "	$0 build [OPTIONS]      - build binaries and docker image"
+  echo "	$0 publish              - publish prev docker image on dockerhub"
   echo "OPTIONS is one of follow"
   echo "  rebuild - for force rebuild docker container"
   echo "  nocache - for avoid using of docker cache"
-	exit 1
+  exit 1
 }
 
 for ARG in "$@"; do
-	if [ "$ARG" = "build" ]; then BUILD=1
-	elif [ "$ARG" = "publish" ]; then PUBLISH=1
-	elif [ "$ARG" = "build_env" ]; then BUILD_ENV=1
-	elif [ "$ARG" = "publish_env" ]; then PUBLISH_ENV=1
-	elif [ "$ARG" = "makedeb" ]; then MAKEDEB=1
-	elif [ "$ARG" = "rebuild" ]; then REBUILD=1
-	elif [ "$ARG" = "nocache" ]; then NOCACHE=1
-	else echo "Unknown option '$ARG'"; echo; _usage; exit 1; fi
+  if [ "$ARG" = "build" ]; then
+    BUILD=1
+  elif [ "$ARG" = "publish" ]; then
+    PUBLISH=1
+  elif [ "$ARG" = "build_env" ]; then
+    BUILD_ENV=1
+  elif [ "$ARG" = "publish_env" ]; then
+    PUBLISH_ENV=1
+  elif [ "$ARG" = "makedeb" ]; then
+    MAKEDEB=1
+  elif [ "$ARG" = "rebuild" ]; then
+    REBUILD=1
+  elif [ "$ARG" = "nocache" ]; then
+    NOCACHE=1
+  else
+    echo "Unknown option '$ARG'"
+    echo
+    _usage
+    exit 1
+  fi
 done
 
 USAGE=1
@@ -277,32 +269,32 @@ if [ "$NOCACHE" = "1" ]; then
 fi
 
 if [ "$BUILD_ENV" = "1" ]; then
-	_build_env $ADD_OPTIONS
-	USAGE=0
+  _build_env $ADD_OPTIONS
+  USAGE=0
 fi
 
 if [ "$PUBLISH_ENV" = "1" ]; then
-	_publish_env
-	USAGE=0
+  _publish_env
+  USAGE=0
 fi
 
 if [ "$BUILD" = "1" ]; then
-	_build $ADD_OPTIONS
-	USAGE=0
+  _build $ADD_OPTIONS
+  USAGE=0
 fi
 
 if [ "$PUBLISH" = "1" ]; then
-	_publish latest
-	USAGE=0
+  _publish latest
+  USAGE=0
 fi
 
 if [ "$MAKEDEB" = "1" ]; then
-	. makedeb.sh
-	USAGE=0
+  . makedeb.sh
+  USAGE=0
 fi
 
 if [ "$USAGE" = "1" ]; then
-	_usage
+  _usage
 fi
 
 exit 0
