@@ -19,8 +19,8 @@
 namespace kagome::runtime::binaryen {
 
   /**
-   * @brief RuntimeManager is mechanic of prepare environment for launch execute
-   *  function of runtime APIs, and supports in-memory cache for reuse existed
+   * @brief RuntimeManager is a mechanism to prepare environment for launching execute()
+   *  function of runtime APIs. It supports in-memory cache to reuse existing
    *  environments, avoid hi-load operations.
    */
   class RuntimeManager {

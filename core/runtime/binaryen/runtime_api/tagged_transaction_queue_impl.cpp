@@ -8,7 +8,7 @@
 namespace kagome::runtime::binaryen {
   using primitives::TransactionValidity;
 
-  TaggedTransactionQueueImpl::TaggedTransactionQueueImpl(
+  explicit TaggedTransactionQueueImpl::TaggedTransactionQueueImpl(
       const std::shared_ptr<RuntimeManager> &runtime_manager)
       : RuntimeApi(runtime_manager) {}
 

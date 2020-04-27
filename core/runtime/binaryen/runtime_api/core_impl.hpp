@@ -13,7 +13,7 @@ namespace kagome::runtime::binaryen {
 
   class CoreImpl : public RuntimeApi, public Core {
    public:
-    CoreImpl(const std::shared_ptr<RuntimeManager> &runtime_manager);
+    explicit CoreImpl(const std::shared_ptr<RuntimeManager> &runtime_manager);
 
     ~CoreImpl() override = default;
 
