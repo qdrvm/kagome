@@ -47,7 +47,7 @@ TEST_F(StateJrpcProcessorTest, ProcessRequest) {
 
   auto action = registerHandlers();
 
-  jsonrpc::Request::Parameters params {"01234567"};
+  jsonrpc::Request::Parameters params{"0x01234567"};
   auto result = action(params).AsArray();
   std::vector<uint8_t> vec_result(result.size());
   std::transform(result.begin(), result.end(), vec_result.begin(), [](jsonrpc::Value& v) {
@@ -69,7 +69,8 @@ TEST_F(StateJrpcProcessorTest, ProcessAnotherRequest) {
 
   auto action = registerHandlers();
 
-  jsonrpc::Request::Parameters params {"01234567", ("010203"_hash256).toHex()};
+  jsonrpc::Request::Parameters params{"0x01234567",
+                                      "0x" + ("010203"_hash256).toHex()};
   auto result = action(params).AsArray();
   std::vector<uint8_t> vec_result(result.size());
   std::transform(result.begin(), result.end(), vec_result.begin(), [](jsonrpc::Value& v) {

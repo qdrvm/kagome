@@ -30,7 +30,11 @@ namespace kagome::api {
             "Parameter 'at' must be a hex string");
       }
       auto &&at_str = param1.AsString();
-      auto &&at = primitives::BlockHash::fromHex(at_str);
+      auto &&at_buf = common::unhexWith0x(at_str);
+      if (not at_buf) {
+        throw jsonrpc::Fault(at_buf.error().message());
+      }
+      auto &&at = primitives::BlockHash::fromSpan(at_buf.value());
       if (not at) {
         throw jsonrpc::Fault(at.error().message());
       }

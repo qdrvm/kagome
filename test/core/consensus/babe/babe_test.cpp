@@ -86,7 +86,7 @@ class BabeTest : public testing::Test {
     expected_config->genesis_authorities = {
         primitives::Authority{{keypair_.public_key}, 1}};
     expected_config->leadership_rate = {1, 4};
-    expected_config->epoch_length = 2;
+    expected_config->epoch_length = epoch_length_;
 
     consensus::NextEpochDescriptor expected_epoch_digest{
         .authorities = expected_config->genesis_authorities,
@@ -146,6 +146,7 @@ class BabeTest : public testing::Test {
 
   Epoch epoch_;
   BabeDuration slot_duration_{60ms};
+  EpochLength epoch_length_{2};
 
   VRFOutput leader_vrf_output_{
       uint256_t_to_bytes(50),
@@ -192,8 +193,13 @@ TEST_F(BabeTest, Success) {
   // runEpoch
   epoch_.randomness.fill(0);
   EXPECT_CALL(*lottery_, slotsLeadership(epoch_, _, keypair_))
-      .Times(1)
-      .WillRepeatedly(Return(leadership_));
+      .WillOnce(Return(leadership_));
+  Epoch next_epoch = epoch_;
+  next_epoch.epoch_index++;
+  next_epoch.start_slot += epoch_length_;
+
+  EXPECT_CALL(*lottery_, slotsLeadership(next_epoch, _, keypair_))
+      .WillOnce(Return(leadership_));
 
   EXPECT_CALL(*trie_db_, getRootHash())
       .WillRepeatedly(Return(common::Buffer{}));

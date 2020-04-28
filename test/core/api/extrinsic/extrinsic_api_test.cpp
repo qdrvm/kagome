@@ -74,6 +74,9 @@ struct ExtrinsicSubmissionApiTest : public ::testing::Test {
     valid_transaction.reset(new ValidTransaction{1, {{2}}, {{3}}, 4, true});
     deepest_hash = createHash256({1u, 2u, 3u});
     deepest_leaf.reset(new BlockInfo{1u, deepest_hash});
+
+    EXPECT_CALL(*trie_db_, resetState(_))
+        .WillRepeatedly(Return(outcome::success()));
   }
 };
 
