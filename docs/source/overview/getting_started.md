@@ -36,7 +36,8 @@ cmake ..
 make -j 
 ```
 
-Tests can be run with: 
+Tests can be run with:
+ 
 ```
 cd build
 ctest

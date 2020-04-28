@@ -6,7 +6,7 @@ In this tutorial you will learn how to execute Kagome-based Polkadot-host chain 
 
 ### Prerequisites
 
-1. Kagome full node binary built as described [here](../overview/getting_started.md#Build full validating node).
+1. Kagome full node binary built as described [here](https://kagome.readthedocs.io/en/latest/overview/getting_started.html#build-full-validating-node).
 2. For your convenience make sure you have this binary included into your path:
 ```
 PATH=$PATH:build/node/kagome_full/
@@ -65,7 +65,7 @@ rm -rf ldb
 ```
 --- 
 
-To execute the chain run run `kagome_full` using the following flags: 
+To execute the chain run `kagome_full` using the following flags: 
 ```bash
 Kagome application allowed options:
   -h [ --help ]                  show this help message
