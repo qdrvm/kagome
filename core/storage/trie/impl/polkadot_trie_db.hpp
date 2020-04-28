@@ -67,7 +67,7 @@ namespace kagome::storage::trie {
 
     outcome::result<void> clearPrefix(const common::Buffer &prefix) override;
 
-    void recreateOnState(const common::Buffer &merkle_hash) override;
+    void resetState(const common::Buffer &merkle_hash) override;
 
     std::unique_ptr<WriteBatch> batch() override;
 

@@ -47,6 +47,7 @@ namespace kagome::consensus {
          ++i) {
       auto slot_bytes = common::uint64_t_to_bytes(i);
       std::copy(slot_bytes.begin(), slot_bytes.end(), slot_number_begin);
+      logger_->info("Randomness: {}", vrf_input.toHex());
       auto sign_opt = vrf_provider_->sign(vrf_input, keypair, threshold);
       result.push_back(sign_opt);
     }

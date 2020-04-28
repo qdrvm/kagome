@@ -33,6 +33,12 @@ namespace kagome::consensus::grandpa {
 
     void start() override;
 
+    /**
+     * TODO (PRE-371): kamilsa remove this method when grandpa issue resolved
+     *
+     * Start timer which constantly checks if grandpa rounds are running. If not
+     * relaunches grandpa
+     */
     void startLivenessChecker();
 
     void onVoteMessage(const VoteMessage &msg) override;

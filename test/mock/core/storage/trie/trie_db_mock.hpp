@@ -18,6 +18,8 @@ namespace kagome::storage::trie {
         batch,
         std::unique_ptr<face::WriteBatch<common::Buffer, common::Buffer>>());
 
+    MOCK_METHOD1(resetState, void(const common::Buffer &));
+
     MOCK_METHOD0(
         cursor,
         std::unique_ptr<face::MapCursor<common::Buffer, common::Buffer>>());

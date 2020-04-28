@@ -110,14 +110,7 @@ namespace kagome::consensus {
     current_epoch_ = std::move(epoch);
     current_slot_ = current_epoch_.start_slot;
 
-    auto authority_index_res =
-        getAuthorityIndex(current_epoch_.authorities, keypair_.public_key);
-    BOOST_ASSERT_MSG(authority_index_res.has_value(), "Authority is not known");
-    auto threshold = calculateThreshold(genesis_configuration_->leadership_rate,
-                                        current_epoch_.authorities,
-                                        authority_index_res.value());
-    slots_leadership_ =
-        lottery_->slotsLeadership(current_epoch_, threshold, keypair_);
+    slots_leadership_ = getEpochLeadership(current_epoch_);
     next_slot_finish_time_ = starting_slot_finish_time;
 
     runSlot();
@@ -303,6 +296,16 @@ namespace kagome::consensus {
     }
 
     auto block = pre_seal_block_res.value();
+
+    if (auto next_epoch_digest_res = getNextEpochDigest(block.header);
+        next_epoch_digest_res) {
+      log_->info("Obtained next epoch digest");
+      if (not epoch_storage_->addEpochDescriptor(
+              current_epoch_.epoch_index + 2, next_epoch_digest_res.value())) {
+        log_->error("Could not add nex epoch digest to epoch storage");
+      }
+    }
+
     // seal the block
     auto seal = sealBlock(block);
 
@@ -316,7 +319,7 @@ namespace kagome::consensus {
           "Block was not built in time. Slot has finished. If you are "
           "executing in debug mode, consider to rebuild in release");
       // rollback to the previous state
-      trie_db_->recreateOnState(state_before_new_block);
+      trie_db_->resetState(state_before_new_block);
       return;
     }
     // add block to the block tree
@@ -345,6 +348,17 @@ namespace kagome::consensus {
                 now);
   }
 
+  BabeLottery::SlotsLeadership BabeImpl::getEpochLeadership(
+      const Epoch &epoch) const {
+    auto authority_index_res =
+        getAuthorityIndex(epoch.authorities, keypair_.public_key);
+    BOOST_ASSERT_MSG(authority_index_res.has_value(), "Authority is not known");
+    auto threshold = calculateThreshold(genesis_configuration_->leadership_rate,
+                                        epoch.authorities,
+                                        authority_index_res.value());
+    return lottery_->slotsLeadership(epoch, threshold, keypair_);
+  }
+
   void BabeImpl::finishEpoch() {
     // compute new randomness
     auto next_epoch_digest_res =
@@ -364,6 +378,7 @@ namespace kagome::consensus {
     current_epoch_.start_slot = current_slot_;
     current_epoch_.authorities = next_epoch_digest_res.value().authorities;
     current_epoch_.randomness = next_epoch_digest_res.value().randomness;
+    slots_leadership_ = getEpochLeadership(current_epoch_);
 
     log_->debug("Epoch {} has finished", current_epoch_.epoch_index);
   }

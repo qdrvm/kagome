@@ -106,6 +106,8 @@ namespace kagome::consensus {
      */
     void finishEpoch();
 
+    BabeLottery::SlotsLeadership getEpochLeadership(const Epoch &epoch) const;
+
     outcome::result<primitives::PreRuntime> babePreDigest(
         const crypto::VRFOutput &output,
         primitives::AuthorityIndex authority_index) const;

@@ -11,6 +11,7 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
+#include "mock/core/storage/trie/trie_db_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/transaction.hpp"
@@ -36,6 +37,7 @@ using kagome::primitives::Transaction;
 using kagome::primitives::TransactionValidity;
 using kagome::primitives::UnknownTransaction;
 using kagome::primitives::ValidTransaction;
+using kagome::storage::trie::TrieDbMock;
 
 using ::testing::_;
 using ::testing::ByRef;
@@ -53,6 +55,7 @@ struct ExtrinsicSubmissionApiTest : public ::testing::Test {
   sptr<TaggedTransactionQueueMock> ttq;  ///< tagged transaction queue mock
   sptr<TransactionPoolMock> transaction_pool;  ///< transaction pool mock
   sptr<BlockTreeMock> block_tree;              ///< block tree mock instance
+  sptr<TrieDbMock> trie_db_;                   ///> trie db mock
   sptr<ExtrinsicApiImpl> api;                  ///< api instance
   sptr<Extrinsic> extrinsic;                   ///< extrinsic instance
   sptr<ValidTransaction> valid_transaction;    ///< valid transaction instance
@@ -64,8 +67,9 @@ struct ExtrinsicSubmissionApiTest : public ::testing::Test {
     ttq = std::make_shared<TaggedTransactionQueueMock>();
     transaction_pool = std::make_shared<TransactionPoolMock>();
     block_tree = std::make_shared<BlockTreeMock>();
+    trie_db_ = std::make_shared<TrieDbMock>();
     api = std::make_shared<ExtrinsicApiImpl>(
-        ttq, transaction_pool, hasher, block_tree);
+        ttq, transaction_pool, hasher, block_tree, trie_db_);
     extrinsic.reset(new Extrinsic{"12"_hex2buf});
     valid_transaction.reset(new ValidTransaction{1, {{2}}, {{3}}, 4, true});
     deepest_hash = createHash256({1u, 2u, 3u});

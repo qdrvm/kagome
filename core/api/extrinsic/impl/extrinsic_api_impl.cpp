@@ -35,7 +35,7 @@ namespace kagome::api {
       const primitives::Extrinsic &extrinsic) {
     auto state_before_validate = trie_db_->getRootHash();
     OUTCOME_TRY(res, api_->validate_transaction(extrinsic));
-    trie_db_->recreateOnState(state_before_validate);
+    trie_db_->resetState(state_before_validate);
 
     return visit_in_place(
         res,

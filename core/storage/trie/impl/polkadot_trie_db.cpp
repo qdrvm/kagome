@@ -80,7 +80,7 @@ namespace kagome::storage::trie {
     return outcome::success();
   }
 
-  void PolkadotTrieDb::recreateOnState(const common::Buffer &merkle_hash) {
+  void PolkadotTrieDb::resetState(const common::Buffer &merkle_hash) {
     merkle_hash_ = merkle_hash;
   }
 
