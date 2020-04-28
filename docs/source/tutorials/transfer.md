@@ -59,7 +59,7 @@ subkey inspect //Bob
 ---
 **Note**
 
-If you are running this tutorial not for the first time, then make sure you cleaned up your storage as follows:
+If you are running this tutorial not for the first time, then make sure you cleaned up your storage as follows (assuming storage files are generated in ldb/ folder):
 ```
 rm -rf ldb
 ```
