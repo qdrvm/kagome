@@ -65,11 +65,27 @@ rm -rf ldb
 ```
 --- 
 
-To execute the chain run the following command:
+To execute the chain run run `kagome_full` using the following flags: 
+```bash
+Kagome application allowed options:
+  -h [ --help ]                  show this help message
+  -g [ --genesis ] arg           mandatory, configuration file path
+  -k [ --keystore ] arg          mandatory, keystore file path
+  -l [ --leveldb ] arg           mandatory, leveldb directory path
+  -p [ --p2p_port ] arg (=30363) port for peer to peer interactions
+  --rpc_http_port arg (=40363)   port for RPCs over HTTP
+  --rpc_ws_port arg (=40364)     port for RPCs over Websockets
+  -e [ --genesis_epoch ]         if we need to execute genesis epoch
+  -v [ --verbosity ] arg (=2)    Log level. 0 - trace, 1 - debug, 2 - info, 3 -
+                                 warn, 4 - error, 5 - critical, 6 - no logs. 
+                                 Default: info
+```
+
+For this tutorial you can start single node network as follows:
 
 `kagome_full --genesis config/localchain.json --keystore config/localkeystore.json -l ldb -e`
 
-You should see the log messages about producing and finalizing the blocks. 
+You should see the log messages notifying about produced and finalized the blocks. 
 
 Now chain is running on a single node. To query it we can use localhost's ports 40363 for http- and 40364 for websockets-based RPCs.
 
