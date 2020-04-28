@@ -2,7 +2,7 @@
 
 ## Transfer
 
-In this tutorial you will learn how to launch Kagome chain which can be used as a cryptocurrency, and interact with it by sending extrinsics and executing queries.
+In this tutorial you will learn how to execute Kagome-based Polkadot-host chain which can be used as a cryptocurrency, and interact with it by sending extrinsics and executing queries.
 
 ### Prerequisites
 
