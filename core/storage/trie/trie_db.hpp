@@ -28,7 +28,8 @@ namespace kagome::storage::trie {
      * merkle hash
      * @param merkle_hash corresponds to the state
      */
-    virtual void resetState(const common::Buffer &merkle_hash) = 0;
+    virtual outcome::result<void> resetState(
+        const common::Buffer &merkle_hash) = 0;
   };
 
 }  // namespace kagome::storage::trie

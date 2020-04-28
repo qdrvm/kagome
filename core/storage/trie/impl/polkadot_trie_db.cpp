@@ -80,8 +80,13 @@ namespace kagome::storage::trie {
     return outcome::success();
   }
 
-  void PolkadotTrieDb::resetState(const common::Buffer &merkle_hash) {
+  outcome::result<void> PolkadotTrieDb::resetState(
+      const common::Buffer &merkle_hash) {
+    if (auto retrieve_res = retrieveNode(merkle_hash); not retrieve_res) {
+      return retrieve_res.error();
+    }
     merkle_hash_ = merkle_hash;
+    return outcome::success();
   }
 
   std::unique_ptr<PolkadotTrieDb::WriteBatch> PolkadotTrieDb::batch() {

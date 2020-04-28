@@ -319,7 +319,11 @@ namespace kagome::consensus {
           "Block was not built in time. Slot has finished. If you are "
           "executing in debug mode, consider to rebuild in release");
       // rollback to the previous state
-      trie_db_->resetState(state_before_new_block);
+      if (not trie_db_->resetState(state_before_new_block)) {
+        log_->error(
+            "State could not be reset. Impossible behaviour as this state "
+            "should have existed before propose");
+      }
       return;
     }
     // add block to the block tree

@@ -14,7 +14,7 @@ namespace kagome::api {
       : config_{config}, stream_(std::move(socket)) {}
 
   void HttpSession::start() {
-	  asyncRead();
+    asyncRead();
   }
 
   void HttpSession::stop() {
@@ -95,10 +95,10 @@ namespace kagome::api {
 
   void HttpSession::onRead(boost::system::error_code ec, std::size_t) {
     if (ec) {
-      auto error_message = (HttpError::end_of_stream == ec)
-                               ? "connection was closed"
-                               : "unknown error occurred";
-      reportError(ec, error_message);
+      if (HttpError::end_of_stream != ec) {
+        reportError(ec, "unknown error occurred");
+      }
+
       stop();
     }
 
@@ -118,11 +118,11 @@ namespace kagome::api {
     }
 
     // read next request
-	  asyncRead();
+    asyncRead();
   }
 
   void HttpSession::reportError(boost::system::error_code ec,
                                 std::string_view message) {
-    // logger_->error("error occured:{}, code: {}", message, ec);
+    logger_->error("error occured:{}, code: {}", message, ec);
   }
 }  // namespace kagome::api
