@@ -18,8 +18,8 @@ namespace kagome::crypto {
   enum class SR25519ProviderError {
     SIGN_UNKNOWN_ERROR = 1,  // unknown error occured during call to `sign`
                              // method of bound function
-    VERIFY_UNKNOWN_ERROR  // unknown error occured during call to `verify`
-                          // method of bound function
+    VERIFY_UNKNOWN_ERROR     // unknown error occured during call to `verify`
+                             // method of bound function
   };
 
   class SR25519Provider {
@@ -31,6 +31,9 @@ namespace kagome::crypto {
      */
     virtual SR25519Keypair generateKeypair() const = 0;
 
+    /**
+     * Generate random keypair from seed
+     */
     virtual SR25519Keypair generateKeypair(common::Blob<32> seed) const = 0;
 
     /**

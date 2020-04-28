@@ -12,6 +12,7 @@
 namespace kagome::crypto {
   struct SR25519ProviderMock : public SR25519Provider {
     MOCK_CONST_METHOD0(generateKeypair, SR25519Keypair());
+    MOCK_CONST_METHOD1(generateKeypair, SR25519Keypair(common::Blob<32>));
 
     MOCK_CONST_METHOD2(sign,
                        outcome::result<SR25519Signature>(const SR25519Keypair &,

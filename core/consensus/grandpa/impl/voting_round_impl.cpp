@@ -186,7 +186,6 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::onPrevote(const SignedPrevote &prevote) {
-    logger_->debug("Received prevote during round {}", round_number_);
     onSignedPrevote(prevote);
     updatePrevoteGhost();
     update();
@@ -390,7 +389,6 @@ namespace kagome::consensus::grandpa {
         case State::PROPOSED: {
           auto prevote = constructPrevote(last_round_state);
           if (prevote) {
-            logger_->debug("Casting prevote for round {}", round_number_);
             auto prevoted = env_->onPrevoted(
                 round_number_, voter_set_->setId(), prevote.value());
             if (not prevoted) {
