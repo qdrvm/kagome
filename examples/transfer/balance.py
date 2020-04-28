@@ -1,14 +1,14 @@
 import requests
-
+import sys
 
 def main():
-    url = "http://localhost:40363"
+    url = "http://" + sys.argv[1]
 
     # Example echo method
     get = {
         "method": "state_getStorage",
         "params": [
-            "0x7f864e18e3dd8b58386310d2fe0919eef27c6e558564b7f67f22d99d20f587bb"],
+            sys.argv[2]],
         "jsonrpc": "2.0",
         "id": 0,
     }
@@ -16,7 +16,7 @@ def main():
     response = requests.post(url, json=get)
 
     res = response.json()['result']
-    print("Alice's balance is ", int.from_bytes(res, byteorder='little', signed=False))
+    print("Balance is", int.from_bytes(res, byteorder='little', signed=False))
 
 
 if __name__ == "__main__":
