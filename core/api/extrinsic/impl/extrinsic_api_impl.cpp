@@ -27,7 +27,7 @@ namespace kagome::api {
     BOOST_ASSERT_MSG(pool_ != nullptr, "transaction pool is nullptr");
     BOOST_ASSERT_MSG(hasher_ != nullptr, "hasher is nullptr");
     BOOST_ASSERT_MSG(block_tree_ != nullptr, "block tree is nullptr");
-    BOOST_ASSERT_MSG(trie_db_ != nullptr, "trie db_ is nullptr");
+    BOOST_ASSERT_MSG(trie_db_ != nullptr, "trie db is nullptr");
     BOOST_ASSERT_MSG(logger_ != nullptr, "logger is nullptr");
   }
 
