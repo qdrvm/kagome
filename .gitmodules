@@ -1,7 +1,3 @@
-[submodule "sml"]
-	path = deps/sml
-	url = https://github.com/boost-experimental/sml
-    shallow = true
 [submodule "jsonrpc-lean"]
 	path = deps/jsonrpc-lean
 	url = https://github.com/uskr/jsonrpc-lean
