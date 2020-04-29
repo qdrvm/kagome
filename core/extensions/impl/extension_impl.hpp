@@ -12,7 +12,7 @@
 #include "extensions/impl/memory_extension.hpp"
 #include "extensions/impl/misc_extension.hpp"
 #include "extensions/impl/storage_extension.hpp"
-#include "storage/trie_db_overlay/trie_db_overlay.hpp"
+#include "storage/changes_trie/changes_trie_builder.hpp"
 
 namespace kagome::extensions {
   /**
@@ -22,8 +22,8 @@ namespace kagome::extensions {
    public:
     ExtensionImpl() = delete;
     ExtensionImpl(const std::shared_ptr<runtime::WasmMemory> &memory,
-                  std::shared_ptr<storage::trie_db_overlay::TrieDbOverlay> db,
-                  std::shared_ptr<blockchain::ChangesTrieBuilder> builder);
+                  std::shared_ptr<storage::trie::TrieBatch> storage_batch,
+                  std::shared_ptr<storage::changes_trie::ChangesTrieBuilder> builder);
 
     ~ExtensionImpl() override = default;
 
@@ -123,7 +123,7 @@ namespace kagome::extensions {
 
    private:
     std::shared_ptr<runtime::WasmMemory> memory_;
-    std::shared_ptr<storage::trie_db_overlay::TrieDbOverlay> db_;
+    std::shared_ptr<storage::trie::TrieBatch> storage_batch_;
 
     CryptoExtension crypto_ext_;
     IOExtension io_ext_;

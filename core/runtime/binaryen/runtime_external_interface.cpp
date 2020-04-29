@@ -55,13 +55,13 @@ namespace kagome::runtime::binaryen {
    */
 
   RuntimeExternalInterface::RuntimeExternalInterface(
-      std::shared_ptr<extensions::ExtensionFactory> extension_factory)
-      : extension_factory_(std::move(extension_factory)) {
-    BOOST_ASSERT_MSG(extension_factory_ != nullptr,
+      std::shared_ptr<extensions::ExtensionFactory>
+          extension_factory) {
+    BOOST_ASSERT_MSG(extension_factory != nullptr,
                      "extension factory is nullptr");
     auto memory_impl =
         std::make_shared<WasmMemoryImpl>(&(ShellExternalInterface::memory));
-    extension_ = extension_factory_->createExtension(memory_impl);
+    extension_ = extension_factory->createExtension(memory_impl);
   }
 
   wasm::Literal RuntimeExternalInterface::callImport(
@@ -145,10 +145,8 @@ namespace kagome::runtime::binaryen {
       /// ext_storage_changes_root
       if (import->base == ext_storage_changes_root) {
         checkArguments(import->base.c_str(), 3, arguments.size());
-        auto res =
-            extension_->ext_storage_changes_root(arguments.at(0).geti32(),
-                                                 arguments.at(1).geti32(),
-                                                 arguments.at(2).geti32());
+        auto res = extension_->ext_storage_changes_root(
+            arguments.at(0).geti32(), arguments.at(1).geti32());
         return wasm::Literal(res);
       }
       /// ext_storage_root

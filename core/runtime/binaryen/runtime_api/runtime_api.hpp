@@ -15,8 +15,8 @@
 #include "common/logger.hpp"
 #include "extensions/extension_factory.hpp"
 #include "runtime/binaryen/runtime_external_interface.hpp"
-#include "runtime/binaryen/wasm_executor.hpp"
 #include "runtime/binaryen/runtime_manager.hpp"
+#include "runtime/binaryen/wasm_executor.hpp"
 #include "runtime/wasm_memory.hpp"
 #include "runtime/wasm_provider.hpp"
 #include "runtime/wasm_result.hpp"
@@ -29,9 +29,22 @@ namespace kagome::runtime::binaryen {
    */
   class RuntimeApi {
    public:
+    enum class CallPersistency { PERSISTENT, EPHEMERAL };
+
     RuntimeApi(std::shared_ptr<RuntimeManager> runtime_manager)
         : runtime_manager_(std::move(runtime_manager)) {
       BOOST_ASSERT(runtime_manager_);
+    }
+
+   private:
+    // deduced return type, must be defined before execute()
+    auto getRuntimeEnvironment(CallPersistency persistency) {
+      switch (persistency) {
+        case CallPersistency::PERSISTENT:
+          return runtime_manager_->getPersistentRuntimeEnvironment();
+        case CallPersistency::EPHEMERAL:
+          return runtime_manager_->getEphemeralRuntimeEnvironment();
+      }
     }
 
    protected:
@@ -44,11 +57,13 @@ namespace kagome::runtime::binaryen {
      * @return parsed result or error
      */
     template <typename R, typename... Args>
-    outcome::result<R> execute(std::string_view name, Args &&... args) {
+    outcome::result<R> execute(std::string_view name,
+                               CallPersistency persistency,
+                               Args &&... args) {
       logger_->debug("Executing export function: {}", name);
 
-      OUTCOME_TRY(environment, runtime_manager_->getRuntimeEnvironment());
-      auto &&[module, memory] = std::move(environment);
+      OUTCOME_TRY(environment, getRuntimeEnvironment(persistency));
+      auto &&[module, memory] = environment;
 
       runtime::WasmPointer ptr = 0u;
       runtime::SizeType len = 0u;

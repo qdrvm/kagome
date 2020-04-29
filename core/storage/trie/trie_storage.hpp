@@ -30,7 +30,7 @@ namespace kagome::storage::trie {
     /**
      * Root hash of the latest committed trie
      */
-    virtual common::Hash256 getRootHash() const = 0;
+    virtual common::Buffer getRootHash() const = 0;
   };
 
 }  // namespace kagome::storage::trie

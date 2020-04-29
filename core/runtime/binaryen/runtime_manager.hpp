@@ -29,28 +29,31 @@ namespace kagome::runtime::binaryen {
 
     RuntimeManager(
         std::shared_ptr<runtime::WasmProvider> wasm_provider,
-        std::shared_ptr<extensions::ExtensionFactory> extension_factory,
+        std::shared_ptr<extensions::ExtensionFactory> persistent_extension_factory,
+        std::shared_ptr<extensions::ExtensionFactory> ephemeral_extension_factory,
         std::shared_ptr<crypto::Hasher> hasher);
 
     outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
-        std::shared_ptr<WasmMemory>>>
+                               std::shared_ptr<WasmMemory>>>
     getPersistentRuntimeEnvironment();
 
     outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
-        std::shared_ptr<WasmMemory>>>
+                               std::shared_ptr<WasmMemory>>>
     getEphemeralRuntimeEnvironment();
 
    private:
     outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
-        std::shared_ptr<WasmMemory>>>
-    getRuntimeEnvironment();
+                               std::shared_ptr<WasmMemory>>>
+    getRuntimeEnvironment(
+        std::shared_ptr<extensions::ExtensionFactory> extension_factory);
 
     outcome::result<std::shared_ptr<wasm::Module>> prepareModule(
         const common::Buffer &state_code);
 
     common::Logger logger_ = common::createLogger("Runtime manager");
     std::shared_ptr<runtime::WasmProvider> wasm_provider_;
-    std::shared_ptr<extensions::ExtensionFactory> extension_factory_;
+    std::shared_ptr<extensions::ExtensionFactory> persistent_extension_factory_;
+    std::shared_ptr<extensions::ExtensionFactory> ephemeral_extension_factory_;
 
     std::shared_ptr<crypto::Hasher> hasher_;
     common::Hash256 state_code_hash_{};

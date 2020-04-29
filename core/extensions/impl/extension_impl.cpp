@@ -14,10 +14,10 @@ namespace kagome::extensions {
 
   ExtensionImpl::ExtensionImpl(
       const std::shared_ptr<runtime::WasmMemory> &memory,
-      std::shared_ptr<storage::trie_db_overlay::TrieDbOverlay> db,
-      std::shared_ptr<blockchain::ChangesTrieBuilder> builder)
+      std::shared_ptr<storage::trie::TrieBatch> storage_batch,
+      std::shared_ptr<storage::changes_trie::ChangesTrieBuilder> builder)
       : memory_(memory),
-        db_(std::move(db)),
+        storage_batch_(std::move(storage_batch)),
         crypto_ext_(memory,
                     std::make_shared<crypto::SR25519ProviderImpl>(
                         std::make_shared<crypto::BoostRandomGenerator>()),
@@ -25,12 +25,8 @@ namespace kagome::extensions {
                     std::make_shared<crypto::HasherImpl>()),
         io_ext_(memory),
         memory_ext_(memory),
-        storage_ext_(db_, memory_, std::move(builder)) {
-    BOOST_ASSERT(io_ext_ != nullptr);
-    BOOST_ASSERT(db_ != nullptr);
-    BOOST_ASSERT(memory_ext_ != nullptr);
-    BOOST_ASSERT(crypto_ext_ != nullptr);
-    BOOST_ASSERT(storage_ext_ != nullptr);
+        storage_ext_(storage_batch_, memory_, std::move(builder)) {
+    BOOST_ASSERT(storage_batch_ != nullptr);
     BOOST_ASSERT(memory_ != nullptr);
   }
 

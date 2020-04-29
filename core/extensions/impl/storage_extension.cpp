@@ -7,25 +7,26 @@
 
 #include <forward_list>
 
-#include "blockchain/impl/changes_trie_builder_impl.hpp"
 #include "primitives/block_id.hpp"
-#include "storage/trie/impl/ordered_trie_hash.hpp"
-#include "storage/trie/impl/polkadot_trie_db.hpp"
+#include "storage/trie/db/ordered_trie_hash.hpp"
 
 using kagome::common::Buffer;
 
 namespace kagome::extensions {
   StorageExtension::StorageExtension(
-      std::shared_ptr<storage::trie_db_overlay::TrieDbOverlay> db,
+      std::shared_ptr<storage::trie::TrieBatch> storage_batch,
       std::shared_ptr<runtime::WasmMemory> memory,
-      std::shared_ptr<blockchain::ChangesTrieBuilder> builder)
-      : db_(std::move(db)),
+      std::shared_ptr<storage::changes_trie::ChangesTrieBuilder> builder,
+      std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker)
+      : storage_batch_(std::move(storage_batch)),
         memory_(std::move(memory)),
         builder_(std::move(builder)),
+        changes_tracker_{std::move(changes_tracker)},
         logger_{common::createLogger(kDefaultLoggerTag)} {
-    BOOST_ASSERT_MSG(db_ != nullptr, "db is nullptr");
+    BOOST_ASSERT_MSG(storage_batch_ != nullptr, "db is nullptr");
     BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
     BOOST_ASSERT_MSG(builder_ != nullptr, "changes trie builder is nullptr");
+    BOOST_ASSERT_MSG(changes_tracker_ != nullptr, "changes tracker is nullptr");
   }
 
   // -------------------------Data storage--------------------------
@@ -33,7 +34,7 @@ namespace kagome::extensions {
   void StorageExtension::ext_clear_prefix(runtime::WasmPointer prefix_data,
                                           runtime::SizeType prefix_length) {
     auto prefix = memory_->loadN(prefix_data, prefix_length);
-    auto res = db_->clearPrefix(prefix);
+    auto res = storage_batch_->clearPrefix(prefix);
     if (not res) {
       logger_->error("ext_clear_prefix failed: {}", res.error().message());
     }
@@ -42,7 +43,7 @@ namespace kagome::extensions {
   void StorageExtension::ext_clear_storage(runtime::WasmPointer key_data,
                                            runtime::SizeType key_length) {
     auto key = memory_->loadN(key_data, key_length);
-    auto del_result = db_->remove(key);
+    auto del_result = storage_batch_->remove(key);
     if (not del_result) {
       logger_->warn(
           "ext_clear_storage did not delete key {} from trie db with reason: "
@@ -55,7 +56,7 @@ namespace kagome::extensions {
   runtime::SizeType StorageExtension::ext_exists_storage(
       runtime::WasmPointer key_data, runtime::SizeType key_length) const {
     auto key = memory_->loadN(key_data, key_length);
-    return db_->contains(key) ? 1 : 0;
+    return storage_batch_->contains(key) ? 1 : 0;
   }
 
   runtime::WasmPointer StorageExtension::ext_get_allocated_storage(
@@ -63,7 +64,7 @@ namespace kagome::extensions {
       runtime::SizeType key_length,
       runtime::WasmPointer len_ptr) {
     auto key = memory_->loadN(key_data, key_length);
-    auto data = db_->get(key);
+    auto data = storage_batch_->get(key);
     const auto length = data.has_value() ? data.value().size()
                                          : runtime::WasmMemory::kMaxMemorySize;
     memory_->store32(len_ptr, length);
@@ -134,7 +135,7 @@ namespace kagome::extensions {
           key.toHex());
     }
 
-    auto put_result = db_->put(key, value);
+    auto put_result = storage_batch_->put(key, value);
     if (not put_result) {
       logger_->error(
           "ext_set_storage failed, due to fail in trie db with reason: {}",
@@ -172,16 +173,30 @@ namespace kagome::extensions {
   }
 
   runtime::SizeType StorageExtension::ext_storage_changes_root(
-      runtime::WasmPointer parent_hash, runtime::WasmPointer result) {
-    auto parent_hash_bytes = memory_->loadN(parent_hash_data, parent_hash_len);
+      runtime::WasmPointer parent_hash_data, runtime::WasmPointer result) {
+    auto persistent_batch =
+        std::dynamic_pointer_cast<storage::trie::PersistentTrieBatch>(
+            storage_batch_);
+    if (persistent_batch == nullptr) {
+      logger_->error(
+          "ext_storage_changes_root resulted with an error: called in an "
+          "ephemeral extension");
+      return 0;
+    }
+    auto parent_hash_bytes =
+        memory_->loadN(parent_hash_data, common::Hash256::size());
     common::Hash256 parent_hash;
     std::copy_n(parent_hash_bytes.begin(),
                 common::Hash256::size(),
                 parent_hash.begin());
-    builder_->startNewTrie(parent_hash);
+    if (auto res = builder_->startNewTrie(parent_hash); res.has_error()) {
+      logger_->error("ext_storage_changes_root resulted with an error: {}",
+                     res.error().message());
+      return 0;
+    }
 
-    auto res = db_->sinkChangesTo(*builder_);
-    if (res.has_error()) {
+    if (auto res = changes_tracker_->sinkToChangesTrie(*builder_);
+        res.has_error()) {
       logger_->error("ext_storage_changes_root resulted with an error: {}",
                      res.error().message());
       return 0;
@@ -193,20 +208,32 @@ namespace kagome::extensions {
   }
 
   void StorageExtension::ext_storage_root(runtime::WasmPointer result) const {
-    auto res = db_->commit();
-    if (res.has_error()) {
-      logger_->error("ext_storage_root resulted with an error: {}",
-                     res.error().message());
+    if (auto persistent_batch =
+            std::dynamic_pointer_cast<storage::trie::PersistentTrieBatch>(
+                storage_batch_);
+        persistent_batch != nullptr) {
+      auto res = persistent_batch->commit();
+      if (res.has_error()) {
+        logger_->error("ext_storage_root resulted with an error: {}",
+                       res.error().message());
+      }
+      const auto &root = res.value();
+      memory_->storeBuffer(result, root);
+    } else {
+      const auto &root = storage_batch_->calculateRoot();
+      if (root.has_error()) {
+        logger_->error("ext_storage_root resulted with an error: {}",
+                       root.error().message());
+      }
+      memory_->storeBuffer(result, root.value());
     }
-    const auto &root = db_->getRootHash();
-    memory_->storeBuffer(result, root);
   }
 
   outcome::result<common::Buffer> StorageExtension::get(
       const common::Buffer &key,
       runtime::SizeType offset,
       runtime::SizeType max_length) const {
-    OUTCOME_TRY(data, db_->get(key));
+    OUTCOME_TRY(data, storage_batch_->get(key));
 
     const auto data_length =
         std::min<runtime::SizeType>(max_length, data.size() - offset);

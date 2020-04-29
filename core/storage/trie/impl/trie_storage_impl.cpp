@@ -13,31 +13,63 @@
 
 namespace kagome::storage::trie {
 
-  TrieStorageImpl::TrieStorageImpl(
-      common::Hash256 root_hash,
+  outcome::result<std::unique_ptr<TrieStorageImpl>>
+  TrieStorageImpl::createEmpty(
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
-      std::shared_ptr<changes_trie::ChangesTracker> changes)
-      : codec_{std::move(codec)},
-        serializer_{std::move(serializer)},
-        changes_{std::move(changes)} {
-    auto empty_root_hash = serializer_->getEmptyRootHash();
-    if(std::equal(root_hash_ ) {
+      std::shared_ptr<changes_trie::ChangesTracker> changes) {
+    auto empty_root = serializer->getEmptyRootHash();
+    return std::unique_ptr<TrieStorageImpl>(
+        new TrieStorageImpl(std::move(empty_root),
+                            std::move(codec),
+                            std::move(serializer),
+                            std::move(changes)),
+                            );
+  }
 
-    }
+  outcome::result<std::unique_ptr<TrieStorageImpl>>
+  TrieStorageImpl::createFromStorage(
+      const common::Buffer &root_hash,
+      std::shared_ptr<Codec> codec,
+      std::shared_ptr<TrieSerializer> serializer,
+      std::shared_ptr<changes_trie::ChangesTracker> changes,
+      std::shared_ptr<PolkadotTrieFactory> trie_factory) {
+    return std::unique_ptr<TrieStorageImpl>(
+        new TrieStorageImpl(root_hash,
+                            std::move(codec),
+                            std::move(serializer),
+                            std::move(changes)));
+  }
+
+  TrieStorageImpl::TrieStorageImpl(
+      common::Buffer root_hash,
+      std::shared_ptr<Codec> codec,
+      std::shared_ptr<TrieSerializer> serializer,
+      std::shared_ptr<changes_trie::ChangesTracker> changes,
+      std::shared_ptr<PolkadotTrieFactory> trie_factory)
+      : root_hash_{std::move(root_hash)},
+        codec_{std::move(codec)},
+        serializer_{std::move(serializer)},
+        changes_{std::move(changes)},
+        trie_factory_{std::move(trie_factory)} {
+    BOOST_ASSERT(codec_ != nullptr);
+    BOOST_ASSERT(serializer_ != nullptr);
+    BOOST_ASSERT(changes_ != nullptr);
+    BOOST_ASSERT(trie_factory_ != nullptr);
   }
 
   outcome::result<std::unique_ptr<PersistentTrieBatch>>
   TrieStorageImpl::getPersistentBatch() {
-    OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root_hash_}));
+    std::unique_ptr<PolkadotTrie> trie;
+    if (root_hash_ == serializer_->getEmptyRootHash())
+
+      OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root_hash_}));
     return std::make_unique<PersistentTrieBatchImpl>(
         codec_,
         serializer_,
         changes_,
         std::shared_ptr(std::move(trie)),
-        [this](auto const &new_root) {
-          std::copy_n(new_root.begin(), root_hash_.size(), root_hash_.begin());
-        });
+        [this](auto const &new_root) { root_hash_ = new_root; });
   }
 
   outcome::result<std::unique_ptr<EphemeralTrieBatch>>
@@ -47,7 +79,7 @@ namespace kagome::storage::trie {
         codec_, std::shared_ptr(std::move(trie)));
   }
 
-  common::Hash256 TrieStorageImpl::getRootHash() const {
+  common::Buffer TrieStorageImpl::getRootHash() const {
     return root_hash_;
   }
 }  // namespace kagome::storage::trie
