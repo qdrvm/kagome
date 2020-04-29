@@ -7,7 +7,8 @@
 
 namespace kagome::api::state::request {
 
-  outcome::result<void> GetStorage::init(const jsonrpc::Request::Parameters &params) {
+  outcome::result<void> GetStorage::init(
+      const jsonrpc::Request::Parameters &params) {
     if (params.size() > 2 or params.empty()) {
       throw jsonrpc::InvalidParametersFault("Incorrect number of params");
     }
@@ -29,7 +30,7 @@ namespace kagome::api::state::request {
       }
       auto &&at_str = param1.AsString();
       OUTCOME_TRY(at_span, common::unhexWith0x(at_str));
-	    OUTCOME_TRY(at, primitives::BlockHash::fromSpan(at_span));
+      OUTCOME_TRY(at, primitives::BlockHash::fromSpan(at_span));
       at_.reset(std::move(at));
     } else {
       at_.reset();

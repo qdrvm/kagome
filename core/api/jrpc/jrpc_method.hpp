@@ -33,9 +33,9 @@ namespace kagome::api {
 
         if (auto &&result = request.execute(); not result) {
           throw jsonrpc::Fault(result.error().message());
-        } else if constexpr (std::is_same_v<decltype(result.value()), void>) {
+        } else if constexpr (std::is_same_v<decltype(result.value()), void>) { // NOLINT
           return {};
-        } else {
+        } else { // NOLINT
           return makeValue(result.value());
         }
 
