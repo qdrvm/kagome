@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#pragma once
+#ifndef KAGOME_CORE_API_JRPC_JRPC_METHOD_HPP
+#define KAGOME_CORE_API_JRPC_JRPC_METHOD_HPP
 
 #include <jsonrpc-lean/dispatcher.h>
 #include <jsonrpc-lean/request.h>
@@ -33,9 +34,10 @@ namespace kagome::api {
 
         if (auto &&result = request.execute(); not result) {
           throw jsonrpc::Fault(result.error().message());
-        } else if constexpr (std::is_same_v<decltype(result.value()), void>) { // NOLINT
+        } else if constexpr (std::is_same_v<decltype(result.value()),
+                                            void>) {  // NOLINT
           return {};
-        } else { // NOLINT
+        } else {  // NOLINT
           return makeValue(result.value());
         }
 
@@ -46,3 +48,5 @@ namespace kagome::api {
   };
 
 }  // namespace kagome::api
+
+#endif // KAGOME_CORE_API_JRPC_JRPC_METHOD_HPP

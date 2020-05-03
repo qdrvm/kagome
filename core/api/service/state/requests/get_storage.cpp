@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "get_storage.hpp"
+#include "api/service/state/requests/get_storage.hpp"
 
 namespace kagome::api::state::request {
 

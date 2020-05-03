@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "readonly_trie_builder_impl.hpp"
+#include "api/service/state/impl/readonly_trie_builder_impl.hpp"
 
 #include "storage/trie/impl/polkadot_trie_db.hpp"
 

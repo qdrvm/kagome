@@ -16,10 +16,6 @@ add_library(author_api_service
 )
 
 target_link_libraries(author_api_service
-    api_author_requests
-    buffer
-    api_service
-    transaction_pool
     scale
     logger
     )

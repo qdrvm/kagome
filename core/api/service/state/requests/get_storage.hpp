@@ -6,13 +6,14 @@
 #ifndef KAGOME_API_REQUEST_GET_STORAGE
 #define KAGOME_API_REQUEST_GET_STORAGE
 
-#include "api/service/state/state_api.hpp"
-
 #include <jsonrpc-lean/request.h>
+
 #include <boost/optional.hpp>
 #include <common/buffer.hpp>
 #include <outcome/outcome.hpp>
 #include <primitives/block_id.hpp>
+
+#include "api/service/state/state_api.hpp"
 
 namespace kagome::api::state::request {
 

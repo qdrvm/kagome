@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "submit_extrinsic.hpp"
+#include "api/service/author/requests/submit_extrinsic.hpp"
 
 #include "common/hexutil.hpp"
 #include "primitives/extrinsic.hpp"
@@ -24,17 +24,15 @@ namespace kagome::api::author::request {
 
     auto &&hexified_extrinsic = arg0.AsString();
     OUTCOME_TRY(buffer, common::unhexWith0x(hexified_extrinsic));
-    OUTCOME_TRY(extrinsic,
-                scale::decode<primitives::Extrinsic>(buffer));
+    OUTCOME_TRY(extrinsic, scale::decode<primitives::Extrinsic>(buffer));
 
     extrinsic_ = std::move(extrinsic);
 
     return outcome::success();
   }
 
-outcome::result<common::Hash256> SubmitExtrinsic::execute() {
-	return api_->submitExtrinsic(extrinsic_);
-}
-
+  outcome::result<common::Hash256> SubmitExtrinsic::execute() {
+    return api_->submitExtrinsic(extrinsic_);
+  }
 
 }  // namespace kagome::api::author::request

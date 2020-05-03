@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "pending_extrinsics.hpp"
+#include "api/service/author/requests/pending_extrinsics.hpp"
 
 namespace kagome::api::author::request {
 

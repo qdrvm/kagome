@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "author_api_impl.hpp"
+#include "api/service/author/impl/author_api_impl.hpp"
 
 #include <boost/system/error_code.hpp>
 
@@ -12,12 +12,11 @@
 #include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::api {
-  AuthorApiImpl::AuthorApiImpl(
-      sptr<runtime::TaggedTransactionQueue> api,
-      sptr<transaction_pool::TransactionPool> pool,
-      sptr<crypto::Hasher> hasher,
-      sptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<storage::trie::TrieDb> trie_db)
+  AuthorApiImpl::AuthorApiImpl(sptr<runtime::TaggedTransactionQueue> api,
+                               sptr<transaction_pool::TransactionPool> pool,
+                               sptr<crypto::Hasher> hasher,
+                               sptr<blockchain::BlockTree> block_tree,
+                               std::shared_ptr<storage::trie::TrieDb> trie_db)
       : api_{std::move(api)},
         pool_{std::move(pool)},
         hasher_{std::move(hasher)},
@@ -77,8 +76,7 @@ namespace kagome::api {
     return outcome::failure(boost::system::error_code{});
   }
 
-  outcome::result<std::vector<common::Hash256>>
-  AuthorApiImpl::removeExtrinsic(
+  outcome::result<std::vector<common::Hash256>> AuthorApiImpl::removeExtrinsic(
       const std::vector<primitives::ExtrinsicKey> &keys) {
     BOOST_ASSERT_MSG(false, "not implemented");  // NOLINT
     return outcome::failure(boost::system::error_code{});

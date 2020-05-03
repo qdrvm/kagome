@@ -9,7 +9,7 @@
 #include "api/jrpc/jrpc_processor.hpp"
 
 #include "api/jrpc/jrpc_server_impl.hpp"
-#include "state_api.hpp"
+#include "api/service/state/state_api.hpp"
 
 namespace kagome::api::state {
 

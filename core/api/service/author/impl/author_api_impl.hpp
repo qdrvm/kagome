@@ -14,8 +14,8 @@
 #include <boost/variant.hpp>
 #include <outcome/outcome.hpp>
 
-#include "api/service/author/error.hpp"
 #include "api/service/author/author_api.hpp"
+#include "api/service/author/error.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/logger.hpp"
 #include "common/visitor.hpp"
@@ -44,10 +44,10 @@ namespace kagome::api {
      * @param block_tree block tree instance shared ptr
      */
     AuthorApiImpl(std::shared_ptr<runtime::TaggedTransactionQueue> api,
-                     std::shared_ptr<transaction_pool::TransactionPool> pool,
-                     std::shared_ptr<crypto::Hasher> hasher,
-                     std::shared_ptr<blockchain::BlockTree> block_tree,
-                     std::shared_ptr<storage::trie::TrieDb> trie_db);
+                  std::shared_ptr<transaction_pool::TransactionPool> pool,
+                  std::shared_ptr<crypto::Hasher> hasher,
+                  std::shared_ptr<blockchain::BlockTree> block_tree,
+                  std::shared_ptr<storage::trie::TrieDb> trie_db);
 
     ~AuthorApiImpl() override = default;
 

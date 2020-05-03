@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "error.hpp"
+#include "api/service/author/error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, ExtrinsicApiError, e) {
   using kagome::api::ExtrinsicApiError;
@@ -15,5 +15,5 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, ExtrinsicApiError, e) {
     case ExtrinsicApiError::DECODE_FAILURE:
       return "failed to decode value";
   }
-  return "unknown author submission error";
+  return "unknown author api error";
 }

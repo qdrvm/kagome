@@ -34,7 +34,7 @@ using ::testing::DoAll;
 using ::testing::Invoke;
 using ::testing::Return;
 
-class ExtrinsicSubmissionServiceTest : public ::testing::Test {
+class AuthorServiceTest : public ::testing::Test {
   template <class T>
   using sptr = std::shared_ptr<T>;
 
@@ -82,7 +82,7 @@ class ExtrinsicSubmissionServiceTest : public ::testing::Test {
  * @when start method is called
  * @then start method of transport is called
  */
-TEST_F(ExtrinsicSubmissionServiceTest, StartSuccess) {
+TEST_F(AuthorServiceTest, StartSuccess) {
   ASSERT_NO_THROW(service->start());
 }
 
@@ -92,7 +92,7 @@ TEST_F(ExtrinsicSubmissionServiceTest, StartSuccess) {
  * @when a valid request is submitted
  * @then request is successfully parsed and response matches expectation
  */
-TEST_F(ExtrinsicSubmissionServiceTest, RequestSuccess) {
+TEST_F(AuthorServiceTest, RequestSuccess) {
   EXPECT_CALL(*api, submitExtrinsic(extrinsic)).WillOnce(Return(hash));
   std::string_view response =
       R"({"jsonrpc":"2.0","id":0,"result":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]})";
@@ -109,7 +109,7 @@ TEST_F(ExtrinsicSubmissionServiceTest, RequestSuccess) {
  * @when a valid request is submitted, but mocked api returns error
  * @then request fails and response matches expectation
  */
-TEST_F(ExtrinsicSubmissionServiceTest, RequestFail) {
+TEST_F(AuthorServiceTest, RequestFail) {
   EXPECT_CALL(*api, submitExtrinsic(extrinsic))
       .WillOnce(Return(
           outcome::failure(ExtrinsicApiError::INVALID_STATE_TRANSACTION)));
