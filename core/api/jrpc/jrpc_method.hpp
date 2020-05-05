@@ -34,10 +34,11 @@ namespace kagome::api {
 
         if (auto &&result = request.execute(); not result) {
           throw jsonrpc::Fault(result.error().message());
-        } else if constexpr (std::is_same_v<decltype(result.value()),
-                                            void>) {  // NOLINT
+          // NOLINTNEXTLINE
+        } else if constexpr (std::is_same_v<decltype(result.value()), void>) {
           return {};
-        } else {  // NOLINT
+          // NOLINTNEXTLINE
+        } else {
           return makeValue(result.value());
         }
 
@@ -49,4 +50,4 @@ namespace kagome::api {
 
 }  // namespace kagome::api
 
-#endif // KAGOME_CORE_API_JRPC_JRPC_METHOD_HPP
+#endif  // KAGOME_CORE_API_JRPC_JRPC_METHOD_HPP
