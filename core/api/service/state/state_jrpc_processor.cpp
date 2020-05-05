@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "state_jrpc_processor.hpp"
+#include "api/service/state/state_jrpc_processor.hpp"
 
 #include "api/jrpc/jrpc_method.hpp"
 #include "api/service/state/requests/get_storage.hpp"

@@ -19,11 +19,11 @@ using namespace kagome::api;
 using namespace kagome::runtime;
 
 using kagome::api::ApiService;
-using kagome::api::author::AuthorJRpcProcessor;
 using kagome::api::Listener;
 using kagome::api::ListenerMock;
 using kagome::api::Session;
 using kagome::api::SessionMock;
+using kagome::api::author::AuthorJRpcProcessor;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::primitives::BlockId;
@@ -33,6 +33,18 @@ using ::testing::_;
 using ::testing::DoAll;
 using ::testing::Invoke;
 using ::testing::Return;
+
+namespace kagome::api {
+  enum class DummyError { ERROR = 1 };
+}
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, DummyError, e) {
+  using kagome::api::DummyError;
+  switch (e) {
+    case DummyError::ERROR:
+      return "dummy error";
+  }
+}
 
 class AuthorServiceTest : public ::testing::Test {
   template <class T>
@@ -57,7 +69,7 @@ class AuthorServiceTest : public ::testing::Test {
   }
 
   sptr<ListenerMock> listener = std::make_shared<ListenerMock>();
-  std::vector<sptr<Listener>> listeners = { listener };
+  std::vector<sptr<Listener>> listeners = {listener};
 
   sptr<AuthorApiMock> api = std::make_shared<AuthorApiMock>();
 
@@ -111,10 +123,9 @@ TEST_F(AuthorServiceTest, RequestSuccess) {
  */
 TEST_F(AuthorServiceTest, RequestFail) {
   EXPECT_CALL(*api, submitExtrinsic(extrinsic))
-      .WillOnce(Return(
-          outcome::failure(ExtrinsicApiError::INVALID_STATE_TRANSACTION)));
+      .WillOnce(Return(outcome::failure(DummyError::ERROR)));
   std::string_view response =
-      R"({"jsonrpc":"2.0","id":0,"error":{"code":0,"message":"transaction is in invalid state"}})";
+      R"({"jsonrpc":"2.0","id":0,"error":{"code":0,"message":"dummy error"}})";
   EXPECT_CALL(*session, respond(response)).Times(1);
   ASSERT_NO_THROW(service->start());
   ASSERT_NO_THROW(session->processRequest(request, session));

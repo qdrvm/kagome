@@ -7,13 +7,14 @@
 
 namespace kagome::api::author::request {
 
-outcome::result<void> PendingExtrinsics::init(const jsonrpc::Request::Parameters &params)
-{
-	return outcome::success();
-}
+  outcome::result<void> PendingExtrinsics::init(
+      const jsonrpc::Request::Parameters &params) {
+    return outcome::success();
+  }
 
-outcome::result<std::vector<primitives::Extrinsic>> PendingExtrinsics::execute() {
-	return api_->pendingExtrinsics();
-}
+  outcome::result<std::vector<primitives::Extrinsic>>
+  PendingExtrinsics::execute() {
+    return api_->pendingExtrinsics();
+  }
 
 }  // namespace kagome::api::author::request

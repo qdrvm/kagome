@@ -15,7 +15,8 @@ namespace kagome::api::author::request {
 
   class SubmitExtrinsic final {
    public:
-    SubmitExtrinsic(std::shared_ptr<AuthorApi> api) : api_(std::move(api)){};
+    explicit SubmitExtrinsic(std::shared_ptr<AuthorApi> api)
+        : api_(std::move(api)){};
 
     outcome::result<void> init(const jsonrpc::Request::Parameters &params);
 

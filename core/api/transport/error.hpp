@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_API_TRANSPORT_ERROR_HPP
 #define KAGOME_CORE_API_TRANSPORT_ERROR_HPP
 
-#include <outcome/outcome.hpp>
+#include "outcome/outcome.hpp"
 
 namespace kagome::api {
   enum class ApiTransportError {

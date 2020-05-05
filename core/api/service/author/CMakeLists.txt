@@ -6,8 +6,6 @@
 add_subdirectory(requests)
 
 add_library(author_api_service
-    error.cpp
-    error.hpp
     author_api.hpp
     author_jrpc_processor.hpp
     author_jrpc_processor.cpp

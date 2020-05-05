@@ -6,7 +6,7 @@
 #include "api/transport/impl/http/http_session.hpp"
 
 #include <boost/config.hpp>
-#include <outcome/outcome.hpp>
+#include "outcome/outcome.hpp"
 
 namespace kagome::api {
 

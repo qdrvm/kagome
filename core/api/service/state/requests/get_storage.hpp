@@ -9,17 +9,17 @@
 #include <jsonrpc-lean/request.h>
 
 #include <boost/optional.hpp>
-#include <common/buffer.hpp>
-#include <outcome/outcome.hpp>
-#include <primitives/block_id.hpp>
 
 #include "api/service/state/state_api.hpp"
+#include "common/buffer.hpp"
+#include "outcome/outcome.hpp"
+#include "primitives/block_id.hpp"
 
 namespace kagome::api::state::request {
 
   class GetStorage final {
    public:
-    GetStorage(std::shared_ptr<StateApi> api) : api_(std::move(api)){};
+    explicit GetStorage(std::shared_ptr<StateApi> api) : api_(std::move(api)){};
 
     outcome::result<void> init(const jsonrpc::Request::Parameters &params);
 

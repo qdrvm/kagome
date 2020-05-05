@@ -12,14 +12,13 @@
  */
 
 #include <boost/variant.hpp>
-#include <outcome/outcome.hpp>
 
 #include "api/service/author/author_api.hpp"
-#include "api/service/author/error.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/logger.hpp"
 #include "common/visitor.hpp"
 #include "crypto/hasher.hpp"
+#include "outcome/outcome.hpp"
 #include "storage/trie/trie_db.hpp"
 
 namespace kagome::transaction_pool {
