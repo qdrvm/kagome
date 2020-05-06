@@ -6,12 +6,12 @@
 #ifndef KAGOME_CORE_API_TRANSPORT_LISTENER_HPP
 #define KAGOME_CORE_API_TRANSPORT_LISTENER_HPP
 
-#include <memory>
-
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
-#include <outcome/outcome.hpp>
+#include <memory>
+
 #include "api/transport/session.hpp"
+#include "outcome/outcome.hpp"
 
 namespace kagome::api {
   /**

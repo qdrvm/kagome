@@ -6,18 +6,18 @@
 #ifndef KAGOME_CORE_API_JRPC_JRPC_PROCESSOR_HPP
 #define KAGOME_CORE_API_JRPC_JRPC_PROCESSOR_HPP
 
-#include <jsonrpc-lean/server.h>
+#include <boost/noncopyable.hpp>
 
 namespace kagome::api {
   /**
    * @class JRpcProcessor is base class for JSON RPC processors
    */
-  class JRpcProcessor {
+class JRpcProcessor: private boost::noncopyable {
    public:
     virtual ~JRpcProcessor() = default;
 
     /**
-     * @brief registers callbacks for jrpc requests
+     * @brief registers callbacks for jrpc request
      */
     virtual void registerHandlers() = 0;
   };

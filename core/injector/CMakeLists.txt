@@ -30,7 +30,9 @@ target_link_libraries(application_injector
     binaryen_babe_api
     binaryen_grandpa_api
     binaryen_block_builder_api
-    extrinsic_api_service
+    author_api_service
+    api_author_requests
+    transaction_pool
     extension_factory
     epoch_storage
     gossiper_broadcast
