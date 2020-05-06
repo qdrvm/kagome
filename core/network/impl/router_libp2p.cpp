@@ -19,17 +19,21 @@ namespace kagome::network {
       std::shared_ptr<BabeObserver> babe_observer,
       std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer,
       std::shared_ptr<SyncProtocolObserver> sync_observer,
-      const std::shared_ptr<Gossiper>& gossiper)
+      std::shared_ptr<api::AuthorApiObserver> author_api_observer,
+      std::shared_ptr<Gossiper> gossiper)
       : host_{host},
         babe_observer_{std::move(babe_observer)},
         grandpa_observer_{std::move(grandpa_observer)},
         sync_observer_{std::move(sync_observer)},
-        gossiper_{gossiper},
+        author_api_observer_{std::move(author_api_observer)},
+        gossiper_{std::move(gossiper)},
         log_{common::createLogger("RouterLibp2p")} {
     BOOST_ASSERT_MSG(babe_observer_ != nullptr, "babe observer is nullptr");
     BOOST_ASSERT_MSG(grandpa_observer_ != nullptr,
                      "grandpa observer is nullptr");
     BOOST_ASSERT_MSG(sync_observer_ != nullptr, "sync observer is nullptr");
+    BOOST_ASSERT_MSG(author_api_observer_ != nullptr,
+                     "author api observer is nullptr");
     BOOST_ASSERT_MSG(gossiper != nullptr, "gossiper is nullptr");
   }
 
@@ -126,12 +130,40 @@ namespace kagome::network {
         log_->error("error while decoding a consensus message");
         return false;
       }
+      case MsgType::TRANSACTIONS: {
+        auto txs_msg_res =
+            scale::decode<std::vector<primitives::Extrinsic>>(msg.data);
+
+        if (not txs_msg_res) {
+          log_->error("error while decoding a transactions message");
+          return false;
+        }
+
+        log_->info("Received tx announce: {} txs", txs_msg_res.value().size());
+
+        for (auto &extrinsic : txs_msg_res.value()) {
+          auto result = author_api_observer_->onTxMessage(extrinsic);
+          if (result) {
+            log_->debug("  Received tx {}", result.value());
+          } else {
+            log_->debug("  Rejected tx: {}", result.error().message());
+          }
+        }
+        return true;
+      }
+      case GossipMessage::Type::STATUS: {
+        log_->error("Status message processing is not implemented yet");
+        return false;
+      }
+      case GossipMessage::Type::BLOCK_REQUEST: {
+        log_->error("BlockRequest message processing is not implemented yet");
+        return false;
+      }
       case MsgType::UNKNOWN:
+      default: {
         log_->error("unknown message type is set");
         return false;
+      }
     }
-
-    log_->error("garbage value in message type");
-    return false;
   }
 }  // namespace kagome::network

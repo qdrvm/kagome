@@ -7,7 +7,9 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+
 #include "common/blob.hpp"
+#include "mock/core/api/service/author/author_api_gossiper_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
@@ -67,7 +69,8 @@ struct AuthorApiTest : public ::testing::Test {
   sptr<TaggedTransactionQueueMock> ttq;  ///< tagged transaction queue mock
   sptr<TransactionPoolMock> transaction_pool;  ///< transaction pool mock
   sptr<BlockTreeMock> block_tree;              ///< block tree mock instance
-  sptr<TrieDbMock> trie_db_;                   ///> trie db mock
+  sptr<TrieDbMock> trie_db;                    ///< trie db mock
+  sptr<AuthorApiGossiperMock> gossiper;        ///< gossiper mock
   sptr<AuthorApiImpl> api;                     ///< api instance
   sptr<Extrinsic> extrinsic;                   ///< extrinsic instance
   sptr<ValidTransaction> valid_transaction;    ///< valid transaction instance
@@ -79,15 +82,16 @@ struct AuthorApiTest : public ::testing::Test {
     ttq = std::make_shared<TaggedTransactionQueueMock>();
     transaction_pool = std::make_shared<TransactionPoolMock>();
     block_tree = std::make_shared<BlockTreeMock>();
-    trie_db_ = std::make_shared<TrieDbMock>();
+    trie_db = std::make_shared<TrieDbMock>();
+    gossiper = std::make_shared<AuthorApiGossiperMock>();
     api = std::make_shared<AuthorApiImpl>(
-        ttq, transaction_pool, hasher, block_tree, trie_db_);
+        ttq, transaction_pool, hasher, block_tree, trie_db, gossiper);
     extrinsic.reset(new Extrinsic{"12"_hex2buf});
     valid_transaction.reset(new ValidTransaction{1, {{2}}, {{3}}, 4, true});
     deepest_hash = createHash256({1u, 2u, 3u});
     deepest_leaf.reset(new BlockInfo{1u, deepest_hash});
 
-    EXPECT_CALL(*trie_db_, resetState(_))
+    EXPECT_CALL(*trie_db, resetState(_))
         .WillRepeatedly(Return(outcome::success()));
   }
 };
@@ -112,7 +116,7 @@ TEST_F(AuthorApiTest, SubmitExtrinsicSuccess) {
                  true};
   EXPECT_CALL(*transaction_pool, submitOne(tr))
       .WillOnce(Return(outcome::success()));
-
+  EXPECT_CALL(*gossiper, transactionAnnounce(_)).Times(1);
   EXPECT_OUTCOME_TRUE(hash, api->submitExtrinsic(*extrinsic))
   ASSERT_EQ(hash, Hash256{});
 }
@@ -130,6 +134,7 @@ TEST_F(AuthorApiTest, SubmitExtrinsicFail) {
       .WillOnce(Return(outcome::failure(DummyError::ERROR)));
   EXPECT_CALL(*hasher, blake2b_256(_)).Times(0);
   EXPECT_CALL(*transaction_pool, submitOne(_)).Times(0);
+  EXPECT_CALL(*gossiper, transactionAnnounce(_)).Times(0);
   EXPECT_OUTCOME_FALSE_2(err, api->submitExtrinsic(*extrinsic))
   ASSERT_EQ(err.value(), static_cast<int>(DummyError::ERROR));
 }

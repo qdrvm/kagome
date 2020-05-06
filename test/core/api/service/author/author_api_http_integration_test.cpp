@@ -19,10 +19,8 @@
 #include "primitives/extrinsic.hpp"
 
 using namespace kagome::api;
-using namespace kagome::runtime;
+using namespace kagome::api::author;
 
-using kagome::api::ApiService;
-using kagome::api::HttpListenerImpl;
 using kagome::common::Hash256;
 using kagome::primitives::Extrinsic;
 

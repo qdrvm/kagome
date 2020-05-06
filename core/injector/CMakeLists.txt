@@ -31,6 +31,7 @@ target_link_libraries(application_injector
     binaryen_grandpa_api
     binaryen_block_builder_api
     author_api_service
+    author_api_observer
     api_author_requests
     transaction_pool
     extension_factory

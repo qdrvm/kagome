@@ -22,6 +22,15 @@ namespace kagome::network {
     }
   }
 
+  void GossiperBroadcast::transactionAnnounce(const TransactionAnnounce &announce) {
+//    logger_->debug("Gossip tx announce: tx hash {}",
+//                   announce.tx.hash());
+    GossipMessage message;
+    message.type = GossipMessage::Type::TRANSACTIONS;
+    message.data.put(scale::encode(std::vector({announce})).value());
+    broadcast(std::move(message));
+  }
+
   void GossiperBroadcast::blockAnnounce(const BlockAnnounce &announce) {
     logger_->debug("Gossip block announce: block number {}",
                    announce.header.number);

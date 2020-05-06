@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_ROUTER_LIBP2P_HPP
-#define KAGOME_ROUTER_LIBP2P_HPP
+#ifndef KAGOME_NETWORK_IMPL_ROUTER_LIBP2P_HPP
+#define KAGOME_NETWORK_IMPL_ROUTER_LIBP2P_HPP
 
 #include <memory>
 
+#include "api/service/author/impl/author_api_observer_impl.hpp"
 #include "common/logger.hpp"
 #include "consensus/grandpa/round_observer.hpp"
 #include "libp2p/connection/stream.hpp"
@@ -30,13 +31,15 @@ namespace kagome::network {
         std::shared_ptr<BabeObserver> babe_observer,
         std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer,
         std::shared_ptr<SyncProtocolObserver> sync_observer,
-        const std::shared_ptr<Gossiper>& gossiper);
+        std::shared_ptr<api::AuthorApiObserver> author_api_observer,
+        std::shared_ptr<Gossiper> gossiper);
 
     ~RouterLibp2p() override = default;
 
     void init() override;
 
-    void handleSyncProtocol(const std::shared_ptr<Stream> &stream) const override;
+    void handleSyncProtocol(
+        const std::shared_ptr<Stream> &stream) const override;
 
     void handleGossipProtocol(std::shared_ptr<Stream> stream) const override;
 
@@ -52,9 +55,10 @@ namespace kagome::network {
     std::shared_ptr<BabeObserver> babe_observer_;
     std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
+    std::shared_ptr<api::AuthorApiObserver> author_api_observer_;
     std::shared_ptr<Gossiper> gossiper_;
     common::Logger log_;
   };
 }  // namespace kagome::network
 
-#endif  // KAGOME_ROUTER_LIBP2P_HPP
+#endif  // KAGOME_NETWORK_IMPL_ROUTER_LIBP2P_HPP

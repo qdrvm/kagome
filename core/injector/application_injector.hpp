@@ -12,9 +12,10 @@
 #include <libp2p/peer/peer_info.hpp>
 #include <outcome/outcome.hpp>
 
+#include "api/service/api_service.hpp"
 #include "api/service/author/author_jrpc_processor.hpp"
 #include "api/service/author/impl/author_api_impl.hpp"
-#include "api/service/api_service.hpp"
+#include "api/service/author/impl/author_api_observer_impl.hpp"
 #include "api/service/state/impl/readonly_trie_builder_impl.hpp"
 #include "api/service/state/impl/state_api_impl.hpp"
 #include "api/service/state/state_jrpc_processor.hpp"
@@ -123,9 +124,10 @@ namespace kagome::injector {
     };
     auto server = injector.template create<std::shared_ptr<api::JRpcServer>>();
     std::vector<std::shared_ptr<api::JRpcProcessor>> processors{
-        injector.template create<std::shared_ptr<api::state::StateJrpcProcessor>>(),
         injector
-            .template create<std::shared_ptr<api::author::AuthorJRpcProcessor>>()};
+            .template create<std::shared_ptr<api::state::StateJrpcProcessor>>(),
+        injector.template create<
+            std::shared_ptr<api::author::AuthorJRpcProcessor>>()};
     initialized =
         std::make_shared<api::ApiService>(listeners, server, processors);
     return initialized.value();
@@ -530,6 +532,8 @@ namespace kagome::injector {
             [genesis_path](const auto &injector) {
               return get_configuration_storage(genesis_path, injector);
             }),
+        di::bind<api::AuthorApiObserver>.template to<api::AuthorApiObserverImpl>(),
+        di::bind<api::AuthorApiGossiper>.template to<network::GossiperBroadcast>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

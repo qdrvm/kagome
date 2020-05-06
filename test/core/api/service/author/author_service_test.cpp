@@ -8,6 +8,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <primitives/block_id.hpp>
+
 #include "api/service/author/author_jrpc_processor.hpp"
 #include "common/blob.hpp"
 #include "mock/core/api/service/author/author_api_mock.hpp"
@@ -16,14 +18,8 @@
 #include "primitives/extrinsic.hpp"
 
 using namespace kagome::api;
-using namespace kagome::runtime;
+using namespace kagome::api::author;
 
-using kagome::api::ApiService;
-using kagome::api::Listener;
-using kagome::api::ListenerMock;
-using kagome::api::Session;
-using kagome::api::SessionMock;
-using kagome::api::author::AuthorJRpcProcessor;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::primitives::BlockId;
