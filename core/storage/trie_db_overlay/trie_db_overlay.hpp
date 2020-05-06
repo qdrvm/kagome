@@ -6,7 +6,7 @@
 #ifndef KAGOME_STORAGE_TRIE_DB_OVERLAY_HPP
 #define KAGOME_STORAGE_TRIE_DB_OVERLAY_HPP
 
-#include "blockchain/changes_trie_builder.hpp"
+#include "storage/changes_trie/changes_trie_builder.hpp"
 #include "storage/trie/trie_db.hpp"
 
 namespace kagome::storage::trie_db_overlay {
@@ -19,7 +19,7 @@ namespace kagome::storage::trie_db_overlay {
     // insert all accumulated changes to the provided changes trie
     // clear the accumulated changes set
     virtual outcome::result<void> sinkChangesTo(
-        blockchain::ChangesTrieBuilder &changes_trie) = 0;
+        storage::changes_trie::ChangesTrieBuilder &changes_trie) = 0;
   };
 
 }  // namespace kagome::storage::trie_db_overlay

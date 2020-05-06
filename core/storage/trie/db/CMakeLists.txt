@@ -34,14 +34,14 @@ add_library(polkadot_trie_db
     polkadot_trie_db.cpp
     )
 target_link_libraries(polkadot_trie_db
-    polkadot_trie_codec
+    polkadot_codec
     polkadot_trie
     )
 kagome_install(polkadot_trie_db)
 
 add_library(polkadot_trie
     polkadot_trie.cpp
-    trie_error.cpp
+    ../impl/trie_error.cpp
     )
 target_link_libraries(polkadot_trie
     buffer
@@ -62,7 +62,7 @@ add_library(ordered_trie_hash INTERFACE)
 
 target_link_libraries(ordered_trie_hash INTERFACE
     polkadot_trie
-    polkadot_trie_codec
+    polkadot_codec
     scale
     )
 kagome_install(ordered_trie_hash)

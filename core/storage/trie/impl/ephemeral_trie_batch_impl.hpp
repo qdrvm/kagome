@@ -20,6 +20,7 @@ namespace kagome::storage::trie {
 
     outcome::result<Buffer> get(const Buffer &key) const override;
     bool contains(const Buffer &key) const override;
+    bool empty() const override;
     outcome::result<Buffer> calculateRoot() const override;
     outcome::result<void> clearPrefix(const Buffer &prefix) const override;
     outcome::result<void> put(const Buffer &key, const Buffer &value) override;

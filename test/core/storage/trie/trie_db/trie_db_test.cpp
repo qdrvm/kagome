@@ -6,9 +6,12 @@
 #include <gtest/gtest.h>
 
 #include "storage/in_memory/in_memory_storage.hpp"
-#include "storage/trie/impl/polkadot_trie_db.hpp"
+#include "storage/trie/impl/polkadot_trie_factory_impl.hpp"
+#include "storage/trie/impl/polkadot_trie_impl.hpp"
 #include "storage/trie/impl/trie_error.hpp"
+#include "storage/trie/impl/trie_serializer_impl.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
+#include "storage/trie/impl/trie_storage_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"
@@ -16,8 +19,13 @@
 using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::storage::LevelDB;
-using kagome::storage::trie::PolkadotTrieDb;
+using kagome::storage::trie::PolkadotCodec;
+using kagome::storage::trie::PolkadotTrie;
+using kagome::storage::trie::PolkadotTrieFactoryImpl;
+using kagome::storage::trie::PolkadotTrieImpl;
+using kagome::storage::trie::TrieSerializerImpl;
 using kagome::storage::trie::TrieStorageBackendImpl;
+using kagome::storage::trie::TrieStorageImpl;
 
 static const Buffer kNodePrefix{1};
 
@@ -40,13 +48,12 @@ class TrieTest
 
   void SetUp() override {
     open();
-    trie = PolkadotTrieDb::createEmpty(
-        std::make_shared<TrieDbBackendImpl>(std::move(db_), kNodePrefix));
+    trie = std::make_unique<PolkadotTrieImpl>();
   }
 
   static const std::vector<std::pair<Buffer, Buffer>> data;
 
-  std::unique_ptr<PolkadotTrieDb> trie;
+  std::unique_ptr<PolkadotTrieImpl> trie;
 };
 
 const std::vector<std::pair<Buffer, Buffer>> TrieTest::data = {
@@ -56,7 +63,7 @@ const std::vector<std::pair<Buffer, Buffer>> TrieTest::data = {
     {"010a0b"_hex2buf, "1337"_hex2buf},
     {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
 
-void FillSmallTree(PolkadotTrieDb &trie) {
+void FillSmallTree(PolkadotTrie &trie) {
   for (auto &entry : TrieTest::data) {
     EXPECT_OUTCOME_TRUE_1(trie.put(entry.first, entry.second));
   }
@@ -348,30 +355,47 @@ TEST_F(TrieTest, EmptyTrie) {
  */
 TEST(TriePersistencyTest, CreateDestroyCreate) {
   Buffer root;
+  auto factory = std::make_shared<PolkadotTrieFactoryImpl>(
+      [](auto parent, auto idx) { return parent->children.at(idx); });
+  auto codec = std::make_shared<PolkadotCodec>();
   {
     leveldb::Options options;
     options.create_if_missing = true;  // intentionally
     EXPECT_OUTCOME_TRUE(
         level_db,
         LevelDB::create("/tmp/kagome_leveldb_persistency_test", options));
-    auto db = PolkadotTrieDb::createEmpty(
-        std::make_shared<TrieDbBackendImpl>(std::move(level_db), kNodePrefix));
-    EXPECT_OUTCOME_TRUE_1(db->put("123"_buf, "abc"_buf));
-    EXPECT_OUTCOME_TRUE_1(db->put("345"_buf, "def"_buf));
-    EXPECT_OUTCOME_TRUE_1(db->put("678"_buf, "xyz"_buf));
-    root = db->getRootHash();
+    auto serializer = std::make_shared<TrieSerializerImpl>(
+        factory,
+        codec,
+        std::make_shared<TrieStorageBackendImpl>(std::move(level_db),
+                                                 kNodePrefix));
+    auto storage =
+        TrieStorageImpl::createEmpty(factory, codec, serializer, boost::none)
+            .value();
+
+    auto batch = storage->getPersistentBatch().value();
+    EXPECT_OUTCOME_TRUE_1(batch->put("123"_buf, "abc"_buf));
+    EXPECT_OUTCOME_TRUE_1(batch->put("345"_buf, "def"_buf));
+    EXPECT_OUTCOME_TRUE_1(batch->put("678"_buf, "xyz"_buf));
+    EXPECT_OUTCOME_TRUE(root_, batch->commit());
+    root = root_;
   }
   EXPECT_OUTCOME_TRUE(new_level_db,
                       LevelDB::create("/tmp/kagome_leveldb_persistency_test"));
-  auto db = PolkadotTrieDb::createFromStorage(
-      root,
-      std::make_shared<TrieDbBackendImpl>(std::move(new_level_db),
-                                          kNodePrefix));
-  EXPECT_OUTCOME_TRUE(v1, db->get("123"_buf));
+  auto serializer = std::make_shared<TrieSerializerImpl>(
+      factory,
+      codec,
+      std::make_shared<TrieStorageBackendImpl>(std::move(new_level_db),
+                                               kNodePrefix));
+  auto storage =
+      TrieStorageImpl::createFromStorage(root, codec, serializer, boost::none)
+          .value();
+  auto batch = storage->getPersistentBatch().value();
+  EXPECT_OUTCOME_TRUE(v1, batch->get("123"_buf));
   ASSERT_EQ(v1, "abc"_buf);
-  EXPECT_OUTCOME_TRUE(v2, db->get("345"_buf));
+  EXPECT_OUTCOME_TRUE(v2, batch->get("345"_buf));
   ASSERT_EQ(v2, "def"_buf);
-  EXPECT_OUTCOME_TRUE(v3, db->get("678"_buf));
+  EXPECT_OUTCOME_TRUE(v3, batch->get("678"_buf));
   ASSERT_EQ(v3, "xyz"_buf);
 
   fs::remove_all("/tmp/kagome_leveldb_persistency_test");

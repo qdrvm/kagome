@@ -20,29 +20,33 @@ namespace kagome::runtime::binaryen {
 
   outcome::result<primitives::ApplyResult> BlockBuilderImpl::apply_extrinsic(
       const Extrinsic &extrinsic) {
-    return execute<primitives::ApplyResult>("BlockBuilder_apply_extrinsic",
-                                            extrinsic);
+    return execute<primitives::ApplyResult>(
+        "BlockBuilder_apply_extrinsic", CallPersistency::PERSISTENT, extrinsic);
   }
 
   outcome::result<BlockHeader> BlockBuilderImpl::finalise_block() {
     // TODO(Harrm) PRE-154 figure out what wasm function returns
-    return execute<BlockHeader>("BlockBuilder_finalize_block");
+    return execute<BlockHeader>("BlockBuilder_finalize_block",
+                                CallPersistency::PERSISTENT);
   }
 
   outcome::result<std::vector<Extrinsic>> BlockBuilderImpl::inherent_extrinsics(
       const InherentData &data) {
-    return execute<std::vector<Extrinsic>>("BlockBuilder_inherent_extrinsics",
-                                           data);
+    return execute<std::vector<Extrinsic>>(
+        "BlockBuilder_inherent_extrinsics", CallPersistency::PERSISTENT, data);
   }
 
   outcome::result<CheckInherentsResult> BlockBuilderImpl::check_inherents(
       const Block &block, const InherentData &data) {
-    return execute<CheckInherentsResult>(
-        "BlockBuilder_check_inherents", block, data);
+    return execute<CheckInherentsResult>("BlockBuilder_check_inherents",
+                                         CallPersistency::EPHEMERAL,
+                                         block,
+                                         data);
   }
 
   outcome::result<common::Hash256> BlockBuilderImpl::random_seed() {
     // TODO(Harrm) PRE-154 Figure out what it requires
-    return execute<common::Hash256>("BlockBuilder_random_seed");
+    return execute<common::Hash256>("BlockBuilder_random_seed",
+                                    CallPersistency::EPHEMERAL);
   }
 }  // namespace kagome::runtime::binaryen

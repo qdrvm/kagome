@@ -26,7 +26,7 @@ namespace kagome::storage::trie {
      * Remove all trie entries which key begins with the supplied prefix
      */
     virtual outcome::result<void> clearPrefix(
-        const common::Buffer &prefix) const = 0;
+        const common::Buffer &prefix) = 0;
 
     /**
      * @return the root node of the trie

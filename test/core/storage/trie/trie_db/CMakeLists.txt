@@ -11,24 +11,25 @@ addtest(polkadot_trie_db_test
     ordered_trie_hash_test.cpp
     )
 target_link_libraries(polkadot_trie_db_test
+    trie_storage
     leveldb
-    polkadot_trie_db
-    polkadot_trie_batch
-    polkadot_trie_codec
-    trie_db_backend
-    base_leveldb_test
-    scale
-    buffer
-    in_memory_storage
     ordered_trie_hash
+    polkadot_trie_factory
+    Boost::boost
+    base_leveldb_test
+    trie_storage_backend
+    trie_serializer
+    in_memory_storage
+    trie_error
     )
 
-addtest(trie_db_backend_test
-    trie_db_backend_test.cpp
-    )
-target_link_libraries(trie_db_backend_test
-    trie_db_backend
-    blob
-    buffer
-    in_memory_storage
-    )
+#addtest(trie_db_backend_test
+#    trie_db_backend_test.cpp
+#    )
+#target_link_libraries(trie_db_backend_test
+#    trie_db_backend
+#    blob
+#    buffer
+#    in_memory_storage
+#    )
+#

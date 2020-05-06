@@ -11,7 +11,6 @@
 #include "storage/trie/impl/polkadot_trie_factory.hpp"
 #include "storage/trie/impl/trie_serializer.hpp"
 #include "storage/trie/trie_storage.hpp"
-#include "storage/trie/impl/polkadot_trie_factory.hpp"
 
 namespace kagome::storage::trie {
 
@@ -21,17 +20,16 @@ namespace kagome::storage::trie {
         std::shared_ptr<PolkadotTrieFactory> trie_factory,
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
-        std::shared_ptr<changes_trie::ChangesTracker> changes);
+        boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes);
 
     static outcome::result<std::unique_ptr<TrieStorageImpl>> createFromStorage(
         const common::Buffer &root_hash,
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
-        std::shared_ptr<changes_trie::ChangesTracker> changes,
-        std::shared_ptr<PolkadotTrieFactory> trie_factory);
+        boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes);
 
-    TrieStorageImpl(TrieStorageImpl const&) = delete;
-    void operator=(const TrieStorageImpl&) = delete;
+    TrieStorageImpl(TrieStorageImpl const &) = delete;
+    void operator=(const TrieStorageImpl &) = delete;
 
     ~TrieStorageImpl() override = default;
 
@@ -41,16 +39,18 @@ namespace kagome::storage::trie {
         const override;
     common::Buffer getRootHash() const override;
 
-   private:
-    TrieStorageImpl(common::Buffer root_hash,
-                    std::shared_ptr<Codec> codec,
-                    std::shared_ptr<TrieSerializer> serializer,
-                    std::shared_ptr<changes_trie::ChangesTracker> changes);
+   protected:
+    TrieStorageImpl(
+        common::Buffer root_hash,
+        std::shared_ptr<Codec> codec,
+        std::shared_ptr<TrieSerializer> serializer,
+        boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes);
 
+   private:
     common::Buffer root_hash_;
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<TrieSerializer> serializer_;
-    std::shared_ptr<changes_trie::ChangesTracker> changes_;
+    boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes_;
   };
 
 }  // namespace kagome::storage::trie

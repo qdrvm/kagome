@@ -22,6 +22,10 @@ namespace kagome::storage::trie {
     return trie_->contains(key);
   }
 
+  bool EphemeralTrieBatchImpl::empty() const {
+    return trie_->empty();
+  }
+
   outcome::result<Buffer> EphemeralTrieBatchImpl::calculateRoot() const {
     OUTCOME_TRY(enc, codec_->encodeNode(*trie_->getRoot()));
     return Buffer{codec_->hash256(enc)};

@@ -9,12 +9,12 @@
 #include <boost/variant.hpp>
 
 #include "blockchain/block_header_repository.hpp"
-#include "blockchain/changes_trie_builder.hpp"
 #include "common/blob.hpp"
 #include "primitives/extrinsic.hpp"
+#include "storage/changes_trie/changes_trie_builder.hpp"
 #include "storage/trie/trie_db_factory.hpp"
 
-namespace kagome::blockchain {
+namespace kagome::storage::changes_trie {
 
   class ChangesTrieBuilderImpl : public ChangesTrieBuilder {
    public:
@@ -84,7 +84,7 @@ namespace kagome::blockchain {
     std::unique_ptr<storage::trie::TrieDb> changes_storage_;
   };
 
-}  // namespace kagome::blockchain
+}  // namespace kagome::storage::changes_trie
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, ChangesTrieBuilderImpl::Error);
 

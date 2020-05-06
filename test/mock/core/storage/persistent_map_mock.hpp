@@ -9,6 +9,7 @@
 #include <gmock/gmock.h>
 
 #include "storage/face/batchable.hpp"
+#include "storage/face/generic_storage.hpp"
 
 namespace kagome::storage::face {
   template <typename K, typename V>

@@ -5,16 +5,27 @@
 
 namespace kagome::storage::changes_trie {
 
-  class StorageChangesTrackerImpl {
+  class StorageChangesTrackerImpl : public ChangesTracker {
    public:
-    StorageChangesTrackerImpl(std::shared_ptr<TrieDb> storage);
+    StorageChangesTrackerImpl();
+    ~StorageChangesTrackerImpl() override = default;
 
     void setConfig(const ChangesTrieConfig &conf) override;
 
-    void onChange(const common::Buffer &key, ChangeInfo change_info) override;
+    void setBlockHash(const primitives::BlockHash &hash) override;
+
+    void onChange(const common::Buffer &key) override;
 
     outcome::result<void> sinkToChangesTrie(
         ChangesTrieBuilder &builder) override;
+
+   private:
+    std::map<common::Buffer,
+             std::tuple<primitives::BlockNumber,
+                        std::list<primitives::ExtrinsicIndex>>>
+        changes_;
+    primitives::BlockHash current_block_hash_;
+    primitives::BlockNumber current_block_number_;
   };
 
 }  // namespace kagome::storage::changes_trie

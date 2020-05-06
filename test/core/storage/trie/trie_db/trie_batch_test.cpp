@@ -6,10 +6,14 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
-#include "storage/trie/impl/polkadot_trie_batch.hpp"
+#include "storage/trie/impl/polkadot_trie_factory_impl.hpp"
 #include "storage/trie/impl/trie_error.hpp"
+#include "storage/trie/impl/trie_serializer_impl.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
+#include "storage/trie/impl/trie_storage_impl.hpp"
+#include "storage/trie/trie_batches.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"
@@ -28,13 +32,21 @@ class TrieBatchTest : public test::BaseLevelDB_Test {
 
   void SetUp() override {
     open();
-    trie = PolkadotTrieDb::createEmpty(std::make_shared<TrieStorageBackendImpl>(
-        std::move(db_), kNodePrefix));
+    auto factory = std::make_shared<PolkadotTrieFactoryImpl>(
+        [](auto parent, auto idx) { return parent->children.at(idx); });
+    auto codec = std::make_shared<PolkadotCodec>();
+    auto serializer = std::make_shared<TrieSerializerImpl>(
+        factory,
+        codec,
+        std::make_shared<TrieStorageBackendImpl>(std::move(db_), kNodePrefix));
+
+    trie = TrieStorageImpl::createEmpty(factory, codec, serializer, boost::none)
+               .value();
   }
 
   static const std::vector<std::pair<Buffer, Buffer>> data;
 
-  std::unique_ptr<PolkadotTrieDb> trie;
+  std::unique_ptr<TrieStorage> trie;
 
   static const Buffer kNodePrefix;
 };
@@ -48,15 +60,15 @@ const std::vector<std::pair<Buffer, Buffer>> TrieBatchTest::data = {
     {"010a0b"_hex2buf, "1337"_hex2buf},
     {"0a0b0c"_hex2buf, "deadbeef"_hex2buf}};
 
-void FillSmallTrieWithBatch(WriteBatch<Buffer, Buffer> &batch) {
+void FillSmallTrieWithBatch(TrieBatch &batch) {
   for (auto &entry : TrieBatchTest::data) {
     EXPECT_OUTCOME_TRUE_1(batch.put(entry.first, entry.second));
   }
 }
 
-class MockPolkadotTrieDb : public PolkadotTrieDb {
+class MockTrieStorageImpl : public TrieStorageImpl {
  public:
-  MockPolkadotTrieDb() : PolkadotTrieDb(nullptr, boost::none) {}
+  MockTrieStorageImpl() : TrieStorageImpl({}, nullptr, nullptr, boost::none) {}
 
   MOCK_CONST_METHOD0(getRootHash, Buffer());
 };
@@ -78,25 +90,28 @@ class MockDb : public kagome::storage::InMemoryStorage {
  * @then all inserted entries are accessible from the trie
  */
 TEST_F(TrieBatchTest, Put) {
-  auto batch = trie->batch();
+  auto batch = trie->getPersistentBatch().value();
   FillSmallTrieWithBatch(*batch);
-
+  // changes are not yet commited
+  auto new_batch = trie->getEphemeralBatch().value();
   for (auto &entry : data) {
-    EXPECT_OUTCOME_FALSE(err, trie->get(entry.first));
+    EXPECT_OUTCOME_FALSE(err, new_batch->get(entry.first));
     ASSERT_EQ(err.value(),
               static_cast<int>(kagome::storage::trie::TrieError::NO_VALUE));
   }
   EXPECT_OUTCOME_TRUE_void(r, batch->commit());
+  // changes are commited
+  new_batch = trie->getEphemeralBatch().value();
   for (auto &entry : data) {
-    EXPECT_OUTCOME_TRUE(res, trie->get(entry.first));
+    EXPECT_OUTCOME_TRUE(res, new_batch->get(entry.first));
     ASSERT_EQ(res, entry.second);
   }
 
-  EXPECT_OUTCOME_TRUE_1(trie->put("102030"_hex2buf, "010203"_hex2buf));
-  EXPECT_OUTCOME_TRUE_1(trie->put("104050"_hex2buf, "0a0b0c"_hex2buf));
-  EXPECT_OUTCOME_TRUE(v1, trie->get("102030"_hex2buf));
+  EXPECT_OUTCOME_TRUE_1(new_batch->put("102030"_hex2buf, "010203"_hex2buf));
+  EXPECT_OUTCOME_TRUE_1(new_batch->put("104050"_hex2buf, "0a0b0c"_hex2buf));
+  EXPECT_OUTCOME_TRUE(v1, new_batch->get("102030"_hex2buf));
   ASSERT_EQ(v1, "010203"_hex2buf);
-  EXPECT_OUTCOME_TRUE(v2, trie->get("104050"_hex2buf));
+  EXPECT_OUTCOME_TRUE(v2, new_batch->get("104050"_hex2buf));
   ASSERT_EQ(v2, "0a0b0c"_hex2buf);
 }
 
@@ -106,7 +121,7 @@ TEST_F(TrieBatchTest, Put) {
  * @then removed entries are no longer in the trie, while the rest of them stays
  */
 TEST_F(TrieBatchTest, Remove) {
-  auto batch = trie->batch();
+  auto batch = trie->getPersistentBatch().value();
   FillSmallTrieWithBatch(*batch);
 
   EXPECT_OUTCOME_TRUE_1(batch->remove(data[2].first));
@@ -116,11 +131,12 @@ TEST_F(TrieBatchTest, Remove) {
 
   EXPECT_OUTCOME_TRUE_1(batch->commit());
 
+  auto read_batch = trie->getEphemeralBatch().value();
   for (auto i : {2, 3, 4}) {
-    ASSERT_FALSE(trie->contains(data[i].first));
+    ASSERT_FALSE(read_batch->contains(data[i].first));
   }
-  ASSERT_TRUE(trie->contains(data[0].first));
-  ASSERT_TRUE(trie->contains(data[1].first));
+  ASSERT_TRUE(read_batch->contains(data[0].first));
+  ASSERT_TRUE(read_batch->contains(data[1].first));
 }
 
 /**
@@ -130,34 +146,12 @@ TEST_F(TrieBatchTest, Remove) {
  * @then the value on the key is updated
  */
 TEST_F(TrieBatchTest, Replace) {
-  auto batch = trie->batch();
+  auto batch = trie->getPersistentBatch().value();
   EXPECT_OUTCOME_TRUE_1(batch->put(data[1].first, data[3].second));
   EXPECT_OUTCOME_TRUE_1(batch->commit());
-  EXPECT_OUTCOME_TRUE(res, trie->get(data[1].first));
+  auto read_batch = trie->getEphemeralBatch().value();
+  EXPECT_OUTCOME_TRUE(res, read_batch->get(data[1].first));
   ASSERT_EQ(res, data[3].second);
-}
-
-/**
- * @given a batch with commands
- * @when clearing it
- * @then no batch commands will be executed during commit, as there are none
- * left after clear()
- */
-TEST_F(TrieBatchTest, Clear) {
-  testing::StrictMock<MockPolkadotTrieDb> mock_trie{};
-  PolkadotTrieBatch batch{mock_trie};
-
-  // this method is called when batch tries to apply its actions, which is
-  // undesired in this case
-  EXPECT_CALL(mock_trie, getRootHash()).Times(0);
-
-  EXPECT_OUTCOME_TRUE_1(batch.put("123"_buf, "111"_buf));
-  EXPECT_OUTCOME_TRUE_1(batch.put("133"_buf, "111"_buf));
-  EXPECT_OUTCOME_TRUE_1(batch.put("124"_buf, "111"_buf));
-  EXPECT_OUTCOME_TRUE_1(batch.remove("123"_buf));
-  EXPECT_OUTCOME_TRUE_1(batch.remove("133"_buf));
-  batch.clear();
-  EXPECT_OUTCOME_TRUE_1(batch.commit());
 }
 
 /**
@@ -180,23 +174,29 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
       .After(expectation)
       .WillOnce(Return(PolkadotCodec::Error::UNKNOWN_NODE_TYPE));
 
-  PolkadotTrieDb trie =
-      *PolkadotTrieDb::createEmpty(std::make_shared<TrieStorageBackendImpl>(
-          std::move(db), kNodePrefix));
-  PolkadotTrieBatch batch{trie};
+  auto factory = std::make_shared<PolkadotTrieFactoryImpl>(
+      [](auto parent, auto idx) { return parent->children.at(idx); });
+  auto codec = std::make_shared<PolkadotCodec>();
+  auto serializer = std::make_shared<TrieSerializerImpl>(
+      factory,
+      codec,
+      std::make_shared<TrieStorageBackendImpl>(std::move(db), kNodePrefix));
+  auto trie =
+      TrieStorageImpl::createEmpty(factory, codec, serializer, boost::none)
+           .value();
+  auto batch = trie->getPersistentBatch().value();
 
-  EXPECT_OUTCOME_TRUE_1(batch.put("123"_buf, "111"_buf));
-  EXPECT_OUTCOME_TRUE_1(batch.commit());
+  EXPECT_OUTCOME_TRUE_1(batch->put("123"_buf, "111"_buf));
+  EXPECT_OUTCOME_TRUE_1(batch->commit());
 
-  auto old_root = trie.getRootHash();
+  auto old_root = trie->getRootHash();
   ASSERT_FALSE(old_root.empty());
-  EXPECT_OUTCOME_TRUE_1(batch.put("133"_buf, "111"_buf));
-  EXPECT_OUTCOME_TRUE_1(batch.put("124"_buf, "111"_buf));
-  EXPECT_OUTCOME_TRUE_1(batch.put("154"_buf, "111"_buf));
-  ASSERT_FALSE(batch.commit());
-  ASSERT_TRUE(batch.is_empty());
+  EXPECT_OUTCOME_TRUE_1(batch->put("133"_buf, "111"_buf));
+  EXPECT_OUTCOME_TRUE_1(batch->put("124"_buf, "111"_buf));
+  EXPECT_OUTCOME_TRUE_1(batch->put("154"_buf, "111"_buf));
+  ASSERT_FALSE(batch->commit());
 
   // if the root hash is unchanged, then the trie content is kept untouched
   // (which we want, as the batch commit failed)
-  ASSERT_EQ(trie.getRootHash(), old_root);
+  ASSERT_EQ(trie->getRootHash(), old_root);
 }

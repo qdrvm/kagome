@@ -16,6 +16,9 @@ namespace kagome::storage::changes_trie {
    */
   class ChangesTracker {
    public:
+    virtual ~ChangesTracker() = default;
+
+    virtual void setBlockHash(const primitives::BlockHash &hash) = 0;
 
     virtual void setConfig(const ChangesTrieConfig &conf) = 0;
 

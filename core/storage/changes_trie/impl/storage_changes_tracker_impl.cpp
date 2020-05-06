@@ -7,12 +7,15 @@ namespace kagome::storage::changes_trie {
 
   }
 
+  void setBlockNumber(const primitives::BlockHash &hash) {
+
+  }
+
   void StorageChangesTrackerImpl::setConfig(const ChangesTrieConfig &conf) {
 
   }
 
-  void StorageChangesTrackerImpl::onChange(const common::Buffer &key,
-                                           ChangeInfo change_info) {
+  void StorageChangesTrackerImpl::onChange(const common::Buffer &key) {
 
   }
 

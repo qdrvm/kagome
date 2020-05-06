@@ -8,6 +8,8 @@
 #include <functional>
 #include <utility>
 
+#include "storage/trie/impl/trie_error.hpp"
+
 using kagome::common::Buffer;
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotTrieImpl::Error, e) {
@@ -224,6 +226,10 @@ namespace kagome::storage::trie {
            && (node.value()->value);
   }
 
+  bool PolkadotTrieImpl::empty() const {
+    return root_ == nullptr;
+  }
+
   outcome::result<void> PolkadotTrieImpl::remove(const common::Buffer &key) {
     if (root_) {
       auto key_nibbles = PolkadotCodec::keyToNibbles(key);
@@ -234,18 +240,6 @@ namespace kagome::storage::trie {
       // root hash is obtained
       root_ = n;
     }
-    return outcome::success();
-  }
-
-  outcome::result<void> PolkadotTrie::clearPrefix(
-      const common::Buffer &prefix) {
-    if (not root_) {
-      return outcome::success();
-    }
-    auto key_nibbles = PolkadotCodec::keyToNibbles(prefix);
-    OUTCOME_TRY(new_root, detachNode(root_, key_nibbles));
-    root_ = new_root;
-
     return outcome::success();
   }
 

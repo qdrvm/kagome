@@ -12,8 +12,6 @@
 namespace kagome::storage::trie {
 
   class PolkadotTrieImpl : public PolkadotTrie {
-    using ChildRetrieveFunctor =
-        std::function<outcome::result<NodePtr>(BranchPtr, uint8_t)>;
 
     // a child is obtained from the branch list of children as-is.
     // should be used when the trie is completely in memory
@@ -23,6 +21,9 @@ namespace kagome::storage::trie {
     }
 
    public:
+    using ChildRetrieveFunctor =
+    std::function<outcome::result<NodePtr>(BranchPtr, uint8_t)>;
+
     enum class Error { INVALID_NODE_TYPE = 1 };
 
     /**
@@ -42,7 +43,7 @@ namespace kagome::storage::trie {
     /**
      * Remove all entries, which key starts with the prefix
      */
-    outcome::result<void> clearPrefix(const common::Buffer &prefix);
+    outcome::result<void> clearPrefix(const common::Buffer &prefix) override;
 
     // value will be copied
     outcome::result<void> put(const common::Buffer &key,
@@ -57,6 +58,8 @@ namespace kagome::storage::trie {
         const common::Buffer &key) const override;
 
     bool contains(const common::Buffer &key) const override;
+
+    bool empty() const override;
 
    private:
     outcome::result<NodePtr> insert(const NodePtr &parent,

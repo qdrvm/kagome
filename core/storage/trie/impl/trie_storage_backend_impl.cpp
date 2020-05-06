@@ -11,45 +11,49 @@
 
 namespace kagome::storage::trie {
 
-  TrieDbBackendImpl::TrieDbBackendImpl(std::shared_ptr<BufferStorage> storage,
+  TrieStorageBackendImpl::TrieStorageBackendImpl(std::shared_ptr<BufferStorage> storage,
                                        common::Buffer node_prefix)
       : storage_{std::move(storage)}, node_prefix_{std::move(node_prefix)} {
     BOOST_ASSERT(storage_ != nullptr);
   }
 
-  std::unique_ptr<face::MapCursor<Buffer, Buffer>> TrieDbBackendImpl::cursor() {
+  std::unique_ptr<face::MapCursor<Buffer, Buffer>> TrieStorageBackendImpl::cursor() {
     return storage_
         ->cursor();  // TODO(Harrm): perhaps should iterate over trie nodes only
   }
 
-  std::unique_ptr<face::WriteBatch<Buffer, Buffer>> TrieDbBackendImpl::batch() {
-    return std::make_unique<PolkadotTrieDbBackendBatch>(storage_->batch(),
+  std::unique_ptr<face::WriteBatch<Buffer, Buffer>> TrieStorageBackendImpl::batch() {
+    return std::make_unique<TrieStorageBackendBatch>(storage_->batch(),
                                                         node_prefix_);
   }
 
-  outcome::result<Buffer> TrieDbBackendImpl::get(const Buffer &key) const {
+  outcome::result<Buffer> TrieStorageBackendImpl::get(const Buffer &key) const {
     return storage_->get(prefixKey(key));
   }
 
-  bool TrieDbBackendImpl::contains(const Buffer &key) const {
+  bool TrieStorageBackendImpl::contains(const Buffer &key) const {
     return storage_->contains(prefixKey(key));
   }
 
-  outcome::result<void> TrieDbBackendImpl::put(const Buffer &key,
+  bool TrieStorageBackendImpl::empty() const {
+    return storage_->empty();
+  }
+
+  outcome::result<void> TrieStorageBackendImpl::put(const Buffer &key,
                                                const Buffer &value) {
     return storage_->put(prefixKey(key), value);
   }
 
-  outcome::result<void> TrieDbBackendImpl::put(const Buffer &key,
+  outcome::result<void> TrieStorageBackendImpl::put(const Buffer &key,
                                                Buffer &&value) {
     return storage_->put(prefixKey(key), std::move(value));
   }
 
-  outcome::result<void> TrieDbBackendImpl::remove(const Buffer &key) {
+  outcome::result<void> TrieStorageBackendImpl::remove(const Buffer &key) {
     return storage_->remove(prefixKey(key));
   }
 
-  common::Buffer TrieDbBackendImpl::prefixKey(const common::Buffer &key) const {
+  common::Buffer TrieStorageBackendImpl::prefixKey(const common::Buffer &key) const {
     return common::Buffer{node_prefix_}.put(key);
   }
 

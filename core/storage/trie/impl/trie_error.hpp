@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TRIE_ERROR_HPP
-#define KAGOME_TRIE_ERROR_HPP
+#ifndef KAGOME_STORAGE_TRIE_TRIE_ERROR_HPP
+#define KAGOME_STORAGE_TRIE_TRIE_ERROR_HPP
 
-#include <outcome/outcome.hpp>
+#include "outcome/outcome.hpp"
 
 namespace kagome::storage::trie {
   /**
@@ -19,4 +19,4 @@ namespace kagome::storage::trie {
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie, TrieError)
 
-#endif  // KAGOME_TRIE_ERROR_HPP
+#endif  // KAGOME_STORAGE_TRIE_TRIE_ERROR_HPP
