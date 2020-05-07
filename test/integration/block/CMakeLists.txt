@@ -8,4 +8,7 @@ addtest(block_produce_consume_test
     )
 target_link_libraries(block_produce_consume_test
     application_injector
+#    binaryen_core_api
+    basic_wasm_provider
+#    extension_factory
     )

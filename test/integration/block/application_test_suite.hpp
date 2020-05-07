@@ -15,9 +15,7 @@ class ApplicationTestSuite : public testing::Test {
   auto &getInjector() const {
     static auto injector =
         kagome::injector::makeApplicationInjector("config/polkadot-v06.json",
-                                                  "config/keystore.json",
                                                   "ldb",
-                                                  30363,
                                                   40363,
                                                   40364);
     return injector;

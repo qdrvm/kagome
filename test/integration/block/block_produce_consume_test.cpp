@@ -3,17 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <testutil/runtime/common/basic_wasm_provider.hpp>
 #include "application_test_suite.hpp"
 #include "authorship/impl/proposer_impl.hpp"
+#include "primitives/inherent_data.hpp"
 
 using kagome::authorship::Proposer;
 using kagome::authorship::ProposerImpl;
 using kagome::common::Buffer;
-using kagome::primitives::Block;
-using kagome::primitives::Extrinsic;
-using kagome::primitives::InherentData;
-using kagome::primitives::PreRuntime;
-using kagome::primitives::Transaction;
+using namespace kagome::primitives;
 
 class BlockProduceConsume : public ApplicationTestSuite {
  protected:
@@ -172,11 +170,16 @@ outcome::result<Block> BlockProduceConsume::produceBlock(
     }
   }
 
-  InherentData inherent_data;
+	static const auto kTimestampId =
+			InherentIdentifier::fromString("timstap0").value();
+	static const auto kBabeSlotId =
+			InherentIdentifier::fromString("babeslot").value();
+
+	InherentData inherent_data;
   OUTCOME_TRY(
-      inherent_data.putData<uint64_t>(kagome::consensus::kTimestampId, _now));
+      inherent_data.putData<uint64_t>(kTimestampId, _now));
   OUTCOME_TRY(
-      inherent_data.putData(kagome::consensus::kBabeSlotId, current_slot));
+      inherent_data.putData(kBabeSlotId, current_slot));
 
   kagome::consensus::BabeBlockHeader babe_header{
       current_slot, vrfOutput, authority_index};
@@ -204,10 +207,21 @@ outcome::result<void> BlockProduceConsume::consumeBlock(const Block &block) {
 
   assert(originalTrieDb->getRootHash() == _initialState);
 
-  auto core = std::make_unique<kagome::runtime::binaryen::CoreImpl>(
-      std::make_shared<kagome::runtime::StorageWasmProvider>(originalTrieDb),
-      std::make_shared<kagome::extensions::ExtensionFactoryImpl>(
-          originalTrieDb));
+    auto extension_factory =
+        std::make_shared<kagome::extensions::ExtensionFactoryImpl>(_trieDb);
+    auto wasm_path = boost::filesystem::path(__FILE__).parent_path().string()
+                     + "/wasm/polkadot_runtime.compact.wasm";
+    auto wasm_provider =
+        std::make_shared<kagome::runtime::BasicWasmProvider>(wasm_path);
+    auto hasher = std::make_shared<kagome::crypto::HasherImpl>();
+
+    auto runtime_manager =
+        std::make_shared<kagome::runtime::binaryen::RuntimeManager>(
+            std::move(wasm_provider),
+            std::move(extension_factory),
+            std::move(hasher));
+
+  auto core = std::make_unique<kagome::runtime::binaryen::CoreImpl>(runtime_manager);
 
   OUTCOME_TRY(core->execute_block(block));
 
