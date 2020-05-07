@@ -3,21 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_EXTRINSICS_SUBMISSION_SERVICE_EXTRINSIC_SUBMISSION_API_IMPL_HPP
-#define KAGOME_CORE_EXTRINSICS_SUBMISSION_SERVICE_EXTRINSIC_SUBMISSION_API_IMPL_HPP
+#ifndef KAGOME_CORE_API_SERVICE_AUTHOR_IMPL_AUTHOR_API_IMPL_HPP
+#define KAGOME_CORE_API_SERVICE_AUTHOR_IMPL_AUTHOR_API_IMPL_HPP
 
 /**
  * ExtrinsicSubmissionApi based on auth api implemented in substrate here
  * https://github.com/paritytech/substrate/blob/e8739300ae3f7f2e7b72f64668573275f2806ea5/core/rpc/src/author/mod.rs#L50-L49
  */
 
-#include <boost/variant.hpp>
-
 #include "api/service/author/author_api.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/logger.hpp"
-#include "common/visitor.hpp"
 #include "crypto/hasher.hpp"
+#include "network/extrinsic_gossiper.hpp"
 #include "outcome/outcome.hpp"
 #include "storage/trie/trie_db.hpp"
 
@@ -46,7 +44,8 @@ namespace kagome::api {
                   std::shared_ptr<transaction_pool::TransactionPool> pool,
                   std::shared_ptr<crypto::Hasher> hasher,
                   std::shared_ptr<blockchain::BlockTree> block_tree,
-                  std::shared_ptr<storage::trie::TrieDb> trie_db);
+                  std::shared_ptr<storage::trie::TrieDb> trie_db,
+                  std::shared_ptr<network::ExtrinsicGossiper> gossiper);
 
     ~AuthorApiImpl() override = default;
 
@@ -66,8 +65,9 @@ namespace kagome::api {
     sptr<crypto::Hasher> hasher_;
     sptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::trie::TrieDb> trie_db_;
+    std::shared_ptr<network::ExtrinsicGossiper> gossiper_;
     common::Logger logger_;
   };
 }  // namespace kagome::api
 
-#endif  // KAGOME_CORE_EXTRINSICS_SUBMISSION_SERVICE_EXTRINSIC_SUBMISSION_API_IMPL_HPP
+#endif  // KAGOME_CORE_API_SERVICE_AUTHOR_IMPL_AUTHOR_API_IMPL_HPP

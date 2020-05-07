@@ -3,14 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TEST_CORE_EXTRINSIC_SUBMISSION_SERVICE_EXTRINSIC_SUBMISSION_API_MOCK_HPP
-#define KAGOME_TEST_CORE_EXTRINSIC_SUBMISSION_SERVICE_EXTRINSIC_SUBMISSION_API_MOCK_HPP
+#ifndef KAGOME_TEST_CORE_API_SERVICE_AUTHOR_AUTHOR_API_MOCK_HPP
+#define KAGOME_TEST_CORE_API_SERVICE_AUTHOR_AUTHOR_API_MOCK_HPP
 
 #include <gmock/gmock.h>
-#include <gtest/gtest.h>
-#include "api/service/author/impl/author_api_impl.hpp"
-#include "common/blob.hpp"
-#include "primitives/extrinsic.hpp"
+
+#include "api/service/author/author_api.hpp"
 
 namespace kagome::api {
 
@@ -29,4 +27,4 @@ namespace kagome::api {
 
 }  // namespace kagome::api
 
-#endif  // KAGOME_TEST_CORE_EXTRINSIC_SUBMISSION_SERVICE_EXTRINSIC_SUBMISSION_API_MOCK_HPP
+#endif  // KAGOME_TEST_CORE_API_SERVICE_AUTHOR_AUTHOR_API_MOCK_HPP

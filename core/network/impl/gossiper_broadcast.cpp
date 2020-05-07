@@ -6,6 +6,7 @@
 #include "network/impl/gossiper_broadcast.hpp"
 
 #include <boost/assert.hpp>
+
 #include "network/common.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 
@@ -20,6 +21,16 @@ namespace kagome::network {
     for (const auto &info : peer_infos.peers) {
       streams_.insert({info, nullptr});
     }
+  }
+
+  void GossiperBroadcast::transactionAnnounce(
+      const TransactionAnnounce &announce) {
+    logger_->debug("Gossip tx announce: {} extrinsics",
+                   announce.extrinsics.size());
+    GossipMessage message;
+    message.type = GossipMessage::Type::TRANSACTIONS;
+    message.data.put(scale::encode(announce).value());
+    broadcast(std::move(message));
   }
 
   void GossiperBroadcast::blockAnnounce(const BlockAnnounce &announce) {

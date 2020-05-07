@@ -16,17 +16,10 @@
 #include "primitives/extrinsic.hpp"
 
 using namespace kagome::api;
-using namespace kagome::runtime;
+using namespace kagome::api::author;
 
-using kagome::api::ApiService;
-using kagome::api::Listener;
-using kagome::api::ListenerMock;
-using kagome::api::Session;
-using kagome::api::SessionMock;
-using kagome::api::author::AuthorJRpcProcessor;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
-using kagome::primitives::BlockId;
 using kagome::primitives::Extrinsic;
 
 using ::testing::_;
