@@ -5,14 +5,17 @@
 
 #include "network/impl/extrinsic_observer_impl.hpp"
 
-kagome::network::ExtrinsicObserverImpl::ExtrinsicObserverImpl(
-    std::shared_ptr<api::AuthorApi> api)
-    : api_(std::move(api)) {
-  BOOST_ASSERT(api_);
-}
+namespace kagome::network {
 
-outcome::result<kagome::common::Hash256>
-kagome::network::ExtrinsicObserverImpl::onTxMessage(
-    const kagome::primitives::Extrinsic &extrinsic) {
-  return api_->submitExtrinsic(extrinsic);
-}
+  ExtrinsicObserverImpl::ExtrinsicObserverImpl(
+      std::shared_ptr<api::AuthorApi> api)
+      : api_(std::move(api)) {
+    BOOST_ASSERT(api_);
+  }
+
+  outcome::result<common::Hash256> ExtrinsicObserverImpl::onTxMessage(
+      const primitives::Extrinsic &extrinsic) {
+    return api_->submitExtrinsic(extrinsic);
+  }
+
+}  // namespace kagome::network
