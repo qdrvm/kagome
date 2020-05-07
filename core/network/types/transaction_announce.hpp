@@ -13,7 +13,7 @@ namespace kagome::network {
    * Announce a transaction on the network
    */
   struct TransactionAnnounce {
-    primitives::Extrinsic extrinsic;
+    std::vector<primitives::Extrinsic> extrinsics;
   };
 
   /**
@@ -22,10 +22,12 @@ namespace kagome::network {
    * @param rhs second instance
    * @return true if equal false otherwise
    */
-  inline bool operator==(const TransactionAnnounce &lhs, const TransactionAnnounce &rhs) {
-    return lhs.extrinsic == rhs.extrinsic;
+  inline bool operator==(const TransactionAnnounce &lhs,
+                         const TransactionAnnounce &rhs) {
+    return lhs.extrinsics == rhs.extrinsics;
   }
-inline bool operator!=(const TransactionAnnounce &lhs, const TransactionAnnounce &rhs) {
+  inline bool operator!=(const TransactionAnnounce &lhs,
+                         const TransactionAnnounce &rhs) {
     return !(lhs == rhs);
   }
 
@@ -39,7 +41,7 @@ inline bool operator!=(const TransactionAnnounce &lhs, const TransactionAnnounce
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const TransactionAnnounce &v) {
-    return s << v.extrinsic;
+    return s << v.extrinsics;
   }
 
   /**
@@ -52,7 +54,7 @@ inline bool operator!=(const TransactionAnnounce &lhs, const TransactionAnnounce
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, TransactionAnnounce &v) {
-    return s >> v.extrinsic;
+    return s >> v.extrinsics;
   }
 }  // namespace kagome::network
 

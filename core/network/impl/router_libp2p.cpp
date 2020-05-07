@@ -19,7 +19,7 @@ namespace kagome::network {
       std::shared_ptr<BabeObserver> babe_observer,
       std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer,
       std::shared_ptr<SyncProtocolObserver> sync_observer,
-      std::shared_ptr<api::AuthorApiObserver> author_api_observer,
+      std::shared_ptr<ExtrinsicObserver> author_api_observer,
       std::shared_ptr<Gossiper> gossiper)
       : host_{host},
         babe_observer_{std::move(babe_observer)},
@@ -159,8 +159,7 @@ namespace kagome::network {
         log_->error("BlockRequest message processing is not implemented yet");
         return false;
       }
-      case MsgType::UNKNOWN:
-      default: {
+      case GossipMessage::Type::UNKNOWN: {
         log_->error("unknown message type is set");
         return false;
       }

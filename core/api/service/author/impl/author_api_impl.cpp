@@ -14,12 +14,13 @@
 #include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::api {
-  AuthorApiImpl::AuthorApiImpl(sptr<runtime::TaggedTransactionQueue> api,
-                               sptr<transaction_pool::TransactionPool> pool,
-                               sptr<crypto::Hasher> hasher,
-                               sptr<blockchain::BlockTree> block_tree,
-                               std::shared_ptr<storage::trie::TrieDb> trie_db,
-                               std::shared_ptr<AuthorApiGossiper> gossiper)
+  AuthorApiImpl::AuthorApiImpl(
+      sptr<runtime::TaggedTransactionQueue> api,
+      sptr<transaction_pool::TransactionPool> pool,
+      sptr<crypto::Hasher> hasher,
+      sptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<storage::trie::TrieDb> trie_db,
+      std::shared_ptr<network::ExtrinsicGossiper> gossiper)
       : api_{std::move(api)},
         pool_{std::move(pool)},
         hasher_{std::move(hasher)},
@@ -72,8 +73,9 @@ namespace kagome::api {
           OUTCOME_TRY(pool_->submitOne(std::move(transaction)));
 
           if (v.propagate) {
-            gossiper_->transactionAnnounce(
-                network::TransactionAnnounce{extrinsic});
+            network::TransactionAnnounce announce;
+            announce.extrinsics.push_back(extrinsic);
+            gossiper_->transactionAnnounce(announce);
           }
 
           return hash;

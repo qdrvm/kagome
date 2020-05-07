@@ -9,9 +9,9 @@
 #include <gtest/gtest.h>
 
 #include "common/blob.hpp"
-#include "mock/core/api/service/author/author_api_gossiper_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
+#include "mock/core/network/extrinsic_gossiper_mock.hpp"
 #include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
 #include "mock/core/storage/trie/trie_db_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
@@ -31,6 +31,7 @@ using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
+using kagome::network::ExtrinsicGossiperMock;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockInfo;
 using kagome::primitives::Extrinsic;
@@ -70,7 +71,7 @@ struct AuthorApiTest : public ::testing::Test {
   sptr<TransactionPoolMock> transaction_pool;  ///< transaction pool mock
   sptr<BlockTreeMock> block_tree;              ///< block tree mock instance
   sptr<TrieDbMock> trie_db;                    ///< trie db mock
-  sptr<AuthorApiGossiperMock> gossiper;        ///< gossiper mock
+  sptr<ExtrinsicGossiperMock> gossiper;        ///< gossiper mock
   sptr<AuthorApiImpl> api;                     ///< api instance
   sptr<Extrinsic> extrinsic;                   ///< extrinsic instance
   sptr<ValidTransaction> valid_transaction;    ///< valid transaction instance
@@ -83,7 +84,7 @@ struct AuthorApiTest : public ::testing::Test {
     transaction_pool = std::make_shared<TransactionPoolMock>();
     block_tree = std::make_shared<BlockTreeMock>();
     trie_db = std::make_shared<TrieDbMock>();
-    gossiper = std::make_shared<AuthorApiGossiperMock>();
+    gossiper = std::make_shared<ExtrinsicGossiperMock>();
     api = std::make_shared<AuthorApiImpl>(
         ttq, transaction_pool, hasher, block_tree, trie_db, gossiper);
     extrinsic.reset(new Extrinsic{"12"_hex2buf});

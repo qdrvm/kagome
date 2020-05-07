@@ -12,10 +12,10 @@
  */
 
 #include "api/service/author/author_api.hpp"
-#include "api/service/author/author_api_gossiper.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/logger.hpp"
 #include "crypto/hasher.hpp"
+#include "network/extrinsic_gossiper.hpp"
 #include "outcome/outcome.hpp"
 #include "storage/trie/trie_db.hpp"
 
@@ -45,7 +45,7 @@ namespace kagome::api {
                   std::shared_ptr<crypto::Hasher> hasher,
                   std::shared_ptr<blockchain::BlockTree> block_tree,
                   std::shared_ptr<storage::trie::TrieDb> trie_db,
-                  std::shared_ptr<AuthorApiGossiper> gossiper);
+                  std::shared_ptr<network::ExtrinsicGossiper> gossiper);
 
     ~AuthorApiImpl() override = default;
 
@@ -65,7 +65,7 @@ namespace kagome::api {
     sptr<crypto::Hasher> hasher_;
     sptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<storage::trie::TrieDb> trie_db_;
-    std::shared_ptr<AuthorApiGossiper> gossiper_;
+    std::shared_ptr<network::ExtrinsicGossiper> gossiper_;
     common::Logger logger_;
   };
 }  // namespace kagome::api

@@ -3,17 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_API_SERVICE_AUTHOR_AUTHOR_API_GOSSIPER_HPP
-#define KAGOME_CORE_API_SERVICE_AUTHOR_AUTHOR_API_GOSSIPER_HPP
+#ifndef KAGOME_CORE_NETWORK_EXTRINSIC_GOSSIPER_HPP
+#define KAGOME_CORE_NETWORK_EXTRINSIC_GOSSIPER_HPP
 
 #include "network/types/transaction_announce.hpp"
 
-namespace kagome::api {
+namespace kagome::network {
   /**
    * Sends messages, related to author api, over the Gossip protocol
    */
-  struct AuthorApiGossiper {
-    virtual ~AuthorApiGossiper() = default;
+  struct ExtrinsicGossiper {
+    virtual ~ExtrinsicGossiper() = default;
 
     /**
      * Send TxAnnounce message
@@ -22,6 +22,6 @@ namespace kagome::api {
     virtual void transactionAnnounce(
         const network::TransactionAnnounce &announce) = 0;
   };
-}  // namespace kagome::api
+}  // namespace kagome::network
 
-#endif  // KAGOME_CORE_API_SERVICE_AUTHOR_AUTHOR_API_GOSSIPER_HPP
+#endif  // KAGOME_CORE_NETWORK_EXTRINSIC_GOSSIPER_HPP

@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "author_api_observer_impl.hpp"
+#include "network/impl/extrinsic_observer_impl.hpp"
 
-kagome::api::AuthorApiObserverImpl::AuthorApiObserverImpl(
-    std::shared_ptr<AuthorApi> api)
+kagome::network::ExtrinsicObserverImpl::ExtrinsicObserverImpl(
+    std::shared_ptr<api::AuthorApi> api)
     : api_(std::move(api)) {
   BOOST_ASSERT(api_);
 }
 
 outcome::result<kagome::common::Hash256>
-kagome::api::AuthorApiObserverImpl::onTxMessage(
+kagome::network::ExtrinsicObserverImpl::onTxMessage(
     const kagome::primitives::Extrinsic &extrinsic) {
   return api_->submitExtrinsic(extrinsic);
 }

@@ -3,24 +3,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_API_SERVISE_AUTHOR_AUTHOR_API_OBSERVER_HPP
-#define KAGOME_CORE_API_SERVISE_AUTHOR_AUTHOR_API_OBSERVER_HPP
+#ifndef KAGOME_CORE_NETWORK_EXTRINSIC_OBSERVER_HPP
+#define KAGOME_CORE_NETWORK_EXTRINSIC_OBSERVER_HPP
 
 #include "api/service/author/author_api.hpp"
 #include "common/blob.hpp"
 #include "outcome/outcome.hpp"
 #include "primitives/extrinsic.hpp"
 
-namespace kagome::api {
+namespace kagome::network {
 
-  class AuthorApiObserver {
+  class ExtrinsicObserver {
    public:
-    virtual ~AuthorApiObserver() = default;
+    virtual ~ExtrinsicObserver() = default;
 
     virtual outcome::result<common::Hash256> onTxMessage(
         const primitives::Extrinsic &extrinsic) = 0;
   };
 
-}  // namespace kagome::api
+}  // namespace kagome::network
 
-#endif  // KAGOME_CORE_API_SERVISE_AUTHOR_AUTHOR_API_OBSERVER_HPP
+#endif  // KAGOME_CORE_NETWORK_EXTRINSIC_OBSERVER_HPP

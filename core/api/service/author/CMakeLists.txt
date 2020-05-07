@@ -17,12 +17,3 @@ target_link_libraries(author_api_service
     scale
     logger
     )
-
-add_library(author_api_observer
-    author_api_observer.hpp
-    impl/author_api_observer_impl.hpp
-    impl/author_api_observer_impl.cpp
-    )
-target_link_libraries(author_api_observer
-    logger
-    )

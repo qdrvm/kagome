@@ -8,7 +8,6 @@
 
 #include <memory>
 
-#include "api/service/author/impl/author_api_observer_impl.hpp"
 #include "common/logger.hpp"
 #include "consensus/grandpa/round_observer.hpp"
 #include "libp2p/connection/stream.hpp"
@@ -16,6 +15,7 @@
 #include "libp2p/peer/peer_info.hpp"
 #include "libp2p/peer/protocol.hpp"
 #include "network/babe_observer.hpp"
+#include "network/extrinsic_observer.hpp"
 #include "network/gossiper.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 #include "network/router.hpp"
@@ -31,7 +31,7 @@ namespace kagome::network {
         std::shared_ptr<BabeObserver> babe_observer,
         std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer,
         std::shared_ptr<SyncProtocolObserver> sync_observer,
-        std::shared_ptr<api::AuthorApiObserver> author_api_observer,
+        std::shared_ptr<ExtrinsicObserver> author_api_observer,
         std::shared_ptr<Gossiper> gossiper);
 
     ~RouterLibp2p() override = default;
@@ -55,7 +55,7 @@ namespace kagome::network {
     std::shared_ptr<BabeObserver> babe_observer_;
     std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
-    std::shared_ptr<api::AuthorApiObserver> author_api_observer_;
+    std::shared_ptr<ExtrinsicObserver> author_api_observer_;
     std::shared_ptr<Gossiper> gossiper_;
     common::Logger log_;
   };
