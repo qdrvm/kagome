@@ -16,10 +16,10 @@ namespace kagome::network {
   class ExtrinsicObserverImpl : public ExtrinsicObserver {
    public:
     explicit ExtrinsicObserverImpl(std::shared_ptr<api::AuthorApi> api);
-    ~ExtrinsicObserverImpl() = default;
+    ~ExtrinsicObserverImpl() override = default;
 
     outcome::result<common::Hash256> onTxMessage(
-        const primitives::Extrinsic &extrinsic);
+        const primitives::Extrinsic &extrinsic) override;
 
    private:
     std::shared_ptr<api::AuthorApi> api_;
