@@ -19,7 +19,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<Buffer> TrieSerializerImpl::storeTrie(PolkadotTrie &trie) {
-    if(trie.getRoot() == nullptr) {
+    if (trie.getRoot() == nullptr) {
       return getEmptyRootHash();
     }
     return storeRootNode(*trie.getRoot());
@@ -27,11 +27,13 @@ namespace kagome::storage::trie {
 
   outcome::result<std::unique_ptr<PolkadotTrie>>
   TrieSerializerImpl::retrieveTrie(const common::Buffer &db_key) const {
-    if(db_key == getEmptyRootHash()) {
+    if (db_key == getEmptyRootHash()) {
       return trie_factory_->createEmpty();
     }
     OUTCOME_TRY(root, retrieveNode(db_key));
-    return trie_factory_->createFromRoot(root);
+    return trie_factory_->createFromRoot(root, [this](auto &parent, uint8_t idx) {
+      return retrieveChild(parent, idx);
+    });
   }
 
   outcome::result<Buffer> TrieSerializerImpl::storeRootNode(

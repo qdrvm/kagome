@@ -12,9 +12,26 @@ namespace kagome::storage::trie {
 
   class PolkadotTrieFactory {
    public:
-    virtual std::unique_ptr<PolkadotTrie> createEmpty() const = 0;
+    using ChildRetrieveFunctor =
+        std::function<outcome::result<PolkadotTrie::NodePtr>(
+            PolkadotTrie::BranchPtr, uint8_t)>;
+
+    /**
+     * Creates an empty trie
+     * @param f functor that a trie uses to obtain a child of a branch. If
+     * optional is none, the default one will be used
+     */
+    virtual std::unique_ptr<PolkadotTrie> createEmpty(
+        boost::optional<ChildRetrieveFunctor> f) const = 0;
+
+    /**
+     * Creates a trie with the given root
+     * @param f functor that a trie uses to obtain a child of a branch. If
+     * optional is none, the default one will be used
+     */
     virtual std::unique_ptr<PolkadotTrie> createFromRoot(
-        PolkadotTrie::NodePtr root) const = 0;
+        PolkadotTrie::NodePtr root,
+        boost::optional<ChildRetrieveFunctor> f) const = 0;
   };
 
 }  // namespace kagome::storage::trie
