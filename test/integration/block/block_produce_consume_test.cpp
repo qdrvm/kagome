@@ -7,6 +7,7 @@
 #include "application_test_suite.hpp"
 #include "authorship/impl/proposer_impl.hpp"
 #include "primitives/inherent_data.hpp"
+#include "testutil/outcome.hpp"
 
 using kagome::authorship::Proposer;
 using kagome::authorship::ProposerImpl;
@@ -69,17 +70,14 @@ class BlockProduceConsume : public ApplicationTestSuite {
  * @then states 'A' and 'B' must be equal
  */
 TEST_F(BlockProduceConsume, EmptyBlock) {
-  auto produce_result = produceBlock();
-  ASSERT_TRUE(produce_result.has_value()) << produce_result.error().message();
+	ASSERT_OUTCOME_SUCCESS(block, produceBlock());
 
-  auto &block = produce_result.value();
   std::cout
       << "Pre seal block: "
       << kagome::common::Buffer(kagome::scale::encode(block).value()).toHex()
       << std::endl;
 
-  auto consume_result = consumeBlock(block);
-  ASSERT_TRUE(consume_result.has_value()) << consume_result.error().message();
+	ASSERT_OUTCOME_SUCCESS_TRY(consumeBlock(block));
 
   ASSERT_EQ(_afterProduceState, _afterConsumeState);
 }
@@ -101,17 +99,14 @@ TEST_F(BlockProduceConsume, NoEmptyBlock) {
           "8a972404")
           .value()};
 
-  auto produce_result = produceBlock({extrinsic});
-  ASSERT_TRUE(produce_result.has_value()) << produce_result.error().message();
+	ASSERT_OUTCOME_SUCCESS(block, produceBlock({extrinsic}));
 
-  auto &block = produce_result.value();
   std::cout
       << "Pre seal block: "
       << kagome::common::Buffer(kagome::scale::encode(block).value()).toHex()
       << std::endl;
 
-  auto consume_result = consumeBlock(block);
-  ASSERT_TRUE(consume_result.has_value()) << consume_result.error().message();
+	ASSERT_OUTCOME_SUCCESS_TRY(consumeBlock(block));
 
   ASSERT_EQ(_afterProduceState, _afterConsumeState);
 }
@@ -121,7 +116,7 @@ outcome::result<Block> BlockProduceConsume::produceBlock(
   size_t current_slot = 0;
 
   // note: can to use block id by two ways: as number or as hash
-  //	size_t best_block_id = 0;
+//  size_t best_block_id = 0;
   auto best_block_id =
       kagome::common::Hash256::fromHex(
           "b5ebfaf1fb6560d20e30a772c5482affeb5955602062a550b326b2e7135bb7a4")
