@@ -14,7 +14,7 @@ class ApplicationTestSuite : public testing::Test {
  protected:
   auto &getInjector() const {
     static auto injector =
-        kagome::injector::makeApplicationInjector("config/polkadot-v06.json",
+        kagome::injector::makeApplicationInjector("config/localchain.json",
                                                   "ldb",
                                                   40363,
                                                   40364);
