@@ -158,7 +158,9 @@
           outcome::result<void>(error_id).error().message();                \
       if (__builtin_expect(res.error().message() == expected_error_message, \
                            true)) {                                         \
-      } else                                                                \
+        ;                                                                   \
+      } /* NOLINT */                                                        \
+      else                                                                  \
         GTEST_FATAL_FAILURE_("Outcome of: " #expr)                          \
             << "  Actual:   Error '" << res.error().message() << "'\n"      \
             << "Expected:   Error '"                                        \
@@ -177,7 +179,9 @@
         outcome::result<void>(error_id).error().message();                \
     if (__builtin_expect(res.error().message() == expected_error_message, \
                          true)) {                                         \
-    } else                                                                \
+      ;                                                                   \
+    } /* NOLINT */                                                        \
+    else                                                                  \
       GTEST_NONFATAL_FAILURE_("Outcome of: " #expr)                       \
           << "  Actual:   Error '" << res.error().message() << "'\n"      \
           << "Expected:   Error '"                                        \
