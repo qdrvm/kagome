@@ -34,7 +34,7 @@ namespace kagome::network {
     BOOST_ASSERT_MSG(sync_observer_ != nullptr, "sync observer is nullptr");
     BOOST_ASSERT_MSG(author_api_observer_ != nullptr,
                      "author api observer is nullptr");
-    BOOST_ASSERT_MSG(gossiper != nullptr, "gossiper is nullptr");
+    BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
   }
 
   void RouterLibp2p::init() {
