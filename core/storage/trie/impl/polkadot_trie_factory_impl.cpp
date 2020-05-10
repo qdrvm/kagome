@@ -14,14 +14,14 @@ namespace kagome::storage::trie {
   std::unique_ptr<PolkadotTrie> PolkadotTrieFactoryImpl::createEmpty(
       boost::optional<ChildRetrieveFunctor> f) const {
     return std::make_unique<PolkadotTrieImpl>(
-        f.has_value() ? f : default_child_retrieve_f_);
+        f.has_value() ? f.value() : default_child_retrieve_f_);
   }
 
   std::unique_ptr<PolkadotTrie> PolkadotTrieFactoryImpl::createFromRoot(
       PolkadotTrie::NodePtr root,
       boost::optional<ChildRetrieveFunctor> f) const {
     return std::make_unique<PolkadotTrieImpl>(
-        std::move(root), f.has_value() ? f : default_child_retrieve_f_);
+        std::move(root), f.has_value() ? f.value() : default_child_retrieve_f_);
   }
 
 }  // namespace kagome::storage::trie

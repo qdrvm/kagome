@@ -37,6 +37,12 @@ namespace kagome::storage::trie {
         override;
     outcome::result<std::unique_ptr<EphemeralTrieBatch>> getEphemeralBatch()
         const override;
+
+    outcome::result<std::unique_ptr<PersistentTrieBatch>>
+    getPersistentBatchAt(const common::Hash256 &root) override;
+    outcome::result<std::unique_ptr<EphemeralTrieBatch>>
+    getEphemeralBatchAt(const common::Hash256 &root) const override;
+
     common::Buffer getRootHash() const override;
 
    protected:

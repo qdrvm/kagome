@@ -23,7 +23,8 @@ namespace kagome::extensions {
     ExtensionImpl() = delete;
     ExtensionImpl(const std::shared_ptr<runtime::WasmMemory> &memory,
                   std::shared_ptr<storage::trie::TrieBatch> storage_batch,
-                  std::shared_ptr<storage::changes_trie::ChangesTrieBuilder> builder);
+                  std::shared_ptr<storage::changes_trie::ChangesTrieBuilder> builder,
+                  std::shared_ptr<storage::changes_trie::ChangesTracker> tracker);
 
     ~ExtensionImpl() override = default;
 
@@ -66,7 +67,6 @@ namespace kagome::extensions {
 
     runtime::SizeType ext_storage_changes_root(
         runtime::WasmPointer parent_hash_data,
-        runtime::SizeType parent_hash_len,
         runtime::WasmPointer result) override;
 
     void ext_storage_root(runtime::WasmPointer result) const override;

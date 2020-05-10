@@ -15,7 +15,8 @@ namespace kagome::extensions {
   ExtensionImpl::ExtensionImpl(
       const std::shared_ptr<runtime::WasmMemory> &memory,
       std::shared_ptr<storage::trie::TrieBatch> storage_batch,
-      std::shared_ptr<storage::changes_trie::ChangesTrieBuilder> builder)
+      std::shared_ptr<storage::changes_trie::ChangesTrieBuilder> builder,
+      std::shared_ptr<storage::changes_trie::ChangesTracker> tracker)
       : memory_(memory),
         storage_batch_(std::move(storage_batch)),
         crypto_ext_(memory,
@@ -25,7 +26,8 @@ namespace kagome::extensions {
                     std::make_shared<crypto::HasherImpl>()),
         io_ext_(memory),
         memory_ext_(memory),
-        storage_ext_(storage_batch_, memory_, std::move(builder)) {
+        storage_ext_(
+            storage_batch_, memory_, std::move(builder), std::move(tracker)) {
     BOOST_ASSERT(storage_batch_ != nullptr);
     BOOST_ASSERT(memory_ != nullptr);
   }
@@ -87,11 +89,8 @@ namespace kagome::extensions {
   }
 
   runtime::SizeType ExtensionImpl::ext_storage_changes_root(
-      runtime::WasmPointer parent_hash_data,
-      runtime::SizeType parent_hash_len,
-      runtime::WasmPointer result) {
-    return storage_ext_.ext_storage_changes_root(
-        parent_hash_data, parent_hash_len, result);
+      runtime::WasmPointer parent_hash_data, runtime::WasmPointer result) {
+    return storage_ext_.ext_storage_changes_root(parent_hash_data, result);
   }
 
   void ExtensionImpl::ext_storage_root(runtime::WasmPointer result) const {

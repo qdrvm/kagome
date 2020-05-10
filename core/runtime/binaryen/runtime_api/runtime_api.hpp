@@ -37,7 +37,7 @@ namespace kagome::runtime::binaryen {
     }
 
    private:
-    // deduced return type, must be defined before execute()
+    // as it has a deduced return type, must be defined before execute()
     auto getRuntimeEnvironment(CallPersistency persistency) {
       switch (persistency) {
         case CallPersistency::PERSISTENT:

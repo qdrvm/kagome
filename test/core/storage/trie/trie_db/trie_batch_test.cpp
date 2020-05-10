@@ -125,8 +125,7 @@ TEST_F(TrieBatchTest, Remove) {
   FillSmallTrieWithBatch(*batch);
 
   EXPECT_OUTCOME_TRUE_1(batch->remove(data[2].first));
-  // putting an empty value is removal too
-  EXPECT_OUTCOME_TRUE_1(batch->put(data[3].first, Buffer{}));
+  EXPECT_OUTCOME_TRUE_1(batch->remove(data[3].first));
   EXPECT_OUTCOME_TRUE_1(batch->remove(data[4].first));
 
   EXPECT_OUTCOME_TRUE_1(batch->commit());

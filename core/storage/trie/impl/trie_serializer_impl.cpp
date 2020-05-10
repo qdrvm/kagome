@@ -28,12 +28,14 @@ namespace kagome::storage::trie {
   outcome::result<std::unique_ptr<PolkadotTrie>>
   TrieSerializerImpl::retrieveTrie(const common::Buffer &db_key) const {
     if (db_key == getEmptyRootHash()) {
-      return trie_factory_->createEmpty();
+      return trie_factory_->createEmpty(boost::none);
     }
     OUTCOME_TRY(root, retrieveNode(db_key));
-    return trie_factory_->createFromRoot(root, [this](auto &parent, uint8_t idx) {
-      return retrieveChild(parent, idx);
-    });
+    PolkadotTrieFactory::ChildRetrieveFunctor f =
+        [this](PolkadotTrie::BranchPtr parent, uint8_t idx) {
+          return retrieveChild(parent, idx);
+        };
+    return trie_factory_->createFromRoot(root, f);
   }
 
   outcome::result<Buffer> TrieSerializerImpl::storeRootNode(

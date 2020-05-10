@@ -19,7 +19,7 @@ namespace kagome::storage::trie {
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
       boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes) {
-    auto empty_trie = trie_factory->createEmpty();
+    auto empty_trie = trie_factory->createEmpty(boost::none);
     // ensure retrieval of empty trie succeeds
     OUTCOME_TRY(empty_root, serializer->storeTrie(*empty_trie));
     return std::unique_ptr<TrieStorageImpl>(
@@ -71,6 +71,24 @@ namespace kagome::storage::trie {
   outcome::result<std::unique_ptr<EphemeralTrieBatch>>
   TrieStorageImpl::getEphemeralBatch() const {
     OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root_hash_}));
+    return std::make_unique<EphemeralTrieBatchImpl>(
+        codec_, std::shared_ptr(std::move(trie)));
+  }
+
+  outcome::result<std::unique_ptr<PersistentTrieBatch>>
+  TrieStorageImpl::getPersistentBatchAt(const common::Hash256 &root) {
+    OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root}));
+    return std::make_unique<PersistentTrieBatchImpl>(
+        codec_,
+        serializer_,
+        changes_,
+        std::shared_ptr(std::move(trie)),
+        [this](auto const &new_root) { root_hash_ = new_root; });
+  }
+
+  outcome::result<std::unique_ptr<EphemeralTrieBatch>>
+  TrieStorageImpl::getEphemeralBatchAt(const common::Hash256 &root) const {
+    OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root}));
     return std::make_unique<EphemeralTrieBatchImpl>(
         codec_, std::shared_ptr(std::move(trie)));
   }

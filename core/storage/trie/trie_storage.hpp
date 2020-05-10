@@ -27,6 +27,11 @@ namespace kagome::storage::trie {
     virtual outcome::result<std::unique_ptr<EphemeralTrieBatch>>
     getEphemeralBatch() const = 0;
 
+    virtual outcome::result<std::unique_ptr<PersistentTrieBatch>>
+    getPersistentBatchAt(const common::Hash256 &root) = 0;
+    virtual outcome::result<std::unique_ptr<EphemeralTrieBatch>>
+    getEphemeralBatchAt(const common::Hash256 &root) const = 0;
+
     /**
      * Root hash of the latest committed trie
      */
