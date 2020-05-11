@@ -43,19 +43,24 @@ namespace kagome::runtime::binaryen {
   outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
                              std::shared_ptr<WasmMemory>>>
   RuntimeManager::getPersistentRuntimeEnvironment() {
-    return getRuntimeEnvironment(extension_factory_);
+    if(persistent_batch_ == nullptr) {
+      OUTCOME_TRY(persistent_batch, storage_->getPersistentBatch());
+      persistent_batch_ = std::move(persistent_batch);
+    }
+    return getRuntimeEnvironment(persistent_batch_);
   }
 
   outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
                              std::shared_ptr<WasmMemory>>>
   RuntimeManager::getEphemeralRuntimeEnvironment() {
-    return getRuntimeEnvironment(extension_factory_);
+    OUTCOME_TRY(batch, storage_->getEphemeralBatch());
+    return getRuntimeEnvironment(std::move(batch));
   }
 
   outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
                              std::shared_ptr<WasmMemory>>>
   RuntimeManager::getRuntimeEnvironment(
-      std::shared_ptr<extensions::ExtensionFactory> extension_factory, std::unique_ptr) {
+      std::shared_ptr<storage::trie::TrieBatch> storage_batch) {
     const auto &state_code = wasm_provider_->getStateCode();
 
     if (state_code.empty()) {
@@ -72,8 +77,8 @@ namespace kagome::runtime::binaryen {
     }
 
     if (!external_interface_) {
-      external_interface_ =
-          std::make_shared<RuntimeExternalInterface>(extension_factory);
+      external_interface_ = std::make_shared<RuntimeExternalInterface>(
+          extension_factory_, std::shared_ptr(std::move(storage_batch)));
     }
 
     return {std::make_shared<wasm::ModuleInstance>(*module_,

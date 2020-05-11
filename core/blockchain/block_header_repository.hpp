@@ -7,7 +7,8 @@
 #define KAGOME_CORE_BLOCKCHAIN_BLOCK_HEADER_REPOSITORY_HPP
 
 #include <boost/optional.hpp>
-#include <outcome/outcome.hpp>
+
+#include "outcome/outcome.hpp"
 #include "common/blob.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"

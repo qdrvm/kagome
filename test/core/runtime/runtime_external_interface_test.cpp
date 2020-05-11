@@ -9,6 +9,8 @@
 #include <boost/format.hpp>
 #include "core/extensions/mock_extension.hpp"
 #include "core/extensions/mock_extension_factory.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
+#include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "core/runtime/mock_memory.hpp"
 
 using ::testing::_;
@@ -20,6 +22,7 @@ using kagome::runtime::MockMemory;
 using kagome::runtime::binaryen::RuntimeExternalInterface;
 using kagome::runtime::SizeType;
 using kagome::runtime::WasmPointer;
+using kagome::storage::trie::PersistentTrieBatchMock;
 using wasm::Element;
 using wasm::Module;
 using wasm::ModuleInstance;
@@ -55,7 +58,8 @@ class REITest : public ::testing::Test {
     memory_ = std::make_shared<MockMemory>();
     extension_ = std::make_shared<MockExtension>();
     extension_factory_ = std::make_shared<MockExtensionFactory>();
-    EXPECT_CALL(*extension_factory_, createExtension(_))
+    storage_ = std::make_shared<PersistentTrieBatchMock>();
+    EXPECT_CALL(*extension_factory_, createExtension(_, _))
         .WillRepeatedly(Return(extension_));
   }
 
@@ -73,7 +77,7 @@ class REITest : public ::testing::Test {
     SExpressionWasmBuilder builder(wasm, *root[0]);
     EXPECT_CALL(*extension_, memory()).WillRepeatedly(Return(memory_));
 
-    TestableExternalInterface rei(extension_factory_);
+    TestableExternalInterface rei(extension_factory_, storage_);
 
     // interpret module
     ModuleInstance instance(wasm, &rei);
@@ -83,6 +87,7 @@ class REITest : public ::testing::Test {
   std::shared_ptr<MockMemory> memory_;
   std::shared_ptr<MockExtension> extension_;
   std::shared_ptr<MockExtensionFactory> extension_factory_;
+  std::shared_ptr<PersistentTrieBatchMock> storage_;
 
   // clang-format off
   const std::string wasm_template_ =
@@ -344,7 +349,7 @@ TEST_F(REITest, ext_storage_changes_root_Test) {
 
   EXPECT_CALL(
       *extension_,
-      ext_storage_changes_root(parent_hash_data, parent_hash_len, result))
+      ext_storage_changes_root(parent_hash_data, result))
       .WillOnce(Return(res));
 
   auto execute_code = (boost::format("    (call $assert_eq_i32\n"

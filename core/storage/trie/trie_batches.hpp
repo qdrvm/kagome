@@ -24,7 +24,7 @@ namespace kagome::storage::trie {
     /**
      * Remove all trie entries which key begins with the supplied prefix
      */
-    virtual outcome::result<void> clearPrefix(const Buffer &prefix) const = 0;
+    virtual outcome::result<void> clearPrefix(const Buffer &prefix) = 0;
   };
 
   /**
@@ -44,6 +44,7 @@ namespace kagome::storage::trie {
    * All changes to it are simply discarded when the batch is destroyed
    */
   class EphemeralTrieBatch : public TrieBatch {
+
   };
 
 }  // namespace kagome::storage::trie

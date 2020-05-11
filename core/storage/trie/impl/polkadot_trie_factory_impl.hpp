@@ -14,7 +14,10 @@ namespace kagome::storage::trie {
   class PolkadotTrieFactoryImpl : public PolkadotTrieFactory {
    public:
     explicit PolkadotTrieFactoryImpl(
-        PolkadotTrieImpl::ChildRetrieveFunctor default_f);
+        PolkadotTrieImpl::ChildRetrieveFunctor default_f =
+            [](PolkadotTrie::BranchPtr parent, uint8_t idx) {
+              return parent->children[idx];
+            });
 
     std::unique_ptr<PolkadotTrie> createEmpty(
         boost::optional<ChildRetrieveFunctor> f) const override;

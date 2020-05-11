@@ -12,7 +12,10 @@
 #include "common/blob.hpp"
 #include "primitives/extrinsic.hpp"
 #include "storage/changes_trie/changes_trie_builder.hpp"
-#include "storage/trie/trie_db_factory.hpp"
+#include "storage/trie/trie_storage.hpp"
+#include "storage/trie/impl/polkadot_trie.hpp"
+#include "storage/trie/codec.hpp"
+#include "common/logger.hpp"
 
 namespace kagome::storage::changes_trie {
 
@@ -27,9 +30,10 @@ namespace kagome::storage::changes_trie {
      * @param block_header_repo - the node block header repository
      */
     ChangesTrieBuilderImpl(
-        std::shared_ptr<storage::trie::TrieDb> storage,
-        std::shared_ptr<storage::trie::TrieDbFactory> changes_storage_factory,
-        std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo);
+        std::shared_ptr<storage::trie::TrieStorage> storage,
+        std::unique_ptr<storage::trie::PolkadotTrie> changes_storage,
+        std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
+        std::shared_ptr<storage::trie::Codec> codec);
 
     outcome::result<OptChangesTrieConfig> getConfig() const override;
 
@@ -78,14 +82,16 @@ namespace kagome::storage::changes_trie {
 
     primitives::BlockHash parent_hash_;
     primitives::BlockNumber parent_number_;
-    std::shared_ptr<storage::trie::TrieDb> storage_;
-    std::shared_ptr<storage::trie::TrieDbFactory> changes_storage_factory_;
+    std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
-    std::unique_ptr<storage::trie::TrieDb> changes_storage_;
+    std::unique_ptr<storage::trie::PolkadotTrie> changes_storage_;
+    std::shared_ptr<storage::trie::Codec> codec_;
+    common::Logger logger_;
   };
 
 }  // namespace kagome::storage::changes_trie
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::blockchain, ChangesTrieBuilderImpl::Error);
+OUTCOME_HPP_DECLARE_ERROR(kagome::storage::changes_trie,
+                          ChangesTrieBuilderImpl::Error);
 
 #endif  // KAGOME_BLOCKCHAIN_CHANGES_TRIE_IMPL_HPP

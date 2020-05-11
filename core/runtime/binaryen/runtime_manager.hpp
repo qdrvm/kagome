@@ -46,7 +46,7 @@ namespace kagome::runtime::binaryen {
     outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
                                std::shared_ptr<WasmMemory>>>
     getRuntimeEnvironment(
-        std::shared_ptr<extensions::ExtensionFactory> extension_factory);
+        std::shared_ptr<storage::trie::TrieBatch> storage_batch);
 
     outcome::result<std::shared_ptr<wasm::Module>> prepareModule(
         const common::Buffer &state_code);
@@ -60,7 +60,8 @@ namespace kagome::runtime::binaryen {
 
     // need to store it to keep changes in memory before ext_storage_root()
     // commits them
-    std::unique_ptr<storage::trie::PersistentTrieBatch> persistent_batch_;
+    // TODO(Harrm): think of better access restriction to it; Ideally unique_ptr
+    std::shared_ptr<storage::trie::PersistentTrieBatch> persistent_batch_;
 
     // hash of WASM state code
     common::Hash256 state_code_hash_{};

@@ -2,8 +2,7 @@
 
 namespace kagome::storage::changes_trie {
 
-  StorageChangesTrackerImpl::StorageChangesTrackerImpl(
-      std::shared_ptr<TrieDb> storage) {
+  StorageChangesTrackerImpl::StorageChangesTrackerImpl() {
 
   }
 

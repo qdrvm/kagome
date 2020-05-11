@@ -25,7 +25,7 @@ namespace kagome::storage::changes_trie {
   class ChangesTrieBuilder {
    public:
     virtual outcome::result<std::reference_wrapper<ChangesTrieBuilder>>
-    startNewTrie(const common::Hash256 &parent) = 0;
+    startNewTrie(const primitives::BlockHash &parent) = 0;
 
     /**
      * @note config is retrieved from the storage (under key ':changes_trie')

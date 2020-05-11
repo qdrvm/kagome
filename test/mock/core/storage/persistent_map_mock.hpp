@@ -22,6 +22,8 @@ namespace kagome::storage::face {
 
     MOCK_CONST_METHOD1_T(contains, bool(const K &));
 
+    MOCK_CONST_METHOD0_T(empty, bool());
+
     MOCK_METHOD2_T(put, outcome::result<void>(const K &, const V &));
 
     outcome::result<void> put(const K &k, V &&v) {

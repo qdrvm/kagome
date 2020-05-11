@@ -9,14 +9,14 @@
 #include "api/state/state_api.hpp"
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_tree.hpp"
-#include "storage/trie/readonly_trie_factory.hpp"
+#include "storage/trie/trie_storage.hpp"
 
 namespace kagome::api {
 
   class StateApiImpl : public StateApi {
    public:
     StateApiImpl(std::shared_ptr<blockchain::BlockHeaderRepository> block_repo,
-                 std::shared_ptr<storage::trie::ReadonlyTrieFactory> trie_factory,
+                 std::shared_ptr<const storage::trie::TrieStorage> trie_storage,
                  std::shared_ptr<blockchain::BlockTree> block_tree);
 
     outcome::result<common::Buffer> getStorage(
@@ -26,7 +26,7 @@ namespace kagome::api {
 
    private:
     std::shared_ptr<blockchain::BlockHeaderRepository> block_repo_;
-    std::shared_ptr<storage::trie::ReadonlyTrieFactory> trie_factory_;
+    std::shared_ptr<const  storage::trie::TrieStorage> storage_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
   };
 

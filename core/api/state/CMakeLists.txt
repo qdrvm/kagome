@@ -11,5 +11,5 @@ add_library(state_api_service
 target_link_libraries(state_api_service
     buffer
     api_service
-    polkadot_trie_db
+    trie_storage
     )

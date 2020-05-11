@@ -23,7 +23,7 @@ namespace kagome::storage::trie_db_overlay {
     outcome::result<void> commit() override;
 
     outcome::result<void> sinkChangesTo(
-        blockchain::ChangesTrieBuilder &changes_trie) override;
+        ::ChangesTrieBuilder &changes_trie) override;
 
     std::unique_ptr<face::WriteBatch<Buffer, Buffer>> batch() override;
     std::unique_ptr<face::MapCursor<Buffer, Buffer>> cursor() override;

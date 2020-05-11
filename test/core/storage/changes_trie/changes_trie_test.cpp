@@ -5,19 +5,18 @@
 
 #include <gtest/gtest.h>
 
-#include "blockchain/impl/changes_trie_builder_impl.hpp"
+#include "storage/changes_trie/impl/changes_trie_builder_impl.hpp"
+
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "scale/scale.hpp"
-#include "storage/trie/impl/in_memory_trie_db_factory.hpp"
-#include "storage/trie_db_overlay/impl/trie_db_overlay_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
 using kagome::blockchain::BlockHeaderRepositoryMock;
-using kagome::blockchain::ChangesTrieBuilderImpl;
+using kagome::storage::changes_trie::ChangesTrieBuilderImpl;
+using kagome::storage::trie::TrieStorage;
+using kagome::storage::trie::PersistentTrieBatch;
 using kagome::common::Buffer;
-using kagome::storage::trie::InMemoryTrieDbFactory;
-using kagome::storage::trie_db_overlay::TrieDbOverlayImpl;
 using testing::_;
 using testing::Return;
 
@@ -28,10 +27,10 @@ using testing::Return;
  */
 TEST(ChangesTrieTest, IntegrationWithOverlay) {
   // GIVEN
-  auto factory = std::make_shared<InMemoryTrieDbFactory>();
-  auto overlay = std::make_shared<TrieDbOverlayImpl>(factory->makeTrieDb());
-  EXPECT_OUTCOME_TRUE_1(overlay->put("abc"_buf, "123"_buf));
-  EXPECT_OUTCOME_TRUE_1(overlay->put("cde"_buf, "345"_buf));
+  auto storage = std::make_shared<TrieStorage>();
+  auto batch = std::make_shared<PersistentTrieBatch>(factory->makeTrieDb());
+  EXPECT_OUTCOME_TRUE_1(batch->put("abc"_buf, "123"_buf));
+  EXPECT_OUTCOME_TRUE_1(batch->put("cde"_buf, "345"_buf));
 
   auto repo = std::make_shared<BlockHeaderRepositoryMock>();
   EXPECT_CALL(*repo, getNumberByHash(_)).WillRepeatedly(Return(42));
@@ -43,13 +42,14 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
 }
 
 /**
- * @given a changes trie with congifuration identical to a one in a substrate test
+ * @given a changes trie with congifuration identical to a one in a substrate
+ * test
  * @when calculationg its hash
  * @then it matches the hash from substrate
  */
 TEST(ChangesTrieTest, SubstrateCompatibility) {
-  auto factory = std::make_shared<InMemoryTrieDbFactory>();
-  auto overlay = std::make_shared<TrieDbOverlayImpl>(factory->makeTrieDb());
+  auto storage = std::make_shared<TrieStorage>();
+  auto batch = std::make_shared<PersistentTrieBatch>(factory->makeTrieDb());
   auto repo = std::make_shared<BlockHeaderRepositoryMock>();
   EXPECT_CALL(*repo, getNumberByHash(_)).WillRepeatedly(Return(99));
   auto changes_trie_builder = ChangesTrieBuilderImpl(overlay, factory, repo);

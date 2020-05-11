@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "blockchain/impl/changes_trie_builder_impl.hpp"
+#include "storage/changes_trie/impl/changes_trie_builder_impl.hpp"
 
 #include "scale/scale.hpp"
 #include "storage/trie/impl/trie_error.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain,
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::changes_trie,
                             ChangesTrieBuilderImpl::Error,
                             e) {
-  using E = kagome::blockchain::ChangesTrieBuilderImpl::Error;
+  using E = kagome::storage::changes_trie::ChangesTrieBuilderImpl::Error;
 
   switch (e) {
     case E::TRIE_NOT_INITIALIZED:
@@ -21,7 +21,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain,
   return "Unknown error";
 }
 
-namespace kagome::blockchain {
+namespace kagome::storage::changes_trie {
 
   const common::Buffer ChangesTrieBuilderImpl::CHANGES_CONFIG_KEY{[]() {
     constexpr auto s = ":changes_trie";
@@ -31,21 +31,26 @@ namespace kagome::blockchain {
   }()};
 
   ChangesTrieBuilderImpl::ChangesTrieBuilderImpl(
-      std::shared_ptr<storage::trie::TrieDb> storage,
-      std::shared_ptr<storage::trie::TrieDbFactory> changes_storage_factory,
-      std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo)
+      std::shared_ptr<storage::trie::TrieStorage> storage,
+      std::unique_ptr<storage::trie::PolkadotTrie> changes_storage,
+      std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
+      std::shared_ptr<storage::trie::Codec> codec)
       : storage_{std::move(storage)},
-        changes_storage_factory_{std::move(changes_storage_factory)},
-        block_header_repo_{std::move(block_header_repo)} {
+        block_header_repo_{std::move(block_header_repo)},
+        changes_storage_{std::move(changes_storage)},
+        codec_{std::move(codec)},
+        logger_ {common::createLogger("Changes Trie Builder")} {
     BOOST_ASSERT(storage_ != nullptr);
-    BOOST_ASSERT(changes_storage_factory_ != nullptr);
+    BOOST_ASSERT(changes_storage_ != nullptr);
     BOOST_ASSERT(block_header_repo_ != nullptr);
-    changes_storage_ = nullptr;
+    BOOST_ASSERT(codec_ != nullptr);
   }
 
   outcome::result<ChangesTrieBuilderImpl::OptChangesTrieConfig>
   ChangesTrieBuilderImpl::getConfig() const {
-    auto config_bytes_res = storage_->get(CHANGES_CONFIG_KEY);
+    /// TODO(Harrm): Update config from recent changes(might be not commited)
+    OUTCOME_TRY(batch, storage_->getEphemeralBatch());
+    auto config_bytes_res = batch->get(CHANGES_CONFIG_KEY);
     if (config_bytes_res.has_error()) {
       if (config_bytes_res.error() == storage::trie::TrieError::NO_VALUE) {
         return boost::none;
@@ -60,7 +65,7 @@ namespace kagome::blockchain {
 
   outcome::result<std::reference_wrapper<ChangesTrieBuilder>>
   ChangesTrieBuilderImpl::startNewTrie(const common::Hash256 &parent) {
-    changes_storage_ = changes_storage_factory_->makeTrieDb();
+    OUTCOME_TRY(changes_storage_->clearPrefix({}));
     parent_hash_ = parent;
     OUTCOME_TRY(parent_number,
                 block_header_repo_->getNumberByHash(parent_hash_));
@@ -87,11 +92,17 @@ namespace kagome::blockchain {
     if (changes_storage_ == nullptr) {
       return {};
     }
-    auto hash_bytes = changes_storage_->getRootHash();
-    changes_storage_.reset();
-    common::Hash256 hash;
-    std::copy_n(hash_bytes.begin(), common::Hash256::size(), hash.begin());
-    return hash;
+    auto root = changes_storage_->getRoot();
+    if (root == nullptr) {
+      auto hash_bytes = codec_->hash256({0});
+    }
+    auto enc_res = codec_->encodeNode(*root);
+    if (enc_res.error()) {
+      logger_->error("Encoding Changes trie failed" + enc_res.error().message());
+      return {};
+    }
+    auto hash_bytes = codec_->hash256(enc_res.value());
+    return hash_bytes;
   }
 
-}  // namespace kagome::blockchain
+}  // namespace kagome::storage::changes_trie

@@ -21,6 +21,8 @@ target_link_libraries(extrinsic_api_test
     blob
     hasher
     testutil_primitives_generator
+    polkadot_trie
+    polkadot_codec
     )
 
 addtest(extrinsic_api_http_integration_test
@@ -31,4 +33,6 @@ target_link_libraries(extrinsic_api_http_integration_test
     api_transport
     api_jrpc_server
     test_http_client
+    polkadot_trie
+    polkadot_codec
     )

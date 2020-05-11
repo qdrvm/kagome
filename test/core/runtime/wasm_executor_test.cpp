@@ -13,16 +13,29 @@
 
 #include "crypto/hasher/hasher_impl.hpp"
 #include "extensions/impl/extension_factory_impl.hpp"
+#include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
+#include "mock/core/storage/changes_trie/changes_trie_builder_mock.hpp"
 #include "runtime/binaryen/runtime_manager.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
-#include "storage/trie/impl/polkadot_trie_db.hpp"
-#include "storage/trie/impl/trie_db_backend_impl.hpp"
+#include "storage/trie/impl/polkadot_codec.hpp"
+#include "storage/trie/impl/polkadot_trie_factory_impl.hpp"
+#include "storage/trie/impl/trie_serializer_impl.hpp"
+#include "storage/trie/impl/trie_storage_backend_impl.hpp"
+#include "storage/trie/impl/trie_storage_impl.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/runtime/common/basic_wasm_provider.hpp"
 
 using kagome::common::Buffer;
 using kagome::runtime::binaryen::RuntimeManager;
 using kagome::runtime::binaryen::WasmExecutor;
+using kagome::storage::changes_trie::ChangesTrackerMock;
+using kagome::storage::changes_trie::ChangesTrieBuilderMock;
+using kagome::storage::trie::PolkadotCodec;
+using kagome::storage::trie::PolkadotTrieFactoryImpl;
+using kagome::storage::trie::PolkadotTrieImpl;
+using kagome::storage::trie::TrieSerializerImpl;
+using kagome::storage::trie::TrieStorage;
+using kagome::storage::trie::TrieStorageImpl;
 
 namespace fs = boost::filesystem;
 
@@ -35,19 +48,32 @@ class WasmExecutorTest : public ::testing::Test {
     auto wasm_provider =
         std::make_shared<kagome::runtime::BasicWasmProvider>(wasm_path);
 
-    auto trieDb = kagome::storage::trie::PolkadotTrieDb::createEmpty(
-        std::make_shared<kagome::storage::trie::TrieDbBackendImpl>(
+    auto backend =
+        std::make_shared<kagome::storage::trie::TrieStorageBackendImpl>(
             std::make_shared<kagome::storage::InMemoryStorage>(),
-            kagome::common::Buffer{}));
-    auto extencion_factory =
+            kagome::common::Buffer{});
+
+    auto trie_factory = std::make_shared<PolkadotTrieFactoryImpl>();
+    auto codec = std::make_shared<PolkadotCodec>();
+    auto serializer =
+        std::make_shared<TrieSerializerImpl>(trie_factory, codec, backend);
+
+    auto trieDb = kagome::storage::trie::TrieStorageImpl::createEmpty(
+                      trie_factory, codec, serializer, boost::none)
+                      .value();
+
+    auto extension_factory =
         std::make_shared<kagome::extensions::ExtensionFactoryImpl>(
-            std::shared_ptr<kagome::storage::trie::TrieDb>(trieDb.release()));
+            std::make_shared<ChangesTrieBuilderMock>(),
+            std::make_shared<ChangesTrackerMock>());
 
-    auto hasher =
-        std::make_shared<kagome::crypto::HasherImpl>();
+    auto hasher = std::make_shared<kagome::crypto::HasherImpl>();
 
-    runtime_manager_ = std::make_shared<RuntimeManager>(
-        std::move(wasm_provider), std::move(extencion_factory), std::move(hasher));
+    runtime_manager_ =
+        std::make_shared<RuntimeManager>(std::move(wasm_provider),
+                                         std::move(extension_factory),
+                                         std::move(trieDb),
+                                         std::move(hasher));
 
     executor_ = std::make_shared<WasmExecutor>();
   }
@@ -55,6 +81,7 @@ class WasmExecutorTest : public ::testing::Test {
  protected:
   std::shared_ptr<WasmExecutor> executor_;
   std::shared_ptr<RuntimeManager> runtime_manager_;
+  std::shared_ptr<TrieStorage> storage_;
 };
 
 /**
@@ -63,7 +90,8 @@ class WasmExecutorTest : public ::testing::Test {
  * @then proper result is returned
  */
 TEST_F(WasmExecutorTest, ExecuteCode) {
-  EXPECT_OUTCOME_TRUE(environment, runtime_manager_->getRuntimeEnvironment());
+  EXPECT_OUTCOME_TRUE(environment,
+                      runtime_manager_->getEphemeralRuntimeEnvironment());
   auto &&[module, memory] = std::move(environment);
 
   auto res = executor_->call(

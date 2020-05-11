@@ -32,7 +32,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> EphemeralTrieBatchImpl::clearPrefix(
-      const Buffer &prefix) const {
+      const Buffer &prefix) {
     return trie_->clearPrefix(prefix);
   }
 

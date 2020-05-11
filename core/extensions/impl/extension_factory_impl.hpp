@@ -9,6 +9,7 @@
 #include "extensions/extension_factory.hpp"
 
 #include "storage/changes_trie/changes_trie_builder.hpp"
+#include "storage/changes_trie/changes_tracker.hpp"
 
 namespace kagome::extensions {
 
@@ -16,16 +17,18 @@ namespace kagome::extensions {
    public:
     ~ExtensionFactoryImpl() override = default;
     ExtensionFactoryImpl(
-        std::shared_ptr<storage::trie::TrieBatch> storage_batch,
-        std::shared_ptr<storage::changes_trie::ChangesTrieBuilder> builder);
+        std::shared_ptr<storage::changes_trie::ChangesTrieBuilder> builder,
+        std::shared_ptr<storage::changes_trie::ChangesTracker> tracker);
 
     std::shared_ptr<Extension> createExtension(
-        std::shared_ptr<storage::trie::TrieBatch> storage_batch,
-        std::shared_ptr<runtime::WasmMemory> memory) const override;
+        std::shared_ptr<runtime::WasmMemory> memory,
+        std::shared_ptr<storage::trie::TrieBatch> storage_batch) const override;
 
    private:
     std::shared_ptr<storage::changes_trie::ChangesTrieBuilder>
         changes_trie_builder_;
+    std::shared_ptr<storage::changes_trie::ChangesTracker>
+        changes_tracker_;
   };
 
 }  // namespace kagome::extensions

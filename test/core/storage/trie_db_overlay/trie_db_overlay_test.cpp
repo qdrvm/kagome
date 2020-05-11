@@ -5,8 +5,8 @@
 
 #include <gtest/gtest.h>
 
-#include "mock/core/blockchain/changes_trie_builder_mock.hpp"
-#include "mock/core/storage/trie/trie_db_mock.hpp"
+#include "mock/core/storage/changes_trie/changes_trie_builder_mock.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "scale/scale.hpp"
 #include "storage/trie_db_overlay/impl/trie_db_overlay_impl.hpp"
 #include "testutil/literals.hpp"

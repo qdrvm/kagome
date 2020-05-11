@@ -12,9 +12,12 @@
 #include <fstream>
 #include <memory>
 
-#include "mock/core/storage/trie/trie_db_mock.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "extensions/impl/extension_factory_impl.hpp"
+#include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
+#include "mock/core/storage/changes_trie/changes_trie_builder_mock.hpp"
+#include "mock/core/storage/trie/trie_batches_mock.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/block.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/block_id.hpp"
@@ -33,9 +36,14 @@ class RuntimeTest : public ::testing::Test {
   using Digest = kagome::primitives::Digest;
 
   void SetUp() override {
-    auto trie_db = std::make_shared<kagome::storage::trie::TrieDbMock>();
+    auto trie_db = std::make_shared<kagome::storage::trie::TrieStorageMock>();
+    auto builder = std::make_shared<
+        kagome::storage::changes_trie::ChangesTrieBuilderMock>();
+    auto tracker =
+        std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
     auto extension_factory =
-        std::make_shared<kagome::extensions::ExtensionFactoryImpl>(trie_db);
+        std::make_shared<kagome::extensions::ExtensionFactoryImpl>(builder,
+                                                                   tracker);
     auto wasm_path = boost::filesystem::path(__FILE__).parent_path().string()
                      + "/wasm/polkadot_runtime.compact.wasm";
     auto wasm_provider =
@@ -46,6 +54,7 @@ class RuntimeTest : public ::testing::Test {
         std::make_shared<kagome::runtime::binaryen::RuntimeManager>(
             std::move(wasm_provider),
             std::move(extension_factory),
+            std::move(trie_db),
             std::move(hasher));
   }
 
