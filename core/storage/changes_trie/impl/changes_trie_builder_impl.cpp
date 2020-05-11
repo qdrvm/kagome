@@ -32,16 +32,16 @@ namespace kagome::storage::changes_trie {
 
   ChangesTrieBuilderImpl::ChangesTrieBuilderImpl(
       std::shared_ptr<storage::trie::TrieStorage> storage,
-      std::unique_ptr<storage::trie::PolkadotTrie> changes_storage,
+      std::shared_ptr<storage::trie::PolkadotTrieFactory> changes_storage,
       std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
       std::shared_ptr<storage::trie::Codec> codec)
       : storage_{std::move(storage)},
         block_header_repo_{std::move(block_header_repo)},
-        changes_storage_{std::move(changes_storage)},
+        changes_storage_factory_{std::move(changes_storage)},
         codec_{std::move(codec)},
         logger_ {common::createLogger("Changes Trie Builder")} {
     BOOST_ASSERT(storage_ != nullptr);
-    BOOST_ASSERT(changes_storage_ != nullptr);
+    BOOST_ASSERT(changes_storage_factory_ != nullptr);
     BOOST_ASSERT(block_header_repo_ != nullptr);
     BOOST_ASSERT(codec_ != nullptr);
   }
@@ -65,7 +65,7 @@ namespace kagome::storage::changes_trie {
 
   outcome::result<std::reference_wrapper<ChangesTrieBuilder>>
   ChangesTrieBuilderImpl::startNewTrie(const common::Hash256 &parent) {
-    OUTCOME_TRY(changes_storage_->clearPrefix({}));
+    changes_storage_ = changes_storage_factory_->createEmpty(boost::none);
     parent_hash_ = parent;
     OUTCOME_TRY(parent_number,
                 block_header_repo_->getNumberByHash(parent_hash_));
@@ -94,7 +94,7 @@ namespace kagome::storage::changes_trie {
     }
     auto root = changes_storage_->getRoot();
     if (root == nullptr) {
-      auto hash_bytes = codec_->hash256({0});
+      return codec_->hash256({0});
     }
     auto enc_res = codec_->encodeNode(*root);
     if (enc_res.error()) {

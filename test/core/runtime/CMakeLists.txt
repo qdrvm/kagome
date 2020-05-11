@@ -55,6 +55,8 @@ target_link_libraries(wasm_executor_test
     trie_storage_backend
     in_memory_storage
     extension_factory
+    polkadot_trie_factory
+    trie_serializer
     )
 
 addtest(parachain_test

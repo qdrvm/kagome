@@ -65,14 +65,15 @@
 #include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
 #include "runtime/common/storage_wasm_provider.hpp"
 #include "storage/changes_trie/impl/changes_trie_builder_impl.hpp"
+#include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/impl/polkadot_codec.hpp"
 #include "storage/trie/impl/polkadot_node.hpp"
+#include "storage/trie/impl/polkadot_trie_factory_impl.hpp"
+#include "storage/trie/impl/trie_serializer_impl.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
-#include "storage/changes_trie/impl/changes_trie_builder_impl.hpp"
-#include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
 
@@ -277,8 +278,7 @@ namespace kagome::injector {
     return initialized.value();
   };
 
-  // polkadot trie db getter
-  auto get_polkadot_trie_db_backend =
+  auto get_trie_storage_backend =
       [](const auto &injector) -> sptr<storage::trie::TrieStorageBackendImpl> {
     static auto initialized =
         boost::optional<sptr<storage::trie::TrieStorageBackendImpl>>(
@@ -310,9 +310,14 @@ namespace kagome::injector {
         injector.template create<sptr<storage::trie::TrieSerializer>>();
     auto tracker =
         injector.template create<sptr<storage::changes_trie::ChangesTracker>>();
+    auto trie_storage_res = storage::trie::TrieStorageImpl::createEmpty(
+        factory, codec, serializer, tracker);
+    if (!trie_storage_res) {
+      common::raise(trie_storage_res.error());
+    }
+
     sptr<storage::trie::TrieStorageImpl> trie_storage =
-        storage::trie::TrieStorageImpl::createEmpty(
-            factory, codec, serializer, tracker);
+        std::move(trie_storage_res.value());
     initialized = trie_storage;
     return trie_storage;
   };
@@ -343,7 +348,10 @@ namespace kagome::injector {
         common::raise(res.error());
       }
     }
-    batch.commit();
+    if (auto res = batch.value()->commit(); not res) {
+      common::raise(res.error());
+    }
+
     initialized = trie_storage;
     return trie_storage;
   };
@@ -528,11 +536,13 @@ namespace kagome::injector {
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
         di::bind<storage::changes_trie::ChangesTrieBuilder>.template to<storage::changes_trie::ChangesTrieBuilderImpl>(),
         di::bind<storage::trie::TrieStorageBackend>.to(
-            std::move(get_polkadot_trie_db_backend)),
+            std::move(get_trie_storage_backend)),
         di::bind<storage::trie::TrieStorageImpl>.to(
             std::move(get_trie_storage_impl)),
         di::bind<storage::trie::TrieStorage>.to(std::move(get_trie_storage)),
+        di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
         di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
+        di::bind<storage::trie::TrieSerializer>.template to<storage::trie::TrieSerializerImpl>(),
         di::bind<runtime::WasmProvider>.template to<runtime::StorageWasmProvider>(),
         di::bind<application::ConfigurationStorage>.to(
             [genesis_path](const auto &injector) {

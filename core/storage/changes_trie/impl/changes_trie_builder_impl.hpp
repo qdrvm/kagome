@@ -13,7 +13,7 @@
 #include "primitives/extrinsic.hpp"
 #include "storage/changes_trie/changes_trie_builder.hpp"
 #include "storage/trie/trie_storage.hpp"
-#include "storage/trie/impl/polkadot_trie.hpp"
+#include "storage/trie/impl/polkadot_trie_factory.hpp"
 #include "storage/trie/codec.hpp"
 #include "common/logger.hpp"
 
@@ -31,7 +31,7 @@ namespace kagome::storage::changes_trie {
      */
     ChangesTrieBuilderImpl(
         std::shared_ptr<storage::trie::TrieStorage> storage,
-        std::unique_ptr<storage::trie::PolkadotTrie> changes_storage,
+        std::shared_ptr<storage::trie::PolkadotTrieFactory> changes_storage_factory,
         std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
         std::shared_ptr<storage::trie::Codec> codec);
 
@@ -84,6 +84,7 @@ namespace kagome::storage::changes_trie {
     primitives::BlockNumber parent_number_;
     std::shared_ptr<storage::trie::TrieStorage> storage_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
+    std::shared_ptr<storage::trie::PolkadotTrieFactory> changes_storage_factory_;
     std::unique_ptr<storage::trie::PolkadotTrie> changes_storage_;
     std::shared_ptr<storage::trie::Codec> codec_;
     common::Logger logger_;
