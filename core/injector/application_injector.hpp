@@ -26,7 +26,6 @@
 #include "authorship/impl/block_builder_impl.hpp"
 #include "authorship/impl/proposer_impl.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
-#include "storage/changes_trie/impl/changes_trie_builder_impl.hpp"
 #include "blockchain/impl/key_value_block_header_repository.hpp"
 #include "blockchain/impl/key_value_block_storage.hpp"
 #include "blockchain/impl/storage_util.hpp"
@@ -65,12 +64,15 @@
 #include "runtime/binaryen/runtime_api/parachain_host_impl.hpp"
 #include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
 #include "runtime/common/storage_wasm_provider.hpp"
+#include "storage/changes_trie/impl/changes_trie_builder_impl.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/impl/polkadot_codec.hpp"
 #include "storage/trie/impl/polkadot_node.hpp"
-#include "storage/trie/impl/trie_storage_impl.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
+#include "storage/trie/impl/trie_storage_impl.hpp"
+#include "storage/changes_trie/impl/changes_trie_builder_impl.hpp"
+#include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
 
@@ -186,11 +188,11 @@ namespace kagome::injector {
 
     const auto &db = injector.template create<sptr<storage::BufferStorage>>();
 
-    const auto &trie_db =
-        injector.template create<sptr<storage::trie::TrieDb>>();
+    const auto &trie_storage =
+        injector.template create<sptr<storage::trie::TrieStorage>>();
 
     auto storage = blockchain::KeyValueBlockStorage::createWithGenesis(
-        trie_db->getRootHash(),
+        trie_storage->getRootHash(),
         db,
         hasher,
         [&db, &injector](const primitives::Block &genesis_block) {
@@ -279,7 +281,8 @@ namespace kagome::injector {
   auto get_polkadot_trie_db_backend =
       [](const auto &injector) -> sptr<storage::trie::TrieStorageBackendImpl> {
     static auto initialized =
-        boost::optional<sptr<storage::trie::TrieStorageBackendImpl>>(boost::none);
+        boost::optional<sptr<storage::trie::TrieStorageBackendImpl>>(
+            boost::none);
 
     if (initialized) {
       return initialized.value();
@@ -292,26 +295,32 @@ namespace kagome::injector {
     return backend;
   };
 
-  auto get_polkadot_trie_db =
-      [](const auto &injector) -> sptr<storage::trie::PolkadotTrieDb> {
+  auto get_trie_storage_impl =
+      [](const auto &injector) -> sptr<storage::trie::TrieStorageImpl> {
     static auto initialized =
-        boost::optional<sptr<storage::trie::PolkadotTrieDb>>(boost::none);
+        boost::optional<sptr<storage::trie::TrieStorageImpl>>(boost::none);
 
     if (initialized) {
       return initialized.value();
     }
-    auto backend =
-        injector.template create<sptr<storage::trie::TrieStorageBackend>>();
-    sptr<storage::trie::PolkadotTrieDb> polkadot_trie_db =
-        storage::trie::PolkadotTrieDb::createEmpty(backend);
-    initialized = polkadot_trie_db;
-    return polkadot_trie_db;
+    auto factory =
+        injector.template create<sptr<storage::trie::PolkadotTrieFactory>>();
+    auto codec = injector.template create<sptr<storage::trie::Codec>>();
+    auto serializer =
+        injector.template create<sptr<storage::trie::TrieSerializer>>();
+    auto tracker =
+        injector.template create<sptr<storage::changes_trie::ChangesTracker>>();
+    sptr<storage::trie::TrieStorageImpl> trie_storage =
+        storage::trie::TrieStorageImpl::createEmpty(
+            factory, codec, serializer, tracker);
+    initialized = trie_storage;
+    return trie_storage;
   };
 
-  // trie db getter
-  auto get_trie_db = [](const auto &injector) -> sptr<storage::trie::TrieDb> {
+  auto get_trie_storage =
+      [](const auto &injector) -> sptr<storage::trie::TrieStorage> {
     static auto initialized =
-        boost::optional<sptr<storage::trie::TrieDb>>(boost::none);
+        boost::optional<sptr<storage::trie::TrieStorage>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
@@ -319,33 +328,24 @@ namespace kagome::injector {
         injector.template create<sptr<application::ConfigurationStorage>>();
     const auto &genesis_raw_configs = configuration_storage->getGenesis();
 
-    auto trie_db =
-        injector.template create<sptr<storage::trie::PolkadotTrieDb>>();
+    auto trie_storage =
+        injector.template create<sptr<storage::trie::TrieStorageImpl>>();
+    auto batch = trie_storage->getPersistentBatch();
+    if (not batch) {
+      common::raise(batch.error());
+    }
     for (const auto &[key, val] : genesis_raw_configs) {
       spdlog::debug("Key: {} ({}), Val: {}",
                     key.toHex(),
                     key.data(),
                     val.toHex().substr(0, 200));
-      if (auto res = trie_db->put(key, val); not res) {
+      if (auto res = batch.value()->put(key, val); not res) {
         common::raise(res.error());
       }
     }
-    initialized = trie_db;
-    return trie_db;
-  };
-
-  // trie db overlay getter
-  auto get_trie_db_overlay =
-      [](const auto &injector) -> sptr<storage::trie_db_overlay::TrieDbOverlayImpl> {
-    static auto initialized =
-        boost::optional<sptr<storage::trie_db_overlay::TrieDbOverlayImpl>>(boost::none);
-    if (initialized) {
-      return initialized.value();
-    }
-    auto trie_db_overlay =
-        std::make_shared<storage::trie_db_overlay::TrieDbOverlayImpl>(
-            get_trie_db(injector));
-    return trie_db_overlay;
+    batch.commit();
+    initialized = trie_storage;
+    return trie_storage;
   };
 
   // level db getter
@@ -479,7 +479,6 @@ namespace kagome::injector {
         di::bind<api::WsListenerImpl>.to([rpc_ws_port](const auto &injector) {
           return get_jrpc_api_ws_listener(injector, rpc_ws_port);
         }),
-        di::bind<storage::trie::ReadonlyTrieFactory>.template to<storage::trie::ReadonlyTrieFactoryImpl>(),
         di::bind<api::ExtrinsicApi>.template to<api::ExtrinsicApiImpl>(),
         di::bind<api::StateApi>.template to<api::StateApiImpl>(),
         di::bind<api::ApiService>.to(std::move(get_jrpc_api_service)),
@@ -494,7 +493,6 @@ namespace kagome::injector {
         di::bind<blockchain::BlockStorage>.to(std::move(get_block_storage)),
         di::bind<blockchain::BlockTree>.to(std::move(get_block_tree)),
         di::bind<blockchain::BlockHeaderRepository>.template to<blockchain::KeyValueBlockHeaderRepository>(),
-        di::bind<blockchain::ChangesTrieBuilder>.template to<blockchain::ChangesTrieBuilderImpl>(),
         di::bind<clock::SystemClock>.template to<clock::SystemClockImpl>(),
         di::bind<clock::SteadyClock>.template to<clock::SteadyClockImpl>(),
         di::bind<clock::Timer>.template to<clock::BasicWaitableTimer>(),
@@ -527,15 +525,14 @@ namespace kagome::injector {
         di::bind<runtime::BlockBuilder>.template to<runtime::binaryen::BlockBuilderImpl>(),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
+        di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
+        di::bind<storage::changes_trie::ChangesTrieBuilder>.template to<storage::changes_trie::ChangesTrieBuilderImpl>(),
         di::bind<storage::trie::TrieStorageBackend>.to(
             std::move(get_polkadot_trie_db_backend)),
-        di::bind<storage::trie::PolkadotTrieDb>.to(
-            std::move(get_polkadot_trie_db)),
-        di::bind<storage::trie::TrieDb>.to(std::move(get_trie_db_overlay)),
-        di::bind<storage::trie::TrieDbReader>.to(std::move(get_trie_db_overlay)),
-        di::bind<storage::trie::TrieDbFactory>.template to<storage::trie::InMemoryTrieDbFactory>(),
+        di::bind<storage::trie::TrieStorageImpl>.to(
+            std::move(get_trie_storage_impl)),
+        di::bind<storage::trie::TrieStorage>.to(std::move(get_trie_storage)),
         di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
-        di::bind<storage::trie_db_overlay::TrieDbOverlay>.to(std::move(get_trie_db_overlay)),
         di::bind<runtime::WasmProvider>.template to<runtime::StorageWasmProvider>(),
         di::bind<application::ConfigurationStorage>.to(
             [genesis_path](const auto &injector) {

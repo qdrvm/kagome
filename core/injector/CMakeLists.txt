@@ -15,6 +15,7 @@ target_link_libraries(application_injector
     state_api_service
     trie_storage
     polkadot_trie
+    polkadot_trie_factory
     polkadot_codec
     babe
     babe_lottery
