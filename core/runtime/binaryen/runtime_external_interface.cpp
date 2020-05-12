@@ -144,7 +144,7 @@ namespace kagome::runtime::binaryen {
       }
       /// ext_storage_changes_root
       if (import->base == ext_storage_changes_root) {
-        checkArguments(import->base.c_str(), 3, arguments.size());
+        checkArguments(import->base.c_str(), 2, arguments.size());
         auto res = extension_->ext_storage_changes_root(
             arguments.at(0).geti32(), arguments.at(1).geti32());
         return wasm::Literal(res);

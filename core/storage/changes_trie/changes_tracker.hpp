@@ -3,8 +3,8 @@
 
 #include "common/buffer.hpp"
 #include "primitives/extrinsic.hpp"
-#include "storage/changes_trie/changes_trie_config.hpp"
 #include "storage/changes_trie/changes_trie_builder.hpp"
+#include "storage/changes_trie/changes_trie_config.hpp"
 
 namespace kagome::storage::changes_trie {
 
@@ -18,12 +18,23 @@ namespace kagome::storage::changes_trie {
    public:
     virtual ~ChangesTracker() = default;
 
-    virtual void setBlockHash(const primitives::BlockHash &hash) = 0;
-
     virtual void setConfig(const ChangesTrieConfig &conf) = 0;
 
-    virtual void onChange(const common::Buffer &key) = 0;
+    /**
+     * Supposed to be called when the processed block changes
+     */
+    virtual outcome::result<void> onBlockChange(
+        const primitives::BlockHash &key) = 0;
 
+    /**
+     * Supposed to be called when a storage entry is changed
+     */
+    virtual outcome::result<void> onChange(const common::Buffer &key) = 0;
+
+    /**
+     * Sinks accumulated changes for the latest registered block to the changes
+     * trie builder, first calling startNewTrie on it
+     */
     virtual outcome::result<void> sinkToChangesTrie(
         ChangesTrieBuilder &builder) = 0;
   };

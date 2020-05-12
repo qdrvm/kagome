@@ -7,25 +7,32 @@ namespace kagome::storage::changes_trie {
 
   class StorageChangesTrackerImpl : public ChangesTracker {
    public:
-    StorageChangesTrackerImpl();
+    typedef std::function<outcome::result<common::Buffer>()>
+        GetExtrinsicIndexDelegate;
+
+    /**
+     * Functor that returns the current extrinsic index, which is supposed to
+     * be stored in the state trie
+     */
+    StorageChangesTrackerImpl(GetExtrinsicIndexDelegate f);
     ~StorageChangesTrackerImpl() override = default;
 
     void setConfig(const ChangesTrieConfig &conf) override;
 
-    void setBlockHash(const primitives::BlockHash &hash) override;
+    outcome::result<void> onBlockChange(const primitives::BlockHash &key) override;
 
-    void onChange(const common::Buffer &key) override;
+    outcome::result<void> onChange(const common::Buffer &key) override;
 
     outcome::result<void> sinkToChangesTrie(
         ChangesTrieBuilder &builder) override;
 
    private:
     std::map<common::Buffer,
-             std::tuple<primitives::BlockNumber,
-                        std::list<primitives::ExtrinsicIndex>>>
+             std::tuple<primitives::BlockHash,
+                        std::vector<primitives::ExtrinsicIndex>>>
         changes_;
     primitives::BlockHash current_block_hash_;
-    primitives::BlockNumber current_block_number_;
+    GetExtrinsicIndexDelegate get_extrinsic_index_;
   };
 
 }  // namespace kagome::storage::changes_trie

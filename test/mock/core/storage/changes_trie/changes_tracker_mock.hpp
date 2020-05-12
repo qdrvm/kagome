@@ -18,7 +18,10 @@ namespace kagome::storage::changes_trie {
 
     MOCK_METHOD1(setConfig, void (const ChangesTrieConfig &conf));
 
-    MOCK_METHOD1(onChange, void (const common::Buffer &key));
+    MOCK_METHOD1(onBlockChange, outcome::result<void> (
+        const primitives::BlockHash &key));
+
+    MOCK_METHOD1(onChange, outcome::result<void> (const common::Buffer &key));
 
     MOCK_METHOD1(sinkToChangesTrie, outcome::result<void> (
         ChangesTrieBuilder &builder));

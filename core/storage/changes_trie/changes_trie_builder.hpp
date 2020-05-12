@@ -44,7 +44,7 @@ namespace kagome::storage::changes_trie {
         const std::vector<primitives::ExtrinsicIndex> &changers) = 0;
 
     /*
-     * Not supported before clarified in the spec
+     * TODO(Harrm): Implement it once spec is in master
      * virtual outcome::result<void> insertBlocksChange(
         const common::Buffer &key,
         const std::vector<primitives::BlockNumber> &changers) = 0;*/

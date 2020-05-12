@@ -36,7 +36,7 @@ class CoreTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    core_ = std::make_shared<CoreImpl>(runtime_manager_);
+    core_ = std::make_shared<CoreImpl>(runtime_manager_, changes_tracker_);
   }
 
  protected:

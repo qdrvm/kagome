@@ -78,12 +78,13 @@ TEST_F(StorageWasmProviderTest, GetCodeWhenStorageUpdates) {
 
   common::Buffer new_state_code{1, 3, 3, 8};
   EXPECT_CALL(*trie_db, getRootHash()).WillOnce(Return(second_state_root));
-  EXPECT_CALL(*trie_db, getEphemeralBatch()).WillOnce(Invoke([this]() {
-    auto batch = std::make_unique<storage::trie::EphemeralTrieBatchMock>();
-    EXPECT_CALL(*batch, get(runtime::kRuntimeKey))
-        .WillOnce(Return(state_code_));
-    return batch;
-  }));
+  EXPECT_CALL(*trie_db, getEphemeralBatch())
+      .WillOnce(Invoke([&new_state_code]() {
+        auto batch = std::make_unique<storage::trie::EphemeralTrieBatchMock>();
+        EXPECT_CALL(*batch, get(runtime::kRuntimeKey))
+            .WillOnce(Return(new_state_code));
+        return batch;
+      }));
 
   // when
   auto obtained_state_code = wasm_provider->getStateCode();

@@ -36,14 +36,25 @@ class RuntimeTest : public ::testing::Test {
   using Digest = kagome::primitives::Digest;
 
   void SetUp() override {
-    auto trie_db = std::make_shared<kagome::storage::trie::TrieStorageMock>();
+    using kagome::storage::trie::EphemeralTrieBatchMock;
+    using kagome::storage::trie::PersistentTrieBatchMock;
+
+    auto trie_db = std::make_shared<
+        testing::NiceMock<kagome::storage::trie::TrieStorageMock>>();
+    ON_CALL(*trie_db, getPersistentBatch()).WillByDefault(testing::Invoke([]() {
+      return std::make_unique<PersistentTrieBatchMock>();
+    }));
+    ON_CALL(*trie_db, getEphemeralBatch()).WillByDefault(testing::Invoke([]() {
+      return std::make_unique<EphemeralTrieBatchMock>();
+    }));
+
     auto builder = std::make_shared<
         kagome::storage::changes_trie::ChangesTrieBuilderMock>();
-    auto tracker =
+    changes_tracker_ =
         std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
     auto extension_factory =
-        std::make_shared<kagome::extensions::ExtensionFactoryImpl>(builder,
-                                                                   tracker);
+        std::make_shared<kagome::extensions::ExtensionFactoryImpl>(
+            builder, changes_tracker_);
     auto wasm_path = boost::filesystem::path(__FILE__).parent_path().string()
                      + "/wasm/polkadot_runtime.compact.wasm";
     auto wasm_provider =
@@ -94,6 +105,8 @@ class RuntimeTest : public ::testing::Test {
 
  protected:
   std::shared_ptr<kagome::runtime::binaryen::RuntimeManager> runtime_manager_;
+  std::shared_ptr<kagome::storage::changes_trie::ChangesTracker>
+      changes_tracker_;
 };
 
 #endif  // KAGOME_RUNTIME_TEST_HPP
