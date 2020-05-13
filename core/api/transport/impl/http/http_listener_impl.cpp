@@ -24,31 +24,33 @@ namespace kagome::api {
 
     acceptor_.async_accept(
         new_session_->socket(),
-        [self = shared_from_this(),
-         on_new_session](boost::system::error_code ec) mutable {
-          if (ec) {
-            self->logger_->error("error: failed to start listening, code: {}",
-                                 ApiTransportError::FAILED_START_LISTENING);
-            self->stop();
-            return;
+        [wp = weak_from_this(), on_new_session = std::move(on_new_session)](
+            boost::system::error_code ec) mutable {
+          if (auto self = wp.lock()) {
+            if (ec) {
+              self->logger_->error("error: failed to start listening, code: {}",
+                                   ApiTransportError::FAILED_START_LISTENING);
+              self->stop();
+              return;
+            }
+
+            if (self->state_ != State::WORKING) {
+              self->logger_->error(
+                  "error: cannot accept session, listener is in wrong state, "
+                  "code: "
+                  "{}",
+                  ApiTransportError::CANNOT_ACCEPT_LISTENER_NOT_WORKING);
+
+              self->stop();
+              return;
+            }
+
+            on_new_session(self->new_session_);
+            self->new_session_->start();
+
+            // stay ready for new connection
+            self->acceptOnce(std::move(on_new_session));
           }
-
-          if (self->state_ != State::WORKING) {
-            self->logger_->error(
-                "error: cannot accept session, listener is in wrong state, "
-                "code: "
-                "{}",
-                ApiTransportError::CANNOT_ACCEPT_LISTENER_NOT_WORKING);
-
-            self->stop();
-            return;
-          }
-
-          on_new_session(self->new_session_);
-          self->new_session_->start();
-
-          // stay ready for new connection
-          self->acceptOnce(std::move(on_new_session));
         });
   }
 
@@ -74,7 +76,7 @@ namespace kagome::api {
     logger_->info("Started listening http session on port {}",
                   acceptor_.local_endpoint().port());
 
-    acceptOnce(on_new_session);
+    acceptOnce(std::move(on_new_session));
   }
 
   void HttpListenerImpl::stop() {
