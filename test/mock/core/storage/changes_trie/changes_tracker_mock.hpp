@@ -14,17 +14,19 @@ namespace kagome::storage::changes_trie {
 
   class ChangesTrackerMock : public ChangesTracker {
    public:
-    MOCK_METHOD1(setBlockHash, void (const primitives::BlockHash &hash));
+    MOCK_METHOD1(setBlockHash, void(const primitives::BlockHash &hash));
 
-    MOCK_METHOD1(setConfig, void (const ChangesTrieConfig &conf));
+    MOCK_METHOD1(setExtrinsicIdxGetter, void(GetExtrinsicIndexDelegate f));
 
-    MOCK_METHOD1(onBlockChange, outcome::result<void> (
-        const primitives::BlockHash &key));
+    MOCK_METHOD1(setConfig, void(const ChangesTrieConfig &conf));
 
-    MOCK_METHOD1(onChange, outcome::result<void> (const common::Buffer &key));
+    MOCK_METHOD1(onBlockChange,
+                 outcome::result<void>(const primitives::BlockHash &key));
 
-    MOCK_METHOD1(sinkToChangesTrie, outcome::result<void> (
-        ChangesTrieBuilder &builder));
+    MOCK_METHOD1(onChange, outcome::result<void>(const common::Buffer &key));
+
+    MOCK_METHOD1(sinkToChangesTrie,
+                 outcome::result<void>(ChangesTrieBuilder &builder));
   };
 
 }  // namespace kagome::storage::changes_trie

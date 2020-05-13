@@ -8,38 +8,26 @@
 #include "storage/changes_trie/impl/changes_trie_builder_impl.hpp"
 
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "scale/scale.hpp"
+#include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
+#include "storage/in_memory/in_memory_storage.hpp"
+#include "storage/trie/impl/polkadot_trie_factory_impl.hpp"
+#include "storage/trie/impl/trie_serializer_impl.hpp"
+#include "storage/trie/impl/trie_storage_backend_impl.hpp"
+#include "storage/trie/impl/trie_storage_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
 using kagome::blockchain::BlockHeaderRepositoryMock;
-using kagome::storage::changes_trie::ChangesTrieBuilderImpl;
-using kagome::storage::trie::TrieStorage;
-using kagome::storage::trie::PersistentTrieBatch;
 using kagome::common::Buffer;
+using kagome::storage::InMemoryStorage;
+using kagome::storage::changes_trie::ChangesTrieBuilderImpl;
+using kagome::storage::trie::PolkadotCodec;
+using kagome::storage::trie::PolkadotTrieFactoryImpl;
+using kagome::storage::trie::TrieStorageMock;
 using testing::_;
 using testing::Return;
-
-/**
- * @given storage overlay with pending changes
- * @when initialize a changes trie with the changes
- * @then changes are passed to the trie successfully
- */
-TEST(ChangesTrieTest, IntegrationWithOverlay) {
-  // GIVEN
-  auto storage = std::make_shared<TrieStorage>();
-  auto batch = std::make_shared<PersistentTrieBatch>(factory->makeTrieDb());
-  EXPECT_OUTCOME_TRUE_1(batch->put("abc"_buf, "123"_buf));
-  EXPECT_OUTCOME_TRUE_1(batch->put("cde"_buf, "345"_buf));
-
-  auto repo = std::make_shared<BlockHeaderRepositoryMock>();
-  EXPECT_CALL(*repo, getNumberByHash(_)).WillRepeatedly(Return(42));
-
-  // WHEN
-  auto changes_trie_builder = ChangesTrieBuilderImpl(overlay, factory, repo);
-  EXPECT_OUTCOME_TRUE_1(overlay->sinkChangesTo(changes_trie_builder));
-  // THEN SUCCESS
-}
 
 /**
  * @given a changes trie with congifuration identical to a one in a substrate
@@ -48,15 +36,23 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
  * @then it matches the hash from substrate
  */
 TEST(ChangesTrieTest, SubstrateCompatibility) {
-  auto storage = std::make_shared<TrieStorage>();
-  auto batch = std::make_shared<PersistentTrieBatch>(factory->makeTrieDb());
+  auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
+  auto codec = std::make_shared<PolkadotCodec>();
+
+  auto storage_mock = std::make_shared<TrieStorageMock>();
   auto repo = std::make_shared<BlockHeaderRepositoryMock>();
   EXPECT_CALL(*repo, getNumberByHash(_)).WillRepeatedly(Return(99));
-  auto changes_trie_builder = ChangesTrieBuilderImpl(overlay, factory, repo);
+  ChangesTrieBuilderImpl changes_trie_builder(
+      storage_mock, factory, repo, codec);
 
   std::vector<
       std::pair<Buffer, std::vector<kagome::primitives::ExtrinsicIndex>>>
       changes{{Buffer{1}, {1}}, {":extrinsic_index"_buf, {1}}};
+
+  EXPECT_OUTCOME_FALSE(err, changes_trie_builder.insertExtrinsicsChange(
+      changes.front().first, changes.front().second));
+  ASSERT_EQ(err, ChangesTrieBuilderImpl::Error::TRIE_NOT_INITIALIZED);
+  EXPECT_OUTCOME_TRUE_1(changes_trie_builder.startNewTrie("aaa"_hash256));
   for (auto &change : changes) {
     auto &key = change.first;
     EXPECT_OUTCOME_TRUE_1(

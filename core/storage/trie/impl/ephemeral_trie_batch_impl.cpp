@@ -8,7 +8,7 @@
 namespace kagome::storage::trie {
 
   EphemeralTrieBatchImpl::EphemeralTrieBatchImpl(
-      std::shared_ptr<Codec> codec, std::shared_ptr<PolkadotTrie> trie)
+      std::shared_ptr<Codec> codec, std::unique_ptr<PolkadotTrie> trie)
       : codec_{std::move(codec)}, trie_{std::move(trie)} {
     BOOST_ASSERT(codec_ != nullptr);
     BOOST_ASSERT(trie_ != nullptr);

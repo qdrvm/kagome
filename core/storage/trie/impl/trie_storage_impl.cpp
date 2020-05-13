@@ -64,7 +64,7 @@ namespace kagome::storage::trie {
         codec_,
         serializer_,
         changes_,
-        std::shared_ptr(std::move(trie)),
+        std::move(trie),
         [this](auto const &new_root) { root_hash_ = new_root; });
   }
 
@@ -72,7 +72,7 @@ namespace kagome::storage::trie {
   TrieStorageImpl::getEphemeralBatch() const {
     OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root_hash_}));
     return std::make_unique<EphemeralTrieBatchImpl>(
-        codec_, std::shared_ptr(std::move(trie)));
+        codec_, std::move(trie));
   }
 
   outcome::result<std::unique_ptr<PersistentTrieBatch>>
@@ -82,7 +82,7 @@ namespace kagome::storage::trie {
         codec_,
         serializer_,
         changes_,
-        std::shared_ptr(std::move(trie)),
+        std::move(trie),
         [this](auto const &new_root) { root_hash_ = new_root; });
   }
 
@@ -90,7 +90,7 @@ namespace kagome::storage::trie {
   TrieStorageImpl::getEphemeralBatchAt(const common::Hash256 &root) const {
     OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root}));
     return std::make_unique<EphemeralTrieBatchImpl>(
-        codec_, std::shared_ptr(std::move(trie)));
+        codec_, std::move(trie));
   }
 
   common::Buffer TrieStorageImpl::getRootHash() const {

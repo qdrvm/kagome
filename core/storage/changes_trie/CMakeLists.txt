@@ -13,4 +13,7 @@ add_library(changes_trie_builder
     )
 target_link_libraries(changes_trie_builder
     buffer
+    blob
+    logger
+    scale
     )

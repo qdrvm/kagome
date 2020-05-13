@@ -30,7 +30,7 @@ namespace kagome::storage::changes_trie {
      * @param block_header_repo - the node block header repository
      */
     ChangesTrieBuilderImpl(
-        std::shared_ptr<storage::trie::TrieStorage> storage,
+        std::shared_ptr<const storage::trie::TrieStorage> storage,
         std::shared_ptr<storage::trie::PolkadotTrieFactory> changes_storage_factory,
         std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
         std::shared_ptr<storage::trie::Codec> codec);
@@ -82,7 +82,7 @@ namespace kagome::storage::changes_trie {
 
     primitives::BlockHash parent_hash_;
     primitives::BlockNumber parent_number_;
-    std::shared_ptr<storage::trie::TrieStorage> storage_;
+    std::shared_ptr<const storage::trie::TrieStorage> storage_;
     std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo_;
     std::shared_ptr<storage::trie::PolkadotTrieFactory> changes_storage_factory_;
     std::unique_ptr<storage::trie::PolkadotTrie> changes_storage_;

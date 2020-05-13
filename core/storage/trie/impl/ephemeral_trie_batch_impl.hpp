@@ -15,7 +15,7 @@ namespace kagome::storage::trie {
   class EphemeralTrieBatchImpl : public EphemeralTrieBatch {
    public:
     EphemeralTrieBatchImpl(std::shared_ptr<Codec> codec,
-                           std::shared_ptr<PolkadotTrie> trie);
+                           std::unique_ptr<PolkadotTrie> trie);
     ~EphemeralTrieBatchImpl() override = default;
 
     outcome::result<Buffer> get(const Buffer &key) const override;
@@ -29,7 +29,7 @@ namespace kagome::storage::trie {
 
    private:
     std::shared_ptr<Codec> codec_;
-    std::shared_ptr<PolkadotTrie> trie_;
+    std::unique_ptr<PolkadotTrie> trie_;
   };
 
 }  // namespace kagome::storage::trie

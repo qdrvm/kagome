@@ -31,7 +31,7 @@ namespace kagome::storage::changes_trie {
   }()};
 
   ChangesTrieBuilderImpl::ChangesTrieBuilderImpl(
-      std::shared_ptr<storage::trie::TrieStorage> storage,
+      std::shared_ptr<const storage::trie::TrieStorage> storage,
       std::shared_ptr<storage::trie::PolkadotTrieFactory> changes_storage,
       std::shared_ptr<blockchain::BlockHeaderRepository> block_header_repo,
       std::shared_ptr<storage::trie::Codec> codec)
@@ -97,7 +97,7 @@ namespace kagome::storage::changes_trie {
       return codec_->hash256({0});
     }
     auto enc_res = codec_->encodeNode(*root);
-    if (enc_res.error()) {
+    if (enc_res.has_error()) {
       logger_->error("Encoding Changes trie failed" + enc_res.error().message());
       return {};
     }

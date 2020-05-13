@@ -16,9 +16,18 @@ namespace kagome::storage::changes_trie {
    */
   class ChangesTracker {
    public:
+    typedef std::function<outcome::result<common::Buffer>()>
+        GetExtrinsicIndexDelegate;
+
     virtual ~ChangesTracker() = default;
 
     virtual void setConfig(const ChangesTrieConfig &conf) = 0;
+
+    /**
+     * @param f is a functor that returns the current extrinsic index
+     */
+    virtual void setExtrinsicIdxGetter(
+        GetExtrinsicIndexDelegate f) = 0;
 
     /**
      * Supposed to be called when the processed block changes

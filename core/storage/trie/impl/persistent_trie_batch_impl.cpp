@@ -5,13 +5,30 @@
 
 #include "storage/trie/impl/persistent_trie_batch_impl.hpp"
 
+#include "scale/scale.hpp"
+#include "storage/trie/impl/trie_error.hpp"
+
 namespace kagome::storage::trie {
+
+  const common::Buffer EXTRINSIC_INDEX_KEY{[]() {
+    constexpr auto s = ":extrinsic_index";
+    std::vector<uint8_t> v(strlen(s));
+    std::copy(s, s + strlen(s), v.begin());
+    return v;
+  }()};
+
+  // sometimes there is no extrinsic index for a runtime call
+  const common::Buffer NO_EXTRINSIC_INDEX_VALUE{[]() {
+    auto res = scale::encode(0xffffffff);
+    BOOST_ASSERT(res);
+    return res.value();
+  }()};
 
   PersistentTrieBatchImpl::PersistentTrieBatchImpl(
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
       boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes,
-      std::shared_ptr<PolkadotTrie> trie,
+      std::unique_ptr<PolkadotTrie> trie,
       RootChangedEventHandler handler)
       : codec_{std::move(codec)},
         serializer_{std::move(serializer)},
@@ -23,6 +40,16 @@ namespace kagome::storage::trie {
     BOOST_ASSERT((changes_.has_value() && changes_.value() != nullptr)
                  or not changes_.has_value());
     BOOST_ASSERT(trie_ != nullptr);
+    if (changes_) {
+      changes_.value()->setExtrinsicIdxGetter(
+          [this]() -> outcome::result<Buffer> {
+            auto res = get(EXTRINSIC_INDEX_KEY);
+            if (res.has_error() and res.error() == TrieError::NO_VALUE) {
+              return NO_EXTRINSIC_INDEX_VALUE;
+            }
+            return res;
+          });
+    }
   }
 
   outcome::result<Buffer> PersistentTrieBatchImpl::commit() {
@@ -59,7 +86,7 @@ namespace kagome::storage::trie {
                                                      const Buffer &value) {
     auto res = trie_->put(key, value);
     if (res and changes_.has_value()) {
-      changes_.value()->onChange(key);
+      OUTCOME_TRY(changes_.value()->onChange(key));
     }
     return res;
   }
@@ -68,7 +95,7 @@ namespace kagome::storage::trie {
                                                      Buffer &&value) {
     auto res = trie_->put(key, std::move(value));
     if (res and changes_.has_value()) {
-      changes_.value()->onChange(key);
+      OUTCOME_TRY(changes_.value()->onChange(key));
     }
     return res;
   }
@@ -76,7 +103,7 @@ namespace kagome::storage::trie {
   outcome::result<void> PersistentTrieBatchImpl::remove(const Buffer &key) {
     auto res = trie_->remove(key);
     if (res and changes_.has_value()) {
-      changes_.value()->onChange(key);
+      OUTCOME_TRY(changes_.value()->onChange(key));
     }
     return res;
   }
