@@ -25,7 +25,7 @@ function(kagome_install_setup)
 
     foreach (DIR IN ITEMS ${arg_HEADER_DIRS})
         get_filename_component(FULL_PATH ${DIR} ABSOLUTE)
-        string(REPLACE ${CMAKE_CURRENT_SOURCE_DIR}/core kagome RELATIVE_PATH ${FULL_PATH})
+        string(REPLACE ${CMAKE_CURRENT_SOURCE_DIR}/core "." RELATIVE_PATH ${FULL_PATH})
         get_filename_component(INSTALL_PREFIX ${RELATIVE_PATH} DIRECTORY)
         install(DIRECTORY ${DIR}
             DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${INSTALL_PREFIX}
