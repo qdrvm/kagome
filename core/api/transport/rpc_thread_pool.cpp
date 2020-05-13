@@ -9,7 +9,7 @@ namespace kagome::api {
 
   RpcThreadPool::RpcThreadPool(std::shared_ptr<Context> context,
                                const Configuration &configuration)
-      : context_(context), config_(configuration) {
+      : context_(std::move(context)), config_(configuration) {
     BOOST_ASSERT(context_);
     signals_ = std::make_unique<boost::asio::signal_set>(*context_);
 
@@ -35,7 +35,7 @@ namespace kagome::api {
   void RpcThreadPool::stop() {
     context_->stop();
 
-    for (auto thread : threads_) {
+    for (auto& thread : threads_) {
       if (thread->joinable()) {
         thread->join();
       }
