@@ -81,8 +81,8 @@ target_link_libraries(scale_convenience_functions_test
     )
 
 addtest(scale_tuple_test
-        scale_tuple_test.cpp
-        )
+    scale_tuple_test.cpp
+    )
 target_link_libraries(scale_tuple_test
-        scale
-        )
+    scale
+    )

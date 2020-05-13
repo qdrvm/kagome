@@ -6,7 +6,6 @@
 #ifndef KAGOME_SCALE_DETAIL_TUPLE_HPP
 #define KAGOME_SCALE_DETAIL_TUPLE_HPP
 
-#include <boost/variant.hpp>
 #include <tuple>
 
 namespace kagome::scale::detail {

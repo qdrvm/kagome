@@ -6,6 +6,7 @@
 #include "scale/scale.hpp"
 
 #include <gtest/gtest.h>
+#include "testutil/scale.hpp"
 
 using kagome::scale::ByteArray;
 using kagome::scale::ScaleDecoderStream;
@@ -38,8 +39,22 @@ TEST(Scale, DecodeTupleSuccess) {
   using tuple_type = std::tuple<uint8_t, uint32_t, uint8_t>;
   tuple_type tuple{};
   ASSERT_NO_THROW((s >> tuple));
-  auto && [v1, v2, v3] = tuple;
+  auto &&[v1, v2, v3] = tuple;
   ASSERT_EQ(v1, 1);
   ASSERT_EQ(v2, 2);
   ASSERT_EQ(v3, 3);
+}
+
+/**
+ * @given a tuple composed of 4 different values and correspondent byte array
+ * @when tuple is encoded, @then encoded come up with provided bytes
+ * @when a tuple is decoded from encoded bytes @then decoded tuple comes up with
+ * predefined tuple
+ */
+TEST(Scale, EncodeAndReencode) {
+  auto tuple =
+      std::make_tuple(uint8_t(1), uint16_t(3), uint8_t(2), uint32_t(4));
+  ByteArray bytes = {1, 3, 0, 2, 4, 0, 0, 0};
+
+  expectEncodeAndReencode(tuple, bytes);
 }

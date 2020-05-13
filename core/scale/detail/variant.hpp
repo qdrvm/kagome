@@ -77,7 +77,7 @@ namespace kagome::scale::detail {
     void for_each_apply(F &f) {
       variant_impl::for_each_apply_impl<0, F, T...>(f);
     }
-  }  // namespace variant
+  }  // namespace variant_impl
 
   /**
    * @brief encodes boost::variant value
@@ -87,7 +87,7 @@ namespace kagome::scale::detail {
    * @param s encoder stream
    */
   template <class Stream, class... T>
-  auto encodeVariant(const boost::variant<T...> &v, Stream &s) -> Stream & {
+  Stream &encodeVariant(const boost::variant<T...> &v, Stream &s) {
     auto &&encoder = variant_impl::VariantEncoder(v, s);
     variant_impl::for_each_apply<decltype(encoder), T...>(encoder);
     return s;
@@ -101,7 +101,7 @@ namespace kagome::scale::detail {
    * @return decoded value or error
    */
   template <class Stream, class... T>
-  auto decodeVariant(Stream &stream, boost::variant<T...> &result) -> Stream & {
+  Stream &decodeVariant(Stream &stream, boost::variant<T...> &result) {
     // first byte means type index
     uint8_t type_index = 0u;
     stream >> type_index;  // decode type index
