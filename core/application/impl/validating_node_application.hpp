@@ -11,6 +11,7 @@
 #include "application/impl/local_key_storage.hpp"
 #include "application/kagome_application.hpp"
 #include "injector/validating_node_injector.hpp"
+#include "runtime/dummy/grandpa_dummy.hpp"
 
 namespace kagome::application {
 
@@ -36,7 +37,8 @@ namespace kagome::application {
                                                       std::string{},
                                                       uint16_t{},
                                                       uint16_t{},
-                                                      uint16_t{}));
+                                                      uint16_t{},
+                                                      bool{}));
 
     template <class T>
     using sptr = std::shared_ptr<T>;
@@ -58,6 +60,7 @@ namespace kagome::application {
                               uint16_t rpc_http_port,
                               uint16_t rpc_ws_port,
                               bool is_genesis_epoch,
+                              bool is_only_finalizing,
                               uint8_t verbosity);
 
     void run() override;

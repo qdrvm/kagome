@@ -148,6 +148,7 @@ namespace kagome::injector {
                                   uint16_t p2p_port,
                                   uint16_t rpc_http_port,
                                   uint16_t rpc_ws_port,
+                                  bool is_only_finalizing,
                                   Ts &&... args) {
     using namespace boost;  // NOLINT;
 
@@ -170,12 +171,30 @@ namespace kagome::injector {
         di::bind<network::BabeObserver>.to(std::move(get_babe_observer)),
         di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::LauncherImpl>(),
         di::bind<consensus::grandpa::Launcher>.template to<consensus::grandpa::LauncherImpl>(),
+        di::bind<runtime::Grandpa>.template to([is_only_finalizing](
+                                                   const auto &injector)
+                                                   -> sptr<runtime::Grandpa> {
+          static boost::optional<sptr<runtime::Grandpa>> initialized =
+              boost::none;
+          if (initialized) {
+            return *initialized;
+          }
+          if (is_only_finalizing) {
+            auto grandpa_dummy =
+                injector.template create<sptr<runtime::dummy::GrandpaDummy>>();
+            initialized = grandpa_dummy;
+          } else {
+            auto grandpa =
+                injector
+                    .template create<sptr<runtime::binaryen::GrandpaImpl>>();
+            initialized = grandpa;
+          }
+          return *initialized;
+        })[di::override],
         di::bind<application::KeyStorage>.to(
             [keystore_path](const auto &injector) {
               return get_key_storage(keystore_path, injector);
             }),
-        di::bind<runtime::Grandpa>.to<runtime::dummy::GrandpaDummy>()
-            [boost::di::override],
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
   }
