@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_SCALE_VARIANT_HPP
-#define KAGOME_SCALE_VARIANT_HPP
+#ifndef KAGOME_SCALE_DETAIL_VARIANT_HPP
+#define KAGOME_SCALE_DETAIL_VARIANT_HPP
 
 #include <boost/variant.hpp>
 #include <outcome/outcome.hpp>
@@ -119,4 +119,4 @@ namespace kagome::scale::detail {
 
 }  // namespace kagome::scale::detail
 
-#endif  // KAGOME_SCALE_VARIANT_HPP
+#endif  // KAGOME_SCALE_DETAIL_VARIANT_HPP

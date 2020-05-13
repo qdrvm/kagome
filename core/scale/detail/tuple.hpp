@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TUPLE_HPP
-#define KAGOME_TUPLE_HPP
+#ifndef KAGOME_SCALE_DETAIL_TUPLE_HPP
+#define KAGOME_SCALE_DETAIL_TUPLE_HPP
 
 #include <boost/variant.hpp>
 #include <tuple>
@@ -96,4 +96,4 @@ namespace kagome::scale::detail {
 
 }  // namespace kagome::scale::detail
 
-#endif  // KAGOME_TUPLE_HPP
+#endif  // KAGOME_SCALE_DETAIL_TUPLE_HPP
