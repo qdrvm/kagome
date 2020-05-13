@@ -7,12 +7,13 @@
 #define KAGOME_CORE_API_TRANSPORT_SESSION_HPP
 
 #include <boost/asio/buffer.hpp>
-#include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/read_until.hpp>
 #include <boost/asio/streambuf.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/signals2/signal.hpp>
+
+#include "api/transport/rpc_io_context.hpp"
 
 namespace kagome::api {
   /**
@@ -27,6 +28,7 @@ namespace kagome::api {
     using OnRequest = Signal<OnRequestSignature>;
 
    public:
+    using Context = RpcContext;
     using Socket = boost::asio::ip::tcp::socket;
     using ErrorCode = boost::system::error_code;
     using Streambuf = boost::asio::streambuf;
@@ -40,6 +42,8 @@ namespace kagome::api {
      * @brief starts listening on socket
      */
     virtual void start() = 0;
+
+    virtual Socket &socket() = 0;
 
     /**
      * @brief connects `on request` callback
