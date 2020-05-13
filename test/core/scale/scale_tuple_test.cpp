@@ -12,11 +12,11 @@ using kagome::scale::ScaleDecoderStream;
 using kagome::scale::ScaleEncoderStream;
 
 /**
- * @given pair of values of different types: uint8_t and uint32_t
+ * @given 3 values of different types: uint8_t, uint32_t and uint8_t
  * @when encode is applied
  * @then obtained serialized value meets predefined one
  */
-TEST(Scale, encodeTuple) {
+TEST(Scale, EncodeTupleSuccess) {
   uint8_t v1 = 1;
   uint32_t v2 = 2;
   uint8_t v3 = 3;
@@ -27,12 +27,12 @@ TEST(Scale, encodeTuple) {
 }
 
 /**
- * @given byte sequence containign 2 encoded values of
- * different types: uint8_t and uint32_t
+ * @given byte sequence containign 3 encoded values of
+ * different types: uint8_t, uint32_t and uint8_t
  * @when decode is applied
  * @then obtained pair mathces predefined one
  */
-TEST(Scale, decodeTuple) {
+TEST(Scale, DecodeTupleSuccess) {
   ByteArray bytes = {1, 2, 0, 0, 0, 3};
   ScaleDecoderStream s(bytes);
   using tuple_type = std::tuple<uint8_t, uint32_t, uint8_t>;
