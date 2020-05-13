@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <boost/program_options.hpp>
 #include <iostream>
 
+#include <boost/program_options.hpp>
 #include "application/impl/syncing_node_application.hpp"
 #include "common/logger.hpp"
 
