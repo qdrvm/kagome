@@ -6,6 +6,7 @@
 #include "network/impl/gossiper_broadcast.hpp"
 
 #include <boost/assert.hpp>
+
 #include "network/common.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 
@@ -22,9 +23,19 @@ namespace kagome::network {
     }
   }
 
+  void GossiperBroadcast::transactionAnnounce(
+      const TransactionAnnounce &announce) {
+    logger_->debug("Gossip tx announce: {} extrinsics",
+                   announce.extrinsics.size());
+    GossipMessage message;
+    message.type = GossipMessage::Type::TRANSACTIONS;
+    message.data.put(scale::encode(announce).value());
+    broadcast(std::move(message));
+  }
+
   void GossiperBroadcast::blockAnnounce(const BlockAnnounce &announce) {
-    logger_->info("Gossip block announce: block number {}",
-                  announce.header.number);
+    logger_->debug("Gossip block announce: block number {}",
+                   announce.header.number);
     GossipMessage message;
     message.type = GossipMessage::Type::BLOCK_ANNOUNCE;
     message.data.put(scale::encode(announce).value());
@@ -33,8 +44,8 @@ namespace kagome::network {
 
   void GossiperBroadcast::vote(
       const consensus::grandpa::VoteMessage &vote_message) {
-    logger_->info("Gossip vote message: grandpa round number {}",
-                  vote_message.round_number);
+    logger_->debug("Gossip vote message: grandpa round number {}",
+                   vote_message.round_number);
     GossipMessage message;
     message.type = GossipMessage::Type::CONSENSUS;
     message.data.put(scale::encode(vote_message).value());
@@ -43,8 +54,8 @@ namespace kagome::network {
   }
 
   void GossiperBroadcast::finalize(const consensus::grandpa::Fin &fin) {
-    logger_->info("Gossip fin message: grandpa round number {}",
-                  fin.round_number);
+    logger_->debug("Gossip fin message: grandpa round number {}",
+                   fin.round_number);
     GossipMessage message;
     message.type = GossipMessage::Type::CONSENSUS;
     message.data.put(scale::encode(fin).value());

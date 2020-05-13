@@ -33,6 +33,8 @@ namespace kagome::network {
 
     ~GossiperBroadcast() override = default;
 
+    void transactionAnnounce(const TransactionAnnounce &announce) override;
+
     void blockAnnounce(const BlockAnnounce &announce) override;
 
     void vote(const consensus::grandpa::VoteMessage &msg) override;

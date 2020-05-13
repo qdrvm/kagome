@@ -33,6 +33,14 @@ namespace kagome::consensus::grandpa {
 
     void start() override;
 
+    /**
+     * TODO (PRE-371): kamilsa remove this method when grandpa issue resolved
+     *
+     * Start timer which constantly checks if grandpa rounds are running. If not
+     * relaunches grandpa
+     */
+    void startLivenessChecker();
+
     void onVoteMessage(const VoteMessage &msg) override;
 
     void onFinalize(const Fin &f) override;
@@ -51,6 +59,7 @@ namespace kagome::consensus::grandpa {
     crypto::ED25519Keypair keypair_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<boost::asio::io_context> io_context_;
+    Timer liveness_checker_;
 
     common::Logger logger_ = common::createLogger("Grandpa launcher");
   };

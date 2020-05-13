@@ -12,11 +12,12 @@
 #include <libp2p/peer/peer_info.hpp>
 #include <outcome/outcome.hpp>
 
-#include "api/extrinsic/extrinsic_jrpc_processor.hpp"
-#include "api/extrinsic/impl/extrinsic_api_impl.hpp"
 #include "api/service/api_service.hpp"
-#include "api/state/impl/state_api_impl.hpp"
-#include "api/state/state_jrpc_processor.hpp"
+#include "api/service/author/author_jrpc_processor.hpp"
+#include "api/service/author/impl/author_api_impl.hpp"
+#include "api/service/state/impl/readonly_trie_builder_impl.hpp"
+#include "api/service/state/impl/state_api_impl.hpp"
+#include "api/service/state/state_jrpc_processor.hpp"
 #include "api/transport/impl/http/http_listener_impl.hpp"
 #include "api/transport/impl/http/http_session.hpp"
 #include "api/transport/impl/ws/ws_listener_impl.hpp"
@@ -50,6 +51,7 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/vrf/vrf_provider_impl.hpp"
 #include "extensions/impl/extension_factory_impl.hpp"
+#include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/gossiper_broadcast.hpp"
 #include "network/impl/router_libp2p.hpp"
 #include "network/sync_protocol_client.hpp"
@@ -125,9 +127,10 @@ namespace kagome::injector {
     };
     auto server = injector.template create<std::shared_ptr<api::JRpcServer>>();
     std::vector<std::shared_ptr<api::JRpcProcessor>> processors{
-        injector.template create<std::shared_ptr<api::StateJrpcProcessor>>(),
         injector
-            .template create<std::shared_ptr<api::ExtrinsicJRpcProcessor>>()};
+            .template create<std::shared_ptr<api::state::StateJrpcProcessor>>(),
+        injector.template create<
+            std::shared_ptr<api::author::AuthorJRpcProcessor>>()};
     initialized =
         std::make_shared<api::ApiService>(listeners, server, processors);
     return initialized.value();
@@ -208,6 +211,11 @@ namespace kagome::injector {
             BOOST_ASSERT_MSG(weighted_authorities_res,
                              "grandpa_api_->authorities failed");
             const auto &weighted_authorities = weighted_authorities_res.value();
+
+            for (const auto authority : weighted_authorities) {
+              spdlog::info("Grandpa authority: {}", authority.id.id.toHex());
+            }
+
             consensus::grandpa::VoterSet voters{0};
             for (const auto &weighted_authority : weighted_authorities) {
               voters.insert(weighted_authority.id.id, 1);
@@ -487,7 +495,7 @@ namespace kagome::injector {
         di::bind<api::WsListenerImpl>.to([rpc_ws_port](const auto &injector) {
           return get_jrpc_api_ws_listener(injector, rpc_ws_port);
         }),
-        di::bind<api::ExtrinsicApi>.template to<api::ExtrinsicApiImpl>(),
+        di::bind<api::AuthorApi>.template to<api::AuthorApiImpl>(),
         di::bind<api::StateApi>.template to<api::StateApiImpl>(),
         di::bind<api::ApiService>.to(std::move(get_jrpc_api_service)),
         di::bind<api::JRpcServer>.template to<api::JRpcServerImpl>(),
@@ -548,6 +556,8 @@ namespace kagome::injector {
             [genesis_path](const auto &injector) {
               return get_configuration_storage(genesis_path, injector);
             }),
+        di::bind<network::ExtrinsicObserver>.template to<network::ExtrinsicObserverImpl>(),
+        di::bind<network::ExtrinsicGossiper>.template to<network::GossiperBroadcast>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);

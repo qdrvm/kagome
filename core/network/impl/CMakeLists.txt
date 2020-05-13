@@ -21,3 +21,11 @@ target_link_libraries(kagome_router
     outcome
     scale
     )
+
+add_library(extrinsic_observer
+    extrinsic_observer_impl.hpp
+    extrinsic_observer_impl.cpp
+    )
+target_link_libraries(extrinsic_observer
+    logger
+    )

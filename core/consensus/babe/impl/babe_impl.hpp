@@ -24,6 +24,7 @@
 #include "crypto/sr25519_types.hpp"
 #include "primitives/babe_configuration.hpp"
 #include "primitives/common.hpp"
+#include "storage/trie/trie_storage.hpp"
 
 namespace kagome::consensus {
 
@@ -61,6 +62,7 @@ namespace kagome::consensus {
      */
     BabeImpl(std::shared_ptr<BabeLottery> lottery,
              std::shared_ptr<BlockExecutor> block_executor,
+             std::shared_ptr<storage::trie::TrieStorage> trie_db,
              std::shared_ptr<EpochStorage> epoch_storage,
              std::shared_ptr<primitives::BabeConfiguration> configuration,
              std::shared_ptr<authorship::Proposer> proposer,
@@ -104,6 +106,8 @@ namespace kagome::consensus {
      */
     void finishEpoch();
 
+    BabeLottery::SlotsLeadership getEpochLeadership(const Epoch &epoch) const;
+
     outcome::result<primitives::PreRuntime> babePreDigest(
         const crypto::VRFOutput &output,
         primitives::AuthorityIndex authority_index) const;
@@ -119,6 +123,7 @@ namespace kagome::consensus {
    private:
     std::shared_ptr<BabeLottery> lottery_;
     std::shared_ptr<BlockExecutor> block_executor_;
+    std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
     std::shared_ptr<EpochStorage> epoch_storage_;
     std::shared_ptr<primitives::BabeConfiguration> genesis_configuration_;
     std::shared_ptr<authorship::Proposer> proposer_;

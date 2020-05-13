@@ -11,6 +11,7 @@ target_link_libraries(binaryen_wasm_memory
     buffer
     binaryen::binaryen
     )
+kagome_install(binaryen_wasm_memory)
 
 add_library(binaryen_runtime_external_interface
     runtime_external_interface.hpp

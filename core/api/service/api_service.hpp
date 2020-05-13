@@ -18,9 +18,9 @@ namespace kagome::api {
   class JRpcProcessor;
 
   /**
-   * Service listening for incoming JSON RPC requests
+   * Service listening for incoming JSON RPC request
    */
-  class ApiService : public std::enable_shared_from_this<ApiService> {
+  class ApiService final : public std::enable_shared_from_this<ApiService> {
    public:
     template <class T>
     using sptr = std::shared_ptr<T>;
@@ -36,15 +36,9 @@ namespace kagome::api {
                gsl::span<std::shared_ptr<JRpcProcessor>> processors);
 
     virtual ~ApiService() = default;
-    /**
-     * @brief starts service
-     */
-    virtual void start();
 
-    /**
-     * @brief stops service
-     */
-    virtual void stop();
+    void start();
+    void stop();
 
    private:
     std::vector<sptr<Listener>> listeners_;

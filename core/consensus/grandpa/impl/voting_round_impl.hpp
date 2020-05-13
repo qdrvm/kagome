@@ -123,7 +123,7 @@ namespace kagome::consensus::grandpa {
     void onSignedPrevote(const SignedPrevote &signed_prevote);
 
     /// Triggered when we receive \param signed_precommit for the current peer
-    void onSignedPrecommit(const SignedPrecommit &signed_precommit);
+    bool onSignedPrecommit(const SignedPrecommit &signed_precommit);
 
     /**
      * Invoked during each onSingedPrevote.
