@@ -119,8 +119,6 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j
 ```
 
-It is suggested to build project with clang-tidy checks, however if you wish to omit clang-tidy step, you can use `cmake ..` instead.
-
 Tests can be run with: 
 ```
 cd build
