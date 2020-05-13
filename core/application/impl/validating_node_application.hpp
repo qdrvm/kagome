@@ -50,8 +50,16 @@ namespace kagome::application {
     ~ValidatingNodeApplication() override = default;
 
     /**
-     * @param kagome_config kagome configuration parameters
-     * @param keys_config keys parameters
+     * @param config_path genesis configs path
+     * @param keystore_path local peer's keys
+     * @param leveldb_path storage path
+     * @param p2p_port port for p2p interactions
+     * @param rpc_http_port port for http based rpc
+     * @param rpc_ws_port port for ws based rpc
+     * @param is_genesis_epoch true if this is the first node in the network
+     * @param is_only_finalizing true if this node should be the only finalizing
+     * node
+     * @param verbosity level of logging
      */
     ValidatingNodeApplication(const std::string &config_path,
                               const std::string &keystore_path,

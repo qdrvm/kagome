@@ -52,8 +52,6 @@ namespace kagome::injector {
         di::bind<network::BabeObserver>.to(std::move(get_babe_observer)),
 
         di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::SyncingRoundObserver>(),
-        di::bind<storage::BufferStorage>.template to<storage::InMemoryStorage>()
-            [boost::di::override],
         di::bind<application::KeyStorage>.to(
             [keystore_path](const auto &injector) {
               return get_key_storage(keystore_path, injector);

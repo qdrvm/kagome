@@ -10,6 +10,11 @@
 #include "runtime/grandpa.hpp"
 
 namespace kagome::runtime::dummy {
+
+  /**
+   * Dummy implementation of the grandpa api. Should not be used in production.
+   * Instead of using runtime to get authorities, just returns current authority
+   */
   class GrandpaDummy : public Grandpa {
    public:
     ~GrandpaDummy() override = default;
