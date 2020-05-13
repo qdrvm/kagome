@@ -36,7 +36,7 @@ cd kagome
 git submodule update --init --recursive
 
 mkdir build && cd build
-cmake -DCMAKE_BUILD_TYPE=release ..
+cmake -DCMAKE_BUILD_TYPE=Release ..
 
 # if you want to have validating node
 make kagome_validating -j 
@@ -115,7 +115,7 @@ This project is can be built with
 
 ```
 cd build
-cmake -DCMAKE_BUILD_TYPE=release ..
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j
 ```
 
