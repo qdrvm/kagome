@@ -8,29 +8,27 @@
 
 #include <boost/variant.hpp>
 #include <outcome/outcome.hpp>
+
 #include "common/outcome_throw.hpp"
 #include "common/visitor.hpp"
 #include "scale/scale_error.hpp"
 
 namespace kagome::scale::detail {
-  namespace impl {
-    template <uint8_t i, class F, class H, class... T>
-    void for_each_apply_impl(F &f);
-
+  namespace variant_impl {
     template <class F, class H>
     void apply_once(F &f, uint8_t i) {
       f.template apply<H>(i);
-    }
-
-    template <uint8_t i, class F>
-    void for_each_apply_impl(F &f) {
-      // do nothing, end of recursion
     }
 
     template <uint8_t i, class F, class H, class... T>
     void for_each_apply_impl(F &f) {
       apply_once<F, H>(f, i);
       for_each_apply_impl<i + 1, F, T...>(f);
+    }
+
+    template <uint8_t i, class F>
+    void for_each_apply_impl(F &f) {
+      // do nothing, end of recursion
     }
 
     template <class Stream, class... T>
@@ -77,9 +75,9 @@ namespace kagome::scale::detail {
 
     template <class F, class... T>
     void for_each_apply(F &f) {
-      impl::for_each_apply_impl<0, F, T...>(f);
+      variant_impl::for_each_apply_impl<0, F, T...>(f);
     }
-  }  // namespace impl
+  }  // namespace variant
 
   /**
    * @brief encodes boost::variant value
@@ -89,9 +87,10 @@ namespace kagome::scale::detail {
    * @param s encoder stream
    */
   template <class Stream, class... T>
-  void encodeVariant(const boost::variant<T...> &v, Stream &s) {
-    auto &&encoder = impl::VariantEncoder(v, s);
-    impl::for_each_apply<decltype(encoder), T...>(encoder);
+  auto encodeVariant(const boost::variant<T...> &v, Stream &s) -> Stream & {
+    auto &&encoder = variant_impl::VariantEncoder(v, s);
+    variant_impl::for_each_apply<decltype(encoder), T...>(encoder);
+    return s;
   }
 
   /**
@@ -102,7 +101,7 @@ namespace kagome::scale::detail {
    * @return decoded value or error
    */
   template <class Stream, class... T>
-  Stream &decodeVariant(Stream &stream, boost::variant<T...> &result) {
+  auto decodeVariant(Stream &stream, boost::variant<T...> &result) -> Stream & {
     // first byte means type index
     uint8_t type_index = 0u;
     stream >> type_index;  // decode type index
@@ -112,8 +111,8 @@ namespace kagome::scale::detail {
       common::raise(DecodeError::WRONG_TYPE_INDEX);
     }
 
-    auto &&decoder = impl::VariantDecoder(type_index, result, stream);
-    impl::for_each_apply<decltype(decoder), T...>(decoder);
+    auto &&decoder = variant_impl::VariantDecoder(type_index, result, stream);
+    variant_impl::for_each_apply<decltype(decoder), T...>(decoder);
 
     return stream;
   }
