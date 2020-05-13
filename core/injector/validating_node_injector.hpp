@@ -3,14 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_INJECTOR_FULL_NODE_INJECTOR_HPP
-#define KAGOME_CORE_INJECTOR_FULL_NODE_INJECTOR_HPP
+#ifndef KAGOME_CORE_INJECTOR_VALIDATING_NODE_INJECTOR_HPP
+#define KAGOME_CORE_INJECTOR_VALIDATING_NODE_INJECTOR_HPP
 
 #include "application/impl/local_key_storage.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/grandpa/chain.hpp"
 #include "consensus/grandpa/impl/launcher_impl.hpp"
 #include "injector/application_injector.hpp"
+#include "runtime/dummy/grandpa_dummy.hpp"
 
 namespace kagome::injector {
 
@@ -141,13 +142,13 @@ namespace kagome::injector {
   auto get_babe_observer = get_babe;
 
   template <typename... Ts>
-  auto makeFullNodeInjector(const std::string &genesis_path,
-                            const std::string &keystore_path,
-                            const std::string &leveldb_path,
-                            uint16_t p2p_port,
-                            uint16_t rpc_http_port,
-                            uint16_t rpc_ws_port,
-                            Ts &&... args) {
+  auto makeValidatingNodeInjector(const std::string &genesis_path,
+                                  const std::string &keystore_path,
+                                  const std::string &leveldb_path,
+                                  uint16_t p2p_port,
+                                  uint16_t rpc_http_port,
+                                  uint16_t rpc_ws_port,
+                                  Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
@@ -173,10 +174,12 @@ namespace kagome::injector {
             [keystore_path](const auto &injector) {
               return get_key_storage(keystore_path, injector);
             }),
+        di::bind<runtime::Grandpa>.to<runtime::dummy::GrandpaDummy>()
+            [boost::di::override],
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
   }
 
 }  // namespace kagome::injector
 
-#endif  // KAGOME_CORE_INJECTOR_FULL_NODE_INJECTOR_HPP
+#endif  // KAGOME_CORE_INJECTOR_VALIDATING_NODE_INJECTOR_HPP

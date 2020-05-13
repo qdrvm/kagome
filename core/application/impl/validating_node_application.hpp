@@ -3,22 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_APPLICATION_IMPL_KAGOME_APPLICATION_IMPL_HPP
-#define KAGOME_CORE_APPLICATION_IMPL_KAGOME_APPLICATION_IMPL_HPP
-
-#include "application/kagome_application.hpp"
+#ifndef KAGOME_CORE_APPLICATION_IMPL_VALIDATING_NODE_APPLICATION_HPP
+#define KAGOME_CORE_APPLICATION_IMPL_VALIDATING_NODE_APPLICATION_HPP
 
 #include "api/service/api_service.hpp"
 #include "application/configuration_storage.hpp"
 #include "application/impl/local_key_storage.hpp"
-#include "injector/full_node_injector.hpp"
+#include "application/kagome_application.hpp"
+#include "injector/validating_node_injector.hpp"
 
 namespace kagome::application {
 
-  /**
-   * @class KagomeApplicationImpl implements kagome application
-   */
-  class KagomeApplicationImpl : public KagomeApplication {
+  class ValidatingNodeApplication : public KagomeApplication {
     using AuthorityIndex = primitives::AuthorityIndex;
     using Babe = consensus::Babe;
     using BabeGossiper = network::Gossiper;
@@ -34,12 +30,13 @@ namespace kagome::application {
     using SystemClock = clock::SystemClock;
     using GrandpaLauncher = consensus::grandpa::Launcher;
     using Timer = clock::Timer;
-    using InjectorType = decltype(injector::makeFullNodeInjector(std::string{},
-                                                                 std::string{},
-                                                                 std::string{},
-                                                                 uint16_t{},
-                                                                 uint16_t{},
-                                                                 uint16_t{}));
+    using InjectorType =
+        decltype(injector::makeValidatingNodeInjector(std::string{},
+                                                      std::string{},
+                                                      std::string{},
+                                                      uint16_t{},
+                                                      uint16_t{},
+                                                      uint16_t{}));
 
     template <class T>
     using sptr = std::shared_ptr<T>;
@@ -48,20 +45,20 @@ namespace kagome::application {
     using uptr = std::unique_ptr<T>;
 
    public:
-    ~KagomeApplicationImpl() override = default;
+    ~ValidatingNodeApplication() override = default;
 
     /**
      * @param kagome_config kagome configuration parameters
      * @param keys_config keys parameters
      */
-    KagomeApplicationImpl(const std::string &config_path,
-                          const std::string &keystore_path,
-                          const std::string &leveldb_path,
-                          uint16_t p2p_port,
-                          uint16_t rpc_http_port,
-                          uint16_t rpc_ws_port,
-                          bool is_genesis_epoch,
-                          uint8_t verbosity);
+    ValidatingNodeApplication(const std::string &config_path,
+                              const std::string &keystore_path,
+                              const std::string &leveldb_path,
+                              uint16_t p2p_port,
+                              uint16_t rpc_http_port,
+                              uint16_t rpc_ws_port,
+                              bool is_genesis_epoch,
+                              uint8_t verbosity);
 
     void run() override;
 
@@ -83,4 +80,4 @@ namespace kagome::application {
 
 }  // namespace kagome::application
 
-#endif  // KAGOME_CORE_APPLICATION_IMPL_KAGOME_APPLICATION_IMPL_HPP
+#endif  // KAGOME_CORE_APPLICATION_IMPL_VALIDATING_NODE_APPLICATION_HPP
