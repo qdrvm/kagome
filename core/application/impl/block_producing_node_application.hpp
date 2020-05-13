@@ -7,6 +7,7 @@
 #define KAGOME_CORE_APPLICATION_IMPL_BLOCK_PRODUCING_NODE_APPLICATION_HPP
 
 #include "application/kagome_application.hpp"
+
 #include "injector/block_producing_node_injector.hpp"
 
 namespace kagome::application {
