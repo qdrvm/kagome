@@ -13,6 +13,7 @@
 #include <gsl/span>
 #include "common/outcome_throw.hpp"
 #include "scale/detail/fixed_witdh_integer.hpp"
+#include "scale/detail/tuple.hpp"
 #include "scale/detail/variant.hpp"
 
 namespace kagome::scale {
@@ -33,6 +34,17 @@ namespace kagome::scale {
     template <class F, class S>
     ScaleDecoderStream &operator>>(std::pair<F, S> &p) {
       return *this >> p.first >> p.second;
+    }
+
+    /**
+     * @brief scale-decodes tuple of values
+     * @tparam T enumeration of types
+     * @param v tuple value
+     * @return reference to stream
+     */
+    template <class... T>
+    ScaleDecoderStream &operator>>(std::tuple<T...> &v) {
+      return detail::decodeTuple(*this, v);
     }
 
     /**
