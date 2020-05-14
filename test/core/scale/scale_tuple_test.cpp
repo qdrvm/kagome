@@ -6,7 +6,10 @@
 #include "scale/scale.hpp"
 
 #include <gtest/gtest.h>
-#include "testutil/scale.hpp"
+#include "common/hexutil.hpp"
+#include "testutil/outcome.hpp"
+
+using kagome::common::hex_upper;
 
 using kagome::scale::ByteArray;
 using kagome::scale::ScaleDecoderStream;
@@ -17,14 +20,15 @@ using kagome::scale::ScaleEncoderStream;
  * @when encode is applied
  * @then obtained serialized value meets predefined one
  */
-TEST(Scale, EncodeTupleSuccess) {
+TEST(Scale, EncodeDecodeTupleSuccess) {
   uint8_t v1 = 1;
   uint32_t v2 = 2;
   uint8_t v3 = 3;
+  ByteArray expected_bytes = {1, 2, 0, 0, 0, 3};
 
   ScaleEncoderStream s;
   ASSERT_NO_THROW((s << std::make_tuple(v1, v2, v3)));
-  ASSERT_EQ(s.data(), (ByteArray{1, 2, 0, 0, 0, 3}));
+  ASSERT_EQ(s.data(), (expected_bytes));
 }
 
 /**
@@ -47,14 +51,22 @@ TEST(Scale, DecodeTupleSuccess) {
 
 /**
  * @given a tuple composed of 4 different values and correspondent byte array
- * @when tuple is encoded, @then encoded come up with provided bytes
+ * @when tuple is encoded, @then encoded value come up with provided bytes
  * @when a tuple is decoded from encoded bytes @then decoded tuple comes up with
  * predefined tuple
  */
 TEST(Scale, EncodeAndReencode) {
-  auto tuple =
+  using tuple_type_t = std::tuple<uint8_t, uint16_t, uint8_t, uint32_t>;
+  ByteArray expected_bytes = {1, 3, 0, 2, 4, 0, 0, 0};
+  tuple_type_t tuple =
       std::make_tuple(uint8_t(1), uint16_t(3), uint8_t(2), uint32_t(4));
-  ByteArray bytes = {1, 3, 0, 2, 4, 0, 0, 0};
 
-  expectEncodeAndReencode(tuple, bytes);
+  EXPECT_OUTCOME_TRUE(actual_bytes, kagome::scale::encode(tuple));
+  EXPECT_EQ(actual_bytes, expected_bytes)
+      << "actual bytes: " << hex_upper(actual_bytes) << std::endl
+      << "expected bytes: " << hex_upper(expected_bytes);
+
+  EXPECT_OUTCOME_TRUE(decoded,
+                      kagome::scale::decode<tuple_type_t>(actual_bytes));
+  ASSERT_EQ(decoded, tuple);
 }
