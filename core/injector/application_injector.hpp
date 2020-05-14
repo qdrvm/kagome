@@ -467,10 +467,6 @@ namespace kagome::injector {
         // bind io_context: 1 per injector
         di::bind<::boost::asio::io_context>.in(
             di::extension::shared)[boost::di::override],
-        di::bind<api::RpcContext>.in(
-            di::extension::shared)[boost::di::override],
-        di::bind<api::RpcThreadPool>.in(
-            di::extension::shared)[boost::di::override],
 
         // bind interfaces
         di::bind<api::HttpListenerImpl>.to(

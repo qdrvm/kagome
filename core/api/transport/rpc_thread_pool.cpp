@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "rpc_thread_pool.hpp"
+#include "api/transport/rpc_thread_pool.hpp"
 
 namespace kagome::api {
 
