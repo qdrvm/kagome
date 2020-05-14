@@ -11,8 +11,8 @@
 #include <boost/optional.hpp>
 #include <gsl/span>
 #include "scale/detail/fixed_witdh_integer.hpp"
-#include "scale/detail/variant.hpp"
 #include "scale/detail/tuple.hpp"
+#include "scale/detail/variant.hpp"
 
 namespace kagome::scale {
   /**
