@@ -27,6 +27,11 @@ namespace kagome::storage::trie {
     virtual outcome::result<std::unique_ptr<EphemeralTrieBatch>>
     getEphemeralBatch() const = 0;
 
+    /**
+     * Initializes a batch at the provided state
+     * @warning if the batch is committed, the trie will still switch to its
+     * state, creating a 'fork'
+     */
     virtual outcome::result<std::unique_ptr<PersistentTrieBatch>>
     getPersistentBatchAt(const common::Hash256 &root) = 0;
     virtual outcome::result<std::unique_ptr<EphemeralTrieBatch>>

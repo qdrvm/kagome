@@ -1,3 +1,8 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include "storage/trie/impl/trie_serializer_impl.hpp"
 
 namespace kagome::storage::trie {

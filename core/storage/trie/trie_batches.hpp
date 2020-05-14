@@ -35,6 +35,7 @@ namespace kagome::storage::trie {
    public:
     /**
      * Commits changes to persistent storage
+     * @returns committed trie root
      */
     virtual outcome::result<Buffer> commit() = 0;
   };
