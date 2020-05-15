@@ -16,6 +16,7 @@ namespace kagome::runtime {
    public:
     MOCK_CONST_METHOD0(size, SizeType());
     MOCK_METHOD1(resize, void(SizeType));
+    MOCK_METHOD0(reset, void());
     MOCK_METHOD1(allocate, WasmPointer(SizeType));
     MOCK_METHOD1(deallocate, boost::optional<SizeType>(WasmPointer));
 
