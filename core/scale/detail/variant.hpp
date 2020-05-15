@@ -41,12 +41,12 @@ namespace kagome::scale::detail {
       template <class H>
       void apply(uint8_t index) {
         // if type matches alternative in variant then encode
-        kagome::visit_in_place(
-            v_,
-            [this, index](const H &h) {
-              s_ << index << h;  // first byte means type index
-            },
-            [](const auto & /*unused*/) {});
+        kagome::visit_in_place(v_,
+                               [this, index](const H &h) {
+                                 s_ << index
+                                    << h;  // first byte means type index
+                               },
+                               [](const auto & /*unused*/) {});
       }
 
      private:
@@ -79,7 +79,7 @@ namespace kagome::scale::detail {
     void for_each_apply(F &f) {
       impl::for_each_apply_impl<0, F, T...>(f);
     }
-  }  // namespace db
+  }  // namespace impl
 
   /**
    * @brief encodes boost::variant value

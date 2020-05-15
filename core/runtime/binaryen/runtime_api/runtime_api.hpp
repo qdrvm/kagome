@@ -29,7 +29,12 @@ namespace kagome::runtime::binaryen {
    */
   class RuntimeApi {
    public:
-    enum class CallPersistency { PERSISTENT, EPHEMERAL };
+    enum class CallPersistency {
+      PERSISTENT,  // the changes made by this call will be applied to the state
+                   // trie storage
+      EPHEMERAL    // the changes made by this call will vanish once it's
+                   // completed
+    };
 
     RuntimeApi(std::shared_ptr<RuntimeManager> runtime_manager)
         : runtime_manager_(std::move(runtime_manager)) {

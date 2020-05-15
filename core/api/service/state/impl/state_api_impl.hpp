@@ -27,7 +27,7 @@ namespace kagome::api {
 
    private:
     std::shared_ptr<blockchain::BlockHeaderRepository> block_repo_;
-    std::shared_ptr<const  storage::trie::TrieStorage> storage_;
+    std::shared_ptr<const storage::trie::TrieStorage> storage_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
   };
 

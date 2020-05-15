@@ -11,10 +11,7 @@
 namespace kagome::storage::trie {
 
   const common::Buffer EXTRINSIC_INDEX_KEY{[]() {
-    constexpr auto s = ":extrinsic_index";
-    std::vector<uint8_t> v(strlen(s));
-    std::copy(s, s + strlen(s), v.begin());
-    return v;
+    return common::Buffer{}.put(":extrinsic_index");
   }()};
 
   // sometimes there is no extrinsic index for a runtime call

@@ -204,8 +204,7 @@ namespace kagome::extensions {
     primitives::BlockHash result_hash = builder_->finishAndGetHash();
     common::Buffer result_buf(result_hash);
     memory_->storeBuffer(result, result_buf);
-    logger_->debug("ext_storage_changes_root unimplemented, assume no changes");
-    return 1;
+    return result_buf.size();
   }
 
   void StorageExtension::ext_storage_root(runtime::WasmPointer result) const {

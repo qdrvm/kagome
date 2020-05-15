@@ -78,8 +78,6 @@ namespace kagome::storage::changes_trie {
       return s >> b.block >> b.key;
     }
 
-    static const common::Buffer CHANGES_CONFIG_KEY;
-
     primitives::BlockHash parent_hash_;
     primitives::BlockNumber parent_number_;
     std::shared_ptr<const storage::trie::TrieStorage> storage_;

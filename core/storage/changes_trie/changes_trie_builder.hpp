@@ -24,6 +24,8 @@ namespace kagome::storage::changes_trie {
    */
   class ChangesTrieBuilder {
    public:
+    virtual ~ChangesTrieBuilder() = default;
+
     virtual outcome::result<std::reference_wrapper<ChangesTrieBuilder>>
     startNewTrie(const primitives::BlockHash &parent) = 0;
 

@@ -23,11 +23,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::changes_trie,
 
 namespace kagome::storage::changes_trie {
 
-  const common::Buffer ChangesTrieBuilderImpl::CHANGES_CONFIG_KEY{[]() {
-    constexpr auto s = ":changes_trie";
-    std::vector<uint8_t> v(strlen(s));
-    std::copy(s, s + strlen(s), v.begin());
-    return v;
+  const common::Buffer CHANGES_CONFIG_KEY{[]() {
+    return common::Buffer{}.put(":changes_trie");
   }()};
 
   ChangesTrieBuilderImpl::ChangesTrieBuilderImpl(

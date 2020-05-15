@@ -32,6 +32,8 @@ namespace kagome::storage::trie {
     virtual std::unique_ptr<PolkadotTrie> createFromRoot(
         PolkadotTrie::NodePtr root,
         boost::optional<ChildRetrieveFunctor> f) const = 0;
+
+    virtual ~PolkadotTrieFactory() = default;
   };
 
 }  // namespace kagome::storage::trie

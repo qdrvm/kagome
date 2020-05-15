@@ -5,7 +5,7 @@
 
 #include "runtime/binaryen/runtime_api/core_impl.hpp"
 
-#include "boost/assert.hpp"
+#include <boost/assert.hpp>
 
 namespace kagome::runtime::binaryen {
   using common::Buffer;

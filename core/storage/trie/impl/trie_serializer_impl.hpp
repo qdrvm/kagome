@@ -59,4 +59,4 @@ namespace kagome::storage::trie {
   };
 }  // namespace kagome::storage::trie
 
-#endif
+#endif // KAGOME_STORAGE_TRIE_SERIALIZER_IMPL
