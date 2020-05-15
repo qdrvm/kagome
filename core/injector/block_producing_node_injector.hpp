@@ -56,7 +56,7 @@ namespace kagome::injector {
             [keystore_path](const auto &injector) {
               return get_key_storage(keystore_path, injector);
             }),
-        di::bind<runtime::Grandpa>.to<runtime::dummy::GrandpaDummy>()
+        di::bind<runtime::Grandpa>.template to<runtime::dummy::GrandpaDummy>()
             [boost::di::override],
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
