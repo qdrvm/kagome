@@ -59,8 +59,8 @@ namespace kagome::extensions {
                       runtime::SizeType utf8_length));
     MOCK_METHOD3(ext_blake2_128,
                  void(runtime::WasmPointer data,
-                     runtime::SizeType len,
-                     runtime::WasmPointer out));
+                      runtime::SizeType len,
+                      runtime::WasmPointer out));
     MOCK_METHOD3(ext_blake2_256,
                  void(runtime::WasmPointer data,
                       runtime::SizeType len,

@@ -414,7 +414,24 @@ TEST_F(REITest, ext_print_utf8_Test) {
   executeWasm(execute_code);
 }
 
-TEST_F(REITest, ext_blake2_256_Test) {
+TEST_F(REITest, ext_blake2_128_Test) {
+  WasmPointer data_ptr = 12;
+  SizeType data_size = 12;
+  WasmPointer out_ptr = 43;
+
+  EXPECT_CALL(*extension_, ext_blake2_128(data_ptr, data_size, out_ptr))
+      .Times(1);
+  auto execute_code = (boost::format("    (call $ext_blake2_128\n"
+                                     "      (i32.const %d)\n"
+                                     "      (i32.const %d)\n"
+                                     "      (i32.const %d)\n"
+                                     "    )\n")
+                       % data_ptr % data_size % out_ptr)
+      .str();
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_blake_256_Test) {
   WasmPointer data_ptr = 12;
   SizeType data_size = 12;
   WasmPointer out_ptr = 43;

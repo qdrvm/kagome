@@ -107,14 +107,27 @@ TEST_F(HasherFixture, sha2_256) {
 
 /**
  * @given some common source value
- * @when Hasher::blake2_256 method is applied
+ * @when Hasher::blake2_128 method is applied
  * @then expected result obtained
  */
-TEST_F(HasherFixture, blake2_256) {
+TEST_F(HasherFixture, blake2_128) {
   Buffer buffer{"6920616d2064617461"_unhex};
   std::vector<uint8_t> match =
       "ba67336efd6a3df3a70eeb757860763036785c182ff4cf587541a0068d09f5b2"_unhex;
 
   auto hash = hasher->blake2b_256(buffer);
   ASSERT_EQ(blob2buffer<32>(hash).toVector(), match);
+}
+
+/**
+ * @given some common source value
+ * @when Hasher::blake2_256 method is applied
+ * @then expected result obtained
+ */
+TEST_F(HasherFixture, blake2_256) {
+  Buffer buffer{"6920616d2064617461"_unhex};
+  std::vector<uint8_t> match = "de944c5c12e55ee9a07cf5bf4b674995"_unhex;
+
+  auto hash = hasher->blake2b_128(buffer);
+  ASSERT_EQ(blob2buffer<16>(hash).toVector(), match);
 }
