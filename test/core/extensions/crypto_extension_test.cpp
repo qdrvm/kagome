@@ -11,9 +11,9 @@
 #include <gsl/span>
 #include "core/runtime/mock_memory.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
+#include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
-#include "crypto/hasher/hasher_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -21,11 +21,11 @@ using namespace kagome::extensions;
 using kagome::common::Buffer;
 using kagome::crypto::BoostRandomGenerator;
 using kagome::crypto::CSPRNG;
-using kagome::crypto::Hasher;
-using kagome::crypto::HasherImpl;
 using kagome::crypto::ED25519Provider;
 using kagome::crypto::ED25519ProviderImpl;
 using kagome::crypto::ED25519Signature;
+using kagome::crypto::Hasher;
+using kagome::crypto::HasherImpl;
 using kagome::crypto::SR25519Keypair;
 using kagome::crypto::SR25519Provider;
 using kagome::crypto::SR25519ProviderImpl;
@@ -71,7 +71,9 @@ class CryptoExtensionTest : public ::testing::Test {
   SR25519Signature sr25519_signature{};
   SR25519Keypair sr25519_keypair{};
 
-  Buffer blake2b_result{
+  Buffer blake2b_128_result{"de944c5c12e55ee9a07cf5bf4b674995"_unhex};
+
+  Buffer blake2b_256_result{
       "ba67336efd6a3df3a70eeb757860763036785c182ff4cf587541a0068d09f5b2"_unhex};
 
   Buffer keccak_result{
@@ -88,17 +90,33 @@ class CryptoExtensionTest : public ::testing::Test {
 };
 
 /**
- * @given initialized crypto extension @and data, which can be blake2-hashed
+ * @given initialized crypto extension @and data, which can be blake2b_128-hashed
  * @when hashing that data
  * @then resulting hash is correct
  */
-TEST_F(CryptoExtensionTest, Blake2Valid) {
+TEST_F(CryptoExtensionTest, Blake2_128Valid) {
   WasmPointer data = 0;
   SizeType size = input.size();
   WasmPointer out_ptr = 42;
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
-  EXPECT_CALL(*memory_, storeBuffer(out_ptr, blake2b_result)).Times(1);
+  EXPECT_CALL(*memory_, storeBuffer(out_ptr, blake2b_128_result)).Times(1);
+
+  crypto_ext_->ext_blake2_128(data, size, out_ptr);
+}
+
+/**
+ * @given initialized crypto extension @and data, which can be blake2b_256-hashed
+ * @when hashing that data
+ * @then resulting hash is correct
+ */
+TEST_F(CryptoExtensionTest, Blake2_256Valid) {
+  WasmPointer data = 0;
+  SizeType size = input.size();
+  WasmPointer out_ptr = 42;
+
+  EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
+  EXPECT_CALL(*memory_, storeBuffer(out_ptr, blake2b_256_result)).Times(1);
 
   crypto_ext_->ext_blake2_256(data, size, out_ptr);
 }
