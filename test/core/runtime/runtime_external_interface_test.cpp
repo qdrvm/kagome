@@ -118,6 +118,7 @@ class REITest : public ::testing::Test {
       "  (type (;28;) (func (param i32 i32 i32)))\n"
       "  (import \"env\" \"ext_get_storage_into\" (func $ext_get_storage_into (type 4)))\n"
       "  (import \"env\" \"ext_get_allocated_storage\" (func $ext_get_allocated_storage (type 2)))\n"
+      "  (import \"env\" \"ext_blake2_128\" (func $ext_blake2_128 (type 5)))\n"
       "  (import \"env\" \"ext_blake2_256\" (func $ext_blake2_256 (type 5)))\n"
       "  (import \"env\" \"ext_keccak_256\" (func $ext_keccak_256 (type 28)))\n"
       "  (import \"env\" \"ext_blake2_256_enumerated_trie_root\" (func $ext_blake2_256_enumerated_trie_root (type 6)))\n"
