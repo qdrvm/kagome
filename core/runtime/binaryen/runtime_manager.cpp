@@ -24,6 +24,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
 
 namespace kagome::runtime::binaryen {
 
+  thread_local std::shared_ptr<RuntimeExternalInterface>
+      RuntimeManager::external_interface_{};
+
   RuntimeManager::RuntimeManager(
       std::shared_ptr<runtime::WasmProvider> wasm_provider,
       std::shared_ptr<extensions::ExtensionFactory> extension_factory,
