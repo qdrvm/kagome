@@ -45,10 +45,9 @@ namespace kagome::runtime::binaryen {
     std::shared_ptr<extensions::ExtensionFactory> extension_factory_;
 
     std::shared_ptr<crypto::Hasher> hasher_;
-    common::Hash256 state_code_hash_{};
 
-    // TODO (xDimon): Separate it by state_code_hash for multiruntime case
-    std::shared_ptr<wasm::Module> module_{};
+    std::mutex modules_mutex_;
+    std::map<common::Hash256, std::shared_ptr<wasm::Module>> modules_;
 
     static thread_local std::shared_ptr<RuntimeExternalInterface>
         external_interface_;
