@@ -23,10 +23,14 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotTrieImpl::Error, e) {
 
 namespace kagome::storage::trie {
   PolkadotTrieImpl::PolkadotTrieImpl(ChildRetrieveFunctor f)
-      : retrieve_child_{std::move(f)} {}
+      : retrieve_child_{std::move(f)} {
+    BOOST_ASSERT(retrieve_child_);
+  }
 
   PolkadotTrieImpl::PolkadotTrieImpl(NodePtr root, ChildRetrieveFunctor f)
-      : retrieve_child_{std::move(f)}, root_{std::move(root)} {}
+      : retrieve_child_{std::move(f)}, root_{std::move(root)} {
+    BOOST_ASSERT(retrieve_child_);
+  }
 
   outcome::result<void> PolkadotTrieImpl::put(const Buffer &key,
                                           const Buffer &value) {

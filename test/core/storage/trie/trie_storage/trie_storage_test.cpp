@@ -355,8 +355,7 @@ TEST_F(TrieTest, EmptyTrie) {
  */
 TEST(TriePersistencyTest, CreateDestroyCreate) {
   Buffer root;
-  auto factory = std::make_shared<PolkadotTrieFactoryImpl>(
-      [](auto parent, auto idx) { return parent->children.at(idx); });
+  auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<PolkadotCodec>();
   {
     leveldb::Options options;

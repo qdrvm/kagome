@@ -22,7 +22,7 @@ namespace kagome::storage::trie {
      * optional is none, the default one will be used
      */
     virtual std::unique_ptr<PolkadotTrie> createEmpty(
-        boost::optional<ChildRetrieveFunctor> f) const = 0;
+        ChildRetrieveFunctor f) const = 0;
 
     /**
      * Creates a trie with the given root
@@ -31,7 +31,7 @@ namespace kagome::storage::trie {
      */
     virtual std::unique_ptr<PolkadotTrie> createFromRoot(
         PolkadotTrie::NodePtr root,
-        boost::optional<ChildRetrieveFunctor> f) const = 0;
+        ChildRetrieveFunctor f) const = 0;
 
     virtual ~PolkadotTrieFactory() = default;
   };

@@ -23,9 +23,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::changes_trie,
 
 namespace kagome::storage::changes_trie {
 
-  const common::Buffer CHANGES_CONFIG_KEY{[]() {
-    return common::Buffer{}.put(":changes_trie");
-  }()};
+  const common::Buffer CHANGES_CONFIG_KEY{
+      []() { return common::Buffer{}.put(":changes_trie"); }()};
 
   ChangesTrieBuilderImpl::ChangesTrieBuilderImpl(
       std::shared_ptr<const storage::trie::TrieStorage> storage,
@@ -36,7 +35,7 @@ namespace kagome::storage::changes_trie {
         block_header_repo_{std::move(block_header_repo)},
         changes_storage_factory_{std::move(changes_storage)},
         codec_{std::move(codec)},
-        logger_ {common::createLogger("Changes Trie Builder")} {
+        logger_{common::createLogger("Changes Trie Builder")} {
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(changes_storage_factory_ != nullptr);
     BOOST_ASSERT(block_header_repo_ != nullptr);
@@ -62,7 +61,8 @@ namespace kagome::storage::changes_trie {
 
   outcome::result<std::reference_wrapper<ChangesTrieBuilder>>
   ChangesTrieBuilderImpl::startNewTrie(const common::Hash256 &parent) {
-    changes_storage_ = changes_storage_factory_->createEmpty(boost::none);
+    changes_storage_ = changes_storage_factory_->createEmpty(
+        [](auto branch, uint8_t idx) { return branch->children.at(idx); });
     parent_hash_ = parent;
     OUTCOME_TRY(parent_number,
                 block_header_repo_->getNumberByHash(parent_hash_));
@@ -95,7 +95,8 @@ namespace kagome::storage::changes_trie {
     }
     auto enc_res = codec_->encodeNode(*root);
     if (enc_res.has_error()) {
-      logger_->error("Encoding Changes trie failed" + enc_res.error().message());
+      logger_->error("Encoding Changes trie failed"
+                     + enc_res.error().message());
       return {};
     }
     auto hash_bytes = codec_->hash256(enc_res.value());
