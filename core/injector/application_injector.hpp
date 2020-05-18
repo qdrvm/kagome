@@ -22,6 +22,7 @@
 #include "api/transport/impl/http/http_session.hpp"
 #include "api/transport/impl/ws/ws_listener_impl.hpp"
 #include "api/transport/impl/ws/ws_session.hpp"
+#include "api/transport/rpc_thread_pool.hpp"
 #include "application/impl/configuration_storage_impl.hpp"
 #include "authorship/impl/block_builder_factory_impl.hpp"
 #include "authorship/impl/block_builder_impl.hpp"
@@ -143,7 +144,7 @@ namespace kagome::injector {
       return initialized.value();
     }
 
-    auto &context = injector.template create<boost::asio::io_context &>();
+    auto context = injector.template create<sptr<api::RpcContext>>();
     auto extrinsic_tcp_version = boost::asio::ip::tcp::v4();
     api::HttpListenerImpl::Configuration listener_config{
         boost::asio::ip::tcp::endpoint{extrinsic_tcp_version, rpc_port}};
@@ -164,7 +165,7 @@ namespace kagome::injector {
       return initialized.value();
     }
 
-    auto &context = injector.template create<boost::asio::io_context &>();
+    auto context = injector.template create<sptr<api::RpcContext>>();
     auto extrinsic_tcp_version = boost::asio::ip::tcp::v4();
     api::WsListenerImpl::Configuration listener_config{
         boost::asio::ip::tcp::endpoint{extrinsic_tcp_version, rpc_port}};
@@ -443,6 +444,7 @@ namespace kagome::injector {
     using namespace boost;  // NOLINT;
 
     // default values for configurations
+    api::RpcThreadPool::Configuration rpc_thread_pool_config{};
     api::HttpSession::Configuration http_config{};
     api::WsSession::Configuration ws_config{};
     transaction_pool::PoolModeratorImpl::Params pool_moderator_config{};
@@ -450,6 +452,7 @@ namespace kagome::injector {
     transaction_pool::TransactionPool::Limits tp_pool_limits{};
     return di::make_injector(
         // bind configs
+        injector::useConfig(rpc_thread_pool_config),
         injector::useConfig(http_config),
         injector::useConfig(ws_config),
         injector::useConfig(pool_moderator_config),
