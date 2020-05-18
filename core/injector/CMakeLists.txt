@@ -10,6 +10,7 @@ target_link_libraries(application_injector
     p2p::p2p
     tsl::tsl_hat_trie
     Boost::Boost.DI
+    rpc_thread_pool
     api_transport
     api_jrpc_server
     state_api_service

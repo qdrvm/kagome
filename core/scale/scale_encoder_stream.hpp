@@ -11,6 +11,7 @@
 #include <boost/optional.hpp>
 #include <gsl/span>
 #include "scale/detail/fixed_witdh_integer.hpp"
+#include "scale/detail/tuple.hpp"
 #include "scale/detail/variant.hpp"
 
 namespace kagome::scale {
@@ -41,6 +42,17 @@ namespace kagome::scale {
     }
 
     /**
+     * @brief scale-encodes tuple of values
+     * @tparam T enumeration of types
+     * @param v tuple value
+     * @return reference to stream
+     */
+    template <class... T>
+    ScaleEncoderStream &operator<<(const std::tuple<T...> v) {
+      return detail::encodeTuple(v, *this);
+    }
+
+    /**
      * @brief scale-encodes variant value
      * @tparam T type list
      * @param v value to encode
@@ -48,8 +60,7 @@ namespace kagome::scale {
      */
     template <class... T>
     ScaleEncoderStream &operator<<(const boost::variant<T...> &v) {
-      detail::encodeVariant(v, *this);
-      return *this;
+      return detail::encodeVariant(v, *this);
     }
 
     /**

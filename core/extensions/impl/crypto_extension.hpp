@@ -30,6 +30,13 @@ namespace kagome::extensions {
         std::shared_ptr<crypto::Hasher> hasher);
 
     /**
+     * @see Extension::ext_blake2_128
+     */
+    void ext_blake2_128(runtime::WasmPointer data,
+                        runtime::SizeType len,
+                        runtime::WasmPointer out_ptr);
+
+    /**
      * @see Extension::ext_blake2_256
      */
     void ext_blake2_256(runtime::WasmPointer data,

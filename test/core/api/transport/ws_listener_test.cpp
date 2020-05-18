@@ -19,24 +19,22 @@ using WsListenerTest = ListenerTest<WsListenerImpl>;
  * @then response contains expected value
  */
 TEST_F(WsListenerTest, EchoSuccess) {
-  const Duration timeout_duration = std::chrono::milliseconds(200);
-
-  std::shared_ptr<WsClient> client;
+  auto client = std::make_shared<WsClient>(*client_context);
 
   ASSERT_NO_THROW(service->start());
 
-  client = std::make_shared<WsClient>(*client_context);
-
   std::thread client_thread([this, client] {
     ASSERT_TRUE(client->connect(endpoint));
-    client->query(request,
-                  [&response = response](outcome::result<std::string> res) {
-                    ASSERT_TRUE(res);
-                    ASSERT_EQ(res.value(), response);
-                  });
-    client->disconnect();
+    client->query(request, [this, client](outcome::result<std::string> res) {
+      ASSERT_TRUE(res);
+      ASSERT_EQ(res.value(), response);
+      client->disconnect();
+      main_context->stop();
+    });
   });
 
-  main_context->run_for(timeout_duration);
+  main_context->run_for(std::chrono::seconds(2));
   client_thread.join();
+
+  ASSERT_NO_THROW(service->stop());
 }

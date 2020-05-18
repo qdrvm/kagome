@@ -180,6 +180,16 @@ namespace kagome::extensions {
      * @param len of the data
      * @param out buffer to store the hash
      */
+    virtual void ext_blake2_128(runtime::WasmPointer data,
+                                runtime::SizeType len,
+                                runtime::WasmPointer out) = 0;
+
+    /**
+     * Hash the data using blake2b hash
+     * @param data to be hashed
+     * @param len of the data
+     * @param out buffer to store the hash
+     */
     virtual void ext_blake2_256(runtime::WasmPointer data,
                                 runtime::SizeType len,
                                 runtime::WasmPointer out) = 0;

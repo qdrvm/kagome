@@ -20,23 +20,21 @@ using HttpListenerTest = ListenerTest<HttpListenerImpl>;
  */
 
 TEST_F(HttpListenerTest, EchoSuccess) {
-  const Duration timeout_duration = std::chrono::milliseconds(200);
-
-  std::shared_ptr<HttpClient> client;
+  auto client = std::make_shared<HttpClient>(*client_context);
 
   ASSERT_NO_THROW(service->start());
 
-  client = std::make_shared<HttpClient>(*client_context);
-
   std::thread client_thread([this, client] {
     ASSERT_TRUE(client->connect(endpoint));
-    client->query(request,
-                  [&response = response](outcome::result<std::string> res) {
-                    ASSERT_TRUE(res);
-                    ASSERT_EQ(res.value(), response);
-                  });
+    client->query(request, [this](outcome::result<std::string> res) {
+      ASSERT_TRUE(res);
+      ASSERT_EQ(res.value(), response);
+      main_context->stop();
+    });
   });
 
-  main_context->run_for(timeout_duration);
+  main_context->run_for(std::chrono::seconds(2));
   client_thread.join();
+
+  ASSERT_NO_THROW(service->stop());
 }

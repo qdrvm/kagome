@@ -205,7 +205,12 @@ namespace kagome::consensus {
     auto slot_leadership =
         slots_leadership_[current_slot_ % current_epoch_.epoch_duration];
     if (slot_leadership) {
-      log_->debug("Peer {} is leader", keypair_.public_key.toHex());
+      log_->debug("Peer {} is leader (vrfOutput: {}, proof: {})",
+      		keypair_.public_key.toHex(),
+      		common::Buffer(slot_leadership->output).toHex(),
+	        common::Buffer(slot_leadership->proof).toHex()
+	        );
+
       processSlotLeadership(*slot_leadership);
     }
 

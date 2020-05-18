@@ -123,6 +123,7 @@ class REITest : public ::testing::Test {
       "  (type (;28;) (func (param i32 i32 i32)))\n"
       "  (import \"env\" \"ext_get_storage_into\" (func $ext_get_storage_into (type 4)))\n"
       "  (import \"env\" \"ext_get_allocated_storage\" (func $ext_get_allocated_storage (type 2)))\n"
+      "  (import \"env\" \"ext_blake2_128\" (func $ext_blake2_128 (type 5)))\n"
       "  (import \"env\" \"ext_blake2_256\" (func $ext_blake2_256 (type 5)))\n"
       "  (import \"env\" \"ext_keccak_256\" (func $ext_keccak_256 (type 28)))\n"
       "  (import \"env\" \"ext_blake2_256_enumerated_trie_root\" (func $ext_blake2_256_enumerated_trie_root (type 6)))\n"
@@ -414,7 +415,24 @@ TEST_F(REITest, ext_print_utf8_Test) {
   executeWasm(execute_code);
 }
 
-TEST_F(REITest, ext_blake2_256_Test) {
+TEST_F(REITest, ext_blake2_128_Test) {
+  WasmPointer data_ptr = 12;
+  SizeType data_size = 12;
+  WasmPointer out_ptr = 43;
+
+  EXPECT_CALL(*extension_, ext_blake2_128(data_ptr, data_size, out_ptr))
+      .Times(1);
+  auto execute_code = (boost::format("    (call $ext_blake2_128\n"
+                                     "      (i32.const %d)\n"
+                                     "      (i32.const %d)\n"
+                                     "      (i32.const %d)\n"
+                                     "    )\n")
+                       % data_ptr % data_size % out_ptr)
+      .str();
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_blake_256_Test) {
   WasmPointer data_ptr = 12;
   SizeType data_size = 12;
   WasmPointer out_ptr = 43;

@@ -177,3 +177,15 @@ TEST_F(MemoryHeapTest, LoadNTest) {
   auto res_b = memory_.loadN(ptr, N);
   ASSERT_EQ(b, res_b);
 }
+
+/**
+ * @given Some memory is allocated
+ * @when Memory is reset
+ * @then Allocated memory's offset is 1
+ */
+TEST_F(MemoryHeapTest, ResetTest) {
+  const size_t N = 42;
+  ASSERT_EQ(memory_.allocate(N), 1);
+  memory_.reset();
+  ASSERT_EQ(memory_.allocate(N), 1);
+}
