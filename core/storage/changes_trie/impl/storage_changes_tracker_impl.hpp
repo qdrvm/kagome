@@ -13,7 +13,6 @@ namespace kagome::storage::changes_trie {
      * Functor that returns the current extrinsic index, which is supposed to
      * be stored in the state trie
      */
-    StorageChangesTrackerImpl();
     ~StorageChangesTrackerImpl() override = default;
 
     void setConfig(const ChangesTrieConfig &conf) override;
@@ -25,8 +24,7 @@ namespace kagome::storage::changes_trie {
 
     outcome::result<void> onChange(const common::Buffer &key) override;
 
-    outcome::result<void> sinkToChangesTrie(
-        ChangesTrieBuilder &builder) override;
+    outcome::result<common::Hash256> constructChangesTrie() override;
 
    private:
     std::map<common::Buffer,

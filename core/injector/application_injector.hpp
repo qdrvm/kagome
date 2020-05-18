@@ -561,8 +561,6 @@ namespace kagome::injector {
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
-    auto leveldb_options = leveldb::Options();
-    leveldb_options.create_if_missing = true;
   }
 
 }  // namespace kagome::injector

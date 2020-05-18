@@ -22,7 +22,7 @@ namespace kagome::storage::changes_trie {
    * As the trie itself is not required for now, only its root hash,
    * after construction returns this hash
    */
-  class ChangesTrieBuilder {
+  class [[deprecated]] ChangesTrieBuilder {
    public:
     virtual ~ChangesTrieBuilder() = default;
 

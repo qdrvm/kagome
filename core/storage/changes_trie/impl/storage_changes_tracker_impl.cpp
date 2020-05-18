@@ -15,9 +15,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::changes_trie,
 
 namespace kagome::storage::changes_trie {
 
-  StorageChangesTrackerImpl::StorageChangesTrackerImpl() {}
-
-  void StorageChangesTrackerImpl::setConfig(const ChangesTrieConfig &conf) {}
+  void StorageChangesTrackerImpl::setConfig(const ChangesTrieConfig &conf) {
+    // will be needed when blocks changes are implemented
+  }
 
   outcome::result<void> StorageChangesTrackerImpl::onBlockChange(
       const primitives::BlockHash &key) {

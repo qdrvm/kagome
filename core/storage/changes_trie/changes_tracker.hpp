@@ -41,10 +41,9 @@ namespace kagome::storage::changes_trie {
 
     /**
      * Sinks accumulated changes for the latest registered block to the changes
-     * trie builder, first calling startNewTrie on it
+     * trie and returns its root hash
      */
-    virtual outcome::result<void> sinkToChangesTrie(
-        ChangesTrieBuilder &builder) = 0;
+    virtual outcome::result<common::Hash256> constructChangesTrie() = 0;
   };
 
 }  // namespace kagome::storage::changes_trie

@@ -10,16 +10,11 @@
 
 namespace kagome::storage::trie {
 
-  const common::Buffer EXTRINSIC_INDEX_KEY{[]() {
-    return common::Buffer{}.put(":extrinsic_index");
-  }()};
+  const common::Buffer EXTRINSIC_INDEX_KEY =
+      common::Buffer{}.put(":extrinsic_index");
 
   // sometimes there is no extrinsic index for a runtime call
-  const common::Buffer NO_EXTRINSIC_INDEX_VALUE{[]() {
-    auto res = scale::encode(0xffffffff);
-    BOOST_ASSERT(res);
-    return res.value();
-  }()};
+  const common::Buffer NO_EXTRINSIC_INDEX_VALUE{scale::encode(0xffffffff).value()};
 
   PersistentTrieBatchImpl::PersistentTrieBatchImpl(
       std::shared_ptr<Codec> codec,

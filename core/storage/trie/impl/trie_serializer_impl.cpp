@@ -40,7 +40,7 @@ namespace kagome::storage::trie {
         [this](PolkadotTrie::BranchPtr parent, uint8_t idx) {
           return retrieveChild(parent, idx);
         };
-    return trie_factory_->createFromRoot(root, f);
+    return trie_factory_->createFromRoot(std::move(root), std::move(f));
   }
 
   outcome::result<Buffer> TrieSerializerImpl::storeRootNode(
