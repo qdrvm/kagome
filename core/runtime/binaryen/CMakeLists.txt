@@ -11,6 +11,7 @@ target_link_libraries(binaryen_wasm_memory
     buffer
     binaryen::binaryen
     )
+kagome_install(binaryen_wasm_memory)
 
 add_library(binaryen_runtime_external_interface
     runtime_external_interface.hpp
@@ -22,12 +23,21 @@ target_link_libraries(binaryen_runtime_external_interface
     logger
     )
 
+add_library(binaryen_runtime_manager
+    runtime_manager.hpp
+    runtime_manager.cpp
+    )
+target_link_libraries(binaryen_runtime_manager
+    binaryen_runtime_external_interface
+    )
+
 add_library(binaryen_wasm_executor
     wasm_executor.hpp
     wasm_executor.cpp
     )
 target_link_libraries(binaryen_wasm_executor
     binaryen::binaryen
+    binaryen_runtime_manager
     logger
     )
 
@@ -89,6 +99,14 @@ add_library(binaryen_offchain_worker_api
     runtime_api/offchain_worker_impl.cpp
     )
 target_link_libraries(binaryen_offchain_worker_api
+    binaryen_wasm_executor
+    binaryen_runtime_api
+    )
+
+add_library(binaryen_babe_api
+    runtime_api/babe_api_impl.cpp
+    )
+target_link_libraries(binaryen_babe_api
     binaryen_wasm_executor
     binaryen_runtime_api
     )

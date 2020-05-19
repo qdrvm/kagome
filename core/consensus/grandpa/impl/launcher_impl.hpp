@@ -10,11 +10,11 @@
 #include "common/logger.hpp"
 #include "consensus/grandpa/completed_round.hpp"
 #include "consensus/grandpa/environment.hpp"
-#include "consensus/grandpa/gossiper.hpp"
 #include "consensus/grandpa/launcher.hpp"
 #include "consensus/grandpa/voter_set.hpp"
 #include "consensus/grandpa/voting_round.hpp"
 #include "crypto/ed25519_provider.hpp"
+#include "network/gossiper.hpp"
 #include "storage/buffer_map_types.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -32,6 +32,14 @@ namespace kagome::consensus::grandpa {
                  std::shared_ptr<boost::asio::io_context> io_context);
 
     void start() override;
+
+    /**
+     * TODO (PRE-371): kamilsa remove this method when grandpa issue resolved
+     *
+     * Start timer which constantly checks if grandpa rounds are running. If not
+     * relaunches grandpa
+     */
+    void startLivenessChecker();
 
     void onVoteMessage(const VoteMessage &msg) override;
 
@@ -51,6 +59,7 @@ namespace kagome::consensus::grandpa {
     crypto::ED25519Keypair keypair_;
     std::shared_ptr<Clock> clock_;
     std::shared_ptr<boost::asio::io_context> io_context_;
+    Timer liveness_checker_;
 
     common::Logger logger_ = common::createLogger("Grandpa launcher");
   };

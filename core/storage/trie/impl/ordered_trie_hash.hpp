@@ -43,11 +43,7 @@ namespace kagome::storage::trie {
       it++;
     }
     OUTCOME_TRY(enc, codec.encodeNode(*trie.getRoot()));
-    auto merkleValue = codec.merkleValue(enc);
-    auto merkleHash = merkleValue.size() < 32
-                          ? common::Buffer{codec.hash256(merkleValue)}
-                          : merkleValue;
-    return merkleHash;
+    return common::Buffer{codec.hash256(enc)};
   }
 
 }  // namespace kagome::storage::trie

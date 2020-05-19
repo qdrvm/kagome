@@ -5,16 +5,19 @@
 
 #include "api/transport/impl/ws/ws_session.hpp"
 
-#include <cstring>
-
 #include <boost/asio/dispatch.hpp>
 #include <boost/config.hpp>
+#include <cstring>
+
 #include "outcome/outcome.hpp"
 
 namespace kagome::api {
 
-  WsSession::WsSession(Socket socket, Configuration config)
-      : config_{config}, ws_(std::move(socket)) {}
+  WsSession::WsSession(Context &context, Configuration config)
+      : strand_(boost::asio::make_strand(context)),
+        socket_(strand_),
+        config_{config},
+        ws_(socket_) {}
 
   void WsSession::start() {
     boost::asio::dispatch(ws_.get_executor(),
@@ -80,7 +83,7 @@ namespace kagome::api {
       return;
     }
 
-	  asyncRead();
+    asyncRead();
   };
 
   void WsSession::onRead(boost::system::error_code ec,
@@ -108,7 +111,7 @@ namespace kagome::api {
 
     wbuffer_.consume(bytes_transferred);
 
-	  asyncRead();
+    asyncRead();
   }
 
   void WsSession::reportError(boost::system::error_code ec,

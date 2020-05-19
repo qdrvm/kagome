@@ -6,11 +6,12 @@
 #ifndef KAGOME_CORE_API_TRANSPORT_BEAST_HTTP_SESSION_HPP
 #define KAGOME_CORE_API_TRANSPORT_BEAST_HTTP_SESSION_HPP
 
+#include <boost/asio/strand.hpp>
+#include <boost/beast.hpp>
 #include <chrono>
 #include <cstdlib>
 #include <memory>
 
-#include <boost/beast.hpp>
 #include "api/transport/session.hpp"
 #include "common/logger.hpp"
 
@@ -37,8 +38,6 @@ namespace kagome::api {
     using Logger = common::Logger;
 
    public:
-    using Socket = boost::asio::ip::tcp::socket;
-
     struct Configuration {
       static constexpr size_t kDefaultRequestSize = 10000u;
       static constexpr Duration kDefaultTimeout = std::chrono::seconds(30);
@@ -54,7 +53,11 @@ namespace kagome::api {
      * @param socket socket instance
      * @param config session configuration
      */
-    HttpSession(Socket socket, Configuration config);
+    HttpSession(Context &context, Configuration config);
+
+    Socket &socket() override {
+      return stream_.socket();
+    }
 
     /**
      * @brief starts session
@@ -123,7 +126,10 @@ namespace kagome::api {
      */
     void reportError(boost::system::error_code ec, std::string_view message);
 
-    static constexpr std::string_view kServerName = "Kagome extrinsic api";
+    static constexpr std::string_view kServerName = "Kagome";
+
+    /// Strand to ensure the connection's handlers are not called concurrently.
+    boost::asio::strand<boost::asio::io_context::executor_type> strand_;
 
     Configuration config_;              ///< session configuration
     boost::beast::tcp_stream stream_;   ///< stream

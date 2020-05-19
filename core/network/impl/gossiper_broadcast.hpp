@@ -33,11 +33,15 @@ namespace kagome::network {
 
     ~GossiperBroadcast() override = default;
 
+    void transactionAnnounce(const TransactionAnnounce &announce) override;
+
     void blockAnnounce(const BlockAnnounce &announce) override;
 
     void vote(const consensus::grandpa::VoteMessage &msg) override;
 
     void finalize(const consensus::grandpa::Fin &fin) override;
+
+    void addStream(std::shared_ptr<libp2p::connection::Stream> stream) override;
 
    private:
     void broadcast(GossipMessage &&msg);
@@ -46,6 +50,7 @@ namespace kagome::network {
     std::unordered_map<libp2p::peer::PeerInfo,
                        std::shared_ptr<libp2p::connection::Stream>>
         streams_;
+    std::vector<std::shared_ptr<libp2p::connection::Stream>> syncing_streams_{};
     common::Logger logger_;
   };
 }  // namespace kagome::network

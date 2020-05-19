@@ -81,6 +81,8 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::onFinalize(const Fin &f) {
+    logger_->debug("Received fin message for vote: {}",
+                   f.vote.block_hash.toHex());
     // validate message
     if (validate(f.vote, f.justification)) {
       // finalize to state
@@ -96,6 +98,7 @@ namespace kagome::consensus::grandpa {
       env_->onCompleted(CompletedRound{.round_number = round_number_,
                                        .state = cur_round_state_});
     } else {
+      logger_->error("Validation of vote {} failed", f.vote.block_hash.toHex());
       env_->onCompleted(VotingRoundError::FIN_VALIDATION_FAILED);
     }
   }
@@ -138,7 +141,8 @@ namespace kagome::consensus::grandpa {
     }
     // check if new state differs with the old one and broadcast new state
     if (auto notify_res = notify(*last_round_state_); not notify_res) {
-      logger_->warn("Did not notify. Reason: {}", notify_res.error().message());
+      logger_->debug("Did not notify. Reason: {}",
+                     notify_res.error().message());
       // Round is completable but we cannot notify others. Finish the round
       env_->onCompleted(notify_res.error());
       return false;
@@ -190,10 +194,14 @@ namespace kagome::consensus::grandpa {
     if (completable() and clock_->now() < prevote_timer_.expires_at()) {
       prevote_timer_.cancel();
     }
+    tryFinalize();
   }
 
   void VotingRoundImpl::onPrecommit(const SignedPrecommit &precommit) {
-    onSignedPrecommit(precommit);
+    if (not onSignedPrecommit(precommit)) {
+      env_->onCompleted(VotingRoundError::LAST_ESTIMATE_BETTER_THAN_PREVOTE);
+      return;
+    }
     update();
 
     // stop precommit timer if round is completable
@@ -245,10 +253,10 @@ namespace kagome::consensus::grandpa {
     }
   }
 
-  void VotingRoundImpl::onSignedPrecommit(const SignedPrecommit &vote) {
+  bool VotingRoundImpl::onSignedPrecommit(const SignedPrecommit &vote) {
     auto weight = voter_set_->voterWeight(vote.id);
     if (not weight) {
-      return;
+      return false;
     }
     switch (precommits_->push(vote, weight.value())) {
       case VoteTracker<Precommit>::PushResult::SUCCESS: {
@@ -260,7 +268,7 @@ namespace kagome::consensus::grandpa {
         auto index = voter_set_->voterIndex(vote.id);
         if (not index) {
           logger_->warn("Voter {} is not known: {}", vote.id.toHex());
-          return;
+          return false;
         }
 
         v.precommits[index.value()] = voter_set_->voterWeight(vote.id).value();
@@ -269,22 +277,24 @@ namespace kagome::consensus::grandpa {
           logger_->warn("Vote {} was not inserted with error: {}",
                         vote.message.block_hash.toHex(),
                         inserted.error().message());
+          return false;
         }
         break;
       }
       case VoteTracker<Precommit>::PushResult::DUPLICATED: {
-        break;
+        return false;
       }
       case VoteTracker<Precommit>::PushResult::EQUIVOCATED: {
         auto index = voter_set_->voterIndex(vote.id);
         if (not index) {
           logger_->warn("Voter {} is not known: {}", vote.id.toHex());
-          return;
+          return false;
         }
         precommit_equivocators_[index.value()] = true;
         break;
       }
     }
+    return true;
   }
 
   void VotingRoundImpl::updatePrevoteGhost() {
@@ -414,6 +424,7 @@ namespace kagome::consensus::grandpa {
 
       switch (state_) {
         case State::PREVOTED: {
+          state_ = State::PRECOMMITTED;
           if (not last_round_state.estimate) {
             logger_->warn("Rounds only started when prior round completable");
             return;
@@ -502,7 +513,7 @@ namespace kagome::consensus::grandpa {
                   ancestry) {
                 auto to_sub = primary.block_number + 1;
 
-                size_t offset = 0;
+                primitives::BlockNumber offset = 0;
                 if (last_prevote_g.block_number >= to_sub) {
                   offset = last_prevote_g.block_number - to_sub;
                 }

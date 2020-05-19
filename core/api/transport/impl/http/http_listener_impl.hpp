@@ -20,7 +20,6 @@ namespace kagome::api {
       : public Listener,
         public std::enable_shared_from_this<HttpListenerImpl> {
     enum class State { READY, WORKING, STOPPED = READY };
-    using Context = boost::asio::io_context;
     using Acceptor = boost::asio::ip::tcp::acceptor;
     using Endpoint = boost::asio::ip::tcp::endpoint;
     using Duration = boost::asio::steady_timer::duration;
@@ -41,9 +40,9 @@ namespace kagome::api {
      * @param endpoint loopback ip address to listen
      * @param http_config http session configuration
      */
-    HttpListenerImpl(Context &context,
-					 const Configuration &configuration,
-					 SessionImpl::Configuration session_config);
+    HttpListenerImpl(std::shared_ptr<Context> context,
+                     const Configuration &configuration,
+                     SessionImpl::Configuration session_config);
 
     ~HttpListenerImpl() override = default;
 
@@ -64,11 +63,15 @@ namespace kagome::api {
      */
     void acceptOnce(NewSessionHandler on_new_session) override;
 
-    Context &context_;                        ///< io context
-    Acceptor acceptor_;                       ///< connections acceptor
-    State state_{State::READY};               ///< working state
-	SessionImpl::Configuration session_config_;  /// http session configuration
-    Logger logger_ = common::createLogger("api listener");  ///< logger instance
+    std::shared_ptr<Context> context_;           ///< io context
+    Acceptor acceptor_;                          ///< connections acceptor
+    State state_{State::READY};                  ///< working state
+    SessionImpl::Configuration session_config_;  /// http session configuration
+
+    std::shared_ptr<SessionImpl> new_session_;
+
+    Logger logger_ =
+        common::createLogger("http api listener");  ///< logger instance
   };
 }  // namespace kagome::api
 

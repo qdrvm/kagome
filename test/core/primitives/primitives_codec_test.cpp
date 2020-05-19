@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 
 #include <boost/variant.hpp>
-#include <outcome/outcome.hpp>
+#include "outcome/outcome.hpp"
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "common/visitor.hpp"

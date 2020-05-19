@@ -10,15 +10,17 @@ target_link_libraries(application_injector
     p2p::p2p
     tsl::tsl_hat_trie
     Boost::Boost.DI
+    rpc_thread_pool
     api_transport
     api_jrpc_server
     state_api_service
     readonly_trie_builder
     babe
     babe_lottery
-    babe_observer
     block_header_repository
+    block_executor
     block_storage
+    babe_synchronizer
     block_tree
     block_validator
     buffer
@@ -26,9 +28,13 @@ target_link_libraries(application_injector
     sr25519_provider
     configuration_storage
     binaryen_core_api
+    binaryen_babe_api
     binaryen_grandpa_api
     binaryen_block_builder_api
-    extrinsic_api_service
+    author_api_service
+    extrinsic_observer
+    api_author_requests
+    transaction_pool
     extension_factory
     epoch_storage
     gossiper_broadcast
@@ -45,4 +51,20 @@ target_link_libraries(application_injector
     vrf_provider
     waitable_timer
     binaryen_wasm_executor
+    )
+
+add_library(syncing_node_injector
+    syncing_node_injector.cpp
+    )
+target_link_libraries(syncing_node_injector
+    application_injector
+    syncing_round_observer
+    syncing_babe_observer
+    )
+
+add_library(full_node_injector
+    full_node_injector.cpp
+    )
+target_link_libraries(full_node_injector
+    application_injector
     )

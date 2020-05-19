@@ -23,7 +23,7 @@ TEST(ThresholdTest, OutputAsInGossamer) {
   std::pair<uint64_t, uint64_t> c;
   c.first = 5;
   c.second = 17;
-  primitives::AuthorityIndex authority_index{.index = 3};
+  primitives::AuthorityIndex authority_index{3};
   std::vector<primitives::Authority> authorities;
   authorities.push_back(primitives::Authority{.babe_weight = 3});
   authorities.push_back(primitives::Authority{.babe_weight = 1});

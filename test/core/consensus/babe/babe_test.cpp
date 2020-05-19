@@ -18,9 +18,15 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/clock/clock_mock.hpp"
 #include "mock/core/clock/timer_mock.hpp"
+#include "mock/core/consensus/babe/babe_gossiper_mock.hpp"
+#include "mock/core/consensus/babe/babe_synchronizer_mock.hpp"
+#include "mock/core/consensus/babe/epoch_storage_mock.hpp"
 #include "mock/core/consensus/babe_lottery_mock.hpp"
+#include "mock/core/consensus/validation/block_validator_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
-#include "mock/core/network/babe_gossiper_mock.hpp"
+#include "mock/core/runtime/babe_api_mock.hpp"
+#include "mock/core/runtime/core_mock.hpp"
+#include "mock/core/storage/trie/trie_db_mock.hpp"
 #include "primitives/block.hpp"
 #include "testutil/sr25519_utils.hpp"
 
@@ -35,6 +41,7 @@ using namespace common;
 using namespace network;
 
 using testing::_;
+using testing::A;
 using testing::Ref;
 using testing::Return;
 using testing::ReturnRef;
@@ -56,35 +63,90 @@ namespace kagome::primitives {
 
 class BabeTest : public testing::Test {
  public:
-  std::shared_ptr<BabeLotteryMock> lottery_ =
-      std::make_shared<BabeLotteryMock>();
-  std::shared_ptr<ProposerMock> proposer_ = std::make_shared<ProposerMock>();
-  std::shared_ptr<BlockTreeMock> block_tree_ =
-      std::make_shared<BlockTreeMock>();
-  std::shared_ptr<BabeGossiperMock> gossiper_ =
-      std::make_shared<BabeGossiperMock>();
+  void SetUp() override {
+    lottery_ = std::make_shared<BabeLotteryMock>();
+    babe_synchronizer_ = std::make_shared<BabeSynchronizerMock>();
+    trie_db_ = std::make_shared<storage::trie::TrieDbMock>();
+    babe_block_validator_ = std::make_shared<BlockValidatorMock>();
+    epoch_storage_ = std::make_shared<EpochStorageMock>();
+    babe_api_ = std::make_shared<runtime::BabeApiMock>();
+    core_ = std::make_shared<runtime::CoreMock>();
+    proposer_ = std::make_shared<ProposerMock>();
+    block_tree_ = std::make_shared<BlockTreeMock>();
+    gossiper_ = std::make_shared<BabeGossiperMock>();
+    clock_ = std::make_shared<SystemClockMock>();
+    hasher_ = std::make_shared<HasherMock>();
+    timer_mock_ = std::make_unique<testutil::TimerMock>();
+    timer_ = timer_mock_.get();
+
+    // add initialization logic
+    auto expected_config = std::make_shared<primitives::BabeConfiguration>();
+    expected_config->slot_duration = slot_duration_;
+    expected_config->randomness.fill(0);
+    expected_config->genesis_authorities = {
+        primitives::Authority{{keypair_.public_key}, 1}};
+    expected_config->leadership_rate = {1, 4};
+    expected_config->epoch_length = epoch_length_;
+
+    consensus::NextEpochDescriptor expected_epoch_digest{
+        .authorities = expected_config->genesis_authorities,
+        .randomness = expected_config->randomness};
+    EXPECT_CALL(*epoch_storage_, addEpochDescriptor(0, expected_epoch_digest))
+        .WillOnce(Return(outcome::success()));
+    EXPECT_CALL(*epoch_storage_, addEpochDescriptor(1, expected_epoch_digest))
+        .WillOnce(Return(outcome::success()));
+    EXPECT_CALL(*epoch_storage_, getEpochDescriptor(1))
+        .WillOnce(Return(expected_epoch_digest));
+
+    auto block_executor = std::make_shared<BlockExecutor>(block_tree_,
+                                                          core_,
+                                                          expected_config,
+                                                          babe_synchronizer_,
+                                                          babe_block_validator_,
+                                                          epoch_storage_,
+                                                          hasher_);
+
+    babe_ = std::make_shared<BabeImpl>(lottery_,
+                                       block_executor,
+                                       trie_db_,
+                                       epoch_storage_,
+                                       expected_config,
+                                       proposer_,
+                                       block_tree_,
+                                       gossiper_,
+                                       keypair_,
+                                       clock_,
+                                       hasher_,
+                                       std::move(timer_mock_));
+
+    epoch_.randomness = expected_config->randomness;
+    epoch_.epoch_duration = expected_config->epoch_length;
+    epoch_.authorities = expected_config->genesis_authorities;
+    epoch_.start_slot = 0;
+    epoch_.epoch_index = 0;
+  }
+
+  std::shared_ptr<BabeLotteryMock> lottery_;
+  std::shared_ptr<BabeSynchronizer> babe_synchronizer_;
+  std::shared_ptr<storage::trie::TrieDbMock> trie_db_;
+  std::shared_ptr<BlockValidator> babe_block_validator_;
+  std::shared_ptr<EpochStorageMock> epoch_storage_;
+  std::shared_ptr<runtime::BabeApiMock> babe_api_;
+  std::shared_ptr<runtime::CoreMock> core_;
+  std::shared_ptr<ProposerMock> proposer_;
+  std::shared_ptr<BlockTreeMock> block_tree_;
+  std::shared_ptr<BabeGossiperMock> gossiper_;
   SR25519Keypair keypair_{generateSR25519Keypair()};
-  AuthorityIndex authority_id_ = {1};
-  std::shared_ptr<SystemClockMock> clock_ = std::make_shared<SystemClockMock>();
-  std::shared_ptr<HasherMock> hasher_ = std::make_shared<HasherMock>();
-  std::unique_ptr<testutil::TimerMock> timer_mock_ =
-      std::make_unique<testutil::TimerMock>();
-  testutil::TimerMock *timer_ = timer_mock_.get();
-  libp2p::event::Bus event_bus_;
+  std::shared_ptr<SystemClockMock> clock_;
+  std::shared_ptr<HasherMock> hasher_;
+  std::unique_ptr<testutil::TimerMock> timer_mock_;
+  testutil::TimerMock *timer_;
 
-  std::shared_ptr<BabeImpl> babe_ =
-      std::make_shared<BabeImpl>(lottery_,
-                                 proposer_,
-                                 block_tree_,
-                                 gossiper_,
-                                 keypair_,
-                                 authority_id_,
-                                 clock_,
-                                 hasher_,
-                                 std::move(timer_mock_),
-                                 event_bus_);
+  std::shared_ptr<BabeImpl> babe_;
 
-  Epoch epoch_{0, 0, 2, 60ms, {{}}, 100, {}};
+  Epoch epoch_;
+  BabeDuration slot_duration_{60ms};
+  EpochLength epoch_length_{2};
 
   VRFOutput leader_vrf_output_{
       uint256_t_to_bytes(50),
@@ -109,9 +171,6 @@ class BabeTest : public testing::Test {
   Hash256 created_block_hash_{createHash(3)};
 
   SystemClockImpl real_clock_{};
-
-  decltype(event_bus_.getChannel<event::BabeErrorChannel>()) &error_channel_{
-      event_bus_.getChannel<event::BabeErrorChannel>()};
 };
 
 ACTION_P(CheckBlockHeader, expected_block_header) {
@@ -133,19 +192,29 @@ TEST_F(BabeTest, Success) {
 
   // runEpoch
   epoch_.randomness.fill(0);
-  EXPECT_CALL(*lottery_, slotsLeadership(epoch_, keypair_))
+  EXPECT_CALL(*lottery_, slotsLeadership(epoch_, _, keypair_))
       .WillOnce(Return(leadership_));
+  Epoch next_epoch = epoch_;
+  next_epoch.epoch_index++;
+  next_epoch.start_slot += epoch_length_;
+
+  EXPECT_CALL(*lottery_, slotsLeadership(next_epoch, _, keypair_))
+      .WillOnce(Return(leadership_));
+
+  EXPECT_CALL(*trie_db_, getRootHash())
+      .WillRepeatedly(Return(common::Buffer{}));
 
   // runSlot (3 times)
   EXPECT_CALL(*clock_, now())
       .WillOnce(Return(test_begin))
-      .WillOnce(Return(test_begin + 60ms))
-      .WillOnce(Return(test_begin + 60ms))
-      .WillOnce(Return(test_begin + 120ms));
+      .WillOnce(Return(test_begin + slot_duration_))
+      .WillOnce(Return(test_begin + slot_duration_))
+      .WillOnce(Return(test_begin + slot_duration_ * 2))
+      .WillOnce(Return(test_begin + slot_duration_ * 2));
 
-  EXPECT_CALL(*timer_, expiresAt(test_begin + epoch_.slot_duration));
-  EXPECT_CALL(*timer_, expiresAt(test_begin + epoch_.slot_duration * 2));
-  EXPECT_CALL(*timer_, expiresAt(test_begin + epoch_.slot_duration * 3));
+  EXPECT_CALL(*timer_, expiresAt(test_begin + slot_duration_));
+  EXPECT_CALL(*timer_, expiresAt(test_begin + slot_duration_ * 2));
+  EXPECT_CALL(*timer_, expiresAt(test_begin + slot_duration_ * 3));
 
   EXPECT_CALL(*timer_, asyncWait(_))
       .WillOnce(testing::InvokeArgument<0>(boost::system::error_code{}))
@@ -159,101 +228,10 @@ TEST_F(BabeTest, Success) {
   EXPECT_CALL(*proposer_, propose(BlockId{best_block_hash_}, _, _))
       .WillOnce(Return(created_block_));
   EXPECT_CALL(*hasher_, blake2b_256(_)).WillOnce(Return(created_block_hash_));
+  EXPECT_CALL(*block_tree_, addBlock(_)).WillOnce(Return(outcome::success()));
 
   EXPECT_CALL(*gossiper_, blockAnnounce(_))
       .WillOnce(CheckBlockHeader(created_block_.header));
 
-  // finishEpoch
-  auto new_epoch = epoch_;
-  ++new_epoch.epoch_index;
-  new_epoch.randomness.fill(5);
-  EXPECT_CALL(*lottery_,
-              computeRandomness(epoch_.randomness, new_epoch.epoch_index))
-      .WillOnce(Return(new_epoch.randomness));
-
-  // runEpoch
-  EXPECT_CALL(*lottery_, slotsLeadership(new_epoch, keypair_))
-      .WillOnce(Return(leadership_));
-
-  babe_->runEpoch(epoch_, test_begin + epoch_.slot_duration);
-}
-
-/**
- * @given BABE production, which is configured to the already finished slot in
- * the current epoch
- * @when launching it
- * @then it synchronizes successfully
- */
-TEST_F(BabeTest, SyncSuccess) {
-  epoch_.epoch_duration = 10;
-  epoch_.slot_duration = 5000ms;
-
-  auto test_begin = real_clock_.now();
-  auto delay = 9000ms;
-  auto slot_start_time = test_begin - delay;
-
-  // runEpoch
-  epoch_.randomness.fill(0);
-  EXPECT_CALL(*lottery_, slotsLeadership(epoch_, keypair_))
-      .WillOnce(Return(leadership_));
-
-  // runSlot
-  // emulate relatively big delay
-  EXPECT_CALL(*clock_, now())
-      .WillOnce(Return(test_begin))
-      .WillOnce(Return(test_begin + 50ms))
-      .WillOnce(Return(test_begin + 100ms));
-
-  // synchronizeSlots
-  auto delay_in_slots =
-      static_cast<uint64_t>(std::floor(delay / epoch_.slot_duration)) + 1;
-  auto expected_current_slot = delay_in_slots + epoch_.start_slot - 1;
-  auto expected_finish_slot_time =
-      (delay_in_slots * epoch_.slot_duration) + slot_start_time;
-
-  EXPECT_CALL(*timer_, expiresAt(slot_start_time + epoch_.slot_duration * 2));
-  EXPECT_CALL(*timer_, asyncWait(_)).WillOnce({});
-
-  babe_->runEpoch(epoch_, slot_start_time);
-
-  auto meta = babe_->getBabeMeta();
-  ASSERT_EQ(meta.current_slot_, expected_current_slot);
-  ASSERT_EQ(meta.last_slot_finish_time_, expected_finish_slot_time);
-}
-
-/**
- * @given BABE production, which is configured to the already finished slot in
- * the previous epoch
- * @when launching it
- * @then it fails to synchronize
- */
-TEST_F(BabeTest, BigDelay) {
-  epoch_.epoch_duration = 1;
-
-  auto test_begin = real_clock_.now();
-  auto delay = 9000ms;
-  auto slot_start_time = test_begin - delay;
-
-  // runEpoch
-  epoch_.randomness.fill(0);
-  EXPECT_CALL(*lottery_, slotsLeadership(epoch_, keypair_))
-      .WillOnce(Return(leadership_));
-
-  // runSlot
-  // emulate a very big delay (so that the system understands other nodes moved
-  // to the next epoch already)
-  EXPECT_CALL(*clock_, now())
-      .Times(2)
-      .WillRepeatedly(Return(
-          test_begin + epoch_.slot_duration * epoch_.epoch_duration * 2));
-
-  auto error_emitted = false;
-  auto h = error_channel_.subscribe([&error_emitted](auto &&err) mutable {
-    ASSERT_EQ(err, BabeError::NODE_FALL_BEHIND);
-    error_emitted = true;
-  });
-
-  babe_->runEpoch(epoch_, slot_start_time);
-
-  ASSERT_TRUE(error_emitted);
+  babe_->runEpoch(epoch_, test_begin + slot_duration_);
 }

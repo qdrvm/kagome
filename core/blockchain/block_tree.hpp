@@ -31,6 +31,14 @@ namespace kagome::blockchain {
     virtual ~BlockTree() = default;
 
     /**
+     * Get block header by provided block id
+     * @param block id of the block header we are looking for
+     * @return result containing block header if it exists, error otherwise
+     */
+    virtual outcome::result<primitives::BlockHeader> getBlockHeader(
+        const primitives::BlockId &block) const = 0;
+
+    /**
      * Get a body (extrinsics) of the block (if present)
      * @param block - id of the block to get body for
      * @return body, if the block exists in our storage, error in case it does
@@ -49,6 +57,28 @@ namespace kagome::blockchain {
         const primitives::BlockId &block) const = 0;
 
     /**
+     * Adds header to the storage
+     * @param header that we are adding
+     * @return result with success if header's parent exists on storage and new
+     * header was added. Error otherwise
+     */
+    virtual outcome::result<void> addBlockHeader(
+        const primitives::BlockHeader &header) = 0;
+
+    /**
+     * Adds block body to the storage
+     * @param block_number that corresponds to the block which body we are
+     * adding
+     * @param block_hash that corresponds to the block which body we are adding
+     * @param block_body that we are adding
+     * @return result with success if block body was inserted. Error otherwise
+     */
+    virtual outcome::result<void> addBlockBody(
+        primitives::BlockNumber block_number,
+        const primitives::BlockHash &block_hash,
+        const primitives::BlockBody &block_body) = 0;
+
+    /**
      * Add a new block to the tree
      * @param block to be added
      * @return nothing or error; if error happens, no changes in the tree are
@@ -60,7 +90,7 @@ namespace kagome::blockchain {
      * peer for the parent block and try to insert it; this operation is to be
      * repeated until a successful insertion happens
      */
-    virtual outcome::result<void> addBlock(primitives::Block block) = 0;
+    virtual outcome::result<void> addBlock(const primitives::Block &block) = 0;
 
     /**
      * Mark the block as finalized and store a finalization justification

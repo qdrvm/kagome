@@ -6,48 +6,52 @@
 #include "api/transport/impl/http/http_listener_impl.hpp"
 
 #include <boost/asio.hpp>
+
 #include "api/transport/error.hpp"
 #include "api/transport/impl/http/http_session.hpp"
 
 namespace kagome::api {
-  HttpListenerImpl::HttpListenerImpl(HttpListenerImpl::Context &context,
-									 const Configuration &configuration,
-									 SessionImpl::Configuration session_config)
-      : context_(context),
-        acceptor_(context_, configuration.endpoint),
-	    session_config_{session_config} {}
+  HttpListenerImpl::HttpListenerImpl(std::shared_ptr<Context> context,
+                                     const Configuration &configuration,
+                                     SessionImpl::Configuration session_config)
+      : context_(std::move(context)),
+        acceptor_(*context_, configuration.endpoint),
+        session_config_{session_config} {}
 
   void HttpListenerImpl::acceptOnce(
       Listener::NewSessionHandler on_new_session) {
-    acceptor_.async_accept([self = shared_from_this(), on_new_session](
-		boost::system::error_code ec,
-		SessionImpl::Socket socket) mutable {
-      if (ec) {
-        self->logger_->error("error: failed to start listening, code: {}",
-                             ApiTransportError::FAILED_START_LISTENING);
-        self->stop();
-        return;
-      }
+    new_session_ = std::make_shared<SessionImpl>(*context_, session_config_);
 
-      if (self->state_ != State::WORKING) {
-        self->logger_->error(
-            "error: cannot accept session, listener is in wrong state, code: "
-            "{}",
-            ApiTransportError::CANNOT_ACCEPT_LISTENER_NOT_WORKING);
+    acceptor_.async_accept(
+        new_session_->socket(),
+        [wp = weak_from_this(), on_new_session = std::move(on_new_session)](
+            boost::system::error_code ec) mutable {
+          if (auto self = wp.lock()) {
+            if (ec) {
+              self->logger_->error("error: failed to start listening, code: {}",
+                                   ApiTransportError::FAILED_START_LISTENING);
+              self->stop();
+              return;
+            }
 
-        self->stop();
-        return;
-      }
+            if (self->state_ != State::WORKING) {
+              self->logger_->error(
+                  "error: cannot accept session, listener is in wrong state, "
+                  "code: "
+                  "{}",
+                  ApiTransportError::CANNOT_ACCEPT_LISTENER_NOT_WORKING);
 
-      auto session =
-          std::make_shared<SessionImpl>(std::move(socket), self->session_config_);
+              self->stop();
+              return;
+            }
 
-      on_new_session(session);
-      session->start();
+            on_new_session(self->new_session_);
+            self->new_session_->start();
 
-      // stay ready for new connection
-      self->acceptOnce(std::move(on_new_session));
-    });
+            // stay ready for new connection
+            self->acceptOnce(std::move(on_new_session));
+          }
+        });
   }
 
   void HttpListenerImpl::start(Listener::NewSessionHandler on_new_session) {
@@ -69,7 +73,10 @@ namespace kagome::api {
     }
 
     state_ = State::WORKING;
-    acceptOnce(on_new_session);
+    logger_->info("Started listening http session on port {}",
+                  acceptor_.local_endpoint().port());
+
+    acceptOnce(std::move(on_new_session));
   }
 
   void HttpListenerImpl::stop() {

@@ -7,8 +7,8 @@
 #define KAGOME_MEMORY_HPP
 
 #include <array>
-
 #include <boost/optional.hpp>
+
 #include "common/buffer.hpp"
 #include "runtime/types.hpp"
 
@@ -27,6 +27,11 @@ namespace kagome::runtime {
 
     constexpr static uint32_t kMaxMemorySize =
         std::numeric_limits<uint32_t>::max();
+
+    /**
+     * Resets allocated and deallocated memory information
+     */
+    virtual void reset() = 0;
 
     /**
      * @brief Return the size of the memory

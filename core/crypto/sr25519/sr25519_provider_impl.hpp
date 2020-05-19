@@ -25,6 +25,8 @@ namespace kagome::crypto {
 
     SR25519Keypair generateKeypair() const override;
 
+    SR25519Keypair generateKeypair(common::Blob<32> seed) const override;
+
     outcome::result<SR25519Signature> sign(
         const SR25519Keypair &keypair,
         gsl::span<uint8_t> message) const override;

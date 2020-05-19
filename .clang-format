@@ -7,3 +7,4 @@ PointerAlignment: Right
 BinPackArguments: false
 BinPackParameters: false
 AllowShortFunctionsOnASingleLine: Empty
+IncludeBlocks: Preserve

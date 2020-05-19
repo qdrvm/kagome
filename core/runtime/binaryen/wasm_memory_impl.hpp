@@ -37,6 +37,8 @@ namespace kagome::runtime::binaryen {
     WasmMemoryImpl &operator=(WasmMemoryImpl &&move) = delete;
     ~WasmMemoryImpl() override = default;
 
+    void reset() override;
+
     SizeType size() const override;
     void resize(SizeType newSize) override;
 

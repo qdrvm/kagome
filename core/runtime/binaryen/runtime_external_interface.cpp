@@ -39,6 +39,7 @@ namespace kagome::runtime::binaryen {
   const static wasm::Name ext_print_num = "ext_print_num";
   const static wasm::Name ext_print_utf8 = "ext_print_utf8";
 
+  const static wasm::Name ext_blake2_128 = "ext_blake2_128";
   const static wasm::Name ext_blake2_256 = "ext_blake2_256";
   const static wasm::Name ext_keccak_256 = "ext_keccak_256";
   const static wasm::Name ext_ed25519_verify = "ext_ed25519_verify";
@@ -66,9 +67,8 @@ namespace kagome::runtime::binaryen {
 
   wasm::Literal RuntimeExternalInterface::callImport(
       wasm::Function *import, wasm::LiteralList &arguments) {
+    // TODO(kamilsa): PRE-359 Replace ifs with switch case
     if (import->module == env) {
-      logger_->debug("call import: {}", import->base);
-
       /// memory externals
       /// ext_malloc
       if (import->base == ext_malloc) {
@@ -80,7 +80,6 @@ namespace kagome::runtime::binaryen {
       if (import->base == ext_free) {
         checkArguments(import->base.c_str(), 1, arguments.size());
         extension_->ext_free(arguments.at(0).geti32());
-        logger_->debug("ext_free finished");
         return wasm::Literal();
       }
       /// storage externals
@@ -184,6 +183,14 @@ namespace kagome::runtime::binaryen {
       }
 
       /// Cryptographuc extensions
+      /// ext_blake2_128
+      if (import->base == ext_blake2_128) {
+        checkArguments(import->base.c_str(), 3, arguments.size());
+        extension_->ext_blake2_128(arguments.at(0).geti32(),
+                                   arguments.at(1).geti32(),
+                                   arguments.at(2).geti32());
+        return wasm::Literal();
+      }
 
       /// ext_blake2_256
       if (import->base == ext_blake2_256) {

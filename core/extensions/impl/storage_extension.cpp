@@ -176,7 +176,7 @@ namespace kagome::extensions {
     result_hash[primitives::BlockHash::size() - 1] = 1;
     common::Buffer result_buf(result_hash);
     memory_->storeBuffer(result, result_buf);
-    logger_->error("ext_storage_changes_root unimplemented, assume no changes");
+    logger_->debug("ext_storage_changes_root unimplemented, assume no changes");
     return 1;
   }
 

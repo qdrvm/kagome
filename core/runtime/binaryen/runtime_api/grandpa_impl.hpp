@@ -6,18 +6,15 @@
 #ifndef KAGOME_CORE_RUNTIME_BINARYEN_GRANDPA_IMPL_HPP
 #define KAGOME_CORE_RUNTIME_BINARYEN_GRANDPA_IMPL_HPP
 
-#include "extensions/extension.hpp"
 #include "runtime/binaryen/runtime_api/runtime_api.hpp"
 #include "runtime/grandpa.hpp"
-#include "runtime/wasm_provider.hpp"
 
 namespace kagome::runtime::binaryen {
 
   class GrandpaImpl : public RuntimeApi, public Grandpa {
    public:
-    GrandpaImpl(
-        const std::shared_ptr<runtime::WasmProvider> &wasm_provider,
-        const std::shared_ptr<extensions::ExtensionFactory> &extension_factory);
+    explicit GrandpaImpl(
+        const std::shared_ptr<RuntimeManager> &runtime_manager);
 
     ~GrandpaImpl() override = default;
 

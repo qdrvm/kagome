@@ -4,10 +4,6 @@
   "bootNodes": [
     "/ip4/127.0.0.1/tcp/30363/ipfs/QmWfTgC2DEt9FhPoccnh5vT5xM5wqWy37EnAPZFQgqheZ6"
   ],
-  "sessionKeys": [
-    "0x7ad7336e38e0ddd6635fb4cc88e65ddc0c9fdaa65ecf3d131c9db9c391834450",
-    "0x0c9fdaa65ecf3d131c9db9c3918344507ad7336e38e0ddd6635fb4cc88e65ddc"
-  ],
   "telemetryEndpoints": [
     [
       "wss://telemetry.polkadot.io/submit/",

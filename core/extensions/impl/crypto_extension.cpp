@@ -7,8 +7,8 @@
 
 #include <algorithm>
 #include <exception>
-
 #include <gsl/span>
+
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/sr25519_provider.hpp"
@@ -32,6 +32,16 @@ namespace kagome::extensions {
     BOOST_ASSERT(ed25519_provider_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
+  }
+
+  void CryptoExtension::ext_blake2_128(runtime::WasmPointer data,
+                                       runtime::SizeType len,
+                                       runtime::WasmPointer out_ptr) {
+    const auto &buf = memory_->loadN(data, len);
+
+    auto hash = hasher_->blake2b_128(buf);
+
+    memory_->storeBuffer(out_ptr, common::Buffer(hash));
   }
 
   void CryptoExtension::ext_blake2_256(runtime::WasmPointer data,

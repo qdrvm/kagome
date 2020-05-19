@@ -11,3 +11,6 @@ target_link_libraries(api_service
     Boost::boost
     logger
     )
+
+add_subdirectory(author)
+add_subdirectory(state)

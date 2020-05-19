@@ -19,7 +19,7 @@ namespace kagome::network {
      * Triggered when a BlockAnnounce message arrives
      * @param announce - arrived message
      */
-    virtual void onBlockAnnounce(const BlockAnnounce &announce) const = 0;
+    virtual void onBlockAnnounce(const BlockAnnounce &announce) = 0;
   };
 }  // namespace kagome::network
 

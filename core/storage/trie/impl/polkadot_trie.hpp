@@ -49,7 +49,7 @@ namespace kagome::storage::trie {
     /**
      * @return the root node of the trie
      */
-    NodePtr getRoot();
+    NodePtr getRoot() const;
 
     /**
      * Remove all entries, which key starts with the prefix

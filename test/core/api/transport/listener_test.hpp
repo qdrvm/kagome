@@ -17,13 +17,7 @@
 #include "mock/core/api/transport/jrpc_processor_stub.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
-using kagome::api::ApiService;
-using kagome::api::ApiStub;
-using kagome::api::JRpcProcessor;
-using kagome::api::JrpcProcessorStub;
-using kagome::api::JRpcServer;
-using kagome::api::JRpcServerImpl;
-using kagome::api::Listener;
+using namespace kagome::api;
 
 template <typename ListenerImpl,
           typename =
@@ -34,7 +28,7 @@ struct ListenerTest : public ::testing::Test {
 
  protected:
   using Endpoint = boost::asio::ip::tcp::endpoint;
-  using Context = boost::asio::io_context;
+  using Context = RpcContext;
   using Socket = boost::asio::ip::tcp::socket;
   using Timer = boost::asio::steady_timer;
   using Streambuf = boost::asio::streambuf;
@@ -76,7 +70,7 @@ struct ListenerTest : public ::testing::Test {
 
   std::vector<std::shared_ptr<Listener>> listeners{
       std::make_shared<ListenerImpl>(
-          *main_context,
+          main_context,
           typename ListenerImpl::Configuration{endpoint},
           config)};
 

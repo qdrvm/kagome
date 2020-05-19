@@ -16,6 +16,7 @@
 #include "extensions/extension_factory.hpp"
 #include "runtime/binaryen/runtime_external_interface.hpp"
 #include "runtime/binaryen/wasm_executor.hpp"
+#include "runtime/binaryen/runtime_manager.hpp"
 #include "runtime/wasm_memory.hpp"
 #include "runtime/wasm_provider.hpp"
 #include "runtime/wasm_result.hpp"
@@ -28,10 +29,10 @@ namespace kagome::runtime::binaryen {
    */
   class RuntimeApi {
    public:
-    RuntimeApi(std::shared_ptr<runtime::WasmProvider> wasm_provider,
-               std::shared_ptr<extensions::ExtensionFactory> extension_factory)
-        : wasm_provider_(std::move(wasm_provider)),
-          extension_factory_(std::move(extension_factory)) {}
+    RuntimeApi(std::shared_ptr<RuntimeManager> runtime_manager)
+        : runtime_manager_(std::move(runtime_manager)) {
+      BOOST_ASSERT(runtime_manager_);
+    }
 
    protected:
     /**
@@ -45,16 +46,12 @@ namespace kagome::runtime::binaryen {
     template <typename R, typename... Args>
     outcome::result<R> execute(std::string_view name, Args &&... args) {
       logger_->debug("Executing export function: {}", name);
+
+      OUTCOME_TRY(environment, runtime_manager_->getRuntimeEnvironment());
+      auto &&[module, memory] = std::move(environment);
+
       runtime::WasmPointer ptr = 0u;
       runtime::SizeType len = 0u;
-
-      RuntimeExternalInterface rei{extension_factory_};
-
-      wasm::Name wasm_name = std::string(name);
-      const auto &state_code = wasm_provider_->getStateCode();
-      OUTCOME_TRY(module, executor_.prepareModule(state_code));
-      auto module_instance = executor_.prepareModuleInstance(module, rei);
-      auto memory = rei.memory();
 
       if constexpr (sizeof...(args) > 0) {
         OUTCOME_TRY(buffer, scale::encode(std::forward<Args>(args)...));
@@ -65,22 +62,23 @@ namespace kagome::runtime::binaryen {
 
       wasm::LiteralList ll{wasm::Literal(ptr), wasm::Literal(len)};
 
-      OUTCOME_TRY(res, executor_.call(module_instance, wasm_name, ll));
+      wasm::Name wasm_name = std::string(name);
 
+      OUTCOME_TRY(res, executor_.call(*module, wasm_name, ll));
+      memory->reset();
       if constexpr (!std::is_same_v<void, R>) {
         WasmResult r{res.geti64()};
         auto buffer = memory->loadN(r.address, r.length);
         // TODO (yuraz) PRE-98: after check for memory overflow is done,
         //  refactor it
-        return scale::decode<R>(buffer);
+        return scale::decode<R>(std::move(buffer));
       }
 
       return outcome::success();
     }
 
    private:
-    std::shared_ptr<runtime::WasmProvider> wasm_provider_;
-    std::shared_ptr<extensions::ExtensionFactory> extension_factory_;
+    std::shared_ptr<RuntimeManager> runtime_manager_;
     WasmExecutor executor_;
     common::Logger logger_ = common::createLogger("Runtime api");
   };

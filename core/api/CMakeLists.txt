@@ -5,6 +5,4 @@
 
 add_subdirectory(jrpc)
 add_subdirectory(service)
-add_subdirectory(extrinsic)
-add_subdirectory(state)
 add_subdirectory(transport)

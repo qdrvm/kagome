@@ -37,16 +37,7 @@ namespace kagome::primitives {
   /**
    * Authority index
    */
-  struct AuthorityIndex {
-    uint64_t index;
-
-    bool operator==(const AuthorityIndex &other) const {
-      return index == other.index;
-    }
-    bool operator!=(const AuthorityIndex &other) const {
-      return !(*this == other);
-    };
-  };
+  using AuthorityIndex = uint64_t;
 
   /**
    * Authority, which participate in block production and finalization
@@ -90,32 +81,6 @@ namespace kagome::primitives {
   }
 
   /**
-   * @brief outputs object of type AuthorityIndex to stream
-   * @tparam Stream output stream type
-   * @param s stream reference
-   * @param v value to output
-   * @return reference to stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
-  Stream &operator<<(Stream &s, const AuthorityIndex &a) {
-    return s << a.index;
-  }
-
-  /**
-   * @brief decodes object of type AuthorityIndex from stream
-   * @tparam Stream input stream type
-   * @param s stream reference
-   * @param v value to decode
-   * @return reference to stream
-   */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
-  Stream &operator>>(Stream &s, AuthorityIndex &a) {
-    return s >> a.index;
-  }
-
-  /**
    * @brief outputs object of type Authority to stream
    * @tparam Stream output stream type
    * @param s stream reference
@@ -141,14 +106,5 @@ namespace kagome::primitives {
     return s >> a.id >> a.babe_weight;
   }
 }  // namespace kagome::primitives
-
-namespace std {
-  template <>
-  struct hash<kagome::primitives::AuthorityIndex> {
-    size_t operator()(const kagome::primitives::AuthorityIndex &x) const {
-      return boost::hash_value(x.index);
-    }
-  };
-}  // namespace std
 
 #endif  // KAGOME_AUTHORITY_HPP

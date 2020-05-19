@@ -7,7 +7,7 @@
 #define KAGOME_GTEST_OUTCOME_UTIL_HPP
 
 #include <gtest/gtest.h>
-#include <outcome/outcome.hpp>
+#include "outcome/outcome.hpp"
 #include "common/visitor.hpp"
 
 #define PP_CAT(a, b) PP_CAT_I(a, b)
@@ -93,5 +93,24 @@
  */
 #define EXPECT_OUTCOME_TRUE_MSG(val, expr, msg) \
   EXPECT_OUTCOME_TRUE_MSG_name(UNIQUE_NAME(_r), val, expr, msg)
+
+#define EXPECT_OUTCOME_RAISE_3(var, ecode, statement) \
+  try { statement; FAIL() << "Line " << __LINE__ << ": " << #ecode << " not raised"; } \
+  catch (std::system_error &var) { EXPECT_EQ(var.code(), ecode); }
+
+#define EXPECT_OUTCOME_RAISE(ecode, statement) \
+  EXPECT_OUTCOME_RAISE_3(UNIQUE_NAME(_e), ecode, statement)
+
+#define EXPECT_OUTCOME_ERROR_3(var, ecode, expr) \
+  { EXPECT_OUTCOME_FALSE_2(var, expr); EXPECT_EQ(var, ecode); }
+
+#define EXPECT_OUTCOME_ERROR(ecode, expr) \
+  EXPECT_OUTCOME_ERROR_3(UNIQUE_NAME(_e), ecode, expr)
+
+#define EXPECT_OUTCOME_EQ_3(var, expr, value) \
+  { EXPECT_OUTCOME_TRUE_2(var, expr); EXPECT_EQ(var, value); }
+
+#define EXPECT_OUTCOME_EQ(expr, value) \
+  EXPECT_OUTCOME_EQ_3(UNIQUE_NAME(_v), expr, value)
 
 #endif  // KAGOME_GTEST_OUTCOME_UTIL_HPP

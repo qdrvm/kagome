@@ -4,6 +4,6 @@
 #
 
 add_subdirectory(client)
-add_subdirectory(extrinsic)
-add_subdirectory(state)
+add_subdirectory(service/author)
+add_subdirectory(service/state)
 add_subdirectory(transport)

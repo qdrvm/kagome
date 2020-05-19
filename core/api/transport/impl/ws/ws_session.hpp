@@ -6,12 +6,12 @@
 #ifndef KAGOME_CORE_API_TRANSPORT_IMPL_WS_SESSION_HPP
 #define KAGOME_CORE_API_TRANSPORT_IMPL_WS_SESSION_HPP
 
+#include <boost/asio/strand.hpp>
+#include <boost/beast/core/tcp_stream.hpp>
+#include <boost/beast/websocket.hpp>
 #include <chrono>
 #include <cstdlib>
 #include <memory>
-
-#include <boost/beast/core/tcp_stream.hpp>
-#include <boost/beast/websocket.hpp>
 
 #include "api/transport/session.hpp"
 #include "common/logger.hpp"
@@ -24,8 +24,6 @@ namespace kagome::api {
     using Logger = common::Logger;
 
    public:
-    using Socket = boost::asio::ip::tcp::socket;
-
     struct Configuration {
       static constexpr size_t kDefaultRequestSize = 10000u;
       static constexpr Duration kDefaultTimeout = std::chrono::seconds(30);
@@ -41,7 +39,11 @@ namespace kagome::api {
      * @param socket socket instance
      * @param config session configuration
      */
-    WsSession(Socket socket, Configuration config);
+    WsSession(Context &context, Configuration config);
+
+    Socket &socket() override {
+      return socket_;
+    }
 
     /**
      * @brief starts session
@@ -104,10 +106,15 @@ namespace kagome::api {
      */
     void reportError(boost::system::error_code ec, std::string_view message);
 
-    static constexpr std::string_view kServerName = "Kagome extrinsic api";
+    /// Strand to ensure the connection's handlers are not called concurrently.
+    boost::asio::strand<boost::asio::io_context::executor_type> strand_;
+
+    /// Socket for the connection.
+    boost::asio::ip::tcp::socket socket_;
 
     Configuration config_;  ///< session configuration
-    boost::beast::websocket::stream<boost::beast::tcp_stream> ws_;  ///< stream
+    boost::beast::websocket::stream<boost::asio::ip::tcp::socket &>
+        ws_;                             ///< stream
     boost::beast::flat_buffer rbuffer_;  ///< read buffer
     boost::beast::flat_buffer wbuffer_;  ///< write buffer
 

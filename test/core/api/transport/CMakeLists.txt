@@ -22,4 +22,3 @@ target_link_libraries(ws_listener_test
     api_transport
     api_service
     )
-

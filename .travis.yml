@@ -99,7 +99,6 @@ before_script:
   - cmake --version
   - python -V
   - python3 -V
-  - pip -V
   - pip3 -V
   - gcovr --version || true
   - echo $PATH

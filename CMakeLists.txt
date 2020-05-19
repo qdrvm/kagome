@@ -16,11 +16,6 @@ set(
 )
 
 include("cmake/Hunter/init.cmake")
-HunterGate(
-    URL "https://github.com/cpp-pm/hunter/archive/v0.23.216.tar.gz"
-    SHA1 "a492a1879bee60c29f7af17ef56b45f0d7766241"
-    LOCAL
-)
 
 PROJECT(kagome C CXX)
 
@@ -100,8 +95,6 @@ endif()
 include(GNUInstallDirs)
 include(cmake/install.cmake)
 
-add_subdirectory(deps)
-
 include_directories(
   # project includes
   ${PROJECT_SOURCE_DIR}/core
@@ -111,8 +104,6 @@ include_directories(
   SYSTEM
   # system includes
   deps/GSL/include
-  deps/sml/include
-  deps/jsonrpc-lean/include
 )
 
 add_subdirectory(core)
@@ -121,6 +112,8 @@ install_deps_headers()
 kagome_install_setup(
     HEADER_DIRS
     core/common
+    core/blockchain
+    core/primitives
     core/macro
     core/scale
     core/storage
@@ -148,4 +141,4 @@ export(PACKAGE kagome)
 enable_testing()
 add_subdirectory(test)
 
-add_subdirectory(examples)
+add_subdirectory(node)

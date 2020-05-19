@@ -33,7 +33,7 @@ class ParachainHostTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    api_ = std::make_shared<ParachainHostImpl>(wasm_provider_, extension_factory_);
+    api_ = std::make_shared<ParachainHostImpl>(runtime_manager_);
   }
 
   ParaId createParachainId() const {

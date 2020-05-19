@@ -67,6 +67,9 @@ namespace kagome::storage::trie {
 
     outcome::result<void> clearPrefix(const common::Buffer &prefix) override;
 
+    outcome::result<void> resetState(
+        const common::Buffer &merkle_hash) override;
+
     std::unique_ptr<WriteBatch> batch() override;
 
     // value will be copied
@@ -109,9 +112,10 @@ namespace kagome::storage::trie {
      * descendants as well. Then replaces the node children to dummy nodes to
      * avoid memory waste
      */
-    outcome::result<common::Buffer> storeNode(PolkadotNode &node);
+    outcome::result<void> storeRootNode(PolkadotNode &node);
     outcome::result<common::Buffer> storeNode(PolkadotNode &node,
                                               WriteBatch &batch);
+    outcome::result<void> storeChildren(BranchNode &branch, WriteBatch &batch);
     /**
      * Fetches a node from the storage. A nullptr is returned in case that there
      * is no entry for provided key. Mind that a branch node will have dummy
@@ -127,7 +131,7 @@ namespace kagome::storage::trie {
 
     std::shared_ptr<TrieDbBackend> db_;
     PolkadotCodec codec_;
-    common::Buffer root_;
+    common::Buffer merkle_hash_;  // hash of the encoded root node
   };
 
 }  // namespace kagome::storage::trie

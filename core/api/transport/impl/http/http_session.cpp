@@ -6,15 +6,18 @@
 #include "api/transport/impl/http/http_session.hpp"
 
 #include <boost/config.hpp>
-#include <outcome/outcome.hpp>
+
+#include "outcome/outcome.hpp"
 
 namespace kagome::api {
 
-  HttpSession::HttpSession(Socket socket, Configuration config)
-      : config_{config}, stream_(std::move(socket)) {}
+  HttpSession::HttpSession(Context &context, Configuration config)
+      : strand_(boost::asio::make_strand(context)),
+        config_{config},
+        stream_(boost::asio::ip::tcp::socket(strand_)) {}
 
   void HttpSession::start() {
-	  asyncRead();
+    asyncRead();
   }
 
   void HttpSession::stop() {
@@ -95,10 +98,10 @@ namespace kagome::api {
 
   void HttpSession::onRead(boost::system::error_code ec, std::size_t) {
     if (ec) {
-      auto error_message = (HttpError::end_of_stream == ec)
-                               ? "connection was closed"
-                               : "unknown error occurred";
-      reportError(ec, error_message);
+      if (HttpError::end_of_stream != ec) {
+        reportError(ec, "unknown error occurred");
+      }
+
       stop();
     }
 
@@ -118,7 +121,7 @@ namespace kagome::api {
     }
 
     // read next request
-	  asyncRead();
+    asyncRead();
   }
 
   void HttpSession::reportError(boost::system::error_code ec,

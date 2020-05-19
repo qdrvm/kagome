@@ -6,6 +6,7 @@
 #include "network/impl/gossiper_broadcast.hpp"
 
 #include <boost/assert.hpp>
+
 #include "network/common.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
 
@@ -22,9 +23,19 @@ namespace kagome::network {
     }
   }
 
+  void GossiperBroadcast::transactionAnnounce(
+      const TransactionAnnounce &announce) {
+    logger_->debug("Gossip tx announce: {} extrinsics",
+                   announce.extrinsics.size());
+    GossipMessage message;
+    message.type = GossipMessage::Type::TRANSACTIONS;
+    message.data.put(scale::encode(announce).value());
+    broadcast(std::move(message));
+  }
+
   void GossiperBroadcast::blockAnnounce(const BlockAnnounce &announce) {
-    logger_->info("Gossip block announce: block number {}",
-                  announce.header.number);
+    logger_->debug("Gossip block announce: block number {}",
+                   announce.header.number);
     GossipMessage message;
     message.type = GossipMessage::Type::BLOCK_ANNOUNCE;
     message.data.put(scale::encode(announce).value());
@@ -33,8 +44,8 @@ namespace kagome::network {
 
   void GossiperBroadcast::vote(
       const consensus::grandpa::VoteMessage &vote_message) {
-    logger_->info("Gossip vote message: grandpa round number {}",
-                  vote_message.round_number);
+    logger_->debug("Gossip vote message: grandpa round number {}",
+                   vote_message.round_number);
     GossipMessage message;
     message.type = GossipMessage::Type::CONSENSUS;
     message.data.put(scale::encode(vote_message).value());
@@ -43,13 +54,18 @@ namespace kagome::network {
   }
 
   void GossiperBroadcast::finalize(const consensus::grandpa::Fin &fin) {
-    logger_->info("Gossip fin message: grandpa round number {}",
-                  fin.round_number);
+    logger_->debug("Gossip fin message: grandpa round number {}",
+                   fin.round_number);
     GossipMessage message;
     message.type = GossipMessage::Type::CONSENSUS;
     message.data.put(scale::encode(fin).value());
 
     broadcast(std::move(message));
+  }
+
+  void GossiperBroadcast::addStream(
+      std::shared_ptr<libp2p::connection::Stream> stream) {
+    syncing_streams_.push_back(stream);
   }
 
   void GossiperBroadcast::broadcast(GossipMessage &&msg) {
@@ -62,6 +78,19 @@ namespace kagome::network {
           });
     };
 
+    // iterate over the existing streams and send them the msg. If stream is
+    // closed it is removed
+    auto stream_it = syncing_streams_.begin();
+    while (stream_it != syncing_streams_.end()) {
+      auto stream = *stream_it;
+      if (stream && !stream->isClosed()) {
+        msg_send_lambda(stream);
+        stream_it++;
+      } else {
+        // remove this stream
+        stream_it = syncing_streams_.erase(stream_it);
+      }
+    }
     for (const auto &[info, stream] : streams_) {
       if (stream && !stream->isClosed()) {
         msg_send_lambda(stream);
