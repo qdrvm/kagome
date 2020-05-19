@@ -1,6 +1,7 @@
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 
 #include "scale/scale.hpp"
+#include "storage/changes_trie/impl/changes_trie.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::changes_trie,
                             StorageChangesTrackerImpl::Error,
@@ -9,19 +10,28 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::changes_trie,
   switch (e) {
     case E::EXTRINSIC_IDX_GETTER_UNINITIALIZED:
       return "The delegate that returns extrinsic index is uninitialized";
+    case E::INVALID_PARENT_HASH:
+      return "The supplied parent hash doesn't match the one of the current "
+             "block";
   }
   return "Unknown error";
 }
 
 namespace kagome::storage::changes_trie {
 
-  void StorageChangesTrackerImpl::setConfig(const ChangesTrieConfig &conf) {
-    // will be needed when blocks changes are implemented
+  StorageChangesTrackerImpl::StorageChangesTrackerImpl(
+      std::shared_ptr<storage::trie::PolkadotTrieFactory> trie_factory,
+      std::shared_ptr<storage::trie::Codec> codec)
+      : trie_factory_(std::move(trie_factory)), codec_(std::move(codec)) {
+    BOOST_ASSERT(trie_factory_ != nullptr);
+    BOOST_ASSERT(codec_ != nullptr);
   }
 
   outcome::result<void> StorageChangesTrackerImpl::onBlockChange(
-      const primitives::BlockHash &key) {
-    current_block_hash_ = key;
+      primitives::BlockHash new_parent_hash,
+      primitives::BlockNumber new_parent_number) {
+    parent_hash_ = new_parent_hash;
+    parent_number_ = new_parent_number;
     return outcome::success();
   }
 
@@ -39,24 +49,23 @@ namespace kagome::storage::changes_trie {
     // if key was already changed in the same block, just add extrinsic to
     // the changers list
     if (change_it != changes_.end()) {
-      auto block = std::get<0>(change_it->second);
-      if (current_block_hash_ == block) {
-        std::get<1>(change_it->second).push_back(idx);
-        return outcome::success();
-      }
+      change_it->second.push_back(idx);
+    } else {
+      changes_.insert(std::make_pair(key, std::vector{idx}));
     }
-    changes_.insert(std::make_pair(
-        key, std::make_tuple(current_block_hash_, std::vector{idx})));
     return outcome::success();
   }
 
-  outcome::result<void> StorageChangesTrackerImpl::sinkToChangesTrie(
-      ChangesTrieBuilder &builder) {
-    OUTCOME_TRY(builder.startNewTrie(current_block_hash_));
-    for (auto &[key, change] : changes_) {
-      OUTCOME_TRY(builder.insertExtrinsicsChange(key, std::get<1>(change)));
+  outcome::result<common::Hash256>
+  StorageChangesTrackerImpl::constructChangesTrie(
+      const primitives::BlockHash &parent, const ChangesTrieConfig &conf) {
+    if (parent != parent_hash_) {
+      return Error::INVALID_PARENT_HASH;
     }
-    return outcome::success();
+    OUTCOME_TRY(trie,
+                ChangesTrie::buildFromChanges(
+                    parent_number_, trie_factory_, codec_, changes_, conf));
+    return trie->getHash();
   }
 
 }  // namespace kagome::storage::changes_trie

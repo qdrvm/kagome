@@ -9,7 +9,6 @@
 
 #include "core/runtime/mock_memory.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
-#include "mock/core/storage/changes_trie/changes_trie_builder_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "testutil/literals.hpp"
@@ -22,7 +21,6 @@ using kagome::runtime::MockMemory;
 using kagome::runtime::SizeType;
 using kagome::runtime::WasmPointer;
 using kagome::storage::changes_trie::ChangesTrackerMock;
-using kagome::storage::changes_trie::ChangesTrieBuilderMock;
 using kagome::storage::trie::PersistentTrieBatchMock;
 using kagome::storage::trie::TrieStorageMock;
 
@@ -34,17 +32,15 @@ class StorageExtensionTest : public ::testing::Test {
   void SetUp() override {
     db_batch_ = std::make_shared<PersistentTrieBatchMock>();
     memory_ = std::make_shared<MockMemory>();
-    changes_builder_ = std::make_shared<ChangesTrieBuilderMock>();
     changes_tracker_ = std::make_shared<ChangesTrackerMock>();
     storage_extension_ = std::make_shared<StorageExtension>(
-        db_batch_, memory_, changes_builder_, changes_tracker_);
+        db_batch_, memory_, changes_tracker_);
   }
 
  protected:
   std::shared_ptr<PersistentTrieBatchMock> db_batch_;
   std::shared_ptr<MockMemory> memory_;
   std::shared_ptr<StorageExtension> storage_extension_;
-  std::shared_ptr<ChangesTrieBuilderMock> changes_builder_;
   std::shared_ptr<ChangesTrackerMock> changes_tracker_;
 
   constexpr static uint32_t kU32Max = std::numeric_limits<uint32_t>::max();

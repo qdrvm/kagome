@@ -8,14 +8,6 @@ add_library(changes_tracker
 target_link_libraries(changes_tracker
     buffer
     blob
-    )
-
-add_library(changes_trie_builder
-    impl/changes_trie_builder_impl.cpp
-    )
-target_link_libraries(changes_trie_builder
-    buffer
-    blob
     logger
     scale
     )

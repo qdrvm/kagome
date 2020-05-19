@@ -14,10 +14,11 @@ namespace kagome::runtime::binaryen {
   using primitives::BlockHeader;
   using primitives::Version;
 
-  CoreImpl::CoreImpl(const std::shared_ptr<RuntimeManager> &runtime_manager,
-                     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker)
+  CoreImpl::CoreImpl(
+      const std::shared_ptr<RuntimeManager> &runtime_manager,
+      std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker)
       : RuntimeApi(runtime_manager),
-        changes_tracker_ {std::move(changes_tracker)}{
+        changes_tracker_{std::move(changes_tracker)} {
     BOOST_ASSERT(changes_tracker_ != nullptr);
   }
 
@@ -32,10 +33,11 @@ namespace kagome::runtime::binaryen {
   }
 
   outcome::result<void> CoreImpl::initialise_block(const BlockHeader &header) {
-    auto&& res = execute<void>(
+    auto &&res = execute<void>(
         "Core_initialize_block", CallPersistency::PERSISTENT, header);
     if (res.has_value()) {
-      OUTCOME_TRY(changes_tracker_->onBlockChange(header.parent_hash));
+      OUTCOME_TRY(changes_tracker_->onBlockChange(header.parent_hash,
+                                                  header.number - 1)); // parent's number
     }
     return res;
   }

@@ -11,7 +11,6 @@
 #include "common/logger.hpp"
 #include "runtime/wasm_memory.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
-#include "storage/changes_trie/changes_trie_builder.hpp"
 #include "storage/trie/trie_batches.hpp"
 
 namespace kagome::extensions {
@@ -23,7 +22,6 @@ namespace kagome::extensions {
     StorageExtension(
         std::shared_ptr<storage::trie::TrieBatch> db,
         std::shared_ptr<runtime::WasmMemory> memory,
-        std::shared_ptr<storage::changes_trie::ChangesTrieBuilder> builder,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker);
 
     // -------------------------Data storage--------------------------
@@ -110,7 +108,6 @@ namespace kagome::extensions {
 
     std::shared_ptr<storage::trie::TrieBatch> storage_batch_;
     std::shared_ptr<runtime::WasmMemory> memory_;
-    std::shared_ptr<storage::changes_trie::ChangesTrieBuilder> builder_;
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
     common::Logger logger_;
 

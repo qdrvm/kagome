@@ -15,7 +15,6 @@
 #include "crypto/hasher/hasher_impl.hpp"
 #include "extensions/impl/extension_factory_impl.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
-#include "mock/core/storage/changes_trie/changes_trie_builder_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/block.hpp"
@@ -48,13 +47,10 @@ class RuntimeTest : public ::testing::Test {
       return std::make_unique<EphemeralTrieBatchMock>();
     }));
 
-    auto builder = std::make_shared<
-        kagome::storage::changes_trie::ChangesTrieBuilderMock>();
     changes_tracker_ =
         std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
     auto extension_factory =
-        std::make_shared<kagome::extensions::ExtensionFactoryImpl>(
-            builder, changes_tracker_);
+        std::make_shared<kagome::extensions::ExtensionFactoryImpl>(changes_tracker_);
     auto wasm_path = boost::filesystem::path(__FILE__).parent_path().string()
                      + "/wasm/polkadot_runtime.compact.wasm";
     auto wasm_provider =

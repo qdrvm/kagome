@@ -8,7 +8,9 @@
 #include <forward_list>
 
 #include "primitives/block_id.hpp"
+#include "storage/changes_trie/impl/changes_trie.hpp"
 #include "storage/trie/impl/ordered_trie_hash.hpp"
+#include "storage/trie/impl/trie_error.hpp"
 
 using kagome::common::Buffer;
 
@@ -16,16 +18,13 @@ namespace kagome::extensions {
   StorageExtension::StorageExtension(
       std::shared_ptr<storage::trie::TrieBatch> storage_batch,
       std::shared_ptr<runtime::WasmMemory> memory,
-      std::shared_ptr<storage::changes_trie::ChangesTrieBuilder> builder,
       std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker)
       : storage_batch_(std::move(storage_batch)),
         memory_(std::move(memory)),
-        builder_(std::move(builder)),
         changes_tracker_{std::move(changes_tracker)},
         logger_{common::createLogger(kDefaultLoggerTag)} {
     BOOST_ASSERT_MSG(storage_batch_ != nullptr, "db is nullptr");
     BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
-    BOOST_ASSERT_MSG(builder_ != nullptr, "changes trie builder is nullptr");
     BOOST_ASSERT_MSG(changes_tracker_ != nullptr, "changes tracker is nullptr");
   }
 
@@ -183,26 +182,39 @@ namespace kagome::extensions {
           "ephemeral extension");
       return 0;
     }
+    const auto CHANGES_CONFIG_KEY = common::Buffer{}.put(":changes_trie");
+    auto config_bytes_res = persistent_batch->get(CHANGES_CONFIG_KEY);
+    bool has_config{true};
+    if (config_bytes_res.has_error()) {
+      if (config_bytes_res.has_error()) {
+        logger_->error("ext_storage_changes_root resulted with an error: {}",
+                       config_bytes_res.error().message());
+        return 0;
+      }
+    }
+    auto config_res = scale::decode<storage::changes_trie::ChangesTrieConfig>(
+        config_bytes_res.value());
+    if (config_res.has_error()) {
+      logger_->error("ext_storage_changes_root resulted with an error: {}",
+                     config_res.error().message());
+      return 0;
+    }
+
     auto parent_hash_bytes =
         memory_->loadN(parent_hash_data, common::Hash256::size());
     common::Hash256 parent_hash;
     std::copy_n(parent_hash_bytes.begin(),
                 common::Hash256::size(),
                 parent_hash.begin());
-    if (auto res = builder_->startNewTrie(parent_hash); res.has_error()) {
-      logger_->error("ext_storage_changes_root resulted with an error: {}",
-                     res.error().message());
-      return 0;
-    }
 
-    if (auto res = changes_tracker_->sinkToChangesTrie(*builder_);
-        res.has_error()) {
+    auto trie_hash_res =
+        changes_tracker_->constructChangesTrie(parent_hash, config_res.value());
+    if (trie_hash_res.has_error()) {
       logger_->error("ext_storage_changes_root resulted with an error: {}",
-                     res.error().message());
+                     trie_hash_res.error().message());
       return 0;
     }
-    primitives::BlockHash result_hash = builder_->finishAndGetHash();
-    common::Buffer result_buf(result_hash);
+    common::Buffer result_buf(trie_hash_res.value());
     memory_->storeBuffer(result, result_buf);
     return result_buf.size();
   }
