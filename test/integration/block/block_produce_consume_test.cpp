@@ -158,20 +158,35 @@ outcome::result<Block> BlockProduceConsume::produceBlock(
       auto size = extrinsic.data.size();
       auto hash = _hasher->blake2b_256(extrinsic.data);
 
-      OUTCOME_TRY(validity, api->validate_transaction(extrinsic));
+      OUTCOME_TRY(validate_result, api->validate_transaction(extrinsic));
 
-      auto &v = boost::get<const ValidTransaction>(validity);
+      OUTCOME_TRY(visit_in_place(
+          validate_result,
+          [&](const primitives::TransactionValidityError &e) {
+            return visit_in_place(
+                e,
+                // return either invalid or unknown validity error
+                [](const auto &validity_error) -> outcome::result<void> {
+                  return validity_error;
+                });
+          },
+          [&](const primitives::ValidTransaction &validity)
+              -> outcome::result<void> {
+            // compose Transaction object
+            Transaction tx{extrinsic,
+                           size,
+                           hash,
+                           validity.priority,
+                           validity.longevity,
+                           validity.requires,
+                           validity.provides,
+                           validity.propagate};
 
-      Transaction tx{extrinsic,
-                     size,
-                     hash,
-                     v.priority,
-                     v.longevity,
-                     v.requires,
-                     v.provides,
-                     v.propagate};
+            // send to pool
+            OUTCOME_TRY(getTxPool()->submitOne(std::move(tx)));
 
-      OUTCOME_TRY(getTxPool()->submitOne(std::move(tx)));
+            return outcome::success();
+          }));
     }
   }
 
