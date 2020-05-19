@@ -13,8 +13,8 @@ struct SyncingNodeOptions {
   std::string config_storage_path_;
   std::string leveldb_path_;
   uint16_t p2p_port_{};
-  uint16_t rpc_http_port_{};
-  uint16_t rpc_ws_port_{};
+  uint16_t rpc_http_endpoint_{};
+  uint16_t rpc_ws_endpoint_{};
   uint8_t verbosity_{};
   bool is_genesis_epoch_{};
 

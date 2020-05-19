@@ -33,6 +33,10 @@ namespace kagome::api {
      */
     struct Configuration {
       Endpoint endpoint{};  ///< listener endpoint
+      Configuration() {
+        endpoint.address(boost::asio::ip::address_v4::any());
+        endpoint.port(40363);
+      }
     };
 
     /**

@@ -6,6 +6,7 @@
 #ifndef KAGOME_EXAMPLES_KAGOME_FULL_KAGOME_OPTIONS_HPP
 #define KAGOME_EXAMPLES_KAGOME_FULL_KAGOME_OPTIONS_HPP
 
+#include <boost/asio/ip/tcp.hpp>
 #include <boost/program_options.hpp>
 #include <libp2p/crypto/key.hpp>
 #include <outcome/outcome.hpp>
@@ -24,6 +25,7 @@ namespace kagome::options {
     INVALID_CONFIG_FILE,           // failed to open configuration file
     CANNOT_OPEN_FILE,              // cannot open file
     LEVELDB_PATH_IS_NOT_DIR,       // leveldb path must be directory
+    INVALID_ENDPOINT,
   };
 }  // namespace kagome::options
 
@@ -36,6 +38,7 @@ namespace kagome::options {
    */
   class KagomeOptions {
    public:
+    using Endpoint = boost::asio::ip::tcp::endpoint;
     KagomeOptions();
 
     /**
@@ -73,9 +76,9 @@ namespace kagome::options {
 
     uint16_t getP2PPort() const;
 
-    uint16_t getRpcHttpPort() const;
+    const Endpoint &getRpcHttpEndpoint() const;
 
-    uint16_t getRpcWsPort() const;
+    const Endpoint &getRpcWsEndpoint() const;
 
     /**
      * @return log level
@@ -101,14 +104,17 @@ namespace kagome::options {
     outcome::result<void> ensureDirPathExists(
         const boost::filesystem::path &path);
 
+    outcome::result<Endpoint> ensureEndpointIsValid(const std::string &address,
+                                                    uint16_t port);
+
     boost::program_options::options_description desc_;  ///< options description
     bool has_help_ = false;  ///< flag whether cmd line has help option
     std::string key_storage_path_;
     std::string config_storage_path_;
     std::string leveldb_path_;
     uint16_t p2p_port_{};
-    uint16_t rpc_http_port_{};
-    uint16_t rpc_ws_port_{};
+    Endpoint rpc_http_endpoint_{};
+    Endpoint rpc_ws_endpoint_{};
     uint8_t verbosity_{};
     bool is_genesis_epoch_{};
     common::Logger logger_ = common::createLogger("Kagome options parser: ");

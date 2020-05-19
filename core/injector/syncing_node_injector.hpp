@@ -50,19 +50,20 @@ namespace kagome::injector {
   };
 
   template <typename... Ts>
-  auto makeSyncingNodeInjector(const std::string &genesis_path,
-                               const std::string &leveldb_path,
-                               uint16_t p2p_port,
-                               uint16_t rpc_http_port,
-                               uint16_t rpc_ws_port,
-                               Ts &&... args) {
+  auto makeSyncingNodeInjector(
+      const std::string &genesis_path,
+      const std::string &leveldb_path,
+      uint16_t p2p_port,
+      const boost::asio::ip::tcp::endpoint &rpc_http_endpoint,
+      const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint,
+      Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
 
         // inherit application injector
         makeApplicationInjector(
-            genesis_path, leveldb_path, rpc_http_port, rpc_ws_port),
+            genesis_path, leveldb_path, rpc_http_endpoint, rpc_ws_endpoint),
 
         // peer info
         di::bind<libp2p::peer::PeerInfo>.to([p2p_port](const auto &injector) {

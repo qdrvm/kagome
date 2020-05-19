@@ -16,8 +16,10 @@ int main(int argc, char **argv) {
   std::string configuration_path;  // configuration file path
   std::string leveldb_path;        // leveldb directory path
   uint16_t p2p_port;               // port for peer to peer interactions
-  uint16_t rpc_http_port;          // port for rpcs over HTTP
-  uint16_t rpc_ws_port;            // port for rpcs over Websockets
+  std::string rpc_http_host;       // address for RPC over HTTP
+  uint16_t rpc_http_port;          // port for RPC over HTTP
+  std::string rpc_ws_host;         // address for RPC over Websocket protocol
+  uint16_t rpc_ws_port;            // port for RPC over Websocket protocol
   int verbosity;  // log level (0-trace, 5-only critical, 6-no logs)
 
   namespace po = boost::program_options;
@@ -31,10 +33,10 @@ int main(int argc, char **argv) {
        "mandatory, leveldb directory path")
       ("p2p_port,p", po::value<uint16_t>(&p2p_port)->default_value(30363),
        "port for peer to peer interactions")
-      ("rpc_http_port", po::value<uint16_t>(&rpc_http_port)->default_value(40363),
-       "port for RPCs over HTTP")
-      ("rpc_ws_port", po::value<uint16_t>(&rpc_ws_port)->default_value(40364),
-       "port for RPCs over Websockets")
+		  ("rpc_http_host", po::value<std::string>(&rpc_http_host)->default_value("0.0.0.0"), "address for RPC over HTTP")
+		  ("rpc_http_port", po::value<uint16_t>(&rpc_http_port)->default_value(40363), "port for RPC over HTTP")
+		  ("rpc_ws_host", po::value<std::string>(&rpc_ws_host)->default_value("0.0.0.0"), "address for RPC over Websocket protocol")
+		  ("rpc_ws_port", po::value<uint16_t>(&rpc_ws_port)->default_value(40364), "port for RPC over Websocket protocol")
       ("genesis_epoch,e", "if we need to execute genesis epoch")
       ("verbosity,v", po::value<int>(&verbosity)->default_value(2),
        "Log level. 0 - trace, 1 - debug, 2 - info, 3 - warn, 4 - error, 5 - critical, 6 - no logs. Default: info");
@@ -54,12 +56,36 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  auto ensureEndpointIsValid =
+      [logger](const std::string &address,
+               uint16_t port) -> boost::asio::ip::tcp::endpoint {
+    boost::asio::ip::tcp::endpoint endpoint;
+    boost::system::error_code err;
+
+    endpoint.address(boost::asio::ip::address::from_string(address, err));
+    if (err.failed()) {
+      logger->error("RPC address '{}' is invalid", address);
+      exit(EXIT_FAILURE);
+    }
+
+    if (port <= 0 || port >= 65535) {
+      logger->error("RPC port '{}' is wrong", port);
+      exit(EXIT_FAILURE);
+    }
+    endpoint.port(port);
+
+    return endpoint;
+  };
+
+  auto rpc_http_endpoint = ensureEndpointIsValid(rpc_http_host, rpc_http_port);
+  auto rpc_ws_endpoint = ensureEndpointIsValid(rpc_ws_host, rpc_ws_port);
+
   auto &&app = std::make_shared<kagome::application::SyncingNodeApplication>(
       configuration_path,
       leveldb_path,
       p2p_port,
-      rpc_http_port,
-      rpc_ws_port,
+      rpc_http_endpoint,
+      rpc_ws_endpoint,
       verbosity);
   app->run();
 

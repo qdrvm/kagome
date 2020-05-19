@@ -24,8 +24,10 @@ namespace kagome::options {
     std::string keystore_path;       // keystore file path
     std::string leveldb_path;        // leveldb directory path
     uint16_t p2p_port;               // port for peer to peer interactions
-    uint16_t rpc_http_port;          // port for rpcs over HTTP
-    uint16_t rpc_ws_port;            // port for rpcs over Websockets
+    std::string rpc_http_host;       // address for RPC over HTTP
+    uint16_t rpc_http_port;          // port for RPC over HTTP
+    std::string rpc_ws_host;         // address for RPC over Websocket protocol
+    uint16_t rpc_ws_port;            // port for RPC over Websocket protocol
     int verbosity;  // log level (0-trace, 5-only critical, 6-no logs)
     is_genesis_epoch_ = false;  // if we need to execute genesis epoch
 
@@ -42,10 +44,12 @@ namespace kagome::options {
           "mandatory, leveldb directory path")
       ("p2p_port,p", po::value<uint16_t>(&p2p_port)->default_value(30363),
        "port for peer to peer interactions")
-      ("rpc_http_port", po::value<uint16_t>(&rpc_http_port)->default_value(40363),
-       "port for RPCs over HTTP")
-      ("rpc_ws_port", po::value<uint16_t>(&rpc_ws_port)->default_value(40364),
-       "port for RPCs over Websockets")
+
+      ("rpc_http_host", po::value<std::string>(&rpc_http_host)->default_value("0.0.0.0"), "address for RPC over HTTP")
+      ("rpc_http_port", po::value<uint16_t>(&rpc_http_port)->default_value(40363), "port for RPC over HTTP")
+      ("rpc_ws_host", po::value<std::string>(&rpc_ws_host)->default_value("0.0.0.0"), "address for RPC over Websocket protocol")
+      ("rpc_ws_port", po::value<uint16_t>(&rpc_ws_port)->default_value(40364), "port for RPC over Websocket protocol")
+
       ("genesis_epoch,e", "if we need to execute genesis epoch")
       ("verbosity,v", po::value<int>(&verbosity)->default_value(2),
        "Log level. 0 - trace, 1 - debug, 2 - info, 3 - warn, 4 - error, 5 - critical, 6 - no logs. Default: info");
@@ -68,16 +72,20 @@ namespace kagome::options {
       is_genesis_epoch_ = true;
     }
 
-    // ENSURE THAT PATHS EXIST
     OUTCOME_TRY(ensureFilePathExists(configuration_path));
     OUTCOME_TRY(ensureFilePathExists(keystore_path));
+
+    OUTCOME_TRY(rpc_http_endpoint,
+                ensureEndpointIsValid(rpc_http_host, rpc_http_port));
+    OUTCOME_TRY(rpc_ws_endpoint,
+                ensureEndpointIsValid(rpc_ws_host, rpc_ws_port));
 
     key_storage_path_ = keystore_path;
     config_storage_path_ = configuration_path;
     leveldb_path_ = leveldb_path;
     p2p_port_ = p2p_port;
-    rpc_http_port_ = rpc_http_port;
-    rpc_ws_port_ = rpc_ws_port;
+    rpc_http_endpoint_ = rpc_http_endpoint;
+    rpc_ws_endpoint_ = rpc_ws_endpoint;
     verbosity_ = verbosity;
 
     return outcome::success();
@@ -106,6 +114,26 @@ namespace kagome::options {
     return outcome::success();
   }
 
+  outcome::result<KagomeOptions::Endpoint> KagomeOptions::ensureEndpointIsValid(
+      const std::string &address, uint16_t port) {
+    Endpoint endpoint;
+    boost::system::error_code err;
+
+    endpoint.address(boost::asio::ip::address::from_string(address, err));
+    if (err.failed()) {
+      logger_->error("address '{}' is invalid", address);
+      return outcome::failure(CmdLineOptionError::INVALID_ENDPOINT);
+    }
+
+    if (port <= 0 || port >= 65535) {
+      logger_->error("port '{}' is wrong", port);
+      return outcome::failure(CmdLineOptionError::INVALID_ENDPOINT);
+    }
+    endpoint.port(port);
+
+    return endpoint;
+  }
+
   const std::string &KagomeOptions::getKagomeConfigPath() const {
     return config_storage_path_;
   }
@@ -122,12 +150,12 @@ namespace kagome::options {
     return p2p_port_;
   }
 
-  uint16_t KagomeOptions::getRpcHttpPort() const {
-    return rpc_http_port_;
+  const KagomeOptions::Endpoint &KagomeOptions::getRpcHttpEndpoint() const {
+    return rpc_http_endpoint_;
   }
 
-  uint16_t KagomeOptions::getRpcWsPort() const {
-    return rpc_ws_port_;
+  const KagomeOptions::Endpoint &KagomeOptions::getRpcWsEndpoint() const {
+    return rpc_ws_endpoint_;
   }
 
   uint8_t KagomeOptions::getVerbosity() const {
@@ -162,6 +190,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::options, CmdLineOptionError, e) {
       return "failed to open configuration file";
     case CmdLineOptionError::LEVELDB_PATH_IS_NOT_DIR:
       return "leveldb path is not a directory";
+    case CmdLineOptionError::INVALID_ENDPOINT:
+      return "invalid endpoint";
   }
   return "unknown CmdLineOptionError";
 }
