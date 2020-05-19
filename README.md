@@ -95,6 +95,12 @@ kagome_syncing --genesis config/polkadot-v06.json -l ldb_syncing -v 1 --p2p_port
 
 After this command syncing node will connect with the full node and start importing blocks.
 
+
+---
+**Note**
+The ports, which are not set in the app arguments, will take a default value. In case of running two nodes on the same address, this may lead to address collision and one node will node be able to start. To avoid this, please set all ports when running several nodes on one machine.
+___
+
 ### Configuration Details
 * To execute kagome node you need to provide it with genesis config, keys and leveldb files
 * Example genesis config file can be found in `node/config/polkadot-v06.json`
