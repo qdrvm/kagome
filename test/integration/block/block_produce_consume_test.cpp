@@ -22,8 +22,22 @@ class BlockProduceConsume : public ApplicationTestSuite {
  protected:
   void SetUp() override {
     getInjector().template create<std::shared_ptr<blockchain::BlockStorage>>();
-    _trieDb =
-        getInjector().template create<std::shared_ptr<storage::trie::TrieDb>>();
+
+	  auto backend =
+	    getInjector().template create<std::shared_ptr<storage::trie::TrieDbBackend>>();
+
+	  auto trie_db = storage::trie::PolkadotTrieDb::createEmpty(backend);
+
+	  auto configuration_storage =
+			  getInjector().template create<std::shared_ptr<application::ConfigurationStorage>>();
+
+	  for (const auto &[key, val] : configuration_storage->getGenesis()) {
+		  if (auto res = trie_db->put(key, val); not res) {
+			  common::raise(res.error());
+		  }
+	  }
+	  _trieDb.reset(trie_db.release());
+
     _now = std::chrono::duration_cast<std::chrono::milliseconds>(
                std::chrono::system_clock::now().time_since_epoch())
                .count();
