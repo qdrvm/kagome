@@ -3,7 +3,7 @@
 
 #include "common/buffer.hpp"
 #include "primitives/extrinsic.hpp"
-#include "storage/changes_trie/changes_trie_builder.hpp"
+#include "primitives/common.hpp"
 #include "storage/changes_trie/changes_trie_config.hpp"
 
 namespace kagome::storage::changes_trie {
@@ -21,8 +21,6 @@ namespace kagome::storage::changes_trie {
 
     virtual ~ChangesTracker() = default;
 
-    virtual void setConfig(const ChangesTrieConfig &conf) = 0;
-
     /**
      * @param f is a functor that returns the current extrinsic index
      */
@@ -32,7 +30,8 @@ namespace kagome::storage::changes_trie {
      * Supposed to be called when the processed block changes
      */
     virtual outcome::result<void> onBlockChange(
-        const primitives::BlockHash &key) = 0;
+        primitives::BlockHash new_parent_hash,
+        primitives::BlockNumber new_parent_number) = 0;
 
     /**
      * Supposed to be called when a storage entry is changed
@@ -41,10 +40,10 @@ namespace kagome::storage::changes_trie {
 
     /**
      * Sinks accumulated changes for the latest registered block to the changes
-     * trie builder, first calling startNewTrie on it
+     * trie and returns its root hash
      */
-    virtual outcome::result<void> sinkToChangesTrie(
-        ChangesTrieBuilder &builder) = 0;
+    virtual outcome::result<common::Hash256> constructChangesTrie(
+        const primitives::BlockHash &parent, const ChangesTrieConfig &conf) = 0;
   };
 
 }  // namespace kagome::storage::changes_trie

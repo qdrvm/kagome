@@ -37,10 +37,10 @@ namespace kagome::storage::trie {
           return retrieveChild(parent, idx);
         };
     if (db_key == getEmptyRootHash()) {
-      return trie_factory_->createEmpty(f);
+      return trie_factory_->createEmpty(std::move(f));
     }
     OUTCOME_TRY(root, retrieveNode(db_key));
-    return trie_factory_->createFromRoot(root, f);
+    return trie_factory_->createFromRoot(std::move(root), std::move(f));
   }
 
   outcome::result<Buffer> TrieSerializerImpl::storeRootNode(

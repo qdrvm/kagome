@@ -12,7 +12,6 @@
 #include "extensions/impl/memory_extension.hpp"
 #include "extensions/impl/misc_extension.hpp"
 #include "extensions/impl/storage_extension.hpp"
-#include "storage/changes_trie/changes_trie_builder.hpp"
 
 namespace kagome::extensions {
   /**
@@ -23,7 +22,6 @@ namespace kagome::extensions {
     ExtensionImpl() = delete;
     ExtensionImpl(const std::shared_ptr<runtime::WasmMemory> &memory,
                   std::shared_ptr<storage::trie::TrieBatch> storage_batch,
-                  std::shared_ptr<storage::changes_trie::ChangesTrieBuilder> builder,
                   std::shared_ptr<storage::changes_trie::ChangesTracker> tracker);
 
     ~ExtensionImpl() override = default;

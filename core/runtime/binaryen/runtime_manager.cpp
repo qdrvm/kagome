@@ -40,25 +40,37 @@ namespace kagome::runtime::binaryen {
     BOOST_ASSERT(hasher_);
   }
 
-  outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
-                             std::shared_ptr<WasmMemory>>>
+  outcome::result<RuntimeManager::RuntimeEnvironment>
+  RuntimeManager::RENAME_getPersistentRuntimeEnvironmentAt(
+      const common::Hash256 &state_root) {
+    OUTCOME_TRY(persistent_batch, storage_->getPersistentBatchAt(state_root));
+    persistent_batch_ = std::move(persistent_batch);
+    return getRuntimeEnvironment(persistent_batch_);
+  }
+
+  outcome::result<RuntimeManager::RuntimeEnvironment>
+  RuntimeManager::getEphemeralRuntimeEnvironmentAt(
+      const common::Hash256 &state_root) {
+    OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(state_root));
+    return getRuntimeEnvironment(std::move(batch));
+  }
+
+  outcome::result<RuntimeManager::RuntimeEnvironment>
   RuntimeManager::getPersistentRuntimeEnvironment() {
-    if(persistent_batch_ == nullptr) {
+    if (persistent_batch_ == nullptr) {
       OUTCOME_TRY(persistent_batch, storage_->getPersistentBatch());
       persistent_batch_ = std::move(persistent_batch);
     }
     return getRuntimeEnvironment(persistent_batch_);
   }
 
-  outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
-                             std::shared_ptr<WasmMemory>>>
+  outcome::result<RuntimeManager::RuntimeEnvironment>
   RuntimeManager::getEphemeralRuntimeEnvironment() {
     OUTCOME_TRY(batch, storage_->getEphemeralBatch());
     return getRuntimeEnvironment(std::move(batch));
   }
 
-  outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
-                             std::shared_ptr<WasmMemory>>>
+  outcome::result<RuntimeManager::RuntimeEnvironment>
   RuntimeManager::getRuntimeEnvironment(
       std::shared_ptr<storage::trie::TrieBatch> storage_batch) {
     const auto &state_code = wasm_provider_->getStateCode();

@@ -14,7 +14,6 @@
 #include "crypto/hasher/hasher_impl.hpp"
 #include "extensions/impl/extension_factory_impl.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
-#include "mock/core/storage/changes_trie/changes_trie_builder_mock.hpp"
 #include "runtime/binaryen/runtime_manager.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/polkadot_codec.hpp"
@@ -29,7 +28,6 @@ using kagome::common::Buffer;
 using kagome::runtime::binaryen::RuntimeManager;
 using kagome::runtime::binaryen::WasmExecutor;
 using kagome::storage::changes_trie::ChangesTrackerMock;
-using kagome::storage::changes_trie::ChangesTrieBuilderMock;
 using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieFactoryImpl;
 using kagome::storage::trie::PolkadotTrieImpl;
@@ -64,7 +62,6 @@ class WasmExecutorTest : public ::testing::Test {
 
     auto extension_factory =
         std::make_shared<kagome::extensions::ExtensionFactoryImpl>(
-            std::make_shared<ChangesTrieBuilderMock>(),
             std::make_shared<ChangesTrackerMock>());
 
     auto hasher = std::make_shared<kagome::crypto::HasherImpl>();

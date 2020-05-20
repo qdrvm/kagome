@@ -67,7 +67,6 @@
 #include "runtime/binaryen/runtime_api/parachain_host_impl.hpp"
 #include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
 #include "runtime/common/storage_wasm_provider.hpp"
-#include "storage/changes_trie/impl/changes_trie_builder_impl.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/predefined_keys.hpp"
@@ -545,7 +544,6 @@ namespace kagome::injector {
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
-        di::bind<storage::changes_trie::ChangesTrieBuilder>.template to<storage::changes_trie::ChangesTrieBuilderImpl>(),
         di::bind<storage::trie::TrieStorageBackend>.to(
             std::move(get_trie_storage_backend)),
         di::bind<storage::trie::TrieStorageImpl>.to(
@@ -564,8 +562,6 @@ namespace kagome::injector {
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
-    auto leveldb_options = leveldb::Options();
-    leveldb_options.create_if_missing = true;
   }
 
 }  // namespace kagome::injector

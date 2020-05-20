@@ -10,6 +10,7 @@
 #include "runtime/core.hpp"
 
 #include "storage/changes_trie/changes_tracker.hpp"
+#include "blockchain/block_header_repository.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -17,7 +18,8 @@ namespace kagome::runtime::binaryen {
    public:
     explicit CoreImpl(
         const std::shared_ptr<RuntimeManager> &runtime_manager,
-        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker);
+        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker,
+        std::shared_ptr<blockchain::BlockHeaderRepository> header_repo);
 
     ~CoreImpl() override = default;
 
@@ -34,6 +36,7 @@ namespace kagome::runtime::binaryen {
 
    private:
     std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
+    std::shared_ptr<blockchain::BlockHeaderRepository> header_repo_;
   };
 }  // namespace kagome::runtime::binaryen
 
