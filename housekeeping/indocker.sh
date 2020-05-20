@@ -5,7 +5,7 @@ DOCKER_IMAGE="${DOCKER_IMAGE:?DOCKER_IMAGE variable is not defined}"
 JENKINS_ENV=$(env | awk -F= -v key='^(BRANCH_|BUILD_|HUDSON_|JENKINS_|JOB_|CHANGE_)' '$1 ~ key {print "-e " $1}')
 docker run -i --rm \
    --cap-add SYS_PTRACE \
-   -v /tmp/cache:/root/.hunter \
+   -v /tmp/cache/hunter:/root/.hunter \
    -v ${DIR}:/workdir \
    -w /workdir \
    -e CTEST_OUTPUT_ON_FAILURE \
