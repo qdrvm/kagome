@@ -29,7 +29,7 @@ namespace kagome::runtime::binaryen {
     enum class Error { EMPTY_STATE_CODE = 1, INVALID_STATE_CODE };
 
     RuntimeManager(
-        std::shared_ptr<runtime::WasmProvider> wasm_provider,
+        std::shared_ptr<WasmProvider> wasm_provider,
         std::shared_ptr<extensions::ExtensionFactory> extension_factory,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         std::shared_ptr<crypto::Hasher> hasher);
@@ -53,8 +53,8 @@ namespace kagome::runtime::binaryen {
 
     common::Logger logger_ = common::createLogger("Runtime manager");
 
-    std::shared_ptr<runtime::WasmProvider> wasm_provider_;
     std::shared_ptr<storage::trie::TrieStorage> storage_;
+    std::shared_ptr<WasmProvider> wasm_provider_;
     std::shared_ptr<extensions::ExtensionFactory> extension_factory_;
     std::shared_ptr<crypto::Hasher> hasher_;
 
@@ -66,11 +66,11 @@ namespace kagome::runtime::binaryen {
     // hash of WASM state code
     common::Hash256 state_code_hash_{};
 
-    // TODO (xDimon): Separate it by state_code_hash for multiruntime case
-    std::shared_ptr<wasm::Module> module_{};
+    std::mutex modules_mutex_;
+    std::map<common::Hash256, std::shared_ptr<wasm::Module>> modules_;
 
-    // TODO (xDimon): Separate it per thread in multithread environment
-    std::shared_ptr<RuntimeExternalInterface> external_interface_{};
+    static thread_local std::shared_ptr<RuntimeExternalInterface>
+        external_interface_;
   };
 
 }  // namespace kagome::runtime::binaryen

@@ -17,6 +17,12 @@ namespace kagome::runtime::binaryen {
     WasmMemoryImpl::resize(size_);
   }
 
+  void WasmMemoryImpl::reset() {
+    offset_ = 1;
+    allocated_.clear();
+    deallocated_.clear();
+  }
+
   SizeType WasmMemoryImpl::size() const {
     return size_;
   }

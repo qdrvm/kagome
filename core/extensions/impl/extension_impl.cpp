@@ -122,6 +122,12 @@ namespace kagome::extensions {
   }
 
   /// cryptographic extensions
+  void ExtensionImpl::ext_blake2_128(runtime::WasmPointer data,
+                                     runtime::SizeType len,
+                                     runtime::WasmPointer out) {
+    crypto_ext_.ext_blake2_128(data, len, out);
+  }
+
   void ExtensionImpl::ext_blake2_256(runtime::WasmPointer data,
                                      runtime::SizeType len,
                                      runtime::WasmPointer out) {

@@ -84,6 +84,10 @@ namespace kagome::extensions {
                         runtime::SizeType utf8_length) override;
 
     // -------------------------Cryptographic extensions----------------------
+    void ext_blake2_128(runtime::WasmPointer data,
+                        runtime::SizeType len,
+                        runtime::WasmPointer out) override;
+
     void ext_blake2_256(runtime::WasmPointer data,
                         runtime::SizeType len,
                         runtime::WasmPointer out) override;

@@ -6,12 +6,15 @@
 #include "api/transport/impl/http/http_session.hpp"
 
 #include <boost/config.hpp>
+
 #include "outcome/outcome.hpp"
 
 namespace kagome::api {
 
-  HttpSession::HttpSession(Socket socket, Configuration config)
-      : config_{config}, stream_(std::move(socket)) {}
+  HttpSession::HttpSession(Context &context, Configuration config)
+      : strand_(boost::asio::make_strand(context)),
+        config_{config},
+        stream_(boost::asio::ip::tcp::socket(strand_)) {}
 
   void HttpSession::start() {
     asyncRead();

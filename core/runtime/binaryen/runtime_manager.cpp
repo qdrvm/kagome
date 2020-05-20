@@ -25,6 +25,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
 
 namespace kagome::runtime::binaryen {
 
+  thread_local std::shared_ptr<RuntimeExternalInterface>
+      RuntimeManager::external_interface_{};
+
   RuntimeManager::RuntimeManager(
       std::shared_ptr<runtime::WasmProvider> wasm_provider,
       std::shared_ptr<extensions::ExtensionFactory> extension_factory,
@@ -69,11 +72,26 @@ namespace kagome::runtime::binaryen {
 
     auto hash = hasher_->twox_256(state_code);
 
-    if (hash != state_code_hash_) {
-      OUTCOME_TRY(module, prepareModule(state_code));
-      module_ = std::move(module);
-      external_interface_.reset();
-      state_code_hash_ = hash;
+    std::shared_ptr<wasm::Module> module;
+
+    // Trying retrieve pre-prepared module
+    {
+      std::lock_guard lockGuard(modules_mutex_);
+      auto it = modules_.find(hash);
+      if (it != modules_.end()) {
+        module = it->second;
+      }
+    }
+
+    if (!module) {
+      // Prepare new module
+      OUTCOME_TRY(new_module, prepareModule(state_code));
+
+      // Trying to safe emplace new module, and use existed one
+      //  if it already emplaced in another thread
+      std::lock_guard lockGuard(modules_mutex_);
+      module = modules_.emplace(std::move(hash), std::move(new_module))
+                   .first->second;
     }
 
     if (!external_interface_) {
@@ -81,7 +99,7 @@ namespace kagome::runtime::binaryen {
           extension_factory_, std::shared_ptr(std::move(storage_batch)));
     }
 
-    return {std::make_shared<wasm::ModuleInstance>(*module_,
+    return {std::make_shared<wasm::ModuleInstance>(*module,
                                                    external_interface_.get()),
             external_interface_->memory()};
   }
