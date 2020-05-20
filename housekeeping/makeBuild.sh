@@ -7,7 +7,6 @@ which git
 
 cd "$(dirname $0)/.."
 
-git pull --recurse-submodules
 git submodule update --init --recursive
 
 cmake . -B${BUILD_DIR} "$@"

@@ -1,6 +1,6 @@
 dockerImage = 'soramitsu/kagome-dev:8'
 workerLabel = 'd3-build-agent'
-buildDir = "/tmp/build"
+buildDir = "build"
 repository = "soramitsu/kagome"
 
 def makeBuild(String name, Closure then) {
@@ -14,18 +14,16 @@ def makeBuild(String name, Closure then) {
             usernamePassword(credentialsId: 'sorabot-github-user', passwordVariable: 'GIT_HUB_TOKEN', usernameVariable: 'GIT_HUB_USERNAME'),
             string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')
           ]) {
-            docker.image(dockerImage).inside('--cap-add SYS_PTRACE') {
-              // define env to enable hunter cache
               withEnv([
                 "CTEST_OUTPUT_ON_FAILURE=1",
                 "GITHUB_HUNTER_USERNAME=${GIT_HUB_USERNAME}",
                 "GITHUB_HUNTER_TOKEN=${GIT_HUB_TOKEN}",
                 "BUILD_DIR=${buildDir}",
                 "GIT_HUB_REPOSITORY=${repository}",
+                "DOCKER_IMAGE=${dockerImage}"
               ]) {
                 then()
               } // end withEnv
-            } // end docker.image
           } // end withCredentials
         } // end node
       } catch(Exception e) {
@@ -38,28 +36,28 @@ def makeBuild(String name, Closure then) {
 
 def makeToolchainBuild(String name, String toolchain) {
   return makeBuild(name, {
-    sh(script: "./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=${toolchain} ")
+    sh(script: "./housekeeping/indocker.sh ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=${toolchain} ")
   })
 }
 
 def makeCoverageBuild(String name){
   return makeBuild(name, {
-    sh "BUILD_TARGET=ctest_coverage ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-8_cxx17.cmake -DCOVERAGE=ON"
+    sh "BUILD_TARGET=ctest_coverage ./housekeeping/indocker.sh ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-8_cxx17.cmake -DCOVERAGE=ON"
     // submit coverage
-    sh "./housekeeping/codecov.sh ${buildDir} ${CODECOV_TOKEN}"
-    sh "./housekeeping/sonar.sh"
+    sh "./housekeeping/indocker.sh ./housekeeping/codecov.sh ${buildDir} ${CODECOV_TOKEN}"
+    sh "./housekeeping/indocker.sh ./housekeeping/sonar.sh"
   })
 }
 
 def makeClangTidyBuild(String name){
   return makeBuild(name, {
-    sh(script: "housekeeping/clang-tidy.sh ${buildDir}")
+    sh(script: "./housekeeping/indocker.sh ./housekeeping/clang-tidy.sh ${buildDir}")
   })
 }
 
 def makeAsanBuild(String name){
   return makeBuild(name, {
-    sh(script: "./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-9_cxx17.cmake -DASAN=ON")
+    sh(script: "./housekeeping/indocker.sh ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-9_cxx17.cmake -DASAN=ON")
   })
 }
 
