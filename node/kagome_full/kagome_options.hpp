@@ -19,12 +19,12 @@ namespace kagome::options {
    * @brief parse command line options error enum
    */
   enum class CmdLineOptionError {
-    UNSUPPORTED_P2P_KEY_TYPE = 1,  // p2p key type not supported
-    INVALID_OPTIONS,               // invalid cmd line options
-    CONFIG_FILE_NOT_EXIST,         // configuration file doesn't exist
-    INVALID_CONFIG_FILE,           // failed to open configuration file
-    CANNOT_OPEN_FILE,              // cannot open file
-    LEVELDB_PATH_IS_NOT_DIR,       // leveldb path must be directory
+    UNSUPPORTED_P2P_KEY_TYPE = 1,
+    INVALID_OPTIONS,
+    CONFIG_FILE_NOT_EXIST,
+    INVALID_CONFIG_FILE,
+    CANNOT_OPEN_FILE,
+    LEVELDB_PATH_IS_NOT_DIR,
     INVALID_ENDPOINT,
   };
 }  // namespace kagome::options
