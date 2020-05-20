@@ -24,7 +24,7 @@ A simple status-report can be found within section [supported features](./README
 
 ### Prerequisites
 
-For now, please refer to the [Dockerfile](./housekeeping/docker/Dockerfile) to get a picture of what you need for a local build-environment.
+For now, please refer to the [Dockerfile](housekeeping/docker/develop/Dockerfile) to get a picture of what you need for a local build-environment.
 
 ### Build
 
