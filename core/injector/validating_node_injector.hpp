@@ -3,14 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_INJECTOR_FULL_NODE_INJECTOR_HPP
-#define KAGOME_CORE_INJECTOR_FULL_NODE_INJECTOR_HPP
+#ifndef KAGOME_CORE_INJECTOR_VALIDATING_NODE_INJECTOR_HPP
+#define KAGOME_CORE_INJECTOR_VALIDATING_NODE_INJECTOR_HPP
 
 #include "application/impl/local_key_storage.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
 #include "consensus/grandpa/chain.hpp"
 #include "consensus/grandpa/impl/launcher_impl.hpp"
 #include "injector/application_injector.hpp"
+#include "runtime/dummy/grandpa_dummy.hpp"
 
 namespace kagome::injector {
 
@@ -141,13 +142,14 @@ namespace kagome::injector {
   auto get_babe_observer = get_babe;
 
   template <typename... Ts>
-  auto makeFullNodeInjector(const std::string &genesis_path,
-                            const std::string &keystore_path,
-                            const std::string &leveldb_path,
-                            uint16_t p2p_port,
-                            uint16_t rpc_http_port,
-                            uint16_t rpc_ws_port,
-                            Ts &&... args) {
+  auto makeValidatingNodeInjector(const std::string &genesis_path,
+                                  const std::string &keystore_path,
+                                  const std::string &leveldb_path,
+                                  uint16_t p2p_port,
+                                  uint16_t rpc_http_port,
+                                  uint16_t rpc_ws_port,
+                                  bool is_only_finalizing,
+                                  Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     return di::make_injector(
@@ -169,6 +171,26 @@ namespace kagome::injector {
         di::bind<network::BabeObserver>.to(std::move(get_babe_observer)),
         di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::LauncherImpl>(),
         di::bind<consensus::grandpa::Launcher>.template to<consensus::grandpa::LauncherImpl>(),
+        di::bind<runtime::Grandpa>.template to([is_only_finalizing](
+                                                   const auto &injector)
+                                                   -> sptr<runtime::Grandpa> {
+          static boost::optional<sptr<runtime::Grandpa>> initialized =
+              boost::none;
+          if (initialized) {
+            return *initialized;
+          }
+          if (is_only_finalizing) {
+            auto grandpa_dummy =
+                injector.template create<sptr<runtime::dummy::GrandpaDummy>>();
+            initialized = grandpa_dummy;
+          } else {
+            auto grandpa =
+                injector
+                    .template create<sptr<runtime::binaryen::GrandpaImpl>>();
+            initialized = grandpa;
+          }
+          return *initialized;
+        })[di::override],
         di::bind<application::KeyStorage>.to(
             [keystore_path](const auto &injector) {
               return get_key_storage(keystore_path, injector);
@@ -179,4 +201,4 @@ namespace kagome::injector {
 
 }  // namespace kagome::injector
 
-#endif  // KAGOME_CORE_INJECTOR_FULL_NODE_INJECTOR_HPP
+#endif  // KAGOME_CORE_INJECTOR_VALIDATING_NODE_INJECTOR_HPP

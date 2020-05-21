@@ -219,10 +219,6 @@ namespace kagome::blockchain {
 
     tree_->parent.reset();
 
-    log_->info("Finalized block with hash: {}, number: {}",
-               block.toHex(),
-               node->depth);
-
     return outcome::success();
   }
 

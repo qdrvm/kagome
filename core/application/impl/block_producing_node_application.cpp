@@ -3,36 +3,53 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "application/impl/syncing_node_application.hpp"
-#include "network/common.hpp"
+#include "application/impl/block_producing_node_application.hpp"
 
 namespace kagome::application {
+  using consensus::Epoch;
+  using std::chrono_literals::operator""ms;
+  using consensus::Randomness;
+  using consensus::Threshold;
 
-  SyncingNodeApplication::SyncingNodeApplication(
+  BlockProducingNodeApplication::BlockProducingNodeApplication(
       const std::string &config_path,
+      const std::string &keystore_path,
       const std::string &leveldb_path,
       uint16_t p2p_port,
       uint16_t rpc_http_port,
       uint16_t rpc_ws_port,
+      bool is_genesis_epoch,
       uint8_t verbosity)
-      : injector_{injector::makeSyncingNodeInjector(
-            config_path, leveldb_path, p2p_port, rpc_http_port, rpc_ws_port)},
-        logger_{common::createLogger("SyncingNodeApplication")} {
+      : injector_{injector::makeBlockProducingNodeInjector(config_path,
+                                                           keystore_path,
+                                                           leveldb_path,
+                                                           p2p_port,
+                                                           rpc_http_port,
+                                                           rpc_ws_port)},
+        is_genesis_epoch_{is_genesis_epoch},
+        logger_(common::createLogger("Application")) {
     spdlog::set_level(static_cast<spdlog::level::level_enum>(verbosity));
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
     io_context_ = injector_.create<sptr<boost::asio::io_context>>();
     config_storage_ = injector_.create<sptr<ConfigurationStorage>>();
+    key_storage_ = injector_.create<sptr<KeyStorage>>();
+    clock_ = injector_.create<sptr<clock::SystemClock>>();
+    babe_ = injector_.create<sptr<Babe>>();
     router_ = injector_.create<sptr<network::Router>>();
-
-    rpc_context_ = injector_.create<sptr<api::RpcContext>>();
-    rpc_thread_pool_ = injector_.create<sptr<api::RpcThreadPool>>();
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 
-  void SyncingNodeApplication::run() {
+  void BlockProducingNodeApplication::run() {
     jrpc_api_service_->start();
+
+    // if we are the first peer in the network, then we get genesis epoch info
+    // and start block production
+    if (is_genesis_epoch_) {
+      // starts block production event loop
+      babe_->runGenesisEpoch();
+    }
 
     // execute listeners
     io_context_->post([this] {
@@ -48,28 +65,9 @@ namespace kagome::application {
           std::exit(1);
         }
       }
-      for (const auto &boot_node : config_storage_->getBootNodes().peers) {
-        host.newStream(
-            boot_node,
-            network::kGossipProtocol,
-            [this, boot_node](const auto &stream_res) {
-              if (not stream_res) {
-                this->logger_->error(
-                    "Could not establish connection with {}. Error: {}",
-                    boot_node.id.toBase58(),
-                    stream_res.error().message());
-                return;
-              }
-              this->router_->handleGossipProtocol(stream_res.value());
-            });
-        break;
-      }
       this->router_->init();
     });
 
-    rpc_thread_pool_->start();
-
     io_context_->run();
   }
-
 }  // namespace kagome::application
