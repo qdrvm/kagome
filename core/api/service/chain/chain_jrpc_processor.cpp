@@ -11,7 +11,7 @@
 
 namespace kagome::api::chain {
 
-  ChainJRpcProcessor::ChainJRpcProcessor(std::shared_ptr<JRpcServer> server,
+  ChainJrpcProcessor::ChainJrpcProcessor(std::shared_ptr<JRpcServer> server,
                                          std::shared_ptr<ChainApi> api)
       : api_{std::move(api)}, server_{std::move(server)} {
     BOOST_ASSERT(api_ != nullptr);
@@ -21,7 +21,7 @@ namespace kagome::api::chain {
   template <typename Request>
   using Handler = kagome::api::Method<Request, ChainApi>;
 
-  void ChainJRpcProcessor::registerHandlers() {
+  void ChainJrpcProcessor::registerHandlers() {
     server_->registerHandler("chain_getBlockHash",
                              Handler<request::GetBlockhash>(api_));
   }

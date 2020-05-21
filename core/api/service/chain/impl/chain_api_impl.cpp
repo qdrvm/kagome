@@ -5,18 +5,25 @@
 
 #include "api/service/chain/impl/chain_api_impl.hpp"
 
-#include <boost/lexical_cast.hpp>
+#include <boost/algorithm/hex.hpp>
+#include "common/hexutil.hpp"
 #include "common/visitor.hpp"
 
 namespace kagome::api {
   using kagome::primitives::BlockHash;
   namespace {
     outcome::result<uint32_t> unhexNumber(std::string_view value) {
-      try {
-        return boost::lexical_cast<uint32_t>(value);
-      } catch (boost::bad_lexical_cast &) {
-        return ChainApiError::INVALID_ARGUMENT;
+      if (value.substr(0, 2) == "0x") {
+        return unhexNumber(value.substr(2));
       }
+      OUTCOME_TRY(bytes, common::unhex(value));
+      uint32_t result = 0;
+      for (auto b : bytes) {
+        result *= 10;
+        result += b;
+      }
+
+      return result;
     }
   }  // namespace
 

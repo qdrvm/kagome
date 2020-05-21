@@ -14,14 +14,13 @@ namespace kagome::api::chain {
   /**
    * @brief extrinsic submission service implementation
    */
-  class ChainJRpcProcessor : public JRpcProcessor {
+  class ChainJrpcProcessor : public JRpcProcessor {
    public:
-    ChainJRpcProcessor(std::shared_ptr<JRpcServer> server,
+    ChainJrpcProcessor(std::shared_ptr<JRpcServer> server,
                        std::shared_ptr<ChainApi> api);
-
-   private:
     void registerHandlers() override;
 
+   private:
     std::shared_ptr<ChainApi> api_;
     std::shared_ptr<JRpcServer> server_;
   };

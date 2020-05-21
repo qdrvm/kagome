@@ -28,6 +28,10 @@ namespace kagome::api::chain::request {
       param_ = arg0.AsString();
     } else if (arg0.IsArray()) {
       const auto &array = arg0.AsArray();
+      // empty array would cause problems within `execute`
+      if (array.empty()) {
+        throw jsonrpc::InvalidParametersFault("invalid argument");
+      }
       std::vector<VectorParam> param;
       param.reserve(array.size());
       for (const auto &v : array) {
@@ -65,21 +69,11 @@ namespace kagome::api::chain::request {
         },
         [this](
             const std::vector<VectorParam> &v) -> outcome::result<ResultType> {
-          if (v.size() == 0) {
-            // return last finalized
-            OUTCOME_TRY(bh, api_->getBlockHash());
-            return common::Buffer(bh).toHex();
-          }
-
           OUTCOME_TRY(rr, api_->getBlockHash(gsl::make_span(v)));
           std::vector<std::string> results{};
           results.reserve(v.size());
           for (const auto &it : rr) {
             results.emplace_back(common::Buffer(it).toHex());
-          }
-
-          if (results.size() == 1) {
-            return results[0];
           }
 
           return results;
