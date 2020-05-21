@@ -21,3 +21,13 @@ target_link_libraries(api_transport
     Boost::boost
     logger
     )
+
+add_library(rpc_thread_pool
+    rpc_io_context.hpp
+    rpc_thread_pool.hpp
+    rpc_thread_pool.cpp
+    )
+target_link_libraries(rpc_thread_pool
+    Boost::boost
+    logger
+    )

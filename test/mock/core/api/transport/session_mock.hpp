@@ -12,6 +12,7 @@ namespace kagome::api {
   class SessionMock : public Session {
    public:
     ~SessionMock() override = default;
+    MOCK_METHOD0(socket, Socket &());
     MOCK_METHOD0(start, void());
     MOCK_METHOD1(respond, void(std::string_view));
   };

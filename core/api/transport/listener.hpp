@@ -6,10 +6,10 @@
 #ifndef KAGOME_CORE_API_TRANSPORT_LISTENER_HPP
 #define KAGOME_CORE_API_TRANSPORT_LISTENER_HPP
 
-#include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <memory>
 
+#include "api/transport/rpc_io_context.hpp"
 #include "api/transport/session.hpp"
 #include "outcome/outcome.hpp"
 
@@ -30,6 +30,8 @@ namespace kagome::api {
     using NewSessionHandler = std::function<void(const sptr<Session> &)>;
 
    public:
+    using Context = RpcContext;
+
     virtual ~Listener() = default;
 
     /**

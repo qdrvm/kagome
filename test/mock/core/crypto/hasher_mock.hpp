@@ -17,6 +17,8 @@ namespace kagome::crypto {
 
     MOCK_CONST_METHOD1(twox_64, Hash64(gsl::span<const uint8_t>));
 
+    MOCK_CONST_METHOD1(blake2b_128, Hash128(gsl::span<const uint8_t>));
+
     MOCK_CONST_METHOD1(twox_128, Hash128(gsl::span<const uint8_t>));
 
     MOCK_CONST_METHOD1(twox_256, Hash256(gsl::span<const uint8_t>));

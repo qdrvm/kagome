@@ -34,6 +34,13 @@ namespace kagome::crypto {
     virtual Hash128 twox_128(gsl::span<const uint8_t> buffer) const = 0;
 
     /**
+     * @brief blake2b_128 function calculates 16-byte blake2b hash
+     * @param buffer source value
+     * @return 128-bit hash value
+     */
+    virtual Hash128 blake2b_128(gsl::span<const uint8_t> buffer) const = 0;
+
+    /**
      * @brief twox_256 calculates 32-byte twox hash
      * @param buffer source buffer
      * @return 256-bit hash value
