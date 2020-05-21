@@ -15,7 +15,7 @@
 
 namespace kagome::api {
   inline jsonrpc::Value makeValue(std::string v) {
-    return v;
+    return std::move(v);
   }
 
   inline jsonrpc::Value makeValue(const common::Hash256 &v) {
