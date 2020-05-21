@@ -25,6 +25,9 @@ namespace kagome::application {
     io_context_ = injector_.create<sptr<boost::asio::io_context>>();
     config_storage_ = injector_.create<sptr<ConfigurationStorage>>();
     router_ = injector_.create<sptr<network::Router>>();
+
+    rpc_context_ = injector_.create<sptr<api::RpcContext>>();
+    rpc_thread_pool_ = injector_.create<sptr<api::RpcThreadPool>>();
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 
@@ -63,6 +66,8 @@ namespace kagome::application {
       }
       this->router_->init();
     });
+
+    rpc_thread_pool_->start();
 
     io_context_->run();
   }
