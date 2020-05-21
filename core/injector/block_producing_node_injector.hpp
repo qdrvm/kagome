@@ -19,13 +19,14 @@ namespace kagome::injector {
   namespace di = boost::di;
 
   template <typename... Ts>
-  auto makeBlockProducingNodeInjector(const std::string &genesis_path,
-                                      const std::string &keystore_path,
-                                      const std::string &leveldb_path,
-                                      uint16_t p2p_port,
-                                      uint16_t rpc_http_port,
-                                      uint16_t rpc_ws_port,
-                                      Ts &&... args) {
+  auto makeBlockProducingNodeInjector(
+      const std::string &genesis_path,
+      const std::string &keystore_path,
+      const std::string &leveldb_path,
+      uint16_t p2p_port,
+      const boost::asio::ip::tcp::endpoint &rpc_http_endpoint,
+      const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint,
+      Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     auto get_babe_observer = get_babe;
@@ -34,7 +35,7 @@ namespace kagome::injector {
 
         // inherit application injector
         makeApplicationInjector(
-            genesis_path, leveldb_path, rpc_http_port, rpc_ws_port),
+            genesis_path, leveldb_path, rpc_http_endpoint, rpc_ws_endpoint),
         // bind sr25519 keypair
         di::bind<crypto::SR25519Keypair>.to(std::move(get_sr25519_keypair)),
         // bind ed25519 keypair

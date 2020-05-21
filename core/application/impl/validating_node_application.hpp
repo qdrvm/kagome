@@ -34,14 +34,14 @@ namespace kagome::application {
     using SystemClock = clock::SystemClock;
     using GrandpaLauncher = consensus::grandpa::Launcher;
     using Timer = clock::Timer;
-    using InjectorType =
-        decltype(injector::makeValidatingNodeInjector(std::string{},
-                                                      std::string{},
-                                                      std::string{},
-                                                      uint16_t{},
-                                                      uint16_t{},
-                                                      uint16_t{},
-                                                      bool{}));
+    using InjectorType = decltype(
+        injector::makeFullNodeInjector(std::string{},
+                                       std::string{},
+                                       std::string{},
+                                       uint16_t{},
+                                       boost::asio::ip::tcp::endpoint{},
+                                       boost::asio::ip::tcp::endpoint{},
+                                       bool{}));
 
     template <class T>
     using sptr = std::shared_ptr<T>;
@@ -64,15 +64,16 @@ namespace kagome::application {
      * node
      * @param verbosity level of logging
      */
-    ValidatingNodeApplication(const std::string &config_path,
-                              const std::string &keystore_path,
-                              const std::string &leveldb_path,
-                              uint16_t p2p_port,
-                              uint16_t rpc_http_port,
-                              uint16_t rpc_ws_port,
-                              bool is_genesis_epoch,
-                              bool is_only_finalizing,
-                              uint8_t verbosity);
+    ValidatingNodeApplication(
+        const std::string &config_path,
+        const std::string &keystore_path,
+        const std::string &leveldb_path,
+        uint16_t p2p_port,
+        const boost::asio::ip::tcp::endpoint &rpc_http_endpoint,
+        const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint,
+        bool is_genesis_epoch,
+        bool is_only_finalizing,
+        uint8_t verbosity);
 
     void run() override;
     void shutdown() override;

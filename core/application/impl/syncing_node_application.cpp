@@ -12,11 +12,14 @@ namespace kagome::application {
       const std::string &config_path,
       const std::string &leveldb_path,
       uint16_t p2p_port,
-      uint16_t rpc_http_port,
-      uint16_t rpc_ws_port,
+      const boost::asio::ip::tcp::endpoint &rpc_http_endpoint,
+      const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint,
       uint8_t verbosity)
-      : injector_{injector::makeSyncingNodeInjector(
-          config_path, leveldb_path, p2p_port, rpc_http_port, rpc_ws_port)},
+      : injector_{injector::makeSyncingNodeInjector(config_path,
+                                                    leveldb_path,
+                                                    p2p_port,
+                                                    rpc_http_endpoint,
+                                                    rpc_ws_endpoint)},
         logger_{common::createLogger("SyncingNodeApplication")} {
     spdlog::set_level(static_cast<spdlog::level::level_enum>(verbosity));
 
