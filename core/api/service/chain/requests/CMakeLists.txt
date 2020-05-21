@@ -8,4 +8,5 @@ add_library(api_chain_requests
     )
 target_link_libraries(api_chain_requests
     Boost::boost
+    buffer
     )
