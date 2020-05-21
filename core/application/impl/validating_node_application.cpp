@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "application/impl/kagome_application_impl.hpp"
+#include "application/impl/validating_node_application.hpp"
 
 namespace kagome::application {
   using consensus::Epoch;
@@ -11,20 +11,23 @@ namespace kagome::application {
   using consensus::Randomness;
   using consensus::Threshold;
 
-  KagomeApplicationImpl::KagomeApplicationImpl(const std::string &config_path,
-                                               const std::string &keystore_path,
-                                               const std::string &leveldb_path,
-                                               uint16_t p2p_port,
-                                               uint16_t rpc_http_port,
-                                               uint16_t rpc_ws_port,
-                                               bool is_genesis_epoch,
-                                               uint8_t verbosity)
-      : injector_{injector::makeFullNodeInjector(config_path,
-                                                 keystore_path,
-                                                 leveldb_path,
-                                                 p2p_port,
-                                                 rpc_http_port,
-                                                 rpc_ws_port)},
+  ValidatingNodeApplication::ValidatingNodeApplication(
+      const std::string &config_path,
+      const std::string &keystore_path,
+      const std::string &leveldb_path,
+      uint16_t p2p_port,
+      uint16_t rpc_http_port,
+      uint16_t rpc_ws_port,
+      bool is_genesis_epoch,
+      bool is_only_finalizing,
+      uint8_t verbosity)
+      : injector_{injector::makeValidatingNodeInjector(config_path,
+                                                       keystore_path,
+                                                       leveldb_path,
+                                                       p2p_port,
+                                                       rpc_http_port,
+                                                       rpc_ws_port,
+                                                       is_only_finalizing)},
         is_genesis_epoch_{is_genesis_epoch},
         logger_(common::createLogger("Application")) {
     spdlog::set_level(static_cast<spdlog::level::level_enum>(verbosity));
@@ -46,7 +49,7 @@ namespace kagome::application {
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 
-  void KagomeApplicationImpl::run() {
+  void ValidatingNodeApplication::run() {
     logger_->info("Start as {} with PID {}", typeid(*this).name(), getpid());
 
     signals_->add(SIGINT);
@@ -87,7 +90,7 @@ namespace kagome::application {
     io_context_->run();
   }
 
-  void KagomeApplicationImpl::shutdown() {
+  void ValidatingNodeApplication::shutdown() {
     io_context_->stop();
   }
 }  // namespace kagome::application

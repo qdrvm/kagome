@@ -41,11 +41,16 @@ namespace kagome::application {
    private:
     // need to keep all of these instances, since injector itself is destroyed
     InjectorType injector_;
+
     sptr<boost::asio::io_context> io_context_;
     std::unique_ptr<boost::asio::signal_set> signals_;
+
     sptr<ConfigurationStorage> config_storage_;
-    sptr<api::ApiService> jrpc_api_service_;
     sptr<network::Router> router_;
+
+    sptr<api::RpcContext> rpc_context_;
+    sptr<api::RpcThreadPool> rpc_thread_pool_;
+    sptr<api::ApiService> jrpc_api_service_;
 
     common::Logger logger_;
   };
