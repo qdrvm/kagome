@@ -24,7 +24,7 @@ TEST_F(WsListenerTest, EchoSuccess) {
   ASSERT_NO_THROW(service->start());
 
   std::thread client_thread([this, client] {
-    ASSERT_TRUE(client->connect(endpoint));
+    ASSERT_TRUE(client->connect(listener_config.endpoint));
     client->query(request, [this, client](outcome::result<std::string> res) {
       ASSERT_TRUE(res);
       ASSERT_EQ(res.value(), response);

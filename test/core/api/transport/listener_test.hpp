@@ -9,10 +9,11 @@
 #include "api/transport/listener.hpp"
 
 #include <gtest/gtest.h>
+
 #include "api/jrpc/jrpc_processor.hpp"
 #include "api/jrpc/jrpc_server.hpp"
 #include "api/service/api_service.hpp"
-#include <core/api/client/http_client.hpp>
+#include "core/api/client/http_client.hpp"
 #include "mock/core/api/transport/api_stub.hpp"
 #include "mock/core/api/transport/jrpc_processor_stub.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
@@ -57,9 +58,14 @@ struct ListenerTest : public ::testing::Test {
     response.clear();
   }
 
-  Endpoint endpoint = {boost::asio::ip::address::from_string("127.0.0.1"),
-                       4321};
-  typename ListenerImpl::SessionImpl::Configuration config{};
+  typename ListenerImpl::Configuration listener_config = [] {
+    typename ListenerImpl::Configuration config{};
+    config.endpoint.address(boost::asio::ip::address::from_string("127.0.0.1"));
+    config.endpoint.port(4321);
+    return config;
+  }();
+
+  typename ListenerImpl::SessionImpl::Configuration session_config{};
 
   sptr<ApiStub> api = std::make_shared<ApiStub>();
 
@@ -70,9 +76,7 @@ struct ListenerTest : public ::testing::Test {
 
   std::vector<std::shared_ptr<Listener>> listeners{
       std::make_shared<ListenerImpl>(
-          main_context,
-          typename ListenerImpl::Configuration{endpoint},
-          config)};
+          main_context, listener_config, session_config)};
 
   sptr<ApiService> service = std::make_shared<ApiService>(
       std::vector<std::shared_ptr<Listener>>(listeners), server, processors);

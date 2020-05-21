@@ -28,11 +28,18 @@ namespace kagome::api {
    public:
     using SessionImpl = HttpSession;
 
+    // TODO(xDimon): Replace value by macro from special generated .h config
+    static const uint16_t defaultPort = 40363;
+
     /***
      * Listener configuration
      */
     struct Configuration {
       Endpoint endpoint{};  ///< listener endpoint
+      Configuration() {
+        endpoint.address(boost::asio::ip::address_v4::any());
+        endpoint.port(defaultPort);
+      }
     };
 
     /**
