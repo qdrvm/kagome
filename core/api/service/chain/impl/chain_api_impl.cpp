@@ -61,7 +61,7 @@ namespace kagome::api {
           [this](const uint32_t &number) { return getBlockHash(number); },
           [this](const std::string_view &hex) { return getBlockHash(hex); });
       OUTCOME_TRY(r, res);
-      results.emplace_back(std::move(r));
+      results.emplace_back(r);
     }
 
     return results;
