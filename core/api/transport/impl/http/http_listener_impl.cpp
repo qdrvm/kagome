@@ -23,7 +23,7 @@ namespace kagome::api {
   {}
   catch (boost::wrapexcept<boost::system::system_error> &e) {
     Logger logger = common::createLogger("RPC_HTTP_Listener");
-    logger->critical("Failure at instantiate listener: Can't {}", e.what());
+    logger->critical("Failed to instantiate listener: can't {}", e.what());
   }
   catch (const std::exception &exception) {
     Logger logger = common::createLogger("RPC_HTTP_Listener");
