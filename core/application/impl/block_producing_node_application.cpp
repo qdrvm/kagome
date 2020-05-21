@@ -70,4 +70,8 @@ namespace kagome::application {
 
     io_context_->run();
   }
+
+  void BlockProducingNodeApplication::shutdown() {
+    io_context_->stop();
+  }
 }  // namespace kagome::application

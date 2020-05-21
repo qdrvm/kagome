@@ -8,6 +8,8 @@
 
 #include "application/kagome_application.hpp"
 
+#include <boost/asio/signal_set.hpp>
+
 #include "common/logger.hpp"
 #include "injector/syncing_node_injector.hpp"
 
@@ -39,11 +41,15 @@ namespace kagome::application {
         uint8_t verbosity);
 
     void run() override;
+    void shutdown() override;
 
    private:
     // need to keep all of these instances, since injector itself is destroyed
     InjectorType injector_;
+
     sptr<boost::asio::io_context> io_context_;
+    std::unique_ptr<boost::asio::signal_set> signals_;
+
     sptr<ConfigurationStorage> config_storage_;
     sptr<network::Router> router_;
 

@@ -11,12 +11,24 @@
 #include "api/transport/impl/http/http_session.hpp"
 
 namespace kagome::api {
-  HttpListenerImpl::HttpListenerImpl(std::shared_ptr<Context> context,
-                                     const Configuration &configuration,
-                                     SessionImpl::Configuration session_config)
+  HttpListenerImpl::HttpListenerImpl(
+      std::shared_ptr<Context> context,
+      const Configuration &configuration,
+      SessionImpl::Configuration session_config) try
       : context_(std::move(context)),
         acceptor_(*context_, configuration.endpoint),
-        session_config_{session_config} {}
+        session_config_ {
+    session_config
+  }
+  {}
+  catch (boost::wrapexcept<boost::system::system_error> &e) {
+    Logger logger = common::createLogger("RPC_HTTP_Listener");
+    logger->critical("Failed to instantiate listener: can't {}", e.what());
+  }
+  catch (const std::exception &exception) {
+    Logger logger = common::createLogger("RPC_HTTP_Listener");
+    logger->critical("Exception at instantiate listener: {}", exception.what());
+  }
 
   void HttpListenerImpl::acceptOnce(
       Listener::NewSessionHandler on_new_session) {

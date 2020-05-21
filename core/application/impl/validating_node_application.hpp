@@ -6,10 +6,13 @@
 #ifndef KAGOME_CORE_APPLICATION_IMPL_VALIDATING_NODE_APPLICATION_HPP
 #define KAGOME_CORE_APPLICATION_IMPL_VALIDATING_NODE_APPLICATION_HPP
 
+#include "application/kagome_application.hpp"
+
+#include <boost/asio/signal_set.hpp>
+
 #include "api/service/api_service.hpp"
 #include "application/configuration_storage.hpp"
 #include "application/impl/local_key_storage.hpp"
-#include "application/kagome_application.hpp"
 #include "injector/validating_node_injector.hpp"
 #include "runtime/dummy/grandpa_dummy.hpp"
 
@@ -73,11 +76,15 @@ namespace kagome::application {
         uint8_t verbosity);
 
     void run() override;
+    void shutdown() override;
 
    private:
     // need to keep all of these instances, since injector itself is destroyed
     InjectorType injector_;
+
     sptr<boost::asio::io_context> io_context_;
+	  std::unique_ptr<boost::asio::signal_set> signals_;
+
     sptr<ConfigurationStorage> config_storage_;
     sptr<KeyStorage> key_storage_;
     sptr<clock::SystemClock> clock_;
@@ -92,7 +99,6 @@ namespace kagome::application {
     bool is_genesis_epoch_;
     common::Logger logger_;
   };
-
 }  // namespace kagome::application
 
 #endif  // KAGOME_CORE_APPLICATION_IMPL_VALIDATING_NODE_APPLICATION_HPP

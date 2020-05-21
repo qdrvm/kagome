@@ -35,6 +35,8 @@ namespace kagome::application {
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
     io_context_ = injector_.create<sptr<boost::asio::io_context>>();
+    signals_ = std::make_unique<boost::asio::signal_set>(*io_context_);
+
     config_storage_ = injector_.create<sptr<ConfigurationStorage>>();
     key_storage_ = injector_.create<sptr<KeyStorage>>();
     clock_ = injector_.create<sptr<clock::SystemClock>>();
@@ -48,6 +50,13 @@ namespace kagome::application {
   }
 
   void ValidatingNodeApplication::run() {
+    logger_->info("Start as {} with PID {}", typeid(*this).name(), getpid());
+
+    signals_->add(SIGINT);
+    signals_->add(SIGTERM);
+    signals_->add(SIGQUIT);
+    signals_->async_wait(boost::bind(&KagomeApplication::shutdown, this));
+
     jrpc_api_service_->start();
 
     // if we are the first peer in the network, then we get genesis epoch info
@@ -79,5 +88,9 @@ namespace kagome::application {
     rpc_thread_pool_->start();
 
     io_context_->run();
+  }
+
+  void ValidatingNodeApplication::shutdown() {
+    io_context_->stop();
   }
 }  // namespace kagome::application
