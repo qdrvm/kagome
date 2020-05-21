@@ -72,12 +72,8 @@ namespace kagome::injector {
 
         di::bind<network::BabeObserver>.template to<consensus::SyncingBabeObserver>(),
         di::bind<consensus::grandpa::RoundObserver>.template to<consensus::grandpa::SyncingRoundObserver>(),
-        di::bind<storage::BufferStorage>.template to<storage::InMemoryStorage>()
-            [boost::di::override],
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
-    auto leveldb_options = leveldb::Options();
-    leveldb_options.create_if_missing = true;
   }
 
 }  // namespace kagome::injector

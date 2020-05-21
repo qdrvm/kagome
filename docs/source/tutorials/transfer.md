@@ -9,7 +9,7 @@ In this tutorial you will learn how to execute Kagome-based Polkadot-host chain 
 1. Kagome full node binary built as described [here](https://kagome.readthedocs.io/en/latest/overview/getting_started.html#build-full-validating-node).
 2. For your convenience make sure you have this binary included into your path:
 ```
-PATH=$PATH:build/node/kagome_full/
+PATH=$PATH:build/node/kagome_validating/
 ```
 3. Python 3 installed in the system  
 
@@ -67,7 +67,7 @@ rm -rf ldb
 
 For this tutorial you can start single node network as follows:
 
-`kagome_full --genesis config/localchain.json --keystore config/localkeystore.json -l ldb -e`
+`kagome_validating --genesis config/localchain.json --keystore config/localkeystore.json -l ldb -e`
 
 You should see the log messages notifying about produced and finalized the blocks. 
 

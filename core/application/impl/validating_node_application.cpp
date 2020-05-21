@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "application/impl/kagome_application_impl.hpp"
+#include "application/impl/validating_node_application.hpp"
 
 namespace kagome::application {
   using consensus::Epoch;
@@ -11,7 +11,7 @@ namespace kagome::application {
   using consensus::Randomness;
   using consensus::Threshold;
 
-  KagomeApplicationImpl::KagomeApplicationImpl(
+  ValidatingNodeApplication::ValidatingNodeApplication(
       const std::string &config_path,
       const std::string &keystore_path,
       const std::string &leveldb_path,
@@ -19,13 +19,15 @@ namespace kagome::application {
       const boost::asio::ip::tcp::endpoint &rpc_http_endpoint,
       const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint,
       bool is_genesis_epoch,
+      bool is_only_finalizing,
       uint8_t verbosity)
       : injector_{injector::makeFullNodeInjector(config_path,
                                                  keystore_path,
                                                  leveldb_path,
                                                  p2p_port,
                                                  rpc_http_endpoint,
-                                                 rpc_ws_endpoint)},
+                                                 rpc_ws_endpoint,
+                                                 is_only_finalizing)},
         is_genesis_epoch_{is_genesis_epoch},
         logger_(common::createLogger("Application")) {
     spdlog::set_level(static_cast<spdlog::level::level_enum>(verbosity));
@@ -45,7 +47,7 @@ namespace kagome::application {
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 
-  void KagomeApplicationImpl::run() {
+  void ValidatingNodeApplication::run() {
     jrpc_api_service_->start();
 
     // if we are the first peer in the network, then we get genesis epoch info

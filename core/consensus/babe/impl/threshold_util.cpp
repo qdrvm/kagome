@@ -18,9 +18,9 @@ namespace kagome::consensus {
 
     using boost::adaptors::transformed;
     double theta =
-        double(authorities[authority_index].babe_weight)
+        double(authorities[authority_index].weight)
         / boost::accumulate(authorities | transformed([](auto &authority) {
-                              return authority.babe_weight;
+                              return authority.weight;
                             }),
                             0.);
 
