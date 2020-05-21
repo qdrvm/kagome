@@ -11,15 +11,15 @@ def makeBuild(String name, Closure then) {
           scmVars = checkout scm
           withCredentials([
             string(credentialsId: 'codecov-token', variable: 'CODECOV_TOKEN'),
-            usernamePassword(credentialsId: 'sorabot-github-user', passwordVariable: 'GIT_HUB_TOKEN', usernameVariable: 'GIT_HUB_USERNAME'),
+            usernamePassword(credentialsId: 'sorabot-github-user', passwordVariable: 'GITHUB_TOKEN', usernameVariable: 'GITHUB_USERNAME'),
             string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')
           ]) {
               withEnv([
                 "CTEST_OUTPUT_ON_FAILURE=1",
-                "GITHUB_HUNTER_USERNAME=${GIT_HUB_USERNAME}",
-                "GITHUB_HUNTER_TOKEN=${GIT_HUB_TOKEN}",
+                "GITHUB_HUNTER_USERNAME=${GITHUB_USERNAME}",
+                "GITHUB_HUNTER_TOKEN=${GITHUB_TOKEN}",
                 "BUILD_DIR=${buildDir}",
-                "GIT_HUB_REPOSITORY=${repository}",
+                "GITHUB_REPOSITORY=${repository}",
                 "DOCKER_IMAGE=${dockerImage}"
               ]) {
                 then()
