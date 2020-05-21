@@ -39,6 +39,13 @@ namespace kagome::options {
   class KagomeOptions {
    public:
     using Endpoint = boost::asio::ip::tcp::endpoint;
+
+    // TODO(xDimon): Replace magic numbers by macro
+    //  from special generated .h config
+    static constexpr uint16_t defaultP2pPort = 30363;
+    static constexpr uint16_t defaultRpcHttpPort = 40363;
+    static constexpr uint16_t defaultRpcWebsockerPort = 40364;
+
     KagomeOptions();
 
     /**

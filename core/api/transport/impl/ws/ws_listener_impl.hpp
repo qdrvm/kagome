@@ -27,6 +27,9 @@ namespace kagome::api {
    public:
     using SessionImpl = WsSession;
 
+    // TODO(xDimon): Replace value by macro from special generated .h config
+    static const uint16_t defaultPort = 40364;
+
     /***
      * Listener configuration
      */
@@ -34,7 +37,7 @@ namespace kagome::api {
       Endpoint endpoint{};  ///< listener endpoint
       Configuration() {
         endpoint.address(boost::asio::ip::address_v4::any());
-        endpoint.port(40364);
+        endpoint.port(defaultPort);
       }
     };
 

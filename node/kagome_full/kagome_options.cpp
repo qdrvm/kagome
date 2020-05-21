@@ -42,13 +42,13 @@ namespace kagome::options {
        "mandatory, keystore file path")
       ("leveldb,l", po::value<std::string>(&leveldb_path)->required(),
           "mandatory, leveldb directory path")
-      ("p2p_port,p", po::value<uint16_t>(&p2p_port)->default_value(30363),
+      ("p2p_port,p", po::value<uint16_t>(&p2p_port)->default_value(defaultP2pPort),
        "port for peer to peer interactions")
 
       ("rpc_http_host", po::value<std::string>(&rpc_http_host)->default_value("0.0.0.0"), "address for RPC over HTTP")
-      ("rpc_http_port", po::value<uint16_t>(&rpc_http_port)->default_value(40363), "port for RPC over HTTP")
+      ("rpc_http_port", po::value<uint16_t>(&rpc_http_port)->default_value(defaultRpcHttpPort), "port for RPC over HTTP")
       ("rpc_ws_host", po::value<std::string>(&rpc_ws_host)->default_value("0.0.0.0"), "address for RPC over Websocket protocol")
-      ("rpc_ws_port", po::value<uint16_t>(&rpc_ws_port)->default_value(40364), "port for RPC over Websocket protocol")
+      ("rpc_ws_port", po::value<uint16_t>(&rpc_ws_port)->default_value(defaultRpcWebsockerPort), "port for RPC over Websocket protocol")
 
       ("genesis_epoch,e", "if we need to execute genesis epoch")
       ("verbosity,v", po::value<int>(&verbosity)->default_value(2),
