@@ -98,7 +98,6 @@ namespace kagome::application {
     bool is_genesis_epoch_;
     common::Logger logger_;
   };
-
 }  // namespace kagome::application
 
 #endif  // KAGOME_CORE_APPLICATION_IMPL_VALIDATING_NODE_APPLICATION_HPP
