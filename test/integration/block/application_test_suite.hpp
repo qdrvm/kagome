@@ -14,7 +14,11 @@ class ApplicationTestSuite : public testing::Test {
  protected:
   auto &getInjector() const {
     static auto injector = kagome::injector::makeApplicationInjector(
-        "../../node/config/localchain.json", "../../node/ldb", {}, {});
+        "../../node/config/localchain.json",
+        boost::filesystem::temp_directory_path().native()
+            + boost::filesystem::unique_path().native() + "/ldb",
+        {},
+        {});
     return injector;
   }
 };
