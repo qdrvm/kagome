@@ -33,8 +33,8 @@ namespace kagome::runtime::binaryen {
       std::shared_ptr<extensions::ExtensionFactory> extension_factory,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<crypto::Hasher> hasher)
-      : wasm_provider_{std::move(wasm_provider)},
-        storage_{std::move(trie_storage)},
+      : storage_{std::move(trie_storage)},
+        wasm_provider_{std::move(wasm_provider)},
         extension_factory_{std::move(extension_factory)},
         hasher_{std::move(hasher)} {
     BOOST_ASSERT(wasm_provider_);
