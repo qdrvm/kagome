@@ -64,7 +64,7 @@ namespace kagome::api::chain::request {
           OUTCOME_TRY(bh, api_->getBlockHash(v));
           return common::Buffer(bh).toHex();
         },
-        [this](std::string v) -> outcome::result<ResultType> {
+        [this](std::string_view v) -> outcome::result<ResultType> {
           OUTCOME_TRY(bh, api_->getBlockHash(v));
           return common::Buffer(bh).toHex();
         },
