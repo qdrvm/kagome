@@ -21,6 +21,7 @@ namespace kagome::common {
     NOT_ENOUGH_INPUT = 1,
     NON_HEX_INPUT,
     VALUE_OUT_OF_RANGE,
+    WRONG_FORMAT,
     UNKNOWN
   };
 
@@ -75,14 +76,8 @@ namespace kagome::common {
   template <class T, typename = std::enable_if<std::is_unsigned_v<T>>>
   outcome::result<T> unhexNumber(std::string_view value) {
     std::vector<uint8_t> bytes;
-    static const std::string leading_chars = "0x";
-    if (value.substr(0, 2) == leading_chars) {
-      OUTCOME_TRY(bts, common::unhexWith0x(value));
-      bytes = std::move(bts);
-    } else {
-      OUTCOME_TRY(bts, common::unhex(value));
-      bytes = std::move(bts);
-    }
+    OUTCOME_TRY(bts, common::unhexWith0x(value));
+    bytes = std::move(bts);
 
     if (bytes.size() > sizeof(T)) {
       return UnhexError::VALUE_OUT_OF_RANGE;
