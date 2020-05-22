@@ -79,10 +79,15 @@ INSTANTIATE_TEST_CASE_P(UnhexNumberTestCases,
                         UnhexNumber32Test,
                         ::testing::Values(makePair("0x64", 100),
                                           makePair("0x01", 1),
-                                          makePair("64", 100),
                                           makePair("0xbc614e", 12345678)));
 TEST(UnhexNumberTest, Overflow) {
   std::string encoded = "0x01FF";
   EXPECT_OUTCOME_ERROR(kagome::common::UnhexError::VALUE_OUT_OF_RANGE,
+                       unhexNumber<uint8_t>(encoded));
+}
+
+TEST(UnhexNumberTest, WrongFormat) {
+  std::string encoded = "64";
+  EXPECT_OUTCOME_ERROR(kagome::common::UnhexError::WRONG_FORMAT,
                        unhexNumber<uint8_t>(encoded));
 }
