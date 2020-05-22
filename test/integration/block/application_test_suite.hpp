@@ -16,7 +16,7 @@ class ApplicationTestSuite : public testing::Test {
     static auto injector = kagome::injector::makeApplicationInjector(
         "../../node/config/localchain.json",
         boost::filesystem::temp_directory_path().native()
-            + boost::filesystem::unique_path().native() + "/ldb",
+            + boost::filesystem::unique_path().native() + "ldb",
         {},
         {});
     return injector;
