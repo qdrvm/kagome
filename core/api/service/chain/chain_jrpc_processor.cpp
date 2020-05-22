@@ -19,7 +19,7 @@ namespace kagome::api::chain {
   }
 
   template <typename Request>
-  using Handler = kagome::api::Method<Request, ChainApi>;
+  using Handler = Method<Request, ChainApi>;
 
   void ChainJrpcProcessor::registerHandlers() {
     server_->registerHandler("chain_getBlockHash",

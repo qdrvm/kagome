@@ -6,7 +6,6 @@
 #include "common/hexutil.hpp"
 
 #include <boost/algorithm/hex.hpp>
-#include <boost/format.hpp>
 #include <gsl/span>
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::common, UnhexError, e) {
@@ -16,9 +15,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::common, UnhexError, e) {
       return "Input contains non-hex characters";
     case UnhexError::NOT_ENOUGH_INPUT:
       return "Input contains odd number of characters";
-    default:
+    case UnhexError::VALUE_OUT_OF_RANGE:
+      return "Decoded value is out of range of requested type";
+    case UnhexError::UNKNOWN:
       return "Unknown error";
   }
+  return "Unknown error (error id not listed)";
 }
 
 namespace kagome::common {

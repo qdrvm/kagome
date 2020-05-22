@@ -14,10 +14,6 @@
 
 namespace kagome::api {
 
-  enum class ChainApiError {
-    INVALID_ARGUMENT = 1,
-  };
-
   class ChainApiImpl : public ChainApi {
    public:
     ~ChainApiImpl() override = default;
@@ -27,7 +23,7 @@ namespace kagome::api {
 
     outcome::result<BlockHash> getBlockHash() const override;
 
-    outcome::result<BlockHash> getBlockHash(uint32_t value) const override;
+    outcome::result<BlockHash> getBlockHash(BlockNumber value) const override;
 
     outcome::result<BlockHash> getBlockHash(
         std::string_view value) const override;
@@ -40,7 +36,5 @@ namespace kagome::api {
     std::shared_ptr<blockchain::BlockTree> block_tree_;
   };
 }  // namespace kagome::api
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::api, ChainApiError)
 
 #endif  // KAGOME_CHAIN_API_IMPL_HPP

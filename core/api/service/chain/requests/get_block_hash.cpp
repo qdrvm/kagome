@@ -9,6 +9,7 @@
 #include "common/visitor.hpp"
 
 namespace kagome::api::chain::request {
+  using primitives::BlockNumber;
 
   outcome::result<void> GetBlockhash::init(
       const jsonrpc::Request::Parameters &params) {
@@ -59,11 +60,11 @@ namespace kagome::api::chain::request {
           OUTCOME_TRY(bh, api_->getBlockHash());
           return common::Buffer(bh).toHex();
         },
-        [this](const uint32_t &v) -> outcome::result<ResultType> {
+        [this](BlockNumber v) -> outcome::result<ResultType> {
           OUTCOME_TRY(bh, api_->getBlockHash(v));
           return common::Buffer(bh).toHex();
         },
-        [this](const std::string &v) -> outcome::result<ResultType> {
+        [this](std::string v) -> outcome::result<ResultType> {
           OUTCOME_TRY(bh, api_->getBlockHash(v));
           return common::Buffer(bh).toHex();
         },

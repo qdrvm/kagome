@@ -15,7 +15,7 @@ namespace kagome::api::chain::request {
 
   class GetBlockhash final {
     struct NoParameters {};
-    using Param1 = uint32_t;
+    using Param1 = primitives::BlockNumber;
     using Param2 = std::string;
     using VectorParam = boost::variant<Param1, Param2>;
     using Param3 = std::vector<VectorParam>;
