@@ -15,6 +15,8 @@
 #include "api/service/api_service.hpp"
 #include "api/service/author/author_jrpc_processor.hpp"
 #include "api/service/author/impl/author_api_impl.hpp"
+#include "api/service/chain/chain_jrpc_processor.hpp"
+#include "api/service/chain/impl/chain_api_impl.hpp"
 #include "api/service/state/impl/readonly_trie_builder_impl.hpp"
 #include "api/service/state/impl/state_api_impl.hpp"
 #include "api/service/state/state_jrpc_processor.hpp"
@@ -128,7 +130,9 @@ namespace kagome::injector {
         injector
             .template create<std::shared_ptr<api::state::StateJrpcProcessor>>(),
         injector.template create<
-            std::shared_ptr<api::author::AuthorJRpcProcessor>>()};
+            std::shared_ptr<api::author::AuthorJRpcProcessor>>(),
+        injector.template create<
+            std::shared_ptr<api::chain::ChainJrpcProcessor>>()};
     initialized =
         std::make_shared<api::ApiService>(listeners, server, processors);
     return initialized.value();
@@ -485,6 +489,7 @@ namespace kagome::injector {
             }),
         di::bind<api::ReadonlyTrieBuilder>.template to<api::ReadonlyTrieBuilderImpl>(),
         di::bind<api::AuthorApi>.template to<api::AuthorApiImpl>(),
+        di::bind<api::ChainApi>.template to<api::ChainApiImpl>(),
         di::bind<api::StateApi>.template to<api::StateApiImpl>(),
         di::bind<api::ApiService>.to(std::move(get_jrpc_api_service)),
         di::bind<api::JRpcServer>.template to<api::JRpcServerImpl>(),

@@ -10,7 +10,6 @@
 #include <vector>
 
 #include <gsl/span>
-
 #include "outcome/outcome.hpp"
 
 namespace kagome::common {
@@ -18,7 +17,13 @@ namespace kagome::common {
   /**
    * @brief error codes for exceptions that may occur during unhexing
    */
-  enum class UnhexError { NOT_ENOUGH_INPUT = 1, NON_HEX_INPUT, UNKNOWN };
+  enum class UnhexError {
+    NOT_ENOUGH_INPUT = 1,
+    NON_HEX_INPUT,
+    VALUE_OUT_OF_RANGE,
+    MISSING_0X_PREFIX,
+    UNKNOWN
+  };
 
   /**
    * @brief Converts an integer to an uppercase hex representation
@@ -61,6 +66,32 @@ namespace kagome::common {
    * @return unhexed buffer
    */
   outcome::result<std::vector<uint8_t>> unhexWith0x(std::string_view hex);
+
+  /**
+   * @brief unhex hex-string with 0x or without it in the beginning
+   * @tparam T unsigned integer value type to decode
+   * @param value source hex string
+   * @return unhexed value
+   */
+  template <class T, typename = std::enable_if<std::is_unsigned_v<T>>>
+  outcome::result<T> unhexNumber(std::string_view value) {
+    std::vector<uint8_t> bytes;
+    OUTCOME_TRY(bts, common::unhexWith0x(value));
+    bytes = std::move(bts);
+
+    if (bytes.size() > sizeof(T)) {
+      return UnhexError::VALUE_OUT_OF_RANGE;
+    }
+
+    T result{0u};
+    for (auto b : bytes) {
+      // check if `multiply by 10` will cause overflow
+      result <<= 8u;
+      result += b;
+    }
+
+    return result;
+  }
 
 }  // namespace kagome::common
 
