@@ -70,10 +70,17 @@ namespace kagome::consensus {
     genesis_epoch.authorities = genesis_configuration_->genesis_authorities;
     genesis_epoch.randomness = genesis_configuration_->randomness;
     genesis_epoch.epoch_duration = genesis_configuration_->epoch_length;
-    genesis_epoch.start_slot = 0;
 
-    next_slot_finish_time_ =
-        clock_->now() + genesis_configuration_->slot_duration;
+    auto slot_duration = genesis_configuration_->slot_duration;
+    BOOST_ASSERT_MSG(slot_duration > clock::SystemClock::Duration(0),
+                     "slot duration must be > 0");
+
+    auto ticks_since_epoch = clock_->now().time_since_epoch().count();
+
+    genesis_epoch.start_slot =
+        static_cast<BabeSlotNumber>(ticks_since_epoch / slot_duration.count());
+
+    next_slot_finish_time_ = clock_->now() + slot_duration;
 
     current_state_ = BabeState::SYNCHRONIZED;
     runEpoch(genesis_epoch, next_slot_finish_time_);
@@ -206,10 +213,9 @@ namespace kagome::consensus {
         slots_leadership_[current_slot_ % current_epoch_.epoch_duration];
     if (slot_leadership) {
       log_->debug("Peer {} is leader (vrfOutput: {}, proof: {})",
-      		keypair_.public_key.toHex(),
-      		common::Buffer(slot_leadership->output).toHex(),
-	        common::Buffer(slot_leadership->proof).toHex()
-	        );
+                  keypair_.public_key.toHex(),
+                  common::Buffer(slot_leadership->output).toHex(),
+                  common::Buffer(slot_leadership->proof).toHex());
 
       processSlotLeadership(*slot_leadership);
     }
