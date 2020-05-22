@@ -23,24 +23,23 @@ class BlockProduceConsume : public ApplicationTestSuite {
   void SetUp() override {
     getInjector().template create<std::shared_ptr<blockchain::BlockStorage>>();
 
-	  auto backend =
-	    getInjector().template create<std::shared_ptr<storage::trie::TrieDbBackend>>();
+    auto backend =
+        getInjector()
+            .template create<std::shared_ptr<storage::trie::TrieDbBackend>>();
 
-	  auto trie_db = storage::trie::PolkadotTrieDb::createEmpty(backend);
+    auto trie_db = storage::trie::PolkadotTrieDb::createEmpty(backend);
 
-	  auto configuration_storage =
-			  getInjector().template create<std::shared_ptr<application::ConfigurationStorage>>();
+    auto configuration_storage =
+        getInjector()
+            .template create<
+                std::shared_ptr<application::ConfigurationStorage>>();
 
-	  for (const auto &[key, val] : configuration_storage->getGenesis()) {
-		  if (auto res = trie_db->put(key, val); not res) {
-			  common::raise(res.error());
-		  }
-	  }
-	  _trieDb.reset(trie_db.release());
-
-    _now = std::chrono::duration_cast<std::chrono::milliseconds>(
-               std::chrono::system_clock::now().time_since_epoch())
-               .count();
+    for (const auto &[key, val] : configuration_storage->getGenesis()) {
+      if (auto res = trie_db->put(key, val); not res) {
+        common::raise(res.error());
+      }
+    }
+    _trieDb.reset(trie_db.release());
   }
 
   void TearDown() override {
@@ -71,8 +70,6 @@ class BlockProduceConsume : public ApplicationTestSuite {
   std::unique_ptr<transaction_pool::TransactionPool> _txPool;
   std::unique_ptr<authorship::Proposer> _proposer;
   std::shared_ptr<storage::trie::TrieDb> _trieDb;
-
-  int64_t _now;
 
   Buffer _initialState;
   Buffer _afterProduceState;
@@ -159,6 +156,8 @@ outcome::result<Block> BlockProduceConsume::produceBlock(
 
   _initialState = _trieDb->getRootHash();
 
+  //	std::this_thread::sleep_for(std::chrono::seconds(5));
+
   if (!extrinsics.empty()) {
     auto runtime_manager = std::make_shared<runtime::binaryen::RuntimeManager>(
         std::make_shared<runtime::StorageWasmProvider>(_trieDb),
@@ -173,6 +172,8 @@ outcome::result<Block> BlockProduceConsume::produceBlock(
       auto hash = _hasher->blake2b_256(extrinsic.data);
 
       OUTCOME_TRY(validate_result, api->validate_transaction(extrinsic));
+
+      assert(_trieDb->getRootHash() == _initialState);
 
       OUTCOME_TRY(visit_in_place(
           validate_result,
@@ -209,8 +210,12 @@ outcome::result<Block> BlockProduceConsume::produceBlock(
   static const auto kBabeSlotId =
       InherentIdentifier::fromString("babeslot").value();
 
+  int64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::system_clock::now().time_since_epoch())
+                    .count();
+
   InherentData inherent_data;
-  OUTCOME_TRY(inherent_data.putData<uint64_t>(kTimestampId, _now));
+  OUTCOME_TRY(inherent_data.putData<uint64_t>(kTimestampId, now));
   OUTCOME_TRY(inherent_data.putData(kBabeSlotId, current_slot));
 
   consensus::BabeBlockHeader babe_header{
@@ -228,14 +233,29 @@ outcome::result<Block> BlockProduceConsume::produceBlock(
 }
 
 outcome::result<void> BlockProduceConsume::consumeBlock(const Block &block) {
-  auto originalTrieDb = std::shared_ptr<storage::trie::TrieDb>(
-      storage::trie::PolkadotTrieDb::createFromStorage(
-          _initialState,
-          getInjector()
-              .template create<std::shared_ptr<storage::trie::TrieDbBackend>>())
-          .release());
+  auto backend =
+      getInjector()
+          .template create<std::shared_ptr<storage::trie::TrieDbBackend>>();
+
+  auto trie_db = storage::trie::PolkadotTrieDb::createEmpty(backend);
+
+  auto configuration_storage =
+      getInjector()
+          .template create<
+              std::shared_ptr<application::ConfigurationStorage>>();
+
+  for (const auto &[key, val] : configuration_storage->getGenesis()) {
+    if (auto res = trie_db->put(key, val); not res) {
+      common::raise(res.error());
+    }
+  }
+
+  auto originalTrieDb =
+      std::shared_ptr<storage::trie::TrieDb>(trie_db.release());
 
   assert(originalTrieDb->getRootHash() == _initialState);
+
+  //	std::this_thread::sleep_for(std::chrono::seconds(5));
 
   auto runtime_manager = std::make_shared<runtime::binaryen::RuntimeManager>(
       std::make_shared<runtime::StorageWasmProvider>(originalTrieDb),

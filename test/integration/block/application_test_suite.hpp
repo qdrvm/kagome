@@ -13,13 +13,10 @@
 class ApplicationTestSuite : public testing::Test {
  protected:
   auto &getInjector() const {
-    static auto injector =
-        kagome::injector::makeApplicationInjector("../../node/config/localchain.json",
-                                                  "../../node/ldb",
-                                                  40363,
-                                                  40364);
+    static auto injector = kagome::injector::makeApplicationInjector(
+        "../../node/config/localchain.json", "../../node/ldb", {}, {});
     return injector;
   }
 };
 
-#endif // KAGOME_CORE_STORAGE_PREDEFINED_KEYS_HPP
+#endif  // KAGOME_CORE_STORAGE_PREDEFINED_KEYS_HPP
