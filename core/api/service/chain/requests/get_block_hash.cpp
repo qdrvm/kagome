@@ -9,6 +9,7 @@
 #include "common/visitor.hpp"
 
 namespace kagome::api::chain::request {
+  using primitives::BlockHash;
   using primitives::BlockNumber;
 
   outcome::result<void> GetBlockhash::init(
@@ -52,21 +53,29 @@ namespace kagome::api::chain::request {
     return outcome::success();
   }  // namespace kagome::api::chain::request
 
+  namespace {
+    std::string formatBlockHash(const BlockHash &bh) {
+      const static std::string prefix = "0x";
+      auto hex = common::hex_lower(bh);
+      return prefix + hex;
+    }
+  }  // namespace
+
   outcome::result<GetBlockhash::ResultType> GetBlockhash::execute() {
     return kagome::visit_in_place(
         param_,
         [this](const NoParameters &v) -> outcome::result<ResultType> {
           // return last finalized
           OUTCOME_TRY(bh, api_->getBlockHash());
-          return common::Buffer(bh).toHex();
+          return formatBlockHash(bh);
         },
         [this](BlockNumber v) -> outcome::result<ResultType> {
           OUTCOME_TRY(bh, api_->getBlockHash(v));
-          return common::Buffer(bh).toHex();
+          return formatBlockHash(bh);
         },
         [this](std::string_view v) -> outcome::result<ResultType> {
           OUTCOME_TRY(bh, api_->getBlockHash(v));
-          return common::Buffer(bh).toHex();
+          return formatBlockHash(bh);
         },
         [this](
             const std::vector<VectorParam> &v) -> outcome::result<ResultType> {
@@ -74,7 +83,7 @@ namespace kagome::api::chain::request {
           std::vector<std::string> results{};
           results.reserve(v.size());
           for (const auto &it : rr) {
-            results.emplace_back(common::Buffer(it).toHex());
+            results.emplace_back(formatBlockHash(it));
           }
 
           return results;

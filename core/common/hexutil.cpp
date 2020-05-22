@@ -17,8 +17,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::common, UnhexError, e) {
       return "Input contains odd number of characters";
     case UnhexError::VALUE_OUT_OF_RANGE:
       return "Decoded value is out of range of requested type";
-    case UnhexError::WRONG_FORMAT:
-      return "Input data has wrong format";
+    case UnhexError::MISSING_0X_PREFIX:
+      return "Missing expected 0x prefix";
     case UnhexError::UNKNOWN:
       return "Unknown error";
   }
@@ -79,7 +79,7 @@ namespace kagome::common {
     const static std::string leading_chrs = "0x";
 
     if (hex_with_prefix.substr(0, leading_chrs.size()) != leading_chrs) {
-      return UnhexError::WRONG_FORMAT;
+      return UnhexError::MISSING_0X_PREFIX;
     }
 
     auto without_prefix = hex_with_prefix.substr(leading_chrs.size());

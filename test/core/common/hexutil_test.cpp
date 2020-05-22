@@ -88,6 +88,6 @@ TEST(UnhexNumberTest, Overflow) {
 
 TEST(UnhexNumberTest, WrongFormat) {
   std::string encoded = "64";
-  EXPECT_OUTCOME_ERROR(kagome::common::UnhexError::WRONG_FORMAT,
+  EXPECT_OUTCOME_ERROR(kagome::common::UnhexError::MISSING_0X_PREFIX,
                        unhexNumber<uint8_t>(encoded));
 }

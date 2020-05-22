@@ -21,7 +21,7 @@ namespace kagome::common {
     NOT_ENOUGH_INPUT = 1,
     NON_HEX_INPUT,
     VALUE_OUT_OF_RANGE,
-    WRONG_FORMAT,
+    MISSING_0X_PREFIX,
     UNKNOWN
   };
 
