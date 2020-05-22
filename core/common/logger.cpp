@@ -9,7 +9,7 @@
 
 namespace {
   void setGlobalPattern(spdlog::logger &logger) {
-    logger.set_pattern("[%Y-%m-%d %H:%M:%S][%l] %n %v");
+    logger.set_pattern("[%Y-%m-%d %H:%M:%S][%l] %v");
   }
 
   void setDebugPattern(spdlog::logger &logger) {

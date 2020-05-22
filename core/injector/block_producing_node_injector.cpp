@@ -3,4 +3,4 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "injector/full_node_injector.hpp"
+#include "injector/block_producing_node_injector.hpp"

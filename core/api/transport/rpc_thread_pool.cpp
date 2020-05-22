@@ -27,19 +27,15 @@ namespace kagome::api {
   void RpcThreadPool::start() {
     // Create a pool of threads to run all of the io_contexts.
     for (std::size_t i = 0; i < config_.min_thread_number; ++i) {
-      threads_.emplace(std::make_shared<std::thread>(
-          [context = context_] { context->run(); }));
+      auto thread = std::make_shared<std::thread>(
+          [context = context_] { context->run(); });
+      thread->detach();
+      threads_.emplace(std::move(thread));
     }
   }
 
   void RpcThreadPool::stop() {
     context_->stop();
-
-    for (auto& thread : threads_) {
-      if (thread->joinable()) {
-        thread->join();
-      }
-    }
   }
 
 }  // namespace kagome::api

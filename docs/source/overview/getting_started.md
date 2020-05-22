@@ -32,7 +32,7 @@ This project is can be built with
 
 ```
 mkdir build && cd build
-cmake ..
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j 
 ```
 
