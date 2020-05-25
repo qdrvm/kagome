@@ -20,6 +20,9 @@
 #include "scale/scale.hpp"
 
 namespace kagome::consensus {
+  using TimePoint = clock::SystemClock::TimePoint;
+  using Duration = clock::SystemClock::Duration;
+
   BabeImpl::BabeImpl(
       std::shared_ptr<BabeLottery> lottery,
       std::shared_ptr<BlockExecutor> block_executor,
@@ -70,10 +73,21 @@ namespace kagome::consensus {
     genesis_epoch.authorities = genesis_configuration_->genesis_authorities;
     genesis_epoch.randomness = genesis_configuration_->randomness;
     genesis_epoch.epoch_duration = genesis_configuration_->epoch_length;
-    genesis_epoch.start_slot = 0;
+
+    auto slot_duration = genesis_configuration_->slot_duration;
+    BOOST_ASSERT_MSG(slot_duration > clock::SystemClock::Duration(0),
+                     "slot duration must be > 0");
+    TimePoint now = clock_->now();
+    Duration time_since_epoch = now.time_since_epoch();
+    TimePoint epoch_start_point = std::chrono::system_clock::from_time_t(0);
+
+    auto ticks_since_epoch = time_since_epoch.count();
+
+    genesis_epoch.start_slot =
+        static_cast<BabeSlotNumber>(ticks_since_epoch / slot_duration.count());
 
     next_slot_finish_time_ =
-        clock_->now() + genesis_configuration_->slot_duration;
+        epoch_start_point + (genesis_epoch.start_slot + 1) * slot_duration;
 
     current_state_ = BabeState::SYNCHRONIZED;
     runEpoch(genesis_epoch, next_slot_finish_time_);
@@ -206,10 +220,9 @@ namespace kagome::consensus {
         slots_leadership_[current_slot_ % current_epoch_.epoch_duration];
     if (slot_leadership) {
       log_->debug("Peer {} is leader (vrfOutput: {}, proof: {})",
-      		keypair_.public_key.toHex(),
-      		common::Buffer(slot_leadership->output).toHex(),
-	        common::Buffer(slot_leadership->proof).toHex()
-	        );
+                  keypair_.public_key.toHex(),
+                  common::Buffer(slot_leadership->output).toHex(),
+                  common::Buffer(slot_leadership->proof).toHex());
 
       processSlotLeadership(*slot_leadership);
     }
@@ -429,8 +442,12 @@ namespace kagome::consensus {
           first_slot_times_[first_slot_times_.size() / 2];
 
       Epoch epoch;
-      epoch.epoch_index =
-          *first_production_slot / genesis_configuration_->epoch_length;
+      auto slot_duration = genesis_configuration_->slot_duration;
+      auto ticks_since_epoch = clock_->now().time_since_epoch().count();
+      auto genesis_slot = static_cast<BabeSlotNumber>(ticks_since_epoch
+                                                      / slot_duration.count());
+      epoch.epoch_index = (*first_production_slot - genesis_slot)
+                          / genesis_configuration_->epoch_length;
       epoch.start_slot = *first_production_slot;
       epoch.epoch_duration = genesis_configuration_->epoch_length;
       auto next_epoch_digest_res =
