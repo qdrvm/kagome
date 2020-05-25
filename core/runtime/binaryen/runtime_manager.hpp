@@ -49,8 +49,9 @@ namespace kagome::runtime::binaryen {
     std::mutex modules_mutex_;
     std::map<common::Hash256, std::shared_ptr<wasm::Module>> modules_;
 
-    static thread_local std::shared_ptr<RuntimeExternalInterface>
-        external_interface_;
+    std::mutex ei_mutex_;
+    std::map<std::thread::id, std::shared_ptr<RuntimeExternalInterface>>
+        external_interfaces_;
   };
 
 }  // namespace kagome::runtime::binaryen

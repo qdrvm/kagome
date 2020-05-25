@@ -24,8 +24,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::binaryen,
 
 namespace kagome::runtime::binaryen {
 
-  thread_local std::shared_ptr<RuntimeExternalInterface>
-      RuntimeManager::external_interface_{};
+  //  thread_loca anager::external_interface_{};
 
   RuntimeManager::RuntimeManager(
       std::shared_ptr<runtime::WasmProvider> wasm_provider,
@@ -72,14 +71,29 @@ namespace kagome::runtime::binaryen {
                    .first->second;
     }
 
-    if (!external_interface_) {
-      external_interface_ =
+    std::shared_ptr<RuntimeExternalInterface> external_interface;
+    {
+      std::lock_guard lockGuard(ei_mutex_);
+      auto it = external_interfaces_.find(std::this_thread::get_id());
+      if (it != external_interfaces_.end()) {
+        external_interface = it->second;
+      }
+    }
+
+    if (!external_interface) {
+      auto new_ie =
           std::make_shared<RuntimeExternalInterface>(extension_factory_);
+
+      std::lock_guard lockGuard(ei_mutex_);
+      external_interface =
+          external_interfaces_
+              .emplace(std::this_thread::get_id(), std::move(new_ie))
+              .first->second;
     }
 
     return {std::make_shared<wasm::ModuleInstance>(*module,
-                                                   external_interface_.get()),
-            external_interface_->memory()};
+                                                   external_interface.get()),
+            external_interface->memory()};
   }
 
   outcome::result<std::shared_ptr<wasm::Module>> RuntimeManager::prepareModule(
