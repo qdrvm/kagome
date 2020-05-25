@@ -8,8 +8,6 @@
 
 #include "application/kagome_application.hpp"
 
-#include <boost/asio/signal_set.hpp>
-
 #include "injector/block_producing_node_injector.hpp"
 
 namespace kagome::application {
@@ -61,14 +59,14 @@ namespace kagome::application {
         uint8_t verbosity);
 
     void run() override;
-    void shutdown() override;
 
    private:
     // need to keep all of these instances, since injector itself is destroyed
     InjectorType injector_;
 
+    std::shared_ptr<AppStateManager> app_state_manager_;
+
     sptr<boost::asio::io_context> io_context_;
-    std::unique_ptr<boost::asio::signal_set> signals_;
 
     sptr<ConfigurationStorage> config_storage_;
     sptr<KeyStorage> key_storage_;
@@ -81,6 +79,7 @@ namespace kagome::application {
     sptr<api::ApiService> jrpc_api_service_;
 
     bool is_genesis_epoch_;
+
     common::Logger logger_;
   };
 

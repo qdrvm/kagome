@@ -7,30 +7,28 @@
 
 namespace kagome::api {
 
-  RpcThreadPool::RpcThreadPool(std::shared_ptr<Context> context,
-                               const Configuration &configuration)
-      : context_(std::move(context)), config_(configuration) {
+  RpcThreadPool::RpcThreadPool(
+      std::shared_ptr<AppStateManager> app_state_manager,
+      std::shared_ptr<Context> context,
+      const Configuration &configuration)
+      : app_state_manager_(std::move(app_state_manager)),
+        context_(std::move(context)),
+        config_(configuration) {
+    BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(context_);
-    signals_ = std::make_unique<boost::asio::signal_set>(*context_);
 
-    // Register to handle the signals that indicate when the server should exit.
-    // It is safe to register for the same signal multiple times in a program,
-    // provided all registration for the specified signal is made through Asio.
-    signals_->add(SIGINT);
-    signals_->add(SIGTERM);
-#if defined(SIGQUIT)
-    signals_->add(SIGQUIT);
-#endif  // defined(SIGQUIT)
-    signals_->async_wait(std::bind(&RpcThreadPool::stop, this));
+    app_state_manager_->atLaunch([this] { start(); });
+    app_state_manager_->atShuttingdown([this] { stop(); });
   }
 
   void RpcThreadPool::start() {
+    threads_.reserve(config_.max_thread_number);
     // Create a pool of threads to run all of the io_contexts.
     for (std::size_t i = 0; i < config_.min_thread_number; ++i) {
       auto thread = std::make_shared<std::thread>(
           [context = context_] { context->run(); });
       thread->detach();
-      threads_.emplace(std::move(thread));
+      threads_.emplace_back(std::move(thread));
     }
   }
 

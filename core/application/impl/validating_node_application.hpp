@@ -8,8 +8,6 @@
 
 #include "application/kagome_application.hpp"
 
-#include <boost/asio/signal_set.hpp>
-
 #include "api/service/api_service.hpp"
 #include "application/configuration_storage.hpp"
 #include "application/impl/local_key_storage.hpp"
@@ -76,14 +74,14 @@ namespace kagome::application {
         uint8_t verbosity);
 
     void run() override;
-    void shutdown() override;
 
    private:
     // need to keep all of these instances, since injector itself is destroyed
     InjectorType injector_;
 
-    sptr<boost::asio::io_context> io_context_;
-	  std::unique_ptr<boost::asio::signal_set> signals_;
+	  std::shared_ptr<AppStateManager> app_state_manager_;
+
+    std::shared_ptr<boost::asio::io_context> io_context_;
 
     sptr<ConfigurationStorage> config_storage_;
     sptr<KeyStorage> key_storage_;
