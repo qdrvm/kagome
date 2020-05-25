@@ -132,7 +132,8 @@ namespace kagome::consensus {
         block.header.number,
         hasher_->blake2b_256(scale::encode(block.header).value()).toHex());
 
-    OUTCOME_TRY(babe_digests, getBabeDigests(block.header));
+    //! OUTCOME_TRY();
+    auto babe_digests = getBabeDigests(block.header).value();
 
     auto [seal, babe_header] = babe_digests;
 
@@ -162,29 +163,38 @@ namespace kagome::consensus {
     auto next_epoch_digest_res = getNextEpochDigest(block.header);
     if (next_epoch_digest_res) {
       logger_->info("Got next epoch digest for epoch: {}", epoch_index);
-      OUTCOME_TRY(epoch_storage_->addEpochDescriptor(
-          epoch_index + 2, next_epoch_digest_res.value()));
+      //OUTCOME_TRY();
+      epoch_storage_->addEpochDescriptor(
+          epoch_index + 2, next_epoch_digest_res.value()).value();
     }
 
-    OUTCOME_TRY(block_validator_->validateHeader(
-        block.header,
-        this_block_epoch_descriptor.authorities[babe_header.authority_index].id,
-        threshold,
-        this_block_epoch_descriptor.randomness));
+    //! OUTCOME_TRY(block_validator_->validateHeader(
+    //!     block.header,
+    //!     this_block_epoch_descriptor.authorities[babe_header.authority_index].id,
+    //!     threshold,
+    //!     this_block_epoch_descriptor.randomness));
+    block_validator_->validateHeader(
+             block.header,
+             this_block_epoch_descriptor.authorities[babe_header.authority_index].id,
+             threshold,
+             this_block_epoch_descriptor.randomness).value();
 
     auto block_without_seal_digest = block;
 
     // block should be applied without last digest which contains the seal
     block_without_seal_digest.header.digest.pop_back();
     // apply block
-    OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
+    //! OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
+    core_->execute_block(block_without_seal_digest).value();
 
     // add block header if it does not exist
     if (not block_tree_->getBlockHeader(block_hash).has_value()) {
-      OUTCOME_TRY(block_tree_->addBlockHeader(block.header));
+      //! OUTCOME_TRY(block_tree_->addBlockHeader(block.header));
+      block_tree_->addBlockHeader(block.header).value();
     }
-    OUTCOME_TRY(
-        block_tree_->addBlockBody(block.header.number, block_hash, block.body));
+    //! OUTCOME_TRY(
+    //!     block_tree_->addBlockBody(block.header.number, block_hash, block.body));
+    block_tree_->addBlockBody(block.header.number, block_hash, block.body).value();
 
     logger_->info("Imported block with number: {}, hash: {}",
                   block.header.number,

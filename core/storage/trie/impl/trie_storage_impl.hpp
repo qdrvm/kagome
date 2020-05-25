@@ -6,11 +6,13 @@
 #ifndef KAGOME_STORAGE_TRIE_IMPL_TRIE_STORAGE_IMPL
 #define KAGOME_STORAGE_TRIE_IMPL_TRIE_STORAGE_IMPL
 
+#include "storage/trie/trie_storage.hpp"
+
+#include "common/logger.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/trie/codec.hpp"
 #include "storage/trie/impl/polkadot_trie_factory.hpp"
 #include "storage/trie/impl/trie_serializer.hpp"
-#include "storage/trie/trie_storage.hpp"
 
 namespace kagome::storage::trie {
 
@@ -38,10 +40,10 @@ namespace kagome::storage::trie {
     outcome::result<std::unique_ptr<EphemeralTrieBatch>> getEphemeralBatch()
         const override;
 
-    outcome::result<std::unique_ptr<PersistentTrieBatch>>
-    getPersistentBatchAt(const common::Hash256 &root) override;
-    outcome::result<std::unique_ptr<EphemeralTrieBatch>>
-    getEphemeralBatchAt(const common::Hash256 &root) const override;
+    outcome::result<std::unique_ptr<PersistentTrieBatch>> getPersistentBatchAt(
+        const common::Hash256 &root) override;
+    outcome::result<std::unique_ptr<EphemeralTrieBatch>> getEphemeralBatchAt(
+        const common::Hash256 &root) const override;
 
     common::Buffer getRootHash() const override;
 
@@ -57,6 +59,7 @@ namespace kagome::storage::trie {
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<TrieSerializer> serializer_;
     boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes_;
+    common::Logger logger_;
   };
 
 }  // namespace kagome::storage::trie

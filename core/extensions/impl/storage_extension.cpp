@@ -72,7 +72,7 @@ namespace kagome::extensions {
       return 0;
     }
     if (not data.value().empty())
-      logger_->debug("ext_get_allocated_storage. Key hex: {} Value hex {}",
+      logger_->trace("ext_get_allocated_storage. Key hex: {} Value hex {}",
                      key.toHex(),
                      data.value().toHex());
 
@@ -97,16 +97,16 @@ namespace kagome::extensions {
     auto key = memory_->loadN(key_data, key_length);
     auto data = get(key, value_offset, value_length);
     if (not data) {
-      logger_->debug("ext_get_storage_into. Val by key {} not found",
+      logger_->trace("ext_get_storage_into. Val by key {} not found",
                      key.toHex());
       return runtime::WasmMemory::kMaxMemorySize;
     }
     if (not data.value().empty()) {
-      logger_->debug("ext_get_storage_into. Key hex: {} , Value hex {}",
+      logger_->trace("ext_get_storage_into. Key hex: {} , Value hex {}",
                      key.toHex(),
                      data.value().toHex());
     } else {
-      logger_->debug("ext_get_storage_into. Key hex: {} Value: empty",
+      logger_->trace("ext_get_storage_into. Key hex: {} Value: empty",
                      key.toHex());
     }
     memory_->storeBuffer(value_data, data.value());
@@ -121,14 +121,14 @@ namespace kagome::extensions {
     auto value = memory_->loadN(value_data, value_length);
 
     if (value.toHex().size() < 500) {
-      logger_->debug(
+      logger_->trace(
           "Set storage. Key: {}, Key hex: {} Value: {}, Value hex {}",
           key.data(),
           key.toHex(),
           value.data(),
           value.toHex());
     } else {
-      logger_->debug(
+      logger_->trace(
           "Set storage. Key: {}, Key hex: {} Value is too big to display",
           key.data(),
           key.toHex());
@@ -231,6 +231,7 @@ namespace kagome::extensions {
       const auto &root = res.value();
       memory_->storeBuffer(result, root);
     } else {
+      logger_->error("ext_storage_root called in an ephemeral extension");
       const auto &root = storage_batch_->calculateRoot();
       if (root.has_error()) {
         logger_->error("ext_storage_root resulted with an error: {}",

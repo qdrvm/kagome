@@ -51,17 +51,17 @@ namespace kagome::runtime::binaryen {
         switch (persistency) {
           case CallPersistency::PERSISTENT:
             return runtime_manager_->RENAME_getPersistentRuntimeEnvironmentAt(
-                state_root_opt.value());
+                state_root_opt.value()).value();
           case CallPersistency::EPHEMERAL:
             return runtime_manager_->getEphemeralRuntimeEnvironmentAt(
-                state_root_opt.value());
+                state_root_opt.value()).value();
         }
       } else {
         switch (persistency) {
           case CallPersistency::PERSISTENT:
-            return runtime_manager_->getPersistentRuntimeEnvironment();
+            return runtime_manager_->getPersistentRuntimeEnvironment().value();
           case CallPersistency::EPHEMERAL:
-            return runtime_manager_->getEphemeralRuntimeEnvironment();
+            return runtime_manager_->getEphemeralRuntimeEnvironment().value();
         }
       }
     }
@@ -112,7 +112,7 @@ namespace kagome::runtime::binaryen {
         logger_->warn("Resetting state to: {}", state_root.value().toHex());
       }
 
-      OUTCOME_TRY(environment, getRuntimeEnvironment(persistency, state_root));
+      auto environment = getRuntimeEnvironment(persistency, state_root);
       auto &&[module, memory] = environment;
 
       runtime::WasmPointer ptr = 0u;
