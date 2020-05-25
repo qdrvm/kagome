@@ -42,6 +42,7 @@ namespace kagome::runtime::binaryen {
     outcome::result<RuntimeEnvironment> getEphemeralRuntimeEnvironment();
 
     /**
+     * @TODO(Harrm): rename it to highlight that it changes storage state
      * @warning calling this with an \arg state_root older than the current root
      * will reset the storage to an older state
      */

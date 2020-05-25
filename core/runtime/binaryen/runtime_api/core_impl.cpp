@@ -31,7 +31,8 @@ namespace kagome::runtime::binaryen {
 
   outcome::result<void> CoreImpl::execute_block(
       const primitives::Block &block) {
-    OUTCOME_TRY(parent, header_repo_->getBlockHeader(block.header.parent_hash));
+    //! OUTCOME_TRY();
+    auto parent = header_repo_->getBlockHeader(block.header.parent_hash).value();
     return executeAt<void>(
         "Core_execute_block", parent.state_root, CallPersistency::PERSISTENT, block);
   }

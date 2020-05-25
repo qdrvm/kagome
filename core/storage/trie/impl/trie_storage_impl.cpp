@@ -52,43 +52,69 @@ namespace kagome::storage::trie {
       : root_hash_{std::move(root_hash)},
         codec_{std::move(codec)},
         serializer_{std::move(serializer)},
-        changes_{std::move(changes)} {
+        changes_{std::move(changes)},
+        logger_{common::createLogger("Trie Storage: ")} {
     BOOST_ASSERT(codec_ != nullptr);
     BOOST_ASSERT(serializer_ != nullptr);
     BOOST_ASSERT((changes_.has_value() and changes_.value() != nullptr)
                  or not changes_.has_value());
+    logger_->info("Initialize trie storage with root: {}", root_hash_.toHex());
   }
 
   outcome::result<std::unique_ptr<PersistentTrieBatch>>
   TrieStorageImpl::getPersistentBatch() {
-    OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root_hash_}));
+    logger_->debug("Initialize persistent trie batch with root: {}",
+                   root_hash_.toHex());
+    auto trie_res = serializer_->retrieveTrie(Buffer{root_hash_});
+    if (trie_res.has_error()) {
+      logger_->error("Batch initialization failed, invalid root: {}",
+                     root_hash_.toHex());
+      return trie_res.error();
+    }
     return std::make_unique<PersistentTrieBatchImpl>(
         codec_,
         serializer_,
         changes_,
-        std::move(trie),
-        [this](auto const &new_root) { root_hash_ = new_root; });
+        std::move(trie_res.value()),
+        [this](auto const &new_root) {
+          root_hash_ = new_root;
+          logger_->debug("Update state root: {}", root_hash_);
+        });
   }
 
   outcome::result<std::unique_ptr<EphemeralTrieBatch>>
   TrieStorageImpl::getEphemeralBatch() const {
+    logger_->debug("Initialize ephemeral trie batch with root: {}",
+                   root_hash_.toHex());
     OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root_hash_}));
     return std::make_unique<EphemeralTrieBatchImpl>(codec_, std::move(trie));
   }
 
   outcome::result<std::unique_ptr<PersistentTrieBatch>>
   TrieStorageImpl::getPersistentBatchAt(const common::Hash256 &root) {
-    OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root}));
+    logger_->debug("Initialize persistent trie batch with root: {}",
+                   root.toHex());
+    auto trie_res = serializer_->retrieveTrie(Buffer{root});
+    if (trie_res.has_error()) {
+      logger_->error("Batch initialization failed, invalid root: {}",
+                     root.toHex());
+      return trie_res.error();
+    }
     return std::make_unique<PersistentTrieBatchImpl>(
         codec_,
         serializer_,
         changes_,
-        std::move(trie),
-        [this](auto const &new_root) { root_hash_ = new_root; });
+        std::move(trie_res.value()),
+        [this](auto const &new_root) {
+          root_hash_ = new_root;
+          logger_->debug("Update state root: {}", root_hash_);
+        });
   }
 
   outcome::result<std::unique_ptr<EphemeralTrieBatch>>
   TrieStorageImpl::getEphemeralBatchAt(const common::Hash256 &root) const {
+    logger_->debug("Initialize ephemeral trie batch with root: {}",
+                   root_hash_.toHex());
     OUTCOME_TRY(trie, serializer_->retrieveTrie(Buffer{root}));
     return std::make_unique<EphemeralTrieBatchImpl>(codec_, std::move(trie));
   }

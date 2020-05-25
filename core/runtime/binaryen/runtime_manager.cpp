@@ -43,7 +43,8 @@ namespace kagome::runtime::binaryen {
   outcome::result<RuntimeManager::RuntimeEnvironment>
   RuntimeManager::RENAME_getPersistentRuntimeEnvironmentAt(
       const common::Hash256 &state_root) {
-    OUTCOME_TRY(persistent_batch, storage_->getPersistentBatchAt(state_root));
+    logger_->debug("Setting up a persistent environment at {}", state_root);
+    auto persistent_batch = storage_->getPersistentBatchAt(state_root).value();
     persistent_batch_ = std::move(persistent_batch);
     return getRuntimeEnvironment(persistent_batch_);
   }
@@ -51,12 +52,14 @@ namespace kagome::runtime::binaryen {
   outcome::result<RuntimeManager::RuntimeEnvironment>
   RuntimeManager::getEphemeralRuntimeEnvironmentAt(
       const common::Hash256 &state_root) {
+    logger_->debug("Setting up an ephemeral environment at {}", state_root);
     OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(state_root));
     return getRuntimeEnvironment(std::move(batch));
   }
 
   outcome::result<RuntimeManager::RuntimeEnvironment>
   RuntimeManager::getPersistentRuntimeEnvironment() {
+    logger_->debug("Setting up a persistent environment");
     if (persistent_batch_ == nullptr) {
       OUTCOME_TRY(persistent_batch, storage_->getPersistentBatch());
       persistent_batch_ = std::move(persistent_batch);
@@ -66,6 +69,7 @@ namespace kagome::runtime::binaryen {
 
   outcome::result<RuntimeManager::RuntimeEnvironment>
   RuntimeManager::getEphemeralRuntimeEnvironment() {
+    logger_->debug("Setting up an ephemeral environment");
     OUTCOME_TRY(batch, storage_->getEphemeralBatch());
     return getRuntimeEnvironment(std::move(batch));
   }
@@ -88,10 +92,12 @@ namespace kagome::runtime::binaryen {
       state_code_hash_ = hash;
     }
 
-    if (!external_interface_) {
-      external_interface_ = std::make_shared<RuntimeExternalInterface>(
-          extension_factory_, std::shared_ptr(std::move(storage_batch)));
-    }
+    /// TODO(Harrm) Figure out just comenting it out may cause any issues and if
+    /// it does just make existing ext interface update its storage batch
+    // if if (!external_interface_) {
+    external_interface_ = std::make_shared<RuntimeExternalInterface>(
+        extension_factory_, std::shared_ptr(std::move(storage_batch)));
+    //}
 
     return {std::make_shared<wasm::ModuleInstance>(*module_,
                                                    external_interface_.get()),
