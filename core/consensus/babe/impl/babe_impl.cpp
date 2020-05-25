@@ -442,8 +442,12 @@ namespace kagome::consensus {
           first_slot_times_[first_slot_times_.size() / 2];
 
       Epoch epoch;
-      epoch.epoch_index =
-          *first_production_slot / genesis_configuration_->epoch_length;
+      auto slot_duration = genesis_configuration_->slot_duration;
+      auto ticks_since_epoch = clock_->now().time_since_epoch().count();
+      auto genesis_slot = static_cast<BabeSlotNumber>(ticks_since_epoch
+                                                      / slot_duration.count());
+      epoch.epoch_index = (*first_production_slot - genesis_slot)
+                          / genesis_configuration_->epoch_length;
       epoch.start_slot = *first_production_slot;
       epoch.epoch_duration = genesis_configuration_->epoch_length;
       auto next_epoch_digest_res =
