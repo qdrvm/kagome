@@ -79,7 +79,7 @@ namespace kagome::consensus {
                      "slot duration must be > 0");
     TimePoint now = clock_->now();
     Duration time_since_epoch = now.time_since_epoch();
-    TimePoint epoch_start_point = now - time_since_epoch;
+    TimePoint epoch_start_point = std::chrono::system_clock::from_time_t(0);
 
     auto ticks_since_epoch = time_since_epoch.count();
 
