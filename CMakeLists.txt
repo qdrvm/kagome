@@ -35,20 +35,20 @@ endif()
 include(CheckCXXCompilerFlag)
 include(cmake/dependencies.cmake)
 include(cmake/functions.cmake)
-include(cmake/san.cmake)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(CLANG_FORMAT "Enable clang-format target"                  ON )
 option(CLANG_TIDY   "Enable clang-tidy checks during compilation" OFF)
 option(COVERAGE     "Enable generation of coverage info"          OFF)
+
 # sanitizers will be enabled only for Kagome, and will be disabled for dependencies
 option(ASAN         "Enable address sanitizer"                    OFF)
 option(LSAN         "Enable leak sanitizer"                       OFF)
 option(MSAN         "Enable memory sanitizer"                     OFF)
 option(TSAN         "Enable thread sanitizer"                     OFF)
 option(UBSAN        "Enable UB sanitizer"                         OFF)
-
+include(cmake/san.cmake)
 
 ## setup compilation flags
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
