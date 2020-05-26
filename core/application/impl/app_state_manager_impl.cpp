@@ -50,6 +50,7 @@ namespace kagome {
     while (!launch_.empty()) launch_.pop();
     while (!shutdown_.empty()) shutdown_.pop();
     state_ = State::Init;
+    shutdown_requested_ = false;
   }
 
   void AppStateManagerImpl::atPrepare(Callback &&cb) {
@@ -154,14 +155,14 @@ namespace kagome {
     doLaunch();
 
     std::unique_lock lock(cv_mutex_);
-    cv_.wait(lock, [&] { return state_ == State::ShuttingDown; });
+    cv_.wait(lock, [&] { return shutdown_requested_.load(); });
 
     doShutdown();
   }
 
   void AppStateManagerImpl::shutdown() {
-    std::lock_guard lg(mutex_);
-    state_ = State::ShuttingDown;
+    shutdown_requested_ = true;
+    std::lock_guard lg(cv_mutex_);
     cv_.notify_one();
   }
 

@@ -66,6 +66,8 @@ namespace kagome {
     std::queue<std::function<void()>> prepare_;
     std::queue<std::function<void()>> launch_;
     std::queue<std::function<void()>> shutdown_;
+
+    std::atomic_bool shutdown_requested_;
   };
 
 }  // namespace kagome
