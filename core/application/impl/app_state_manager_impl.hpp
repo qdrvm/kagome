@@ -20,15 +20,15 @@ namespace kagome {
   class AppStateManagerImpl : public AppStateManager {
    public:
     AppStateManagerImpl();
-	  AppStateManagerImpl(const AppStateManagerImpl&) = delete;
-	  AppStateManagerImpl(AppStateManagerImpl&&) noexcept = delete;
+    AppStateManagerImpl(const AppStateManagerImpl &) = delete;
+    AppStateManagerImpl(AppStateManagerImpl &&) noexcept = delete;
 
     ~AppStateManagerImpl() override;
 
-	  AppStateManagerImpl& operator=(AppStateManagerImpl const&) = delete;
-	  AppStateManagerImpl& operator=(AppStateManagerImpl&&) noexcept = delete;
+    AppStateManagerImpl &operator=(AppStateManagerImpl const &) = delete;
+    AppStateManagerImpl &operator=(AppStateManagerImpl &&) noexcept = delete;
 
-	  void atPrepare(Callback &&cb) override;
+    void atPrepare(Callback &&cb) override;
     void atLaunch(Callback &&cb) override;
     void atShuttingdown(Callback &&cb) override;
 
@@ -58,7 +58,9 @@ namespace kagome {
 
     State state_ = State::Init;
 
-    std::mutex mutex_;
+    std::recursive_mutex mutex_;
+
+    std::mutex cv_mutex_;
     std::condition_variable cv_;
 
     std::queue<std::function<void()>> prepare_;

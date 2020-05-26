@@ -16,7 +16,7 @@ namespace kagome {
       : logger_(common::createLogger("Application")) {
     struct sigaction act {};
     memset(&act, 0, sizeof(act));
-    act.sa_handler = shuttingDownSignalsHandler; // NOLINT
+    act.sa_handler = shuttingDownSignalsHandler;  // NOLINT
     sigset_t set;
     sigemptyset(&set);
     sigaddset(&set, SIGINT);
@@ -32,7 +32,7 @@ namespace kagome {
   AppStateManagerImpl::~AppStateManagerImpl() {
     struct sigaction act {};
     memset(&act, 0, sizeof(act));
-    act.sa_handler = SIG_DFL; // NOLINT
+    act.sa_handler = SIG_DFL;  // NOLINT
     sigset_t set;
     sigemptyset(&set);
     sigaddset(&set, SIGINT);
@@ -45,6 +45,7 @@ namespace kagome {
   }
 
   void AppStateManagerImpl::reset() {
+    std::lock_guard lg(mutex_);
     while (!prepare_.empty()) prepare_.pop();
     while (!launch_.empty()) launch_.pop();
     while (!shutdown_.empty()) shutdown_.pop();
@@ -52,6 +53,7 @@ namespace kagome {
   }
 
   void AppStateManagerImpl::atPrepare(Callback &&cb) {
+    std::lock_guard lg(mutex_);
     if (state_ > State::Init) {
       throw AppStateException("adding callback for stage 'prepare'");
     }
@@ -59,6 +61,7 @@ namespace kagome {
   }
 
   void AppStateManagerImpl::atLaunch(Callback &&cb) {
+    std::lock_guard lg(mutex_);
     if (state_ > State::ReadyToStart) {
       throw AppStateException("adding callback for stage 'launch'");
     }
@@ -66,6 +69,7 @@ namespace kagome {
   }
 
   void AppStateManagerImpl::atShuttingdown(Callback &&cb) {
+    std::lock_guard lg(mutex_);
     if (state_ > State::Works) {
       throw AppStateException("adding callback for stage 'shutdown'");
     }
@@ -73,6 +77,7 @@ namespace kagome {
   }
 
   void AppStateManagerImpl::prepare() {
+    std::lock_guard lg(mutex_);
     if (state_ != State::Init) {
       throw AppStateException("running stage 'prepare'");
     }
@@ -95,6 +100,7 @@ namespace kagome {
   }
 
   void AppStateManagerImpl::launch() {
+    std::lock_guard lg(mutex_);
     if (state_ != State::ReadyToStart) {
       throw AppStateException("running stage 'launch'");
     }
@@ -117,6 +123,7 @@ namespace kagome {
   }
 
   void AppStateManagerImpl::shuttingdown() {
+    std::lock_guard lg(mutex_);
     if (state_ == State::ReadyToStop) {
       return;
     }
@@ -140,20 +147,20 @@ namespace kagome {
     wp_to_myself = weak_from_this();
     if (wp_to_myself.expired()) {
       throw std::logic_error(
-          "AppStateManagerImpl must be instantiate on shared pointer before "
-          "run");
+          "AppStateManager must be instantiated on shared pointer before run");
     }
 
     prepare();
     launch();
 
-    std::unique_lock lock(mutex_);
+    std::unique_lock lock(cv_mutex_);
     cv_.wait(lock, [&] { return state_ == State::ShuttingDown; });
 
     shuttingdown();
   }
 
   void AppStateManagerImpl::shutdown() {
+    std::lock_guard lg(mutex_);
     state_ = State::ShuttingDown;
     cv_.notify_one();
   }
