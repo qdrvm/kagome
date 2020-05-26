@@ -51,7 +51,7 @@ namespace kagome {
   };
 
   struct AppStateException : public std::runtime_error {
-    AppStateException(std::string message)
+    explicit AppStateException(std::string message)
         : std::runtime_error("Wrong workflow at " + std::move(message)) {}
   };
 }  // namespace kagome

@@ -16,7 +16,7 @@ namespace kagome {
       : logger_(common::createLogger("Application")) {
     struct sigaction act {};
     memset(&act, 0, sizeof(act));
-    act.sa_handler = shuttingDownSignalsHandler;
+    act.sa_handler = shuttingDownSignalsHandler; // NOLINT
     sigset_t set;
     sigemptyset(&set);
     sigaddset(&set, SIGINT);
@@ -32,7 +32,7 @@ namespace kagome {
   AppStateManagerImpl::~AppStateManagerImpl() {
     struct sigaction act {};
     memset(&act, 0, sizeof(act));
-    act.sa_handler = SIG_DFL;
+    act.sa_handler = SIG_DFL; // NOLINT
     sigset_t set;
     sigemptyset(&set);
     sigaddset(&set, SIGINT);
