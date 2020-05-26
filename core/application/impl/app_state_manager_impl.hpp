@@ -30,7 +30,7 @@ namespace kagome {
 
     void atPrepare(Callback &&cb) override;
     void atLaunch(Callback &&cb) override;
-    void atShuttingdown(Callback &&cb) override;
+    void atShutdown(Callback &&cb) override;
 
     void run() override;
     void shutdown() override;
@@ -42,9 +42,9 @@ namespace kagome {
    protected:
     void reset();
 
-    void prepare() override;
-    void launch() override;
-    void shuttingdown() override;
+    void doPrepare() override;
+    void doLaunch() override;
+    void doShutdown() override;
 
    private:
     static std::weak_ptr<AppStateManager> wp_to_myself;

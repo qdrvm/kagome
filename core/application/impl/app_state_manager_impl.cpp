@@ -68,7 +68,7 @@ namespace kagome {
     launch_.emplace(std::move(cb));
   }
 
-  void AppStateManagerImpl::atShuttingdown(Callback &&cb) {
+  void AppStateManagerImpl::atShutdown(Callback &&cb) {
     std::lock_guard lg(mutex_);
     if (state_ > State::Works) {
       throw AppStateException("adding callback for stage 'shutdown'");
@@ -76,7 +76,7 @@ namespace kagome {
     shutdown_.emplace(std::move(cb));
   }
 
-  void AppStateManagerImpl::prepare() {
+  void AppStateManagerImpl::doPrepare() {
     std::lock_guard lg(mutex_);
     if (state_ != State::Init) {
       throw AppStateException("running stage 'prepare'");
@@ -99,7 +99,7 @@ namespace kagome {
     }
   }
 
-  void AppStateManagerImpl::launch() {
+  void AppStateManagerImpl::doLaunch() {
     std::lock_guard lg(mutex_);
     if (state_ != State::ReadyToStart) {
       throw AppStateException("running stage 'launch'");
@@ -122,7 +122,7 @@ namespace kagome {
     }
   }
 
-  void AppStateManagerImpl::shuttingdown() {
+  void AppStateManagerImpl::doShutdown() {
     std::lock_guard lg(mutex_);
     if (state_ == State::ReadyToStop) {
       return;
@@ -150,13 +150,13 @@ namespace kagome {
           "AppStateManager must be instantiated on shared pointer before run");
     }
 
-    prepare();
-    launch();
+    doPrepare();
+    doLaunch();
 
     std::unique_lock lock(cv_mutex_);
     cv_.wait(lock, [&] { return state_ == State::ShuttingDown; });
 
-    shuttingdown();
+    doShutdown();
   }
 
   void AppStateManagerImpl::shutdown() {

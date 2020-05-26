@@ -29,14 +29,14 @@ namespace kagome {
 
     virtual void atPrepare(Callback &&cb) = 0;
     virtual void atLaunch(Callback &&cb) = 0;
-    virtual void atShuttingdown(Callback &&cb) = 0;
+    virtual void atShutdown(Callback &&cb) = 0;
 
     void reg(Callback &&prepare_cb,
              Callback &&launch_cb,
-             Callback &&shuttingdown_cb) {
+             Callback &&shutdown_cb) {
       atPrepare(std::move(prepare_cb));
       atLaunch(std::move(launch_cb));
-      atShuttingdown(std::move(shuttingdown_cb));
+      atShutdown(std::move(shutdown_cb));
     }
 
     virtual void run() = 0;
@@ -45,9 +45,9 @@ namespace kagome {
     virtual State state() const = 0;
 
    protected:
-    virtual void prepare() = 0;
-    virtual void launch() = 0;
-    virtual void shuttingdown() = 0;
+    virtual void doPrepare() = 0;
+    virtual void doLaunch() = 0;
+    virtual void doShutdown() = 0;
   };
 
   struct AppStateException : public std::runtime_error {

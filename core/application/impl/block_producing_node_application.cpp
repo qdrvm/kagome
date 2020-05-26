@@ -84,7 +84,7 @@ namespace kagome::application {
       asio_runner.detach();
     });
 
-    app_state_manager_->atShuttingdown([ctx{io_context_}] { ctx->stop(); });
+    app_state_manager_->atShutdown([ctx{io_context_}] { ctx->stop(); });
 
     app_state_manager_->run();
   }

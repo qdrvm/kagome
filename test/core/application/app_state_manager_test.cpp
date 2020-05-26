@@ -50,11 +50,11 @@ class AppStateManagerTest : public AppStateManagerImpl, public testing::Test {
  */
 TEST_F(AppStateManagerTest, StateSequence_Normal) {
   ASSERT_EQ(state(), AppStateManager::State::Init);
-  ASSERT_NO_THROW(prepare());
+  ASSERT_NO_THROW(doPrepare());
   ASSERT_EQ(state(), AppStateManager::State::ReadyToStart);
-  ASSERT_NO_THROW(launch());
+  ASSERT_NO_THROW(doLaunch());
   ASSERT_EQ(state(), AppStateManager::State::Works);
-  ASSERT_NO_THROW(shuttingdown());
+  ASSERT_NO_THROW(doShutdown());
   ASSERT_EQ(state(), AppStateManager::State::ReadyToStop);
 }
 
@@ -65,11 +65,11 @@ TEST_F(AppStateManagerTest, StateSequence_Normal) {
  * 'shutdown'
  */
 TEST_F(AppStateManagerTest, StateSequence_Abnormal_1) {
-  prepare();
-  EXPECT_THROW(prepare(), AppStateException);
+  doPrepare();
+  EXPECT_THROW(doPrepare(), AppStateException);
   EXPECT_EQ(state(), AppStateManager::State::ReadyToStart);
-  EXPECT_NO_THROW(launch());
-  EXPECT_NO_THROW(shuttingdown());
+  EXPECT_NO_THROW(doLaunch());
+  EXPECT_NO_THROW(doShutdown());
 }
 
 /**
@@ -79,12 +79,12 @@ TEST_F(AppStateManagerTest, StateSequence_Abnormal_1) {
  * 'shutdown'
  */
 TEST_F(AppStateManagerTest, StateSequence_Abnormal_2) {
-  prepare();
-  launch();
-  EXPECT_THROW(prepare(), AppStateException);
-  EXPECT_THROW(launch(), AppStateException);
+  doPrepare();
+  doLaunch();
+  EXPECT_THROW(doPrepare(), AppStateException);
+  EXPECT_THROW(doLaunch(), AppStateException);
   EXPECT_EQ(state(), AppStateManager::State::Works);
-  EXPECT_NO_THROW(shuttingdown());
+  EXPECT_NO_THROW(doShutdown());
 }
 
 /**
@@ -93,12 +93,12 @@ TEST_F(AppStateManagerTest, StateSequence_Abnormal_2) {
  * @then thrown exceptions, except shutdown. State wasn't change.
  */
 TEST_F(AppStateManagerTest, StateSequence_Abnormal_3) {
-  prepare();
-  launch();
-  shuttingdown();
-  EXPECT_THROW(prepare(), AppStateException);
-  EXPECT_THROW(launch(), AppStateException);
-  EXPECT_NO_THROW(shuttingdown());
+  doPrepare();
+  doLaunch();
+  doShutdown();
+  EXPECT_THROW(doPrepare(), AppStateException);
+  EXPECT_THROW(doLaunch(), AppStateException);
+  EXPECT_NO_THROW(doShutdown());
   EXPECT_EQ(state(), AppStateManager::State::ReadyToStop);
 }
 
@@ -110,7 +110,7 @@ TEST_F(AppStateManagerTest, StateSequence_Abnormal_3) {
 TEST_F(AppStateManagerTest, AddCallback_Initial) {
   EXPECT_NO_THROW(atPrepare([] {}));
   EXPECT_NO_THROW(atLaunch([] {}));
-  EXPECT_NO_THROW(atShuttingdown([] {}));
+  EXPECT_NO_THROW(atShutdown([] {}));
 }
 
 /**
@@ -119,10 +119,10 @@ TEST_F(AppStateManagerTest, AddCallback_Initial) {
  * @then thrown exception only for 'prepare' stage callback
  */
 TEST_F(AppStateManagerTest, AddCallback_AfterPrepare) {
-  prepare();
+  doPrepare();
   EXPECT_THROW(atPrepare([] {}), AppStateException);
   EXPECT_NO_THROW(atLaunch([] {}));
-  EXPECT_NO_THROW(atShuttingdown([] {}));
+  EXPECT_NO_THROW(atShutdown([] {}));
 }
 
 /**
@@ -131,11 +131,11 @@ TEST_F(AppStateManagerTest, AddCallback_AfterPrepare) {
  * @then done without exception only for 'shutdown' stage callback
  */
 TEST_F(AppStateManagerTest, AddCallback_AfterLaunch) {
-  prepare();
-  launch();
+  doPrepare();
+  doLaunch();
   EXPECT_THROW(atPrepare([] {}), AppStateException);
   EXPECT_THROW(atLaunch([] {}), AppStateException);
-  EXPECT_NO_THROW(atShuttingdown([] {}));
+  EXPECT_NO_THROW(atShutdown([] {}));
 }
 
 /**
@@ -144,12 +144,12 @@ TEST_F(AppStateManagerTest, AddCallback_AfterLaunch) {
  * @then trown exceptions for each calls
  */
 TEST_F(AppStateManagerTest, AddCallback_AfterShutdown) {
-  prepare();
-  launch();
-  shuttingdown();
+  doPrepare();
+  doLaunch();
+  doShutdown();
   EXPECT_THROW(atPrepare([] {}), AppStateException);
   EXPECT_THROW(atLaunch([] {}), AppStateException);
-  EXPECT_THROW(atShuttingdown([] {}), AppStateException);
+  EXPECT_THROW(atShutdown([] {}), AppStateException);
 }
 
 /**
@@ -178,11 +178,11 @@ TEST_F(AppStateManagerTest, RegCallbacks) {
   EXPECT_CALL(*launch_cb, call()).WillOnce(Return());
   EXPECT_CALL(*shutdown_cb, call()).WillOnce(Return());
 
-  EXPECT_NO_THROW(prepare());
+  EXPECT_NO_THROW(doPrepare());
   EXPECT_EQ(tag, 1);
-  EXPECT_NO_THROW(launch());
+  EXPECT_NO_THROW(doLaunch());
   EXPECT_EQ(tag, 2);
-  EXPECT_NO_THROW(shuttingdown());
+  EXPECT_NO_THROW(doShutdown());
   EXPECT_EQ(tag, 3);
 }
 
