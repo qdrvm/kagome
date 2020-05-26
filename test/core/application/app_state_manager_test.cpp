@@ -8,7 +8,6 @@
 #include <thread>
 
 #include "application/impl/app_state_manager_impl.hpp"
-#include "mock/core/application/app_state_manager_mock.hpp"
 
 using kagome::AppStateException;
 using kagome::AppStateManager;
@@ -39,7 +38,6 @@ class AppStateManagerTest : public AppStateManagerImpl, public testing::Test {
     shutdown_cb.reset();
   }
 
-  kagome::AppStateManagerMock m;
   std::shared_ptr<CallbackMock> prepare_cb;
   std::shared_ptr<CallbackMock> launch_cb;
   std::shared_ptr<CallbackMock> shutdown_cb;
