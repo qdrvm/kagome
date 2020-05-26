@@ -17,21 +17,28 @@
 
 namespace kagome {
 
-  class AppStateManagerImpl final : public AppStateManager {
+  class AppStateManagerImpl : public AppStateManager {
    public:
     AppStateManagerImpl();
     ~AppStateManagerImpl();
 
-    bool atPrepare(Callback &&cb) override;
-    bool atLaunch(Callback &&cb) override;
-    bool atShuttingdown(Callback &&cb) override;
+    void atPrepare(Callback &&cb) override;
+    void atLaunch(Callback &&cb) override;
+    void atShuttingdown(Callback &&cb) override;
+
+    void run() override;
+    void shutdown() override;
+
+    State state() const override {
+      return state_;
+    }
+
+   protected:
+    void reset();
 
     void prepare() override;
     void launch() override;
     void shuttingdown() override;
-
-    void run() override;
-    void shutdown() override;
 
    private:
     static std::weak_ptr<AppStateManager> wp_to_myself;

@@ -27,19 +27,22 @@ namespace kagome {
 
     virtual ~AppStateManager() = default;
 
-    virtual bool atPrepare(Callback &&cb) = 0;
-    virtual bool atLaunch(Callback &&cb) = 0;
-    virtual bool atShuttingdown(Callback &&cb) = 0;
+    virtual void atPrepare(Callback &&cb) = 0;
+    virtual void atLaunch(Callback &&cb) = 0;
+    virtual void atShuttingdown(Callback &&cb) = 0;
 
-    bool reg(Callback &&prepare_cb,
+    void reg(Callback &&prepare_cb,
              Callback &&launch_cb,
              Callback &&shuttingdown_cb) {
-      return atPrepare(std::move(prepare_cb)) && atLaunch(std::move(launch_cb))
-             && atShuttingdown(std::move(shuttingdown_cb));
+      atPrepare(std::move(prepare_cb));
+      atLaunch(std::move(launch_cb));
+      atShuttingdown(std::move(shuttingdown_cb));
     }
 
     virtual void run() = 0;
     virtual void shutdown() = 0;
+
+    virtual State state() const = 0;
 
    protected:
     virtual void prepare() = 0;
@@ -47,6 +50,10 @@ namespace kagome {
     virtual void shuttingdown() = 0;
   };
 
+  struct AppStateException : public std::runtime_error {
+    AppStateException(std::string message)
+        : std::runtime_error("Wrong workflow at " + std::move(message)) {}
+  };
 }  // namespace kagome
 
 #endif  // KAGOME_APPLICATION_DISPATCHER

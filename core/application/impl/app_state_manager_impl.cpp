@@ -44,33 +44,37 @@ namespace kagome {
     sigaction(SIGQUIT, &act, nullptr);
   }
 
-  bool AppStateManagerImpl::atPrepare(Callback &&cb) {
+  void AppStateManagerImpl::reset() {
+    while (!prepare_.empty()) prepare_.pop();
+    while (!launch_.empty()) launch_.pop();
+    while (!shutdown_.empty()) shutdown_.pop();
+    state_ = State::Init;
+  }
+
+  void AppStateManagerImpl::atPrepare(Callback &&cb) {
     if (state_ > State::Init) {
-      throw std::runtime_error("Wrong workflow");
+      throw AppStateException("adding callback for stage 'prepare'");
     }
     prepare_.emplace(std::move(cb));
-    return true;
   }
 
-  bool AppStateManagerImpl::atLaunch(Callback &&cb) {
+  void AppStateManagerImpl::atLaunch(Callback &&cb) {
     if (state_ > State::ReadyToStart) {
-      throw std::runtime_error("Wrong workflow");
+      throw AppStateException("adding callback for stage 'launch'");
     }
     launch_.emplace(std::move(cb));
-    return true;
   }
 
-  bool AppStateManagerImpl::atShuttingdown(Callback &&cb) {
+  void AppStateManagerImpl::atShuttingdown(Callback &&cb) {
     if (state_ > State::Works) {
-      throw std::runtime_error("Wrong workflow");
+      throw AppStateException("adding callback for stage 'shutdown'");
     }
     shutdown_.emplace(std::move(cb));
-    return true;
   }
 
   void AppStateManagerImpl::prepare() {
     if (state_ != State::Init) {
-      throw std::runtime_error("Wrong workflow");
+      throw AppStateException("running stage 'prepare'");
     }
     state_ = State::Prepare;
 
@@ -92,7 +96,7 @@ namespace kagome {
 
   void AppStateManagerImpl::launch() {
     if (state_ != State::ReadyToStart) {
-      throw std::runtime_error("Wrong workflow");
+      throw AppStateException("running stage 'launch'");
     }
     state_ = State::Starting;
 
@@ -134,6 +138,11 @@ namespace kagome {
 
   void AppStateManagerImpl::run() {
     wp_to_myself = weak_from_this();
+    if (wp_to_myself.expired()) {
+      throw std::logic_error(
+          "AppStateManagerImpl must be instantiate on shared pointer before "
+          "run");
+    }
 
     prepare();
     launch();
