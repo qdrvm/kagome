@@ -25,20 +25,7 @@ jobs:
         CXXFLAGS: "-isysroot${DEVELOPER_DIR}/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
       run: ./housekeeping/makeBuild.sh  -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
 
-  clang-tidy:
-      name: "Linux: clang-tidy"
-      runs-on: ubuntu-latest
-      container: soramitsu/kagome-dev:8
-      steps:
-        - uses: actions/checkout@v2
-        - name: clang-tidy
-          env:
-            BUILD_TARGET: generated
-          run: |
-            ./housekeeping/makeBuild.sh
-            ./housekeeping/clang-tidy.sh ${BUILD_DIR}
-
-  linux:
+  Linux:
       strategy:
         matrix:
           options:
@@ -56,8 +43,39 @@ jobs:
         - name: "${{ matrix.options.name }}"
           run: "${{ matrix.options.run }}"
 
+  clang-tidy:
+      name: "Linux: clang-tidy"
+      runs-on: ubuntu-latest
+      container: soramitsu/kagome-dev:8
+      steps:
+        - uses: actions/checkout@v2
+        - name: clang-tidy
+          env:
+            BUILD_TARGET: generated
+          run: |
+            ./housekeeping/makeBuild.sh
+            ./housekeeping/clang-tidy.sh ${BUILD_DIR}
+  coverage:
+      name: "Linux: gcc-8 coverage/sonar"
+      runs-on: ubuntu-latest
+      container: soramitsu/kagome-dev:8
+      steps:
+        - uses: actions/checkout@v2
+        - name: makeBuild
+          env:
+            BUILD_TARGET: ctest_coverage
+          run: |
+            ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-8_cxx17.cmake -DCOVERAGE=ON
+        - name: Submit Coverage
+          env:
+            CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          run: |
+            ./housekeeping/codecov.sh ${BUILD_DIR} ${CODECOV_TOKEN}
+          # ./housekeeping/sonar.sh
+
   push:
-      if: ${{ github.ref == 'feature/new-ci' }}
+      # if: ${{ github.ref == 'master' }}
       needs: [clang-tidy, linux]
       name: "Push"
       runs-on: ubuntu-latest

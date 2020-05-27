@@ -68,10 +68,10 @@ node(workerLabel){
     stage("checks") {
       def builds = [:]
       // clang-tidy fails. see https://bugs.llvm.org/show_bug.cgi?id=42648
-      builds["clang-tidy"] = makeClangTidyBuild("clang-tidy")
-      builds["gcc-9 ASAN No Toolchain"] = makeAsanBuild("gcc-9 ASAN No Toolchain")
-      builds["clang-8 TSAN"] = makeToolchainBuild("clang-8 TSAN", "cmake/san/clang-8_cxx17_tsan.cmake")
-      builds["clang-8 UBSAN"] = makeToolchainBuild("clang-8 UBSAN", "cmake/san/clang-8_cxx17_ubsan.cmake")
+      //builds["clang-tidy"] = makeClangTidyBuild("clang-tidy")
+      //builds["gcc-9 ASAN No Toolchain"] = makeAsanBuild("gcc-9 ASAN No Toolchain")
+      //builds["clang-8 TSAN"] = makeToolchainBuild("clang-8 TSAN", "cmake/san/clang-8_cxx17_tsan.cmake")
+      //builds["clang-8 UBSAN"] = makeToolchainBuild("clang-8 UBSAN", "cmake/san/clang-8_cxx17_ubsan.cmake")
       builds["gcc-8 coverage/sonar"] = makeCoverageBuild("gcc-8 coverage/sonar")
 
       parallel(builds)
