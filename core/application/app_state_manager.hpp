@@ -17,7 +17,6 @@ namespace kagome {
     enum class State {
       Init,
       Prepare,
-      Cancel,
       ReadyToStart,
       Starting,
       Works,

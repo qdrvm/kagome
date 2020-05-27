@@ -95,13 +95,17 @@ namespace kagome {
     if (state_ == State::Prepare) {
       state_ = State::ReadyToStart;
     }
-    if (state_ == State::Cancel) {
+    else
+    {
       shutdown();
     }
   }
 
   void AppStateManagerImpl::doLaunch() {
     std::lock_guard lg(mutex_);
+    if (state_ == State::ShuttingDown) {
+      return;
+    }
     if (state_ != State::ReadyToStart) {
       throw AppStateException("running stage 'launch'");
     }
@@ -109,7 +113,7 @@ namespace kagome {
 
     while (!launch_.empty()) {
       auto &cb = launch_.front();
-      if (state_ != State::Cancel) {
+      if (state_ == State::Starting) {
         cb();
       }
       launch_.pop();
@@ -118,7 +122,8 @@ namespace kagome {
     if (state_ == State::Starting) {
       state_ = State::Works;
     }
-    if (state_ == State::Cancel) {
+    else
+    {
       shutdown();
     }
   }
