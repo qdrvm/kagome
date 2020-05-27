@@ -14,6 +14,7 @@ target_link_libraries(application_injector
     api_transport
     api_jrpc_server
     state_api_service
+    chain_api_service
     readonly_trie_builder
     babe
     babe_lottery
@@ -62,9 +63,19 @@ target_link_libraries(syncing_node_injector
     syncing_babe_observer
     )
 
-add_library(full_node_injector
-    full_node_injector.cpp
+add_library(validating_node_injector
+    validating_node_injector.cpp
     )
-target_link_libraries(full_node_injector
+target_link_libraries(validating_node_injector
     application_injector
+    grandpa_dummy
+    )
+
+add_library(block_producing_node_injector
+    block_producing_node_injector.cpp
+    )
+target_link_libraries(block_producing_node_injector
+    application_injector
+    syncing_round_observer
+    grandpa_dummy
     )

@@ -13,10 +13,21 @@
 namespace kagome::api {
   WsListenerImpl::WsListenerImpl(std::shared_ptr<Context> context,
                                  const Configuration &configuration,
-                                 SessionImpl::Configuration session_config)
+                                 SessionImpl::Configuration session_config) try
       : context_(std::move(context)),
         acceptor_(*context_, configuration.endpoint),
-        session_config_{session_config} {}
+        session_config_ {
+    session_config
+  }
+  {}
+  catch (boost::wrapexcept<boost::system::system_error> &e) {
+    Logger logger = common::createLogger("RPC_Websocket_Listener");
+    logger->critical("Failure at instantiate listener: Can't {}", e.what());
+  }
+  catch (const std::exception &exception) {
+    Logger logger = common::createLogger("RPC_Websocket_Listener");
+    logger->critical("Exception at instantiate listener: {}", exception.what());
+  }
 
   void WsListenerImpl::acceptOnce(Listener::NewSessionHandler on_new_session) {
     new_session_ = std::make_shared<SessionImpl>(*context_, session_config_);

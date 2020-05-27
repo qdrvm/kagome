@@ -44,10 +44,10 @@ namespace kagome::primitives {
    */
   struct Authority {
     AuthorityId id;
-    AuthorityWeight babe_weight{};
+    AuthorityWeight weight{};
 
     bool operator==(const Authority &other) const {
-      return id == other.id && babe_weight == other.babe_weight;
+      return id == other.id && weight == other.weight;
     }
     bool operator!=(const Authority &other) const {
       return !(*this == other);
@@ -90,7 +90,7 @@ namespace kagome::primitives {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_encoder_stream>>
   Stream &operator<<(Stream &s, const Authority &a) {
-    return s << a.id << a.babe_weight;
+    return s << a.id << a.weight;
   }
 
   /**
@@ -103,7 +103,7 @@ namespace kagome::primitives {
   template <class Stream,
             typename = std::enable_if_t<Stream::is_decoder_stream>>
   Stream &operator>>(Stream &s, Authority &a) {
-    return s >> a.id >> a.babe_weight;
+    return s >> a.id >> a.weight;
   }
 }  // namespace kagome::primitives
 

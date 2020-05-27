@@ -9,7 +9,7 @@
 
 ## Intro
 
-Kagome is a [Polkadot Runtime Environment](https://github.com/w3f/polkadot-spec/tree/master/runtime-environment-spec) developed by [Soramitsu](https://soramitsu.co.jp/) add funded by Web3 Foundation [grant](https://github.com/w3f/Web3-collaboration/blob/master/grants/grants.md). 
+Kagome is a [Polkadot Host](https://github.com/w3f/polkadot-spec/tree/master/runtime-environment-spec) developed by [Soramitsu](https://soramitsu.co.jp/) add funded by Web3 Foundation [grant](https://github.com/w3f/Web3-collaboration/blob/master/grants/grants.md). 
 
 
 ## Status
@@ -36,13 +36,13 @@ cd kagome
 git submodule update --init --recursive
 
 mkdir build && cd build
-cmake ..
+cmake -DCMAKE_BUILD_TYPE=Release ..
 
-# if you want to have full node
-make kagome_full -j 
+# if you want to have validating node
+make kagome_validating -j 
 
 # if you want to have syncing node
-make kagome_syncing -j
+make kagome_full_syncing -j
 ```
 
 
@@ -58,14 +58,14 @@ rm -rf ldb
 ```
 ---
 
-To launch kagome full node execute:
+To launch kagome validating node execute:
 ```
 cd node/
-PATH=$PATH:../build/node/kagome_full/
-kagome_full --genesis config/polkadot-v06.json --keystore config/keystore.json -l ldb -e
+PATH=$PATH:../build/node/kagome_validating/
+kagome_validating --genesis config/polkadot-v06.json --keystore config/keystore.json -l ldb -e
 ```
 
-This command executes kagome full node which can receive extrinsics locally on port using http: `40363`. Simple transfer transaction can be sent as follows:
+This command executes kagome validating node which can receive extrinsics locally on port using http: `40363`. Simple transfer transaction can be sent as follows:
 ```
 curl -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "author_submitExtrinsic", "params": ["0x290284ffdc3488acc1a6b90aa92cea0cfbe2b00754a74084970b08d968e948d4d3bf161a01e2f2be0a634faeb8401ed2392731df803877dcb2422bb396d48ca24f18661059e3dde41d14b87eb929ec41ab36e6d63be5a1f5c3c5c092c79646a453f4b392890000000600ff488f6d1b0114674dcd81fd29642bc3bcec8c8366f6af0665860f9d4e8c8a972404"]}' http://localhost:40363/
 ```
@@ -75,12 +75,12 @@ If transaction was successfully applied we should see the following output:
 ```
 
 
-### Execute kagome syncing node
+### Execute kagome full syncing node
 
 ---
 **Note**
 
-Same note as for full node. At the moment launch from existing db is not implemented, so you should clean up previous db before every launch using the following command from the node folder:
+Same note as for full syncing node. At the moment launch from existing db is not implemented, so you should clean up previous db before every launch using the following command from the node folder:
 ```
 rm -rf ldb_syncing
 ```
@@ -89,8 +89,8 @@ rm -rf ldb_syncing
 To launch kagome syncing node execute:
 ```
 cd node/
-PATH=$PATH:../build/node/kagome_syncing/
-kagome_syncing --genesis config/polkadot-v06.json -l ldb_syncing -v 1 --p2p_port 50541 --rpc_http_port 50542 --rpc_ws_port 50543
+PATH=$PATH:../build/node/kagome_full_syncing/
+kagome_full_syncing --genesis config/polkadot-v06.json -l ldb_syncing -v 1 --p2p_port 50541 --rpc_http_port 50542 --rpc_ws_port 50543
 ```
 
 After this command syncing node will connect with the full node and start importing blocks.
@@ -99,7 +99,7 @@ After this command syncing node will connect with the full node and start import
 * To execute kagome node you need to provide it with genesis config, keys and leveldb files
 * Example genesis config file can be found in `node/config/polkadot-v06.json`
 * Example keys file can be found in `node/config/keystore.json`
-* To create leveldb storage file just provide any path into `kagome_full` executable.
+* To create leveldb storage file just provide any path into `kagome_validating` or `kagome_full_syncing` executable.
 
 
 ### Build Kagome
@@ -115,11 +115,9 @@ This project is can be built with
 
 ```
 cd build
-cmake -DCLANG_TIDY=ON ..
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j
 ```
-
-It is suggested to build project with clang-tidy checks, however if you wish to omit clang-tidy step, you can use `cmake ..` instead.
 
 Tests can be run with: 
 ```
