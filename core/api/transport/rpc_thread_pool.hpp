@@ -15,6 +15,8 @@
 #include "application/app_state_manager.hpp"
 #include "common/logger.hpp"
 
+using kagome::application::AppStateManager;
+
 namespace kagome::api {
 
   /**

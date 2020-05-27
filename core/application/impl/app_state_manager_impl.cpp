@@ -8,9 +8,15 @@
 #include <csignal>
 #include <functional>
 
-namespace kagome {
+namespace kagome::application {
 
   std::weak_ptr<AppStateManager> AppStateManagerImpl::wp_to_myself;
+
+  void AppStateManagerImpl::shuttingDownSignalsHandler(int) {
+    if (auto self = wp_to_myself.lock()) {
+      self->shutdown();
+    }
+  }
 
   AppStateManagerImpl::AppStateManagerImpl()
       : logger_(common::createLogger("Application")) {
@@ -166,5 +172,4 @@ namespace kagome {
     std::lock_guard lg(cv_mutex_);
     cv_.notify_one();
   }
-
-}  // namespace kagome
+}  // namespace kagome::application

@@ -9,9 +9,9 @@
 
 #include "application/impl/app_state_manager_impl.hpp"
 
-using kagome::AppStateException;
-using kagome::AppStateManager;
-using kagome::AppStateManagerImpl;
+using kagome::application::AppStateException;
+using kagome::application::AppStateManager;
+using kagome::application::AppStateManagerImpl;
 
 using testing::Return;
 using testing::Sequence;

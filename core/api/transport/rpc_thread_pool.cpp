@@ -18,7 +18,7 @@ namespace kagome::api {
     BOOST_ASSERT(context_);
 
     app_state_manager_->atLaunch([this] { start(); });
-	  app_state_manager_->atShutdown([this] { stop(); });
+    app_state_manager_->atShutdown([this] { stop(); });
   }
 
   void RpcThreadPool::start() {

@@ -8,7 +8,7 @@
 
 #include "common/logger.hpp"
 
-namespace kagome {
+namespace kagome::application {
 
   class AppStateManager : public std::enable_shared_from_this<AppStateManager> {
    public:
@@ -53,6 +53,6 @@ namespace kagome {
     explicit AppStateException(std::string message)
         : std::runtime_error("Wrong workflow at " + std::move(message)) {}
   };
-}  // namespace kagome
+}  // namespace kagome::application
 
 #endif  // KAGOME_APPLICATION_DISPATCHER

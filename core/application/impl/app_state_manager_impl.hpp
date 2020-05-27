@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_APPLICATION_DISPATCHER_IMPL
-#define KAGOME_APPLICATION_DISPATCHER_IMPL
+#ifndef KAGOME_APP_STATE_MANAGER
+#define KAGOME_APP_STATE_MANAGER
 
 #include "application/app_state_manager.hpp"
 
@@ -15,7 +15,7 @@
 
 #include "common/logger.hpp"
 
-namespace kagome {
+namespace kagome::application {
 
   class AppStateManagerImpl : public AppStateManager {
    public:
@@ -48,11 +48,7 @@ namespace kagome {
 
    private:
     static std::weak_ptr<AppStateManager> wp_to_myself;
-    static void shuttingDownSignalsHandler(int) {
-      if (auto self = wp_to_myself.lock()) {
-        self->shutdown();
-      }
-    }
+    static void shuttingDownSignalsHandler(int);
 
     common::Logger logger_;
 
@@ -70,6 +66,6 @@ namespace kagome {
     std::atomic_bool shutdown_requested_{false};
   };
 
-}  // namespace kagome
+}  // namespace kagome::application
 
-#endif  // KAGOME_APPLICATION_DISPATCHER_IMPL
+#endif  // KAGOME_APP_STATE_MANAGER

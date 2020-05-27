@@ -13,7 +13,6 @@
 #include <outcome/outcome.hpp>
 
 #include "api/service/api_service.hpp"
-#include "application/impl/app_state_manager_impl.hpp"
 #include "api/service/author/author_jrpc_processor.hpp"
 #include "api/service/author/impl/author_api_impl.hpp"
 #include "api/service/chain/chain_jrpc_processor.hpp"
@@ -26,6 +25,7 @@
 #include "api/transport/impl/ws/ws_listener_impl.hpp"
 #include "api/transport/impl/ws/ws_session.hpp"
 #include "api/transport/rpc_thread_pool.hpp"
+#include "application/impl/app_state_manager_impl.hpp"
 #include "application/impl/configuration_storage_impl.hpp"
 #include "authorship/impl/block_builder_factory_impl.hpp"
 #include "authorship/impl/block_builder_impl.hpp"
@@ -475,7 +475,7 @@ namespace kagome::injector {
         // bind boot nodes
         di::bind<network::PeerList>.to(std::move(get_boot_nodes)),
 
-        di::bind<AppStateManager>.template to<AppStateManagerImpl>(),
+        di::bind<application::AppStateManager>.template to<application::AppStateManagerImpl>(),
 
         // bind io_context: 1 per injector
         di::bind<::boost::asio::io_context>.in(
