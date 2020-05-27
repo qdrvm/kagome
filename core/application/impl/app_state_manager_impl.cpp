@@ -94,18 +94,13 @@ namespace kagome {
 
     if (state_ == State::Prepare) {
       state_ = State::ReadyToStart;
-    }
-    else
-    {
+    } else {
       shutdown();
     }
   }
 
   void AppStateManagerImpl::doLaunch() {
     std::lock_guard lg(mutex_);
-    if (state_ == State::ShuttingDown) {
-      return;
-    }
     if (state_ != State::ReadyToStart) {
       throw AppStateException("running stage 'launch'");
     }
@@ -121,9 +116,7 @@ namespace kagome {
 
     if (state_ == State::Starting) {
       state_ = State::Works;
-    }
-    else
-    {
+    } else {
       shutdown();
     }
   }
@@ -157,7 +150,10 @@ namespace kagome {
     }
 
     doPrepare();
-    doLaunch();
+
+    if (state_ == State::ReadyToStart) {
+      doLaunch();
+    }
 
     std::unique_lock lock(cv_mutex_);
     cv_.wait(lock, [&] { return shutdown_requested_.load(); });
