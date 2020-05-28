@@ -9,6 +9,8 @@ env:
   BUILD_DIR: build
   BUILD_TREADS: 2
   CTEST_OUTPUT_ON_FAILURE: 1
+  GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
+  GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
 
 jobs:
   MacOS:
@@ -21,8 +23,6 @@ jobs:
       env:
         BUILD_TREADS: 4
         DEVELOPER_DIR: /Applications/Xcode_11.app/Contents/Developer
-        CFLAGS: "-I${DEVELOPER_DIR}/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
-        CXXFLAGS: "-isysroot${DEVELOPER_DIR}/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
       run: ./housekeeping/makeBuild.sh  -DCOVERAGE=OFF -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx17.cmake
 
   Linux:
@@ -51,6 +51,7 @@ jobs:
         - uses: actions/checkout@v2
         - name: clang-tidy
           env:
+            # build only generated files, so clang-tidy will work correctl
             BUILD_TARGET: generated
           run: |
             ./housekeeping/makeBuild.sh
@@ -64,15 +65,18 @@ jobs:
         - name: makeBuild
           env:
             BUILD_TARGET: ctest_coverage
-          run: |
-            ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-8_cxx17.cmake -DCOVERAGE=ON
+          run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-8_cxx17.cmake -DCOVERAGE=ON
         - name: Submit Coverage
           env:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          run: ./housekeeping/codecov.sh ${BUILD_DIR} ${CODECOV_TOKEN}
+        - name: Sonar
+          env:
             SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          run: |
-            ./housekeeping/codecov.sh ${BUILD_DIR} ${CODECOV_TOKEN}
-          # ./housekeeping/sonar.sh
+            GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            BRANCH_NAME: ${{ github.head_ref }}
+          run: ./housekeeping/sonar.sh
 
   push:
       # if: ${{ github.ref == 'master' }}
