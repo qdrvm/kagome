@@ -274,7 +274,7 @@ namespace kagome::consensus {
     }
 
     auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
-    log_->debug("Babe builds block on top of block with number {} and hash {}",
+    log_->info("Babe builds block on top of block with number {} and hash {}",
                 best_block_number,
                 best_block_hash);
 
