@@ -15,6 +15,8 @@
 #include "api/service/api_service.hpp"
 #include "api/service/author/author_jrpc_processor.hpp"
 #include "api/service/author/impl/author_api_impl.hpp"
+#include "api/service/chain/chain_jrpc_processor.hpp"
+#include "api/service/chain/impl/chain_api_impl.hpp"
 #include "api/service/state/impl/readonly_trie_builder_impl.hpp"
 #include "api/service/state/impl/state_api_impl.hpp"
 #include "api/service/state/state_jrpc_processor.hpp"
@@ -130,7 +132,9 @@ namespace kagome::injector {
         injector
             .template create<std::shared_ptr<api::state::StateJrpcProcessor>>(),
         injector.template create<
-            std::shared_ptr<api::author::AuthorJRpcProcessor>>()};
+            std::shared_ptr<api::author::AuthorJRpcProcessor>>(),
+        injector.template create<
+            std::shared_ptr<api::chain::ChainJrpcProcessor>>()};
     initialized =
         std::make_shared<api::ApiService>(listeners, server, processors);
     return initialized.value();
@@ -138,8 +142,8 @@ namespace kagome::injector {
 
   // jrpc api listener (over HTTP) getter
   auto get_jrpc_api_http_listener =
-      [](const auto &injector,
-         uint16_t rpc_port) -> sptr<api::HttpListenerImpl> {
+      [](const auto &injector, const boost::asio::ip::tcp::endpoint &endpoint)
+      -> sptr<api::HttpListenerImpl> {
     static auto initialized =
         boost::optional<sptr<api::HttpListenerImpl>>(boost::none);
     if (initialized) {
@@ -147,9 +151,10 @@ namespace kagome::injector {
     }
 
     auto context = injector.template create<sptr<api::RpcContext>>();
-    auto extrinsic_tcp_version = boost::asio::ip::tcp::v4();
-    api::HttpListenerImpl::Configuration listener_config{
-        boost::asio::ip::tcp::endpoint{extrinsic_tcp_version, rpc_port}};
+
+    api::HttpListenerImpl::Configuration listener_config;
+    listener_config.endpoint = endpoint;
+
     auto &&http_session_config =
         injector.template create<api::HttpSession::Configuration>();
 
@@ -160,7 +165,8 @@ namespace kagome::injector {
 
   // jrpc api listener (over Websockets) getter
   auto get_jrpc_api_ws_listener =
-      [](const auto &injector, uint16_t rpc_port) -> sptr<api::WsListenerImpl> {
+      [](const auto &injector, const boost::asio::ip::tcp::endpoint &endpoint)
+      -> sptr<api::WsListenerImpl> {
     static auto initialized =
         boost::optional<sptr<api::WsListenerImpl>>(boost::none);
     if (initialized) {
@@ -168,9 +174,10 @@ namespace kagome::injector {
     }
 
     auto context = injector.template create<sptr<api::RpcContext>>();
-    auto extrinsic_tcp_version = boost::asio::ip::tcp::v4();
-    api::WsListenerImpl::Configuration listener_config{
-        boost::asio::ip::tcp::endpoint{extrinsic_tcp_version, rpc_port}};
+
+    api::WsListenerImpl::Configuration listener_config;
+    listener_config.endpoint = endpoint;
+
     auto &&ws_session_config =
         injector.template create<api::WsSession::Configuration>();
 
@@ -218,9 +225,11 @@ namespace kagome::injector {
 
             consensus::grandpa::VoterSet voters{0};
             for (const auto &weighted_authority : weighted_authorities) {
-              voters.insert(weighted_authority.id.id, 1);
-              spdlog::debug("Added to grandpa authorities: {}",
-                            weighted_authority.id.id.toHex());
+              voters.insert(weighted_authority.id.id,
+                            weighted_authority.weight);
+              spdlog::debug("Added to grandpa authorities: {}, weight: {}",
+                            weighted_authority.id.id.toHex(),
+                            weighted_authority.weight);
             }
             BOOST_ASSERT_MSG(voters.size() != 0, "Grandpa voters are empty");
             auto authorities_put_res =
@@ -457,11 +466,12 @@ namespace kagome::injector {
   };
 
   template <typename... Ts>
-  auto makeApplicationInjector(const std::string &genesis_path,
-                               const std::string &leveldb_path,
-                               uint16_t rpc_http_port,
-                               uint16_t rpc_ws_port,
-                               Ts &&... args) {
+  auto makeApplicationInjector(
+      const std::string &genesis_path,
+      const std::string &leveldb_path,
+      const boost::asio::ip::tcp::endpoint &rpc_http_endpoint,
+      const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint,
+      Ts &&... args) {
     using namespace boost;  // NOLINT;
 
     // default values for configurations
@@ -491,13 +501,15 @@ namespace kagome::injector {
 
         // bind interfaces
         di::bind<api::HttpListenerImpl>.to(
-            [rpc_http_port](const auto &injector) {
-              return get_jrpc_api_http_listener(injector, rpc_http_port);
+            [rpc_http_endpoint](const auto &injector) {
+              return get_jrpc_api_http_listener(injector, rpc_http_endpoint);
             }),
-        di::bind<api::WsListenerImpl>.to([rpc_ws_port](const auto &injector) {
-          return get_jrpc_api_ws_listener(injector, rpc_ws_port);
-        }),
+        di::bind<api::WsListenerImpl>.to(
+            [rpc_ws_endpoint](const auto &injector) {
+              return get_jrpc_api_ws_listener(injector, rpc_ws_endpoint);
+            }),
         di::bind<api::AuthorApi>.template to<api::AuthorApiImpl>(),
+        di::bind<api::ChainApi>.template to<api::ChainApiImpl>(),
         di::bind<api::StateApi>.template to<api::StateApiImpl>(),
         di::bind<api::ApiService>.to(std::move(get_jrpc_api_service)),
         di::bind<api::JRpcServer>.template to<api::JRpcServerImpl>(),

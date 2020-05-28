@@ -63,6 +63,7 @@ add_library(persistent_trie_batch
     )
 target_link_libraries(persistent_trie_batch
     buffer
+    trie_error
     )
 kagome_install(persistent_trie_batch)
 

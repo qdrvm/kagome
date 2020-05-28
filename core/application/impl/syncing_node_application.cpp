@@ -12,23 +12,37 @@ namespace kagome::application {
       const std::string &config_path,
       const std::string &leveldb_path,
       uint16_t p2p_port,
-      uint16_t rpc_http_port,
-      uint16_t rpc_ws_port,
+      const boost::asio::ip::tcp::endpoint &rpc_http_endpoint,
+      const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint,
       uint8_t verbosity)
-      : injector_{injector::makeSyncingNodeInjector(
-            config_path, leveldb_path, p2p_port, rpc_http_port, rpc_ws_port)},
+      : injector_{injector::makeSyncingNodeInjector(config_path,
+                                                    leveldb_path,
+                                                    p2p_port,
+                                                    rpc_http_endpoint,
+                                                    rpc_ws_endpoint)},
         logger_{common::createLogger("SyncingNodeApplication")} {
     spdlog::set_level(static_cast<spdlog::level::level_enum>(verbosity));
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
     io_context_ = injector_.create<sptr<boost::asio::io_context>>();
+    signals_ = std::make_unique<boost::asio::signal_set>(*io_context_);
     config_storage_ = injector_.create<sptr<ConfigurationStorage>>();
     router_ = injector_.create<sptr<network::Router>>();
+
+    rpc_context_ = injector_.create<sptr<api::RpcContext>>();
+    rpc_thread_pool_ = injector_.create<sptr<api::RpcThreadPool>>();
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 
   void SyncingNodeApplication::run() {
+    logger_->info("Start as {} with PID {}", typeid(*this).name(), getpid());
+
+    signals_->add(SIGINT);
+    signals_->add(SIGTERM);
+    signals_->add(SIGQUIT);
+    signals_->async_wait(boost::bind(&SyncingNodeApplication::shutdown, this));
+
     jrpc_api_service_->start();
 
     // execute listeners
@@ -64,7 +78,13 @@ namespace kagome::application {
       this->router_->init();
     });
 
+    rpc_thread_pool_->start();
+
     io_context_->run();
+  }
+
+  void SyncingNodeApplication::shutdown() {
+    io_context_->stop();
   }
 
 }  // namespace kagome::application

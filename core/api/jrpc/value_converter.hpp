@@ -10,9 +10,14 @@
 
 #include <jsonrpc-lean/value.h>
 #include "common/blob.hpp"
+#include "common/visitor.hpp"
 #include "primitives/extrinsic.hpp"
 
 namespace kagome::api {
+  inline jsonrpc::Value makeValue(std::string v) {
+    return std::move(v);
+  }
+
   inline jsonrpc::Value makeValue(const common::Hash256 &v) {
     return std::vector<uint8_t>{v.begin(), v.end()};
   }
@@ -34,6 +39,15 @@ namespace kagome::api {
     }
     return value;
   }
+
+  template <class T1, class T2>
+  inline jsonrpc::Value makeValue(const boost::variant<T1, T2> &v) {
+    return kagome::visit_in_place(
+        v,
+        [](const T1 &value) { return makeValue(value); },
+        [](const T2 &value) { return makeValue(value); });
+  }
+
 }  // namespace kagome::api
 
-#endif  //KAGOME_CORE_API_EXTRINSIC_RESPONSE_VALUE_CONVERTER_HPP
+#endif  // KAGOME_CORE_API_EXTRINSIC_RESPONSE_VALUE_CONVERTER_HPP
