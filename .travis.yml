@@ -57,7 +57,7 @@ jobs:
         - BUILD_TARGET=generated
         - BUILD_DIR=build
         - BUILD_TREADS=2
-        - DOCKER_IMAGE=soramitsu/kagome-dev:8
+        - INDOCKER_IMAGE=soramitsu/kagome-dev:8
       script:
         - ./housekeeping/indocker.sh ./housekeeping/makeBuild.sh
         - ./housekeeping/indocker.sh ./housekeeping/clang-tidy.sh "${BUILD_DIR}"

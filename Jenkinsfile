@@ -20,7 +20,7 @@ def makeBuild(String name, Closure then) {
                 "GITHUB_HUNTER_TOKEN=${GITHUB_TOKEN}",
                 "BUILD_DIR=${buildDir}",
                 "GITHUB_REPOSITORY=${repository}",
-                "DOCKER_IMAGE=${dockerImage}"
+                "INDOCKER_IMAGE=${dockerImage}"
               ]) {
                 then()
               } // end withEnv
