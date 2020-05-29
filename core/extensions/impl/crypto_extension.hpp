@@ -18,6 +18,14 @@ namespace kagome::crypto {
 }  // namespace kagome::crypto
 
 namespace kagome::extensions {
+  enum class KeyTypeId { BABE, GRAN, ACCO, IMON, AUDI };
+  static const std::map<KeyTypeId, std::string> KeyTypeName = {
+      {KeyTypeId::BABE, "babe"},
+      {KeyTypeId::GRAN, "gran"},
+      {KeyTypeId::ACCO, "acco"},
+      {KeyTypeId::IMON, "imon"},
+      {KeyTypeId::AUDI, "audi"}};
+
   /**
    * Implements extension functions related to cryptography
    */
@@ -51,12 +59,55 @@ namespace kagome::extensions {
                         runtime::WasmPointer out_ptr);
 
     /**
+     * @see Extension::ext_ed25519_public_keys
+     */
+    void ext_ed25519_public_keys(runtime::SizeType key_type,
+                                 runtime::WasmPointer out_ptr);
+
+    /**
+     *@see Extension::ext_ed25519_generate
+     */
+    void ext_ed25519_generate(runtime::SizeType key_type,
+                              runtime::WasmPointer seed /*optional*/,
+                              runtime::WasmPointer out_ptr);
+
+    /**
+     * @see Extension::ed25519_sign
+     */
+    void ext_ed25519_sign(runtime::SizeType key_type,
+                          runtime::WasmPointer key,
+                          runtime::WasmPointer msg,
+                          runtime::WasmPointer out_ptr);
+
+    /**
      * @see Extension::ext_ed25519_verify
      */
     runtime::SizeType ext_ed25519_verify(runtime::WasmPointer msg_data,
                                          runtime::SizeType msg_len,
                                          runtime::WasmPointer sig_data,
                                          runtime::WasmPointer pubkey_data);
+
+    /**
+     * @see Extension::ext_sr25519_public_keys
+     */
+    void ext_sr25519_public_keys(runtime::SizeType key_type,
+                                 runtime::WasmPointer out_ptr);
+
+    /**
+     *@see Extension::ext_sr25519_generate
+     */
+    void ext_sr25519_generate(runtime::SizeType key_type,
+                              runtime::WasmPointer seed /*optional*/,
+                              runtime::WasmPointer out_ptr);
+
+    /**
+     * @see Extension::sr25519_sign
+     */
+    void ext_sr25519_sign(runtime::SizeType key_type,
+                          runtime::WasmPointer key,
+                          runtime::WasmPointer msg,
+                          runtime::WasmPointer out_ptr);
+
     /**
      * @see Extension::ext_sr25519_verify
      */
@@ -69,9 +120,9 @@ namespace kagome::extensions {
      * @see Extension::ext_twox_64
      */
     void ext_twox_64(runtime::WasmPointer data,
-                      runtime::SizeType len,
-                      runtime::WasmPointer out);
-    
+                     runtime::SizeType len,
+                     runtime::WasmPointer out);
+
     /**
      * @see Extension::ext_twox_128
      */

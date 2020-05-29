@@ -139,6 +139,24 @@ namespace kagome::extensions {
     crypto_ext_.ext_keccak_256(data, len, out);
   }
 
+  void ExtensionImpl::ext_ed25519_public_keys(runtime::SizeType key_type,
+                                              runtime::WasmPointer out_ptr) {
+    crypto_ext_.ext_ed25519_public_keys(key_type, out_ptr);
+  }
+
+  void ExtensionImpl::ext_ed25519_generate(runtime::SizeType key_type,
+                                           runtime::WasmPointer seed,
+                                           runtime::WasmPointer out_ptr) {
+    crypto_ext_.ext_ed25519_generate(key_type, seed, out_ptr);
+  }
+
+  void ExtensionImpl::ext_ed25519_sign(runtime::SizeType key_type,
+                                       runtime::WasmPointer key,
+                                       runtime::WasmPointer msg,
+                                       runtime::WasmPointer out_ptr) {
+    crypto_ext_.ext_ed25519_sign(key_type, key, msg, out_ptr);
+  }
+
   runtime::SizeType ExtensionImpl::ext_ed25519_verify(
       runtime::WasmPointer msg_data,
       runtime::SizeType msg_len,
@@ -146,6 +164,24 @@ namespace kagome::extensions {
       runtime::WasmPointer pubkey_data) {
     return crypto_ext_.ext_ed25519_verify(
         msg_data, msg_len, sig_data, pubkey_data);
+  }
+
+  void ExtensionImpl::ext_sr25519_public_keys(runtime::SizeType key_type,
+                                              runtime::WasmPointer out_ptr) {
+    crypto_ext_.ext_sr25519_public_keys(key_type, out_ptr);
+  }
+
+  void ExtensionImpl::ext_sr25519_generate(runtime::SizeType key_type,
+                                           runtime::WasmPointer seed,
+                                           runtime::WasmPointer out_ptr) {
+    crypto_ext_.ext_sr25519_generate(key_type, seed, out_ptr);
+  }
+
+  void ExtensionImpl::ext_sr25519_sign(runtime::SizeType key_type,
+                                       runtime::WasmPointer key,
+                                       runtime::WasmPointer msg,
+                                       runtime::WasmPointer out_ptr) {
+    crypto_ext_.ext_sr25519_sign(key_type, key, msg, out_ptr);
   }
 
   runtime::SizeType ExtensionImpl::ext_sr25519_verify(

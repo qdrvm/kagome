@@ -168,4 +168,27 @@ namespace kagome::extensions {
 
     memory_->storeBuffer(out_ptr, common::Buffer(hash));
   }
+  void CryptoExtension::ext_ed25519_public_keys(runtime::SizeType key_type,
+                                                runtime::WasmPointer out_ptr) {}
+
+  void CryptoExtension::ext_ed25519_generate(runtime::SizeType key_type,
+                                             runtime::WasmPointer seed,
+                                             runtime::WasmPointer out_ptr) {}
+
+  void CryptoExtension::ext_ed25519_sign(runtime::SizeType key_type,
+                                         runtime::WasmPointer key,
+                                         runtime::WasmPointer msg,
+                                         runtime::WasmPointer out_ptr) {}
+
+  void CryptoExtension::ext_sr25519_public_keys(runtime::SizeType key_type,
+                                                runtime::WasmPointer out_ptr) {}
+
+  void CryptoExtension::ext_sr25519_generate(runtime::SizeType key_type,
+                                             runtime::WasmPointer seed,
+                                             runtime::WasmPointer out_ptr) {}
+
+  void CryptoExtension::ext_sr25519_sign(runtime::SizeType key_type,
+                                         runtime::WasmPointer key,
+                                         runtime::WasmPointer msg,
+                                         runtime::WasmPointer out_ptr) {}
 }  // namespace kagome::extensions

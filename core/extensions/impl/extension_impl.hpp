@@ -96,11 +96,35 @@ namespace kagome::extensions {
                         runtime::SizeType len,
                         runtime::WasmPointer out) override;
 
+    void ext_ed25519_public_keys(runtime::SizeType key_type,
+                                 runtime::WasmPointer out_ptr) override;
+
+    void ext_ed25519_generate(runtime::SizeType key_type,
+                              runtime::WasmPointer seed /*optional*/,
+                              runtime::WasmPointer out_ptr) override;
+
+    void ext_ed25519_sign(runtime::SizeType key_type,
+                          runtime::WasmPointer key,
+                          runtime::WasmPointer msg,
+                          runtime::WasmPointer out_ptr) override;
+
     runtime::SizeType ext_ed25519_verify(
         runtime::WasmPointer msg_data,
         runtime::SizeType msg_len,
         runtime::WasmPointer sig_data,
         runtime::WasmPointer pubkey_data) override;
+
+    void ext_sr25519_public_keys(runtime::SizeType key_type,
+                                 runtime::WasmPointer out_ptr) override;
+
+    void ext_sr25519_generate(runtime::SizeType key_type,
+                              runtime::WasmPointer seed /*optional*/,
+                              runtime::WasmPointer out_ptr) override;
+
+    void ext_sr25519_sign(runtime::SizeType key_type,
+                          runtime::WasmPointer key,
+                          runtime::WasmPointer msg,
+                          runtime::WasmPointer out_ptr) override;
 
     runtime::SizeType ext_sr25519_verify(
         runtime::WasmPointer msg_data,
@@ -109,8 +133,8 @@ namespace kagome::extensions {
         runtime::WasmPointer pubkey_data) override;
 
     void ext_twox_64(runtime::WasmPointer data,
-                      runtime::SizeType len,
-                      runtime::WasmPointer out) override;
+                     runtime::SizeType len,
+                     runtime::WasmPointer out) override;
 
     void ext_twox_128(runtime::WasmPointer data,
                       runtime::SizeType len,
