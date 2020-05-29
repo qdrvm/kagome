@@ -12,6 +12,7 @@ target_link_libraries(crypto_extension
     sr25519_provider
     ed25519_provider
     logger
+    typed_key_storage
     )
 kagome_install(crypto_extension)
 

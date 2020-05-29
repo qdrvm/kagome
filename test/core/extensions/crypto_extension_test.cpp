@@ -14,6 +14,7 @@
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
+#include "crypto/typed_key_storage/typed_key_storage_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -32,6 +33,8 @@ using kagome::crypto::SR25519ProviderImpl;
 using kagome::crypto::SR25519PublicKey;
 using kagome::crypto::SR25519SecretKey;
 using kagome::crypto::SR25519Signature;
+using kagome::crypto::storage::TypedKeyStorage;
+using kagome::crypto::storage::TypedKeyStorageImpl;
 using kagome::runtime::MockMemory;
 using kagome::runtime::SizeType;
 using kagome::runtime::WasmPointer;
@@ -51,8 +54,9 @@ class CryptoExtensionTest : public ::testing::Test {
         std::make_shared<SR25519ProviderImpl>(random_generator_);
     ed25519_provider_ = std::make_shared<ED25519ProviderImpl>();
     hasher_ = std::make_shared<HasherImpl>();
+    key_storage_ = std::make_shared<TypedKeyStorageImpl>();
     crypto_ext_ = std::make_shared<CryptoExtension>(
-        memory_, sr25519_provider_, ed25519_provider_, hasher_);
+        memory_, sr25519_provider_, ed25519_provider_, hasher_, key_storage_);
 
     sr25519_keypair = sr25519_provider_->generateKeypair();
     sr25519_signature = sr25519_provider_->sign(sr25519_keypair, input).value();
@@ -64,6 +68,7 @@ class CryptoExtensionTest : public ::testing::Test {
   std::shared_ptr<SR25519Provider> sr25519_provider_;
   std::shared_ptr<ED25519Provider> ed25519_provider_;
   std::shared_ptr<Hasher> hasher_;
+  std::shared_ptr<TypedKeyStorage> key_storage_;
   std::shared_ptr<CryptoExtension> crypto_ext_;
 
   Buffer input{"6920616d2064617461"_unhex};
@@ -90,7 +95,8 @@ class CryptoExtensionTest : public ::testing::Test {
 };
 
 /**
- * @given initialized crypto extension @and data, which can be blake2b_128-hashed
+ * @given initialized crypto extension @and data, which can be
+ * blake2b_128-hashed
  * @when hashing that data
  * @then resulting hash is correct
  */
@@ -106,7 +112,8 @@ TEST_F(CryptoExtensionTest, Blake2_128Valid) {
 }
 
 /**
- * @given initialized crypto extension @and data, which can be blake2b_256-hashed
+ * @given initialized crypto extension @and data, which can be
+ * blake2b_256-hashed
  * @when hashing that data
  * @then resulting hash is correct
  */

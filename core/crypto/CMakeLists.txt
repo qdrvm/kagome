@@ -73,6 +73,16 @@ target_link_libraries(ed25519_provider
     )
 kagome_install(ed25519_provider)
 
+add_library(typed_key_storage
+    typed_key_storage/typed_key_storage_impl.cpp
+    key_type.cpp
+    )
+target_link_libraries(typed_key_storage
+    ed25519_types
+    sr25519_types
+    )
+kagome_install(typed_key_storage)
+
 add_subdirectory(blake2)
 add_subdirectory(keccak)
 add_subdirectory(sha)

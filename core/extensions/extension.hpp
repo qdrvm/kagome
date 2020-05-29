@@ -210,8 +210,8 @@ namespace kagome::extensions {
      * @param key_type key type id, an i32 integer indicating key id
      * @param out_ptr list of keys
      */
-    virtual void ext_ed25519_public_keys(runtime::SizeType key_type,
-                                         runtime::WasmPointer out_ptr) = 0;
+    virtual runtime::SizeType ext_ed25519_public_keys(
+        runtime::SizeType key_type, runtime::WasmPointer out_ptr) = 0;
 
     /**
      * @brief Generates an ed25519 key for the given key type using an optional
@@ -222,9 +222,10 @@ namespace kagome::extensions {
      * @param out_ptr a regular pointer to the buffer containing the 32-byte
      * public key
      */
-    virtual void ext_ed25519_generate(runtime::SizeType key_type,
-                                      runtime::WasmPointer seed /*optional*/,
-                                      runtime::WasmPointer out_ptr) = 0;
+    virtual runtime::SizeType ext_ed25519_generate(
+        runtime::SizeType key_type,
+        runtime::WasmPointer seed /*optional*/,
+        runtime::WasmPointer out_ptr) = 0;
 
     /**
      * Signs the given message with the ed25519 key that corresponds to the
@@ -237,10 +238,11 @@ namespace kagome::extensions {
      * containing the signature. This function returns None if the public key
      * cannot be found in the key store
      */
-    virtual void ext_ed25519_sign(runtime::SizeType key_type,
-                                  runtime::WasmPointer key,
-                                  runtime::WasmPointer msg,
-                                  runtime::WasmPointer out_ptr) = 0;
+    virtual runtime::SizeType ext_ed25519_sign(
+        runtime::SizeType key_type,
+        runtime::WasmPointer key,
+        runtime::WasmPointer msg,
+        runtime::WasmPointer out_ptr) = 0;
 
     /**
      * Verify the signature over the ed25519 message
@@ -261,8 +263,8 @@ namespace kagome::extensions {
      * @param key_type key type id, an i32 integer indicating key id
      * @param out_ptr list of keys
      */
-    virtual void ext_sr25519_public_keys(runtime::SizeType key_type,
-                                         runtime::WasmPointer out_keys) = 0;
+    virtual runtime::SizeType ext_sr25519_public_keys(
+        runtime::SizeType key_type, runtime::WasmPointer out_keys) = 0;
 
     /**
      * @brief Generates an ed25519 key for the given key type using an optional
@@ -273,10 +275,10 @@ namespace kagome::extensions {
      * @param out_ptr a regular pointer to the buffer containing the 32-byte
      * public key
      */
-    virtual void ext_sr25519_generate(runtime::SizeType key_type,
-                                      runtime::WasmPointer seed /*optional*/,
-                                      runtime::WasmPointer out_ptr) = 0;
-
+    virtual runtime::SizeType ext_sr25519_generate(
+        runtime::SizeType key_type,
+        runtime::WasmPointer seed /*optional*/,
+        runtime::WasmPointer out_ptr) = 0;
 
     /**
      * Signs the given message with the sr25519 key that corresponds to the
@@ -289,10 +291,11 @@ namespace kagome::extensions {
      * containing the signature. This function returns None if the public key
      * cannot be found in the key store
      */
-    virtual void ext_sr25519_sign(runtime::SizeType key_type,
-                                  runtime::WasmPointer key,
-                                  runtime::WasmPointer msg,
-                                  runtime::WasmPointer out_ptr) = 0;
+    virtual runtime::SizeType ext_sr25519_sign(
+        runtime::SizeType key_type,
+        runtime::WasmPointer key,
+        runtime::WasmPointer msg,
+        runtime::WasmPointer out_ptr) = 0;
 
     /**
      * Verify the signature over the sr25519 message

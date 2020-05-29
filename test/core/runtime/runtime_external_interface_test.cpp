@@ -13,10 +13,13 @@
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
+#include "crypto/typed_key_storage/typed_key_storage_impl.hpp"
 
 using ::testing::_;
 using ::testing::Return;
 
+using kagome::crypto::storage::TypedKeyStorage;
+using kagome::crypto::storage::TypedKeyStorageImpl;
 using kagome::extensions::MockExtension;
 using kagome::extensions::MockExtensionFactory;
 using kagome::runtime::MockMemory;
@@ -432,7 +435,7 @@ TEST_F(REITest, ext_blake2_128_Test) {
                                      "      (i32.const %d)\n"
                                      "    )\n")
                        % data_ptr % data_size % out_ptr)
-      .str();
+                          .str();
   executeWasm(execute_code);
 }
 

@@ -17,15 +17,11 @@ namespace kagome::crypto {
   class Hasher;
 }  // namespace kagome::crypto
 
-namespace kagome::extensions {
-  enum class KeyTypeId { BABE, GRAN, ACCO, IMON, AUDI };
-  static const std::map<KeyTypeId, std::string> KeyTypeName = {
-      {KeyTypeId::BABE, "babe"},
-      {KeyTypeId::GRAN, "gran"},
-      {KeyTypeId::ACCO, "acco"},
-      {KeyTypeId::IMON, "imon"},
-      {KeyTypeId::AUDI, "audi"}};
+namespace kagome::crypto::storage {
+  class TypedKeyStorage;
+}
 
+namespace kagome::extensions {
   /**
    * Implements extension functions related to cryptography
    */
@@ -35,7 +31,8 @@ namespace kagome::extensions {
         std::shared_ptr<runtime::WasmMemory> memory,
         std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
         std::shared_ptr<crypto::ED25519Provider> ed25519_provider,
-        std::shared_ptr<crypto::Hasher> hasher);
+        std::shared_ptr<crypto::Hasher> hasher,
+        std::shared_ptr<crypto::storage::TypedKeyStorage> key_storage);
 
     /**
      * @see Extension::ext_blake2_128
@@ -61,23 +58,24 @@ namespace kagome::extensions {
     /**
      * @see Extension::ext_ed25519_public_keys
      */
-    void ext_ed25519_public_keys(runtime::SizeType key_type,
-                                 runtime::WasmPointer out_ptr);
+    runtime::SizeType ext_ed25519_public_keys(runtime::SizeType key_type,
+                                              runtime::WasmPointer out_ptr);
 
     /**
      *@see Extension::ext_ed25519_generate
      */
-    void ext_ed25519_generate(runtime::SizeType key_type,
-                              runtime::WasmPointer seed /*optional*/,
-                              runtime::WasmPointer out_ptr);
+    runtime::SizeType ext_ed25519_generate(
+        runtime::SizeType key_type,
+        runtime::WasmPointer seed /*optional*/,
+        runtime::WasmPointer out_ptr);
 
     /**
      * @see Extension::ed25519_sign
      */
-    void ext_ed25519_sign(runtime::SizeType key_type,
-                          runtime::WasmPointer key,
-                          runtime::WasmPointer msg,
-                          runtime::WasmPointer out_ptr);
+    runtime::SizeType ext_ed25519_sign(runtime::SizeType key_type,
+                                       runtime::WasmPointer key,
+                                       runtime::WasmPointer msg,
+                                       runtime::WasmPointer out_ptr);
 
     /**
      * @see Extension::ext_ed25519_verify
@@ -90,23 +88,23 @@ namespace kagome::extensions {
     /**
      * @see Extension::ext_sr25519_public_keys
      */
-    void ext_sr25519_public_keys(runtime::SizeType key_type,
-                                 runtime::WasmPointer out_ptr);
+    runtime::SizeType ext_sr25519_public_keys(runtime::SizeType key_type,
+                                              runtime::WasmPointer out_ptr);
 
     /**
      *@see Extension::ext_sr25519_generate
      */
-    void ext_sr25519_generate(runtime::SizeType key_type,
-                              runtime::WasmPointer seed /*optional*/,
-                              runtime::WasmPointer out_ptr);
+    runtime::SizeType ext_sr25519_generate(runtime::SizeType key_type,
+                                           runtime::WasmPointer seed,
+                                           runtime::WasmPointer out_ptr);
 
     /**
      * @see Extension::sr25519_sign
      */
-    void ext_sr25519_sign(runtime::SizeType key_type,
-                          runtime::WasmPointer key,
-                          runtime::WasmPointer msg,
-                          runtime::WasmPointer out_ptr);
+    runtime::SizeType ext_sr25519_sign(runtime::SizeType key_type,
+                                       runtime::WasmPointer key,
+                                       runtime::WasmPointer msg,
+                                       runtime::WasmPointer out_ptr);
 
     /**
      * @see Extension::ext_sr25519_verify
@@ -142,6 +140,7 @@ namespace kagome::extensions {
     std::shared_ptr<crypto::SR25519Provider> sr25519_provider_;
     std::shared_ptr<crypto::ED25519Provider> ed25519_provider_;
     std::shared_ptr<crypto::Hasher> hasher_;
+    std::shared_ptr<crypto::storage::TypedKeyStorage> key_storage_;
     common::Logger logger_;
   };
 }  // namespace kagome::extensions
