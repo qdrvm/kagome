@@ -133,8 +133,7 @@ namespace kagome::consensus {
         block.header.number,
         hasher_->blake2b_256(scale::encode(block.header).value()).toHex());
 
-    //! OUTCOME_TRY();
-    auto babe_digests = getBabeDigests(block.header).value();
+    OUTCOME_TRY(babe_digests, getBabeDigests(block.header));
 
     auto [seal, babe_header] = babe_digests;
 
@@ -169,24 +168,18 @@ namespace kagome::consensus {
           epoch_index + 2, next_epoch_digest_res.value()).value();
     }
 
-    //! OUTCOME_TRY(block_validator_->validateHeader(
-    //!     block.header,
-    //!     this_block_epoch_descriptor.authorities[babe_header.authority_index].id,
-    //!     threshold,
-    //!     this_block_epoch_descriptor.randomness));
-    block_validator_->validateHeader(
-             block.header,
-             this_block_epoch_descriptor.authorities[babe_header.authority_index].id,
-             threshold,
-             this_block_epoch_descriptor.randomness).value();
+    OUTCOME_TRY(block_validator_->validateHeader(
+        block.header,
+        this_block_epoch_descriptor.authorities[babe_header.authority_index].id,
+        threshold,
+        this_block_epoch_descriptor.randomness));
 
     auto block_without_seal_digest = block;
 
     // block should be applied without last digest which contains the seal
     block_without_seal_digest.header.digest.pop_back();
     // apply block
-    //! OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
-    core_->execute_block(block_without_seal_digest).value();
+    OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
 
     // add block header if it does not exist
     block_tree_->addBlock(block).value();
