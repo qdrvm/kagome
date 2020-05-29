@@ -38,8 +38,9 @@ namespace kagome::runtime::binaryen {
   }
 
   outcome::result<void> CoreImpl::initialise_block(const BlockHeader &header) {
-    auto &&res = execute<void>(
-        "Core_initialize_block", CallPersistency::PERSISTENT, header);
+    auto parent = header_repo_->getBlockHeader(header.parent_hash).value();
+    auto &&res = executeAt<void>(
+        "Core_initialize_block", parent.state_root, CallPersistency::PERSISTENT, header);
     if (res.has_value()) {
       OUTCOME_TRY(changes_tracker_->onBlockChange(header.parent_hash,
                                                   header.number - 1)); // parent's number
