@@ -14,6 +14,7 @@
 #include "crypto/key_type.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "crypto/typed_key_storage.hpp"
+#include "scale/scale.hpp"
 
 namespace kagome::extensions {
   namespace sr25519_constants = crypto::constants::sr25519;
@@ -23,6 +24,8 @@ namespace kagome::extensions {
     static constexpr uint32_t kGeneralSuccess = 0;
     static constexpr uint32_t kGeneralFail = 5;
   }  // namespace
+
+  using crypto::PublicKey;
 
   CryptoExtension::CryptoExtension(
       std::shared_ptr<runtime::WasmMemory> memory,
@@ -196,15 +199,46 @@ namespace kagome::extensions {
                      key_type_obj.error().message());
       return kGeneralFail;
     }
+    auto &&pairs = key_storage_->getKeys(key_type_id.value());
+    // TODO: differentiate between different key types
+    constexpr size_t kKeySize = 32ul;
+    for (auto &p : pairs) {
+      if (p.publicKey.data.size() != kKeySize) {
+        logger_->error("wrong key size");
+        return kGeneralFail;
+      }
+      if (p.publicKey.type != PublicKey::Type::Ed25519) {
+        logger_->error("wrong key type");
+        return kGeneralFail;
+      }
+    }
+
+    using KeyBuffer = common::Blob<kKeySize>;
+    std::vector<KeyBuffer> public_keys;
+    public_keys.reserve(pairs.size());
+    std::transform(pairs.begin(),
+                   pairs.end(),
+                   std::back_inserter(public_keys),
+                   [](const auto &key_pair) -> KeyBuffer {
+                     auto data = key_pair.publicKey.data;
+                     return KeyBuffer::fromSpan(gsl::make_span(data)).value();
+                   });
+    auto &&encoded = scale::encode(public_keys);
+    if (!encoded) {
+      logger_->error("failed to scale-encode vector of public keys: {}",
+                     encoded.error().message());
+      return kGeneralFail;
+    }
+
+    common::Buffer buffer(std::move(encoded.value()));
+    memory_->storeBuffer(out_ptr, buffer);
+    return kGeneralSuccess;
   }
 
   runtime::SizeType CryptoExtension::ext_ed25519_generate(
       runtime::SizeType key_type,
       runtime::WasmPointer seed,
-      runtime::WasmPointer out_ptr) {
-
-
-  }
+      runtime::WasmPointer out_ptr) {}
 
   runtime::SizeType CryptoExtension::ext_ed25519_sign(
       runtime::SizeType key_type,
