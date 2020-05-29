@@ -461,8 +461,10 @@ namespace kagome::injector {
     if (not configuration_res) {
       common::raise(configuration_res.error());
     }
+    auto config = configuration_res.value();
+    config.leadership_rate = {1, 2};
     initialized = std::make_shared<primitives::BabeConfiguration>(
-        configuration_res.value());
+        config);
     return *initialized;
   };
 

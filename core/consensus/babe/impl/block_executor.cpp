@@ -46,21 +46,22 @@ namespace kagome::consensus {
 
     // insert block_header if it is missing
     if (not block_tree_->getBlockHeader(block_hash)) {
-      if (auto add_res = block_tree_->addBlockHeader(header); not add_res) {
-        logger_->warn(
-            "Could not add block header during import. Number: {}, Hash: {}, "
-            "Reason: {}",
-            header.number,
-            block_hash.toHex(),
-            add_res.error().message());
-      }
+//      if (auto add_res = block_tree_->addBlockHeader(header); not add_res) {
+//        logger_->warn(
+//            "Could not add block header during import. Number: {}, Hash: {}, Parent Hash: {}"
+//            "Reason: {}",
+//            header.number,
+//            block_hash.toHex(),
+//            header.parent_hash.toHex(),
+//            add_res.error().message());
+//      }
       // handle if block exists
-      else {
+//      else {
         new_block_handler(header);
-        logger_->info("Added block header. Number: {}, Hash: {}",
+        logger_->info("Received block header. Number: {}, Hash: {}",
                       header.number,
                       block_hash.toHex());
-      }
+//      }
       const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
 
       // we should request blocks between last finalized one and received block
@@ -188,13 +189,14 @@ namespace kagome::consensus {
     core_->execute_block(block_without_seal_digest).value();
 
     // add block header if it does not exist
-    if (not block_tree_->getBlockHeader(block_hash).has_value()) {
-      //! OUTCOME_TRY(block_tree_->addBlockHeader(block.header));
-      block_tree_->addBlockHeader(block.header).value();
-    }
-    //! OUTCOME_TRY(
-    //!     block_tree_->addBlockBody(block.header.number, block_hash, block.body));
-    block_tree_->addBlockBody(block.header.number, block_hash, block.body).value();
+    block_tree_->addBlock(block).value();
+//    if (not block_tree_->getBlockHeader(block_hash).has_value()) {
+//      //! OUTCOME_TRY(block_tree_->addBlockHeader(block.header));
+//      block_tree_->addBlockHeader(block.header).value();
+//    }
+//    //! OUTCOME_TRY(
+//    //!     block_tree_->addBlockBody(block.header.number, block_hash, block.body));
+//    block_tree_->addBlockBody(block.header.number, block_hash, block.body).value();
 
     logger_->info("Imported block with number: {}, hash: {}",
                   block.header.number,
