@@ -217,14 +217,16 @@ namespace kagome::extensions {
      * @brief Generates an ed25519 key for the given key type using an optional
      * BIP-39 seed and stores it in the keystore
      * @param key_type an i32 integer indicating the key type ID
-     * @param seed a pointer-size indicating the SCALE encoded Option containing
-     * the BIP-39 seed which must be valid UTF8.
+     * @param seed_data a pointer-size indicating the SCALE encoded Option
+     * containing the BIP-39 seed which must be valid UTF8.
+     * @param seed_len number of bytes in seed buffer
      * @param out_ptr a regular pointer to the buffer containing the 32-byte
      * public key
      */
     virtual runtime::SizeType ext_ed25519_generate(
         runtime::SizeType key_type,
-        runtime::WasmPointer seed /*optional*/,
+        runtime::WasmPointer seed_data,
+        runtime::SizeType seed_len,
         runtime::WasmPointer out_ptr) = 0;
 
     /**
@@ -233,7 +235,9 @@ namespace kagome::extensions {
      * @param key_type an i32 integer indicating the key type ID
      * @param key a regular pointer to the buffer containing the 32-byte public
      * key
-     * @param msg a pointer-size indicating the message that is to be signed.
+     * @param msg_data a pointer-size indicating the message that is to be
+     * signed.
+     * @param msg_len number of bytes in message
      * @param out_ptr a pointer-size indicating the SCALE encoded Option
      * containing the signature. This function returns None if the public key
      * cannot be found in the key store
@@ -241,7 +245,8 @@ namespace kagome::extensions {
     virtual runtime::SizeType ext_ed25519_sign(
         runtime::SizeType key_type,
         runtime::WasmPointer key,
-        runtime::WasmPointer msg,
+        runtime::WasmPointer msg_data,
+        runtime::SizeType msg_len,
         runtime::WasmPointer out_ptr) = 0;
 
     /**
@@ -270,14 +275,16 @@ namespace kagome::extensions {
      * @brief Generates an ed25519 key for the given key type using an optional
      * BIP-39 seed and stores it in the keystore
      * @param key_type an i32 integer indicating the key type ID
-     * @param seed a pointer-size indicating the SCALE encoded Option containing
-     * the BIP-39 seed which must be valid UTF8.
+     * @param seed_data a pointer-size indicating the SCALE encoded Option
+     * containing the BIP-39 seed which must be valid UTF8.
+     * @param seed_len number of bytes in seed buffer
      * @param out_ptr a regular pointer to the buffer containing the 32-byte
      * public key
      */
     virtual runtime::SizeType ext_sr25519_generate(
         runtime::SizeType key_type,
-        runtime::WasmPointer seed /*optional*/,
+        runtime::WasmPointer seed_data,
+        runtime::SizeType seed_len,
         runtime::WasmPointer out_ptr) = 0;
 
     /**
@@ -286,7 +293,9 @@ namespace kagome::extensions {
      * @param key_type an i32 integer indicating the key type ID
      * @param key a regular pointer to the buffer containing the 32-byte public
      * key
-     * @param msg a pointer-size indicating the message that is to be signed.
+     * @param msg_data a pointer-size indicating the message that is to be
+     * signed.
+     * @param msg_len number of bytes in message
      * @param out_ptr a pointer-size indicating the SCALE encoded Option
      * containing the signature. This function returns None if the public key
      * cannot be found in the key store
@@ -294,7 +303,8 @@ namespace kagome::extensions {
     virtual runtime::SizeType ext_sr25519_sign(
         runtime::SizeType key_type,
         runtime::WasmPointer key,
-        runtime::WasmPointer msg,
+        runtime::WasmPointer msg_data,
+        runtime::SizeType msg_len,
         runtime::WasmPointer out_ptr) = 0;
 
     /**
@@ -354,7 +364,8 @@ namespace kagome::extensions {
      */
     virtual runtime::SizeType ext_ed25519_generate_v1(
         runtime::SizeType key_type,
-        runtime::WasmPointer seed /*optional*/,
+        runtime::WasmPointer seed_data,
+        runtime::SizeType seed_len,
         runtime::WasmPointer out_ptr) = 0;
 
     /**
@@ -363,7 +374,8 @@ namespace kagome::extensions {
     virtual runtime::SizeType ext_ed25519_sign_v1(
         runtime::SizeType key_type,
         runtime::WasmPointer key,
-        runtime::WasmPointer msg,
+        runtime::WasmPointer msg_data,
+        runtime::SizeType msg_len,
         runtime::WasmPointer out_ptr) = 0;
 
     /**
@@ -376,26 +388,28 @@ namespace kagome::extensions {
         runtime::WasmPointer pubkey_data) = 0;
 
     /**
-     * @see Extension::ext_ed25519_public_keys
+     * @see Extension::ext_sr25519_public_keys
      */
     virtual runtime::SizeType ext_sr25519_public_keys_v1(
         runtime::SizeType key_type, runtime::WasmPointer out_ptr) = 0;
 
     /**
-     * @see Extension::ext_ed25519_generate
+     * @see Extension::ext_sr25519_generate
      */
     virtual runtime::SizeType ext_sr25519_generate_v1(
         runtime::SizeType key_type,
-        runtime::WasmPointer seed /*optional*/,
+        runtime::WasmPointer seed_data,
+        runtime::SizeType seed_len,
         runtime::WasmPointer out_ptr) = 0;
 
     /**
-     * @see Extension::ext_ed25519_sign
+     * @see Extension::ext_sr25519_sign
      */
     virtual runtime::SizeType ext_sr25519_sign_v1(
         runtime::SizeType key_type,
         runtime::WasmPointer key,
-        runtime::WasmPointer msg,
+        runtime::WasmPointer msg_data,
+        runtime::SizeType msg_len,
         runtime::WasmPointer out_ptr) = 0;
 
     /**

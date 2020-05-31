@@ -227,7 +227,8 @@ namespace kagome::extensions {
 
   runtime::SizeType CryptoExtension::ext_ed25519_generate(
       runtime::SizeType key_type,
-      runtime::WasmPointer seed,
+      runtime::WasmPointer seed_data,
+      runtime::SizeType seed_len,
       runtime::WasmPointer out_ptr) {
     auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
     if (!key_type_id) {
@@ -235,6 +236,9 @@ namespace kagome::extensions {
                      key_type_id.error().message());
       return kGeneralFail;
     }
+
+    auto &&pair = ed25519_provider_->generateKeypair();
+
     // TODO (yuraz) implement
     return {};
   }
@@ -242,7 +246,8 @@ namespace kagome::extensions {
   runtime::SizeType CryptoExtension::ext_ed25519_sign(
       runtime::SizeType key_type,
       runtime::WasmPointer key,
-      runtime::WasmPointer msg,
+      runtime::WasmPointer msg_data,
+      runtime::SizeType msg_len,
       runtime::WasmPointer out_ptr) {
     auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
     if (!key_type_id) {
@@ -299,7 +304,8 @@ namespace kagome::extensions {
 
   runtime::SizeType CryptoExtension::ext_sr25519_generate(
       runtime::SizeType key_type,
-      runtime::WasmPointer seed,
+      runtime::WasmPointer seed_data,
+      runtime::SizeType seed_len,
       runtime::WasmPointer out_ptr) {
     auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
     if (!key_type_id) {
@@ -314,7 +320,8 @@ namespace kagome::extensions {
   runtime::SizeType CryptoExtension::ext_sr25519_sign(
       runtime::SizeType key_type,
       runtime::WasmPointer key,
-      runtime::WasmPointer msg,
+      runtime::WasmPointer msg_data,
+      runtime::SizeType msg_len,
       runtime::WasmPointer out_ptr) {
     auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
     if (!key_type_id) {

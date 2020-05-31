@@ -101,12 +101,14 @@ namespace kagome::extensions {
 
     runtime::SizeType ext_ed25519_generate(
         runtime::SizeType key_type,
-        runtime::WasmPointer seed,
+        runtime::WasmPointer seed_data,
+        runtime::SizeType seed_len,
         runtime::WasmPointer out_ptr) override;
 
     runtime::SizeType ext_ed25519_sign(runtime::SizeType key_type,
                                        runtime::WasmPointer key,
-                                       runtime::WasmPointer msg,
+                                       runtime::WasmPointer msg_data,
+                                       runtime::SizeType msg_len,
                                        runtime::WasmPointer out_ptr) override;
 
     runtime::SizeType ext_ed25519_verify(
@@ -120,12 +122,14 @@ namespace kagome::extensions {
 
     runtime::SizeType ext_sr25519_generate(
         runtime::SizeType key_type,
-        runtime::WasmPointer seed /*optional*/,
+        runtime::WasmPointer seed_data,
+        runtime::SizeType seed_len,
         runtime::WasmPointer out_ptr) override;
 
     runtime::SizeType ext_sr25519_sign(runtime::SizeType key_type,
                                        runtime::WasmPointer key,
-                                       runtime::WasmPointer msg,
+                                       runtime::WasmPointer msg_data,
+                                       runtime::SizeType msg_len,
                                        runtime::WasmPointer out_ptr) override;
 
     runtime::SizeType ext_sr25519_verify(
@@ -159,7 +163,8 @@ namespace kagome::extensions {
      */
     runtime::SizeType ext_ed25519_generate_v1(
         runtime::SizeType key_type,
-        runtime::WasmPointer seed /*optional*/,
+        runtime::WasmPointer seed_data,
+        runtime::SizeType seed_len,
         runtime::WasmPointer out_ptr) override;
 
     /**
@@ -168,7 +173,8 @@ namespace kagome::extensions {
     runtime::SizeType ext_ed25519_sign_v1(
         runtime::SizeType key_type,
         runtime::WasmPointer key,
-        runtime::WasmPointer msg,
+        runtime::WasmPointer msg_data,
+        runtime::SizeType msg_len,
         runtime::WasmPointer out_ptr) override;
 
     /**
@@ -181,26 +187,28 @@ namespace kagome::extensions {
         runtime::WasmPointer pubkey_data) override;
 
     /**
-     * @see Extension::ext_ed25519_public_keys
+     * @see Extension::ext_sr25519_public_keys
      */
     runtime::SizeType ext_sr25519_public_keys_v1(
         runtime::SizeType key_type, runtime::WasmPointer out_ptr) override;
 
     /**
-     * @see Extension::ext_ed25519_generate
+     * @see Extension::ext_sr25519_generate
      */
     runtime::SizeType ext_sr25519_generate_v1(
         runtime::SizeType key_type,
-        runtime::WasmPointer seed /*optional*/,
+        runtime::WasmPointer seed_data,
+        runtime::SizeType seed_len,
         runtime::WasmPointer out_ptr) override;
 
     /**
-     * @see Extension::ext_ed25519_sign
+     * @see Extension::ext_sr25519_sign
      */
     runtime::SizeType ext_sr25519_sign_v1(
         runtime::SizeType key_type,
         runtime::WasmPointer key,
-        runtime::WasmPointer msg,
+        runtime::WasmPointer msg_data,
+        runtime::SizeType msg_len,
         runtime::WasmPointer out_ptr) override;
 
     /**
