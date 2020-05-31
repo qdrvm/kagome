@@ -12,7 +12,10 @@
 #include <thread>
 
 #include "api/transport/rpc_io_context.hpp"
+#include "application/app_state_manager.hpp"
 #include "common/logger.hpp"
+
+using kagome::application::AppStateManager;
 
 namespace kagome::api {
 
@@ -28,7 +31,8 @@ namespace kagome::api {
       size_t max_thread_number = 10;
     };
 
-    RpcThreadPool(std::shared_ptr<Context> context,
+    RpcThreadPool(std::shared_ptr<AppStateManager> app_state_manager,
+                  std::shared_ptr<Context> context,
                   const Configuration &configuration);
 
     ~RpcThreadPool() = default;
@@ -44,14 +48,12 @@ namespace kagome::api {
     void stop();
 
    private:
+    std::shared_ptr<AppStateManager> app_state_manager_;
+
     std::shared_ptr<Context> context_;
     const Configuration config_;
 
-    /// The signal_set is used to register for process termination
-    /// notifications.
-    std::unique_ptr<boost::asio::signal_set> signals_;
-
-    std::set<std::shared_ptr<std::thread>> threads_;
+    std::vector<std::shared_ptr<std::thread>> threads_;
 
     common::Logger logger_ = common::createLogger("RPC thread pool");
   };

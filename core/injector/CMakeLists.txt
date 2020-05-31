@@ -7,6 +7,7 @@ add_library(application_injector
     application_injector.cpp
     )
 target_link_libraries(application_injector
+    app_state_manager
     p2p::p2p
     tsl::tsl_hat_trie
     Boost::Boost.DI
