@@ -183,24 +183,14 @@ namespace kagome::extensions {
 
   runtime::SizeType CryptoExtension::ext_ed25519_public_keys(
       runtime::SizeType key_type, runtime::WasmPointer out_ptr) {
-    const auto &buf = memory_->loadN(key_type, crypto::KeyType::size());
-
-    std::vector<uint8_t> copy = buf.toVector();
-    auto key_type_obj = crypto::KeyType::fromSpan(copy);
-    if (!key_type_obj) {
-      logger_->error("failed to decode key type: {}",
-                     key_type_obj.error().message());
-      return kGeneralFail;
-    }
-    auto &&key_type_id = crypto::getKeyIdByType(key_type_obj.value());
+    auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
     if (!key_type_id) {
-      logger_->error("unsupported key type {}, {}",
-                     key_type_obj.value().toString(),
-                     key_type_obj.error().message());
+      logger_->error("failed to decode key type: {}",
+                     key_type_id.error().message());
       return kGeneralFail;
     }
-    auto &&pairs = key_storage_->getKeys(key_type_id.value());
-    // TODO: differentiate between different key types
+
+    auto &&pairs = key_storage_->getEdKeys(key_type_id.value());
     constexpr size_t kKeySize = 32ul;
     for (auto &p : pairs) {
       if (p.publicKey.data.size() != kKeySize) {
@@ -238,25 +228,101 @@ namespace kagome::extensions {
   runtime::SizeType CryptoExtension::ext_ed25519_generate(
       runtime::SizeType key_type,
       runtime::WasmPointer seed,
-      runtime::WasmPointer out_ptr) {}
+      runtime::WasmPointer out_ptr) {
+    auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
+    if (!key_type_id) {
+      logger_->error("failed to decode key type: {}",
+                     key_type_id.error().message());
+      return kGeneralFail;
+    }
+    // TODO (yuraz) implement
+    return {};
+  }
 
   runtime::SizeType CryptoExtension::ext_ed25519_sign(
       runtime::SizeType key_type,
       runtime::WasmPointer key,
       runtime::WasmPointer msg,
-      runtime::WasmPointer out_ptr) {}
+      runtime::WasmPointer out_ptr) {
+    auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
+    if (!key_type_id) {
+      logger_->error("failed to decode key type: {}",
+                     key_type_id.error().message());
+      return kGeneralFail;
+    }
+    // TODO (yuraz) implement
+    return {};
+  }
 
   runtime::SizeType CryptoExtension::ext_sr25519_public_keys(
-      runtime::SizeType key_type, runtime::WasmPointer out_ptr) {}
+      runtime::SizeType key_type, runtime::WasmPointer out_ptr) {
+    auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
+    if (!key_type_id) {
+      logger_->error("failed to decode key type: {}",
+                     key_type_id.error().message());
+      return kGeneralFail;
+    }
+    auto &&pairs = key_storage_->getSrKeys(key_type_id.value());
+    constexpr size_t kKeySize = 32ul;
+    for (auto &p : pairs) {
+      if (p.publicKey.data.size() != kKeySize) {
+        logger_->error("wrong key size");
+        return kGeneralFail;
+      }
+      if (p.publicKey.type != PublicKey::Type::Ed25519) {
+        logger_->error("wrong key type");
+        return kGeneralFail;
+      }
+    }
+
+    using KeyBuffer = common::Blob<kKeySize>;
+    std::vector<KeyBuffer> public_keys;
+    public_keys.reserve(pairs.size());
+    std::transform(pairs.begin(),
+                   pairs.end(),
+                   std::back_inserter(public_keys),
+                   [](const auto &key_pair) -> KeyBuffer {
+                     auto data = key_pair.publicKey.data;
+                     return KeyBuffer::fromSpan(gsl::make_span(data)).value();
+                   });
+    auto &&encoded = scale::encode(public_keys);
+    if (!encoded) {
+      logger_->error("failed to scale-encode vector of public keys: {}",
+                     encoded.error().message());
+      return kGeneralFail;
+    }
+
+    common::Buffer buffer(std::move(encoded.value()));
+    memory_->storeBuffer(out_ptr, buffer);
+    return kGeneralSuccess;
+  }
 
   runtime::SizeType CryptoExtension::ext_sr25519_generate(
       runtime::SizeType key_type,
       runtime::WasmPointer seed,
-      runtime::WasmPointer out_ptr) {}
+      runtime::WasmPointer out_ptr) {
+    auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
+    if (!key_type_id) {
+      logger_->error("failed to decode key type: {}",
+                     key_type_id.error().message());
+      return kGeneralFail;
+    }
+    // TODO (yuraz) implement
+    return {};
+  }
 
   runtime::SizeType CryptoExtension::ext_sr25519_sign(
       runtime::SizeType key_type,
       runtime::WasmPointer key,
       runtime::WasmPointer msg,
-      runtime::WasmPointer out_ptr) {}
+      runtime::WasmPointer out_ptr) {
+    auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
+    if (!key_type_id) {
+      logger_->error("failed to decode key type: {}",
+                     key_type_id.error().message());
+      return kGeneralFail;
+    }
+    // TODO (yuraz) implement
+    return {};
+  }
 }  // namespace kagome::extensions

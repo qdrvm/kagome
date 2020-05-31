@@ -26,7 +26,7 @@ namespace kagome::extensions {
     /**
      * @brief Deletes values by keys containing given prefix
      * @param prefix_data pointer to the prefix
-     * @param prefix_length lemgth of the prefix
+     * @param prefix_length length of the prefix
      */
     virtual void ext_clear_prefix(runtime::WasmPointer prefix_data,
                                   runtime::SizeType prefix_length) = 0;
@@ -340,6 +340,72 @@ namespace kagome::extensions {
     virtual void ext_twox_256(runtime::WasmPointer data,
                               runtime::SizeType len,
                               runtime::WasmPointer out) = 0;
+
+    // -------------------------Crypto extensions v1---------------------
+
+    /**
+     * @see Extension::ext_ed25519_public_keys
+     */
+    virtual runtime::SizeType ext_ed25519_public_keys_v1(
+        runtime::SizeType key_type, runtime::WasmPointer out_ptr) = 0;
+
+    /**
+     * @see Extension::ext_ed25519_generate
+     */
+    virtual runtime::SizeType ext_ed25519_generate_v1(
+        runtime::SizeType key_type,
+        runtime::WasmPointer seed /*optional*/,
+        runtime::WasmPointer out_ptr) = 0;
+
+    /**
+     * @see Extension::ext_ed25519_sign
+     */
+    virtual runtime::SizeType ext_ed25519_sign_v1(
+        runtime::SizeType key_type,
+        runtime::WasmPointer key,
+        runtime::WasmPointer msg,
+        runtime::WasmPointer out_ptr) = 0;
+
+    /**
+     * @see Extension::ext_ed25519_verify
+     */
+    virtual runtime::SizeType ext_ed25519_verify_v1(
+        runtime::WasmPointer sig_data,
+        runtime::WasmPointer msg_data,
+        runtime::SizeType msg_len,
+        runtime::WasmPointer pubkey_data) = 0;
+
+    /**
+     * @see Extension::ext_ed25519_public_keys
+     */
+    virtual runtime::SizeType ext_sr25519_public_keys_v1(
+        runtime::SizeType key_type, runtime::WasmPointer out_ptr) = 0;
+
+    /**
+     * @see Extension::ext_ed25519_generate
+     */
+    virtual runtime::SizeType ext_sr25519_generate_v1(
+        runtime::SizeType key_type,
+        runtime::WasmPointer seed /*optional*/,
+        runtime::WasmPointer out_ptr) = 0;
+
+    /**
+     * @see Extension::ext_ed25519_sign
+     */
+    virtual runtime::SizeType ext_sr25519_sign_v1(
+        runtime::SizeType key_type,
+        runtime::WasmPointer key,
+        runtime::WasmPointer msg,
+        runtime::WasmPointer out_ptr) = 0;
+
+    /**
+     * @see Extension::ext_sr25519_verify
+     */
+    virtual runtime::SizeType ext_sr25519_verify_v1(
+        runtime::WasmPointer sig_data,
+        runtime::WasmPointer msg_data,
+        runtime::SizeType msg_len,
+        runtime::WasmPointer pubkey_data) = 0;
 
     // -------------------------Misc extensions--------------------------
     virtual uint64_t ext_chain_id() const = 0;

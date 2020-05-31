@@ -78,6 +78,7 @@ add_library(typed_key_storage
     key_type.cpp
     )
 target_link_libraries(typed_key_storage
+    Boost::boost
     ed25519_types
     sr25519_types
     )

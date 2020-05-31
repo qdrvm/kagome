@@ -16,16 +16,28 @@ namespace kagome::crypto::storage {
 
     using Keys = std::vector<KeyPair>;
     /**
-     * @brief returns all keys of provided type
+     * @brief returns all ed25519 keys of provided type
      * @param key_type key type identifier
      */
-    virtual Keys getKeys(KeyTypeId key_type) = 0;
+    virtual Keys getEdKeys(KeyTypeId key_type) = 0;
 
     /**
-     * @brief adds key pair to storage
+     * @brief returns all sr25519 keys of provided type
+     * @param key_type key type identifier
+     */
+    virtual Keys getSrKeys(KeyTypeId key_type) = 0;
+
+    /**
+     * @brief adds ed25519 key pair to storage
      * @param key_pair key pair
      */
-    virtual void addKeyPair(KeyPair key_pair) = 0;
+    virtual void addEdKeyPair(KeyTypeId key_type, KeyPair key_pair) = 0;
+
+    /**
+     * @brief adds sr25519 key pair to storage
+     * @param key_pair key pair
+     */
+    virtual void addSrKeyPair(KeyTypeId key_type, KeyPair key_pair) = 0;
   };
 }  // namespace kagome::crypto::storage
 

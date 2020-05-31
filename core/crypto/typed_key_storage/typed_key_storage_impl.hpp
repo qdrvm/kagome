@@ -11,9 +11,17 @@
 namespace kagome::crypto::storage {
   class TypedKeyStorageImpl : public TypedKeyStorage {
    public:
-    Keys getKeys(KeyTypeId key_type) override;
+    Keys getEdKeys(KeyTypeId key_type) override;
 
-    void addKeyPair(KeyPair key_pair) override;
+    Keys getSrKeys(KeyTypeId key_type) override;
+
+    void addEdKeyPair(KeyTypeId key_type, KeyPair key_pair) override;
+
+    void addSrKeyPair(KeyTypeId key_type, KeyPair key_pair) override;
+
+   private:
+    std::map<KeyTypeId, KeyPair> ed_keys_;
+    std::map<KeyTypeId, KeyPair> sr_keys_;
   };
 }  // namespace kagome::crypto::storage
 

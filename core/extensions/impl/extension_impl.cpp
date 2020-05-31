@@ -217,6 +217,65 @@ namespace kagome::extensions {
     crypto_ext_.ext_twox_256(data, len, out);
   }
 
+  /// Crypto extensions v1
+  runtime::SizeType ExtensionImpl::ext_ed25519_public_keys_v1(
+      runtime::SizeType key_type, runtime::WasmPointer out_ptr) {
+    return crypto_ext_.ext_ed25519_public_keys(key_type, out_ptr);
+  }
+
+  runtime::SizeType ExtensionImpl::ext_ed25519_generate_v1(
+      runtime::SizeType key_type,
+      runtime::WasmPointer seed /*optional*/,
+      runtime::WasmPointer out_ptr) {
+    return crypto_ext_.ext_ed25519_generate(key_type, seed, out_ptr);
+  }
+
+  runtime::SizeType ExtensionImpl::ext_ed25519_sign_v1(
+      runtime::SizeType key_type,
+      runtime::WasmPointer key,
+      runtime::WasmPointer msg,
+      runtime::WasmPointer out_ptr) {
+    return crypto_ext_.ext_ed25519_sign(key_type, key, msg, out_ptr);
+  }
+
+  runtime::SizeType ExtensionImpl::ext_ed25519_verify_v1(
+      runtime::WasmPointer sig_data,
+      runtime::WasmPointer msg_data,
+      runtime::SizeType msg_len,
+      runtime::WasmPointer pubkey_data) {
+    return crypto_ext_.ext_ed25519_verify(
+        msg_data, msg_len, sig_data, pubkey_data);
+  }
+
+  runtime::SizeType ExtensionImpl::ext_sr25519_public_keys_v1(
+      runtime::SizeType key_type, runtime::WasmPointer out_ptr) {
+    return crypto_ext_.ext_sr25519_public_keys(key_type, out_ptr);
+  }
+
+  runtime::SizeType ExtensionImpl::ext_sr25519_generate_v1(
+      runtime::SizeType key_type,
+      runtime::WasmPointer seed /*optional*/,
+      runtime::WasmPointer out_ptr) {
+    return crypto_ext_.ext_sr25519_generate(key_type, seed, out_ptr);
+  }
+
+  runtime::SizeType ExtensionImpl::ext_sr25519_sign_v1(
+      runtime::SizeType key_type,
+      runtime::WasmPointer key,
+      runtime::WasmPointer msg,
+      runtime::WasmPointer out_ptr) {
+    return crypto_ext_.ext_sr25519_sign(key_type, key, msg, out_ptr);
+  }
+
+  runtime::SizeType ExtensionImpl::ext_sr25519_verify_v1(
+      runtime::WasmPointer sig_data,
+      runtime::WasmPointer msg_data,
+      runtime::SizeType msg_len,
+      runtime::WasmPointer pubkey_data) {
+    return crypto_ext_.ext_sr25519_verify(
+        msg_data, msg_len, sig_data, pubkey_data);
+  }
+
   /// misc extensions
   uint64_t ExtensionImpl::ext_chain_id() const {
     return misc_ext_.ext_chain_id();

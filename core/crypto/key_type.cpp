@@ -5,6 +5,8 @@
 
 #include "crypto/key_type.hpp"
 
+#include <boost/endian/arithmetic.hpp>
+
 namespace kagome::crypto {
 
   outcome::result<KeyType> getKeyTypeById(KeyTypeId key_type_id) {
@@ -34,6 +36,22 @@ namespace kagome::crypto {
     }
 
     return KeyTypeError::UNSUPPORTED_KEY_TYPE;
+  }
+
+  outcome::result<crypto::KeyTypeId> decodeKeyTypeId(KeyTypeRepr param) {
+    constexpr unsigned size = sizeof(KeyTypeRepr);
+    constexpr unsigned bits = size * 8u;
+    crypto::KeyType key_type{};
+
+    boost::endian::endian_buffer<boost::endian::order::big, KeyTypeRepr, bits>
+        buf{};
+    buf = param;  // cannot initialize, only assign
+    for (size_t i = 0; i < size; ++i) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+      key_type[i] = buf.data()[i];
+    }
+
+    return getKeyIdByType(key_type);
   }
 }  // namespace kagome::crypto
 

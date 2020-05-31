@@ -122,6 +122,50 @@ namespace kagome::extensions {
                       runtime::SizeType len,
                       runtime::WasmPointer out));
     MOCK_CONST_METHOD0(ext_chain_id, uint64_t());
+
+    // -------------------------Crypto extensions v1---------------------
+
+    MOCK_METHOD2(ext_ed25519_public_keys_v1,
+                 runtime::SizeType(runtime::SizeType key_type,
+                                   runtime::WasmPointer out_ptr));
+
+    MOCK_METHOD3(ext_ed25519_generate_v1,
+                 runtime::SizeType(runtime::SizeType key_type,
+                                   runtime::WasmPointer seed,
+                                   runtime::WasmPointer out_ptr));
+
+    MOCK_METHOD4(ext_ed25519_sign_v1,
+                 runtime::SizeType(runtime::SizeType key_type,
+                                   runtime::WasmPointer key,
+                                   runtime::WasmPointer msg,
+                                   runtime::WasmPointer out_ptr));
+
+    MOCK_METHOD4(ext_ed25519_verify_v1,
+                 runtime::SizeType(runtime::WasmPointer sig_data,
+                                   runtime::WasmPointer msg_data,
+                                   runtime::SizeType msg_len,
+                                   runtime::WasmPointer pubkey_data));
+
+    MOCK_METHOD2(ext_sr25519_public_keys_v1,
+                 runtime::SizeType(runtime::SizeType key_type,
+                                   runtime::WasmPointer out_ptr));
+
+    MOCK_METHOD3(ext_sr25519_generate_v1,
+                 runtime::SizeType(runtime::SizeType key_type,
+                                   runtime::WasmPointer seed /*optional*/,
+                                   runtime::WasmPointer out_ptr));
+
+    MOCK_METHOD4(ext_sr25519_sign_v1,
+                 runtime::SizeType(runtime::SizeType key_type,
+                                   runtime::WasmPointer key,
+                                   runtime::WasmPointer msg,
+                                   runtime::WasmPointer out_ptr));
+
+    MOCK_METHOD4(ext_sr25519_verify_v1,
+                 runtime::SizeType(runtime::WasmPointer sig_data,
+                                   runtime::WasmPointer msg_data,
+                                   runtime::SizeType msg_len,
+                                   runtime::WasmPointer pubkey_data));
   };
 
 }  // namespace kagome::extensions

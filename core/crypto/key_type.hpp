@@ -30,6 +30,9 @@ namespace kagome::crypto {
   outcome::result<KeyType> getKeyTypeById(KeyTypeId key_type_id);
 
   outcome::result<KeyTypeId> getKeyIdByType(const KeyType &key_type);
+
+  using KeyTypeRepr = uint32_t;
+  outcome::result<crypto::KeyTypeId> decodeKeyTypeId(KeyTypeRepr param);
 }  // namespace kagome::crypto
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, KeyTypeError);

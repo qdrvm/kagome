@@ -145,6 +145,72 @@ namespace kagome::extensions {
     void ext_twox_256(runtime::WasmPointer data,
                       runtime::SizeType len,
                       runtime::WasmPointer out) override;
+
+    // -------------------------Crypto extensions v1---------------------
+
+    /**
+     * @see Extension::ext_ed25519_public_keys
+     */
+    runtime::SizeType ext_ed25519_public_keys_v1(
+        runtime::SizeType key_type, runtime::WasmPointer out_ptr) override;
+
+    /**
+     * @see Extension::ext_ed25519_generate
+     */
+    runtime::SizeType ext_ed25519_generate_v1(
+        runtime::SizeType key_type,
+        runtime::WasmPointer seed /*optional*/,
+        runtime::WasmPointer out_ptr) override;
+
+    /**
+     * @see Extension::ext_ed25519_sign
+     */
+    runtime::SizeType ext_ed25519_sign_v1(
+        runtime::SizeType key_type,
+        runtime::WasmPointer key,
+        runtime::WasmPointer msg,
+        runtime::WasmPointer out_ptr) override;
+
+    /**
+     * @see Extension::ext_ed25519_verify
+     */
+    runtime::SizeType ext_ed25519_verify_v1(
+        runtime::WasmPointer sig_data,
+        runtime::WasmPointer msg_data,
+        runtime::SizeType msg_len,
+        runtime::WasmPointer pubkey_data) override;
+
+    /**
+     * @see Extension::ext_ed25519_public_keys
+     */
+    runtime::SizeType ext_sr25519_public_keys_v1(
+        runtime::SizeType key_type, runtime::WasmPointer out_ptr) override;
+
+    /**
+     * @see Extension::ext_ed25519_generate
+     */
+    runtime::SizeType ext_sr25519_generate_v1(
+        runtime::SizeType key_type,
+        runtime::WasmPointer seed /*optional*/,
+        runtime::WasmPointer out_ptr) override;
+
+    /**
+     * @see Extension::ext_ed25519_sign
+     */
+    runtime::SizeType ext_sr25519_sign_v1(
+        runtime::SizeType key_type,
+        runtime::WasmPointer key,
+        runtime::WasmPointer msg,
+        runtime::WasmPointer out_ptr) override;
+
+    /**
+     * @see Extension::ext_sr25519_verify
+     */
+    runtime::SizeType ext_sr25519_verify_v1(
+        runtime::WasmPointer sig_data,
+        runtime::WasmPointer msg_data,
+        runtime::SizeType msg_len,
+        runtime::WasmPointer pubkey_data) override;
     // -------------------------Misc extensions--------------------------
 
     uint64_t ext_chain_id() const override;
