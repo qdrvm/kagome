@@ -30,7 +30,7 @@ using testing::Return;
 class BlockStorageTest : public testing::Test {
  public:
   void SetUp() override {
-    EXPECT_CALL(*hasher, blake2b_256(_)).WillOnce(Return(genesis_hash));
+    EXPECT_CALL(*hasher, blake2b_256(_)).WillRepeatedly(Return(genesis_hash));
     EXPECT_CALL(*storage, get(_))
         .WillOnce(Return(
             kagome::blockchain::Error::BLOCK_NOT_FOUND))  // to check that block
@@ -94,7 +94,7 @@ TEST_F(BlockStorageTest, CreateWithStorageError) {
  * @then block is successfully put
  */
 TEST_F(BlockStorageTest, PutBlock) {
-  EXPECT_CALL(*hasher, blake2b_256(_)).WillOnce(Return(genesis_hash));
+  EXPECT_CALL(*hasher, blake2b_256(_)).WillRepeatedly(Return(genesis_hash));
   EXPECT_OUTCOME_TRUE_1(block_storage->putBlock(genesis));
 }
 

@@ -140,7 +140,7 @@ class REITest : public ::testing::Test {
       "  (import \"env\" \"ext_sr25519_verify\" (func $ext_sr25519_verify (type 9)))\n"
       "  (import \"env\" \"ext_ed25519_verify\" (func $ext_ed25519_verify (type 9)))\n"
       "  (import \"env\" \"ext_storage_root\" (func $ext_storage_root (type 1)))\n"
-      "  (import \"env\" \"ext_storage_changes_root\" (func $ext_storage_changes_root (type 3 )))\n"
+      "  (import \"env\" \"ext_storage_changes_root\" (func $ext_storage_changes_root (type 2 )))\n"
       "  (import \"env\" \"ext_print_hex\" (func $ext_print_hex (type 0)))\n"
       "  (import \"env\" \"ext_chain_id\" (func $ext_chain_id (type 27)))\n"
 
@@ -343,6 +343,7 @@ TEST_F(REITest, ext_blake2_256_enumerated_trie_root_Test) {
 
 TEST_F(REITest, ext_storage_changes_root_Test) {
   WasmPointer parent_hash_data = 123;
+  SizeType parent_hash_len = 42;
   WasmPointer result = 321;
 
   SizeType res = 1;
@@ -354,10 +355,11 @@ TEST_F(REITest, ext_storage_changes_root_Test) {
                                      "      (call $ext_storage_changes_root\n"
                                      "        (i32.const %d)\n"
                                      "        (i32.const %d)\n"
+                                     "        (i32.const %d)\n"
                                      "      )\n"
                                      "      (i32.const %d)\n"
                                      "    )\n")
-                       % parent_hash_data % result % res)
+                       % parent_hash_data % parent_hash_len % result % res)
                           .str();
   SCOPED_TRACE("ext_storage_changes_root_Test");
   executeWasm(execute_code);

@@ -20,7 +20,7 @@ namespace kagome::runtime::binaryen {
       std::shared_ptr<blockchain::BlockHeaderRepository> header_repo)
       : RuntimeApi(runtime_manager),
         changes_tracker_{std::move(changes_tracker)},
-        header_repo_ {std::move(header_repo)} {
+        header_repo_{std::move(header_repo)} {
     BOOST_ASSERT(changes_tracker_ != nullptr);
     BOOST_ASSERT(header_repo_ != nullptr);
   }
@@ -32,19 +32,24 @@ namespace kagome::runtime::binaryen {
   outcome::result<void> CoreImpl::execute_block(
       const primitives::Block &block) {
     OUTCOME_TRY(parent, header_repo_->getBlockHeader(block.header.parent_hash));
-    return executeAt<void>(
-        "Core_execute_block", parent.state_root, CallPersistency::PERSISTENT, block);
+    OUTCOME_TRY(changes_tracker_->onBlockChange(
+        block.header.parent_hash,
+        block.header.number - 1));  // parent's number
+    return executeAt<void>("Core_execute_block",
+                                 parent.state_root,
+                                 CallPersistency::PERSISTENT,
+                                 block);
   }
 
   outcome::result<void> CoreImpl::initialise_block(const BlockHeader &header) {
     auto parent = header_repo_->getBlockHeader(header.parent_hash).value();
-    auto &&res = executeAt<void>(
-        "Core_initialize_block", parent.state_root, CallPersistency::PERSISTENT, header);
-    if (res.has_value()) {
-      OUTCOME_TRY(changes_tracker_->onBlockChange(header.parent_hash,
-                                                  header.number - 1)); // parent's number
-    }
-    return res;
+    OUTCOME_TRY(changes_tracker_->onBlockChange(
+        header.parent_hash,
+        header.number - 1));  // parent's number
+    return executeAt<void>("Core_initialize_block",
+                                 parent.state_root,
+                                 CallPersistency::PERSISTENT,
+                                 header);
   }
 
   outcome::result<std::vector<AuthorityId>> CoreImpl::authorities(

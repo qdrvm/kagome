@@ -43,7 +43,8 @@ namespace kagome::storage::changes_trie {
     std::shared_ptr<storage::trie::PolkadotTrieFactory> trie_factory_;
     std::shared_ptr<storage::trie::Codec> codec_;
 
-    std::map<common::Buffer, std::vector<primitives::ExtrinsicIndex>> changes_;
+    std::map<common::Buffer, std::vector<primitives::ExtrinsicIndex>>
+        extrinsics_changes_;
     primitives::BlockHash parent_hash_;
     primitives::BlockNumber parent_number_;
     GetExtrinsicIndexDelegate get_extrinsic_index_;

@@ -30,8 +30,13 @@ namespace kagome::storage::changes_trie {
   outcome::result<void> StorageChangesTrackerImpl::onBlockChange(
       primitives::BlockHash new_parent_hash,
       primitives::BlockNumber new_parent_number) {
+    if (parent_hash_ == new_parent_hash) {
+      return outcome::success();
+    }
     parent_hash_ = new_parent_hash;
     parent_number_ = new_parent_number;
+    // new block -- new extrinsics
+    extrinsics_changes_.clear();
     return outcome::success();
   }
 
@@ -42,16 +47,16 @@ namespace kagome::storage::changes_trie {
 
   outcome::result<void> StorageChangesTrackerImpl::onChange(
       const common::Buffer &key) {
-    auto change_it = changes_.find(key);
+    auto change_it = extrinsics_changes_.find(key);
     OUTCOME_TRY(idx_bytes, get_extrinsic_index_());
     OUTCOME_TRY(idx, scale::decode<primitives::ExtrinsicIndex>(idx_bytes));
 
     // if key was already changed in the same block, just add extrinsic to
     // the changers list
-    if (change_it != changes_.end()) {
+    if (change_it != extrinsics_changes_.end()) {
       change_it->second.push_back(idx);
     } else {
-      changes_.insert(std::make_pair(key, std::vector{idx}));
+      extrinsics_changes_.insert(std::make_pair(key, std::vector{idx}));
     }
     return outcome::success();
   }
@@ -64,7 +69,7 @@ namespace kagome::storage::changes_trie {
     }
     OUTCOME_TRY(trie,
                 ChangesTrie::buildFromChanges(
-                    parent_number_, trie_factory_, codec_, changes_, conf));
+                    parent_number_, trie_factory_, codec_, extrinsics_changes_, conf));
     return trie->getHash();
   }
 

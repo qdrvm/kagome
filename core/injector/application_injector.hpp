@@ -44,6 +44,7 @@
 #include "consensus/babe/impl/babe_synchronizer_impl.hpp"
 #include "consensus/babe/impl/epoch_storage_impl.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
+#include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/structs.hpp"
 #include "consensus/grandpa/vote_graph.hpp"
 #include "consensus/grandpa/vote_tracker.hpp"
@@ -358,9 +359,8 @@ namespace kagome::injector {
       common::raise(batch.error());
     }
     for (const auto &[key, val] : genesis_raw_configs) {
-      spdlog::debug("Key: {} ({}), Val: {}",
+      spdlog::debug("Key: {}, Val: {}",
                     key.toHex(),
-                    key.data(),
                     val.toHex().substr(0, 200));
       if (auto res = batch.value()->put(key, val); not res) {
         common::raise(res.error());
@@ -535,6 +535,7 @@ namespace kagome::injector {
             std::move(get_babe_configuration)),
         di::bind<consensus::BabeSynchronizer>.template to<consensus::BabeSynchronizerImpl>(),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
+        di::bind<consensus::grandpa::VoteCryptoProvider>.template to<consensus::grandpa::VoteCryptoProviderImpl>(),
         di::bind<consensus::EpochStorage>.template to<consensus::EpochStorageImpl>(),
         di::bind<consensus::Synchronizer>.template to<consensus::SynchronizerImpl>(),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
