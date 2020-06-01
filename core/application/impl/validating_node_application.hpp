@@ -69,7 +69,6 @@ namespace kagome::application {
         uint16_t p2p_port,
         const boost::asio::ip::tcp::endpoint &rpc_http_endpoint,
         const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint,
-        bool is_genesis_epoch,
         bool is_only_finalizing,
         uint8_t verbosity);
 
@@ -94,7 +93,6 @@ namespace kagome::application {
     sptr<api::RpcThreadPool> rpc_thread_pool_;
     sptr<api::ApiService> jrpc_api_service_;
 
-    bool is_genesis_epoch_;
     common::Logger logger_;
   };
 }  // namespace kagome::application

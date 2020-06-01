@@ -13,6 +13,12 @@ namespace kagome::blockchain {
 
   class BlockStorageMock : public BlockStorage {
    public:
+    MOCK_CONST_METHOD0(getLastFinalizedBlockHash,
+                       outcome::result<primitives::BlockHash>());
+
+    MOCK_METHOD1(setLastFinalizedBlockHash,
+                 outcome::result<void>(const primitives::BlockHash &));
+
     MOCK_CONST_METHOD1(
         getBlockHeader,
         outcome::result<primitives::BlockHeader>(const primitives::BlockId &));
