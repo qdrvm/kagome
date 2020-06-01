@@ -96,41 +96,11 @@ namespace kagome::extensions {
                         runtime::SizeType len,
                         runtime::WasmPointer out) override;
 
-    runtime::SizeType ext_ed25519_public_keys(
-        runtime::SizeType key_type, runtime::WasmPointer out_ptr) override;
-
-    runtime::SizeType ext_ed25519_generate(
-        runtime::SizeType key_type,
-        runtime::WasmPointer seed_data,
-        runtime::SizeType seed_len,
-        runtime::WasmPointer out_ptr) override;
-
-    runtime::SizeType ext_ed25519_sign(runtime::SizeType key_type,
-                                       runtime::WasmPointer key,
-                                       runtime::WasmPointer msg_data,
-                                       runtime::SizeType msg_len,
-                                       runtime::WasmPointer out_ptr) override;
-
     runtime::SizeType ext_ed25519_verify(
         runtime::WasmPointer msg_data,
         runtime::SizeType msg_len,
         runtime::WasmPointer sig_data,
         runtime::WasmPointer pubkey_data) override;
-
-    runtime::SizeType ext_sr25519_public_keys(
-        runtime::SizeType key_type, runtime::WasmPointer out_ptr) override;
-
-    runtime::SizeType ext_sr25519_generate(
-        runtime::SizeType key_type,
-        runtime::WasmPointer seed_data,
-        runtime::SizeType seed_len,
-        runtime::WasmPointer out_ptr) override;
-
-    runtime::SizeType ext_sr25519_sign(runtime::SizeType key_type,
-                                       runtime::WasmPointer key,
-                                       runtime::WasmPointer msg_data,
-                                       runtime::SizeType msg_len,
-                                       runtime::WasmPointer out_ptr) override;
 
     runtime::SizeType ext_sr25519_verify(
         runtime::WasmPointer msg_data,
@@ -152,72 +122,36 @@ namespace kagome::extensions {
 
     // -------------------------Crypto extensions v1---------------------
 
-    /**
-     * @see Extension::ext_ed25519_public_keys
-     */
-    runtime::SizeType ext_ed25519_public_keys_v1(
-        runtime::SizeType key_type, runtime::WasmPointer out_ptr) override;
+    runtime::PointerSize ext_ed25519_public_keys_v1(
+        runtime::SizeType key_type) override;
 
-    /**
-     * @see Extension::ext_ed25519_generate
-     */
-    runtime::SizeType ext_ed25519_generate_v1(
-        runtime::SizeType key_type,
-        runtime::WasmPointer seed_data,
-        runtime::SizeType seed_len,
-        runtime::WasmPointer out_ptr) override;
+    runtime::WasmPointer ext_ed25519_generate_v1(
+        runtime::SizeType key_type, runtime::PointerSize seed) override;
 
-    /**
-     * @see Extension::ext_ed25519_sign
-     */
-    runtime::SizeType ext_ed25519_sign_v1(
+    runtime::PointerSize ext_ed25519_sign_v1(
         runtime::SizeType key_type,
         runtime::WasmPointer key,
-        runtime::WasmPointer msg_data,
-        runtime::SizeType msg_len,
-        runtime::WasmPointer out_ptr) override;
+        runtime::PointerSize msg_data) override;
 
-    /**
-     * @see Extension::ext_ed25519_verify
-     */
     runtime::SizeType ext_ed25519_verify_v1(
         runtime::WasmPointer sig_data,
-        runtime::WasmPointer msg_data,
-        runtime::SizeType msg_len,
+        runtime::PointerSize msg,
         runtime::WasmPointer pubkey_data) override;
 
-    /**
-     * @see Extension::ext_sr25519_public_keys
-     */
-    runtime::SizeType ext_sr25519_public_keys_v1(
-        runtime::SizeType key_type, runtime::WasmPointer out_ptr) override;
+    runtime::PointerSize ext_sr25519_public_keys_v1(
+        runtime::SizeType key_type) override;
 
-    /**
-     * @see Extension::ext_sr25519_generate
-     */
-    runtime::SizeType ext_sr25519_generate_v1(
-        runtime::SizeType key_type,
-        runtime::WasmPointer seed_data,
-        runtime::SizeType seed_len,
-        runtime::WasmPointer out_ptr) override;
+    runtime::WasmPointer ext_sr25519_generate_v1(
+        runtime::SizeType key_type, runtime::PointerSize seed) override;
 
-    /**
-     * @see Extension::ext_sr25519_sign
-     */
-    runtime::SizeType ext_sr25519_sign_v1(
+    runtime::PointerSize ext_sr25519_sign_v1(
         runtime::SizeType key_type,
         runtime::WasmPointer key,
-        runtime::WasmPointer msg_data,
-        runtime::SizeType msg_len,
-        runtime::WasmPointer out_ptr) override;
+        runtime::PointerSize msg_data) override;
 
-    /**
-     * @see Extension::ext_sr25519_verify
-     */
     runtime::SizeType ext_sr25519_verify_v1(
         runtime::WasmPointer sig_data,
-        runtime::WasmPointer msg_data,
-        runtime::SizeType msg_len,
+        runtime::PointerSize msg,
         runtime::WasmPointer pubkey_data) override;
     // -------------------------Misc extensions--------------------------
 

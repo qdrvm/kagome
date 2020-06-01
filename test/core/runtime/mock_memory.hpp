@@ -37,6 +37,7 @@ namespace kagome::runtime {
     MOCK_METHOD2(store64, void(WasmPointer, int64_t));
     MOCK_METHOD2(store128, void(WasmPointer, const std::array<uint8_t, 16> &));
     MOCK_METHOD2(storeBuffer, void(WasmPointer, const common::Buffer &));
+    MOCK_METHOD1(storeBuffer, PointerSize(const common::Buffer &));
   };
 
 }  // namespace kagome::runtime
