@@ -15,16 +15,36 @@
 namespace kagome::blockchain {
 
   class KeyValueBlockStorage : public BlockStorage {
-    using GenesisHandler = std::function<void(const primitives::Block &)>;
+    static constexpr auto LookUpKeyOfLastFinalizedBlockHash =
+        ":kagome:last_finalized_block_hash";
 
    public:
+    using BlockHandler = std::function<void(const primitives::Block &)>;
     enum class Error {
       BLOCK_EXISTS = 1,
       BODY_DOES_NOT_EXIST,
-      JUSTIFICATION_DOES_NOT_EXIST
+      JUSTIFICATION_DOES_NOT_EXIST,
+      GENESIS_ALREADY_EXISTS,
+      FINALIZED_BLOCK_NOT_FOUND,
     };
 
     ~KeyValueBlockStorage() override = default;
+
+    static outcome::result<std::shared_ptr<KeyValueBlockStorage>> create(
+        common::Buffer state_root,
+        const std::shared_ptr<storage::BufferStorage> &storage,
+        std::shared_ptr<crypto::Hasher> hasher,
+        const BlockHandler &on_finalized_block_found);
+
+    /**
+     * Initialise block storage with existing data
+     * @param storage underlying storage (must be empty)
+     * @param hasher a hasher instance
+     */
+    static outcome::result<std::shared_ptr<KeyValueBlockStorage>> loadExisting(
+        const std::shared_ptr<storage::BufferStorage> &storage,
+        std::shared_ptr<crypto::Hasher> hasher,
+        const BlockHandler &on_finalized_block_found);
 
     /**
      * Initialise block storage with a genesis block which is created inside
@@ -36,7 +56,12 @@ namespace kagome::blockchain {
     createWithGenesis(common::Buffer state_root,
                       const std::shared_ptr<storage::BufferStorage> &storage,
                       std::shared_ptr<crypto::Hasher> hasher,
-                      const GenesisHandler &on_genesis_created);
+                      const BlockHandler &on_genesis_created);
+
+    outcome::result<primitives::BlockHash> getLastFinalizedBlockHash()
+        const override;
+    outcome::result<void> setLastFinalizedBlockHash(
+        const primitives::BlockHash &) override;
 
     outcome::result<primitives::BlockHeader> getBlockHeader(
         const primitives::BlockId &id) const override;
@@ -67,6 +92,8 @@ namespace kagome::blockchain {
    private:
     KeyValueBlockStorage(std::shared_ptr<storage::BufferStorage> storage,
                          std::shared_ptr<crypto::Hasher> hasher);
+
+    outcome::result<void> ensureGenesisNotExists() const;
 
     std::shared_ptr<storage::BufferStorage> storage_;
     std::shared_ptr<crypto::Hasher> hasher_;

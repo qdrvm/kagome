@@ -67,30 +67,50 @@ namespace kagome::consensus {
     epoch_storage_->addEpochDescriptor(1, epoch_0_and_1_digest);
   }
 
-  void BabeImpl::runGenesisEpoch() {
-    Epoch genesis_epoch;
-    genesis_epoch.epoch_index = 0;
-    genesis_epoch.authorities = genesis_configuration_->genesis_authorities;
-    genesis_epoch.randomness = genesis_configuration_->randomness;
-    genesis_epoch.epoch_duration = genesis_configuration_->epoch_length;
+  void BabeImpl::start() {
+    auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
+    log_->debug("Babe run on block with number {} and hash {}",
+                best_block_number,
+                best_block_hash);
 
-    auto slot_duration = genesis_configuration_->slot_duration;
-    BOOST_ASSERT_MSG(slot_duration > clock::SystemClock::Duration(0),
-                     "slot duration must be > 0");
-    TimePoint now = clock_->now();
-    Duration time_since_epoch = now.time_since_epoch();
-    TimePoint epoch_start_point = std::chrono::system_clock::from_time_t(0);
+    if (__builtin_expect(best_block_number == 0, false)) {
+      auto epoch_digest_res = epoch_storage_->getEpochDescriptor(0);
+      if (not epoch_digest_res) {
+        log_->error("Last epoch digest does not exist for epoch {}", 0);
+      }
+      auto &&epoch_digest = epoch_digest_res.value();
 
-    auto ticks_since_epoch = time_since_epoch.count();
+      Epoch epoch;
+      epoch.epoch_index = 0;
+      epoch.authorities = epoch_digest.authorities;
+      epoch.randomness = epoch_digest.randomness;
+      epoch.epoch_duration = genesis_configuration_->epoch_length;
 
-    genesis_epoch.start_slot =
-        static_cast<BabeSlotNumber>(ticks_since_epoch / slot_duration.count());
+      auto slot_duration = genesis_configuration_->slot_duration;
+      epoch.start_slot = static_cast<BabeSlotNumber>(
+          clock_->now().time_since_epoch() / slot_duration);
 
-    next_slot_finish_time_ =
-        epoch_start_point + (genesis_epoch.start_slot + 1) * slot_duration;
+      auto starting_slot_finish_time = std::chrono::system_clock::time_point{}
+                                       + slot_duration * epoch.start_slot
+                                       + slot_duration;
 
-    current_state_ = BabeState::SYNCHRONIZED;
-    runEpoch(genesis_epoch, next_slot_finish_time_);
+      log_->debug("Epoch {} has restored", epoch.epoch_index);
+
+      current_state_ = BabeState::SYNCHRONIZED;
+      runEpoch(epoch, starting_slot_finish_time);
+    } else {
+      auto block_header_res =
+          block_tree_->getBlockHeader(primitives::BlockId{best_block_hash});
+      BOOST_ASSERT(block_header_res.has_value());
+
+      auto babe_digests_res = getBabeDigests(block_header_res.value());
+      if (not babe_digests_res) {
+        log_->error("Could not get digests: {}",
+                    babe_digests_res.error().message());
+      }
+
+      synchronizeSlots(block_header_res.value());
+    }
   }
 
   /**
@@ -179,6 +199,7 @@ namespace kagome::consensus {
   }
 
   void BabeImpl::runSlot() {
+  again:
     if (current_slot_ != 0
         and current_slot_ % genesis_configuration_->epoch_length == 0) {
       // end of the epoch
@@ -200,7 +221,7 @@ namespace kagome::consensus {
 
       current_slot_++;
       next_slot_finish_time_ += genesis_configuration_->slot_duration;
-      return runSlot();
+      goto again;
     }
 
     // everything is OK: wait for the end of the slot
