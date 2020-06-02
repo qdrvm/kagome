@@ -14,16 +14,12 @@
 #include "crypto/key_type.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "crypto/typed_key_storage.hpp"
+#include "runtime/wasm_result.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::extensions {
   namespace sr25519_constants = crypto::constants::sr25519;
   namespace ed25519_constants = crypto::constants::ed25519;
-
-  namespace {
-    static constexpr uint32_t kGeneralSuccess = 0;
-    static constexpr uint32_t kGeneralFail = 5;
-  }  // namespace
 
   using crypto::PrivateKey;
   using crypto::PublicKey;
@@ -183,13 +179,17 @@ namespace kagome::extensions {
     memory_->storeBuffer(out_ptr, common::Buffer(hash));
   }
 
-  runtime::PointerSize CryptoExtension::ext_ed25519_public_keys(
+  // ---------------------- runtime api version 1 methods ----------------------
+
+  runtime::PointerSize CryptoExtension::ext_ed25519_public_keys_v1(
       runtime::SizeType key_type) {
+    static const common::Buffer error_result{};
+
     auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
     if (!key_type_id) {
       logger_->error("failed to decode key type: {}",
                      key_type_id.error().message());
-      return runtime::kNullPointerSize;
+      memory_->storeBuffer(error_result);
     }
 
     auto &&public_keys = key_storage_->getEdKeys(key_type_id.value());
@@ -198,7 +198,7 @@ namespace kagome::extensions {
     if (!encoded) {
       logger_->error("failed to scale-encode vector of public keys: {}",
                      encoded.error().message());
-      return runtime::kNullPointerSize;
+      return memory_->storeBuffer(error_result);
     }
 
     common::Buffer buffer(std::move(encoded.value()));
@@ -206,7 +206,10 @@ namespace kagome::extensions {
     return memory_->storeBuffer(buffer);
   }
 
-  runtime::WasmPointer CryptoExtension::ext_ed25519_generate(
+  /**
+   *@see Extension::ext_ed25519_generate
+   */
+  runtime::WasmPointer CryptoExtension::ext_ed25519_generate_v1(
       runtime::SizeType key_type, runtime::PointerSize seed) {
     auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
     if (!key_type_id) {
@@ -225,57 +228,79 @@ namespace kagome::extensions {
     key_storage_->addEdKeyPair(key_type_id.value(), key_pair.value());
     common::Buffer buffer(key_pair.value().public_key);
     runtime::PointerSize ps = memory_->storeBuffer(buffer);
-    auto [pointer, _] = runtime::splitPointerSize(ps);
-
-    return pointer;
+    return runtime::WasmResult(ps).address;
   }
 
-  runtime::PointerSize CryptoExtension::ext_ed25519_sign(
+  /**
+   * @see Extension::ed25519_sign
+   */
+  runtime::PointerSize CryptoExtension::ext_ed25519_sign_v1(
       runtime::SizeType key_type,
       runtime::WasmPointer key,
       runtime::PointerSize msg) {
+    static auto make_result = [&](auto &&value) {
+      boost::optional<crypto::ED25519Signature> result = value;
+      return common::Buffer(scale::encode(result).value());
+    };
+    static const auto kErrorResult = make_result(boost::none);
+
     auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
     if (!key_type_id) {
       logger_->error("failed to decode key type: {}",
                      key_type_id.error().message());
-      return runtime::kNullPointerSize;
+      return memory_->storeBuffer(kErrorResult);
     }
 
     auto public_buffer = memory_->loadN(key, crypto::ED25519PublicKey::size());
-    auto [msg_data, msg_len] = runtime::splitPointerSize(msg);
+    auto [msg_data, msg_len] = runtime::WasmResult(msg);
     auto msg_buffer = memory_->loadN(msg_data, msg_len);
     // error is not possible, since we loaded correct number of bytes
     auto pk = crypto::ED25519PublicKey::fromSpan(public_buffer).value();
     auto key_pair = key_storage_->findEdKey(key_type_id.value(), pk);
     if (!key_pair) {
       logger_->error("failed to find required key");
-      return runtime::kNullPointerSize;
+      return memory_->storeBuffer(kErrorResult);
     }
 
     auto &&sign = ed25519_provider_->sign(*key_pair, msg_buffer);
     if (!sign) {
       logger_->error("failed to sign message, error = {}",
                      sign.error().message());
-      return runtime::kNullPointerSize;
+      return memory_->storeBuffer(kErrorResult);
     }
-    common::Buffer result(sign.value());
-    return memory_->storeBuffer(result);
+
+    return memory_->storeBuffer(make_result(sign.value()));
   }
 
-  runtime::PointerSize CryptoExtension::ext_sr25519_public_keys(
+  /**
+   * @see Extension::ext_ed25519_verify
+   */
+  runtime::SizeType CryptoExtension::ext_ed25519_verify_v1(
+      runtime::WasmPointer sig,
+      runtime::PointerSize msg,
+      runtime::WasmPointer pubkey_data) {
+    auto [msg_data, msg_len] = runtime::WasmResult(msg);
+    return ext_ed25519_verify(msg_data, msg_len, sig, pubkey_data);
+  }
+
+  /**
+   * @see Extension::ext_sr25519_public_keys
+   */
+  runtime::PointerSize CryptoExtension::ext_sr25519_public_keys_v1(
       runtime::SizeType key_type) {
     auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
+    static const common::Buffer error_result{};
     if (!key_type_id) {
       logger_->error("failed to decode key type: {}",
                      key_type_id.error().message());
-      return kGeneralFail;
+      return memory_->storeBuffer(error_result);
     }
     auto &&public_keys = key_storage_->getSrKeys(key_type_id.value());
     auto &&encoded = scale::encode(public_keys);
     if (!encoded) {
       logger_->error("failed to scale-encode vector of public keys: {}",
                      encoded.error().message());
-      return kGeneralFail;
+      return memory_->storeBuffer(error_result);
     }
 
     common::Buffer buffer(std::move(encoded.value()));
@@ -283,7 +308,10 @@ namespace kagome::extensions {
     return memory_->storeBuffer(buffer);
   }
 
-  runtime::WasmPointer CryptoExtension::ext_sr25519_generate(
+  /**
+   *@see Extension::ext_sr25519_generate
+   */
+  runtime::WasmPointer CryptoExtension::ext_sr25519_generate_v1(
       runtime::SizeType key_type, runtime::PointerSize seed) {
     auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
     if (!key_type_id) {
@@ -297,93 +325,8 @@ namespace kagome::extensions {
     key_storage_->addSrKeyPair(key_type_id.value(), key_pair);
     common::Buffer buffer(key_pair.public_key);
     runtime::PointerSize ps = memory_->storeBuffer(buffer);
-    auto [pointer, _] = runtime::splitPointerSize(ps);
 
-    return pointer;
-  }
-
-  runtime::PointerSize CryptoExtension::ext_sr25519_sign(
-      runtime::SizeType key_type,
-      runtime::WasmPointer key,
-      runtime::PointerSize msg) {
-    auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
-    if (!key_type_id) {
-      logger_->error("failed to decode key type: {}",
-                     key_type_id.error().message());
-      return runtime::kNullPointerSize;
-    }
-
-    auto public_buffer = memory_->loadN(key, crypto::SR25519PublicKey::size());
-    auto [msg_data, msg_len] = runtime::splitPointerSize(msg);
-    auto msg_buffer = memory_->loadN(msg_data, msg_len);
-    // error is not possible, since we loaded correct number of bytes
-    auto pk = crypto::SR25519PublicKey::fromSpan(public_buffer).value();
-    auto key_pair = key_storage_->findSrKey(key_type_id.value(), pk);
-    if (!key_pair) {
-      logger_->error("failed to find required key");
-      return runtime::kNullPointerSize;
-    }
-
-    auto &&sign = sr25519_provider_->sign(*key_pair, msg_buffer);
-    if (!sign) {
-      logger_->error("failed to sign message, error = {}",
-                     sign.error().message());
-      return runtime::kNullPointerSize;
-    }
-    common::Buffer result(sign.value());
-    return memory_->storeBuffer(result);
-  }
-
-  // v1
-
-  runtime::PointerSize CryptoExtension::ext_ed25519_public_keys_v1(
-      runtime::SizeType key_type) {
-    return ext_ed25519_public_keys(key_type);
-  }
-
-  /**
-   *@see Extension::ext_ed25519_generate
-   */
-  runtime::WasmPointer CryptoExtension::ext_ed25519_generate_v1(
-      runtime::SizeType key_type, runtime::PointerSize seed) {
-    return ext_ed25519_generate(key_type, seed);
-  }
-
-  /**
-   * @see Extension::ed25519_sign
-   */
-  runtime::PointerSize CryptoExtension::ext_ed25519_sign_v1(
-      runtime::SizeType key_type,
-      runtime::WasmPointer key,
-      runtime::PointerSize msg) {
-    return ext_ed25519_sign(key_type, key, msg);
-  }
-
-  /**
-   * @see Extension::ext_ed25519_verify
-   */
-  runtime::SizeType CryptoExtension::ext_ed25519_verify_v1(
-      runtime::WasmPointer sig,
-      runtime::PointerSize msg,
-      runtime::WasmPointer pubkey_data) {
-    auto [msg_data, msg_len] = runtime::splitPointerSize(msg);
-    return ext_ed25519_verify(msg_data, msg_len, sig, pubkey_data);
-  }
-
-  /**
-   * @see Extension::ext_sr25519_public_keys
-   */
-  runtime::PointerSize CryptoExtension::ext_sr25519_public_keys_v1(
-      runtime::SizeType key_type) {
-    return ext_sr25519_public_keys(key_type);
-  }
-
-  /**
-   *@see Extension::ext_sr25519_generate
-   */
-  runtime::WasmPointer CryptoExtension::ext_sr25519_generate_v1(
-      runtime::SizeType key_type, runtime::PointerSize seed) {
-    return ext_sr25519_generate(key_type, seed);
+    return runtime::WasmResult(ps).address;
   }
 
   /**
@@ -393,7 +336,38 @@ namespace kagome::extensions {
       runtime::SizeType key_type,
       runtime::WasmPointer key,
       runtime::PointerSize msg) {
-    return ext_sr25519_sign_v1(key_type, key, msg);
+    static auto make_result = [&](auto &&value) {
+      boost::optional<crypto::SR25519Signature> result = value;
+      return common::Buffer(scale::encode(result).value());
+    };
+    static auto error_result = make_result(boost::none);
+
+    auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
+    if (!key_type_id) {
+      logger_->error("failed to decode key type: {}",
+                     key_type_id.error().message());
+      return memory_->storeBuffer(error_result);
+    }
+
+    auto public_buffer = memory_->loadN(key, crypto::SR25519PublicKey::size());
+    auto [msg_data, msg_len] = runtime::WasmResult(msg);
+    auto msg_buffer = memory_->loadN(msg_data, msg_len);
+    // error is not possible, since we loaded correct number of bytes
+    auto pk = crypto::SR25519PublicKey::fromSpan(public_buffer).value();
+    auto key_pair = key_storage_->findSrKey(key_type_id.value(), pk);
+    if (!key_pair) {
+      logger_->error("failed to find required key");
+      return memory_->storeBuffer(error_result);
+    }
+
+    auto &&sign = sr25519_provider_->sign(*key_pair, msg_buffer);
+    if (!sign) {
+      logger_->error("failed to sign message, error = {}",
+                     sign.error().message());
+      return memory_->storeBuffer(error_result);
+    }
+
+    return memory_->storeBuffer(make_result(sign.value()));
   }
 
   /**
@@ -403,7 +377,7 @@ namespace kagome::extensions {
       runtime::WasmPointer sig,
       runtime::PointerSize msg,
       runtime::WasmPointer pubkey_data) {
-    auto [msg_data, msg_len] = runtime::splitPointerSize(msg);
+    auto [msg_data, msg_len] = runtime::WasmResult(msg);
     return ext_sr25519_verify(msg_data, msg_len, sig, pubkey_data);
   }
 

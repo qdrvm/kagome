@@ -205,7 +205,7 @@ namespace kagome::extensions {
 
   runtime::PointerSize ExtensionImpl::ext_sr25519_public_keys_v1(
       runtime::SizeType key_type) {
-    return crypto_ext_.ext_ed25519_public_keys_v1(key_type);
+    return crypto_ext_.ext_sr25519_public_keys_v1(key_type);
   }
 
   runtime::WasmPointer ExtensionImpl::ext_sr25519_generate_v1(

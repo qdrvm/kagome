@@ -56,48 +56,12 @@ namespace kagome::extensions {
                         runtime::WasmPointer out_ptr);
 
     /**
-     * @see Extension::ext_ed25519_public_keys
-     */
-    runtime::PointerSize ext_ed25519_public_keys(runtime::SizeType key_type);
-
-    /**
-     *@see Extension::ext_ed25519_generate
-     */
-    runtime::WasmPointer ext_ed25519_generate(runtime::SizeType key_type,
-                                              runtime::PointerSize seed);
-
-    /**
-     * @see Extension::ed25519_sign
-     */
-    runtime::PointerSize ext_ed25519_sign(runtime::SizeType key_type,
-                                          runtime::WasmPointer key,
-                                          runtime::PointerSize msg);
-
-    /**
      * @see Extension::ext_ed25519_verify
      */
     runtime::SizeType ext_ed25519_verify(runtime::WasmPointer msg_data,
                                          runtime::SizeType msg_len,
                                          runtime::WasmPointer sig_data,
                                          runtime::WasmPointer pubkey_data);
-
-    /**
-     * @see Extension::ext_sr25519_public_keys
-     */
-    runtime::PointerSize ext_sr25519_public_keys(runtime::SizeType key_type);
-
-    /**
-     *@see Extension::ext_sr25519_generate
-     */
-    runtime::WasmPointer ext_sr25519_generate(runtime::SizeType key_type,
-                                              runtime::PointerSize seed);
-
-    /**
-     * @see Extension::sr25519_sign
-     */
-    runtime::PointerSize ext_sr25519_sign(runtime::SizeType key_type,
-                                          runtime::WasmPointer key,
-                                          runtime::PointerSize msg);
 
     /**
      * @see Extension::ext_sr25519_verify
@@ -128,7 +92,7 @@ namespace kagome::extensions {
                       runtime::SizeType len,
                       runtime::WasmPointer out);
 
-    // version 1
+    // -------------------- runtime api version 1 methods --------------------
 
     /**
      * @see Extension::ext_ed25519_public_keys
