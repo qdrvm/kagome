@@ -16,3 +16,10 @@ addtest(local_key_storage_test
 target_link_libraries(local_key_storage_test
     local_key_storage
     )
+
+addtest(app_state_manager_test
+    app_state_manager_test.cpp
+    )
+target_link_libraries(app_state_manager_test
+    app_state_manager
+    )

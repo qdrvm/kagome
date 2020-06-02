@@ -6,7 +6,6 @@
 #include "common/hexutil.hpp"
 
 #include <boost/algorithm/hex.hpp>
-#include <boost/format.hpp>
 #include <gsl/span>
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::common, UnhexError, e) {
@@ -16,9 +15,14 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::common, UnhexError, e) {
       return "Input contains non-hex characters";
     case UnhexError::NOT_ENOUGH_INPUT:
       return "Input contains odd number of characters";
-    default:
+    case UnhexError::VALUE_OUT_OF_RANGE:
+      return "Decoded value is out of range of requested type";
+    case UnhexError::MISSING_0X_PREFIX:
+      return "Missing expected 0x prefix";
+    case UnhexError::UNKNOWN:
       return "Unknown error";
   }
+  return "Unknown error (error id not listed)";
 }
 
 namespace kagome::common {
@@ -74,9 +78,12 @@ namespace kagome::common {
       std::string_view hex_with_prefix) {
     const static std::string leading_chrs = "0x";
 
-    auto without_prefix = hex_with_prefix.substr(
-        hex_with_prefix.find(leading_chrs) + leading_chrs.length(),
-        hex_with_prefix.length() - 1);
+    if (hex_with_prefix.substr(0, leading_chrs.size()) != leading_chrs) {
+      return UnhexError::MISSING_0X_PREFIX;
+    }
+
+    auto without_prefix = hex_with_prefix.substr(leading_chrs.size());
+
     return common::unhex(without_prefix);
   }
 }  // namespace kagome::common

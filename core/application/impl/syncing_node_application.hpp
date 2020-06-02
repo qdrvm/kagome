@@ -8,8 +8,8 @@
 
 #include "application/kagome_application.hpp"
 
-#include "injector/syncing_node_injector.hpp"
 #include "common/logger.hpp"
+#include "injector/syncing_node_injector.hpp"
 
 namespace kagome::application {
 
@@ -21,27 +21,39 @@ namespace kagome::application {
     using uptr = std::unique_ptr<T>;
 
    public:
-    using InjectorType = decltype(injector::makeSyncingNodeInjector(
-        std::string{}, std::string{}, uint16_t{}, uint16_t{}, uint16_t{}));
+    using InjectorType = decltype(
+        injector::makeSyncingNodeInjector(std::string{},
+                                          std::string{},
+                                          uint16_t{},
+                                          boost::asio::ip::tcp::endpoint{},
+                                          boost::asio::ip::tcp::endpoint{}));
 
     ~SyncingNodeApplication() override = default;
 
-    SyncingNodeApplication(const std::string &config_path,
-                           const std::string &leveldb_path,
-                           uint16_t p2p_port,
-                           uint16_t rpc_http_port,
-                           uint16_t rpc_ws_port,
-                           uint8_t verbosity);
+    SyncingNodeApplication(
+        const std::string &config_path,
+        const std::string &leveldb_path,
+        uint16_t p2p_port,
+        const boost::asio::ip::tcp::endpoint &rpc_http_endpoint,
+        const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint,
+        uint8_t verbosity);
 
     void run() override;
 
    private:
     // need to keep all of these instances, since injector itself is destroyed
     InjectorType injector_;
+
+    std::shared_ptr<AppStateManager> app_state_manager_;
+
     sptr<boost::asio::io_context> io_context_;
+
     sptr<ConfigurationStorage> config_storage_;
-    sptr<api::ApiService> jrpc_api_service_;
     sptr<network::Router> router_;
+
+    sptr<api::RpcContext> rpc_context_;
+    sptr<api::RpcThreadPool> rpc_thread_pool_;
+    sptr<api::ApiService> jrpc_api_service_;
 
     common::Logger logger_;
   };
