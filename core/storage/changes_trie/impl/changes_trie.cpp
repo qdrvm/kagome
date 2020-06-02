@@ -18,8 +18,6 @@ namespace kagome::storage::changes_trie {
     BOOST_ASSERT(trie_factory != nullptr);
     auto changes_storage = trie_factory->createEmpty();
 
-    auto logger = common::createLogger("ChangesTrie");
-
     for (auto &change : extinsics_changes) {
       auto &key = change.first;
       auto &changers = change.second;
@@ -28,7 +26,6 @@ namespace kagome::storage::changes_trie {
       OUTCOME_TRY(key_enc, scale::encode(keyIndex));
       OUTCOME_TRY(value, scale::encode(changers));
       common::Buffer value_buf {std::move(value)};
-      logger->debug("Insert key (block #: {}, key: {}) and value {})", current_number, key, value_buf.toHex());
       OUTCOME_TRY(changes_storage->put(common::Buffer{std::move(key_enc)},
                                        std::move(value_buf)));
     }

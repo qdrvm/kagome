@@ -63,6 +63,7 @@ namespace kagome::storage::trie {
     return trie_->empty();
   }
 
+
   outcome::result<Buffer> PersistentTrieBatchImpl::calculateRoot() const {
     OUTCOME_TRY(enc, codec_->encodeNode(*trie_->getRoot()));
     return Buffer{codec_->hash256(enc)};
@@ -76,18 +77,15 @@ namespace kagome::storage::trie {
 
   outcome::result<void> PersistentTrieBatchImpl::put(const Buffer &key,
                                                      const Buffer &value) {
-    auto res = trie_->put(key, value);
-    if (res and changes_.has_value()) {
-      OUTCOME_TRY(changes_.value()->onChange(key));
-    }
-    return res;
+    return put(key, Buffer {value}); // would have to copy anyway
   }
 
   outcome::result<void> PersistentTrieBatchImpl::put(const Buffer &key,
                                                      Buffer &&value) {
+    bool is_new_entry = not trie_->contains(key);
     auto res = trie_->put(key, std::move(value));
     if (res and changes_.has_value()) {
-      OUTCOME_TRY(changes_.value()->onChange(key));
+      OUTCOME_TRY(changes_.value()->onPut(key, is_new_entry));
     }
     return res;
   }
@@ -95,7 +93,7 @@ namespace kagome::storage::trie {
   outcome::result<void> PersistentTrieBatchImpl::remove(const Buffer &key) {
     auto res = trie_->remove(key);
     if (res and changes_.has_value()) {
-      OUTCOME_TRY(changes_.value()->onChange(key));
+      OUTCOME_TRY(changes_.value()->onRemove(key));
     }
     return res;
   }

@@ -28,12 +28,6 @@ namespace kagome::extensions {
         storage_ext_(storage_batch_, memory_, std::move(tracker)) {
     BOOST_ASSERT(storage_batch_ != nullptr);
     BOOST_ASSERT(memory_ != nullptr);
-    common::createLogger("Extension")
-        ->debug("Creating extension with batch {}",
-                std::dynamic_pointer_cast<storage::trie::PersistentTrieBatch>(
-                    storage_batch_)
-                    ? "persistent"
-                    : "ephemeral");
   }
 
   std::shared_ptr<runtime::WasmMemory> ExtensionImpl::memory() const {

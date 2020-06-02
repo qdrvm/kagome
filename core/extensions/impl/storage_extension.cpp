@@ -183,6 +183,9 @@ namespace kagome::extensions {
       return 0;
     }
 
+    logger_->error("ext_storage_changes_root is not implemented");
+    return 0;
+    /*
     boost::optional<storage::changes_trie::ChangesTrieConfig> trie_config;
     const auto CHANGES_CONFIG_KEY = common::Buffer{}.put(":changes_trie");
     auto config_bytes_res = persistent_batch->get(CHANGES_CONFIG_KEY);
@@ -234,6 +237,7 @@ namespace kagome::extensions {
                   parent_hash.toHex(), result_buf.toHex());
     memory_->storeBuffer(result, result_buf);
     return result_buf.size();
+     */
   }
 
   void StorageExtension::ext_storage_root(runtime::WasmPointer result) const {

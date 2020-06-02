@@ -12,6 +12,7 @@ target_link_libraries(state_api_service
     buffer
     api_service
     trie_storage
+    blob
     )
 
 add_subdirectory(requests)
