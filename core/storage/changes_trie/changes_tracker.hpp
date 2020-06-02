@@ -2,8 +2,8 @@
 #define KAGOME_STORAGE_CHANGES_TRIE_CHANGES_TRACKER
 
 #include "common/buffer.hpp"
-#include "primitives/extrinsic.hpp"
 #include "primitives/common.hpp"
+#include "primitives/extrinsic.hpp"
 #include "storage/changes_trie/changes_trie_config.hpp"
 
 namespace kagome::storage::changes_trie {
@@ -34,9 +34,16 @@ namespace kagome::storage::changes_trie {
         primitives::BlockNumber new_parent_number) = 0;
 
     /**
-     * Supposed to be called when a storage entry is changed
+     * Supposed to be called when an entry is put into the tracked storage
+     * @arg new_entry states whether the entry is new, or just an update of a
+     * present value
      */
-    virtual outcome::result<void> onChange(const common::Buffer &key) = 0;
+    virtual outcome::result<void> onPut(const common::Buffer &key,
+                                        bool new_entry) = 0;
+    /**
+     * Supposed to be called when an entry is removed from the tracked storage
+     */
+    virtual outcome::result<void> onRemove(const common::Buffer &key) = 0;
 
     /**
      * Sinks accumulated changes for the latest registered block to the changes

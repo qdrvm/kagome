@@ -34,13 +34,23 @@ namespace kagome::runtime::binaryen {
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         std::shared_ptr<crypto::Hasher> hasher);
 
-    outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
-                               std::shared_ptr<WasmMemory>>>
-    getPersistentRuntimeEnvironment();
+    using RuntimeEnvironment = std::tuple<std::shared_ptr<wasm::ModuleInstance>,
+                                          std::shared_ptr<WasmMemory>>;
 
-    outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
-                               std::shared_ptr<WasmMemory>>>
-    getEphemeralRuntimeEnvironment();
+    outcome::result<RuntimeEnvironment> getPersistentRuntimeEnvironment();
+
+    outcome::result<RuntimeEnvironment> getEphemeralRuntimeEnvironment();
+
+    /**
+     * @TODO(Harrm): rename it to highlight that it changes storage state
+     * @warning calling this with an \arg state_root older than the current root
+     * will reset the storage to an older state
+     */
+    outcome::result<RuntimeEnvironment> RENAME_getPersistentRuntimeEnvironmentAt(
+        const common::Hash256 &state_root);
+
+    outcome::result<RuntimeEnvironment> getEphemeralRuntimeEnvironmentAt(
+        const common::Hash256 &state_root);
 
    private:
     outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
@@ -53,8 +63,8 @@ namespace kagome::runtime::binaryen {
 
     common::Logger logger_ = common::createLogger("Runtime manager");
 
+    std::shared_ptr<runtime::WasmProvider> wasm_provider_;
     std::shared_ptr<storage::trie::TrieStorage> storage_;
-    std::shared_ptr<WasmProvider> wasm_provider_;
     std::shared_ptr<extensions::ExtensionFactory> extension_factory_;
     std::shared_ptr<crypto::Hasher> hasher_;
 

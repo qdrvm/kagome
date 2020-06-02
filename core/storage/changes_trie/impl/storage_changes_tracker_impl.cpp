@@ -30,8 +30,13 @@ namespace kagome::storage::changes_trie {
   outcome::result<void> StorageChangesTrackerImpl::onBlockChange(
       primitives::BlockHash new_parent_hash,
       primitives::BlockNumber new_parent_number) {
+    if (parent_hash_ == new_parent_hash) {
+      return outcome::success();
+    }
     parent_hash_ = new_parent_hash;
     parent_number_ = new_parent_number;
+    // new block -- new extrinsics
+    extrinsics_changes_.clear();
     return outcome::success();
   }
 
@@ -40,18 +45,47 @@ namespace kagome::storage::changes_trie {
     get_extrinsic_index_ = std::move(f);
   }
 
-  outcome::result<void> StorageChangesTrackerImpl::onChange(
-      const common::Buffer &key) {
-    auto change_it = changes_.find(key);
+  outcome::result<void> StorageChangesTrackerImpl::onPut(
+      const common::Buffer &key, bool is_new_entry) {
+    auto change_it = extrinsics_changes_.find(key);
     OUTCOME_TRY(idx_bytes, get_extrinsic_index_());
     OUTCOME_TRY(idx, scale::decode<primitives::ExtrinsicIndex>(idx_bytes));
 
     // if key was already changed in the same block, just add extrinsic to
     // the changers list
-    if (change_it != changes_.end()) {
+    if (change_it != extrinsics_changes_.end()) {
       change_it->second.push_back(idx);
     } else {
-      changes_.insert(std::make_pair(key, std::vector{idx}));
+      extrinsics_changes_.insert(
+          std::make_pair(key, std::vector{idx}));
+      if(is_new_entry) {
+        new_entries_.insert(key);
+      }
+    }
+    return outcome::success();
+  }
+
+  outcome::result<void> StorageChangesTrackerImpl::onRemove(
+      const common::Buffer &key) {
+    auto change_it = extrinsics_changes_.find(key);
+    OUTCOME_TRY(idx_bytes, get_extrinsic_index_());
+    OUTCOME_TRY(idx, scale::decode<primitives::ExtrinsicIndex>(idx_bytes));
+
+    // if key was already changed in the same block, just add extrinsic to
+    // the changers list
+    if (change_it != extrinsics_changes_.end()) {
+      // if new entry, i. e. it doesn't exist in the persistent storage, then
+      // don't track it, because it's just temporary
+      if (auto i = new_entries_.find(key); i != new_entries_.end()) {
+        extrinsics_changes_.erase(change_it);
+        new_entries_.erase(i);
+      } else {
+        change_it->second.push_back(idx);
+      }
+
+    } else {
+      extrinsics_changes_.insert(
+          std::make_pair(key, std::vector{idx}));
     }
     return outcome::success();
   }
@@ -62,9 +96,10 @@ namespace kagome::storage::changes_trie {
     if (parent != parent_hash_) {
       return Error::INVALID_PARENT_HASH;
     }
-    OUTCOME_TRY(trie,
-                ChangesTrie::buildFromChanges(
-                    parent_number_, trie_factory_, codec_, changes_, conf));
+    OUTCOME_TRY(
+        trie,
+        ChangesTrie::buildFromChanges(
+            parent_number_, trie_factory_, codec_, extrinsics_changes_, conf));
     return trie->getHash();
   }
 

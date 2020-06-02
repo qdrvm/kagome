@@ -10,6 +10,7 @@
 
 #include <binaryen/wasm-binary.h>
 #include <binaryen/wasm-interpreter.h>
+#include <boost/optional.hpp>
 
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
@@ -43,12 +44,25 @@ namespace kagome::runtime::binaryen {
 
    private:
     // as it has a deduced return type, must be defined before execute()
-    auto getRuntimeEnvironment(CallPersistency persistency) {
-      switch (persistency) {
-        case CallPersistency::PERSISTENT:
-          return runtime_manager_->getPersistentRuntimeEnvironment();
-        case CallPersistency::EPHEMERAL:
-          return runtime_manager_->getEphemeralRuntimeEnvironment();
+    auto getRuntimeEnvironment(
+        CallPersistency persistency,
+        const boost::optional<common::Hash256> &state_root_opt) {
+      if (state_root_opt.has_value()) {
+        switch (persistency) {
+          case CallPersistency::PERSISTENT:
+            return runtime_manager_->RENAME_getPersistentRuntimeEnvironmentAt(
+                state_root_opt.value()).value();
+          case CallPersistency::EPHEMERAL:
+            return runtime_manager_->getEphemeralRuntimeEnvironmentAt(
+                state_root_opt.value()).value();
+        }
+      } else {
+        switch (persistency) {
+          case CallPersistency::PERSISTENT:
+            return runtime_manager_->getPersistentRuntimeEnvironment().value();
+          case CallPersistency::EPHEMERAL:
+            return runtime_manager_->getEphemeralRuntimeEnvironment().value();
+        }
       }
     }
 
@@ -62,12 +76,43 @@ namespace kagome::runtime::binaryen {
      * @return parsed result or error
      */
     template <typename R, typename... Args>
+    outcome::result<R> executeAt(std::string_view name,
+                                 const common::Hash256 &state_root,
+                                 CallPersistency persistency,
+                                 Args &&... args) {
+      return executeMaybeAt<R>(
+          name, state_root, persistency, std::forward<Args>(args)...);
+    }
+
+    /**
+     * @brief executes wasm export method returning non-void result
+     * @tparam R result type including void
+     * @tparam Args arguments types list
+     * @param name export method name
+     * @param args arguments
+     * @return parsed result or error
+     */
+    template <typename R, typename... Args>
     outcome::result<R> execute(std::string_view name,
                                CallPersistency persistency,
                                Args &&... args) {
-      logger_->debug("Executing export function: {}", name);
+      return executeMaybeAt<R>(
+          name, boost::none, persistency, std::forward<Args>(args)...);
+    }
 
-      OUTCOME_TRY(environment, getRuntimeEnvironment(persistency));
+   private:
+    template <typename R, typename... Args>
+    outcome::result<R> executeMaybeAt(
+        std::string_view name,
+        const boost::optional<common::Hash256> &state_root,
+        CallPersistency persistency,
+        Args &&... args) {
+      logger_->debug("Executing export function: {}", name);
+      if (state_root.has_value()) {
+        logger_->warn("Resetting state to: {}", state_root.value().toHex());
+      }
+
+      auto environment = getRuntimeEnvironment(persistency, state_root);
       auto &&[module, memory] = environment;
 
       runtime::WasmPointer ptr = 0u;
@@ -96,11 +141,9 @@ namespace kagome::runtime::binaryen {
 
       return outcome::success();
     }
-
-   private:
     std::shared_ptr<RuntimeManager> runtime_manager_;
     WasmExecutor executor_;
-    common::Logger logger_ = common::createLogger("Runtime api");
+    common::Logger logger_ = common::createLogger("Runtime API");
   };
 }  // namespace kagome::runtime::binaryen
 

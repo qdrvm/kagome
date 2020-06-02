@@ -16,7 +16,7 @@ namespace kagome::storage::changes_trie {
       const ExtrinsicsChanges &extinsics_changes,
       const ChangesTrieConfig &config) {
     BOOST_ASSERT(trie_factory != nullptr);
-    auto changes_storage = trie_factory->createEmpty(boost::none);
+    auto changes_storage = trie_factory->createEmpty();
 
     for (auto &change : extinsics_changes) {
       auto &key = change.first;
@@ -25,8 +25,9 @@ namespace kagome::storage::changes_trie {
       KeyIndexVariant keyIndex{ExtrinsicsChangesKey{{current_number, key}}};
       OUTCOME_TRY(key_enc, scale::encode(keyIndex));
       OUTCOME_TRY(value, scale::encode(changers));
+      common::Buffer value_buf {std::move(value)};
       OUTCOME_TRY(changes_storage->put(common::Buffer{std::move(key_enc)},
-                                       common::Buffer{std::move(value)}));
+                                       std::move(value_buf)));
     }
 
     return std::unique_ptr<ChangesTrie>{
@@ -35,7 +36,9 @@ namespace kagome::storage::changes_trie {
 
   ChangesTrie::ChangesTrie(std::unique_ptr<storage::trie::PolkadotTrie> trie,
                            std::shared_ptr<storage::trie::Codec> codec)
-      : changes_trie_{std::move(trie)}, codec_{std::move(codec)} {
+      : changes_trie_{std::move(trie)},
+        codec_{std::move(codec)},
+        logger_(common::createLogger("ChangesTrie")) {
     BOOST_ASSERT(changes_trie_ != nullptr);
     BOOST_ASSERT(codec_ != nullptr);
   }
@@ -47,6 +50,7 @@ namespace kagome::storage::changes_trie {
 
     auto root = changes_trie_->getRoot();
     if (root == nullptr) {
+      logger_->warn("Get root of empty changes trie");
       return codec_->hash256({0});
     }
     auto enc_res = codec_->encodeNode(*root);

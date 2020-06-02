@@ -6,11 +6,11 @@ target_link_libraries(config_reader_error
     outcome
     )
 
-add_library(kagome_application
-    impl/kagome_application_impl.cpp
+add_library(validating_node_application
+    impl/validating_node_application.cpp
     )
-target_link_libraries(kagome_application
-    full_node_injector
+target_link_libraries(validating_node_application
+    validating_node_injector
     blob
     )
 
@@ -19,6 +19,14 @@ add_library(syncing_node_application
     )
 target_link_libraries(syncing_node_application
     syncing_node_injector
+    blob
+    )
+
+add_library(block_producing_node_application
+    impl/block_producing_node_application.cpp
+    )
+target_link_libraries(block_producing_node_application
+    block_producing_node_injector
     blob
     )
 
@@ -44,4 +52,11 @@ target_link_libraries(local_key_storage
     sr25519_types
     ed25519_types
     p2p::p2p_crypto_key
+    )
+
+add_library(app_state_manager
+    impl/app_state_manager_impl.cpp
+    )
+target_link_libraries(app_state_manager
+    logger
     )

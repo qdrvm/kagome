@@ -14,6 +14,11 @@
 
 using kagome::common::Buffer;
 
+namespace {
+  const auto CHANGES_CONFIG_KEY =
+      kagome::common::Buffer{}.put(":changes_trie");
+}
+
 namespace kagome::extensions {
   StorageExtension::StorageExtension(
       std::shared_ptr<storage::trie::TrieBatch> storage_batch,
@@ -72,7 +77,7 @@ namespace kagome::extensions {
       return 0;
     }
     if (not data.value().empty())
-      logger_->debug("ext_get_allocated_storage. Key hex: {} Value hex {}",
+      logger_->trace("ext_get_allocated_storage. Key hex: {} Value hex {}",
                      key.toHex(),
                      data.value().toHex());
 
@@ -97,16 +102,16 @@ namespace kagome::extensions {
     auto key = memory_->loadN(key_data, key_length);
     auto data = get(key, value_offset, value_length);
     if (not data) {
-      logger_->debug("ext_get_storage_into. Val by key {} not found",
+      logger_->trace("ext_get_storage_into. Val by key {} not found",
                      key.toHex());
       return runtime::WasmMemory::kMaxMemorySize;
     }
     if (not data.value().empty()) {
-      logger_->debug("ext_get_storage_into. Key hex: {} , Value hex {}",
+      logger_->trace("ext_get_storage_into. Key hex: {} , Value hex {}",
                      key.toHex(),
                      data.value().toHex());
     } else {
-      logger_->debug("ext_get_storage_into. Key hex: {} Value: empty",
+      logger_->trace("ext_get_storage_into. Key hex: {} Value: empty",
                      key.toHex());
     }
     memory_->storeBuffer(value_data, data.value());
@@ -121,14 +126,14 @@ namespace kagome::extensions {
     auto value = memory_->loadN(value_data, value_length);
 
     if (value.toHex().size() < 500) {
-      logger_->debug(
+      logger_->trace(
           "Set storage. Key: {}, Key hex: {} Value: {}, Value hex {}",
           key.data(),
           key.toHex(),
           value.data(),
           value.toHex());
     } else {
-      logger_->debug(
+      logger_->trace(
           "Set storage. Key: {}, Key hex: {} Value is too big to display",
           key.data(),
           key.toHex());
@@ -182,22 +187,31 @@ namespace kagome::extensions {
           "ephemeral extension");
       return 0;
     }
-    const auto CHANGES_CONFIG_KEY = common::Buffer{}.put(":changes_trie");
+
+    logger_->error("ext_storage_changes_root is not implemented");
+    return 0;
+    /*
+    boost::optional<storage::changes_trie::ChangesTrieConfig> trie_config;
     auto config_bytes_res = persistent_batch->get(CHANGES_CONFIG_KEY);
-    bool has_config{true};
     if (config_bytes_res.has_error()) {
-      if (config_bytes_res.has_error()) {
+      if (config_bytes_res.error() != storage::trie::TrieError::NO_VALUE) {
         logger_->error("ext_storage_changes_root resulted with an error: {}",
                        config_bytes_res.error().message());
         return 0;
+      } else {
+        logger_->debug(
+            "ext_storage_changes_root: no changes trie config found");
+        trie_config = boost::none;
       }
-    }
-    auto config_res = scale::decode<storage::changes_trie::ChangesTrieConfig>(
-        config_bytes_res.value());
-    if (config_res.has_error()) {
-      logger_->error("ext_storage_changes_root resulted with an error: {}",
-                     config_res.error().message());
-      return 0;
+    } else {
+      auto config_res = scale::decode<storage::changes_trie::ChangesTrieConfig>(
+          config_bytes_res.value());
+      if (config_res.has_error()) {
+        logger_->error("ext_storage_changes_root resulted with an error: {}",
+                       config_res.error().message());
+        return 0;
+      }
+      trie_config = config_res.value();
     }
 
     auto parent_hash_bytes =
@@ -207,16 +221,27 @@ namespace kagome::extensions {
                 common::Hash256::size(),
                 parent_hash.begin());
 
+    // if no config found in the storage, then disable tracking blocks changes
+    if (not trie_config.has_value()) {
+      trie_config = storage::changes_trie::ChangesTrieConfig{
+          .digest_interval = 0, .digest_levels = 0};
+    }
+
+    logger_->debug("ext_storage_changes_root constructing changes trie with parent_hash: {}",
+                  parent_hash.toHex());
     auto trie_hash_res =
-        changes_tracker_->constructChangesTrie(parent_hash, config_res.value());
+        changes_tracker_->constructChangesTrie(parent_hash, trie_config.value());
     if (trie_hash_res.has_error()) {
       logger_->error("ext_storage_changes_root resulted with an error: {}",
                      trie_hash_res.error().message());
       return 0;
     }
     common::Buffer result_buf(trie_hash_res.value());
+    logger_->debug("ext_storage_changes_root with parent_hash {} result is: {}",
+                  parent_hash.toHex(), result_buf.toHex());
     memory_->storeBuffer(result, result_buf);
     return result_buf.size();
+     */
   }
 
   void StorageExtension::ext_storage_root(runtime::WasmPointer result) const {
@@ -232,6 +257,7 @@ namespace kagome::extensions {
       const auto &root = res.value();
       memory_->storeBuffer(result, root);
     } else {
+      logger_->error("ext_storage_root called in an ephemeral extension");
       const auto &root = storage_batch_->calculateRoot();
       if (root.has_error()) {
         logger_->error("ext_storage_root resulted with an error: {}",

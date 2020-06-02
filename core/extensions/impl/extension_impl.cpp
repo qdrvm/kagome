@@ -25,8 +25,7 @@ namespace kagome::extensions {
                     std::make_shared<crypto::HasherImpl>()),
         io_ext_(memory),
         memory_ext_(memory),
-        storage_ext_(
-            storage_batch_, memory_, std::move(tracker)) {
+        storage_ext_(storage_batch_, memory_, std::move(tracker)) {
     BOOST_ASSERT(storage_batch_ != nullptr);
     BOOST_ASSERT(memory_ != nullptr);
   }

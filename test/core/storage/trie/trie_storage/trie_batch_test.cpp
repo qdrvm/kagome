@@ -32,8 +32,7 @@ class TrieBatchTest : public test::BaseLevelDB_Test {
 
   void SetUp() override {
     open();
-    auto factory = std::make_shared<PolkadotTrieFactoryImpl>(
-        [](auto parent, auto idx) { return parent->children.at(idx); });
+    auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
     auto codec = std::make_shared<PolkadotCodec>();
     auto serializer = std::make_shared<TrieSerializerImpl>(
         factory,
@@ -173,8 +172,7 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
       .After(expectation)
       .WillOnce(Return(PolkadotCodec::Error::UNKNOWN_NODE_TYPE));
 
-  auto factory = std::make_shared<PolkadotTrieFactoryImpl>(
-      [](auto parent, auto idx) { return parent->children.at(idx); });
+  auto factory = std::make_shared<PolkadotTrieFactoryImpl>();
   auto codec = std::make_shared<PolkadotCodec>();
   auto serializer = std::make_shared<TrieSerializerImpl>(
       factory,

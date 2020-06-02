@@ -37,9 +37,8 @@ TEST(ChangesTrieTest, SubstrateCompatibility) {
       {Buffer{1}, {1}}, {":extrinsic_index"_buf, {1}}};
 
   auto changes_trie = ChangesTrie::buildFromChanges(
-                          42, factory, codec, changes, ChangesTrieConfig{})
+                          99, factory, codec, changes, ChangesTrieConfig{})
                           .value();
-
   auto hash = changes_trie->getHash();
   ASSERT_EQ(
       hash,

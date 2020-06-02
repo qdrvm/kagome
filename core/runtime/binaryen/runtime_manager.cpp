@@ -43,25 +43,37 @@ namespace kagome::runtime::binaryen {
     BOOST_ASSERT(hasher_);
   }
 
-  outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
-                             std::shared_ptr<WasmMemory>>>
+  outcome::result<RuntimeManager::RuntimeEnvironment>
+  RuntimeManager::RENAME_getPersistentRuntimeEnvironmentAt(
+      const common::Hash256 &state_root) {
+    auto persistent_batch = storage_->getPersistentBatchAt(state_root).value();
+    persistent_batch_ = std::move(persistent_batch);
+    return getRuntimeEnvironment(persistent_batch_);
+  }
+
+  outcome::result<RuntimeManager::RuntimeEnvironment>
+  RuntimeManager::getEphemeralRuntimeEnvironmentAt(
+      const common::Hash256 &state_root) {
+    OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(state_root));
+    return getRuntimeEnvironment(std::move(batch));
+  }
+
+  outcome::result<RuntimeManager::RuntimeEnvironment>
   RuntimeManager::getPersistentRuntimeEnvironment() {
-    if(persistent_batch_ == nullptr) {
+    if (persistent_batch_ == nullptr) {
       OUTCOME_TRY(persistent_batch, storage_->getPersistentBatch());
       persistent_batch_ = std::move(persistent_batch);
     }
     return getRuntimeEnvironment(persistent_batch_);
   }
 
-  outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
-                             std::shared_ptr<WasmMemory>>>
+  outcome::result<RuntimeManager::RuntimeEnvironment>
   RuntimeManager::getEphemeralRuntimeEnvironment() {
     OUTCOME_TRY(batch, storage_->getEphemeralBatch());
     return getRuntimeEnvironment(std::move(batch));
   }
 
-  outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
-                             std::shared_ptr<WasmMemory>>>
+  outcome::result<RuntimeManager::RuntimeEnvironment>
   RuntimeManager::getRuntimeEnvironment(
       std::shared_ptr<storage::trie::TrieBatch> storage_batch) {
     const auto &state_code = wasm_provider_->getStateCode();
@@ -94,10 +106,12 @@ namespace kagome::runtime::binaryen {
                    .first->second;
     }
 
-    if (!external_interface_) {
-      external_interface_ = std::make_shared<RuntimeExternalInterface>(
-          extension_factory_, std::shared_ptr(std::move(storage_batch)));
-    }
+    /// TODO(Harrm) Figure out just commenting it out may cause any issues and if
+    /// it does just make existing ext interface update its storage batch
+    // if (!external_interface_) {
+    external_interface_ = std::make_shared<RuntimeExternalInterface>(
+        extension_factory_, std::shared_ptr(std::move(storage_batch)));
+    //}
 
     return {std::make_shared<wasm::ModuleInstance>(*module,
                                                    external_interface_.get()),

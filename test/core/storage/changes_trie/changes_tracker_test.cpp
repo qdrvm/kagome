@@ -55,7 +55,8 @@ TEST(ChangesTrieTest, IntegrationWithOverlay) {
       codec,
       serializer,
       boost::make_optional(changes_tracker),
-      factory->createEmpty(boost::none),
+      factory->createEmpty(
+          [](auto branch, auto idx) { return branch->children.at(idx); }),
       [](auto &buf) {});
 
   EXPECT_OUTCOME_TRUE_1(

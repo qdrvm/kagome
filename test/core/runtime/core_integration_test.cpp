@@ -9,12 +9,11 @@
 #include <fstream>
 
 #include "core/runtime/runtime_test.hpp"
-#include "extensions/impl/extension_factory_impl.hpp"
+#include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "runtime/binaryen/runtime_api/core_impl.hpp"
-#include "runtime/binaryen/wasm_memory_impl.hpp"
-#include "testutil/outcome.hpp"
 
+using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::common::Buffer;
 using kagome::extensions::ExtensionFactoryImpl;
 using kagome::primitives::Block;
@@ -22,8 +21,8 @@ using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockNumber;
 using kagome::primitives::Extrinsic;
-using kagome::runtime::binaryen::CoreImpl;
 using kagome::runtime::WasmMemory;
+using kagome::runtime::binaryen::CoreImpl;
 using kagome::runtime::binaryen::WasmMemoryImpl;
 
 using ::testing::_;
@@ -36,7 +35,10 @@ class CoreTest : public RuntimeTest {
   void SetUp() override {
     RuntimeTest::SetUp();
 
-    core_ = std::make_shared<CoreImpl>(runtime_manager_, changes_tracker_);
+    core_ = std::make_shared<CoreImpl>(
+        runtime_manager_,
+        changes_tracker_,
+        std::make_shared<BlockHeaderRepositoryMock>());
   }
 
  protected:

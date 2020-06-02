@@ -46,21 +46,22 @@ namespace kagome::consensus {
 
     // insert block_header if it is missing
     if (not block_tree_->getBlockHeader(block_hash)) {
-      if (auto add_res = block_tree_->addBlockHeader(header); not add_res) {
-        logger_->warn(
-            "Could not add block header during import. Number: {}, Hash: {}, "
-            "Reason: {}",
-            header.number,
-            block_hash.toHex(),
-            add_res.error().message());
-      }
+//      if (auto add_res = block_tree_->addBlockHeader(header); not add_res) {
+//        logger_->warn(
+//            "Could not add block header during import. Number: {}, Hash: {}, Parent Hash: {}"
+//            "Reason: {}",
+//            header.number,
+//            block_hash.toHex(),
+//            header.parent_hash.toHex(),
+//            add_res.error().message());
+//      }
       // handle if block exists
-      else {
+//      else {
         new_block_handler(header);
-        logger_->info("Added block header. Number: {}, Hash: {}",
+        logger_->info("Received block header. Number: {}, Hash: {}",
                       header.number,
                       block_hash.toHex());
-      }
+//      }
       const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
 
       // we should request blocks between last finalized one and received block
@@ -110,9 +111,10 @@ namespace kagome::consensus {
                          blockchain::BlockTreeError::BLOCK_EXISTS)) {
                 continue;
               }
-              self->logger_->error(
+              self->logger_->warn(
                   "Could not apply block during synchronizing slots.Error: {}",
                   apply_res.error().message());
+              break;
             }
           }
           next();
@@ -162,8 +164,9 @@ namespace kagome::consensus {
     auto next_epoch_digest_res = getNextEpochDigest(block.header);
     if (next_epoch_digest_res) {
       logger_->info("Got next epoch digest for epoch: {}", epoch_index);
-      OUTCOME_TRY(epoch_storage_->addEpochDescriptor(
-          epoch_index + 2, next_epoch_digest_res.value()));
+      //OUTCOME_TRY();
+      epoch_storage_->addEpochDescriptor(
+          epoch_index + 2, next_epoch_digest_res.value()).value();
     }
 
     OUTCOME_TRY(block_validator_->validateHeader(
@@ -180,11 +183,14 @@ namespace kagome::consensus {
     OUTCOME_TRY(core_->execute_block(block_without_seal_digest));
 
     // add block header if it does not exist
-    if (not block_tree_->getBlockHeader(block_hash).has_value()) {
-      OUTCOME_TRY(block_tree_->addBlockHeader(block.header));
-    }
-    OUTCOME_TRY(
-        block_tree_->addBlockBody(block.header.number, block_hash, block.body));
+    OUTCOME_TRY(block_tree_->addBlock(block));
+//    if (not block_tree_->getBlockHeader(block_hash).has_value()) {
+//      //! OUTCOME_TRY(block_tree_->addBlockHeader(block.header));
+//      block_tree_->addBlockHeader(block.header).value();
+//    }
+//    //! OUTCOME_TRY(
+//    //!     block_tree_->addBlockBody(block.header.number, block_hash, block.body));
+//    block_tree_->addBlockBody(block.header.number, block_hash, block.body).value();
 
     logger_->info("Imported block with number: {}, hash: {}",
                   block.header.number,

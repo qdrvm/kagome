@@ -33,7 +33,9 @@ namespace kagome::storage::changes_trie {
         primitives::BlockHash new_parent_hash,
         primitives::BlockNumber new_parent_number) override;
 
-    outcome::result<void> onChange(const common::Buffer &key) override;
+    outcome::result<void> onPut(const common::Buffer &key,
+                                bool new_entry) override;
+    outcome::result<void> onRemove(const common::Buffer &key) override;
 
     outcome::result<common::Hash256> constructChangesTrie(
         const primitives::BlockHash &parent,
@@ -43,7 +45,10 @@ namespace kagome::storage::changes_trie {
     std::shared_ptr<storage::trie::PolkadotTrieFactory> trie_factory_;
     std::shared_ptr<storage::trie::Codec> codec_;
 
-    std::map<common::Buffer, std::vector<primitives::ExtrinsicIndex>> changes_;
+    std::map<common::Buffer, std::vector<primitives::ExtrinsicIndex>>
+        extrinsics_changes_;
+    std::set<common::Buffer>
+        new_entries_; // entries that do not yet exist in the underlying storage
     primitives::BlockHash parent_hash_;
     primitives::BlockNumber parent_number_;
     GetExtrinsicIndexDelegate get_extrinsic_index_;
