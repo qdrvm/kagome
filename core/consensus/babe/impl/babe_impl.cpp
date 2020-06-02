@@ -56,12 +56,11 @@ namespace kagome::consensus {
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(log_);
 
-    NextEpochDescriptor epoch_0_and_1_digest;
-    epoch_0_and_1_digest.randomness = genesis_configuration_->randomness;
-    epoch_0_and_1_digest.authorities =
-        genesis_configuration_->genesis_authorities;
-    BOOST_ASSERT(!!epoch_storage_->addEpochDescriptor(0, epoch_0_and_1_digest));
-    BOOST_ASSERT(!!epoch_storage_->addEpochDescriptor(1, epoch_0_and_1_digest));
+    NextEpochDescriptor init_epoch_desc;
+    init_epoch_desc.randomness = genesis_configuration_->randomness;
+    init_epoch_desc.authorities = genesis_configuration_->genesis_authorities;
+    BOOST_ASSERT(!!epoch_storage_->addEpochDescriptor(0, init_epoch_desc));
+    BOOST_ASSERT(!!epoch_storage_->addEpochDescriptor(1, init_epoch_desc));
   }
 
   void BabeImpl::start() {
@@ -84,10 +83,9 @@ namespace kagome::consensus {
       epoch.authorities = epoch_digest.authorities;
       epoch.randomness = epoch_digest.randomness;
       epoch.epoch_duration = genesis_configuration_->epoch_length;
-
       // clang-format off
 	    // TODO(xDimon): remove one of next two variants by decision about way of slot enumeration
-//	    //  variant #1
+	    //  variant #1
 //      epoch.start_slot = clock_->now().time_since_epoch() / slot_duration;
 //      auto starting_slot_finish_time = std::chrono::system_clock::time_point{}
 //                                       + slot_duration * epoch.start_slot
@@ -104,18 +102,7 @@ namespace kagome::consensus {
       current_state_ = BabeState::SYNCHRONIZED;
       runEpoch(epoch, starting_slot_finish_time);
     } else {
-      auto block_header_res =
-          block_tree_->getBlockHeader(primitives::BlockId{best_block_hash});
-      BOOST_ASSERT(block_header_res.has_value());
-
-      auto babe_digests_res = getBabeDigests(block_header_res.value());
-      if (not babe_digests_res) {
-        log_->error("Could not get digests: {}",
-                    babe_digests_res.error().message());
-      }
-      //      auto &&babe_digest = babe_digests_res.value();
-
-      synchronizeSlots(block_header_res.value());
+      current_state_ = BabeState::WAIT_BLOCK;
     }
   }
 
