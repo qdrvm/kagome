@@ -111,9 +111,10 @@ namespace kagome::consensus {
                          blockchain::BlockTreeError::BLOCK_EXISTS)) {
                 continue;
               }
-              self->logger_->error(
+              self->logger_->warn(
                   "Could not apply block during synchronizing slots.Error: {}",
                   apply_res.error().message());
+              break;
             }
           }
           next();
