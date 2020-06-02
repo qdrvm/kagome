@@ -6,6 +6,9 @@
 <!-- * All new code must have code coverage above 70% (https://docs.codecov.io/docs/about-code-coverage). -->
 <!-- * Branch must be rebased onto base branch (https://soramitsu.atlassian.net/wiki/spaces/IS/pages/11173889/Rebase+and+merge+guide). -->
 
+### Jira task id
+
+<!-- Id of the task from Jira. Example: PRE-42. If there is no corresponding task, then remove this field -->
 
 ### Description of the Change
 
