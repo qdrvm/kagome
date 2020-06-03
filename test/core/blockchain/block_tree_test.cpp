@@ -5,15 +5,16 @@
 
 #include <gtest/gtest.h>
 
-#include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
+
+#include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "common/blob.hpp"
-#include "common/buffer.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/blockchain/header_repository_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
+#include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
 #include "scale/scale.hpp"
@@ -35,8 +36,11 @@ struct BlockTreeTest : public testing::Test {
     EXPECT_CALL(*storage_, getBlockHeader(kLastFinalizedBlockId))
         .WillOnce(Return(finalized_block_header_));
 
-    block_tree_ = BlockTreeImpl::create(
-                      header_repo_, storage_, kLastFinalizedBlockId, hasher_)
+    block_tree_ = BlockTreeImpl::create(header_repo_,
+                                        storage_,
+                                        kLastFinalizedBlockId,
+                                        transaction_pool_,
+                                        hasher_)
                       .value();
   }
 
@@ -77,6 +81,9 @@ struct BlockTreeTest : public testing::Test {
 
   std::shared_ptr<BlockStorageMock> storage_ =
       std::make_shared<BlockStorageMock>();
+
+  std::shared_ptr<transaction_pool::TransactionPool> transaction_pool_ =
+      std::make_shared<transaction_pool::TransactionPoolMock>();
 
   std::shared_ptr<crypto::Hasher> hasher_ =
       std::make_shared<crypto::HasherImpl>();

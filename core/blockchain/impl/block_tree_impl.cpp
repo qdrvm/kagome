@@ -111,6 +111,7 @@ namespace kagome::blockchain {
       std::shared_ptr<BlockHeaderRepository> header_repo,
       std::shared_ptr<BlockStorage> storage,
       const primitives::BlockId &last_finalized_block,
+      std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
       std::shared_ptr<crypto::Hasher> hasher) {
     // retrieve the block's header: we need data from it
     OUTCOME_TRY(header, storage->getBlockHeader(last_finalized_block));
@@ -122,12 +123,13 @@ namespace kagome::blockchain {
     auto meta = std::make_shared<TreeMeta>(
         decltype(TreeMeta::leaves){tree->block_hash}, *tree, *tree);
 
-    BlockTreeImpl block_tree{std::move(header_repo),
-                             std::move(storage),
-                             std::move(tree),
-                             std::move(meta),
-                             std::move(hasher)};
-    return std::make_shared<BlockTreeImpl>(std::move(block_tree));
+    return std::make_shared<BlockTreeImpl>(
+        std::forward<BlockTreeImpl>({std::move(header_repo),
+                                     std::move(storage),
+                                     std::move(tree),
+                                     std::move(meta),
+                                     std::move(transaction_pool),
+                                     std::move(hasher)}));
   }
 
   BlockTreeImpl::BlockTreeImpl(
@@ -135,11 +137,13 @@ namespace kagome::blockchain {
       std::shared_ptr<BlockStorage> storage,
       std::shared_ptr<TreeNode> tree,
       std::shared_ptr<TreeMeta> meta,
+      std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
       std::shared_ptr<crypto::Hasher> hasher)
       : header_repo_{std::move(header_repo)},
         storage_{std::move(storage)},
         tree_{std::move(tree)},
         tree_meta_{std::move(meta)},
+        transaction_pool_{std::move(transaction_pool)},
         hasher_{std::move(hasher)} {}
 
   outcome::result<void> BlockTreeImpl::addBlockHeader(
@@ -201,9 +205,6 @@ namespace kagome::blockchain {
     if (!node) {
       return BlockTreeError::NO_SUCH_BLOCK;
     }
-
-    // TODO (kamilsa): PRE-367 clean redundant blocks (headers and bodies that
-    // didn't end up in finalized chain)
 
     // insert justification into the database
     OUTCOME_TRY(storage_->putJustification(justification, block, node->depth));
@@ -493,13 +494,31 @@ namespace kagome::blockchain {
         }
       }
 
-      // remove (im memory) all child, except main chain block
+      // remove (in memory) all child, except main chain block
       current_node->children = {main_chain_node};
     }
 
+    std::vector<primitives::Extrinsic> extrinsics;
+
     // remove from storage
     for (const auto &[hash, number] : to_remove) {
+      auto block_body_res = storage_->getBlockBody(hash);
+      if (block_body_res.has_value()) {
+        extrinsics.reserve(extrinsics.size() + block_body_res.value().size());
+        for (auto &&extrinsic : block_body_res.value()) {
+          extrinsics.emplace_back(std::move(extrinsic));
+        }
+      }
+
       OUTCOME_TRY(storage_->removeBlock(hash, number));
+    }
+
+    // trying to return back extrinsics to transaction pool
+    for (auto &&extrinsic : extrinsics) {
+      // TODO(xDimon):
+      //  - validate
+      //  - make transaction
+      //  - submit to pool
     }
 
     return outcome::success();
