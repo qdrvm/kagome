@@ -9,6 +9,7 @@
 #include <exception>
 #include <gsl/span>
 
+#include <boost/assert.hpp>
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/key_type.hpp"
@@ -215,19 +216,36 @@ namespace kagome::extensions {
     if (!key_type_id) {
       logger_->error("failed to decode key type: {}",
                      key_type_id.error().message());
-      return runtime::kNullWasmPointer;
+      BOOST_ASSERT_MSG(false, "failed to decode key type");
+      BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
+    }
+
+    auto [seed_ptr, seed_len] = runtime::WasmResult(seed);
+    auto &&seed_buffer = memory_->loadN(seed_ptr, seed_len);
+    auto &&seed_res = scale::decode<boost::optional<std::string>>(seed_buffer);
+    if (!seed_res) {
+      logger_->error("failed to decode seed");
+      BOOST_ASSERT_MSG(false, "failed to decode seed");
+      BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
+    }
+
+    boost::optional<std::string> seed_value = seed_res.value();
+    if (seed_value.has_value()) {
+      // use BIP-39
     }
 
     auto &&key_pair = ed25519_provider_->generateKeypair();
     if (!key_pair) {
-      logger_->error("failed to generate key pair: {}",
+      logger_->error("failed to generate ed25519 key pair: {}",
                      key_pair.error().message());
-      return runtime::kNullWasmPointer;
+      BOOST_ASSERT_MSG(false, "failed to generate ed25519 key pair");
+      BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
     }
 
     key_storage_->addEdKeyPair(key_type_id.value(), key_pair.value());
     common::Buffer buffer(key_pair.value().public_key);
     runtime::PointerSize ps = memory_->storeBuffer(buffer);
+
     return runtime::WasmResult(ps).address;
   }
 
@@ -317,7 +335,22 @@ namespace kagome::extensions {
     if (!key_type_id) {
       logger_->error("failed to decode key type: {}",
                      key_type_id.error().message());
-      return runtime::kNullWasmPointer;
+      BOOST_ASSERT_MSG(false, "failed to decode key type");
+      BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
+    }
+
+    auto [seed_ptr, seed_len] = runtime::WasmResult(seed);
+    auto &&seed_buffer = memory_->loadN(seed_ptr, seed_len);
+    auto &&seed_res = scale::decode<boost::optional<std::string>>(seed_buffer);
+    if (!seed_res) {
+      logger_->error("failed to decode seed");
+      BOOST_ASSERT_MSG(false, "failed to decode seed");
+      BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
+    }
+
+    boost::optional<std::string> seed_value = seed_res.value();
+    if (seed_value.has_value()) {
+      // use BIP-39
     }
 
     auto &&key_pair = sr25519_provider_->generateKeypair();
