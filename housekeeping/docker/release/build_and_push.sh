@@ -2,7 +2,7 @@
 
 cd "$(dirname $0)/../../.."
 
-BUILD_DIR=build
+BUILD_DIR=${BUILD_DIR:-build}
 VERSION="${VERSION:?VERSION variable is not defined}"
 # For github action we need remove ref prefix
 if [ "$VERSION" = "refs/heads/master" ]; then

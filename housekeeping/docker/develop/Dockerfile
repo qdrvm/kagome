@@ -73,3 +73,11 @@ RUN update-alternatives --install /usr/bin/gcov         gcov         /usr/bin/gc
     update-alternatives --install /usr/bin/clang-tidy   clang-tidy   /usr/bin/clang-tidy-8         90 && \
     update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-8       90 && \
     update-alternatives --install /usr/bin/python       python       /usr/bin/python3              90
+
+# soramitsu/kagome-dev:8 is used as cache,
+# if you build fresh image kagome build will fail: 'hunter ERROR: sr25519'
+# TODO change image to alpine and move this block up.
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y \
+      docker.io \
+    && rm -rf /var/lib/apt/lists/*

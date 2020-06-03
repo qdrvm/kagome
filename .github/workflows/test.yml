@@ -1,4 +1,4 @@
-name: Run test on linux mac
+name: Build
 
 on:
   push:
@@ -12,7 +12,7 @@ env:
   CTEST_OUTPUT_ON_FAILURE: 1
   GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
-  INDOCKER_IMAGE: soramitsu/kagome-dev:8
+  INDOCKER_IMAGE: soramitsu/kagome-dev:9
 
 jobs:
   MacOS:
@@ -39,7 +39,7 @@ jobs:
              run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/san/clang-8_cxx17_ubsan.cmake
       name: "${{ matrix.options.name }}"
       runs-on: ubuntu-latest
-      container: soramitsu/kagome-dev:8 # Change to ${{ env.INDOCKER_IMAGE }} https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
+      container: soramitsu/kagome-dev:9 # Change to ${{ env.INDOCKER_IMAGE }} https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
         - uses: actions/checkout@v2
         - name: "${{ matrix.options.name }}"
@@ -48,30 +48,30 @@ jobs:
   clang-tidy:
       name: "Linux: clang-tidy"
       runs-on: ubuntu-latest
-      container: soramitsu/kagome-dev:8
+      container: soramitsu/kagome-dev:9
       steps:
         - uses: actions/checkout@v2
         - name: clang-tidy
           env:
             # build only generated files, so clang-tidy will work correctl
-            BUILD_TARGET: generated
+            BUILD_FINAL_TARGET: generated
           run: |
             ./housekeeping/makeBuild.sh
-            ./housekeeping/clang-tidy.sh ${BUILD_DIR}
+            ./housekeeping/clang-tidy.sh
   coverage:
       name: "Linux: gcc-8 coverage/sonar"
       runs-on: ubuntu-latest
-      container: soramitsu/kagome-dev:8  # Change to ${{ env.INDOCKER_IMAGE }} https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
+      container: soramitsu/kagome-dev:9  # Change to ${{ env.INDOCKER_IMAGE }} https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
         - uses: actions/checkout@v2
         - name: makeBuild
           env:
-            BUILD_TARGET: ctest_coverage
+            BUILD_FINAL_TARGET: ctest_coverage
           run: ./housekeeping/makeBuild.sh -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-8_cxx17.cmake -DCOVERAGE=ON
         - name: Submit Coverage
           env:
             CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-          run: ./housekeeping/codecov.sh ${BUILD_DIR} ${CODECOV_TOKEN}
+          run: ./housekeeping/codecov.sh
         - name: Sonar
           env:
             SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -85,10 +85,11 @@ jobs:
       needs: [clang-tidy, Linux, MacOS]
       name: "Push"
       runs-on: ubuntu-latest
+      container: soramitsu/kagome-dev:9 # Change to ${{ env.INDOCKER_IMAGE }} https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
         - uses: actions/checkout@v2
         - name: build
-          run: ./housekeeping/indocker.sh ./housekeeping/docker/release/makeRelease.sh
+          run: ./housekeeping/docker/release/makeRelease.sh
         - uses: azure/docker-login@v1
           with:
             login-server: https://index.docker.io/v1/

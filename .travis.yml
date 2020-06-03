@@ -54,10 +54,10 @@ jobs:
       name: "Linux gcc-9 clang-tidy"
       if: type = pull_request OR branch = master
       env:
-        - BUILD_TARGET=generated
+        - BUILD_FINAL_TARGET=generated
         - BUILD_DIR=build
         - BUILD_TREADS=2
-        - INDOCKER_IMAGE=soramitsu/kagome-dev:8
+        - INDOCKER_IMAGE=soramitsu/kagome-dev:9
       script:
         - ./housekeeping/indocker.sh ./housekeeping/makeBuild.sh
         - ./housekeeping/indocker.sh ./housekeeping/clang-tidy.sh "${BUILD_DIR}"

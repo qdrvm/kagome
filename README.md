@@ -29,11 +29,8 @@ For now, please refer to the [Dockerfile](housekeeping/docker/develop/Dockerfile
 ### Build
 
 ```sh
-git clone --recurse-submodules https://github.com/soramitsu/kagome
+git clone https://github.com/soramitsu/kagome
 cd kagome
-
-# Only needed if you forgot `--recurse-submodules` above
-git submodule update --init --recursive
 
 mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
@@ -44,7 +41,32 @@ make kagome_validating -j
 # if you want to have syncing node
 make kagome_full_syncing -j
 ```
+## Build with docker
 
+```sh
+git clone https://github.com/soramitsu/kagome
+cd kagome
+
+# build and run tests
+INDOCKER_IMAGE=soramitsu/kagome-dev:9 BUILD_DIR=build BUILD_TREADS=9 ./housekeeping/indocker.sh ./housekeeping/makeBuild.sh
+
+# You can use indocker.sh to run any script or command inside docker
+# It mounts project dir and copy important env variable inside the container.
+INDOCKER_IMAGE=soramitsu/kagome-dev:9 ./housekeeping/indocker.sh gcc --version
+
+## Build Release 
+# Build Kagome
+INDOCKER_IMAGE=soramitsu/kagome-dev:9 BUILD_DIR=build ./housekeeping/indocker.sh ./housekeeping/docker/release/makeRelease.sh
+# Create docker image and push 
+VERSION=0.0.1 BUILD_DIR=build ./housekeeping/docker/release/build_and_push.sh
+# or just build docker image 
+docker build -t soramitsu/kagome:0.0.1 -f ./housekeeping/docker/release/Dockerfile ./build
+
+# Check docker image 
+docker run -it --rm soramitsu/kagome:0.0.1 kagome_full_syncing
+[2020-06-03 16:26:14][error] the option '--genesis' is required but missing
+
+```
 
 
 ### Execute kagome full node
