@@ -63,8 +63,8 @@ namespace kagome::runtime::binaryen {
       "ext_crypto_sr25519_generate_version_1";
   const static wasm::Name ext_sr25519_sign_v1 =
       "ext_crypto_sr25519_sign_version_1";
-  const static wasm::Name ext_sr25519_verify_v1 =
-      "ext_crypto_sr25519_verify_version_1";
+  const static wasm::Name ext_sr25519_verify_v2 =
+      "ext_crypto_sr25519_verify_version_2";
 
   const static wasm::Name ext_chain_id = "ext_chain_id";
 
@@ -332,7 +332,7 @@ namespace kagome::runtime::binaryen {
         return wasm::Literal(res);
       }
 
-      if (import->base == ext_sr25519_verify_v1) {
+      if (import->base == ext_sr25519_verify_v2) {
         checkArguments(import->base.c_str(), 3, arguments.size());
         auto res = extension_->ext_sr25519_verify_v1(arguments.at(0).geti32(),
                                                      arguments.at(1).geti64(),

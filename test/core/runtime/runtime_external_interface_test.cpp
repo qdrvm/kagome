@@ -561,7 +561,176 @@ TEST_F(REITest, ext_ed25519_public_keys_v1_Test) {
                      "    )\n")
        % key_type % res)
           .str();
+  SCOPED_TRACE("ext_ed25519_public_keys_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_ed25519_generate_v1_Test) {
+  SizeType key_type = 'babe';
+  PointerSize seed = WasmResult(1, 2).combine();
+
+  WasmPointer res = 4;
+
+  EXPECT_CALL(*extension_, ext_ed25519_generate_v1(key_type, seed))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_crypto_ed25519_generate_version_1\n"
+                     "        (i32.const %d)\n"
+                     "        (i64.const %d)\n"
+                     "      )\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % key_type % seed % res)
+          .str();
+  SCOPED_TRACE("ext_ed25519_generate_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_ed25519_sign_v1_Test) {
+  SizeType key_type = 'babe';
+  WasmPointer key = 1;
+  PointerSize msg = WasmResult(33, 2).combine();
+  PointerSize res = WasmResult(35, 25).combine();
+
+  EXPECT_CALL(*extension_, ext_ed25519_sign_v1(key_type, key, msg))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i64\n"
+                     "      (call $ext_crypto_ed25519_sign_version_1\n"
+                     "        (i32.const %d)\n"
+                     "        (i32.const %d)\n"
+                     "        (i64.const %d)\n"
+                     "      )\n"
+                     "      (i64.const %d)\n"
+                     "    )\n")
+       % key_type % key % msg % res)
+          .str();
+  SCOPED_TRACE("ext_ed25519_generate_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_ed25519_verify_v1_Test) {
+  WasmPointer msg_data = 123;
+  SizeType msg_len = 1233;
+  PointerSize msg = WasmResult(msg_data, msg_len).combine();
+  WasmPointer sig_data = 42;
+  WasmPointer pubkey_data = 321;
+
+  SizeType res = 1;
+
+  EXPECT_CALL(*extension_, ext_ed25519_verify_v1(sig_data, msg, pubkey_data))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_crypto_ed25519_verify_version_1\n"
+                     "        (i32.const %d)\n"
+                     "        (i64.const %d)\n"
+                     "        (i32.const %d)\n"
+                     "      )\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % sig_data % msg % pubkey_data % res)
+          .str();
   SCOPED_TRACE("ext_ed25519_verify_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_sr25519_public_keys_v1_Test) {
+  SizeType key_type = 'babe';
+
+  PointerSize res = WasmResult(1, 2).combine();
+
+  EXPECT_CALL(*extension_, ext_sr25519_public_keys_v1(key_type))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i64\n"
+                     "      (call $ext_crypto_sr25519_public_keys_version_1\n"
+                     "        (i32.const %d)\n"
+                     "      )\n"
+                     "      (i64.const %d)\n"
+                     "    )\n")
+       % key_type % res)
+          .str();
+  SCOPED_TRACE("ext_sr25519_public_keys_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_sr25519_generate_v1_Test) {
+  SizeType key_type = 'babe';
+  PointerSize seed = WasmResult(1, 2).combine();
+
+  WasmPointer res = 4;
+
+  EXPECT_CALL(*extension_, ext_sr25519_generate_v1(key_type, seed))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_crypto_sr25519_generate_version_1\n"
+                     "        (i32.const %d)\n"
+                     "        (i64.const %d)\n"
+                     "      )\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % key_type % seed % res)
+          .str();
+  SCOPED_TRACE("ext_sr25519_generate_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_sr25519_sign_v1_Test) {
+  SizeType key_type = 'babe';
+  WasmPointer key = 1;
+  PointerSize msg = WasmResult(33, 2).combine();
+  PointerSize res = WasmResult(35, 25).combine();
+
+  EXPECT_CALL(*extension_, ext_sr25519_sign_v1(key_type, key, msg))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i64\n"
+                     "      (call $ext_crypto_sr25519_sign_version_1\n"
+                     "        (i32.const %d)\n"
+                     "        (i32.const %d)\n"
+                     "        (i64.const %d)\n"
+                     "      )\n"
+                     "      (i64.const %d)\n"
+                     "    )\n")
+       % key_type % key % msg % res)
+          .str();
+  SCOPED_TRACE("ext_sr25519_sign_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_sr25519_verify_v2_Test) {
+  WasmPointer msg_data = 123;
+  SizeType msg_len = 1233;
+  PointerSize msg = WasmResult(msg_data, msg_len).combine();
+  WasmPointer sig_data = 42;
+  WasmPointer pubkey_data = 321;
+
+  SizeType res = 1;
+
+  EXPECT_CALL(*extension_, ext_sr25519_verify_v1(sig_data, msg, pubkey_data))
+      .WillOnce(Return(res));
+
+  auto execute_code =
+      (boost::format("    (call $assert_eq_i32\n"
+                     "      (call $ext_crypto_sr25519_verify_version_2\n"
+                     "        (i32.const %d)\n"
+                     "        (i64.const %d)\n"
+                     "        (i32.const %d)\n"
+                     "      )\n"
+                     "      (i32.const %d)\n"
+                     "    )\n")
+       % sig_data % msg % pubkey_data % res)
+          .str();
+  SCOPED_TRACE("ext_sr25519_verify_Test");
   executeWasm(execute_code);
 }
 
