@@ -15,13 +15,13 @@ namespace kagome::storage::trie {
 
   outcome::result<std::unique_ptr<TrieStorageImpl>>
   TrieStorageImpl::createEmpty(
-      std::shared_ptr<PolkadotTrieFactory> trie_factory,
+      const std::shared_ptr<PolkadotTrieFactory> &trie_factory,
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
       boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes) {
     // will never be used, so content of the callback doesn't matter
     auto empty_trie = trie_factory->createEmpty(
-        [](auto branch, auto idx) { return nullptr; });
+        [](const auto &branch, auto idx) { return nullptr; });
     // ensure retrieval of empty trie succeeds
     OUTCOME_TRY(empty_root, serializer->storeTrie(*empty_trie));
     return std::unique_ptr<TrieStorageImpl>(

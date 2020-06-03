@@ -18,7 +18,7 @@ namespace kagome::runtime::binaryen {
   class RuntimeExternalInterface : public wasm::ShellExternalInterface {
    public:
     explicit RuntimeExternalInterface(
-        std::shared_ptr<extensions::ExtensionFactory> extension_factory,
+        const std::shared_ptr<extensions::ExtensionFactory>& extension_factory,
         std::shared_ptr<storage::trie::TrieBatch> storage);
 
     wasm::Literal callImport(wasm::Function *import,

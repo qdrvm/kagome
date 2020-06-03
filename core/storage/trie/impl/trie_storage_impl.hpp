@@ -19,7 +19,7 @@ namespace kagome::storage::trie {
   class TrieStorageImpl : public TrieStorage {
    public:
     static outcome::result<std::unique_ptr<TrieStorageImpl>> createEmpty(
-        std::shared_ptr<PolkadotTrieFactory> trie_factory,
+        const std::shared_ptr<PolkadotTrieFactory> &trie_factory,
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
         boost::optional<std::shared_ptr<changes_trie::ChangesTracker>> changes);
@@ -33,6 +33,8 @@ namespace kagome::storage::trie {
     TrieStorageImpl(TrieStorageImpl const &) = delete;
     void operator=(const TrieStorageImpl &) = delete;
 
+    TrieStorageImpl(TrieStorageImpl &&) = default;
+    TrieStorageImpl& operator=(TrieStorageImpl &&) = default;
     ~TrieStorageImpl() override = default;
 
     outcome::result<std::unique_ptr<PersistentTrieBatch>> getPersistentBatch()

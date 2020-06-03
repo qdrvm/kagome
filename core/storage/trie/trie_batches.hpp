@@ -13,7 +13,7 @@ namespace kagome::storage::trie {
   class TrieBatch : public face::Readable<Buffer, Buffer>,
                     public face::Writeable<Buffer, Buffer> {
    public:
-    virtual ~TrieBatch() = default;
+    ~TrieBatch() override = default;
 
     /**
      * Calculate the merkle trie root of a trie to which the batch belongs.

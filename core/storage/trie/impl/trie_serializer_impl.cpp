@@ -33,7 +33,7 @@ namespace kagome::storage::trie {
   outcome::result<std::unique_ptr<PolkadotTrie>>
   TrieSerializerImpl::retrieveTrie(const common::Buffer &db_key) const {
     PolkadotTrieFactory::ChildRetrieveFunctor f =
-        [this](PolkadotTrie::BranchPtr parent, uint8_t idx) {
+        [this](const PolkadotTrie::BranchPtr& parent, uint8_t idx) {
           return retrieveChild(parent, idx);
         };
     if (db_key == getEmptyRootHash()) {

@@ -56,13 +56,14 @@ namespace kagome::runtime::binaryen {
    */
 
   RuntimeExternalInterface::RuntimeExternalInterface(
-      std::shared_ptr<extensions::ExtensionFactory>
-          extension_factory, std::shared_ptr<storage::trie::TrieBatch> storage) {
+      const std::shared_ptr<extensions::ExtensionFactory> &extension_factory,
+      std::shared_ptr<storage::trie::TrieBatch> storage) {
     BOOST_ASSERT_MSG(extension_factory != nullptr,
                      "extension factory is nullptr");
     auto memory_impl =
         std::make_shared<WasmMemoryImpl>(&(ShellExternalInterface::memory));
-    extension_ = extension_factory->createExtension(memory_impl, storage);
+    extension_ =
+        extension_factory->createExtension(memory_impl, std::move(storage));
   }
 
   wasm::Literal RuntimeExternalInterface::callImport(
