@@ -47,7 +47,7 @@ namespace kagome::blockchain {
   KeyValueBlockStorage::create(
       common::Buffer state_root,
       const std::shared_ptr<storage::BufferStorage> &storage,
-      std::shared_ptr<crypto::Hasher> hasher,
+      const std::shared_ptr<crypto::Hasher>& hasher,
       const BlockHandler &on_finalized_block_found) {
     auto block_storage = std::make_shared<KeyValueBlockStorage>(
         KeyValueBlockStorage(storage, hasher));
@@ -62,7 +62,7 @@ namespace kagome::blockchain {
     if (last_finalized_block_hash_res
         == outcome::failure(Error::FINALIZED_BLOCK_NOT_FOUND)) {
       return createWithGenesis(
-          state_root, storage, hasher, on_finalized_block_found);
+          std::move(state_root), storage, hasher, on_finalized_block_found);
     }
 
     return last_finalized_block_hash_res.error();
@@ -211,7 +211,7 @@ namespace kagome::blockchain {
 
   outcome::result<primitives::BlockHash> KeyValueBlockStorage::putBlock(
       const primitives::Block &block) {
-    // TODO: Need to implement mechanism for wipe out orphan blocks
+    // TODO(xDimon): Need to implement mechanism for wipe out orphan blocks
     //  (in side-chains whom rejected by finalization)
     //  for avoid leaks of storage space
     auto block_hash = hasher_->blake2b_256(scale::encode(block.header).value());

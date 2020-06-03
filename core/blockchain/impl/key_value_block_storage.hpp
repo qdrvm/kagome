@@ -34,7 +34,7 @@ namespace kagome::blockchain {
     static outcome::result<std::shared_ptr<KeyValueBlockStorage>> create(
         common::Buffer state_root,
         const std::shared_ptr<storage::BufferStorage> &storage,
-        std::shared_ptr<crypto::Hasher> hasher,
+        const std::shared_ptr<crypto::Hasher> &hasher,
         const BlockHandler &on_finalized_block_found);
 
     /**

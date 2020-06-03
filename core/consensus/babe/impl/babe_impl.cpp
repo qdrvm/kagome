@@ -193,30 +193,34 @@ namespace kagome::consensus {
   }
 
   void BabeImpl::runSlot() {
-  again:
-    if (current_slot_ != 0
-        and current_slot_ % genesis_configuration_->epoch_length == 0) {
-      // end of the epoch
-      finishEpoch();
-    }
-    log_->info("starting a slot {} in epoch {}",
-               current_slot_,
-               current_epoch_.epoch_index);
+    bool rewind_slots;
+    do {
+      if (current_slot_ != 0
+          and current_slot_ % genesis_configuration_->epoch_length == 0) {
+        // end of the epoch
+        finishEpoch();
+      }
+      log_->info("starting a slot {} in epoch {}",
+                 current_slot_,
+                 current_epoch_.epoch_index);
 
-    // check that we are really in the middle of the slot, as expected; we can
-    // cooperate with a relatively little (kMaxLatency) latency, as our node
-    // will be able to retrieve
-    auto now = clock_->now();
-    if (now > next_slot_finish_time_
-        and (now - next_slot_finish_time_)
-                > genesis_configuration_->slot_duration) {
-      // we are too far behind; after skipping some slots (but not epochs)
-      // control will be returned to this method
+      // check that we are really in the middle of the slot, as expected; we can
+      // cooperate with a relatively little (kMaxLatency) latency, as our node
+      // will be able to retrieve
+      auto now = clock_->now();
 
-      current_slot_++;
-      next_slot_finish_time_ += genesis_configuration_->slot_duration;
-      goto again;
-    }
+      rewind_slots = now > next_slot_finish_time_
+                     and (now - next_slot_finish_time_)
+                             > genesis_configuration_->slot_duration;
+
+      if (rewind_slots) {
+        // we are too far behind; after skipping some slots (but not epochs)
+        // control will be returned to this method
+
+        current_slot_++;
+        next_slot_finish_time_ += genesis_configuration_->slot_duration;
+      }
+    } while (rewind_slots);
 
     // everything is OK: wait for the end of the slot
     timer_->expiresAt(next_slot_finish_time_);
