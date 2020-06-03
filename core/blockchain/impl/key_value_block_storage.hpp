@@ -15,11 +15,12 @@
 namespace kagome::blockchain {
 
   class KeyValueBlockStorage : public BlockStorage {
+   public:
     static constexpr auto LookUpKeyOfLastFinalizedBlockHash =
         ":kagome:last_finalized_block_hash";
 
-   public:
     using BlockHandler = std::function<void(const primitives::Block &)>;
+
     enum class Error {
       BLOCK_EXISTS = 1,
       BODY_DOES_NOT_EXIST,

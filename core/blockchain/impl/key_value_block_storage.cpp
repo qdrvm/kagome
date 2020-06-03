@@ -5,6 +5,7 @@
 
 #include "blockchain/impl/key_value_block_storage.hpp"
 
+#include "storage/database_error.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "scale/scale.hpp"
 
@@ -56,10 +57,15 @@ namespace kagome::blockchain {
 
     if (last_finalized_block_hash_res.has_value()) {
       return loadExisting(storage, hasher, on_finalized_block_found);
-    } else {
+    }
+
+    if (last_finalized_block_hash_res
+        == outcome::failure(Error::FINALIZED_BLOCK_NOT_FOUND)) {
       return createWithGenesis(
           state_root, storage, hasher, on_finalized_block_found);
     }
+
+    return last_finalized_block_hash_res.error();
   }
 
   outcome::result<std::shared_ptr<KeyValueBlockStorage>>
@@ -209,13 +215,14 @@ namespace kagome::blockchain {
     //  (in side-chains whom rejected by finalization)
     //  for avoid leaks of storage space
     auto block_hash = hasher_->blake2b_256(scale::encode(block.header).value());
-    auto block_in_storage =
+    auto block_in_storage_res =
         getWithPrefix(*storage_, Prefix::HEADER, block_hash);
-    if (block_in_storage.has_value()) {
+    if (block_in_storage_res.has_value()) {
       return Error::BLOCK_EXISTS;
     }
-    if (block_in_storage.error() != blockchain::Error::BLOCK_NOT_FOUND) {
-      return block_in_storage.error();
+    if (block_in_storage_res
+        != outcome::failure(blockchain::Error::BLOCK_NOT_FOUND)) {
+      return block_in_storage_res.error();
     }
 
     // insert our block's parts into the database-
@@ -269,14 +276,18 @@ namespace kagome::blockchain {
     static const common::Buffer lookup_key =
         common::Buffer{}.put(LookUpKeyOfLastFinalizedBlockHash);
 
-    OUTCOME_TRY(encoded_hash, storage_->get(lookup_key));
+    auto hash_res = storage_->get(lookup_key);
+    if (hash_res.has_value()) {
+      primitives::BlockHash hash;
+      std::copy(hash_res.value().begin(), hash_res.value().end(), hash.begin());
+      return std::move(hash);
+    }
 
-    auto res = scale::decode<primitives::BlockHash>(encoded_hash);
-    if (!res.has_value()) {
+    if (hash_res == outcome::failure(storage::DatabaseError::NOT_FOUND)) {
       return Error::FINALIZED_BLOCK_NOT_FOUND;
     }
 
-    return std::move(res.value());
+    return hash_res.as_failure();
   }
 
   outcome::result<void> KeyValueBlockStorage::setLastFinalizedBlockHash(
@@ -284,9 +295,7 @@ namespace kagome::blockchain {
     static const common::Buffer lookup_key =
         common::Buffer{}.put(LookUpKeyOfLastFinalizedBlockHash);
 
-    OUTCOME_TRY(encoded_hash, scale::encode(hash));
-
-    OUTCOME_TRY(storage_->put(lookup_key, Buffer{encoded_hash}));
+    OUTCOME_TRY(storage_->put(lookup_key, Buffer{hash}));
 
     return outcome::success();
   }
