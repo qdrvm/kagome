@@ -37,25 +37,25 @@ namespace kagome::runtime::binaryen {
     using RuntimeEnvironment = std::tuple<std::shared_ptr<wasm::ModuleInstance>,
                                           std::shared_ptr<WasmMemory>>;
 
-    outcome::result<RuntimeEnvironment> getPersistentRuntimeEnvironment();
+    outcome::result<RuntimeEnvironment> createPersistentRuntimeEnvironment();
 
-    outcome::result<RuntimeEnvironment> getEphemeralRuntimeEnvironment();
+    outcome::result<RuntimeEnvironment> createEphemeralRuntimeEnvironment();
 
     /**
      * @TODO(Harrm): rename it to highlight that it changes storage state
      * @warning calling this with an \arg state_root older than the current root
      * will reset the storage to an older state
      */
-    outcome::result<RuntimeEnvironment> RENAME_getPersistentRuntimeEnvironmentAt(
+    outcome::result<RuntimeEnvironment> createPersistentRuntimeEnvironmentAt(
         const common::Hash256 &state_root);
 
-    outcome::result<RuntimeEnvironment> getEphemeralRuntimeEnvironmentAt(
+    outcome::result<RuntimeEnvironment> createEphemeralRuntimeEnvironmentAt(
         const common::Hash256 &state_root);
 
    private:
     outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
                                std::shared_ptr<WasmMemory>>>
-    getRuntimeEnvironment(
+    createRuntimeEnvironment(
         std::shared_ptr<storage::trie::TrieBatch> storage_batch);
 
     outcome::result<std::shared_ptr<wasm::Module>> prepareModule(

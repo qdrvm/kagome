@@ -50,18 +50,21 @@ namespace kagome::runtime::binaryen {
       if (state_root_opt.has_value()) {
         switch (persistency) {
           case CallPersistency::PERSISTENT:
-            return runtime_manager_->RENAME_getPersistentRuntimeEnvironmentAt(
-                state_root_opt.value()).value();
+            return runtime_manager_
+                ->createPersistentRuntimeEnvironmentAt(
+                    state_root_opt.value())
+                .value();
           case CallPersistency::EPHEMERAL:
-            return runtime_manager_->getEphemeralRuntimeEnvironmentAt(
-                state_root_opt.value()).value();
+            return runtime_manager_
+                ->createEphemeralRuntimeEnvironmentAt(state_root_opt.value())
+                .value();
         }
       } else {
         switch (persistency) {
           case CallPersistency::PERSISTENT:
-            return runtime_manager_->getPersistentRuntimeEnvironment().value();
+            return runtime_manager_->createPersistentRuntimeEnvironment().value();
           case CallPersistency::EPHEMERAL:
-            return runtime_manager_->getEphemeralRuntimeEnvironment().value();
+            return runtime_manager_->createEphemeralRuntimeEnvironment().value();
         }
       }
     }
@@ -71,9 +74,13 @@ namespace kagome::runtime::binaryen {
      * @brief executes wasm export method returning non-void result
      * @tparam R result type including void
      * @tparam Args arguments types list
-     * @param name export method name
-     * @param args arguments
-     * @return parsed result or error
+     * @param name - export method name
+     * @param state_root - a hash of the state root to which the state will be
+     * reset before executing the export method
+     * @param persistency - PERSISTENT if changes made by the method should
+     * persist in the state, EPHEMERAL if they can be discraded
+     * @param args - export method arguments
+     * @return a parsed result or an error
      */
     template <typename R, typename... Args>
     outcome::result<R> executeAt(std::string_view name,
@@ -88,9 +95,11 @@ namespace kagome::runtime::binaryen {
      * @brief executes wasm export method returning non-void result
      * @tparam R result type including void
      * @tparam Args arguments types list
-     * @param name export method name
-     * @param args arguments
-     * @return parsed result or error
+     * @param name - export method name
+     * @param persistency - PERSISTENT if changes made by the method should
+     * persist in the state, EPHEMERAL if they can be discraded
+     * @param args - export method arguments
+     * @return a parsed result or an error
      */
     template <typename R, typename... Args>
     outcome::result<R> execute(std::string_view name,
@@ -101,6 +110,12 @@ namespace kagome::runtime::binaryen {
     }
 
    private:
+    /**
+     * If \arg state_root contains a value, then the state will be reset to the
+     * hash in this value, otherwise the export method will be executed on the
+     * current state
+     * @note for explanation of arguments \see execute or \see executeAt
+     */
     template <typename R, typename... Args>
     outcome::result<R> executeMaybeAt(
         std::string_view name,

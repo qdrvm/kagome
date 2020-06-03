@@ -33,48 +33,48 @@ namespace kagome::runtime::binaryen {
       std::shared_ptr<extensions::ExtensionFactory> extension_factory,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<crypto::Hasher> hasher)
-      : storage_{std::move(trie_storage)},
-        wasm_provider_{std::move(wasm_provider)},
+      : wasm_provider_{std::move(wasm_provider)},
+        storage_{std::move(trie_storage)},
         extension_factory_{std::move(extension_factory)},
         hasher_{std::move(hasher)} {
     BOOST_ASSERT(wasm_provider_);
-    BOOST_ASSERT(extension_factory_);
     BOOST_ASSERT(storage_);
+    BOOST_ASSERT(extension_factory_);
     BOOST_ASSERT(hasher_);
   }
 
   outcome::result<RuntimeManager::RuntimeEnvironment>
-  RuntimeManager::RENAME_getPersistentRuntimeEnvironmentAt(
+  RuntimeManager::createPersistentRuntimeEnvironmentAt(
       const common::Hash256 &state_root) {
     auto persistent_batch = storage_->getPersistentBatchAt(state_root).value();
     persistent_batch_ = std::move(persistent_batch);
-    return getRuntimeEnvironment(persistent_batch_);
+    return createRuntimeEnvironment(persistent_batch_);
   }
 
   outcome::result<RuntimeManager::RuntimeEnvironment>
-  RuntimeManager::getEphemeralRuntimeEnvironmentAt(
+  RuntimeManager::createEphemeralRuntimeEnvironmentAt(
       const common::Hash256 &state_root) {
     OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(state_root));
-    return getRuntimeEnvironment(std::move(batch));
+    return createRuntimeEnvironment(std::move(batch));
   }
 
   outcome::result<RuntimeManager::RuntimeEnvironment>
-  RuntimeManager::getPersistentRuntimeEnvironment() {
+  RuntimeManager::createPersistentRuntimeEnvironment() {
     if (persistent_batch_ == nullptr) {
       OUTCOME_TRY(persistent_batch, storage_->getPersistentBatch());
       persistent_batch_ = std::move(persistent_batch);
     }
-    return getRuntimeEnvironment(persistent_batch_);
+    return createRuntimeEnvironment(persistent_batch_);
   }
 
   outcome::result<RuntimeManager::RuntimeEnvironment>
-  RuntimeManager::getEphemeralRuntimeEnvironment() {
+  RuntimeManager::createEphemeralRuntimeEnvironment() {
     OUTCOME_TRY(batch, storage_->getEphemeralBatch());
-    return getRuntimeEnvironment(std::move(batch));
+    return createRuntimeEnvironment(std::move(batch));
   }
 
   outcome::result<RuntimeManager::RuntimeEnvironment>
-  RuntimeManager::getRuntimeEnvironment(
+  RuntimeManager::createRuntimeEnvironment(
       std::shared_ptr<storage::trie::TrieBatch> storage_batch) {
     const auto &state_code = wasm_provider_->getStateCode();
 
@@ -106,12 +106,8 @@ namespace kagome::runtime::binaryen {
                    .first->second;
     }
 
-    /// TODO(Harrm) Figure out just commenting it out may cause any issues and if
-    /// it does just make existing ext interface update its storage batch
-    // if (!external_interface_) {
     external_interface_ = std::make_shared<RuntimeExternalInterface>(
         extension_factory_, std::shared_ptr(std::move(storage_batch)));
-    //}
 
     return {std::make_shared<wasm::ModuleInstance>(*module,
                                                    external_interface_.get()),

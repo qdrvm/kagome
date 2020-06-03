@@ -124,13 +124,7 @@ namespace kagome::consensus {
         // to have weights of the authorities and to get it we need to have the
         // latest state of a blockchain
 
-        // add new block header and synchronize missing blocks with their bodies
-//        if (auto add_res = block_tree_->addBlockHeader(announce.header);
-//            not add_res) {
-//          log_->info("Could not apply block number {}, reason {}",
-//                     announce.header.number,
-//                     add_res.error().message());
-//        }
+        // synchronize missing blocks with their bodies
         log_->info("Catching up to block number: {}", announce.header.number);
         current_state_ = BabeState::CATCHING_UP;
         block_executor_->requestBlocks(

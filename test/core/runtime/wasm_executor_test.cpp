@@ -88,7 +88,7 @@ class WasmExecutorTest : public ::testing::Test {
  */
 TEST_F(WasmExecutorTest, ExecuteCode) {
   EXPECT_OUTCOME_TRUE(environment,
-                      runtime_manager_->getEphemeralRuntimeEnvironment());
+                      runtime_manager_->createEphemeralRuntimeEnvironment());
   auto &&[module, memory] = std::move(environment);
 
   auto res = executor_->call(
