@@ -24,10 +24,10 @@
 <!-- What are the possible side-effects or negative impacts of the code change? -->
 <!-- If no drawbacks, explicitly mention this (write None) -->
 
-### Usage Examples or Tests *[optional]*
+### Usage Examples or Tests <!-- Optional -->
 
 <!-- Point reviewers to the test, code example or documentation which shows usage example of this feature -->
 
-### Alternate Designs *[optional]*
+### Alternate Designs <!-- Optional -->
 
 <!-- Explain what other alternates were considered and why the proposed version was selected -->
