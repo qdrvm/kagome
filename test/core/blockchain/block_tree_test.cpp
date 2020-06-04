@@ -9,10 +9,9 @@
 #include "blockchain/impl/block_tree_impl.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "common/blob.hpp"
-#include "common/buffer.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
-#include "mock/core/blockchain/header_repository_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
@@ -72,8 +71,8 @@ struct BlockTreeTest : public testing::Test {
 
   const BlockInfo kFinalizedBlockInfo{42ul, kFinalizedBlockHash};
 
-  std::shared_ptr<HeaderRepositoryMock> header_repo_ =
-      std::make_shared<HeaderRepositoryMock>();
+  std::shared_ptr<BlockHeaderRepositoryMock> header_repo_ =
+      std::make_shared<BlockHeaderRepositoryMock>();
 
   std::shared_ptr<BlockStorageMock> storage_ =
       std::make_shared<BlockStorageMock>();

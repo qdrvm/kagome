@@ -1,33 +1,33 @@
 # Copyright Soramitsu Co., Ltd. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-addtest(polkadot_trie_db_test
+addtest(polkadot_trie_storage_test
     polkadot_codec_nibbles_test.cpp
     polkadot_codec_hash256_test.cpp
     polkadot_codec_node_encoding_test.cpp
     polkadot_codec_node_decoding_test.cpp
-    trie_db_test.cpp
+    trie_storage_test.cpp
     trie_batch_test.cpp
     ordered_trie_hash_test.cpp
     )
-target_link_libraries(polkadot_trie_db_test
+target_link_libraries(polkadot_trie_storage_test
+    trie_storage
     leveldb
-    polkadot_trie_db
-    polkadot_trie_batch
-    polkadot_trie_codec
-    trie_db_backend
-    base_leveldb_test
-    scale
-    buffer
-    in_memory_storage
     ordered_trie_hash
+    polkadot_trie_factory
+    Boost::boost
+    base_leveldb_test
+    trie_storage_backend
+    trie_serializer
+    in_memory_storage
+    trie_error
     )
 
-addtest(trie_db_backend_test
-    trie_db_backend_test.cpp
+addtest(trie_storage_backend_test
+    trie_storage_backend_test.cpp
     )
-target_link_libraries(trie_db_backend_test
-    trie_db_backend
+target_link_libraries(trie_storage_backend_test
+    trie_storage_backend
     blob
     buffer
     in_memory_storage

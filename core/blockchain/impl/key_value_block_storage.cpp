@@ -155,8 +155,9 @@ namespace kagome::blockchain {
 
   outcome::result<primitives::BlockHash> KeyValueBlockStorage::putBlock(
       const primitives::Block &block) {
+    auto block_hash = hasher_->blake2b_256(scale::encode(block.header).value());
     auto block_in_storage =
-        getWithPrefix(*storage_, Prefix::HEADER, block.header.number);
+        getWithPrefix(*storage_, Prefix::HEADER, block_hash);
     if (block_in_storage.has_value()) {
       return Error::BLOCK_EXISTS;
     }
@@ -165,7 +166,7 @@ namespace kagome::blockchain {
     }
 
     // insert our block's parts into the database-
-    OUTCOME_TRY(block_hash, putBlockHeader(block.header));
+    OUTCOME_TRY(putBlockHeader(block.header));
 
     primitives::BlockData block_data;
     block_data.hash = block_hash;

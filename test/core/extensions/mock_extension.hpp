@@ -44,9 +44,8 @@ namespace kagome::extensions {
                       runtime::WasmPointer lens_data,
                       runtime::SizeType lens_length,
                       runtime::WasmPointer result));
-    MOCK_METHOD3(ext_storage_changes_root,
+    MOCK_METHOD2(ext_storage_changes_root,
                  runtime::SizeType(runtime::WasmPointer parent_hash_data,
-                                   runtime::SizeType parent_hash_len,
                                    runtime::WasmPointer result));
     MOCK_CONST_METHOD1(ext_storage_root, void(runtime::WasmPointer result));
     MOCK_METHOD1(ext_malloc, runtime::WasmPointer(runtime::SizeType size));

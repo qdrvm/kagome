@@ -38,12 +38,12 @@ namespace kagome::scale::detail {
       template <class H>
       void apply(uint8_t index) {
         // if type matches alternative in variant then encode
-        kagome::visit_in_place(
-            v_,
-            [this, index](const H &h) {
-              s_ << index << h;  // first byte means type index
-            },
-            [](const auto & /*unused*/) {});
+        kagome::visit_in_place(v_,
+                               [this, index](const H &h) {
+                                 s_ << index
+                                    << h;  // first byte means type index
+                               },
+                               [](const auto & /*unused*/) {});
       }
 
      private:

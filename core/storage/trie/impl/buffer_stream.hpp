@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_BUFFER_STREAM_HPP
-#define KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_BUFFER_STREAM_HPP
+#ifndef KAGOME_CORE_STORAGE_TRIE_BUFFER_STREAM
+#define KAGOME_CORE_STORAGE_TRIE_BUFFER_STREAM
 
 #include <gsl/span>
+
 #include "common/buffer.hpp"
 
 namespace kagome::storage::trie {
@@ -16,7 +17,7 @@ namespace kagome::storage::trie {
    * future, when one appears
    */
   class BufferStream {
-      using index_type = gsl::span<const uint8_t>::index_type;
+    using index_type = gsl::span<const uint8_t>::index_type;
 
    public:
     explicit BufferStream(const common::Buffer &buf) : data_{buf.toVector()} {}
@@ -39,4 +40,5 @@ namespace kagome::storage::trie {
     gsl::span<const uint8_t> data_;
   };
 }  // namespace kagome::storage::trie
-#endif  // KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_BUFFER_STREAM_HPP
+
+#endif  // KAGOME_CORE_STORAGE_TRIE_BUFFER_STREAM

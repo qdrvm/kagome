@@ -140,6 +140,8 @@ namespace kagome::consensus::grandpa {
       logger_->error("Could not finalize block {} with error: {}",
                      block_hash.toHex(),
                      finalized.error().message());
+    } else {
+      logger_->info("Finalized block. Hash: {}", block_hash.toHex());
     }
 
     return finalized;

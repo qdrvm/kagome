@@ -6,44 +6,25 @@
 #include <gtest/gtest.h>
 
 #include "api/service/state/impl/state_api_impl.hpp"
+#include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
-#include "mock/core/blockchain/header_repository_mock.hpp"
-#include "mock/core/storage/trie/trie_db_mock.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
+#include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "primitives/block_header.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
-using kagome::api::ReadonlyTrieBuilder;
 using kagome::blockchain::BlockTreeMock;
-using kagome::blockchain::HeaderRepositoryMock;
+using kagome::blockchain::BlockHeaderRepositoryMock;
+using kagome::common::Buffer;
 using kagome::common::Buffer;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
-using kagome::storage::trie::TrieDbMock;
-using kagome::storage::trie::TrieDbReader;
+using kagome::storage::trie::TrieStorageMock;
+using kagome::storage::trie::EphemeralTrieBatchMock;
 using testing::Return;
-
-/**
- * Builds mock trees.
- * Because buildAt must return a unique_ptr, be careful,
- * next_trie is updated to a new instance after every buildAt call
- */
-class TrieMockBuilder : public ReadonlyTrieBuilder {
- public:
-  TrieMockBuilder() {
-    next_trie = std::make_unique<TrieDbMock>();
-  }
-  ~TrieMockBuilder() override = default;
-
-  std::unique_ptr<TrieDbReader> buildAt(BlockHash state_root) const override {
-    std::unique_ptr<TrieDbReader> trie{std::move(next_trie)};
-    next_trie = std::make_unique<TrieDbMock>();
-    return trie;
-  }
-
-  mutable std::unique_ptr<TrieDbMock> next_trie{};
-};
+using testing::_;
 
 /**
  * @given state api
@@ -51,19 +32,24 @@ class TrieMockBuilder : public ReadonlyTrieBuilder {
  * @then the correct value is returned
  */
 TEST(StateApiTest, GetStorage) {
-  auto builder = std::make_shared<TrieMockBuilder>();
-  auto block_header_repo = std::make_shared<HeaderRepositoryMock>();
+  auto storage = std::make_shared<TrieStorageMock>();
+  auto block_header_repo = std::make_shared<BlockHeaderRepositoryMock>();
   auto block_tree = std::make_shared<BlockTreeMock>();
 
-  kagome::api::StateApiImpl api{block_header_repo, builder, block_tree};
+  kagome::api::StateApiImpl api{block_header_repo, storage, block_tree};
 
   EXPECT_CALL(*block_tree, getLastFinalized())
       .WillOnce(testing::Return(BlockInfo(42, "D"_hash256)));
   kagome::primitives::BlockId did = "D"_hash256;
   EXPECT_CALL(*block_header_repo, getBlockHeader(did))
       .WillOnce(testing::Return(BlockHeader{.state_root = "CDE"_hash256}));
-  EXPECT_CALL(*builder->next_trie, get("a"_buf))
-      .WillOnce(testing::Return("1"_buf));
+  EXPECT_CALL(*storage, getEphemeralBatchAt(_))
+      .WillRepeatedly(testing::Invoke([](auto& root) {
+        auto batch = std::make_unique<EphemeralTrieBatchMock>();
+        EXPECT_CALL(*batch, get("a"_buf))
+            .WillRepeatedly(testing::Return("1"_buf));
+        return batch;
+      }));
 
   EXPECT_OUTCOME_TRUE(r, api.getStorage("a"_buf));
   ASSERT_EQ(r, "1"_buf);
@@ -71,8 +57,6 @@ TEST(StateApiTest, GetStorage) {
   kagome::primitives::BlockId bid = "B"_hash256;
   EXPECT_CALL(*block_header_repo, getBlockHeader(bid))
       .WillOnce(testing::Return(BlockHeader{.state_root = "ABC"_hash256}));
-  EXPECT_CALL(*builder->next_trie, get("a"_buf))
-      .WillOnce(testing::Return("1"_buf));
 
   EXPECT_OUTCOME_TRUE(r1, api.getStorage("a"_buf, "B"_hash256));
   ASSERT_EQ(r1, "1"_buf);

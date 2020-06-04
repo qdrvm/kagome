@@ -8,4 +8,5 @@ addtest(synchronizer_test
     )
 target_link_libraries(synchronizer_test
     synchronizer
+    polkadot_trie
     )

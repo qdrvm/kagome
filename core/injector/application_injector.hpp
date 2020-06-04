@@ -44,6 +44,7 @@
 #include "consensus/babe/impl/babe_synchronizer_impl.hpp"
 #include "consensus/babe/impl/epoch_storage_impl.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
+#include "consensus/grandpa/impl/vote_crypto_provider_impl.hpp"
 #include "consensus/grandpa/structs.hpp"
 #include "consensus/grandpa/vote_graph.hpp"
 #include "consensus/grandpa/vote_tracker.hpp"
@@ -70,13 +71,15 @@
 #include "runtime/binaryen/runtime_api/parachain_host_impl.hpp"
 #include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
 #include "runtime/common/storage_wasm_provider.hpp"
+#include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/impl/polkadot_codec.hpp"
 #include "storage/trie/impl/polkadot_node.hpp"
-#include "storage/trie/impl/polkadot_trie_db.hpp"
-#include "storage/trie/impl/trie_db_backend_impl.hpp"
-#include "storage/trie/trie_db_reader.hpp"
+#include "storage/trie/impl/polkadot_trie_factory_impl.hpp"
+#include "storage/trie/impl/trie_serializer_impl.hpp"
+#include "storage/trie/impl/trie_storage_backend_impl.hpp"
+#include "storage/trie/impl/trie_storage_impl.hpp"
 #include "transaction_pool/impl/pool_moderator_impl.hpp"
 #include "transaction_pool/impl/transaction_pool_impl.hpp"
 
@@ -198,11 +201,11 @@ namespace kagome::injector {
 
     const auto &db = injector.template create<sptr<storage::BufferStorage>>();
 
-    const auto &trie_db =
-        injector.template create<sptr<storage::trie::TrieDb>>();
+    const auto &trie_storage =
+        injector.template create<sptr<storage::trie::TrieStorage>>();
 
     auto storage = blockchain::KeyValueBlockStorage::createWithGenesis(
-        trie_db->getRootHash(),
+        trie_storage->getRootHash(),
         db,
         hasher,
         [&db, &injector](const primitives::Block &genesis_block) {
@@ -294,43 +297,54 @@ namespace kagome::injector {
     return initialized.value();
   };
 
-  // polkadot trie db getter
-  auto get_polkadot_trie_db_backend =
-      [](const auto &injector) -> sptr<storage::trie::TrieDbBackendImpl> {
+  auto get_trie_storage_backend =
+      [](const auto &injector) -> sptr<storage::trie::TrieStorageBackendImpl> {
     static auto initialized =
-        boost::optional<sptr<storage::trie::TrieDbBackendImpl>>(boost::none);
+        boost::optional<sptr<storage::trie::TrieStorageBackendImpl>>(
+            boost::none);
 
     if (initialized) {
       return initialized.value();
     }
     auto storage = injector.template create<sptr<storage::BufferStorage>>();
     using blockchain::prefix::TRIE_NODE;
-    auto backend = std::make_shared<storage::trie::TrieDbBackendImpl>(
+    auto backend = std::make_shared<storage::trie::TrieStorageBackendImpl>(
         storage, common::Buffer{TRIE_NODE});
     initialized = backend;
     return backend;
   };
 
-  auto get_polkadot_trie_db =
-      [](const auto &injector) -> sptr<storage::trie::PolkadotTrieDb> {
+  auto get_trie_storage_impl =
+      [](const auto &injector) -> sptr<storage::trie::TrieStorageImpl> {
     static auto initialized =
-        boost::optional<sptr<storage::trie::PolkadotTrieDb>>(boost::none);
+        boost::optional<sptr<storage::trie::TrieStorageImpl>>(boost::none);
 
     if (initialized) {
       return initialized.value();
     }
-    auto backend =
-        injector.template create<sptr<storage::trie::TrieDbBackend>>();
-    sptr<storage::trie::PolkadotTrieDb> polkadot_trie_db =
-        storage::trie::PolkadotTrieDb::createEmpty(backend);
-    initialized = polkadot_trie_db;
-    return polkadot_trie_db;
+    auto factory =
+        injector.template create<sptr<storage::trie::PolkadotTrieFactory>>();
+    auto codec = injector.template create<sptr<storage::trie::Codec>>();
+    auto serializer =
+        injector.template create<sptr<storage::trie::TrieSerializer>>();
+    auto tracker =
+        injector.template create<sptr<storage::changes_trie::ChangesTracker>>();
+    auto trie_storage_res = storage::trie::TrieStorageImpl::createEmpty(
+        factory, codec, serializer, tracker);
+    if (!trie_storage_res) {
+      common::raise(trie_storage_res.error());
+    }
+
+    sptr<storage::trie::TrieStorageImpl> trie_storage =
+        std::move(trie_storage_res.value());
+    initialized = trie_storage;
+    return trie_storage;
   };
 
-  // trie db getter
-  auto get_trie_db = [](const auto &injector) -> sptr<storage::trie::TrieDb> {
+  auto get_trie_storage =
+      [](const auto &injector) -> sptr<storage::trie::TrieStorage> {
     static auto initialized =
-        boost::optional<sptr<storage::trie::TrieDb>>(boost::none);
+        boost::optional<sptr<storage::trie::TrieStorage>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
@@ -338,19 +352,26 @@ namespace kagome::injector {
         injector.template create<sptr<application::ConfigurationStorage>>();
     const auto &genesis_raw_configs = configuration_storage->getGenesis();
 
-    auto trie_db =
-        injector.template create<sptr<storage::trie::PolkadotTrieDb>>();
+    auto trie_storage =
+        injector.template create<sptr<storage::trie::TrieStorageImpl>>();
+    auto batch = trie_storage->getPersistentBatch();
+    if (not batch) {
+      common::raise(batch.error());
+    }
     for (const auto &[key, val] : genesis_raw_configs) {
-      spdlog::debug("Key: {} ({}), Val: {}",
+      spdlog::debug("Key: {}, Val: {}",
                     key.toHex(),
-                    key.data(),
                     val.toHex().substr(0, 200));
-      if (auto res = trie_db->put(key, val); not res) {
+      if (auto res = batch.value()->put(key, val); not res) {
         common::raise(res.error());
       }
     }
-    initialized = trie_db;
-    return trie_db;
+    if (auto res = batch.value()->commit(); not res) {
+      common::raise(res.error());
+    }
+
+    initialized = trie_storage;
+    return trie_storage;
   };
 
   // level db getter
@@ -440,8 +461,10 @@ namespace kagome::injector {
     if (not configuration_res) {
       common::raise(configuration_res.error());
     }
+    auto config = configuration_res.value();
+    config.leadership_rate = {1, 2};
     initialized = std::make_shared<primitives::BabeConfiguration>(
-        configuration_res.value());
+        config);
     return *initialized;
   };
 
@@ -490,7 +513,6 @@ namespace kagome::injector {
             [rpc_ws_endpoint](const auto &injector) {
               return get_jrpc_api_ws_listener(injector, rpc_ws_endpoint);
             }),
-        di::bind<api::ReadonlyTrieBuilder>.template to<api::ReadonlyTrieBuilderImpl>(),
         di::bind<api::AuthorApi>.template to<api::AuthorApiImpl>(),
         di::bind<api::ChainApi>.template to<api::ChainApiImpl>(),
         di::bind<api::StateApi>.template to<api::StateApiImpl>(),
@@ -513,6 +535,7 @@ namespace kagome::injector {
             std::move(get_babe_configuration)),
         di::bind<consensus::BabeSynchronizer>.template to<consensus::BabeSynchronizerImpl>(),
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
+        di::bind<consensus::grandpa::VoteCryptoProvider>.template to<consensus::grandpa::VoteCryptoProviderImpl>(),
         di::bind<consensus::EpochStorage>.template to<consensus::EpochStorageImpl>(),
         di::bind<consensus::Synchronizer>.template to<consensus::SynchronizerImpl>(),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
@@ -538,13 +561,15 @@ namespace kagome::injector {
         di::bind<runtime::BlockBuilder>.template to<runtime::binaryen::BlockBuilderImpl>(),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
-        di::bind<storage::trie::TrieDbBackend>.to(
-            std::move(get_polkadot_trie_db_backend)),
-        di::bind<storage::trie::PolkadotTrieDb>.to(
-            std::move(get_polkadot_trie_db)),
-        di::bind<storage::trie::TrieDb>.to(std::move(get_trie_db)),
-        di::bind<storage::trie::TrieDbReader>.to(std::move(get_trie_db)),
+        di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
+        di::bind<storage::trie::TrieStorageBackend>.to(
+            std::move(get_trie_storage_backend)),
+        di::bind<storage::trie::TrieStorageImpl>.to(
+            std::move(get_trie_storage_impl)),
+        di::bind<storage::trie::TrieStorage>.to(std::move(get_trie_storage)),
+        di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
         di::bind<storage::trie::Codec>.template to<storage::trie::PolkadotCodec>(),
+        di::bind<storage::trie::TrieSerializer>.template to<storage::trie::TrieSerializerImpl>(),
         di::bind<runtime::WasmProvider>.template to<runtime::StorageWasmProvider>(),
         di::bind<application::ConfigurationStorage>.to(
             [genesis_path](const auto &injector) {
@@ -555,8 +580,6 @@ namespace kagome::injector {
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...);
-    auto leveldb_options = leveldb::Options();
-    leveldb_options.create_if_missing = true;
   }
 
 }  // namespace kagome::injector

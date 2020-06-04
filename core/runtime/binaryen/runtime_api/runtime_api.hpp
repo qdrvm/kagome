@@ -10,13 +10,14 @@
 
 #include <binaryen/wasm-binary.h>
 #include <binaryen/wasm-interpreter.h>
+#include <boost/optional.hpp>
 
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
 #include "extensions/extension_factory.hpp"
 #include "runtime/binaryen/runtime_external_interface.hpp"
-#include "runtime/binaryen/wasm_executor.hpp"
 #include "runtime/binaryen/runtime_manager.hpp"
+#include "runtime/binaryen/wasm_executor.hpp"
 #include "runtime/wasm_memory.hpp"
 #include "runtime/wasm_provider.hpp"
 #include "runtime/wasm_result.hpp"
@@ -29,9 +30,43 @@ namespace kagome::runtime::binaryen {
    */
   class RuntimeApi {
    public:
+    enum class CallPersistency {
+      PERSISTENT,  // the changes made by this call will be applied to the state
+                   // trie storage
+      EPHEMERAL    // the changes made by this call will vanish once it's
+                   // completed
+    };
+
     RuntimeApi(std::shared_ptr<RuntimeManager> runtime_manager)
         : runtime_manager_(std::move(runtime_manager)) {
       BOOST_ASSERT(runtime_manager_);
+    }
+
+   private:
+    // as it has a deduced return type, must be defined before execute()
+    auto getRuntimeEnvironment(
+        CallPersistency persistency,
+        const boost::optional<common::Hash256> &state_root_opt) {
+      if (state_root_opt.has_value()) {
+        switch (persistency) {
+          case CallPersistency::PERSISTENT:
+            return runtime_manager_
+                ->createPersistentRuntimeEnvironmentAt(
+                    state_root_opt.value())
+                .value();
+          case CallPersistency::EPHEMERAL:
+            return runtime_manager_
+                ->createEphemeralRuntimeEnvironmentAt(state_root_opt.value())
+                .value();
+        }
+      } else {
+        switch (persistency) {
+          case CallPersistency::PERSISTENT:
+            return runtime_manager_->createPersistentRuntimeEnvironment().value();
+          case CallPersistency::EPHEMERAL:
+            return runtime_manager_->createEphemeralRuntimeEnvironment().value();
+        }
+      }
     }
 
    protected:
@@ -39,16 +74,61 @@ namespace kagome::runtime::binaryen {
      * @brief executes wasm export method returning non-void result
      * @tparam R result type including void
      * @tparam Args arguments types list
-     * @param name export method name
-     * @param args arguments
-     * @return parsed result or error
+     * @param name - export method name
+     * @param state_root - a hash of the state root to which the state will be
+     * reset before executing the export method
+     * @param persistency - PERSISTENT if changes made by the method should
+     * persist in the state, EPHEMERAL if they can be discraded
+     * @param args - export method arguments
+     * @return a parsed result or an error
      */
     template <typename R, typename... Args>
-    outcome::result<R> execute(std::string_view name, Args &&... args) {
-      logger_->debug("Executing export function: {}", name);
+    outcome::result<R> executeAt(std::string_view name,
+                                 const common::Hash256 &state_root,
+                                 CallPersistency persistency,
+                                 Args &&... args) {
+      return executeMaybeAt<R>(
+          name, state_root, persistency, std::forward<Args>(args)...);
+    }
 
-      OUTCOME_TRY(environment, runtime_manager_->getRuntimeEnvironment());
-      auto &&[module, memory] = std::move(environment);
+    /**
+     * @brief executes wasm export method returning non-void result
+     * @tparam R result type including void
+     * @tparam Args arguments types list
+     * @param name - export method name
+     * @param persistency - PERSISTENT if changes made by the method should
+     * persist in the state, EPHEMERAL if they can be discraded
+     * @param args - export method arguments
+     * @return a parsed result or an error
+     */
+    template <typename R, typename... Args>
+    outcome::result<R> execute(std::string_view name,
+                               CallPersistency persistency,
+                               Args &&... args) {
+      return executeMaybeAt<R>(
+          name, boost::none, persistency, std::forward<Args>(args)...);
+    }
+
+   private:
+    /**
+     * If \arg state_root contains a value, then the state will be reset to the
+     * hash in this value, otherwise the export method will be executed on the
+     * current state
+     * @note for explanation of arguments \see execute or \see executeAt
+     */
+    template <typename R, typename... Args>
+    outcome::result<R> executeMaybeAt(
+        std::string_view name,
+        const boost::optional<common::Hash256> &state_root,
+        CallPersistency persistency,
+        Args &&... args) {
+      logger_->debug("Executing export function: {}", name);
+      if (state_root.has_value()) {
+        logger_->warn("Resetting state to: {}", state_root.value().toHex());
+      }
+
+      auto environment = getRuntimeEnvironment(persistency, state_root);
+      auto &&[module, memory] = environment;
 
       runtime::WasmPointer ptr = 0u;
       runtime::SizeType len = 0u;
@@ -76,11 +156,9 @@ namespace kagome::runtime::binaryen {
 
       return outcome::success();
     }
-
-   private:
     std::shared_ptr<RuntimeManager> runtime_manager_;
     WasmExecutor executor_;
-    common::Logger logger_ = common::createLogger("Runtime api");
+    common::Logger logger_ = common::createLogger("Runtime API");
   };
 }  // namespace kagome::runtime::binaryen
 

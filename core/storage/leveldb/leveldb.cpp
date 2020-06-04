@@ -68,6 +68,12 @@ namespace kagome::storage {
     return get(key).has_value();
   }
 
+  bool LevelDB::empty() const {
+    auto it = std::unique_ptr<leveldb::Iterator>(db_->NewIterator(ro_));
+    it->SeekToFirst();
+    return it->Valid();
+  }
+
   outcome::result<void> LevelDB::put(const Buffer &key, const Buffer &value) {
     auto status = db_->Put(wo_, make_slice(key), make_slice(value));
     if (status.ok()) {

@@ -13,7 +13,6 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/extrinsic_gossiper_mock.hpp"
 #include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
-#include "mock/core/storage/trie/trie_db_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/transaction.hpp"
@@ -40,7 +39,6 @@ using kagome::primitives::Transaction;
 using kagome::primitives::TransactionValidity;
 using kagome::primitives::UnknownTransaction;
 using kagome::primitives::ValidTransaction;
-using kagome::storage::trie::TrieDbMock;
 
 using ::testing::_;
 using ::testing::ByRef;
@@ -70,7 +68,6 @@ struct AuthorApiTest : public ::testing::Test {
   sptr<TaggedTransactionQueueMock> ttq;  ///< tagged transaction queue mock
   sptr<TransactionPoolMock> transaction_pool;  ///< transaction pool mock
   sptr<BlockTreeMock> block_tree;              ///< block tree mock instance
-  sptr<TrieDbMock> trie_db;                    ///< trie db mock
   sptr<ExtrinsicGossiperMock> gossiper;        ///< gossiper mock
   sptr<AuthorApiImpl> api;                     ///< api instance
   sptr<Extrinsic> extrinsic;                   ///< extrinsic instance
@@ -83,17 +80,13 @@ struct AuthorApiTest : public ::testing::Test {
     ttq = std::make_shared<TaggedTransactionQueueMock>();
     transaction_pool = std::make_shared<TransactionPoolMock>();
     block_tree = std::make_shared<BlockTreeMock>();
-    trie_db = std::make_shared<TrieDbMock>();
     gossiper = std::make_shared<ExtrinsicGossiperMock>();
     api = std::make_shared<AuthorApiImpl>(
-        ttq, transaction_pool, hasher, block_tree, trie_db, gossiper);
+        ttq, transaction_pool, hasher, block_tree, gossiper);
     extrinsic.reset(new Extrinsic{"12"_hex2buf});
     valid_transaction.reset(new ValidTransaction{1, {{2}}, {{3}}, 4, true});
     deepest_hash = createHash256({1u, 2u, 3u});
     deepest_leaf.reset(new BlockInfo{1u, deepest_hash});
-
-    EXPECT_CALL(*trie_db, resetState(_))
-        .WillRepeatedly(Return(outcome::success()));
   }
 };
 

@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "authorship/impl/block_builder_factory_impl.hpp"
-
 #include <gtest/gtest.h>
-#include "mock/core/blockchain/header_repository_mock.hpp"
+
+#include "authorship/impl/block_builder_factory_impl.hpp"
+#include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/runtime/block_builder_api_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "testutil/outcome.hpp"
@@ -14,7 +14,7 @@
 using ::testing::Return;
 
 using kagome::authorship::BlockBuilderFactoryImpl;
-using kagome::blockchain::HeaderRepositoryMock;
+using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockId;
 using kagome::primitives::BlockNumber;
@@ -40,8 +40,8 @@ class BlockBuilderFactoryTest : public ::testing::Test {
   std::shared_ptr<CoreMock> core_ = std::make_shared<CoreMock>();
   std::shared_ptr<BlockBuilderApiMock> block_builder_api_ =
       std::make_shared<BlockBuilderApiMock>();
-  std::shared_ptr<HeaderRepositoryMock> header_backend_ =
-      std::make_shared<HeaderRepositoryMock>();
+  std::shared_ptr<BlockHeaderRepositoryMock> header_backend_ =
+      std::make_shared<BlockHeaderRepositoryMock>();
 
   BlockNumber parent_number_{41};
   BlockNumber expected_number_{parent_number_ + 1};

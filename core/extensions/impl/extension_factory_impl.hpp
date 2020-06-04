@@ -7,20 +7,24 @@
 #define KAGOME_CORE_EXTENSIONS_IMPL_EXTENSION_FACTORY_IMPL_HPP
 
 #include "extensions/extension_factory.hpp"
-#include "storage/trie/trie_db.hpp"
+
+#include "storage/changes_trie/changes_tracker.hpp"
 
 namespace kagome::extensions {
 
   class ExtensionFactoryImpl : public ExtensionFactory {
    public:
     ~ExtensionFactoryImpl() override = default;
-    explicit ExtensionFactoryImpl(std::shared_ptr<storage::trie::TrieDb> db);
+    ExtensionFactoryImpl(
+        std::shared_ptr<storage::changes_trie::ChangesTracker> tracker);
 
     std::shared_ptr<Extension> createExtension(
-        std::shared_ptr<runtime::WasmMemory> memory) const override;
+        std::shared_ptr<runtime::WasmMemory> memory,
+        std::shared_ptr<storage::trie::TrieBatch> storage_batch) const override;
 
    private:
-    std::shared_ptr<storage::trie::TrieDb> db_;
+    std::shared_ptr<storage::changes_trie::ChangesTracker>
+        changes_tracker_;
   };
 
 }  // namespace kagome::extensions

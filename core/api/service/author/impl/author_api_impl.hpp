@@ -17,7 +17,7 @@
 #include "crypto/hasher.hpp"
 #include "network/extrinsic_gossiper.hpp"
 #include "outcome/outcome.hpp"
-#include "storage/trie/trie_db.hpp"
+#include "storage/trie/trie_storage.hpp"
 
 namespace kagome::transaction_pool {
   class TransactionPool;
@@ -44,7 +44,6 @@ namespace kagome::api {
                   std::shared_ptr<transaction_pool::TransactionPool> pool,
                   std::shared_ptr<crypto::Hasher> hasher,
                   std::shared_ptr<blockchain::BlockTree> block_tree,
-                  std::shared_ptr<storage::trie::TrieDb> trie_db,
                   std::shared_ptr<network::ExtrinsicGossiper> gossiper);
 
     ~AuthorApiImpl() override = default;
@@ -64,7 +63,6 @@ namespace kagome::api {
     sptr<transaction_pool::TransactionPool> pool_;
     sptr<crypto::Hasher> hasher_;
     sptr<blockchain::BlockTree> block_tree_;
-    std::shared_ptr<storage::trie::TrieDb> trie_db_;
     std::shared_ptr<network::ExtrinsicGossiper> gossiper_;
     common::Logger logger_;
   };

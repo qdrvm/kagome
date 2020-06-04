@@ -3,20 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/grandpa/impl/environment_impl.cpp"
-
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
+
+#include "consensus/grandpa/impl/environment_impl.hpp"
+#include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
-#include "mock/core/blockchain/header_repository_mock.hpp"
 #include "mock/core/consensus/grandpa/gossiper_mock.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
 using kagome::blockchain::BlockHeaderRepository;
+using kagome::blockchain::BlockHeaderRepositoryMock;
 using kagome::blockchain::BlockTree;
 using kagome::blockchain::BlockTreeMock;
-using kagome::blockchain::HeaderRepositoryMock;
+using kagome::blockchain::BlockTreeMock;
 using kagome::common::Blob;
 using kagome::common::Hash256;
 using kagome::consensus::grandpa::Chain;
@@ -70,8 +71,8 @@ class ChainTest : public testing::Test {
   }
 
   std::shared_ptr<BlockTreeMock> tree = std::make_shared<BlockTreeMock>();
-  std::shared_ptr<HeaderRepositoryMock> header_repo =
-      std::make_shared<HeaderRepositoryMock>();
+  std::shared_ptr<BlockHeaderRepositoryMock> header_repo =
+      std::make_shared<BlockHeaderRepositoryMock>();
 
   std::shared_ptr<GossiperMock> gossiper = std::make_shared<GossiperMock>();
 

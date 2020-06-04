@@ -10,11 +10,15 @@
 namespace kagome::extensions {
 
   ExtensionFactoryImpl::ExtensionFactoryImpl(
-      std::shared_ptr<storage::trie::TrieDb> db)
-      : db_{std::move(db)} {}
+      std::shared_ptr<storage::changes_trie::ChangesTracker> tracker)
+      : changes_tracker_{std::move(tracker)} {
+    BOOST_ASSERT(changes_tracker_ != nullptr);
+  }
 
   std::shared_ptr<Extension> ExtensionFactoryImpl::createExtension(
-      std::shared_ptr<runtime::WasmMemory> memory) const {
-    return std::make_shared<ExtensionImpl>(memory, db_);
+      std::shared_ptr<runtime::WasmMemory> memory,
+      std::shared_ptr<storage::trie::TrieBatch> storage_batch) const {
+    return std::make_shared<ExtensionImpl>(
+        memory, storage_batch, changes_tracker_);
   }
 }  // namespace kagome::extensions

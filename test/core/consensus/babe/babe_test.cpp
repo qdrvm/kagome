@@ -26,7 +26,7 @@
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/runtime/babe_api_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
-#include "mock/core/storage/trie/trie_db_mock.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/block.hpp"
 #include "testutil/sr25519_utils.hpp"
 
@@ -66,7 +66,7 @@ class BabeTest : public testing::Test {
   void SetUp() override {
     lottery_ = std::make_shared<BabeLotteryMock>();
     babe_synchronizer_ = std::make_shared<BabeSynchronizerMock>();
-    trie_db_ = std::make_shared<storage::trie::TrieDbMock>();
+    trie_db_ = std::make_shared<storage::trie::TrieStorageMock>();
     babe_block_validator_ = std::make_shared<BlockValidatorMock>();
     epoch_storage_ = std::make_shared<EpochStorageMock>();
     babe_api_ = std::make_shared<runtime::BabeApiMock>();
@@ -128,7 +128,7 @@ class BabeTest : public testing::Test {
 
   std::shared_ptr<BabeLotteryMock> lottery_;
   std::shared_ptr<BabeSynchronizer> babe_synchronizer_;
-  std::shared_ptr<storage::trie::TrieDbMock> trie_db_;
+  std::shared_ptr<storage::trie::TrieStorageMock> trie_db_;
   std::shared_ptr<BlockValidator> babe_block_validator_;
   std::shared_ptr<EpochStorageMock> epoch_storage_;
   std::shared_ptr<runtime::BabeApiMock> babe_api_;

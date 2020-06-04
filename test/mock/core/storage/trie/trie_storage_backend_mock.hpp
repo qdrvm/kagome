@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_TRIE_DB_BACKEND_MOCK_HPP
-#define KAGOME_TRIE_DB_BACKEND_MOCK_HPP
+#ifndef KAGOME_TRIE_STORAGE_BACKEND_MOCK_HPP
+#define KAGOME_TRIE_STORAGE_BACKEND_MOCK_HPP
 
 #include <gmock/gmock.h>
 
-#include "storage/trie/trie_db_backend.hpp"
+#include "storage/trie/trie_storage_backend.hpp"
 
 namespace kagome::storage::trie {
 
-  class TrieDbBackendMock: public TrieDbBackend {
+  class TrieStorageBackendMock : public TrieStorageBackend {
    public:
     MOCK_METHOD0(batch, std::unique_ptr<face::WriteBatch<Buffer, Buffer>>());
     MOCK_METHOD0(cursor, std::unique_ptr<face::MapCursor<Buffer, Buffer>>());

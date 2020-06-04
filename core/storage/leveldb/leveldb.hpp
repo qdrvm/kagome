@@ -54,6 +54,8 @@ namespace kagome::storage {
 
     bool contains(const Buffer &key) const override;
 
+    bool empty() const override;
+
     outcome::result<void> put(const Buffer &key, const Buffer &value) override;
 
     // value will be copied, not moved, due to internal structure of LevelDB

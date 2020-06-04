@@ -14,9 +14,10 @@ namespace kagome::extensions {
 
   ExtensionImpl::ExtensionImpl(
       const std::shared_ptr<runtime::WasmMemory> &memory,
-      std::shared_ptr<storage::trie::TrieDb> db)
+      std::shared_ptr<storage::trie::TrieBatch> storage_batch,
+      std::shared_ptr<storage::changes_trie::ChangesTracker> tracker)
       : memory_(memory),
-        db_(std::move(db)),
+        storage_batch_(std::move(storage_batch)),
         crypto_ext_(memory,
                     std::make_shared<crypto::SR25519ProviderImpl>(
                         std::make_shared<crypto::BoostRandomGenerator>()),
@@ -24,7 +25,10 @@ namespace kagome::extensions {
                     std::make_shared<crypto::HasherImpl>()),
         io_ext_(memory),
         memory_ext_(memory),
-        storage_ext_(db_, memory_) {}
+        storage_ext_(storage_batch_, memory_, std::move(tracker)) {
+    BOOST_ASSERT(storage_batch_ != nullptr);
+    BOOST_ASSERT(memory_ != nullptr);
+  }
 
   std::shared_ptr<runtime::WasmMemory> ExtensionImpl::memory() const {
     return memory_;
@@ -83,11 +87,8 @@ namespace kagome::extensions {
   }
 
   runtime::SizeType ExtensionImpl::ext_storage_changes_root(
-      runtime::WasmPointer parent_hash_data,
-      runtime::SizeType parent_hash_len,
-      runtime::WasmPointer result) {
-    return storage_ext_.ext_storage_changes_root(
-        parent_hash_data, parent_hash_len, result);
+      runtime::WasmPointer parent_hash_data, runtime::WasmPointer result) {
+    return storage_ext_.ext_storage_changes_root(parent_hash_data, result);
   }
 
   void ExtensionImpl::ext_storage_root(runtime::WasmPointer result) const {

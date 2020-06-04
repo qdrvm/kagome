@@ -15,8 +15,13 @@ target_link_libraries(application_injector
     api_transport
     api_jrpc_server
     state_api_service
+    trie_storage
+    polkadot_trie
+    polkadot_trie_factory
+    trie_serializer
+    polkadot_codec
+    changes_tracker
     chain_api_service
-    readonly_trie_builder
     babe
     babe_lottery
     block_header_repository

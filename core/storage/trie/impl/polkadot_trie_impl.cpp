@@ -3,16 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/trie/impl/polkadot_trie.hpp"
+#include "storage/trie/impl/polkadot_trie_impl.hpp"
 
 #include <functional>
 #include <utility>
+
 #include "storage/trie/impl/trie_error.hpp"
 
 using kagome::common::Buffer;
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotTrie::Error, e) {
-  using E = kagome::storage::trie::PolkadotTrie::Error;
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotTrieImpl::Error, e) {
+  using E = kagome::storage::trie::PolkadotTrieImpl::Error;
   switch (e) {
     case E::INVALID_NODE_TYPE:
       return "The node type is invalid";
@@ -21,23 +22,27 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, PolkadotTrie::Error, e) {
 }
 
 namespace kagome::storage::trie {
-  PolkadotTrie::PolkadotTrie(ChildRetrieveFunctor f)
-      : retrieve_child_{std::move(f)} {}
+  PolkadotTrieImpl::PolkadotTrieImpl(ChildRetrieveFunctor f)
+      : retrieve_child_{std::move(f)} {
+    BOOST_ASSERT(retrieve_child_);
+  }
 
-  PolkadotTrie::PolkadotTrie(NodePtr root, ChildRetrieveFunctor f)
-      : retrieve_child_{std::move(f)}, root_{std::move(root)} {}
+  PolkadotTrieImpl::PolkadotTrieImpl(NodePtr root, ChildRetrieveFunctor f)
+      : retrieve_child_{std::move(f)}, root_{std::move(root)} {
+    BOOST_ASSERT(retrieve_child_);
+  }
 
-  outcome::result<void> PolkadotTrie::put(const Buffer &key,
+  outcome::result<void> PolkadotTrieImpl::put(const Buffer &key,
                                           const Buffer &value) {
     auto value_copy = value;
     return put(key, std::move(value_copy));
   }
 
-  PolkadotTrie::NodePtr PolkadotTrie::getRoot() const {
+  PolkadotTrie::NodePtr PolkadotTrieImpl::getRoot() const {
     return root_;
   }
 
-  outcome::result<void> PolkadotTrie::put(const Buffer &key, Buffer &&value) {
+  outcome::result<void> PolkadotTrieImpl::put(const Buffer &key, Buffer &&value) {
     auto k_enc = PolkadotCodec::keyToNibbles(key);
 
     NodePtr root = root_;
@@ -52,7 +57,7 @@ namespace kagome::storage::trie {
     return outcome::success();
   }
 
-  outcome::result<void> PolkadotTrie::clearPrefix(
+  outcome::result<void> PolkadotTrieImpl::clearPrefix(
       const common::Buffer &prefix) {
     if (not root_) {
       return outcome::success();
@@ -64,7 +69,7 @@ namespace kagome::storage::trie {
     return outcome::success();
   }
 
-  outcome::result<PolkadotTrie::NodePtr> PolkadotTrie::insert(
+  outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::insert(
       const NodePtr &parent, const common::Buffer &key_nibbles, NodePtr node) {
     using T = PolkadotNode::Type;
 
@@ -130,7 +135,7 @@ namespace kagome::storage::trie {
     }
   }
 
-  outcome::result<PolkadotTrie::NodePtr> PolkadotTrie::updateBranch(
+  outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::updateBranch(
       BranchPtr parent,
       const common::Buffer &key_nibbles,
       const NodePtr &node) {
@@ -168,7 +173,7 @@ namespace kagome::storage::trie {
     return br;
   }
 
-  outcome::result<common::Buffer> PolkadotTrie::get(
+  outcome::result<common::Buffer> PolkadotTrieImpl::get(
       const common::Buffer &key) const {
     if (not root_) {
       return TrieError::NO_VALUE;
@@ -181,7 +186,7 @@ namespace kagome::storage::trie {
     return TrieError::NO_VALUE;
   }
 
-  outcome::result<PolkadotTrie::NodePtr> PolkadotTrie::getNode(
+  outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::getNode(
       NodePtr parent, const common::Buffer &key_nibbles) const {
     using T = PolkadotNode::Type;
     if (parent == nullptr) {
@@ -215,7 +220,7 @@ namespace kagome::storage::trie {
     return nullptr;
   }
 
-  bool PolkadotTrie::contains(const common::Buffer &key) const {
+  bool PolkadotTrieImpl::contains(const common::Buffer &key) const {
     if (not root_) {
       return false;
     }
@@ -225,7 +230,11 @@ namespace kagome::storage::trie {
            && (node.value()->value);
   }
 
-  outcome::result<void> PolkadotTrie::remove(const common::Buffer &key) {
+  bool PolkadotTrieImpl::empty() const {
+    return root_ == nullptr;
+  }
+
+  outcome::result<void> PolkadotTrieImpl::remove(const common::Buffer &key) {
     if (root_) {
       auto key_nibbles = PolkadotCodec::keyToNibbles(key);
       // delete node will fetch nodes that it needs from the storage (the nodes
@@ -238,7 +247,7 @@ namespace kagome::storage::trie {
     return outcome::success();
   }
 
-  outcome::result<PolkadotTrie::NodePtr> PolkadotTrie::deleteNode(
+  outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::deleteNode(
       NodePtr parent, const common::Buffer &key_nibbles) {
     if (!parent) {
       return nullptr;
@@ -273,7 +282,7 @@ namespace kagome::storage::trie {
     }
   }
 
-  outcome::result<PolkadotTrie::NodePtr> PolkadotTrie::handleDeletion(
+  outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::handleDeletion(
       const BranchPtr &parent,
       NodePtr node,
       const common::Buffer &key_nibbles) {
@@ -318,7 +327,7 @@ namespace kagome::storage::trie {
     return newRoot;
   }
 
-  outcome::result<PolkadotTrie::NodePtr> PolkadotTrie::detachNode(
+  outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::detachNode(
       const NodePtr &parent, const common::Buffer &prefix_nibbles) {
     if (parent == nullptr) {
       return nullptr;
@@ -353,12 +362,12 @@ namespace kagome::storage::trie {
     return parent;
   }
 
-  outcome::result<PolkadotTrie::NodePtr> PolkadotTrie::retrieveChild(
+  outcome::result<PolkadotTrie::NodePtr> PolkadotTrieImpl::retrieveChild(
       BranchPtr parent, uint8_t idx) const {
     return retrieve_child_(std::move(parent), idx);
   }
 
-  uint32_t PolkadotTrie::getCommonPrefixLength(const Buffer &pref1,
+  uint32_t PolkadotTrieImpl::getCommonPrefixLength(const Buffer &pref1,
                                                const Buffer &pref2) const {
     size_t length = 0;
     auto min = pref1.size();
