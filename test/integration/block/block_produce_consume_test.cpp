@@ -23,23 +23,28 @@ class BlockProduceConsume : public ApplicationTestSuite {
   void SetUp() override {
     getInjector().template create<std::shared_ptr<blockchain::BlockStorage>>();
 
-    auto backend =
-        getInjector()
-            .template create<std::shared_ptr<storage::trie::TrieDbBackend>>();
-
-    auto trie_db = storage::trie::PolkadotTrieDb::createEmpty(backend);
-
     auto configuration_storage =
         getInjector()
             .template create<
                 std::shared_ptr<application::ConfigurationStorage>>();
 
+    auto trie_storage =
+        getInjector()
+            .template create<std::shared_ptr<storage::trie::TrieStorage>>();
+    auto batch = trie_storage->getPersistentBatch();
+    if (not batch) {
+      common::raise(batch.error());
+    }
     for (const auto &[key, val] : configuration_storage->getGenesis()) {
-      if (auto res = trie_db->put(key, val); not res) {
+      if (auto res = batch.value()->put(key, val); not res) {
         common::raise(res.error());
       }
     }
-    _trieDb.reset(trie_db.release());
+    if (auto res = batch.value()->commit(); not res) {
+      common::raise(res.error());
+    }
+
+    _trieDb.swap(trie_storage);
   }
 
   void TearDown() override {
@@ -69,7 +74,7 @@ class BlockProduceConsume : public ApplicationTestSuite {
 
   std::unique_ptr<transaction_pool::TransactionPool> _txPool;
   std::unique_ptr<authorship::Proposer> _proposer;
-  std::shared_ptr<storage::trie::TrieDb> _trieDb;
+  std::shared_ptr<storage::trie::TrieStorage> _trieDb;
 
   Buffer _initialState;
   Buffer _afterProduceState;
@@ -159,9 +164,14 @@ outcome::result<Block> BlockProduceConsume::produceBlock(
   //	std::this_thread::sleep_for(std::chrono::seconds(5));
 
   if (!extrinsics.empty()) {
+    auto tracker = getInjector()
+                       .template create<std::shared_ptr<
+                           storage::changes_trie::StorageChangesTrackerImpl>>();
+
     auto runtime_manager = std::make_shared<runtime::binaryen::RuntimeManager>(
         std::make_shared<runtime::StorageWasmProvider>(_trieDb),
-        std::make_shared<extensions::ExtensionFactoryImpl>(_trieDb),
+        std::make_shared<kagome::extensions::ExtensionFactoryImpl>(tracker),
+        _trieDb,
         _hasher);
 
     auto api = std::make_shared<runtime::binaryen::TaggedTransactionQueueImpl>(
@@ -233,36 +243,50 @@ outcome::result<Block> BlockProduceConsume::produceBlock(
 }
 
 outcome::result<void> BlockProduceConsume::consumeBlock(const Block &block) {
-  auto backend =
-      getInjector()
-          .template create<std::shared_ptr<storage::trie::TrieDbBackend>>();
-
-  auto trie_db = storage::trie::PolkadotTrieDb::createEmpty(backend);
-
   auto configuration_storage =
       getInjector()
           .template create<
               std::shared_ptr<application::ConfigurationStorage>>();
 
+  auto trie_storage =
+      getInjector()
+          .template create<std::shared_ptr<storage::trie::TrieStorageImpl>>();
+  auto batch = trie_storage->getPersistentBatch();
+  if (not batch) {
+    common::raise(batch.error());
+  }
   for (const auto &[key, val] : configuration_storage->getGenesis()) {
-    if (auto res = trie_db->put(key, val); not res) {
+    if (auto res = batch.value()->put(key, val); not res) {
       common::raise(res.error());
     }
   }
+  if (auto res = batch.value()->commit(); not res) {
+    common::raise(res.error());
+  }
 
-  auto originalTrieDb =
-      std::shared_ptr<storage::trie::TrieDb>(trie_db.release());
+  auto originalTrieDb = std::move(trie_storage);
 
   assert(originalTrieDb->getRootHash() == _initialState);
 
   //	std::this_thread::sleep_for(std::chrono::seconds(5));
 
+  auto tracker = getInjector()
+                     .template create<std::shared_ptr<
+                         storage::changes_trie::StorageChangesTrackerImpl>>();
+
   auto runtime_manager = std::make_shared<runtime::binaryen::RuntimeManager>(
-      std::make_shared<runtime::StorageWasmProvider>(originalTrieDb),
-      std::make_shared<extensions::ExtensionFactoryImpl>(originalTrieDb),
+      std::make_shared<runtime::StorageWasmProvider>(_trieDb),
+      std::make_shared<kagome::extensions::ExtensionFactoryImpl>(tracker),
+      _trieDb,
       _hasher);
 
-  auto core = std::make_unique<runtime::binaryen::CoreImpl>(runtime_manager);
+  std::shared_ptr<blockchain::BlockHeaderRepository> header_repo =
+      getInjector()
+          .template create<
+              std::shared_ptr<blockchain::BlockHeaderRepository>>();
+
+  auto core = std::make_unique<runtime::binaryen::CoreImpl>(
+      runtime_manager, tracker, header_repo);
 
   OUTCOME_TRY(core->execute_block(block));
 
