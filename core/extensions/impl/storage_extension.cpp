@@ -28,7 +28,7 @@ namespace kagome::extensions {
         memory_(std::move(memory)),
         changes_tracker_{std::move(changes_tracker)},
         logger_{common::createLogger(kDefaultLoggerTag)} {
-    BOOST_ASSERT_MSG(storage_batch_ != nullptr, "db is nullptr");
+    BOOST_ASSERT_MSG(storage_batch_ != nullptr, "storage batch is nullptr");
     BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
     BOOST_ASSERT_MSG(changes_tracker_ != nullptr, "changes tracker is nullptr");
   }
@@ -190,58 +190,6 @@ namespace kagome::extensions {
 
     logger_->error("ext_storage_changes_root is not implemented");
     return 0;
-    /*
-    boost::optional<storage::changes_trie::ChangesTrieConfig> trie_config;
-    auto config_bytes_res = persistent_batch->get(CHANGES_CONFIG_KEY);
-    if (config_bytes_res.has_error()) {
-      if (config_bytes_res.error() != storage::trie::TrieError::NO_VALUE) {
-        logger_->error("ext_storage_changes_root resulted with an error: {}",
-                       config_bytes_res.error().message());
-        return 0;
-      } else {
-        logger_->debug(
-            "ext_storage_changes_root: no changes trie config found");
-        trie_config = boost::none;
-      }
-    } else {
-      auto config_res = scale::decode<storage::changes_trie::ChangesTrieConfig>(
-          config_bytes_res.value());
-      if (config_res.has_error()) {
-        logger_->error("ext_storage_changes_root resulted with an error: {}",
-                       config_res.error().message());
-        return 0;
-      }
-      trie_config = config_res.value();
-    }
-
-    auto parent_hash_bytes =
-        memory_->loadN(parent_hash_data, common::Hash256::size());
-    common::Hash256 parent_hash;
-    std::copy_n(parent_hash_bytes.begin(),
-                common::Hash256::size(),
-                parent_hash.begin());
-
-    // if no config found in the storage, then disable tracking blocks changes
-    if (not trie_config.has_value()) {
-      trie_config = storage::changes_trie::ChangesTrieConfig{
-          .digest_interval = 0, .digest_levels = 0};
-    }
-
-    logger_->debug("ext_storage_changes_root constructing changes trie with parent_hash: {}",
-                  parent_hash.toHex());
-    auto trie_hash_res =
-        changes_tracker_->constructChangesTrie(parent_hash, trie_config.value());
-    if (trie_hash_res.has_error()) {
-      logger_->error("ext_storage_changes_root resulted with an error: {}",
-                     trie_hash_res.error().message());
-      return 0;
-    }
-    common::Buffer result_buf(trie_hash_res.value());
-    logger_->debug("ext_storage_changes_root with parent_hash {} result is: {}",
-                  parent_hash.toHex(), result_buf.toHex());
-    memory_->storeBuffer(result, result_buf);
-    return result_buf.size();
-     */
   }
 
   void StorageExtension::ext_storage_root(runtime::WasmPointer result) const {

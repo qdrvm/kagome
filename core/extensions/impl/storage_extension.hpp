@@ -20,7 +20,7 @@ namespace kagome::extensions {
   class StorageExtension {
    public:
     StorageExtension(
-        std::shared_ptr<storage::trie::TrieBatch> db,
+        std::shared_ptr<storage::trie::TrieBatch> storage_batch,
         std::shared_ptr<runtime::WasmMemory> memory,
         std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker);
 
