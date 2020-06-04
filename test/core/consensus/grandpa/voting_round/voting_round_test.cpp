@@ -3,17 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/grandpa/impl/voting_round_impl.hpp"
-
 #include <gtest/gtest.h>
+
 #include <boost/range/algorithm/find.hpp>
+
 #include "clock/impl/clock_impl.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
+#include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "core/consensus/grandpa/literals.hpp"
+#include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
-#include "mock/core/blockchain/header_repository_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
 #include "mock/core/consensus/grandpa/gossiper_mock.hpp"
 #include "mock/core/consensus/grandpa/vote_crypto_provider_mock.hpp"
@@ -23,7 +24,7 @@ using namespace kagome::consensus::grandpa;
 using namespace std::chrono_literals;
 
 using kagome::blockchain::BlockTreeMock;
-using kagome::blockchain::HeaderRepositoryMock;
+using kagome::blockchain::BlockTreeMock;
 using kagome::clock::SteadyClockImpl;
 using kagome::consensus::grandpa::EnvironmentMock;
 using kagome::consensus::grandpa::GrandpaConfig;

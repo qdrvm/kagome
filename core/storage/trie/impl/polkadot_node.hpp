@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_NODE_IMPL_HPP
-#define KAGOME_NODE_IMPL_HPP
+#ifndef KAGOME_STORAGE_TRIE_POLKADOT_NODE
+#define KAGOME_STORAGE_TRIE_POLKADOT_NODE
 
 #include <boost/optional.hpp>
 
@@ -20,7 +20,7 @@ namespace kagome::storage::trie {
    * 5.3 The Trie structure
    */
 
-  struct PolkadotNode : public Node {
+  struct PolkadotNode: public Node {
     PolkadotNode() = default;
     PolkadotNode(common::Buffer key_nibbles,
                  boost::optional<common::Buffer> value)
@@ -112,4 +112,4 @@ namespace kagome::storage::trie {
 
 }  // namespace kagome::storage::trie
 
-#endif  // KAGOME_NODE_IMPL_HPP
+#endif  // KAGOME_STORAGE_TRIE_POLKADOT_NODE

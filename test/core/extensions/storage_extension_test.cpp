@@ -6,8 +6,11 @@
 #include "extensions/impl/storage_extension.hpp"
 
 #include <gtest/gtest.h>
+
 #include "core/runtime/mock_memory.hpp"
-#include "mock/core/storage/trie/trie_db_mock.hpp"
+#include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
+#include "mock/core/storage/trie/trie_batches_mock.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -17,7 +20,9 @@ using kagome::extensions::StorageExtension;
 using kagome::runtime::MockMemory;
 using kagome::runtime::SizeType;
 using kagome::runtime::WasmPointer;
-using kagome::storage::trie::TrieDbMock;
+using kagome::storage::changes_trie::ChangesTrackerMock;
+using kagome::storage::trie::PersistentTrieBatchMock;
+using kagome::storage::trie::TrieStorageMock;
 
 using ::testing::_;
 using ::testing::Return;
@@ -25,15 +30,18 @@ using ::testing::Return;
 class StorageExtensionTest : public ::testing::Test {
  public:
   void SetUp() override {
-    db_ = std::make_shared<TrieDbMock>();
+    db_batch_ = std::make_shared<PersistentTrieBatchMock>();
     memory_ = std::make_shared<MockMemory>();
-    storage_extension_ = std::make_shared<StorageExtension>(db_, memory_);
+    changes_tracker_ = std::make_shared<ChangesTrackerMock>();
+    storage_extension_ = std::make_shared<StorageExtension>(
+        db_batch_, memory_, changes_tracker_);
   }
 
  protected:
-  std::shared_ptr<TrieDbMock> db_;
+  std::shared_ptr<PersistentTrieBatchMock> db_batch_;
   std::shared_ptr<MockMemory> memory_;
   std::shared_ptr<StorageExtension> storage_extension_;
+  std::shared_ptr<ChangesTrackerMock> changes_tracker_;
 
   constexpr static uint32_t kU32Max = std::numeric_limits<uint32_t>::max();
 };
@@ -66,7 +74,7 @@ TEST_F(StorageExtensionTest, ClearPrefixTest) {
 
   EXPECT_CALL(*memory_, loadN(prefix_pointer, prefix_size))
       .WillOnce(Return(prefix));
-  EXPECT_CALL(*db_, clearPrefix(prefix))
+  EXPECT_CALL(*db_batch_, clearPrefix(prefix))
       .Times(1)
       .WillOnce(Return(outcome::success()));
 
@@ -84,7 +92,7 @@ TEST_P(OutcomeParameterizedTest, ClearStorageTest) {
   Buffer key(8, 'k');
 
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*db_, remove(key)).WillOnce(Return(GetParam()));
+  EXPECT_CALL(*db_batch_, remove(key)).WillOnce(Return(GetParam()));
 
   storage_extension_->ext_clear_storage(key_pointer, key_size);
 }
@@ -103,7 +111,7 @@ TEST_F(StorageExtensionTest, ExistsStorageTest) {
   SizeType contains = 1;
 
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*db_, contains(key)).WillOnce(Return(contains));
+  EXPECT_CALL(*db_batch_, contains(key)).WillOnce(Return(contains));
 
   ASSERT_EQ(contains,
             storage_extension_->ext_exists_storage(key_pointer, key_size));
@@ -128,7 +136,7 @@ TEST_F(StorageExtensionTest, GetAllocatedStorageKeyNotExistsTest) {
   outcome::result<Buffer> get_res = outcome::failure(std::error_code());
 
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*db_, get(key)).WillOnce(Return(get_res));
+  EXPECT_CALL(*db_batch_, get(key)).WillOnce(Return(get_res));
 
   EXPECT_CALL(*memory_, store32(len_ptr, kU32Max));
   ASSERT_EQ(0,
@@ -157,7 +165,7 @@ TEST_F(StorageExtensionTest, GetAllocatedStorageKeyExistTest) {
 
   // expect key was loaded
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*db_, get(key)).WillOnce(Return(get_res));
+  EXPECT_CALL(*db_batch_, get(key)).WillOnce(Return(get_res));
 
   // value length is stored at len ptr as expected
   EXPECT_CALL(*memory_, store32(len_ptr, value_length)).Times(1);
@@ -199,7 +207,7 @@ TEST_F(StorageExtensionTest, GetStorageIntoKeyExistsTest) {
 
   // expect key was loaded
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
-  EXPECT_CALL(*db_, get(key)).WillOnce(Return(value));
+  EXPECT_CALL(*db_batch_, get(key)).WillOnce(Return(value));
 
   // only partial value (which is the slice value[offset, offset+length]) should
   // be stored at value_ptr
@@ -231,7 +239,7 @@ TEST_F(StorageExtensionTest, GetStorageIntoKeyNotExistsTest) {
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
 
   // get(key) will return error
-  EXPECT_CALL(*db_, get(key))
+  EXPECT_CALL(*db_batch_, get(key))
       .WillOnce(Return(outcome::failure(std::error_code())));
 
   // ext_get_storage_into should return u32::max()
@@ -260,10 +268,10 @@ TEST_P(OutcomeParameterizedTest, SetStorageTest) {
       .WillOnce(Return(value));
 
   // expect key-value pair was put to db
-  EXPECT_CALL(*db_, put(key, value)).WillOnce(Return(GetParam()));
+  EXPECT_CALL(*db_batch_, put(key, value)).WillOnce(Return(GetParam()));
 
-  storage_extension_->ext_set_storage(key_pointer, key_size, value_pointer,
-                                      value_size);
+  storage_extension_->ext_set_storage(
+      key_pointer, key_size, value_pointer, value_size);
 }
 
 INSTANTIATE_TEST_CASE_P(Instance,

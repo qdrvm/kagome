@@ -137,7 +137,7 @@ namespace kagome::extensions {
     const auto &buf = memory_->loadN(data, len);
 
     auto hash = hasher_->twox_64(buf);
-    logger_->debug("twox64. Data: {}, Data hex: {}, hash: {}",
+    logger_->trace("twox64. Data: {}, Data hex: {}, hash: {}",
                    buf.data(),
                    buf.toHex(),
                    hash.toHex());
@@ -151,7 +151,7 @@ namespace kagome::extensions {
     const auto &buf = memory_->loadN(data, len);
 
     auto hash = hasher_->twox_128(buf);
-    logger_->debug("twox128. Data: {}, Data hex: {}, hash: {}",
+    logger_->trace("twox128. Data: {}, Data hex: {}, hash: {}",
                    buf.data(),
                    buf.toHex(),
                    hash.toHex());

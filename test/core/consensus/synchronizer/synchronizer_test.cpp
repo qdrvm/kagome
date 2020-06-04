@@ -5,12 +5,13 @@
 
 #include "consensus/synchronizer/impl/synchronizer_impl.hpp"
 
+#include <gtest/gtest.h>
+
+#include <boost/optional.hpp>
 #include <functional>
 
-#include <gtest/gtest.h>
-#include <boost/optional.hpp>
+#include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
-#include "mock/core/blockchain/header_repository_mock.hpp"
 #include "mock/libp2p/host/host_mock.hpp"
 #include "primitives/block.hpp"
 #include "testutil/gmock_actions.hpp"
@@ -48,8 +49,8 @@ class SynchronizerTest : public testing::Test {
   PeerInfo peer_info_{"my_peer"_peerid, {}};
 
   std::shared_ptr<BlockTreeMock> tree_ = std::make_shared<BlockTreeMock>();
-  std::shared_ptr<HeaderRepositoryMock> headers_ =
-      std::make_shared<HeaderRepositoryMock>();
+  std::shared_ptr<BlockHeaderRepositoryMock> headers_ =
+      std::make_shared<BlockHeaderRepositoryMock>();
 
   std::shared_ptr<Synchronizer> synchronizer_;
 

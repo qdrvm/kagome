@@ -15,6 +15,7 @@
 #include "outcome/outcome.hpp"
 #include "runtime/binaryen/runtime_external_interface.hpp"
 #include "runtime/wasm_provider.hpp"
+#include "storage/trie/trie_storage.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -30,21 +31,48 @@ namespace kagome::runtime::binaryen {
     RuntimeManager(
         std::shared_ptr<WasmProvider> wasm_provider,
         std::shared_ptr<extensions::ExtensionFactory> extension_factory,
+        std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         std::shared_ptr<crypto::Hasher> hasher);
 
-    outcome::result<std::tuple<std::shared_ptr<wasm::ModuleInstance>,
-                               std::shared_ptr<WasmMemory>>>
-    getRuntimeEnvironment();
+    using RuntimeEnvironment = std::tuple<std::shared_ptr<wasm::ModuleInstance>,
+                                          std::shared_ptr<WasmMemory>>;
+
+    outcome::result<RuntimeEnvironment> createPersistentRuntimeEnvironment();
+
+    outcome::result<RuntimeEnvironment> createEphemeralRuntimeEnvironment();
+
+    /**
+     * @warning calling this with an \arg state_root older than the current root
+     * will reset the storage to an older state once changes are committed
+     */
+    outcome::result<RuntimeEnvironment> createPersistentRuntimeEnvironmentAt(
+        const common::Hash256 &state_root);
+
+    outcome::result<RuntimeEnvironment> createEphemeralRuntimeEnvironmentAt(
+        const common::Hash256 &state_root);
 
    private:
+    outcome::result<RuntimeEnvironment>
+    createRuntimeEnvironment(
+        std::shared_ptr<storage::trie::TrieBatch> storage_batch);
+
     outcome::result<std::shared_ptr<wasm::Module>> prepareModule(
         const common::Buffer &state_code);
 
     common::Logger logger_ = common::createLogger("Runtime manager");
-    std::shared_ptr<WasmProvider> wasm_provider_;
-    std::shared_ptr<extensions::ExtensionFactory> extension_factory_;
 
+    std::shared_ptr<runtime::WasmProvider> wasm_provider_;
+    std::shared_ptr<storage::trie::TrieStorage> storage_;
+    std::shared_ptr<extensions::ExtensionFactory> extension_factory_;
     std::shared_ptr<crypto::Hasher> hasher_;
+
+    // need to store it to keep changes in memory before ext_storage_root()
+    // commits them
+    // TODO(Harrm): think of better access restriction to it; Ideally unique_ptr
+    std::shared_ptr<storage::trie::PersistentTrieBatch> persistent_batch_;
+
+    // hash of WASM state code
+    common::Hash256 state_code_hash_{};
 
     std::mutex modules_mutex_;
     std::map<common::Hash256, std::shared_ptr<wasm::Module>> modules_;

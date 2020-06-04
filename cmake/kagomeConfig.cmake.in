@@ -19,8 +19,8 @@ set(kagome_LIBRARIES
         kagome::buffer
         kagome::hexutil
         kagome::blob
-        kagome::polkadot_trie_db
-        kagome::polkadot_trie_codec
+        kagome::trie_storage
+        kagome::polkadot_codec
         kagome::polkadot_trie
         kagome::blake2
         kagome::keccak

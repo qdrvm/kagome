@@ -3,13 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
-
 #include <gtest/gtest.h>
 
 #include "core/runtime/runtime_test.hpp"
-#include "mock/core/storage/trie/trie_db_mock.hpp"
 #include "extensions/impl/extension_impl.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
+#include "runtime/binaryen/runtime_api/block_builder_impl.hpp"
 #include "runtime/binaryen/wasm_memory_impl.hpp"
 #include "testutil/outcome.hpp"
 
@@ -21,7 +20,7 @@ using kagome::primitives::InherentData;
 using kagome::runtime::BlockBuilder;
 using kagome::runtime::binaryen::BlockBuilderImpl;
 using kagome::runtime::binaryen::WasmMemoryImpl;
-using kagome::storage::trie::TrieDbMock;
+using kagome::storage::trie::TrieStorageMock;
 
 class BlockBuilderApiTest : public RuntimeTest {
  public:

@@ -5,9 +5,9 @@
 
 #include "blockchain/impl/key_value_block_storage.hpp"
 
-#include "storage/database_error.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "scale/scale.hpp"
+#include "storage/database_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain,
                             KeyValueBlockStorage::Error,
@@ -47,7 +47,7 @@ namespace kagome::blockchain {
   KeyValueBlockStorage::create(
       common::Buffer state_root,
       const std::shared_ptr<storage::BufferStorage> &storage,
-      const std::shared_ptr<crypto::Hasher>& hasher,
+      const std::shared_ptr<crypto::Hasher> &hasher,
       const BlockHandler &on_finalized_block_found) {
     auto block_storage = std::make_shared<KeyValueBlockStorage>(
         KeyValueBlockStorage(storage, hasher));
