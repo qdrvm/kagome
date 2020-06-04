@@ -5,5 +5,6 @@
 
 add_subdirectory(client)
 add_subdirectory(service/author)
+add_subdirectory(service/chain)
 add_subdirectory(service/state)
 add_subdirectory(transport)

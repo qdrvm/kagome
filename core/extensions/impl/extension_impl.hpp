@@ -12,7 +12,6 @@
 #include "extensions/impl/memory_extension.hpp"
 #include "extensions/impl/misc_extension.hpp"
 #include "extensions/impl/storage_extension.hpp"
-#include "storage/trie/trie_db.hpp"
 
 namespace kagome::extensions {
   /**
@@ -22,7 +21,8 @@ namespace kagome::extensions {
    public:
     ExtensionImpl() = delete;
     ExtensionImpl(const std::shared_ptr<runtime::WasmMemory> &memory,
-                  std::shared_ptr<storage::trie::TrieDb> db);
+                  std::shared_ptr<storage::trie::TrieBatch> storage_batch,
+                  std::shared_ptr<storage::changes_trie::ChangesTracker> tracker);
 
     ~ExtensionImpl() override = default;
 
@@ -65,7 +65,6 @@ namespace kagome::extensions {
 
     runtime::SizeType ext_storage_changes_root(
         runtime::WasmPointer parent_hash_data,
-        runtime::SizeType parent_hash_len,
         runtime::WasmPointer result) override;
 
     void ext_storage_root(runtime::WasmPointer result) const override;
@@ -126,7 +125,7 @@ namespace kagome::extensions {
 
    private:
     std::shared_ptr<runtime::WasmMemory> memory_;
-    std::shared_ptr<storage::trie::TrieDb> db_;
+    std::shared_ptr<storage::trie::TrieBatch> storage_batch_;
 
     CryptoExtension crypto_ext_;
     IOExtension io_ext_;

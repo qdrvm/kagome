@@ -11,6 +11,7 @@ namespace kagome::runtime::binaryen {
       : RuntimeApi(runtime_manager) {}
 
   outcome::result<void> OffchainWorkerImpl::offchain_worker(BlockNumber bn) {
-    return execute<void>("OffchainWorkerApi_offchain_worker", bn);
+    return execute<void>(
+        "OffchainWorkerApi_offchain_worker", CallPersistency::EPHEMERAL, bn);
   }
 }  // namespace kagome::runtime::binaryen

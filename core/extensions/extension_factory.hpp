@@ -8,9 +8,13 @@
 
 #include "extensions/extension.hpp"
 
+#include "storage/trie/trie_batches.hpp"
+
 namespace kagome::extensions {
 
-  // Creates extension containing provided wasm memory
+  /**
+   * Creates extension containing provided wasm memory
+   */
   class ExtensionFactory {
    public:
     virtual ~ExtensionFactory() = default;
@@ -19,7 +23,8 @@ namespace kagome::extensions {
      * Takes \param memory and creates \return extension using this memory
      */
     virtual std::shared_ptr<Extension> createExtension(
-        std::shared_ptr<runtime::WasmMemory> memory) const = 0;
+        std::shared_ptr<runtime::WasmMemory> memory,
+        std::shared_ptr<storage::trie::TrieBatch> storage) const = 0;
   };
 
 }  // namespace kagome::extensions

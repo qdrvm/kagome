@@ -23,7 +23,7 @@ namespace kagome::consensus {
   BabeImpl::BabeImpl(
       std::shared_ptr<BabeLottery> lottery,
       std::shared_ptr<BlockExecutor> block_executor,
-      std::shared_ptr<storage::trie::TrieDb> trie_db,
+      std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<EpochStorage> epoch_storage,
       std::shared_ptr<primitives::BabeConfiguration> configuration,
       std::shared_ptr<authorship::Proposer> proposer,
@@ -35,7 +35,7 @@ namespace kagome::consensus {
       std::unique_ptr<clock::Timer> timer)
       : lottery_{std::move(lottery)},
         block_executor_{std::move(block_executor)},
-        trie_db_{std::move(trie_db)},
+        trie_storage_{std::move(trie_storage)},
         epoch_storage_{std::move(epoch_storage)},
         genesis_configuration_{std::move(configuration)},
         proposer_{std::move(proposer)},
@@ -48,7 +48,7 @@ namespace kagome::consensus {
         log_{common::createLogger("BABE")} {
     BOOST_ASSERT(lottery_);
     BOOST_ASSERT(epoch_storage_);
-    BOOST_ASSERT(trie_db_);
+    BOOST_ASSERT(trie_storage_);
     BOOST_ASSERT(proposer_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(gossiper_);
@@ -124,13 +124,7 @@ namespace kagome::consensus {
         // to have weights of the authorities and to get it we need to have the
         // latest state of a blockchain
 
-        // add new block header and synchronize missing blocks with their bodies
-        if (auto add_res = block_tree_->addBlockHeader(announce.header);
-            not add_res) {
-          log_->info("Could not apply block number {}, reason {}",
-                     announce.header.number,
-                     add_res.error().message());
-        }
+        // synchronize missing blocks with their bodies
         log_->info("Catching up to block number: {}", announce.header.number);
         current_state_ = BabeState::CATCHING_UP;
         block_executor_->requestBlocks(
@@ -257,8 +251,6 @@ namespace kagome::consensus {
     // build a block to be announced
     log_->info("Obtained slot leadership");
 
-    auto state_before_new_block = trie_db_->getRootHash();
-
     primitives::InherentData inherent_data;
     auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
                    clock_->now().time_since_epoch())
@@ -276,7 +268,7 @@ namespace kagome::consensus {
     }
 
     auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
-    log_->debug("Babe builds block on top of block with number {} and hash {}",
+    log_->info("Babe builds block on top of block with number {} and hash {}",
                 best_block_number,
                 best_block_hash);
 
@@ -323,12 +315,6 @@ namespace kagome::consensus {
       log_->warn(
           "Block was not built in time. Slot has finished. If you are "
           "executing in debug mode, consider to rebuild in release");
-      // rollback to the previous state
-      if (not trie_db_->resetState(state_before_new_block)) {
-        log_->error(
-            "State could not be reset. Impossible behaviour as this state "
-            "should have existed before propose");
-      }
       return;
     }
     // add block to the block tree

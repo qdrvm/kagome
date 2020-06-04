@@ -16,6 +16,8 @@ namespace kagome::runtime::binaryen {
   TaggedTransactionQueueImpl::validate_transaction(
       const primitives::Extrinsic &ext) {
     return execute<TransactionValidity>(
-        "TaggedTransactionQueue_validate_transaction", ext);
+        "TaggedTransactionQueue_validate_transaction",
+        CallPersistency::EPHEMERAL,
+        ext);
   }
 }  // namespace kagome::runtime::binaryen

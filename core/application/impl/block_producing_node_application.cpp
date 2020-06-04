@@ -32,46 +32,60 @@ namespace kagome::application {
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
+    app_state_manager_ = injector_.create<std::shared_ptr<AppStateManager>>();
+
     io_context_ = injector_.create<sptr<boost::asio::io_context>>();
     config_storage_ = injector_.create<sptr<ConfigurationStorage>>();
     key_storage_ = injector_.create<sptr<KeyStorage>>();
     clock_ = injector_.create<sptr<clock::SystemClock>>();
     babe_ = injector_.create<sptr<Babe>>();
     router_ = injector_.create<sptr<network::Router>>();
+
+    rpc_context_ = injector_.create<sptr<api::RpcContext>>();
+    rpc_thread_pool_ = injector_.create<sptr<api::RpcThreadPool>>();
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 
   void BlockProducingNodeApplication::run() {
-    jrpc_api_service_->start();
+    logger_->info("Start as {} with PID {}", typeid(*this).name(), getpid());
 
-    // if we are the first peer in the network, then we get genesis epoch info
-    // and start block production
-    if (is_genesis_epoch_) {
-      // starts block production event loop
-      babe_->runGenesisEpoch();
-    }
+    app_state_manager_->atLaunch([this] { jrpc_api_service_->start(); });
 
-    // execute listeners
-    io_context_->post([this] {
-      const auto &current_peer_info =
-          injector_.template create<libp2p::peer::PeerInfo>();
-      auto &host = injector_.template create<libp2p::Host &>();
-      for (const auto &ma : current_peer_info.addresses) {
-        auto listen = host.listen(ma);
-        if (not listen) {
-          logger_->error("Cannot listen address {}. Error: {}",
-                         ma.getStringAddress(),
-                         listen.error().message());
-          std::exit(1);
-        }
+    app_state_manager_->atLaunch([this] {
+      // if we are the first peer in the network, then we get genesis epoch info
+      // and start block production
+      if (is_genesis_epoch_) {
+        // starts block production event loop
+        babe_->runGenesisEpoch();
       }
-      this->router_->init();
     });
 
-    io_context_->run();
-  }
+    app_state_manager_->atLaunch([this] {
+      // execute listeners
+      io_context_->post([this] {
+        const auto &current_peer_info =
+            injector_.template create<libp2p::peer::PeerInfo>();
+        auto &host = injector_.template create<libp2p::Host &>();
+        for (const auto &ma : current_peer_info.addresses) {
+          auto listen = host.listen(ma);
+          if (not listen) {
+            logger_->error("Cannot listen address {}. Error: {}",
+                           ma.getStringAddress(),
+                           listen.error().message());
+            std::exit(1);
+          }
+        }
+        this->router_->init();
+      });
+    });
 
-  void BlockProducingNodeApplication::shutdown() {
-    io_context_->stop();
+    app_state_manager_->atLaunch([ctx{io_context_}] {
+      std::thread asio_runner([ctx{ctx}] { ctx->run(); });
+      asio_runner.detach();
+    });
+
+    app_state_manager_->atShutdown([ctx{io_context_}] { ctx->stop(); });
+
+    app_state_manager_->run();
   }
 }  // namespace kagome::application

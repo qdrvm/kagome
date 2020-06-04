@@ -15,8 +15,10 @@ target_link_libraries(blockchain_common
     buffer
     database_error
     in_memory_storage
-    polkadot_trie_db
-    trie_db_backend
+    trie_storage
+    trie_storage_backend
+    polkadot_trie
+    polkadot_codec
     primitives
     )
 

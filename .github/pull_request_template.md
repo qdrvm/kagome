@@ -6,6 +6,9 @@
 <!-- * All new code must have code coverage above 70% (https://docs.codecov.io/docs/about-code-coverage). -->
 <!-- * Branch must be rebased onto base branch (https://soramitsu.atlassian.net/wiki/spaces/IS/pages/11173889/Rebase+and+merge+guide). -->
 
+### Jira task id
+
+<!-- Id of the task from Jira. Example: PRE-42. If there is no corresponding task, then remove this field -->
 
 ### Description of the Change
 
@@ -21,10 +24,10 @@
 <!-- What are the possible side-effects or negative impacts of the code change? -->
 <!-- If no drawbacks, explicitly mention this (write None) -->
 
-### Usage Examples or Tests *[optional]*
+### Usage Examples or Tests <!-- Optional -->
 
 <!-- Point reviewers to the test, code example or documentation which shows usage example of this feature -->
 
-### Alternate Designs *[optional]*
+### Alternate Designs <!-- Optional -->
 
 <!-- Explain what other alternates were considered and why the proposed version was selected -->
