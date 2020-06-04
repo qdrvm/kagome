@@ -71,8 +71,8 @@ namespace {
 
 TEST_P(UnhexNumber32Test, Unhex32Success) {
   auto &&[hex, val] = GetParam();
-  EXPECT_OUTCOME_TRUE(decimal, unhexNumber<uint32_t>(hex));
-  EXPECT_EQ(decimal, val);
+  EXPECT_OUTCOME_SUCCESS(decimal, unhexNumber<uint32_t>(hex));
+  EXPECT_EQ(decimal.value(), val);
 }
 
 INSTANTIATE_TEST_CASE_P(UnhexNumberTestCases,
@@ -82,12 +82,14 @@ INSTANTIATE_TEST_CASE_P(UnhexNumberTestCases,
                                           makePair("0xbc614e", 12345678)));
 TEST(UnhexNumberTest, Overflow) {
   std::string encoded = "0x01FF";
-  EXPECT_OUTCOME_ERROR(kagome::common::UnhexError::VALUE_OUT_OF_RANGE,
-                       unhexNumber<uint8_t>(encoded));
+  EXPECT_OUTCOME_ERROR(res,
+                       unhexNumber<uint8_t>(encoded),
+                       kagome::common::UnhexError::VALUE_OUT_OF_RANGE);
 }
 
 TEST(UnhexNumberTest, WrongFormat) {
   std::string encoded = "64";
-  EXPECT_OUTCOME_ERROR(kagome::common::UnhexError::MISSING_0X_PREFIX,
-                       unhexNumber<uint8_t>(encoded));
+  EXPECT_OUTCOME_ERROR(res,
+                       unhexNumber<uint8_t>(encoded),
+                       kagome::common::UnhexError::MISSING_0X_PREFIX);
 }
