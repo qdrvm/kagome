@@ -77,7 +77,7 @@ jobs:
             SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
             GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            BRANCH_NAME: ${{ github.head_ref }}
+            BRANCH_NAME: ${{ github.ref }}
           run: ./housekeeping/sonar.sh
 
   push:
