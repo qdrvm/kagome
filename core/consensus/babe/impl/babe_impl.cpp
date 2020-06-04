@@ -59,8 +59,12 @@ namespace kagome::consensus {
     NextEpochDescriptor init_epoch_desc;
     init_epoch_desc.randomness = genesis_configuration_->randomness;
     init_epoch_desc.authorities = genesis_configuration_->genesis_authorities;
-    BOOST_ASSERT(!!epoch_storage_->addEpochDescriptor(0, init_epoch_desc));
-    BOOST_ASSERT(!!epoch_storage_->addEpochDescriptor(1, init_epoch_desc));
+    [[maybe_unused]]
+    bool init_epoch_desc_ok =
+      !!epoch_storage_->addEpochDescriptor(0, init_epoch_desc) &&
+      !!epoch_storage_->addEpochDescriptor(1, init_epoch_desc);
+
+	  BOOST_ASSERT(init_epoch_desc_ok);
   }
 
   void BabeImpl::start() {
