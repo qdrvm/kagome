@@ -1,7 +1,7 @@
 #!/bin/bash -xe
 
-buildDir=$1
-token=$2
+buildDir=${BUILD_DIR:-${1:?BUILD_DIR variable or script arg is not defined}}
+token=${CODECOV_TOKEN:-${2:?CODECOV_TOKEN variable or script arg is not defined}}
 
 which git
 

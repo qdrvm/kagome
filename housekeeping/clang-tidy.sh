@@ -16,7 +16,7 @@ function get_files(){
     fi
 }
 
-BUILD_DIR=$(get_abs_path $1)
+BUILD_DIR=$(get_abs_path ${BUILD_DIR:-${1:?BUILD_DIR variable or script arg is not defined}})
 cd $(dirname $0)/..
 
 # list of cpp files changed in this branch (in comparison to master); tests are ignored

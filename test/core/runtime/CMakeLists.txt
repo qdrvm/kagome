@@ -51,10 +51,12 @@ addtest(wasm_executor_test
 target_link_libraries(wasm_executor_test
     binaryen_wasm_executor
     basic_wasm_provider
-    polkadot_trie_db
-    trie_db_backend
+    trie_storage
+    trie_storage_backend
     in_memory_storage
     extension_factory
+    polkadot_trie_factory
+    trie_serializer
     )
 
 addtest(parachain_test
@@ -71,7 +73,7 @@ addtest(grandpa_test
     )
 target_link_libraries(grandpa_test
     binaryen_grandpa_api
-    trie_db_backend
+    trie_storage_backend
     basic_wasm_provider
     extension_factory
     )
@@ -83,6 +85,7 @@ target_link_libraries(metadata_test
     binaryen_metadata_api
     basic_wasm_provider
     extension_factory
+    trie_storage
     )
 
 addtest(offchain_worker_test
@@ -91,7 +94,7 @@ addtest(offchain_worker_test
 target_link_libraries(offchain_worker_test
     binaryen_offchain_worker_api
     basic_wasm_provider
-    trie_db_backend
+    trie_storage_backend
     extension_factory
     )
 

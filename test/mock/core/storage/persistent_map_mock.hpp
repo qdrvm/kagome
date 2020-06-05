@@ -9,6 +9,7 @@
 #include <gmock/gmock.h>
 
 #include "storage/face/batchable.hpp"
+#include "storage/face/generic_storage.hpp"
 
 namespace kagome::storage::face {
   template <typename K, typename V>
@@ -20,6 +21,8 @@ namespace kagome::storage::face {
     MOCK_CONST_METHOD1_T(get, outcome::result<V>(const K &));
 
     MOCK_CONST_METHOD1_T(contains, bool(const K &));
+
+    MOCK_CONST_METHOD0_T(empty, bool());
 
     MOCK_METHOD2_T(put, outcome::result<void>(const K &, const V &));
 

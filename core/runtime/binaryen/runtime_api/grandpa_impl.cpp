@@ -22,18 +22,20 @@ namespace kagome::runtime::binaryen {
   outcome::result<boost::optional<ScheduledChange>> GrandpaImpl::pending_change(
       const Digest &digest) {
     return execute<boost::optional<ScheduledChange>>(
-        "GrandpaApi_grandpa_pending_change", digest);
+        "GrandpaApi_grandpa_pending_change",
+        CallPersistency::EPHEMERAL,
+        digest);
   }
 
   outcome::result<boost::optional<ForcedChange>> GrandpaImpl::forced_change(
       const Digest &digest) {
     return execute<boost::optional<ForcedChange>>(
-        "GrandpaApi_grandpa_forced_change", digest);
+        "GrandpaApi_grandpa_forced_change", CallPersistency::EPHEMERAL, digest);
   }
 
   outcome::result<std::vector<Authority>> GrandpaImpl::authorities(
       const primitives::BlockId &block_id) {
-    return execute<std::vector<Authority>>("GrandpaApi_grandpa_authorities",
-                                           block_id);
+    return execute<std::vector<Authority>>(
+        "GrandpaApi_grandpa_authorities", CallPersistency::EPHEMERAL, block_id);
   }
 }  // namespace kagome::runtime::binaryen

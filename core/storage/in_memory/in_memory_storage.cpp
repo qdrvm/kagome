@@ -36,6 +36,10 @@ namespace kagome::storage {
     return storage.find(key.toHex()) != storage.end();
   }
 
+  bool InMemoryStorage::empty() const {
+    return storage.empty();
+  }
+
   outcome::result<void> InMemoryStorage::remove(const Buffer &key) {
     storage.erase(key.toHex());
     return outcome::success();

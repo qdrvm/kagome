@@ -84,6 +84,11 @@ namespace kagome::common {
     bool operator==(gsl::span<const uint8_t> s) const noexcept;
 
     /**
+     * @brief Lexicographical comparison of two buffers
+     */
+    bool operator<(const Buffer &b) const noexcept;
+
+    /**
      * @brief Iterator, which points to begin of this buffer.
      */
     iterator begin();

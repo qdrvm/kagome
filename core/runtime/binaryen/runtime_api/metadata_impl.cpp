@@ -13,6 +13,7 @@ namespace kagome::runtime::binaryen {
       : RuntimeApi(runtime_manager) {}
 
   outcome::result<OpaqueMetadata> MetadataImpl::metadata() {
-    return execute<OpaqueMetadata>("Metadata_metadata");
+    return execute<OpaqueMetadata>("Metadata_metadata",
+                                   CallPersistency::EPHEMERAL);
   }
 }  // namespace kagome::runtime::binaryen

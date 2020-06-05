@@ -34,6 +34,8 @@ namespace kagome::storage {
 
     bool contains(const common::Buffer &key) const override;
 
+    bool empty() const override;
+
     outcome::result<void> remove(const common::Buffer &key) override;
 
     std::unique_ptr<

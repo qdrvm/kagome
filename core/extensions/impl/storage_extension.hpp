@@ -3,14 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef KAGOME_STORAGE_EXTENSION_HPP
-#define KAGOME_STORAGE_EXTENSION_HPP
+#ifndef KAGOME_EXTENSIONS_STORAGE_EXTENSION_HPP
+#define KAGOME_EXTENSIONS_STORAGE_EXTENSION_HPP
 
 #include <cstdint>
 
 #include "common/logger.hpp"
 #include "runtime/wasm_memory.hpp"
-#include "storage/trie/trie_db.hpp"
+#include "storage/changes_trie/changes_tracker.hpp"
+#include "storage/trie/trie_batches.hpp"
 
 namespace kagome::extensions {
   /**
@@ -18,8 +19,10 @@ namespace kagome::extensions {
    */
   class StorageExtension {
    public:
-    StorageExtension(std::shared_ptr<storage::trie::TrieDb> db,
-                     std::shared_ptr<runtime::WasmMemory> memory);
+    StorageExtension(
+        std::shared_ptr<storage::trie::TrieBatch> storage_batch,
+        std::shared_ptr<runtime::WasmMemory> memory,
+        std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker);
 
     // -------------------------Data storage--------------------------
 
@@ -79,10 +82,8 @@ namespace kagome::extensions {
     /**
      * @see Extension::ext_storage_changes_root
      */
-    runtime::SizeType ext_storage_changes_root(
-        runtime::WasmPointer parent_hash_data,
-        runtime::SizeType parent_hash_len,
-        runtime::WasmPointer result);
+    runtime::SizeType ext_storage_changes_root(runtime::WasmPointer parent_hash,
+                                               runtime::WasmPointer result);
 
     /**
      * @see Extension::ext_storage_root
@@ -105,12 +106,13 @@ namespace kagome::extensions {
                                         runtime::SizeType offset,
                                         runtime::SizeType max_length) const;
 
-    std::shared_ptr<storage::trie::TrieDb> db_;
+    std::shared_ptr<storage::trie::TrieBatch> storage_batch_;
     std::shared_ptr<runtime::WasmMemory> memory_;
+    std::shared_ptr<storage::changes_trie::ChangesTracker> changes_tracker_;
     common::Logger logger_;
 
     constexpr static auto kDefaultLoggerTag = "WASM Runtime [StorageExtension]";
   };
 }  // namespace kagome::extensions
 
-#endif  // KAGOME_STORAGE_EXTENSION_HPP
+#endif  // KAGOME_STORAGE_EXTENSIONS_EXTENSION_HPP

@@ -8,7 +8,7 @@
 
 #include "runtime/wasm_provider.hpp"
 
-#include "storage/trie/trie_db.hpp"
+#include "storage/trie/trie_storage.hpp"
 
 namespace kagome::runtime {
 
@@ -21,12 +21,12 @@ namespace kagome::runtime {
     ~StorageWasmProvider() override = default;
 
     explicit StorageWasmProvider(
-        std::shared_ptr<storage::trie::TrieDb> storage);
+        std::shared_ptr<const storage::trie::TrieStorage> storage);
 
     const common::Buffer &getStateCode() const override;
 
    private:
-    std::shared_ptr<storage::trie::TrieDb> storage_;
+    std::shared_ptr<const storage::trie::TrieStorage> storage_;
     mutable common::Buffer state_code_;
     mutable common::Buffer last_state_root_;
   };

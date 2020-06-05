@@ -108,6 +108,10 @@ namespace kagome::common {
     return std::equal(data_.begin(), data_.end(), s.begin(), s.end());
   }
 
+  bool Buffer::operator<(const Buffer &b) const noexcept {
+    return std::lexicographical_compare(begin(), end(), b.begin(), b.end());
+  }
+
   template <typename T>
   Buffer &Buffer::putRange(const T &begin, const T &end) {
     static_assert(sizeof(*begin) == 1);

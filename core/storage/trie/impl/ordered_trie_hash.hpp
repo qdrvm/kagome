@@ -10,7 +10,7 @@
 #include "crypto/hasher.hpp"
 #include "scale/scale.hpp"
 #include "storage/trie/impl/polkadot_codec.hpp"
-#include "storage/trie/impl/polkadot_trie.hpp"
+#include "storage/trie/impl/polkadot_trie_impl.hpp"
 
 namespace kagome::storage::trie {
 
@@ -24,7 +24,7 @@ namespace kagome::storage::trie {
   template <typename It>
   outcome::result<common::Buffer> calculateOrderedTrieHash(const It &begin,
                                                            const It &end) {
-    PolkadotTrie trie;
+    PolkadotTrieImpl trie;
     PolkadotCodec codec;
     // empty root
     if (begin == end) {
