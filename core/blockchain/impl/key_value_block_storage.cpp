@@ -36,9 +36,6 @@ namespace kagome::blockchain {
   using Buffer = common::Buffer;
   using Prefix = prefix::Prefix;
 
-  const Buffer KeyValueBlockStorage::LAST_FINALIZED_BLOCK_HASH_LOOKUP_KEY =
-      Buffer{}.put(KeyValueBlockStorage::LastFinalizedBlockHashLookUpKey);
-
   KeyValueBlockStorage::KeyValueBlockStorage(
       std::shared_ptr<storage::BufferStorage> storage,
       std::shared_ptr<crypto::Hasher> hasher)
