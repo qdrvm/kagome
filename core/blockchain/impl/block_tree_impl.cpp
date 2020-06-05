@@ -121,12 +121,12 @@ namespace kagome::blockchain {
         std::make_shared<TreeNode>(hash_res, header.number, nullptr, true);
     auto meta = std::make_shared<TreeMeta>(*tree);
 
-    return std::make_shared<BlockTreeImpl>(
-        std::forward<BlockTreeImpl>({std::move(header_repo),
-                                     std::move(storage),
-                                     std::move(tree),
-                                     std::move(meta),
-                                     std::move(hasher)}));
+	  BlockTreeImpl block_tree{std::move(header_repo),
+	                           std::move(storage),
+	                           std::move(tree),
+	                           std::move(meta),
+	                           std::move(hasher)};
+	  return std::make_shared<BlockTreeImpl>(std::move(block_tree));
   }
 
   BlockTreeImpl::BlockTreeImpl(
