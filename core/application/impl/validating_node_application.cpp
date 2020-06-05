@@ -52,7 +52,7 @@ namespace kagome::application {
 
     app_state_manager_->atLaunch([this] { jrpc_api_service_->start(); });
 
-	  // starts block production
+    // starts block production
     app_state_manager_->atLaunch([this] { babe_->start(); });
 
     // starts finalization event loop

@@ -60,8 +60,8 @@ namespace kagome::consensus {
     init_epoch_desc.randomness = genesis_configuration_->randomness;
     init_epoch_desc.authorities = genesis_configuration_->genesis_authorities;
     [[maybe_unused]] bool init_epoch_desc_ok =
-        !!epoch_storage_->addEpochDescriptor(0, init_epoch_desc)
-        && !!epoch_storage_->addEpochDescriptor(1, init_epoch_desc);
+        epoch_storage_->addEpochDescriptor(0, init_epoch_desc).has_value()
+        && epoch_storage_->addEpochDescriptor(1, init_epoch_desc).has_value();
 
     BOOST_ASSERT(init_epoch_desc_ok);
   }
@@ -72,7 +72,7 @@ namespace kagome::consensus {
                 best_block_number,
                 best_block_hash);
 
-    if (__builtin_expect(best_block_number == 0, false)) {
+    if (best_block_number == 0) {
       auto epoch_digest_res = epoch_storage_->getEpochDescriptor(0);
       if (not epoch_digest_res) {
         log_->error("Last epoch digest does not exist for initial epoch");
@@ -98,7 +98,6 @@ namespace kagome::consensus {
 	    //  variant #2
       epoch.start_slot = 0;
       auto starting_slot_finish_time = std::chrono::system_clock::now()
-                                       + slot_duration * epoch.start_slot
                                        + slot_duration;
       // clang-format on
 
@@ -154,13 +153,7 @@ namespace kagome::consensus {
         // to have weights of the authorities and to get it we need to have
         // the latest state of a blockchain
 
-        // add new block header and synchronize missing blocks with their bodies
-        if (auto add_res = block_tree_->addBlockHeader(announce.header);
-            not add_res) {
-          log_->info("Could not apply block number {}, reason {}",
-                     announce.header.number,
-                     add_res.error().message());
-        }
+        // synchronize missing blocks with their bodies
         log_->info("Catching up to block number: {}", announce.header.number);
         current_state_ = BabeState::CATCHING_UP;
         block_executor_->requestBlocks(

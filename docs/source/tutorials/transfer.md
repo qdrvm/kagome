@@ -67,7 +67,7 @@ rm -rf ldb
 
 For this tutorial you can start single node network as follows:
 
-`kagome_validating --genesis config/localchain.json --keystore config/localkeystore.json -l ldb -e`
+`kagome_validating --genesis config/localchain.json --keystore config/localkeystore.json -l ldb`
 
 You should see the log messages notifying about produced and finalized the blocks. 
 
