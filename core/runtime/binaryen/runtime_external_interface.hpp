@@ -11,7 +11,7 @@
 #include "common/logger.hpp"
 #include "extensions/extension_factory.hpp"
 #include "runtime/wasm_memory.hpp"
-#include "storage/trie/trie_batches.hpp"
+#include "runtime/trie_storage_provider.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -19,7 +19,7 @@ namespace kagome::runtime::binaryen {
    public:
     explicit RuntimeExternalInterface(
         const std::shared_ptr<extensions::ExtensionFactory>& extension_factory,
-        std::shared_ptr<storage::trie::TrieBatch> storage);
+        std::shared_ptr<TrieStorageProvider> storage_provider);
 
     wasm::Literal callImport(wasm::Function *import,
                              wasm::LiteralList &arguments) override;

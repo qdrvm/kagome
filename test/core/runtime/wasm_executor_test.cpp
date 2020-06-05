@@ -15,6 +15,7 @@
 #include "extensions/impl/extension_factory_impl.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "runtime/binaryen/runtime_manager.hpp"
+#include "runtime/common/trie_storage_provider_impl.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/polkadot_codec.hpp"
 #include "storage/trie/impl/polkadot_trie_factory_impl.hpp"
@@ -25,6 +26,8 @@
 #include "testutil/runtime/common/basic_wasm_provider.hpp"
 
 using kagome::common::Buffer;
+using kagome::runtime::TrieStorageProvider;
+using kagome::runtime::TrieStorageProviderImpl;
 using kagome::runtime::binaryen::RuntimeManager;
 using kagome::runtime::binaryen::WasmExecutor;
 using kagome::storage::changes_trie::ChangesTrackerMock;
@@ -60,6 +63,9 @@ class WasmExecutorTest : public ::testing::Test {
                       trie_factory, codec, serializer, boost::none)
                       .value();
 
+    storage_provider_ =
+        std::make_shared<TrieStorageProviderImpl>(std::move(trieDb));
+
     auto extension_factory =
         std::make_shared<kagome::extensions::ExtensionFactoryImpl>(
             std::make_shared<ChangesTrackerMock>());
@@ -69,7 +75,7 @@ class WasmExecutorTest : public ::testing::Test {
     runtime_manager_ =
         std::make_shared<RuntimeManager>(std::move(wasm_provider),
                                          std::move(extension_factory),
-                                         std::move(trieDb),
+                                         storage_provider_,
                                          std::move(hasher));
 
     executor_ = std::make_shared<WasmExecutor>();
@@ -78,7 +84,7 @@ class WasmExecutorTest : public ::testing::Test {
  protected:
   std::shared_ptr<WasmExecutor> executor_;
   std::shared_ptr<RuntimeManager> runtime_manager_;
-  std::shared_ptr<TrieStorage> storage_;
+  std::shared_ptr<TrieStorageProvider> storage_provider_;
 };
 
 /**

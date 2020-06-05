@@ -20,7 +20,7 @@ namespace kagome::extensions {
 
     std::shared_ptr<Extension> createExtension(
         std::shared_ptr<runtime::WasmMemory> memory,
-        std::shared_ptr<storage::trie::TrieBatch> storage_batch) const override;
+        std::shared_ptr<runtime::TrieStorageProvider> storage_provider) const override;
 
    private:
     std::shared_ptr<storage::changes_trie::ChangesTracker>
