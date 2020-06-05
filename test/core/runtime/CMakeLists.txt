@@ -53,6 +53,7 @@ target_link_libraries(wasm_executor_test
     basic_wasm_provider
     trie_storage
     trie_storage_backend
+    trie_storage_provider
     in_memory_storage
     extension_factory
     polkadot_trie_factory

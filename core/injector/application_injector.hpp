@@ -71,6 +71,7 @@
 #include "runtime/binaryen/runtime_api/parachain_host_impl.hpp"
 #include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
 #include "runtime/common/storage_wasm_provider.hpp"
+#include "runtime/common/trie_storage_provider_impl.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/predefined_keys.hpp"
@@ -359,9 +360,8 @@ namespace kagome::injector {
       common::raise(batch.error());
     }
     for (const auto &[key, val] : genesis_raw_configs) {
-      spdlog::debug("Key: {}, Val: {}",
-                    key.toHex(),
-                    val.toHex().substr(0, 200));
+      spdlog::debug(
+          "Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
       if (auto res = batch.value()->put(key, val); not res) {
         common::raise(res.error());
       }
@@ -463,8 +463,7 @@ namespace kagome::injector {
     }
     auto config = configuration_res.value();
     config.leadership_rate = {1, 2};
-    initialized = std::make_shared<primitives::BabeConfiguration>(
-        config);
+    initialized = std::make_shared<primitives::BabeConfiguration>(config);
     return *initialized;
   };
 
@@ -559,6 +558,7 @@ namespace kagome::injector {
         di::bind<runtime::Core>.template to<runtime::binaryen::CoreImpl>(),
         di::bind<runtime::BabeApi>.template to<runtime::binaryen::BabeApiImpl>(),
         di::bind<runtime::BlockBuilder>.template to<runtime::binaryen::BlockBuilderImpl>(),
+        di::bind<runtime::TrieStorageProvider>.template to<runtime::TrieStorageProviderImpl>(),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),

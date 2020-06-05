@@ -10,6 +10,7 @@
 #include "core/extensions/mock_extension.hpp"
 #include "core/extensions/mock_extension_factory.hpp"
 #include "core/runtime/mock_memory.hpp"
+#include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 
@@ -21,6 +22,7 @@ using kagome::extensions::MockExtensionFactory;
 using kagome::runtime::MockMemory;
 using kagome::runtime::SizeType;
 using kagome::runtime::WasmPointer;
+using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::binaryen::RuntimeExternalInterface;
 using kagome::storage::trie::PersistentTrieBatchMock;
 using wasm::Element;
@@ -58,7 +60,7 @@ class REITest : public ::testing::Test {
     memory_ = std::make_shared<MockMemory>();
     extension_ = std::make_shared<MockExtension>();
     extension_factory_ = std::make_shared<MockExtensionFactory>();
-    storage_ = std::make_shared<PersistentTrieBatchMock>();
+    storage_provider_ = std::make_shared<TrieStorageProviderMock>();
     EXPECT_CALL(*extension_factory_, createExtension(_, _))
         .WillRepeatedly(Return(extension_));
   }
@@ -77,7 +79,7 @@ class REITest : public ::testing::Test {
     SExpressionWasmBuilder builder(wasm, *root[0]);
     EXPECT_CALL(*extension_, memory()).WillRepeatedly(Return(memory_));
 
-    TestableExternalInterface rei(extension_factory_, storage_);
+    TestableExternalInterface rei(extension_factory_, storage_provider_);
 
     // interpret module
     ModuleInstance instance(wasm, &rei);
@@ -87,7 +89,7 @@ class REITest : public ::testing::Test {
   std::shared_ptr<MockMemory> memory_;
   std::shared_ptr<MockExtension> extension_;
   std::shared_ptr<MockExtensionFactory> extension_factory_;
-  std::shared_ptr<PersistentTrieBatchMock> storage_;
+  std::shared_ptr<TrieStorageProviderMock> storage_provider_;
 
   // clang-format off
   const std::string wasm_template_ =

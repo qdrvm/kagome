@@ -17,7 +17,7 @@ namespace kagome::extensions {
     MOCK_CONST_METHOD2(createExtension,
                        std::shared_ptr<Extension>(
                            std::shared_ptr<runtime::WasmMemory>,
-                           std::shared_ptr<storage::trie::TrieBatch> storage));
+                           std::shared_ptr<runtime::TrieStorageProvider> storage));
   };
 
 }  // namespace kagome::extensions

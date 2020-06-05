@@ -31,6 +31,7 @@ class BlockProduceConsume : public ApplicationTestSuite {
     auto trie_storage =
         getInjector()
             .template create<std::shared_ptr<storage::trie::TrieStorage>>();
+
     auto batch = trie_storage->getPersistentBatch();
     if (not batch) {
       common::raise(batch.error());
@@ -43,6 +44,9 @@ class BlockProduceConsume : public ApplicationTestSuite {
     if (auto res = batch.value()->commit(); not res) {
       common::raise(res.error());
     }
+
+    _storageProvider = getInjector()
+        .template create<std::shared_ptr<runtime::TrieStorageProvider>>();
 
     _trieDb.swap(trie_storage);
   }
@@ -75,6 +79,7 @@ class BlockProduceConsume : public ApplicationTestSuite {
   std::unique_ptr<transaction_pool::TransactionPool> _txPool;
   std::unique_ptr<authorship::Proposer> _proposer;
   std::shared_ptr<storage::trie::TrieStorage> _trieDb;
+  std::shared_ptr<runtime::TrieStorageProvider> _storageProvider;
 
   Buffer _initialState;
   Buffer _afterProduceState;
@@ -171,7 +176,7 @@ outcome::result<Block> BlockProduceConsume::produceBlock(
     auto runtime_manager = std::make_shared<runtime::binaryen::RuntimeManager>(
         std::make_shared<runtime::StorageWasmProvider>(_trieDb),
         std::make_shared<kagome::extensions::ExtensionFactoryImpl>(tracker),
-        _trieDb,
+        _storageProvider,
         _hasher);
 
     auto api = std::make_shared<runtime::binaryen::TaggedTransactionQueueImpl>(
@@ -277,7 +282,7 @@ outcome::result<void> BlockProduceConsume::consumeBlock(const Block &block) {
   auto runtime_manager = std::make_shared<runtime::binaryen::RuntimeManager>(
       std::make_shared<runtime::StorageWasmProvider>(_trieDb),
       std::make_shared<kagome::extensions::ExtensionFactoryImpl>(tracker),
-      _trieDb,
+      _storageProvider,
       _hasher);
 
   std::shared_ptr<blockchain::BlockHeaderRepository> header_repo =

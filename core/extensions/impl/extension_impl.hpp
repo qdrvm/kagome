@@ -21,7 +21,7 @@ namespace kagome::extensions {
    public:
     ExtensionImpl() = delete;
     ExtensionImpl(const std::shared_ptr<runtime::WasmMemory> &memory,
-                  std::shared_ptr<storage::trie::TrieBatch> storage_batch,
+                  std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
                   std::shared_ptr<storage::changes_trie::ChangesTracker> tracker);
 
     ~ExtensionImpl() override = default;
@@ -125,7 +125,7 @@ namespace kagome::extensions {
 
    private:
     std::shared_ptr<runtime::WasmMemory> memory_;
-    std::shared_ptr<storage::trie::TrieBatch> storage_batch_;
+    std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
 
     CryptoExtension crypto_ext_;
     IOExtension io_ext_;
