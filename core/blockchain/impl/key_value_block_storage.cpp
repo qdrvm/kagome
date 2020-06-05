@@ -36,6 +36,9 @@ namespace kagome::blockchain {
   using Buffer = common::Buffer;
   using Prefix = prefix::Prefix;
 
+  const Buffer KeyValueBlockStorage::LAST_FINALIZED_BLOCK_HASH_LOOKUP_KEY =
+      Buffer{}.put(KeyValueBlockStorage::LastFinalizedBlockHashLookUpKey);
+
   KeyValueBlockStorage::KeyValueBlockStorage(
       std::shared_ptr<storage::BufferStorage> storage,
       std::shared_ptr<crypto::Hasher> hasher)
@@ -273,10 +276,7 @@ namespace kagome::blockchain {
 
   outcome::result<primitives::BlockHash>
   KeyValueBlockStorage::getLastFinalizedBlockHash() const {
-    static const common::Buffer lookup_key =
-        common::Buffer{}.put(LookUpKeyOfLastFinalizedBlockHash);
-
-    auto hash_res = storage_->get(lookup_key);
+    auto hash_res = storage_->get(LAST_FINALIZED_BLOCK_HASH_LOOKUP_KEY);
     if (hash_res.has_value()) {
       primitives::BlockHash hash;
       std::copy(hash_res.value().begin(), hash_res.value().end(), hash.begin());
@@ -292,10 +292,7 @@ namespace kagome::blockchain {
 
   outcome::result<void> KeyValueBlockStorage::setLastFinalizedBlockHash(
       const primitives::BlockHash &hash) {
-    static const common::Buffer lookup_key =
-        common::Buffer{}.put(LookUpKeyOfLastFinalizedBlockHash);
-
-    OUTCOME_TRY(storage_->put(lookup_key, Buffer{hash}));
+    OUTCOME_TRY(storage_->put(LAST_FINALIZED_BLOCK_HASH_LOOKUP_KEY, Buffer{hash}));
 
     return outcome::success();
   }

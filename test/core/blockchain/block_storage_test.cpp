@@ -42,9 +42,6 @@ class BlockStorageTest : public testing::Test {
 
   KeyValueBlockStorage::BlockHandler block_handler = [](auto &) {};
 
-  const Buffer lookup_key =
-      Buffer{}.put(KeyValueBlockStorage::LookUpKeyOfLastFinalizedBlockHash);
-
   std::shared_ptr<KeyValueBlockStorage> createWithGenesis() {
     EXPECT_CALL(*hasher, blake2b_256(_))
         // calculate hash of genesis block at check existance of block

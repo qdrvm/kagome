@@ -15,9 +15,11 @@
 namespace kagome::blockchain {
 
   class KeyValueBlockStorage : public BlockStorage {
-   public:
-    static constexpr auto LookUpKeyOfLastFinalizedBlockHash =
+    static constexpr auto LastFinalizedBlockHashLookUpKey =
         ":kagome:last_finalized_block_hash";
+
+   public:
+    static const common::Buffer LAST_FINALIZED_BLOCK_HASH_LOOKUP_KEY;
 
     using BlockHandler = std::function<void(const primitives::Block &)>;
 
