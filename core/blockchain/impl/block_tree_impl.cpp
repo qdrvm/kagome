@@ -111,7 +111,7 @@ namespace kagome::blockchain {
       std::shared_ptr<BlockHeaderRepository> header_repo,
       std::shared_ptr<BlockStorage> storage,
       const primitives::BlockId &last_finalized_block,
-      std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
+      std::shared_ptr<network::ExtrinsicObserver> author_api_observer,
       std::shared_ptr<crypto::Hasher> hasher) {
     // retrieve the block's header: we need data from it
     OUTCOME_TRY(header, storage->getBlockHeader(last_finalized_block));
@@ -123,13 +123,13 @@ namespace kagome::blockchain {
     auto meta = std::make_shared<TreeMeta>(
         decltype(TreeMeta::leaves){tree->block_hash}, *tree, *tree);
 
-    return std::make_shared<BlockTreeImpl>(
-        std::forward<BlockTreeImpl>({std::move(header_repo),
-                                     std::move(storage),
-                                     std::move(tree),
-                                     std::move(meta),
-                                     std::move(transaction_pool),
-                                     std::move(hasher)}));
+    BlockTreeImpl block_tree(std::move(header_repo),
+                             std::move(storage),
+                             std::move(tree),
+                             std::move(meta),
+                             std::move(author_api_observer),
+                             std::move(hasher));
+    return std::make_shared<BlockTreeImpl>(std::move(block_tree));
   }
 
   BlockTreeImpl::BlockTreeImpl(
@@ -137,13 +137,13 @@ namespace kagome::blockchain {
       std::shared_ptr<BlockStorage> storage,
       std::shared_ptr<TreeNode> tree,
       std::shared_ptr<TreeMeta> meta,
-      std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
+      std::shared_ptr<network::ExtrinsicObserver> author_api_observer,
       std::shared_ptr<crypto::Hasher> hasher)
       : header_repo_{std::move(header_repo)},
         storage_{std::move(storage)},
         tree_{std::move(tree)},
         tree_meta_{std::move(meta)},
-        transaction_pool_{std::move(transaction_pool)},
+        author_api_observer_{std::move(author_api_observer)},
         hasher_{std::move(hasher)} {}
 
   outcome::result<void> BlockTreeImpl::addBlockHeader(
@@ -515,10 +515,12 @@ namespace kagome::blockchain {
 
     // trying to return back extrinsics to transaction pool
     for (auto &&extrinsic : extrinsics) {
-      // TODO(xDimon):
-      //  - validate
-      //  - make transaction
-      //  - submit to pool
+      auto result = author_api_observer_->onTxMessage(std::move(extrinsic));
+      if (result) {
+        log_->debug("Reapplied tx {}", result.value());
+      } else {
+        log_->debug("Skipped tx: {}", result.error().message());
+      }
     }
 
     return outcome::success();

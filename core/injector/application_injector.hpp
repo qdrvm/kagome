@@ -283,8 +283,8 @@ namespace kagome::injector {
 
     auto &&storage = injector.template create<sptr<blockchain::BlockStorage>>();
 
-    auto &&transaction_pool =
-        injector.template create<sptr<transaction_pool::TransactionPool>>();
+    auto &&author_api_observer =
+        injector.template create<sptr<network::ExtrinsicObserver>>();
 
     // block id is zero for genesis launch
     const primitives::BlockId block_id = 0;
@@ -295,8 +295,9 @@ namespace kagome::injector {
         blockchain::BlockTreeImpl::create(std::move(header_repo),
                                           storage,
                                           block_id,
-                                          std::move(transaction_pool),
+                                          std::move(author_api_observer),
                                           std::move(hasher));
+
     if (!tree) {
       common::raise(tree.error());
     }

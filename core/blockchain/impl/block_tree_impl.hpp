@@ -19,6 +19,7 @@
 #include "blockchain/impl/common.hpp"
 #include "common/logger.hpp"
 #include "crypto/hasher.hpp"
+#include "network/extrinsic_observer.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::blockchain {
@@ -97,7 +98,7 @@ namespace kagome::blockchain {
         std::shared_ptr<BlockHeaderRepository> header_repo,
         std::shared_ptr<BlockStorage> storage,
         const primitives::BlockId &last_finalized_block,
-        std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
+        std::shared_ptr<network::ExtrinsicObserver> author_api_observer,
         std::shared_ptr<crypto::Hasher> hasher);
 
     ~BlockTreeImpl() override = default;
@@ -160,7 +161,7 @@ namespace kagome::blockchain {
         std::shared_ptr<BlockStorage> storage,
         std::shared_ptr<TreeNode> tree,
         std::shared_ptr<TreeMeta> meta,
-        std::shared_ptr<transaction_pool::TransactionPool> transaction_pool,
+        std::shared_ptr<network::ExtrinsicObserver> author_api_observer,
         std::shared_ptr<crypto::Hasher> hasher);
 
     /**
@@ -190,7 +191,7 @@ namespace kagome::blockchain {
     std::shared_ptr<TreeNode> tree_;
     std::shared_ptr<TreeMeta> tree_meta_;
 
-    std::shared_ptr<transaction_pool::TransactionPool> transaction_pool_;
+    std::shared_ptr<network::ExtrinsicObserver> author_api_observer_;
 
     std::shared_ptr<crypto::Hasher> hasher_;
     common::Logger log_ = common::createLogger("BlockTreeImpl");

@@ -11,10 +11,11 @@
 #include "blockchain/impl/storage_util.hpp"
 #include "common/blob.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
-#include "mock/core/blockchain/block_header_repository_mock.hpp"
+#include "mock/core/api/service/author/author_api_mock.hpp"
+#include "mock/core/blockchain/block_header_repository_mock.hp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
-#include "mock/core/transaction_pool/transaction_pool_mock.hpp"
+#include "network/impl/extrinsic_observer_impl.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
 #include "scale/scale.hpp"
@@ -39,7 +40,7 @@ struct BlockTreeTest : public testing::Test {
     block_tree_ = BlockTreeImpl::create(header_repo_,
                                         storage_,
                                         kLastFinalizedBlockId,
-                                        transaction_pool_,
+                                        author_api_observer_,
                                         hasher_)
                       .value();
   }
@@ -82,8 +83,9 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<BlockStorageMock> storage_ =
       std::make_shared<BlockStorageMock>();
 
-  std::shared_ptr<transaction_pool::TransactionPool> transaction_pool_ =
-      std::make_shared<transaction_pool::TransactionPoolMock>();
+  std::shared_ptr<network::ExtrinsicObserver> author_api_observer_ =
+      std::make_shared<network::ExtrinsicObserverImpl>(
+          std::make_shared<api::AuthorApiMock>());
 
   std::shared_ptr<crypto::Hasher> hasher_ =
       std::make_shared<crypto::HasherImpl>();
