@@ -10,6 +10,8 @@ add_library(api_service
 target_link_libraries(api_service
     Boost::boost
     logger
+    app_state_manager
+    rpc_thread_pool
     )
 
 add_subdirectory(author)
