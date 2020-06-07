@@ -41,8 +41,6 @@ namespace kagome::application {
     babe_ = injector_.create<sptr<Babe>>();
     router_ = injector_.create<sptr<network::Router>>();
 
-    rpc_context_ = injector_.create<sptr<api::RpcContext>>();
-    rpc_thread_pool_ = injector_.create<sptr<api::RpcThreadPool>>();
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 

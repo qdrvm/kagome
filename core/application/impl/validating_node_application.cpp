@@ -44,8 +44,6 @@ namespace kagome::application {
     grandpa_launcher_ = injector_.create<sptr<GrandpaLauncher>>();
     router_ = injector_.create<sptr<network::Router>>();
 
-    rpc_context_ = injector_.create<sptr<api::RpcContext>>();
-    rpc_thread_pool_ = injector_.create<sptr<api::RpcThreadPool>>();
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 
