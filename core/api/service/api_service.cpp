@@ -9,12 +9,19 @@
 
 namespace kagome::api {
 
-  ApiService::ApiService(std::vector<std::shared_ptr<Listener>> listeners,
-                         std::shared_ptr<JRpcServer> server,
-                         gsl::span<std::shared_ptr<JRpcProcessor>> processors)
-      : listeners_(std::move(listeners)),
+  ApiService::ApiService(
+      std::shared_ptr<application::AppStateManager> app_state_manager,
+      std::shared_ptr<api::RpcThreadPool> thread_pool,
+      std::vector<std::shared_ptr<Listener>> listeners,
+      std::shared_ptr<JRpcServer> server,
+      gsl::span<std::shared_ptr<JRpcProcessor>> processors)
+      : app_state_manager_(std::move(app_state_manager)),
+        thread_pool_(std::move(thread_pool)),
+        listeners_(std::move(listeners)),
         server_(std::move(server)),
         logger_{common::createLogger("Api service")} {
+    BOOST_ASSERT(app_state_manager_);
+    BOOST_ASSERT(thread_pool_);
     for ([[maybe_unused]] const auto &listener : listeners_) {
       BOOST_ASSERT(listener != nullptr);
     }
@@ -22,6 +29,12 @@ namespace kagome::api {
       BOOST_ASSERT(processor != nullptr);
       processor->registerHandlers();
     }
+
+    app_state_manager_->atLaunch([this] { start(); });
+    app_state_manager_->atLaunch([this] { thread_pool_->start(); });
+
+    app_state_manager_->atShutdown([this] { stop(); });
+    app_state_manager_->atShutdown([this] { thread_pool_->stop(); });
   }
 
   void ApiService::start() {
@@ -54,6 +67,7 @@ namespace kagome::api {
     for (const auto &listener : listeners_) {
       listener->stop();
     }
+    logger_->debug("Service stopped");
   }
 
 }  // namespace kagome::api

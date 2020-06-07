@@ -90,8 +90,6 @@ namespace kagome::application {
     sptr<GrandpaLauncher> grandpa_launcher_;
     sptr<network::Router> router_;
 
-    sptr<api::RpcContext> rpc_context_;
-    sptr<api::RpcThreadPool> rpc_thread_pool_;
     sptr<api::ApiService> jrpc_api_service_;
 
     bool is_genesis_epoch_;

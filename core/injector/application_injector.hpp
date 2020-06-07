@@ -125,6 +125,12 @@ namespace kagome::injector {
     if (initialized) {
       return initialized.value();
     }
+    auto app_state_manager =
+        injector
+            .template create<std::shared_ptr<application::AppStateManager>>();
+    auto rpc_thread_pool =
+        injector
+            .template create<std::shared_ptr<api::RpcThreadPool>>();
     std::vector<std::shared_ptr<api::Listener>> listeners{
         injector.template create<std::shared_ptr<api::HttpListenerImpl>>(),
         injector.template create<std::shared_ptr<api::WsListenerImpl>>(),
@@ -138,7 +144,11 @@ namespace kagome::injector {
         injector.template create<
             std::shared_ptr<api::chain::ChainJrpcProcessor>>()};
     initialized =
-        std::make_shared<api::ApiService>(listeners, server, processors);
+        std::make_shared<api::ApiService>(std::move(app_state_manager),
+                                          std::move(rpc_thread_pool),
+                                          std::move(listeners),
+                                          std::move(server),
+                                          processors);
     return initialized.value();
   };
 
@@ -359,9 +369,8 @@ namespace kagome::injector {
       common::raise(batch.error());
     }
     for (const auto &[key, val] : genesis_raw_configs) {
-      spdlog::debug("Key: {}, Val: {}",
-                    key.toHex(),
-                    val.toHex().substr(0, 200));
+      spdlog::debug(
+          "Key: {}, Val: {}", key.toHex(), val.toHex().substr(0, 200));
       if (auto res = batch.value()->put(key, val); not res) {
         common::raise(res.error());
       }
@@ -463,8 +472,7 @@ namespace kagome::injector {
     }
     auto config = configuration_res.value();
     config.leadership_rate = {1, 2};
-    initialized = std::make_shared<primitives::BabeConfiguration>(
-        config);
+    initialized = std::make_shared<primitives::BabeConfiguration>(config);
     return *initialized;
   };
 
