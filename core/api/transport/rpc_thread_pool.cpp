@@ -7,11 +7,9 @@
 
 namespace kagome::api {
 
-  RpcThreadPool::RpcThreadPool(
-      std::shared_ptr<Context> context,
-      const Configuration &configuration)
-      : context_(std::move(context)),
-        config_(configuration) {
+  RpcThreadPool::RpcThreadPool(std::shared_ptr<Context> context,
+                               const Configuration &configuration)
+      : context_(std::move(context)), config_(configuration) {
     BOOST_ASSERT(context_);
   }
 
@@ -24,12 +22,12 @@ namespace kagome::api {
       thread->detach();
       threads_.emplace_back(std::move(thread));
     }
-	  logger_->debug("Thread pool started");
+    logger_->debug("Thread pool started");
   }
 
   void RpcThreadPool::stop() {
     context_->stop();
-	  logger_->debug("Thread pool stopped");
+    logger_->debug("Thread pool stopped");
   }
 
 }  // namespace kagome::api
