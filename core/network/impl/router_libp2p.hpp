@@ -31,7 +31,7 @@ namespace kagome::network {
         std::shared_ptr<BabeObserver> babe_observer,
         std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer,
         std::shared_ptr<SyncProtocolObserver> sync_observer,
-        std::shared_ptr<ExtrinsicObserver> author_api_observer,
+        std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<Gossiper> gossiper);
 
     ~RouterLibp2p() override = default;
@@ -55,7 +55,7 @@ namespace kagome::network {
     std::shared_ptr<BabeObserver> babe_observer_;
     std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer_;
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
-    std::shared_ptr<ExtrinsicObserver> author_api_observer_;
+    std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<Gossiper> gossiper_;
     common::Logger log_;
   };

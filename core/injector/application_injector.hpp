@@ -299,7 +299,7 @@ namespace kagome::injector {
             ? primitives::BlockId{last_finalized_block_res.value()}
             : primitives::BlockId{0};
 
-    auto &&author_api_observer =
+    auto &&extrinsic_observer =
         injector.template create<sptr<network::ExtrinsicObserver>>();
 
     auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
@@ -308,7 +308,7 @@ namespace kagome::injector {
         blockchain::BlockTreeImpl::create(std::move(header_repo),
                                           storage,
                                           block_id,
-                                          std::move(author_api_observer),
+                                          std::move(extrinsic_observer),
                                           std::move(hasher));
     if (!tree) {
       common::raise(tree.error());

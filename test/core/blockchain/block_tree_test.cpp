@@ -40,7 +40,7 @@ struct BlockTreeTest : public testing::Test {
     block_tree_ = BlockTreeImpl::create(header_repo_,
                                         storage_,
                                         kLastFinalizedBlockId,
-                                        author_api_observer_,
+                                        extrinsic_observer_,
                                         hasher_)
                       .value();
   }
@@ -83,7 +83,7 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<BlockStorageMock> storage_ =
       std::make_shared<BlockStorageMock>();
 
-  std::shared_ptr<network::ExtrinsicObserver> author_api_observer_ =
+  std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer_ =
       std::make_shared<network::ExtrinsicObserverImpl>(
           std::make_shared<api::AuthorApiMock>());
 
@@ -193,8 +193,8 @@ TEST_F(BlockTreeTest, Finalize) {
   auto encoded_justification = scale::encode(justification).value();
   EXPECT_CALL(*storage_, putJustification(justification, hash, header.number))
       .WillRepeatedly(Return(outcome::success()));
-	EXPECT_CALL(*storage_, setLastFinalizedBlockHash(hash))
-			.WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*storage_, setLastFinalizedBlockHash(hash))
+      .WillRepeatedly(Return(outcome::success()));
 
   // WHEN
   ASSERT_TRUE(block_tree_->finalize(hash, justification));
