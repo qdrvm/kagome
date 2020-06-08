@@ -65,7 +65,6 @@ struct AuthorApiTest : public ::testing::Test {
   sptr<HasherMock> hasher;               ///< hasher mock
   sptr<TaggedTransactionQueueMock> ttq;  ///< tagged transaction queue mock
   sptr<TransactionPoolMock> transaction_pool;  ///< transaction pool mock
-  sptr<BlockTreeMock> block_tree;              ///< block tree mock instance
   sptr<ExtrinsicGossiperMock> gossiper;        ///< gossiper mock
   sptr<AuthorApiImpl> api;                     ///< api instance
   sptr<Extrinsic> extrinsic;                   ///< extrinsic instance
