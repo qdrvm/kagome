@@ -30,30 +30,56 @@ using testing::Return;
 class BlockStorageTest : public testing::Test {
  public:
   void SetUp() override {
-    EXPECT_CALL(*hasher, blake2b_256(_)).WillRepeatedly(Return(genesis_hash));
-    EXPECT_CALL(*storage, get(_))
-        .WillOnce(Return(
-            kagome::blockchain::Error::BLOCK_NOT_FOUND))  // to check that block
-                                                          // does not exist
-        .WillRepeatedly(Return(
-            kagome::storage::DatabaseError::
-                NOT_FOUND));  // check of block data during block insertion
-
     root_hash.put(std::vector<uint8_t>(32ul, 1));
-    EXPECT_CALL(*storage, put(_, _)).WillRepeatedly(Return(outcome::success()));
-    block_storage = KeyValueBlockStorage::createWithGenesis(
-                        root_hash, storage, hasher, [](auto &) {})
-                        .value();
   }
-  std::shared_ptr<KeyValueBlockStorage> block_storage;
   std::shared_ptr<HasherMock> hasher = std::make_shared<HasherMock>();
   std::shared_ptr<GenericStorageMock<Buffer, Buffer>> storage =
       std::make_shared<GenericStorageMock<Buffer, Buffer>>();
-  Block genesis;
-  BlockHash genesis_hash{{1, 2, 3, 4}};
-  BlockHash block_hash{{4, 3, 2, 1}};
+
+  BlockHash genesis_block_hash{{'g', 'e', 'n', 'e', 's', 'i', 's'}};
+  BlockHash regular_block_hash{{'r', 'e', 'g', 'u', 'l', 'a', 'r'}};
   Buffer root_hash;
+
+  KeyValueBlockStorage::BlockHandler block_handler = [](auto &) {};
+
+  std::shared_ptr<KeyValueBlockStorage> createWithGenesis() {
+    EXPECT_CALL(*hasher, blake2b_256(_))
+        // calculate hash of genesis block at check existance of block
+        .WillOnce(Return(genesis_block_hash))
+        // calculate hash of genesis block at put block header
+        .WillRepeatedly(Return(genesis_block_hash));
+
+    EXPECT_CALL(*storage, get(_))
+        // trying to get last finalized block hash which not exists yet
+        .WillOnce(Return(kagome::blockchain::Error::BLOCK_NOT_FOUND))
+        // check of block data during block insertion
+        .WillOnce(Return(kagome::storage::DatabaseError::NOT_FOUND))
+        .WillOnce(Return(kagome::storage::DatabaseError::NOT_FOUND));
+
+    EXPECT_CALL(*storage, put(_, _))
+        // put key-value for lookup data
+        .WillRepeatedly(Return(outcome::success()));
+
+    EXPECT_CALL(*storage, put_rv(_, _))
+        // put key-value for lookup data
+        .WillRepeatedly(Return(outcome::success()));
+
+    EXPECT_OUTCOME_TRUE(new_block_storage,
+                        KeyValueBlockStorage::createWithGenesis(
+                            root_hash, storage, hasher, block_handler));
+
+    return new_block_storage;
+  }
 };
+
+/**
+ * @given a hasher instance, a genesis block, and an empty map storage
+ * @when initialising a block storage from it
+ * @then initialisation will successful
+ */
+TEST_F(BlockStorageTest, CreateWithGenesis) {
+  createWithGenesis();
+}
 
 /**
  * @given a hasher instance, a genesis block, and an map storage containing the
@@ -64,12 +90,48 @@ class BlockStorageTest : public testing::Test {
  */
 TEST_F(BlockStorageTest, CreateWithExistingGenesis) {
   EXPECT_CALL(*storage, get(_))
-      .WillOnce(Return(Buffer{1, 1, 1, 1}))
-      .WillOnce(Return(Buffer{1, 1, 1, 1}));
-  EXPECT_OUTCOME_FALSE(res,
+      // trying to get last finalized block hash to ensure he not exists yet
+      .WillOnce(Return(Buffer{genesis_block_hash}));
+
+  EXPECT_OUTCOME_ERROR(KeyValueBlockStorage::Error::GENESIS_ALREADY_EXISTS,
                        KeyValueBlockStorage::createWithGenesis(
-                           root_hash, storage, hasher, [](auto &) {}));
-  ASSERT_EQ(res, KeyValueBlockStorage::Error::BLOCK_EXISTS);
+                           root_hash, storage, hasher, block_handler));
+}
+
+/**
+ * @given a hasher instance, a genesis block, and an map storage containing the
+ * block
+ * @when initialising a block storage from it and storage throws an error
+ * @then initialisation will fail
+ */
+TEST_F(BlockStorageTest, LoadFromExistingStorage) {
+  EXPECT_CALL(*storage, get(_))
+      // trying to get last finalized block hash to ensure he not exists yet
+      .WillOnce(Return(Buffer{genesis_block_hash}))
+      // getting header of last finalized block
+      .WillOnce(Return(Buffer{}))
+      .WillOnce(Return(Buffer{kagome::scale::encode(BlockHeader{}).value()}));
+
+  auto new_block_storage_res =
+      KeyValueBlockStorage::loadExisting(storage, hasher, block_handler);
+  EXPECT_TRUE(new_block_storage_res.has_value());
+}
+
+/**
+ * @given a hasher instance and an empty map storage
+ * @when trying to initialise a block storage from it and storage throws an error
+ * @then initialisation will fail
+ */
+TEST_F(BlockStorageTest, LoadFromEmptyStorage) {
+  auto empty_storage = std::make_shared<GenericStorageMock<Buffer, Buffer>>();
+
+  EXPECT_CALL(*empty_storage, get(_))
+      // trying to get last finalized block hash to ensure he not exists yet
+      .WillOnce(Return(KeyValueBlockStorage::Error::FINALIZED_BLOCK_NOT_FOUND));
+
+  EXPECT_OUTCOME_ERROR(
+      KeyValueBlockStorage::Error::FINALIZED_BLOCK_NOT_FOUND,
+      KeyValueBlockStorage::loadExisting(empty_storage, hasher, block_handler));
 }
 
 /**
@@ -79,13 +141,15 @@ TEST_F(BlockStorageTest, CreateWithExistingGenesis) {
  * @then initialisation will fail
  */
 TEST_F(BlockStorageTest, CreateWithStorageError) {
-  EXPECT_CALL(*storage, get(_))
-      .WillOnce(Return(Buffer{1, 1, 1, 1}))
+  auto empty_storage = std::make_shared<GenericStorageMock<Buffer, Buffer>>();
+
+  EXPECT_CALL(*empty_storage, get(_))
+      // trying to get last finalized block hash to ensure he not exists yet
       .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
-  EXPECT_OUTCOME_FALSE(res,
-                       KeyValueBlockStorage::createWithGenesis(
-                           root_hash, storage, hasher, [](auto &) {}));
-  ASSERT_EQ(res, kagome::storage::DatabaseError::IO_ERROR);
+
+  EXPECT_OUTCOME_ERROR(kagome::storage::DatabaseError::IO_ERROR,
+                       KeyValueBlockStorage::create(
+                           root_hash, empty_storage, hasher, block_handler));
 }
 
 /**
@@ -94,8 +158,19 @@ TEST_F(BlockStorageTest, CreateWithStorageError) {
  * @then block is successfully put
  */
 TEST_F(BlockStorageTest, PutBlock) {
-  EXPECT_CALL(*hasher, blake2b_256(_)).WillRepeatedly(Return(genesis_hash));
-  EXPECT_OUTCOME_TRUE_1(block_storage->putBlock(genesis));
+  auto block_storage = createWithGenesis();
+
+  EXPECT_CALL(*hasher, blake2b_256(_))
+      .WillOnce(Return(regular_block_hash))
+      .WillOnce(Return(regular_block_hash));
+
+  EXPECT_CALL(*storage, get(_))
+      .WillOnce(Return(kagome::blockchain::Error::BLOCK_NOT_FOUND))
+      .WillOnce(Return(kagome::blockchain::Error::BLOCK_NOT_FOUND));
+
+  Block block;
+
+  EXPECT_OUTCOME_TRUE_1(block_storage->putBlock(block));
 }
 
 /**
@@ -104,10 +179,17 @@ TEST_F(BlockStorageTest, PutBlock) {
  * @then block is not put and an error is returned
  */
 TEST_F(BlockStorageTest, PutExistingBlock) {
+  auto block_storage = createWithGenesis();
+
+  EXPECT_CALL(*hasher, blake2b_256(_)).WillOnce(Return(genesis_block_hash));
+
   EXPECT_CALL(*storage, get(_))
-      .WillOnce(Return(Buffer{1, 1, 1, 1}))
-      .WillOnce(Return(Buffer{1, 1, 1, 1}));
-  EXPECT_OUTCOME_FALSE(res, block_storage->putBlock(genesis));
+      .WillOnce(Return(Buffer{kagome::scale::encode(BlockHeader{}).value()}))
+      .WillOnce(Return(Buffer{kagome::scale::encode(BlockBody{}).value()}));
+
+  Block block;
+
+  EXPECT_OUTCOME_FALSE(res, block_storage->putBlock(block));
   ASSERT_EQ(res, KeyValueBlockStorage::Error::BLOCK_EXISTS);
 }
 
@@ -117,10 +199,15 @@ TEST_F(BlockStorageTest, PutExistingBlock) {
  * @then block is not put and error is returned
  */
 TEST_F(BlockStorageTest, PutWithStorageError) {
+  auto block_storage = createWithGenesis();
+
   EXPECT_CALL(*storage, get(_))
       .WillOnce(Return(Buffer{1, 1, 1, 1}))
       .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
-  EXPECT_OUTCOME_FALSE(res, block_storage->putBlock(genesis));
+
+  Block block;
+
+  EXPECT_OUTCOME_FALSE(res, block_storage->putBlock(block));
   ASSERT_EQ(res, kagome::storage::DatabaseError::IO_ERROR);
 }
 
@@ -131,17 +218,19 @@ TEST_F(BlockStorageTest, PutWithStorageError) {
  * storage, an error is returned otherwise
  */
 TEST_F(BlockStorageTest, Remove) {
+  auto block_storage = createWithGenesis();
+
   EXPECT_CALL(*storage, remove(_))
       .WillOnce(Return(outcome::success()))
       .WillOnce(Return(outcome::success()));
-  EXPECT_OUTCOME_TRUE_1(block_storage->removeBlock(genesis_hash, 0));
+  EXPECT_OUTCOME_TRUE_1(block_storage->removeBlock(genesis_block_hash, 0));
 
   EXPECT_CALL(*storage, remove(_))
       .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
-  EXPECT_OUTCOME_FALSE_1(block_storage->removeBlock(genesis_hash, 0));
+  EXPECT_OUTCOME_FALSE_1(block_storage->removeBlock(genesis_block_hash, 0));
 
   EXPECT_CALL(*storage, remove(_))
       .WillOnce(Return(outcome::success()))
       .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
-  EXPECT_OUTCOME_FALSE_1(block_storage->removeBlock(genesis_hash, 0));
+  EXPECT_OUTCOME_FALSE_1(block_storage->removeBlock(genesis_block_hash, 0));
 }

@@ -214,7 +214,7 @@ namespace kagome::injector {
     const auto &trie_storage =
         injector.template create<sptr<storage::trie::TrieStorage>>();
 
-    auto storage = blockchain::KeyValueBlockStorage::createWithGenesis(
+    auto storage = blockchain::KeyValueBlockStorage::create(
         trie_storage->getRootHash(),
         db,
         hasher,
@@ -293,10 +293,14 @@ namespace kagome::injector {
 
     auto &&storage = injector.template create<sptr<blockchain::BlockStorage>>();
 
-    // block id is zero for genesis launch
-    const primitives::BlockId block_id = 0;
-
     auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
+
+    auto last_finalized_block_res = storage->getLastFinalizedBlockHash();
+
+    const auto block_id =
+        last_finalized_block_res.has_value()
+            ? primitives::BlockId{last_finalized_block_res.value()}
+            : primitives::BlockId{0};
 
     auto &&tree = blockchain::BlockTreeImpl::create(
         std::move(header_repo), storage, block_id, std::move(hasher));

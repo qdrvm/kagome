@@ -56,27 +56,56 @@ namespace kagome::consensus {
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(log_);
 
-    NextEpochDescriptor epoch_0_and_1_digest;
-    epoch_0_and_1_digest.randomness = genesis_configuration_->randomness;
-    epoch_0_and_1_digest.authorities =
-        genesis_configuration_->genesis_authorities;
-    epoch_storage_->addEpochDescriptor(0, epoch_0_and_1_digest);
-    epoch_storage_->addEpochDescriptor(1, epoch_0_and_1_digest);
+    NextEpochDescriptor init_epoch_desc;
+    init_epoch_desc.randomness = genesis_configuration_->randomness;
+    init_epoch_desc.authorities = genesis_configuration_->genesis_authorities;
+    [[maybe_unused]] bool init_epoch_desc_ok =
+        epoch_storage_->addEpochDescriptor(0, init_epoch_desc).has_value()
+        && epoch_storage_->addEpochDescriptor(1, init_epoch_desc).has_value();
+
+    BOOST_ASSERT(init_epoch_desc_ok);
   }
 
-  void BabeImpl::runGenesisEpoch() {
-    Epoch genesis_epoch;
-    genesis_epoch.epoch_index = 0;
-    genesis_epoch.authorities = genesis_configuration_->genesis_authorities;
-    genesis_epoch.randomness = genesis_configuration_->randomness;
-    genesis_epoch.epoch_duration = genesis_configuration_->epoch_length;
-    genesis_epoch.start_slot = 0;
+  void BabeImpl::start() {
+    auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
+    log_->debug("Babe run on block with number {} and hash {}",
+                best_block_number,
+                best_block_hash);
 
-    next_slot_finish_time_ =
-        clock_->now() + genesis_configuration_->slot_duration;
+    if (best_block_number == 0) {
+      auto epoch_digest_res = epoch_storage_->getEpochDescriptor(0);
+      if (not epoch_digest_res) {
+        log_->error("Last epoch digest does not exist for initial epoch");
+      }
+      auto &&epoch_digest = epoch_digest_res.value();
 
-    current_state_ = BabeState::SYNCHRONIZED;
-    runEpoch(genesis_epoch, next_slot_finish_time_);
+      auto slot_duration = genesis_configuration_->slot_duration;
+
+      Epoch epoch;
+      epoch.epoch_index = 0;
+      epoch.authorities = epoch_digest.authorities;
+      epoch.randomness = epoch_digest.randomness;
+      epoch.epoch_duration = genesis_configuration_->epoch_length;
+      // clang-format off
+	    // TODO(xDimon): remove one of next two variants by decision about way of slot enumeration
+	    //  variant #1
+//      epoch.start_slot = clock_->now().time_since_epoch() / slot_duration;
+//      auto starting_slot_finish_time = std::chrono::system_clock::time_point{}
+//                                       + slot_duration * epoch.start_slot
+//                                       + slot_duration;
+
+	    // TODO(xDimon): remove one of next two variants by decision about way of slot enumeration
+	    //  variant #2
+      epoch.start_slot = 0;
+      auto starting_slot_finish_time = std::chrono::system_clock::now()
+                                       + slot_duration;
+      // clang-format on
+
+      current_state_ = BabeState::SYNCHRONIZED;
+      runEpoch(epoch, starting_slot_finish_time);
+    } else {
+      current_state_ = BabeState::WAIT_BLOCK;
+    }
   }
 
   /**
@@ -121,8 +150,8 @@ namespace kagome::consensus {
       case BabeState::WAIT_BLOCK:
         // TODO(kamilsa): PRE-366 validate block. Now it is problematic as we
         // need t know VRF threshold for validation. To calculate that we need
-        // to have weights of the authorities and to get it we need to have the
-        // latest state of a blockchain
+        // to have weights of the authorities and to get it we need to have
+        // the latest state of a blockchain
 
         // synchronize missing blocks with their bodies
         log_->info("Catching up to block number: {}", announce.header.number);
@@ -131,8 +160,8 @@ namespace kagome::consensus {
             announce.header, [self_weak{weak_from_this()}] {
               if (auto self = self_weak.lock()) {
                 self->log_->info("Catching up is done, getting slot time");
-                // all blocks were successfully applied, now we need to get slot
-                // time
+                // all blocks were successfully applied, now we need to get
+                // slot time
                 self->current_state_ = BabeState::NEED_SLOT_TIME;
               }
             });
@@ -159,29 +188,34 @@ namespace kagome::consensus {
   }
 
   void BabeImpl::runSlot() {
-    if (current_slot_ != 0
-        and current_slot_ % genesis_configuration_->epoch_length == 0) {
-      // end of the epoch
-      finishEpoch();
-    }
-    log_->info("starting a slot {} in epoch {}",
-               current_slot_,
-               current_epoch_.epoch_index);
+    bool rewind_slots;
+    do {
+      if (current_slot_ != 0
+          and current_slot_ % genesis_configuration_->epoch_length == 0) {
+        // end of the epoch
+        finishEpoch();
+      }
+      log_->info("starting a slot {} in epoch {}",
+                 current_slot_,
+                 current_epoch_.epoch_index);
 
-    // check that we are really in the middle of the slot, as expected; we can
-    // cooperate with a relatively little (kMaxLatency) latency, as our node
-    // will be able to retrieve
-    auto now = clock_->now();
-    if (now > next_slot_finish_time_
-        and (now - next_slot_finish_time_)
-                > genesis_configuration_->slot_duration) {
-      // we are too far behind; after skipping some slots (but not epochs)
-      // control will be returned to this method
+      // check that we are really in the middle of the slot, as expected; we can
+      // cooperate with a relatively little (kMaxLatency) latency, as our node
+      // will be able to retrieve
+      auto now = clock_->now();
 
-      current_slot_++;
-      next_slot_finish_time_ += genesis_configuration_->slot_duration;
-      return runSlot();
-    }
+      rewind_slots = now > next_slot_finish_time_
+                     and (now - next_slot_finish_time_)
+                             > genesis_configuration_->slot_duration;
+
+      if (rewind_slots) {
+        // we are too far behind; after skipping some slots (but not epochs)
+        // control will be returned to this method
+
+        current_slot_++;
+        next_slot_finish_time_ += genesis_configuration_->slot_duration;
+      }
+    } while (rewind_slots);
 
     // everything is OK: wait for the end of the slot
     timer_->expiresAt(next_slot_finish_time_);
@@ -200,10 +234,9 @@ namespace kagome::consensus {
         slots_leadership_[current_slot_ % current_epoch_.epoch_duration];
     if (slot_leadership) {
       log_->debug("Peer {} is leader (vrfOutput: {}, proof: {})",
-      		keypair_.public_key.toHex(),
-      		common::Buffer(slot_leadership->output).toHex(),
-	        common::Buffer(slot_leadership->proof).toHex()
-	        );
+                  keypair_.public_key.toHex(),
+                  common::Buffer(slot_leadership->output).toHex(),
+                  common::Buffer(slot_leadership->proof).toHex());
 
       processSlotLeadership(*slot_leadership);
     }
@@ -269,8 +302,8 @@ namespace kagome::consensus {
 
     auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
     log_->info("Babe builds block on top of block with number {} and hash {}",
-                best_block_number,
-                best_block_hash);
+               best_block_number,
+               best_block_hash);
 
     auto authority_index_res =
         getAuthorityIndex(current_epoch_.authorities, keypair_.public_key);

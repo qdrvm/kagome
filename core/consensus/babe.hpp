@@ -23,10 +23,7 @@ namespace kagome::consensus {
    public:
     ~Babe() override = default;
 
-    /**
-     * Creates and executes genesis epoch. Also starts event loop for new epochs
-     */
-    virtual void runGenesisEpoch() = 0;
+	  virtual void start() = 0;
 
     /**
      * Start a Babe production

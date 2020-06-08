@@ -18,7 +18,6 @@ namespace kagome::application {
       uint16_t p2p_port,
       const boost::asio::ip::tcp::endpoint &rpc_http_endpoint,
       const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint,
-      bool is_genesis_epoch,
       uint8_t verbosity)
       : injector_{injector::makeBlockProducingNodeInjector(config_path,
                                                            keystore_path,
@@ -26,7 +25,6 @@ namespace kagome::application {
                                                            p2p_port,
                                                            rpc_http_endpoint,
                                                            rpc_ws_endpoint)},
-        is_genesis_epoch_{is_genesis_epoch},
         logger_(common::createLogger("Application")) {
     spdlog::set_level(static_cast<spdlog::level::level_enum>(verbosity));
 
@@ -49,14 +47,7 @@ namespace kagome::application {
 
     app_state_manager_->atLaunch([this] { jrpc_api_service_->start(); });
 
-    app_state_manager_->atLaunch([this] {
-      // if we are the first peer in the network, then we get genesis epoch info
-      // and start block production
-      if (is_genesis_epoch_) {
-        // starts block production event loop
-        babe_->runGenesisEpoch();
-      }
-    });
+    app_state_manager_->atLaunch([this] { babe_->start(); });
 
     app_state_manager_->atLaunch([this] {
       // execute listeners

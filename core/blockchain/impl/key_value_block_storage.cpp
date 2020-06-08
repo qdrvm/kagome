@@ -7,6 +7,7 @@
 
 #include "blockchain/impl/storage_util.hpp"
 #include "scale/scale.hpp"
+#include "storage/database_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain,
                             KeyValueBlockStorage::Error,
@@ -19,6 +20,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::blockchain,
       return "Block body was not found";
     case E::JUSTIFICATION_DOES_NOT_EXIST:
       return "Justification was not found";
+    case E::GENESIS_ALREADY_EXISTS:
+      return "Genesis block already exists";
+    case E::FINALIZED_BLOCK_NOT_FOUND:
+      return "Finalized block not found. Possible storage corrupted";
   }
   return "Unknown error";
 }
@@ -39,13 +44,62 @@ namespace kagome::blockchain {
         logger_{common::createLogger("Block Storage:")} {}
 
   outcome::result<std::shared_ptr<KeyValueBlockStorage>>
+  KeyValueBlockStorage::create(
+      common::Buffer state_root,
+      const std::shared_ptr<storage::BufferStorage> &storage,
+      const std::shared_ptr<crypto::Hasher> &hasher,
+      const BlockHandler &on_finalized_block_found) {
+    auto block_storage = std::make_shared<KeyValueBlockStorage>(
+        KeyValueBlockStorage(storage, hasher));
+
+    auto last_finalized_block_hash_res =
+        block_storage->getLastFinalizedBlockHash();
+
+    if (last_finalized_block_hash_res.has_value()) {
+      return loadExisting(storage, hasher, on_finalized_block_found);
+    }
+
+    if (last_finalized_block_hash_res
+        == outcome::failure(Error::FINALIZED_BLOCK_NOT_FOUND)) {
+      return createWithGenesis(
+          std::move(state_root), storage, hasher, on_finalized_block_found);
+    }
+
+    return last_finalized_block_hash_res.error();
+  }
+
+  outcome::result<std::shared_ptr<KeyValueBlockStorage>>
+  KeyValueBlockStorage::loadExisting(
+      const std::shared_ptr<storage::BufferStorage> &storage,
+      std::shared_ptr<crypto::Hasher> hasher,
+      const BlockHandler &on_finalized_block_found) {
+    auto block_storage = std::make_shared<KeyValueBlockStorage>(
+        KeyValueBlockStorage(storage, std::move(hasher)));
+
+    OUTCOME_TRY(last_finalized_block_hash,
+                block_storage->getLastFinalizedBlockHash());
+
+    OUTCOME_TRY(block_header,
+                block_storage->getBlockHeader(last_finalized_block_hash));
+
+    primitives::Block finalized_block;
+    finalized_block.header = block_header;
+
+    on_finalized_block_found(finalized_block);
+
+    return std::move(block_storage);
+  }
+
+  outcome::result<std::shared_ptr<KeyValueBlockStorage>>
   KeyValueBlockStorage::createWithGenesis(
       common::Buffer state_root,
       const std::shared_ptr<storage::BufferStorage> &storage,
       std::shared_ptr<crypto::Hasher> hasher,
-      const GenesisHandler &on_genesis_created) {
-    KeyValueBlockStorage block_storage(storage, std::move(hasher));
-    // TODO(Harrm) check that storage is actually empty
+      const BlockHandler &on_genesis_created) {
+    auto block_storage = std::make_shared<KeyValueBlockStorage>(
+        KeyValueBlockStorage(storage, std::move(hasher)));
+
+    OUTCOME_TRY(block_storage->ensureGenesisNotExists());
 
     // state root type is Hash256, however for consistency with spec root hash
     // returns buffer. So we need this conversion
@@ -64,9 +118,11 @@ namespace kagome::blockchain {
     genesis_block.header.state_root = state_root_blob;
     // the rest of the fields have default value
 
-    OUTCOME_TRY(block_storage.putBlock(genesis_block));
+    OUTCOME_TRY(genesis_block_hash, block_storage->putBlock(genesis_block));
+    OUTCOME_TRY(block_storage->setLastFinalizedBlockHash(genesis_block_hash));
+
     on_genesis_created(genesis_block);
-    return std::make_shared<KeyValueBlockStorage>(block_storage);
+    return std::move(block_storage);
   }
 
   outcome::result<primitives::BlockHeader> KeyValueBlockStorage::getBlockHeader(
@@ -155,14 +211,18 @@ namespace kagome::blockchain {
 
   outcome::result<primitives::BlockHash> KeyValueBlockStorage::putBlock(
       const primitives::Block &block) {
+    // TODO(xDimon): Need to implement mechanism for wipe out orphan blocks
+    //  (in side-chains whom rejected by finalization)
+    //  for avoid leaks of storage space
     auto block_hash = hasher_->blake2b_256(scale::encode(block.header).value());
-    auto block_in_storage =
+    auto block_in_storage_res =
         getWithPrefix(*storage_, Prefix::HEADER, block_hash);
-    if (block_in_storage.has_value()) {
+    if (block_in_storage_res.has_value()) {
       return Error::BLOCK_EXISTS;
     }
-    if (block_in_storage.error() != blockchain::Error::BLOCK_NOT_FOUND) {
-      return block_in_storage.error();
+    if (block_in_storage_res
+        != outcome::failure(blockchain::Error::BLOCK_NOT_FOUND)) {
+      return block_in_storage_res.error();
     }
 
     // insert our block's parts into the database-
@@ -211,4 +271,34 @@ namespace kagome::blockchain {
     return outcome::success();
   }
 
+  outcome::result<primitives::BlockHash>
+  KeyValueBlockStorage::getLastFinalizedBlockHash() const {
+    auto hash_res = storage_->get(LAST_FINALIZED_BLOCK_HASH_LOOKUP_KEY);
+    if (hash_res.has_value()) {
+      primitives::BlockHash hash;
+      std::copy(hash_res.value().begin(), hash_res.value().end(), hash.begin());
+      return std::move(hash);
+    }
+
+    if (hash_res == outcome::failure(storage::DatabaseError::NOT_FOUND)) {
+      return Error::FINALIZED_BLOCK_NOT_FOUND;
+    }
+
+    return hash_res.as_failure();
+  }
+
+  outcome::result<void> KeyValueBlockStorage::setLastFinalizedBlockHash(
+      const primitives::BlockHash &hash) {
+    OUTCOME_TRY(storage_->put(LAST_FINALIZED_BLOCK_HASH_LOOKUP_KEY, Buffer{hash}));
+
+    return outcome::success();
+  }
+
+  outcome::result<void> KeyValueBlockStorage::ensureGenesisNotExists() const {
+    auto res = getLastFinalizedBlockHash();
+    if (res.has_value()) {
+      return Error::GENESIS_ALREADY_EXISTS;
+    }
+    return outcome::success();
+  }
 }  // namespace kagome::blockchain
