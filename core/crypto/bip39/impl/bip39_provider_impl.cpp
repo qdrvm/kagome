@@ -5,11 +5,8 @@
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 
-#include <codecvt>
-#include <locale>
-
-#include <boost/algorithm/string.hpp>
 #include "crypto/bip39/bip39_entropy.hpp"
+#include "crypto/bip39/mnemonic.hpp"
 
 namespace kagome::crypto {
   Bip39ProviderImpl::Bip39ProviderImpl(
@@ -20,65 +17,29 @@ namespace kagome::crypto {
     dictionary_.initialize();
   }
 
-  namespace {
-    /**
-     * @return true if string s is a valid utf-8, false otherwise
-     */
-    bool isValidUtf8(const std::string &s) {
-      // cannot replace for std::string_view for security reasons
-      std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>
-          utf16conv;
-      try {
-        auto utf16 = utf16conv.from_bytes(s.data());
-      } catch (...) {
-        return false;
-      }
-      return true;
-    }
-  }  // namespace
-
   outcome::result<bip39::Bip39Seed> Bip39ProviderImpl::makeSeed(
       std::string_view phrase) {
-    const size_t iterations_count = 2048;
-    std::vector<uint8_t> salt = {'m', 'n', 'e', 'm', 'o', 'n', 'i', 'c'};
+    constexpr size_t iterations_count = 2048u;
+    constexpr auto default_salt = "mnemonic";
 
-    if (phrase.empty() || !isValidUtf8(std::string(phrase))) {
-      return bip39::Bip39ProviderError::INVALID_MNEMONIC;
-    }
-
-    if (phrase.find("/") != std::string_view::npos or phrase.find("//")) {
-      logger_->error("junctions are not supported yet");
-      return bip39::Bip39ProviderError::INVALID_MNEMONIC;
-    }
-
-    auto password_pos = phrase.find("///");
-    std::string_view mnemonic_list;
-    std::string_view password;
-    if (password_pos != std::string_view::npos) {
-      // need to normalize password utf8 nfkd
-      password = phrase.substr(password_pos + 3);
-      mnemonic_list = phrase.substr(0, password_pos);
-    } else {
-      mnemonic_list = phrase;
-    }
-
-    // split word list into separate words
-    std::vector<std::string> word_list;
-    boost::split(word_list, mnemonic_list, boost::algorithm::is_space());
+    OUTCOME_TRY(mnemonic, bip39::Mnemonic::parse(phrase));
+    common::Buffer salt{};
+    salt.put(default_salt);
+    salt.put(mnemonic.password);
 
     // make entropy accumulator
     OUTCOME_TRY(entropy_accumulator,
-                bip39::Bip39Entropy::create(word_list.size()));
+                bip39::Bip39Entropy::create(mnemonic.words.size()));
 
     // accummulate entropy
-    for (auto &&w : word_list) {
+    for (auto &&w : mnemonic.words) {
       OUTCOME_TRY(entropy_token, dictionary_.findValue(w));
       OUTCOME_TRY(entropy_accumulator.append(entropy_token));
     }
 
     if (entropy_accumulator.getChecksum()
         != entropy_accumulator.calculateChecksum()) {
-      return bip39::Bip39ProviderError::INVALID_MNEMONIC;
+      return bip39::MnemonicError::INVALID_MNEMONIC;
     }
 
     // finally get entropy
@@ -93,14 +54,4 @@ namespace kagome::crypto {
 
     return bip39::Bip39Seed::fromSpan(buffer.toVector());
   }
-
 }  // namespace kagome::crypto
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto::bip39, Bip39ProviderError, e) {
-  using Error = kagome::crypto::bip39::Bip39ProviderError;
-  switch (e) {
-    case Error::INVALID_MNEMONIC:
-      return "Mnemonic provided is not valid";
-  }
-  return "unknown Bip39ProviderError";
-}

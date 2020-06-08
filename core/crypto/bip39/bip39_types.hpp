@@ -16,11 +16,11 @@ namespace kagome::crypto::bip39 {
 
   using Bip39Seed = common::Blob<constants::BIP39_SEED_LEN_512>;
 
-  enum class Bip39ProviderError {
+  enum class MnemonicError {
     INVALID_MNEMONIC = 1,
   };
 }  // namespace kagome::crypto::bip39
 
-OUTCOME_HPP_DECLARE_ERROR(kagome::crypto::bip39, Bip39ProviderError);
+OUTCOME_HPP_DECLARE_ERROR(kagome::crypto::bip39, MnemonicError);
 
 #endif  // KAGOME_BIP39_TYPES_HPP

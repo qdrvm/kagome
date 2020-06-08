@@ -7,13 +7,13 @@ add_library(bip39_provider
     impl/bip39_provider_impl.cpp
     bip39_entropy.cpp
     dictionary.cpp
+    mnemonic.cpp
     )
 target_link_libraries(bip39_provider
     PUBLIC OpenSSL::SSL
     OpenSSL::Crypto
-    ed25519_provider
-    sr25519_provider
     buffer
     blob
+    sha
     )
 kagome_install(bip39_provider)
