@@ -10,6 +10,7 @@
 #include <gsl/span>
 
 #include <boost/assert.hpp>
+#include "crypto/bip39/bip39_provider.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/key_type.hpp"
@@ -31,17 +32,23 @@ namespace kagome::extensions {
       std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
       std::shared_ptr<crypto::ED25519Provider> ed25519_provider,
       std::shared_ptr<crypto::Hasher> hasher,
-      std::shared_ptr<crypto::storage::TypedKeyStorage> key_storage)
+      std::shared_ptr<crypto::storage::TypedKeyStorage> key_storage,
+      std::shared_ptr<crypto::Bip39Provider> bip39_provider)
       : memory_(std::move(memory)),
         sr25519_provider_(std::move(sr25519_provider)),
         ed25519_provider_(std::move(ed25519_provider)),
         hasher_(std::move(hasher)),
         key_storage_(std::move(key_storage)),
+        bip39_provider_(std::move(bip39_provider)),
         logger_{common::createLogger("CryptoExtension")} {
-    BOOST_ASSERT(memory_ != nullptr);
-    BOOST_ASSERT(sr25519_provider_ != nullptr);
-    BOOST_ASSERT(ed25519_provider_ != nullptr);
-    BOOST_ASSERT(hasher_ != nullptr);
+    BOOST_ASSERT_MSG(memory_ != nullptr, "memory is nullptr");
+    BOOST_ASSERT_MSG(sr25519_provider_ != nullptr,
+                     "sr25519 provider is nullptr");
+    BOOST_ASSERT_MSG(ed25519_provider_ != nullptr,
+                     "ed25519 provider is nullptr");
+    BOOST_ASSERT_MSG(hasher_ != nullptr, "hasher is nullptr");
+    BOOST_ASSERT_MSG(key_storage_ != nullptr, "key storage is nullptr");
+    BOOST_ASSERT_MSG(bip39_provider_ != nullptr, "bip39 provider is nullptr");
     BOOST_ASSERT(logger_ != nullptr);
   }
 
@@ -229,21 +236,47 @@ namespace kagome::extensions {
       BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
     }
 
-    boost::optional<std::string> seed_value = seed_res.value();
-    if (seed_value.has_value()) {
-      // use BIP-39
+    crypto::ED25519Keypair kp{};
+
+    boost::optional<std::string> bip39_seed = seed_res.value();
+    if (bip39_seed.has_value()) {
+      auto &&big_seed = bip39_provider_->makeSeed(*bip39_seed);
+      if (!big_seed) {
+        logger_->error("failed to generate seed {}",
+                       big_seed.error().message());
+        BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
+      }
+      auto &&ed_seed = crypto::ED25519Seed::fromSpan(
+          gsl::make_span<uint8_t>(big_seed.value().begin(),
+                                  big_seed.value().end())
+              .subspan(0, crypto::ED25519Seed::size()));
+      if (!ed_seed) {
+        logger_->error("failed to get ed25519 seed from span {}",
+                       ed_seed.error().message());
+        BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
+      }
+
+      auto &&key_pair = ed25519_provider_->generateKeyPair(ed_seed.value());
+      if (!key_pair) {
+        logger_->error("failed to generate ed25519 key pair by seed: {}",
+                       key_pair.error().message());
+        BOOST_ASSERT_MSG(false, "failed to generate ed25519 key pair");
+        BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
+      }
+      kp = key_pair.value();
+    } else {
+      auto &&key_pair = ed25519_provider_->generateKeypair();
+      if (!key_pair) {
+        logger_->error("failed to generate ed25519 key pair: {}",
+                       key_pair.error().message());
+        BOOST_ASSERT_MSG(false, "failed to generate ed25519 key pair");
+        BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
+      }
+      kp = key_pair.value();
     }
 
-    auto &&key_pair = ed25519_provider_->generateKeypair();
-    if (!key_pair) {
-      logger_->error("failed to generate ed25519 key pair: {}",
-                     key_pair.error().message());
-      BOOST_ASSERT_MSG(false, "failed to generate ed25519 key pair");
-      BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
-    }
-
-    key_storage_->addEdKeyPair(key_type_id.value(), key_pair.value());
-    common::Buffer buffer(key_pair.value().public_key);
+    key_storage_->addEdKeyPair(key_type_id.value(), kp);
+    common::Buffer buffer(kp.public_key);
     runtime::PointerSize ps = memory_->storeBuffer(buffer);
 
     return runtime::WasmResult(ps).address;
@@ -348,16 +381,34 @@ namespace kagome::extensions {
       BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
     }
 
-    boost::optional<std::string> seed_value = seed_res.value();
-    if (seed_value.has_value()) {
-      // use BIP-39
+    crypto::SR25519Keypair kp{};
+
+    boost::optional<std::string> bip39_seed = seed_res.value();
+    if (bip39_seed.has_value()) {
+      auto &&big_seed = bip39_provider_->makeSeed(*bip39_seed);
+      if (!big_seed) {
+        logger_->error("failed to generate seed {}",
+                       big_seed.error().message());
+        BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
+      }
+      auto &&sr_seed = crypto::ED25519Seed::fromSpan(
+          gsl::make_span<uint8_t>(big_seed.value().begin(),
+                                  big_seed.value().end())
+              .subspan(0, crypto::SR25519Seed::size()));
+      if (!sr_seed) {
+        logger_->error("failed to get sr25519 seed from span {}",
+                       sr_seed.error().message());
+        BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
+      }
+
+      kp = sr25519_provider_->generateKeypair(sr_seed.value());
+    } else {
+      kp = sr25519_provider_->generateKeypair();
     }
 
-    auto &&key_pair = sr25519_provider_->generateKeypair();
-
-    key_storage_->addSrKeyPair(key_type_id.value(), key_pair);
-    common::Buffer buffer(key_pair.public_key);
-    runtime::PointerSize ps = memory_->storeBuffer(buffer);
+    key_storage_->addSrKeyPair(key_type_id.value(), kp);
+    common::Buffer pk_buffer(kp.public_key);
+    runtime::PointerSize ps = memory_->storeBuffer(pk_buffer);
 
     return runtime::WasmResult(ps).address;
   }

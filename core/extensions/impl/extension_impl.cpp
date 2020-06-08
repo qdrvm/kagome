@@ -5,8 +5,10 @@
 
 #include "extensions/impl/extension_impl.hpp"
 
+#include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/typed_key_storage/typed_key_storage_impl.hpp"
@@ -24,7 +26,9 @@ namespace kagome::extensions {
                         std::make_shared<crypto::BoostRandomGenerator>()),
                     std::make_shared<crypto::ED25519ProviderImpl>(),
                     std::make_shared<crypto::HasherImpl>(),
-                    std::make_shared<crypto::storage::TypedKeyStorageImpl>()),
+                    std::make_shared<crypto::storage::TypedKeyStorageImpl>(),
+                    std::make_shared<crypto::Bip39ProviderImpl>(
+                        std::make_shared<crypto::Pbkdf2ProviderImpl>())),
         io_ext_(memory),
         memory_ext_(memory),
         storage_ext_(storage_provider_, memory_, std::move(tracker)) {

@@ -7,11 +7,12 @@ add_library(crypto_extension
     crypto_extension.cpp
     )
 target_link_libraries(crypto_extension
+    bip39_provider
     hasher
+    logger
     p2p::p2p_random_generator
     sr25519_provider
     ed25519_provider
-    logger
     scale
     typed_key_storage
     )

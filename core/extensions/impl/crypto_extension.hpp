@@ -15,6 +15,7 @@ namespace kagome::crypto {
   class SR25519Provider;
   class ED25519Provider;
   class Hasher;
+  class Bip39Provider;
 }  // namespace kagome::crypto
 
 namespace kagome::crypto::storage {
@@ -32,7 +33,8 @@ namespace kagome::extensions {
         std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
         std::shared_ptr<crypto::ED25519Provider> ed25519_provider,
         std::shared_ptr<crypto::Hasher> hasher,
-        std::shared_ptr<crypto::storage::TypedKeyStorage> key_storage);
+        std::shared_ptr<crypto::storage::TypedKeyStorage> key_storage,
+        std::shared_ptr<crypto::Bip39Provider> bip39_provider);
 
     /**
      * @see Extension::ext_blake2_128
@@ -150,6 +152,7 @@ namespace kagome::extensions {
     std::shared_ptr<crypto::ED25519Provider> ed25519_provider_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<crypto::storage::TypedKeyStorage> key_storage_;
+    std::shared_ptr<crypto::Bip39Provider> bip39_provider_;
     common::Logger logger_;
   };
 }  // namespace kagome::extensions
