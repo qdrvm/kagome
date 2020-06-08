@@ -5,7 +5,7 @@
 
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 
-#include "crypto/bip39/bip39_entropy.hpp"
+#include "crypto/bip39/entropy_accumulator.hpp"
 #include "crypto/bip39/mnemonic.hpp"
 
 namespace kagome::crypto {
@@ -29,9 +29,9 @@ namespace kagome::crypto {
 
     // make entropy accumulator
     OUTCOME_TRY(entropy_accumulator,
-                bip39::Bip39Entropy::create(mnemonic.words.size()));
+                bip39::EntropyAccumulator::create(mnemonic.words.size()));
 
-    // accummulate entropy
+    // accumulate entropy
     for (auto &&w : mnemonic.words) {
       OUTCOME_TRY(entropy_token, dictionary_.findValue(w));
       OUTCOME_TRY(entropy_accumulator.append(entropy_token));

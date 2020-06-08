@@ -28,6 +28,22 @@ namespace kagome::crypto {
     return ED25519Keypair{private_key_high, public_key_high};
   }
 
+  outcome::result<ED25519Keypair> ED25519ProviderImpl::generateKeyPair(
+      const ED25519Seed &seed) const {
+    private_key_t private_key_low{};
+    public_key_t public_key_low{};
+    std::copy_n(seed.begin(), ED25519Seed::size(), private_key_low.data);
+
+    // derive public key
+    ed25519_derive_public_key(&private_key_low, &public_key_low);
+    ED25519PrivateKey privateKey{seed};
+    auto pub_span = gsl::make_span<uint8_t>(public_key_low.data,
+                                            constants::ed25519::PUBKEY_SIZE);
+    OUTCOME_TRY(public_key_high, ED25519PublicKey::fromSpan(pub_span));
+
+    return ED25519Keypair{privateKey, public_key_high};
+  }
+
   outcome::result<ED25519Signature> ED25519ProviderImpl::sign(
       const ED25519Keypair &keypair, gsl::span<uint8_t> message) const {
     signature_t signature_low{};

@@ -19,7 +19,8 @@ namespace kagome::crypto {
 
     explicit Bip39ProviderImpl(std::shared_ptr<Pbkdf2Provider> pbkdf2_provider);
 
-    outcome::result<bip39::Bip39Seed> makeSeed(std::string_view phrase);
+    outcome::result<bip39::Bip39Seed> makeSeed(
+        std::string_view phrase) override;
 
    private:
     std::shared_ptr<Pbkdf2Provider> pbkdf2_provider_;

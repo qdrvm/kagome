@@ -19,7 +19,7 @@ namespace kagome::crypto {
       PRIVKEY_SIZE = ed25519_privkey_SIZE,
       PUBKEY_SIZE = ed25519_pubkey_SIZE,
       SIGNATURE_SIZE = ed25519_signature_SIZE,
-      SEED_SIZE = 32
+      SEED_SIZE = PRIVKEY_SIZE,
     };
   }  // namespace constants::ed25519
 
@@ -35,6 +35,8 @@ namespace kagome::crypto {
   };
 
   using ED25519Signature = common::Blob<constants::ed25519::SIGNATURE_SIZE>;
+
+  using ED25519Seed = common::Blob<constants::ed25519::SEED_SIZE>;
 }  // namespace kagome::crypto
 
 #endif  // KAGOME_CORE_CRYPTO_ED25519_TYPES_HPP

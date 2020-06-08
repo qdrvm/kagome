@@ -4,9 +4,9 @@
 #
 
 add_library(bip39_provider
-    impl/bip39_provider_impl.cpp
-    bip39_entropy.cpp
     dictionary.cpp
+    entropy_accumulator.cpp
+    impl/bip39_provider_impl.cpp
     mnemonic.cpp
     )
 target_link_libraries(bip39_provider
@@ -14,6 +14,7 @@ target_link_libraries(bip39_provider
     OpenSSL::Crypto
     buffer
     blob
+    pbkdf2_provider
     sha
     )
 kagome_install(bip39_provider)

@@ -26,15 +26,15 @@ namespace kagome::crypto::bip39 {
   };
 
   /**
-   * @class Bip39Entropy accumulates and provides entropy and checksum
+   * @class EntropyAccumulator accumulates and provides entropy and checksum
    */
-  class Bip39Entropy {
+  class EntropyAccumulator {
    public:
     /**
      * @brief create class instance
      * @param words_count number of words in mnemonic phrase
      */
-    static outcome::result<Bip39Entropy> create(size_t words_count);
+    static outcome::result<EntropyAccumulator> create(size_t words_count);
 
     /**
      * @brief append a new entropy token
@@ -65,7 +65,7 @@ namespace kagome::crypto::bip39 {
      * @param bits_count total bits count (depends on words count)
      * @param checksum_bits_count number of bits in checksum byte
      */
-    Bip39Entropy(size_t bits_count, size_t checksum_bits_count)
+    EntropyAccumulator(size_t bits_count, size_t checksum_bits_count)
         : total_bits_count_{bits_count},
           checksum_bits_count_{checksum_bits_count} {
       BOOST_ASSERT_MSG((bits_count - checksum_bits_count) % 32 == 0,

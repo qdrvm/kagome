@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "crypto/bip39/bip39_entropy.hpp"
+#include "crypto/bip39/entropy_accumulator.hpp"
 
 #include "crypto/sha/sha256.hpp"
 
@@ -22,25 +22,25 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto::bip39, Bip39EntropyError, error) {
 }
 
 namespace kagome::crypto::bip39 {
-  outcome::result<Bip39Entropy> Bip39Entropy::create(size_t words_count) {
+  outcome::result<EntropyAccumulator> EntropyAccumulator::create(size_t words_count) {
     switch (words_count) {
       case 12:
-        return Bip39Entropy(132, 4);
+        return EntropyAccumulator(132, 4);
       case 15:
-        return Bip39Entropy(165, 5);
+        return EntropyAccumulator(165, 5);
       case 18:
-        return Bip39Entropy(198, 6);
+        return EntropyAccumulator(198, 6);
       case 21:
-        return Bip39Entropy(231, 7);
+        return EntropyAccumulator(231, 7);
       case 24:
-        return Bip39Entropy(264, 8);
+        return EntropyAccumulator(264, 8);
       default:
         break;
     }
     return Bip39EntropyError::WRONG_WORDS_COUNT;
   }
 
-  outcome::result<std::vector<uint8_t>> Bip39Entropy::getEntropy() const {
+  outcome::result<std::vector<uint8_t>> EntropyAccumulator::getEntropy() const {
     if (bits_.size() != total_bits_count_) {
       return Bip39EntropyError::STORAGE_NOT_COMPLETE;
     }
@@ -63,7 +63,7 @@ namespace kagome::crypto::bip39 {
     return res;
   }
 
-  outcome::result<uint8_t> Bip39Entropy::getChecksum() const {
+  outcome::result<uint8_t> EntropyAccumulator::getChecksum() const {
     if (bits_.size() != total_bits_count_) {
       return Bip39EntropyError::STORAGE_NOT_COMPLETE;
     }
@@ -74,7 +74,7 @@ namespace kagome::crypto::bip39 {
     return checksum;
   }
 
-  outcome::result<void> Bip39Entropy::append(const EntropyToken &value) {
+  outcome::result<void> EntropyAccumulator::append(const EntropyToken &value) {
     if (bits_.size() + value.size() > total_bits_count_) {
       return Bip39EntropyError::STORAGE_IS_FULL;
     }
@@ -85,7 +85,7 @@ namespace kagome::crypto::bip39 {
     return outcome::success();
   }
 
-  outcome::result<uint8_t> Bip39Entropy::calculateChecksum() const {
+  outcome::result<uint8_t> EntropyAccumulator::calculateChecksum() const {
     OUTCOME_TRY(entropy, getEntropy());
     auto hash = sha256(entropy);
     return hash[0];

@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "dictionary.hpp"
+#include "crypto/bip39/dictionary.hpp"
 
-#include "crypto/bip39/bip39_entropy.hpp"
+#include "crypto/bip39/entropy_accumulator.hpp"
 #include "crypto/bip39/wordlist/english.hpp"
 
 namespace kagome::crypto::bip39 {
