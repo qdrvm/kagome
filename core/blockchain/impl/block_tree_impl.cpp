@@ -111,7 +111,7 @@ namespace kagome::blockchain {
       std::shared_ptr<BlockHeaderRepository> header_repo,
       std::shared_ptr<BlockStorage> storage,
       const primitives::BlockId &last_finalized_block,
-      std::shared_ptr<network::ExtrinsicObserver> author_api_observer,
+      std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<crypto::Hasher> hasher) {
     // retrieve the block's header: we need data from it
     OUTCOME_TRY(header, storage->getBlockHeader(last_finalized_block));
@@ -126,7 +126,7 @@ namespace kagome::blockchain {
                              std::move(storage),
                              std::move(tree),
                              std::move(meta),
-                             std::move(author_api_observer),
+                             std::move(extrinsic_observer),
                              std::move(hasher)};
     return std::make_shared<BlockTreeImpl>(std::move(block_tree));
   }
@@ -136,13 +136,13 @@ namespace kagome::blockchain {
       std::shared_ptr<BlockStorage> storage,
       std::shared_ptr<TreeNode> tree,
       std::shared_ptr<TreeMeta> meta,
-      std::shared_ptr<network::ExtrinsicObserver> author_api_observer,
+      std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<crypto::Hasher> hasher)
       : header_repo_{std::move(header_repo)},
         storage_{std::move(storage)},
         tree_{std::move(tree)},
         tree_meta_{std::move(meta)},
-        author_api_observer_{std::move(author_api_observer)},
+        extrinsic_observer_{std::move(extrinsic_observer)},
         hasher_{std::move(hasher)} {}
 
   outcome::result<void> BlockTreeImpl::addBlockHeader(
@@ -516,7 +516,7 @@ namespace kagome::blockchain {
 
     // trying to return back extrinsics to transaction pool
     for (auto &&extrinsic : extrinsics) {
-      auto result = author_api_observer_->onTxMessage(std::move(extrinsic));
+      auto result = extrinsic_observer_->onTxMessage(std::move(extrinsic));
       if (result) {
         log_->debug("Reapplied tx {}", result.value());
       } else {
