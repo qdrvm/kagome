@@ -41,6 +41,7 @@ namespace kagome::api {
 
     virtual ~ApiService() = default;
 
+    void prepare();
     void start();
     void stop();
 

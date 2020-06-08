@@ -30,6 +30,8 @@ namespace kagome::api {
       processor->registerHandlers();
     }
 
+    app_state_manager_->atPrepare([this] { prepare(); });
+
     app_state_manager_->atLaunch([this] { start(); });
     app_state_manager_->atLaunch([this] { thread_pool_->start(); });
 
@@ -37,28 +39,40 @@ namespace kagome::api {
     app_state_manager_->atShutdown([this] { thread_pool_->stop(); });
   }
 
-  void ApiService::start() {
-    // handle new session
+  void ApiService::prepare() {
     for (const auto &listener : listeners_) {
-      listener->start(
+      listener->prepare();
+
+      auto on_new_session =
           [wp = weak_from_this()](const sptr<Session> &session) mutable {
-            if (auto self = wp.lock()) {
-              session->connectOnRequest(
-                  [wp](std::string_view request,
-                       std::shared_ptr<Session> session) mutable {
-                    if (auto self = wp.lock()) {
-                      // process new request
-                      self->server_->processData(
-                          std::string(request),
-                          [session = std::move(session)](
-                              const std::string &response) mutable {
-                            // process response
-                            session->respond(response);
-                          });
-                    }
-                  });
+            if (auto self = wp.lock(); not self) {
+              return;
             }
-          });
+            session->connectOnRequest(
+                [wp](std::string_view request,
+                     std::shared_ptr<Session> session) mutable {
+                  auto self = wp.lock();
+                  if (not self) {
+                    return;
+                  }
+                  // process new request
+                  self->server_->processData(
+                      std::string(request),
+                      [session = std::move(session)](
+                          const std::string &response) mutable {
+                        // process response
+                        session->respond(response);
+                      });
+                });
+          };
+
+      listener->setHandlerForNewSession(std::move(on_new_session));
+    }
+  }
+
+  void ApiService::start() {
+    for (const auto &listener : listeners_) {
+      listener->start();
     }
     logger_->debug("Service started");
   }

@@ -34,21 +34,22 @@ namespace kagome::api {
 
     virtual ~Listener() = default;
 
-    /**
-     * @brief starts listening
-     */
-    virtual void start(NewSessionHandler on_new_session) = 0;
+    /// Bind endpoint
+    virtual void prepare() = 0;
 
-    /**
-     * @brief stops listening
-     */
+    /// Start handling inner connection
+    virtual void start() = 0;
+
+    /// Stop working
     virtual void stop() = 0;
 
+    /// Set handler for working new session
+    virtual void setHandlerForNewSession(
+        NewSessionHandler &&on_new_session) = 0;
+
    protected:
-    /**
-     * @brief accepts incoming connection
-     */
-    virtual void acceptOnce(NewSessionHandler on_new_session) = 0;
+    /// Accept incoming connection
+    virtual void acceptOnce() = 0;
   };
 }  // namespace kagome::api
 
