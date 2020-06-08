@@ -41,7 +41,8 @@ struct SR25519ProviderTest : public ::testing::Test {
  */
 TEST_F(SR25519ProviderTest, GenerateKeysNotEqual) {
   for (auto i = 0; i < 10; ++i) {
-    auto kp1 = sr25519_provider->generateKeypair();
+    auto kp1 = sr25519_provider->generateKeypair(kagome::common::Blob<32>::fromHex("398f0c28f98885e046333d4a41c19cee4c37368a9832c6502f6cfd182e2aef89").value());
+    FAIL() << kp1.public_key.toHex() << " " << kp1.secret_key.toHex();
     auto kp2 = sr25519_provider->generateKeypair();
     ASSERT_NE(kp1.public_key, kp2.public_key);
     ASSERT_NE(kp1.secret_key, kp2.secret_key);

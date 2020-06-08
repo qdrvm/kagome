@@ -135,16 +135,7 @@ namespace kagome::consensus::grandpa {
       const GrandpaJustification &grandpa_jusitification) {
     primitives::Justification justification;
     justification.data.put(scale::encode(grandpa_jusitification).value());
-    auto finalized = block_tree_->finalize(block_hash, justification);
-    if (not finalized) {
-      logger_->error("Could not finalize block {} with error: {}",
-                     block_hash.toHex(),
-                     finalized.error().message());
-    } else {
-      logger_->info("Finalized block. Hash: {}", block_hash.toHex());
-    }
-
-    return finalized;
+    return block_tree_->finalize(block_hash, justification);
   }
 
 }  // namespace kagome::consensus::grandpa

@@ -298,7 +298,7 @@ namespace kagome::blockchain {
       const primitives::BlockHash &bottom_block) {
     static constexpr std::string_view kNotAncestorError =
         "impossible to get chain by blocks: most probably, block {} is "
-        "not an ancestor of {}";
+        "not an ancestor of {}. Or";
     std::vector<primitives::BlockHash> result;
 
     auto top_block_node_ptr = tree_->getByHash(top_block);
@@ -312,7 +312,7 @@ namespace kagome::blockchain {
         if (auto parent = current_node->parent; !parent.expired()) {
           current_node = parent.lock();
         } else {
-          log_->error(kNotAncestorError.data(), top_block, bottom_block);
+          log_->warn(kNotAncestorError.data(), top_block, bottom_block);
           return BlockTreeError::INCORRECT_ARGS;
         }
       }

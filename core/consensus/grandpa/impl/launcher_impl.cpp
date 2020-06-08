@@ -193,6 +193,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void LauncherImpl::onFinalize(const Fin &f) {
+    logger_->debug("Received fin message for round: {}", f.round_number);
     if (f.round_number == current_round_->roundNumber()) {
       current_round_->onFinalize(f);
     }

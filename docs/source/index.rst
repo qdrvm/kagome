@@ -19,7 +19,8 @@ If you would like to understand how different components of Kagome are implement
 
     development/README.md
     overview/getting_started.md
-    tutorials/transfer.md
+    tutorials/first_kagome_chain.md
+    tutorials/private_network.md
 
 Kagome in media
 ^^^^^^^^^^^^^^^
