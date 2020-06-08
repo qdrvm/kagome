@@ -45,8 +45,6 @@ namespace kagome::application {
   void BlockProducingNodeApplication::run() {
     logger_->info("Start as {} with PID {}", typeid(*this).name(), getpid());
 
-    app_state_manager_->atLaunch([this] { jrpc_api_service_->start(); });
-
     app_state_manager_->atLaunch([this] { babe_->start(); });
 
     app_state_manager_->atLaunch([this] {
