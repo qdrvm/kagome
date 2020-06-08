@@ -19,7 +19,7 @@ namespace kagome::crypto::bip39 {
 
   /**
    * @class Dictionary keeps and provides correspondence between mnemonic words
-   * and entropy value
+   * and entropy value. Only english dictionary is supported for now
    */
   class Dictionary {
    public:

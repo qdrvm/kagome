@@ -23,14 +23,14 @@ namespace kagome::crypto {
 
     /**
      * @brief derives key from password and salt
-     * @param password password
+     * @param data entropy or password
      * @param salt salt
      * @param iterations number of iterations
      * @param key_length length of generated key
      * @return derived key
      */
     virtual outcome::result<common::Buffer> deriveKey(
-        std::string_view password,
+        gsl::span<const uint8_t> data,
         gsl::span<const uint8_t> salt,
         size_t iterations,
         size_t key_length) const = 0;

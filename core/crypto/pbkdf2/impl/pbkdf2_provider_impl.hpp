@@ -14,7 +14,7 @@ namespace kagome::crypto {
    public:
     ~Pbkdf2ProviderImpl() override = default;
 
-    outcome::result<common::Buffer> deriveKey(std::string_view password,
+    outcome::result<common::Buffer> deriveKey(gsl::span<const uint8_t> data,
                                               gsl::span<const uint8_t> salt,
                                               size_t iterations,
                                               size_t key_length) const override;

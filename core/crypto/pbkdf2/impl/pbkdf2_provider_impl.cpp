@@ -10,15 +10,17 @@
 namespace kagome::crypto {
 
   outcome::result<common::Buffer> Pbkdf2ProviderImpl::deriveKey(
-      std::string_view password,
+      gsl::span<const uint8_t> data,
       gsl::span<const uint8_t> salt,
       size_t iterations,
       size_t key_length) const {
     common::Buffer out(key_length, 0);
     const auto *digest = EVP_sha512();
 
-    int res = PKCS5_PBKDF2_HMAC(password.data(),
-                                password.size(),
+    std::string pass(data.begin(), data.end());
+
+    int res = PKCS5_PBKDF2_HMAC(pass.data(),
+                                pass.size(),
                                 salt.data(),
                                 salt.size(),
                                 iterations,

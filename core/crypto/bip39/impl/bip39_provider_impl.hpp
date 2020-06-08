@@ -6,8 +6,10 @@
 #ifndef KAGOME_BIP39_PROVIDER_IMPL_HPP
 #define KAGOME_BIP39_PROVIDER_IMPL_HPP
 
+#include <crypto/bip39/impl/detail/dictionary.hpp>
 #include "crypto/bip39/bip39_provider.hpp"
 
+#include "common/logger.hpp"
 #include "crypto/pbkdf2/pbkdf2_provider.hpp"
 
 namespace kagome::crypto {
@@ -21,6 +23,8 @@ namespace kagome::crypto {
 
    private:
     std::shared_ptr<Pbkdf2Provider> pbkdf2_provider_;
+    bip39::Dictionary dictionary_;
+    common::Logger logger_;
   };
 }  // namespace kagome::crypto
 
