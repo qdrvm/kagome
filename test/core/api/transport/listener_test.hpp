@@ -13,6 +13,7 @@
 #include "api/jrpc/jrpc_processor.hpp"
 #include "api/jrpc/jrpc_server.hpp"
 #include "api/service/api_service.hpp"
+#include "application/impl/app_state_manager_impl.hpp"
 #include "core/api/client/http_client.hpp"
 #include "mock/core/api/transport/api_stub.hpp"
 #include "mock/core/api/transport/jrpc_processor_stub.hpp"
@@ -52,8 +53,6 @@ struct ListenerTest : public ::testing::Test {
         R"({"jsonrpc":"2.0","id":0,"result":)" + std::to_string(payload) + "}";
   }
   void TearDown() override {
-    //		main_context.reset();
-    //		client_context.reset();
     request.clear();
     response.clear();
   }
@@ -67,6 +66,14 @@ struct ListenerTest : public ::testing::Test {
 
   typename ListenerImpl::SessionImpl::Configuration session_config{};
 
+  sptr<AppStateManager> app_state_manager =
+      std::make_shared<kagome::application::AppStateManagerImpl>();
+
+  kagome::api::RpcThreadPool::Configuration config = {1, 1};
+
+  sptr<kagome::api::RpcThreadPool> thread_pool =
+      std::make_shared<kagome::api::RpcThreadPool>(main_context, config);
+
   sptr<ApiStub> api = std::make_shared<ApiStub>();
 
   sptr<JRpcServer> server = std::make_shared<JRpcServerImpl>();
@@ -79,7 +86,7 @@ struct ListenerTest : public ::testing::Test {
           main_context, listener_config, session_config)};
 
   sptr<ApiService> service = std::make_shared<ApiService>(
-      std::vector<std::shared_ptr<Listener>>(listeners), server, processors);
+      app_state_manager, thread_pool, listeners, server, processors);
 };
 
 #endif  // KAGOME_TEST_CORE_API_TRANSPORT_LISTENER_TEST_HPP

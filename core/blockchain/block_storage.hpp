@@ -21,6 +21,11 @@ namespace kagome::blockchain {
    public:
     virtual ~BlockStorage() = default;
 
+    virtual outcome::result<primitives::BlockHash> getLastFinalizedBlockHash()
+        const = 0;
+    virtual outcome::result<void> setLastFinalizedBlockHash(
+        const primitives::BlockHash &) = 0;
+
     virtual outcome::result<primitives::BlockHeader> getBlockHeader(
         const primitives::BlockId &id) const = 0;
     virtual outcome::result<primitives::BlockBody> getBlockBody(

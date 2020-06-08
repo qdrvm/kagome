@@ -55,9 +55,8 @@ namespace kagome::application {
      * @param keystore_path local peer's keys
      * @param leveldb_path storage path
      * @param p2p_port port for p2p interactions
-     * @param rpc_http_port port for http based rpc
-     * @param rpc_ws_port port for ws based rpc
-     * @param is_genesis_epoch true if this is the first node in the network
+     * @param rpc_http_endpoint endpoint for http based rpc
+     * @param rpc_ws_endpoint endpoint for ws based rpc
      * @param is_only_finalizing true if this node should be the only finalizing
      * node
      * @param verbosity level of logging
@@ -69,7 +68,6 @@ namespace kagome::application {
         uint16_t p2p_port,
         const boost::asio::ip::tcp::endpoint &rpc_http_endpoint,
         const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint,
-        bool is_genesis_epoch,
         bool is_only_finalizing,
         uint8_t verbosity);
 
@@ -90,11 +88,8 @@ namespace kagome::application {
     sptr<GrandpaLauncher> grandpa_launcher_;
     sptr<network::Router> router_;
 
-    sptr<api::RpcContext> rpc_context_;
-    sptr<api::RpcThreadPool> rpc_thread_pool_;
     sptr<api::ApiService> jrpc_api_service_;
 
-    bool is_genesis_epoch_;
     common::Logger logger_;
   };
 }  // namespace kagome::application

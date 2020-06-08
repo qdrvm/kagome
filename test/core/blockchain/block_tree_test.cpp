@@ -183,6 +183,8 @@ TEST_F(BlockTreeTest, Finalize) {
   auto encoded_justification = scale::encode(justification).value();
   EXPECT_CALL(*storage_, putJustification(justification, hash, header.number))
       .WillRepeatedly(Return(outcome::success()));
+	EXPECT_CALL(*storage_, setLastFinalizedBlockHash(hash))
+			.WillRepeatedly(Return(outcome::success()));
 
   // WHEN
   ASSERT_TRUE(block_tree_->finalize(hash, justification));
