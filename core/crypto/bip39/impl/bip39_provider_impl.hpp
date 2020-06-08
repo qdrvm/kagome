@@ -6,7 +6,7 @@
 #ifndef KAGOME_BIP39_PROVIDER_IMPL_HPP
 #define KAGOME_BIP39_PROVIDER_IMPL_HPP
 
-#include <crypto/bip39/impl/detail/dictionary.hpp>
+#include <crypto/bip39/dictionary.hpp>
 #include "crypto/bip39/bip39_provider.hpp"
 
 #include "common/logger.hpp"

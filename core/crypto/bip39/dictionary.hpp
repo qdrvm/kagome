@@ -6,7 +6,7 @@
 #ifndef KAGOME_CRYPTO_BIP39_DICTIONARIES_HPP
 #define KAGOME_CRYPTO_BIP39_DICTIONARIES_HPP
 
-#include "crypto/bip39/impl/detail/bip39_entropy.hpp"
+#include "crypto/bip39/bip39_entropy.hpp"
 #include "outcome/outcome.hpp"
 
 #include <unordered_map>

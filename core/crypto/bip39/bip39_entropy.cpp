@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "crypto/bip39/impl/detail/bip39_entropy.hpp"
+#include "crypto/bip39/bip39_entropy.hpp"
 
 #include "crypto/sha/sha256.hpp"
 

@@ -5,8 +5,8 @@
 
 add_library(bip39_provider
     impl/bip39_provider_impl.cpp
-    impl/detail/bip39_entropy.cpp
-    impl/detail/dictionary.cpp
+    bip39_entropy.cpp
+    dictionary.cpp
     )
 target_link_libraries(bip39_provider
     PUBLIC OpenSSL::SSL

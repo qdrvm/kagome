@@ -5,7 +5,8 @@
 #ifndef KAGOME_CRYPTO_BIP39_ENGLISH_DICTIONARY_HPP
 #define KAGOME_CRYPTO_BIP39_ENGLISH_DICTIONARY_HPP
 
-#include <vector>
+#include <array>
+#include <string_view>
 
 namespace kagome::crypto::bip39::english {
   /// @brief words are taken from

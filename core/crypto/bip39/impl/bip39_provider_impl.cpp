@@ -9,7 +9,7 @@
 #include <locale>
 
 #include <boost/algorithm/string.hpp>
-#include "crypto/bip39/impl/detail/bip39_entropy.hpp"
+#include "crypto/bip39/bip39_entropy.hpp"
 
 namespace kagome::crypto {
   Bip39ProviderImpl::Bip39ProviderImpl(
