@@ -93,9 +93,11 @@ TEST_F(BlockStorageTest, CreateWithExistingGenesis) {
       // trying to get last finalized block hash to ensure he not exists yet
       .WillOnce(Return(Buffer{genesis_block_hash}));
 
-  EXPECT_OUTCOME_ERROR(KeyValueBlockStorage::Error::GENESIS_ALREADY_EXISTS,
+  EXPECT_OUTCOME_ERROR(res,
+
                        KeyValueBlockStorage::createWithGenesis(
-                           root_hash, storage, hasher, block_handler));
+                           root_hash, storage, hasher, block_handler),
+                       KeyValueBlockStorage::Error::GENESIS_ALREADY_EXISTS);
 }
 
 /**
@@ -119,7 +121,8 @@ TEST_F(BlockStorageTest, LoadFromExistingStorage) {
 
 /**
  * @given a hasher instance and an empty map storage
- * @when trying to initialise a block storage from it and storage throws an error
+ * @when trying to initialise a block storage from it and storage throws an
+ * error
  * @then initialisation will fail
  */
 TEST_F(BlockStorageTest, LoadFromEmptyStorage) {
@@ -130,8 +133,9 @@ TEST_F(BlockStorageTest, LoadFromEmptyStorage) {
       .WillOnce(Return(KeyValueBlockStorage::Error::FINALIZED_BLOCK_NOT_FOUND));
 
   EXPECT_OUTCOME_ERROR(
-      KeyValueBlockStorage::Error::FINALIZED_BLOCK_NOT_FOUND,
-      KeyValueBlockStorage::loadExisting(empty_storage, hasher, block_handler));
+      res,
+      KeyValueBlockStorage::loadExisting(empty_storage, hasher, block_handler),
+      KeyValueBlockStorage::Error::FINALIZED_BLOCK_NOT_FOUND);
 }
 
 /**
@@ -147,9 +151,10 @@ TEST_F(BlockStorageTest, CreateWithStorageError) {
       // trying to get last finalized block hash to ensure he not exists yet
       .WillOnce(Return(kagome::storage::DatabaseError::IO_ERROR));
 
-  EXPECT_OUTCOME_ERROR(kagome::storage::DatabaseError::IO_ERROR,
+  EXPECT_OUTCOME_ERROR(res,
                        KeyValueBlockStorage::create(
-                           root_hash, empty_storage, hasher, block_handler));
+                           root_hash, empty_storage, hasher, block_handler),
+                       kagome::storage::DatabaseError::IO_ERROR);
 }
 
 /**
