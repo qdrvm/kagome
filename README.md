@@ -84,7 +84,7 @@ To launch kagome validating node execute:
 ```
 cd node/
 PATH=$PATH:../build/node/kagome_validating/
-kagome_validating --genesis config/polkadot-v06.json --keystore config/keystore.json -l ldb -e
+kagome_validating --genesis config/polkadot-v06.json --keystore config/keystore.json -l ldb
 ```
 
 This command executes kagome validating node which can receive extrinsics locally on port using http: `40363`. Simple transfer transaction can be sent as follows:

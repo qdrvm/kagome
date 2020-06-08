@@ -75,7 +75,7 @@ namespace kagome::consensus {
 
     ~BabeImpl() override = default;
 
-    void runGenesisEpoch() override;
+    void start() override;
 
     void runEpoch(Epoch epoch,
                   BabeTimePoint starting_slot_finish_time) override;

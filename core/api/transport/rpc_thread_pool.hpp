@@ -31,8 +31,7 @@ namespace kagome::api {
       size_t max_thread_number = 10;
     };
 
-    RpcThreadPool(std::shared_ptr<AppStateManager> app_state_manager,
-                  std::shared_ptr<Context> context,
+    RpcThreadPool(std::shared_ptr<Context> context,
                   const Configuration &configuration);
 
     ~RpcThreadPool() = default;
@@ -48,8 +47,6 @@ namespace kagome::api {
     void stop();
 
    private:
-    std::shared_ptr<AppStateManager> app_state_manager_;
-
     std::shared_ptr<Context> context_;
     const Configuration config_;
 

@@ -18,7 +18,6 @@ namespace kagome::application {
       uint16_t p2p_port,
       const boost::asio::ip::tcp::endpoint &rpc_http_endpoint,
       const boost::asio::ip::tcp::endpoint &rpc_ws_endpoint,
-      bool is_genesis_epoch,
       bool is_only_finalizing,
       uint8_t verbosity)
       : injector_{injector::makeFullNodeInjector(config_path,
@@ -28,7 +27,6 @@ namespace kagome::application {
                                                  rpc_http_endpoint,
                                                  rpc_ws_endpoint,
                                                  is_only_finalizing)},
-        is_genesis_epoch_{is_genesis_epoch},
         logger_(common::createLogger("Application")) {
     spdlog::set_level(static_cast<spdlog::level::level_enum>(verbosity));
 
@@ -44,8 +42,6 @@ namespace kagome::application {
     grandpa_launcher_ = injector_.create<sptr<GrandpaLauncher>>();
     router_ = injector_.create<sptr<network::Router>>();
 
-    rpc_context_ = injector_.create<sptr<api::RpcContext>>();
-    rpc_thread_pool_ = injector_.create<sptr<api::RpcThreadPool>>();
     jrpc_api_service_ = injector_.create<sptr<api::ApiService>>();
   }
 
@@ -54,19 +50,11 @@ namespace kagome::application {
 
     app_state_manager_->atLaunch([this] { jrpc_api_service_->start(); });
 
-    app_state_manager_->atLaunch([this] {
-      // if we are the first peer in the network, then we get genesis epoch info
-      // and start block production
-      if (is_genesis_epoch_) {
-        // starts block production event loop
-        babe_->runGenesisEpoch();
-      }
-    });
+    // starts block production
+    app_state_manager_->atLaunch([this] { babe_->start(); });
 
-    app_state_manager_->atLaunch([this] {
-      // starts finalization event loop
-      grandpa_launcher_->start();
-    });
+    // starts finalization event loop
+    app_state_manager_->atLaunch([this] { grandpa_launcher_->start(); });
 
     app_state_manager_->atLaunch([this] {
       // execute listeners

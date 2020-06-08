@@ -120,15 +120,14 @@ namespace kagome::blockchain {
 
     auto tree =
         std::make_shared<TreeNode>(hash_res, header.number, nullptr, true);
-    auto meta = std::make_shared<TreeMeta>(
-        decltype(TreeMeta::leaves){tree->block_hash}, *tree, *tree);
+    auto meta = std::make_shared<TreeMeta>(*tree);
 
-    BlockTreeImpl block_tree(std::move(header_repo),
+    BlockTreeImpl block_tree{std::move(header_repo),
                              std::move(storage),
                              std::move(tree),
                              std::move(meta),
                              std::move(author_api_observer),
-                             std::move(hasher));
+                             std::move(hasher)};
     return std::make_shared<BlockTreeImpl>(std::move(block_tree));
   }
 
@@ -219,6 +218,8 @@ namespace kagome::blockchain {
     tree_meta_ = std::make_shared<TreeMeta>(*tree_);
 
     tree_->parent.reset();
+
+    OUTCOME_TRY(storage_->setLastFinalizedBlockHash(node->block_hash));
 
     return outcome::success();
   }

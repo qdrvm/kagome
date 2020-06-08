@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 
 #include "api/service/author/author_jrpc_processor.hpp"
+#include "application/impl/app_state_manager_impl.hpp"
 #include "common/blob.hpp"
 #include "mock/core/api/service/author/author_api_mock.hpp"
 #include "mock/core/api/transport/listener_mock.hpp"
@@ -66,12 +67,23 @@ class AuthorServiceTest : public ::testing::Test {
 
   sptr<AuthorApiMock> api = std::make_shared<AuthorApiMock>();
 
+  sptr<AppStateManager> app_state_manager =
+      std::make_shared<kagome::application::AppStateManagerImpl>();
+
+  std::shared_ptr<kagome::api::RpcContext> context =
+      std::make_shared<kagome::api::RpcContext>();
+
+  kagome::api::RpcThreadPool::Configuration config = {1, 1};
+
+  sptr<kagome::api::RpcThreadPool> thread_pool =
+      std::make_shared<kagome::api::RpcThreadPool>(context, config);
+
   sptr<JRpcServer> server = std::make_shared<JRpcServerImpl>();
 
   std::vector<std::shared_ptr<JRpcProcessor>> processors{
       std::make_shared<AuthorJRpcProcessor>(server, api)};
-  sptr<ApiService> service =
-      std::make_shared<ApiService>(listeners, server, processors);
+  sptr<ApiService> service = std::make_shared<ApiService>(
+      app_state_manager, thread_pool, listeners, server, processors);
 
   sptr<SessionMock> session = std::make_shared<SessionMock>();
 

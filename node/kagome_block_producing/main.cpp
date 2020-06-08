@@ -23,7 +23,6 @@ int main(int argc, char **argv) {
   std::string rpc_ws_host;         // address for RPC over Websocket protocol
   uint16_t rpc_ws_port;            // port for RPC over Websocket protocol
   int verbosity;  // log level (0-trace, 5-only critical, 6-no logs)
-  bool is_genesis_epoch = false;  // if we need to execute genesis epoch
 
   namespace po = boost::program_options;
   po::options_description desc("Kagome block producing node allowed options");
@@ -38,7 +37,7 @@ int main(int argc, char **argv) {
 		("rpc_ws_host", po::value<std::string>(&rpc_ws_host)->default_value("0.0.0.0"), "address for RPC over Websocket protocol")
 		("rpc_ws_port", po::value<uint16_t>(&rpc_ws_port)->default_value(40364), "port for RPC over Websocket protocol")
 		("verbosity,v", po::value<int>(&verbosity)->default_value(2), "Log level. 0 - trace, 1 - debug, 2 - info, 3 - warn, 4 - error, 5 - critical, 6 - no logs. Default: info")
-		("genesis_epoch,e", "if we need to execute genesis epoch");
+		;
   // clang-format on
 
   po::variables_map vm;
@@ -53,10 +52,6 @@ int main(int argc, char **argv) {
   if (vm.count("help") > 0) {
     std::cout << desc << std::endl;
     return 0;
-  }
-
-  if (vm.count("genesis_epoch")) {
-    is_genesis_epoch = true;
   }
 
   auto ensureEndpointIsValid =
@@ -91,7 +86,6 @@ int main(int argc, char **argv) {
           p2p_port,
           rpc_http_endpoint,
           rpc_ws_endpoint,
-          is_genesis_epoch,
           verbosity);
   app->run();
 

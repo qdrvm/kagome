@@ -7,18 +7,10 @@
 
 namespace kagome::api {
 
-  RpcThreadPool::RpcThreadPool(
-      std::shared_ptr<AppStateManager> app_state_manager,
-      std::shared_ptr<Context> context,
-      const Configuration &configuration)
-      : app_state_manager_(std::move(app_state_manager)),
-        context_(std::move(context)),
-        config_(configuration) {
-    BOOST_ASSERT(app_state_manager_);
+  RpcThreadPool::RpcThreadPool(std::shared_ptr<Context> context,
+                               const Configuration &configuration)
+      : context_(std::move(context)), config_(configuration) {
     BOOST_ASSERT(context_);
-
-    app_state_manager_->atLaunch([this] { start(); });
-    app_state_manager_->atShutdown([this] { stop(); });
   }
 
   void RpcThreadPool::start() {
@@ -30,10 +22,12 @@ namespace kagome::api {
       thread->detach();
       threads_.emplace_back(std::move(thread));
     }
+    logger_->debug("Thread pool started");
   }
 
   void RpcThreadPool::stop() {
     context_->stop();
+    logger_->debug("Thread pool stopped");
   }
 
 }  // namespace kagome::api

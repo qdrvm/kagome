@@ -11,6 +11,8 @@
 
 #include "api/jrpc/jrpc_server_impl.hpp"
 #include "api/transport/listener.hpp"
+#include "api/transport/rpc_thread_pool.hpp"
+#include "application/app_state_manager.hpp"
 #include "common/logger.hpp"
 
 namespace kagome::api {
@@ -31,7 +33,9 @@ namespace kagome::api {
      * @param listener - a shared ptr to the endpoint listener instance
      * @param processors - shared ptrs to JSON processor instances
      */
-    ApiService(std::vector<std::shared_ptr<Listener>> listeners,
+    ApiService(std::shared_ptr<application::AppStateManager> app_state_manager,
+               std::shared_ptr<api::RpcThreadPool> thread_pool,
+               std::vector<std::shared_ptr<Listener>> listeners,
                std::shared_ptr<JRpcServer> server,
                gsl::span<std::shared_ptr<JRpcProcessor>> processors);
 
@@ -41,6 +45,10 @@ namespace kagome::api {
     void stop();
 
    private:
+    std::shared_ptr<application::AppStateManager> app_state_manager_;
+
+    std::shared_ptr<api::RpcThreadPool> thread_pool_;
+
     std::vector<sptr<Listener>> listeners_;
     std::shared_ptr<JRpcServer> server_;
     common::Logger logger_;

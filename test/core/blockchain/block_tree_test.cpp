@@ -12,7 +12,7 @@
 #include "common/blob.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/api/service/author/author_api_mock.hpp"
-#include "mock/core/blockchain/block_header_repository_mock.hp"
+#include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
@@ -193,6 +193,8 @@ TEST_F(BlockTreeTest, Finalize) {
   auto encoded_justification = scale::encode(justification).value();
   EXPECT_CALL(*storage_, putJustification(justification, hash, header.number))
       .WillRepeatedly(Return(outcome::success()));
+	EXPECT_CALL(*storage_, setLastFinalizedBlockHash(hash))
+			.WillRepeatedly(Return(outcome::success()));
 
   // WHEN
   ASSERT_TRUE(block_tree_->finalize(hash, justification));
