@@ -18,7 +18,8 @@ namespace kagome::crypto {
     enum {
       PRIVKEY_SIZE = ed25519_privkey_SIZE,
       PUBKEY_SIZE = ed25519_pubkey_SIZE,
-      SIGNATURE_SIZE = ed25519_signature_SIZE
+      SIGNATURE_SIZE = ed25519_signature_SIZE,
+      SEED_SIZE = 32
     };
   }  // namespace constants::ed25519
 
