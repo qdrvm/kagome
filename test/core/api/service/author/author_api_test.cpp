@@ -9,7 +9,6 @@
 #include <gtest/gtest.h>
 
 #include "common/blob.hpp"
-#include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/extrinsic_gossiper_mock.hpp"
 #include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
@@ -27,7 +26,6 @@ using namespace kagome::transaction_pool;
 using namespace kagome::runtime;
 
 using kagome::blockchain::BlockTree;
-using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::network::ExtrinsicGossiperMock;
@@ -79,10 +77,9 @@ struct AuthorApiTest : public ::testing::Test {
     hasher = std::make_shared<HasherMock>();
     ttq = std::make_shared<TaggedTransactionQueueMock>();
     transaction_pool = std::make_shared<TransactionPoolMock>();
-    block_tree = std::make_shared<BlockTreeMock>();
     gossiper = std::make_shared<ExtrinsicGossiperMock>();
     api = std::make_shared<AuthorApiImpl>(
-        ttq, transaction_pool, hasher, block_tree, gossiper);
+        ttq, transaction_pool, hasher, gossiper);
     extrinsic.reset(new Extrinsic{"12"_hex2buf});
     valid_transaction.reset(new ValidTransaction{1, {{2}}, {{3}}, 4, true});
     deepest_hash = createHash256({1u, 2u, 3u});
