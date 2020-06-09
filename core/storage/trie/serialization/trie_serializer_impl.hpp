@@ -6,11 +6,11 @@
 #ifndef KAGOME_STORAGE_TRIE_SERIALIZER_IMPL
 #define KAGOME_STORAGE_TRIE_SERIALIZER_IMPL
 
-#include "storage/trie/impl/trie_serializer.hpp"
+#include "storage/trie/serialization/trie_serializer.hpp"
 
 #include "storage/buffer_map_types.hpp"
 #include "storage/trie/codec.hpp"
-#include "storage/trie/impl/polkadot_trie_factory.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
 #include "storage/trie/trie_storage_backend.hpp"
 
 namespace kagome::storage::trie {

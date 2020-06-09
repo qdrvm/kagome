@@ -8,7 +8,7 @@
 
 #include "storage/face/generic_maps.hpp"
 
-#include "storage/trie/impl/polkadot_node.hpp"
+#include "storage/trie/polkadot_trie/polkadot_node.hpp"
 
 namespace kagome::storage::trie {
 

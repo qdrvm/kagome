@@ -6,8 +6,8 @@
 #ifndef KAGOME_CORE_STORAGE_TRIE_IMPL_POLKADOT_TRIE_FACTORY_IMPL
 #define KAGOME_CORE_STORAGE_TRIE_IMPL_POLKADOT_TRIE_FACTORY_IMPL
 
-#include "storage/trie/impl/polkadot_trie_factory.hpp"
-#include "storage/trie/impl/polkadot_trie_impl.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 
 namespace kagome::storage::trie {
 

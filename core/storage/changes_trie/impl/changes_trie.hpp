@@ -16,7 +16,7 @@
 #include "primitives/extrinsic.hpp"
 #include "storage/changes_trie/changes_trie_config.hpp"
 #include "storage/trie/codec.hpp"
-#include "storage/trie/impl/polkadot_trie_factory.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
 
 namespace kagome::storage::changes_trie {
 

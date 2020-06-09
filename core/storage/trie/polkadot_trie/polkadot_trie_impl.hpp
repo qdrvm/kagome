@@ -6,8 +6,8 @@
 #ifndef KAGOME_STORAGE_TRIE_IMPL_POLKADOT_TRIE_IMPL
 #define KAGOME_STORAGE_TRIE_IMPL_POLKADOT_TRIE_IMPL
 
-#include "storage/trie/impl/polkadot_codec.hpp"
-#include "storage/trie/impl/polkadot_trie.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie.hpp"
+#include "storage/trie/serialization/polkadot_codec.hpp"
 
 namespace kagome::storage::trie {
 

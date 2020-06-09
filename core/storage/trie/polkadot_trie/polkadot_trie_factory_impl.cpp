@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/trie/impl/polkadot_trie_factory_impl.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
 
 namespace kagome::storage::trie {
 

@@ -6,12 +6,12 @@
 #include <gtest/gtest.h>
 
 #include "storage/in_memory/in_memory_storage.hpp"
-#include "storage/trie/impl/polkadot_trie_factory_impl.hpp"
-#include "storage/trie/impl/polkadot_trie_impl.hpp"
-#include "storage/trie/impl/trie_error.hpp"
-#include "storage/trie/impl/trie_serializer_impl.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
+#include "storage/trie/polkadot_trie/trie_error.hpp"
+#include "storage/trie/serialization/trie_serializer_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"

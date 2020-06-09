@@ -8,7 +8,7 @@
 
 #include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/trie/codec.hpp"
-#include "storage/trie/impl/trie_serializer.hpp"
+#include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_batches.hpp"
 
 namespace kagome::storage::trie {

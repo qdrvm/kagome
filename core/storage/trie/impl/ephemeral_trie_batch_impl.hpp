@@ -7,7 +7,7 @@
 #define KAGOME_STORAGE_TRIE_IMPL_EPHEMERAL_TRIE_BATCH
 
 #include "storage/trie/codec.hpp"
-#include "storage/trie/impl/polkadot_trie.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie.hpp"
 #include "storage/trie/trie_batches.hpp"
 
 namespace kagome::storage::trie {
