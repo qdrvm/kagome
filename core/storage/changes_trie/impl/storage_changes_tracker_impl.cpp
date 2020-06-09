@@ -37,6 +37,7 @@ namespace kagome::storage::changes_trie {
     parent_number_ = new_parent_number;
     // new block -- new extrinsics
     extrinsics_changes_.clear();
+    new_entries_.clear();
     return outcome::success();
   }
 
@@ -61,6 +62,7 @@ namespace kagome::storage::changes_trie {
         new_entries_.insert(key);
       }
     }
+    using std::string_literals::operator""s;
     return outcome::success();
   }
 
