@@ -193,11 +193,9 @@ namespace kagome::extensions {
         logger_->error("ext_storage_changes_root resulted with an error: {}",
                        config_bytes_res.error().message());
         return 0;
-      } else {
-        logger_->debug(
-            "ext_storage_changes_root: no changes trie config found");
-        trie_config = boost::none;
       }
+      logger_->debug("ext_storage_changes_root: no changes trie config found");
+      trie_config = boost::none;
     } else {
       auto config_res = scale::decode<storage::changes_trie::ChangesTrieConfig>(
           config_bytes_res.value());
