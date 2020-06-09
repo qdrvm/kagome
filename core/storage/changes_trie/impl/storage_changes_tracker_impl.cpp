@@ -62,7 +62,6 @@ namespace kagome::storage::changes_trie {
         new_entries_.insert(key);
       }
     }
-    using std::string_literals::operator""s;
     return outcome::success();
   }
 
