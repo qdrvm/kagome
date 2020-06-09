@@ -7,6 +7,8 @@
 
 #include "crypto/sha/sha256.hpp"
 
+#include <iostream>
+
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto::bip39, Bip39EntropyError, error) {
   using E = kagome::crypto::bip39::Bip39EntropyError;
   switch (error) {
@@ -54,8 +56,8 @@ namespace kagome::crypto::bip39 {
     for (size_t i = 0; i < bytes_count; ++i) {
       uint8_t byte = 0;
       for (size_t j = 0; j < 8u; ++j) {
-        byte <<= 1;
-        byte += *it;
+        byte <<= 1u;
+        byte += *it++;
       }
 
       res.push_back(byte);
@@ -68,10 +70,12 @@ namespace kagome::crypto::bip39 {
     if (bits_.size() != total_bits_count_) {
       return Bip39EntropyError::STORAGE_NOT_COMPLETE;
     }
-    uint8_t mask = 0xFFu;
-    mask >>= 8 - checksum_bits_count_;
-    auto last_byte = *bits_.rbegin();
-    auto checksum = last_byte & mask;
+
+    uint8_t checksum = 0u;
+    auto it = bits_.rbegin();
+    for (auto i = 0u; i < checksum_bits_count_; ++i) {
+      checksum += (*it++ << i);
+    }
 
     return checksum;
   }
@@ -80,17 +84,21 @@ namespace kagome::crypto::bip39 {
     if (bits_.size() + value.size() > total_bits_count_) {
       return Bip39EntropyError::STORAGE_IS_FULL;
     }
+
     for (size_t i = 0; i < value.size(); ++i) {
-      uint8_t v = value[i] ? 1 : 0;
+      // bits order is little-endian, but we need big endian, reverse it
+      auto position = value.size() - i - 1;
+      uint8_t v = value.test(position) ? 1 : 0;
       bits_.push_back(v);
     }
+
     return outcome::success();
   }
 
   outcome::result<uint8_t> EntropyAccumulator::calculateChecksum() const {
     OUTCOME_TRY(entropy, getEntropy());
     auto hash = sha256(entropy);
-    return hash[0];
+    return hash[0] >> static_cast<uint8_t>(8 - checksum_bits_count_);
   }
 
 }  // namespace kagome::crypto::bip39

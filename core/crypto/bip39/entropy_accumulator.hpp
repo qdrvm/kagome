@@ -21,6 +21,8 @@ namespace kagome::crypto::bip39 {
   };
 
   struct EntropyToken : public std::bitset<11> {
+//    explicit EntropyToken(uint32_t v) : std::bitset<11>(v) {}
+
     using Parent = std::bitset<11>;
     using Parent::bitset;
   };

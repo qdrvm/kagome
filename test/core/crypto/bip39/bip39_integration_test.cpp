@@ -38,6 +38,8 @@ TEST_P(Bip39IntegrationTest, DeriveEntropyAndSeedSuccess) {
   EXPECT_OUTCOME_TRUE(entropy,
                       bip39_provider->calculateEntropy(mnemonic.words));
 
+  std::cout << kagome::common::Buffer(entropy).toHex() << std::endl;
+
   EXPECT_OUTCOME_TRUE(seed, bip39_provider->makeSeed(entropy, "Substrate"));
   ASSERT_EQ(seed.toHex(), item.seed);
 }

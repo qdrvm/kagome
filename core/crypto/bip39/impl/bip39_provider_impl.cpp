@@ -30,10 +30,12 @@ namespace kagome::crypto {
       OUTCOME_TRY(entropy_accumulator.append(entropy_token));
     }
 
-    //    if (entropy_accumulator.getChecksum()
-    //        != entropy_accumulator.calculateChecksum()) {
-    //      return bip39::MnemonicError::INVALID_MNEMONIC;
-    //    }
+    OUTCOME_TRY(mnemonic_checksum, entropy_accumulator.getChecksum());
+    OUTCOME_TRY(calculated_checksum, entropy_accumulator.calculateChecksum());
+
+    if (mnemonic_checksum != calculated_checksum) {
+      return bip39::MnemonicError::INVALID_MNEMONIC;
+    }
 
     // finally get entropy
     return entropy_accumulator.getEntropy();

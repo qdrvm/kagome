@@ -5,15 +5,17 @@
 
 #include "crypto/bip39/dictionary.hpp"
 
+#include <gsl/gsl>
 #include "crypto/bip39/entropy_accumulator.hpp"
 #include "crypto/bip39/wordlist/english.hpp"
 
 namespace kagome::crypto::bip39 {
 
   void Dictionary::initialize() {
-    for (uint16_t i = 0; i < english::dictionary.size(); ++i) {
+    for (size_t i = 0; i < english::dictionary.size(); ++i) {
       auto token = EntropyToken(i);
-      entropy_map_[english::dictionary.at(i)] = token;
+      std::string_view word = gsl::at(english::dictionary, i);
+      entropy_map_[word] = token;
     }
   }
 
