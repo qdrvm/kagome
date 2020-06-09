@@ -118,3 +118,22 @@ If everything is done correctly you should see the following output:
 ```
 
 Note that trie root is the same with validating and block producing nodes. When syncing node receives block announcement it first synchronizes missing blocks and then listens to the new blocks and finalization. 
+
+## Send transactions
+
+Like in previous tutorial we will send transfer from Alice to Bob to check that transaction was applied on every node.
+
+Generate transaction:
+
+```bash
+subkey transfer -g a5f23f5bb690647757d82620c3c317a0bf75ca23929bdc263e64cc4dc529d0d6 0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a 0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48 1000 0
+# Using a genesis hash of a5f23f5bb690647757d82620c3c317a0bf75ca23929bdc263e64cc4dc529d0d6
+# 0x2d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0168de6cd26417949dd9ac0e80b7d52aa3ad333e96f2784db75fcdbd5af904925bc80dfd3f92bc7d905e6ee7b0c9b4a59f98b228c37c7638a8c769bd7bba801a800000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48a10f
+```
+
+We can send transaction on any of the node, as it will be propagated to the block producing nodes and stored in their transaction pools until transactions is included to the block:
+
+```bash
+cd examples/transfer
+python3 transfer.py localhost:11233 0x2d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0168de6cd26417949dd9ac0e80b7d52aa3ad333e96f2784db75fcdbd5af904925bc80dfd3f92bc7d905e6ee7b0c9b4a59f98b228c37c7638a8c769bd7bba801a800000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48a10f
+```
