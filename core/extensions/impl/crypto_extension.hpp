@@ -6,6 +6,7 @@
 #ifndef KAGOME_CRYPTO_EXTENSION_HPP
 #define KAGOME_CRYPTO_EXTENSION_HPP
 
+#include <crypto/bip39/bip39_types.hpp>
 #include <cstdint>
 
 #include "common/logger.hpp"
@@ -147,6 +148,8 @@ namespace kagome::extensions {
                                             runtime::WasmPointer pubkey_data);
 
    private:
+    crypto::bip39::Bip39Seed deriveBigSeed(std::string_view mnemonic_phrase);
+
     std::shared_ptr<runtime::WasmMemory> memory_;
     std::shared_ptr<crypto::SR25519Provider> sr25519_provider_;
     std::shared_ptr<crypto::ED25519Provider> ed25519_provider_;

@@ -215,6 +215,32 @@ namespace kagome::extensions {
     return memory_->storeBuffer(buffer);
   }
 
+  crypto::bip39::Bip39Seed CryptoExtension::deriveBigSeed(
+      std::string_view mnemonic_phrase) {
+    auto &&mnemonic = crypto::bip39::Mnemonic::parse(mnemonic_phrase);
+    if (!mnemonic) {
+      logger_->error("failed to parse mnemonic {}", mnemonic.error().message());
+      BOOST_ASSERT_MSG(false, "failed to parse mnemonic");
+      BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
+    }
+
+    auto &&entropy = bip39_provider_->calculateEntropy(mnemonic.value().words);
+    if (!entropy) {
+      logger_->error("failed to calculate entropy {}",
+                     entropy.error().message());
+      BOOST_ASSERT_MSG(false, "failed to calculate entropy");
+      BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
+    }
+
+    auto &&big_seed =
+        bip39_provider_->makeSeed(entropy.value(), mnemonic.value().password);
+    if (!big_seed) {
+      logger_->error("failed to generate seed {}", big_seed.error().message());
+      BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
+    }
+    return big_seed.value();
+  }
+
   /**
    *@see Extension::ext_ed25519_generate
    */
@@ -241,33 +267,11 @@ namespace kagome::extensions {
 
     boost::optional<std::string> bip39_seed = seed_res.value();
     if (bip39_seed.has_value()) {
-      auto &&mnemonic = crypto::bip39::Mnemonic::parse(*bip39_seed);
-      if (!mnemonic) {
-        logger_->error("failed to parse mnemonic {}",
-                       mnemonic.error().message());
-        BOOST_ASSERT_MSG(false, "failed to parse mnemonic");
-        BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
-      }
+      auto &&big_seed = deriveBigSeed(*bip39_seed);
 
-      auto &&entropy =
-          bip39_provider_->calculateEntropy(mnemonic.value().words);
-      if (!entropy) {
-        logger_->error("failed to calculate entropy {}",
-                       entropy.error().message());
-        BOOST_ASSERT_MSG(false, "failed to calculate entropy");
-        BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
-      }
-
-      auto &&big_seed =
-          bip39_provider_->makeSeed(entropy.value(), mnemonic.value().password);
-      if (!big_seed) {
-        logger_->error("failed to generate seed {}",
-                       big_seed.error().message());
-        BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
-      }
+      // get first 32 bytes from big seed as ed25519 seed
       auto &&ed_seed = crypto::ED25519Seed::fromSpan(
-          gsl::make_span<uint8_t>(big_seed.value().begin(),
-                                  big_seed.value().end())
+          gsl::make_span<uint8_t>(big_seed.begin(), big_seed.end())
               .subspan(0, crypto::ED25519Seed::size()));
       if (!ed_seed) {
         logger_->error("failed to get ed25519 seed from span {}",
@@ -404,33 +408,9 @@ namespace kagome::extensions {
 
     boost::optional<std::string> bip39_seed = seed_res.value();
     if (bip39_seed.has_value()) {
-      auto &&mnemonic = crypto::bip39::Mnemonic::parse(*bip39_seed);
-      if (!mnemonic) {
-        logger_->error("failed to parse mnemonic {}",
-                       mnemonic.error().message());
-        BOOST_ASSERT_MSG(false, "failed to parse mnemonic");
-        BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
-      }
-
-      auto &&entropy =
-          bip39_provider_->calculateEntropy(mnemonic.value().words);
-      if (!entropy) {
-        logger_->error("failed to calculate entropy {}",
-                       entropy.error().message());
-        BOOST_ASSERT_MSG(false, "failed to calculate entropy");
-        BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
-      }
-
-      auto &&big_seed =
-          bip39_provider_->makeSeed(entropy.value(), mnemonic.value().password);
-      if (!big_seed) {
-        logger_->error("failed to generate seed {}",
-                       big_seed.error().message());
-        BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
-      }
+      auto &&big_seed = deriveBigSeed(*bip39_seed);
       auto &&sr_seed = crypto::ED25519Seed::fromSpan(
-          gsl::make_span<uint8_t>(big_seed.value().begin(),
-                                  big_seed.value().end())
+          gsl::make_span<uint8_t>(big_seed.begin(), big_seed.end())
               .subspan(0, crypto::SR25519Seed::size()));
       if (!sr_seed) {
         logger_->error("failed to get sr25519 seed from span {}",
