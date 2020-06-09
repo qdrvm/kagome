@@ -187,9 +187,10 @@ namespace kagome::extensions {
           "ext_storage_changes_root failed: called in ephemeral environment");
       return 0;
     }
+    auto batch = storage_provider_->tryGetPersistentBatch().value();
 
     boost::optional<storage::changes_trie::ChangesTrieConfig> trie_config;
-    auto config_bytes_res = persistent_batch->get(CHANGES_CONFIG_KEY);
+    auto config_bytes_res = batch->get(CHANGES_CONFIG_KEY);
     if (config_bytes_res.has_error()) {
       if (config_bytes_res.error() != storage::trie::TrieError::NO_VALUE) {
         logger_->error("ext_storage_changes_root resulted with an error: {}",
