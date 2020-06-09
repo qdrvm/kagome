@@ -11,7 +11,6 @@
 
 #include "runtime/types.hpp"
 #include "runtime/wasm_memory.hpp"
-#include "runtime/wasm_memory.hpp"
 
 namespace kagome::extensions {
   /**
