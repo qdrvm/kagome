@@ -26,6 +26,14 @@ target_link_libraries(polkadot_trie
     )
 kagome_install(polkadot_trie)
 
+add_library(polkadot_trie_cursor
+    polkadot_trie_cursor_impl.cpp
+    )
+target_link_libraries(polkadot_trie_cursor
+    polkadot_trie
+    )
+kagome_install(polkadot_trie_cursor)
+
 add_library(polkadot_trie_factory
     polkadot_trie_factory_impl.cpp
     )
