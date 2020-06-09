@@ -12,7 +12,8 @@ namespace kagome::crypto::bip39 {
 
   void Dictionary::initialize() {
     for (uint16_t i = 0; i < english::dictionary.size(); ++i) {
-      entropy_map_[english::dictionary.at(i)] = EntropyToken(i);
+      auto token = EntropyToken(i);
+      entropy_map_[english::dictionary.at(i)] = token;
     }
   }
 

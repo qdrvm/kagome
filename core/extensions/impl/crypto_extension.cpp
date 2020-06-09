@@ -11,6 +11,7 @@
 
 #include <boost/assert.hpp>
 #include "crypto/bip39/bip39_provider.hpp"
+#include "crypto/bip39/mnemonic.hpp"
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/hasher.hpp"
 #include "crypto/key_type.hpp"
@@ -240,7 +241,25 @@ namespace kagome::extensions {
 
     boost::optional<std::string> bip39_seed = seed_res.value();
     if (bip39_seed.has_value()) {
-      auto &&big_seed = bip39_provider_->makeSeed(*bip39_seed);
+      auto &&mnemonic = crypto::bip39::Mnemonic::parse(*bip39_seed);
+      if (!mnemonic) {
+        logger_->error("failed to parse mnemonic {}",
+                       mnemonic.error().message());
+        BOOST_ASSERT_MSG(false, "failed to parse mnemonic");
+        BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
+      }
+
+      auto &&entropy =
+          bip39_provider_->calculateEntropy(mnemonic.value().words);
+      if (!entropy) {
+        logger_->error("failed to calculate entropy {}",
+                       entropy.error().message());
+        BOOST_ASSERT_MSG(false, "failed to calculate entropy");
+        BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
+      }
+
+      auto &&big_seed =
+          bip39_provider_->makeSeed(entropy.value(), mnemonic.value().password);
       if (!big_seed) {
         logger_->error("failed to generate seed {}",
                        big_seed.error().message());
@@ -385,7 +404,25 @@ namespace kagome::extensions {
 
     boost::optional<std::string> bip39_seed = seed_res.value();
     if (bip39_seed.has_value()) {
-      auto &&big_seed = bip39_provider_->makeSeed(*bip39_seed);
+      auto &&mnemonic = crypto::bip39::Mnemonic::parse(*bip39_seed);
+      if (!mnemonic) {
+        logger_->error("failed to parse mnemonic {}",
+                       mnemonic.error().message());
+        BOOST_ASSERT_MSG(false, "failed to parse mnemonic");
+        BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
+      }
+
+      auto &&entropy =
+          bip39_provider_->calculateEntropy(mnemonic.value().words);
+      if (!entropy) {
+        logger_->error("failed to calculate entropy {}",
+                       entropy.error().message());
+        BOOST_ASSERT_MSG(false, "failed to calculate entropy");
+        BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
+      }
+
+      auto &&big_seed =
+          bip39_provider_->makeSeed(entropy.value(), mnemonic.value().password);
       if (!big_seed) {
         logger_->error("failed to generate seed {}",
                        big_seed.error().message());

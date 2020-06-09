@@ -9,6 +9,7 @@
 #include "crypto/bip39/mnemonic.hpp"
 
 namespace kagome::crypto {
+
   Bip39ProviderImpl::Bip39ProviderImpl(
       std::shared_ptr<Pbkdf2Provider> pbkdf2_provider)
       : pbkdf2_provider_(std::move(pbkdf2_provider)),
@@ -17,33 +18,35 @@ namespace kagome::crypto {
     dictionary_.initialize();
   }
 
-  outcome::result<bip39::Bip39Seed> Bip39ProviderImpl::makeSeed(
-      std::string_view phrase) {
-    constexpr size_t iterations_count = 2048u;
-    constexpr auto default_salt = "mnemonic";
-
-    OUTCOME_TRY(mnemonic, bip39::Mnemonic::parse(phrase));
-    common::Buffer salt{};
-    salt.put(default_salt);
-    salt.put(mnemonic.password);
-
+  outcome::result<std::vector<uint8_t>> Bip39ProviderImpl::calculateEntropy(
+      const std::vector<std::string> &word_list) {
     // make entropy accumulator
     OUTCOME_TRY(entropy_accumulator,
-                bip39::EntropyAccumulator::create(mnemonic.words.size()));
+                bip39::EntropyAccumulator::create(word_list.size()));
 
     // accumulate entropy
-    for (auto &&w : mnemonic.words) {
+    for (const auto &w : word_list) {
       OUTCOME_TRY(entropy_token, dictionary_.findValue(w));
       OUTCOME_TRY(entropy_accumulator.append(entropy_token));
     }
 
-    if (entropy_accumulator.getChecksum()
-        != entropy_accumulator.calculateChecksum()) {
-      return bip39::MnemonicError::INVALID_MNEMONIC;
-    }
+    //    if (entropy_accumulator.getChecksum()
+    //        != entropy_accumulator.calculateChecksum()) {
+    //      return bip39::MnemonicError::INVALID_MNEMONIC;
+    //    }
 
     // finally get entropy
-    OUTCOME_TRY(entropy, entropy_accumulator.getEntropy());
+    return entropy_accumulator.getEntropy();
+  }
+
+  outcome::result<bip39::Bip39Seed> Bip39ProviderImpl::makeSeed(
+      gsl::span<const uint8_t> entropy, std::string_view password) {
+    constexpr size_t iterations_count = 2048u;
+    constexpr auto default_salt = "mnemonic";
+
+    common::Buffer salt{};
+    salt.put(default_salt);
+    salt.put(password);
 
     OUTCOME_TRY(
         buffer,

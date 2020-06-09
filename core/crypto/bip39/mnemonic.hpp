@@ -17,7 +17,7 @@ namespace kagome::crypto::bip39 {
     std::string password;
     /**
      * @brief parse mnemonic from phrase
-     * @param phrase mnemonic phrase
+     * @param phrase valid utf8 list of words from bip-39 word list
      * @return Mnemonic instance
      */
     static outcome::result<Mnemonic> parse(std::string_view phrase);

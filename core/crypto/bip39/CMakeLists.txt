@@ -14,6 +14,7 @@ target_link_libraries(bip39_provider
     OpenSSL::Crypto
     buffer
     blob
+    logger
     pbkdf2_provider
     sha
     )

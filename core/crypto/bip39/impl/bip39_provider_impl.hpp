@@ -19,8 +19,11 @@ namespace kagome::crypto {
 
     explicit Bip39ProviderImpl(std::shared_ptr<Pbkdf2Provider> pbkdf2_provider);
 
+    outcome::result<std::vector<uint8_t>> calculateEntropy(
+        const std::vector<std::string> & word_list) override;
+
     outcome::result<bip39::Bip39Seed> makeSeed(
-        std::string_view phrase) override;
+        gsl::span<const uint8_t> entropy, std::string_view password) override;
 
    private:
     std::shared_ptr<Pbkdf2Provider> pbkdf2_provider_;

@@ -22,7 +22,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto::bip39, Bip39EntropyError, error) {
 }
 
 namespace kagome::crypto::bip39 {
-  outcome::result<EntropyAccumulator> EntropyAccumulator::create(size_t words_count) {
+  outcome::result<EntropyAccumulator> EntropyAccumulator::create(
+      size_t words_count) {
     switch (words_count) {
       case 12:
         return EntropyAccumulator(132, 4);
@@ -69,7 +70,8 @@ namespace kagome::crypto::bip39 {
     }
     uint8_t mask = 0xFFu;
     mask >>= 8 - checksum_bits_count_;
-    auto checksum = *bits_.rbegin() >> mask;
+    auto last_byte = *bits_.rbegin();
+    auto checksum = last_byte & mask;
 
     return checksum;
   }
