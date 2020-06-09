@@ -7,13 +7,11 @@
 
 #include <boost/asio/io_context.hpp>
 #include <chrono>
-#include <libp2p/crypto/random_generator/boost_generator.hpp>
 #include <memory>
 
 #include "clock/impl/clock_impl.hpp"
 #include "consensus/babe/babe_error.hpp"
 #include "consensus/babe/impl/babe_impl.hpp"
-#include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "mock/core/authorship/proposer_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/clock/clock_mock.hpp"
@@ -27,7 +25,9 @@
 #include "mock/core/runtime/babe_api_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
+#include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "primitives/block.hpp"
+#include "testutil/literals.hpp"
 #include "testutil/sr25519_utils.hpp"
 
 using namespace kagome;
@@ -69,7 +69,7 @@ class BabeTest : public testing::Test {
     trie_db_ = std::make_shared<storage::trie::TrieStorageMock>();
     babe_block_validator_ = std::make_shared<BlockValidatorMock>();
     epoch_storage_ = std::make_shared<EpochStorageMock>();
-    babe_api_ = std::make_shared<runtime::BabeApiMock>();
+    tx_pool_ = std::make_shared<transaction_pool::TransactionPoolMock>();
     core_ = std::make_shared<runtime::CoreMock>();
     proposer_ = std::make_shared<ProposerMock>();
     block_tree_ = std::make_shared<BlockTreeMock>();
@@ -104,6 +104,7 @@ class BabeTest : public testing::Test {
                                                           babe_synchronizer_,
                                                           babe_block_validator_,
                                                           epoch_storage_,
+                                                          tx_pool_,
                                                           hasher_);
 
     babe_ = std::make_shared<BabeImpl>(lottery_,
@@ -131,10 +132,10 @@ class BabeTest : public testing::Test {
   std::shared_ptr<storage::trie::TrieStorageMock> trie_db_;
   std::shared_ptr<BlockValidator> babe_block_validator_;
   std::shared_ptr<EpochStorageMock> epoch_storage_;
-  std::shared_ptr<runtime::BabeApiMock> babe_api_;
   std::shared_ptr<runtime::CoreMock> core_;
   std::shared_ptr<ProposerMock> proposer_;
   std::shared_ptr<BlockTreeMock> block_tree_;
+  std::shared_ptr<transaction_pool::TransactionPoolMock> tx_pool_;
   std::shared_ptr<BabeGossiperMock> gossiper_;
   SR25519Keypair keypair_{generateSR25519Keypair()};
   std::shared_ptr<SystemClockMock> clock_;
