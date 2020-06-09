@@ -6,18 +6,21 @@
 #ifndef KAGOME_BLOCK_TREE_IMPL_HPP
 #define KAGOME_BLOCK_TREE_IMPL_HPP
 
+#include "blockchain/block_tree.hpp"
+
+#include <boost/optional.hpp>
 #include <functional>
 #include <memory>
 #include <queue>
 #include <unordered_set>
 
-#include <boost/optional.hpp>
 #include "blockchain/block_header_repository.hpp"
 #include "blockchain/block_storage.hpp"
-#include "blockchain/block_tree.hpp"
 #include "blockchain/impl/common.hpp"
 #include "common/logger.hpp"
 #include "crypto/hasher.hpp"
+#include "network/extrinsic_observer.hpp"
+#include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::blockchain {
   /**
@@ -95,6 +98,7 @@ namespace kagome::blockchain {
         std::shared_ptr<BlockHeaderRepository> header_repo,
         std::shared_ptr<BlockStorage> storage,
         const primitives::BlockId &last_finalized_block,
+        std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
         std::shared_ptr<crypto::Hasher> hasher);
 
     ~BlockTreeImpl() override = default;
@@ -152,11 +156,13 @@ namespace kagome::blockchain {
      * Private constructor, so that instances are created only through the
      * factory method
      */
-    BlockTreeImpl(std::shared_ptr<BlockHeaderRepository> header_repo,
-                  std::shared_ptr<BlockStorage> storage,
-                  std::shared_ptr<TreeNode> tree,
-                  std::shared_ptr<TreeMeta> meta,
-                  std::shared_ptr<crypto::Hasher> hasher);
+    BlockTreeImpl(
+        std::shared_ptr<BlockHeaderRepository> header_repo,
+        std::shared_ptr<BlockStorage> storage,
+        std::shared_ptr<TreeNode> tree,
+        std::shared_ptr<TreeMeta> meta,
+        std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
+        std::shared_ptr<crypto::Hasher> hasher);
 
     /**
      * Walks the chain backwards starting from \param start until the current
@@ -184,6 +190,8 @@ namespace kagome::blockchain {
 
     std::shared_ptr<TreeNode> tree_;
     std::shared_ptr<TreeMeta> tree_meta_;
+
+    std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer_;
 
     std::shared_ptr<crypto::Hasher> hasher_;
     common::Logger log_ = common::createLogger("BlockTreeImpl");

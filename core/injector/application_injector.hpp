@@ -129,8 +129,7 @@ namespace kagome::injector {
         injector
             .template create<std::shared_ptr<application::AppStateManager>>();
     auto rpc_thread_pool =
-        injector
-            .template create<std::shared_ptr<api::RpcThreadPool>>();
+        injector.template create<std::shared_ptr<api::RpcThreadPool>>();
     std::vector<std::shared_ptr<api::Listener>> listeners{
         injector.template create<std::shared_ptr<api::HttpListenerImpl>>(),
         injector.template create<std::shared_ptr<api::WsListenerImpl>>(),
@@ -293,8 +292,6 @@ namespace kagome::injector {
 
     auto &&storage = injector.template create<sptr<blockchain::BlockStorage>>();
 
-    auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
-
     auto last_finalized_block_res = storage->getLastFinalizedBlockHash();
 
     const auto block_id =
@@ -302,8 +299,17 @@ namespace kagome::injector {
             ? primitives::BlockId{last_finalized_block_res.value()}
             : primitives::BlockId{0};
 
-    auto &&tree = blockchain::BlockTreeImpl::create(
-        std::move(header_repo), storage, block_id, std::move(hasher));
+    auto &&extrinsic_observer =
+        injector.template create<sptr<network::ExtrinsicObserver>>();
+
+    auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
+
+    auto &&tree =
+        blockchain::BlockTreeImpl::create(std::move(header_repo),
+                                          storage,
+                                          block_id,
+                                          std::move(extrinsic_observer),
+                                          std::move(hasher));
     if (!tree) {
       common::raise(tree.error());
     }

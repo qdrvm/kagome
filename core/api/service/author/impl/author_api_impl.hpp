@@ -43,7 +43,6 @@ namespace kagome::api {
     AuthorApiImpl(std::shared_ptr<runtime::TaggedTransactionQueue> api,
                   std::shared_ptr<transaction_pool::TransactionPool> pool,
                   std::shared_ptr<crypto::Hasher> hasher,
-                  std::shared_ptr<blockchain::BlockTree> block_tree,
                   std::shared_ptr<network::ExtrinsicGossiper> gossiper);
 
     ~AuthorApiImpl() override = default;
