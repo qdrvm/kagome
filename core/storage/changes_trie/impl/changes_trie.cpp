@@ -11,7 +11,7 @@ namespace kagome::storage::changes_trie {
 
   outcome::result<std::unique_ptr<ChangesTrie>> ChangesTrie::buildFromChanges(
       const primitives::BlockNumber &parent_number,
-      const std::shared_ptr<storage::trie::PolkadotTrieFactory>& trie_factory,
+      const std::shared_ptr<storage::trie::PolkadotTrieFactory> &trie_factory,
       std::shared_ptr<storage::trie::Codec> codec,
       const ExtrinsicsChanges &extinsics_changes,
       const ChangesTrieConfig &config) {

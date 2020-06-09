@@ -5,14 +5,17 @@
 
 #include <gtest/gtest.h>
 
-#include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/block_tree_impl.hpp"
+
+#include "blockchain/block_tree_error.hpp"
 #include "blockchain/impl/storage_util.hpp"
 #include "common/blob.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
+#include "mock/core/api/service/author/author_api_mock.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/storage/persistent_map_mock.hpp"
+#include "network/impl/extrinsic_observer_impl.hpp"
 #include "primitives/block_id.hpp"
 #include "primitives/justification.hpp"
 #include "scale/scale.hpp"
@@ -34,8 +37,11 @@ struct BlockTreeTest : public testing::Test {
     EXPECT_CALL(*storage_, getBlockHeader(kLastFinalizedBlockId))
         .WillOnce(Return(finalized_block_header_));
 
-    block_tree_ = BlockTreeImpl::create(
-                      header_repo_, storage_, kLastFinalizedBlockId, hasher_)
+    block_tree_ = BlockTreeImpl::create(header_repo_,
+                                        storage_,
+                                        kLastFinalizedBlockId,
+                                        extrinsic_observer_,
+                                        hasher_)
                       .value();
   }
 
@@ -76,6 +82,10 @@ struct BlockTreeTest : public testing::Test {
 
   std::shared_ptr<BlockStorageMock> storage_ =
       std::make_shared<BlockStorageMock>();
+
+  std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer_ =
+      std::make_shared<network::ExtrinsicObserverImpl>(
+          std::make_shared<api::AuthorApiMock>());
 
   std::shared_ptr<crypto::Hasher> hasher_ =
       std::make_shared<crypto::HasherImpl>();
@@ -183,8 +193,8 @@ TEST_F(BlockTreeTest, Finalize) {
   auto encoded_justification = scale::encode(justification).value();
   EXPECT_CALL(*storage_, putJustification(justification, hash, header.number))
       .WillRepeatedly(Return(outcome::success()));
-	EXPECT_CALL(*storage_, setLastFinalizedBlockHash(hash))
-			.WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*storage_, setLastFinalizedBlockHash(hash))
+      .WillRepeatedly(Return(outcome::success()));
 
   // WHEN
   ASSERT_TRUE(block_tree_->finalize(hash, justification));
