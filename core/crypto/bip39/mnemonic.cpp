@@ -37,13 +37,6 @@ namespace kagome::crypto::bip39 {
       return bip39::MnemonicError::INVALID_MNEMONIC;
     }
 
-    if ((phrase.find("/") != std::string_view::npos)
-        or (phrase.find("//") != std::string_view::npos)) {
-      common::createLogger(kMnemonicLoggerString)
-          ->error("junctions are not supported yet");
-      return bip39::MnemonicError::INVALID_MNEMONIC;
-    }
-
     auto password_pos = phrase.find("///");
     std::string_view mnemonic_list;
     std::string_view password;
@@ -53,6 +46,12 @@ namespace kagome::crypto::bip39 {
       mnemonic_list = phrase.substr(0, password_pos);
     } else {
       mnemonic_list = phrase;
+    }
+
+    if (mnemonic_list.find("/") != std::string_view::npos) {
+      common::createLogger(kMnemonicLoggerString)
+          ->error("junctions are not supported yet");
+      return bip39::MnemonicError::INVALID_MNEMONIC;
     }
 
     // split word list into separate words

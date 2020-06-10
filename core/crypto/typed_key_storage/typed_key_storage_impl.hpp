@@ -23,10 +23,10 @@ namespace kagome::crypto::storage {
     void addSrKeyPair(KeyTypeId key_type,
                       const SR25519Keypair &key_pair) override;
 
-    boost::optional<ED25519Keypair> findEdKey(
+    boost::optional<ED25519Keypair> findE25519dKey(
         KeyTypeId key_type, const ED25519PublicKey &pk) override;
 
-    boost::optional<SR25519Keypair> findSrKey(
+    boost::optional<SR25519Keypair> findSr25519Key(
         KeyTypeId key_type, const SR25519PublicKey &pk) override;
 
    private:

@@ -24,7 +24,7 @@ namespace kagome::crypto {
      * @return entropy value
      */
     virtual outcome::result<std::vector<uint8_t>> calculateEntropy(
-        const std::vector<std::string> & word_list) = 0;
+        const std::vector<std::string> &word_list) = 0;
 
     /**
      * @brief makes seed from entropy

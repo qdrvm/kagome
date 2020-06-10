@@ -194,7 +194,7 @@ namespace kagome::extensions {
       runtime::SizeType key_type) {
     static const common::Buffer error_result{};
 
-    auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
+    auto key_type_id = crypto::decodeKeyTypeId(key_type);
     if (!key_type_id) {
       logger_->error("failed to decode key type: {}",
                      key_type_id.error().message());
@@ -271,8 +271,7 @@ namespace kagome::extensions {
 
       // get first 32 bytes from big seed as ed25519 seed
       auto &&ed_seed = crypto::ED25519Seed::fromSpan(
-          gsl::make_span<uint8_t>(big_seed.begin(), big_seed.end())
-              .subspan(0, crypto::ED25519Seed::size()));
+          gsl::make_span(big_seed).subspan(0, crypto::ED25519Seed::size()));
       if (!ed_seed) {
         logger_->error("failed to get ed25519 seed from span {}",
                        ed_seed.error().message());
@@ -330,7 +329,7 @@ namespace kagome::extensions {
     auto msg_buffer = memory_->loadN(msg_data, msg_len);
     // error is not possible, since we loaded correct number of bytes
     auto pk = crypto::ED25519PublicKey::fromSpan(public_buffer).value();
-    auto key_pair = key_storage_->findEdKey(key_type_id.value(), pk);
+    auto key_pair = key_storage_->findE25519dKey(key_type_id.value(), pk);
     if (!key_pair) {
       logger_->error("failed to find required key");
       return memory_->storeBuffer(kErrorResult);
@@ -410,8 +409,7 @@ namespace kagome::extensions {
     if (bip39_seed.has_value()) {
       auto &&big_seed = deriveBigSeed(*bip39_seed);
       auto &&sr_seed = crypto::ED25519Seed::fromSpan(
-          gsl::make_span<uint8_t>(big_seed.begin(), big_seed.end())
-              .subspan(0, crypto::SR25519Seed::size()));
+          gsl::make_span(big_seed).subspan(0, crypto::SR25519Seed::size()));
       if (!sr_seed) {
         logger_->error("failed to get sr25519 seed from span {}",
                        sr_seed.error().message());
@@ -455,7 +453,7 @@ namespace kagome::extensions {
     auto msg_buffer = memory_->loadN(msg_data, msg_len);
     // error is not possible, since we loaded correct number of bytes
     auto pk = crypto::SR25519PublicKey::fromSpan(public_buffer).value();
-    auto key_pair = key_storage_->findSrKey(key_type_id.value(), pk);
+    auto key_pair = key_storage_->findSr25519Key(key_type_id.value(), pk);
     if (!key_pair) {
       logger_->error("failed to find required key");
       return memory_->storeBuffer(error_result);

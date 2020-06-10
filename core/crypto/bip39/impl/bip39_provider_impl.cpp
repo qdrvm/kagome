@@ -13,7 +13,6 @@ namespace kagome::crypto {
   Bip39ProviderImpl::Bip39ProviderImpl(
       std::shared_ptr<Pbkdf2Provider> pbkdf2_provider)
       : pbkdf2_provider_(std::move(pbkdf2_provider)),
-        dictionary_{},
         logger_{common::createLogger("Bip39Provider")} {
     dictionary_.initialize();
   }
@@ -50,13 +49,7 @@ namespace kagome::crypto {
     salt.put(default_salt);
     salt.put(password);
 
-    OUTCOME_TRY(
-        buffer,
-        pbkdf2_provider_->deriveKey(entropy,
-                                    salt,
-                                    iterations_count,
-                                    bip39::constants::BIP39_SEED_LEN_512));
-
-    return bip39::Bip39Seed::fromSpan(buffer.toVector());
+    return pbkdf2_provider_->deriveKey(
+        entropy, salt, iterations_count, bip39::constants::BIP39_SEED_LEN_512);
   }
 }  // namespace kagome::crypto

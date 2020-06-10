@@ -6,7 +6,7 @@
 #ifndef KAGOME_BIP39_TYPES_HPP
 #define KAGOME_BIP39_TYPES_HPP
 
-#include "common/blob.hpp"
+#include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
 
 namespace kagome::crypto::bip39 {
@@ -14,7 +14,7 @@ namespace kagome::crypto::bip39 {
     constexpr size_t BIP39_SEED_LEN_512 = 64u;
   }  // namespace constants
 
-  using Bip39Seed = common::Blob<constants::BIP39_SEED_LEN_512>;
+  using Bip39Seed = common::Buffer;
 
   enum class MnemonicError {
     INVALID_MNEMONIC = 1,

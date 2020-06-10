@@ -22,7 +22,7 @@ namespace kagome::crypto {
     UNSUPPORTED_KEY_TYPE_ID,
   };
 
-  enum class KeyTypeId : size_t { BABE, GRAN, ACCO, IMON, AUDI };
+  enum class KeyTypeId { BABE, GRAN, ACCO, IMON, AUDI };
 
   using common::Blob;
   using KeyType = Blob<4>;
