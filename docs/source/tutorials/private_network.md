@@ -22,7 +22,6 @@ kagome_validating \
      --p2p_port 11122 \
      --rpc_http_port 11133 \
      --rpc_ws_port 11144 \
-     --genesis_epoch \
      -f
 ```
 
@@ -101,7 +100,7 @@ If you followed steps correctly block producing node will print the following lo
 ...
 ```
 
-Note that both validating and block producing nodes had the same trie storage root after block 0: `ae7c1e51060fb97f38ff262e2620d926f69569ce020510d971115bdaf3b62087``. Block producing node received block announce for the block number 4 with hash `4b34a6e9bed6330227763673b8ac0f28771f770648b96d1048ee7cea00fad8fe` and started synchronization of the missing blocks.
+Note that both validating and block producing nodes had the same trie storage root after block 0: `ae7c1e51060fb97f38ff262e2620d926f69569ce020510d971115bdaf3b62087`. Block producing node received block announce for the block number 4 with hash `4b34a6e9bed6330227763673b8ac0f28771f770648b96d1048ee7cea00fad8fe` and started synchronization of the missing blocks.
 
 ### Execute syncing node
 

@@ -59,7 +59,7 @@ subkey inspect //Bob
 > ```
 > ---
 
-For this tutorial you can start single node network as follows:
+For this tutorial you can start a single node network as follows:
 
 ```
 kagome_validating \
@@ -77,7 +77,6 @@ Let's look at this flags in detail:
 * `--leveldb` –- mandatory, leveldb directory path                 
 * `--rpc_http_port` –- port for RPC over HTTP                            
 * `--rpc_ws_port`   –- port for RPC over Websocket protocol              
-* `--genesis_epoch` –- indicates that current peer executes genesis epoch
 
 More flags info available by running `kagome_validating --help`.
 

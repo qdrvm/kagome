@@ -23,6 +23,11 @@ namespace kagome::consensus {
    public:
     ~Babe() override = default;
 
+    enum class ExecutionStrategy {
+      GENESIS,
+      SYNC_FIRST
+    };
+
     /**
      * Start babe execution
      * @param is_genesis is true when genesis epoch is executed on the current
