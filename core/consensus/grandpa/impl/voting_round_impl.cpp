@@ -95,6 +95,9 @@ namespace kagome::consensus::grandpa {
             finalized.error().message());
         return;
       }
+      logger_->info("Finalized block with hash: {}, number: {}",
+                    f.vote.block_hash.toHex(),
+                    f.vote.block_number);
       env_->onCompleted(CompletedRound{.round_number = round_number_,
                                        .state = cur_round_state_});
     } else {
@@ -438,8 +441,7 @@ namespace kagome::consensus::grandpa {
                   .map([&](const Prevote &p_g) {
                     return p_g.block_hash == last_round_estimate.block_hash
                            or env_->isEqualOrDescendOf(
-                                  last_round_estimate.block_hash,
-                                  p_g.block_hash);
+                               last_round_estimate.block_hash, p_g.block_hash);
                   })
                   .value_or(false);
 

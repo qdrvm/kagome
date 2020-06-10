@@ -69,12 +69,16 @@ namespace kagome::network {
   }
 
   void GossiperBroadcast::broadcast(GossipMessage &&msg) {
-    auto msg_send_lambda = [msg](auto stream) {
+    auto msg_send_lambda = [msg, this](auto stream) {
       auto read_writer =
           std::make_shared<ScaleMessageReadWriter>(std::move(stream));
       read_writer->write(
           msg,
-          [](auto &&) {  // we have nowhere to report the error to
+          [this](auto &&res) {
+            if (not res) {
+              logger_->error("Could not broadcast, reason: {}",
+                             res.error().message());
+            }
           });
     };
 

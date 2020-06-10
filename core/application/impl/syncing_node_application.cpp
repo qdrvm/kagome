@@ -66,7 +66,6 @@ namespace kagome::application {
                 }
                 this->router_->handleGossipProtocol(stream_res.value());
               });
-          break;
         }
         this->router_->init();
       });

@@ -77,7 +77,7 @@ namespace kagome::consensus {
     auto chain_hash_res =
         retrieveRequestedHashes(request, from_hash_res.value());
     if (!chain_hash_res) {
-      log_->error("cannot retrieve a chain of blocks: {}",
+      log_->warn("cannot retrieve a chain of blocks: {}",
                   chain_hash_res.error().message());
       return response;
     }

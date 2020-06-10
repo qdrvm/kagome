@@ -66,45 +66,50 @@ namespace kagome::consensus {
     BOOST_ASSERT(init_epoch_desc_ok);
   }
 
-  void BabeImpl::start() {
+  void BabeImpl::start(ExecutionStrategy strategy) {
     auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
     log_->debug("Babe run on block with number {} and hash {}",
                 best_block_number,
                 best_block_hash);
 
-    if (best_block_number == 0) {
-      auto epoch_digest_res = epoch_storage_->getEpochDescriptor(0);
-      if (not epoch_digest_res) {
-        log_->error("Last epoch digest does not exist for initial epoch");
-      }
-      auto &&epoch_digest = epoch_digest_res.value();
+    switch (strategy) {
+      case ExecutionStrategy::GENESIS: {
+        auto epoch_digest_res = epoch_storage_->getEpochDescriptor(0);
+        if (not epoch_digest_res) {
+          log_->error("Last epoch digest does not exist for initial epoch");
+        }
+        auto &&epoch_digest = epoch_digest_res.value();
 
-      auto slot_duration = genesis_configuration_->slot_duration;
+        auto slot_duration = genesis_configuration_->slot_duration;
 
-      Epoch epoch;
-      epoch.epoch_index = 0;
-      epoch.authorities = epoch_digest.authorities;
-      epoch.randomness = epoch_digest.randomness;
-      epoch.epoch_duration = genesis_configuration_->epoch_length;
-      // clang-format off
-	    // TODO(xDimon): remove one of next two variants by decision about way of slot enumeration
-	    //  variant #1
+        Epoch epoch;
+        epoch.epoch_index = 0;
+        epoch.authorities = epoch_digest.authorities;
+        epoch.randomness = epoch_digest.randomness;
+        epoch.epoch_duration = genesis_configuration_->epoch_length;
+        // clang-format off
+        // TODO(xDimon): remove one of next two variants by decision about way of slot enumeration
+        //  variant #1
 //      epoch.start_slot = clock_->now().time_since_epoch() / slot_duration;
 //      auto starting_slot_finish_time = std::chrono::system_clock::time_point{}
 //                                       + slot_duration * epoch.start_slot
 //                                       + slot_duration;
 
-	    // TODO(xDimon): remove one of next two variants by decision about way of slot enumeration
-	    //  variant #2
-      epoch.start_slot = 0;
-      auto starting_slot_finish_time = std::chrono::system_clock::now()
-                                       + slot_duration;
-      // clang-format on
+        // TODO(xDimon): remove one of next two variants by decision about way of slot enumeration
+        //  variant #2
+        epoch.start_slot = 0;
+        auto starting_slot_finish_time = std::chrono::system_clock::now()
+            + slot_duration;
+        // clang-format on
 
-      current_state_ = BabeState::SYNCHRONIZED;
-      runEpoch(epoch, starting_slot_finish_time);
-    } else {
-      current_state_ = BabeState::WAIT_BLOCK;
+        current_state_ = BabeState::SYNCHRONIZED;
+        runEpoch(epoch, starting_slot_finish_time);
+        break;
+      }
+      case ExecutionStrategy::SYNC_FIRST: {
+        current_state_ = BabeState::WAIT_BLOCK;
+        break;
+      }
     }
   }
 

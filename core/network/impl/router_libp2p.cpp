@@ -60,6 +60,18 @@ namespace kagome::network {
         stream,
         [self{shared_from_this()}, stream](auto &&request) {
           // std::bind didn't work :(
+          std::string from = visit_in_place(
+              request.from,
+              [](primitives::BlockNumber number) {
+                return std::to_string(number);
+              },
+              [](const primitives::BlockHash &hash) { return hash.toHex(); });
+          self->log_->debug(
+              "Received request from peer {} requesting blocks from {}"
+              " to {}",
+              stream->remotePeerId().value().toBase58(),
+              from,
+              request.to->toHex());
           return self->sync_observer_->onBlocksRequest(
               std::forward<decltype(request)>(request));
         },

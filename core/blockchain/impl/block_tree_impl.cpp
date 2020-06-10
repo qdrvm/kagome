@@ -312,7 +312,7 @@ namespace kagome::blockchain {
         if (auto parent = current_node->parent; !parent.expired()) {
           current_node = parent.lock();
         } else {
-          log_->error(kNotAncestorError.data(), top_block, bottom_block);
+          log_->warn(kNotAncestorError.data(), top_block, bottom_block);
           return BlockTreeError::INCORRECT_ARGS;
         }
       }

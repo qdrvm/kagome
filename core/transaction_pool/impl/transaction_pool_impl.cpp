@@ -47,6 +47,10 @@ namespace kagome::transaction_pool {
     if (processResult.has_error()
         && processResult.error() == TransactionPoolError::POOL_IS_FULL) {
       imported_txs_.erase(tx->hash);
+    } else {
+      logger_->debug("Extrinsic {} with hash {} was added to the pool",
+                     tx->ext.data.toHex(),
+                     tx->hash.toHex());
     }
 
     return processResult;
@@ -111,6 +115,9 @@ namespace kagome::transaction_pool {
       const Transaction::Hash &tx_hash) {
     auto tx_node = imported_txs_.extract(tx_hash);
     if (tx_node.empty()) {
+      logger_->debug(
+          "Extrinsic with hash {} was not found in the pool during remove",
+          tx_hash);
       return TransactionPoolError::TX_NOT_FOUND;
     }
     auto &tx = tx_node.mapped();
@@ -120,13 +127,16 @@ namespace kagome::transaction_pool {
 
     processPostponedTransactions();
 
+    logger_->debug("Extrinsic {} with hash {} was removed from the pool",
+                   tx->ext.data.toHex(),
+                   tx->hash.toHex());
     return outcome::success();
   }
 
   outcome::result<void> TransactionPoolImpl::remove(
       const std::vector<Transaction::Hash> &tx_hashes) {
     for (auto &tx_hash : tx_hashes) {
-      OUTCOME_TRY(removeOne(tx_hash));
+      removeOne(tx_hash);
     }
 
     return outcome::success();

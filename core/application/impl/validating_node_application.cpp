@@ -5,6 +5,8 @@
 
 #include "application/impl/validating_node_application.hpp"
 
+#include <boost/filesystem.hpp>
+
 namespace kagome::application {
   using consensus::Epoch;
   using std::chrono_literals::operator""ms;
@@ -30,6 +32,11 @@ namespace kagome::application {
         logger_(common::createLogger("Application")) {
     spdlog::set_level(static_cast<spdlog::level::level_enum>(verbosity));
 
+    // genesis launch if database does not exist
+    is_genesis_ = boost::filesystem::exists(leveldb_path)
+                      ? Babe::ExecutionStrategy::SYNC_FIRST
+                      : Babe::ExecutionStrategy::GENESIS;
+
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied
     app_state_manager_ = injector_.create<std::shared_ptr<AppStateManager>>();
@@ -49,7 +56,7 @@ namespace kagome::application {
     logger_->info("Start as {} with PID {}", typeid(*this).name(), getpid());
 
     // starts block production
-    app_state_manager_->atLaunch([this] { babe_->start(); });
+    app_state_manager_->atLaunch([this] { babe_->start(is_genesis_); });
 
     // starts finalization event loop
     app_state_manager_->atLaunch([this] { grandpa_launcher_->start(); });
