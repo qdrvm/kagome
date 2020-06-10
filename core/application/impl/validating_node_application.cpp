@@ -33,7 +33,9 @@ namespace kagome::application {
     spdlog::set_level(static_cast<spdlog::level::level_enum>(verbosity));
 
     // genesis launch if database does not exist
-    is_genesis_ = not std::filesystem::exists(leveldb_path);
+    is_genesis_ = std::filesystem::exists(leveldb_path)
+                      ? Babe::ExecutionStrategy::SYNC_FIRST
+                      : Babe::ExecutionStrategy::GENESIS;
 
     // keep important instances, the must exist when injector destroyed
     // some of them are requested by reference and hence not copied

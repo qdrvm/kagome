@@ -90,7 +90,7 @@ namespace kagome::application {
 
     sptr<api::ApiService> jrpc_api_service_;
 
-    bool is_genesis_ = true;
+    Babe::ExecutionStrategy is_genesis_;
 
     common::Logger logger_;
   };
