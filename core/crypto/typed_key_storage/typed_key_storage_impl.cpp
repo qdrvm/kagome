@@ -49,7 +49,7 @@ namespace kagome::crypto::storage {
     sr_keys_[key_type][key_pair.public_key] = key_pair.secret_key;
   }
 
-  boost::optional<ED25519Keypair> TypedKeyStorageImpl::findE25519dKey(
+  boost::optional<ED25519Keypair> TypedKeyStorageImpl::findE25519Key(
       KeyTypeId key_type, const ED25519PublicKey &pk) {
     auto &map = ed_keys_[key_type];
     if (map.empty()) {

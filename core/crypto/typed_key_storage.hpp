@@ -50,7 +50,7 @@ namespace kagome::crypto::storage {
      * @param pk public key to look for
      * @return found key pair if exists
      */
-    virtual boost::optional<ED25519Keypair> findE25519dKey(
+    virtual boost::optional<ED25519Keypair> findE25519Key(
         KeyTypeId key_type, const ED25519PublicKey &pk) = 0;
 
     /**

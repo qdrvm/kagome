@@ -329,7 +329,7 @@ namespace kagome::extensions {
     auto msg_buffer = memory_->loadN(msg_data, msg_len);
     // error is not possible, since we loaded correct number of bytes
     auto pk = crypto::ED25519PublicKey::fromSpan(public_buffer).value();
-    auto key_pair = key_storage_->findE25519dKey(key_type_id.value(), pk);
+    auto key_pair = key_storage_->findE25519Key(key_type_id.value(), pk);
     if (!key_pair) {
       logger_->error("failed to find required key");
       return memory_->storeBuffer(kErrorResult);
