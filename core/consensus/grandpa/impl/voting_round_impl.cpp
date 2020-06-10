@@ -387,10 +387,6 @@ namespace kagome::consensus::grandpa {
         logger_->error("Error happened during prevote timer: {}", ec.message());
         return;
       }
-      if (ec == boost::asio::error::operation_aborted) {
-        logger_->debug("Prevote timer aborted");
-        return;
-      }
       switch (state_) {
         case State::START:
         case State::PROPOSED: {
@@ -426,10 +422,6 @@ namespace kagome::consensus::grandpa {
       if (ec and ec != boost::asio::error::operation_aborted) {
         logger_->error("Error happened during precommit timer: {}",
                        ec.message());
-        return;
-      }
-      if (ec == boost::asio::error::operation_aborted) {
-        logger_->debug("Precommit timer aborted");
         return;
       }
 

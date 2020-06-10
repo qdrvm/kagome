@@ -80,7 +80,7 @@ namespace kagome::network {
               "error happened while processing request/response over Sync "
               "protocol: {}",
               err.error().message());
-          //          stream->reset();
+          stream->reset();
         });
   }
 

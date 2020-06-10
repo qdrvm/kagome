@@ -74,7 +74,7 @@ namespace kagome::network {
           std::make_shared<ScaleMessageReadWriter>(std::move(stream));
       read_writer->write(
           msg,
-          [this](auto &&res) {  // we have nowhere to report the error to
+          [this](auto &&res) {
             if (not res) {
               logger_->error("Could not broadcast, reason: {}",
                              res.error().message());
