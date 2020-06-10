@@ -82,12 +82,14 @@ INSTANTIATE_TEST_CASE_P(UnhexNumberTestCases,
                                           makePair("0xbc614e", 12345678)));
 TEST(UnhexNumberTest, Overflow) {
   std::string encoded = "0x01FF";
-  EXPECT_OUTCOME_ERROR(kagome::common::UnhexError::VALUE_OUT_OF_RANGE,
-                       unhexNumber<uint8_t>(encoded));
+  EXPECT_OUTCOME_ERROR(res,
+                       unhexNumber<uint8_t>(encoded),
+                       kagome::common::UnhexError::VALUE_OUT_OF_RANGE);
 }
 
 TEST(UnhexNumberTest, WrongFormat) {
   std::string encoded = "64";
-  EXPECT_OUTCOME_ERROR(kagome::common::UnhexError::MISSING_0X_PREFIX,
-                       unhexNumber<uint8_t>(encoded));
+  EXPECT_OUTCOME_ERROR(res,
+                       unhexNumber<uint8_t>(encoded),
+                       kagome::common::UnhexError::MISSING_0X_PREFIX);
 }
