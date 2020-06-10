@@ -6,7 +6,6 @@
 #include "crypto/typed_key_storage/typed_key_storage_impl.hpp"
 namespace kagome::crypto::storage {
 
-  // It's not clear yet what keys should be returned
   TypedKeyStorageImpl::EDKeys TypedKeyStorageImpl::getEdKeys(
       KeyTypeId key_type) {
     EDKeys keys;
@@ -49,7 +48,7 @@ namespace kagome::crypto::storage {
     sr_keys_[key_type][key_pair.public_key] = key_pair.secret_key;
   }
 
-  boost::optional<ED25519Keypair> TypedKeyStorageImpl::findE25519Key(
+  boost::optional<ED25519Keypair> TypedKeyStorageImpl::findE25519Keypair(
       KeyTypeId key_type, const ED25519PublicKey &pk) {
     auto &map = ed_keys_[key_type];
     if (map.empty()) {
@@ -58,7 +57,7 @@ namespace kagome::crypto::storage {
     return ED25519Keypair{pk, map[pk]};
   }
 
-  boost::optional<SR25519Keypair> TypedKeyStorageImpl::findSr25519Key(
+  boost::optional<SR25519Keypair> TypedKeyStorageImpl::findSr25519Keypair(
       KeyTypeId key_type, const SR25519PublicKey &pk) {
     auto &map = sr_keys_[key_type];
     if (map.empty()) {

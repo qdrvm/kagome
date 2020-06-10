@@ -12,6 +12,10 @@
 #include "outcome/outcome.hpp"
 
 namespace kagome::crypto::bip39 {
+  enum class MnemonicError {
+    INVALID_MNEMONIC = 1,
+  };
+
   struct Mnemonic {
     std::vector<std::string> words;
     std::string password;
@@ -23,5 +27,7 @@ namespace kagome::crypto::bip39 {
     static outcome::result<Mnemonic> parse(std::string_view phrase);
   };
 }  // namespace kagome::crypto::bip39
+
+OUTCOME_HPP_DECLARE_ERROR(kagome::crypto::bip39, MnemonicError);
 
 #endif  // KAGOME_CRYPTO_BIP39_MNEMONIC_HPP

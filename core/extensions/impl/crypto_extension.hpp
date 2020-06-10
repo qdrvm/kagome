@@ -6,10 +6,8 @@
 #ifndef KAGOME_CRYPTO_EXTENSION_HPP
 #define KAGOME_CRYPTO_EXTENSION_HPP
 
-#include <crypto/bip39/bip39_types.hpp>
-#include <cstdint>
-
 #include "common/logger.hpp"
+#include "crypto/bip39/bip39_types.hpp"
 #include "runtime/wasm_memory.hpp"
 
 namespace kagome::crypto {

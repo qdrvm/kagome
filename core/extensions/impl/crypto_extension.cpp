@@ -24,10 +24,6 @@ namespace kagome::extensions {
   namespace sr25519_constants = crypto::constants::sr25519;
   namespace ed25519_constants = crypto::constants::ed25519;
 
-  using crypto::PrivateKey;
-  using crypto::PublicKey;
-  using libp2p::crypto::Key;
-
   CryptoExtension::CryptoExtension(
       std::shared_ptr<runtime::WasmMemory> memory,
       std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
@@ -194,14 +190,14 @@ namespace kagome::extensions {
       runtime::SizeType key_type) {
     static const common::Buffer error_result{};
 
-    auto key_type_id = crypto::decodeKeyTypeId(key_type);
-    if (!key_type_id) {
-      logger_->error("failed to decode key type: {}",
-                     key_type_id.error().message());
-      memory_->storeBuffer(error_result);
+    auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
+    if (!crypto::isSupportedKeyType(key_type_id)) {
+      auto kt = crypto::decodeKeyTypeId(key_type_id);
+      logger_->error("key type '{}' is not supported", kt);
+      return memory_->storeBuffer(error_result);
     }
 
-    auto &&public_keys = key_storage_->getEdKeys(key_type_id.value());
+    auto &&public_keys = key_storage_->getEdKeys(key_type_id);
 
     auto &&encoded = scale::encode(public_keys);
     if (!encoded) {
@@ -246,11 +242,11 @@ namespace kagome::extensions {
    */
   runtime::WasmPointer CryptoExtension::ext_ed25519_generate_v1(
       runtime::SizeType key_type, runtime::PointerSize seed) {
-    auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
-    if (!key_type_id) {
-      logger_->error("failed to decode key type: {}",
-                     key_type_id.error().message());
-      BOOST_ASSERT_MSG(false, "failed to decode key type");
+    auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
+    if (!crypto::isSupportedKeyType(key_type_id)) {
+      auto kt = crypto::decodeKeyTypeId(key_type_id);
+      logger_->error("key type '{}' is not supported", kt);
+      BOOST_ASSERT_MSG(false, "key type id is not suppirted");
       BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
     }
 
@@ -297,7 +293,7 @@ namespace kagome::extensions {
       kp = key_pair.value();
     }
 
-    key_storage_->addEdKeyPair(key_type_id.value(), kp);
+    key_storage_->addEdKeyPair(key_type_id, kp);
     common::Buffer buffer(kp.public_key);
     runtime::PointerSize ps = memory_->storeBuffer(buffer);
 
@@ -317,10 +313,10 @@ namespace kagome::extensions {
     };
     static const auto kErrorResult = make_result(boost::none);
 
-    auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
-    if (!key_type_id) {
-      logger_->error("failed to decode key type: {}",
-                     key_type_id.error().message());
+    auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
+    if (!crypto::isSupportedKeyType(key_type_id)) {
+      auto kt = crypto::decodeKeyTypeId(key_type_id);
+      logger_->error("key type '{}' is not supported", kt);
       return memory_->storeBuffer(kErrorResult);
     }
 
@@ -329,7 +325,7 @@ namespace kagome::extensions {
     auto msg_buffer = memory_->loadN(msg_data, msg_len);
     // error is not possible, since we loaded correct number of bytes
     auto pk = crypto::ED25519PublicKey::fromSpan(public_buffer).value();
-    auto key_pair = key_storage_->findE25519Key(key_type_id.value(), pk);
+    auto key_pair = key_storage_->findE25519Keypair(key_type_id, pk);
     if (!key_pair) {
       logger_->error("failed to find required key");
       return memory_->storeBuffer(kErrorResult);
@@ -361,14 +357,14 @@ namespace kagome::extensions {
    */
   runtime::PointerSize CryptoExtension::ext_sr25519_public_keys_v1(
       runtime::SizeType key_type) {
-    auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
     static const common::Buffer error_result{};
-    if (!key_type_id) {
-      logger_->error("failed to decode key type: {}",
-                     key_type_id.error().message());
+    auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
+    if (!crypto::isSupportedKeyType(key_type_id)) {
+      logger_->error("key type '{}' is not supported",
+                     crypto::decodeKeyTypeId(key_type_id));
       return memory_->storeBuffer(error_result);
     }
-    auto &&public_keys = key_storage_->getSrKeys(key_type_id.value());
+    auto &&public_keys = key_storage_->getSrKeys(key_type_id);
     auto &&encoded = scale::encode(public_keys);
     if (!encoded) {
       logger_->error("failed to scale-encode vector of public keys: {}",
@@ -386,11 +382,11 @@ namespace kagome::extensions {
    */
   runtime::WasmPointer CryptoExtension::ext_sr25519_generate_v1(
       runtime::SizeType key_type, runtime::PointerSize seed) {
-    auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
-    if (!key_type_id) {
-      logger_->error("failed to decode key type: {}",
-                     key_type_id.error().message());
-      BOOST_ASSERT_MSG(false, "failed to decode key type");
+    auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
+    if (!crypto::isSupportedKeyType(key_type_id)) {
+      auto kt = crypto::decodeKeyTypeId(key_type_id);
+      logger_->error("key type '{}' is not supported", kt);
+      BOOST_ASSERT_MSG(false, "key type is not supported");
       BOOST_UNREACHABLE_RETURN(runtime::kNullWasmPointer);
     }
 
@@ -421,7 +417,7 @@ namespace kagome::extensions {
       kp = sr25519_provider_->generateKeypair();
     }
 
-    key_storage_->addSrKeyPair(key_type_id.value(), kp);
+    key_storage_->addSrKeyPair(key_type_id, kp);
     common::Buffer pk_buffer(kp.public_key);
     runtime::PointerSize ps = memory_->storeBuffer(pk_buffer);
 
@@ -441,10 +437,10 @@ namespace kagome::extensions {
     };
     static auto error_result = make_result(boost::none);
 
-    auto &&key_type_id = crypto::decodeKeyTypeId(key_type);
-    if (!key_type_id) {
-      logger_->error("failed to decode key type: {}",
-                     key_type_id.error().message());
+    auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
+    if (!crypto::isSupportedKeyType(key_type_id)) {
+      auto kt = crypto::decodeKeyTypeId(key_type_id);
+      logger_->error("key type '{}' is not supported", kt);
       return memory_->storeBuffer(error_result);
     }
 
@@ -453,7 +449,7 @@ namespace kagome::extensions {
     auto msg_buffer = memory_->loadN(msg_data, msg_len);
     // error is not possible, since we loaded correct number of bytes
     auto pk = crypto::SR25519PublicKey::fromSpan(public_buffer).value();
-    auto key_pair = key_storage_->findSr25519Key(key_type_id.value(), pk);
+    auto key_pair = key_storage_->findSr25519Keypair(key_type_id, pk);
     if (!key_pair) {
       logger_->error("failed to find required key");
       return memory_->storeBuffer(error_result);

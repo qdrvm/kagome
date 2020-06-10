@@ -8,7 +8,6 @@ addtest(bip39_integration_test
     )
 target_link_libraries(bip39_integration_test
     bip39_provider
-    hexutil
     )
 
 addtest(entropy_calculation_test

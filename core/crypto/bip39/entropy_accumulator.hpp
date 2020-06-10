@@ -65,16 +65,7 @@ namespace kagome::crypto::bip39 {
      * @param bits_count total bits count (depends on words count)
      * @param checksum_bits_count number of bits in checksum byte
      */
-    EntropyAccumulator(size_t bits_count, size_t checksum_bits_count)
-        : total_bits_count_{bits_count},
-          checksum_bits_count_{checksum_bits_count} {
-      BOOST_ASSERT_MSG((bits_count - checksum_bits_count) % 32 == 0,
-                       "invalid bits count");
-      BOOST_ASSERT_MSG(bits_count <= 264 && bits_count >= 132,
-                       "unsupported bits count");
-
-      bits_.reserve(bits_count);
-    };
+    EntropyAccumulator(size_t bits_count, size_t checksum_bits_count);
 
     std::vector<uint8_t> bits_;
     const size_t total_bits_count_;

@@ -5,53 +5,38 @@
 
 #include "crypto/key_type.hpp"
 
+#include <unordered_set>
+
 #include <boost/endian/arithmetic.hpp>
 
 namespace kagome::crypto {
 
-  outcome::result<KeyType> getKeyTypeById(KeyTypeId key_type_id) {
-    static const std::map<KeyTypeId, KeyType> map = {
-        {KeyTypeId::BABE, KeyType::fromString("babe").value()},
-        {KeyTypeId::GRAN, KeyType::fromString("gran").value()},
-        {KeyTypeId::ACCO, KeyType::fromString("acco").value()},
-        {KeyTypeId::IMON, KeyType::fromString("imon").value()},
-        {KeyTypeId::AUDI, KeyType::fromString("audi").value()}};
+  bool isSupportedKeyType(KeyTypeId k) {
+    using Type = SupportedKeyTypes;
+    static const std::unordered_set<KeyTypeId> supported_types(
+        {static_cast<uint32_t>(Type::BABE),
+         static_cast<uint32_t>(Type::GRAN),
+         static_cast<uint32_t>(Type::ACCO),
+         static_cast<uint32_t>(Type::IMON),
+         static_cast<uint32_t>(Type::AUDI)});
 
-    if (map.count(key_type_id) > 0) {
-      return map.at(key_type_id);
-    }
-
-    return KeyTypeError::UNSUPPORTED_KEY_TYPE_ID;
+    return supported_types.find(k) != supported_types.end();
   }
 
-  outcome::result<KeyTypeId> getKeyIdByType(const KeyType &key_type) {
-    static const std::map<KeyType, KeyTypeId> map = {
-        {KeyType::fromString("babe").value(), KeyTypeId::BABE},
-        {KeyType::fromString("gran").value(), KeyTypeId::GRAN},
-        {KeyType::fromString("acco").value(), KeyTypeId::ACCO},
-        {KeyType::fromString("imon").value(), KeyTypeId::IMON},
-        {KeyType::fromString("audi").value(), KeyTypeId::AUDI}};
-    if (map.count(key_type) > 0) {
-      return map.at(key_type);
-    }
-
-    return KeyTypeError::UNSUPPORTED_KEY_TYPE;
-  }
-
-  outcome::result<crypto::KeyTypeId> decodeKeyTypeId(KeyTypeRepr param) {
-    constexpr unsigned size = sizeof(KeyTypeRepr);
+  std::string decodeKeyTypeId(KeyTypeId param) {
+    constexpr unsigned size = sizeof(KeyTypeId);
     constexpr unsigned bits = size * 8u;
-    crypto::KeyType key_type{};
+    std::array<char, size> key_type{};
 
-    boost::endian::endian_buffer<boost::endian::order::big, KeyTypeRepr, bits>
+    boost::endian::endian_buffer<boost::endian::order::big, KeyTypeId, bits>
         buf{};
     buf = param;  // cannot initialize, only assign
     for (size_t i = 0; i < size; ++i) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-      key_type[i] = buf.data()[i];
+      key_type.at(i) = buf.data()[i];
     }
 
-    return getKeyIdByType(key_type);
+    return std::string(key_type.begin(), key_type.end());
   }
 }  // namespace kagome::crypto
 

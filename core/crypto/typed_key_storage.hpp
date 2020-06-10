@@ -11,7 +11,12 @@
 #include <boost/optional.hpp>
 
 namespace kagome::crypto::storage {
-
+  /**
+   * TypedKeyStorage stores sr25519 and ed25519 keys
+   * It has separate storages for different types.
+   * Types such as babe, grandpa etc specify location
+   * where it was created or purpose of its application
+   */
   class TypedKeyStorage {
    public:
     virtual ~TypedKeyStorage() = default;
@@ -50,7 +55,7 @@ namespace kagome::crypto::storage {
      * @param pk public key to look for
      * @return found key pair if exists
      */
-    virtual boost::optional<ED25519Keypair> findE25519Key(
+    virtual boost::optional<ED25519Keypair> findE25519Keypair(
         KeyTypeId key_type, const ED25519PublicKey &pk) = 0;
 
     /**
@@ -59,7 +64,7 @@ namespace kagome::crypto::storage {
      * @param pk public key to look for
      * @return found key pair if exists
      */
-    virtual boost::optional<SR25519Keypair> findSr25519Key(
+    virtual boost::optional<SR25519Keypair> findSr25519Keypair(
         KeyTypeId key_type, const SR25519PublicKey &pk) = 0;
   };
 }  // namespace kagome::crypto::storage

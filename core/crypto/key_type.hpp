@@ -22,17 +22,32 @@ namespace kagome::crypto {
     UNSUPPORTED_KEY_TYPE_ID,
   };
 
-  enum class KeyTypeId { BABE, GRAN, ACCO, IMON, AUDI };
+  enum class SupportedKeyTypes : uint32_t {
+    BABE = 'babe',
+    GRAN = 'gran',
+    ACCO = 'acco',
+    IMON = 'imon',
+    AUDI = 'audi'
+  };
 
-  using common::Blob;
-  using KeyType = Blob<4>;
+  /**
+   * @brief Key type identifier
+   */
+  using KeyTypeId = uint32_t;
 
-  outcome::result<KeyType> getKeyTypeById(KeyTypeId key_type_id);
+  /**
+   * @brief makes string representation of KeyTypeId
+   * @param param param key type
+   * @return string representation of key type value
+   */
+  std::string decodeKeyTypeId(KeyTypeId param);
 
-  outcome::result<KeyTypeId> getKeyIdByType(const KeyType &key_type);
-
-  using KeyTypeRepr = uint32_t;
-  outcome::result<crypto::KeyTypeId> decodeKeyTypeId(KeyTypeRepr param);
+  /**
+   * @brief checks whether key type value is supported
+   * @param k key type value
+   * @return true if supported, false otherwise
+   */
+  bool isSupportedKeyType(KeyTypeId k);
 }  // namespace kagome::crypto
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, KeyTypeError);

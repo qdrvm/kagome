@@ -7,7 +7,6 @@
 #define KAGOME_BIP39_TYPES_HPP
 
 #include "common/buffer.hpp"
-#include "outcome/outcome.hpp"
 
 namespace kagome::crypto::bip39 {
   namespace constants {
@@ -15,12 +14,6 @@ namespace kagome::crypto::bip39 {
   }  // namespace constants
 
   using Bip39Seed = common::Buffer;
-
-  enum class MnemonicError {
-    INVALID_MNEMONIC = 1,
-  };
 }  // namespace kagome::crypto::bip39
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::crypto::bip39, MnemonicError);
 
 #endif  // KAGOME_BIP39_TYPES_HPP

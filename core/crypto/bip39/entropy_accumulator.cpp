@@ -7,22 +7,6 @@
 
 #include "crypto/sha/sha256.hpp"
 
-#include <iostream>
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto::bip39, Bip39EntropyError, error) {
-  using E = kagome::crypto::bip39::Bip39EntropyError;
-  switch (error) {
-    case E::WRONG_WORDS_COUNT:
-      return "invalid or unsupported words count";
-    case E::STORAGE_NOT_COMPLETE:
-      return "cannot get info from storage while it is still not complete";
-    case E::STORAGE_IS_FULL:
-      return "cannot put more data into storage, it is full";
-  }
-
-  return "unknown Bip39EntropyError error";
-}
-
 namespace kagome::crypto::bip39 {
   outcome::result<EntropyAccumulator> EntropyAccumulator::create(
       size_t words_count) {
@@ -101,4 +85,30 @@ namespace kagome::crypto::bip39 {
     return hash[0] >> static_cast<uint8_t>(8 - checksum_bits_count_);
   }
 
+  EntropyAccumulator::EntropyAccumulator(size_t bits_count,
+                                         size_t checksum_bits_count)
+      : total_bits_count_{bits_count},
+        checksum_bits_count_{checksum_bits_count} {
+    BOOST_ASSERT_MSG((bits_count - checksum_bits_count) % 32 == 0,
+                     "invalid bits count");
+    BOOST_ASSERT_MSG(bits_count <= 264 && bits_count >= 132,
+                     "unsupported bits count");
+
+    bits_.reserve(bits_count);
+  }
+
 }  // namespace kagome::crypto::bip39
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto::bip39, Bip39EntropyError, error) {
+  using E = kagome::crypto::bip39::Bip39EntropyError;
+  switch (error) {
+    case E::WRONG_WORDS_COUNT:
+      return "invalid or unsupported words count";
+    case E::STORAGE_NOT_COMPLETE:
+      return "cannot get info from storage while it is still not complete";
+    case E::STORAGE_IS_FULL:
+      return "cannot put more data into storage, it is full";
+  }
+
+  return "unknown Bip39EntropyError error";
+}
