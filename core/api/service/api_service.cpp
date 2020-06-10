@@ -15,12 +15,10 @@ namespace kagome::api {
       std::vector<std::shared_ptr<Listener>> listeners,
       std::shared_ptr<JRpcServer> server,
       gsl::span<std::shared_ptr<JRpcProcessor>> processors)
-      : app_state_manager_(std::move(app_state_manager)),
-        thread_pool_(std::move(thread_pool)),
+      : thread_pool_(std::move(thread_pool)),
         listeners_(std::move(listeners)),
         server_(std::move(server)),
         logger_{common::createLogger("Api service")} {
-    BOOST_ASSERT(app_state_manager_);
     BOOST_ASSERT(thread_pool_);
     for ([[maybe_unused]] const auto &listener : listeners_) {
       BOOST_ASSERT(listener != nullptr);
@@ -30,19 +28,12 @@ namespace kagome::api {
       processor->registerHandlers();
     }
 
-    app_state_manager_->atPrepare([this] { prepare(); });
-
-    app_state_manager_->atLaunch([this] { start(); });
-    app_state_manager_->atLaunch([this] { thread_pool_->start(); });
-
-    app_state_manager_->atShutdown([this] { stop(); });
-    app_state_manager_->atShutdown([this] { thread_pool_->stop(); });
+	  BOOST_ASSERT(app_state_manager);
+	  app_state_manager->reg(*this);
   }
 
   void ApiService::prepare() {
     for (const auto &listener : listeners_) {
-      listener->prepare();
-
       auto on_new_session =
           [wp = weak_from_this()](const sptr<Session> &session) mutable {
             if (auto self = wp.lock(); not self) {
@@ -71,16 +62,12 @@ namespace kagome::api {
   }
 
   void ApiService::start() {
-    for (const auto &listener : listeners_) {
-      listener->start();
-    }
-    logger_->debug("Service started");
+	  thread_pool_->start();
+	  logger_->debug("Service started");
   }
 
   void ApiService::stop() {
-    for (const auto &listener : listeners_) {
-      listener->stop();
-    }
+	  thread_pool_->stop();
     logger_->debug("Service stopped");
   }
 

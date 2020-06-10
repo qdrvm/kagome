@@ -162,6 +162,9 @@ namespace kagome::injector {
       return initialized.value();
     }
 
+    auto app_state_manager =
+        injector.template create<sptr<application::AppStateManager>>();
+
     auto context = injector.template create<sptr<api::RpcContext>>();
 
     api::HttpListenerImpl::Configuration listener_config;
@@ -171,7 +174,7 @@ namespace kagome::injector {
         injector.template create<api::HttpSession::Configuration>();
 
     initialized = std::make_shared<api::HttpListenerImpl>(
-        context, listener_config, http_session_config);
+        app_state_manager, context, listener_config, http_session_config);
     return initialized.value();
   };
 
@@ -185,6 +188,9 @@ namespace kagome::injector {
       return initialized.value();
     }
 
+    auto app_state_manager =
+        injector.template create<sptr<application::AppStateManager>>();
+
     auto context = injector.template create<sptr<api::RpcContext>>();
 
     api::WsListenerImpl::Configuration listener_config;
@@ -194,7 +200,7 @@ namespace kagome::injector {
         injector.template create<api::WsSession::Configuration>();
 
     initialized = std::make_shared<api::WsListenerImpl>(
-        context, listener_config, ws_session_config);
+        app_state_manager, context, listener_config, ws_session_config);
     return initialized.value();
   };
 

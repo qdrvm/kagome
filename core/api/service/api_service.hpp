@@ -46,10 +46,7 @@ namespace kagome::api {
     void stop();
 
    private:
-    std::shared_ptr<application::AppStateManager> app_state_manager_;
-
     std::shared_ptr<api::RpcThreadPool> thread_pool_;
-
     std::vector<sptr<Listener>> listeners_;
     std::shared_ptr<JRpcServer> server_;
     common::Logger logger_;

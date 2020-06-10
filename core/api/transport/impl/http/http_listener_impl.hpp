@@ -9,6 +9,7 @@
 #include "api/transport/listener.hpp"
 
 #include "api/transport/impl/http/http_session.hpp"
+#include "application/app_state_manager.hpp"
 #include "common/logger.hpp"
 
 namespace kagome::api {
@@ -19,26 +20,14 @@ namespace kagome::api {
   class HttpListenerImpl
       : public Listener,
         public std::enable_shared_from_this<HttpListenerImpl> {
-    using Acceptor = boost::asio::ip::tcp::acceptor;
-    using Endpoint = boost::asio::ip::tcp::endpoint;
-
    public:
     using SessionImpl = HttpSession;
 
-    // TODO(xDimon): Replace value by macro from special generated .h config
-    static const uint16_t defaultPort = 40363;
-
-    struct Configuration {
-      Endpoint endpoint{};  ///< listning endpoint
-      Configuration() {
-        endpoint.address(boost::asio::ip::address_v4::any());
-        endpoint.port(defaultPort);
-      }
-    };
-
-    HttpListenerImpl(std::shared_ptr<Context> context,
-                     const Configuration &listener_config,
-                     SessionImpl::Configuration session_config);
+    HttpListenerImpl(
+        std::shared_ptr<application::AppStateManager> app_state_manager,
+        std::shared_ptr<Context> context,
+        const Configuration &listener_config,
+        SessionImpl::Configuration session_config);
 
     ~HttpListenerImpl() override = default;
 
@@ -46,7 +35,7 @@ namespace kagome::api {
     void start() override;
     void stop() override;
 
-    void setHandlerForNewSession(NewSessionHandler&& on_new_session) override;
+    void setHandlerForNewSession(NewSessionHandler &&on_new_session) override;
 
    private:
     void acceptOnce() override;

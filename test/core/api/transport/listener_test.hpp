@@ -83,7 +83,7 @@ struct ListenerTest : public ::testing::Test {
 
   std::vector<std::shared_ptr<Listener>> listeners{
       std::make_shared<ListenerImpl>(
-          main_context, listener_config, session_config)};
+          app_state_manager, main_context, listener_config, session_config)};
 
   sptr<ApiService> service = std::make_shared<ApiService>(
       app_state_manager, thread_pool, listeners, server, processors);

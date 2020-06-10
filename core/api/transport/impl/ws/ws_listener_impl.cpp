@@ -8,12 +8,16 @@
 #include <boost/asio.hpp>
 
 namespace kagome::api {
-  WsListenerImpl::WsListenerImpl(std::shared_ptr<Context> context,
-                                 const Configuration &listener_config,
-                                 SessionImpl::Configuration session_config)
+  WsListenerImpl::WsListenerImpl(
+      std::shared_ptr<application::AppStateManager> app_state_manager,
+      std::shared_ptr<Context> context,
+      const Configuration &listener_config,
+      SessionImpl::Configuration session_config)
       : context_{std::move(context)},
         config_{listener_config},
-        session_config_{session_config} {}
+        session_config_{session_config} {
+    app_state_manager->reg(*this);
+  }
 
   void WsListenerImpl::prepare() {
     try {
@@ -62,26 +66,22 @@ namespace kagome::api {
   void WsListenerImpl::acceptOnce() {
     new_session_ = std::make_shared<SessionImpl>(*context_, session_config_);
 
-	  auto on_accept = [wp = weak_from_this()](boost::system::error_code ec) {
-			  auto self = wp.lock();
-			  if (not self) {
-				  return;
-			  }
-			  if (not ec) {
-				  self->logger_->warn("Failed to accept connection");
-			  } else {
-				  if (self->on_new_session_) {
-					  (*self->on_new_session_)(self->new_session_);
-				  }
-				  self->new_session_->start();
-			  }
+    auto on_accept = [wp = weak_from_this()](boost::system::error_code ec) {
+      if (auto self = wp.lock()) {
+        if (not ec) {
+          if (self->on_new_session_) {
+            (*self->on_new_session_)(self->new_session_);
+          }
+          self->new_session_->start();
+        }
 
-			  if (!self->acceptor_->is_open()) {
-				  // continue to accept until acceptor is ready
-				  self->acceptOnce();
-			  }
-	  };
+        if (self->acceptor_->is_open()) {
+          // continue to accept until acceptor is ready
+          self->acceptOnce();
+        }
+      }
+    };
 
-	  acceptor_->async_accept(new_session_->socket(), std::move(on_accept));
+    acceptor_->async_accept(new_session_->socket(), std::move(on_accept));
   }
 }  // namespace kagome::api

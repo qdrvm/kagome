@@ -9,6 +9,7 @@
 #include "api/transport/listener.hpp"
 
 #include "api/transport/impl/ws/ws_session.hpp"
+#include "application/app_state_manager.hpp"
 #include "common/logger.hpp"
 
 namespace kagome::api {
@@ -18,26 +19,14 @@ namespace kagome::api {
    */
   class WsListenerImpl : public Listener,
                          public std::enable_shared_from_this<WsListenerImpl> {
-    using Acceptor = boost::asio::ip::tcp::acceptor;
-    using Endpoint = boost::asio::ip::tcp::endpoint;
-
    public:
     using SessionImpl = WsSession;
 
-    // TODO(xDimon): Replace value by macro from special generated .h config
-    static const uint16_t defaultPort = 40364;
-
-    struct Configuration {
-      Endpoint endpoint{};  ///< listener endpoint
-      Configuration() {
-        endpoint.address(boost::asio::ip::address_v4::any());
-        endpoint.port(defaultPort);
-      }
-    };
-
-    WsListenerImpl(std::shared_ptr<Context> context,
-                   const Configuration &listener_config,
-                   SessionImpl::Configuration session_config);
+    WsListenerImpl(
+        std::shared_ptr<application::AppStateManager> app_state_manager,
+        std::shared_ptr<Context> context,
+        const Configuration &listener_config,
+        SessionImpl::Configuration session_config);
 
     ~WsListenerImpl() override = default;
 
