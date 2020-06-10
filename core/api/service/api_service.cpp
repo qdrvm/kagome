@@ -28,8 +28,8 @@ namespace kagome::api {
       processor->registerHandlers();
     }
 
-	  BOOST_ASSERT(app_state_manager);
-	  app_state_manager->reg(*this);
+    BOOST_ASSERT(app_state_manager);
+    app_state_manager->reg(*this);
   }
 
   void ApiService::prepare() {
@@ -62,12 +62,12 @@ namespace kagome::api {
   }
 
   void ApiService::start() {
-	  thread_pool_->start();
-	  logger_->debug("Service started");
+    thread_pool_->start();
+    logger_->debug("Service started");
   }
 
   void ApiService::stop() {
-	  thread_pool_->stop();
+    thread_pool_->stop();
     logger_->debug("Service stopped");
   }
 
