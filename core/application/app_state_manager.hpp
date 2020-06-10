@@ -38,6 +38,13 @@ namespace kagome::application {
       atShutdown(std::move(shutdown_cb));
     }
 
+    template <typename Controled>
+    void reg(Controled &entity) {
+      atPrepare([&entity] { entity.prepare(); });
+      atLaunch([&entity] { entity.start(); });
+      atShutdown([&entity] { entity.stop(); });
+    }
+
     virtual void run() = 0;
     virtual void shutdown() = 0;
 
