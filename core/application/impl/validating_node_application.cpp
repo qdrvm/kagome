@@ -5,7 +5,7 @@
 
 #include "application/impl/validating_node_application.hpp"
 
-#include <filesystem>
+#include <boost/filesystem.hpp>
 
 namespace kagome::application {
   using consensus::Epoch;
@@ -33,7 +33,7 @@ namespace kagome::application {
     spdlog::set_level(static_cast<spdlog::level::level_enum>(verbosity));
 
     // genesis launch if database does not exist
-    is_genesis_ = std::filesystem::exists(leveldb_path)
+    is_genesis_ = boost::filesystem::exists(leveldb_path)
                       ? Babe::ExecutionStrategy::SYNC_FIRST
                       : Babe::ExecutionStrategy::GENESIS;
 
