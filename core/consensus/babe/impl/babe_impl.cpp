@@ -66,13 +66,13 @@ namespace kagome::consensus {
     BOOST_ASSERT(init_epoch_desc_ok);
   }
 
-  void BabeImpl::start() {
+  void BabeImpl::start(bool is_genesis) {
     auto &&[best_block_number, best_block_hash] = block_tree_->deepestLeaf();
     log_->debug("Babe run on block with number {} and hash {}",
                 best_block_number,
                 best_block_hash);
 
-    if (best_block_number == 0) {
+    if (is_genesis) {
       auto epoch_digest_res = epoch_storage_->getEpochDescriptor(0);
       if (not epoch_digest_res) {
         log_->error("Last epoch digest does not exist for initial epoch");

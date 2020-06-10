@@ -23,7 +23,12 @@ namespace kagome::consensus {
    public:
     ~Babe() override = default;
 
-	  virtual void start() = 0;
+    /**
+     * Start babe execution
+     * @param is_genesis is true when genesis epoch is executed on the current
+     * node
+     */
+    virtual void start(bool is_genesis) = 0;
 
     /**
      * Start a Babe production

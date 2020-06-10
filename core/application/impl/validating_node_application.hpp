@@ -90,6 +90,8 @@ namespace kagome::application {
 
     sptr<api::ApiService> jrpc_api_service_;
 
+    bool is_genesis_ = true;
+
     common::Logger logger_;
   };
 }  // namespace kagome::application
