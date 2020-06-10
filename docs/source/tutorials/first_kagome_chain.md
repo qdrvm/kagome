@@ -31,10 +31,8 @@ cd node
 
 `node` folder contains necessary configuration files for our tutorial:
 
-| Files                       | Descriptions                                                                                                            |
-|-----------------------------|-------------------------------------------------------------------------------------------------------------------------|
-| `config/localchain.json`    | genesis file for our network. It contains necessary key-value pairs that should be inserted before the genesis block    |
-| `config/localkeystore.json` | file containing the keys for Kagome peer. This is necessary to be able to sign the messages sent by our validating node | 
+* `config/localchain.json` – genesis file for our network. It contains necessary key-value pairs that should be inserted before the genesis block    |
+* `config/localkeystore.json` – file containing the keys for Kagome peer. This is necessary to be able to sign the messages sent by our validating node | 
 
 localchain.json contains Alice and Bob accounts. Both have 1000000000000000000000 amount of crypto.
 Their keys can be generated using [subkey](https://substrate.dev/docs/en/ecosystem/subkey) tool:
@@ -74,14 +72,12 @@ kagome_validating \
 
 Let's look at this flags in detail:
 
-| Flags           | Descriptions                                       |
-|-----------------|----------------------------------------------------|
-| --genesis       | mandatory, genesis configuration file path         |
-| --keystore      | mandatory, keystore file path                      |
-| --leveldb       | mandatory, leveldb directory path                  |
-| --rpc_http_port | port for RPC over HTTP                             |
-| --rpc_ws_port   | port for RPC over Websocket protocol               |
-| --genesis_epoch | indicates that current peer executes genesis epoch |
+* `--genesis` -– mandatory, genesis configuration file path
+* `--keystore` –- mandatory, keystore file path
+* `--leveldb` –- mandatory, leveldb directory path                 
+* `--rpc_http_port` –- port for RPC over HTTP                            
+* `--rpc_ws_port`   –- port for RPC over Websocket protocol              
+* `--genesis_epoch` –- indicates that current peer executes genesis epoch
 
 More flags info available by running `kagome_validating --help`.
 
