@@ -94,7 +94,6 @@ TEST_F(BlockStorageTest, CreateWithExistingGenesis) {
       .WillOnce(Return(Buffer{genesis_block_hash}));
 
   EXPECT_OUTCOME_ERROR(res,
-
                        KeyValueBlockStorage::createWithGenesis(
                            root_hash, storage, hasher, block_handler),
                        KeyValueBlockStorage::Error::GENESIS_ALREADY_EXISTS);

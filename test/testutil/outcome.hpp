@@ -7,6 +7,7 @@
 #define KAGOME_TEST_TESTUTIL_OUTCOME
 
 #include <gtest/gtest.h>
+#include "common/visitor.hpp"
 #include "outcome/outcome.hpp"
 
 #define PP_CAT(a, b) PP_CAT_I(a, b)
@@ -93,6 +94,23 @@
 #define EXPECT_OUTCOME_TRUE_MSG(val, expr, msg) \
   EXPECT_OUTCOME_TRUE_MSG_name(UNIQUE_NAME(_r), val, expr, msg)
 
+#define EXPECT_OUTCOME_RAISE_3(var, ecode, statement) \
+  try { statement; FAIL() << "Line " << __LINE__ << ": " << #ecode << " not raised"; } \
+  catch (std::system_error &var) { EXPECT_EQ(var.code(), ecode); }
+
+#define EXPECT_OUTCOME_RAISE(ecode, statement) \
+  EXPECT_OUTCOME_RAISE_3(UNIQUE_NAME(_e), ecode, statement)
+
+#define EXPECT_OUTCOME_ERROR_3(var, ecode, expr) \
+  { EXPECT_OUTCOME_FALSE_2(var, expr); EXPECT_EQ(var, ecode); }
+
+#define EXPECT_OUTCOME_EQ_3(var, expr, value) \
+  { EXPECT_OUTCOME_TRUE_2(var, expr); EXPECT_EQ(var, value); }
+
+#define EXPECT_OUTCOME_EQ(expr, value) \
+  EXPECT_OUTCOME_EQ_3(UNIQUE_NAME(_v), expr, value)
+
+
 #define _OUTCOME_UNIQUE_NAME_GLUE2(x, y) x##y
 #define _OUTCOME_UNIQUE_NAME_GLUE(x, y) _OUTCOME_UNIQUE_NAME_GLUE2(x, y)
 #define _OUTCOME_UNIQUE_NAME \
@@ -100,12 +118,11 @@
 
 #define _ASSERT_OUTCOME_SUCCESS_TRY(_result_, _expression_)             \
   auto &&_result_ = (_expression_);                                     \
-  if (__builtin_expect(_result_.has_value(), true)) {                   \
-    ;                                                                   \
-  } else                                                                \
+  if (not _result_.has_value()) {                                       \
     GTEST_FATAL_FAILURE_("Outcome of: " #_expression_)                  \
         << "  Actual:   Error '" << _result_.error().message() << "'\n" \
-        << "Expected:   Success";
+        << "Expected:   Success";                                       \
+  }
 
 #define _ASSERT_OUTCOME_SUCCESS(_result_, _variable_, _expression_) \
   _ASSERT_OUTCOME_SUCCESS_TRY(_result_, _expression_);              \
@@ -120,55 +137,61 @@
 #define ASSERT_OUTCOME_SOME_ERROR(_expression_)          \
   {                                                      \
     auto &&result = (_expression_);                      \
-    if (__builtin_expect(result.has_error(), false))     \
+    if (not result.has_error()) {                        \
       GTEST_FATAL_FAILURE_("Outcome of: " #_expression_) \
           << "  Actual:   Success\n"                     \
           << "Expected:   Some error";                   \
+    }                                                    \
   }
 
 #define ASSERT_OUTCOME_ERROR(_expression_, _failure_)                     \
   {                                                                       \
     auto &&result = (_expression_);                                       \
-    if (__builtin_expect(result.has_error(), true)) {                     \
-      if (__builtin_expect(_failure_ == result.as_failure(), false))      \
+    if (result.has_error()) {                                             \
+      if (_failure_ != result.as_failure()) {                             \
         GTEST_FATAL_FAILURE_("Outcome of: " #_expression_                 \
             << "  Actual:   Error '" << result.error().message() << "'\n" \
             << "Expected:   Error '"                                      \
             << outcome::result<void>(_failure_).error().message() << "'"; \
-    } else                                                                \
+      }                                                                   \
+    } else {                                                              \
       GTEST_FATAL_FAILURE_("Outcome of: " #_expression_)                  \
           << "  Actual:   Success\n"                                      \
           << "Expected:   Error '"                                        \
           << outcome::result<void>(_failure_).error().message() << "'";   \
+    }                                                                     \
   }
 
 #define EXPECT_OUTCOME_SUCCESS(_result_, _expression_)                  \
   auto &&_result_ = (_expression_);                                     \
-  if (__builtin_expect(_result_.has_error(), false))                    \
+  if (not _result_.has_error()) {                                       \
     GTEST_NONFATAL_FAILURE_("Outcome of: " #_expression_)               \
         << "  Actual:   Error '" << _result_.error().message() << "'\n" \
-        << "Expected:   Success";
+        << "Expected:   Success";                                       \
+  }
 
 #define EXPECT_OUTCOME_SOME_ERROR(_result_, _expression_) \
   auto &&_result_ = (_expression_);                       \
-  if (__builtin_expect(_result_.has_error(), true))       \
+  if (not _result_.has_error()) {                         \
     GTEST_NONFATAL_FAILURE_("Outcome of: " #_expression_) \
         << "  Actual:   Success\n"                        \
-        << "Expected:   Some error";
+        << "Expected:   Some error";                      \
+  }
 
-#define EXPECT_OUTCOME_ERROR(_result_, _expression_, _error_)                \
-  auto &&_result_ = (_expression_);                                          \
-  if (__builtin_expect(_result_.has_error(), true)) {                        \
-    if (__builtin_expect(                                                    \
-            _result_.as_failure() != outcome::result<void>(_error_), false)) \
-      GTEST_NONFATAL_FAILURE_("Outcome of: " #_expression_)                  \
-          << "  Actual:   Error '" << _result_.error().message() << "'\n"    \
-          << "Expected:   Error '"                                           \
-          << outcome::result<void>(_error_).error().message() << "'";        \
-  } else                                                                     \
-    GTEST_NONFATAL_FAILURE_("Outcome of: " #_expression_)                    \
-        << "  Actual:   Success\n"                                           \
-        << "Expected:   Error '"                                             \
-        << outcome::result<void>(_error_).error().message() << "'";
+#define EXPECT_OUTCOME_ERROR(_result_, _expression_, _error_)             \
+  auto &&_result_ = (_expression_);                                       \
+  if (_result_.has_error()) {                                             \
+    if (_result_.as_failure() != outcome::result<void>(_error_)) {        \
+      GTEST_NONFATAL_FAILURE_("Outcome of: " #_expression_)               \
+          << "  Actual:   Error '" << _result_.error().message() << "'\n" \
+          << "Expected:   Error '"                                        \
+          << outcome::result<void>(_error_).error().message() << "'";     \
+    }                                                                     \
+  } else {                                                                \
+    GTEST_NONFATAL_FAILURE_("Outcome of: " #_expression_)                 \
+        << "  Actual:   Success\n"                                        \
+        << "Expected:   Error '"                                          \
+        << outcome::result<void>(_error_).error().message() << "'";       \
+  }
 
-#endif  // KAGOME_TEST_TESTUTIL_OUTCOME
+#endif  // KAGOME_GTEST_OUTCOME_UTIL_HPP

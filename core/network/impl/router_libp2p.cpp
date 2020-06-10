@@ -19,20 +19,20 @@ namespace kagome::network {
       std::shared_ptr<BabeObserver> babe_observer,
       std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer,
       std::shared_ptr<SyncProtocolObserver> sync_observer,
-      std::shared_ptr<ExtrinsicObserver> author_api_observer,
+      std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<Gossiper> gossiper)
       : host_{host},
         babe_observer_{std::move(babe_observer)},
         grandpa_observer_{std::move(grandpa_observer)},
         sync_observer_{std::move(sync_observer)},
-        author_api_observer_{std::move(author_api_observer)},
+        extrinsic_observer_{std::move(extrinsic_observer)},
         gossiper_{std::move(gossiper)},
         log_{common::createLogger("RouterLibp2p")} {
     BOOST_ASSERT_MSG(babe_observer_ != nullptr, "babe observer is nullptr");
     BOOST_ASSERT_MSG(grandpa_observer_ != nullptr,
                      "grandpa observer is nullptr");
     BOOST_ASSERT_MSG(sync_observer_ != nullptr, "sync observer is nullptr");
-    BOOST_ASSERT_MSG(author_api_observer_ != nullptr,
+    BOOST_ASSERT_MSG(extrinsic_observer_ != nullptr,
                      "author api observer is nullptr");
     BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
   }
@@ -142,7 +142,7 @@ namespace kagome::network {
         log_->info("Received tx announce: {} txs", txs_msg_res.value().size());
 
         for (auto &extrinsic : txs_msg_res.value()) {
-          auto result = author_api_observer_->onTxMessage(extrinsic);
+          auto result = extrinsic_observer_->onTxMessage(extrinsic);
           if (result) {
             log_->debug("  Received tx {}", result.value());
           } else {
