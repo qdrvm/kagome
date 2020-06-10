@@ -14,6 +14,7 @@
 
 #include "crypto/hasher/hasher_impl.hpp"
 #include "extensions/impl/extension_factory_impl.hpp"
+#include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/changes_trie/changes_tracker_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
@@ -38,19 +39,21 @@ class RuntimeTest : public ::testing::Test {
     using kagome::storage::trie::EphemeralTrieBatchMock;
     using kagome::storage::trie::PersistentTrieBatchMock;
 
-    auto trie_db = std::make_shared<
-        testing::NiceMock<kagome::storage::trie::TrieStorageMock>>();
-    ON_CALL(*trie_db, getPersistentBatch()).WillByDefault(testing::Invoke([]() {
-      return std::make_unique<PersistentTrieBatchMock>();
-    }));
-    ON_CALL(*trie_db, getEphemeralBatch()).WillByDefault(testing::Invoke([]() {
-      return std::make_unique<EphemeralTrieBatchMock>();
-    }));
+    auto storage_provider = std::make_shared<
+        testing::NiceMock<kagome::runtime::TrieStorageProviderMock>>();
+    ON_CALL(*storage_provider, getCurrentBatch())
+        .WillByDefault(testing::Invoke(
+            []() { return std::make_unique<PersistentTrieBatchMock>(); }));
+    ON_CALL(*storage_provider, setToPersistent())
+        .WillByDefault(testing::Return(outcome::success()));
+    ON_CALL(*storage_provider, setToEphemeral())
+        .WillByDefault(testing::Return(outcome::success()));
 
     changes_tracker_ =
         std::make_shared<kagome::storage::changes_trie::ChangesTrackerMock>();
     auto extension_factory =
-        std::make_shared<kagome::extensions::ExtensionFactoryImpl>(changes_tracker_);
+        std::make_shared<kagome::extensions::ExtensionFactoryImpl>(
+            changes_tracker_);
     auto wasm_path = boost::filesystem::path(__FILE__).parent_path().string()
                      + "/wasm/polkadot_runtime.compact.wasm";
     auto wasm_provider =
@@ -61,7 +64,7 @@ class RuntimeTest : public ::testing::Test {
         std::make_shared<kagome::runtime::binaryen::RuntimeManager>(
             std::move(wasm_provider),
             std::move(extension_factory),
-            std::move(trie_db),
+            std::move(storage_provider),
             std::move(hasher));
   }
 

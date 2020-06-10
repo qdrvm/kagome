@@ -38,6 +38,7 @@ target_link_libraries(application_injector
     binaryen_babe_api
     binaryen_grandpa_api
     binaryen_block_builder_api
+    trie_storage_provider
     author_api_service
     extrinsic_observer
     api_author_requests

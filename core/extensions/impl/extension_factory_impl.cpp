@@ -17,8 +17,8 @@ namespace kagome::extensions {
 
   std::shared_ptr<Extension> ExtensionFactoryImpl::createExtension(
       std::shared_ptr<runtime::WasmMemory> memory,
-      std::shared_ptr<storage::trie::TrieBatch> storage_batch) const {
+      std::shared_ptr<runtime::TrieStorageProvider> storage_provider) const {
     return std::make_shared<ExtensionImpl>(
-        memory, storage_batch, changes_tracker_);
+        memory, storage_provider, changes_tracker_);
   }
 }  // namespace kagome::extensions

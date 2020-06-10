@@ -8,7 +8,7 @@
 
 #include "extensions/extension.hpp"
 
-#include "storage/trie/trie_batches.hpp"
+#include "runtime/trie_storage_provider.hpp"
 
 namespace kagome::extensions {
 
@@ -24,7 +24,7 @@ namespace kagome::extensions {
      */
     virtual std::shared_ptr<Extension> createExtension(
         std::shared_ptr<runtime::WasmMemory> memory,
-        std::shared_ptr<storage::trie::TrieBatch> storage) const = 0;
+        std::shared_ptr<runtime::TrieStorageProvider> storage_provider) const = 0;
   };
 
 }  // namespace kagome::extensions
