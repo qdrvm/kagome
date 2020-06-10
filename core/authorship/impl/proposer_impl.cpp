@@ -48,7 +48,7 @@ namespace kagome::authorship {
       auto inserted_res = block_builder->pushExtrinsic(xt);
       if (not inserted_res) {
         log_push_error(xt, inserted_res.error().message());
-        // return inserted_res.error();
+        return inserted_res.error();
       }
     }
 
@@ -59,7 +59,7 @@ namespace kagome::authorship {
       auto inserted_res = block_builder->pushExtrinsic(tx->ext);
       if (not inserted_res) {
         log_push_error(tx->ext, inserted_res.error().message());
-        // return inserted_res.error();
+        return inserted_res.error();
       }
     }
 

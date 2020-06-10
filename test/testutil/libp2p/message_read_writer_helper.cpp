@@ -21,6 +21,7 @@ ACTION_P(CheckBytes, bytes) {                                          // NOLINT
 namespace libp2p::basic {
   using multi::UVarint;
   using testing::_;
+  using testing::Return;
 
   void setReadExpectations(
       const std::shared_ptr<ReadWriterMock> &read_writer_mock,
@@ -57,7 +58,8 @@ namespace libp2p::basic {
       const std::shared_ptr<ReadWriterMock> &read_writer_mock,
       std::vector<uint8_t> msg) {
     UVarint varint_to_write{msg.size()};
-    msg.insert(msg.begin(), varint_to_write.toVector().begin(),
+    msg.insert(msg.begin(),
+               varint_to_write.toVector().begin(),
                varint_to_write.toVector().end());
     EXPECT_CALL(*read_writer_mock, write(_, msg.size(), _))
         .WillOnce(CheckBytes(msg));
@@ -67,8 +69,14 @@ namespace libp2p::basic {
       const std::shared_ptr<connection::StreamMock> &stream_mock,
       std::vector<uint8_t> msg) {
     UVarint varint_to_write{msg.size()};
-    msg.insert(msg.begin(), varint_to_write.toVector().begin(),
+    msg.insert(msg.begin(),
+               varint_to_write.toVector().begin(),
                varint_to_write.toVector().end());
+    EXPECT_CALL(*stream_mock, remotePeerId())
+        .WillRepeatedly(
+            Return(libp2p::peer::PeerId::fromBase58(
+                       "12D3KooWE77U4m1d5mJxmU61AEsXewKjKnG7LiW2UQEPFnS6FXhv")
+                       .value()));
     EXPECT_CALL(*stream_mock, write(_, msg.size(), _))  // NOLINT
         .WillOnce(CheckBytes(msg));
   }
