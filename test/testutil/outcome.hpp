@@ -104,9 +104,6 @@
 #define EXPECT_OUTCOME_ERROR_3(var, ecode, expr) \
   { EXPECT_OUTCOME_FALSE_2(var, expr); EXPECT_EQ(var, ecode); }
 
-#define EXPECT_OUTCOME_ERROR(ecode, expr) \
-  EXPECT_OUTCOME_ERROR_3(UNIQUE_NAME(_e), ecode, expr)
-
 #define EXPECT_OUTCOME_EQ_3(var, expr, value) \
   { EXPECT_OUTCOME_TRUE_2(var, expr); EXPECT_EQ(var, value); }
 
