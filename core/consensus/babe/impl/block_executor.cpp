@@ -9,6 +9,7 @@
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "scale/scale.hpp"
+#include "transaction_pool/transaction_pool_error.hpp"
 
 namespace kagome::consensus {
 
@@ -177,12 +178,15 @@ namespace kagome::consensus {
     OUTCOME_TRY(block_tree_->addBlock(block));
 
     // remove block's extrinsics from tx pool
-    std::vector<primitives::Transaction::Hash> tx_hashes;
-    tx_hashes.reserve(block.body.size());
     for (const auto &extrinsic : block.body) {
-      tx_hashes.emplace_back(hasher_->blake2b_256(extrinsic.data));
+      auto res = tx_pool_->removeOne(hasher_->blake2b_256(extrinsic.data));
+      if (res.has_error()
+          && res
+                 != outcome::failure(
+                     transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
+        return res;
+      }
     }
-    tx_pool_->remove(std::move(tx_hashes));
 
     logger_->info("Imported block with number: {}, hash: {}",
                   block.header.number,
