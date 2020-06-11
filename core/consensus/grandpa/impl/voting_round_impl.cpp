@@ -95,9 +95,6 @@ namespace kagome::consensus::grandpa {
             finalized.error().message());
         return;
       }
-      logger_->info("Finalized block with hash: {}, number: {}",
-                    f.vote.block_hash.toHex(),
-                    f.vote.block_number);
       env_->onCompleted(CompletedRound{.round_number = round_number_,
                                        .state = cur_round_state_});
     } else {
@@ -155,12 +152,7 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<void> VotingRoundImpl::notify(
       const RoundState &last_round_state) {
-    if (last_round_state == cur_round_state_) {
-      return VotingRoundError::NEW_STATE_EQUAL_TO_OLD;
-    }
-
-    if (last_round_state.finalized != cur_round_state_.finalized
-        && completable_) {
+    if (completable_) {
       auto finalized = cur_round_state_.finalized.value();
       const auto &opt_justification = finalizingPrecommits(finalized);
       if (not opt_justification) {

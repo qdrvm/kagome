@@ -191,6 +191,8 @@ TEST_F(BlockTreeTest, Finalize) {
 
   Justification justification{{0x45, 0xF4}};
   auto encoded_justification = scale::encode(justification).value();
+  EXPECT_CALL(*storage_, getJustification(primitives::BlockId(hash)))
+      .WillOnce(Return(outcome::failure(boost::system::error_code{})));
   EXPECT_CALL(*storage_, putJustification(justification, hash, header.number))
       .WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage_, setLastFinalizedBlockHash(hash))

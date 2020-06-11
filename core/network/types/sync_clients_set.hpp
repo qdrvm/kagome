@@ -16,7 +16,7 @@ namespace kagome::network {
    * Keeps all known Sync clients
    */
   struct SyncClientsSet {
-    std::unordered_set<std::shared_ptr<SyncProtocolClient>> clients;
+    std::vector<std::shared_ptr<SyncProtocolClient>> clients;
   };
 }  // namespace kagome::network
 
