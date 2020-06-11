@@ -10,7 +10,7 @@
 namespace kagome::api {
 
   ApiService::ApiService(
-      std::shared_ptr<application::AppStateManager> app_state_manager,
+      const std::shared_ptr<application::AppStateManager> &app_state_manager,
       std::shared_ptr<api::RpcThreadPool> thread_pool,
       std::vector<std::shared_ptr<Listener>> listeners,
       std::shared_ptr<JRpcServer> server,

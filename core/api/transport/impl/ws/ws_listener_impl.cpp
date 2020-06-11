@@ -9,13 +9,14 @@
 
 namespace kagome::api {
   WsListenerImpl::WsListenerImpl(
-      std::shared_ptr<application::AppStateManager> app_state_manager,
+      const std::shared_ptr<application::AppStateManager> &app_state_manager,
       std::shared_ptr<Context> context,
-      const Configuration &listener_config,
+      Configuration listener_config,
       SessionImpl::Configuration session_config)
       : context_{std::move(context)},
         config_{listener_config},
-        session_config_{session_config} {
+        session_config_{std::move(session_config)} {
+    BOOST_ASSERT(app_state_manager);
     app_state_manager->reg(*this);
   }
 

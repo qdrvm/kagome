@@ -33,11 +33,12 @@ namespace kagome::api {
      * @param listener - a shared ptr to the endpoint listener instance
      * @param processors - shared ptrs to JSON processor instances
      */
-    ApiService(std::shared_ptr<application::AppStateManager> app_state_manager,
-               std::shared_ptr<api::RpcThreadPool> thread_pool,
-               std::vector<std::shared_ptr<Listener>> listeners,
-               std::shared_ptr<JRpcServer> server,
-               gsl::span<std::shared_ptr<JRpcProcessor>> processors);
+    ApiService(
+        const std::shared_ptr<application::AppStateManager> &app_state_manager,
+        std::shared_ptr<api::RpcThreadPool> thread_pool,
+        std::vector<std::shared_ptr<Listener>> listeners,
+        std::shared_ptr<JRpcServer> server,
+        gsl::span<std::shared_ptr<JRpcProcessor>> processors);
 
     virtual ~ApiService() = default;
 
