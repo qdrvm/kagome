@@ -16,3 +16,10 @@ addtest(entropy_calculation_test
 target_link_libraries(entropy_calculation_test
     bip39_provider
     )
+
+addtest(key_type_test
+    key_type_test.cpp
+    )
+target_link_libraries(key_type_test
+    typed_key_storage
+    )

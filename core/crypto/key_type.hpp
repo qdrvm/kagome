@@ -22,18 +22,18 @@ namespace kagome::crypto {
     UNSUPPORTED_KEY_TYPE_ID,
   };
 
-  enum class SupportedKeyTypes : uint32_t {
-    BABE = 'babe',
-    GRAN = 'gran',
-    ACCO = 'acco',
-    IMON = 'imon',
-    AUDI = 'audi'
-  };
-
   /**
    * @brief Key type identifier
    */
   using KeyTypeId = uint32_t;
+
+  namespace supported_key_types {
+    static constexpr KeyTypeId kBabe = 1650549349u;
+    static constexpr KeyTypeId kGran = 1735549294u;
+    static constexpr KeyTypeId kAcco = 1633903471u;
+    static constexpr KeyTypeId kImon = 1768779630u;
+    static constexpr KeyTypeId kAudi = 1635083369u;
+  }  // namespace supported_key_types
 
   /**
    * @brief makes string representation of KeyTypeId

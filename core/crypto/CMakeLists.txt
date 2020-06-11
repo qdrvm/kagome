@@ -79,8 +79,6 @@ add_library(typed_key_storage
     )
 target_link_libraries(typed_key_storage
     Boost::boost
-    ed25519_types
-    sr25519_types
     )
 kagome_install(typed_key_storage)
 
