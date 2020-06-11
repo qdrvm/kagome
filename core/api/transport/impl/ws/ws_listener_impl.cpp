@@ -23,7 +23,7 @@ namespace kagome::api {
   void WsListenerImpl::prepare() {
     try {
       acceptor_ = std::make_unique<Acceptor>(*context_, config_.endpoint);
-    } catch (boost::wrapexcept<boost::system::system_error> &exception) {
+    } catch (const boost::wrapexcept<boost::system::system_error> &exception) {
       logger_->critical("Failed to prepare of listener: can't {}",
                         exception.what());
       return;
