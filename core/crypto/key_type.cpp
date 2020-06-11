@@ -26,7 +26,7 @@ namespace kagome::crypto {
 
     boost::endian::endian_buffer<boost::endian::order::big, KeyTypeId, bits>
         buf{};
-    // don't refactor this line
+    // don't refactor this line, we need to use assignment operator
     buf = param;
     for (size_t i = 0; i < size; ++i) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)

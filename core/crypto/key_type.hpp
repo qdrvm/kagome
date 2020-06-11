@@ -28,11 +28,15 @@ namespace kagome::crypto {
   using KeyTypeId = uint32_t;
 
   namespace supported_key_types {
-    static constexpr KeyTypeId kBabe = 1650549349u;
-    static constexpr KeyTypeId kGran = 1735549294u;
-    static constexpr KeyTypeId kAcco = 1633903471u;
-    static constexpr KeyTypeId kImon = 1768779630u;
-    static constexpr KeyTypeId kAudi = 1635083369u;
+    /**
+     * Types are 32bit integers, which represent encoded 4-char strings
+     * Big-endian byte order is used
+     */
+    static constexpr KeyTypeId kBabe = 1650549349u;  // "babe"
+    static constexpr KeyTypeId kGran = 1735549294u;  // "gran"
+    static constexpr KeyTypeId kAcco = 1633903471u;  // "acco"
+    static constexpr KeyTypeId kImon = 1768779630u;  // "imon"
+    static constexpr KeyTypeId kAudi = 1635083369u;  // "audi"
   }  // namespace supported_key_types
 
   /**
