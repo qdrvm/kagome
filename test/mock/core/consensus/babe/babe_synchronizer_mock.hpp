@@ -14,9 +14,10 @@ namespace kagome::consensus {
 
   class BabeSynchronizerMock : public BabeSynchronizer {
    public:
-    MOCK_METHOD3(request,
+    MOCK_METHOD4(request,
                  void(const primitives::BlockId &,
                       const primitives::BlockHash &,
+                      primitives::AuthorityIndex,
                       const BlocksHandler &));
   };
 

@@ -25,9 +25,6 @@ namespace kagome::consensus::grandpa {
                      fin_res.error().message());
       return;
     }
-    logger_->info("Finalized block number {} with hash {}",
-                  f.vote.block_number,
-                  f.vote.block_hash.toHex());
   }
 
 }  // namespace kagome::consensus::grandpa
