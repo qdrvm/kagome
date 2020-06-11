@@ -197,7 +197,7 @@ namespace kagome::extensions {
       return memory_->storeBuffer(error_result);
     }
 
-    auto &&public_keys = key_storage_->getEdKeys(key_type_id);
+    auto &&public_keys = key_storage_->getEd25519Keys(key_type_id);
 
     auto &&encoded = scale::encode(public_keys);
     if (!encoded) {
@@ -293,7 +293,7 @@ namespace kagome::extensions {
       kp = key_pair.value();
     }
 
-    key_storage_->addEdKeyPair(key_type_id, kp);
+    key_storage_->addEd25519KeyPair(key_type_id, kp);
     common::Buffer buffer(kp.public_key);
     runtime::PointerSize ps = memory_->storeBuffer(buffer);
 
@@ -325,7 +325,7 @@ namespace kagome::extensions {
     auto msg_buffer = memory_->loadN(msg_data, msg_len);
     // error is not possible, since we loaded correct number of bytes
     auto pk = crypto::ED25519PublicKey::fromSpan(public_buffer).value();
-    auto key_pair = key_storage_->findE25519Keypair(key_type_id, pk);
+    auto key_pair = key_storage_->findEd25519Keypair(key_type_id, pk);
     if (!key_pair) {
       logger_->error("failed to find required key");
       return memory_->storeBuffer(kErrorResult);
@@ -364,7 +364,7 @@ namespace kagome::extensions {
                      crypto::decodeKeyTypeId(key_type_id));
       return memory_->storeBuffer(error_result);
     }
-    auto &&public_keys = key_storage_->getSrKeys(key_type_id);
+    auto &&public_keys = key_storage_->getSr25519Keys(key_type_id);
     auto &&encoded = scale::encode(public_keys);
     if (!encoded) {
       logger_->error("failed to scale-encode vector of public keys: {}",
@@ -417,7 +417,7 @@ namespace kagome::extensions {
       kp = sr25519_provider_->generateKeypair();
     }
 
-    key_storage_->addSrKeyPair(key_type_id, kp);
+    key_storage_->addSr25519KeyPair(key_type_id, kp);
     common::Buffer pk_buffer(kp.public_key);
     runtime::PointerSize ps = memory_->storeBuffer(pk_buffer);
 

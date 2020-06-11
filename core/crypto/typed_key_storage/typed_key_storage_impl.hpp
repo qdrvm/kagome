@@ -13,17 +13,17 @@
 namespace kagome::crypto::storage {
   class TypedKeyStorageImpl : public TypedKeyStorage {
    public:
-    EDKeys getEdKeys(KeyTypeId key_type) override;
+    EDKeys getEd25519Keys(KeyTypeId key_type) override;
 
-    SRKeys getSrKeys(KeyTypeId key_type) override;
+    SRKeys getSr25519Keys(KeyTypeId key_type) override;
 
-    void addEdKeyPair(KeyTypeId key_type,
+    void addEd25519KeyPair(KeyTypeId key_type,
                       const ED25519Keypair &key_pair) override;
 
-    void addSrKeyPair(KeyTypeId key_type,
+    void addSr25519KeyPair(KeyTypeId key_type,
                       const SR25519Keypair &key_pair) override;
 
-    boost::optional<ED25519Keypair> findE25519Keypair(
+    boost::optional<ED25519Keypair> findEd25519Keypair(
         KeyTypeId key_type, const ED25519PublicKey &pk) override;
 
     boost::optional<SR25519Keypair> findSr25519Keypair(

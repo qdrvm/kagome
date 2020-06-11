@@ -27,26 +27,26 @@ namespace kagome::crypto::storage {
      * @brief returns all ed25519 keys of provided type
      * @param key_type key type identifier
      */
-    virtual EDKeys getEdKeys(KeyTypeId key_type) = 0;
+    virtual EDKeys getEd25519Keys(KeyTypeId key_type) = 0;
 
     /**
      * @brief returns all sr25519 keys of provided type
      * @param key_type key type identifier
      */
-    virtual SRKeys getSrKeys(KeyTypeId key_type) = 0;
+    virtual SRKeys getSr25519Keys(KeyTypeId key_type) = 0;
 
     /**
      * @brief adds ed25519 key pair to storage
      * @param key_pair key pair
      */
-    virtual void addEdKeyPair(KeyTypeId key_type,
+    virtual void addEd25519KeyPair(KeyTypeId key_type,
                               const ED25519Keypair &key_pair) = 0;
 
     /**
      * @brief adds sr25519 key pair to storage
      * @param key_pair key pair
      */
-    virtual void addSrKeyPair(KeyTypeId key_type,
+    virtual void addSr25519KeyPair(KeyTypeId key_type,
                               const SR25519Keypair &key_pair) = 0;
 
     /**
@@ -55,7 +55,7 @@ namespace kagome::crypto::storage {
      * @param pk public key to look for
      * @return found key pair if exists
      */
-    virtual boost::optional<ED25519Keypair> findE25519Keypair(
+    virtual boost::optional<ED25519Keypair> findEd25519Keypair(
         KeyTypeId key_type, const ED25519PublicKey &pk) = 0;
 
     /**
