@@ -21,11 +21,11 @@ using WsListenerTest = ListenerTest<WsListenerImpl>;
 TEST_F(WsListenerTest, EchoSuccess) {
   auto client = std::make_shared<WsClient>(*client_context);
 
-	ASSERT_NO_THROW(listener->prepare());
-	ASSERT_NO_THROW(service->prepare());
+  ASSERT_NO_THROW(listener->prepare());
+  ASSERT_NO_THROW(service->prepare());
 
-	ASSERT_NO_THROW(listener->start());
-	ASSERT_NO_THROW(service->start());
+  ASSERT_NO_THROW(listener->start());
+  ASSERT_NO_THROW(service->start());
 
   std::thread client_thread([this, client] {
     ASSERT_TRUE(client->connect(listener_config.endpoint));
@@ -40,6 +40,6 @@ TEST_F(WsListenerTest, EchoSuccess) {
   main_context->run_for(std::chrono::seconds(2));
   client_thread.join();
 
-	ASSERT_NO_THROW(service->stop());
-	ASSERT_NO_THROW(listener->start());
+  ASSERT_NO_THROW(service->stop());
+  ASSERT_NO_THROW(listener->start());
 }

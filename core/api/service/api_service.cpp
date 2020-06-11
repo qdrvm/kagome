@@ -29,7 +29,7 @@ namespace kagome::api {
     }
 
     BOOST_ASSERT(app_state_manager);
-    app_state_manager->reg(*this);
+    app_state_manager->takeControl(*this);
   }
 
   void ApiService::prepare() {

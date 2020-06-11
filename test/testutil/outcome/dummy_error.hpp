@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "outcome/outcome.hpp"
+
 namespace testutil {
   /**
    * @name Dummy error
@@ -12,3 +14,5 @@ namespace testutil {
    */
   enum class DummyError { ERROR = 1, ERROR_2, ERROR_3, ERROR_4, ERROR_5 };
 }  // namespace testutil
+
+OUTCOME_HPP_DECLARE_ERROR(testutil, DummyError);

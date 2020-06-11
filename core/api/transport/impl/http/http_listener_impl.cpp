@@ -17,7 +17,7 @@ namespace kagome::api {
         config_{listener_config},
         session_config_{std::move(session_config)} {
     BOOST_ASSERT(app_state_manager);
-    app_state_manager->reg(*this);
+    app_state_manager->takeControl(*this);
   }
 
   void HttpListenerImpl::prepare() {

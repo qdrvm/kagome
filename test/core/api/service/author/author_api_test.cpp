@@ -17,6 +17,7 @@
 #include "primitives/transaction.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/outcome/dummy_error.hpp"
 #include "testutil/primitives/mp_utils.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
@@ -45,18 +46,7 @@ using ::testing::Return;
 using ::testing::ReturnRef;
 
 using testutil::createHash256;
-
-namespace kagome::api {
-  enum class DummyError { ERROR = 1 };
-}
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, DummyError, e) {
-  using kagome::api::DummyError;
-  switch (e) {
-    case DummyError::ERROR:
-      return "dummy error";
-  }
-}
+using testutil::DummyError;
 
 struct AuthorApiTest : public ::testing::Test {
   template <class T>
@@ -107,8 +97,8 @@ TEST_F(AuthorApiTest, SubmitExtrinsicSuccess) {
   EXPECT_CALL(*transaction_pool, submitOne(tr))
       .WillOnce(Return(outcome::success()));
   EXPECT_CALL(*gossiper, transactionAnnounce(_)).Times(1);
-  EXPECT_OUTCOME_TRUE(hash, api->submitExtrinsic(*extrinsic))
-  ASSERT_EQ(hash, Hash256{});
+  EXPECT_OUTCOME_SUCCESS(hash, api->submitExtrinsic(*extrinsic));
+  ASSERT_EQ(hash.value(), Hash256{});
 }
 
 /**
@@ -125,6 +115,6 @@ TEST_F(AuthorApiTest, SubmitExtrinsicFail) {
   EXPECT_CALL(*hasher, blake2b_256(_)).Times(0);
   EXPECT_CALL(*transaction_pool, submitOne(_)).Times(0);
   EXPECT_CALL(*gossiper, transactionAnnounce(_)).Times(0);
-  EXPECT_OUTCOME_FALSE_2(err, api->submitExtrinsic(*extrinsic))
-  ASSERT_EQ(err.value(), static_cast<int>(DummyError::ERROR));
+  EXPECT_OUTCOME_ERROR(
+      res, api->submitExtrinsic(*extrinsic), DummyError::ERROR);
 }

@@ -30,19 +30,19 @@ namespace kagome::application {
     virtual void atLaunch(Callback &&cb) = 0;
     virtual void atShutdown(Callback &&cb) = 0;
 
-    void reg(Callback &&prepare_cb,
-             Callback &&launch_cb,
-             Callback &&shutdown_cb) {
+    void registerHandlers(Callback &&prepare_cb,
+                          Callback &&launch_cb,
+                          Callback &&shutdown_cb) {
       atPrepare(std::move(prepare_cb));
       atLaunch(std::move(launch_cb));
       atShutdown(std::move(shutdown_cb));
     }
 
-    template <typename Controled>
-    void reg(Controled &entity) {
-      atPrepare([&entity] { entity.prepare(); });
-      atLaunch([&entity] { entity.start(); });
-      atShutdown([&entity] { entity.stop(); });
+    template <typename Controlled>
+    void takeControl(Controlled &entity) {
+      registerHandlers([&entity] { entity.prepare(); },
+                       [&entity] { entity.start(); },
+                       [&entity] { entity.stop(); });
     }
 
     virtual void run() = 0;
