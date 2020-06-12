@@ -15,6 +15,7 @@ target_link_libraries(polkadot_codec
     scale
     blake2
     blob
+    polkadot_node
     )
 kagome_install(polkadot_codec)
 

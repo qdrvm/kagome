@@ -17,4 +17,5 @@ addtest(polkadot_trie_cursor_test
     )
 target_link_libraries(polkadot_trie_cursor_test
     polkadot_trie_cursor
+    polkadot_trie
     )

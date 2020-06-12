@@ -101,8 +101,8 @@ TEST_F(LevelDB_Integration_Test, Iterator) {
   logger->warn("forward iteration");
   auto it = db_->cursor();
   for (it->seekToFirst(); it->isValid(); it->next()) {
-    auto k = it->key();
-    auto v = it->value();
+    auto k = it->key().value();
+    auto v = it->value().value();
     EXPECT_EQ(k, v);
 
     logger->info("key: {}, value: {}", k.toHex(), v.toHex());
@@ -124,8 +124,8 @@ TEST_F(LevelDB_Integration_Test, Iterator) {
   Buffer seekTo{index};
   // seek to `index` element
   for (it->seek(seekTo); it->isValid(); it->prev()) {
-    auto k = it->key();
-    auto v = it->value();
+    auto k = it->key().value();
+    auto v = it->value().value();
     EXPECT_EQ(k, v);
 
     logger->info("key: {}, value: {}", k.toHex(), v.toHex());
