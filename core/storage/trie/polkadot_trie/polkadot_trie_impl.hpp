@@ -7,12 +7,13 @@
 #define KAGOME_STORAGE_TRIE_IMPL_POLKADOT_TRIE_IMPL
 
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
+
+#include "storage/buffer_map_types.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 
 namespace kagome::storage::trie {
 
   class PolkadotTrieImpl : public PolkadotTrie {
-
     // a child is obtained from the branch list of children as-is.
     // should be used when the trie is completely in memory
     inline static outcome::result<NodePtr> defaultChildRetrieveFunctor(
@@ -22,7 +23,7 @@ namespace kagome::storage::trie {
 
    public:
     using ChildRetrieveFunctor =
-    std::function<outcome::result<NodePtr>(BranchPtr, uint8_t)>;
+        std::function<outcome::result<NodePtr>(BranchPtr, uint8_t)>;
 
     enum class Error { INVALID_NODE_TYPE = 1 };
 
@@ -57,6 +58,8 @@ namespace kagome::storage::trie {
     outcome::result<common::Buffer> get(
         const common::Buffer &key) const override;
 
+    std::unique_ptr<BufferMapCursor> cursor() override;
+
     bool contains(const common::Buffer &key) const override;
 
     bool empty() const override;
@@ -78,13 +81,14 @@ namespace kagome::storage::trie {
     // remove a node with its children
     outcome::result<NodePtr> detachNode(const NodePtr &parent,
                                         const common::Buffer &prefix_nibbles);
-    outcome::result<NodePtr> getNode(NodePtr parent,
-                                     const common::Buffer &key_nibbles) const;
+    outcome::result<NodePtr> getNode(
+        NodePtr parent, const common::Buffer &key_nibbles) const override;
 
     uint32_t getCommonPrefixLength(const common::Buffer &pref1,
                                    const common::Buffer &pref2) const;
 
-    outcome::result<NodePtr> retrieveChild(BranchPtr parent, uint8_t idx) const;
+    outcome::result<NodePtr> retrieveChild(BranchPtr parent,
+                                           uint8_t idx) const override;
 
     ChildRetrieveFunctor retrieve_child_;
     NodePtr root_;

@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "storage/trie/polkadot_trie/trie_error.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_cursor.hpp"
 
 using kagome::common::Buffer;
 
@@ -218,6 +219,10 @@ namespace kagome::storage::trie {
         return Error::INVALID_NODE_TYPE;
     }
     return nullptr;
+  }
+
+  std::unique_ptr<BufferMapCursor> PolkadotTrieImpl::cursor() {
+    return std::make_unique<PolkadotTrieCursor>(*this);
   }
 
   bool PolkadotTrieImpl::contains(const common::Buffer &key) const {

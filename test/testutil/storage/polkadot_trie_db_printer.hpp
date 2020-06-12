@@ -6,7 +6,7 @@
 #ifndef KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_PRINTER_HPP
 #define KAGOME_CORE_STORAGE_TRIE_POLKADOT_TRIE_DB_POLKADOT_TRIE_DB_PRINTER_HPP
 
-#include "storage/trie/impl/polkadot_trie_db.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie.hpp"
 
 /**
  * IMPORTANT: This module is meant only for test usage and is not exception-safe
@@ -27,35 +27,37 @@ namespace kagome::storage::trie {
   }  // namespace kagome::storage::trie
 
   template <typename Stream>
-  Stream &operator<<(Stream &s, const PolkadotTrieDb &trie) {
+  Stream &operator<<(Stream &s, const PolkadotTrie &trie) {
     if (not trie.empty()) {
-      auto root = trie.retrieveNode(trie.getRootHash()).value();
+      auto root = trie.getRoot();
       printNode(s, root, trie, 0);
     }
     return s;
   }
 
   template <typename Stream>
-  Stream &printNode(Stream &s, const PolkadotTrieDb::NodePtr &node,
-                    const PolkadotTrieDb &trie, size_t nest_level) {
+  Stream &printNode(Stream &s, const PolkadotTrie::NodePtr &node,
+                    const PolkadotTrie &trie, size_t nest_level) {
     using T = PolkadotNode::Type;
+    PolkadotCodec codec;
     std::string indent(nest_level, '\t');
     switch (node->getTrieType()) {
       case T::BranchWithValue:
       case T::BranchEmptyValue: {
+        auto value = (node->value ? "\"" + node->value.get().toHex() + "\"" : "NONE");
         auto branch = std::dynamic_pointer_cast<BranchNode>(node);
         s << indent << "(branch) key: <"
-          << hex_lower(trie.codec_.nibblesToKey(node->key_nibbles))
-          << "> value: " << (node->value ? "\"" + node->value.get().toHex() + "\"" : "No value") << " children: ";
+          << hex_lower(codec.nibblesToKey(node->key_nibbles))
+          << "> value: " << value << " children: ";
         for (size_t i = 0; i < branch->children.size(); i++) {
           if (branch->children[i]) {
             s << std::hex << i << "|";
           }
         }
         s << "\n";
-        auto enc = trie.codec_.encodeNode(*node).value();
-        s << indent << "enc: " << enc << "\n";
-        s << indent << "hash: " << common::hex_upper(trie.codec_.merkleValue(enc)) << "\n";
+        auto enc = codec.encodeNode(*node).value();
+        //s << indent << "enc: " << enc << "\n";
+        //s << indent << "hash: " << common::hex_upper(codec.merkleValue(enc)) << "\n";
         for (size_t i = 0; i < branch->children.size(); i++) {
           auto child = branch->children.at(i);
           if (child) {
@@ -71,11 +73,11 @@ namespace kagome::storage::trie {
       }
       case T::Leaf: {
         s << indent << "(leaf) key: <"
-          << hex_lower(trie.codec_.nibblesToKey(node->key_nibbles))
+          << hex_lower(codec.nibblesToKey(node->key_nibbles))
           << "> value: " << node->value.get().toHex() << "\n";
-        auto enc = trie.codec_.encodeNode(*node).value();
-        s << indent << "enc: " << enc << "\n";
-        s << indent << "hash: " << common::hex_upper(trie.codec_.merkleValue(enc)) << "\n";
+        auto enc = codec.encodeNode(*node).value();
+        //s << indent << "enc: " << enc << "\n";
+        //s << indent << "hash: " << common::hex_upper(codec.merkleValue(enc)) << "\n";
         break;
       }
       default:
