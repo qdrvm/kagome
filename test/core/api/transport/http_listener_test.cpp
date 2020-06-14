@@ -22,6 +22,10 @@ using HttpListenerTest = ListenerTest<HttpListenerImpl>;
 TEST_F(HttpListenerTest, EchoSuccess) {
   auto client = std::make_shared<HttpClient>(*client_context);
 
+  ASSERT_NO_THROW(listener->prepare());
+  ASSERT_NO_THROW(service->prepare());
+
+  ASSERT_NO_THROW(listener->start());
   ASSERT_NO_THROW(service->start());
 
   std::thread client_thread([this, client] {
@@ -37,4 +41,5 @@ TEST_F(HttpListenerTest, EchoSuccess) {
   client_thread.join();
 
   ASSERT_NO_THROW(service->stop());
+  ASSERT_NO_THROW(listener->start());
 }

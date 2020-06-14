@@ -9,6 +9,7 @@
 #include "api/transport/listener.hpp"
 
 #include "api/transport/impl/http/http_session.hpp"
+#include "application/app_state_manager.hpp"
 #include "common/logger.hpp"
 
 namespace kagome::api {
@@ -19,66 +20,36 @@ namespace kagome::api {
   class HttpListenerImpl
       : public Listener,
         public std::enable_shared_from_this<HttpListenerImpl> {
-    enum class State { READY, WORKING, STOPPED = READY };
-    using Acceptor = boost::asio::ip::tcp::acceptor;
-    using Endpoint = boost::asio::ip::tcp::endpoint;
-    using Duration = boost::asio::steady_timer::duration;
-    using Logger = common::Logger;
-
    public:
     using SessionImpl = HttpSession;
 
-    // TODO(xDimon): Replace value by macro from special generated .h config
-    static const uint16_t defaultPort = 40363;
-
-    /***
-     * Listener configuration
-     */
-    struct Configuration {
-      Endpoint endpoint{};  ///< listener endpoint
-      Configuration() {
-        endpoint.address(boost::asio::ip::address_v4::any());
-        endpoint.port(defaultPort);
-      }
-    };
-
-    /**
-     * @param context reference to boost::asio::io_context instance
-     * @param endpoint loopback ip address to listen
-     * @param http_config http session configuration
-     */
-    HttpListenerImpl(std::shared_ptr<Context> context,
-                     const Configuration &configuration,
-                     SessionImpl::Configuration session_config);
+    HttpListenerImpl(
+        const std::shared_ptr<application::AppStateManager> &app_state_manager,
+        std::shared_ptr<Context> context,
+        Configuration listener_config,
+        SessionImpl::Configuration session_config);
 
     ~HttpListenerImpl() override = default;
 
-    /**
-     * @brief starts listener
-     * @param on_new_session new session creation callback
-     */
-    void start(NewSessionHandler on_new_session) override;
-
-    /**
-     * @brief stops listener
-     */
+    void prepare() override;
+    void start() override;
     void stop() override;
 
-   private:
-    /**
-     * @brief accepts incoming connection
-     */
-    void acceptOnce(NewSessionHandler on_new_session) override;
+    void setHandlerForNewSession(NewSessionHandler &&on_new_session) override;
 
-    std::shared_ptr<Context> context_;           ///< io context
-    Acceptor acceptor_;                          ///< connections acceptor
-    State state_{State::READY};                  ///< working state
-    SessionImpl::Configuration session_config_;  /// http session configuration
+   private:
+    void acceptOnce() override;
+
+    std::shared_ptr<Context> context_;
+    const Configuration config_;
+    const SessionImpl::Configuration session_config_;
+
+    std::unique_ptr<Acceptor> acceptor_;
+    std::unique_ptr<NewSessionHandler> on_new_session_;
 
     std::shared_ptr<SessionImpl> new_session_;
 
-    Logger logger_ =
-        common::createLogger("RPC_HTTP_Listener");
+    common::Logger logger_ = common::createLogger("RPC_HTTP_Listener");
   };
 }  // namespace kagome::api
 

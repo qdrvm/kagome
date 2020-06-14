@@ -10,7 +10,7 @@
 
 #include <gmock/gmock.h>
 
-namespace kagome {
+namespace kagome::application {
 
   class AppStateManagerMock : public AppStateManager {
    public:
@@ -32,9 +32,9 @@ namespace kagome {
     MOCK_METHOD0(run, void());
     MOCK_METHOD0(shutdown, void());
 
-    MOCK_METHOD0(onPrepare, void());
-    MOCK_METHOD0(onLaunch, void());
-    MOCK_METHOD0(onShutdown, void());
+    MOCK_METHOD0(doPrepare, void());
+    MOCK_METHOD0(doLaunch, void());
+    MOCK_METHOD0(doShutdown, void());
 
     MOCK_CONST_METHOD0(state, State());
   };

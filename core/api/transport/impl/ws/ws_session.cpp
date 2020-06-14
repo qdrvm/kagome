@@ -17,17 +17,17 @@ namespace kagome::api {
       : strand_(boost::asio::make_strand(context)),
         socket_(strand_),
         config_{config},
-        ws_(socket_) {}
+        stream_(socket_) {}
 
   void WsSession::start() {
-    boost::asio::dispatch(ws_.get_executor(),
+    boost::asio::dispatch(stream_.get_executor(),
                           boost::beast::bind_front_handler(&WsSession::onRun,
                                                            shared_from_this()));
   }
 
   void WsSession::stop() {
     boost::system::error_code ec;
-    ws_.close(boost::beast::websocket::close_reason(), ec);
+    stream_.close(boost::beast::websocket::close_reason(), ec);
     boost::ignore_unused(ec);
   }
 
@@ -36,14 +36,14 @@ namespace kagome::api {
   }
 
   void WsSession::asyncRead() {
-    ws_.async_read(rbuffer_,
-                   boost::beast::bind_front_handler(&WsSession::onRead,
+    stream_.async_read(rbuffer_,
+                       boost::beast::bind_front_handler(&WsSession::onRead,
                                                     shared_from_this()));
   }
 
   void WsSession::asyncWrite() {
-    ws_.async_write(wbuffer_.data(),
-                    boost::beast::bind_front_handler(&WsSession::onWrite,
+    stream_.async_write(wbuffer_.data(),
+                        boost::beast::bind_front_handler(&WsSession::onWrite,
                                                      shared_from_this()));
   }
 
@@ -53,25 +53,25 @@ namespace kagome::api {
               response.data() + response.size(),
               reinterpret_cast<char *>(x.data()));  // NOLINT
     wbuffer_.commit(response.size());
-    ws_.text(true);
+    stream_.text(true);
     asyncWrite();
   }
 
   void WsSession::onRun() {
     // Set suggested timeout settings for the websocket
-    ws_.set_option(boost::beast::websocket::stream_base::timeout::suggested(
+    stream_.set_option(boost::beast::websocket::stream_base::timeout::suggested(
         boost::beast::role_type::server));
 
     // Set a decorator to change the Server of the handshake
-    ws_.set_option(boost::beast::websocket::stream_base::decorator(
+    stream_.set_option(boost::beast::websocket::stream_base::decorator(
         [](boost::beast::websocket::response_type &res) {
           res.set(boost::beast::http::field::server,
                   std::string(BOOST_BEAST_VERSION_STRING)
                       + " websocket-server-async");
         }));
     // Accept the websocket handshake
-    ws_.async_accept(boost::beast::bind_front_handler(&WsSession::onAccept,
-                                                      shared_from_this()));
+    stream_.async_accept(boost::beast::bind_front_handler(&WsSession::onAccept,
+                                                          shared_from_this()));
   }
 
   void WsSession::onAccept(boost::system::error_code ec) {
