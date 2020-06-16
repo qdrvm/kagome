@@ -15,6 +15,7 @@
 #include "consensus/synchronizer/synchronizer_config.hpp"
 #include "libp2p/host/host.hpp"
 #include "libp2p/peer/peer_info.hpp"
+#include "network/types/own_peer_info.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::consensus {
@@ -30,10 +31,18 @@ namespace kagome::consensus {
    public:
     SynchronizerImpl(
         libp2p::Host &host,
-        libp2p::peer::PeerInfo peer_info,
+        const libp2p::peer::PeerInfo &peer_info,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
         SynchronizerConfig config);
+
+    SynchronizerImpl(
+        libp2p::Host &host,
+        const network::OwnPeerInfo &peer_info,
+        std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
+        SynchronizerConfig config,
+        std::nullptr_t); // last fake-arg to force using this ctor in injector
 
     ~SynchronizerImpl() override = default;
 
@@ -55,7 +64,7 @@ namespace kagome::consensus {
         const std::vector<primitives::BlockHash> &hash_chain) const;
 
     libp2p::Host &host_;
-    libp2p::peer::PeerInfo peer_info_;
+    const libp2p::peer::PeerInfo &peer_info_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers_;
     SynchronizerConfig config_;

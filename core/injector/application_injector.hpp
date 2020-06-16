@@ -455,7 +455,8 @@ namespace kagome::injector {
 
     auto res = std::make_shared<network::SyncClientsSet>();
 
-    auto current_peer_info = injector.template create<libp2p::peer::PeerInfo>();
+    auto &current_peer_info =
+        injector.template create<network::OwnPeerInfo &>();
     for (const auto &peer_info : peer_infos) {
       spdlog::debug("Added peer with id: {}", peer_info.id.toBase58());
       if (peer_info.id != current_peer_info.id) {

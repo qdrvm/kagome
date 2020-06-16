@@ -23,12 +23,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, SynchronizerError, e) {
 namespace kagome::consensus {
   SynchronizerImpl::SynchronizerImpl(
       libp2p::Host &host,
-      libp2p::peer::PeerInfo peer_info,
+      const libp2p::peer::PeerInfo &peer_info,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
       SynchronizerConfig config)
       : host_{host},
-        peer_info_{std::move(peer_info)},
+        peer_info_{peer_info},
         block_tree_{std::move(block_tree)},
         blocks_headers_{std::move(blocks_headers)},
         config_{config},
@@ -37,22 +37,36 @@ namespace kagome::consensus {
     BOOST_ASSERT(blocks_headers_);
   }
 
+  SynchronizerImpl::SynchronizerImpl(
+      libp2p::Host &host,
+      const network::OwnPeerInfo &peer_info,
+      std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
+      SynchronizerConfig config,
+      std::nullptr_t)
+      : SynchronizerImpl(host,
+                         peer_info,
+                         std::move(block_tree),
+                         std::move(blocks_headers),
+                         config) {}
+
   void SynchronizerImpl::requestBlocks(
       const BlocksRequest &request,
       std::function<void(outcome::result<BlocksResponse>)> cb) {
-    visit_in_place(request.from,
-                   [this](primitives::BlockNumber from) {
-                     log_->debug("Requesting blocks: from {}", from);
-                   },
-                   [this, &request](const primitives::BlockHash &from) {
-                     if (not request.to) {
-                       log_->debug("Requesting blocks: from {}", from.toHex());
-                     } else {
-                       log_->debug("Requesting blocks: from {}, to {}",
-                                   from.toHex(),
-                                   request.to->toHex());
-                     }
-                   });
+    visit_in_place(
+        request.from,
+        [this](primitives::BlockNumber from) {
+          log_->debug("Requesting blocks: from {}", from);
+        },
+        [this, &request](const primitives::BlockHash &from) {
+          if (not request.to) {
+            log_->debug("Requesting blocks: from {}", from.toHex());
+          } else {
+            log_->debug("Requesting blocks: from {}, to {}",
+                        from.toHex(),
+                        request.to->toHex());
+          }
+        });
     requested_ids_.insert(request.id);
     network::RPC<network::ScaleMessageReadWriter>::write<BlocksRequest,
                                                          BlocksResponse>(
@@ -78,7 +92,7 @@ namespace kagome::consensus {
         retrieveRequestedHashes(request, from_hash_res.value());
     if (!chain_hash_res) {
       log_->warn("cannot retrieve a chain of blocks: {}",
-                  chain_hash_res.error().message());
+                 chain_hash_res.error().message());
       return response;
     }
 
