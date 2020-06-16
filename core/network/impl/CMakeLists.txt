@@ -28,6 +28,7 @@ target_link_libraries(kagome_router
     logger
     outcome
     scale
+    loopback_stream
     )
 
 add_library(extrinsic_observer

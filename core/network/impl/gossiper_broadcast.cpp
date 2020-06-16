@@ -5,22 +5,19 @@
 
 #include "network/impl/gossiper_broadcast.hpp"
 
-#include <boost/assert.hpp>
-
 #include "network/common.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
+#include "network/impl/loopback_stream.hpp"
 
 namespace kagome::network {
 
-  GossiperBroadcast::GossiperBroadcast(libp2p::Host &host,
-                                       const PeerList &peer_infos)
-      : host_{host}, logger_{common::createLogger("GossiperBroadcast")} {
-    BOOST_ASSERT(!peer_infos.peers.empty());
+  GossiperBroadcast::GossiperBroadcast(libp2p::Host &host)
+      : host_{host}, logger_{common::createLogger("GossiperBroadcast")} {}
 
-    streams_.reserve(peer_infos.peers.size());
-    for (const auto &info : peer_infos.peers) {
-      streams_.insert({info, nullptr});
-    }
+  void GossiperBroadcast::reserveStream(
+      const libp2p::peer::PeerInfo &peer_info,
+      std::shared_ptr<libp2p::connection::Stream> stream) {
+    streams_.emplace(peer_info, std::move(stream));
   }
 
   void GossiperBroadcast::transactionAnnounce(
@@ -72,14 +69,12 @@ namespace kagome::network {
     auto msg_send_lambda = [msg, this](auto stream) {
       auto read_writer =
           std::make_shared<ScaleMessageReadWriter>(std::move(stream));
-      read_writer->write(
-          msg,
-          [this](auto &&res) {
-            if (not res) {
-              logger_->error("Could not broadcast, reason: {}",
-                             res.error().message());
-            }
-          });
+      read_writer->write(msg, [this](auto &&res) {
+        if (not res) {
+          logger_->error("Could not broadcast, reason: {}",
+                         res.error().message());
+        }
+      });
     };
 
     // iterate over the existing streams and send them the msg. If stream is
