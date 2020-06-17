@@ -42,8 +42,8 @@ namespace kagome::injector {
     std::vector<libp2p::multi::Multiaddress> addresses;
     addresses.push_back(std::move(multiaddress.value()));
 
-    initialized =
-        std::make_shared<network::OwnPeerInfo>(peer_id, std::move(addresses));
+    initialized = std::make_shared<network::OwnPeerInfo>(std::move(peer_id),
+                                                         std::move(addresses));
     return initialized.value();
   };
 
