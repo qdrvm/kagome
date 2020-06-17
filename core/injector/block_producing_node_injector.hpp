@@ -44,7 +44,7 @@ namespace kagome::injector {
         di::bind<libp2p::crypto::KeyPair>.to(
             std::move(get_peer_keypair))[boost::di::override],
         // peer info
-        di::bind<libp2p::peer::PeerInfo>.to([p2p_port](const auto &injector) {
+        di::bind<network::OwnPeerInfo>.to([p2p_port](const auto &injector) {
           return get_peer_info(injector, p2p_port);
         }),
 
