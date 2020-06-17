@@ -38,20 +38,19 @@ namespace kagome::api {
   void WsSession::asyncRead() {
     stream_.async_read(rbuffer_,
                        boost::beast::bind_front_handler(&WsSession::onRead,
-                                                    shared_from_this()));
+                                                        shared_from_this()));
   }
 
   void WsSession::asyncWrite() {
     stream_.async_write(wbuffer_.data(),
                         boost::beast::bind_front_handler(&WsSession::onWrite,
-                                                     shared_from_this()));
+                                                         shared_from_this()));
   }
 
   void WsSession::respond(std::string_view response) {
-    auto x = wbuffer_.prepare(response.size());
-    std::copy(response.data(),
-              response.data() + response.size(),
-              reinterpret_cast<char *>(x.data()));  // NOLINT
+    boost::asio::buffer_copy(
+        wbuffer_.prepare(response.size()),
+        boost::asio::const_buffer(response.data(), response.size()));
     wbuffer_.commit(response.size());
     stream_.text(true);
     asyncWrite();
