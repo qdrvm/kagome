@@ -103,20 +103,18 @@ namespace kagome::network {
     }
 
     is_writing_ = true;
-
-    if (boost::asio::buffer_copy(read_buffer_.prepare(bytes),
+    if (boost::asio::buffer_copy(buffer_.prepare(bytes),
                                  boost::asio::const_buffer(in.data(), bytes))
         != bytes) {
       return cb(Error::INTERNAL_ERROR);
     }
-    read_buffer_.commit(bytes);
-
+    buffer_.commit(bytes);
     is_writing_ = false;
 
     cb(outcome::success(bytes));
 
     if (data_notifyee_) {
-      data_notifyee_(read_buffer_.size());
+      data_notifyee_(buffer_.size());
     }
   }
 
@@ -155,18 +153,17 @@ namespace kagome::network {
         cb(res);
         return;
       }
-      if (self->read_buffer_.size() >= (some ? 1 : bytes)) {
-        auto to_read =
-            some ? std::min(self->read_buffer_.size(), bytes) : bytes;
+      if (self->buffer_.size() >= (some ? 1 : bytes)) {
+        auto to_read = some ? std::min(self->buffer_.size(), bytes) : bytes;
         if (boost::asio::buffer_copy(boost::asio::buffer(out.data(), to_read),
-                                     self->read_buffer_.data(),
+                                     self->buffer_.data(),
                                      to_read)
             != to_read) {
           return cb(Error::INTERNAL_ERROR);
         }
 
         self->is_reading_ = false;
-        self->read_buffer_.consume(to_read);
+        self->buffer_.consume(to_read);
         self->data_notified_ = true;
         cb(to_read);
       }

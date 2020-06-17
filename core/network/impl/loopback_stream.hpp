@@ -7,9 +7,10 @@
 #define KAGOME_NETWORK_IMPL_LOOPBACKSTREAM
 
 #include <boost/asio/streambuf.hpp>
-#include <common/logger.hpp>
 #include <libp2p/connection/stream.hpp>
+
 #include "common/buffer.hpp"
+#include "common/logger.hpp"
 #include "outcome/outcome.hpp"
 
 namespace kagome::network {
@@ -72,12 +73,11 @@ namespace kagome::network {
               bool some);
 
     libp2p::peer::PeerInfo own_peer_info_;
-    common::Buffer buffer_;
 
     common::Logger log_ = common::createLogger("LoopbackStream");
 
     /// data, received for this stream, comes here
-    boost::asio::streambuf read_buffer_;
+    boost::asio::streambuf buffer_;
 
     /// when a new data arrives, this function is to be called
     std::function<void(outcome::result<size_t>)> data_notifyee_;
