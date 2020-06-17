@@ -495,6 +495,7 @@ namespace kagome::injector {
     for (const auto &authority : config.genesis_authorities) {
       spdlog::debug("Babe authority: {}", authority.id.id.toHex());
     }
+    config.leadership_rate.first *= 3;
     initialized = std::make_shared<primitives::BabeConfiguration>(config);
     return *initialized;
   };
