@@ -104,15 +104,16 @@ namespace kagome::network {
 
     is_writing_ = true;
 
-    auto x = read_buffer_.prepare(bytes);
-    std::copy(in.data(),
-              in.data() + in.size(),
-              reinterpret_cast<char *>(x.data()));  // NOLINT
-    read_buffer_.commit(in.size());
+    if (boost::asio::buffer_copy(read_buffer_.prepare(bytes),
+                                 boost::asio::const_buffer(in.data(), bytes))
+        != bytes) {
+      return cb(Error::INTERNAL_ERROR);
+    }
+    read_buffer_.commit(bytes);
 
     is_writing_ = false;
 
-    cb(outcome::success(in.size()));
+    cb(outcome::success(bytes));
 
     if (data_notifyee_) {
       data_notifyee_(read_buffer_.size());
