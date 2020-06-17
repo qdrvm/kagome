@@ -12,7 +12,6 @@
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/storage/polkadot_trie_db_printer.hpp"
 
 using kagome::common::Buffer;
 using kagome::storage::trie::PolkadotTrie;
@@ -20,13 +19,6 @@ using kagome::storage::trie::PolkadotTrieCursor;
 using kagome::storage::trie::PolkadotTrieImpl;
 
 class PolkadotTrieCursorTest : public testing::Test {
- public:
-  void SetUp() override {
-    trie_ = std::make_unique<PolkadotTrieImpl>();
-  }
-
- protected:
-  std::unique_ptr<PolkadotTrie> trie_;
 };
 
 std::tuple<std::unique_ptr<PolkadotTrie>, std::set<Buffer>> generateRandomTrie(size_t keys_num,
@@ -51,10 +43,6 @@ std::tuple<std::unique_ptr<PolkadotTrie>, std::set<Buffer>> generateRandomTrie(s
   }
   std::get<0>(res) = std::move(trie);
   return res;
-}
-
-TEST_F(PolkadotTrieCursorTest, Create) {
-  trie_->cursor();
 }
 
 std::shared_ptr<PolkadotTrie> makeTrie(
@@ -108,7 +96,7 @@ TEST_F(PolkadotTrieCursorTest, NextOnSmallTrie) {
 }
 
 TEST_F(PolkadotTrieCursorTest, BigPseudoRandomTrie) {
-  auto&& [trie, keys] = generateRandomTrie(1000, 32, 32);
+  auto&& [trie, keys] = generateRandomTrie(10, 8, 32);
   const auto cursor = trie->cursor();
   EXPECT_OUTCOME_TRUE_1(cursor->next());
   while(cursor->isValid()) {
