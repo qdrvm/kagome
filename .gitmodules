@@ -1,0 +1,3 @@
+[submodule "deps/libsecp256k1"]
+	path = deps/libsecp256k1
+	url = https://github.com/Alexey-N-Chernyshov/libsecp256k1.git
