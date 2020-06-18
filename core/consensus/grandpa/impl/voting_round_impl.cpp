@@ -331,7 +331,7 @@ namespace kagome::consensus::grandpa {
               "Last round estimate does not exist, not sending primary block "
               "hint during round {}",
               round_number_);
-          break;
+          env_->onCompleted(VotingRoundError::NO_ESTIMATE_FOR_PREVIOUS_ROUND);
         }
 
         const auto &maybe_finalized = last_round_state.finalized;

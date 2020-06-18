@@ -13,7 +13,8 @@ namespace kagome::consensus::grandpa {
   enum class VotingRoundError {
     FIN_VALIDATION_FAILED = 1,
     LAST_ESTIMATE_BETTER_THAN_PREVOTE,
-    NEW_STATE_EQUAL_TO_OLD
+    NEW_STATE_EQUAL_TO_OLD,
+    NO_ESTIMATE_FOR_PREVIOUS_ROUND
   };
 
 }
