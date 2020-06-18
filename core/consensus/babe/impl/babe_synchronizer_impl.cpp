@@ -119,7 +119,12 @@ namespace kagome::consensus {
                 return requested_blocks_handler(blocks_opt.value());
               }
             }
-            self->logger_->warn("Could not sync");
+            else if (not response_res) {
+              self->logger_->error("Could not sync. Error: {}", response_res.error().message());
+            }
+            else {
+              self->logger_->error("Could not sync. Empty response");
+            }
           }
         });
   }
