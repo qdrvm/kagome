@@ -20,9 +20,7 @@ namespace kagome::network {
    public:
     enum class Error {
       INVALID_ARGUMENT = 1,
-      IS_READING,
       IS_CLOSED_FOR_READS,
-      IS_WRITING,
       IS_CLOSED_FOR_WRITES,
       IS_RESET,
       INTERNAL_ERROR
@@ -85,11 +83,9 @@ namespace kagome::network {
 
     /// is the stream opened for reads?
     bool is_readable_ = true;
-    bool is_reading_ = false;
 
     /// is the stream opened for writes?
     bool is_writable_ = true;
-    bool is_writing_ = false;
 
     /// was the stream reset?
     bool is_reset_ = false;

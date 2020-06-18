@@ -12,12 +12,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, LoopbackStream::Error, e) {
   switch (e) {
     case E::INVALID_ARGUMENT:
       return "invalid argument was passed";
-    case E::IS_READING:
-      return "read was called before the last read completed";
     case E::IS_CLOSED_FOR_READS:
       return "this stream is closed for reads";
-    case E::IS_WRITING:
-      return "write was called before the last write completed";
     case E::IS_CLOSED_FOR_WRITES:
       return "this stream is closed for writes";
     case E::IS_RESET:
@@ -98,18 +94,13 @@ namespace kagome::network {
     if (bytes == 0 || in.empty() || static_cast<size_t>(in.size()) < bytes) {
       return cb(Error::INVALID_ARGUMENT);
     }
-    if (is_writing_) {
-      return cb(Error::IS_WRITING);
-    }
 
-    is_writing_ = true;
     if (boost::asio::buffer_copy(buffer_.prepare(bytes),
                                  boost::asio::const_buffer(in.data(), bytes))
         != bytes) {
       return cb(Error::INTERNAL_ERROR);
     }
     buffer_.commit(bytes);
-    is_writing_ = false;
 
     cb(outcome::success(bytes));
 
@@ -137,9 +128,6 @@ namespace kagome::network {
     if (bytes == 0 || out.empty() || static_cast<size_t>(out.size()) < bytes) {
       return cb(Error::INVALID_ARGUMENT);
     }
-    if (is_reading_) {
-      return cb(Error::IS_READING);
-    }
 
     // this lambda checks, if there's enough data in our read buffer, and gives
     // it to the caller, if so
@@ -162,7 +150,6 @@ namespace kagome::network {
           return cb(Error::INTERNAL_ERROR);
         }
 
-        self->is_reading_ = false;
         self->buffer_.consume(to_read);
         self->data_notified_ = true;
         cb(to_read);
@@ -177,7 +164,6 @@ namespace kagome::network {
     }
 
     // subscribe to new data updates
-    is_reading_ = true;
     data_notifyee_ = std::move(read_lambda);
   };
 
