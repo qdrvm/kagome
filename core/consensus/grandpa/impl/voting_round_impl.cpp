@@ -386,6 +386,7 @@ namespace kagome::consensus::grandpa {
           if (isPrimary()) {
             break;
           }
+        [[fallthrough]]  
         case State::PROPOSED: {
           auto prevote = constructPrevote(last_round_state);
           if (prevote) {
