@@ -8,10 +8,6 @@
 #include <boost/filesystem.hpp>
 
 namespace kagome::application {
-  using consensus::Epoch;
-  using std::chrono_literals::operator""ms;
-  using consensus::Randomness;
-  using consensus::Threshold;
 
   ValidatingNodeApplication::ValidatingNodeApplication(
       const std::string &config_path,
@@ -89,4 +85,5 @@ namespace kagome::application {
 
     app_state_manager_->run();
   }
+
 }  // namespace kagome::application

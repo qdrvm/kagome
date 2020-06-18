@@ -80,4 +80,5 @@ namespace kagome::application {
 
     app_state_manager_->run();
   }
+
 }  // namespace kagome::application
