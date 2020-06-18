@@ -332,6 +332,7 @@ namespace kagome::consensus::grandpa {
               "hint during round {}",
               round_number_);
           env_->onCompleted(VotingRoundError::NO_ESTIMATE_FOR_PREVIOUS_ROUND);
+          break;
         }
 
         const auto &maybe_finalized = last_round_state.finalized;
@@ -381,6 +382,10 @@ namespace kagome::consensus::grandpa {
       }
       switch (state_) {
         case State::START:
+          // if we are primary and in the start state during prevote, then error happened during precommit. Should stop
+          if (isPrimary()) {
+            break;
+          }
         case State::PROPOSED: {
           auto prevote = constructPrevote(last_round_state);
           if (prevote) {
