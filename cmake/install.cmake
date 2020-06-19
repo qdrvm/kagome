@@ -16,6 +16,13 @@ function(kagome_install target)
         )
 endfunction()
 
+### workaround for imported libraries
+function(kagome_install_mini target)
+    install(TARGETS ${target} EXPORT kagomeTargets
+        LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        )
+endfunction()
+
 function(kagome_install_setup)
     set(options)
     set(oneValueArgs)
