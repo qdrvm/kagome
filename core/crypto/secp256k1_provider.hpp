@@ -6,7 +6,6 @@
 #ifndef KAGOME_CRYPTO_SECP256K1_PROVIDER_HPP
 #define KAGOME_CRYPTO_SECP256K1_PROVIDER_HPP
 
-#include <libp2p/crypto/secp256k1_provider.hpp>
 #include "crypto/secp256k1_types.hpp"
 #include "outcome/outcome.hpp"
 
@@ -22,7 +21,7 @@ namespace kagome::crypto {
    */
   class Secp256k1Provider {
    public:
-    virtual ~Secp256k1Provider() = 0;
+    virtual ~Secp256k1Provider() = default;
 
     /**
      * @brief recover public key in uncompressed form

@@ -11,7 +11,10 @@
 
 #include "crypto/ed25519_provider.hpp"
 #include "crypto/hasher.hpp"
+#include "crypto/secp256k1_provider.hpp"
 #include "crypto/sr25519_provider.hpp"
+#include "runtime/wasm_result.hpp"
+#include "scale/scale.hpp"
 
 namespace kagome::extensions {
   namespace sr25519_constants = crypto::constants::sr25519;
@@ -21,15 +24,18 @@ namespace kagome::extensions {
       std::shared_ptr<runtime::WasmMemory> memory,
       std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
       std::shared_ptr<crypto::ED25519Provider> ed25519_provider,
+      std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
       std::shared_ptr<crypto::Hasher> hasher)
       : memory_(std::move(memory)),
         sr25519_provider_(std::move(sr25519_provider)),
         ed25519_provider_(std::move(ed25519_provider)),
+        secp256k1_provider_(std::move(secp256k1_provider)),
         hasher_(std::move(hasher)),
         logger_{common::createLogger("CryptoExtension")} {
     BOOST_ASSERT(memory_ != nullptr);
     BOOST_ASSERT(sr25519_provider_ != nullptr);
     BOOST_ASSERT(ed25519_provider_ != nullptr);
+    BOOST_ASSERT(secp256k1_provider_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
   }
@@ -167,5 +173,76 @@ namespace kagome::extensions {
     auto hash = hasher_->twox_256(buf);
 
     memory_->storeBuffer(out_ptr, common::Buffer(hash));
+  }
+
+  runtime::PointerSize CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_v1(
+      runtime::WasmPointer sig, runtime::WasmPointer msg) {
+    static auto make_result = [&](auto &&value) {
+      boost::optional<crypto::Secp256k1UncompressedPublicKey> result = value;
+      return common::Buffer(scale::encode(result).value());
+    };
+    static auto error_result = make_result(boost::none);
+
+    crypto::Secp256k1Signature signature{};
+    crypto::Secp256k1Message message{};
+
+    const auto &sig_buffer = memory_->loadN(sig, signature.size());
+    const auto &msg_buffer =
+        memory_->loadN(msg, crypto::Secp256k1Message::size());
+    std::copy_n(sig_buffer.begin(), signature.size(), signature.begin());
+    std::copy_n(
+        msg_buffer.begin(), crypto::Secp256k1Message::size(), message.begin());
+
+    auto &&public_key =
+        secp256k1_provider_->recoverPublickeyUncompressed(signature, message);
+    if (!public_key) {
+      logger_->error("failed to recover uncompressed secp256k1 public key");
+      return memory_->storeBuffer(error_result);
+    }
+    auto &&encoded = scale::encode(public_key.value());
+    if (!encoded) {
+      logger_->error(
+          "failed to scale-encode uncompressed secp256k1 public key: {}",
+          encoded.error().message());
+      return memory_->storeBuffer(error_result);
+    }
+    common::Buffer result(std::move(encoded.value()));
+    return memory_->storeBuffer(result);
+  }
+
+  runtime::PointerSize
+  CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
+      runtime::WasmPointer sig, runtime::WasmPointer msg) {
+    static auto make_result = [&](auto &&value) {
+      boost::optional<crypto::Secp256k1CompressedPublicKey> result = value;
+      return common::Buffer(scale::encode(result).value());
+    };
+    static auto error_result = make_result(boost::none);
+
+    crypto::Secp256k1Signature signature{};
+    crypto::Secp256k1Message message{};
+
+    const auto &sig_buffer = memory_->loadN(sig, signature.size());
+    const auto &msg_buffer =
+        memory_->loadN(msg, crypto::Secp256k1Message::size());
+    std::copy_n(sig_buffer.begin(), signature.size(), signature.begin());
+    std::copy_n(
+        msg_buffer.begin(), crypto::Secp256k1Message::size(), message.begin());
+
+    auto &&public_key =
+        secp256k1_provider_->recoverPublickeyCompressed(signature, message);
+    if (!public_key) {
+      logger_->error("failed to recover compressed secp256k1 public key");
+      return memory_->storeBuffer(error_result);
+    }
+    auto &&encoded = scale::encode(public_key.value());
+    if (!encoded) {
+      logger_->error(
+          "failed to scale-encode compressed secp256k1 public key: {}",
+          encoded.error().message());
+      return memory_->storeBuffer(error_result);
+    }
+    common::Buffer result(std::move(encoded.value()));
+    return memory_->storeBuffer(result);
   }
 }  // namespace kagome::extensions

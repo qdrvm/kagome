@@ -91,6 +91,12 @@ namespace kagome::extensions {
                       runtime::SizeType len,
                       runtime::WasmPointer out));
     MOCK_CONST_METHOD0(ext_chain_id, uint64_t());
+    MOCK_METHOD2(ext_crypto_secp256k1_ecdsa_recover_v1,
+                 runtime::PointerSize(runtime::WasmPointer sig,
+                                      runtime::WasmPointer msg));
+    MOCK_METHOD2(ext_crypto_secp256k1_ecdsa_recover_compressed_v1,
+                 runtime::PointerSize(runtime::WasmPointer sig,
+                                      runtime::WasmPointer msg));
   };
 
 }  // namespace kagome::extensions

@@ -8,6 +8,7 @@
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
+#include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 
 namespace kagome::extensions {
@@ -22,10 +23,12 @@ namespace kagome::extensions {
                     std::make_shared<crypto::SR25519ProviderImpl>(
                         std::make_shared<crypto::BoostRandomGenerator>()),
                     std::make_shared<crypto::ED25519ProviderImpl>(),
+                    std::make_shared<crypto::Secp256k1ProviderImpl>(),
                     std::make_shared<crypto::HasherImpl>()),
         io_ext_(memory),
         memory_ext_(memory),
         storage_ext_(storage_provider_, memory_, std::move(tracker)) {
+    std::make_shared<crypto::Secp256k1ProviderImpl>();
     BOOST_ASSERT(storage_provider_ != nullptr);
     BOOST_ASSERT(memory_ != nullptr);
   }
@@ -178,6 +181,18 @@ namespace kagome::extensions {
   /// misc extensions
   uint64_t ExtensionImpl::ext_chain_id() const {
     return misc_ext_.ext_chain_id();
+  }
+
+  runtime::PointerSize ExtensionImpl::ext_crypto_secp256k1_ecdsa_recover_v1(
+      runtime::WasmPointer sig, runtime::WasmPointer msg) {
+    return crypto_ext_.ext_crypto_secp256k1_ecdsa_recover_v1(sig, msg);
+  }
+
+  runtime::PointerSize
+  ExtensionImpl::ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
+      runtime::WasmPointer sig, runtime::WasmPointer msg) {
+    return crypto_ext_.ext_crypto_secp256k1_ecdsa_recover_compressed_v1(sig,
+                                                                        msg);
   }
 
 }  // namespace kagome::extensions

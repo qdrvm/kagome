@@ -66,6 +66,8 @@ namespace kagome::runtime::binaryen {
     void storeBuffer(kagome::runtime::WasmPointer addr,
                      const kagome::common::Buffer &value) override;
 
+    PointerSize storeBuffer(const common::Buffer &value) override;
+
    private:
     wasm::ShellExternalInterface::Memory *memory_;
     SizeType size_;

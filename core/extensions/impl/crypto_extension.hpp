@@ -14,6 +14,7 @@
 namespace kagome::crypto {
   class SR25519Provider;
   class ED25519Provider;
+  class Secp256k1Provider;
   class Hasher;
 }  // namespace kagome::crypto
 
@@ -23,10 +24,11 @@ namespace kagome::extensions {
    */
   class CryptoExtension {
    public:
-    explicit CryptoExtension(
+    CryptoExtension(
         std::shared_ptr<runtime::WasmMemory> memory,
         std::shared_ptr<crypto::SR25519Provider> sr25519_provider,
         std::shared_ptr<crypto::ED25519Provider> ed25519_provider,
+        std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider,
         std::shared_ptr<crypto::Hasher> hasher);
 
     /**
@@ -69,9 +71,9 @@ namespace kagome::extensions {
      * @see Extension::ext_twox_64
      */
     void ext_twox_64(runtime::WasmPointer data,
-                      runtime::SizeType len,
-                      runtime::WasmPointer out);
-    
+                     runtime::SizeType len,
+                     runtime::WasmPointer out);
+
     /**
      * @see Extension::ext_twox_128
      */
@@ -86,10 +88,23 @@ namespace kagome::extensions {
                       runtime::SizeType len,
                       runtime::WasmPointer out);
 
+    /**
+     * @see Extension::ext_crypto_secp256k1_ecdsa_recover_v1
+     */
+    runtime::PointerSize ext_crypto_secp256k1_ecdsa_recover_v1(
+        runtime::WasmPointer sig, runtime::WasmPointer msg);
+
+    /**
+     * @see Extension::ext_crypto_secp256k1_ecdsa_recover_compressed_v1
+     */
+    runtime::PointerSize ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
+        runtime::WasmPointer sig, runtime::WasmPointer msg);
+
    private:
     std::shared_ptr<runtime::WasmMemory> memory_;
     std::shared_ptr<crypto::SR25519Provider> sr25519_provider_;
     std::shared_ptr<crypto::ED25519Provider> ed25519_provider_;
+    std::shared_ptr<crypto::Secp256k1Provider> secp256k1_provider_;
     std::shared_ptr<crypto::Hasher> hasher_;
     common::Logger logger_;
   };

@@ -1,4 +1,4 @@
-/**
+    /**
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -91,6 +91,13 @@ namespace kagome::runtime {
     virtual void store128(WasmPointer addr,
                           const std::array<uint8_t, 16> &value) = 0;
     virtual void storeBuffer(WasmPointer addr, const common::Buffer &value) = 0;
+
+    /**
+     * @brief allocates buffer in memory and copies value into memory
+     * @param value buffer to store
+     * @return full wasm pointer to allocated buffer
+     */
+    virtual PointerSize storeBuffer(const common::Buffer &value) = 0;
   };
 }  // namespace kagome::runtime
 

@@ -13,6 +13,7 @@
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
+#include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -26,6 +27,8 @@ using kagome::crypto::ED25519ProviderImpl;
 using kagome::crypto::ED25519Signature;
 using kagome::crypto::Hasher;
 using kagome::crypto::HasherImpl;
+using kagome::crypto::Secp256k1Provider;
+using kagome::crypto::Secp256k1ProviderImpl;
 using kagome::crypto::SR25519Keypair;
 using kagome::crypto::SR25519Provider;
 using kagome::crypto::SR25519ProviderImpl;
@@ -50,9 +53,13 @@ class CryptoExtensionTest : public ::testing::Test {
     sr25519_provider_ =
         std::make_shared<SR25519ProviderImpl>(random_generator_);
     ed25519_provider_ = std::make_shared<ED25519ProviderImpl>();
+    secp256k1_provider_ = std::make_shared<Secp256k1ProviderImpl>();
     hasher_ = std::make_shared<HasherImpl>();
-    crypto_ext_ = std::make_shared<CryptoExtension>(
-        memory_, sr25519_provider_, ed25519_provider_, hasher_);
+    crypto_ext_ = std::make_shared<CryptoExtension>(memory_,
+                                                    sr25519_provider_,
+                                                    ed25519_provider_,
+                                                    secp256k1_provider_,
+                                                    hasher_);
 
     sr25519_keypair = sr25519_provider_->generateKeypair();
     sr25519_signature = sr25519_provider_->sign(sr25519_keypair, input).value();
@@ -63,6 +70,7 @@ class CryptoExtensionTest : public ::testing::Test {
   std::shared_ptr<CSPRNG> random_generator_;
   std::shared_ptr<SR25519Provider> sr25519_provider_;
   std::shared_ptr<ED25519Provider> ed25519_provider_;
+  std::shared_ptr<Secp256k1Provider> secp256k1_provider_;
   std::shared_ptr<Hasher> hasher_;
   std::shared_ptr<CryptoExtension> crypto_ext_;
 
@@ -90,7 +98,8 @@ class CryptoExtensionTest : public ::testing::Test {
 };
 
 /**
- * @given initialized crypto extension @and data, which can be blake2b_128-hashed
+ * @given initialized crypto extension @and data, which can be
+ * blake2b_128-hashed
  * @when hashing that data
  * @then resulting hash is correct
  */
@@ -106,7 +115,8 @@ TEST_F(CryptoExtensionTest, Blake2_128Valid) {
 }
 
 /**
- * @given initialized crypto extension @and data, which can be blake2b_256-hashed
+ * @given initialized crypto extension @and data, which can be
+ * blake2b_256-hashed
  * @when hashing that data
  * @then resulting hash is correct
  */

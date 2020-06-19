@@ -261,6 +261,28 @@ namespace kagome::extensions {
     virtual void ext_twox_256(runtime::WasmPointer data,
                               runtime::SizeType len,
                               runtime::WasmPointer out) = 0;
+    // crypto v1
+
+    /**
+     * Recover secp256k1 public key
+     * @param sig recoverable 65-byte signature
+     * @param msg blake2s message hash
+     * @return pointer-size value (pointer to buffer and its size) containing
+     * scale-encoded variant of public key or error
+     */
+    virtual runtime::PointerSize ext_crypto_secp256k1_ecdsa_recover_v1(
+        runtime::WasmPointer sig, runtime::WasmPointer msg) = 0;
+
+    /**
+     * Recover secp256k1 public key
+     * @param sig recoverable 65-byte signature
+     * @param msg blake2s message hash
+     * @return pointer-size value (pointer to buffer and its size) containing
+     * scale-encoded variant of compressed public key or error
+     */
+    virtual runtime::PointerSize
+    ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
+        runtime::WasmPointer sig, runtime::WasmPointer msg) = 0;
 
     // -------------------------Misc extensions--------------------------
     virtual uint64_t ext_chain_id() const = 0;

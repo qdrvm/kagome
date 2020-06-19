@@ -21,8 +21,8 @@ using kagome::extensions::MockExtension;
 using kagome::extensions::MockExtensionFactory;
 using kagome::runtime::MockMemory;
 using kagome::runtime::SizeType;
-using kagome::runtime::WasmPointer;
 using kagome::runtime::TrieStorageProviderMock;
+using kagome::runtime::WasmPointer;
 using kagome::runtime::binaryen::RuntimeExternalInterface;
 using kagome::storage::trie::PersistentTrieBatchMock;
 using wasm::Element;
@@ -123,6 +123,7 @@ class REITest : public ::testing::Test {
       "  (type (;26;) (func (param i32 i64 i64 i64 i64 i32)))\n"
       "  (type (;27;) (func (result i64)))\n"
       "  (type (;28;) (func (param i32 i32 i32)))\n"
+      "  (type (;31;) (func (param i32 i32 i64) (result i64)))\n"
       "  (import \"env\" \"ext_get_storage_into\" (func $ext_get_storage_into (type 4)))\n"
       "  (import \"env\" \"ext_get_allocated_storage\" (func $ext_get_allocated_storage (type 2)))\n"
       "  (import \"env\" \"ext_blake2_128\" (func $ext_blake2_128 (type 5)))\n"
@@ -145,6 +146,10 @@ class REITest : public ::testing::Test {
       "  (import \"env\" \"ext_storage_changes_root\" (func $ext_storage_changes_root (type 2 )))\n"
       "  (import \"env\" \"ext_print_hex\" (func $ext_print_hex (type 0)))\n"
       "  (import \"env\" \"ext_chain_id\" (func $ext_chain_id (type 27)))\n"
+
+      /// version 1
+      "  (import \"env\" \"ext_crypto_secp256k1_ecdsa_recover_version_1\" (func $ext_crypto_secp256k1_ecdsa_recover_version_1 (type 31)))\n"
+      "  (import \"env\" \"ext_crypto_secp256k1_ecdsa_recover_compressed_version_1\" (func $ext_crypto_secp256k1_ecdsa_recover_compressed_version_1 (type 31)))\n"
 
       /// assertions to check output in wasm
       "  (import \"env\" \"assert\" (func $assert (param i32)))\n"
@@ -432,7 +437,7 @@ TEST_F(REITest, ext_blake2_128_Test) {
                                      "      (i32.const %d)\n"
                                      "    )\n")
                        % data_ptr % data_size % out_ptr)
-      .str();
+                          .str();
   executeWasm(execute_code);
 }
 

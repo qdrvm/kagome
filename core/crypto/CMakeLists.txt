@@ -81,7 +81,12 @@ target_link_libraries(secp256k1_provider PUBLIC
     PUBLIC OpenSSL::SSL
     blob
     buffer
+    libsecp256k1
+    scale
     )
+kagome_install(
+    secp256k1_provider
+)
 
 add_subdirectory(blake2)
 add_subdirectory(keccak)

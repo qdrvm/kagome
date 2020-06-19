@@ -20,9 +20,10 @@ namespace kagome::extensions {
   class ExtensionImpl : public Extension {
    public:
     ExtensionImpl() = delete;
-    ExtensionImpl(const std::shared_ptr<runtime::WasmMemory> &memory,
-                  std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
-                  std::shared_ptr<storage::changes_trie::ChangesTracker> tracker);
+    ExtensionImpl(
+        const std::shared_ptr<runtime::WasmMemory> &memory,
+        std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
+        std::shared_ptr<storage::changes_trie::ChangesTracker> tracker);
 
     ~ExtensionImpl() override = default;
 
@@ -109,8 +110,8 @@ namespace kagome::extensions {
         runtime::WasmPointer pubkey_data) override;
 
     void ext_twox_64(runtime::WasmPointer data,
-                      runtime::SizeType len,
-                      runtime::WasmPointer out) override;
+                     runtime::SizeType len,
+                     runtime::WasmPointer out) override;
 
     void ext_twox_128(runtime::WasmPointer data,
                       runtime::SizeType len,
@@ -122,6 +123,12 @@ namespace kagome::extensions {
     // -------------------------Misc extensions--------------------------
 
     uint64_t ext_chain_id() const override;
+
+    runtime::PointerSize ext_crypto_secp256k1_ecdsa_recover_v1(
+        runtime::WasmPointer sig, runtime::WasmPointer msg) override;
+
+    runtime::PointerSize ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
+        runtime::WasmPointer sig, runtime::WasmPointer msg) override;
 
    private:
     std::shared_ptr<runtime::WasmMemory> memory_;
