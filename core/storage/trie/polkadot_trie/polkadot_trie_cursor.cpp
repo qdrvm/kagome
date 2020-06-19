@@ -167,17 +167,15 @@ namespace kagome::storage::trie {
   outcome::result<common::Buffer> PolkadotTrieCursor::key() const {
     if (current_ != nullptr) {
       return collectKey();
-    } else {
-      return Error::INVALID_CURSOR_POSITION;
     }
+    return Error::INVALID_CURSOR_POSITION;
   }
 
   outcome::result<common::Buffer> PolkadotTrieCursor::value() const {
     if (current_ != nullptr) {
       return current_->value.value();
-    } else {
-      return Error::INVALID_CURSOR_POSITION;
     }
+    return Error::INVALID_CURSOR_POSITION;
   }
 
   int8_t PolkadotTrieCursor::getNextChildIdx(const BranchPtr &parent,

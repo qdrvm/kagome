@@ -31,7 +31,7 @@ namespace kagome::storage::trie {
     };
 
     explicit PolkadotTrieCursor(const PolkadotTrie &trie);
-    ~PolkadotTrieCursor() = default;
+    ~PolkadotTrieCursor() override = default;
 
     outcome::result<void> seekToFirst() override;
     outcome::result<void> seek(const common::Buffer &key) override;
