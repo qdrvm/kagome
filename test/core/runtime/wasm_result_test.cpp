@@ -33,7 +33,7 @@ TEST_P(WasmResultTest, DecomposeSuccess) {
   auto [res, pair] = GetParam();
   auto [address, length] = pair;
 
-  WasmResult r{res};
+  WasmResult r(res);
   ASSERT_EQ(r.address, address);
   ASSERT_EQ(r.length, length);
 }
