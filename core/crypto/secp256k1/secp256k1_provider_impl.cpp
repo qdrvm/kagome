@@ -9,6 +9,11 @@
 
 namespace kagome::crypto {
 
+  Secp256k1ProviderImpl::Secp256k1ProviderImpl()
+      : context_(secp256k1_context_create(SECP256K1_CONTEXT_SIGN
+                                          | SECP256K1_CONTEXT_VERIFY),
+                 secp256k1_context_destroy) {}
+
   outcome::result<Secp256k1UncompressedPublicKey>
   Secp256k1ProviderImpl::recoverPublickeyUncompressed(
       const Secp256k1Signature &signature,

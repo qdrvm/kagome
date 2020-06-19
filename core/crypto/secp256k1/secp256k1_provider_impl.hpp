@@ -15,6 +15,8 @@ namespace kagome::crypto {
    public:
     ~Secp256k1ProviderImpl() override = default;
 
+    Secp256k1ProviderImpl();
+
     outcome::result<Secp256k1UncompressedPublicKey>
     recoverPublickeyUncompressed(
         const Secp256k1Signature &signature,
