@@ -35,7 +35,7 @@ namespace kagome::storage::trie {
     if (changes_) {
       changes_.value()->setExtrinsicIdxGetter(
           [this]() -> outcome::result<Buffer> {
-            auto res = get(EXTRINSIC_INDEX_KEY);
+            auto res = trie_->get(EXTRINSIC_INDEX_KEY);
             if (res.has_error() and res.error() == TrieError::NO_VALUE) {
               return NO_EXTRINSIC_INDEX_VALUE;
             }
@@ -47,7 +47,7 @@ namespace kagome::storage::trie {
   outcome::result<Buffer> PersistentTrieBatchImpl::commit() {
     OUTCOME_TRY(root, serializer_->storeTrie(*trie_));
     root_changed_handler_(root);
-    return root;
+    return std::move(root);
   }
 
   outcome::result<Buffer> PersistentTrieBatchImpl::get(

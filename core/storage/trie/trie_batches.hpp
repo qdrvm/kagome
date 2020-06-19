@@ -34,18 +34,29 @@ namespace kagome::storage::trie {
   class PersistentTrieBatch : public TrieBatch {
    public:
     /**
-     * Commits changes to persistent storage
-     * @returns committed trie root
+     * Commits changes to a persistent storage
+     * @returns the root of the committed trie
      */
     virtual outcome::result<Buffer> commit() = 0;
   };
 
   /**
-   * Temporary in-memory trie build on top of the persistent one
+   * A temporary in-memory trie built on top of a persistent one
    * All changes to it are simply discarded when the batch is destroyed
    */
   class EphemeralTrieBatch : public TrieBatch {
 
+  };
+
+  /**
+   * A batch on top of another batch
+   * Used for small amount of atomic changes, like applying an extrinsic
+   */
+  class TopperTrieBatch: public TrieBatch {
+    /**
+     * Writes changes to the parent batch
+     */
+    virtual outcome::result<void> writeBack() = 0;
   };
 
 }  // namespace kagome::storage::trie

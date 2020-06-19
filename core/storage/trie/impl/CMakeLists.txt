@@ -75,6 +75,14 @@ target_link_libraries(ephemeral_trie_batch
     )
 kagome_install(ephemeral_trie_batch)
 
+add_library(topper_trie_batch
+    topper_trie_batch_impl.cpp
+    )
+target_link_libraries(topper_trie_batch
+    buffer
+    )
+kagome_install(topper_trie_batch)
+
 add_library(trie_storage
     trie_storage_impl.cpp
     )
