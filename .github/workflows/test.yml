@@ -19,6 +19,12 @@ jobs:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
+    - name: checkout submodules
+      shell: bash
+      run: |
+        auth_header="$(git config --local --get http.https://github.com/.extraheader)"
+        git submodule sync --recursive
+        git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
     - name: install
       run: ./housekeeping/macos/dependency.sh
     - name: build
@@ -42,6 +48,12 @@ jobs:
       container: soramitsu/kagome-dev:9 # Change to ${{ env.INDOCKER_IMAGE }} https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
         - uses: actions/checkout@v2
+        - name: checkout submodules
+          shell: bash
+          run: |
+            auth_header="$(git config --local --get http.https://github.com/.extraheader)"
+            git submodule sync --recursive
+            git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
         - name: "${{ matrix.options.name }}"
           run: "${{ matrix.options.run }}"
 
