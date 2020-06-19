@@ -579,7 +579,6 @@ namespace kagome::injector {
         di::bind<consensus::grandpa::Gossiper>.template to<network::GossiperBroadcast>(),
         di::bind<network::Gossiper>.template to<network::GossiperBroadcast>(),
         di::bind<network::SyncClientsSet>.to(std::move(get_sync_clients_set)),
-        di::bind<network::SyncProtocolClient>.template to<network::RemoteSyncProtocolClient>(),
         di::bind<network::SyncProtocolObserver>.template to<network::SyncProtocolObserverImpl>(),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::binaryen::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::binaryen::ParachainHostImpl>(),
