@@ -146,10 +146,10 @@ class REITest : public ::testing::Test {
       "  (import \"env\" \"ext_storage_changes_root\" (func $ext_storage_changes_root (type 2 )))\n"
       "  (import \"env\" \"ext_print_hex\" (func $ext_print_hex (type 0)))\n"
       "  (import \"env\" \"ext_chain_id\" (func $ext_chain_id (type 27)))\n"
-
-      /// version 1
-      "  (import \"env\" \"ext_crypto_secp256k1_ecdsa_recover_version_1\" (func $ext_crypto_secp256k1_ecdsa_recover_version_1 (type 31)))\n"
-      "  (import \"env\" \"ext_crypto_secp256k1_ecdsa_recover_compressed_version_1\" (func $ext_crypto_secp256k1_ecdsa_recover_compressed_version_1 (type 31)))\n"
+//
+//      /// version 1
+//      "  (import \"env\" \"ext_crypto_secp256k1_ecdsa_recover_version_1\" (func $ext_crypto_secp256k1_ecdsa_recover_version_1 (type 31)))\n"
+//      "  (import \"env\" \"ext_crypto_secp256k1_ecdsa_recover_compressed_version_1\" (func $ext_crypto_secp256k1_ecdsa_recover_compressed_version_1 (type 31)))\n"
 
       /// assertions to check output in wasm
       "  (import \"env\" \"assert\" (func $assert (param i32)))\n"
