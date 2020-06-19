@@ -17,3 +17,13 @@ target_link_libraries(rpc_libp2p_test
     p2p::p2p_peer_id
     p2p::p2p_multiaddress
     )
+
+addtest(sync_protocol_observer_test
+    sync_protocol_observer_test.cpp
+    )
+target_link_libraries(sync_protocol_observer_test
+    sync_protocol_observer
+    polkadot_trie
+    )
+
+# TODO(xDimon): would be good to make test for sync_protocol_client

@@ -3,73 +3,49 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/synchronizer/impl/synchronizer_impl.hpp"
+#include "network/impl/sync_protocol_observer_impl.hpp"
 
 #include <boost/assert.hpp>
-#include "network/common.hpp"
-#include "network/helpers/scale_message_read_writer.hpp"
-#include "network/rpc.hpp"
-#include "network/types/block_announce.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus, SynchronizerError, e) {
-  using E = kagome::consensus::SynchronizerError;
+#include "network/common.hpp"
+
+OUTCOME_CPP_DEFINE_CATEGORY(kagome::network,
+                            SyncProtocolObserverImpl::Error,
+                            e) {
+  using E = kagome::network::SyncProtocolObserverImpl::Error;
   switch (e) {
-    case E::REQUEST_ID_EXIST:
-      return "Either peer requests himself, or request was already processed";
+    case E::DUPLICATE_REQUEST_ID:
+      return "Request with a same id is handling right now";
   }
   return "unknown error";
 }
 
-namespace kagome::consensus {
-  SynchronizerImpl::SynchronizerImpl(
-      libp2p::Host &host,
-      libp2p::peer::PeerInfo peer_info,
+namespace kagome::network {
+
+  SyncProtocolObserverImpl::SyncProtocolObserverImpl(
       std::shared_ptr<blockchain::BlockTree> block_tree,
-      std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers,
-      SynchronizerConfig config)
-      : host_{host},
-        peer_info_{std::move(peer_info)},
-        block_tree_{std::move(block_tree)},
+      std::shared_ptr<blockchain::BlockHeaderRepository> blocks_headers)
+      : block_tree_{std::move(block_tree)},
         blocks_headers_{std::move(blocks_headers)},
-        config_{config},
-        log_(common::createLogger("Synchronizer")) {
+        log_(common::createLogger("SyncProtocolObserver")) {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(blocks_headers_);
   }
 
-  void SynchronizerImpl::requestBlocks(
-      const BlocksRequest &request,
-      std::function<void(outcome::result<BlocksResponse>)> cb) {
-    visit_in_place(request.from,
-                   [this](primitives::BlockNumber from) {
-                     log_->debug("Requesting blocks: from {}", from);
-                   },
-                   [this, &request](const primitives::BlockHash &from) {
-                     if (not request.to) {
-                       log_->debug("Requesting blocks: from {}", from.toHex());
-                     } else {
-                       log_->debug("Requesting blocks: from {}, to {}",
-                                   from.toHex(),
-                                   request.to->toHex());
-                     }
-                   });
-    requested_ids_.insert(request.id);
-    network::RPC<network::ScaleMessageReadWriter>::write<BlocksRequest,
-                                                         BlocksResponse>(
-        host_, peer_info_, network::kSyncProtocol, request, std::move(cb));
-  }
-
-  outcome::result<network::BlocksResponse> SynchronizerImpl::onBlocksRequest(
+  outcome::result<network::BlocksResponse>
+  SyncProtocolObserverImpl::onBlocksRequest(
       const BlocksRequest &request) const {
-    if (requested_ids_.find(request.id) != requested_ids_.end()) {
-      return SynchronizerError::REQUEST_ID_EXIST;
+    if (!requested_ids_.emplace(request.id).second) {
+      return Error::DUPLICATE_REQUEST_ID;
     }
+
     BlocksResponse response{request.id};
 
     // firstly, check if we have both "from" & "to" blocks (if set)
     auto from_hash_res = blocks_headers_->getHashById(request.from);
     if (!from_hash_res) {
       log_->warn("cannot find a requested block with id {}", request.from);
+      requested_ids_.erase(request.id);
       return response;
     }
 
@@ -78,7 +54,8 @@ namespace kagome::consensus {
         retrieveRequestedHashes(request, from_hash_res.value());
     if (!chain_hash_res) {
       log_->warn("cannot retrieve a chain of blocks: {}",
-                  chain_hash_res.error().message());
+                 chain_hash_res.error().message());
+      requested_ids_.erase(request.id);
       return response;
     }
 
@@ -87,11 +64,13 @@ namespace kagome::consensus {
     if (not response.blocks.empty()) {
       log_->debug("Return response: {}", response.blocks[0].hash.toHex());
     }
+
+    requested_ids_.erase(request.id);
     return response;
   }
 
   blockchain::BlockTree::BlockHashVecRes
-  SynchronizerImpl::retrieveRequestedHashes(
+  SyncProtocolObserverImpl::retrieveRequestedHashes(
       const BlocksRequest &request,
       const primitives::BlockHash &from_hash) const {
     auto ascending_direction =
@@ -100,7 +79,7 @@ namespace kagome::consensus {
     if (!request.to) {
       // if there's no "stop" block, get as many as possible
       chain_hash_res = block_tree_->getChainByBlock(
-          from_hash, ascending_direction, config_.max_request_blocks);
+          from_hash, ascending_direction, maxRequestBlocks);
     } else {
       // else, both blocks are specified
       OUTCOME_TRY(chain_hash,
@@ -113,17 +92,17 @@ namespace kagome::consensus {
     return chain_hash_res;
   }
 
-  void SynchronizerImpl::fillBlocksResponse(
+  void SyncProtocolObserverImpl::fillBlocksResponse(
       const BlocksRequest &request,
       BlocksResponse &response,
       const std::vector<primitives::BlockHash> &hash_chain) const {
-    // TODO(akvinikym): understand, where to take receipt and message_queue
     auto header_needed =
         request.attributeIsSet(network::BlockAttributesBits::HEADER);
     auto body_needed =
         request.attributeIsSet(network::BlockAttributesBits::BODY);
     auto justification_needed =
         request.attributeIsSet(network::BlockAttributesBits::JUSTIFICATION);
+
     for (const auto &hash : hash_chain) {
       auto &new_block =
           response.blocks.emplace_back(primitives::BlockData{hash});
@@ -148,4 +127,4 @@ namespace kagome::consensus {
       }
     }
   }
-}  // namespace kagome::consensus
+}  // namespace kagome::network

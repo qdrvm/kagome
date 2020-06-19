@@ -6,10 +6,6 @@
 #include "application/impl/block_producing_node_application.hpp"
 
 namespace kagome::application {
-  using consensus::Epoch;
-  using std::chrono_literals::operator""ms;
-  using consensus::Randomness;
-  using consensus::Threshold;
 
   BlockProducingNodeApplication::BlockProducingNodeApplication(
       const std::string &config_path,
@@ -52,7 +48,7 @@ namespace kagome::application {
       // execute listeners
       io_context_->post([this] {
         const auto &current_peer_info =
-            injector_.template create<libp2p::peer::PeerInfo>();
+            injector_.template create<network::OwnPeerInfo>();
         auto &host = injector_.template create<libp2p::Host &>();
         for (const auto &ma : current_peer_info.addresses) {
           auto listen = host.listen(ma);
@@ -76,4 +72,5 @@ namespace kagome::application {
 
     app_state_manager_->run();
   }
+
 }  // namespace kagome::application

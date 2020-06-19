@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "consensus/synchronizer/impl/synchronizer_impl.hpp"
+#include "network/impl/sync_protocol_observer_impl.hpp"
 
 #include <gtest/gtest.h>
 
@@ -21,7 +21,6 @@
 using namespace kagome;
 using namespace blockchain;
 using namespace network;
-using namespace consensus;
 using namespace primitives;
 using namespace common;
 
@@ -41,8 +40,8 @@ class SynchronizerTest : public testing::Test {
     block2_.header.parent_hash = block1_hash_;
     block2_hash_.fill(4);
 
-    synchronizer_ = std::make_shared<SynchronizerImpl>(
-        *host_, peer_info_, tree_, headers_, SynchronizerConfig{});
+    sync_protocol_observer_ =
+        std::make_shared<SyncProtocolObserverImpl>(tree_, headers_);
   }
 
   std::shared_ptr<HostMock> host_ = std::make_shared<HostMock>();
@@ -52,7 +51,7 @@ class SynchronizerTest : public testing::Test {
   std::shared_ptr<BlockHeaderRepositoryMock> headers_ =
       std::make_shared<BlockHeaderRepositoryMock>();
 
-  std::shared_ptr<Synchronizer> synchronizer_;
+  std::shared_ptr<SyncProtocolObserver> sync_protocol_observer_;
 
   Block block1_{{{}, 2}, {{{0x11, 0x22}}, {{0x55, 0x66}}}},
       block2_{{{}, 3}, {{{0x13, 0x23}}, {{0x35, 0x63}}}};
@@ -92,8 +91,8 @@ TEST_F(SynchronizerTest, ProcessRequest) {
       .WillOnce(Return(::outcome::failure(boost::system::error_code{})));
 
   // WHEN
-  EXPECT_OUTCOME_TRUE(response,
-                      synchronizer_->onBlocksRequest(received_request));
+  EXPECT_OUTCOME_TRUE(
+      response, sync_protocol_observer_->onBlocksRequest(received_request));
 
   // THEN
   ASSERT_EQ(response.id, received_request.id);

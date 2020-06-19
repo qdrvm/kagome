@@ -6,9 +6,9 @@
 #ifndef KAGOME_GOSSIPER_BROADCAST_HPP
 #define KAGOME_GOSSIPER_BROADCAST_HPP
 
+#include <gsl/span>
 #include <unordered_map>
 
-#include <gsl/span>
 #include "common/logger.hpp"
 #include "libp2p/connection/stream.hpp"
 #include "libp2p/host/host.hpp"
@@ -29,9 +29,13 @@ namespace kagome::network {
     using PrimaryPropose = consensus::grandpa::PrimaryPropose;
 
    public:
-    GossiperBroadcast(libp2p::Host &host, const PeerList &peer_infos);
+    GossiperBroadcast(libp2p::Host &host);
 
     ~GossiperBroadcast() override = default;
+
+    void reserveStream(
+        const libp2p::peer::PeerInfo &peer_info,
+        std::shared_ptr<libp2p::connection::Stream> stream) override;
 
     void transactionAnnounce(const TransactionAnnounce &announce) override;
 

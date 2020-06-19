@@ -15,9 +15,8 @@ namespace kagome::injector {
   namespace di = boost::di;
 
   auto get_peer_info = [](const auto &injector,
-                          uint16_t p2p_port) -> sptr<libp2p::peer::PeerInfo> {
-    static boost::optional<sptr<libp2p::peer::PeerInfo>> initialized{
-        boost::none};
+                          uint16_t p2p_port) -> sptr<network::OwnPeerInfo> {
+    static boost::optional<sptr<network::OwnPeerInfo>> initialized{boost::none};
     if (initialized) {
       return *initialized;
     }
@@ -42,10 +41,9 @@ namespace kagome::injector {
     }
     std::vector<libp2p::multi::Multiaddress> addresses;
     addresses.push_back(std::move(multiaddress.value()));
-    libp2p::peer::PeerInfo peer_info{peer_id, std::move(addresses)};
 
-    initialized =
-        std::make_shared<libp2p::peer::PeerInfo>(std::move(peer_info));
+    initialized = std::make_shared<network::OwnPeerInfo>(std::move(peer_id),
+                                                         std::move(addresses));
     return initialized.value();
   };
 
@@ -66,7 +64,7 @@ namespace kagome::injector {
             genesis_path, leveldb_path, rpc_http_endpoint, rpc_ws_endpoint),
 
         // peer info
-        di::bind<libp2p::peer::PeerInfo>.to([p2p_port](const auto &injector) {
+        di::bind<network::OwnPeerInfo>.to([p2p_port](const auto &injector) {
           return get_peer_info(injector, p2p_port);
         }),
 

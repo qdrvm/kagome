@@ -13,20 +13,7 @@
 namespace kagome::application {
 
   class BlockProducingNodeApplication : public KagomeApplication {
-    using AuthorityIndex = primitives::AuthorityIndex;
     using Babe = consensus::Babe;
-    using BabeGossiper = network::Gossiper;
-    using BabeLottery = consensus::BabeLottery;
-    using BlockBuilderFactory = authorship::BlockBuilderFactory;
-    using BlockTree = blockchain::BlockTree;
-    using Epoch = consensus::Epoch;
-    using Hasher = crypto::Hasher;
-    using ListenerImpl = api::WsListenerImpl;
-    using Proposer = authorship::Proposer;
-    using SR25519Keypair = crypto::SR25519Keypair;
-    using Synchronizer = consensus::Synchronizer;
-    using SystemClock = clock::SystemClock;
-    using Timer = clock::Timer;
     using InjectorType = decltype(injector::makeBlockProducingNodeInjector(
         std::string{},
         std::string{},
