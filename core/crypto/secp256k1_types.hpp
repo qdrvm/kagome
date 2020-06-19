@@ -19,15 +19,17 @@ namespace kagome::crypto {
    * uncompressed form of public key
    */
   using Secp256k1CompressedPublicKey =
-      std::array<uint8_t, secp256k1::kCompressedPublicKeySize>;
+      common::Blob<secp256k1::kCompressedPublicKeySize>;
   /**
    * compressed form of public key
    */
   using Secp256k1UncompressedPublicKey =
-      std::array<uint8_t, secp256k1::kUncompressedPublicKeySize>;
+      common::Blob<secp256k1::kUncompressedPublicKeySize>;
 
-  using Secp256k1Signature =
-      std::array<uint8_t, secp256k1::kCompactSignatureSize>;
+  /**
+   * secp256k1 RSV-signature
+   */
+  using Secp256k1Signature = common::Blob<secp256k1::kCompactSignatureSize>;
 
   /**
    * blake2s hash 32-byte sequence of bytes

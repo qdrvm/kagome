@@ -15,6 +15,8 @@
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
+#include "runtime/wasm_result.hpp"
+#include "scale/scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -27,8 +29,12 @@ using kagome::crypto::ED25519ProviderImpl;
 using kagome::crypto::ED25519Signature;
 using kagome::crypto::Hasher;
 using kagome::crypto::HasherImpl;
+using kagome::crypto::Secp256k1CompressedPublicKey;
+using kagome::crypto::Secp256k1Message;
 using kagome::crypto::Secp256k1Provider;
 using kagome::crypto::Secp256k1ProviderImpl;
+using kagome::crypto::Secp256k1Signature;
+using kagome::crypto::Secp256k1UncompressedPublicKey;
 using kagome::crypto::SR25519Keypair;
 using kagome::crypto::SR25519Provider;
 using kagome::crypto::SR25519ProviderImpl;
@@ -36,8 +42,10 @@ using kagome::crypto::SR25519PublicKey;
 using kagome::crypto::SR25519SecretKey;
 using kagome::crypto::SR25519Signature;
 using kagome::runtime::MockMemory;
+using kagome::runtime::PointerSize;
 using kagome::runtime::SizeType;
 using kagome::runtime::WasmPointer;
+using kagome::runtime::WasmResult;
 
 using ::testing::Return;
 
@@ -63,6 +71,26 @@ class CryptoExtensionTest : public ::testing::Test {
 
     sr25519_keypair = sr25519_provider_->generateKeypair();
     sr25519_signature = sr25519_provider_->sign(sr25519_keypair, input).value();
+
+    std::copy_n(secp_message_vector.begin(),
+                secp_message_vector.size(),
+                secp_message_hash.begin());
+    std::copy_n(secp_public_key_bytes.begin(),
+                secp_public_key_bytes.size(),
+                secp_uncompressed_public_key.begin());
+    std::copy_n(secp_public_key_compressed_bytes.begin(),
+                secp_public_key_compressed_bytes.size(),
+                secp_compressed_pyblic_key.begin());
+    std::copy_n(secp_signature_bytes.begin(),
+                secp_signature_bytes.size(),
+                secp_signature.begin());
+
+    EXPECT_OUTCOME_TRUE(tmp1,
+                        kagome::scale::encode(secp_uncompressed_public_key));
+    scale_encoded_secp_uncompressed_public_key = Buffer(std::move(tmp1));
+    EXPECT_OUTCOME_TRUE(tmp2,
+                        kagome::scale::encode(secp_compressed_pyblic_key));
+    scale_encoded_secp_compressed_public_key = Buffer(std::move(tmp2));
   }
 
  protected:
@@ -95,6 +123,22 @@ class CryptoExtensionTest : public ::testing::Test {
   Buffer twox256_result{184, 65,  176, 250, 243, 129, 181, 3,   77,  82, 63,
                         150, 129, 221, 191, 251, 33,  226, 149, 136, 6,  232,
                         81,  118, 200, 28,  69,  219, 120, 179, 208, 237};
+
+  std::vector<uint8_t> secp_public_key_bytes{
+      "04e32df42865e97135acfb65f3bae71bdc86f4d49150ad6a440b6f15878109880a0a2b2667f7e725ceea70c673093bf67663e0312623c8e091b13cf2c0f11ef652"_unhex};
+  std::vector<uint8_t> secp_public_key_compressed_bytes{
+      "02e32df42865e97135acfb65f3bae71bdc86f4d49150ad6a440b6f15878109880a"_unhex};
+  std::vector<uint8_t> secp_signature_bytes{
+      "90f27b8b488db00b00606796d2987f6a5f59ae62ea05effe84fef5b8b0e549984a691139ad57a3f0b906637673aa2f63d1f55cb1a69199d4009eea23ceaddc9301"_unhex};
+  std::vector<uint8_t> secp_message_vector{
+      "ce0677bb30baa8cf067c88db9811f4333d131bf8bcf12fe7065d211dce971008"_unhex};
+  Secp256k1Message secp_message_hash{};
+
+  Secp256k1Signature secp_signature{};
+  Secp256k1UncompressedPublicKey secp_uncompressed_public_key{};
+  Secp256k1CompressedPublicKey secp_compressed_pyblic_key{};
+  Buffer scale_encoded_secp_uncompressed_public_key;
+  Buffer scale_encoded_secp_compressed_public_key;
 };
 
 /**
@@ -290,4 +334,55 @@ TEST_F(CryptoExtensionTest, Twox256) {
   EXPECT_CALL(*memory_, storeBuffer(out_ptr, twox256_result)).Times(1);
 
   crypto_ext_->ext_twox_256(twox_input_data, twox_input_size, out_ptr);
+}
+
+/**
+ * @given initialized crypto extensions @and secp256k1 signature and message
+ * @when call recovery public secp256k1 uncompressed key
+ * @then resulting public key is correct
+ */
+TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressed) {
+  WasmPointer sig = 1;
+  WasmPointer msg = 10;
+  PointerSize res = WasmResult(20, 20).combine();
+  auto &sig_input = secp_signature;
+  auto &msg_input = secp_message_hash;
+
+  EXPECT_CALL(*memory_, loadN(sig, sig_input.size()))
+      .WillOnce(Return(Buffer(sig_input)));
+
+  EXPECT_CALL(*memory_, loadN(msg, msg_input.size()))
+      .WillOnce(Return(Buffer(msg_input)));
+
+  EXPECT_CALL(*memory_, storeBuffer(scale_encoded_secp_uncompressed_public_key))
+      .WillOnce(Return(res));
+
+  auto ptrsize = crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_v1(sig, msg);
+  ASSERT_EQ(ptrsize, res);
+}
+
+/**
+ * @given initialized crypto extensions @and secp256k1 signature and message
+ * @when call recovery public secp256k1 compressed key
+ * @then resulting public key is correct
+ */
+TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressed) {
+  WasmPointer sig = 1;
+  WasmPointer msg = 10;
+  PointerSize res = WasmResult(20, 20).combine();
+  auto &sig_input = secp_signature;
+  auto &msg_input = secp_message_hash;
+
+  EXPECT_CALL(*memory_, loadN(sig, sig_input.size()))
+      .WillOnce(Return(Buffer(sig_input)));
+
+  EXPECT_CALL(*memory_, loadN(msg, msg_input.size()))
+      .WillOnce(Return(Buffer(msg_input)));
+
+  EXPECT_CALL(*memory_, storeBuffer(scale_encoded_secp_compressed_public_key))
+      .WillOnce(Return(res));
+
+  auto ptrsize =
+      crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_compressed_v1(sig, msg);
+  ASSERT_EQ(ptrsize, res);
 }

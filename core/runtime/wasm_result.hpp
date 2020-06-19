@@ -17,6 +17,9 @@ namespace kagome::runtime {
     explicit constexpr WasmResult(PointerSize v)
         : address(getWasmAddr(v)), length(getWasmLen(v)) {}
 
+    constexpr WasmResult(WasmPointer ptr, SizeType size)
+        : address{ptr}, length{size} {}
+
     WasmPointer address = 0u;  ///< address of buffer result
     SizeType length = 0u;      ///< length of buffer result
 
