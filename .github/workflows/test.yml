@@ -47,9 +47,7 @@ jobs:
       steps:
         - uses: actions/checkout@v2
         - name: checkout submodules
-          shell: bash
-          run: |
-            git submodule update --init --recursive
+          run: git submodule update --init --recursive
         - name: "${{ matrix.options.name }}"
           run: "${{ matrix.options.run }}"
 
