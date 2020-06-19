@@ -7,50 +7,40 @@
 #define KAGOME_CRYPTO_SECP256K1_PROVIDER_HPP
 
 #include <libp2p/crypto/secp256k1_provider.hpp>
-
-#include "common/blob.hpp"
+#include "crypto/secp256k1_types.hpp"
 #include "outcome/outcome.hpp"
 
 namespace kagome::crypto {
-  namespace secp256k1 {
-    static constexpr size_t kUncompressedPublicKeySize = 65u;
-    static constexpr size_t kCompressedPublicKeySize = 33u;
-    static constexpr size_t kCompactSignatureSize = 65u;
-  }  // namespace secp256k1
-
-  /**
-   * uncompressed form of public key
-   */
-  using Secp256k1CompressedPublicKey =
-      std::array<uint8_t, secp256k1::kCompressedPublicKeySize>;
-  /**
-   * compressed form of public key
-   */
-  using Secp256k1UncompressedPublicKey =
-      std::array<uint8_t, secp256k1::kUncompressedPublicKeySize>;
-
-  using Secp256k1Signature =
-      std::array<uint8_t, secp256k1::kCompactSignatureSize>;
-
-  /**
-   * blake2s hash 32-byte sequence of bytes
-   */
-  using Secp256k1Message = common::Hash256;
 
   enum class Secp256k1ProviderError {
     INVALID_ARGUMENT = 1,
     RECOVERY_FAILED,
   };
 
+  /**
+   * @class Secp256k1Provider provides public key recovery functionality
+   */
   class Secp256k1Provider {
    public:
     virtual ~Secp256k1Provider() = 0;
 
+    /**
+     * @brief recover public key in uncompressed form
+     * @param signature signature
+     * @param message_hash blake2s message hash
+     * @return uncompressed public key or error
+     */
     virtual outcome::result<Secp256k1UncompressedPublicKey>
     recoverPublickeyUncompressed(
         const Secp256k1Signature &signature,
         const Secp256k1Message &message_hash) const = 0;
 
+    /**
+     * @brief recover public key in compressed form
+     * @param signature signature
+     * @param message_hash blake2s message hash
+     * @return compressed public key or error
+     */
     virtual outcome::result<Secp256k1CompressedPublicKey>
     recoverPublickeyCompressed(const Secp256k1Signature &signature,
                                const Secp256k1Message &message_hash) const = 0;
