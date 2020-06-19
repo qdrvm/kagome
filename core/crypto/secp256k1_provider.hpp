@@ -29,7 +29,6 @@ namespace kagome::crypto {
   using Secp256k1UncompressedPublicKey =
       std::array<uint8_t, secp256k1::kUncompressedPublicKeySize>;
 
-  //  using Secp256k1PrivateKey = ::libp2p::crypto::secp256k1::PrivateKey;
   using Secp256k1Signature =
       std::array<uint8_t, secp256k1::kCompactSignatureSize>;
 
@@ -48,8 +47,9 @@ namespace kagome::crypto {
     virtual ~Secp256k1Provider() = 0;
 
     virtual outcome::result<Secp256k1UncompressedPublicKey>
-    recoverPublickeyUncopressed(const Secp256k1Signature &signature,
-                                const Secp256k1Message &message_hash) const = 0;
+    recoverPublickeyUncompressed(
+        const Secp256k1Signature &signature,
+        const Secp256k1Message &message_hash) const = 0;
 
     virtual outcome::result<Secp256k1CompressedPublicKey>
     recoverPublickeyCompressed(const Secp256k1Signature &signature,
