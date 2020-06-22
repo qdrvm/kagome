@@ -40,7 +40,7 @@ namespace kagome::crypto {
       const Secp256k1Message &message_hash) const {
     OUTCOME_TRY(pubkey, recoverPublickey(signature, message_hash));
     Secp256k1CompressedPublicKey pubkey_out;
-    size_t outputlen = pubkey_out.size();
+    size_t outputlen = Secp256k1CompressedPublicKey::size();
 
     if (1
         != secp256k1_ec_pubkey_serialize(context_.get(),
