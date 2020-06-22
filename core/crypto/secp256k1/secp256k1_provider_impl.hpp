@@ -6,7 +6,7 @@
 #ifndef KAGOME_CRYPTO_SECP256K1_PROVIDER_IMPL_HPP
 #define KAGOME_CRYPTO_SECP256K1_PROVIDER_IMPL_HPP
 
-#include <libsecp256k1/include/secp256k1.h>
+#include <secp256k1.h>
 
 #include "crypto/secp256k1_provider.hpp"
 

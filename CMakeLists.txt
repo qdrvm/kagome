@@ -95,8 +95,6 @@ endif()
 include(GNUInstallDirs)
 include(cmake/install.cmake)
 
-add_subdirectory(deps)
-
 include_directories(
   # project includes
   ${PROJECT_SOURCE_DIR}/core
@@ -105,7 +103,6 @@ include_directories(
 include_directories(
   SYSTEM
   # system includes
-  deps
 )
 
 add_subdirectory(core)
