@@ -12,6 +12,7 @@ hunter_config(libp2p
     )
 
 hunter_config(libsecp256k1
-    URL https://github.com/soramitsu/libsecp256k1/archive/4e2675553776f9ad70e4a5bc9404151aea8ff910.zip
-    SHA1 7ef204c8d99c1752683b460e3f4f66e78760b86a
+    URL https://github.com/soramitsu/soramitsu-libsecp256k1-copy/archive/c7630e1bac638c0f16ee66d4dce7b5c49eecbaa5.zip
+    SHA1 1c89a164663a89308d3f31d6b0fb89931d413dcf
+    CMAKE_ARGS SECP256K1_BUILD_TEST=OFF
     )
