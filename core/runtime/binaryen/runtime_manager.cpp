@@ -105,13 +105,14 @@ namespace kagome::runtime::binaryen {
       module = modules_.emplace(std::move(hash), std::move(new_module))
                    .first->second;
     }
-
     external_interface_ = std::make_shared<RuntimeExternalInterface>(
-        extension_factory_, std::shared_ptr(std::move(storage_batch)));
+        extension_factory_, storage_batch);
 
-    return {std::make_shared<wasm::ModuleInstance>(*module,
-                                                   external_interface_.get()),
-            external_interface_->memory()};
+    return RuntimeManager::RuntimeEnvironment{
+        std::make_shared<wasm::ModuleInstance>(*module,
+                                               external_interface_.get()),
+        external_interface_->memory(),
+        boost::none};
   }
 
   outcome::result<std::shared_ptr<wasm::Module>> RuntimeManager::prepareModule(

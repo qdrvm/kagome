@@ -5,8 +5,11 @@
 
 #include "storage/trie/impl/persistent_trie_batch_impl.hpp"
 
+#include <memory>
+
 #include "scale/scale.hpp"
 #include "storage/trie/impl/trie_error.hpp"
+#include "storage/trie/impl/topper_trie_batch_impl.hpp"
 
 namespace kagome::storage::trie {
 
@@ -50,6 +53,11 @@ namespace kagome::storage::trie {
     return std::move(root);
   }
 
+  std::unique_ptr<TopperTrieBatch> PersistentTrieBatchImpl::batchOnTop() {
+    auto p = weak_from_this();
+    return std::make_unique<TopperTrieBatchImpl>(p);
+  }
+
   outcome::result<Buffer> PersistentTrieBatchImpl::get(
       const Buffer &key) const {
     return trie_->get(key);
@@ -62,7 +70,6 @@ namespace kagome::storage::trie {
   bool PersistentTrieBatchImpl::empty() const {
     return trie_->empty();
   }
-
 
   outcome::result<Buffer> PersistentTrieBatchImpl::calculateRoot() const {
     OUTCOME_TRY(enc, codec_->encodeNode(*trie_->getRoot()));

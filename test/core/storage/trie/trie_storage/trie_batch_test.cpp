@@ -197,3 +197,29 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
   // (which we want, as the batch commit failed)
   ASSERT_EQ(trie->getRootHash(), old_root);
 }
+
+TEST_F(TrieBatchTest, TopperBatchAtomic) {
+  std::shared_ptr p_batch(trie->getPersistentBatch().value());
+  EXPECT_OUTCOME_TRUE_1(p_batch->put("123"_buf, "abc"_buf));
+  EXPECT_OUTCOME_TRUE_1(p_batch->put("678"_buf, "abc"_buf));
+
+  auto t_batch = p_batch->batchOnTop();
+
+  EXPECT_OUTCOME_TRUE_1(t_batch->put("123"_buf, "abc"_buf));
+  ASSERT_TRUE(t_batch->contains("123"_buf));
+  EXPECT_OUTCOME_TRUE_1(t_batch->put("345"_buf, "cde"_buf));
+  ASSERT_TRUE(t_batch->contains("345"_buf));
+  EXPECT_OUTCOME_TRUE_1(t_batch->remove("123"_buf));
+  ASSERT_FALSE(t_batch->contains("123"_buf));
+  ASSERT_TRUE(t_batch->contains("678"_buf));
+
+  ASSERT_FALSE(p_batch->contains("345"_buf));
+  ASSERT_FALSE(p_batch->contains("678"_buf));
+  ASSERT_TRUE(p_batch->contains("123"_buf));
+
+  EXPECT_OUTCOME_TRUE_1(t_batch->writeBack());
+
+  ASSERT_TRUE(p_batch->contains("345"_buf));
+  ASSERT_TRUE(p_batch->contains("678"_buf));
+  ASSERT_FALSE(p_batch->contains("123"_buf));
+}

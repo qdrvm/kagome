@@ -38,6 +38,8 @@ namespace kagome::storage::trie {
     MOCK_CONST_METHOD0(empty, bool());
 
     MOCK_METHOD0(commit, outcome::result<Buffer>());
+
+    MOCK_METHOD0(batchOnTop, std::unique_ptr<TopperTrieBatch>());
   };
 
   class EphemeralTrieBatchMock : public EphemeralTrieBatch {
@@ -59,7 +61,7 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD1(remove, outcome::result<void>(const common::Buffer &));
 
-    MOCK_CONST_METHOD0(calculateRoot, outcome::result<common::Buffer>());
+    // MOCK_CONST_METHOD0(calculateRoot, outcome::result<common::Buffer>());
 
     MOCK_METHOD1(clearPrefix, outcome::result<void>(const common::Buffer &buf));
 

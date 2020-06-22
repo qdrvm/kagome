@@ -19,13 +19,15 @@ namespace kagome::storage::trie {
      * Calculate the merkle trie root of a trie to which the batch belongs.
      * Includes changes pending in the batch.
      */
-    virtual outcome::result<Buffer> calculateRoot() const = 0;
+    //virtual outcome::result<Buffer> calculateRoot() const = 0;
 
     /**
      * Remove all trie entries which key begins with the supplied prefix
      */
     virtual outcome::result<void> clearPrefix(const Buffer &prefix) = 0;
   };
+
+  class TopperTrieBatch;
 
   /**
    * A batch that grants access to the persistent trie storage.
@@ -38,6 +40,11 @@ namespace kagome::storage::trie {
      * @returns the root of the committed trie
      */
     virtual outcome::result<Buffer> commit() = 0;
+
+    /**
+     * Creates a batch on top of this batch
+     */
+    virtual std::unique_ptr<TopperTrieBatch> batchOnTop() = 0;
   };
 
   /**
@@ -53,6 +60,7 @@ namespace kagome::storage::trie {
    * Used for small amount of atomic changes, like applying an extrinsic
    */
   class TopperTrieBatch: public TrieBatch {
+   public:
     /**
      * Writes changes to the parent batch
      */
