@@ -33,8 +33,7 @@ namespace kagome::storage::trie {
   outcome::result<void> PolkadotTrieCursor::seekToFirst() {
     visited_root_ = false;
     current_ = trie_.getRoot();
-    OUTCOME_TRY(next());
-    return outcome::success();
+    return next();
   }
 
   outcome::result<void> PolkadotTrieCursor::seek(const common::Buffer &key) {

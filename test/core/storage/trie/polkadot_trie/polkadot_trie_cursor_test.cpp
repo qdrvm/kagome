@@ -107,8 +107,5 @@ TEST_F(PolkadotTrieCursorTest, BigPseudoRandomTrie) {
     keys.erase(key);
     EXPECT_OUTCOME_TRUE_1(cursor->next());
   }
-  EXPECT_EQ(keys.size(), 0);
-  for(auto k: keys) {
-    std::cout << k.toHex() << "\n";
-  }
+  EXPECT_TRUE(keys.empty());
 }
