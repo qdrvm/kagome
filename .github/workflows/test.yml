@@ -19,10 +19,6 @@ jobs:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
-    - name: checkout submodules
-      shell: bash
-      run: |
-        git submodule update --init --recursive
     - name: install
       run: ./housekeeping/macos/dependency.sh
     - name: build
@@ -46,8 +42,7 @@ jobs:
       container: soramitsu/kagome-dev:9 # Change to ${{ env.INDOCKER_IMAGE }} https://github.community/t/how-to-set-and-access-a-workflow-variable/17335/6
       steps:
         - uses: actions/checkout@v2
-        - name: checkout submodules
-          run: git submodule update --init --recursive
+
         - name: "${{ matrix.options.name }}"
           run: "${{ matrix.options.run }}"
 
