@@ -61,8 +61,6 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD1(remove, outcome::result<void>(const common::Buffer &));
 
-    // MOCK_CONST_METHOD0(calculateRoot, outcome::result<common::Buffer>());
-
     MOCK_METHOD1(clearPrefix, outcome::result<void>(const common::Buffer &buf));
 
     MOCK_CONST_METHOD0(empty, bool());

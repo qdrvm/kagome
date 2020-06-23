@@ -14,6 +14,7 @@
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/impl/trie_storage_impl.hpp"
 #include "storage/trie/trie_batches.hpp"
+#include "storage/trie/impl/persistent_trie_batch_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_leveldb_test.hpp"
@@ -199,7 +200,7 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
 }
 
 TEST_F(TrieBatchTest, TopperBatchAtomic) {
-  std::shared_ptr p_batch(trie->getPersistentBatch().value());
+  std::shared_ptr p_batch(std::move(trie->getPersistentBatch().value()));
   EXPECT_OUTCOME_TRUE_1(p_batch->put("123"_buf, "abc"_buf));
   EXPECT_OUTCOME_TRUE_1(p_batch->put("678"_buf, "abc"_buf));
 

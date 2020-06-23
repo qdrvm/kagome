@@ -16,12 +16,6 @@ namespace kagome::storage::trie {
     ~TrieBatch() override = default;
 
     /**
-     * Calculate the merkle trie root of a trie to which the batch belongs.
-     * Includes changes pending in the batch.
-     */
-    //virtual outcome::result<Buffer> calculateRoot() const = 0;
-
-    /**
      * Remove all trie entries which key begins with the supplied prefix
      */
     virtual outcome::result<void> clearPrefix(const Buffer &prefix) = 0;

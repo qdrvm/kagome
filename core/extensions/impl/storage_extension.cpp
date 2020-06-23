@@ -206,12 +206,7 @@ namespace kagome::extensions {
       memory_->storeBuffer(result, root);
     } else {
       logger_->error("ext_storage_root called in an ephemeral extension");
-      /*const auto &root = storage_batch_->calculateRoot();
-      if (root.has_error()) {
-        logger_->error("ext_storage_root resulted with an error: {}",
-                       root.error().message());
-      }
-      memory_->storeBuffer(result, root.value());*/
+      memory_->storeBuffer(result, Buffer(32, 0));
     }
   }
 

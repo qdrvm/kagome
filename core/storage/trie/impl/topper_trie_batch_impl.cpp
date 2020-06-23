@@ -10,7 +10,12 @@
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
                             TopperTrieBatchImpl::Error,
                             e) {
-  switch (e) {}
+  using E = kagome::storage::trie::TopperTrieBatchImpl::Error;
+  switch (e) {
+    case E::PARENT_EXPIRED:
+      return "Pointer to the parent batch expired";
+  }
+  return "Unknown error";
 }
 
 namespace kagome::storage::trie {
@@ -73,6 +78,12 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TopperTrieBatchImpl::clearPrefix(const Buffer &prefix) {
+    for(auto p: cache_) {
+      if(p.first.subbuffer(0, prefix.size()) == prefix) {
+        cache_[p.first] = boost::none;
+      }
+    }
+    // TODO(Harrm) Finish when cursor is merged
     return outcome::success();
   }
 
