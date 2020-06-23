@@ -46,7 +46,6 @@ namespace kagome::storage::trie {
     // maybe need to refactor this condition
     if (node.has_value() and node.value()->value.has_value()) {
       current_ = node.value();
-
     } else {
       current_ = nullptr;
       return Error::INVALID_CURSOR_POSITION;
