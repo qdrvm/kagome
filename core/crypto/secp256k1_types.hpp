@@ -8,34 +8,31 @@
 
 #include "common/blob.hpp"
 
-namespace kagome::crypto {
-  namespace secp256k1 {
+namespace kagome::crypto::secp256k1 {
+  namespace constants {
     static constexpr size_t kUncompressedPublicKeySize = 65u;
     static constexpr size_t kCompressedPublicKeySize = 33u;
     static constexpr size_t kCompactSignatureSize = 65u;
-  }  // namespace secp256k1
+  }  // namespace constants
 
-  /**
-   * uncompressed form of public key
-   */
-  using Secp256k1CompressedPublicKey =
-      common::Blob<secp256k1::kCompressedPublicKeySize>;
   /**
    * compressed form of public key
    */
-  using Secp256k1UncompressedPublicKey =
-      common::Blob<secp256k1::kUncompressedPublicKeySize>;
+  using CompressedPublicKey = common::Blob<constants::kCompressedPublicKeySize>;
+  /**
+   * uncompressed form of public key
+   */
+  using ExpandedPublicKey = common::Blob<constants::kUncompressedPublicKeySize>;
 
   /**
    * secp256k1 RSV-signature
    */
-  using Secp256k1Signature = common::Blob<secp256k1::kCompactSignatureSize>;
+  using RSVSignature = common::Blob<constants::kCompactSignatureSize>;
 
   /**
-   * blake2s hash 32-byte sequence of bytes
+   * 32-byte sequence of bytes (presumably blake2s hash)
    */
-  using Secp256k1Message = common::Hash256;
-
-}  // namespace kagome::crypto
+  using MessageHash = common::Hash256;
+}  // namespace kagome::crypto::secp256k1
 
 #endif  // KAGOME_CRYPTO_SECP256K1_TYPES_HPP

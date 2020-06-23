@@ -11,11 +11,6 @@
 
 namespace kagome::crypto {
 
-  enum class Secp256k1ProviderError {
-    INVALID_ARGUMENT = 1,
-    RECOVERY_FAILED,
-  };
-
   /**
    * @class Secp256k1Provider provides public key recovery functionality
    */
@@ -29,10 +24,10 @@ namespace kagome::crypto {
      * @param message_hash blake2s message hash
      * @return uncompressed public key or error
      */
-    virtual outcome::result<Secp256k1UncompressedPublicKey>
+    virtual outcome::result<secp256k1::ExpandedPublicKey>
     recoverPublickeyUncompressed(
-        const Secp256k1Signature &signature,
-        const Secp256k1Message &message_hash) const = 0;
+        const secp256k1::RSVSignature &signature,
+        const secp256k1::MessageHash &message_hash) const = 0;
 
     /**
      * @brief recover public key in compressed form
@@ -40,13 +35,12 @@ namespace kagome::crypto {
      * @param message_hash blake2s message hash
      * @return compressed public key or error
      */
-    virtual outcome::result<Secp256k1CompressedPublicKey>
-    recoverPublickeyCompressed(const Secp256k1Signature &signature,
-                               const Secp256k1Message &message_hash) const = 0;
+    virtual outcome::result<secp256k1::CompressedPublicKey>
+    recoverPublickeyCompressed(
+        const secp256k1::RSVSignature &signature,
+        const secp256k1::MessageHash &message_hash) const = 0;
   };
 
 }  // namespace kagome::crypto
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, Secp256k1ProviderError);
 
 #endif  // KAGOME_CRYPTO_SECP256K1_PROVIDER_HPP

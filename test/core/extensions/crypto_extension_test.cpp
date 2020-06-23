@@ -29,23 +29,23 @@ using kagome::crypto::ED25519ProviderImpl;
 using kagome::crypto::ED25519Signature;
 using kagome::crypto::Hasher;
 using kagome::crypto::HasherImpl;
-using kagome::crypto::Secp256k1CompressedPublicKey;
-using kagome::crypto::Secp256k1Message;
 using kagome::crypto::Secp256k1Provider;
 using kagome::crypto::Secp256k1ProviderImpl;
-using kagome::crypto::Secp256k1Signature;
-using kagome::crypto::Secp256k1UncompressedPublicKey;
 using kagome::crypto::SR25519Keypair;
 using kagome::crypto::SR25519Provider;
 using kagome::crypto::SR25519ProviderImpl;
 using kagome::crypto::SR25519PublicKey;
 using kagome::crypto::SR25519SecretKey;
 using kagome::crypto::SR25519Signature;
+using kagome::crypto::secp256k1::CompressedPublicKey;
+using kagome::crypto::secp256k1::ExpandedPublicKey;
+using kagome::crypto::secp256k1::MessageHash;
+using kagome::crypto::secp256k1::RSVSignature;
 using kagome::runtime::MockMemory;
-using kagome::runtime::PointerSize;
-using kagome::runtime::SizeType;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmResult;
+using kagome::runtime::WasmSize;
+using kagome::runtime::WasmSpan;
 
 using ::testing::Return;
 
@@ -132,11 +132,11 @@ class CryptoExtensionTest : public ::testing::Test {
       "90f27b8b488db00b00606796d2987f6a5f59ae62ea05effe84fef5b8b0e549984a691139ad57a3f0b906637673aa2f63d1f55cb1a69199d4009eea23ceaddc9301"_unhex};
   std::vector<uint8_t> secp_message_vector{
       "ce0677bb30baa8cf067c88db9811f4333d131bf8bcf12fe7065d211dce971008"_unhex};
-  Secp256k1Message secp_message_hash{};
+  MessageHash secp_message_hash{};
 
-  Secp256k1Signature secp_signature{};
-  Secp256k1UncompressedPublicKey secp_uncompressed_public_key{};
-  Secp256k1CompressedPublicKey secp_compressed_pyblic_key{};
+  RSVSignature secp_signature{};
+  ExpandedPublicKey secp_uncompressed_public_key{};
+  CompressedPublicKey secp_compressed_pyblic_key{};
   Buffer scale_encoded_secp_uncompressed_public_key;
   Buffer scale_encoded_secp_compressed_public_key;
 };
@@ -149,11 +149,12 @@ class CryptoExtensionTest : public ::testing::Test {
  */
 TEST_F(CryptoExtensionTest, Blake2_128Valid) {
   WasmPointer data = 0;
-  SizeType size = input.size();
+  WasmSize size = input.size();
   WasmPointer out_ptr = 42;
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
-  EXPECT_CALL(*memory_, storeBuffer(out_ptr, blake2b_128_result)).Times(1);
+  EXPECT_CALL(*memory_, storeBuffer(out_ptr, blake2b_128_result.toConstSpan()))
+      .Times(1);
 
   crypto_ext_->ext_blake2_128(data, size, out_ptr);
 }
@@ -166,11 +167,12 @@ TEST_F(CryptoExtensionTest, Blake2_128Valid) {
  */
 TEST_F(CryptoExtensionTest, Blake2_256Valid) {
   WasmPointer data = 0;
-  SizeType size = input.size();
+  WasmSize size = input.size();
   WasmPointer out_ptr = 42;
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
-  EXPECT_CALL(*memory_, storeBuffer(out_ptr, blake2b_256_result)).Times(1);
+  EXPECT_CALL(*memory_, storeBuffer(out_ptr, blake2b_256_result.toConstSpan()))
+      .Times(1);
 
   crypto_ext_->ext_blake2_256(data, size, out_ptr);
 }
@@ -182,11 +184,12 @@ TEST_F(CryptoExtensionTest, Blake2_256Valid) {
  */
 TEST_F(CryptoExtensionTest, KeccakValid) {
   WasmPointer data = 0;
-  SizeType size = input.size();
+  WasmSize size = input.size();
   WasmPointer out_ptr = 42;
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
-  EXPECT_CALL(*memory_, storeBuffer(out_ptr, keccak_result)).Times(1);
+  EXPECT_CALL(*memory_, storeBuffer(out_ptr, keccak_result.toConstSpan()))
+      .Times(1);
 
   crypto_ext_->ext_keccak_256(data, size, out_ptr);
 }
@@ -204,7 +207,7 @@ TEST_F(CryptoExtensionTest, Ed25519VerifySuccess) {
   Buffer sig_buf(signature);
 
   WasmPointer input_data = 0;
-  SizeType input_size = input.size();
+  WasmSize input_size = input.size();
   WasmPointer sig_data_ptr = 42;
   WasmPointer pub_key_data_ptr = 123;
 
@@ -235,7 +238,7 @@ TEST_F(CryptoExtensionTest, Ed25519VerifyFailure) {
   Buffer invalid_sig_buf(invalid_signature);
 
   WasmPointer input_data = 0;
-  SizeType input_size = input.size();
+  WasmSize input_size = input.size();
   WasmPointer sig_data_ptr = 42;
   WasmPointer pub_key_data_ptr = 123;
 
@@ -258,7 +261,7 @@ TEST_F(CryptoExtensionTest, Ed25519VerifyFailure) {
 TEST_F(CryptoExtensionTest, Sr25519VerifySuccess) {
   auto pub_key = gsl::span<uint8_t>(sr25519_keypair.public_key);
   WasmPointer input_data = 0;
-  SizeType input_size = input.size();
+  WasmSize input_size = input.size();
   WasmPointer sig_data_ptr = 42;
   WasmPointer pub_key_data_ptr = 123;
 
@@ -287,7 +290,7 @@ TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
   ++false_signature[3];
 
   WasmPointer input_data = 0;
-  SizeType input_size = input.size();
+  WasmSize input_size = input.size();
   WasmPointer sig_data_ptr = 42;
   WasmPointer pub_key_data_ptr = 123;
 
@@ -309,12 +312,13 @@ TEST_F(CryptoExtensionTest, Sr25519VerifyFailure) {
  */
 TEST_F(CryptoExtensionTest, Twox128) {
   WasmPointer twox_input_data = 0;
-  SizeType twox_input_size = twox_input.size();
+  WasmSize twox_input_size = twox_input.size();
   WasmPointer out_ptr = 42;
 
   EXPECT_CALL(*memory_, loadN(twox_input_data, twox_input_size))
       .WillOnce(Return(twox_input));
-  EXPECT_CALL(*memory_, storeBuffer(out_ptr, twox128_result)).Times(1);
+  EXPECT_CALL(*memory_, storeBuffer(out_ptr, twox128_result.toConstSpan()))
+      .Times(1);
 
   crypto_ext_->ext_twox_128(twox_input_data, twox_input_size, out_ptr);
 }
@@ -326,12 +330,13 @@ TEST_F(CryptoExtensionTest, Twox128) {
  */
 TEST_F(CryptoExtensionTest, Twox256) {
   WasmPointer twox_input_data = 0;
-  SizeType twox_input_size = twox_input.size();
+  WasmSize twox_input_size = twox_input.size();
   WasmPointer out_ptr = 42;
 
   EXPECT_CALL(*memory_, loadN(twox_input_data, twox_input_size))
       .WillOnce(Return(twox_input));
-  EXPECT_CALL(*memory_, storeBuffer(out_ptr, twox256_result)).Times(1);
+  EXPECT_CALL(*memory_, storeBuffer(out_ptr, twox256_result.toConstSpan()))
+      .Times(1);
 
   crypto_ext_->ext_twox_256(twox_input_data, twox_input_size, out_ptr);
 }
@@ -344,7 +349,7 @@ TEST_F(CryptoExtensionTest, Twox256) {
 TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressed) {
   WasmPointer sig = 1;
   WasmPointer msg = 10;
-  PointerSize res = WasmResult(20, 20).combine();
+  WasmSpan res = WasmResult(20, 20).combine();
   auto &sig_input = secp_signature;
   auto &msg_input = secp_message_hash;
 
@@ -354,7 +359,9 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressed) {
   EXPECT_CALL(*memory_, loadN(msg, msg_input.size()))
       .WillOnce(Return(Buffer(msg_input)));
 
-  EXPECT_CALL(*memory_, storeBuffer(scale_encoded_secp_uncompressed_public_key))
+  EXPECT_CALL(
+      *memory_,
+      storeBuffer(scale_encoded_secp_uncompressed_public_key.toConstSpan()))
       .WillOnce(Return(res));
 
   auto ptrsize = crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_v1(sig, msg);
@@ -369,7 +376,7 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressed) {
 TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressed) {
   WasmPointer sig = 1;
   WasmPointer msg = 10;
-  PointerSize res = WasmResult(20, 20).combine();
+  WasmSpan res = WasmResult(20, 20).combine();
   auto &sig_input = secp_signature;
   auto &msg_input = secp_message_hash;
 
@@ -379,7 +386,9 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressed) {
   EXPECT_CALL(*memory_, loadN(msg, msg_input.size()))
       .WillOnce(Return(Buffer(msg_input)));
 
-  EXPECT_CALL(*memory_, storeBuffer(scale_encoded_secp_compressed_public_key))
+  EXPECT_CALL(
+      *memory_,
+      storeBuffer(scale_encoded_secp_compressed_public_key.toConstSpan()))
       .WillOnce(Return(res));
 
   auto ptrsize =

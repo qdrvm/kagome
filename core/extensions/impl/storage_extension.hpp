@@ -30,44 +30,44 @@ namespace kagome::extensions {
      * @see Extension::ext_clear_prefix
      */
     void ext_clear_prefix(runtime::WasmPointer prefix_data,
-                          runtime::SizeType prefix_length);
+                          runtime::WasmSize prefix_length);
 
     /**
      * @see Extension::ext_clear_storage
      */
     void ext_clear_storage(runtime::WasmPointer key_data,
-                           runtime::SizeType key_length);
+                           runtime::WasmSize key_length);
 
     /**
      * @see Extension::ext_exists_storage
      */
-    runtime::SizeType ext_exists_storage(runtime::WasmPointer key_data,
-                                         runtime::SizeType key_length) const;
+    runtime::WasmSize ext_exists_storage(runtime::WasmPointer key_data,
+                                         runtime::WasmSize key_length) const;
 
     /**
      * @see Extension::ext_get_allocated_storage
      */
     runtime::WasmPointer ext_get_allocated_storage(
         runtime::WasmPointer key_data,
-        runtime::SizeType key_length,
+        runtime::WasmSize key_length,
         runtime::WasmPointer len_ptr);
 
     /**
      * @see Extension::ext_get_storage_into
      */
-    runtime::SizeType ext_get_storage_into(runtime::WasmPointer key_data,
-                                           runtime::SizeType key_length,
+    runtime::WasmSize ext_get_storage_into(runtime::WasmPointer key_data,
+                                           runtime::WasmSize key_length,
                                            runtime::WasmPointer value_data,
-                                           runtime::SizeType value_length,
-                                           runtime::SizeType value_offset);
+                                           runtime::WasmSize value_length,
+                                           runtime::WasmSize value_offset);
 
     /**
      * @see Extension::ext_set_storage
      */
     void ext_set_storage(runtime::WasmPointer key_data,
-                         runtime::SizeType key_length,
+                         runtime::WasmSize key_length,
                          runtime::WasmPointer value_data,
-                         runtime::SizeType value_length);
+                         runtime::WasmSize value_length);
 
     // -------------------------Trie operations--------------------------
 
@@ -76,13 +76,13 @@ namespace kagome::extensions {
      */
     void ext_blake2_256_enumerated_trie_root(runtime::WasmPointer values_data,
                                              runtime::WasmPointer lengths_data,
-                                             runtime::SizeType values_num,
+                                             runtime::WasmSize values_num,
                                              runtime::WasmPointer result);
 
     /**
      * @see Extension::ext_storage_changes_root
      */
-    runtime::SizeType ext_storage_changes_root(runtime::WasmPointer parent_hash,
+    runtime::WasmSize ext_storage_changes_root(runtime::WasmPointer parent_hash,
                                                runtime::WasmPointer result);
 
     /**
@@ -103,8 +103,8 @@ namespace kagome::extensions {
      * case value by give key does not exist
      */
     outcome::result<common::Buffer> get(const common::Buffer &key,
-                                        runtime::SizeType offset,
-                                        runtime::SizeType max_length) const;
+                                        runtime::WasmSize offset,
+                                        runtime::WasmSize max_length) const;
 
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
     std::shared_ptr<runtime::WasmMemory> memory_;

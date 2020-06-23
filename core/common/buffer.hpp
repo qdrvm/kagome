@@ -190,6 +190,16 @@ namespace kagome::common {
     std::vector<uint8_t> &toVector();
 
     /**
+     * @brief getter for span of const bytes
+     */
+    gsl::span<const uint8_t> toConstSpan() const;
+
+    /**
+     * @brief getter for span of mutable bytes
+     */
+    gsl::span<uint8_t> toSpan();
+
+    /**
      * Returns a copy of a part of the buffer
      * Works alike subspan() of gsl::span
      */

@@ -131,7 +131,7 @@ namespace kagome::runtime::binaryen {
       auto &&[module, memory] = environment;
 
       runtime::WasmPointer ptr = 0u;
-      runtime::SizeType len = 0u;
+      runtime::WasmSize len = 0u;
 
       if constexpr (sizeof...(args) > 0) {
         OUTCOME_TRY(buffer, scale::encode(std::forward<Args>(args)...));

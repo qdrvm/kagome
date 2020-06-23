@@ -35,35 +35,35 @@ namespace kagome::extensions {
      * @see Extension::ext_blake2_128
      */
     void ext_blake2_128(runtime::WasmPointer data,
-                        runtime::SizeType len,
+                        runtime::WasmSize len,
                         runtime::WasmPointer out_ptr);
 
     /**
      * @see Extension::ext_blake2_256
      */
     void ext_blake2_256(runtime::WasmPointer data,
-                        runtime::SizeType len,
+                        runtime::WasmSize len,
                         runtime::WasmPointer out_ptr);
 
     /**
      * @see Extension::ext_keccak_256
      */
     void ext_keccak_256(runtime::WasmPointer data,
-                        runtime::SizeType len,
+                        runtime::WasmSize len,
                         runtime::WasmPointer out_ptr);
 
     /**
      * @see Extension::ext_ed25519_verify
      */
-    runtime::SizeType ext_ed25519_verify(runtime::WasmPointer msg_data,
-                                         runtime::SizeType msg_len,
+    runtime::WasmSize ext_ed25519_verify(runtime::WasmPointer msg_data,
+                                         runtime::WasmSize msg_len,
                                          runtime::WasmPointer sig_data,
                                          runtime::WasmPointer pubkey_data);
     /**
      * @see Extension::ext_sr25519_verify
      */
-    runtime::SizeType ext_sr25519_verify(runtime::WasmPointer msg_data,
-                                         runtime::SizeType msg_len,
+    runtime::WasmSize ext_sr25519_verify(runtime::WasmPointer msg_data,
+                                         runtime::WasmSize msg_len,
                                          runtime::WasmPointer sig_data,
                                          runtime::WasmPointer pubkey_data);
 
@@ -71,33 +71,33 @@ namespace kagome::extensions {
      * @see Extension::ext_twox_64
      */
     void ext_twox_64(runtime::WasmPointer data,
-                     runtime::SizeType len,
+                     runtime::WasmSize len,
                      runtime::WasmPointer out);
 
     /**
      * @see Extension::ext_twox_128
      */
     void ext_twox_128(runtime::WasmPointer data,
-                      runtime::SizeType len,
+                      runtime::WasmSize len,
                       runtime::WasmPointer out);
 
     /**
      * @see Extension::ext_twox_256
      */
     void ext_twox_256(runtime::WasmPointer data,
-                      runtime::SizeType len,
+                      runtime::WasmSize len,
                       runtime::WasmPointer out);
 
     /**
      * @see Extension::ext_crypto_secp256k1_ecdsa_recover_v1
      */
-    runtime::PointerSize ext_crypto_secp256k1_ecdsa_recover_v1(
+    runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_v1(
         runtime::WasmPointer sig, runtime::WasmPointer msg);
 
     /**
      * @see Extension::ext_crypto_secp256k1_ecdsa_recover_compressed_v1
      */
-    runtime::PointerSize ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
+    runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
         runtime::WasmPointer sig, runtime::WasmPointer msg);
 
    private:

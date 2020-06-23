@@ -11,6 +11,7 @@ hunter_config(libp2p
     CMAKE_ARGS TESTING=OFF
     )
 
+# TODO (yuraz): PRE-451 remove it after collecting libsecp256k1 into hunter config
 hunter_config(libsecp256k1
     URL https://github.com/soramitsu/soramitsu-libsecp256k1-copy/archive/c7630e1bac638c0f16ee66d4dce7b5c49eecbaa5.zip
     SHA1 1c89a164663a89308d3f31d6b0fb89931d413dcf

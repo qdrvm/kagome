@@ -19,6 +19,7 @@
 namespace kagome::extensions {
   namespace sr25519_constants = crypto::constants::sr25519;
   namespace ed25519_constants = crypto::constants::ed25519;
+  namespace secp256k1_constants = crypto::secp256k1::constants;
 
   CryptoExtension::CryptoExtension(
       std::shared_ptr<runtime::WasmMemory> memory,
@@ -41,7 +42,7 @@ namespace kagome::extensions {
   }
 
   void CryptoExtension::ext_blake2_128(runtime::WasmPointer data,
-                                       runtime::SizeType len,
+                                       runtime::WasmSize len,
                                        runtime::WasmPointer out_ptr) {
     const auto &buf = memory_->loadN(data, len);
 
@@ -51,7 +52,7 @@ namespace kagome::extensions {
   }
 
   void CryptoExtension::ext_blake2_256(runtime::WasmPointer data,
-                                       runtime::SizeType len,
+                                       runtime::WasmSize len,
                                        runtime::WasmPointer out_ptr) {
     const auto &buf = memory_->loadN(data, len);
 
@@ -61,7 +62,7 @@ namespace kagome::extensions {
   }
 
   void CryptoExtension::ext_keccak_256(runtime::WasmPointer data,
-                                       runtime::SizeType len,
+                                       runtime::WasmSize len,
                                        runtime::WasmPointer out_ptr) {
     const auto &buf = memory_->loadN(data, len);
 
@@ -70,9 +71,9 @@ namespace kagome::extensions {
     memory_->storeBuffer(out_ptr, common::Buffer(hash));
   }
 
-  runtime::SizeType CryptoExtension::ext_ed25519_verify(
+  runtime::WasmSize CryptoExtension::ext_ed25519_verify(
       runtime::WasmPointer msg_data,
-      runtime::SizeType msg_len,
+      runtime::WasmSize msg_len,
       runtime::WasmPointer sig_data,
       runtime::WasmPointer pubkey_data) {
     // for some reason, 0 and 5 are used in the reference implementation, so
@@ -104,9 +105,9 @@ namespace kagome::extensions {
     return is_succeeded ? kVerifySuccess : kVerifyFail;
   }
 
-  runtime::SizeType CryptoExtension::ext_sr25519_verify(
+  runtime::WasmSize CryptoExtension::ext_sr25519_verify(
       runtime::WasmPointer msg_data,
-      runtime::SizeType msg_len,
+      runtime::WasmSize msg_len,
       runtime::WasmPointer sig_data,
       runtime::WasmPointer pubkey_data) {
     // for some reason, 0 and 5 are used in the reference implementation, so
@@ -138,7 +139,7 @@ namespace kagome::extensions {
   }
 
   void CryptoExtension::ext_twox_64(runtime::WasmPointer data,
-                                    runtime::SizeType len,
+                                    runtime::WasmSize len,
                                     runtime::WasmPointer out_ptr) {
     const auto &buf = memory_->loadN(data, len);
 
@@ -152,7 +153,7 @@ namespace kagome::extensions {
   }
 
   void CryptoExtension::ext_twox_128(runtime::WasmPointer data,
-                                     runtime::SizeType len,
+                                     runtime::WasmSize len,
                                      runtime::WasmPointer out_ptr) {
     const auto &buf = memory_->loadN(data, len);
 
@@ -166,7 +167,7 @@ namespace kagome::extensions {
   }
 
   void CryptoExtension::ext_twox_256(runtime::WasmPointer data,
-                                     runtime::SizeType len,
+                                     runtime::WasmSize len,
                                      runtime::WasmPointer out_ptr) {
     const auto &buf = memory_->loadN(data, len);
 
@@ -175,23 +176,29 @@ namespace kagome::extensions {
     memory_->storeBuffer(out_ptr, common::Buffer(hash));
   }
 
-  runtime::PointerSize CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_v1(
-      runtime::WasmPointer sig, runtime::WasmPointer msg) {
-    static auto make_result = [&](auto &&value) {
-      boost::optional<crypto::Secp256k1UncompressedPublicKey> result = value;
-      return common::Buffer(scale::encode(result).value());
-    };
-    static auto error_result = make_result(boost::none);
+  namespace {
+    template <class T>
+    common::Buffer encodeOptionalResult(const boost::optional<T> &value) {
+      // TODO (yuraz): PRE-450 refactor
+      return common::Buffer(scale::encode(value).value());
+    }
+  }  // namespace
 
-    crypto::Secp256k1Signature signature{};
-    crypto::Secp256k1Message message{};
+  runtime::WasmSpan CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_v1(
+      runtime::WasmPointer sig, runtime::WasmPointer msg) {
+    static auto error_result =
+        encodeOptionalResult<crypto::secp256k1::ExpandedPublicKey>(boost::none);
+
+    crypto::secp256k1::RSVSignature signature{};
+    crypto::secp256k1::MessageHash message{};
 
     const auto &sig_buffer = memory_->loadN(sig, signature.size());
     const auto &msg_buffer =
-        memory_->loadN(msg, crypto::Secp256k1Message::size());
+        memory_->loadN(msg, crypto::secp256k1::MessageHash::size());
     std::copy_n(sig_buffer.begin(), signature.size(), signature.begin());
-    std::copy_n(
-        msg_buffer.begin(), crypto::Secp256k1Message::size(), message.begin());
+    std::copy_n(msg_buffer.begin(),
+                crypto::secp256k1::MessageHash::size(),
+                message.begin());
 
     auto &&public_key =
         secp256k1_provider_->recoverPublickeyUncompressed(signature, message);
@@ -210,24 +217,23 @@ namespace kagome::extensions {
     return memory_->storeBuffer(result);
   }
 
-  runtime::PointerSize
+  runtime::WasmSpan
   CryptoExtension::ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
       runtime::WasmPointer sig, runtime::WasmPointer msg) {
-    static auto make_result = [&](auto &&value) {
-      boost::optional<crypto::Secp256k1CompressedPublicKey> result = value;
-      return common::Buffer(scale::encode(result).value());
-    };
-    static auto error_result = make_result(boost::none);
+    static auto error_result =
+        encodeOptionalResult<crypto::secp256k1::CompressedPublicKey>(
+            boost::none);
 
-    crypto::Secp256k1Signature signature{};
-    crypto::Secp256k1Message message{};
+    crypto::secp256k1::RSVSignature signature{};
+    crypto::secp256k1::MessageHash message{};
 
     const auto &sig_buffer = memory_->loadN(sig, signature.size());
     const auto &msg_buffer =
-        memory_->loadN(msg, crypto::Secp256k1Message::size());
+        memory_->loadN(msg, crypto::secp256k1::MessageHash::size());
     std::copy_n(sig_buffer.begin(), signature.size(), signature.begin());
-    std::copy_n(
-        msg_buffer.begin(), crypto::Secp256k1Message::size(), message.begin());
+    std::copy_n(msg_buffer.begin(),
+                crypto::secp256k1::MessageHash::size(),
+                message.begin());
 
     auto &&public_key =
         secp256k1_provider_->recoverPublickeyCompressed(signature, message);

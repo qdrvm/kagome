@@ -14,12 +14,12 @@ namespace kagome::crypto {
                                           | SECP256K1_CONTEXT_VERIFY),
                  secp256k1_context_destroy) {}
 
-  outcome::result<Secp256k1UncompressedPublicKey>
+  outcome::result<secp256k1::ExpandedPublicKey>
   Secp256k1ProviderImpl::recoverPublickeyUncompressed(
-      const Secp256k1Signature &signature,
-      const Secp256k1Message &message_hash) const {
+      const secp256k1::RSVSignature &signature,
+      const secp256k1::MessageHash &message_hash) const {
     OUTCOME_TRY(pubkey, recoverPublickey(signature, message_hash));
-    Secp256k1UncompressedPublicKey pubkey_out;
+    secp256k1::ExpandedPublicKey pubkey_out;
     size_t outputlen = pubkey_out.size();
 
     if (1
@@ -34,13 +34,13 @@ namespace kagome::crypto {
     return pubkey_out;
   };
 
-  outcome::result<Secp256k1CompressedPublicKey>
+  outcome::result<secp256k1::CompressedPublicKey>
   Secp256k1ProviderImpl::recoverPublickeyCompressed(
-      const Secp256k1Signature &signature,
-      const Secp256k1Message &message_hash) const {
+      const secp256k1::RSVSignature &signature,
+      const secp256k1::MessageHash &message_hash) const {
     OUTCOME_TRY(pubkey, recoverPublickey(signature, message_hash));
-    Secp256k1CompressedPublicKey pubkey_out;
-    size_t outputlen = Secp256k1CompressedPublicKey::size();
+    secp256k1::CompressedPublicKey pubkey_out;
+    size_t outputlen = secp256k1::CompressedPublicKey::size();
 
     if (1
         != secp256k1_ec_pubkey_serialize(context_.get(),
@@ -55,8 +55,8 @@ namespace kagome::crypto {
   }
 
   outcome::result<secp256k1_pubkey> Secp256k1ProviderImpl::recoverPublickey(
-      const Secp256k1Signature &signature,
-      const Secp256k1Message &message_hash) const {
+      const secp256k1::RSVSignature &signature,
+      const secp256k1::MessageHash &message_hash) const {
     secp256k1_ecdsa_recoverable_signature sig_rec;
     secp256k1_pubkey pubkey;
     auto v = static_cast<int>(signature[64]);

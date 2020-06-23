@@ -11,6 +11,7 @@
 #include "testutil/outcome.hpp"
 
 using namespace kagome::crypto;
+using namespace secp256k1;
 
 /**
  * @brief Pre-generated key pair and signature for sample message
@@ -33,11 +34,11 @@ class Secp256k1ProviderTest : public ::testing::Test {
       "90f27b8b488db00b00606796d2987f6a5f59ae62ea05effe84fef5b8b0e549984a691139ad57a3f0b906637673aa2f63d1f55cb1a69199d4009eea23ceaddc9301"_unhex};
   std::vector<uint8_t> secp_message_vector{
       "ce0677bb30baa8cf067c88db9811f4333d131bf8bcf12fe7065d211dce971008"_unhex};
-  Secp256k1Message secp_message_hash{};
+  MessageHash secp_message_hash{};
 
-  Secp256k1Signature secp_signature{};
-  Secp256k1UncompressedPublicKey secp_public_key{};
-  Secp256k1CompressedPublicKey secp_public_key_compressed{};
+  RSVSignature secp_signature{};
+  ExpandedPublicKey secp_public_key{};
+  CompressedPublicKey secp_public_key_compressed{};
 
   std::shared_ptr<Secp256k1Provider> secp256K1_provider =
       std::make_shared<Secp256k1ProviderImpl>();
@@ -64,7 +65,7 @@ class Secp256k1ProviderTest : public ::testing::Test {
  * @then Recovery must be unsuccessful
  */
 TEST_F(Secp256k1ProviderTest, RecoverInvalidSignatureFailure) {
-  Secp256k1Signature wrong_signature{};
+  RSVSignature wrong_signature{};
   *wrong_signature.rbegin() = 99;
   EXPECT_OUTCOME_ERROR(res,
                        secp256K1_provider->recoverPublickeyUncompressed(
