@@ -172,7 +172,8 @@ namespace kagome::runtime::binaryen {
                                    gsl::span<const uint8_t> value) {
     // TODO (kamilsa) PRE-98: check if we do not go outside of memory
     // boundaries, 04.04.2019
-    for (size_t i = addr, j = 0; i < addr + value.size(); i++, j++) {
+    for (size_t i = addr, j = 0; i < addr + static_cast<size_t>(value.size());
+         i++, j++) {
       memory_->set(i, value[j]);
     }
   }
