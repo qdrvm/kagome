@@ -187,7 +187,8 @@ TEST_F(StorageExtensionTest, GetAllocatedStorageKeyExistTest) {
       .WillOnce(Return(allocated_value_ptr));
   // value is stored in allocated memory
   EXPECT_CALL(*memory_,
-              storeBuffer(allocated_value_ptr, get_res.value().toConstSpan()));
+              storeBuffer(allocated_value_ptr,
+                          gsl::span<const uint8_t>(get_res.value())));
 
   // ptr for the allocated value is returned
   ASSERT_EQ(allocated_value_ptr,
@@ -223,7 +224,8 @@ TEST_F(StorageExtensionTest, GetStorageIntoKeyExistsTest) {
 
   // only partial value (which is the slice value[offset, offset+length]) should
   // be stored at value_ptr
-  EXPECT_CALL(*memory_, storeBuffer(value_ptr, partial_value.toConstSpan()));
+  EXPECT_CALL(*memory_,
+              storeBuffer(value_ptr, gsl::span<const uint8_t>(partial_value)));
 
   // ext_get_storage_into should return the length of stored partial value
   ASSERT_EQ(partial_value.size(),
@@ -320,7 +322,9 @@ TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
     len_offset += 4;
   }
   WasmPointer result = 1984;
-  EXPECT_CALL(*memory_, storeBuffer(result, hash_array.toConstSpan())).Times(1);
+  EXPECT_CALL(*memory_,
+              storeBuffer(result, gsl::span<const uint8_t>(hash_array)))
+      .Times(1);
 
   storage_extension_->ext_blake2_256_enumerated_trie_root(
       values_ptr, lens_ptr, values.size(), result);

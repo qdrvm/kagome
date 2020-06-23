@@ -78,14 +78,6 @@ namespace kagome::common {
     return data_;
   }
 
-  gsl::span<const uint8_t> Buffer::toConstSpan() const {
-    return *this;
-  }
-
-  gsl::span<uint8_t> Buffer::toSpan() {
-    return *this;
-  }
-
   bool Buffer::operator==(const Buffer &b) const noexcept {
     return data_ == b.data_;
   }

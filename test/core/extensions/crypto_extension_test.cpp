@@ -153,7 +153,9 @@ TEST_F(CryptoExtensionTest, Blake2_128Valid) {
   WasmPointer out_ptr = 42;
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
-  EXPECT_CALL(*memory_, storeBuffer(out_ptr, blake2b_128_result.toConstSpan()))
+  EXPECT_CALL(
+      *memory_,
+      storeBuffer(out_ptr, gsl::span<const uint8_t>(blake2b_128_result)))
       .Times(1);
 
   crypto_ext_->ext_blake2_128(data, size, out_ptr);
@@ -171,7 +173,9 @@ TEST_F(CryptoExtensionTest, Blake2_256Valid) {
   WasmPointer out_ptr = 42;
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
-  EXPECT_CALL(*memory_, storeBuffer(out_ptr, blake2b_256_result.toConstSpan()))
+  EXPECT_CALL(
+      *memory_,
+      storeBuffer(out_ptr, gsl::span<const uint8_t>(blake2b_256_result)))
       .Times(1);
 
   crypto_ext_->ext_blake2_256(data, size, out_ptr);
@@ -188,7 +192,8 @@ TEST_F(CryptoExtensionTest, KeccakValid) {
   WasmPointer out_ptr = 42;
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(input));
-  EXPECT_CALL(*memory_, storeBuffer(out_ptr, keccak_result.toConstSpan()))
+  EXPECT_CALL(*memory_,
+              storeBuffer(out_ptr, gsl::span<const uint8_t>(keccak_result)))
       .Times(1);
 
   crypto_ext_->ext_keccak_256(data, size, out_ptr);
@@ -317,7 +322,8 @@ TEST_F(CryptoExtensionTest, Twox128) {
 
   EXPECT_CALL(*memory_, loadN(twox_input_data, twox_input_size))
       .WillOnce(Return(twox_input));
-  EXPECT_CALL(*memory_, storeBuffer(out_ptr, twox128_result.toConstSpan()))
+  EXPECT_CALL(*memory_,
+              storeBuffer(out_ptr, gsl::span<const uint8_t>(twox128_result)))
       .Times(1);
 
   crypto_ext_->ext_twox_128(twox_input_data, twox_input_size, out_ptr);
@@ -335,7 +341,8 @@ TEST_F(CryptoExtensionTest, Twox256) {
 
   EXPECT_CALL(*memory_, loadN(twox_input_data, twox_input_size))
       .WillOnce(Return(twox_input));
-  EXPECT_CALL(*memory_, storeBuffer(out_ptr, twox256_result.toConstSpan()))
+  EXPECT_CALL(*memory_,
+              storeBuffer(out_ptr, gsl::span<const uint8_t>(twox256_result)))
       .Times(1);
 
   crypto_ext_->ext_twox_256(twox_input_data, twox_input_size, out_ptr);
@@ -359,9 +366,9 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverUncompressed) {
   EXPECT_CALL(*memory_, loadN(msg, msg_input.size()))
       .WillOnce(Return(Buffer(msg_input)));
 
-  EXPECT_CALL(
-      *memory_,
-      storeBuffer(scale_encoded_secp_uncompressed_public_key.toConstSpan()))
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(
+                  scale_encoded_secp_uncompressed_public_key)))
       .WillOnce(Return(res));
 
   auto ptrsize = crypto_ext_->ext_crypto_secp256k1_ecdsa_recover_v1(sig, msg);
@@ -386,9 +393,9 @@ TEST_F(CryptoExtensionTest, Secp256k1RecoverCompressed) {
   EXPECT_CALL(*memory_, loadN(msg, msg_input.size()))
       .WillOnce(Return(Buffer(msg_input)));
 
-  EXPECT_CALL(
-      *memory_,
-      storeBuffer(scale_encoded_secp_compressed_public_key.toConstSpan()))
+  EXPECT_CALL(*memory_,
+              storeBuffer(gsl::span<const uint8_t>(
+                  scale_encoded_secp_compressed_public_key)))
       .WillOnce(Return(res));
 
   auto ptrsize =
