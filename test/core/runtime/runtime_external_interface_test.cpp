@@ -7,6 +7,7 @@
 
 #include <binaryen/wasm-s-parser.h>
 #include <boost/format.hpp>
+#include <runtime/wasm_result.hpp>
 #include "core/extensions/mock_extension.hpp"
 #include "core/extensions/mock_extension_factory.hpp"
 #include "core/runtime/mock_memory.hpp"
@@ -22,7 +23,9 @@ using kagome::extensions::MockExtensionFactory;
 using kagome::runtime::MockMemory;
 using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmPointer;
+using kagome::runtime::WasmResult;
 using kagome::runtime::WasmSize;
+using kagome::runtime::WasmSpan;
 using kagome::runtime::binaryen::RuntimeExternalInterface;
 using kagome::storage::trie::PersistentTrieBatchMock;
 using wasm::Element;
@@ -76,6 +79,8 @@ class REITest : public ::testing::Test {
     char *data = const_cast<char *>(code.data());
     SExpressionParser parser(data);
     Element &root = *parser.root;
+    ASSERT_GT(root.size(), 0);
+    ASSERT_NE(root[0], nullptr);
     SExpressionWasmBuilder builder(wasm, *root[0]);
     EXPECT_CALL(*extension_, memory()).WillRepeatedly(Return(memory_));
 
@@ -123,7 +128,7 @@ class REITest : public ::testing::Test {
       "  (type (;26;) (func (param i32 i64 i64 i64 i64 i32)))\n"
       "  (type (;27;) (func (result i64)))\n"
       "  (type (;28;) (func (param i32 i32 i32)))\n"
-      "  (type (;31;) (func (param i32 i32 i64) (result i64)))\n"
+      "  (type (;29;) (func (param i32 i32 i64) (result i64)))\n"
       "  (import \"env\" \"ext_get_storage_into\" (func $ext_get_storage_into (type 4)))\n"
       "  (import \"env\" \"ext_get_allocated_storage\" (func $ext_get_allocated_storage (type 2)))\n"
       "  (import \"env\" \"ext_blake2_128\" (func $ext_blake2_128 (type 5)))\n"
@@ -143,13 +148,13 @@ class REITest : public ::testing::Test {
       "  (import \"env\" \"ext_sr25519_verify\" (func $ext_sr25519_verify (type 9)))\n"
       "  (import \"env\" \"ext_ed25519_verify\" (func $ext_ed25519_verify (type 9)))\n"
       "  (import \"env\" \"ext_storage_root\" (func $ext_storage_root (type 1)))\n"
-      "  (import \"env\" \"ext_storage_changes_root\" (func $ext_storage_changes_root (type 2 )))\n"
+      "  (import \"env\" \"ext_storage_changes_root\" (func $ext_storage_changes_root (type 2)))\n"
       "  (import \"env\" \"ext_print_hex\" (func $ext_print_hex (type 0)))\n"
       "  (import \"env\" \"ext_chain_id\" (func $ext_chain_id (type 27)))\n"
 
       /// version 1
-      "  (import \"env\" \"ext_crypto_secp256k1_ecdsa_recover_version_1\" (func $ext_crypto_secp256k1_ecdsa_recover_version_1 (type 31)))\n"
-      "  (import \"env\" \"ext_crypto_secp256k1_ecdsa_recover_compressed_version_1\" (func $ext_crypto_secp256k1_ecdsa_recover_compressed_version_1 (type 31)))\n"
+      "  (import \"env\" \"ext_crypto_secp256k1_ecdsa_recover_version_1\" (func $ext_crypto_secp256k1_ecdsa_recover_version_1 (type 29)))\n"
+      "  (import \"env\" \"ext_crypto_secp256k1_ecdsa_recover_compressed_version_1\" (func $ext_crypto_secp256k1_ecdsa_recover_compressed_version_1 (type 29)))\n"
 
       /// assertions to check output in wasm
       "  (import \"env\" \"assert\" (func $assert (param i32)))\n"
@@ -573,5 +578,50 @@ TEST_F(REITest, ext_chain_id_Test) {
                        % res)
                           .str();
   SCOPED_TRACE("ext_chain_id_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_crypto_secp256k1_ecdsa_recover_version_1_Test) {
+  WasmPointer sig_ptr = 12;
+  WasmPointer msg_ptr = 77;
+  WasmSpan out_span = WasmResult{109, 41}.combine();
+
+  EXPECT_CALL(*extension_,
+              ext_crypto_secp256k1_ecdsa_recover_v1(sig_ptr, msg_ptr))
+      .WillOnce(Return(out_span));
+  auto execute_code =
+      (boost::format("(call $assert_eq_i64\n"
+                     "    (call $ext_crypto_secp256k1_ecdsa_recover_version_1\n"
+                     "      (i32.const %d)\n"
+                     "      (i32.const %d)\n"
+                     "    )\n"
+                     "    (i64.const %d)\n"
+                     ")")
+       % sig_ptr % msg_ptr % out_span)
+          .str();
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_crypto_secp256k1_ecdsa_recover_compressed_version_1_Test) {
+  WasmPointer sig_ptr = 12;
+  WasmPointer msg_ptr = 77;
+  WasmSpan out_span = WasmResult{109, 41}.combine();
+
+  EXPECT_CALL(
+      *extension_,
+      ext_crypto_secp256k1_ecdsa_recover_compressed_v1(sig_ptr, msg_ptr))
+      .WillOnce(Return(out_span));
+  auto execute_code =
+      (boost::format(
+           "(call $assert_eq_i64\n"
+           "    (call "
+           "$ext_crypto_secp256k1_ecdsa_recover_compressed_version_1\n"
+           "      (i32.const %d)\n"
+           "      (i32.const %d)\n"
+           "    )\n"
+           "    (i64.const %d)\n"
+           ")")
+       % sig_ptr % msg_ptr % out_span)
+          .str();
   executeWasm(execute_code);
 }
