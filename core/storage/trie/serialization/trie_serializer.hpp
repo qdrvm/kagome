@@ -6,8 +6,8 @@
 #ifndef KAGOME_STORAGE_POLKADOT_TRIE_SERIALIZER
 #define KAGOME_STORAGE_POLKADOT_TRIE_SERIALIZER
 
-#include "storage/trie/impl/polkadot_trie.hpp"
 #include "outcome/outcome.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie.hpp"
 
 namespace kagome::storage::trie {
 

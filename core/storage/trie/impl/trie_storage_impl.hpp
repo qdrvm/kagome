@@ -11,8 +11,8 @@
 #include "common/logger.hpp"
 #include "storage/changes_trie/changes_tracker.hpp"
 #include "storage/trie/codec.hpp"
-#include "storage/trie/impl/polkadot_trie_factory.hpp"
-#include "storage/trie/impl/trie_serializer.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
+#include "storage/trie/serialization/trie_serializer.hpp"
 
 namespace kagome::storage::trie {
 

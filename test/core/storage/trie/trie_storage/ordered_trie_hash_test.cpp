@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/trie/impl/ordered_trie_hash.hpp"
+#include "storage/trie/serialization/ordered_trie_hash.hpp"
 
 #include <gtest/gtest.h>
 #include "testutil/literals.hpp"

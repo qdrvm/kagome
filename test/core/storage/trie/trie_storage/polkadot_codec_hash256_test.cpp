@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "crypto/blake2/blake2b.h"
-#include "storage/trie/impl/polkadot_codec.hpp"
+#include "storage/trie/serialization/polkadot_codec.hpp"
 
 using namespace kagome;
 using namespace common;

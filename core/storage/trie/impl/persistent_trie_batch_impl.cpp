@@ -6,7 +6,7 @@
 #include "storage/trie/impl/persistent_trie_batch_impl.hpp"
 
 #include "scale/scale.hpp"
-#include "storage/trie/impl/trie_error.hpp"
+#include "storage/trie/polkadot_trie/trie_error.hpp"
 
 namespace kagome::storage::trie {
 

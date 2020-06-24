@@ -9,8 +9,8 @@
 
 #include "primitives/block_id.hpp"
 #include "storage/changes_trie/impl/changes_trie.hpp"
-#include "storage/trie/impl/ordered_trie_hash.hpp"
-#include "storage/trie/impl/trie_error.hpp"
+#include "storage/trie/polkadot_trie/trie_error.hpp"
+#include "storage/trie/serialization/ordered_trie_hash.hpp"
 
 using kagome::common::Buffer;
 
