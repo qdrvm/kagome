@@ -25,6 +25,7 @@ namespace kagome::consensus {
 
   void BabeSynchronizerImpl::request(const primitives::BlockId &from,
                                      const primitives::BlockHash &to,
+                                     primitives::AuthorityIndex authority_index,
                                      const BlocksHandler &block_list_handler) {
     std::string from_str = visit_in_place(
         from,
@@ -41,7 +42,7 @@ namespace kagome::consensus {
                                    network::Direction::DESCENDING,
                                    boost::none};
 
-    return pollClients(request, {}, block_list_handler);
+    return pollClients(request, authority_index, block_list_handler);
   }
 
   std::shared_ptr<network::SyncProtocolClient>
@@ -100,16 +101,14 @@ namespace kagome::consensus {
 
   void BabeSynchronizerImpl::pollClients(
       network::BlocksRequest request,
-      std::unordered_set<std::shared_ptr<network::SyncProtocolClient>>
-          &&polled_clients,
+      primitives::AuthorityIndex authority_index,
       const BlocksHandler &requested_blocks_handler) const {
-    auto next_client = selectNextClient(polled_clients);
+    auto next_client = sync_clients_->clients[authority_index];
 
     next_client->requestBlocks(
         request,
         [self_wp{weak_from_this()},
          request{std::move(request)},
-         polled_clients{std::move(polled_clients)},
          requested_blocks_handler{requested_blocks_handler}](
             auto &&response_res) mutable {
           if (auto self = self_wp.lock()) {
@@ -119,11 +118,12 @@ namespace kagome::consensus {
               if (blocks_opt) {
                 return requested_blocks_handler(blocks_opt.value());
               }
+            } else if (not response_res) {
+              self->logger_->error("Could not sync. Error: {}",
+                                   response_res.error().message());
+            } else {
+              self->logger_->error("Could not sync. Empty response");
             }
-            // proceed to the next client
-            return self->pollClients(std::move(request),
-                                     std::move(polled_clients),
-                                     requested_blocks_handler);
           }
         });
   }

@@ -22,7 +22,7 @@ namespace kagome::extensions {
     /**
      * @see Extension::ext_print_hex
      */
-    void ext_print_hex(runtime::WasmPointer data, runtime::SizeType length);
+    void ext_print_hex(runtime::WasmPointer data, runtime::WasmSize length);
 
     /**
      * @see Extension::ext_print_num
@@ -33,7 +33,7 @@ namespace kagome::extensions {
      * @see Extension::ext_print_utf8
      */
     void ext_print_utf8(runtime::WasmPointer utf8_data,
-                        runtime::SizeType utf8_length);
+                        runtime::WasmSize utf8_length);
 
    private:
     constexpr static auto kDefaultLoggerTag = "WASM Runtime [IOExtension]";

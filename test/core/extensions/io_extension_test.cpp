@@ -8,16 +8,16 @@
 #include <optional>
 
 #include <gtest/gtest.h>
-#include "testutil/literals.hpp"
 #include "core/runtime/mock_memory.hpp"
+#include "testutil/literals.hpp"
 
 using namespace kagome::extensions;
 using ::testing::Return;
 
 using kagome::common::Buffer;
 using kagome::runtime::MockMemory;
-using kagome::runtime::SizeType;
 using kagome::runtime::WasmPointer;
+using kagome::runtime::WasmSize;
 
 /**
  * It is impossible to test the console output, but at least we can check, that
@@ -51,7 +51,7 @@ class IOExtensionTest : public ::testing::Test {
  */
 TEST_F(IOExtensionTest, PrintHex) {
   WasmPointer data = 0;
-  SizeType size = hex_bytes_.size();
+  WasmSize size = hex_bytes_.size();
   Buffer buf(hex_bytes_);
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(buf));
@@ -75,7 +75,7 @@ TEST_F(IOExtensionTest, PrintNum) {
  */
 TEST_F(IOExtensionTest, PrintUTF8) {
   WasmPointer data = 0;
-  SizeType size = utf8_bytes_.size();
+  WasmSize size = utf8_bytes_.size();
   Buffer buf(utf8_bytes_);
 
   EXPECT_CALL(*memory_, loadN(data, size)).WillOnce(Return(buf));

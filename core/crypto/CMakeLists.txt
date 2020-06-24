@@ -73,6 +73,21 @@ target_link_libraries(ed25519_provider
     )
 kagome_install(ed25519_provider)
 
+add_library(secp256k1_provider
+    secp256k1/secp256k1_provider_impl.cpp
+    )
+target_link_libraries(secp256k1_provider PUBLIC
+    OpenSSL::Crypto
+    PUBLIC OpenSSL::SSL
+    blob
+    buffer
+    secp256k1::secp256k1
+    scale
+    )
+kagome_install(
+    secp256k1_provider
+)
+
 add_library(typed_key_storage
     typed_key_storage/typed_key_storage_impl.cpp
     key_type.cpp

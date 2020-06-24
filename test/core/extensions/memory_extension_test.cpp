@@ -13,7 +13,6 @@ using namespace kagome::extensions;
 
 using kagome::common::Buffer;
 using kagome::runtime::MockMemory;
-using kagome::runtime::SizeType;
 using kagome::runtime::WasmMemory;
 using kagome::runtime::WasmPointer;
 

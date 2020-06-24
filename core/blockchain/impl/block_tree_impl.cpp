@@ -204,6 +204,10 @@ namespace kagome::blockchain {
     if (!node) {
       return BlockTreeError::NO_SUCH_BLOCK;
     }
+    if (storage_->getJustification(block)) {
+      // block was already finalized, fine
+      return outcome::success();
+    }
 
     // insert justification into the database
     OUTCOME_TRY(storage_->putJustification(justification, block, node->depth));
@@ -221,6 +225,8 @@ namespace kagome::blockchain {
 
     OUTCOME_TRY(storage_->setLastFinalizedBlockHash(node->block_hash));
 
+    log_->info(
+        "Finalized block number {} with hash {}", node->depth, block.toHex());
     return outcome::success();
   }
 
@@ -312,7 +318,7 @@ namespace kagome::blockchain {
         if (auto parent = current_node->parent; !parent.expired()) {
           current_node = parent.lock();
         } else {
-          log_->error(kNotAncestorError.data(), top_block, bottom_block);
+          log_->warn(kNotAncestorError.data(), top_block, bottom_block);
           return BlockTreeError::INCORRECT_ARGS;
         }
       }

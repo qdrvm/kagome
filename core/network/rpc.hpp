@@ -110,6 +110,7 @@ namespace kagome::network {
             }
 
             auto stream = std::move(stream_res.value());
+            spdlog::debug("Sending blocks request to {}", stream->remotePeerId().value().toBase58());
             auto read_writer = std::make_shared<MessageReadWriterT>(stream);
             read_writer->template write<Request>(
                 request,
@@ -119,6 +120,7 @@ namespace kagome::network {
                     stream->reset();
                     return cb(write_res.error());
                   }
+                  spdlog::debug("Request to {} sent successfully", stream->remotePeerId().value().toBase58());
 
                   read_writer->template read<Response>(
                       [stream = std::move(stream),

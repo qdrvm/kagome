@@ -9,6 +9,7 @@
 #include "api/transport/listener.hpp"
 
 #include "api/transport/impl/ws/ws_session.hpp"
+#include "application/app_state_manager.hpp"
 #include "common/logger.hpp"
 
 namespace kagome::api {
@@ -18,67 +19,36 @@ namespace kagome::api {
    */
   class WsListenerImpl : public Listener,
                          public std::enable_shared_from_this<WsListenerImpl> {
-    enum class State { READY, WORKING, STOPPED = READY };
-    using Acceptor = boost::asio::ip::tcp::acceptor;
-    using Endpoint = boost::asio::ip::tcp::endpoint;
-    using Duration = boost::asio::steady_timer::duration;
-    using Logger = common::Logger;
-
    public:
     using SessionImpl = WsSession;
 
-    // TODO(xDimon): Replace value by macro from special generated .h config
-    static const uint16_t defaultPort = 40364;
-
-    /***
-     * Listener configuration
-     */
-    struct Configuration {
-      Endpoint endpoint{};  ///< listener endpoint
-      Configuration() {
-        endpoint.address(boost::asio::ip::address_v4::any());
-        endpoint.port(defaultPort);
-      }
-    };
-
-    /**
-     * @param context reference to boost::asio::io_context instance
-     * @param endpoint loopback ip address to listen
-     * @param ws_config websocket session configuration
-     */
-    WsListenerImpl(std::shared_ptr<Context> context,
-                   const Configuration &configuration,
-                   SessionImpl::Configuration session_config);
+    WsListenerImpl(
+        const std::shared_ptr<application::AppStateManager> &app_state_manager,
+        std::shared_ptr<Context> context,
+        Configuration listener_config,
+        SessionImpl::Configuration session_config);
 
     ~WsListenerImpl() override = default;
 
-    /**
-     * @brief starts listener
-     * @param on_new_session new session creation callback
-     */
-    void start(NewSessionHandler on_new_session) override;
-
-    /**
-     * @brief stops listener
-     */
+    void prepare() override;
+    void start() override;
     void stop() override;
 
-   private:
-    /**
-     * @brief accepts incoming connection
-     */
-    void acceptOnce(NewSessionHandler on_new_session) override;
+    void setHandlerForNewSession(NewSessionHandler &&on_new_session) override;
 
-    std::shared_ptr<Context> context_;  ///< io context
-    Acceptor acceptor_;                 ///< connections acceptor
-    State state_{State::READY};         ///< working state
-    SessionImpl::Configuration
-        session_config_;  ///< websocket session configuration
+   private:
+    void acceptOnce() override;
+
+    std::shared_ptr<Context> context_;
+    const Configuration config_;
+    const SessionImpl::Configuration session_config_;
+
+    std::unique_ptr<Acceptor> acceptor_;
+    std::unique_ptr<NewSessionHandler> on_new_session_;
 
     std::shared_ptr<SessionImpl> new_session_;
 
-    Logger logger_ =
-        common::createLogger("RPC_Websocket_Listener");
+    common::Logger logger_ = common::createLogger("RPC_Websocket_Listener");
   };
 
 }  // namespace kagome::api

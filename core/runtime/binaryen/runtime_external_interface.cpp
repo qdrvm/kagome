@@ -66,8 +66,12 @@ namespace kagome::runtime::binaryen {
   const static wasm::Name ext_sr25519_verify_v2 =
       "ext_crypto_sr25519_verify_version_2";
 
-  const static wasm::Name ext_chain_id = "ext_chain_id";
+  const static wasm::Name ext_secp256k1_ecdsa_recover_v1 =
+      "ext_crypto_secp256k1_ecdsa_recover_version_1";
+  const static wasm::Name ext_secp256k1_ecdsa_recover_compressed_v1 =
+      "ext_crypto_secp256k1_ecdsa_recover_compressed_version_1";
 
+  const static wasm::Name ext_chain_id = "ext_chain_id";
   /**
    * @note: some implementation details were taken from
    * https://github.com/WebAssembly/binaryen/blob/master/src/shell-interface.h
@@ -82,8 +86,8 @@ namespace kagome::runtime::binaryen {
                      "storage provider is nullptr");
     auto memory_impl =
         std::make_shared<WasmMemoryImpl>(&(ShellExternalInterface::memory));
-    extension_ =
-        extension_factory->createExtension(memory_impl, std::move(storage_provider));
+    extension_ = extension_factory->createExtension(
+        memory_impl, std::move(storage_provider));
   }
 
   wasm::Literal RuntimeExternalInterface::callImport(
@@ -337,6 +341,22 @@ namespace kagome::runtime::binaryen {
         auto res = extension_->ext_sr25519_verify_v1(arguments.at(0).geti32(),
                                                      arguments.at(1).geti64(),
                                                      arguments.at(2).geti32());
+        return wasm::Literal(res);
+      }
+
+      /// ext_secp256k1_ecdsa_recover_v1
+      if (import->base == ext_secp256k1_ecdsa_recover_v1) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
+        auto res = extension_->ext_crypto_secp256k1_ecdsa_recover_v1(
+            arguments.at(0).geti32(), arguments.at(1).geti32());
+        return wasm::Literal(res);
+      }
+
+      /// ext_secp256k1_ecdsa_recover_compressed_v1
+      if (import->base == ext_secp256k1_ecdsa_recover_compressed_v1) {
+        checkArguments(import->base.c_str(), 2, arguments.size());
+        auto res = extension_->ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
+            arguments.at(0).geti32(), arguments.at(1).geti32());
         return wasm::Literal(res);
       }
     }

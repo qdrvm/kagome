@@ -54,7 +54,9 @@ target_link_libraries(application_injector
     environment
     proposer
     storage_wasm_provider
-    synchronizer
+    remote_sync_protocol_client
+    dummy_sync_protocol_client
+    sync_protocol_observer
     binaryen_tagged_transaction_queue_api
     vrf_provider
     waitable_timer

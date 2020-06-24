@@ -48,7 +48,6 @@
 #include "consensus/grandpa/structs.hpp"
 #include "consensus/grandpa/vote_graph.hpp"
 #include "consensus/grandpa/vote_tracker.hpp"
-#include "consensus/synchronizer/impl/synchronizer_impl.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
@@ -56,9 +55,12 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/vrf/vrf_provider_impl.hpp"
 #include "extensions/impl/extension_factory_impl.hpp"
+#include "network/impl/dummy_sync_protocol_client.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/gossiper_broadcast.hpp"
+#include "network/impl/remote_sync_protocol_client.hpp"
 #include "network/impl/router_libp2p.hpp"
+#include "network/impl/sync_protocol_observer_impl.hpp"
 #include "network/sync_protocol_client.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "network/types/sync_clients_set.hpp"
@@ -162,6 +164,9 @@ namespace kagome::injector {
       return initialized.value();
     }
 
+    auto app_state_manager =
+        injector.template create<sptr<application::AppStateManager>>();
+
     auto context = injector.template create<sptr<api::RpcContext>>();
 
     api::HttpListenerImpl::Configuration listener_config;
@@ -171,7 +176,7 @@ namespace kagome::injector {
         injector.template create<api::HttpSession::Configuration>();
 
     initialized = std::make_shared<api::HttpListenerImpl>(
-        context, listener_config, http_session_config);
+        app_state_manager, context, listener_config, http_session_config);
     return initialized.value();
   };
 
@@ -185,6 +190,9 @@ namespace kagome::injector {
       return initialized.value();
     }
 
+    auto app_state_manager =
+        injector.template create<sptr<application::AppStateManager>>();
+
     auto context = injector.template create<sptr<api::RpcContext>>();
 
     api::WsListenerImpl::Configuration listener_config;
@@ -194,7 +202,7 @@ namespace kagome::injector {
         injector.template create<api::WsSession::Configuration>();
 
     initialized = std::make_shared<api::WsListenerImpl>(
-        context, listener_config, ws_session_config);
+        app_state_manager, context, listener_config, ws_session_config);
     return initialized.value();
   };
 
@@ -448,21 +456,21 @@ namespace kagome::injector {
         injector.template create<sptr<blockchain::BlockHeaderRepository>>();
 
     auto res = std::make_shared<network::SyncClientsSet>();
-    auto current_peer_synchronizer =
-        injector.template create<sptr<consensus::Synchronizer>>();
-    res->clients.insert(current_peer_synchronizer);
 
-    auto current_peer_info = injector.template create<libp2p::peer::PeerInfo>();
+    auto &current_peer_info =
+        injector.template create<network::OwnPeerInfo &>();
     for (const auto &peer_info : peer_infos) {
+      spdlog::debug("Added peer with id: {}", peer_info.id.toBase58());
       if (peer_info.id != current_peer_info.id) {
-        res->clients.insert(std::make_shared<consensus::SynchronizerImpl>(
-            *host,
-            peer_info,
-            block_tree,
-            block_header_repository,
-            injector.template create<consensus::SynchronizerConfig>()));
+        res->clients.emplace_back(
+            std::make_shared<network::RemoteSyncProtocolClient>(*host,
+                                                                peer_info));
+      } else {
+        res->clients.emplace_back(
+            std::make_shared<network::DummySyncProtocolClient>());
       }
     }
+    std::reverse(res->clients.begin(), res->clients.end());
     initialized = res;
     return res;
   };
@@ -482,7 +490,10 @@ namespace kagome::injector {
       common::raise(configuration_res.error());
     }
     auto config = configuration_res.value();
-    config.leadership_rate = {1, 2};
+    for (const auto &authority : config.genesis_authorities) {
+      spdlog::debug("Babe authority: {}", authority.id.id.toHex());
+    }
+    config.leadership_rate.first *= 3;
     initialized = std::make_shared<primitives::BabeConfiguration>(config);
     return *initialized;
   };
@@ -501,7 +512,6 @@ namespace kagome::injector {
     api::HttpSession::Configuration http_config{};
     api::WsSession::Configuration ws_config{};
     transaction_pool::PoolModeratorImpl::Params pool_moderator_config{};
-    consensus::SynchronizerConfig synchronizer_config{};
     transaction_pool::TransactionPool::Limits tp_pool_limits{};
     return di::make_injector(
         // bind configs
@@ -509,11 +519,13 @@ namespace kagome::injector {
         injector::useConfig(http_config),
         injector::useConfig(ws_config),
         injector::useConfig(pool_moderator_config),
-        injector::useConfig(synchronizer_config),
         injector::useConfig(tp_pool_limits),
 
         // inherit host injector
-        libp2p::injector::makeHostInjector(),
+        libp2p::injector::makeHostInjector(
+            libp2p::injector::useSecurityAdaptors<
+                libp2p::security::Secio>()[di::override]),
+
         // bind boot nodes
         di::bind<network::PeerList>.to(std::move(get_boot_nodes)),
 
@@ -556,7 +568,6 @@ namespace kagome::injector {
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
         di::bind<consensus::grandpa::VoteCryptoProvider>.template to<consensus::grandpa::VoteCryptoProviderImpl>(),
         di::bind<consensus::EpochStorage>.template to<consensus::EpochStorageImpl>(),
-        di::bind<consensus::Synchronizer>.template to<consensus::SynchronizerImpl>(),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
         di::bind<crypto::ED25519Provider>.template to<crypto::ED25519ProviderImpl>(),
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
@@ -568,8 +579,7 @@ namespace kagome::injector {
         di::bind<consensus::grandpa::Gossiper>.template to<network::GossiperBroadcast>(),
         di::bind<network::Gossiper>.template to<network::GossiperBroadcast>(),
         di::bind<network::SyncClientsSet>.to(std::move(get_sync_clients_set)),
-        di::bind<network::SyncProtocolClient>.template to<consensus::SynchronizerImpl>(),
-        di::bind<network::SyncProtocolObserver>.template to<consensus::SynchronizerImpl>(),
+        di::bind<network::SyncProtocolObserver>.template to<network::SyncProtocolObserverImpl>(),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::binaryen::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::binaryen::ParachainHostImpl>(),
         di::bind<runtime::OffchainWorker>.template to<runtime::binaryen::OffchainWorkerImpl>(),

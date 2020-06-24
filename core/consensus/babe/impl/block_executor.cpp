@@ -9,6 +9,7 @@
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "scale/scale.hpp"
+#include "transaction_pool/transaction_pool_error.hpp"
 
 namespace kagome::consensus {
 
@@ -53,10 +54,19 @@ namespace kagome::consensus {
       logger_->info("Received block header. Number: {}, Hash: {}",
                     header.number,
                     block_hash.toHex());
-      const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
 
-      // we should request blocks between last finalized one and received block
-      requestBlocks(last_hash, block_hash, [] {});
+      auto [_, babe_header] = getBabeDigests(header).value();
+
+      if (not block_tree_->getBlockHeader(header.parent_hash)) {
+        const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
+        // we should request blocks between last finalized one and received
+        // block
+        requestBlocks(
+            last_hash, block_hash, babe_header.authority_index, [] {});
+      } else {
+        requestBlocks(
+            header.parent_hash, block_hash, babe_header.authority_index, [] {});
+      }
     }
   }
 
@@ -66,15 +76,21 @@ namespace kagome::consensus {
     auto new_block_hash =
         hasher_->blake2b_256(scale::encode(new_header).value());
     BOOST_ASSERT(new_header.number >= last_number);
-    return requestBlocks(last_hash, new_block_hash, std::move(next));
+    auto [_, babe_header] = getBabeDigests(new_header).value();
+    return requestBlocks(last_hash,
+                         new_block_hash,
+                         babe_header.authority_index,
+                         std::move(next));
   }
 
   void BlockExecutor::requestBlocks(const primitives::BlockId &from,
                                     const primitives::BlockHash &to,
+                                    primitives::AuthorityIndex authority_index,
                                     std::function<void()> &&next) {
     babe_synchronizer_->request(
         from,
         to,
+        authority_index,
         [self_wp{weak_from_this()},
          next(std::move(next))](const std::vector<primitives::Block> &blocks) {
           auto self = self_wp.lock();
@@ -177,12 +193,15 @@ namespace kagome::consensus {
     OUTCOME_TRY(block_tree_->addBlock(block));
 
     // remove block's extrinsics from tx pool
-    std::vector<primitives::Transaction::Hash> tx_hashes;
-    tx_hashes.reserve(block.body.size());
     for (const auto &extrinsic : block.body) {
-      tx_hashes.emplace_back(hasher_->blake2b_256(extrinsic.data));
+      auto res = tx_pool_->removeOne(hasher_->blake2b_256(extrinsic.data));
+      if (res.has_error()
+          && res
+                 != outcome::failure(
+                     transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
+        return res;
+      }
     }
-    tx_pool_->remove(std::move(tx_hashes));
 
     logger_->info("Imported block with number: {}, hash: {}",
                   block.header.number,

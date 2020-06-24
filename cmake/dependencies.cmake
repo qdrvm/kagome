@@ -8,7 +8,7 @@ find_package(GMock CONFIG REQUIRED)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
 hunter_add_package(Boost COMPONENTS random filesystem program_options)
-find_package(Boost CONFIG REQUIRED  random filesystem program_options)
+find_package(Boost CONFIG REQUIRED random filesystem program_options)
 
 ## TODO: uncomment when it is really needed
 ## https://docs.hunter.sh/en/latest/packages/pkg/libjson-rpc-cpp.html
@@ -71,3 +71,6 @@ find_package(Boost.DI CONFIG REQUIRED)
 # https://github.com/soramitsu/libp2p
 hunter_add_package(libp2p)
 find_package(libp2p CONFIG REQUIRED)
+
+hunter_add_package(libsecp256k1)
+find_package(libsecp256k1 CONFIG REQUIRED)

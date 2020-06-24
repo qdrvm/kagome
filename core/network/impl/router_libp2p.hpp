@@ -18,9 +18,12 @@
 #include "network/extrinsic_observer.hpp"
 #include "network/gossiper.hpp"
 #include "network/helpers/scale_message_read_writer.hpp"
+#include "network/impl/loopback_stream.hpp"
 #include "network/router.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "network/types/gossip_message.hpp"
+#include "network/types/own_peer_info.hpp"
+#include "network/types/peer_list.hpp"
 
 namespace kagome::network {
   class RouterLibp2p : public Router,
@@ -32,7 +35,9 @@ namespace kagome::network {
         std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer,
         std::shared_ptr<SyncProtocolObserver> sync_observer,
         std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
-        std::shared_ptr<Gossiper> gossiper);
+        std::shared_ptr<Gossiper> gossiper,
+        const PeerList &peer_list,
+        const OwnPeerInfo &own_info);
 
     ~RouterLibp2p() override = default;
 
@@ -57,6 +62,7 @@ namespace kagome::network {
     std::shared_ptr<SyncProtocolObserver> sync_observer_;
     std::shared_ptr<ExtrinsicObserver> extrinsic_observer_;
     std::shared_ptr<Gossiper> gossiper_;
+    std::weak_ptr<network::LoopbackStream> loopback_stream_;
     common::Logger log_;
   };
 }  // namespace kagome::network

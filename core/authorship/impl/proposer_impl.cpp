@@ -44,6 +44,7 @@ namespace kagome::authorship {
     };
 
     for (const auto &xt : inherent_xts) {
+      logger_->debug("Adding inherent extrinsic: {}", xt.data.toHex());
       auto inserted_res = block_builder->pushExtrinsic(xt);
       if (not inserted_res) {
         log_push_error(xt, inserted_res.error().message());
@@ -54,6 +55,7 @@ namespace kagome::authorship {
     const auto &ready_txs = transaction_pool_->getReadyTransactions();
 
     for (const auto &[hash, tx] : ready_txs) {
+      logger_->debug("Adding extrinsic: {}", tx->ext.data.toHex());
       auto inserted_res = block_builder->pushExtrinsic(tx->ext);
       if (not inserted_res) {
         log_push_error(tx->ext, inserted_res.error().message());

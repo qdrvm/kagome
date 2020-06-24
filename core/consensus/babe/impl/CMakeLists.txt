@@ -37,6 +37,7 @@ target_link_libraries(block_executor
     scale
     block_tree_error
     threshold_util
+    transaction_pool_error
     )
 
 add_library(babe

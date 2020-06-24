@@ -18,9 +18,9 @@ using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::extensions::StorageExtension;
 using kagome::runtime::MockMemory;
-using kagome::runtime::SizeType;
 using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmPointer;
+using kagome::runtime::WasmSize;
 using kagome::storage::changes_trie::ChangesTrackerMock;
 using kagome::storage::trie::EphemeralTrieBatchMock;
 using kagome::storage::trie::PersistentTrieBatchMock;
@@ -39,8 +39,8 @@ class StorageExtensionTest : public ::testing::Test {
         .WillRepeatedly(Return(true));
     EXPECT_CALL(*storage_provider_, tryGetPersistentBatch())
         .WillRepeatedly(Return(boost::make_optional(
-            std::static_pointer_cast<kagome::storage::trie::PersistentTrieBatch>(
-                trie_batch_))));
+            std::static_pointer_cast<
+                kagome::storage::trie::PersistentTrieBatch>(trie_batch_))));
     memory_ = std::make_shared<MockMemory>();
     changes_tracker_ = std::make_shared<ChangesTrackerMock>();
     storage_extension_ = std::make_shared<StorageExtension>(
@@ -80,7 +80,7 @@ class BuffersParametrizedTest
  */
 TEST_F(StorageExtensionTest, ClearPrefixTest) {
   WasmPointer prefix_pointer = 42;
-  SizeType prefix_size = 42;
+  WasmSize prefix_size = 42;
   Buffer prefix(8, 'p');
 
   EXPECT_CALL(*memory_, loadN(prefix_pointer, prefix_size))
@@ -99,7 +99,7 @@ TEST_F(StorageExtensionTest, ClearPrefixTest) {
  */
 TEST_P(OutcomeParameterizedTest, ClearStorageTest) {
   WasmPointer key_pointer = 43;
-  SizeType key_size = 43;
+  WasmSize key_size = 43;
   Buffer key(8, 'k');
 
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
@@ -115,11 +115,11 @@ TEST_P(OutcomeParameterizedTest, ClearStorageTest) {
  */
 TEST_F(StorageExtensionTest, ExistsStorageTest) {
   WasmPointer key_pointer = 43;
-  SizeType key_size = 43;
+  WasmSize key_size = 43;
   Buffer key(8, 'k');
 
   /// result of contains method on db
-  SizeType contains = 1;
+  WasmSize contains = 1;
 
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
   EXPECT_CALL(*trie_batch_, contains(key)).WillOnce(Return(contains));
@@ -138,7 +138,7 @@ TEST_F(StorageExtensionTest, ExistsStorageTest) {
  */
 TEST_F(StorageExtensionTest, GetAllocatedStorageKeyNotExistsTest) {
   WasmPointer key_pointer = 43;
-  SizeType key_size = 43;
+  WasmSize key_size = 43;
   Buffer key(8, 'k');
 
   WasmPointer len_ptr = 123;
@@ -165,13 +165,13 @@ TEST_F(StorageExtensionTest, GetAllocatedStorageKeyNotExistsTest) {
  */
 TEST_F(StorageExtensionTest, GetAllocatedStorageKeyExistTest) {
   WasmPointer key_pointer = 43;
-  SizeType key_size = 43;
+  WasmSize key_size = 43;
   Buffer key(8, 'k');
 
   WasmPointer len_ptr = 123;
 
   /// res with value
-  SizeType value_length = 12;
+  WasmSize value_length = 12;
   outcome::result<Buffer> get_res = Buffer(value_length, 'v');
 
   // expect key was loaded
@@ -186,7 +186,9 @@ TEST_F(StorageExtensionTest, GetAllocatedStorageKeyExistTest) {
   EXPECT_CALL(*memory_, allocate(value_length))
       .WillOnce(Return(allocated_value_ptr));
   // value is stored in allocated memory
-  EXPECT_CALL(*memory_, storeBuffer(allocated_value_ptr, get_res.value()));
+  EXPECT_CALL(*memory_,
+              storeBuffer(allocated_value_ptr,
+                          gsl::span<const uint8_t>(get_res.value())));
 
   // ptr for the allocated value is returned
   ASSERT_EQ(allocated_value_ptr,
@@ -205,13 +207,13 @@ TEST_F(StorageExtensionTest, GetAllocatedStorageKeyExistTest) {
  */
 TEST_F(StorageExtensionTest, GetStorageIntoKeyExistsTest) {
   WasmPointer key_pointer = 43;
-  SizeType key_size = 43;
+  WasmSize key_size = 43;
   Buffer key(8, 'k');
 
   auto value = "abcdef"_buf;
   WasmPointer value_ptr = 123;
-  SizeType value_length = 2;
-  SizeType value_offset = 3;
+  WasmSize value_length = 2;
+  WasmSize value_offset = 3;
   Buffer partial_value(std::vector<uint8_t>{
       value.toVector().begin() + value_offset,
       value.toVector().begin() + value_offset + value_length});
@@ -222,7 +224,8 @@ TEST_F(StorageExtensionTest, GetStorageIntoKeyExistsTest) {
 
   // only partial value (which is the slice value[offset, offset+length]) should
   // be stored at value_ptr
-  EXPECT_CALL(*memory_, storeBuffer(value_ptr, partial_value));
+  EXPECT_CALL(*memory_,
+              storeBuffer(value_ptr, gsl::span<const uint8_t>(partial_value)));
 
   // ext_get_storage_into should return the length of stored partial value
   ASSERT_EQ(partial_value.size(),
@@ -239,12 +242,12 @@ TEST_F(StorageExtensionTest, GetStorageIntoKeyExistsTest) {
  */
 TEST_F(StorageExtensionTest, GetStorageIntoKeyNotExistsTest) {
   WasmPointer key_pointer = 43;
-  SizeType key_size = 43;
+  WasmSize key_size = 43;
   Buffer key(8, 'k');
 
   WasmPointer value_ptr = 123;
-  SizeType value_length = 2;
-  SizeType value_offset = 3;
+  WasmSize value_length = 2;
+  WasmSize value_offset = 3;
 
   // expect key was loaded
   EXPECT_CALL(*memory_, loadN(key_pointer, key_size)).WillOnce(Return(key));
@@ -266,11 +269,11 @@ TEST_F(StorageExtensionTest, GetStorageIntoKeyNotExistsTest) {
  */
 TEST_P(OutcomeParameterizedTest, SetStorageTest) {
   WasmPointer key_pointer = 43;
-  SizeType key_size = 43;
+  WasmSize key_size = 43;
   Buffer key(8, 'k');
 
   WasmPointer value_pointer = 42;
-  SizeType value_size = 41;
+  WasmSize value_size = 41;
   Buffer value(8, 'v');
 
   // expect key and value were loaded
@@ -319,7 +322,9 @@ TEST_P(BuffersParametrizedTest, Blake2_256_EnumeratedTrieRoot) {
     len_offset += 4;
   }
   WasmPointer result = 1984;
-  EXPECT_CALL(*memory_, storeBuffer(result, hash_array)).Times(1);
+  EXPECT_CALL(*memory_,
+              storeBuffer(result, gsl::span<const uint8_t>(hash_array)))
+      .Times(1);
 
   storage_extension_->ext_blake2_256_enumerated_trie_root(
       values_ptr, lens_ptr, values.size(), result);

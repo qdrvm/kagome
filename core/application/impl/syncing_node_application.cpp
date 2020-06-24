@@ -41,7 +41,7 @@ namespace kagome::application {
       // execute listeners
       io_context_->post([this] {
         const auto &current_peer_info =
-            injector_.template create<libp2p::peer::PeerInfo>();
+            injector_.template create<network::OwnPeerInfo>();
         auto &host = injector_.template create<libp2p::Host &>();
         for (const auto &ma : current_peer_info.addresses) {
           auto listen = host.listen(ma);
@@ -66,7 +66,6 @@ namespace kagome::application {
                 }
                 this->router_->handleGossipProtocol(stream_res.value());
               });
-          break;
         }
         this->router_->init();
       });
@@ -81,4 +80,5 @@ namespace kagome::application {
 
     app_state_manager_->run();
   }
+
 }  // namespace kagome::application

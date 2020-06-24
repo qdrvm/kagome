@@ -29,7 +29,7 @@ namespace kagome::extensions {
      * @param prefix_length length of the prefix
      */
     virtual void ext_clear_prefix(runtime::WasmPointer prefix_data,
-                                  runtime::SizeType prefix_length) = 0;
+                                  runtime::WasmSize prefix_length) = 0;
 
     /**
      * @brief Deletes value by given key
@@ -37,7 +37,7 @@ namespace kagome::extensions {
      * @param key_length length of the key
      */
     virtual void ext_clear_storage(runtime::WasmPointer key_data,
-                                   runtime::SizeType key_length) = 0;
+                                   runtime::WasmSize key_length) = 0;
 
     /**
      * @brief Checks if the given key exists in the storage.
@@ -45,8 +45,8 @@ namespace kagome::extensions {
      * @param key_length length of the key
      * @return 1 if value exists, 0 otherwise
      */
-    virtual runtime::SizeType ext_exists_storage(
-        runtime::WasmPointer key_data, runtime::SizeType key_length) const = 0;
+    virtual runtime::WasmSize ext_exists_storage(
+        runtime::WasmPointer key_data, runtime::WasmSize key_length) const = 0;
 
     /**
      * Gets the value of the given key from storage, allocates memory for that
@@ -63,7 +63,7 @@ namespace kagome::extensions {
      */
     virtual runtime::WasmPointer ext_get_allocated_storage(
         runtime::WasmPointer key_data,
-        runtime::SizeType key_length,
+        runtime::WasmSize key_length,
         runtime::WasmPointer len_ptr) = 0;
 
     /**
@@ -82,12 +82,12 @@ namespace kagome::extensions {
      * <li>value is found => the number of bytes written for value.
      * <li>value is not found => u32::max_value()
      */
-    virtual runtime::SizeType ext_get_storage_into(
+    virtual runtime::WasmSize ext_get_storage_into(
         runtime::WasmPointer key_data,
-        runtime::SizeType key_length,
+        runtime::WasmSize key_length,
         runtime::WasmPointer value_data,
-        runtime::SizeType value_length,
-        runtime::SizeType value_offset) = 0;
+        runtime::WasmSize value_length,
+        runtime::WasmSize value_offset) = 0;
 
     /**
      * @brief Sets the value by given key
@@ -97,9 +97,9 @@ namespace kagome::extensions {
      * @param value_length length of the value
      */
     virtual void ext_set_storage(runtime::WasmPointer key_data,
-                                 runtime::SizeType key_length,
+                                 runtime::WasmSize key_length,
                                  runtime::WasmPointer value_data,
-                                 runtime::SizeType value_length) = 0;
+                                 runtime::WasmSize value_length) = 0;
 
     /**
      * Calculate ordered trie root from provided values
@@ -111,7 +111,7 @@ namespace kagome::extensions {
     virtual void ext_blake2_256_enumerated_trie_root(
         runtime::WasmPointer values_data,
         runtime::WasmPointer lens_data,
-        runtime::SizeType lens_length,
+        runtime::WasmSize lens_length,
         runtime::WasmPointer result) = 0;
 
     /**
@@ -122,7 +122,7 @@ namespace kagome::extensions {
      * @param result pointer to place change trie root
      * @return 1 if change trie root was found, 0 otherwise
      */
-    virtual runtime::SizeType ext_storage_changes_root(
+    virtual runtime::WasmSize ext_storage_changes_root(
         runtime::WasmPointer parent_hash, runtime::WasmPointer result) = 0;
 
     /**
@@ -140,7 +140,7 @@ namespace kagome::extensions {
      * @return pointer to the beginning of allocated memory chunk. If memory
      * cannot be allocated then return -1
      */
-    virtual runtime::WasmPointer ext_malloc(runtime::SizeType size) = 0;
+    virtual runtime::WasmPointer ext_malloc(runtime::WasmSize size) = 0;
 
     /**
      * Deallocate the space previously allocated by ext_malloc
@@ -156,7 +156,7 @@ namespace kagome::extensions {
      * @param length of the array
      */
     virtual void ext_print_hex(runtime::WasmPointer data,
-                               runtime::SizeType length) = 0;
+                               runtime::WasmSize length) = 0;
 
     /**
      * Print a number
@@ -170,7 +170,7 @@ namespace kagome::extensions {
      * @param utf8_length - length of the array
      */
     virtual void ext_print_utf8(runtime::WasmPointer utf8_data,
-                                runtime::SizeType utf8_length) = 0;
+                                runtime::WasmSize utf8_length) = 0;
 
     // -------------------------Cryptographic extensions------------------------
 
@@ -181,7 +181,7 @@ namespace kagome::extensions {
      * @param out buffer to store the hash
      */
     virtual void ext_blake2_128(runtime::WasmPointer data,
-                                runtime::SizeType len,
+                                runtime::WasmSize len,
                                 runtime::WasmPointer out) = 0;
 
     /**
@@ -191,7 +191,7 @@ namespace kagome::extensions {
      * @param out buffer to store the hash
      */
     virtual void ext_blake2_256(runtime::WasmPointer data,
-                                runtime::SizeType len,
+                                runtime::WasmSize len,
                                 runtime::WasmPointer out) = 0;
 
     /**
@@ -201,7 +201,7 @@ namespace kagome::extensions {
      * @param out buffer to store the hash
      */
     virtual void ext_keccak_256(runtime::WasmPointer data,
-                                runtime::SizeType len,
+                                runtime::WasmSize len,
                                 runtime::WasmPointer out) = 0;
 
     /**
@@ -212,9 +212,9 @@ namespace kagome::extensions {
      * @param pubkey_data - key of possible message's author
      * @return 0, if key is successfully verified, 5 otherwise
      */
-    virtual runtime::SizeType ext_ed25519_verify(
+    virtual runtime::WasmSize ext_ed25519_verify(
         runtime::WasmPointer msg_data,
-        runtime::SizeType msg_len,
+        runtime::WasmSize msg_len,
         runtime::WasmPointer sig_data,
         runtime::WasmPointer pubkey_data) = 0;
 
@@ -226,9 +226,9 @@ namespace kagome::extensions {
      * @param pubkey_data - key of possible message's author
      * @return 0, if key is successfully verified, 5 otherwise
      */
-    virtual runtime::SizeType ext_sr25519_verify(
+    virtual runtime::WasmSize ext_sr25519_verify(
         runtime::WasmPointer msg_data,
-        runtime::SizeType msg_len,
+        runtime::WasmSize msg_len,
         runtime::WasmPointer sig_data,
         runtime::WasmPointer pubkey_data) = 0;
 
@@ -239,7 +239,7 @@ namespace kagome::extensions {
      * @param out buffer to store the hash
      */
     virtual void ext_twox_64(runtime::WasmPointer data,
-                             runtime::SizeType len,
+                             runtime::WasmSize len,
                              runtime::WasmPointer out) = 0;
 
     /**
@@ -249,7 +249,7 @@ namespace kagome::extensions {
      * @param out buffer to store the hash
      */
     virtual void ext_twox_128(runtime::WasmPointer data,
-                              runtime::SizeType len,
+                              runtime::WasmSize len,
                               runtime::WasmPointer out) = 0;
 
     /**
@@ -259,8 +259,29 @@ namespace kagome::extensions {
      * @param out buffer to store the hash
      */
     virtual void ext_twox_256(runtime::WasmPointer data,
-                              runtime::SizeType len,
+                              runtime::WasmSize len,
                               runtime::WasmPointer out) = 0;
+    // crypto v1
+
+    /**
+     * Recover secp256k1 public key
+     * @param sig recoverable 65-byte signature
+     * @param msg blake2s message hash
+     * @return pointer-size value (pointer to buffer and its size) containing
+     * scale-encoded variant of public key or error
+     */
+    virtual runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_v1(
+        runtime::WasmPointer sig, runtime::WasmPointer msg) = 0;
+
+    /**
+     * Recover secp256k1 public key
+     * @param sig recoverable 65-byte signature
+     * @param msg blake2s message hash
+     * @return pointer-size value (pointer to buffer and its size) containing
+     * scale-encoded variant of compressed public key or error
+     */
+    virtual runtime::WasmSpan ext_crypto_secp256k1_ecdsa_recover_compressed_v1(
+        runtime::WasmPointer sig, runtime::WasmPointer msg) = 0;
 
     // -------------------------Crypto extensions v1---------------------
 

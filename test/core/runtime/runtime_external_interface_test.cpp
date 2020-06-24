@@ -7,6 +7,7 @@
 
 #include <binaryen/wasm-s-parser.h>
 #include <boost/format.hpp>
+#include <runtime/wasm_result.hpp>
 #include "core/extensions/mock_extension.hpp"
 #include "core/extensions/mock_extension_factory.hpp"
 #include "core/runtime/mock_memory.hpp"
@@ -24,11 +25,11 @@ using kagome::crypto::storage::TypedKeyStorageImpl;
 using kagome::extensions::MockExtension;
 using kagome::extensions::MockExtensionFactory;
 using kagome::runtime::MockMemory;
-using kagome::runtime::PointerSize;
-using kagome::runtime::SizeType;
+using kagome::runtime::TrieStorageProviderMock;
 using kagome::runtime::WasmPointer;
 using kagome::runtime::WasmResult;
-using kagome::runtime::TrieStorageProviderMock;
+using kagome::runtime::WasmSize;
+using kagome::runtime::WasmSpan;
 using kagome::runtime::binaryen::RuntimeExternalInterface;
 using kagome::storage::trie::PersistentTrieBatchMock;
 using wasm::Element;
@@ -82,6 +83,8 @@ class REITest : public ::testing::Test {
     char *data = const_cast<char *>(code.data());
     SExpressionParser parser(data);
     Element &root = *parser.root;
+    ASSERT_GT(root.size(), 0);
+    ASSERT_NE(root[0], nullptr);
     SExpressionWasmBuilder builder(wasm, *root[0]);
     EXPECT_CALL(*extension_, memory()).WillRepeatedly(Return(memory_));
 
@@ -152,7 +155,7 @@ class REITest : public ::testing::Test {
       "  (import \"env\" \"ext_sr25519_verify\" (func $ext_sr25519_verify (type 9)))\n"
       "  (import \"env\" \"ext_ed25519_verify\" (func $ext_ed25519_verify (type 9)))\n"
       "  (import \"env\" \"ext_storage_root\" (func $ext_storage_root (type 1)))\n"
-      "  (import \"env\" \"ext_storage_changes_root\" (func $ext_storage_changes_root (type 2 )))\n"
+      "  (import \"env\" \"ext_storage_changes_root\" (func $ext_storage_changes_root (type 2)))\n"
       "  (import \"env\" \"ext_print_hex\" (func $ext_print_hex (type 0)))\n"
       "  (import \"env\" \"ext_chain_id\" (func $ext_chain_id (type 27)))\n"
 
@@ -165,6 +168,8 @@ class REITest : public ::testing::Test {
       "  (import \"env\" \"ext_crypto_sr25519_generate_version_1\" (func $ext_crypto_sr25519_generate_version_1 (type 30)))\n"
       "  (import \"env\" \"ext_crypto_sr25519_sign_version_1\" (func $ext_crypto_sr25519_sign_version_1 (type 31)))\n"
       "  (import \"env\" \"ext_crypto_sr25519_verify_version_2\" (func $ext_crypto_sr25519_verify_version_2 (type 32)))\n"
+      "  (import \"env\" \"ext_crypto_secp256k1_ecdsa_recover_version_1\" (func $ext_crypto_secp256k1_ecdsa_recover_version_1 (type 31)))\n"
+      "  (import \"env\" \"ext_crypto_secp256k1_ecdsa_recover_compressed_version_1\" (func $ext_crypto_secp256k1_ecdsa_recover_compressed_version_1 (type 31)))\n"
 
       /// assertions to check output in wasm
       "  (import \"env\" \"assert\" (func $assert (param i32)))\n"
@@ -189,7 +194,7 @@ class REITest : public ::testing::Test {
  */
 
 TEST_F(REITest, ext_malloc_Test) {
-  SizeType size = 42;
+  WasmSize size = 42;
   WasmPointer ptr = 123;
   EXPECT_CALL(*extension_, ext_malloc(size)).WillOnce(Return(ptr));
   auto execute_code = (boost::format("    (call $assert_eq_i32\n"
@@ -217,7 +222,7 @@ TEST_F(REITest, ext_free_Test) {
 
 TEST_F(REITest, ext_clear_prefix_Test) {
   WasmPointer prefix_ptr = 123;
-  SizeType prefix_size = 1233;
+  WasmSize prefix_size = 1233;
 
   EXPECT_CALL(*extension_, ext_clear_prefix(prefix_ptr, prefix_size)).Times(1);
   auto execute_code = (boost::format("    (call $ext_clear_prefix\n"
@@ -231,7 +236,7 @@ TEST_F(REITest, ext_clear_prefix_Test) {
 
 TEST_F(REITest, ext_clear_storage_Test) {
   WasmPointer key_ptr = 123;
-  SizeType key_size = 1233;
+  WasmSize key_size = 1233;
 
   EXPECT_CALL(*extension_, ext_clear_storage(key_ptr, key_size)).Times(1);
   auto execute_code = (boost::format("    (call $ext_clear_storage\n"
@@ -245,9 +250,9 @@ TEST_F(REITest, ext_clear_storage_Test) {
 
 TEST_F(REITest, ext_exists_storage_Test) {
   WasmPointer key_ptr = 123;
-  SizeType key_size = 1233;
+  WasmSize key_size = 1233;
 
-  SizeType expected_res = 1;
+  WasmSize expected_res = 1;
 
   EXPECT_CALL(*extension_, ext_exists_storage(key_ptr, key_size))
       .WillOnce(Return(expected_res));
@@ -266,7 +271,7 @@ TEST_F(REITest, ext_exists_storage_Test) {
 
 TEST_F(REITest, ext_get_allocated_storage_Test) {
   WasmPointer key_ptr = 123;
-  SizeType key_size = 1233;
+  WasmSize key_size = 1233;
   WasmPointer len_ptr = 42;
 
   WasmPointer res_ptr = 1;
@@ -291,12 +296,12 @@ TEST_F(REITest, ext_get_allocated_storage_Test) {
 
 TEST_F(REITest, ext_get_storage_into_Test) {
   WasmPointer key_ptr = 123;
-  SizeType key_size = 1233;
+  WasmSize key_size = 1233;
   WasmPointer value_ptr = 42;
-  SizeType value_length = 321;
-  SizeType value_offset = 453;
+  WasmSize value_length = 321;
+  WasmSize value_offset = 453;
 
-  SizeType res = 1;
+  WasmSize res = 1;
 
   EXPECT_CALL(*extension_,
               ext_get_storage_into(
@@ -322,10 +327,10 @@ TEST_F(REITest, ext_get_storage_into_Test) {
 
 TEST_F(REITest, ext_set_storage_Test) {
   WasmPointer key_ptr = 123;
-  SizeType key_size = 1233;
+  WasmSize key_size = 1233;
 
   WasmPointer value_ptr = 42;
-  SizeType value_size = 12;
+  WasmSize value_size = 12;
 
   EXPECT_CALL(*extension_,
               ext_set_storage(key_ptr, key_size, value_ptr, value_size))
@@ -344,7 +349,7 @@ TEST_F(REITest, ext_set_storage_Test) {
 TEST_F(REITest, ext_blake2_256_enumerated_trie_root_Test) {
   WasmPointer values_data = 12;
   WasmPointer lens_data = 42;
-  SizeType lens_length = 123;
+  WasmSize lens_length = 123;
   WasmPointer result = 321;
 
   EXPECT_CALL(*extension_,
@@ -365,10 +370,10 @@ TEST_F(REITest, ext_blake2_256_enumerated_trie_root_Test) {
 
 TEST_F(REITest, ext_storage_changes_root_Test) {
   WasmPointer parent_hash_data = 123;
-  SizeType parent_hash_len = 42;
+  WasmSize parent_hash_len = 42;
   WasmPointer result = 321;
 
-  SizeType res = 1;
+  WasmSize res = 1;
 
   EXPECT_CALL(*extension_, ext_storage_changes_root(parent_hash_data, result))
       .WillOnce(Return(res));
@@ -401,7 +406,7 @@ TEST_F(REITest, ext_storage_root_Test) {
 
 TEST_F(REITest, ext_print_hex_Test) {
   WasmPointer data_ptr = 12;
-  SizeType data_size = 12;
+  WasmSize data_size = 12;
 
   EXPECT_CALL(*extension_, ext_print_hex(data_ptr, data_size)).Times(1);
   auto execute_code = (boost::format("    (call $ext_print_hex\n"
@@ -427,7 +432,7 @@ TEST_F(REITest, ext_print_num_Test) {
 
 TEST_F(REITest, ext_print_utf8_Test) {
   WasmPointer data_ptr = 12;
-  SizeType data_size = 12;
+  WasmSize data_size = 12;
 
   EXPECT_CALL(*extension_, ext_print_utf8(data_ptr, data_size)).Times(1);
   auto execute_code = (boost::format("    (call $ext_print_utf8\n"
@@ -441,7 +446,7 @@ TEST_F(REITest, ext_print_utf8_Test) {
 
 TEST_F(REITest, ext_blake2_128_Test) {
   WasmPointer data_ptr = 12;
-  SizeType data_size = 12;
+  WasmSize data_size = 12;
   WasmPointer out_ptr = 43;
 
   EXPECT_CALL(*extension_, ext_blake2_128(data_ptr, data_size, out_ptr))
@@ -458,7 +463,7 @@ TEST_F(REITest, ext_blake2_128_Test) {
 
 TEST_F(REITest, ext_blake_256_Test) {
   WasmPointer data_ptr = 12;
-  SizeType data_size = 12;
+  WasmSize data_size = 12;
   WasmPointer out_ptr = 43;
 
   EXPECT_CALL(*extension_, ext_blake2_256(data_ptr, data_size, out_ptr))
@@ -475,7 +480,7 @@ TEST_F(REITest, ext_blake_256_Test) {
 
 TEST_F(REITest, ext_keccak_256_Test) {
   WasmPointer data_ptr = 12;
-  SizeType data_size = 12;
+  WasmSize data_size = 12;
   WasmPointer out_ptr = 43;
 
   EXPECT_CALL(*extension_, ext_keccak_256(data_ptr, data_size, out_ptr))
@@ -492,11 +497,11 @@ TEST_F(REITest, ext_keccak_256_Test) {
 
 TEST_F(REITest, ext_ed25519_verify_Test) {
   WasmPointer msg_data = 123;
-  SizeType msg_len = 1233;
+  WasmSize msg_len = 1233;
   WasmPointer sig_data = 42;
   WasmPointer pubkey_data = 321;
 
-  SizeType res = 1;
+  WasmSize res = 1;
 
   EXPECT_CALL(*extension_,
               ext_ed25519_verify(msg_data, msg_len, sig_data, pubkey_data))
@@ -519,11 +524,11 @@ TEST_F(REITest, ext_ed25519_verify_Test) {
 
 TEST_F(REITest, ext_sr25519_verify_Test) {
   WasmPointer msg_data = 123;
-  SizeType msg_len = 1233;
+  WasmSize msg_len = 1233;
   WasmPointer sig_data = 42;
   WasmPointer pubkey_data = 321;
 
-  SizeType res = 0;
+  WasmSize res = 0;
 
   EXPECT_CALL(*extension_,
               ext_sr25519_verify(msg_data, msg_len, sig_data, pubkey_data))
@@ -736,7 +741,7 @@ TEST_F(REITest, ext_sr25519_verify_v2_Test) {
 
 TEST_F(REITest, ext_twox_128_Test) {
   WasmPointer data_ptr = 12;
-  SizeType data_size = 12;
+  WasmSize data_size = 12;
   WasmPointer out_ptr = 43;
 
   EXPECT_CALL(*extension_, ext_twox_128(data_ptr, data_size, out_ptr)).Times(1);
@@ -752,7 +757,7 @@ TEST_F(REITest, ext_twox_128_Test) {
 
 TEST_F(REITest, ext_twox_256_Test) {
   WasmPointer data_ptr = 12;
-  SizeType data_size = 12;
+  WasmSize data_size = 12;
   WasmPointer out_ptr = 43;
 
   EXPECT_CALL(*extension_, ext_twox_256(data_ptr, data_size, out_ptr)).Times(1);
@@ -778,5 +783,50 @@ TEST_F(REITest, ext_chain_id_Test) {
                        % res)
                           .str();
   SCOPED_TRACE("ext_chain_id_Test");
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_crypto_secp256k1_ecdsa_recover_version_1_Test) {
+  WasmPointer sig_ptr = 12;
+  WasmPointer msg_ptr = 77;
+  WasmSpan out_span = WasmResult{109, 41}.combine();
+
+  EXPECT_CALL(*extension_,
+              ext_crypto_secp256k1_ecdsa_recover_v1(sig_ptr, msg_ptr))
+      .WillOnce(Return(out_span));
+  auto execute_code =
+      (boost::format("(call $assert_eq_i64\n"
+                     "    (call $ext_crypto_secp256k1_ecdsa_recover_version_1\n"
+                     "      (i32.const %d)\n"
+                     "      (i32.const %d)\n"
+                     "    )\n"
+                     "    (i64.const %d)\n"
+                     ")")
+       % sig_ptr % msg_ptr % out_span)
+          .str();
+  executeWasm(execute_code);
+}
+
+TEST_F(REITest, ext_crypto_secp256k1_ecdsa_recover_compressed_version_1_Test) {
+  WasmPointer sig_ptr = 12;
+  WasmPointer msg_ptr = 77;
+  WasmSpan out_span = WasmResult{109, 41}.combine();
+
+  EXPECT_CALL(
+      *extension_,
+      ext_crypto_secp256k1_ecdsa_recover_compressed_v1(sig_ptr, msg_ptr))
+      .WillOnce(Return(out_span));
+  auto execute_code =
+      (boost::format(
+           "(call $assert_eq_i64\n"
+           "    (call "
+           "$ext_crypto_secp256k1_ecdsa_recover_compressed_version_1\n"
+           "      (i32.const %d)\n"
+           "      (i32.const %d)\n"
+           "    )\n"
+           "    (i64.const %d)\n"
+           ")")
+       % sig_ptr % msg_ptr % out_span)
+          .str();
   executeWasm(execute_code);
 }

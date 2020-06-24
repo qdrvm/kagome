@@ -17,6 +17,7 @@
 #include "core/api/client/http_client.hpp"
 #include "mock/core/api/transport/api_stub.hpp"
 #include "mock/core/api/transport/jrpc_processor_stub.hpp"
+#include "mock/core/application/app_state_manager_mock.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
 using namespace kagome::api;
@@ -66,7 +67,7 @@ struct ListenerTest : public ::testing::Test {
 
   typename ListenerImpl::SessionImpl::Configuration session_config{};
 
-  sptr<AppStateManager> app_state_manager =
+  sptr<kagome::application::AppStateManager> app_state_manager =
       std::make_shared<kagome::application::AppStateManagerImpl>();
 
   kagome::api::RpcThreadPool::Configuration config = {1, 1};
@@ -81,12 +82,15 @@ struct ListenerTest : public ::testing::Test {
   std::vector<std::shared_ptr<JRpcProcessor>> processors{
       std::make_shared<JrpcProcessorStub>(server, api)};
 
-  std::vector<std::shared_ptr<Listener>> listeners{
-      std::make_shared<ListenerImpl>(
-          main_context, listener_config, session_config)};
+  std::shared_ptr<Listener> listener = std::make_shared<ListenerImpl>(
+      app_state_manager, main_context, listener_config, session_config);
 
   sptr<ApiService> service = std::make_shared<ApiService>(
-      app_state_manager, thread_pool, listeners, server, processors);
+      app_state_manager,
+      thread_pool,
+      std::vector<std::shared_ptr<Listener>>{listener},
+      server,
+      processors);
 };
 
 #endif  // KAGOME_TEST_CORE_API_TRANSPORT_LISTENER_TEST_HPP

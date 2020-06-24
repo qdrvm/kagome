@@ -59,6 +59,7 @@ namespace kagome::consensus {
      */
     void requestBlocks(const primitives::BlockId &from,
                        const primitives::BlockHash &to,
+                       primitives::AuthorityIndex authority_index,
                        std::function<void()> &&next);
 
    private:

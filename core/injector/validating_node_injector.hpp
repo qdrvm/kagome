@@ -11,6 +11,7 @@
 #include "consensus/grandpa/chain.hpp"
 #include "consensus/grandpa/impl/launcher_impl.hpp"
 #include "injector/application_injector.hpp"
+#include "network/types/own_peer_info.hpp"
 #include "runtime/dummy/grandpa_dummy.hpp"
 
 namespace kagome::injector {
@@ -63,9 +64,9 @@ namespace kagome::injector {
 
   // peer info getter
   auto get_peer_info = [](const auto &injector,
-                          uint16_t p2p_port) -> sptr<libp2p::peer::PeerInfo> {
+                          uint16_t p2p_port) -> sptr<network::OwnPeerInfo> {
     static auto initialized =
-        boost::optional<sptr<libp2p::peer::PeerInfo>>(boost::none);
+        boost::optional<sptr<network::OwnPeerInfo>>(boost::none);
     if (initialized) {
       return initialized.value();
     }
@@ -91,10 +92,9 @@ namespace kagome::injector {
     }
     std::vector<libp2p::multi::Multiaddress> addresses;
     addresses.push_back(std::move(multiaddress.value()));
-    libp2p::peer::PeerInfo peer_info{peer_id, std::move(addresses)};
 
-    initialized =
-        std::make_shared<libp2p::peer::PeerInfo>(std::move(peer_info));
+    initialized = std::make_shared<network::OwnPeerInfo>(std::move(peer_id),
+                                                         std::move(addresses));
     return initialized.value();
   };
 
@@ -164,7 +164,7 @@ namespace kagome::injector {
         di::bind<libp2p::crypto::KeyPair>.to(
             std::move(get_peer_keypair))[boost::di::override],
         // compose peer info
-        di::bind<libp2p::peer::PeerInfo>.to([p2p_port](const auto &injector) {
+        di::bind<network::OwnPeerInfo>.to([p2p_port](const auto &injector) {
           return get_peer_info(injector, p2p_port);
         }),
         di::bind<consensus::Babe>.to(std::move(get_babe)),
