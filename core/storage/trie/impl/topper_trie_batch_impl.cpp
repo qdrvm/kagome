@@ -20,7 +20,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
 
 namespace kagome::storage::trie {
 
-  TopperTrieBatchImpl::TopperTrieBatchImpl(std::weak_ptr<TrieBatch> parent) {
+  TopperTrieBatchImpl::TopperTrieBatchImpl(std::weak_ptr<TrieBatch> parent):
+  parent_(parent) {
     BOOST_ASSERT(not parent_.expired());
   }
 
@@ -68,12 +69,12 @@ namespace kagome::storage::trie {
 
   outcome::result<void> TopperTrieBatchImpl::put(const Buffer &key,
                                                  Buffer &&value) {
-    cache_.at(key) = std::move(value);
+    cache_[key] = std::move(value);
     return outcome::success();
   }
 
   outcome::result<void> TopperTrieBatchImpl::remove(const Buffer &key) {
-    cache_.at(key) = boost::none;
+    cache_[key] = boost::none;
     return outcome::success();
   }
 

@@ -21,7 +21,6 @@ namespace kagome::api {
   class WsSession : public Session,
                     public std::enable_shared_from_this<WsSession> {
     using WsError = boost::beast::websocket::error;
-    using Logger = common::Logger;
 
    public:
     struct Configuration {
@@ -114,11 +113,11 @@ namespace kagome::api {
 
     Configuration config_;  ///< session configuration
     boost::beast::websocket::stream<boost::asio::ip::tcp::socket &>
-        ws_;                             ///< stream
+        stream_;                             ///< stream
     boost::beast::flat_buffer rbuffer_;  ///< read buffer
     boost::beast::flat_buffer wbuffer_;  ///< write buffer
 
-    Logger logger_ =
+    common::Logger logger_ =
         common::createLogger("websocket session");  ///< logger instance
   };
 

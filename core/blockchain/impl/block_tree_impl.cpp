@@ -111,6 +111,7 @@ namespace kagome::blockchain {
       std::shared_ptr<BlockHeaderRepository> header_repo,
       std::shared_ptr<BlockStorage> storage,
       const primitives::BlockId &last_finalized_block,
+      std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<crypto::Hasher> hasher) {
     // retrieve the block's header: we need data from it
     OUTCOME_TRY(header, storage->getBlockHeader(last_finalized_block));
@@ -121,12 +122,13 @@ namespace kagome::blockchain {
         std::make_shared<TreeNode>(hash_res, header.number, nullptr, true);
     auto meta = std::make_shared<TreeMeta>(*tree);
 
-	  BlockTreeImpl block_tree{std::move(header_repo),
-	                           std::move(storage),
-	                           std::move(tree),
-	                           std::move(meta),
-	                           std::move(hasher)};
-	  return std::make_shared<BlockTreeImpl>(std::move(block_tree));
+    BlockTreeImpl block_tree{std::move(header_repo),
+                             std::move(storage),
+                             std::move(tree),
+                             std::move(meta),
+                             std::move(extrinsic_observer),
+                             std::move(hasher)};
+    return std::make_shared<BlockTreeImpl>(std::move(block_tree));
   }
 
   BlockTreeImpl::BlockTreeImpl(
@@ -134,11 +136,13 @@ namespace kagome::blockchain {
       std::shared_ptr<BlockStorage> storage,
       std::shared_ptr<TreeNode> tree,
       std::shared_ptr<TreeMeta> meta,
+      std::shared_ptr<network::ExtrinsicObserver> extrinsic_observer,
       std::shared_ptr<crypto::Hasher> hasher)
       : header_repo_{std::move(header_repo)},
         storage_{std::move(storage)},
         tree_{std::move(tree)},
         tree_meta_{std::move(meta)},
+        extrinsic_observer_{std::move(extrinsic_observer)},
         hasher_{std::move(hasher)} {}
 
   outcome::result<void> BlockTreeImpl::addBlockHeader(
@@ -200,9 +204,10 @@ namespace kagome::blockchain {
     if (!node) {
       return BlockTreeError::NO_SUCH_BLOCK;
     }
-
-    // TODO (kamilsa): PRE-367 clean redundant blocks (headers and bodies that
-    // didn't end up in finalized chain)
+    if (storage_->getJustification(block)){
+      // block was already finalized, fine
+      return outcome::success();
+    }
 
     // insert justification into the database
     OUTCOME_TRY(storage_->putJustification(justification, block, node->depth));
@@ -220,6 +225,7 @@ namespace kagome::blockchain {
 
     OUTCOME_TRY(storage_->setLastFinalizedBlockHash(node->block_hash));
 
+    log_->info("Finalized block number {} with hash {}", node->depth, block.toHex());
     return outcome::success();
   }
 
@@ -311,7 +317,7 @@ namespace kagome::blockchain {
         if (auto parent = current_node->parent; !parent.expired()) {
           current_node = parent.lock();
         } else {
-          log_->error(kNotAncestorError.data(), top_block, bottom_block);
+          log_->warn(kNotAncestorError.data(), top_block, bottom_block);
           return BlockTreeError::INCORRECT_ARGS;
         }
       }
@@ -494,13 +500,33 @@ namespace kagome::blockchain {
         }
       }
 
-      // remove (im memory) all child, except main chain block
+      // remove (in memory) all child, except main chain block
       current_node->children = {main_chain_node};
     }
 
+    std::vector<primitives::Extrinsic> extrinsics;
+
     // remove from storage
     for (const auto &[hash, number] : to_remove) {
+      auto block_body_res = storage_->getBlockBody(hash);
+      if (block_body_res.has_value()) {
+        extrinsics.reserve(extrinsics.size() + block_body_res.value().size());
+        for (auto &&extrinsic : block_body_res.value()) {
+          extrinsics.emplace_back(std::move(extrinsic));
+        }
+      }
+
       OUTCOME_TRY(storage_->removeBlock(hash, number));
+    }
+
+    // trying to return back extrinsics to transaction pool
+    for (auto &&extrinsic : extrinsics) {
+      auto result = extrinsic_observer_->onTxMessage(std::move(extrinsic));
+      if (result) {
+        log_->debug("Reapplied tx {}", result.value());
+      } else {
+        log_->debug("Skipped tx: {}", result.error().message());
+      }
     }
 
     return outcome::success();

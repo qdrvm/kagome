@@ -9,6 +9,7 @@
 #include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/babe/impl/threshold_util.hpp"
 #include "scale/scale.hpp"
+#include "transaction_pool/transaction_pool_error.hpp"
 
 namespace kagome::consensus {
 
@@ -19,6 +20,7 @@ namespace kagome::consensus {
       std::shared_ptr<consensus::BabeSynchronizer> babe_synchronizer,
       std::shared_ptr<consensus::BlockValidator> block_validator,
       std::shared_ptr<consensus::EpochStorage> epoch_storage,
+      std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
       std::shared_ptr<crypto::Hasher> hasher)
       : block_tree_{std::move(block_tree)},
         core_{std::move(core)},
@@ -26,6 +28,7 @@ namespace kagome::consensus {
         babe_synchronizer_{std::move(babe_synchronizer)},
         block_validator_{std::move(block_validator)},
         epoch_storage_{std::move(epoch_storage)},
+        tx_pool_{std::move(tx_pool)},
         hasher_{std::move(hasher)},
         logger_{common::createLogger("BlockExecutor")} {
     BOOST_ASSERT(block_tree_ != nullptr);
@@ -34,6 +37,7 @@ namespace kagome::consensus {
     BOOST_ASSERT(babe_synchronizer_ != nullptr);
     BOOST_ASSERT(block_validator_ != nullptr);
     BOOST_ASSERT(epoch_storage_ != nullptr);
+    BOOST_ASSERT(tx_pool_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(logger_ != nullptr);
   }
@@ -46,14 +50,23 @@ namespace kagome::consensus {
 
     // insert block_header if it is missing
     if (not block_tree_->getBlockHeader(block_hash)) {
-        new_block_handler(header);
-        logger_->info("Received block header. Number: {}, Hash: {}",
-                      header.number,
-                      block_hash.toHex());
-      const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
+      new_block_handler(header);
+      logger_->info("Received block header. Number: {}, Hash: {}",
+                    header.number,
+                    block_hash.toHex());
 
-      // we should request blocks between last finalized one and received block
-      requestBlocks(last_hash, block_hash, [] {});
+      auto [_, babe_header] = getBabeDigests(header).value();
+
+      if (not block_tree_->getBlockHeader(header.parent_hash)) {
+        const auto &[last_number, last_hash] = block_tree_->getLastFinalized();
+        // we should request blocks between last finalized one and received
+        // block
+        requestBlocks(
+            last_hash, block_hash, babe_header.authority_index, [] {});
+      } else {
+        requestBlocks(
+            header.parent_hash, block_hash, babe_header.authority_index, [] {});
+      }
     }
   }
 
@@ -63,15 +76,21 @@ namespace kagome::consensus {
     auto new_block_hash =
         hasher_->blake2b_256(scale::encode(new_header).value());
     BOOST_ASSERT(new_header.number >= last_number);
-    return requestBlocks(last_hash, new_block_hash, std::move(next));
+    auto [_, babe_header] = getBabeDigests(new_header).value();
+    return requestBlocks(last_hash,
+                         new_block_hash,
+                         babe_header.authority_index,
+                         std::move(next));
   }
 
   void BlockExecutor::requestBlocks(const primitives::BlockId &from,
                                     const primitives::BlockHash &to,
+                                    primitives::AuthorityIndex authority_index,
                                     std::function<void()> &&next) {
     babe_synchronizer_->request(
         from,
         to,
+        authority_index,
         [self_wp{weak_from_this()},
          next(std::move(next))](const std::vector<primitives::Block> &blocks) {
           auto self = self_wp.lock();
@@ -96,7 +115,7 @@ namespace kagome::consensus {
             if (auto apply_res = self->applyBlock(block); not apply_res) {
               if (apply_res
                   == outcome::failure(
-                         blockchain::BlockTreeError::BLOCK_EXISTS)) {
+                      blockchain::BlockTreeError::BLOCK_EXISTS)) {
                 continue;
               }
               self->logger_->warn(
@@ -152,9 +171,9 @@ namespace kagome::consensus {
     auto next_epoch_digest_res = getNextEpochDigest(block.header);
     if (next_epoch_digest_res) {
       logger_->info("Got next epoch digest for epoch: {}", epoch_index);
-      //OUTCOME_TRY();
-      epoch_storage_->addEpochDescriptor(
-          epoch_index + 2, next_epoch_digest_res.value()).value();
+      epoch_storage_
+          ->addEpochDescriptor(epoch_index + 2, next_epoch_digest_res.value())
+          .value();
     }
 
     OUTCOME_TRY(block_validator_->validateHeader(
@@ -172,6 +191,17 @@ namespace kagome::consensus {
 
     // add block header if it does not exist
     OUTCOME_TRY(block_tree_->addBlock(block));
+
+    // remove block's extrinsics from tx pool
+    for (const auto &extrinsic : block.body) {
+      auto res = tx_pool_->removeOne(hasher_->blake2b_256(extrinsic.data));
+      if (res.has_error()
+          && res
+                 != outcome::failure(
+                     transaction_pool::TransactionPoolError::TX_NOT_FOUND)) {
+        return res;
+      }
+    }
 
     logger_->info("Imported block with number: {}, hash: {}",
                   block.header.number,

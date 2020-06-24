@@ -20,11 +20,11 @@ namespace kagome::consensus::grandpa {
     if (auto fin_res =
             environment_->finalize(f.vote.block_hash, f.justification);
         not fin_res) {
-      logger_->error("Could not finalize: {}", fin_res.error().message());
+      logger_->error("Could not finalize block with hash {}. Reason: {}",
+                     f.vote.block_hash.toHex(),
+                     fin_res.error().message());
+      return;
     }
-    logger_->info("Finalized block number {} with hash {}",
-                  f.vote.block_number,
-                  f.vote.block_hash.toHex());
   }
 
 }  // namespace kagome::consensus::grandpa

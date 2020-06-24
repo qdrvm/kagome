@@ -28,6 +28,7 @@ namespace kagome::consensus {
 
     void request(const primitives::BlockId &from,
                  const primitives::BlockHash &to,
+                 primitives::AuthorityIndex authority_index,
                  const BlocksHandler &block_list_handler) override;
 
    private:
@@ -47,8 +48,7 @@ namespace kagome::consensus {
      */
     void pollClients(
         network::BlocksRequest request,
-        std::unordered_set<std::shared_ptr<network::SyncProtocolClient>>
-            &&polled_clients,
+        primitives::AuthorityIndex authority_index,
         const BlocksHandler &requested_blocks_handler) const;
 
     std::shared_ptr<network::SyncClientsSet> sync_clients_;

@@ -27,7 +27,9 @@ namespace kagome::storage::trie {
    * A batch that grants access to the persistent trie storage.
    * All changes are contained in memory until commit() is called.
    */
-  class PersistentTrieBatch : public TrieBatch {
+  class PersistentTrieBatch
+      : public TrieBatch,
+        public std::enable_shared_from_this<PersistentTrieBatch> {
    public:
     /**
      * Commits changes to a persistent storage
@@ -45,15 +47,13 @@ namespace kagome::storage::trie {
    * A temporary in-memory trie built on top of a persistent one
    * All changes to it are simply discarded when the batch is destroyed
    */
-  class EphemeralTrieBatch : public TrieBatch {
-
-  };
+  class EphemeralTrieBatch : public TrieBatch {};
 
   /**
    * A batch on top of another batch
    * Used for small amount of atomic changes, like applying an extrinsic
    */
-  class TopperTrieBatch: public TrieBatch {
+  class TopperTrieBatch : public TrieBatch {
    public:
     /**
      * Writes changes to the parent batch

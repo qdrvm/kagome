@@ -10,6 +10,7 @@
 #include "clock/impl/clock_impl.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
 #include "consensus/grandpa/impl/vote_tracker_impl.hpp"
+#include "consensus/grandpa/impl/voting_round_error.hpp"
 #include "consensus/grandpa/impl/voting_round_impl.hpp"
 #include "consensus/grandpa/vote_graph/vote_graph_impl.hpp"
 #include "core/consensus/grandpa/literals.hpp"
@@ -23,7 +24,6 @@
 using namespace kagome::consensus::grandpa;
 using namespace std::chrono_literals;
 
-using kagome::blockchain::BlockTreeMock;
 using kagome::blockchain::BlockTreeMock;
 using kagome::clock::SteadyClockImpl;
 using kagome::consensus::grandpa::EnvironmentMock;
@@ -514,6 +514,33 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
       onCompleted(outcome::result<CompletedRound>(expected_completed_round)))
       .WillRepeatedly(Return());
 
+  voting_round_->primaryPropose(last_round_state);
+  voting_round_->prevote(last_round_state);
+  voting_round_->precommit(last_round_state);
+
+  io_context_->run_for(duration_ * 6);
+}
+
+/**
+ * @given last round state with no estimate
+ * @when start voting round by calling primary propose, prevote and precommit
+ * @then round is stopped by calling on completed with
+ * NO_ESTIMATE_FOR_PREVIOUS_ROUND error
+ */
+TEST_F(VotingRoundTest, NoEstimateForPreviousRound) {
+  // given
+  RoundState last_round_state;
+  // next line is redundant, but left just to explicitly state given conditions
+  // of the test
+  last_round_state.estimate = boost::none;
+
+  // then
+  EXPECT_CALL(*env_,
+              onCompleted(outcome::result<CompletedRound>(
+                  VotingRoundError::NO_ESTIMATE_FOR_PREVIOUS_ROUND)))
+      .WillOnce(Return());
+
+  // when
   voting_round_->primaryPropose(last_round_state);
   voting_round_->prevote(last_round_state);
   voting_round_->precommit(last_round_state);

@@ -38,6 +38,7 @@ target_link_libraries(application_injector
     binaryen_babe_api
     binaryen_grandpa_api
     binaryen_block_builder_api
+    trie_storage_provider
     author_api_service
     extrinsic_observer
     api_author_requests
@@ -53,7 +54,9 @@ target_link_libraries(application_injector
     environment
     proposer
     storage_wasm_provider
-    synchronizer
+    remote_sync_protocol_client
+    dummy_sync_protocol_client
+    sync_protocol_observer
     binaryen_tagged_transaction_queue_api
     vrf_provider
     waitable_timer

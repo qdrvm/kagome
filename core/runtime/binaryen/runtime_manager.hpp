@@ -17,6 +17,7 @@
 #include "runtime/wasm_provider.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
+#include "runtime/trie_storage_provider.hpp"
 
 namespace kagome::runtime::binaryen {
 
@@ -32,7 +33,7 @@ namespace kagome::runtime::binaryen {
     RuntimeManager(
         std::shared_ptr<WasmProvider> wasm_provider,
         std::shared_ptr<extensions::ExtensionFactory> extension_factory,
-        std::shared_ptr<storage::trie::TrieStorage> trie_storage,
+        std::shared_ptr<TrieStorageProvider> storage_provider,
         std::shared_ptr<crypto::Hasher> hasher);
 
     struct RuntimeEnvironment {
@@ -58,8 +59,7 @@ namespace kagome::runtime::binaryen {
         const common::Hash256 &state_root);
 
    private:
-    outcome::result<RuntimeEnvironment> createRuntimeEnvironment(
-        std::shared_ptr<storage::trie::TrieBatch> storage_batch);
+    outcome::result<RuntimeEnvironment> createRuntimeEnvironment();
 
     outcome::result<std::shared_ptr<wasm::Module>> prepareModule(
         const common::Buffer &state_code);
@@ -67,14 +67,9 @@ namespace kagome::runtime::binaryen {
     common::Logger logger_ = common::createLogger("Runtime manager");
 
     std::shared_ptr<runtime::WasmProvider> wasm_provider_;
-    std::shared_ptr<storage::trie::TrieStorage> storage_;
+    std::shared_ptr<TrieStorageProvider> storage_provider_;
     std::shared_ptr<extensions::ExtensionFactory> extension_factory_;
     std::shared_ptr<crypto::Hasher> hasher_;
-
-    // need to store it to keep changes in memory before ext_storage_root()
-    // commits them
-    // TODO(Harrm): think of better access restriction to it; Ideally unique_ptr
-    std::shared_ptr<storage::trie::PersistentTrieBatch> persistent_batch_;
 
     // hash of WASM state code
     common::Hash256 state_code_hash_{};

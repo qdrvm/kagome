@@ -15,5 +15,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::grandpa, VotingRoundError, e) {
              "last round estimate or is descendant of it";
     case E::NEW_STATE_EQUAL_TO_OLD:
       return "New state is equal to the new one";
+    case E::NO_ESTIMATE_FOR_PREVIOUS_ROUND:
+      return "if last round didn't have an estimate then it didn't have a "
+             "ghost then it didn't have an upperbound then we cannot start a "
+             "round";
   }
 }

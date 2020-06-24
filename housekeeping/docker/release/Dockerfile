@@ -8,4 +8,4 @@ RUN apt-get update && \
 WORKDIR /kagome
 ENV PATH $PATH:/kagome
 
-COPY node/kagome_full_syncing/kagome_full_syncing node/kagome_validating/kagome_validating ./
+COPY node/kagome_full_syncing/kagome_full_syncing node/kagome_validating/kagome_validating node/kagome_block_producing/kagome_block_producing ./

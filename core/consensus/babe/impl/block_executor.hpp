@@ -15,6 +15,7 @@
 #include "primitives/babe_configuration.hpp"
 #include "primitives/block_header.hpp"
 #include "runtime/core.hpp"
+#include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::consensus {
 
@@ -26,6 +27,7 @@ namespace kagome::consensus {
                   std::shared_ptr<BabeSynchronizer> babe_synchronizer,
                   std::shared_ptr<BlockValidator> block_validator,
                   std::shared_ptr<EpochStorage> epoch_storage,
+                  std::shared_ptr<transaction_pool::TransactionPool> tx_pool,
                   std::shared_ptr<crypto::Hasher> hasher);
 
     /**
@@ -57,6 +59,7 @@ namespace kagome::consensus {
      */
     void requestBlocks(const primitives::BlockId &from,
                        const primitives::BlockHash &to,
+                       primitives::AuthorityIndex authority_index,
                        std::function<void()> &&next);
 
    private:
@@ -69,6 +72,7 @@ namespace kagome::consensus {
     std::shared_ptr<BabeSynchronizer> babe_synchronizer_;
     std::shared_ptr<BlockValidator> block_validator_;
     std::shared_ptr<EpochStorage> epoch_storage_;
+    std::shared_ptr<transaction_pool::TransactionPool> tx_pool_;
     std::shared_ptr<crypto::Hasher> hasher_;
 
     common::Logger logger_;

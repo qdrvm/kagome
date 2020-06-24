@@ -11,6 +11,7 @@
 #include "network/types/block_announce.hpp"
 #include "network/types/blocks_request.hpp"
 #include "network/types/blocks_response.hpp"
+#include "network/types/peer_list.hpp"
 #include "scale/scale.hpp"
 
 namespace kagome::network {
@@ -19,22 +20,35 @@ namespace kagome::network {
       std::shared_ptr<BabeObserver> babe_observer,
       std::shared_ptr<consensus::grandpa::RoundObserver> grandpa_observer,
       std::shared_ptr<SyncProtocolObserver> sync_observer,
-      std::shared_ptr<ExtrinsicObserver> author_api_observer,
-      std::shared_ptr<Gossiper> gossiper)
+      std::shared_ptr<ExtrinsicObserver> extrinsic_observer,
+      std::shared_ptr<Gossiper> gossiper,
+      const PeerList &peer_list,
+      const OwnPeerInfo &own_peer_info)
       : host_{host},
         babe_observer_{std::move(babe_observer)},
         grandpa_observer_{std::move(grandpa_observer)},
         sync_observer_{std::move(sync_observer)},
-        author_api_observer_{std::move(author_api_observer)},
+        extrinsic_observer_{std::move(extrinsic_observer)},
         gossiper_{std::move(gossiper)},
         log_{common::createLogger("RouterLibp2p")} {
     BOOST_ASSERT_MSG(babe_observer_ != nullptr, "babe observer is nullptr");
     BOOST_ASSERT_MSG(grandpa_observer_ != nullptr,
                      "grandpa observer is nullptr");
     BOOST_ASSERT_MSG(sync_observer_ != nullptr, "sync observer is nullptr");
-    BOOST_ASSERT_MSG(author_api_observer_ != nullptr,
+    BOOST_ASSERT_MSG(extrinsic_observer_ != nullptr,
                      "author api observer is nullptr");
     BOOST_ASSERT_MSG(gossiper_ != nullptr, "gossiper is nullptr");
+    BOOST_ASSERT_MSG(!peer_list.peers.empty(), "peer list is empty");
+
+    for (const auto &peer_info : peer_list.peers) {
+      if (peer_info.id != own_peer_info.id) {
+        gossiper_->reserveStream(peer_info, {});
+      } else {
+        auto stream = std::make_shared<LoopbackStream>(own_peer_info);
+        loopback_stream_ = stream;
+        gossiper_->reserveStream(own_peer_info, std::move(stream));
+      }
+    }
   }
 
   void RouterLibp2p::init() {
@@ -46,6 +60,9 @@ namespace kagome::network {
         kGossipProtocol, [self{shared_from_this()}](auto &&stream) {
           self->handleGossipProtocol(std::forward<decltype(stream)>(stream));
         });
+    if (auto stream = loopback_stream_.lock()) {
+      readGossipMessage(std::move(stream));
+    }
     host_.start();
     const auto &host_addresses = host_.getAddresses();
     BOOST_ASSERT_MSG(not host_addresses.empty(), "Host addresses empty");
@@ -60,6 +77,18 @@ namespace kagome::network {
         stream,
         [self{shared_from_this()}, stream](auto &&request) {
           // std::bind didn't work :(
+          std::string from = visit_in_place(
+              request.from,
+              [](primitives::BlockNumber number) {
+                return std::to_string(number);
+              },
+              [](const primitives::BlockHash &hash) { return hash.toHex(); });
+          self->log_->debug(
+              "Received request from peer {} requesting blocks from {}"
+              " to {}",
+              stream->remotePeerId().value().toBase58(),
+              from,
+              request.to->toHex());
           return self->sync_observer_->onBlocksRequest(
               std::forward<decltype(request)>(request));
         },
@@ -142,7 +171,7 @@ namespace kagome::network {
         log_->info("Received tx announce: {} txs", txs_msg_res.value().size());
 
         for (auto &extrinsic : txs_msg_res.value()) {
-          auto result = author_api_observer_->onTxMessage(extrinsic);
+          auto result = extrinsic_observer_->onTxMessage(extrinsic);
           if (result) {
             log_->debug("  Received tx {}", result.value());
           } else {

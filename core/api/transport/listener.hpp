@@ -20,35 +20,40 @@ namespace kagome::api {
    */
   class Listener {
    protected:
-    template <class T>
-    using sptr = std::shared_ptr<T>;
-
-    template <class T>
-    using Signal = boost::signals2::signal<T>;
-    using OnError = Signal<void(const outcome::result<void> &)>;
-
-    using NewSessionHandler = std::function<void(const sptr<Session> &)>;
+    using Acceptor = boost::asio::ip::tcp::acceptor;
+    using Endpoint = boost::asio::ip::tcp::endpoint;
+    using NewSessionHandler =
+        std::function<void(const std::shared_ptr<Session> &)>;
 
    public:
     using Context = RpcContext;
 
+    struct Configuration {
+      Endpoint endpoint{};  ///< listning endpoint
+      Configuration() {
+        endpoint.address(boost::asio::ip::address_v4::any());
+        endpoint.port(0);
+      }
+    };
+
     virtual ~Listener() = default;
 
-    /**
-     * @brief starts listening
-     */
-    virtual void start(NewSessionHandler on_new_session) = 0;
+    /// Bind endpoint
+    virtual void prepare() = 0;
 
-    /**
-     * @brief stops listening
-     */
+    /// Start handling inner connection
+    virtual void start() = 0;
+
+    /// Stop working
     virtual void stop() = 0;
 
+    /// Set handler for working new session
+    virtual void setHandlerForNewSession(
+        NewSessionHandler &&on_new_session) = 0;
+
    protected:
-    /**
-     * @brief accepts incoming connection
-     */
-    virtual void acceptOnce(NewSessionHandler on_new_session) = 0;
+    /// Accept incoming connection
+    virtual void acceptOnce() = 0;
   };
 }  // namespace kagome::api
 

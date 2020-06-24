@@ -35,7 +35,6 @@ namespace kagome::api {
     using HttpField = boost::beast::http::field;
 
     using HttpError = boost::beast::http::error;
-    using Logger = common::Logger;
 
    public:
     struct Configuration {
@@ -140,8 +139,8 @@ namespace kagome::api {
      */
     using Parser = RequestParser<StringBody>;
 
-    std::unique_ptr<Parser> parser_;                        ///< http parser
-    Logger logger_ = common::createLogger("http session");  ///< logger instance
+    std::unique_ptr<Parser> parser_;  ///< http parser
+    common::Logger logger_ = common::createLogger("http session");
   };
 
 }  // namespace kagome::api

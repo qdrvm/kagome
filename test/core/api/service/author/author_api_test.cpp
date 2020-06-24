@@ -9,7 +9,6 @@
 #include <gtest/gtest.h>
 
 #include "common/blob.hpp"
-#include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/network/extrinsic_gossiper_mock.hpp"
 #include "mock/core/runtime/tagged_transaction_queue_mock.hpp"
@@ -18,6 +17,7 @@
 #include "primitives/transaction.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/outcome/dummy_error.hpp"
 #include "testutil/primitives/mp_utils.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 
@@ -27,7 +27,6 @@ using namespace kagome::transaction_pool;
 using namespace kagome::runtime;
 
 using kagome::blockchain::BlockTree;
-using kagome::blockchain::BlockTreeMock;
 using kagome::common::Buffer;
 using kagome::common::Hash256;
 using kagome::network::ExtrinsicGossiperMock;
@@ -47,18 +46,7 @@ using ::testing::Return;
 using ::testing::ReturnRef;
 
 using testutil::createHash256;
-
-namespace kagome::api {
-  enum class DummyError { ERROR = 1 };
-}
-
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::api, DummyError, e) {
-  using kagome::api::DummyError;
-  switch (e) {
-    case DummyError::ERROR:
-      return "dummy error";
-  }
-}
+using testutil::DummyError;
 
 struct AuthorApiTest : public ::testing::Test {
   template <class T>
@@ -67,7 +55,6 @@ struct AuthorApiTest : public ::testing::Test {
   sptr<HasherMock> hasher;               ///< hasher mock
   sptr<TaggedTransactionQueueMock> ttq;  ///< tagged transaction queue mock
   sptr<TransactionPoolMock> transaction_pool;  ///< transaction pool mock
-  sptr<BlockTreeMock> block_tree;              ///< block tree mock instance
   sptr<ExtrinsicGossiperMock> gossiper;        ///< gossiper mock
   sptr<AuthorApiImpl> api;                     ///< api instance
   sptr<Extrinsic> extrinsic;                   ///< extrinsic instance
@@ -79,10 +66,9 @@ struct AuthorApiTest : public ::testing::Test {
     hasher = std::make_shared<HasherMock>();
     ttq = std::make_shared<TaggedTransactionQueueMock>();
     transaction_pool = std::make_shared<TransactionPoolMock>();
-    block_tree = std::make_shared<BlockTreeMock>();
     gossiper = std::make_shared<ExtrinsicGossiperMock>();
     api = std::make_shared<AuthorApiImpl>(
-        ttq, transaction_pool, hasher, block_tree, gossiper);
+        ttq, transaction_pool, hasher, gossiper);
     extrinsic.reset(new Extrinsic{"12"_hex2buf});
     valid_transaction.reset(new ValidTransaction{1, {{2}}, {{3}}, 4, true});
     deepest_hash = createHash256({1u, 2u, 3u});
@@ -111,8 +97,8 @@ TEST_F(AuthorApiTest, SubmitExtrinsicSuccess) {
   EXPECT_CALL(*transaction_pool, submitOne(tr))
       .WillOnce(Return(outcome::success()));
   EXPECT_CALL(*gossiper, transactionAnnounce(_)).Times(1);
-  EXPECT_OUTCOME_TRUE(hash, api->submitExtrinsic(*extrinsic))
-  ASSERT_EQ(hash, Hash256{});
+  EXPECT_OUTCOME_SUCCESS(hash, api->submitExtrinsic(*extrinsic));
+  ASSERT_EQ(hash.value(), Hash256{});
 }
 
 /**
@@ -129,6 +115,6 @@ TEST_F(AuthorApiTest, SubmitExtrinsicFail) {
   EXPECT_CALL(*hasher, blake2b_256(_)).Times(0);
   EXPECT_CALL(*transaction_pool, submitOne(_)).Times(0);
   EXPECT_CALL(*gossiper, transactionAnnounce(_)).Times(0);
-  EXPECT_OUTCOME_FALSE_2(err, api->submitExtrinsic(*extrinsic))
-  ASSERT_EQ(err.value(), static_cast<int>(DummyError::ERROR));
+  EXPECT_OUTCOME_ERROR(
+      res, api->submitExtrinsic(*extrinsic), DummyError::ERROR);
 }

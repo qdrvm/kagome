@@ -160,7 +160,7 @@ TEST_F(AppStateManagerTest, AddCallback_AfterShutdown) {
 TEST_F(AppStateManagerTest, RegCallbacks) {
   int tag = 0;
 
-  reg(
+  registerHandlers(
       [&] {
         (*prepare_cb)();
         tag = 1;
@@ -196,9 +196,9 @@ TEST_F(AppStateManagerTest, Run_CallSequence) {
 
   auto app_state_manager = std::make_shared<AppStateManagerImpl>();
 
-  app_state_manager->reg([&] { (*prepare_cb)(); },
-                         [&] { (*launch_cb)(); },
-                         [&] { (*shutdown_cb)(); });
+  app_state_manager->registerHandlers([&] { (*prepare_cb)(); },
+                                      [&] { (*launch_cb)(); },
+                                      [&] { (*shutdown_cb)(); });
 
   Sequence seq;
   EXPECT_CALL(*prepare_cb, call()).InSequence(seq).WillOnce(Return());

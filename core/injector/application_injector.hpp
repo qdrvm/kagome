@@ -48,7 +48,6 @@
 #include "consensus/grandpa/structs.hpp"
 #include "consensus/grandpa/vote_graph.hpp"
 #include "consensus/grandpa/vote_tracker.hpp"
-#include "consensus/synchronizer/impl/synchronizer_impl.hpp"
 #include "consensus/validation/babe_block_validator.hpp"
 #include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
@@ -56,9 +55,12 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/vrf/vrf_provider_impl.hpp"
 #include "extensions/impl/extension_factory_impl.hpp"
+#include "network/impl/dummy_sync_protocol_client.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/gossiper_broadcast.hpp"
+#include "network/impl/remote_sync_protocol_client.hpp"
 #include "network/impl/router_libp2p.hpp"
+#include "network/impl/sync_protocol_observer_impl.hpp"
 #include "network/sync_protocol_client.hpp"
 #include "network/sync_protocol_observer.hpp"
 #include "network/types/sync_clients_set.hpp"
@@ -71,6 +73,7 @@
 #include "runtime/binaryen/runtime_api/parachain_host_impl.hpp"
 #include "runtime/binaryen/runtime_api/tagged_transaction_queue_impl.hpp"
 #include "runtime/common/storage_wasm_provider.hpp"
+#include "runtime/common/trie_storage_provider_impl.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/predefined_keys.hpp"
@@ -129,8 +132,7 @@ namespace kagome::injector {
         injector
             .template create<std::shared_ptr<application::AppStateManager>>();
     auto rpc_thread_pool =
-        injector
-            .template create<std::shared_ptr<api::RpcThreadPool>>();
+        injector.template create<std::shared_ptr<api::RpcThreadPool>>();
     std::vector<std::shared_ptr<api::Listener>> listeners{
         injector.template create<std::shared_ptr<api::HttpListenerImpl>>(),
         injector.template create<std::shared_ptr<api::WsListenerImpl>>(),
@@ -162,6 +164,9 @@ namespace kagome::injector {
       return initialized.value();
     }
 
+    auto app_state_manager =
+        injector.template create<sptr<application::AppStateManager>>();
+
     auto context = injector.template create<sptr<api::RpcContext>>();
 
     api::HttpListenerImpl::Configuration listener_config;
@@ -171,7 +176,7 @@ namespace kagome::injector {
         injector.template create<api::HttpSession::Configuration>();
 
     initialized = std::make_shared<api::HttpListenerImpl>(
-        context, listener_config, http_session_config);
+        app_state_manager, context, listener_config, http_session_config);
     return initialized.value();
   };
 
@@ -185,6 +190,9 @@ namespace kagome::injector {
       return initialized.value();
     }
 
+    auto app_state_manager =
+        injector.template create<sptr<application::AppStateManager>>();
+
     auto context = injector.template create<sptr<api::RpcContext>>();
 
     api::WsListenerImpl::Configuration listener_config;
@@ -194,7 +202,7 @@ namespace kagome::injector {
         injector.template create<api::WsSession::Configuration>();
 
     initialized = std::make_shared<api::WsListenerImpl>(
-        context, listener_config, ws_session_config);
+        app_state_manager, context, listener_config, ws_session_config);
     return initialized.value();
   };
 
@@ -293,8 +301,6 @@ namespace kagome::injector {
 
     auto &&storage = injector.template create<sptr<blockchain::BlockStorage>>();
 
-    auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
-
     auto last_finalized_block_res = storage->getLastFinalizedBlockHash();
 
     const auto block_id =
@@ -302,8 +308,17 @@ namespace kagome::injector {
             ? primitives::BlockId{last_finalized_block_res.value()}
             : primitives::BlockId{0};
 
-    auto &&tree = blockchain::BlockTreeImpl::create(
-        std::move(header_repo), storage, block_id, std::move(hasher));
+    auto &&extrinsic_observer =
+        injector.template create<sptr<network::ExtrinsicObserver>>();
+
+    auto &&hasher = injector.template create<sptr<crypto::Hasher>>();
+
+    auto &&tree =
+        blockchain::BlockTreeImpl::create(std::move(header_repo),
+                                          storage,
+                                          block_id,
+                                          std::move(extrinsic_observer),
+                                          std::move(hasher));
     if (!tree) {
       common::raise(tree.error());
     }
@@ -441,21 +456,21 @@ namespace kagome::injector {
         injector.template create<sptr<blockchain::BlockHeaderRepository>>();
 
     auto res = std::make_shared<network::SyncClientsSet>();
-    auto current_peer_synchronizer =
-        injector.template create<sptr<consensus::Synchronizer>>();
-    res->clients.insert(current_peer_synchronizer);
 
-    auto current_peer_info = injector.template create<libp2p::peer::PeerInfo>();
+    auto &current_peer_info =
+        injector.template create<network::OwnPeerInfo &>();
     for (const auto &peer_info : peer_infos) {
+      spdlog::debug("Added peer with id: {}", peer_info.id.toBase58());
       if (peer_info.id != current_peer_info.id) {
-        res->clients.insert(std::make_shared<consensus::SynchronizerImpl>(
-            *host,
-            peer_info,
-            block_tree,
-            block_header_repository,
-            injector.template create<consensus::SynchronizerConfig>()));
+        res->clients.emplace_back(
+            std::make_shared<network::RemoteSyncProtocolClient>(*host,
+                                                                peer_info));
+      } else {
+        res->clients.emplace_back(
+            std::make_shared<network::DummySyncProtocolClient>());
       }
     }
+    std::reverse(res->clients.begin(), res->clients.end());
     initialized = res;
     return res;
   };
@@ -475,7 +490,10 @@ namespace kagome::injector {
       common::raise(configuration_res.error());
     }
     auto config = configuration_res.value();
-    config.leadership_rate = {1, 2};
+    for (const auto &authority : config.genesis_authorities) {
+      spdlog::debug("Babe authority: {}", authority.id.id.toHex());
+    }
+    config.leadership_rate.first *= 3;
     initialized = std::make_shared<primitives::BabeConfiguration>(config);
     return *initialized;
   };
@@ -494,7 +512,6 @@ namespace kagome::injector {
     api::HttpSession::Configuration http_config{};
     api::WsSession::Configuration ws_config{};
     transaction_pool::PoolModeratorImpl::Params pool_moderator_config{};
-    consensus::SynchronizerConfig synchronizer_config{};
     transaction_pool::TransactionPool::Limits tp_pool_limits{};
     return di::make_injector(
         // bind configs
@@ -502,11 +519,13 @@ namespace kagome::injector {
         injector::useConfig(http_config),
         injector::useConfig(ws_config),
         injector::useConfig(pool_moderator_config),
-        injector::useConfig(synchronizer_config),
         injector::useConfig(tp_pool_limits),
 
         // inherit host injector
-        libp2p::injector::makeHostInjector(),
+        libp2p::injector::makeHostInjector(
+            libp2p::injector::useSecurityAdaptors<
+                libp2p::security::Secio>()[di::override]),
+
         // bind boot nodes
         di::bind<network::PeerList>.to(std::move(get_boot_nodes)),
 
@@ -549,7 +568,6 @@ namespace kagome::injector {
         di::bind<consensus::grandpa::Environment>.template to<consensus::grandpa::EnvironmentImpl>(),
         di::bind<consensus::grandpa::VoteCryptoProvider>.template to<consensus::grandpa::VoteCryptoProviderImpl>(),
         di::bind<consensus::EpochStorage>.template to<consensus::EpochStorageImpl>(),
-        di::bind<consensus::Synchronizer>.template to<consensus::SynchronizerImpl>(),
         di::bind<consensus::BlockValidator>.template to<consensus::BabeBlockValidator>(),
         di::bind<crypto::ED25519Provider>.template to<crypto::ED25519ProviderImpl>(),
         di::bind<crypto::Hasher>.template to<crypto::HasherImpl>(),
@@ -561,8 +579,7 @@ namespace kagome::injector {
         di::bind<consensus::grandpa::Gossiper>.template to<network::GossiperBroadcast>(),
         di::bind<network::Gossiper>.template to<network::GossiperBroadcast>(),
         di::bind<network::SyncClientsSet>.to(std::move(get_sync_clients_set)),
-        di::bind<network::SyncProtocolClient>.template to<consensus::SynchronizerImpl>(),
-        di::bind<network::SyncProtocolObserver>.template to<consensus::SynchronizerImpl>(),
+        di::bind<network::SyncProtocolObserver>.template to<network::SyncProtocolObserverImpl>(),
         di::bind<runtime::TaggedTransactionQueue>.template to<runtime::binaryen::TaggedTransactionQueueImpl>(),
         di::bind<runtime::ParachainHost>.template to<runtime::binaryen::ParachainHostImpl>(),
         di::bind<runtime::OffchainWorker>.template to<runtime::binaryen::OffchainWorkerImpl>(),
@@ -571,6 +588,7 @@ namespace kagome::injector {
         di::bind<runtime::Core>.template to<runtime::binaryen::CoreImpl>(),
         di::bind<runtime::BabeApi>.template to<runtime::binaryen::BabeApiImpl>(),
         di::bind<runtime::BlockBuilder>.template to<runtime::binaryen::BlockBuilderImpl>(),
+        di::bind<runtime::TrieStorageProvider>.template to<runtime::TrieStorageProviderImpl>(),
         di::bind<transaction_pool::TransactionPool>.template to<transaction_pool::TransactionPoolImpl>(),
         di::bind<transaction_pool::PoolModerator>.template to<transaction_pool::PoolModeratorImpl>(),
         di::bind<storage::changes_trie::ChangesTracker>.template to<storage::changes_trie::StorageChangesTrackerImpl>(),
