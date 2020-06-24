@@ -1,9 +1,3 @@
-function(install_deps_headers)
-    install(DIRECTORY ${MICROSOFT.GSL_ROOT}/include/gsl
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
-endfunction()
-
 ### kagome_install should be called right after add_library(target)
 function(kagome_install target)
     install(TARGETS ${target} EXPORT kagomeTargets
@@ -13,6 +7,13 @@ function(kagome_install target)
         INCLUDES      DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
         FRAMEWORK     DESTINATION ${CMAKE_INSTALL_PREFIX}
+        )
+endfunction()
+
+### workaround for imported libraries
+function(kagome_install_mini target)
+    install(TARGETS ${target} EXPORT kagomeTargets
+        LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}
         )
 endfunction()
 

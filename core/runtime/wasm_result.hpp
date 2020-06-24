@@ -14,11 +14,23 @@ namespace kagome::runtime {
    * bits are the address and next 32 bits are the size of the returned buffer.
    */
   struct WasmResult {
-    explicit constexpr WasmResult(int64_t v)
+    explicit constexpr WasmResult(WasmSpan v)
         : address(getWasmAddr(v)), length(getWasmLen(v)) {}
 
+    constexpr WasmResult(WasmPointer ptr, WasmSize size)
+        : address{ptr}, length{size} {}
+
     WasmPointer address = 0u;  ///< address of buffer result
-    SizeType length = 0u;      ///< length of buffer result
+    WasmSize length = 0u;      ///< length of buffer result
+
+    /**
+     * @brief makes combined pointer-size result from address
+     * @return pointer-size uint64_t value
+     */
+    WasmSpan combine() const {
+      return static_cast<WasmSpan>(address)
+             | (static_cast<WasmSpan>(length) << 32ull);
+    }
 
    private:
     /**
@@ -37,10 +49,10 @@ namespace kagome::runtime {
      * in Runtime API
      * @return result length
      */
-    inline constexpr SizeType getWasmLen(int64_t runtime_call_result) {
+    inline constexpr WasmSize getWasmLen(int64_t runtime_call_result) {
       auto unsigned_result = static_cast<uint64_t>(runtime_call_result);
       uint64_t major_part = (unsigned_result >> 32u) & 0xFFFFFFFFLLU;
-      return static_cast<SizeType>(major_part);
+      return static_cast<WasmSize>(major_part);
     }
   };
 }  // namespace kagome::runtime
