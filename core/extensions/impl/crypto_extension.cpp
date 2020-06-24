@@ -192,8 +192,8 @@ namespace kagome::extensions {
 
   // ---------------------- runtime api version 1 methods ----------------------
 
-  runtime::PointerSize CryptoExtension::ext_ed25519_public_keys_v1(
-      runtime::SizeType key_type) {
+  runtime::WasmSpan CryptoExtension::ext_ed25519_public_keys_v1(
+      runtime::WasmSize key_type) {
     static const common::Buffer error_result{};
 
     auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
@@ -247,7 +247,7 @@ namespace kagome::extensions {
    *@see Extension::ext_ed25519_generate
    */
   runtime::WasmPointer CryptoExtension::ext_ed25519_generate_v1(
-      runtime::SizeType key_type, runtime::PointerSize seed) {
+      runtime::WasmSize key_type, runtime::WasmSpan seed) {
     auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
     if (!crypto::isSupportedKeyType(key_type_id)) {
       auto kt = crypto::decodeKeyTypeId(key_type_id);
@@ -301,7 +301,7 @@ namespace kagome::extensions {
 
     key_storage_->addEd25519KeyPair(key_type_id, kp);
     common::Buffer buffer(kp.public_key);
-    runtime::PointerSize ps = memory_->storeBuffer(buffer);
+    runtime::WasmSpan ps = memory_->storeBuffer(buffer);
 
     return runtime::WasmResult(ps).address;
   }
@@ -309,10 +309,10 @@ namespace kagome::extensions {
   /**
    * @see Extension::ed25519_sign
    */
-  runtime::PointerSize CryptoExtension::ext_ed25519_sign_v1(
-      runtime::SizeType key_type,
+  runtime::WasmSpan CryptoExtension::ext_ed25519_sign_v1(
+      runtime::WasmSize key_type,
       runtime::WasmPointer key,
-      runtime::PointerSize msg) {
+      runtime::WasmSpan msg) {
     static auto make_result = [&](auto &&value) {
       boost::optional<crypto::ED25519Signature> result = value;
       return common::Buffer(scale::encode(result).value());
@@ -350,9 +350,9 @@ namespace kagome::extensions {
   /**
    * @see Extension::ext_ed25519_verify
    */
-  runtime::SizeType CryptoExtension::ext_ed25519_verify_v1(
+  runtime::WasmSize CryptoExtension::ext_ed25519_verify_v1(
       runtime::WasmPointer sig,
-      runtime::PointerSize msg,
+      runtime::WasmSpan msg,
       runtime::WasmPointer pubkey_data) {
     auto [msg_data, msg_len] = runtime::WasmResult(msg);
     return ext_ed25519_verify(msg_data, msg_len, sig, pubkey_data);
@@ -361,8 +361,8 @@ namespace kagome::extensions {
   /**
    * @see Extension::ext_sr25519_public_keys
    */
-  runtime::PointerSize CryptoExtension::ext_sr25519_public_keys_v1(
-      runtime::SizeType key_type) {
+  runtime::WasmSpan CryptoExtension::ext_sr25519_public_keys_v1(
+      runtime::WasmSize key_type) {
     static const common::Buffer error_result{};
     auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
     if (!crypto::isSupportedKeyType(key_type_id)) {
@@ -387,7 +387,7 @@ namespace kagome::extensions {
    *@see Extension::ext_sr25519_generate
    */
   runtime::WasmPointer CryptoExtension::ext_sr25519_generate_v1(
-      runtime::SizeType key_type, runtime::PointerSize seed) {
+      runtime::WasmSize key_type, runtime::WasmSpan seed) {
     auto key_type_id = static_cast<crypto::KeyTypeId>(key_type);
     if (!crypto::isSupportedKeyType(key_type_id)) {
       auto kt = crypto::decodeKeyTypeId(key_type_id);
@@ -425,7 +425,7 @@ namespace kagome::extensions {
 
     key_storage_->addSr25519KeyPair(key_type_id, kp);
     common::Buffer pk_buffer(kp.public_key);
-    runtime::PointerSize ps = memory_->storeBuffer(pk_buffer);
+    runtime::WasmSpan ps = memory_->storeBuffer(pk_buffer);
 
     return runtime::WasmResult(ps).address;
   }
@@ -433,10 +433,10 @@ namespace kagome::extensions {
   /**
    * @see Extension::sr25519_sign
    */
-  runtime::PointerSize CryptoExtension::ext_sr25519_sign_v1(
-      runtime::SizeType key_type,
+  runtime::WasmSpan CryptoExtension::ext_sr25519_sign_v1(
+      runtime::WasmSize key_type,
       runtime::WasmPointer key,
-      runtime::PointerSize msg) {
+      runtime::WasmSpan msg) {
     static auto make_result = [&](auto &&value) {
       boost::optional<crypto::SR25519Signature> result = value;
       return common::Buffer(scale::encode(result).value());
@@ -474,9 +474,9 @@ namespace kagome::extensions {
   /**
    * @see Extension::ext_sr25519_verify
    */
-  runtime::SizeType CryptoExtension::ext_sr25519_verify_v1(
+  runtime::WasmSize CryptoExtension::ext_sr25519_verify_v1(
       runtime::WasmPointer sig,
-      runtime::PointerSize msg,
+      runtime::WasmSpan msg,
       runtime::WasmPointer pubkey_data) {
     auto [msg_data, msg_len] = runtime::WasmResult(msg);
     return ext_sr25519_verify(msg_data, msg_len, sig, pubkey_data);

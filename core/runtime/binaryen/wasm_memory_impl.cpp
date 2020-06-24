@@ -187,13 +187,4 @@ namespace kagome::runtime::binaryen {
     return WasmResult(wasm_pointer, value.size()).combine();
   }
 
-  PointerSize WasmMemoryImpl::storeBuffer(const common::Buffer &value) {
-    auto wasm_pointer = allocate(value.size());
-    if (wasm_pointer == 0) {
-      return 0;
-    }
-    storeBuffer(wasm_pointer, value);
-    return wasm_pointer;
-  }
-
 }  // namespace kagome::runtime::binaryen

@@ -99,51 +99,51 @@ namespace kagome::extensions {
     /**
      * @see Extension::ext_ed25519_public_keys
      */
-    runtime::PointerSize ext_ed25519_public_keys_v1(runtime::SizeType key_type);
+    runtime::WasmSpan ext_ed25519_public_keys_v1(runtime::WasmSize key_type);
 
     /**
      *@see Extension::ext_ed25519_generate
      */
-    runtime::WasmPointer ext_ed25519_generate_v1(runtime::SizeType key_type,
-                                                 runtime::PointerSize seed);
+    runtime::WasmPointer ext_ed25519_generate_v1(runtime::WasmSize key_type,
+                                                 runtime::WasmSpan seed);
 
     /**
      * @see Extension::ed25519_sign
      */
-    runtime::PointerSize ext_ed25519_sign_v1(runtime::SizeType key_type,
+    runtime::WasmSpan ext_ed25519_sign_v1(runtime::WasmSize key_type,
                                              runtime::WasmPointer key,
-                                             runtime::PointerSize msg);
+                                             runtime::WasmSpan msg);
 
     /**
      * @see Extension::ext_ed25519_verify
      */
-    runtime::SizeType ext_ed25519_verify_v1(runtime::WasmPointer sig,
-                                            runtime::PointerSize msg,
+    runtime::WasmSize ext_ed25519_verify_v1(runtime::WasmPointer sig,
+                                            runtime::WasmSpan msg,
                                             runtime::WasmPointer pubkey_data);
 
     /**
      * @see Extension::ext_sr25519_public_keys
      */
-    runtime::PointerSize ext_sr25519_public_keys_v1(runtime::SizeType key_type);
+    runtime::WasmSpan ext_sr25519_public_keys_v1(runtime::WasmSize key_type);
 
     /**
      *@see Extension::ext_sr25519_generate
      */
-    runtime::WasmPointer ext_sr25519_generate_v1(runtime::SizeType key_type,
-                                                 runtime::PointerSize seed);
+    runtime::WasmPointer ext_sr25519_generate_v1(runtime::WasmSize key_type,
+                                                 runtime::WasmSpan seed);
 
     /**
      * @see Extension::sr25519_sign
      */
-    runtime::PointerSize ext_sr25519_sign_v1(runtime::SizeType key_type,
+    runtime::WasmSpan ext_sr25519_sign_v1(runtime::WasmSize key_type,
                                              runtime::WasmPointer key,
-                                             runtime::PointerSize msg);
+                                             runtime::WasmSpan msg);
 
     /**
      * @see Extension::ext_sr25519_verify
      */
-    runtime::SizeType ext_sr25519_verify_v1(runtime::WasmPointer sig,
-                                            runtime::PointerSize msg,
+    runtime::WasmSize ext_sr25519_verify_v1(runtime::WasmPointer sig,
+                                            runtime::WasmSpan msg,
                                             runtime::WasmPointer pubkey_data);
 
     /**

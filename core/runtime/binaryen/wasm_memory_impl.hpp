@@ -68,8 +68,6 @@ namespace kagome::runtime::binaryen {
 
     WasmSpan storeBuffer(gsl::span<const uint8_t> value) override;
 
-    PointerSize storeBuffer(const common::Buffer &value) override;
-
    private:
     wasm::ShellExternalInterface::Memory *memory_;
     WasmSize size_;

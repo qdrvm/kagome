@@ -550,9 +550,9 @@ TEST_F(REITest, ext_sr25519_verify_Test) {
 }
 
 TEST_F(REITest, ext_ed25519_public_keys_v1_Test) {
-  SizeType key_type = 'babe';
+  WasmSize key_type = 'babe';
 
-  PointerSize res = WasmResult(1, 2).combine();
+  WasmSpan res = WasmResult(1, 2).combine();
 
   EXPECT_CALL(*extension_, ext_ed25519_public_keys_v1(key_type))
       .WillOnce(Return(res));
@@ -571,8 +571,8 @@ TEST_F(REITest, ext_ed25519_public_keys_v1_Test) {
 }
 
 TEST_F(REITest, ext_ed25519_generate_v1_Test) {
-  SizeType key_type = 'babe';
-  PointerSize seed = WasmResult(1, 2).combine();
+  WasmSize key_type = 'babe';
+  WasmSpan seed = WasmResult(1, 2).combine();
 
   WasmPointer res = 4;
 
@@ -594,10 +594,10 @@ TEST_F(REITest, ext_ed25519_generate_v1_Test) {
 }
 
 TEST_F(REITest, ext_ed25519_sign_v1_Test) {
-  SizeType key_type = 'babe';
+  WasmSize key_type = 'babe';
   WasmPointer key = 1;
-  PointerSize msg = WasmResult(33, 2).combine();
-  PointerSize res = WasmResult(35, 25).combine();
+  WasmSpan msg = WasmResult(33, 2).combine();
+  WasmSpan res = WasmResult(35, 25).combine();
 
   EXPECT_CALL(*extension_, ext_ed25519_sign_v1(key_type, key, msg))
       .WillOnce(Return(res));
@@ -619,12 +619,12 @@ TEST_F(REITest, ext_ed25519_sign_v1_Test) {
 
 TEST_F(REITest, ext_ed25519_verify_v1_Test) {
   WasmPointer msg_data = 123;
-  SizeType msg_len = 1233;
-  PointerSize msg = WasmResult(msg_data, msg_len).combine();
+  WasmSize msg_len = 1233;
+  WasmSpan msg = WasmResult(msg_data, msg_len).combine();
   WasmPointer sig_data = 42;
   WasmPointer pubkey_data = 321;
 
-  SizeType res = 1;
+  WasmSize res = 1;
 
   EXPECT_CALL(*extension_, ext_ed25519_verify_v1(sig_data, msg, pubkey_data))
       .WillOnce(Return(res));
@@ -645,9 +645,9 @@ TEST_F(REITest, ext_ed25519_verify_v1_Test) {
 }
 
 TEST_F(REITest, ext_sr25519_public_keys_v1_Test) {
-  SizeType key_type = 'babe';
+  WasmSize key_type = 'babe';
 
-  PointerSize res = WasmResult(1, 2).combine();
+  WasmSpan res = WasmResult(1, 2).combine();
 
   EXPECT_CALL(*extension_, ext_sr25519_public_keys_v1(key_type))
       .WillOnce(Return(res));
@@ -666,8 +666,8 @@ TEST_F(REITest, ext_sr25519_public_keys_v1_Test) {
 }
 
 TEST_F(REITest, ext_sr25519_generate_v1_Test) {
-  SizeType key_type = 'babe';
-  PointerSize seed = WasmResult(1, 2).combine();
+  WasmSize key_type = 'babe';
+  WasmSpan seed = WasmResult(1, 2).combine();
 
   WasmPointer res = 4;
 
@@ -689,10 +689,10 @@ TEST_F(REITest, ext_sr25519_generate_v1_Test) {
 }
 
 TEST_F(REITest, ext_sr25519_sign_v1_Test) {
-  SizeType key_type = 'babe';
+  WasmSize key_type = 'babe';
   WasmPointer key = 1;
-  PointerSize msg = WasmResult(33, 2).combine();
-  PointerSize res = WasmResult(35, 25).combine();
+  WasmSpan msg = WasmResult(33, 2).combine();
+  WasmSpan res = WasmResult(35, 25).combine();
 
   EXPECT_CALL(*extension_, ext_sr25519_sign_v1(key_type, key, msg))
       .WillOnce(Return(res));
@@ -714,12 +714,12 @@ TEST_F(REITest, ext_sr25519_sign_v1_Test) {
 
 TEST_F(REITest, ext_sr25519_verify_v2_Test) {
   WasmPointer msg_data = 123;
-  SizeType msg_len = 1233;
-  PointerSize msg = WasmResult(msg_data, msg_len).combine();
+  WasmSize msg_len = 1233;
+  WasmSpan msg = WasmResult(msg_data, msg_len).combine();
   WasmPointer sig_data = 42;
   WasmPointer pubkey_data = 321;
 
-  SizeType res = 1;
+  WasmSize res = 1;
 
   EXPECT_CALL(*extension_, ext_sr25519_verify_v1(sig_data, msg, pubkey_data))
       .WillOnce(Return(res));

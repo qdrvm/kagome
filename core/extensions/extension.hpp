@@ -288,57 +288,57 @@ namespace kagome::extensions {
     /**
      * @see Extension::ext_ed25519_public_keys
      */
-    virtual runtime::PointerSize ext_ed25519_public_keys_v1(
-        runtime::SizeType key_type) = 0;
+    virtual runtime::WasmSpan ext_ed25519_public_keys_v1(
+        runtime::WasmSize key_type) = 0;
 
     /**
      * @see Extension::ext_ed25519_generate
      */
     virtual runtime::WasmPointer ext_ed25519_generate_v1(
-        runtime::SizeType key_type, runtime::PointerSize seed) = 0;
+        runtime::WasmSize key_type, runtime::WasmSpan seed) = 0;
 
     /**
      * @see Extension::ext_ed25519_sign
      */
-    virtual runtime::PointerSize ext_ed25519_sign_v1(
-        runtime::SizeType key_type,
+    virtual runtime::WasmSpan ext_ed25519_sign_v1(
+        runtime::WasmSize key_type,
         runtime::WasmPointer key,
-        runtime::PointerSize msg_data) = 0;
+        runtime::WasmSpan msg_data) = 0;
 
     /**
      * @see Extension::ext_ed25519_verify
      */
-    virtual runtime::SizeType ext_ed25519_verify_v1(
+    virtual runtime::WasmSize ext_ed25519_verify_v1(
         runtime::WasmPointer sig_data,
-        runtime::PointerSize msg,
+        runtime::WasmSpan msg,
         runtime::WasmPointer pubkey_data) = 0;
 
     /**
      * @see Extension::ext_sr25519_public_keys
      */
-    virtual runtime::PointerSize ext_sr25519_public_keys_v1(
-        runtime::SizeType key_type) = 0;
+    virtual runtime::WasmSpan ext_sr25519_public_keys_v1(
+        runtime::WasmSize key_type) = 0;
 
     /**
      * @see Extension::ext_sr25519_generate
      */
     virtual runtime::WasmPointer ext_sr25519_generate_v1(
-        runtime::SizeType key_type, runtime::PointerSize seed) = 0;
+        runtime::WasmSize key_type, runtime::WasmSpan seed) = 0;
 
     /**
      * @see Extension::ext_sr25519_sign
      */
-    virtual runtime::PointerSize ext_sr25519_sign_v1(
-        runtime::SizeType key_type,
+    virtual runtime::WasmSpan ext_sr25519_sign_v1(
+        runtime::WasmSize key_type,
         runtime::WasmPointer key,
-        runtime::PointerSize msg_data) = 0;
+        runtime::WasmSpan msg_data) = 0;
 
     /**
      * @see Extension::ext_sr25519_verify
      */
-    virtual runtime::SizeType ext_sr25519_verify_v1(
+    virtual runtime::WasmSize ext_sr25519_verify_v1(
         runtime::WasmPointer sig_data,
-        runtime::PointerSize msg,
+        runtime::WasmSpan msg,
         runtime::WasmPointer pubkey_data) = 0;
 
     // -------------------------Misc extensions--------------------------

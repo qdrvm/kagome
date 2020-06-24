@@ -123,36 +123,36 @@ namespace kagome::extensions {
 
     // -------------------------Crypto extensions v1---------------------
 
-    runtime::PointerSize ext_ed25519_public_keys_v1(
-        runtime::SizeType key_type) override;
+    runtime::WasmSpan ext_ed25519_public_keys_v1(
+        runtime::WasmSize key_type) override;
 
     runtime::WasmPointer ext_ed25519_generate_v1(
-        runtime::SizeType key_type, runtime::PointerSize seed) override;
+        runtime::WasmSize key_type, runtime::WasmSpan seed) override;
 
-    runtime::PointerSize ext_ed25519_sign_v1(
-        runtime::SizeType key_type,
+    runtime::WasmSpan ext_ed25519_sign_v1(
+        runtime::WasmSize key_type,
         runtime::WasmPointer key,
-        runtime::PointerSize msg_data) override;
+        runtime::WasmSpan msg_data) override;
 
-    runtime::SizeType ext_ed25519_verify_v1(
+    runtime::WasmSize ext_ed25519_verify_v1(
         runtime::WasmPointer sig_data,
-        runtime::PointerSize msg,
+        runtime::WasmSpan msg,
         runtime::WasmPointer pubkey_data) override;
 
-    runtime::PointerSize ext_sr25519_public_keys_v1(
-        runtime::SizeType key_type) override;
+    runtime::WasmSpan ext_sr25519_public_keys_v1(
+        runtime::WasmSize key_type) override;
 
     runtime::WasmPointer ext_sr25519_generate_v1(
-        runtime::SizeType key_type, runtime::PointerSize seed) override;
+        runtime::WasmSize key_type, runtime::WasmSpan seed) override;
 
-    runtime::PointerSize ext_sr25519_sign_v1(
-        runtime::SizeType key_type,
+    runtime::WasmSpan ext_sr25519_sign_v1(
+        runtime::WasmSize key_type,
         runtime::WasmPointer key,
-        runtime::PointerSize msg_data) override;
+        runtime::WasmSpan msg_data) override;
 
-    runtime::SizeType ext_sr25519_verify_v1(
+    runtime::WasmSize ext_sr25519_verify_v1(
         runtime::WasmPointer sig_data,
-        runtime::PointerSize msg,
+        runtime::WasmSpan msg,
         runtime::WasmPointer pubkey_data) override;
     // -------------------------Misc extensions--------------------------
 
