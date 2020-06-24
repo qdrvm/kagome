@@ -14,7 +14,6 @@ using namespace kagome::extensions;
 using kagome::common::Buffer;
 using kagome::runtime::MockMemory;
 using kagome::runtime::WasmMemory;
-using kagome::runtime::WasmMemory;
 using kagome::runtime::WasmPointer;
 
 using ::testing::Return;

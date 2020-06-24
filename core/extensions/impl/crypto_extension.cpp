@@ -19,7 +19,6 @@
 namespace kagome::extensions {
   namespace sr25519_constants = crypto::constants::sr25519;
   namespace ed25519_constants = crypto::constants::ed25519;
-  namespace secp256k1_constants = crypto::secp256k1::constants;
 
   CryptoExtension::CryptoExtension(
       std::shared_ptr<runtime::WasmMemory> memory,
