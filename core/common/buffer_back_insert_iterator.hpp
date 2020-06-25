@@ -7,7 +7,6 @@
 
 using kagome::common::Buffer;
 
-class value_type;
 namespace std {
 
 /*
@@ -18,10 +17,13 @@ template <>
 class back_insert_iterator<Buffer> {
 public:
   using value_type = Buffer::value_type;
+  using difference_type = typename std::vector<uint8_t>::difference_type;
+  using pointer = Buffer::pointer;
+  using reference = typename std::vector<uint8_t>::reference;
+  using iterator_category = std::random_access_iterator_tag;
 
   constexpr explicit back_insert_iterator(Buffer &c):
       buf_ {c} {
-
   }
 
   back_insert_iterator<Buffer>&

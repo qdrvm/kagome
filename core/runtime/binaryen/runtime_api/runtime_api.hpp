@@ -124,7 +124,7 @@ namespace kagome::runtime::binaryen {
         Args &&... args) {
       logger_->debug("Executing export function: {}", name);
       if (state_root.has_value()) {
-        logger_->warn("Resetting state to: {}", state_root.value().toHex());
+        logger_->debug("Resetting state to: {}", state_root.value().toHex());
       }
 
       auto environment = getRuntimeEnvironment(persistency, state_root);
