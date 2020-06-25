@@ -31,7 +31,7 @@ namespace kagome::api::state::request {
       auto &&at_str = param1.AsString();
       OUTCOME_TRY(at_span, common::unhexWith0x(at_str));
       OUTCOME_TRY(at, primitives::BlockHash::fromSpan(at_span));
-      at_.reset(std::move(at));
+      at_.reset(at);
     } else {
       at_.reset();
     }

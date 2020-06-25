@@ -483,8 +483,7 @@ namespace kagome::injector {
       return *initialized;
     }
 
-    sptr<runtime::BabeApi> babe_api =
-        injector.template create<sptr<runtime::BabeApi>>();
+    auto babe_api = injector.template create<sptr<runtime::BabeApi>>();
     auto configuration_res = babe_api->configuration();
     if (not configuration_res) {
       common::raise(configuration_res.error());
