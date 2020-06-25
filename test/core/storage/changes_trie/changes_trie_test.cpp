@@ -9,7 +9,7 @@
 
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
-#include "storage/trie/impl/polkadot_trie_factory_impl.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
 #include "testutil/literals.hpp"
 
 using kagome::common::Buffer;

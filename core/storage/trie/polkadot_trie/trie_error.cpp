@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/trie/impl/trie_error.hpp"
+#include "storage/trie/polkadot_trie/trie_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie, TrieError, e) {
   using kagome::storage::trie::TrieError;

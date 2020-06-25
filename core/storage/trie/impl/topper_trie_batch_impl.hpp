@@ -6,8 +6,9 @@
 #ifndef KAGOME_CORE_STORAGE_TRIE_IMPL_TOPPER_TRIE_BATCH_IMPL
 #define KAGOME_CORE_STORAGE_TRIE_IMPL_TOPPER_TRIE_BATCH_IMPL
 
-#include "storage/trie/impl/polkadot_trie_factory.hpp"
 #include "storage/trie/trie_batches.hpp"
+
+#include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
 
 namespace kagome::storage::trie {
 
@@ -28,10 +29,6 @@ namespace kagome::storage::trie {
     outcome::result<void> put(const Buffer &key, Buffer &&value) override;
 
     outcome::result<void> remove(const Buffer &key) override;
-
-    /*outcome::result<Buffer> calculateRoot() const override {
-      return outcome::success();
-    }*/
 
     outcome::result<void> clearPrefix(const Buffer &prefix) override;
 

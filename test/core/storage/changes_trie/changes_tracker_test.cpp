@@ -11,10 +11,10 @@
 #include "scale/scale.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/trie/impl/persistent_trie_batch_impl.hpp"
-#include "storage/trie/impl/polkadot_codec.hpp"
-#include "storage/trie/impl/polkadot_trie_factory_impl.hpp"
-#include "storage/trie/impl/trie_serializer_impl.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
+#include "storage/trie/serialization/polkadot_codec.hpp"
+#include "storage/trie/serialization/trie_serializer_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 

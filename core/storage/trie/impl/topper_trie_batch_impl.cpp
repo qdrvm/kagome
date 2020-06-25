@@ -5,7 +5,7 @@
 
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 
-#include "storage/trie/impl/trie_error.hpp"
+#include "storage/trie/polkadot_trie/trie_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
                             TopperTrieBatchImpl::Error,

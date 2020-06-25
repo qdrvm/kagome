@@ -119,8 +119,7 @@ TEST_F(BabeLotteryTest, ComputeRandomness) {
   Hash256 new_randomness{};
   new_randomness.fill(1);
   new_randomness[10] = 9;
-  EXPECT_CALL(*hasher_,
-              blake2b_256(gsl::span<const uint8_t>(concat_values.toVector())))
+  EXPECT_CALL(*hasher_, blake2b_256(gsl::span<const uint8_t>(concat_values)))
       .WillOnce(Return(new_randomness));
 
   auto returned_randomness = lottery_.computeRandomness(

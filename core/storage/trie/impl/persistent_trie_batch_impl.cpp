@@ -5,10 +5,8 @@
 
 #include "storage/trie/impl/persistent_trie_batch_impl.hpp"
 
-#include <memory>
-
 #include "scale/scale.hpp"
-#include "storage/trie/impl/trie_error.hpp"
+#include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 
 namespace kagome::storage::trie {

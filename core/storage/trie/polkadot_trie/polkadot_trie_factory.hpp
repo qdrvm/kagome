@@ -6,7 +6,7 @@
 #ifndef KAGOME_STORAGE_TRIE_IMPL_POLKADOT_TRIE_FACTORY
 #define KAGOME_STORAGE_TRIE_IMPL_POLKADOT_TRIE_FACTORY
 
-#include "storage/trie/impl/polkadot_trie.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie.hpp"
 
 namespace kagome::storage::trie {
 

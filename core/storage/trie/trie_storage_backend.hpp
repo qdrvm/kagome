@@ -10,7 +10,7 @@
 
 #include "common/buffer.hpp"
 #include "storage/buffer_map_types.hpp"
-#include "storage/trie/impl/polkadot_node.hpp"
+#include "storage/trie/polkadot_trie/polkadot_node.hpp"
 
 namespace kagome::storage::trie {
 

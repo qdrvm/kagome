@@ -10,6 +10,7 @@ target_link_libraries(crypto_extension
     hasher
     p2p::p2p_random_generator
     sr25519_provider
+    secp256k1_provider
     ed25519_provider
     logger
     )
