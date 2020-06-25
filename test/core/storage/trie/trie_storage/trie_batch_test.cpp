@@ -200,7 +200,7 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
 }
 
 TEST_F(TrieBatchTest, TopperBatchAtomic) {
-  std::shared_ptr p_batch = trie->getPersistentBatch().value();
+  std::shared_ptr<PersistentTrieBatch> p_batch = trie->getPersistentBatch().value();
   EXPECT_OUTCOME_TRUE_1(p_batch->put("123"_buf, "abc"_buf));
   EXPECT_OUTCOME_TRUE_1(p_batch->put("678"_buf, "abc"_buf));
 
