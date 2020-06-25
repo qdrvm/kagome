@@ -90,6 +90,11 @@ namespace kagome::extensions {
      */
     void ext_storage_root(runtime::WasmPointer result) const;
 
+    /**
+     * @see Extension::ext_storage_root
+     */
+    runtime::WasmPointer ext_storage_next_key_version_1(runtime::WasmPointer key) const;
+
    private:
     /**
      * Find the value by given key and the return the part of it starting from

@@ -10,6 +10,8 @@
 
 #include "storage/trie/polkadot_trie/polkadot_node.hpp"
 
+class TrieIterator;
+
 namespace kagome::storage::trie {
 
   /**
@@ -22,6 +24,7 @@ namespace kagome::storage::trie {
     using BranchPtr = std::shared_ptr<BranchNode>;
 
     friend class PolkadotTrieCursor;
+    friend class ::TrieIterator;
 
     /**
      * Remove all trie entries which key begins with the supplied prefix

@@ -19,3 +19,10 @@ target_link_libraries(polkadot_trie_cursor_test
     polkadot_trie_cursor
     polkadot_trie
     )
+
+addtest(new_cursor_test
+    new_cursor_test.cpp
+    )
+target_link_libraries(new_cursor_test
+    polkadot_trie
+    )

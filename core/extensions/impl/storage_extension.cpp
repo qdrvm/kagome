@@ -258,6 +258,15 @@ namespace kagome::extensions {
     }
   }
 
+  runtime::WasmPointer StorageExtension::ext_storage_next_key_version_1(
+      runtime::WasmPointer key_ptr) const {
+    auto key_bytes =
+        memory_->loadN(key_ptr, common::Hash256::size());
+    auto batch = storage_provider_->getCurrentBatch();
+    Polk
+
+  }
+
   outcome::result<common::Buffer> StorageExtension::get(
       const common::Buffer &key,
       runtime::WasmSize offset,
