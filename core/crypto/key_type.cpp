@@ -12,11 +12,15 @@
 namespace kagome::crypto {
 
   bool isSupportedKeyType(KeyTypeId k) {
-    using namespace supported_key_types;
-    static const std::unordered_set<KeyTypeId> supported_types(
-        {kBabe, kGran, kAcco, kImon, kAudi});
+    static const std::unordered_set<KeyTypeId> supported_types = {
+        supported_key_types::kBabe,
+        supported_key_types::kGran,
+        supported_key_types::kGran,
+        supported_key_types::kAcco,
+        supported_key_types::kImon,
+        supported_key_types::kAudi};
 
-    return supported_types.find(k) != supported_types.end();
+    return supported_types.count(k) > 0;
   }
 
   std::string decodeKeyTypeId(KeyTypeId param) {
@@ -25,9 +29,7 @@ namespace kagome::crypto {
     std::array<char, size> key_type{};
 
     boost::endian::endian_buffer<boost::endian::order::big, KeyTypeId, bits>
-        buf{};
-    // don't refactor this line, we need to use assignment operator
-    buf = param;
+        buf(param);
     for (size_t i = 0; i < size; ++i) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       key_type.at(i) = buf.data()[i];
