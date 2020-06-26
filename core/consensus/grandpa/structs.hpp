@@ -63,6 +63,11 @@ namespace kagome::consensus::grandpa {
       });
     }
 
+    template <typename T>
+    bool is() const {
+      return message.type() == typeid(T);
+    }
+
     bool operator==(const SignedMessage &rhs) const {
       return message == rhs.message && signature == rhs.signature && id == id;
     }

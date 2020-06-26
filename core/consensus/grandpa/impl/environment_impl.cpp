@@ -70,13 +70,13 @@ namespace kagome::consensus::grandpa {
       RoundNumber round,
       MembershipCounter set_id,
       const SignedMessage &propose) {
-  	// TODO ensure type of signed message is right
+    BOOST_ASSERT(propose.is<PrimaryPropose>());
     VoteMessage message{
         .round_number = round, .counter = set_id, .vote = propose};
-	  gossiper_->vote(message);
+    gossiper_->vote(message);
     logger_->debug("Primary proposed block with hash {} in grandpa round {}",
                    propose.block_hash().toHex(),
-                  round);
+                   round);
     return outcome::success();
   }
 
@@ -84,13 +84,13 @@ namespace kagome::consensus::grandpa {
       RoundNumber round,
       MembershipCounter set_id,
       const SignedMessage &prevote) {
-  	// TODO ensure type of signed message is right
+    BOOST_ASSERT(prevote.is<Precommit>());
     VoteMessage message{
         .round_number = round, .counter = set_id, .vote = prevote};
     gossiper_->vote(message);
     logger_->debug("Prevoted block with hash {} in grandpa round {}",
                    prevote.block_hash().toHex(),
-                  round);
+                   round);
     return outcome::success();
   }
 
@@ -98,13 +98,13 @@ namespace kagome::consensus::grandpa {
       RoundNumber round,
       MembershipCounter set_id,
       const SignedMessage &precommit) {
-  	// TODO ensure type of signed message is right
+    BOOST_ASSERT(precommit.is<Precommit>());
     VoteMessage message{
         .round_number = round, .counter = set_id, .vote = precommit};
     gossiper_->vote(message);
     logger_->debug("Precommitted block with hash {} in grandpa round {}",
                    precommit.block_hash().toHex(),
-                  round);
+                   round);
     return outcome::success();
   }
 
@@ -114,7 +114,7 @@ namespace kagome::consensus::grandpa {
       const GrandpaJustification &justification) {
     logger_->debug("Committed block with hash: {} with number: {}",
                    vote.block_hash,
-                  vote.block_number);
+                   vote.block_number);
     gossiper_->finalize(Fin{
         .round_number = round, .vote = vote, .justification = justification});
     return outcome::success();

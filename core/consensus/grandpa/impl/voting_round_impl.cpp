@@ -183,6 +183,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::onPrevote(const SignedMessage &prevote) {
+    BOOST_ASSERT(prevote.is<Prevote>());
     onSignedPrevote(prevote);
     updatePrevoteGhost();
     update();
@@ -195,6 +196,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::onPrecommit(const SignedMessage &precommit) {
+    BOOST_ASSERT(precommit.is<Precommit>());
     if (not onSignedPrecommit(precommit)) {
       env_->onCompleted(VotingRoundError::LAST_ESTIMATE_BETTER_THAN_PREVOTE);
       return;
@@ -209,7 +211,7 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::onSignedPrevote(const SignedMessage &vote) {
-    // TODO check vote type is right
+    BOOST_ASSERT(vote.is<Prevote>());
     auto weight = voter_set_->voterWeight(vote.id);
     if (not weight) {
       return;
@@ -252,7 +254,7 @@ namespace kagome::consensus::grandpa {
   }
 
   bool VotingRoundImpl::onSignedPrecommit(const SignedMessage &vote) {
-    // TODO check vote type is right
+    BOOST_ASSERT(vote.is<Precommit>());
     auto weight = voter_set_->voterWeight(vote.id);
     if (not weight) {
       return false;
@@ -364,7 +366,7 @@ namespace kagome::consensus::grandpa {
 
           auto proposed = env_->onProposed(
               round_number_,
-              voter_set_->setId(),
+              voter_set_->id(),
               vote_crypto_provider_->signPrimaryPropose(primary_vote_.value()));
           if (not proposed) {
             logger_->error("Primary propose was not sent: {}",
@@ -397,7 +399,7 @@ namespace kagome::consensus::grandpa {
           auto prevote = constructPrevote(last_round_state);
           if (prevote) {
             auto prevoted = env_->onPrevoted(
-                round_number_, voter_set_->setId(), prevote.value());
+                round_number_, voter_set_->id(), prevote.value());
             if (not prevoted) {
               logger_->error("Prevote was not sent: {}",
                              prevoted.error().message());
@@ -456,7 +458,7 @@ namespace kagome::consensus::grandpa {
 
             if (precommit) {
               auto precommitted = env_->onPrecommitted(
-                  round_number_, voter_set_->setId(), precommit.value());
+                  round_number_, voter_set_->id(), precommit.value());
               if (not precommitted) {
                 logger_->error("Precommit was not sent: {}",
                                precommitted.error().message());
@@ -686,8 +688,8 @@ namespace kagome::consensus::grandpa {
           visit_in_place(
               precommit_variant,
               [&j, this](const SignedMessage &voting_message) {
-                // TODO check vote type is precommit
-                if (env_->isEqualOrDescendOf(
+                if (voting_message.is<Precommit>()
+                    and env_->isEqualOrDescendOf(
                         cur_round_state_.finalized->block_hash,
                         voting_message.block_hash())) {
                   j.items.push_back(voting_message);

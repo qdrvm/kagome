@@ -32,9 +32,7 @@ namespace kagome::consensus::grandpa {
     SignedMessage signPrecommit(const Precommit &precommit) const override;
 
    private:
-    template <typename VoteType>
-    crypto::ED25519Signature voteSignature(uint8_t stage,
-                                           const VoteType &vote_type) const;
+    crypto::ED25519Signature voteSignature(const Vote &vote) const;
 
     crypto::ED25519Keypair keypair_;
     std::shared_ptr<crypto::ED25519Provider> ed_provider_;

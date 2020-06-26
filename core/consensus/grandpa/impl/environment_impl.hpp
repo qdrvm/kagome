@@ -41,10 +41,9 @@ namespace kagome::consensus::grandpa {
 
     // Environment methods
 
-    outcome::result<void> onProposed(
-        RoundNumber round,
-        MembershipCounter set_id,
-        const SignedMessage &propose) override;
+    outcome::result<void> onProposed(RoundNumber round,
+                                     MembershipCounter set_id,
+                                     const SignedMessage &propose) override;
 
     outcome::result<void> onPrevoted(RoundNumber round,
                                      MembershipCounter set_id,

@@ -19,9 +19,8 @@ namespace kagome::consensus::grandpa {
     MOCK_CONST_METHOD1(verifyPrevote, bool(const SignedMessage &prevote));
     MOCK_CONST_METHOD1(verifyPrecommit, bool(const SignedMessage &precommit));
 
-    MOCK_CONST_METHOD1(
-        signPrimaryPropose,
-        SignedMessage(const PrimaryPropose &primary_propose));
+    MOCK_CONST_METHOD1(signPrimaryPropose,
+                       SignedMessage(const PrimaryPropose &primary_propose));
     MOCK_CONST_METHOD1(signPrevote, SignedMessage(const Prevote &prevote));
     MOCK_CONST_METHOD1(signPrecommit,
                        SignedMessage(const Precommit &precommit));
