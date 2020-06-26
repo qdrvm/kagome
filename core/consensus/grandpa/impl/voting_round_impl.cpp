@@ -26,6 +26,9 @@ namespace kagome::consensus::grandpa {
     return BlockInfo(vote.block_number, vote.block_hash);
   };
 
+  // based on
+  // https://github.com/paritytech/finality-grandpa/blob/b19767c79adb17f20332672cb5f349206a864447/src/voter/voting_round.rs#L15
+
   VotingRoundImpl::VotingRoundImpl(
       const GrandpaConfig &config,
       std::shared_ptr<Environment> env,
@@ -337,16 +340,23 @@ namespace kagome::consensus::grandpa {
           break;
         }
 
-        const auto &maybe_finalized = last_round_state.finalized;
+        const auto &maybe_last_finalized = last_round_state.finalized;
+        const auto &maybe_curr_finalized = cur_round_state_.finalized;
 
-        // we should send primary if last round's state contains finalized
-        // block and last round estimate is better than finalized block
-        bool should_send_primary =
-            maybe_finalized
-                .map([&maybe_estimate](const BlockInfo &finalized) {
-                  return maybe_estimate->block_number > finalized.block_number;
-                })
-                .value_or(false);
+        bool should_send_primary = false;
+        // We should send primary if last round estimate was not finalized in
+        // last round
+        if (maybe_last_finalized
+            and maybe_estimate->block_number
+                    > maybe_last_finalized->block_number) {
+          should_send_primary = true;
+        }
+        // Or if last round estimate was not finalized in current round
+        else {
+          should_send_primary = maybe_curr_finalized
+                                and maybe_estimate->block_number
+                                        > maybe_curr_finalized->block_number;
+        }
 
         if (should_send_primary) {
           logger_->debug("Sending primary block hint for round {}",
@@ -384,11 +394,6 @@ namespace kagome::consensus::grandpa {
       }
       switch (state_) {
         case State::START:
-          // if we are primary and in the start state during prevote, then error happened during precommit. Should stop
-          if (isPrimary()) {
-            break;
-          }
-        [[fallthrough]];
         case State::PROPOSED: {
           auto prevote = constructPrevote(last_round_state);
           if (prevote) {

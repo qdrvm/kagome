@@ -88,6 +88,18 @@ kagome_install(
     secp256k1_provider
 )
 
+add_library(pbkdf2_provider
+    pbkdf2/impl/pbkdf2_provider_impl.cpp
+    )
+target_link_libraries(pbkdf2_provider
+    PUBLIC OpenSSL::SSL
+    OpenSSL::Crypto
+    buffer
+    blob
+    )
+kagome_install(pbkdf2_provider)
+
+add_subdirectory(bip39)
 add_subdirectory(blake2)
 add_subdirectory(keccak)
 add_subdirectory(sha)
