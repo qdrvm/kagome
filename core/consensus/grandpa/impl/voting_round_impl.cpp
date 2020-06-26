@@ -341,14 +341,20 @@ namespace kagome::consensus::grandpa {
         const auto &maybe_last_finalized = last_round_state.finalized;
         const auto &maybe_curr_finalized = cur_round_state_.finalized;
 
-        // Last round estimate has not been finalized either in last or current round
-        bool should_send_primary =
-            (maybe_last_finalized ? maybe_estimate->block_number
-                                        > maybe_last_finalized->block_number
-                                  : true)
-            or (maybe_curr_finalized ? maybe_estimate->block_number
-                                           > maybe_curr_finalized->block_number
-                                     : true);
+        bool should_send_primary = false;
+        // We should send primary if last round estimate was not finalized in
+        // last round
+        if (maybe_last_finalized
+            and maybe_estimate->block_number
+                    > maybe_last_finalized->block_number) {
+          should_send_primary = true;
+        }
+        // Or if last round estimate was not finalized in current round
+        else {
+          should_send_primary = maybe_curr_finalized
+                                and maybe_estimate->block_number
+                                        > maybe_curr_finalized->block_number;
+        }
 
         if (should_send_primary) {
           logger_->debug("Sending primary block hint for round {}",
