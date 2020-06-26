@@ -117,24 +117,23 @@ class VotingRoundTest : public ::testing::Test {
                                                       io_context_);
   }
 
-  SignedPrimaryPropose preparePrimaryPropose(
-      const Id &id,
-      const ED25519Signature &sig,
-      const PrimaryPropose &primary_propose) {
-    return SignedPrimaryPropose{
+  SignedMessage preparePrimaryPropose(const Id &id,
+                                      const ED25519Signature &sig,
+                                      const PrimaryPropose &primary_propose) {
+    return SignedMessage{
         .message = primary_propose, .signature = sig, .id = id};
   }
 
-  SignedPrevote preparePrevote(const Id &id,
+  SignedMessage preparePrevote(const Id &id,
                                const ED25519Signature &sig,
                                const Prevote &prevote) {
-    return SignedPrevote{.message = prevote, .signature = sig, .id = id};
+    return SignedMessage{.message = prevote, .signature = sig, .id = id};
   }
 
-  SignedPrecommit preparePrecommit(const Id &id,
-                                   const ED25519Signature &sig,
-                                   const Precommit &precommit) {
-    return SignedPrecommit{.message = precommit, .signature = sig, .id = id};
+  SignedMessage preparePrecommit(const Id &id,
+                                 const ED25519Signature &sig,
+                                 const Precommit &precommit) {
+    return SignedMessage{.message = precommit, .signature = sig, .id = id};
   }
 
  public:
@@ -214,7 +213,7 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
 
   // when 1.
   // Alice prevotes
-  SignedPrevote alice_vote =
+  auto alice_vote =
       preparePrevote(kAlice, kAliceSignature, Prevote{10, "FC"_H});
 
   EXPECT_CALL(*env_, getAncestry("C"_H, "FC"_H))
@@ -225,8 +224,7 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
 
   // when 2.
   // Bob prevotes
-  SignedPrevote bob_vote =
-      preparePrevote(kBob, kBobSignature, Prevote{10, "ED"_H});
+  auto bob_vote = preparePrevote(kBob, kBobSignature, Prevote{10, "ED"_H});
 
   EXPECT_CALL(*env_, getAncestry("C"_H, "ED"_H))
       .WillOnce(Return(std::vector<kagome::primitives::BlockHash>{
@@ -246,8 +244,7 @@ TEST_F(VotingRoundTest, EstimateIsValid) {
 
   // when 3.
   // Eve prevotes
-  SignedPrevote eve_vote =
-      preparePrevote(kEve, kEveSignature, Prevote{7, "F"_H});
+  auto eve_vote = preparePrevote(kEve, kEveSignature, Prevote{7, "F"_H});
 
   voting_round_->onPrevote(eve_vote);
 
@@ -348,10 +345,10 @@ ACTION_P(onPrevoted, test_fixture) {
   test_fixture->voting_round_->onPrevote(signed_prevote);
   // send Bob's prevote
   test_fixture->voting_round_->onPrevote(test_fixture->preparePrevote(
-      test_fixture->kBob, test_fixture->kBobSignature, signed_prevote.message));
+      test_fixture->kBob, test_fixture->kBobSignature, signed_prevote));
   // send Eve's prevote
   test_fixture->voting_round_->onPrevote(test_fixture->preparePrevote(
-      test_fixture->kEve, test_fixture->kEveSignature, signed_prevote.message));
+      test_fixture->kEve, test_fixture->kEveSignature, signed_prevote));
   return outcome::success();
 }
 
@@ -442,32 +439,32 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
   // is 0 and she is the first in voters set
   EXPECT_CALL(
       *env_,
-      onProposed(_, _, Truly([&](const SignedPrimaryPropose &primary_propose) {
+      onProposed(_, _, Truly([&](const SignedMessage &primary_propose) {
                    std::cout << "Proposed: "
-                             << primary_propose.message.block_hash.data()
+                             << primary_propose.block_hash().data()
                              << std::endl;
-                   return primary_propose.message.block_hash
+                   return primary_propose.block_hash()
                               == last_round_state.estimate->block_hash
                           and primary_propose.id == kAlice;
                  })))
       .WillOnce(onProposed(this));  // propose;
 
-  EXPECT_CALL(*env_, onPrevoted(_, _, Truly([&](const SignedPrevote &prevote) {
+  EXPECT_CALL(*env_, onPrevoted(_, _, Truly([&](const SignedMessage &prevote) {
                                   std::cout << "Prevoted: "
-                                            << prevote.message.block_hash.data()
+                                            << prevote.block_hash().data()
                                             << std::endl;
-                                  return prevote.message.block_hash
+                                  return prevote.block_hash()
                                              == best_block_hash
                                          and prevote.id == kAlice;
                                 })))
       .WillOnce(onPrevoted(this));  // prevote;
 
   EXPECT_CALL(*env_,
-              onPrecommitted(_, _, Truly([&](const SignedPrecommit &precommit) {
+              onPrecommitted(_, _, Truly([&](const SignedMessage &precommit) {
                                std::cout << "Precommited: "
-                                         << precommit.message.block_hash.data()
+                                         << precommit.block_hash().data()
                                          << std::endl;
-                               return precommit.message.block_hash
+                               return precommit.block_hash()
                                           == best_block_hash
                                       and precommit.id == kAlice;
                              })))
@@ -485,9 +482,9 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
           }),
           Truly([&](GrandpaJustification just) {
             Precommit precommit{best_block_number, best_block_hash};
-            SignedPrecommit alice_precommit =
+            auto alice_precommit =
                 preparePrecommit(kAlice, kAliceSignature, precommit);
-            SignedPrecommit bob_precommit =
+            auto bob_precommit =
                 preparePrecommit(kBob, kBobSignature, precommit);
             bool has_alice_precommit =
                 boost::find(just.items, alice_precommit) != just.items.end();

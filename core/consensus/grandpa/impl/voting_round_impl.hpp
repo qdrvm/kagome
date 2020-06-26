@@ -46,7 +46,7 @@ namespace kagome::consensus::grandpa {
      * Basically method just checks if received propose was produced by the
      * primary and if so, it is stored in primary_vote_ field
      */
-    void onPrimaryPropose(const SignedPrimaryPropose &primary_propose) override;
+    void onPrimaryPropose(const SignedMessage &primary_propose) override;
 
     /**
      * Triggered when we receive prevote for current round
@@ -54,14 +54,14 @@ namespace kagome::consensus::grandpa {
      * Then we try to update prevote ghost (\see updatePrevoteGhost) and round
      * state (\see update)
      */
-    void onPrevote(const SignedPrevote &prevote) override;
+    void onPrevote(const SignedMessage &prevote) override;
 
     /**
      * Triggered when we receive precommit for the current round
      * \param precommit is stored in precommit tracker and vote graph
      * Then we try to update round state and finalize
      */
-    void onPrecommit(const SignedPrecommit &precommit) override;
+    void onPrecommit(const SignedMessage &precommit) override;
 
     /**
      * Checks if current round is completable and finalized block differs from
@@ -120,10 +120,10 @@ namespace kagome::consensus::grandpa {
     size_t getThreshold(const std::shared_ptr<VoterSet> &voters);
 
     /// Triggered when we receive \param signed_prevote for the current peer
-    void onSignedPrevote(const SignedPrevote &signed_prevote);
+    void onSignedPrevote(const SignedMessage &signed_prevote);
 
     /// Triggered when we receive \param signed_precommit for the current peer
-    bool onSignedPrecommit(const SignedPrecommit &signed_precommit);
+    bool onSignedPrecommit(const SignedMessage &signed_precommit);
 
     /**
      * Invoked during each onSingedPrevote.
@@ -153,7 +153,7 @@ namespace kagome::consensus::grandpa {
      * aware of.
      * Otherwise we will vote for the best chain containing last round estimate
      */
-    outcome::result<SignedPrevote> constructPrevote(
+    outcome::result<SignedMessage> constructPrevote(
         const RoundState &last_round_state) const;
 
     /**
@@ -161,7 +161,7 @@ namespace kagome::consensus::grandpa {
      * 1. If we have prevote ghost, then vote for it
      * 2. Otherwise vote for the last finalized block (base of the graph)
      */
-    outcome::result<SignedPrecommit> constructPrecommit(
+    outcome::result<SignedMessage> constructPrecommit(
         const RoundState &last_round_state) const;
 
     /// Check if received \param vote has valid \param justification. If so

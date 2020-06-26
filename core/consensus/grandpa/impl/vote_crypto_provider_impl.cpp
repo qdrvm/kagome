@@ -20,7 +20,8 @@ namespace kagome::consensus::grandpa {
         voter_set_{std::move(voter_set)} {}
 
   bool VoteCryptoProviderImpl::verifyPrimaryPropose(
-      const SignedPrimaryPropose &primary_propose) const {
+      const SignedMessage &primary_propose) const {
+    // TODO(xDimon) change here
     auto payload = scale::encode(kPrimaryProposeStage,
                                  primary_propose.message,
                                  round_number_,
@@ -32,7 +33,8 @@ namespace kagome::consensus::grandpa {
   }
 
   bool VoteCryptoProviderImpl::verifyPrevote(
-      const SignedPrevote &prevote) const {
+      const SignedMessage &prevote) const {
+    // TODO(xDimon) change here
     auto payload =
         scale::encode(
             kPrevoteStage, prevote.message, round_number_, voter_set_->setId())
@@ -43,7 +45,8 @@ namespace kagome::consensus::grandpa {
   }
 
   bool VoteCryptoProviderImpl::verifyPrecommit(
-      const SignedPrecommit &precommit) const {
+      const SignedMessage &precommit) const {
+    // TODO(xDimon) change here
     auto payload = scale::encode(kPrecommitStage,
                                  precommit.message,
                                  round_number_,
@@ -57,8 +60,9 @@ namespace kagome::consensus::grandpa {
   template <typename VoteType>
   crypto::ED25519Signature VoteCryptoProviderImpl::voteSignature(
       uint8_t stage, const VoteType &vote_type) const {
+	  // TODO change here
     auto payload =
-        scale::encode(stage, vote_type, round_number_, voter_set_->setId())
+        scale::encode(vote_type, stage, round_number_, voter_set_->setId())
             .value();
     return ed_provider_->sign(keypair_, payload).value();
   }
@@ -72,26 +76,24 @@ namespace kagome::consensus::grandpa {
   VoteCryptoProviderImpl::voteSignature<Precommit>(uint8_t,
                                                    const Precommit &) const;
 
-  SignedPrimaryPropose VoteCryptoProviderImpl::signPrimaryPropose(
+  SignedMessage VoteCryptoProviderImpl::signPrimaryPropose(
       const PrimaryPropose &primary_propose) const {
-    return SignedPrimaryPropose{
-        .message = primary_propose,
-        .signature = voteSignature(kPrimaryProposeStage, primary_propose),
-        .id = keypair_.public_key};
+    return {.message = primary_propose,
+            .signature = voteSignature(kPrimaryProposeStage, primary_propose),
+            .id = keypair_.public_key};
   }
 
-  SignedPrevote VoteCryptoProviderImpl::signPrevote(
+  SignedMessage VoteCryptoProviderImpl::signPrevote(
       const Prevote &prevote) const {
-    return SignedPrevote{.message = prevote,
-                         .signature = voteSignature(kPrevoteStage, prevote),
-                         .id = keypair_.public_key};
+    return {.message = prevote,
+            .signature = voteSignature(kPrevoteStage, prevote),
+            .id = keypair_.public_key};
   }
 
-  SignedPrecommit VoteCryptoProviderImpl::signPrecommit(
+  SignedMessage VoteCryptoProviderImpl::signPrecommit(
       const Precommit &precommit) const {
-    return SignedPrecommit{
-        .message = precommit,
-        .signature = voteSignature(kPrecommitStage, precommit),
-        .id = keypair_.public_key};
+    return {.message = precommit,
+            .signature = voteSignature(kPrecommitStage, precommit),
+            .id = keypair_.public_key};
   }
 }  // namespace kagome::consensus::grandpa

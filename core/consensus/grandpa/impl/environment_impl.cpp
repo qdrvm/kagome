@@ -69,12 +69,13 @@ namespace kagome::consensus::grandpa {
   outcome::result<void> EnvironmentImpl::onProposed(
       RoundNumber round,
       MembershipCounter set_id,
-      const SignedPrimaryPropose &propose) {
+      const SignedMessage &propose) {
+  	// TODO ensure type of signed message is right
     VoteMessage message{
         .round_number = round, .counter = set_id, .vote = propose};
-    gossiper_->vote(message);
+	  gossiper_->vote(message);
     logger_->debug("Primary proposed block with hash {} in grandpa round {}",
-                   propose.message.block_hash.toHex(),
+                   propose.block_hash().toHex(),
                   round);
     return outcome::success();
   }
@@ -82,12 +83,13 @@ namespace kagome::consensus::grandpa {
   outcome::result<void> EnvironmentImpl::onPrevoted(
       RoundNumber round,
       MembershipCounter set_id,
-      const SignedPrevote &prevote) {
+      const SignedMessage &prevote) {
+  	// TODO ensure type of signed message is right
     VoteMessage message{
         .round_number = round, .counter = set_id, .vote = prevote};
     gossiper_->vote(message);
     logger_->debug("Prevoted block with hash {} in grandpa round {}",
-                   prevote.message.block_hash.toHex(),
+                   prevote.block_hash().toHex(),
                   round);
     return outcome::success();
   }
@@ -95,12 +97,13 @@ namespace kagome::consensus::grandpa {
   outcome::result<void> EnvironmentImpl::onPrecommitted(
       RoundNumber round,
       MembershipCounter set_id,
-      const SignedPrecommit &precommit) {
+      const SignedMessage &precommit) {
+  	// TODO ensure type of signed message is right
     VoteMessage message{
         .round_number = round, .counter = set_id, .vote = precommit};
     gossiper_->vote(message);
     logger_->debug("Precommitted block with hash {} in grandpa round {}",
-                   precommit.message.block_hash.toHex(),
+                   precommit.block_hash().toHex(),
                   round);
     return outcome::success();
   }

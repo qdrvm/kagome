@@ -31,22 +31,25 @@ class VoteTrackerTest : public testing::Test {
    * @param hash hash of the block voted for
    * @return the message created
    */
-  SignedMessage<Message> createMessage(const Id &id, const Hash256 &hash) {
-    SignedMessage<Message> m;
+  SignedMessage createMessage(const Id &id, const Hash256 &hash) {
+    SignedMessage m;
     m.id = id;
-    m.message.block_hash = hash;
+	  Prevote msg;
+	  msg.block_hash = hash;
+		m.message = std::move(msg);
+//    kagome::visit_in_place(m.message,
+//                           [&hash](auto &msg) { msg.block_hash = hash; });
     return m;
   }
 
   // tuples (message, weight, expected push result)
-  std::vector<std::tuple<SignedMessage<Message>, size_t, PushResult>>
-      test_messages{
-          {createMessage(ids[0], hashes[0]), 3, PushResult::SUCCESS},
-          {createMessage(ids[0], hashes[0]), 7, PushResult::DUPLICATED},
-          {createMessage(ids[0], hashes[1]), 2, PushResult::EQUIVOCATED},
-          {createMessage(ids[0], hashes[2]), 8, PushResult::DUPLICATED},
-          {createMessage(ids[1], hashes[2]), 3, PushResult::SUCCESS},
-          {createMessage(ids[1], hashes[1]), 1, PushResult::EQUIVOCATED}};
+  std::vector<std::tuple<SignedMessage, size_t, PushResult>> test_messages{
+      {createMessage(ids[0], hashes[0]), 3, PushResult::SUCCESS},
+      {createMessage(ids[0], hashes[0]), 7, PushResult::DUPLICATED},
+      {createMessage(ids[0], hashes[1]), 2, PushResult::EQUIVOCATED},
+      {createMessage(ids[0], hashes[2]), 8, PushResult::DUPLICATED},
+      {createMessage(ids[1], hashes[2]), 3, PushResult::SUCCESS},
+      {createMessage(ids[1], hashes[1]), 1, PushResult::EQUIVOCATED}};
 };
 
 TYPED_TEST_CASE_P(VoteTrackerTest);
@@ -85,7 +88,7 @@ TYPED_TEST_P(VoteTrackerTest, Weight) {
  * @then the message set contains all non-duplicate messaged
  */
 TYPED_TEST_P(VoteTrackerTest, GetMessages) {
-  std::list<SignedMessage<TypeParam>> expected;
+  std::list<SignedMessage> expected;
   for (auto &[m, w, r] : this->test_messages) {
     this->tracker.push(m, w);
     if (r != VoteTrackerTest<TypeParam>::PushResult::DUPLICATED) {
@@ -105,23 +108,23 @@ TYPED_TEST_P(VoteTrackerTest, GetMessages) {
                   [&](const typename decltype(
                       this->tracker)::VotingMessage &voting_message) {
                     return m.id == voting_message.id
-                           && m.message.block_hash
-                                  == voting_message.message.block_hash;
+                           && m.block_hash()
+                                  == voting_message.block_hash();
                   },
                   [&](const typename decltype(
                       this->tracker)::EquivocatoryVotingMessage
                           &equivocatory_voting_message) {
                     auto first_id = equivocatory_voting_message.first.id;
                     auto first_block_hash =
-                        equivocatory_voting_message.first.message.block_hash;
+                        equivocatory_voting_message.first.block_hash();
 
                     auto second_id = equivocatory_voting_message.second.id;
                     auto second_block_hash =
-                        equivocatory_voting_message.second.message.block_hash;
+                        equivocatory_voting_message.second.block_hash();
                     return (m.id == first_id
-                            && m.message.block_hash == first_block_hash)
+                            && m.block_hash() == first_block_hash)
                            || (m.id == second_id
-                               && m.message.block_hash == second_block_hash);
+                               && m.block_hash() == second_block_hash);
                   });
             })
         != messages.end());

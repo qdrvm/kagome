@@ -179,15 +179,15 @@ namespace kagome::consensus::grandpa {
     auto current_round_number = current_round->roundNumber();
     if (msg.round_number == current_round_number) {
       visit_in_place(
-          msg.vote,
-          [&current_round](const SignedPrimaryPropose &primary_propose) {
-            current_round->onPrimaryPropose(primary_propose);
+          msg.vote.message,
+          [&current_round,&msg](const PrimaryPropose &primary_propose) {
+            current_round->onPrimaryPropose(msg.vote);
           },
-          [&current_round](const SignedPrevote &prevote) {
-            current_round->onPrevote(prevote);
+          [&current_round,&msg](const Prevote &prevote) {
+            current_round->onPrevote(msg.vote);
           },
-          [&current_round](const SignedPrecommit &precommit) {
-            current_round->onPrecommit(precommit);
+          [&current_round,&msg](const Precommit &precommit) {
+            current_round->onPrecommit(msg.vote);
           });
     }
   }

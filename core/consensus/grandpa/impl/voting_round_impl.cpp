@@ -121,7 +121,7 @@ namespace kagome::consensus::grandpa {
       // signed_precommits are descendants of the vote). If so add weight of
       // that voter to the total weight
       if (env_->getAncestry(vote.block_hash,
-                            signed_precommit.message.block_hash)) {
+                            signed_precommit.block_hash())) {
         total_weight +=
             voter_set_->voterWeight(signed_precommit.id)
                 .value_or(0);  // add zero if such voter does not exist
@@ -174,13 +174,13 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::onPrimaryPropose(
-      const SignedPrimaryPropose &primary_propose) {
+      const SignedMessage &primary_propose) {
     if (isPrimary(primary_propose.id)) {
-      primary_vote_ = primary_propose.message;
+      primary_vote_ = PrimaryPropose{primary_propose.block_number(), primary_propose.block_hash()};
     }
   }
 
-  void VotingRoundImpl::onPrevote(const SignedPrevote &prevote) {
+  void VotingRoundImpl::onPrevote(const SignedMessage &prevote) {
     onSignedPrevote(prevote);
     updatePrevoteGhost();
     update();
@@ -192,7 +192,7 @@ namespace kagome::consensus::grandpa {
     tryFinalize();
   }
 
-  void VotingRoundImpl::onPrecommit(const SignedPrecommit &precommit) {
+  void VotingRoundImpl::onPrecommit(const SignedMessage &precommit) {
     if (not onSignedPrecommit(precommit)) {
       env_->onCompleted(VotingRoundError::LAST_ESTIMATE_BETTER_THAN_PREVOTE);
       return;
@@ -206,7 +206,8 @@ namespace kagome::consensus::grandpa {
     tryFinalize();
   }
 
-  void VotingRoundImpl::onSignedPrevote(const SignedPrevote &vote) {
+  void VotingRoundImpl::onSignedPrevote(const SignedMessage &vote) {
+  	// TODO check vote type is right
     auto weight = voter_set_->voterWeight(vote.id);
     if (not weight) {
       return;
@@ -228,7 +229,7 @@ namespace kagome::consensus::grandpa {
 
         if (auto inserted = graph_->insert(vote.message, v); not inserted) {
           logger_->warn("Vote {} was not inserted with error: {}",
-                        vote.message.block_hash.toHex(),
+                        vote.block_hash().toHex(),
                         inserted.error().message());
         }
         break;
@@ -248,7 +249,8 @@ namespace kagome::consensus::grandpa {
     }
   }
 
-  bool VotingRoundImpl::onSignedPrecommit(const SignedPrecommit &vote) {
+  bool VotingRoundImpl::onSignedPrecommit(const SignedMessage &vote) {
+  	// TODO check vote type is right
     auto weight = voter_set_->voterWeight(vote.id);
     if (not weight) {
       return false;
@@ -270,7 +272,7 @@ namespace kagome::consensus::grandpa {
 
         if (auto inserted = graph_->insert(vote.message, v); not inserted) {
           logger_->warn("Vote {} was not inserted with error: {}",
-                        vote.message.block_hash.toHex(),
+                        vote.block_hash().toHex(),
                         inserted.error().message());
           return false;
         }
@@ -476,7 +478,7 @@ namespace kagome::consensus::grandpa {
     precommit_timer_.async_wait(handle_precommit);
   }
 
-  outcome::result<SignedPrevote> VotingRoundImpl::constructPrevote(
+  outcome::result<SignedMessage> VotingRoundImpl::constructPrevote(
       const RoundState &last_round_state) const {
     if (not last_round_state.estimate) {
       logger_->warn("Rounds only started when prior round completable");
@@ -541,7 +543,7 @@ namespace kagome::consensus::grandpa {
         {best_chain.block_number, best_chain.block_hash});
   }
 
-  outcome::result<SignedPrecommit> VotingRoundImpl::constructPrecommit(
+  outcome::result<SignedMessage> VotingRoundImpl::constructPrecommit(
       const RoundState &last_round_state) const {
     const auto &base = graph_->getBase();
     const auto &target = cur_round_state_.prevote_ghost.value_or(
@@ -679,10 +681,11 @@ namespace kagome::consensus::grandpa {
         [this](GrandpaJustification &j, const auto &precommit_variant) {
           visit_in_place(
               precommit_variant,
-              [&j, this](const SignedPrecommit &voting_message) {
+              [&j, this](const SignedMessage &voting_message) {
+		              // TODO check vote type is precommit
                 if (env_->isEqualOrDescendOf(
                         cur_round_state_.finalized->block_hash,
-                        voting_message.message.block_hash)) {
+                        voting_message.block_hash())) {
                   j.items.push_back(voting_message);
                 }
               },
