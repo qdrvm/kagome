@@ -18,8 +18,11 @@
   },
   "genesis": {
     "raw": {
-      "0x01": "0xaa",
-      "0x02": "0xbb"
+      "top": {
+        "0x01": "0xaa",
+        "0x02": "0xbb"
+      },
+      "childrenDefault": {}
     }
   }
 }
