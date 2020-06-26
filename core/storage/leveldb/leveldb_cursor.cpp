@@ -12,35 +12,40 @@ namespace kagome::storage {
   LevelDB::Cursor::Cursor(std::shared_ptr<leveldb::Iterator> it)
       : i_(std::move(it)) {}
 
-  void LevelDB::Cursor::seekToFirst() {
+  outcome::result<void> LevelDB::Cursor::seekToFirst() {
     i_->SeekToFirst();
+    return outcome::success();
   }
 
-  void LevelDB::Cursor::seek(const Buffer &key) {
+  outcome::result<void> LevelDB::Cursor::seek(const Buffer &key) {
     i_->Seek(make_slice(key));
+    return outcome::success();
   }
 
-  void LevelDB::Cursor::seekToLast() {
+  outcome::result<void> LevelDB::Cursor::seekToLast() {
     i_->SeekToLast();
+    return outcome::success();
   }
 
   bool LevelDB::Cursor::isValid() const {
     return i_->Valid();
   }
 
-  void LevelDB::Cursor::next() {
+  outcome::result<void> LevelDB::Cursor::next() {
     i_->Next();
+    return outcome::success();
   }
 
-  void LevelDB::Cursor::prev() {
+  outcome::result<void> LevelDB::Cursor::prev() {
     i_->Prev();
+    return outcome::success();
   }
 
-  Buffer LevelDB::Cursor::key() const {
+  outcome::result<Buffer> LevelDB::Cursor::key() const {
     return make_buffer(i_->key());
   }
 
-  Buffer LevelDB::Cursor::value() const {
+  outcome::result<Buffer> LevelDB::Cursor::value() const {
     return make_buffer(i_->value());
   }
 

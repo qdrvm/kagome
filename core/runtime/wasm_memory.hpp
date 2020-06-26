@@ -7,8 +7,9 @@
 #define KAGOME_MEMORY_HPP
 
 #include <array>
-#include <boost/optional.hpp>
 
+#include <boost/optional.hpp>
+#include <gsl/span>
 #include "common/buffer.hpp"
 #include "runtime/types.hpp"
 
@@ -36,13 +37,13 @@ namespace kagome::runtime {
     /**
      * @brief Return the size of the memory
      */
-    virtual SizeType size() const = 0;
+    virtual WasmSize size() const = 0;
 
     /**
      * Resizes memory to the given size
      * @param newSize
      */
-    virtual void resize(SizeType newSize) = 0;
+    virtual void resize(WasmSize newSize) = 0;
 
     /**
      * Allocates memory of given size and returns address in the memory
@@ -50,7 +51,7 @@ namespace kagome::runtime {
      * @return address to allocated memory. If there is no available slot for
      * such allocation, then -1 is returned
      */
-    virtual WasmPointer allocate(SizeType size) = 0;
+    virtual WasmPointer allocate(WasmSize size) = 0;
 
     /**
      * Deallocates memory in provided region
@@ -58,7 +59,7 @@ namespace kagome::runtime {
      * @return size of deallocated memory or none if given address does not
      * point to any allocated pieces of memory
      */
-    virtual boost::optional<SizeType> deallocate(WasmPointer ptr) = 0;
+    virtual boost::optional<WasmSize> deallocate(WasmPointer ptr) = 0;
 
     /**
      * Load integers from provided address
@@ -79,7 +80,7 @@ namespace kagome::runtime {
      * @param n number of bytes to be loaded
      * @return Buffer of length N
      */
-    virtual common::Buffer loadN(WasmPointer addr, SizeType n) const = 0;
+    virtual common::Buffer loadN(WasmPointer addr, WasmSize n) const = 0;
 
     /**
      * Store integers at given address of the wasm memory
@@ -90,7 +91,15 @@ namespace kagome::runtime {
     virtual void store64(WasmPointer addr, int64_t value) = 0;
     virtual void store128(WasmPointer addr,
                           const std::array<uint8_t, 16> &value) = 0;
-    virtual void storeBuffer(WasmPointer addr, const common::Buffer &value) = 0;
+    virtual void storeBuffer(WasmPointer addr,
+                             gsl::span<const uint8_t> value) = 0;
+
+    /**
+     * @brief allocates buffer in memory and copies value into memory
+     * @param value buffer to store
+     * @return full wasm pointer to allocated buffer
+     */
+    virtual WasmSpan storeBuffer(gsl::span<const uint8_t> value) = 0;
   };
 }  // namespace kagome::runtime
 

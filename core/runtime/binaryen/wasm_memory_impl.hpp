@@ -29,7 +29,7 @@ namespace kagome::runtime::binaryen {
    public:
     explicit WasmMemoryImpl(
         wasm::ShellExternalInterface::Memory *memory,
-        SizeType size =
+        WasmSize size =
             1114112);  // default value for binaryen's shell interface
     WasmMemoryImpl(const WasmMemoryImpl &copy) = delete;
     WasmMemoryImpl &operator=(const WasmMemoryImpl &copy) = delete;
@@ -39,11 +39,11 @@ namespace kagome::runtime::binaryen {
 
     void reset() override;
 
-    SizeType size() const override;
-    void resize(SizeType newSize) override;
+    WasmSize size() const override;
+    void resize(WasmSize newSize) override;
 
-    WasmPointer allocate(SizeType size) override;
-    boost::optional<SizeType> deallocate(WasmPointer ptr) override;
+    WasmPointer allocate(WasmSize size) override;
+    boost::optional<WasmSize> deallocate(WasmPointer ptr) override;
 
     int8_t load8s(WasmPointer addr) const override;
     uint8_t load8u(WasmPointer addr) const override;
@@ -55,7 +55,7 @@ namespace kagome::runtime::binaryen {
     uint64_t load64u(WasmPointer addr) const override;
     std::array<uint8_t, 16> load128(WasmPointer addr) const override;
     common::Buffer loadN(kagome::runtime::WasmPointer addr,
-                         kagome::runtime::SizeType n) const override;
+                         kagome::runtime::WasmSize n) const override;
 
     void store8(WasmPointer addr, int8_t value) override;
     void store16(WasmPointer addr, int16_t value) override;
@@ -64,20 +64,22 @@ namespace kagome::runtime::binaryen {
     void store128(WasmPointer addr,
                   const std::array<uint8_t, 16> &value) override;
     void storeBuffer(kagome::runtime::WasmPointer addr,
-                     const kagome::common::Buffer &value) override;
+                     gsl::span<const uint8_t> value) override;
+
+    WasmSpan storeBuffer(gsl::span<const uint8_t> value) override;
 
    private:
     wasm::ShellExternalInterface::Memory *memory_;
-    SizeType size_;
+    WasmSize size_;
 
     // Offset on the tail of the last allocated MemoryImpl chunk
     WasmPointer offset_;
 
     // map containing addresses of allocated MemoryImpl chunks
-    std::unordered_map<WasmPointer, SizeType> allocated_;
+    std::unordered_map<WasmPointer, WasmSize> allocated_;
 
     // map containing addresses to the deallocated MemoryImpl chunks
-    std::unordered_map<WasmPointer, SizeType> deallocated_;
+    std::unordered_map<WasmPointer, WasmSize> deallocated_;
 
     template <typename T>
     static bool aligned(const char *address) {
@@ -93,7 +95,7 @@ namespace kagome::runtime::binaryen {
      * @return address of memory of given size, or -1 if it is impossible to
      * allocate this amount of memory
      */
-    WasmPointer freealloc(SizeType size);
+    WasmPointer freealloc(WasmSize size);
 
     /**
      * Finds memory segment of given size among deallocated pieces of memory
@@ -101,7 +103,7 @@ namespace kagome::runtime::binaryen {
      * @return address of memory of given size, or 0 if it is impossible to
      * allocate this amount of memory
      */
-    WasmPointer findContaining(SizeType size);
+    WasmPointer findContaining(WasmSize size);
 
     /**
      * Resize memory and allocate memory segment of given size
@@ -109,9 +111,9 @@ namespace kagome::runtime::binaryen {
      * @return pointer to the allocated memory @or 0 if it is impossible to
      * allocate this amount of memory
      */
-    WasmPointer growAlloc(SizeType size);
+    WasmPointer growAlloc(WasmSize size);
 
-    void resizeInternal(SizeType newSize);
+    void resizeInternal(WasmSize newSize);
   };
 
 }  // namespace kagome::runtime::binaryen

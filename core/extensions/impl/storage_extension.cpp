@@ -9,8 +9,8 @@
 
 #include "primitives/block_id.hpp"
 #include "storage/changes_trie/impl/changes_trie.hpp"
-#include "storage/trie/impl/ordered_trie_hash.hpp"
-#include "storage/trie/impl/trie_error.hpp"
+#include "storage/trie/polkadot_trie/trie_error.hpp"
+#include "storage/trie/serialization/ordered_trie_hash.hpp"
 
 using kagome::common::Buffer;
 
@@ -35,7 +35,7 @@ namespace kagome::extensions {
   // -------------------------Data storage--------------------------
 
   void StorageExtension::ext_clear_prefix(runtime::WasmPointer prefix_data,
-                                          runtime::SizeType prefix_length) {
+                                          runtime::WasmSize prefix_length) {
     auto batch = storage_provider_->getCurrentBatch();
     auto prefix = memory_->loadN(prefix_data, prefix_length);
     auto res = batch->clearPrefix(prefix);
@@ -45,7 +45,7 @@ namespace kagome::extensions {
   }
 
   void StorageExtension::ext_clear_storage(runtime::WasmPointer key_data,
-                                           runtime::SizeType key_length) {
+                                           runtime::WasmSize key_length) {
     auto batch = storage_provider_->getCurrentBatch();
     auto key = memory_->loadN(key_data, key_length);
     auto del_result = batch->remove(key);
@@ -58,8 +58,8 @@ namespace kagome::extensions {
     }
   }
 
-  runtime::SizeType StorageExtension::ext_exists_storage(
-      runtime::WasmPointer key_data, runtime::SizeType key_length) const {
+  runtime::WasmSize StorageExtension::ext_exists_storage(
+      runtime::WasmPointer key_data, runtime::WasmSize key_length) const {
     auto batch = storage_provider_->getCurrentBatch();
     auto key = memory_->loadN(key_data, key_length);
     return batch->contains(key) ? 1 : 0;
@@ -67,7 +67,7 @@ namespace kagome::extensions {
 
   runtime::WasmPointer StorageExtension::ext_get_allocated_storage(
       runtime::WasmPointer key_data,
-      runtime::SizeType key_length,
+      runtime::WasmSize key_length,
       runtime::WasmPointer len_ptr) {
     auto batch = storage_provider_->getCurrentBatch();
     auto key = memory_->loadN(key_data, key_length);
@@ -96,12 +96,12 @@ namespace kagome::extensions {
     return data_ptr;
   }
 
-  runtime::SizeType StorageExtension::ext_get_storage_into(
+  runtime::WasmSize StorageExtension::ext_get_storage_into(
       runtime::WasmPointer key_data,
-      runtime::SizeType key_length,
+      runtime::WasmSize key_length,
       runtime::WasmPointer value_data,
-      runtime::SizeType value_length,
-      runtime::SizeType value_offset) {
+      runtime::WasmSize value_length,
+      runtime::WasmSize value_offset) {
     auto key = memory_->loadN(key_data, key_length);
     auto data = get(key, value_offset, value_length);
     if (not data) {
@@ -122,9 +122,9 @@ namespace kagome::extensions {
   }
 
   void StorageExtension::ext_set_storage(const runtime::WasmPointer key_data,
-                                         runtime::SizeType key_length,
+                                         runtime::WasmSize key_length,
                                          const runtime::WasmPointer value_data,
-                                         runtime::SizeType value_length) {
+                                         runtime::WasmSize value_length) {
     auto key = memory_->loadN(key_data, key_length);
     auto value = memory_->loadN(value_data, value_length);
 
@@ -156,7 +156,7 @@ namespace kagome::extensions {
   void StorageExtension::ext_blake2_256_enumerated_trie_root(
       runtime::WasmPointer values_data,
       runtime::WasmPointer lengths_data,
-      runtime::SizeType values_num,
+      runtime::WasmSize values_num,
       runtime::WasmPointer result) {
     std::vector<uint32_t> lengths(values_num);
     for (size_t i = 0; i < values_num; i++) {
@@ -180,7 +180,7 @@ namespace kagome::extensions {
     }
   }
 
-  runtime::SizeType StorageExtension::ext_storage_changes_root(
+  runtime::WasmSize StorageExtension::ext_storage_changes_root(
       runtime::WasmPointer parent_hash_data, runtime::WasmPointer result) {
     if (not storage_provider_->isCurrentlyPersistent()) {
       logger_->error(
@@ -260,13 +260,13 @@ namespace kagome::extensions {
 
   outcome::result<common::Buffer> StorageExtension::get(
       const common::Buffer &key,
-      runtime::SizeType offset,
-      runtime::SizeType max_length) const {
+      runtime::WasmSize offset,
+      runtime::WasmSize max_length) const {
     auto batch = storage_provider_->getCurrentBatch();
     OUTCOME_TRY(data, batch->get(key));
 
     const auto data_length =
-        std::min<runtime::SizeType>(max_length, data.size() - offset);
+        std::min<runtime::WasmSize>(max_length, data.size() - offset);
 
     return common::Buffer(std::vector<uint8_t>(
         data.begin() + offset, data.begin() + offset + data_length));

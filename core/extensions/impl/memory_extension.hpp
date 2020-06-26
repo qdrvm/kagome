@@ -21,7 +21,7 @@ namespace kagome::extensions {
     /**
      * @see Extension::ext_malloc
      */
-    runtime::WasmPointer ext_malloc(runtime::SizeType size);
+    runtime::WasmPointer ext_malloc(runtime::WasmSize size);
 
     /**
      * @see Extension::ext_free

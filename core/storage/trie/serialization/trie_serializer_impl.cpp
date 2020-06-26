@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/trie/impl/trie_serializer_impl.hpp"
+#include "storage/trie/serialization/trie_serializer_impl.hpp"
 
 namespace kagome::storage::trie {
 

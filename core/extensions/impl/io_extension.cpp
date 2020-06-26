@@ -13,7 +13,7 @@ namespace kagome::extensions {
   }
 
   void IOExtension::ext_print_hex(runtime::WasmPointer data,
-                                  runtime::SizeType length) {
+                                  runtime::WasmSize length) {
     const auto &buf = memory_->loadN(data, length);
     logger_->info("hex value: {}", buf.toHex());
   }
@@ -23,7 +23,7 @@ namespace kagome::extensions {
   }
 
   void IOExtension::ext_print_utf8(runtime::WasmPointer utf8_data,
-                                   runtime::SizeType utf8_length) {
+                                   runtime::WasmSize utf8_length) {
     const auto &buf = memory_->loadN(utf8_data, utf8_length);
     logger_->info("string value: {}", std::string{buf.begin(), buf.end()});
   }

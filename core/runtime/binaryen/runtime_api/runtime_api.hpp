@@ -124,14 +124,14 @@ namespace kagome::runtime::binaryen {
         Args &&... args) {
       logger_->debug("Executing export function: {}", name);
       if (state_root.has_value()) {
-        logger_->warn("Resetting state to: {}", state_root.value().toHex());
+        logger_->debug("Resetting state to: {}", state_root.value().toHex());
       }
 
       auto environment = getRuntimeEnvironment(persistency, state_root);
       auto &&[module, memory] = environment;
 
       runtime::WasmPointer ptr = 0u;
-      runtime::SizeType len = 0u;
+      runtime::WasmSize len = 0u;
 
       if constexpr (sizeof...(args) > 0) {
         OUTCOME_TRY(buffer, scale::encode(std::forward<Args>(args)...));
@@ -147,7 +147,7 @@ namespace kagome::runtime::binaryen {
       OUTCOME_TRY(res, executor_.call(*module, wasm_name, ll));
       memory->reset();
       if constexpr (!std::is_same_v<void, R>) {
-        WasmResult r{res.geti64()};
+        WasmResult r(res.geti64());
         auto buffer = memory->loadN(r.address, r.length);
         // TODO (yuraz) PRE-98: after check for memory overflow is done,
         //  refactor it

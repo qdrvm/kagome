@@ -100,15 +100,8 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/core
 )
 
-include_directories(
-  SYSTEM
-  # system includes
-  deps/GSL/include
-)
-
 add_subdirectory(core)
 
-install_deps_headers()
 kagome_install_setup(
     HEADER_DIRS
     core/common

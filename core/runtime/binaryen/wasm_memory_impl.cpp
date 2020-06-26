@@ -4,10 +4,11 @@
  */
 
 #include "runtime/binaryen/wasm_memory_impl.hpp"
+#include <runtime/wasm_result.hpp>
 
 namespace kagome::runtime::binaryen {
   WasmMemoryImpl::WasmMemoryImpl(wasm::ShellExternalInterface::Memory *memory,
-                                 SizeType size)
+                                 WasmSize size)
       : memory_(memory),
         size_(size),
         offset_{1}  // We should allocate very first byte to prohibit allocating
@@ -23,16 +24,16 @@ namespace kagome::runtime::binaryen {
     deallocated_.clear();
   }
 
-  SizeType WasmMemoryImpl::size() const {
+  WasmSize WasmMemoryImpl::size() const {
     return size_;
   }
 
-  void WasmMemoryImpl::resize(runtime::SizeType new_size) {
+  void WasmMemoryImpl::resize(runtime::WasmSize new_size) {
     size_ = new_size;
     return memory_->resize(new_size);
   }
 
-  WasmPointer WasmMemoryImpl::allocate(SizeType size) {
+  WasmPointer WasmMemoryImpl::allocate(WasmSize size) {
     if (size == 0) {
       return 0;
     }
@@ -51,7 +52,7 @@ namespace kagome::runtime::binaryen {
     return freealloc(size);
   }
 
-  boost::optional<SizeType> WasmMemoryImpl::deallocate(WasmPointer ptr) {
+  boost::optional<WasmSize> WasmMemoryImpl::deallocate(WasmPointer ptr) {
     const auto it = allocated_.find(ptr);
     if (it == allocated_.end()) {
       return boost::none;
@@ -64,7 +65,7 @@ namespace kagome::runtime::binaryen {
     return size;
   }
 
-  WasmPointer WasmMemoryImpl::freealloc(SizeType size) {
+  WasmPointer WasmMemoryImpl::freealloc(WasmSize size) {
     auto ptr = findContaining(size);
     if (ptr == 0) {
       // if did not find available space among deallocated memory chunks, then
@@ -76,7 +77,7 @@ namespace kagome::runtime::binaryen {
     return ptr;
   }
 
-  WasmPointer WasmMemoryImpl::findContaining(SizeType size) {
+  WasmPointer WasmMemoryImpl::findContaining(WasmSize size) {
     auto min_value = std::numeric_limits<WasmPointer>::max();
     WasmPointer min_key = 0;
     for (const auto &[key, value] : deallocated_) {
@@ -91,7 +92,7 @@ namespace kagome::runtime::binaryen {
     return min_key;
   }
 
-  WasmPointer WasmMemoryImpl::growAlloc(SizeType size) {
+  WasmPointer WasmMemoryImpl::growAlloc(WasmSize size) {
     if (offset_ < 0) {
       return 0;
     }
@@ -142,7 +143,7 @@ namespace kagome::runtime::binaryen {
   }
 
   common::Buffer WasmMemoryImpl::loadN(kagome::runtime::WasmPointer addr,
-                                       kagome::runtime::SizeType n) const {
+                                       kagome::runtime::WasmSize n) const {
     // TODO (kamilsa) PRE-98: check if we do not go outside of memory
     common::Buffer res;
     for (auto i = addr; i < addr + n; i++) {
@@ -168,13 +169,22 @@ namespace kagome::runtime::binaryen {
     memory_->set<std::array<uint8_t, 16>>(addr, value);
   }
   void WasmMemoryImpl::storeBuffer(kagome::runtime::WasmPointer addr,
-                                   const kagome::common::Buffer &value) {
+                                   gsl::span<const uint8_t> value) {
     // TODO (kamilsa) PRE-98: check if we do not go outside of memory
     // boundaries, 04.04.2019
-    const auto &value_vector = value.toVector();
-    for (size_t i = addr, j = 0; i < addr + value.size(); i++, j++) {
-      memory_->set(i, value_vector[j]);
+    for (size_t i = addr, j = 0; i < addr + static_cast<size_t>(value.size());
+         i++, j++) {
+      memory_->set(i, value[j]);
     }
+  }
+
+  WasmSpan WasmMemoryImpl::storeBuffer(gsl::span<const uint8_t> value) {
+    auto wasm_pointer = allocate(value.size());
+    if (wasm_pointer == 0) {
+      return 0;
+    }
+    storeBuffer(wasm_pointer, value);
+    return WasmResult(wasm_pointer, value.size()).combine();
   }
 
 }  // namespace kagome::runtime::binaryen

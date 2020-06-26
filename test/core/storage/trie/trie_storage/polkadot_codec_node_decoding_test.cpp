@@ -6,11 +6,11 @@
 #include <memory>
 
 #include <gtest/gtest.h>
-#include "storage/trie/impl/polkadot_codec.hpp"
-#include "storage/trie/impl/polkadot_node.hpp"
-#include "storage/trie/impl/buffer_stream.hpp"
-#include "testutil/outcome.hpp"
+#include "storage/trie/polkadot_trie/polkadot_node.hpp"
+#include "storage/trie/serialization/buffer_stream.hpp"
+#include "storage/trie/serialization/polkadot_codec.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/outcome.hpp"
 
 using namespace kagome;
 using namespace common;
