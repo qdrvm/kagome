@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(bip39)
 add_subdirectory(blake2)
 add_subdirectory(keccak)
 add_subdirectory(ed25519)
