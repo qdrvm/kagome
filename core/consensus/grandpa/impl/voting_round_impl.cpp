@@ -392,12 +392,6 @@ namespace kagome::consensus::grandpa {
       }
       switch (state_) {
         case State::START:
-          // if we are primary and in the start state during prevote, then error
-          // happened during precommit. Should stop
-          if (isPrimary()) {
-            break;
-          }
-          [[fallthrough]];
         case State::PROPOSED: {
           auto prevote = constructPrevote(last_round_state);
           if (prevote) {
