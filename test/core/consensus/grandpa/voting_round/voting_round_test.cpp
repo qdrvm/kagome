@@ -163,10 +163,10 @@ class VotingRoundTest : public ::testing::Test {
 
   std::shared_ptr<HasherMock> hasher_ = std::make_shared<HasherMock>();
 
-  std::shared_ptr<VoteTrackerImpl<Prevote>> prevotes_ =
-      std::make_shared<VoteTrackerImpl<Prevote>>();
-  std::shared_ptr<VoteTrackerImpl<Precommit>> precommits_ =
-      std::make_shared<VoteTrackerImpl<Precommit>>();
+  std::shared_ptr<VoteTrackerImpl> prevotes_ =
+      std::make_shared<VoteTrackerImpl>();
+  std::shared_ptr<VoteTrackerImpl> precommits_ =
+      std::make_shared<VoteTrackerImpl>();
 
   std::shared_ptr<EnvironmentMock> env_;
   std::shared_ptr<VoteGraphImpl> vote_graph_;
@@ -344,11 +344,15 @@ ACTION_P(onPrevoted, test_fixture) {
   // send Alice's prevote
   test_fixture->voting_round_->onPrevote(signed_prevote);
   // send Bob's prevote
-  test_fixture->voting_round_->onPrevote(test_fixture->preparePrevote(
-      test_fixture->kBob, test_fixture->kBobSignature, signed_prevote));
+  test_fixture->voting_round_->onPrevote(
+      SignedMessage{.id = test_fixture->kBob,
+                    .signature = test_fixture->kBobSignature,
+                    .message = signed_prevote.message});
   // send Eve's prevote
-  test_fixture->voting_round_->onPrevote(test_fixture->preparePrevote(
-      test_fixture->kEve, test_fixture->kEveSignature, signed_prevote));
+  test_fixture->voting_round_->onPrevote(
+      SignedMessage{.id = test_fixture->kEve,
+                    .signature = test_fixture->kEveSignature,
+                    .message = signed_prevote.message});
   return outcome::success();
 }
 
@@ -360,13 +364,14 @@ ACTION_P(onPrecommitted, test_fixture) {
   test_fixture->voting_round_->onPrecommit(signed_precommit);
   // send Bob's precommit
   test_fixture->voting_round_->onPrecommit(
-      test_fixture->preparePrecommit(test_fixture->kBob,
-                                     test_fixture->kBobSignature,
-                                     signed_precommit.message));
+      SignedMessage{.id = test_fixture->kBob,
+                    .signature = test_fixture->kBobSignature,
+                    .message = signed_precommit.message});
   //  // send Eve's precommit
   //  test_fixture->voting_round_->onPrecommit(
-  //      test_fixture->preparePrecommit(test_fixture->kEve,
-  //                                     test_fixture->kEveSignature,
+  //      SignedMessage(.id = test_fixture->kEve,
+  //                                     .signature =
+  //                                     test_fixture->kEveSignature, .message =
   //                                     signed_precommit.message));
   return outcome::success();
 }
@@ -437,24 +442,22 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
 
   // voting round is executed by Alice. She is also a Primary as round number
   // is 0 and she is the first in voters set
-  EXPECT_CALL(
-      *env_,
-      onProposed(_, _, Truly([&](const SignedMessage &primary_propose) {
-                   std::cout << "Proposed: "
-                             << primary_propose.block_hash().data()
-                             << std::endl;
-                   return primary_propose.block_hash()
-                              == last_round_state.estimate->block_hash
-                          and primary_propose.id == kAlice;
-                 })))
+  EXPECT_CALL(*env_,
+              onProposed(_, _, Truly([&](const SignedMessage &primary_propose) {
+                           std::cout << "Proposed: "
+                                     << primary_propose.block_hash().data()
+                                     << std::endl;
+                           return primary_propose.block_hash()
+                                      == last_round_state.estimate->block_hash
+                                  and primary_propose.id == kAlice;
+                         })))
       .WillOnce(onProposed(this));  // propose;
 
   EXPECT_CALL(*env_, onPrevoted(_, _, Truly([&](const SignedMessage &prevote) {
                                   std::cout << "Prevoted: "
                                             << prevote.block_hash().data()
                                             << std::endl;
-                                  return prevote.block_hash()
-                                             == best_block_hash
+                                  return prevote.block_hash() == best_block_hash
                                          and prevote.id == kAlice;
                                 })))
       .WillOnce(onPrevoted(this));  // prevote;
@@ -464,8 +467,7 @@ TEST_F(VotingRoundTest, SunnyDayScenario) {
                                std::cout << "Precommited: "
                                          << precommit.block_hash().data()
                                          << std::endl;
-                               return precommit.block_hash()
-                                          == best_block_hash
+                               return precommit.block_hash() == best_block_hash
                                       and precommit.id == kAlice;
                              })))
       .WillOnce(onPrecommitted(this));  // precommit;

@@ -13,12 +13,11 @@
 using namespace kagome::consensus::grandpa;
 using kagome::common::Hash256;
 
-template <typename Message>
 class VoteTrackerTest : public testing::Test {
  public:
-  using PushResult = typename VoteTracker<Message>::PushResult;
+  using PushResult = VoteTracker::PushResult;
 
-  VoteTrackerImpl<Message> tracker;
+  VoteTrackerImpl tracker;
   std::vector<Id> ids = {{"01"_hash256}, {"02"_hash256}, {"03"_hash256}};
   std::vector<Hash256> hashes = {
       "010203"_hash256, "040506"_hash256, "070809"_hash256};
@@ -34,11 +33,11 @@ class VoteTrackerTest : public testing::Test {
   SignedMessage createMessage(const Id &id, const Hash256 &hash) {
     SignedMessage m;
     m.id = id;
-	  Prevote msg;
-	  msg.block_hash = hash;
-		m.message = std::move(msg);
-//    kagome::visit_in_place(m.message,
-//                           [&hash](auto &msg) { msg.block_hash = hash; });
+    Prevote msg;
+    msg.block_hash = hash;
+    m.message = std::move(msg);
+    //    kagome::visit_in_place(m.message,
+    //                           [&hash](auto &msg) { msg.block_hash = hash; });
     return m;
   }
 
@@ -52,15 +51,13 @@ class VoteTrackerTest : public testing::Test {
       {createMessage(ids[1], hashes[1]), 1, PushResult::EQUIVOCATED}};
 };
 
-TYPED_TEST_CASE_P(VoteTrackerTest);
-
 /**
  * @given an empty vote tracker
  * @when pushing a vote to it
  * @then the result matches expectations (that are made according to push method
  * description)
  */
-TYPED_TEST_P(VoteTrackerTest, Push) {
+TEST_F(VoteTrackerTest, Push) {
   for (auto &[m, w, r] : this->test_messages) {
     ASSERT_EQ(this->tracker.push(m, w), r);
   }
@@ -71,11 +68,11 @@ TYPED_TEST_P(VoteTrackerTest, Push) {
  * @when pushing votes to it
  * @then the total weight is the weight of all non-duplicate votes
  */
-TYPED_TEST_P(VoteTrackerTest, Weight) {
+TEST_F(VoteTrackerTest, Weight) {
   size_t expected_weight = 0;
   for (auto &[m, w, r] : this->test_messages) {
     this->tracker.push(m, w);
-    if (r != VoteTrackerTest<TypeParam>::PushResult::DUPLICATED) {
+    if (r != VoteTrackerTest::PushResult::DUPLICATED) {
       expected_weight += w;
     }
   }
@@ -87,11 +84,11 @@ TYPED_TEST_P(VoteTrackerTest, Weight) {
  * @when pushing votes to it
  * @then the message set contains all non-duplicate messaged
  */
-TYPED_TEST_P(VoteTrackerTest, GetMessages) {
+TEST_F(VoteTrackerTest, GetMessages) {
   std::list<SignedMessage> expected;
   for (auto &[m, w, r] : this->test_messages) {
     this->tracker.push(m, w);
-    if (r != VoteTrackerTest<TypeParam>::PushResult::DUPLICATED) {
+    if (r != VoteTrackerTest::PushResult::DUPLICATED) {
       expected.push_back(m);
     }
   }
@@ -108,8 +105,7 @@ TYPED_TEST_P(VoteTrackerTest, GetMessages) {
                   [&](const typename decltype(
                       this->tracker)::VotingMessage &voting_message) {
                     return m.id == voting_message.id
-                           && m.block_hash()
-                                  == voting_message.block_hash();
+                           && m.block_hash() == voting_message.block_hash();
                   },
                   [&](const typename decltype(
                       this->tracker)::EquivocatoryVotingMessage
@@ -138,8 +134,8 @@ TYPED_TEST_P(VoteTrackerTest, GetMessages) {
  * and accepted, too, the third one is a DUPLICATE and is not accepted(e. g.
  * does not affect total weight)
  */
-TYPED_TEST_P(VoteTrackerTest, Equivocated) {
-  using PushResult = typename VoteTrackerTest<TypeParam>::PushResult;
+TEST_F(VoteTrackerTest, Equivocated) {
+  using PushResult = typename VoteTrackerTest::PushResult;
   ASSERT_EQ(
       this->tracker.push(this->createMessage(this->ids[0], this->hashes[0]), 3),
       PushResult::SUCCESS);
@@ -151,9 +147,3 @@ TYPED_TEST_P(VoteTrackerTest, Equivocated) {
       PushResult::DUPLICATED);
   ASSERT_EQ(this->tracker.getTotalWeight(), 4);
 }
-
-REGISTER_TYPED_TEST_CASE_P(
-    VoteTrackerTest, Push, Weight, GetMessages, Equivocated);
-
-using TestTypes = testing::Types<Prevote, Precommit>;
-INSTANTIATE_TYPED_TEST_CASE_P(VoteTrackerTests, VoteTrackerTest, TestTypes);

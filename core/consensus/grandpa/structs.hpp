@@ -62,6 +62,14 @@ namespace kagome::consensus::grandpa {
         return BlockInfo{vote.block_number, vote.block_hash};
       });
     }
+
+    bool operator==(const SignedMessage &rhs) const {
+      return message == rhs.message && signature == rhs.signature && id == id;
+    }
+
+    bool operator!=(const SignedMessage &rhs) const {
+      return !operator==(rhs);
+    }
   };
 
   template <class Stream,
@@ -83,10 +91,10 @@ namespace kagome::consensus::grandpa {
     return s >> signed_msg.signature >> signed_msg.id;
   }
 
-//  bool operator==(const SignedMessage &lhs, const SignedMessage &rhs) {
-//    return lhs.message == rhs.message && lhs.signature == rhs.signature
-//           && lhs.id == rhs.id;
-//  }
+  //  bool operator==(const SignedMessage &lhs, const SignedMessage &rhs) {
+  //    return lhs.message == rhs.message && lhs.signature == rhs.signature
+  //           && lhs.id == rhs.id;
+  //  }
 
   //  using SignedPrevote = SignedMessage<Prevote>;
   //  using SignedPrecommit = SignedMessage<Precommit>;

@@ -33,8 +33,8 @@ namespace kagome::consensus::grandpa {
       const GrandpaConfig &config,
       std::shared_ptr<Environment> env,
       std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
-      std::shared_ptr<VoteTracker<Prevote>> prevotes,
-      std::shared_ptr<VoteTracker<Precommit>> precommits,
+      std::shared_ptr<VoteTracker> prevotes,
+      std::shared_ptr<VoteTracker> precommits,
       std::shared_ptr<VoteGraph> graph,
       std::shared_ptr<Clock> clock,
       std::shared_ptr<boost::asio::io_context> io_context)
@@ -123,8 +123,7 @@ namespace kagome::consensus::grandpa {
       // check that every signed precommit corresponds to the vote (i.e.
       // signed_precommits are descendants of the vote). If so add weight of
       // that voter to the total weight
-      if (env_->getAncestry(vote.block_hash,
-                            signed_precommit.block_hash())) {
+      if (env_->getAncestry(vote.block_hash, signed_precommit.block_hash())) {
         total_weight +=
             voter_set_->voterWeight(signed_precommit.id)
                 .value_or(0);  // add zero if such voter does not exist
@@ -176,10 +175,10 @@ namespace kagome::consensus::grandpa {
     return round_number_;
   }
 
-  void VotingRoundImpl::onPrimaryPropose(
-      const SignedMessage &primary_propose) {
+  void VotingRoundImpl::onPrimaryPropose(const SignedMessage &primary_propose) {
     if (isPrimary(primary_propose.id)) {
-      primary_vote_ = PrimaryPropose{primary_propose.block_number(), primary_propose.block_hash()};
+      primary_vote_ = PrimaryPropose{primary_propose.block_number(),
+                                     primary_propose.block_hash()};
     }
   }
 
@@ -210,13 +209,13 @@ namespace kagome::consensus::grandpa {
   }
 
   void VotingRoundImpl::onSignedPrevote(const SignedMessage &vote) {
-  	// TODO check vote type is right
+    // TODO check vote type is right
     auto weight = voter_set_->voterWeight(vote.id);
     if (not weight) {
       return;
     }
     switch (prevotes_->push(vote, weight.value())) {
-      case VoteTracker<Prevote>::PushResult::SUCCESS: {
+      case VoteTracker::PushResult::SUCCESS: {
         const auto &voters = voter_set_->voters();
 
         // prepare VoteWeight which contains index of who has voted and what
@@ -237,10 +236,10 @@ namespace kagome::consensus::grandpa {
         }
         break;
       }
-      case VoteTracker<Prevote>::PushResult::DUPLICATED: {
+      case VoteTracker::PushResult::DUPLICATED: {
         break;
       }
-      case VoteTracker<Prevote>::PushResult::EQUIVOCATED: {
+      case VoteTracker::PushResult::EQUIVOCATED: {
         auto index = voter_set_->voterIndex(vote.id);
         if (not index) {
           logger_->warn("Voter {} is not known: {}", vote.id.toHex());
@@ -253,13 +252,13 @@ namespace kagome::consensus::grandpa {
   }
 
   bool VotingRoundImpl::onSignedPrecommit(const SignedMessage &vote) {
-  	// TODO check vote type is right
+    // TODO check vote type is right
     auto weight = voter_set_->voterWeight(vote.id);
     if (not weight) {
       return false;
     }
     switch (precommits_->push(vote, weight.value())) {
-      case VoteTracker<Precommit>::PushResult::SUCCESS: {
+      case VoteTracker::PushResult::SUCCESS: {
         const auto &voters = voter_set_->voters();
 
         // prepare VoteWeight which contains index of who has voted and what
@@ -281,10 +280,10 @@ namespace kagome::consensus::grandpa {
         }
         break;
       }
-      case VoteTracker<Precommit>::PushResult::DUPLICATED: {
+      case VoteTracker::PushResult::DUPLICATED: {
         return false;
       }
-      case VoteTracker<Precommit>::PushResult::EQUIVOCATED: {
+      case VoteTracker::PushResult::EQUIVOCATED: {
         auto index = voter_set_->voterIndex(vote.id);
         if (not index) {
           logger_->warn("Voter {} is not known: {}", vote.id.toHex());
@@ -687,14 +686,14 @@ namespace kagome::consensus::grandpa {
           visit_in_place(
               precommit_variant,
               [&j, this](const SignedMessage &voting_message) {
-		              // TODO check vote type is precommit
+                // TODO check vote type is precommit
                 if (env_->isEqualOrDescendOf(
                         cur_round_state_.finalized->block_hash,
                         voting_message.block_hash())) {
                   j.items.push_back(voting_message);
                 }
               },
-              [&](const VoteTracker<Precommit>::EquivocatoryVotingMessage
+              [&](const VoteTracker::EquivocatoryVotingMessage
                       &equivocatory_voting_message) {
                 j.items.push_back(equivocatory_voting_message.first);
                 j.items.push_back(equivocatory_voting_message.second);

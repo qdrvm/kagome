@@ -115,8 +115,8 @@ namespace kagome::consensus::grandpa {
     using std::chrono_literals::operator""ms;
     auto duration = Duration(3333ms);
 
-    auto prevote_tracker = std::make_shared<PrevoteTrackerImpl>();
-    auto precommit_tracker = std::make_shared<PrecommitTrackerImpl>();
+    auto prevote_tracker = std::make_shared<VoteTrackerImpl>();
+    auto precommit_tracker = std::make_shared<VoteTrackerImpl>();
 
     auto vote_graph = std::make_shared<VoteGraphImpl>(
         last_round_state.finalized.value(), environment_);
@@ -180,13 +180,13 @@ namespace kagome::consensus::grandpa {
     if (msg.round_number == current_round_number) {
       visit_in_place(
           msg.vote.message,
-          [&current_round,&msg](const PrimaryPropose &primary_propose) {
+          [&current_round, &msg](const PrimaryPropose &primary_propose) {
             current_round->onPrimaryPropose(msg.vote);
           },
-          [&current_round,&msg](const Prevote &prevote) {
+          [&current_round, &msg](const Prevote &prevote) {
             current_round->onPrevote(msg.vote);
           },
-          [&current_round,&msg](const Precommit &precommit) {
+          [&current_round, &msg](const Precommit &precommit) {
             current_round->onPrecommit(msg.vote);
           });
     }

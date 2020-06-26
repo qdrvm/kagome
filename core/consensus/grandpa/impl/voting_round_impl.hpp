@@ -30,8 +30,8 @@ namespace kagome::consensus::grandpa {
     VotingRoundImpl(const GrandpaConfig &config,
                     std::shared_ptr<Environment> env,
                     std::shared_ptr<VoteCryptoProvider> vote_crypto_provider,
-                    std::shared_ptr<VoteTracker<Prevote>> prevotes,
-                    std::shared_ptr<VoteTracker<Precommit>> precommits,
+                    std::shared_ptr<VoteTracker> prevotes,
+                    std::shared_ptr<VoteTracker> precommits,
                     std::shared_ptr<VoteGraph> graph,
                     std::shared_ptr<Clock> clock,
                     std::shared_ptr<boost::asio::io_context> io_context);
@@ -185,8 +185,8 @@ namespace kagome::consensus::grandpa {
     State state_;
     size_t threshold_;  // supermajority threshold
 
-    std::shared_ptr<VoteTracker<Prevote>> prevotes_;
-    std::shared_ptr<VoteTracker<Precommit>> precommits_;
+    std::shared_ptr<VoteTracker> prevotes_;
+    std::shared_ptr<VoteTracker> precommits_;
     std::shared_ptr<VoteGraph> graph_;
 
     std::shared_ptr<Clock> clock_;
