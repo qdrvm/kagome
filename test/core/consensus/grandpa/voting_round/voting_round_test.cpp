@@ -345,13 +345,13 @@ ACTION_P(onPrevoted, test_fixture) {
   test_fixture->voting_round_->onPrevote(signed_prevote);
   // send Bob's prevote
   test_fixture->voting_round_->onPrevote(
-      SignedMessage{.signature = test_fixture->kBobSignature,
-                    .message = signed_prevote.message,
+      SignedMessage{.message = signed_prevote.message,
+                    .signature = test_fixture->kBobSignature,
                     .id = test_fixture->kBob});
   // send Eve's prevote
   test_fixture->voting_round_->onPrevote(
-      SignedMessage{.signature = test_fixture->kEveSignature,
-                    .message = signed_prevote.message,
+      SignedMessage{.message = signed_prevote.message,
+                    .signature = test_fixture->kEveSignature,
                     .id = test_fixture->kEve});
   return outcome::success();
 }
@@ -364,13 +364,13 @@ ACTION_P(onPrecommitted, test_fixture) {
   test_fixture->voting_round_->onPrecommit(signed_precommit);
   // send Bob's precommit
   test_fixture->voting_round_->onPrecommit(
-      SignedMessage{.signature = test_fixture->kBobSignature,
-                    .message = signed_precommit.message,
+      SignedMessage{.message = signed_precommit.message,
+                    .signature = test_fixture->kBobSignature,
                     .id = test_fixture->kBob});
 //  // send Eve's precommit
 //  test_fixture->voting_round_->onPrecommit(
-//      SignedMessage{.signature = test_fixture->kEveSignature,
-//                    .message = signed_precommit.message,
+//      SignedMessage{.message = signed_precommit.message,
+//                    .signature = test_fixture->kEveSignature,
 //                    .id = test_fixture->kEve});
   return outcome::success();
 }
