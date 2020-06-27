@@ -345,14 +345,14 @@ ACTION_P(onPrevoted, test_fixture) {
   test_fixture->voting_round_->onPrevote(signed_prevote);
   // send Bob's prevote
   test_fixture->voting_round_->onPrevote(
-      SignedMessage{.id = test_fixture->kBob,
-                    .signature = test_fixture->kBobSignature,
-                    .message = signed_prevote.message});
+      SignedMessage{.signature = test_fixture->kBobSignature,
+                    .message = signed_prevote.message,
+                    .id = test_fixture->kBob});
   // send Eve's prevote
   test_fixture->voting_round_->onPrevote(
-      SignedMessage{.id = test_fixture->kEve,
-                    .signature = test_fixture->kEveSignature,
-                    .message = signed_prevote.message});
+      SignedMessage{.signature = test_fixture->kEveSignature,
+                    .message = signed_prevote.message,
+                    .id = test_fixture->kEve});
   return outcome::success();
 }
 
@@ -364,15 +364,14 @@ ACTION_P(onPrecommitted, test_fixture) {
   test_fixture->voting_round_->onPrecommit(signed_precommit);
   // send Bob's precommit
   test_fixture->voting_round_->onPrecommit(
-      SignedMessage{.id = test_fixture->kBob,
-                    .signature = test_fixture->kBobSignature,
-                    .message = signed_precommit.message});
-  //  // send Eve's precommit
-  //  test_fixture->voting_round_->onPrecommit(
-  //      SignedMessage(.id = test_fixture->kEve,
-  //                                     .signature =
-  //                                     test_fixture->kEveSignature, .message =
-  //                                     signed_precommit.message));
+      SignedMessage{.signature = test_fixture->kBobSignature,
+                    .message = signed_precommit.message,
+                    .id = test_fixture->kBob});
+//  // send Eve's precommit
+//  test_fixture->voting_round_->onPrecommit(
+//      SignedMessage{.signature = test_fixture->kEveSignature,
+//                    .message = signed_precommit.message,
+//                    .id = test_fixture->kEve});
   return outcome::success();
 }
 
