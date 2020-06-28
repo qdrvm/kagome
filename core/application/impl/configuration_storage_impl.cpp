@@ -7,6 +7,7 @@
 
 #include <boost/property_tree/json_parser.hpp>
 #include <libp2p/multi/multiaddress.hpp>
+
 #include "application/impl/config_reader/error.hpp"
 #include "application/impl/config_reader/pt_util.hpp"
 #include "common/hexutil.hpp"
@@ -51,16 +52,23 @@ namespace kagome::application {
     OUTCOME_TRY(genesis_tree, ensure(tree.get_child_optional("genesis")));
     OUTCOME_TRY(genesis_raw_tree,
                 ensure(genesis_tree.get_child_optional("raw")));
-    OUTCOME_TRY(genesis_top_tree,
-                ensure(genesis_raw_tree.get_child_optional("top")));
+    boost::property_tree::ptree top_tree;
+    // v0.7 format
+    if(auto top_tree_opt = genesis_raw_tree.get_child_optional("top"); top_tree_opt.has_value()) {
+      top_tree = std::move(top_tree_opt.value());
+    } else {
+      // Try to fall back to v0.6
+      top_tree = std::move(genesis_raw_tree.begin()->second);
+    }
 
-    for (const auto &[key, value] : genesis_top_tree) {
+    for (const auto &[key, value] : top_tree) {
       // get rid of leading 0x for key and value and unhex
       OUTCOME_TRY(key_processed, common::unhexWith0x(key));
       OUTCOME_TRY(value_processed, common::unhexWith0x(value.data()));
       genesis_.emplace_back(key_processed, value_processed);
     }
-    // ignore child storage as they are not yet implemented
+    // ignore child storages as they are not yet implemented
+
     return outcome::success();
   }
 

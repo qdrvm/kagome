@@ -17,12 +17,10 @@
     "tokenSymbol": "DOT"
   },
   "genesis": {
-    "raw": {
-      "top": {
+    "raw": [{
         "0x01": "0xaa",
         "0x02": "0xbb"
-      },
-      "childrenDefault": {}
-    }
+      }, {}
+    ]
   }
 }
