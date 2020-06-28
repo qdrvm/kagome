@@ -84,7 +84,7 @@ namespace kagome::consensus::grandpa {
       RoundNumber round,
       MembershipCounter set_id,
       const SignedMessage &prevote) {
-    BOOST_ASSERT(prevote.is<Precommit>());
+    BOOST_ASSERT(prevote.is<Prevote>());
     VoteMessage message{
         .round_number = round, .counter = set_id, .vote = prevote};
     gossiper_->vote(message);

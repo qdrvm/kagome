@@ -34,7 +34,7 @@ namespace kagome::consensus::grandpa {
 
   bool VoteCryptoProviderImpl::verifyPrevote(
       const SignedMessage &prevote) const {
-    if (!prevote.is<Precommit>()) {
+    if (!prevote.is<Prevote>()) {
       return false;
     }
     auto payload =
@@ -66,24 +66,27 @@ namespace kagome::consensus::grandpa {
   SignedMessage VoteCryptoProviderImpl::signPrimaryPropose(
       const PrimaryPropose &primary_propose) const {
     Vote vote(primary_propose);
+    auto sign = voteSignature(vote);
     return {.message = std::move(vote),
-            .signature = voteSignature(vote),
+            .signature = std::move(sign),
             .id = keypair_.public_key};
   }
 
   SignedMessage VoteCryptoProviderImpl::signPrevote(
       const Prevote &prevote) const {
     Vote vote(prevote);
+    auto sign = voteSignature(vote);
     return {.message = std::move(vote),
-            .signature = voteSignature(vote),
+            .signature = std::move(sign),
             .id = keypair_.public_key};
   }
 
   SignedMessage VoteCryptoProviderImpl::signPrecommit(
       const Precommit &precommit) const {
     Vote vote(precommit);
+    auto sign = voteSignature(vote);
     return {.message = std::move(vote),
-            .signature = voteSignature(vote),
+            .signature = std::move(sign),
             .id = keypair_.public_key};
   }
 }  // namespace kagome::consensus::grandpa
