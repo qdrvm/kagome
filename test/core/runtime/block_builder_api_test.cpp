@@ -44,7 +44,7 @@ class BlockBuilderApiTest : public RuntimeTest {
  * were valid
  */
 TEST_F(BlockBuilderApiTest, CheckInherents) {
-  EXPECT_OUTCOME_FALSE_1(
+  EXPECT_OUTCOME_TRUE_1(
       builder_->check_inherents(createBlock(), InherentData{}));
 }
 
@@ -55,8 +55,18 @@ TEST_F(BlockBuilderApiTest, CheckInherents) {
  * were valid
  */
 TEST_F(BlockBuilderApiTest, ApplyExtrinsic) {
-  EXPECT_OUTCOME_FALSE_1(builder_->apply_extrinsic(Extrinsic{Buffer{1, 2, 3}}));
+  EXPECT_OUTCOME_TRUE_1(builder_->apply_extrinsic(Extrinsic{Buffer{1, 2, 3}}));
 }
+
+/**
+ * @given block builder
+ * @when calling apply_extrinsic runtime function
+ * @then the result of the check is obtained given that the provided arguments
+ * were valid
+ *//*
+TEST_F(BlockBuilderApiTest, ApplyExtrinsic) {
+  EXPECT_OUTCOME_FALSE_1(builder_->apply_extrinsic(Extrinsic{Buffer{1, 2, 3}}));
+}*/
 
 /**
  * @given block builder
