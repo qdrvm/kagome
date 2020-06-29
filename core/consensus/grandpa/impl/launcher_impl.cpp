@@ -22,12 +22,14 @@ namespace kagome::consensus::grandpa {
       std::shared_ptr<Environment> environment,
       std::shared_ptr<storage::BufferStorage> storage,
       std::shared_ptr<crypto::ED25519Provider> crypto_provider,
+      std::shared_ptr<runtime::Grandpa> grandpa_api,
       const crypto::ED25519Keypair &keypair,
       std::shared_ptr<Clock> clock,
       std::shared_ptr<boost::asio::io_context> io_context)
       : environment_{std::move(environment)},
         storage_{std::move(storage)},
         crypto_provider_{std::move(crypto_provider)},
+        grandpa_api_{std::move(grandpa_api)},
         keypair_{keypair},
         clock_{std::move(clock)},
         io_context_{std::move(io_context)},
@@ -35,6 +37,7 @@ namespace kagome::consensus::grandpa {
     BOOST_ASSERT(environment_ != nullptr);
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(crypto_provider_ != nullptr);
+    BOOST_ASSERT(grandpa_api_ != nullptr);
     BOOST_ASSERT(clock_ != nullptr);
     BOOST_ASSERT(io_context_ != nullptr);
     // lambda which is executed when voting round is completed. This lambda
@@ -177,20 +180,50 @@ namespace kagome::consensus::grandpa {
   void LauncherImpl::onVoteMessage(const VoteMessage &msg) {
     auto current_round = current_round_;
     auto current_round_number = current_round->roundNumber();
-    // TODO(xDimon): Implement mechanism to check if signer is known
-    if (msg.round_number == current_round_number) {
-      visit_in_place(
-          msg.vote.message,
-          [&current_round, &msg](const PrimaryPropose &primary_propose) {
-            current_round->onPrimaryPropose(msg.vote);
-          },
-          [&current_round, &msg](const Prevote &prevote) {
-            current_round->onPrevote(msg.vote);
-          },
-          [&current_round, &msg](const Precommit &precommit) {
-            current_round->onPrecommit(msg.vote);
-          });
+
+    // ensure we are in current round
+    if (msg.round_number != current_round_number) {
+      return;
     }
+
+    // get block info
+    auto blockInfo = visit_in_place(msg.vote.message, [](const auto &vote) {
+      return BlockInfo(vote.block_number, vote.block_hash);
+    });
+
+    // get authorities
+    const auto &weighted_authorities_res =
+        grandpa_api_->authorities(primitives::BlockId(blockInfo.block_number));
+    if (!weighted_authorities_res.has_value()) {
+      logger_->error("Can't get authorities");
+      return;
+    };
+    auto &weighted_authorities = weighted_authorities_res.value();
+
+    // find signer in authorities
+    auto weighted_authority_it =
+        std::find_if(weighted_authorities.begin(),
+                     weighted_authorities.end(),
+                     [&id = msg.vote.id](const auto &weighted_authority) {
+                       return weighted_authority.id.id == id;
+                     });
+
+    if (weighted_authority_it == weighted_authorities.end()) {
+      logger_->warn("Vote signed by unknown validator");
+      return;
+    };
+
+    visit_in_place(
+        msg.vote.message,
+        [&current_round, &msg](const PrimaryPropose &primary_propose) {
+          current_round->onPrimaryPropose(msg.vote);
+        },
+        [&current_round, &msg](const Prevote &prevote) {
+          current_round->onPrevote(msg.vote);
+        },
+        [&current_round, &msg](const Precommit &precommit) {
+          current_round->onPrecommit(msg.vote);
+        });
   }
 
   void LauncherImpl::onFinalize(const Fin &f) {
