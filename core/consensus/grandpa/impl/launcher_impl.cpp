@@ -115,8 +115,8 @@ namespace kagome::consensus::grandpa {
     using std::chrono_literals::operator""ms;
     auto duration = Duration(3333ms);
 
-    auto prevote_tracker = std::make_shared<PrevoteTrackerImpl>();
-    auto precommit_tracker = std::make_shared<PrecommitTrackerImpl>();
+    auto prevote_tracker = std::make_shared<VoteTrackerImpl>();
+    auto precommit_tracker = std::make_shared<VoteTrackerImpl>();
 
     auto vote_graph = std::make_shared<VoteGraphImpl>(
         last_round_state.finalized.value(), environment_);
@@ -177,17 +177,18 @@ namespace kagome::consensus::grandpa {
   void LauncherImpl::onVoteMessage(const VoteMessage &msg) {
     auto current_round = current_round_;
     auto current_round_number = current_round->roundNumber();
+    // TODO(xDimon): Implement mechanism to check if signer is known
     if (msg.round_number == current_round_number) {
       visit_in_place(
-          msg.vote,
-          [&current_round](const SignedPrimaryPropose &primary_propose) {
-            current_round->onPrimaryPropose(primary_propose);
+          msg.vote.message,
+          [&current_round, &msg](const PrimaryPropose &primary_propose) {
+            current_round->onPrimaryPropose(msg.vote);
           },
-          [&current_round](const SignedPrevote &prevote) {
-            current_round->onPrevote(prevote);
+          [&current_round, &msg](const Prevote &prevote) {
+            current_round->onPrevote(msg.vote);
           },
-          [&current_round](const SignedPrecommit &precommit) {
-            current_round->onPrecommit(precommit);
+          [&current_round, &msg](const Precommit &precommit) {
+            current_round->onPrecommit(msg.vote);
           });
     }
   }

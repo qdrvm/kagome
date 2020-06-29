@@ -22,19 +22,17 @@ namespace kagome::consensus::grandpa {
                            std::shared_ptr<VoterSet> voter_set);
 
     bool verifyPrimaryPropose(
-        const SignedPrimaryPropose &primary_propose) const override;
-    bool verifyPrevote(const SignedPrevote &prevote) const override;
-    bool verifyPrecommit(const SignedPrecommit &precommit) const override;
+        const SignedMessage &primary_propose) const override;
+    bool verifyPrevote(const SignedMessage &prevote) const override;
+    bool verifyPrecommit(const SignedMessage &precommit) const override;
 
-    SignedPrimaryPropose signPrimaryPropose(
+    SignedMessage signPrimaryPropose(
         const PrimaryPropose &primary_propose) const override;
-    SignedPrevote signPrevote(const Prevote &prevote) const override;
-    SignedPrecommit signPrecommit(const Precommit &precommit) const override;
+    SignedMessage signPrevote(const Prevote &prevote) const override;
+    SignedMessage signPrecommit(const Precommit &precommit) const override;
 
    private:
-    template <typename VoteType>
-    crypto::ED25519Signature voteSignature(uint8_t stage,
-                                           const VoteType &vote_type) const;
+    crypto::ED25519Signature voteSignature(const Vote &vote) const;
 
     crypto::ED25519Keypair keypair_;
     std::shared_ptr<crypto::ED25519Provider> ed_provider_;

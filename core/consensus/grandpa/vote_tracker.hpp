@@ -15,14 +15,11 @@ namespace kagome::consensus::grandpa {
    * reports if a messages that is being put into it is a duplicate or an
    * equivote (which is the case when a node votes for two different blocks
    * during a round)
-   * @tparam MessageType is the type of a message stored in the tracker. Note
-   * that it is wrapped into a SignedMessage
    */
-  template <typename MessageType>
   class VoteTracker {
    public:
     enum class PushResult { SUCCESS, DUPLICATED, EQUIVOCATED };
-    using VotingMessage = SignedMessage<MessageType>;
+    using VotingMessage = SignedMessage;
     using EquivocatoryVotingMessage = std::pair<VotingMessage, VotingMessage>;
     using VoteVariant =
         boost::variant<VotingMessage, EquivocatoryVotingMessage>;
