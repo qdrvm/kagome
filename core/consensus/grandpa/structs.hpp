@@ -91,19 +91,8 @@ namespace kagome::consensus::grandpa {
     s >> encoded_vote;
     auto decoded_vote = scale::template decode<Vote>(encoded_vote).value();
     signed_msg.message = decoded_vote;
-    //    signed_msg.message = Stream::template
-    //    decode<Vote>(encoded_vote).value();
     return s >> signed_msg.signature >> signed_msg.id;
   }
-
-  //  bool operator==(const SignedMessage &lhs, const SignedMessage &rhs) {
-  //    return lhs.message == rhs.message && lhs.signature == rhs.signature
-  //           && lhs.id == rhs.id;
-  //  }
-
-  //  using SignedPrevote = SignedMessage<Prevote>;
-  //  using SignedPrecommit = SignedMessage<Precommit>;
-  //  using SignedPrimaryPropose = SignedMessage<PrimaryPropose>;
 
   template <typename Message>
   struct Equivocated {

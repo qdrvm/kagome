@@ -36,8 +36,6 @@ class VoteTrackerTest : public testing::Test {
     Prevote msg;
     msg.block_hash = hash;
     m.message = std::move(msg);
-    //    kagome::visit_in_place(m.message,
-    //                           [&hash](auto &msg) { msg.block_hash = hash; });
     return m;
   }
 

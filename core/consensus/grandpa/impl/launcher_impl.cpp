@@ -177,6 +177,7 @@ namespace kagome::consensus::grandpa {
   void LauncherImpl::onVoteMessage(const VoteMessage &msg) {
     auto current_round = current_round_;
     auto current_round_number = current_round->roundNumber();
+    // TODO(xDimon): Implement mechanism to check if signer is known
     if (msg.round_number == current_round_number) {
       visit_in_place(
           msg.vote.message,
