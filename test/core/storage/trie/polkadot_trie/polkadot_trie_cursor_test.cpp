@@ -131,16 +131,16 @@ TEST_F(PolkadotTrieCursorTest, BigPseudoRandomTrieRandomStart) {
 }
 
 TEST_F(PolkadotTrieCursorTest, Lexicographical) {
-  std::vector<std::pair<Buffer, Buffer>> vals{{"ab"_buf, Buffer{1}},
-                                              {"ac"_buf, Buffer{3}},
-                                              {"acd"_buf, Buffer{2}},
-                                              {"e"_buf, Buffer{7}},
-                                              {"f"_buf, Buffer{8}},
-                                              {"fg"_buf, Buffer{4}},
-                                              {"fgh"_buf, Buffer{5}},
-                                              {"fgha"_buf, Buffer{6}},
-                                              {"fghb"_buf, Buffer{7}},
-                                              {"fghc"_buf, Buffer{8}}
+  std::vector<std::pair<Buffer, Buffer>> vals{{"0102"_hex2buf, Buffer{1}},
+                                              {"0103"_hex2buf, Buffer{3}},
+                                              {"010304"_hex2buf, Buffer{2}},
+                                              {"05"_hex2buf, Buffer{7}},
+                                              {"06"_hex2buf, Buffer{8}},
+                                              {"0607"_hex2buf, Buffer{4}},
+                                              {"060708"_hex2buf, Buffer{5}},
+                                              {"06070801"_hex2buf, Buffer{6}},
+                                              {"06070802"_hex2buf, Buffer{7}},
+                                              {"06070803"_hex2buf, Buffer{8}}
   };
   auto trie = makeTrie(vals);
   std::cout << *trie << "\n";

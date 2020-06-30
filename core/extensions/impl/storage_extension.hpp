@@ -93,7 +93,7 @@ namespace kagome::extensions {
     /**
      * @see Extension::ext_storage_root
      */
-    runtime::WasmPointer ext_storage_next_key_version_1(runtime::WasmPointer key) const;
+    runtime::WasmSpan ext_storage_next_key_version_1(runtime::WasmSpan key) const;
 
    private:
     /**

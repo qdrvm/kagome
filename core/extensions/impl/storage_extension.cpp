@@ -258,13 +258,38 @@ namespace kagome::extensions {
     }
   }
 
-  runtime::WasmPointer StorageExtension::ext_storage_next_key_version_1(
-      runtime::WasmPointer key_ptr) const {
-    auto key_bytes =
-        memory_->loadN(key_ptr, common::Hash256::size());
+  runtime::WasmSpan StorageExtension::ext_storage_next_key_version_1(
+      runtime::WasmSpan key_span) const {
+    auto key_ptr = key_span & 0x0000'0000'FFFF'FFFF;
+    auto key_size = key_span & 0xFFFF'FFFF'0000'0000;
+    auto key_bytes = memory_->loadN(key_ptr, key_size);
     auto batch = storage_provider_->getCurrentBatch();
-    Polk
-
+    auto cursor = batch->cursor();
+    if (auto res = cursor->seek(key_bytes); res.has_error()) {
+      logger_->error("ext_storage_next_key seek failed: {}",
+                     res.error().message());
+      return -1;
+    }
+    if (auto res = cursor->next(); res.has_error()) {
+      logger_->error("ext_storage_next_key next failed: {}",
+                     res.error().message());
+      return -1;
+    }
+    if (cursor->isValid()) {
+      Buffer key;
+      if (auto res = cursor->key(); res.has_error()) {
+        logger_->error("ext_storage_next_key get key failed: {}",
+                       res.error().message());
+        return -1;
+      } else {
+        key = std::move(res.value());
+      }
+      auto res = memory_->allocate(key.size());
+      memory_->storeBuffer(res, key);
+      runtime::WasmSpan res_span =
+          (uint64_t(key_size) << 32) | uint64_t(key_ptr);
+      return res_span;
+    }
   }
 
   outcome::result<common::Buffer> StorageExtension::get(
